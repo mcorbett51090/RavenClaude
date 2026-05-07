@@ -1,0 +1,3 @@
+# Domain skills land here. One subdirectory per skill, each containing at least:
+#   skills/<skill-name>/README.md   # When to use, how to use, worked examples.
+# Supporting files (prompts, scripts, templates) live alongside the README.

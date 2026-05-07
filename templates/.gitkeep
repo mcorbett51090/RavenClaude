@@ -1,0 +1,3 @@
+# Reusable file templates — config scaffolds, prompt templates, doc shells, etc.
+# One file or subdirectory per template. Include a header explaining the substitution
+# points and what a finished, filled-in version looks like.
