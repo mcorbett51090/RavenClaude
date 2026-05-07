@@ -1,0 +1,9 @@
+{
+  "name": "RavenClaude",
+  "image": "mcr.microsoft.com/devcontainers/universal:2-linux",
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "remoteUser": "codespace",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  }
+}
