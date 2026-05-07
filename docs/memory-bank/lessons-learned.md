@@ -24,6 +24,29 @@ Each entry is a dated section. Reverse-chronological order (newest first).
 
 ---
 
+## 2026-05-07 — PSM discipline = quarterly QBR + per-partner success plan + visible health score (with EdTech overlay)
+
+**Context:** Designed a `partner-success-manager` agent for an EdTech Partner Success Manager (communication / translation / rostering) who is also her team's AI champion.
+
+**What we tried first:** A generic Partner Success Manager agent design with the standard PSM artifacts (profile, success plan, QBR, health, onboarding, touchpoints).
+
+**Why it would have fallen short:** The generic version missed three context dimensions that turned out to dominate the role's reality: (1) **EdTech school-year cadence** — rostering crunch, EOY data, renewal cycles all map to the academic calendar, not Q1/Q2/Q3/Q4; (2) the user's **high-touch support background** — her instinct to invest time in upfront enablement to prevent downstream tickets is well-supported in PSM literature and should be reinforced, not flattened into a generic onboarding checklist; (3) her unique team responsibility as **AI champion** — every useful interaction with the agent is a candidate for a team-shared workflow library, not a one-off win.
+
+**What works:** The PSM discipline rule is parallel to the PMP version: **quarterly QBR cadence + per-partner success plan + visible health scoring**. Plus three context overlays:
+- **EdTech school-year awareness** baked into the onboarding checklist, success-plan milestones, and QBR prompts.
+- **High-touch DNA reinforcement** in the onboarding flow (proactive demos, district IT alignment, integration validation up front).
+- An **AI workflow library** that grows organically as useful patterns surface, with the agent prompting *"should this become a library entry?"* when it produces something reusable.
+
+**How to apply:**
+- For any role-design ask, hunt for the **discipline rule** first — the cadence + ownership + format triad that separates real practice from theater. PMP and PSM both have it; other roles likely do too.
+- When the role lives in a specific industry (EdTech, healthcare, financial services), bake the industry's **calendar / cadence** into the templates, not just the agent description.
+- When the user is the **AI champion** for their team, make the agent transparent about *how* it does things, so the user can replicate and teach the move. Treat agent interactions as training data for the team.
+- A high-touch / proactive-setup philosophy is a real strength in PSM work — design for it explicitly, don't flatten it.
+
+**Trace:** Researched 2026-05-07 against SaasPedia, Impartner, PartnerStack, PARTNERNOMICS, TSIA, and Gainsight QBR resources. Driven by Matt's request for an agent for his wife (new EdTech PSM, AI champion). Implemented in `.claude/agents/partner-success-manager.md` and 7 templates under `templates/partner-success/`.
+
+---
+
 ## 2026-05-07 — PMP discipline = weekly cadence + single ownership + same format
 
 **Context:** Building a PMP-grade `project-manager` agent for cross-domain consulting work.
