@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "ravenclaude",
+  "owner": {
+    "name": "Matt Corbett",
+    "email": "matt@ravenpower.net"
+  },
+  "metadata": {
+    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. Starts with ravenclaude-core (the Team Lead + specialists pattern) and grows to include domain-specific plugins for Power Platform, finance, EdTech, and Salesforce work.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "ravenclaude-core",
+      "source": "./plugins/ravenclaude-core",
+      "description": "Domain-neutral Claude Code plugin: 13 specialist agents (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, etc.), team-lead dispatch playbook, format/lint/test gates, and templates for memos, runbooks, design specs, RAID logs, and partner-success artifacts.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett",
+        "email": "matt@ravenpower.net"
+      }
+    }
+  ]
+}
