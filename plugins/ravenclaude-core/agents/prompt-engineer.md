@@ -82,7 +82,7 @@ When asked to review (or proactively when scanning the library):
 ```
 
 ### 3. Factor reusable patterns into skills
-When a pattern shows up in 3+ agents, lift it into a skill under `.claude/skills/<pattern-name>.md`. Examples of liftable patterns: structured-output contracts, hand-off rules, accessibility checklists, citation formats. Replace the duplicated section in the agent files with a `See [pattern-name](../skills/pattern-name.md).` link.
+When a pattern shows up in 3+ agents, lift it into a skill under `.claude/skills/<pattern-name>.md`. Examples of liftable patterns: structured-output contracts, hand-off rules, accessibility checklists, citation formats. Replace the duplicated section in the agent files with a `See [<pattern-name>](../skills/<pattern-name>.md).` link.
 
 ### 4. Naming and structure consistency
 Run periodic sweeps. Things that drift over time: section ordering, frontmatter field names, "Boundaries" vs. "Limits" vs. "Out of scope" headings, model choices, tool lists. Pick canonical forms; surface deviations.
