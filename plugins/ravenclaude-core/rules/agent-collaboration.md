@@ -3,8 +3,8 @@
 Expands on §5 of CLAUDE.md. This file is the contract between the Team Lead and sub-agents.
 
 ## Roles in one line
-- **Team Lead** — top-level Claude. Owns the user relationship, decomposes work, dispatches agents, integrates results, opens PRs.
-- **Sub-agents** — specialists (architect, coder, tester, reviewer). Each runs in isolation, sees only the brief it was given, returns a structured report.
+- **Team Lead** — top-level Claude. Owns the user relationship, decomposes work, dispatches agents, integrates results, opens PRs. Loads the [`spawn-team`](../skills/spawn-team.md) skill when dispatching multiple agents — that's the routing playbook.
+- **Sub-agents** — specialists (architect, coders, tester, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer). Each runs in isolation, sees only the brief it was given, returns a structured report.
 
 ## The dispatch tree
 The dependency graph is a **tree**, never a graph with cycles or peer calls.
