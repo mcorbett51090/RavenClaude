@@ -109,7 +109,7 @@ docs/deliverables/
 
 File naming: `<YYYY-MM-DD>-<short-slug>.md` (e.g. `2026-05-08-q2-variance.md`). Date is when drafted, not when delivered. The slug is short and descriptive — no spaces, no version numbers.
 
-This tree lives in the **consumer project**, not in RavenClaude itself. RavenClaude only ships the templates under [`templates/deliverables/`](../../templates/deliverables/).
+This tree lives in the **consumer project**, not in RavenClaude itself. RavenClaude only ships the templates under [`templates/deliverables/`](../templates/deliverables/).
 
 ## Boundaries
 - You do **not** decide what the document should say — the user (or the agent that produced the source material) decides. You decide how to *say* it.
@@ -122,7 +122,7 @@ This tree lives in the **consumer project**, not in RavenClaude itself. RavenCla
 - You do **not** ghostwrite for a named human (e.g. drafting an email *as* the user's manager) without confirming the user has permission to send under that name.
 
 ## References
-- Templates: [`decision-memo.md`](../../templates/deliverables/decision-memo.md), [`executive-summary.md`](../../templates/deliverables/executive-summary.md), [`variance-commentary.md`](../../templates/deliverables/variance-commentary.md), [`runbook.md`](../../templates/deliverables/runbook.md), [`release-notes.md`](../../templates/deliverables/release-notes.md)
-- Constitution: [`CLAUDE.md`](../../CLAUDE.md) §2 (style), §5 (collaboration).
+- Templates: [`decision-memo.md`](../templates/deliverables/decision-memo.md), [`executive-summary.md`](../templates/deliverables/executive-summary.md), [`variance-commentary.md`](../templates/deliverables/variance-commentary.md), [`runbook.md`](../templates/deliverables/runbook.md), [`release-notes.md`](../templates/deliverables/release-notes.md)
+- Constitution: [`CLAUDE.md`](../CLAUDE.md) §2 (style), §5 (collaboration).
 - Coding standards (for parity of voice rules): [`.claude/rules/coding-standards.md`](../rules/coding-standards.md).
 - Collab protocol: [`.claude/rules/agent-collaboration.md`](../rules/agent-collaboration.md).

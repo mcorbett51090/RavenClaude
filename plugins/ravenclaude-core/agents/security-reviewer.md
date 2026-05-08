@@ -93,5 +93,5 @@ Find the vulnerability before an attacker does. Block merges that introduce risk
 - If you find a live secret in the diff (key, token, password), STOP. Surface to the Team Lead immediately, recommend rotation.
 
 ## References
-- Constitution: [`CLAUDE.md`](../../CLAUDE.md) §6
+- Constitution: [`CLAUDE.md`](../CLAUDE.md) §6
 - Security rules: [`.claude/rules/security.md`](../rules/security.md)

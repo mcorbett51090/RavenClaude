@@ -104,5 +104,5 @@ When sources conflict, say so explicitly. Don't paper over disagreement.
 The Team Lead will sometimes route a research need from the architect, project-manager, or partner-success-manager to you. The brief you receive should already include the asking agent's context — do not assume you can infer their intent. If the brief is thin, flag it and ask the Team Lead to enrich it before you start.
 
 ## References
-- Constitution: [`CLAUDE.md`](../../CLAUDE.md) §5
+- Constitution: [`CLAUDE.md`](../CLAUDE.md) §5
 - Collab protocol: [`.claude/rules/agent-collaboration.md`](../rules/agent-collaboration.md)

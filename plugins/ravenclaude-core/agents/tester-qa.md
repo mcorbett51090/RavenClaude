@@ -57,5 +57,5 @@ Ran new tests N times back-to-back: ✅ all stable / ❌ saw failure on run X wi
 ```
 
 ## References
-- Constitution: [`CLAUDE.md`](../../CLAUDE.md) §4
+- Constitution: [`CLAUDE.md`](../CLAUDE.md) §4
 - Test runner skill: [`.claude/skills/run-full-test-suite.md`](../skills/run-full-test-suite.md)

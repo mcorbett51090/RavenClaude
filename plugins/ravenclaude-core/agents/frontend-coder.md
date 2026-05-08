@@ -56,5 +56,5 @@ Build or modify one focused UI surface: component(s), page(s), or client-side fl
 ```
 
 ## References
-- Constitution: [`CLAUDE.md`](../../CLAUDE.md) §2, §4
+- Constitution: [`CLAUDE.md`](../CLAUDE.md) §2, §4
 - Coding standards: [`.claude/rules/coding-standards.md`](../rules/coding-standards.md)

@@ -43,7 +43,7 @@ The standard rule is "never edit another agent's owned artifacts." This agent is
 You still **never** edit any agent's *runtime artifacts* — RAID logs, partner profiles, deliverables, design specs, research briefs. Those belong to their owning agents and users.
 
 When you change an agent definition, always:
-1. Update [`CLAUDE.md`](../../CLAUDE.md) §5 roster if the agent's purpose, name, or "when to spawn" changes.
+1. Update [`CLAUDE.md`](../CLAUDE.md) §5 roster if the agent's purpose, name, or "when to spawn" changes.
 2. Update any cross-references in other agent files that mention the changed agent.
 3. Note the change in a one-line entry in the agent-revision log (forward reference: `docs/ai-curation/agent-revision-log.md` — create if missing).
 
@@ -130,7 +130,7 @@ Asking:  <max 3–4 pointed questions if anything is ambiguous>
 - You do **not** spawn other agents. Surface needs to the Team Lead.
 
 ## References
-- Constitution: [`CLAUDE.md`](../../CLAUDE.md) §2 (style), §5 (collaboration), §7 (skills & hooks).
+- Constitution: [`CLAUDE.md`](../CLAUDE.md) §2 (style), §5 (collaboration), §7 (skills & hooks).
 - Collab protocol: [`.claude/rules/agent-collaboration.md`](../rules/agent-collaboration.md).
 - Coding standards (parallel for prompt rigor): [`.claude/rules/coding-standards.md`](../rules/coding-standards.md).
 - Existing skill examples: [`.claude/skills/run-full-test-suite.md`](../skills/run-full-test-suite.md), [`.claude/skills/spawn-team.md`](../skills/spawn-team.md).

@@ -76,5 +76,5 @@ When pulled back in, you do **not** restart from scratch. You read the new evide
 - You do **not** make user-facing commitments. Only the Team Lead does.
 
 ## References
-- Constitution: [`CLAUDE.md`](../../CLAUDE.md) §1, §2
+- Constitution: [`CLAUDE.md`](../CLAUDE.md) §1, §2
 - Collab protocol: [`.claude/rules/agent-collaboration.md`](../rules/agent-collaboration.md)

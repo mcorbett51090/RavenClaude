@@ -44,4 +44,4 @@ Same as backend/frontend coders, but list **both** sides' files and gates explic
 ## References
 - Backend coder: [`.claude/agents/backend-coder.md`](backend-coder.md)
 - Frontend coder: [`.claude/agents/frontend-coder.md`](frontend-coder.md)
-- Constitution: [`CLAUDE.md`](../../CLAUDE.md)
+- Constitution: [`CLAUDE.md`](../CLAUDE.md)

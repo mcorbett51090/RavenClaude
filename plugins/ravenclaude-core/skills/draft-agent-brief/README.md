@@ -14,7 +14,7 @@ A repeatable workflow for **producing a strong agent brief when the user knows w
 
 2. **Identify the domain.** What world does this agent live in (Power Platform, Salesforce, web dev, iOS, etc.)? If unclear, ask **once**.
 
-3. **Draft a strong brief** — fill in the seven fields of [`templates/agent-brief.md`](../../templates/agent-brief.md):
+3. **Draft a strong brief** — fill in the seven fields of [`templates/agent-brief.md`](../templates/agent-brief.md):
    - **Outcome** (in business terms)
    - **Context** (the user's situation, including their experience level)
    - **Domain familiarity** (so the agent knows whether to over-explain)
@@ -37,5 +37,5 @@ A non-domain-expert user can absolutely write a strong brief — they just need 
 
 ## See also
 
-- [`templates/agent-brief.md`](../../templates/agent-brief.md) — the seven-field template the user fills in (or leaves blank for Claude to fill).
-- [`.claude/agents/architect.md`](../../.claude/agents/architect.md) — example of a finished, role-style agent definition produced by this kind of brief.
+- [`templates/agent-brief.md`](../templates/agent-brief.md) — the seven-field template the user fills in (or leaves blank for Claude to fill).
+- [`agents/architect.md`](../../agents/architect.md) — example of a finished, role-style agent definition produced by this kind of brief.

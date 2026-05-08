@@ -78,5 +78,5 @@ Walk the diff in this order. Don't proceed past a category until it's clean.
 - A "no blockers" review is not the same as "approve." If you have nothing to say, that itself is suspicious — re-read.
 
 ## References
-- Constitution: [`CLAUDE.md`](../../CLAUDE.md) §2, §4
+- Constitution: [`CLAUDE.md`](../CLAUDE.md) §2, §4
 - Coding standards: [`.claude/rules/coding-standards.md`](../rules/coding-standards.md)

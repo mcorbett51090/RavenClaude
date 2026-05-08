@@ -1,38 +1,19 @@
-# RavenClaude — Project Constitution
+# Team Constitution — `ravenclaude-core` plugin
 
-> This file is the **single source of truth** for how Claude Code (and every spawned sub-agent) operates in this repository. It is loaded automatically into every Claude session. Treat every rule here as a hard constraint unless the user explicitly overrides it in-session.
+> This file is the team constitution that ships with the `ravenclaude-core` Claude Code plugin. When the plugin is installed in a project, copy this file (or its relevant sections) into your project's root `CLAUDE.md` and adapt it to your stack. Treat every rule here as a hard constraint unless explicitly overridden.
 
 ---
 
-## 1. Project Overview
+## 1. Adapting this constitution to your project
 
-**Name:** RavenClaude
-**Purpose:** A production-grade Claude Code template that bootstraps the *Team Lead + Specialized Agents* manager pattern (Architect, Coder, Tester, Reviewer, Security, and more) with git worktrees, hooks, and strict quality gates.
-**Status:** Template repository. The "product" of this repo is the `.claude/` directory plus this constitution.
+This plugin is **domain-neutral**. It bundles agents, skills, hooks, and rules that work across any project. To make it effective in *your* project:
 
-### Detected stack (this repo, as of 2026-05-07)
-This is a **meta-template**, not an application. Stack-detection probes returned:
+1. Detect your primary language(s) from lockfiles (`package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `Gemfile`, …) and record them in your project's `CLAUDE.md`.
+2. Detect the test runner (`vitest`, `jest`, `pytest`, `go test`, …) and record the exact invocation in §4 of your project's `CLAUDE.md`.
+3. Detect the linter/formatter (`eslint`, `ruff`, `gofmt`, `prettier`, `biome`, …) and record exact invocations.
+4. Detect the CI provider (`.github/workflows`, `.gitlab-ci.yml`, …) so reviewers know what gates run remotely.
 
-| Probe | Result |
-|-------|--------|
-| Application lockfiles (`package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `Gemfile`, `pom.xml`, …) | none present |
-| CI configuration (`.github/workflows/`, `.gitlab-ci.yml`) | none present |
-| Source-file extensions present | `.md` (24), `.sh` (3), `.json` (2) |
-
-Concretely, this repo consists of:
-- **Markdown** — the constitution (`CLAUDE.md`), 7 agent definitions, 5 skills, 4 rules, 1 README. Authoring style: GFM, ATX headings, no trailing whitespace, fenced code blocks with language tags.
-- **Bash** — 3 hooks under `.claude/hooks/` (`format-on-write.sh`, `guard-destructive.sh`, `remind-tests.sh`). All start with `#!/usr/bin/env bash` and use `set -euo pipefail`.
-- **JSON** — `.claude/settings.json` (shared) and `.claude/settings.local.json` (gitignored). Both reference the Claude Code settings JSON Schema.
-
-There is no language runtime or build step. Validation = JSON-parse the settings, syntax-check the shell scripts, sanity-check the Markdown links.
-
-### Auto-detect targets (Team Lead checklist when this template is applied to a real repo)
-When you copy `.claude/` and `CLAUDE.md` into an actual project, replace the table above with that project's real stack and update §4 commands. Use this checklist:
-
-- [ ] Detect primary language(s) from lockfiles (`package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `Gemfile`, …)
-- [ ] Detect test runner (`vitest`, `jest`, `pytest`, `go test`, …) and record the exact invocation in §4
-- [ ] Detect linter/formatter (`eslint`, `ruff`, `gofmt`, `prettier`, `biome`, …) and record exact invocations
-- [ ] Detect CI provider (`.github/workflows`, `.gitlab-ci.yml`, …) so reviewers know what gates run remotely
+The agents in this plugin (architect, coders, reviewers, etc.) read your project's `CLAUDE.md` for stack-specific commands and your project's git history for stack-specific patterns.
 
 ---
 
@@ -49,7 +30,7 @@ These apply to every line of code Claude or any sub-agent writes:
 7. **Names carry the docs.** Identifiers should make docstrings unnecessary. If you reach for a long comment, first try a better name.
 8. **Format on save.** Every file written by an agent must pass the project's formatter before the agent reports completion (see §4).
 
-See [`.claude/rules/coding-standards.md`](.claude/rules/coding-standards.md) for the long-form version.
+See [`rules/coding-standards.md`](rules/coding-standards.md) for the long-form version.
 
 ---
 
@@ -80,7 +61,7 @@ git worktree remove .claude/worktrees/coder-auth   # when done
 
 The Team Lead is responsible for cleanup. Stale worktrees are pruned weekly via `git worktree prune`.
 
-See [`.claude/skills/create-pr.md`](.claude/skills/create-pr.md) and [`.claude/rules/git-workflow.md`](.claude/rules/git-workflow.md).
+See [`skills/create-pr.md`](skills/create-pr.md) and [`rules/git-workflow.md`](rules/git-workflow.md).
 
 ---
 
@@ -88,20 +69,9 @@ See [`.claude/skills/create-pr.md`](.claude/skills/create-pr.md) and [`.claude/r
 
 **No agent may report a task complete until all of the following pass.** This is non-negotiable.
 
-### Gates for this repo (template-only)
-Because there is no application code, the gates check that the template itself is valid:
+### Gate template (fill in per project)
 
-| Gate | Command | Owner |
-|------|---------|-------|
-| JSON validity | `python3 -m json.tool .claude/settings.json > /dev/null && python3 -m json.tool .claude/settings.local.json > /dev/null` | author agent |
-| Shell syntax | `bash -n .claude/hooks/*.sh` | author agent |
-| Hook executability | `test -x .claude/hooks/format-on-write.sh -a -x .claude/hooks/guard-destructive.sh -a -x .claude/hooks/remind-tests.sh` | author agent |
-| Markdown link sanity | `grep -rEn '\]\(\.\./?[^)]+\)' .claude/ CLAUDE.md` then spot-check that referenced paths exist | author agent |
-| Code review | rubric in [`.claude/agents/code-reviewer.md`](.claude/agents/code-reviewer.md) | code-reviewer agent |
-| Security review | rubric in [`.claude/agents/security-reviewer.md`](.claude/agents/security-reviewer.md) | security-reviewer agent (when touching hooks or `settings.json` permissions) |
-
-### Gate placeholders for downstream projects
-When this template is applied to a real repo, replace the table above with the project's actual gates. Reference shape:
+Replace the placeholders below with your project's actual commands and record them in your project's `CLAUDE.md`. The agents in this plugin read your project's `CLAUDE.md` to find these commands.
 
 | Gate | Command (fill in per project) | Owner |
 |------|-------------------------------|-------|
@@ -110,37 +80,37 @@ When this template is applied to a real repo, replace the table above with the p
 | Type-check | `<typechecker>` (e.g. `tsc --noEmit`, `mypy`, `pyright`) | author agent |
 | Unit tests | `<test runner>` (e.g. `vitest run`, `pytest -q`, `go test ./...`) | author agent |
 | Integration tests | project-specific | tester-qa agent |
-| Code review | rubric in [`.claude/agents/code-reviewer.md`](.claude/agents/code-reviewer.md) | code-reviewer agent |
-| Security review | rubric in [`.claude/agents/security-reviewer.md`](.claude/agents/security-reviewer.md) | security-reviewer agent (if touching auth/crypto/IO) |
+| Code review | rubric in [`agents/code-reviewer.md`](agents/code-reviewer.md) | code-reviewer agent |
+| Security review | rubric in [`agents/security-reviewer.md`](agents/security-reviewer.md) | security-reviewer agent (if touching auth/crypto/IO) |
 
 If a gate fails, **fix the root cause**. Do not silence the gate, do not skip the test, do not `--no-verify`.
 
-The full automated suite is invoked via the [`run-full-test-suite`](.claude/skills/run-full-test-suite.md) skill.
+The full automated suite is invoked via the [`run-full-test-suite`](skills/run-full-test-suite.md) skill.
 
 ---
 
 ## 5. Agent Team Rules
 
-The **Team Lead** (top-level Claude session) **delegates** work to specialized sub-agents, integrates their reports, and is the only role allowed to make user-facing commitments. For multi-agent dispatches, the Team Lead loads the [`spawn-team`](.claude/skills/spawn-team.md) skill — that's the playbook for picking specialists, sequencing them, and re-routing on blockers.
+The **Team Lead** (top-level Claude session) **delegates** work to specialized sub-agents, integrates their reports, and is the only role allowed to make user-facing commitments. For multi-agent dispatches, the Team Lead loads the [`spawn-team`](skills/spawn-team.md) skill — that's the playbook for picking specialists, sequencing them, and re-routing on blockers.
 
 Sub-agents operate in isolation, see only the brief they're given, and return structured reports. **Sub-agents do not spawn other sub-agents** — the dependency graph stays a flat tree with the Team Lead at the root.
 
 ### Team roster
 | Agent | When to spawn | Definition |
 |-------|---------------|------------|
-| Architect | Technical conscience across the software lifecycle — upfront design AND re-consults at phase boundaries (tests contradict plan, scope expands, reviewer flags structural issue, iteration requires re-plan) | [`.claude/agents/architect.md`](.claude/agents/architect.md) |
-| Backend Coder | Server, API, DB, jobs | [`.claude/agents/backend-coder.md`](.claude/agents/backend-coder.md) |
-| Frontend Coder | UI, components, client state | [`.claude/agents/frontend-coder.md`](.claude/agents/frontend-coder.md) |
-| Fullstack Coder | Cross-cutting features touching both ends | [`.claude/agents/fullstack-coder.md`](.claude/agents/fullstack-coder.md) |
-| Tester / QA | Test design, flake hunting, coverage gaps | [`.claude/agents/tester-qa.md`](.claude/agents/tester-qa.md) |
-| Code Reviewer | Pre-merge sanity, style, design | [`.claude/agents/code-reviewer.md`](.claude/agents/code-reviewer.md) |
-| Security Reviewer | Anything touching auth, crypto, secrets, untrusted input | [`.claude/agents/security-reviewer.md`](.claude/agents/security-reviewer.md) |
-| Deep Researcher | Multi-source research, troubleshooting unfamiliar errors, verifying claims, going deeper than a single web search | [`.claude/agents/deep-researcher.md`](.claude/agents/deep-researcher.md) |
-| Documentarian | Stakeholder-facing prose — exec summaries, decision memos, runbooks, release notes, READMEs, partner briefs | [`.claude/agents/documentarian.md`](.claude/agents/documentarian.md) |
-| Designer | UX direction and visual design — wireframes, user flows, screen layouts, accessibility checks, design specs for any visual artifact | [`.claude/agents/designer.md`](.claude/agents/designer.md) |
-| Prompt Engineer | Author / critique / refactor agent definitions, skills, and prompt patterns across the hub and Expert repos; household-wide AI library curator | [`.claude/agents/prompt-engineer.md`](.claude/agents/prompt-engineer.md) |
-| Project Manager | RAID log, task list, weekly status, activity log, stakeholder register (PMP / PMBOK 7 aligned) | [`.claude/agents/project-manager.md`](.claude/agents/project-manager.md) |
-| Partner Success Manager | Partner profiles, success plans, QBR prep, health scores, onboarding, AI workflow library | [`.claude/agents/partner-success-manager.md`](.claude/agents/partner-success-manager.md) |
+| Architect | Technical conscience across the software lifecycle — upfront design AND re-consults at phase boundaries (tests contradict plan, scope expands, reviewer flags structural issue, iteration requires re-plan) | [`agents/architect.md`](agents/architect.md) |
+| Backend Coder | Server, API, DB, jobs | [`agents/backend-coder.md`](agents/backend-coder.md) |
+| Frontend Coder | UI, components, client state | [`agents/frontend-coder.md`](agents/frontend-coder.md) |
+| Fullstack Coder | Cross-cutting features touching both ends | [`agents/fullstack-coder.md`](agents/fullstack-coder.md) |
+| Tester / QA | Test design, flake hunting, coverage gaps | [`agents/tester-qa.md`](agents/tester-qa.md) |
+| Code Reviewer | Pre-merge sanity, style, design | [`agents/code-reviewer.md`](agents/code-reviewer.md) |
+| Security Reviewer | Anything touching auth, crypto, secrets, untrusted input | [`agents/security-reviewer.md`](agents/security-reviewer.md) |
+| Deep Researcher | Multi-source research, troubleshooting unfamiliar errors, verifying claims, going deeper than a single web search | [`agents/deep-researcher.md`](agents/deep-researcher.md) |
+| Documentarian | Stakeholder-facing prose — exec summaries, decision memos, runbooks, release notes, READMEs, partner briefs | [`agents/documentarian.md`](agents/documentarian.md) |
+| Designer | UX direction and visual design — wireframes, user flows, screen layouts, accessibility checks, design specs for any visual artifact | [`agents/designer.md`](agents/designer.md) |
+| Prompt Engineer | Author / critique / refactor agent definitions, skills, and prompt patterns across the hub and Expert repos; household-wide AI library curator | [`agents/prompt-engineer.md`](agents/prompt-engineer.md) |
+| Project Manager | RAID log, task list, weekly status, activity log, stakeholder register (PMP / PMBOK 7 aligned) | [`agents/project-manager.md`](agents/project-manager.md) |
+| Partner Success Manager | Partner profiles, success plans, QBR prep, health scores, onboarding, AI workflow library | [`agents/partner-success-manager.md`](agents/partner-success-manager.md) |
 
 ### Collaboration protocol
 1. **Team Lead briefs the agent like a new colleague.** Include: goal, context, what's been tried, success criteria, response-length cap. Never just delegate "fix the bug."
@@ -150,7 +120,7 @@ Sub-agents operate in isolation, see only the brief they're given, and return st
 5. **Trust but verify.** The Team Lead reads the diff before reporting to the user — agent self-reports describe intent, not always reality.
 6. **No silent escalation.** If an agent hits a blocker (ambiguous spec, missing access, conflicting requirement), it stops and reports — it does not guess.
 
-See [`.claude/rules/agent-collaboration.md`](.claude/rules/agent-collaboration.md) for the detailed protocol.
+See [`rules/agent-collaboration.md`](rules/agent-collaboration.md) for the detailed protocol.
 
 ---
 
@@ -163,21 +133,21 @@ See [`.claude/rules/agent-collaboration.md`](.claude/rules/agent-collaboration.m
 - **Least-privilege tools.** Each sub-agent's `tools:` frontmatter lists only what it needs (see agent files). Don't broaden without reason.
 - **Destructive commands need explicit user approval** every time, not once: `rm -rf`, `git reset --hard`, `git push --force`, `DROP TABLE`, package downgrades, CI/CD edits.
 
-See [`.claude/rules/security.md`](.claude/rules/security.md).
+See [`rules/security.md`](rules/security.md).
 
 ---
 
 ## 7. Common Skills & Hooks
 
-Reusable, parameterized prompts live in `.claude/skills/`. Invoke with `/skill-name`.
+Reusable, parameterized prompts live in `skills/`. Invoke with `/skill-name`.
 
 | Skill | Purpose |
 |-------|---------|
-| [`run-full-test-suite`](.claude/skills/run-full-test-suite.md) | Run format → lint → typecheck → tests in order, fail fast |
-| [`create-pr`](.claude/skills/create-pr.md) | Open a PR with the project's standard template |
-| [`spawn-team`](.claude/skills/spawn-team.md) | Team Lead dispatch playbook: pick specialists, brief them, sequence, and re-route on blockers |
-| [`new-worktree`](.claude/skills/new-worktree.md) | Create an isolated worktree for a sub-agent |
-| [`cleanup-worktrees`](.claude/skills/cleanup-worktrees.md) | Remove finished worktrees and prune branches |
+| [`run-full-test-suite`](skills/run-full-test-suite.md) | Run format → lint → typecheck → tests in order, fail fast |
+| [`create-pr`](skills/create-pr.md) | Open a PR with the project's standard template |
+| [`spawn-team`](skills/spawn-team.md) | Team Lead dispatch playbook: pick specialists, brief them, sequence, and re-route on blockers |
+| [`new-worktree`](skills/new-worktree.md) | Create an isolated worktree for a sub-agent |
+| [`cleanup-worktrees`](skills/cleanup-worktrees.md) | Remove finished worktrees and prune branches |
 
 ### Hooks (configured in `.claude/settings.json`)
 - **PostToolUse on Edit/Write** → run formatter + linter on the touched file

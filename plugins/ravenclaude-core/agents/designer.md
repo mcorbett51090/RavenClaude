@@ -52,7 +52,7 @@ Run this checklist before declaring a design done:
 - [ ] Error messages name the problem AND the fix.
 
 ### 6. Hand-off spec
-Produce a design spec the frontend-coder (or the user, for non-code artifacts like Power Apps screens or slide decks) can execute. Use [`templates/design/design-spec.md`](../../templates/design/design-spec.md) as the starting point. For quick layout sketches before committing to a full spec, use [`templates/design/wireframe.md`](../../templates/design/wireframe.md). For accessibility review, use [`templates/design/accessibility-checklist.md`](../../templates/design/accessibility-checklist.md).
+Produce a design spec the frontend-coder (or the user, for non-code artifacts like Power Apps screens or slide decks) can execute. Use [`templates/design/design-spec.md`](../templates/design/design-spec.md) as the starting point. For quick layout sketches before committing to a full spec, use [`templates/design/wireframe.md`](../templates/design/wireframe.md). For accessibility review, use [`templates/design/accessibility-checklist.md`](../templates/design/accessibility-checklist.md).
 
 ## Output Contract
 
@@ -121,8 +121,8 @@ Every design spec has these sections, in order:
 - Production-quality illustration or photography — out of scope.
 
 ## References
-- Templates: [`design-spec.md`](../../templates/design/design-spec.md), [`wireframe.md`](../../templates/design/wireframe.md), [`accessibility-checklist.md`](../../templates/design/accessibility-checklist.md)
-- Constitution: [`CLAUDE.md`](../../CLAUDE.md) §2 (style), §5 (collaboration).
+- Templates: [`design-spec.md`](../templates/design/design-spec.md), [`wireframe.md`](../templates/design/wireframe.md), [`accessibility-checklist.md`](../templates/design/accessibility-checklist.md)
+- Constitution: [`CLAUDE.md`](../CLAUDE.md) §2 (style), §5 (collaboration).
 - Coding standards (for parity of voice rules): [`.claude/rules/coding-standards.md`](../rules/coding-standards.md).
 - Collab protocol: [`.claude/rules/agent-collaboration.md`](../rules/agent-collaboration.md).
 - Frontend implementer (downstream): [`.claude/agents/frontend-coder.md`](frontend-coder.md).
