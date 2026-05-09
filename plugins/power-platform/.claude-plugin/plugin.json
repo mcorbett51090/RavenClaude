@@ -1,0 +1,21 @@
+{
+  "name": "power-platform",
+  "description": "Microsoft Power Platform specialist team for Claude Code — 9 expert agents (power-fx-engineer, flow-engineer, dataverse-architect, model-driven-engineer, solution-alm-engineer, power-platform-admin, pcf-developer, copilot-studio-engineer, power-pages-engineer) plus 9 veteran-level skills imported from Daniel Kerridge's claude-code-power-platform-skills (MIT). Skills include dataverse-web-api (17 reference docs), dataverse-plugins, dataverse-web-resources, pcf-controls, power-apps-code-apps, plan-with-team, code-review, visual-qa, and record-screen. Designed for professional makers who want real engineering judgment, not click-by-click tutorials.",
+  "version": "0.2.0",
+  "author": {
+    "name": "Matt Corbett",
+    "email": "matt@ravenpower.net"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "power-platform",
+    "power-apps",
+    "power-automate",
+    "dataverse",
+    "power-fx",
+    "copilot-studio",
+    "alm",
+    "low-code"
+  ]
+}

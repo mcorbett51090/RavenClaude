@@ -19,6 +19,16 @@
         "name": "Matt Corbett",
         "email": "matt@ravenpower.net"
       }
+    },
+    {
+      "name": "power-platform",
+      "source": "./plugins/power-platform",
+      "description": "Microsoft Power Platform specialist team — 9 expert agents (canvas/Power Fx, Power Automate + custom connectors, Dataverse modeling/security, model-driven apps, pac CLI + ALM, tenant governance/DLP, PCF, Copilot Studio + AI Builder, Power Pages) plus 9 veteran-level skills imported from Daniel Kerridge's claude-code-power-platform-skills (MIT) — including a 17-doc dataverse-web-api reference, dataverse-plugins, PCF controls, Code Apps, plan-with-team collaborative planning, code-review audits, and visual-qa. Designed for professional makers, not click-by-click tutorials.",
+      "version": "0.2.0",
+      "author": {
+        "name": "Matt Corbett",
+        "email": "matt@ravenpower.net"
+      }
     }
   ]
 }
