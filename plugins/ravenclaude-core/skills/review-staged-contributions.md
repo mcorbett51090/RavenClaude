@@ -1,6 +1,6 @@
 ---
 name: review-staged-contributions
-description: For the RavenClaude marketplace maintainer. Walks every file in docs/staging/incoming/ one at a time, presents each with a keep/update/deny prompt, promotes approved submissions to their canonical location (docs/memory-bank/lessons-learned.md for lessons, docs/best-practices/<slug>.md for best-practices), and deletes denied ones. Trigger this skill whenever you want to drain the staging queue.
+description: For the RavenClaude marketplace maintainer. Walks every file in docs/staging/incoming/ one at a time, runs a security sweep + topic-expert analysis on each, presents each with a keep/update/deny prompt, promotes approved submissions to their canonical location (docs/memory-bank/lessons-learned.md for lessons, docs/best-practices/<slug>.md for best-practices), and deletes denied ones. Trigger when the maintainer says any of "check for updates", "check the staging queue", "anything in staging", "review submissions", "drain the queue", or "review staged contributions" — also fires on the slash command /review-staged-contributions.
 ---
 
 # Skill: review-staged-contributions
