@@ -24,6 +24,25 @@ Each entry is a dated section. Reverse-chronological order (newest first).
 
 ---
 
+## 2026-05-11 — Rebase orphans local branches; `git branch -D` is the routine cleanup, not a destructive act
+
+**Context:** PR #1 (`propose-lesson-diagrams-in-docs`) merged on GitHub with only the first commit. The inline-mermaid-demo commit was pushed to the feature branch *after* the PR merged, so local `main` and `origin/main` diverged by one commit each. After rebasing local onto origin and pushing, the original feature branch needed to be deleted locally.
+
+**What we tried first:** `git branch -d propose-lesson-diagrams-in-docs` — the safe-delete that refuses if the branch isn't merged.
+
+**Why it failed:** Safe-delete checks by **SHA reachability**, not content. The rebase replayed `d5ccc5b` as `cd496e0`, so the demo commit's content was on `main` but the original SHA was orphaned. Git's safety check correctly refused. The real problem was downstream: we'd added `Bash(git branch -D:*)` to both the project deny list AND the `guard-destructive.sh` PreToolUse hook, treating force-delete as inherently destructive — even after the user explicitly approved it, the hook double-blocked the command.
+
+**What works:** `git branch -D` is the **correct** operation after any rebase that moved your local commits. It's not destructive in practice: the commits remain in `git reflog` for ~90 days, and (in this case) their content was already on `main` under a new SHA. The destructive layer of git is *reflog clearing* (`git reflog expire --expire=now --all && git gc --prune=now`), which is hard to do accidentally. Removed `git branch -D` from the project deny list and the hook deny patterns. Genuinely destructive operations stay blocked: `rm -rf /`, `git push --force`, `git reset --hard origin`, `git clean -fd`.
+
+**How to apply:**
+- After any rebase that moved local commits onto a new base, the original branch ref is orphaned — use `git branch -D <branch>` to clean it up. `-d` will refuse and the refusal isn't informative.
+- Don't blanket-deny `git branch -D` in agent tooling. Reserve hook-level denials for commands that can actually destroy work (force-push to a remote, hard reset to a remote ref, `clean -fd`).
+- Before reaching for `-D`, sanity-check the content is reachable elsewhere — `git log <branch>..main` should be empty when the rebased commits are on `main`. If it's not, the branch has work that isn't yet anywhere else.
+
+**Trace:** Driven by today's PR #1 rebase reconciliation and subsequent `chore/apply-mermaid-lesson` cleanup. Codified in commit `f0d58d1` (ravenclaude-core 0.1.0 → 0.1.1) which removed `git branch -D` from the project deny list and `guard-destructive.sh`.
+
+---
+
 ## 2026-05-11 — Mermaid for conceptual diagrams in markdown; ASCII only for folder trees
 
 **Context:** Refreshing `docs/architecture.md` from the old central-hub + Expert-repos model to the plugin-marketplace model. The original doc used ASCII box-art diagrams (`┌──┐`, `└──┘`, etc.) and I had to decide whether to preserve that style or upgrade.

@@ -192,7 +192,7 @@ The existing plugins are the reference implementations — `ravenclaude-core` fo
 | [`ravenclaude-core`](../plugins/ravenclaude-core/) | 0.1.0 | Domain-neutral: 13 specialist agents, dispatch playbook, gates, hooks, templates |
 | [`power-platform`](../plugins/power-platform/) | 0.2.0 | Microsoft Power Platform: 9 specialist agents + 9 imported veteran-level skills (Daniel Kerridge, MIT) |
 
-**Memory bank:** 2 lessons recorded (see [`memory-bank/lessons-learned.md`](memory-bank/lessons-learned.md)) covering the PMP discipline rule for the `project-manager` agent and the PSM discipline rule for the `partner-success-manager` agent.
+**Memory bank:** 4 lessons recorded (see [`memory-bank/lessons-learned.md`](memory-bank/lessons-learned.md)) — PMP discipline (project-manager), PSM discipline (partner-success-manager), mermaid for conceptual diagrams, and rebase-orphan branch cleanup.
 
 **Decision log:** No entries yet — first decision will be recorded the next time an architectural choice deserves a written rationale.
 
