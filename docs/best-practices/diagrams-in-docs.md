@@ -14,6 +14,24 @@ ASCII box-art diagrams look acceptable in a terminal and rot quickly. They break
 
 For collaborators viewing this repo through the GitHub web UI (the default access path for `mcorbettbma` and any future collaborator), mermaid diagrams render inline. ASCII art is just a wall of pipe characters.
 
+## The rule, as a decision tree (and a live mermaid demo)
+
+This very diagram is rendered by GitHub from a `mermaid` block — view this file on `github.com` to see it render, or in your editor's markdown preview if it supports mermaid.
+
+```mermaid
+flowchart LR
+    Q["I need to show something<br/>in a markdown doc"] --> K{"What is it?"}
+    K -->|"nodes with arrows /<br/>relationships / flow"| M["Use <code>mermaid</code><br/>(this rule's default)"]
+    K -->|"file or folder tree"| C["Use a fenced code block<br/>with <code>├──</code> / <code>└──</code>"]
+    K -->|"a single arrow A → B,<br/>or a fact"| S["Just write the sentence"]
+    K -->|"agent prompt read by<br/>Claude, not a human"| A["ASCII / plain text<br/>is fine — Claude reads source"]
+
+    classDef use fill:#0f766e,stroke:#5eead4,color:#ecfeff
+    classDef alt fill:#374151,stroke:#9ca3af,color:#e5e7eb
+    class M use
+    class C,S,A alt
+```
+
 ## How to apply
 
 **Default to mermaid for conceptual or flow diagrams** — system overviews, data flow, request/response sequences, state machines, entity relationships, dispatch trees, anything that's nodes-with-arrows.
