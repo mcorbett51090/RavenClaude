@@ -5,41 +5,38 @@ while others have dependencies that require sequential execution.
 
 ## Dependency Graph
 
+```mermaid
+flowchart TB
+    p1["<b>Phase 1 — SEQUENTIAL</b><br/>Publisher + Solution"]
+    p2["<b>Phase 2 — SEQUENTIAL</b><br/>Option Sets → Table A → B → C<br/>⚠ env-wide EntityCustomization lock"]
+    p3a["Phase 3 — Table A columns"]
+    p3b["Phase 3 — Table B columns"]
+    p3c["Phase 3 — Table C columns"]
+    p4["<b>Phase 4 — SEQUENTIAL</b><br/>Relationships (1:N, N:N)"]
+    p5a["Phase 5 — Table A views + forms"]
+    p5b["Phase 5 — Table B views + forms"]
+    p5c["Phase 5 — Table C views + forms"]
+    p6["<b>Phase 6 — SEQUENTIAL</b><br/>Sitemap"]
+    p7["<b>Phase 7 — SEQUENTIAL</b><br/>App Module"]
+    p8["<b>Phase 8 — SEQUENTIAL</b><br/>PublishXml + ValidateApp"]
+
+    p1 --> p2
+    p2 --> p3a & p3b & p3c
+    p2 --> p4
+    p3a & p3b & p3c & p4 --> p5a & p5b & p5c
+    p2 --> p6
+    p5a & p5b & p5c & p6 --> p7
+    p7 --> p8
+
+    classDef seq fill:#1f2937,stroke:#9ca3af,color:#f9fafb
+    classDef par fill:#0f766e,stroke:#5eead4,color:#ecfeff
+    class p1,p2,p4,p6,p7,p8 seq
+    class p3a,p3b,p3c,p5a,p5b,p5c par
 ```
-Phase 1 (SEQUENTIAL - must be first):
-  └── Publisher + Solution
 
-Phase 2 (SEQUENTIAL — environment-wide EntityCustomization lock):
-  └── Global Option Sets → Table A → Table B → Table C
-      ⚠ Dataverse takes an environment-wide lock during EntityCustomization.
-        Only ONE table can be created at a time. Parallel table creation
-        causes: "Cannot start another [EntityCustomization] because there
-        is a previous [EntityCustomization] running at this moment."
-
-Phase 3 (PARALLEL per table, after Phase 2):
-  ├── Table A columns (including option set bindings — need option set GUIDs from Phase 2)
-  ├── Table B columns
-  └── Table C columns
-  NOTE: Column additions to DIFFERENT existing tables may be parallelizable
-        since the tables already exist. Table CREATION itself cannot be parallel.
-
-Phase 4 (SEQUENTIAL — needs all tables from Phase 2):
-  └── Relationships (1:N, N:N — both tables must exist)
-
-Phase 5 (PARALLEL per table, after Phase 3 + 4):
-  ├── Table A views + forms
-  ├── Table B views + forms
-  └── Table C views + forms
-
-Phase 6 (SEQUENTIAL — needs entities from Phase 2):
-  └── Sitemap
-
-Phase 7 (SEQUENTIAL — needs everything):
-  └── App Module (create + AddAppComponents + AddSolutionComponent)
-
-Phase 8 (SEQUENTIAL — last):
-  └── PublishXml + ValidateApp
-```
+> ⚠ Dataverse takes an environment-wide lock during EntityCustomization. Only ONE table can be created at a time — parallel table creation causes: `Cannot start another [EntityCustomization] because there is a previous [EntityCustomization] running at this moment.`
+>
+> Column additions to DIFFERENT existing tables may be parallelizable since the tables already exist. Table *creation* itself cannot be parallel.
 
 ## Agent Team Strategies
 

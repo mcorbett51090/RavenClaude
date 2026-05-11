@@ -21,23 +21,48 @@ If a line doesn't earn its place, it should go.
 
 ## What to Prune (Decision Tree)
 
-```
-Is this code reachable from any entry point?
-├── NO → Delete it (dead code)
-└── YES
-    ├── Is it called more than once?
-    │   ├── NO → Can it be inlined at the call site?
-    │   │   ├── YES and it's simpler inline → Inline it
-    │   │   └── NO (it's complex enough to warrant a name) → Keep it
-    │   └── YES → Keep it
-    ├── Is it a type/interface?
-    │   ├── Is it referenced in any value-level code?
-    │   │   ├── NO → Delete it (dead type)
-    │   │   └── YES → Keep it
-    │   └── Is there a near-identical type elsewhere?
-    │       └── YES → Merge them
-    └── Is it configuration for something that never changes?
-        └── YES → Replace with a literal/constant
+```mermaid
+flowchart TD
+    reachable{"Reachable from<br/>any entry point?"}
+    deadcode["<b>Delete</b><br/>dead code"]
+
+    multiCall{"Called more<br/>than once?"}
+    inlinable{"Simpler inline<br/>at call site?"}
+    inline["<b>Inline it</b>"]
+    keepFn["<b>Keep</b><br/>(named for clarity)"]
+    keepMulti["<b>Keep</b><br/>(used multiple times)"]
+
+    isType{"Type or interface?"}
+    typeRef{"Referenced in<br/>value-level code?"}
+    deadType["<b>Delete</b><br/>dead type"]
+    typeDup{"Near-identical<br/>type elsewhere?"}
+    mergeTypes["<b>Merge</b>"]
+    keepType["<b>Keep</b><br/>(referenced type)"]
+
+    isConfig{"Config for something<br/>that never changes?"}
+    inlineConfig["<b>Replace</b><br/>with literal/constant"]
+
+    reachable -->|No| deadcode
+    reachable -->|Yes| multiCall
+    multiCall -->|No| inlinable
+    multiCall -->|Yes| keepMulti
+    inlinable -->|Yes| inline
+    inlinable -->|No| keepFn
+
+    reachable -->|Yes| isType
+    isType -->|Yes| typeRef
+    typeRef -->|No| deadType
+    typeRef -->|Yes| typeDup
+    typeDup -->|Yes| mergeTypes
+    typeDup -->|No| keepType
+
+    reachable -->|Yes| isConfig
+    isConfig -->|Yes| inlineConfig
+
+    classDef delete fill:#7c2d12,stroke:#fed7aa,color:#fff7ed
+    classDef keep fill:#0f766e,stroke:#5eead4,color:#ecfeff
+    class deadcode,deadType delete
+    class inline,keepFn,keepMulti,mergeTypes,keepType,inlineConfig keep
 ```
 
 ---

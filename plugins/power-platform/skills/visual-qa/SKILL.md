@@ -36,13 +36,17 @@ misaligned layouts, confusing UX, broken visual states, and edge cases.
 
 ## How It Works
 
-```
-┌─────────────┐    ┌──────────────┐    ┌─────────────┐    ┌──────────────┐
-│ 1. Plan the │───▶│ 2. Walk the  │───▶│ 3. Collect   │───▶│ 4. Send to   │
-│    test run  │    │    app       │    │    evidence  │    │    Gemini     │
-└─────────────┘    └──────────────┘    └─────────────┘    └──────────────┘
-  What to test       Click, type,       Screenshots,        AI reviews
-  and expect         scroll, wait       GIF, captions       actual vs expected
+```mermaid
+flowchart LR
+    plan["<b>1. Plan the test run</b><br/>What to test<br/>and expect"]
+    walk["<b>2. Walk the app</b><br/>Click, type,<br/>scroll, wait"]
+    collect["<b>3. Collect evidence</b><br/>Screenshots,<br/>GIF, captions"]
+    gemini["<b>4. Send to Gemini</b><br/>AI reviews<br/>actual vs expected"]
+
+    plan --> walk --> collect --> gemini
+
+    classDef step fill:#0f766e,stroke:#5eead4,color:#ecfeff
+    class plan,walk,collect,gemini step
 ```
 
 ## Workflow
