@@ -1,0 +1,97 @@
+# Contributing to RavenClaude
+
+This repository is private and limited to a named list of collaborators (see [`docs/access.md`](docs/access.md)). If you have write access, this document is how you propose changes.
+
+Maintainer: **Matt Corbett** (`@mcorbett51090`). All merges to `main` go through Matt.
+
+---
+
+## What you can contribute
+
+There are three common kinds of change. Pick the one that fits and follow the flow for that section.
+
+| Kind | Lands in | Approval |
+|---|---|---|
+| **Proposed lesson** — a non-obvious finding or rule worth remembering across projects | `docs/best-practices/<slug>.md` and/or `docs/memory-bank/lessons-learned.md` | Matt reviews for clarity, scrubbing, and cross-references |
+| **Plugin change** — a fix or new feature inside `plugins/<plugin-name>/` | The plugin's `agents/`, `skills/`, `rules/`, etc. | Matt reviews for plugin quality + version bump |
+| **Marketplace / meta change** — root `README.md`, `marketplace.json`, this file, devcontainer, etc. | Repo root, `.claude-plugin/`, `.github/` | Matt reviews for repo-wide impact |
+
+---
+
+## How to propose a lesson
+
+A "lesson" is a finding worth keeping — a rule, a diagnostic, a pattern that paid for itself. Think: *"I would have wanted to know this two months ago."*
+
+### 1. Branch
+
+You have write access to this repo (you're a collaborator), so you can branch directly here — no fork needed.
+
+```bash
+git checkout main
+git pull
+git checkout -b propose-lesson-<short-slug>
+```
+
+### 2. Write the lesson
+
+Lessons can live in two places, depending on shape:
+
+- **Detailed rule** → new file in `docs/best-practices/<slug>.md` using [`_TEMPLATE.md`](docs/best-practices/_TEMPLATE.md) as the starting point.
+- **Trial-and-error finding** → new dated section at the top of `docs/memory-bank/lessons-learned.md`, following the format already defined at the top of that file.
+
+Use both if the lesson has a teachable rule AND a story behind it: write the rule in `best-practices/`, the story in `lessons-learned.md`, and cross-link them.
+
+### 3. Scrub before you commit
+
+- Remove any project-specific identifiers (client names, tenant IDs, real GUIDs, email addresses, internal URLs).
+- Replace specifics with placeholders (`<CLIENT>`, `<TENANT_ID>`, `contoso.crm.dynamics.com`).
+- Make sure the lesson reads as *general guidance*, not a war story about one customer.
+
+### 4. Open the PR
+
+```bash
+git push -u origin propose-lesson-<short-slug>
+gh pr create  # or use the GitHub web UI
+```
+
+The PR form will load the default template — fill in the checkboxes honestly. Matt will review, request changes, or merge.
+
+---
+
+## How to propose a plugin change
+
+Plugin changes (`plugins/ravenclaude-core/`, `plugins/power-platform/`, future plugins) follow the same branch → PR flow, with two extras:
+
+1. **Bump the plugin's `version`** in `plugins/<name>/.claude-plugin/plugin.json`. Use semver: patch (`0.2.0 → 0.2.1`) for fixes, minor (`0.2.0 → 0.3.0`) for new agents or skills, major for breaking changes.
+2. **Note any consumer impact** in the PR body: if existing installs will see different agent behavior, prompts, or skill paths after `marketplace update`, call that out so Matt can decide whether to add a migration note.
+
+Other than that: same branch naming (`fix/<plugin>-<slug>`, `feat/<plugin>-<slug>`), same template.
+
+---
+
+## How approval works
+
+1. You open the PR. CI (if configured) runs format checks.
+2. Matt reviews — typically within a few days for non-urgent items.
+3. Outcome is one of:
+   - **Approve & merge** — your change lands on `main` and is included in the next `marketplace update` consumers pull.
+   - **Request changes** — Matt leaves comments; you push more commits to the same branch and re-request review.
+   - **Close** — the change isn't going to land. Matt explains why in a comment.
+
+No force-pushes to `main`. No bypassing the PR flow. If you're stuck on something urgent that needs to skip the queue, message Matt directly.
+
+---
+
+## House rules
+
+- **One topic per PR.** Five small PRs beat one giant one. Easier to review, easier to revert if needed.
+- **Plain language.** RavenClaude users include non-developers (financial analysts, partner success managers). Define jargon on first use; lead with the outcome, not the implementation.
+- **No secrets.** Never commit `.env` files, credentials, tokens, or anything you wouldn't want a future collaborator to see in `git log`.
+- **Cite sources.** If a lesson comes from a specific Microsoft Learn doc, blog post, or incident, link it in the **Provenance** section. Future-you will thank past-you.
+- **Update cross-references.** If your new lesson supersedes or relates to an existing one, edit both files so the trail is navigable.
+
+---
+
+## Questions
+
+If something in this guide is unclear, the answer is to ask Matt rather than guess. Open an issue with the `question` label, or message him directly.
