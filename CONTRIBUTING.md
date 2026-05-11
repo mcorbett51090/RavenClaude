@@ -99,6 +99,33 @@ No force-pushes to `main`. No bypassing the PR flow. If you're stuck on somethin
 
 ---
 
+## Troubleshooting
+
+### "I got `permission denied` trying to push to RavenClaude"
+
+This is expected — GitHub permissions are **per-repo**. Being a collaborator on another repo (even one Matt owns) does NOT grant push access here. The list of people who can push directly to RavenClaude is in [`docs/access.md`](docs/access.md); if you're not on it, direct push is blocked.
+
+If you're working in a consumer project that has `ravenclaude-core` installed and you discovered something cross-domain worth contributing back:
+
+1. In that project's Claude Code session, ask Claude to use the **`contribute-finding`** skill on the finding.
+2. Claude produces a copyable `RAVENCLAUDE-STAGING-SUBMISSION` block in canonical lesson or best-practice shape.
+3. Send the block to Matt (Slack, email, paste in a shared doc).
+4. He drops it into RavenClaude's `docs/staging/incoming/` and runs `/review-staged-contributions` — security sweep + topic-expert analysis, then keep/update/deny.
+
+This is the **design-intent path** for consumer contributions — see [`docs/staging/README.md`](docs/staging/README.md) for the full flow. You don't need any GitHub permission on RavenClaude to use it.
+
+### "I don't have `ravenclaude-core` installed in my consumer project"
+
+```bash
+/plugin marketplace add mcorbett51090/RavenClaude
+/plugin install ravenclaude-core@ravenclaude
+/reload-plugins
+```
+
+Once installed, the `contribute-finding` skill becomes available in that session.
+
+---
+
 ## Questions
 
 If something in this guide is unclear, the answer is to ask Matt rather than guess. Open an issue with the `question` label, or message him directly.
