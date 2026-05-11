@@ -189,8 +189,8 @@ The existing plugins are the reference implementations — `ravenclaude-core` fo
 
 | Plugin | Version | Description |
 |---|---|---|
-| [`ravenclaude-core`](../plugins/ravenclaude-core/) | 0.1.0 | Domain-neutral: 13 specialist agents, dispatch playbook, gates, hooks, templates |
-| [`power-platform`](../plugins/power-platform/) | 0.2.0 | Microsoft Power Platform: 9 specialist agents + 9 imported veteran-level skills (Daniel Kerridge, MIT) |
+| [`ravenclaude-core`](../plugins/ravenclaude-core/) | 0.2.0 | Domain-neutral: 13 specialist agents, dispatch playbook, gates, hooks, contribution-staging workflow, templates |
+| [`power-platform`](../plugins/power-platform/) | 0.2.1 | Microsoft Power Platform: 9 specialist agents + 9 imported veteran-level skills (Daniel Kerridge, MIT) |
 
 **Memory bank:** 4 lessons recorded (see [`memory-bank/lessons-learned.md`](memory-bank/lessons-learned.md)) — PMP discipline (project-manager), PSM discipline (partner-success-manager), mermaid for conceptual diagrams, and rebase-orphan branch cleanup.
 

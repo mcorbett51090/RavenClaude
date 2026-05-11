@@ -22,6 +22,13 @@ There are three common kinds of change. Pick the one that fits and follow the fl
 
 A "lesson" is a finding worth keeping — a rule, a diagnostic, a pattern that paid for itself. Think: *"I would have wanted to know this two months ago."*
 
+There are two paths in. Pick the one that fits where you are.
+
+| You are… | Use this path |
+|---|---|
+| **A collaborator with write access**, working directly on this repo | Branch → write → PR (the steps below) |
+| **In a consumer project** that has `ravenclaude-core` installed, and Claude has spotted something worth contributing | The staging workflow — see [`docs/staging/README.md`](docs/staging/README.md). Claude formats the submission for you; the maintainer reviews via `/review-staged-contributions`. No PR required from the consumer side. |
+
 ### 1. Branch
 
 You have write access to this repo (you're a collaborator), so you can branch directly here — no fork needed.

@@ -3,6 +3,8 @@
 > Team constitution for the `power-platform` Claude Code plugin. Bundles 9 specialist agents focused on the Microsoft Power Platform stack. Each agent owns a slice; the Team Lead (the top-level Claude session, typically also running `ravenclaude-core`) dispatches the right specialist(s) for a given task and integrates their reports.
 >
 > Designed for professional makers — assumes the user can build and wants real engineering judgment, not click-by-click tutorials.
+>
+> **Orientation:** this file is **domain-specific** to Power Platform. For the domain-neutral team constitution (architect, coders, reviewers, project-manager, etc.) inherited by every plugin, see [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md). For the meta-repo developer guide (working on the marketplace itself, not consuming it), see [`../../CLAUDE.md`](../../CLAUDE.md).
 
 ---
 
