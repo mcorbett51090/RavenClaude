@@ -24,6 +24,26 @@ Each entry is a dated section. Reverse-chronological order (newest first).
 
 ---
 
+## 2026-05-11 — Mermaid for conceptual diagrams in markdown; ASCII only for folder trees
+
+**Context:** Refreshing `docs/architecture.md` from the old central-hub + Expert-repos model to the plugin-marketplace model. The original doc used ASCII box-art diagrams (`┌──┐`, `└──┘`, etc.) and I had to decide whether to preserve that style or upgrade.
+
+**What we tried first:** Kept the ASCII box-art format on the reasoning that "the rest of your docs use plain markdown and switching here would introduce a tooling dependency for one file." Flagged the choice as a judgment call I'd defer to Matt on.
+
+**Why it failed:** GitHub renders `mermaid` code fences natively in markdown — no tooling dependency exists for the *reader*. The only "tooling" is the author learning mermaid syntax, which is shallow. ASCII box-art looks fine in a monospace editor and looks ragged in GitHub's web UI. For a repo whose primary collaborator access path is the GitHub web UI (per `docs/access.md`), defaulting to ASCII is the wrong tradeoff.
+
+**What works:** **Use `mermaid` code fences for any conceptual or flow diagram** (system architecture, dispatch patterns, sequence diagrams, ER diagrams, state machines). **Keep folder trees as fenced code blocks** using the standard `├──` / `└──` characters — mermaid has no clean file-tree type and tree characters in monospace read fine. The architecture doc's marketplace diagram is the canonical example of the good shape (a `flowchart TB` with subgraphs for marketplace/plugins/consumer, plus `classDef` color coding).
+
+**How to apply:**
+- For new diagrams in any markdown doc, reach for `mermaid` first.
+- Pick the diagram type that fits the content (`flowchart`, `sequenceDiagram`, `erDiagram`, `classDiagram`, `stateDiagram-v2`) instead of defaulting to `flowchart`.
+- For file/folder trees, keep using fenced code blocks — don't try to coerce them into mermaid.
+- See [`docs/best-practices/diagrams-in-docs.md`](../best-practices/diagrams-in-docs.md) for the full rule, including the "when to deviate" exceptions (e.g. agent prompt files read by Claude itself rather than viewed on GitHub).
+
+**Trace:** Driven by Matt's directive ("I want the mermaid diagram") on 2026-05-11 during the lessons-loop scaffolding work. Codified in `docs/best-practices/diagrams-in-docs.md` and in personal memory under `feedback_diagrams.md`.
+
+---
+
 ## 2026-05-07 — PSM discipline = quarterly QBR + per-partner success plan + visible health score (with EdTech overlay)
 
 **Context:** Designed a `partner-success-manager` agent for an EdTech Partner Success Manager (communication / translation / rostering) who is also her team's AI champion.
