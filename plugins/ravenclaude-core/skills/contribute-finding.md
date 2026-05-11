@@ -180,7 +180,12 @@ After you print the staging block, tell the user — concisely — what to do wi
 
 If the user has their RavenClaude session open already, you can stop there — they'll handle the rest. If not, mention it'll wait in `docs/staging/incoming/` until they're ready.
 
-**What happens on the maintainer side (so you can set expectations):** The review skill doesn't take your submission at face value. It spawns the **expert agent matching the `topic:` you tagged** to analyze whether the finding generalizes (applies to anyone working in that topic) or is one-off (specific to your situation). The expert's verdict is shown to the maintainer alongside your submission during the keep/update/deny prompt. This means a well-scoped submission with the right topic tag gets a fair, specialist read — and a submission that's actually a one-off issue gets caught before it lands in canonical docs.
+**What happens on the maintainer side (so you can set expectations):** The review skill doesn't take your submission at face value. It runs two gates before the maintainer sees the keep/update/deny prompt:
+
+1. **Security sweep** — automated pattern scan (looks for leaked credentials, real identifiers that weren't scrubbed, prompt-injection signals, dangerous code examples, non-canonical external URLs) plus a read by the `security-reviewer` agent. Submissions with leaked secrets, prompt-injection content, or dangerous unscoped code get **BLOCKED** and are denied or routed back for scrubbing.
+2. **Expert analysis** — the agent matching the `topic:` you tagged analyzes whether the finding **generalizes** (applies to anyone working in that topic) or is **one-off** (specific to your situation). The expert verdict appears alongside your submission in the maintainer's prompt.
+
+This is why **Step 3 (scrub for safety) is non-negotiable**: a well-scrubbed submission with the right topic tag flies through both gates. An unscrubbed one — even if the finding itself is brilliant — gets blocked or routed for revision before promotion.
 
 ---
 

@@ -7,14 +7,17 @@ flowchart LR
     consumer["<b>Consumer project</b><br/>(ravenclaude-core installed)<br/><br/>Claude uses<br/><code>contribute-finding</code><br/>skill — qualifies, picks<br/>shape + topic, formats"]
     paste["<b>Manual copy-paste</b><br/>User drops the block into<br/><code>docs/staging/incoming/</code>"]
     review["<b>Review session</b><br/>(this repo)<br/><br/><code>/review-staged-contributions</code><br/>walks each file"]
-    expert["<b>Expert agent analysis</b><br/>routed by <code>topic:</code><br/><br/>Verdict: generalizes /<br/>one-off / unclear"]
-    decision{"<b>Maintainer<br/>decides</b><br/>keep · update · deny<br/>(sees submission +<br/>expert verdict)"}
+    security["<b>Security sweep</b><br/>pattern scan +<br/><code>security-reviewer</code> agent<br/><br/>Verdict: clean /<br/>caution / BLOCKED"]
+    expert["<b>Topic expert analysis</b><br/>routed by <code>topic:</code><br/><br/>Verdict: generalizes /<br/>one-off / unclear"]
+    decision{"<b>Maintainer<br/>decides</b><br/>keep · update · deny<br/>(sees submission +<br/>security + expert)"}
     canonical["<b>Canonical location</b><br/><br/><code>lessons-learned.md</code><br/>or<br/><code>best-practices/&lt;slug&gt;.md</code>"]
     deleted["<b>Deleted</b><br/>(git log keeps the trail)"]
 
     consumer --> paste
     paste --> review
-    review --> expert
+    review --> security
+    security -->|clean / caution| expert
+    security -->|BLOCKED| decision
     expert --> decision
     decision -->|keep| canonical
     decision -->|deny| deleted
@@ -22,12 +25,14 @@ flowchart LR
 
     classDef consumer fill:#7c2d12,stroke:#fed7aa,color:#fff7ed
     classDef stage fill:#1f2937,stroke:#9ca3af,color:#f9fafb
+    classDef security fill:#991b1b,stroke:#fca5a5,color:#fef2f2
     classDef expert fill:#581c87,stroke:#d8b4fe,color:#faf5ff
     classDef gate fill:#854d0e,stroke:#fde68a,color:#fffbeb
     classDef good fill:#0f766e,stroke:#5eead4,color:#ecfeff
     classDef bad fill:#374151,stroke:#9ca3af,color:#e5e7eb,stroke-dasharray: 4 3
     class consumer consumer
     class paste,review stage
+    class security security
     class expert expert
     class decision gate
     class canonical good
@@ -61,10 +66,11 @@ In any Claude session running in this repo with `ravenclaude-core` active, invok
 The skill walks `docs/staging/incoming/` file by file, oldest first. For each one:
 
 1. **Display** the metadata (type, topic, proposed-by, proposed-on, target file) + the rendered body.
-2. **Route by topic.** The `topic:` field in the metadata picks the expert specialist agent — `architecture` → ravenclaude-core/architect, `power-platform` → the best-fit power-platform specialist, `security` → security-reviewer, and so on. The full routing table lives in [`review-staged-contributions.md`](../../plugins/ravenclaude-core/skills/review-staged-contributions.md) Step 2.5.
-3. **Spawn the expert.** The expert reads the submission and returns a structured analysis: *generalizes / one-off / unclear*, with reasoning, missed edge cases, recommended adjustments, and a confidence level.
-4. **Present to the maintainer.** The keep/update/deny prompt shows the submission AND the expert's verdict side by side.
-5. **Act on the decision:**
+2. **Security sweep (mandatory first gate).** An automated pattern scan checks for leaked secrets, unscrubbed real identifiers, prompt-injection signals, dangerous code examples, and non-canonical external URLs. The `security-reviewer` agent reads the submission as a second pass. The verdict is `CLEAN`, `CAUTION`, or `BLOCKED`. A `BLOCKED` verdict short-circuits the rest of the flow — the maintainer sees the security findings and the submission goes straight to keep/update/deny (where keep should require explicit override reasoning). Details in [`review-staged-contributions.md`](../../plugins/ravenclaude-core/skills/review-staged-contributions.md) Step 2.3.
+3. **Route by topic** (only if security verdict is CLEAN or CAUTION). The `topic:` field in the metadata picks the expert specialist agent — `architecture` → ravenclaude-core/architect, `power-platform` → the best-fit power-platform specialist, `security` → security-reviewer, and so on. The full routing table lives in [`review-staged-contributions.md`](../../plugins/ravenclaude-core/skills/review-staged-contributions.md) Step 2.5.
+4. **Spawn the expert.** The expert reads the submission and returns a structured analysis: *generalizes / one-off / unclear*, with reasoning, missed edge cases, recommended adjustments, and a confidence level.
+5. **Present to the maintainer.** The keep/update/deny prompt shows the submission, the security verdict + findings, AND the expert's verdict side by side.
+6. **Act on the decision:**
 
 | Choice | What happens |
 |---|---|
