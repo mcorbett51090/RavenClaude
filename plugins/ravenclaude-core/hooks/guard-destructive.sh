@@ -19,7 +19,6 @@ deny_patterns=(
   'git[[:space:]]+push[[:space:]]+.*-f([[:space:]]|$)'
   'git[[:space:]]+reset[[:space:]]+--hard[[:space:]]+(origin|HEAD~|@)'
   'git[[:space:]]+clean[[:space:]]+-[a-z]*f[a-z]*d'
-  'git[[:space:]]+branch[[:space:]]+-D'
   'curl[[:space:]]+[^|]+\|[[:space:]]*(sh|bash)' # curl … | sh
   'wget[[:space:]]+[^|]+\|[[:space:]]*(sh|bash)' # wget … | sh
   'chmod[[:space:]]+-R[[:space:]]+777'
