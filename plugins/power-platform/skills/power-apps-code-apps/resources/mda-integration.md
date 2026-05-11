@@ -146,12 +146,26 @@ resource for in-MDA experience, Code App for standalone access.
 
 ## Code App vs MDA Integration Decision Tree
 
-```
-Need custom UI inside MDA navigation?
-  ├── Yes → Need complex Canvas-style controls?
-  │     ├── Yes → Custom Page (canvas app built as custom page)
-  │     └── No → Web Resource SubArea (HTML/JS — use vite-plugin-singlefile for React)
-  └── No → Need standalone full-page experience?
-        ├── Yes → Code App (separate deployment via pac code push)
-        └── No → URL SubArea (external link — but CSP may block iframing)
+```mermaid
+flowchart TD
+    start{"Need custom UI<br/>inside MDA navigation?"}
+    canvas{"Need complex<br/>Canvas-style controls?"}
+    standalone{"Need standalone<br/>full-page experience?"}
+
+    custompage["<b>Custom Page</b><br/>canvas app built<br/>as custom page"]
+    webresource["<b>Web Resource SubArea</b><br/>HTML/JS — use<br/>vite-plugin-singlefile for React"]
+    codeapp["<b>Code App</b><br/>separate deployment<br/>via pac code push"]
+    urlsub["<b>URL SubArea</b><br/>external link —<br/>CSP may block iframing"]
+
+    start -->|Yes| canvas
+    start -->|No| standalone
+    canvas -->|Yes| custompage
+    canvas -->|No| webresource
+    standalone -->|Yes| codeapp
+    standalone -->|No| urlsub
+
+    classDef leaf fill:#0f766e,stroke:#5eead4,color:#ecfeff
+    classDef caveat fill:#7c2d12,stroke:#fed7aa,color:#fff7ed
+    class custompage,webresource,codeapp leaf
+    class urlsub caveat
 ```

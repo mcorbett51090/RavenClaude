@@ -4,18 +4,22 @@
 
 Every PCF control follows a strict lifecycle managed by the platform host. Understanding this lifecycle is essential for building controls that initialize cleanly, update efficiently, report values correctly, and clean up resources.
 
-```
-┌──────────┐     ┌──────────────┐     ┌──────────────┐     ┌───────────┐
-│  init()  │ ──► │ updateView() │ ──► │ getOutputs() │ ──► │ destroy() │
-└──────────┘     └──────┬───────┘     └──────────────┘     └───────────┘
-                        │       ▲            ▲
-                        │       │            │
-                        ▼       │            │
-                   (re-render)  │   notifyOutputChanged()
-                        │       │            │
-                        └───────┘            │
-                   (platform triggers        │
-                    on data/size change)      │
+```mermaid
+flowchart LR
+    init["init()"]
+    update["updateView()"]
+    outputs["getOutputs()"]
+    destroy["destroy()"]
+
+    init --> update
+    update --> outputs
+    outputs --> destroy
+
+    update -.->|"platform triggers<br/>on data/size change"| update
+    update -->|notifyOutputChanged| outputs
+
+    classDef lifecycle fill:#0f766e,stroke:#5eead4,color:#ecfeff
+    class init,update,outputs,destroy lifecycle
 ```
 
 ### `init(context, notifyOutputChanged, state, container)`

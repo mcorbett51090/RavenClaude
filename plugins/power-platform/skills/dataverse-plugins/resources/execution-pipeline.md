@@ -5,36 +5,27 @@ Plugins register at specific stages to intercept operations.
 
 ## Pipeline Stages
 
-```
-Request arrives
-    │
-    ▼
-┌─────────────────────────────┐
-│  Stage 10: PreValidation    │  ← Outside transaction
-│  Validate inputs, reject    │  ← Can prevent operation
-│  early if invalid           │  ← Least performance impact
-└─────────────┬───────────────┘
-              │
-    ▼─── Transaction begins ───▼
-              │
-┌─────────────────────────────┐
-│  Stage 20: PreOperation     │  ← Inside transaction
-│  Modify data before save    │  ← Changes included in save
-│  Set defaults, transform    │  ← Can prevent operation
-└─────────────┬───────────────┘
-              │
-┌─────────────────────────────┐
-│  Stage 30: MainOperation    │  ← Core platform operation
-│  (System only — no plugins) │  ← Actual database write
-└─────────────┬───────────────┘
-              │
-┌─────────────────────────────┐
-│  Stage 40: PostOperation    │  ← Inside transaction (sync)
-│  React to completed op      │  ← Create related records
-│  Send notifications         │  ← Cascade updates
-└─────────────┬───────────────┘
-              │
-    ▲─── Transaction ends ─────▲
+```mermaid
+flowchart TB
+    req([Request arrives])
+    s10["<b>Stage 10: PreValidation</b><br/>Validate inputs, reject early<br/>Outside transaction · least perf impact"]
+    s20["<b>Stage 20: PreOperation</b><br/>Modify data before save<br/>Inside transaction · can prevent op"]
+    s30["<b>Stage 30: MainOperation</b><br/>System only — no plugins<br/>Actual database write"]
+    s40["<b>Stage 40: PostOperation</b><br/>React to completed op,<br/>create related records, notify"]
+    done([Response returned])
+
+    req --> s10
+    s10 -->|transaction begins| s20
+    s20 --> s30
+    s30 --> s40
+    s40 -->|transaction ends| done
+
+    classDef outside fill:#1f2937,stroke:#9ca3af,color:#f9fafb
+    classDef inside fill:#0f766e,stroke:#5eead4,color:#ecfeff
+    classDef system fill:#374151,stroke:#9ca3af,color:#e5e7eb
+    class s10 outside
+    class s20,s40 inside
+    class s30 system
 ```
 
 ## When to Use Which Stage

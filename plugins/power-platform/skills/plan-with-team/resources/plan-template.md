@@ -48,14 +48,12 @@ For each table, include:
 
 #### 3.3 Relationship Diagram
 
-Text-based ERD showing table connections:
-```
-[Account] 1──N [Project] N──N [Employee]
-                    │
-                    1
-                    │
-                    N
-              [Milestone]
+ERD showing table connections:
+```mermaid
+erDiagram
+    Account ||--o{ Project : has
+    Project }o--o{ Employee : staffs
+    Project ||--o{ Milestone : has
 ```
 
 ### 4. App Design
