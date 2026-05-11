@@ -37,6 +37,32 @@ One staging file = one canonical doc on promotion. Do not combine a lesson and a
 
 ---
 
+## Step 2.5 — Tag the topic
+
+Pick the `topic:` value that best describes the *expertise* the finding draws on. On the maintainer side, the review skill spawns the matching specialist agent to analyze whether the finding **generalizes** or is **one-off** — so getting the topic right routes the submission to the right reviewer.
+
+| `topic:` | Expert who'll review on the maintainer side | Use when the finding is about… |
+|---|---|---|
+| `architecture` | ravenclaude-core / architect | system design, trade-offs, structural choices |
+| `backend` | ravenclaude-core / backend-coder | server, API, DB, jobs, integrations |
+| `frontend` | ravenclaude-core / frontend-coder | UI, components, client state, styling |
+| `fullstack` | ravenclaude-core / fullstack-coder | client/server crossings as one unit |
+| `testing` | ravenclaude-core / tester-qa | test design, flake hunting, coverage |
+| `code-review` | ravenclaude-core / code-reviewer | review patterns, diff hygiene |
+| `security` | ravenclaude-core / security-reviewer | auth, crypto, secrets, untrusted input |
+| `research` | ravenclaude-core / deep-researcher | sourcing, verification, comparison |
+| `documentation` | ravenclaude-core / documentarian | stakeholder prose, runbooks, READMEs |
+| `design` | ravenclaude-core / designer | UX, wireframes, visual hierarchy |
+| `prompt-engineering` | ravenclaude-core / prompt-engineer | agent/skill prompts, prompt patterns |
+| `project-management` | ravenclaude-core / project-manager | RAID, status, cadence, stakeholders |
+| `partner-success` | ravenclaude-core / partner-success-manager | QBR, success plans, health scoring |
+| `power-platform` | best-fit power-platform agent (router picks by subtopic) | Power Platform stack specifics |
+| `other` | architect (fallback) | cross-cutting findings that don't fit above |
+
+If the finding spans two topics (e.g., security + backend), pick the one the *expert* should weigh in on most heavily — usually the more specialized one. The maintainer can request a second-opinion route during review if needed.
+
+---
+
 ## Step 3 — Scrub for safety before drafting
 
 Before you write a single word of submission:
@@ -59,6 +85,7 @@ Wrap the entire submission in **one fenced code block** labelled `RAVENCLAUDE-ST
 ```markdown RAVENCLAUDE-STAGING-SUBMISSION
 <!-- RAVENCLAUDE-STAGING-METADATA
 type: lesson
+topic: <one of: architecture | backend | frontend | fullstack | testing | code-review | security | research | documentation | design | prompt-engineering | project-management | partner-success | power-platform | other>
 proposed-by: <short context — e.g. "consumer project building a Dataverse flow integration">
 proposed-on: YYYY-MM-DD
 target-file: docs/memory-bank/lessons-learned.md
@@ -88,6 +115,7 @@ status: pending
 ```markdown RAVENCLAUDE-STAGING-SUBMISSION
 <!-- RAVENCLAUDE-STAGING-METADATA
 type: best-practice
+topic: <one of: architecture | backend | frontend | fullstack | testing | code-review | security | research | documentation | design | prompt-engineering | project-management | partner-success | power-platform | other>
 proposed-by: <short context>
 proposed-on: YYYY-MM-DD
 target-file: docs/best-practices/<descriptive-slug>.md
@@ -151,6 +179,8 @@ After you print the staging block, tell the user — concisely — what to do wi
 > 3. In your RavenClaude Claude Code session, run `/review-staged-contributions` to walk it through the keep/update/deny review.
 
 If the user has their RavenClaude session open already, you can stop there — they'll handle the rest. If not, mention it'll wait in `docs/staging/incoming/` until they're ready.
+
+**What happens on the maintainer side (so you can set expectations):** The review skill doesn't take your submission at face value. It spawns the **expert agent matching the `topic:` you tagged** to analyze whether the finding generalizes (applies to anyone working in that topic) or is one-off (specific to your situation). The expert's verdict is shown to the maintainer alongside your submission during the keep/update/deny prompt. This means a well-scoped submission with the right topic tag gets a fair, specialist read — and a submission that's actually a one-off issue gets caught before it lands in canonical docs.
 
 ---
 

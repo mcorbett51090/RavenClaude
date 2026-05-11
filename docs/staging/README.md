@@ -4,24 +4,32 @@ This directory receives **proposed** lessons and best-practice docs from consume
 
 ```mermaid
 flowchart LR
-    consumer["<b>Consumer project</b><br/>(ravenclaude-core installed)<br/><br/>Claude uses<br/><code>contribute-finding</code> skill<br/>to draft a submission"]
+    consumer["<b>Consumer project</b><br/>(ravenclaude-core installed)<br/><br/>Claude uses<br/><code>contribute-finding</code><br/>skill — qualifies, picks<br/>shape + topic, formats"]
     paste["<b>Manual copy-paste</b><br/>User drops the block into<br/><code>docs/staging/incoming/</code>"]
-    review["<b>Review session</b><br/>(this repo)<br/><br/><code>/review-staged-contributions</code><br/>walks each file<br/>keep · update · deny"]
-    canonical["<b>Canonical location</b><br/><br/><code>docs/memory-bank/lessons-learned.md</code><br/>or<br/><code>docs/best-practices/&lt;slug&gt;.md</code>"]
+    review["<b>Review session</b><br/>(this repo)<br/><br/><code>/review-staged-contributions</code><br/>walks each file"]
+    expert["<b>Expert agent analysis</b><br/>routed by <code>topic:</code><br/><br/>Verdict: generalizes /<br/>one-off / unclear"]
+    decision{"<b>Maintainer<br/>decides</b><br/>keep · update · deny<br/>(sees submission +<br/>expert verdict)"}
+    canonical["<b>Canonical location</b><br/><br/><code>lessons-learned.md</code><br/>or<br/><code>best-practices/&lt;slug&gt;.md</code>"]
     deleted["<b>Deleted</b><br/>(git log keeps the trail)"]
 
     consumer --> paste
     paste --> review
-    review -->|keep| canonical
-    review -->|deny| deleted
-    review -->|update| paste
+    review --> expert
+    expert --> decision
+    decision -->|keep| canonical
+    decision -->|deny| deleted
+    decision -->|update| paste
 
     classDef consumer fill:#7c2d12,stroke:#fed7aa,color:#fff7ed
     classDef stage fill:#1f2937,stroke:#9ca3af,color:#f9fafb
+    classDef expert fill:#581c87,stroke:#d8b4fe,color:#faf5ff
+    classDef gate fill:#854d0e,stroke:#fde68a,color:#fffbeb
     classDef good fill:#0f766e,stroke:#5eead4,color:#ecfeff
     classDef bad fill:#374151,stroke:#9ca3af,color:#e5e7eb,stroke-dasharray: 4 3
     class consumer consumer
     class paste,review stage
+    class expert expert
+    class decision gate
     class canonical good
     class deleted bad
 ```
@@ -50,13 +58,21 @@ In any Claude session running in this repo with `ravenclaude-core` active, invok
 /review-staged-contributions
 ```
 
-The skill walks `docs/staging/incoming/` file by file, oldest first. For each, it shows the metadata + the rendered body + what would happen on approval, then asks:
+The skill walks `docs/staging/incoming/` file by file, oldest first. For each one:
+
+1. **Display** the metadata (type, topic, proposed-by, proposed-on, target file) + the rendered body.
+2. **Route by topic.** The `topic:` field in the metadata picks the expert specialist agent — `architecture` → ravenclaude-core/architect, `power-platform` → the best-fit power-platform specialist, `security` → security-reviewer, and so on. The full routing table lives in [`review-staged-contributions.md`](../../plugins/ravenclaude-core/skills/review-staged-contributions.md) Step 2.5.
+3. **Spawn the expert.** The expert reads the submission and returns a structured analysis: *generalizes / one-off / unclear*, with reasoning, missed edge cases, recommended adjustments, and a confidence level.
+4. **Present to the maintainer.** The keep/update/deny prompt shows the submission AND the expert's verdict side by side.
+5. **Act on the decision:**
 
 | Choice | What happens |
 |---|---|
-| **Keep** | Body is promoted to its canonical home (`docs/memory-bank/lessons-learned.md` for lessons, `docs/best-practices/<slug>.md` for best-practices). The staged file is deleted. For lessons, the count in `docs/architecture.md` is bumped. Commit: `docs(...): promote staged ...` |
-| **Update** | Staged file stays in `incoming/`. The maintainer revises it (or directs Claude to revise), then re-runs the review. No commit. |
-| **Deny** | Staged file is deleted with a one-line reason in the commit. Commit: `chore(staging): deny <filename> — <reason>` |
+| **Keep** | Body promoted to canonical home (`docs/memory-bank/lessons-learned.md` for lessons, new file at `docs/best-practices/<slug>.md` for best-practices, plus a row appended to the best-practices index). The staged file is deleted. For lessons, the count in `docs/architecture.md` is bumped. Commit: `docs(...): promote staged ... (expert: <verdict>, <confidence>)` |
+| **Update** | Staged file stays in `incoming/`. The maintainer revises it (or directs Claude to revise based on the expert's edge cases), then re-runs the review. No commit. |
+| **Deny** | Staged file is deleted with a one-line reason in the commit. If the deny was driven by the expert's verdict, the expert's reasoning is quoted in the message. Commit: `chore(staging): deny <filename> — <reason>` |
+
+The expert's analysis is **ephemeral** — it informs the decision but isn't saved to a file unless the maintainer explicitly asks to append it. The git commit on promote captures the verdict + confidence so future-anyone can see the staffing of the decision without re-spawning the agent.
 
 The git history is the audit trail — every accept and deny shows up in `git log docs/staging/`.
 
@@ -69,12 +85,15 @@ Every file in `incoming/` opens with a metadata block as an HTML comment, then t
 ```html
 <!-- RAVENCLAUDE-STAGING-METADATA
 type: lesson | best-practice
+topic: <architecture | backend | frontend | fullstack | testing | code-review | security | research | documentation | design | prompt-engineering | project-management | partner-success | power-platform | other>
 proposed-by: <short context — e.g. "consumer project working on Flow retries">
 proposed-on: YYYY-MM-DD
 target-file: docs/memory-bank/lessons-learned.md  (or)  docs/best-practices/<slug>.md
 status: pending
 -->
 ```
+
+The `topic:` field is what routes the submission to the right expert agent during review. If you're authoring a submission by hand (not via the `contribute-finding` skill), pick the topic whose specialist should weigh in.
 
 If a finding produces both a lesson AND a best-practice, expect **two staged files** — they promote independently and cross-link on the maintainer side.
 

@@ -32,6 +32,7 @@ For each staged file, in oldest-first order:
 
 2. **Display the metadata clearly** so the maintainer knows what they're looking at:
    - Type (lesson or best-practice)
+   - **Topic** (drives expert routing — see Step 2.5)
    - Proposed by
    - Proposed on
    - Target file path on promotion
@@ -40,14 +41,85 @@ For each staged file, in oldest-first order:
 
 4. **State what would happen on approval** in one sentence:
    - For lessons: *"Insert at top of `docs/memory-bank/lessons-learned.md`, bump the lesson count in `docs/architecture.md` Status section, delete the staged file."*
-   - For best-practices: *"Create `docs/best-practices/<slug>.md` from the body content, delete the staged file."*
+   - For best-practices: *"Create `docs/best-practices/<slug>.md` from the body content, append a row to `docs/best-practices/README.md` index, delete the staged file."*
 
-5. **Ask keep / update / deny** using the standard `AskUserQuestion` pattern:
+5. **Run the expert analysis** — see Step 2.5 before asking keep/update/deny. The expert's verdict goes into the prompt.
+
+6. **Ask keep / update / deny** using the standard `AskUserQuestion` pattern, with the expert's verdict and reasoning shown alongside the submission:
    - **Keep** — promote per Step 3.
    - **Update** — leave in staging; the maintainer will edit the staged file or tell you what to revise, then re-run this skill.
    - **Deny** — delete the file with the reason logged in the commit message.
 
 Do not batch the prompts. One submission at a time, each with its own keep/update/deny. A pile of decisions gets sloppy fast.
+
+---
+
+## Step 2.5 — Spawn the expert and capture the analysis
+
+This step is **mandatory** for every staged submission. It's the safeguard against promoting a one-off issue into canonical cross-domain guidance.
+
+### Route by topic
+
+Read the `topic:` field from the metadata. Spawn the matching specialist agent:
+
+| `topic:` | Spawn this agent | `subagent_type` value |
+|---|---|---|
+| `architecture` | ravenclaude-core / architect | `ravenclaude-core:architect` |
+| `backend` | ravenclaude-core / backend-coder | `ravenclaude-core:backend-coder` |
+| `frontend` | ravenclaude-core / frontend-coder | `ravenclaude-core:frontend-coder` |
+| `fullstack` | ravenclaude-core / fullstack-coder | `ravenclaude-core:fullstack-coder` |
+| `testing` | ravenclaude-core / tester-qa | `ravenclaude-core:tester-qa` |
+| `code-review` | ravenclaude-core / code-reviewer | `ravenclaude-core:code-reviewer` |
+| `security` | ravenclaude-core / security-reviewer | `ravenclaude-core:security-reviewer` |
+| `research` | ravenclaude-core / deep-researcher | `ravenclaude-core:deep-researcher` |
+| `documentation` | ravenclaude-core / documentarian | `ravenclaude-core:documentarian` |
+| `design` | ravenclaude-core / designer | `ravenclaude-core:designer` |
+| `prompt-engineering` | ravenclaude-core / prompt-engineer | `ravenclaude-core:prompt-engineer` |
+| `project-management` | ravenclaude-core / project-manager | `ravenclaude-core:project-manager` |
+| `partner-success` | ravenclaude-core / partner-success-manager | `ravenclaude-core:partner-success-manager` |
+| `power-platform` | best-fit power-platform agent — read the submission and pick: dataverse-architect, power-fx-engineer, flow-engineer, model-driven-engineer, solution-alm-engineer, power-platform-admin, pcf-developer, copilot-studio-engineer, or power-pages-engineer | (the specific power-platform agent) |
+| `other` | architect (fallback) | `ravenclaude-core:architect` |
+
+If the metadata is missing the `topic:` field (e.g., older submission predating this workflow), default to `architect` and note the missing tag in your output to the maintainer.
+
+### Brief the expert
+
+Use this brief (substitute the bracketed values). Keep it tight — the expert returns a structured analysis, not a code review.
+
+> A consumer project submitted a proposed **[type]** for the RavenClaude marketplace via the staging workflow. Your job: analyze whether this finding **generalizes** (applies to anyone working in `[topic]`) or is **one-off** (specific to the submitter's situation).
+>
+> The submission is below. Return a structured analysis with exactly these sections:
+>
+> - **Verdict:** generalizes | one-off | unclear
+> - **Reasoning:** 2–4 sentences. What in the submission is universal? What might be submitter-specific (their stack version, tenant config, dataset shape, team practice, etc.)?
+> - **Edge cases the submitter may have missed:** bullet list, or "none" if you can't think of any
+> - **Recommended adjustments:** wording changes that would broaden applicability without rewriting the submission — or "none needed"
+> - **Confidence:** high | medium | low
+>
+> Do not edit the submission. Do not write code. Return only the structured analysis.
+>
+> ---
+>
+> **Submission metadata:** [paste metadata block]
+>
+> **Submission body:** [paste body]
+
+### Use the expert's output in the keep/update/deny prompt
+
+When you ask the maintainer for the decision, show them:
+
+1. The submission metadata (compact)
+2. The submission body (rendered)
+3. **The expert's verdict + reasoning + edge cases + confidence**
+
+The maintainer's keep/update/deny then considers both the submission AND the expert's read. Common patterns:
+
+- Expert verdict `generalizes` + high confidence → maintainer usually keeps.
+- Expert verdict `one-off` + high confidence → maintainer usually denies, with the expert's reasoning copied into the deny commit message.
+- Expert verdict `unclear` or `medium`/`low` confidence → maintainer often updates (asks for revision based on the edge cases the expert raised).
+- Expert recommends adjustments → maintainer can keep AND ask the skill to apply those adjustments before promotion.
+
+The expert's analysis is **ephemeral** — it doesn't get written to a file unless the maintainer explicitly says "add the expert's notes to the canonical doc." Otherwise it appears in this review session, informs the decision, and disappears. The git commit message on promote should still reference the expert's verdict for traceability (e.g., *"Promote staged lesson — title (expert verdict: generalizes, high confidence)"*).
 
 ---
 
@@ -60,15 +132,16 @@ Do not batch the prompts. One submission at a time, each with its own keep/updat
 3. Insert the body at the top, immediately after the existing `---` separator that closes the format documentation block (so the new entry sits above any existing dated entries).
 4. Update the lesson count in `docs/architecture.md` Status section (search for `Memory bank:`).
 5. Delete the staged file.
-6. Commit with: `docs(lessons): promote staged lesson — <title>` (the title comes from the lesson's `## YYYY-MM-DD — <title>` heading).
+6. Commit with: `docs(lessons): promote staged lesson — <title> (expert: <verdict>, <confidence>)` — the title comes from the lesson's `## YYYY-MM-DD — <title>` heading; the verdict + confidence come from Step 2.5.
 
 ### Best-practices
 
 1. Extract the body of the staged file (everything **after** the closing `-->`).
 2. Read the `target-file:` value from the metadata — that's the slug.
 3. Write the body to `docs/best-practices/<slug>.md`. This is a `Write` (new file).
-4. Delete the staged file.
-5. Commit with: `docs(best-practices): promote staged rule — <slug>`.
+4. **Append a row to `docs/best-practices/README.md` index table** with the new doc's slug, status, and "use when" summary.
+5. Delete the staged file.
+6. Commit with: `docs(best-practices): promote staged rule — <slug> (expert: <verdict>, <confidence>)`.
 
 ### Cross-link sanity check (both shapes)
 
@@ -90,7 +163,7 @@ Do not commit anything when an item is parked. Updates stay local until they ear
 ## Step 5 — On Deny: delete
 
 1. Delete the staged file.
-2. Commit with: `chore(staging): deny <staged-filename> — <one-line reason>`. The reason should be specific enough that future-anyone can understand it without re-reading the deleted file.
+2. Commit with: `chore(staging): deny <staged-filename> — <one-line reason>`. If the deny was driven by the expert's verdict (one-off, low generalizability), quote the expert's reasoning in the reason so future-anyone can see *why* this didn't qualify without re-spawning the analysis.
 
 The git history preserves the proposal + the denial. Anyone can reconstruct the audit trail with `git log docs/staging/`.
 

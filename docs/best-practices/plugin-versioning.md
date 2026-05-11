@@ -24,34 +24,57 @@ Semver in this repo follows standard semantics adapted for plugin content:
 
 ### Workflow
 
+A plugin version lives in **three mirrors** that must move together. Forget any one of them and consumers see stale content even after `marketplace update`.
+
 ```bash
 # 1. Make the content change inside plugins/<name>/
 $EDITOR plugins/power-platform/skills/visual-qa/SKILL.md
 
-# 2. Bump the version in the same plugin's manifest
-$EDITOR plugins/power-platform/.claude-plugin/plugin.json   # e.g. "version": "0.2.0" → "0.2.1"
+# 2. Bump the version in the plugin's manifest
+$EDITOR plugins/power-platform/.claude-plugin/plugin.json
+#                          e.g. "version": "0.2.0" → "0.2.1"
 
-# 3. Validate the JSON
+# 3. Bump the SAME version in the marketplace catalog
+$EDITOR .claude-plugin/marketplace.json
+#                          find the plugin's entry, bump its "version" field
+
+# 4. Bump the SAME version in the Status table of architecture.md
+$EDITOR docs/architecture.md
+#                          the table near the end that lists each plugin and version
+
+# 5. Validate all three JSON files
 python3 -m json.tool plugins/power-platform/.claude-plugin/plugin.json > /dev/null
+python3 -m json.tool .claude-plugin/marketplace.json > /dev/null
 
-# 4. Commit both files together — the version bump and the content change are inseparable
-git add plugins/power-platform/skills/visual-qa/SKILL.md plugins/power-platform/.claude-plugin/plugin.json
+# 6. Commit all files together — content change + 3 version mirrors in ONE commit
+git add plugins/power-platform/skills/visual-qa/SKILL.md \
+        plugins/power-platform/.claude-plugin/plugin.json \
+        .claude-plugin/marketplace.json \
+        docs/architecture.md
 git commit -m "docs(power-platform): clarify visual-qa workflow
 
 Bumps power-platform 0.2.0 → 0.2.1."
 ```
 
+**The three mirrors:**
+
+| File | Field | Why it has to move |
+|---|---|---|
+| `plugins/<name>/.claude-plugin/plugin.json` | `version` | The plugin's own manifest — read by Claude Code's plugin loader. |
+| `.claude-plugin/marketplace.json` | `plugins[].version` for that plugin | The marketplace catalog. Consumers' `/plugin marketplace update` reads this first to decide *whether* to refresh. If this stays stale, the consumer never invalidates their cache. |
+| `docs/architecture.md` Status table | Version column for that plugin | Human-facing documentation. Easy to forget; surfaces in the next audit if not bumped. |
+
 **Do:**
-- Bump in the **same commit** as the change. The version and the content travel together — period.
+- Bump in the **same commit** as the change. Content + plugin.json + marketplace.json + architecture.md travel together — period.
 - Use PATCH for content-only edits, MINOR for additions, MAJOR for breaks/removes.
-- Run `python3 -m json.tool plugins/<name>/.claude-plugin/plugin.json > /dev/null` after the bump to catch syntax errors before commit.
+- Run `python3 -m json.tool` on both JSON files after bumping to catch syntax errors before commit.
 - Mention the bump in the commit message body (`Bumps <plugin> X.Y.Z → X.Y.W.`) so it's discoverable in `git log`.
 
 **Don't:**
 - Bump retroactively in a separate "version bump" commit. There's a real race: a consumer who pulls between the content commit and the version commit gets the new content with the old version, the cache never invalidates, and the next update sees no version diff — they're stuck on stale content.
 - Skip the bump because "the change is small." Small changes that don't bump are exactly the ones consumers miss.
 - Bump MAJOR for cosmetic doc fixes inside the plugin — MAJOR means a breaking change to the consumer-facing contract.
-- Bump the marketplace catalog (`.claude-plugin/marketplace.json`). It has no `version` field by design — its freshness comes from git SHA. Only individual plugins are versioned.
+- Bump only the plugin's own `plugin.json` and forget the marketplace.json mirror. This is the most common drift — the consumer's update command reads the catalog first; a stale catalog means *no update happens* even though the plugin's own manifest is newer.
 
 ## Edge cases / when the rule does NOT apply
 
