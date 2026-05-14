@@ -168,7 +168,30 @@ Each skill is a folder with a `SKILL.md` (the playbook) and a `resources/` direc
 
 ---
 
-## 8. How the Team Lead Should Use the New Skills
+## 8. Bundled MCP server — `powerbi-editor` (pbix-mcp)
+
+The plugin declares one MCP server in its `plugin.json`: `powerbi-editor`, backed by the community [`d0nk3yhm/pbix-mcp`](https://github.com/d0nk3yhm/pbix-mcp) (MIT). It exposes ~101 tools for reading, writing, and DAX-evaluating Power BI `.pbix` and `.pbit` files **without** Power BI Desktop installed — useful when an agent needs to inspect a report's data model, edit measures, evaluate DAX, or generate a `.pbix` from a CSV/SQL/Excel/JSON source.
+
+**Consumer prerequisite** — the consumer must run this once on their machine:
+
+```bash
+pip install pbix-mcp
+```
+
+Until that's done, the MCP will fail to start and its tools will be unavailable. **If a user asks an agent to do something with a `.pbix` file and the `powerbi-editor` MCP tools aren't responding, the first thing to check is whether `pbix-mcp-server` is on the consumer's PATH** — that's far more likely than the MCP itself being broken.
+
+**Which agent owns it?** Primarily the `power-bi-engineer` (semantic models, DAX, measure authoring, PBIP file inspection). Other agents call it situationally:
+- **`dataverse-architect`** uses it when the question is "what does this existing Power BI report assume about the data model?"
+- **`flow-engineer`** uses it when a flow's job is to generate or post-process a `.pbix` file.
+- **`power-platform-admin`** uses it for tenant-wide report audits (RLS roles, data sources, sensitivity).
+
+**Boundary** — the `powerbi-editor` MCP is for `.pbix`/`.pbit` file manipulation. It is **not** a connection to the Power BI service, and it does not replace the Power BI REST API or `pac` CLI. For tenant-level Power BI operations (workspaces, datasets, refresh schedules), use the Power BI REST API directly via `flow-engineer` or `power-platform-admin`.
+
+See [`NOTICE.md`](NOTICE.md) for license attribution and a PATH-fallback configuration for consumers whose Python install doesn't put `pbix-mcp-server` on PATH.
+
+---
+
+## 9. How the Team Lead Should Use the New Skills
 
 ### Grounding Protocol Skill
 
@@ -196,7 +219,7 @@ You can run it yourself or ask a specialist agent to apply it.
 
 ---
 
-## 9. Escalating out of the Power Platform team
+## 10. Escalating out of the Power Platform team
 
 Power Platform agents stay within Power Platform. When a question crosses out, escalate via the Team Lead to:
 

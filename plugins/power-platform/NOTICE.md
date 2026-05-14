@@ -50,3 +50,49 @@ SOFTWARE.
 ## Excluded from import
 
 The original `record-screen/scripts/node_modules` tree was excluded — consumers should run `npm install` from `skills/record-screen/scripts/` if they want to use the recorder. The `package-lock.json` was also excluded; it will be regenerated on first `npm install`.
+
+---
+
+## Bundled MCP servers
+
+This plugin's `plugin.json` declares the following Model Context Protocol (MCP) server, which Claude Code starts automatically when the plugin is installed:
+
+### `powerbi-editor` — community pbix-mcp
+
+**Source:** [`d0nk3yhm/pbix-mcp`](https://github.com/d0nk3yhm/pbix-mcp)
+**PyPI package:** [`pbix-mcp`](https://pypi.org/project/pbix-mcp/)
+**License:** MIT
+**What it does:** Read, write, and DAX-evaluate Power BI `.pbix` and `.pbit` files without requiring Power BI Desktop. Exposes ~101 tools covering multi-table creation with relationships, CSV/SQL/Excel/JSON sources, DirectQuery, DAX measure evaluation (~156 functions), RLS, custom visuals, and themes.
+
+**Consumer prerequisite — must run once on the machine:**
+
+```bash
+pip install pbix-mcp
+```
+
+The plugin only declares the MCP wiring; the underlying Python binary (`pbix-mcp-server`) must exist on the consumer's PATH. If the binary isn't on PATH but Python is, the alternative invocation is:
+
+```json
+{
+  "mcpServers": {
+    "powerbi-editor": {
+      "command": "python",
+      "args": ["-m", "pbix_mcp.cli"]
+    }
+  }
+}
+```
+
+Consumers who hit PATH issues can override the declaration above in their own `.claude/settings.json` without modifying this plugin.
+
+**MIT License attribution for pbix-mcp** — full text per the upstream LICENSE file at [`d0nk3yhm/pbix-mcp`](https://github.com/d0nk3yhm/pbix-mcp). Reproduced summary:
+
+```
+MIT License — Copyright (c) d0nk3yhm (pbix-mcp authors)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction…
+```
+
+(See the upstream repo for the canonical, year-stamped license text.)
