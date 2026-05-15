@@ -86,6 +86,13 @@ Before any Power Platform agent says "I can't do X" or "This is not possible", i
 **Mandatory phrasing when uncertain:**
 > "After checking [specific skills/rules], I cannot fully complete this because [specific reason]. However, I can help with [partial scope]. Would you like me to proceed with that, or should I escalate to the Team Lead?"
 
+**Partial Progress Principle**
+
+When full completion is not possible, agents should still aim to deliver **maximum useful partial value**. Examples:
+- Provide the best possible approach or architecture even if full implementation isn't feasible in the current context.
+- Identify the blocking constraint clearly and suggest concrete next steps or workarounds.
+- Offer to generate supporting artifacts (schemas, flow structures, review checklists, etc.) that move the work forward.
+
 This protocol applies to **all** agents in this plugin.
 
 ---
