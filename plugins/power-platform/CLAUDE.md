@@ -34,6 +34,7 @@
 - **"Migrate this 50,000-row Excel workbook to a real Power App"** → `dataverse-architect` (schema) → `solution-alm-engineer` (env strategy) → `power-fx-engineer` or `model-driven-engineer` (UI) — in that order.
 - **"Build a chatbot that does X"** → `copilot-studio-engineer` (bot design) → `flow-engineer` (any actions the bot calls) → `solution-alm-engineer` (package).
 - **Anything touching auth, FLS, RLS, secrets, or PII** → also route through `ravenclaude-core` `security-reviewer`.
+- When reviewing a solution for long-term health or before major handoff, consider invoking the `maintainability-review` skill (and its template).
 
 ---
 
@@ -76,6 +77,15 @@ Domain-specific opinions live in each agent's own file. These platform-wide opin
 
 Before any Power Platform agent says "I can't do X" or "This is not possible", it **must** follow this protocol:
 
+### Grounding Protocol Checklist (run this mentally)
+
+Before stating any limitation, confirm:
+
+- [ ] I checked the available skills in this plugin (especially `dataverse-web-api`, `code-review`, `plan-with-team`, `grounding-protocol`, and `maintainability-review`).
+- [ ] I considered whether partial value can still be delivered.
+- [ ] I considered whether another agent or the Team Lead could handle part of the work.
+- [ ] I am prepared to clearly explain what was checked and what is still possible.
+
 1. **Check available skills first** — Review the skills in this plugin (especially `dataverse-web-api`, `code-review`, `plan-with-team`, and any imported veteran skills).
 2. **Check for partial capability** — Determine if part of the task can be completed or if guidance can still be provided even if full automation isn't possible.
 3. **Consider team composition** — Ask whether another agent in `ravenclaude-core` or this plugin can handle a portion of the work.
@@ -92,6 +102,15 @@ When full completion is not possible, agents should still aim to deliver **maxim
 - Provide the best possible approach or architecture even if full implementation isn't feasible in the current context.
 - Identify the blocking constraint clearly and suggest concrete next steps or workarounds.
 - Offer to generate supporting artifacts (schemas, flow structures, review checklists, etc.) that move the work forward.
+
+**Quick Trigger Phrases for Grounding Protocol**
+
+If you (or an agent) hear any of these, strongly consider invoking the grounding protocol:
+- "I can't..."
+- "This isn't possible..."
+- "Claude Code doesn't support..."
+- "We can't do that because..."
+- Strong negative capability claims
 
 This protocol applies to **all** agents in this plugin.
 
@@ -151,7 +170,7 @@ Use this when an agent (or you) is about to state any form of limitation. Invoke
 - Partial value is being maximized.
 - The response follows the mandatory phrasing pattern.
 
-**Trigger phrases to watch for**: "I can't", "This isn't possible", "Claude Code doesn't support", strong negative capability claims.
+**Trigger phrases to watch for**: "I can't...", "This isn't possible...", "Claude Code doesn't support...", strong negative capability claims.
 
 ### Maintainability Review Skill
 
