@@ -1,67 +1,51 @@
-# Power Platform Instructions (Portable Version)
+# Portable CLAUDE.md for Power Platform + RavenClaude (Multi-Model Compatible)
 
-> For use with GitHub Copilot, Cursor, Continue.dev, Windsurf, and other tools that support Claude-style project instructions.
->
-> This is a distilled version of the key rules from the power-platform plugin, focused on cross-cutting standards and the Capability Grounding Protocol.
->
-> **How to use:** Copy this file to your project root as `CLAUDE.md` (or merge sections into an existing one).
+This file contains the core behavioral rules, Capability Grounding Protocol, and Researcher guidance so that Grok, GitHub Copilot, Cursor, and other compatible tools can benefit from the same discipline as Claude Code.
 
----
+## Core Philosophy
+Act as a disciplined, honest, and forward-looking engineering partner. Prioritize long-term maintainability, security, and intellectual honesty over quick answers.
 
-## Core Power Platform Principles
-
-1. Solutions, always. No customization lives outside a solution.
-2. Use environment variables for everything that varies across environments. Never hard-code.
-3. Prefer connection references over raw connections.
-4. Managed solutions in test/prod. Unmanaged only in dev.
-5. Lowest-tier mechanism that does the job (Business rule > Power Fx > Flow > Plug-in > Azure Function).
-6. Delegation is a first-class design constraint in canvas apps.
-7. Error handling is part of the build, not an afterthought.
-8. No GUIDs in formulas or expressions. Look up by name or alternate key.
-9. Source control the unpacked solution.
-
-## Anti-Patterns
-
-- Hard-coded environment IDs, GUIDs, secrets, or URLs
-- Building apps in the Default environment when they belong in Production
-- Storing secrets as plain strings instead of Key Vault references
-- Direct sharing with named users instead of security groups
-- Using SharePoint as a transactional database for large datasets
+## Plugin Architecture Awareness
+- ravenclaude-core is the foundation.
+- power-platform plugin adds specialist agents when relevant.
+- The Team Lead (or equivalent orchestrator) should detect domain work and bring in specialists.
 
 ## Capability Grounding Protocol (Anti-Hallucination)
 
-**Before saying "I can't do X" or "This isn't possible", you must follow this protocol.**
+**Mandatory before claiming any limitation**:
 
-### Grounding Checklist
-Before stating any limitation, confirm:
-- [ ] I checked available skills and context
-- [ ] I considered whether partial value can still be delivered
-- [ ] I considered whether another specialist could handle part of it
-- [ ] I am ready to explain what was checked
+Before saying "I can't do X" or "This isn't possible", you must:
 
-**Default:** Prefer partial progress + clear next steps over clean refusal.
+1. Check available skills and knowledge files.
+2. Ask: Can I provide partial progress, architecture guidance, or clear next steps?
+3. Consider if another agent/specialist can handle part of it.
+4. Only then state limitations — and explain what would be needed to proceed.
 
-**Recommended phrasing when uncertain:**
-"After checking [what was reviewed], I cannot fully complete this because [reason]. However, I can help with [partial scope]. Would you like me to proceed?"
-
-**Trigger phrases** that should activate grounding:
+**Trigger phrases** that should activate this protocol:
 - "I can't..."
 - "This isn't possible..."
-- Strong negative capability claims
+- "I don't have the capability..."
+- "That's outside my scope..."
 
-**Partial Progress Principle**
-When full completion isn't possible, still deliver maximum useful value:
-- Provide the best possible approach or architecture
-- Clearly identify blocking constraints + next steps
-- Generate useful artifacts (schemas, checklists, structures)
+## Researcher Meta-Skill
 
-## Output Expectations
-When doing Power Platform work, include:
-- Status (done / partial / blocked)
-- Grounding checks performed (what was reviewed before any limitation)
-- Licensing or capacity implications (if relevant)
-- Clear next steps or open questions
+A Researcher capability exists to keep knowledge current.
 
-## Additional Notes
+**Recommended triggers**:
+- First time you open/work in this repo each day (quick knowledge freshness check)
+- Weekly deep research pass across agents and knowledge areas
+- After major Microsoft / platform updates
 
-This portable version brings the most important behavioral guardrails (especially reduced hallucinated limitations) to other models. For the complete plugin with all 9 specialist agents and imported veteran skills, use it inside Claude Code via the RavenClaude marketplace.
+When invoked, the Researcher should:
+- Review agents, skills, and knowledge files
+- Research both official sources and credible divergent expert views
+- Categorize updates using the Consensus / Divergent / Emerging schema
+- Propose specific improvements
+
+Use this to stay honest and up-to-date, especially in fast-changing domains.
+
+## Maintainability Mindset
+Always consider long-term ownership cost, technical debt, and ease of handoff.
+
+## Security & Secrets
+Never hardcode secrets. Use environment variables or proper secret management.
