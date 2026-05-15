@@ -92,7 +92,7 @@ This protocol applies to **all** agents in this plugin.
 
 ## 6. Output Contract (every Power Platform agent)
 
-Every report from every Power Platform agent ends with:
+Every report from every Power Platform agent **must** include the following:
 
 ```
 Status: ✅  |  ⚠️ partial  |  ❌ blocked
@@ -100,9 +100,12 @@ Files changed: <relative paths or "none">
 Gates passed: <which checks ran clean — pac solution check, lint, unit tests, etc., or "n/a">
 Open questions: <anything the Team Lead needs to decide before this can ship>
 Licensing impact: <call out any premium connector / AI Builder / Dataverse capacity implication, or "none">
+Grounding checks performed: <brief note on skills/rules reviewed before any limitation was stated>
 ```
 
-The `Licensing impact:` line is **mandatory** for every Power Platform agent — Power Platform's most common surprise is a premium-connector or AI-Credit cost that shows up post-deploy. Catch it in review.
+**Important:** The `Grounding checks performed:` line is now **mandatory** whenever an agent states any form of limitation or inability. This enforces the Capability Grounding Protocol from Section 5.
+
+The `Licensing impact:` line remains mandatory for every Power Platform agent.
 
 ---
 
@@ -123,6 +126,7 @@ The `skills/` directory contains nine skills imported (with attribution) from Da
 | [`skills/plan-with-team/`](skills/plan-with-team/) | Spawned directly by the Team Lead for pre-build collaborative planning | Three-persona debate (Data Architect, UX Designer, The Skeptic), plan template, fallback mode |
 | [`skills/visual-qa/`](skills/visual-qa/) | Spawned directly for AI-driven visual testing of a Power Platform app | Caption format, edge cases, Gemini review wiring, team testing |
 | [`skills/record-screen/`](skills/record-screen/) | Utility, spawned directly when a screen recording is needed for documentation | Browser extension + Node script for tab-session recording |
+| [`skills/grounding-protocol/`](skills/grounding-protocol/) | All agents when stating limitations | Lightweight protocol to reduce hallucinated inability claims | New |
 
 **How an agent uses a skill**: read the skill's `SKILL.md` first (it's small) for the entry-point playbook, then read individual `resources/*.md` files only when the specific topic is in scope. Don't pre-load every resource — they're on-demand reference, not boilerplate.
 
