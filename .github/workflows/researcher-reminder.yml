@@ -18,6 +18,9 @@ on:
 jobs:
   create-research-issue:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
     steps:
       - name: Create Researcher Issue
         uses: actions/github-script@v7
@@ -29,7 +32,7 @@ jobs:
             let body = '';
             
             if (researchType === 'weekly-deep') {
-              title = '🔬 Weekly Deep Research Sweep - Researcher Agent';
+              title = 'Researcher Weekly Deep Research Sweep';
               body = `## Weekly Deep Research
 
 **Trigger**: Scheduled weekly deep research
@@ -53,7 +56,7 @@ jobs:
 **Goal**: Keep every agent's knowledge current and categorized so agents default to consensus but have principled fallbacks.
 `;
             } else {
-              title = '🔬 Daily Quick Research Check - Researcher Agent';
+              title = 'Researcher Daily Quick Research Check';
               body = `## Daily Quick Research Check
 
 **Trigger**: First open of the repo today or manual trigger
