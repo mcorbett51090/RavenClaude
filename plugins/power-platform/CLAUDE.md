@@ -1,6 +1,6 @@
 # Power Platform Plugin — Team Constitution
 
-> Team constitution for the `power-platform` Claude Code plugin. Bundles 9 specialist agents focused on the Microsoft Power Platform stack. Each agent owns a slice; the Team Lead (the top-level Claude session, typically also running `ravenclaude-core`) dispatches the right specialist(s) for a given task and integrates their reports.
+> Team constitution for the `power-platform` Claude Code plugin. Bundles **10** specialist agents focused on the Microsoft Power Platform stack (including the new `power-bi-engineer`). Each agent owns a slice; the Team Lead (the top-level Claude session, typically also running `ravenclaude-core`) dispatches the right specialist(s) for a given task and integrates their reports.
 >
 > Designed for professional makers — assumes the user can build and wants real engineering judgment, not click-by-click tutorials.
 >
@@ -14,9 +14,10 @@
 |---|---|---|
 | [`power-fx-engineer`](agents/power-fx-engineer.md) | Canvas apps + Power Fx + Custom Page layouts | Canvas screen design, Power Fx authoring/review, delegation puzzles, components, performance, accessibility |
 | [`flow-engineer`](agents/flow-engineer.md) | Power Automate cloud flows, desktop flows, custom connectors | Flow design/build/review, custom connector authoring, "Power Automate vs Logic App vs Function" decisions |
+| [`power-bi-engineer`](agents/power-bi-engineer.md) | **NEW** — Power BI semantic models, DAX, reports, dataflows, PBIP git + Azure DevOps integration, deployment, refresh | Semantic model design/review, complex DAX, PBIP source control & ADO pipelines, refresh/gateway issues, Power BI + solution ALM coordination |
 | [`dataverse-architect`](agents/dataverse-architect.md) | Data modeling, security, plug-ins, business rules | Schema design, security design, plug-in vs flow decisions, Excel/SharePoint → Dataverse migrations |
 | [`model-driven-engineer`](agents/model-driven-engineer.md) | Model-driven apps, forms/views/dashboards, command bar, JS web resources | Building or reviewing model-driven UI, business process flows, form scripting |
-| [`solution-alm-engineer`](agents/solution-alm-engineer.md) | pac CLI, ALM, source control, env vars, connection refs, pipelines | Setting up source control, designing ALM pipelines, diagnosing import failures, environment promotion |
+| [`solution-alm-engineer`](agents/solution-alm-engineer.md) | pac CLI, ALM, source control, env vars, connection refs, pipelines (now with enhanced ADO + flow git guidance) | Setting up source control, designing ALM pipelines, diagnosing import failures, environment promotion, ADO/Power Automate flow git issues |
 | [`power-platform-admin`](agents/power-platform-admin.md) | Tenant-level governance, environments, DLP, licensing, capacity, CoE | Environment strategy, DLP authoring, license audits, capacity planning, governance design |
 | [`pcf-developer`](agents/pcf-developer.md) | PCF custom controls (TypeScript) | When canvas / Custom Pages / components genuinely cannot deliver the required UI |
 | [`copilot-studio-engineer`](agents/copilot-studio-engineer.md) | Copilot Studio bots, AI Builder, prompts | Bot architecture, AI Builder model selection, "Copilot Studio vs direct Azure OpenAI" decisions |
@@ -30,6 +31,7 @@
 
 - **"Build a canvas app that writes to a custom Dataverse table"** → `dataverse-architect` (model the table) → `power-fx-engineer` (build the app) → `solution-alm-engineer` (package + promote).
 - **"Why is my flow failing intermittently in prod?"** → `flow-engineer` (read run history, identify the failure mode); pull in `solution-alm-engineer` if it's an env-variable / connection-reference issue; pull in `power-platform-admin` if it's a DLP / capacity / throttling issue.
+- **"Design a semantic model, put the PBIP under git in Azure DevOps, and set up reliable deployment/refresh"** → `power-bi-engineer` (model design + PBIP git + deployment) → `solution-alm-engineer` (if it needs to coordinate with broader solution pipelines or flows).
 - **"Audit this tenant"** → `power-platform-admin` (governance + licensing + capacity); pull in `dataverse-architect` for schema concerns.
 - **"Migrate this 50,000-row Excel workbook to a real Power App"** → `dataverse-architect` (schema) → `solution-alm-engineer` (env strategy) → `power-fx-engineer` or `model-driven-engineer` (UI) — in that order.
 - **"Build a chatbot that does X"** → `copilot-studio-engineer` (bot design) → `flow-engineer` (any actions the bot calls) → `solution-alm-engineer` (package).
@@ -40,7 +42,7 @@
 
 ## 3. Cross-cutting house opinions (every agent enforces)
 
-Domain-specific opinions live in each agent's own file. These platform-wide opinions are inherited by all 9.
+Domain-specific opinions live in each agent's own file. These platform-wide opinions are inherited by all **10**.
 
 1. **Solutions, always.** No app, flow, table, or component lives outside a solution. No "I'll move it later." Move it now.
 2. **Environment variables for everything that varies across environments.** SharePoint URLs, IDs, secrets, feature flags. Never hard-code.
@@ -68,6 +70,7 @@ Domain-specific opinions live in each agent's own file. These platform-wide opin
 - "We'll just clone production to make a sandbox" without considering data sensitivity, connection refs, or env-var resets
 - Using SharePoint as a transactional database past a few thousand rows
 - Power Automate desktop flows doing what a REST API call could do
+- Checking binary .pbix files into git/ADO repos (use PBIP instead)
 
 ---
 
@@ -81,7 +84,7 @@ Before any Power Platform agent says "I can't do X" or "This is not possible", i
 
 Before stating any limitation, confirm:
 
-- [ ] I checked the available skills in this plugin (especially `dataverse-web-api`, `code-review`, `plan-with-team`, `grounding-protocol`, and `maintainability-review`).
+- [ ] I checked the available skills in this plugin (especially `dataverse-web-api`, `code-review`, `plan-with-team`, `grounding-protocol`, `maintainability-review`, `power-automate`, and `power-bi`).
 - [ ] I considered whether partial value can still be delivered.
 - [ ] I considered whether another agent or the Team Lead could handle part of the work.
 - [ ] I am prepared to clearly explain what was checked and what is still possible.
@@ -135,9 +138,11 @@ The `Licensing impact:` line remains mandatory for every Power Platform agent.
 
 ---
 
-## 7. Imported skills (veteran-level reference content)
+## 7. Imported + Expanded skills (veteran-level reference content)
 
-The `skills/` directory contains nine skills imported (with attribution) from Daniel Kerridge's [`claude-code-power-platform-skills`](https://github.com/DanielKerridge/claude-code-power-platform-skills) under MIT — see [`NOTICE.md`](NOTICE.md). Each skill is a folder with a `SKILL.md` (the playbook) and a `resources/` directory of reference docs the skill consults on demand.
+The `skills/` directory contains the original nine skills imported (with attribution) from Daniel Kerridge's [`claude-code-power-platform-skills`](https://github.com/DanielKerridge/claude-code-power-platform-skills) under MIT — see [`NOTICE.md`](NOTICE.md). We are expanding it with new domain skills for **Power Automate** (to deepen `flow-engineer`) and **Power BI / PBIP ALM** (to support the new `power-bi-engineer`).
+
+Each skill is a folder with a `SKILL.md` (the playbook) and a `resources/` directory of reference docs the skill consults on demand.
 
 **Skill ↔ agent mapping** — when the Team Lead spawns one of the agents in §1, the agent should consult the matching skill folder (or its `resources/` files) for veteran-level depth:
 
@@ -154,6 +159,8 @@ The `skills/` directory contains nine skills imported (with attribution) from Da
 | [`skills/record-screen/`](skills/record-screen/) | Utility, spawned directly when a screen recording is needed for documentation | Browser extension + Node script for tab-session recording |
 | [`skills/grounding-protocol/`](skills/grounding-protocol/) | All agents when stating limitations | Lightweight protocol to reduce hallucinated inability claims | New |
 | [`skills/maintainability-review/`](skills/maintainability-review/) | Team Lead or any agent for long-term health reviews | Review dimensions for understandability, modifiability, testability, evolution readiness, and ownership + template available in `templates/` | New |
+| **NEW** [`skills/power-automate/`](skills/power-automate/) | `flow-engineer` (primary) + any agent touching flows | Playbook + resources on expressions, error handling/scopes, child flows, solution-aware flows + connection refs, Dataverse triggers, throttling, approvals, performance patterns | Expanding |
+| **NEW** [`skills/power-bi/`](skills/power-bi/) | `power-bi-engineer` (primary) | Playbook + resources on PBIP structure/git, semantic model design, DAX patterns/performance, deployment pipelines, refresh/gateway troubleshooting, integration with solutions | New |
 
 **How an agent uses a skill**: read the skill's `SKILL.md` first (it's small) for the entry-point playbook, then read individual `resources/*.md` files only when the specific topic is in scope. Don't pre-load every resource — they're on-demand reference, not boilerplate.
 
@@ -181,6 +188,11 @@ Use this skill (and its template) when:
 - You want a forward-looking assessment beyond immediate functionality
 
 You can run it yourself or ask a specialist agent to apply it.
+
+### New Domain Skills
+
+- Use `power-automate` skill when `flow-engineer` (or another agent) needs deep reference on expressions, child flows, solution-aware patterns, or specific troubleshooting.
+- Use `power-bi` skill when `power-bi-engineer` needs reference material on PBIP git workflows, DAX performance, or deployment.
 
 ---
 
