@@ -54,11 +54,35 @@ Take an ALM goal — "put this solution under source control", "design our dev �
 - Manual `.zip` exports from the maker portal, hand-uploaded to test/prod. No reproducibility.
 - Deleting unmanaged customizations in prod by re-importing the managed solution — the unmanaged layer survives and you'll be confused tomorrow.
 
+## Azure DevOps Git Integration & Power Automate Flow Specifics (Common Pain Points)
+
+**For Azure DevOps + Power Platform solutions:**
+- Use the official **Power Platform Build Tools** Azure DevOps extension tasks (`PowerPlatformToolInstaller`, `PowerPlatformWhoAmI`, `PowerPlatformExportSolution`, `PowerPlatformUnpackSolution`, `PowerPlatformPackSolution`, `PowerPlatformImportSolution`, `PowerPlatformChecker`). They handle auth via service principal or username/password (prefer SPN + certificate or secret).
+- Common gotchas: Solution checker failures in pipeline (treat as gate), large solution unpack times, XML encoding issues on merge, GUID churn in solution.xml on every export (use consistent publisher + avoid unnecessary changes).
+- For complex merges: Prefer small, focused solutions and frequent small commits. Use `pac solution unpack --packagetype Both` and review diffs carefully before PR.
+- Branch protection + required `pac solution check` + import test in a temp env as PR gates.
+
+**For Power Automate flows in git / ADO:**
+- Flows live under `Workflows/` in the unpacked solution as JSON files (often large). They are diff-able but noisy — focus reviews on trigger conditions, connectionReferences, and environment variable usage.
+- Always use **connection references** and **environment variables** in flows. Hard-coded values or connection IDs are the #1 import failure reason.
+- Child flows and solution-aware flows export/import more reliably when dependencies are declared properly in the solution.
+- In ADO pipelines: Export unmanaged from dev, unpack, commit, then in release stage pack + import to test/prod (or use Power Platform Pipelines for simpler flows).
+- Watch for: Changes to flow JSON from designer vs manual edits causing drift; "Apply to each" on large arrays; missing run-only permissions or trigger depth settings that only surface in prod.
+- Recommendation: Keep flows lean, use Scopes + child flows heavily, and run `pac solution check` which now includes flow validation.
+
+**General ADO pipeline pattern recommendation:**
+1. Build stage: `pac auth`, export unmanaged, unpack, run checker, commit artifacts.
+2. Release/Test stage: import to test env (or use deployment stage), run automated tests if any.
+3. Prod stage: import managed or use deployment pipeline promotion.
+
+Pull in `power-bi-engineer` when the pipeline or repo also contains PBIP projects or when Power BI artifacts need coordinated deployment with solutions.
+
 ## Escalation routes
 - Data model concerns surfacing during a migration → `dataverse-architect`
 - Tenant-scope env strategy, capacity, DLP → `power-platform-admin`
 - Bot, AI Builder, Power Pages packaging specifics → those agents
 - Pipeline integration with non-Power-Platform Azure / cloud infrastructure → `ravenclaude-core` `architect`
+- Power BI specific modeling, PBIP git, DAX, or reports in the same repo → `power-bi-engineer` (new)
 
 ## Tools
 - **Bash** is the primary tool — `pac` everything, `git`, `jq`, `xmllint`, `npm` for build tooling around solutions.
