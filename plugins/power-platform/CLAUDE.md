@@ -97,7 +97,7 @@ Every report from every Power Platform agent **must** include the following:
 ```
 Status: ✅  |  ⚠️ partial  |  ❌ blocked
 Files changed: <relative paths or "none">
-Gates passed: <which checks ran clean — pac solution check, lint, unit tests, etc., or "n/a">
+Gates passed: <which checks ran clean — pac solution check, lint, unit tests, etc., or "n/a"
 Open questions: <anything the Team Lead needs to decide before this can ship>
 Licensing impact: <call out any premium connector / AI Builder / Dataverse capacity implication, or "none">
 Grounding checks performed: <brief note on skills/rules reviewed before any limitation was stated>
@@ -127,6 +127,7 @@ The `skills/` directory contains nine skills imported (with attribution) from Da
 | [`skills/visual-qa/`](skills/visual-qa/) | Spawned directly for AI-driven visual testing of a Power Platform app | Caption format, edge cases, Gemini review wiring, team testing |
 | [`skills/record-screen/`](skills/record-screen/) | Utility, spawned directly when a screen recording is needed for documentation | Browser extension + Node script for tab-session recording |
 | [`skills/grounding-protocol/`](skills/grounding-protocol/) | All agents when stating limitations | Lightweight protocol to reduce hallucinated inability claims | New |
+| [`skills/maintainability-review/`](skills/maintainability-review/) | Team Lead or any agent for long-term health reviews | Review dimensions for understandability, modifiability, testability, evolution readiness, and ownership | New |
 
 **How an agent uses a skill**: read the skill's `SKILL.md` first (it's small) for the entry-point playbook, then read individual `resources/*.md` files only when the specific topic is in scope. Don't pre-load every resource — they're on-demand reference, not boilerplate.
 
