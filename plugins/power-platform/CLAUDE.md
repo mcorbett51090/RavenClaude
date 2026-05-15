@@ -70,7 +70,27 @@ Domain-specific opinions live in each agent's own file. These platform-wide opin
 
 ---
 
-## 5. Output Contract (every Power Platform agent)
+## 5. Capability Grounding Protocol (Anti-Hallucination)
+
+**This section exists to reduce confident but incorrect claims of inability.**
+
+Before any Power Platform agent says "I can't do X" or "This is not possible", it **must** follow this protocol:
+
+1. **Check available skills first** — Review the skills in this plugin (especially `dataverse-web-api`, `code-review`, `plan-with-team`, and any imported veteran skills).
+2. **Check for partial capability** — Determine if part of the task can be completed or if guidance can still be provided even if full automation isn't possible.
+3. **Consider team composition** — Ask whether another agent in `ravenclaude-core` or this plugin can handle a portion of the work.
+4. **Escalate uncertainty** — If still unsure after the above, route back to the Team Lead with a clear explanation of what was checked and what additional context or capability would be needed.
+
+**Default behavior:** Prefer *partial progress + clear next steps* over clean refusal. Only claim impossibility after the above checks have been performed and documented.
+
+**Mandatory phrasing when uncertain:**
+> "After checking [specific skills/rules], I cannot fully complete this because [specific reason]. However, I can help with [partial scope]. Would you like me to proceed with that, or should I escalate to the Team Lead?"
+
+This protocol applies to **all** agents in this plugin.
+
+---
+
+## 6. Output Contract (every Power Platform agent)
 
 Every report from every Power Platform agent ends with:
 
@@ -86,7 +106,7 @@ The `Licensing impact:` line is **mandatory** for every Power Platform agent —
 
 ---
 
-## 6. Imported skills (veteran-level reference content)
+## 7. Imported skills (veteran-level reference content)
 
 The `skills/` directory contains nine skills imported (with attribution) from Daniel Kerridge's [`claude-code-power-platform-skills`](https://github.com/DanielKerridge/claude-code-power-platform-skills) under MIT — see [`NOTICE.md`](NOTICE.md). Each skill is a folder with a `SKILL.md` (the playbook) and a `resources/` directory of reference docs the skill consults on demand.
 
@@ -110,7 +130,7 @@ The `skills/` directory contains nine skills imported (with attribution) from Da
 
 ---
 
-## 7. Escalating out of the Power Platform team
+## 8. Escalating out of the Power Platform team
 
 Power Platform agents stay within Power Platform. When a question crosses out, escalate via the Team Lead to:
 
