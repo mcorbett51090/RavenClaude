@@ -1,7 +1,7 @@
 {
   "name": "power-platform",
-  "version": "0.3.0",
-  "description": "Power Platform specialists including Dataverse, Model-Driven Apps, Power Automate, ALM, Security, and Integration. Includes Capability Grounding Protocol to reduce hallucinated limitations. Extends ravenclaude-core with domain expertise.",
+  "version": "0.3.1",
+  "description": "Power Platform specialists with integrated Capability Grounding Protocol to reduce hallucinated limitations and improve reliability of capability claims.",
   "author": {
     "name": "Matt Corbett",
     "email": "matt@ravenpower.net"
