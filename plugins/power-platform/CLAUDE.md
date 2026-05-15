@@ -142,7 +142,30 @@ The `skills/` directory contains nine skills imported (with attribution) from Da
 
 ---
 
-## 8. Escalating out of the Power Platform team
+## 8. How the Team Lead Should Use the New Skills
+
+### Grounding Protocol Skill
+
+Use this when an agent (or you) is about to state any form of limitation. Invoke the protocol to ensure:
+- Skills and team capabilities were actually checked.
+- Partial value is being maximized.
+- The response follows the mandatory phrasing pattern.
+
+**Trigger phrases to watch for**: "I can't", "This isn't possible", "Claude Code doesn't support", strong negative capability claims.
+
+### Maintainability Review Skill
+
+Use this skill (and its template) when:
+- Reviewing a solution before handoff or major release
+- Taking over an existing solution
+- The work has long-term ownership implications
+- You want a forward-looking assessment beyond immediate functionality
+
+You can run it yourself or ask a specialist agent to apply it.
+
+---
+
+## 9. Escalating out of the Power Platform team
 
 Power Platform agents stay within Power Platform. When a question crosses out, escalate via the Team Lead to:
 
