@@ -70,7 +70,7 @@ You lose auto-update and version pinning. To update, `git pull` and re-copy. Oth
 | Component | Count | Where |
 |-----------|-------|-------|
 | Specialist agents | 13 | `plugins/ravenclaude-core/agents/` |
-| Skills | 8 (dispatch, worktrees, PRs, full-test-suite, plus `contribute-finding` / `review-staged-contributions` for the cross-domain staging loop) | `plugins/ravenclaude-core/skills/` |
+| Skills | 10 (dispatch via `spawn-team`, `new-worktree` / `cleanup-worktrees`, `create-pr`, `run-full-test-suite`, `draft-agent-brief`, `structured-output`, plus `contribute-finding` / `review-staged-contributions` for the cross-domain staging loop; the `researcher/` meta-skill sits alongside as a folder) | `plugins/ravenclaude-core/skills/` |
 | Hooks | 3 (format-on-write, guard-destructive, remind-tests) | `plugins/ravenclaude-core/hooks/` |
 | Rules | 4 (coding-standards, security, git-workflow, agent-collaboration) | `plugins/ravenclaude-core/rules/` |
 | Templates | 21 (memos, runbooks, design specs, RAID logs, partner-success artifacts) | `plugins/ravenclaude-core/templates/` |

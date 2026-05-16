@@ -1,6 +1,6 @@
 {
   "name": "power-platform",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Power Platform specialists (including power-bi-engineer) with Capability Grounding Protocol, maintainability-review skill, and strong ALM/git coverage for solutions, flows, and PBIP projects. Also bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for reading, writing, and DAX-evaluating Power BI .pbix/.pbit files without Power BI Desktop — requires `pip install pbix-mcp` on the consumer machine.",
   "author": {
     "name": "Matt Corbett",

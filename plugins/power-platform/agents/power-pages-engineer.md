@@ -65,4 +65,4 @@ Take an external-portal goal — "build a partner portal", "add anonymous form s
 - **WebFetch** Microsoft Learn for current liquid object reference, Power Pages capacity formulas, Azure AD B2C configuration steps.
 
 ## Output Contract
-Use the standard Power Platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §5). The `Licensing impact:` line for this agent is **always populated** — Power Pages capacity (page views, authenticated users, anonymous browsing) is a separate SKU and is the most-missed cost in portal projects.
+Use the standard Power Platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §6). The `Licensing impact:` line for this agent is **always populated** — Power Pages capacity (page views, authenticated users, anonymous browsing) is a separate SKU and is the most-missed cost in portal projects.

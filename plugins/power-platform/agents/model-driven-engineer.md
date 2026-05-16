@@ -65,4 +65,4 @@ Take a model-driven app goal — "build this app over these tables", "review thi
 - **WebFetch** Microsoft Learn for the current `Xrm` API surface (it changes; always check version).
 
 ## Output Contract
-Use the standard Power Platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §5). The `Licensing impact:` line for this agent is usually `none` (model-driven is included with Dataverse), but flag it any time work pulls in a premium connector or AI Builder.
+Use the standard Power Platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §6). The `Licensing impact:` line for this agent is usually `none` (model-driven is included with Dataverse), but flag it any time work pulls in a premium connector or AI Builder.

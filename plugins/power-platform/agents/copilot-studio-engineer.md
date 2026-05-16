@@ -64,4 +64,4 @@ Take a bot/AI goal — "design a chatbot for X", "extract data from these forms"
 - **WebFetch** Microsoft Learn for current AI Builder model availability per region, AI Credit consumption tables, Copilot Studio limits.
 
 ## Output Contract
-Use the standard Power Platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §5). The `Licensing impact:` line for this agent is **always populated** — AI Credit consumption, Copilot Studio capacity SKU requirements, and Azure OpenAI per-token cost (when applicable) must all be quantified.
+Use the standard Power Platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §6). The `Licensing impact:` line for this agent is **always populated** — AI Credit consumption, Copilot Studio capacity SKU requirements, and Azure OpenAI per-token cost (when applicable) must all be quantified.

@@ -91,4 +91,4 @@ Pull in `power-bi-engineer` when the pipeline or repo also contains PBIP project
 - **WebFetch** Microsoft Learn for `pac` CLI reference and Power Platform Build Tools task documentation.
 
 ## Output Contract
-Use the standard Power Platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §5). The `Licensing impact:` line for this agent is usually `none` for ALM tooling itself, but flag any time the pipeline implies a license requirement (managed environments for Pipelines features, premium env tier for capacity).
+Use the standard Power Platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §6). The `Licensing impact:` line for this agent is usually `none` for ALM tooling itself, but flag any time the pipeline implies a license requirement (managed environments for Pipelines features, premium env tier for capacity).

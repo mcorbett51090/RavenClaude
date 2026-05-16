@@ -138,7 +138,7 @@ The `Licensing impact:` line remains mandatory for every Power Platform agent.
 
 ---
 
-## 6. Automated house-opinion checks (hooks)
+## 7. Automated house-opinion checks (hooks)
 
 The `hooks/` directory ships [`check-house-opinions.sh`](hooks/check-house-opinions.sh) — a PostToolUse Edit/Write/MultiEdit hook that flags the most common mechanically-detectable violations of §3 and §4 on real edits:
 
@@ -154,7 +154,7 @@ When in doubt, the hook is conservative — it doesn't fire on files outside Pow
 
 ---
 
-## 7. Imported + Expanded skills (veteran-level reference content)
+## 8. Imported + Expanded skills (veteran-level reference content)
 
 The `skills/` directory contains the original nine skills imported (with attribution) from Daniel Kerridge's [`claude-code-power-platform-skills`](https://github.com/DanielKerridge/claude-code-power-platform-skills) under MIT — see [`NOTICE.md`](NOTICE.md). We are expanding it with new domain skills for **Power Automate** (to deepen `flow-engineer`) and **Power BI / PBIP ALM** (to support the new `power-bi-engineer`).
 
@@ -184,7 +184,7 @@ Each skill is a folder with a `SKILL.md` (the playbook) and a `resources/` direc
 
 ---
 
-## 8. Bundled MCP server — `powerbi-editor` (pbix-mcp)
+## 9. Bundled MCP server — `powerbi-editor` (pbix-mcp)
 
 The plugin declares one MCP server in its `plugin.json`: `powerbi-editor`, backed by the community [`d0nk3yhm/pbix-mcp`](https://github.com/d0nk3yhm/pbix-mcp) (MIT). It exposes ~101 tools for reading, writing, and DAX-evaluating Power BI `.pbix` and `.pbit` files **without** Power BI Desktop installed — useful when an agent needs to inspect a report's data model, edit measures, evaluate DAX, or generate a `.pbix` from a CSV/SQL/Excel/JSON source.
 
@@ -207,7 +207,7 @@ See [`NOTICE.md`](NOTICE.md) for license attribution and a PATH-fallback configu
 
 ---
 
-## 9. How the Team Lead Should Use the New Skills
+## 10. How the Team Lead Should Use the New Skills
 
 ### Grounding Protocol Skill
 
@@ -235,7 +235,7 @@ You can run it yourself or ask a specialist agent to apply it.
 
 ---
 
-## 10. Escalating out of the Power Platform team
+## 11. Escalating out of the Power Platform team
 
 Power Platform agents stay within Power Platform. When a question crosses out, escalate via the Team Lead to:
 

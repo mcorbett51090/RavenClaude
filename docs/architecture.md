@@ -16,7 +16,7 @@ flowchart TB
         subgraph plugindir["<code>plugins/</code>"]
             direction LR
             core["<b>ravenclaude-core</b><br/>domain-neutral<br/>13 specialist agents<br/>dispatch, gates, hooks, templates"]
-            pp["<b>power-platform</b><br/>Microsoft Power Platform<br/>9 specialist agents<br/>9 imported veteran skills (MIT)"]
+            pp["<b>power-platform</b><br/>Microsoft Power Platform<br/>10 specialist agents<br/>13 skills (9 imported MIT + 4 in-house)<br/>bundles pbix-mcp server"]
             future["<i>future plugins</i><br/>finance, EdTech,<br/>Salesforce, …"]
         end
         catalog -.->|references| plugindir
@@ -90,11 +90,12 @@ RavenClaude/
 │   │   └── templates/                   ← memos, runbooks, RAID logs, partner-success artifacts
 │   │
 │   └── power-platform/
-│       ├── .claude-plugin/plugin.json
+│       ├── .claude-plugin/plugin.json   ← also declares bundled pbix-mcp MCP server
 │       ├── CLAUDE.md
-│       ├── NOTICE.md                    ← MIT attribution for imported skills
-│       ├── agents/                      ← 9 specialist agent files
-│       └── skills/                      ← 9 imported skills (Daniel Kerridge, MIT)
+│       ├── NOTICE.md                    ← MIT attribution for imported skills + pbix-mcp
+│       ├── agents/                      ← 10 specialist agent files
+│       ├── hooks/                       ← check-house-opinions (advisory)
+│       └── skills/                      ← 13 skills (9 imported Daniel Kerridge MIT + 4 in-house)
 │
 ├── .claude/                       ← config for working ON this repo itself (NOT shipped)
 │   └── settings.json              ← permissions + hooks for marketplace dev
@@ -189,8 +190,8 @@ The existing plugins are the reference implementations — `ravenclaude-core` fo
 
 | Plugin | Version | Description |
 |---|---|---|
-| [`ravenclaude-core`](../plugins/ravenclaude-core/) | 0.2.3 | Domain-neutral: 13 specialist agents, dispatch playbook, gates, hooks, contribution-staging workflow (security sweep + expert routing), templates |
-| [`power-platform`](../plugins/power-platform/) | 0.2.1 | Microsoft Power Platform: 9 specialist agents + 9 imported veteran-level skills (Daniel Kerridge, MIT) |
+| [`ravenclaude-core`](../plugins/ravenclaude-core/) | 0.2.4 | Domain-neutral: 13 specialist agents, dispatch playbook, gates, hooks, contribution-staging workflow (security sweep + expert routing), templates |
+| [`power-platform`](../plugins/power-platform/) | 0.5.2 | Microsoft Power Platform: 10 specialist agents + 13 skills (9 imported Daniel Kerridge MIT + 4 in-house) + advisory house-opinion hook + bundled pbix-mcp MCP server |
 
 **Memory bank:** 4 lessons recorded (see [`memory-bank/lessons-learned.md`](memory-bank/lessons-learned.md)) — PMP discipline (project-manager), PSM discipline (partner-success-manager), mermaid for conceptual diagrams, and rebase-orphan branch cleanup.
 

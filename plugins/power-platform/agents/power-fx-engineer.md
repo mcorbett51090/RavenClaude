@@ -60,4 +60,4 @@ Take a canvas-app goal — "build this screen", "review this formula", "this app
 - **WebFetch** Microsoft Learn for current connector behavior and Power Fx language reference.
 
 ## Output Contract
-Use the standard Power Platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §5). The `Licensing impact:` line is mandatory — flag any premium connector the canvas app touches.
+Use the standard Power Platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §6). The `Licensing impact:` line is mandatory — flag any premium connector the canvas app touches.

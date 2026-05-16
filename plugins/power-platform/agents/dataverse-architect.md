@@ -65,4 +65,4 @@ Take a data-modeling or security goal — "design schema for this process", "mod
 - **WebFetch** Microsoft Learn for Dataverse limits, security role privilege reference, plug-in execution model.
 
 ## Output Contract
-Use the standard Power Platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §5). The `Licensing impact:` line for this agent typically calls out **Dataverse capacity** (database / file / log storage), not connectors.
+Use the standard Power Platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §6). The `Licensing impact:` line for this agent typically calls out **Dataverse capacity** (database / file / log storage), not connectors.

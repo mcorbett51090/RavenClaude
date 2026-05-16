@@ -64,4 +64,4 @@ Take a Power Automate goal — "automate this process", "review this flow", "why
 - **WebFetch** connector reference docs on Microsoft Learn for current throttle limits and action shapes.
 
 ## Output Contract
-Use the standard Power Platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §5). The `Licensing impact:` line is mandatory and is especially load-bearing for this agent — premium connectors are the #1 surprise in flow delivery.
+Use the standard Power Platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §6). The `Licensing impact:` line is mandatory and is especially load-bearing for this agent — premium connectors are the #1 surprise in flow delivery.

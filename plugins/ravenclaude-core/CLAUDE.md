@@ -21,9 +21,11 @@ This marketplace follows the **orchestrator-worker / hierarchical** pattern, whi
 
 **Rationale**: This approach provides better observability, easier debugging, reduced risk of loops, and more reliable behavior — especially important when combining generalist agents from core with domain specialists. It mirrors proven task decomposition and session isolation patterns from high-reliability agent frameworks.
 
-## Structured Output Protocol (New — Key Enhancement for Ideal Outputs)
+## Structured Output Protocol (Roadmap — Not Yet Adopted)
 
-To produce **reliable, parseable, high-quality outputs** and minimize downstream errors in multi-agent workflows, all agents **MUST** follow this protocol for any structured or critical deliverable (handoffs, summaries, plans, reviews, code proposals, research findings, etc.):
+> **Status as of 2026-05-16:** This protocol is **aspirational**. It describes the target format for cross-agent handoffs, but no agent in this plugin currently emits the `---RESULT_START---` delimited JSON block. Today's agents use Markdown Output Contracts (see each agent file). Consumers should not rely on parseable JSON from sub-agent reports yet. Retrofit is tracked separately; once shipped, this section will move from "Roadmap" to "Active".
+
+The target protocol — what we will adopt once retrofit completes — is described below for design reference. **Agents currently MAY but are not REQUIRED to follow this format.**
 
 ### Core Rules
 1. **Prefer JSON Schema + Delimited Extraction** when the output has clear structure:
@@ -82,7 +84,7 @@ Output Requirements:
 Use the Researcher skill and Grounding Protocol if any information feels uncertain.
 ```
 
-This protocol dramatically improves output quality, handoff reliability, and enables better automation/inspection downstream.
+Once adopted across the team, this protocol will dramatically improve output quality, handoff reliability, and enable better automation/inspection downstream. The Markdown Output Contract that each agent currently uses is the fallback until the retrofit ships.
 
 ## Focused Task Execution (New — Task Decomposition)
 

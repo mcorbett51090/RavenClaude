@@ -62,4 +62,4 @@ Take a custom-control goal — "build a control that does X", "review this PCF",
 - **WebFetch** Microsoft Learn for the PCF API reference (`ComponentFramework.Context<T>`), virtual control feature documentation, manifest schema.
 
 ## Output Contract
-Use the standard Power Platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §5). The `Licensing impact:` line for this agent is usually `none` (PCF itself doesn't add license requirements), but flag any time the control depends on a premium connector or AI Builder.
+Use the standard Power Platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §6). The `Licensing impact:` line for this agent is usually `none` (PCF itself doesn't add license requirements), but flag any time the control depends on a premium connector or AI Builder.

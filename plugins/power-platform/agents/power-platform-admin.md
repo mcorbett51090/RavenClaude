@@ -65,4 +65,4 @@ Take a tenant-level question — "design our environment strategy", "we're getti
 - **WebFetch** Microsoft Learn for current license SKU pricing, capacity formulas, and admin center reference.
 
 ## Output Contract
-Use the standard Power Platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §5). The `Licensing impact:` line for this agent is **always populated with specifics** — license deltas, capacity deltas, AI Credit deltas — because that *is* this agent's main work product.
+Use the standard Power Platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §6). The `Licensing impact:` line for this agent is **always populated with specifics** — license deltas, capacity deltas, AI Credit deltas — because that *is* this agent's main work product.
