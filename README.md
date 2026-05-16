@@ -81,6 +81,23 @@ For a full list of agents and when to spawn each, see the team-roster table in [
 
 ---
 
+## How agents actually get invoked
+
+A common point of confusion: **these plugin agents do not appear as `subagent_type` options on the `Agent` tool**. Claude Code's built-in agent list (general-purpose, Explore, Plan, etc.) is separate from plugin-supplied agents, and a fresh `Agent` call with `subagent_type: "code-reviewer"` will fail with an InputValidationError.
+
+Plugin agents fire through the **Team Lead orchestration pattern**:
+
+1. The top-level Claude session acts as **Team Lead** — it reads `plugins/ravenclaude-core/CLAUDE.md`, sees the team roster, and decides which specialist(s) the user's request needs.
+2. To dispatch one or more specialists, the Team Lead invokes the [`spawn-team`](plugins/ravenclaude-core/skills/spawn-team.md) skill — that's the playbook for picking the right specialist, briefing it like a new colleague, and integrating the structured handoff payload that comes back.
+3. The specialist runs, returns a Markdown report ending in a `---RESULT_START--- … ---RESULT_END---` JSON block, and the Team Lead re-routes from there.
+4. **Sub-agents never spawn other sub-agents.** They return a slice; the Team Lead re-dispatches. This keeps the dependency graph a flat tree.
+
+If you want to talk to a specific agent directly (e.g. "have the architect look at this"), say so in plain English to the Team Lead and it will use `spawn-team` to dispatch the architect. Don't try to address the agent by name through the `Agent` tool's `subagent_type` parameter — that's reserved for the built-in agents.
+
+For the dispatch playbook itself, see [`plugins/ravenclaude-core/skills/spawn-team.md`](plugins/ravenclaude-core/skills/spawn-team.md).
+
+---
+
 ## Working on the marketplace itself
 
 If you're **developing** RavenClaude (adding plugins, updating agents), see [`CLAUDE.md`](CLAUDE.md) at this repo's root — it's the meta-repo dev guide.

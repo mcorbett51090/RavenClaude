@@ -29,3 +29,6 @@ Worktrees are NOT auto-removed. Use [`cleanup-worktrees`](./cleanup-worktrees.md
 
 ## Why this exists
 Two parallel coder agents on the same working tree will silently corrupt each other's diffs. Worktrees are cheap; recovery from a stomped diff is not.
+
+## Why a skill, when the Agent tool has built-in `isolation: "worktree"`?
+The Agent tool's native worktree isolation is a one-off, ephemeral worktree that gets cleaned up automatically when the sub-agent makes no changes. This skill is for the Team Lead's *managed* worktrees that persist across sub-agent runs: predictable paths under `.claude/worktrees/<role>-<slug>/`, predictable branch names `agent/<role>/<slug>`, and tracked by [`cleanup-worktrees`](./cleanup-worktrees.md) so they don't accumulate silently. Use the native isolation for fire-and-forget exploration; use this skill when the worktree is part of a multi-step Team Lead workflow that needs to be visible to subsequent agents.

@@ -30,6 +30,20 @@ The exact commands depend on the project. Detect them once and cache the answer 
 - **Don't auto-fix without permission.** Detection of a fixable lint issue → report it; let the human decide.
 - **Report exit codes.** Always include the failing command and its exit code in the output.
 - **Time each stage.** If a stage takes > 60s, surface the duration so the team can spot regressions.
+- **Degrade gracefully when no gates are configured.** If the cache block below is empty AND detection (see rules above) finds nothing — no `package.json` scripts, no `pyproject.toml` tool sections, no `Makefile`, no `go.mod`, etc. — do NOT silently report success. Instead, report:
+
+  ```
+  ⚠  No quality gates configured for this project.
+     run-full-test-suite found no commands to run (no package.json scripts,
+     no pyproject.toml tool sections, no Makefile, no go.mod). Either:
+       (a) fill in the `## Project commands` block at the bottom of this
+           skill file with the gates your project does have, OR
+       (b) populate §4 of your project's CLAUDE.md with the format / lint /
+           typecheck / test commands and re-run.
+     Returning "no gates ran" — this is NOT the same as "all gates passed."
+  ```
+
+  Then exit with status indicating "not run" (distinct from "passed" and "failed"), so a Team Lead won't mistake the absence of gates for green confirmation.
 
 ## Output format
 ```

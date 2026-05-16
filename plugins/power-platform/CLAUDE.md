@@ -138,6 +138,22 @@ The `Licensing impact:` line remains mandatory for every Power Platform agent.
 
 ---
 
+## 6. Automated house-opinion checks (hooks)
+
+The `hooks/` directory ships [`check-house-opinions.sh`](hooks/check-house-opinions.sh) — a PostToolUse Edit/Write/MultiEdit hook that flags the most common mechanically-detectable violations of §3 and §4 on real edits:
+
+| Check | Triggers on | Rule (§3 / §4) |
+|---|---|---|
+| GUIDs hard-coded in Power Fx canvas YAML | `*.fx.yaml`, `*.pa.yaml`, files under `CanvasApps/Src/` | §3 #11 — look up by name or alternate key, not GUID |
+| Default publisher prefix (`cr`, `crXXX`, `new`) | `solution.xml`, `customizations.xml` | §3 #5 — publisher prefix you control |
+| Hard-coded `.sharepoint.com` / `.crm*.dynamics.com` URLs | any Power Platform source file | §3 #2 / §4 — environment variables for everything that varies across environments |
+
+The hook is **advisory by default** (prints to stderr, doesn't block the edit). To enforce, flip the final `exit 0` to `exit 1`. To wire it into a consumer project's `.claude/settings.json`, see [`hooks/README.md`](hooks/README.md).
+
+When in doubt, the hook is conservative — it doesn't fire on files outside Power Platform conventional locations, so a `.ts` file with a GUID in it won't be flagged. The remaining §3 / §4 rules (premium-connector licensing, error-handling completeness, delegation, managed-vs-unmanaged-per-environment) are not currently enforced by hooks and remain agent-judgment calls.
+
+---
+
 ## 7. Imported + Expanded skills (veteran-level reference content)
 
 The `skills/` directory contains the original nine skills imported (with attribution) from Daniel Kerridge's [`claude-code-power-platform-skills`](https://github.com/DanielKerridge/claude-code-power-platform-skills) under MIT — see [`NOTICE.md`](NOTICE.md). We are expanding it with new domain skills for **Power Automate** (to deepen `flow-engineer`) and **Power BI / PBIP ALM** (to support the new `power-bi-engineer`).

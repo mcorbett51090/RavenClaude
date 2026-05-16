@@ -1,7 +1,7 @@
 {
   "name": "ravenclaude-core",
   "description": "Domain-neutral Team Lead + specialized agents pattern for Claude Code. Bundles 13 specialists, a dispatch playbook, format/lint/test gates, and templates for stakeholder prose, design specs, RAID logs, and partner-success artifacts.",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "author": {
     "name": "Matt Corbett",
     "email": "matt@ravenpower.net"

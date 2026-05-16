@@ -40,3 +40,6 @@ Needs review (1):
 - Never delete a worktree with uncommitted changes without explicit user approval.
 - Never `git branch -D` (force-delete) without approval. `-d` will refuse to delete unmerged branches; that's the correct behavior.
 - Never delete the worktree you're currently running inside.
+
+## Why a skill, when the Agent tool has built-in `isolation: "worktree"`?
+The Agent tool's native worktree isolation auto-cleans up its own ephemeral worktrees. This skill cleans up the *managed* worktrees created by [`new-worktree`](./new-worktree.md) — predictable paths, predictable branch names, persisting across multiple sub-agent runs so the Team Lead can hand a worktree off between agents. Those won't be cleaned by the harness, so the Team Lead runs this skill at the end of a multi-agent session and weekly as hygiene.

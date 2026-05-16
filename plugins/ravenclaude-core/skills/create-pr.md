@@ -55,3 +55,6 @@ Use this template. Fill every section; delete sections that genuinely don't appl
 - Don't merge. Even on a green PR with one commit. The user merges.
 - Don't `--force`. If the remote diverged, surface it and ask.
 - Don't skip CI by editing workflow files in the same PR.
+
+## Why a skill, when Claude Code has a built-in PR-creation flow?
+Claude Code's built-in `gh pr create` flow is generic and pulls the title/body from recent commits. This skill enforces the RavenClaude team conventions on top of that: it gates on `run-full-test-suite` first (no PRs on a broken branch), uses the team's fixed PR template (Summary / Motivation / Approach / Test plan / Risk & rollout / Screenshots / Out of scope), enforces Conventional Commits title format ≤72 chars, and refuses to merge after creating the PR. Use the built-in flow for quick one-off PRs in personal projects; use this skill on RavenClaude-managed work where the team's review rubric assumes the template is filled in.

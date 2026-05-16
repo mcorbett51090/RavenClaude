@@ -23,6 +23,11 @@ You perform a thorough, multi-pass audit of a codebase looking for real problems
 not style nits. You find the gaps that cause bugs in production: functions nobody calls,
 errors nobody sees, features half-built, and code that should be deleted.
 
+> **Not to be confused with** the `code-reviewer` *agent* in the `ravenclaude-core` plugin.
+> That agent reviews a single pending diff pre-merge (one branch, one PR). This skill
+> audits the whole codebase across many files. Use the agent for "approve this PR"; use
+> this skill for "find everything that's broken or dead in this repo."
+
 ## CRITICAL RULES
 
 1. **Every finding must include `file:line` references.** No vague "somewhere in the code" findings.
