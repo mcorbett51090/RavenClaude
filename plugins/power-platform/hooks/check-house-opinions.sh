@@ -8,6 +8,9 @@
 #   2. Default publisher prefix (`cr_`, `crXXX_`, `new_`) in solution / customization XML.
 #   3. Hard-coded tenant URLs (.sharepoint.com / .crm*.dynamics.com / .api.crm*.dynamics.com)
 #      in any source file — should be in an environment variable.
+#   4. Binary `.pbix` file committed to git — should be unpacked to PBIP (see §4).
+#   5. Flow JSON (workflows/*.json) missing a top-level Try/Catch/Finally scope
+#      — required by §3 #10.
 #
 # Advisory by default: prints warnings to stderr so Claude and the user both see them,
 # but exits 0 so the edit is not blocked. To make this hook BLOCK on violation, change
@@ -22,8 +25,8 @@ file="${1:-}"
 # Only run on files in a Power Platform project. Heuristic: file lives under one of
 # these conventional folders, OR has a Power-Platform-specific extension.
 case "$file" in
-  *CanvasApps/Src/*|*Solutions/*|*SolutionPackage/*|*src/*Solution*/*) ;;
-  *.fx.yaml|*.pa.yaml|*solution.xml|*customizations.xml|*.cdsproj|*.msapp) ;;
+  *CanvasApps/Src/*|*Solutions/*|*SolutionPackage/*|*src/*Solution*/*|*/workflows/*) ;;
+  *.fx.yaml|*.pa.yaml|*solution.xml|*customizations.xml|*.cdsproj|*.msapp|*.pbix) ;;
   *) exit 0 ;;
 esac
 
@@ -53,11 +56,39 @@ esac
 
 # --- Check 3: Hard-coded tenant URLs in any Power Platform source file ---
 # These should be in environment variables (see CLAUDE.md §3 #2).
-if grep -Eni 'https?://[a-zA-Z0-9.-]+\.(sharepoint\.com|crm[0-9]*\.dynamics\.com|api\.crm[0-9]*\.dynamics\.com)' "$file" >/dev/null 2>&1; then
-  while IFS= read -r line; do
-    violations+=("  [hardcoded-tenant-url] $file: $line")
-  done < <(grep -En 'https?://[a-zA-Z0-9.-]+\.(sharepoint\.com|crm[0-9]*\.dynamics\.com|api\.crm[0-9]*\.dynamics\.com)' "$file" | head -5)
-fi
+# Skip binary .pbix files — grep would produce noise.
+case "$file" in
+  *.pbix) ;;
+  *)
+    if grep -Eni 'https?://[a-zA-Z0-9.-]+\.(sharepoint\.com|crm[0-9]*\.dynamics\.com|api\.crm[0-9]*\.dynamics\.com)' "$file" >/dev/null 2>&1; then
+      while IFS= read -r line; do
+        violations+=("  [hardcoded-tenant-url] $file: $line")
+      done < <(grep -En 'https?://[a-zA-Z0-9.-]+\.(sharepoint\.com|crm[0-9]*\.dynamics\.com|api\.crm[0-9]*\.dynamics\.com)' "$file" | head -5)
+    fi
+    ;;
+esac
+
+# --- Check 4: Binary .pbix file committed/edited ---
+# Source-control the unpacked PBIP project, not the binary (§4 anti-pattern).
+case "$file" in
+  *.pbix)
+    violations+=("  [pbix-binary-in-git] $file is a binary .pbix file. Unpack to PBIP (Power BI Project) and commit the unpacked tree instead — see CLAUDE.md §3 #12 and §4. Binary .pbix files defeat diffs, merges, and code review.")
+    ;;
+esac
+
+# --- Check 5: Flow JSON missing top-level Try/Catch/Finally scope ---
+# §3 #10 requires every cloud flow to have top-level error handling.
+# Detection: workflows/*.json that has actions but no "Scope" / "Try" / "Catch" / "Finally"
+# at the top level. Conservative — only flags JSON that parses as a flow definition.
+case "$file" in
+  */workflows/*.json)
+    if grep -q '"actions"' "$file" 2>/dev/null; then
+      if ! grep -qE '"(Try|Catch|Finally|Scope_-_Try|Scope_-_Catch)"' "$file" 2>/dev/null; then
+        violations+=("  [flow-missing-try-catch] $file has actions but no top-level Try/Catch/Finally scope. Wrap flow logic in scopes for proper error handling — see CLAUDE.md §3 #10.")
+      fi
+    fi
+    ;;
+esac
 
 # --- Report ---
 if [[ ${#violations[@]} -gt 0 ]]; then

@@ -1,3 +1,0 @@
-# Pre-flight / post-flight checklists for common operations land here.
-# Each checklist is a markdown file with concrete tickable items, ordered by when
-# they should fire (before, during, after the operation).

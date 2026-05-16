@@ -133,4 +133,4 @@ Each builds on top of `ravenclaude-core` (which provides the neutral team) and a
 
 ## License
 
-TBD — pick a license before public use.
+MIT — see [`LICENSE`](LICENSE) for the full text. Bundled third-party content carries its own attribution; see [`plugins/power-platform/NOTICE.md`](plugins/power-platform/NOTICE.md) for the Daniel Kerridge skills import and the pbix-mcp server attribution.

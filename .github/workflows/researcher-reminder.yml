@@ -38,7 +38,7 @@ jobs:
 **Trigger**: Scheduled weekly deep research
 **Date**: ${new Date().toISOString().split('T')[0]}
 
-### Instructions for Team Lead / Grok Captain
+### Instructions for Team Lead
 
 1. **Spawn the deep-researcher agent** (defined in `plugins/ravenclaude-core/agents/deep-researcher.md`).
 2. For each agent, review its skills, knowledge files, and tiered knowledge base.

@@ -156,7 +156,7 @@ When in doubt, the hook is conservative — it doesn't fire on files outside Pow
 
 ## 8. Imported + Expanded skills (veteran-level reference content)
 
-The `skills/` directory contains the original nine skills imported (with attribution) from Daniel Kerridge's [`claude-code-power-platform-skills`](https://github.com/DanielKerridge/claude-code-power-platform-skills) under MIT — see [`NOTICE.md`](NOTICE.md). We are expanding it with new domain skills for **Power Automate** (to deepen `flow-engineer`) and **Power BI / PBIP ALM** (to support the new `power-bi-engineer`).
+The `skills/` directory contains **9 skills imported** (with attribution) from Daniel Kerridge's [`claude-code-power-platform-skills`](https://github.com/DanielKerridge/claude-code-power-platform-skills) under MIT — see [`NOTICE.md`](NOTICE.md) — **plus 4 added in-house**: `grounding-protocol` and `maintainability-review` (cross-cutting), and `power-automate` and `power-bi` (deepening `flow-engineer` and supporting `power-bi-engineer`). 13 skills total.
 
 Each skill is a folder with a `SKILL.md` (the playbook) and a `resources/` directory of reference docs the skill consults on demand.
 

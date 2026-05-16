@@ -1,0 +1,114 @@
+name: Validate Marketplace
+
+on:
+  pull_request:
+    paths:
+      - '.claude-plugin/**'
+      - 'plugins/**/.claude-plugin/**'
+      - 'plugins/**/hooks/**'
+  push:
+    branches:
+      - main
+    paths:
+      - '.claude-plugin/**'
+      - 'plugins/**/.claude-plugin/**'
+      - 'plugins/**/hooks/**'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate manifests and hooks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate marketplace.json
+        run: |
+          echo "Checking .claude-plugin/marketplace.json…"
+          python3 -m json.tool .claude-plugin/marketplace.json > /dev/null
+          echo "OK"
+
+      - name: Validate plugin manifests
+        run: |
+          set -euo pipefail
+          status=0
+          for manifest in plugins/*/.claude-plugin/plugin.json; do
+            echo "Checking $manifest…"
+            if ! python3 -m json.tool "$manifest" > /dev/null; then
+              echo "::error file=$manifest::invalid JSON"
+              status=1
+              continue
+            fi
+            # Sanity: must declare a name and version
+            name=$(python3 -c "import json,sys;print(json.load(open('$manifest')).get('name',''))")
+            version=$(python3 -c "import json,sys;print(json.load(open('$manifest')).get('version',''))")
+            if [[ -z "$name" ]]; then
+              echo "::error file=$manifest::missing 'name' field"
+              status=1
+            fi
+            if [[ -z "$version" ]]; then
+              echo "::error file=$manifest::missing 'version' field"
+              status=1
+            fi
+            echo "OK ($name @ $version)"
+          done
+          exit $status
+
+      - name: Validate hook shell syntax
+        run: |
+          set -euo pipefail
+          status=0
+          shopt -s nullglob
+          hooks=(plugins/*/hooks/*.sh)
+          if [[ ${#hooks[@]} -eq 0 ]]; then
+            echo "No hook scripts found — skipping."
+            exit 0
+          fi
+          for hook in "${hooks[@]}"; do
+            echo "Checking $hook…"
+            if ! bash -n "$hook"; then
+              echo "::error file=$hook::shell syntax error"
+              status=1
+            fi
+          done
+          exit $status
+
+      - name: Verify hooks are executable
+        run: |
+          set -euo pipefail
+          status=0
+          shopt -s nullglob
+          for hook in plugins/*/hooks/*.sh; do
+            if [[ ! -x "$hook" ]]; then
+              echo "::error file=$hook::not executable (run: chmod +x $hook)"
+              status=1
+            else
+              echo "OK $hook"
+            fi
+          done
+          exit $status
+
+      - name: Cross-check version pins (marketplace.json vs plugin.json)
+        run: |
+          set -euo pipefail
+          status=0
+          for manifest in plugins/*/.claude-plugin/plugin.json; do
+            name=$(python3 -c "import json;print(json.load(open('$manifest')).get('name',''))")
+            plugin_version=$(python3 -c "import json;print(json.load(open('$manifest')).get('version',''))")
+            catalog_version=$(python3 -c "
+            import json
+            cat = json.load(open('.claude-plugin/marketplace.json'))
+            for p in cat.get('plugins', []):
+              if p.get('name') == '$name':
+                print(p.get('version', ''))
+                break
+            ")
+            if [[ "$plugin_version" != "$catalog_version" ]]; then
+              echo "::error file=.claude-plugin/marketplace.json::version drift for $name — plugin.json says $plugin_version, marketplace.json says $catalog_version"
+              status=1
+            else
+              echo "OK $name pinned at $plugin_version in both files"
+            fi
+          done
+          exit $status
