@@ -1,0 +1,42 @@
+# Run Summary: {{TASK_ID}} — {{DATE}}
+
+**Orchestrated by**: Team Lead (or {{LEAD_AGENT}})  
+**Primary Goal**: {{GOAL}}  
+**Status**: {{complete|partial|blocked}}  
+**Duration / Turns**: {{DURATION}}
+
+## What Was Accomplished
+{{HIGH_LEVEL_SUMMARY}}
+
+## Key Deliverables
+- {{item 1}}
+- {{item 2}}
+- Structured output: `.ravenclaude/runs/{{TASK_ID}}/structured-output.json`
+
+## Decisions & Rationale
+{{KEY_DECISIONS}}
+
+## Handoffs & Escalations
+{{HANDOFF_NOTES}}
+
+## Validation & Checks
+- Tests / Linting: {{results}}
+- Security / Quality Gates: {{results}}
+- See `checks.json` for details.
+
+## Risks & Open Items
+{{RISKS}}
+
+## Next Steps Recommended
+{{NEXT_ACTIONS}}
+
+## Artifacts Generated
+- `summary.md` (this file)
+- `structured-output.json`
+- `changes.diff` (if code changes)
+- `decisions.md`
+- `events.jsonl`
+- Others: {{list}}
+
+---
+*Generated following RavenClaude Structured Output + Run Artifacts standards (enhanced with patterns from robust agent runtimes).*

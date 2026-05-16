@@ -1,0 +1,33 @@
+{
+  "task_id": "{{TASK_ID}}",
+  "timestamp": "{{ISO_TIMESTAMP}}",
+  "status": "complete|partial|blocked",
+  "summary": "One-sentence outcome of the focused task or workflow.",
+  "deliverables": [
+    "description of primary output 1",
+    "description of primary output 2"
+  ],
+  "structured_data": {
+    "key_metric_or_result": "value",
+    "details": {}
+  },
+  "handoff_recommendation": {
+    "to_specialist": "Team Lead | Architect | Reviewer | ...",
+    "reason": "Why this specialist next",
+    "context_summary": "Brief relevant context for handoff"
+  },
+  "confidence": 0.92,
+  "risks_or_open_questions": [
+    "Any identified risks or questions"
+  ],
+  "next_actions": [
+    "Actionable follow-up 1",
+    "Actionable follow-up 2"
+  ],
+  "artifacts_location": ".ravenclaude/runs/{{TASK_ID}}/",
+  "protocols_followed": [
+    "Structured Output Protocol",
+    "Focused Task Execution",
+    "Capability Grounding Protocol"
+  ]
+}
