@@ -94,16 +94,11 @@ jobs:
           set -euo pipefail
           status=0
           for manifest in plugins/*/.claude-plugin/plugin.json; do
-            name=$(python3 -c "import json;print(json.load(open('$manifest')).get('name',''))")
-            plugin_version=$(python3 -c "import json;print(json.load(open('$manifest')).get('version',''))")
-            catalog_version=$(python3 -c "
-            import json
-            cat = json.load(open('.claude-plugin/marketplace.json'))
-            for p in cat.get('plugins', []):
-              if p.get('name') == '$name':
-                print(p.get('version', ''))
-                break
-            ")
+            name=$(jq -r '.name' "$manifest")
+            plugin_version=$(jq -r '.version' "$manifest")
+            catalog_version=$(jq -r --arg n "$name" \
+              '.plugins[] | select(.name == $n) | .version' \
+              .claude-plugin/marketplace.json)
             if [[ "$plugin_version" != "$catalog_version" ]]; then
               echo "::error file=.claude-plugin/marketplace.json::version drift for $name — plugin.json says $plugin_version, marketplace.json says $catalog_version"
               status=1
