@@ -190,8 +190,8 @@ The existing plugins are the reference implementations — `ravenclaude-core` fo
 
 | Plugin | Version | Description |
 |---|---|---|
-| [`ravenclaude-core`](../plugins/ravenclaude-core/) | 0.2.4 | Domain-neutral: 13 specialist agents, dispatch playbook, gates, hooks, contribution-staging workflow (security sweep + expert routing), templates |
-| [`power-platform`](../plugins/power-platform/) | 0.5.2 | Microsoft Power Platform: 10 specialist agents + 13 skills (9 imported Daniel Kerridge MIT + 4 in-house) + advisory house-opinion hook + bundled pbix-mcp MCP server |
+| [`ravenclaude-core`](../plugins/ravenclaude-core/) | 0.2.6 | Domain-neutral: 13 specialist agents, dispatch playbook, gates, hooks, contribution-staging workflow (security sweep + expert routing), templates |
+| [`power-platform`](../plugins/power-platform/) | 0.5.4 | Microsoft Power Platform: 10 specialist agents + 13 skills (9 imported Daniel Kerridge MIT + 4 in-house) + advisory house-opinion hook + bundled pbix-mcp MCP server |
 
 **Memory bank:** 4 lessons recorded (see [`memory-bank/lessons-learned.md`](memory-bank/lessons-learned.md)) — PMP discipline (project-manager), PSM discipline (partner-success-manager), mermaid for conceptual diagrams, and rebase-orphan branch cleanup.
 

@@ -1,0 +1,115 @@
+# Release checklist
+
+Use this checklist when cutting a new version of any plugin in this marketplace (or the marketplace catalog itself). It's ordered: complete each section before the next.
+
+Targets the flow that ships today — manual version bump in `plugin.json`, PR to `main`, optional tag, optional GitHub Release. The tag-driven `release.yml` workflow (added under the release-discipline PR) automates the GitHub Release once a tag is pushed.
+
+---
+
+## 0. Decide what kind of release this is
+
+- [ ] **Patch** (`0.2.0 → 0.2.1`) — bug fix, doc fix, hook tweak, no consumer-visible behavior change
+- [ ] **Minor** (`0.2.0 → 0.3.0`) — new agent, new skill, new hook, new template; backward-compatible for existing consumers
+- [ ] **Major** (`0.2.0 → 1.0.0`) — removes or renames an agent/skill, changes a hook contract, or otherwise breaks an existing consumer's expectations
+
+If unsure, mentally simulate: "a consumer runs `/plugin marketplace update ravenclaude` — what changes?" If the answer would surprise them, write a migration note in the PR body and consider major.
+
+---
+
+## 1. Pre-flight (before opening the PR)
+
+- [ ] On a fresh feature branch off `main`, not `main` itself.
+- [ ] Plugin `version` bumped in `plugins/<plugin>/.claude-plugin/plugin.json`.
+- [ ] Catalog `version` bumped in `.claude-plugin/marketplace.json` (the version inside the relevant entry of `plugins[]`). Numbers must match — the version-drift CI step will fail if they don't.
+- [ ] `plugins/<plugin>/CHANGELOG.md` updated with a new dated section describing the change. Top of file, reverse-chronological.
+- [ ] If this is a minor or major release: top-level `CHANGELOG.md` also updated.
+- [ ] `docs/architecture.md` Status table updated if version numbers there are now stale.
+- [ ] No secrets, no client identifiers, no internal URLs in the diff. Skim `git diff` once more.
+
+---
+
+## 2. Local validation
+
+Run the same checks that CI runs, locally:
+
+- [ ] `python3 -m json.tool .claude-plugin/marketplace.json > /dev/null` — catalog parses
+- [ ] `for m in plugins/*/.claude-plugin/plugin.json; do python3 -m json.tool "$m" > /dev/null; done` — every plugin manifest parses
+- [ ] `bash -n plugins/*/hooks/*.sh` — every hook is syntactically valid bash
+- [ ] `find plugins/*/hooks -name '*.sh' -exec test -x {} \;` — hooks are executable (else CI fails)
+- [ ] **Smoke install**: from a scratch directory, `/plugin marketplace add /path/to/RavenClaude`, then `/plugin install <plugin>@ravenclaude`, then `/reload-plugins`. Verify the plugin's agents appear in `/plugin` UI and at least one specialist responds via `spawn-team`.
+
+If a step fails, fix it before pushing — don't push and hope CI catches it.
+
+---
+
+## 3. Open the PR
+
+- [ ] PR title is Conventional Commits style: `feat(<plugin>): …` for minor, `fix(<plugin>): …` for patch, `feat(<plugin>)!:` or a `BREAKING CHANGE:` footer for major.
+- [ ] PR body uses the default template. Fill the **Marketplace / meta change** section honestly.
+- [ ] Migration note included if any consumer will notice a behavior change after `marketplace update`.
+- [ ] Linked to the relevant issue (if any).
+
+---
+
+## 4. CI green
+
+- [ ] `Validate Marketplace` workflow passes (JSON validity, hook syntax, executability, version-drift check).
+- [ ] `shellcheck`, link-check, and the smoke-install step pass (added in the CI quality-gates PR).
+- [ ] No new warnings in the workflow logs that you don't understand. Investigate, don't ignore.
+
+---
+
+## 5. Merge
+
+- [ ] Matt approves and merges to `main`. (No self-merges; no force-push to `main`.)
+- [ ] Branch is deleted from the remote after merge.
+
+---
+
+## 6. Tag and publish a GitHub Release
+
+The `release.yml` workflow picks up tags matching `<plugin>-vX.Y.Z` or `marketplace-vX.Y.Z` and drafts a GitHub Release using the relevant CHANGELOG section.
+
+- [ ] Pull `main` locally so your tag is on the merged commit, not the PR branch.
+- [ ] Tag with the correct prefix:
+  ```bash
+  # For a ravenclaude-core release:
+  git tag ravenclaude-core-v0.2.7
+  git push origin ravenclaude-core-v0.2.7
+
+  # For a power-platform release:
+  git tag power-platform-v0.5.5
+  git push origin power-platform-v0.5.5
+
+  # For a top-level marketplace metadata release:
+  git tag marketplace-v0.2.0
+  git push origin marketplace-v0.2.0
+  ```
+- [ ] The `release.yml` workflow runs and drafts a GitHub Release. Open it, sanity-check the auto-extracted changelog section, then publish.
+
+---
+
+## 7. Verify consumers pick it up
+
+- [ ] From a separate test project: `/plugin marketplace update ravenclaude` then `/reload-plugins`. Confirm the new version is loaded (check `/plugin` UI or read the plugin's `plugin.json` from `~/.claude/plugins/cache/`).
+- [ ] If the release adds an agent or skill, dispatch it once via `spawn-team` to confirm it loads cleanly.
+- [ ] If the release adds or changes a hook, trigger a matching file edit and confirm the hook fires (or doesn't, if it was scoped down).
+
+---
+
+## 8. Communicate
+
+- [ ] If consumers will see a behavior change after `marketplace update`, post a short note in the team channel: what changed, what (if anything) they need to do, and a link to the GitHub Release.
+- [ ] If the release fixes a known bug, comment on the related issue and close it.
+
+---
+
+## Common failure modes (and what they actually mean)
+
+| Symptom | Root cause |
+|---|---|
+| CI version-drift step fails | You bumped `plugin.json` but forgot the matching entry in `marketplace.json` (or vice versa). |
+| `/plugin install` fails with "plugin not found" | Consumer is on a stale catalog. They need `/plugin marketplace update ravenclaude` first. |
+| Hook doesn't fire on consumer machine | The hook isn't executable in the published version (CI catches this, but only if the workflow ran). Re-tag after fixing. |
+| Imported skill missing on consumer machine | The skill folder was added but not committed (check `git status` before tagging). |
+| `pbix-mcp-server` not found in consumer terminal | They haven't run `pip install pbix-mcp`. Note this in the release notes for any `power-platform` release that touches PBIP/DAX flows. |
