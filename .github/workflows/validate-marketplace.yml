@@ -4,17 +4,21 @@ on:
   pull_request:
     paths:
       - '.claude-plugin/**'
-      - 'plugins/**/.claude-plugin/**'
-      - 'plugins/**/hooks/**'
+      - 'plugins/**'
+      - 'scripts/**'
+      - 'docs/architecture.md'
       - '.github/workflows/validate-marketplace.yml'
+      - '.lycheeignore'
   push:
     branches:
       - main
     paths:
       - '.claude-plugin/**'
-      - 'plugins/**/.claude-plugin/**'
-      - 'plugins/**/hooks/**'
+      - 'plugins/**'
+      - 'scripts/**'
+      - 'docs/architecture.md'
       - '.github/workflows/validate-marketplace.yml'
+      - '.lycheeignore'
   workflow_dispatch:
 
 jobs:
@@ -109,3 +113,141 @@ jobs:
             fi
           done
           exit $status
+
+      - name: Cross-check version drift (docs/architecture.md vs plugin.json)
+        run: |
+          set -euo pipefail
+          status=0
+          arch=docs/architecture.md
+          if [[ ! -f "$arch" ]]; then
+            echo "::warning::$arch missing — skipping doc-drift check"
+            exit 0
+          fi
+          for manifest in plugins/*/.claude-plugin/plugin.json; do
+            name=$(jq -r '.name' "$manifest")
+            plugin_version=$(jq -r '.version' "$manifest")
+            # Status table row form: | [`<name>`](../plugins/<name>/) | <version> | <desc> |
+            doc_version=$(grep -E "^\| \[\`${name}\`\]" "$arch" \
+              | head -1 \
+              | awk -F'|' '{gsub(/ /,"",$3); print $3}')
+            if [[ -z "$doc_version" ]]; then
+              echo "::warning file=$arch::no Status-table row found for $name — skipping"
+              continue
+            fi
+            if [[ "$plugin_version" != "$doc_version" ]]; then
+              echo "::error file=$arch::version drift for $name — plugin.json says $plugin_version, docs/architecture.md says $doc_version. Update the Status table."
+              status=1
+            else
+              echo "OK $name pinned at $plugin_version in docs/architecture.md"
+            fi
+          done
+          exit $status
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update -y -qq
+          sudo apt-get install -y -qq shellcheck
+          shellcheck --version
+
+      - name: Run shellcheck on hooks and scripts
+        run: |
+          set -euo pipefail
+          status=0
+          shopt -s nullglob globstar
+          targets=()
+          for f in plugins/*/hooks/*.sh scripts/**/*.sh plugins/*/skills/*/scripts/*.sh; do
+            targets+=("$f")
+          done
+          if [[ ${#targets[@]} -eq 0 ]]; then
+            echo "No shell scripts found — skipping."
+            exit 0
+          fi
+          # Severity threshold: warning. Excludes:
+          #   SC1091 — can't follow `source` references at static time (these hooks don't source).
+          #   SC2034 — unused variable false-positives on convention-named vars.
+          #   SC2164 — `cd` without `|| exit` (noisy in short utility scripts).
+          for f in "${targets[@]}"; do
+            echo "── shellcheck $f ──"
+            if ! shellcheck --severity=warning -e SC1091,SC2034,SC2164 "$f"; then
+              status=1
+            fi
+          done
+          exit $status
+
+      - name: Smoke install — plugin layout sanity
+        run: |
+          set -euo pipefail
+          status=0
+          # Simulate the clone-fallback path: copy each plugin into a scratch
+          # consumer-project layout and verify the expected files are present
+          # and parseable. This isn't a full /plugin install (that would require
+          # Claude Code in CI), but it catches the same surface-area regressions:
+          # missing files, broken JSON, non-executable hooks, dangling refs.
+          tmp=$(mktemp -d)
+          consumer="$tmp/consumer-project/.claude"
+          mkdir -p "$consumer"
+          for plugin_dir in plugins/*/; do
+            name=$(basename "$plugin_dir")
+            echo "── smoke: $name ──"
+            cp -r "$plugin_dir" "$consumer/$name"
+
+            manifest="$consumer/$name/.claude-plugin/plugin.json"
+            if [[ ! -f "$manifest" ]]; then
+              echo "::error file=$plugin_dir.claude-plugin/plugin.json::missing manifest after copy"
+              status=1
+              continue
+            fi
+            if ! jq . "$manifest" >/dev/null; then
+              echo "::error file=$manifest::manifest not parseable after copy"
+              status=1
+              continue
+            fi
+
+            # Required top-level fields
+            for field in name version description; do
+              val=$(jq -r --arg f "$field" '.[$f] // ""' "$manifest")
+              if [[ -z "$val" ]]; then
+                echo "::error file=$manifest::missing required field '$field'"
+                status=1
+              fi
+            done
+
+            # Plugin CLAUDE.md should exist (team constitution that auto-loads)
+            if [[ ! -f "$consumer/$name/CLAUDE.md" ]]; then
+              echo "::warning file=$plugin_dir::no CLAUDE.md — agents will auto-load without a team constitution"
+            fi
+
+            # Hooks must remain executable after copy
+            shopt -s nullglob
+            for hook in "$consumer/$name/hooks/"*.sh; do
+              if [[ ! -x "$hook" ]]; then
+                echo "::error file=${hook#$consumer/}::hook lost executable bit during copy — check repo permissions"
+                status=1
+              fi
+            done
+
+            echo "OK $name installs cleanly into a consumer layout"
+          done
+          rm -rf "$tmp"
+          exit $status
+
+  link-check:
+    name: Markdown link check (internal links only)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run lychee
+        uses: lycheeverse/lychee-action@v2
+        with:
+          # `--offline` keeps it to internal/local-relative links only — no
+          # network calls, so no flakes from rate-limited external services.
+          # Bumps this to network-aware after we trust the internal links.
+          args: >-
+            --offline
+            --no-progress
+            --verbose
+            --exclude-mail
+            './**/*.md'
+          fail: true

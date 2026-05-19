@@ -1,0 +1,6 @@
+# Patterns lychee should ignore when running in `--offline` mode we still see a
+# few false-positive failures from URL-shaped tokens. Add patterns here, one per
+# line. Plain strings or regexes both work — lychee treats each line as a regex.
+
+# Schema URLs in JSON manifests — lychee can't follow these in offline mode
+^https://json\.schemastore\.org/
