@@ -1,0 +1,24 @@
+# CLAUDE.md — {{REPO_NAME}} (Claude Code addendum)
+
+@AGENTS.md
+
+This file is Claude Code's entry point. The `@AGENTS.md` import above pulls in the cross-tool conventions. Anything below is **Claude-Code-specific** and is not meaningful to other agentic tools.
+
+## Plan-mode default
+
+For non-trivial changes touching more than two files, enter plan mode first and present a Keep / Update / Deny structure before writing.
+
+## Plugin hooks active in this project
+
+The `ravenclaude-core` plugin installs four hooks automatically:
+
+- `format-on-write` (PostToolUse) — runs the appropriate formatter after every file edit.
+- `guard-destructive` (PreToolUse / Bash) — blocks obviously destructive shell commands.
+- `enforce-layout` (PreToolUse / Write|Edit|MultiEdit) — denies file writes that don't match `.repo-layout.json`.
+- `remind-tests` (Stop) — reminds you to run the full test suite if source files changed.
+
+To disable any of them, override in `.claude/settings.json`.
+
+## Memory
+
+User-scoped memory lives under `~/.claude/projects/`. Update `MEMORY.md` when something durable about the user, project, or working style changes.

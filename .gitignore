@@ -27,3 +27,6 @@ npm-debug.log*
 # Misc
 *.tgz
 .cache/
+
+# RavenClaude runtime artifacts (per-run agent handoff substrate; not committed)
+.ravenclaude/

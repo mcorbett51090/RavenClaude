@@ -21,11 +21,11 @@ This marketplace follows the **orchestrator-worker / hierarchical** pattern, whi
 
 **Rationale**: This approach provides better observability, easier debugging, reduced risk of loops, and more reliable behavior — especially important when combining generalist agents from core with domain specialists. It mirrors proven task decomposition and session isolation patterns from high-reliability agent frameworks.
 
-## Structured Output Protocol (Roadmap — Not Yet Adopted)
+## Structured Output Protocol (Active — required for handoffs)
 
-> **Status as of 2026-05-16:** This protocol is **aspirational**. It describes the target format for cross-agent handoffs, but no agent in this plugin currently emits the `---RESULT_START---` delimited JSON block. Today's agents use Markdown Output Contracts (see each agent file). Consumers should not rely on parseable JSON from sub-agent reports yet. Retrofit is tracked separately; once shipped, this section will move from "Roadmap" to "Active".
+> **Status as of 2026-05-20:** This protocol is **active**. Every sub-agent that hands off to the Team Lead (or to a downstream specialist) MUST end its report with a `---RESULT_START--- ... ---RESULT_END---` delimited JSON block alongside its human-readable Markdown. The dual-output format is the 2026 norm in production multi-agent systems (pure JSON loses reasoning, pure Markdown is unparseable). Agent files in `agents/` are being retrofitted to declare this requirement explicitly in their Output Contract sections; until that retrofit lands across all 13 agents, the Team Lead enforces the contract at dispatch time by including the format in the brief.
 
-The target protocol — what we will adopt once retrofit completes — is described below for design reference. **Agents currently MAY but are not REQUIRED to follow this format.**
+The protocol is described below. Agents MUST follow this format for handoff-bearing reports; informational chatter ("file read", "test ran") is exempt.
 
 ### Core Rules
 1. **Prefer JSON Schema + Delimited Extraction** when the output has clear structure:
@@ -173,6 +173,20 @@ For long-running or multi-turn team collaborations:
 - The Team Lead should manage overall context; specialists receive focused slices.
 
 This prevents degradation in output quality due to context window pressure and maintains high signal-to-noise in agent reasoning.
+
+## Layout (plugin internal directories)
+
+`ravenclaude-core` uses the standard component directories:
+
+- `agents/` — 13 specialist agent definitions
+- `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging
+- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout (all registered in `hooks/hooks.json` for plugin-level distribution)
+- `rules/` — coding-standards, security, git-workflow, agent-collaboration
+- `templates/` — memos, runbooks, design specs, RAID logs, partner-success, plus `agent-ready-repo/` templates used by `/init-agent-ready`
+- `commands/` — `/init-agent-ready` slash command shipped to consumers
+- `knowledge/` — reference material the Researcher cross-checks
+
+**Convention for future plugins:** every plugin under `plugins/` MUST have `.claude-plugin/plugin.json`, `README.md`, and `CLAUDE.md`. It MAY add purpose-specific directories (e.g. `solutions/`, `flows/` in `power-platform`) — declare any non-default component paths in `plugin.json` (the `agents`, `skills`, `commands`, `hooks` fields all accept arrays) and add a `## Layout` section to that plugin's CLAUDE.md explaining the deviation.
 
 ## Quality gates, Hooks, Rules & Templates (Unchanged Core + Extensions)
 

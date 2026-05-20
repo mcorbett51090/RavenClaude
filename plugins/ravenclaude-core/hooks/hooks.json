@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for ravenclaude-core. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location, not the consumer's project root.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/format-on-write.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Auto-format files after agent edits. No-ops silently if no formatter is configured for the file type."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-destructive.sh \"$CLAUDE_TOOL_INPUT\"",
+            "comment": "Block obviously destructive commands that slipped past the consumer's deny list."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-layout.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Layout enforcement. Reads .repo-layout.json from the consumer's project root; no-ops silently if the manifest is absent."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/remind-tests.sh",
+            "comment": "If any source files changed this session, remind the Team Lead to run the full test suite before reporting done."
+          }
+        ]
+      }
+    ]
+  }
+}

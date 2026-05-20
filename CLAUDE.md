@@ -1,108 +1,37 @@
-# RavenClaude — Marketplace Constitution
+# CLAUDE.md — RavenClaude (Claude Code addendum)
 
-> This file describes how to work **on** the RavenClaude plugin marketplace itself. If you're looking for the team rules that ship inside the `ravenclaude-core` plugin (architect, coders, reviewers, etc.), see [`plugins/ravenclaude-core/CLAUDE.md`](plugins/ravenclaude-core/CLAUDE.md).
+@AGENTS.md
 
----
-
-## 1. What this repo is
-
-**Name:** RavenClaude
-**Purpose:** A private Claude Code **plugin marketplace** that hosts opinionated, reusable agent + skill bundles. Starts with the domain-neutral `ravenclaude-core` plugin (Team Lead + 13 specialists, dispatch playbooks, gates, templates) and grows to include domain plugins (Power Platform, finance, EdTech, Salesforce) over time.
-**Status:** Marketplace meta-repo. The "product" of this repo is the contents of `plugins/`, distributed via Claude Code's built-in plugin marketplace mechanism.
-
-### Repo layout
-
-```
-RavenClaude/
-├── .claude-plugin/
-│   └── marketplace.json           ← marketplace catalog (lists available plugins)
-├── plugins/
-│   └── ravenclaude-core/          ← the domain-neutral plugin
-│       ├── .claude-plugin/
-│       │   └── plugin.json        ← plugin manifest
-│       ├── CLAUDE.md              ← team constitution that ships with the plugin
-│       ├── agents/                ← 13 agent definitions
-│       ├── skills/                ← dispatch playbook, worktree helpers, etc.
-│       ├── hooks/                 ← format-on-write, guard-destructive, remind-tests
-│       ├── rules/                 ← coding-standards, security, git-workflow, agent-collab
-│       └── templates/             ← memos, runbooks, design specs, RAID logs, partner-success
-├── .claude/                       ← project-level config FOR working on this repo itself
-│   ├── settings.json              ← permissions + hooks for marketplace dev
-│   └── settings.local.json        ← gitignored, per-developer overrides
-├── docs/                          ← meta-repo docs (architecture, lessons-learned, decisions)
-├── README.md                      ← marketplace install instructions for end users
-└── CLAUDE.md                      ← this file (working ON the marketplace)
-```
-
-Future domain plugins land alongside `ravenclaude-core/` under `plugins/` and are added to `marketplace.json`.
+This file is Claude Code's entry point. The `@AGENTS.md` import above pulls in the cross-tool conventions (setup, layout, style, testing, PR rules). Anything below is **Claude-Code-specific** and is not meaningful to other agentic tools.
 
 ---
 
-## 2. How to work on this repo
+## Plan-mode default
 
-### Adding a new plugin
-1. Create `plugins/<plugin-name>/.claude-plugin/plugin.json` with `name`, `description`, `version`.
-2. Add `agents/`, `skills/`, `hooks/`, `rules/`, `templates/` subdirectories as needed.
-3. Append the new plugin to `plugins[]` in `.claude-plugin/marketplace.json`.
-4. Bump version on every release (or rely on git commits as implicit versioning if `version` is omitted).
-5. Test locally with `/plugin marketplace add ./` from a separate test project, then `/plugin install <plugin-name>@ravenclaude`.
+For non-trivial changes touching more than two files (or any manifest), enter plan mode first and present a Keep / Update / Deny structure before writing. This matches Matt's documented preference; Cursor/Codex users won't see this guidance and don't need to.
 
-### Modifying an existing plugin
-1. Edit files inside `plugins/<plugin-name>/`.
-2. Bump the plugin's `version` in `plugins/<plugin-name>/.claude-plugin/plugin.json`.
-3. Update consumers via `/plugin marketplace update ravenclaude` followed by `/reload-plugins`.
+## Memory references
 
-### Internal references
-- Plugin agent files reference the plugin's own `CLAUDE.md`, `rules/`, `templates/` via plugin-relative paths (`../CLAUDE.md`, `../rules/X.md`, `../templates/X.md`).
-- Plugin agent files do **not** reference the meta-repo's root `CLAUDE.md` — that's a different document with a different purpose.
+User-scoped memory lives at `/home/codespace/.claude/projects/-workspaces-RavenClaude/memory/`. `MEMORY.md` is the index. Update it when something durable about the user, project, or working style changes.
 
----
+## Marketplace-dev hooks
 
-## 3. Quality gates for marketplace dev work
+During development *on* this repo, hooks are sourced from the plugin's own `hooks/hooks.json` (auto-loaded when Claude Code discovers `plugins/ravenclaude-core/.claude-plugin/plugin.json` at the project root). The marketplace's own `.claude/settings.json` no longer wires hooks manually — that responsibility moved to the plugin so consumers also get them.
 
-| Gate | Command | When |
-|------|---------|------|
-| JSON validity | `python3 -m json.tool .claude-plugin/marketplace.json > /dev/null && python3 -m json.tool plugins/*/​.claude-plugin/plugin.json > /dev/null` | After any manifest edit |
-| Shell syntax | `bash -n plugins/*/hooks/*.sh` | After any hook edit |
-| Hook executability | `find plugins/*/hooks -name '*.sh' -exec test -x {} \;` | After any hook edit |
-| Markdown link sanity | `grep -rEn '\]\([^)]+\)' plugins/ CLAUDE.md` then spot-check that referenced paths exist | After any agent/skill/rule edit |
-| Local install test | `/plugin marketplace add ./` from a separate test project, then verify agents appear in `/plugin` UI | Before tagging a release |
+If you need a marketplace-only hook (i.e., one that should NOT ship to consumers), add it to `.claude/settings.json` under `hooks`. None today.
 
----
+## Layout enforcement (Claude Code path)
 
-## 4. Git workflow for the marketplace
+The plugin's `hooks/enforce-layout.sh` runs `PreToolUse` on `Write|Edit|MultiEdit`. It reads `.repo-layout.json` at the project root, matches the target path against `allowed_globs`, and denies off-pattern writes with a suggested correct location. The hook silently allows everything if `.repo-layout.json` is absent — so consumers who install the plugin without setting up a layout manifest are not surprised.
 
-- **`main`** — always green, always installable. Every commit on `main` is a candidate version of every plugin (unless plugin manifests pin explicit versions).
-- **`feat/<plugin-name>-<slug>`** — new features in a specific plugin.
-- **`fix/<plugin-name>-<slug>`** — bug fixes in a specific plugin.
-- **`chore/<slug>`** — marketplace tooling, docs, devcontainer, etc.
+The matching CI workflow `.github/workflows/validate-layout.yml` is the cross-tool backstop (catches direct human commits, Cursor/Codex/Aider edits, and any case where the hook didn't fire).
 
-Versioning: plugin manifests use semver. Bump on every user-visible change. Marketplace consumers can pin to a specific commit `sha` for reproducibility.
+Why both: Claude Code issue [#23478](https://github.com/anthropics/claude-code/issues/23478) confirms that path-scoped rule files (`paths:` frontmatter) load only on Read, not on Write. They cannot prevent off-pattern file *creation*. The hook (in-loop, Claude-only) plus the CI (universal backstop) is the supported enforcement pattern in 2026.
 
----
+## Slash commands shipped by the plugin
 
-## 5. House rules
+After installing the plugin in any project, consumers get:
 
-1. The `ravenclaude-core` plugin stays **domain-neutral**. Power Platform / finance / EdTech / Salesforce specifics go in their own plugins, not in `ravenclaude-core`.
-2. Plugin agents reference *plugin-internal* files only (rules, templates inside the same plugin). They never reference paths in the consumer project's repo unless those paths are conventional (e.g. `docs/pm/raid-log.md` is the convention; the agent doesn't link to it as an absolute path).
-3. CLAUDE.md is **two distinct files**: this one (meta-repo dev guide) and `plugins/ravenclaude-core/CLAUDE.md` (team constitution). They have different audiences and shouldn't drift toward each other.
-4. The marketplace is **private** by default. Don't push to a public-readable remote without removing the `email` field from `marketplace.json` and `plugin.json` (or accept that the email is now public).
-5. Before merging a plugin change, mentally simulate "what happens when a consumer runs `/plugin marketplace update`?" — if the answer is "their existing project breaks," the change needs a migration note in the plugin's release notes.
+- `/init-agent-ready` — guided setup: creates `AGENTS.md`, `CLAUDE.md`, `.repo-layout.json`, and optionally a CI workflow tailored to the consumer's repo type (application / library / monorepo / docs / data / IaC).
 
----
-
-## 6. Installing the marketplace (for end users)
-
-```shell
-# In any Claude Code project where you want the agents:
-/plugin marketplace add mcorbett51090/RavenClaude
-/plugin install ravenclaude-core@ravenclaude
-
-# Or, for local development against your own checkout:
-/plugin marketplace add /path/to/RavenClaude
-/plugin install ravenclaude-core@ravenclaude
-```
-
-After install, run `/reload-plugins` to activate.
-
-For users on locked-down enterprise plans where marketplace installs are restricted, the fallback is a plain `git clone` of this repo and copying `plugins/ravenclaude-core/` into `~/.claude/` (user scope) or the consumer project's `.claude/` (project scope). Loses auto-update; everything else works.
+The command is defined in `plugins/ravenclaude-core/commands/init-agent-ready.md` and writes from templates in `plugins/ravenclaude-core/templates/agent-ready-repo/`.

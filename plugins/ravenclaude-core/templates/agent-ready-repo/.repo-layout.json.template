@@ -1,0 +1,21 @@
+{
+  "description": "Allow-list of file path globs for {{REPO_NAME}}. Both the enforce-layout hook (Claude Code, shipped by the ravenclaude-core plugin) and the validate-layout.yml CI workflow read this file. A new file whose path does not match any allowed_globs entry will be blocked by the hook and fail CI. Add new globs here when introducing a new top-level directory.",
+  "schema_version": 1,
+  "allowed_globs": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    "README.md",
+    "LICENSE",
+    ".gitignore",
+    ".gitattributes",
+    ".repo-layout.json",
+    ".claude/**",
+    ".github/**",
+    "docs/**",
+    "scripts/**"
+  ],
+  "forbidden_globs": [],
+  "suggestions": {
+    "New top-level directory": "Add the glob to .repo-layout.json allowed_globs first, with rationale in the PR description."
+  }
+}

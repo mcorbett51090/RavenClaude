@@ -1,0 +1,50 @@
+# AGENTS.md — {{REPO_NAME}}
+
+{{ONE_SENTENCE_PURPOSE}}
+
+This is the canonical agent-instruction file for this repo. `CLAUDE.md` imports it and adds Claude-Code-specific notes. Cursor, OpenAI Codex CLI, Aider, GitHub Copilot, and Windsurf read this file natively.
+
+## Setup commands
+
+```shell
+{{INSTALL_COMMAND}}
+{{BUILD_COMMAND}}
+{{RUN_COMMAND}}
+```
+
+## Repo layout
+
+```
+{{TREE_DIAGRAM}}
+```
+
+{{LAYOUT_NOTES}}
+
+## Code style
+
+{{STYLE_BULLETS}}
+
+## Testing instructions
+
+```shell
+{{TEST_COMMAND}}
+{{LINT_COMMAND}}
+{{TYPECHECK_COMMAND}}
+```
+
+Run all three before opening a PR.
+
+## PR conventions
+
+- **Branches** — `feat/<slug>`, `fix/<slug>`, `chore/<slug>`.
+- **Commits** — conventional commits (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`).
+- **Review** — at least one reviewer; passing CI is mandatory.
+
+## Layout & boundary rules
+
+A new file's path must match at least one glob in `.repo-layout.json` `allowed_globs`. Enforcement has two layers:
+
+- **In Claude Code (fast feedback)** — the `enforce-layout` hook (shipped by the `ravenclaude-core` plugin) runs `PreToolUse` on `Write|Edit|MultiEdit` and denies off-pattern paths with a suggested correct location.
+- **CI (cross-tool backstop)** — `.github/workflows/validate-layout.yml` runs on every PR; fails the build if any added file violates the allow-list.
+
+> Why a hook + CI instead of `paths:`-scoped rule files: Claude Code issue [#23478](https://github.com/anthropics/claude-code/issues/23478) — path-scoped rule files load on Read, not on Write, so they cannot block file *creation*. The hook + CI pair is the supported pattern.

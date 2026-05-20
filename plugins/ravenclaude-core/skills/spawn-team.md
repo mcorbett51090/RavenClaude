@@ -147,6 +147,47 @@ Return your standard structured report. Cap your response at <N> words.
 - **Dependent agents sequentially:** dispatch one, wait for the report, then the next.
 - Never spawn the same role twice in parallel on the same branch.
 
+### Parallel reviewer fan-out (standard pattern)
+
+After the build phase produces a diff, dispatch `code-reviewer` and (if the change touches auth/crypto/secrets/untrusted-input/SQL/shell/network/third-party-integration) `security-reviewer` **in parallel, in a single tool call**. They review the same diff independently — independent reviewers mitigate self-agreement bias. Ideally use diverse models (one Claude, one Codex/Gemini) for the reviewer stage when the change is high-stakes.
+
+## Step 5.5 — Artifact-based handoff (the primary substrate)
+
+Reports flow back to the Team Lead **as pointers to artifacts on disk**, not as inline pasted content. This mirrors Anthropic's own multi-agent research architecture: agents write artifacts to a shared filesystem and return lightweight references. The Team Lead loads only what the next dispatch actually needs.
+
+### Convention
+
+Every multi-agent run writes to:
+
+```
+.ravenclaude/runs/<run-id>/
+  01-design.md           ← architect's plan (human-readable)
+  01-design.json         ← architect's plan (structured, next agent's input)
+  02-plan.md / .json     ← project-manager or architect, sequencing
+  03-impl.json           ← coder's diff manifest (worktree path + files touched)
+  04-review-code.json    ← code-reviewer verdict
+  04-review-security.json ← security-reviewer verdict (when run)
+  events.jsonl           ← chronological action log (optional)
+  summary.md             ← Team Lead's final summary back to the user
+```
+
+The `<run-id>` is a short slug or timestamp + slug. The Team Lead creates `.ravenclaude/runs/<run-id>/` before the first dispatch and includes the path in every brief.
+
+### What goes in each brief
+
+Add to the standard brief template (Step 4):
+
+```
+## Artifacts
+- Read prior artifacts: <list of paths under .ravenclaude/runs/<run-id>/>
+- Write your output to: .ravenclaude/runs/<run-id>/<your-phase-name>.{md,json}
+- Return only: a path + the Structured Output Protocol JSON block.
+```
+
+### Why this matters
+
+Without on-disk artifacts, every handoff is "telephone game" — each successor sees a summary of a summary, decisions degrade, and rework compounds. With artifacts, the orchestrator (Team Lead) can re-read source material directly when synthesizing, and any agent can be re-dispatched with the exact same input.
+
 ---
 
 ## Step 6 — Re-routing protocol
