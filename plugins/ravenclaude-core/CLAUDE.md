@@ -176,7 +176,7 @@ This prevents degradation in output quality due to context window pressure and m
 
 ## Quality gates, Hooks, Rules & Templates (Unchanged Core + Extensions)
 
-The existing 3 hooks, 4 rulesets, and 21+ templates remain foundational. 
+The existing 4 hooks (`format-on-write`, `guard-destructive`, `remind-tests`, `guard-recursive-spawn`), 4 rulesets, and 21+ templates remain foundational. 
 
 **Enhancement Recommendations**:
 - Extend `remind-tests` or add output-validation hook elements that check for Structured Output Protocol compliance on critical deliverables.

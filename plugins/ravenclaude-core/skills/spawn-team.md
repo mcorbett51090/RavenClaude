@@ -185,6 +185,66 @@ When an agent surfaces a problem, route by the *type* of problem, not by which a
 
 ---
 
+## Cross-plugin dispatch
+
+When the consumer project has more than one RavenClaude plugin installed — most commonly `ravenclaude-core` **and** `power-platform` — you (Team Lead) are the only agent that routes across plugin boundaries. Specialists stay inside their plugin and escalate via you.
+
+### Detect the domain first
+
+Before picking a playbook, ask: *does this request touch a domain plugin's surface?* Plain English signals for each currently-shipping domain plugin:
+
+| Plugin | Trigger signals |
+|---|---|
+| `power-platform` | "canvas app", "model-driven", "Power Fx", "Power Automate flow", "Dataverse", "solution.xml", "PBIP", "DAX", "Copilot Studio", "PCF control", "pac CLI", "DLP", anything mentioning `.pbix` / `.msapp` / `*.fx.yaml` / Power Pages |
+| *(future)* | finance, EdTech, Salesforce — add rows here as plugins land |
+
+If **no** domain-plugin signal is present, run the standard playbooks above with `ravenclaude-core` specialists only. If signals are present, pick the domain playbook below.
+
+### Domain-led playbooks (when `power-platform` is installed)
+
+These extend — they don't replace — the generic patterns in Step 2. The Team Lead still owns sequencing and gate decisions.
+
+| Request shape | Sequence |
+|---|---|
+| Build a canvas app that writes to a custom Dataverse table | `power-platform/dataverse-architect` → `power-platform/power-fx-engineer` → `power-platform/solution-alm-engineer`. **Mandatory escalation to `ravenclaude-core/security-reviewer`** if FLS/RLS/sharing or PII fields are involved. |
+| Build or fix a cloud flow | `power-platform/flow-engineer`. Pull `power-platform/solution-alm-engineer` for env-var / connection-ref issues; pull `power-platform/power-platform-admin` for DLP / capacity / throttling. |
+| PBIP semantic model + DAX + ADO git | `power-platform/power-bi-engineer` → `power-platform/solution-alm-engineer` (only when it must integrate with broader solution pipelines or flows). |
+| Tenant audit / governance | `power-platform/power-platform-admin`. Pull `power-platform/dataverse-architect` for schema concerns. |
+| Migrate Excel/SharePoint workbook to a real Power App | `power-platform/dataverse-architect` (schema) → `power-platform/solution-alm-engineer` (env strategy) → `power-platform/power-fx-engineer` *or* `power-platform/model-driven-engineer` (UI). |
+| Chatbot / Copilot Studio build | `power-platform/copilot-studio-engineer` → `power-platform/flow-engineer` (actions the bot calls) → `power-platform/solution-alm-engineer` (package). |
+| Long-term maintainability review of a Power Platform solution | `power-platform` specialists invoke the `power-platform/maintainability-review` skill; their reports come back to you. |
+
+The complete domain routing table lives in [`plugins/power-platform/CLAUDE.md`](../../power-platform/CLAUDE.md) §2. Keep that file authoritative; this section summarizes when to *cross* into it.
+
+### Symmetric escalation paths
+
+Both directions are explicitly allowed, but the agent **never** dispatches directly — it returns a report with an `Escalation` line and you decide. Use the table to pick the right specialist:
+
+| Surfacing (in plugin) | Likely cause | Where to route |
+|---|---|---|
+| Power Platform specialist touched FLS/RLS/sharing/cross-BU/PII/PCI/PHI | Security boundary | `ravenclaude-core/security-reviewer` (mandatory; see `power-platform/CLAUDE.md` §11) |
+| Power Platform specialist hit an Azure / identity / non-Power-Platform architecture question | Out-of-domain design | `ravenclaude-core/architect` |
+| Power Platform specialist's answer depends on current Microsoft licensing / connector behavior / release-note recency | Knowledge freshness | `ravenclaude-core/deep-researcher` |
+| Power Platform delivery needs RAID, status, or stakeholder tracking | PM hygiene | `ravenclaude-core/project-manager` |
+| `ravenclaude-core/architect` proposes a design that depends on a Power Platform mechanism (Dataverse table, flow, PBIP layout) | Implementation expertise | `power-platform/dataverse-architect` *or* `power-platform/solution-alm-engineer` (per scope) |
+| `ravenclaude-core/security-reviewer` flags a Power Platform-specific concern (DLP, connector auth, premium licensing exposure) | Domain expertise | `power-platform/power-platform-admin` (DLP/governance) or `power-platform/flow-engineer` (connector auth) |
+| `ravenclaude-core/code-reviewer` opens a Power Fx / DAX / solution.xml diff | Domain expertise | `power-platform/power-fx-engineer` (Power Fx), `power-platform/power-bi-engineer` (DAX), `power-platform/solution-alm-engineer` (solution metadata) |
+| `ravenclaude-core/tester-qa` needs to test a Power Platform app behaviorally | Domain expertise | future `power-platform/power-platform-tester` (when added); meanwhile `power-platform/power-fx-engineer` writes test scaffolds |
+| `ravenclaude-core/documentarian` asked to write a runbook for a Power Platform deployment | Domain detail | `power-platform/solution-alm-engineer` provides the technical content; documentarian rewrites for the audience |
+
+### Anti-patterns to avoid
+
+- **No sub-agent dispatches another sub-agent**, ever. Not "the architect spawned a coder," not "the dataverse-architect spawned the power-fx-engineer." The Team Lead is the only orchestrator. Agent files containing `Agent(` calls will be flagged by `plugins/ravenclaude-core/hooks/guard-recursive-spawn.sh`.
+- **No silent cross-plugin dispatch.** When you route across plugins, *say so* in your summary so the user can see why the work crossed boundaries.
+- **No "Power Platform specialist did the security review."** Security review for FLS/RLS/sharing/cross-BU/PII always goes through `ravenclaude-core/security-reviewer`, even if a Power Platform specialist could plausibly answer.
+- **No coder agent reading from another plugin's `CLAUDE.md` directly.** Specialists stay in their plugin. Cross-cutting context flows through you.
+
+### When more domain plugins ship
+
+As new plugins land (finance, EdTech, Salesforce, …), extend the trigger-signal table and the symmetric-escalation table in lock-step. The skeleton is plugin-agnostic; the only thing that grows is which domains the Team Lead can route into.
+
+---
+
 ## Output Contract (your summary back to the user)
 
 ```
