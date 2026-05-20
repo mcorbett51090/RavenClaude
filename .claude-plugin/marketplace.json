@@ -13,8 +13,8 @@
     {
       "name": "ravenclaude-core",
       "source": "./plugins/ravenclaude-core",
-      "description": "Domain-neutral Claude Code plugin: 13 specialist agents (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, etc.), team-lead dispatch playbook, format/lint/test gates, contribution-staging workflow (with security sweep + expert-routing gates), and templates for memos, runbooks, design specs, RAID logs, and partner-success artifacts.",
-      "version": "0.2.6",
+      "description": "Domain-neutral Claude Code plugin: 13 specialist agents (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, etc.), team-lead dispatch playbook, format/lint/test gates, contribution-staging workflow (with security sweep + expert-routing gates), templates for memos/runbooks/design specs/RAID logs/partner-success, plugin-distributable hooks (auto-activate in consumer projects), layout-enforcement hook + CI workflow, and a /init-agent-ready slash command that steers consumer repos toward the same agent-readable boundary files (AGENTS.md + CLAUDE.md + .repo-layout.json).",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett",
         "email": "matt@ravenpower.net"

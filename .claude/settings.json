@@ -115,7 +115,7 @@
           {
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/format-on-write.sh \"$CLAUDE_TOOL_FILE_PATH\"",
-            "comment": "Auto-format files after agent edits. The script no-ops if no formatter is configured for the file type. Path points into the plugin so it works while developing on the marketplace itself, before the plugin is installed."
+            "comment": "Marketplace-dev hook. The plugin's hooks/hooks.json registers the same hook for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because the script is idempotent."
           }
         ]
       }
@@ -130,6 +130,16 @@
             "comment": "Block obviously destructive commands that slipped past the deny list."
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/enforce-layout.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Layout enforcement: deny writes that don't match .repo-layout.json. Same script the plugin distributes to consumers."
+          }
+        ]
       }
     ],
     "Stop": [
@@ -138,10 +148,11 @@
           {
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/remind-tests.sh",
-            "comment": "If any source files changed this session, remind the Team Lead to run the full test suite before reporting done."
+            "comment": "Remind the Team Lead to run the full test suite when source files changed."
           }
         ]
       }
     ]
   }
 }
+
