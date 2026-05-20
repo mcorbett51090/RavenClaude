@@ -1,6 +1,6 @@
 # Power Platform Plugin — Team Constitution
 
-> Team constitution for the `power-platform` Claude Code plugin. Bundles **10** specialist agents focused on the Microsoft Power Platform stack (including the new `power-bi-engineer`). Each agent owns a slice; the Team Lead (the top-level Claude session, typically also running `ravenclaude-core`) dispatches the right specialist(s) for a given task and integrates their reports.
+> Team constitution for the `power-platform` Claude Code plugin. Bundles **11** specialist agents focused on the Microsoft Power Platform stack (including the new `power-platform-tester`). Each agent owns a slice; the Team Lead (the top-level Claude session, typically also running `ravenclaude-core`) dispatches the right specialist(s) for a given task and integrates their reports.
 >
 > Designed for professional makers — assumes the user can build and wants real engineering judgment, not click-by-click tutorials.
 >
@@ -22,6 +22,7 @@
 | [`pcf-developer`](agents/pcf-developer.md) | PCF custom controls (TypeScript) | When canvas / Custom Pages / components genuinely cannot deliver the required UI |
 | [`copilot-studio-engineer`](agents/copilot-studio-engineer.md) | Copilot Studio bots, AI Builder, prompts | Bot architecture, AI Builder model selection, "Copilot Studio vs direct Azure OpenAI" decisions |
 | [`power-pages-engineer`](agents/power-pages-engineer.md) | Power Pages (external portals) | Anonymous/B2C-facing sites, table permissions, liquid templating, B2C auth |
+| [`power-platform-tester`](agents/power-platform-tester.md) | Power Platform-specific testing — Test Studio, flow run-history-driven assertions, Dataverse data/plug-in validation, DAX measure-tests + VertiPaq diagnostics, `pac solution check` | After any specialist's change, before `solution-alm-engineer` packages a release |
 
 **Sub-agents do not spawn other sub-agents** — only the Team Lead delegates. If work crosses specialist boundaries, each specialist returns their slice and the Team Lead re-dispatches.
 
@@ -147,10 +148,15 @@ The `hooks/` directory ships [`check-house-opinions.sh`](hooks/check-house-opini
 | GUIDs hard-coded in Power Fx canvas YAML | `*.fx.yaml`, `*.pa.yaml`, files under `CanvasApps/Src/` | §3 #11 — look up by name or alternate key, not GUID |
 | Default publisher prefix (`cr`, `crXXX`, `new`) | `solution.xml`, `customizations.xml` | §3 #5 — publisher prefix you control |
 | Hard-coded `.sharepoint.com` / `.crm*.dynamics.com` URLs | any Power Platform source file | §3 #2 / §4 — environment variables for everything that varies across environments |
+| Binary `.pbix` file in solution tree | `*.pbix` | §3 #12 / §4 — unpack to PBIP, source-control the unpacked tree |
+| Flow JSON missing top-level Try/Catch/Finally scope | `*/workflows/*.json` | §3 #10 — error handling is part of the build |
+| Premium connector reference in flow JSON without a licensing note | `*/workflows/*.json` | §3 #8 — premium connector ≠ casual choice |
+| Power Fx variable / collection naming (`Set(…)`, `(Clear)Collect(…)`) doesn't use `var*` / `col*` prefix | `*.fx.yaml`, `*.pa.yaml`, files under `CanvasApps/Src/` | §3 #6 — variable prefixes reveal scope without IntelliSense |
+| Secret-shaped plaintext literal in an env-variable XML/JSON default (instead of `@Microsoft.KeyVault(…)`) | `customizations.xml`, `environmentvariablevalues.xml`, `*.environmentvariablevalues.json`, `environmentvariabledefinitions.xml` | §4 — storing secrets as plain string env vars |
 
 The hook is **advisory by default** (prints to stderr, doesn't block the edit). To enforce, flip the final `exit 0` to `exit 1`. To wire it into a consumer project's `.claude/settings.json`, see [`hooks/README.md`](hooks/README.md).
 
-When in doubt, the hook is conservative — it doesn't fire on files outside Power Platform conventional locations, so a `.ts` file with a GUID in it won't be flagged. The remaining §3 / §4 rules (premium-connector licensing, error-handling completeness, delegation, managed-vs-unmanaged-per-environment) are not currently enforced by hooks and remain agent-judgment calls.
+When in doubt, the hook is conservative — it doesn't fire on files outside Power Platform conventional locations, so a `.ts` file with a GUID in it won't be flagged. The remaining §3 / §4 rules (managed-vs-unmanaged-per-environment, delegation, direct user-sharing, "Default" environment usage) are not currently enforced by hooks and remain agent-judgment calls.
 
 ---
 

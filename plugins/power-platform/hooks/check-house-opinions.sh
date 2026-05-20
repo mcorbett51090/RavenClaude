@@ -11,6 +11,13 @@
 #   4. Binary `.pbix` file committed to git — should be unpacked to PBIP (see §4).
 #   5. Flow JSON (workflows/*.json) missing a top-level Try/Catch/Finally scope
 #      — required by §3 #10.
+#   6. Premium connector reference in flow JSON without a `// premium:` licensing note
+#      — required by §3 #8 ("Premium connector ≠ casual choice").
+#   7. Power Fx variable naming: `Set(...)` / `UpdateContext({...})` / `ClearCollect(...)`
+#      that doesn't use the var* / col* prefix convention — §3 #6.
+#   8. Secret-shaped literal value in an environment-variable XML default
+#      (password=, AccountKey=, api_key=, "secret"…) — §4 anti-pattern. Should be a
+#      `@Microsoft.KeyVault(...)` reference, not a plaintext default.
 #
 # Advisory by default: prints warnings to stderr so Claude and the user both see them,
 # but exits 0 so the edit is not blocked. To make this hook BLOCK on violation, change
@@ -86,6 +93,80 @@ case "$file" in
       if ! grep -qE '"(Try|Catch|Finally|Scope_-_Try|Scope_-_Catch)"' "$file" 2>/dev/null; then
         violations+=("  [flow-missing-try-catch] $file has actions but no top-level Try/Catch/Finally scope. Wrap flow logic in scopes for proper error handling — see CLAUDE.md §3 #10.")
       fi
+    fi
+    ;;
+esac
+
+# --- Check 6: Premium connector reference in flow JSON without licensing note ---
+# §3 #8 requires every recommendation involving a premium connector to call out the
+# licensing impact. Mechanical proxy: if the flow JSON references one of the known-
+# premium connector apiIds, expect a `// premium:` or `"_comments":` annotation in
+# the same file. Conservative list — covers the most common premium offenders.
+case "$file" in
+  */workflows/*.json)
+    premium_pattern='shared_(commondataserviceforapps|salesforce|hubspotcrm|sap|oracle|adobesign|docusign|approvals|encodian|cloudappsecurity|servicenow|azurequeues|azureblob|azuretables|azureservicebus|azureeventgrid|azurefunctions|azureopenai|azuredevops|azurekeyvault|sql|smtp|http(withazuread)?|webcontents|teams|sharepointonline)'
+    if grep -qE "\"apiId\"[[:space:]]*:[[:space:]]*\"[^\"]*${premium_pattern}\"" "$file" 2>/dev/null; then
+      if ! grep -qE '("_comments"|//[[:space:]]*premium|"premium"[[:space:]]*:[[:space:]]*true)' "$file" 2>/dev/null; then
+        # Show the first matching premium connector reference as evidence
+        sample=$(grep -nE "\"apiId\"[[:space:]]*:[[:space:]]*\"[^\"]*${premium_pattern}\"" "$file" 2>/dev/null | head -1)
+        violations+=("  [premium-connector-no-licensing-note] $file references a premium connector but has no \"_comments\"/\"// premium:\" licensing note. Premium connectors are not a casual choice — call out the licensing impact in the same file. See CLAUDE.md §3 #8. Match: $sample")
+      fi
+    fi
+    ;;
+esac
+
+# --- Check 7: Power Fx variable naming convention (§3 #6) ---
+# Convention: `Set(varX, ...)`, `UpdateContext({locX: ...})`, `ClearCollect(colX, ...)`,
+# `Collect(colX, ...)`. Hook flags first-argument identifiers that don't match the prefix.
+# Conservative: ignores names that already start with var/loc/col (case-insensitive on
+# the prefix only, since Power Fx is case-insensitive), and skips identifiers that are
+# clearly Power Fx built-ins (`Self`, `Parent`, `ThisItem`, `ThisRecord`).
+case "$file" in
+  *.fx.yaml|*.pa.yaml|*CanvasApps/Src/*)
+    # Set(name, ...) — name should start with var (case-insensitive).
+    while IFS= read -r line; do
+      # Skip our own comments / commented-out code
+      [[ "$line" =~ \#.*Set\( ]] && continue
+      violations+=("  [powerfx-var-prefix] $file: variable in Set(...) should be prefixed 'var' (§3 #6): $line")
+    done < <(grep -EnI '\bSet[[:space:]]*\([[:space:]]*[A-Za-z_][A-Za-z0-9_]*' "$file" 2>/dev/null \
+             | grep -EvI '\bSet[[:space:]]*\([[:space:]]*(var|Self|Parent|ThisItem|ThisRecord)' \
+             | head -5)
+
+    # ClearCollect(name, ...) / Collect(name, ...) — name should start with col.
+    while IFS= read -r line; do
+      [[ "$line" =~ \#.*(Clear)?Collect\( ]] && continue
+      violations+=("  [powerfx-col-prefix] $file: collection in (Clear)Collect(...) should be prefixed 'col' (§3 #6): $line")
+    done < <(grep -EnI '\b(Clear)?Collect[[:space:]]*\([[:space:]]*[A-Za-z_][A-Za-z0-9_]*' "$file" 2>/dev/null \
+             | grep -EvI '\b(Clear)?Collect[[:space:]]*\([[:space:]]*(col|Self|Parent|ThisItem|ThisRecord)' \
+             | head -5)
+    ;;
+esac
+
+# --- Check 8: Secret-shaped literal in environment variable default (§4 anti-pattern) ---
+# Environment-variable defaults in customizations.xml / *.environmentvariablevalues.json
+# should reference Key Vault (`@Microsoft.KeyVault(...)`) rather than a plaintext secret.
+# Mechanical proxy: a default-value element that looks secret-shaped and doesn't start
+# with `@Microsoft.KeyVault`.
+case "$file" in
+  *customizations.xml|*environmentvariablevalues.xml|*.environmentvariablevalues.json|*environmentvariabledefinitions.xml)
+    # XML form: <value>password=... or <defaultvalue>AKIA... or <value>secret-like-string</value>
+    if grep -EniI '<(default)?value>[^<]*(password=|accountkey=|api[_-]?key[[:space:]]*=|client[_-]?secret[[:space:]]*=|aws_secret_access_key|bearer[[:space:]]+[a-z0-9._-]{20,})[^<]*</(default)?value>' "$file" >/dev/null 2>&1; then
+      while IFS= read -r line; do
+        # If the same line is a @Microsoft.KeyVault reference, allow it.
+        if echo "$line" | grep -qE '@Microsoft\.KeyVault\('; then
+          continue
+        fi
+        violations+=("  [secret-in-env-var] $file appears to ship a plaintext secret as an env-var default. Use @Microsoft.KeyVault(...) instead. See CLAUDE.md §4 (anti-patterns): $line")
+      done < <(grep -EniI '<(default)?value>[^<]*(password=|accountkey=|api[_-]?key[[:space:]]*=|client[_-]?secret[[:space:]]*=|aws_secret_access_key|bearer[[:space:]]+[a-z0-9._-]{20,})[^<]*</(default)?value>' "$file" | head -5)
+    fi
+    # JSON form: "value": "password=..." / "value": "AccountKey=..." etc.
+    if grep -EniI '"(default)?value"[[:space:]]*:[[:space:]]*"[^"]*(password=|AccountKey=|api[_-]?key[[:space:]]*=|client[_-]?secret[[:space:]]*=|aws_secret_access_key|Bearer[[:space:]]+[a-z0-9._-]{20,})[^"]*"' "$file" >/dev/null 2>&1; then
+      while IFS= read -r line; do
+        if echo "$line" | grep -qE '@Microsoft\.KeyVault\('; then
+          continue
+        fi
+        violations+=("  [secret-in-env-var] $file appears to ship a plaintext secret as an env-var default. Use @Microsoft.KeyVault(...) instead. See CLAUDE.md §4 (anti-patterns): $line")
+      done < <(grep -EniI '"(default)?value"[[:space:]]*:[[:space:]]*"[^"]*(password=|AccountKey=|api[_-]?key[[:space:]]*=|client[_-]?secret[[:space:]]*=|aws_secret_access_key|Bearer[[:space:]]+[a-z0-9._-]{20,})[^"]*"' "$file" | head -5)
     fi
     ;;
 esac
