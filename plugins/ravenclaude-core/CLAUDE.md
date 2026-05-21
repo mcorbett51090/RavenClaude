@@ -176,6 +176,44 @@ When a knowledge file in the active plugin contains a `## Decision Tree: <Domain
 
 The decision-tree pre-action traversal and the alternate-methods reactive enumeration compose: the tree prevents picking the wrong method on first try; CGP catches what the tree missed.
 
+### Pre-action environment-context check (added 2026-05-22)
+
+The decision-tree pre-action traversal closes the **wrong-branch-from-the-start** failure mode (the agent picked the wrong method on first try). This clause closes the **agent-forgets-it's-authorized** failure mode (the agent declares "I can't" or asks the user "can you authorize X?" when its environment posture already allows X).
+
+Before any agent (a) declares "I can't do X," (b) asks the user to authorize an action, or (c) walks the alternate-methods enumeration, the agent MUST check whether the **active engagement** has an `.ravenclaude/environment-context.md` at the consumer's project root (see [`templates/environment-context.md`](templates/environment-context.md) for the canonical shape). If the file exists:
+
+1. **Identify the current environment** (DEV / TEST / PROD / sandbox / named) from the user's stated context, the current working directory, recent commands, or by asking explicitly if ambiguous
+2. **Look up the environment's role + pre-authorized action categories** in the environment-context file
+3. **If the action category is pre-authorized for the current environment, execute** without prompting the user for authorization
+4. **If the action is in the "Forbidden" list for the current environment, stop** and require explicit per-action confirmation (regardless of role)
+5. **If the file does not exist OR the action category is not listed**, fall through to the existing alternate-methods enumeration
+
+The new failure mode this closes is the **"did you try X?" round-trip on actions the agent could have just done.** Example: the agent is operating in DEV where Matt has sysadmin via an SPN. Without this clause, the agent asks "can you authorize me to import this solution?" — wasting a round-trip on something it's already pre-authorized for. With this clause, the agent imports.
+
+**Anti-patterns this clause prevents:**
+
+- Asking for authorization on actions in the pre-authorized list ("did you try X?" round-trip)
+- Treating the environment-context file as a CREDENTIAL store (it isn't; credentials live in env vars / Key Vault)
+- Assuming pre-authorization applies cross-environment ("works in DEV → just do it in PROD" — wrong)
+- Failing to ask when the file is silent (silence is NOT pre-authorization)
+
+**Anti-patterns this clause does NOT prevent (intentional):**
+
+- Decision-making about HOW to do an action (still bounded by decision trees + capability-grounding alternate-methods)
+- Cross-environment leakage (PROD action posture is always restrictive by default)
+- Forbidden-action requests (those always require explicit per-action confirmation regardless of role)
+
+**Composition with the other CGP clauses:**
+
+| Failure mode | Clause that catches it |
+|---|---|
+| Agent forgets it's authorized → asks unnecessarily | **This clause** (pre-action environment-context check) |
+| Agent picks wrong method on first try (multiple methods available) | Pre-action decision-tree traversal |
+| Agent's chosen method fails → declares blocked without trying alternatives | Alternate-methods enumeration |
+| Genuinely blocked after exhausting alternatives | Mandatory-phrasing block (below) |
+
+The four clauses compose into "priors before action, alternatives after failure, honest blockage report" — the unified frame the architect named on 2026-05-21.
+
 ### Mandatory phrasing when reporting genuine blockage
 
 If, after exhausting alternatives, the work *is* blocked, the report says so explicitly and lists what was tried:
@@ -235,6 +273,23 @@ For long-running or multi-turn team collaborations:
 - The Team Lead should manage overall context; specialists receive focused slices.
 
 This prevents degradation in output quality due to context window pressure and maintains high signal-to-noise in agent reasoning.
+
+## Session-start environment-context load (added 2026-05-22)
+
+The Team Lead reads `.ravenclaude/environment-context.md` at the consumer's project root **as part of session-start orientation**, in the same pass that loads CLAUDE.md and AGENTS.md. The file is OPTIONAL — its absence is informational, not an error. When present, the Team Lead:
+
+1. Parses the active environments + per-environment role + per-environment pre-authorized action categories + forbidden lists
+2. Injects a compact summary into the working context (e.g., *"Per `.ravenclaude/environment-context.md`: agent is sysadmin in DEV/TEST, read-only in PROD; pre-authorized for solution import/export + Web API + pac CLI in DEV/TEST"*)
+3. Surfaces the summary to dispatched specialists in their focused-task brief when their work might touch one of those environments
+
+This is the load-bearing wiring for the Capability Grounding Protocol's pre-action environment-context check (above). Without the load, the check has nothing to read.
+
+**Consumer-side workflow for creating the file:**
+- Copy `plugins/ravenclaude-core/templates/environment-context.md` from the marketplace to `.ravenclaude/environment-context.md` in the consumer's project root
+- Fill in the consumer's actual environment posture
+- Refresh quarterly OR on env-posture change OR when `/wrap` surfaces a new action category worth pre-authorizing
+
+**Privacy boundary:** the file lives in the consumer's project (not in the marketplace plugin) because it contains identifying info (env names, SPN names, tenant slugs). Never commit a marketplace-shipped `environment-context.md` containing real consumer posture. Marketplace ships the **template only**.
 
 ## Layout (plugin internal directories)
 

@@ -5,15 +5,15 @@
     "name": "Matt Corbett"
   },
   "metadata": {
-    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. Ships ravenclaude-core (14 specialists, example-scenario frontmatter on every agent), power-platform (11 specialists, example-scenario frontmatter on every agent, Mermaid decision-tree-augmented knowledge file, scenarios bank, bundled pbix-mcp), finance (7 corporate-finance & FP&A specialists), regulatory-compliance (6 financial-regulatory specialists with field-experience BMA positioning), web-design (7 web specialists with WCAG / Core Web Vitals / SEO discipline), edtech-partner-success (6 PSM-lane specialists — K-12 / higher-ed / corporate L&D agnostic), and data-platform (4 specialists for the dashboard-engagement stack). Repo-guide includes Overview-tab 'I want to…' use-case lookup filterable by plugin + per-plugin last-updated badges. Salesforce remains on the roadmap.",
-    "version": "0.16.0"
+    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. Ships ravenclaude-core (14 specialists; example-scenario frontmatter on every agent; Capability Grounding Protocol now has 4 composing clauses — pre-action environment-context check, pre-action decision-tree traversal, alternate-methods enumeration, mandatory blocked-phrasing), power-platform (11 specialists with example-scenario frontmatter, Mermaid decision-tree-augmented knowledge file, scenarios bank, bundled pbix-mcp), finance (7 corporate-finance & FP&A specialists), regulatory-compliance (6 financial-regulatory specialists with field-experience BMA positioning), web-design (7 web specialists with WCAG / Core Web Vitals / SEO discipline), edtech-partner-success (6 PSM-lane specialists — K-12 / higher-ed / corporate L&D agnostic), and data-platform (4 specialists for the dashboard-engagement stack). Repo-guide includes Overview-tab 'I want to…' use-case lookup filterable by plugin + per-plugin last-updated badges. Salesforce remains on the roadmap.",
+    "version": "0.17.0"
   },
   "plugins": [
     {
       "name": "ravenclaude-core",
       "source": "./plugins/ravenclaude-core",
-      "description": "Domain-neutral Claude Code plugin: 14 specialist agents (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, data-engineer, etc.), team-lead dispatch playbook, format/lint/test gates, contribution-staging workflow, templates, plugin-distributable hooks (layout-enforcement, guard-recursive-spawn, etc.), and slash commands `/init-agent-ready` and `/wrap`. v0.9.0 added pre-action decision-tree traversal in the Capability Grounding Protocol + Researcher 90-day staleness check. **v0.10.0 — every agent ships example-scenario frontmatter** (audience + works_with + scenarios + quickstart) that powers the repo-guide's per-agent cards, the Overview-tab 'I want to…' use-case lookup table, and the per-plugin last-updated badges. Convention documented at docs/best-practices/agent-scenario-authoring.md.",
-      "version": "0.10.0",
+      "description": "Domain-neutral Claude Code plugin: 14 specialist agents, team-lead dispatch playbook, format/lint/test gates, hooks, templates, slash commands `/init-agent-ready` and `/wrap`. v0.9.0: pre-action decision-tree traversal + Researcher staleness check. v0.10.0: every agent ships example-scenario frontmatter. **v0.11.0 — the Capability Grounding Protocol's fourth clause:** pre-action environment-context check + Team Lead session-start orientation. Consumers create `.ravenclaude/environment-context.md` from a marketplace template; agent stops asking 'can you authorize me to X?' on pre-authorized actions. Implements proposal 2026-05-22-001.",
+      "version": "0.11.0",
       "author": {
         "name": "Matt Corbett"
       },
