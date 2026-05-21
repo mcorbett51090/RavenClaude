@@ -5,8 +5,8 @@
     "name": "Matt Corbett"
   },
   "metadata": {
-    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. Ships ravenclaude-core (Team Lead + 14 specialists pattern with active Structured Output Protocol + Cited-Adjudicator Escalation) and power-platform (11 Microsoft Power Platform specialists + bundled pbix-mcp) today; finance, EdTech, regulatory-compliance, and web-design plugins planned.",
-    "version": "0.4.0"
+    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. Ships ravenclaude-core (Team Lead + 14 specialists with active Structured Output Protocol + Cited-Adjudicator Escalation), power-platform (11 Microsoft Power Platform specialists + bundled pbix-mcp), and finance (7 corporate-finance & FP&A specialists). Regulatory-compliance and web-design plugins queued; EdTech and Salesforce remain on the roadmap.",
+    "version": "0.5.0"
   },
   "plugins": [
     {
@@ -45,6 +45,26 @@
         "copilot-studio",
         "alm",
         "low-code"
+      ]
+    },
+    {
+      "name": "finance",
+      "source": "./plugins/finance",
+      "description": "Corporate finance & FP&A specialist team — FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. 4 skills, 8 templates, 1 advisory hook (hardcoded rates, plaintext PII, missing Sources / Assumptions). Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "finance",
+        "fpa",
+        "financial-modeling",
+        "controller",
+        "month-end-close",
+        "valuation",
+        "treasury",
+        "audit-prep",
+        "board-reporting"
       ]
     }
   ]

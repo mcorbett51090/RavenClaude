@@ -1,0 +1,66 @@
+# finance — Claude Code plugin
+
+> Corporate finance & FP&A specialist team for the RavenClaude marketplace.
+
+Ships seven specialist agents (FP&A analyst, financial modeler, controller, treasury analyst, valuation analyst, audit-prep specialist, board-pack composer), four playbook skills (month-end close, variance commentary, model review, board-pack composition), eight working templates, and one advisory hook that flags common finance anti-patterns on edits.
+
+## Install
+
+```shell
+/plugin marketplace add mcorbett51090/RavenClaude
+/plugin install ravenclaude-core@ravenclaude     # prerequisite
+/plugin install finance@ravenclaude
+/reload-plugins
+```
+
+The plugin requires `ravenclaude-core@>=0.5.0` for the cross-plugin protocols (Grounding, Structured Output, Cited-Adjudicator).
+
+## What's inside
+
+| Component | Count | Where |
+|-----------|-------|-------|
+| Specialist agents | 7 | [`agents/`](agents/) |
+| Skills | 4 | [`skills/`](skills/) |
+| Hooks | 1 (advisory) | [`hooks/`](hooks/) |
+| Templates | 8 | [`templates/`](templates/) |
+
+See [`CLAUDE.md`](CLAUDE.md) for the full team constitution (roster, routing rules, house opinions, anti-patterns, output contract, escalation paths).
+
+## When to dispatch
+
+```text
+"Why is gross margin off this quarter?"      → fpa-analyst
+"Build a three-statement model for X"        → financial-modeler
+"Help me prep for next month's close"        → controller
+"Cash runway looks tight"                    → treasury-analyst
+"Need a 409A refresh"                        → valuation-analyst
+"Audit kicks off in 6 weeks"                 → audit-prep-specialist
+"Quarterly board pack is due Friday"         → board-pack-composer
+```
+
+The Team Lead in the consumer's Claude Code session reads this plugin's `CLAUDE.md` and dispatches the right specialist via `ravenclaude-core/skills/spawn-team.md`.
+
+## House opinions (short list)
+
+1. Source-cite every number.
+2. No hardcoded numbers in model mechanics.
+3. Reconciliation before commentary.
+4. Reasonableness over precision.
+5. Materiality is a design constraint.
+6. Audit trail in every workpaper.
+7. Numbers don't ship without commentary.
+8. One source of truth per metric.
+9. Plain English first, then the technical.
+10. Confidentiality by default.
+
+The full list (plus the 13 anti-patterns every agent flags) is in [`CLAUDE.md`](CLAUDE.md) §3 / §4.
+
+## Hooks
+
+- [`hooks/flag-finance-anti-patterns.sh`](hooks/flag-finance-anti-patterns.sh) — PostToolUse Edit/Write/MultiEdit hook. Advisory: flags hardcoded rate-like numbers in model files, plaintext PII patterns (SSN, IBAN, credit card), variance commentary without `Sources:`, forecasts/budgets without `Assumptions:`. Doesn't block edits unless you flip `exit 0` to `exit 1` for a sensitive engagement.
+
+The hook is wired in via [`hooks/hooks.json`](hooks/hooks.json) — when the plugin is installed, Claude Code merges this with the consumer's session hooks automatically.
+
+## License
+
+MIT — same as the rest of the marketplace. See [`../../LICENSE`](../../LICENSE).
