@@ -1,7 +1,7 @@
 {
   "name": "ravenclaude-core",
-  "description": "Domain-neutral Team Lead + specialized agents pattern for Claude Code. Bundles 14 specialists (now including data-engineer), a dispatch playbook, format/lint/test gates, the guard-recursive-spawn hook, and templates for stakeholder prose, design specs, RAID logs, and partner-success artifacts. v0.8.0 added /wrap slash command + scenario-retrieval skill. v0.9.0 added pre-action decision-tree traversal + Researcher staleness check. **v0.10.0 — every agent now ships the scenario-authoring schema** (audience + works_with + scenarios + quickstart in YAML frontmatter), feeding the repo-guide's new per-agent example-scenario cards + the Overview-tab 'I want to…' use-case lookup table. Pattern documented at docs/best-practices/agent-scenario-authoring.md. First plugin to backfill (other plugins follow incrementally).",
-  "version": "0.10.0",
+  "description": "Domain-neutral Team Lead + specialized agents pattern for Claude Code. Bundles 14 specialists, a dispatch playbook, format/lint/test gates, hooks, and templates for stakeholder prose, design specs, RAID logs, and partner-success artifacts. v0.8.0: /wrap + scenario-retrieval. v0.9.0: pre-action decision-tree traversal + Researcher staleness check. v0.10.0: every agent ships example-scenario frontmatter. **v0.11.0 — the Capability Grounding Protocol's fourth load-bearing clause:** pre-action environment-context check + Team Lead session-start orientation logic. Consumers create `.ravenclaude/environment-context.md` from a marketplace template; the Team Lead reads it at session start; the new CGP clause checks before declaring blocked / asking authorization. Closes the 'did you try X?' round-trip on pre-authorized actions. Implements proposal 2026-05-22-001.",
+  "version": "0.11.0",
   "author": {
     "name": "Matt Corbett"
   },
