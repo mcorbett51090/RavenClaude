@@ -16,12 +16,12 @@ User-scoped memory lives under your Claude Code home (e.g. `~/.claude/projects/<
 
 ## Marketplace-dev hooks
 
-Two registration paths are wired in this repo, intentionally:
+Two registration paths exist, **both required**:
 
-1. **Plugin canonical** — `plugins/ravenclaude-core/hooks/hooks.json` registers all four hooks with `${CLAUDE_PLUGIN_ROOT}` paths. This is the path consumers get when they `/plugin install ravenclaude-core@ravenclaude`.
-2. **Marketplace dev** — `.claude/settings.json` registers the same four hooks with `${CLAUDE_PROJECT_DIR}` paths against the working tree. This is what fires when you're editing the marketplace itself and the dev session may not have the latest plugin version installed.
+1. **Plugin canonical** — `plugins/ravenclaude-core/hooks/hooks.json` registers all four hooks with `${CLAUDE_PLUGIN_ROOT}` paths. This is the path consumers get when they `/plugin install ravenclaude-core@ravenclaude`. The hooks fire from the installed-plugin cache (e.g. `~/.claude/plugins/cache/ravenclaude/ravenclaude-core/<version>/hooks/...`), not from the repo on disk.
+2. **Marketplace dev** — `.claude/settings.json` registers the same four hooks with `${CLAUDE_PROJECT_DIR}` paths against the working tree. This is what fires when you're editing the marketplace itself, because **Claude Code does NOT auto-load plugins from filesystem discovery** — plugins only load via `/plugin install` (verified against [Create plugins](https://code.claude.com/docs/en/plugins) and [Discover and install plugins](https://code.claude.com/docs/en/discover-plugins) docs, 2026-05). Without this block, edits in the working tree would fire the *installed* (possibly stale) plugin's hooks, not the version under development.
 
-Both wirings call idempotent scripts, but the two paths *do* fire on the same events when both are active. Long-term the marketplace dev session should rely on the installed plugin only — to migrate, run `/plugin marketplace update ravenclaude` + `/reload-plugins` in your dev session, confirm the installed version is current, then delete the `hooks` block in `.claude/settings.json`. Until then, keeping both is the safer default.
+Both wirings call idempotent scripts, but the two paths *do* fire on the same events when both are active. This is intentional during dev. To migrate to plugin-only, the maintainer would need to either (a) launch Claude Code with `claude --plugin-dir ./plugins/ravenclaude-core` (per the Create-plugins doc), or (b) run `/plugin marketplace update ravenclaude` after every commit and accept the cached-copy lag. The dev-mirror block is the pragmatic choice.
 
 If you need a marketplace-only hook (i.e., one that should NOT ship to consumers), add it to `.claude/settings.json` under `hooks` separately from the dev-mirror block above.
 

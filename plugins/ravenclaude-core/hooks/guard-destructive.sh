@@ -15,7 +15,7 @@ deny_patterns=(
   'rm[[:space:]]+-rf?[[:space:]]+/'           # rm -rf /, rm -r /
   'rm[[:space:]]+-rf?[[:space:]]+\$HOME'      # rm -rf $HOME
   'rm[[:space:]]+-rf?[[:space:]]+~'           # rm -rf ~
-  'git[[:space:]]+push[[:space:]]+.*--force[^-]'   # git push --force (not --force-with-lease)
+  'git[[:space:]]+push[[:space:]]+.*--force([[:space:]]|$)'   # git push --force (allows --force-with-lease)
   'git[[:space:]]+push[[:space:]]+.*-f([[:space:]]|$)'
   'git[[:space:]]+reset[[:space:]]+--hard([[:space:]]+|$)'
   'git[[:space:]]+clean[[:space:]]+-[a-z]*f[a-z]*d'

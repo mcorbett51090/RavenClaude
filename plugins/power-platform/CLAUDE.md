@@ -196,7 +196,7 @@ The plugin declares one MCP server in its `plugin.json`: `powerbi-editor`, backe
 pip install pbix-mcp
 ```
 
-Until that's done, the MCP will fail to start and its tools will be unavailable. **If a user asks an agent to do something with a `.pbix` file and the `powerbi-editor` MCP tools aren't responding, the first thing to check is whether `pbix-mcp-server` is on the consumer's PATH** — that's far more likely than the MCP itself being broken.
+Until that's done, the MCP will fail to start and its tools will be unavailable. The failure is **loud-but-non-fatal** per [Claude Code's debug-your-config doc](https://code.claude.com/docs/en/debug-your-config) and [discover-plugins doc](https://code.claude.com/docs/en/discover-plugins): the server shows as `failed` in `/mcp`, and `Executable not found in $PATH` surfaces in the `/plugin` Errors tab. Claude Code itself starts normally and all other tools remain usable. **If a user asks an agent to do something with a `.pbix` file and the `powerbi-editor` MCP tools aren't responding, the first thing to check is `/mcp` and the `/plugin` Errors tab** — much more likely than the MCP itself being broken. Note that MCP subprocesses get a minimal shell env, so a binary visible in your terminal may still be missing to the MCP child process; absolute path or `python -m pbix_mcp.server` is a robust fallback.
 
 **Which agent owns it?** Primarily the `power-bi-engineer` (semantic models, DAX, measure authoring, PBIP file inspection). Other agents call it situationally:
 - **`dataverse-architect`** uses it when the question is "what does this existing Power BI report assume about the data model?"
