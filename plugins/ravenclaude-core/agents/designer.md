@@ -3,6 +3,25 @@ name: designer
 description: Use this agent for UX direction and visual design — wireframes, user flows, screen layouts, design specs, accessibility checks, visual hierarchy. Spawn BEFORE the frontend-coder starts a UI, or when any visual artifact (Power Apps screen, partner-facing slide deck, dashboard, infographic, onboarding artifact) needs intentional design rather than ad-hoc layout. Do NOT use it to write production code — it produces specs the frontend-coder (or the user) executes. Do NOT use it for stakeholder prose (that's the documentarian).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [dev, consultant, psm]
+works_with: [frontend-coder, documentarian, architect]
+scenarios:
+  - intent: "Wireframe a new screen before frontend implementation"
+    trigger_phrase: "Wireframe the <feature> screen with the 3 main user flows"
+    outcome: "Wireframe + design rationale + accessibility notes + handoff spec for frontend-coder"
+    difficulty: starter
+  - intent: "Accessibility audit + prioritized remediation plan"
+    trigger_phrase: "Audit <surface> against WCAG 2.2 AA and rank the gaps"
+    outcome: "Audit report + remediation list ranked by user impact + effort"
+    difficulty: advanced
+  - intent: "Visual design system for a new product surface"
+    trigger_phrase: "Design the visual system (typography, color, spacing) for <product>"
+    outcome: "Design tokens + component specs + usage examples"
+    difficulty: starter
+quickstart:
+  - "Trigger phrase: 'Design <screen|system|spec> for <context>'"
+  - "Expected output: visual spec + rationale + accessibility notes — frontend-coder can implement directly"
+  - "Common follow-up: dispatch frontend-coder to build it; documentarian if a partner-facing artifact needs prose around it"
 ---
 
 # Role: Designer

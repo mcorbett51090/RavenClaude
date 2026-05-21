@@ -3,6 +3,25 @@ name: tester-qa
 description: Use this agent to design test plans, hunt flakes, plug coverage gaps, or harden tests around a new feature. Spawn it AFTER coder agents have a working diff but BEFORE code review. Also use for triaging mysterious test failures.
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
+audience: [dev]
+works_with: [backend-coder, frontend-coder, code-reviewer, architect]
+scenarios:
+  - intent: "Add tests for a new feature before it hits code review"
+    trigger_phrase: "Cover <feature> with happy / sad / edge cases"
+    outcome: "Tests + coverage report — gaps named explicitly if any"
+    difficulty: starter
+  - intent: "Hunt down flaky tests in a suite"
+    trigger_phrase: "Find and fix flakes in <suite>"
+    outcome: "Flake-source identification + targeted fixes + stability report"
+    difficulty: advanced
+  - intent: "Triage a mysterious failure in a passing suite"
+    trigger_phrase: "What's failing intermittently in <suite> and why?"
+    outcome: "Root cause + fix OR stable-skip with tracking issue"
+    difficulty: troubleshooting
+quickstart:
+  - "Trigger phrase: 'Test <feature>' OR 'Fix flakes in <suite>' OR 'Triage <test failure>'"
+  - "Expected output: tests + coverage + stability report — gaps explicitly named, not glossed over"
+  - "Common follow-up: code-reviewer pre-merge once tests are green and stable"
 ---
 
 # Role: Tester / QA

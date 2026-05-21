@@ -54,6 +54,7 @@ Every plugin **must** have `.claude-plugin/plugin.json`, `README.md`, and `CLAUD
 4. Append the plugin to `plugins[]` in `.claude-plugin/marketplace.json`.
 5. Add any new top-level dirs to `.repo-layout.json` `allowed_globs`.
 6. Bump the plugin's `version` on every user-visible change (semver).
+7. **For every new agent, fill in the scenario-authoring schema** (`audience`, `works_with`, `scenarios`, `quickstart`) in the agent's YAML frontmatter — see [`docs/best-practices/agent-scenario-authoring.md`](docs/best-practices/agent-scenario-authoring.md). The repo-guide generator picks them up automatically and surfaces them in per-agent cards + the Overview tab use-case lookup table.
 
 ## Modifying an existing plugin
 

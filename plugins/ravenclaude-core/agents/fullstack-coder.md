@@ -3,6 +3,21 @@ name: fullstack-coder
 description: Use this agent only for changes that genuinely cross the client/server boundary in one cohesive unit (e.g., a new endpoint plus the UI that calls it). Prefer separate backend-coder + frontend-coder agents when the work can be split cleanly.
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
+audience: [dev]
+works_with: [architect, code-reviewer, tester-qa, backend-coder, frontend-coder]
+scenarios:
+  - intent: "New endpoint + the UI that calls it as one cohesive change"
+    trigger_phrase: "Build the /<endpoint> + the form that posts to it"
+    outcome: "Endpoint + UI + integration test verifying the round-trip"
+    difficulty: starter
+  - intent: "Add real-time updates via SSE/WebSocket to existing CRUD surface"
+    trigger_phrase: "Add real-time updates to <feature>"
+    outcome: "Server stream + client subscription + reconnection handling"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Build <feature> end-to-end' — use ONLY when split into backend+frontend doesn't compose cleanly"
+  - "Expected output: coordinated change touching server + client + tests across both"
+  - "Common follow-up: code-reviewer pre-merge (with cross-boundary attention); security-reviewer if the new endpoint touches auth/PII"
 ---
 
 # Role: Fullstack Coder

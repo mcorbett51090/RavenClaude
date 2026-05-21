@@ -3,6 +3,25 @@ name: code-reviewer
 description: Use this agent for pre-merge review of any non-trivial diff. Spawn it AFTER coder + tester agents are done but BEFORE the Team Lead opens a PR or merges. Returns a structured review with blockers, suggestions, and praise.
 tools: Read, Grep, Glob, Bash
 model: opus
+audience: [dev, consultant]
+works_with: [architect, security-reviewer, backend-coder, frontend-coder, tester-qa]
+scenarios:
+  - intent: "Review my non-trivial PR before I merge"
+    trigger_phrase: "Review the diff on branch <branch>"
+    outcome: "Structured review with blockers / suggestions / praise"
+    difficulty: starter
+  - intent: "Audit cross-file consistency on a refactor"
+    trigger_phrase: "Confirm this <N>-file refactor doesn't leave stragglers or dead code"
+    outcome: "Per-file pass + dead-code report + missed-import / unused-export list"
+    difficulty: advanced
+  - intent: "Get an independent second opinion on a controversial diff"
+    trigger_phrase: "Independent read on this controversial diff — what's blocker vs taste?"
+    outcome: "Concrete blockers separated from taste-level concerns; clear merge / don't-merge verdict"
+    difficulty: troubleshooting
+quickstart:
+  - "Trigger phrase: 'Review <branch or PR>' — works on either git branch or PR URL"
+  - "Expected output: blockers (must-fix) / suggestions (could-fix) / praise (keep doing this)"
+  - "Common follow-up: send blockers back to backend-coder / frontend-coder; security-reviewer in parallel if any auth/PII touch"
 ---
 
 # Role: Code Reviewer

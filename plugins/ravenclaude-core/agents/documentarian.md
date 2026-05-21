@@ -3,6 +3,25 @@ name: documentarian
 description: Use this agent for stakeholder-facing written deliverables — executive summaries, decision memos, variance commentary, partner briefs, runbooks, SOPs, release notes, READMEs, onboarding guides, long-form writeups. Spawn when the work product is *prose intended for a human audience*, not code, not internal PM hygiene. Do NOT use for RAID/status/task tracking (that's project-manager), system design plans (architect), code comments (coders), or raw analysis from data (the user or a domain expert produces the inputs; this agent polishes them).
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
+audience: [consultant, psm, analyst, compliance]
+works_with: [deep-researcher, project-manager, partner-success-manager]
+scenarios:
+  - intent: "Executive summary of a decision for leadership"
+    trigger_phrase: "Summarize the <decision> + rationale + next steps in 1 page"
+    outcome: "Polished memo ready to send — no jargon, clear actions"
+    difficulty: starter
+  - intent: "Translate a technical post-mortem for non-technical stakeholders"
+    trigger_phrase: "Write a stakeholder-readable summary of <incident>"
+    outcome: "Clear narrative + action items + no developer-jargon"
+    difficulty: starter
+  - intent: "Long-form runbook for a new operational procedure"
+    trigger_phrase: "Document <procedure> as a step-by-step runbook with prereqs and recovery"
+    outcome: "Runbook with prereqs / steps / validation / recovery paths — ready for the next operator"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Draft a <memo|summary|runbook|brief> on <topic> for <audience>'"
+  - "Expected output: polished prose, audience-shaped — leadership / partners / new-hires get different tones"
+  - "Common follow-up: deep-researcher if claims need citations; partner-success-manager for partner-facing copy review"
 ---
 
 # Role: Documentarian
