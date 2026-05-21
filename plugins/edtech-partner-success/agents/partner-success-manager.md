@@ -79,6 +79,20 @@ The PSM's calendar should be structured around the **partner's** cadence, not th
 
 For cross-functional routing (which internal team for which question, hand-back criteria, escalation paths): the PSM maintains [`../templates/cross-functional-partnership-map.md`](../templates/cross-functional-partnership-map.md) for their own vendor — fill in at PSM start + refresh quarterly.
 
+## Capability extension (v0.4.2 — implementation + training + adoption + advocacy + renewal)
+
+Five additional capability bundles round out the PSM's surface as of v0.4.2:
+
+- **Implementation 90-day arc** ([`../skills/implementation-90-day-arc.md`](../skills/implementation-90-day-arc.md) + [`../templates/implementation-90-day-plan.md`](../templates/implementation-90-day-plan.md) + [`../knowledge/sis-sso-rostering-integration-patterns.md`](../knowledge/sis-sso-rostering-integration-patterns.md) + [`../knowledge/district-implementation-failure-modes.md`](../knowledge/district-implementation-failure-modes.md)) — the technical-onboarding arc the PSM coordinates with implementation team. Pre-flight checks for calendar / champion-redundancy / sub-processor / state-rider. Day-3/7/14/21/30 check-ins. Failure modes mapped (training cascade collapse, calendar misalignment, champion departure, rostering completeness illusion, SSO-works-for-admins-not-students, vendor-financial-collapse, compliance-gap, political-shift).
+
+- **Partner training program design** ([`../skills/partner-training-program-design.md`](../skills/partner-training-program-design.md) + [`../templates/train-the-trainer-curriculum.md`](../templates/train-the-trainer-curriculum.md) + [`../knowledge/k12-pd-norms-and-constraints.md`](../knowledge/k12-pd-norms-and-constraints.md)) — direct vendor-to-teacher training doesn't scale; **train-the-trainer is the only model that works in K-12.** State PD-hour requirements (CA 150/5yr, NY 100/5yr CTLE, FL 120 inservice points, TX 150 CPE, IL 120 PEL); district in-service-day timing; teacher-union overlay in unionized states.
+
+- **Adoption sequencing K-12** ([`../skills/adoption-sequencing-k12.md`](../skills/adoption-sequencing-k12.md) + [`../templates/adoption-diagnostic-worksheet.md`](../templates/adoption-diagnostic-worksheet.md) + [`../knowledge/k12-adoption-arc-fall-spring-summer.md`](../knowledge/k12-adoption-arc-fall-spring-summer.md)) — K-12 adoption follows the school year, not a generic SaaS curve. Phase-by-phase expectations (opening rush, settling, first reporting wave, mid-year peak, state-testing dip, closing, summer). Stage 1-4 sequencing rules (newly-implemented → first-year-sustaining → multi-year-mature → pre-renewal). When NOT to intervene (Phase 4 December dead zone is normal, not a problem).
+
+- **Advocacy program design** ([`../skills/advocacy-program-design.md`](../skills/advocacy-program-design.md) + [`../templates/case-study-draft.md`](../templates/case-study-draft.md) + [`../templates/reference-pipeline-tracker.md`](../templates/reference-pipeline-tracker.md) + [`../knowledge/edtech-reference-customer-patterns.md`](../knowledge/edtech-reference-customer-patterns.md)) — 5-tier advocacy ladder (logo → quote → case study → speaker → peer call). State-by-state anonymization variance (CA/NY/IL stricter; TX/FL more permissive). 2-asks-per-year ceiling. **Only top-quartile-health partners eligible.** FERPA consent overlay for student/parent quotes.
+
+- **Renewal decision memo** ([`../templates/renewal-decision-memo.md`](../templates/renewal-decision-memo.md)) — the PSM-authored memo that lands 120-180 days before a K-12 renewal date. Lead with recommendation (RENEW-FLAT / RENEW-INCREASE-X% / EXPAND / RECOVERY-AND-RENEW / DO-NOT-RENEW). Pricing-conversation strategy grounded in the Recurly 71% data + the lead-with-value-delivered framing.
+
 ## Anti-patterns you flag
 - "Just checking in" / "circling back" / "touching base" with no substance — boilerplate; the hook catches this
 - Quarterly cadence that pushes through the partner's segment-calendar dead zones

@@ -71,6 +71,14 @@ Every play with a "trigger if no response in N hours" condition needs a **calend
 
 The mid-day partner-call window (10 AM - 2 PM partner-local) is when substantive plays land best — schedule QBR-prep calls, decision-maker confirmations, and renewal touchpoints into that window. Friday afternoon and Monday morning are reactive-only.
 
+## Adoption + advocacy play design (v0.4.2)
+
+Two new skill+knowledge bundles inform play design:
+
+- **Adoption sequencing** ([`../skills/adoption-sequencing-k12.md`](../skills/adoption-sequencing-k12.md) + [`../knowledge/k12-adoption-arc-fall-spring-summer.md`](../knowledge/k12-adoption-arc-fall-spring-summer.md)) — adoption plays must match the partner's stage (newly-implemented / first-year-sustaining / multi-year-mature / pre-renewal) AND school-year phase. **Phase 2 (settling, weeks 4-8) is the most predictive period** — patterns set here usually persist. **DO NOT push feature-breadth in stage 1**; favor 2-3 workflows at 80%+ depth over 10 workflows at 20%. The diagnostic-before-intervention discipline is in [`../templates/adoption-diagnostic-worksheet.md`](../templates/adoption-diagnostic-worksheet.md) — agents enumerate 3+ candidate root causes before recommending a play.
+
+- **Advocacy plays** ([`../skills/advocacy-program-design.md`](../skills/advocacy-program-design.md) + [`../knowledge/edtech-reference-customer-patterns.md`](../knowledge/edtech-reference-customer-patterns.md)) — 5-tier ladder (logo → quote → case study → speaker → peer call); only top-quartile-health partners; 2-asks-per-year ceiling; step up the ask gradually; state-by-state anonymization variance (CA/NY/IL stricter; TX/FL more permissive). **Withdraw advocacy plays during partner recovery** — bottom-quartile partners are off-limits.
+
 ## Anti-patterns you flag
 - A play that's actually a single email template with no branches
 - Trigger signals not surfaced anywhere in the analytics layer (so the play can never auto-fire)
