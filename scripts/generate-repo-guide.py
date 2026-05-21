@@ -400,8 +400,19 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
         for p in plugins
     )
 
+    plugin_filter_buttons = (
+        f'<button class="plugin-filter-btn active" data-plugin-filter="__all__" '
+        f'style="--accent: var(--accent)">All <span class="count">{plugin_count}</span></button>'
+        + "".join(
+            f'<button class="plugin-filter-btn" data-plugin-filter="{esc(p.name)}" '
+            f'style="--accent: {PLUGIN_COLORS.get(p.name, DEFAULT_COLOR)}">{esc(p.name)} '
+            f'<span class="count">{len(p.agents) + len(p.skills) + len(p.hooks) + len(p.rules) + len(p.templates)}</span></button>'
+            for p in plugins
+        )
+    )
+
     plugin_cards = "\n".join(
-        f'<section id="plugin-{esc(p.name)}" class="plugin-target">{render_plugin(p)}</section>'
+        f'<section id="plugin-{esc(p.name)}" class="plugin-target" data-plugin="{esc(p.name)}">{render_plugin(p)}</section>'
         for p in plugins
     )
 
@@ -468,6 +479,18 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
       color: var(--text); padding: 0.6rem 0.9rem; border-radius: 6px; font-family: var(--font-sans);
     }}
     .search-row input:focus {{ outline: none; border-color: var(--accent); }}
+    .plugin-filter {{ display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.75rem; }}
+    .plugin-filter-btn {{
+      background: var(--surface); color: var(--muted);
+      border: 1px solid var(--border); padding: 0.4rem 0.85rem;
+      border-radius: 6px; cursor: pointer;
+      font-family: var(--font-sans); font-size: 0.85rem;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }}
+    .plugin-filter-btn:hover {{ background: var(--surface-2); border-color: var(--accent); color: var(--text); }}
+    .plugin-filter-btn.active {{ background: var(--surface-2); border-color: var(--accent); color: var(--accent); }}
+    .plugin-filter-btn .count {{ color: var(--muted); margin-left: 0.35rem; font-family: var(--font-mono); font-size: 0.78rem; }}
+    .plugin-target.hidden-by-filter {{ display: none; }}
     .plugin-card {{
       background: var(--surface);
       border: 1px solid var(--border);
@@ -571,8 +594,11 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
   </section>
 
   <section class="panel" data-panel="plugins">
+    <div class="plugin-filter" role="tablist" aria-label="Filter by plugin">
+      {plugin_filter_buttons}
+    </div>
     <div class="search-row">
-      <input id="plugin-search" type="search" placeholder="Search agents, skills, hooks, rules, templates within plugins…" />
+      <input id="plugin-search" type="search" placeholder="Search agents, skills, hooks, rules, templates within the visible plugin(s)…" />
     </div>
     {plugin_cards}
   </section>
@@ -642,7 +668,20 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
     }});
   }});
 
-  // Plugin-pane search
+  // Plugin-pane per-plugin filter buttons
+  const pluginFilterBtns = document.querySelectorAll('.plugin-filter-btn');
+  pluginFilterBtns.forEach(btn => {{
+    btn.addEventListener('click', () => {{
+      const target = btn.dataset.pluginFilter;
+      pluginFilterBtns.forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.plugin-target').forEach(section => {{
+        const match = (target === '__all__') || (section.dataset.plugin === target);
+        section.classList.toggle('hidden-by-filter', !match);
+      }});
+    }});
+  }});
+
+  // Plugin-pane search (item-level filter within visible plugin cards)
   const pluginSearch = document.getElementById('plugin-search');
   if (pluginSearch) {{
     pluginSearch.addEventListener('input', () => {{
