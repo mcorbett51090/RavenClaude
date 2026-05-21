@@ -50,6 +50,12 @@ Two failure modes that bite once you're on the Dataverse path:
 
 Full reference (auth-surface trap, required fields, working `clientdata` template, production checklist): [`../knowledge/programmatic-flow-creation.md`](../knowledge/programmatic-flow-creation.md). Read it before any bulk-flow script work.
 
+## Decision-tree traversal (priors)
+
+When the user reports any of: a Power Automate flow that's stuck/broken/off, a `0x80060467` bulk-toggle failure, a `For_a_selected_row_V2 / 404` trigger error, or a flow that activated and immediately turned itself off — **traverse the `## Decision Tree: PA flow recovery — stuck / broken / off` section in [`../knowledge/programmatic-flow-creation.md`](../knowledge/programmatic-flow-creation.md) top-to-bottom before selecting a method.** Do NOT pattern-match on keywords in the user's situation description. The first branch where the condition resolves cleanly is the leaf to apply. If the symptom matches multiple branches, the leaf with the smaller blast radius is the default — escalate to bigger blast radius (full reimport) only when the smaller method (portal toggle, surgical temp solution, connection rebind) demonstrably failed.
+
+Full pattern for the convention: [`../../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md).
+
 ## Scenario retrieval (priors)
 
 Before answering any Power Automate flow / cloud-flow / Dataverse-workflow question, glob `plugins/power-platform/scenarios/*.md` and read the frontmatter of any file whose `tags` or `product` match the user's context. Surface up to 2-3 matches with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"). Treat scenarios as **secondary** to canonical knowledge files; never replace `knowledge/programmatic-flow-creation.md` with a scenario, and never elide the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval.md`](../../ravenclaude-core/skills/scenario-retrieval.md).

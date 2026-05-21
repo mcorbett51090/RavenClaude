@@ -54,6 +54,12 @@ Operational consequences for ALM design:
 
 Full reference (the trap, the workaround, the `clientdata` shape gotchas, production checklist for bulk creates): [`../knowledge/programmatic-flow-creation.md`](../knowledge/programmatic-flow-creation.md).
 
+## Decision-tree traversal (priors)
+
+When the user reports any of: a Power Automate flow that's stuck/broken/off post-import, a `0x80060467` bulk-toggle failure, a `For_a_selected_row_V2 / 404` trigger error, or a flow that activated and immediately turned itself off after solution import — **traverse the `## Decision Tree: PA flow recovery — stuck / broken / off` section in [`../knowledge/programmatic-flow-creation.md`](../knowledge/programmatic-flow-creation.md) top-to-bottom before selecting a method.** Do NOT default to "let's just reimport the whole solution" without first checking the toggle / surgical-temp-solution / connection-rebind branches. The leaf with the smaller blast radius is the default; full reimport is the escalation when smaller methods demonstrably failed.
+
+Full pattern for the convention: [`../../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md).
+
 ## Scenario retrieval (priors)
 
 Before answering any solution / ALM / SPN-auth / connection-reference question, glob `plugins/power-platform/scenarios/*.md` and read the frontmatter of any file whose `tags` or `product` match. Surface up to 2-3 matches with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"). Treat scenarios as **secondary** to canonical knowledge files; never replace `knowledge/programmatic-flow-creation.md` with a scenario, and never elide the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval.md`](../../ravenclaude-core/skills/scenario-retrieval.md).

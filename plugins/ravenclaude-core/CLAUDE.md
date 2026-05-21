@@ -163,6 +163,19 @@ Concretely, before any "blocked" status leaves an agent's report, the agent's wo
 
 Why this rule exists: agents historically default to "this approach didn't work → report blocked → wait for user." Real production work has the user asking "is there another way?" and the agent finding one immediately. That round-trip is wasted — the agent should make the second attempt without being prompted. Confirmed pattern from production: see [`plugins/power-platform/knowledge/programmatic-flow-creation.md`](../power-platform/knowledge/programmatic-flow-creation.md) — the canonical case study, where Approach A (PA Management API) was permission-blocked and Approach B (Dataverse Web API) was sitting right there with the same SPN already authorized.
 
+### Pre-action traversal of decision trees (added 2026-05-21)
+
+The alternate-methods rule above handles the **reactive** case (agent tried A, A failed, enumerate alternates before reporting blocked). It does NOT cover the **wrong-branch-from-the-start** failure mode — where the agent picks the wrong method on first try because the available branches weren't visible.
+
+When a knowledge file in the active plugin contains a `## Decision Tree: <Domain> — <Situation>` section (per the convention in [`docs/best-practices/decision-trees-in-knowledge-files.md`](../../docs/best-practices/decision-trees-in-knowledge-files.md)) and the user's situation matches the tree's entry condition, the agent MUST:
+
+1. **Traverse the Mermaid graph top-to-bottom** before selecting a method
+2. **Resolve each condition node against the user's stated context** (not against keyword pattern-matching on their description)
+3. **Default to the leaf with the smaller blast radius** when multiple branches could apply
+4. **Escalate to a higher-blast-radius leaf only after the smaller one demonstrably failed** (this is where the alternate-methods rule kicks back in)
+
+The decision-tree pre-action traversal and the alternate-methods reactive enumeration compose: the tree prevents picking the wrong method on first try; CGP catches what the tree missed.
+
 ### Mandatory phrasing when reporting genuine blockage
 
 If, after exhausting alternatives, the work *is* blocked, the report says so explicitly and lists what was tried:
