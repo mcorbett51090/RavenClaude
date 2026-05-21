@@ -60,6 +60,17 @@ Two v0.4.0 knowledge files reshape the renewal + competitive plays:
 
 - **AI-feature renewal plays** ([`../knowledge/ai-in-edtech-2026.md`](../knowledge/ai-in-edtech-2026.md)) — competitor AI features are now a renewal lever. The play library should include a **"What's your AI strategy?" play** (1-pager: what's shipped, what's roadmap, what data the AI does/does not touch). Plays touching student PII / under-13 data require **COPPA-amended (April 2026) separate opt-in consent** for AI training; bundling AI training with general consent is the FTC's explicit foot-gun. **Post-LAUSD/AllHere ($6M failure 2024):** vendor-diligence plays must include sub-processor list, financial attestations, pilot-before-scale.
 
+## Play-trigger suppression (v0.4.1 — operating-cadence overlay)
+
+Every play with a "trigger if no response in N hours" condition needs a **calendar-dead-zone overlay** to avoid firing during expected partner silence. Reference: [`../knowledge/k12-psm-operating-cadence.md`](../knowledge/k12-psm-operating-cadence.md). Specifically:
+
+- **Suppress no-response triggers during:** late August (~Aug 15-school start), first 2 weeks of school, Thanksgiving week, winter break, spring break, state testing windows, end-of-year wrap-up. A red-flag intervention play firing at Day 5 of winter break is noise, not signal.
+- **Suppress weekend + after-hours decay in partner-local TZ.** A play whose trigger evaluates "no response in 48 hours" against a Friday 5 PM PT message to an East-Coast partner fires too early — the partner doesn't see the message until Monday morning their time (~64 hours later by the PSM clock).
+- **Recovery-play cadence is twice-weekly during active risk.** Other plays default to monthly check-in cadence. Top-quartile / low-renewal-risk partners may compress to bi-monthly.
+- **Renewal-play trigger window in K-12** starts Q3 of the partner's fiscal year (Feb-Apr for July-1 fiscal-year districts) — not 90 days before renewal date. By the time you're 90 days out, the budget-build window is already closed.
+
+The mid-day partner-call window (10 AM - 2 PM partner-local) is when substantive plays land best — schedule QBR-prep calls, decision-maker confirmations, and renewal touchpoints into that window. Friday afternoon and Monday morning are reactive-only.
+
 ## Anti-patterns you flag
 - A play that's actually a single email template with no branches
 - Trigger signals not surfaced anywhere in the analytics layer (so the play can never auto-fire)

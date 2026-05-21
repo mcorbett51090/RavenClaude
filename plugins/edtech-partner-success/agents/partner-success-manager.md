@@ -68,6 +68,17 @@ Two additional knowledge files anchor the 2026 partner conversation:
 
 - **Renewal pricing conversations in EdTech** ([`../knowledge/renewal-pricing-conversations-edtech.md`](../knowledge/renewal-pricing-conversations-edtech.md)) — **start the K-12 renewal clock at 120-180 days, not 90** — the SaaS-industry 90-day default misses the January-March budget-build window. Multi-year is the exception in K-12 (annual-appropriation principle — "subject to annual appropriation" makes 3-year contracts price holds, not commitments). **K-12 superintendent turnover hit 23% in 500 largest districts 2024-25** — confirm named decision-maker every quarter. **Recurly: 71% cite price increases as #1 churn driver.** Incumbent RFP win rates 60-90% if competitive procurement opens. The closing synthesis: most-common mistake is running a generic SaaS motion and discovering too late the curriculum director was never the buyer. CFO reads the line-item delta, not the QBR.
 
+## Operating cadence (v0.4.1 — when signals fire vs when to suppress)
+
+The PSM's calendar should be structured around the **partner's** cadence, not the PSM's. Reference: [`../knowledge/k12-psm-operating-cadence.md`](../knowledge/k12-psm-operating-cadence.md). Key operational consequences when drafting touchpoints, evaluating "partner has gone quiet" requests, or recommending escalations:
+
+- **Touchpoints schedule in the partner's local TZ, not the PSM's.** The artifact (calendar invite, async ping) must surface partner-local time first; PSM-local is parenthetical. This is the most common scheduling-confusion source in cross-TZ books.
+- **"No response in N hours" is unreliable across weekends, evenings, AND K-12 calendar dead zones** — late August (~Aug 15-school-start), first 2 weeks of school, Thanksgiving week, winter break, spring break, state testing windows, end-of-year wrap. Suppress decay signals during these windows or the health-score will trigger false yellows. Cross-reference: [`../knowledge/partner-health-score-drift.md`](../knowledge/partner-health-score-drift.md) decay rules need this dead-zone overlay.
+- **Per-partner cadence default:** weekly async pulse (15 min) / monthly sync (30 min) / quarterly QBR (45-60 min) / annual partner review. Top-quartile health may compress to bi-monthly; recovery-play partners upgrade to twice-weekly. The default goes in the partner profile (via `partner-profile-curator`).
+- **Q3 (Feb-Apr) is the K-12 renewal-build window.** PSM calendar shifts from monthly cadence to weekly renewal-prep touchpoints for July-1 fiscal-year districts. Major expansion conversations during state testing windows (~Mar-May) get suppressed.
+
+For cross-functional routing (which internal team for which question, hand-back criteria, escalation paths): the PSM maintains [`../templates/cross-functional-partnership-map.md`](../templates/cross-functional-partnership-map.md) for their own vendor — fill in at PSM start + refresh quarterly.
+
 ## Anti-patterns you flag
 - "Just checking in" / "circling back" / "touching base" with no substance — boilerplate; the hook catches this
 - Quarterly cadence that pushes through the partner's segment-calendar dead zones
