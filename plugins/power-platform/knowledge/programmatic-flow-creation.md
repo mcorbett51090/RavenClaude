@@ -6,6 +6,46 @@ The natural path for bulk cloud-flow creation is the [Power Automate Management 
 
 ---
 
+## Decision Tree: PA flow recovery — stuck / broken / off
+
+**When this applies:** one or more Power Automate flows in a Dataverse-backed solution are off, throwing 404 on `For_a_selected_row_V2`, or otherwise misbehaving after a solution import. **Traverse this tree top-to-bottom before selecting a method — do NOT pattern-match on keywords in the user's situation description.**
+
+**Last verified:** 2026-05-21 against Power Platform release wave 2026.1.
+
+```mermaid
+flowchart TD
+    START[One or more PA flows broken/off/misnamed] --> Q1{Can you toggle ON from portal without error?}
+    Q1 -->|YES| TOGGLE[Just toggle. Done.<br/>No import needed.]
+    Q1 -->|NO| Q2{Bulk toggle fails 0x80060467<br/>OR For_a_selected_row_V2/404?}
+    Q2 -->|YES, 1-5 flows| SURGICAL[SURGICAL TEMP SOLUTION<br/>~2 min]
+    Q2 -->|YES, 6+ flows OR multi-entity| FULL[FULL SOLUTION REIMPORT<br/>5-20 min]
+    Q2 -->|NO, flow self-off after activate| CONNREF[Connection-reference rebind<br/>portal: Connections, bind CR, retry]
+    SURGICAL --> CLEANUP[Delete temp BTCSIFlowFix solution<br/>after import succeeds]
+    FULL --> DIFFCHECK[git diff after portal pull<br/>before next session]
+```
+
+**Rationale per leaf:**
+
+- *TOGGLE* — if the portal accepts the toggle, the flow definition is intact; only the trigger registration was lost. No reimport needed.
+- *SURGICAL* — preferred for narrow blast radius. Touches only the named flows; reversible by deleting the temp solution. Steps: (1) create temp `BTCSIFlowFix` solution via Web API, (2) `AddSolutionComponent` (type 29) for each affected flow only, (3) export → `pac unpack` → edit JSON/XML → `pac pack` → import, (4) delete temp solution.
+- *FULL* — only when 6+ flows are affected or flows span multiple entities. ⚠ Overwrites portal changes since last export; always `git diff` after portal pull before next session.
+- *CONNREF* — flow self-off-after-activate means a missing connection-reference binding in this environment. Reimport will NOT fix this; only portal-side rebinding does.
+- *CLEANUP* — temp solutions clutter the env's solution list and confuse later imports. Always delete the temp solution after the surgical fix succeeds.
+- *DIFFCHECK* — full reimport is the most-likely-to-cause-regression path; the `git diff` is the cheapest insurance.
+
+**Tradeoffs summary:**
+
+| Method | Time | Blast radius | Approval gate? | Use when |
+|---|---|---|---|---|
+| Portal toggle | seconds | None | No | Flow just needs activation |
+| Surgical temp solution | ~2 min | Named flows only | No | 1-5 broken/misnamed flows |
+| Full solution reimport | 5-20 min | Overwrites all components since last export | **YES** (confirm with user before triggering) | 6+ flows or confirmed auth corruption |
+| Connection-reference rebind | seconds | None | No | Flow turns off immediately after activation |
+
+If the symptom matches multiple branches, the leaf with the **smaller blast radius is the default**. Escalate to the bigger blast radius only when the smaller one demonstrably failed.
+
+---
+
 ## The trap (and why it isn't your fault)
 
 If you point a service principal at the PA Management API, you'll observe:

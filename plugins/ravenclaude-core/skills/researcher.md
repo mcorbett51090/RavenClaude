@@ -61,3 +61,17 @@ The Researcher must apply the Grounding Protocol to its own conclusions before p
 **Divergent**: Practitioners who publicly challenge common advice with demonstrated results.
 
 Actively seek credible dissenting views rather than only confirming existing knowledge.
+
+## Decision-tree staleness check (added 2026-05-21)
+
+The Weekly Deep Research sweep MUST include a staleness check for decision trees per the convention in [`../../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md).
+
+**The check:**
+
+1. Glob `plugins/*/knowledge/*.md` and `plugins/*/skills/*.md` for files containing `## Decision Tree:` section headers
+2. Parse the `**Last verified:** YYYY-MM-DD` field within each
+3. Flag any tree where `today - last_verified > 90 days`
+4. For each flagged tree, run the categorization schema (Consensus / Contextual / Divergent / Emerging / Deprecated) against each leaf — has any leaf become inaccurate since the last verification?
+5. Surface flagged trees in the Research Report with one of: `still-current` (refresh date only), `needs-update` (specific leaves to revise), `deprecate` (remove tree entirely).
+
+**Why this check matters:** decision trees go stale faster than prose when underlying platforms change. A prose paragraph degrades gracefully ("the API used to return X, now Y" still reads fine). A decision tree with a `404 → reimport` leaf is wrong the moment the platform returns `409` instead. The `Last verified:` field + this check is the anti-staleness backstop the format requires.
