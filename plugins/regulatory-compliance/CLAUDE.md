@@ -83,11 +83,12 @@ This plugin inherits the Capability Grounding Protocol from `ravenclaude-core`. 
 
 1. **Check available skills first** — review `aml-program-review`, `regulatory-mapping`, `sar-narrative-drafting`, `examination-readiness`, and any imported reference content.
 2. **Check for partial capability** — determine whether part of the task can be completed or guidance can still be provided.
-3. **Consider team composition** — could another agent in `ravenclaude-core`, `finance`, or this plugin handle a portion of the work?
-4. **Escalate uncertainty** — route back to the Team Lead with a clear explanation of what was checked.
+3. **Try alternative methods from easiest to most difficult before declaring blocked.** When a regulatory citation, mapping, or data lookup fails — a regulator's public site lacks the version you need, a control framework doesn't map cleanly to your scenario, an SAR-narrative element can't be sourced — enumerate at least 2–3 alternative approaches, rank them by cost (research time, defensibility, regulator-acceptance risk), and try the next-easiest one before reporting blocked. Compliance alternatives often include: a different framework that does map (FFIEC if SOC2 is too narrow), a control narrative that documents the gap rather than ignoring it, a triangulation across primary + secondary sources, or a directly-cited regulator-issued guidance instead of a derivative summary. See the upstream protocol in [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md) for the full rule.
+4. **Consider team composition** — could another agent in `ravenclaude-core`, `finance`, or this plugin handle a portion of the work?
+5. **Escalate uncertainty** — route back to the Team Lead with a clear explanation of what was checked AND what was attempted.
 
 **Mandatory phrasing when uncertain:**
-> "After checking [specific skills/rules], I cannot fully complete this because [specific reason]. However, I can help with [partial scope]. Would you like me to proceed with that, or should I escalate to the Team Lead?"
+> "After trying [Approach A — outcome] and [Approach B — outcome], I cannot fully complete this because [specific reason]. The remaining options I considered but did not attempt are [X (ruled out because Y)]. I can help with [partial scope]. I recommend [escalation / next-best path]."
 
 **Special case: when the answer requires legal opinion.** Legal advice is out of scope. The mandatory phrasing is:
 
