@@ -23,6 +23,7 @@ import html
 import json
 import os
 import re
+import subprocess
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -41,8 +42,21 @@ PLUGIN_COLORS = {
 }
 DEFAULT_COLOR = "#64748b"
 
+# Audience taxonomy — fixed at 7 values per the deep-researcher recommendation.
+# Documented in docs/best-practices/agent-scenario-authoring.md.
+AUDIENCE_LABELS = {
+    "consultant": "Consultant",
+    "psm": "Partner Success",
+    "dev": "Developer",
+    "power-platform-maker": "Power Platform maker",
+    "data-engineer": "Data engineer",
+    "analyst": "Analyst",
+    "compliance": "Compliance",
+}
+
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
 YAML_KV_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.*)$")
+INLINE_LIST_RE = re.compile(r"^\[(.*)\]$")
 
 
 @dataclass
@@ -51,6 +65,11 @@ class Item:
     description: str = ""
     extra: dict[str, str] = field(default_factory=dict)
     path: str = ""
+    # Agent-only enrichment (other Item kinds leave these empty).
+    audience: list[str] = field(default_factory=list)
+    works_with: list[str] = field(default_factory=list)
+    scenarios: list[dict] = field(default_factory=list)
+    quickstart: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -66,16 +85,45 @@ class Plugin:
     rules: list[Item] = field(default_factory=list)
     templates: list[Item] = field(default_factory=list)
     bundled_mcp: list[Item] = field(default_factory=list)
+    last_updated: str = ""  # YYYY-MM-DD from `git log -1 -- plugins/<name>`
 
 
-def parse_frontmatter(text: str) -> tuple[dict[str, str], str]:
-    """Parse the subset of YAML we use in frontmatter: single-line key: value pairs
-    plus block scalars introduced by `>` (folded) or `|` (literal). Indented
-    continuation lines are joined; folded mode collapses whitespace to a space."""
+def _split_inline_list(s: str) -> list[str]:
+    """Split an inline YAML list body like `a, b, "c, d"` into ["a", "b", "c, d"]."""
+    items: list[str] = []
+    buf: list[str] = []
+    in_quote: str = ""
+    for ch in s:
+        if in_quote:
+            if ch == in_quote:
+                in_quote = ""
+            else:
+                buf.append(ch)
+        elif ch in ('"', "'"):
+            in_quote = ch
+        elif ch == ",":
+            items.append("".join(buf).strip())
+            buf = []
+        else:
+            buf.append(ch)
+    if buf:
+        items.append("".join(buf).strip())
+    return [item.strip().strip('"').strip("'") for item in items if item.strip()]
+
+
+def parse_frontmatter(text: str) -> tuple[dict, str]:
+    """Parse the subset of YAML we use in frontmatter:
+    - single-line key: value pairs
+    - block scalars introduced by `>` (folded) or `|` (literal)
+    - inline lists `key: [a, b, c]`
+    - block lists `key:\\n  - item1\\n  - item2`
+    - block lists of mappings `key:\\n  - field1: value\\n    field2: value` (for scenarios)
+    Returns a dict where values are str, list[str], or list[dict[str,str]].
+    """
     m = FRONTMATTER_RE.match(text)
     if not m:
         return {}, text
-    fm: dict[str, str] = {}
+    fm: dict = {}
     lines = m.group(1).splitlines()
     i = 0
     while i < len(lines):
@@ -86,8 +134,14 @@ def parse_frontmatter(text: str) -> tuple[dict[str, str], str]:
             continue
         key, raw = kv.group(1), kv.group(2)
         marker = raw.strip()
+        # Inline list: key: [a, b, c]
+        ilm = INLINE_LIST_RE.match(marker)
+        if ilm:
+            fm[key] = _split_inline_list(ilm.group(1))
+            i += 1
+            continue
         if marker in (">", "|"):
-            # Collect indented continuation lines.
+            # Collect indented continuation lines as a single scalar.
             i += 1
             buf: list[str] = []
             while i < len(lines):
@@ -103,9 +157,62 @@ def parse_frontmatter(text: str) -> tuple[dict[str, str], str]:
                 break
             joined = " ".join(b for b in buf if b) if marker == ">" else "\n".join(buf)
             fm[key] = joined.strip()
-        else:
-            fm[key] = raw.strip().strip('"').strip("'")
+            continue
+        if marker == "":
+            # Possible block list. Look ahead at indentation.
+            j = i + 1
+            block_items: list = []
+            block_was_mapping = False
+            while j < len(lines):
+                nxt = lines[j]
+                if nxt.strip() == "":
+                    j += 1
+                    continue
+                if not (nxt.startswith("  ") or nxt.startswith("\t")):
+                    break
+                stripped = nxt.lstrip()
+                if stripped.startswith("- "):
+                    item_body = stripped[2:].strip()
+                    kv2 = YAML_KV_RE.match(item_body)
+                    if kv2 and kv2.group(2).strip() != "":
+                        # First field of a mapping inside a list.
+                        block_was_mapping = True
+                        item: dict[str, str] = {}
+                        ik, iv = kv2.group(1), kv2.group(2).strip()
+                        item[ik] = iv.strip('"').strip("'")
+                        j += 1
+                        # Collect additional fields at deeper indentation.
+                        list_item_indent = len(nxt) - len(nxt.lstrip())
+                        while j < len(lines):
+                            nxt2 = lines[j]
+                            if nxt2.strip() == "":
+                                j += 1
+                                continue
+                            indent2 = len(nxt2) - len(nxt2.lstrip())
+                            if indent2 <= list_item_indent:
+                                break
+                            kv3 = YAML_KV_RE.match(nxt2.strip())
+                            if kv3:
+                                item[kv3.group(1)] = kv3.group(2).strip().strip('"').strip("'")
+                            j += 1
+                        block_items.append(item)
+                    else:
+                        # Simple scalar list item.
+                        block_items.append(item_body.strip('"').strip("'"))
+                        j += 1
+                else:
+                    break
+            if block_items:
+                fm[key] = block_items
+                i = j
+                continue
+            # No list found; treat as empty value.
+            fm[key] = ""
             i += 1
+            continue
+        # Plain scalar.
+        fm[key] = raw.strip().strip('"').strip("'")
+        i += 1
     return fm, text[m.end():]
 
 
@@ -137,12 +244,57 @@ def read_text(path: Path) -> str:
 def parse_agent(path: Path) -> Item:
     text = read_text(path)
     fm, _ = parse_frontmatter(text)
+    audience = fm.get("audience", []) or []
+    works_with = fm.get("works_with", []) or []
+    scenarios_raw = fm.get("scenarios", []) or []
+    quickstart_raw = fm.get("quickstart", []) or []
+    # Normalize types — _split_inline_list returns list[str], block list returns list[dict|str].
+    if isinstance(audience, str):
+        audience = [audience] if audience else []
+    if isinstance(works_with, str):
+        works_with = [works_with] if works_with else []
+    scenarios: list[dict] = []
+    for s in scenarios_raw if isinstance(scenarios_raw, list) else []:
+        if isinstance(s, dict):
+            scenarios.append({
+                "intent": s.get("intent", ""),
+                "trigger_phrase": s.get("trigger_phrase", ""),
+                "outcome": s.get("outcome", ""),
+                "difficulty": s.get("difficulty", "starter"),
+            })
+    quickstart: list[str] = []
+    if isinstance(quickstart_raw, list):
+        for q in quickstart_raw:
+            if isinstance(q, str):
+                quickstart.append(q)
     return Item(
         name=fm.get("name", path.stem),
         description=fm.get("description", ""),
         extra={"tools": fm.get("tools", ""), "model": fm.get("model", "")},
         path=str(path.relative_to(REPO_ROOT)),
+        audience=audience,
+        works_with=works_with,
+        scenarios=scenarios,
+        quickstart=quickstart,
     )
+
+
+def git_last_updated(plugin_dir: Path) -> str:
+    """Return the YYYY-MM-DD of the most recent commit that touched this plugin dir."""
+    try:
+        rel = str(plugin_dir.relative_to(REPO_ROOT))
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%cs", "--", rel],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except (subprocess.SubprocessError, OSError):
+        pass
+    return ""
 
 
 def parse_skill(path: Path) -> Item:
@@ -269,6 +421,7 @@ def load_plugin(plugin_dir: Path, manifest_entry: dict) -> Plugin:
     if mcp:
         plugin.bundled_mcp = [Item(name=k, description=str(v)) for k, v in mcp.items()]
 
+    plugin.last_updated = git_last_updated(plugin_dir)
     return plugin
 
 
@@ -290,6 +443,62 @@ def esc(s: str) -> str:
     return html.escape(s or "", quote=True)
 
 
+def _render_scenarios_block(scenarios: list[dict]) -> str:
+    if not scenarios:
+        return ""
+    starter = next((s for s in scenarios if s.get("difficulty") == "starter"), scenarios[0])
+    others = [s for s in scenarios if s is not starter]
+
+    def fmt(s: dict) -> str:
+        intent = esc(s.get("intent", ""))
+        trig = esc(s.get("trigger_phrase", ""))
+        outcome = esc(s.get("outcome", ""))
+        difficulty = esc(s.get("difficulty", "starter"))
+        return (
+            f'<div class="scenario" data-difficulty="{difficulty}">'
+            f'<div class="scenario-intent"><strong>Intent:</strong> {intent}</div>'
+            f'<div class="scenario-trigger"><strong>You type:</strong> <code>{trig}</code></div>'
+            f'<div class="scenario-outcome"><strong>You get:</strong> {outcome}</div>'
+            f'<span class="scenario-badge difficulty-{difficulty}">{difficulty}</span>'
+            f"</div>"
+        )
+
+    starter_html = fmt(starter)
+    if not others:
+        return f'<div class="scenarios"><h5>Example scenario</h5>{starter_html}</div>'
+    others_html = "".join(fmt(o) for o in others)
+    return (
+        f'<div class="scenarios"><h5>Example scenarios <span class="count">({len(scenarios)})</span></h5>'
+        f"{starter_html}"
+        f'<details class="more-scenarios"><summary>+ {len(others)} more</summary>{others_html}</details>'
+        f"</div>"
+    )
+
+
+def _render_quickstart_block(quickstart: list[str]) -> str:
+    if not quickstart:
+        return ""
+    items = "".join(f"<li>{esc(q)}</li>" for q in quickstart)
+    return f'<div class="quickstart"><h5>Quickstart</h5><ol>{items}</ol></div>'
+
+
+def _render_works_with_block(works_with: list[str]) -> str:
+    if not works_with:
+        return ""
+    chips = "".join(f'<span class="ww-chip">{esc(w)}</span>' for w in works_with)
+    return f'<div class="works-with"><h5>Works well with</h5>{chips}</div>'
+
+
+def _render_audience_block(audience: list[str]) -> str:
+    if not audience:
+        return ""
+    chips = "".join(
+        f'<span class="aud-chip" data-audience="{esc(a)}">{esc(AUDIENCE_LABELS.get(a, a))}</span>'
+        for a in audience
+    )
+    return f'<div class="audience">{chips}</div>'
+
+
 def render_item_card(item: Item, kind: str) -> str:
     extras = []
     for k, v in item.extra.items():
@@ -297,12 +506,32 @@ def render_item_card(item: Item, kind: str) -> str:
             extras.append(f'<span class="extra-pill" data-kind="{esc(k)}">{esc(k)}: {esc(v)}</span>')
     extra_html = " ".join(extras)
     path_html = f'<div class="item-path">{esc(item.path)}</div>' if item.path else ""
+
+    # Agent-only enrichment blocks.
+    audience_html = _render_audience_block(item.audience) if kind == "agent" else ""
+    scenarios_html = _render_scenarios_block(item.scenarios) if kind == "agent" else ""
+    quickstart_html = _render_quickstart_block(item.quickstart) if kind == "agent" else ""
+    works_with_html = _render_works_with_block(item.works_with) if kind == "agent" else ""
+
+    # Build a richer search index for agents (include intents).
+    search_blob = (item.name + " " + item.description).lower()
+    if item.scenarios:
+        search_blob += " " + " ".join(s.get("intent", "") for s in item.scenarios).lower()
+    if item.audience:
+        search_blob += " " + " ".join(item.audience).lower()
+    audience_attr = ",".join(item.audience) if item.audience else ""
+
     return (
-        f'<article class="item" data-kind="{esc(kind)}" data-search="{esc((item.name + " " + item.description).lower())}">'
+        f'<article class="item" data-kind="{esc(kind)}" data-audience="{esc(audience_attr)}" '
+        f'data-search="{esc(search_blob)}">'
         f'<header><h4>{esc(item.name)}</h4>{extra_html}</header>'
+        f"{audience_html}"
         f'<p>{esc(item.description) or "<em>(no description)</em>"}</p>'
-        f'{path_html}'
-        f'</article>'
+        f"{scenarios_html}"
+        f"{quickstart_html}"
+        f"{works_with_html}"
+        f"{path_html}"
+        f"</article>"
     )
 
 
@@ -322,6 +551,10 @@ def render_plugin(plugin: Plugin) -> str:
     color = PLUGIN_COLORS.get(plugin.name, DEFAULT_COLOR)
     keywords = " ".join(f'<span class="kw">{esc(k)}</span>' for k in plugin.keywords)
     requires_html = f'<div class="meta-row"><span class="meta-label">Requires</span> <code>{esc(plugin.requires)}</code></div>' if plugin.requires else ""
+    last_updated_html = (
+        f'<div class="meta-row"><span class="meta-label">Last updated</span> <code>{esc(plugin.last_updated)}</code></div>'
+        if plugin.last_updated else ""
+    )
     counts = [
         ("Agents", len(plugin.agents)),
         ("Skills", len(plugin.skills)),
@@ -354,6 +587,7 @@ def render_plugin(plugin: Plugin) -> str:
         </div>
         <p class="plugin-desc">{esc(plugin.description)}</p>
         {requires_html}
+        {last_updated_html}
         <div class="keywords">{keywords}</div>
         <div class="counts">{count_pills}</div>
       </header>
@@ -383,6 +617,46 @@ def render_index(plugins: list[Plugin]) -> str:
                     "path": item.path,
                 })
     return json.dumps(rows)
+
+
+def render_use_case_table(plugins: list[Plugin]) -> str:
+    """Aggregate every agent's intent fields into an 'I want to...' lookup table.
+    This is the headline ask per the deep-researcher's recommendation:
+    let users navigate from intent → which agent + plugin to use."""
+    rows: list[tuple[str, str, str, str, str]] = []  # (intent, agent, plugin, difficulty, audience)
+    for plugin in plugins:
+        for agent in plugin.agents:
+            for s in agent.scenarios:
+                intent = s.get("intent", "").strip()
+                if not intent:
+                    continue
+                difficulty = s.get("difficulty", "starter")
+                audience = ", ".join(agent.audience) if agent.audience else ""
+                rows.append((intent, agent.name, plugin.name, difficulty, audience))
+    if not rows:
+        return ""
+    rows.sort(key=lambda r: (r[3] != "starter", r[0].lower()))  # starters first, then alpha
+
+    body = "".join(
+        f"<tr>"
+        f'<td class="intent-cell">{esc(intent)}</td>'
+        f'<td><code>{esc(agent)}</code></td>'
+        f'<td><a href="#plugin-{esc(pname)}">{esc(pname)}</a></td>'
+        f'<td><span class="difficulty difficulty-{esc(diff)}">{esc(diff)}</span></td>'
+        f"<td>{esc(audience)}</td>"
+        f"</tr>"
+        for (intent, agent, pname, diff, audience) in rows
+    )
+    return f"""
+      <h2>I want to…</h2>
+      <p class="usecase-help">Use this lookup to navigate from <em>what you're trying to do</em> to <em>which agent + plugin handles it</em>. Sorted starter-first then alphabetically. Filter via the Index / Search tab for deeper search.</p>
+      <table class="usecase-table">
+        <thead>
+          <tr><th>I want to…</th><th>Agent</th><th>Plugin</th><th>Difficulty</th><th>Audience</th></tr>
+        </thead>
+        <tbody>{body}</tbody>
+      </table>
+    """
 
 
 def render(marketplace: dict, plugins: list[Plugin]) -> str:
@@ -417,6 +691,7 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
     )
 
     index_json = render_index(plugins)
+    usecase_table_html = render_use_case_table(plugins)
 
     return f"""<!doctype html>
 <html lang="en">
@@ -541,10 +816,47 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
     .arch-doc h2 {{ margin-top: 0; color: var(--accent); }}
     .arch-doc ul {{ padding-left: 1.5rem; }}
     .arch-doc li {{ margin-bottom: 0.4rem; }}
+    /* Agent enrichment — scenarios, quickstart, works-with, audience */
+    .audience {{ display: flex; gap: 0.35rem; flex-wrap: wrap; margin: 0.35rem 0 0.5rem 0; }}
+    .aud-chip {{ background: var(--surface); border: 1px solid var(--border); padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.72rem; color: var(--muted); }}
+    .aud-chip[data-audience="consultant"] {{ border-color: #14b8a6; color: #5eead4; }}
+    .aud-chip[data-audience="psm"] {{ border-color: #f59e0b; color: #fbbf24; }}
+    .aud-chip[data-audience="dev"] {{ border-color: #3b82f6; color: #93c5fd; }}
+    .aud-chip[data-audience="power-platform-maker"] {{ border-color: #8b5cf6; color: #c4b5fd; }}
+    .aud-chip[data-audience="data-engineer"] {{ border-color: #06b6d4; color: #67e8f9; }}
+    .aud-chip[data-audience="analyst"] {{ border-color: #f59e0b; color: #fcd34d; }}
+    .aud-chip[data-audience="compliance"] {{ border-color: #ef4444; color: #fca5a5; }}
+    .scenarios, .quickstart, .works-with {{ margin: 0.65rem 0 0.35rem 0; padding-top: 0.5rem; border-top: 1px dashed var(--border); }}
+    .scenarios h5, .quickstart h5, .works-with h5 {{ font-size: 0.78rem; color: var(--muted); margin: 0 0 0.35rem 0; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }}
+    .scenarios h5 .count {{ font-weight: 400; text-transform: none; letter-spacing: 0; }}
+    .scenario {{ background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 0.5rem 0.65rem; margin-bottom: 0.4rem; position: relative; }}
+    .scenario-intent {{ font-size: 0.85rem; color: var(--text); margin-bottom: 0.25rem; }}
+    .scenario-trigger {{ font-size: 0.78rem; color: var(--muted); margin-bottom: 0.25rem; }}
+    .scenario-trigger code {{ font-size: 0.78rem; padding: 1px 4px; }}
+    .scenario-outcome {{ font-size: 0.78rem; color: var(--muted); }}
+    .scenario-badge {{ position: absolute; top: 0.45rem; right: 0.6rem; font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 3px; text-transform: lowercase; }}
+    .difficulty-starter, .difficulty.difficulty-starter {{ background: rgba(20,184,166,0.15); color: #5eead4; }}
+    .difficulty-advanced, .difficulty.difficulty-advanced {{ background: rgba(139,92,246,0.15); color: #c4b5fd; }}
+    .difficulty-troubleshooting, .difficulty.difficulty-troubleshooting {{ background: rgba(239,68,68,0.15); color: #fca5a5; }}
+    details.more-scenarios {{ margin-top: 0.35rem; }}
+    details.more-scenarios summary {{ cursor: pointer; font-size: 0.78rem; color: var(--muted); padding: 0.25rem 0; }}
+    details.more-scenarios summary:hover {{ color: var(--accent); }}
+    .quickstart ol {{ margin: 0; padding-left: 1.25rem; }}
+    .quickstart li {{ font-size: 0.82rem; color: var(--muted); margin-bottom: 0.15rem; }}
+    .ww-chip {{ display: inline-block; background: var(--surface); border: 1px solid var(--border); padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.74rem; font-family: var(--font-mono); color: var(--muted); margin: 0 0.2rem 0.2rem 0; }}
+    /* Use-case lookup table on Overview tab */
+    .usecase-help {{ color: var(--muted); font-size: 0.88rem; margin-bottom: 0.75rem; }}
+    .usecase-table {{ width: 100%; border-collapse: collapse; font-size: 0.88rem; margin: 0.5rem 0 1.5rem 0; }}
+    .usecase-table th {{ text-align: left; padding: 0.55rem 0.5rem; border-bottom: 1px solid var(--border); color: var(--muted); font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.03em; }}
+    .usecase-table td {{ padding: 0.55rem 0.5rem; border-bottom: 1px solid var(--surface-2); vertical-align: top; }}
+    .usecase-table tr:hover {{ background: var(--surface); }}
+    .usecase-table .intent-cell {{ max-width: 38ch; }}
+    .usecase-table .difficulty {{ display: inline-block; padding: 0.1rem 0.45rem; border-radius: 3px; font-size: 0.72rem; }}
     footer.site {{ text-align: center; padding: 2rem 1rem; color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 3rem; }}
     @media (max-width: 720px) {{
       header.site h1 {{ font-size: 1.2rem; }}
       .item-grid {{ grid-template-columns: 1fr; }}
+      .usecase-table .intent-cell {{ max-width: none; }}
     }}
   </style>
 </head>
@@ -577,6 +889,7 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
     <div class="arch-doc">
       <h2>What this is</h2>
       <p>{esc(market_desc)}</p>
+      {usecase_table_html}
       <h2>How to install</h2>
       <pre><code>/plugin marketplace add mcorbett51090/RavenClaude
 /plugin install ravenclaude-core@ravenclaude

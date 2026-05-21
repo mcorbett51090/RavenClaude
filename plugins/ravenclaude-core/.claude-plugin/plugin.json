@@ -1,7 +1,7 @@
 {
   "name": "ravenclaude-core",
-  "description": "Domain-neutral Team Lead + specialized agents pattern for Claude Code. Bundles 14 specialists (now including data-engineer), a dispatch playbook, format/lint/test gates, the guard-recursive-spawn hook, and templates for stakeholder prose, design specs, RAID logs, and partner-success artifacts. v0.8.0 added the `/wrap` slash command + scenario-retrieval skill (the feedback loop that lets a consultant capture scope-tagged scenarios at engagement-close). v0.9.0 adds the pre-action decision-tree traversal clause to the Capability Grounding Protocol + the Researcher staleness check for decision trees (90-day re-verification) — closes the wrong-branch-from-the-start failure mode that the reactive alternate-methods rule doesn't cover.",
-  "version": "0.9.0",
+  "description": "Domain-neutral Team Lead + specialized agents pattern for Claude Code. Bundles 14 specialists (now including data-engineer), a dispatch playbook, format/lint/test gates, the guard-recursive-spawn hook, and templates for stakeholder prose, design specs, RAID logs, and partner-success artifacts. v0.8.0 added /wrap slash command + scenario-retrieval skill. v0.9.0 added pre-action decision-tree traversal + Researcher staleness check. **v0.10.0 — every agent now ships the scenario-authoring schema** (audience + works_with + scenarios + quickstart in YAML frontmatter), feeding the repo-guide's new per-agent example-scenario cards + the Overview-tab 'I want to…' use-case lookup table. Pattern documented at docs/best-practices/agent-scenario-authoring.md. First plugin to backfill (other plugins follow incrementally).",
+  "version": "0.10.0",
   "author": {
     "name": "Matt Corbett"
   },
