@@ -162,11 +162,12 @@ The hook is conservative — it only fires on conventional PSM artifact file-nam
 
 ## 8a. Knowledge bank
 
-Reference docs that capture lessons earned in real PSM books and research-distilled foundational references. Three waves:
+Reference docs that capture lessons earned in real PSM books and research-distilled foundational references. Four waves:
 
 - **v0.2.0 production-lesson layer** — incident-shape files covering the hardest operational topics: rostering, score drift, jurisdictional bear traps.
 - **v0.3.0 foundational layer** — research-distilled anchor files covering methodologies, segments, metrics, and tools the whole plugin stands on. Carries primary-source citations with retrieval dates and confidence notation (High / Medium / Low).
 - **v0.4.0 vertical-depth layer** — high-velocity 2026 topics: AI in EdTech (vendor + regulatory + perception landscape) and renewal pricing conversations (K-12 budget cycle, multi-year math, board approval, competitive RFP defense).
+- **v0.4.1 operating-cadence layer** — *when* signals fire vs. when to suppress them: time-zone discipline, K-12 calendar dead zones, signals-by-rhythm. Complements the v0.4.0 *what* layer.
 
 Inline priors live on the affected agents; the files in `knowledge/` are the source of truth, re-read on demand.
 
@@ -181,8 +182,9 @@ Inline priors live on the affected agents; the files in `knowledge/` are the sou
 | **v0.3.0** [`knowledge/psm-tools-landscape-2026.md`](knowledge/psm-tools-landscape-2026.md) | CS-platform landscape: Gartner MQ Leaders (Gainsight, ChurnZero, Totango); Totango+Catalyst merger Feb 2024 + Parative AI Oct 2024; ChurnZero AI Marketplace (14 agents) launched 2025; Planhat unified data model; Vitally for PLG; ClientSuccess; Custify. Adjacent (Pendo, Mixpanel, Heap-under-Contentsquare, HubSpot Service Hub, Salesforce Service Cloud / Agentforce Service). EdTech rostering layer. **No K-12-vertical CSP exists** — methodology layer lives above generic CSPs. |
 | **v0.4.0** [`knowledge/ai-in-edtech-2026.md`](knowledge/ai-in-edtech-2026.md) | The 2026 AI-in-EdTech landscape — three-tier vendor model (general-purpose chatbots, EdTech-vertical startups, LMS-embedded); Khanmigo + MagicSchool pricing primary-verified 2026-05-21; ChatGPT for Teachers free for US K-12 through June 2027; Microsoft Copilot $18/user/mo. **December 2025 federal EO + COPPA April 2026 full enforcement.** Adoption stats (EdWeek 61% / RAND 53%); Common Sense Media parent-teen split; LAUSD/AllHere $6M failure; NH statewide / Mississippi pilot. AI-detection ~50% FP on ESL writing. PSM-side implications: prepared "What's your AI strategy?" 1-pager + FERPA/COPPA-aware data-flow brief. |
 | **v0.4.0** [`knowledge/renewal-pricing-conversations-edtech.md`](knowledge/renewal-pricing-conversations-edtech.md) | The renewal motion across K-12 / higher-ed / corp L&D. **K-12 renewal clock at 120-180 days, not 90** — January-March budget-build window. Multi-year is exception in K-12 (annual-appropriation principle = price holds not commitments). **Recurly: 71% cite price increases as #1 churn driver.** K-12 superintendent turnover 23% (2024-25). Board consent-agenda mechanics; incumbent RFP win rates 60-90%. State data-privacy laws re-trigger at renewal (NY Ed Law §2-d, IL SOPPA, CA SOPIPA). Closing synthesis: most-common mistake is running a generic SaaS motion and discovering too late the curriculum director was never the buyer. |
+| **v0.4.1** [`knowledge/k12-psm-operating-cadence.md`](knowledge/k12-psm-operating-cadence.md) | The *when* complement to v0.4.0's *what*. Time-zone discipline for multi-state books (schedule in partner TZ, not PSM TZ); K-12 calendar dead zones (late August, first 2 weeks of school, Thanksgiving week, winter/spring break, state testing windows, end-of-year wrap) with explicit signal-suppression rules; signals-by-rhythm (Monday-morning highest-volume queue; Friday-afternoon signal-collapse; weekend zero-signal); quarterly rhythm (Q3 Feb-Apr is K-12 renewal-build); per-partner cadence defaults (weekly pulse / monthly sync / quarterly QBR / annual). Behavior-changing for `partner-success-manager` (touchpoint scheduling) and `success-playbook-designer` (play-trigger suppression during dead zones). |
 
-The `learning-analytics-analyst`, `partner-success-manager`, `ferpa-comms-translator`, `success-playbook-designer`, `partner-profile-curator`, and `qbr-composer` agents carry compact inline priors summarizing relevant files. v0.4.0 specifically: `partner-success-manager` (both new files), `success-playbook-designer` (renewal-pricing primary, AI-feature plays secondary), `partner-profile-curator` (AI posture in profile).
+The `learning-analytics-analyst`, `partner-success-manager`, `ferpa-comms-translator`, `success-playbook-designer`, `partner-profile-curator`, and `qbr-composer` agents carry compact inline priors summarizing relevant files. v0.4.0: `partner-success-manager` (both new files), `success-playbook-designer` (renewal-pricing primary, AI-feature plays secondary), `partner-profile-curator` (AI posture in profile). v0.4.1: `partner-success-manager` (operating-cadence touchpoint discipline) + `success-playbook-designer` (play-trigger suppression overlay).
 
 New knowledge entries follow the pattern: a stable reference doc named after the problem domain, with a **Last reviewed** date at the top, a refresh trigger, and primary-source citations with retrieval dates. Refresh when the underlying contract changes (regulation, vendor terms, product surface, benchmark, segment mix) or the field-tested pattern stops applying.
 
@@ -212,6 +214,7 @@ To enable when a scenario surfaces:
 | [`templates/health-score-dashboard.md`](templates/health-score-dashboard.md) | Spec for the partner-health dashboard the PSM watches weekly |
 | [`templates/onboarding-checklist.md`](templates/onboarding-checklist.md) | First-90-days onboarding from contract close through full activation |
 | [`templates/annual-partner-review.md`](templates/annual-partner-review.md) | Year-end review covering the partner's outcomes, the PSM's coverage, and the renewal recommendation |
+| **v0.4.1** [`templates/cross-functional-partnership-map.md`](templates/cross-functional-partnership-map.md) | The PSM's per-vendor map of *which internal function owns what, when to engage them, hand-back criteria, and escalation paths.* Fill in at PSM start; refresh quarterly or on any major org change. Segment-agnostic columns (K-12-flavored example rows). |
 
 ---
 
