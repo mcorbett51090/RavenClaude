@@ -162,12 +162,17 @@ The hook is conservative — it only fires on conventional PSM artifact file-nam
 
 ## 8a. Knowledge bank
 
-Empty at v0.1.0. Will accumulate organically as production lessons surface (every "I had to figure this out the hard way" moment becomes a knowledge file, following the [`feedback_knowledge_bank_pattern`](../power-platform/knowledge/programmatic-flow-creation.md) — a knowledge file plus compact inline priors on the 3–5 affected agents, with a `Last reviewed` date at the top).
+Reference docs that capture lessons earned in real PSM books — situations where the documented happy path doesn't hold and the agent needs to know the field-tested pattern. Inline priors live on each affected agent; the files in `knowledge/` are the source of truth, re-read on demand.
 
-Suggested first entries (when they happen):
-- `partner-health-score-drift.md` — when scores stop predicting outcomes
-- `rostering-data-quality-typology.md` — common rostering failure modes by SIS / LMS pairing
-- `parent-comms-jurisdictional-bear-traps.md` — FERPA + state-specific gotchas (California, Illinois SOPPA, NY Ed Law 2-d)
+| File | Read when |
+|---|---|
+| [`knowledge/rostering-data-quality-typology.md`](knowledge/rostering-data-quality-typology.md) | Any partner-health diagnosis that touches engagement metrics; "the data isn't right" partner complaint; new-partner integration design. Captures: K-12 broker patterns (Clever, ClassLink, direct OneRoster), higher-ed SIS specifics (Banner add/drop churn, Workday Student batch lag, PeopleSoft customization), LMS LTI 1.3 / NRPS vs LTI 1.1, corporate L&D SCIM 2.0, diagnostic checklist, who-owns-what coordination matrix. |
+| [`knowledge/partner-health-score-drift.md`](knowledge/partner-health-score-drift.md) | Quarterly health-score audit; "yellow partners are renewing, green ones are churning"; redesigning a play whose numeric triggers no longer fire; the partner asks "what would I have to do to be green" and the PSM can't answer concretely. Captures: 7 drift root causes (signal staleness, slow decay, mis-tuned weights, missed champion change, drifted cohort baselines, vanity-metric pollution, threshold drift), diagnosis tree, retune-vs-rebuild decision, hold-out cohort and parallel-run discipline. |
+| [`knowledge/parent-comms-jurisdictional-bear-traps.md`](knowledge/parent-comms-jurisdictional-bear-traps.md) | Drafting or reviewing any parent / family / student-facing comm; opening a profile for a partner in a student-privacy state; preparing a multilingual variant. Captures: FERPA three-bucket model, the residual / "X students" trap, K-12 vs higher-ed rights-holder shift, COPPA under-13 layer, state-by-state typology (CA SOPIPA, IL SOPPA, NY Ed Law §2-d, CT, CO, TX, VA, WA, UT, FL), Title VI multilingual obligations, pre-send checklist. **Field guidance, not legal advice** — counsel still owns specific compliance questions. |
+
+The `learning-analytics-analyst`, `partner-success-manager`, `ferpa-comms-translator`, `success-playbook-designer`, and `partner-profile-curator` agents each carry compact inline priors summarizing the relevant file(s); the full docs are the source of truth.
+
+New knowledge entries follow the pattern: a stable reference doc named after the problem domain, with a **Last reviewed** date at the top, a refresh trigger, and citations to the production lesson or external source that drove the doc. Refresh when the underlying contract changes (regulation, vendor terms, product surface, segment mix) or the field-tested pattern stops applying.
 
 ---
 

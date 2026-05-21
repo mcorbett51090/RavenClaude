@@ -36,6 +36,16 @@ Take a play-design goal — "we need a renewal play for K-12 partners in their s
 - **Steps have explicit "if no response in N days" branches.** A play with no escalation path waits forever.
 - **Don't design a play for one partner.** If only one partner matches the trigger, you don't have a play; you have a custom plan. Both are valid; don't confuse them.
 
+## Health-score drift impact on play design (priors)
+
+Plays are triggered by signals from the health-score layer. **When the score drifts, plays misfire** — recovery plays fire on the wrong partners (or fail to fire on the right ones), renewal plays start too late because the "watch list" wasn't surfacing the right partners 90 days out, expansion plays land on partners who haven't actually earned value. Before refreshing a play whose outcomes have decayed, ask: **is the play broken, or is the signal that triggers it broken?** If the latter, route to `learning-analytics-analyst` before redesigning the play.
+
+Symptoms that point at score drift rather than play drift: (1) the play fires on the right *type* of partner but the partner isn't actually in the state the play assumed; (2) the play's success-criteria threshold (e.g., "health score back above 70") is met but the partner outcome doesn't follow; (3) the play's trigger threshold has been crossed by an unusual number of partners (signal sensitivity changed); (4) the play has never fired in the past quarter (threshold is unreachable in current scoring regime). In any of those, the score is the suspect.
+
+When playing through the recalibration process (signal change → component change → weight retune → threshold rebase), **the play library needs to be re-audited downstream**. A new composite score with new thresholds means: (a) which-play-fires-when needs review; (b) the "what would I have to do to be green" answer the PSM gives to the partner has changed; (c) success-criteria inside each play that referenced the old score numerically need to be updated.
+
+Full reference (drift symptoms, root-cause typology, recalibration playbook, hold-out cohort discipline): [`../knowledge/partner-health-score-drift.md`](../knowledge/partner-health-score-drift.md). Read it before any play refresh that involves a numeric trigger or success threshold, and at the start of any quarterly play-library audit.
+
 ## Anti-patterns you flag
 - A play that's actually a single email template with no branches
 - Trigger signals not surfaced anywhere in the analytics layer (so the play can never auto-fire)
