@@ -8,6 +8,7 @@
     "CONTRIBUTING.md",
     "CHANGELOG.md",
     "LICENSE",
+    "SECURITY.md",
     ".gitignore",
     ".gitattributes",
     ".prettierrc.json",

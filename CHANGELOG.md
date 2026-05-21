@@ -2,6 +2,37 @@
 
 All notable changes to the RavenClaude marketplace and its plugins. Format loosely follows [Keep a Changelog](https://keepachangelog.com/). The marketplace version (`metadata.version` in `.claude-plugin/marketplace.json`) bumps when the catalog shape or cross-plugin contracts change; individual plugins have their own semver tracked in their `plugin.json`.
 
+## marketplace 0.4.0 — 2026-05-21 (overnight realignment)
+
+Consolidates the salvageable content from overnight dispatcher PRs #8 / #9 / #10 onto the post-0.3.0 baseline. Stale version bumps (which would have rolled `ravenclaude-core` *back* to 0.3.0 and `power-platform` *back* to 0.6.0) were rejected; the additive content was preserved with version bumps recomputed forward.
+
+### ravenclaude-core 0.6.0
+
+- **New agent `agents/data-engineer.md`** — domain-neutral specialist for pipeline design, dimensional/lakehouse modeling, ELT/ETL, query performance, lineage, quality testing, ingestion patterns. Routes Power BI / DAX work to `power-platform/power-bi-engineer` and product-feature schema work to `architect`. Carries the Structured Output Protocol block.
+- **New hook `hooks/guard-recursive-spawn.sh`** — PostToolUse advisory that warns when an edit to a plugin agent definition file looks like the agent is instructing itself to spawn another sub-agent (`Agent(`, `Task(`, `subagent_type:`, plain-English "spawn an agent" tokens). Conservative grep with false-positive guard on escalation-recommendation lines. Advisory by default; set `RC_GUARD_RECURSIVE_SPAWN_STRICT=1` to make it blocking. Registered as the 5th hook in `hooks/hooks.json`.
+- **Skill update `skills/spawn-team.md`** — new **Cross-plugin dispatch** section after Step 8: domain-detection trigger table, domain-led playbooks for the seven most common Power Platform request shapes (including the new behavioral-test playbook for `power-platform-tester`), and a symmetric escalation table between `ravenclaude-core` and `power-platform`. Does not modify the Parallel Reviewer Fan-out, Artifact-Based Handoff, or Cited-Adjudicator escalation content from 0.5.0.
+- CLAUDE.md narrative updated: 5 hooks, 14 specialist agents.
+
+### power-platform 0.7.0
+
+- **New agent `agents/power-platform-tester.md`** — Power Platform-specific tester. Spawns AFTER a specialist's change but BEFORE `solution-alm-engineer` packages a release. Covers Test Studio + Monitor (canvas), Manual Test + run-history assertions (flows), plug-in execution order + FLS/RLS + cascade (Dataverse), form / business-rule / command-bar (model-driven), DAX measure-tests + VertiPaq + DAX Studio server-timings (Power BI), `pac solution check` as a gate. Carries both the Markdown Output Contract (with mandatory `Licensing impact:` line) and the cross-plugin Structured Output Protocol JSON block.
+- **House-opinions hook `hooks/check-house-opinions.sh`** gains three new mechanically-detectable checks (now 8 total):
+  - `premium-connector-no-licensing-note` — flow JSON references a premium connector apiId without `_comments` / `// premium:` / `"premium": true` annotation (§3 #8).
+  - `powerfx-var-prefix` / `powerfx-col-prefix` — `Set(name, ...)` and `(Clear)Collect(name, ...)` whose first argument doesn't follow the `var*` / `col*` convention (§3 #6). Skips Power Fx built-ins (`Self`, `Parent`, `ThisItem`, `ThisRecord`).
+  - `secret-in-env-var` — environment-variable default that looks like a plaintext secret instead of `@Microsoft.KeyVault(...)` (§4 anti-pattern). Conservative — only fires on `password=`, `AccountKey=`, `api_key=`, `client_secret=`, `aws_secret_access_key`, or `Bearer <token>` patterns.
+- CLAUDE.md narrative updated: 11 specialist agents, §7 hook table now lists 8 checks.
+
+### Marketplace meta
+
+- **Realignment of overnight dispatcher work**: PRs #11 (per-plugin changelogs, stale version refs) and #12 (CI quality gates that would have *replaced* the v0.5.0 behavioral guard-destructive tests) closed without merge. PRs #8 / #9 / #10 are superseded by this consolidation; closed after merge. PRs #14 / #15 / #16 (finance, regulatory-compliance, web-design plugins) remain queued for separate review.
+- **README.md** opener rewritten to acknowledge both shipping plugins, the contribution-staging loop, and updated component counts (14 core agents / 11 PP agents / 5 core hooks / 8 PP checks).
+- **`SECURITY.md`** added at repo root — disclosure policy for the private marketplace covering hooks, agent definitions, and bundled MCP server.
+- **`.github/ISSUE_TEMPLATE/`** added (`bug_report.md`, `feature_request.md`, `proposed_lesson.md`, `config.yml`). `proposed_lesson.md` mirrors the contribution-staging flow.
+- **`checklists/release-checklist.md`** + **`checklists/new-plugin-checklist.md`** added; `checklists/README.md` updated to point to both. Version examples in the release checklist use the post-realignment values (0.6.0 / 0.7.0 / 0.4.0) and acknowledge that `release.yml` workflow auto-publish is still a planned follow-up.
+- `docs/architecture.md` Status table aligned to current versions (0.6.0 / 0.7.0); planned-plugins line points to the open PRs #14 / #15 / #16.
+
+**Migration for consumers:** `/plugin marketplace update ravenclaude` + `/reload-plugins`. No breaking changes — both plugins are minor bumps. The new `guard-recursive-spawn` hook is advisory by default; existing edits will not be blocked.
+
 ## marketplace 0.3.0 — 2026-05-21 (later same day)
 
 ### ravenclaude-core 0.5.0
