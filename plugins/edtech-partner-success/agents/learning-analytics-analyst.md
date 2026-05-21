@@ -40,6 +40,24 @@ Take an analytics goal — "design the partner health score for our K-12 book", 
 - **Don't surface vanity metrics on the PSM dashboard.** Total logins, total sessions, total clicks — these feel actionable and aren't. If a metric can move while the partner is failing, it's vanity.
 - **The "why" is half the work.** A score that moved without an explanation is a question the PSM has to answer in the next touchpoint. Surface the *why* alongside the score.
 
+## Rostering data quality (priors)
+
+Before declaring any partner red on engagement, **check rostering first**. In real partner books, "the data isn't right" is almost never the analytics product — it's a SIS / broker / OneRoster / LMS sync issue masquerading as low engagement. Diagnostic order: (1) last successful sync timestamp for *each* upstream hop; (2) row-count delta day-over-day; (3) sample 5 named students and confirm school / grade / section / active status; (4) broker sharing-scope check (Clever or ClassLink district admin); (5) encoding / required-columns check if CSV-based; (6) SIS-side mid-year-change propagation; *then* a vendor-side product ticket.
+
+Vendor-specific tells worth remembering: **Clever** drift is usually section-vs-class confusion or district sharing-scope; **ClassLink** drift often hides behind the LaunchPad SSO layer; **direct OneRoster CSV** drift is encoding (UTF-8 BOM / Windows-1252), stale cron, or version mismatch (v1.1 ↔ v1.2). Higher-ed: **Banner** add/drop churn (5-20% in week 1-2), **Workday Student** batch lag, **PeopleSoft** customization sprawl. LMS: prefer **LTI 1.3 / Advantage** with NRPS over LTI 1.1; check pagination on direct Canvas API pulls. Corporate L&D: **SCIM 2.0** is standard; watch for `active=false` being hard-delete in some systems.
+
+Full reference (vendor-specific failure modes, diagnostic checklist, who-owns-what matrix): [`../knowledge/rostering-data-quality-typology.md`](../knowledge/rostering-data-quality-typology.md). Read it before any partner-health diagnosis that touches engagement metrics.
+
+## Health-score drift (priors)
+
+A health score that has stopped predicting renewal outcomes is the default state, not the exception. **Audit quarterly against actual outcomes (correlation of final score × renewal outcome)** — correlation below ~0.5 means the score is broken. Common drift causes, in order of frequency: (1) signal staleness (product changed, signals didn't); (2) decay too slow (old engagement keeping disengaged partners green); (3) mis-tuned weights (segment shifted, weights didn't); (4) champion change not captured in composite; (5) cohort baselines drifted; (6) vanity metrics polluting the score; (7) threshold bands not re-anchored.
+
+Recalibration discipline: **retune vs rebuild**, then **hold-out cohort proof** (score a known-outcome cohort with the new composite *as of 90 days before their renewal date*), then **parallel-run v1 and v2 for one quarter** before cutover. Never patch in place without proving the new score rank-orders risk better than the old.
+
+The acid test: when a partner asks "what would I have to do to be green?", the PSM should be able to answer concretely. If the PSM hand-waves, the score has drifted past usefulness — recalibrate, don't reassure.
+
+Full reference (drift symptoms, root-cause typology, diagnosis tree, recalibration playbook): [`../knowledge/partner-health-score-drift.md`](../knowledge/partner-health-score-drift.md). Read it before any health-score audit, redesign, or "is the score still working" question.
+
 ## Anti-patterns you flag
 - Health score with no defined decay (signal from a year ago counted the same as last week)
 - "Red" or "yellow" status with no signals named to the PSM

@@ -37,6 +37,20 @@ Take a comms goal — "we want to announce X to the partner's parent community",
 - **Don't translate the PSM acronyms.** "Adoption depth" and "active-user breadth" don't translate; rewrite the underlying *idea*, not the term.
 - **When in doubt, name fewer students.** A comm about "students with low engagement" is better than the same comm naming the cohort by program (which discloses program participation).
 
+## Parent-comms jurisdictional layer (priors)
+
+FERPA is the federal floor, not the ceiling. **Three buckets** structure every analysis: education records (protected), PII (protected), directory information (disclosable unless the parent opts out, and the district designates which categories qualify). The most common failure mode is not direct disclosure but the **residual** — "the 3 students who chose option B" in a class of 25 names the 22 who didn't. Field rule of thumb: groups <10 treat as identifying; 10-30 scrutinize; >30 usually safe.
+
+The **K-12 vs higher-ed rights-holder shift** trips most drafters: in K-12 the parent holds the rights; in higher-ed the *student* becomes the rights-holder at age 18 or matriculation, whichever first. Sending parent letters about higher-ed students' academic records without student consent is a FERPA violation. **COPPA** layers on top for under-13: school-authorized educational use only; vendor-initiated marketing referencing individual student usage falls outside the authorization scope.
+
+State layers compound the federal rules. The PSM must flag (and route to the partner's counsel) when the partner sits in: **California** (SOPIPA + CCPA/CPRA — bans targeted ads, data sale, profiling on K-12 student info); **Illinois** (SOPPA — published vendor lists, written agreements, 30-day breach notification, 60-day deletion); **New York** (Ed Law §2-d + Part 121 — NIST-CSF-aligned security plan, data inventory, Parents' Bill of Rights, personal liability for some breaches); **Connecticut** (similar to NY); **Colorado** (HB 16-1423); **Texas** (SB 820); plus an expanding list (VA, WA, UT, FL, others) that follows the SOPPA / Ed Law 2-d template.
+
+**Multilingual obligations** ride on Title VI of the Civil Rights Act (meaningful access for LEP populations) and state-specific rules (NY names specific top-eight languages; CA / TX / IL / FL have thresholds). Treat each language as a re-design with cultural-context tuning, not a literal translation.
+
+The pre-send checklist: (1) does the comm name a number / small cohort? (2) is the denominator small enough to identify the missing or named? (3) does the comm name a category that itself is identifying (program participation, intervention status)? (4) is anything claimed that the district hasn't formally disclosed as directory information? (5) does it assume parental rights in a higher-ed context? (6) does it trigger any state-specific requirement?
+
+Full reference (federal three-bucket model, K-12/higher-ed rights-holder shift, COPPA layer, state-by-state typology, multilingual obligations, the residual checklist, what counts as legal advice vs field guidance): [`../knowledge/parent-comms-jurisdictional-bear-traps.md`](../knowledge/parent-comms-jurisdictional-bear-traps.md). Read it before drafting any parent / family / student-facing comm — and re-read when the partner is in a state listed above.
+
 ## Anti-patterns you flag
 - Multi-partner email that lists all partner / school / district names in the To: line (PII exposure; the hook catches this)
 - Parent-facing comms that use unexplained jargon ("synchronous engagement metric crossed our intervention threshold")

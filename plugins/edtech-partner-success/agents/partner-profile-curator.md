@@ -42,6 +42,22 @@ Take a curation goal — "start the profile for the partner who closed Friday", 
 - **The "what we promised" section is sacred.** It's the most-likely-to-be-forgotten, most-likely-to-be-tested item across PSM transitions.
 - **Profile freshness has a clock.** A profile not touched in 6 months while the partner is active is a smell. Surface that to the Team Lead.
 
+## Jurisdictional context in the profile (priors)
+
+Every partner profile carries a **jurisdiction line** in the durable record: federal context (K-12 vs higher-ed FERPA, COPPA applicability), state context (CA / NY / IL / CT / CO / TX / VA / WA / UT / FL or other student-privacy state), and language context (primary household languages if non-English-primary populations are substantial). Without those three, comms drafts get authored against an incorrect set of rules and the PSM doesn't notice until something goes sideways.
+
+What to record per jurisdiction:
+
+- **State student-privacy law triggered** — name the statute (e.g., "Illinois SOPPA; 30-day breach notification; published vendor list required; 60-day deletion at contract end") so the next PSM doesn't have to re-derive it.
+- **Top non-English household languages** — recorded so comms variants don't get scoped at draft time. If the partner serves substantial Spanish, Vietnamese, Haitian Creole, etc. populations, the profile says so.
+- **District-side directory-information designation** — what the district has formally designated as directory info (varies district to district), so comms drafts know what is or isn't disclosable without consent.
+- **Champion-redundancy in the privacy context** — for IL / NY / CT, the partner-side data-protection officer (or equivalent) is a named role; track it.
+- **Prior privacy incidents** — even minor (a mis-sent comm, a parent complaint that didn't escalate). Don't delete. The next renewal cycle benefits from knowing the partner's risk-tolerance pattern.
+
+The profile is the **first artifact** the `ferpa-comms-translator` reads before drafting parent / family / student comms. If the profile is silent on jurisdiction, the translator has to ask — which slows comms and risks getting the answer wrong.
+
+Full reference (federal three-bucket model, K-12/higher-ed rights-holder shift, state-by-state typology, multilingual obligations, the residual checklist): [`../knowledge/parent-comms-jurisdictional-bear-traps.md`](../knowledge/parent-comms-jurisdictional-bear-traps.md). Read it before opening a profile for a new partner, before any PSM handoff, and at the start of any annual partner review.
+
 ## Anti-patterns you flag
 - Profile sections that paraphrase partner statements without quoting them
 - "Partner says" and "We observe" content mixed in the same paragraph
