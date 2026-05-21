@@ -24,6 +24,72 @@ Each entry is a dated section. Reverse-chronological order (newest first).
 
 ---
 
+## 2026-05-21 (late) — The "did you try X?" round-trip is a smell. Agents must enumerate alternative paths before declaring blocked.
+
+**Context:** Matt ran ~136 cloud-flow creates in a customer DEV environment via service principal. The agent driving the script hit the Power Automate Management API with the SPN's token, got HTTP 401 (token `roles` claim was `null`), and stopped — reporting "this can't be done programmatically without Global Admin consent." Matt had to prompt the agent: *is there another way?* The agent then immediately found the Dataverse Web API workaround that was sitting right there with the same SPN already authorized.
+
+**What we tried first:** Treating the Capability Grounding Protocol as a "check skills → state limitation" pipeline. The protocol said "consider partial progress" and "consider team composition" but didn't explicitly require enumeration of alternative implementation surfaces. So agents stopped at the first failure.
+
+**Why it failed:** The protocol's failure mode wasn't dishonesty — it was incomplete reasoning under pressure. When one tool fails, the agent's instinct is to stop and report, not to brainstorm a sibling path. The user-prompt round-trip ("did you try X?") was the visible symptom; the missing structural step was the cause.
+
+**What works:** Step 3 of the Capability Grounding Protocol now requires explicit enumeration of 2–3 alternative implementation paths, ranked by cost, with the next-easiest attempted *before* the blocked status can leave. The mandatory phrasing template changed from `"After checking [skills], I cannot…"` to `"After trying [A — outcome] and [B — outcome], I am blocked on…"` — the report now communicates effort and narrows the user's decision space. Per-plugin §5 sections carry domain-specific enumeration ladders (Power Platform: REST → SDK → CLI → portal-with-automation; PA Mgmt API → Dataverse Web API → Power Apps API → CDS plugin; web-design: grid → flex → subgrid; etc.).
+
+**How to apply:**
+- When stuck, brainstorm 2–3 alternatives same-outcome-different-surface. Rank by cost. Try the cheapest unattempted one before reporting.
+- Blocked reports must list what was tried (with one-line outcomes) AND what was ruled out (with reason).
+- Anti-pattern: asking the user to fix the original approach (e.g., "can you have your Global Admin grant Flows.Manage.All?") *before* demonstrating the lower-friction paths were tried.
+
+**Trace:** PR #22 (marketplace 0.10.0, ravenclaude-core 0.7.0). Case study at `plugins/power-platform/knowledge/programmatic-flow-creation.md`. Memory: `feedback_alternate_methods_grounding.md`.
+
+---
+
+## 2026-05-21 (late) — Knowledge-bank pattern: when a production lesson is worth keeping, store it as a single source-of-truth file + compact inline priors on the affected agents.
+
+**Context:** Two production lessons surfaced same-day that needed to land in the plugins: a curated "cutting edge yet simple" web-design reference set (Linear, Vercel, Raycast, etc.) and the Power Automate Management API trap + Dataverse Web API workaround. Both needed to be accessible to agents *immediately* on invocation, not lazily on user prompt.
+
+**What we tried first:** Embedding the full brief in every relevant agent's prompt. Rejected on first read — agent prompts would balloon and the same content would have to be edit-amended across 4+ files every time the brief refreshes.
+
+**Why the alternative also failed:** A standalone reference file with NO inline pointer in the agents means the agent doesn't know the rule exists until the user prompts it. That defeats the entire point of capturing the lesson.
+
+**What works:** Hybrid pattern. Single source of truth at `plugins/<plugin>/knowledge/<topic>.md` with a `Last reviewed:` date, refresh trigger, source citations, and the full content. Plus compact inline priors (~10 lines) added to the 3–5 agents most likely to apply it, summarizing the rule and pointing at the knowledge file for depth. Plus a `Knowledge bank` sub-section in the plugin's `CLAUDE.md` indexing the files. Opinions are immediately active; the depth is on-demand; refreshes touch one canonical file.
+
+**How to apply:**
+- When a production lesson or external research finding is worth keeping, default to this shape — don't ask where to put it.
+- The reviewed-on date is mandatory — references rot.
+- Domain-tailor the inline priors per agent (visual-designer gets aesthetic priors; web-architect gets stack priors; flow-engineer gets API-surface priors).
+- Version-bump the affected plugin minor. The plugin's catalog description in `marketplace.json` should mention the knowledge bank.
+
+**Trace:** PRs #20 (web-design 0.2.0, design-references), #21 (power-platform 0.8.0, programmatic-flow-creation). Memory: `feedback_knowledge_bank_pattern.md`.
+
+---
+
+## 2026-05-21 (late) — Stacked-PR rebase choreography: squash merges break SHA chains. Plan for it.
+
+**Context:** Across two big sessions today, ~8 PRs in two stacks all touched the same handful of files (`marketplace.json`, plugin `plugin.json` versions, `CHANGELOG.md`, `docs/architecture.md`, `repo-guide.html`). Every squash merge invalidated the downstream PRs' bases.
+
+**What we tried first:** Hoping GitHub's auto-merge would handle the cascade. It didn't — the squash collapses commit SHAs, so the downstream PR's earlier commits no longer apply cleanly even though their content is already in main.
+
+**Why it failed:** Squash merge creates a single new commit on main with a fresh SHA. The downstream PR's recorded base is the old branch SHA, which is now orphaned. Git can't trivially detect that the content is upstream because the SHAs differ.
+
+**What works:** Treat each downstream PR as needing a rebase + regen after the upstream merge. Concretely:
+
+1. Merge PR N → `git fetch origin main` → checkout downstream PR's branch → `git rebase origin/main`.
+2. Expect conflicts on the shared files. Resolve manifest versions by re-bumping forward (if both wanted the same bump, downstream goes one higher). Resolve CHANGELOG by renumbering. For `repo-guide.html`, `git checkout --ours` (or `--theirs`); it's generated, regenerate after rebase completes.
+3. After rebase: `python3 scripts/generate-repo-guide.py` → `git add repo-guide.html` → `git commit --amend --no-edit`.
+4. If the downstream PR added a hook, the +x bit drops during replay — `chmod +x` + amend.
+5. `git push --force-with-lease` → wait for CI → merge.
+
+The "patch contents already upstream" message from `git rebase --skip` is the right behavior when the rebase replays a commit whose content already landed via a sibling PR.
+
+**How to apply:**
+- Plan the merge order before starting (foundational PRs first; HTML/docs regen PRs last).
+- Don't wait for one PR's CI to clear before queuing the next — work in parallel.
+- After each merge, do the rebase + regen on the *next* PR immediately, before kicking off its CI.
+
+**Trace:** Sessions on 2026-05-21 covering PRs #14–#23 (12 merges total). Memory: `feedback_stacked_pr_choreography.md`.
+
+---
+
 ## 2026-05-21 — A step that runs is not necessarily a step that gates: audit every CI check with a known-bad fixture
 
 **Context:** Round-6 of the marketplace's self-review chain. PR 9/10 had added `rhysd/actionlint:1.7.7` as a Docker container action in `validate-marketplace.yml`. CI on commit `de21250` passed. Score moved to 91/100 (architect) / 87/100 (Team Lead) with "Test/verification depth = 10/10" specifically credited to the new actionlint step.
