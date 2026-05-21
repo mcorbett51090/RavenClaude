@@ -107,7 +107,29 @@ scripts/audit-gates.sh
 
 CI's prettier step runs `prettier --check .` against the entire working tree, not just the files in the current diff. Practical consequence: **a single mis-formatted file in main blocks every subsequent PR's CI** until that file is reformatted in main. Always run `prettier --write .` before pushing — even if your PR is markdown-only, an unrelated YAML/JS file added in a previous PR can fail the check. Verified once with `prettier --check .` returning exit 0 before pushing.
 
-CI runs the same checks plus the layout allow-list validation and the gate-audit meta-test.
+### Layout-allow-list discipline (added 2026-05-21 after PR #32 failed)
+
+**Before pushing any PR that introduces a new directory under `plugins/<plugin>/`, update `.repo-layout.json` `allowed_globs` to include the new path.** The CI workflow `validate-layout.yml` reads the allow-list and blocks any added file whose path doesn't match. The local hook (`enforce-layout.sh`) catches this during the session, but only fires on Write/Edit/MultiEdit — if you create a new directory and add files in a single batch with `mkdir -p` + Write to a path the hook hasn't yet seen, the failure surfaces in CI not locally.
+
+**Verification snippet** (run before `git push`):
+
+```shell
+# Find any new files outside the allow-list (per CI's check)
+python3 - <<'PY'
+import fnmatch, json, subprocess
+allowed = json.load(open(".repo-layout.json"))["allowed_globs"]
+new = subprocess.run(["git", "diff", "--name-only", "--diff-filter=A", "main"],
+                     capture_output=True, text=True).stdout.splitlines()
+violations = [f for f in new if not any(fnmatch.fnmatchcase(f, g) for g in allowed)]
+if violations:
+    print("LAYOUT VIOLATIONS — add globs to .repo-layout.json first:")
+    for v in violations: print(f"  - {v}")
+else:
+    print("Layout OK — every new file matches at least one allowed glob.")
+PY
+```
+
+CI runs the same checks plus the gate-audit meta-test.
 
 ## PR conventions
 
