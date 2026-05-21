@@ -221,6 +221,13 @@ jobs:
             exit 1
           fi
 
+      - name: Audit every gate (meta-test — prove each gate fails on bad input AND passes on good)
+        # Codifies docs/best-practices/ci-gate-audit.md. If any CI gate
+        # stops gating (or starts gating the wrong thing), this step catches
+        # it on the next PR, not in the next real incident. See
+        # scripts/audit-gates.sh for per-gate fixtures.
+        run: scripts/audit-gates.sh
+
       - name: Cross-check version pins (marketplace.json vs plugin.json)
         run: |
           set -euo pipefail

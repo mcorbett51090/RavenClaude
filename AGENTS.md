@@ -84,13 +84,18 @@ python3 -m json.tool .repo-layout.json > /dev/null
 bash -n plugins/*/hooks/*.sh
 find plugins/*/hooks -name '*.sh' -exec test -x {} \;
 
-# 3. Local install test (from a separate test project)
+# 3. Audit every gate (the meta-test)
+scripts/audit-gates.sh
+# Proves each CI gate fails on a known-bad fixture AND passes on a known-good one.
+# Required reading before adding or changing any CI step: docs/best-practices/ci-gate-audit.md
+
+# 4. Local install test (from a separate test project)
 # /plugin marketplace add /workspaces/RavenClaude
 # /plugin install ravenclaude-core@ravenclaude
 # Confirm agents appear in /plugin UI.
 ```
 
-CI runs the same checks plus the layout allow-list validation.
+CI runs the same checks plus the layout allow-list validation and the gate-audit meta-test.
 
 ## PR conventions
 
