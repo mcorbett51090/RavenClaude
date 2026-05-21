@@ -91,6 +91,20 @@ jobs:
           done
           exit $status
 
+      - name: Guard against private email leaks in public manifests
+        run: |
+          set -euo pipefail
+          status=0
+          # AGENTS.md "PR conventions" requires removing email from manifests
+          # before pushing to a public-readable remote. CI enforces it.
+          if grep -rn "matt@ravenpower.net" .claude-plugin/ plugins/*/.claude-plugin/ 2>/dev/null; then
+            echo "::error::Private email 'matt@ravenpower.net' found in a public manifest. Remove the email field or replace with a noreply alias."
+            status=1
+          else
+            echo "OK no private emails in manifests"
+          fi
+          exit $status
+
       - name: Cross-check version pins (marketplace.json vs plugin.json)
         run: |
           set -euo pipefail

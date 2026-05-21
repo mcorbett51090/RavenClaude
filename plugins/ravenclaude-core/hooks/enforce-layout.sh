@@ -47,7 +47,26 @@ emit_deny() {
   exit 2
 }
 
+# Defense-in-depth: refuse any path containing '..' before the allow-list check.
+# A glob like 'plugins/*/agents/**' would otherwise accept the *string form*
+# of 'plugins/x/agents/../../etc/passwd' because '*' inside [[ == ]] matches '/'.
+# The hook can only be invoked by an agent that already has Write access, so
+# this is low-severity, but the check is cheap and the failure mode is real.
+if [[ "$rel_path" == *..* ]]; then
+  emit_deny "Layout policy: path '$rel_path' contains '..' — refused as a path-traversal scrub."
+fi
+
 # Read patterns once.
+# Matching note: this script uses bash `[[ string == pattern ]]` semantics,
+# which is *pattern matching*, NOT filename expansion. Two consequences:
+#   1. A single '*' inside [[ == ]] matches any string including '/'.
+#   2. `shopt -s globstar` is inert inside [[ == ]] — '**' collapses to two
+#      consecutive '*' metacharacters. So 'plugins/*/agents/**' matches
+#      'plugins/foo/agents/sub/x.md' because the first '*' accepts the slash,
+#      not because globstar is doing recursion.
+# If you ever refactor this to use `find` or filename expansion, re-test
+# every pattern — the semantics differ. See bash(1) "Pattern Matching" and
+# "Filename Expansion" sections for details.
 mapfile -t forbidden < <(jq -r '.forbidden_globs[]?' "$manifest" 2>/dev/null)
 mapfile -t allowed < <(jq -r '.allowed_globs[]?' "$manifest" 2>/dev/null)
 

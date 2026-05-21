@@ -12,13 +12,18 @@ For non-trivial changes touching more than two files (or any manifest), enter pl
 
 ## Memory references
 
-User-scoped memory lives at `/home/codespace/.claude/projects/-workspaces-RavenClaude/memory/`. `MEMORY.md` is the index. Update it when something durable about the user, project, or working style changes.
+User-scoped memory lives under your Claude Code home (e.g. `~/.claude/projects/<encoded-project-path>/memory/` on Linux/macOS or the equivalent on Windows). `MEMORY.md` is the index inside that directory. Update it when something durable about the user, project, or working style changes.
 
 ## Marketplace-dev hooks
 
-During development *on* this repo, hooks are sourced from the plugin's own `hooks/hooks.json` (auto-loaded when Claude Code discovers `plugins/ravenclaude-core/.claude-plugin/plugin.json` at the project root). The marketplace's own `.claude/settings.json` no longer wires hooks manually — that responsibility moved to the plugin so consumers also get them.
+Two registration paths are wired in this repo, intentionally:
 
-If you need a marketplace-only hook (i.e., one that should NOT ship to consumers), add it to `.claude/settings.json` under `hooks`. None today.
+1. **Plugin canonical** — `plugins/ravenclaude-core/hooks/hooks.json` registers all four hooks with `${CLAUDE_PLUGIN_ROOT}` paths. This is the path consumers get when they `/plugin install ravenclaude-core@ravenclaude`.
+2. **Marketplace dev** — `.claude/settings.json` registers the same four hooks with `${CLAUDE_PROJECT_DIR}` paths against the working tree. This is what fires when you're editing the marketplace itself and the dev session may not have the latest plugin version installed.
+
+Both wirings call idempotent scripts, but the two paths *do* fire on the same events when both are active. Long-term the marketplace dev session should rely on the installed plugin only — to migrate, run `/plugin marketplace update ravenclaude` + `/reload-plugins` in your dev session, confirm the installed version is current, then delete the `hooks` block in `.claude/settings.json`. Until then, keeping both is the safer default.
+
+If you need a marketplace-only hook (i.e., one that should NOT ship to consumers), add it to `.claude/settings.json` under `hooks` separately from the dev-mirror block above.
 
 ## Layout enforcement (Claude Code path)
 

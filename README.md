@@ -16,7 +16,7 @@ In any Claude Code project where you want the agents:
 /reload-plugins
 ```
 
-That's it. The 13 agents become available via the `Agent` tool, the dispatch skills (`spawn-team`, `new-worktree`, `cleanup-worktrees`, `create-pr`, `run-full-test-suite`) are loaded, and the format/lint/test hooks fire automatically.
+That's it. The 13 agents become available via the `Agent` tool under their namespaced `ravenclaude-core:<agent-name>` form (e.g. `ravenclaude-core:architect`, `ravenclaude-core:code-reviewer`). The dispatch skills (`spawn-team`, `new-worktree`, `cleanup-worktrees`, `create-pr`, `run-full-test-suite`) are loaded, and the format/lint/test hooks fire automatically.
 
 To pin a specific version (recommended for client engagements where you don't want surprise updates):
 
@@ -83,16 +83,16 @@ For a full list of agents and when to spawn each, see the team-roster table in [
 
 ## How agents actually get invoked
 
-A common point of confusion: **these plugin agents do not appear as `subagent_type` options on the `Agent` tool**. Claude Code's built-in agent list (general-purpose, Explore, Plan, etc.) is separate from plugin-supplied agents, and a fresh `Agent` call with `subagent_type: "code-reviewer"` will fail with an InputValidationError.
+Plugin agents are exposed as **namespaced** `subagent_type` values on the `Agent` tool: `ravenclaude-core:architect`, `ravenclaude-core:code-reviewer`, `ravenclaude-core:backend-coder`, and so on. The **bare name** (e.g. `subagent_type: "code-reviewer"`) is reserved for Claude Code's built-in agents and will fail with `InputValidationError` for plugin-supplied agents — always include the `ravenclaude-core:` prefix.
 
-Plugin agents fire through the **Team Lead orchestration pattern**:
+The agents fire through the **Team Lead orchestration pattern**:
 
 1. The top-level Claude session acts as **Team Lead** — it reads `plugins/ravenclaude-core/CLAUDE.md`, sees the team roster, and decides which specialist(s) the user's request needs.
 2. To dispatch one or more specialists, the Team Lead invokes the [`spawn-team`](plugins/ravenclaude-core/skills/spawn-team.md) skill — that's the playbook for picking the right specialist, briefing it like a new colleague, and integrating the structured handoff payload that comes back.
-3. The specialist runs, returns a Markdown report ending in a `---RESULT_START--- … ---RESULT_END---` JSON block, and the Team Lead re-routes from there.
+3. The Team Lead calls `Agent(subagent_type="ravenclaude-core:<role>", …)` directly. Specialists return a Markdown report ending in a `---RESULT_START--- … ---RESULT_END---` JSON block, and the Team Lead re-routes from there.
 4. **Sub-agents never spawn other sub-agents.** They return a slice; the Team Lead re-dispatches. This keeps the dependency graph a flat tree.
 
-If you want to talk to a specific agent directly (e.g. "have the architect look at this"), say so in plain English to the Team Lead and it will use `spawn-team` to dispatch the architect. Don't try to address the agent by name through the `Agent` tool's `subagent_type` parameter — that's reserved for the built-in agents.
+If you want to talk to a specific agent directly (e.g. "have the architect look at this"), say so in plain English to the Team Lead and it will use `spawn-team` to dispatch the architect via the namespaced `subagent_type`.
 
 For the dispatch playbook itself, see [`plugins/ravenclaude-core/skills/spawn-team.md`](plugins/ravenclaude-core/skills/spawn-team.md).
 

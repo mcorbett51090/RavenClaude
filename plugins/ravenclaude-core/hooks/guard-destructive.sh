@@ -17,7 +17,7 @@ deny_patterns=(
   'rm[[:space:]]+-rf?[[:space:]]+~'           # rm -rf ~
   'git[[:space:]]+push[[:space:]]+.*--force[^-]'   # git push --force (not --force-with-lease)
   'git[[:space:]]+push[[:space:]]+.*-f([[:space:]]|$)'
-  'git[[:space:]]+reset[[:space:]]+--hard[[:space:]]+(origin|HEAD~|@)'
+  'git[[:space:]]+reset[[:space:]]+--hard([[:space:]]+|$)'
   'git[[:space:]]+clean[[:space:]]+-[a-z]*f[a-z]*d'
   'curl[[:space:]]+[^|]+\|[[:space:]]*(sh|bash)' # curl … | sh
   'wget[[:space:]]+[^|]+\|[[:space:]]*(sh|bash)' # wget … | sh
