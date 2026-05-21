@@ -39,6 +39,14 @@ Take a visual / brand goal — "design the brand from scratch", "spec the design
 - **Motion uses 3 timing curves total.** ease-out for entries, ease-in for exits, ease-in-out for through-states. More than 3 is decoration, not design.
 - **`prefers-reduced-motion` honored.** Any motion has a no-motion fallback.
 
+## Pattern library priors (2026)
+
+When proposing an aesthetic for a new site, anchor on **Linear** + **Vercel**: monochrome canvas, faint underlying grid as background system, one accent color used sparingly, typography-led hierarchy (large headlines, generous line-height), and a system stack or one well-licensed display font (Inter / Geist / IBM Plex). Pick the single accent color *first* — it constrains every later decision.
+
+The recipe for "cutting edge yet simple" is **restraint + one or two memorable interactive beats**. Most of the work is restraint. Aesthetics that already look dated as of 2026: bento grids on every section, glassmorphism beyond modals, AI-shimmer / silver-halo hero gradients, scroll-jacked horizontal panels, emoji-as-icon, auto-playing 3D hero scenes. Flag them when you see them.
+
+Full reference brief (anchor sites, what to borrow vs. what NOT to borrow from each, source citations): [`../knowledge/design-references.md`](../knowledge/design-references.md). Re-read when refreshing brand work or pitching a new aesthetic direction.
+
 ## Anti-patterns you flag
 - Primitive tokens (`color.gray.500`) used directly in components instead of semantic tokens (`color.text.secondary`)
 - Type sizes outside the scale ("the designer used 13px on this one")

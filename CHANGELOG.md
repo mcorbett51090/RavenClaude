@@ -2,6 +2,29 @@
 
 All notable changes to the RavenClaude marketplace and its plugins. Format loosely follows [Keep a Changelog](https://keepachangelog.com/). The marketplace version (`metadata.version` in `.claude-plugin/marketplace.json`) bumps when the catalog shape or cross-plugin contracts change; individual plugins have their own semver tracked in their `plugin.json`.
 
+## marketplace 0.8.0 — 2026-05-21 (web-design pattern priors)
+
+### web-design 0.2.0
+
+- **New knowledge bank** at `plugins/web-design/knowledge/design-references.md` — a curated reference set of marketing / product sites praised in 2024–2026 design discourse as "cutting edge yet simple" (Linear, Vercel, Raycast, Resend, Cursor, v0, Tldraw, Cal.com). For each: why it's praised, two or three patterns worth borrowing, one thing NOT to borrow, source citations. Plus a synthesis section and an "avoid 2024 tropes" list (bento grids everywhere, glassmorphism beyond modals, AI-shimmer hero gradients, scroll-jacked horizontal panels). Reviewed-on date at the top; refresh roughly annually.
+- **`visual-designer`, `ux-designer`, `frontend-implementer`, `web-architect`** each gain a compact **"Pattern library priors (2026)"** section tailored to their domain (aesthetic / interaction / implementation / stack respectively). The full brief lives in `knowledge/`; the inline priors make the opinions immediately active without bloating the prompt.
+- `CLAUDE.md` gains a new §8a (Knowledge bank) pointing at `knowledge/design-references.md`.
+
+### Marketplace meta
+
+- Catalog description now mentions the curated reference set as part of the web-design plugin's value proposition.
+
+**Migration for consumers:** `/plugin marketplace update ravenclaude` + `/reload-plugins`. No breaking changes — additive content only. The four updated agents will now apply the priors automatically when invoked for marketing-site work; consumers who want to read the full brief can open `plugins/web-design/knowledge/design-references.md` in their cached plugin tree (or browse it via the [`repo-guide.html`](../repo-guide.html) at the repo root).
+
+## marketplace 0.5.0 → 0.7.1 — 2026-05-21 (catch-up note)
+
+Three new domain plugins and the interactive repo guide landed in rapid succession on the same day; their PR descriptions and merge commits are the authoritative changelog for each. Briefly:
+
+- **0.5.0** — `finance` plugin v0.1.0 added (7 FP&A / controller / treasury / valuation / audit-prep / board-pack agents, 4 skills, 8 templates, advisory anti-pattern hook). Merge commit: `ddcd97e`.
+- **0.6.0** — `regulatory-compliance` plugin v0.1.0 added (6 AML/KYC / regulatory-reporting / risk-and-controls / policy-writer / examination-prep / Bermuda-insurance agents, 4 skills, 8 templates, defensive PII-scrub hook). Merge commit: `83f2173`.
+- **0.7.0** — `web-design` plugin v0.1.0 added (7 web specialists across IA / UX / visual / frontend / content / accessibility / performance, 4 skills, 8 templates, advisory web anti-pattern hook). Also: `repo-guide.html` generator + freshness CI step. Merge commits: `51386c6` and `8837615`.
+- **0.7.1** — `repo-guide.html` moved from `docs/` to the repo root for top-level visibility; README opener refreshed to reflect the five-plugin state. Merge commit: `0bcdda2`.
+
 ## marketplace 0.4.0 — 2026-05-21 (overnight realignment)
 
 Consolidates the salvageable content from overnight dispatcher PRs #8 / #9 / #10 onto the post-0.3.0 baseline. Stale version bumps (which would have rolled `ravenclaude-core` *back* to 0.3.0 and `power-platform` *back* to 0.6.0) were rejected; the additive content was preserved with version bumps recomputed forward.
