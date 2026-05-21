@@ -2,22 +2,43 @@
 
 All notable changes to the RavenClaude marketplace and its plugins. Format loosely follows [Keep a Changelog](https://keepachangelog.com/). The marketplace version (`metadata.version` in `.claude-plugin/marketplace.json`) bumps when the catalog shape or cross-plugin contracts change; individual plugins have their own semver tracked in their `plugin.json`.
 
+## marketplace 0.10.0 — 2026-05-21 (alternate-methods enhancement to Capability Grounding Protocol)
+
+Cross-plugin behavior change: agents now **proactively** enumerate alternative implementation paths and try them in order before declaring a task blocked. Motivated by the production incident captured in the 0.9.0 release (programmatic-flow-creation knowledge file) — the user had to prompt the agent to find the alternative Dataverse path. This release generalizes that lesson into a protocol rule that fires for every agent in every plugin.
+
+### ravenclaude-core 0.7.0
+
+- **Capability Grounding Protocol extended** in `CLAUDE.md`. New step 3 inserted: *"Enumerate alternative implementation paths from easiest to most difficult, and try them in that order before declaring the task blocked."* New sub-section "Try alternative paths before declaring blocked" spells out the rule (brainstorm 2–3 alternatives, rank by cost, try next-easiest, list what was tried), the mandatory phrasing template (`"After trying [A — outcome] and [B — outcome], I am blocked on …"`), the anti-patterns, and how the rule interacts with the Structured Output Protocol.
+
+### power-platform 0.9.0
+
+- §5 Capability Grounding Protocol gains the alternate-paths step + a Power-Platform-specific enumeration ladder (REST → SDK → CLI → portal-with-automation-around-it; PA Mgmt API → Dataverse Web API → Power Apps API → CDS plugin; per-user license → per-app → per-flow → pay-as-you-go). Cross-references `knowledge/programmatic-flow-creation.md` as the canonical case study. Grounding Protocol Checklist gains a new bullet: *"I enumerated at least 2–3 alternative implementation paths and tried the next-easiest one before declaring blocked."*
+
+### web-design 0.3.0
+
+- §5 gains the alternate-paths step + web-specific ladder (grid → flex → subgrid layout primitives; lighter library; build-time vs runtime split; static-first refactor; `<picture>`/`srcset` vs JS image-loading).
+
+### finance 0.2.0
+
+- §5 gains the alternate-paths step + finance-specific ladder (different revenue-recognition framing; peer-comp instead of DCF when forecast inputs are unstable; triangulation across three data sources; manual reconstruction with documented assumptions).
+
+### regulatory-compliance 0.2.0
+
+- §5 gains the alternate-paths step + compliance-specific ladder (alternative framework when one doesn't map; control narrative documenting the gap; triangulation across primary + secondary sources; directly-cited regulator guidance vs derivative summaries).
+
+**Migration for consumers:** `/plugin marketplace update ravenclaude` + `/reload-plugins`. Strictly additive — existing agents stay backwards-compatible, just gain the new behavior. Mandatory phrasing template updated; downstream parsers reading blocked-status reports should accept the new shape (which includes "tried" enumeration).
+
 ## marketplace 0.9.0 — 2026-05-21 (power-platform production knowledge bank)
 
 ### power-platform 0.8.0
 
-- **New knowledge bank** at `plugins/power-platform/knowledge/programmatic-flow-creation.md` — production lesson captured from creating ~136 cloud flows in a customer DEV environment via service principal in May 2026. Covers: why the Power Automate Management API is almost always blocked for SPNs (`roles: null` token; application permissions require Global Admin consent; delegated permissions don't work with `client_credentials`), the Dataverse Web API workaround (`workflow` entity, `category=5`, `type=1`, `primaryentity="none"`, `AddSolutionComponent` ComponentType=29), the `clientdata`-shape gotcha (Dataverse format wraps everything in `properties` and nests `connectionReferenceLogicalName` under a `connection` sub-object — NOT the same as the PA Management API export format), the GUID-injection rule for dependent flows, and a production checklist for bulk creates.
-- **`flow-engineer`, `solution-alm-engineer`, `power-platform-admin`** each gain a compact inline priors section tailored to their lane:
-  - `flow-engineer` — "Programmatic / bulk flow creation": don't reach for the PA Mgmt API by default; use the Dataverse path; the two failure modes (`clientdata` shape, unresolved GUID placeholders) that bite once you're on the workaround.
-  - `solution-alm-engineer` — "Service-principal auth surfaces": Dataverse role ≠ PA Mgmt API access; operational consequences for ALM pipeline design; document the auth surface in script headers.
-  - `power-platform-admin` — "SPN access to the PA Management API": when 401s show up, the answer is application permissions + Global Admin consent; before granting, ask whether the Dataverse path covers the actual need.
-- **`CLAUDE.md` gains §8a (Knowledge bank)** documenting the new directory and the pattern for adding future production-lesson entries (stable doc per problem domain, `Last reviewed` date, refresh trigger, citation to the production incident).
+- **New knowledge bank** at `plugins/power-platform/knowledge/programmatic-flow-creation.md` — production lesson captured from creating ~136 cloud flows in a customer DEV environment via service principal in May 2026. Covers: why the Power Automate Management API is almost always blocked for SPNs (`roles: null` token; application permissions require Global Admin consent; delegated permissions don't work with `client_credentials`), the Dataverse Web API workaround (`workflow` entity, `category=5`, `type=1`, `primaryentity="none"`, `AddSolutionComponent` ComponentType=29), the `clientdata`-shape gotcha, the GUID-injection rule, and a production checklist.
+- **`flow-engineer`, `solution-alm-engineer`, `power-platform-admin`** each gain inline priors tailored to their lane.
+- **`CLAUDE.md` gains §8a (Knowledge bank)** documenting the pattern for future production-lesson entries.
 
 ### Marketplace meta
 
-- Catalog descriptions for both `power-platform` and the marketplace as a whole now mention the knowledge bank as part of the plugin's value proposition.
-
-**Migration for consumers:** `/plugin marketplace update ravenclaude` + `/reload-plugins`. No breaking changes — additive content only. The three updated agents will now apply the priors automatically when invoked for flow / ALM / SPN-permission work; consumers who want the full lesson can open `plugins/power-platform/knowledge/programmatic-flow-creation.md` in their cached plugin tree (or browse it via the [`repo-guide.html`](../repo-guide.html) at the repo root).
+- Catalog descriptions for both `power-platform` and the marketplace mention the knowledge bank.
 
 ## marketplace 0.8.0 — 2026-05-21 (web-design pattern priors)
 

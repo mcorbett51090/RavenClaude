@@ -1,7 +1,7 @@
 {
   "name": "power-platform",
-  "version": "0.8.0",
-  "description": "Power Platform specialists (11 including power-platform-tester and power-bi-engineer) with Capability Grounding Protocol, maintainability-review skill, and strong ALM/git coverage for solutions, flows, and PBIP projects. House-opinions hook covers 8 mechanically-detectable §3/§4 violations. Knowledge bank captures production lessons (currently: programmatic-flow-creation via Dataverse Web API when the PA Management API is blocked, with flow-engineer, solution-alm-engineer, and power-platform-admin agents carrying inline priors). Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for reading, writing, and DAX-evaluating Power BI .pbix/.pbit files without Power BI Desktop — requires `pip install pbix-mcp` on the consumer machine.",
+  "version": "0.9.0",
+  "description": "Power Platform specialists (11 including power-platform-tester and power-bi-engineer) with Capability Grounding Protocol (extended with alternate-methods rule), maintainability-review skill, and strong ALM/git coverage for solutions, flows, and PBIP projects. House-opinions hook covers 8 mechanically-detectable §3/§4 violations. Knowledge bank captures production lessons (currently: programmatic-flow-creation via Dataverse Web API when the PA Management API is blocked, with flow-engineer, solution-alm-engineer, and power-platform-admin agents carrying inline priors). Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for reading, writing, and DAX-evaluating Power BI .pbix/.pbit files without Power BI Desktop — requires `pip install pbix-mcp` on the consumer machine.",
   "author": {
     "name": "Matt Corbett"
   },

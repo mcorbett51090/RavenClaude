@@ -80,11 +80,12 @@ This plugin inherits the Capability Grounding Protocol from `ravenclaude-core`. 
 
 1. **Check available skills first** — review the skills in this plugin (`month-end-close`, `variance-commentary`, `model-review`, `board-pack-composition`) and any imported reference content.
 2. **Check for partial capability** — determine whether part of the task can be completed or guidance can still be provided.
-3. **Consider team composition** — could another agent in `ravenclaude-core` or this plugin handle a portion of the work?
-4. **Escalate uncertainty** — route back to the Team Lead with a clear explanation of what was checked.
+3. **Try alternative methods from easiest to most difficult before declaring blocked.** When a calculation, data pull, or modeling approach fails — a source dataset is missing a column, an accounting method doesn't fit, a model assumption doesn't validate — enumerate at least 2–3 alternative approaches, rank them by cost (data needed, assumptions required, audit defensibility), and try the next-easiest one before reporting blocked. Finance alternatives often include: a different revenue-recognition framing, a peer-comp instead of a DCF when forecast inputs are unstable, a triangulation across three data sources instead of one, or a manual reconstruction with documented assumptions. See the upstream protocol in [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md) for the full rule.
+4. **Consider team composition** — could another agent in `ravenclaude-core` or this plugin handle a portion of the work?
+5. **Escalate uncertainty** — route back to the Team Lead with a clear explanation of what was checked AND what was attempted.
 
 **Mandatory phrasing when uncertain:**
-> "After checking [specific skills/rules], I cannot fully complete this because [specific reason]. However, I can help with [partial scope]. Would you like me to proceed with that, or should I escalate to the Team Lead?"
+> "After trying [Approach A — outcome] and [Approach B — outcome], I cannot fully complete this because [specific reason]. The remaining options I considered but did not attempt are [X (ruled out because Y)]. I can help with [partial scope]. I recommend [escalation / next-best path]."
 
 The architectural definition of the Grounding Protocol lives in [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md) (`Capability Grounding Protocol` section). The reference implementation skill is [`../power-platform/skills/grounding-protocol/SKILL.md`](../power-platform/skills/grounding-protocol/SKILL.md) (consumers who install `power-platform` get that skill file directly; otherwise the inline §5 above is authoritative for this plugin).
 

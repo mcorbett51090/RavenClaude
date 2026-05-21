@@ -5,15 +5,15 @@
     "name": "Matt Corbett"
   },
   "metadata": {
-    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. Ships ravenclaude-core (Team Lead + 14 specialists with active Structured Output Protocol + Cited-Adjudicator Escalation), power-platform (11 Microsoft Power Platform specialists + bundled pbix-mcp + production knowledge bank), finance (7 corporate-finance & FP&A specialists), regulatory-compliance (6 financial-regulatory specialists with field-experience BMA positioning), and web-design (7 web specialists with WCAG / Core Web Vitals / SEO discipline + a curated 2026 'cutting edge yet simple' reference set). EdTech and Salesforce remain on the roadmap.",
-    "version": "0.9.0"
+    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. Ships ravenclaude-core (Team Lead + 14 specialists with active Structured Output Protocol + Cited-Adjudicator Escalation + alternate-methods Capability Grounding), power-platform (11 Microsoft Power Platform specialists + bundled pbix-mcp + production knowledge bank), finance (7 corporate-finance & FP&A specialists), regulatory-compliance (6 financial-regulatory specialists with field-experience BMA positioning), and web-design (7 web specialists with WCAG / Core Web Vitals / SEO discipline + a curated 2026 'cutting edge yet simple' reference set). EdTech and Salesforce remain on the roadmap.",
+    "version": "0.10.0"
   },
   "plugins": [
     {
       "name": "ravenclaude-core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code plugin: 14 specialist agents (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, data-engineer, etc.), team-lead dispatch playbook with cross-plugin dispatch section, format/lint/test gates, contribution-staging workflow (with security sweep + expert-routing gates), templates for memos/runbooks/design specs/RAID logs/partner-success, plugin-distributable hooks (auto-activate in consumer projects) including the new guard-recursive-spawn advisory, layout-enforcement hook + CI workflow, and a /init-agent-ready slash command that steers consumer repos toward the same agent-readable boundary files (AGENTS.md + CLAUDE.md + .repo-layout.json).",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -29,8 +29,8 @@
     {
       "name": "power-platform",
       "source": "./plugins/power-platform",
-      "description": "Microsoft Power Platform specialist team — 11 specialists including power-platform-tester (Test Studio, flow run-history, DAX semantic correctness, pac solution check) and power-bi-engineer (semantic models, DAX, PBIP git + Azure DevOps integration) alongside canvas/Power Fx, Power Automate + custom connectors, Dataverse modeling/security, model-driven apps, pac CLI + ALM, tenant governance/DLP, PCF, Copilot Studio + AI Builder, Power Pages. House-opinions hook covers 8 mechanically-detectable §3/§4 violations. Knowledge bank captures production lessons (currently: programmatic cloud-flow creation via Dataverse Web API when the PA Management API is blocked by Azure AD permission requirements). Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval without Power BI Desktop (requires `pip install pbix-mcp`).",
-      "version": "0.8.0",
+      "description": "Microsoft Power Platform specialist team — 11 specialists including power-platform-tester (Test Studio, flow run-history, DAX semantic correctness, pac solution check) and power-bi-engineer (semantic models, DAX, PBIP git + Azure DevOps integration) alongside canvas/Power Fx, Power Automate + custom connectors, Dataverse modeling/security, model-driven apps, pac CLI + ALM, tenant governance/DLP, PCF, Copilot Studio + AI Builder, Power Pages. House-opinions hook covers 8 mechanically-detectable §3/§4 violations. Knowledge bank captures production lessons (currently: programmatic cloud-flow creation via Dataverse Web API when the PA Management API is blocked). Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval without Power BI Desktop (requires `pip install pbix-mcp`).",
+      "version": "0.9.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -51,7 +51,7 @@
       "name": "finance",
       "source": "./plugins/finance",
       "description": "Corporate finance & FP&A specialist team — FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. 4 skills, 8 templates, 1 advisory hook (hardcoded rates, plaintext PII, missing Sources / Assumptions). Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -71,7 +71,7 @@
       "name": "regulatory-compliance",
       "source": "./plugins/regulatory-compliance",
       "description": "Financial-regulatory & compliance specialist team — AML/KYC analyst (sanctions, EDD, SAR/STR), regulatory-reporting analyst (FATCA/CRS, supervisory returns, Solvency II, BMA EBS), risk-and-controls specialist (three lines of defense, KRIs), policy & procedure writer, examination-prep specialist, and Bermuda-insurance specialist. 4 skills, 8 templates, 1 defensive PreToolUse hook (PII scrub — SSN/IBAN/credit-card/Bermuda TIN/wire instructions). Positioning reflects field experience inside a Tier-1 financial regulator (BMA). Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -92,7 +92,7 @@
       "name": "web-design",
       "source": "./plugins/web-design",
       "description": "Web design & build specialist team — web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens), frontend implementer (HTML/CSS/JS, React, Astro, Next), content strategist (copy, microcopy, SEO content), accessibility auditor (WCAG 2.2 AA/AAA), and performance engineer (Core Web Vitals, image/font optimization). 4 skills (design-system audit, accessibility review, Core Web Vitals tuning, technical SEO audit), 8 templates, 1 advisory hook, and a knowledge bank seeded with a curated 2026 reference set of \"cutting edge yet simple\" marketing-site donors (Linear, Vercel, Raycast, Resend, Cursor, v0, Tldraw, Cal.com) — visual-designer / ux-designer / frontend-implementer / web-architect all carry compact inline priors plus a pointer to the full brief. Inherits ravenclaude-core protocols.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },

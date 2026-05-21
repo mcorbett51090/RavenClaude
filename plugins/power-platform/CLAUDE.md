@@ -87,18 +87,20 @@ Before stating any limitation, confirm:
 
 - [ ] I checked the available skills in this plugin (especially `dataverse-web-api`, `code-review`, `plan-with-team`, `grounding-protocol`, `maintainability-review`, `power-automate`, and `power-bi`).
 - [ ] I considered whether partial value can still be delivered.
+- [ ] **I enumerated at least 2–3 alternative implementation paths and tried the next-easiest one before declaring blocked.**
 - [ ] I considered whether another agent or the Team Lead could handle part of the work.
-- [ ] I am prepared to clearly explain what was checked and what is still possible.
+- [ ] I am prepared to clearly explain what was checked, what was attempted, and what is still possible.
 
 1. **Check available skills first** — Review the skills in this plugin (especially `dataverse-web-api`, `code-review`, `plan-with-team`, and any imported veteran skills).
 2. **Check for partial capability** — Determine if part of the task can be completed or if guidance can still be provided even if full automation isn't possible.
-3. **Consider team composition** — Ask whether another agent in `ravenclaude-core` or this plugin can handle a portion of the work.
-4. **Escalate uncertainty** — If still unsure after the above, route back to the Team Lead with a clear explanation of what was checked and what additional context or capability would be needed.
+3. **Try alternative paths from easiest to most difficult before declaring blocked.** When a Power Platform tool, API, CLI command, or permission path fails — token comes back with `roles: null`, `pac` doesn't have the command you expected, an env-var can't be resolved, a connector throws — enumerate at least 2–3 alternative approaches, rank them by cost (permissions needed, time to attempt, customer-side dependencies), and try the next-easiest one before reporting blocked. The canonical Power Platform case study is [`knowledge/programmatic-flow-creation.md`](knowledge/programmatic-flow-creation.md): PA Management API was permission-blocked → Dataverse Web API was sitting right there, same SPN already authorized. Common alternative dimensions to scan: REST → SDK → CLI → portal-with-automation-around-it; PA Mgmt API → Dataverse Web API → Power Apps API → CDS plugin; per-user license → per-app → per-flow → pay-as-you-go. See the upstream protocol in [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md) for the full rule.
+4. **Consider team composition** — Ask whether another agent in `ravenclaude-core` or this plugin can handle a portion of the work.
+5. **Escalate uncertainty** — If still unsure after the above, route back to the Team Lead with a clear explanation of what was checked, **what was attempted**, and what additional context or capability would be needed.
 
-**Default behavior:** Prefer *partial progress + clear next steps* over clean refusal. Only claim impossibility after the above checks have been performed and documented.
+**Default behavior:** Prefer *partial progress + clear next steps* over clean refusal. Try alternative paths automatically — the user should not have to ask "did you try X?" — that round-trip is a smell. Only claim impossibility after the above checks have been performed and documented.
 
 **Mandatory phrasing when uncertain:**
-> "After checking [specific skills/rules], I cannot fully complete this because [specific reason]. However, I can help with [partial scope]. Would you like me to proceed with that, or should I escalate to the Team Lead?"
+> "After trying [Approach A — outcome] and [Approach B — outcome], I cannot fully complete this because [specific reason]. The remaining options I considered but did not attempt are [X (ruled out because Y)]. I can help with [partial scope]. I recommend [escalation / next-best path]."
 
 **Partial Progress Principle**
 

@@ -122,16 +122,50 @@ This system exists to reduce hallucination and keep the entire agent team intell
 
 When working with Grok or other models, copy the relevant portable files so they also benefit from the Researcher discipline.
 
-## Capability Grounding Protocol (Updated)
+## Capability Grounding Protocol (Updated 2026-05-21)
 
 Before any agent claims it cannot do something or that information is outdated, it must:
+
 1. Check available skills (including the Researcher skill when appropriate).
 2. Consider whether partial progress is possible.
-3. Run the Grounding Protocol checklist.
-4. **Produce any limitation statement using the Structured Output Protocol.**
-5. Only then state limitations clearly.
+3. **Enumerate alternative implementation paths from easiest to most difficult, and try them in that order before declaring the task blocked.** See "Try alternative paths before declaring blocked" below — this is the default behavior, not a step the user has to prompt for.
+4. Run the Grounding Protocol checklist.
+5. **Produce any limitation statement using the Structured Output Protocol.**
+6. Only then state limitations clearly.
 
 The Researcher itself must apply this protocol to its own findings.
+
+### Try alternative paths before declaring blocked (added 2026-05-21)
+
+When an agent (or the Team Lead) hits a wall on Approach A — a tool fails, an API returns an error, a permission is denied, a CLI command doesn't exist, a library doesn't expose what's needed — the next move is **NOT** to report "this can't be done" or to ask the user to authorize the original approach. The next move is to **enumerate the alternative paths the same outcome could take, rank them from easiest to most difficult, and try them in that order.**
+
+Concretely, before any "blocked" status leaves an agent's report, the agent's working notes (or its inline reasoning, depending on agent type) must answer:
+
+1. **What other ways could this same outcome be achieved?** Different API on the same platform. A lower-level surface (CLI → REST → SDK → database direct). A different tool that solves the adjacent problem. A manual procedure with automation around the boring parts. Brainstorm at least 2–3 alternatives even if you're confident the first failed for good reason.
+2. **Rank them by cost** (time to attempt, dependencies needed, permissions to acquire, irreversibility). Easiest first.
+3. **Try the next-easiest one** before reporting blocked.
+4. **In the eventual blocked report, list the alternatives you tried** (with one-line outcomes) plus the alternatives you considered and ruled out (with the reason). This is what makes the report *useful* — the user shouldn't have to ask "did you try X?" because the report already says "tried X, failed with Y; tried Z, failed with W; the remaining option is escalating to ABC."
+
+Why this rule exists: agents historically default to "this approach didn't work → report blocked → wait for user." Real production work has the user asking "is there another way?" and the agent finding one immediately. That round-trip is wasted — the agent should make the second attempt without being prompted. Confirmed pattern from production: see [`plugins/power-platform/knowledge/programmatic-flow-creation.md`](../power-platform/knowledge/programmatic-flow-creation.md) — the canonical case study, where Approach A (PA Management API) was permission-blocked and Approach B (Dataverse Web API) was sitting right there with the same SPN already authorized.
+
+### Mandatory phrasing when reporting genuine blockage
+
+If, after exhausting alternatives, the work *is* blocked, the report says so explicitly and lists what was tried:
+
+> "After trying [Approach A — outcome], [Approach B — outcome], and [Approach C — outcome], I am blocked on [specific reason]. The remaining options I considered but did not attempt are [X (ruled out because Y), Z (would need permission W)]. I recommend [escalation / next-best path]."
+
+This phrasing communicates effort, narrows the user's decision space, and protects against the "did you try X?" round-trip.
+
+### Anti-patterns
+
+- **Stopping after one attempt.** "I tried the PA Management API and it returned 401, so this can't be done programmatically." Wrong — the answer was always to try Dataverse Web API.
+- **Asking the user to fix the original approach.** "Can you have your Global Admin grant Flows.Manage.All?" — that's a valid escalation, but only after demonstrating the lower-friction paths were tried.
+- **Reporting blocked without listing what was tried.** "This isn't possible" with no enumeration is the lowest-value report shape; the user has no idea what's left to consider.
+- **Inventing alternatives that don't exist** to look thorough. Better to say "I considered X and Y; neither apply because Z" than to fabricate a third path.
+
+### How this interacts with the Structured Output Protocol
+
+When emitting the SOP JSON block, agents whose final status is `blocked` or `partial` must populate `risks_or_open_questions` with the alternatives ruled out and `next_actions` with the recommended escalation path. The Markdown report carries the human-readable narrative of what was tried.
 
 ## Run Artifacts & Observability Standard (Recommended — for multi-step orchestrations)
 
