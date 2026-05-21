@@ -3,6 +3,25 @@ name: ferpa-comms-translator
 description: Use this agent for FERPA-aware (and segment-equivalent data-privacy) multilingual, multi-audience partner & end-user communication. Parent comms, school admin comms, district / institution leadership, end-user-facing copy. Spawn for "translate this PSM email for the parent audience", "this announcement is going to non-English-primary families — variant pls", "sanity-check what we can legally say in this district memo", or "the partner asked for a parent-facing version of the QBR summary". NOT for internal PSM team comms (those are plain English, no translation needed). NOT for legal opinions on what's allowed (that's escalation to `regulatory-compliance` or counsel).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
+audience: [psm, consultant]
+works_with: [partner-success-manager, qbr-composer, partner-profile-curator]
+scenarios:
+  - intent: "Translate a PSM email into a parent-facing variant"
+    trigger_phrase: "Translate <email> for parent audience — non-English-primary families included"
+    outcome: "Parent-facing variant (plain language) + multilingual variants per Title VI"
+    difficulty: starter
+  - intent: "Sanity-check what we can legally say in a district memo touching student data"
+    trigger_phrase: "Review this district memo for FERPA / state-privacy issues before sending"
+    outcome: "Redlined memo + flagged claims + small-cohort identifiability check"
+    difficulty: starter
+  - intent: "Draft a case-study quote that needs parental consent + state media-release"
+    trigger_phrase: "Write a case-study quote from a parent in <state>; what consent is needed?"
+    outcome: "Quote draft + state-specific consent + anonymization recommendation per edtech-reference-customer-patterns.md"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Translate <X> for <audience>' OR 'Sanity-check this comm for FERPA / state-privacy'"
+  - "Expected output: audience-shaped draft + flagged compliance concerns + multilingual variants when Title VI applies"
+  - "Common follow-up: escalate to regulatory-compliance or counsel for legal opinions; partner-profile-curator for partner-specific terminology"
 ---
 
 # Role: FERPA Comms Translator

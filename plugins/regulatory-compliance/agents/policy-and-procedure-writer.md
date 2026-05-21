@@ -3,6 +3,25 @@ name: policy-and-procedure-writer
 description: Use this agent for compliance manual / policy / procedure authoring — new policy drafting, P&P refreshes, gap analysis against new regulation, regulator-facing documentation, jurisdictional adaptation of an existing policy. Spawn for new policies, periodic policy review cycles, mapping a new regulation into existing policies, drafting public-facing compliance commitments. NOT for legal opinions (route to counsel) and NOT for operational implementation (route to the relevant operational team).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
+audience: [compliance]
+works_with: [risk-and-controls-specialist, aml-kyc-analyst]
+scenarios:
+  - intent: "Draft a new compliance policy from scratch"
+    trigger_phrase: "Draft a <policy area> policy — we don't have one"
+    outcome: "Policy with purpose/scope/definitions/roles/procedures/monitoring/review cycle + regulatory citations + ownership"
+    difficulty: starter
+  - intent: "Gap analysis against new regulation"
+    trigger_phrase: "<new regulation> just landed — gap analysis against our current P&Ps"
+    outcome: "Gap report + ranked policy updates + draft revisions for the highest-priority gaps"
+    difficulty: advanced
+  - intent: "Annual policy refresh for an existing P&P"
+    trigger_phrase: "Annual refresh of <policy> — check against current regulation + practice"
+    outcome: "Refreshed policy + change log + reviewer sign-off chain + operational-realism check"
+    difficulty: starter
+quickstart:
+  - "Trigger phrase: 'Draft <policy area>' OR 'Gap analysis for <regulation>' OR 'Annual refresh of <policy>'"
+  - "Expected output: policy / gap report / refresh with primary-source regulatory citations + named owners + review cycle"
+  - "Common follow-up: aml-kyc-analyst for operational realism on AML policies; risk-and-controls-specialist if controls need updating; counsel for any legal-opinion gate"
 ---
 
 # Role: Policy & Procedure Writer

@@ -3,6 +3,25 @@ name: financial-modeler
 description: Use this agent for financial-model work — three-statement models, DCF, scenario / sensitivity, model architecture, model documentation. Spawn for building a model from scratch, reviewing an existing model, refactoring a broken / overgrown one, or defending modeling assumptions. NOT for budget / forecast / variance work (fpa-analyst) and NOT for board-pack composition (board-pack-composer).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
+audience: [analyst, consultant]
+works_with: [fpa-analyst, valuation-analyst]
+scenarios:
+  - intent: "Build a three-statement model for an acquisition target"
+    trigger_phrase: "Build a 3-statement model for <target> with <X year> projections"
+    outcome: "Linked IS + BS + CF + assumptions tab + scenario layer + documentation"
+    difficulty: starter
+  - intent: "Review an existing model for hardcodes / circulars / methodology issues"
+    trigger_phrase: "Review <model> — 7-pass review"
+    outcome: "Findings (hardcodes / undisclosed circulars / methodology gaps) + remediation plan ranked by audit-defensibility"
+    difficulty: advanced
+  - intent: "Refactor a broken / overgrown model"
+    trigger_phrase: "Refactor <model> — too many tabs, broken formulas, unclear assumptions"
+    outcome: "Refactored model with inputs-only sheet + clean dependencies + documented assumptions + tested integrity"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Build 3-statement for <target>' OR 'Review <model>' OR 'Refactor <model>'"
+  - "Expected output: model + documentation tab + assumptions tab + tested scenarios + sources cited"
+  - "Common follow-up: valuation-analyst for DCF / comps on top; fpa-analyst for ongoing forecast cycles; board-pack-composer for board-facing deliverable"
 ---
 
 # Role: Financial Modeler

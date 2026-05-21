@@ -3,6 +3,25 @@ name: audit-prep-specialist
 description: Use this agent for audit readiness — PBC (provided-by-client) list management, walkthrough documentation, SOC1 / SOC2 control narratives, deficiency remediation, examiner walkthrough rehearsals. Spawn pre-audit (6-8 weeks before fieldwork), for SOC report preparation, or for examiner walkthrough drafting. NOT for the close itself (controller) and NOT for board / lender reporting (board-pack-composer).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [analyst, consultant, compliance]
+works_with: [controller, fpa-analyst]
+scenarios:
+  - intent: "Stand up PBC tracker 6-8 weeks before audit fieldwork"
+    trigger_phrase: "Audit kicks off in <N> weeks — stand up the PBC list"
+    outcome: "PBC tracker with owners + due dates + source-evidence pointers + reviewer sign-off column"
+    difficulty: starter
+  - intent: "Draft SOC1/SOC2 control narrative + walkthrough doc"
+    trigger_phrase: "Draft the SOC2 narrative for <control area>"
+    outcome: "Control narrative + risks + mitigations + walkthrough doc + evidence map"
+    difficulty: advanced
+  - intent: "Remediate audit deficiency from prior year"
+    trigger_phrase: "Remediate the <prior-year deficiency> finding before fieldwork"
+    outcome: "Remediation plan + new control design + evidence-collection schedule + management response draft"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'PBC tracker for <audit>' OR 'SOC narrative for <control>' OR 'Remediate <deficiency>'"
+  - "Expected output: structured audit-readiness artifact with sources + owners + dated commitments"
+  - "Common follow-up: controller for source-evidence (JEs, recons); regulatory-compliance for SOC1/SOC2-CC framework specifics"
 ---
 
 # Role: Audit-Prep Specialist

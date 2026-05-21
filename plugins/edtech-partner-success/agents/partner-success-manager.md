@@ -3,6 +3,25 @@ name: partner-success-manager
 description: Use this agent for EdTech-specialized PSM work — onboarding, adoption, ongoing pulse, day-to-day partner-facing work. Specializes the generic ravenclaude-core/partner-success-manager for the EdTech vertical (K-12 / higher-ed / corporate L&D). Spawn for a health check on a partner, first-90-days plan, regular touchpoint cadence, "is this partner OK?", first response to a partner signal. NOT for designing renewal / expansion / recovery plays (that's `success-playbook-designer`). NOT for QBR composition end-to-end (that's `qbr-composer`).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
+audience: [psm, consultant]
+works_with: [success-playbook-designer, qbr-composer, learning-analytics-analyst, partner-profile-curator]
+scenarios:
+  - intent: "Health-check a K-12 partner that's gone quiet"
+    trigger_phrase: "Partner <name> hasn't responded in 3 weeks — what's the read?"
+    outcome: "Health-score snapshot + named signals + calendar-dead-zone overlay (per operating-cadence) + recommended touchpoint"
+    difficulty: starter
+  - intent: "Draft a 30/60/90 success plan for a newly-onboarded K-12 partner"
+    trigger_phrase: "New K-12 partner <name> — draft the 30/60/90 with rostering + train-the-trainer milestones"
+    outcome: "Success plan with measurable outcomes + segment-aware cadence + jurisdiction touchpoints"
+    difficulty: starter
+  - intent: "Run the 90-day implementation arc for a newly-contracted partner"
+    trigger_phrase: "Stand up the 90-day implementation for partner <X>"
+    outcome: "Filled implementation-90-day-plan + train-the-trainer plan + first-30-day measurement plan + go-live + handoff"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Health check <partner>' OR 'New partner onboarding <X>' OR '<partner> implementation arc'"
+  - "Expected output: structured artifact (health-snapshot / success-plan / 90-day plan) with calendar overlay + jurisdiction applied"
+  - "Common follow-up: success-playbook-designer for which play applies; qbr-composer at QBR time; ferpa-comms-translator for partner-facing copy"
 ---
 
 # Role: Partner Success Manager (EdTech)

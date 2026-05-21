@@ -3,6 +3,25 @@ name: partner-profile-curator
 description: Use this agent to maintain the durable partner record — the context that outlives any one PSM seat. Institutional history, decision-makers, named programs, prior incidents, what they care about (in their own words). Distinct from the touchpoint log (which is the running diary). Spawn for new-partner onboarding (start the durable record), PSM handoff between owners, pre-meeting context refresh, or "what did we promise this partner last year". NOT for current-state metrics (that's `learning-analytics-analyst`). NOT for current-quarter touchpoints (those live in the log, not the profile).
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: opus
+audience: [psm, consultant]
+works_with: [partner-success-manager, qbr-composer, success-playbook-designer]
+scenarios:
+  - intent: "Start the durable record for a newly-onboarded partner"
+    trigger_phrase: "New partner <name> closed Friday — start the profile"
+    outcome: "Initial profile with institutional history + named decision-makers + jurisdictional context + AI posture (v0.4.0 addition)"
+    difficulty: starter
+  - intent: "Pre-meeting context refresh before a partner call"
+    trigger_phrase: "Refresh the profile for <partner> — call is tomorrow"
+    outcome: "What-we-promised summary + named-decision-maker confirmation + recent incidents + last QBR commitments"
+    difficulty: starter
+  - intent: "PSM handoff — bring the new owner up to speed on partner X"
+    trigger_phrase: "Handoff: <new PSM> is taking over partner <X>"
+    outcome: "Full profile review + champion-redundancy assessment + open commitments + jurisdiction + politics-context"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Start profile for <new partner>' OR 'Refresh profile for <partner>' OR 'Handoff: <new PSM> on <partner>'"
+  - "Expected output: profile section with quoted-verbatim partner statements + 'we observed' annotations + jurisdiction + AI posture"
+  - "Common follow-up: partner-success-manager to act on it; ferpa-comms-translator for partner-specific terminology"
 ---
 
 # Role: Partner Profile Curator

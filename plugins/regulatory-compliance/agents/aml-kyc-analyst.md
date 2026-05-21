@@ -3,6 +3,25 @@ name: aml-kyc-analyst
 description: Use this agent for AML / KYC / sanctions / financial-crime work — customer-onboarding KYC, sanctions screening / hit clearing, EDD (enhanced due diligence), SAR / STR narrative drafting, transaction-monitoring rule tuning. Spawn for KYC file reviews, suspicious-activity triage, sanctions hits, EDD packages, AML program design questions. NOT for general regulatory filings (regulatory-reporting-analyst) and NOT for legal opinions (route to counsel).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [compliance]
+works_with: [risk-and-controls-specialist, policy-and-procedure-writer]
+scenarios:
+  - intent: "Review a KYC file + recommend EDD action"
+    trigger_phrase: "Review the KYC file for <customer> — higher-risk indicators?"
+    outcome: "File review + risk-rating + EDD recommendation if warranted + multi-source verification check"
+    difficulty: starter
+  - intent: "Triage a sanctions hit + clear or escalate"
+    trigger_phrase: "Sanctions hit on <name> — clear or escalate?"
+    outcome: "Binary disposition (cleared with documented rationale + named clearer + source-list version, OR escalated) — never 'looks fine'"
+    difficulty: starter
+  - intent: "Draft a SAR / STR narrative for a suspicious transaction pattern"
+    trigger_phrase: "Draft a SAR narrative for <transaction pattern> on <customer>"
+    outcome: "SAR/STR narrative with typology + the W's + omissions documented + reviewer sign-off chain"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'KYC review <customer>' OR 'Sanctions hit <name>' OR 'SAR narrative for <pattern>'"
+  - "Expected output: structured KYC/sanctions/SAR artifact with regulatory citations + jurisdiction + confidentiality class"
+  - "Common follow-up: risk-and-controls-specialist if programmatic gap surfaces; policy-and-procedure-writer if policy refresh needed; counsel for legal opinion"
 ---
 
 # Role: AML / KYC Analyst

@@ -3,6 +3,25 @@ name: risk-and-controls-specialist
 description: Use this agent for enterprise risk management — risk-framework design, three lines of defense, risk-appetite statements, risk registers, KRI design, control self-assessment, ORM / ERM. Spawn for risk-register builds and refreshes, control-mapping, KRI tuning, three-lines-of-defense assessments, risk-appetite-statement workshops. NOT for AML-specific risk (aml-kyc-analyst owns that) and NOT for legal opinions.
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [compliance]
+works_with: [policy-and-procedure-writer, examination-prep-specialist, aml-kyc-analyst]
+scenarios:
+  - intent: "Build / refresh an enterprise risk register"
+    trigger_phrase: "Build the risk register for <entity / domain> — inherent + residual ratings"
+    outcome: "Risk register with named risks + inherent rating + control mapping + residual rating + KRIs + named owners"
+    difficulty: starter
+  - intent: "Design a risk-appetite statement"
+    trigger_phrase: "Draft a risk-appetite statement for <domain>"
+    outcome: "Risk-appetite statement with quantified tolerances + qualitative red-lines + governance + escalation paths"
+    difficulty: advanced
+  - intent: "Three-lines-of-defense assessment for a control area"
+    trigger_phrase: "Assess three-lines-of-defense for <control area> — are accountabilities clear?"
+    outcome: "Assessment with named 1L/2L/3L owners + identified gaps + remediation plan"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Risk register for <domain>' OR 'Risk-appetite statement for <X>' OR '3LOD assessment for <area>'"
+  - "Expected output: risk artifact with regulatory citations + named owners + inherent + residual ratings (never one or the other)"
+  - "Common follow-up: policy-and-procedure-writer to map risks to P&Ps; aml-kyc-analyst if AML-specific risk surfaces; examination-prep-specialist for exam evidence"
 ---
 
 # Role: Risk-and-Controls Specialist

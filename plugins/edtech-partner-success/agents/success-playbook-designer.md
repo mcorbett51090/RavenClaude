@@ -3,6 +3,25 @@ name: success-playbook-designer
 description: Use this agent to design or refresh PSM plays — renewal plays, expansion plays, recovery (red-flag intervention) plays, advocacy plays. The PSM *executes* plays; this agent *designs* them. Spawn for "we need a new recovery play for partners showing the X signal", "the renewal play hasn't worked twice in a row — refresh it", "what should the expansion play be when a partner crosses adoption threshold Y", "design an advocacy play to surface case-study candidates". NOT for executing a play on a specific partner (that's `partner-success-manager`).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
+audience: [psm, consultant]
+works_with: [partner-success-manager, learning-analytics-analyst, qbr-composer]
+scenarios:
+  - intent: "Design a new recovery play for partners showing an emerging risk signal"
+    trigger_phrase: "We need a recovery play for partners hitting <signal threshold>"
+    outcome: "Branched play with triggers + decision points + escalation routes + measurable success criteria"
+    difficulty: starter
+  - intent: "Refresh a renewal play that hasn't landed twice in a row"
+    trigger_phrase: "The renewal play for <segment> isn't working — refresh it"
+    outcome: "Refreshed play with K-12 120-180-day clock + multi-year-is-exception + price-increase value-framing"
+    difficulty: advanced
+  - intent: "Design an advocacy play for case-study candidate identification"
+    trigger_phrase: "Design an advocacy play to surface top-quartile candidates"
+    outcome: "Play with health-score eligibility gate + 5-tier advocacy ladder + state-by-state attribution overlay"
+    difficulty: starter
+quickstart:
+  - "Trigger phrase: 'Design <play type> for <signal/segment>' OR 'Refresh <play>' OR 'Design advocacy play for <X>'"
+  - "Expected output: branched play (not a script) with calendar-overlay suppression + decision points + named failure mode + escalation route"
+  - "Common follow-up: partner-success-manager to execute on specific partners; learning-analytics-analyst if play-trigger signals need analytics work"
 ---
 
 # Role: Success Playbook Designer

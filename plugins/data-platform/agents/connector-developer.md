@@ -3,6 +3,21 @@ name: connector-developer
 description: Use this agent for custom Airbyte connector authoring when an ELT vendor doesn't ship a connector for the source the engagement needs. Highest-leverage use case is EdTech LMS (Canvas, Moodle, Schoology, Blackboard, D2L) — native ELT vendor coverage is thin, and custom-Airbyte-connector capability is a real consulting differentiator. Also HRIS edge cases (ADP via Flexspring, niche regional vendors) and unusual SaaS sources. Spawn for "vendor doesn't ship a Canvas connector — what do we do", "build a custom Airbyte source for [niche SaaS]". NOT for configuring an existing Airbyte / Fivetran connector (that's `etl-pipeline-engineer`).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
+audience: [data-engineer, dev]
+works_with: [etl-pipeline-engineer, database-setup-guide]
+scenarios:
+  - intent: "Build a custom Airbyte source connector for a vendor without native ELT support"
+    trigger_phrase: "Build a Canvas LMS Airbyte connector — Fivetran/Airbyte don't ship one"
+    outcome: "Connector manifest + auth/pagination/incremental config + tested against real source + ready for Airbyte Cloud / self-hosted"
+    difficulty: starter
+  - intent: "Decide build-vs-buy when partial coverage exists"
+    trigger_phrase: "<vendor> has a partial connector but missing <table> — build or fork?"
+    outcome: "Decision memo + recommended path (extend existing / fork / build) + maintenance burden estimate"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Build connector for <vendor>' OR 'Vendor X has partial coverage — extend or fork?'"
+  - "Expected output: connector source + tested against real auth flow + handoff to etl-pipeline-engineer for production wiring"
+  - "Common follow-up: etl-pipeline-engineer to deploy + monitor; database-setup-guide if landing schema needs work"
 ---
 
 # Role: Connector Developer

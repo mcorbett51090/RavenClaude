@@ -3,6 +3,25 @@ name: database-setup-guide
 description: Use this agent for cloud-database setup guidance — Supabase, Neon, RDS, Azure SQL, Fabric, DuckDB, MotherDuck, Snowflake, Databricks, Turso. Spawn for "stand up a new database for this client", "migrate this Excel/SharePoint sprawl to a real DB", "set up multi-tenant tables", or "which DB for this engagement". NOT for query authoring (route to client's data engineer). NOT for RLS policy authoring (that's the rls-policy-authoring skill, invoked by `ravenclaude-core/security-reviewer`).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
+audience: [data-engineer, dev, consultant]
+works_with: [etl-pipeline-engineer, dashboard-builder]
+scenarios:
+  - intent: "Stand up a new cloud database for a client engagement"
+    trigger_phrase: "Stand up a database for <client> — multi-tenant, <N> tenants, mostly <workload>"
+    outcome: "DB selected (Supabase / Neon / RDS / Fabric / etc.) + multi-tenant schema starter + connection-string template"
+    difficulty: starter
+  - intent: "Migrate a sprawling Excel/SharePoint dataset to a real DB"
+    trigger_phrase: "Migrate <client>'s spreadsheet sprawl to a real DB"
+    outcome: "Migration plan + schema design + ELT setup + tested cutover"
+    difficulty: advanced
+  - intent: "Choose between Supabase / Neon / RDS / Fabric for this engagement"
+    trigger_phrase: "Supabase vs Neon vs Fabric for <use case>?"
+    outcome: "Decision memo with pricing math + ops burden + lock-in considerations + recommendation"
+    difficulty: starter
+quickstart:
+  - "Trigger phrase: 'Stand up DB for <client>' OR 'Migrate <data source> to a DB' OR '<DB-A> vs <DB-B>?'"
+  - "Expected output: DB selection + schema starter + connection template; or decision memo"
+  - "Common follow-up: security-reviewer for RLS policy authoring; etl-pipeline-engineer to wire data ingestion"
 ---
 
 # Role: Database Setup Guide

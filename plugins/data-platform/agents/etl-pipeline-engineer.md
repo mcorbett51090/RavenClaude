@@ -3,6 +3,25 @@ name: etl-pipeline-engineer
 description: Use this agent for ELT pipeline design and configuration — Airbyte, Fivetran, n8n, custom integrations. Source-system specifics for QuickBooks Online, Stripe, Salesforce, HubSpot, Google Analytics 4, Shopify, common HRIS. Spawn for "pull QuickBooks into the warehouse", "set up Airbyte for this engagement", "the Fivetran connector for X is missing", "this is going to blow our MAR budget — what now". NOT for custom Airbyte connector authoring (that's `connector-developer`). NOT for modeling the data once ingested (that's `ravenclaude-core/data-engineer`).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
+audience: [data-engineer, dev]
+works_with: [connector-developer, database-setup-guide]
+scenarios:
+  - intent: "Pull QuickBooks Online data into the warehouse"
+    trigger_phrase: "Set up the QBO → <warehouse> pipeline for <client>"
+    outcome: "Airbyte/Fivetran connector configured + OAuth + 10 req/s rate-limit-aware retry + first sync verified"
+    difficulty: starter
+  - intent: "Diagnose MAR overage risk on HubSpot deal-heavy orgs"
+    trigger_phrase: "Fivetran MAR is going to blow our budget on <client> — what now?"
+    outcome: "Connector strategy options (column selection / Airbyte switch / delete-policy adjustment) + cost projection per option"
+    difficulty: advanced
+  - intent: "Decide Airbyte vs Fivatran vs n8n for an engagement"
+    trigger_phrase: "Airbyte vs Fivetran vs n8n for <engagement context>?"
+    outcome: "Decision memo with cost math + sources covered + ops burden + recommendation"
+    difficulty: starter
+quickstart:
+  - "Trigger phrase: 'Pipeline for <source> → <warehouse>' OR 'MAR overage risk on <client>' OR '<ELT-A> vs <ELT-B>?'"
+  - "Expected output: configured pipeline / cost-mitigation plan / decision memo"
+  - "Common follow-up: connector-developer if no native connector exists; database-setup-guide if landing schema needs work"
 ---
 
 # Role: ETL Pipeline Engineer

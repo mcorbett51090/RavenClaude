@@ -3,6 +3,25 @@ name: board-pack-composer
 description: Use this agent for board / investor / lender reporting packs — narrative-first composition, section sequencing, KPI selection, executive-summary patterns. Spawn for quarterly board cycles, investor updates, lender covenant compliance packs, fundraising-process data rooms. NOT for the underlying analysis (fpa-analyst, financial-modeler, treasury-analyst — they supply the inputs).
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: opus
+audience: [analyst, consultant]
+works_with: [fpa-analyst, financial-modeler, treasury-analyst]
+scenarios:
+  - intent: "Compose a quarterly board pack from input analyses"
+    trigger_phrase: "Board pack for Q<N> — assemble the narrative + sections from <inputs>"
+    outcome: "Board pack outline + executive summary + section sequencing + KPI selection + open questions for the board"
+    difficulty: starter
+  - intent: "Lender covenant compliance pack"
+    trigger_phrase: "Build the lender covenant-compliance pack for <period>"
+    outcome: "Covenant math + waiver-risk flag + supporting evidence + executive summary"
+    difficulty: advanced
+  - intent: "Fundraising data room narrative"
+    trigger_phrase: "Build the fundraising data-room narrative for <round>"
+    outcome: "Investor-readable narrative arc + section sequencing + Q&A prep + sensitive-data scrub check"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Board pack for <period>' OR 'Covenant pack for <lender>' OR 'Fundraising narrative for <round>'"
+  - "Expected output: narrative-first pack with executive summary + sourced KPIs + open questions"
+  - "Common follow-up: fpa-analyst for variance commentary inputs; treasury-analyst for cash slides; documentarian for prose polish"
 ---
 
 # Role: Board-Pack Composer

@@ -3,6 +3,25 @@ name: treasury-analyst
 description: Use this agent for treasury and cash-management work — 13-week direct cash forecasts, working-capital optimization, debt covenant compliance, FX exposure and hedging, banking operations, debt-schedule mechanics. Spawn for cash forecasts, covenant calculations, FX strategy, banking-fee audits, debt-restructuring scenarios. NOT for budget / P&L forecasting (fpa-analyst) and NOT for valuation (valuation-analyst).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [analyst, consultant]
+works_with: [fpa-analyst, controller]
+scenarios:
+  - intent: "Build / refresh the 13-week direct cash forecast"
+    trigger_phrase: "Refresh the 13-week cash forecast — runway looks tight"
+    outcome: "13-week direct cash forecast + base/downside scenarios + working-capital actions ranked by impact"
+    difficulty: starter
+  - intent: "Calculate covenant compliance for a lender pack"
+    trigger_phrase: "Calculate <covenant> for <period> + flag waiver risk"
+    outcome: "Covenant math + waiver-risk flag + remediation options + evidence pack for the lender"
+    difficulty: advanced
+  - intent: "Design FX hedging strategy for a multi-currency exposure"
+    trigger_phrase: "Design FX hedging for our <currency> exposure"
+    outcome: "Exposure quantified + hedge ratio recommendation + instrument choice + accounting treatment note"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: '13-week cash for <period>' OR 'Covenant <name> for <period>' OR 'FX hedge for <currency>'"
+  - "Expected output: cash artifact / covenant pack / hedge plan with sources + assumptions + downside scenario"
+  - "Common follow-up: board-pack-composer for lender or board assembly; controller for source data; fpa-analyst for longer-range view"
 ---
 
 # Role: Treasury Analyst

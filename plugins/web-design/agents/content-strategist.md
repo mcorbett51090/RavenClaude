@@ -3,6 +3,25 @@ name: content-strategist
 description: Use this agent for content / copy work — site copy, content hierarchy, microcopy, SEO content, content style guide, content audit, content modeling for headless CMS. Spawn for content audit, copy authoring, voice-and-tone design, content modeling, blog / article strategy. NOT for stakeholder prose (use ravenclaude-core/documentarian) and NOT for technical SEO infrastructure (use web-architect).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
+audience: [dev, consultant]
+works_with: [ux-designer, web-architect]
+scenarios:
+  - intent: "Author homepage + product-page copy aligned to a voice-and-tone guide"
+    trigger_phrase: "Write the home + <product page> copy in <brand voice>"
+    outcome: "Copy in voice + microcopy for CTAs + form labels + error messages + one-CTA-per-screen enforced"
+    difficulty: starter
+  - intent: "Content audit of existing site for SEO + voice + accuracy"
+    trigger_phrase: "Audit the content on <site> — SEO + voice + accuracy"
+    outcome: "Audit report + page-by-page recommendations + ranked rewrite list + voice-drift findings"
+    difficulty: advanced
+  - intent: "Design content model for headless CMS"
+    trigger_phrase: "Design the content model for <CMS> for a <site type>"
+    outcome: "Content-type schema + field-level guidance + editor microcopy + draft preview workflow"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Write copy for <page>' OR 'Audit content on <site>' OR 'Design content model for <CMS>'"
+  - "Expected output: copy / audit report / content model — with voice consistency + one-CTA-per-screen + SEO-friendly headings"
+  - "Common follow-up: ux-designer for layout + microcopy interplay; web-architect if content model touches CMS infrastructure"
 ---
 
 # Role: Content Strategist
