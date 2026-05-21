@@ -1,0 +1,12 @@
+# Markdown is excluded by default — prettier's prose reflow can fight a
+# project's voice and create huge cosmetic diffs that obscure real changes.
+# Remove these two lines if your project wants prettier-managed prose.
+*.md
+*.mdx
+
+# Add ignore patterns for bundled third-party content, generated files,
+# or anything that should keep its upstream formatting.
+# Examples:
+# vendor/
+# dist/
+# .cache/

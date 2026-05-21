@@ -2,6 +2,33 @@
 
 All notable changes to the RavenClaude marketplace and its plugins. Format loosely follows [Keep a Changelog](https://keepachangelog.com/). The marketplace version (`metadata.version` in `.claude-plugin/marketplace.json`) bumps when the catalog shape or cross-plugin contracts change; individual plugins have their own semver tracked in their `plugin.json`.
 
+## marketplace 0.3.0 — 2026-05-21 (later same day)
+
+### ravenclaude-core 0.5.0
+
+Catch-up release that ports the marketplace's own self-review improvements into the plugin so consumer projects benefit:
+
+- New skill `skills/audit-ci-gates.md` — guides any consuming agent that touches a CI workflow through the gate-audit-by-fixture pattern. Encodes the rule "for every CI step, prove it can fail on a known-bad input AND pass on a known-good input." References the canonical best-practice doc + the runnable scaffold below.
+- New template `templates/agent-ready-repo/audit-gates.sh.template` — a runnable Bash scaffold the consumer's `/init-agent-ready` can drop into `scripts/audit-gates.sh`. Includes the gate-audit pattern (backup → mutate → assert → restore, with EXIT trap), idempotent fixture helpers, and a worked example block consumers replace with their own gates.
+- New templates `templates/agent-ready-repo/.prettierrc.json.template` + `.prettierignore.template` — sensible prettier defaults (markdown line-wrap preserved; markdown excluded by default to avoid prose-reflow noise) that consumer projects can opt into via the updated `/init-agent-ready` command.
+- `commands/init-agent-ready.md` — adds an optional Step 6 / new question 3: "should we add the CI-hygiene scaffold?" Three files written when accepted: `.prettierrc.json`, `.prettierignore`, `scripts/audit-gates.sh` (made executable).
+
+Catch-up version-bump note: this release also captures content shipped in earlier marketplace commits that didn't bump retroactively — agent label drift cleanup (PR 4), constitution downgrade for run artifacts (PR 5), and the `to_specialist` / power-platform §6 SOP cross-link reconciliation (PR 7). Consumers who installed at 0.4.0 before those PRs will get all of that content along with the 0.5.0 additions above on next `/plugin marketplace update`.
+
+### power-platform 0.6.1
+
+- `CLAUDE.md` §6 now references the cross-plugin Structured Output Protocol JSON block that all 10 power-platform agents emit. Previously the section listed only the Markdown Output Contract; consumers reading §6 in isolation would have missed the JSON contract. (PR 7 in the marketplace; catch-up bump.)
+
+### Marketplace meta
+
+- `docs/architecture.md` Status table refreshed (was stale at ravenclaude-core 0.2.4 / power-platform 0.5.2).
+- `docs/best-practices/ci-gate-audit.md` added (canonical Absolute Rule for CI gate hygiene).
+- `scripts/audit-gates.sh` shipped at the marketplace level and wired into `validate-marketplace.yml` as a meta-test step. 10 gates × 2 fixtures = 21 assertions, all passing.
+- `.prettierrc.json` + `.prettierignore` shipped at the marketplace level (the templates above mirror these).
+- `.github/workflows/validate-marketplace.yml` gained behavioral hook tests, prettier check, actionlint check, email-leak guard, and the gate-audit meta-step.
+
+**Migration for consumers:** `/plugin marketplace update ravenclaude` + `/reload-plugins` picks up everything. Re-run `/init-agent-ready` in any project that wants the new optional CI-hygiene scaffold; existing files are not overwritten without explicit approval.
+
 ## marketplace 0.2.0 — 2026-05-21
 
 ### ravenclaude-core 0.4.0 (BREAKING)

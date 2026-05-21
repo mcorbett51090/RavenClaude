@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. Ships ravenclaude-core (the Team Lead + 13 specialists pattern with active Structured Output Protocol + Cited-Adjudicator Escalation) and power-platform (10 Microsoft Power Platform specialists + bundled pbix-mcp) today; finance, EdTech, and Salesforce plugins planned.",
-    "version": "0.2.0"
+    "version": "0.3.0"
   },
   "plugins": [
     {
       "name": "ravenclaude-core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code plugin: 13 specialist agents (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, etc.), team-lead dispatch playbook, format/lint/test gates, contribution-staging workflow (with security sweep + expert-routing gates), templates for memos/runbooks/design specs/RAID logs/partner-success, plugin-distributable hooks (auto-activate in consumer projects), layout-enforcement hook + CI workflow, and a /init-agent-ready slash command that steers consumer repos toward the same agent-readable boundary files (AGENTS.md + CLAUDE.md + .repo-layout.json).",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -30,7 +30,7 @@
       "name": "power-platform",
       "source": "./plugins/power-platform",
       "description": "Microsoft Power Platform specialist team — now includes dedicated power-bi-engineer (semantic models, DAX, PBIP git + Azure DevOps integration) alongside canvas/Power Fx, Power Automate + custom connectors, Dataverse modeling/security, model-driven apps, pac CLI + ALM (enhanced for ADO + flows), tenant governance/DLP, PCF, Copilot Studio + AI Builder, Power Pages. Plus imported veteran skills. Also bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval without Power BI Desktop (requires `pip install pbix-mcp`). Strong focus on reproducible ALM, git workflows, and production-grade patterns.",
-      "version": "0.6.0",
+      "version": "0.6.1",
       "author": {
         "name": "Matt Corbett"
       },

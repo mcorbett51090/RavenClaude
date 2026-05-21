@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+# audit-gates.sh — prove every CI gate can fail on a known-bad fixture
+# AND pass on a known-good fixture.
+#
+# Rule: docs/best-practices/ci-gate-audit.md (in the RavenClaude marketplace)
+# Skill that guides authoring this file: ravenclaude-core / audit-ci-gates
+#
+# This is a SCAFFOLD — fill in the gate blocks below with fixtures specific
+# to your project. The empty version of this file is a valid runnable
+# (it'll just print "no gates audited"). Add gates as you add CI steps.
+
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+PASS=0
+FAIL=0
+FAILED_GATES=()
+TMP=$(mktemp -d)
+BACKUPS=()
+
+backup() {
+  local f=$1
+  local b="$TMP/$(echo "$f" | tr / _).bak"
+  cp -p "$f" "$b"
+  BACKUPS+=("$f|$b")
+}
+
+cleanup() {
+  for entry in "${BACKUPS[@]}"; do
+    local f=${entry%%|*}
+    local b=${entry#*|}
+    [[ -f "$b" ]] && cp -p "$b" "$f"
+  done
+  rm -rf "$TMP"
+}
+trap cleanup EXIT INT TERM
+
+gate() {
+  local name=$1
+  local direction=$2 # must_fail | must_pass
+  local actual=$3    # exit code observed (or 0/1 for boolean)
+
+  local ok=0
+  if [[ "$direction" == "must_fail" && "$actual" -ne 0 ]]; then ok=1; fi
+  if [[ "$direction" == "must_pass" && "$actual" -eq 0 ]]; then ok=1; fi
+
+  if [[ "$ok" -eq 1 ]]; then
+    printf '  ✓ %-40s %s (exit=%s)\n' "$name" "$direction" "$actual"
+    PASS=$((PASS + 1))
+  else
+    local expected; [[ "$direction" == "must_fail" ]] && expected="nonzero" || expected="zero"
+    printf '  ✗ %-40s %s expected %s, got exit=%s\n' "$name" "$direction" "$expected" "$actual"
+    FAIL=$((FAIL + 1))
+    FAILED_GATES+=("$name [$direction]")
+  fi
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GATE FIXTURES — add one block per CI gate. Replace the example below.
+#
+# Pattern:
+#   1. backup any file you'll mutate
+#   2. inject the must_fail_on fixture
+#   3. run the gate's underlying check; capture rc
+#   4. assert with `gate "<name>" must_fail "$rc"`
+#   5. restore the file (cleanup handles this if you used backup())
+#   6. now run the must_pass_on check (usually the clean repo state)
+#   7. assert with `gate "<name>" must_pass "$rc"`
+#
+# Example (delete this and add real gates):
+# ─────────────────────────────────────────────────────────────────────────────
+
+# # Gate: JSON validity
+# echo "── Gate: JSON validity ───────────────────────────────────────────────"
+# backup package.json
+# echo 'not json' > package.json
+# rc=0; python3 -m json.tool package.json >/dev/null 2>&1 || rc=$?
+# gate "json-validity (package.json)" must_fail "$rc"
+# cp -p "$TMP/package.json.bak" package.json
+# rc=0; python3 -m json.tool package.json >/dev/null 2>&1 || rc=$?
+# gate "json-validity (package.json)" must_pass "$rc"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Summary
+# ─────────────────────────────────────────────────────────────────────────────
+echo
+echo "═══════════════════════════════════════════════════════════════════════════"
+if [[ "$PASS" -eq 0 && "$FAIL" -eq 0 ]]; then
+  echo "  no gates audited yet — add fixture blocks above and re-run"
+  exit 0
+fi
+printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
+if [[ "$FAIL" -gt 0 ]]; then
+  echo
+  echo "Failed audits:"
+  for g in "${FAILED_GATES[@]}"; do echo "  - $g"; done
+  exit 1
+fi
+echo "all gates audited and verified bidirectional (fail-on-bad AND pass-on-good)"
