@@ -86,7 +86,7 @@ This plugin inherits the Capability Grounding Protocol from `ravenclaude-core`. 
 **Mandatory phrasing when uncertain:**
 > "After checking [specific skills/rules], I cannot fully complete this because [specific reason]. However, I can help with [partial scope]. Would you like me to proceed with that, or should I escalate to the Team Lead?"
 
-See [`../ravenclaude-core/skills/grounding-protocol`](../ravenclaude-core/skills/grounding-protocol) for the upstream definition. Power Platform's `skills/grounding-protocol/SKILL.md` is the reference implementation pattern.
+The architectural definition of the Grounding Protocol lives in [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md) (`Capability Grounding Protocol` section). The reference implementation skill is [`../power-platform/skills/grounding-protocol/SKILL.md`](../power-platform/skills/grounding-protocol/SKILL.md) (consumers who install `power-platform` get that skill file directly; otherwise the inline §5 above is authoritative for this plugin).
 
 ---
 
@@ -201,7 +201,8 @@ When in doubt, the finance team **declines and asks the Team Lead** rather than 
 ## 11. References
 
 - Domain-neutral team constitution: [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md)
-- Capability Grounding Protocol (upstream): [`../ravenclaude-core/skills/grounding-protocol`](../ravenclaude-core/skills/grounding-protocol)
+- Capability Grounding Protocol (architectural): [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md) (`Capability Grounding Protocol` section); reference skill (when `power-platform` is installed): [`../power-platform/skills/grounding-protocol/SKILL.md`](../power-platform/skills/grounding-protocol/SKILL.md)
 - Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output.md`](../ravenclaude-core/skills/structured-output.md)
 - Cited-Adjudicator Escalation: [`../ravenclaude-core/rules/agent-collaboration.md`](../ravenclaude-core/rules/agent-collaboration.md)
+- Sister plugins (when installed alongside): `regulatory-compliance` — finance work for a regulated entity routinely surfaces compliance concerns. See [`../../docs/plugin-roadmap-analysis.md`](../../docs/plugin-roadmap-analysis.md) for the marketplace plan.
 - Marketplace-wide developer guide: [`../../CLAUDE.md`](../../CLAUDE.md)
