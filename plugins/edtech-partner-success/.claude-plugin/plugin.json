@@ -1,0 +1,24 @@
+{
+  "name": "edtech-partner-success",
+  "version": "0.1.0",
+  "description": "EdTech-flavored Partner Success Manager team — 6 specialist agents anchored on the PSM lane (partner-success-manager, success-playbook-designer, qbr-composer, learning-analytics-analyst, ferpa-comms-translator, partner-profile-curator) with 4 skills (partner-health-scoring, success-plan-authoring, qbr-composition, rostering-data-quality), 8 templates (success plan, partner profile, QBR outline, touchpoint log, escalation memo, health-score dashboard spec, onboarding checklist, annual partner review), and 1 advisory hook flagging common PSM anti-patterns (unverified claims, generic boilerplate, missing dates in action items, PII in drafts, QBRs without explicit followups). Vertical-explicit but segment-agnostic — fits K-12, higher-ed, corporate L&D, or mixed EdTech books. Inherits ravenclaude-core protocols including the alternate-methods Capability Grounding Protocol.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "edtech",
+    "partner-success",
+    "customer-success",
+    "psm",
+    "qbr",
+    "health-score",
+    "ferpa",
+    "rostering",
+    "learning-analytics"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

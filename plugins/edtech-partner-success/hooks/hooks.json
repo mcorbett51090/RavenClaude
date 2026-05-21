@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for edtech-partner-success. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-psm-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags common PSM anti-patterns in partner-facing artifacts (action items without dates, generic boilerplate, unverified numeric claims, multi-partner names visible in a To: line, health-score status without named signals). Set EDTECH_PS_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}

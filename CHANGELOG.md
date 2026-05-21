@@ -2,6 +2,31 @@
 
 All notable changes to the RavenClaude marketplace and its plugins. Format loosely follows [Keep a Changelog](https://keepachangelog.com/). The marketplace version (`metadata.version` in `.claude-plugin/marketplace.json`) bumps when the catalog shape or cross-plugin contracts change; individual plugins have their own semver tracked in their `plugin.json`.
 
+## marketplace 0.11.0 — 2026-05-21 (new plugin: edtech-partner-success)
+
+New domain plugin landing. Anchored on the Partner Success Manager (PSM) lane — vertical-explicit (we know it's education) but segment-agnostic (K-12 / higher-ed / corporate L&D). Built for an actual PSM running an actual book of EdTech partners, not for a generic customer-success tutorial.
+
+### edtech-partner-success 0.1.0
+
+- **6 specialist agents:**
+  - `partner-success-manager` — EdTech-specialized PSM (extends the generic `ravenclaude-core/partner-success-manager`). Onboarding, adoption, ongoing pulse, day-to-day partner-facing work.
+  - `success-playbook-designer` — the play library (renewal / expansion / recovery / advocacy plays); the PSM *executes* plays, this agent *designs* them.
+  - `qbr-composer` — Quarterly Business Reviews end-to-end (data pull plan → narrative → deck → talk track → followup tracker).
+  - `learning-analytics-analyst` — signal selection, health-score architecture, dashboard specs, rostering / SIS / LMS data-quality diagnostics.
+  - `ferpa-comms-translator` — FERPA-aware (and segment-equivalent privacy-aware) multilingual / multi-audience partner & end-user comms.
+  - `partner-profile-curator` — the durable partner record that outlives any one PSM seat; distinct from the touchpoint log.
+- **4 skills:** `partner-health-scoring` (signal selection + weighting + decay + red-flag triggers + threshold-to-play mapping), `success-plan-authoring` (30/60/90 + quarterly), `qbr-composition` (the canonical QBR playbook with mock-rehearsal step), `rostering-data-quality` (Clever / ClassLink / OneRoster / SIS / LMS / HRIS diagnosis playbook).
+- **8 templates:** success plan, partner profile, QBR deck outline, touchpoint log, escalation memo, health-score dashboard spec, onboarding checklist, annual partner review. Each tuned to capture the durable-vs-diary distinction.
+- **1 advisory hook** (`flag-psm-anti-patterns.sh`) flagging the mechanically-detectable PSM anti-patterns: action items without dates, generic boilerplate ("we value your partnership", "just checking in", "circling back", "touching base"), unverified numeric claims, multi-partner names visible in `To:` lines, health-score red/yellow status without named signals. PostToolUse advisory by default; `EDTECH_PS_STRICT=1` makes it blocking. Verified bidirectional (fires on bad fixture, silent on clean).
+- **CLAUDE.md follows the established 11-section pattern**: roster (§1) → routing rules (§2) → 13 house opinions (§3) → 12 anti-patterns (§4) → Grounding Protocol with the alternate-methods step (§5) → Output Contract with extended JSON schema including `next_actions[].owner+.date`, `signals_cited`, `partner_context` (§6) → automated checks (§7) → skills (§8) → knowledge bank pattern (§8a, empty at v0.1.0; will accumulate organically) → templates (§9) → escalation routes (§10) → references (§11).
+- Requires `ravenclaude-core@>=0.7.0` (for the alternate-methods Capability Grounding Protocol that lands in agents' default behavior).
+
+### Marketplace meta
+
+- Catalog description updated. `docs/architecture.md` Status table gains the new row. EdTech is moved off the planned-plugins line (only Salesforce remains on the roadmap there).
+
+**Migration for consumers:** `/plugin marketplace update ravenclaude` + `/plugin install edtech-partner-success@ravenclaude` + `/reload-plugins`. New plugin only; no breaking changes to existing plugins.
+
 ## marketplace 0.10.0 — 2026-05-21 (alternate-methods enhancement to Capability Grounding Protocol)
 
 Cross-plugin behavior change: agents now **proactively** enumerate alternative implementation paths and try them in order before declaring a task blocked. Motivated by the production incident captured in the 0.9.0 release (programmatic-flow-creation knowledge file) — the user had to prompt the agent to find the alternative Dataverse path. This release generalizes that lesson into a protocol rule that fires for every agent in every plugin.
