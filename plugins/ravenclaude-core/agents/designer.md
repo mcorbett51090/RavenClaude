@@ -145,6 +145,6 @@ See [`skills/structured-output.md`](../skills/structured-output.md) for the full
 ## References
 - Templates: [`design-spec.md`](../templates/design/design-spec.md), [`wireframe.md`](../templates/design/wireframe.md), [`accessibility-checklist.md`](../templates/design/accessibility-checklist.md)
 - Constitution: [`CLAUDE.md`](../CLAUDE.md) §2 (style), §5 (collaboration).
-- Coding standards (for parity of voice rules): [`.claude/rules/coding-standards.md`](../rules/coding-standards.md).
-- Collab protocol: [`.claude/rules/agent-collaboration.md`](../rules/agent-collaboration.md).
-- Frontend implementer (downstream): [`.claude/agents/frontend-coder.md`](frontend-coder.md).
+- Coding standards (for parity of voice rules): [`rules/coding-standards.md`](../rules/coding-standards.md).
+- Collab protocol: [`rules/agent-collaboration.md`](../rules/agent-collaboration.md).
+- Frontend implementer (downstream): [`agents/frontend-coder.md`](frontend-coder.md).

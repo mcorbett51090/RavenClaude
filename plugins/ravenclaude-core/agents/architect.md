@@ -99,4 +99,4 @@ See [`skills/structured-output.md`](../skills/structured-output.md) for the full
 
 ## References
 - Constitution: [`CLAUDE.md`](../CLAUDE.md) §1, §2
-- Collab protocol: [`.claude/rules/agent-collaboration.md`](../rules/agent-collaboration.md)
+- Collab protocol: [`rules/agent-collaboration.md`](../rules/agent-collaboration.md)

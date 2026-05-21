@@ -105,7 +105,7 @@ The Team Lead will sometimes route a research need from the architect, project-m
 
 ## Structured Output Protocol (required)
 
-After your Markdown report above, emit the structured handoff block so the Team Lead can route reliably:
+After your Markdown report above, emit the structured handoff block so the Team Lead can route reliably. Note the **two distinct confidence systems** this agent uses: (a) the **per-claim Confidence tag** (High/Medium/Low/Speculation, defined in `## Confidence scale` above) is attached to individual findings inside the Markdown body; (b) the SOP `confidence` field below is a single 0.0-1.0 float reflecting your overall certainty in the brief as a whole. They are not the same field — fill both.
 
 ```
 ---RESULT_START---
@@ -127,4 +127,4 @@ See [`skills/structured-output.md`](../skills/structured-output.md) for the full
 
 ## References
 - Constitution: [`CLAUDE.md`](../CLAUDE.md) §5
-- Collab protocol: [`.claude/rules/agent-collaboration.md`](../rules/agent-collaboration.md)
+- Collab protocol: [`rules/agent-collaboration.md`](../rules/agent-collaboration.md)

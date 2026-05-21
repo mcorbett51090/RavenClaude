@@ -94,7 +94,7 @@ Find the vulnerability before an attacker does. Block merges that introduce risk
 
 ## Structured Output Protocol (required)
 
-After your Markdown report above, emit the structured handoff block so the Team Lead can route reliably:
+After your Markdown report above, emit the structured handoff block so the Team Lead can route reliably. The JSON `status` field mirrors the Markdown **Verdict** above — both must be consistent (`pass` → `complete`, `pass-with-recommendations` → `complete` with non-empty `risks_or_open_questions`, `block` → `blocked`).
 
 ```
 ---RESULT_START---
@@ -116,4 +116,4 @@ See [`skills/structured-output.md`](../skills/structured-output.md) for the full
 
 ## References
 - Constitution: [`CLAUDE.md`](../CLAUDE.md) §6
-- Security rules: [`.claude/rules/security.md`](../rules/security.md)
+- Security rules: [`rules/security.md`](../rules/security.md)

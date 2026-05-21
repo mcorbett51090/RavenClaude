@@ -81,7 +81,7 @@ Walk the diff in this order. Don't proceed past a category until it's clean.
 
 ## Structured Output Protocol (required)
 
-After your Markdown report above, emit the structured handoff block so the Team Lead can route reliably:
+After your Markdown report above, emit the structured handoff block so the Team Lead can route reliably. The JSON `status` field mirrors the Markdown **Verdict** above — both must be consistent (`approve` → `complete`, `approve-with-nits` → `complete` with non-empty `risks_or_open_questions`, `changes-requested` → `blocked` or `partial`).
 
 ```
 ---RESULT_START---
@@ -103,4 +103,4 @@ See [`skills/structured-output.md`](../skills/structured-output.md) for the full
 
 ## References
 - Constitution: [`CLAUDE.md`](../CLAUDE.md) §2, §4
-- Coding standards: [`.claude/rules/coding-standards.md`](../rules/coding-standards.md)
+- Coding standards: [`rules/coding-standards.md`](../rules/coding-standards.md)

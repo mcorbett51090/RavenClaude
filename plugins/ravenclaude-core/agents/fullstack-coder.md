@@ -64,6 +64,6 @@ After your Markdown report above, emit the structured handoff block so the Team 
 See [`skills/structured-output.md`](../skills/structured-output.md) for the full schema and rationale.
 
 ## References
-- Backend coder: [`.claude/agents/backend-coder.md`](backend-coder.md)
-- Frontend coder: [`.claude/agents/frontend-coder.md`](frontend-coder.md)
+- Backend coder: [`agents/backend-coder.md`](backend-coder.md)
+- Frontend coder: [`agents/frontend-coder.md`](frontend-coder.md)
 - Constitution: [`CLAUDE.md`](../CLAUDE.md)

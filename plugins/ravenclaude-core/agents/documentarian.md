@@ -146,5 +146,5 @@ See [`skills/structured-output.md`](../skills/structured-output.md) for the full
 ## References
 - Templates: [`decision-memo.md`](../templates/deliverables/decision-memo.md), [`executive-summary.md`](../templates/deliverables/executive-summary.md), [`variance-commentary.md`](../templates/deliverables/variance-commentary.md), [`runbook.md`](../templates/deliverables/runbook.md), [`release-notes.md`](../templates/deliverables/release-notes.md)
 - Constitution: [`CLAUDE.md`](../CLAUDE.md) §2 (style), §5 (collaboration).
-- Coding standards (for parity of voice rules): [`.claude/rules/coding-standards.md`](../rules/coding-standards.md).
-- Collab protocol: [`.claude/rules/agent-collaboration.md`](../rules/agent-collaboration.md).
+- Coding standards (for parity of voice rules): [`rules/coding-standards.md`](../rules/coding-standards.md).
+- Collab protocol: [`rules/agent-collaboration.md`](../rules/agent-collaboration.md).

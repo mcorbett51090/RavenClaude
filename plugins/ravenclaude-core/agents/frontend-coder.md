@@ -79,4 +79,4 @@ See [`skills/structured-output.md`](../skills/structured-output.md) for the full
 
 ## References
 - Constitution: [`CLAUDE.md`](../CLAUDE.md) §2, §4
-- Coding standards: [`.claude/rules/coding-standards.md`](../rules/coding-standards.md)
+- Coding standards: [`rules/coding-standards.md`](../rules/coding-standards.md)

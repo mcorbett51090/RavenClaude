@@ -80,4 +80,4 @@ See [`skills/structured-output.md`](../skills/structured-output.md) for the full
 
 ## References
 - Constitution: [`CLAUDE.md`](../CLAUDE.md) §4
-- Test runner skill: [`.claude/skills/run-full-test-suite.md`](../skills/run-full-test-suite.md)
+- Test runner skill: [`skills/run-full-test-suite.md`](../skills/run-full-test-suite.md)
