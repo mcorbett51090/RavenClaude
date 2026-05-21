@@ -198,8 +198,4 @@ The existing plugins are the reference implementations — `ravenclaude-core` fo
 
 **Decision log:** No entries yet — first decision will be recorded the next time an architectural choice deserves a written rationale.
 
-<<<<<<< HEAD
-**Planned plugins** (in PR queue or roadmap): finance / FP&A (PR #14), regulatory-compliance (PR #15), web-design (PR #16), EdTech (built around the partner-success-manager pattern), Salesforce.
-=======
-**Planned plugins** (not yet built): EdTech (built around the partner-success-manager pattern), Salesforce. See [`./plugin-roadmap-analysis.md`](./plugin-roadmap-analysis.md) for the prioritization analysis behind the finance / regulatory-compliance / web-design selection.
->>>>>>> ae67558 (feat(finance): new domain plugin — corporate finance & FP&A specialist team)
+**Planned plugins** (in PR queue): regulatory-compliance (PR #15), web-design (PR #16). On the roadmap beyond those: EdTech (built around the partner-success-manager pattern), Salesforce. See [`./plugin-roadmap-analysis.md`](./plugin-roadmap-analysis.md) for the prioritization analysis behind the finance / regulatory-compliance / web-design selection.
