@@ -104,7 +104,13 @@ Use the standard data-platform output block (see [`../CLAUDE.md`](../CLAUDE.md) 
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
 - Skill: [`../skills/connector-configuration.md`](../skills/connector-configuration.md)
-- Knowledge: [`../knowledge/ipaas-connector-landscape-2026.md`](../knowledge/ipaas-connector-landscape-2026.md)
-- Knowledge: [`../knowledge/quickbooks-online-integration.md`](../knowledge/quickbooks-online-integration.md)
-- Templates: [`../templates/airbyte-source-config.yaml`](../templates/airbyte-source-config.yaml)
+- Knowledge — landscape: [`../knowledge/ipaas-connector-landscape-2026.md`](../knowledge/ipaas-connector-landscape-2026.md)
+- Knowledge — QBO: [`../knowledge/quickbooks-online-integration.md`](../knowledge/quickbooks-online-integration.md)
+- Knowledge — **Stripe (v0.2.0):** [`../knowledge/stripe-integration.md`](../knowledge/stripe-integration.md) — batch ELT + webhooks hybrid; PCI-DSS considerations
+- Knowledge — **Salesforce (v0.2.0):** [`../knowledge/salesforce-integration.md`](../knowledge/salesforce-integration.md) — Bulk API 2.0 ceilings; explicit field enumeration
+- Knowledge — **HubSpot (v0.2.0):** [`../knowledge/hubspot-integration.md`](../knowledge/hubspot-integration.md) — CRM Search API 4 req/sec gotcha; Fivetran-MAR risk
+- Knowledge — **GA4 (v0.2.0):** [`../knowledge/ga4-integration.md`](../knowledge/ga4-integration.md) — native BigQuery export is free + recommended
+- Knowledge — **Shopify (v0.2.0):** [`../knowledge/shopify-integration.md`](../knowledge/shopify-integration.md) — GraphQL Admin API required for new apps since April 2025
+- Knowledge — **HRIS (v0.2.0):** [`../knowledge/hris-integration.md`](../knowledge/hris-integration.md) — Workday/BambooHR/ADP/Rippling; Merge.dev unified API default for non-Workday; mandatory security-reviewer route
+- Templates: [`../templates/airbyte-source-config.yaml`](../templates/airbyte-source-config.yaml), [`../templates/dbt-project-starter/`](../templates/dbt-project-starter/)
 - LMS gap (route handoff): [`../knowledge/edtech-lms-connector-gap.md`](../knowledge/edtech-lms-connector-gap.md)

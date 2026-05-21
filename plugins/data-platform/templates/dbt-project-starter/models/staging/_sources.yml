@@ -1,0 +1,105 @@
+# Staging-layer sources
+# ---------------------------------------------------------------------------
+# Declares the raw schemas that Airbyte / Fivetran / etc. populate.
+# Each source schema corresponds to one upstream system.
+# Refresh stale-data tests catch when ELT has fallen behind expected cadence.
+# ---------------------------------------------------------------------------
+
+version: 2
+
+sources:
+  - name: raw_quickbooks
+    description: "QuickBooks Online — landed by Airbyte source-quickbooks"
+    schema: raw_quickbooks
+    loaded_at_field: _airbyte_extracted_at
+    freshness:
+      warn_after: { count: 26, period: hour }
+      error_after: { count: 48, period: hour }
+    tables:
+      - name: customer
+        description: "QBO Customer entity"
+        columns:
+          - name: id
+            tests: [unique, not_null]
+      - name: invoice
+        description: "QBO Invoice entity (header level)"
+        columns:
+          - name: id
+            tests: [unique, not_null]
+      - name: payment
+      - name: bill
+      - name: item
+      - name: account
+      - name: journal_entry
+      - name: vendor
+
+  - name: raw_stripe
+    description: "Stripe — landed by Airbyte source-stripe"
+    schema: raw_stripe
+    loaded_at_field: _airbyte_extracted_at
+    freshness:
+      warn_after: { count: 26, period: hour }
+      error_after: { count: 48, period: hour }
+    tables:
+      - name: customers
+      - name: charges
+      - name: payment_intents
+      - name: subscriptions
+      - name: invoices
+      - name: refunds
+      - name: disputes
+
+  - name: raw_salesforce
+    description: "Salesforce — landed by Airbyte source-salesforce via Bulk API 2.0"
+    schema: raw_salesforce
+    loaded_at_field: _airbyte_extracted_at
+    freshness:
+      warn_after: { count: 26, period: hour }
+      error_after: { count: 48, period: hour }
+    tables:
+      - name: account
+      - name: contact
+      - name: opportunity
+      - name: case
+
+  - name: raw_hubspot
+    description: "HubSpot — landed by Airbyte source-hubspot"
+    schema: raw_hubspot
+    loaded_at_field: _airbyte_extracted_at
+    freshness:
+      warn_after: { count: 26, period: hour }
+      error_after: { count: 48, period: hour }
+    tables:
+      - name: companies
+      - name: contacts
+      - name: deals
+      - name: tickets
+      - name: engagements
+
+  - name: raw_ga4
+    description: "Google Analytics 4 — landed by Airbyte source-ga4 OR native BigQuery export"
+    schema: raw_ga4
+    loaded_at_field: _airbyte_extracted_at
+    tables:
+      - name: traffic_acquisition
+      - name: page_path_engagement
+
+  - name: raw_shopify
+    description: "Shopify — landed by Airbyte source-shopify via GraphQL Admin API"
+    schema: raw_shopify
+    loaded_at_field: _airbyte_extracted_at
+    freshness:
+      warn_after: { count: 26, period: hour }
+      error_after: { count: 48, period: hour }
+    tables:
+      - name: customers
+      - name: orders
+      - name: order_refunds
+      - name: products
+      - name: inventory_items
+
+# ---------------------------------------------------------------------------
+# Add additional sources here as the engagement's source-system inventory grows.
+# Each source gets its own raw_<source> schema (one schema per source =
+# clean dbt-ingest pattern, easy to revoke per-source access).
+# ---------------------------------------------------------------------------

@@ -1,0 +1,54 @@
+# Marts-layer schema definitions
+# ---------------------------------------------------------------------------
+# Final analytics surfaces. Tests + docs are required for marts (these are
+# the tables that downstream dashboards read).
+# ---------------------------------------------------------------------------
+
+version: 2
+
+models:
+  - name: dim_customer
+    description: |
+      Customer dimension unified across upstream sources (QBO, Stripe, Salesforce,
+      HubSpot). One row per unique customer. Surrogate key for joining to facts;
+      alternate keys for upstream lookups.
+    columns:
+      - name: customer_sk
+        description: "Surrogate key — deterministic hash of upstream IDs"
+        tests:
+          - unique
+          - not_null
+      - name: qbo_customer_id
+        description: "QuickBooks Online Customer.Id; null if customer is not in QBO"
+      - name: display_name
+        tests:
+          - not_null
+      - name: email
+      - name: is_active
+        tests:
+          - not_null
+      - name: created_at
+        tests:
+          - not_null
+
+  # Add additional mart models here as the engagement's analytics surface grows:
+  # - dim_product
+  # - dim_date
+  # - dim_account
+  # - fact_invoice_lines
+  # - fact_payment
+  # - fact_bill_lines
+  # - mart_revenue_by_customer
+  # - mart_ap_aging
+  # - mart_cash_flow
+  # - mart_pl_by_month
+  #
+  # Per the data-platform plugin, common QBO engagement marts are listed in
+  # knowledge/quickbooks-online-integration.md §"Modeling layer (dbt) — common marts"
+
+# ---------------------------------------------------------------------------
+# Refresh triggers for this schema:
+#   - New mart added to the engagement
+#   - Source-system migration changes column names or shapes
+#   - Test failures during dev iteration (tighten or relax tests as appropriate)
+# ---------------------------------------------------------------------------
