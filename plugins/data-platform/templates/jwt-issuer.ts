@@ -69,7 +69,7 @@ export interface EmbedTokenPayload {
 // ---------------------------------------------------------------------------
 
 const DEFAULT_EXPIRES_IN_SECONDS = 900; // 15 min
-const MAX_EXPIRES_IN_SECONDS = 1800;    // 30 min (hard ceiling)
+const MAX_EXPIRES_IN_SECONDS = 1800; // 30 min (hard ceiling)
 const ISSUER = process.env.JWT_ISSUER || "data-platform-host";
 
 // ---------------------------------------------------------------------------

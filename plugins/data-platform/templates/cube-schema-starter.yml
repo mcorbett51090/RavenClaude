@@ -84,12 +84,12 @@ cubes:
         sql: id
         type: string
         primary_key: true
-        public: false  # hide from query surface but available for joins
+        public: false # hide from query surface but available for joins
 
       - name: tenant_id
         sql: tenant_id
         type: string
-        public: false  # used by access_policy; not directly queryable
+        public: false # used by access_policy; not directly queryable
 
       - name: order_date
         sql: order_date

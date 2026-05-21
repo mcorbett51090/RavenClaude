@@ -84,16 +84,28 @@ python3 -m json.tool .repo-layout.json > /dev/null
 bash -n plugins/*/hooks/*.sh
 find plugins/*/hooks -name '*.sh' -exec test -x {} \;
 
-# 3. Audit every gate (the meta-test)
+# 3. Prettier formatting (YAML / JSON / JS / TS / CSS — markdown is excluded)
+#    REQUIRED before pushing any branch that touches .yml / .yaml / .json / .js / .ts / .css files.
+#    Prettier check runs on the WHOLE TREE in CI, so a formatting failure on one file blocks
+#    every subsequent PR until fixed in main — even PRs that don't touch the failing file.
+#    Always auto-fix with --write before committing rather than --check + manual fix.
+npx --yes prettier --write . --log-level warn   # auto-format any out-of-style files
+npx --yes prettier --check . --log-level warn   # verify clean — must return exit 0
+
+# 4. Audit every gate (the meta-test)
 scripts/audit-gates.sh
 # Proves each CI gate fails on a known-bad fixture AND passes on a known-good one.
 # Required reading before adding or changing any CI step: docs/best-practices/ci-gate-audit.md
 
-# 4. Local install test (from a separate test project)
+# 5. Local install test (from a separate test project)
 # /plugin marketplace add /workspaces/RavenClaude
 # /plugin install ravenclaude-core@ravenclaude
 # Confirm agents appear in /plugin UI.
 ```
+
+### Why the prettier-on-the-whole-tree discipline matters
+
+CI's prettier step runs `prettier --check .` against the entire working tree, not just the files in the current diff. Practical consequence: **a single mis-formatted file in main blocks every subsequent PR's CI** until that file is reformatted in main. Always run `prettier --write .` before pushing — even if your PR is markdown-only, an unrelated YAML/JS file added in a previous PR can fail the check. Verified once with `prettier --check .` returning exit 0 before pushing.
 
 CI runs the same checks plus the layout allow-list validation and the gate-audit meta-test.
 
