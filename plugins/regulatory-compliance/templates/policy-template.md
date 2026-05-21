@@ -47,7 +47,7 @@
 | [2nd line] | [Oversight, testing] |
 | [3rd line / internal audit] | [Assurance] |
 
-**Roles refer to named individuals, not functional groups.** Update the [role-to-individual matrix](path/to/role-matrix.md) on personnel changes.
+**Roles refer to named individuals, not functional groups.** Update the project's own role-to-individual matrix (typically `docs/governance/role-matrix.md` in the consumer repo) on personnel changes.
 
 ## 6. Policy statements
 
@@ -63,10 +63,10 @@
 
 ## 7. Procedures
 
-[Reference the operational procedures that implement this policy. Don't bury procedure inside policy; link to a separate procedure document.]
+[Reference the operational procedures that implement this policy. Don't bury procedure inside policy; link to separate procedure documents inside the consumer's own policy library, typically `procedures/proc-XXX-name.md` under the same directory as this policy.]
 
-- [`./procedures/proc-001-name.md`](./procedures/proc-001-name.md) — [1-line summary]
-- [`./procedures/proc-002-name.md`](./procedures/proc-002-name.md) — [1-line summary]
+- `procedures/proc-001-name.md` — [1-line summary]
+- `procedures/proc-002-name.md` — [1-line summary]
 
 ## 8. Monitoring and reporting
 
@@ -91,8 +91,10 @@
 
 ## 11. Related documents
 
-- [Related policy 1] — [`./related-policy-1.md`](./related-policy-1.md)
-- [Related procedure 1] — [`./procedures/proc-001.md`](./procedures/proc-001.md)
+(Replace with actual paths into the consumer's own policy library.)
+
+- [Related policy 1] — `related-policy-1.md`
+- [Related procedure 1] — `procedures/proc-001.md`
 - [Related guidance / standard] — [...]
 
 ## 12. Version history

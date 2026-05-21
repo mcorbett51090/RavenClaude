@@ -93,7 +93,7 @@ This plugin inherits the Capability Grounding Protocol from `ravenclaude-core`. 
 
 > "This question requires a legal opinion that should come from counsel, not this plugin. I can help with the operational / compliance / documentation side, but the legal conclusion needs to come from a qualified attorney in [jurisdiction]. Would you like me to proceed with the operational side?"
 
-See [`../ravenclaude-core/skills/grounding-protocol`](../ravenclaude-core/skills/grounding-protocol) for the upstream definition.
+The architectural definition of the Grounding Protocol lives in [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md) (`Capability Grounding Protocol` section). The reference implementation skill is [`../power-platform/skills/grounding-protocol/SKILL.md`](../power-platform/skills/grounding-protocol/SKILL.md) (consumers who install `power-platform` get that skill file directly; otherwise the inline §5 above is authoritative for this plugin).
 
 ---
 
@@ -215,8 +215,8 @@ When in doubt, the compliance team **declines and asks the Team Lead** rather th
 ## 11. References
 
 - Domain-neutral team constitution: [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md)
-- Capability Grounding Protocol (upstream): [`../ravenclaude-core/skills/grounding-protocol`](../ravenclaude-core/skills/grounding-protocol)
+- Capability Grounding Protocol (architectural): [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md) (`Capability Grounding Protocol` section); reference skill (when `power-platform` is installed): [`../power-platform/skills/grounding-protocol/SKILL.md`](../power-platform/skills/grounding-protocol/SKILL.md)
 - Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output.md`](../ravenclaude-core/skills/structured-output.md)
 - Cited-Adjudicator Escalation: [`../ravenclaude-core/rules/agent-collaboration.md`](../ravenclaude-core/rules/agent-collaboration.md)
-- Sister plugins: [`../finance/CLAUDE.md`](../finance/CLAUDE.md) — financial close, controls testing, audit prep often paired with regulatory work
+- Sister plugins (when installed alongside): `finance` — financial close, controls testing, audit prep often paired with regulatory work. See [`../../docs/plugin-roadmap-analysis.md`](../../docs/plugin-roadmap-analysis.md) for the marketplace plan.
 - Marketplace-wide developer guide: [`../../CLAUDE.md`](../../CLAUDE.md)
