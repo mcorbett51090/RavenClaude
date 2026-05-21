@@ -23,7 +23,7 @@ This marketplace follows the **orchestrator-worker / hierarchical** pattern, whi
 
 ## Structured Output Protocol (Active — required for handoffs)
 
-> **Status as of 2026-05-20:** This protocol is **active**. Every sub-agent that hands off to the Team Lead (or to a downstream specialist) MUST end its report with a `---RESULT_START--- ... ---RESULT_END---` delimited JSON block alongside its human-readable Markdown. The dual-output format is the 2026 norm in production multi-agent systems (pure JSON loses reasoning, pure Markdown is unparseable). Agent files in `agents/` are being retrofitted to declare this requirement explicitly in their Output Contract sections; until that retrofit lands across all 13 agents, the Team Lead enforces the contract at dispatch time by including the format in the brief.
+> **Status as of 2026-05-21:** This protocol is **active and implemented**. All 13 specialist agents in `agents/` now declare the Structured Output Protocol block in their Output Contract sections (added in v0.4.0). Every sub-agent that hands off to the Team Lead (or to a downstream specialist) MUST end its report with a `---RESULT_START--- ... ---RESULT_END---` delimited JSON block alongside its human-readable Markdown. The dual-output format is the 2026 norm in production multi-agent systems (pure JSON loses reasoning, pure Markdown is unparseable). The Team Lead enforces the contract at brief time and reads the JSON to drive routing.
 
 The protocol is described below. Agents MUST follow this format for handoff-bearing reports; informational chatter ("file read", "test ran") is exempt.
 

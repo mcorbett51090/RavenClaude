@@ -150,6 +150,28 @@ When a non-obvious lesson surfaces (a partner pattern that bit, an EdTech-cadenc
 2. If it generalizes, also append to `docs/memory-bank/lessons-learned.md` — newest at top, full format.
 3. If it's an AI pattern, propose adding it to the AI workflow library too.
 
+## Structured Output Protocol (required)
+
+After your Markdown report above, emit the structured handoff block so the Team Lead can route reliably:
+
+```
+---RESULT_START---
+{
+  "status": "complete" | "partial" | "blocked",
+  "summary": "one-sentence outcome",
+  "deliverables": ["..."],
+  "handoff_recommendation": {"to_specialist": "<role or null>", "reason": "..."},
+  "confidence": 0.0,
+  "risks_or_open_questions": ["..."],
+  "next_actions": ["..."]
+}
+---RESULT_END---
+```
+
+`confidence` is a 0.0-1.0 float reflecting how sure you are of your output. Use ≥0.7 to trigger Cited-Adjudicator Escalation if you assert another agent's prior artifact is wrong; see [`rules/agent-collaboration.md`](../rules/agent-collaboration.md).
+
+See [`skills/structured-output.md`](../skills/structured-output.md) for the full schema and rationale.
+
 ## References
 - Templates: [`partner-profile.md`](../templates/partner-success/partner-profile.md), [`success-plan.md`](../templates/partner-success/success-plan.md), [`qbr-agenda.md`](../templates/partner-success/qbr-agenda.md), [`health-scorecard.md`](../templates/partner-success/health-scorecard.md), [`onboarding-checklist.md`](../templates/partner-success/onboarding-checklist.md), [`touchpoint-log.md`](../templates/partner-success/touchpoint-log.md), [`ai-workflow-library.md`](../templates/partner-success/ai-workflow-library.md)
 - PSM-discipline rationale: `docs/memory-bank/lessons-learned.md` entry for 2026-05-07.

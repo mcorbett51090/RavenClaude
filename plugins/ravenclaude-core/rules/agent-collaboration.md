@@ -48,6 +48,33 @@ The Team Lead **always** reads the diff before relaying success to the user. Sel
 - Coder says ✅, tester says ❌ → tester wins until the coder reproduces and fixes.
 - Reviewer says blocker, coder disagrees → Team Lead reads the diff, decides, documents the call.
 - Two specialists disagree on design → escalate to architect for adjudication, or Team Lead decides if the architect already weighed in.
+- **Specialist A asserts another specialist's prior artifact is factually wrong** → apply **Cited-Adjudicator Escalation** below; don't trust a single empirical test from the Team Lead.
+
+## Cited-Adjudicator Escalation
+
+When Agent A confidently calls out Agent B's claim or artifact as wrong, the Team Lead must triage instead of immediately trusting A *or* running a single test to refute A. A one-shot orchestrator test can confirm-wrong-for-wrong-reasons; the resolution often needs a *cited* third opinion.
+
+**Pattern** — *Cited-Adjudicator Escalation*. Synthesis of Anthropic's [Evaluator-Optimizer](https://www.anthropic.com/research/building-effective-agents), [AutoGen's Critic agent](https://microsoft.github.io/autogen/0.2/docs/notebooks/agentchat_groupchat_research/), and LLM-as-Judge selection heuristics. The third specialist's contract is **citation-backed adjudication**, not a re-vote or a re-test.
+
+**Decision rule (Team Lead applies on receiving a "B is wrong" claim from A):**
+
+1. **Trust A immediately** when A's claim is in A's domain of authority AND doesn't contradict an existing artifact.
+2. **Test it yourself** when the claim is *deterministically verifiable by software* — schema, exit code, file presence, regex match. Never spawn a judge for what `python3 -m json.tool` or a single regex can settle.
+3. **Spawn `deep-researcher` in citation-only mode** when *any two* of the following hold:
+   - A's claim contradicts B's prior artifact AND A's `confidence` ≥ 0.7 in the Structured Output Protocol block.
+   - The domain is correctness-critical (security, concurrency, shell/regex/glob semantics, crypto, data loss, layout enforcement).
+   - Your one-shot test could plausibly confirm-wrong-for-wrong-reasons (e.g., the matcher worked in your test but A specified a *different input class*).
+   - Resolution requires citing a *spec* (POSIX, RFC, bash manual, vendor docs), not running code.
+4. **Escalate to the user** when the third specialist still cannot resolve. Never spawn a fourth agent — that's debate without termination.
+
+**How to brief the third specialist (cap at 200 words):**
+
+- Paste both prior claims verbatim with their `confidence` labels. Do **not** paraphrase. Do **not** signal whom you believe.
+- Name the exact authority class required ("bash reference manual section on Pattern Matching", "RFC 7231 §4.3.1").
+- Forbid running new code as the *primary* evidence; require a citation. Repro is corroborating evidence only.
+- Required output: binary verdict + cited line. JSON shape: `{ "A_correct": bool, "B_correct": bool, "citation": "<url+quote>", "confidence": <0..1> }`.
+
+**Why this exists:** this pattern was added to the constitution after the failure mode it prevents played out during the marketplace's own self-review. An architect agent confidently claimed a hook was buggy; the Team Lead's one-shot test seemed to refute it; the deep-researcher confirmed (with bash manual citations) that the architect was *partially* correct on mechanics but wrong on the conclusion. A single empirical test would have settled it the wrong way.
 
 ## Parallel vs. sequential
 | Pattern | When |

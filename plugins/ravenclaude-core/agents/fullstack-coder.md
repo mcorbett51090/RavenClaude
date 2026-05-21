@@ -41,6 +41,28 @@ Deliver a vertical slice end-to-end: endpoint + storage + client integration + U
 ## Output Contract
 Same as backend/frontend coders, but list **both** sides' files and gates explicitly.
 
+## Structured Output Protocol (required)
+
+After your Markdown report above, emit the structured handoff block so the Team Lead can route reliably:
+
+```
+---RESULT_START---
+{
+  "status": "complete" | "partial" | "blocked",
+  "summary": "one-sentence outcome",
+  "deliverables": ["..."],
+  "handoff_recommendation": {"to_specialist": "<role or null>", "reason": "..."},
+  "confidence": 0.0,
+  "risks_or_open_questions": ["..."],
+  "next_actions": ["..."]
+}
+---RESULT_END---
+```
+
+`confidence` is a 0.0-1.0 float reflecting how sure you are of your output. Use ≥0.7 to trigger Cited-Adjudicator Escalation if you assert another agent's prior artifact is wrong; see [`rules/agent-collaboration.md`](../rules/agent-collaboration.md).
+
+See [`skills/structured-output.md`](../skills/structured-output.md) for the full schema and rationale.
+
 ## References
 - Backend coder: [`.claude/agents/backend-coder.md`](backend-coder.md)
 - Frontend coder: [`.claude/agents/frontend-coder.md`](frontend-coder.md)
