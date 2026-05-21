@@ -174,6 +174,16 @@ The hook is conservative — it only fires on conventional web file extensions /
 
 ---
 
+## 8a. Knowledge bank
+
+| File | Read when |
+|---|---|
+| [`knowledge/design-references.md`](knowledge/design-references.md) | Scoping a new site, pitching a new aesthetic direction, or evaluating an existing site against the field. Curated reference set of marketing / product sites praised in 2024–2026 design discourse as "cutting edge yet simple" — pattern donors, what to borrow, what to avoid. Refreshed roughly annually. |
+
+The `visual-designer`, `ux-designer`, `frontend-implementer`, and `web-architect` agents all carry a compact "Pattern library priors" section that summarizes this knowledge inline; the full brief in `knowledge/` is the source of truth and gets re-read on demand.
+
+---
+
 ## 9. Templates in this plugin
 
 | Template | Use for |

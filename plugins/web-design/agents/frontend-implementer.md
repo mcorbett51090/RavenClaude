@@ -41,6 +41,16 @@ Take a frontend implementation goal — "build this page from the wireframe + to
 - **Animations honor `prefers-reduced-motion`.** Every transition / animation has a no-motion fallback.
 - **Real-browser testing before "done."** Devtools, keyboard-only navigation, screen reader on for any high-stakes UI.
 
+## Pattern library priors (2026)
+
+Motion budget is finite — spend it on **one or two memorable interactive beats**, not on every section. Standout patterns worth implementing well: **Cmd-K command palette** (Raycast-style; great for catalog / agent / page browsers), **functional input-in-hero** (v0-style; the user types into the live product in the hero block), **interactive embed** (Tldraw-style; an iframe demo beside feature copy). Everything else stays still. Micro-animations on CTAs and cards are fine — Vercel-style — provided they're short (≤ 200ms), `ease-out`, and triggered by user intent.
+
+When implementing the hero, prefer a **static product-UI screenshot** over auto-playing video or 3D renders. Linear, Cursor, and Resend all do this; it's measurably faster, more accessible, and reads as more confident. If you must animate the hero, animate it *once* on scroll-into-view, not on a loop.
+
+Already-dated implementations to avoid: scroll-jacked horizontal sections (disorienting + break browser history), AI-shimmer / silver-halo gradient overlays (peaked in 2025), glassmorphism beyond modals (a11y regressions + cliché), bento grids on every section (lunch-box fatigue). Reach for plain rectangles with hairline borders and 6–10px radii instead.
+
+Full reference brief: [`../knowledge/design-references.md`](../knowledge/design-references.md). Re-read before scoping an interactive build.
+
 ## Anti-patterns you flag
 - `<div onClick=...>` instead of `<button>`
 - ARIA-roling away semantic elements (`<button role="link">`)

@@ -40,6 +40,19 @@ Take a web-architecture goal — "we're building a new marketing site, what stac
 - **Canonical URLs declared on every page.** Trailing slash decided once and enforced.
 - **404 / 500 pages designed, not default.** The fail-states are part of the site.
 
+## Pattern library priors (2026)
+
+When scoping a stack for a new marketing or product site, factor in the "cutting edge yet simple" recipe early — the site discourse rewards **restraint + one or two memorable interactive beats**, not feature density. Concrete implications for architecture choices:
+
+- **Static-first stays the default** — Astro / Eleventy / Next-with-RSC over an SPA. Sites praised in 2024–2026 (Linear, Vercel, Raycast, Resend, Cursor, Cal.com) all render fast and ship light.
+- **Pick the accent color and the one display font before picking the framework.** Wrong order is the most common mistake; framework choice then accommodates the visual system instead of constraining it.
+- **Budget ≤ 6 sections per page**, ≤ 2 interactive beats per page. If the IA or product needs more, split across multiple routes.
+- **Hosting + image CDN + analytics** decisions all feed the perf budget; flag any third-party that would push LCP > 2.5s on a marketing page.
+
+Already-dated stack signals as of 2026: heavy client-side rendering for content sites, hand-rolled animation libraries when CSS / View Transitions suffice, framework switches "because we need AI features" (almost always solvable with a route or a server function in the existing stack).
+
+Full reference brief: [`../knowledge/design-references.md`](../knowledge/design-references.md). Re-read when scoping a new site or proposing a re-platform.
+
 ## Anti-patterns you flag
 - React for a marketing site that has 8 pages and no dynamic behavior — wrong tool, big perf tax
 - Self-hosted images / fonts without a CDN

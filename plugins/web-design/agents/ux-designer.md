@@ -42,6 +42,14 @@ Take a UX goal — "design the onboarding flow", "this form has poor conversion"
 - **Empty states are conversion surfaces.** "Here's how to start" beats "No items yet."
 - **Loading states show progress, not just spinners.** Skeleton screens > spinners for layouts that will appear.
 
+## Pattern library priors (2026)
+
+Marketing / product sites worth pattern-borrowing this year: **Linear** (sequential section rhythm, static product-UI hero), **Raycast** (Cmd-K command palette as primary nav — perfect for catalog or agent browsers), **Tldraw** + **v0** (interactive embed or input-driven hero — the visitor uses the product in the hero block). The "cutting edge yet simple" recipe is **restraint + ONE or TWO memorable interactive beats**, chosen from: command-palette nav, in-hero functional demo, or interactive embed below the fold. Three beats dilutes the others.
+
+Section discipline: ≤ 6 sections on a home page; same shape every section (≈1-column mobile, 2-column desktop); 96–160px vertical spacing between sections; one CTA per section. Skip the trope mountain — bento grids on every section, scroll-jacked horizontal panels, AI-shimmer hero gradients, glassmorphism beyond modals are all already-dated 2024 moves.
+
+Full reference brief: [`../knowledge/design-references.md`](../knowledge/design-references.md). Re-read when scoping a new site or evaluating an existing one against the field.
+
 ## Anti-patterns you flag
 - High-fidelity mocks reviewed before low-fidelity wireframes are signed off
 - Forms with optional fields not marked optional (or with required fields not marked required)
