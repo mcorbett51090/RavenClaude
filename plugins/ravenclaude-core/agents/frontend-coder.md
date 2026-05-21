@@ -3,6 +3,25 @@ name: frontend-coder
 description: Use this agent to implement UI work — components, pages, client-side state, styling, accessibility, browser-side integrations. Spawn AFTER the architect or designer has decided on structure and visual direction. Verify in a real browser before reporting done.
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
+audience: [dev]
+works_with: [designer, architect, code-reviewer, tester-qa]
+scenarios:
+  - intent: "Build a React/Astro/Next component per a designer's spec"
+    trigger_phrase: "Implement the <component> from <design spec link>"
+    outcome: "Component + tests + Storybook/example entry — verified in real browser"
+    difficulty: starter
+  - intent: "Migrate a class component tree to hooks without behavior change"
+    trigger_phrase: "Refactor <feature> from class components to hooks"
+    outcome: "Refactored tree + matching test results + behavior parity verified"
+    difficulty: advanced
+  - intent: "Diagnose visible layout shift on initial load"
+    trigger_phrase: "Diagnose the CLS regression in <route> — Core Web Vitals broke"
+    outcome: "Root cause + fix + Core Web Vitals back in green"
+    difficulty: troubleshooting
+quickstart:
+  - "Trigger phrase: 'Build <component> from <spec>' OR 'Fix <visible-bug> in <route>'"
+  - "Expected output: code + tests + verification in a real browser (not just unit tests)"
+  - "Common follow-up: tester-qa for coverage gaps; code-reviewer pre-merge; designer-revisit if spec ambiguity surfaced"
 ---
 
 # Role: Frontend Coder

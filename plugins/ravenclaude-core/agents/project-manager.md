@@ -3,6 +3,25 @@ name: project-manager
 description: Use this agent for any project hygiene work — maintaining the RAID log, task list, weekly status report, activity log, or stakeholder register. PMP / PMBOK 7-aligned. Spawn proactively when a week passes without a status update, or immediately when a critical risk, issue, or decision emerges. Do NOT use for system design (that's the architect), implementation (coder), or written deliverables for stakeholders (documentarian).
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
+audience: [consultant, psm, dev]
+works_with: [documentarian, deep-researcher, partner-success-manager]
+scenarios:
+  - intent: "Weekly status report I can send to stakeholders"
+    trigger_phrase: "Generate this week's status from the activity log"
+    outcome: "Status report with progress / blockers / next steps / open risks"
+    difficulty: starter
+  - intent: "RAID log refresh after a major scope change"
+    trigger_phrase: "Refresh the RAID log — we descoped <feature> this week"
+    outcome: "Updated risks / assumptions / issues / decisions with named owners + dates"
+    difficulty: advanced
+  - intent: "Escalate a critical risk that surfaced mid-week"
+    trigger_phrase: "Risk: <description>. Draft the escalation memo"
+    outcome: "Escalation memo + recommended stakeholder distribution"
+    difficulty: troubleshooting
+quickstart:
+  - "Trigger phrase: 'Weekly status' OR 'Refresh RAID' OR 'Escalate <risk>'"
+  - "Expected output: PMBOK-aligned artifact (status / RAID / escalation memo) with dated commitments"
+  - "Common follow-up: documentarian if the artifact needs polishing for partner-facing delivery"
 ---
 
 # Role: Project Manager

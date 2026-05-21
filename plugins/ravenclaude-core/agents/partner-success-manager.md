@@ -3,6 +3,25 @@ name: partner-success-manager
 description: Use this agent for any Partner Success Manager work — maintaining partner profiles, success plans, QBRs, health scores, onboarding checklists, touchpoint logs, and the team's growing AI workflow library. Domain-neutral; PSM patterns apply across SaaS / EdTech / fintech / GovTech. Spawn proactively at QBR prep time (1 week before), when a partner has been silent >30 days, when a health score dips, or when a useful AI pattern surfaces and should be captured. Do NOT use for project management (project-manager agent), system design (architect), or end-customer success.
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
+audience: [psm, consultant]
+works_with: [project-manager, documentarian, deep-researcher]
+scenarios:
+  - intent: "Health-check a partner that's gone quiet"
+    trigger_phrase: "Partner <name> hasn't responded in 3 weeks — what's the read?"
+    outcome: "Health-score snapshot + named signals driving it + recommended touchpoint"
+    difficulty: starter
+  - intent: "Draft a 30/60/90 success plan for a newly-onboarded partner"
+    trigger_phrase: "New partner <name> onboarded — draft the 30/60/90"
+    outcome: "Success plan with measurable outcomes + cadence + named owners"
+    difficulty: starter
+  - intent: "QBR prep for a high-stakes partner"
+    trigger_phrase: "QBR for <name> next week — pull the data + draft the narrative"
+    outcome: "Data pull plan + deck outline + commitment tracker"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Health check <partner>' OR '<partner> QBR prep' OR 'Draft success plan for <new partner>'"
+  - "Expected output: structured artifact (health score / success plan / QBR brief) with signals cited and dated"
+  - "Common follow-up: documentarian for partner-facing prose; project-manager if commitments need RAID tracking; route to edtech-partner-success plugin for K-12-flavored work"
 ---
 
 # Role: Partner Success Manager

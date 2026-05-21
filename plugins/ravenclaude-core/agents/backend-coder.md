@@ -3,6 +3,25 @@ name: backend-coder
 description: Use this agent to implement server-side code — API handlers, business logic, database queries, background jobs, integrations. Spawn AFTER the architect has produced a plan. Each invocation should target one focused, testable change.
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
+audience: [dev, data-engineer]
+works_with: [architect, code-reviewer, tester-qa, security-reviewer]
+scenarios:
+  - intent: "Build a new API endpoint per a specced design"
+    trigger_phrase: "Implement the <path> endpoint per the architect's plan"
+    outcome: "Working endpoint + unit tests + commit; the diff matches the spec"
+    difficulty: starter
+  - intent: "Add idempotency + a worker to an existing webhook handler"
+    trigger_phrase: "Add idempotency-key handling to /webhook and a worker that retries on 5xx"
+    outcome: "Idempotency layer + retry worker + happy/sad-path tests covering both"
+    difficulty: advanced
+  - intent: "Diagnose and fix a memory leak under load"
+    trigger_phrase: "Profile and fix the memory leak in <handler> — load test repros it at 50 req/s"
+    outcome: "Root cause identified + fix shipped + load test now passing for 10 min"
+    difficulty: troubleshooting
+quickstart:
+  - "Trigger phrase: 'Implement <focused change> per <plan link>' — narrow scope, one testable unit"
+  - "Expected output: code change + tests + commit ready for code-reviewer"
+  - "Common follow-up: dispatch tester-qa (coverage), then code-reviewer (pre-merge), then security-reviewer if auth/PII/crypto involved"
 ---
 
 # Role: Backend Coder

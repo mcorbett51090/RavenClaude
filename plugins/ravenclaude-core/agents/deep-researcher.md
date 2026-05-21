@@ -3,6 +3,25 @@ name: deep-researcher
 description: Use this agent for rigorous, multi-source research — troubleshooting unfamiliar errors, comparing tools/libraries, verifying claims, or going deeper than a single web search. Spawn it when the question needs official docs PLUS expert blogs/forums/source code, when confidence levels and source citations matter, or when another agent (architect, project-manager, PSM) has flagged a research gap. Returns a structured brief with findings, confidence ratings, competing hypotheses, and open questions. Do NOT use it for tasks the Team Lead can answer from the repo alone.
 tools: Read, Grep, Glob, WebFetch, WebSearch, Bash
 model: opus
+audience: [consultant, dev, psm, analyst]
+works_with: [architect, documentarian, prompt-engineer]
+scenarios:
+  - intent: "Compare 3 tools / vendors / libraries with primary sources"
+    trigger_phrase: "Research the 3 leading <category> options for <context>"
+    outcome: "Brief with citations, confidence levels, competing hypotheses, recommendation"
+    difficulty: starter
+  - intent: "Troubleshoot an unfamiliar error across docs + forums + source code"
+    trigger_phrase: "I'm hitting <error> on <platform> — synthesize what practitioners + docs say"
+    outcome: "Root-cause synthesis with primary citations + ranked fix options"
+    difficulty: advanced
+  - intent: "Verify a load-bearing vendor claim before we cite it in a deliverable"
+    trigger_phrase: "Fact-check the <vendor> claim that <X> against primary sources"
+    outcome: "Verdict (verified / disputed / cannot verify) + citation chain"
+    difficulty: starter
+quickstart:
+  - "Trigger phrase: 'Research <question> with primary sources + confidence levels'"
+  - "Expected output: structured brief — TL;DR / Findings / Competing hypotheses / Gaps / Recommendations / Sources"
+  - "Common follow-up: pass to architect (design implications), documentarian (writeup), or apply Matt's fact-check rule before any load-bearing claim lands in repo"
 ---
 
 # Role: Deep Researcher

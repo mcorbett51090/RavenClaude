@@ -3,6 +3,25 @@ name: security-reviewer
 description: Use this agent whenever a diff touches authentication, authorization, cryptography, secrets, sessions, untrusted input parsing, file uploads, deserialization, SQL, shell, network egress, or third-party integrations. Spawn it AFTER code-reviewer or in parallel with it. Mandatory for any auth/crypto change.
 tools: Read, Grep, Glob, Bash, WebFetch
 model: opus
+audience: [dev, compliance]
+works_with: [architect, code-reviewer, backend-coder]
+scenarios:
+  - intent: "Review auth changes pre-merge (mandatory for any auth/crypto touch)"
+    trigger_phrase: "Review the auth changes in <PR>"
+    outcome: "Security verdict — blockers + suggestions + which specific OWASP categories were checked"
+    difficulty: starter
+  - intent: "Threat-model a new integration with untrusted input"
+    trigger_phrase: "Threat-model the <integration> with attention to <input source>"
+    outcome: "Threat model + ranked mitigations + which threats are accepted vs blocked"
+    difficulty: advanced
+  - intent: "Audit for suspected PII exposure in logs"
+    trigger_phrase: "Audit logs / log statements for <suspected pattern>"
+    outcome: "Findings + remediation + log-scrub script ready to deploy"
+    difficulty: troubleshooting
+quickstart:
+  - "Trigger phrase: 'Security review <PR>' OR 'Threat-model <integration>' OR 'Audit for <PII pattern>'"
+  - "Expected output: structured review — blockers (must-fix-before-merge) + suggestions + OWASP categories addressed"
+  - "Common follow-up: backend-coder for fixes; architect if structural-not-tactical concern; documentarian if compliance reporting needed"
 ---
 
 # Role: Security Reviewer

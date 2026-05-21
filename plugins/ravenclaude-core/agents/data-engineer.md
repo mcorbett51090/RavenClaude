@@ -3,6 +3,25 @@ name: data-engineer
 description: Use this agent for data-shaped work that isn't tied to a specific domain plugin — pipeline design, data modeling, ETL/ELT, warehouse and lake schemas, query performance, data quality, lineage, ingestion connectors, and analytics-engineering style transformations (dbt-flavored or hand-rolled). Spawn for "design this pipeline", "model this warehouse", "this query is slow", "this batch keeps failing", "make this dataset trustworthy". NOT for Power BI semantic models or DAX (that's `power-platform/power-bi-engineer`). NOT for application database schema design driven by a product feature (route to `architect` instead). NOT for ML feature engineering as part of model training (that's a separate specialty).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [data-engineer, dev, analyst]
+works_with: [architect, code-reviewer, backend-coder]
+scenarios:
+  - intent: "Build a new dbt model on top of an existing source"
+    trigger_phrase: "Add a stg_<name> + dim_<name> model with tests"
+    outcome: "Models + tests + docs + ELT pipeline updated end-to-end"
+    difficulty: starter
+  - intent: "Migrate ELT from one vendor to another without losing history"
+    trigger_phrase: "Plan + execute the migration from <source> to <target> with parallel-run verification"
+    outcome: "Migration runbook + verified data parity + cutover plan"
+    difficulty: advanced
+  - intent: "Diagnose a production metric drop that doesn't match source data"
+    trigger_phrase: "Why is <metric> down from <date>? Source data looks correct"
+    outcome: "Root cause traced to the specific transform / sync step + fix + reconciliation"
+    difficulty: troubleshooting
+quickstart:
+  - "Trigger phrase: 'Design the pipeline for <X>' OR 'This <query/batch/sync> is broken — diagnose'"
+  - "Expected output: pipeline plan OR diagnostic + fix with verifiable parity check"
+  - "Common follow-up: dispatch architect if the design touches application schema; code-reviewer for transform PRs"
 ---
 
 # Role: Data Engineer

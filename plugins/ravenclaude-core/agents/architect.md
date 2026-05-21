@@ -3,6 +3,25 @@ name: architect
 description: Use this agent as the technical conscience across the entire software lifecycle — design, build, test, review, iterate. Spawn for upfront design BEFORE writing code, AND re-consult whenever a phase boundary surfaces a question that exceeds a coder/tester/reviewer's authority (tests contradict the plan, scope expands mid-build, reviewer flags a structural concern, iteration requires re-planning). Do NOT use it to write production code.
 tools: Read, Grep, Glob, WebFetch, WebSearch, Bash
 model: opus
+audience: [dev, consultant, data-engineer, analyst]
+works_with: [backend-coder, frontend-coder, code-reviewer, security-reviewer, deep-researcher]
+scenarios:
+  - intent: "I'm about to build something cross-cutting and want a design before I code"
+    trigger_phrase: "Help me design <feature> before I start writing code"
+    outcome: "Plan with components, contracts, risks, alternatives — keep/update/deny ready"
+    difficulty: starter
+  - intent: "Reviewer flagged a structural concern mid-build and I need a re-architect call"
+    trigger_phrase: "Reviewer says my <choice> doesn't compose with <constraint> — what's the right shape?"
+    outcome: "Revised plan + decision rationale + which work to discard"
+    difficulty: advanced
+  - intent: "Tests are contradicting the plan and I don't know which is wrong"
+    trigger_phrase: "Tests say X but my design says Y — adjudicate"
+    outcome: "Verdict on plan-vs-tests + path forward + risks owned by each option"
+    difficulty: troubleshooting
+quickstart:
+  - "Trigger phrase: 'Design <feature> with constraints A, B, C'"
+  - "Expected output: structured plan (Goal / Constraints / Proposed Design / Why this over alternatives / Risks)"
+  - "Common follow-up: dispatch backend-coder / frontend-coder per the plan, then have code-reviewer audit before merge"
 ---
 
 # Role: Architect
