@@ -146,17 +146,28 @@ Advisory by default (`exit 0` with stderr warnings). Flip the final `exit 0` to 
 
 ## 8a. Knowledge bank
 
-Reference docs that capture the cloud-data/dashboard landscape distilled from primary-source research, with retrieval dates and confidence notation. Inline priors live on each affected agent; the files in `knowledge/` are the source of truth, re-read on demand.
+Reference docs that capture the cloud-data/dashboard landscape distilled from primary-source research, with retrieval dates and confidence notation. Two waves:
+
+- **v0.1.0 landscape + foundation files** — broad landscape syntheses + the multi-tenant RLS deep-dive + QBO + Power BI Embedded + EdTech LMS gap
+- **v0.2.0 per-connector deep-dives** — Stripe, Salesforce, HubSpot, GA4, Shopify, HRIS — each carries entity catalog + rate limits + auth + dbt mart patterns + common gotchas
+
+Inline priors live on the affected agents; the files in `knowledge/` are the source of truth, re-read on demand.
 
 | File | Read when |
 |---|---|
-| [`knowledge/cloud-database-landscape-2026.md`](knowledge/cloud-database-landscape-2026.md) | Selecting a database for a new engagement; pricing-tier decisions; multi-cloud-vs-single-cloud trade-off. Covers AWS / Azure / GCP / Supabase / Neon / Fabric / Snowflake / Databricks / MotherDuck / DuckDB / Turso with retrieval-dated pricing. |
-| [`knowledge/ipaas-connector-landscape-2026.md`](knowledge/ipaas-connector-landscape-2026.md) | Selecting an ELT tool; checking connector coverage for a specific source; **flagging the Fivetran 2026 deletes-count-as-MAR change** as cost predictability hostile to fixed-fee consulting |
-| [`knowledge/embedded-analytics-landscape-2026.md`](knowledge/embedded-analytics-landscape-2026.md) | Selecting a dashboard framework; **flagging the per-viewer-pricing trap** (Looker, Tableau Embedded, Sigma, Metabase Pro). Covers free-OSS alternatives + their embedding feature gates. |
+| [`knowledge/cloud-database-landscape-2026.md`](knowledge/cloud-database-landscape-2026.md) | Selecting a database for a new engagement; pricing-tier decisions; multi-cloud-vs-single-cloud trade-off. AWS / Azure / GCP / Supabase / Neon / Fabric / Snowflake / Databricks / MotherDuck / DuckDB / Turso with retrieval-dated pricing. |
+| [`knowledge/ipaas-connector-landscape-2026.md`](knowledge/ipaas-connector-landscape-2026.md) | Selecting an ELT tool; **flagging the Fivetran 2026 deletes-count-as-MAR change** as cost predictability hostile to fixed-fee consulting |
+| [`knowledge/embedded-analytics-landscape-2026.md`](knowledge/embedded-analytics-landscape-2026.md) | Selecting a dashboard framework; **flagging the per-viewer-pricing trap** (Looker, Tableau Embedded, Sigma, Metabase Pro). |
 | [`knowledge/multi-tenant-rls-patterns.md`](knowledge/multi-tenant-rls-patterns.md) | Designing tenant isolation across stacks. Postgres RLS, Cube `securityContext`, Power BI DAX roles + DirectQuery + EffectiveIdentity narrow mode, Fabric OneLake, Snowflake row-access policies + dynamic data masking as the equivalent layer. Cross-boundary denial tests per stack. |
-| [`knowledge/quickbooks-online-integration.md`](knowledge/quickbooks-online-integration.md) | Configuring a QBO data pipeline. OAuth flow, rate limits (10 req/s per realm-ID), refresh token 100-day rolling expiry, ELT connector availability, Desktop-vs-Online distinction (Desktop is v0.2.0+). |
-| [`knowledge/power-bi-embedded-for-consultants.md`](knowledge/power-bi-embedded-for-consultants.md) | M365-stack engagement; F-SKU pricing (F2 $263/mo PAYG, $156/mo reserved); App-Owns-Data vs User-Owns-Data; RLS via DAX roles; `power-platform`-plugin handoff routes. |
-| [`knowledge/edtech-lms-connector-gap.md`](knowledge/edtech-lms-connector-gap.md) | EdTech engagement. Canvas / Moodle / Schoology / Blackboard / D2L LMS landscape. Why native ELT vendor coverage is thin. Custom-Airbyte-connector pattern. Handoff to `edtech-partner-success` agents. |
+| [`knowledge/quickbooks-online-integration.md`](knowledge/quickbooks-online-integration.md) | QBO data pipeline; OAuth + 100-day refresh discipline; 10 req/s rate limit. |
+| [`knowledge/power-bi-embedded-for-consultants.md`](knowledge/power-bi-embedded-for-consultants.md) | M365-stack engagement; F-SKU pricing; App-Owns-Data flow; coordination with `power-platform/power-bi-engineer`. |
+| [`knowledge/edtech-lms-connector-gap.md`](knowledge/edtech-lms-connector-gap.md) | EdTech engagement; Canvas / Moodle / Schoology / Blackboard / D2L; **the proprietary claim** — no first-class ELT connector for these. Handoff to `edtech-partner-success`. |
+| **v0.2.0** [`knowledge/stripe-integration.md`](knowledge/stripe-integration.md) | Stripe pipeline; batch ELT for history + webhooks for real-time hybrid; entity catalog; PCI-DSS considerations |
+| **v0.2.0** [`knowledge/salesforce-integration.md`](knowledge/salesforce-integration.md) | Salesforce pipeline; Bulk API 2.0 ceilings (150M records/day, 15k batches/24h, 10MB payload); explicit field enumeration; SOQL relationship-query nuances |
+| **v0.2.0** [`knowledge/hubspot-integration.md`](knowledge/hubspot-integration.md) | HubSpot pipeline; 110 req/10s OAuth marketplace + 4/sec Search API; Fivetran-MAR risk on deal-heavy orgs |
+| **v0.2.0** [`knowledge/ga4-integration.md`](knowledge/ga4-integration.md) | GA4 pipeline; native BigQuery export is free + recommended path; UA is gone; Data API rate limits |
+| **v0.2.0** [`knowledge/shopify-integration.md`](knowledge/shopify-integration.md) | Shopify pipeline; GraphQL Admin API required for new apps since April 2025; webhooks via Pub/Sub or EventBridge |
+| **v0.2.0** [`knowledge/hris-integration.md`](knowledge/hris-integration.md) | Workday / BambooHR / ADP / Rippling / Gusto; Merge.dev unified API as default for non-Workday; PII/PHI sensitivity + mandatory security-reviewer route |
 
 Each file carries a `Last reviewed:` date and refresh triggers. Pricing claims have retrieval dates inline.
 
@@ -164,7 +175,7 @@ Each file carries a `Last reviewed:` date and refresh triggers. Pricing claims h
 
 ## 9. Templates in this plugin
 
-10 templates in v0.1.0, distributed by intended bar (3 runnable + 4 conceptual + 3 seam-marked stubs). Two more are deferred to v0.2.0.
+12 templates in v0.2.0, distributed by intended bar (3 runnable + 4 conceptual + 3 seam-marked stubs + 2 new v0.2.0 scaffolds).
 
 ### Runnable (security-critical — must compile / parse / pass denial test)
 
@@ -183,7 +194,7 @@ Each file carries a `Last reviewed:` date and refresh triggers. Pricing claims h
 | [`templates/evidence-portfolio-page.md`](templates/evidence-portfolio-page.md) | Evidence.dev `.md` page template — SQL fenced blocks + chart components + narrative prose |
 | [`templates/airbyte-source-config.yaml`](templates/airbyte-source-config.yaml) | Airbyte source connector config with slots for QBO, Stripe, Salesforce, HubSpot, GA4, Shopify with appropriate scope flags |
 
-### Seam-marked stubs (`.tsx.md` — document the seams; promoted to runnable in v0.2.0)
+### Seam-marked stubs (`.tsx.md` — document the seams; promoted to runnable when a real engagement validates)
 
 | Template | Use for |
 |---|---|
@@ -191,10 +202,12 @@ Each file carries a `Last reviewed:` date and refresh triggers. Pricing claims h
 | [`templates/metabase-interactive-embed.tsx.md`](templates/metabase-interactive-embed.tsx.md) | React-component seam for Metabase Interactive Embedding (Pro+) with locked parameters |
 | [`templates/power-bi-embedded-react.tsx.md`](templates/power-bi-embedded-react.tsx.md) | React-component seam for Power BI Embedded App-Owns-Data flow |
 
-### Deferred to v0.2.0
+### v0.2.0 additions (scaffolds for the modeling + semantic layers)
 
-- `dbt-project-starter/` — defer until a real engagement validates the dimensional-model shape
-- `cube-schema-starter.yml` — Cube schema-design opinions live in the `cube-schema-scaffolding` skill until field-tested
+| Template | Use for |
+|---|---|
+| **NEW** [`templates/dbt-project-starter/`](templates/dbt-project-starter/) | 3-layer dbt project (staging / intermediate / marts) with `dbt_project.yml`, `profiles.yml.example`, source declarations + freshness tests, example `stg_quickbooks__customers.sql` + `dim_customer.sql` mart, and engagement-onboarding README |
+| **NEW** [`templates/cube-schema-starter.yml`](templates/cube-schema-starter.yml) | Cube schema starter with `orders` + `customers` example cubes, mandatory `access_policy` with `securityContext`, tenant-aware pre-aggregations, view-level partner-facing query surface |
 
 ---
 

@@ -1,0 +1,81 @@
+# Example profiles.yml for the dbt-project-starter
+# ---------------------------------------------------------------------------
+# Copy this to ~/.dbt/profiles.yml OR ./profiles.yml (project-local)
+# Replace {{client_slug}} with the engagement's client identifier
+#
+# Never commit the real profiles.yml — credentials belong in env vars
+# or a secret store.
+# ---------------------------------------------------------------------------
+
+{{client_slug}}:
+  target: dev
+
+  outputs:
+    # ---------------- Postgres / Supabase / Neon ----------------
+    dev:
+      type: postgres
+      host: "{{ env_var('DBT_HOST') }}"
+      user: "{{ env_var('DBT_USER') }}"
+      password: "{{ env_var('DBT_PASSWORD') }}"
+      port: 5432
+      dbname: "{{ env_var('DBT_DATABASE') }}"
+      schema: dev_{{ env_var('USER') }}  # personal dev schema
+      threads: 4
+
+    prod:
+      type: postgres
+      host: "{{ env_var('DBT_PROD_HOST') }}"
+      user: "{{ env_var('DBT_PROD_USER') }}"
+      password: "{{ env_var('DBT_PROD_PASSWORD') }}"
+      port: 5432
+      dbname: "{{ env_var('DBT_PROD_DATABASE') }}"
+      schema: marts
+      threads: 8
+
+    # ---------------- Snowflake (uncomment + adjust) ----------------
+    # snowflake:
+    #   type: snowflake
+    #   account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+    #   user: "{{ env_var('SNOWFLAKE_USER') }}"
+    #   password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+    #   role: "{{ env_var('SNOWFLAKE_ROLE') }}"
+    #   database: "{{ env_var('SNOWFLAKE_DATABASE') }}"
+    #   warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE') }}"
+    #   schema: marts
+    #   threads: 8
+
+    # ---------------- BigQuery (uncomment + adjust) ----------------
+    # bigquery:
+    #   type: bigquery
+    #   method: service-account
+    #   project: "{{ env_var('GCP_PROJECT') }}"
+    #   keyfile: "{{ env_var('GOOGLE_APPLICATION_CREDENTIALS') }}"
+    #   dataset: marts
+    #   threads: 8
+    #   timeout_seconds: 300
+    #   location: US
+    #   priority: interactive
+
+    # ---------------- Databricks (uncomment + adjust) ----------------
+    # databricks:
+    #   type: databricks
+    #   host: "{{ env_var('DATABRICKS_HOST') }}"
+    #   http_path: "{{ env_var('DATABRICKS_HTTP_PATH') }}"
+    #   token: "{{ env_var('DATABRICKS_TOKEN') }}"
+    #   catalog: main
+    #   schema: marts
+    #   threads: 8
+
+# ---------------------------------------------------------------------------
+# Local dev workflow:
+#   cp profiles.yml.example ~/.dbt/profiles.yml
+#   # Edit the dev target to point at your local Postgres
+#   export DBT_HOST=localhost DBT_USER=postgres DBT_PASSWORD=postgres DBT_DATABASE=engagement_dev
+#   dbt run --target dev
+#   dbt test --target dev
+#
+# CI workflow:
+#   Set DBT_PROD_* env vars in CI secrets
+#   dbt run --target prod
+#   dbt test --target prod
+# ---------------------------------------------------------------------------
