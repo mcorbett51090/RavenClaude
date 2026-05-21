@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for regulatory-compliance. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scrub-confidential-pre-write.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Scan compliance-conventional files for PII patterns (SSN, EIN, IBAN, PAN, Bermuda TIN, wire instructions) before write completes. Advisory by default; flip exit 0 to exit 2 in the script to block writes entirely for SAR/STR drafting."
+          }
+        ]
+      }
+    ]
+  }
+}
