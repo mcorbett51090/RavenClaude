@@ -163,14 +163,7 @@ All motion respects `@media (prefers-reduced-motion: reduce)`.
 
 ## Components
 
-[For each component, link to the spec file.]
-
-- [Button](./components/button.md)
-- [Input](./components/input.md)
-- [Card](./components/card.md)
-- [Modal](./components/modal.md)
-- [Navigation](./components/navigation.md)
-- [...]
+[For each component, link to a spec file under `components/` in this project's own design-system tree, e.g. `components/button.md`, `components/input.md`, `components/card.md`, `components/modal.md`, `components/navigation.md`. This template intentionally does not ship those component files — they live in the consumer's own design-system folder, not in this plugin.]
 
 ## Change log
 

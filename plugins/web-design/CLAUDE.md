@@ -97,7 +97,7 @@ This plugin inherits the Capability Grounding Protocol from `ravenclaude-core`. 
 **Mandatory phrasing when uncertain:**
 > "After checking [specific skills/rules], I cannot fully complete this because [specific reason]. However, I can help with [partial scope]. Would you like me to proceed with that, or should I escalate to the Team Lead?"
 
-See [`../ravenclaude-core/skills/grounding-protocol`](../ravenclaude-core/skills/grounding-protocol) for the upstream definition.
+The architectural definition of the Grounding Protocol lives in [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md) (`Capability Grounding Protocol` section). The reference implementation skill is [`../power-platform/skills/grounding-protocol/SKILL.md`](../power-platform/skills/grounding-protocol/SKILL.md) (consumers who install `power-platform` get the skill file directly; otherwise the inline §5 above is authoritative for this plugin).
 
 ---
 
@@ -201,7 +201,7 @@ Web-design agents stay within web design. When a question crosses out, escalate 
 - **`ravenclaude-core` `designer`** — the cross-domain designer agent overlaps with this plugin's `ux-designer` / `visual-designer` on generic visual artifacts (slide decks, infographics). Route to the core `designer` for non-web visual work.
 - **`ravenclaude-core` `project-manager`** — multi-month engagements with RAID / status / stakeholder needs.
 - **`ravenclaude-core` `tester-qa`** — test plan design beyond visual / a11y / perf (functional, integration, regression).
-- **`finance` / `regulatory-compliance` agents** — when the site has finance / regulatory content (disclosures, cookie consent, regulator-facing claims).
+- **`finance` / `regulatory-compliance` plugin agents** (when those plugins are installed in the same consumer project) — when the site has finance / regulatory content (disclosures, cookie consent, regulator-facing claims). If neither plugin is installed, escalate through `ravenclaude-core/architect` for routing.
 
 When in doubt, the web-design team **declines and asks the Team Lead** rather than guessing outside their lane.
 
@@ -213,5 +213,5 @@ When in doubt, the web-design team **declines and asks the Team Lead** rather th
 - Capability Grounding Protocol (upstream): [`../ravenclaude-core/skills/grounding-protocol`](../ravenclaude-core/skills/grounding-protocol)
 - Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output.md`](../ravenclaude-core/skills/structured-output.md)
 - Cited-Adjudicator Escalation: [`../ravenclaude-core/rules/agent-collaboration.md`](../ravenclaude-core/rules/agent-collaboration.md)
-- Sister plugins: [`../finance/CLAUDE.md`](../finance/CLAUDE.md), [`../regulatory-compliance/CLAUDE.md`](../regulatory-compliance/CLAUDE.md) — web content that surfaces finance or regulatory disclosures routes through their teams
+- Sister plugins (when installed alongside): `finance` and `regulatory-compliance` — web content that surfaces finance or regulatory disclosures routes through their teams. See [`../../docs/plugin-roadmap-analysis.md`](../../docs/plugin-roadmap-analysis.md) for the marketplace plan.
 - Marketplace-wide developer guide: [`../../CLAUDE.md`](../../CLAUDE.md)
