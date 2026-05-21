@@ -130,6 +130,12 @@ For the dispatch playbook itself, see [`plugins/ravenclaude-core/skills/spawn-te
 
 ---
 
+## Browsing the marketplace at a glance
+
+[`docs/repo-guide.html`](docs/repo-guide.html) is an interactive single-page guide to every plugin, agent, skill, hook, rule, and template that ships from this marketplace. Open it in any browser (no server required) for a tabbed, searchable view of the current state. The page is regenerated from the manifests on every release via `python3 scripts/generate-repo-guide.py`; CI's `Verify docs/repo-guide.html is fresh` step fails if it drifts.
+
+---
+
 ## Working on the marketplace itself
 
 If you're **developing** RavenClaude (adding plugins, updating agents), see [`CLAUDE.md`](CLAUDE.md) at this repo's root — it's the meta-repo dev guide.

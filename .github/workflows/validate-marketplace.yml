@@ -4,16 +4,18 @@ on:
   pull_request:
     paths:
       - ".claude-plugin/**"
-      - "plugins/**/.claude-plugin/**"
-      - "plugins/**/hooks/**"
+      - "plugins/**"
+      - "scripts/**"
+      - "docs/repo-guide.html"
       - ".github/workflows/validate-marketplace.yml"
   push:
     branches:
       - main
     paths:
       - ".claude-plugin/**"
-      - "plugins/**/.claude-plugin/**"
-      - "plugins/**/hooks/**"
+      - "plugins/**"
+      - "scripts/**"
+      - "docs/repo-guide.html"
       - ".github/workflows/validate-marketplace.yml"
   workflow_dispatch:
 
@@ -227,6 +229,13 @@ jobs:
         # it on the next PR, not in the next real incident. See
         # scripts/audit-gates.sh for per-gate fixtures.
         run: scripts/audit-gates.sh
+
+      - name: Verify docs/repo-guide.html is fresh
+        # If a contributor changed a manifest, agent, skill, hook, rule, or
+        # template without re-running `python3 scripts/generate-repo-guide.py`,
+        # the committed guide will diverge from regenerated content and this
+        # step fails. See scripts/check-guide-fresh.sh for the diff logic.
+        run: scripts/check-guide-fresh.sh
 
       - name: Cross-check version pins (marketplace.json vs plugin.json)
         run: |
