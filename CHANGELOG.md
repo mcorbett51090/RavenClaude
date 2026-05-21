@@ -2,6 +2,23 @@
 
 All notable changes to the RavenClaude marketplace and its plugins. Format loosely follows [Keep a Changelog](https://keepachangelog.com/). The marketplace version (`metadata.version` in `.claude-plugin/marketplace.json`) bumps when the catalog shape or cross-plugin contracts change; individual plugins have their own semver tracked in their `plugin.json`.
 
+## marketplace 0.9.0 — 2026-05-21 (power-platform production knowledge bank)
+
+### power-platform 0.8.0
+
+- **New knowledge bank** at `plugins/power-platform/knowledge/programmatic-flow-creation.md` — production lesson captured from creating ~136 cloud flows in a customer DEV environment via service principal in May 2026. Covers: why the Power Automate Management API is almost always blocked for SPNs (`roles: null` token; application permissions require Global Admin consent; delegated permissions don't work with `client_credentials`), the Dataverse Web API workaround (`workflow` entity, `category=5`, `type=1`, `primaryentity="none"`, `AddSolutionComponent` ComponentType=29), the `clientdata`-shape gotcha (Dataverse format wraps everything in `properties` and nests `connectionReferenceLogicalName` under a `connection` sub-object — NOT the same as the PA Management API export format), the GUID-injection rule for dependent flows, and a production checklist for bulk creates.
+- **`flow-engineer`, `solution-alm-engineer`, `power-platform-admin`** each gain a compact inline priors section tailored to their lane:
+  - `flow-engineer` — "Programmatic / bulk flow creation": don't reach for the PA Mgmt API by default; use the Dataverse path; the two failure modes (`clientdata` shape, unresolved GUID placeholders) that bite once you're on the workaround.
+  - `solution-alm-engineer` — "Service-principal auth surfaces": Dataverse role ≠ PA Mgmt API access; operational consequences for ALM pipeline design; document the auth surface in script headers.
+  - `power-platform-admin` — "SPN access to the PA Management API": when 401s show up, the answer is application permissions + Global Admin consent; before granting, ask whether the Dataverse path covers the actual need.
+- **`CLAUDE.md` gains §8a (Knowledge bank)** documenting the new directory and the pattern for adding future production-lesson entries (stable doc per problem domain, `Last reviewed` date, refresh trigger, citation to the production incident).
+
+### Marketplace meta
+
+- Catalog descriptions for both `power-platform` and the marketplace as a whole now mention the knowledge bank as part of the plugin's value proposition.
+
+**Migration for consumers:** `/plugin marketplace update ravenclaude` + `/reload-plugins`. No breaking changes — additive content only. The three updated agents will now apply the priors automatically when invoked for flow / ALM / SPN-permission work; consumers who want the full lesson can open `plugins/power-platform/knowledge/programmatic-flow-creation.md` in their cached plugin tree (or browse it via the [`repo-guide.html`](../repo-guide.html) at the repo root).
+
 ## marketplace 0.8.0 — 2026-05-21 (web-design pattern priors)
 
 ### web-design 0.2.0

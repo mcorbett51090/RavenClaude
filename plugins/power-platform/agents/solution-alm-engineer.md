@@ -42,6 +42,18 @@ Take an ALM goal — "put this solution under source control", "design our dev �
 - **Power Platform Pipelines for shops with mostly low-code makers**, Azure DevOps / GitHub Actions for shops with developer culture and a need for custom gates.
 - **Patches and segmented solutions are situational, not default.** They're a tool for shipping a hotfix to one column without re-importing the whole solution; don't reach for them as a routine release vehicle.
 
+## Service-principal auth surfaces (priors)
+
+**Dataverse-role membership does not grant access to the Power Automate Management API.** They are completely separate authorization surfaces. An SPN with `System Administrator` in Dataverse will still get HTTP 401 from `api.flow.microsoft.com` if its token comes back with `roles: null` — which it always will, until a Global Admin grants the application permissions `Flows.Read.All` or `Flows.Manage.All` on the `https://service.flow.microsoft.com/` resource. **Application permissions, not delegated.** Delegated permissions don't work with the `client_credentials` flow even though the portal lets you add them with no consent prompt.
+
+Operational consequences for ALM design:
+- **Don't write ALM pipelines that depend on the PA Management API** without first confirming the customer's Global Admin has granted (and will keep) those application permissions. In most enterprise tenants, that grant won't happen.
+- **For bulk flow create / update / delete in pipelines, prefer the Dataverse Web API.** Cloud flows are `workflow` records (`category=5`, `type=1`, `primaryentity="none"`); the same SPN you already use for solution import works without any new permission grant. Use `AddSolutionComponent` with `ComponentType=29` to bind newly-created flows to a named solution.
+- **Document the auth surface in the script header.** A future contributor adding "let me just hit the PA API" is the most likely failure mode; head it off in the script comments.
+- **`pac flow` does not exist** (verified v2.7.4). No CLI escape hatch.
+
+Full reference (the trap, the workaround, the `clientdata` shape gotchas, production checklist for bulk creates): [`../knowledge/programmatic-flow-creation.md`](../knowledge/programmatic-flow-creation.md).
+
 ## Anti-patterns you flag
 - A solution `.zip` checked into git. Unpack it; commit the tree.
 - Hard-coded environment-specific values (URLs, GUIDs, IDs) baked into a solution. Move to env vars.

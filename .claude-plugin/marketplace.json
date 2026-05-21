@@ -5,8 +5,8 @@
     "name": "Matt Corbett"
   },
   "metadata": {
-    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. Ships ravenclaude-core (Team Lead + 14 specialists with active Structured Output Protocol + Cited-Adjudicator Escalation), power-platform (11 Microsoft Power Platform specialists + bundled pbix-mcp), finance (7 corporate-finance & FP&A specialists), regulatory-compliance (6 financial-regulatory specialists with field-experience BMA positioning), and web-design (7 web specialists with WCAG / Core Web Vitals / SEO discipline + a curated 2026 'cutting edge yet simple' reference set). EdTech and Salesforce remain on the roadmap.",
-    "version": "0.8.0"
+    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. Ships ravenclaude-core (Team Lead + 14 specialists with active Structured Output Protocol + Cited-Adjudicator Escalation), power-platform (11 Microsoft Power Platform specialists + bundled pbix-mcp + production knowledge bank), finance (7 corporate-finance & FP&A specialists), regulatory-compliance (6 financial-regulatory specialists with field-experience BMA positioning), and web-design (7 web specialists with WCAG / Core Web Vitals / SEO discipline + a curated 2026 'cutting edge yet simple' reference set). EdTech and Salesforce remain on the roadmap.",
+    "version": "0.9.0"
   },
   "plugins": [
     {
@@ -29,8 +29,8 @@
     {
       "name": "power-platform",
       "source": "./plugins/power-platform",
-      "description": "Microsoft Power Platform specialist team — 11 specialists including the new power-platform-tester (Test Studio, flow run-history, DAX semantic correctness, pac solution check) and power-bi-engineer (semantic models, DAX, PBIP git + Azure DevOps integration) alongside canvas/Power Fx, Power Automate + custom connectors, Dataverse modeling/security, model-driven apps, pac CLI + ALM, tenant governance/DLP, PCF, Copilot Studio + AI Builder, Power Pages. House-opinions hook now covers 8 mechanically-detectable §3/§4 violations (GUIDs, default prefix, hard-coded URLs, binary .pbix, missing flow Try/Catch, premium-connector licensing notes, Power Fx var/col prefixes, plaintext secrets in env-var defaults). Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval without Power BI Desktop (requires `pip install pbix-mcp`).",
-      "version": "0.7.0",
+      "description": "Microsoft Power Platform specialist team — 11 specialists including power-platform-tester (Test Studio, flow run-history, DAX semantic correctness, pac solution check) and power-bi-engineer (semantic models, DAX, PBIP git + Azure DevOps integration) alongside canvas/Power Fx, Power Automate + custom connectors, Dataverse modeling/security, model-driven apps, pac CLI + ALM, tenant governance/DLP, PCF, Copilot Studio + AI Builder, Power Pages. House-opinions hook covers 8 mechanically-detectable §3/§4 violations. Knowledge bank captures production lessons (currently: programmatic cloud-flow creation via Dataverse Web API when the PA Management API is blocked by Azure AD permission requirements). Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval without Power BI Desktop (requires `pip install pbix-mcp`).",
+      "version": "0.8.0",
       "author": {
         "name": "Matt Corbett"
       },

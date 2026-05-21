@@ -121,9 +121,9 @@
 <header class="site">
   <div class="title-row">
     <h1>🐦‍⬛ RavenClaude — Marketplace Guide</h1>
-    <span class="version-banner">marketplace <strong>v0.8.0</strong></span>
+    <span class="version-banner">marketplace <strong>v0.9.0</strong></span>
   </div>
-  <div class="generated">Generated 2026-05-21 12:48 UTC by <code>scripts/generate-repo-guide.py</code></div>
+  <div class="generated">Generated 2026-05-21 12:56 UTC by <code>scripts/generate-repo-guide.py</code></div>
   <div class="stats">
     <div><strong>5</strong> plugins</div>
     <div><strong>45</strong> agents</div>
@@ -144,7 +144,7 @@
   <section class="panel active" data-panel="overview">
     <div class="arch-doc">
       <h2>What this is</h2>
-      <p>RavenClaude — a private marketplace of opinionated Claude Code plugins. Ships ravenclaude-core (Team Lead + 14 specialists with active Structured Output Protocol + Cited-Adjudicator Escalation), power-platform (11 Microsoft Power Platform specialists + bundled pbix-mcp), finance (7 corporate-finance &amp; FP&amp;A specialists), regulatory-compliance (6 financial-regulatory specialists with field-experience BMA positioning), and web-design (7 web specialists with WCAG / Core Web Vitals / SEO discipline + a curated 2026 &#x27;cutting edge yet simple&#x27; reference set). EdTech and Salesforce remain on the roadmap.</p>
+      <p>RavenClaude — a private marketplace of opinionated Claude Code plugins. Ships ravenclaude-core (Team Lead + 14 specialists with active Structured Output Protocol + Cited-Adjudicator Escalation), power-platform (11 Microsoft Power Platform specialists + bundled pbix-mcp + production knowledge bank), finance (7 corporate-finance &amp; FP&amp;A specialists), regulatory-compliance (6 financial-regulatory specialists with field-experience BMA positioning), and web-design (7 web specialists with WCAG / Core Web Vitals / SEO discipline + a curated 2026 &#x27;cutting edge yet simple&#x27; reference set). EdTech and Salesforce remain on the roadmap.</p>
       <h2>How to install</h2>
       <pre><code>/plugin marketplace add mcorbett51090/RavenClaude
 /plugin install ravenclaude-core@ravenclaude
@@ -156,7 +156,7 @@
 /reload-plugins</code></pre>
       <h2>Jump to a plugin</h2>
       <nav class="tabs" style="border:0; padding:0;">
-        <button class="nav-btn" data-target="plugin-ravenclaude-core" style="--accent: #14b8a6">ravenclaude-core <span class="ver">v0.6.0</span></button><button class="nav-btn" data-target="plugin-power-platform" style="--accent: #8b5cf6">power-platform <span class="ver">v0.7.0</span></button><button class="nav-btn" data-target="plugin-finance" style="--accent: #f59e0b">finance <span class="ver">v0.1.0</span></button><button class="nav-btn" data-target="plugin-regulatory-compliance" style="--accent: #ef4444">regulatory-compliance <span class="ver">v0.1.0</span></button><button class="nav-btn" data-target="plugin-web-design" style="--accent: #3b82f6">web-design <span class="ver">v0.2.0</span></button>
+        <button class="nav-btn" data-target="plugin-ravenclaude-core" style="--accent: #14b8a6">ravenclaude-core <span class="ver">v0.6.0</span></button><button class="nav-btn" data-target="plugin-power-platform" style="--accent: #8b5cf6">power-platform <span class="ver">v0.8.0</span></button><button class="nav-btn" data-target="plugin-finance" style="--accent: #f59e0b">finance <span class="ver">v0.1.0</span></button><button class="nav-btn" data-target="plugin-regulatory-compliance" style="--accent: #ef4444">regulatory-compliance <span class="ver">v0.1.0</span></button><button class="nav-btn" data-target="plugin-web-design" style="--accent: #3b82f6">web-design <span class="ver">v0.2.0</span></button>
       </nav>
     </div>
   </section>
@@ -233,9 +233,9 @@
       <header class="plugin-header">
         <div class="plugin-title">
           <h2>power-platform</h2>
-          <span class="version">v0.7.0</span>
+          <span class="version">v0.8.0</span>
         </div>
-        <p class="plugin-desc">Microsoft Power Platform specialist team — 11 specialists including the new power-platform-tester (Test Studio, flow run-history, DAX semantic correctness, pac solution check) and power-bi-engineer (semantic models, DAX, PBIP git + Azure DevOps integration) alongside canvas/Power Fx, Power Automate + custom connectors, Dataverse modeling/security, model-driven apps, pac CLI + ALM, tenant governance/DLP, PCF, Copilot Studio + AI Builder, Power Pages. House-opinions hook now covers 8 mechanically-detectable §3/§4 violations (GUIDs, default prefix, hard-coded URLs, binary .pbix, missing flow Try/Catch, premium-connector licensing notes, Power Fx var/col prefixes, plaintext secrets in env-var defaults). Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval without Power BI Desktop (requires `pip install pbix-mcp`).</p>
+        <p class="plugin-desc">Microsoft Power Platform specialist team — 11 specialists including power-platform-tester (Test Studio, flow run-history, DAX semantic correctness, pac solution check) and power-bi-engineer (semantic models, DAX, PBIP git + Azure DevOps integration) alongside canvas/Power Fx, Power Automate + custom connectors, Dataverse modeling/security, model-driven apps, pac CLI + ALM, tenant governance/DLP, PCF, Copilot Studio + AI Builder, Power Pages. House-opinions hook covers 8 mechanically-detectable §3/§4 violations. Knowledge bank captures production lessons (currently: programmatic cloud-flow creation via Dataverse Web API when the PA Management API is blocked by Azure AD permission requirements). Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval without Power BI Desktop (requires `pip install pbix-mcp`).</p>
         <div class="meta-row"><span class="meta-label">Requires</span> <code>{&#x27;plugins&#x27;: [&#x27;ravenclaude-core@&gt;=0.2.0&#x27;]}</code></div>
         <div class="keywords"><span class="kw">power-platform</span> <span class="kw">power-apps</span> <span class="kw">power-automate</span> <span class="kw">dataverse</span> <span class="kw">power-fx</span> <span class="kw">power-bi</span> <span class="kw">pbip</span> <span class="kw">copilot-studio</span> <span class="kw">alm</span> <span class="kw">low-code</span></div>
         <div class="counts"><span class="count-pill"><strong>11</strong> Agents</span><span class="count-pill"><strong>13</strong> Skills</span><span class="count-pill"><strong>1</strong> Hooks</span><span class="count-pill"><strong>1</strong> Templates</span><span class="count-pill"><strong>1</strong> MCP servers</span></div>

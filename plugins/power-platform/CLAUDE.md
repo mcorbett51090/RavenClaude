@@ -192,6 +192,20 @@ Each skill is a folder with a `SKILL.md` (the playbook) and a `resources/` direc
 
 ---
 
+## 8a. Knowledge bank (production lessons)
+
+The `knowledge/` directory holds reference docs that capture lessons learned the hard way in real customer environments — situations where the documented happy path doesn't work and the agent needs to know the workaround.
+
+| File | Read when |
+|---|---|
+| [`knowledge/programmatic-flow-creation.md`](knowledge/programmatic-flow-creation.md) | About to write any script that creates, updates, or deletes cloud flows programmatically; or diagnosing an SPN returning HTTP 401 on `api.flow.microsoft.com`. Captures: why the PA Management API is usually blocked for service principals, the Dataverse Web API workaround (`workflow` entity, category=5, ComponentType=29), the `clientdata` shape gotcha, and the GUID-injection rule for dependent flows. |
+
+The `flow-engineer`, `solution-alm-engineer`, and `power-platform-admin` agents each carry compact inline priors that summarize the relevant lesson from each knowledge file; the full files in `knowledge/` are the source of truth and get re-read on demand.
+
+New knowledge entries should follow the pattern: a stable reference doc named after the problem domain, with a **Last reviewed** date at the top, a refresh trigger, and citations to the production incident or external source that drove the lesson. Refresh when the platform contract changes or the workaround is no longer needed.
+
+---
+
 ## 9. Bundled MCP server — `powerbi-editor` (pbix-mcp)
 
 The plugin declares one MCP server in its `plugin.json`: `powerbi-editor`, backed by the community [`d0nk3yhm/pbix-mcp`](https://github.com/d0nk3yhm/pbix-mcp) (MIT). It exposes ~101 tools for reading, writing, and DAX-evaluating Power BI `.pbix` and `.pbit` files **without** Power BI Desktop installed — useful when an agent needs to inspect a report's data model, edit measures, evaluate DAX, or generate a `.pbix` from a CSV/SQL/Excel/JSON source.
