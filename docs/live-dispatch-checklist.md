@@ -128,6 +128,18 @@ git init
 - After landing any change that touches `spawn-team.md`, `agent-collaboration.md`, the Output Contract section of any agent, or the SOP block schema.
 - Whenever a real consumer project reports unexpected agent behavior — the test cases above are the diagnostic baseline.
 
+## Exercise 0 — CI gate audit (COMPLETED 2026-05-21)
+
+**Estimated points recoverable:** 1-2 (test/verification depth +1, restores credibility of the score chain).
+
+**Why this was added:** Round-6 of the self-review chain discovered that the actionlint CI step shipped in PR 9/10 was informational-only — actionlint 1.7.7 has no `-exit-code` flag and exits 0 even on real YAML parse errors. The Plan agent generalized the finding: *verification artifacts were being graded on presence, not efficacy.* Sharper actionable form: **"For every CI step, prove it can fail by introducing a known-bad input."**
+
+**Procedure (done):** for each of the 10 gating steps in `validate-marketplace.yml` + `validate-layout.yml`, inject a deliberately-broken fixture into a temp copy and confirm the step exits nonzero / produces the expected error annotation.
+
+**Result:** all 10 gates verified to fail on their target violation class. See PR 12 commit message for the per-gate audit transcript. Actionlint specifically required a shell-wrapper fix (PR 12) before its audit passed; the other 9 gates passed audit as-shipped.
+
+**When to re-run:** any time a new gate is added to either workflow, or any time a gate's underlying tool/binary is upgraded across a minor version.
+
 ## What "done" looks like
 
-All four exercises run, all criteria met. The score moves from ~89 to mid-90s. Beyond that the ceiling is set by limitations of the underlying Claude Code platform (no `requires` field for MCP servers, no filesystem-discovery plugin loading), not by anything this marketplace can fix internally.
+All four live-dispatch exercises (1-4 above) run, all criteria met, plus the CI gate audit (Exercise 0) maintained on any change to gating steps. The score moves from ~89 to mid-90s. Beyond that the ceiling is set by limitations of the underlying Claude Code platform (no `requires` field for MCP servers, no filesystem-discovery plugin loading), not by anything this marketplace can fix internally.

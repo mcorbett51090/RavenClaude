@@ -24,6 +24,40 @@ Each entry is a dated section. Reverse-chronological order (newest first).
 
 ---
 
+## 2026-05-21 — A step that runs is not necessarily a step that gates: audit every CI check with a known-bad fixture
+
+**Context:** Round-6 of the marketplace's self-review chain. PR 9/10 had added `rhysd/actionlint:1.7.7` as a Docker container action in `validate-marketplace.yml`. CI on commit `de21250` passed. Score moved to 91/100 (architect) / 87/100 (Team Lead) with "Test/verification depth = 10/10" specifically credited to the new actionlint step.
+
+**What we tried first:** Treated `CI green` as proof of `CI correct`. The actionlint step ran, found nothing wrong with the repo, exited 0. Score went up. Plan agent and architect declared "internal review done."
+
+**Why it failed:** A researcher dispatched to verify the CI behavior empirically returned a sharp finding: actionlint 1.7.7 has **no `-exit-code` flag**. By design it reports findings via stdout/stderr (which surface as PR annotations) but exits 0 regardless. I ran the sanity probe: injected a real YAML parse error, actionlint correctly reported it, then **exited 0**. The CI step that scored us a 10/10 was informational-only — it could never fail a build. Score retroactively corrected: R5 was actually 90, not 91. The Plan agent then identified the meta-pattern: *verification artifacts are being graded on presence, not efficacy.*
+
+**What works:** Two interlocking practices.
+
+1. **Shell-wrap any linter that doesn't exit nonzero on findings.** Replace `uses: docker://...` with a `run:` block that captures the binary's output and converts non-empty output into `exit 1`. Pattern:
+
+   ```yaml
+   run: |
+     set -euo pipefail
+     out=$(docker run --rm -v "$PWD:/repo" -w /repo <image>:<tag> -color 2>&1) || rc=$?
+     rc=${rc:-0}
+     echo "$out"
+     if [[ -n "$out" ]]; then echo "::error::<name> reported findings"; exit 1; fi
+   ```
+
+   Keeps the pinned image (supply chain), keeps annotations, turns findings into a failing build.
+
+2. **Audit every gate with a known-bad fixture.** For each CI step that claims to enforce a property, write a one-line repro that violates that property and confirm the step fails. Don't trust "green CI" until each gate has produced a red CI on its target violation class. In RavenClaude this is a 10-gate / ~5-minute exercise; the result is that "test/verification depth = N/10" becomes a defensible claim instead of a hopeful one.
+
+**How to apply:**
+- When a CI step uses a third-party action or binary, check its exit-code semantics before counting it as a gate. Common offenders: linters with `--report-only` defaults, security scanners that print but don't fail, custom scripts that `|| true` for "robustness."
+- Before declaring a CI workflow "robust", run the audit-by-known-bad-fixture exercise. The script lives in `.github/workflows/validate-marketplace.yml` execution logs as the proof artifact — keep at least one CI run where each gate is exercised against a fixture that should trip it.
+- The vague principle "a step that runs is not necessarily a step that gates" has a sharper actionable form: **"For every CI step, prove it can fail by introducing a known-bad input."**
+
+**Trace:** Commit history `cfbd5aa..PR12` in RavenClaude — specifically the PR 9/10 actionlint step (informational-only as shipped) and PR 12 fix (shell-wrapper). Discovery surfaced by researcher-recommended sanity probe (architect-agent prompt explicitly flagged "sub-second completion with zero output" as a red flag), then confirmed locally by injecting a real YAML parse error.
+
+---
+
 ## 2026-05-11 — Rebase orphans local branches; `git branch -D` is the routine cleanup, not a destructive act
 
 **Context:** PR #1 (`propose-lesson-diagrams-in-docs`) merged on GitHub with only the first commit. The inline-mermaid-demo commit was pushed to the feature branch *after* the PR merged, so local `main` and `origin/main` diverged by one commit each. After rebasing local onto origin and pushing, the original feature branch needed to be deleted locally.

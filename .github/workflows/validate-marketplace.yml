@@ -204,9 +204,19 @@ jobs:
           npx --yes prettier --check . --log-level warn
 
       - name: Actionlint (GitHub Actions semantic check)
-        uses: docker://rhysd/actionlint:1.7.7
-        with:
-          args: -color
+        # actionlint 1.7.7 has no -exit-code flag — by default it reports
+        # findings to stdout/stderr but exits 0. The shell wrapper captures
+        # output and converts non-empty output into a failed build, turning
+        # the step from informational-only into a real gate.
+        run: |
+          set -euo pipefail
+          out=$(docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color 2>&1) || rc=$?
+          rc=${rc:-0}
+          echo "$out"
+          if [[ -n "$out" ]]; then
+            echo "::error::actionlint reported findings (or docker invocation failed, rc=$rc)"
+            exit 1
+          fi
 
       - name: Cross-check version pins (marketplace.json vs plugin.json)
         run: |
