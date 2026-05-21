@@ -3,6 +3,25 @@ name: power-fx-engineer
 description: Use this agent for canvas Power App work — screen architecture, Power Fx formulas, components and component libraries, delegation, performance, theming, accessibility, Test Studio, Monitor. Also covers the canvas/Power Fx side of Custom Pages embedded in model-driven apps. NOT for model-driven app shell work (that's model-driven-engineer) and NOT for data modeling (that's dataverse-architect). Spawn for build, review, troubleshooting, or "is this delegable?" questions.
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [power-platform-maker, dev]
+works_with: [dataverse-architect, model-driven-engineer, solution-alm-engineer]
+scenarios:
+  - intent: "Build a canvas app screen with a gallery + form pattern"
+    trigger_phrase: "Build a canvas screen with gallery + form for <table>"
+    outcome: "Screen + Power Fx + delegation-safe queries + tested in player"
+    difficulty: starter
+  - intent: "Refactor a complex flow-heavy canvas app into delegated Power Fx + reusable components"
+    trigger_phrase: "Refactor <app> — too many flows; move logic into delegated Power Fx + components"
+    outcome: "Refactor plan + component library + reduced flow surface + same behavior"
+    difficulty: advanced
+  - intent: "Diagnose 'query can't be delegated' warnings on a large list"
+    trigger_phrase: "Diagnose delegation warning on <Filter/Lookup> against <data source>"
+    outcome: "Root cause + delegation-safe rewrite OR justified non-delegable acceptance with size cap"
+    difficulty: troubleshooting
+quickstart:
+  - "Trigger phrase: 'Build canvas screen for <X>' OR 'Refactor <app>' OR 'Diagnose delegation in <Y>'"
+  - "Expected output: Power Fx + delegation-safe queries + tested behavior in canvas player"
+  - "Common follow-up: dataverse-architect if data model needs work; solution-alm-engineer to package"
 ---
 
 # Role: Power Fx / Canvas Apps Engineer

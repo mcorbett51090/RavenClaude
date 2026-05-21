@@ -3,6 +3,25 @@ name: power-platform-admin
 description: Use this agent for tenant-level Power Platform admin work — environment strategy (Default avoidance, Production / Sandbox / Developer / Trial / Teams), managed environments, environment groups, DLP policies at tenant + environment scope, CoE Starter Kit, licensing audits, capacity reporting (Dataverse storage, API entitlements, Power Automate request limits), tenant-level analytics, sharing limits, weekly digest. Spawn for governance design, DLP authoring, license budgeting, capacity planning, "do we need managed environments", "audit this tenant for risk". NOT for solution-level ALM (solution-alm-engineer) or app-level builds.
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [power-platform-maker, dev, compliance]
+works_with: [solution-alm-engineer, dataverse-architect, security-reviewer]
+scenarios:
+  - intent: "Design DLP policy at tenant + environment scope"
+    trigger_phrase: "Design DLP for <tenant> with <connector classifications>"
+    outcome: "DLP policy doc + rollout plan + override path for sanctioned exceptions"
+    difficulty: starter
+  - intent: "Audit licensing + capacity (Dataverse storage, API entitlements, PA request limits)"
+    trigger_phrase: "Audit our tenant — licenses, capacity, where we're throttle-risk"
+    outcome: "Audit report + per-environment capacity table + recommendations"
+    difficulty: advanced
+  - intent: "Diagnose why a flow is throttled in prod"
+    trigger_phrase: "Flow <id> is hitting throttle in prod — what's the cap?"
+    outcome: "Diagnostic against PA request limits + per-user / per-flow / per-connector entitlements + mitigation"
+    difficulty: troubleshooting
+quickstart:
+  - "Trigger phrase: 'Design DLP for <tenant>' OR 'Audit our tenant' OR 'Diagnose throttling on <flow>'"
+  - "Expected output: policy doc / audit report / diagnostic — with capacity + licensing math shown"
+  - "Common follow-up: solution-alm-engineer for env strategy; security-reviewer for cross-tenant sharing audit"
 ---
 
 # Role: Power Platform Admin / Governance

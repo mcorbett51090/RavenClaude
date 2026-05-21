@@ -622,8 +622,10 @@ def render_index(plugins: list[Plugin]) -> str:
 def render_use_case_table(plugins: list[Plugin]) -> str:
     """Aggregate every agent's intent fields into an 'I want to...' lookup table.
     This is the headline ask per the deep-researcher's recommendation:
-    let users navigate from intent → which agent + plugin to use."""
+    let users navigate from intent → which agent + plugin to use.
+    Rows tagged with data-plugin so the per-plugin filter buttons can toggle them."""
     rows: list[tuple[str, str, str, str, str]] = []  # (intent, agent, plugin, difficulty, audience)
+    plugins_with_rows: set[str] = set()
     for plugin in plugins:
         for agent in plugin.agents:
             for s in agent.scenarios:
@@ -633,12 +635,28 @@ def render_use_case_table(plugins: list[Plugin]) -> str:
                 difficulty = s.get("difficulty", "starter")
                 audience = ", ".join(agent.audience) if agent.audience else ""
                 rows.append((intent, agent.name, plugin.name, difficulty, audience))
+                plugins_with_rows.add(plugin.name)
     if not rows:
         return ""
     rows.sort(key=lambda r: (r[3] != "starter", r[0].lower()))  # starters first, then alpha
 
+    # Filter buttons — All + one per plugin that has at least one row.
+    filter_buttons = [
+        f'<button class="usecase-filter-btn active" data-usecase-filter="__all__" '
+        f'style="--accent: var(--accent)">All <span class="count">{len(rows)}</span></button>'
+    ]
+    for p in plugins:
+        if p.name not in plugins_with_rows:
+            continue
+        n = sum(1 for r in rows if r[2] == p.name)
+        color = PLUGIN_COLORS.get(p.name, DEFAULT_COLOR)
+        filter_buttons.append(
+            f'<button class="usecase-filter-btn" data-usecase-filter="{esc(p.name)}" '
+            f'style="--accent: {color}">{esc(p.name)} <span class="count">{n}</span></button>'
+        )
+
     body = "".join(
-        f"<tr>"
+        f'<tr data-plugin="{esc(pname)}">'
         f'<td class="intent-cell">{esc(intent)}</td>'
         f'<td><code>{esc(agent)}</code></td>'
         f'<td><a href="#plugin-{esc(pname)}">{esc(pname)}</a></td>'
@@ -649,8 +667,9 @@ def render_use_case_table(plugins: list[Plugin]) -> str:
     )
     return f"""
       <h2>I want to…</h2>
-      <p class="usecase-help">Use this lookup to navigate from <em>what you're trying to do</em> to <em>which agent + plugin handles it</em>. Sorted starter-first then alphabetically. Filter via the Index / Search tab for deeper search.</p>
-      <table class="usecase-table">
+      <p class="usecase-help">Use this lookup to navigate from <em>what you're trying to do</em> to <em>which agent + plugin handles it</em>. Sorted starter-first then alphabetically. Filter by plugin below or search via the Index / Search tab.</p>
+      <div class="usecase-filter">{"".join(filter_buttons)}</div>
+      <table class="usecase-table" id="usecase-table">
         <thead>
           <tr><th>I want to…</th><th>Agent</th><th>Plugin</th><th>Difficulty</th><th>Audience</th></tr>
         </thead>
@@ -846,6 +865,18 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
     .ww-chip {{ display: inline-block; background: var(--surface); border: 1px solid var(--border); padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.74rem; font-family: var(--font-mono); color: var(--muted); margin: 0 0.2rem 0.2rem 0; }}
     /* Use-case lookup table on Overview tab */
     .usecase-help {{ color: var(--muted); font-size: 0.88rem; margin-bottom: 0.75rem; }}
+    .usecase-filter {{ display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.75rem; }}
+    .usecase-filter-btn {{
+      background: var(--surface); color: var(--muted);
+      border: 1px solid var(--border); padding: 0.4rem 0.85rem;
+      border-radius: 6px; cursor: pointer;
+      font-family: var(--font-sans); font-size: 0.85rem;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }}
+    .usecase-filter-btn:hover {{ background: var(--surface-2); border-color: var(--accent); color: var(--text); }}
+    .usecase-filter-btn.active {{ background: var(--surface-2); border-color: var(--accent); color: var(--accent); }}
+    .usecase-filter-btn .count {{ color: var(--muted); margin-left: 0.35rem; font-family: var(--font-mono); font-size: 0.78rem; }}
+    #usecase-table tr.hidden-row {{ display: none; }}
     .usecase-table {{ width: 100%; border-collapse: collapse; font-size: 0.88rem; margin: 0.5rem 0 1.5rem 0; }}
     .usecase-table th {{ text-align: left; padding: 0.55rem 0.5rem; border-bottom: 1px solid var(--border); color: var(--muted); font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.03em; }}
     .usecase-table td {{ padding: 0.55rem 0.5rem; border-bottom: 1px solid var(--surface-2); vertical-align: top; }}
@@ -990,6 +1021,19 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
       document.querySelectorAll('.plugin-target').forEach(section => {{
         const match = (target === '__all__') || (section.dataset.plugin === target);
         section.classList.toggle('hidden-by-filter', !match);
+      }});
+    }});
+  }});
+
+  // Overview-tab use-case table per-plugin filter
+  const usecaseFilterBtns = document.querySelectorAll('.usecase-filter-btn');
+  usecaseFilterBtns.forEach(btn => {{
+    btn.addEventListener('click', () => {{
+      const target = btn.dataset.usecaseFilter;
+      usecaseFilterBtns.forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('#usecase-table tbody tr').forEach(row => {{
+        const match = (target === '__all__') || (row.dataset.plugin === target);
+        row.classList.toggle('hidden-row', !match);
       }});
     }});
   }});

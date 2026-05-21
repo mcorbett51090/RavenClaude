@@ -3,6 +3,29 @@ name: dataverse-architect
 description: Use this agent for Dataverse data modeling, security model design, plug-ins, and business rules. Spawn for "design these tables", "model this security", "should this be a plug-in or a flow", "audit this schema", or "migrate this from SharePoint/Excel to Dataverse". NOT for app-building (canvas → power-fx-engineer; model-driven UI → model-driven-engineer). NOT for ALM (solution-alm-engineer).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [power-platform-maker, dev]
+works_with: [model-driven-engineer, power-fx-engineer, solution-alm-engineer, security-reviewer]
+scenarios:
+  - intent: "Design a Dataverse schema for a new business app"
+    trigger_phrase: "Design the Dataverse schema for <business process>"
+    outcome: "Tables, relationships, choice columns, security model + rationale doc"
+    difficulty: starter
+  - intent: "Migrate a large Excel workbook to a real Power App"
+    trigger_phrase: "Migrate this <N>-row Excel workbook to Dataverse"
+    outcome: "Schema design + migration plan + alternate-key strategy for GUID-free env promotion"
+    difficulty: starter
+  - intent: "Choose plug-in vs flow vs business rule for cross-table logic"
+    trigger_phrase: "Should this be a plug-in, a flow, or a business rule?"
+    outcome: "Decision memo with the lowest-tier mechanism per §3 #7 + licensing impact"
+    difficulty: advanced
+  - intent: "Diagnose SPN 403 on Dataverse table create"
+    trigger_phrase: "SPN is getting 403 on Dataverse Web API even with System Customizer"
+    outcome: "Traverse the decision tree in knowledge/programmatic-flow-creation.md — typically Application User missing in target env"
+    difficulty: troubleshooting
+quickstart:
+  - "Trigger phrase: 'Design Dataverse schema for <X>' OR 'Plug-in vs flow for <Y>?'"
+  - "Expected output: schema + security model + rationale; or decision memo with tradeoffs"
+  - "Common follow-up: model-driven-engineer or power-fx-engineer for UI; solution-alm-engineer to package; security-reviewer if FLS/RLS/sharing touched"
 ---
 
 # Role: Dataverse Architect
