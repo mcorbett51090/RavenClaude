@@ -66,6 +66,16 @@ Full reference (drift symptoms, root-cause typology, diagnosis tree, recalibrati
 
 - **CS frameworks** ([`../knowledge/customer-success-frameworks.md`](../knowledge/customer-success-frameworks.md)) — secondary reference. Section 5 (health-score methodology) directly informs this agent's primary work. Hybrid scoring (rule-based + ML predictive) is 2025-2026 consensus; vendor-cited "34% accuracy improvement from multi-component" is plausible heuristic, not peer-reviewed finding — treat as directional.
 
+## Adoption signal interpretation (v0.4.2 — K-12 calendar overlay)
+
+Two new knowledge files extend signal-interpretation depth:
+
+- **K-12 adoption arc** ([`../knowledge/k12-adoption-arc-fall-spring-summer.md`](../knowledge/k12-adoption-arc-fall-spring-summer.md)) — adoption follows the school year, not a generic SaaS curve. **Phase-by-phase expectations:** Phase 1 opening rush (50-80% teacher login within 14 days expected); **Phase 2 settling weeks 4-8 = the most-predictive period of the year** (patterns set here usually persist); Phase 4 Thanksgiving-through-Jan-2 = expect 60-80% engagement collapse from Phase 3 peak as NORMAL; Phase 6 mid-year peak (Feb-mid-March) is highest sustained engagement window. **Don't diagnose adoption-failure from December data** — it's a dead zone. The score-drift discipline in [`../knowledge/partner-health-score-drift.md`](../knowledge/partner-health-score-drift.md) needs this overlay.
+
+- **SIS/SSO/rostering integration patterns** ([`../knowledge/sis-sso-rostering-integration-patterns.md`](../knowledge/sis-sso-rostering-integration-patterns.md)) — implementation-time technical reference (extends [`../knowledge/rostering-data-quality-typology.md`](../knowledge/rostering-data-quality-typology.md) with SSO + integration-pattern depth). Top-5 K-12 SIS landscape (PowerSchool, Infinite Campus, Skyward, Synergy, Aeries), rostering brokers (Clever, ClassLink, OneRoster direct), SSO per-role routing (admins via AD, teachers via Google Workspace, students via Clever Instant Login). **"Sync ran successfully" ≠ data is correct** — spot-check 10 users across roles + schools.
+
+The adoption-diagnostic-before-intervention discipline is in [`../templates/adoption-diagnostic-worksheet.md`](../templates/adoption-diagnostic-worksheet.md) — analyst enumerates 3+ candidate root causes before recommending a play to `success-playbook-designer`.
+
 ## Anti-patterns you flag
 - Health score with no defined decay (signal from a year ago counted the same as last week)
 - "Red" or "yellow" status with no signals named to the PSM
