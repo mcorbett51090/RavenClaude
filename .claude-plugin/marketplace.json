@@ -5,8 +5,8 @@
     "name": "Matt Corbett"
   },
   "metadata": {
-    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. Ships ravenclaude-core (Team Lead + 14 specialists with active Structured Output Protocol + Cited-Adjudicator Escalation), power-platform (11 Microsoft Power Platform specialists + bundled pbix-mcp), and finance (7 corporate-finance & FP&A specialists). Regulatory-compliance and web-design plugins queued; EdTech and Salesforce remain on the roadmap.",
-    "version": "0.5.0"
+    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. Ships ravenclaude-core (Team Lead + 14 specialists with active Structured Output Protocol + Cited-Adjudicator Escalation), power-platform (11 Microsoft Power Platform specialists + bundled pbix-mcp), finance (7 corporate-finance & FP&A specialists), and regulatory-compliance (6 financial-regulatory specialists with field-experience BMA positioning). Web-design plugin queued; EdTech and Salesforce remain on the roadmap.",
+    "version": "0.6.0"
   },
   "plugins": [
     {
@@ -65,6 +65,27 @@
         "treasury",
         "audit-prep",
         "board-reporting"
+      ]
+    },
+    {
+      "name": "regulatory-compliance",
+      "source": "./plugins/regulatory-compliance",
+      "description": "Financial-regulatory & compliance specialist team — AML/KYC analyst (sanctions, EDD, SAR/STR), regulatory-reporting analyst (FATCA/CRS, supervisory returns, Solvency II, BMA EBS), risk-and-controls specialist (three lines of defense, KRIs), policy & procedure writer, examination-prep specialist, and Bermuda-insurance specialist. 4 skills, 8 templates, 1 defensive PreToolUse hook (PII scrub — SSN/IBAN/credit-card/Bermuda TIN/wire instructions). Positioning reflects field experience inside a Tier-1 financial regulator (BMA). Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "regulatory-compliance",
+        "aml",
+        "kyc",
+        "sanctions",
+        "regulatory-reporting",
+        "risk-management",
+        "bermuda",
+        "bma",
+        "examination-prep",
+        "soc2"
       ]
     }
   ]

@@ -1,0 +1,25 @@
+{
+  "name": "regulatory-compliance",
+  "version": "0.1.0",
+  "description": "Financial-regulatory & compliance specialist team — AML/KYC analyst (sanctions, EDD, SAR/STR), regulatory-reporting analyst (FATCA/CRS, supervisory returns, Solvency II, BMA EBS), risk-and-controls specialist (three lines of defense, KRIs, risk registers), policy & procedure writer, examination-prep specialist, and Bermuda-insurance specialist (BMA insurance code, captives, SAC, IL/ILS). Ships 4 skills (AML program review, regulatory mapping, SAR narrative drafting, examination readiness), 8 templates, and a defensive PII-scrubbing hook (SSN, IBAN, account numbers, Bermuda TIN patterns). Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "regulatory-compliance",
+    "aml",
+    "kyc",
+    "sanctions",
+    "regulatory-reporting",
+    "risk-management",
+    "bermuda",
+    "bma",
+    "examination-prep",
+    "soc2"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.5.0"]
+  }
+}
