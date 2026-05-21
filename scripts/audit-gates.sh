@@ -198,6 +198,19 @@ else
 fi
 
 echo
+echo "── Gate 11: docs/repo-guide.html freshness ───────────────────────────────"
+# must_fail: mutate marketplace description in-memory, the freshness check should
+# detect that the committed HTML no longer matches what would be regenerated.
+backup .claude-plugin/marketplace.json
+python3 -c "import json;p='.claude-plugin/marketplace.json';d=json.load(open(p));d['metadata']['description']='AUDIT FIXTURE — should diff against committed HTML';json.dump(d,open(p,'w'),indent=2)"
+rc=0; scripts/check-guide-fresh.sh >/dev/null 2>&1 || rc=$?
+gate "repo-guide freshness (mutated marketplace.json)" must_fail "$rc"
+cp -p "$TMP/.claude-plugin_marketplace.json.bak" .claude-plugin/marketplace.json
+# must_pass: pristine tree, the check should pass.
+rc=0; scripts/check-guide-fresh.sh >/dev/null 2>&1 || rc=$?
+gate "repo-guide freshness (clean tree)" must_pass "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 if [[ "$FAIL" -gt 0 ]]; then

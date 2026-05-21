@@ -18,3 +18,10 @@
 # Bundled third-party content keeps its upstream formatting.
 plugins/power-platform/skills/record-screen/extension/
 plugins/power-platform/skills/record-screen/scripts/
+
+# Generated artifact — produced by scripts/generate-repo-guide.py from the
+# marketplace + plugin manifests. Re-running the generator already produces
+# canonical output; formatting it again with prettier would just create
+# pointless churn (and prettier's HTML printer would rewrite the inline CSS
+# / JS blocks in ways that don't match the script's emit style).
+docs/repo-guide.html
