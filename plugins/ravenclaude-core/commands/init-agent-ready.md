@@ -7,9 +7,10 @@ You are helping the user make this repository agent-readable. Your goal is to cr
 ## What you will produce
 
 1. **`AGENTS.md`** — cross-tool agent instructions following the published [AGENTS.md spec](https://agents.md/) (Setup, Code style, Testing, PR conventions). This is the canonical agent-readable doc; every major coding-AI tool reads it.
-2. **`CLAUDE.md`** — Claude-Code-specific addendum that imports AGENTS.md via `@AGENTS.md` and adds anything Claude-only (plan-mode preferences, memory pointers, etc.). Stays under 100 lines.
-3. **`.repo-layout.json`** — machine-readable allow-list of file path globs. Both the layout-enforcement hook (in Claude Code) and an optional CI workflow read this file to block off-pattern file creation.
-4. **(optional) `.github/workflows/validate-layout.yml`** — CI backstop that fails PRs adding files outside the allow-list. Recommended for any repo with a GitHub remote.
+2. **`CLAUDE.md`** — Claude-Code-specific addendum that imports AGENTS.md via `@AGENTS.md`, imports the local team-constitution copy via `@docs/team-constitution.md`, and adds anything Claude-only (plan-mode preferences, memory pointers, etc.). Stays under 100 lines.
+3. **`docs/team-constitution.md`** — a **literal copy** of `${CLAUDE_PLUGIN_ROOT}/CLAUDE.md` (the team constitution) into the consumer's repo. This is what gives the consumer-side Team Lead the team roster, dispatch playbook, and Structured Output Protocol on first session open. Copying at init time (rather than `@`-importing from the plugin cache) makes the import portable across users and survives `/plugin marketplace update`.
+4. **`.repo-layout.json`** — machine-readable allow-list of file path globs. Both the layout-enforcement hook (in Claude Code) and an optional CI workflow read this file to block off-pattern file creation.
+5. **(optional) `.github/workflows/validate-layout.yml`** — CI backstop that fails PRs adding files outside the allow-list. Recommended for any repo with a GitHub remote.
 
 ## How to proceed
 
@@ -52,7 +53,18 @@ Then ask the user via AskUserQuestion: Keep all / Update specific files / Deny.
 
 ### Step 4 — Write the files
 
-After approval, write each file using the Write tool. Tailor content per repo type:
+After approval, write each file using the Write tool. Tailor content per repo type.
+
+**Special handling for `docs/team-constitution.md`:** instead of writing template content, copy the plugin constitution verbatim. Use the Read tool on `${CLAUDE_PLUGIN_ROOT}/CLAUDE.md`, then Write the same content to `docs/team-constitution.md` in the consumer's repo, prefixed with a one-line note:
+
+```markdown
+<!-- Copied from ravenclaude-core@<version> at init time via /init-agent-ready.
+     Re-run /init-agent-ready after `/plugin marketplace update ravenclaude` to refresh this file.
+     Edits to this file are local to this repo. -->
+```
+
+This pin-at-init approach is intentional. `@`-importing from the plugin cache (e.g. `~/.claude/plugins/cache/...`) is not portable across users; a local copy works for every contributor regardless of their Claude Code install layout.
+
 
 **AGENTS.md** must include sections (in this order):
 - Title and 1-2 sentence repo purpose
@@ -88,7 +100,7 @@ Tailor `allowed_globs` per repo type. Use these starter sets:
 - **infrastructure-as-code**: `*.md`, `*.tf`, `terraform/**`, `modules/**`, `environments/**`, `policies/**`, `scripts/**`, `.github/**`, `.claude/**`
 - **plugin marketplace**: see RavenClaude's own `.repo-layout.json` as the canonical example.
 
-Always include `AGENTS.md`, `CLAUDE.md`, `README.md`, `.repo-layout.json` in `allowed_globs`.
+Always include `AGENTS.md`, `CLAUDE.md`, `README.md`, `.repo-layout.json`, and `docs/team-constitution.md` in `allowed_globs`.
 
 **`.github/workflows/validate-layout.yml`** (only if user approved): copy the structure from RavenClaude's own workflow at `${CLAUDE_PLUGIN_ROOT}/templates/agent-ready-repo/validate-layout.yml.template` — adjust nothing except header comments.
 

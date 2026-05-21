@@ -1,8 +1,14 @@
 # CLAUDE.md — {{REPO_NAME}} (Claude Code addendum)
 
 @AGENTS.md
+@docs/team-constitution.md
 
-This file is Claude Code's entry point. The `@AGENTS.md` import above pulls in the cross-tool conventions. Anything below is **Claude-Code-specific** and is not meaningful to other agentic tools.
+This file is Claude Code's entry point. The two imports above pull in:
+
+- `@AGENTS.md` — cross-tool agent conventions (also read by Cursor, Codex, Aider, Copilot).
+- `@docs/team-constitution.md` — the ravenclaude-core team constitution (Team Lead pattern, dispatch playbook, Structured Output Protocol, Cited-Adjudicator Escalation). This file was copied into your repo at init time so it survives `/plugin marketplace update` and works for every contributor regardless of their Claude Code cache layout.
+
+Anything below is **Claude-Code-specific** and is not meaningful to other agentic tools.
 
 ## Plan-mode default
 
