@@ -1,0 +1,25 @@
+{
+  "name": "web-design",
+  "version": "0.1.0",
+  "description": "Web design & build specialist team — web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens), frontend implementer (HTML/CSS/JS, React, Astro, Next), content strategist (copy, microcopy, SEO content), accessibility auditor (WCAG 2.2 AA/AAA), performance engineer (Core Web Vitals, image/font optimization), SEO technical analyst (schema, sitemaps, OG). 4 skills (design-system audit, accessibility review, Core Web Vitals tuning, technical SEO audit), 8 templates, 1 advisory hook (oversized rasters, missing alt, hardcoded colors instead of tokens, missing meta tags). Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "web-design",
+    "accessibility",
+    "wcag",
+    "performance",
+    "core-web-vitals",
+    "seo",
+    "design-system",
+    "frontend",
+    "ux",
+    "content-strategy"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.5.0"]
+  }
+}
