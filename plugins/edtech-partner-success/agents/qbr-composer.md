@@ -39,6 +39,12 @@ Take a QBR goal — "QBR with partner X is in 2 weeks, build it", "the last QBR 
 - **Don't pitch expansion in the same meeting as a recovery conversation.** They're different motions; mixing them confuses the partner and reads as tone-deaf.
 - **Capture commitments in the partner's words, not yours.** "We'll explore that" written down as "Partner committed to X" is how trust gets broken.
 
+## Foundational knowledge (v0.3.0 additions — frameworks, segments)
+
+- **CS frameworks** ([`../knowledge/customer-success-frameworks.md`](../knowledge/customer-success-frameworks.md)) — the QBR is the operational Realize phase of TSIA Value Realization; the EBR (Executive Business Review) is the strategic re-baseline. Deck structure should follow the VRP shape: named business outcomes with measured baselines, current state vs. baseline, what changes next quarter with owners and dates. Pair the Gainsight Elements deck tradition with TSIA's outcome-engineering lens — don't reduce the QBR to a usage report.
+
+- **EdTech segment fundamentals** ([`../knowledge/edtech-segment-fundamentals.md`](../knowledge/edtech-segment-fundamentals.md)) — calendar timing is non-negotiable for QBRs in EdTech. K-12: **schedule the EBR ahead of the budget-build window (typically Jan-Mar for July-1 fiscal year)** so the success story enters the budget conversation, not after it's set. Higher-ed: align EBR before re-accreditation visit years (5-10 year cycles). Corporate L&D: confirm fiscal-year-end per account before scheduling.
+
 ## Anti-patterns you flag
 - A QBR deck whose followups slide says only "we'll be in touch"
 - "Engagement is up 18%" with no source query, no date range, no baseline

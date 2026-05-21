@@ -58,6 +58,17 @@ The profile is the **first artifact** the `ferpa-comms-translator` reads before 
 
 Full reference (federal three-bucket model, K-12/higher-ed rights-holder shift, state-by-state typology, multilingual obligations, the residual checklist): [`../knowledge/parent-comms-jurisdictional-bear-traps.md`](../knowledge/parent-comms-jurisdictional-bear-traps.md). Read it before opening a profile for a new partner, before any PSM handoff, and at the start of any annual partner review.
 
+## EdTech segment context in the profile (v0.3.0 addition)
+
+Beyond the jurisdictional layer above, the durable profile records segment-specific context that shapes every PSM motion:
+
+- **Segment classification** — K-12 / higher-ed / corporate L&D / mixed. Each has materially different buyer maps, calendars, regulations, and macro pressures.
+- **K-12 partners**: capture state (drives the privacy regime); district size; whether they're ESSER-cliff-affected; primary SIS / rostering broker (Clever / ClassLink / direct OneRoster); board cadence; the curriculum director / C&I director (not just the superintendent — they often set what kind of solution wins before procurement opens); top non-English household languages.
+- **Higher-ed partners**: capture whether central IT or shadow (departmental) is the dominant motion; HECVAT 4 submission status; the institution's accreditor + next reaccreditation cycle year (high-leverage windows for products that produce evidence); demographic-cliff exposure (community college / regional comprehensive / national / elite — the differential drop is 14pp / 11pp / 9pp / 6pp 2025-2030 per Grawe).
+- **Corporate L&D partners**: capture whether the buyer is CLO (enterprise) or CHRO + L&D director (mid-market); fiscal-year-end (varies — CRITICAL to record); SOC 2 / FedRAMP requirements; whether the partner is in a GDPR Article 88 jurisdiction.
+
+Full segment reference (decision-makers, buying cycles, calendars, regulations, funding, procurement bear traps, 2024-2026 macro context, cross-segment comparison table): [`../knowledge/edtech-segment-fundamentals.md`](../knowledge/edtech-segment-fundamentals.md). Read it when opening a profile for a new partner, when transitioning a partner between segments (e.g., expanding from K-12 into higher-ed), or when the macro context shifts (ESSER replacement, demographic-cliff update, state AI policy change).
+
 ## Anti-patterns you flag
 - Profile sections that paraphrase partner statements without quoting them
 - "Partner says" and "We observe" content mixed in the same paragraph

@@ -46,6 +46,12 @@ When playing through the recalibration process (signal change → component chan
 
 Full reference (drift symptoms, root-cause typology, recalibration playbook, hold-out cohort discipline): [`../knowledge/partner-health-score-drift.md`](../knowledge/partner-health-score-drift.md). Read it before any play refresh that involves a numeric trigger or success threshold, and at the start of any quarterly play-library audit.
 
+## Foundational knowledge (v0.3.0 additions — frameworks, segments)
+
+- **CS frameworks** ([`../knowledge/customer-success-frameworks.md`](../knowledge/customer-success-frameworks.md)) — plays implement the *Adopt-Expand-Renew* motions in TSIA LAER. Renewal plays are Value Realization stories told 90 days before contract end; expansion plays fire only when the partner has *earned value* per Section 3 (TSIA Value Realization Plan discipline). Recovery plays start with *listening*, not solution-pitching — Dixon's CES research (HBR 2010) shows effort dissatisfiers drive disloyalty more than satisfiers drive loyalty.
+
+- **EdTech segment fundamentals** ([`../knowledge/edtech-segment-fundamentals.md`](../knowledge/edtech-segment-fundamentals.md)) — segment-specific play variants matter. K-12 renewal motion runs against the July-1 fiscal year (renewal conversation Mar-May; budget conversation enters in Jan) with multi-stakeholder approval (superintendent + curriculum director + IT). Higher-ed runs against the academic calendar (avoid finals; align EBR before re-accreditation visits). Corporate L&D runs against industry-variable fiscal-year-end with CLO (enterprise) or CHRO + L&D director (mid-market). **Same play structure, different segment branches.**
+
 ## Anti-patterns you flag
 - A play that's actually a single email template with no branches
 - Trigger signals not surfaced anywhere in the analytics layer (so the play can never auto-fire)
