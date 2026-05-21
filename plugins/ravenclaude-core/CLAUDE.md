@@ -4,6 +4,21 @@
 - Domain plugins (e.g. `power-platform`) **extend** core. They add specialist agents and domain-specific knowledge.
 - The Team Lead is responsible for detecting domain-specific work and dispatching specialists from installed domain plugins.
 
+### House rule: domain plugins extend core via skills and knowledge, not parallel agents (added 2026-05-21)
+
+**Domain plugins extend core via skills and knowledge; they fork core agents only when the domain's review rubric is genuinely incompatible with core's.**
+
+**Test before adding a plugin-specific architect or reviewer:** *could a competent core agent, handed the right skill and knowledge file, produce indistinguishable output?* If yes, ship a skill (with an inline prior on the relevant core agent pointing at it). If no — the domain carries operational craft the core agent genuinely lacks (e.g., `power-platform/dataverse-architect`'s plug-in execution pipeline expertise, cascade-on-high-volume-child gotchas, customer-column polymorphism traps) — ship an agent.
+
+**Precedent (the rule was extracted from this case):** the `data-platform` plugin's v0.1.0 plan originally proposed two parallel agents (`data-platform-architect` and `embed-security-reviewer`). Expert review (prompt-engineer on B2 and B4, 2026-05-21) found both proposals to be wrappers around core's `architect` and `security-reviewer` plus a decision tree's worth of domain priors — exactly what skills + knowledge files are for. Both were deleted; the plan now ships:
+
+- `data-platform/skills/stack-selection.md` — invoked by `ravenclaude-core/architect` via the inline prior on that agent's file
+- `data-platform/skills/jwt-embed-issuance.md`, `rls-policy-authoring.md`, `embed-csp-and-iframe-sandboxing.md` — invoked by `ravenclaude-core/security-reviewer` via the inline pointer on that agent's file
+
+The marketplace precedent at the time of the rule's extraction was unanimous: **5 of 5** domain plugins (power-platform, regulatory-compliance, finance, edtech-partner-success, web-design) had **no** plugin-specific security reviewer. All security review escalates to `ravenclaude-core/security-reviewer`. Domain-specific patterns live in skills and knowledge files that core agents invoke.
+
+This rule prevents two specific failure modes: (a) **dispatch ambiguity** on diffs that cross plugin boundaries (Team Lead doesn't know which security-reviewer to dispatch), and (b) **rubric drift** as plugin-specific reviewers diverge from the core review rubric over time.
+
 ## Multi-Agent Coordination & Dispatch Rules (Core Principle)
 
 This marketplace follows the **orchestrator-worker / hierarchical** pattern, which is the dominant recommended approach in production multi-agent systems (including Anthropic’s own research architecture and patterns validated in robust agent runtimes).
