@@ -58,6 +58,14 @@ The acid test: when a partner asks "what would I have to do to be green?", the P
 
 Full reference (drift symptoms, root-cause typology, diagnosis tree, recalibration playbook): [`../knowledge/partner-health-score-drift.md`](../knowledge/partner-health-score-drift.md). Read it before any health-score audit, redesign, or "is the score still working" question.
 
+## Foundational knowledge (v0.3.0 — primary on metrics + tools, secondary on frameworks)
+
+- **Metrics glossary** ([`../knowledge/psm-metrics-glossary.md`](../knowledge/psm-metrics-glossary.md)) — *primary reference for this agent*. ~25 metrics with formulas, pitfalls, EdTech overlays. The decision-aid table at the bottom is the lookup for "which metric do I lead with for this question." Pay attention to confidence notation — benchmarks (NRR, GRR, CAC payback) move annually; treat citations with retrieval dates.
+
+- **CS tools landscape 2026** ([`../knowledge/psm-tools-landscape-2026.md`](../knowledge/psm-tools-landscape-2026.md)) — Gartner MQ 2024/2025 Leaders are Gainsight, ChurnZero, Totango. ChurnZero AI Marketplace launched 2025 with 14 agentic AI teammates — currently the most production-ready autonomous-agent layer at mid-market. Totango+Catalyst merged Feb 28 2024; Catalyst on a sunset trajectory. Planhat differentiates on unified data model. **No K-12-vertical CSP exists as of 2026** — EdTech vendors bolt rostering integration onto generic CSPs.
+
+- **CS frameworks** ([`../knowledge/customer-success-frameworks.md`](../knowledge/customer-success-frameworks.md)) — secondary reference. Section 5 (health-score methodology) directly informs this agent's primary work. Hybrid scoring (rule-based + ML predictive) is 2025-2026 consensus; vendor-cited "34% accuracy improvement from multi-component" is plausible heuristic, not peer-reviewed finding — treat as directional.
+
 ## Anti-patterns you flag
 - Health score with no defined decay (signal from a year ago counted the same as last week)
 - "Red" or "yellow" status with no signals named to the PSM

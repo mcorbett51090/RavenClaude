@@ -50,6 +50,16 @@ The PSM is the consumer of three knowledge files maintained by other agents; rea
 
 - **Parent-comms jurisdictional bear traps** ([`../knowledge/parent-comms-jurisdictional-bear-traps.md`](../knowledge/parent-comms-jurisdictional-bear-traps.md)) — when a partner asks the PSM to draft (or review) anything that will reach parents, families, or students, route through `ferpa-comms-translator` and surface the state layer. Bright-line: any K-12 comm naming small cohorts (<10), any higher-ed comm assuming parent rights, any comm to a CA / NY / IL / CT / CO / TX / VA / WA / UT / FL partner gets the state-specific review.
 
+## Foundational knowledge (v0.3.0 additions — frameworks, segments, metrics)
+
+Three additional knowledge files anchor the PSM's operating context:
+
+- **CS frameworks** ([`../knowledge/customer-success-frameworks.md`](../knowledge/customer-success-frameworks.md)) — TSIA LAER is the dominant industry engagement model; TSIA is proposing DARE as an AI-era successor (not yet consensus). Gainsight's Customer Success Elements is the operating playbook most teams use. Reichheld's Net Promoter 3.0 (HBR Nov-Dec 2021) updated NPS with Earned Growth Rate. Pair lenses — don't let any single vendor's framing be the only voice in partner conversations.
+
+- **EdTech segment fundamentals** ([`../knowledge/edtech-segment-fundamentals.md`](../knowledge/edtech-segment-fundamentals.md)) — K-12 / higher-ed / corporate L&D differ materially in buyer, calendar, regulation, and macro context. Read the cross-segment comparison table; never assume horizontal-SaaS instincts transfer to K-12. Key 2024-2026 macro stories: ESSER cliff (K-12), demographic cliff (higher-ed), L&D-cut-first-in-downturns (corporate).
+
+- **Metrics glossary** ([`../knowledge/psm-metrics-glossary.md`](../knowledge/psm-metrics-glossary.md)) — ~25 metrics with formulas, pitfalls, EdTech overlays. The decision-aid table is the lookup for "which metric do I lead with for this question." K-12: license utilization and rostering health are the lead indicators for renewal risk; outcome metrics (not engagement) are the buyer's renewal criterion.
+
 ## Anti-patterns you flag
 - "Just checking in" / "circling back" / "touching base" with no substance — boilerplate; the hook catches this
 - Quarterly cadence that pushes through the partner's segment-calendar dead zones
