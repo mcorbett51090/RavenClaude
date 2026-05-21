@@ -1,0 +1,29 @@
+{
+  "name": "data-platform",
+  "version": "0.1.0",
+  "description": "Data-platform team — 4 specialist agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) that guide cloud-database setup (Supabase / Fabric / RDS / Neon), ELT pipelines (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4, and interactive dashboards (Evidence.dev / Apache Superset / Metabase / Cube + Tremor) embedded in marketing sites and client apps. 7 skills (stack-selection, cloud-database-comparison, connector-configuration, jwt-embed-issuance, rls-policy-authoring, cube-schema-scaffolding, embed-csp-and-iframe-sandboxing) — three of which are invoked by ravenclaude-core/security-reviewer for embed-security work, and one by ravenclaude-core/architect for engagement-stack selection. 10 templates (3 runnable security-critical + 4 conceptual + 3 seam-marked stubs). 1 consolidated advisory hook flagging hardcoded secrets, missing Postgres RLS, long-lived JWTs, and per-viewer-priced BI tool references. 7-doc knowledge bank covering cloud DB / iPaaS / embedded analytics landscapes, multi-tenant RLS patterns across stacks, QuickBooks Online integration, Power BI Embedded for consultants, and the EdTech LMS connector-gap that ties to the edtech-partner-success plugin. Opinionated against per-viewer-priced BI tools (Looker / Tableau / Sigma) for SMB-consulting use cases.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "data-platform",
+    "interactive-dashboards",
+    "embedded-analytics",
+    "cube",
+    "evidence-dev",
+    "metabase",
+    "superset",
+    "power-bi-embedded",
+    "supabase",
+    "airbyte",
+    "fivetran",
+    "rls",
+    "multi-tenant",
+    "quickbooks"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

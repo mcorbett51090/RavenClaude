@@ -5,8 +5,8 @@
     "name": "Matt Corbett"
   },
   "metadata": {
-    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. Ships ravenclaude-core (Team Lead + 14 specialists with active Structured Output Protocol + Cited-Adjudicator Escalation + alternate-methods Capability Grounding), power-platform (11 Microsoft Power Platform specialists + bundled pbix-mcp + production knowledge bank), finance (7 corporate-finance & FP&A specialists), regulatory-compliance (6 financial-regulatory specialists with field-experience BMA positioning), web-design (7 web specialists with WCAG / Core Web Vitals / SEO discipline + a curated 2026 'cutting edge yet simple' reference set), and edtech-partner-success (6 PSM-lane specialists for EdTech Partner Success Manager work — K-12 / higher-ed / corporate L&D agnostic). Salesforce remains on the roadmap.",
-    "version": "0.11.0"
+    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. Ships ravenclaude-core (Team Lead + 14 specialists with active Structured Output Protocol + Cited-Adjudicator Escalation + alternate-methods Capability Grounding), power-platform (11 Microsoft Power Platform specialists + bundled pbix-mcp + production knowledge bank), finance (7 corporate-finance & FP&A specialists), regulatory-compliance (6 financial-regulatory specialists with field-experience BMA positioning), web-design (7 web specialists with WCAG / Core Web Vitals / SEO discipline + a curated 2026 'cutting edge yet simple' reference set), edtech-partner-success (6 PSM-lane specialists for EdTech Partner Success Manager work — K-12 / higher-ed / corporate L&D agnostic), and data-platform (4 specialists for the dashboard-engagement stack — cloud database + ELT + interactive dashboard + embed pattern — implementing the marketplace house rule 'domain plugins extend core via skills, not parallel agents' with three security skills invoked by ravenclaude-core/security-reviewer and one stack-selection skill invoked by ravenclaude-core/architect). Salesforce remains on the roadmap.",
+    "version": "0.12.0"
   },
   "plugins": [
     {
@@ -127,6 +127,31 @@
         "ferpa",
         "rostering",
         "learning-analytics"
+      ]
+    },
+    {
+      "name": "data-platform",
+      "source": "./plugins/data-platform",
+      "description": "Data-platform team — 4 specialist agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) that guide cloud-database setup (Supabase / Fabric / RDS / Neon), ELT pipelines (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4, and interactive dashboards (Evidence.dev / Apache Superset / Metabase / Cube + Tremor) embedded in marketing sites and client apps. 7 skills — three (jwt-embed-issuance, rls-policy-authoring, embed-csp-and-iframe-sandboxing) invoked by ravenclaude-core/security-reviewer; one (stack-selection) invoked by ravenclaude-core/architect — implementing the marketplace house rule 'domain plugins extend core via skills, not parallel agents'. 10 templates (3 runnable security-critical + 4 conceptual + 3 seam-marked stubs). 1 consolidated advisory hook. 7-doc knowledge bank covering cloud DB / iPaaS / embedded-analytics landscapes, multi-tenant RLS patterns across stacks, QuickBooks Online integration, Power BI Embedded for consultants, and the EdTech LMS connector-gap that ties to edtech-partner-success. Opinionated against per-viewer-priced BI tools (Looker / Tableau / Sigma) for SMB-consulting use cases; requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "data-platform",
+        "interactive-dashboards",
+        "embedded-analytics",
+        "cube",
+        "evidence-dev",
+        "metabase",
+        "superset",
+        "power-bi-embedded",
+        "supabase",
+        "airbyte",
+        "fivetran",
+        "rls",
+        "multi-tenant",
+        "quickbooks"
       ]
     }
   ]
