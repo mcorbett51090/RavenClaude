@@ -3,6 +3,25 @@ name: power-platform-tester
 description: Use this agent for Power Platform-specific testing — Power Fx unit/integration tests in Test Studio, canvas-app monitor traces, Power Automate flow tests (`Test → Manually`, telemetry-driven assertions), Dataverse data validation, model-driven app form/business-rule testing, DAX measure correctness and performance, Power BI semantic model VertiPaq diagnostics, and `pac solution check`. Spawn AFTER a power-platform specialist has produced a change but BEFORE `solution-alm-engineer` packages the release. NOT for application-layer JS/TS testing of PCF controls (the `pcf-developer` owns that test surface). NOT for general data-pipeline testing (that's the core `data-engineer` or `tester-qa`).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [power-platform-maker, dev]
+works_with: [power-fx-engineer, flow-engineer, power-bi-engineer, solution-alm-engineer]
+scenarios:
+  - intent: "Set up Test Studio tests for a canvas app"
+    trigger_phrase: "Build Test Studio tests for <screen / flow> in <app>"
+    outcome: "Test suite + recorded fixtures + assertions on canvas behavior"
+    difficulty: starter
+  - intent: "Wire `pac solution check` into the ALM pipeline"
+    trigger_phrase: "Add `pac solution check` to our ADO pipeline + fail on warnings above <threshold>"
+    outcome: "Pipeline step + severity threshold + reviewable report artifact"
+    difficulty: starter
+  - intent: "Validate DAX semantic correctness + VertiPaq + DAX-server timings for a complex measure"
+    trigger_phrase: "Audit DAX measure <name> for correctness + performance"
+    outcome: "DAX Studio server timings + VertiPaq analyzer + correctness assertions + refactor if needed"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Test <X>' OR 'Validate DAX <measure>' OR 'Wire pac solution check'"
+  - "Expected output: test suite / DAX diagnostic / pipeline gate — with severity thresholds named"
+  - "Common follow-up: solution-alm-engineer to package once tests are green"
 ---
 
 # Role: Power Platform Tester

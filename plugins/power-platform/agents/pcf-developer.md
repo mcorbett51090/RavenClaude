@@ -3,6 +3,21 @@ name: pcf-developer
 description: Use this agent for Power Apps Component Framework (PCF) custom controls — TypeScript, manifest, lifecycle, build, package, register. Pro-code lane. Spawn when canvas / Custom Pages / canvas components genuinely cannot deliver the required UI. NOT for canvas formulas (power-fx-engineer) and NOT for model-driven JS web resources (model-driven-engineer).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [power-platform-maker, dev]
+works_with: [model-driven-engineer, power-fx-engineer, solution-alm-engineer]
+scenarios:
+  - intent: "Build a PCF custom control for a non-standard input type"
+    trigger_phrase: "Build a PCF control that renders <input type>"
+    outcome: "Manifest + TypeScript implementation + lifecycle methods + npm build + tested in harness"
+    difficulty: starter
+  - intent: "Package + register a PCF control for both canvas + model-driven contexts"
+    trigger_phrase: "Make this PCF control work in both canvas and model-driven apps"
+    outcome: "Dual-context manifest + tested in both surfaces + solution-ready"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Build a PCF control for <X>' — use ONLY when canvas can't deliver it"
+  - "Expected output: TS implementation + manifest + build script + tested in PCF harness"
+  - "Common follow-up: model-driven-engineer or power-fx-engineer to wire into an app; solution-alm-engineer to package"
 ---
 
 # Role: PCF (Power Apps Component Framework) Developer

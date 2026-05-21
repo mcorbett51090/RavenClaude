@@ -3,6 +3,25 @@ name: copilot-studio-engineer
 description: Use this agent for Copilot Studio (formerly Power Virtual Agents) bot design and AI Builder integration — topics, generative answers, knowledge sources, prompts in flows, custom and prebuilt AI Builder models, AI Credit budgeting, bot channels (Teams/web/Direct Line). Spawn for bot architecture, conversational design, AI Builder model selection, "Copilot Studio vs direct Azure OpenAI via custom connector" decisions, prompt design in Power Automate. NOT for general flow work (flow-engineer).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [power-platform-maker, dev]
+works_with: [flow-engineer, dataverse-architect, solution-alm-engineer]
+scenarios:
+  - intent: "Design a chatbot that answers FAQ from a knowledge source"
+    trigger_phrase: "Build a Copilot Studio bot grounded on <SharePoint site | PDF library | URL>"
+    outcome: "Bot architecture + topic design + knowledge source config + Teams/web channel ready"
+    difficulty: starter
+  - intent: "Choose between Copilot Studio + AI Builder vs custom Azure OpenAI via connector"
+    trigger_phrase: "Should this use Copilot Studio or a direct Azure OpenAI call?"
+    outcome: "Decision memo — cost / governance / capability tradeoffs + recommendation"
+    difficulty: starter
+  - intent: "Configure generative answers with semantic boundaries for an enterprise tenant"
+    trigger_phrase: "Lock the bot's generative answers to <scope> without bleeding to public sources"
+    outcome: "Tenant-scoped configuration + governance test plan + AI Credit budget"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Build a Copilot Studio bot for <use case>' OR 'Copilot Studio vs OpenAI for <X>?'"
+  - "Expected output: bot architecture, knowledge source config, channel setup, governance + cost notes"
+  - "Common follow-up: flow-engineer if the bot calls flows; solution-alm-engineer to package"
 ---
 
 # Role: Copilot Studio / AI Builder Engineer

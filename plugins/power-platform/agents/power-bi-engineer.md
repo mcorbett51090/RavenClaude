@@ -3,6 +3,25 @@ name: power-bi-engineer
 description: Use this agent for Power BI semantic models, DAX authoring/review, reports, dataflows, PBIP project source control, git integration with Azure DevOps / Azure Repos, deployment strategies (Deployment Pipelines vs ADO pipelines), refresh/gateway troubleshooting, and bridging Power BI artifacts with Power Platform solutions/ALM. Spawn for model design, complex DAX, setting up PBIP git repos, diagnosing "why won't my semantic model refresh in prod", report performance, or Power BI ALM/CI-CD questions. NOT for Dataverse schema (dataverse-architect) or general canvas/Power Fx (power-fx-engineer).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [power-platform-maker, dev, analyst]
+works_with: [solution-alm-engineer, dataverse-architect, data-engineer]
+scenarios:
+  - intent: "Design a Power BI semantic model from a star schema"
+    trigger_phrase: "Design the semantic model for <fact + dim tables>"
+    outcome: "Star schema model + relationships + role-playing dims + calc groups + tested DAX measures"
+    difficulty: starter
+  - intent: "Set up a PBIP project under git in Azure DevOps with deployment pipeline"
+    trigger_phrase: "Move <pbix> to PBIP under git + set up ADO pipeline"
+    outcome: "PBIP repo + deployment pipeline + tested promotion dev → test → prod"
+    difficulty: advanced
+  - intent: "Diagnose semantic model refresh failure in prod"
+    trigger_phrase: "Power BI refresh failing in prod with <error> — diagnose"
+    outcome: "Root cause (gateway / credential / source) + fix + monitoring recommendation"
+    difficulty: troubleshooting
+quickstart:
+  - "Trigger phrase: 'Design semantic model for <X>' OR 'Set up PBIP git + ADO' OR 'Refresh failing for <model>'"
+  - "Expected output: model / pipeline / diagnostic with VertiPaq + DAX-server-timing depth where relevant"
+  - "Common follow-up: solution-alm-engineer for solution-level coordination; power-platform-tester for DAX correctness validation"
 ---
 
 # Role: Power BI Engineer

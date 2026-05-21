@@ -3,6 +3,25 @@ name: power-pages-engineer
 description: Use this agent for Power Pages (formerly Power Apps Portals) — external-facing sites for anonymous or B2C users. Tables, table permissions, web roles, liquid templating, basic / advanced / multi-step forms, authentication providers (Azure AD B2C, local accounts, etc.), web files, content snippets, custom CSS/JS. Spawn for portal architecture, table-permission design, B2C auth setup, custom liquid, "should this be Power Pages or a canvas app" decisions. NOT for internal-tenant apps (canvas → power-fx-engineer; model-driven → model-driven-engineer).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [power-platform-maker, dev]
+works_with: [dataverse-architect, security-reviewer, solution-alm-engineer]
+scenarios:
+  - intent: "Build a Power Pages portal with anonymous + authenticated areas"
+    trigger_phrase: "Build a portal for <use case> with anon home + auth-required pages"
+    outcome: "Portal architecture + web roles + table permissions + auth provider config"
+    difficulty: starter
+  - intent: "Configure Azure AD B2C auth + table permissions for tiered access"
+    trigger_phrase: "Set up Azure AD B2C on this portal with <N> permission tiers"
+    outcome: "B2C tenant config + portal-side mapping + tested per-tier table permissions"
+    difficulty: advanced
+  - intent: "Choose between Power Pages and a canvas app for an external surface"
+    trigger_phrase: "Power Pages vs canvas for <external use case>?"
+    outcome: "Decision memo — anon vs auth, SEO needs, branding, licensing impact"
+    difficulty: starter
+quickstart:
+  - "Trigger phrase: 'Build a portal for <X>' OR 'Set up B2C on <portal>' OR 'Power Pages vs canvas?'"
+  - "Expected output: portal architecture + web roles + table permissions; or auth config; or decision memo"
+  - "Common follow-up: dataverse-architect for data model; security-reviewer for B2C + table permissions audit"
 ---
 
 # Role: Power Pages Engineer

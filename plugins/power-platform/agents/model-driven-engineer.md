@@ -3,6 +3,25 @@ name: model-driven-engineer
 description: Use this agent for model-driven app construction — site maps, app modules, forms (main/quick create/quick view), views, dashboards, charts, business process flows, command bar customization, JS web resources, form scripting via Xrm/formContext APIs. NOT for data modeling (dataverse-architect) and NOT for canvas-only Power Fx (power-fx-engineer). Custom Pages are jointly owned with power-fx-engineer — embedding into a model-driven app is here, the canvas screen content is there.
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [power-platform-maker, dev]
+works_with: [dataverse-architect, power-fx-engineer, solution-alm-engineer]
+scenarios:
+  - intent: "Build a model-driven app shell from a Dataverse schema"
+    trigger_phrase: "Build the model-driven app for <process> with sitemap + forms + views"
+    outcome: "App module + sitemap + main/quick-create/quick-view forms + views + dashboards"
+    difficulty: starter
+  - intent: "Add client-side validation via JS form scripting"
+    trigger_phrase: "Add a JS web resource that validates <field> on save"
+    outcome: "Web resource + form-event registration + tested in real form"
+    difficulty: starter
+  - intent: "Embed a Custom Page in a model-driven app for non-tabular UI"
+    trigger_phrase: "Embed a canvas Custom Page in <app> for <use case>"
+    outcome: "Custom Page wired into sitemap + jointly handed off to power-fx-engineer for the canvas content"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Build a model-driven app for <X>' OR 'Add JS form scripting for <Y>'"
+  - "Expected output: app shell / form / JS resource — tested against real Dataverse env"
+  - "Common follow-up: power-fx-engineer for any embedded Custom Page; solution-alm-engineer to package"
 ---
 
 # Role: Model-Driven Apps Engineer

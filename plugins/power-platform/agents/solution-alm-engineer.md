@@ -3,6 +3,25 @@ name: solution-alm-engineer
 description: Use this agent for Power Platform Application Lifecycle Management — pac CLI mastery, source control of unpacked solutions, environment variables, connection references, environment strategy at the solution level (dev/test/prod promotion), and ALM pipelines (in-product Power Platform Pipelines, Azure DevOps + Power Platform Build Tools, GitHub Actions for Power Platform). Spawn for "set up source control for this solution", "design our pipeline", "diagnose this import failure", "what's the env-var/connection-ref strategy". NOT for data modeling (dataverse-architect) and NOT for tenant-scope governance (power-platform-admin).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [power-platform-maker, dev]
+works_with: [dataverse-architect, flow-engineer, power-platform-admin]
+scenarios:
+  - intent: "Set up source control for a Power Platform solution"
+    trigger_phrase: "Unpack <solution.zip> and commit the tree to git"
+    outcome: "Unpacked solution tree committed + ALM-friendly .gitignore + env-var + connection-ref strategy"
+    difficulty: starter
+  - intent: "Design an ALM pipeline (Power Platform Pipelines vs ADO Build Tools)"
+    trigger_phrase: "Design our dev → test → prod pipeline for <solution>"
+    outcome: "Pipeline design + env-var handling + connection-ref re-binding + rollback strategy"
+    difficulty: advanced
+  - intent: "Diagnose a solution import failure between dev and test envs"
+    trigger_phrase: "Solution import to <env> failed with <error>"
+    outcome: "Root cause (env var / connection ref / missing dependency / managed-state) + targeted fix; for PA-flow-stuck patterns, traverse the decision tree first"
+    difficulty: troubleshooting
+quickstart:
+  - "Trigger phrase: 'Set up source control for <solution>' OR 'Design pipeline for <X>' OR 'Diagnose import failure'"
+  - "Expected output: unpacked tree + ALM config; or pipeline design; or root-cause diagnostic"
+  - "Common follow-up: dataverse-architect if schema involved; power-platform-admin for env strategy at tenant scope"
 ---
 
 # Role: Solution / ALM Engineer

@@ -3,6 +3,25 @@ name: flow-engineer
 description: Use this agent for Power Automate work — cloud flows, desktop flows (RPA), and custom connectors. Triggers, expressions, error handling, child flows, retries, batching, parallelism. Spawn for any flow build/review/troubleshooting, custom connector authoring (OpenAPI), or "should this be Power Automate, Logic Apps, or a Function App?" decisions. NOT for canvas app work (power-fx-engineer) and NOT for data modeling (dataverse-architect).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [power-platform-maker, dev]
+works_with: [dataverse-architect, solution-alm-engineer, copilot-studio-engineer]
+scenarios:
+  - intent: "Build a cloud flow that posts to Teams when a SharePoint row changes"
+    trigger_phrase: "Build a flow that watches <list> and posts to <channel>"
+    outcome: "Flow JSON ready to import via solution + connection refs + Try/Catch/Finally"
+    difficulty: starter
+  - intent: "Bulk-create 100+ flows programmatically (PA Management API blocked)"
+    trigger_phrase: "Bulk-create flows via Dataverse Web API — script + clientdata template"
+    outcome: "Pivot to Dataverse Web API per knowledge/programmatic-flow-creation.md + script + live-shape clientdata template"
+    difficulty: advanced
+  - intent: "Diagnose a flow that activated then immediately turned itself off"
+    trigger_phrase: "PA flow turns itself off after activation — what's the fix?"
+    outcome: "Traverse decision tree — usually missing connection-reference rebinding (NOT reimport)"
+    difficulty: troubleshooting
+quickstart:
+  - "Trigger phrase: 'Build a flow that <X>' OR 'Diagnose flow <Y> error' OR 'Bulk-create flows for <use case>'"
+  - "Expected output: flow JSON / script / diagnostic with the right decision-tree leaf chosen"
+  - "Common follow-up: solution-alm-engineer to package; dataverse-architect if data model needs work"
 ---
 
 # Role: Power Automate / Connectors Engineer
