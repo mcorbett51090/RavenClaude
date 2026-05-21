@@ -69,6 +69,20 @@ Beyond the jurisdictional layer above, the durable profile records segment-speci
 
 Full segment reference (decision-makers, buying cycles, calendars, regulations, funding, procurement bear traps, 2024-2026 macro context, cross-segment comparison table): [`../knowledge/edtech-segment-fundamentals.md`](../knowledge/edtech-segment-fundamentals.md). Read it when opening a profile for a new partner, when transitioning a partner between segments (e.g., expanding from K-12 into higher-ed), or when the macro context shifts (ESSER replacement, demographic-cliff update, state AI policy change).
 
+## Partner AI posture in the profile (v0.4.0 addition)
+
+In 2026 the durable partner record must capture **the partner's AI posture** as a first-class section — competitor AI features are now a renewal-conversation topic, COPPA full enforcement (April 22 2026) created new compliance work, and the LAUSD/AllHere failure has shifted CIO diligence. Capture for each partner:
+
+- **Stated AI policy** at district / institution level — exists? written? aligns with their state's guidance? (Recall: ~33-35 states had K-12 AI guidance by April 2026 per Ballotpedia/Stateline.)
+- **Incumbent AI vendors already in use** — ChatGPT for Teachers (free for US K-12 educators through June 2027), Khanmigo, MagicSchool, SchoolAI, Curipod, LMS-embedded (Canvas / D2L), corporate L&D (Cornerstone Galaxy, Degreed). Treat as incumbent-threat / partner-of-partner mapping.
+- **Stance on student-facing vs. teacher-facing AI** — Mississippi's deliberate teacher-facing-first pattern is the lower-risk default; some districts will allow student-facing under specific guardrails
+- **Procurement triggers for AI** — does adding an AI feature require board approval? Superintendent sign-off? CIO sign-off?
+- **Privacy posture** — which state student-privacy laws apply (NY Ed Law §2-d, IL SOPPA, CA SOPIPA + the AI-specific extensions in CA AB 1159 / IN / KY / RI); any AI-specific DPA addenda the partner requires
+- **Vendor-failure exposure history** — did this district get burned by the LAUSD/AllHere pattern? Are they running stricter financial-diligence on AI vendors post-2024?
+- **Pilot capacity** — does the partner have a dedicated pilot framework (Mississippi-style: 15 districts, teacher-facing, measure first), or do they treat every new vendor as production-day-one?
+
+Full reference (vendor landscape with primary-verified pricing, COPPA/FERPA implications, perception data, implementation case studies, accuracy/bias landscape): [`../knowledge/ai-in-edtech-2026.md`](../knowledge/ai-in-edtech-2026.md). Re-read when the federal EO situation evolves, COPPA enforcement actions surface a pattern, or any vendor in the landscape makes a material pricing change.
+
 ## Anti-patterns you flag
 - Profile sections that paraphrase partner statements without quoting them
 - "Partner says" and "We observe" content mixed in the same paragraph

@@ -32,12 +32,12 @@ engagement:
 sources:
   quickbooks_online:
     type: source-quickbooks
-    enabled: false  # flip to true when configuring
+    enabled: false # flip to true when configuring
     connection:
       auth_type: oauth2
       client_id: "${QBO_CLIENT_ID}"
       client_secret: "${QBO_CLIENT_SECRET}"
-      refresh_token: "${QBO_REFRESH_TOKEN}"  # rotate on every use; persist new token
+      refresh_token: "${QBO_REFRESH_TOKEN}" # rotate on every use; persist new token
       realm_id: "${QBO_REALM_ID}"
       sandbox: false
     streams:
@@ -58,10 +58,10 @@ sources:
       - name: Item
         sync_mode: incremental
       - name: Account
-        sync_mode: full_refresh  # chart of accounts changes rarely
+        sync_mode: full_refresh # chart of accounts changes rarely
       - name: JournalEntry
         sync_mode: incremental
-    sync_cadence: daily  # nightly is the default; hourly only if dashboard needs intraday
+    sync_cadence: daily # nightly is the default; hourly only if dashboard needs intraday
     rate_limit:
       max_requests_per_second: 10
       max_concurrent: 10
@@ -77,9 +77,9 @@ sources:
     enabled: false
     connection:
       account_id: "${STRIPE_ACCOUNT_ID}"
-      client_secret: "${STRIPE_SECRET_KEY}"  # use restricted key in production
+      client_secret: "${STRIPE_SECRET_KEY}" # use restricted key in production
       start_date: "{{YYYY-MM-DD}}"
-      lookback_window_days: 0  # 0 = no lookback; increase to handle late-arriving events
+      lookback_window_days: 0 # 0 = no lookback; increase to handle late-arriving events
     streams:
       - name: customers
         sync_mode: incremental
@@ -163,7 +163,7 @@ sources:
     connection:
       property_ids:
         - "${GA4_PROPERTY_ID}"
-      credentials_json: "${GA4_SERVICE_ACCOUNT_JSON}"  # base64-encoded JSON in env
+      credentials_json: "${GA4_SERVICE_ACCOUNT_JSON}" # base64-encoded JSON in env
       date_ranges_start_date: "{{YYYY-MM-DD}}"
     custom_reports:
       - name: traffic_acquisition
@@ -183,7 +183,7 @@ sources:
     type: source-shopify
     enabled: false
     connection:
-      shop: "${SHOPIFY_SHOP_DOMAIN}"  # e.g., "store-name" (without .myshopify.com)
+      shop: "${SHOPIFY_SHOP_DOMAIN}" # e.g., "store-name" (without .myshopify.com)
       credentials:
         auth_method: oauth2
         client_id: "${SHOPIFY_CLIENT_ID}"
@@ -208,8 +208,9 @@ destination:
     port: "${DESTINATION_PORT}"
     database: "${DESTINATION_DATABASE}"
     username: "${DESTINATION_USERNAME}"
-    password: "${DESTINATION_PASSWORD}"  # in env var; the hook flags inline secrets
-    schema: "{{raw_<source_name>}}"  # one schema per source for clean dbt-ingest
+    password: "${DESTINATION_PASSWORD}" # in env var; the hook flags inline secrets
+    schema: "{{raw_<source_name>}}" # one schema per source for clean dbt-ingest
+
 
 # ---------------------------------------------------------------------------
 # Acceptance criteria

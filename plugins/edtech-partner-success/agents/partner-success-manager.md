@@ -60,6 +60,14 @@ Three additional knowledge files anchor the PSM's operating context:
 
 - **Metrics glossary** ([`../knowledge/psm-metrics-glossary.md`](../knowledge/psm-metrics-glossary.md)) — ~25 metrics with formulas, pitfalls, EdTech overlays. The decision-aid table is the lookup for "which metric do I lead with for this question." K-12: license utilization and rostering health are the lead indicators for renewal risk; outcome metrics (not engagement) are the buyer's renewal criterion.
 
+## Vertical depth (v0.4.0 additions — AI in EdTech + renewal pricing)
+
+Two additional knowledge files anchor the 2026 partner conversation:
+
+- **AI in EdTech 2026** ([`../knowledge/ai-in-edtech-2026.md`](../knowledge/ai-in-edtech-2026.md)) — competitor AI features are a renewal-conversation topic in 2026. Verified pricing for Khanmigo + MagicSchool; OpenAI ChatGPT for Teachers free for US K-12 through June 2027; Claude for Education higher-ed first; Microsoft Copilot $18/user/mo. **COPPA full enforcement April 22, 2026** — separate opt-in consent now required for AI training under-13 data; penalties up to $51,744/violation/day. **December 11, 2025 federal EO preempting state AI laws is in effect but actively contested** — defensible posture is comply with strictest applicable state law until courts settle. **LAUSD/AllHere $6M failure** shifted CIO diligence — sub-processor lists + financial-health attestations + pilot-before-scale are table stakes. Adoption stats: EdWeek 61% teacher adoption 2025; Common Sense Media 52% parents call AI-for-schoolwork "unethical" / 52% teens say encourage; **AI-detection has ~50% false-positive on ESL writing — detection alone is not defensible evidence.**
+
+- **Renewal pricing conversations in EdTech** ([`../knowledge/renewal-pricing-conversations-edtech.md`](../knowledge/renewal-pricing-conversations-edtech.md)) — **start the K-12 renewal clock at 120-180 days, not 90** — the SaaS-industry 90-day default misses the January-March budget-build window. Multi-year is the exception in K-12 (annual-appropriation principle — "subject to annual appropriation" makes 3-year contracts price holds, not commitments). **K-12 superintendent turnover hit 23% in 500 largest districts 2024-25** — confirm named decision-maker every quarter. **Recurly: 71% cite price increases as #1 churn driver.** Incumbent RFP win rates 60-90% if competitive procurement opens. The closing synthesis: most-common mistake is running a generic SaaS motion and discovering too late the curriculum director was never the buyer. CFO reads the line-item delta, not the QBR.
+
 ## Anti-patterns you flag
 - "Just checking in" / "circling back" / "touching base" with no substance — boilerplate; the hook catches this
 - Quarterly cadence that pushes through the partner's segment-calendar dead zones

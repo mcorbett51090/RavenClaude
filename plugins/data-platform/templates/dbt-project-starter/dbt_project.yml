@@ -23,7 +23,7 @@ name: "{{client_slug}}_analytics"
 version: "0.1.0"
 config-version: 2
 
-profile: "{{client_slug}}"  # references profiles.yml.example or your CI secrets
+profile: "{{client_slug}}" # references profiles.yml.example or your CI secrets
 
 model-paths: ["models"]
 analysis-paths: ["analyses"]

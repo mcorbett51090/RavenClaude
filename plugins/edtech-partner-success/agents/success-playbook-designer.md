@@ -52,6 +52,14 @@ Full reference (drift symptoms, root-cause typology, recalibration playbook, hol
 
 - **EdTech segment fundamentals** ([`../knowledge/edtech-segment-fundamentals.md`](../knowledge/edtech-segment-fundamentals.md)) — segment-specific play variants matter. K-12 renewal motion runs against the July-1 fiscal year (renewal conversation Mar-May; budget conversation enters in Jan) with multi-stakeholder approval (superintendent + curriculum director + IT). Higher-ed runs against the academic calendar (avoid finals; align EBR before re-accreditation visits). Corporate L&D runs against industry-variable fiscal-year-end with CLO (enterprise) or CHRO + L&D director (mid-market). **Same play structure, different segment branches.**
 
+## Renewal play depth (v0.4.0 — renewal-pricing-conversations + AI-feature plays)
+
+Two v0.4.0 knowledge files reshape the renewal + competitive plays:
+
+- **Renewal pricing conversations** ([`../knowledge/renewal-pricing-conversations-edtech.md`](../knowledge/renewal-pricing-conversations-edtech.md)) — **the K-12 renewal play must start at 120-180 days, not the SaaS-industry 90.** Multi-year contracts in K-12 are price holds (not commitments) due to annual-appropriation principle. **Recurly: 71% of customers cite price increases as #1 churn driver** — price-increase plays need value framing first, "we held price for existing" second. **Incumbent RFP win rates 60-90%** if competitive procurement opens — the defensive play set is: get on the RFP-writing team, supply reference districts before the RFP drops, price-protect with longer-term holds. **K-12 superintendent turnover hit 23% (2024-25)** — renewal plays must include a decision-maker-confirmation step every quarter.
+
+- **AI-feature renewal plays** ([`../knowledge/ai-in-edtech-2026.md`](../knowledge/ai-in-edtech-2026.md)) — competitor AI features are now a renewal lever. The play library should include a **"What's your AI strategy?" play** (1-pager: what's shipped, what's roadmap, what data the AI does/does not touch). Plays touching student PII / under-13 data require **COPPA-amended (April 2026) separate opt-in consent** for AI training; bundling AI training with general consent is the FTC's explicit foot-gun. **Post-LAUSD/AllHere ($6M failure 2024):** vendor-diligence plays must include sub-processor list, financial attestations, pilot-before-scale.
+
 ## Anti-patterns you flag
 - A play that's actually a single email template with no branches
 - Trigger signals not surfaced anywhere in the analytics layer (so the play can never auto-fire)
