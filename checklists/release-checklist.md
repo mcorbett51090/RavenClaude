@@ -23,7 +23,7 @@ If unsure, mentally simulate: "a consumer runs `/plugin marketplace update raven
 - [ ] Catalog `version` bumped in `.claude-plugin/marketplace.json` (the version inside the relevant entry of `plugins[]`). Numbers must match — the version-drift CI step will fail if they don't.
 - [ ] `plugins/<plugin>/CHANGELOG.md` updated with a new dated section describing the change. Top of file, reverse-chronological.
 - [ ] If this is a minor or major release: top-level `CHANGELOG.md` also updated.
-- [ ] **Regenerate the interactive repo guide:** `python3 scripts/generate-repo-guide.py`. Commit the updated `docs/repo-guide.html` along with the rest of the change — CI's `Verify docs/repo-guide.html is fresh` step (and the meta-test) will fail otherwise.
+- [ ] **Regenerate the interactive repo guide:** `python3 scripts/generate-repo-guide.py`. Commit the updated `repo-guide.html` (at the repo root) along with the rest of the change — CI's `Verify repo-guide.html is fresh` step (and the meta-test) will fail otherwise.
 - [ ] `docs/architecture.md` Status table updated if version numbers there are now stale.
 - [ ] No secrets, no client identifiers, no internal URLs in the diff. Skim `git diff` once more.
 

@@ -198,7 +198,7 @@ else
 fi
 
 echo
-echo "── Gate 11: docs/repo-guide.html freshness ───────────────────────────────"
+echo "── Gate 11: repo-guide.html freshness ────────────────────────────────────"
 # must_fail: mutate marketplace description in-memory, the freshness check should
 # detect that the committed HTML no longer matches what would be regenerated.
 backup .claude-plugin/marketplace.json

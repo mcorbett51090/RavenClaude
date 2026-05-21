@@ -2,12 +2,17 @@
 
 **A private Claude Code plugin marketplace** — bundled team rules, specialist agents, dispatch playbooks, and templates that travel with you across projects.
 
-Today this marketplace ships **two plugins**:
+> 📖 **[Browse the marketplace interactively → `repo-guide.html`](repo-guide.html)** — a self-contained single-page guide to every plugin, agent, skill, hook, rule, and template, with a searchable cross-plugin index. Download it and open in any browser; no server, no build step. Regenerated from the manifests on every release.
 
-- **[`ravenclaude-core`](plugins/ravenclaude-core/)** — domain-neutral Team Lead + 14 specialists (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, data-engineer, etc.), plus dispatch playbooks (now with a Cross-plugin dispatch section), gates, 5 hooks, templates, and the **cross-project contribution-staging loop** (`contribute-finding` → `review-staged-contributions`) that lets any consumer project propose lessons back to this marketplace without needing repo write access.
-- **[`power-platform`](plugins/power-platform/)** — 11 Microsoft Power Platform specialists (Power Fx, flows, Power BI, Dataverse, model-driven, PCF, Copilot Studio, Power Pages, admin, ALM, **tester**), 13 skills, an advisory house-opinions hook covering 8 checks, and the bundled `pbix-mcp` MCP server for `.pbix`/`.pbit` editing without Power BI Desktop.
+Today this marketplace ships **five plugins**:
 
-Future plugins for additional domains (finance, EdTech, Salesforce) will land alongside these.
+- **[`ravenclaude-core`](plugins/ravenclaude-core/)** — domain-neutral Team Lead + 14 specialists (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, data-engineer, etc.), plus dispatch playbooks (with a Cross-plugin dispatch section), gates, 5 hooks, templates, and the **cross-project contribution-staging loop**.
+- **[`power-platform`](plugins/power-platform/)** — 11 Microsoft Power Platform specialists (Power Fx, flows, Power BI, Dataverse, model-driven, PCF, Copilot Studio, Power Pages, admin, ALM, tester), 13 skills, an advisory house-opinions hook covering 8 checks, and the bundled `pbix-mcp` MCP server.
+- **[`finance`](plugins/finance/)** — 7 corporate-finance & FP&A specialists (FP&A analyst, financial modeler, controller, treasury, valuation, audit-prep, board-pack composer), 4 skills, 8 templates, advisory anti-pattern hook.
+- **[`regulatory-compliance`](plugins/regulatory-compliance/)** — 6 financial-regulatory specialists (AML/KYC, regulatory reporting, risk-and-controls, policy & procedure writer, examination prep, Bermuda-insurance), 4 skills, 8 templates, defensive PII-scrub hook.
+- **[`web-design`](plugins/web-design/)** — 7 web specialists (web architect, UX, visual, frontend implementer, content strategist, accessibility auditor, performance engineer) with WCAG 2.2 AA/AAA, Core Web Vitals, and SEO discipline. 4 skills, 8 templates, advisory web anti-pattern hook.
+
+EdTech and Salesforce plugins remain on the roadmap.
 
 ---
 
@@ -132,7 +137,7 @@ For the dispatch playbook itself, see [`plugins/ravenclaude-core/skills/spawn-te
 
 ## Browsing the marketplace at a glance
 
-[`docs/repo-guide.html`](docs/repo-guide.html) is an interactive single-page guide to every plugin, agent, skill, hook, rule, and template that ships from this marketplace. Open it in any browser (no server required) for a tabbed, searchable view of the current state. The page is regenerated from the manifests on every release via `python3 scripts/generate-repo-guide.py`; CI's `Verify docs/repo-guide.html is fresh` step fails if it drifts.
+[`repo-guide.html`](repo-guide.html) at the repo root is an interactive single-page guide to every plugin, agent, skill, hook, rule, and template that ships from this marketplace. Open it in any browser (no server required) for a tabbed, searchable view of the current state. The page is regenerated from the manifests on every release via `python3 scripts/generate-repo-guide.py`; CI's `Verify repo-guide.html is fresh` step fails if it drifts.
 
 ---
 

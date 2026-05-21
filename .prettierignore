@@ -24,4 +24,4 @@ plugins/power-platform/skills/record-screen/scripts/
 # canonical output; formatting it again with prettier would just create
 # pointless churn (and prettier's HTML printer would rewrite the inline CSS
 # / JS blocks in ways that don't match the script's emit style).
-docs/repo-guide.html
+repo-guide.html

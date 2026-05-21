@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-generate-repo-guide.py — render docs/repo-guide.html from manifests + plugin content.
+generate-repo-guide.py — render repo-guide.html from manifests + plugin content.
 
 Reads .claude-plugin/marketplace.json, each plugin's plugin.json, and the agent/
 skill/hook/rule/template files under plugins/*/. Emits a single self-contained
-HTML page (inline CSS + JS, no external CDN) at docs/repo-guide.html.
+HTML page (inline CSS + JS, no external CDN) at repo-guide.html.
 
 Designed to be re-run on every release. CI uses scripts/check-guide-fresh.sh to
 fail the build if the committed HTML is out of date relative to the sources.
@@ -12,7 +12,7 @@ fail the build if the committed HTML is out of date relative to the sources.
 Usage:
     python3 scripts/generate-repo-guide.py [--output PATH] [--check]
 
-    --output PATH   Write to PATH instead of docs/repo-guide.html.
+    --output PATH   Write to PATH instead of repo-guide.html.
     --check         Print the rendered HTML to stdout instead of writing a file.
 """
 
@@ -29,7 +29,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_OUTPUT = REPO_ROOT / "docs" / "repo-guide.html"
+DEFAULT_OUTPUT = REPO_ROOT / "repo-guide.html"
 
 # Map plugin name → accent color (for visual differentiation).
 PLUGIN_COLORS = {

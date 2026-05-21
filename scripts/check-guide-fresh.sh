@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# check-guide-fresh.sh — verify docs/repo-guide.html is up-to-date relative to
+# check-guide-fresh.sh — verify repo-guide.html (at the repo root) is up-to-date relative to
 # the marketplace + plugin manifests + agent/skill/hook/rule/template files.
 #
 # How it works:
@@ -21,7 +21,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 generator="$repo_root/scripts/generate-repo-guide.py"
-committed="$repo_root/docs/repo-guide.html"
+committed="$repo_root/repo-guide.html"
 
 if [[ ! -x "$generator" && ! -f "$generator" ]]; then
   echo "::error::generator script not found at $generator" >&2
@@ -29,7 +29,7 @@ if [[ ! -x "$generator" && ! -f "$generator" ]]; then
 fi
 
 if [[ ! -f "$committed" ]]; then
-  echo "::error::docs/repo-guide.html is missing. Run: python3 scripts/generate-repo-guide.py" >&2
+  echo "::error::repo-guide.html is missing. Run: python3 scripts/generate-repo-guide.py" >&2
   exit 2
 fi
 
@@ -48,11 +48,11 @@ strip_volatile() {
 }
 
 if diff -q <(strip_volatile "$committed") <(strip_volatile "$tmp") > /dev/null 2>&1; then
-  echo "docs/repo-guide.html is up to date."
+  echo "repo-guide.html is up to date."
   exit 0
 fi
 
-echo "::error::docs/repo-guide.html is stale relative to the marketplace + plugin sources." >&2
+echo "::error::repo-guide.html is stale relative to the marketplace + plugin sources." >&2
 echo "Run \`python3 scripts/generate-repo-guide.py\` and commit the result." >&2
 diff <(strip_volatile "$committed") <(strip_volatile "$tmp") | head -40 >&2 || true
 exit 1
