@@ -59,6 +59,18 @@
       color: var(--text); padding: 0.6rem 0.9rem; border-radius: 6px; font-family: var(--font-sans);
     }
     .search-row input:focus { outline: none; border-color: var(--accent); }
+    .plugin-filter { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+    .plugin-filter-btn {
+      background: var(--surface); color: var(--muted);
+      border: 1px solid var(--border); padding: 0.4rem 0.85rem;
+      border-radius: 6px; cursor: pointer;
+      font-family: var(--font-sans); font-size: 0.85rem;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .plugin-filter-btn:hover { background: var(--surface-2); border-color: var(--accent); color: var(--text); }
+    .plugin-filter-btn.active { background: var(--surface-2); border-color: var(--accent); color: var(--accent); }
+    .plugin-filter-btn .count { color: var(--muted); margin-left: 0.35rem; font-family: var(--font-mono); font-size: 0.78rem; }
+    .plugin-target.hidden-by-filter { display: none; }
     .plugin-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -123,7 +135,7 @@
     <h1>🐦‍⬛ RavenClaude — Marketplace Guide</h1>
     <span class="version-banner">marketplace <strong>v0.10.0</strong></span>
   </div>
-  <div class="generated">Generated 2026-05-21 13:18 UTC by <code>scripts/generate-repo-guide.py</code></div>
+  <div class="generated">Generated 2026-05-21 13:27 UTC by <code>scripts/generate-repo-guide.py</code></div>
   <div class="stats">
     <div><strong>5</strong> plugins</div>
     <div><strong>45</strong> agents</div>
@@ -162,10 +174,13 @@
   </section>
 
   <section class="panel" data-panel="plugins">
-    <div class="search-row">
-      <input id="plugin-search" type="search" placeholder="Search agents, skills, hooks, rules, templates within plugins…" />
+    <div class="plugin-filter" role="tablist" aria-label="Filter by plugin">
+      <button class="plugin-filter-btn active" data-plugin-filter="__all__" style="--accent: var(--accent)">All <span class="count">5</span></button><button class="plugin-filter-btn" data-plugin-filter="ravenclaude-core" style="--accent: #14b8a6">ravenclaude-core <span class="count">47</span></button><button class="plugin-filter-btn" data-plugin-filter="power-platform" style="--accent: #8b5cf6">power-platform <span class="count">26</span></button><button class="plugin-filter-btn" data-plugin-filter="finance" style="--accent: #f59e0b">finance <span class="count">20</span></button><button class="plugin-filter-btn" data-plugin-filter="regulatory-compliance" style="--accent: #ef4444">regulatory-compliance <span class="count">19</span></button><button class="plugin-filter-btn" data-plugin-filter="web-design" style="--accent: #3b82f6">web-design <span class="count">20</span></button>
     </div>
-    <section id="plugin-ravenclaude-core" class="plugin-target">
+    <div class="search-row">
+      <input id="plugin-search" type="search" placeholder="Search agents, skills, hooks, rules, templates within the visible plugin(s)…" />
+    </div>
+    <section id="plugin-ravenclaude-core" class="plugin-target" data-plugin="ravenclaude-core">
     <article class="plugin-card" data-plugin="ravenclaude-core" style="--accent: #14b8a6">
       <header class="plugin-header">
         <div class="plugin-title">
@@ -228,7 +243,7 @@
       </div>
     </article>
     </section>
-<section id="plugin-power-platform" class="plugin-target">
+<section id="plugin-power-platform" class="plugin-target" data-plugin="power-platform">
     <article class="plugin-card" data-plugin="power-platform" style="--accent: #8b5cf6">
       <header class="plugin-header">
         <div class="plugin-title">
@@ -271,7 +286,7 @@
       </div>
     </article>
     </section>
-<section id="plugin-finance" class="plugin-target">
+<section id="plugin-finance" class="plugin-target" data-plugin="finance">
     <article class="plugin-card" data-plugin="finance" style="--accent: #f59e0b">
       <header class="plugin-header">
         <div class="plugin-title">
@@ -307,7 +322,7 @@
       </div>
     </article>
     </section>
-<section id="plugin-regulatory-compliance" class="plugin-target">
+<section id="plugin-regulatory-compliance" class="plugin-target" data-plugin="regulatory-compliance">
     <article class="plugin-card" data-plugin="regulatory-compliance" style="--accent: #ef4444">
       <header class="plugin-header">
         <div class="plugin-title">
@@ -342,7 +357,7 @@
       </div>
     </article>
     </section>
-<section id="plugin-web-design" class="plugin-target">
+<section id="plugin-web-design" class="plugin-target" data-plugin="web-design">
     <article class="plugin-card" data-plugin="web-design" style="--accent: #3b82f6">
       <header class="plugin-header">
         <div class="plugin-title">
@@ -445,7 +460,20 @@
     });
   });
 
-  // Plugin-pane search
+  // Plugin-pane per-plugin filter buttons
+  const pluginFilterBtns = document.querySelectorAll('.plugin-filter-btn');
+  pluginFilterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.pluginFilter;
+      pluginFilterBtns.forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.plugin-target').forEach(section => {
+        const match = (target === '__all__') || (section.dataset.plugin === target);
+        section.classList.toggle('hidden-by-filter', !match);
+      });
+    });
+  });
+
+  // Plugin-pane search (item-level filter within visible plugin cards)
   const pluginSearch = document.getElementById('plugin-search');
   if (pluginSearch) {
     pluginSearch.addEventListener('input', () => {
