@@ -173,6 +173,18 @@ Each file carries a `Last reviewed:` date and refresh triggers. Pricing claims h
 
 ---
 
+## 8b. Scenarios bank — TODO (planned)
+
+**Status:** not yet enabled in this plugin. The marketplace-wide scenarios bank ([`../../ravenclaude-core/skills/scenario-retrieval.md`](../../ravenclaude-core/skills/scenario-retrieval.md), shipped v0.1.0 of the feedback loop on 2026-05-21) is currently live in `power-platform` only. Other plugins enable their bank **when the first real engagement scenario surfaces** via `/wrap`.
+
+To enable when a scenario surfaces:
+
+1. Create `plugins/data-platform/scenarios/` with a `README.md` (copy the structure from `plugins/power-platform/scenarios/README.md`)
+2. Add the **Scenario retrieval (priors)** inline-prior block to this plugin's most-likely-to-benefit agents (see the pattern in [`../../ravenclaude-core/skills/scenario-retrieval.md`](../../ravenclaude-core/skills/scenario-retrieval.md) §"Inline-prior pattern for agents")
+3. Remove this §8b TODO block
+
+---
+
 ## 9. Templates in this plugin
 
 12 templates in v0.2.0, distributed by intended bar (3 runnable + 4 conceptual + 3 seam-marked stubs + 2 new v0.2.0 scaffolds).

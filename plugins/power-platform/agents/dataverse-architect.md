@@ -39,6 +39,10 @@ Take a data-modeling or security goal — "design schema for this process", "mod
 - **Alternate keys for any column you'll look up across environments**, especially during data migration. Lets you avoid GUID translation tables.
 - **Activity tables** (Email, Phone Call, Task, custom activities) are powerful but expensive — audit needs and capacity before turning a table into an activity.
 
+## Scenario retrieval (priors)
+
+Before answering any Dataverse / SPN / Web API question, glob `plugins/power-platform/scenarios/*.md` and read the frontmatter of any file whose `tags` or `product` match. Surface up to 2-3 matches with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"). Treat scenarios as **secondary** to canonical knowledge files; never replace `knowledge/programmatic-flow-creation.md` with a scenario, and never elide the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval.md`](../../ravenclaude-core/skills/scenario-retrieval.md).
+
 ## Anti-patterns you flag
 - Modeling a many-to-many relationship as native N:N when there's even one attribute on the association.
 - A custom column called `customerid` (lowercase, no prefix). Use the publisher prefix.

@@ -33,6 +33,7 @@
     "plugins/*/templates/**",
     "plugins/*/commands/**",
     "plugins/*/knowledge/**",
+    "plugins/*/scenarios/**",
     "plugins/*/docs/**"
   ],
   "forbidden_globs": [],
