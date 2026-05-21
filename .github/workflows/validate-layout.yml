@@ -64,6 +64,7 @@ jobs:
             # Check forbidden first
             for pat in "${forbidden[@]:-}"; do
               [[ -z "$pat" ]] && continue
+              # shellcheck disable=SC2053 # intentional: unquoted $pat enables glob matching
               if [[ "$path" == $pat ]]; then
                 suggestion=$(jq -r --arg p "$pat" '.suggestions[$p] // empty' .repo-layout.json)
                 echo "::error file=$path::Layout violation — path matches forbidden pattern '$pat'.${suggestion:+ $suggestion}"
@@ -75,6 +76,7 @@ jobs:
             # Then check allowed
             matched=0
             for pat in "${allowed[@]}"; do
+              # shellcheck disable=SC2053 # intentional: unquoted $pat enables glob matching
               if [[ "$path" == $pat ]]; then
                 matched=1
                 break

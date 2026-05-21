@@ -31,44 +31,53 @@ jobs:
             let title = '';
             let body = '';
             
+            // Body strings are built via array .join('\n') so every line lives
+            // at proper YAML indentation. Earlier `body = \`multi-line\`` template
+            // literals had markdown at column 0, which actionlint (go-yaml v4)
+            // and PyYAML both reject as a malformed block scalar. GitHub
+            // Actions' Ruby psych accepted it, but CI linters do not.
+            const today = new Date().toISOString().split('T')[0];
+
             if (researchType === 'weekly-deep') {
               title = 'Researcher Weekly Deep Research Sweep';
-              body = `## Weekly Deep Research
-
-**Trigger**: Scheduled weekly deep research
-**Date**: ${new Date().toISOString().split('T')[0]}
-
-### Instructions for Team Lead
-
-1. **Spawn the deep-researcher agent** (defined in `plugins/ravenclaude-core/agents/deep-researcher.md`).
-2. For each agent, review its skills, knowledge files, and tiered knowledge base.
-3. Update Tier 1–5 knowledge with fresh official + high-signal community sources.
-4. Explicitly seek credible divergent/contrarian expert views.
-5. Use the research-report-template.md when proposing updates.
-6. Update the agent definition files with new categorized knowledge.
-
-### Scope
-- All core agents (including deep-researcher)
-- All power-platform agents
-- Any newly added domain plugins
-- Cross-cutting skills (grounding-protocol, maintainability-review, etc.)
-
-**Goal**: Keep every agent's knowledge current and categorized so agents default to consensus but have principled fallbacks.
-
-**Research Agent to use**: `deep-researcher` from `plugins/ravenclaude-core/agents/deep-researcher.md`
-`;
+              body = [
+                '## Weekly Deep Research',
+                '',
+                '**Trigger**: Scheduled weekly deep research',
+                '**Date**: ' + today,
+                '',
+                '### Instructions for Team Lead',
+                '',
+                '1. **Spawn the deep-researcher agent** (defined in `plugins/ravenclaude-core/agents/deep-researcher.md`).',
+                '2. For each agent, review its skills, knowledge files, and tiered knowledge base.',
+                '3. Update Tier 1–5 knowledge with fresh official + high-signal community sources.',
+                '4. Explicitly seek credible divergent/contrarian expert views.',
+                '5. Use the research-report-template.md when proposing updates.',
+                '6. Update the agent definition files with new categorized knowledge.',
+                '',
+                '### Scope',
+                '- All core agents (including deep-researcher)',
+                '- All power-platform agents',
+                '- Any newly added domain plugins',
+                '- Cross-cutting skills (grounding-protocol, maintainability-review, etc.)',
+                '',
+                "**Goal**: Keep every agent's knowledge current and categorized so agents default to consensus but have principled fallbacks.",
+                '',
+                '**Research Agent to use**: `deep-researcher` from `plugins/ravenclaude-core/agents/deep-researcher.md`',
+              ].join('\n');
             } else {
               title = 'Researcher Daily Quick Research Check';
-              body = `## Daily Quick Research Check
-
-**Trigger**: First open of the repo today or manual trigger
-**Date**: ${new Date().toISOString().split('T')[0]}
-
-### Quick Freshness Scan
-- Check for any major Microsoft/Power Platform release notes or breaking changes since last check.
-- Spot-check 2-3 high-traffic agents for obvious staleness.
-- If anything significant found, escalate to Team Lead for full weekly sweep using the deep-researcher agent.
-`;
+              body = [
+                '## Daily Quick Research Check',
+                '',
+                '**Trigger**: First open of the repo today or manual trigger',
+                '**Date**: ' + today,
+                '',
+                '### Quick Freshness Scan',
+                '- Check for any major Microsoft/Power Platform release notes or breaking changes since last check.',
+                '- Spot-check 2-3 high-traffic agents for obvious staleness.',
+                '- If anything significant found, escalate to Team Lead for full weekly sweep using the deep-researcher agent.',
+              ].join('\n');
             }
 
             try {
