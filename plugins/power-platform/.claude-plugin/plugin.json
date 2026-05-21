@@ -20,9 +20,7 @@
     "low-code"
   ],
   "requires": {
-    "plugins": [
-      "ravenclaude-core@>=0.2.0"
-    ]
+    "plugins": ["ravenclaude-core@>=0.2.0"]
   },
   "mcpServers": {
     "powerbi-editor": {

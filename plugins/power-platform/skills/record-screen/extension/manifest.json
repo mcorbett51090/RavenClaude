@@ -3,14 +3,8 @@
   "name": "Record Screen Tool",
   "description": "Programmatic tab recording for AI agents via CLI",
   "version": "1.2.0",
-  "permissions": [
-    "tabs",
-    "alarms",
-    "activeTab"
-  ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
+  "permissions": ["tabs", "alarms", "activeTab"],
+  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "service-worker.js"
   }

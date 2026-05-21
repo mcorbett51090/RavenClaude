@@ -1,0 +1,20 @@
+# Markdown: skipped from prettier formatting/checks. Rewriting prose with
+# proseWrap or reflowing list indentation produces a 160+ file diff that's
+# pure noise and would conflict with the human voice maintained across
+# agent definitions, skills, and rules. Markdown style is reviewed by humans
+# per AGENTS.md "Code style" rules ("short, scannable, action-oriented"),
+# not by prettier.
+*.md
+*.mdx
+
+# This workflow file has a multi-line JS template literal at column 0 inside
+# a YAML `script: |` block. PyYAML rejects the leading `**Trigger**` as an
+# alias reference. GitHub Actions' Ruby YAML parser accepts it (the workflow
+# runs in prod), but prettier and yamllint both choke. Excluding here until
+# the template literal is refactored to use array .join('\n') or proper
+# indentation that survives both parsers.
+.github/workflows/researcher-reminder.yml
+
+# Bundled third-party content keeps its upstream formatting.
+plugins/power-platform/skills/record-screen/extension/
+plugins/power-platform/skills/record-screen/scripts/
