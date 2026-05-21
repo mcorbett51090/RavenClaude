@@ -204,17 +204,20 @@ jobs:
           npx --yes prettier --check . --log-level warn
 
       - name: Actionlint (GitHub Actions semantic check)
-        # actionlint 1.7.7 has no -exit-code flag — by default it reports
-        # findings to stdout/stderr but exits 0. The shell wrapper captures
-        # output and converts non-empty output into a failed build, turning
-        # the step from informational-only into a real gate.
+        # actionlint 1.7.7 has no -exit-code flag — by design it reports
+        # findings to stdout but exits 0. We pre-pull the image (so pull
+        # progress doesn't pollute the capture), then run with stdout-only
+        # capture and gate on non-empty stdout. PR 12's first attempt used
+        # 2>&1 and tripped on docker pull noise on a fresh runner — fixed
+        # here by separating concerns: docker stderr is discarded, only
+        # actionlint stdout matters.
         run: |
           set -euo pipefail
-          out=$(docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color 2>&1) || rc=$?
-          rc=${rc:-0}
+          docker pull --quiet rhysd/actionlint:1.7.7 >/dev/null
+          out=$(docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color)
           echo "$out"
           if [[ -n "$out" ]]; then
-            echo "::error::actionlint reported findings (or docker invocation failed, rc=$rc)"
+            echo "::error::actionlint reported findings"
             exit 1
           fi
 
