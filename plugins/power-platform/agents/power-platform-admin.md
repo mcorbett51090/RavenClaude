@@ -40,6 +40,15 @@ Take a tenant-level question — "design our environment strategy", "we're getti
 - **Capacity is reported in three buckets: database, file, log.** Most "we're out of space" panics are the *log* bucket from Dataverse auditing — review audit retention before buying more storage.
 - **Weekly cadence on the admin center analytics dashboard.** Not daily (noise), not monthly (too late).
 
+## SPN access to the Power Automate Management API (priors)
+
+When asked "why is our SPN getting 401 on `api.flow.microsoft.com`" the answer is almost always: **the app registration is missing the `Flows.Read.All` or `Flows.Manage.All` application permission**, and that permission requires **Global Admin consent**. Inspect the token: if `roles` is `null`, the permission isn't there. `System Administrator` in Dataverse is unrelated and does not help here — they're separate authorization surfaces.
+
+Common follow-ups:
+- **Delegated permission ≠ application permission.** The portal lets a user with app-registration rights add `Flows.Read.All` *delegated* with no consent prompt; this does not work with `client_credentials`. Only the *application* variant matters for an SPN, and only Global Admin can grant it.
+- **Before granting the permission**, ask whether the customer actually needs the PA Management API. For bulk flow create / update / delete, the **Dataverse Web API path** (`workflow` records, category=5, ComponentType=29 for solution binding) works with the SPN's existing Dataverse role and avoids the consent ask entirely. See [`../knowledge/programmatic-flow-creation.md`](../knowledge/programmatic-flow-creation.md). Reserve the PA Mgmt API grant for the operations Dataverse genuinely can't cover (rich run-history queries, ownership transfer in some edge cases, sharing with named users outside a solution).
+- **Document the granted permissions** in the customer's identity-and-access inventory the moment they're added; a future admin churning through app registrations will not remember why this one has Power Automate management.
+
 ## Anti-patterns you flag
 - Production apps stored in the Default environment.
 - DLP not configured at all — every connector is implicitly Business and any maker can connect Power Apps to anything.

@@ -38,6 +38,18 @@ Take a Power Automate goal — "automate this process", "review this flow", "why
 - **Desktop flows are last-resort.** If the system has a REST API, build a custom connector instead. RPA is fragile — UI changes break it without warning.
 - **Increase `Apply to each` parallelism explicitly** — default 20 is rarely the right answer. Set it (typically 50) and document why.
 
+## Programmatic / bulk flow creation (priors)
+
+When asked to programmatically create, update, or delete more than a handful of cloud flows: **do not use the Power Automate Management API** as the default. In real customer tenants the SPN's token reliably comes back with `roles: null` and every call returns 401 — the application permissions (`Flows.Read.All` / `Flows.Manage.All`) require Global Admin consent and usually aren't granted. `pac flow` does not exist as of v2.7.4. Verified production lesson.
+
+**Use the Dataverse Web API instead.** Modern cloud flows are Dataverse `workflow` records with `category=5`, `type=1`, `primaryentity="none"`. Three calls do the whole job: `POST /api/data/v9.2/workflows`, `POST /api/data/v9.2/AddSolutionComponent` (ComponentType=29), `DELETE /api/data/v9.2/workflows({fid})`. An SPN with System Administrator on Dataverse already has the access needed.
+
+Two failure modes that bite once you're on the Dataverse path:
+1. **`clientdata` shape ≠ PA Management API export shape.** The live Dataverse shape wraps everything in `properties` and nests `connectionReferenceLogicalName` under a `connection` sub-object. Importing a PA export verbatim produces a flow that imports clean and runs broken. Always template from a live record (`GET /workflows({fid})?$select=clientdata`), not from an export.
+2. **Unresolved GUID placeholders.** When flow B references flow A's GUID, create A first, capture the GUID, inject into B's `clientdata` *string*, then create B. Hard-fail (don't warn) if any `<UPPERCASE_PLACEHOLDER>`, `{{REPLACE_ME}}`, `TODO`, or `FILL_ME_IN` pattern remains — the create will succeed and the flow will be silently broken at first execution.
+
+Full reference (auth-surface trap, required fields, working `clientdata` template, production checklist): [`../knowledge/programmatic-flow-creation.md`](../knowledge/programmatic-flow-creation.md). Read it before any bulk-flow script work.
+
 ## Anti-patterns you flag
 - A flow with 80 actions and no `Scope` blocks. Refactor into Try / Catch / Finally + child flows for reusable bits.
 - An `Apply to each` over thousands of items running sequentially.
