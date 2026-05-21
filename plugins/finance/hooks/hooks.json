@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for finance. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location, not the consumer's project root.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-finance-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Flag finance anti-patterns: hardcoded rates in models, plaintext PII (SSN/IBAN/credit-card), variance commentary missing Sources, forecast/budget missing Assumptions. Advisory by default; flip exit 0 to exit 1 to enforce."
+          }
+        ]
+      }
+    ]
+  }
+}
