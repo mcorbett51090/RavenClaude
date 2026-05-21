@@ -75,7 +75,7 @@ Output Requirements:
   "status": "complete|partial|blocked",
   "summary": "one sentence",
   "deliverables": [...],
-  "handoff_recommendation": { "specialist": "...", "reason": "..." },
+  "handoff_recommendation": { "to_specialist": "...", "reason": "..." },
   "confidence": 0.0-1.0,
   "risks": [...]
 }
