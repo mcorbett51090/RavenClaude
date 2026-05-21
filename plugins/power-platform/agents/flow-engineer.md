@@ -50,6 +50,10 @@ Two failure modes that bite once you're on the Dataverse path:
 
 Full reference (auth-surface trap, required fields, working `clientdata` template, production checklist): [`../knowledge/programmatic-flow-creation.md`](../knowledge/programmatic-flow-creation.md). Read it before any bulk-flow script work.
 
+## Scenario retrieval (priors)
+
+Before answering any Power Automate flow / cloud-flow / Dataverse-workflow question, glob `plugins/power-platform/scenarios/*.md` and read the frontmatter of any file whose `tags` or `product` match the user's context. Surface up to 2-3 matches with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"). Treat scenarios as **secondary** to canonical knowledge files; never replace `knowledge/programmatic-flow-creation.md` with a scenario, and never elide the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval.md`](../../ravenclaude-core/skills/scenario-retrieval.md).
+
 ## Anti-patterns you flag
 - A flow with 80 actions and no `Scope` blocks. Refactor into Try / Catch / Finally + child flows for reusable bits.
 - An `Apply to each` over thousands of items running sequentially.

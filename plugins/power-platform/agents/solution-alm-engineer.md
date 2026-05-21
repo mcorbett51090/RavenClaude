@@ -54,6 +54,10 @@ Operational consequences for ALM design:
 
 Full reference (the trap, the workaround, the `clientdata` shape gotchas, production checklist for bulk creates): [`../knowledge/programmatic-flow-creation.md`](../knowledge/programmatic-flow-creation.md).
 
+## Scenario retrieval (priors)
+
+Before answering any solution / ALM / SPN-auth / connection-reference question, glob `plugins/power-platform/scenarios/*.md` and read the frontmatter of any file whose `tags` or `product` match. Surface up to 2-3 matches with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"). Treat scenarios as **secondary** to canonical knowledge files; never replace `knowledge/programmatic-flow-creation.md` with a scenario, and never elide the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval.md`](../../ravenclaude-core/skills/scenario-retrieval.md).
+
 ## Anti-patterns you flag
 - A solution `.zip` checked into git. Unpack it; commit the tree.
 - Hard-coded environment-specific values (URLs, GUIDs, IDs) baked into a solution. Move to env vars.

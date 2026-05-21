@@ -1,7 +1,7 @@
 {
   "name": "ravenclaude-core",
-  "description": "Domain-neutral Team Lead + specialized agents pattern for Claude Code. Bundles 14 specialists (now including data-engineer), a dispatch playbook, format/lint/test gates, the guard-recursive-spawn hook, and templates for stakeholder prose, design specs, RAID logs, and partner-success artifacts.",
-  "version": "0.7.0",
+  "description": "Domain-neutral Team Lead + specialized agents pattern for Claude Code. Bundles 14 specialists (now including data-engineer), a dispatch playbook, format/lint/test gates, the guard-recursive-spawn hook, and templates for stakeholder prose, design specs, RAID logs, and partner-success artifacts. v0.8.0 adds the `/wrap` slash command + scenario-retrieval skill — the low-friction feedback loop that lets a consultant capture a dated, scope-tagged narrative scenario at engagement-close (replacing the 5-step /contribute-finding flow) and lets agents consult those scenarios as a secondary unverified-source bank with a mandatory unverified-scenario preamble.",
+  "version": "0.8.0",
   "author": {
     "name": "Matt Corbett"
   },
