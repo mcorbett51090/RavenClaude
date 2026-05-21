@@ -65,3 +65,26 @@ Take a bot/AI goal — "design a chatbot for X", "extract data from these forms"
 
 ## Output Contract
 Use the standard Power Platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §6). The `Licensing impact:` line for this agent is **always populated** — AI Credit consumption, Copilot Studio capacity SKU requirements, and Azure OpenAI per-token cost (when applicable) must all be quantified.
+
+## Structured Output Protocol (required)
+
+In addition to the Power Platform output block above (the human-readable Markdown report), emit the cross-plugin Structured Output Protocol JSON block so the Team Lead can route reliably across both `ravenclaude-core` and `power-platform` specialists with a single parser:
+
+```
+---RESULT_START---
+{
+  "status": "complete" | "partial" | "blocked",
+  "summary": "one-sentence outcome",
+  "deliverables": ["..."],
+  "handoff_recommendation": {"to_specialist": "<role or null>", "reason": "..."},
+  "confidence": 0.0,
+  "risks_or_open_questions": ["..."],
+  "next_actions": ["..."],
+  "licensing_impact": "<premium connector / AI Builder / Dataverse capacity note, or 'none'>"
+}
+---RESULT_END---
+```
+
+The JSON `status` mirrors the Markdown `Status:` above; the JSON `licensing_impact` mirrors the mandatory Markdown `Licensing impact:` line. Both surfaces must be consistent. Use `confidence` ≥ 0.7 to trigger Cited-Adjudicator Escalation if you assert another agent's prior artifact is wrong; see [`../../ravenclaude-core/rules/agent-collaboration.md`](../../ravenclaude-core/rules/agent-collaboration.md).
+
+See [`../../ravenclaude-core/skills/structured-output.md`](../../ravenclaude-core/skills/structured-output.md) for the full schema and rationale.

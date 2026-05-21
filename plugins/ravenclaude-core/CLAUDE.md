@@ -103,7 +103,7 @@ This reduces context overload, improves focus, and produces cleaner, more ideal 
 
 ## Knowledge Freshness & Researcher (Updated)
 
-The marketplace includes a **Researcher** meta-skill located in `plugins/ravenclaude-core/skills/researcher/`.
+The marketplace includes a **Researcher** meta-skill at `plugins/ravenclaude-core/skills/researcher.md`.
 
 **When to invoke the Researcher**:
 - On first opening the repo each day (quick check mode)
@@ -133,9 +133,9 @@ Before any agent claims it cannot do something or that information is outdated, 
 
 The Researcher itself must apply this protocol to its own findings.
 
-## Run Artifacts & Observability Standard (New — Critical for Ideal Outputs & Inspection)
+## Run Artifacts & Observability Standard (Recommended — for multi-step orchestrations)
 
-To enable inspection, debugging, learning, and continuous improvement of the agent team (and to mirror best practices from high-quality agent runtimes), **every significant workflow or task orchestrated by the Team Lead SHOULD produce standardized artifacts**.
+To enable inspection, debugging, learning, and continuous improvement of the agent team (and to mirror best practices from high-quality agent runtimes), **multi-step workflows orchestrated by the Team Lead SHOULD produce standardized on-disk artifacts**. Single-agent dispatches and one-shot reviews emit the Structured Output Protocol JSON block *inline* in the agent's reply — no on-disk artifact is required for those. The artifact substrate below applies when a run spans 2+ specialist dispatches that benefit from a re-readable record.
 
 ### Convention
 Store artifacts in a project-local directory:
@@ -145,7 +145,7 @@ Store artifacts in a project-local directory:
 
 ( Create the directory if it doesn't exist. Use a short descriptive ID or timestamp + slug. )
 
-### Required / Recommended Artifacts (use templates from templates/run-artifacts/)
+### Recommended artifacts (use templates from templates/run-artifacts/) — for multi-step runs
 
 - `summary.md` — Human-readable executive summary of what was accomplished, decisions, and outcomes.
 - `structured-output.json` or `result.json` — Machine-readable structured result (from the Structured Output Protocol).

@@ -30,7 +30,7 @@
       "name": "power-platform",
       "source": "./plugins/power-platform",
       "description": "Microsoft Power Platform specialist team — now includes dedicated power-bi-engineer (semantic models, DAX, PBIP git + Azure DevOps integration) alongside canvas/Power Fx, Power Automate + custom connectors, Dataverse modeling/security, model-driven apps, pac CLI + ALM (enhanced for ADO + flows), tenant governance/DLP, PCF, Copilot Studio + AI Builder, Power Pages. Plus imported veteran skills. Also bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval without Power BI Desktop (requires `pip install pbix-mcp`). Strong focus on reproducible ALM, git workflows, and production-grade patterns.",
-      "version": "0.5.4",
+      "version": "0.6.0",
       "author": {
         "name": "Matt Corbett"
       },
