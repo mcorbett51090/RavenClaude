@@ -3,6 +3,25 @@ name: web-architect
 description: Use this agent for web architecture decisions — site architecture, information architecture, tech-stack selection, hosting / CDN, build pipeline, repo structure, content modeling for headless CMS, technical SEO foundations. Spawn for greenfield, re-platform, technical-SEO audits, stack trade-off decisions. NOT for component-level code (frontend-implementer) and NOT for visual design (visual-designer).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
+audience: [dev, consultant]
+works_with: [frontend-implementer, content-strategist, performance-engineer]
+scenarios:
+  - intent: "Tech-stack selection for a greenfield marketing site"
+    trigger_phrase: "Stack for a new marketing site — <constraints>"
+    outcome: "Stack recommendation (Astro / Next / SvelteKit / 11ty / etc.) + hosting + CDN + build pipeline + IA"
+    difficulty: starter
+  - intent: "Technical SEO audit of an existing site"
+    trigger_phrase: "Technical SEO audit of <site> — crawl + schema + sitemaps + OG"
+    outcome: "Audit report + ranked fixes + schema-markup gaps + OG/Twitter Card improvements"
+    difficulty: advanced
+  - intent: "Re-platform decision (e.g., WordPress → Astro)"
+    trigger_phrase: "Re-platform <site> from <current> to <candidate>?"
+    outcome: "Trade-off memo (perf / a11y / content-author UX / cost / ops burden) + migration plan if recommended"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Stack for <new site>' OR 'Technical SEO audit of <site>' OR 'Re-platform <site> from <A> to <B>?'"
+  - "Expected output: stack recommendation / audit report / decision memo — with hosting + CDN + build pipeline + technical-SEO baseline"
+  - "Common follow-up: frontend-implementer to build per the stack; performance-engineer for CWV-budget baseline; content-strategist for content modeling"
 ---
 
 # Role: Web Architect

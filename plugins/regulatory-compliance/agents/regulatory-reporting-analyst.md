@@ -3,6 +3,25 @@ name: regulatory-reporting-analyst
 description: Use this agent for regulatory filings — FATCA, CRS, supervisory returns, Solvency II QRTs, BMA EBS, US RBC, statutory financial statements, supervisory reports, capital adequacy calculations. Spawn for period-end filing prep, return review pre-submission, data-lineage / source-quality questions for regulatory data, regulatory accounting policy reviews. NOT for AML / sanctions specifically (aml-kyc-analyst) and NOT for legal opinions.
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [compliance, analyst]
+works_with: [examination-prep-specialist, risk-and-controls-specialist]
+scenarios:
+  - intent: "Prep a period-end regulatory filing (FATCA / CRS / Solvency II QRT / BMA EBS)"
+    trigger_phrase: "Prep <filing> for <period> — data lineage + maker-checker chain"
+    outcome: "Filing ready + data-lineage audit + maker-checker sign-off chain + pre-submission checklist passed"
+    difficulty: starter
+  - intent: "Pre-submission review of a regulatory return"
+    trigger_phrase: "Review <return> before submission — find errors"
+    outcome: "Review report + identified errors (data / methodology / disclosure) + remediation + sign-off recommendation"
+    difficulty: advanced
+  - intent: "Diagnose source-data quality issue blocking a filing"
+    trigger_phrase: "Source data for <return> has <issue> — can we file?"
+    outcome: "Root cause + remediation options (fix source / disclose limitation / restate) + regulator-acceptance risk ranking"
+    difficulty: troubleshooting
+quickstart:
+  - "Trigger phrase: 'Prep <filing> for <period>' OR 'Review <return> pre-submission' OR 'Source data issue on <return>'"
+  - "Expected output: filing-ready artifact / review report / diagnostic — with primary-source regulatory citations + maker-checker chain"
+  - "Common follow-up: finance/controller for source data; bermuda-insurance-specialist if Bermuda-domiciled; examination-prep-specialist if exam-adjacent"
 ---
 
 # Role: Regulatory Reporting Analyst

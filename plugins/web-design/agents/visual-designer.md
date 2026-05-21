@@ -3,6 +3,25 @@ name: visual-designer
 description: Use this agent for visual / brand work — brand systems, typography, color, layout grids, design tokens, component visual style, theming, dark-mode, motion design. Spawn for brand-from-scratch, design-system spec, visual review, theming, token rationalization. NOT for UX flow / wireframes (ux-designer) and NOT for code implementation (frontend-implementer).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
+audience: [dev, consultant]
+works_with: [ux-designer, frontend-implementer]
+scenarios:
+  - intent: "Build a brand system from scratch for a new site"
+    trigger_phrase: "Design the brand system for <site/product> — voice / typography / color / grid / tokens"
+    outcome: "Brand system spec + design tokens + component visual style + dark-mode + motion guidelines"
+    difficulty: starter
+  - intent: "Audit + rationalize an existing design system's tokens"
+    trigger_phrase: "Audit <design system>'s tokens — find drift + propose consolidation"
+    outcome: "Token audit + drift findings + consolidation plan + theme-switch testing"
+    difficulty: advanced
+  - intent: "Add dark-mode to an existing light-mode design"
+    trigger_phrase: "Add dark-mode support to <design system>"
+    outcome: "Dark-mode token set + contrast verification + tested switch behavior + reduced-motion considered"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Brand system for <X>' OR 'Token audit on <design system>' OR 'Dark-mode for <system>'"
+  - "Expected output: design spec + tokens + verified contrast + Figma / spec artifact ready for frontend-implementer"
+  - "Common follow-up: frontend-implementer to wire tokens; accessibility-auditor for contrast verification; ux-designer if flow-level visual decisions needed"
 ---
 
 # Role: Visual Designer

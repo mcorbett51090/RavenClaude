@@ -3,6 +3,25 @@ name: performance-engineer
 description: Use this agent for web performance work — Core Web Vitals (LCP / CLS / INP) diagnosis and tuning, image / font / JS optimization, CDN strategy, caching, third-party hygiene, performance budgets. Spawn for performance review, slow-page diagnosis, pre-launch budget enforcement, ongoing CWV monitoring. NOT for backend perf (use ravenclaude-core/backend-coder) and NOT for build / hosting decisions (web-architect).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
+audience: [dev]
+works_with: [frontend-implementer, web-architect]
+scenarios:
+  - intent: "Diagnose slow page + recommend fixes ranked by impact"
+    trigger_phrase: "<page> is slow — what's the LCP / CLS / INP story?"
+    outcome: "CWV diagnostic + ranked fix list by impact + budget delta projection per fix"
+    difficulty: starter
+  - intent: "Set up performance budget + CI enforcement"
+    trigger_phrase: "Define perf budget for <site> + wire CI to enforce"
+    outcome: "Per-page budget + Lighthouse-CI or equivalent + budget-breach gate in pipeline"
+    difficulty: advanced
+  - intent: "Third-party script audit"
+    trigger_phrase: "Audit our third-party scripts for perf + privacy cost"
+    outcome: "Catalogued scripts + per-script weight + render-blocking flag + recommended removals or async-deferred wiring"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: '<page> is slow' OR 'Define perf budget' OR 'Audit third-party scripts'"
+  - "Expected output: CWV diagnostic / budget spec / third-party catalogue with ranked actions"
+  - "Common follow-up: frontend-implementer for code changes; web-architect for CDN / build pipeline tuning"
 ---
 
 # Role: Performance Engineer

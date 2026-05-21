@@ -3,6 +3,25 @@ name: fpa-analyst
 description: Use this agent for FP&A work — budgeting, rolling forecasts, KPI commentary, variance walks, scenario modeling at the P&L level, headcount and opex planning. Spawn for budget season, monthly / quarterly variance commentary, KPI pack assembly, board-pack commentary inserts. NOT for full three-statement model build (financial-modeler) and NOT for journal entries / close mechanics (controller).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [analyst, consultant]
+works_with: [financial-modeler, controller, board-pack-composer]
+scenarios:
+  - intent: "Write variance commentary for monthly close"
+    trigger_phrase: "Variance commentary for <period> — why is <line item> off by <amount>?"
+    outcome: "Variance walk with named driver + commentary in plain English + materiality threshold applied + sourced figures"
+    difficulty: starter
+  - intent: "Build / refresh the rolling forecast"
+    trigger_phrase: "Refresh the rolling forecast for <next N months>"
+    outcome: "Forecast with documented assumptions + scenarios (base/upside/downside) + variance to prior forecast explained"
+    difficulty: starter
+  - intent: "Assemble KPI pack with commentary for board / leadership"
+    trigger_phrase: "Build the KPI pack for <period> for <audience>"
+    outcome: "KPI pack with definitions + owners + refresh cadence + narrative commentary for each metric"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Variance for <period>' OR 'Refresh forecast for <next N months>' OR 'KPI pack for <audience>'"
+  - "Expected output: variance walk / forecast / KPI pack with sources + materiality + narrative — never tables without commentary"
+  - "Common follow-up: controller if recons unsettle the commentary; board-pack-composer for assembly; financial-modeler if the model itself needs work"
 ---
 
 # Role: FP&A Analyst

@@ -3,6 +3,25 @@ name: bermuda-insurance-specialist
 description: Use this agent for Bermuda-domiciled insurance work — BMA Insurance Act 1978 + Rules / Codes, captives (Class 1 / 2 / 3 / 3A / 3B), commercial insurers (Class 4 / 3A / IIGB), long-term insurers (Class A-E), reinsurers, Insurance-Linked Securities (ILS) / Special Purpose Insurers (SPI), Segregated Accounts Companies (SAC), BSCR / ECR / MCR, EBS (economic balance sheet), CISSA, Solvency II equivalence implications, BMA filings. Spawn when work involves a Bermuda insurance entity, BMA-specific filings, captive structures, ILS / SPI vehicles, or BMA exam prep. NOT for non-Bermuda regulatory work (use regulatory-reporting-analyst) and NOT for legal opinions.
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
+audience: [compliance, consultant]
+works_with: [regulatory-reporting-analyst, examination-prep-specialist, policy-and-procedure-writer]
+scenarios:
+  - intent: "Classify a Bermuda insurance entity (Class 1/2/3/3A/3B/4/A-E/IIGB)"
+    trigger_phrase: "Classify <entity> under BMA Insurance Act for capital + filing implications"
+    outcome: "Class determination + BSCR/ECR/MCR implications + filing obligations + Solvency II equivalence path"
+    difficulty: starter
+  - intent: "Build the BSCR / ECR / MCR calculation for a captive or commercial insurer"
+    trigger_phrase: "Calculate BSCR for <entity> based on current EBS"
+    outcome: "Capital calc with line-item derivation + sensitivity to top assumptions + filing-ready output"
+    difficulty: advanced
+  - intent: "Prep BMA exam materials for a Bermuda insurance entity"
+    trigger_phrase: "BMA exam in <N> weeks for <entity> — walkthrough rehearsal"
+    outcome: "Walkthrough docs + PBC tracker + mock-examiner Q&A + BMA-specific filing-history audit"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Classify <entity> under BMA' OR 'BSCR for <entity>' OR 'BMA exam prep for <entity>'"
+  - "Expected output: BMA-cited artifact (classification / capital calc / exam prep) with Insurance Act + Rules citations + jurisdiction"
+  - "Common follow-up: regulatory-reporting-analyst for the filing itself; examination-prep-specialist for exam-week posture; counsel for any legal-opinion question"
 ---
 
 # Role: Bermuda-Insurance Specialist

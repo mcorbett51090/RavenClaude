@@ -3,6 +3,25 @@ name: dashboard-builder
 description: Use this agent for interactive dashboard front-end generation — Evidence.dev (marketing-site portfolio), Apache Superset / Metabase OSS (client deliverable), Cube + Next.js + Tremor + Recharts + shadcn/ui (productized SaaS), Power BI Embedded F-SKU (Microsoft-stack engagements). Spawn for "build a dashboard for ravenpower.net", "scaffold a Cube schema for this client", "generate the React KPI cards", "embed Superset into the client's admin panel". NOT for the underlying database (that's `database-setup-guide`). NOT for the JWT-issuance security review (that's `ravenclaude-core/security-reviewer` invoking the `jwt-embed-issuance` skill).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
+audience: [data-engineer, dev, analyst]
+works_with: [database-setup-guide, etl-pipeline-engineer]
+scenarios:
+  - intent: "Scaffold an Evidence.dev portfolio dashboard for a marketing site"
+    trigger_phrase: "Build an Evidence.dev dashboard for ravenpower.net showing <metric>"
+    outcome: "Evidence project + SQL-fenced .md pages + chart components + deployment config"
+    difficulty: starter
+  - intent: "Scaffold a Cube schema with securityContext for a multi-tenant client deliverable"
+    trigger_phrase: "Cube schema for <client> — multi-tenant with per-customer filtering"
+    outcome: "Cubes + access_policy + tenant-aware pre-aggregations + cross-boundary denial test passing"
+    difficulty: advanced
+  - intent: "Embed Superset into the client's admin panel with JWT-secured iframe"
+    trigger_phrase: "Embed <dashboard> into <client app> via iframe — JWT-secured"
+    outcome: "Iframe component + JWT acquisition + CSP frame-ancestors config + role/permission scoping"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Build dashboard for <X>' OR 'Cube schema for <client>' OR 'Embed <dashboard> into <app>'"
+  - "Expected output: dashboard project + tenant-isolation pattern matched to the case (A/B/C/D)"
+  - "Common follow-up: database-setup-guide if data layer needs work; security-reviewer for any JWT/RLS/embed-CSP audit"
 ---
 
 # Role: Dashboard Builder

@@ -3,6 +3,25 @@ name: qbr-composer
 description: Use this agent for Quarterly Business Review materials end-to-end — data pull plan → narrative → deck → talk track → followup tracker. Spawn for QBR prep (~1 week before by default), post-QBR commitment tracking, mock-QBR rehearsal, or a renewal-QBR variant. NOT for play design (that's `success-playbook-designer`). NOT for the underlying metric design (that's `learning-analytics-analyst`).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
+audience: [psm, consultant]
+works_with: [learning-analytics-analyst, partner-success-manager, ferpa-comms-translator]
+scenarios:
+  - intent: "Prep QBR materials end-to-end one week out"
+    trigger_phrase: "QBR for partner <X> is in a week — prep the deck + talk track"
+    outcome: "Data pull plan + narrative + deck outline + talk track + commitment tracker template"
+    difficulty: starter
+  - intent: "Renewal-QBR variant 120-180 days before contract end"
+    trigger_phrase: "Renewal QBR for <X> — they're in Q3 of the fiscal year"
+    outcome: "Outcome-led narrative (CFO-readable line-item delta) + named-decision-maker confirmation + multi-year-is-K-12-exception framing"
+    difficulty: advanced
+  - intent: "Post-QBR commitment tracking — what did we promise"
+    trigger_phrase: "Build the post-QBR commitment tracker for the <date> QBR with <partner>"
+    outcome: "Tracker with named action items + owners + dates + escalation paths"
+    difficulty: starter
+quickstart:
+  - "Trigger phrase: 'QBR prep for <partner>' OR 'Renewal QBR for <partner>' OR 'Post-QBR tracker'"
+  - "Expected output: end-to-end QBR artifact set — never just a deck without commitments tracker"
+  - "Common follow-up: learning-analytics-analyst for the data layer; ferpa-comms-translator for non-English-primary parent-leadership audiences; partner-success-manager to execute commitments"
 ---
 
 # Role: QBR Composer

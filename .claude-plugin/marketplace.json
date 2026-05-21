@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. Ships ravenclaude-core (14 specialists; example-scenario frontmatter on every agent; Capability Grounding Protocol now has 4 composing clauses — pre-action environment-context check, pre-action decision-tree traversal, alternate-methods enumeration, mandatory blocked-phrasing), power-platform (11 specialists with example-scenario frontmatter, Mermaid decision-tree-augmented knowledge file, scenarios bank, bundled pbix-mcp), finance (7 corporate-finance & FP&A specialists), regulatory-compliance (6 financial-regulatory specialists with field-experience BMA positioning), web-design (7 web specialists with WCAG / Core Web Vitals / SEO discipline), edtech-partner-success (6 PSM-lane specialists — K-12 / higher-ed / corporate L&D agnostic), and data-platform (4 specialists for the dashboard-engagement stack). Repo-guide includes Overview-tab 'I want to…' use-case lookup filterable by plugin + per-plugin last-updated badges. Salesforce remains on the roadmap.",
-    "version": "0.17.0"
+    "version": "0.18.0"
   },
   "plugins": [
     {
@@ -51,7 +51,7 @@
       "name": "finance",
       "source": "./plugins/finance",
       "description": "Corporate finance & FP&A specialist team — FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. 4 skills, 8 templates, 1 advisory hook (hardcoded rates, plaintext PII, missing Sources / Assumptions). Inherits ravenclaude-core protocols.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -71,7 +71,7 @@
       "name": "regulatory-compliance",
       "source": "./plugins/regulatory-compliance",
       "description": "Financial-regulatory & compliance specialist team — AML/KYC analyst (sanctions, EDD, SAR/STR), regulatory-reporting analyst (FATCA/CRS, supervisory returns, Solvency II, BMA EBS), risk-and-controls specialist (three lines of defense, KRIs), policy & procedure writer, examination-prep specialist, and Bermuda-insurance specialist. 4 skills, 8 templates, 1 defensive PreToolUse hook (PII scrub — SSN/IBAN/credit-card/Bermuda TIN/wire instructions). Positioning reflects field experience inside a Tier-1 financial regulator (BMA). Inherits ravenclaude-core protocols.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -92,7 +92,7 @@
       "name": "web-design",
       "source": "./plugins/web-design",
       "description": "Web design & build specialist team — web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens), frontend implementer (HTML/CSS/JS, React, Astro, Next), content strategist (copy, microcopy, SEO content), accessibility auditor (WCAG 2.2 AA/AAA), and performance engineer (Core Web Vitals, image/font optimization). 4 skills (design-system audit, accessibility review, Core Web Vitals tuning, technical SEO audit), 8 templates, 1 advisory hook, and a knowledge bank seeded with a curated 2026 reference set of \"cutting edge yet simple\" marketing-site donors (Linear, Vercel, Raycast, Resend, Cursor, v0, Tldraw, Cal.com) — visual-designer / ux-designer / frontend-implementer / web-architect all carry compact inline priors plus a pointer to the full brief. Inherits ravenclaude-core protocols.",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -113,7 +113,7 @@
       "name": "edtech-partner-success",
       "source": "./plugins/edtech-partner-success",
       "description": "EdTech-flavored Partner Success Manager team — 6 specialist agents anchored on the PSM lane. 8 skills, 15 templates, 1 advisory hook, and a 15-doc knowledge bank across 5 waves (v0.2.0 production-lesson + v0.3.0 foundational + v0.4.0 vertical-depth + v0.4.1 operating-cadence + v0.4.2 capability-extension). v0.4.2 ships what would have been v0.5.0 team expansion as skills + knowledge + templates rather than parallel agents (per the marketplace house rule added 2026-05-21): 4 new skills (advocacy-program-design, adoption-sequencing-k12, implementation-90-day-arc, partner-training-program-design), 5 new knowledge files (edtech-reference-customer-patterns, k12-adoption-arc-fall-spring-summer, sis-sso-rostering-integration-patterns, district-implementation-failure-modes, k12-pd-norms-and-constraints), and 6 new templates (case-study-draft, reference-pipeline-tracker, adoption-diagnostic-worksheet, implementation-90-day-plan, train-the-trainer-curriculum, renewal-decision-memo). Primary-source citations with retrieval dates and confidence notation. Vertical-explicit but segment-agnostic — fits K-12, higher-ed, corporate L&D, or mixed EdTech books. Inherits ravenclaude-core protocols; requires ravenclaude-core@>=0.7.0.",
-      "version": "0.4.2",
+      "version": "0.4.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -133,7 +133,7 @@
       "name": "data-platform",
       "source": "./plugins/data-platform",
       "description": "Data-platform team — 4 specialist agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) that guide cloud-database setup, ELT pipelines (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4 / Shopify / HRIS, and interactive dashboards (Evidence.dev / Apache Superset / Metabase / Cube + Tremor) embedded in marketing sites and client apps. 7 skills — three invoked by ravenclaude-core/security-reviewer; one by ravenclaude-core/architect — implementing the marketplace house rule 'domain plugins extend core via skills, not parallel agents'. 12 templates (3 runnable security-critical + 4 conceptual + 3 seam-marked stubs + dbt-project-starter + cube-schema-starter). 1 consolidated advisory hook. 13-doc knowledge bank: v0.1.0 landscape + RLS + QBO + Power BI Embedded + EdTech LMS gap, plus v0.2.0 per-connector deep-dives (Stripe, Salesforce, HubSpot, GA4, Shopify, HRIS). Opinionated against per-viewer-priced BI tools (Looker / Tableau / Sigma) for SMB-consulting use cases; requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },

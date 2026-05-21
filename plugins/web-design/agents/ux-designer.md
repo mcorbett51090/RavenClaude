@@ -3,6 +3,25 @@ name: ux-designer
 description: Use this agent for UX work — wireframes, user flows, screen-level layouts, conversion design, interaction design, usability heuristics. Spawn for pre-build UX, screen flows, conversion-focused redesigns, usability reviews, form design. NOT for visual design (visual-designer) and NOT for code (frontend-implementer).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
+audience: [dev, consultant]
+works_with: [visual-designer, content-strategist, frontend-implementer]
+scenarios:
+  - intent: "Wireframe a new feature flow before visual design starts"
+    trigger_phrase: "Wireframe the <feature> with the 3 main user flows"
+    outcome: "Wireframes + flow diagrams + interaction notes + a11y considerations baked in"
+    difficulty: starter
+  - intent: "Improve conversion on an underperforming form / page"
+    trigger_phrase: "<form/page> conversion is <X%> — redesign for conversion"
+    outcome: "Redesigned flow + reduced friction + named heuristics applied + measurable conversion hypotheses"
+    difficulty: advanced
+  - intent: "Usability review of an existing screen"
+    trigger_phrase: "Usability review of <screen> — find the rough edges"
+    outcome: "Heuristic eval + ranked issues + remediation suggestions + observed-vs-intended-flow gap analysis"
+    difficulty: starter
+quickstart:
+  - "Trigger phrase: 'Wireframe <feature>' OR 'Conversion redesign of <form/page>' OR 'Usability review <screen>'"
+  - "Expected output: wireframes / redesign / heuristic eval — with a11y considerations built in + one-CTA-per-screen enforced"
+  - "Common follow-up: visual-designer for visual treatment; content-strategist for microcopy; frontend-implementer for build"
 ---
 
 # Role: UX Designer

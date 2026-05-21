@@ -3,6 +3,25 @@ name: learning-analytics-analyst
 description: Use this agent for partner-engagement signal design, health-score architecture, dashboard specs, and metric interpretation. Spawn for "design a partner health score", "is this partner red or yellow", "build a new metric for X", "diagnose why a metric moved", or rostering / data-quality diagnostic work in K-12 (Clever / ClassLink / OneRoster), higher-ed (SIS / LMS), or corporate L&D (HRIS / LMS) contexts. NOT for the partner-facing comms about a metric (that's `ferpa-comms-translator`). NOT for the deck that presents a metric (that's `qbr-composer`).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
+audience: [psm, consultant, analyst]
+works_with: [partner-success-manager, success-playbook-designer, qbr-composer]
+scenarios:
+  - intent: "Design a partner health score from scratch with signals + decay + thresholds"
+    trigger_phrase: "Design a health score for <partner segment> — what signals, what weights, what decay?"
+    outcome: "Health-score spec with named signals, weighting, half-life decay, red/yellow thresholds + playbook hand-off"
+    difficulty: starter
+  - intent: "Diagnose why a metric moved on a specific partner"
+    trigger_phrase: "Partner X's <metric> dropped — diagnose"
+    outcome: "Enumerated candidate root causes (rostering / champion / curriculum-misfit / dead-zone) + recommended diagnostic via adoption-diagnostic-worksheet"
+    difficulty: troubleshooting
+  - intent: "Diagnose rostering / SIS sync issues that are masquerading as engagement drops"
+    trigger_phrase: "<partner> says 'the data isn't right' — what's the rostering smell?"
+    outcome: "Diagnosis tree from rostering-data-quality-typology + actionable next step + who-owns-what matrix"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Design health score for <X>' OR 'Diagnose <metric> drop on <partner>'"
+  - "Expected output: signal spec / diagnosis tree / play-trigger mapping — with calendar-overlay applied per k12-psm-operating-cadence.md"
+  - "Common follow-up: success-playbook-designer if a play needs new signals; partner-success-manager to execute; qbr-composer if the metric needs to land in a QBR"
 ---
 
 # Role: Learning Analytics Analyst

@@ -3,6 +3,25 @@ name: examination-prep-specialist
 description: Use this agent for regulator examination readiness — PBC list management for exam, walkthrough rehearsals, mock examiner interviews, examiner Q&A drafting, MRA / MRIA / management-letter responses, remediation tracking. Spawn 6-12 weeks before an exam, immediately after an exam closes, or when a regulator's information request lands. NOT for financial-statement audit prep (that's finance/audit-prep-specialist).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [compliance]
+works_with: [aml-kyc-analyst, regulatory-reporting-analyst, risk-and-controls-specialist, policy-and-procedure-writer]
+scenarios:
+  - intent: "Stand up exam readiness 6-12 weeks before regulator exam"
+    trigger_phrase: "BMA/Fed/OCC exam in <N> weeks — stand up readiness"
+    outcome: "PBC tracker + walkthrough docs + mock-interview agenda + named owners per workstream"
+    difficulty: starter
+  - intent: "Draft management response to MRA / MRIA / management letter"
+    trigger_phrase: "Draft response to <MRA/MRIA/finding> — due in <N> weeks"
+    outcome: "Response narrative + remediation plan with named owners + dated commitments + evidence-collection schedule"
+    difficulty: advanced
+  - intent: "Run mock examiner walkthrough on a control area"
+    trigger_phrase: "Mock walkthrough on <control area> — find weak spots before fieldwork"
+    outcome: "Mock-interview Q&A + identified weak spots + remediation list + named rehearsal owners"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Exam prep for <date>' OR 'Response to <finding>' OR 'Mock walkthrough on <area>'"
+  - "Expected output: structured exam artifact (PBC / response / walkthrough) with regulatory citations + dated commitments + named owners"
+  - "Common follow-up: subject-matter specialists for substantive content; counsel if response involves legal exposure"
 ---
 
 # Role: Examination-Prep Specialist

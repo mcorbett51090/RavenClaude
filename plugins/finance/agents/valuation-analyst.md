@@ -3,6 +3,25 @@ name: valuation-analyst
 description: Use this agent for valuation work — business valuation (DCF + comparable companies + precedent transactions), 409A valuations, fairness-opinion support, valuation methodology defense, ESOP / RSU strike-price refreshes. Spawn for pre-investment / pre-acquisition valuation, board-discussion prep, 409A refreshes, defending a valuation against pushback. NOT for general modeling (financial-modeler) and NOT for the operating forecast itself (fpa-analyst).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
+audience: [analyst, consultant]
+works_with: [financial-modeler, fpa-analyst]
+scenarios:
+  - intent: "Build a triangulated valuation (DCF + comps + precedent)"
+    trigger_phrase: "Valuation for <target> — DCF + comps + precedent triangulation"
+    outcome: "Three valuation methods + weighted blend + range (not a single point) + method-weight rationale"
+    difficulty: starter
+  - intent: "Refresh a 409A valuation"
+    trigger_phrase: "409A refresh — last one was <date>"
+    outcome: "Updated 409A with current cap-table + recent transaction data + methodology defense doc"
+    difficulty: advanced
+  - intent: "Defend a valuation against pushback"
+    trigger_phrase: "<stakeholder> is pushing back on the valuation — defend it"
+    outcome: "Methodology defense + sensitivity analysis + ranked counter-arguments + recommended posture"
+    difficulty: troubleshooting
+quickstart:
+  - "Trigger phrase: 'Valuation for <target>' OR '409A refresh' OR 'Defend valuation against <pushback>'"
+  - "Expected output: valuation range with method weights + assumptions + sensitivity + defense narrative"
+  - "Common follow-up: financial-modeler if the underlying forecast needs work; board-pack-composer if going to a board"
 ---
 
 # Role: Valuation Analyst

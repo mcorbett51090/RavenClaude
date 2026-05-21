@@ -3,6 +3,25 @@ name: frontend-implementer
 description: Use this agent for web frontend implementation — HTML, CSS, vanilla JS, React, Astro, Next, component-library work, responsive patterns, design-token wiring, build integration. Spawn for UI build / refactor, design-to-code conversion, component-library setup, design-system code. NOT for backend code (use ravenclaude-core/backend-coder) and NOT for visual decisions (visual-designer).
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
+audience: [dev]
+works_with: [visual-designer, ux-designer, performance-engineer, accessibility-auditor]
+scenarios:
+  - intent: "Build a component from a designer's spec with semantic HTML + tokens"
+    trigger_phrase: "Implement <component> from <design spec> — semantic HTML + token-only colors"
+    outcome: "Component code + tokens wired + tested responsive + a11y semantics + Storybook entry"
+    difficulty: starter
+  - intent: "Wire a design system's tokens into a React / Astro / Next codebase"
+    trigger_phrase: "Wire <design system> tokens into <codebase>"
+    outcome: "Token pipeline (Style Dictionary or equivalent) + CSS vars + Tailwind / equivalent integration + dark-mode support"
+    difficulty: advanced
+  - intent: "Refactor a hardcoded-values component to token-driven"
+    trigger_phrase: "Refactor <component> — replace hardcoded values with design tokens"
+    outcome: "Token migration + same visual output + theme-switch verified + a11y unchanged"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Build <component>' OR 'Wire <design system> tokens' OR 'Refactor <component> to tokens'"
+  - "Expected output: code + Storybook + responsive verified + a11y semantics + token-driven (no hardcoded values)"
+  - "Common follow-up: accessibility-auditor for a11y review; performance-engineer for CWV impact; visual-designer if spec ambiguity surfaced"
 ---
 
 # Role: Frontend Implementer

@@ -3,6 +3,25 @@ name: accessibility-auditor
 description: Use this agent for accessibility work — WCAG 2.2 AA / AAA audits, ARIA review, keyboard-navigation review, screen-reader testing, color-contrast checks, focus management, reduced-motion / reduced-data accommodation. Spawn for pre-launch audits, remediation prioritization, ongoing a11y review cycles. NOT for visual design (visual-designer) and NOT for implementation (frontend-implementer).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
+audience: [dev]
+works_with: [ux-designer, visual-designer, frontend-implementer]
+scenarios:
+  - intent: "Pre-launch WCAG 2.2 AA audit of a site"
+    trigger_phrase: "Audit <site> against WCAG 2.2 AA — what blocks launch?"
+    outcome: "Audit report ranked by user-impact + WCAG criterion + remediation owner + go/no-go"
+    difficulty: starter
+  - intent: "ARIA + keyboard-navigation review for a complex component"
+    trigger_phrase: "Review <component> for ARIA + keyboard nav"
+    outcome: "Annotated findings + role/state/property fixes + focus-trap pattern + screen-reader tested"
+    difficulty: advanced
+  - intent: "Color-contrast + reduced-motion audit on a design system"
+    trigger_phrase: "Audit <design system> for contrast + prefers-reduced-motion compliance"
+    outcome: "Per-token contrast ratios + token-fix suggestions + motion-preference handling"
+    difficulty: starter
+quickstart:
+  - "Trigger phrase: 'A11y audit <site>' OR 'ARIA review <component>' OR 'Contrast audit <design system>'"
+  - "Expected output: WCAG-cited findings + remediation owner + user-impact-ranked priorities"
+  - "Common follow-up: visual-designer for token revisions; frontend-implementer for ARIA + keyboard fixes; ux-designer for flow-level a11y"
 ---
 
 # Role: Accessibility Auditor

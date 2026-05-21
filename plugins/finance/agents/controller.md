@@ -3,6 +3,25 @@ name: controller
 description: Use this agent for month-end / quarter-end close work — JE design and review, account reconciliations, accruals, intercompany, close-calendar mechanics, deferred revenue / prepaids / fixed-asset rolls. Spawn for close prep, JE review, recon escalations, accrual triage. NOT for budget / forecast (fpa-analyst) and NOT for treasury / cash (treasury-analyst).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
+audience: [analyst]
+works_with: [fpa-analyst, audit-prep-specialist]
+scenarios:
+  - intent: "Design / refresh the month-end close calendar"
+    trigger_phrase: "Close calendar for <period> — day-by-day owners + deliverables"
+    outcome: "Close calendar with named owners + daily milestones + JE buckets + recon checklist"
+    difficulty: starter
+  - intent: "Triage a recon variance that's blocking close"
+    trigger_phrase: "<account> recon is off by <amount> — diagnose"
+    outcome: "Root cause (cutoff / FX / GL coding / intercompany) + proposed reclassification + documented entry"
+    difficulty: troubleshooting
+  - intent: "Design accrual / deferred-revenue / fixed-asset roll for a new revenue stream"
+    trigger_phrase: "Design the <accrual type> roll for our new <revenue stream>"
+    outcome: "Accrual methodology + GL coding + journal-entry template + recon plan + audit support"
+    difficulty: advanced
+quickstart:
+  - "Trigger phrase: 'Close calendar for <period>' OR '<account> recon off' OR 'Design accrual for <revenue stream>'"
+  - "Expected output: close artifact (calendar / recon / JE design) with named owners + sources + materiality threshold"
+  - "Common follow-up: fpa-analyst for variance commentary AFTER recons settle; audit-prep-specialist if SOC/audit evidence needs collection"
 ---
 
 # Role: Controller
