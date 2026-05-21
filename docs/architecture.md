@@ -15,7 +15,7 @@ flowchart TB
         catalog["<code>.claude-plugin/marketplace.json</code><br/>catalog: lists every plugin"]
         subgraph plugindir["<code>plugins/</code>"]
             direction LR
-            core["<b>ravenclaude-core</b><br/>domain-neutral<br/>13 specialist agents<br/>dispatch, gates, hooks, templates"]
+            core["<b>ravenclaude-core</b><br/>domain-neutral<br/>14 specialist agents<br/>dispatch, gates, hooks, templates"]
             pp["<b>power-platform</b><br/>Microsoft Power Platform<br/>10 specialist agents<br/>13 skills (9 imported MIT + 4 in-house)<br/>bundles pbix-mcp server"]
             future["<i>future plugins</i><br/>finance, EdTech,<br/>Salesforce, …"]
         end
@@ -190,11 +190,11 @@ The existing plugins are the reference implementations — `ravenclaude-core` fo
 
 | Plugin | Version | Description |
 |---|---|---|
-| [`ravenclaude-core`](../plugins/ravenclaude-core/) | 0.5.0 | Domain-neutral: 13 specialist agents (all with active Structured Output Protocol blocks), dispatch playbook, gates, hooks, contribution-staging workflow (security sweep + expert routing), templates, Cited-Adjudicator Escalation rule, audit-ci-gates skill + scaffold |
-| [`power-platform`](../plugins/power-platform/) | 0.6.1 | Microsoft Power Platform: 10 specialist agents (all with active cross-plugin Structured Output Protocol blocks + licensing_impact field), 13 skills (9 imported Daniel Kerridge MIT + 4 in-house) + advisory house-opinion hook + bundled pbix-mcp MCP server |
+| [`ravenclaude-core`](../plugins/ravenclaude-core/) | 0.6.0 | Domain-neutral: 14 specialist agents (now includes `data-engineer`; all with active Structured Output Protocol blocks), dispatch playbook with Cross-plugin dispatch section, gates, **5 hooks** (now includes the advisory `guard-recursive-spawn`), contribution-staging workflow (security sweep + expert routing), templates, Cited-Adjudicator Escalation rule, audit-ci-gates skill + scaffold |
+| [`power-platform`](../plugins/power-platform/) | 0.7.0 | Microsoft Power Platform: 11 specialist agents (now includes `power-platform-tester`; all with active cross-plugin Structured Output Protocol blocks + licensing_impact field), 13 skills (9 imported Daniel Kerridge MIT + 4 in-house) + advisory house-opinion hook covering **8 checks** (added: premium-connector licensing note, Power Fx var/col prefix, plaintext secret in env-var default) + bundled pbix-mcp MCP server |
 
 **Memory bank:** 4 lessons recorded (see [`memory-bank/lessons-learned.md`](memory-bank/lessons-learned.md)) — PMP discipline (project-manager), PSM discipline (partner-success-manager), mermaid for conceptual diagrams, and rebase-orphan branch cleanup.
 
 **Decision log:** No entries yet — first decision will be recorded the next time an architectural choice deserves a written rationale.
 
-**Planned plugins** (not yet built): finance / FP&A, EdTech (built around the partner-success-manager pattern), Salesforce.
+**Planned plugins** (in PR queue or roadmap): finance / FP&A (PR #14), regulatory-compliance (PR #15), web-design (PR #16), EdTech (built around the partner-success-manager pattern), Salesforce.

@@ -1,6 +1,6 @@
 # Power Platform Plugin — Team Constitution
 
-> Team constitution for the `power-platform` Claude Code plugin. Bundles **10** specialist agents focused on the Microsoft Power Platform stack (including the new `power-bi-engineer`). Each agent owns a slice; the Team Lead (the top-level Claude session, typically also running `ravenclaude-core`) dispatches the right specialist(s) for a given task and integrates their reports.
+> Team constitution for the `power-platform` Claude Code plugin. Bundles **11** specialist agents focused on the Microsoft Power Platform stack (including the new `power-platform-tester` and `power-bi-engineer`). Each agent owns a slice; the Team Lead (the top-level Claude session, typically also running `ravenclaude-core`) dispatches the right specialist(s) for a given task and integrates their reports.
 >
 > Designed for professional makers — assumes the user can build and wants real engineering judgment, not click-by-click tutorials.
 >
@@ -22,6 +22,7 @@
 | [`pcf-developer`](agents/pcf-developer.md) | PCF custom controls (TypeScript) | When canvas / Custom Pages / components genuinely cannot deliver the required UI |
 | [`copilot-studio-engineer`](agents/copilot-studio-engineer.md) | Copilot Studio bots, AI Builder, prompts | Bot architecture, AI Builder model selection, "Copilot Studio vs direct Azure OpenAI" decisions |
 | [`power-pages-engineer`](agents/power-pages-engineer.md) | Power Pages (external portals) | Anonymous/B2C-facing sites, table permissions, liquid templating, B2C auth |
+| [`power-platform-tester`](agents/power-platform-tester.md) | **NEW** — Power Platform-specific testing: Test Studio, Monitor, flow run-history assertions, DAX semantic correctness + VertiPaq + DAX Studio server timings, `pac solution check`, model-driven form/business-rule tests | After a specialist's change but BEFORE `solution-alm-engineer` packages a release; spawns to prove correctness under realistic and adversarial conditions |
 
 **Sub-agents do not spawn other sub-agents** — only the Team Lead delegates. If work crosses specialist boundaries, each specialist returns their slice and the Team Lead re-dispatches.
 
@@ -42,7 +43,7 @@
 
 ## 3. Cross-cutting house opinions (every agent enforces)
 
-Domain-specific opinions live in each agent's own file. These platform-wide opinions are inherited by all **10**.
+Domain-specific opinions live in each agent's own file. These platform-wide opinions are inherited by all **11**.
 
 1. **Solutions, always.** No app, flow, table, or component lives outside a solution. No "I'll move it later." Move it now.
 2. **Environment variables for everything that varies across environments.** SharePoint URLs, IDs, secrets, feature flags. Never hard-code.
@@ -149,10 +150,15 @@ The `hooks/` directory ships [`check-house-opinions.sh`](hooks/check-house-opini
 | GUIDs hard-coded in Power Fx canvas YAML | `*.fx.yaml`, `*.pa.yaml`, files under `CanvasApps/Src/` | §3 #11 — look up by name or alternate key, not GUID |
 | Default publisher prefix (`cr`, `crXXX`, `new`) | `solution.xml`, `customizations.xml` | §3 #5 — publisher prefix you control |
 | Hard-coded `.sharepoint.com` / `.crm*.dynamics.com` URLs | any Power Platform source file | §3 #2 / §4 — environment variables for everything that varies across environments |
+| Binary `.pbix` file committed to git | `*.pbix` | §4 — unpack to PBIP instead |
+| Flow JSON missing top-level Try/Catch/Finally | `*/workflows/*.json` | §3 #10 — top-level scope required |
+| Premium connector reference in flow JSON without `// premium:` licensing note | `*/workflows/*.json` | §3 #8 — premium connectors are not a casual choice |
+| Power Fx `Set(...)` / `(Clear)Collect(...)` without `var*` / `col*` prefix | `*.fx.yaml`, `*.pa.yaml`, `CanvasApps/Src/*` | §3 #6 — Power Fx variable naming |
+| Plaintext secret in environment-variable default (instead of `@Microsoft.KeyVault(...)`) | `customizations.xml`, `*.environmentvariablevalues.{xml,json}`, `environmentvariabledefinitions.xml` | §4 anti-pattern — secrets stay in Key Vault |
 
 The hook is **advisory by default** (prints to stderr, doesn't block the edit). To enforce, flip the final `exit 0` to `exit 1`. To wire it into a consumer project's `.claude/settings.json`, see [`hooks/README.md`](hooks/README.md).
 
-When in doubt, the hook is conservative — it doesn't fire on files outside Power Platform conventional locations, so a `.ts` file with a GUID in it won't be flagged. The remaining §3 / §4 rules (premium-connector licensing, error-handling completeness, delegation, managed-vs-unmanaged-per-environment) are not currently enforced by hooks and remain agent-judgment calls.
+When in doubt, the hook is conservative — it doesn't fire on files outside Power Platform conventional locations, so a `.ts` file with a GUID in it won't be flagged. The remaining §3 / §4 rules (delegation correctness, error-handling completeness, managed-vs-unmanaged-per-environment, source-controlling the unpacked solution) are not currently enforced by hooks and remain agent-judgment calls — most live in `power-platform-tester`'s coverage area.
 
 ---
 

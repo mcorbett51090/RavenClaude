@@ -2,7 +2,12 @@
 
 **A private Claude Code plugin marketplace** — bundled team rules, specialist agents, dispatch playbooks, and templates that travel with you across projects.
 
-Today this marketplace ships a single plugin, **`ravenclaude-core`**, which gives any project the Team Lead + 13 specialists pattern (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, etc.). Future plugins for domain-specific work (Power Platform, finance, EdTech, Salesforce) will land alongside it.
+Today this marketplace ships **two plugins**:
+
+- **[`ravenclaude-core`](plugins/ravenclaude-core/)** — domain-neutral Team Lead + 14 specialists (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, data-engineer, etc.), plus dispatch playbooks (now with a Cross-plugin dispatch section), gates, 5 hooks, templates, and the **cross-project contribution-staging loop** (`contribute-finding` → `review-staged-contributions`) that lets any consumer project propose lessons back to this marketplace without needing repo write access.
+- **[`power-platform`](plugins/power-platform/)** — 11 Microsoft Power Platform specialists (Power Fx, flows, Power BI, Dataverse, model-driven, PCF, Copilot Studio, Power Pages, admin, ALM, **tester**), 13 skills, an advisory house-opinions hook covering 8 checks, and the bundled `pbix-mcp` MCP server for `.pbix`/`.pbit` editing without Power BI Desktop.
+
+Future plugins for additional domains (finance, EdTech, Salesforce) will land alongside these.
 
 ---
 
@@ -13,10 +18,12 @@ In any Claude Code project where you want the agents:
 ```shell
 /plugin marketplace add mcorbett51090/RavenClaude
 /plugin install ravenclaude-core@ravenclaude
+# Optional — add only if you're working on Power Platform:
+/plugin install power-platform@ravenclaude
 /reload-plugins
 ```
 
-That's it. The 13 agents become available via the `Agent` tool under their namespaced `ravenclaude-core:<agent-name>` form (e.g. `ravenclaude-core:architect`, `ravenclaude-core:code-reviewer`). The dispatch skills (`spawn-team`, `new-worktree`, `cleanup-worktrees`, `create-pr`, `run-full-test-suite`) are loaded, and the format/lint/test hooks fire automatically.
+That's it. The `ravenclaude-core` specialist agents become available to the Team Lead via the `spawn-team` skill, the dispatch skills (`spawn-team`, `new-worktree`, `cleanup-worktrees`, `create-pr`, `run-full-test-suite`) are loaded, and the format/lint/test hooks fire automatically. Installing `power-platform` adds its 11 specialists alongside.
 
 To pin a specific version (recommended for client engagements where you don't want surprise updates):
 
@@ -44,7 +51,7 @@ If you want to iterate on this marketplace itself (or test a change before pushi
 /reload-plugins
 ```
 
-After editing files in `plugins/ravenclaude-core/`, run `/plugin marketplace update ravenclaude` and `/reload-plugins` again to pick up the changes.
+After editing files in `plugins/ravenclaude-core/` (or `plugins/power-platform/`), run `/plugin marketplace update ravenclaude` and `/reload-plugins` again to pick up the changes.
 
 ---
 
@@ -65,13 +72,15 @@ You lose auto-update and version pinning. To update, `git pull` and re-copy. Oth
 
 ---
 
-## What's in `ravenclaude-core`
+## What's in each plugin
+
+### `ravenclaude-core`
 
 | Component | Count | Where |
 |-----------|-------|-------|
-| Specialist agents | 13 | `plugins/ravenclaude-core/agents/` |
+| Specialist agents | 14 | `plugins/ravenclaude-core/agents/` |
 | Skills | 10 (dispatch via `spawn-team`, `new-worktree` / `cleanup-worktrees`, `create-pr`, `run-full-test-suite`, `draft-agent-brief`, `structured-output`, plus `contribute-finding` / `review-staged-contributions` for the cross-domain staging loop; the `researcher/` meta-skill sits alongside as a folder) | `plugins/ravenclaude-core/skills/` |
-| Hooks | 3 (format-on-write, guard-destructive, remind-tests) | `plugins/ravenclaude-core/hooks/` |
+| Hooks | 5 (format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn) | `plugins/ravenclaude-core/hooks/` |
 | Rules | 4 (coding-standards, security, git-workflow, agent-collaboration) | `plugins/ravenclaude-core/rules/` |
 | Templates | 21 (memos, runbooks, design specs, RAID logs, partner-success artifacts) | `plugins/ravenclaude-core/templates/` |
 
@@ -79,20 +88,43 @@ The team rules ship inside the plugin as [`plugins/ravenclaude-core/CLAUDE.md`](
 
 For a full list of agents and when to spawn each, see the team-roster table in [`plugins/ravenclaude-core/CLAUDE.md`](plugins/ravenclaude-core/CLAUDE.md) §5.
 
+### `power-platform`
+
+| Component | Count | Where |
+|-----------|-------|-------|
+| Specialist agents | 11 (`power-fx-engineer`, `flow-engineer`, `power-bi-engineer`, `dataverse-architect`, `model-driven-engineer`, `solution-alm-engineer`, `power-platform-admin`, `pcf-developer`, `copilot-studio-engineer`, `power-pages-engineer`, `power-platform-tester`) | `plugins/power-platform/agents/` |
+| Skills | 13 (9 imported MIT from Daniel Kerridge + 4 in-house: `grounding-protocol`, `maintainability-review`, `power-automate`, `power-bi`) | `plugins/power-platform/skills/` |
+| Hooks | 1 advisory house-opinions hook covering 8 mechanically-detectable §3/§4 checks (GUIDs, default prefix, hard-coded URLs, binary .pbix, missing flow Try/Catch, premium-connector licensing note, Power Fx var/col prefix, plaintext secret in env-var default) | `plugins/power-platform/hooks/` |
+| Bundled MCP | `powerbi-editor` (community `pbix-mcp`, MIT) — requires `pip install pbix-mcp` | declared in `plugins/power-platform/.claude-plugin/plugin.json` |
+
+Domain-specific team constitution: [`plugins/power-platform/CLAUDE.md`](plugins/power-platform/CLAUDE.md). Inherits the neutral team from `ravenclaude-core` and extends with PP-specific routing, house opinions, and anti-patterns. See attribution in [`plugins/power-platform/NOTICE.md`](plugins/power-platform/NOTICE.md).
+
+---
+
+## Contributing back from a consumer project (no repo access needed)
+
+You don't need write access to this marketplace to propose a lesson back. If you're working in any consumer project that has `ravenclaude-core` installed and Claude discovers a pattern, fix, or rule worth keeping, use the **contribution-staging loop**:
+
+1. In your consumer session, ask Claude to use the **`contribute-finding`** skill on the finding. It formats a canonical `RAVENCLAUDE-STAGING-SUBMISSION` block (lesson or best-practice shape).
+2. Send the block to Matt (Slack, email, paste in a shared doc).
+3. On the marketplace side, Matt drops the block into `docs/staging/incoming/` and runs **`/review-staged-contributions`** — security sweep + topic-expert routing, then keep / update / deny.
+
+Full flow: [`docs/staging/README.md`](docs/staging/README.md). This is the design-intent contribution path for collaborators who don't (or shouldn't) need direct push access.
+
 ---
 
 ## How agents actually get invoked
 
-Plugin agents are exposed as **namespaced** `subagent_type` values on the `Agent` tool: `ravenclaude-core:architect`, `ravenclaude-core:code-reviewer`, `ravenclaude-core:backend-coder`, and so on. The **bare name** (e.g. `subagent_type: "code-reviewer"`) is reserved for Claude Code's built-in agents and will fail with `InputValidationError` for plugin-supplied agents — always include the `ravenclaude-core:` prefix.
+A common point of confusion: **these plugin agents do not appear as `subagent_type` options on the `Agent` tool**. Claude Code's built-in agent list (general-purpose, Explore, Plan, etc.) is separate from plugin-supplied agents, and a fresh `Agent` call with `subagent_type: "code-reviewer"` will fail with an InputValidationError.
 
-The agents fire through the **Team Lead orchestration pattern**:
+Plugin agents fire through the **Team Lead orchestration pattern**:
 
 1. The top-level Claude session acts as **Team Lead** — it reads `plugins/ravenclaude-core/CLAUDE.md`, sees the team roster, and decides which specialist(s) the user's request needs.
 2. To dispatch one or more specialists, the Team Lead invokes the [`spawn-team`](plugins/ravenclaude-core/skills/spawn-team.md) skill — that's the playbook for picking the right specialist, briefing it like a new colleague, and integrating the structured handoff payload that comes back.
-3. The Team Lead calls `Agent(subagent_type="ravenclaude-core:<role>", …)` directly. Specialists return a Markdown report ending in a `---RESULT_START--- … ---RESULT_END---` JSON block, and the Team Lead re-routes from there.
+3. The specialist runs, returns a Markdown report ending in a `---RESULT_START--- … ---RESULT_END---` JSON block, and the Team Lead re-routes from there.
 4. **Sub-agents never spawn other sub-agents.** They return a slice; the Team Lead re-dispatches. This keeps the dependency graph a flat tree.
 
-If you want to talk to a specific agent directly (e.g. "have the architect look at this"), say so in plain English to the Team Lead and it will use `spawn-team` to dispatch the architect via the namespaced `subagent_type`.
+If you want to talk to a specific agent directly (e.g. "have the architect look at this"), say so in plain English to the Team Lead and it will use `spawn-team` to dispatch the architect. Don't try to address the agent by name through the `Agent` tool's `subagent_type` parameter — that's reserved for the built-in agents.
 
 For the dispatch playbook itself, see [`plugins/ravenclaude-core/skills/spawn-team.md`](plugins/ravenclaude-core/skills/spawn-team.md).
 
@@ -108,9 +140,11 @@ Repo layout:
 RavenClaude/
 ├── .claude-plugin/marketplace.json    ← marketplace catalog
 ├── plugins/
-│   └── ravenclaude-core/              ← the domain-neutral plugin
+│   ├── ravenclaude-core/              ← the domain-neutral plugin
+│   └── power-platform/                ← Microsoft Power Platform specialists
 ├── .claude/                           ← settings for working ON the marketplace
 ├── docs/                              ← meta-repo docs
+├── checklists/                        ← release / new-plugin / incident checklists
 └── CLAUDE.md                          ← meta-repo dev guide
 ```
 
@@ -122,12 +156,11 @@ The container at `.devcontainer/` auto-installs the Claude Code CLI on rebuild, 
 
 Planned future plugins (each in its own subfolder under `plugins/`, all in this same repo):
 
-- **`power-platform`** — Power Apps / Power Automate / Dataverse specialists.
 - **`finance`** — FP&A, variance analysis, financial-modeling specialists.
 - **`edtech`** — partner-success, rostering, FERPA-aware translation specialists.
 - **`salesforce`** — Salesforce metadata, Apex, Flow specialists.
 
-Each builds on top of `ravenclaude-core` (which provides the neutral team) and adds domain-specific agents that the consumer can choose to install or skip.
+Each builds on top of `ravenclaude-core` (which provides the neutral team) and adds domain-specific agents that the consumer can choose to install or skip. `power-platform` is the reference implementation of this pattern.
 
 ---
 

@@ -23,7 +23,7 @@ This marketplace follows the **orchestrator-worker / hierarchical** pattern, whi
 
 ## Structured Output Protocol (Active — required for handoffs)
 
-> **Status as of 2026-05-21:** This protocol is **active and implemented**. All 13 specialist agents in `agents/` now declare the Structured Output Protocol block in their Output Contract sections (added in v0.4.0). Every sub-agent that hands off to the Team Lead (or to a downstream specialist) MUST end its report with a `---RESULT_START--- ... ---RESULT_END---` delimited JSON block alongside its human-readable Markdown. The dual-output format is the 2026 norm in production multi-agent systems (pure JSON loses reasoning, pure Markdown is unparseable). The Team Lead enforces the contract at brief time and reads the JSON to drive routing.
+> **Status as of 2026-05-21:** This protocol is **active and implemented**. All 14 specialist agents in `agents/` (13 from v0.4.0 + the new `data-engineer` added in v0.6.0) declare the Structured Output Protocol block in their Output Contract sections. Every sub-agent that hands off to the Team Lead (or to a downstream specialist) MUST end its report with a `---RESULT_START--- ... ---RESULT_END---` delimited JSON block alongside its human-readable Markdown. The dual-output format is the 2026 norm in production multi-agent systems (pure JSON loses reasoning, pure Markdown is unparseable). The Team Lead enforces the contract at brief time and reads the JSON to drive routing.
 
 The protocol is described below. Agents MUST follow this format for handoff-bearing reports; informational chatter ("file read", "test ran") is exempt.
 
@@ -178,9 +178,9 @@ This prevents degradation in output quality due to context window pressure and m
 
 `ravenclaude-core` uses the standard component directories:
 
-- `agents/` — 13 specialist agent definitions
+- `agents/` — 14 specialist agent definitions (now includes `data-engineer`)
 - `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging
-- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout (all registered in `hooks/hooks.json` for plugin-level distribution)
+- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn (all registered in `hooks/hooks.json` for plugin-level distribution)
 - `rules/` — coding-standards, security, git-workflow, agent-collaboration
 - `templates/` — memos, runbooks, design specs, RAID logs, partner-success, plus `agent-ready-repo/` templates used by `/init-agent-ready`
 - `commands/` — `/init-agent-ready` slash command shipped to consumers
@@ -190,7 +190,7 @@ This prevents degradation in output quality due to context window pressure and m
 
 ## Quality gates, Hooks, Rules & Templates (Unchanged Core + Extensions)
 
-The existing 3 hooks, 4 rulesets, and 21+ templates remain foundational. 
+The existing 5 hooks, 4 rulesets, and 21+ templates remain foundational. 
 
 **Enhancement Recommendations**:
 - Extend `remind-tests` or add output-validation hook elements that check for Structured Output Protocol compliance on critical deliverables.

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Contribute a finding from inside a consumer project
+    url: https://github.com/mcorbett51090/RavenClaude/blob/main/docs/staging/README.md
+    about: If you're in a Claude Code session with ravenclaude-core installed and the AI noticed something worth keeping, use the contribute-finding skill — it produces a canonical staging block. No repo write access required.
+  - name: Ask Matt directly
+    url: https://github.com/mcorbett51090
+    about: Urgent or sensitive matters that shouldn't go in a public issue.
