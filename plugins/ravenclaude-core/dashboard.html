@@ -326,7 +326,7 @@ footer.page-footer a:hover { text-decoration: underline; }
     <div class="preset-bar">
       <h3>Apply a preset</h3>
       <p>Sets every category at once. You can still override individual rows below.</p>
-      <div class="preset-buttons"><button type="button" class="preset-btn" data-preset="cautious" title="Maximum oversight. Every non-trivial action asks first. Recommended starting point per Koch et al.&#x27;s &#x27;OK blindness&#x27; finding.">Cautious</button><button type="button" class="preset-btn" data-preset="default" title="Balanced. Reads freely; asks before edits, network writes, package installs, and arbitrary code execution.">Default</button><button type="button" class="preset-btn" data-preset="productive" title="Maximum velocity. Edits and local mutations flow without asking. Network writes, package installs, arbitrary code exec, and global writes still ask.">Productive</button></div>
+      <div class="preset-buttons"><button type="button" class="preset-btn" data-preset="cautious" title="Sets every category to cautious. Claude asks before every non-trivial action. Maximum oversight, slowest velocity.">Cautious</button><button type="button" class="preset-btn" data-preset="default" title="Sets every category to default. Claude asks in ambiguous cases. Balanced posture.">Default</button><button type="button" class="preset-btn" data-preset="productive" title="WARNING: Sets every category to productive. Claude acts without asking. THIS INCLUDES git push, npm/pip install, arbitrary code execution (python -c, node -e), and writes outside the project (your home directory). Maximum velocity, minimum oversight. Use only when you trust Claude to act unattended.">Productive</button></div>
     </div>
 
     <div class="global-default">
@@ -376,14 +376,14 @@ footer.page-footer a:hover { text-decoration: underline; }
   "schema_version": 1,
   "presets": {
     "cautious": {
-      "_description": "Maximum oversight. Every non-trivial action asks first. Recommended starting point per Koch et al.'s 'OK blindness' finding.",
+      "_description": "Sets every category to cautious. Claude asks before every non-trivial action. Maximum oversight, slowest velocity.",
       "global_default": "cautious",
       "categories": {
-        "file_read_project": "default",
+        "file_read_project": "cautious",
         "file_edit_project": "cautious",
         "file_read_global": "cautious",
         "file_edit_global": "cautious",
-        "shell_readonly": "default",
+        "shell_readonly": "cautious",
         "shell_local_mutate": "cautious",
         "shell_remote_mutate": "cautious",
         "shell_code_exec": "cautious",
@@ -394,38 +394,38 @@ footer.page-footer a:hover { text-decoration: underline; }
       }
     },
     "default": {
-      "_description": "Balanced. Reads freely; asks before edits, network writes, package installs, and arbitrary code execution.",
+      "_description": "Sets every category to default. Claude asks in ambiguous cases. Balanced posture.",
       "global_default": "default",
       "categories": {
-        "file_read_project": "productive",
+        "file_read_project": "default",
         "file_edit_project": "default",
-        "file_read_global": "cautious",
-        "file_edit_global": "cautious",
-        "shell_readonly": "productive",
+        "file_read_global": "default",
+        "file_edit_global": "default",
+        "shell_readonly": "default",
         "shell_local_mutate": "default",
-        "shell_remote_mutate": "cautious",
-        "shell_code_exec": "cautious",
-        "shell_package_install": "cautious",
+        "shell_remote_mutate": "default",
+        "shell_code_exec": "default",
+        "shell_package_install": "default",
         "network_read": "default",
-        "network_write": "cautious",
+        "network_write": "default",
         "mcp_tools": "default"
       }
     },
     "productive": {
-      "_description": "Maximum velocity. Edits and local mutations flow without asking. Network writes, package installs, arbitrary code exec, and global writes still ask.",
+      "_description": "WARNING: Sets every category to productive. Claude acts without asking. THIS INCLUDES git push, npm/pip install, arbitrary code execution (python -c, node -e), and writes outside the project (your home directory). Maximum velocity, minimum oversight. Use only when you trust Claude to act unattended.",
       "global_default": "productive",
       "categories": {
         "file_read_project": "productive",
         "file_edit_project": "productive",
-        "file_read_global": "cautious",
-        "file_edit_global": "cautious",
+        "file_read_global": "productive",
+        "file_edit_global": "productive",
         "shell_readonly": "productive",
         "shell_local_mutate": "productive",
-        "shell_remote_mutate": "cautious",
-        "shell_code_exec": "cautious",
-        "shell_package_install": "cautious",
+        "shell_remote_mutate": "productive",
+        "shell_code_exec": "productive",
+        "shell_package_install": "productive",
         "network_read": "productive",
-        "network_write": "cautious",
+        "network_write": "productive",
         "mcp_tools": "productive"
       }
     }
