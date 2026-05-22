@@ -13,13 +13,12 @@ This skill is the canonical reference for **how comfort-posture YAML maps to Cla
 flowchart LR
   DASH[Dashboard Settings tab] -->|Save to repo| YAML[.ravenclaude/comfort-posture.yaml]
   YAML -->|/set-posture| TR[apply-comfort-posture.py]
-  TR -->|emit| RULES[.claude/settings.json allow/ask/deny]
+  TR -->|overwrite| RULES[.claude/settings.json allow/ask/deny]
   RULES --> ENGINE[Claude Code engine]
-  TR -->|track| SNAP[.claude/_comfort-posture-snapshot.json]
-  SNAP -.->|subtract on next run|TR
+  LOCAL[.claude/settings.local.json] -->|merged on top| ENGINE
 ```
 
-The skill owns the translation step. The dashboard owns the input. The script owns the file I/O.
+The skill owns the translation step. The dashboard owns the input. The script owns the file I/O. v0.17.0 switched from snapshot-merge to clean overwrite: the posture YAML is the single source of truth for `permissions.{allow,ask,deny}`. Personal overrides belong in `.claude/settings.local.json`, which Claude Code merges on top.
 
 ## Level → bucket (v0.1.0)
 
@@ -92,14 +91,42 @@ Highlights:
 
 `mcp_tools` is intentionally empty in v0.1.0's `EMISSIONS`. Per-MCP-server trust is configured in Claude Code's user settings (`~/.claude/settings.json`); comfort-posture's `mcp_tools` is a global default that doesn't have a direct one-to-one rule mapping. v0.2.0 should map this to per-server rules once the marketplace has a stable list of MCP servers consumers connect.
 
-## Snapshot-based non-destructive merge
+## Overwrite semantics (v0.17.0+)
 
-The script tracks every rule it ever emits in `.claude/_comfort-posture-snapshot.json`. On the next run, it removes exactly those rules from `.claude/settings.json` before adding the new emission. **Hand-added rules in `settings.json` survive re-application** because the script only touches rules it owns.
+The script **overwrites** `permissions.allow`, `permissions.ask`, and `permissions.deny` in `.claude/settings.json` with the resolved emission. Non-posture fields (`$schema`, `model`, `env`, `hooks`, `permissions.additionalDirectories`) are untouched.
+
+Why overwrite instead of merge: v0.16.0 used a snapshot-based merge that preserved hand-added rules. In practice that produced **bucket collisions** — the same pattern landing in both `allow` (hand-added) and `ask` (posture). Per Claude Code's precedence (deny > ask > allow), the rule effectively becomes `ask`, silently downgrading the user's intended workflow. Overwrite removes that footgun: the YAML is authoritative; you see what you set.
 
 Implications:
-- The snapshot is gitignored (it reflects local state, not team policy).
-- If the snapshot is missing or corrupt, the script falls back to "subtract nothing" — the user may end up with stale rules; safe to delete `.claude/settings.json`'s `permissions.{allow,ask,deny}` lists and re-run.
-- If the user manually edits a comfort-posture-owned rule, the next `/set-posture` run will revert it. Use `.claude/settings.local.json` for personal overrides (Claude Code merges that on top of `settings.json`).
+- **Personal overrides go in `.claude/settings.local.json`.** Claude Code merges that file on top of `settings.json`, so anything you put there survives every `/set-posture` run.
+- **Hand-edits to `settings.json`'s `permissions.{allow,ask,deny}` are wiped.** If you find yourself wanting to add a rule there, ask whether it belongs in the posture YAML (so the dashboard reflects it) or in `settings.local.json` (personal-only).
+- **Stale snapshot files are cleaned up.** If a v0.16.0 `.claude/_comfort-posture-snapshot.json` is present, the script deletes it on first v0.17.0 run.
+
+## Always-on security deny
+
+`security_deny:` is a top-level list in the posture YAML carrying patterns that are **always denied regardless of category levels**. The default list covers `.env` / `.pem` / `credentials*` reads and the most common destructive shell commands (`rm -rf`, `git push --force`, `git reset --hard`, `curl | sh`).
+
+- Add patterns to tighten your security floor.
+- Remove patterns only if you have a specific reason — these are the marketplace's recommended security baseline.
+- The patterns survive every preset (Recommended, Always-Ask, Autopilot, etc.) because they live outside `categories:`.
+
+## Per-pattern overrides (v0.17.0+)
+
+Each `categories.<name>` value can be either a plain string (level applied to every pattern in the category) or an object with per-pattern overrides:
+
+```yaml
+categories:
+  shell_readonly: mostly-allow      # all patterns: mostly-allow
+  shell_local_mutate:               # mixed
+    default: mostly-allow
+    overrides:
+      "Bash(rm:*)": always-ask
+      "Bash(git reset:*)": always-ask
+```
+
+Resolution precedence (highest wins): per-pattern override > category default > top-level `global_default`. Use overrides to tighten or relax specific patterns within a category without splitting the category itself.
+
+The pattern strings must match exactly what `EMISSIONS` in `apply-comfort-posture.py` declares — copy them from the dashboard's per-category list rather than typing freehand.
 
 ## Session-mode interactions
 

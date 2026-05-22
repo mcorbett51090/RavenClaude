@@ -35,12 +35,45 @@ from __future__ import annotations
 
 import argparse
 import html
+import importlib.util
 import json
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PLUGINS_DIR = REPO_ROOT / "plugins"
+
+
+def _load_emissions() -> dict[str, list[str]]:
+    """Import EMISSIONS from apply-comfort-posture.py so the dashboard and the
+    translator share one source of truth for which patterns belong to which
+    category. Falls back to an empty mapping if the script is missing or
+    fails to import — the dashboard then renders without per-pattern rows.
+    """
+    script_path = (
+        REPO_ROOT
+        / "plugins"
+        / "ravenclaude-core"
+        / "scripts"
+        / "apply-comfort-posture.py"
+    )
+    if not script_path.is_file():
+        return {}
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "_acp_emissions", script_path
+        )
+        if spec is None or spec.loader is None:
+            return {}
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        emissions = getattr(mod, "EMISSIONS", {}) or {}
+        return {k: list(v) for k, v in emissions.items()}
+    except (ImportError, OSError, SyntaxError):
+        return {}
+
+
+EMISSIONS = _load_emissions()
 
 # ── Generated-output discipline (matches generate-repo-guide.py) ─────
 # - byte-identical across OSes: no os.path.sep usage, no os.linesep, only \n
@@ -129,20 +162,126 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
 
     group_html_parts: list[str] = []
     for group_name in sorted(groups.keys()):
-        rows = [
-            _render_segmented(name, sch, f"cat-{name}", group=group_name)
-            for name, sch in groups[group_name]
-        ]
+        row_blocks: list[str] = []
+        for name, sch in groups[group_name]:
+            row_blocks.append(
+                _render_segmented(name, sch, f"cat-{name}", group=group_name)
+            )
+            patterns = EMISSIONS.get(name, [])
+            if patterns:
+                row_blocks.append(_render_pattern_details(name, patterns))
         group_html_parts.append(
             f'<fieldset class="cat-group"><legend>{html.escape(group_name)}</legend>'
-            + "".join(rows)
+            + "".join(row_blocks)
             + "</fieldset>"
         )
+
+    security_deny_html = _render_security_deny(
+        properties.get("security_deny", {})
+    )
 
     return _SETTINGS_TAB_TEMPLATE.format(
         preset_buttons="".join(preset_buttons),
         global_default=global_default_html,
         category_groups="".join(group_html_parts),
+        security_deny=security_deny_html,
+    )
+
+
+def _render_pattern_details(category: str, patterns: list[str]) -> str:
+    """Render a collapsible <details> block with per-pattern level controls.
+
+    Each pattern gets its own segmented radiogroup with six values:
+    `__default` (use category default — radio is checked initially) plus the
+    five level enums. Selecting any non-`__default` value records an
+    override in JS state; selecting `__default` clears it.
+    """
+    levels = ["__default", "deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"]
+    rows: list[str] = []
+    for idx, pattern in enumerate(patterns):
+        radio_name = f"pat-{category}-{idx}"
+        radios: list[str] = []
+        for level in levels:
+            rid = f"{radio_name}-{level.replace('_', '-')}"
+            checked = "checked" if level == "__default" else ""
+            label_text = "Default" if level == "__default" else _label_for(level)
+            label_cls = (
+                "seg-label seg-pattern-default"
+                if level == "__default"
+                else f"seg-label seg-{html.escape(level)}"
+            )
+            radios.append(
+                f'<input type="radio" id="{html.escape(rid)}" '
+                f'name="{html.escape(radio_name)}" value="{html.escape(level)}" {checked}>'
+                f'<label for="{html.escape(rid)}" class="{label_cls}" '
+                f'title="{html.escape(level)}">{html.escape(label_text)}</label>'
+            )
+        rows.append(
+            f'<div class="pattern-row" data-pattern="{html.escape(pattern)}">'
+            f'<code class="pattern-name" title="{html.escape(pattern)}">'
+            f'{html.escape(pattern)}</code>'
+            f'<div class="seg-control seg-control-pattern" role="radiogroup" '
+            f'data-pattern="{html.escape(pattern)}" data-category="{html.escape(category)}" '
+            f'aria-label="Level for {html.escape(pattern)}">'
+            + "".join(radios)
+            + "</div>"
+            f"</div>"
+        )
+    return (
+        f'<details class="pattern-details" data-category="{html.escape(category)}">'
+        f'<summary class="pattern-summary">'
+        f'<span class="pattern-summary-text">'
+        f'Per-pattern overrides <span class="pattern-count">'
+        f'({len(patterns)} patterns)</span></span>'
+        f'<span class="pattern-override-count" data-for="{html.escape(category)}">'
+        f'0 overridden</span>'
+        f'</summary>'
+        f'<div class="pattern-list">'
+        + "".join(rows)
+        + "</div>"
+        f"</details>"
+    )
+
+
+def _render_security_deny(schema: dict) -> str:
+    """Render the always-on security deny baseline as a checklist.
+
+    Patterns are checked-by-default; unchecking a row removes the pattern
+    from the YAML's security_deny list. The full default list comes from
+    the schema's `default` array.
+    """
+    defaults = schema.get("default", []) or []
+    title = schema.get("title", "Always-on security deny rules")
+    description = schema.get(
+        "description",
+        "Patterns that are ALWAYS denied regardless of category levels.",
+    )
+    rows: list[str] = []
+    for idx, pattern in enumerate(defaults):
+        cid = f"sec-deny-{idx}"
+        rows.append(
+            f'<label class="sec-deny-row" for="{html.escape(cid)}">'
+            f'<input type="checkbox" id="{html.escape(cid)}" '
+            f'class="sec-deny-checkbox" value="{html.escape(pattern)}" checked>'
+            f'<code class="sec-deny-pattern">{html.escape(pattern)}</code>'
+            f"</label>"
+        )
+    return (
+        f'<fieldset class="cat-group sec-deny-group">'
+        f'<legend>Security baseline</legend>'
+        f'<p class="sec-deny-desc">{html.escape(description)}</p>'
+        f'<details class="pattern-details sec-deny-details">'
+        f'<summary class="pattern-summary">'
+        f'<span class="pattern-summary-text">{html.escape(title)} '
+        f'<span class="pattern-count">({len(defaults)} patterns)</span></span>'
+        f'<span class="pattern-override-count" id="sec-deny-active-count">'
+        f'{len(defaults)} active</span>'
+        f'</summary>'
+        f'<div class="pattern-list sec-deny-list">'
+        + "".join(rows)
+        + "</div>"
+        f"</details>"
+        f"</fieldset>"
     )
 
 
@@ -468,6 +607,121 @@ body {
 }
 .seg-label:hover { color: var(--text); }
 
+/* Per-pattern controls (collapsible details under each category row) */
+.pattern-details {
+  margin: -8px 0 12px 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.pattern-summary {
+  cursor: pointer;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
+  list-style: none;
+}
+.pattern-summary::-webkit-details-marker { display: none; }
+.pattern-summary::before {
+  content: "▸ ";
+  color: var(--accent);
+  font-size: 11px;
+  display: inline-block;
+  width: 12px;
+}
+.pattern-details[open] > .pattern-summary::before { content: "▾ "; }
+.pattern-summary:hover { color: var(--text); }
+.pattern-summary-text { flex: 1; }
+.pattern-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: 4px;
+}
+.pattern-override-count {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+.pattern-override-count.has-overrides { color: var(--accent); font-weight: 600; }
+.pattern-list {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 4px 12px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.pattern-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px dotted var(--border);
+  align-items: center;
+}
+.pattern-row:last-child { border-bottom: none; }
+.pattern-name {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text);
+  background: transparent;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Denser segmented control for per-pattern rows */
+.seg-control-pattern .seg-label {
+  padding: 4px 8px;
+  font-size: 11px;
+  min-width: 60px;
+}
+.seg-control-pattern .seg-label.seg-pattern-default {
+  font-style: italic;
+}
+.seg-control-pattern input[type="radio"]:checked + .seg-label.seg-pattern-default {
+  background: var(--accent);
+  color: var(--bg);
+  font-style: italic;
+}
+
+/* Security-deny baseline block */
+.sec-deny-group { border-left: 3px solid var(--danger); }
+.sec-deny-group legend { color: var(--danger); }
+.sec-deny-desc {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 4px 0 12px;
+  max-width: 640px;
+}
+.sec-deny-list { max-height: 280px; }
+.sec-deny-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  cursor: pointer;
+}
+.sec-deny-checkbox { accent-color: var(--danger); cursor: pointer; }
+.sec-deny-pattern {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text);
+  background: transparent;
+  padding: 0;
+}
+.sec-deny-row:has(.sec-deny-checkbox:not(:checked)) .sec-deny-pattern {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
 /* Modal (info-icon popup) */
 .modal-backdrop {
   position: fixed;
@@ -765,6 +1019,7 @@ _SETTINGS_TAB_TEMPLATE = """
     </div>
 
     {category_groups}
+    {security_deny}
   </div>
 
   <aside class="yaml-preview">
@@ -820,15 +1075,22 @@ _JS = r"""
   const catProps = (props.categories && props.categories.properties) || {};
 
   /* ── State ───────────────────────────────────────────────────────── */
+  /* Each category's value is { default: <level>, overrides: { <pattern>: <level> } }.
+   * The YAML emitter outputs the plain-string form `cat: <level>` when overrides
+   * is empty, and the object form { default, overrides } otherwise. */
   const state = {
     schema_version: SCHEMA.schema_version || 1,
     global_default: (props.global_default || {}).default || "default",
-    categories: {}
+    categories: {},
+    /* security_deny: full array kept in state; checkbox toggles inclusion */
+    security_deny: ((props.security_deny || {}).default || []).slice(),
+    security_deny_baseline: ((props.security_deny || {}).default || []).slice(),
   };
   for (const k of Object.keys(catProps).sort()) {
-    state.categories[k] = catProps[k].default
+    const def = catProps[k].default
       || (catProps[k].enum && catProps[k].enum[Math.floor(catProps[k].enum.length / 2)])
       || "default";
+    state.categories[k] = { default: def, overrides: {} };
   }
 
   /* Read initial state from the DOM (checked radios reflect schema defaults) */
@@ -836,11 +1098,16 @@ _JS = r"""
     if (inp.name === "global_default") {
       state.global_default = inp.value;
     } else if (catProps[inp.name]) {
-      state.categories[inp.name] = inp.value;
+      state.categories[inp.name].default = inp.value;
     }
   }
 
   /* ── YAML emit ───────────────────────────────────────────────────── */
+  function quoteYamlKey(s) {
+    /* Patterns contain `(:*)` characters that YAML treats as special — always
+     * quote them to keep the output round-trippable. */
+    return `"${s.replace(/\\/g, "\\\\").replace(/"/g, "\\\"")}"`;
+  }
   function emitYaml() {
     const lines = [
       "# Comfort-posture for Claude Code agents.",
@@ -848,16 +1115,57 @@ _JS = r"""
       "# The /set-posture skill translates this into .claude/settings.json rules.",
       `schema_version: ${state.schema_version}`,
       `global_default: ${state.global_default}`,
-      "categories:"
+      "",
     ];
+    /* security_deny — emit only patterns currently checked (preserve baseline order) */
+    const activeDeny = state.security_deny_baseline.filter(
+      p => state.security_deny.indexOf(p) !== -1
+    );
+    if (activeDeny.length) {
+      lines.push("# Always-on deny rules. Survive every preset.");
+      lines.push("security_deny:");
+      for (const p of activeDeny) lines.push(`  - ${quoteYamlKey(p)}`);
+      lines.push("");
+    }
+    lines.push("categories:");
     for (const k of Object.keys(state.categories).sort()) {
-      lines.push(`  ${k}: ${state.categories[k]}`);
+      const cat = state.categories[k];
+      const overrideKeys = Object.keys(cat.overrides);
+      if (overrideKeys.length === 0) {
+        lines.push(`  ${k}: ${cat.default}`);
+      } else {
+        lines.push(`  ${k}:`);
+        lines.push(`    default: ${cat.default}`);
+        lines.push("    overrides:");
+        for (const pat of overrideKeys.sort()) {
+          lines.push(`      ${quoteYamlKey(pat)}: ${cat.overrides[pat]}`);
+        }
+      }
     }
     return lines.join("\n") + "\n";
   }
 
   function render() {
     document.getElementById("yaml-output").textContent = emitYaml();
+    updateOverrideCounters();
+  }
+
+  /* Update the "N overridden" badge in each pattern-details summary. */
+  function updateOverrideCounters() {
+    document.querySelectorAll(".pattern-override-count[data-for]").forEach(el => {
+      const cat = el.getAttribute("data-for");
+      if (!state.categories[cat]) return;
+      const n = Object.keys(state.categories[cat].overrides).length;
+      el.textContent = n === 0 ? "0 overridden" : `${n} overridden`;
+      el.classList.toggle("has-overrides", n > 0);
+    });
+    const secEl = document.getElementById("sec-deny-active-count");
+    if (secEl) {
+      const active = state.security_deny.length;
+      const total = state.security_deny_baseline.length;
+      secEl.textContent = `${active}/${total} active`;
+      secEl.classList.toggle("has-overrides", active < total);
+    }
   }
 
   /* ── Form change wiring ─────────────────────────────────────────── */
@@ -866,7 +1174,35 @@ _JS = r"""
       if (inp.name === "global_default") {
         state.global_default = inp.value;
       } else if (catProps[inp.name]) {
-        state.categories[inp.name] = inp.value;
+        state.categories[inp.name].default = inp.value;
+      } else if (inp.name && inp.name.startsWith("pat-")) {
+        /* Per-pattern radio: read the pattern + category from the radiogroup */
+        const group = inp.closest(".seg-control-pattern");
+        if (group) {
+          const cat = group.getAttribute("data-category");
+          const pattern = group.getAttribute("data-pattern");
+          if (cat && pattern && state.categories[cat]) {
+            if (inp.value === "__default") {
+              delete state.categories[cat].overrides[pattern];
+            } else {
+              state.categories[cat].overrides[pattern] = inp.value;
+            }
+          }
+        }
+      }
+      flagUnsaved();
+      render();
+    });
+  });
+
+  /* security_deny checkboxes */
+  document.querySelectorAll(".sec-deny-checkbox").forEach(cb => {
+    cb.addEventListener("change", () => {
+      const pat = cb.value;
+      if (cb.checked) {
+        if (state.security_deny.indexOf(pat) === -1) state.security_deny.push(pat);
+      } else {
+        state.security_deny = state.security_deny.filter(p => p !== pat);
       }
       flagUnsaved();
       render();
@@ -880,18 +1216,24 @@ _JS = r"""
       if (!preset) return;
       const ok = confirm(
         `Apply the "${btn.dataset.preset}" preset?\n\n` +
-        `This will overwrite all per-category values.\n\n` +
+        `This will overwrite all per-category values AND clear any per-pattern overrides.\n\n` +
         (preset._description || "")
       );
       if (!ok) return;
       state.global_default = preset.global_default || state.global_default;
-      Object.assign(state.categories, preset.categories || {});
-      /* Sync DOM */
+      const presetCats = preset.categories || {};
+      for (const k of Object.keys(state.categories)) {
+        if (presetCats[k]) state.categories[k].default = presetCats[k];
+        state.categories[k].overrides = {};
+      }
+      /* Sync DOM: category radios + reset all pattern radios to __default */
       for (const inp of document.querySelectorAll('input[type="radio"]')) {
         if (inp.name === "global_default") {
           inp.checked = inp.value === state.global_default;
         } else if (catProps[inp.name]) {
-          inp.checked = inp.value === state.categories[inp.name];
+          inp.checked = inp.value === state.categories[inp.name].default;
+        } else if (inp.name && inp.name.startsWith("pat-")) {
+          inp.checked = inp.value === "__default";
         }
       }
       flagUnsaved();
