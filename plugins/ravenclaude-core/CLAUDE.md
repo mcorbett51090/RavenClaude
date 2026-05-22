@@ -300,7 +300,7 @@ Either way: refresh quarterly OR on env-posture change OR when `/wrap` surfaces 
 `ravenclaude-core` uses the standard component directories:
 
 - `agents/` — 14 specialist agent definitions (now includes `data-engineer`)
-- `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging
+- `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging, agent-quality-rubric, knowledge-file-staleness-sweep, prompt-pattern-library, plugin-release-checklist
 - `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn (all registered in `hooks/hooks.json` for plugin-level distribution)
 - `rules/` — coding-standards, security, git-workflow, agent-collaboration
 - `templates/` — memos, runbooks, design specs, RAID logs, partner-success, plus `agent-ready-repo/` templates used by `/init-agent-ready`
@@ -308,6 +308,15 @@ Either way: refresh quarterly OR on env-posture change OR when `/wrap` surfaces 
 - `knowledge/` — reference material the Researcher cross-checks
 
 **Convention for future plugins:** every plugin under `plugins/` MUST have `.claude-plugin/plugin.json`, `README.md`, and `CLAUDE.md`. It MAY add purpose-specific directories (e.g. `solutions/`, `flows/` in `power-platform`) — declare any non-default component paths in `plugin.json` (the `agents`, `skills`, `commands`, `hooks` fields all accept arrays) and add a `## Layout` section to that plugin's CLAUDE.md explaining the deviation.
+
+## New skills (v0.13.0)
+
+Four meta-discipline skills added to support agent authoring, knowledge hygiene, and release operations across the marketplace:
+
+- [`skills/agent-quality-rubric.md`](skills/agent-quality-rubric.md) — Score and improve an agent file against a 6-dimension rubric (Mission clarity, Scope sharpness, Capability Grounding alignment, Output-Contract completeness, Escalation paths, Example scenarios) with a remediation PR template. Used by `prompt-engineer` (primary) + `architect`.
+- [`skills/knowledge-file-staleness-sweep.md`](skills/knowledge-file-staleness-sweep.md) — Periodic staleness sweep over all `plugins/<plugin>/knowledge/*.md` + decision-tree sections — flags entries past 90/180/365-day thresholds, categorizes by Researcher Tier 1-5 effort, produces a remediation queue with named re-verifiers. Used by `deep-researcher` (primary) + the maintainer.
+- [`skills/prompt-pattern-library.md`](skills/prompt-pattern-library.md) — Curated catalog of the 9 already-extant marketplace prompt patterns (decision-tree traversal, alternate-methods, Structured Output, scenario-retrieval, mandatory-phrasing, citation-aware, environment-context, orchestrator-worker, scenario-authoring frontmatter), each with example block + composition checklist. Used by `prompt-engineer` (primary).
+- [`skills/plugin-release-checklist.md`](skills/plugin-release-checklist.md) — Pre-release checklist: plugin.json + marketplace.json + architecture.md version-mirror discipline, .repo-layout.json glob coverage, prettier check, audit-gates meta-test, migration-note rule, with bash + PowerShell commands per step and a hot-fix sub-section. Used by the maintainer (primary) + `project-manager`.
 
 ## Quality gates, Hooks, Rules & Templates (Unchanged Core + Extensions)
 
