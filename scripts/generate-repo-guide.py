@@ -58,6 +58,14 @@ FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
 YAML_KV_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.*)$")
 INLINE_LIST_RE = re.compile(r"^\[(.*)\]$")
 
+# Decision-tree section detection — matches `## Decision Tree: <Title>` and captures
+# until the next `## ` heading (or EOF). Used to populate the Decision Trees tab.
+DECISION_TREE_HEADING_RE = re.compile(
+    r"^##\s+Decision\s+Tree(?:\s*[:—-]\s*(?P<title>.+?))?\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+MERMAID_BLOCK_RE = re.compile(r"```mermaid\n(.*?)\n```", re.DOTALL)
+
 
 @dataclass
 class Item:
@@ -70,6 +78,18 @@ class Item:
     works_with: list[str] = field(default_factory=list)
     scenarios: list[dict] = field(default_factory=list)
     quickstart: list[str] = field(default_factory=list)
+
+
+@dataclass
+class DecisionTree:
+    """A Mermaid-rendered decision tree extracted from a knowledge/skill file."""
+    plugin: str  # plugin name
+    source_path: str  # repo-relative path to the file containing the tree
+    title: str  # the heading text after "Decision Tree:"
+    when_applies: str  # the "When this applies:" intro prose (if present)
+    last_verified: str  # the "Last verified:" date (if present)
+    mermaid: str  # the raw Mermaid source
+    rationale_md: str  # the per-leaf rationale prose (if present)
 
 
 @dataclass
@@ -86,6 +106,7 @@ class Plugin:
     templates: list[Item] = field(default_factory=list)
     bundled_mcp: list[Item] = field(default_factory=list)
     last_updated: str = ""  # YYYY-MM-DD from `git log -1 -- plugins/<name>`
+    decision_trees: list[DecisionTree] = field(default_factory=list)
 
 
 def _split_inline_list(s: str) -> list[str]:
@@ -279,6 +300,62 @@ def parse_agent(path: Path) -> Item:
     )
 
 
+def extract_decision_trees(plugin_dir: Path, plugin_name: str) -> list[DecisionTree]:
+    """Walk a plugin's knowledge/ + skills/ directories, find `## Decision Tree:` sections,
+    and capture (title, when-applies prose, last-verified date, Mermaid source, rationale).
+    Skips trees with no Mermaid block (just code-block-free trees aren't visually renderable).
+    """
+    trees: list[DecisionTree] = []
+    candidates: list[Path] = []
+    for sub in ("knowledge", "skills"):
+        d = plugin_dir / sub
+        if d.is_dir():
+            candidates.extend(p for p in d.rglob("*.md") if p.is_file())
+    for path in sorted(candidates):
+        text = read_text(path)
+        # Find all decision-tree section starts
+        matches = list(DECISION_TREE_HEADING_RE.finditer(text))
+        if not matches:
+            continue
+        for i, m in enumerate(matches):
+            section_start = m.end()
+            section_end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+            # Cap at the next `## ` heading regardless to avoid bleeding into the next section
+            next_heading = re.search(r"^##\s+", text[section_start:section_end], re.MULTILINE)
+            if next_heading:
+                section_end = section_start + next_heading.start()
+            section = text[section_start:section_end].strip()
+            # Extract Mermaid
+            mermaid_m = MERMAID_BLOCK_RE.search(section)
+            if not mermaid_m:
+                continue
+            mermaid_src = mermaid_m.group(1).strip()
+            # Extract "When this applies:" — bolded inline form
+            when_m = re.search(
+                r"\*\*When this applies:\*\*\s*(.+?)(?=\n\n|\*\*Last verified:|```)",
+                section,
+                re.DOTALL,
+            )
+            when_text = when_m.group(1).strip() if when_m else ""
+            # Extract "Last verified:" date
+            lv_m = re.search(r"\*\*Last verified:\*\*\s*(\S+)", section)
+            last_verified = lv_m.group(1).strip().rstrip(".") if lv_m else ""
+            # Everything after the mermaid block is the rationale + tradeoffs
+            rationale_md = section[mermaid_m.end():].strip()
+            trees.append(
+                DecisionTree(
+                    plugin=plugin_name,
+                    source_path=str(path.relative_to(REPO_ROOT)),
+                    title=(m.group("title") or "Decision Tree").strip(),
+                    when_applies=when_text,
+                    last_verified=last_verified,
+                    mermaid=mermaid_src,
+                    rationale_md=rationale_md,
+                )
+            )
+    return trees
+
+
 def git_last_updated(plugin_dir: Path) -> str:
     """Return the YYYY-MM-DD of the most recent commit that touched this plugin dir."""
     try:
@@ -422,6 +499,7 @@ def load_plugin(plugin_dir: Path, manifest_entry: dict) -> Plugin:
         plugin.bundled_mcp = [Item(name=k, description=str(v)) for k, v in mcp.items()]
 
     plugin.last_updated = git_last_updated(plugin_dir)
+    plugin.decision_trees = extract_decision_trees(plugin_dir, plugin.name)
     return plugin
 
 
@@ -678,6 +756,157 @@ def render_use_case_table(plugins: list[Plugin]) -> str:
     """
 
 
+def render_mermaid_block(mermaid_src: str) -> str:
+    """Render a Mermaid source as a <pre class='mermaid'> div for client-side rendering."""
+    # Mermaid.js reads `.mermaid` elements at startOnLoad time. We escape NOTHING
+    # inside the block — Mermaid's parser handles its own syntax. We do, however,
+    # need to make sure the content survives HTML — Mermaid sources rarely contain
+    # `<` or `&` but if they do we escape them via the standard html.escape().
+    return f'<pre class="mermaid">{esc(mermaid_src)}</pre>'
+
+
+def md_to_html_minimal(md: str) -> str:
+    """Minimal Markdown → HTML conversion for surfacing rationale + tradeoffs prose.
+    Handles: paragraphs, **bold**, `code`, lists, simple tables, fenced ```mermaid```.
+    NOT a full Markdown engine — just enough to make decision-tree sections readable
+    in the repo-guide. Replaces ```mermaid``` blocks with rendered Mermaid divs."""
+    # First extract and replace mermaid blocks with placeholders to preserve them.
+    mermaid_blocks: list[str] = []
+
+    def _stash(m: re.Match) -> str:
+        mermaid_blocks.append(m.group(1).strip())
+        return f"__MERMAID_PLACEHOLDER_{len(mermaid_blocks) - 1}__"
+
+    md_no_mermaid = MERMAID_BLOCK_RE.sub(_stash, md)
+
+    # Escape HTML, then convert markdown features
+    html_out = esc(md_no_mermaid)
+    # Bold **text**
+    html_out = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", html_out)
+    # Inline `code`
+    html_out = re.sub(r"`([^`\n]+?)`", r"<code>\1</code>", html_out)
+    # Headers (#, ##, ###)
+    html_out = re.sub(r"^### (.+)$", r"<h4>\1</h4>", html_out, flags=re.MULTILINE)
+    html_out = re.sub(r"^## (.+)$", r"<h3>\1</h3>", html_out, flags=re.MULTILINE)
+    # Tables — detect lines starting with `|` and convert
+    lines = html_out.split("\n")
+    out_lines: list[str] = []
+    in_table = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("|") and stripped.endswith("|"):
+            cells = [c.strip() for c in stripped.strip("|").split("|")]
+            if all(re.match(r"^[\s\-:]+$", c) for c in cells):
+                # divider row — skip
+                continue
+            row = "".join(f"<td>{c}</td>" for c in cells)
+            if not in_table:
+                out_lines.append('<table class="rationale-table"><tbody>')
+                in_table = True
+                # Treat the first such row as headers if it precedes a divider
+                # — but we already collapsed dividers, so all rows are body
+            out_lines.append(f"<tr>{row}</tr>")
+        else:
+            if in_table:
+                out_lines.append("</tbody></table>")
+                in_table = False
+            if stripped.startswith("- "):
+                out_lines.append(f"<li>{stripped[2:]}</li>")
+            elif stripped == "":
+                out_lines.append("")
+            else:
+                out_lines.append(f"<p>{stripped}</p>" if stripped else "")
+    if in_table:
+        out_lines.append("</tbody></table>")
+    # Wrap consecutive <li> in <ul>
+    final: list[str] = []
+    in_list = False
+    for line in out_lines:
+        if line.startswith("<li>"):
+            if not in_list:
+                final.append("<ul>")
+                in_list = True
+            final.append(line)
+        else:
+            if in_list:
+                final.append("</ul>")
+                in_list = False
+            final.append(line)
+    if in_list:
+        final.append("</ul>")
+    html_out = "\n".join(final)
+    # Restore mermaid blocks as <pre class="mermaid"> divs
+    for i, mermaid_src in enumerate(mermaid_blocks):
+        html_out = html_out.replace(
+            f"__MERMAID_PLACEHOLDER_{i}__", render_mermaid_block(mermaid_src)
+        )
+    return html_out
+
+
+def render_decision_trees_panel(plugins: list[Plugin]) -> str:
+    """Build the "Decision Trees" panel content — aggregates every tree across plugins."""
+    all_trees: list[DecisionTree] = []
+    for p in plugins:
+        all_trees.extend(p.decision_trees)
+    if not all_trees:
+        return '<p class="usecase-help">No decision trees in the marketplace yet. Add `## Decision Tree:` sections to plugin knowledge/skill files; the generator picks them up automatically.</p>'
+
+    # Per-plugin filter buttons
+    plugins_with_trees: set[str] = {t.plugin for t in all_trees}
+    filter_buttons = [
+        f'<button class="usecase-filter-btn dt-filter-btn active" data-dt-filter="__all__" '
+        f'style="--accent: var(--accent)">All <span class="count">{len(all_trees)}</span></button>'
+    ]
+    for p in plugins:
+        if p.name not in plugins_with_trees:
+            continue
+        n = sum(1 for t in all_trees if t.plugin == p.name)
+        color = PLUGIN_COLORS.get(p.name, DEFAULT_COLOR)
+        filter_buttons.append(
+            f'<button class="usecase-filter-btn dt-filter-btn" data-dt-filter="{esc(p.name)}" '
+            f'style="--accent: {color}">{esc(p.name)} <span class="count">{n}</span></button>'
+        )
+
+    tree_cards = []
+    for tree in all_trees:
+        color = PLUGIN_COLORS.get(tree.plugin, DEFAULT_COLOR)
+        lv_html = (
+            f'<span class="dt-last-verified">Last verified: <code>{esc(tree.last_verified)}</code></span>'
+            if tree.last_verified
+            else ""
+        )
+        when_html = (
+            f'<p class="dt-when"><strong>When this applies:</strong> {esc(tree.when_applies)}</p>'
+            if tree.when_applies
+            else ""
+        )
+        rationale_html = md_to_html_minimal(tree.rationale_md) if tree.rationale_md else ""
+        tree_cards.append(
+            f'<article class="decision-tree-card" data-dt-plugin="{esc(tree.plugin)}" '
+            f'style="--accent: {color}">'
+            f"<header>"
+            f'<h3>{esc(tree.title)}</h3>'
+            f'<span class="dt-plugin-chip">{esc(tree.plugin)}</span>'
+            f'{lv_html}'
+            f"</header>"
+            f"{when_html}"
+            f"{render_mermaid_block(tree.mermaid)}"
+            f'<details class="dt-rationale"><summary>Rationale + tradeoffs</summary>{rationale_html}</details>'
+            f'<div class="dt-source"><a href="#plugin-{esc(tree.plugin)}">{esc(tree.plugin)}</a> · '
+            f'<code>{esc(tree.source_path)}</code></div>'
+            f"</article>"
+        )
+
+    return (
+        '<p class="usecase-help">Every <code>## Decision Tree:</code> section across the marketplace, '
+        "rendered visually. Trees ship in plugin knowledge/skill files where multi-conditional procedural "
+        "knowledge benefits from forced traversal over prose recall. Stale-after-90-days backstop via the "
+        "Researcher's Weekly Deep Research sweep.</p>"
+        f'<div class="usecase-filter">{"".join(filter_buttons)}</div>'
+        f'<div id="decision-trees-list">{"".join(tree_cards)}</div>'
+    )
+
+
 def render(marketplace: dict, plugins: list[Plugin]) -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     market_version = marketplace.get("metadata", {}).get("version", "?")
@@ -711,6 +940,16 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
 
     index_json = render_index(plugins)
     usecase_table_html = render_use_case_table(plugins)
+    decision_trees_html = render_decision_trees_panel(plugins)
+
+    # Load the vendored Mermaid library for inline-script embedding.
+    mermaid_lib_path = REPO_ROOT / "scripts" / "vendor" / "mermaid.min.js"
+    try:
+        mermaid_lib_src = mermaid_lib_path.read_text(encoding="utf-8")
+    except OSError:
+        mermaid_lib_src = ""  # If missing, Mermaid blocks will not render but the page still works.
+    # Escape `{` and `}` so the f-string template doesn't interpret JS braces as format placeholders.
+    mermaid_lib_src = mermaid_lib_src.replace("{", "{{").replace("}", "}}")
 
     return f"""<!doctype html>
 <html lang="en">
@@ -883,6 +1122,32 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
     .usecase-table tr:hover {{ background: var(--surface); }}
     .usecase-table .intent-cell {{ max-width: 38ch; }}
     .usecase-table .difficulty {{ display: inline-block; padding: 0.1rem 0.45rem; border-radius: 3px; font-size: 0.72rem; }}
+    /* Decision Trees panel + Mermaid styling */
+    .decision-tree-card {{
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.5rem;
+    }}
+    .decision-tree-card.hidden-by-dt-filter {{ display: none; }}
+    .decision-tree-card header {{ display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem; }}
+    .decision-tree-card h3 {{ margin: 0; color: var(--accent); }}
+    .dt-plugin-chip {{ background: var(--surface-2); padding: 0.15rem 0.6rem; border-radius: 4px; font-size: 0.78rem; color: var(--muted); font-family: var(--font-mono); }}
+    .dt-last-verified {{ font-size: 0.78rem; color: var(--muted); margin-left: auto; }}
+    .dt-when {{ color: var(--muted); margin: 0.5rem 0 1rem 0; }}
+    .dt-rationale {{ margin-top: 1rem; border-top: 1px dashed var(--border); padding-top: 0.75rem; }}
+    .dt-rationale summary {{ cursor: pointer; font-size: 0.88rem; color: var(--muted); padding: 0.25rem 0; }}
+    .dt-rationale summary:hover {{ color: var(--accent); }}
+    .dt-rationale ul {{ padding-left: 1.25rem; }}
+    .dt-rationale li {{ margin-bottom: 0.35rem; font-size: 0.88rem; color: var(--muted); }}
+    .dt-rationale .rationale-table {{ width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.5rem 0; }}
+    .dt-rationale .rationale-table td {{ padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--surface-2); vertical-align: top; }}
+    .dt-source {{ margin-top: 0.75rem; font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); }}
+    pre.mermaid {{ background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 1rem; overflow-x: auto; text-align: center; }}
+    /* Mermaid library renders inline; hide raw source flash before render */
+    pre.mermaid:not([data-processed="true"]) {{ font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); white-space: pre-wrap; }}
     footer.site {{ text-align: center; padding: 2rem 1rem; color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 3rem; }}
     @media (max-width: 720px) {{
       header.site h1 {{ font-size: 1.2rem; }}
@@ -912,6 +1177,7 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
   <nav class="tabs" role="tablist">
     <button class="tab-btn" data-tab="overview" aria-selected="true">Overview</button>
     <button class="tab-btn" data-tab="plugins" aria-selected="false">Plugins</button>
+    <button class="tab-btn" data-tab="decision-trees" aria-selected="false">Decision Trees</button>
     <button class="tab-btn" data-tab="architecture" aria-selected="false">Architecture</button>
     <button class="tab-btn" data-tab="index" aria-selected="false">Index / Search</button>
   </nav>
@@ -945,6 +1211,11 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
       <input id="plugin-search" type="search" placeholder="Search agents, skills, hooks, rules, templates within the visible plugin(s)…" />
     </div>
     {plugin_cards}
+  </section>
+
+  <section class="panel" data-panel="decision-trees">
+    <h2 style="color: var(--accent); margin-top: 0;">Decision Trees</h2>
+    {decision_trees_html}
   </section>
 
   <section class="panel" data-panel="architecture">
@@ -1026,7 +1297,8 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
   }});
 
   // Overview-tab use-case table per-plugin filter
-  const usecaseFilterBtns = document.querySelectorAll('.usecase-filter-btn');
+  // Scope strictly to buttons that have data-usecase-filter (NOT data-dt-filter)
+  const usecaseFilterBtns = document.querySelectorAll('button[data-usecase-filter]');
   usecaseFilterBtns.forEach(btn => {{
     btn.addEventListener('click', () => {{
       const target = btn.dataset.usecaseFilter;
@@ -1034,6 +1306,19 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
       document.querySelectorAll('#usecase-table tbody tr').forEach(row => {{
         const match = (target === '__all__') || (row.dataset.plugin === target);
         row.classList.toggle('hidden-row', !match);
+      }});
+    }});
+  }});
+
+  // Decision-Trees-tab per-plugin filter (distinct selector from use-case table filter)
+  const dtFilterBtns = document.querySelectorAll('button[data-dt-filter]');
+  dtFilterBtns.forEach(btn => {{
+    btn.addEventListener('click', () => {{
+      const target = btn.dataset.dtFilter;
+      dtFilterBtns.forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.decision-tree-card').forEach(card => {{
+        const match = (target === '__all__') || (card.dataset.dtPlugin === target);
+        card.classList.toggle('hidden-by-dt-filter', !match);
       }});
     }});
   }});
@@ -1068,6 +1353,28 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
   }}
   renderIndex('');
   document.getElementById('index-search').addEventListener('input', e => renderIndex(e.target.value));
+</script>
+
+<!-- Inlined Mermaid library (vendored at scripts/vendor/mermaid.min.js) -->
+<script>{mermaid_lib_src}</script>
+<script>
+  // Initialize Mermaid with dark theme matching the repo-guide
+  if (typeof mermaid !== 'undefined') {{
+    mermaid.initialize({{
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {{
+        primaryColor: '#1f2937',
+        primaryTextColor: '#f1f5f9',
+        primaryBorderColor: '#334155',
+        lineColor: '#5eead4',
+        secondaryColor: '#0b1120',
+        tertiaryColor: '#111827',
+      }},
+      flowchart: {{ htmlLabels: true, curve: 'basis' }},
+      securityLevel: 'loose',
+    }});
+  }}
 </script>
 
 </body>
