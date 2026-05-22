@@ -1421,7 +1421,14 @@ def main() -> int:
     output = render(marketplace, plugins)
 
     if args.check:
-        sys.stdout.write(output)
+        # Force UTF-8 on stdout — Windows' default cp1252 console encoding
+        # cannot represent the em/en dashes and other non-ASCII characters in
+        # the generated HTML. Without this the script raises
+        # UnicodeEncodeError, the freshness gate then sees a failed generator
+        # (exit 3) and reports a false "stale" diagnosis. Equivalent to
+        # exporting PYTHONIOENCODING=utf-8, but baked in so it works on any
+        # shell.
+        sys.stdout.buffer.write(output.encode("utf-8"))
         return 0
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
