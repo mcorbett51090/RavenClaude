@@ -27,4 +27,35 @@ if command -v gh >/dev/null 2>&1; then
   fi
 fi
 
+# ── Headless Chrome deps for mermaid-cli (dashboard generator) ──────
+# The dashboard generator (per docs/proposals/2026-05-22-003-per-plugin-dashboard.md
+# §4.8) pre-renders Mermaid decision trees to static SVG at build time via
+# `npx @mermaid-js/mermaid-cli mmdc`. mmdc downloads chrome-headless-shell
+# which dynamically links the libs below. Without them mmdc fails with
+# "libatk-1.0.so.0: cannot open shared object file" and similar.
+#
+# Verified on Ubuntu 24.04 (Noble) devcontainer 2026-05-22 — see
+# docs/research/2026-05-22-dashboard-ux/spikes/mermaid-prerender/REPORT.md §2.
+# Ubuntu 24.04 renamed several libs to *t64 (64-bit time_t transition).
+#
+# apt-get install -y is idempotent (no-op on already-installed packages).
+log "Installing headless Chrome deps for mermaid-cli (idempotent)..."
+if sudo -n true 2>/dev/null; then
+  sudo apt-get install -y \
+    libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libasound2t64 \
+    libgbm1 libxfixes3 libxshmfence1 libnss3 libnspr4 \
+    libpangocairo-1.0-0 libpangoft2-1.0-0 fonts-liberation \
+    libxcomposite1 libxdamage1 libxrandr2 libxkbcommon0 \
+    libdrm2 libxext6 libxrender1 libcairo2 \
+    >/dev/null 2>&1 \
+    && log "  done" \
+    || log "  WARN: some packages didn't install — mermaid-cli may not work locally. CI runners have these pre-installed."
+else
+  log "  SKIP: no passwordless sudo. Install manually if running mermaid-cli locally:"
+  log "        sudo apt-get install -y libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libasound2t64 \\\\"
+  log "          libgbm1 libxfixes3 libxshmfence1 libnss3 libnspr4 libpangocairo-1.0-0 libpangoft2-1.0-0 \\\\"
+  log "          fonts-liberation libxcomposite1 libxdamage1 libxrandr2 libxkbcommon0 libdrm2 libxext6 \\\\"
+  log "          libxrender1 libcairo2"
+fi
+
 log "Setup complete. Available tools: claude, gh, node."
