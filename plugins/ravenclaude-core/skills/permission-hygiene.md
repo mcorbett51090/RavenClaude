@@ -9,6 +9,10 @@ Permission rules in Claude Code are infrastructure. They decide what Claude can 
 
 It composes with the Claude Code core `/fewer-permission-prompts` skill — that skill is the data-driven sweep (scan transcripts, propose allowlist entries). This skill is the higher-level "should we even allowlist that?" decision.
 
+## Future direction: the per-plugin dashboard (post-v0.1.0)
+
+The canonical way to set permission posture is moving to the per-plugin dashboard (see [`docs/proposals/2026-05-22-003-per-plugin-dashboard.md`](../../../docs/proposals/2026-05-22-003-per-plugin-dashboard.md)). The dashboard's Settings tab edits a `comfort-posture.yaml` ([proposal 002](../../../docs/proposals/2026-05-22-002-comfort-posture-mechanism.md)) which generates `.claude/settings.json` from a small set of categorical buckets. **Until the dashboard ships, the hand-edit workflow below is the path.** When the dashboard ships, the workflow below becomes the "manual override" fallback for cases the dashboard doesn't cover.
+
 ## When to invoke
 
 - `.claude/settings.local.json` has grown past ~20 rules — likely bloated with one-shot exact-argument approvals that will never re-match.
@@ -68,8 +72,9 @@ Once per month, or before a release:
 4. **Promote durable patterns** from `.claude/settings.local.json` up to `.claude/settings.json` so the team benefits.
 5. **Run `/fewer-permission-prompts`** to surface any patterns you missed.
 6. **Re-run a representative workflow** (commit + push + open PR). Confirm prompt rate dropped.
+7. **Delete `.claude/settings.local.json.bak`** once step 6 passes — the backup has served its purpose. Leaving stale `.bak` files around accumulates clutter and may confuse future cleanups about which file is current.
 
-Back up `settings.local.json.bak` before any destructive edit — the file is gitignored, so there's no `git checkout` to recover from.
+Back up to `settings.local.json.bak` before any destructive edit — the file is gitignored, so there's no `git checkout` to recover from. Delete the backup after step 6 confirms no regressions.
 
 ## On the "clearer detail in prompts" half of the problem
 

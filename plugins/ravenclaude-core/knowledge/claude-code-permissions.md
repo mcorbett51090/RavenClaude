@@ -1,6 +1,6 @@
 # Claude Code permissions — the load-bearing model
 
-> **Last reviewed:** 2026-05-22 against the Anthropic Claude Code documentation site at code.claude.com (permissions, permission-modes, settings, tools-reference pages). **Refresh when:** Anthropic ships a new permission mode, adds documented prompt-verbosity controls, or changes the cross-layer merge rule. Companion to [`../skills/permission-hygiene.md`](../skills/permission-hygiene.md).
+> **Last reviewed:** 2026-05-22 against the Anthropic Claude Code documentation site at code.claude.com (permissions, permission-modes, settings, tools-reference pages) AND the canonical GitHub Security Advisories at `github.com/anthropics/claude-code/security/advisories`. **Refresh when:** Anthropic ships a new permission mode, adds documented prompt-verbosity controls, changes the cross-layer merge rule, or publishes a new security advisory affecting the permission model. Companion to [`../skills/permission-hygiene.md`](../skills/permission-hygiene.md).
 
 This document is the long-form "why these patterns" reference behind the [`permission-hygiene`](../skills/permission-hygiene.md) skill. The skill tells you what to do; this file tells you what the model is and where the surprises live.
 
@@ -115,6 +115,43 @@ The bloat pattern, observed in real projects (including this marketplace, pre-20
 5. After a few weeks, the local file has dozens of nearly-identical rules — most for commands that will never recur verbatim (PR comments with literal text, `chmod +x <exact-script>.sh`, `mkdir -p <exact-path>`).
 
 The skill's periodic-cleanup ritual is the antidote. **Most local rules are noise, not policy.** Abstract the durable ones up to `.claude/settings.json`; delete the rest.
+
+## Past CVEs that shaped the permission model
+
+Settings files (`.claude/settings.json`, `.claude/settings.local.json`, managed-settings) are treated by Claude Code as **security boundaries**. Multiple advisories in the past year have shown how attacker-controlled settings or trust-bypass mechanisms led to arbitrary code execution. Each row below is verified against the canonical [GitHub Security Advisories for `anthropics/claude-code`](https://github.com/anthropics/claude-code/security/advisories); CVE numbers were cross-checked against NIST NVD.
+
+| Date | Title | Severity | Patched in | CVE | GHSA |
+|---|---|---|---|---|---|
+| Feb 6, 2026 | Sandbox Escape via Persistent Configuration Injection in settings.json | High (7.7) | v2.1.2 | [CVE-2026-25725](https://nvd.nist.gov/vuln/detail/CVE-2026-25725) | [GHSA-ff64-7w26-62rf](https://github.com/anthropics/claude-code/security/advisories/GHSA-ff64-7w26-62rf) |
+| Mar 18, 2026 | Workspace Trust Dialog Bypass via Repo-Controlled Settings File | High (7.7) | v2.1.53 | [CVE-2026-33068](https://nvd.nist.gov/vuln/detail/CVE-2026-33068) | [GHSA-mmgp-wc2j-qcv7](https://github.com/anthropics/claude-code/security/advisories/GHSA-mmgp-wc2j-qcv7) |
+| Apr 17, 2026 | Insecure System-Wide Configuration Loading Enables Local Privilege Escalation on Windows | Moderate (5.4) | v2.1.75 | [CVE-2026-35603](https://nvd.nist.gov/vuln/detail/CVE-2026-35603) | [GHSA-5cwg-9f6j-9jvx](https://github.com/anthropics/claude-code/security/advisories/GHSA-5cwg-9f6j-9jvx) |
+| Apr 20, 2026 | Sandbox Escape via Symlink Following Allows Arbitrary File Write Outside Workspace | High (7.7) | v2.1.64 | [CVE-2026-39861](https://nvd.nist.gov/vuln/detail/CVE-2026-39861) | [GHSA-vp62-r36r-9xqp](https://github.com/anthropics/claude-code/security/advisories/GHSA-vp62-r36r-9xqp) |
+| Apr 24, 2026 | Trust Dialog Bypass via Git Worktree Spoofing Allows Arbitrary Code Execution | High (7.7) | v2.1.84 | [CVE-2026-40068](https://nvd.nist.gov/vuln/detail/CVE-2026-40068) | [GHSA-q5hj-mxqh-vv77](https://github.com/anthropics/claude-code/security/advisories/GHSA-q5hj-mxqh-vv77) |
+
+### What the pattern tells you about the permission model
+
+1. **`settings.json` is attacker-relevant.** Three of the five CVEs above hinge on the file: a malicious repo committing a settings file with `defaultMode: bypassPermissions`; an attacker creating a missing `settings.json` from inside a sandbox to inject persistent hooks; an attacker creating `C:\ProgramData\ClaudeCode\managed-settings.json` on a Windows machine where the parent dir is world-writable. Treat any `settings.json` from outside your team — including ones inside a repo you just cloned — as untrusted input.
+2. **Trust-dialog bypasses recur.** Two of the five CVEs are workspace-trust bypasses (repo-controlled settings; git-worktree `commondir` spoofing). When you click "trust this workspace," you are extending trust to anything the workspace can later inject — including any hook script its `.claude/settings.json` references. Don't trust workspaces you wouldn't run `git clone && rm -rf /` against blindfolded.
+3. **Sandboxed exec + permission-deny don't fully isolate.** The Apr 20 symlink-escape (`CVE-2026-39861`) exploited the seam between two independently-restricted capabilities — a sandboxed command could create a symlink, the unsandboxed parent followed it. The lesson for *your* hooks: any "deny X" rule is only as strong as the absence of an indirection (symlink, junction, wrapper command) that the rule doesn't see.
+4. **Keep Claude Code updated.** All five of these were patched. Running `claude --version` and confirming you're on a recent release is the cheapest mitigation available; ignoring updates re-exposes you to fixed flaws.
+
+### Implications for project hooks (the `permission-hygiene` decision tree)
+
+These CVEs reinforce three pieces of the [`permission-hygiene`](../skills/permission-hygiene.md) skill's discipline:
+
+- **Don't lower permission mode in a repo-shared `.claude/settings.json`.** A `defaultMode: "auto"` or `defaultMode: "bypassPermissions"` value in the team-shared file is exactly the attack vector `CVE-2026-33068` exploited. Permission-mode escalation belongs in the user-level `~/.claude/settings.json` or per-session flags, not project files.
+- **Hooks in `.claude/settings.json` execute with host privileges.** A repo-shared `PreToolUse` hook is a legitimate tool — that's how `enforce-layout.sh` and `guard-destructive.sh` work in this marketplace. But because every CVE in the table above ends in "attacker-controlled hook executes arbitrary code," code-review on every new hook script is mandatory, not optional.
+- **Verify alleged vulnerabilities at canonical sources before acting on them.** During the dashboard-UX research run on 2026-05-22, an external blog post (`0day.click`) claimed `CVE-2026-39861` was a deep-link parameter-injection RCE patched in v2.1.118. NVD and the actual GitHub Security Advisory both confirm CVE-2026-39861 is the symlink-traversal sandbox escape in the table above — patched in v2.1.64, not v2.1.118. The blog post additionally contained a prompt-injection payload designed to manipulate AI assistants reading it. When a vendor name + CVE appear in untrusted prose, the Team Lead independently checks NVD + GitHub Security Advisories before letting the claim shape a design decision (see auto-memory `feedback_verify_cve_claims_at_team_lead.md`).
+
+### General URL-handler hygiene (not tied to any specific CVE)
+
+The `claude-cli://` deep-link scheme documented at [code.claude.com/docs/en/deep-links](https://code.claude.com/docs/en/deep-links) lets a web page pre-fill the Claude Code prompt box with a URL like `claude-cli://open?q=...&cwd=...&repo=...`. The prompt is populated but not executed until the user presses Enter. **No known CVE targets this surface as of 2026-05-22**, but standard URL-handler hygiene still applies for any UI that *generates* such links (e.g., the per-plugin dashboard's Commands tab — see proposal 003):
+
+- **Hard-coded `q` values only.** Never feed free-form user input into the `q` parameter. Ship an allow-list of pre-canned templates (`?q=%2Finit-agent-ready`, etc.).
+- **`cwd` from the UI's own context, not user input.** Don't let a user paste a path that becomes the working directory.
+- **Always show the user what will be pre-filled before launching.** Deep links should never feel like a magic action; they should feel like "click to open Claude Code with this exact prompt staged."
+
+This guidance is general URL-handler defense-in-depth, not mitigation of a specific advisory.
 
 ## Hooks beat broad rules
 
