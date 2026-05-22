@@ -717,7 +717,7 @@ body {
 .pattern-list {
   max-height: 360px;
   overflow-y: auto;
-  padding: 4px 8px 8px;
+  padding: 12px 8px 8px;
   border-top: 1px dotted var(--border);
   background: var(--surface);
   border-radius: 4px;
