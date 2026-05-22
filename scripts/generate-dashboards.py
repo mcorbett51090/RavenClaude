@@ -217,11 +217,11 @@ def _render_pattern_details(category: str, patterns: list[str]) -> str:
 
     Each pattern row contains: pattern name (mono code) + info button (mirrors
     the category-row title-+-info-button layout), one-line `what` detail, and
-    a styled <select> dropdown with six options — "Use category default"
-    (selected initially; clears the override) plus the five level enums.
+    a segmented radiogroup matching the parent category's 5-level scale, plus
+    a subtle 6th "Default" segment that clears the override.
     """
-    select_options = [
-        ("__default", "Use category default"),
+    levels = [
+        ("__default", "Default"),
         ("deny", "Deny"),
         ("always-ask", "Always Ask"),
         ("mostly-ask", "Mostly Ask"),
@@ -229,7 +229,8 @@ def _render_pattern_details(category: str, patterns: list[str]) -> str:
         ("autopilot", "Autopilot"),
     ]
     rows: list[str] = []
-    for pattern in patterns:
+    for idx, pattern in enumerate(patterns):
+        radio_name = f"pat-{category}-{idx}"
         explanation = PATTERN_EXPLANATIONS.get(pattern, {})
         what_text = explanation.get("what", "")
         info_btn = (
@@ -239,11 +240,21 @@ def _render_pattern_details(category: str, patterns: list[str]) -> str:
             f'title="Explain this pattern">?</button>'
             if explanation else ""
         )
-        options_html = "".join(
-            f'<option value="{html.escape(v)}"{" selected" if v == "__default" else ""}>'
-            f'{html.escape(label)}</option>'
-            for v, label in select_options
-        )
+        radios: list[str] = []
+        for value, label in levels:
+            rid = f"{radio_name}-{value.replace('_', '-')}"
+            checked = "checked" if value == "__default" else ""
+            label_cls = (
+                "seg-label seg-pattern-default"
+                if value == "__default"
+                else f"seg-label seg-{html.escape(value)}"
+            )
+            radios.append(
+                f'<input type="radio" id="{html.escape(rid)}" '
+                f'name="{html.escape(radio_name)}" value="{html.escape(value)}" {checked}>'
+                f'<label for="{html.escape(rid)}" class="{label_cls}" '
+                f'title="{html.escape(value)}">{html.escape(label)}</label>'
+            )
         rows.append(
             f'<div class="pattern-row" data-pattern="{html.escape(pattern)}">'
             f'<div class="pattern-meta">'
@@ -252,13 +263,11 @@ def _render_pattern_details(category: str, patterns: list[str]) -> str:
             f'{info_btn}'
             f"</div>"
             f'<span class="pattern-detail">{html.escape(what_text)}</span>'
-            f'<select class="pattern-select" '
-            f'data-pattern="{html.escape(pattern)}" '
-            f'data-category="{html.escape(category)}" '
-            f'data-current="__default" '
+            f'<div class="seg-control seg-control-pattern" role="radiogroup" '
+            f'data-pattern="{html.escape(pattern)}" data-category="{html.escape(category)}" '
             f'aria-label="Level for {html.escape(pattern)}">'
-            + options_html
-            + "</select>"
+            + "".join(radios)
+            + "</div>"
             f"</div>"
         )
     return (
@@ -662,7 +671,7 @@ body {
  * segmented control; the per-pattern overrides are an "expand for advanced"
  * affordance. */
 .pattern-details {
-  margin: -10px 0 8px 0;
+  margin: 18px 0 8px 0;
   background: transparent;
   border: none;
   border-radius: 4px;
@@ -722,12 +731,12 @@ body {
   background: var(--surface);
   border-radius: 4px;
 }
-/* Per-pattern row: 3 columns — [code + ? meta] [detail] [select] */
+/* Per-pattern row: 3 columns — [code + ? meta] [detail] [seg-control] */
 .pattern-row {
   display: grid;
-  grid-template-columns: minmax(180px, 260px) 1fr auto;
+  grid-template-columns: minmax(180px, 240px) 1fr auto;
   gap: 14px;
-  padding: 7px 6px;
+  padding: 4px 6px;
   border-bottom: 1px dotted var(--border);
   align-items: center;
 }
@@ -776,50 +785,26 @@ body {
   vertical-align: middle;
 }
 
-/* Per-pattern level dropdown (styled <select>). The container row has a
- * `surface` background, so the select uses `surface-2` to read as a real
- * control. When the row is overridden (anything other than "Use category
- * default"), a thin colored underline indicates the level — no bg tint,
- * no font-weight shift; just an unobtrusive bottom border. */
-.pattern-select-wrap {
-  position: relative;
-  display: inline-block;
+/* Per-pattern segmented control — mimics the parent category's 5-level scale,
+ * with a subtle "Default" segment at the start to clear the override. Uses
+ * the same .seg-control class as the parent so the visual is consistent;
+ * .seg-control-pattern is a denser variant when needed. */
+.seg-control-pattern { padding: 1px; }
+.seg-control-pattern .seg-label {
+  padding: 4px 10px;
+  font-size: 11.5px;
+  min-width: 68px;
 }
-.pattern-select {
-  background: var(--surface-2);
+.seg-control-pattern .seg-label.seg-pattern-default {
+  font-style: italic;
+  color: var(--muted);
+  min-width: 56px;
+}
+.seg-control-pattern input[type="radio"]:checked + .seg-label.seg-pattern-default {
+  background: var(--surface);
   color: var(--text);
-  border: 1px solid var(--border);
-  border-bottom: 2px solid var(--border);
-  border-radius: 6px;
-  padding: 6px 30px 6px 14px;
-  font: inherit;
-  font-size: 12px;
-  line-height: 1.2;
-  cursor: pointer;
-  min-width: 188px;
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path fill='none' stroke='%23cbd5e1' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round' d='M3 4.75l3 3 3-3'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 12px 12px;
-  transition: border-color 80ms ease, background-color 80ms ease;
+  font-style: italic;
 }
-.pattern-select:hover {
-  border-color: var(--accent);
-  background-color: var(--surface);
-}
-.pattern-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-/* Default selection — text in muted tone so overrides stand out */
-.pattern-select[data-current="__default"] { color: var(--muted); }
-/* Overridden state: thin colored underline per level. No bg or weight change. */
-.pattern-select[data-current="deny"] { border-bottom-color: var(--danger); }
-.pattern-select[data-current="always-ask"] { border-bottom-color: var(--warn); }
-.pattern-select[data-current="mostly-ask"] { border-bottom-color: var(--accent); }
-.pattern-select[data-current="mostly-allow"] { border-bottom-color: var(--accent); }
-.pattern-select[data-current="autopilot"] { border-bottom-color: var(--warn); }
-.pattern-select option { background: var(--surface); color: var(--text); }
-.pattern-select option:first-child { color: var(--muted); font-style: italic; }
 
 /* Danger Zone — modeled on GitHub's destructive-actions section.
  * Red border, prominent red title, each pattern as a card with the rule
@@ -1428,25 +1413,20 @@ _JS = r"""
         state.global_default = inp.value;
       } else if (catProps[inp.name]) {
         state.categories[inp.name].default = inp.value;
-      }
-      flagUnsaved();
-      render();
-    });
-  });
-
-  /* Per-pattern dropdown change handlers */
-  document.querySelectorAll(".pattern-select").forEach(sel => {
-    sel.addEventListener("change", () => {
-      const cat = sel.getAttribute("data-category");
-      const pattern = sel.getAttribute("data-pattern");
-      if (cat && pattern && state.categories[cat]) {
-        if (sel.value === "__default") {
-          delete state.categories[cat].overrides[pattern];
-        } else {
-          state.categories[cat].overrides[pattern] = sel.value;
+      } else if (inp.name && inp.name.startsWith("pat-")) {
+        const group = inp.closest(".seg-control-pattern");
+        if (group) {
+          const cat = group.getAttribute("data-category");
+          const pattern = group.getAttribute("data-pattern");
+          if (cat && pattern && state.categories[cat]) {
+            if (inp.value === "__default") {
+              delete state.categories[cat].overrides[pattern];
+            } else {
+              state.categories[cat].overrides[pattern] = inp.value;
+            }
+          }
         }
       }
-      sel.setAttribute("data-current", sel.value);
       flagUnsaved();
       render();
     });
@@ -1483,17 +1463,15 @@ _JS = r"""
         if (presetCats[k]) state.categories[k].default = presetCats[k];
         state.categories[k].overrides = {};
       }
-      /* Sync DOM: category radios + reset every per-pattern select to default */
+      /* Sync DOM: category radios + reset every per-pattern radio to __default */
       for (const inp of document.querySelectorAll('input[type="radio"]')) {
         if (inp.name === "global_default") {
           inp.checked = inp.value === state.global_default;
         } else if (catProps[inp.name]) {
           inp.checked = inp.value === state.categories[inp.name].default;
+        } else if (inp.name && inp.name.startsWith("pat-")) {
+          inp.checked = inp.value === "__default";
         }
-      }
-      for (const sel of document.querySelectorAll(".pattern-select")) {
-        sel.value = "__default";
-        sel.setAttribute("data-current", "__default");
       }
       flagUnsaved();
       render();
