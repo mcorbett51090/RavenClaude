@@ -2,6 +2,23 @@
 
 All notable changes to the RavenClaude marketplace and its plugins. Format loosely follows [Keep a Changelog](https://keepachangelog.com/). The marketplace version (`metadata.version` in `.claude-plugin/marketplace.json`) bumps when the catalog shape or cross-plugin contracts change; individual plugins have their own semver tracked in their `plugin.json`.
 
+## marketplace 0.25.0 — 2026-05-22 (lesson capture: cross-platform-determinism)
+
+Self-improvement loop in action. Two real bugs landed in `scripts/generate-repo-guide.py` on the same day — both stemmed from non-deterministic, OS-dependent output in a generated artifact that gets committed and diff-checked in CI. Captured as a new skill so the lesson applies to every future generator the team writes.
+
+### ravenclaude-core 0.13.0
+
+- **New skill `skills/cross-platform-determinism.md`** — when a script generates a file that is committed to the repo and/or diff-checked in CI, the output MUST be deterministic and OS-independent. The skill enumerates the six categories of nondeterminism (path separators, encoding, line endings, ordering, timestamps, locale) with concrete before/after Python snippets and a review checklist. Motivated by two real bugs in this repo's own `scripts/generate-repo-guide.py`:
+  - **Path separators** — `str(path.relative_to(REPO_ROOT))` yields `plugins\foo\bar.md` on Windows but `plugins/foo/bar.md` on Linux. Any committed artifact regenerated on the opposite OS gets a giant unintended diff and the freshness gate fails forever. Fix: `path.relative_to(REPO_ROOT).as_posix()` everywhere a Path is serialized. The fix is also applied in this PR (9 sites).
+  - **Encoding** — the script wrote UTF-8 to stdout in `--check` mode; Windows cp1252 default crashes on em-dashes, smart quotes, arrows. Fix: explicit `encoding="utf-8"` on every read/write, plus `PYTHONIOENCODING=utf-8` or `sys.stdout.reconfigure(encoding="utf-8")` for stdout paths.
+- **`scripts/generate-repo-guide.py` fix** — applied the `.as_posix()` correction to all 9 `str(X.relative_to(REPO_ROOT))` sites. `repo-guide.html` regenerated with `PYTHONIOENCODING=utf-8`; zero backslash paths in the committed HTML.
+
+### Marketplace meta
+
+- `repo-guide.html` regenerated to pick up the new skill in the ravenclaude-core skills tab.
+
+**Migration for consumers:** `/plugin marketplace update ravenclaude` + `/reload-plugins`. Strictly additive — no breaking changes. The new skill is invokable by any agent reviewing or writing a generator script.
+
 ## marketplace 0.11.0 — 2026-05-21 (new plugin: edtech-partner-success)
 
 New domain plugin landing. Anchored on the Partner Success Manager (PSM) lane — vertical-explicit (we know it's education) but segment-agnostic (K-12 / higher-ed / corporate L&D). Built for an actual PSM running an actual book of EdTech partners, not for a generic customer-success tutorial.
@@ -77,7 +94,7 @@ Cross-plugin behavior change: agents now **proactively** enumerate alternative i
 
 - Catalog description now mentions the curated reference set as part of the web-design plugin's value proposition.
 
-**Migration for consumers:** `/plugin marketplace update ravenclaude` + `/reload-plugins`. No breaking changes — additive content only. The four updated agents will now apply the priors automatically when invoked for marketing-site work; consumers who want to read the full brief can open `plugins/web-design/knowledge/design-references.md` in their cached plugin tree (or browse it via the [`repo-guide.html`](repo-guide.html) at the repo root — [▶ view rendered](https://htmlpreview.github.io/?https://github.com/mcorbett51090/RavenClaude/blob/main/repo-guide.html)).
+**Migration for consumers:** `/plugin marketplace update ravenclaude` + `/reload-plugins`. No breaking changes — additive content only. The four updated agents will now apply the priors automatically when invoked for marketing-site work; consumers who want to read the full brief can open `plugins/web-design/knowledge/design-references.md` in their cached plugin tree (or browse it via the [`repo-guide.html`](../repo-guide.html) at the repo root).
 
 ## marketplace 0.5.0 → 0.7.1 — 2026-05-21 (catch-up note)
 
