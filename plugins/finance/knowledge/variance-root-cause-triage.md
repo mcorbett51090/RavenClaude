@@ -14,19 +14,19 @@ The natural impulse on an unexpected variance is to grab the most familiar expla
 
 ```mermaid
 flowchart TD
-    START[Material variance on a line item] --> Q1{Was the underlying account reconciled and the subledger tied to the GL?}
-    Q1 -->|NO| RECON[Stop. Route to controller for recon first.<br/>Commentary on unreconciled accounts is noise.]
-    Q1 -->|YES| Q2{Does the variance reverse if you net the prior and current period together?}
-    Q2 -->|YES| TIMING[TIMING / RECLASS<br/>Variance is a cutoff or accrual-reversal artifact, not a real miss]
-    Q2 -->|NO| Q3{Is there a one-time item in actuals or budget that the other side does not have?}
-    Q3 -->|YES| ONETIME[ONE-TIME / NON-RECURRING<br/>Isolate the item, restate the underlying run-rate]
-    Q3 -->|NO| Q4{Is the line in a currency different from the reporting currency, or does it consolidate FX-denominated subs?}
-    Q4 -->|"YES, FX rate moved >2pct vs budget rate"| FX[FX TRANSLATION<br/>Decompose into constant-currency variance and FX effect]
-    Q4 -->|NO, or FX impact immaterial| Q5{Is the line revenue, COGS, or a unit-driven cost?}
-    Q5 -->|YES| PVM[PRICE / VOLUME / MIX<br/>Decompose with PVM bridge before naming a driver]
-    Q5 -->|NO| Q6{Did a discrete decision change the run-rate this period — hire, contract, vendor switch, scope change?}
-    Q6 -->|YES| DECISION[DECISION-DRIVEN<br/>Name the decision, owner, and date in commentary]
-    Q6 -->|NO| FORECAST[FORECAST ERROR — last resort<br/>Name the assumption that broke and refresh the driver]
+    START[Material variance on a line item] --> Q1{"Was the underlying account reconciled and<br/>the subledger tied to the GL?"}
+    Q1 -->|NO| RECON["Stop. Route to controller for recon first.<br/>Commentary on unreconciled accounts is noise."]
+    Q1 -->|YES| Q2{"Does the variance reverse if you net<br/>the prior and current period together?"}
+    Q2 -->|YES| TIMING["TIMING or RECLASS<br/>Variance is a cutoff or accrual-reversal artifact,<br/>not a real miss"]
+    Q2 -->|NO| Q3{"Is there a one-time item in actuals or budget<br/>that the other side does not have?"}
+    Q3 -->|YES| ONETIME["ONE-TIME or NON-RECURRING<br/>Isolate the item, restate the underlying run-rate"]
+    Q3 -->|NO| Q4{"Is the line in a currency different from<br/>the reporting currency, or does it consolidate<br/>FX-denominated subs?"}
+    Q4 -->|"YES, FX rate moved over 2pct"| FX["FX TRANSLATION<br/>Decompose into constant-currency variance<br/>and FX effect"]
+    Q4 -->|NO, or FX immaterial| Q5{"Is the line revenue, COGS,<br/>or a unit-driven cost?"}
+    Q5 -->|YES| PVM["PRICE or VOLUME or MIX<br/>Decompose with PVM bridge before<br/>naming a driver"]
+    Q5 -->|NO| Q6{"Did a discrete decision change the run-rate<br/>this period - hire, contract, vendor switch?"}
+    Q6 -->|YES| DECISION["DECISION-DRIVEN<br/>Name the decision, owner,<br/>and date in commentary"]
+    Q6 -->|NO| FORECAST["FORECAST ERROR - last resort<br/>Name the assumption that broke<br/>and refresh the driver"]
 ```
 
 **Rationale per leaf:**

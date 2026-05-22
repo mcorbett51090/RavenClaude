@@ -16,14 +16,14 @@ The two most common wrong-first-picks: (a) treating an **MRIA as an MRA**, which
 
 ```mermaid
 flowchart TD
-    START[Regulator written finding received] --> Q1{Is the regulator the BMA<br/>or a Bermuda supervisor?}
-    Q1 -->|YES| BMA["BMA branch — route to<br/>bermuda-insurance-specialist<br/>for terminology mapping"]
-    Q1 -->|"NO, US federal banking"| Q2{"Is the document a formal enforcement order<br/>(consent order, C&D, civil money penalty)?"}
+    START[Regulator written finding received] --> Q1{"Is the regulator the BMA<br/>or a Bermuda supervisor?"}
+    Q1 -->|YES| BMA["BMA branch - route to<br/>bermuda-insurance-specialist<br/>for terminology mapping"]
+    Q1 -->|"NO, US federal banking"| Q2{"Is the document a formal enforcement order<br/>consent order, C and D, civil money penalty?"}
     Q2 -->|YES| CONSENT["CONSENT ORDER path<br/>counsel-led, board-mandated<br/>public-disclosure analysis required"]
-    Q2 -->|NO| Q3{"Does the finding use 'immediate'<br/>or cite repeat-finding escalation?"}
-    Q3 -->|YES| MRIA["MRIA path<br/>30–60 day response window<br/>interim controls within days<br/>board reporting required"]
-    Q3 -->|NO| Q4{Was the finding issued by the examiner<br/>vs. self-identified by firm?}
-    Q4 -->|YES| MRA["MRA path<br/>timely corrective action<br/>typical 90–180 day plan<br/>management response required"]
+    Q2 -->|NO| Q3{"Does the finding use the word immediate<br/>or cite repeat-finding escalation?"}
+    Q3 -->|YES| MRIA["MRIA path<br/>30-60 day response window<br/>interim controls within days<br/>board reporting required"]
+    Q3 -->|NO| Q4{"Was the finding issued by the examiner<br/>vs self-identified by firm?"}
+    Q4 -->|YES| MRA["MRA path<br/>timely corrective action<br/>typical 90-180 day plan<br/>management response required"]
     Q4 -->|NO| SII["Self-Identified Issue<br/>internal remediation plan<br/>regulator notification may still be required"]
 ```
 

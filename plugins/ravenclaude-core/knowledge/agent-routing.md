@@ -23,23 +23,23 @@ flowchart TD
     Q2 -->|NO| Q3{"Multi-file design choice not yet made,<br/>OR cross-cutting interface change?"}
     Q3 -->|YES| ARCH["Spawn architect FIRST<br/>plan then dispatch builders"]
     Q3 -->|NO| Q4{"Deliverable is prose for a human audience,<br/>NOT code?"}
-    Q4 -->|stakeholder memo / runbook / README| DOC[Spawn documentarian]
-    Q4 -->|RAID / status / task hygiene| PM[Spawn project-manager]
-    Q4 -->|partner profile / QBR / success plan| PSM[Spawn partner-success-manager]
-    Q4 -->|wireframe / UX spec / a11y audit| DSGN["Spawn designer<br/>(before any frontend-coder)"]
-    Q4 -->|agent prompt / skill authoring| PE[Spawn prompt-engineer]
-    Q4 -->|needs external fact-finding| DR[Spawn deep-researcher]
-    Q4 -->|NO, it's code| Q5{What surface does the code touch?}
-    Q5 -->|UI / styling / client-side only| FE[Spawn frontend-coder]
-    Q5 -->|API / DB schema / server-side only| BE[Spawn backend-coder]
-    Q5 -->|both ends in one feature slice| FS[Spawn fullstack-coder]
-    Q5 -->|pipelines / warehouse / ELT / dbt| DE[Spawn data-engineer]
+    Q4 -->|"stakeholder memo, runbook, README"| DOC[Spawn documentarian]
+    Q4 -->|"RAID, status, task hygiene"| PM[Spawn project-manager]
+    Q4 -->|"partner profile, QBR, success plan"| PSM[Spawn partner-success-manager]
+    Q4 -->|"wireframe, UX spec, a11y audit"| DSGN["Spawn designer<br/>before any frontend-coder"]
+    Q4 -->|"agent prompt or skill authoring"| PE[Spawn prompt-engineer]
+    Q4 -->|"needs external fact-finding"| DR[Spawn deep-researcher]
+    Q4 -->|"NO, it is code"| Q5{What surface does the code touch?}
+    Q5 -->|"UI or styling, client-side only"| FE[Spawn frontend-coder]
+    Q5 -->|"API or DB schema, server-side only"| BE[Spawn backend-coder]
+    Q5 -->|"both ends in one feature slice"| FS[Spawn fullstack-coder]
+    Q5 -->|"pipelines, warehouse, ELT, dbt"| DE[Spawn data-engineer]
     BE --> POST{Code change ready for merge?}
     FE --> POST
     FS --> POST
     DE --> POST
-    POST -->|needs tests written / run| QA[Spawn tester-qa]
-    POST -->|tests green, needs review| CR[Spawn code-reviewer]
+    POST -->|"needs tests written or run"| QA[Spawn tester-qa]
+    POST -->|"tests green, needs review"| CR[Spawn code-reviewer]
 ```
 
 **Rationale per leaf:**
