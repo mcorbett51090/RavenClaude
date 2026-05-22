@@ -13,8 +13,26 @@
     "autopilot": "Never ask. Claude acts on every pattern in this category."
   },
   "presets": {
-    "cautious": {
-      "_description": "Sets every category to ALWAYS ASK. Claude pauses before every non-trivial action. Maximum oversight, slowest velocity. Recommended starting point per Koch et al.'s 'OK blindness' finding.",
+    "deny": {
+      "_description": "LOCKDOWN. Sets every category to DENY. Claude refuses every action in every category. Useful only in tightly-scoped reviews where you want Claude to read prose but take no action.",
+      "global_default": "deny",
+      "categories": {
+        "file_read_project": "deny",
+        "file_edit_project": "deny",
+        "file_read_global": "deny",
+        "file_edit_global": "deny",
+        "shell_readonly": "deny",
+        "shell_local_mutate": "deny",
+        "shell_remote_mutate": "deny",
+        "shell_code_exec": "deny",
+        "shell_package_install": "deny",
+        "network_read": "deny",
+        "network_write": "deny",
+        "mcp_tools": "deny"
+      }
+    },
+    "always-ask": {
+      "_description": "Sets every category to ALWAYS ASK. Claude pauses before every non-trivial action, even repeat actions. Maximum oversight, slowest velocity. Good starting point per Koch et al.'s 'OK blindness' finding — relax specific categories as you build trust.",
       "global_default": "always-ask",
       "categories": {
         "file_read_project": "always-ask",
@@ -31,8 +49,8 @@
         "mcp_tools": "always-ask"
       }
     },
-    "balanced": {
-      "_description": "Sets every category to MOSTLY ASK. Claude asks about anything ambiguous; allows obviously-safe shapes. Reasonable middle posture.",
+    "mostly-ask": {
+      "_description": "Sets every category to MOSTLY ASK. Claude asks about anything ambiguous; allows the cheap, well-known patterns. Reasonable middle posture.",
       "global_default": "mostly-ask",
       "categories": {
         "file_read_project": "mostly-ask",
@@ -47,6 +65,24 @@
         "network_read": "mostly-ask",
         "network_write": "mostly-ask",
         "mcp_tools": "mostly-ask"
+      }
+    },
+    "mostly-allow": {
+      "_description": "Sets every category to MOSTLY ALLOW. Claude acts on most patterns; asks only when the shape is unusual or destructive. Tilts toward velocity but keeps a guardrail on outlier actions.",
+      "global_default": "mostly-allow",
+      "categories": {
+        "file_read_project": "mostly-allow",
+        "file_edit_project": "mostly-allow",
+        "file_read_global": "mostly-allow",
+        "file_edit_global": "mostly-allow",
+        "shell_readonly": "mostly-allow",
+        "shell_local_mutate": "mostly-allow",
+        "shell_remote_mutate": "mostly-allow",
+        "shell_code_exec": "mostly-allow",
+        "shell_package_install": "mostly-allow",
+        "network_read": "mostly-allow",
+        "network_write": "mostly-allow",
+        "mcp_tools": "mostly-allow"
       }
     },
     "autopilot": {

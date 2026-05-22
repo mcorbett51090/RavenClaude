@@ -97,14 +97,20 @@ def _render_stub_tab(name: str, when: str) -> str:
 
 def _render_settings_tab(properties: dict, presets: dict) -> str:
     """Render the Settings tab body from the schema's properties + presets."""
-    # Preset bar
+    # Preset bar — iterate in schema order (NOT sorted), so the order matches
+    # the segmented-control level order. Each preset button picks up a color
+    # tint matching the level it maps to.
     preset_buttons: list[str] = []
-    for preset_name in sorted(presets.keys()):
+    for preset_name in presets.keys():
         preset = presets[preset_name]
         preset_desc = preset.get("_description", "")
+        # The button label matches the level label so the connection is obvious.
+        button_label = _label_for(preset_name)
+        # CSS class for color tinting (matches .seg-label.seg-<level> palette)
         preset_buttons.append(
-            f'<button type="button" class="preset-btn" data-preset="{html.escape(preset_name)}" '
-            f'title="{html.escape(preset_desc)}">{html.escape(preset_name.capitalize())}</button>'
+            f'<button type="button" class="preset-btn preset-{html.escape(preset_name)}" '
+            f'data-preset="{html.escape(preset_name)}" '
+            f'title="{html.escape(preset_desc)}">{html.escape(button_label)}</button>'
         )
 
     # Global default segmented control
@@ -315,6 +321,7 @@ body {
   background: var(--surface-2);
   color: var(--text);
   border: 1px solid var(--border);
+  border-left-width: 3px;
   padding: 8px 16px;
   border-radius: 6px;
   font: inherit;
@@ -323,6 +330,12 @@ body {
 }
 .preset-btn:hover { border-color: var(--accent); }
 .preset-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Left-border tint matching the level color for visual link */
+.preset-btn.preset-deny { border-left-color: var(--danger); }
+.preset-btn.preset-always-ask { border-left-color: var(--warn); }
+.preset-btn.preset-mostly-ask { border-left-color: var(--accent); }
+.preset-btn.preset-mostly-allow { border-left-color: var(--accent); }
+.preset-btn.preset-autopilot { border-left-color: var(--warn); }
 .cat-group {
   background: var(--surface);
   border: 1px solid var(--border);
