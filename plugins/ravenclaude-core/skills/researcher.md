@@ -62,6 +62,16 @@ The Researcher must apply the Grounding Protocol to its own conclusions before p
 
 Actively seek credible dissenting views rather than only confirming existing knowledge.
 
+## Environment-context staleness check (added 2026-05-22)
+
+The Weekly Deep Research sweep MUST also check the consumer's `.ravenclaude/environment-context.md` (if present) for staleness:
+
+1. Read the file's `Last reviewed:` field (or git `last-modified` if no field exists)
+2. If older than 90 days, surface in the Research Report as **action: re-run [`environment-discovery`](environment-discovery.md)** or manual refresh
+3. The file silently going stale produces the failure mode this whole mechanism was built to prevent — agent forgets it's authorized and starts asking the user for auth again. The 90-day check is the anti-stale backstop.
+
+This check runs alongside the decision-tree staleness check below; both feed the same "priors aging out" concern.
+
 ## Decision-tree staleness check (added 2026-05-21)
 
 The Weekly Deep Research sweep MUST include a staleness check for decision trees per the convention in [`../../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md).

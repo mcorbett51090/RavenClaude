@@ -282,12 +282,16 @@ The Team Lead reads `.ravenclaude/environment-context.md` at the consumer's proj
 2. Injects a compact summary into the working context (e.g., *"Per `.ravenclaude/environment-context.md`: agent is sysadmin in DEV/TEST, read-only in PROD; pre-authorized for solution import/export + Web API + pac CLI in DEV/TEST"*)
 3. Surfaces the summary to dispatched specialists in their focused-task brief when their work might touch one of those environments
 
+When the file is ABSENT, the Team Lead offers auto-discovery via the [`environment-discovery`](skills/environment-discovery.md) skill instead of asking the user to fill in the template by hand. The skill probes installed CLIs (`pac`, `az`, `aws`, `gcloud`, `gh`) with read-only commands, decodes any acquired JWTs, and assembles a draft `.ravenclaude/environment-context.md` for the user to save / edit / skip. Discovery never runs without user confirmation; discovery is read-only by contract; discovery refuses to write any credentials to the file.
+
 This is the load-bearing wiring for the Capability Grounding Protocol's pre-action environment-context check (above). Without the load, the check has nothing to read.
 
-**Consumer-side workflow for creating the file:**
-- Copy `plugins/ravenclaude-core/templates/environment-context.md` from the marketplace to `.ravenclaude/environment-context.md` in the consumer's project root
-- Fill in the consumer's actual environment posture
-- Refresh quarterly OR on env-posture change OR when `/wrap` surfaces a new action category worth pre-authorizing
+**Consumer-side workflow for creating the file (two paths):**
+
+- **Auto-discovery (recommended)** — at session start when the file is absent, accept the Team Lead's offer to run [`environment-discovery`](skills/environment-discovery.md). One prompt, ~30 seconds of read-only probes, save / edit / skip. Future sessions reuse the saved file.
+- **Manual** — copy `plugins/ravenclaude-core/templates/environment-context.md` from the marketplace to `.ravenclaude/environment-context.md`, fill in by hand.
+
+Either way: refresh quarterly OR on env-posture change OR when `/wrap` surfaces a new action category worth pre-authorizing. The Researcher's Weekly Deep Research flags files older than 90 days.
 
 **Privacy boundary:** the file lives in the consumer's project (not in the marketplace plugin) because it contains identifying info (env names, SPN names, tenant slugs). Never commit a marketplace-shipped `environment-context.md` containing real consumer posture. Marketplace ships the **template only**.
 
