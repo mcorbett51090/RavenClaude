@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. All 7 plugins ship example-scenario frontmatter on every agent (55 agents total). Capability Grounding Protocol has 4 composing clauses: pre-action environment-context check + pre-action decision-tree traversal + alternate-methods enumeration + mandatory blocked-phrasing. **Auto-discovery for permission-awareness:** the new environment-discovery skill probes installed CLIs (pac/az/aws/gcloud/gh) at session start and assembles `.ravenclaude/environment-context.md` automatically. Plugins: ravenclaude-core (14 + /wrap + scenario-retrieval + environment-discovery skills), power-platform (11 + bundled pbix-mcp + Mermaid decision-tree knowledge file + scenarios bank), finance (7), regulatory-compliance (6 + BMA Bermuda specialist), web-design (7 + WCAG/CWV/SEO discipline), edtech-partner-success (6 PSM-lane specialists — K-12 / higher-ed / corporate L&D agnostic), data-platform (4 for dashboard engagements). Repo-guide includes Overview-tab 'I want to…' use-case lookup filterable by plugin + per-plugin last-updated badges. Salesforce on the roadmap.",
-    "version": "0.21.0"
+    "version": "0.22.0"
   },
   "plugins": [
     {
@@ -30,7 +30,7 @@
       "name": "power-platform",
       "source": "./plugins/power-platform",
       "description": "Microsoft Power Platform specialist team — 11 specialists (Test Studio + DAX + pac solution check tester, PBIP-git + DAX + ADO power-bi-engineer, canvas/Power Fx, Power Automate + connectors, Dataverse modeling, model-driven apps, pac CLI + ALM, tenant governance/DLP, PCF, Copilot Studio + AI Builder, Power Pages). House-opinions hook covers 8 mechanically-detectable §3/§4 violations. v0.11.0: first Mermaid decision tree in a knowledge file (PA flow recovery). v0.10.0: scenarios bank with 3 seed scenarios from the customer DEV engagement. **v0.12.0 — all 11 agents now ship example-scenario frontmatter** (audience + works_with + scenarios + quickstart), feeding the repo-guide's per-agent cards and Overview-tab use-case lookup. Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval (requires `pip install pbix-mcp`).",
-      "version": "0.12.1",
+      "version": "0.12.2",
       "author": {
         "name": "Matt Corbett"
       },

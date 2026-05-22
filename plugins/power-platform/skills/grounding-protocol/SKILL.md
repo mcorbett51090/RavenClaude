@@ -1,6 +1,6 @@
 ---
 name: grounding-protocol
-description: Reduce confident-but-incorrect "I can't do that" claims by forcing agents to verify capabilities before refusing scope. Mandatory checklist: skills review, alternate methods enumeration, team-composition check, escalation phrasing. Inherited by every Power Platform agent.
+description: Reduce confident-but-incorrect "I can't do that" claims by forcing agents to verify capabilities before refusing scope. Mandatory checklist covers skills review, alternate-methods enumeration, team-composition check, and escalation phrasing. Inherited by every Power Platform agent.
 ---
 
 # Grounding Protocol Skill
