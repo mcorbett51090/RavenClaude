@@ -16,7 +16,7 @@ incorporated_research:
   - docs/research/2026-05-22-dashboard-ux/02-architect-review.md
 modifications_from_proposal:
   - "B1: File-size budget rewritten — Mermaid runtime (3.3 MB) dropped in favour of pre-rendered SVGs at generator time; revised total ~250-350 KB"
-  - "B2: fetch() under file:// does not work — activity feed uses JSONP-style <script src='runs/index.js'> shim instead of fetch()"
+  - "B2 (revised 2026-05-22 after Spike 2 verification): fetch() under file:// does not work AND <script src> cross-file loads are ALSO blocked by default Chrome/Firefox. Original JSONP-shim fix doesn't work. Revised fix: inline the entire activity-feed data into dashboard.html at generator time; /wrap regenerates the dashboard after each run."
   - "B3 (revised 2026-05-22 after Team Lead CVE re-verification): no security floor on deep links — CVE-2026-39861 was misattributed by the original research source; actual CVE-2026-39861 is a symlink-traversal sandbox escape, not deep-link RCE. Floor is just the feature-availability floor (v2.1.91+ where deep links exist); degrade to Copy-slash-command if unsupported. Hard-coded `q` allow-list kept as URL-handler defense-in-depth."
   - "B4: Decision-tree path-highlight-from-settings stretch goal dropped entirely — requires structured condition annotation convention that does not exist yet"
   - "S1: Preset mechanic changed to root-level presets: block in schema (single source of truth, generator infers preset-aware fields); per-field x-preset-aware: true annotation dropped"
@@ -272,22 +272,38 @@ Two changes to consuming plugins:
 
 ### 4.7 Activity feed (v0.2.0)
 
-> **Scope note:** this surface ships as a stub tab in v0.1.0 and fills in during v0.2.0. Two prerequisites must land first: (a) the JSONP shim spike confirms `<script src="runs/index.js">` works under `file://` in Chrome + Firefox; (b) the `events.jsonl` template lands in `templates/run-artifacts/` (today that directory has only `summary.md.template` and `structured-result.json.template`). Until (b) lands, the feed degrades gracefully to `summary.md` + `structured-output.json` only.
+> **Scope note:** this surface ships as a stub tab in v0.1.0 and fills in during v0.2.0. One prerequisite must land first: the `events.jsonl` template in `templates/run-artifacts/` (today that directory has only `summary.md.template` and `structured-result.json.template`). Until it lands, the feed degrades gracefully to `summary.md` + `structured-output.json` only.
 
 The activity feed is a card-per-run timeline reading from the run artifacts the plugin writes to `.ravenclaude/runs/<id>/` (per `plugins/ravenclaude-core/CLAUDE.md` §"Run Artifacts & Observability Standard").
 
-**Load mechanic under `file://` — JSONP shim:**
+**Load mechanic under `file://` — inline everything at generator time:**
 
-`fetch('./runs/index.json')` does not work when the dashboard is opened as a `file://` URL. Modern Chrome and Firefox treat local files as opaque origins and CORS-reject file-to-file fetches. The fix: the `/wrap` slash command writes `runs/index.js` (not `.json`) in the JSONP shape:
+> **Revised 2026-05-22 after Spike 2 verification.** The original recommendation was a JSONP shim (`<script src="runs/index.js">`) on the theory that `<script src>` is exempt from CORS. **That theory is wrong for modern browsers under `file://`.** Default Chrome and default Firefox (since 2019) block ALL cross-file subresource loads — `fetch()`, `<script src>`, `<link>`, etc. — when the parent page is at `file://`. The "JSONP exempt from CORS" pattern applies only to http:// origins. Verified empirically in `docs/research/2026-05-22-dashboard-ux/spikes/jsonp-shim/REPORT.md` §1.
 
-```js
-window.__ravenclaude_runs = [
-  { "id": "2026-05-22-abc", "summary": "Drafted proposal 003", "status": "complete", "specialists": ["documentarian"], "duration_s": 420 },
-  ...
-];
+The fix: inline the entire activity-feed data into a `<script>` block in `dashboard.html` at generator time. The `/wrap` slash command regenerates the dashboard after each run completes.
+
+```html
+<!-- dashboard.html (excerpt) -->
+<script>
+  window.__ravenclaude_runs = [
+    {
+      "id": "2026-05-22-abc",
+      "type": "team",
+      "title": "Drafted proposal 003",
+      "status": "complete",
+      "specialists": ["documentarian"],
+      "duration_s": 420,
+      "summary_md_inline": "## Summary\n\n...",        // full content inline
+      "structured_output_inline": { ... }              // full content inline
+    },
+    // ...more runs
+  ];
+</script>
 ```
 
-The dashboard loads it with `<script src="runs/index.js">` — script tags are not subject to CORS. This is the load mechanic for v0.2.0.
+**Size at Matt's scale:** 10 runs ≈ 25 KB inline; 50 runs ≈ 120 KB; 100 runs ≈ 240 KB. The dashboard's total budget is 500 KB, so the inline activity feed comfortably fits through dozens of runs. Above ~100 runs, fall back to inline-last-50 + per-run static HTML files for older runs (separate `runs/<id>.html` files opened in new tabs — each one self-contained, no cross-file loading needed).
+
+The `/wrap` command's regen step: one shell-out to `generate-dashboards.py --plugin <name> --quick`, ~2-5s per regen.
 
 **Feed layout:**
 
@@ -498,8 +514,8 @@ Earlier on 2026-05-22, an external blog post (`0day.click`) claimed CVE-2026-398
 | Phase | Deliverable | Notes | Status |
 |---|---|---|---|
 | **1** | This proposal lands; architect + security review | Accepted with modifications (B1–B4, S1) | done |
-| **2** | Two spikes first: (a) pre-render Mermaid via mermaid-cli, (b) JSONP shim under `file://`. Then: `generate-dashboards.py` + `dashboard-schema.json` + form renderer + **Settings tab** + **Commands tab** (with deep links, hard-coded `q` allow-list, silent degrade if `claude-cli://` scheme unsupported) + `dashboard-settings-resolver` skill + `validate-dashboard-yaml.sh` hook + `.repo-layout.json` globs + **finance plugin pilot** | Deep links bumped from phase 4 to here — load-bearing for no-memorized-commands constraint. v0.1.0 honest estimate: 17–26 hours. | not started |
-| **3** | **Trees tab** (pre-rendered SVG + click-to-expand rationale side-panel) + **Activity feed tab** (JSONP shim + card-per-run + lazy-load + client-side key-level redaction) + roll out to all plugins (`ravenclaude-core` meta-dashboard first, then power-platform, then others as they ship) | Activity feed requires `events.jsonl` template to land before chronological-events view ships; degrade to `summary.md` only until then. | not started |
+| **2** | Spike 1 (Mermaid pre-render via mermaid-cli) ran 2026-05-22 — **PASSED.** Then: `generate-dashboards.py` + `dashboard-schema.json` + form renderer + **Settings tab** + **Commands tab** (with deep links, hard-coded `q` allow-list, silent degrade if `claude-cli://` scheme unsupported) + `dashboard-settings-resolver` skill + `validate-dashboard-yaml.sh` hook + `.repo-layout.json` globs + **finance plugin pilot** | Deep links bumped from phase 4 to here — load-bearing for no-memorized-commands constraint. v0.1.0 honest estimate: 17–26 hours. | not started |
+| **3** | **Trees tab** (pre-rendered SVG + click-to-expand rationale side-panel) + **Activity feed tab** (inline-at-generator-time + card-per-run + client-side key-level redaction + `/wrap` regenerates dashboard after each run) + roll out to all plugins (`ravenclaude-core` meta-dashboard first, then power-platform, then others as they ship) | Activity feed requires `events.jsonl` template to land before chronological-events view ships; degrade to `summary.md` only until then. Spike 2 (JSONP shim) ran 2026-05-22 — **REJECTED the JSONP approach; inline-everything is the revised mechanic.** | not started |
 | **4** | Optional: live YAML preview pane in Settings tab; pan/zoom on trees (svg-pan-zoom, ~30 KB) if real demand surfaces; `/reload-settings` slash command; Excel export for finance | none mandatory | not started |
 
 Phase 2 ships **with the finance plugin** — the schema design needs a real domain to constrain it. Comfort-posture folds in during phase 3 as the meta-dashboard's headline panel.
