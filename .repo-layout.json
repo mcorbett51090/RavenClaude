@@ -36,7 +36,11 @@
     "plugins/*/commands/**",
     "plugins/*/knowledge/**",
     "plugins/*/scenarios/**",
-    "plugins/*/docs/**"
+    "plugins/*/docs/**",
+    "plugins/*/dashboard-schema.json",
+    "plugins/*/dashboard.html",
+    "plugins/*/dashboard-assets/**",
+    "scripts/generate-dashboards.py"
   ],
   "forbidden_globs": [],
   "suggestions": {

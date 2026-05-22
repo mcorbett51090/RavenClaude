@@ -1,0 +1,1118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RavenClaude comfort posture</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #0b1120;
+  --surface: #111827;
+  --surface-2: #1f2937;
+  --border: #334155;
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --accent: #14b8a6;
+  --accent-dim: #0d9488;
+  --warn: #fbbf24;
+  --danger: #ef4444;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 8px;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --surface-2: #e2e8f0;
+    --border: #cbd5e1;
+    --text: #0f172a;
+    --muted: #475569;
+    --accent: #0d9488;
+    --accent-dim: #14b8a6;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+.page-header {
+  padding: 24px 32px 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.page-header h1 {
+  margin: 0 0 4px 0;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+.page-header .plugin-name {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+.page-header .page-desc {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0 0 16px 0;
+  max-width: 800px;
+}
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+}
+.tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  padding: 10px 16px;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-weight: 500;
+}
+.tab-btn[aria-selected="true"] {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.tab-panel { display: none; padding: 24px 32px; }
+.tab-panel.active { display: block; }
+.stub {
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  text-align: center;
+}
+.stub h2 { margin-top: 0; color: var(--muted); }
+.stub p { color: var(--muted); }
+.stub code { background: var(--surface-2); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+
+/* Settings tab layout */
+.settings-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .settings-layout { grid-template-columns: 1fr; }
+}
+.preset-bar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+.preset-bar h3 { margin: 0 0 4px 0; font-size: 14px; }
+.preset-bar p { margin: 0 0 12px 0; color: var(--muted); font-size: 13px; }
+.preset-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.preset-btn {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+  font-weight: 500;
+}
+.preset-btn:hover { border-color: var(--accent); }
+.preset-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Left-border tint matching the level color for visual link */
+.preset-btn.preset-deny { border-left-color: var(--danger); }
+.preset-btn.preset-always-ask { border-left-color: var(--warn); }
+.preset-btn.preset-mostly-ask { border-left-color: var(--accent); }
+.preset-btn.preset-mostly-allow { border-left-color: var(--accent); }
+.preset-btn.preset-autopilot { border-left-color: var(--warn); }
+.cat-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px 8px;
+  margin: 0 0 16px;
+}
+.cat-group legend {
+  color: var(--accent);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  padding: 0 8px;
+}
+.cat-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+@media (max-width: 1100px) {
+  .cat-row { grid-template-columns: 1fr; }
+  .cat-row .seg-control { justify-self: start; }
+}
+.cat-row:last-child { border-bottom: none; }
+.cat-title-row { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+.cat-title { font-weight: 500; font-size: 14px; }
+.cat-desc { font-size: 12px; color: var(--muted); max-width: 480px; }
+.info-btn {
+  background: var(--surface-2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.info-btn:hover { color: var(--accent); border-color: var(--accent); }
+.info-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Segmented control (radiogroup with pill buttons) */
+.seg-control {
+  display: inline-flex;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 0;
+  flex-wrap: nowrap;
+}
+.seg-control input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.seg-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 80ms ease, color 80ms ease;
+  user-select: none;
+  min-width: 82px;
+  text-align: center;
+  white-space: nowrap;
+}
+.seg-control input[type="radio"]:checked + .seg-label {
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
+}
+/* Restrictive levels get warning-tinted selection */
+.seg-control input[type="radio"]:checked + .seg-label.seg-deny { background: var(--danger); color: white; }
+.seg-control input[type="radio"]:checked + .seg-label.seg-always-ask { background: var(--warn); color: var(--bg); }
+.seg-control input[type="radio"]:checked + .seg-label.seg-autopilot { background: var(--warn); color: var(--bg); }
+.seg-control input[type="radio"]:focus-visible + .seg-label {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.seg-label:hover { color: var(--text); }
+
+/* Modal (info-icon popup) */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+}
+.modal-backdrop.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-width: 640px;
+  width: 100%;
+  max-height: 85vh;
+  overflow: auto;
+  padding: 24px;
+}
+.modal h2 { margin-top: 0; font-size: 18px; color: var(--accent); }
+.modal h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 20px 0 8px; }
+.modal .modal-subhead { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
+.modal p { font-size: 14px; line-height: 1.55; margin: 0 0 4px; }
+.modal .example-list {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+.modal .example-list li { color: var(--text); margin-bottom: 2px; }
+.modal .example-list li::marker { color: var(--accent); }
+.modal .close-btn {
+  float: right;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+}
+.modal .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Global-default row gets a slight surface emphasis */
+.global-default {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+.global-default .cat-meta { padding-right: 16px; }
+
+/* Live YAML preview pane */
+.yaml-preview {
+  position: sticky;
+  top: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.yaml-preview h3 {
+  margin: 0;
+  padding: 12px 16px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.yaml-preview pre {
+  margin: 0;
+  padding: 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text);
+  max-height: 60vh;
+  overflow: auto;
+  white-space: pre;
+}
+.yaml-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.btn {
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  flex: 1;
+}
+.btn:hover { background: var(--accent-dim); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn.secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 500;
+}
+.btn.secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(40px);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 10px 18px;
+  font-size: 13px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease, transform 160ms ease;
+  z-index: 1000;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+footer.page-footer {
+  padding: 16px 32px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  background: var(--surface);
+}
+footer.page-footer a { color: var(--accent); text-decoration: none; }
+footer.page-footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <h1>RavenClaude comfort posture</h1>
+  <p class="page-desc">Categorical permission-autonomy scale for Claude Code. Edited via this plugin&#x27;s dashboard.html Settings tab; saved to .ravenclaude/comfort-posture.yaml in the consumer&#x27;s project. The /set-posture skill translates this YAML into .claude/settings.json permission rules.</p>
+  <p class="page-desc"><span class="plugin-name">ravenclaude-core</span> &middot; static dashboard, no backend. Edits stay in your browser until you click Download.</p>
+  <nav class="tab-bar" role="tablist" aria-label="Dashboard tabs">
+    <button class="tab-btn" data-tab="settings" role="tab" aria-selected="true">Settings</button>
+    <button class="tab-btn" data-tab="commands" role="tab" aria-selected="false">Commands</button>
+    <button class="tab-btn" data-tab="trees" role="tab" aria-selected="false">Trees</button>
+    <button class="tab-btn" data-tab="activity" role="tab" aria-selected="false">Activity</button>
+  </nav>
+</header>
+
+<main>
+  <section class="tab-panel active" data-tab="settings" role="tabpanel" aria-label="Settings">
+<div class="settings-layout">
+  <div class="settings-form">
+    <div class="preset-bar">
+      <h3>Apply a preset</h3>
+      <p>Sets every category at once. You can still override individual rows below.</p>
+      <div class="preset-buttons"><button type="button" class="preset-btn preset-deny" data-preset="deny" title="LOCKDOWN. Sets every category to DENY. Claude refuses every action in every category. Useful only in tightly-scoped reviews where you want Claude to read prose but take no action.">Deny</button><button type="button" class="preset-btn preset-always-ask" data-preset="always-ask" title="Sets every category to ALWAYS ASK. Claude pauses before every non-trivial action, even repeat actions. Maximum oversight, slowest velocity. Good starting point per Koch et al.&#x27;s &#x27;OK blindness&#x27; finding — relax specific categories as you build trust.">Always Ask</button><button type="button" class="preset-btn preset-mostly-ask" data-preset="mostly-ask" title="Sets every category to MOSTLY ASK. Claude asks about anything ambiguous; allows the cheap, well-known patterns. Reasonable middle posture.">Mostly Ask</button><button type="button" class="preset-btn preset-mostly-allow" data-preset="mostly-allow" title="Sets every category to MOSTLY ALLOW. Claude acts on most patterns; asks only when the shape is unusual or destructive. Tilts toward velocity but keeps a guardrail on outlier actions.">Mostly Allow</button><button type="button" class="preset-btn preset-autopilot" data-preset="autopilot" title="WARNING: Sets every category to AUTOPILOT. Claude acts without asking on every pattern. THIS INCLUDES git push, npm/pip install, arbitrary code execution (python -c), writes outside the project (~/.ssh, /etc, etc.), and POSTs to web endpoints. Use only inside throwaway sandboxes where damage can&#x27;t propagate.">Autopilot</button></div>
+    </div>
+
+    <div class="global-default">
+      <div class="cat-row" data-category="global_default"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Global default</span><button type="button" class="info-btn" data-info-for="global_default" aria-label="Explain Global default" title="Explain this setting">?</button></div><div class="cat-desc">Used for any category not explicitly set below. Apply a preset to set this and all categories at once.</div></div><div class="seg-control" role="radiogroup" aria-label="Global default"><input type="radio" id="global-default-deny" name="global_default" value="deny" ><label for="global-default-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="global-default-always-ask" name="global_default" value="always-ask" ><label for="global-default-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="global-default-mostly-ask" name="global_default" value="mostly-ask" checked><label for="global-default-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="global-default-mostly-allow" name="global_default" value="mostly-allow" ><label for="global-default-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="global-default-autopilot" name="global_default" value="autopilot" ><label for="global-default-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div>
+    </div>
+
+    <fieldset class="cat-group"><legend>Files</legend><div class="cat-row" data-category="file_edit_global" data-group="Files"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Edit files outside this project</span><button type="button" class="info-btn" data-info-for="file_edit_global" aria-label="Explain Edit files outside this project" title="Explain this setting">?</button></div><div class="cat-desc">Writing to your home directory or system paths.</div></div><div class="seg-control" role="radiogroup" aria-label="Edit files outside this project"><input type="radio" id="cat-file_edit_global-deny" name="file_edit_global" value="deny" ><label for="cat-file_edit_global-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-file_edit_global-always-ask" name="file_edit_global" value="always-ask" ><label for="cat-file_edit_global-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-file_edit_global-mostly-ask" name="file_edit_global" value="mostly-ask" checked><label for="cat-file_edit_global-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-file_edit_global-mostly-allow" name="file_edit_global" value="mostly-allow" ><label for="cat-file_edit_global-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-file_edit_global-autopilot" name="file_edit_global" value="autopilot" ><label for="cat-file_edit_global-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="file_edit_project" data-group="Files"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Edit files in this project</span><button type="button" class="info-btn" data-info-for="file_edit_project" aria-label="Explain Edit files in this project" title="Explain this setting">?</button></div><div class="cat-desc">Creating or modifying files inside the current project.</div></div><div class="seg-control" role="radiogroup" aria-label="Edit files in this project"><input type="radio" id="cat-file_edit_project-deny" name="file_edit_project" value="deny" ><label for="cat-file_edit_project-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-file_edit_project-always-ask" name="file_edit_project" value="always-ask" ><label for="cat-file_edit_project-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-file_edit_project-mostly-ask" name="file_edit_project" value="mostly-ask" checked><label for="cat-file_edit_project-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-file_edit_project-mostly-allow" name="file_edit_project" value="mostly-allow" ><label for="cat-file_edit_project-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-file_edit_project-autopilot" name="file_edit_project" value="autopilot" ><label for="cat-file_edit_project-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="file_read_global" data-group="Files"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Read files outside this project</span><button type="button" class="info-btn" data-info-for="file_read_global" aria-label="Explain Read files outside this project" title="Explain this setting">?</button></div><div class="cat-desc">Reading anything outside the current project directory.</div></div><div class="seg-control" role="radiogroup" aria-label="Read files outside this project"><input type="radio" id="cat-file_read_global-deny" name="file_read_global" value="deny" ><label for="cat-file_read_global-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-file_read_global-always-ask" name="file_read_global" value="always-ask" ><label for="cat-file_read_global-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-file_read_global-mostly-ask" name="file_read_global" value="mostly-ask" checked><label for="cat-file_read_global-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-file_read_global-mostly-allow" name="file_read_global" value="mostly-allow" ><label for="cat-file_read_global-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-file_read_global-autopilot" name="file_read_global" value="autopilot" ><label for="cat-file_read_global-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="file_read_project" data-group="Files"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Read files in this project</span><button type="button" class="info-btn" data-info-for="file_read_project" aria-label="Explain Read files in this project" title="Explain this setting">?</button></div><div class="cat-desc">Reading source files inside the current project directory.</div></div><div class="seg-control" role="radiogroup" aria-label="Read files in this project"><input type="radio" id="cat-file_read_project-deny" name="file_read_project" value="deny" ><label for="cat-file_read_project-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-file_read_project-always-ask" name="file_read_project" value="always-ask" ><label for="cat-file_read_project-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-file_read_project-mostly-ask" name="file_read_project" value="mostly-ask" checked><label for="cat-file_read_project-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-file_read_project-mostly-allow" name="file_read_project" value="mostly-allow" ><label for="cat-file_read_project-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-file_read_project-autopilot" name="file_read_project" value="autopilot" ><label for="cat-file_read_project-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div></fieldset><fieldset class="cat-group"><legend>Network</legend><div class="cat-row" data-category="network_read" data-group="Network"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Web reads</span><button type="button" class="info-btn" data-info-for="network_read" aria-label="Explain Web reads" title="Explain this setting">?</button></div><div class="cat-desc">WebFetch on known documentation domains; HTTP GETs.</div></div><div class="seg-control" role="radiogroup" aria-label="Web reads"><input type="radio" id="cat-network_read-deny" name="network_read" value="deny" ><label for="cat-network_read-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-network_read-always-ask" name="network_read" value="always-ask" ><label for="cat-network_read-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-network_read-mostly-ask" name="network_read" value="mostly-ask" checked><label for="cat-network_read-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-network_read-mostly-allow" name="network_read" value="mostly-allow" ><label for="cat-network_read-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-network_read-autopilot" name="network_read" value="autopilot" ><label for="cat-network_read-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="network_write" data-group="Network"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Web writes</span><button type="button" class="info-btn" data-info-for="network_write" aria-label="Explain Web writes" title="Explain this setting">?</button></div><div class="cat-desc">POST, PUT, DELETE — anything that mutates remote state.</div></div><div class="seg-control" role="radiogroup" aria-label="Web writes"><input type="radio" id="cat-network_write-deny" name="network_write" value="deny" ><label for="cat-network_write-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-network_write-always-ask" name="network_write" value="always-ask" ><label for="cat-network_write-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-network_write-mostly-ask" name="network_write" value="mostly-ask" checked><label for="cat-network_write-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-network_write-mostly-allow" name="network_write" value="mostly-allow" ><label for="cat-network_write-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-network_write-autopilot" name="network_write" value="autopilot" ><label for="cat-network_write-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div></fieldset><fieldset class="cat-group"><legend>Other</legend><div class="cat-row" data-category="mcp_tools" data-group="Other"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">MCP server tools</span><button type="button" class="info-btn" data-info-for="mcp_tools" aria-label="Explain MCP server tools" title="Explain this setting">?</button></div><div class="cat-desc">Tools provided by connected MCP servers.</div></div><div class="seg-control" role="radiogroup" aria-label="MCP server tools"><input type="radio" id="cat-mcp_tools-deny" name="mcp_tools" value="deny" ><label for="cat-mcp_tools-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-mcp_tools-always-ask" name="mcp_tools" value="always-ask" ><label for="cat-mcp_tools-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-mcp_tools-mostly-ask" name="mcp_tools" value="mostly-ask" checked><label for="cat-mcp_tools-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-mcp_tools-mostly-allow" name="mcp_tools" value="mostly-allow" ><label for="cat-mcp_tools-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-mcp_tools-autopilot" name="mcp_tools" value="autopilot" ><label for="cat-mcp_tools-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div></fieldset><fieldset class="cat-group"><legend>Shell</legend><div class="cat-row" data-category="shell_code_exec" data-group="Shell"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Arbitrary code execution</span><button type="button" class="info-btn" data-info-for="shell_code_exec" aria-label="Explain Arbitrary code execution" title="Explain this setting">?</button></div><div class="cat-desc">python -c, node -e, bash -c, eval.</div></div><div class="seg-control" role="radiogroup" aria-label="Arbitrary code execution"><input type="radio" id="cat-shell_code_exec-deny" name="shell_code_exec" value="deny" ><label for="cat-shell_code_exec-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-shell_code_exec-always-ask" name="shell_code_exec" value="always-ask" ><label for="cat-shell_code_exec-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-shell_code_exec-mostly-ask" name="shell_code_exec" value="mostly-ask" checked><label for="cat-shell_code_exec-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-shell_code_exec-mostly-allow" name="shell_code_exec" value="mostly-allow" ><label for="cat-shell_code_exec-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-shell_code_exec-autopilot" name="shell_code_exec" value="autopilot" ><label for="cat-shell_code_exec-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="shell_local_mutate" data-group="Shell"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Local shell mutations</span><button type="button" class="info-btn" data-info-for="shell_local_mutate" aria-label="Explain Local shell mutations" title="Explain this setting">?</button></div><div class="cat-desc">mkdir, mv, cp, git commit. Changes filesystem locally.</div></div><div class="seg-control" role="radiogroup" aria-label="Local shell mutations"><input type="radio" id="cat-shell_local_mutate-deny" name="shell_local_mutate" value="deny" ><label for="cat-shell_local_mutate-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-shell_local_mutate-always-ask" name="shell_local_mutate" value="always-ask" ><label for="cat-shell_local_mutate-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-shell_local_mutate-mostly-ask" name="shell_local_mutate" value="mostly-ask" checked><label for="cat-shell_local_mutate-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-shell_local_mutate-mostly-allow" name="shell_local_mutate" value="mostly-allow" ><label for="cat-shell_local_mutate-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-shell_local_mutate-autopilot" name="shell_local_mutate" value="autopilot" ><label for="cat-shell_local_mutate-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="shell_package_install" data-group="Shell"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Package installs</span><button type="button" class="info-btn" data-info-for="shell_package_install" aria-label="Explain Package installs" title="Explain this setting">?</button></div><div class="cat-desc">npm install, pip install, apt install, brew install.</div></div><div class="seg-control" role="radiogroup" aria-label="Package installs"><input type="radio" id="cat-shell_package_install-deny" name="shell_package_install" value="deny" ><label for="cat-shell_package_install-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-shell_package_install-always-ask" name="shell_package_install" value="always-ask" ><label for="cat-shell_package_install-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-shell_package_install-mostly-ask" name="shell_package_install" value="mostly-ask" checked><label for="cat-shell_package_install-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-shell_package_install-mostly-allow" name="shell_package_install" value="mostly-allow" ><label for="cat-shell_package_install-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-shell_package_install-autopilot" name="shell_package_install" value="autopilot" ><label for="cat-shell_package_install-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="shell_readonly" data-group="Shell"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Read-only shell commands</span><button type="button" class="info-btn" data-info-for="shell_readonly" aria-label="Explain Read-only shell commands" title="Explain this setting">?</button></div><div class="cat-desc">ls, cat, git status, grep, find. Cheap shell with no side effects.</div></div><div class="seg-control" role="radiogroup" aria-label="Read-only shell commands"><input type="radio" id="cat-shell_readonly-deny" name="shell_readonly" value="deny" ><label for="cat-shell_readonly-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-shell_readonly-always-ask" name="shell_readonly" value="always-ask" ><label for="cat-shell_readonly-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-shell_readonly-mostly-ask" name="shell_readonly" value="mostly-ask" checked><label for="cat-shell_readonly-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-shell_readonly-mostly-allow" name="shell_readonly" value="mostly-allow" ><label for="cat-shell_readonly-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-shell_readonly-autopilot" name="shell_readonly" value="autopilot" ><label for="cat-shell_readonly-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="shell_remote_mutate" data-group="Shell"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Remote shell mutations</span><button type="button" class="info-btn" data-info-for="shell_remote_mutate" aria-label="Explain Remote shell mutations" title="Explain this setting">?</button></div><div class="cat-desc">git push, gh pr create, npm publish — anything that touches a shared system.</div></div><div class="seg-control" role="radiogroup" aria-label="Remote shell mutations"><input type="radio" id="cat-shell_remote_mutate-deny" name="shell_remote_mutate" value="deny" ><label for="cat-shell_remote_mutate-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-shell_remote_mutate-always-ask" name="shell_remote_mutate" value="always-ask" ><label for="cat-shell_remote_mutate-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-shell_remote_mutate-mostly-ask" name="shell_remote_mutate" value="mostly-ask" checked><label for="cat-shell_remote_mutate-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-shell_remote_mutate-mostly-allow" name="shell_remote_mutate" value="mostly-allow" ><label for="cat-shell_remote_mutate-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-shell_remote_mutate-autopilot" name="shell_remote_mutate" value="autopilot" ><label for="cat-shell_remote_mutate-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div></fieldset>
+  </div>
+
+  <aside class="yaml-preview">
+    <h3>
+      <span>comfort-posture.yaml</span>
+      <span id="yaml-status" style="color: var(--muted); font-weight: 400; font-size: 12px;">unsaved</span>
+    </h3>
+    <pre id="yaml-output"></pre>
+    <div class="yaml-actions">
+      <button class="btn" id="copy-btn">Copy YAML</button>
+      <button class="btn secondary" id="download-btn">Download</button>
+    </div>
+  </aside>
+</div>
+  </section>
+  <section class="tab-panel" data-tab="commands" role="tabpanel" aria-label="Commands">
+<div class="stub"><h2>Commands tab</h2><p>Ships in <strong>v0.2.0</strong>. See <code>docs/proposals/2026-05-22-003-per-plugin-dashboard.md</code> for the design.</p></div>
+  </section>
+  <section class="tab-panel" data-tab="trees" role="tabpanel" aria-label="Decision trees">
+<div class="stub"><h2>Decision trees tab</h2><p>Ships in <strong>v0.2.0</strong>. See <code>docs/proposals/2026-05-22-003-per-plugin-dashboard.md</code> for the design.</p></div>
+  </section>
+  <section class="tab-panel" data-tab="activity" role="tabpanel" aria-label="Activity">
+<div class="stub"><h2>Activity tab</h2><p>Ships in <strong>v0.2.0</strong>. See <code>docs/proposals/2026-05-22-003-per-plugin-dashboard.md</code> for the design.</p></div>
+  </section>
+</main>
+
+<div class="modal-backdrop" id="info-modal" role="dialog" aria-modal="true" aria-labelledby="info-modal-title" tabindex="-1">
+  <div class="modal">
+    <button type="button" class="close-btn" id="info-modal-close" aria-label="Close">&times;</button>
+    <h2 id="info-modal-title">Setting</h2>
+    <p class="modal-subhead" id="info-modal-desc"></p>
+    <h3>What this controls</h3>
+    <p id="info-modal-controls"></p>
+    <h3>Examples</h3>
+    <ul id="info-modal-examples" class="example-list"></ul>
+    <h3>When to relax or tighten</h3>
+    <p id="info-modal-guidance"></p>
+  </div>
+</div>
+
+<footer class="page-footer">
+  Generated by <code>scripts/generate-dashboards.py</code>.
+  Source schema: <code>plugins/ravenclaude-core/dashboard-schema.json</code>.
+  Design: <a href="https://github.com/mcorbett51090/RavenClaude/blob/main/docs/proposals/2026-05-22-003-per-plugin-dashboard.md">proposal 003</a>.
+</footer>
+
+<script type="application/json" id="schema-data">
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mcorbett51090/RavenClaude/plugins/ravenclaude-core/dashboard-schema.json",
+  "title": "RavenClaude comfort posture",
+  "description": "Categorical permission-autonomy scale for Claude Code. Edited via this plugin's dashboard.html Settings tab; saved to .ravenclaude/comfort-posture.yaml in the consumer's project. The /set-posture skill translates this YAML into .claude/settings.json permission rules.",
+  "type": "object",
+  "schema_version": 3,
+  "_level_descriptions": {
+    "deny": "Hard block. Claude refuses the action even if asked.",
+    "always-ask": "Confirm every single time, even repeat actions.",
+    "mostly-ask": "Confirm except for obviously-safe cases.",
+    "mostly-allow": "Allow except for risky or destructive cases.",
+    "autopilot": "Never ask. Claude acts on every pattern in this category."
+  },
+  "presets": {
+    "deny": {
+      "_description": "LOCKDOWN. Sets every category to DENY. Claude refuses every action in every category. Useful only in tightly-scoped reviews where you want Claude to read prose but take no action.",
+      "global_default": "deny",
+      "categories": {
+        "file_read_project": "deny",
+        "file_edit_project": "deny",
+        "file_read_global": "deny",
+        "file_edit_global": "deny",
+        "shell_readonly": "deny",
+        "shell_local_mutate": "deny",
+        "shell_remote_mutate": "deny",
+        "shell_code_exec": "deny",
+        "shell_package_install": "deny",
+        "network_read": "deny",
+        "network_write": "deny",
+        "mcp_tools": "deny"
+      }
+    },
+    "always-ask": {
+      "_description": "Sets every category to ALWAYS ASK. Claude pauses before every non-trivial action, even repeat actions. Maximum oversight, slowest velocity. Good starting point per Koch et al.'s 'OK blindness' finding \u2014 relax specific categories as you build trust.",
+      "global_default": "always-ask",
+      "categories": {
+        "file_read_project": "always-ask",
+        "file_edit_project": "always-ask",
+        "file_read_global": "always-ask",
+        "file_edit_global": "always-ask",
+        "shell_readonly": "always-ask",
+        "shell_local_mutate": "always-ask",
+        "shell_remote_mutate": "always-ask",
+        "shell_code_exec": "always-ask",
+        "shell_package_install": "always-ask",
+        "network_read": "always-ask",
+        "network_write": "always-ask",
+        "mcp_tools": "always-ask"
+      }
+    },
+    "mostly-ask": {
+      "_description": "Sets every category to MOSTLY ASK. Claude asks about anything ambiguous; allows the cheap, well-known patterns. Reasonable middle posture.",
+      "global_default": "mostly-ask",
+      "categories": {
+        "file_read_project": "mostly-ask",
+        "file_edit_project": "mostly-ask",
+        "file_read_global": "mostly-ask",
+        "file_edit_global": "mostly-ask",
+        "shell_readonly": "mostly-ask",
+        "shell_local_mutate": "mostly-ask",
+        "shell_remote_mutate": "mostly-ask",
+        "shell_code_exec": "mostly-ask",
+        "shell_package_install": "mostly-ask",
+        "network_read": "mostly-ask",
+        "network_write": "mostly-ask",
+        "mcp_tools": "mostly-ask"
+      }
+    },
+    "mostly-allow": {
+      "_description": "Sets every category to MOSTLY ALLOW. Claude acts on most patterns; asks only when the shape is unusual or destructive. Tilts toward velocity but keeps a guardrail on outlier actions.",
+      "global_default": "mostly-allow",
+      "categories": {
+        "file_read_project": "mostly-allow",
+        "file_edit_project": "mostly-allow",
+        "file_read_global": "mostly-allow",
+        "file_edit_global": "mostly-allow",
+        "shell_readonly": "mostly-allow",
+        "shell_local_mutate": "mostly-allow",
+        "shell_remote_mutate": "mostly-allow",
+        "shell_code_exec": "mostly-allow",
+        "shell_package_install": "mostly-allow",
+        "network_read": "mostly-allow",
+        "network_write": "mostly-allow",
+        "mcp_tools": "mostly-allow"
+      }
+    },
+    "autopilot": {
+      "_description": "WARNING: Sets every category to AUTOPILOT. Claude acts without asking on every pattern. THIS INCLUDES git push, npm/pip install, arbitrary code execution (python -c), writes outside the project (~/.ssh, /etc, etc.), and POSTs to web endpoints. Use only inside throwaway sandboxes where damage can't propagate.",
+      "global_default": "autopilot",
+      "categories": {
+        "file_read_project": "autopilot",
+        "file_edit_project": "autopilot",
+        "file_read_global": "autopilot",
+        "file_edit_global": "autopilot",
+        "shell_readonly": "autopilot",
+        "shell_local_mutate": "autopilot",
+        "shell_remote_mutate": "autopilot",
+        "shell_code_exec": "autopilot",
+        "shell_package_install": "autopilot",
+        "network_read": "autopilot",
+        "network_write": "autopilot",
+        "mcp_tools": "autopilot"
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 3
+    },
+    "global_default": {
+      "type": "string",
+      "enum": [
+        "deny",
+        "always-ask",
+        "mostly-ask",
+        "mostly-allow",
+        "autopilot"
+      ],
+      "default": "mostly-ask",
+      "title": "Global default",
+      "description": "Used for any category not explicitly set below. Apply a preset to set this and all categories at once.",
+      "x-widget": "segmented",
+      "x-controls": "The fallback autonomy level for any category you don't set explicitly. Acts as a safety net so newly-added categories don't surprise you with a permissive default.",
+      "x-examples": [
+        "If you set this to 'Mostly Ask' and don't touch any per-category row, every category behaves as Mostly Ask.",
+        "If you set this to 'Autopilot' but override `file_edit_global` to 'Deny', everything else is on autopilot \u2014 but Claude still refuses to write outside your project."
+      ],
+      "x-guidance": "Most users start with 'Mostly Ask' here and relax specific categories where they trust Claude more. Setting this to 'Autopilot' is equivalent to enabling all categories at once \u2014 overrides become subtractive."
+    },
+    "categories": {
+      "type": "object",
+      "title": "Per-category overrides",
+      "description": "Each category's autonomy level. Override the global default per category.",
+      "properties": {
+        "file_read_project": {
+          "type": "string",
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "mostly-allow",
+            "autopilot"
+          ],
+          "title": "Read files in this project",
+          "description": "Reading source files inside the current project directory.",
+          "x-widget": "segmented",
+          "x-group": "Files",
+          "x-controls": "Anything Claude does to LOOK at files inside your current project directory \u2014 opening, scanning, reading. No changes to disk, no shell side effects, no network calls. This is the cheapest category.",
+          "x-examples": [
+            "ls src/",
+            "cat README.md",
+            "grep -r TODO src/",
+            "Opening a file in the IDE",
+            "Walking the directory tree to understand the project layout"
+          ],
+          "x-guidance": "Reading source files is essentially free \u2014 Claude can't break anything by looking. Most users keep this on 'Mostly Allow' or 'Autopilot'. Tighten to 'Mostly Ask' or 'Deny' only if your project has files Claude shouldn't routinely scan (a checked-in keystore, a vendored secret, a generated SBOM with binary blobs)."
+        },
+        "file_edit_project": {
+          "type": "string",
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "mostly-allow",
+            "autopilot"
+          ],
+          "title": "Edit files in this project",
+          "description": "Creating or modifying files inside the current project.",
+          "x-widget": "segmented",
+          "x-group": "Files",
+          "x-controls": "Write, Edit, MultiEdit \u2014 anything Claude does to CHANGE a file inside your current project. The change is recoverable via git as long as you commit regularly, but it does affect your working tree immediately.",
+          "x-examples": [
+            "Write('src/new-feature.py', ...) \u2014 creating a new file",
+            "Edit('package.json', ...) \u2014 modifying an existing file",
+            "MultiEdit refactoring across several files",
+            "Generating a new test file from a spec",
+            "Adding documentation to an existing module"
+          ],
+          "x-guidance": "If you want to review every change before it lands, set this to 'Always Ask' or 'Mostly Ask'. If you trust Claude to refactor or generate freely and rely on git for review, 'Mostly Allow' or 'Autopilot' works \u2014 the diff is visible after the fact. Pair with 'Always Ask' on shell_remote_mutate so Claude can edit freely but still pauses before pushing."
+        },
+        "file_read_global": {
+          "type": "string",
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "mostly-allow",
+            "autopilot"
+          ],
+          "title": "Read files outside this project",
+          "description": "Reading anything outside the current project directory.",
+          "x-widget": "segmented",
+          "x-group": "Files",
+          "x-controls": "Anything Claude does to READ files that live OUTSIDE your current project \u2014 your home directory, system paths, other projects. These paths frequently contain secrets or configuration Claude has no business with.",
+          "x-examples": [
+            "cat ~/.ssh/config \u2014 SSH keys and known hosts",
+            "cat ~/.aws/credentials \u2014 AWS access keys",
+            "head /etc/hosts \u2014 system DNS overrides",
+            "Reading from another project's directory tree",
+            "Inspecting browser cookie stores"
+          ],
+          "x-guidance": "Almost always set to 'Always Ask' or 'Deny'. Files outside your project often contain secrets \u2014 SSH keys, AWS creds, browser cookies, ~/.netrc. Only relax this if you have a specific reason (e.g., a single global config the agent legitimately needs to consult)."
+        },
+        "file_edit_global": {
+          "type": "string",
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "mostly-allow",
+            "autopilot"
+          ],
+          "title": "Edit files outside this project",
+          "description": "Writing to your home directory or system paths.",
+          "x-widget": "segmented",
+          "x-group": "Files",
+          "x-controls": "Anything Claude does to CHANGE files outside your current project \u2014 home directory, system config, other projects. These changes are often unrecoverable (no git tracking) and can affect every other workflow on your machine.",
+          "x-examples": [
+            "Write('~/.profile', ...) \u2014 adding to your shell init",
+            "Editing ~/.gitconfig",
+            "Writing into /etc/ (usually requires sudo, separate concern)",
+            "Modifying configs in ~/Library/ or ~/.config/",
+            "Touching another project's files from this session"
+          ],
+          "x-guidance": "Keep this on 'Always Ask' or 'Deny' unless you have a specific reason. CVE-2026-39861 is the canonical example of what goes wrong when sandboxed code escapes the workspace and writes outside. The few cases where you DO want global edits (e.g., updating ~/.gitconfig) are infrequent enough that always-asking is fine."
+        },
+        "shell_readonly": {
+          "type": "string",
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "mostly-allow",
+            "autopilot"
+          ],
+          "title": "Read-only shell commands",
+          "description": "ls, cat, git status, grep, find. Cheap shell with no side effects.",
+          "x-widget": "segmented",
+          "x-group": "Shell",
+          "x-controls": "Shell commands that DON'T change anything on disk and DON'T talk to a server. The 'cheap' shell \u2014 running them and not running them produces the same world afterward.",
+          "x-examples": [
+            "ls",
+            "cat file.txt",
+            "git status, git log, git diff",
+            "grep -r foo .",
+            "find . -name '*.md'",
+            "wc -l, head, tail, file"
+          ],
+          "x-guidance": "Claude Code already auto-allows many of these via its built-in READONLY_COMMANDS list, so the prompt rate is already low. 'Mostly Allow' or 'Autopilot' is usually right \u2014 'never ask for cheap shell' is the most common preference. Tighten only if you want every command logged into the prompt history."
+        },
+        "shell_local_mutate": {
+          "type": "string",
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "mostly-allow",
+            "autopilot"
+          ],
+          "title": "Local shell mutations",
+          "description": "mkdir, mv, cp, git commit. Changes filesystem locally.",
+          "x-widget": "segmented",
+          "x-group": "Shell",
+          "x-controls": "Shell commands that CHANGE your local filesystem but DON'T talk to a server. Effects stay on your machine and are usually recoverable (git reflog exists, files can be restored from snapshots).",
+          "x-examples": [
+            "mkdir src/new-feature",
+            "mv old-name.py new-name.py",
+            "cp src/template.py src/instance.py",
+            "git commit -m '...'",
+            "git checkout -b feature/x",
+            "rm temp/scratch.txt (recoverable from trash on most OSes)"
+          ],
+          "x-guidance": "Local mutations are usually recoverable \u2014 git history catches deletes, files can be restored. 'Mostly Ask' or 'Mostly Allow' is the typical choice. Tighten if you're working in a directory where moves/deletes would be hard to recover (e.g., a folder Claude shouldn't restructure without confirmation)."
+        },
+        "shell_remote_mutate": {
+          "type": "string",
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "mostly-allow",
+            "autopilot"
+          ],
+          "title": "Remote shell mutations",
+          "description": "git push, gh pr create, npm publish \u2014 anything that touches a shared system.",
+          "x-widget": "segmented",
+          "x-group": "Shell",
+          "x-controls": "Shell commands that PUBLISH to a system other people can see \u2014 git remotes, GitHub Issues/PRs, package registries, cloud buckets. Once these complete, you can't simply 'undo' them; reversal usually requires a counter-action that's also visible.",
+          "x-examples": [
+            "git push origin main",
+            "gh pr create",
+            "gh pr comment (visible to everyone in the repo)",
+            "npm publish (uploads to the registry)",
+            "aws s3 sync ... s3://bucket/ (changes remote state)"
+          ],
+          "x-guidance": "Most users keep this on 'Always Ask' or 'Mostly Ask' to preserve the review step. The cost of a wrong push isn't just the bad commit \u2014 it's the explanation to teammates, the revert PR, the audit trail. Even when Claude is 'usually right,' the asymmetric cost makes confirming each push worth it."
+        },
+        "shell_code_exec": {
+          "type": "string",
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "mostly-allow",
+            "autopilot"
+          ],
+          "title": "Arbitrary code execution",
+          "description": "python -c, node -e, bash -c, eval.",
+          "x-widget": "segmented",
+          "x-group": "Shell",
+          "x-controls": "Any command that lets Claude run code that WASN'T pre-written. These bypass per-tool gating because the inner code can do anything the shell can do.",
+          "x-examples": [
+            "python -c 'import os; os.system(...)'",
+            "node -e 'process.exit(0)'",
+            "bash -c 'curl ... | sh'",
+            "eval $UNTRUSTED_STRING",
+            "ruby -e '...', perl -e '...', awk 'BEGIN { system(...) }'"
+          ],
+          "x-guidance": "This is the category most often abused in security incidents \u2014 Cursor's settings.json injection (GHSA-ff64-7w26-62rf) ended in arbitrary `python -c` execution via SessionStart hooks. 'Always Ask' or 'Mostly Ask' is the safe default. Don't relax this unless you have a specific reason (e.g., a sandboxed REPL where exec is the whole point)."
+        },
+        "shell_package_install": {
+          "type": "string",
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "mostly-allow",
+            "autopilot"
+          ],
+          "title": "Package installs",
+          "description": "npm install, pip install, apt install, brew install.",
+          "x-widget": "segmented",
+          "x-group": "Shell",
+          "x-controls": "Commands that download and install packages from a registry. Package installs are higher-risk than they appear: many run post-install scripts with full shell access on your machine.",
+          "x-examples": [
+            "npm install foo-bar",
+            "pip install some-package",
+            "apt install -y baz",
+            "brew install qux",
+            "cargo install ...",
+            "go install github.com/.../..."
+          ],
+          "x-guidance": "Most users keep this on 'Always Ask' so you can review the package name and source before it lands. Supply-chain attacks (typosquats, malicious updates of legitimate packages) are real \u2014 the request to install something is the right place to pause."
+        },
+        "network_read": {
+          "type": "string",
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "mostly-allow",
+            "autopilot"
+          ],
+          "title": "Web reads",
+          "description": "WebFetch on known documentation domains; HTTP GETs.",
+          "x-widget": "segmented",
+          "x-group": "Network",
+          "x-controls": "GET-style requests that READ from the web. No mutation, no side effects on the remote system. Risk is limited to what Claude does with the response (which it has to read carefully anyway).",
+          "x-examples": [
+            "WebFetch('https://docs.anthropic.com/...')",
+            "curl https://api.github.com/repos/...",
+            "Looking up an MDN article",
+            "Fetching a public RFC",
+            "Querying a CDN for a library's docs"
+          ],
+          "x-guidance": "'Mostly Allow' is usually right \u2014 Claude needs to look things up to give grounded answers. Tighten to 'Mostly Ask' only if you're worried about data exfiltration via URL parameters (e.g., Claude embedding sensitive strings in a GET) \u2014 rare but possible."
+        },
+        "network_write": {
+          "type": "string",
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "mostly-allow",
+            "autopilot"
+          ],
+          "title": "Web writes",
+          "description": "POST, PUT, DELETE \u2014 anything that mutates remote state.",
+          "x-widget": "segmented",
+          "x-group": "Network",
+          "x-controls": "HTTP methods that CHANGE state on the remote system. These have side effects ranging from 'charged my API account' to 'posted a message to a Slack channel' to 'triggered a production deployment.'",
+          "x-examples": [
+            "curl -X POST https://api.example.com/webhook",
+            "gh api PATCH /repos/.../issues/123",
+            "Posting to a Slack incoming webhook",
+            "Submitting a Stripe charge",
+            "Calling a deployment trigger"
+          ],
+          "x-guidance": "Keep this on 'Always Ask' or 'Mostly Ask' unless you're operating in a sandbox where remote writes are explicitly part of the workflow (e.g., a test environment with disposable resources). The 'I clicked the wrong button' cost is asymmetric \u2014 confirming each one is cheap."
+        },
+        "mcp_tools": {
+          "type": "string",
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "mostly-allow",
+            "autopilot"
+          ],
+          "title": "MCP server tools",
+          "description": "Tools provided by connected MCP servers.",
+          "x-widget": "segmented",
+          "x-group": "Other",
+          "x-controls": "The DEFAULT autonomy level applied to any MCP (Model Context Protocol) server you've connected. Each server can also be configured individually in your Claude Code config; this is the fallback for servers without specific trust settings.",
+          "x-examples": [
+            "microsoft_learn.docs_search(...) \u2014 read-only docs, usually safe",
+            "google_drive.list_files(...) \u2014 reads your private files",
+            "uber.get_estimates(...) \u2014 third-party API, makes external calls",
+            "github_mcp.create_issue(...) \u2014 mutates a shared system",
+            "filesystem_mcp.read_file(...) \u2014 depends on what path it can see"
+          ],
+          "x-guidance": "MCP trust is best done server-by-server, not globally. Keep this on 'Mostly Ask' as a safety net and configure trusted servers individually in your Claude Code config. A blanket 'Autopilot' here means any MCP server you add automatically gets full autonomy \u2014 usually not what you want."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "global_default",
+    "categories"
+  ],
+  "additionalProperties": false
+}
+</script>
+<script>
+/* generate-dashboards.py output — Settings tab JS
+ * Vanilla; no dependencies. Reads the inline JSON Schema at #schema-data,
+ * watches form changes, emits live YAML preview + clipboard copy + download.
+ */
+(() => {
+  const SCHEMA = JSON.parse(document.getElementById("schema-data").textContent);
+  const presets = SCHEMA.presets || {};
+  const props = SCHEMA.properties || {};
+  const catProps = (props.categories && props.categories.properties) || {};
+
+  /* ── State ───────────────────────────────────────────────────────── */
+  const state = {
+    schema_version: SCHEMA.schema_version || 1,
+    global_default: (props.global_default || {}).default || "default",
+    categories: {}
+  };
+  for (const k of Object.keys(catProps).sort()) {
+    state.categories[k] = catProps[k].default
+      || (catProps[k].enum && catProps[k].enum[Math.floor(catProps[k].enum.length / 2)])
+      || "default";
+  }
+
+  /* Read initial state from the DOM (checked radios reflect schema defaults) */
+  for (const inp of document.querySelectorAll('input[type="radio"]:checked')) {
+    if (inp.name === "global_default") {
+      state.global_default = inp.value;
+    } else if (catProps[inp.name]) {
+      state.categories[inp.name] = inp.value;
+    }
+  }
+
+  /* ── YAML emit ───────────────────────────────────────────────────── */
+  function emitYaml() {
+    const lines = [
+      "# Comfort-posture for Claude Code agents.",
+      "# Save to .ravenclaude/comfort-posture.yaml in your project root.",
+      "# The /set-posture skill translates this into .claude/settings.json rules.",
+      `schema_version: ${state.schema_version}`,
+      `global_default: ${state.global_default}`,
+      "categories:"
+    ];
+    for (const k of Object.keys(state.categories).sort()) {
+      lines.push(`  ${k}: ${state.categories[k]}`);
+    }
+    return lines.join("\n") + "\n";
+  }
+
+  function render() {
+    document.getElementById("yaml-output").textContent = emitYaml();
+  }
+
+  /* ── Form change wiring ─────────────────────────────────────────── */
+  document.querySelectorAll('input[type="radio"]').forEach(inp => {
+    inp.addEventListener("change", () => {
+      if (inp.name === "global_default") {
+        state.global_default = inp.value;
+      } else if (catProps[inp.name]) {
+        state.categories[inp.name] = inp.value;
+      }
+      flagUnsaved();
+      render();
+    });
+  });
+
+  /* ── Preset application ─────────────────────────────────────────── */
+  document.querySelectorAll(".preset-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const preset = presets[btn.dataset.preset];
+      if (!preset) return;
+      const ok = confirm(
+        `Apply the "${btn.dataset.preset}" preset?\n\n` +
+        `This will overwrite all per-category values.\n\n` +
+        (preset._description || "")
+      );
+      if (!ok) return;
+      state.global_default = preset.global_default || state.global_default;
+      Object.assign(state.categories, preset.categories || {});
+      /* Sync DOM */
+      for (const inp of document.querySelectorAll('input[type="radio"]')) {
+        if (inp.name === "global_default") {
+          inp.checked = inp.value === state.global_default;
+        } else if (catProps[inp.name]) {
+          inp.checked = inp.value === state.categories[inp.name];
+        }
+      }
+      flagUnsaved();
+      render();
+      toast(`Applied "${btn.dataset.preset}" preset`);
+    });
+  });
+
+  /* ── Copy / Download ─────────────────────────────────────────────── */
+  document.getElementById("copy-btn").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(emitYaml());
+      toast("YAML copied to clipboard");
+    } catch (e) {
+      /* Fallback: select + manual copy */
+      const pre = document.getElementById("yaml-output");
+      const range = document.createRange();
+      range.selectNodeContents(pre);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      toast("Select-all + Cmd/Ctrl+C to copy");
+    }
+  });
+
+  document.getElementById("download-btn").addEventListener("click", () => {
+    const blob = new Blob([emitYaml()], { type: "text/yaml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "comfort-posture.yaml";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast("Downloaded comfort-posture.yaml — save it to .ravenclaude/ in your project");
+  });
+
+  /* ── Status / toast ──────────────────────────────────────────────── */
+  function flagUnsaved() {
+    document.getElementById("yaml-status").textContent = "unsaved";
+    document.getElementById("yaml-status").style.color = "var(--warn)";
+  }
+  const toastEl = (() => {
+    const el = document.createElement("div");
+    el.className = "toast";
+    el.setAttribute("role", "status");
+    el.setAttribute("aria-live", "polite");
+    document.body.appendChild(el);
+    return el;
+  })();
+  let toastTimer = null;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2200);
+  }
+
+  /* ── Info modal ──────────────────────────────────────────────────── */
+  const modal = document.getElementById("info-modal");
+  const modalTitle = document.getElementById("info-modal-title");
+  const modalDesc = document.getElementById("info-modal-desc");
+  const modalControls = document.getElementById("info-modal-controls");
+  const modalExamples = document.getElementById("info-modal-examples");
+  const modalGuidance = document.getElementById("info-modal-guidance");
+  const modalClose = document.getElementById("info-modal-close");
+  let lastFocus = null;
+
+  function openModal(catName) {
+    let sch;
+    if (catName === "global_default") {
+      sch = props.global_default;
+    } else {
+      sch = catProps[catName];
+    }
+    if (!sch) return;
+    modalTitle.textContent = sch.title || catName;
+    modalDesc.textContent = sch.description || "";
+    modalControls.textContent = sch["x-controls"] || "(no explanation provided)";
+    /* Examples as a list */
+    const examples = sch["x-examples"] || [];
+    modalExamples.innerHTML = "";
+    for (const ex of examples) {
+      const li = document.createElement("li");
+      li.textContent = ex;
+      modalExamples.appendChild(li);
+    }
+    if (examples.length === 0) {
+      const li = document.createElement("li");
+      li.textContent = "(no examples provided)";
+      li.style.color = "var(--muted)";
+      li.style.fontStyle = "italic";
+      modalExamples.appendChild(li);
+    }
+    modalGuidance.textContent = sch["x-guidance"] || "(no guidance provided)";
+    lastFocus = document.activeElement;
+    modal.classList.add("open");
+    modalClose.focus();
+  }
+  function closeModal() {
+    modal.classList.remove("open");
+    if (lastFocus && typeof lastFocus.focus === "function") lastFocus.focus();
+  }
+  document.querySelectorAll(".info-btn").forEach(btn => {
+    btn.addEventListener("click", () => openModal(btn.dataset.infoFor));
+  });
+  modalClose.addEventListener("click", closeModal);
+  modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && modal.classList.contains("open")) closeModal();
+  });
+
+  /* ── Tab routing ─────────────────────────────────────────────────── */
+  const validTabs = ["settings", "commands", "trees", "activity"];
+  function applyHash() {
+    const hash = (location.hash || "#/settings").replace(/^#\//, "");
+    const tab = validTabs.includes(hash) ? hash : "settings";
+    document.querySelectorAll(".tab-btn").forEach(b => {
+      const sel = b.dataset.tab === tab;
+      b.setAttribute("aria-selected", sel ? "true" : "false");
+    });
+    document.querySelectorAll(".tab-panel").forEach(p => {
+      p.classList.toggle("active", p.dataset.tab === tab);
+    });
+  }
+  document.querySelectorAll(".tab-btn").forEach(b => {
+    b.addEventListener("click", () => {
+      location.hash = "/" + b.dataset.tab;
+    });
+  });
+  window.addEventListener("hashchange", applyHash);
+  applyHash();
+
+  /* Initial render */
+  render();
+})();
+</script>
+</body>
+</html>
