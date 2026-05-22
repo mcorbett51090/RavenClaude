@@ -16,15 +16,15 @@ This file is **not** about how to execute a given play. The skills own that. Thi
 
 ```mermaid
 flowchart TD
-    START[Health declined OR red-flag fired] --> Q1{Calendar dead zone<br/>or testing window?}
-    Q1 -->|YES| SUPPRESS["NO PLAY — suppress signal<br/>(see k12-psm-operating-cadence)"]
-    Q1 -->|NO| Q2{Rostering / SSO error rate<br/>elevated in last 14 days?}
-    Q2 -->|YES| IMPL["IMPLEMENTATION PLAY<br/>(see district-implementation-failure-modes)"]
-    Q2 -->|NO| Q3{Named sponsor / champion<br/>changed or silent 30+ days?}
-    Q3 -->|YES| SPONSOR["EXECUTIVE-SPONSOR RE-ENGAGEMENT<br/>(see executive-sponsor-mapping skill)"]
-    Q3 -->|NO| Q4{Within 180 days of renewal<br/>AND value evidence thin?}
+    START[Health declined OR red-flag fired] --> Q1{"Calendar dead zone<br/>or testing window?"}
+    Q1 -->|YES| SUPPRESS["NO PLAY — suppress signal<br/>see k12-psm-operating-cadence"]
+    Q1 -->|NO| Q2{"Rostering or SSO error rate<br/>elevated in last 14 days?"}
+    Q2 -->|YES| IMPL["IMPLEMENTATION PLAY<br/>see district-implementation-failure-modes"]
+    Q2 -->|NO| Q3{"Named sponsor or champion<br/>changed or silent 30-plus days?"}
+    Q3 -->|YES| SPONSOR["EXECUTIVE-SPONSOR RE-ENGAGEMENT<br/>see executive-sponsor-mapping skill"]
+    Q3 -->|NO| Q4{"Within 180 days of renewal<br/>AND value evidence thin?"}
     Q4 -->|YES| RECOVERY_THEN_RENEW["RECOVERY-AND-RENEW<br/>recovery-play-design then renewal-play-design"]
-    Q4 -->|NO| Q5{Adoption stage 1<br/>(newly implemented)?}
+    Q4 -->|NO| Q5{"Adoption stage 1<br/>newly implemented?"}
     Q5 -->|YES| ADOPTION["ADOPTION-SEQUENCING PLAY<br/>do NOT push feature breadth in stage 1"]
     Q5 -->|NO| RECOVERY["GENERIC RECOVERY PLAY<br/>4-hypothesis diagnostic first"]
 ```

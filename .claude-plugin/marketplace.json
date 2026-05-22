@@ -13,7 +13,7 @@
       "name": "ravenclaude-core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code plugin: 14 specialist agents, team-lead dispatch playbook, format/lint/test gates, hooks, templates, slash commands `/init-agent-ready` and `/wrap`. v0.9.0: pre-action decision-tree traversal. v0.10.0: every agent ships example-scenario frontmatter. v0.11.0: pre-action environment-context check + Team Lead session-start orientation. v0.12.0: auto-discovery streamlining via `environment-discovery` skill. **v0.13.0 \u2014 cross-platform-determinism skill:** new skill captures the lesson from two real bugs in this repo's own `scripts/generate-repo-guide.py` (OS-dependent path separators from `str(Path)` and locale-dependent encoding crashing on Windows cp1252). Teaches the six categories of generator nondeterminism \u2014 path separators, encoding, line endings, ordering, timestamps, locale \u2014 with a review checklist for any script whose output is committed and diff-checked in CI.",
-      "version": "0.14.0",
+      "version": "0.14.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -51,7 +51,7 @@
       "name": "finance",
       "source": "./plugins/finance",
       "description": "Corporate finance & FP&A specialist team \u2014 FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. 4 skills, 8 templates, 1 advisory hook (hardcoded rates, plaintext PII, missing Sources / Assumptions). Inherits ravenclaude-core protocols.",
-      "version": "0.5.0",
+      "version": "0.5.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -71,7 +71,7 @@
       "name": "regulatory-compliance",
       "source": "./plugins/regulatory-compliance",
       "description": "Financial-regulatory & compliance specialist team \u2014 AML/KYC analyst (sanctions, EDD, SAR/STR), regulatory-reporting analyst (FATCA/CRS, supervisory returns, Solvency II, BMA EBS), risk-and-controls specialist (three lines of defense, KRIs), policy & procedure writer, examination-prep specialist, and Bermuda-insurance specialist. 4 skills, 8 templates, 1 defensive PreToolUse hook (PII scrub \u2014 SSN/IBAN/credit-card/Bermuda TIN/wire instructions). Positioning reflects field experience inside a Tier-1 financial regulator (BMA). Inherits ravenclaude-core protocols.",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -113,7 +113,7 @@
       "name": "edtech-partner-success",
       "source": "./plugins/edtech-partner-success",
       "description": "EdTech-flavored Partner Success Manager team \u2014 6 specialist agents anchored on the PSM lane. 8 skills, 15 templates, 1 advisory hook, and a 15-doc knowledge bank across 5 waves (v0.2.0 production-lesson + v0.3.0 foundational + v0.4.0 vertical-depth + v0.4.1 operating-cadence + v0.4.2 capability-extension). v0.4.2 ships what would have been v0.5.0 team expansion as skills + knowledge + templates rather than parallel agents (per the marketplace house rule added 2026-05-21): 4 new skills (advocacy-program-design, adoption-sequencing-k12, implementation-90-day-arc, partner-training-program-design), 5 new knowledge files (edtech-reference-customer-patterns, k12-adoption-arc-fall-spring-summer, sis-sso-rostering-integration-patterns, district-implementation-failure-modes, k12-pd-norms-and-constraints), and 6 new templates (case-study-draft, reference-pipeline-tracker, adoption-diagnostic-worksheet, implementation-90-day-plan, train-the-trainer-curriculum, renewal-decision-memo). Primary-source citations with retrieval dates and confidence notation. Vertical-explicit but segment-agnostic \u2014 fits K-12, higher-ed, corporate L&D, or mixed EdTech books. Inherits ravenclaude-core protocols; requires ravenclaude-core@>=0.7.0.",
-      "version": "0.5.0",
+      "version": "0.5.1",
       "author": {
         "name": "Matt Corbett"
       },
