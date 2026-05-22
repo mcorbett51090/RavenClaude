@@ -141,12 +141,25 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
     )
 
 
+def _label_for(value: str) -> str:
+    """Render an enum value as a short pill label."""
+    # Hyphens become spaces; YOLO stays uppercase.
+    if value == "yolo":
+        return "YOLO"
+    return value.replace("-", "‑").replace("_", " ").capitalize()
+
+
 def _render_segmented(name: str, schema: dict, id_prefix: str, group: str | None = None) -> str:
-    """Render one segmented-radiogroup row from a schema property."""
+    """Render one segmented-radiogroup row from a schema property.
+
+    Emits an info-icon button next to the title that the JS layer opens
+    into a modal with the category's full description + example.
+    """
     title = schema.get("title", name)
     description = schema.get("description", "")
-    enum_values = schema.get("enum", ["cautious", "default", "productive"])
+    enum_values = schema.get("enum", ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"])
     default_value = schema.get("default", enum_values[len(enum_values) // 2])
+    has_example = bool(schema.get("x-example"))
     group_attr = f' data-group="{html.escape(group)}"' if group else ""
 
     radios = []
@@ -156,14 +169,21 @@ def _render_segmented(name: str, schema: dict, id_prefix: str, group: str | None
         radios.append(
             f'<input type="radio" id="{html.escape(rid)}" name="{html.escape(name)}" '
             f'value="{html.escape(v)}" {checked}>'
-            f'<label for="{html.escape(rid)}" class="seg-label seg-{html.escape(v)}">'
-            f"{html.escape(v.capitalize())}</label>"
+            f'<label for="{html.escape(rid)}" class="seg-label seg-{html.escape(v)}" '
+            f'title="{html.escape(v)}">'
+            f"{html.escape(_label_for(v))}</label>"
         )
+
+    info_btn = (
+        f'<button type="button" class="info-btn" data-info-for="{html.escape(name)}" '
+        f'aria-label="Explain {html.escape(title)}" title="Explain this setting">?</button>'
+        if has_example else ""
+    )
 
     return (
         f'<div class="cat-row" data-category="{html.escape(name)}"{group_attr}>'
         f'<div class="cat-meta">'
-        f'<div class="cat-title">{html.escape(title)}</div>'
+        f'<div class="cat-title-row"><span class="cat-title">{html.escape(title)}</span>{info_btn}</div>'
         f'<div class="cat-desc">{html.escape(description)}</div>'
         f"</div>"
         f'<div class="seg-control" role="radiogroup" aria-label="{html.escape(title)}">'
@@ -325,13 +345,36 @@ body {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 16px;
-  padding: 12px 0;
+  padding: 14px 0;
   border-bottom: 1px solid var(--border);
   align-items: center;
 }
+@media (max-width: 1100px) {
+  .cat-row { grid-template-columns: 1fr; }
+  .cat-row .seg-control { justify-self: start; }
+}
 .cat-row:last-child { border-bottom: none; }
-.cat-title { font-weight: 500; font-size: 14px; margin-bottom: 2px; }
+.cat-title-row { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+.cat-title { font-weight: 500; font-size: 14px; }
 .cat-desc { font-size: 12px; color: var(--muted); max-width: 480px; }
+.info-btn {
+  background: var(--surface-2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.info-btn:hover { color: var(--accent); border-color: var(--accent); }
+.info-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Segmented control (radiogroup with pill buttons) */
 .seg-control {
@@ -341,6 +384,7 @@ body {
   border-radius: 8px;
   padding: 2px;
   gap: 0;
+  flex-wrap: nowrap;
 }
 .seg-control input[type="radio"] {
   position: absolute;
@@ -353,27 +397,76 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 14px;
-  font-size: 13px;
+  padding: 5px 10px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--muted);
   border-radius: 6px;
   cursor: pointer;
   transition: background 80ms ease, color 80ms ease;
   user-select: none;
-  min-width: 78px;
+  min-width: 64px;
   text-align: center;
+  white-space: nowrap;
 }
 .seg-control input[type="radio"]:checked + .seg-label {
   background: var(--accent);
   color: var(--bg);
   font-weight: 600;
 }
+/* Restrictive levels get warning-tinted selection */
+.seg-control input[type="radio"]:checked + .seg-label.seg-deny { background: var(--danger); color: white; }
+.seg-control input[type="radio"]:checked + .seg-label.seg-always-ask { background: var(--warn); color: var(--bg); }
+.seg-control input[type="radio"]:checked + .seg-label.seg-yolo { background: var(--warn); color: var(--bg); }
 .seg-control input[type="radio"]:focus-visible + .seg-label {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 .seg-label:hover { color: var(--text); }
+
+/* Modal (info-icon popup) */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+}
+.modal-backdrop.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-width: 640px;
+  width: 100%;
+  max-height: 85vh;
+  overflow: auto;
+  padding: 24px;
+}
+.modal h2 { margin-top: 0; font-size: 18px; color: var(--accent); }
+.modal h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 20px 0 8px; }
+.modal pre { background: var(--surface-2); padding: 12px; border-radius: 6px; font-family: var(--font-mono); font-size: 12px; overflow: auto; white-space: pre-wrap; }
+.modal .level-table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 13px; }
+.modal .level-table th, .modal .level-table td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+.modal .level-table th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+.modal .level-table td.level { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+.modal .close-btn {
+  float: right;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+}
+.modal .close-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 /* Global-default row gets a slight surface emphasis */
 .global-default {
@@ -651,6 +744,58 @@ _JS = r"""
     toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2200);
   }
 
+  /* ── Info modal ──────────────────────────────────────────────────── */
+  const modal = document.getElementById("info-modal");
+  const modalTitle = document.getElementById("info-modal-title");
+  const modalDesc = document.getElementById("info-modal-desc");
+  const modalExample = document.getElementById("info-modal-example");
+  const modalLevels = document.getElementById("info-modal-levels");
+  const modalClose = document.getElementById("info-modal-close");
+  const levelDescs = SCHEMA._level_descriptions || {};
+  let lastFocus = null;
+
+  function openModal(catName) {
+    let sch;
+    if (catName === "global_default") {
+      sch = props.global_default;
+    } else {
+      sch = catProps[catName];
+    }
+    if (!sch) return;
+    modalTitle.textContent = sch.title || catName;
+    modalDesc.textContent = sch.description || "";
+    modalExample.textContent = sch["x-example"] || "(no example provided)";
+    /* Build per-level table */
+    const enumVals = sch.enum || [];
+    modalLevels.innerHTML = "";
+    for (const v of enumVals) {
+      const tr = document.createElement("tr");
+      const tdLevel = document.createElement("td");
+      tdLevel.className = "level";
+      tdLevel.textContent = v;
+      const tdDesc = document.createElement("td");
+      tdDesc.textContent = levelDescs[v] || "(no description)";
+      tr.appendChild(tdLevel);
+      tr.appendChild(tdDesc);
+      modalLevels.appendChild(tr);
+    }
+    lastFocus = document.activeElement;
+    modal.classList.add("open");
+    modalClose.focus();
+  }
+  function closeModal() {
+    modal.classList.remove("open");
+    if (lastFocus && typeof lastFocus.focus === "function") lastFocus.focus();
+  }
+  document.querySelectorAll(".info-btn").forEach(btn => {
+    btn.addEventListener("click", () => openModal(btn.dataset.infoFor));
+  });
+  modalClose.addEventListener("click", closeModal);
+  modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && modal.classList.contains("open")) closeModal();
+  });
+
   /* ── Tab routing ─────────────────────────────────────────────────── */
   const validTabs = ["settings", "commands", "trees", "activity"];
   function applyHash() {
@@ -716,6 +861,21 @@ _PAGE_TEMPLATE = """<!doctype html>
 {activity_html}
   </section>
 </main>
+
+<div class="modal-backdrop" id="info-modal" role="dialog" aria-modal="true" aria-labelledby="info-modal-title" tabindex="-1">
+  <div class="modal">
+    <button type="button" class="close-btn" id="info-modal-close" aria-label="Close">&times;</button>
+    <h2 id="info-modal-title">Setting</h2>
+    <p id="info-modal-desc"></p>
+    <h3>What this controls</h3>
+    <pre id="info-modal-example"></pre>
+    <h3>What each level means</h3>
+    <table class="level-table">
+      <thead><tr><th>Level</th><th>Behavior</th></tr></thead>
+      <tbody id="info-modal-levels"></tbody>
+    </table>
+  </div>
+</div>
 
 <footer class="page-footer">
   Generated by <code>scripts/generate-dashboards.py</code>.

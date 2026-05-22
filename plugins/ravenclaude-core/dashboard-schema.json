@@ -2,30 +2,39 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/mcorbett51090/RavenClaude/plugins/ravenclaude-core/dashboard-schema.json",
   "title": "RavenClaude comfort posture",
-  "description": "Categorical permission-autonomy scale for Claude Code. Edited via this plugin's dashboard.html Settings tab; saved to .ravenclaude/comfort-posture.yaml in the consumer's project. The /set-posture skill (proposal 002 §5) translates this YAML into .claude/settings.json permission rules.",
+  "description": "Categorical permission-autonomy scale for Claude Code. Edited via this plugin's dashboard.html Settings tab; saved to .ravenclaude/comfort-posture.yaml in the consumer's project. The /set-posture skill translates this YAML into .claude/settings.json permission rules.",
   "type": "object",
-  "schema_version": 1,
+  "schema_version": 2,
+  "_level_descriptions": {
+    "deny": "Hard block. Claude refuses the action even if asked. Use for things you NEVER want to happen in this project (e.g., production writes from a dev workspace).",
+    "always-ask": "Confirm every single time. Claude pauses and asks before each action, even repeat actions.",
+    "mostly-ask": "Confirm except for obviously-safe cases. Claude asks for anything ambiguous; allows the cheap, well-known patterns.",
+    "default": "Confirm on ambiguity. Claude uses judgment: cheap reads flow, risky writes ask. Matches Claude Code's built-in READONLY_COMMANDS partition.",
+    "mostly-allow": "Allow except for risky cases. Claude acts on most patterns; asks only when the shape is unusual or destructive.",
+    "productive": "Allow without asking for any pattern Claude can identify as safe. Asks only when escalation is required by the engine.",
+    "yolo": "Never ask. Claude acts on every pattern in this category. Maximum velocity; minimum oversight. Useful inside throwaway sandboxes."
+  },
   "presets": {
     "cautious": {
-      "_description": "Sets every category to cautious. Claude asks before every non-trivial action. Maximum oversight, slowest velocity.",
-      "global_default": "cautious",
+      "_description": "Sets every category to always-ask. Claude pauses before every non-trivial action. Maximum oversight, slowest velocity. Recommended starting point per Koch et al.'s 'OK blindness' finding.",
+      "global_default": "always-ask",
       "categories": {
-        "file_read_project": "cautious",
-        "file_edit_project": "cautious",
-        "file_read_global": "cautious",
-        "file_edit_global": "cautious",
-        "shell_readonly": "cautious",
-        "shell_local_mutate": "cautious",
-        "shell_remote_mutate": "cautious",
-        "shell_code_exec": "cautious",
-        "shell_package_install": "cautious",
-        "network_read": "cautious",
-        "network_write": "cautious",
-        "mcp_tools": "cautious"
+        "file_read_project": "always-ask",
+        "file_edit_project": "always-ask",
+        "file_read_global": "always-ask",
+        "file_edit_global": "always-ask",
+        "shell_readonly": "always-ask",
+        "shell_local_mutate": "always-ask",
+        "shell_remote_mutate": "always-ask",
+        "shell_code_exec": "always-ask",
+        "shell_package_install": "always-ask",
+        "network_read": "always-ask",
+        "network_write": "always-ask",
+        "mcp_tools": "always-ask"
       }
     },
     "default": {
-      "_description": "Sets every category to default. Claude asks in ambiguous cases. Balanced posture.",
+      "_description": "Sets every category to default. Claude uses judgment: cheap reads flow, risky writes ask. Balanced posture.",
       "global_default": "default",
       "categories": {
         "file_read_project": "default",
@@ -43,7 +52,7 @@
       }
     },
     "productive": {
-      "_description": "WARNING: Sets every category to productive. Claude acts without asking. THIS INCLUDES git push, npm/pip install, arbitrary code execution (python -c, node -e), and writes outside the project (your home directory). Maximum velocity, minimum oversight. Use only when you trust Claude to act unattended.",
+      "_description": "WARNING: Sets every category to productive. Claude acts without asking for any pattern it can identify as safe. THIS INCLUDES git push, npm/pip install, arbitrary code execution (python -c), and writes outside the project (~/.ssh, /etc, etc.). Use only when you trust Claude to act unattended.",
       "global_default": "productive",
       "categories": {
         "file_read_project": "productive",
@@ -64,116 +73,129 @@
   "properties": {
     "schema_version": {
       "type": "integer",
-      "const": 1
+      "const": 2
     },
     "global_default": {
       "type": "string",
-      "enum": ["cautious", "default", "productive"],
+      "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
       "default": "default",
       "title": "Global default",
       "description": "Used for any category not explicitly set below. Apply a preset to set this and all categories at once.",
-      "x-widget": "segmented"
+      "x-widget": "segmented",
+      "x-example": "If you set this to 'mostly-ask', Claude will ask before nearly every action regardless of category — unless you set a specific category lower."
     },
     "categories": {
       "type": "object",
       "title": "Per-category overrides",
-      "description": "Each category's autonomy level. Cautious = always ask. Default = ask in ambiguous cases. Productive = act without asking.",
+      "description": "Each category's autonomy level. Override the global default per category.",
       "properties": {
         "file_read_project": {
           "type": "string",
-          "enum": ["cautious", "default", "productive"],
+          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
           "title": "Read files in this project",
           "description": "ls, cat, grep, reading source files inside the current project directory.",
           "x-widget": "segmented",
-          "x-group": "Files"
+          "x-group": "Files",
+          "x-example": "Examples: `ls src/`, `cat README.md`, `grep -r TODO`, opening a file in the editor.\n\nMost users want this on 'default' or 'productive' — reading source files is cheap and you usually want Claude to look around freely. Set to 'mostly-ask' if your project has files Claude shouldn't routinely scan (e.g., a checked-in keystore)."
         },
         "file_edit_project": {
           "type": "string",
-          "enum": ["cautious", "default", "productive"],
+          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
           "title": "Edit files in this project",
-          "description": "Write, Edit, MultiEdit on files inside the current project. Set lower if you want to review every change.",
+          "description": "Write, Edit, MultiEdit on files inside the current project.",
           "x-widget": "segmented",
-          "x-group": "Files"
+          "x-group": "Files",
+          "x-example": "Examples: `Write('src/new.py', ...)`, `Edit('package.json', ...)`, editing a Markdown doc.\n\nIf you want to review every change before it lands, set this to 'always-ask' or 'mostly-ask'. 'Productive' lets Claude refactor or generate freely; the diff is visible after the fact via git."
         },
         "file_read_global": {
           "type": "string",
-          "enum": ["cautious", "default", "productive"],
+          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
           "title": "Read files outside this project",
-          "description": "Reading ~/.ssh, ~/.aws, ~/.config, /etc, etc. Almost always wants to be cautious.",
+          "description": "Reading ~/.ssh, ~/.aws, ~/.config, /etc, etc.",
           "x-widget": "segmented",
-          "x-group": "Files"
+          "x-group": "Files",
+          "x-example": "Examples: `cat ~/.ssh/config`, `cat ~/.aws/credentials`, `head /etc/hosts`.\n\nThis is almost always set to 'always-ask' or 'deny'. Files outside your project directory often contain secrets (SSH keys, AWS creds, browser cookies). Only relax this if you have a specific reason."
         },
         "file_edit_global": {
           "type": "string",
-          "enum": ["cautious", "default", "productive"],
+          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
           "title": "Edit files outside this project",
-          "description": "Writing to your home directory or system paths. Almost always wants to be cautious.",
+          "description": "Writing to your home directory or system paths.",
           "x-widget": "segmented",
-          "x-group": "Files"
+          "x-group": "Files",
+          "x-example": "Examples: `Write('~/.profile', ...)`, `echo X > /etc/hosts`, editing a config in `~/Library`.\n\nKeep this on 'always-ask' or 'deny' unless you have a specific reason to let Claude touch system or home-dir files. CVE-2026-39861 shows what goes wrong when sandboxed code writes outside the workspace."
         },
         "shell_readonly": {
           "type": "string",
-          "enum": ["cautious", "default", "productive"],
+          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
           "title": "Read-only shell commands",
-          "description": "ls, cat, git status, grep, find. The cheap stuff. Productive means \"never ask.\"",
+          "description": "ls, cat, git status, grep, find. The cheap, no-side-effect stuff.",
           "x-widget": "segmented",
-          "x-group": "Shell"
+          "x-group": "Shell",
+          "x-example": "Examples: `ls`, `cat file.txt`, `git status`, `git log`, `grep -r foo`, `find . -name '*.md'`.\n\nClaude Code already auto-allows many of these (the built-in READONLY_COMMANDS list). 'Productive' or 'yolo' means \"never ask for read-only shell\" — recommended unless you specifically want every command logged."
         },
         "shell_local_mutate": {
           "type": "string",
-          "enum": ["cautious", "default", "productive"],
+          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
           "title": "Local mutations",
-          "description": "mkdir, mv, cp, git commit. Changes your filesystem but doesn't talk to a server.",
+          "description": "mkdir, mv, cp, git commit. Changes filesystem locally; doesn't talk to a server.",
           "x-widget": "segmented",
-          "x-group": "Shell"
+          "x-group": "Shell",
+          "x-example": "Examples: `mkdir src/new-feature`, `mv old.py new.py`, `git commit -m '...'`, `git checkout -b feature/x`.\n\nLocal mutations are recoverable (`git reflog` exists, files can be restored). 'Default' or 'mostly-allow' is usually right — Claude can move things around but flags ambiguous moves."
         },
         "shell_remote_mutate": {
           "type": "string",
-          "enum": ["cautious", "default", "productive"],
+          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
           "title": "Remote mutations",
           "description": "git push, gh pr create, gh pr comment. Anything that publishes to a shared system.",
           "x-widget": "segmented",
-          "x-group": "Shell"
+          "x-group": "Shell",
+          "x-example": "Examples: `git push`, `gh pr create`, `gh pr comment`, `npm publish`, `aws s3 sync`.\n\nThese go to shared systems where the change is visible to other people (or paying customers). Most users keep this on 'always-ask' or 'mostly-ask' to preserve the review step. 'Productive' only after Claude has earned that trust on your project."
         },
         "shell_code_exec": {
           "type": "string",
-          "enum": ["cautious", "default", "productive"],
+          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
           "title": "Arbitrary code execution",
-          "description": "python -c, node -e, bash -c, eval. Recommend cautious — these are general-purpose.",
+          "description": "python -c, node -e, bash -c, eval — any way to run code that wasn't pre-written.",
           "x-widget": "segmented",
-          "x-group": "Shell"
+          "x-group": "Shell",
+          "x-example": "Examples: `python -c 'import os; os.system(...)'`, `node -e 'process.exit(0)'`, `bash -c 'curl ... | sh'`.\n\nThis is the category most often abused in security incidents. 'Always-ask' or 'mostly-ask' is the safe default — running arbitrary code from a prompt is the shortest path to RCE if anything goes wrong with the prompt itself."
         },
         "shell_package_install": {
           "type": "string",
-          "enum": ["cautious", "default", "productive"],
+          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
           "title": "Package installs",
-          "description": "npm install, pip install, apt install, brew install. Recommend cautious — these can run install scripts.",
+          "description": "npm install, pip install, apt install, brew install.",
           "x-widget": "segmented",
-          "x-group": "Shell"
+          "x-group": "Shell",
+          "x-example": "Examples: `npm install foo`, `pip install bar`, `apt install -y baz`, `brew install qux`.\n\nPackage installs are higher-risk than they look: many run install scripts with full shell access on your machine. Most users keep this on 'always-ask' so you can review the package name before it lands."
         },
         "network_read": {
           "type": "string",
-          "enum": ["cautious", "default", "productive"],
+          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
           "title": "Web reads",
-          "description": "WebFetch on known documentation domains. Productive means trusted domains never ask.",
+          "description": "WebFetch on known documentation domains; HTTP GET requests.",
           "x-widget": "segmented",
-          "x-group": "Network"
+          "x-group": "Network",
+          "x-example": "Examples: `WebFetch('https://docs.anthropic.com/...')`, `curl https://api.github.com/...`, looking up an MDN article.\n\n'Default' or 'mostly-allow' is usually right — Claude needs to look things up to give grounded answers. The risk is limited to whatever the response contains (which Claude has to read carefully anyway)."
         },
         "network_write": {
           "type": "string",
-          "enum": ["cautious", "default", "productive"],
+          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
           "title": "Web writes",
-          "description": "POST/PUT/DELETE to web endpoints. Almost always wants to be cautious.",
+          "description": "POST/PUT/DELETE to web endpoints; anything that mutates remote state.",
           "x-widget": "segmented",
-          "x-group": "Network"
+          "x-group": "Network",
+          "x-example": "Examples: `curl -X POST https://api.../webhook`, `gh api PATCH /repos/.../issues/123`, posting to a Slack webhook.\n\nNetwork writes can have side effects (charged API calls, posted messages, triggered workflows). Keep this on 'always-ask' or 'mostly-ask' unless you're in a sandbox."
         },
         "mcp_tools": {
           "type": "string",
-          "enum": ["cautious", "default", "productive"],
+          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
           "title": "MCP server tools",
-          "description": "Tools provided by connected MCP servers. Per-server trust lives in your Claude Code config; this is the global default.",
+          "description": "Tools provided by connected MCP servers.",
           "x-widget": "segmented",
-          "x-group": "Other"
+          "x-group": "Other",
+          "x-example": "Examples: `microsoft_learn.docs_search(...)`, `uber.get_estimates(...)`, `google_drive.list_files(...)`.\n\nMCP tool trust is server-by-server. This setting is the GLOBAL default; you can still configure per-server trust in your Claude Code config. 'Default' is usually right — Claude asks before invoking any MCP tool, lets you pin trusted servers individually."
         }
       },
       "additionalProperties": false
