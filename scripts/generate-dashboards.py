@@ -670,8 +670,8 @@ body {
 }
 .pattern-summary {
   cursor: pointer;
-  padding: 4px 8px;
-  font-size: 11px;
+  padding: 10px 14px;
+  font-size: 12.5px;
   color: var(--muted);
   display: flex;
   justify-content: space-between;
@@ -679,17 +679,18 @@ body {
   gap: 12px;
   user-select: none;
   list-style: none;
-  opacity: 0.75;
-  transition: opacity 80ms ease, color 80ms ease;
+  min-height: 36px;
+  border-radius: 6px;
+  transition: opacity 80ms ease, color 80ms ease, background-color 80ms ease;
 }
 .pattern-summary::-webkit-details-marker { display: none; }
 .pattern-summary::before {
   content: "▸";
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   display: inline-block;
-  width: 10px;
-  margin-right: 4px;
+  width: 12px;
+  margin-right: 6px;
 }
 .pattern-details[open] > .pattern-summary::before { content: "▾"; color: var(--accent); }
 .pattern-details[open] > .pattern-summary { opacity: 1; }
@@ -714,9 +715,9 @@ body {
   opacity: 1;
 }
 .pattern-list {
-  max-height: 520px;
+  max-height: 360px;
   overflow-y: auto;
-  padding: 8px 14px 14px;
+  padding: 4px 8px 8px;
   border-top: 1px dotted var(--border);
   background: var(--surface);
   border-radius: 4px;
@@ -725,11 +726,10 @@ body {
 .pattern-row {
   display: grid;
   grid-template-columns: minmax(180px, 260px) 1fr auto;
-  gap: 18px;
-  padding: 14px 8px;
+  gap: 14px;
+  padding: 7px 6px;
   border-bottom: 1px dotted var(--border);
   align-items: center;
-  min-height: 48px;
 }
 .pattern-row:last-child { border-bottom: none; }
 .pattern-meta {
@@ -791,19 +791,18 @@ body {
   border: 1px solid var(--border);
   border-bottom: 2px solid var(--border);
   border-radius: 6px;
-  padding: 10px 36px 10px 16px;
+  padding: 6px 30px 6px 14px;
   font: inherit;
-  font-size: 13px;
-  line-height: 1.3;
+  font-size: 12px;
+  line-height: 1.2;
   cursor: pointer;
-  min-width: 220px;
-  height: 38px;
+  min-width: 188px;
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'><path fill='none' stroke='%23cbd5e1' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round' d='M3.5 5.5l3.5 3.5 3.5-3.5'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path fill='none' stroke='%23cbd5e1' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round' d='M3 4.75l3 3 3-3'/></svg>");
   background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 14px 14px;
+  background-position: right 10px center;
+  background-size: 12px 12px;
   transition: border-color 80ms ease, background-color 80ms ease;
 }
 .pattern-select:hover {
