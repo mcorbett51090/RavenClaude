@@ -943,13 +943,13 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
     decision_trees_html = render_decision_trees_panel(plugins)
 
     # Load the vendored Mermaid library for inline-script embedding.
+    # The library's `{` and `}` are NOT escaped — `{mermaid_lib_src}` in the f-string template
+    # substitutes the value verbatim; only EXPLICIT `{var}` placeholders are interpreted.
     mermaid_lib_path = REPO_ROOT / "scripts" / "vendor" / "mermaid.min.js"
     try:
         mermaid_lib_src = mermaid_lib_path.read_text(encoding="utf-8")
     except OSError:
         mermaid_lib_src = ""  # If missing, Mermaid blocks will not render but the page still works.
-    # Escape `{` and `}` so the f-string template doesn't interpret JS braces as format placeholders.
-    mermaid_lib_src = mermaid_lib_src.replace("{", "{{").replace("}", "}}")
 
     return f"""<!doctype html>
 <html lang="en">
