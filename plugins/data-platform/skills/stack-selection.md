@@ -62,16 +62,16 @@ Every dashboard engagement fits one of four cases. The skill's job is to name th
 ```mermaid
 flowchart TD
     START[New dashboard engagement] --> Q1{Portfolio for the consultant's own marketing site?}
-    Q1 -->|YES| CASE_A[Case A — Portfolio<br/>Evidence.dev OSS<br/>Static deploy]
+    Q1 -->|YES| CASE_A["Case A — Portfolio<br/>Evidence.dev OSS<br/>Static deploy"]
     Q1 -->|NO| Q2{Client already has a BI tool — needs only data pipes?}
-    Q2 -->|YES| CASE_D[Case D — Pipes only<br/>Airbyte + Postgres + dbt<br/>No dashboard framework]
+    Q2 -->|YES| CASE_D["Case D — Pipes only<br/>Airbyte + Postgres + dbt<br/>No dashboard framework"]
     Q2 -->|NO| Q3{One-off custom dashboard inside the client's app?}
     Q3 -->|YES| Q3a{M365-stack client?}
-    Q3a -->|YES| CASE_B_PBI[Case B — Microsoft variant<br/>Power BI Embedded F2 ~$262/mo<br/>App-Owns-Data + DAX-role RLS]
-    Q3a -->|NO| CASE_B_OSS[Case B — OSS variant<br/>Superset or Metabase OSS<br/>VPS $20-40/mo + Postgres RLS + JWT embed]
+    Q3a -->|YES| CASE_B_PBI["Case B — Microsoft variant<br/>Power BI Embedded F2 ~$262/mo<br/>App-Owns-Data + DAX-role RLS"]
+    Q3a -->|NO| CASE_B_OSS["Case B — OSS variant<br/>Superset or Metabase OSS<br/>VPS $20-40/mo + Postgres RLS + JWT embed"]
     Q3 -->|NO| Q4{Multi-tenant product to sell to many customers?}
-    Q4 -->|YES| CASE_C[Case C — Productized SaaS<br/>Cube OSS + custom React<br/>Postgres RLS]
-    Q4 -->|NO| ESCAPE[None of A/B/C/D fit<br/>Escalate to ravenclaude-core/architect]
+    Q4 -->|YES| CASE_C["Case C — Productized SaaS<br/>Cube OSS + custom React<br/>Postgres RLS"]
+    Q4 -->|NO| ESCAPE["None of A/B/C/D fit<br/>Escalate to ravenclaude-core/architect"]
 ```
 
 **Rationale per leaf:**

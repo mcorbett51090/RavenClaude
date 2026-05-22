@@ -18,6 +18,7 @@
 # Bundled third-party content keeps its upstream formatting.
 plugins/power-platform/skills/record-screen/extension/
 plugins/power-platform/skills/record-screen/scripts/
+scripts/vendor/
 
 # Generated artifact — produced by scripts/generate-repo-guide.py from the
 # marketplace + plugin manifests. Re-running the generator already produces

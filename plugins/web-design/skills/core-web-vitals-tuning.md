@@ -33,25 +33,25 @@ Field data (CrUX / RUM) at the **75th percentile** is the standard measurement t
 
 ```mermaid
 flowchart TD
-    START[CWV regression reported] --> Q1{Which vital is failing?<br/>Check CrUX p75}
+    START[CWV regression reported] --> Q1{"Which vital is failing?<br/>Check CrUX p75"}
     Q1 -->|LCP > 2.5s| LCP_Q{What's the LCP element?}
     Q1 -->|CLS > 0.1| CLS_Q{When does shift occur?}
     Q1 -->|INP > 200ms| INP_Q{Which interaction is slow?}
 
-    LCP_Q -->|Image| LCP_IMG[Preload + fetchpriority + WebP/AVIF<br/>+ explicit width/height]
-    LCP_Q -->|Text + late web font| LCP_FONT[font-display:swap<br/>+ subset + preload]
-    LCP_Q -->|Render-blocking JS / CSS| LCP_JS[Defer JS + critical-CSS inline<br/>+ remove unused CSS]
-    LCP_Q -->|Server slow TTFB > 800ms| LCP_TTFB[CDN cache + server-render<br/>+ edge function if dynamic]
+    LCP_Q -->|Image| LCP_IMG["Preload + fetchpriority + WebP/AVIF<br/>+ explicit width/height"]
+    LCP_Q -->|Text + late web font| LCP_FONT["font-display:swap<br/>+ subset + preload"]
+    LCP_Q -->|Render-blocking JS / CSS| LCP_JS["Defer JS + critical-CSS inline<br/>+ remove unused CSS"]
+    LCP_Q -->|Server slow TTFB > 800ms| LCP_TTFB["CDN cache + server-render<br/>+ edge function if dynamic"]
 
-    CLS_Q -->|Image / video / iframe| CLS_DIMS[Reserve space:<br/>width+height attrs OR aspect-ratio CSS]
-    CLS_Q -->|Late web font swap| CLS_FONT[Match metrics: size-adjust<br/>+ ascent/descent override]
-    CLS_Q -->|Ad / embed injected late| CLS_AD[Reserve container min-height<br/>+ lazy-load below the fold]
-    CLS_Q -->|Animation triggers reflow| CLS_ANIM[Use transform/opacity only<br/>NOT width/height/top/left]
+    CLS_Q -->|Image / video / iframe| CLS_DIMS["Reserve space:<br/>width+height attrs OR aspect-ratio CSS"]
+    CLS_Q -->|Late web font swap| CLS_FONT["Match metrics: size-adjust<br/>+ ascent/descent override"]
+    CLS_Q -->|Ad / embed injected late| CLS_AD["Reserve container min-height<br/>+ lazy-load below the fold"]
+    CLS_Q -->|Animation triggers reflow| CLS_ANIM["Use transform/opacity only<br/>NOT width/height/top/left"]
 
-    INP_Q -->|Heavy JS on click handler| INP_JS[Split work with scheduler.yield<br/>or requestIdleCallback]
-    INP_Q -->|Synchronous third-party| INP_3P[Defer/async load<br/>or remove the script]
-    INP_Q -->|Large React re-render| INP_REACT[Memoize + virtualize lists<br/>+ React 18 concurrent features]
-    INP_Q -->|Slow paint after JS| INP_PAINT[Use will-change:transform<br/>OR composite-only properties]
+    INP_Q -->|Heavy JS on click handler| INP_JS["Split work with scheduler.yield<br/>or requestIdleCallback"]
+    INP_Q -->|Synchronous third-party| INP_3P["Defer/async load<br/>or remove the script"]
+    INP_Q -->|Large React re-render| INP_REACT["Memoize + virtualize lists<br/>+ React 18 concurrent features"]
+    INP_Q -->|Slow paint after JS| INP_PAINT["Use will-change:transform<br/>OR composite-only properties"]
 ```
 
 **Rationale per leaf:**

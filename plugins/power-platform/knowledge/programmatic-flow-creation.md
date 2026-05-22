@@ -15,13 +15,13 @@ The natural path for bulk cloud-flow creation is the [Power Automate Management 
 ```mermaid
 flowchart TD
     START[One or more PA flows broken/off/misnamed] --> Q1{Can you toggle ON from portal without error?}
-    Q1 -->|YES| TOGGLE[Just toggle. Done.<br/>No import needed.]
-    Q1 -->|NO| Q2{Bulk toggle fails 0x80060467<br/>OR For_a_selected_row_V2/404?}
-    Q2 -->|YES, 1-5 flows| SURGICAL[SURGICAL TEMP SOLUTION<br/>~2 min]
-    Q2 -->|YES, 6+ flows OR multi-entity| FULL[FULL SOLUTION REIMPORT<br/>5-20 min]
-    Q2 -->|NO, flow self-off after activate| CONNREF[Connection-reference rebind<br/>portal: Connections, bind CR, retry]
-    SURGICAL --> CLEANUP[Delete temp BTCSIFlowFix solution<br/>after import succeeds]
-    FULL --> DIFFCHECK[git diff after portal pull<br/>before next session]
+    Q1 -->|YES| TOGGLE["Just toggle. Done.<br/>No import needed."]
+    Q1 -->|NO| Q2{"Bulk toggle fails 0x80060467<br/>OR For_a_selected_row_V2/404?"}
+    Q2 -->|YES, 1-5 flows| SURGICAL["SURGICAL TEMP SOLUTION<br/>~2 min"]
+    Q2 -->|YES, 6+ flows OR multi-entity| FULL["FULL SOLUTION REIMPORT<br/>5-20 min"]
+    Q2 -->|NO, flow self-off after activate| CONNREF["Connection-reference rebind<br/>portal: Connections, bind CR, retry"]
+    SURGICAL --> CLEANUP["Delete temp BTCSIFlowFix solution<br/>after import succeeds"]
+    FULL --> DIFFCHECK["git diff after portal pull<br/>before next session"]
 ```
 
 **Rationale per leaf:**
