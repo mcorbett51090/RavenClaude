@@ -2,7 +2,7 @@
 
 **A private Claude Code plugin marketplace** — bundled team rules, specialist agents, dispatch playbooks, and templates that travel with you across projects.
 
-> 📖 **[▶ View `repo-guide.html` rendered in your browser](https://htmlpreview.github.io/?https://github.com/mcorbett51090/RavenClaude/blob/main/repo-guide.html)** — a self-contained single-page guide to every plugin, agent, skill, hook, rule, and template, with a searchable cross-plugin index. Regenerated from the manifests on every release.
+> 📖 **[▶ View `repo-guide.html` rendered in your browser](https://mcorbett51090.github.io/RavenClaude/repo-guide.html)** — a self-contained single-page guide to every plugin, agent, skill, hook, rule, and template, with a searchable cross-plugin index. Regenerated from the manifests on every release.
 >
 > _(Or [view the raw HTML source](repo-guide.html), or download and open locally — no server, no build step.)_
 
@@ -139,7 +139,7 @@ For the dispatch playbook itself, see [`plugins/ravenclaude-core/skills/spawn-te
 
 ## Browsing the marketplace at a glance
 
-[`repo-guide.html`](repo-guide.html) at the repo root is an interactive single-page guide to every plugin, agent, skill, hook, rule, and template that ships from this marketplace. Open it in any browser (no server required) for a tabbed, searchable view of the current state — or click **[▶ View rendered on htmlpreview.github.io](https://htmlpreview.github.io/?https://github.com/mcorbett51090/RavenClaude/blob/main/repo-guide.html)** to render it inline from `main` without cloning. The page is regenerated from the manifests on every release via `python3 scripts/generate-repo-guide.py`; CI's `Verify repo-guide.html is fresh` step fails if it drifts.
+[`repo-guide.html`](repo-guide.html) at the repo root is an interactive single-page guide to every plugin, agent, skill, hook, rule, and template that ships from this marketplace. Open it in any browser (no server required) for a tabbed, searchable view of the current state — or click **[▶ View rendered on GitHub Pages](https://mcorbett51090.github.io/RavenClaude/repo-guide.html)** to render it inline from `main` without cloning. The page is regenerated from the manifests on every release via `python3 scripts/generate-repo-guide.py`; CI's `Verify repo-guide.html is fresh` step fails if it drifts.
 
 ---
 
