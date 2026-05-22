@@ -91,7 +91,15 @@
       "properties": {
         "file_read_project": {
           "type": "string",
-          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "default",
+            "mostly-allow",
+            "productive",
+            "yolo"
+          ],
           "title": "Read files in this project",
           "description": "ls, cat, grep, reading source files inside the current project directory.",
           "x-widget": "segmented",
@@ -100,7 +108,15 @@
         },
         "file_edit_project": {
           "type": "string",
-          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "default",
+            "mostly-allow",
+            "productive",
+            "yolo"
+          ],
           "title": "Edit files in this project",
           "description": "Write, Edit, MultiEdit on files inside the current project.",
           "x-widget": "segmented",
@@ -109,7 +125,15 @@
         },
         "file_read_global": {
           "type": "string",
-          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "default",
+            "mostly-allow",
+            "productive",
+            "yolo"
+          ],
           "title": "Read files outside this project",
           "description": "Reading ~/.ssh, ~/.aws, ~/.config, /etc, etc.",
           "x-widget": "segmented",
@@ -118,7 +142,15 @@
         },
         "file_edit_global": {
           "type": "string",
-          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "default",
+            "mostly-allow",
+            "productive",
+            "yolo"
+          ],
           "title": "Edit files outside this project",
           "description": "Writing to your home directory or system paths.",
           "x-widget": "segmented",
@@ -127,7 +159,15 @@
         },
         "shell_readonly": {
           "type": "string",
-          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "default",
+            "mostly-allow",
+            "productive",
+            "yolo"
+          ],
           "title": "Read-only shell commands",
           "description": "ls, cat, git status, grep, find. The cheap, no-side-effect stuff.",
           "x-widget": "segmented",
@@ -136,7 +176,15 @@
         },
         "shell_local_mutate": {
           "type": "string",
-          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "default",
+            "mostly-allow",
+            "productive",
+            "yolo"
+          ],
           "title": "Local mutations",
           "description": "mkdir, mv, cp, git commit. Changes filesystem locally; doesn't talk to a server.",
           "x-widget": "segmented",
@@ -145,7 +193,15 @@
         },
         "shell_remote_mutate": {
           "type": "string",
-          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "default",
+            "mostly-allow",
+            "productive",
+            "yolo"
+          ],
           "title": "Remote mutations",
           "description": "git push, gh pr create, gh pr comment. Anything that publishes to a shared system.",
           "x-widget": "segmented",
@@ -154,7 +210,15 @@
         },
         "shell_code_exec": {
           "type": "string",
-          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "default",
+            "mostly-allow",
+            "productive",
+            "yolo"
+          ],
           "title": "Arbitrary code execution",
           "description": "python -c, node -e, bash -c, eval — any way to run code that wasn't pre-written.",
           "x-widget": "segmented",
@@ -163,7 +227,15 @@
         },
         "shell_package_install": {
           "type": "string",
-          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "default",
+            "mostly-allow",
+            "productive",
+            "yolo"
+          ],
           "title": "Package installs",
           "description": "npm install, pip install, apt install, brew install.",
           "x-widget": "segmented",
@@ -172,7 +244,15 @@
         },
         "network_read": {
           "type": "string",
-          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "default",
+            "mostly-allow",
+            "productive",
+            "yolo"
+          ],
           "title": "Web reads",
           "description": "WebFetch on known documentation domains; HTTP GET requests.",
           "x-widget": "segmented",
@@ -181,7 +261,15 @@
         },
         "network_write": {
           "type": "string",
-          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "default",
+            "mostly-allow",
+            "productive",
+            "yolo"
+          ],
           "title": "Web writes",
           "description": "POST/PUT/DELETE to web endpoints; anything that mutates remote state.",
           "x-widget": "segmented",
@@ -190,7 +278,15 @@
         },
         "mcp_tools": {
           "type": "string",
-          "enum": ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"],
+          "enum": [
+            "deny",
+            "always-ask",
+            "mostly-ask",
+            "default",
+            "mostly-allow",
+            "productive",
+            "yolo"
+          ],
           "title": "MCP server tools",
           "description": "Tools provided by connected MCP servers.",
           "x-widget": "segmented",
