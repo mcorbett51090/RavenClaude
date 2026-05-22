@@ -81,7 +81,7 @@ Domain-specific opinions live in each agent's own file. These plugin-wide opinio
 
 This plugin inherits the Capability Grounding Protocol from `ravenclaude-core`. Before any compliance agent says "I can't do X" or "this isn't possible", it must:
 
-1. **Check available skills first** — review `aml-program-review`, `regulatory-mapping`, `sar-narrative-drafting`, `examination-readiness`, and any imported reference content.
+1. **Check available skills first** — review `aml-program-review`, `regulatory-mapping`, `sar-narrative-drafting`, `examination-readiness`, `kyc-edd-review`, `sanctions-hit-disposition`, `risk-register-build`, `supervisory-return-prep`, `control-testing`, and any imported reference content.
 2. **Check for partial capability** — determine whether part of the task can be completed or guidance can still be provided.
 3. **Try alternative methods from easiest to most difficult before declaring blocked.** When a regulatory citation, mapping, or data lookup fails — a regulator's public site lacks the version you need, a control framework doesn't map cleanly to your scenario, an SAR-narrative element can't be sourced — enumerate at least 2–3 alternative approaches, rank them by cost (research time, defensibility, regulator-acceptance risk), and try the next-easiest one before reporting blocked. Compliance alternatives often include: a different framework that does map (FFIEC if SOC2 is too narrow), a control narrative that documents the gap rather than ignoring it, a triangulation across primary + secondary sources, or a directly-cited regulator-issued guidance instead of a derivative summary. See the upstream protocol in [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md) for the full rule.
 4. **Consider team composition** — could another agent in `ravenclaude-core`, `finance`, or this plugin handle a portion of the work?
@@ -176,6 +176,11 @@ The hook is **advisory by default** (prints to stderr, doesn't block). For sensi
 | [`skills/regulatory-mapping.md`](skills/regulatory-mapping.md) | `risk-and-controls-specialist`, `policy-and-procedure-writer` | Mapping internal controls to regulatory citations; gap analysis output |
 | [`skills/sar-narrative-drafting.md`](skills/sar-narrative-drafting.md) | `aml-kyc-analyst` | How to draft SAR / STR narratives that survive regulator review; the W's; what to omit |
 | [`skills/examination-readiness.md`](skills/examination-readiness.md) | `examination-prep-specialist` | Pre-exam playbook: PBC, walkthrough rehearsal, mock interviews, exam-week posture |
+| [`skills/kyc-edd-review.md`](skills/kyc-edd-review.md) | `aml-kyc-analyst` | KYC file + EDD review playbook: risk-rating logic, BOI/UBO verification, SoW vs SoF, EDD triggers, sign-off chain |
+| [`skills/sanctions-hit-disposition.md`](skills/sanctions-hit-disposition.md) | `aml-kyc-analyst` | Disposition framework for sanctions alerts: match-quality tiers, cleared-vs-escalated rationale, audit trail, list-version capture |
+| [`skills/risk-register-build.md`](skills/risk-register-build.md) | `risk-and-controls-specialist`, `policy-and-procedure-writer` | Build / refresh an enterprise risk register: cause-event-consequence statements, inherent + residual math, KRIs, three-lines ownership |
+| [`skills/supervisory-return-prep.md`](skills/supervisory-return-prep.md) | `regulatory-reporting-analyst` | Period-end supervisory / regulatory return prep: filing calendar, data lineage, maker-checker, common return families (FATCA, CRS, EBS, Solvency II, RBC) |
+| [`skills/control-testing.md`](skills/control-testing.md) | `risk-and-controls-specialist`, `aml-kyc-analyst` | Second-line compliance control testing rubric: design vs operating effectiveness, risk-based sampling, finding vs observation, MRA response |
 
 **How an agent uses a skill**: read the skill file first for the entry-point playbook, then consult the relevant templates in `templates/` for the artifact shape.
 
