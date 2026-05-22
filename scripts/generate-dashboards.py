@@ -73,7 +73,25 @@ def _load_emissions() -> dict[str, list[str]]:
         return {}
 
 
+def _load_pattern_explanations(plugin_dir: Path) -> dict[str, dict[str, str]]:
+    """Load the per-pattern explanations file if present.
+
+    Lives at plugins/<plugin>/pattern-explanations.json. Each value carries
+    `what` and `why`. Returns an empty dict if the file is absent.
+    """
+    path = plugin_dir / "pattern-explanations.json"
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data.get("patterns", {}) or {}
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
 EMISSIONS = _load_emissions()
+# Pattern explanations are loaded per-plugin in render_dashboard().
+PATTERN_EXPLANATIONS: dict[str, dict[str, str]] = {}
 
 # ── Generated-output discipline (matches generate-repo-guide.py) ─────
 # - byte-identical across OSes: no os.path.sep usage, no os.linesep, only \n
@@ -97,6 +115,9 @@ def load_schema(plugin_dir: Path) -> dict:
 
 def render_dashboard(plugin_dir: Path, schema: dict) -> str:
     """Compose the full dashboard.html string for one plugin."""
+    global PATTERN_EXPLANATIONS
+    PATTERN_EXPLANATIONS = _load_pattern_explanations(plugin_dir)
+
     plugin_name = plugin_dir.name
     title = schema.get("title", f"{plugin_name} dashboard")
     description = schema.get("description", "")
@@ -113,6 +134,9 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         trees_html=_render_stub_tab("Decision trees", "v0.2.0"),
         activity_html=_render_stub_tab("Activity", "v0.2.0"),
         schema_json=json.dumps(schema, indent=2),
+        pattern_explanations_json=json.dumps(
+            PATTERN_EXPLANATIONS, indent=2, sort_keys=True
+        ),
         js=_JS,
     )
 
@@ -191,15 +215,17 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
 def _render_pattern_details(category: str, patterns: list[str]) -> str:
     """Render a collapsible <details> block with per-pattern level controls.
 
-    Each pattern gets its own segmented radiogroup with six values:
-    `__default` (use category default — radio is checked initially) plus the
-    five level enums. Selecting any non-`__default` value records an
-    override in JS state; selecting `__default` clears it.
+    Each pattern row contains: pattern name (mono code), one-line `what`
+    detail, info button (opens the per-pattern modal), and a denser
+    segmented radiogroup with six values — `__default` (use category
+    default; checked initially) plus the five level enums.
     """
     levels = ["__default", "deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"]
     rows: list[str] = []
     for idx, pattern in enumerate(patterns):
         radio_name = f"pat-{category}-{idx}"
+        explanation = PATTERN_EXPLANATIONS.get(pattern, {})
+        what_text = explanation.get("what", "")
         radios: list[str] = []
         for level in levels:
             rid = f"{radio_name}-{level.replace('_', '-')}"
@@ -216,10 +242,19 @@ def _render_pattern_details(category: str, patterns: list[str]) -> str:
                 f'<label for="{html.escape(rid)}" class="{label_cls}" '
                 f'title="{html.escape(level)}">{html.escape(label_text)}</label>'
             )
+        info_btn = (
+            f'<button type="button" class="info-btn info-btn-pattern" '
+            f'data-info-pattern="{html.escape(pattern)}" '
+            f'aria-label="Explain {html.escape(pattern)}" '
+            f'title="Explain this pattern">?</button>'
+            if explanation else ""
+        )
         rows.append(
             f'<div class="pattern-row" data-pattern="{html.escape(pattern)}">'
             f'<code class="pattern-name" title="{html.escape(pattern)}">'
             f'{html.escape(pattern)}</code>'
+            f'<span class="pattern-detail">{html.escape(what_text)}</span>'
+            f'{info_btn}'
             f'<div class="seg-control seg-control-pattern" role="radiogroup" '
             f'data-pattern="{html.escape(pattern)}" data-category="{html.escape(category)}" '
             f'aria-label="Level for {html.escape(pattern)}">'
@@ -232,7 +267,7 @@ def _render_pattern_details(category: str, patterns: list[str]) -> str:
         f'<summary class="pattern-summary">'
         f'<span class="pattern-summary-text">'
         f'Per-pattern overrides <span class="pattern-count">'
-        f'({len(patterns)} patterns)</span></span>'
+        f'({len(patterns)})</span></span>'
         f'<span class="pattern-override-count" data-for="{html.escape(category)}">'
         f'0 overridden</span>'
         f'</summary>'
@@ -247,8 +282,11 @@ def _render_security_deny(schema: dict) -> str:
     """Render the always-on security deny baseline as a checklist.
 
     Patterns are checked-by-default; unchecking a row removes the pattern
-    from the YAML's security_deny list. The full default list comes from
-    the schema's `default` array.
+    from the YAML's security_deny list. Each row carries a one-line `what`
+    detail and an info button that opens the per-pattern modal.
+
+    The legend has its own info button that opens a section-level modal
+    explaining what security_deny does and why.
     """
     defaults = schema.get("default", []) or []
     title = schema.get("title", "Always-on security deny rules")
@@ -259,21 +297,39 @@ def _render_security_deny(schema: dict) -> str:
     rows: list[str] = []
     for idx, pattern in enumerate(defaults):
         cid = f"sec-deny-{idx}"
+        explanation = PATTERN_EXPLANATIONS.get(pattern, {})
+        what_text = explanation.get("what", "")
+        info_btn = (
+            f'<button type="button" class="info-btn info-btn-pattern" '
+            f'data-info-pattern="{html.escape(pattern)}" '
+            f'aria-label="Explain {html.escape(pattern)}" '
+            f'title="Explain this pattern">?</button>'
+            if explanation else ""
+        )
         rows.append(
-            f'<label class="sec-deny-row" for="{html.escape(cid)}">'
+            f'<div class="sec-deny-row">'
             f'<input type="checkbox" id="{html.escape(cid)}" '
             f'class="sec-deny-checkbox" value="{html.escape(pattern)}" checked>'
+            f'<label class="sec-deny-pattern-label" for="{html.escape(cid)}">'
             f'<code class="sec-deny-pattern">{html.escape(pattern)}</code>'
-            f"</label>"
+            f'</label>'
+            f'<span class="pattern-detail sec-deny-detail">{html.escape(what_text)}</span>'
+            f'{info_btn}'
+            f"</div>"
         )
     return (
         f'<fieldset class="cat-group sec-deny-group">'
-        f'<legend>Security baseline</legend>'
+        f'<legend>Security baseline '
+        f'<button type="button" class="info-btn info-btn-section" '
+        f'data-info-section="security_deny" '
+        f'aria-label="Explain the security baseline" '
+        f'title="Explain the security baseline">?</button>'
+        f'</legend>'
         f'<p class="sec-deny-desc">{html.escape(description)}</p>'
-        f'<details class="pattern-details sec-deny-details">'
+        f'<details class="pattern-details sec-deny-details" open>'
         f'<summary class="pattern-summary">'
         f'<span class="pattern-summary-text">{html.escape(title)} '
-        f'<span class="pattern-count">({len(defaults)} patterns)</span></span>'
+        f'<span class="pattern-count">({len(defaults)})</span></span>'
         f'<span class="pattern-override-count" id="sec-deny-active-count">'
         f'{len(defaults)} active</span>'
         f'</summary>'
@@ -607,18 +663,21 @@ body {
 }
 .seg-label:hover { color: var(--text); }
 
-/* Per-pattern controls (collapsible details under each category row) */
+/* Per-pattern controls (collapsible details under each category row).
+ * Visually deliberately quiet — the dominant control is the category-level
+ * segmented control; the per-pattern overrides are an "expand for advanced"
+ * affordance. */
 .pattern-details {
-  margin: -8px 0 12px 0;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  margin: -10px 0 8px 0;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
   overflow: hidden;
 }
 .pattern-summary {
   cursor: pointer;
-  padding: 8px 14px;
-  font-size: 12px;
+  padding: 4px 8px;
+  font-size: 11px;
   color: var(--muted);
   display: flex;
   justify-content: space-between;
@@ -626,43 +685,54 @@ body {
   gap: 12px;
   user-select: none;
   list-style: none;
+  opacity: 0.75;
+  transition: opacity 80ms ease, color 80ms ease;
 }
 .pattern-summary::-webkit-details-marker { display: none; }
 .pattern-summary::before {
-  content: "▸ ";
-  color: var(--accent);
-  font-size: 11px;
+  content: "▸";
+  color: var(--muted);
+  font-size: 10px;
   display: inline-block;
-  width: 12px;
+  width: 10px;
+  margin-right: 4px;
 }
-.pattern-details[open] > .pattern-summary::before { content: "▾ "; }
-.pattern-summary:hover { color: var(--text); }
+.pattern-details[open] > .pattern-summary::before { content: "▾"; color: var(--accent); }
+.pattern-details[open] > .pattern-summary { opacity: 1; }
+.pattern-summary:hover { color: var(--text); opacity: 1; }
 .pattern-summary-text { flex: 1; }
 .pattern-count {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--muted);
-  margin-left: 4px;
+  margin-left: 2px;
 }
 .pattern-override-count {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--muted);
   font-family: var(--font-mono);
   white-space: nowrap;
+  opacity: 0.75;
 }
-.pattern-override-count.has-overrides { color: var(--accent); font-weight: 600; }
+.pattern-override-count.has-overrides {
+  color: var(--accent);
+  font-weight: 600;
+  opacity: 1;
+}
 .pattern-list {
-  max-height: 320px;
+  max-height: 360px;
   overflow-y: auto;
-  padding: 4px 12px 12px;
-  border-top: 1px solid var(--border);
+  padding: 4px 8px 8px;
+  border-top: 1px dotted var(--border);
   background: var(--surface);
+  border-radius: 4px;
 }
+/* New 4-column layout: pattern | detail | info-btn | seg-control */
 .pattern-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(120px, 200px) 1fr auto auto;
   gap: 12px;
-  padding: 6px 0;
+  padding: 6px 4px;
   border-bottom: 1px dotted var(--border);
   align-items: center;
 }
@@ -677,11 +747,34 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.pattern-detail {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 1200px) {
+  .pattern-detail { display: none; }
+}
+.info-btn-pattern {
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+}
+.info-btn-section {
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
 /* Denser segmented control for per-pattern rows */
 .seg-control-pattern .seg-label {
-  padding: 4px 8px;
-  font-size: 11px;
-  min-width: 60px;
+  padding: 3px 7px;
+  font-size: 10.5px;
+  min-width: 56px;
 }
 .seg-control-pattern .seg-label.seg-pattern-default {
   font-style: italic;
@@ -701,14 +794,15 @@ body {
   margin: 4px 0 12px;
   max-width: 640px;
 }
-.sec-deny-list { max-height: 280px; }
+.sec-deny-list { max-height: 360px; }
 .sec-deny-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(160px, 220px) 1fr auto;
   align-items: center;
   gap: 10px;
   padding: 4px 0;
-  cursor: pointer;
 }
+.sec-deny-pattern-label { cursor: pointer; display: contents; }
 .sec-deny-checkbox { accent-color: var(--danger); cursor: pointer; }
 .sec-deny-pattern {
   font-family: var(--font-mono);
@@ -717,9 +811,28 @@ body {
   background: transparent;
   padding: 0;
 }
+.sec-deny-detail {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+@media (max-width: 1200px) {
+  .sec-deny-detail { display: none; }
+}
 .sec-deny-row:has(.sec-deny-checkbox:not(:checked)) .sec-deny-pattern {
   text-decoration: line-through;
   color: var(--muted);
+}
+.sec-deny-row:has(.sec-deny-checkbox:not(:checked)) .sec-deny-detail {
+  opacity: 0.5;
+}
+
+/* Per-pattern info modal (smaller than the category modal) */
+.modal.pattern-modal { max-width: 480px; }
+.modal.pattern-modal h2 {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  word-break: break-all;
 }
 
 /* Modal (info-icon popup) */
@@ -1073,6 +1186,23 @@ _JS = r"""
   const presets = SCHEMA.presets || {};
   const props = SCHEMA.properties || {};
   const catProps = (props.categories && props.categories.properties) || {};
+  /* Pattern explanations loaded from a sibling JSON block. Used by the
+   * per-pattern modal opened from each pattern row's info button. */
+  let PATTERN_EXPLANATIONS = {};
+  try {
+    const el = document.getElementById("pattern-explanations-data");
+    PATTERN_EXPLANATIONS = el ? JSON.parse(el.textContent) : {};
+  } catch (e) {
+    console.error("Failed to parse pattern-explanations:", e);
+  }
+  /* Section-level explanations rendered by clicking the legend's info button. */
+  const SECTION_EXPLANATIONS = {
+    "security_deny": {
+      "title": "Security baseline",
+      "what": "A list of patterns that are ALWAYS denied regardless of your category levels. The deny rules survive every preset — applying \"Autopilot\" doesn't relax them, applying \"Always Ask\" doesn't elevate them. They're the floor.",
+      "why": "Some actions are dangerous enough that no productivity tradeoff justifies them in a normal session: reading credential files (.env, .pem, AWS credentials), recursive force-deletes (rm -rf), force-pushing git history (git push --force), and the 'curl | sh' install pattern. Uncheck any row to remove it from the baseline; the change persists to your comfort-posture.yaml after you save. Recheck to restore. Add new patterns directly to the YAML if you want to extend the floor."
+    }
+  };
 
   /* ── State ───────────────────────────────────────────────────────── */
   /* Each category's value is { default: <level>, overrides: { <pattern>: <level> } }.
@@ -1550,13 +1680,60 @@ _JS = r"""
     modal.classList.remove("open");
     if (lastFocus && typeof lastFocus.focus === "function") lastFocus.focus();
   }
+  /* ── Per-pattern info modal ──────────────────────────────────────── */
+  const patternModal = document.getElementById("pattern-modal");
+  const patternModalTitle = document.getElementById("pattern-modal-title");
+  const patternModalWhat = document.getElementById("pattern-modal-what");
+  const patternModalWhy = document.getElementById("pattern-modal-why");
+  const patternModalClose = document.getElementById("pattern-modal-close");
+  let patternLastFocus = null;
+  function openPatternModal(pattern) {
+    const data = (PATTERN_EXPLANATIONS && PATTERN_EXPLANATIONS[pattern]) || {};
+    patternModalTitle.textContent = pattern;
+    patternModalWhat.textContent = data.what || "(no explanation provided)";
+    patternModalWhy.textContent = data.why || "(no rationale provided)";
+    patternLastFocus = document.activeElement;
+    patternModal.classList.add("open");
+    patternModalClose.focus();
+  }
+  function closePatternModal() {
+    patternModal.classList.remove("open");
+    if (patternLastFocus && typeof patternLastFocus.focus === "function") patternLastFocus.focus();
+  }
+  function openSectionModal(sectionKey) {
+    const data = SECTION_EXPLANATIONS[sectionKey] || {};
+    patternModalTitle.textContent = data.title || sectionKey;
+    patternModalWhat.textContent = data.what || "(no explanation provided)";
+    patternModalWhy.textContent = data.why || "(no rationale provided)";
+    patternLastFocus = document.activeElement;
+    patternModal.classList.add("open");
+    patternModalClose.focus();
+  }
+
+  /* Wire all info buttons. Categories open the category modal; per-pattern
+   * and section info buttons open the pattern modal. */
   document.querySelectorAll(".info-btn").forEach(btn => {
-    btn.addEventListener("click", () => openModal(btn.dataset.infoFor));
+    btn.addEventListener("click", e => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (btn.dataset.infoPattern) {
+        openPatternModal(btn.dataset.infoPattern);
+      } else if (btn.dataset.infoSection) {
+        openSectionModal(btn.dataset.infoSection);
+      } else if (btn.dataset.infoFor) {
+        openModal(btn.dataset.infoFor);
+      }
+    });
   });
   modalClose.addEventListener("click", closeModal);
   modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
+  patternModalClose.addEventListener("click", closePatternModal);
+  patternModal.addEventListener("click", e => { if (e.target === patternModal) closePatternModal(); });
   document.addEventListener("keydown", e => {
-    if (e.key === "Escape" && modal.classList.contains("open")) closeModal();
+    if (e.key === "Escape") {
+      if (modal.classList.contains("open")) closeModal();
+      if (patternModal.classList.contains("open")) closePatternModal();
+    }
   });
 
   /* ── Tab routing ─────────────────────────────────────────────────── */
@@ -1650,6 +1827,17 @@ _PAGE_TEMPLATE = """<!doctype html>
   </div>
 </div>
 
+<div class="modal-backdrop" id="pattern-modal" role="dialog" aria-modal="true" aria-labelledby="pattern-modal-title" tabindex="-1">
+  <div class="modal pattern-modal">
+    <button type="button" class="close-btn" id="pattern-modal-close" aria-label="Close">&times;</button>
+    <h2 id="pattern-modal-title">Pattern</h2>
+    <h3>What this is</h3>
+    <p id="pattern-modal-what"></p>
+    <h3>Why it's here</h3>
+    <p id="pattern-modal-why"></p>
+  </div>
+</div>
+
 <footer class="page-footer">
   Generated by <code>scripts/generate-dashboards.py</code>.
   Source schema: <code>plugins/{plugin_name}/dashboard-schema.json</code>.
@@ -1658,6 +1846,9 @@ _PAGE_TEMPLATE = """<!doctype html>
 
 <script type="application/json" id="schema-data">
 {schema_json}
+</script>
+<script type="application/json" id="pattern-explanations-data">
+{pattern_explanations_json}
 </script>
 <script>
 {js}
