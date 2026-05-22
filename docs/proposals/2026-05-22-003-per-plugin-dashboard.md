@@ -507,6 +507,32 @@ Earlier on 2026-05-22, an external blog post (`0day.click`) claimed CVE-2026-398
 4. **Excel export for the finance "scenarios" panel.** Worth phase 3, or scope creep? Matt's native idiom says yes; minimalism says no.
 5. **Naming — "dashboard" or "settings panel"?** "Dashboard" implies metrics; "settings panel" is more accurate for the Settings tab but doesn't cover Commands, Trees, or Activity.
 
+## 10.5. Phase-2 design decisions (resolved 2026-05-22)
+
+After Spike 1 (Mermaid pre-render) and Spike 2 (file:// load mechanic) completed on 2026-05-22, the architect's 10 follow-up questions across both spikes were walked through with Matt. Decisions below; rationale lives in the spike REPORT files at `docs/research/2026-05-22-dashboard-ux/spikes/` (gitignored).
+
+### Mermaid / decision-tree viewer (spike 1)
+
+| # | Question | Decision |
+|---|---|---|
+| M1 | Dark-mode strategy | **Render twice** per tree — `--theme default` + `--theme dark`. Both SVGs inlined; CSS `display: none` toggles via `prefers-color-scheme`. Doubles SVG payload per tree (~60–90 KB each) but the cheapest implementation. |
+| M2 / M3 | Node-ID prefix + stability | Pass **`--cssClass="rc-tree"`** to mmdc → IDs become `rc-tree-flowchart-NAME-IDX` (cleaner than default `my-svg-...`). CI validator fails if any SVG node ID lacks a sidecar rationale entry (catches source-reorder breakage early). |
+| M4 | Cold-start amortization | **Build the Node wrapper** that boots Chrome once and renders all trees in a single session. Cuts full-marketplace render from ~56s → ~10s. Implemented at the start of phase 2 (or whenever the Trees tab work begins). |
+| M5 | Mermaid version pin | **Pin to `^11`** (current 11.15.0). Allows minor + patch updates within v11; protects against silent major-version drift. |
+
+### Activity feed / file:// load mechanic (spike 2)
+
+| # | Question | Decision |
+|---|---|---|
+| A1 / A5 | Pagination + per-run details | **Inline full summaries**, wrap each in `<details>` collapsed by default so the visual default is a one-line teaser. **Pagination cutoff: 100 runs.** Above that, inline last 50 + per-run static HTML files (`runs/<id>.html`) for older runs that open in new tabs (each self-contained). |
+| A2 | `/wrap` regen cost | **Accept it.** Single dispatch is ~3s; no debounce, no `--no-dashboard-regen` flag for v0.1.0/v0.2.0. Revisit if batch dispatch becomes painful. |
+| A3 | Schema versioning | **Add `schema_version` field** to both the top-level manifest AND every run entry. Dashboard renders missing fields as `—` for older versions (architect S7 graceful-degrade pattern). |
+| A4 | Redaction strategy | **Both generator-time + render-time.** Defense-in-depth: generator strips secret-named field keys before writing the inline data; renderer also runs a key-regex pass before rendering. Two layers means any miss in one is caught by the other. |
+
+### Scope impact
+
+The M4 decision (Node wrapper now, not deferred) adds ~2-4h to the phase-3 Trees-tab work (still v0.2.0 scope). v0.1.0 honest estimate **stays at 17-26 hours** (Settings + Commands + composition shell + sibling generator). Trees + Activity feed in v0.2.0 grows from ~12-16h to ~14-20h with the Node wrapper + dual-render dark mode included.
+
 ---
 
 ## 11. Implementation phases
