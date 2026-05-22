@@ -1,7 +1,7 @@
 {
   "name": "ravenclaude-core",
   "description": "Domain-neutral Team Lead + specialized agents pattern for Claude Code. Bundles 14 specialists, a dispatch playbook, format/lint/test gates, hooks, and templates. v0.8.0: /wrap + scenario-retrieval. v0.9.0: pre-action decision-tree traversal + Researcher staleness check. v0.10.0: every agent ships example-scenario frontmatter. v0.11.0: Capability Grounding Protocol gains its fourth load-bearing clause (pre-action environment-context check + Team Lead session-start orientation + consumer-side .ravenclaude/environment-context.md template). v0.12.0: auto-discovery streamlining via new `environment-discovery` skill. **v0.13.0 \u2014 cross-platform-determinism skill:** new skill captures the lesson from two real bugs in this repo's own `scripts/generate-repo-guide.py` (OS-dependent path separators from `str(Path)` and locale-dependent encoding crashing on Windows cp1252). Teaches the six categories of generator nondeterminism \u2014 path separators, encoding, line endings, ordering, timestamps, locale \u2014 with a review checklist for any script whose output is committed and diff-checked in CI.",
-  "version": "0.14.1",
+  "version": "0.14.3",
   "author": {
     "name": "Matt Corbett"
   },
