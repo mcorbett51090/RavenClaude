@@ -10,6 +10,8 @@
     "LICENSE",
     "SECURITY.md",
     "repo-guide.html",
+    "index.html",
+    ".nojekyll",
     ".gitignore",
     ".gitattributes",
     ".prettierrc.json",
