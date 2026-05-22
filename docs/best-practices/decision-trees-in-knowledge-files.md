@@ -61,7 +61,7 @@ Replace `` ` ` ` `` with three actual backticks. The `last-verified:` date is no
 ## Why Mermaid (not ASCII, not YAML, not JSON Schema)
 
 - **Mermaid is parseable** — CI can lint the graph (catches typos in node IDs, dangling edges)
-- **Mermaid renders in `repo-guide.html`** and GitHub natively — the visual diagram and the source-text are the same artifact
+- **Mermaid renders in [`repo-guide.html`](../../repo-guide.html)** ([▶ view rendered](https://htmlpreview.github.io/?https://github.com/mcorbett51090/RavenClaude/blob/main/repo-guide.html)) and GitHub natively — the visual diagram and the source-text are the same artifact
 - **Mermaid tokenizes more predictably for LLMs** than ASCII drawing characters — LLMermaid research ("Dual-Path Reinforcement") shows text + parseable graph syntax improves agent follow-rates
 - **YAML / JSON Schema is overkill** when the *model* is the executor (not a deterministic runtime). The schema adds tokens without adding constraint
 - **ASCII is readable but agent-unfriendly** — `├─ YES →` tokenizes unpredictably; `Q1 -->|YES| LEAF_A` is consistent
