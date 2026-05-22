@@ -533,6 +533,63 @@ body {
   border-top: 1px solid var(--border);
   background: var(--surface-2);
 }
+.yaml-status {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 12px;
+}
+.yaml-status.status-unsaved { color: var(--warn); }
+.yaml-status.status-saved { color: var(--accent); }
+.yaml-status.status-error { color: var(--danger); }
+.yaml-connected-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px 10px;
+  background: var(--surface-2);
+  font-size: 12px;
+}
+.connected-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+}
+.connected-pill code {
+  background: transparent;
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+.connected-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+.link-btn:hover { color: var(--danger); }
+.yaml-help {
+  padding: 8px 12px 12px;
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+}
+.yaml-help code {
+  background: transparent;
+  font-family: var(--font-mono);
+  color: var(--text);
+}
 .btn {
   background: var(--accent);
   color: var(--bg);
@@ -607,13 +664,24 @@ _SETTINGS_TAB_TEMPLATE = """
   <aside class="yaml-preview">
     <h3>
       <span>comfort-posture.yaml</span>
-      <span id="yaml-status" style="color: var(--muted); font-weight: 400; font-size: 12px;">unsaved</span>
+      <span id="yaml-status" class="yaml-status status-unsaved">unsaved</span>
     </h3>
     <pre id="yaml-output"></pre>
     <div class="yaml-actions">
-      <button class="btn" id="copy-btn">Copy YAML</button>
+      <button class="btn" id="connect-btn" hidden>Auto-save to file…</button>
+      <button class="btn secondary" id="copy-btn">Copy</button>
       <button class="btn secondary" id="download-btn">Download</button>
     </div>
+    <div class="yaml-connected-row" id="connected-row" hidden>
+      <span class="connected-pill">
+        <span class="connected-dot"></span>
+        Auto-saving to <code id="connected-filename">comfort-posture.yaml</code>
+      </span>
+      <button type="button" class="link-btn" id="disconnect-btn" title="Disconnect from file (back to Copy/Download)">disconnect</button>
+    </div>
+    <p class="yaml-help" id="no-api-help" hidden>
+      Your browser doesn't support direct file writes. Use Copy or Download to save the YAML to <code>.ravenclaude/comfort-posture.yaml</code>. (Auto-save needs Chrome, Edge, or Opera.)
+    </p>
   </aside>
 </div>
 """.strip()
@@ -711,6 +779,155 @@ _JS = r"""
     });
   });
 
+  /* ── Auto-save via File System Access API ───────────────────────── */
+  /* Chrome/Edge/Opera: user picks a file once; we persist the handle in
+   * IndexedDB and write on every change (debounced). Firefox/Safari:
+   * feature-detect, hide the button, show a help line. */
+  const HAS_FSA = typeof window.showSaveFilePicker === "function";
+  const connectBtn = document.getElementById("connect-btn");
+  const disconnectBtn = document.getElementById("disconnect-btn");
+  const connectedRow = document.getElementById("connected-row");
+  const connectedFilename = document.getElementById("connected-filename");
+  const statusEl = document.getElementById("yaml-status");
+  const noApiHelp = document.getElementById("no-api-help");
+
+  let fileHandle = null;
+
+  function setStatus(text, cls) {
+    statusEl.textContent = text;
+    statusEl.className = "yaml-status " + (cls || "");
+  }
+
+  /* Minimal IndexedDB wrapper — one DB, one store, two operations.
+   * IndexedDB is the only way to persist a FileSystemFileHandle across reloads. */
+  function idbOpen() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open("ravenclaude-dashboard", 1);
+      req.onupgradeneeded = () => req.result.createObjectStore("handles");
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function idbSet(key, val) {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("handles", "readwrite");
+      tx.objectStore("handles").put(val, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  async function idbGet(key) {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("handles", "readonly");
+      const req = tx.objectStore("handles").get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function idbDel(key) {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("handles", "readwrite");
+      tx.objectStore("handles").delete(key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async function ensurePermission(handle, mode) {
+    const opts = { mode: mode || "readwrite" };
+    if ((await handle.queryPermission(opts)) === "granted") return true;
+    return (await handle.requestPermission(opts)) === "granted";
+  }
+
+  async function writeToHandle() {
+    if (!fileHandle) return;
+    try {
+      const ok = await ensurePermission(fileHandle, "readwrite");
+      if (!ok) { setStatus("permission denied", "status-error"); return; }
+      const writable = await fileHandle.createWritable();
+      await writable.write(emitYaml());
+      await writable.close();
+      setStatus("auto-saved", "status-saved");
+    } catch (err) {
+      console.error("Auto-save failed:", err);
+      setStatus("save failed — see console", "status-error");
+    }
+  }
+
+  /* No debounce: writes are ~10ms and skipping setTimeout preserves the
+   * user-gesture chain that File System Access API permission re-grants
+   * require after a page reload. */
+  function scheduleAutoSave() {
+    if (!fileHandle) {
+      setStatus("unsaved", "status-unsaved");
+      return;
+    }
+    setStatus("saving…", "status-unsaved");
+    writeToHandle();
+  }
+
+  async function connectFile() {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: "comfort-posture.yaml",
+        types: [{ description: "YAML", accept: { "text/yaml": [".yaml", ".yml"] } }]
+      });
+      fileHandle = handle;
+      await idbSet("comfort-posture-handle", handle);
+      connectBtn.hidden = true;
+      connectedRow.hidden = false;
+      connectedFilename.textContent = handle.name;
+      await writeToHandle();
+    } catch (err) {
+      if (err && err.name === "AbortError") return; /* user cancelled */
+      console.error("Connect failed:", err);
+      setStatus("connect failed — see console", "status-error");
+    }
+  }
+
+  async function disconnectFile() {
+    fileHandle = null;
+    await idbDel("comfort-posture-handle");
+    connectBtn.hidden = false;
+    connectedRow.hidden = true;
+    setStatus("unsaved", "status-unsaved");
+  }
+
+  async function restoreHandle() {
+    try {
+      const handle = await idbGet("comfort-posture-handle");
+      if (!handle) return;
+      /* Permission may need re-granting after a page reload. queryPermission
+       * returns "prompt" silently; requesting it would block on a click-gesture.
+       * Show the connected UI but defer the actual write until the user
+       * touches a control (which is a user gesture and allows the prompt). */
+      fileHandle = handle;
+      connectBtn.hidden = true;
+      connectedRow.hidden = false;
+      connectedFilename.textContent = handle.name || "comfort-posture.yaml";
+      const granted = await handle.queryPermission({ mode: "readwrite" });
+      if (granted === "granted") {
+        setStatus("auto-saved", "status-saved");
+      } else {
+        setStatus("touch a control to re-grant access", "status-unsaved");
+      }
+    } catch (err) {
+      console.error("Restore failed:", err);
+    }
+  }
+
+  if (HAS_FSA) {
+    connectBtn.hidden = false;
+    connectBtn.addEventListener("click", connectFile);
+    disconnectBtn.addEventListener("click", disconnectFile);
+    restoreHandle();
+  } else {
+    noApiHelp.hidden = false;
+  }
+
   /* ── Copy / Download ─────────────────────────────────────────────── */
   document.getElementById("copy-btn").addEventListener("click", async () => {
     try {
@@ -740,9 +957,11 @@ _JS = r"""
   });
 
   /* ── Status / toast ──────────────────────────────────────────────── */
+  /* `flagUnsaved` is the legacy hook every form-change calls. When auto-save
+   * is connected, it kicks off a debounced write; otherwise it just shows
+   * the unsaved badge. */
   function flagUnsaved() {
-    document.getElementById("yaml-status").textContent = "unsaved";
-    document.getElementById("yaml-status").style.color = "var(--warn)";
+    scheduleAutoSave();
   }
   const toastEl = (() => {
     const el = document.createElement("div");
