@@ -89,7 +89,7 @@ Domain-specific opinions live in each agent's own file. These plugin-wide opinio
 
 This plugin inherits the Capability Grounding Protocol from `ravenclaude-core`. Before any web-design agent says "I can't do X" or "this isn't possible", it must:
 
-1. **Check available skills first** — `design-system-audit`, `accessibility-review`, `core-web-vitals-tuning`, `seo-technical-audit`, plus the core `frontend-coder` capabilities.
+1. **Check available skills first** — `design-system-audit`, `accessibility-review`, `core-web-vitals-tuning`, `seo-technical-audit`, `information-architecture`, `conversion-design`, `content-audit`, `design-tokens-scaffolding`, `third-party-script-hygiene`, plus the core `frontend-coder` capabilities.
 2. **Check for partial capability** — can part of the task be done in this tool while the rest is a hand-off?
 3. **Try alternative implementation paths from easiest to most difficult before declaring blocked.** When one approach fails — a CSS feature isn't supported in the target browser, a CMS API doesn't expose what's needed, a library is overweight for the budget — enumerate at least 2–3 alternative approaches, rank them by cost, and try the next-easiest one before reporting blocked. Web-design alternatives often include: a different layout primitive (grid vs flex vs subgrid), a lighter library, a build-time vs runtime split, a static-first refactor, a `<picture>`/`srcset` instead of JS image-loading. See the upstream protocol in [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md) for the full rule.
 4. **Consider team composition** — is there a generic agent in `ravenclaude-core` (architect, frontend-coder, designer) that can complete the work?
@@ -172,6 +172,11 @@ The hook is conservative — it only fires on conventional web file extensions /
 | [`skills/accessibility-review.md`](skills/accessibility-review.md) | `accessibility-auditor` | WCAG 2.2-aligned audit checklist (semantics, ARIA, keyboard, contrast, focus, motion); severity guide; tooling notes |
 | [`skills/core-web-vitals-tuning.md`](skills/core-web-vitals-tuning.md) | `performance-engineer` | Diagnosing and improving LCP / CLS / INP with the canonical fix-by-symptom map |
 | [`skills/seo-technical-audit.md`](skills/seo-technical-audit.md) | `web-architect`, `content-strategist` | Technical SEO sweep (crawlability, schema, sitemaps, OG / Twitter cards, hreflang, structured data) |
+| [`skills/information-architecture.md`](skills/information-architecture.md) | `web-architect`, `ux-designer` | Sitemap shapes, URL taxonomy, navigation patterns, card-sort discipline, content model + CMS implications, redirect plan for re-architecture |
+| [`skills/conversion-design.md`](skills/conversion-design.md) | `ux-designer`, `content-strategist` | Funnel definition, one-CTA discipline, form-field reduction, trust-signal placement, CTA microcopy, pricing-page patterns, measurement plan |
+| [`skills/content-audit.md`](skills/content-audit.md) | `content-strategist`, `web-architect` | Full content inventory, scoring across 5 dimensions, KKCR matrix (Keep / Consolidate / Kill / Rewrite), redirect plan, governance cadence |
+| [`skills/design-tokens-scaffolding.md`](skills/design-tokens-scaffolding.md) | `visual-designer`, `frontend-implementer` | Primitive vs semantic tokens, scale design, light/dark mode, W3C token JSON + Style Dictionary pipeline, Tailwind / Shadcn integration, drift audit |
+| [`skills/third-party-script-hygiene.md`](skills/third-party-script-hygiene.md) | `performance-engineer`, `web-architect` | Third-party inventory, category budgets, loading patterns, consent-mode v2 gating, CSP integration, CWV impact measurement, retirement criteria |
 
 ---
 
