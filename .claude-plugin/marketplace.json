@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. All 7 plugins ship example-scenario frontmatter on every agent (55 agents total). Capability Grounding Protocol has 4 composing clauses: pre-action environment-context check + pre-action decision-tree traversal + alternate-methods enumeration + mandatory blocked-phrasing. **Auto-discovery for permission-awareness:** the new environment-discovery skill probes installed CLIs (pac/az/aws/gcloud/gh) at session start and assembles `.ravenclaude/environment-context.md` automatically. Plugins: ravenclaude-core (14 + /wrap + scenario-retrieval + environment-discovery skills), power-platform (11 + bundled pbix-mcp + Mermaid decision-tree knowledge file + scenarios bank), finance (7), regulatory-compliance (6 + BMA Bermuda specialist), web-design (7 + WCAG/CWV/SEO discipline), edtech-partner-success (6 PSM-lane specialists — K-12 / higher-ed / corporate L&D agnostic), data-platform (4 for dashboard engagements). Repo-guide includes Overview-tab 'I want to…' use-case lookup filterable by plugin + per-plugin last-updated badges. Salesforce on the roadmap.",
-    "version": "0.23.0"
+    "version": "0.24.0"
   },
   "plugins": [
     {

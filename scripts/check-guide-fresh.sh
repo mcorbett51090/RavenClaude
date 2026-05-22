@@ -42,9 +42,12 @@ if ! python3 "$generator" --check > "$tmp" 2>/dev/null; then
   exit 3
 fi
 
-# Strip the volatile "Generated …" line from both sides before diffing.
+# Strip volatile lines from both sides before diffing.
+# - "Generated YYYY-…" — timestamp set at generation time
+# - "Last updated</span>" — per-plugin git-log date; CI uses shallow checkout so
+#    the value differs from a full-history local clone. Strip from both sides.
 strip_volatile() {
-  grep -v 'Generated 20[0-9][0-9]-' "$1" 2>/dev/null || true
+  grep -Ev 'Generated 20[0-9][0-9]-|Last updated</span>' "$1" 2>/dev/null || true
 }
 
 if diff -q <(strip_volatile "$committed") <(strip_volatile "$tmp") > /dev/null 2>&1; then

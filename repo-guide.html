@@ -208,9 +208,9 @@
 <header class="site">
   <div class="title-row">
     <h1>🐦‍⬛ RavenClaude — Marketplace Guide</h1>
-    <span class="version-banner">marketplace <strong>v0.23.0</strong></span>
+    <span class="version-banner">marketplace <strong>v0.24.0</strong></span>
   </div>
-  <div class="generated">Generated 2026-05-22 00:54 UTC by <code>scripts/generate-repo-guide.py</code></div>
+  <div class="generated">Generated 2026-05-22 01:07 UTC by <code>scripts/generate-repo-guide.py</code></div>
   <div class="stats">
     <div><strong>7</strong> plugins</div>
     <div><strong>55</strong> agents</div>
@@ -582,13 +582,13 @@
     <h2 style="color: var(--accent); margin-top: 0;">Decision Trees</h2>
     <p class="usecase-help">Every <code>## Decision Tree:</code> section across the marketplace, rendered visually. Trees ship in plugin knowledge/skill files where multi-conditional procedural knowledge benefits from forced traversal over prose recall. Stale-after-90-days backstop via the Researcher's Weekly Deep Research sweep.</p><div class="usecase-filter"><button class="usecase-filter-btn dt-filter-btn active" data-dt-filter="__all__" style="--accent: var(--accent)">All <span class="count">3</span></button><button class="usecase-filter-btn dt-filter-btn" data-dt-filter="power-platform" style="--accent: #8b5cf6">power-platform <span class="count">1</span></button><button class="usecase-filter-btn dt-filter-btn" data-dt-filter="web-design" style="--accent: #3b82f6">web-design <span class="count">1</span></button><button class="usecase-filter-btn dt-filter-btn" data-dt-filter="data-platform" style="--accent: #64748b">data-platform <span class="count">1</span></button></div><div id="decision-trees-list"><article class="decision-tree-card" data-dt-plugin="power-platform" style="--accent: #8b5cf6"><header><h3>PA flow recovery — stuck / broken / off</h3><span class="dt-plugin-chip">power-platform</span><span class="dt-last-verified">Last verified: <code>2026-05-21</code></span></header><p class="dt-when"><strong>When this applies:</strong> one or more Power Automate flows in a Dataverse-backed solution are off, throwing 404 on `For_a_selected_row_V2`, or otherwise misbehaving after a solution import. **Traverse this tree top-to-bottom before selecting a method — do NOT pattern-match on keywords in the user&#x27;s situation description.**</p><pre class="mermaid">flowchart TD
     START[One or more PA flows broken/off/misnamed] --&gt; Q1{Can you toggle ON from portal without error?}
-    Q1 --&gt;|YES| TOGGLE[Just toggle. Done.&lt;br/&gt;No import needed.]
-    Q1 --&gt;|NO| Q2{Bulk toggle fails 0x80060467&lt;br/&gt;OR For_a_selected_row_V2/404?}
-    Q2 --&gt;|YES, 1-5 flows| SURGICAL[SURGICAL TEMP SOLUTION&lt;br/&gt;~2 min]
-    Q2 --&gt;|YES, 6+ flows OR multi-entity| FULL[FULL SOLUTION REIMPORT&lt;br/&gt;5-20 min]
-    Q2 --&gt;|NO, flow self-off after activate| CONNREF[Connection-reference rebind&lt;br/&gt;portal: Connections, bind CR, retry]
-    SURGICAL --&gt; CLEANUP[Delete temp BTCSIFlowFix solution&lt;br/&gt;after import succeeds]
-    FULL --&gt; DIFFCHECK[git diff after portal pull&lt;br/&gt;before next session]</pre><details class="dt-rationale"><summary>Rationale + tradeoffs</summary><p><strong>Rationale per leaf:</strong></p>
+    Q1 --&gt;|YES| TOGGLE[&quot;Just toggle. Done.&lt;br/&gt;No import needed.&quot;]
+    Q1 --&gt;|NO| Q2{&quot;Bulk toggle fails 0x80060467&lt;br/&gt;OR For_a_selected_row_V2/404?&quot;}
+    Q2 --&gt;|YES, 1-5 flows| SURGICAL[&quot;SURGICAL TEMP SOLUTION&lt;br/&gt;~2 min&quot;]
+    Q2 --&gt;|YES, 6+ flows OR multi-entity| FULL[&quot;FULL SOLUTION REIMPORT&lt;br/&gt;5-20 min&quot;]
+    Q2 --&gt;|NO, flow self-off after activate| CONNREF[&quot;Connection-reference rebind&lt;br/&gt;portal: Connections, bind CR, retry&quot;]
+    SURGICAL --&gt; CLEANUP[&quot;Delete temp BTCSIFlowFix solution&lt;br/&gt;after import succeeds&quot;]
+    FULL --&gt; DIFFCHECK[&quot;git diff after portal pull&lt;br/&gt;before next session&quot;]</pre><details class="dt-rationale"><summary>Rationale + tradeoffs</summary><p><strong>Rationale per leaf:</strong></p>
 
 <ul>
 <li>*TOGGLE* — if the portal accepts the toggle, the flow definition is intact; only the trigger registration was lost. No reimport needed.</li>
@@ -612,25 +612,25 @@
 <p>If the symptom matches multiple branches, the leaf with the <strong>smaller blast radius is the default</strong>. Escalate to the bigger blast radius only when the smaller one demonstrably failed.</p>
 
 <p>---</p></details><div class="dt-source"><a href="#plugin-power-platform">power-platform</a> · <code>plugins/power-platform/knowledge/programmatic-flow-creation.md</code></div></article><article class="decision-tree-card" data-dt-plugin="web-design" style="--accent: #3b82f6"><header><h3>CWV root-cause triage</h3><span class="dt-plugin-chip">web-design</span><span class="dt-last-verified">Last verified: <code>2026-05-22</code></span></header><p class="dt-when"><strong>When this applies:</strong> any CWV regression that needs diagnosis before fix-selection. **Traverse this tree top-to-bottom before picking a fix** — diagnosing the wrong vital wastes the budget.</p><pre class="mermaid">flowchart TD
-    START[CWV regression reported] --&gt; Q1{Which vital is failing?&lt;br/&gt;Check CrUX p75}
+    START[CWV regression reported] --&gt; Q1{&quot;Which vital is failing?&lt;br/&gt;Check CrUX p75&quot;}
     Q1 --&gt;|LCP &gt; 2.5s| LCP_Q{What&#x27;s the LCP element?}
     Q1 --&gt;|CLS &gt; 0.1| CLS_Q{When does shift occur?}
     Q1 --&gt;|INP &gt; 200ms| INP_Q{Which interaction is slow?}
 
-    LCP_Q --&gt;|Image| LCP_IMG[Preload + fetchpriority + WebP/AVIF&lt;br/&gt;+ explicit width/height]
-    LCP_Q --&gt;|Text + late web font| LCP_FONT[font-display:swap&lt;br/&gt;+ subset + preload]
-    LCP_Q --&gt;|Render-blocking JS / CSS| LCP_JS[Defer JS + critical-CSS inline&lt;br/&gt;+ remove unused CSS]
-    LCP_Q --&gt;|Server slow TTFB &gt; 800ms| LCP_TTFB[CDN cache + server-render&lt;br/&gt;+ edge function if dynamic]
+    LCP_Q --&gt;|Image| LCP_IMG[&quot;Preload + fetchpriority + WebP/AVIF&lt;br/&gt;+ explicit width/height&quot;]
+    LCP_Q --&gt;|Text + late web font| LCP_FONT[&quot;font-display:swap&lt;br/&gt;+ subset + preload&quot;]
+    LCP_Q --&gt;|Render-blocking JS / CSS| LCP_JS[&quot;Defer JS + critical-CSS inline&lt;br/&gt;+ remove unused CSS&quot;]
+    LCP_Q --&gt;|Server slow TTFB &gt; 800ms| LCP_TTFB[&quot;CDN cache + server-render&lt;br/&gt;+ edge function if dynamic&quot;]
 
-    CLS_Q --&gt;|Image / video / iframe| CLS_DIMS[Reserve space:&lt;br/&gt;width+height attrs OR aspect-ratio CSS]
-    CLS_Q --&gt;|Late web font swap| CLS_FONT[Match metrics: size-adjust&lt;br/&gt;+ ascent/descent override]
-    CLS_Q --&gt;|Ad / embed injected late| CLS_AD[Reserve container min-height&lt;br/&gt;+ lazy-load below the fold]
-    CLS_Q --&gt;|Animation triggers reflow| CLS_ANIM[Use transform/opacity only&lt;br/&gt;NOT width/height/top/left]
+    CLS_Q --&gt;|Image / video / iframe| CLS_DIMS[&quot;Reserve space:&lt;br/&gt;width+height attrs OR aspect-ratio CSS&quot;]
+    CLS_Q --&gt;|Late web font swap| CLS_FONT[&quot;Match metrics: size-adjust&lt;br/&gt;+ ascent/descent override&quot;]
+    CLS_Q --&gt;|Ad / embed injected late| CLS_AD[&quot;Reserve container min-height&lt;br/&gt;+ lazy-load below the fold&quot;]
+    CLS_Q --&gt;|Animation triggers reflow| CLS_ANIM[&quot;Use transform/opacity only&lt;br/&gt;NOT width/height/top/left&quot;]
 
-    INP_Q --&gt;|Heavy JS on click handler| INP_JS[Split work with scheduler.yield&lt;br/&gt;or requestIdleCallback]
-    INP_Q --&gt;|Synchronous third-party| INP_3P[Defer/async load&lt;br/&gt;or remove the script]
-    INP_Q --&gt;|Large React re-render| INP_REACT[Memoize + virtualize lists&lt;br/&gt;+ React 18 concurrent features]
-    INP_Q --&gt;|Slow paint after JS| INP_PAINT[Use will-change:transform&lt;br/&gt;OR composite-only properties]</pre><details class="dt-rationale"><summary>Rationale + tradeoffs</summary><p><strong>Rationale per leaf:</strong></p>
+    INP_Q --&gt;|Heavy JS on click handler| INP_JS[&quot;Split work with scheduler.yield&lt;br/&gt;or requestIdleCallback&quot;]
+    INP_Q --&gt;|Synchronous third-party| INP_3P[&quot;Defer/async load&lt;br/&gt;or remove the script&quot;]
+    INP_Q --&gt;|Large React re-render| INP_REACT[&quot;Memoize + virtualize lists&lt;br/&gt;+ React 18 concurrent features&quot;]
+    INP_Q --&gt;|Slow paint after JS| INP_PAINT[&quot;Use will-change:transform&lt;br/&gt;OR composite-only properties&quot;]</pre><details class="dt-rationale"><summary>Rationale + tradeoffs</summary><p><strong>Rationale per leaf:</strong></p>
 
 <ul>
 <li>*LCP_IMG* — most common LCP cause. Preload + fetchpriority=high gets the bytes into the browser first; WebP/AVIF cuts bytes 30-50%; explicit dimensions prevent reflow that pushes LCP further out.</li>
@@ -668,16 +668,16 @@
 <li>Fixing CLS by hiding content (visibility:hidden) — that just moves the problem; users still see broken layout.</li>
 </ul></details><div class="dt-source"><a href="#plugin-web-design">web-design</a> · <code>plugins/web-design/skills/core-web-vitals-tuning.md</code></div></article><article class="decision-tree-card" data-dt-plugin="data-platform" style="--accent: #64748b"><header><h3>Dashboard engagement — which Case?</h3><span class="dt-plugin-chip">data-platform</span><span class="dt-last-verified">Last verified: <code>2026-05-22</code></span></header><p class="dt-when"><strong>When this applies:</strong> any new dashboard engagement OR mid-engagement scope shift that might change the Case. **Traverse this tree top-to-bottom before recommending a stack** — do NOT pattern-match on keywords in the user&#x27;s situation description.</p><pre class="mermaid">flowchart TD
     START[New dashboard engagement] --&gt; Q1{Portfolio for the consultant&#x27;s own marketing site?}
-    Q1 --&gt;|YES| CASE_A[Case A — Portfolio&lt;br/&gt;Evidence.dev OSS&lt;br/&gt;Static deploy]
+    Q1 --&gt;|YES| CASE_A[&quot;Case A — Portfolio&lt;br/&gt;Evidence.dev OSS&lt;br/&gt;Static deploy&quot;]
     Q1 --&gt;|NO| Q2{Client already has a BI tool — needs only data pipes?}
-    Q2 --&gt;|YES| CASE_D[Case D — Pipes only&lt;br/&gt;Airbyte + Postgres + dbt&lt;br/&gt;No dashboard framework]
+    Q2 --&gt;|YES| CASE_D[&quot;Case D — Pipes only&lt;br/&gt;Airbyte + Postgres + dbt&lt;br/&gt;No dashboard framework&quot;]
     Q2 --&gt;|NO| Q3{One-off custom dashboard inside the client&#x27;s app?}
     Q3 --&gt;|YES| Q3a{M365-stack client?}
-    Q3a --&gt;|YES| CASE_B_PBI[Case B — Microsoft variant&lt;br/&gt;Power BI Embedded F2 ~$262/mo&lt;br/&gt;App-Owns-Data + DAX-role RLS]
-    Q3a --&gt;|NO| CASE_B_OSS[Case B — OSS variant&lt;br/&gt;Superset or Metabase OSS&lt;br/&gt;VPS $20-40/mo + Postgres RLS + JWT embed]
+    Q3a --&gt;|YES| CASE_B_PBI[&quot;Case B — Microsoft variant&lt;br/&gt;Power BI Embedded F2 ~$262/mo&lt;br/&gt;App-Owns-Data + DAX-role RLS&quot;]
+    Q3a --&gt;|NO| CASE_B_OSS[&quot;Case B — OSS variant&lt;br/&gt;Superset or Metabase OSS&lt;br/&gt;VPS $20-40/mo + Postgres RLS + JWT embed&quot;]
     Q3 --&gt;|NO| Q4{Multi-tenant product to sell to many customers?}
-    Q4 --&gt;|YES| CASE_C[Case C — Productized SaaS&lt;br/&gt;Cube OSS + custom React&lt;br/&gt;Postgres RLS]
-    Q4 --&gt;|NO| ESCAPE[None of A/B/C/D fit&lt;br/&gt;Escalate to ravenclaude-core/architect]</pre><details class="dt-rationale"><summary>Rationale + tradeoffs</summary><p><strong>Rationale per leaf:</strong></p>
+    Q4 --&gt;|YES| CASE_C[&quot;Case C — Productized SaaS&lt;br/&gt;Cube OSS + custom React&lt;br/&gt;Postgres RLS&quot;]
+    Q4 --&gt;|NO| ESCAPE[&quot;None of A/B/C/D fit&lt;br/&gt;Escalate to ravenclaude-core/architect&quot;]</pre><details class="dt-rationale"><summary>Rationale + tradeoffs</summary><p><strong>Rationale per leaf:</strong></p>
 
 <ul>
 <li>*CASE_A* — single-tenant + version-controlled + public-facing means no embed-auth complexity. Evidence.dev OSS handles the SQL-fenced-block authoring pattern cleanly. $0 hosting via Vercel / Netlify static deploy.</li>
