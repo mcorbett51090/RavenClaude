@@ -1,6 +1,6 @@
 {
   "name": "power-platform",
-  "version": "0.12.1",
+  "version": "0.12.2",
   "description": "Power Platform specialists (11 including power-platform-tester and power-bi-engineer) with Capability Grounding Protocol (extended with alternate-methods rule + v0.11.0 pre-action decision-tree traversal), maintainability-review skill, and strong ALM/git coverage for solutions, flows, and PBIP projects. House-opinions hook covers 8 mechanically-detectable §3/§4 violations. Knowledge bank captures production lessons — `programmatic-flow-creation.md` is the marketplace's first knowledge file with a Mermaid decision tree (v0.11.0) covering PA flow recovery. v0.10.0: scenarios bank with 3 seed scenarios. **v0.12.0 — all 11 agents now ship example-scenario frontmatter** (audience + works_with + scenarios + quickstart per docs/best-practices/agent-scenario-authoring.md), feeding the repo-guide's per-agent cards and the Overview-tab 'I want to…' lookup. Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval without Power BI Desktop (requires `pip install pbix-mcp`).",
   "author": {
     "name": "Matt Corbett"
