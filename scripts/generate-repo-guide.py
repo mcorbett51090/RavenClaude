@@ -1263,11 +1263,26 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
   // Tab switching
   const tabs = document.querySelectorAll('.tab-btn');
   const panels = document.querySelectorAll('section.panel');
+  // Lazy-render Mermaid diagrams whenever a panel containing unprocessed
+  // `<pre class="mermaid">` elements becomes visible. Mermaid's layout pass
+  // calls getBBox() on SVG text — inside a `display:none` panel that returns
+  // zero dimensions, causing `calculatePoint` to throw "Could not find a
+  // suitable point for the given distance" and fall back to a "Syntax error
+  // in text" placeholder. So we initialize with `startOnLoad: false` and
+  // render on demand when the host panel is actually shown.
+  function renderMermaidIn(panel) {{
+    if (typeof window.mermaid === 'undefined') return;
+    const targets = panel.querySelectorAll('pre.mermaid:not([data-processed])');
+    if (targets.length === 0) return;
+    window.mermaid.run({{ nodes: Array.from(targets) }}).catch(() => {{}});
+  }}
   tabs.forEach(btn => {{
     btn.addEventListener('click', () => {{
       const target = btn.dataset.tab;
       tabs.forEach(b => b.setAttribute('aria-selected', b === btn ? 'true' : 'false'));
       panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+      const activePanel = document.querySelector(`section.panel[data-panel="${{target}}"]`);
+      if (activePanel) renderMermaidIn(activePanel);
     }});
   }});
 
@@ -1358,10 +1373,16 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
 <!-- Inlined Mermaid library (vendored at scripts/vendor/mermaid.min.js) -->
 <script>{mermaid_lib_src}</script>
 <script>
-  // Initialize Mermaid with dark theme matching the repo-guide
+  // Initialize Mermaid with dark theme matching the repo-guide.
+  // NOTE: `startOnLoad: false` is intentional — the Decision Trees panel is
+  // `display:none` at page load. Running Mermaid on hidden SVG containers
+  // causes `getBBox()` to return zero dimensions, breaking the edge-routing
+  // layout pass. We render lazily in the tab-switch handler instead (see
+  // `renderMermaidIn` in the tab-switching script above). Initial render of
+  // the currently-active panel runs once mermaid finishes loading.
   if (typeof mermaid !== 'undefined') {{
     mermaid.initialize({{
-      startOnLoad: true,
+      startOnLoad: false,
       theme: 'dark',
       themeVariables: {{
         primaryColor: '#1f2937',
@@ -1374,6 +1395,14 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
       flowchart: {{ htmlLabels: true, curve: 'basis' }},
       securityLevel: 'loose',
     }});
+    // Render any mermaid diagrams in the currently-active panel.
+    const activeOnLoad = document.querySelector('section.panel.active');
+    if (activeOnLoad) {{
+      const targets = activeOnLoad.querySelectorAll('pre.mermaid:not([data-processed])');
+      if (targets.length > 0) {{
+        mermaid.run({{ nodes: Array.from(targets) }}).catch(() => {{}});
+      }}
+    }}
   }}
 </script>
 
@@ -1392,7 +1421,14 @@ def main() -> int:
     output = render(marketplace, plugins)
 
     if args.check:
-        sys.stdout.write(output)
+        # Force UTF-8 on stdout — Windows' default cp1252 console encoding
+        # cannot represent the em/en dashes and other non-ASCII characters in
+        # the generated HTML. Without this the script raises
+        # UnicodeEncodeError, the freshness gate then sees a failed generator
+        # (exit 3) and reports a false "stale" diagnosis. Equivalent to
+        # exporting PYTHONIOENCODING=utf-8, but baked in so it works on any
+        # shell.
+        sys.stdout.buffer.write(output.encode("utf-8"))
         return 0
 
     args.output.parent.mkdir(parents=True, exist_ok=True)

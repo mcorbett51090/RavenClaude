@@ -210,7 +210,7 @@
     <h1>🐦‍⬛ RavenClaude — Marketplace Guide</h1>
     <span class="version-banner">marketplace <strong>v0.24.0</strong></span>
   </div>
-  <div class="generated">Generated 2026-05-22 01:07 UTC by <code>scripts/generate-repo-guide.py</code></div>
+  <div class="generated">Generated 2026-05-22 12:24 UTC by <code>scripts/generate-repo-guide.py</code></div>
   <div class="stats">
     <div><strong>7</strong> plugins</div>
     <div><strong>55</strong> agents</div>
@@ -753,11 +753,26 @@
   // Tab switching
   const tabs = document.querySelectorAll('.tab-btn');
   const panels = document.querySelectorAll('section.panel');
+  // Lazy-render Mermaid diagrams whenever a panel containing unprocessed
+  // `<pre class="mermaid">` elements becomes visible. Mermaid's layout pass
+  // calls getBBox() on SVG text — inside a `display:none` panel that returns
+  // zero dimensions, causing `calculatePoint` to throw "Could not find a
+  // suitable point for the given distance" and fall back to a "Syntax error
+  // in text" placeholder. So we initialize with `startOnLoad: false` and
+  // render on demand when the host panel is actually shown.
+  function renderMermaidIn(panel) {
+    if (typeof window.mermaid === 'undefined') return;
+    const targets = panel.querySelectorAll('pre.mermaid:not([data-processed])');
+    if (targets.length === 0) return;
+    window.mermaid.run({ nodes: Array.from(targets) }).catch(() => {});
+  }
   tabs.forEach(btn => {
     btn.addEventListener('click', () => {
       const target = btn.dataset.tab;
       tabs.forEach(b => b.setAttribute('aria-selected', b === btn ? 'true' : 'false'));
       panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+      const activePanel = document.querySelector(`section.panel[data-panel="${target}"]`);
+      if (activePanel) renderMermaidIn(activePanel);
     });
   });
 
@@ -4253,10 +4268,16 @@ cytoscape/dist/cytoscape.esm.mjs:
 globalThis["mermaid"] = globalThis.__esbuild_esm_mermaid_nm["mermaid"].default;
 </script>
 <script>
-  // Initialize Mermaid with dark theme matching the repo-guide
+  // Initialize Mermaid with dark theme matching the repo-guide.
+  // NOTE: `startOnLoad: false` is intentional — the Decision Trees panel is
+  // `display:none` at page load. Running Mermaid on hidden SVG containers
+  // causes `getBBox()` to return zero dimensions, breaking the edge-routing
+  // layout pass. We render lazily in the tab-switch handler instead (see
+  // `renderMermaidIn` in the tab-switching script above). Initial render of
+  // the currently-active panel runs once mermaid finishes loading.
   if (typeof mermaid !== 'undefined') {
     mermaid.initialize({
-      startOnLoad: true,
+      startOnLoad: false,
       theme: 'dark',
       themeVariables: {
         primaryColor: '#1f2937',
@@ -4269,6 +4290,14 @@ globalThis["mermaid"] = globalThis.__esbuild_esm_mermaid_nm["mermaid"].default;
       flowchart: { htmlLabels: true, curve: 'basis' },
       securityLevel: 'loose',
     });
+    // Render any mermaid diagrams in the currently-active panel.
+    const activeOnLoad = document.querySelector('section.panel.active');
+    if (activeOnLoad) {
+      const targets = activeOnLoad.querySelectorAll('pre.mermaid:not([data-processed])');
+      if (targets.length > 0) {
+        mermaid.run({ nodes: Array.from(targets) }).catch(() => {});
+      }
+    }
   }
 </script>
 
