@@ -1,3 +1,8 @@
+---
+name: board-pack-composition
+description: Compose narrative-first board / investor / lender reporting packs — section sequencing, KPI selection, executive-summary patterns. Numbers don't ship without commentary. Used by `board-pack-composer` (primary).
+---
+
 # Skill: board-pack-composition
 
 **Purpose:** How to assemble a board / investor / lender reporting pack that gets read and drives decisions. Used by `board-pack-composer` (primary).

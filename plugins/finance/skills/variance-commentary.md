@@ -1,3 +1,8 @@
+---
+name: variance-commentary
+description: Write variance commentary that tells a story instead of restating a table — templates for revenue, GM, opex, EBITDA, FCF with named drivers + materiality threshold applied. Source-cite every number. Used by `fpa-analyst` (primary) + `board-pack-composer`.
+---
+
 # Skill: variance-commentary
 
 **Purpose:** How to write variance commentary that tells a story instead of restating a table. Used by `fpa-analyst` (primary), `board-pack-composer`, and any agent that produces a variance walk.

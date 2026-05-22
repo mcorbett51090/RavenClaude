@@ -1,3 +1,8 @@
+---
+name: environment-discovery
+description: Auto-discover the consumer's environment posture by probing installed CLIs (pac / az / aws / gcloud / gh) with read-only commands at session start, decoding JWTs for role/scope claims, and assembling a draft `.ravenclaude/environment-context.md` for save/edit/skip. Streamlines proposal 2026-05-22-001's permission-awareness mechanism.
+---
+
 # Skill: environment-discovery
 
 > **Invoked by:** the Team Lead at session start when `.ravenclaude/environment-context.md` does NOT exist in the consumer's project root. Streamlines the permission-awareness mechanism (proposal `2026-05-22-001`) from "user fills in a template" to "agent infers posture, asks once, saves." Closes the "did you try X?" round-trip on actions the agent has authority to perform.

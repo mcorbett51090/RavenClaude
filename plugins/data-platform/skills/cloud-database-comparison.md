@@ -1,3 +1,8 @@
+---
+name: cloud-database-comparison
+description: Compare cloud databases (Supabase, Neon, RDS, Azure SQL, Fabric, DuckDB, MotherDuck, Snowflake, Databricks, Turso) for an SMB consulting engagement — pricing tables with retrieval dates, setup-complexity matrix, when-to-pick guidance. Used by `database-setup-guide` to recommend a DB choice for a new engagement.
+---
+
 # Skill: cloud-database-comparison
 
 > **Invoked by:** `database-setup-guide` (primary). Also consulted by `ravenclaude-core/architect` when running the `stack-selection` skill.

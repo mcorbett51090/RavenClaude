@@ -1,7 +1,7 @@
 {
   "name": "ravenclaude-core",
   "description": "Domain-neutral Team Lead + specialized agents pattern for Claude Code. Bundles 14 specialists, a dispatch playbook, format/lint/test gates, hooks, and templates. v0.8.0: /wrap + scenario-retrieval. v0.9.0: pre-action decision-tree traversal + Researcher staleness check. v0.10.0: every agent ships example-scenario frontmatter. v0.11.0: Capability Grounding Protocol gains its fourth load-bearing clause (pre-action environment-context check + Team Lead session-start orientation + consumer-side .ravenclaude/environment-context.md template). **v0.12.0 — auto-discovery streamlining:** new `environment-discovery` skill probes installed CLIs (pac/az/aws/gcloud/gh) with read-only commands at session start, decodes any acquired JWTs, and assembles a draft .ravenclaude/environment-context.md for the user to save/edit/skip. Turns permission-awareness setup from 'fill in the template' to 'agent infers your posture, asks once, saves.' Researcher staleness check extended to flag env-context files older than 90 days.",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "author": {
     "name": "Matt Corbett"
   },

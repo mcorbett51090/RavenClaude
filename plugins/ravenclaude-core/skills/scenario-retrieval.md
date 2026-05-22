@@ -1,3 +1,8 @@
+---
+name: scenario-retrieval
+description: Consult the unverified scenarios bank (`plugins/<plugin>/scenarios/*.md`) before answering plugin-domain questions. Glob + tag-filter + recency-weight, surface top 2-3 with mandatory unverified-scenario preamble ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"). Secondary source — never replaces canonical knowledge files.
+---
+
 # Skill: scenario-retrieval
 
 > **Invoked by:** any agent that may benefit from a war-story narrative before answering. Currently wired into `ravenclaude-core/architect`, `ravenclaude-core/security-reviewer`, and the `power-platform/*` agents via inline priors.

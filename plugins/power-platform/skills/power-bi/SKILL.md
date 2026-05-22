@@ -1,3 +1,8 @@
+---
+name: power-bi
+description: Veteran-level reference for Power BI — PBIP project structure + git, semantic model design, DAX patterns + performance, deployment pipelines, refresh / gateway troubleshooting, integration with Power Platform solutions / ALM. Used by `power-bi-engineer` (primary).
+---
+
 # Power BI Skill
 
 **Purpose:** Provide veteran-level reference and patterns for the new `power-bi-engineer` agent — semantic model design, DAX, PBIP git workflows with Azure DevOps, deployment, refresh troubleshooting, and integration with Power Platform solutions/ALM.

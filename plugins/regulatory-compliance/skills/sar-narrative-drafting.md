@@ -1,3 +1,8 @@
+---
+name: sar-narrative-drafting
+description: Draft SAR / STR narratives that survive regulator review — typology + the W's + what to omit + reviewer sign-off chain. Used by `aml-kyc-analyst` (primary). Confidentiality class always at least client-confidential; often regulator-only.
+---
+
 # Skill: sar-narrative-drafting
 
 **Purpose:** Draft SAR (Suspicious Activity Report) / STR (Suspicious Transaction Report) narratives that survive regulator (FinCEN, FIU, equivalent) review. Used by `aml-kyc-analyst` (primary).

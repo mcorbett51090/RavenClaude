@@ -1,3 +1,8 @@
+---
+name: aml-program-review
+description: Structured review of an AML program against FATF / FFIEC expectations — the 5 pillars, common findings, regulatory citations with primary sources. Used by `aml-kyc-analyst` (primary).
+---
+
 # Skill: aml-program-review
 
 **Purpose:** Structured review of an AML program against FATF / FFIEC expectations. Used by `aml-kyc-analyst` (primary).

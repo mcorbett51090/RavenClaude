@@ -1,3 +1,8 @@
+---
+name: examination-readiness
+description: Pre-exam playbook for regulator examinations — PBC tracker, walkthrough rehearsal, mock interviews, exam-week posture, MRA / MRIA / management-letter response patterns. Used by `examination-prep-specialist` (primary).
+---
+
 # Skill: examination-readiness
 
 **Purpose:** Pre-exam playbook for a regulator examination. Used by `examination-prep-specialist` (primary).

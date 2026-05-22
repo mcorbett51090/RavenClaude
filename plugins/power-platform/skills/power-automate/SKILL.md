@@ -1,3 +1,8 @@
+---
+name: power-automate
+description: Veteran-level reference for Power Automate work — expressions, error handling + scopes, child flows, solution-aware flows + connection references, Dataverse triggers, throttling, approvals, performance patterns. Used by `flow-engineer` (primary) and any agent touching flows.
+---
+
 # Power Automate Skill
 
 **Purpose:** Provide veteran-level depth for `flow-engineer` (and any agent touching flows) on design patterns, troubleshooting, solution-aware best practices, expressions, error handling, performance, and integration with the broader Power Platform ALM story.

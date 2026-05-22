@@ -1,3 +1,8 @@
+---
+name: regulatory-mapping
+description: Map internal controls / policies / procedures to specific regulatory citations (regulator + section + paragraph). Gap-analysis output format. Used by `risk-and-controls-specialist` + `policy-and-procedure-writer`.
+---
+
 # Skill: regulatory-mapping
 
 **Purpose:** Map internal controls / policies / procedures to specific regulatory citations. Used by `risk-and-controls-specialist` and `policy-and-procedure-writer`.

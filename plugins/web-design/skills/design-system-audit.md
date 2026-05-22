@@ -1,3 +1,8 @@
+---
+name: design-system-audit
+description: Audit an existing brand / design system for consistency, completeness, token coverage, dark-mode readiness. Used by `visual-designer` (primary) + `frontend-implementer` (token-to-code wiring).
+---
+
 # Skill: design-system-audit
 
 **Purpose:** Audit an existing brand / design system for consistency, completeness, token coverage, dark-mode readiness. Used by `visual-designer` (primary) and `frontend-implementer` (token-to-code wiring).

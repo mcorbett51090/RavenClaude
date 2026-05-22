@@ -1,3 +1,8 @@
+---
+name: seo-technical-audit
+description: Technical SEO sweep — crawlability, indexability, schema markup, sitemaps, OG / Twitter Card metadata, hreflang, structured data. Used by `web-architect` (primary, technical) + `content-strategist` (content-SEO).
+---
+
 # Skill: seo-technical-audit
 
 **Purpose:** Technical SEO sweep — crawlability, indexability, structured data, social-share metadata, internationalization. Used by `web-architect` (technical) + `content-strategist` (content-side).

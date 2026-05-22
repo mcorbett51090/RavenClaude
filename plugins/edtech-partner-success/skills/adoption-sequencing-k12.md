@@ -1,3 +1,8 @@
+---
+name: adoption-sequencing-k12
+description: Sequence K-12 partner adoption activities by stage (newly-implemented / first-year-sustaining / multi-year-mature / pre-renewal) with school-year-phase overlay. Surface-by-surface rhythm (teacher / admin / student / family-facing). Diagnostic-before-intervention discipline — don't push feature-breadth in stage 1. Used by `learning-analytics-analyst` + `success-playbook-designer`.
+---
+
 # Skill: adoption-sequencing-k12
 
 > **Invoked by:** `learning-analytics-analyst` (when interpreting an adoption signal), `success-playbook-designer` (when authoring an adoption / activation / low-engagement play), `partner-success-manager` (when responding to "why is adoption stalled?").

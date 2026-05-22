@@ -1,3 +1,8 @@
+---
+name: core-web-vitals-tuning
+description: Diagnose and improve Core Web Vitals (LCP / CLS / INP). Includes a Mermaid decision tree for root-cause triage across all three vitals + canonical fix-by-symptom map. Field data (CrUX / RUM) at p75 is the measurement target. Used by `performance-engineer` (primary).
+---
+
 # Skill: core-web-vitals-tuning
 
 **Purpose:** Diagnose and improve Core Web Vitals. Used by `performance-engineer` (primary).

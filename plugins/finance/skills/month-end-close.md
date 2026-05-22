@@ -1,3 +1,8 @@
+---
+name: month-end-close
+description: Run a clean month-end / quarter-end close — close-calendar mechanics, JE buckets, reconciliation checklist, exception-triage playbook. Reconciliation before commentary; materiality as a design constraint. Used by `controller` (primary).
+---
+
 # Skill: month-end-close
 
 **Purpose:** Reference playbook for designing and running a clean month-end close. Used by `controller` (primary), occasionally by `audit-prep-specialist` and `fpa-analyst` when their work depends on a closed period.

@@ -1,3 +1,8 @@
+---
+name: researcher
+description: Meta-skill that keeps all agents, skills, and knowledge files current and honest — Daily Quick Check + Weekly Deep Research modes. Categorization schema (Tier 1 Consensus / 2 Strong-but-Contextual / 3 Divergent / 4 Emerging / 5 Deprecated). Includes 90-day staleness checks for decision trees AND `.ravenclaude/environment-context.md`.
+---
+
 # Researcher Skill (Meta-Skill)
 
 ## Purpose
