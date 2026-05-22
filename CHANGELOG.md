@@ -77,7 +77,7 @@ Cross-plugin behavior change: agents now **proactively** enumerate alternative i
 
 - Catalog description now mentions the curated reference set as part of the web-design plugin's value proposition.
 
-**Migration for consumers:** `/plugin marketplace update ravenclaude` + `/reload-plugins`. No breaking changes — additive content only. The four updated agents will now apply the priors automatically when invoked for marketing-site work; consumers who want to read the full brief can open `plugins/web-design/knowledge/design-references.md` in their cached plugin tree (or browse it via the [`repo-guide.html`](../repo-guide.html) at the repo root).
+**Migration for consumers:** `/plugin marketplace update ravenclaude` + `/reload-plugins`. No breaking changes — additive content only. The four updated agents will now apply the priors automatically when invoked for marketing-site work; consumers who want to read the full brief can open `plugins/web-design/knowledge/design-references.md` in their cached plugin tree (or browse it via the [`repo-guide.html`](repo-guide.html) at the repo root — [▶ view rendered](https://htmlpreview.github.io/?https://github.com/mcorbett51090/RavenClaude/blob/main/repo-guide.html)).
 
 ## marketplace 0.5.0 → 0.7.1 — 2026-05-21 (catch-up note)
 

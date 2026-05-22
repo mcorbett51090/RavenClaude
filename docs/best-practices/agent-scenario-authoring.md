@@ -148,5 +148,5 @@ The `scripts/generate-repo-guide.py` script reads the YAML frontmatter and produ
 
 - [`../proposals/`](../proposals/) — Matt's proposals folder where the original ask lived
 - `scripts/generate-repo-guide.py` — the generator that consumes this schema
-- `repo-guide.html` — the artifact (always re-generated, never edited by hand)
+- [`repo-guide.html`](../../repo-guide.html) — the artifact (always re-generated, never edited by hand). [▶ View rendered](https://htmlpreview.github.io/?https://github.com/mcorbett51090/RavenClaude/blob/main/repo-guide.html)
 - The deep-researcher's 2026-05-21 brief is the source for the format + audience taxonomy + use-case-table pattern
