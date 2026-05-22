@@ -3,17 +3,21 @@ name: Researcher Reminder
 on:
   schedule:
     # Weekly deep research every Monday at 9am UTC
-    - cron: '0 9 * * 1'
+    - cron: "0 9 * * 1"
+    # Monthly per-plugin skill-gap audit on the first Monday of each month at 10am UTC
+    # (offset from the weekly so both can fire in the same week without colliding)
+    - cron: "0 10 1-7 * 1"
   workflow_dispatch:
     inputs:
       research_type:
-        description: 'Type of research trigger'
+        description: "Type of research trigger"
         required: true
-        default: 'weekly-deep'
+        default: "weekly-deep"
         type: choice
         options:
           - weekly-deep
           - daily-quick-check
+          - monthly-skill-gap-audit
 
 jobs:
   create-research-issue:
@@ -22,15 +26,36 @@ jobs:
       issues: write
       contents: read
     steps:
-      - name: Create Researcher Issue
+      - name: Determine research type
+        id: which
         uses: actions/github-script@v7
         with:
           script: |
-            const researchType = context.payload.inputs?.research_type || 'weekly-deep';
-            
+            // Manual trigger uses the input; scheduled triggers use the cron expression
+            // to distinguish weekly vs monthly.
+            const manual = context.payload.inputs?.research_type;
+            if (manual) {
+              core.setOutput('type', manual);
+              return;
+            }
+            const cron = context.payload.schedule || '';
+            if (cron.startsWith('0 10 1-7')) {
+              core.setOutput('type', 'monthly-skill-gap-audit');
+            } else {
+              core.setOutput('type', 'weekly-deep');
+            }
+
+      - name: Create Researcher Issue
+        uses: actions/github-script@v7
+        env:
+          RESEARCH_TYPE: ${{ steps.which.outputs.type }}
+        with:
+          script: |
+            const researchType = process.env.RESEARCH_TYPE;
+
             let title = '';
             let body = '';
-            
+
             // Body strings are built via array .join('\n') so every line lives
             // at proper YAML indentation. Earlier `body = \`multi-line\`` template
             // literals had markdown at column 0, which actionlint (go-yaml v4)
@@ -55,6 +80,10 @@ jobs:
                 '5. Use the research-report-template.md when proposing updates.',
                 '6. Update the agent definition files with new categorized knowledge.',
                 '',
+                '### Staleness checks (run alongside content review)',
+                '- **Decision trees**: per `docs/best-practices/decision-trees-in-knowledge-files.md` — flag any tree with `Last verified:` older than 90 days for re-verification.',
+                '- **Environment-context**: per `plugins/ravenclaude-core/skills/researcher.md` §"Environment-context staleness check" — flag any `.ravenclaude/environment-context.md` older than 90 days for re-discovery via the `environment-discovery` skill.',
+                '',
                 '### Scope',
                 '- All core agents (including deep-researcher)',
                 '- All power-platform agents',
@@ -62,6 +91,69 @@ jobs:
                 '- Cross-cutting skills (grounding-protocol, maintainability-review, etc.)',
                 '',
                 "**Goal**: Keep every agent's knowledge current and categorized so agents default to consensus but have principled fallbacks.",
+                '',
+                '**Research Agent to use**: `deep-researcher` from `plugins/ravenclaude-core/agents/deep-researcher.md`',
+              ].join('\n');
+            } else if (researchType === 'monthly-skill-gap-audit') {
+              title = 'Researcher Monthly Skill-Gap Audit — ' + today;
+              body = [
+                '## Monthly Per-Plugin Skill-Gap Audit',
+                '',
+                '**Trigger**: Scheduled monthly skill-gap audit (first Monday of the month)',
+                '**Date**: ' + today,
+                '',
+                '### Why this audit exists',
+                '',
+                "Marketplace plugins ship agents + skills + knowledge + templates. Content freshness (the weekly sweep) keeps existing material current. **This audit looks for STRUCTURAL GAPS** — capabilities the plugin's agents would benefit from that don't have a skill / knowledge file / template backing them yet.",
+                '',
+                "The agent's responsibilities should be covered by structured artifacts. If an agent keeps doing the same task by recall instead of by reading a documented playbook, that's a skill-gap. The Researcher names the gap; the maintainer decides whether to fill it.",
+                '',
+                '### How to run this audit (Team Lead workflow)',
+                '',
+                '1. **Spawn the `deep-researcher` agent** with the prompt template below.',
+                '2. **For each plugin in the marketplace**, the deep-researcher walks the plugin\'s agents and asks:',
+                "   - What's the agent's stated responsibility (from its `description` + scenarios)?",
+                "   - Which of those responsibilities have a skill in `plugins/<plugin>/skills/` backing them?",
+                "   - Which are backed only by inline agent-file prose (and could benefit from a structured playbook)?",
+                "   - Which are mentioned in `scenarios` (per agent frontmatter) but not in any skill?",
+                '3. **Output**: one ranked gap-list per plugin: (a) skill to add, (b) what the skill would cover, (c) which agent(s) would consume it, (d) confidence the gap is real vs. taste-only.',
+                '4. **Decision**: Matt reviews the gap-list and decides which skills to research + add. Adding a skill is a separate PR per the marketplace convention.',
+                '',
+                '### Researcher prompt template (paste this into a deep-researcher Agent call)',
+                '',
+                '```',
+                'Audit the RavenClaude marketplace for skill gaps across all 7 plugins (ravenclaude-core, power-platform, edtech-partner-success, data-platform, finance, regulatory-compliance, web-design).',
+                '',
+                'For each plugin:',
+                '1. List every agent and its top 3 responsibilities (from description + scenarios frontmatter).',
+                '2. Cross-reference against the plugin\'s `skills/` directory.',
+                '3. Identify responsibilities that LACK a corresponding skill file.',
+                '4. For each gap, propose: skill name + what it would cover + which agent(s) consume it + confidence (high / medium / low).',
+                '',
+                'Quality bar:',
+                '- HIGH-confidence gaps: responsibility named in the agent\'s description that has zero skill coverage AND the agent\'s scenarios reference activities that would benefit from a documented playbook.',
+                '- MEDIUM-confidence gaps: responsibility partially covered but missing a structured playbook for the trickier sub-cases.',
+                '- LOW-confidence gaps: nice-to-have but the existing inline-prose coverage is fine for now.',
+                '',
+                'Skip gaps that:',
+                '- Are domain-policy questions (not technical-craft questions) — those belong in knowledge files, not skills.',
+                '- Duplicate existing core skills (e.g., if `ravenclaude-core/skills/structured-output.md` covers it, don\'t propose a plugin-specific version per the marketplace house rule).',
+                '',
+                'Output format: one section per plugin, gaps ranked by confidence within each section.',
+                '```',
+                '',
+                '### Acceptance criteria for closing this issue',
+                '',
+                '- Matt reviews the gap-list',
+                '- Decides which skills to add (could be zero — \'no gaps worth filling this month\' is a valid outcome)',
+                '- Adds chosen skills via the normal Skill-authoring workflow (`prompt-engineer` agent + skill file + inline-prior on consumer agent + plugin version bump)',
+                '- Closes this issue when triage is complete',
+                '',
+                '### Decline conditions',
+                '',
+                "Decline this audit (close without action) if:",
+                '- Recent PRs already shipped a substantial uplift (skills + scenarios bank + decision trees) and the marketplace is still settling in',
+                '- The user is heads-down on a real engagement and skill-audit is not the highest-leverage use of attention this month',
                 '',
                 '**Research Agent to use**: `deep-researcher` from `plugins/ravenclaude-core/agents/deep-researcher.md`',
               ].join('\n');
@@ -80,13 +172,20 @@ jobs:
               ].join('\n');
             }
 
+            const labelMap = {
+              'weekly-deep': ['researcher', 'maintenance', 'deep-research'],
+              'monthly-skill-gap-audit': ['researcher', 'maintenance', 'skill-gap-audit'],
+              'daily-quick-check': ['researcher', 'maintenance', 'quick-check'],
+            };
+            const labels = labelMap[researchType] || ['researcher', 'maintenance'];
+
             try {
               const issue = await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 title: title,
                 body: body,
-                labels: ['researcher', 'maintenance', 'deep-research']
+                labels: labels,
               });
               console.log(`Created researcher reminder issue #${issue.data.number}`);
             } catch (error) {

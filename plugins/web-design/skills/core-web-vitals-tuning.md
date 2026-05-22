@@ -20,6 +20,68 @@
 
 Field data (CrUX / RUM) at the **75th percentile** is the standard measurement target.
 
+## Decision Tree: CWV root-cause triage
+
+**When this applies:** any CWV regression that needs diagnosis before fix-selection. **Traverse this tree top-to-bottom before picking a fix** — diagnosing the wrong vital wastes the budget.
+
+**Last verified:** 2026-05-22 against web.dev current guidance + Core Web Vitals 2024 INP transition.
+
+```mermaid
+flowchart TD
+    START[CWV regression reported] --> Q1{Which vital is failing?<br/>Check CrUX p75}
+    Q1 -->|LCP > 2.5s| LCP_Q{What's the LCP element?}
+    Q1 -->|CLS > 0.1| CLS_Q{When does shift occur?}
+    Q1 -->|INP > 200ms| INP_Q{Which interaction is slow?}
+
+    LCP_Q -->|Image| LCP_IMG[Preload + fetchpriority + WebP/AVIF<br/>+ explicit width/height]
+    LCP_Q -->|Text + late web font| LCP_FONT[font-display:swap<br/>+ subset + preload]
+    LCP_Q -->|Render-blocking JS / CSS| LCP_JS[Defer JS + critical-CSS inline<br/>+ remove unused CSS]
+    LCP_Q -->|Server slow TTFB > 800ms| LCP_TTFB[CDN cache + server-render<br/>+ edge function if dynamic]
+
+    CLS_Q -->|Image / video / iframe| CLS_DIMS[Reserve space:<br/>width+height attrs OR aspect-ratio CSS]
+    CLS_Q -->|Late web font swap| CLS_FONT[Match metrics: size-adjust<br/>+ ascent/descent override]
+    CLS_Q -->|Ad / embed injected late| CLS_AD[Reserve container min-height<br/>+ lazy-load below the fold]
+    CLS_Q -->|Animation triggers reflow| CLS_ANIM[Use transform/opacity only<br/>NOT width/height/top/left]
+
+    INP_Q -->|Heavy JS on click handler| INP_JS[Split work with scheduler.yield<br/>or requestIdleCallback]
+    INP_Q -->|Synchronous third-party| INP_3P[Defer/async load<br/>or remove the script]
+    INP_Q -->|Large React re-render| INP_REACT[Memoize + virtualize lists<br/>+ React 18 concurrent features]
+    INP_Q -->|Slow paint after JS| INP_PAINT[Use will-change:transform<br/>OR composite-only properties]
+```
+
+**Rationale per leaf:**
+
+- *LCP_IMG* — most common LCP cause. Preload + fetchpriority=high gets the bytes into the browser first; WebP/AVIF cuts bytes 30-50%; explicit dimensions prevent reflow that pushes LCP further out.
+- *LCP_FONT* — `font-display:swap` shows fallback immediately; the swap-in is a CLS risk but typically the LCP win is bigger. If CLS becomes an issue, use `size-adjust` to match metrics.
+- *LCP_JS* — render-blocking is the silent LCP killer. `defer` on non-critical JS, inline critical CSS, audit with Coverage tab in DevTools.
+- *LCP_TTFB* — if TTFB > 800ms, fix the server first. Static / CDN cache for marketing pages. Edge function for dynamic. SSR is fine; CSR is the LCP enemy.
+- *CLS_DIMS* — the single highest-impact CLS fix. Every `<img>`, `<video>`, `<iframe>` gets explicit width + height OR aspect-ratio.
+- *CLS_FONT* — `size-adjust` + `ascent-override` + `descent-override` match the fallback metrics to the web font so swap-in is invisible.
+- *CLS_AD* — late-injected ads or embeds shift everything below. Reserve container `min-height`; lazy-load if below the fold.
+- *CLS_ANIM* — animating `width` / `height` / `top` / `left` triggers reflow; animating `transform` / `opacity` is composited and doesn't shift layout.
+- *INP_JS* — long tasks block the main thread. `scheduler.yield()` (modern) or `requestIdleCallback` / `setTimeout(fn, 0)` chunks the work.
+- *INP_3P* — synchronous third-party scripts (chat widgets, A/B test SDKs) are common INP killers. Defer/async OR remove.
+- *INP_REACT* — large lists virtualize (React Virtuoso, TanStack Virtual); state updates that cascade memoize with `useMemo`/`useCallback`/`React.memo`.
+- *INP_PAINT* — slow paint after JS often means the layer isn't composited. `will-change: transform` hints the browser to promote.
+
+**Tradeoffs summary:**
+
+| Vital | Default fix | Time to fix | Risk |
+|---|---|---|---|
+| LCP (image) | Preload + fetchpriority + WebP/AVIF | 1-2 hours | Low — well-supported |
+| LCP (font) | font-display:swap | 30 min | Medium — may cause CLS if metrics don't match |
+| LCP (TTFB) | CDN / static rendering | 4-8 hours | High — may require platform change |
+| CLS (dimensions) | width/height attributes everywhere | 2-4 hours | Low |
+| CLS (font swap) | size-adjust / ascent-override | 1-2 hours | Low |
+| INP (heavy JS) | scheduler.yield + chunking | 4-12 hours | Medium — refactor scope |
+| INP (third-party) | Remove or defer | 30 min — 4 hours | Depends on stakeholder pushback |
+
+**Failure modes to avoid:**
+- Diagnosing the wrong vital. If CrUX shows LCP > 2.5s but INP is fine, fix LCP first. Don't burn the budget on the wrong vital.
+- Treating Lighthouse lab data as field truth. Field (CrUX / RUM) at p75 is the standard target; lab data is a debugging tool, not a goal.
+- Optimizing for the median when p75 is what gets graded.
+- Fixing CLS by hiding content (visibility:hidden) — that just moves the problem; users still see broken layout.
+
 ## LCP — fix-by-symptom
 
 ### Symptom: LCP is an image

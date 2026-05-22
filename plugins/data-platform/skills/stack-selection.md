@@ -48,13 +48,51 @@ Every dashboard engagement fits one of four cases. The skill's job is to name th
 - **Alt-stack triggers:** Fivetran free tier if MAR <500K AND client takes over post-engagement.
 - **Don't:** Try to sell a dashboard build the client doesn't need. Stay in the data-pipes lane.
 
-## Decision tree
+## Decision Tree: Dashboard engagement — which Case?
 
-1. **Is the goal a portfolio / marketing-site dashboard?** → Case A.
-2. **Is the client already using a BI tool and just needs data?** → Case D.
-3. **Is this a one-off custom dashboard inside the client's app?** → Case B.
-4. **Is this a multi-tenant product the consultant plans to sell to many customers?** → Case C.
-5. **If none fit:** escape hatch — route to `ravenclaude-core/architect` for a custom plan.
+**When this applies:** any new dashboard engagement OR mid-engagement scope shift that might change the Case. **Traverse this tree top-to-bottom before recommending a stack** — do NOT pattern-match on keywords in the user's situation description.
+
+**Last verified:** 2026-05-22 against current pricing pages + practitioner sources.
+
+```mermaid
+flowchart TD
+    START[New dashboard engagement] --> Q1{Portfolio for the consultant's own marketing site?}
+    Q1 -->|YES| CASE_A[Case A — Portfolio<br/>Evidence.dev OSS<br/>Static deploy]
+    Q1 -->|NO| Q2{Client already has a BI tool — needs only data pipes?}
+    Q2 -->|YES| CASE_D[Case D — Pipes only<br/>Airbyte + Postgres + dbt<br/>No dashboard framework]
+    Q2 -->|NO| Q3{One-off custom dashboard inside the client's app?}
+    Q3 -->|YES| Q3a{M365-stack client?}
+    Q3a -->|YES| CASE_B_PBI[Case B — Microsoft variant<br/>Power BI Embedded F2 ~$262/mo<br/>App-Owns-Data + DAX-role RLS]
+    Q3a -->|NO| CASE_B_OSS[Case B — OSS variant<br/>Superset or Metabase OSS<br/>VPS $20-40/mo + Postgres RLS + JWT embed]
+    Q3 -->|NO| Q4{Multi-tenant product to sell to many customers?}
+    Q4 -->|YES| CASE_C[Case C — Productized SaaS<br/>Cube OSS + custom React<br/>Postgres RLS]
+    Q4 -->|NO| ESCAPE[None of A/B/C/D fit<br/>Escalate to ravenclaude-core/architect]
+```
+
+**Rationale per leaf:**
+
+- *CASE_A* — single-tenant + version-controlled + public-facing means no embed-auth complexity. Evidence.dev OSS handles the SQL-fenced-block authoring pattern cleanly. $0 hosting via Vercel / Netlify static deploy.
+- *CASE_D* — when the client owns the BI tool, the dashboard build is out of scope. Stay in the pipes lane. Don't try to sell a dashboard the client doesn't need.
+- *CASE_B_PBI* — Microsoft-stack means Entra-ID-based RLS via DAX roles is the path of least resistance. F2 capacity is flat ~$262/mo PAYG (no per-viewer license). Coordinate with `power-platform/power-bi-engineer` on semantic-model + DAX-role design.
+- *CASE_B_OSS* — non-Microsoft client + 5-50 viewers means per-viewer pricing kills the math. Superset / Metabase OSS with Postgres RLS + JWT embed is the consulting-friendly default at $20-40/mo per-client VPS.
+- *CASE_C* — multi-tenant productized SaaS needs a semantic layer (Cube) to prevent customer-facing dashboards from shipping raw SQL. Custom React (Next.js + Tremor + Recharts + shadcn/ui) gives brand differentiation and viewer-scale economics.
+- *ESCAPE* — if the engagement genuinely doesn't fit A/B/C/D, the architect handles a custom plan. Examples: regulator-facing dashboard with audit-trail requirements; embedded-mobile-app dashboard; offline-first dashboard for field operations.
+
+**Tradeoffs summary:**
+
+| Case | Stack | Per-month cost | Multi-tenant? | Viewer ceiling |
+|---|---|---|---|---|
+| A | Evidence.dev OSS + static deploy | $0 | No (single-tenant) | n/a — public |
+| B (OSS) | Superset/Metabase OSS + VPS + Postgres RLS | $20-40/client | Yes | 5-50/client |
+| B (PBI) | Power BI Embedded F2 + Fabric | $262 PAYG / $156 reserved | Yes (Entra-ID RLS) | Unlimited |
+| C | Cube OSS + custom React + Postgres RLS | $0 OSS + infra (~$50-200/mo at scale) | Yes | 50-500+ |
+| D | Airbyte + Postgres + dbt | $20-40 (Airbyte Cloud) or self-host | Client-owned | n/a — client's BI tool |
+
+**Failure modes to avoid:**
+- Recommending Metabase Pro / Tableau Embedded / Sigma / Looker for Case B without flagging the per-viewer math (5-50 viewers × $400+/yr each kills SMB consulting margin)
+- Putting Case C on a raw-Postgres stack without a semantic layer (Cube). Customer-facing dashboards shipping raw SQL won't scale.
+- Recommending Case A's Evidence.dev for a multi-tenant Case B engagement (no embed-auth model in OSS Evidence)
+- Trying to retrofit Case C onto a Case B engagement just because the consultant might sell it to a second client someday — Case C earns its complexity only when there ARE multiple paying tenants
 
 ## The per-viewer-pricing-trap heuristic
 
