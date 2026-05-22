@@ -34,7 +34,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import datetime as dt
 import html
 import json
 import sys
@@ -104,8 +103,8 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
     for preset_name in presets.keys():
         preset = presets[preset_name]
         preset_desc = preset.get("_description", "")
-        # The button label matches the level label so the connection is obvious.
-        button_label = _label_for(preset_name)
+        # Custom label (e.g. "★ Recommended") if set, else derive from key.
+        button_label = preset.get("_label") or _label_for(preset_name)
         # CSS class for color tinting (matches .seg-label.seg-<level> palette)
         preset_buttons.append(
             f'<button type="button" class="preset-btn preset-{html.escape(preset_name)}" '
@@ -165,16 +164,21 @@ def _render_segmented(name: str, schema: dict, id_prefix: str, group: str | None
     has_modal_content = bool(schema.get("x-controls") or schema.get("x-examples") or schema.get("x-guidance"))
     group_attr = f' data-group="{html.escape(group)}"' if group else ""
 
+    recommended_value = schema.get("x-recommended")
     radios = []
     for v in enum_values:
         rid = f"{id_prefix}-{v}"
         checked = "checked" if v == default_value else ""
+        rec_marker = (
+            f'<span class="rec-badge" aria-label="Recommended for this category">Recommended</span>'
+            if v == recommended_value else ""
+        )
         radios.append(
             f'<input type="radio" id="{html.escape(rid)}" name="{html.escape(name)}" '
             f'value="{html.escape(v)}" {checked}>'
             f'<label for="{html.escape(rid)}" class="seg-label seg-{html.escape(v)}" '
             f'title="{html.escape(v)}">'
-            f"{html.escape(_label_for(v))}</label>"
+            f"{html.escape(_label_for(v))}{rec_marker}</label>"
         )
 
     info_btn = (
@@ -336,6 +340,17 @@ body {
 .preset-btn.preset-mostly-ask { border-left-color: var(--accent); }
 .preset-btn.preset-mostly-allow { border-left-color: var(--accent); }
 .preset-btn.preset-autopilot { border-left-color: var(--warn); }
+/* The "★ Recommended" preset gets a stronger visual to mark it as primary */
+.preset-btn.preset-recommended {
+  background: var(--accent);
+  color: var(--bg);
+  border-left-color: var(--accent);
+  font-weight: 600;
+}
+.preset-btn.preset-recommended:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
 .cat-group {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -355,7 +370,7 @@ body {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 16px;
-  padding: 14px 0;
+  padding: 18px 0 24px;
   border-bottom: 1px solid var(--border);
   align-items: center;
 }
@@ -404,10 +419,12 @@ body {
   overflow: hidden;
 }
 .seg-label {
+  position: relative;
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 6px 12px;
+  padding: 6px 12px 10px;
   font-size: 12.5px;
   font-weight: 500;
   color: var(--muted);
@@ -418,6 +435,23 @@ body {
   min-width: 82px;
   text-align: center;
   white-space: nowrap;
+}
+.rec-badge {
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: transparent;
+  white-space: nowrap;
+  pointer-events: none;
+}
+@media (prefers-color-scheme: light) {
+  .rec-badge { color: var(--accent-dim); }
 }
 .seg-control input[type="radio"]:checked + .seg-label {
   background: var(--accent);
@@ -469,6 +503,23 @@ body {
 }
 .modal .example-list li { color: var(--text); margin-bottom: 2px; }
 .modal .example-list li::marker { color: var(--accent); }
+.modal .rec-rows { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 0; }
+.modal .rec-row {
+  background: var(--surface-2);
+  border-left: 3px solid var(--accent);
+  padding: 8px 12px;
+  border-radius: 4px;
+}
+.modal .rec-context {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+.modal .rec-text { font-size: 13px; line-height: 1.55; color: var(--text); }
 .modal .close-btn {
   float: right;
   background: transparent;
@@ -526,12 +577,124 @@ body {
   overflow: auto;
   white-space: pre;
 }
+.yaml-primary-action {
+  padding: 14px 14px 8px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.btn-primary {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 16px;
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.btn-primary:hover { background: var(--accent-dim); }
+.btn-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn-primary[disabled] { opacity: 0.5; cursor: not-allowed; }
+.btn-primary .btn-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+.primary-help {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+.primary-help.muted { color: var(--warn); }
+.primary-help code {
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.yaml-alt-actions {
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.yaml-alt-actions summary {
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+.yaml-alt-actions summary:hover { color: var(--text); }
+.yaml-alt-actions[open] summary { border-bottom: 1px solid var(--border); color: var(--text); }
 .yaml-actions {
   display: flex;
   gap: 8px;
   padding: 12px;
-  border-top: 1px solid var(--border);
   background: var(--surface-2);
+}
+.yaml-status {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 12px;
+}
+.yaml-status.status-unsaved { color: var(--warn); }
+.yaml-status.status-saved { color: var(--accent); }
+.yaml-status.status-error { color: var(--danger); }
+.yaml-connected-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px 10px;
+  background: var(--surface-2);
+  font-size: 12px;
+}
+.connected-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+}
+.connected-pill code {
+  background: transparent;
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+.connected-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+.link-btn:hover { color: var(--danger); }
+.yaml-help {
+  padding: 8px 12px 12px;
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+}
+.yaml-help code {
+  background: transparent;
+  font-family: var(--font-mono);
+  color: var(--text);
 }
 .btn {
   background: var(--accent);
@@ -607,13 +770,39 @@ _SETTINGS_TAB_TEMPLATE = """
   <aside class="yaml-preview">
     <h3>
       <span>comfort-posture.yaml</span>
-      <span id="yaml-status" style="color: var(--muted); font-weight: 400; font-size: 12px;">unsaved</span>
+      <span id="yaml-status" class="yaml-status status-unsaved">unsaved</span>
     </h3>
     <pre id="yaml-output"></pre>
-    <div class="yaml-actions">
-      <button class="btn" id="copy-btn">Copy YAML</button>
-      <button class="btn secondary" id="download-btn">Download</button>
+    <div class="yaml-primary-action">
+      <button class="btn btn-primary" id="save-repo-btn" hidden>
+        <span class="btn-main">Save to repo</span>
+        <span class="btn-sub" id="save-repo-target">.ravenclaude/comfort-posture.yaml</span>
+      </button>
+      <p class="primary-help" id="save-repo-help" hidden>
+        Saves directly to <code>.ravenclaude/comfort-posture.yaml</code> in this repo. The agent reads from there.
+      </p>
+      <p class="primary-help muted" id="no-server-help" hidden>
+        Save-to-repo needs the local server. Start it with <code>python3 scripts/serve-dashboards.py</code> and open the forwarded URL. Until then, the alternatives below work.
+      </p>
     </div>
+    <details class="yaml-alt-actions">
+      <summary>Alternative ways to save</summary>
+      <div class="yaml-actions">
+        <button class="btn secondary" id="connect-btn" hidden>Auto-save to file…</button>
+        <button class="btn secondary" id="copy-btn">Copy</button>
+        <button class="btn secondary" id="download-btn">Download</button>
+      </div>
+      <div class="yaml-connected-row" id="connected-row" hidden>
+        <span class="connected-pill">
+          <span class="connected-dot"></span>
+          Auto-saving to <code id="connected-filename">comfort-posture.yaml</code>
+        </span>
+        <button type="button" class="link-btn" id="disconnect-btn" title="Disconnect from file">disconnect</button>
+      </div>
+      <p class="yaml-help" id="no-api-help" hidden>
+        Auto-save to a chosen file needs Chrome, Edge, or Opera. Use Copy or Download instead.
+      </p>
+    </details>
   </aside>
 </div>
 """.strip()
@@ -711,6 +900,214 @@ _JS = r"""
     });
   });
 
+  /* ── Save to repo via server-side /__save endpoint ──────────────── */
+  /* The primary save target: writes directly into .ravenclaude/<file> in
+   * the agent's project. Only available when the page is served by
+   * scripts/serve-dashboards.py (which exposes POST /__save). When the
+   * page is served by `python3 -m http.server` or opened via file://,
+   * the endpoint is absent; we hide the button and surface the
+   * "start the local server" help line. */
+  const REPO_TARGET = ".ravenclaude/comfort-posture.yaml";
+  const saveRepoBtn = document.getElementById("save-repo-btn");
+  const saveRepoHelp = document.getElementById("save-repo-help");
+  const noServerHelp = document.getElementById("no-server-help");
+
+  async function probeRepoEndpoint() {
+    try {
+      const res = await fetch("/__save", { method: "HEAD" });
+      return res.ok;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async function saveToRepo() {
+    saveRepoBtn.disabled = true;
+    setStatus("saving to repo…", "status-unsaved");
+    try {
+      const res = await fetch("/__save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: REPO_TARGET, content: emitYaml() })
+      });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        setStatus(`save failed: ${res.status}`, "status-error");
+        console.error("Save-to-repo failed:", res.status, errText);
+        return;
+      }
+      const j = await res.json();
+      setStatus(`saved to ${j.saved}`, "status-saved");
+      toast(`Saved to ${j.saved} (${j.bytes} bytes)`);
+    } catch (err) {
+      setStatus("save failed - see console", "status-error");
+      console.error(err);
+    } finally {
+      saveRepoBtn.disabled = false;
+    }
+  }
+
+  saveRepoBtn.addEventListener("click", saveToRepo);
+
+  /* Show or hide the save-to-repo button based on endpoint availability. */
+  probeRepoEndpoint().then(available => {
+    if (available) {
+      saveRepoBtn.hidden = false;
+      saveRepoHelp.hidden = false;
+    } else {
+      noServerHelp.hidden = false;
+    }
+  });
+
+  /* ── Auto-save via File System Access API ───────────────────────── */
+  /* Chrome/Edge/Opera: user picks a file once; we persist the handle in
+   * IndexedDB and write on every change (debounced). Firefox/Safari:
+   * feature-detect, hide the button, show a help line. */
+  const HAS_FSA = typeof window.showSaveFilePicker === "function";
+  const connectBtn = document.getElementById("connect-btn");
+  const disconnectBtn = document.getElementById("disconnect-btn");
+  const connectedRow = document.getElementById("connected-row");
+  const connectedFilename = document.getElementById("connected-filename");
+  const statusEl = document.getElementById("yaml-status");
+  const noApiHelp = document.getElementById("no-api-help");
+
+  let fileHandle = null;
+
+  function setStatus(text, cls) {
+    statusEl.textContent = text;
+    statusEl.className = "yaml-status " + (cls || "");
+  }
+
+  /* Minimal IndexedDB wrapper — one DB, one store, two operations.
+   * IndexedDB is the only way to persist a FileSystemFileHandle across reloads. */
+  function idbOpen() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open("ravenclaude-dashboard", 1);
+      req.onupgradeneeded = () => req.result.createObjectStore("handles");
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function idbSet(key, val) {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("handles", "readwrite");
+      tx.objectStore("handles").put(val, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  async function idbGet(key) {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("handles", "readonly");
+      const req = tx.objectStore("handles").get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function idbDel(key) {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("handles", "readwrite");
+      tx.objectStore("handles").delete(key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async function ensurePermission(handle, mode) {
+    const opts = { mode: mode || "readwrite" };
+    if ((await handle.queryPermission(opts)) === "granted") return true;
+    return (await handle.requestPermission(opts)) === "granted";
+  }
+
+  async function writeToHandle() {
+    if (!fileHandle) return;
+    try {
+      const ok = await ensurePermission(fileHandle, "readwrite");
+      if (!ok) { setStatus("permission denied", "status-error"); return; }
+      const writable = await fileHandle.createWritable();
+      await writable.write(emitYaml());
+      await writable.close();
+      setStatus("auto-saved", "status-saved");
+    } catch (err) {
+      console.error("Auto-save failed:", err);
+      setStatus("save failed — see console", "status-error");
+    }
+  }
+
+  /* No debounce: writes are ~10ms and skipping setTimeout preserves the
+   * user-gesture chain that File System Access API permission re-grants
+   * require after a page reload. */
+  function scheduleAutoSave() {
+    if (!fileHandle) {
+      setStatus("unsaved", "status-unsaved");
+      return;
+    }
+    setStatus("saving…", "status-unsaved");
+    writeToHandle();
+  }
+
+  async function connectFile() {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: "comfort-posture.yaml",
+        types: [{ description: "YAML", accept: { "text/yaml": [".yaml", ".yml"] } }]
+      });
+      fileHandle = handle;
+      await idbSet("comfort-posture-handle", handle);
+      connectBtn.hidden = true;
+      connectedRow.hidden = false;
+      connectedFilename.textContent = handle.name;
+      await writeToHandle();
+    } catch (err) {
+      if (err && err.name === "AbortError") return; /* user cancelled */
+      console.error("Connect failed:", err);
+      setStatus("connect failed — see console", "status-error");
+    }
+  }
+
+  async function disconnectFile() {
+    fileHandle = null;
+    await idbDel("comfort-posture-handle");
+    connectBtn.hidden = false;
+    connectedRow.hidden = true;
+    setStatus("unsaved", "status-unsaved");
+  }
+
+  async function restoreHandle() {
+    try {
+      const handle = await idbGet("comfort-posture-handle");
+      if (!handle) return;
+      /* Permission may need re-granting after a page reload. queryPermission
+       * returns "prompt" silently; requesting it would block on a click-gesture.
+       * Show the connected UI but defer the actual write until the user
+       * touches a control (which is a user gesture and allows the prompt). */
+      fileHandle = handle;
+      connectBtn.hidden = true;
+      connectedRow.hidden = false;
+      connectedFilename.textContent = handle.name || "comfort-posture.yaml";
+      const granted = await handle.queryPermission({ mode: "readwrite" });
+      if (granted === "granted") {
+        setStatus("auto-saved", "status-saved");
+      } else {
+        setStatus("touch a control to re-grant access", "status-unsaved");
+      }
+    } catch (err) {
+      console.error("Restore failed:", err);
+    }
+  }
+
+  if (HAS_FSA) {
+    connectBtn.hidden = false;
+    connectBtn.addEventListener("click", connectFile);
+    disconnectBtn.addEventListener("click", disconnectFile);
+    restoreHandle();
+  } else {
+    noApiHelp.hidden = false;
+  }
+
   /* ── Copy / Download ─────────────────────────────────────────────── */
   document.getElementById("copy-btn").addEventListener("click", async () => {
     try {
@@ -740,9 +1137,11 @@ _JS = r"""
   });
 
   /* ── Status / toast ──────────────────────────────────────────────── */
+  /* `flagUnsaved` is the legacy hook every form-change calls. When auto-save
+   * is connected, it kicks off a debounced write; otherwise it just shows
+   * the unsaved badge. */
   function flagUnsaved() {
-    document.getElementById("yaml-status").textContent = "unsaved";
-    document.getElementById("yaml-status").style.color = "var(--warn)";
+    scheduleAutoSave();
   }
   const toastEl = (() => {
     const el = document.createElement("div");
@@ -766,6 +1165,8 @@ _JS = r"""
   const modalDesc = document.getElementById("info-modal-desc");
   const modalControls = document.getElementById("info-modal-controls");
   const modalExamples = document.getElementById("info-modal-examples");
+  const modalRecIndividual = document.getElementById("info-modal-rec-individual");
+  const modalRecTeam = document.getElementById("info-modal-rec-team");
   const modalGuidance = document.getElementById("info-modal-guidance");
   const modalClose = document.getElementById("info-modal-close");
   let lastFocus = null;
@@ -796,6 +1197,8 @@ _JS = r"""
       li.style.fontStyle = "italic";
       modalExamples.appendChild(li);
     }
+    modalRecIndividual.textContent = sch["x-rec-individual"] || "(no recommendation provided)";
+    modalRecTeam.textContent = sch["x-rec-team"] || "(no recommendation provided)";
     modalGuidance.textContent = sch["x-guidance"] || "(no guidance provided)";
     lastFocus = document.activeElement;
     modal.classList.add("open");
@@ -889,6 +1292,17 @@ _PAGE_TEMPLATE = """<!doctype html>
     <p id="info-modal-controls"></p>
     <h3>Examples</h3>
     <ul id="info-modal-examples" class="example-list"></ul>
+    <h3>Recommended level</h3>
+    <div class="rec-rows">
+      <div class="rec-row">
+        <span class="rec-context">Working as an individual</span>
+        <span class="rec-text" id="info-modal-rec-individual"></span>
+      </div>
+      <div class="rec-row">
+        <span class="rec-context">Working as a team</span>
+        <span class="rec-text" id="info-modal-rec-team"></span>
+      </div>
+    </div>
     <h3>When to relax or tighten</h3>
     <p id="info-modal-guidance"></p>
   </div>

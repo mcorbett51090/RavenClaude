@@ -140,6 +140,17 @@ body {
 .preset-btn.preset-mostly-ask { border-left-color: var(--accent); }
 .preset-btn.preset-mostly-allow { border-left-color: var(--accent); }
 .preset-btn.preset-autopilot { border-left-color: var(--warn); }
+/* The "★ Recommended" preset gets a stronger visual to mark it as primary */
+.preset-btn.preset-recommended {
+  background: var(--accent);
+  color: var(--bg);
+  border-left-color: var(--accent);
+  font-weight: 600;
+}
+.preset-btn.preset-recommended:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
 .cat-group {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -159,7 +170,7 @@ body {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 16px;
-  padding: 14px 0;
+  padding: 18px 0 24px;
   border-bottom: 1px solid var(--border);
   align-items: center;
 }
@@ -208,10 +219,12 @@ body {
   overflow: hidden;
 }
 .seg-label {
+  position: relative;
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 6px 12px;
+  padding: 6px 12px 10px;
   font-size: 12.5px;
   font-weight: 500;
   color: var(--muted);
@@ -222,6 +235,23 @@ body {
   min-width: 82px;
   text-align: center;
   white-space: nowrap;
+}
+.rec-badge {
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: transparent;
+  white-space: nowrap;
+  pointer-events: none;
+}
+@media (prefers-color-scheme: light) {
+  .rec-badge { color: var(--accent-dim); }
 }
 .seg-control input[type="radio"]:checked + .seg-label {
   background: var(--accent);
@@ -273,6 +303,23 @@ body {
 }
 .modal .example-list li { color: var(--text); margin-bottom: 2px; }
 .modal .example-list li::marker { color: var(--accent); }
+.modal .rec-rows { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 0; }
+.modal .rec-row {
+  background: var(--surface-2);
+  border-left: 3px solid var(--accent);
+  padding: 8px 12px;
+  border-radius: 4px;
+}
+.modal .rec-context {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+.modal .rec-text { font-size: 13px; line-height: 1.55; color: var(--text); }
 .modal .close-btn {
   float: right;
   background: transparent;
@@ -330,12 +377,124 @@ body {
   overflow: auto;
   white-space: pre;
 }
+.yaml-primary-action {
+  padding: 14px 14px 8px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.btn-primary {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 16px;
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.btn-primary:hover { background: var(--accent-dim); }
+.btn-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn-primary[disabled] { opacity: 0.5; cursor: not-allowed; }
+.btn-primary .btn-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+.primary-help {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+.primary-help.muted { color: var(--warn); }
+.primary-help code {
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.yaml-alt-actions {
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.yaml-alt-actions summary {
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+.yaml-alt-actions summary:hover { color: var(--text); }
+.yaml-alt-actions[open] summary { border-bottom: 1px solid var(--border); color: var(--text); }
 .yaml-actions {
   display: flex;
   gap: 8px;
   padding: 12px;
-  border-top: 1px solid var(--border);
   background: var(--surface-2);
+}
+.yaml-status {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 12px;
+}
+.yaml-status.status-unsaved { color: var(--warn); }
+.yaml-status.status-saved { color: var(--accent); }
+.yaml-status.status-error { color: var(--danger); }
+.yaml-connected-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px 10px;
+  background: var(--surface-2);
+  font-size: 12px;
+}
+.connected-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+}
+.connected-pill code {
+  background: transparent;
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+.connected-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+.link-btn:hover { color: var(--danger); }
+.yaml-help {
+  padding: 8px 12px 12px;
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+}
+.yaml-help code {
+  background: transparent;
+  font-family: var(--font-mono);
+  color: var(--text);
 }
 .btn {
   background: var(--accent);
@@ -412,26 +571,52 @@ footer.page-footer a:hover { text-decoration: underline; }
     <div class="preset-bar">
       <h3>Apply a preset</h3>
       <p>Sets every category at once. You can still override individual rows below.</p>
-      <div class="preset-buttons"><button type="button" class="preset-btn preset-deny" data-preset="deny" title="LOCKDOWN. Sets every category to DENY. Claude refuses every action in every category. Useful only in tightly-scoped reviews where you want Claude to read prose but take no action.">Deny</button><button type="button" class="preset-btn preset-always-ask" data-preset="always-ask" title="Sets every category to ALWAYS ASK. Claude pauses before every non-trivial action, even repeat actions. Maximum oversight, slowest velocity. Good starting point per Koch et al.&#x27;s &#x27;OK blindness&#x27; finding — relax specific categories as you build trust.">Always Ask</button><button type="button" class="preset-btn preset-mostly-ask" data-preset="mostly-ask" title="Sets every category to MOSTLY ASK. Claude asks about anything ambiguous; allows the cheap, well-known patterns. Reasonable middle posture.">Mostly Ask</button><button type="button" class="preset-btn preset-mostly-allow" data-preset="mostly-allow" title="Sets every category to MOSTLY ALLOW. Claude acts on most patterns; asks only when the shape is unusual or destructive. Tilts toward velocity but keeps a guardrail on outlier actions.">Mostly Allow</button><button type="button" class="preset-btn preset-autopilot" data-preset="autopilot" title="WARNING: Sets every category to AUTOPILOT. Claude acts without asking on every pattern. THIS INCLUDES git push, npm/pip install, arbitrary code execution (python -c), writes outside the project (~/.ssh, /etc, etc.), and POSTs to web endpoints. Use only inside throwaway sandboxes where damage can&#x27;t propagate.">Autopilot</button></div>
+      <div class="preset-buttons"><button type="button" class="preset-btn preset-recommended" data-preset="recommended" title="Applies the per-category recommended level. Reads inside the project flow; writes inside the project ask; everything that touches the outside world (git push, code exec, package install, web writes, files outside the project) asks. The &#x27;we did the thinking for you&#x27; starting point — adjust individual rows from here.">★ Recommended</button><button type="button" class="preset-btn preset-deny" data-preset="deny" title="LOCKDOWN. Sets every category to DENY. Claude refuses every action in every category. Useful only in tightly-scoped reviews where you want Claude to read prose but take no action.">Deny</button><button type="button" class="preset-btn preset-always-ask" data-preset="always-ask" title="Sets every category to ALWAYS ASK. Claude pauses before every non-trivial action, even repeat actions. Maximum oversight, slowest velocity. Good starting point per Koch et al.&#x27;s &#x27;OK blindness&#x27; finding — relax specific categories as you build trust.">Always Ask</button><button type="button" class="preset-btn preset-mostly-ask" data-preset="mostly-ask" title="Sets every category to MOSTLY ASK. Claude asks about anything ambiguous; allows the cheap, well-known patterns. Reasonable middle posture.">Mostly Ask</button><button type="button" class="preset-btn preset-mostly-allow" data-preset="mostly-allow" title="Sets every category to MOSTLY ALLOW. Claude acts on most patterns; asks only when the shape is unusual or destructive. Tilts toward velocity but keeps a guardrail on outlier actions.">Mostly Allow</button><button type="button" class="preset-btn preset-autopilot" data-preset="autopilot" title="WARNING: Sets every category to AUTOPILOT. Claude acts without asking on every pattern. THIS INCLUDES git push, npm/pip install, arbitrary code execution (python -c), writes outside the project (~/.ssh, /etc, etc.), and POSTs to web endpoints. Use only inside throwaway sandboxes where damage can&#x27;t propagate.">Autopilot</button></div>
     </div>
 
     <div class="global-default">
-      <div class="cat-row" data-category="global_default"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Global default</span><button type="button" class="info-btn" data-info-for="global_default" aria-label="Explain Global default" title="Explain this setting">?</button></div><div class="cat-desc">Used for any category not explicitly set below. Apply a preset to set this and all categories at once.</div></div><div class="seg-control" role="radiogroup" aria-label="Global default"><input type="radio" id="global-default-deny" name="global_default" value="deny" ><label for="global-default-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="global-default-always-ask" name="global_default" value="always-ask" ><label for="global-default-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="global-default-mostly-ask" name="global_default" value="mostly-ask" checked><label for="global-default-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="global-default-mostly-allow" name="global_default" value="mostly-allow" ><label for="global-default-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="global-default-autopilot" name="global_default" value="autopilot" ><label for="global-default-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div>
+      <div class="cat-row" data-category="global_default"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Global default</span><button type="button" class="info-btn" data-info-for="global_default" aria-label="Explain Global default" title="Explain this setting">?</button></div><div class="cat-desc">Used for any category not explicitly set below. Apply a preset to set this and all categories at once.</div></div><div class="seg-control" role="radiogroup" aria-label="Global default"><input type="radio" id="global-default-deny" name="global_default" value="deny" ><label for="global-default-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="global-default-always-ask" name="global_default" value="always-ask" ><label for="global-default-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="global-default-mostly-ask" name="global_default" value="mostly-ask" checked><label for="global-default-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask<span class="rec-badge" aria-label="Recommended for this category">Recommended</span></label><input type="radio" id="global-default-mostly-allow" name="global_default" value="mostly-allow" ><label for="global-default-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="global-default-autopilot" name="global_default" value="autopilot" ><label for="global-default-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div>
     </div>
 
-    <fieldset class="cat-group"><legend>Files</legend><div class="cat-row" data-category="file_edit_global" data-group="Files"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Edit files outside this project</span><button type="button" class="info-btn" data-info-for="file_edit_global" aria-label="Explain Edit files outside this project" title="Explain this setting">?</button></div><div class="cat-desc">Writing to your home directory or system paths.</div></div><div class="seg-control" role="radiogroup" aria-label="Edit files outside this project"><input type="radio" id="cat-file_edit_global-deny" name="file_edit_global" value="deny" ><label for="cat-file_edit_global-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-file_edit_global-always-ask" name="file_edit_global" value="always-ask" ><label for="cat-file_edit_global-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-file_edit_global-mostly-ask" name="file_edit_global" value="mostly-ask" checked><label for="cat-file_edit_global-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-file_edit_global-mostly-allow" name="file_edit_global" value="mostly-allow" ><label for="cat-file_edit_global-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-file_edit_global-autopilot" name="file_edit_global" value="autopilot" ><label for="cat-file_edit_global-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="file_edit_project" data-group="Files"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Edit files in this project</span><button type="button" class="info-btn" data-info-for="file_edit_project" aria-label="Explain Edit files in this project" title="Explain this setting">?</button></div><div class="cat-desc">Creating or modifying files inside the current project.</div></div><div class="seg-control" role="radiogroup" aria-label="Edit files in this project"><input type="radio" id="cat-file_edit_project-deny" name="file_edit_project" value="deny" ><label for="cat-file_edit_project-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-file_edit_project-always-ask" name="file_edit_project" value="always-ask" ><label for="cat-file_edit_project-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-file_edit_project-mostly-ask" name="file_edit_project" value="mostly-ask" checked><label for="cat-file_edit_project-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-file_edit_project-mostly-allow" name="file_edit_project" value="mostly-allow" ><label for="cat-file_edit_project-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-file_edit_project-autopilot" name="file_edit_project" value="autopilot" ><label for="cat-file_edit_project-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="file_read_global" data-group="Files"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Read files outside this project</span><button type="button" class="info-btn" data-info-for="file_read_global" aria-label="Explain Read files outside this project" title="Explain this setting">?</button></div><div class="cat-desc">Reading anything outside the current project directory.</div></div><div class="seg-control" role="radiogroup" aria-label="Read files outside this project"><input type="radio" id="cat-file_read_global-deny" name="file_read_global" value="deny" ><label for="cat-file_read_global-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-file_read_global-always-ask" name="file_read_global" value="always-ask" ><label for="cat-file_read_global-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-file_read_global-mostly-ask" name="file_read_global" value="mostly-ask" checked><label for="cat-file_read_global-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-file_read_global-mostly-allow" name="file_read_global" value="mostly-allow" ><label for="cat-file_read_global-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-file_read_global-autopilot" name="file_read_global" value="autopilot" ><label for="cat-file_read_global-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="file_read_project" data-group="Files"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Read files in this project</span><button type="button" class="info-btn" data-info-for="file_read_project" aria-label="Explain Read files in this project" title="Explain this setting">?</button></div><div class="cat-desc">Reading source files inside the current project directory.</div></div><div class="seg-control" role="radiogroup" aria-label="Read files in this project"><input type="radio" id="cat-file_read_project-deny" name="file_read_project" value="deny" ><label for="cat-file_read_project-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-file_read_project-always-ask" name="file_read_project" value="always-ask" ><label for="cat-file_read_project-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-file_read_project-mostly-ask" name="file_read_project" value="mostly-ask" checked><label for="cat-file_read_project-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-file_read_project-mostly-allow" name="file_read_project" value="mostly-allow" ><label for="cat-file_read_project-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-file_read_project-autopilot" name="file_read_project" value="autopilot" ><label for="cat-file_read_project-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div></fieldset><fieldset class="cat-group"><legend>Network</legend><div class="cat-row" data-category="network_read" data-group="Network"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Web reads</span><button type="button" class="info-btn" data-info-for="network_read" aria-label="Explain Web reads" title="Explain this setting">?</button></div><div class="cat-desc">WebFetch on known documentation domains; HTTP GETs.</div></div><div class="seg-control" role="radiogroup" aria-label="Web reads"><input type="radio" id="cat-network_read-deny" name="network_read" value="deny" ><label for="cat-network_read-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-network_read-always-ask" name="network_read" value="always-ask" ><label for="cat-network_read-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-network_read-mostly-ask" name="network_read" value="mostly-ask" checked><label for="cat-network_read-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-network_read-mostly-allow" name="network_read" value="mostly-allow" ><label for="cat-network_read-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-network_read-autopilot" name="network_read" value="autopilot" ><label for="cat-network_read-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="network_write" data-group="Network"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Web writes</span><button type="button" class="info-btn" data-info-for="network_write" aria-label="Explain Web writes" title="Explain this setting">?</button></div><div class="cat-desc">POST, PUT, DELETE — anything that mutates remote state.</div></div><div class="seg-control" role="radiogroup" aria-label="Web writes"><input type="radio" id="cat-network_write-deny" name="network_write" value="deny" ><label for="cat-network_write-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-network_write-always-ask" name="network_write" value="always-ask" ><label for="cat-network_write-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-network_write-mostly-ask" name="network_write" value="mostly-ask" checked><label for="cat-network_write-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-network_write-mostly-allow" name="network_write" value="mostly-allow" ><label for="cat-network_write-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-network_write-autopilot" name="network_write" value="autopilot" ><label for="cat-network_write-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div></fieldset><fieldset class="cat-group"><legend>Other</legend><div class="cat-row" data-category="mcp_tools" data-group="Other"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">MCP server tools</span><button type="button" class="info-btn" data-info-for="mcp_tools" aria-label="Explain MCP server tools" title="Explain this setting">?</button></div><div class="cat-desc">Tools provided by connected MCP servers.</div></div><div class="seg-control" role="radiogroup" aria-label="MCP server tools"><input type="radio" id="cat-mcp_tools-deny" name="mcp_tools" value="deny" ><label for="cat-mcp_tools-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-mcp_tools-always-ask" name="mcp_tools" value="always-ask" ><label for="cat-mcp_tools-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-mcp_tools-mostly-ask" name="mcp_tools" value="mostly-ask" checked><label for="cat-mcp_tools-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-mcp_tools-mostly-allow" name="mcp_tools" value="mostly-allow" ><label for="cat-mcp_tools-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-mcp_tools-autopilot" name="mcp_tools" value="autopilot" ><label for="cat-mcp_tools-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div></fieldset><fieldset class="cat-group"><legend>Shell</legend><div class="cat-row" data-category="shell_code_exec" data-group="Shell"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Arbitrary code execution</span><button type="button" class="info-btn" data-info-for="shell_code_exec" aria-label="Explain Arbitrary code execution" title="Explain this setting">?</button></div><div class="cat-desc">python -c, node -e, bash -c, eval.</div></div><div class="seg-control" role="radiogroup" aria-label="Arbitrary code execution"><input type="radio" id="cat-shell_code_exec-deny" name="shell_code_exec" value="deny" ><label for="cat-shell_code_exec-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-shell_code_exec-always-ask" name="shell_code_exec" value="always-ask" ><label for="cat-shell_code_exec-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-shell_code_exec-mostly-ask" name="shell_code_exec" value="mostly-ask" checked><label for="cat-shell_code_exec-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-shell_code_exec-mostly-allow" name="shell_code_exec" value="mostly-allow" ><label for="cat-shell_code_exec-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-shell_code_exec-autopilot" name="shell_code_exec" value="autopilot" ><label for="cat-shell_code_exec-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="shell_local_mutate" data-group="Shell"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Local shell mutations</span><button type="button" class="info-btn" data-info-for="shell_local_mutate" aria-label="Explain Local shell mutations" title="Explain this setting">?</button></div><div class="cat-desc">mkdir, mv, cp, git commit. Changes filesystem locally.</div></div><div class="seg-control" role="radiogroup" aria-label="Local shell mutations"><input type="radio" id="cat-shell_local_mutate-deny" name="shell_local_mutate" value="deny" ><label for="cat-shell_local_mutate-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-shell_local_mutate-always-ask" name="shell_local_mutate" value="always-ask" ><label for="cat-shell_local_mutate-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-shell_local_mutate-mostly-ask" name="shell_local_mutate" value="mostly-ask" checked><label for="cat-shell_local_mutate-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-shell_local_mutate-mostly-allow" name="shell_local_mutate" value="mostly-allow" ><label for="cat-shell_local_mutate-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-shell_local_mutate-autopilot" name="shell_local_mutate" value="autopilot" ><label for="cat-shell_local_mutate-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="shell_package_install" data-group="Shell"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Package installs</span><button type="button" class="info-btn" data-info-for="shell_package_install" aria-label="Explain Package installs" title="Explain this setting">?</button></div><div class="cat-desc">npm install, pip install, apt install, brew install.</div></div><div class="seg-control" role="radiogroup" aria-label="Package installs"><input type="radio" id="cat-shell_package_install-deny" name="shell_package_install" value="deny" ><label for="cat-shell_package_install-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-shell_package_install-always-ask" name="shell_package_install" value="always-ask" ><label for="cat-shell_package_install-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-shell_package_install-mostly-ask" name="shell_package_install" value="mostly-ask" checked><label for="cat-shell_package_install-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-shell_package_install-mostly-allow" name="shell_package_install" value="mostly-allow" ><label for="cat-shell_package_install-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-shell_package_install-autopilot" name="shell_package_install" value="autopilot" ><label for="cat-shell_package_install-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="shell_readonly" data-group="Shell"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Read-only shell commands</span><button type="button" class="info-btn" data-info-for="shell_readonly" aria-label="Explain Read-only shell commands" title="Explain this setting">?</button></div><div class="cat-desc">ls, cat, git status, grep, find. Cheap shell with no side effects.</div></div><div class="seg-control" role="radiogroup" aria-label="Read-only shell commands"><input type="radio" id="cat-shell_readonly-deny" name="shell_readonly" value="deny" ><label for="cat-shell_readonly-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-shell_readonly-always-ask" name="shell_readonly" value="always-ask" ><label for="cat-shell_readonly-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-shell_readonly-mostly-ask" name="shell_readonly" value="mostly-ask" checked><label for="cat-shell_readonly-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-shell_readonly-mostly-allow" name="shell_readonly" value="mostly-allow" ><label for="cat-shell_readonly-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-shell_readonly-autopilot" name="shell_readonly" value="autopilot" ><label for="cat-shell_readonly-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="shell_remote_mutate" data-group="Shell"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Remote shell mutations</span><button type="button" class="info-btn" data-info-for="shell_remote_mutate" aria-label="Explain Remote shell mutations" title="Explain this setting">?</button></div><div class="cat-desc">git push, gh pr create, npm publish — anything that touches a shared system.</div></div><div class="seg-control" role="radiogroup" aria-label="Remote shell mutations"><input type="radio" id="cat-shell_remote_mutate-deny" name="shell_remote_mutate" value="deny" ><label for="cat-shell_remote_mutate-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-shell_remote_mutate-always-ask" name="shell_remote_mutate" value="always-ask" ><label for="cat-shell_remote_mutate-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-shell_remote_mutate-mostly-ask" name="shell_remote_mutate" value="mostly-ask" checked><label for="cat-shell_remote_mutate-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-shell_remote_mutate-mostly-allow" name="shell_remote_mutate" value="mostly-allow" ><label for="cat-shell_remote_mutate-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-shell_remote_mutate-autopilot" name="shell_remote_mutate" value="autopilot" ><label for="cat-shell_remote_mutate-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div></fieldset>
+    <fieldset class="cat-group"><legend>Files</legend><div class="cat-row" data-category="file_edit_global" data-group="Files"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Edit files outside this project</span><button type="button" class="info-btn" data-info-for="file_edit_global" aria-label="Explain Edit files outside this project" title="Explain this setting">?</button></div><div class="cat-desc">Writing to your home directory or system paths.</div></div><div class="seg-control" role="radiogroup" aria-label="Edit files outside this project"><input type="radio" id="cat-file_edit_global-deny" name="file_edit_global" value="deny" ><label for="cat-file_edit_global-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-file_edit_global-always-ask" name="file_edit_global" value="always-ask" checked><label for="cat-file_edit_global-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask<span class="rec-badge" aria-label="Recommended for this category">Recommended</span></label><input type="radio" id="cat-file_edit_global-mostly-ask" name="file_edit_global" value="mostly-ask" ><label for="cat-file_edit_global-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-file_edit_global-mostly-allow" name="file_edit_global" value="mostly-allow" ><label for="cat-file_edit_global-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-file_edit_global-autopilot" name="file_edit_global" value="autopilot" ><label for="cat-file_edit_global-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="file_edit_project" data-group="Files"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Edit files in this project</span><button type="button" class="info-btn" data-info-for="file_edit_project" aria-label="Explain Edit files in this project" title="Explain this setting">?</button></div><div class="cat-desc">Creating or modifying files inside the current project.</div></div><div class="seg-control" role="radiogroup" aria-label="Edit files in this project"><input type="radio" id="cat-file_edit_project-deny" name="file_edit_project" value="deny" ><label for="cat-file_edit_project-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-file_edit_project-always-ask" name="file_edit_project" value="always-ask" ><label for="cat-file_edit_project-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-file_edit_project-mostly-ask" name="file_edit_project" value="mostly-ask" ><label for="cat-file_edit_project-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-file_edit_project-mostly-allow" name="file_edit_project" value="mostly-allow" checked><label for="cat-file_edit_project-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow<span class="rec-badge" aria-label="Recommended for this category">Recommended</span></label><input type="radio" id="cat-file_edit_project-autopilot" name="file_edit_project" value="autopilot" ><label for="cat-file_edit_project-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="file_read_global" data-group="Files"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Read files outside this project</span><button type="button" class="info-btn" data-info-for="file_read_global" aria-label="Explain Read files outside this project" title="Explain this setting">?</button></div><div class="cat-desc">Reading anything outside the current project directory.</div></div><div class="seg-control" role="radiogroup" aria-label="Read files outside this project"><input type="radio" id="cat-file_read_global-deny" name="file_read_global" value="deny" ><label for="cat-file_read_global-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-file_read_global-always-ask" name="file_read_global" value="always-ask" checked><label for="cat-file_read_global-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask<span class="rec-badge" aria-label="Recommended for this category">Recommended</span></label><input type="radio" id="cat-file_read_global-mostly-ask" name="file_read_global" value="mostly-ask" ><label for="cat-file_read_global-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-file_read_global-mostly-allow" name="file_read_global" value="mostly-allow" ><label for="cat-file_read_global-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-file_read_global-autopilot" name="file_read_global" value="autopilot" ><label for="cat-file_read_global-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="file_read_project" data-group="Files"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Read files in this project</span><button type="button" class="info-btn" data-info-for="file_read_project" aria-label="Explain Read files in this project" title="Explain this setting">?</button></div><div class="cat-desc">Reading source files inside the current project directory.</div></div><div class="seg-control" role="radiogroup" aria-label="Read files in this project"><input type="radio" id="cat-file_read_project-deny" name="file_read_project" value="deny" ><label for="cat-file_read_project-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-file_read_project-always-ask" name="file_read_project" value="always-ask" ><label for="cat-file_read_project-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-file_read_project-mostly-ask" name="file_read_project" value="mostly-ask" ><label for="cat-file_read_project-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-file_read_project-mostly-allow" name="file_read_project" value="mostly-allow" checked><label for="cat-file_read_project-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow<span class="rec-badge" aria-label="Recommended for this category">Recommended</span></label><input type="radio" id="cat-file_read_project-autopilot" name="file_read_project" value="autopilot" ><label for="cat-file_read_project-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div></fieldset><fieldset class="cat-group"><legend>Network</legend><div class="cat-row" data-category="network_read" data-group="Network"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Web reads</span><button type="button" class="info-btn" data-info-for="network_read" aria-label="Explain Web reads" title="Explain this setting">?</button></div><div class="cat-desc">WebFetch on known documentation domains; HTTP GETs.</div></div><div class="seg-control" role="radiogroup" aria-label="Web reads"><input type="radio" id="cat-network_read-deny" name="network_read" value="deny" ><label for="cat-network_read-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-network_read-always-ask" name="network_read" value="always-ask" ><label for="cat-network_read-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-network_read-mostly-ask" name="network_read" value="mostly-ask" ><label for="cat-network_read-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-network_read-mostly-allow" name="network_read" value="mostly-allow" checked><label for="cat-network_read-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow<span class="rec-badge" aria-label="Recommended for this category">Recommended</span></label><input type="radio" id="cat-network_read-autopilot" name="network_read" value="autopilot" ><label for="cat-network_read-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="network_write" data-group="Network"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Web writes</span><button type="button" class="info-btn" data-info-for="network_write" aria-label="Explain Web writes" title="Explain this setting">?</button></div><div class="cat-desc">POST, PUT, DELETE — anything that mutates remote state.</div></div><div class="seg-control" role="radiogroup" aria-label="Web writes"><input type="radio" id="cat-network_write-deny" name="network_write" value="deny" ><label for="cat-network_write-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-network_write-always-ask" name="network_write" value="always-ask" checked><label for="cat-network_write-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask<span class="rec-badge" aria-label="Recommended for this category">Recommended</span></label><input type="radio" id="cat-network_write-mostly-ask" name="network_write" value="mostly-ask" ><label for="cat-network_write-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-network_write-mostly-allow" name="network_write" value="mostly-allow" ><label for="cat-network_write-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-network_write-autopilot" name="network_write" value="autopilot" ><label for="cat-network_write-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div></fieldset><fieldset class="cat-group"><legend>Other</legend><div class="cat-row" data-category="mcp_tools" data-group="Other"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">MCP server tools</span><button type="button" class="info-btn" data-info-for="mcp_tools" aria-label="Explain MCP server tools" title="Explain this setting">?</button></div><div class="cat-desc">Tools provided by connected MCP servers.</div></div><div class="seg-control" role="radiogroup" aria-label="MCP server tools"><input type="radio" id="cat-mcp_tools-deny" name="mcp_tools" value="deny" ><label for="cat-mcp_tools-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-mcp_tools-always-ask" name="mcp_tools" value="always-ask" ><label for="cat-mcp_tools-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-mcp_tools-mostly-ask" name="mcp_tools" value="mostly-ask" checked><label for="cat-mcp_tools-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask<span class="rec-badge" aria-label="Recommended for this category">Recommended</span></label><input type="radio" id="cat-mcp_tools-mostly-allow" name="mcp_tools" value="mostly-allow" ><label for="cat-mcp_tools-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-mcp_tools-autopilot" name="mcp_tools" value="autopilot" ><label for="cat-mcp_tools-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div></fieldset><fieldset class="cat-group"><legend>Shell</legend><div class="cat-row" data-category="shell_code_exec" data-group="Shell"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Arbitrary code execution</span><button type="button" class="info-btn" data-info-for="shell_code_exec" aria-label="Explain Arbitrary code execution" title="Explain this setting">?</button></div><div class="cat-desc">python -c, node -e, bash -c, eval.</div></div><div class="seg-control" role="radiogroup" aria-label="Arbitrary code execution"><input type="radio" id="cat-shell_code_exec-deny" name="shell_code_exec" value="deny" ><label for="cat-shell_code_exec-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-shell_code_exec-always-ask" name="shell_code_exec" value="always-ask" checked><label for="cat-shell_code_exec-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask<span class="rec-badge" aria-label="Recommended for this category">Recommended</span></label><input type="radio" id="cat-shell_code_exec-mostly-ask" name="shell_code_exec" value="mostly-ask" ><label for="cat-shell_code_exec-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-shell_code_exec-mostly-allow" name="shell_code_exec" value="mostly-allow" ><label for="cat-shell_code_exec-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-shell_code_exec-autopilot" name="shell_code_exec" value="autopilot" ><label for="cat-shell_code_exec-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="shell_local_mutate" data-group="Shell"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Local shell mutations</span><button type="button" class="info-btn" data-info-for="shell_local_mutate" aria-label="Explain Local shell mutations" title="Explain this setting">?</button></div><div class="cat-desc">mkdir, mv, cp, git commit. Changes filesystem locally.</div></div><div class="seg-control" role="radiogroup" aria-label="Local shell mutations"><input type="radio" id="cat-shell_local_mutate-deny" name="shell_local_mutate" value="deny" ><label for="cat-shell_local_mutate-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-shell_local_mutate-always-ask" name="shell_local_mutate" value="always-ask" ><label for="cat-shell_local_mutate-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-shell_local_mutate-mostly-ask" name="shell_local_mutate" value="mostly-ask" ><label for="cat-shell_local_mutate-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-shell_local_mutate-mostly-allow" name="shell_local_mutate" value="mostly-allow" checked><label for="cat-shell_local_mutate-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow<span class="rec-badge" aria-label="Recommended for this category">Recommended</span></label><input type="radio" id="cat-shell_local_mutate-autopilot" name="shell_local_mutate" value="autopilot" ><label for="cat-shell_local_mutate-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="shell_package_install" data-group="Shell"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Package installs</span><button type="button" class="info-btn" data-info-for="shell_package_install" aria-label="Explain Package installs" title="Explain this setting">?</button></div><div class="cat-desc">npm install, pip install, apt install, brew install.</div></div><div class="seg-control" role="radiogroup" aria-label="Package installs"><input type="radio" id="cat-shell_package_install-deny" name="shell_package_install" value="deny" ><label for="cat-shell_package_install-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-shell_package_install-always-ask" name="shell_package_install" value="always-ask" checked><label for="cat-shell_package_install-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask<span class="rec-badge" aria-label="Recommended for this category">Recommended</span></label><input type="radio" id="cat-shell_package_install-mostly-ask" name="shell_package_install" value="mostly-ask" ><label for="cat-shell_package_install-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-shell_package_install-mostly-allow" name="shell_package_install" value="mostly-allow" ><label for="cat-shell_package_install-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-shell_package_install-autopilot" name="shell_package_install" value="autopilot" ><label for="cat-shell_package_install-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="shell_readonly" data-group="Shell"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Read-only shell commands</span><button type="button" class="info-btn" data-info-for="shell_readonly" aria-label="Explain Read-only shell commands" title="Explain this setting">?</button></div><div class="cat-desc">ls, cat, git status, grep, find. Cheap shell with no side effects.</div></div><div class="seg-control" role="radiogroup" aria-label="Read-only shell commands"><input type="radio" id="cat-shell_readonly-deny" name="shell_readonly" value="deny" ><label for="cat-shell_readonly-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-shell_readonly-always-ask" name="shell_readonly" value="always-ask" ><label for="cat-shell_readonly-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-shell_readonly-mostly-ask" name="shell_readonly" value="mostly-ask" ><label for="cat-shell_readonly-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask</label><input type="radio" id="cat-shell_readonly-mostly-allow" name="shell_readonly" value="mostly-allow" checked><label for="cat-shell_readonly-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow<span class="rec-badge" aria-label="Recommended for this category">Recommended</span></label><input type="radio" id="cat-shell_readonly-autopilot" name="shell_readonly" value="autopilot" ><label for="cat-shell_readonly-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div><div class="cat-row" data-category="shell_remote_mutate" data-group="Shell"><div class="cat-meta"><div class="cat-title-row"><span class="cat-title">Remote shell mutations</span><button type="button" class="info-btn" data-info-for="shell_remote_mutate" aria-label="Explain Remote shell mutations" title="Explain this setting">?</button></div><div class="cat-desc">git push, gh pr create, npm publish — anything that touches a shared system.</div></div><div class="seg-control" role="radiogroup" aria-label="Remote shell mutations"><input type="radio" id="cat-shell_remote_mutate-deny" name="shell_remote_mutate" value="deny" ><label for="cat-shell_remote_mutate-deny" class="seg-label seg-deny" title="deny">Deny</label><input type="radio" id="cat-shell_remote_mutate-always-ask" name="shell_remote_mutate" value="always-ask" checked><label for="cat-shell_remote_mutate-always-ask" class="seg-label seg-always-ask" title="always-ask">Always Ask</label><input type="radio" id="cat-shell_remote_mutate-mostly-ask" name="shell_remote_mutate" value="mostly-ask" ><label for="cat-shell_remote_mutate-mostly-ask" class="seg-label seg-mostly-ask" title="mostly-ask">Mostly Ask<span class="rec-badge" aria-label="Recommended for this category">Recommended</span></label><input type="radio" id="cat-shell_remote_mutate-mostly-allow" name="shell_remote_mutate" value="mostly-allow" ><label for="cat-shell_remote_mutate-mostly-allow" class="seg-label seg-mostly-allow" title="mostly-allow">Mostly Allow</label><input type="radio" id="cat-shell_remote_mutate-autopilot" name="shell_remote_mutate" value="autopilot" ><label for="cat-shell_remote_mutate-autopilot" class="seg-label seg-autopilot" title="autopilot">Autopilot</label></div></div></fieldset>
   </div>
 
   <aside class="yaml-preview">
     <h3>
       <span>comfort-posture.yaml</span>
-      <span id="yaml-status" style="color: var(--muted); font-weight: 400; font-size: 12px;">unsaved</span>
+      <span id="yaml-status" class="yaml-status status-unsaved">unsaved</span>
     </h3>
     <pre id="yaml-output"></pre>
-    <div class="yaml-actions">
-      <button class="btn" id="copy-btn">Copy YAML</button>
-      <button class="btn secondary" id="download-btn">Download</button>
+    <div class="yaml-primary-action">
+      <button class="btn btn-primary" id="save-repo-btn" hidden>
+        <span class="btn-main">Save to repo</span>
+        <span class="btn-sub" id="save-repo-target">.ravenclaude/comfort-posture.yaml</span>
+      </button>
+      <p class="primary-help" id="save-repo-help" hidden>
+        Saves directly to <code>.ravenclaude/comfort-posture.yaml</code> in this repo. The agent reads from there.
+      </p>
+      <p class="primary-help muted" id="no-server-help" hidden>
+        Save-to-repo needs the local server. Start it with <code>python3 scripts/serve-dashboards.py</code> and open the forwarded URL. Until then, the alternatives below work.
+      </p>
     </div>
+    <details class="yaml-alt-actions">
+      <summary>Alternative ways to save</summary>
+      <div class="yaml-actions">
+        <button class="btn secondary" id="connect-btn" hidden>Auto-save to file…</button>
+        <button class="btn secondary" id="copy-btn">Copy</button>
+        <button class="btn secondary" id="download-btn">Download</button>
+      </div>
+      <div class="yaml-connected-row" id="connected-row" hidden>
+        <span class="connected-pill">
+          <span class="connected-dot"></span>
+          Auto-saving to <code id="connected-filename">comfort-posture.yaml</code>
+        </span>
+        <button type="button" class="link-btn" id="disconnect-btn" title="Disconnect from file">disconnect</button>
+      </div>
+      <p class="yaml-help" id="no-api-help" hidden>
+        Auto-save to a chosen file needs Chrome, Edge, or Opera. Use Copy or Download instead.
+      </p>
+    </details>
   </aside>
 </div>
   </section>
@@ -455,6 +640,17 @@ footer.page-footer a:hover { text-decoration: underline; }
     <p id="info-modal-controls"></p>
     <h3>Examples</h3>
     <ul id="info-modal-examples" class="example-list"></ul>
+    <h3>Recommended level</h3>
+    <div class="rec-rows">
+      <div class="rec-row">
+        <span class="rec-context">Working as an individual</span>
+        <span class="rec-text" id="info-modal-rec-individual"></span>
+      </div>
+      <div class="rec-row">
+        <span class="rec-context">Working as a team</span>
+        <span class="rec-text" id="info-modal-rec-team"></span>
+      </div>
+    </div>
     <h3>When to relax or tighten</h3>
     <p id="info-modal-guidance"></p>
   </div>
@@ -482,6 +678,25 @@ footer.page-footer a:hover { text-decoration: underline; }
     "autopilot": "Never ask. Claude acts on every pattern in this category."
   },
   "presets": {
+    "recommended": {
+      "_label": "\u2605 Recommended",
+      "_description": "Applies the per-category recommended level. Reads inside the project flow; writes inside the project ask; everything that touches the outside world (git push, code exec, package install, web writes, files outside the project) asks. The 'we did the thinking for you' starting point \u2014 adjust individual rows from here.",
+      "global_default": "mostly-ask",
+      "categories": {
+        "file_read_project": "mostly-allow",
+        "file_edit_project": "mostly-allow",
+        "file_read_global": "always-ask",
+        "file_edit_global": "always-ask",
+        "shell_readonly": "mostly-allow",
+        "shell_local_mutate": "mostly-allow",
+        "shell_remote_mutate": "mostly-ask",
+        "shell_code_exec": "always-ask",
+        "shell_package_install": "always-ask",
+        "network_read": "mostly-allow",
+        "network_write": "always-ask",
+        "mcp_tools": "mostly-ask"
+      }
+    },
     "deny": {
       "_description": "LOCKDOWN. Sets every category to DENY. Claude refuses every action in every category. Useful only in tightly-scoped reviews where you want Claude to read prose but take no action.",
       "global_default": "deny",
@@ -591,6 +806,9 @@ footer.page-footer a:hover { text-decoration: underline; }
       "title": "Global default",
       "description": "Used for any category not explicitly set below. Apply a preset to set this and all categories at once.",
       "x-widget": "segmented",
+      "x-recommended": "mostly-ask",
+      "x-rec-individual": "Mostly Ask \u2014 solo work usually wants a moderate default; relax specific categories where you trust Claude more.",
+      "x-rec-team": "Mostly Ask \u2014 collaborative work wants pauses in ambiguous places; keep the cautious default and grant Productive/Autopilot per category as needed.",
       "x-controls": "The fallback autonomy level for any category you don't set explicitly. Acts as a safety net so newly-added categories don't surprise you with a permissive default.",
       "x-examples": [
         "If you set this to 'Mostly Ask' and don't touch any per-category row, every category behaves as Mostly Ask.",
@@ -612,10 +830,14 @@ footer.page-footer a:hover { text-decoration: underline; }
             "mostly-allow",
             "autopilot"
           ],
+          "default": "mostly-allow",
           "title": "Read files in this project",
           "description": "Reading source files inside the current project directory.",
           "x-widget": "segmented",
           "x-group": "Files",
+          "x-recommended": "mostly-allow",
+          "x-rec-individual": "Mostly Allow \u2014 solo work benefits from Claude moving through your codebase freely; reads are essentially free.",
+          "x-rec-team": "Mostly Allow \u2014 same as solo; reading shared code doesn't affect teammates and is cheap regardless.",
           "x-controls": "Anything Claude does to LOOK at files inside your current project directory \u2014 opening, scanning, reading. No changes to disk, no shell side effects, no network calls. This is the cheapest category.",
           "x-examples": [
             "ls src/",
@@ -635,10 +857,14 @@ footer.page-footer a:hover { text-decoration: underline; }
             "mostly-allow",
             "autopilot"
           ],
+          "default": "mostly-allow",
           "title": "Edit files in this project",
           "description": "Creating or modifying files inside the current project.",
           "x-widget": "segmented",
           "x-group": "Files",
+          "x-recommended": "mostly-allow",
+          "x-rec-individual": "Mostly Allow \u2014 solo work can rely on git for review; let Claude refactor and generate freely, then look at the diff.",
+          "x-rec-team": "Mostly Ask \u2014 teammates will be reviewing or blocked-on the changes; pausing on each edit preserves the review handoff and keeps surprises small.",
           "x-controls": "Write, Edit, MultiEdit \u2014 anything Claude does to CHANGE a file inside your current project. The change is recoverable via git as long as you commit regularly, but it does affect your working tree immediately.",
           "x-examples": [
             "Write('src/new-feature.py', ...) \u2014 creating a new file",
@@ -658,10 +884,14 @@ footer.page-footer a:hover { text-decoration: underline; }
             "mostly-allow",
             "autopilot"
           ],
+          "default": "always-ask",
           "title": "Read files outside this project",
           "description": "Reading anything outside the current project directory.",
           "x-widget": "segmented",
           "x-group": "Files",
+          "x-recommended": "always-ask",
+          "x-rec-individual": "Always Ask \u2014 even solo, you don't want Claude reading ~/.ssh or ~/.aws without a deliberate prompt.",
+          "x-rec-team": "Always Ask \u2014 same as solo; secrets outside the project are always a deliberate decision regardless of who you work with.",
           "x-controls": "Anything Claude does to READ files that live OUTSIDE your current project \u2014 your home directory, system paths, other projects. These paths frequently contain secrets or configuration Claude has no business with.",
           "x-examples": [
             "cat ~/.ssh/config \u2014 SSH keys and known hosts",
@@ -681,10 +911,14 @@ footer.page-footer a:hover { text-decoration: underline; }
             "mostly-allow",
             "autopilot"
           ],
+          "default": "always-ask",
           "title": "Edit files outside this project",
           "description": "Writing to your home directory or system paths.",
           "x-widget": "segmented",
           "x-group": "Files",
+          "x-recommended": "always-ask",
+          "x-rec-individual": "Always Ask \u2014 solo work that wants to touch ~/.gitconfig or a global setting is the exception, not the rule. Force the pause.",
+          "x-rec-team": "Always Ask \u2014 same as solo; global writes are infrequent enough that always asking is the safe default.",
           "x-controls": "Anything Claude does to CHANGE files outside your current project \u2014 home directory, system config, other projects. These changes are often unrecoverable (no git tracking) and can affect every other workflow on your machine.",
           "x-examples": [
             "Write('~/.profile', ...) \u2014 adding to your shell init",
@@ -704,10 +938,14 @@ footer.page-footer a:hover { text-decoration: underline; }
             "mostly-allow",
             "autopilot"
           ],
+          "default": "mostly-allow",
           "title": "Read-only shell commands",
           "description": "ls, cat, git status, grep, find. Cheap shell with no side effects.",
           "x-widget": "segmented",
           "x-group": "Shell",
+          "x-recommended": "mostly-allow",
+          "x-rec-individual": "Mostly Allow \u2014 cheap shell is cheap regardless of context; let it run freely.",
+          "x-rec-team": "Mostly Allow \u2014 same as solo; read-only commands can't affect teammates' state.",
           "x-controls": "Shell commands that DON'T change anything on disk and DON'T talk to a server. The 'cheap' shell \u2014 running them and not running them produces the same world afterward.",
           "x-examples": [
             "ls",
@@ -728,10 +966,14 @@ footer.page-footer a:hover { text-decoration: underline; }
             "mostly-allow",
             "autopilot"
           ],
+          "default": "mostly-allow",
           "title": "Local shell mutations",
           "description": "mkdir, mv, cp, git commit. Changes filesystem locally.",
           "x-widget": "segmented",
           "x-group": "Shell",
+          "x-recommended": "mostly-allow",
+          "x-rec-individual": "Mostly Allow \u2014 solo work benefits from Claude restructuring and committing locally; git history catches anything that goes wrong.",
+          "x-rec-team": "Mostly Ask \u2014 even local mutations (git checkout switching branches, mkdir reorganizing things) can affect what teammates see if they touch the wrong file later. Pausing on local mutations is cheap insurance.",
           "x-controls": "Shell commands that CHANGE your local filesystem but DON'T talk to a server. Effects stay on your machine and are usually recoverable (git reflog exists, files can be restored from snapshots).",
           "x-examples": [
             "mkdir src/new-feature",
@@ -752,10 +994,14 @@ footer.page-footer a:hover { text-decoration: underline; }
             "mostly-allow",
             "autopilot"
           ],
+          "default": "always-ask",
           "title": "Remote shell mutations",
           "description": "git push, gh pr create, npm publish \u2014 anything that touches a shared system.",
           "x-widget": "segmented",
           "x-group": "Shell",
+          "x-recommended": "mostly-ask",
+          "x-rec-individual": "Mostly Ask \u2014 even solo, the audit-trail value of confirming each push is worth the friction.",
+          "x-rec-team": "Always Ask \u2014 pushes notify teammates, trigger CI, may break their working state. Every one deserves an explicit click.",
           "x-controls": "Shell commands that PUBLISH to a system other people can see \u2014 git remotes, GitHub Issues/PRs, package registries, cloud buckets. Once these complete, you can't simply 'undo' them; reversal usually requires a counter-action that's also visible.",
           "x-examples": [
             "git push origin main",
@@ -775,10 +1021,14 @@ footer.page-footer a:hover { text-decoration: underline; }
             "mostly-allow",
             "autopilot"
           ],
+          "default": "always-ask",
           "title": "Arbitrary code execution",
           "description": "python -c, node -e, bash -c, eval.",
           "x-widget": "segmented",
           "x-group": "Shell",
+          "x-recommended": "always-ask",
+          "x-rec-individual": "Always Ask \u2014 arbitrary code exec is the shortest path to RCE if a prompt goes sideways. Worth pausing on every one.",
+          "x-rec-team": "Always Ask \u2014 same as solo; the risk doesn't change with team size.",
           "x-controls": "Any command that lets Claude run code that WASN'T pre-written. These bypass per-tool gating because the inner code can do anything the shell can do.",
           "x-examples": [
             "python -c 'import os; os.system(...)'",
@@ -798,10 +1048,14 @@ footer.page-footer a:hover { text-decoration: underline; }
             "mostly-allow",
             "autopilot"
           ],
+          "default": "always-ask",
           "title": "Package installs",
           "description": "npm install, pip install, apt install, brew install.",
           "x-widget": "segmented",
           "x-group": "Shell",
+          "x-recommended": "always-ask",
+          "x-rec-individual": "Always Ask \u2014 supply-chain typosquats are the most common attack vector; verify the package name once per install.",
+          "x-rec-team": "Always Ask \u2014 same as solo; package installs are usually rare enough that always-asking is cheap.",
           "x-controls": "Commands that download and install packages from a registry. Package installs are higher-risk than they appear: many run post-install scripts with full shell access on your machine.",
           "x-examples": [
             "npm install foo-bar",
@@ -822,10 +1076,14 @@ footer.page-footer a:hover { text-decoration: underline; }
             "mostly-allow",
             "autopilot"
           ],
+          "default": "mostly-allow",
           "title": "Web reads",
           "description": "WebFetch on known documentation domains; HTTP GETs.",
           "x-widget": "segmented",
           "x-group": "Network",
+          "x-recommended": "mostly-allow",
+          "x-rec-individual": "Mostly Allow \u2014 Claude needs to look things up to give grounded answers; reads are low-risk.",
+          "x-rec-team": "Mostly Allow \u2014 same as solo; reading public docs doesn't affect teammates.",
           "x-controls": "GET-style requests that READ from the web. No mutation, no side effects on the remote system. Risk is limited to what Claude does with the response (which it has to read carefully anyway).",
           "x-examples": [
             "WebFetch('https://docs.anthropic.com/...')",
@@ -845,10 +1103,14 @@ footer.page-footer a:hover { text-decoration: underline; }
             "mostly-allow",
             "autopilot"
           ],
+          "default": "always-ask",
           "title": "Web writes",
           "description": "POST, PUT, DELETE \u2014 anything that mutates remote state.",
           "x-widget": "segmented",
           "x-group": "Network",
+          "x-recommended": "always-ask",
+          "x-rec-individual": "Always Ask \u2014 POSTs have side effects (charged API calls, posted messages, triggered workflows). Even solo, the asymmetric cost makes pausing worth it.",
+          "x-rec-team": "Always Ask \u2014 webhooks may notify teammates or trigger their workflows; pausing is doubly important.",
           "x-controls": "HTTP methods that CHANGE state on the remote system. These have side effects ranging from 'charged my API account' to 'posted a message to a Slack channel' to 'triggered a production deployment.'",
           "x-examples": [
             "curl -X POST https://api.example.com/webhook",
@@ -868,10 +1130,14 @@ footer.page-footer a:hover { text-decoration: underline; }
             "mostly-allow",
             "autopilot"
           ],
+          "default": "mostly-ask",
           "title": "MCP server tools",
           "description": "Tools provided by connected MCP servers.",
           "x-widget": "segmented",
           "x-group": "Other",
+          "x-recommended": "mostly-ask",
+          "x-rec-individual": "Mostly Ask \u2014 MCP tool trust is best done server-by-server; the global default should ask, then you pin trusted servers individually in your Claude Code config.",
+          "x-rec-team": "Mostly Ask \u2014 same as solo; the global default is conservative; per-server trust is where the team-vs-solo distinction actually matters.",
           "x-controls": "The DEFAULT autonomy level applied to any MCP (Model Context Protocol) server you've connected. Each server can also be configured individually in your Claude Code config; this is the fallback for servers without specific trust settings.",
           "x-examples": [
             "microsoft_learn.docs_search(...) \u2014 read-only docs, usually safe",
@@ -986,6 +1252,214 @@ footer.page-footer a:hover { text-decoration: underline; }
     });
   });
 
+  /* ── Save to repo via server-side /__save endpoint ──────────────── */
+  /* The primary save target: writes directly into .ravenclaude/<file> in
+   * the agent's project. Only available when the page is served by
+   * scripts/serve-dashboards.py (which exposes POST /__save). When the
+   * page is served by `python3 -m http.server` or opened via file://,
+   * the endpoint is absent; we hide the button and surface the
+   * "start the local server" help line. */
+  const REPO_TARGET = ".ravenclaude/comfort-posture.yaml";
+  const saveRepoBtn = document.getElementById("save-repo-btn");
+  const saveRepoHelp = document.getElementById("save-repo-help");
+  const noServerHelp = document.getElementById("no-server-help");
+
+  async function probeRepoEndpoint() {
+    try {
+      const res = await fetch("/__save", { method: "HEAD" });
+      return res.ok;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async function saveToRepo() {
+    saveRepoBtn.disabled = true;
+    setStatus("saving to repo…", "status-unsaved");
+    try {
+      const res = await fetch("/__save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: REPO_TARGET, content: emitYaml() })
+      });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        setStatus(`save failed: ${res.status}`, "status-error");
+        console.error("Save-to-repo failed:", res.status, errText);
+        return;
+      }
+      const j = await res.json();
+      setStatus(`saved to ${j.saved}`, "status-saved");
+      toast(`Saved to ${j.saved} (${j.bytes} bytes)`);
+    } catch (err) {
+      setStatus("save failed - see console", "status-error");
+      console.error(err);
+    } finally {
+      saveRepoBtn.disabled = false;
+    }
+  }
+
+  saveRepoBtn.addEventListener("click", saveToRepo);
+
+  /* Show or hide the save-to-repo button based on endpoint availability. */
+  probeRepoEndpoint().then(available => {
+    if (available) {
+      saveRepoBtn.hidden = false;
+      saveRepoHelp.hidden = false;
+    } else {
+      noServerHelp.hidden = false;
+    }
+  });
+
+  /* ── Auto-save via File System Access API ───────────────────────── */
+  /* Chrome/Edge/Opera: user picks a file once; we persist the handle in
+   * IndexedDB and write on every change (debounced). Firefox/Safari:
+   * feature-detect, hide the button, show a help line. */
+  const HAS_FSA = typeof window.showSaveFilePicker === "function";
+  const connectBtn = document.getElementById("connect-btn");
+  const disconnectBtn = document.getElementById("disconnect-btn");
+  const connectedRow = document.getElementById("connected-row");
+  const connectedFilename = document.getElementById("connected-filename");
+  const statusEl = document.getElementById("yaml-status");
+  const noApiHelp = document.getElementById("no-api-help");
+
+  let fileHandle = null;
+
+  function setStatus(text, cls) {
+    statusEl.textContent = text;
+    statusEl.className = "yaml-status " + (cls || "");
+  }
+
+  /* Minimal IndexedDB wrapper — one DB, one store, two operations.
+   * IndexedDB is the only way to persist a FileSystemFileHandle across reloads. */
+  function idbOpen() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open("ravenclaude-dashboard", 1);
+      req.onupgradeneeded = () => req.result.createObjectStore("handles");
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function idbSet(key, val) {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("handles", "readwrite");
+      tx.objectStore("handles").put(val, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  async function idbGet(key) {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("handles", "readonly");
+      const req = tx.objectStore("handles").get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function idbDel(key) {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("handles", "readwrite");
+      tx.objectStore("handles").delete(key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async function ensurePermission(handle, mode) {
+    const opts = { mode: mode || "readwrite" };
+    if ((await handle.queryPermission(opts)) === "granted") return true;
+    return (await handle.requestPermission(opts)) === "granted";
+  }
+
+  async function writeToHandle() {
+    if (!fileHandle) return;
+    try {
+      const ok = await ensurePermission(fileHandle, "readwrite");
+      if (!ok) { setStatus("permission denied", "status-error"); return; }
+      const writable = await fileHandle.createWritable();
+      await writable.write(emitYaml());
+      await writable.close();
+      setStatus("auto-saved", "status-saved");
+    } catch (err) {
+      console.error("Auto-save failed:", err);
+      setStatus("save failed — see console", "status-error");
+    }
+  }
+
+  /* No debounce: writes are ~10ms and skipping setTimeout preserves the
+   * user-gesture chain that File System Access API permission re-grants
+   * require after a page reload. */
+  function scheduleAutoSave() {
+    if (!fileHandle) {
+      setStatus("unsaved", "status-unsaved");
+      return;
+    }
+    setStatus("saving…", "status-unsaved");
+    writeToHandle();
+  }
+
+  async function connectFile() {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: "comfort-posture.yaml",
+        types: [{ description: "YAML", accept: { "text/yaml": [".yaml", ".yml"] } }]
+      });
+      fileHandle = handle;
+      await idbSet("comfort-posture-handle", handle);
+      connectBtn.hidden = true;
+      connectedRow.hidden = false;
+      connectedFilename.textContent = handle.name;
+      await writeToHandle();
+    } catch (err) {
+      if (err && err.name === "AbortError") return; /* user cancelled */
+      console.error("Connect failed:", err);
+      setStatus("connect failed — see console", "status-error");
+    }
+  }
+
+  async function disconnectFile() {
+    fileHandle = null;
+    await idbDel("comfort-posture-handle");
+    connectBtn.hidden = false;
+    connectedRow.hidden = true;
+    setStatus("unsaved", "status-unsaved");
+  }
+
+  async function restoreHandle() {
+    try {
+      const handle = await idbGet("comfort-posture-handle");
+      if (!handle) return;
+      /* Permission may need re-granting after a page reload. queryPermission
+       * returns "prompt" silently; requesting it would block on a click-gesture.
+       * Show the connected UI but defer the actual write until the user
+       * touches a control (which is a user gesture and allows the prompt). */
+      fileHandle = handle;
+      connectBtn.hidden = true;
+      connectedRow.hidden = false;
+      connectedFilename.textContent = handle.name || "comfort-posture.yaml";
+      const granted = await handle.queryPermission({ mode: "readwrite" });
+      if (granted === "granted") {
+        setStatus("auto-saved", "status-saved");
+      } else {
+        setStatus("touch a control to re-grant access", "status-unsaved");
+      }
+    } catch (err) {
+      console.error("Restore failed:", err);
+    }
+  }
+
+  if (HAS_FSA) {
+    connectBtn.hidden = false;
+    connectBtn.addEventListener("click", connectFile);
+    disconnectBtn.addEventListener("click", disconnectFile);
+    restoreHandle();
+  } else {
+    noApiHelp.hidden = false;
+  }
+
   /* ── Copy / Download ─────────────────────────────────────────────── */
   document.getElementById("copy-btn").addEventListener("click", async () => {
     try {
@@ -1015,9 +1489,11 @@ footer.page-footer a:hover { text-decoration: underline; }
   });
 
   /* ── Status / toast ──────────────────────────────────────────────── */
+  /* `flagUnsaved` is the legacy hook every form-change calls. When auto-save
+   * is connected, it kicks off a debounced write; otherwise it just shows
+   * the unsaved badge. */
   function flagUnsaved() {
-    document.getElementById("yaml-status").textContent = "unsaved";
-    document.getElementById("yaml-status").style.color = "var(--warn)";
+    scheduleAutoSave();
   }
   const toastEl = (() => {
     const el = document.createElement("div");
@@ -1041,6 +1517,8 @@ footer.page-footer a:hover { text-decoration: underline; }
   const modalDesc = document.getElementById("info-modal-desc");
   const modalControls = document.getElementById("info-modal-controls");
   const modalExamples = document.getElementById("info-modal-examples");
+  const modalRecIndividual = document.getElementById("info-modal-rec-individual");
+  const modalRecTeam = document.getElementById("info-modal-rec-team");
   const modalGuidance = document.getElementById("info-modal-guidance");
   const modalClose = document.getElementById("info-modal-close");
   let lastFocus = null;
@@ -1071,6 +1549,8 @@ footer.page-footer a:hover { text-decoration: underline; }
       li.style.fontStyle = "italic";
       modalExamples.appendChild(li);
     }
+    modalRecIndividual.textContent = sch["x-rec-individual"] || "(no recommendation provided)";
+    modalRecTeam.textContent = sch["x-rec-team"] || "(no recommendation provided)";
     modalGuidance.textContent = sch["x-guidance"] || "(no guidance provided)";
     lastFocus = document.activeElement;
     modal.classList.add("open");

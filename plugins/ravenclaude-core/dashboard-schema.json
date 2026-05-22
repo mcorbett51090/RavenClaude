@@ -13,6 +13,25 @@
     "autopilot": "Never ask. Claude acts on every pattern in this category."
   },
   "presets": {
+    "recommended": {
+      "_label": "★ Recommended",
+      "_description": "Applies the per-category recommended level. Reads inside the project flow; writes inside the project ask; everything that touches the outside world (git push, code exec, package install, web writes, files outside the project) asks. The 'we did the thinking for you' starting point — adjust individual rows from here.",
+      "global_default": "mostly-ask",
+      "categories": {
+        "file_read_project": "mostly-allow",
+        "file_edit_project": "mostly-allow",
+        "file_read_global": "always-ask",
+        "file_edit_global": "always-ask",
+        "shell_readonly": "mostly-allow",
+        "shell_local_mutate": "mostly-allow",
+        "shell_remote_mutate": "mostly-ask",
+        "shell_code_exec": "always-ask",
+        "shell_package_install": "always-ask",
+        "network_read": "mostly-allow",
+        "network_write": "always-ask",
+        "mcp_tools": "mostly-ask"
+      }
+    },
     "deny": {
       "_description": "LOCKDOWN. Sets every category to DENY. Claude refuses every action in every category. Useful only in tightly-scoped reviews where you want Claude to read prose but take no action.",
       "global_default": "deny",
@@ -116,6 +135,9 @@
       "title": "Global default",
       "description": "Used for any category not explicitly set below. Apply a preset to set this and all categories at once.",
       "x-widget": "segmented",
+      "x-recommended": "mostly-ask",
+      "x-rec-individual": "Mostly Ask — solo work usually wants a moderate default; relax specific categories where you trust Claude more.",
+      "x-rec-team": "Mostly Ask — collaborative work wants pauses in ambiguous places; keep the cautious default and grant Productive/Autopilot per category as needed.",
       "x-controls": "The fallback autonomy level for any category you don't set explicitly. Acts as a safety net so newly-added categories don't surprise you with a permissive default.",
       "x-examples": [
         "If you set this to 'Mostly Ask' and don't touch any per-category row, every category behaves as Mostly Ask.",
@@ -131,10 +153,14 @@
         "file_read_project": {
           "type": "string",
           "enum": ["deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"],
+          "default": "mostly-allow",
           "title": "Read files in this project",
           "description": "Reading source files inside the current project directory.",
           "x-widget": "segmented",
           "x-group": "Files",
+          "x-recommended": "mostly-allow",
+          "x-rec-individual": "Mostly Allow — solo work benefits from Claude moving through your codebase freely; reads are essentially free.",
+          "x-rec-team": "Mostly Allow — same as solo; reading shared code doesn't affect teammates and is cheap regardless.",
           "x-controls": "Anything Claude does to LOOK at files inside your current project directory — opening, scanning, reading. No changes to disk, no shell side effects, no network calls. This is the cheapest category.",
           "x-examples": [
             "ls src/",
@@ -148,10 +174,14 @@
         "file_edit_project": {
           "type": "string",
           "enum": ["deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"],
+          "default": "mostly-allow",
           "title": "Edit files in this project",
           "description": "Creating or modifying files inside the current project.",
           "x-widget": "segmented",
           "x-group": "Files",
+          "x-recommended": "mostly-allow",
+          "x-rec-individual": "Mostly Allow — solo work can rely on git for review; let Claude refactor and generate freely, then look at the diff.",
+          "x-rec-team": "Mostly Ask — teammates will be reviewing or blocked-on the changes; pausing on each edit preserves the review handoff and keeps surprises small.",
           "x-controls": "Write, Edit, MultiEdit — anything Claude does to CHANGE a file inside your current project. The change is recoverable via git as long as you commit regularly, but it does affect your working tree immediately.",
           "x-examples": [
             "Write('src/new-feature.py', ...) — creating a new file",
@@ -165,10 +195,14 @@
         "file_read_global": {
           "type": "string",
           "enum": ["deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"],
+          "default": "always-ask",
           "title": "Read files outside this project",
           "description": "Reading anything outside the current project directory.",
           "x-widget": "segmented",
           "x-group": "Files",
+          "x-recommended": "always-ask",
+          "x-rec-individual": "Always Ask — even solo, you don't want Claude reading ~/.ssh or ~/.aws without a deliberate prompt.",
+          "x-rec-team": "Always Ask — same as solo; secrets outside the project are always a deliberate decision regardless of who you work with.",
           "x-controls": "Anything Claude does to READ files that live OUTSIDE your current project — your home directory, system paths, other projects. These paths frequently contain secrets or configuration Claude has no business with.",
           "x-examples": [
             "cat ~/.ssh/config — SSH keys and known hosts",
@@ -182,10 +216,14 @@
         "file_edit_global": {
           "type": "string",
           "enum": ["deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"],
+          "default": "always-ask",
           "title": "Edit files outside this project",
           "description": "Writing to your home directory or system paths.",
           "x-widget": "segmented",
           "x-group": "Files",
+          "x-recommended": "always-ask",
+          "x-rec-individual": "Always Ask — solo work that wants to touch ~/.gitconfig or a global setting is the exception, not the rule. Force the pause.",
+          "x-rec-team": "Always Ask — same as solo; global writes are infrequent enough that always asking is the safe default.",
           "x-controls": "Anything Claude does to CHANGE files outside your current project — home directory, system config, other projects. These changes are often unrecoverable (no git tracking) and can affect every other workflow on your machine.",
           "x-examples": [
             "Write('~/.profile', ...) — adding to your shell init",
@@ -199,10 +237,14 @@
         "shell_readonly": {
           "type": "string",
           "enum": ["deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"],
+          "default": "mostly-allow",
           "title": "Read-only shell commands",
           "description": "ls, cat, git status, grep, find. Cheap shell with no side effects.",
           "x-widget": "segmented",
           "x-group": "Shell",
+          "x-recommended": "mostly-allow",
+          "x-rec-individual": "Mostly Allow — cheap shell is cheap regardless of context; let it run freely.",
+          "x-rec-team": "Mostly Allow — same as solo; read-only commands can't affect teammates' state.",
           "x-controls": "Shell commands that DON'T change anything on disk and DON'T talk to a server. The 'cheap' shell — running them and not running them produces the same world afterward.",
           "x-examples": [
             "ls",
@@ -217,10 +259,14 @@
         "shell_local_mutate": {
           "type": "string",
           "enum": ["deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"],
+          "default": "mostly-allow",
           "title": "Local shell mutations",
           "description": "mkdir, mv, cp, git commit. Changes filesystem locally.",
           "x-widget": "segmented",
           "x-group": "Shell",
+          "x-recommended": "mostly-allow",
+          "x-rec-individual": "Mostly Allow — solo work benefits from Claude restructuring and committing locally; git history catches anything that goes wrong.",
+          "x-rec-team": "Mostly Ask — even local mutations (git checkout switching branches, mkdir reorganizing things) can affect what teammates see if they touch the wrong file later. Pausing on local mutations is cheap insurance.",
           "x-controls": "Shell commands that CHANGE your local filesystem but DON'T talk to a server. Effects stay on your machine and are usually recoverable (git reflog exists, files can be restored from snapshots).",
           "x-examples": [
             "mkdir src/new-feature",
@@ -235,10 +281,14 @@
         "shell_remote_mutate": {
           "type": "string",
           "enum": ["deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"],
+          "default": "always-ask",
           "title": "Remote shell mutations",
           "description": "git push, gh pr create, npm publish — anything that touches a shared system.",
           "x-widget": "segmented",
           "x-group": "Shell",
+          "x-recommended": "mostly-ask",
+          "x-rec-individual": "Mostly Ask — even solo, the audit-trail value of confirming each push is worth the friction.",
+          "x-rec-team": "Always Ask — pushes notify teammates, trigger CI, may break their working state. Every one deserves an explicit click.",
           "x-controls": "Shell commands that PUBLISH to a system other people can see — git remotes, GitHub Issues/PRs, package registries, cloud buckets. Once these complete, you can't simply 'undo' them; reversal usually requires a counter-action that's also visible.",
           "x-examples": [
             "git push origin main",
@@ -252,10 +302,14 @@
         "shell_code_exec": {
           "type": "string",
           "enum": ["deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"],
+          "default": "always-ask",
           "title": "Arbitrary code execution",
           "description": "python -c, node -e, bash -c, eval.",
           "x-widget": "segmented",
           "x-group": "Shell",
+          "x-recommended": "always-ask",
+          "x-rec-individual": "Always Ask — arbitrary code exec is the shortest path to RCE if a prompt goes sideways. Worth pausing on every one.",
+          "x-rec-team": "Always Ask — same as solo; the risk doesn't change with team size.",
           "x-controls": "Any command that lets Claude run code that WASN'T pre-written. These bypass per-tool gating because the inner code can do anything the shell can do.",
           "x-examples": [
             "python -c 'import os; os.system(...)'",
@@ -269,10 +323,14 @@
         "shell_package_install": {
           "type": "string",
           "enum": ["deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"],
+          "default": "always-ask",
           "title": "Package installs",
           "description": "npm install, pip install, apt install, brew install.",
           "x-widget": "segmented",
           "x-group": "Shell",
+          "x-recommended": "always-ask",
+          "x-rec-individual": "Always Ask — supply-chain typosquats are the most common attack vector; verify the package name once per install.",
+          "x-rec-team": "Always Ask — same as solo; package installs are usually rare enough that always-asking is cheap.",
           "x-controls": "Commands that download and install packages from a registry. Package installs are higher-risk than they appear: many run post-install scripts with full shell access on your machine.",
           "x-examples": [
             "npm install foo-bar",
@@ -287,10 +345,14 @@
         "network_read": {
           "type": "string",
           "enum": ["deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"],
+          "default": "mostly-allow",
           "title": "Web reads",
           "description": "WebFetch on known documentation domains; HTTP GETs.",
           "x-widget": "segmented",
           "x-group": "Network",
+          "x-recommended": "mostly-allow",
+          "x-rec-individual": "Mostly Allow — Claude needs to look things up to give grounded answers; reads are low-risk.",
+          "x-rec-team": "Mostly Allow — same as solo; reading public docs doesn't affect teammates.",
           "x-controls": "GET-style requests that READ from the web. No mutation, no side effects on the remote system. Risk is limited to what Claude does with the response (which it has to read carefully anyway).",
           "x-examples": [
             "WebFetch('https://docs.anthropic.com/...')",
@@ -304,10 +366,14 @@
         "network_write": {
           "type": "string",
           "enum": ["deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"],
+          "default": "always-ask",
           "title": "Web writes",
           "description": "POST, PUT, DELETE — anything that mutates remote state.",
           "x-widget": "segmented",
           "x-group": "Network",
+          "x-recommended": "always-ask",
+          "x-rec-individual": "Always Ask — POSTs have side effects (charged API calls, posted messages, triggered workflows). Even solo, the asymmetric cost makes pausing worth it.",
+          "x-rec-team": "Always Ask — webhooks may notify teammates or trigger their workflows; pausing is doubly important.",
           "x-controls": "HTTP methods that CHANGE state on the remote system. These have side effects ranging from 'charged my API account' to 'posted a message to a Slack channel' to 'triggered a production deployment.'",
           "x-examples": [
             "curl -X POST https://api.example.com/webhook",
@@ -321,10 +387,14 @@
         "mcp_tools": {
           "type": "string",
           "enum": ["deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"],
+          "default": "mostly-ask",
           "title": "MCP server tools",
           "description": "Tools provided by connected MCP servers.",
           "x-widget": "segmented",
           "x-group": "Other",
+          "x-recommended": "mostly-ask",
+          "x-rec-individual": "Mostly Ask — MCP tool trust is best done server-by-server; the global default should ask, then you pin trusted servers individually in your Claude Code config.",
+          "x-rec-team": "Mostly Ask — same as solo; the global default is conservative; per-server trust is where the team-vs-solo distinction actually matters.",
           "x-controls": "The DEFAULT autonomy level applied to any MCP (Model Context Protocol) server you've connected. Each server can also be configured individually in your Claude Code config; this is the fallback for servers without specific trust settings.",
           "x-examples": [
             "microsoft_learn.docs_search(...) — read-only docs, usually safe",
