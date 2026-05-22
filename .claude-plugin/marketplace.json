@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. All 7 plugins ship example-scenario frontmatter on every agent (55 agents total). Capability Grounding Protocol has 4 composing clauses: pre-action environment-context check + pre-action decision-tree traversal + alternate-methods enumeration + mandatory blocked-phrasing. **Auto-discovery for permission-awareness:** the new environment-discovery skill probes installed CLIs (pac/az/aws/gcloud/gh) at session start and assembles `.ravenclaude/environment-context.md` automatically. Plugins: ravenclaude-core (14 + /wrap + scenario-retrieval + environment-discovery skills), power-platform (11 + bundled pbix-mcp + Mermaid decision-tree knowledge file + scenarios bank), finance (7), regulatory-compliance (6 + BMA Bermuda specialist), web-design (7 + WCAG/CWV/SEO discipline), edtech-partner-success (6 PSM-lane specialists — K-12 / higher-ed / corporate L&D agnostic), data-platform (4 for dashboard engagements). Repo-guide includes Overview-tab 'I want to…' use-case lookup filterable by plugin + per-plugin last-updated badges. Salesforce on the roadmap.",
-    "version": "0.19.0"
+    "version": "0.20.0"
   },
   "plugins": [
     {
@@ -92,7 +92,7 @@
       "name": "web-design",
       "source": "./plugins/web-design",
       "description": "Web design & build specialist team — web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens), frontend implementer (HTML/CSS/JS, React, Astro, Next), content strategist (copy, microcopy, SEO content), accessibility auditor (WCAG 2.2 AA/AAA), and performance engineer (Core Web Vitals, image/font optimization). 4 skills (design-system audit, accessibility review, Core Web Vitals tuning, technical SEO audit), 8 templates, 1 advisory hook, and a knowledge bank seeded with a curated 2026 reference set of \"cutting edge yet simple\" marketing-site donors (Linear, Vercel, Raycast, Resend, Cursor, v0, Tldraw, Cal.com) — visual-designer / ux-designer / frontend-implementer / web-architect all carry compact inline priors plus a pointer to the full brief. Inherits ravenclaude-core protocols.",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -133,7 +133,7 @@
       "name": "data-platform",
       "source": "./plugins/data-platform",
       "description": "Data-platform team — 4 specialist agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) that guide cloud-database setup, ELT pipelines (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4 / Shopify / HRIS, and interactive dashboards (Evidence.dev / Apache Superset / Metabase / Cube + Tremor) embedded in marketing sites and client apps. 7 skills — three invoked by ravenclaude-core/security-reviewer; one by ravenclaude-core/architect — implementing the marketplace house rule 'domain plugins extend core via skills, not parallel agents'. 12 templates (3 runnable security-critical + 4 conceptual + 3 seam-marked stubs + dbt-project-starter + cube-schema-starter). 1 consolidated advisory hook. 13-doc knowledge bank: v0.1.0 landscape + RLS + QBO + Power BI Embedded + EdTech LMS gap, plus v0.2.0 per-connector deep-dives (Stripe, Salesforce, HubSpot, GA4, Shopify, HRIS). Opinionated against per-viewer-priced BI tools (Looker / Tableau / Sigma) for SMB-consulting use cases; requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "author": {
         "name": "Matt Corbett"
       },
