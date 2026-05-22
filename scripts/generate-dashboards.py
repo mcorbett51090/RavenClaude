@@ -142,24 +142,21 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
 
 
 def _label_for(value: str) -> str:
-    """Render an enum value as a short pill label."""
-    # Hyphens become spaces; YOLO stays uppercase.
-    if value == "yolo":
-        return "YOLO"
-    return value.replace("-", "‑").replace("_", " ").capitalize()
+    """Render an enum value as a short pill label (Title Case, spaces not hyphens)."""
+    return " ".join(part.capitalize() for part in value.replace("_", " ").split("-"))
 
 
 def _render_segmented(name: str, schema: dict, id_prefix: str, group: str | None = None) -> str:
     """Render one segmented-radiogroup row from a schema property.
 
     Emits an info-icon button next to the title that the JS layer opens
-    into a modal with the category's full description + example.
+    into a modal with the category's controls / examples / guidance.
     """
     title = schema.get("title", name)
     description = schema.get("description", "")
-    enum_values = schema.get("enum", ["deny", "always-ask", "mostly-ask", "default", "mostly-allow", "productive", "yolo"])
+    enum_values = schema.get("enum", ["deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"])
     default_value = schema.get("default", enum_values[len(enum_values) // 2])
-    has_example = bool(schema.get("x-example"))
+    has_modal_content = bool(schema.get("x-controls") or schema.get("x-examples") or schema.get("x-guidance"))
     group_attr = f' data-group="{html.escape(group)}"' if group else ""
 
     radios = []
@@ -177,7 +174,7 @@ def _render_segmented(name: str, schema: dict, id_prefix: str, group: str | None
     info_btn = (
         f'<button type="button" class="info-btn" data-info-for="{html.escape(name)}" '
         f'aria-label="Explain {html.escape(title)}" title="Explain this setting">?</button>'
-        if has_example else ""
+        if has_modal_content else ""
     )
 
     return (
@@ -397,15 +394,15 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 5px 10px;
-  font-size: 12px;
+  padding: 6px 12px;
+  font-size: 12.5px;
   font-weight: 500;
   color: var(--muted);
   border-radius: 6px;
   cursor: pointer;
   transition: background 80ms ease, color 80ms ease;
   user-select: none;
-  min-width: 64px;
+  min-width: 82px;
   text-align: center;
   white-space: nowrap;
 }
@@ -417,7 +414,7 @@ body {
 /* Restrictive levels get warning-tinted selection */
 .seg-control input[type="radio"]:checked + .seg-label.seg-deny { background: var(--danger); color: white; }
 .seg-control input[type="radio"]:checked + .seg-label.seg-always-ask { background: var(--warn); color: var(--bg); }
-.seg-control input[type="radio"]:checked + .seg-label.seg-yolo { background: var(--warn); color: var(--bg); }
+.seg-control input[type="radio"]:checked + .seg-label.seg-autopilot { background: var(--warn); color: var(--bg); }
 .seg-control input[type="radio"]:focus-visible + .seg-label {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -448,11 +445,17 @@ body {
 }
 .modal h2 { margin-top: 0; font-size: 18px; color: var(--accent); }
 .modal h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 20px 0 8px; }
-.modal pre { background: var(--surface-2); padding: 12px; border-radius: 6px; font-family: var(--font-mono); font-size: 12px; overflow: auto; white-space: pre-wrap; }
-.modal .level-table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 13px; }
-.modal .level-table th, .modal .level-table td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); }
-.modal .level-table th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-.modal .level-table td.level { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+.modal .modal-subhead { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
+.modal p { font-size: 14px; line-height: 1.55; margin: 0 0 4px; }
+.modal .example-list {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+.modal .example-list li { color: var(--text); margin-bottom: 2px; }
+.modal .example-list li::marker { color: var(--accent); }
 .modal .close-btn {
   float: right;
   background: transparent;
@@ -748,10 +751,10 @@ _JS = r"""
   const modal = document.getElementById("info-modal");
   const modalTitle = document.getElementById("info-modal-title");
   const modalDesc = document.getElementById("info-modal-desc");
-  const modalExample = document.getElementById("info-modal-example");
-  const modalLevels = document.getElementById("info-modal-levels");
+  const modalControls = document.getElementById("info-modal-controls");
+  const modalExamples = document.getElementById("info-modal-examples");
+  const modalGuidance = document.getElementById("info-modal-guidance");
   const modalClose = document.getElementById("info-modal-close");
-  const levelDescs = SCHEMA._level_descriptions || {};
   let lastFocus = null;
 
   function openModal(catName) {
@@ -764,21 +767,23 @@ _JS = r"""
     if (!sch) return;
     modalTitle.textContent = sch.title || catName;
     modalDesc.textContent = sch.description || "";
-    modalExample.textContent = sch["x-example"] || "(no example provided)";
-    /* Build per-level table */
-    const enumVals = sch.enum || [];
-    modalLevels.innerHTML = "";
-    for (const v of enumVals) {
-      const tr = document.createElement("tr");
-      const tdLevel = document.createElement("td");
-      tdLevel.className = "level";
-      tdLevel.textContent = v;
-      const tdDesc = document.createElement("td");
-      tdDesc.textContent = levelDescs[v] || "(no description)";
-      tr.appendChild(tdLevel);
-      tr.appendChild(tdDesc);
-      modalLevels.appendChild(tr);
+    modalControls.textContent = sch["x-controls"] || "(no explanation provided)";
+    /* Examples as a list */
+    const examples = sch["x-examples"] || [];
+    modalExamples.innerHTML = "";
+    for (const ex of examples) {
+      const li = document.createElement("li");
+      li.textContent = ex;
+      modalExamples.appendChild(li);
     }
+    if (examples.length === 0) {
+      const li = document.createElement("li");
+      li.textContent = "(no examples provided)";
+      li.style.color = "var(--muted)";
+      li.style.fontStyle = "italic";
+      modalExamples.appendChild(li);
+    }
+    modalGuidance.textContent = sch["x-guidance"] || "(no guidance provided)";
     lastFocus = document.activeElement;
     modal.classList.add("open");
     modalClose.focus();
@@ -866,14 +871,13 @@ _PAGE_TEMPLATE = """<!doctype html>
   <div class="modal">
     <button type="button" class="close-btn" id="info-modal-close" aria-label="Close">&times;</button>
     <h2 id="info-modal-title">Setting</h2>
-    <p id="info-modal-desc"></p>
+    <p class="modal-subhead" id="info-modal-desc"></p>
     <h3>What this controls</h3>
-    <pre id="info-modal-example"></pre>
-    <h3>What each level means</h3>
-    <table class="level-table">
-      <thead><tr><th>Level</th><th>Behavior</th></tr></thead>
-      <tbody id="info-modal-levels"></tbody>
-    </table>
+    <p id="info-modal-controls"></p>
+    <h3>Examples</h3>
+    <ul id="info-modal-examples" class="example-list"></ul>
+    <h3>When to relax or tighten</h3>
+    <p id="info-modal-guidance"></p>
   </div>
 </div>
 
