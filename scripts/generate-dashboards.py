@@ -278,21 +278,13 @@ def _render_pattern_details(category: str, patterns: list[str]) -> str:
 
 
 def _render_security_deny(schema: dict) -> str:
-    """Render the always-on security deny baseline as a checklist.
+    """Render the always-on security-deny baseline as a GitHub-style Danger Zone.
 
-    Patterns are checked-by-default; unchecking a row removes the pattern
-    from the YAML's security_deny list. Each row carries a one-line `what`
-    detail and an info button that opens the per-pattern modal.
-
-    The legend has its own info button that opens a section-level modal
-    explaining what security_deny does and why.
+    Each pattern is its own card: title + ? on the left (with description
+    below), Blocked toggle on the right. Section has a red border, bold
+    'Danger Zone' header in red, and a section-level info button.
     """
     defaults = schema.get("default", []) or []
-    title = schema.get("title", "Always-on security deny rules")
-    description = schema.get(
-        "description",
-        "Patterns that are ALWAYS denied regardless of category levels.",
-    )
     rows: list[str] = []
     for idx, pattern in enumerate(defaults):
         cid = f"sec-deny-{idx}"
@@ -306,39 +298,40 @@ def _render_security_deny(schema: dict) -> str:
             if explanation else ""
         )
         rows.append(
-            f'<div class="sec-deny-row">'
-            f'<input type="checkbox" id="{html.escape(cid)}" '
-            f'class="sec-deny-checkbox" value="{html.escape(pattern)}" checked>'
-            f'<div class="sec-deny-meta">'
-            f'<label class="sec-deny-pattern-label" for="{html.escape(cid)}">'
-            f'<code class="sec-deny-pattern">{html.escape(pattern)}</code>'
-            f'</label>'
+            f'<div class="danger-zone-row">'
+            f'<div class="danger-zone-info">'
+            f'<div class="danger-zone-row-title">'
+            f'<code class="danger-zone-pattern">{html.escape(pattern)}</code>'
             f'{info_btn}'
             f"</div>"
-            f'<span class="pattern-detail sec-deny-detail">{html.escape(what_text)}</span>'
+            f'<p class="danger-zone-row-desc">{html.escape(what_text)}</p>'
+            f"</div>"
+            f'<label class="danger-toggle">'
+            f'<input type="checkbox" id="{html.escape(cid)}" '
+            f'class="sec-deny-checkbox" value="{html.escape(pattern)}" checked>'
+            f'<span class="danger-toggle-on">Blocked</span>'
+            f'<span class="danger-toggle-off">Allowed (unsafe)</span>'
+            f"</label>"
             f"</div>"
         )
     return (
-        f'<fieldset class="cat-group sec-deny-group">'
-        f'<legend>Security baseline '
+        f'<section class="danger-zone">'
+        f'<header class="danger-zone-header">'
+        f'<h3 class="danger-zone-title">Danger Zone'
         f'<button type="button" class="info-btn info-btn-section" '
         f'data-info-section="security_deny" '
-        f'aria-label="Explain the security baseline" '
-        f'title="Explain the security baseline">?</button>'
-        f'</legend>'
-        f'<p class="sec-deny-desc">{html.escape(description)}</p>'
-        f'<details class="pattern-details sec-deny-details" open>'
-        f'<summary class="pattern-summary">'
-        f'<span class="pattern-summary-text">{html.escape(title)} '
-        f'<span class="pattern-count">({len(defaults)})</span></span>'
-        f'<span class="pattern-override-count" id="sec-deny-active-count">'
-        f'{len(defaults)} active</span>'
-        f'</summary>'
-        f'<div class="pattern-list sec-deny-list">'
+        f'aria-label="Explain the Danger Zone" '
+        f'title="Explain the Danger Zone">?</button>'
+        f'</h3>'
+        f'<p class="danger-zone-subtitle">'
+        f'The following patterns are ALWAYS denied, regardless of category levels. '
+        f'Unblock individual rules at your own risk.'
+        f'</p>'
+        f'</header>'
+        f'<div class="danger-zone-list">'
         + "".join(rows)
         + "</div>"
-        f"</details>"
-        f"</fieldset>"
+        f"</section>"
     )
 
 
@@ -784,87 +777,162 @@ body {
 
 /* Per-pattern level dropdown (styled <select>) */
 .pattern-select {
-  background: var(--surface-2);
+  background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
-  border-left-width: 3px;
   border-radius: 6px;
-  padding: 5px 10px;
+  padding: 5px 28px 5px 12px;
   font: inherit;
   font-size: 11.5px;
   cursor: pointer;
-  min-width: 170px;
+  min-width: 160px;
   appearance: none;
   -webkit-appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
-                    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
-  background-position: calc(100% - 14px) 50%, calc(100% - 9px) 50%;
-  background-size: 5px 5px, 5px 5px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path fill='none' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M3 4.5l3 3 3-3'/></svg>");
   background-repeat: no-repeat;
-  padding-right: 26px;
+  background-position: right 8px center;
+  background-size: 12px 12px;
   transition: border-color 80ms ease, background-color 80ms ease;
 }
 .pattern-select:hover { border-color: var(--accent); }
 .pattern-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-/* Color-tinted left border by current selection */
-.pattern-select[data-current="__default"] {
-  border-left-color: var(--border);
-  color: var(--muted);
-  font-style: italic;
+/* Default selection is visually muted so overrides stand out */
+.pattern-select[data-current="__default"] { color: var(--muted); }
+/* Selected (overridden) selections get a tiny colored leading dot via ::before */
+.pattern-select:not([data-current="__default"]) {
+  background-color: var(--surface-2);
+  font-weight: 600;
 }
-.pattern-select[data-current="deny"] { border-left-color: var(--danger); color: var(--danger); }
-.pattern-select[data-current="always-ask"] { border-left-color: var(--warn); }
-.pattern-select[data-current="mostly-ask"] { border-left-color: var(--accent); }
-.pattern-select[data-current="mostly-allow"] { border-left-color: var(--accent); }
-.pattern-select[data-current="autopilot"] { border-left-color: var(--warn); }
-.pattern-select option { background: var(--surface); color: var(--text); }
+.pattern-select option { background: var(--surface); color: var(--text); font-weight: 400; }
+.pattern-select option:first-child { color: var(--muted); font-style: italic; }
 
-/* Security-deny baseline block */
-.sec-deny-group { border-left: 3px solid var(--danger); }
-.sec-deny-group legend { color: var(--danger); }
-.sec-deny-desc {
-  font-size: 12px;
-  color: var(--muted);
-  margin: 4px 0 12px;
-  max-width: 640px;
+/* Danger Zone — modeled on GitHub's destructive-actions section.
+ * Red border, prominent red title, each pattern as a card with the rule
+ * description on the left and a Blocked/Allowed toggle on the right. */
+.danger-zone {
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  background: var(--surface);
+  margin: 24px 0 0;
+  overflow: hidden;
 }
-.sec-deny-list { max-height: 360px; }
-.sec-deny-row {
-  display: grid;
-  grid-template-columns: auto minmax(200px, 260px) 1fr;
+.danger-zone-header {
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.danger-zone-title {
+  margin: 0;
+  color: var(--danger);
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 5px 0;
+  gap: 6px;
 }
-.sec-deny-meta {
+.danger-zone-title .info-btn-section {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.danger-zone-title .info-btn-section:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+.danger-zone-subtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  max-width: 720px;
+}
+.danger-zone-list { padding: 0; }
+.danger-zone-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--border);
+  align-items: center;
+}
+.danger-zone-row:first-child { border-top: none; }
+.danger-zone-info { min-width: 0; }
+.danger-zone-row-title {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-bottom: 4px;
   min-width: 0;
 }
-.sec-deny-pattern-label { cursor: pointer; min-width: 0; overflow: hidden; }
-.sec-deny-checkbox { accent-color: var(--danger); cursor: pointer; }
-.sec-deny-pattern {
+.danger-zone-row-title .info-btn-pattern {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.danger-zone-row-title .info-btn-pattern:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+.danger-zone-pattern {
   font-family: var(--font-mono);
-  font-size: 11.5px;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text);
   background: transparent;
   padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
-.sec-deny-detail {
-  font-size: 11.5px;
+.danger-zone-row-desc {
+  margin: 0;
+  font-size: 12.5px;
   color: var(--muted);
-  line-height: 1.4;
+  line-height: 1.45;
+  max-width: 640px;
 }
-@media (max-width: 1200px) {
-  .sec-deny-detail { display: none; }
+
+/* The Blocked / Allowed toggle */
+.danger-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  color: var(--danger);
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  background: transparent;
+  white-space: nowrap;
+  user-select: none;
+  transition: background 80ms ease, color 80ms ease, border-color 80ms ease;
 }
-.sec-deny-row:has(.sec-deny-checkbox:not(:checked)) .sec-deny-pattern {
+.danger-toggle:hover { background: rgba(239, 68, 68, 0.1); }
+.danger-toggle input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
+}
+.danger-toggle .danger-toggle-off { display: none; }
+.danger-toggle:has(input:not(:checked)) {
+  border-color: var(--border);
+  color: var(--muted);
+  background: transparent;
+}
+.danger-toggle:has(input:not(:checked)) .danger-toggle-on { display: none; }
+.danger-toggle:has(input:not(:checked)) .danger-toggle-off { display: inline; }
+.danger-toggle:has(input:not(:checked)):hover {
+  border-color: var(--warn);
+  color: var(--warn);
+  background: rgba(251, 191, 36, 0.08);
+}
+.danger-zone-row:has(.sec-deny-checkbox:not(:checked)) .danger-zone-pattern {
   text-decoration: line-through;
   color: var(--muted);
 }
-.sec-deny-row:has(.sec-deny-checkbox:not(:checked)) .sec-deny-detail {
-  opacity: 0.5;
+.danger-zone-row:has(.sec-deny-checkbox:not(:checked)) .danger-zone-row-desc {
+  opacity: 0.6;
 }
 
 /* Per-pattern info modal (smaller than the category modal) */
@@ -1238,9 +1306,9 @@ _JS = r"""
   /* Section-level explanations rendered by clicking the legend's info button. */
   const SECTION_EXPLANATIONS = {
     "security_deny": {
-      "title": "Security baseline",
-      "what": "A list of patterns that are ALWAYS denied regardless of your category levels. The deny rules survive every preset — applying \"Autopilot\" doesn't relax them, applying \"Always Ask\" doesn't elevate them. They're the floor.",
-      "why": "Some actions are dangerous enough that no productivity tradeoff justifies them in a normal session: reading credential files (.env, .pem, AWS credentials), recursive force-deletes (rm -rf), force-pushing git history (git push --force), and the 'curl | sh' install pattern. Uncheck any row to remove it from the baseline; the change persists to your comfort-posture.yaml after you save. Recheck to restore. Add new patterns directly to the YAML if you want to extend the floor."
+      "title": "Danger Zone",
+      "what": "Patterns that are ALWAYS denied regardless of your category levels. The deny rules survive every preset — applying \"Autopilot\" doesn't relax them, applying \"Always Ask\" doesn't elevate them. They're the floor.",
+      "why": "Some actions are dangerous enough that no productivity tradeoff justifies them in a normal session: reading credential files (.env, .pem, AWS credentials), recursive force-deletes (rm -rf), force-pushing git history (git push --force), and the 'curl | sh' install pattern. Click \"Blocked\" to flip a rule to \"Allowed (unsafe)\" — the change persists to your comfort-posture.yaml after you save. Click again to restore. Add new patterns directly to the YAML if you want to extend the floor."
     }
   };
 
