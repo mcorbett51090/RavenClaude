@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RavenClaude comfort posture</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #0b1120;
+  --surface: #111827;
+  --surface-2: #1f2937;
+  --border: #334155;
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --accent: #14b8a6;
+  --accent-dim: #0d9488;
+  --warn: #fbbf24;
+  --danger: #ef4444;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 8px;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --surface-2: #e2e8f0;
+    --border: #cbd5e1;
+    --text: #0f172a;
+    --muted: #475569;
+    --accent: #0d9488;
+    --accent-dim: #14b8a6;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+.page-header {
+  padding: 24px 32px 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.page-header h1 {
+  margin: 0 0 4px 0;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+.page-header .plugin-name {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+.page-header .page-desc {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0 0 16px 0;
+  max-width: 800px;
+}
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+}
+.tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  padding: 10px 16px;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-weight: 500;
+}
+.tab-btn[aria-selected="true"] {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.tab-panel { display: none; padding: 24px 32px; }
+.tab-panel.active { display: block; }
+.stub {
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  text-align: center;
+}
+.stub h2 { margin-top: 0; color: var(--muted); }
+.stub p { color: var(--muted); }
+.stub code { background: var(--surface-2); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+
+/* Settings tab layout */
+.settings-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .settings-layout { grid-template-columns: 1fr; }
+}
+.preset-bar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+.preset-bar h3 { margin: 0 0 4px 0; font-size: 14px; }
+.preset-bar p { margin: 0 0 12px 0; color: var(--muted); font-size: 13px; }
+.preset-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.preset-btn {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+  font-weight: 500;
+}
+.preset-btn:hover { border-color: var(--accent); }
+.preset-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cat-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px 8px;
+  margin: 0 0 16px;
+}
+.cat-group legend {
+  color: var(--accent);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  padding: 0 8px;
+}
+.cat-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+.cat-row:last-child { border-bottom: none; }
+.cat-title { font-weight: 500; font-size: 14px; margin-bottom: 2px; }
+.cat-desc { font-size: 12px; color: var(--muted); max-width: 480px; }
+
+/* Segmented control (radiogroup with pill buttons) */
+.seg-control {
+  display: inline-flex;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 0;
+}
+.seg-control input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.seg-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 80ms ease, color 80ms ease;
+  user-select: none;
+  min-width: 78px;
+  text-align: center;
+}
+.seg-control input[type="radio"]:checked + .seg-label {
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
+}
+.seg-control input[type="radio"]:focus-visible + .seg-label {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.seg-label:hover { color: var(--text); }
+
+/* Global-default row gets a slight surface emphasis */
+.global-default {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+.global-default .cat-meta { padding-right: 16px; }
+
+/* Live YAML preview pane */
+.yaml-preview {
+  position: sticky;
+  top: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.yaml-preview h3 {
+  margin: 0;
+  padding: 12px 16px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.yaml-preview pre {
+  margin: 0;
+  padding: 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text);
+  max-height: 60vh;
+  overflow: auto;
+  white-space: pre;
+}
+.yaml-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.btn {
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  flex: 1;
+}
+.btn:hover { background: var(--accent-dim); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn.secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 500;
+}
+.btn.secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(40px);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 10px 18px;
+  font-size: 13px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease, transform 160ms ease;
+  z-index: 1000;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+footer.page-footer {
+  padding: 16px 32px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  background: var(--surface);
+}
+footer.page-footer a { color: var(--accent); text-decoration: none; }
+footer.page-footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <h1>RavenClaude comfort posture</h1>
+  <p class="page-desc">Categorical permission-autonomy scale for Claude Code. Edited via this plugin&#x27;s dashboard.html Settings tab; saved to .ravenclaude/comfort-posture.yaml in the consumer&#x27;s project. The /set-posture skill (proposal 002 §5) translates this YAML into .claude/settings.json permission rules.</p>
+  <p class="page-desc"><span class="plugin-name">ravenclaude-core</span> &middot; static dashboard, no backend. Edits stay in your browser until you click Download.</p>
+  <nav class="tab-bar" role="tablist" aria-label="Dashboard tabs">
+    <button class="tab-btn" data-tab="settings" role="tab" aria-selected="true">Settings</button>
+    <button class="tab-btn" data-tab="commands" role="tab" aria-selected="false">Commands</button>
+    <button class="tab-btn" data-tab="trees" role="tab" aria-selected="false">Trees</button>
+    <button class="tab-btn" data-tab="activity" role="tab" aria-selected="false">Activity</button>
+  </nav>
+</header>
+
+<main>
+  <section class="tab-panel active" data-tab="settings" role="tabpanel" aria-label="Settings">
+<div class="settings-layout">
+  <div class="settings-form">
+    <div class="preset-bar">
+      <h3>Apply a preset</h3>
+      <p>Sets every category at once. You can still override individual rows below.</p>
+      <div class="preset-buttons"><button type="button" class="preset-btn" data-preset="cautious" title="Maximum oversight. Every non-trivial action asks first. Recommended starting point per Koch et al.&#x27;s &#x27;OK blindness&#x27; finding.">Cautious</button><button type="button" class="preset-btn" data-preset="default" title="Balanced. Reads freely; asks before edits, network writes, package installs, and arbitrary code execution.">Default</button><button type="button" class="preset-btn" data-preset="productive" title="Maximum velocity. Edits and local mutations flow without asking. Network writes, package installs, arbitrary code exec, and global writes still ask.">Productive</button></div>
+    </div>
+
+    <div class="global-default">
+      <div class="cat-row" data-category="global_default"><div class="cat-meta"><div class="cat-title">Global default</div><div class="cat-desc">Used for any category not explicitly set below. Apply a preset to set this and all categories at once.</div></div><div class="seg-control" role="radiogroup" aria-label="Global default"><input type="radio" id="global-default-cautious" name="global_default" value="cautious" ><label for="global-default-cautious" class="seg-label seg-cautious">Cautious</label><input type="radio" id="global-default-default" name="global_default" value="default" checked><label for="global-default-default" class="seg-label seg-default">Default</label><input type="radio" id="global-default-productive" name="global_default" value="productive" ><label for="global-default-productive" class="seg-label seg-productive">Productive</label></div></div>
+    </div>
+
+    <fieldset class="cat-group"><legend>Files</legend><div class="cat-row" data-category="file_edit_global" data-group="Files"><div class="cat-meta"><div class="cat-title">Edit files outside this project</div><div class="cat-desc">Writing to your home directory or system paths. Almost always wants to be cautious.</div></div><div class="seg-control" role="radiogroup" aria-label="Edit files outside this project"><input type="radio" id="cat-file_edit_global-cautious" name="file_edit_global" value="cautious" ><label for="cat-file_edit_global-cautious" class="seg-label seg-cautious">Cautious</label><input type="radio" id="cat-file_edit_global-default" name="file_edit_global" value="default" checked><label for="cat-file_edit_global-default" class="seg-label seg-default">Default</label><input type="radio" id="cat-file_edit_global-productive" name="file_edit_global" value="productive" ><label for="cat-file_edit_global-productive" class="seg-label seg-productive">Productive</label></div></div><div class="cat-row" data-category="file_edit_project" data-group="Files"><div class="cat-meta"><div class="cat-title">Edit files in this project</div><div class="cat-desc">Write, Edit, MultiEdit on files inside the current project. Set lower if you want to review every change.</div></div><div class="seg-control" role="radiogroup" aria-label="Edit files in this project"><input type="radio" id="cat-file_edit_project-cautious" name="file_edit_project" value="cautious" ><label for="cat-file_edit_project-cautious" class="seg-label seg-cautious">Cautious</label><input type="radio" id="cat-file_edit_project-default" name="file_edit_project" value="default" checked><label for="cat-file_edit_project-default" class="seg-label seg-default">Default</label><input type="radio" id="cat-file_edit_project-productive" name="file_edit_project" value="productive" ><label for="cat-file_edit_project-productive" class="seg-label seg-productive">Productive</label></div></div><div class="cat-row" data-category="file_read_global" data-group="Files"><div class="cat-meta"><div class="cat-title">Read files outside this project</div><div class="cat-desc">Reading ~/.ssh, ~/.aws, ~/.config, /etc, etc. Almost always wants to be cautious.</div></div><div class="seg-control" role="radiogroup" aria-label="Read files outside this project"><input type="radio" id="cat-file_read_global-cautious" name="file_read_global" value="cautious" ><label for="cat-file_read_global-cautious" class="seg-label seg-cautious">Cautious</label><input type="radio" id="cat-file_read_global-default" name="file_read_global" value="default" checked><label for="cat-file_read_global-default" class="seg-label seg-default">Default</label><input type="radio" id="cat-file_read_global-productive" name="file_read_global" value="productive" ><label for="cat-file_read_global-productive" class="seg-label seg-productive">Productive</label></div></div><div class="cat-row" data-category="file_read_project" data-group="Files"><div class="cat-meta"><div class="cat-title">Read files in this project</div><div class="cat-desc">ls, cat, grep, reading source files inside the current project directory.</div></div><div class="seg-control" role="radiogroup" aria-label="Read files in this project"><input type="radio" id="cat-file_read_project-cautious" name="file_read_project" value="cautious" ><label for="cat-file_read_project-cautious" class="seg-label seg-cautious">Cautious</label><input type="radio" id="cat-file_read_project-default" name="file_read_project" value="default" checked><label for="cat-file_read_project-default" class="seg-label seg-default">Default</label><input type="radio" id="cat-file_read_project-productive" name="file_read_project" value="productive" ><label for="cat-file_read_project-productive" class="seg-label seg-productive">Productive</label></div></div></fieldset><fieldset class="cat-group"><legend>Network</legend><div class="cat-row" data-category="network_read" data-group="Network"><div class="cat-meta"><div class="cat-title">Web reads</div><div class="cat-desc">WebFetch on known documentation domains. Productive means trusted domains never ask.</div></div><div class="seg-control" role="radiogroup" aria-label="Web reads"><input type="radio" id="cat-network_read-cautious" name="network_read" value="cautious" ><label for="cat-network_read-cautious" class="seg-label seg-cautious">Cautious</label><input type="radio" id="cat-network_read-default" name="network_read" value="default" checked><label for="cat-network_read-default" class="seg-label seg-default">Default</label><input type="radio" id="cat-network_read-productive" name="network_read" value="productive" ><label for="cat-network_read-productive" class="seg-label seg-productive">Productive</label></div></div><div class="cat-row" data-category="network_write" data-group="Network"><div class="cat-meta"><div class="cat-title">Web writes</div><div class="cat-desc">POST/PUT/DELETE to web endpoints. Almost always wants to be cautious.</div></div><div class="seg-control" role="radiogroup" aria-label="Web writes"><input type="radio" id="cat-network_write-cautious" name="network_write" value="cautious" ><label for="cat-network_write-cautious" class="seg-label seg-cautious">Cautious</label><input type="radio" id="cat-network_write-default" name="network_write" value="default" checked><label for="cat-network_write-default" class="seg-label seg-default">Default</label><input type="radio" id="cat-network_write-productive" name="network_write" value="productive" ><label for="cat-network_write-productive" class="seg-label seg-productive">Productive</label></div></div></fieldset><fieldset class="cat-group"><legend>Other</legend><div class="cat-row" data-category="mcp_tools" data-group="Other"><div class="cat-meta"><div class="cat-title">MCP server tools</div><div class="cat-desc">Tools provided by connected MCP servers. Per-server trust lives in your Claude Code config; this is the global default.</div></div><div class="seg-control" role="radiogroup" aria-label="MCP server tools"><input type="radio" id="cat-mcp_tools-cautious" name="mcp_tools" value="cautious" ><label for="cat-mcp_tools-cautious" class="seg-label seg-cautious">Cautious</label><input type="radio" id="cat-mcp_tools-default" name="mcp_tools" value="default" checked><label for="cat-mcp_tools-default" class="seg-label seg-default">Default</label><input type="radio" id="cat-mcp_tools-productive" name="mcp_tools" value="productive" ><label for="cat-mcp_tools-productive" class="seg-label seg-productive">Productive</label></div></div></fieldset><fieldset class="cat-group"><legend>Shell</legend><div class="cat-row" data-category="shell_code_exec" data-group="Shell"><div class="cat-meta"><div class="cat-title">Arbitrary code execution</div><div class="cat-desc">python -c, node -e, bash -c, eval. Recommend cautious — these are general-purpose.</div></div><div class="seg-control" role="radiogroup" aria-label="Arbitrary code execution"><input type="radio" id="cat-shell_code_exec-cautious" name="shell_code_exec" value="cautious" ><label for="cat-shell_code_exec-cautious" class="seg-label seg-cautious">Cautious</label><input type="radio" id="cat-shell_code_exec-default" name="shell_code_exec" value="default" checked><label for="cat-shell_code_exec-default" class="seg-label seg-default">Default</label><input type="radio" id="cat-shell_code_exec-productive" name="shell_code_exec" value="productive" ><label for="cat-shell_code_exec-productive" class="seg-label seg-productive">Productive</label></div></div><div class="cat-row" data-category="shell_local_mutate" data-group="Shell"><div class="cat-meta"><div class="cat-title">Local mutations</div><div class="cat-desc">mkdir, mv, cp, git commit. Changes your filesystem but doesn&#x27;t talk to a server.</div></div><div class="seg-control" role="radiogroup" aria-label="Local mutations"><input type="radio" id="cat-shell_local_mutate-cautious" name="shell_local_mutate" value="cautious" ><label for="cat-shell_local_mutate-cautious" class="seg-label seg-cautious">Cautious</label><input type="radio" id="cat-shell_local_mutate-default" name="shell_local_mutate" value="default" checked><label for="cat-shell_local_mutate-default" class="seg-label seg-default">Default</label><input type="radio" id="cat-shell_local_mutate-productive" name="shell_local_mutate" value="productive" ><label for="cat-shell_local_mutate-productive" class="seg-label seg-productive">Productive</label></div></div><div class="cat-row" data-category="shell_package_install" data-group="Shell"><div class="cat-meta"><div class="cat-title">Package installs</div><div class="cat-desc">npm install, pip install, apt install, brew install. Recommend cautious — these can run install scripts.</div></div><div class="seg-control" role="radiogroup" aria-label="Package installs"><input type="radio" id="cat-shell_package_install-cautious" name="shell_package_install" value="cautious" ><label for="cat-shell_package_install-cautious" class="seg-label seg-cautious">Cautious</label><input type="radio" id="cat-shell_package_install-default" name="shell_package_install" value="default" checked><label for="cat-shell_package_install-default" class="seg-label seg-default">Default</label><input type="radio" id="cat-shell_package_install-productive" name="shell_package_install" value="productive" ><label for="cat-shell_package_install-productive" class="seg-label seg-productive">Productive</label></div></div><div class="cat-row" data-category="shell_readonly" data-group="Shell"><div class="cat-meta"><div class="cat-title">Read-only shell commands</div><div class="cat-desc">ls, cat, git status, grep, find. The cheap stuff. Productive means &quot;never ask.&quot;</div></div><div class="seg-control" role="radiogroup" aria-label="Read-only shell commands"><input type="radio" id="cat-shell_readonly-cautious" name="shell_readonly" value="cautious" ><label for="cat-shell_readonly-cautious" class="seg-label seg-cautious">Cautious</label><input type="radio" id="cat-shell_readonly-default" name="shell_readonly" value="default" checked><label for="cat-shell_readonly-default" class="seg-label seg-default">Default</label><input type="radio" id="cat-shell_readonly-productive" name="shell_readonly" value="productive" ><label for="cat-shell_readonly-productive" class="seg-label seg-productive">Productive</label></div></div><div class="cat-row" data-category="shell_remote_mutate" data-group="Shell"><div class="cat-meta"><div class="cat-title">Remote mutations</div><div class="cat-desc">git push, gh pr create, gh pr comment. Anything that publishes to a shared system.</div></div><div class="seg-control" role="radiogroup" aria-label="Remote mutations"><input type="radio" id="cat-shell_remote_mutate-cautious" name="shell_remote_mutate" value="cautious" ><label for="cat-shell_remote_mutate-cautious" class="seg-label seg-cautious">Cautious</label><input type="radio" id="cat-shell_remote_mutate-default" name="shell_remote_mutate" value="default" checked><label for="cat-shell_remote_mutate-default" class="seg-label seg-default">Default</label><input type="radio" id="cat-shell_remote_mutate-productive" name="shell_remote_mutate" value="productive" ><label for="cat-shell_remote_mutate-productive" class="seg-label seg-productive">Productive</label></div></div></fieldset>
+  </div>
+
+  <aside class="yaml-preview">
+    <h3>
+      <span>comfort-posture.yaml</span>
+      <span id="yaml-status" style="color: var(--muted); font-weight: 400; font-size: 12px;">unsaved</span>
+    </h3>
+    <pre id="yaml-output"></pre>
+    <div class="yaml-actions">
+      <button class="btn" id="copy-btn">Copy YAML</button>
+      <button class="btn secondary" id="download-btn">Download</button>
+    </div>
+  </aside>
+</div>
+  </section>
+  <section class="tab-panel" data-tab="commands" role="tabpanel" aria-label="Commands">
+<div class="stub"><h2>Commands tab</h2><p>Ships in <strong>v0.2.0</strong>. See <code>docs/proposals/2026-05-22-003-per-plugin-dashboard.md</code> for the design.</p></div>
+  </section>
+  <section class="tab-panel" data-tab="trees" role="tabpanel" aria-label="Decision trees">
+<div class="stub"><h2>Decision trees tab</h2><p>Ships in <strong>v0.2.0</strong>. See <code>docs/proposals/2026-05-22-003-per-plugin-dashboard.md</code> for the design.</p></div>
+  </section>
+  <section class="tab-panel" data-tab="activity" role="tabpanel" aria-label="Activity">
+<div class="stub"><h2>Activity tab</h2><p>Ships in <strong>v0.2.0</strong>. See <code>docs/proposals/2026-05-22-003-per-plugin-dashboard.md</code> for the design.</p></div>
+  </section>
+</main>
+
+<footer class="page-footer">
+  Generated by <code>scripts/generate-dashboards.py</code>.
+  Source schema: <code>plugins/ravenclaude-core/dashboard-schema.json</code>.
+  Design: <a href="https://github.com/mcorbett51090/RavenClaude/blob/main/docs/proposals/2026-05-22-003-per-plugin-dashboard.md">proposal 003</a>.
+</footer>
+
+<script type="application/json" id="schema-data">
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mcorbett51090/RavenClaude/plugins/ravenclaude-core/dashboard-schema.json",
+  "title": "RavenClaude comfort posture",
+  "description": "Categorical permission-autonomy scale for Claude Code. Edited via this plugin's dashboard.html Settings tab; saved to .ravenclaude/comfort-posture.yaml in the consumer's project. The /set-posture skill (proposal 002 \u00a75) translates this YAML into .claude/settings.json permission rules.",
+  "type": "object",
+  "schema_version": 1,
+  "presets": {
+    "cautious": {
+      "_description": "Maximum oversight. Every non-trivial action asks first. Recommended starting point per Koch et al.'s 'OK blindness' finding.",
+      "global_default": "cautious",
+      "categories": {
+        "file_read_project": "default",
+        "file_edit_project": "cautious",
+        "file_read_global": "cautious",
+        "file_edit_global": "cautious",
+        "shell_readonly": "default",
+        "shell_local_mutate": "cautious",
+        "shell_remote_mutate": "cautious",
+        "shell_code_exec": "cautious",
+        "shell_package_install": "cautious",
+        "network_read": "cautious",
+        "network_write": "cautious",
+        "mcp_tools": "cautious"
+      }
+    },
+    "default": {
+      "_description": "Balanced. Reads freely; asks before edits, network writes, package installs, and arbitrary code execution.",
+      "global_default": "default",
+      "categories": {
+        "file_read_project": "productive",
+        "file_edit_project": "default",
+        "file_read_global": "cautious",
+        "file_edit_global": "cautious",
+        "shell_readonly": "productive",
+        "shell_local_mutate": "default",
+        "shell_remote_mutate": "cautious",
+        "shell_code_exec": "cautious",
+        "shell_package_install": "cautious",
+        "network_read": "default",
+        "network_write": "cautious",
+        "mcp_tools": "default"
+      }
+    },
+    "productive": {
+      "_description": "Maximum velocity. Edits and local mutations flow without asking. Network writes, package installs, arbitrary code exec, and global writes still ask.",
+      "global_default": "productive",
+      "categories": {
+        "file_read_project": "productive",
+        "file_edit_project": "productive",
+        "file_read_global": "cautious",
+        "file_edit_global": "cautious",
+        "shell_readonly": "productive",
+        "shell_local_mutate": "productive",
+        "shell_remote_mutate": "cautious",
+        "shell_code_exec": "cautious",
+        "shell_package_install": "cautious",
+        "network_read": "productive",
+        "network_write": "cautious",
+        "mcp_tools": "productive"
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "global_default": {
+      "type": "string",
+      "enum": [
+        "cautious",
+        "default",
+        "productive"
+      ],
+      "default": "default",
+      "title": "Global default",
+      "description": "Used for any category not explicitly set below. Apply a preset to set this and all categories at once.",
+      "x-widget": "segmented"
+    },
+    "categories": {
+      "type": "object",
+      "title": "Per-category overrides",
+      "description": "Each category's autonomy level. Cautious = always ask. Default = ask in ambiguous cases. Productive = act without asking.",
+      "properties": {
+        "file_read_project": {
+          "type": "string",
+          "enum": [
+            "cautious",
+            "default",
+            "productive"
+          ],
+          "title": "Read files in this project",
+          "description": "ls, cat, grep, reading source files inside the current project directory.",
+          "x-widget": "segmented",
+          "x-group": "Files"
+        },
+        "file_edit_project": {
+          "type": "string",
+          "enum": [
+            "cautious",
+            "default",
+            "productive"
+          ],
+          "title": "Edit files in this project",
+          "description": "Write, Edit, MultiEdit on files inside the current project. Set lower if you want to review every change.",
+          "x-widget": "segmented",
+          "x-group": "Files"
+        },
+        "file_read_global": {
+          "type": "string",
+          "enum": [
+            "cautious",
+            "default",
+            "productive"
+          ],
+          "title": "Read files outside this project",
+          "description": "Reading ~/.ssh, ~/.aws, ~/.config, /etc, etc. Almost always wants to be cautious.",
+          "x-widget": "segmented",
+          "x-group": "Files"
+        },
+        "file_edit_global": {
+          "type": "string",
+          "enum": [
+            "cautious",
+            "default",
+            "productive"
+          ],
+          "title": "Edit files outside this project",
+          "description": "Writing to your home directory or system paths. Almost always wants to be cautious.",
+          "x-widget": "segmented",
+          "x-group": "Files"
+        },
+        "shell_readonly": {
+          "type": "string",
+          "enum": [
+            "cautious",
+            "default",
+            "productive"
+          ],
+          "title": "Read-only shell commands",
+          "description": "ls, cat, git status, grep, find. The cheap stuff. Productive means \"never ask.\"",
+          "x-widget": "segmented",
+          "x-group": "Shell"
+        },
+        "shell_local_mutate": {
+          "type": "string",
+          "enum": [
+            "cautious",
+            "default",
+            "productive"
+          ],
+          "title": "Local mutations",
+          "description": "mkdir, mv, cp, git commit. Changes your filesystem but doesn't talk to a server.",
+          "x-widget": "segmented",
+          "x-group": "Shell"
+        },
+        "shell_remote_mutate": {
+          "type": "string",
+          "enum": [
+            "cautious",
+            "default",
+            "productive"
+          ],
+          "title": "Remote mutations",
+          "description": "git push, gh pr create, gh pr comment. Anything that publishes to a shared system.",
+          "x-widget": "segmented",
+          "x-group": "Shell"
+        },
+        "shell_code_exec": {
+          "type": "string",
+          "enum": [
+            "cautious",
+            "default",
+            "productive"
+          ],
+          "title": "Arbitrary code execution",
+          "description": "python -c, node -e, bash -c, eval. Recommend cautious \u2014 these are general-purpose.",
+          "x-widget": "segmented",
+          "x-group": "Shell"
+        },
+        "shell_package_install": {
+          "type": "string",
+          "enum": [
+            "cautious",
+            "default",
+            "productive"
+          ],
+          "title": "Package installs",
+          "description": "npm install, pip install, apt install, brew install. Recommend cautious \u2014 these can run install scripts.",
+          "x-widget": "segmented",
+          "x-group": "Shell"
+        },
+        "network_read": {
+          "type": "string",
+          "enum": [
+            "cautious",
+            "default",
+            "productive"
+          ],
+          "title": "Web reads",
+          "description": "WebFetch on known documentation domains. Productive means trusted domains never ask.",
+          "x-widget": "segmented",
+          "x-group": "Network"
+        },
+        "network_write": {
+          "type": "string",
+          "enum": [
+            "cautious",
+            "default",
+            "productive"
+          ],
+          "title": "Web writes",
+          "description": "POST/PUT/DELETE to web endpoints. Almost always wants to be cautious.",
+          "x-widget": "segmented",
+          "x-group": "Network"
+        },
+        "mcp_tools": {
+          "type": "string",
+          "enum": [
+            "cautious",
+            "default",
+            "productive"
+          ],
+          "title": "MCP server tools",
+          "description": "Tools provided by connected MCP servers. Per-server trust lives in your Claude Code config; this is the global default.",
+          "x-widget": "segmented",
+          "x-group": "Other"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "global_default",
+    "categories"
+  ],
+  "additionalProperties": false
+}
+</script>
+<script>
+/* generate-dashboards.py output — Settings tab JS
+ * Vanilla; no dependencies. Reads the inline JSON Schema at #schema-data,
+ * watches form changes, emits live YAML preview + clipboard copy + download.
+ */
+(() => {
+  const SCHEMA = JSON.parse(document.getElementById("schema-data").textContent);
+  const presets = SCHEMA.presets || {};
+  const props = SCHEMA.properties || {};
+  const catProps = (props.categories && props.categories.properties) || {};
+
+  /* ── State ───────────────────────────────────────────────────────── */
+  const state = {
+    schema_version: SCHEMA.schema_version || 1,
+    global_default: (props.global_default || {}).default || "default",
+    categories: {}
+  };
+  for (const k of Object.keys(catProps).sort()) {
+    state.categories[k] = catProps[k].default
+      || (catProps[k].enum && catProps[k].enum[Math.floor(catProps[k].enum.length / 2)])
+      || "default";
+  }
+
+  /* Read initial state from the DOM (checked radios reflect schema defaults) */
+  for (const inp of document.querySelectorAll('input[type="radio"]:checked')) {
+    if (inp.name === "global_default") {
+      state.global_default = inp.value;
+    } else if (catProps[inp.name]) {
+      state.categories[inp.name] = inp.value;
+    }
+  }
+
+  /* ── YAML emit ───────────────────────────────────────────────────── */
+  function emitYaml() {
+    const lines = [
+      "# Comfort-posture for Claude Code agents.",
+      "# Save to .ravenclaude/comfort-posture.yaml in your project root.",
+      "# The /set-posture skill translates this into .claude/settings.json rules.",
+      `schema_version: ${state.schema_version}`,
+      `global_default: ${state.global_default}`,
+      "categories:"
+    ];
+    for (const k of Object.keys(state.categories).sort()) {
+      lines.push(`  ${k}: ${state.categories[k]}`);
+    }
+    return lines.join("\n") + "\n";
+  }
+
+  function render() {
+    document.getElementById("yaml-output").textContent = emitYaml();
+  }
+
+  /* ── Form change wiring ─────────────────────────────────────────── */
+  document.querySelectorAll('input[type="radio"]').forEach(inp => {
+    inp.addEventListener("change", () => {
+      if (inp.name === "global_default") {
+        state.global_default = inp.value;
+      } else if (catProps[inp.name]) {
+        state.categories[inp.name] = inp.value;
+      }
+      flagUnsaved();
+      render();
+    });
+  });
+
+  /* ── Preset application ─────────────────────────────────────────── */
+  document.querySelectorAll(".preset-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const preset = presets[btn.dataset.preset];
+      if (!preset) return;
+      const ok = confirm(
+        `Apply the "${btn.dataset.preset}" preset?\n\n` +
+        `This will overwrite all per-category values.\n\n` +
+        (preset._description || "")
+      );
+      if (!ok) return;
+      state.global_default = preset.global_default || state.global_default;
+      Object.assign(state.categories, preset.categories || {});
+      /* Sync DOM */
+      for (const inp of document.querySelectorAll('input[type="radio"]')) {
+        if (inp.name === "global_default") {
+          inp.checked = inp.value === state.global_default;
+        } else if (catProps[inp.name]) {
+          inp.checked = inp.value === state.categories[inp.name];
+        }
+      }
+      flagUnsaved();
+      render();
+      toast(`Applied "${btn.dataset.preset}" preset`);
+    });
+  });
+
+  /* ── Copy / Download ─────────────────────────────────────────────── */
+  document.getElementById("copy-btn").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(emitYaml());
+      toast("YAML copied to clipboard");
+    } catch (e) {
+      /* Fallback: select + manual copy */
+      const pre = document.getElementById("yaml-output");
+      const range = document.createRange();
+      range.selectNodeContents(pre);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      toast("Select-all + Cmd/Ctrl+C to copy");
+    }
+  });
+
+  document.getElementById("download-btn").addEventListener("click", () => {
+    const blob = new Blob([emitYaml()], { type: "text/yaml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "comfort-posture.yaml";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast("Downloaded comfort-posture.yaml — save it to .ravenclaude/ in your project");
+  });
+
+  /* ── Status / toast ──────────────────────────────────────────────── */
+  function flagUnsaved() {
+    document.getElementById("yaml-status").textContent = "unsaved";
+    document.getElementById("yaml-status").style.color = "var(--warn)";
+  }
+  const toastEl = (() => {
+    const el = document.createElement("div");
+    el.className = "toast";
+    el.setAttribute("role", "status");
+    el.setAttribute("aria-live", "polite");
+    document.body.appendChild(el);
+    return el;
+  })();
+  let toastTimer = null;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2200);
+  }
+
+  /* ── Tab routing ─────────────────────────────────────────────────── */
+  const validTabs = ["settings", "commands", "trees", "activity"];
+  function applyHash() {
+    const hash = (location.hash || "#/settings").replace(/^#\//, "");
+    const tab = validTabs.includes(hash) ? hash : "settings";
+    document.querySelectorAll(".tab-btn").forEach(b => {
+      const sel = b.dataset.tab === tab;
+      b.setAttribute("aria-selected", sel ? "true" : "false");
+    });
+    document.querySelectorAll(".tab-panel").forEach(p => {
+      p.classList.toggle("active", p.dataset.tab === tab);
+    });
+  }
+  document.querySelectorAll(".tab-btn").forEach(b => {
+    b.addEventListener("click", () => {
+      location.hash = "/" + b.dataset.tab;
+    });
+  });
+  window.addEventListener("hashchange", applyHash);
+  applyHash();
+
+  /* Initial render */
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mcorbett51090/RavenClaude/plugins/ravenclaude-core/dashboard-schema.json",
+  "title": "RavenClaude comfort posture",
+  "description": "Categorical permission-autonomy scale for Claude Code. Edited via this plugin's dashboard.html Settings tab; saved to .ravenclaude/comfort-posture.yaml in the consumer's project. The /set-posture skill (proposal 002 §5) translates this YAML into .claude/settings.json permission rules.",
+  "type": "object",
+  "schema_version": 1,
+  "presets": {
+    "cautious": {
+      "_description": "Maximum oversight. Every non-trivial action asks first. Recommended starting point per Koch et al.'s 'OK blindness' finding.",
+      "global_default": "cautious",
+      "categories": {
+        "file_read_project": "default",
+        "file_edit_project": "cautious",
+        "file_read_global": "cautious",
+        "file_edit_global": "cautious",
+        "shell_readonly": "default",
+        "shell_local_mutate": "cautious",
+        "shell_remote_mutate": "cautious",
+        "shell_code_exec": "cautious",
+        "shell_package_install": "cautious",
+        "network_read": "cautious",
+        "network_write": "cautious",
+        "mcp_tools": "cautious"
+      }
+    },
+    "default": {
+      "_description": "Balanced. Reads freely; asks before edits, network writes, package installs, and arbitrary code execution.",
+      "global_default": "default",
+      "categories": {
+        "file_read_project": "productive",
+        "file_edit_project": "default",
+        "file_read_global": "cautious",
+        "file_edit_global": "cautious",
+        "shell_readonly": "productive",
+        "shell_local_mutate": "default",
+        "shell_remote_mutate": "cautious",
+        "shell_code_exec": "cautious",
+        "shell_package_install": "cautious",
+        "network_read": "default",
+        "network_write": "cautious",
+        "mcp_tools": "default"
+      }
+    },
+    "productive": {
+      "_description": "Maximum velocity. Edits and local mutations flow without asking. Network writes, package installs, arbitrary code exec, and global writes still ask.",
+      "global_default": "productive",
+      "categories": {
+        "file_read_project": "productive",
+        "file_edit_project": "productive",
+        "file_read_global": "cautious",
+        "file_edit_global": "cautious",
+        "shell_readonly": "productive",
+        "shell_local_mutate": "productive",
+        "shell_remote_mutate": "cautious",
+        "shell_code_exec": "cautious",
+        "shell_package_install": "cautious",
+        "network_read": "productive",
+        "network_write": "cautious",
+        "mcp_tools": "productive"
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "global_default": {
+      "type": "string",
+      "enum": ["cautious", "default", "productive"],
+      "default": "default",
+      "title": "Global default",
+      "description": "Used for any category not explicitly set below. Apply a preset to set this and all categories at once.",
+      "x-widget": "segmented"
+    },
+    "categories": {
+      "type": "object",
+      "title": "Per-category overrides",
+      "description": "Each category's autonomy level. Cautious = always ask. Default = ask in ambiguous cases. Productive = act without asking.",
+      "properties": {
+        "file_read_project": {
+          "type": "string",
+          "enum": ["cautious", "default", "productive"],
+          "title": "Read files in this project",
+          "description": "ls, cat, grep, reading source files inside the current project directory.",
+          "x-widget": "segmented",
+          "x-group": "Files"
+        },
+        "file_edit_project": {
+          "type": "string",
+          "enum": ["cautious", "default", "productive"],
+          "title": "Edit files in this project",
+          "description": "Write, Edit, MultiEdit on files inside the current project. Set lower if you want to review every change.",
+          "x-widget": "segmented",
+          "x-group": "Files"
+        },
+        "file_read_global": {
+          "type": "string",
+          "enum": ["cautious", "default", "productive"],
+          "title": "Read files outside this project",
+          "description": "Reading ~/.ssh, ~/.aws, ~/.config, /etc, etc. Almost always wants to be cautious.",
+          "x-widget": "segmented",
+          "x-group": "Files"
+        },
+        "file_edit_global": {
+          "type": "string",
+          "enum": ["cautious", "default", "productive"],
+          "title": "Edit files outside this project",
+          "description": "Writing to your home directory or system paths. Almost always wants to be cautious.",
+          "x-widget": "segmented",
+          "x-group": "Files"
+        },
+        "shell_readonly": {
+          "type": "string",
+          "enum": ["cautious", "default", "productive"],
+          "title": "Read-only shell commands",
+          "description": "ls, cat, git status, grep, find. The cheap stuff. Productive means \"never ask.\"",
+          "x-widget": "segmented",
+          "x-group": "Shell"
+        },
+        "shell_local_mutate": {
+          "type": "string",
+          "enum": ["cautious", "default", "productive"],
+          "title": "Local mutations",
+          "description": "mkdir, mv, cp, git commit. Changes your filesystem but doesn't talk to a server.",
+          "x-widget": "segmented",
+          "x-group": "Shell"
+        },
+        "shell_remote_mutate": {
+          "type": "string",
+          "enum": ["cautious", "default", "productive"],
+          "title": "Remote mutations",
+          "description": "git push, gh pr create, gh pr comment. Anything that publishes to a shared system.",
+          "x-widget": "segmented",
+          "x-group": "Shell"
+        },
+        "shell_code_exec": {
+          "type": "string",
+          "enum": ["cautious", "default", "productive"],
+          "title": "Arbitrary code execution",
+          "description": "python -c, node -e, bash -c, eval. Recommend cautious — these are general-purpose.",
+          "x-widget": "segmented",
+          "x-group": "Shell"
+        },
+        "shell_package_install": {
+          "type": "string",
+          "enum": ["cautious", "default", "productive"],
+          "title": "Package installs",
+          "description": "npm install, pip install, apt install, brew install. Recommend cautious — these can run install scripts.",
+          "x-widget": "segmented",
+          "x-group": "Shell"
+        },
+        "network_read": {
+          "type": "string",
+          "enum": ["cautious", "default", "productive"],
+          "title": "Web reads",
+          "description": "WebFetch on known documentation domains. Productive means trusted domains never ask.",
+          "x-widget": "segmented",
+          "x-group": "Network"
+        },
+        "network_write": {
+          "type": "string",
+          "enum": ["cautious", "default", "productive"],
+          "title": "Web writes",
+          "description": "POST/PUT/DELETE to web endpoints. Almost always wants to be cautious.",
+          "x-widget": "segmented",
+          "x-group": "Network"
+        },
+        "mcp_tools": {
+          "type": "string",
+          "enum": ["cautious", "default", "productive"],
+          "title": "MCP server tools",
+          "description": "Tools provided by connected MCP servers. Per-server trust lives in your Claude Code config; this is the global default.",
+          "x-widget": "segmented",
+          "x-group": "Other"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["schema_version", "global_default", "categories"],
+  "additionalProperties": false
+}

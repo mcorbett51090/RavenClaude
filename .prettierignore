@@ -26,3 +26,7 @@ scripts/vendor/
 # pointless churn (and prettier's HTML printer would rewrite the inline CSS
 # / JS blocks in ways that don't match the script's emit style).
 repo-guide.html
+
+# Generated artifacts — produced by scripts/generate-dashboards.py from each
+# plugin's dashboard-schema.json. Same rationale as repo-guide.html above.
+plugins/*/dashboard.html
