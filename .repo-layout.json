@@ -40,7 +40,9 @@
     "plugins/*/dashboard-schema.json",
     "plugins/*/dashboard.html",
     "plugins/*/dashboard-assets/**",
-    "scripts/generate-dashboards.py"
+    "plugins/*/scripts/**",
+    "scripts/generate-dashboards.py",
+    "scripts/serve-dashboards.py"
   ],
   "forbidden_globs": [],
   "suggestions": {
