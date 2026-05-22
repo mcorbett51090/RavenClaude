@@ -386,35 +386,49 @@ body {
   vertical-align: middle;
 }
 
-/* Per-pattern level dropdown (styled <select>) */
+/* Per-pattern level dropdown (styled <select>). The container row has a
+ * `surface` background, so the select uses `surface-2` to read as a real
+ * control. When the row is overridden (anything other than "Use category
+ * default"), a thin colored underline indicates the level — no bg tint,
+ * no font-weight shift; just an unobtrusive bottom border. */
+.pattern-select-wrap {
+  position: relative;
+  display: inline-block;
+}
 .pattern-select {
-  background: var(--surface);
+  background: var(--surface-2);
   color: var(--text);
   border: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
   border-radius: 6px;
-  padding: 5px 28px 5px 12px;
+  padding: 6px 30px 6px 14px;
   font: inherit;
-  font-size: 11.5px;
+  font-size: 12px;
+  line-height: 1.2;
   cursor: pointer;
-  min-width: 160px;
+  min-width: 188px;
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path fill='none' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M3 4.5l3 3 3-3'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path fill='none' stroke='%23cbd5e1' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round' d='M3 4.75l3 3 3-3'/></svg>");
   background-repeat: no-repeat;
-  background-position: right 8px center;
+  background-position: right 10px center;
   background-size: 12px 12px;
   transition: border-color 80ms ease, background-color 80ms ease;
 }
-.pattern-select:hover { border-color: var(--accent); }
-.pattern-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-/* Default selection is visually muted so overrides stand out */
-.pattern-select[data-current="__default"] { color: var(--muted); }
-/* Selected (overridden) selections get a tiny colored leading dot via ::before */
-.pattern-select:not([data-current="__default"]) {
-  background-color: var(--surface-2);
-  font-weight: 600;
+.pattern-select:hover {
+  border-color: var(--accent);
+  background-color: var(--surface);
 }
-.pattern-select option { background: var(--surface); color: var(--text); font-weight: 400; }
+.pattern-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Default selection — text in muted tone so overrides stand out */
+.pattern-select[data-current="__default"] { color: var(--muted); }
+/* Overridden state: thin colored underline per level. No bg or weight change. */
+.pattern-select[data-current="deny"] { border-bottom-color: var(--danger); }
+.pattern-select[data-current="always-ask"] { border-bottom-color: var(--warn); }
+.pattern-select[data-current="mostly-ask"] { border-bottom-color: var(--accent); }
+.pattern-select[data-current="mostly-allow"] { border-bottom-color: var(--accent); }
+.pattern-select[data-current="autopilot"] { border-bottom-color: var(--warn); }
+.pattern-select option { background: var(--surface); color: var(--text); }
 .pattern-select option:first-child { color: var(--muted); font-style: italic; }
 
 /* Danger Zone — modeled on GitHub's destructive-actions section.
