@@ -215,33 +215,23 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
 def _render_pattern_details(category: str, patterns: list[str]) -> str:
     """Render a collapsible <details> block with per-pattern level controls.
 
-    Each pattern row contains: pattern name (mono code), one-line `what`
-    detail, info button (opens the per-pattern modal), and a denser
-    segmented radiogroup with six values — `__default` (use category
-    default; checked initially) plus the five level enums.
+    Each pattern row contains: pattern name (mono code) + info button (mirrors
+    the category-row title-+-info-button layout), one-line `what` detail, and
+    a styled <select> dropdown with six options — "Use category default"
+    (selected initially; clears the override) plus the five level enums.
     """
-    levels = ["__default", "deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"]
+    select_options = [
+        ("__default", "Use category default"),
+        ("deny", "Deny"),
+        ("always-ask", "Always Ask"),
+        ("mostly-ask", "Mostly Ask"),
+        ("mostly-allow", "Mostly Allow"),
+        ("autopilot", "Autopilot"),
+    ]
     rows: list[str] = []
-    for idx, pattern in enumerate(patterns):
-        radio_name = f"pat-{category}-{idx}"
+    for pattern in patterns:
         explanation = PATTERN_EXPLANATIONS.get(pattern, {})
         what_text = explanation.get("what", "")
-        radios: list[str] = []
-        for level in levels:
-            rid = f"{radio_name}-{level.replace('_', '-')}"
-            checked = "checked" if level == "__default" else ""
-            label_text = "Default" if level == "__default" else _label_for(level)
-            label_cls = (
-                "seg-label seg-pattern-default"
-                if level == "__default"
-                else f"seg-label seg-{html.escape(level)}"
-            )
-            radios.append(
-                f'<input type="radio" id="{html.escape(rid)}" '
-                f'name="{html.escape(radio_name)}" value="{html.escape(level)}" {checked}>'
-                f'<label for="{html.escape(rid)}" class="{label_cls}" '
-                f'title="{html.escape(level)}">{html.escape(label_text)}</label>'
-            )
         info_btn = (
             f'<button type="button" class="info-btn info-btn-pattern" '
             f'data-info-pattern="{html.escape(pattern)}" '
@@ -249,17 +239,26 @@ def _render_pattern_details(category: str, patterns: list[str]) -> str:
             f'title="Explain this pattern">?</button>'
             if explanation else ""
         )
+        options_html = "".join(
+            f'<option value="{html.escape(v)}"{" selected" if v == "__default" else ""}>'
+            f'{html.escape(label)}</option>'
+            for v, label in select_options
+        )
         rows.append(
             f'<div class="pattern-row" data-pattern="{html.escape(pattern)}">'
+            f'<div class="pattern-meta">'
             f'<code class="pattern-name" title="{html.escape(pattern)}">'
             f'{html.escape(pattern)}</code>'
-            f'<span class="pattern-detail">{html.escape(what_text)}</span>'
             f'{info_btn}'
-            f'<div class="seg-control seg-control-pattern" role="radiogroup" '
-            f'data-pattern="{html.escape(pattern)}" data-category="{html.escape(category)}" '
+            f"</div>"
+            f'<span class="pattern-detail">{html.escape(what_text)}</span>'
+            f'<select class="pattern-select" '
+            f'data-pattern="{html.escape(pattern)}" '
+            f'data-category="{html.escape(category)}" '
+            f'data-current="__default" '
             f'aria-label="Level for {html.escape(pattern)}">'
-            + "".join(radios)
-            + "</div>"
+            + options_html
+            + "</select>"
             f"</div>"
         )
     return (
@@ -310,11 +309,13 @@ def _render_security_deny(schema: dict) -> str:
             f'<div class="sec-deny-row">'
             f'<input type="checkbox" id="{html.escape(cid)}" '
             f'class="sec-deny-checkbox" value="{html.escape(pattern)}" checked>'
+            f'<div class="sec-deny-meta">'
             f'<label class="sec-deny-pattern-label" for="{html.escape(cid)}">'
             f'<code class="sec-deny-pattern">{html.escape(pattern)}</code>'
             f'</label>'
-            f'<span class="pattern-detail sec-deny-detail">{html.escape(what_text)}</span>'
             f'{info_btn}'
+            f"</div>"
+            f'<span class="pattern-detail sec-deny-detail">{html.escape(what_text)}</span>'
             f"</div>"
         )
     return (
@@ -727,16 +728,22 @@ body {
   background: var(--surface);
   border-radius: 4px;
 }
-/* New 4-column layout: pattern | detail | info-btn | seg-control */
+/* Per-pattern row: 3 columns — [code + ? meta] [detail] [select] */
 .pattern-row {
   display: grid;
-  grid-template-columns: minmax(120px, 200px) 1fr auto auto;
-  gap: 12px;
-  padding: 6px 4px;
+  grid-template-columns: minmax(180px, 260px) 1fr auto;
+  gap: 14px;
+  padding: 7px 6px;
   border-bottom: 1px dotted var(--border);
   align-items: center;
 }
 .pattern-row:last-child { border-bottom: none; }
+.pattern-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
 .pattern-name {
   font-family: var(--font-mono);
   font-size: 11.5px;
@@ -746,6 +753,8 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 .pattern-detail {
   font-size: 11.5px;
@@ -757,11 +766,13 @@ body {
 }
 @media (max-width: 1200px) {
   .pattern-detail { display: none; }
+  .pattern-row { grid-template-columns: 1fr auto; }
 }
 .info-btn-pattern {
   width: 16px;
   height: 16px;
   font-size: 10px;
+  flex-shrink: 0;
 }
 .info-btn-section {
   width: 16px;
@@ -770,20 +781,43 @@ body {
   margin-left: 6px;
   vertical-align: middle;
 }
-/* Denser segmented control for per-pattern rows */
-.seg-control-pattern .seg-label {
-  padding: 3px 7px;
-  font-size: 10.5px;
-  min-width: 56px;
+
+/* Per-pattern level dropdown (styled <select>) */
+.pattern-select {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  min-width: 170px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+                    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 14px) 50%, calc(100% - 9px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 26px;
+  transition: border-color 80ms ease, background-color 80ms ease;
 }
-.seg-control-pattern .seg-label.seg-pattern-default {
+.pattern-select:hover { border-color: var(--accent); }
+.pattern-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Color-tinted left border by current selection */
+.pattern-select[data-current="__default"] {
+  border-left-color: var(--border);
+  color: var(--muted);
   font-style: italic;
 }
-.seg-control-pattern input[type="radio"]:checked + .seg-label.seg-pattern-default {
-  background: var(--accent);
-  color: var(--bg);
-  font-style: italic;
-}
+.pattern-select[data-current="deny"] { border-left-color: var(--danger); color: var(--danger); }
+.pattern-select[data-current="always-ask"] { border-left-color: var(--warn); }
+.pattern-select[data-current="mostly-ask"] { border-left-color: var(--accent); }
+.pattern-select[data-current="mostly-allow"] { border-left-color: var(--accent); }
+.pattern-select[data-current="autopilot"] { border-left-color: var(--warn); }
+.pattern-select option { background: var(--surface); color: var(--text); }
 
 /* Security-deny baseline block */
 .sec-deny-group { border-left: 3px solid var(--danger); }
@@ -797,12 +831,18 @@ body {
 .sec-deny-list { max-height: 360px; }
 .sec-deny-row {
   display: grid;
-  grid-template-columns: auto minmax(160px, 220px) 1fr auto;
+  grid-template-columns: auto minmax(200px, 260px) 1fr;
   align-items: center;
   gap: 10px;
-  padding: 4px 0;
+  padding: 5px 0;
 }
-.sec-deny-pattern-label { cursor: pointer; display: contents; }
+.sec-deny-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.sec-deny-pattern-label { cursor: pointer; min-width: 0; overflow: hidden; }
 .sec-deny-checkbox { accent-color: var(--danger); cursor: pointer; }
 .sec-deny-pattern {
   font-family: var(--font-mono);
@@ -1305,21 +1345,25 @@ _JS = r"""
         state.global_default = inp.value;
       } else if (catProps[inp.name]) {
         state.categories[inp.name].default = inp.value;
-      } else if (inp.name && inp.name.startsWith("pat-")) {
-        /* Per-pattern radio: read the pattern + category from the radiogroup */
-        const group = inp.closest(".seg-control-pattern");
-        if (group) {
-          const cat = group.getAttribute("data-category");
-          const pattern = group.getAttribute("data-pattern");
-          if (cat && pattern && state.categories[cat]) {
-            if (inp.value === "__default") {
-              delete state.categories[cat].overrides[pattern];
-            } else {
-              state.categories[cat].overrides[pattern] = inp.value;
-            }
-          }
+      }
+      flagUnsaved();
+      render();
+    });
+  });
+
+  /* Per-pattern dropdown change handlers */
+  document.querySelectorAll(".pattern-select").forEach(sel => {
+    sel.addEventListener("change", () => {
+      const cat = sel.getAttribute("data-category");
+      const pattern = sel.getAttribute("data-pattern");
+      if (cat && pattern && state.categories[cat]) {
+        if (sel.value === "__default") {
+          delete state.categories[cat].overrides[pattern];
+        } else {
+          state.categories[cat].overrides[pattern] = sel.value;
         }
       }
+      sel.setAttribute("data-current", sel.value);
       flagUnsaved();
       render();
     });
@@ -1356,15 +1400,17 @@ _JS = r"""
         if (presetCats[k]) state.categories[k].default = presetCats[k];
         state.categories[k].overrides = {};
       }
-      /* Sync DOM: category radios + reset all pattern radios to __default */
+      /* Sync DOM: category radios + reset every per-pattern select to default */
       for (const inp of document.querySelectorAll('input[type="radio"]')) {
         if (inp.name === "global_default") {
           inp.checked = inp.value === state.global_default;
         } else if (catProps[inp.name]) {
           inp.checked = inp.value === state.categories[inp.name].default;
-        } else if (inp.name && inp.name.startsWith("pat-")) {
-          inp.checked = inp.value === "__default";
         }
+      }
+      for (const sel of document.querySelectorAll(".pattern-select")) {
+        sel.value = "__default";
+        sel.setAttribute("data-current", "__default");
       }
       flagUnsaved();
       render();
