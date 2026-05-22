@@ -8,31 +8,36 @@ Read by the /set-posture slash command. Can also be invoked directly:
     python3 plugins/ravenclaude-core/scripts/apply-comfort-posture.py
     python3 ${CLAUDE_PLUGIN_ROOT}/scripts/apply-comfort-posture.py --dry-run
 
-What it does:
+What it does (v0.17.0 — overwrite mode):
   1. Read .ravenclaude/comfort-posture.yaml from the consumer's project root.
-  2. For each (category, level) pair, emit a list of permission rules using
-     the EMISSIONS table below.
-  3. Read .claude/settings.json. Remove rules that the previous /set-posture
-     run emitted (tracked in .claude/_comfort-posture-snapshot.json).
-  4. Add the new emission. Preserve any hand-added rules.
-  5. Write back .claude/settings.json + update the snapshot.
-  6. Print a summary of what changed plus a warning about session-mode
-     interactions (auto-mode silently drops broad rules).
+  2. For each pattern in the EMISSIONS table, resolve its level using
+     (per-pattern override > category default > global_default), then place
+     the pattern in the deny/ask/allow bucket per level_to_bucket().
+  3. Union the posture's `security_deny` list into the deny bucket.
+  4. OVERWRITE permissions.allow/ask/deny in .claude/settings.json with the
+     resolved emission. Non-posture fields ($schema, model, env, hooks) are
+     left untouched.
+  5. Delete any stale snapshot file from v0.16.0 (no longer used).
+  6. Print a per-bucket count + the session-mode warning footer.
 
-Design constraints (v0.1.0):
+Design constraints:
   - **Narrow rules only.** Emit `Bash(git push:*)`, NOT `Bash(*)`. Auto-mode
     silently drops the broad shapes; narrow rules survive.
-  - **Snapshot-based removal.** Hand-added rules in settings.json survive
-    re-application because the script only removes rules it previously
-    emitted (tracked by snapshot).
+  - **Overwrite, not merge.** The posture YAML is the single source of truth
+    for permissions.{allow,ask,deny}. Hand-edits to those buckets in
+    settings.json are wiped on next /set-posture. Persist non-posture rules
+    in .claude/settings.local.json instead — Claude Code merges that on top.
   - **Five levels collapse to three buckets** in v0.1.0:
-      deny         -> deny
-      always-ask, mostly-ask     -> ask
-      mostly-allow, autopilot    -> allow
+      deny                        -> deny
+      always-ask, mostly-ask      -> ask
+      mostly-allow, autopilot     -> allow
     v0.2.0 will split each Bash category into safe/risky shapes so
     always-ask vs mostly-ask and mostly-allow vs autopilot become
     meaningfully different (the architect's "split for risky shapes"
     pattern from proposal 002 §5).
+  - **Per-pattern overrides** (v0.17.0) let any single pattern in any
+    category be set to a different level than its category default.
+    See dashboard-schema.json `_category_value_shape` for the YAML shape.
 
 Dependencies: PyYAML if present (graceful fallback to a small built-in
 parser if not, since the YAML shape is tiny and constrained).
@@ -59,11 +64,11 @@ def find_project_root(start: Path) -> Path:
 
 
 # ── EMISSIONS table — category -> list of permission rule patterns ──
-# Each pattern is emitted under exactly one bucket (deny / ask / allow)
-# based on the category's level in the posture YAML. Patterns are NARROW
-# by design — broad shapes like Bash(*) get silently dropped under
-# auto-mode (verified in plugins/ravenclaude-core/knowledge/
-# claude-code-permissions.md "Permission modes — the six modes" section).
+# Each pattern is placed into deny/ask/allow based on the level resolved
+# from (per-pattern override > category default > global_default).
+# Patterns are NARROW by design — broad shapes like Bash(*) get silently
+# dropped under auto-mode (verified in knowledge/claude-code-permissions.md
+# "Permission modes" section).
 
 EMISSIONS: dict[str, list[str]] = {
     # ── File categories ──────────────────────────────────────────
@@ -211,6 +216,33 @@ EMISSIONS: dict[str, list[str]] = {
 }
 
 
+# Baseline security deny rules used when posture lacks an explicit
+# `security_deny` list (i.e., v3-shaped YAML reading into v4 script).
+DEFAULT_SECURITY_DENY: list[str] = [
+    "Bash(rm -rf:*)",
+    "Bash(git push --force:*)",
+    "Bash(git push -f:*)",
+    "Bash(git reset --hard:*)",
+    "Bash(git clean -fd:*)",
+    "Bash(npm publish:*)",
+    "Bash(pnpm publish:*)",
+    "Bash(yarn publish:*)",
+    "Bash(cargo publish:*)",
+    "Bash(curl * | sh)",
+    "Bash(curl * | bash)",
+    "Bash(wget * | sh)",
+    "Bash(wget * | bash)",
+    "Read(.env)",
+    "Read(.env.*)",
+    "Read(**/*.pem)",
+    "Read(**/*.key)",
+    "Read(**/credentials*)",
+    "Read(**/secrets*)",
+]
+
+VALID_LEVELS = {"deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"}
+
+
 def level_to_bucket(level: str) -> str:
     """Map a comfort-posture level to a permission-rule bucket.
 
@@ -228,11 +260,9 @@ def level_to_bucket(level: str) -> str:
 
 
 def parse_yaml(text: str) -> dict:
-    """Parse the small, constrained comfort-posture YAML.
+    """Parse the comfort-posture YAML.
 
     Falls back to a minimal hand-rolled parser if PyYAML isn't installed.
-    The YAML shape is: top-level keys, one nested 'categories:' block,
-    no lists, no anchors, no flow style. Easy to parse without a library.
     """
     try:
         import yaml as pyyaml  # type: ignore
@@ -242,45 +272,149 @@ def parse_yaml(text: str) -> dict:
 
 
 def _minimal_yaml_parse(text: str) -> dict:
-    """Hand-rolled parser for the constrained comfort-posture shape only."""
+    """Hand-rolled parser supporting the posture YAML shape.
+
+    Supports:
+      - top-level scalar key: value
+      - top-level list: `- item` items
+      - nested mapping (one level): `categories:` then indented `key: value`
+      - nested mapping value as object: `category:` then indented `default:` /
+        `overrides:` with further indented overrides keyed by quoted pattern.
+    """
     result: dict = {}
-    current_section: dict | None = None
-    section_indent = 0
-    for raw in text.splitlines():
-        line = raw.split("#", 1)[0].rstrip()
-        if not line:
+    lines = [ln for ln in text.splitlines() if not (ln.strip().startswith("#"))]
+    i = 0
+    while i < len(lines):
+        raw = lines[i]
+        stripped = raw.split("#", 1)[0].rstrip()
+        if not stripped.strip():
+            i += 1
             continue
-        stripped = line.lstrip()
-        indent = len(line) - len(stripped)
-        if indent == 0:
-            if stripped.endswith(":"):
-                key = stripped[:-1].strip()
-                result[key] = {}
-                current_section = result[key]
-                section_indent = -1
-            elif ":" in stripped:
-                k, v = stripped.split(":", 1)
-                result[k.strip()] = _coerce(v.strip())
-                current_section = None
-        else:
-            if current_section is None:
-                continue
-            if section_indent == -1:
-                section_indent = indent
-            if indent != section_indent:
-                continue
-            if ":" in stripped:
-                k, v = stripped.split(":", 1)
-                current_section[k.strip()] = _coerce(v.strip())
+        indent = len(stripped) - len(stripped.lstrip())
+        content = stripped.lstrip()
+        if indent != 0:
+            i += 1
+            continue
+        if content.endswith(":"):
+            key = content[:-1].strip()
+            block, consumed = _parse_block(lines, i + 1, base_indent=0)
+            result[key] = block
+            i += 1 + consumed
+            continue
+        if ":" in content:
+            k, v = content.split(":", 1)
+            result[k.strip()] = _coerce(v.strip())
+            i += 1
+            continue
+        i += 1
     return result
 
 
+def _parse_block(lines: list[str], start: int, base_indent: int):
+    """Parse a nested block. Returns (parsed_value, lines_consumed).
+
+    Detects whether the block is a list (starts with `- `) or a mapping.
+    """
+    if start >= len(lines):
+        return {}, 0
+    first = None
+    for j in range(start, len(lines)):
+        s = lines[j].split("#", 1)[0].rstrip()
+        if not s.strip():
+            continue
+        first = s
+        break
+    if first is None:
+        return {}, 0
+    block_indent = len(first) - len(first.lstrip())
+    if block_indent <= base_indent:
+        return {}, 0
+    if first.lstrip().startswith("- "):
+        result_list: list = []
+        consumed = 0
+        for j in range(start, len(lines)):
+            s = lines[j].split("#", 1)[0].rstrip()
+            if not s.strip():
+                consumed += 1
+                continue
+            ind = len(s) - len(s.lstrip())
+            if ind < block_indent:
+                break
+            consumed += 1
+            content = s.lstrip()
+            if content.startswith("- "):
+                result_list.append(_coerce(content[2:].strip()))
+        return result_list, consumed
+    result_map: dict = {}
+    consumed = 0
+    j = start
+    while j < len(lines):
+        s = lines[j].split("#", 1)[0].rstrip()
+        if not s.strip():
+            consumed += 1
+            j += 1
+            continue
+        ind = len(s) - len(s.lstrip())
+        if ind < block_indent:
+            break
+        if ind != block_indent:
+            consumed += 1
+            j += 1
+            continue
+        content = s.lstrip()
+        if content.endswith(":"):
+            key = content[:-1].strip().strip("'\"")
+            sub, used = _parse_block(lines, j + 1, base_indent=block_indent)
+            result_map[key] = sub
+            consumed += 1 + used
+            j += 1 + used
+            continue
+        if ":" in content:
+            k, v = content.split(":", 1)
+            result_map[k.strip().strip("'\"")] = _coerce(v.strip())
+        consumed += 1
+        j += 1
+    return result_map, consumed
+
+
 def _coerce(v: str):
+    if v == "":
+        return None
     if v.isdigit():
         return int(v)
     if v.lower() in ("true", "false"):
         return v.lower() == "true"
     return v.strip("'\"")
+
+
+def resolve_category(cat_value, global_default: str) -> tuple[str, dict[str, str]]:
+    """Return (category_default_level, overrides_map) for a category value.
+
+    Accepts either:
+      - a string (the level; no overrides)
+      - an object {default: <level>, overrides: {<pattern>: <level>}}
+      - None / missing (falls back to global_default)
+    """
+    if cat_value is None:
+        return global_default, {}
+    if isinstance(cat_value, str):
+        if cat_value not in VALID_LEVELS:
+            raise ValueError(f"Invalid level {cat_value!r}")
+        return cat_value, {}
+    if isinstance(cat_value, dict):
+        default = cat_value.get("default", global_default)
+        if default not in VALID_LEVELS:
+            raise ValueError(f"Invalid category default {default!r}")
+        overrides_raw = cat_value.get("overrides") or {}
+        if not isinstance(overrides_raw, dict):
+            raise ValueError(f"`overrides` must be a mapping, got {type(overrides_raw).__name__}")
+        overrides: dict[str, str] = {}
+        for pattern, lvl in overrides_raw.items():
+            if lvl not in VALID_LEVELS:
+                raise ValueError(f"Invalid level {lvl!r} for override {pattern!r}")
+            overrides[pattern] = lvl
+        return default, overrides
+    raise ValueError(f"Category value must be string or object, got {type(cat_value).__name__}")
 
 
 def compute_emission(posture: dict) -> dict[str, list[str]]:
@@ -290,39 +424,43 @@ def compute_emission(posture: dict) -> dict[str, list[str]]:
     categories = posture.get("categories", {}) or {}
 
     for cat, patterns in EMISSIONS.items():
-        level = categories.get(cat, global_default)
-        bucket = level_to_bucket(level)
-        out[bucket].extend(patterns)
+        cat_default, overrides = resolve_category(categories.get(cat), global_default)
+        for pattern in patterns:
+            level = overrides.get(pattern, cat_default)
+            bucket = level_to_bucket(level)
+            out[bucket].append(pattern)
 
-    # Dedup while preserving order
+    security_deny = posture.get("security_deny")
+    if security_deny is None:
+        security_deny = list(DEFAULT_SECURITY_DENY)
+    if not isinstance(security_deny, list):
+        raise ValueError(f"`security_deny` must be a list, got {type(security_deny).__name__}")
+    out["deny"].extend(security_deny)
+
+    # Security-deny wins. A pattern emitted into allow/ask AND listed in
+    # security_deny is removed from allow/ask so it appears only in the deny
+    # bucket. (Claude Code's precedence is deny > ask > allow, so the rule is
+    # functionally identical either way; this keeps settings.json visually clean.)
+    deny_set = set(out["deny"])
+    out["allow"] = [r for r in out["allow"] if r not in deny_set]
+    out["ask"] = [r for r in out["ask"] if r not in deny_set]
+
     for bucket in out:
         seen: set[str] = set()
         out[bucket] = [r for r in out[bucket] if not (r in seen or seen.add(r))]
     return out
 
 
-def merge_into_settings(
-    settings: dict,
-    new_emission: dict[str, list[str]],
-    prev_snapshot: dict[str, list[str]] | None,
-) -> tuple[dict, dict[str, int]]:
-    """Remove previous-snapshot rules from settings; add new emission.
+def overwrite_permissions(settings: dict, new_emission: dict[str, list[str]]) -> dict:
+    """Replace settings['permissions'].{allow,ask,deny} with the new emission.
 
-    Returns the updated settings + a stats dict {bucket: net_delta}.
+    Non-posture fields ($schema, model, env, hooks) are untouched.
+    Any 'additionalDirectories' or other permission subkeys are preserved.
     """
     perms = settings.setdefault("permissions", {})
-    stats = {}
     for bucket in ("allow", "ask", "deny"):
-        current = list(perms.get(bucket, []))
-        prev_rules = (prev_snapshot or {}).get(bucket, [])
-        # Remove rules from previous snapshot
-        without_prev = [r for r in current if r not in prev_rules]
-        # Add new emission (dedup with what's already there)
-        existing = set(without_prev)
-        merged = without_prev + [r for r in new_emission[bucket] if r not in existing]
-        perms[bucket] = merged
-        stats[bucket] = len(merged) - len(current)
-    return settings, stats
+        perms[bucket] = list(new_emission[bucket])
+    return settings
 
 
 def main() -> int:
@@ -334,7 +472,7 @@ def main() -> int:
     root = Path(args.project_root) if args.project_root else find_project_root(Path.cwd())
     posture_path = root / ".ravenclaude" / "comfort-posture.yaml"
     settings_path = root / ".claude" / "settings.json"
-    snapshot_path = root / ".claude" / "_comfort-posture-snapshot.json"
+    stale_snapshot = root / ".claude" / "_comfort-posture-snapshot.json"
 
     if not posture_path.is_file():
         print(f"ERROR: {posture_path} does not exist.", file=sys.stderr)
@@ -347,9 +485,9 @@ def main() -> int:
 
     posture = parse_yaml(posture_path.read_text(encoding="utf-8"))
     schema_version = posture.get("schema_version")
-    if schema_version != 3:
+    if schema_version not in (3, 4):
         print(
-            f"WARNING: posture schema_version is {schema_version!r}, expected 3. "
+            f"WARNING: posture schema_version is {schema_version!r}, expected 3 or 4. "
             "Translation may be incomplete.",
             file=sys.stderr,
         )
@@ -361,42 +499,36 @@ def main() -> int:
     else:
         settings = {"$schema": "https://json.schemastore.org/claude-code-settings.json"}
 
-    prev_snapshot = None
-    if snapshot_path.is_file():
-        try:
-            prev_snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            prev_snapshot = None
+    prev_perms = settings.get("permissions", {})
+    prev_counts = {b: len(prev_perms.get(b, [])) for b in ("allow", "ask", "deny")}
 
-    updated, stats = merge_into_settings(settings, new_emission, prev_snapshot)
+    updated = overwrite_permissions(settings, new_emission)
+    new_counts = {b: len(updated["permissions"][b]) for b in ("allow", "ask", "deny")}
 
     if args.dry_run:
-        print("DRY RUN — would write:")
+        print("DRY RUN — would overwrite permissions buckets:")
         print(f"  {settings_path}:")
         for bucket in ("allow", "ask", "deny"):
-            count = len(updated.get("permissions", {}).get(bucket, []))
-            delta = stats[bucket]
+            delta = new_counts[bucket] - prev_counts[bucket]
             sign = "+" if delta > 0 else ""
-            print(f"    permissions.{bucket}: {count} rules ({sign}{delta})")
-        print(f"\n  {snapshot_path}: snapshot of comfort-posture emission")
+            print(f"    permissions.{bucket}: {prev_counts[bucket]} -> {new_counts[bucket]} ({sign}{delta})")
+        if stale_snapshot.is_file():
+            print(f"  Would delete stale snapshot: {stale_snapshot.relative_to(root)}")
     else:
         settings_path.parent.mkdir(parents=True, exist_ok=True)
         settings_path.write_text(
             json.dumps(updated, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
         )
-        snapshot_path.write_text(
-            json.dumps(new_emission, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
-        )
+        if stale_snapshot.is_file():
+            stale_snapshot.unlink()
+            print(f"Deleted stale snapshot: {stale_snapshot.relative_to(root)}")
         print(f"Applied comfort posture to {settings_path.relative_to(root)}:")
         for bucket in ("allow", "ask", "deny"):
-            count = len(updated["permissions"][bucket])
-            emitted = len(new_emission[bucket])
-            print(f"  permissions.{bucket}: {count} rules total ({emitted} from comfort-posture)")
-        print(f"\n  Snapshot written: {snapshot_path.relative_to(root)}")
+            delta = new_counts[bucket] - prev_counts[bucket]
+            sign = "+" if delta > 0 else ""
+            print(f"  permissions.{bucket}: {prev_counts[bucket]} -> {new_counts[bucket]} ({sign}{delta})")
 
-    # Session-mode warning footer
     print(
         "\nNote: comfort-posture works best with session mode at 'default'.\n"
         "  - Plan mode and Accept-edits compose fine.\n"
@@ -404,7 +536,10 @@ def main() -> int:
         "    rules this script emits are narrow, so most categories survive\n"
         "    auto-mode — but expect shell_code_exec and shell_package_install\n"
         "    to be partially overridden when auto-mode is on.\n"
-        "  - bypassPermissions bypasses these rules entirely (use sparingly)."
+        "  - bypassPermissions bypasses these rules entirely (use sparingly).\n"
+        "\nHand-edits to permissions.allow/ask/deny are wiped on next /set-posture.\n"
+        "Put personal overrides in .claude/settings.local.json instead — Claude\n"
+        "Code merges that on top of this file."
     )
     return 0
 

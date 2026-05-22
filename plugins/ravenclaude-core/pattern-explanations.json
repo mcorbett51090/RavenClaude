@@ -1,0 +1,518 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "_description": "Per-pattern explanations rendered in the comfort-posture dashboard. Each key is an exact pattern string emitted by apply-comfort-posture.py EMISSIONS or listed in dashboard-schema.json security_deny. Each value is { what, why }. Generated dashboards embed this file inline; the modal opened from each pattern's info button reads it.",
+  "patterns": {
+    "Read(**)": {
+      "what": "Read any file inside this project.",
+      "why": "The cheapest category of action — read-only on your local tree. Tightening this means Claude can't see your code without asking, which is rarely what you want."
+    },
+    "Edit(**)": {
+      "what": "Modify an existing file in this project.",
+      "why": "Recoverable via git as long as you commit regularly. Setting this to autopilot is the 'let Claude refactor, I'll review the diff' workflow."
+    },
+    "Write(**)": {
+      "what": "Create a new file or overwrite an existing one in this project.",
+      "why": "Same recovery story as Edit — git tracks every change. Most users keep this at the same level as Edit."
+    },
+    "MultiEdit(**)": {
+      "what": "Apply multiple edits to one file in a single tool call.",
+      "why": "Functionally equivalent to Edit for permission purposes; bundled into one prompt instead of N prompts."
+    },
+    "Read(~/**)": {
+      "what": "Read any file in your home directory.",
+      "why": "Home often holds secrets — ~/.ssh, ~/.aws, ~/.netrc, browser profiles. Always-ask is the safe default even when you trust Claude."
+    },
+    "Read(//**)": {
+      "what": "Read any file at filesystem root (/etc/, /var/, /opt/, etc.).",
+      "why": "System paths can leak host configuration. Always-ask unless you have a specific reason."
+    },
+    "Edit(~/**)": {
+      "what": "Modify a file in your home directory.",
+      "why": "Touches ~/.gitconfig, ~/.zshrc, shell init files — changes propagate to every shell session. Usually a deliberate, one-off action."
+    },
+    "Write(~/**)": {
+      "what": "Create a file in your home directory.",
+      "why": "Same reasoning as Edit(~/) — writes outside the project skip git's safety net."
+    },
+    "Edit(//**)": {
+      "what": "Modify a file at filesystem root (e.g. /etc/hosts).",
+      "why": "Almost always requires sudo and almost always shouldn't happen from inside an agent loop."
+    },
+    "Write(//**)": {
+      "what": "Create a file at filesystem root.",
+      "why": "Same reasoning as Edit(//) — system writes are infrequent enough that always-asking is fine."
+    },
+    "Bash(ls:*)": {
+      "what": "List directory contents.",
+      "why": "Read-only. The first command of nearly every exploration; the most common 'safe' shell action."
+    },
+    "Bash(cat:*)": {
+      "what": "Print a file to stdout.",
+      "why": "Read-only. Used to read short files when Read tool isn't a fit (e.g. piping into another command)."
+    },
+    "Bash(head:*)": {
+      "what": "Show the first N lines of a file.",
+      "why": "Read-only. Quick peek at large files where Read would be overkill."
+    },
+    "Bash(tail:*)": {
+      "what": "Show the last N lines of a file (commonly used to follow logs).",
+      "why": "Read-only. Used for log inspection."
+    },
+    "Bash(wc:*)": {
+      "what": "Count lines, words, or bytes in a file.",
+      "why": "Read-only. Used to size up files before deciding how to process them."
+    },
+    "Bash(file:*)": {
+      "what": "Identify a file's type by inspecting its contents.",
+      "why": "Read-only. Useful when an extension is missing or wrong."
+    },
+    "Bash(stat:*)": {
+      "what": "Show file metadata (size, permissions, modified time).",
+      "why": "Read-only. Used to debug file-permission issues."
+    },
+    "Bash(which:*)": {
+      "what": "Locate a command on PATH.",
+      "why": "Read-only. 'Where does python3 actually live?' — debugging."
+    },
+    "Bash(type:*)": {
+      "what": "Show how a shell name is interpreted (alias, function, builtin, file).",
+      "why": "Read-only. Used when a command behaves unexpectedly."
+    },
+    "Bash(grep:*)": {
+      "what": "Search files for text patterns.",
+      "why": "Read-only. Used constantly during code exploration; restricting this makes Claude slow."
+    },
+    "Bash(rg:*)": {
+      "what": "Ripgrep — a faster, smarter grep used heavily by Claude.",
+      "why": "Read-only. Same role as grep but the default tool for codebase search."
+    },
+    "Bash(find:*)": {
+      "what": "Walk a directory tree by name, size, or time predicates.",
+      "why": "Read-only when used without -delete or -exec rm. Used to discover files matching a pattern."
+    },
+    "Bash(tree:*)": {
+      "what": "Print a directory tree as ASCII art.",
+      "why": "Read-only. Used to give humans a quick visual of project layout."
+    },
+    "Bash(echo:*)": {
+      "what": "Print arguments to stdout.",
+      "why": "No side effects. Sometimes used for diagnostic output or composing pipelines."
+    },
+    "Bash(pwd)": {
+      "what": "Print the current working directory.",
+      "why": "Read-only. Trivial."
+    },
+    "Bash(git status:*)": {
+      "what": "Show working-tree status — what's modified, staged, untracked.",
+      "why": "Read-only. The first thing to run before any git mutation."
+    },
+    "Bash(git log:*)": {
+      "what": "Show commit history.",
+      "why": "Read-only. Used to understand what changed when."
+    },
+    "Bash(git diff:*)": {
+      "what": "Show changes between working tree, index, or commits.",
+      "why": "Read-only. Reviewing changes before commit."
+    },
+    "Bash(git show:*)": {
+      "what": "Show details for a specific commit, tag, or object.",
+      "why": "Read-only. Used to inspect a single commit."
+    },
+    "Bash(git branch:*)": {
+      "what": "List branches.",
+      "why": "Read-only when used without -d/-D. The destructive variants are sub-categorized elsewhere."
+    },
+    "Bash(git ls-files:*)": {
+      "what": "List files tracked by git.",
+      "why": "Read-only. Quick way to enumerate the tracked set without walking the directory."
+    },
+    "Bash(git remote:*)": {
+      "what": "List or inspect git remotes.",
+      "why": "Read-only when used to list/show. (Adding/removing remotes is rare and worth pausing on.)"
+    },
+    "Bash(git blame:*)": {
+      "what": "Show line-by-line authorship for a file.",
+      "why": "Read-only. Used to understand who last touched a line and why."
+    },
+    "Bash(git stash list)": {
+      "what": "List stashed changes.",
+      "why": "Read-only. Companion to git stash mutation operations."
+    },
+    "Bash(gh pr view:*)": {
+      "what": "View a GitHub PR's details.",
+      "why": "Read-only. Used to load PR context before commenting or merging."
+    },
+    "Bash(gh pr list:*)": {
+      "what": "List PRs in a repository.",
+      "why": "Read-only. Enumerating open PRs."
+    },
+    "Bash(gh pr diff:*)": {
+      "what": "Show a PR's diff.",
+      "why": "Read-only. Reviewing a PR before opining."
+    },
+    "Bash(gh pr checks:*)": {
+      "what": "Show CI check status for a PR.",
+      "why": "Read-only. Used to see whether a PR is ready to merge."
+    },
+    "Bash(gh issue view:*)": {
+      "what": "View a GitHub issue's details.",
+      "why": "Read-only. Used to load issue context."
+    },
+    "Bash(gh issue list:*)": {
+      "what": "List issues in a repository.",
+      "why": "Read-only. Enumerating open issues."
+    },
+    "Bash(gh run view:*)": {
+      "what": "View a workflow run's status and logs.",
+      "why": "Read-only. Used to debug failed CI runs."
+    },
+    "Bash(gh run list:*)": {
+      "what": "List recent workflow runs.",
+      "why": "Read-only. Enumerating CI history."
+    },
+    "Bash(mkdir:*)": {
+      "what": "Create a directory.",
+      "why": "Cheap and recoverable — rmdir undoes it. Used when scaffolding new code layout."
+    },
+    "Bash(touch:*)": {
+      "what": "Create an empty file or update its modified time.",
+      "why": "Cheap and recoverable. Used to scaffold a new file before writing content."
+    },
+    "Bash(cp:*)": {
+      "what": "Copy files or directories.",
+      "why": "The source file is untouched; the destination is a new file. Recoverable unless it overwrites something important."
+    },
+    "Bash(mv:*)": {
+      "what": "Move or rename files.",
+      "why": "Renames are usually recoverable via git history. Tighten this if you're working in a directory where rename mistakes would be hard to spot."
+    },
+    "Bash(ln:*)": {
+      "what": "Create a hard or symbolic link.",
+      "why": "Cheap and recoverable. Used to create shortcuts or set up workspace layouts."
+    },
+    "Bash(chmod:*)": {
+      "what": "Change file permissions (rwx bits).",
+      "why": "Used to make scripts executable. Recoverable, but bad chmod on a sensitive file can be subtle."
+    },
+    "Bash(rm:*)": {
+      "what": "Remove files.",
+      "why": "Mostly recoverable from git history when the file was tracked. Override to always-ask if your workflow includes untracked files you'd be sad to lose. (rm -rf is hard-denied via security_deny.)"
+    },
+    "Bash(git add:*)": {
+      "what": "Stage changes for the next commit.",
+      "why": "Trivially reversible via git restore --staged. Almost always safe."
+    },
+    "Bash(git commit:*)": {
+      "what": "Record staged changes as a commit.",
+      "why": "Adds to local history. Reversible via git reset until pushed."
+    },
+    "Bash(git checkout:*)": {
+      "what": "Switch branches or restore files from a commit.",
+      "why": "Switching branches is safe when the working tree is clean. Checking out individual files overwrites them — git keeps the prior state in reflog."
+    },
+    "Bash(git switch:*)": {
+      "what": "Modern branch-switching command (the safer git checkout).",
+      "why": "Designed specifically for branch operations; safer than checkout."
+    },
+    "Bash(git stash:*)": {
+      "what": "Save uncommitted changes for later (or apply previously stashed changes).",
+      "why": "Stashes are recoverable via git stash list. Mostly used to swap between WIP states."
+    },
+    "Bash(git restore:*)": {
+      "what": "Restore working-tree or staged files from a commit.",
+      "why": "Overwrites your current changes with the committed version. Mostly used to discard local edits."
+    },
+    "Bash(git reset:*)": {
+      "what": "Move HEAD or unstage changes.",
+      "why": "Soft/mixed reset is safe and reversible. --hard is hard-denied via security_deny because it discards uncommitted changes irreversibly."
+    },
+    "Bash(git merge:*)": {
+      "what": "Merge a branch into the current branch.",
+      "why": "Reversible via git reset until pushed. Merge conflicts surface for human resolution."
+    },
+    "Bash(git rebase:*)": {
+      "what": "Reapply commits on top of another base, rewriting history.",
+      "why": "Local history rewrites are reversible via reflog. Rebasing already-pushed branches is bad form (use a separate PR)."
+    },
+    "Bash(git tag:*)": {
+      "what": "Create or list tags.",
+      "why": "Local tags are reversible. Pushing tags is a separate action (git push --tags)."
+    },
+    "Bash(git push:*)": {
+      "what": "Send commits to a remote (typically GitHub).",
+      "why": "Visible to teammates and triggers CI. Override to always-ask even when other remote-mutate operations are mostly-allowed, since pushes are the most consequential."
+    },
+    "Bash(git fetch:*)": {
+      "what": "Download refs from a remote without merging.",
+      "why": "Read-side of remote sync — doesn't modify your branches. Mostly safe."
+    },
+    "Bash(git pull:*)": {
+      "what": "Fetch and merge from a remote.",
+      "why": "Combines git fetch + git merge. Can produce merge conflicts that pause for human input."
+    },
+    "Bash(gh pr create:*)": {
+      "what": "Open a new GitHub PR.",
+      "why": "Visible to teammates and may trigger reviewer notifications. Typically worth confirming."
+    },
+    "Bash(gh pr edit:*)": {
+      "what": "Edit a PR's title, body, labels, or reviewers.",
+      "why": "Visible to everyone subscribed to the PR. Mostly recoverable but worth a pause."
+    },
+    "Bash(gh pr comment:*)": {
+      "what": "Post a comment on a PR.",
+      "why": "Visible to everyone subscribed. Comments can't be silently retracted (edits are timestamped)."
+    },
+    "Bash(gh pr merge:*)": {
+      "what": "Merge a PR.",
+      "why": "High-impact: merges into main, triggers deploys, closes the review. Almost always worth confirming."
+    },
+    "Bash(gh pr close:*)": {
+      "what": "Close a PR without merging.",
+      "why": "Sends a 'closed' notification. Reopenable but the close is logged."
+    },
+    "Bash(gh issue create:*)": {
+      "what": "Open a new GitHub issue.",
+      "why": "Visible to everyone in the repo. Lower-stakes than a PR but still public."
+    },
+    "Bash(gh issue edit:*)": {
+      "what": "Edit an issue's title, body, labels, or assignees.",
+      "why": "Visible to subscribers."
+    },
+    "Bash(gh issue close:*)": {
+      "what": "Close an issue.",
+      "why": "Sends notifications; reopenable."
+    },
+    "Bash(gh issue comment:*)": {
+      "what": "Post a comment on an issue.",
+      "why": "Visible to everyone subscribed."
+    },
+    "Bash(npm publish:*)": {
+      "what": "Publish a package to the npm registry.",
+      "why": "Hard-denied via security_deny. Once published, a version can't be replaced (only deprecated). Supply-chain risk is too high to allow from an agent loop."
+    },
+    "Bash(pnpm publish:*)": {
+      "what": "Publish a package via pnpm.",
+      "why": "Same as npm publish — hard-denied via security_deny."
+    },
+    "Bash(yarn publish:*)": {
+      "what": "Publish a package via yarn.",
+      "why": "Same as npm publish — hard-denied via security_deny."
+    },
+    "Bash(python:*)": {
+      "what": "Run a Python script or python -c expression.",
+      "why": "python -c can execute arbitrary code. Always-ask unless you're in a sandbox where exec is the whole point."
+    },
+    "Bash(python3:*)": {
+      "what": "Run Python 3 explicitly.",
+      "why": "Same as python — arbitrary code execution surface."
+    },
+    "Bash(node:*)": {
+      "what": "Run Node.js. With -e, executes arbitrary JavaScript.",
+      "why": "Same RCE surface as python -c."
+    },
+    "Bash(deno:*)": {
+      "what": "Run Deno (modern TypeScript/JavaScript runtime).",
+      "why": "Same RCE surface."
+    },
+    "Bash(bash -c:*)": {
+      "what": "Run a string as a bash script.",
+      "why": "This is THE classic arbitrary-shell escape hatch. Always-ask."
+    },
+    "Bash(sh -c:*)": {
+      "what": "POSIX-shell variant of bash -c.",
+      "why": "Same arbitrary-code-execution risk."
+    },
+    "Bash(eval:*)": {
+      "what": "Evaluate a string as shell code in the current shell.",
+      "why": "Worse than bash -c — runs in your shell. Should almost always require confirmation."
+    },
+    "Bash(ruby:*)": {
+      "what": "Run a Ruby script or ruby -e expression.",
+      "why": "Same code-execution surface as python/node."
+    },
+    "Bash(perl:*)": {
+      "what": "Run a Perl script or perl -e expression.",
+      "why": "Same code-execution surface as python/node."
+    },
+    "Bash(npm install:*)": {
+      "what": "Install an npm package (with dependencies).",
+      "why": "Many packages run post-install scripts with full shell access. Typosquats are real. Always-ask is the right default."
+    },
+    "Bash(npm i:*)": {
+      "what": "Short form of npm install.",
+      "why": "Same post-install + typosquat concern."
+    },
+    "Bash(pnpm install:*)": {
+      "what": "Install dependencies via pnpm.",
+      "why": "Same supply-chain concerns as npm install."
+    },
+    "Bash(pnpm add:*)": {
+      "what": "Add a package via pnpm.",
+      "why": "Same supply-chain concerns."
+    },
+    "Bash(yarn add:*)": {
+      "what": "Add a package via yarn.",
+      "why": "Same supply-chain concerns."
+    },
+    "Bash(yarn install:*)": {
+      "what": "Install dependencies via yarn.",
+      "why": "Same supply-chain concerns."
+    },
+    "Bash(pip install:*)": {
+      "what": "Install a Python package via pip.",
+      "why": "Same supply-chain concerns — packages can run setup.py with shell access."
+    },
+    "Bash(pip3 install:*)": {
+      "what": "Pip 3 variant.",
+      "why": "Same as pip install."
+    },
+    "Bash(uv add:*)": {
+      "what": "Add a dependency via uv (modern Python package manager).",
+      "why": "Same supply-chain concerns as pip."
+    },
+    "Bash(uv pip install:*)": {
+      "what": "uv's pip-compatible install.",
+      "why": "Same as uv add / pip install."
+    },
+    "Bash(brew install:*)": {
+      "what": "Install a package via Homebrew.",
+      "why": "Brew formulae are reviewed but a malicious or compromised tap can still ship trouble."
+    },
+    "Bash(apt install:*)": {
+      "what": "Install a package via apt (Debian/Ubuntu).",
+      "why": "System-level install — touches /usr/, may write to /etc/, runs post-install scripts as root."
+    },
+    "Bash(apt-get install:*)": {
+      "what": "Older apt frontend.",
+      "why": "Same scope as apt install."
+    },
+    "Bash(cargo install:*)": {
+      "what": "Install a Rust binary crate.",
+      "why": "Compiles arbitrary Rust code from crates.io. Same supply-chain concerns."
+    },
+    "Bash(go install:*)": {
+      "what": "Install a Go binary.",
+      "why": "Same supply-chain concerns. Go modules pin by version hash, which helps."
+    },
+    "WebFetch": {
+      "what": "Read a URL via Claude Code's built-in fetcher.",
+      "why": "Read-only HTTP. Used to look up docs, fetch reference pages."
+    },
+    "Bash(curl:*)": {
+      "what": "Make HTTP requests with curl (read by default; --request POST etc. are categorized as network_write).",
+      "why": "GETs without -X/--request are reads. Mostly safe; risk is what Claude does with the response."
+    },
+    "Bash(wget:*)": {
+      "what": "Download files from a URL.",
+      "why": "Always a read — writes the response to disk. Risk is similar to curl GET."
+    },
+    "Bash(curl -X POST:*)": {
+      "what": "Curl POST — sends data to a remote endpoint.",
+      "why": "Mutates remote state (charges API, posts message, triggers workflow). Always-ask unless you're in a sandbox."
+    },
+    "Bash(curl -X PUT:*)": {
+      "what": "Curl PUT — replaces a remote resource.",
+      "why": "Mutating remote state."
+    },
+    "Bash(curl -X DELETE:*)": {
+      "what": "Curl DELETE — removes a remote resource.",
+      "why": "Mutating remote state, often irreversibly."
+    },
+    "Bash(curl -X PATCH:*)": {
+      "what": "Curl PATCH — partially updates a remote resource.",
+      "why": "Mutating remote state."
+    },
+    "Bash(curl --request POST:*)": {
+      "what": "Curl POST using the long-form --request flag.",
+      "why": "Same as curl -X POST."
+    },
+    "Bash(curl --request PUT:*)": {
+      "what": "Curl PUT using --request.",
+      "why": "Same as curl -X PUT."
+    },
+    "Bash(curl --request DELETE:*)": {
+      "what": "Curl DELETE using --request.",
+      "why": "Same as curl -X DELETE."
+    },
+    "Bash(gh api PATCH:*)": {
+      "what": "Direct GitHub API PATCH call (used for fine-grained PR/issue/repo updates).",
+      "why": "Mutates remote state on github.com. Recoverable but logged."
+    },
+    "Bash(gh api POST:*)": {
+      "what": "Direct GitHub API POST call.",
+      "why": "Mutates remote state."
+    },
+    "Bash(gh api DELETE:*)": {
+      "what": "Direct GitHub API DELETE call.",
+      "why": "Mutates remote state, often irreversibly (e.g., deleting a release)."
+    },
+    "Bash(gh api PUT:*)": {
+      "what": "Direct GitHub API PUT call.",
+      "why": "Mutates remote state."
+    },
+    "Bash(rm -rf:*)": {
+      "what": "Recursive force-delete — removes a directory tree without confirmation.",
+      "why": "Hard-denied. The classic disaster. Once 'rm -rf /important/path' runs there's no recovery short of backups. Lower-friction alternatives: rm individual files, git restore, trash-cli."
+    },
+    "Bash(git push --force:*)": {
+      "what": "Force-push, overwriting remote branch history.",
+      "why": "Hard-denied. Destroys teammates' commits if they pushed in between. Use --force-with-lease (still confirm) when you genuinely need to rewrite a remote branch."
+    },
+    "Bash(git push -f:*)": {
+      "what": "Short flag for force-push.",
+      "why": "Hard-denied. Same reason as --force."
+    },
+    "Bash(git reset --hard:*)": {
+      "what": "Discard working-tree and staged changes irreversibly.",
+      "why": "Hard-denied. No undo — uncommitted work is gone. Use git stash or git restore for recoverable alternatives."
+    },
+    "Bash(git clean -fd:*)": {
+      "what": "Force-remove untracked files and directories.",
+      "why": "Hard-denied. Deletes work git doesn't know about — including new files you haven't yet added. Use git clean -ni to preview first."
+    },
+    "Bash(cargo publish:*)": {
+      "what": "Publish a Rust crate to crates.io.",
+      "why": "Hard-denied. crates.io versions are immutable once published. Same supply-chain reasoning as npm publish."
+    },
+    "Bash(curl * | sh)": {
+      "what": "Pipe downloaded content directly into a shell — the 'curl pipe sh' install pattern.",
+      "why": "Hard-denied. Runs arbitrary remote code with zero review. Use the package manager (brew/apt/pip) or download-then-inspect-then-run."
+    },
+    "Bash(curl * | bash)": {
+      "what": "Variant of curl-pipe-sh.",
+      "why": "Hard-denied. Same arbitrary-code concern."
+    },
+    "Bash(wget * | sh)": {
+      "what": "wget variant of curl-pipe-sh.",
+      "why": "Hard-denied. Same arbitrary-code concern."
+    },
+    "Bash(wget * | bash)": {
+      "what": "wget variant of curl-pipe-bash.",
+      "why": "Hard-denied. Same arbitrary-code concern."
+    },
+    "Read(.env)": {
+      "what": "Read an .env file (environment-variable definitions).",
+      "why": "Hard-denied. .env typically holds API keys, DB passwords, and other secrets. If Claude needs an env var, read it via process.env at runtime, not by parsing the file."
+    },
+    "Read(.env.*)": {
+      "what": "Read .env.local, .env.production, .env.staging, etc.",
+      "why": "Hard-denied. Same secrets concern as .env."
+    },
+    "Read(**/*.pem)": {
+      "what": "Read a PEM-encoded private key (TLS certs, SSH keys).",
+      "why": "Hard-denied. Private keys never need to be in an agent's working memory."
+    },
+    "Read(**/*.key)": {
+      "what": "Read any .key file (generic private-key extension).",
+      "why": "Hard-denied. Same private-key concern as .pem."
+    },
+    "Read(**/credentials*)": {
+      "what": "Read any file literally named 'credentials' (AWS, GCP, etc.).",
+      "why": "Hard-denied. AWS ~/.aws/credentials and similar files hold long-lived access keys."
+    },
+    "Read(**/secrets*)": {
+      "what": "Read any file literally named 'secrets' (generic catch-all).",
+      "why": "Hard-denied. Files literally named 'secrets' are almost always exactly that."
+    }
+  }
+}
