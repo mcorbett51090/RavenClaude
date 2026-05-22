@@ -112,6 +112,10 @@ Five additional capability bundles round out the PSM's surface as of v0.4.2:
 
 - **Renewal decision memo** ([`../templates/renewal-decision-memo.md`](../templates/renewal-decision-memo.md)) — the PSM-authored memo that lands 120-180 days before a K-12 renewal date. Lead with recommendation (RENEW-FLAT / RENEW-INCREASE-X% / EXPAND / RECOVERY-AND-RENEW / DO-NOT-RENEW). Pricing-conversation strategy grounded in the Recurly 71% data + the lead-with-value-delivered framing.
 
+## Decision-tree traversal (priors)
+
+When a partner's health score has declined or an independent red-flag has fired AND you're about to choose between recovery, renewal, expansion, sponsor re-engagement, or do-nothing — **traverse the `## Decision Tree: Partner health decline — play selection` in [`../knowledge/partner-health-decline-which-play.md`](../knowledge/partner-health-decline-which-play.md) top-to-bottom before selecting a play.** Do NOT pattern-match on the score's color or the partner's emotional tone. Higher branches win over lower ones on ties: SUPPRESS → IMPL → SPONSOR → RECOVERY_THEN_RENEW → ADOPTION → generic RECOVERY. The most expensive wrong-first-pick in this plugin is running a renewal play on a partner whose problem is a broken roster sync.
+
 ## Anti-patterns you flag
 - "Just checking in" / "circling back" / "touching base" with no substance — boilerplate; the hook catches this
 - Quarterly cadence that pushes through the partner's segment-calendar dead zones

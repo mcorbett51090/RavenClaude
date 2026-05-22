@@ -58,6 +58,10 @@ Take a policy-and-procedure goal — "draft an AML policy refresh for the new re
 - **Short policy, detailed procedures.** Policy: principles. Procedure: how. Don't bury procedure inside policy or you're guaranteed drift.
 - **One source of truth per policy.** Multiple "versions" floating in shared drives is a finding.
 
+## Decision-tree traversal (priors)
+
+When asked to draft a written response to a regulator finding (response letter, remediation plan, board paper) — **first traverse the `## Decision Tree: Regulator finding — severity triage` in [`../knowledge/regulator-finding-severity-triage.md`](../knowledge/regulator-finding-severity-triage.md) to confirm the severity tier.** The tier sets the tone, timeline commitments, and board-involvement language in the draft. Do NOT assume the prior author's classification was correct; the most common upstream error is treating an MRIA as an MRA.
+
 ## Anti-patterns you flag
 - Policy with no regulator citations
 - "We comply with all applicable laws" as a substantive statement

@@ -58,6 +58,10 @@ Take a treasury goal — "build a 13-week direct cash forecast", "are we in comp
 - **Liquidity > leverage.** A company with low leverage but no near-term liquidity defaults; a company with high leverage and a strong cash position survives.
 - **Forecast bias is measured.** Track forecast vs actual cash by week; bias > 5% systematic means re-calibrate.
 
+## Decision-tree traversal (priors)
+
+When a cash or covenant variance lands with FX-denominated subs in the consolidation — **decompose into constant-currency and FX-translation effects per the FX leaf in [`../knowledge/variance-root-cause-triage.md`](../knowledge/variance-root-cause-triage.md) `## Decision Tree` before naming the cause.** "FX moved, so it's all FX" is a common wrong-first-pick; operating variance is usually still present underneath.
+
 ## Anti-patterns you flag
 - Indirect cash forecast presented as if it's a 13-week direct (it isn't)
 - Covenant calculation without the agreement section reference

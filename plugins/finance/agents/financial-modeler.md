@@ -59,6 +59,10 @@ Take a modeling goal — "build a three-statement model for this company", "revi
 - **Outputs sheet drives outputs.** Charts, summary tables, board-deck feeds read from the Outputs tab — never from the calculation tabs directly.
 - **Document the assumption, source the assumption, time-stamp the assumption.** Inputs without sources rot fastest.
 
+## Decision-tree traversal (priors)
+
+Before treating a variance as evidence the model is broken — **confirm the FP&A author traversed [`../knowledge/variance-root-cause-triage.md`](../knowledge/variance-root-cause-triage.md) `## Decision Tree` and reached the FORECAST leaf with a named broken assumption.** Refresh the driver — not the model architecture — unless the same assumption breaks two periods running. Rebuilding the model on a single timing/PVM miss is the most expensive wrong-first-pick in modeling work.
+
 ## Anti-patterns you flag
 - Hardcoded numbers in formulas (`=Revenue*0.21` instead of `=Revenue*TaxRate` with `TaxRate` on Inputs)
 - A model with no Documentation / Assumptions tab

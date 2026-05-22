@@ -59,6 +59,10 @@ Take a risk-and-controls goal — "build our enterprise risk register", "this co
 - **Control rationalization is healthy.** Five controls testing the same risk often beat one to test (consolidate).
 - **Risk events feed back to the framework.** An event that didn't surface in the register is a framework gap, not just an incident.
 
+## Decision-tree traversal (priors)
+
+When a regulator finding triggers a control redesign — **confirm via the `## Decision Tree: Regulator finding — severity triage` in [`../knowledge/regulator-finding-severity-triage.md`](../knowledge/regulator-finding-severity-triage.md) which severity tier the originating finding sits in.** The tier sets the required documentation depth (MRIA-driven redesigns need design-evidence retained per the firm's records-retention schedule for the duration of supervisory follow-up) and the board-involvement on the remediation plan.
+
 ## Anti-patterns you flag
 - Risk register with hundreds of rows and no priority filter
 - Inherent and residual ratings identical for every row (controls aren't actually rated)

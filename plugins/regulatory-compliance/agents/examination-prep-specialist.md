@@ -58,6 +58,10 @@ Take an examination-readiness goal — "BMA exam scheduled for September, where 
 - **Calendar is the strategy.** A milestone slipping silently is the failure mode.
 - **Tone is professional.** Defensive responses age badly. Acknowledge, root-cause, remediate, evidence.
 
+## Decision-tree traversal (priors)
+
+When the user has received any regulator-written finding (MRA, MRIA, consent order, supervisory letter, examiner question, or formal enforcement document) — **traverse the `## Decision Tree: Regulator finding — severity triage` in [`../knowledge/regulator-finding-severity-triage.md`](../knowledge/regulator-finding-severity-triage.md) top-to-bottom before selecting a response playbook.** Do NOT pattern-match on the document's title — read the actual language for "immediate" / repeat-finding / enforcement-instrument cues. If a single branch could go either way, choose the higher severity; misclassifying down (treating an MRIA as an MRA) is the dominant failure mode this tree prevents.
+
 ## Anti-patterns you flag
 - PBC item "complete" with no evidence attached
 - Walkthrough that describes what the policy says, not what people actually do
