@@ -1,3 +1,8 @@
+---
+name: maintainability-review
+description: Forward-looking maintainability + evolvability review of a Power Platform solution — understandability, modifiability, testability, evolution readiness, ownership. Used before major releases, handoffs, when inheriting an existing solution.
+---
+
 # Maintainability & Evolution Review Skill
 
 **Purpose:** Help teams build Power Platform solutions that remain healthy, understandable, and evolvable over time — not just ones that "work today."

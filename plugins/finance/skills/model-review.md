@@ -1,3 +1,8 @@
+---
+name: model-review
+description: 7-pass review of financial models — assumptions, mechanics, integrity (BS balances, CF reconciles), hardcodes, error-checks, scenarios, documentation. Used by `financial-modeler` (primary) and `valuation-analyst` for DCF integrity checks.
+---
+
 # Skill: model-review
 
 **Purpose:** 7-pass review pattern for financial models. Used by `financial-modeler` (primary) and `valuation-analyst` for DCF integrity checks.

@@ -1,3 +1,8 @@
+---
+name: accessibility-review
+description: WCAG 2.2-aligned accessibility audit — semantics, ARIA, keyboard navigation, color contrast, focus management, motion preferences. Severity guide + tooling notes. Used by `accessibility-auditor` (primary).
+---
+
 # Skill: accessibility-review
 
 **Purpose:** WCAG 2.2-aligned accessibility audit. Used by `accessibility-auditor` (primary).

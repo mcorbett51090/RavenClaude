@@ -1,3 +1,8 @@
+---
+name: cube-schema-scaffolding
+description: Scaffold Cube semantic-layer schemas with mandatory `securityContext` baked in for multi-tenant customer-facing dashboards. Includes measure/dimension patterns, pre-aggregation hints, view-level partner-facing query surface, and the cross-boundary denial test. Used by `dashboard-builder` on Case-C productized-SaaS engagements.
+---
+
 # Skill: cube-schema-scaffolding
 
 > **Invoked by:** `dashboard-builder` (primary). Also consulted by `ravenclaude-core/security-reviewer` for `access_policy` correctness.

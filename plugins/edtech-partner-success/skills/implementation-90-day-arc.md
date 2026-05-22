@@ -1,3 +1,8 @@
+---
+name: implementation-90-day-arc
+description: Run the 90-day technical-onboarding arc for a newly-contracted EdTech partner — discovery (weeks 1-2) → integration setup (3-4) → train-the-trainer (5-6) → go-live + Day-30 measurement (7-8) → stabilization + PSM handoff (9-12). Calendar-dead-zone go-live check is the highest-leverage pre-flight. Used by `partner-success-manager` + `learning-analytics-analyst`.
+---
+
 # Skill: implementation-90-day-arc
 
 > **Invoked by:** `partner-success-manager` (the primary owner; coordinates the arc), `learning-analytics-analyst` (first-30-day measurement + signal-baseline establishment).

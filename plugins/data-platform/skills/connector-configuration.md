@@ -1,3 +1,8 @@
+---
+name: connector-configuration
+description: Connector-specific configuration patterns for ELT pipelines — QuickBooks OAuth + rate-limit handling, Stripe webhook + batch hybrid, Salesforce Bulk API 2.0, HubSpot API v3, GA4 BigQuery export, Shopify GraphQL Admin API. Used by `etl-pipeline-engineer` when configuring an Airbyte / Fivetran / n8n connector against a real source.
+---
+
 # Skill: connector-configuration
 
 > **Invoked by:** `etl-pipeline-engineer` (primary), `connector-developer` (custom-connector path).

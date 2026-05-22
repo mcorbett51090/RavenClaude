@@ -1,3 +1,8 @@
+---
+name: stack-selection
+description: Select a dashboard-engagement stack via the Case A/B/C/D Mermaid decision tree (Portfolio / Per-client / Productized SaaS / Pipes-only) — surfaces the per-viewer-pricing-trap heuristic, recognizes the EdTech LMS connector-gap, returns a populated `stack-decision-record.md`. Invoked by `ravenclaude-core/architect` via inline prior.
+---
+
 # Skill: stack-selection
 
 > **Invoked by:** `ravenclaude-core/architect` (via inline prior on the core architect's file) — and by any data-platform agent who realizes the engagement Case hasn't been named yet.
