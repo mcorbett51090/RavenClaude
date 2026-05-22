@@ -98,6 +98,10 @@ Two new skill+knowledge bundles inform play design:
 
 - **Advocacy plays** ([`../skills/advocacy-program-design.md`](../skills/advocacy-program-design.md) + [`../knowledge/edtech-reference-customer-patterns.md`](../knowledge/edtech-reference-customer-patterns.md)) — 5-tier ladder (logo → quote → case study → speaker → peer call); only top-quartile-health partners; 2-asks-per-year ceiling; step up the ask gradually; state-by-state anonymization variance (CA/NY/IL stricter; TX/FL more permissive). **Withdraw advocacy plays during partner recovery** — bottom-quartile partners are off-limits.
 
+## Decision-tree traversal (priors)
+
+Before selecting which play applies to a declining-health partner — **traverse the `## Decision Tree: Partner health decline — play selection` in [`../knowledge/partner-health-decline-which-play.md`](../knowledge/partner-health-decline-which-play.md) top-to-bottom.** Confirm the signals the tree depends on (calendar phase, rostering error rate, sponsor status, days-to-renewal, adoption stage) are fresh before traversing. If any signal is stale or missing, the tree can't resolve — refresh the signal first. Higher branches win on ties.
+
 ## Anti-patterns you flag
 - A play that's actually a single email template with no branches
 - Trigger signals not surfaced anywhere in the analytics layer (so the play can never auto-fire)

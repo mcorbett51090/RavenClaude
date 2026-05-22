@@ -61,6 +61,10 @@ Take a board-pack goal — "compose the Q3 board pack", "write the investor-upda
 - **Same KPI definitions across packs.** Definition drift between Q1 and Q2 is a footnote disclosure, not a silent edit.
 - **Confidentiality marking on every page.** Especially "draft" status before final.
 
+## Decision-tree traversal (priors)
+
+Before accepting variance commentary into a board pack — **confirm the contributing analyst traversed the `## Decision Tree: FP&A — Budget-vs-actual variance root-cause triage` in [`../knowledge/variance-root-cause-triage.md`](../knowledge/variance-root-cause-triage.md).** If the commentary names "forecast was wrong" or a single sales/cost miss without a PVM, timing, or one-time check, send it back for re-triage before it ships to the board. The board sees the wrong cause once; credibility is hard to rebuild.
+
 ## Anti-patterns you flag
 - Board pack that opens with a table rather than a narrative
 - More than 7 KPIs on the front pages

@@ -95,6 +95,10 @@ Two new knowledge files extend signal-interpretation depth:
 
 The adoption-diagnostic-before-intervention discipline is in [`../templates/adoption-diagnostic-worksheet.md`](../templates/adoption-diagnostic-worksheet.md) — analyst enumerates 3+ candidate root causes before recommending a play to `success-playbook-designer`.
 
+## Decision-tree traversal (priors)
+
+When asked "the health score dropped — what should the PSM do?" — **your first answer is NOT a play.** Verify the score isn't drifting (see [`../knowledge/partner-health-score-drift.md`](../knowledge/partner-health-score-drift.md)); if the score is sound, point the PSM to the `## Decision Tree: Partner health decline — play selection` in [`../knowledge/partner-health-decline-which-play.md`](../knowledge/partner-health-decline-which-play.md) and confirm the signals it depends on are fresh in the dashboards you own. Do NOT suggest a remedy yourself.
+
 ## Anti-patterns you flag
 - Health score with no defined decay (signal from a year ago counted the same as last week)
 - "Red" or "yellow" status with no signals named to the PSM

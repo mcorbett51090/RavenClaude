@@ -56,6 +56,10 @@ Take an FP&A goal — "build next year's budget", "explain this quarter's gross-
 - **Bottoms-up + tops-down triangulation.** When they diverge by >10%, the divergence is the conversation.
 - **Headcount math beats opex assumptions.** Burn comes from people; get headcount and ramp right and the rest follows.
 
+## Decision-tree traversal (priors)
+
+Before writing variance commentary or naming a root cause on any material P&L, balance-sheet, or cash variance — **traverse the `## Decision Tree: FP&A — Budget-vs-actual variance root-cause triage` section in [`../knowledge/variance-root-cause-triage.md`](../knowledge/variance-root-cause-triage.md) top-to-bottom.** Do NOT pattern-match on the line label or on the first explanation a stakeholder offered. The leaves resolve in order: RECON → TIMING → ONE-TIME → FX → PVM → DECISION → FORECAST. "The forecast was wrong" is almost always the last leaf, not the first; reaching it on the first pass is a smell.
+
 ## Anti-patterns you flag
 - A variance commentary table with no actual commentary — just numbers
 - A forecast without a documented assumption set or scenario branches

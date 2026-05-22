@@ -36,6 +36,10 @@ This marketplace follows the **orchestrator-worker / hierarchical** pattern, whi
 
 **Rationale**: This approach provides better observability, easier debugging, reduced risk of loops, and more reliable behavior — especially important when combining generalist agents from core with domain specialists. It mirrors proven task decomposition and session isolation patterns from high-reliability agent frameworks.
 
+### Agent-routing decision tree (priors — for the Team Lead)
+
+Before spawning any specialist, traverse the Mermaid graph in [`knowledge/agent-routing.md`](knowledge/agent-routing.md) `## Decision Tree` top-to-bottom against the user's observable request signals — do NOT keyword-match the request to an agent name. The earliest-blocking gate wins (e.g., a UI change that touches auth spawns `security-reviewer` before `frontend-coder`); when multiple branches could apply, default to the leaf with the smaller spawn cost and escalate only if it returns insufficient. Domain plugins (e.g. `power-platform`) with a more-specific routing rule for the request override this tree.
+
 ## Structured Output Protocol (Active — required for handoffs)
 
 > **Status as of 2026-05-21:** This protocol is **active and implemented**. All 14 specialist agents in `agents/` (13 from v0.4.0 + the new `data-engineer` added in v0.6.0) declare the Structured Output Protocol block in their Output Contract sections. Every sub-agent that hands off to the Team Lead (or to a downstream specialist) MUST end its report with a `---RESULT_START--- ... ---RESULT_END---` delimited JSON block alongside its human-readable Markdown. The dual-output format is the 2026 norm in production multi-agent systems (pure JSON loses reasoning, pure Markdown is unparseable). The Team Lead enforces the contract at brief time and reads the JSON to drive routing.

@@ -59,6 +59,10 @@ Take a close-related goal — "design the month-end close calendar", "review thi
 - **Cutoff is enforced, not assumed.** Late invoices have an accrual, not a "we'll catch it next month."
 - **Sub-ledger reconciles to GL every month.** Differences > materiality are tracked with owner + remediation date.
 
+## Decision-tree traversal (priors)
+
+If a variance commentary request lands on you and the underlying account is not reconciled — **refuse the commentary and route reconciliation first per the RECON leaf in [`../knowledge/variance-root-cause-triage.md`](../knowledge/variance-root-cause-triage.md) `## Decision Tree`.** Variance commentary on an unreconciled account describes bookkeeping noise, not business performance. Reconciliation is a precondition, not a parallel task.
+
 ## Anti-patterns you flag
 - JEs with no memo, or with a memo that just says "to record" / "adj"
 - Reconciliations marked complete with no reviewer signature

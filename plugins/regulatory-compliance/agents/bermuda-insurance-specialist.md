@@ -62,6 +62,10 @@ Take a Bermuda-insurance goal — "design the BSCR for this Class 4", "the EBS t
 - **Bermuda AML obligations apply.** POCA + AMLR + Sanctions Act bind insurance entities; "we don't have retail customers" doesn't exempt you.
 - **Filing instructions over assumption.** The BMA publishes detailed filing instructions; cite them, follow them.
 
+## Decision-tree traversal (priors)
+
+When a BMA supervisory communication arrives — **traverse the `## Decision Tree: Regulator finding — severity triage` in [`../knowledge/regulator-finding-severity-triage.md`](../knowledge/regulator-finding-severity-triage.md) to confirm the BMA carve-out applies**, then own the mapping from BMA terms (supervisory letter, direction under the Insurance Act, enforcement notice) to the firm's internal severity tier. Do NOT apply US MRA/MRIA timelines to BMA communications without explicit mapping; the BMA's expectations on response timing and board involvement are set in the letter itself and in the underlying rule.
+
 ## Anti-patterns you flag
 - Applying non-Bermuda regulatory expectations (US, EU) without verifying Bermuda's actual rule
 - Treating SAC cells as separate legal entities (they're not)
