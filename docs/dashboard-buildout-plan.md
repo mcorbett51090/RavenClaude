@@ -1136,7 +1136,82 @@ All owner-agent references in Phase C resolve to real agents in the plugins. The
 - **Phase C — frontmatter:** each new `commands/*.md` file gets a CI check that it has a frontmatter `description:` field, an `owner:` field naming the responsible agent, and at least one example in the body.
 - **Phase C — owner-agent existence:** the same CI check verifies the `owner:` value resolves to an agent in the same plugin (or an explicit cross-plugin reference like `ravenclaude-core/architect`).
 
-### 5.5 What we explicitly do NOT plan in this document
+### 5.5 Dependency graph — what blocks what
+
+A more compact view of the ordering than the roadmap table. Each phase is a node; arrows indicate "this must ship first."
+
+```
+  Phase A (multi-layer posture)
+       │
+       ├──> Phase B.1 (Commands tab — bare, no scope-aware UI)
+       │         │
+       │         ├──> Phase B.3 (palette overlay)
+       │         │
+       │         └──> Phase B.4.4 (Health tab — depends on merge-preview from Phase A)
+       │
+       ├──> Phase B.2 (Install tab + plugin switcher)
+       │         │
+       │         └──> Phase B.4.5 (Update notifier)
+       │
+       └──> Phase B.4.1 (Agents tab) — independent of merge model but depends on Team Lead reading agents.yaml
+
+  Phase C (per-plugin commands)
+       │
+       └──> compositionally appears in Phase B.1 (the more commands exist, the more the tab is useful)
+            Phase C does not BLOCK B.1; B.1 ships with the 3 existing commands and grows.
+
+  Phase B.4.2 (Environment tab) — independent of everything else; can ship any time
+  Phase B.4.3 (Scenarios tab) — independent; depends on /wrap output stabilizing
+  Phase D (Command builder) — depends on at least 5 commands declaring arg schemas; Phase C must be partway in
+```
+
+**Critical path:** A → B.1 → B.4.4. The Health tab is the most consequential downstream deliverable because it makes the merge model visible to users — without it, Phase A's "user-scope default" creates a surprise (R11). Health-tab ship parity with Phase A's release is the gold standard; if that's not realistic, Phase A ships with `apply-comfort-posture.py --preview-merge` as the interim diagnostic and Health tab follows in the next minor.
+
+**Parallelizable:** B.2 (Install tab), B.4.1 (Agents tab), B.4.2 (Environment tab), and Phase C commands are all independently shippable once A is out. They can be assigned in any order.
+
+### 5.6 Decisions taken in this document vs decisions deferred
+
+A summary table for the impatient reviewer:
+
+| Decision | Taken in this doc | Deferred to follow-up |
+|---|---|---|
+| Multi-layer posture: yes, ship it | ✅ Phase A | — |
+| Default `--scope` for `/set-posture` | ✅ `user` (was `project`) | Confirm with Matt (open Q #1) |
+| Permission rule semantics | ✅ MERGE across layers, deny absolute | — (this is Claude Code's behavior, not ours to change) |
+| Project-scope confirmation modal | ✅ ships with Phase A | Strictness (open Q #14) |
+| Commands tab first UI | ✅ Card grid (Design 1) | — |
+| Commands tab second UI | ✅ Palette overlay (Design 2) | — |
+| Commands tab third UI | ✅ Builder (Design 4) deferred | Gated on arg-schema work |
+| Accordion (Design 3) | ✅ explicitly skipped | — |
+| Install tab rename | 🟡 recommended (Setup / Welcome) | Confirm (open Q #13) |
+| `/install-doctor` as own command | 🟡 recommended | Confirm (open Q #3) |
+| Per-agent enable/disable (B.4.1) | 🟡 sequenced post-A/B | Confirm phasing (open Q #4) |
+| `/security-review` rename to `/team-security-review` | 🟡 recommended | Confirm (open Q #11) |
+| Infrastructure cmds use `/rc:` prefix | 🟡 recommended | Confirm (open Q #12) |
+| Health tab reads enterprise layer | 🟡 recommended best-effort | Confirm path-resolution (open Q #10) |
+| Plugin switcher in header | 🟡 recommended | Confirm (open Q #2) |
+| Dashboard rebrand to "RavenClaude dashboard" | 🟡 recommended | Confirm (open Q #6) |
+| Mobile: launch buttons disabled | 🟡 recommended | Confirm (open Q #7) |
+| Default 20 most-used personalization | 🟡 v0.3.0 | — |
+| Owner-agent shown on cards | ✅ yes (recommended in open Q #9) | — |
+
+Legend: ✅ = the doc commits to this; 🟡 = the doc *recommends* this and flags an open question for Matt.
+
+### 5.7 Composition with proposal 003
+
+This plan is a follow-up to proposal 003 (per-plugin dashboard). It does NOT supersede or re-decide anything in 003 — it picks up where 003 left off:
+
+- **003 §3** (no backend) — honored. All new tabs (Commands, Install/Setup, Agents, Health, Environment, Scenarios) are static HTML.
+- **003 §4.3** (tab list) — extended from Settings/Commands/Trees/Activity to add Install (→Setup), Agents, Health. Trees and Activity tabs are untouched here.
+- **003 §4.7** (Activity feed) — out of scope; honored as-is.
+- **003 §4.8** (Trees view) — out of scope; honored as-is.
+- **003 §7.1** (per-layer posture concept) — Phase A is the *implementation* of the concept 003 sketched; semantics refined here (merge model).
+- **003 §9** (security: file:// constraints, claude-cli:// hardening, hard-coded `q`) — all preserved. The Launch deep-link mechanic in B.2.4 explicitly references and inherits the 003 §9 hardening rules.
+- **003 §10** (release plan) — extended with the phase ordering in §5.3.
+
+If anything in this plan contradicts proposal 003, **proposal 003 wins** — surface the contradiction for Matt's decision.
+
+### 5.8 What we explicitly do NOT plan in this document
 
 - Tree-viewer interactions beyond proposal 003 §4.8. Out of scope.
 - Activity-feed redesign. Proposal 003 §4.7 is honored as-is.
@@ -1168,3 +1243,6 @@ All owner-agent references in Phase C resolve to real agents in the plugins. The
 
 - **v1 (2026-05-22, overnight, Claude):** First full pass. Covers current-state analysis, Phase A multi-layer posture, Phase B dashboard build-out (IA + 3+ slash-tab UI designs + Install tab + 5 additional panels), Phase C ~95 proposed commands across all 7 plugins (with the existing 3 explicitly preserved), Phase D risks / open questions / phased roadmap.
 - **v2 (2026-05-23, autonomous, Claude):** Merge-model correction. The v1 draft described cross-layer precedence as "local > project > user — more-specific layer wins," which is the model for *non-permission* settings (theme, model). For `permissions.{allow,ask,deny}`, Claude Code **merges** rules across layers and resolves per-call as `deny > ask > allow`, with `deny` in any layer being absolute. §1.4 was rewritten to state the merge model explicitly with a worked example. §2.3.3 was rewritten to derive Phase A's design from the merge model (was: "local layer wins"; now: "project layer is a permission floor that personal layers cannot relax, only further restrict"). §2.3.5 adds a revised scope-selector design that treats Project-scope as a load-bearing team-policy choice (separate visual treatment, confirmation modal, `allow`-emission warning). §2.3.6 adds a merge-model nuance to the YAML/effective-state discussion and points to a new `--preview-merge` CLI flag. §2.3.7 (migration) rewrites the banner copy to surface the floor/ceiling distinction. R11–R13 add three new risks (merge-model surprise, project-`allow` foot-gun, enterprise layer invisibility). v1's §2.3.1 is left in place but annotated as superseded by §2.3.5.
+- **v3 (2026-05-23, autonomous, Claude):** Slash-commands tab + Install tab refinements. Added B.2.2 head-to-head comparison matrix scoring the 4 UI alternatives (card grid / palette / accordion / builder) on discoverability / speed / scale / a11y / build cost — confirms "card grid first, palette overlay second" as the right phasing. Added B.3.5 chicken-and-egg gap (a brand-new user can't open `dashboard.html` until the plugin is installed, so the "Install" tab's real audience is users who *already* installed and need the next step — recommend rename to "Setup" / "Welcome"). Added B.3.6 private-marketplace access (the repo is private; `/plugin marketplace add` 404s without GitHub auth — need Step 0 in repo-guide + a `gh repo view` check in the doctor). Added B.3.7 failure-mode table (5 most common install/first-run failures and the tab's response).
+- **v4 (2026-05-23, autonomous, Claude):** Naming / collision / owner-existence audits. Added §4.9 naming and namespacing — flagged `/security-review` as colliding with the Claude Code built-in skill (rename to `/team-security-review`); proposed `/rc:` qualified prefix for infrastructure commands that Claude Code might add later; proposed `scripts/audit-command-collisions.py` as a new CI gate. Added §4.10 owner-agent inventory — verified every "Owner" column entry across the 7 plugins resolves to a real agent on disk; 55 agents total, 95 commands; ~10 agents intentionally have zero dedicated commands (security-reviewer, prompt-engineer, the coders, designer, data-engineer, tester-qa) because their work is in-conversation. Added open questions #10-14 (enterprise-layer reading, `/security-review` rename, infrastructure-command namespacing, Install tab rename, project-scope modal strictness). Expanded §5.4 tests with merge-model property check, allow-at-project lint, built-in collision audit, owner-agent existence check.
+- **v5 (2026-05-23, autonomous, Claude):** Structural / decision-log additions. §5.5 dependency graph showing A → B.1 → B.4.4 as the critical path (Health tab makes the merge model visible to users; without it the user-scope-default change surprises). §5.6 decisions-taken vs decisions-deferred table — every recommendation in the doc tagged ✅ (committed) or 🟡 (recommended, open question for Matt). §5.7 composition with proposal 003 — explicit reconciliation showing 003 §3/§4.3/§4.7/§4.8/§7.1/§9/§10 are all honored by this plan, with "proposal 003 wins on contradictions" as the tie-breaker rule. Renumbered the old §5.5 ("What we explicitly do NOT plan") to §5.8.
