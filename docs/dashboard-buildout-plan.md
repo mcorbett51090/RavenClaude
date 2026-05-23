@@ -538,7 +538,29 @@ Assembled command:
 
 **Mockup sketch (described):** a single command-name dropdown at top; below it, a dynamically-rendered form with one row per arg (uses the same form-rendering code as the Settings tab's category rows); at the bottom, a live-updating monospace preview of the assembled command + Launch/Copy/Open buttons.
 
-#### B.2.2 Recommendation
+#### B.2.2 Comparison matrix — head-to-head decision rubric
+
+Five attributes matter for the Commands tab: **discoverability** (can a new user find a command they don't already know exists?), **speed-to-launch** (how many clicks/keystrokes from intent to deep-link?), **scale** (does it stay usable at 95+ commands?), **a11y** (keyboard + screen-reader + touch), and **build cost** (engineering hours to ship).
+
+| Design | Discoverability | Speed-to-launch | Scale to 95+ | a11y | Build cost | Best for |
+|---|---|---|---|---|---|---|
+| **1. Card grid** | ★★★★☆ | ★★★☆☆ (~3 clicks) | ★★★☆☆ (needs default-20 filter) | ★★★☆☆ (hover→focus retrofit) | ★★★☆☆ (6-10h) | First-time users; visual browsers |
+| **2. Command palette** | ★★☆☆☆ (blank-state hostile) | ★★★★★ (1 key + type + Enter) | ★★★★★ | ★★★★★ (keyboard-native) | ★★☆☆☆ (4-6h, no per-card design) | Power users who know command names |
+| **3. Accordion by category** | ★★★★☆ | ★★☆☆☆ (3-4 clicks) | ★★★☆☆ (vertical sprawl) | ★★★★☆ (`<details>`-native) | ★★★★☆ (3-5h, browser-primitive) | Mental-model "I want to do X" browsing |
+| **4. Command builder** | ★★★☆☆ | ★★★★☆ (1 click + form + Enter) | ★★★★☆ (1 dropdown, scaling) | ★★★★☆ | ★★☆☆☆ (8-12h + per-cmd schema work) | Arg-heavy commands; deliberate composition |
+
+**Cumulative score (5 = strongest):**
+
+| Design | Discoverability | Speed | Scale | a11y | Cost | Σ (lower=cheaper, all else higher=better) |
+|---|---|---|---|---|---|---|
+| Card grid | 4 | 3 | 3 | 3 | 3 | **13 + 3-cost** |
+| Palette | 2 | 5 | 5 | 5 | 2 | **17 + 2-cost** |
+| Accordion | 4 | 2 | 3 | 4 | 4 | **13 + 4-cost** |
+| Builder | 3 | 4 | 4 | 4 | 2 | **15 + 2-cost** |
+
+**Reading the matrix:** Palette wins on raw quality but loses on first-time discoverability. Card grid is the best **first** ship because the dashboard is going to be opened by users who've never seen it before. Palette is the right **second** ship because it's a strict productivity upgrade for users who already know what they want — and it composes on top of card grid as a `⌘K` overlay rather than replacing it. Builder is the third investment, gated on commands declaring arg schemas. Accordion is dominated by card-grid-plus-category-chips (same grouping, less vertical sprawl) so we skip it.
+
+#### B.2.3 Recommendation
 
 > **Ship Design 1 (card grid with hover tooltip) for v0.2.0. Add Design 2 (command palette) for v0.3.0 as a `⌘K` overlay on top of Design 1.**
 
@@ -550,7 +572,7 @@ Design 3 (accordion) is appealing for discoverability but is **dominated by Desi
 
 Design 4 (command builder) is **deferred to v0.4.0+** and contingent on commands declaring arg schemas. We'd start by retrofitting `/init-agent-ready` and `/set-posture` (the two commands with the most args) and grow the surface organically.
 
-#### B.2.3 Click behavior — the deep-link mechanic in detail
+#### B.2.4 Click behavior — the deep-link mechanic in detail
 
 Per proposal 003 §9, the dashboard uses `claude-cli://` deep links. Reproduced and elaborated:
 
@@ -689,6 +711,68 @@ Generally, **the Install tab should be the place where "what could go wrong on f
 #### B.3.4 Composition with `/init-agent-ready`
 
 `/init-agent-ready` is the single most-important first-session command. The Install tab links to it twice (Step 5 and a "Launch" button in the footer). The slash command itself already asks the user three questions and shows a Keep/Update/Deny structure. We don't duplicate that logic in the dashboard — we route the user to the command. **The dashboard is the entry-point, the slash command is the workflow.**
+
+#### B.3.5 The chicken-and-egg problem — where does a brand-new user first see this dashboard?
+
+The Install tab lives inside `plugins/ravenclaude-core/dashboard.html`. That HTML file is **shipped inside the plugin** — meaning the user has to install ravenclaude-core *before* they can open the dashboard. So a first-time user reading the Install tab is, by definition, **already past the install step**. The tab is currently misnamed.
+
+There are three plausible audiences:
+
+1. **Users who've already installed ravenclaude-core** — the tab is a verification surface, not an install surface.
+2. **Users who've cloned the marketplace repo but haven't installed any plugin** — they're browsing the source.
+3. **Users who've never touched RavenClaude** — they're on `repo-guide.html` or the GitHub repo readme.
+
+For audience #1, the tab is genuinely useful as "you got this far, now run these next two commands." For audiences #2 and #3, the install instructions belong **outside** the per-plugin dashboard — specifically in `repo-guide.html` (the marketplace-level catalog) and the repo README.
+
+**Recommended split:**
+
+| Surface | Audience | Content |
+|---|---|---|
+| `README.md` at repo root | Audience #3 — never touched it | One-paragraph "what is this", a single `claude` install command, a link to repo-guide.html |
+| `repo-guide.html` | Audience #2 — browsing source | Marketplace overview + a top banner "Install in 2 commands" with the marketplace-add + plugin-install lines |
+| Per-plugin `dashboard.html` Install tab | Audience #1 — installed, opening dashboard | "You've got this plugin installed. Here's what to do next." — points to `/init-agent-ready`, `/set-posture`, and the other plugins they might also want |
+| Per-plugin `dashboard.html` Install tab — "Add more plugins" sub-section | Audience #1 | Lets the user one-click install the other 6 plugins (deep-link to `/plugin install`) without leaving the dashboard |
+
+The **rename** is: per-plugin dashboard's "Install" tab becomes **"Setup"** or **"Welcome"** — emphasizing "you're installed; here's what to do next" rather than "here's how to install." We keep the prerequisites check (Python, gh, etc.) under Welcome because some prereqs are only needed *after* install (e.g., gh is needed by `/wrap` to push scenarios, not by the plugin itself).
+
+#### B.3.6 Private-marketplace access
+
+RavenClaude's `marketplace.json` lives in a **private GitHub repository** (per the house rules in AGENTS.md, the marketplace is private by default; email field stays in until the repo goes public). Practical consequence: a new user cannot just run `/plugin marketplace add https://github.com/mcorbett51090/RavenClaude` and have it work — they need `gh auth login` or a deploy key.
+
+The repo-guide.html and README need to call this out. Specifically:
+
+```
+Step 0 — Get access to the marketplace
+──────────────────────────────────────
+This marketplace is private. You need to either:
+
+  1. Have your GitHub account added to the marketplace repo as a collaborator, OR
+  2. Have a personal access token (PAT) with `repo` scope on the marketplace repo.
+
+Verify access:
+   gh auth login
+   gh repo view mcorbett51090/RavenClaude    # should succeed, not 404
+
+If this 404s, contact Matt or open an issue.
+```
+
+The dashboard's Install tab (B.3.2 Step 1, the prereqs row) gains an additional check:
+- **`gh auth status` succeeds AND `gh repo view mcorbett51090/RavenClaude` succeeds → green check.**
+- **Fails → red x with "you may need to be added to the marketplace repo as a collaborator."**
+
+#### B.3.7 Failure modes — what happens when install goes wrong
+
+The Install tab should anticipate the 3-4 most common failure modes:
+
+| Failure | What it looks like | Tab's response |
+|---|---|---|
+| `/plugin marketplace add` 404s | "Not Found" error in CC | Tab Step 2 has a "Did you get a 404? You may not have access — see Step 0" link |
+| User installed `ravenclaude-core@ravenclaude` but version is wrong | Plugin version mismatch in `/plugin` | Tab Step 4's verify shows "Expected ≥ 0.18.0, found 0.16.0 — run `/plugin marketplace update ravenclaude`" |
+| Hooks not firing after install | Hook output never appears | Tab Step 4 has an "If hooks aren't firing" troubleshooter (re-load plugin, check `~/.claude/plugins/cache/` for cached plugin dir) |
+| `apply-comfort-posture.py` fails on first run | Python error / PyYAML import error | Tab Step 1 prereq check should catch this *before* the user tries to run `/set-posture` |
+| Deep-link from dashboard to CC does nothing | `claude-cli://` not registered | Tab Step 1 prereq check probes for handler; if absent, suggests Claude Code update |
+
+These failure modes go into a collapsible "Troubleshooting" section at the bottom of the Setup tab, organized by which Step the error occurred in.
 
 ### B.4 Other panels worth adding
 
