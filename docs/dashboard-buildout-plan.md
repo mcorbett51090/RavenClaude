@@ -475,6 +475,248 @@ The future `--scope project` mode should default to this "floor only" emission s
 
 Example use case: a developer who's in the middle of a refactor and wants to be sure they don't accidentally commit before review. They add a one-line local-scope deny; it merges with the project floor; effective behavior is "everything project says, plus no commits." When the refactor lands they remove the rule.
 
+### 2.3.9 Concrete code sketch — `apply-comfort-posture.py --scope`
+
+Implementer-facing reference. The diff against today's v0.17.0 script. Today the script always writes `project_root / ".claude" / "settings.json"`; the patch teaches it to resolve the path per scope.
+
+```python
+# At the top of the file, near the other constants:
+LEGACY_SCOPE_ENV = "RAVENCLAUDE_POSTURE_LEGACY_SCOPE"
+SIDE_CAR_FILENAME = ".comfort-posture-applied.json"
+MIGRATION_ACK_PATH = Path.home() / ".claude" / "ravenclaude-state" / "posture-migration-acknowledged"
+
+
+def resolve_settings_path(scope: str, project_root: Path) -> Path:
+    """Return the absolute path of the settings.json file to write at this scope."""
+    if scope == "user":
+        return Path.home() / ".claude" / "settings.json"
+    if scope == "project":
+        return project_root / ".claude" / "settings.json"
+    if scope == "local":
+        return project_root / ".claude" / "settings.local.json"
+    raise ValueError(f"unknown scope: {scope!r}")
+
+
+def resolve_side_car_path(scope: str, project_root: Path) -> Path:
+    """Side-car file recording last-apply timestamp + script version per scope."""
+    if scope == "user":
+        return Path.home() / ".claude" / SIDE_CAR_FILENAME
+    # project + local share the project dir; the filename embeds the scope
+    return project_root / ".claude" / f"{SIDE_CAR_FILENAME[:-5]}.{scope}.json"
+
+
+def detect_no_project_root(start: Path) -> bool:
+    p = start.resolve()
+    while p != p.parent:
+        if (p / ".claude").is_dir() or (p / ".git").is_dir():
+            return False
+        p = p.parent
+    return True
+
+
+def check_ephemeral_env() -> str | None:
+    """Return a warning string if we're in an environment where user-scope is ephemeral."""
+    if os.environ.get("CODESPACE_NAME"):
+        return ("you're in a GitHub Codespace; --scope user writes to an ephemeral home "
+                "that vanishes on Codespace rebuild. Use --scope local if you want the "
+                "rules to persist in the project.")
+    if os.environ.get("CI") in ("1", "true"):
+        return ("you're in a CI environment; --scope user writes to an ephemeral home "
+                "that the next job will not see. This may be intentional (one-off CI) "
+                "or a mistake (you wanted --scope project).")
+    return None
+
+
+def fire_migration_banner_if_needed(scope: str, project_root: Path) -> bool:
+    """Detect legacy v0.17.0 state and offer to migrate. Returns True if banner fired."""
+    if MIGRATION_ACK_PATH.exists():
+        return False  # already acknowledged
+    legacy = project_root / ".claude" / "settings.json"
+    if not legacy.is_file():
+        return False
+    try:
+        data = json.loads(legacy.read_text())
+        perms = data.get("permissions", {})
+        if not (perms.get("allow") or perms.get("ask") or perms.get("deny")):
+            return False  # nothing to migrate
+    except (json.JSONDecodeError, OSError):
+        return False
+    print("WARN: Detected legacy state — posture is applied at project layer "
+          "(the v0.17.0 default).", file=sys.stderr)
+    print("      The new default is --scope user (your machine, all projects).", file=sys.stderr)
+    print("      Choose one:", file=sys.stderr)
+    print("        1. Migrate now to user scope     (recommended for personal use)", file=sys.stderr)
+    print("        2. Keep at project scope         (team-shared / committed)", file=sys.stderr)
+    print("        3. Apply at both                  (project becomes hard floor)", file=sys.stderr)
+    print("      Re-run with --scope {user|project|both} to confirm.", file=sys.stderr)
+    print("      No changes made yet.", file=sys.stderr)
+    return True
+
+
+def maybe_append_to_gitignore(project_root: Path, scope: str) -> None:
+    """Append .claude/settings.local.json to .gitignore if missing. Only fires for --scope local."""
+    if scope != "local":
+        return
+    gi = project_root / ".gitignore"
+    line = ".claude/settings.local.json"
+    if gi.exists() and line in gi.read_text():
+        return
+    with gi.open("a", encoding="utf-8") as f:
+        if gi.stat().st_size > 0 and not gi.read_text().endswith("\n"):
+            f.write("\n")
+        f.write(f"{line}\n")
+    print(f"Appended {line} to {gi.relative_to(project_root)}", file=sys.stderr)
+
+
+def write_side_car(side_car_path: Path, scope: str, script_version: str) -> None:
+    """Record what was applied, when, by which script version."""
+    side_car_path.parent.mkdir(parents=True, exist_ok=True)
+    side_car_path.write_text(json.dumps({
+        "$schema": "https://github.com/mcorbett51090/RavenClaude/blob/main/scripts/comfort-posture-applied-schema.json",
+        "schema_version": 1,
+        "scope": scope,
+        "script_version": script_version,
+        "applied_at": datetime.now(timezone.utc).isoformat(),
+    }, indent=2) + "\n", encoding="utf-8")
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--project-root")
+    p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--scope", choices=["user", "project", "local"], default=None,
+                   help="Which settings layer to write. Default: user (was 'project' in v0.17.0).")
+    p.add_argument("--preview-merge", action="store_true",
+                   help="Print the merged ruleset across all three layers; do not write.")
+    args = p.parse_args()
+
+    # --scope resolution:
+    if args.scope is None:
+        legacy = os.environ.get(LEGACY_SCOPE_ENV)
+        if legacy in ("user", "project", "local"):
+            args.scope = legacy
+            print(f"INFO: {LEGACY_SCOPE_ENV}={legacy} → defaulting to --scope {legacy}", file=sys.stderr)
+        else:
+            args.scope = "user"  # the new default
+
+    root = Path(args.project_root) if args.project_root else find_project_root(Path.cwd())
+
+    if args.scope == "local" and detect_no_project_root(root):
+        print("ERROR: --scope local requires a project root (.git/ or .claude/). "
+              "Run inside a project, or use --scope user.", file=sys.stderr)
+        return 2
+
+    warning = check_ephemeral_env()
+    if warning and args.scope == "user":
+        print(f"WARN: {warning}", file=sys.stderr)
+
+    # Migration banner fires only when scope is explicitly chosen and legacy state exists.
+    if args.scope == "user" and fire_migration_banner_if_needed(args.scope, root):
+        return 0  # banner fired; no changes; user must re-run with explicit confirmation
+
+    settings_path = resolve_settings_path(args.scope, root)
+    side_car_path = resolve_side_car_path(args.scope, root)
+
+    # ... (existing posture-emission logic from v0.17.0, unchanged) ...
+    # then:
+    if not args.dry_run:
+        settings_path.parent.mkdir(parents=True, exist_ok=True)
+        settings_path.write_text(json.dumps(updated, indent=2) + "\n", encoding="utf-8")
+        write_side_car(side_car_path, args.scope, SCRIPT_VERSION)
+        maybe_append_to_gitignore(root, args.scope)
+        MIGRATION_ACK_PATH.parent.mkdir(parents=True, exist_ok=True)
+        MIGRATION_ACK_PATH.touch(exist_ok=True)
+
+    print(f"Applied posture to {settings_path} (scope={args.scope})")
+    return 0
+```
+
+The patch preserves all of v0.17.0's emission logic — it only adds the path-resolution layer, the migration banner, the side-car, the gitignore append, and the ephemeral-env warnings. Implementer effort: **~3-4 hours** to write + **~2-3 hours** of fixtures and tests per §2.5.
+
+### 2.3.10 Concrete code sketch — scope-selector HTML in the Settings tab
+
+The new UI row above the preset bar in the Settings tab:
+
+```html
+<div class="scope-selector" role="radiogroup"
+     aria-labelledby="scope-selector-label">
+  <span class="scope-label" id="scope-selector-label">Apply posture to:</span>
+
+  <div class="scope-options">
+    <label class="scope-option">
+      <input type="radio" name="scope" value="user" checked
+             aria-describedby="scope-user-desc">
+      <span class="scope-name">User</span>
+      <span class="scope-desc" id="scope-user-desc">
+        this machine, all projects
+      </span>
+    </label>
+
+    <label class="scope-option scope-team">
+      <input type="radio" name="scope" value="project"
+             aria-describedby="scope-project-desc">
+      <span class="scope-name">Project</span>
+      <span class="scope-tag">team</span>
+      <span class="scope-desc" id="scope-project-desc">
+        this project, committed
+      </span>
+    </label>
+
+    <label class="scope-option">
+      <input type="radio" name="scope" value="local"
+             aria-describedby="scope-local-desc">
+      <span class="scope-name">Local</span>
+      <span class="scope-desc" id="scope-local-desc">
+        this project, just me (gitignored)
+      </span>
+    </label>
+  </div>
+
+  <button type="button" class="info-btn" id="scope-info-btn"
+          aria-label="What's the difference between scopes?">ⓘ</button>
+</div>
+
+<!-- Confirmation modal for Project scope; hidden until project radio clicked -->
+<div class="modal-backdrop" id="project-scope-modal"
+     role="dialog" aria-modal="true"
+     aria-labelledby="project-scope-modal-title" hidden>
+  <div class="modal">
+    <h2 id="project-scope-modal-title">
+      ⚠ You're about to apply posture at the Project scope
+    </h2>
+    <p class="modal-body">
+      Project-scope rules are <strong>merged into every team member's effective
+      permissions</strong> and cannot be relaxed by their personal layers.
+      Use this only for shared safety policy.
+    </p>
+    <p class="modal-body">
+      <strong>Recommendation:</strong> at Project scope, keep <code>allow</code>
+      rules to a minimum. Most teams want <code>deny</code> + <code>ask</code>
+      at this layer only, with <code>allow</code> rules living at User scope.
+    </p>
+    <details>
+      <summary>Your current posture would emit <strong id="project-allow-count">N</strong>
+              allow rules at project scope</summary>
+      <ul id="project-allow-list" class="modal-rule-list"></ul>
+    </details>
+    <div class="modal-actions">
+      <button type="button" class="btn secondary" id="project-cancel">
+        Cancel (revert to User)
+      </button>
+      <button type="button" class="btn primary" id="project-confirm">
+        I understand — apply at Project
+      </button>
+    </div>
+  </div>
+</div>
+```
+
+The CSS reuses the existing `.modal-backdrop`, `.modal`, `.info-btn` classes already in `dashboard.html`. New classes (`.scope-selector`, `.scope-option`, `.scope-name`, etc.) follow the same naming convention as `.preset-bar` and `.cat-row` so the visual integration is seamless.
+
+The radio group implements the WAI-ARIA APG radio pattern: Tab moves between radio groups (settings UI vs main app), Arrow keys move within the scope radios, Space selects. The `scope-team` modifier on the Project option gets the "team" tag styling (smaller, muted, with a 🌐 icon to signal "shared").
+
+The confirmation modal fires **only** when the user selects Project and the current posture YAML has at least one `allow` rule that would be emitted. If the user's posture is already deny+ask-only, the modal is suppressed (no foot-gun, no friction).
+
 ### 2.4 Edge cases & gotchas
 
 | Case | What happens | Mitigation |
@@ -774,6 +1016,263 @@ Per proposal 003 §9, the dashboard uses `claude-cli://` deep links. Reproduced 
    The fallback if the handler is absent: the click runs the Copy action instead, and a small toast appears: *"Opened in clipboard — paste in Claude Code with Cmd+V."*
 
 4. The `q` allow-list is enforced at **generator time**, not at runtime. Each card's `<a href="claude-cli://...">` is baked into the static HTML by `generate-dashboards.py`. There is no form field or URL parameter that flows into the link. This satisfies the §9 hardening rule "Hard-coded `q` values only."
+
+#### B.2.5 Concrete card markup — HTML/CSS sketch
+
+Implementer-facing reference. A single command card in the recommended Design 1 layout, integrated with the existing dashboard's CSS tokens (`--accent`, `--surface`, `--border`, etc., already defined at the top of `dashboard.html`).
+
+```html
+<!-- Generator emits one of these per command, inside .command-grid wrapper -->
+<article class="command-card" role="article" aria-labelledby="cmd-init-agent-ready">
+  <header class="cmd-card-header">
+    <h3 id="cmd-init-agent-ready" class="cmd-name">
+      <span class="cmd-slash">/</span>init-agent-ready
+    </h3>
+    <span class="cmd-owner" title="Owner agent">
+      ravenclaude-core/architect
+    </span>
+  </header>
+
+  <p class="cmd-desc">
+    Set up agent-readable boundary files (AGENTS.md + CLAUDE.md +
+    .repo-layout.json + optional CI) tailored to this repo's purpose.
+  </p>
+
+  <details class="cmd-tooltip">
+    <summary class="visually-hidden">More about this command</summary>
+    <div class="cmd-tooltip-body">
+      <p><strong>Args:</strong></p>
+      <ul>
+        <li><code>repo-type</code> — application | library | monorepo | …</li>
+        <li><code>ci</code> — yes | no</li>
+        <li><code>hygiene</code> — yes | no</li>
+      </ul>
+      <p><strong>Example invocations:</strong></p>
+      <pre><code>/init-agent-ready
+/init-agent-ready repo-type=plugin-marketplace ci=yes hygiene=yes</code></pre>
+    </div>
+  </details>
+
+  <footer class="cmd-card-actions">
+    <!-- 'launch' has the deep-link href; falls back to copy if probe fails -->
+    <a class="btn primary cmd-launch"
+       href="claude-cli://open?q=%2Finit-agent-ready"
+       data-copy-fallback="/init-agent-ready"
+       data-cmd="/init-agent-ready">
+      Launch
+    </a>
+    <button class="btn secondary cmd-copy"
+            type="button"
+            data-cmd="/init-agent-ready">
+      Copy
+    </button>
+    <button class="btn tertiary cmd-show"
+            type="button"
+            aria-expanded="false"
+            aria-controls="cmd-show-init-agent-ready">
+      Show
+    </button>
+  </footer>
+
+  <!-- 'Show' expands an inline code preview; collapsed by default -->
+  <pre id="cmd-show-init-agent-ready"
+       class="cmd-show-preview"
+       hidden><code>/init-agent-ready</code></pre>
+</article>
+```
+
+```css
+.command-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.command-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+.command-card:hover, .command-card:focus-within {
+  border-color: var(--accent);
+}
+.cmd-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.cmd-name {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+}
+.cmd-slash { color: var(--accent); }
+.cmd-owner {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+.cmd-desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.45;
+  /* Clamp to 3 lines; full text in the details popover */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cmd-tooltip {
+  /* Hidden by default; shown on hover/focus via JS or :hover on the card */
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: var(--surface-2);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: none;
+}
+.command-card:hover .cmd-tooltip,
+.command-card:focus-within .cmd-tooltip {
+  display: block;
+}
+.cmd-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+}
+.cmd-card-actions .btn {
+  font-size: 12px;
+  padding: 4px 10px;
+}
+.btn.primary {
+  background: var(--accent);
+  color: var(--bg);
+  border: 1px solid var(--accent);
+}
+.btn.secondary {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn.tertiary {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid transparent;
+}
+.cmd-show-preview {
+  margin: 6px 0 0;
+  background: var(--surface-2);
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  overflow-x: auto;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .command-card { transition: border-color 80ms ease; }
+}
+@media (max-width: 600px) {
+  .command-grid { grid-template-columns: 1fr; }
+  .cmd-card-actions .btn { flex: 1; min-height: 44px; /* a11y touch target */ }
+  .cmd-launch { /* On mobile, deep link probably won't work — show "Copy" only */ }
+}
+```
+
+```js
+/* Inline JS that wires up the card behaviors. Drops into the existing
+ * <script> block in dashboard.html, near the tab-routing handlers. */
+
+// Probe once on page load; cache result; used to decide whether
+// Launch buttons act as deep links or fall back to Copy.
+let HAS_DEEP_LINK = null;
+async function probeClaudeCliHandler() {
+  if (HAS_DEEP_LINK !== null) return HAS_DEEP_LINK;
+  const cached = sessionStorage.getItem('rc-deep-link-supported');
+  if (cached !== null) {
+    HAS_DEEP_LINK = cached === '1';
+    return HAS_DEEP_LINK;
+  }
+  HAS_DEEP_LINK = await new Promise(resolve => {
+    let resolved = false;
+    const onBlur = () => { if (!resolved) { resolved = true; resolve(true); } };
+    window.addEventListener('blur', onBlur, { once: true });
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = 'claude-cli://probe';
+    document.body.appendChild(iframe);
+    setTimeout(() => {
+      window.removeEventListener('blur', onBlur);
+      if (!resolved) { resolved = true; resolve(false); }
+      iframe.remove();
+    }, 800);
+  });
+  sessionStorage.setItem('rc-deep-link-supported', HAS_DEEP_LINK ? '1' : '0');
+  return HAS_DEEP_LINK;
+}
+
+// Wire up every Launch button: if probe fails, fall back to Copy.
+document.addEventListener('click', async (e) => {
+  const launch = e.target.closest('.cmd-launch');
+  if (!launch) return;
+  const supported = await probeClaudeCliHandler();
+  if (!supported) {
+    e.preventDefault();
+    const cmd = launch.getAttribute('data-copy-fallback');
+    await navigator.clipboard.writeText(cmd);
+    showToast(`Copied "${cmd}" — paste in Claude Code with ${
+      navigator.userAgent.includes('Mac') ? 'Cmd+V' : 'Ctrl+V'
+    }`);
+  }
+  // else: browser handles the claude-cli:// navigation natively.
+  if (typeof window.recordInvocation === 'function') {
+    window.recordInvocation(launch.getAttribute('data-cmd'), 'launch');
+  }
+});
+
+// Copy button — always copies, regardless of deep-link support.
+document.addEventListener('click', async (e) => {
+  const copy = e.target.closest('.cmd-copy');
+  if (!copy) return;
+  const cmd = copy.getAttribute('data-cmd');
+  await navigator.clipboard.writeText(cmd);
+  showToast(`Copied "${cmd}"`);
+  if (typeof window.recordInvocation === 'function') {
+    window.recordInvocation(cmd, 'copy');
+  }
+});
+
+// Show button — expands the inline code preview.
+document.addEventListener('click', (e) => {
+  const show = e.target.closest('.cmd-show');
+  if (!show) return;
+  const targetId = show.getAttribute('aria-controls');
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  const expanded = show.getAttribute('aria-expanded') === 'true';
+  show.setAttribute('aria-expanded', String(!expanded));
+  target.hidden = expanded;
+});
+```
+
+The above is **drop-in ready** — the existing `dashboard.html` already has `--accent`, `--bg`, `--surface`, etc. CSS variables, `.btn` button styles, focus-visible outlines, and reduced-motion handling defined; the new code respects them. The `recordInvocation()` hook is the Phase 0.21.0 telemetry entry point from §5.8.6 — calls if the hook exists, no-op otherwise.
 
 ### B.3 Startup / install area
 
@@ -2508,6 +3007,7 @@ The dashboard reads the file on Commands-tab open via `/__read`, ranks commands 
 - **v4 (2026-05-23, autonomous, Claude):** Naming / collision / owner-existence audits. Added §4.9 naming and namespacing — flagged `/security-review` as colliding with the Claude Code built-in skill (rename to `/team-security-review`); proposed `/rc:` qualified prefix for infrastructure commands that Claude Code might add later; proposed `scripts/audit-command-collisions.py` as a new CI gate. Added §4.10 owner-agent inventory — verified every "Owner" column entry across the 7 plugins resolves to a real agent on disk; 55 agents total, 95 commands; ~10 agents intentionally have zero dedicated commands (security-reviewer, prompt-engineer, the coders, designer, data-engineer, tester-qa) because their work is in-conversation. Added open questions #10-14 (enterprise-layer reading, `/security-review` rename, infrastructure-command namespacing, Install tab rename, project-scope modal strictness). Expanded §5.4 tests with merge-model property check, allow-at-project lint, built-in collision audit, owner-agent existence check.
 - **v5 (2026-05-23, autonomous, Claude):** Structural / decision-log additions. §5.5 dependency graph showing A → B.1 → B.4.4 as the critical path (Health tab makes the merge model visible to users; without it the user-scope-default change surprises). §5.6 decisions-taken vs decisions-deferred table — every recommendation in the doc tagged ✅ (committed) or 🟡 (recommended, open question for Matt). §5.7 composition with proposal 003 — explicit reconciliation showing 003 §4.3/§4.4/§4.7/§4.8/§7.1/§7.4/§9/§11 are all honored by this plan, with "proposal 003 wins on contradictions" as the tie-breaker rule. Renumbered the old §5.5 ("What we explicitly do NOT plan") to §5.8.
 - **v5.1 (2026-05-23, autonomous, Claude):** Cross-reference accuracy fix. v5's §5.7 referenced proposal-003 sections §3 ("no backend") and §10 ("release plan") — neither is accurate (003 §3 is "Prior-art summary"; 003 §10 is "Open questions"). Corrected the citations: "no backend" lives in 003 §4.3 / §4.4; the release plan lives in 003 §11 (Implementation phases). Added a 003 §7.4 reference (team-shared vs personal / gitignore) which the merge-model finding strengthens into a more directive guidance.
+- **v12 (2026-05-23, autonomous, Claude):** Implementer-facing code sketches. (1) §B.2.5 — full HTML + CSS + JS for a single command card in the Design-1 card grid (~200 lines). Drops into the existing `dashboard.html` token system; integrates with the deep-link probe and the optional `recordInvocation()` telemetry hook from §5.8.6. (2) §2.3.9 — full Python patch sketch for `apply-comfort-posture.py --scope` (resolve_settings_path / resolve_side_car_path / detect_no_project_root / check_ephemeral_env / fire_migration_banner_if_needed / maybe_append_to_gitignore / write_side_car), preserving v0.17.0's emission logic untouched. (3) §2.3.10 — HTML for the Phase A scope selector + the project-scope confirmation modal (suppressed when the user's posture has no allow rules to avoid friction).
 - **v11 (2026-05-23, autonomous, Claude):** Four operational additions for ship-readiness. (1) §5.8.3 — v0.18.0 ship checklist enumerating every concrete script change, server change, dashboard change, generator change, CI change, doc change, and 7 manual acceptance tests that must pass before tagging the first Phase A release. Names what is explicitly out of scope for 0.18.0. (2) §5.8.4 — Phase C "first 5 commands per plugin" prioritized shortlist (35 total — 5 new core + 5 per domain plugin). Selection criteria: high traffic, concrete output, low arg-schema burden, polished owner agent. Maps the ~141-command aspirational list onto a ~70-140h actionable shortlist. (3) §5.8.5 — Phase A migration runbook with 9×3 fixture matrix, 7-day ship-day sequence (script-first → dashboard → Health tab → default-flip → human review → retro), soft / hard rollback plans, communication plan. The Day 7 human-review checkpoint is the load-bearing safety net. (4) §5.8.6 — telemetry section: what we measure (command counts + tab opens + scope choices, local-only) vs what we do NOT (args, content, identifying info, network egress); single JSON at `~/.claude/ravenclaude-state/usage.json`, opt-out via `.notrack`, 6-8h effort, sequenced as 0.21.0 to enable personalized command ranking (Q8 resolved).
 - **v10 (2026-05-23, autonomous, Claude):** Executive-summary block added at the top of the document. A 2-minute read covering the three workstreams (Phase A, B, C), the five things to decide first (D1, D5, D7, D12, D14 from §5.8.2), the four "first 4 weeks" milestones (~60 focused hours), the single biggest correction from v1→v2 (permissions MERGE, not override), and the open questions to confirm. Designed for a busy reader who'll later read the full doc selectively.
 - **v9 (2026-05-23, autonomous, Claude):** Two additions. (1) §5.8.1 — second narrative for the team-admin user persona (Sara, 5 minutes); mirror of §5.8's individual-user 30-minute narrative. Tests the project-scope confirmation-modal copy and the dashboard's "denies + asks only at project" nudge. (2) §5.8.2 — Decision summary: a single compact table of all 20 explicit design decisions the doc proposes Matt confirm (D1-D20), plus a re-listed Q1-Q14 of open questions with default behaviors if Matt doesn't answer. Stakeholder-skim affordance — answers "what is this plan asking me to decide?" in one screen.
