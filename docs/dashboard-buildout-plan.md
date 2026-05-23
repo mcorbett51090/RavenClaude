@@ -2119,6 +2119,68 @@ Concrete narrative grounding for the abstract phasing. Reads from the user's POV
 
 This narrative is the **acceptance test for Phase A + B.1 + B.2 + B.4.4 + the renamed Setup tab.** If the user can't reach minute 30 cleanly with the proposed design, the design is wrong.
 
+### 5.8.1 Second narrative — team admin onboards a team (5 minutes, mirror of §5.8)
+
+A different user with different needs: a team lead at a consulting firm who wants to roll RavenClaude out to her team and ensure their **project-scope** settings are governed (not just her own machine).
+
+**Minute 0.** Team lead (Sara) already has RavenClaude installed personally. She's heard Matt's pitch and wants to set up her team's repo. Opens the engagement's git repo in Claude Code; runs `/init-agent-ready` first to land AGENTS.md / CLAUDE.md / .repo-layout.json. ✓
+
+**Minute 2.** Opens the dashboard. Setup tab shows /init-agent-ready ran ✓. Goes to Settings tab. Sees the Apply-to selector defaults to User. Clicks Project. Confirmation modal appears: *"Project-scope rules are merged into every team member's effective permissions and cannot be relaxed by their personal layers. Use this only for shared policy. The patterns flagged below are emitted as allow at project scope — usually you want deny + ask only at this scope. Are you sure?"*
+
+**Minute 3.** Sara reads the modal carefully. She wants the team to: (a) never `git push --force`, (b) never `npm publish`, (c) always be asked before `git push` to main. She picks the "Custom" approach: tweaks just three categories to set tight project rules. Picks "Save" — dashboard offers to write `.ravenclaude/comfort-posture.yaml` with only the team-shared categories filled in (the rest defaulting to her users-scope settings).
+
+**Minute 4.** Runs `/set-posture --scope project`. Output: *"Writing .claude/settings.json (--scope=project) — 0 allow, 3 ask, 8 deny."* She likes the "0 allow at project" outcome — that's exactly the discipline the dashboard nudged her toward. Reviews the diff. Commits.
+
+**Minute 5.** Goes to the Agents tab. Picks the Project scope. Decides her team should NOT use the `data-engineer` agent (her firm has dedicated data engineers; she doesn't want Claude to dispatch to that lane). Disables it. The Agents tab updates the project-layer `.ravenclaude/agents.yaml`. Commits.
+
+Done. Her team will inherit these rules on `git pull`. Individual team members can still add personal user-scope rules; they can't loosen the team's shared rules (merge model). The acceptance test for the **team-admin scope** of the design is: Sara reaches minute 5 without ever needing to read the documentation. The confirmation modal + the "0 allow at project" output + the dashboard's nudge toward "denies + asks only at project" all carry the design intent.
+
+### 5.8.2 Decision summary — what we're asking Matt to confirm
+
+A compact list of the explicit YES / NO / TBD questions across the whole document. Pulled out so a stakeholder can skim without re-reading 2,000 lines.
+
+| # | Decision | Recommendation | Where it lives |
+|---|---|---|---|
+| D1 | New default for `/set-posture` scope | **user** (was project) — personal posture goes at user layer; project file becomes team policy only | §2.2 |
+| D2 | Add migration banner when legacy state detected | **yes** — one-time prompt on first post-upgrade run; persists ack in side-car | §2.3.5 |
+| D3 | Track `set-posture` last-applied via side-car file (not JSON comment) | **yes** — `.claude/.comfort-posture-applied.json` per scope; JSON comments NOT supported per research finding | §1.4 |
+| D4 | Auto-add `.claude/settings.local.json` to `.gitignore` on first `--scope local` | **yes** — server appends if missing; idempotent | §1.4, §5.3.1 |
+| D5 | Phase B.2 slash-tab primary UI design | **Card grid (Design 1)** + `⌘K` palette overlay (Design 2) layered later | §B.2.2 |
+| D6 | Plugin switcher in dashboard header | **yes** — small dropdown top-right; cross-plugin navigation is friction otherwise | §3.1.2, §B.4 (Install tab) |
+| D7 | Add 3 new tabs (Install, Agents, Health) and 1 stretch tab (Environment) | **yes** for Install + Agents + Health; Environment is recommended; Scenarios and Update notifier are bonus | §3.1.1 |
+| D8 | Rename `/security-review` to avoid built-in collision | **yes** — recommend `/team-security-review` | §4.9 |
+| D9 | Namespace infrastructure commands with `/rc:` prefix | **yes** — `/rc:list-plugins`, `/rc:scan-permissions` future-proof against built-in collisions | §4.9 |
+| D10 | Split `/regulatory-return` into four narrower commands | **yes** — `/fatca-filing`, `/crs-filing`, `/supervisory-return-review`, `/ebs-prep` | §4.7.1 |
+| D11 | Reassign `/health-score-refresh` from PSM to learning-analytics-analyst | **yes** — analytics question, not touchpoint | §4.7.1 |
+| D12 | Ship Phase A + Health tab together as 0.18.0 | **yes** — the Health tab is what makes the merge model un-surprising | §5.3, §5.5 |
+| D13 | Health tab includes a "Test a tool call" interactive box | **yes** — load-bearing for answering "why is Claude asking?" | §B.4.4 |
+| D14 | Add `/__read` endpoint to `serve-dashboards.py` with allow-list | **yes** — required by Health, Agents, Environment tabs | §5.3.1 |
+| D15 | Add CI gate `audit-allow-list-drift.py` preventing client/server allow-list drift | **yes** — highest-risk path-traversal regression | §5.3.1 |
+| D16 | Add CI gate `audit-command-collisions.py` for built-in / cross-plugin collisions | **yes** — Phase B.1 prereq | §4.9, §5.4 |
+| D17 | Update notifier mechanism (poll `latest-versions.json` from GitHub Pages) | **yes** — but degrades silently on no network | §B.4.5 |
+| D18 | Mandatory agents enforced by Team Lead orientation pass | **yes** — disabling in user YAML is ignored for mandatory agents with warning | §B.4.1 |
+| D19 | "Scope": store last choice per plugin in `localStorage` | **yes** — saves per-session friction | §2.3.1, §B.4.1 |
+| D20 | Defer Command Builder (Design 4) until commands declare arg schemas | **yes** — Phase D, after first ~6 high-traffic commands have arg-schema declarations | §B.2.2 |
+
+Open questions surfaced for Matt's discretion (re-list of §5.2, deduplicated):
+
+| # | Question | Default if no answer |
+|---|---|---|
+| Q1 | Phase A default scope (`user` vs `project`)? | user — proceed |
+| Q2 | Plugin switcher in header — keep or drop? | keep |
+| Q3 | `/install-doctor` — own command or fold into `/init-agent-ready`? | own command |
+| Q4 | Agents tab ships in Phase B or its own phase? | bundled in 0.22.0 |
+| Q5 | Update notifier — banner or tab or both? | both |
+| Q6 | Rename dashboard from "comfort posture" to "RavenClaude dashboard"? | yes, in 0.18.0 |
+| Q7 | Mobile — Launch buttons disabled or attempted? | disabled with note |
+| Q8 | "Most-used" ranking — hardcoded or personalized? | hardcoded for v0.19.0; personalized for v0.21.0 |
+| Q9 | Show owner-agent in command card corner? | yes |
+| Q10 | Enterprise-layer reading — attempt or skip? | skip; "managed by IT" affordance only |
+| Q11 | `/security-review` rename to `/team-security-review` — yes? | yes |
+| Q12 | `/rc:` qualified prefix for infrastructure commands — yes? | yes |
+| Q13 | Install tab rename to "Setup"? | yes |
+| Q14 | Project-scope confirmation modal strictness — block on "all allow" or warn? | warn (informative, not blocking) |
+
 ### 5.9 What we explicitly do NOT plan in this document
 
 - Tree-viewer interactions beyond proposal 003 §4.8. Out of scope.
@@ -2155,6 +2217,7 @@ This narrative is the **acceptance test for Phase A + B.1 + B.2 + B.4.4 + the re
 - **v4 (2026-05-23, autonomous, Claude):** Naming / collision / owner-existence audits. Added §4.9 naming and namespacing — flagged `/security-review` as colliding with the Claude Code built-in skill (rename to `/team-security-review`); proposed `/rc:` qualified prefix for infrastructure commands that Claude Code might add later; proposed `scripts/audit-command-collisions.py` as a new CI gate. Added §4.10 owner-agent inventory — verified every "Owner" column entry across the 7 plugins resolves to a real agent on disk; 55 agents total, 95 commands; ~10 agents intentionally have zero dedicated commands (security-reviewer, prompt-engineer, the coders, designer, data-engineer, tester-qa) because their work is in-conversation. Added open questions #10-14 (enterprise-layer reading, `/security-review` rename, infrastructure-command namespacing, Install tab rename, project-scope modal strictness). Expanded §5.4 tests with merge-model property check, allow-at-project lint, built-in collision audit, owner-agent existence check.
 - **v5 (2026-05-23, autonomous, Claude):** Structural / decision-log additions. §5.5 dependency graph showing A → B.1 → B.4.4 as the critical path (Health tab makes the merge model visible to users; without it the user-scope-default change surprises). §5.6 decisions-taken vs decisions-deferred table — every recommendation in the doc tagged ✅ (committed) or 🟡 (recommended, open question for Matt). §5.7 composition with proposal 003 — explicit reconciliation showing 003 §4.3/§4.4/§4.7/§4.8/§7.1/§7.4/§9/§11 are all honored by this plan, with "proposal 003 wins on contradictions" as the tie-breaker rule. Renumbered the old §5.5 ("What we explicitly do NOT plan") to §5.8.
 - **v5.1 (2026-05-23, autonomous, Claude):** Cross-reference accuracy fix. v5's §5.7 referenced proposal-003 sections §3 ("no backend") and §10 ("release plan") — neither is accurate (003 §3 is "Prior-art summary"; 003 §10 is "Open questions"). Corrected the citations: "no backend" lives in 003 §4.3 / §4.4; the release plan lives in 003 §11 (Implementation phases). Added a 003 §7.4 reference (team-shared vs personal / gitignore) which the merge-model finding strengthens into a more directive guidance.
+- **v9 (2026-05-23, autonomous, Claude):** Two additions. (1) §5.8.1 — second narrative for the team-admin user persona (Sara, 5 minutes); mirror of §5.8's individual-user 30-minute narrative. Tests the project-scope confirmation-modal copy and the dashboard's "denies + asks only at project" nudge. (2) §5.8.2 — Decision summary: a single compact table of all 20 explicit design decisions the doc proposes Matt confirm (D1-D20), plus a re-listed Q1-Q14 of open questions with default behaviors if Matt doesn't answer. Stakeholder-skim affordance — answers "what is this plan asking me to decide?" in one screen.
 - **v8 (2026-05-23, autonomous, Claude):** Three additions and one update. (1) §B.4.2 Environment tab expanded from a bullet list to a full design (purpose, data sources, UI cards per environment, agent-priors cross-reference, stale warning, what-it-does-NOT-do, 11-12h estimate). (2) §B.4.3 Scenarios tab expanded similarly (multi-axis filters with URL-param state, expanded-row rendering of the 4 sections from /wrap schema, composition with the scenario-retrieval skill, 10-12h estimate). (3) §5.3 Phased roadmap updated with revised effort estimates from v7 spec depth (Health 6→18-20h, Agents 6→19-21h, Environment 3→11-12h, Scenarios 4→10-12h, Update notifier 3→9-10h); total Phase A+B revised from 60-95h → 100-135h; critical-path sequencing recommendation added; "first 4 weeks (target)" concrete week-by-week shipping plan. (4) §5.3.1 — concrete `/__save` and `/__read` allow-list expansion table tracking every new write/read path needed for each phase (12 entries spanning Phase A through B.4.4), plus a new CI gate (`scripts/audit-allow-list-drift.py`). (5) §5.3.2 — glossary of 17 terms used in the plan, ensuring "scope", "layer", "posture", "category", "rule", "level", "bucket", "merge", "emission" etc. are used consistently.
 - **v7 (2026-05-23, autonomous, Claude):** Four major additions. (1) §B.4.1 Agents tab expanded from a bullet list to a full design (purpose, data sources, UI layout, components, settings file shape, Team Lead dispatch behavior, mandatory-agent enforcement, 19-21h effort estimate, sequenced as 0.22.0). (2) §B.4.5 Update notifier expanded from a paragraph to a full design (detection mechanism via `latest-versions.json` served from GitHub Pages, banner + dedicated Changelog tab, dismissal semantics, composition with Phase A migration banner, 9-10h effort estimate). (3) §B.5 Accessibility & i18n checklist — 10 mandatory accessibility requirements cross-cutting all new tabs; i18n deferred but recommends factoring strings into a `STRINGS` block for future-proofing. (4) §B.6 Deep-link mechanic — formal fallback chain (probe → claude-cli://, copy fallback, show fallback), race-the-navigation probe pattern with code, per-browser behavior matrix, hard rules for URL builder. (5) §4.7.1 — per-plugin command additions surfaced by three verification agents: +42 new commands (mostly power-platform +12, finance +12, regulatory-compliance +9), bringing total from ~95 to ~141. Also reassigns `/health-score-refresh` from PSM to learning-analytics-analyst (it's an analytics question, not a touchpoint).
 - **v6 (2026-05-23, autonomous, Claude):** Concrete grounding additions. (1) §B.4.4 Health-tab spec expanded from a hand-wavy bullet list to a full design with purpose, data sources (with `serve-dashboards.py` endpoint additions), UI layout sketch, four-component breakdown, merge-algorithm JS pseudocode, and effort estimate (revised to 18-20h, up from 6-8h — appropriately). The Health tab is on the critical path because it makes the merge model visible to users. (2) §2.3.8 added — concrete YAML + settings.json emission examples per scope, showing how Project-scope emission can silently grant the team all of one user's personal allows (R12 made tangible), and recommending a "denies + asks only" default emission for Project scope. (3) §5.8 First 30 minutes — a narrative walkthrough of a brand-new user's experience from minute 0 to minute 30 post-Phase A+B, including the dashboard's Health tab "Test a tool call" interaction explaining why the user's git push is being asked when they thought they'd allowed it. This narrative is the acceptance test for the proposed design.
