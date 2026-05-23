@@ -40,7 +40,7 @@ This marketplace follows the **orchestrator-worker / hierarchical** pattern, whi
 
 When the Team Lead fans work out across multiple git branches, **how** the sub-agents are launched determines whether they can do the job at all. See [`knowledge/subagent-isolation-and-tooling.md`](knowledge/subagent-isolation-and-tooling.md) for the full lesson. The load-bearing rule:
 
-> Reading a branch needs no isolation (`git show <ref>:<path>` — parallelize freely). Writing a branch (checkout / commit / push) needs Bash, and `isolation: "worktree"` **takes Bash away** in this environment. So: parallel reads yes; for parallel writes, do them in the main agent sequentially, serialize non-isolated agents one-per-branch, or have each agent build its own `git worktree` by hand.
+> Reading a branch needs no isolation or approval (`git show <ref>:<path>` — parallelize across sub-agents freely). Writing a branch (checkout / commit / push) needs approval that **only the main interactive agent can obtain** — background sub-agents are auto-denied git-writes (confirmed for both worktree-isolated _and_ plain non-isolated agents). So: fan reads out to sub-agents, but do all branch-mutating work in the main session, sequentially. `isolation: "worktree"` only makes it worse — it also strips `Read`.
 
 ### Agent-routing decision tree (priors — for the Team Lead)
 
