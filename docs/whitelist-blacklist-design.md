@@ -15,9 +15,13 @@ companion_artifacts:
   - plugins/ravenclaude-core/hooks/guard-destructive.sh (the hook pattern this borrows)
 ---
 
-# Whitelist / blacklist access-control mechanism
+# Allow-list / block-list access-control mechanism
 
 *Drafted by Team Lead 2026-05-23. Design doc — not yet implemented.*
+
+> **⚠ BLOCKING prerequisite (2026-05-23 review): verify whitelist mode before building it.** Whitelist (strict) mode emits a **bare-tool `WebFetch` deny + per-domain allows** and assumes the scoped allows escape the bare-tool deny (§5.4, §6.1). But the repo's own `knowledge/claude-code-permissions.md` — and §6.3 of this very doc (line ~347) — say a **bare-tool deny removes the tool from Claude's context entirely**, which would make whitelist mode produce "no web at all" instead of "only these domains." The doc is internally contradictory on this point. **Run the §13-Q4 spike first** (5-minute scratch-project test: `deny: ["WebFetch"]` + `allow: ["WebFetch(domain:docs.anthropic.com)"]` — does the allowed domain succeed, or does the tool vanish?), record the result in `knowledge/claude-code-permissions.md`, and treat all `mode: whitelist` sections as **PENDING that verification**. If the tool vanishes, whitelist mode needs a hook-only default-deny, not an engine bare-tool deny (the documented `Tool(*)` fallback is unsafe — auto-mode silently drops it).
+>
+> **Terminology:** this doc uses "whitelist/blacklist" throughout, but the canonical terms (including the YAML `mode:` values) should be **`allowlist` / `blocklist`** — clearer and the modern standard. Renaming the `mode:` values is a schema decision worth making **before `schema_version: 5` ships** (a post-publish rename is a migration burden).
 
 ---
 
@@ -194,6 +198,8 @@ Three modes (renaming the abstract whitelist/blacklist semantics into concrete b
 
 The user can always override the default `on_unlisted` explicitly. `mode` is a labeling convenience that picks a sensible default — it does not exclude either list.
 
+> **Fail-closed guard on `on_unlisted: allow` (2026-05-23 review).** `on_unlisted: allow` is a user-authorable fail-open switch: one setting turns "ask on the unknown" into "permit every unlisted target." It must (a) emit a translation-time warning, (b) render in the dashboard with the same red treatment as a `security_deny` edit, and (c) require an explicit confirmation. Symmetrically, the schema rejects blanket allows (`allow: ["*"]`, `allow: ["**"]`, bare-tool allows) at least as strictly as blanket denies — a blanket allow is the safety-subtracting direction.
+
 ### 4.4 Why three modes, not two
 
 A pure "whitelist OR blacklist" binary forces the user into a corner. In practice we want:
@@ -234,7 +240,7 @@ flowchart TD
 
 **Key invariants:**
 
-1. **`security_deny` always wins.** A target listed in both `security_deny` and `access.web.allow` resolves to deny. The translator strips the conflicting allow entry and prints a warning. (Same as the existing `security_deny` stripping logic in `apply-comfort-posture.py` lines 444–446.)
+1. **`security_deny` always wins.** A target listed in both `security_deny` and `access.web.allow` resolves to deny. The translator strips the conflicting allow entry and prints a warning. **(Correction, 2026-05-23 review: the existing `apply-comfort-posture.py` stripping is _exact-string set membership only_ — it does NOT do glob-aware subset matching. The glob-aware stripping this section relies on, e.g. recognizing `0day.click` is covered by `*.click` (§8.3), is _net-new Phase-2 work_, not existing logic. Implement it with `fnmatch` of every `access.*.allow` entry against every `security_deny` glob; do not ship claiming the current exact-string stripper covers globs.)**
 2. **`access.<type>.deny` beats `access.<type>.allow`** within the same target type. The same pattern can't be both — the translator errors on overlap. (Less surprising than silently dropping one.)
 3. **Specificity does NOT win.** If `*.github.com` is in `allow` and `raw.githubusercontent.com` is in `deny`, the deny wins because of rule 2 (deny lists checked first). Users wanting "allow github except raw" write the deny explicitly. Specificity-wins would break the security floor (a more-specific allow could re-permit a denied domain).
 4. **Access-list allows escape upward** past the category's ask level. A category at `always-ask` with a domain in `access.web.allow` results in that domain emitted into `permissions.allow`. This is the **whole point**: lists override category default.
@@ -438,7 +444,7 @@ The translator scans for:
 
 - Same pattern in both `allow` and `deny` of the same access-list target type → error, refuse to translate.
 - Pattern in `access.<type>.allow` that's also in `security_deny` → warn, strip the allow.
-- Pattern that's a strict subset of a `security_deny` pattern (e.g. `WebFetch(domain:0day.click)` allow with `security_deny: ["WebFetch(domain:*.click)"]`) → warn, strip the allow.
+- Pattern that's a strict subset of a `security_deny` pattern (e.g. `WebFetch(domain:0day.click)` allow with `security_deny: ["WebFetch(domain:*.click)"]`) → warn, strip the allow. **(Net-new Phase-2 work — the current translator does exact-string matching only; this glob-subset detection must be built, per the §5.1 correction.)**
 
 The collision report renders in the dashboard's Access tab (§9) as a banner.
 
@@ -505,7 +511,9 @@ Every sub-tab has a "Try a target" input at the bottom. Type a domain / command 
 
 ### 9.5 Save flow
 
-Same as proposal 003 §4.4: **Copy YAML** or **Download YAML**. The page never writes the filesystem. The user pastes the YAML into `.ravenclaude/comfort-posture.yaml` and runs `/set-posture`, which validates against the schema and re-emits `.claude/settings.json` + `.claude/access-lists.json` (the hook input).
+**Reuse the existing File System Access API auto-save (2026-05-23 review).** The Settings tab already auto-saves `comfort-posture.yaml` via the File System Access API (shipped in PR #65, Chrome/Edge); the `access:` block serializes into the **same file**, so the Access tab should reuse that same save path and file handle rather than regressing to a manual copy-paste-then-`/set-posture` flow (which would be a UX regression against the shipped Settings tab). Keep **Download YAML** as the fallback for browsers without the API (Firefox/Safari). After save, `/set-posture` re-emits `.claude/settings.json` + `.claude/access-lists.json` (the hook input) as before.
+
+> **Mode-change confirmation modal (lockout prevention).** Switching a target type to `whitelist`/`allowlist` mode silently denies everything not on the allow-list — a non-developer can lock themselves out and see only silent failures. On any switch _into_ a strict mode, show a modal: *"Switching to allow-list mode. Everything not on your allow-list will be denied. You currently have N allow entries; everything else will be blocked."* with a **"Switch back to block-list (restore defaults)"** recovery affordance that does not require hand-editing YAML.
 
 ---
 
@@ -523,7 +531,7 @@ Same as proposal 003 §4.4: **Copy YAML** or **Download YAML**. The page never w
 
 The dashboard reads this log file at page load (last 50 entries, inline-everything pattern per proposal 003 §4.7) and shows it in the Heimdall panel. Out-of-scope for v0.1.0 but designed-in: an aggregate count of denies per pattern (which rules are doing work? which rules have never matched?), surfaced as a list-pruning suggestion.
 
-**Native Claude Code engine decisions** (the ones we emit as engine rules) do NOT flow through the hook log — Claude Code doesn't expose a hook on "permission check happened." Heimdall logs only the hook-enforced decisions. This is a known gap; see §11 open question Q5.
+**Native Claude Code engine decisions** (the ones we emit as engine rules) do NOT flow through the hook log — Claude Code doesn't expose a hook on "permission check happened." Heimdall logs only the hook-enforced decisions. This is a known gap; see §11 open question Q5. **The dashboard panel must therefore be labeled "Recent access decisions (hook-enforced only)"** with a sub-label noting that engine-enforced WebFetch/MCP decisions are not shown — so an empty log is never misread as "no access happened."
 
 ### 10.2 The lists themselves as a target
 
