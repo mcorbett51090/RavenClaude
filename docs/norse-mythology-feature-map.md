@@ -500,3 +500,147 @@ Cross-checked against the _Poetic Edda_ (especially _Völuspá_, _Grímnismál_,
 - Norse cosmology + nine realms — <https://en.wikipedia.org/wiki/Norse_cosmology>
 
 Source disagreements were preserved in entries where they matter (e.g. Yggdrasil's three roots have two competing maps in the _Prose Edda_ vs. _Grímnismál_; the nine-realms list is a modern synthesis rather than a canonical enumeration).
+
+---
+
+## 8. Expert review (2026-05-23)
+
+A second pass: each of the 11 shortlist candidates (6 Strong fits + 5 Honorable mentions) was put in front of 2–3 RavenClaude specialist agents (architect, security-reviewer, designer, project-manager, documentarian, tester-qa) for an independent verdict. The skip list was also re-examined by a second architect pass.
+
+Where experts disagreed, the disagreement is surfaced rather than averaged. Where they converged, the synthesized verdict reflects the convergence.
+
+### 8.1 — Per-figure synthesis
+
+#### Gleipnir — reframe comfort-posture as a binding of paradoxes
+
+- **Architect:** Approve-with-changes. Pure rename, zero code; only worth it if exactly six axes actually map. Keep as README/intro metaphor; do not rename schema keys.
+- **Security:** Approve-with-changes. Composition is genuinely auditable, but the "weakest ingredient" decay view must be operator-only — never on agent stdout — or it becomes an attacker's target-acquisition aid.
+- **Designer:** Approve. Extend the existing Settings tab with a six-segment "binding health" bar; posture decay (segment dims on rule removal) is essential, not optional.
+- **Documentarian:** Approve. Strongest single fit in the roster; CLI-safe (no diacritics); needs one myth-cite in the posture docs.
+- **Disagreement:** Architect treats this as docs-only; designer + documentarian see real UI value in the binding-bar viz. Architect's "exactly six axes" caveat lands first — do the rename and the docs sentence before committing to the viz.
+- **Synthesized verdict: Approve-with-changes.** Ship the rename + one-sentence cite in posture docs first. Add the six-segment binding-health bar in a follow-up only after confirming the YAML actually decomposes into six canonical ingredients (architect's gate). Decay view stays operator-only (security's gate).
+
+#### Yggdrasil view — interactive marketplace-as-world-tree visualization
+
+- **Architect:** Deny. At 2 plugins, a tree visualization is solving a problem that doesn't exist; revisit at 5+.
+- **Designer:** Approve-with-changes. Ship a static structural diagram (README or dashboard Overview tab) now; defer the interactive version until plugin count grows.
+- **Documentarian:** Approve. The mapping is structurally sound and the name shortens explanations naturally.
+- **Disagreement:** Sharp. Architect wants to defer entirely; designer agrees on deferring the interactive piece but wants a static structural artifact today; documentarian endorses the name regardless.
+- **Synthesized verdict: Deny on the interactive view; Approve-with-changes on a static diagram.** Add a static SVG/ASCII tree to the README (zero implementation cost) so the mental model lands now. Defer the interactive dashboard tab until ~5+ plugins justify it. This honors all three opinions.
+
+#### The Norns panel — past / present / future per plugin
+
+- **Architect:** Approve-with-changes. Maps onto artifacts that already exist; ship as a single dashboard tab with plain-language sub-labels ("Lessons / Current / Proposed") so non-mythology readers grok it.
+- **Designer:** Approve-with-changes. Ship as a collapsible section inside the existing per-plugin Settings tab — _not_ a new top-level tab; persist plain-language subtitles alongside the Norse names at all times.
+- **PM:** Approve-with-changes. Ship past + present columns now; gate the future column on extending the manifest schema with a `next_version` / `roadmap` field — otherwise Skuld will be permanently empty or fabricated.
+- **Documentarian:** Approve. "Norns" is CLI-safe; individual names (Urðr/Verðandi/Skuld) belong as UI labels only.
+- **Disagreement:** Mostly aligned. Architect would build it as a tab; designer says collapsible section inside existing tab. The designer's call is the lighter footprint.
+- **Synthesized verdict: Approve-with-changes.** Ship Urðr + Verðandi columns as a collapsible section inside the existing per-plugin Settings tab. Hold Skuld until a manifest-schema `next_version` field exists. Always show plain-language subtitles.
+
+#### Heimdall surface — unified perimeter-alarm dashboard
+
+- **Architect:** Approve — the candidate to build first. Consolidates four scattered signals (PreToolUse hook denies, validate-layout, validate-marketplace, audit-gates) into one operator view.
+- **Security:** Approve-with-changes. Real MTTN (mean-time-to-notice) win, but the Gjallarhorn banner must be _tiered_ (red for irrecoverable, amber for denials, grey for advisories) and the dashboard must read-only-mirror state — never accept "acknowledge and proceed" for Gjallarhorn-class actions without a second confirmation channel.
+- **Designer:** Approve. Add a new tab labeled "Heimdall" with a subtitle ("Perimeter alerts"); Gjallarhorn as a fixed-position banner; don't bury it.
+- **Documentarian:** Approve. No diacritics; distinction from Huginn/Muninn (outbound scouts vs. perimeter watch) is clean and non-overlapping.
+- **Disagreement:** None — strong cross-expert convergence. This is the most-approved candidate of the 11.
+- **Synthesized verdict: Approve.** Build first. Tier the banner; read-only mirror; plain-language subtitle on the tab; pre-flight check that the hooks emit machine-readable logs before wiring the surface.
+
+#### Mímir's well + Mímir's head — knowledge bank + memory naming
+
+- **Architect:** Approve-with-changes. Use as **narrative labels in docs and dashboard surfaces only**. Do NOT rename directories (`knowledge/`) or files (`MEMORY.md`) — both are referenced by agents and Claude Code conventions; renaming would cascade-break.
+- **Security:** Approve-with-changes. "Memory" deflates user expectations; "Mímir's head" connotes _oracle one consults_, which subtly invites more context-dumping. Pair the rename with (a) a first-write disclosure on `MEMORY.md` ("what does and does not belong here") and (b) a secret-redaction pass blocking writes that look like API keys / JWTs.
+- **Documentarian:** Approve-with-changes. Drop the accent in any CLI-facing form (`/mimir`, `mimir-well`); keep the accented form in docs prose and UI labels.
+- **Disagreement:** All three converge on Approve-with-changes; no real disagreement, just three orthogonal gates.
+- **Synthesized verdict: Approve-with-changes.** Narrative-only renames in docs + dashboard labels (architect's gate). ASCII form `mimir` in any CLI surface (documentarian's gate). Pair with first-write disclosure + secret-redaction guard (security's gate) before adopting "Mímir's head" for the memory subsystem.
+
+#### Sleipnir — naming the worktree-traversal capability
+
+- **Architect:** Deny. Premature naming. There is no discrete "worktree-traversal capability" component — it's `git worktree` + agent cwd handling. Naming a non-component is cart-before-horse.
+- **Designer:** Approve. Cheapest of the six; the naming work is genuinely useful for users unfamiliar with git worktrees. Scope as copy + one status widget in the Activity tab.
+- **Documentarian:** Approve. CLI-safe, phonetically intuitive, myth content points the right way (Sleipnir carries riders safely across realm boundaries).
+- **Disagreement:** Real. Architect says don't name a non-thing; designer + documentarian say the copy-only adoption is harmless and helpful.
+- **Synthesized verdict: Approve-with-changes.** Adopt as a copy/labeling convention only (worktree-list view → "Sleipnir's stables"; worktree-creation → "send Sleipnir"). Do NOT create a Sleipnir component, agent, or slash-command — that's the architect's veto. The label rides on top of the existing infra.
+
+#### Fenrir — bound-danger lane in comfort-posture
+
+- **Architect:** Approve. This adds an actual safety invariant (security_deny rules cannot be silently relaxed by a per-pattern override), not just a name.
+- **Security:** Approve — strongest of the five sensitive ones from a security-ergonomics standpoint. Pure ergonomics win, no new surface. Caveat: annotation must include the _literal_ hook/CI gate that binds the rule, not just prose.
+- **Documentarian:** Approve, contingent on Gleipnir adoption first; needs one myth-cite in posture docs to prevent reading as hyperbole.
+- **Disagreement:** None.
+- **Synthesized verdict: Approve.** Land after Gleipnir. Implement as a security_deny-cannot-be-locally-overridden invariant in the posture translator (architect's contract). Annotate each Fenrir-marked rule with the binding mechanism (security's contract). One myth-cite in docs (documentarian's contract).
+
+#### Bifröst — install-bridge panel
+
+- **Architect:** Approve-with-changes. The dashboard cannot execute `/plugin install` on the user's behalf — slash commands run inside Claude Code, not the dashboard. Bifröst is a checklist + status display, not an automation.
+- **Designer:** Approve-with-changes. Ship as a guided wizard (copy-paste steps with status checks between each), not an interactive orchestrator. The "bridge is down" failure-mode copy is load-bearing.
+- **Documentarian:** Approve-with-changes. Canonical ASCII spelling is `bifrost` everywhere it's typed; accented form in docs prose and display labels only.
+- **Disagreement:** None — three independent reviewers all reached the same "checklist not automation" conclusion.
+- **Synthesized verdict: Approve-with-changes.** Build as a 4-step copy-paste wizard with status verification between steps, named-failure-mode troubleshooting accordion, and the ASCII form `bifrost` in any CLI surface.
+
+#### Mjölnir — release-blessing slash-command
+
+- **Architect:** Approve — direct hit on real toil. Compose existing tools (version bumper, prettier, audit-gates, marketplace.json sync). Do NOT auto-commit or auto-push.
+- **QA:** Approve-with-changes. Ship the **reporting** path first; only add the hard-deny "consecrated" gate (with invalidation semantics for "consecrated but then edited") in a second pass. Each gate failure must produce a named, actionable error.
+- **Documentarian:** Approve-with-changes. ASCII form `/mjolnir` in the CLI; adopt only once the release workflow is actually centralized — don't name a command before it exists.
+- **Disagreement:** Mild. Architect is ready to build now; QA wants a reporting-first staged rollout. The QA caveat is the safer path.
+- **Synthesized verdict: Approve-with-changes.** Ship `/mjolnir` as a release-readiness reporter first. Defer the binding "consecrated" label until invalidation semantics (what un-consecrates a plugin after a post-bless edit) are defined and tested.
+
+#### Ragnarök — disaster-recovery / reset slash-command
+
+- **Architect:** Approve-with-changes. The name actively undermines safe ergonomics — users will treat it as "the nuke" and skip dry-run. Rename to something instrumental like `/reset-plugin-cache`; keep Ragnarök as a docstring nod only. Mandate confirmation prompt + dry-run flag.
+- **Security:** Approve-with-changes. Highest blast radius of all 11. Mandatory gates: (a) user-only invocation (reject if `$CLAUDE_INVOCATION_SOURCE != "user"`); (b) reinstall pins to a user-named commit SHA, not floating `head`; (c) audit snapshot stays inside user's project, never exfiltrated; (d) `MEMORY.md` survives the reset; (e) explicit `security_deny` for non-interactive invocation.
+- **QA:** Approve-with-changes. Atomic-swap implementation is **non-negotiable** — burn-before-reinstall ordering is catastrophic if the marketplace fetch fails after the cache is gone. Dry-run mode is a ship gate, not an option.
+- **Documentarian:** Approve-with-changes. ASCII form `ragnarok` only; adopt only when a genuine DR workflow exists. The heavy name is warranted precisely because the action is heavy.
+- **Disagreement:** **Architect vs. documentarian on the name itself.** Architect says rename to something instrumental; documentarian endorses the dramatic name as honest-about-irreversibility. Security and QA care more about gating than naming.
+- **Synthesized verdict: Approve-with-changes.** Pre-conditions before shipping: atomic-swap (QA gate), user-only invocation + pinned-SHA reinstall + MEMORY.md survival (security gate), dry-run flag (QA + architect gate). On the naming dispute: split the difference — primary command is `/reset-plugin-cache` (instrumental, won't be misread as a stunt); `/ragnarok` is an alias kept in the docs so the metaphor stays cited.
+
+#### Níðhöggr — tech-debt panel
+
+- **Architect:** Deny — premature at 2 plugins. `audit-gates.sh` covers the gate-coverage question; there's no measurable debt for a dashboard to surface yet.
+- **PM:** Approve. High signal, low maintenance burden, directly actionable output. The questions it answers ("plugins not bumped in N months," "hook scripts without CI gates," "superseded decision-log entries") are real questions asked at quarterly review.
+- **Documentarian:** Deny. Three compounding problems: heaviest diacritic burden in the roster (Níðhöggr), doesn't shorten the explanation ("tech debt" is already universal), and the myth's directional content ("feeds on the _dishonored_ dead") is mildly accusatory in a way that's the wrong posture for a debt panel.
+- **Disagreement:** **Strong, three-way.** Architect: too early. PM: high value, build it. Documentarian: useful concept, wrong name.
+- **Synthesized verdict: Deny on Níðhöggr as a name; defer the underlying panel.** The PM's signal is real (a debt-watch panel will earn its keep eventually) but the architect is right that the marketplace doesn't have enough surface to track yet, and the documentarian is right that the name is a net negative even when the panel exists. **When the panel lands, prefer a plain name** ("debt watch") or fold it into Skuld in the Norns panel. Reconsider at 5+ plugins.
+
+---
+
+### 8.2 — Skip-list sanity check
+
+A second architect pass re-examined every "Thin — skip" verdict against the same bar (does the metaphor shorten the explanation? does the myth point the right way? does the feature exist?). **Result: 17 of 18 skips confirmed.** No accidental dismissals.
+
+**One soft rescue candidate: Víðarr.** The original verdict ("audit trail is workmanlike, doesn't need a name") is defensible, but RavenClaude has an emergent surface that wasn't fully accounted for: comfort-posture v0.17.0 now logs every `security_deny` event and per-pattern override, and the dashboard is being styled as Hliðskjálf. The "shoe of scraps slowly assembled" frame shortens the explanation of _why a passive event log matters before it's needed_ — directionally correct, feature exists. Lands on: a posture/security event-log panel in the per-plugin dashboard. **Caveat:** rescue is contingent on that log being surfaced as a named UI panel rather than a buried file. Defer the decision to the Team Lead.
+
+**Ratatoskr** specifically remains a hard reject — the myth's content (the squirrel _slanders_, _distorts_) points the wrong direction for any subagent-message-passing feature, which must be _faithful_. The original verdict on directional content was correct.
+
+**Nine Realms** verdict ("flavor not structure") confirmed. Forcing a count of nine onto a growing plugin set creates maintenance debt; current scope (~2–6 plugins) doesn't justify the cosmology.
+
+---
+
+### 8.3 — Cross-cutting concerns (raised by multiple experts)
+
+- **Consumer-facing surfaces stay plain English.** The architect explicitly flagged this and the designer's verdicts implicitly reinforce it: maintainer-facing dashboards and slash-commands can carry Norse names freely, but the `enforce-layout.sh` deny output, the `/init-agent-ready` flow, error messages from CI gates — these should not require a mythology primer to read. Worth a one-line house rule in `AGENTS.md` once 2–3 of these candidates land.
+- **ASCII-form discipline.** Documentarian flagged it most explicitly, but architect + designer touched it too: any name with a diacritic (`Mímir`, `Bifröst`, `Mjölnir`, `Ragnarök`, `Níðhöggr`) needs a defined ASCII form (`mimir`, `bifrost`, `mjolnir`, `ragnarok`) before it ships in any CLI surface. Codify in a style-guide line before any of these names land in a slash-command.
+- **Operator-only vs. agent-visible.** Security flagged this for Gleipnir's decay view; the same principle applies to Heimdall's deny-verdict log and Fenrir's annotated rules. Things that help a defender act faster can also help an attacker locate the weakest link. Default to operator-only surfaces; promote to broader visibility only after a deliberate review.
+
+---
+
+### 8.4 — Synthesized recommendation summary
+
+| # | Figure | Synthesized verdict | Key gate |
+|---|---|---|---|
+| 1 | Gleipnir | Approve-with-changes | Confirm six-axis decomposition; decay view operator-only |
+| 2 | Yggdrasil view | Deny interactive; Approve static diagram | Build the interactive view at 5+ plugins, not today |
+| 3 | Norns panel | Approve-with-changes | Past + present columns only; Skuld gated on manifest schema |
+| 4 | Heimdall surface | **Approve (build first)** | Tier the banner; read-only mirror |
+| 5 | Mímir's well + head | Approve-with-changes | Narrative-only renames; first-write disclosure + secret redaction |
+| 6 | Sleipnir | Approve-with-changes (copy-only) | No new component; labels + Activity widget |
+| 7 | Fenrir | Approve | Lands after Gleipnir; security_deny-cannot-be-overridden invariant |
+| 8 | Bifröst | Approve-with-changes | Wizard checklist, not automation |
+| 9 | Mjölnir | Approve-with-changes | Reporter first; consecrated label only after invalidation defined |
+| 10 | Ragnarök | Approve-with-changes | Primary command `/reset-plugin-cache` (alias `/ragnarok`); atomic-swap + dry-run mandatory |
+| 11 | Níðhöggr | Deny (the name); defer the underlying panel | Reconsider at 5+ plugins under a plain name or as Skuld content |
+
+**Build order if all approvals land:** Heimdall → Mjölnir (reporter) → Fenrir (after Gleipnir docs) → Norns (past+present) → Bifröst (wizard) → Sleipnir copy → Mímir docs labels → static Yggdrasil diagram. Gleipnir docs rename can run anytime; Ragnarök and Mjölnir-consecrated and Yggdrasil-interactive and Níðhöggr remain deferred.
+
+**One soft rescue from the skip list:** Víðarr, contingent on the posture/security event log surfacing as a named UI panel.
