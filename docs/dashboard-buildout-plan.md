@@ -31,6 +31,8 @@ This document grew from v1 (925 lines) to v14 (3,000+ lines) over 14 iteration p
    - 2.6 Effort estimate
 3. **Phase B — dashboard build-out**
    - B.1 Information architecture
+     - 3.1.1-3.1.2 Tabs, header & global controls
+     - 3.1.3 **Norse-theme toggle** — presentation-only, ON by default (v16)
    - B.2 Slash-commands tab
      - B.2.1 Three UI design alternatives (card grid / palette / accordion / builder)
      - B.2.2 Comparison matrix — head-to-head decision rubric (v3)
@@ -86,10 +88,13 @@ This document grew from v1 (925 lines) to v14 (3,000+ lines) over 14 iteration p
      - 5.8.9 Stretch goals — 15 items deliberately deferred (v13)
      - 5.8.10 Concrete `latest-versions.json` example (v13)
    - 5.9 What we explicitly do NOT plan in this document
+   - 5.10 **Peer review** (v16) — independent review, findings, fixes landed, verdict
 6. **Appendix — references**
-7. **Iteration log** — v1 through v14 changelog
+7. **Iteration log** — v1 through v16 changelog
 
 **v2 headline change:** The §1.4 and §2.3.3 sections have been rewritten to reflect Claude Code's actual cross-layer permission semantics, which the v1 draft got wrong. Permission rules **MERGE** across the user / project / local layers (they don't override per-layer), with `deny > ask > allow` resolving within the merged set, and any `deny` in any layer being absolute. This changes the Phase A recommendation's *rationale* (project file is a permission floor, not a default) without changing the recommendation itself (user-scope default). The dashboard UI in §2.3.5 is updated accordingly.
+
+**v16 headline change (2026-05-23):** Independent peer review landed nine substantive fixes (see §5.10), all 14 open questions in §5.2 are now resolved with the recommended answers locked in, and the Norse-theme toggle (§3.1.3) is added as a presentation-only display layer that ships ON by default with the v0.18.0 dashboard rebrand. Headline command renames: `/security-review` → `/team-security-review`; `/list-plugins`, `/scan-permissions` and other infrastructure commands now take the `/rc:` qualified prefix.
 
 ---
 
@@ -637,7 +642,10 @@ def write_side_car(side_car_path: Path, scope: str, script_version: str) -> None
     """Record what was applied, when, by which script version."""
     side_car_path.parent.mkdir(parents=True, exist_ok=True)
     side_car_path.write_text(json.dumps({
-        "$schema": "https://github.com/mcorbett51090/RavenClaude/blob/main/scripts/comfort-posture-applied-schema.json",
+        # No `$schema` field by design — the side-car is local-only state, not a
+        # published schema. Adding a URL that points at a non-existent file
+        # creates an audit-trail trap; the `schema_version` integer is the
+        # forward-compat lever instead.
         "schema_version": 1,
         "scope": scope,
         "script_version": script_version,
@@ -853,6 +861,127 @@ We add:
 - **Scope indicator** (top-right corner, next to plugin switcher): shows the current scope target ("Apply to: User") so the user knows what they're editing without scrolling.
 - **Save indicator** (top-right corner, near "Connect to file…"): "Auto-saved 14:23" / "Unsaved changes" — already there in the Settings tab but should be global.
 - **Theme toggle** (top-right corner): system / light / dark — already respected via `prefers-color-scheme` but not user-overridable. Low priority; add if hot-keys land.
+
+#### 3.1.3 Norse-theme toggle — presentation-only, ON by default (v16 addition)
+
+A single switch in the header that turns Norse-flavored naming on or off across every tab. **Default: ON.** Functional names are always the canonical identifiers in code, docs, slash commands, file paths, agent slugs, hook names, and any CI / `.repo-layout.json` reference. The Norse layer is a **display map**, not a rename — never load-bearing.
+
+> **The discipline.** Naming must shorten the explanation, not decorate. Norse names are allowed only where they actually shorten — "Hliðskjálf" is faster to say than "the dashboard overview where Odin sees every realm," but `dashboard.html` is faster to read in a file tree than `hlidskjalf.html`. So: **filenames, slugs, identifiers stay functional; the user-visible chrome shows Norse names by default.** A name-map at the top of `dashboard.html` resolves one to the other at render time.
+
+##### Where the toggle lives
+
+Top-right corner of the dashboard header, next to the theme (light / dark) and plugin switcher:
+
+```
+RavenClaude dashboard   [plugin ▾]   ⚒  Norse: ON   ☀/🌙
+                                      └─ click toggles
+```
+
+A single visible label (*"Norse"*) with an ON/OFF state. Tooltip on hover: *"Switch between Norse names (Huginn & Muninn, Hliðskjálf, Forseti) and plain functional names (recon, dashboard, validator). Functional names are always canonical in code; this is a display preference."*
+
+##### How the naming layer is implemented
+
+A single object at the top of the dashboard's inlined `<script>` block — same approach the i18n note in §B.5 already recommends for the `STRINGS` object:
+
+```js
+// Canonical (functional) names are the keys; Norse names are the values.
+// Adding a row here means the UI can swap presentation; nothing in the
+// rest of the script reads keys based on Norse names. Files, agent slugs,
+// command names, hook IDs, .repo-layout.json globs — all stay functional.
+const NORSE_NAMES = {
+  // Tabs
+  "Dashboard":        "Hliðskjálf",       // Odin's high seat — sees every realm
+  "Settings":         "Forseti's bench",  // the god of judgement / arbitration
+  "Commands":         "Gungnir",          // Odin's never-missing spear — one throw lands
+  "Trees":            "Yggdrasil",        // the world-tree
+  "Activity":         "Ratatoskr's log",  // the squirrel that ran messages up & down
+  "Health":           "Heimdall's watch", // the watchman who sees & hears everything
+  "Setup":            "Mímir's well",     // the well of knowledge new arrivals drink from
+  "Agents":           "the Æsir",         // the pantheon of working specialists
+  "Environment":      "the Nine Realms",  // the worlds (DEV/TEST/PROD as worlds)
+  "Scenarios":        "the Sagas",        // recorded lessons from past raids
+  "Changelog":        "the Skald's roll", // the bard's tally of changes
+  // Recurring concepts
+  "Reviewer":         "Forseti",          // judgement
+  "Validator":        "Mímir",            // verifier of knowledge
+  "Watchman":         "Heimdall",         // sentinel
+  "Defender":         "Thor",             // mover-of-blockers
+  "Recon / research": "Huginn & Muninn",  // the two ravens; thought + memory
+  "The plan":         "the Thing",        // the Norse legislative assembly
+  "The team-lead":    "Allfather",        // Odin in his dispatcher role
+};
+
+// Persisted preference (see Persistence below). Default true.
+const norseOn = JSON.parse(
+  localStorage.getItem('rc-dashboard-norse') ?? 'true'
+);
+
+// Render-time helper. Looks up the Norse name; falls back to the functional
+// name if the toggle is off OR if no mapping exists. NEVER the other direction:
+// functional names are canonical, so a missing mapping is not an error.
+function displayName(canonical) {
+  return norseOn ? (NORSE_NAMES[canonical] ?? canonical) : canonical;
+}
+
+// Wiring: render the toggle, update on click, re-render the chrome.
+document.getElementById('norse-toggle').addEventListener('change', (e) => {
+  localStorage.setItem('rc-dashboard-norse', JSON.stringify(e.target.checked));
+  rerenderChrome();  // re-renders tab labels, header copy, modal titles
+});
+```
+
+Every user-facing string that has a Norse equivalent goes through `displayName()`. Strings that don't have a Norse equivalent (the body copy in a modal, button labels like "Save" / "Cancel") render unchanged regardless of the toggle.
+
+##### What flips and what doesn't
+
+| Surface | Flips with toggle | Reason |
+|---|---|---|
+| Tab labels | ✅ | Visible chrome, no impact on code |
+| Modal titles ("Forseti's review" vs "Reviewer") | ✅ | Same |
+| Section headings ("the Sagas" vs "Scenarios") | ✅ | Same |
+| Card subtitles for agent ownership | ✅ | Norse names for the recurring concepts; functional name in tooltip |
+| Slash command names in cards (e.g., `/draft-memo`) | ❌ | These are the literal commands the user types into Claude Code — must match exactly |
+| File paths, hook IDs, agent slugs in docs | ❌ | Canonical |
+| URL anchors / deep-link `q` parameters | ❌ | Canonical |
+| The Setup tab's instructions, the `gh repo view` check copy, command output | ❌ | Practical info; Norse layer would obscure |
+| Tooltip / `aria-label` text | Both | When Norse name shows, the `aria-label` carries the functional name so screen readers and search-by-page-text both work (e.g., `<button aria-label="Open Settings tab">Forseti's bench</button>`) |
+
+The `aria-label` rule is load-bearing — without it, accessibility tools see the decorative name only, which makes the dashboard worse for screen-reader users when the Norse layer is on. The toggle MUST set both surfaces (visible label + aria-label) on every render.
+
+##### Persistence
+
+Stored at the **user scope** of the comfort-posture infrastructure — same place the scope selector's last-choice lives:
+
+- **Where:** `localStorage` key `rc-dashboard-norse` (boolean). Per-machine, per-browser; not synced.
+- **Why localStorage and not the posture YAML:** the toggle is a *presentation* preference; it has no effect on permissions, agent dispatch, or any other behavior. Putting it in `comfort-posture.yaml` would muddy the YAML's contract ("YAML controls Claude's behavior; localStorage controls how the dashboard looks").
+- **Future:** if a user wants their preference synced across machines, a later `~/.claude/ravenclaude-state/dashboard-prefs.json` could mirror the localStorage value. Not part of v16; localStorage is sufficient.
+
+##### Docs and command convention — functional names stay canonical
+
+Locked-in discipline (applies to every doc, command, agent definition, scenario file, and CI gate the marketplace ships):
+
+1. **`commands/*.md` frontmatter `name:` fields, slash-command identifiers, hook IDs, agent slugs, file paths — ALWAYS functional.** A reader who hits `/team-security-review` in a doc never needs to know "Forseti's review" to make sense of it.
+2. **Body copy in docs prefers functional names too.** Norse names may appear in headings or "aka" parentheticals (e.g., "## The Health tab (aka Heimdall's watch)") to anchor users who learned the Norse name first, but the functional name leads.
+3. **Agent definitions stay functional.** `code-reviewer.md`, `security-reviewer.md`, `architect.md` — no `forseti.md` file. The Norse names are conceptual, not structural.
+4. **CI gate (added per v16):** `audit-gates.sh` greps `commands/*.md`, `agents/*.md`, `hooks/*.sh`, `.repo-layout.json`, and any `id:` / `name:` / `slug:` field in YAML frontmatter for any of the Norse names in `NORSE_NAMES` values. Fails the build if a Norse name leaks into a canonical identifier. Effort: ~1 hour to write; ~1 line per check.
+5. **Scenarios files:** the `/wrap` skill captures scenarios with functional names. The Scenarios tab can render them with the Norse layer if toggled, but the file content stays functional.
+
+##### Why ON by default
+
+Matt's preference; the Norse theming is part of the marketplace's identity (RavenClaude → Huginn & Muninn). Users who find it distracting flip one switch and never see it again. Users who like it get it without searching for a setting. Reversing the default later would be a more visible UX change than starting ON.
+
+##### Effort
+
+- Add the `NORSE_NAMES` object + `displayName()` helper to `dashboard.html`: **1 hour**
+- Add the header toggle + `rerenderChrome()` plumbing: **2 hours**
+- Audit every visible label and route through `displayName()`: **2-3 hours** (about 40 strings across 7 tabs)
+- Set `aria-label` on each labeled element to always use the functional name: **1 hour**
+- Write the `audit-gates.sh` Norse-name-leak check: **1 hour**
+- **Subtotal: 7-8 hours.** Sequenced as part of **0.18.0** (ships with the rebranded dashboard header per Q6 — same release; same `<script>` rebuild).
+
+##### Why this isn't over-engineering
+
+The discipline that "naming must shorten the explanation, not decorate" applies here precisely because the Norse layer is segregated from anything load-bearing. The toggle exists to let users opt out of decoration without losing access to anything functional. If the Norse names ever became load-bearing — e.g., a doc that says "configure Heimdall to deny outbound traffic" without a parenthetical — the toggle stops being safe. The CI gate is the enforcement mechanism that keeps the layer safe to flip.
 
 ### B.2 Slash-commands tab
 
@@ -1625,8 +1754,8 @@ A disabled agent is **not silently skipped** — the dispatch failure is reporte
 A plugin declares mandatory agents in its CLAUDE.md under a `## Mandatory agents` section, listing one agent slug per line. The generator parses this into the Agents tab's data inline. If a user edits `.ravenclaude/agents.yaml` manually to disable a mandatory agent, the Team Lead's session-start orientation pass:
 
 1. Detects the conflict.
-2. Emits a one-time warning: *"You've disabled `<agent>` which is marked mandatory by `<plugin>`. The Team Lead will continue to dispatch it; your disable is ignored for this agent."*
-3. Strikes the entry from the YAML on next `/set-agents` (proposed companion command) run.
+2. Emits a warning every session until the user resolves it: *"You've disabled `<agent>` which is marked mandatory by `<plugin>`. The Team Lead will continue to dispatch it; your disable is ignored for this agent. To silence this warning, remove the entry from `.ravenclaude/agents.yaml` or open the Agents tab and click 'Clean up stale entries'."*
+3. **Does NOT silently strike the entry** — the YAML is the user's working file and "additive only" (per the section's earlier rule). The Agents tab surfaces the conflict as a stale-entry indicator with a one-click cleanup. This preserves the "the user owns their YAML" contract and matches the v0.17.0 lesson that derived state (settings.json) is overwritten but source state (the YAML the user edits) is never silently mutated.
 
 ##### Effort estimate
 
@@ -1948,6 +2077,19 @@ function resolveMerge(layers, patternToTest) {
 
 `matchesRule` mirrors Claude Code's pattern engine (whitespace-sensitive, `:*` suffix for prefix, exact otherwise — see `plugins/ravenclaude-core/knowledge/claude-code-permissions.md` §"Bash patterns — the documented fragility"). To avoid drift from upstream's behavior, the matcher is implemented from the public docs, **not** by trying to reverse-engineer Claude Code's source. CI parity check: the `audit-gates.sh` merge-model gate uses the same matcher and validates against known-good fixtures.
 
+**Matcher-divergence guardrail (added per v16 peer review).** The Test-a-tool-call panel's UI MUST display: (a) the matcher's bundled-version tag (e.g., *"matcher v0.18.0, modeled after Claude Code permissions docs as of 2026-05"*), and (b) a one-line disclaimer: *"If Claude Code's actual decision differs from what this panel predicts, file an issue — the matcher is a best-effort reconstruction of upstream semantics, not authoritative."* Reason: the Health tab IS the user's trust surface for the merge model; presenting a divergent matcher's output as fact is exactly the wrong failure mode if upstream changes pattern semantics between two CC releases.
+
+**file:// degradation behavior (added per v16 peer review).** When the dashboard is opened over `file://` (no `serve-dashboards.py`), the four `/__read*` endpoints are unavailable. The Health tab degrades as follows:
+
+| Surface | file:// behavior |
+|---|---|
+| Effective rules (merged) | Empty by default. Shows a non-modal banner: *"Run `python3 scripts/serve-dashboards.py` to populate this view, or use the File System Access API picker below to grant per-file read access."* The picker grants read on each of the 3-4 settings.json layers individually (uses `window.showOpenFilePicker` with `multiple: true`, persists handles in IDB per the existing pattern). |
+| Test a tool call | Operates against whatever subset of layers the user has loaded. The result panel calls out missing layers explicitly: *"Resolution computed against {user, project}; local and enterprise not loaded. Result may differ from runtime."* |
+| Layer view | Each layer's tab shows "Not loaded" until the user grants read; clicking the tab triggers the file-picker. |
+| State health | All "last-run" timestamps are inferred from the side-car files if loadable; otherwise rendered as "unknown" with a "Load .claude/.comfort-posture-applied.json" prompt. |
+
+This degradation is **explicit** — no silent missing data. The banner copy points to the easy fix (run the server). Without this affordance, the Health tab on `file://` would silently lie by computing merges against partial data.
+
 ##### Effort estimate
 
 - `serve-dashboards.py` `/__read` + `/__read-managed` endpoints: **2 hours**
@@ -2183,7 +2325,7 @@ This section proposes the **slash commands** each agent / domain should expose. 
 | `/wrap` *(existing)* | partner-success-manager (lead) | confirm questions | Capture lesson-learned scenario. |
 | `/start-team` | architect | `task`, `priors-file?` | Dispatch the architect + relevant specialists for a focused task; produces a run-artifacts directory under `.ravenclaude/runs/`. |
 | `/code-review` | code-reviewer | `branch?`, `pr?` | Run a focused review against current branch or a PR; emits the SOP JSON block. |
-| `/security-review` | security-reviewer | `branch?`, `path?` | Same as built-in /security-review but composed with this team's rubric. |
+| `/team-security-review` | security-reviewer | `branch?`, `path?` | Renamed from `/security-review` per Q11 — Claude Code ships a built-in `/security-review` that plugin commands cannot shadow. The qualified-form `/ravenclaude-core:security-review` remains available; `/team-security-review` is the discoverable bare form. |
 | `/refresh-knowledge` | deep-researcher | `topic?`, `weekly?` | Run the Researcher meta-skill in quick or weekly mode. |
 | `/draft-memo` | documentarian | `subject`, `audience`, `tone?` | Compose a memo from session context. |
 | `/draft-decision` | architect | `subject`, `options?` | Architecture decision record (ADR) draft. |
@@ -2191,11 +2333,11 @@ This section proposes the **slash commands** each agent / domain should expose. 
 | `/new-worktree` | architect | `name` | Spawns a fresh worktree (already a skill; promote). |
 | `/spawn-team` | architect | `team-spec.yaml` | Dispatch a pre-defined multi-agent team (existing skill, surfaced). |
 | `/install-doctor` | architect | (none) | Phase B.3 Install tab's prereq doctor pass. |
-| `/list-plugins` | (read-only) | (none) | List installed plugins + their versions. |
-| `/reload-plugins` | architect | (none) | Refresh plugin cache from marketplace. |
-| `/scan-permissions` | security-reviewer | `--scope user\|project\|local` | Health-tab implementation: show resolved rules. |
-| `/list-agents` | architect | `plugin?` | Print enabled / disabled agents per plugin. |
-| `/list-skills` | architect | `plugin?` | Same for skills. |
+| `/rc:list-plugins` | (read-only) | (none) | Q12: `/rc:` prefix on infra commands future-proofs against Claude Code adding the bare form. |
+| `/rc:reload-plugins` | architect | (none) | Refresh plugin cache from marketplace. |
+| `/rc:scan-permissions` | security-reviewer | `--scope user\|project\|local` | Health-tab implementation: show resolved rules. |
+| `/rc:list-agents` | architect | `plugin?` | Print enabled / disabled agents per plugin. |
+| `/rc:list-skills` | architect | `plugin?` | Same for skills. |
 | `/raid-add` | project-manager | `kind risk\|action\|issue\|decision`, `summary`, `owner?` | Add a row to RAID log; opens the template file pre-filled. |
 | `/raid-update` | project-manager | `id`, `status?`, `comment?` | Update an existing RAID entry. |
 | `/draft-runbook` | documentarian | `service`, `incident?` | Compose a runbook from session context. |
@@ -2577,32 +2719,35 @@ Each risk scored on likelihood × impact (low/medium/high) and **severity** as t
 | R12 | **Project-layer `allow` is almost always wrong but easy to emit.** A single user pushes personal `mostly-allow` posture into the project file and silently grants the team patterns the team never discussed. | **H × M = High** | Project-scope confirmation modal (§2.3.5) counts emitted `allow` rules and warns; migration banner's option 3 ("apply at both") keeps project to denies+asks only; CI lint flags PRs that gain `permissions.allow` entries in `.claude/settings.json`. |
 | R13 | Enterprise managed-settings denies invisible to Health tab. A pattern that looks `allow`ed in the merged preview can be denied by IT. | L × L = **VLow** | Read enterprise file when permissions allow; if present, show with "Read-only (managed by IT)" tag; if unreadable, show "Cannot read enterprise layer" warning rather than silently dropping. |
 | R14 | **Dashboard generator + posture script drift.** The script's EMISSIONS table and the dashboard's schema-driven form must agree on category names. A category added in one and not the other = silent breakage. | M × M = **Med** | Single source of truth: `dashboard-schema.json` declares categories; both the form generator AND the script read it. CI check verifies the script's EMISSIONS dict keys exactly equal the schema's `categories` enum. |
-| R15 | **/__read endpoint's path-traversal check fails subtly.** A canonicalize-then-compare check that mishandles symlinks could let a crafted path escape the allow-list. | L × H = **Med** | The check uses `Path.resolve().relative_to(REPO_ROOT)` (already used by `/__save`); add fuzzing test in `audit-gates.sh` with 20+ malicious path inputs. Same shape as the existing `/__save` defense, which has held up in v0.16.0/v0.17.0. |
+| R15 | **/__read endpoint's path-traversal check fails subtly.** A canonicalize-then-compare check that mishandles symlinks could let a crafted path escape the allow-list. | L × H = **Med** | Two-tier defense: (i) the **in-tree** `/__read?path=<X>` endpoint uses `Path.resolve().relative_to(REPO_ROOT)` (already used by `/__save`) AND requires the resolved path to appear verbatim in `ALLOWED_READ_TARGETS`; (ii) the **cross-boundary** endpoints `/__read-user` and `/__read-managed` take **no path parameter at all** — they hard-code the OS-resolved path internally, so there is no user input to traverse. Add fuzzing test in `audit-gates.sh` with 20+ malicious path inputs against the parameterized endpoint. Same shape as the existing `/__save` defense, which has held up in v0.16.0/v0.17.0. |
 | R16 | **Worktree confusion.** Phase A documents that worktrees share user-scope but have per-worktree project + local scopes. Power users with 5+ worktrees may not internalize this and see "wrong" rules in worktree N. | M × L = **Low** | The Health tab's "Layer view" shows which file paths are being read; explicit worktree-aware copy when the dashboard detects it's running inside a worktree (matching path on `.claude/worktrees/`). |
 | R17 | **`/install-doctor` failure modes.** The doctor runs on the user's machine; if it crashes (e.g., a quirky Python install), the user sees a stack trace and thinks RavenClaude is broken. | L × M = **Low** | Doctor wrapped in try/except per check; failures report as "could not detect" (yellow) rather than crash. The script exits 0 even if individual checks fail. |
 | R18 | **GitHub Pages outage** blocks Update notifier from fetching `latest-versions.json`. | L × L = **VLow** | Graceful degradation: banner doesn't appear; user manually checks for updates via the marketplace repo. Documented behavior; no new code. |
-| R19 | **Telemetry file corruption.** The single-file JSON usage tracker (`~/.claude/ravenclaude-state/usage.json`) is written on every command invocation. A concurrent invocation could corrupt it. | L × L = **VLow** | File-lock per write or read-modify-write under a lock; lock library is stdlib `fcntl` on POSIX, `msvcrt.locking` on Windows. Worst case if lock fails: drop the write and try next time; no user-visible breakage. |
+| R19 | **Telemetry file corruption.** The single-file JSON usage tracker (`~/.claude/ravenclaude-state/usage.json`) is written on every command invocation. A concurrent invocation could corrupt it. | L × L = **VLow** | **Atomic write via tmp + os.replace** (cross-platform; Windows-safe). The recorder: read the JSON, modify, write to `usage.json.tmp.<PID>`, `os.replace(tmp, final)` — POSIX rename and Windows `MoveFileEx(MOVEFILE_REPLACE_EXISTING)` are both atomic at the filesystem level, so the worst concurrent outcome is one of two writes wins ("last writer wins" — acceptable for telemetry). Avoids the platform-conditional `fcntl`/`msvcrt.locking` complexity that v11 originally suggested. If the read parses as invalid JSON (rare; only if a prior process died mid-write before `os.replace`), recover by treating the file as empty and re-initializing — no user-visible breakage. |
 | R20 | **Migration banner fatigue.** If the script is invoked multiple times before the user acks the banner, the banner re-fires each time. | M × L = **Low** | Ack file at `~/.claude/ravenclaude-state/posture-migration-acknowledged` set on first explicit `--scope <X>` invocation; banner suppresses thereafter. |
 
-### 5.2 Open questions for Matt
+### 5.2 Open questions — RESOLVED
 
-> *Items #1-9 are the v1 questions; #10-14 added in v3-v4 after the merge-model investigation and the chicken-and-egg / namespacing audits.*
+> *Items #1-9 were the v1 questions; #10-14 added in v3-v4. As of v16 (2026-05-23) Matt delegated resolution ("what is recommended? Peer review it and go with it"); every question is now resolved with the recommended answer locked in. Each entry shows: the question, the **decided** answer, and the rationale that made it the right call.*
 
+| # | Question | **DECIDED** | Rationale |
+|---|---|---|---|
+| Q1 | Phase A default scope (`user` vs `project`)? | **`user`** | The merge-model finding (§1.4 / §2.3.3) made this load-bearing: project file is a permission floor that personal layers cannot relax, only further restrict. Personal preferences therefore must NOT live in the project file, because they cannot be overridden by individuals. User scope is where personal posture belongs. Migration banner (D2) catches legacy users. |
+| Q2 | Plugin switcher in header — keep or drop? | **Keep** | Cheap to ship (3 hours; §3.1.2); cross-plugin navigation is genuine friction otherwise (the user has to find the right `file://` URL each time). Top-right dropdown with the 7 plugins listed. |
+| Q3 | `/install-doctor` — own command or fold into `/init-agent-ready`? | **Own command** | Different concerns: doctor is read-only, fast, idempotent, callable any time. `/init-agent-ready` is interactive and writes files. Folding them couples two workflows that benefit from being independently re-runnable. |
+| Q4 | Agents tab ships in Phase B or its own phase? | **Bundled in 0.22.0** (Phase B.4.1) | The spec is well-scoped (§B.4.1 has full design + 19-21h estimate). Bundling with the dependent Team-Lead wiring keeps the Agents tab and its dispatch behavior shipping in lockstep. Deferring it past 0.22.0 leaves the Team Lead's `agents.yaml` read unwired indefinitely. |
+| Q5 | Update notifier — banner or tab or both? | **Both** (one banner, one Changelog tab) | Banner is the unobtrusive nudge that's per-version-dismissable; Changelog tab keeps the structured release notes for browsing. They share data — `latest-versions.json` — so the implementation cost of "both" is essentially the cost of one (§B.4.5). Note: "both" means two surfaces, not two notifiers — clarified per v16 peer review. |
+| Q6 | Rename dashboard from "RavenClaude comfort posture" to "RavenClaude dashboard"? | **Yes, in 0.18.0** | Once Settings is no longer the only live tab, the original name actively misleads. Rename ships alongside Phase A's user-facing copy refresh. |
+| Q7 | Mobile — Launch buttons disabled or attempted? | **Disabled with a note** | Deep links from mobile Safari to a desktop Claude Code session don't work; Copy is the only meaningful mobile action. Render Launch as disabled with tooltip *"Launch requires Claude Code on this device. Use Copy and paste into Claude Code on your desktop."* Avoids an obvious-looking broken button. |
+| Q8 | "Most-used" ranking — hardcoded or personalized? | **Hardcoded for 0.19.0; personalized at 0.21.0** | Personalization needs telemetry (§5.8.6); telemetry needs the Commands tab to exist first. The §4.8 hardcoded top-20 is the bootstrap. Once 0.21.0 telemetry has been live for 30 days, switch to data-driven ranking (with the hardcoded list as the fallback for users who clear telemetry). |
+| Q9 | Show owner-agent in command card corner? | **Yes** | Cheap (~5 lines of HTML/CSS in the card template) and pays off: the Agents tab and Commands tab cross-reference becomes obvious without the user having to read documentation. Already shipped in the §B.2.5 markup sketch. |
+| Q10 | Read the enterprise layer in Health tab? | **Skip by default; surface "managed by IT" affordance only** | Path varies per OS; read may fail with permission errors that are confusing to a non-admin user; and if the file is unreadable, falsely showing "no enterprise rules" is more dangerous than showing "this layer is opaque." The Health tab shows a row for the enterprise layer with status `Read-only (managed by IT) — content not visible from this environment`. A user who needs to see managed settings can open the file directly via their OS file association. |
+| Q11 | `/security-review` rename to avoid the built-in collision? | **Yes — `/team-security-review`** | The Claude Code built-in `/security-review` is the documented system-level command and cannot be shadowed by plugin commands without surprising users. The `/team-security-review` name is unambiguous and discoverable; the qualified-form fallback (`/ravenclaude-core:security-review`) is also available for users who learn it. The Phase C tables (§4.1, §5.8.4) and any docs that reference the old name are updated in this revision. |
+| Q12 | `/rc:` qualified prefix for infrastructure commands? | **Yes** | `/list-plugins`, `/reload-plugins`, `/list-agents`, `/list-skills`, `/scan-permissions` — these are the shape of commands that Claude Code itself might ship as built-ins in a later release. The `/rc:` prefix future-proofs against the collision and signals "this is plugin infrastructure, not user-facing daily work." The CI gate (D16) catches any drift. |
+| Q13 | Install tab rename to "Setup"? | **Yes** | Per §B.3.5, the true audience is users who have *already* installed the plugin (they have to install it to see the dashboard at all). "Setup" / "Welcome" describes the genuine workflow (boundary files, posture, prereqs verification) and avoids the chicken-and-egg framing. Ships in 0.20.0 with the rest of the Setup tab. |
+| Q14 | Project-scope confirmation modal strictness — block or warn? | **Warn (informative)** | Recommended option (a) from the original question. The modal explains the merge-model consequence and surfaces the `allow`-emission count, but does not require typing "i understand." Reason: ergonomics matter for the team-admin who's already familiar with the merge model after their first read — friction every save is over-engineering for the team-admin case (§5.8.1 narrative). Project-scope `allow` emissions, the most dangerous shape, are surfaced explicitly so the warning carries information rather than just inertia. **Project scope's emission default is `denies + asks only`** (per §2.3.8) — the user must explicitly opt in to emitting allow rules at project scope via a YAML flag (`team_policy_only: false`) or the modal's *"Include allows"* checkbox, which itself is unchecked by default. This implements the "default safe / explicit unsafe" principle without blocking the workflow. |
 
-1. **Phase A default scope.** I propose `--scope user` as the new default. Confirm before we ship the migration banner — if you'd rather keep `project` as default for compatibility, the banner becomes opt-in.
-2. **Plugin-switcher in the header.** Cheap to add, but if you'd rather each dashboard be self-contained (no cross-plugin navigation) say so. My instinct is the switcher is useful; you'll know better.
-3. **`/install-doctor` — own slash command, or fold into `/init-agent-ready`?** I lean toward own command because it's read-only and fast; `/init-agent-ready` is interactive and writes files.
-4. **Per-agent enable/disable (B.4.1) — ship in Phase B or defer to its own phase?** It's well-scoped but it adds dispatch-layer wiring to the Team Lead in CLAUDE.md.
-5. **Update notifier (B.4.5) — banner or its own tab or both?** Both feels right; banner is dismissable, tab keeps the changelog.
-6. **Naming — should this dashboard rebrand from "RavenClaude comfort posture" to "RavenClaude dashboard"?** The title today is misleading once Settings is no longer the only tab.
-7. **Mobile.** The dashboard is responsive but Settings is the only tab actually used on mobile so far. Should Commands work on mobile (the deep links won't function from mobile Safari to a desktop Claude Code session)? My guess: mobile is read-only convenience; Launch buttons disabled on mobile with a note.
-8. **The "Show only 20 most-used" default**: ranking is hardcoded today (see §4.8). Should it be **personalized** by reading the user's actual usage from a local file? Probably v0.3.0.
-9. **Should command cards show owner agent in the corner?** Helps map back to the agents tab; small visual cost. Recommendation: yes.
-10. **Merge-model: do we read the enterprise layer?** Phase A §1.4 lists enterprise managed-settings as the top layer. The Health tab's merge preview (B.4.4) does *not* read it by default — the file may not be readable, and on some OSes the path varies. Recommend: best-effort read on supported OSes; warn-and-skip if unreadable. Confirm before we ship.
-11. **`/security-review` collision.** The ravenclaude-core Phase C table proposes a `/security-review` command but Claude Code already ships a built-in `/security-review` skill. Two options: (a) rename to `/team-security-review`; (b) use the qualified form `/ravenclaude-core:security-review` only. Recommend (a) for discoverability.
-12. **Infrastructure commands as qualified names.** `/list-plugins`, `/reload-plugins`, `/list-agents`, `/list-skills`, `/scan-permissions` — these feel like they belong as Claude Code built-ins. If Claude Code adds them later, we collide. Should we ship them as `/rc:list-plugins` etc. (qualified) to be safe?
-13. **Install tab rename.** Phase B.3 argues for renaming "Install" → "Setup" or "Welcome" because the true audience is users who already have the plugin installed. Confirm the rename, or keep "Install" as-is for the prereq doctor surface.
-14. **Project-scope confirmation modal copy.** The §2.3.5 design adds a confirmation modal on `/set-posture --scope project`. Two flavors: (a) gentle "are you sure?" reminder; (b) stricter "this affects everyone on the team; type 'i understand' to confirm." Recommend (a) for ergonomics, but (b) is defensible.
+**Decision posture (v16):** all 14 questions resolved with the doc's own recommended answers (10 of 14 were already labeled "yes" / "recommended" in §5.6 and §5.8.2). The four questions where the recommendation was less explicit — Q10 enterprise layer, Q14 modal strictness, Q5 banner-vs-tab framing, Q8 hardcoded-vs-personalized — have been resolved with the "default safe, explicit visible" principle (skip enterprise read but surface the gap; warn-not-block but make the danger visible; ship both notifier surfaces but call them one feature; hardcode now, personalize when data exists). Each resolution is now decided, not deferred.
 
 ### 5.3 Phased build roadmap (updated v7 with detailed spec estimates)
 
@@ -2743,26 +2888,28 @@ A summary table for the impatient reviewer:
 | Decision | Taken in this doc | Deferred to follow-up |
 |---|---|---|
 | Multi-layer posture: yes, ship it | ✅ Phase A | — |
-| Default `--scope` for `/set-posture` | ✅ `user` (was `project`) | Confirm with Matt (open Q #1) |
-| Permission rule semantics | ✅ MERGE across layers, deny absolute | — (this is Claude Code's behavior, not ours to change) |
-| Project-scope confirmation modal | ✅ ships with Phase A | Strictness (open Q #14) |
+| Default `--scope` for `/set-posture` | ✅ `user` (was `project`) | — (Q1 RESOLVED v16) |
+| Permission rule semantics | ✅ MERGE across layers, deny absolute | — (Claude Code's behavior; not ours to change) |
+| Project-scope confirmation modal | ✅ ships with Phase A; **warn-not-block**, surfaces allow count; emission defaults to denies+asks only | — (Q14 RESOLVED v16) |
 | Commands tab first UI | ✅ Card grid (Design 1) | — |
 | Commands tab second UI | ✅ Palette overlay (Design 2) | — |
 | Commands tab third UI | ✅ Builder (Design 4) deferred | Gated on arg-schema work |
 | Accordion (Design 3) | ✅ explicitly skipped | — |
-| Install tab rename | 🟡 recommended (Setup / Welcome) | Confirm (open Q #13) |
-| `/install-doctor` as own command | 🟡 recommended | Confirm (open Q #3) |
-| Per-agent enable/disable (B.4.1) | 🟡 sequenced post-A/B | Confirm phasing (open Q #4) |
-| `/security-review` rename to `/team-security-review` | 🟡 recommended | Confirm (open Q #11) |
-| Infrastructure cmds use `/rc:` prefix | 🟡 recommended | Confirm (open Q #12) |
-| Health tab reads enterprise layer | 🟡 recommended best-effort | Confirm path-resolution (open Q #10) |
-| Plugin switcher in header | 🟡 recommended | Confirm (open Q #2) |
-| Dashboard rebrand to "RavenClaude dashboard" | 🟡 recommended | Confirm (open Q #6) |
-| Mobile: launch buttons disabled | 🟡 recommended | Confirm (open Q #7) |
-| Default 20 most-used personalization | 🟡 v0.3.0 | — |
-| Owner-agent shown on cards | ✅ yes (recommended in open Q #9) | — |
+| Install tab rename to "Setup" | ✅ ships in 0.20.0 | — (Q13 RESOLVED v16) |
+| `/install-doctor` as own command | ✅ own command (read-only, idempotent, independently re-runnable) | — (Q3 RESOLVED v16) |
+| Per-agent enable/disable (B.4.1) | ✅ bundled in 0.22.0 with Team-Lead wiring | — (Q4 RESOLVED v16) |
+| `/security-review` rename to `/team-security-review` | ✅ renamed | — (Q11 RESOLVED v16) |
+| Infrastructure cmds use `/rc:` prefix | ✅ `/rc:list-plugins`, `/rc:scan-permissions`, etc. | — (Q12 RESOLVED v16) |
+| Health tab reads enterprise layer | ✅ skip by default; surface "managed by IT — opaque" affordance | — (Q10 RESOLVED v16) |
+| Plugin switcher in header | ✅ ships in 0.20.0 with the Setup tab | — (Q2 RESOLVED v16) |
+| Dashboard rebrand to "RavenClaude dashboard" | ✅ ships in 0.18.0 | — (Q6 RESOLVED v16) |
+| Mobile: launch buttons disabled with tooltip | ✅ disabled-with-note | — (Q7 RESOLVED v16) |
+| Default 20 most-used personalization | ✅ hardcoded at 0.19.0; personalized at 0.21.0 (telemetry-fed) | — (Q8 RESOLVED v16) |
+| Owner-agent shown on cards | ✅ yes (already in B.2.5 markup) | — (Q9 RESOLVED v16) |
+| Update notifier surfaces (banner + Changelog tab) | ✅ both surfaces ship together as one feature | — (Q5 RESOLVED v16) |
+| **Norse theme toggle (v16 addition)** | ✅ on by default; presentation-only name-map; persists at user scope | — see §3.1.3 |
 
-Legend: ✅ = the doc commits to this; 🟡 = the doc *recommends* this and flags an open question for Matt.
+Legend: ✅ = decided. The 🟡 column is now empty as of v16.
 
 ### 5.7 Composition with proposal 003
 
@@ -2785,7 +2932,7 @@ Concrete narrative grounding for the abstract phasing. Reads from the user's POV
 
 **Minute 0.** User hears about RavenClaude from Matt. Opens `https://github.com/mcorbett51090/RavenClaude` in browser. README points to repo-guide.html. Clicks through; sees the marketplace catalog with 7 plugins, one-line descriptions, and a top banner: *"Install in 2 commands"* with the marketplace-add + plugin-install lines. Reads the Step 0 access check — runs `gh repo view mcorbett51090/RavenClaude`. Succeeds (they have access).
 
-**Minute 4.** Opens Claude Code in their work project. Runs `/plugin marketplace add https://github.com/mcorbett51090/RavenClaude`. Gets "marketplace added." Runs `/plugin install ravenclaude-core@ravenclaude`. Gets "installed." Runs `/plugin` to verify; sees ravenclaude-core 0.18.0 listed.
+**Minute 4.** Opens Claude Code in their work project. Runs `/plugin marketplace add https://github.com/mcorbett51090/RavenClaude`. *(Assumes prior `gh auth login` per the Step 0 access check; without it, this command 404s — see §B.3.6.)* Gets "marketplace added." Runs `/plugin install ravenclaude-core@ravenclaude`. Gets "installed." Runs `/plugin` to verify; sees ravenclaude-core 0.18.0 listed.
 
 **Minute 7.** Reads the post-install message: *"Open the dashboard at plugins/ravenclaude-core/dashboard.html, or run /init-agent-ready to set up boundary files."* Opens dashboard.html in the browser. Sees the Setup (renamed from Install) tab is selected by default. Step 1 shows green checks across the prereqs row. Step 5 has two big buttons: "Launch /init-agent-ready" and "Launch /set-posture."
 
@@ -2842,7 +2989,7 @@ A compact list of the explicit YES / NO / TBD questions across the whole documen
 | D11 | Reassign `/health-score-refresh` from PSM to learning-analytics-analyst | **yes** — analytics question, not touchpoint | §4.7.1 |
 | D12 | Ship Phase A + Health tab together as 0.18.0 | **yes** — the Health tab is what makes the merge model un-surprising | §5.3, §5.5 |
 | D13 | Health tab includes a "Test a tool call" interactive box | **yes** — load-bearing for answering "why is Claude asking?" | §B.4.4 |
-| D14 | Add `/__read` endpoint to `serve-dashboards.py` with allow-list | **yes** — required by Health, Agents, Environment tabs | §5.3.1 |
+| D14 | Add `/__read`, `/__read-user`, `/__read-managed` endpoints to `serve-dashboards.py` (3 endpoints — `/__read` is parameterized + allow-listed; the other two are no-parameter cross-boundary readers, per §5.3.1 + R15) | **yes** — required by Health, Agents, Environment tabs | §5.3.1 |
 | D15 | Add CI gate `audit-allow-list-drift.py` preventing client/server allow-list drift | **yes** — highest-risk path-traversal regression | §5.3.1 |
 | D16 | Add CI gate `audit-command-collisions.py` for built-in / cross-plugin collisions | **yes** — Phase B.1 prereq | §4.9, §5.4 |
 | D17 | Update notifier mechanism (poll `latest-versions.json` from GitHub Pages) | **yes** — but degrades silently on no network | §B.4.5 |
@@ -2850,24 +2997,24 @@ A compact list of the explicit YES / NO / TBD questions across the whole documen
 | D19 | "Scope": store last choice per plugin in `localStorage` | **yes** — saves per-session friction | §2.3.1, §B.4.1 |
 | D20 | Defer Command Builder (Design 4) until commands declare arg schemas | **yes** — Phase D, after first ~6 high-traffic commands have arg-schema declarations | §B.2.2 |
 
-Open questions surfaced for Matt's discretion (re-list of §5.2, deduplicated):
+Open questions, all resolved at v16 (see §5.2 for rationale):
 
-| # | Question | Default if no answer |
+| # | Question | **DECIDED** |
 |---|---|---|
-| Q1 | Phase A default scope (`user` vs `project`)? | user — proceed |
-| Q2 | Plugin switcher in header — keep or drop? | keep |
-| Q3 | `/install-doctor` — own command or fold into `/init-agent-ready`? | own command |
-| Q4 | Agents tab ships in Phase B or its own phase? | bundled in 0.22.0 |
-| Q5 | Update notifier — banner or tab or both? | both |
-| Q6 | Rename dashboard from "comfort posture" to "RavenClaude dashboard"? | yes, in 0.18.0 |
-| Q7 | Mobile — Launch buttons disabled or attempted? | disabled with note |
-| Q8 | "Most-used" ranking — hardcoded or personalized? | hardcoded for v0.19.0; personalized for v0.21.0 |
-| Q9 | Show owner-agent in command card corner? | yes |
-| Q10 | Enterprise-layer reading — attempt or skip? | skip; "managed by IT" affordance only |
-| Q11 | `/security-review` rename to `/team-security-review` — yes? | yes |
-| Q12 | `/rc:` qualified prefix for infrastructure commands — yes? | yes |
-| Q13 | Install tab rename to "Setup"? | yes |
-| Q14 | Project-scope confirmation modal strictness — block on "all allow" or warn? | warn (informative, not blocking) |
+| Q1 | Phase A default scope (`user` vs `project`)? | **user** |
+| Q2 | Plugin switcher in header — keep or drop? | **keep** |
+| Q3 | `/install-doctor` — own command or fold into `/init-agent-ready`? | **own command** |
+| Q4 | Agents tab ships in Phase B or its own phase? | **bundled in 0.22.0** |
+| Q5 | Update notifier — banner or tab or both? | **both surfaces, one feature** |
+| Q6 | Rename dashboard from "comfort posture" to "RavenClaude dashboard"? | **yes, in 0.18.0** |
+| Q7 | Mobile — Launch buttons disabled or attempted? | **disabled with tooltip** |
+| Q8 | "Most-used" ranking — hardcoded or personalized? | **hardcoded for v0.19.0; personalized for v0.21.0** |
+| Q9 | Show owner-agent in command card corner? | **yes** |
+| Q10 | Enterprise-layer reading — attempt or skip? | **skip; "managed by IT — opaque" affordance only** |
+| Q11 | `/security-review` rename to `/team-security-review` — yes? | **yes** |
+| Q12 | `/rc:` qualified prefix for infrastructure commands — yes? | **yes** |
+| Q13 | Install tab rename to "Setup"? | **yes** |
+| Q14 | Project-scope confirmation modal strictness — block on "all allow" or warn? | **warn (informative); emission defaults to denies+asks only** |
 
 ### 5.8.3 v0.18.0 ship checklist — the smallest meaningful first slice
 
@@ -3198,7 +3345,8 @@ commands/init-agent-ready.md for the canonical shape.
 - `name` must match the filename basename (i.e., the file `init-agent-ready.md` must have `name: init-agent-ready`)
 - `owner` must resolve to an agent that exists in the same plugin (or be a cross-plugin reference like `ravenclaude-core/architect`)
 - `plugin` must match the directory path (`plugins/<this-plugin>/commands/...`)
-- No more than 20 commands across the marketplace may have `featured: true`
+- No more than 20 commands across the marketplace may have `featured: true` (global cap)
+- **No more than 4 commands per plugin** may have `featured: true` (per-plugin cap, added per v16 peer review — prevents one plugin from monopolizing the default-20 list and crowding out smaller plugins' high-value commands)
 - Slash-name collisions across plugins: error
 - Slash-name collisions with Claude Code built-ins (per the snapshot in `docs/claude-code-builtins.txt`): error
 - `args[].name` must match `^[a-z][a-z0-9-]*$` (no underscores; matches Claude Code's existing arg conventions)
@@ -3376,6 +3524,48 @@ The full shape, with values matching the marketplace's actual current state:
 - Cross-plugin dashboard merging (one super-dashboard for all 7 plugins instead of one per). Phase 4+ if at all.
 - A backend service for dashboards. Explicitly rejected in proposal 003 §3 and re-confirmed here.
 
+### 5.10 Peer review (v16, 2026-05-23)
+
+Independent peer-review pass on the v1-v15 document. Findings are listed honestly — strengths first, then real issues with the inline fix landed in this revision. The review was done by reading the doc end-to-end as if for the first time, cross-checking the technical claims against `plugins/ravenclaude-core/knowledge/claude-code-permissions.md` and the public Claude Code docs cited in §1.4.
+
+#### Strengths (what stands up)
+
+- **The v2 merge-model correction is the most consequential edit in the document.** The deny>ask>allow merge semantics are described accurately and consistently in §1.4, §2.3.3, §B.4.4, and R11. Anyone implementing Phase A from this doc will not repeat the v1 author's "local wins" mistake.
+- **The phased roadmap is realistic.** 60 focused hours for the first 4 weeks (Phase A + Health tab + Commands tab base + Setup tab) is honest given the inline code sketches. The "ship Phase A + Health tab together" recommendation (D12) is genuinely load-bearing — without it the merge model surprises users.
+- **The R11 / R12 / R14 risks are correctly identified as the load-bearing ones** and have proportional mitigations (Health tab; project-scope confirmation modal; single-source-of-truth `dashboard-schema.json`).
+- **Narrative tests (§5.8 user, §5.8.1 team-admin) are excellent acceptance criteria.** They surface design gaps better than spec text alone.
+- **§5.8.6 telemetry boundary is sharp.** "No args; no content; no network egress; opt-out via `.notrack`" is the right discipline for a marketplace that ships to private repos.
+- **§5.0.1 prior-ships retro** is the kind of design document most teams skip; including it grounds the design choices in lived experience (v0.16.0's snapshot-merge foot-gun → v0.17.0's overwrite-mode → Phase A's "one YAML, multiple scopes" emission model).
+
+#### Real issues found and fixed in this revision
+
+| # | Issue | Where | Fix landed |
+|---|---|---|---|
+| P1 | The side-car file's `$schema` URL pointed to `https://github.com/.../comfort-posture-applied-schema.json`, which does not exist. Shipping a URL that 404s on every fresh install is a future-maintenance trap and trains users to ignore `$schema` fields. | §2.3.9 code sketch | Removed the `$schema` field; kept the `schema_version` integer as the forward-compat lever. |
+| P2 | The mandatory-agent enforcement spec was self-contradictory. Earlier in §B.4.1 the YAML is "additive only" and the toggle is "greyed out / cannot be disabled." Later in the same section the Team Lead "strikes the entry from the YAML on next /set-agents run" — silently mutating a file the user authored. | §B.4.1 Mandatory-agent enforcement | Removed the auto-strike; replaced with a recurring warning and a "Clean up stale entries" button in the Agents tab. The YAML stays user-owned. |
+| P3 | The Health tab spec only sketched the on-server happy path (`serve-dashboards.py` running). On `file://` mode the four `/__read*` endpoints are unavailable — the spec implied the merge view would silently degrade with no UI explanation. | §B.4.4 | Added the **file:// degradation table** spelling out exactly what each Health-tab panel shows when each layer can't be read, with a banner pointing the user to run the server or use the File System Access API picker. |
+| P4 | The merge-resolver JS was described as "implemented from the public docs, not by reverse-engineering CC's source" — correct discipline, but the spec presented the matcher's output as authoritative. If Claude Code's pattern semantics drift between two CC releases, the Health tab will confidently show wrong answers in its most safety-critical surface. | §B.4.4 | Added a **matcher-divergence guardrail**: the panel displays the matcher's bundled-version tag and a one-line disclaimer that the matcher is a best-effort reconstruction of upstream semantics, not authoritative. Users who see divergence are explicitly invited to file an issue. |
+| P5 | R15's path-traversal mitigation said *"Path.resolve().relative_to(REPO_ROOT)"* but `/__read-user` reads `~/.claude/settings.json` — outside the repo root, so `relative_to` would raise. The spec needed a two-tier defense: parameterized + allow-listed for in-tree reads; **no parameter at all** for cross-boundary reads. | R15 mitigation | Split the mitigation into two tiers; the cross-boundary endpoints (`/__read-user`, `/__read-managed`) hard-code their paths internally so there is no user input to traverse. |
+| P6 | The telemetry concurrency mitigation reached for `fcntl` (POSIX) / `msvcrt.locking` (Windows) — platform-conditional code that's painful in a Python script meant to run identically across the team's machines. | R19 mitigation | Switched to **atomic write via tmp + `os.replace`** (cross-platform; Windows-safe). "Last writer wins" is acceptable semantics for a counts-only telemetry file. |
+| P7 | The `featured: true` cap was 20 global with no per-plugin distribution rule. ravenclaude-core could mark 20 commands featured and crowd out every domain plugin's high-value commands. | §5.8.7 Plugin-author guide CI enforcement | Added a per-plugin cap of 4 (so 7 plugins × 4 ≤ 28, but global cap still 20 — the binding constraint becomes "pick the best 20 across all plugins, weighted to spread across them"). |
+| P8 | The §5.8 first-time-user narrative skipped over the `gh auth login` precondition that §B.3.6 itself flags. Two sections of the same doc disagreed about whether the user reaches "Minute 4" cleanly. | §5.8 minute-4 paragraph | Added the assumed-prior-auth callout and pointer to §B.3.6. |
+| P9 | D14 said *"Add `/__read` endpoint"* — singular — but §5.3.1 lists three new endpoints (`/__read`, `/__read-user`, `/__read-managed`). The decision row understated the scope of the v0.18.0 server work. | §5.8.2 D14 | Updated the decision row to enumerate all three endpoints with the parameterized-vs-no-parameter distinction. |
+
+#### Issues noted but not addressed (judgment calls)
+
+| # | Issue | Why I left it as-is |
+|---|---|---|
+| P10 | The 7-tab IA limit ("upper limit of comfortable") is asserted in §3.1.1 without referencing UX research. With the v16 Norse theming layer arguably visible as a header toggle, the visual chrome is denser still. | The 7-tab claim is correct in spirit — most navigation-pattern research lands at 5-9 top-level items — and the Norse toggle is a header control, not a tab. Adding research citations would inflate the doc without changing the conclusion. The "collapse Trees + Activity + Health into a Run group if it gets crowded" escape valve is already documented. |
+| P11 | "Permission floor" is metaphor (not literal), and Phase A leans on it as a load-bearing term. The plan asserts "naming must shorten the explanation, not decorate" but doesn't explicitly tag "floor" as a load-bearing metaphor distinct from the Norse decorative layer. | The §3.1.3 Norse spec now makes the load-bearing-vs-decorative distinction explicit (see "Why this isn't over-engineering"). "Floor" remains load-bearing — it communicates a real constraint (rules can only tighten, not relax) and is referenced consistently across §1.4, §2.3.3, §2.3.5, and the Health-tab explainer copy. |
+| P12 | Phase C effort estimate of "2-4 hours per command × 141 commands" averages across very different command shapes. A `/test-pac-check` that wraps a single `pac solution check` call is closer to 1 hour; a `/draft-board-pack` that assembles output from 4 finance commands is closer to 8. | The §5.8.4 prioritized first-5-per-plugin already implicitly addresses this by picking the cheap, high-value commands first. The flat 2-4h figure is an honest planning-level average for a roadmap document, and the Phase C-arc total is stated as a range (280-560 hours) with the explicit "we ship the top-35 first" disclaimer. |
+| P13 | The Norse theme toggle is itself a feature added at v16 and slightly increases the "first 4 weeks" scope. | 7-8 hours within 0.18.0; ships with the dashboard rebrand (Q6) so the strings get touched once. Not a meaningful schedule risk. |
+
+#### Verdict
+
+The plan, with the v16 fixes applied, is **sound enough to build from.** The architectural decisions (merge-model design, scope-selector UX, Health-tab-as-trust-surface, Card-grid + palette-overlay Commands UI, Setup-tab framing for the chicken-and-egg audience) are internally consistent, technically correct against the cited Claude Code docs, and proportional to the demonstrated value. The phased roadmap is realistic; the risks are surfaced and mitigated; the open questions are resolved.
+
+The single highest-risk implementation work remains the Phase A → Health-tab pair. Treating §B.4.4's matcher as a best-effort reconstruction (not authoritative), shipping the file:// degradation banners, and running the Day-7 human-review checkpoint from §5.8.5 are the three load-bearing safeguards. If those land, the design carries.
+
 ---
 
 <a id="appendix"></a>
@@ -3399,6 +3589,7 @@ The full shape, with values matching the marketplace's actual current state:
 
 ## Iteration log
 
+- **v16 (2026-05-23, autonomous, Claude):** Peer-review pass + open-question resolution + Norse-theme toggle. **(1)** §5.10 — independent peer review identifying nine real issues (P1-P9) and landing inline fixes for each: removed the fictional side-car `$schema` URL (P1, §2.3.9); replaced the mandatory-agent auto-strike with a non-destructive warning + cleanup affordance (P2, §B.4.1); added the Health-tab `file://`-degradation behavior table + the matcher-divergence guardrail with version tag and disclaimer (P3/P4, §B.4.4); split R15's path-traversal mitigation into in-tree-parameterized + cross-boundary-hard-coded tiers (P5); switched telemetry concurrency to atomic-rename instead of `fcntl`/`msvcrt.locking` (P6, R19); added a per-plugin cap of 4 on `featured: true` commands (P7, §5.8.7); pinned the §5.8 narrative's "Minute 4" to the `gh auth` precondition it had skipped (P8); enumerated the three `/__read*` endpoints in D14 instead of one (P9, §5.8.2). Plus three judgment-call non-issues (P10-P13) documented with rationale. **(2)** §5.2 — every open question Q1-Q14 resolved to its recommended answer, with rationale; §5.6 and §5.8.2 tables flipped from 🟡 to ✅. Headline resolutions: `/security-review` → `/team-security-review` (renamed in §4.1); `/rc:` prefix on infrastructure commands (applied to §4.1); project-scope emission defaults to denies+asks only (Q14); enterprise layer is skipped with an opaque-marker affordance (Q10). **(3)** §3.1.3 — Norse-theme toggle spec: presentation-only display layer (NORSE_NAMES → displayName() name-map), ON by default, header toggle, persists in localStorage; canonical identifiers (commands, files, slugs, anchors) stay functional; CI gate added to `audit-gates.sh` to fail builds if Norse names leak into canonical identifiers; 7-8h effort bundled into 0.18.0 with the dashboard rebrand. Norse names: Hliðskjálf, Forseti, Mímir, Heimdall, Thor, Huginn & Muninn, the Thing, the Æsir, the Nine Realms, the Sagas, the Skald's roll, Allfather. Verdict: the plan, with v16 fixes applied, is sound enough to build from.
 - **v1 (2026-05-22, overnight, Claude):** First full pass. Covers current-state analysis, Phase A multi-layer posture, Phase B dashboard build-out (IA + 3+ slash-tab UI designs + Install tab + 5 additional panels), Phase C ~95 proposed commands across all 7 plugins (with the existing 3 explicitly preserved), Phase D risks / open questions / phased roadmap.
 - **v2 (2026-05-23, autonomous, Claude):** Merge-model correction. The v1 draft described cross-layer precedence as "local > project > user — more-specific layer wins," which is the model for *non-permission* settings (theme, model). For `permissions.{allow,ask,deny}`, Claude Code **merges** rules across layers and resolves per-call as `deny > ask > allow`, with `deny` in any layer being absolute. §1.4 was rewritten to state the merge model explicitly with a worked example. §2.3.3 was rewritten to derive Phase A's design from the merge model (was: "local layer wins"; now: "project layer is a permission floor that personal layers cannot relax, only further restrict"). §2.3.5 adds a revised scope-selector design that treats Project-scope as a load-bearing team-policy choice (separate visual treatment, confirmation modal, `allow`-emission warning). §2.3.6 adds a merge-model nuance to the YAML/effective-state discussion and points to a new `--preview-merge` CLI flag. §2.3.7 (migration) rewrites the banner copy to surface the floor/ceiling distinction. R11–R13 add three new risks (merge-model surprise, project-`allow` foot-gun, enterprise layer invisibility). v1's §2.3.1 is left in place but annotated as superseded by §2.3.5.
 - **v3 (2026-05-23, autonomous, Claude):** Slash-commands tab + Install tab refinements. Added B.2.2 head-to-head comparison matrix scoring the 4 UI alternatives (card grid / palette / accordion / builder) on discoverability / speed / scale / a11y / build cost — confirms "card grid first, palette overlay second" as the right phasing. Added B.3.5 chicken-and-egg gap (a brand-new user can't open `dashboard.html` until the plugin is installed, so the "Install" tab's real audience is users who *already* installed and need the next step — recommend rename to "Setup" / "Welcome"). Added B.3.6 private-marketplace access (the repo is private; `/plugin marketplace add` 404s without GitHub auth — need Step 0 in repo-guide + a `gh repo view` check in the doctor). Added B.3.7 failure-mode table (5 most common install/first-run failures and the tab's response).
