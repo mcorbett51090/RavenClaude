@@ -294,6 +294,153 @@ Choose one:
 Re-run with --scope {user|project|both} to confirm. No changes made yet.
 ```
 
+### 2.3.8 Concrete YAML and settings.json — what the emissions look like
+
+To ground the abstract design in a concrete artifact, here's the same posture YAML emitting different settings.json shapes per scope:
+
+**Source YAML** (`.ravenclaude/comfort-posture.yaml`, single working draft):
+
+```yaml
+# Personal comfort posture for this machine
+global_default: mostly-allow
+
+categories:
+  shell_remote_mutate:   always-ask    # team's shared rule (git push, etc.)
+  shell_code_exec:       mostly-allow  # python, node, dotnet
+  shell_local_mutate:    mostly-allow  # rm, mv (NOT rm -rf — security_deny floor)
+  filesystem_dotfiles:   always-ask
+  network_outbound:      always-ask
+  # … remaining 7 categories on global_default …
+
+per_pattern_overrides:
+  "Bash(npm publish:*)": deny    # never, even with --scope project
+  "Bash(git push --force:*)": deny
+
+security_deny:
+  - "Bash(rm -rf /*)"
+  - "Bash(rm -rf ~)"
+  - "Read(**/.env)"
+  - "Bash(curl * | sh)"
+  - "Bash(git push --force:*)"
+```
+
+**Emission at `--scope user`** (`~/.claude/settings.json`):
+
+```json
+{
+  "$schema": "https://docs.anthropic.com/.../claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(python:*)",
+      "Bash(node:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run:*)",
+      "Bash(dotnet build:*)",
+      "Read(/**)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(git checkout:*)",
+      "Read(**/.env*)",
+      "Read(**/secrets/**)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "WebFetch(domain:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~)",
+      "Read(**/.env)",
+      "Bash(curl * | sh)",
+      "Bash(git push --force:*)",
+      "Bash(npm publish:*)"
+    ]
+  }
+}
+```
+
+**Emission at `--scope project`** (`.claude/settings.json`) — IF the user picked Project scope through the confirmation modal:
+
+```json
+{
+  "$schema": "https://docs.anthropic.com/.../claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(python:*)",
+      "Bash(node:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run:*)",
+      "Bash(dotnet build:*)",
+      "Read(/**)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(git checkout:*)",
+      "Read(**/.env*)",
+      "Read(**/secrets/**)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "WebFetch(domain:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~)",
+      "Read(**/.env)",
+      "Bash(curl * | sh)",
+      "Bash(git push --force:*)",
+      "Bash(npm publish:*)"
+    ]
+  }
+}
+```
+
+**Note the danger:** the Project emission is identical to the User emission. If the user emits at Project scope without thinking, the team gets all 9 of Matt's personal `allow` rules **as a team-wide floor** that personal layers cannot relax. This is exactly the foot-gun R12 names. The Project-scope confirmation modal (§2.3.5) counts the 9 `allow` entries and surfaces them prominently: *"You're about to grant the whole team these 9 allows. Are these team-policy decisions or personal preferences?"*
+
+**Recommended Project emission** (if the user genuinely wants team-shared posture) — denies and asks only, no allows:
+
+```json
+{
+  "$schema": "https://docs.anthropic.com/.../claude-code-settings.json",
+  "permissions": {
+    "ask": [
+      "Bash(git push:*)",
+      "Read(**/.env*)",
+      "Read(**/secrets/**)"
+    ],
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~)",
+      "Read(**/.env)",
+      "Bash(curl * | sh)",
+      "Bash(git push --force:*)",
+      "Bash(npm publish:*)"
+    ]
+  }
+}
+```
+
+The future `--scope project` mode should default to this "floor only" emission shape and require an explicit `--include-allows` flag to emit allow rules at project scope. Open question for follow-up implementation: should the YAML grow a `team_policy_only: true` flag that emits only the relevant subset at project scope?
+
+**Emission at `--scope local`** (`.claude/settings.local.json`) — typically a sparse delta on top of project:
+
+```json
+{
+  "permissions": {
+    "deny": [
+      "Bash(git commit:*)"
+    ]
+  }
+}
+```
+
+Example use case: a developer who's in the middle of a refactor and wants to be sure they don't accidentally commit before review. They add a one-line local-scope deny; it merges with the project floor; effective behavior is "everything project says, plus no commits." When the refactor lands they remove the rule.
+
 ### 2.4 Edge cases & gotchas
 
 | Case | What happens | Mitigation |
@@ -839,17 +986,147 @@ power-platform scenarios (3)
 
 The data inlines at generator time (same mechanic as the Activity feed in proposal 003 §4.7).
 
-#### B.4.4 **Health tab** — diagnostics
+#### B.4.4 **Health tab** — diagnostics (expanded spec)
 
-A diagnostics-only view that shows:
+The Health tab is on the **critical path** (§5.5) because it's the surface that makes the merge model visible. Without it, the user-scope-default in Phase A creates surprise (R11). Treating this with appropriate depth.
 
-- The current resolved posture across all three scope layers (effective merged result).
-- The actual `permissions.{allow,ask,deny}` content of each settings.json (read-only).
-- Detected hooks and which plugin owns each.
-- Any active CGP environment-context conflicts (e.g., agent pre-authorized for X in DEV but DEV's role is read-only — a state inconsistency).
-- Last `/init-agent-ready` run date; last `/set-posture` run date; last `/wrap` capture.
+##### Purpose
 
-This tab is a **debugging surface** when something goes wrong. Low priority but high signal for "Claude is asking for permission on something I thought I'd allowed" questions.
+Answer four questions a user has when something feels off:
+
+1. **"Is X allowed?"** — given a tool call shape (`Bash(git push:*)`, `Read(/etc/**)`), what's the effective decision across all my settings.json layers and the engine's deny>ask>allow resolution?
+2. **"Why is Claude asking when I thought I allowed?"** — surfaces the specific rule (in the specific layer) that triggered the ask.
+3. **"What rules are active right now?"** — the full merged set, grouped by allow / ask / deny and annotated with source layer.
+4. **"What rules am I about to add?"** — preview a `/set-posture --scope <X>` diff before it lands.
+
+##### Data sources (read order; all read-only)
+
+The Health tab reads from these sources in order, computing the merge in JavaScript:
+
+| Layer | File path | Detection / availability |
+|---|---|---|
+| Enterprise | `/Library/Application Support/ClaudeCode/managed-settings.json` (macOS), `C:\ProgramData\ClaudeCode\managed-settings.json` (Windows), `/etc/claude-code/managed-settings.json` (Linux) | Try to read via the dashboard's `serve-dashboards.py` if running; absent it cannot be read from `file://`. Marked "Read-only (managed by IT)" + a "Cannot read enterprise layer from this environment" warning when unavailable. |
+| User | `~/.claude/settings.json` | Read via `serve-dashboards.py`'s `GET /__read` endpoint (proposed addition to the allow-list); on `file://` mode, user must paste the file content into a textarea or use File System Access API to grant read. |
+| Project | `.claude/settings.json` | Same as user; relative to project root. |
+| Local | `.claude/settings.local.json` | Same as user; relative to project root. |
+| CGP env-context | `.ravenclaude/environment-context.md` (parsed for pre-authorized / forbidden patterns per active environment) | Read via `/__read`; surfaces as side-data not as a layer. |
+
+`serve-dashboards.py` needs to gain a `GET /__read?path=<allow-listed>` endpoint mirroring the existing `POST /__save` allow-list. Path-traversal check identical. The four allow-listed read paths are the three settings.json layers + `.ravenclaude/environment-context.md`. The enterprise file is **not** in the project tree so it's outside the allow-list; the dashboard reads it via a separate `GET /__read-managed` endpoint (server-only, no path parameter) that returns the OS-appropriate managed-settings path's contents or 404 if absent / unreadable.
+
+##### UI layout
+
+```
+┌─ Health ──────────────────────────────────────────────────────────────┐
+│                                                                        │
+│  ┌─ Effective rules (merged) ─────────────────────────────────────┐   │
+│  │                                                                 │   │
+│  │  Filter: [ allow | ask | deny | all ▾ ]   Pattern: [ git    🔍 ]│   │
+│  │                                                                 │   │
+│  │   ──  deny  (3 rules)  ──────────────────────────────────       │   │
+│  │   • Bash(rm -rf /*)                          enterprise        │   │
+│  │   • Bash(git push --force:*)                 project           │   │
+│  │   • Bash(curl | sh)                          user              │   │
+│  │                                                                 │   │
+│  │   ──  ask   (12 rules)  ──────────────────────────────────      │   │
+│  │   • Bash(git push:*)                         project   ←       │   │
+│  │     ↳ also allow at user; ask wins (deny>ask>allow)            │   │
+│  │   …                                                             │   │
+│  │                                                                 │   │
+│  │   ──  allow (47 rules)  ──────────────────────────────────      │   │
+│  │   • Bash(git status:*)                       user              │   │
+│  │   …                                                             │   │
+│  └────────────────────────────────────────────────────────────────┘   │
+│                                                                        │
+│  ┌─ Test a tool call ─────────────────────────────────────────────┐   │
+│  │  Try:  [ Bash(git push origin main)                          ▶ ]│   │
+│  │                                                                 │   │
+│  │  → ASK                                                          │   │
+│  │    Matched: ask Bash(git push:*)  at project (.claude/settings)│   │
+│  │    Also matched: allow Bash(git push:*) at user               │   │
+│  │    Resolution: ask wins (deny > ask > allow per merge model). │   │
+│  │    To downgrade to allow you'd need to either:                │   │
+│  │      • remove the project-layer ask, OR                        │   │
+│  │      • add a deny — but that blocks entirely, doesn't loosen. │   │
+│  │    Personal user/local layers CANNOT loosen this.             │   │
+│  └────────────────────────────────────────────────────────────────┘   │
+│                                                                        │
+│  ┌─ Layer view ───────────────────────────────────────────────────┐   │
+│  │  [● User · 28 rules]  [○ Project · 14]  [○ Local · 9]  [○ Mgd] │   │
+│  │  (radio — only one layer shown at a time)                     │   │
+│  │                                                                 │   │
+│  │  ── ~/.claude/settings.json ───────────────────────────────    │   │
+│  │  Last modified: 2026-05-23 14:23                              │   │
+│  │  Applied by /set-posture (scope=user) at 2026-05-23 14:23     │   │
+│  │                                                                 │   │
+│  │  permissions.allow: ["Bash(git status:*)", "Bash(npm test:*)"…]│   │
+│  │  permissions.ask:   ["Bash(git push:*)" …]                    │   │
+│  │  permissions.deny:  ["Bash(rm -rf /*)" …]                     │   │
+│  └────────────────────────────────────────────────────────────────┘   │
+│                                                                        │
+│  ┌─ State health ─────────────────────────────────────────────────┐   │
+│  │  /init-agent-ready last run: 2026-05-18  (5 days ago)     ✓   │   │
+│  │  /set-posture last run:      2026-05-23  (today)          ✓   │   │
+│  │  /wrap last capture:         2026-05-19  (4 days ago)     ✓   │   │
+│  │  Detected hooks (4):                                           │   │
+│  │    • enforce-layout.sh        ravenclaude-core / PreToolUse   │   │
+│  │    • guard-destructive.sh     ravenclaude-core / PreToolUse   │   │
+│  │    • capture-env-context.sh   ravenclaude-core / SessionStart │   │
+│  │    • dispatch.sh              ravenclaude-core / UserPrompt   │   │
+│  │  Env-context conflicts: none                                  │   │
+│  └────────────────────────────────────────────────────────────────┘   │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+##### Components broken down
+
+1. **Effective rules (merged)** — the main panel. Lists every rule in the merged set, grouped by bucket (deny / ask / allow), with the source layer tag per rule. Patterns that exist at multiple layers show the "winning" instance with a one-line annotation of where else the pattern appears and why one wins. Filterable by bucket and substring.
+
+2. **Test a tool call** — interactive: user types a tool-call shape (`Bash(...)`, `Read(...)`, `WebFetch(...)`), the panel runs the merge resolver in-browser against the read state and shows the resolution: **allow / ask / deny**, the matched rule(s), the rule's source layer, and a one-paragraph explanation of why this resolution won. This is the load-bearing "why is Claude asking?" answer.
+
+3. **Layer view** — radio-switched view of the raw `permissions.{allow,ask,deny}` content per layer. Shows the file modification timestamp and the `/set-posture` last-applied timestamp from the side-car. Each layer is a tab/radio; only one at a time to avoid information overload.
+
+4. **State health** — last-run timestamps for the three big commands (`/init-agent-ready`, `/set-posture`, `/wrap`), the list of detected hooks (read from `.claude/settings.json`'s `hooks` block + the plugin's `hooks/hooks.json`), and any active CGP env-context conflicts.
+
+##### The merge algorithm (concrete)
+
+In JavaScript, the merge resolver is:
+
+```js
+function resolveMerge(layers, patternToTest) {
+  // layers = [{name: "managed", allow: [], ask: [], deny: []}, ...]
+  // patternToTest = "Bash(git push origin main)"
+  const matched = { deny: [], ask: [], allow: [] };
+
+  for (const layer of layers) {
+    for (const bucket of ["deny", "ask", "allow"]) {
+      for (const rule of layer[bucket] ?? []) {
+        if (matchesRule(rule, patternToTest)) {
+          matched[bucket].push({ rule, layer: layer.name });
+        }
+      }
+    }
+  }
+
+  // deny > ask > allow
+  if (matched.deny.length)  return { decision: "deny",  matched };
+  if (matched.ask.length)   return { decision: "ask",   matched };
+  if (matched.allow.length) return { decision: "allow", matched };
+  return { decision: "ask", matched: {}, fallback: "default-ask" };
+}
+```
+
+`matchesRule` mirrors Claude Code's pattern engine (whitespace-sensitive, `:*` suffix for prefix, exact otherwise — see `plugins/ravenclaude-core/knowledge/claude-code-permissions.md` §"Bash patterns — the documented fragility"). To avoid drift from upstream's behavior, the matcher is implemented from the public docs, **not** by trying to reverse-engineer Claude Code's source. CI parity check: the `audit-gates.sh` merge-model gate uses the same matcher and validates against known-good fixtures.
+
+##### Effort estimate
+
+- `serve-dashboards.py` `/__read` + `/__read-managed` endpoints: **2 hours**
+- Merge-algorithm JS + matcher: **4 hours**
+- UI layout (4 panels + responsive): **6-8 hours**
+- "Test a tool call" interaction + explanation copy: **3 hours**
+- State-health detection (hooks, env-context, command timestamps): **3 hours**
+- **Subtotal: 18-20 hours** (was originally estimated at 6-8h; the merge-model framing materially expanded scope, which is correct — this is the surface that earns the user's trust that the merge model isn't a footgun).
+
+The Health tab is now bigger than the original estimate, but it's the most important downstream deliverable. Sequenced as **ravenclaude-core 0.20.0** (one minor after Phase A so users have a chance to hit the surprise before the diagnostic lands; better: ship Phase A + Health tab together as 0.18.0).
 
 #### B.4.5 **Update notifier**
 
@@ -1212,7 +1489,35 @@ This plan is a follow-up to proposal 003 (per-plugin dashboard). It does NOT sup
 
 If anything in this plan contradicts proposal 003, **proposal 003 wins** — surface the contradiction for Matt's decision.
 
-### 5.8 What we explicitly do NOT plan in this document
+### 5.8 First 30 minutes — what a brand-new user's experience looks like (post-Phase A + B)
+
+Concrete narrative grounding for the abstract phasing. Reads from the user's POV, with timestamps.
+
+**Minute 0.** User hears about RavenClaude from Matt. Opens `https://github.com/mcorbett51090/RavenClaude` in browser. README points to repo-guide.html. Clicks through; sees the marketplace catalog with 7 plugins, one-line descriptions, and a top banner: *"Install in 2 commands"* with the marketplace-add + plugin-install lines. Reads the Step 0 access check — runs `gh repo view mcorbett51090/RavenClaude`. Succeeds (they have access).
+
+**Minute 4.** Opens Claude Code in their work project. Runs `/plugin marketplace add https://github.com/mcorbett51090/RavenClaude`. Gets "marketplace added." Runs `/plugin install ravenclaude-core@ravenclaude`. Gets "installed." Runs `/plugin` to verify; sees ravenclaude-core 0.18.0 listed.
+
+**Minute 7.** Reads the post-install message: *"Open the dashboard at plugins/ravenclaude-core/dashboard.html, or run /init-agent-ready to set up boundary files."* Opens dashboard.html in the browser. Sees the Setup (renamed from Install) tab is selected by default. Step 1 shows green checks across the prereqs row. Step 5 has two big buttons: "Launch /init-agent-ready" and "Launch /set-posture."
+
+**Minute 9.** Clicks Launch /init-agent-ready. Browser asks to open with claude-cli://; user accepts. Claude Code focuses, prompt box pre-filled with `/init-agent-ready`. User presses Enter. Walks the 3-question wizard (repo-type, ci, hygiene). Files appear in their tree: AGENTS.md, CLAUDE.md, .repo-layout.json. (No CI workflow because they answered "no" to ci.)
+
+**Minute 14.** Back to the dashboard. Setup tab shows /init-agent-ready ran ✓. Switches to the Settings tab — sees the comfort-posture editor with the default 12 categories. Picks the "Recommended" preset. Now sees a new row above the preset bar: *"Apply posture to:"* with User selected by default. They notice the Project row has a "*team*" tag and smaller styling. Doesn't touch it. Clicks "Auto-save to file…" and grants the FSA permission on `.ravenclaude/comfort-posture.yaml`.
+
+**Minute 18.** Clicks the "Launch /set-posture" button. Deep-link opens Claude Code; prompt pre-filled with `/set-posture`. Presses Enter. Script runs; output: *"Writing ~/.claude/settings.json (--scope=user) — 47 allow, 12 ask, 3 deny."* Script footer: *"Hand-edits to permissions.{allow,ask,deny} in this file are wiped on next /set-posture. Personal session overrides go in .claude/settings.local.json."*
+
+**Minute 20.** Tries a `Bash(git status)` call inside Claude Code; auto-approved. ✓ Tries a `Bash(git push origin main)` call; CC asks. They're confused: *"I set Recommended; doesn't that allow git push?"*
+
+**Minute 22.** Goes to the dashboard's Health tab. Types `Bash(git push origin main)` into the "Test a tool call" input. Result panel: **ASK · matched: ask Bash(git push:*) at user · resolution: ask wins (deny > ask > allow per merge model).** Below: *"To allow git push without confirmation, change shell_remote_mutate from always-ask to mostly-allow in Settings."* User understands; goes to Settings; changes the category; re-launches /set-posture; re-tries — now auto-allowed.
+
+**Minute 27.** Wants to share their posture with the team. Goes back to Settings, picks the Project radio. Confirmation modal appears: *"Project-scope rules are merged into every team member's effective permissions and cannot be relaxed by their personal layers. Use this only for shared policy. The patterns flagged below are emitted as allow at project scope — usually you want deny + ask only at this scope. Are you sure?"* Modal lists 47 allow rules. User cancels. Reads the modal copy more carefully. Realizes: project should be the team's *floor*, not their personal config. Goes back to User scope.
+
+**Minute 29.** Opens Commands tab. Sees the card grid with the 20 most-used commands. Filters by plugin chip. Hovers over /draft-memo — sees the full description in a tooltip. Clicks Launch. CC focuses; prompt pre-filled. Pleased. Closes the dashboard.
+
+**Minute 30.** First-session setup is done. The user has: posture applied at user scope, boundary files in place, hooks running (visible in Health tab), and they've understood the merge model via the Health tab's "Test a tool call" feature. They're confident the next time CC asks for permission, they know why.
+
+This narrative is the **acceptance test for Phase A + B.1 + B.2 + B.4.4 + the renamed Setup tab.** If the user can't reach minute 30 cleanly with the proposed design, the design is wrong.
+
+### 5.9 What we explicitly do NOT plan in this document
 
 - Tree-viewer interactions beyond proposal 003 §4.8. Out of scope.
 - Activity-feed redesign. Proposal 003 §4.7 is honored as-is.
@@ -1248,3 +1553,4 @@ If anything in this plan contradicts proposal 003, **proposal 003 wins** — sur
 - **v4 (2026-05-23, autonomous, Claude):** Naming / collision / owner-existence audits. Added §4.9 naming and namespacing — flagged `/security-review` as colliding with the Claude Code built-in skill (rename to `/team-security-review`); proposed `/rc:` qualified prefix for infrastructure commands that Claude Code might add later; proposed `scripts/audit-command-collisions.py` as a new CI gate. Added §4.10 owner-agent inventory — verified every "Owner" column entry across the 7 plugins resolves to a real agent on disk; 55 agents total, 95 commands; ~10 agents intentionally have zero dedicated commands (security-reviewer, prompt-engineer, the coders, designer, data-engineer, tester-qa) because their work is in-conversation. Added open questions #10-14 (enterprise-layer reading, `/security-review` rename, infrastructure-command namespacing, Install tab rename, project-scope modal strictness). Expanded §5.4 tests with merge-model property check, allow-at-project lint, built-in collision audit, owner-agent existence check.
 - **v5 (2026-05-23, autonomous, Claude):** Structural / decision-log additions. §5.5 dependency graph showing A → B.1 → B.4.4 as the critical path (Health tab makes the merge model visible to users; without it the user-scope-default change surprises). §5.6 decisions-taken vs decisions-deferred table — every recommendation in the doc tagged ✅ (committed) or 🟡 (recommended, open question for Matt). §5.7 composition with proposal 003 — explicit reconciliation showing 003 §4.3/§4.4/§4.7/§4.8/§7.1/§7.4/§9/§11 are all honored by this plan, with "proposal 003 wins on contradictions" as the tie-breaker rule. Renumbered the old §5.5 ("What we explicitly do NOT plan") to §5.8.
 - **v5.1 (2026-05-23, autonomous, Claude):** Cross-reference accuracy fix. v5's §5.7 referenced proposal-003 sections §3 ("no backend") and §10 ("release plan") — neither is accurate (003 §3 is "Prior-art summary"; 003 §10 is "Open questions"). Corrected the citations: "no backend" lives in 003 §4.3 / §4.4; the release plan lives in 003 §11 (Implementation phases). Added a 003 §7.4 reference (team-shared vs personal / gitignore) which the merge-model finding strengthens into a more directive guidance.
+- **v6 (2026-05-23, autonomous, Claude):** Concrete grounding additions. (1) §B.4.4 Health-tab spec expanded from a hand-wavy bullet list to a full design with purpose, data sources (with `serve-dashboards.py` endpoint additions), UI layout sketch, four-component breakdown, merge-algorithm JS pseudocode, and effort estimate (revised to 18-20h, up from 6-8h — appropriately). The Health tab is on the critical path because it makes the merge model visible to users. (2) §2.3.8 added — concrete YAML + settings.json emission examples per scope, showing how Project-scope emission can silently grant the team all of one user's personal allows (R12 made tangible), and recommending a "denies + asks only" default emission for Project scope. (3) §5.8 First 30 minutes — a narrative walkthrough of a brand-new user's experience from minute 0 to minute 30 post-Phase A+B, including the dashboard's Health tab "Test a tool call" interaction explaining why the user's git push is being asked when they thought they'd allowed it. This narrative is the acceptance test for the proposed design.
