@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-23
 **Author:** Build-plan synthesis (autonomous, Claude Opus 4.7)
-**Status:** EXECUTION-READY. Twelve features, sequenced into phases with hard prerequisites, expert-panel caveats baked in as ship gates, dependencies resolved, open questions enumerated. Intended to be executed by Matt in a clean Linux Codespace.
+**Status:** EXECUTION-**SEQUENCED** (revised 2026-05-23 review — see the delivery-realism note in §4). Twelve features, sequenced into phases with hard prerequisites, expert-panel caveats baked in as ship gates, dependencies resolved, open questions enumerated. **Effort figures are focused developer-hours and will expand under integration friction on the monolithic `dashboard.html`; two substrate assumptions (`$CLAUDE_INVOCATION_SOURCE` and the memory-hook input mechanism) are UNVERIFIED and gate the phases that depend on them.** Intended to be executed by Matt in a clean Linux Codespace.
 
 > **Relationship to other docs.** This plan operationalizes the recommendations from the expert review in [`docs/norse-mythology-feature-map.md` §8](norse-mythology-feature-map.md) (PR #72), and slots into the surfaces designed in [`docs/dashboard-buildout-plan.md`](dashboard-buildout-plan.md) (PR #69), [`docs/tribunal-review-feature-design.md`](tribunal-review-feature-design.md) (PR #70), and [`docs/huginn-muninn-recon-design.md`](huginn-muninn-recon-design.md) (PR #71). When those docs and this plan disagree, **the design docs win for mechanics**; this plan wins for sequencing, scope-per-phase, and acceptance criteria.
 
@@ -300,7 +300,7 @@ Plain-language subtitle on every tab card so non-mythology readers grok it (desi
    - `renderCiStatus(window.__heimdall.ciStatus)` — last 5 CI runs, green/red dot, link to GH Actions.
    - `renderVersionDrift(window.__heimdall.versionDrift)` — table: plugin name, marketplace.json version, plugin.json version, drift status.
    - `renderGjallarhorn(window.__heimdall.gjallarhornState)` — render banner if any state is non-empty; else hide.
-5. **Wire the CI-status fetch.** Implement a JS function `fetchCiStatus(owner, repo)` that issues a single `fetch('https://api.github.com/repos/<owner>/<repo>/actions/runs?per_page=5')` at panel-load time. Cache the response in `sessionStorage` for 5 minutes (60 req/hr limit is generous; this caching is defensive). Owner and repo come from a constant at the top of `dashboard.html` (`const REPO_OWNER = "mcorbett51090"; const REPO_NAME = "RavenClaude";`). On fetch failure (rate-limit, offline, repo private without auth), render the empty state.
+5. **Wire the CI-status fetch.** Implement a JS function `fetchCiStatus(owner, repo)` that issues a single `fetch('https://api.github.com/repos/<owner>/<repo>/actions/runs?per_page=5')` at panel-load time. Cache the response in `sessionStorage` for 5 minutes (60 req/hr limit is generous; this caching is defensive). Owner and repo come from a constant at the top of `dashboard.html` (`const REPO_OWNER = "mcorbett51090"; const REPO_NAME = "RavenClaude";`). **Private-repo branch (2026-05-23 review — this marketplace is private by default):** the unauthenticated GitHub API returns 403/404 for a private repo, so render **three** distinct states, not two — (a) public → CI cards; (b) rate-limited → "try again shortly"; (c) 403/404 → "This marketplace is private; the CI card needs a GitHub token — run `scripts/serve-dashboards.py` with `gh auth` to populate it." Decide explicitly whether private-repo CI status is in scope for v1 or deferred; do NOT let the empty state silently masquerade as "CI green/offline."
 
 6. **Extend `generate-dashboards.py`** to read `hook-events.jsonl` (last 30 days from the consumer's `.ravenclaude/runs/*/` folders) and the version-drift computation, and inline both into `window.__heimdall`.
 7. **Add empty states.** Each card surfaces an explicit "No recent events — your perimeter has been quiet" message if its data source is empty. The banner is hidden when all four sources are clean.
@@ -763,7 +763,7 @@ ASCII forms in CLI: `mimir`, `mimir-well`, `mimir-head` (no diacritics).
    - The disclosure paragraph is appended to the **system-level memory writer prompt** (in the agent meta-skill that owns memory writes). Find: the auto-memory section in `AGENTS.md` or `plugins/ravenclaude-core/CLAUDE.md`. Add an instruction: "When creating `MEMORY.md` or any memory file for the first time, prepend the canonical disclosure paragraph."
    - Author the canonical disclosure paragraph in a new file `plugins/ravenclaude-core/templates/memory-disclosure.md` (allow-listed under `templates/**`).
 3. **Secret-redaction guard:**
-   - Author `guard-memory-write.sh` — bash script, fires PreToolUse on Write/Edit when `$CLAUDE_TOOL_FILE_PATH` matches `**/memory/*.md` or `MEMORY.md`. The script reads `$CLAUDE_TOOL_INPUT` (the proposed content), runs a regex sweep over known credential shapes, and exits non-zero with a named error if a match is found. Patterns sourced from `xc.secret-in-command` in `docs/tribunal-review-feature-design.md` §A.2.
+   - Author `guard-memory-write.sh` — bash script, fires PreToolUse on Write/Edit when `$CLAUDE_TOOL_FILE_PATH` matches `**/memory/*.md` or `MEMORY.md`. The script reads `$CLAUDE_TOOL_INPUT` (the proposed content), runs a regex sweep over known credential shapes, and exits non-zero with a named error if a match is found. Patterns sourced from `xc.secret-in-command` in `docs/tribunal-review-feature-design.md` §A.2. **⚠ VERIFY FIRST (2026-05-23 review): the hook input mechanism is unconfirmed.** Existing hooks (`enforce-layout.sh`, `guard-destructive.sh`) read tool input via a positional arg / stdin JSON — not necessarily via `$CLAUDE_TOOL_INPUT`/`$CLAUDE_TOOL_FILE_PATH` env vars. Instrument an existing PreToolUse hook with a known Write event and confirm exactly how proposed content is exposed before authoring this guard; if those env vars are empty, the redaction silently no-ops (reads empty → always passes). Use the confirmed mechanism in the acceptance criterion.
    - Register in `hooks/hooks.json` under `PreToolUse` with matcher `Write|Edit|MultiEdit`.
    - Mirror in `.claude/settings.json` per marketplace-dev convention.
 4. Add fixture tests under `plugins/ravenclaude-core/hooks/tests/guard-memory-write/`:
@@ -898,6 +898,7 @@ Execute mode steps (in order, with atomic-swap semantics):
 
 **Security invariants (hard ship gates):**
 
+- **⚠ VERIFY BEFORE BUILDING (2026-05-23 review): `$CLAUDE_INVOCATION_SOURCE` is an unverified env var** — it appears nowhere in the current codebase or the hooks schema, yet Ragnarök's _entire_ user-only security gate rests on it. If it is absent/empty at runtime, `"" != "user"` is TRUE and the command refuses **every** invocation (including the user's own); if it's simply unset for agents too, the gate is a silent no-op. Confirm the variable exists and carries the expected values (echo it from a trivial slash command) BEFORE spending Phase-7 hours; if it does not exist, document an alternative mechanism (a sentinel file written by the slash-command dispatcher, or a required interactive `yes` reply) and update these acceptance criteria accordingly.
 - The command **rejects non-interactive invocation.** If `$CLAUDE_INVOCATION_SOURCE != "user"` (i.e., the command was called by an agent, not the user typing it), the command exits with a named error `RAGNAROK_NOT_USER_INVOKED`. **Register `non-interactive-ragnarok-invocation` as a Fenrir-bound entry in `dashboard-schema.json` *as part of this phase* (Phase 7)** — the entry isn't added retroactively in Phase 2 because the command doesn't exist yet then. The Fenrir invariant from Phase 2 (security_deny-cannot-be-locally-overridden) immediately applies to the newly-registered entry on landing.
 - Reinstall pins to a user-named SHA. No `marketplace HEAD` fallback.
 - `MEMORY.md` and `~/.claude/projects/.../memory/` are excluded from the reset.
@@ -1192,11 +1193,23 @@ Phases group the 12 features by sequential dependency. Each phase has an entry c
 
 The full sequence ships across roughly 10–11 minor `ravenclaude-core` releases. At a steady single-maintainer pace of 8–10 hours/week of focused build time, that's ~16–24 weeks (4–6 months). Faster on focused sprints.
 
+> **Delivery realism (2026-05-23 PM review).** The 8–10 h/week figure is optimistic: Matt is a solo, non-developer owner whose paid consulting + the marketing-website build compete for the same hours. At a realistic 2–4 h/week with consulting active, the full plan is **8–18 months**, not 4–6. Treat this as a backlog with a hard off-ramp, not a commitment:
+>
+> | Stop after | What's live | What's parked |
+> |---|---|---|
+> | **Phase 1** (Heimdall + Mjölnir + Gleipnir docs) | The single highest-value operator surface | Everything Phase 2+; the plugin is fully usable as-is |
+> | **Phase 3** (+ Fenrir, Norns) | Posture safety invariant + past/present panel | Bifröst, Sleipnir, Ragnarök, Yggdrasil, Níðhöggr |
+> | **Phase 7** (+ Bifröst, Mímir, Ragnarök) | The DR/reset workflow + knowledge naming | Yggdrasil-interactive + Níðhöggr (the two user-override features) |
+>
+> **Capacity check (fill in before starting):** realistic weekly hours = ____; Phase 0+1 done by ____; full plan by ____. **Retrospective checkpoints:** after Phase 3 and after Phase 6, compare hours-spent vs estimated and decide continue / descope Phase 9 / pause. **Schedule risks (belong in §5a):** R-sched-1 — consulting pipeline absorbs hours (likelihood H, impact H); R-sched-2 — PR #69 dashboard-buildout scope expands and absorbs Phase 1–5 budget (M/M). **Sequencing warning:** the two user-override features (Yggdrasil-interactive, Níðhöggr) sit last and may never ship under this order — if they matter, re-prioritize them earlier or accept they're the first to be cut.
+
 ---
 
 <a id="5-cross-feature-dependency-graph"></a>
 
 ## 5. Cross-feature dependency graph
+
+> **External dependency (2026-05-23 review): PR #69 (dashboard build-out, `dashboard-buildout-plan.md` Phase A) is a prerequisite node, not just prose.** Fenrir (3.4) and Víðarr (3.11) lean on the `network_read` + `security_deny` categories and the dashboard surfaces that #69 Phase A lands. **Phase 2 and Phase 8 entry condition:** #69 Phase A is merged to main AND its category names (`network_read`, `security_deny`) are verified against this plan's references — if #69 renamed them, update the Fenrir/Víðarr specs first.
 
 ```
                                   ┌──────────────────────────────────────────┐
@@ -1300,12 +1313,12 @@ These need resolution before or during execution. Marked **B** = block phase ent
 | Q3 | Where does Mímir's first-write disclosure get appended? At the system-level memory writer, or per-write inside the file? | Phase 5 | **B** | At the system-level memory writer prompt instruction in `AGENTS.md` / `CLAUDE.md` auto-memory section. Concretely: edit the existing "How to save memories" subsection in `CLAUDE.md` to instruct, "If `MEMORY.md` does not yet exist, the first write prepends the contents of `plugins/ravenclaude-core/templates/memory-disclosure.md`." The agent reads the template at write-time and includes it verbatim. Subsequent writes append below the disclosure without modifying it. |
 | Q4 | Should Ragnarök's snapshot retention (30 days) be configurable? | Phase 7 | **W** | Yes, via `--ttl-days <int>` flag. Default 30. |
 | Q5 | Does the Norns Skuld column read `docs/proposals/` directly or via a generated index? | Phase 3 | **W** | Direct grep of `docs/proposals/*.md` filenames matching the plugin name. Cheap enough; no index needed at current scale. |
-| Q6 | Should the Gjallarhorn red-tier banner block dashboard interaction, or just be visually loud? | Phase 1 | **W** | Visually loud + `aria-live="assertive"`; does NOT block interaction. The user may need to navigate to see what fired. |
+| Q6 | Should the Gjallarhorn red-tier banner block dashboard interaction, or just be visually loud? | Phase 1 | **B** _(re-triaged 2026-05-23: affects Phase-1 acceptance; resolve at phase entry, not mid-build)_ | Visually loud + `aria-live="assertive"`; does NOT block interaction. The user may need to navigate to see what fired. |
 | Q7 | Does Heimdall's version-drift check live in `generate-dashboards.py` or in a separate `check-version-drift.py` script? | Phase 1 | **W** | Inside `generate-dashboards.py` for v1 (no separate script needed). If multiple features need it later, extract. |
 | Q8 | Should Yggdrasil Phase B (interactive) use D3 or a hand-rolled SVG renderer? | Phase 9 | **W** | Hand-rolled. Adding a D3 dependency for one tab is overkill; the data shape is small (<100 nodes) and the layout is deterministic. |
-| Q9 | Is the secret-redaction pattern set in `guard-memory-write.sh` versioned/extensible? | Phase 5 | **W** | Yes — patterns live in `plugins/ravenclaude-core/hooks/_secret-patterns.regex` (allow-listed under `hooks/**`), one regex per line. Hook reads the file. |
+| Q9 | Is the secret-redaction pattern set in `guard-memory-write.sh` versioned/extensible? | Phase 5 | **B** _(re-triaged 2026-05-23: affects Phase-5 acceptance + the hook's file layout; resolve at phase entry)_ | Yes — patterns live in `plugins/ravenclaude-core/hooks/_secret-patterns.regex` (allow-listed under `hooks/**`), one regex per line. Hook reads the file. Add a regex-DoS (catastrophic-backtracking) time-bound test on a large synthetic input. |
 | Q10 | What happens to the dashboard if a consumer is on an older `ravenclaude-core` and the marketplace updates with a new tab? | Cross-cutting | **W** | The dashboard is rendered per-plugin-version; older versions show older tab sets. No back-compat concern. Document in CLAUDE.md release-notes section. |
-| Q11 | Does Mjölnir's reporter need a flag to suppress themed copy and emit plain text only? | Phase 1 | **W** | Yes — `/mjolnir <plugin> --plain` emits plain text. Default is themed unless `huginn_muninn.theme: plain` is set in the dashboard. |
+| Q11 | Does Mjölnir's reporter need a flag to suppress themed copy and emit plain text only? | Phase 1 | **B** _(re-triaged 2026-05-23: affects Phase-1 acceptance)_ | Yes — `/release-check <plugin> --plain` (alias `/mjolnir`) emits plain text. Default is themed unless `huginn_muninn.theme: plain` is set in the dashboard. |
 | Q12 | Does the Fenrir lane in the Settings tab include a "request unbinding" affordance? | Phase 2 | **W** | No. The whole point is that Fenrir-marked rules CANNOT be locally overridden. Adding a request-affordance would dilute the invariant. Future work could add a user-scope-only override prompt; out of v1. |
 
 ---
