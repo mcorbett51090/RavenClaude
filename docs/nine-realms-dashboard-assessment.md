@@ -66,17 +66,20 @@ These pairings are real and load-bearing in the myth. They are also _strongly op
 
 ## 3. The dashboard — what it actually is
 
-Per `docs/dashboard-buildout-plan.md` §B.1, the planned dashboard has **7 tabs**:
+**What ships today vs. what's planned (state this honestly).** The _shipped_ dashboard (`plugins/ravenclaude-core/dashboard.html`) has **4 tabs** — Settings (live) and Commands / Trees / Activity (stubs). The 7-tab layout below is the _proposed_ IA from `docs/dashboard-buildout-plan.md` §B.1; Setup (renamed from "Install"), Agents, Health, and Environment are not built yet. Reasoning about a 7-tab dashboard as if it exists is the trap this doc must avoid — and if anything the 4-vs-9 gap makes the mapping critique _sharper_, not weaker.
 
-| Tab | Purpose | Already mythologically claimed? |
-|---|---|---|
-| **Settings** | Comfort-posture editor + per-agent toggles + scope selector | Gleipnir (per the parent ideation pass) — strongest fit in the roster |
-| **Commands** | Slash-command launcher | (no figure assigned) |
-| **Trees** | Worktree visualizer | Sleipnir (parent pass — cross-realm mobility) |
-| **Activity** | Recent agent/hook events | (no figure assigned — Víðarr was considered and skipped) |
-| **Install** *(new)* | Onboarding walkthrough | Bifröst (parent pass — the install bridge) |
-| **Agents** *(new)* | Per-agent enable/configure | (no figure assigned) |
-| **Health** *(new, stretch)* | Diagnostics + permission visualizer | Heimdall (parent pass — perimeter alarms) |
+The figure assignments below are corrected to match the buildout plan's actual `NORSE_NAMES` map (the parent ideation pass used looser, different names):
+
+| Tab | Status today | Purpose | Buildout `NORSE_NAMES` figure |
+|---|---|---|---|
+| **Settings** | live | Comfort-posture editor + per-agent toggles + scope selector | Forseti's bench (judgement/arbitration) |
+| **Commands** | stub | Slash-command launcher | Gungnir |
+| **Trees** | stub | Worktree visualizer | (Sleipnir, per the ideation pass) |
+| **Activity** | stub | Recent agent/hook events | Ratatoskr's log |
+| **Setup** _(proposed, renamed from "Install")_ | not built | Onboarding / status board | Mímir's well |
+| **Agents** _(proposed)_ | not built | Per-agent enable/configure | (no figure assigned) |
+| **Health** _(proposed, stretch)_ | not built | Diagnostics + permission visualizer | Heimdall's watch |
+| **Environment** _(proposed)_ | not built | DEV/TEST/PROD selector | **"the Nine Realms"** — the worlds (DEV/TEST/PROD as worlds) |
 
 Two cosmological frames are also already in motion:
 
@@ -150,13 +153,27 @@ This is the **strongest version** of the idea, because:
 
 ### 4.4 Realms as marketing/copy-only
 
-The parent pass's verdict. "The realms" as a collective name for the plugin set, used in user-facing copy without enforcement. Cheap, low-maintenance, no information-architecture impact. The cost is near-zero and the benefit is near-zero. Fine as a fallback.
+The parent pass's verdict: "the realms" as a collective name for the plugin set, used in user-facing copy without enforcement. But the binary "structural mapping vs. copy-only" misses the **house naming pattern** that actually applies here: a _plain-language primary label with the themed term as a parenthetical/subtitle_ (e.g. "Environments (the Nine Realms)"). That pattern carries zero navigational risk, survives any tab-count change, costs almost nothing, and is removable without touching IA. Reframed that way, copy-only theming is not a weak fallback — it is **the near-term recommendation** for the current stub-heavy dashboard: adopt the realm flavor in subtitles/legends now, defer any structural commitment until the IA stabilizes.
+
+### 4.5 Realms as deployment environments (the option the buildout plan already took)
+
+The four attempts above miss a fifth mapping the dashboard team **has already committed to**: `docs/dashboard-buildout-plan.md`'s `NORSE_NAMES` map assigns `"Environment": "the Nine Realms"` — i.e. DEV / TEST / PROD (and similar) rendered as _worlds you move work between_.
+
+Tested against this doc's own bar, this is the **strongest literal mapping** — arguably stronger than the Yggdrasil overlay:
+
+- It passes the noun-place test (§4.1) that tabs fail: environments genuinely _are_ places, and work genuinely _travels_ between them (Bifröst-like) — a property the function-tabs lack.
+- It does not force a count: nobody claims there are nine environments, so the canonical-list problem (§2.1) never bites.
+- It is already decided, already named, and requires no new surface.
+
+The honest verdict on §4.5: this is a clean, low-risk use of the metaphor that the rest of this doc should _endorse_, not re-litigate. It does not conflict with the §4.3 overlay; the two are complementary (environments-as-realms on the Environment tab; selected realm labels on the Yggdrasil view).
 
 ---
 
 ## 5. Verdict
 
-**Skip the 1:1 tabs-as-realms mapping. Skip the zones-as-realms grouping.** Both fail the test the parent ideation pass set out: "does the name make the thing easier to understand?" Forcing nine destinations on a seven-tab dashboard makes the dashboard harder to understand, not easier — and the count itself rests on a modern synthesis the primary sources never fixed.
+**Engage the decision that already exists.** The buildout plan has _already_ mapped the Nine Realms to the Environment tab (DEV/TEST/PROD as worlds, §4.5). This reassessment **endorses that mapping** — it is the one literal use that passes the noun-place test — and confines its skip to the _other_ attempts. Stated plainly: realms-as-environments ✅; realms-as-tabs ❌; realms-as-zones ❌; realms-as-Yggdrasil-overlay ✅ (with discipline).
+
+**Skip the 1:1 tabs-as-realms mapping. Skip the zones-as-realms grouping.** Both fail the test the parent ideation pass set out: "does the name make the thing easier to understand?" Forcing nine destinations on a four-tab (proposed-seven-tab) dashboard makes it harder to understand, not easier — and the count itself rests on a modern synthesis the primary sources never fixed.
 
 **This does not differ in direction from the prior verdict.** The parent doc said "flavor, not structure," and that holds. What this re-research adds:
 
@@ -168,6 +185,8 @@ The parent pass's verdict. "The realms" as a collective name for the plugin set,
    - **Only realms that point the right way.** Niflheim _earns_ cold-ancient-memory because that _is_ what Niflheim is. Vanaheim doesn't earn anything because Vanaheim is a place we know little about; using it for "specialist plugins" is decoration.
    - **Six (or however many) is the honest number, not nine.** Refusing to invent uses for realms that don't fit is a strength, not a failure. The primary sources themselves refused to list all nine.
    - **The realm name is a label on the map, not a route in the URL.** No realm becomes a tab. No realm becomes a sub-page. If a user clicks the "Svartalfheim" label on the Yggdrasil view, they should see the existing hooks/scripts surface, not a separate realm-themed page.
+   - **The realm→region mapping lives as a static dict in the generator, keyed by structural region (canopy / trunk / root), NOT by plugin name.** This is load-bearing: the interactive Yggdrasil view's defining constraint is "no hand-curated metadata, no separate state" (it reads structure from the manifest). Realm labels _are_ hand-curated metadata, so they must be a fixed region→label dict in the diagram generator that never changes when a plugin is added or removed. If that proves infeasible, **defer the overlay until the interactive Yggdrasil view (Phase B) ships** rather than reintroducing the maintenance coupling the view was scoped to avoid.
+   - **Two of the six realms are conditional on features that don't exist yet.** Helheim ("deprecated plugins") needs a plugin-deprecation/archival state the marketplace doesn't model today; Muspelheim ("destructive ops") maps to the Ragnarök _command_, not a tree region — surface it there if anywhere. Until those exist, only four realms are backed by present structure (Asgard, Midgard, Svartalfheim, Niflheim).
 
 ---
 
@@ -177,23 +196,27 @@ For completeness — what _would_ make a full nine-realms mapping work?
 
 - A dashboard with ~9 genuinely distinct destinations, each with a noun-place character (not a verb-noun function).
 - A reason to surface oppositions (fire/ice, light/dark) that maps onto a real product tension.
-- A user base that already shares the Norse vocabulary so the realm names _shorten_ explanation rather than lengthen it.
+- A primary user — concretely, the non-developer financial-analyst owner — who has demonstrated familiarity with the Norse theming already used elsewhere in the product (Hliðskjálf, Gleipnir, Bifröst) and would read realm names as wayfinding cues, not obstacles. A first-time user with no Norse vocabulary is the highest-stakes audience, and realm labels _lengthen_ explanation for them.
 
 The RavenClaude dashboard satisfies none of these. The realms remain a vivid backdrop, not a viable IA.
+
+**Accessibility note.** Any realm name used as the accessible name of an interactive element (tab, button, landmark) must carry an `aria-label` with a plain-language functional description, and realm labels must be hidden when the Norse-theme toggle is OFF. Decorative use (a legend on the Yggdrasil view, flavor text in a tooltip) carries no a11y obligation but should still expose a plain-language title.
 
 ---
 
 ## 7. Recommendation in one paragraph
 
-Maintain the parent doc's skip on a literal nine-realms dashboard mapping; do not force tabs or zones into a nine-slot structure. Instead, **when the Yggdrasil-view visualization is built, label its regions with the 5–6 realm names that genuinely fit the content already there (Asgard for governance, Midgard for the marketplace trunk, Svartalfheim for hooks/smithy, Niflheim for cold-storage memory like lessons + decision log, Helheim for deprecated plugins, optionally Muspelheim for destructive/reset operations).** Use fewer realms honestly rather than nine awkwardly. Cite once in copy that the labels are a deliberate selection from the modern-synthesis nine, not the full set — that honesty is itself part of the metaphor.
+Maintain the skip on a literal nine-realms _tabs/zones_ mapping; do not force the (currently four, proposed seven) tabs into a nine-slot structure. **Endorse the one literal mapping the buildout plan already adopted** — the Nine Realms as the Environment tab (DEV/TEST/PROD as worlds) — because it passes the noun-place test the tabs fail. **Then, when the Yggdrasil-view visualization is built, label its regions with the realm names that genuinely fit the content already there** — four backed by present structure (Asgard = governance, Midgard = marketplace trunk, Svartalfheim = hooks/smithy, Niflheim = cold-storage memory like lessons + decision log) plus two conditional on features that don't yet exist (Helheim = a future plugin-deprecation state; Muspelheim = the Ragnarök command, not a tree region). Keep the realm→region labels as a static, region-keyed dict in the generator so they respect the view's "no hand-curated metadata" rule. Use fewer realms honestly rather than nine awkwardly, and note once in copy that the labels are a deliberate selection from the modern-synthesis nine — that honesty is itself part of the metaphor.
 
 ---
 
 ## 8. Sources
 
-- _Poetic Edda_ — _Völuspá_ stanza 2 ("níu man ek heima"), _Grímnismál_ on Yggdrasil's roots, _Lokasenna_ on Vanaheim.
+> **Cross-reference availability.** The two internal docs cited below (`norse-mythology-feature-map.md`, `dashboard-buildout-plan.md`) live on unmerged sibling branches (`design/norse-mythology-map`, `plan/dashboard-buildout`). A reader on `main` cannot follow those links until the branches merge; resolve merge order before treating the cross-references as live.
+
+- _Poetic Edda_ — _Völuspá_ stanza 2, "níu man ek heima, níu íviðjur" (cite a named edition/translation — e.g. Larrington 2014 or Bellows 1923 — for the Old Norse line); _Grímnismál_ st. 31 and _Gylfaginning_ ch. 15 for the two competing three-roots mappings (Hel / Jötunheim / Midgard vs. Asgard / Jötunheim / Niflheim); _Lokasenna_ on Vanaheim.
 - Snorri Sturluson, _Prose Edda_ (_Gylfaginning_, c. 1220) — the systematized cosmology and the three-roots-three-wells mapping.
 - Wikipedia: <https://en.wikipedia.org/wiki/Norse_cosmology>, <https://en.wikipedia.org/wiki/Yggdrasil>, <https://en.wikipedia.org/wiki/Nine_Worlds>, and individual realm pages.
 - Norse-mythology.org's cosmology survey (<https://norse-mythology.org/cosmology/the-nine-worlds/>) — useful per-realm summaries; explicitly modern synthesis.
 - Parent ideation pass: `docs/norse-mythology-feature-map.md` §4 "The Nine Realms" (prior verdict: flavor-not-structure).
-- Dashboard plan: `docs/dashboard-buildout-plan.md` §B.1 (7-tab IA: Settings, Commands, Trees, Activity, Install, Agents, Health).
+- Dashboard plan: `docs/dashboard-buildout-plan.md` §B.1 (proposed 7-tab IA) and its `NORSE_NAMES` map (`"Environment": "the Nine Realms"`).
