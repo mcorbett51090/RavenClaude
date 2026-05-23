@@ -36,6 +36,12 @@ This marketplace follows the **orchestrator-worker / hierarchical** pattern, whi
 
 **Rationale**: This approach provides better observability, easier debugging, reduced risk of loops, and more reliable behavior — especially important when combining generalist agents from core with domain specialists. It mirrors proven task decomposition and session isolation patterns from high-reliability agent frameworks.
 
+### Delegating branch-mutating work (added 2026-05-23)
+
+When the Team Lead fans work out across multiple git branches, **how** the sub-agents are launched determines whether they can do the job at all. See [`knowledge/subagent-isolation-and-tooling.md`](knowledge/subagent-isolation-and-tooling.md) for the full lesson. The load-bearing rule:
+
+> Reading a branch needs no isolation (`git show <ref>:<path>` — parallelize freely). Writing a branch (checkout / commit / push) needs Bash, and `isolation: "worktree"` **takes Bash away** in this environment. So: parallel reads yes; for parallel writes, do them in the main agent sequentially, serialize non-isolated agents one-per-branch, or have each agent build its own `git worktree` by hand.
+
 ### Agent-routing decision tree (priors — for the Team Lead)
 
 Before spawning any specialist, traverse the Mermaid graph in [`knowledge/agent-routing.md`](knowledge/agent-routing.md) `## Decision Tree` top-to-bottom against the user's observable request signals — do NOT keyword-match the request to an agent name. The earliest-blocking gate wins (e.g., a UI change that touches auth spawns `security-reviewer` before `frontend-coder`); when multiple branches could apply, default to the leaf with the smaller spawn cost and escalate only if it returns insufficient. Domain plugins (e.g. `power-platform`) with a more-specific routing rule for the request override this tree.
