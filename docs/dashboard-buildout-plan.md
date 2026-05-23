@@ -2411,23 +2411,113 @@ All owner-agent references in Phase C resolve to real agents in the plugins. The
 <a id="phase-d"></a>
 ## 5. Phase D — risks, open questions, sequencing
 
-### 5.1 Risks
+### 5.0 Implementation kickoff — what to do tomorrow morning
 
-| # | Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|---|
-| R1 | Deep-link handler unavailable on a meaningful fraction of users' machines → Launch buttons silently fall back to Copy everywhere → "launch" feels broken | medium | medium | Already mitigated: feature-detect; fall back to Copy with a one-time hint; rerun on each release because handler-registration drifts. |
-| R2 | Multi-layer posture's "5 of 5 plugins agree" precedent makes us default to user-scope, but a real team installing for shared CI will expect project-scope and get confused | medium | medium | Migration banner explicitly offers `project`. Documentation calls out the team-use case. Banner copy chosen so the user reads it. |
-| R3 | Card grid with 95+ commands is overwhelming despite chip filters | low | medium | "Show only 20 most-used" default; chip filters; palette overlay (Design 2) as the production-mode surface for power users. |
-| R4 | Each new tab grows the dashboard's static HTML size; per-plugin dashboards balloon past 500 KB budget | medium | low | Sticky budget. Trees + Activity already inline-everything in proposal 003; Commands + Install do not add per-run data. Budget review at v0.3.0. |
-| R5 | `/__save` allow-list must expand for any new file the dashboard writes (e.g., `.ravenclaude/agents.yaml` for Phase B.4.1) — easy to forget and break a tab silently | low | medium | A test in `audit-gates.sh` that diffs the dashboard's `<form>` write-target enumeration against the server allow-list; CI fails if they drift. |
-| R6 | Per-agent slash commands proliferate without versioning → consumer's marketplace update silently adds 30 new commands; user surprise | medium | low | Each plugin's release notes itemize new commands. Dashboard's Update notifier (B.4.5) surfaces the diff. |
-| R7 | Phase A's "user scope is default" surprises a CI environment where there is no persistent HOME (e.g., GitHub Actions runner). Posture writes succeed but vanish on next run. | medium | low | CI detection (`CI=true`); banner: "you're in CI; user-scope writes are ephemeral. Use `--scope project` or skip /set-posture in CI." |
-| R8 | Static HTML cannot live-poll for `install-doctor.json` updates → user feels nothing happened after running the command | medium | low | The Install tab polls every 2s for the file existence (via `fetch` against `/__save` when serve-dashboards is running) OR shows a "Re-run detect, then reload this tab" affordance when not. |
-| R9 | The CGP environment-context interaction with Phase A's user-scope default: if a user has DEV/TEST/PROD environments at varying trust levels, the user-layer settings.json is the SAME across them — but the CGP env-context check is per-project per-environment | low | medium | Phase A explicitly documents: comfort-posture is a **machine-default**; CGP env-context is per-project per-environment; the two compose by Claude Code's deny > ask > allow precedence at the layer level. No code change; doc change only. |
-| R10 | A hostile static-HTML page hosted under file:// could read other origin storage via IndexedDB — but the dashboard's IDB only stores file handles for ITS OWN saves. No new attack surface. | very low | very low | Documented in the security section of proposal 003 §9. |
-| R11 | **Merge-model surprise.** A user who learned "local overrides project" from non-permission settings (theme, model) will assume the same for permission rules and write a `--scope local` `allow` expecting to relax a project-layer `ask`. It won't work; they'll be stuck asked and not know why. | high | medium | Scope selector info modal (§2.3.5) leads with the merge model in plain language; Health tab (B.4.4) shows the merged effective set; `apply-comfort-posture.py --preview-merge` runs the same merge and prints it. Onboarding tab (B.3) Step 5 explicitly mentions "your personal layer can only restrict the project layer further, not loosen it." |
-| R12 | **Project-layer `allow` is almost always wrong but easy to emit.** Today's `/set-posture --scope project` (the legacy default) blindly emits whatever `allow`s the YAML resolves to — meaning a single user can push their personal `mostly-allow` posture into the project file and silently grant the whole team patterns the team never discussed. | high | medium | Project-scope confirmation modal (§2.3.5) counts emitted `allow` rules and warns; migration banner (§2.3.7) explicitly offers a "BOTH" mode that keeps project-scope to denies+asks only. CI lint (proposed in §5.4) flags PRs where `.claude/settings.json` gains `permissions.allow` entries with a "is this team policy?" comment. |
-| R13 | **Enterprise managed-settings denies that we don't see.** The Health tab's merge preview reads user + project + local. It does NOT read the enterprise file (which lives outside the project tree and the user home). A pattern that looks `allow`ed in the merged preview can still be denied by enterprise. | low | low | Read enterprise file path on supported OSes; if present, include it in the merged preview with a "Read-only (managed by IT)" tag. If unreadable (permissions), show "Cannot read enterprise layer" warning rather than silently dropping it. |
+For Matt waking up to read this plan. Concrete next steps if (and only if) the plan is approximately right.
+
+**If you have 15 minutes:** read §1.4 (the merge model correction — the biggest substantive finding), §2.2 (the user-scope default recommendation), §5.8.2 (the 20-decision summary). Decide if D1, D5, D7, D12 land. If they do, the rest of the plan is implementation, not architecture.
+
+**If you have 1 hour:** add §5.8 (30-min user narrative) and §5.8.1 (5-min team-admin narrative). They're the acceptance tests. If a narrative reads true to you, the design is internally coherent. If it doesn't, the design has a gap we should close before any code ships.
+
+**If you have a half-day to start building:**
+
+1. **Branch off `main`.** `git checkout -b feat/ravenclaude-core-phase-a`. Keep this PR (#69) open as the spec; reference it from the implementation PR.
+2. **Start with the script.** Implement the §2.3.9 patch sketch for `apply-comfort-posture.py`. Don't touch the dashboard yet; the script is the truthful part of Phase A. Use the §5.8.5 fixture matrix to drive tests.
+3. **Ship the script behind a flag.** Default behavior stays `--scope project` until day 3 of the §5.8.5 ship-day sequence. Land the script, get reviewer eyes on it, then flip the default.
+4. **Then the dashboard.** Add the §2.3.10 scope selector. No behavior change yet — the dashboard writes the YAML; the YAML doesn't write settings until the user runs `/set-posture`.
+5. **Then the Health tab.** This is the part that makes the merge model un-surprising. Skip this and Phase A will surprise users. Do it before flipping the default.
+6. **Flip the default.** Now `/set-posture` defaults to `--scope user`; migration banner fires for legacy state.
+7. **Tag and release as 0.18.0.**
+
+Total elapsed time, assuming 4-6 hours per day of focused work: **5-7 working days.** Less than a sprint.
+
+**If you have a week+ to commit:**
+
+After 0.18.0, the highest-leverage next slice is the **Commands tab base (Design 1)**. Reasons:
+- The tab is currently a stub — it's the most visible "incomplete" surface
+- The card grid is the foundation for everything in Phase C
+- Each command shipped to it is a discoverable thing the user can find
+- Cost: ~10 hours for the tab + 2-4 hours per command
+
+After Commands tab base ships, **start adding the §5.8.4 first-5-per-plugin commands** at a rate of 2-3 per week. The first 35 commands take ~4-6 weeks of consistent shipping. After that, the dashboard is a serious productivity surface even if no more architectural work happens.
+
+**If you DON'T want to build any of this:**
+
+The plan still has value as **documented intent.** Future you (or a delegate, or a new contributor) can pick it up cold. The decision summary in §5.8.2 is the most reusable artifact — it's a roadmap of 20 design decisions you've thought through, with defaults that future-you can confirm or override without re-deriving the analysis.
+
+The plan is also useful as a **stake in the ground**: when someone (you, a contributor, an LLM) starts iterating on the dashboard in 2 months, this doc tells them what the previous design pass concluded so they don't relitigate.
+
+### 5.0.1 Lessons-from-prior-ships retro (v0.15.0 / v0.16.0 / v0.17.0)
+
+What the dashboard has actually shipped — and what each ship taught us. Useful priors for Phase A.
+
+#### v0.15.0 — per-plugin dashboard chassis
+
+What shipped: the `dashboard.html` skeleton, the Settings tab (read-only first version), the `dashboard-schema.json`, the sibling `generate-dashboards.py`. No `/set-posture` yet; the dashboard was a "look but don't touch" UI.
+
+**Lessons:**
+- The static-HTML-no-backend constraint held up. No regret on the architecture choice from proposal 003.
+- The auto-generated form from JSON Schema was harder than expected (~3-4× initial estimate). The dynamism of "schema describes the form" pays off only when you add a second category; for the first single category, hand-coded HTML would have been faster.
+- Inline CSS + inline JS keeps the file ~250 KB. Discipline matters; one CDN dependency would have ballooned it past 1 MB.
+- File-size monitoring should be a CI gate. We don't have it yet. Phase A should add it.
+
+#### v0.16.0 — `/set-posture` slash command + snapshot-merge
+
+What shipped: the `/set-posture` slash command + `apply-comfort-posture.py`'s snapshot-merge mode. The YAML round-trip worked; the dashboard could write a posture and the script could apply it.
+
+**Lessons:**
+- The **snapshot-merge mode was the wrong design**, fixed in 0.17.0. The footgun: if a hand-added `allow` rule existed in `.claude/settings.json` for a pattern AND the posture-emitted same pattern as `ask`, the merge silently downgraded the effective behavior to `ask`. Users hand-added `allow` rules to be permissive; the merge made them more restrictive. Surprise.
+- This is the same shape of foot-gun that the **Phase A multi-layer design has to avoid**. We're not snapshotting now (overwrite mode); but the cross-layer merge model can produce similar surprises if a user's intuition is "looser layer wins" (it isn't — tighter wins). The Health tab is the unsurprise mechanism.
+- The slash-command + script split is the right pattern. The command's job is to dispatch; the script's job is to compute and write. Phase A continues this pattern.
+- Migration paths matter. The v0.16.0 → v0.17.0 cleanup logic (deleting the snapshot file) was bolt-on rather than design-time. Phase A's migration banner is design-time from the start.
+
+#### v0.17.0 — overwrite mode + `security_deny` + per-pattern overrides + dashboard polish
+
+What shipped: the EMISSIONS table grew, the YAML schema gained per-pattern overrides and a `security_deny` list, the script became overwrite-not-merge, the dashboard Settings tab got the collapsible per-pattern controls.
+
+**Lessons:**
+- **Overwrite is correct.** It's surprising on first contact ("wait, my hand-edits get wiped?") but the alternative (merge) silently downgrades. Phase A inherits this: the `/__save` of `.ravenclaude/comfort-posture.yaml` is the source-of-truth gesture; everything else is emission.
+- **Per-pattern overrides are well-used.** The YAML's category-default + per-pattern overrides shape is more legible than a flat list. Phase A doesn't change this.
+- **`security_deny` as a floor was the right choice.** Users feel safer knowing `.env` reads and `rm -rf /` are blocked regardless of their permissive settings elsewhere. Phase A's recommendation that user-layer DENYs are "sticky everywhere on the machine" is the same intuition.
+- The dashboard polish (`★ Recommended` preset, info modals, per-pattern explanations) significantly increased confidence. Phase A should match this polish standard on the new scope selector + the Health tab.
+- Three releases in 3 weeks was the right cadence. Each release had a single user-visible theme. Phase A + Health tab as a single release (0.18.0) keeps the "one theme per release" pattern.
+
+#### Patterns that carry forward to Phase A
+
+1. **One file is the source of truth** (the posture YAML). Everything else is emission.
+2. **Overwrite-mode for derived state.** No snapshots, no merge-on-write, no silent state.
+3. **Per-pattern overrides** for fine-grained tuning without inventing a new abstraction.
+4. **Always-on safety floors** (`security_deny`).
+5. **Polish the recommended path** (the `★ Recommended` preset is genuinely useful; the equivalent for Phase A is the user-scope default + the Health-tab "Test a tool call" UX).
+6. **Migration deliberately**, not bolt-on. The Phase A migration banner is design-time.
+7. **One theme per release.** 0.18.0 = "multi-layer posture + visibility." Not "multi-layer posture + Commands tab + Install tab." Discipline.
+
+### 5.1 Risks (revised v14 with severity scoring)
+
+Each risk scored on likelihood × impact (low/medium/high) and **severity** as the product (low / medium / high / critical).
+
+| # | Risk | L × I = **Sev** | Mitigation |
+|---|---|---|---|
+| R1 | Deep-link handler unavailable on a meaningful fraction of users' machines → Launch buttons silently fall back to Copy everywhere → "launch" feels broken | M × M = **Med** | Feature-detect; fall back to Copy with one-time hint; re-run probe per release because handler-registration drifts. |
+| R2 | Multi-layer posture's "5 of 5 plugins agree" precedent makes us default to user-scope, but a real team installing for shared CI will expect project-scope and get confused | M × M = **Med** | Migration banner explicitly offers `project`. Documentation calls out the team-use case. Banner copy chosen so the user reads it. |
+| R3 | Card grid with 141+ commands is overwhelming despite chip filters | L × M = **Low** | "Show only 20 most-used" default; chip filters; palette overlay (Design 2) as the production-mode surface for power users. |
+| R4 | Each new tab grows the dashboard's static HTML size; per-plugin dashboards balloon past 500 KB budget | M × L = **Low** | Sticky budget. Trees + Activity already inline-everything in proposal 003; Commands + Install do not add per-run data. CI gate `audit-bundle-size.sh` (new in Phase A per §5.0.1 lesson) fails on >500 KB. |
+| R5 | `/__save` allow-list must expand for any new file the dashboard writes — easy to forget and break a tab silently | L × M = **Low** | `audit-allow-list-drift.py` CI gate (§5.3.1) diffs client write targets against server allow-list. |
+| R6 | Per-agent slash commands proliferate without versioning → consumer's marketplace update silently adds 30 new commands; user surprise | M × L = **Low** | Each plugin's release notes itemize new commands. Dashboard's Update notifier (B.4.5) surfaces the diff. Per-plugin `featured: true` cap of 20 prevents explosive defaults. |
+| R7 | Phase A's "user scope is default" surprises a CI environment where there is no persistent HOME | M × L = **Low** | CI detection (`CI=true`) warns + suggests `--scope project` instead. Backward-compat env var `RAVENCLAUDE_POSTURE_LEGACY_SCOPE=project` is the escape hatch. |
+| R8 | Static HTML cannot live-poll for `install-doctor.json` updates → user feels nothing happened after running the command | M × L = **Low** | Install tab polls every 2s for file existence via `/__save` HEAD when serve-dashboards.py is running; otherwise shows "Re-run detect, then reload" affordance. |
+| R9 | CGP env-context per-environment vs user-scope-posture machine-wide — apparent tension | L × M = **Low** | Phase A explicitly documents: comfort-posture is machine-default; CGP env-context is per-project per-environment; the two compose by deny>ask>allow at layer level. Doc change only. |
+| R10 | Hostile static-HTML page hosted under file:// could read other origin storage via IndexedDB — but the dashboard's IDB only stores file handles for ITS OWN saves | VL × VL = **VLow** | Documented in security section of proposal 003 §9. No new attack surface introduced. |
+| R11 | **Merge-model surprise** — user assumes "local overrides project" from non-permission settings; writes `--scope local allow` expecting to relax a project `ask` and is stuck asked. | **H × M = High** | Scope selector info modal leads with merge model in plain language; Health tab (B.4.4) "Test a tool call" panel surfaces the resolution; `--preview-merge` flag runs the same logic from CLI. **R11 is the load-bearing risk that ties Phase A to the Health tab being co-shipped (D12).** |
+| R12 | **Project-layer `allow` is almost always wrong but easy to emit.** A single user pushes personal `mostly-allow` posture into the project file and silently grants the team patterns the team never discussed. | **H × M = High** | Project-scope confirmation modal (§2.3.5) counts emitted `allow` rules and warns; migration banner's option 3 ("apply at both") keeps project to denies+asks only; CI lint flags PRs that gain `permissions.allow` entries in `.claude/settings.json`. |
+| R13 | Enterprise managed-settings denies invisible to Health tab. A pattern that looks `allow`ed in the merged preview can be denied by IT. | L × L = **VLow** | Read enterprise file when permissions allow; if present, show with "Read-only (managed by IT)" tag; if unreadable, show "Cannot read enterprise layer" warning rather than silently dropping. |
+| R14 | **Dashboard generator + posture script drift.** The script's EMISSIONS table and the dashboard's schema-driven form must agree on category names. A category added in one and not the other = silent breakage. | M × M = **Med** | Single source of truth: `dashboard-schema.json` declares categories; both the form generator AND the script read it. CI check verifies the script's EMISSIONS dict keys exactly equal the schema's `categories` enum. |
+| R15 | **/__read endpoint's path-traversal check fails subtly.** A canonicalize-then-compare check that mishandles symlinks could let a crafted path escape the allow-list. | L × H = **Med** | The check uses `Path.resolve().relative_to(REPO_ROOT)` (already used by `/__save`); add fuzzing test in `audit-gates.sh` with 20+ malicious path inputs. Same shape as the existing `/__save` defense, which has held up in v0.16.0/v0.17.0. |
+| R16 | **Worktree confusion.** Phase A documents that worktrees share user-scope but have per-worktree project + local scopes. Power users with 5+ worktrees may not internalize this and see "wrong" rules in worktree N. | M × L = **Low** | The Health tab's "Layer view" shows which file paths are being read; explicit worktree-aware copy when the dashboard detects it's running inside a worktree (matching path on `.claude/worktrees/`). |
+| R17 | **`/install-doctor` failure modes.** The doctor runs on the user's machine; if it crashes (e.g., a quirky Python install), the user sees a stack trace and thinks RavenClaude is broken. | L × M = **Low** | Doctor wrapped in try/except per check; failures report as "could not detect" (yellow) rather than crash. The script exits 0 even if individual checks fail. |
+| R18 | **GitHub Pages outage** blocks Update notifier from fetching `latest-versions.json`. | L × L = **VLow** | Graceful degradation: banner doesn't appear; user manually checks for updates via the marketplace repo. Documented behavior; no new code. |
+| R19 | **Telemetry file corruption.** The single-file JSON usage tracker (`~/.claude/ravenclaude-state/usage.json`) is written on every command invocation. A concurrent invocation could corrupt it. | L × L = **VLow** | File-lock per write or read-modify-write under a lock; lock library is stdlib `fcntl` on POSIX, `msvcrt.locking` on Windows. Worst case if lock fails: drop the write and try next time; no user-visible breakage. |
+| R20 | **Migration banner fatigue.** If the script is invoked multiple times before the user acks the banner, the banner re-fires each time. | M × L = **Low** | Ack file at `~/.claude/ravenclaude-state/posture-migration-acknowledged` set on first explicit `--scope <X>` invocation; banner suppresses thereafter. |
 
 ### 5.2 Open questions for Matt
 
@@ -3250,6 +3340,7 @@ The full shape, with values matching the marketplace's actual current state:
 - **v4 (2026-05-23, autonomous, Claude):** Naming / collision / owner-existence audits. Added §4.9 naming and namespacing — flagged `/security-review` as colliding with the Claude Code built-in skill (rename to `/team-security-review`); proposed `/rc:` qualified prefix for infrastructure commands that Claude Code might add later; proposed `scripts/audit-command-collisions.py` as a new CI gate. Added §4.10 owner-agent inventory — verified every "Owner" column entry across the 7 plugins resolves to a real agent on disk; 55 agents total, 95 commands; ~10 agents intentionally have zero dedicated commands (security-reviewer, prompt-engineer, the coders, designer, data-engineer, tester-qa) because their work is in-conversation. Added open questions #10-14 (enterprise-layer reading, `/security-review` rename, infrastructure-command namespacing, Install tab rename, project-scope modal strictness). Expanded §5.4 tests with merge-model property check, allow-at-project lint, built-in collision audit, owner-agent existence check.
 - **v5 (2026-05-23, autonomous, Claude):** Structural / decision-log additions. §5.5 dependency graph showing A → B.1 → B.4.4 as the critical path (Health tab makes the merge model visible to users; without it the user-scope-default change surprises). §5.6 decisions-taken vs decisions-deferred table — every recommendation in the doc tagged ✅ (committed) or 🟡 (recommended, open question for Matt). §5.7 composition with proposal 003 — explicit reconciliation showing 003 §4.3/§4.4/§4.7/§4.8/§7.1/§7.4/§9/§11 are all honored by this plan, with "proposal 003 wins on contradictions" as the tie-breaker rule. Renumbered the old §5.5 ("What we explicitly do NOT plan") to §5.8.
 - **v5.1 (2026-05-23, autonomous, Claude):** Cross-reference accuracy fix. v5's §5.7 referenced proposal-003 sections §3 ("no backend") and §10 ("release plan") — neither is accurate (003 §3 is "Prior-art summary"; 003 §10 is "Open questions"). Corrected the citations: "no backend" lives in 003 §4.3 / §4.4; the release plan lives in 003 §11 (Implementation phases). Added a 003 §7.4 reference (team-shared vs personal / gitignore) which the merge-model finding strengthens into a more directive guidance.
+- **v14 (2026-05-23, autonomous, Claude):** Three additions. (1) §5.0 — Implementation kickoff: tomorrow-morning action paths sized by available time (15 min skim / 1 hour reading / half-day building / week+ committing / never building). Names the §5.8.5 day-by-day ship sequence as the half-day path; names the §5.8.4 first-5-per-plugin commands as the week+ path. (2) §5.0.1 — Lessons-from-prior-ships retro covering v0.15.0 (per-plugin dashboard chassis), v0.16.0 (set-posture + snapshot-merge — the foot-gun that was fixed in v0.17.0), v0.17.0 (overwrite-mode + security_deny). 7 patterns that carry forward to Phase A (one source of truth, overwrite-mode, per-pattern overrides, always-on safety floors, polish the recommended path, migrate deliberately, one theme per release). (3) §5.1 risks revised: each scored as L × I = Sev; R14-R20 added (generator/script drift, /__read path-traversal fuzzing, worktree confusion, /install-doctor crash, GitHub Pages outage, telemetry file corruption, migration banner fatigue). R11 (merge surprise) and R12 (project-allow foot-gun) confirmed as the load-bearing High-severity items that justify shipping Health tab + project-scope confirmation modal alongside Phase A.
 - **v13 (2026-05-23, autonomous, Claude):** Four additions for ecosystem extensibility and post-ship observability. (1) §5.8.7 — Plugin-author guide: full required-frontmatter shape for `plugins/<plugin>/commands/*.md` (name, description, owner, plugin, args[], examples, tags, since, featured), CI enforcement spec, migration plan for existing 3 commands. Lets domain-plugin authors ship commands that surface in the dashboard correctly without ad-hoc docs lookups. (2) §5.8.8 — Success criteria: phase-by-phase feedback signals (Phase A: migration choice distribution, team-shared-config commit reduction; Phase B.1: launch vs copy rate, cards per session; Phase B.2: time-to-first-init-agent-ready, install-doctor pass rate; Phase C: commands shipped per month, bare vs qualified ratio; Phase B.4: agents-disable usage, Health test-a-call usage, scenario citation rate). Plus 4 anti-signals telling us the design is wrong. (3) §5.8.9 — Stretch-goals tracker: 15 items deliberately left out of any phase with why-deferred and trigger-to-revisit per item. Prevents drift back into "let's add this too" mid-build. (4) §5.8.10 — concrete `latest-versions.json` example with all 7 actual current plugin versions; clarifies the GitHub Pages security boundary (HTTPS-only; flags drive UI emphasis but not behavior).
 - **v12 (2026-05-23, autonomous, Claude):** Implementer-facing code sketches. (1) §B.2.5 — full HTML + CSS + JS for a single command card in the Design-1 card grid (~200 lines). Drops into the existing `dashboard.html` token system; integrates with the deep-link probe and the optional `recordInvocation()` telemetry hook from §5.8.6. (2) §2.3.9 — full Python patch sketch for `apply-comfort-posture.py --scope` (resolve_settings_path / resolve_side_car_path / detect_no_project_root / check_ephemeral_env / fire_migration_banner_if_needed / maybe_append_to_gitignore / write_side_car), preserving v0.17.0's emission logic untouched. (3) §2.3.10 — HTML for the Phase A scope selector + the project-scope confirmation modal (suppressed when the user's posture has no allow rules to avoid friction).
 - **v11 (2026-05-23, autonomous, Claude):** Four operational additions for ship-readiness. (1) §5.8.3 — v0.18.0 ship checklist enumerating every concrete script change, server change, dashboard change, generator change, CI change, doc change, and 7 manual acceptance tests that must pass before tagging the first Phase A release. Names what is explicitly out of scope for 0.18.0. (2) §5.8.4 — Phase C "first 5 commands per plugin" prioritized shortlist (35 total — 5 new core + 5 per domain plugin). Selection criteria: high traffic, concrete output, low arg-schema burden, polished owner agent. Maps the ~141-command aspirational list onto a ~70-140h actionable shortlist. (3) §5.8.5 — Phase A migration runbook with 9×3 fixture matrix, 7-day ship-day sequence (script-first → dashboard → Health tab → default-flip → human review → retro), soft / hard rollback plans, communication plan. The Day 7 human-review checkpoint is the load-bearing safety net. (4) §5.8.6 — telemetry section: what we measure (command counts + tab opens + scope choices, local-only) vs what we do NOT (args, content, identifying info, network egress); single JSON at `~/.claude/ravenclaude-state/usage.json`, opt-out via `.notrack`, 6-8h effort, sequenced as 0.21.0 to enable personalized command ranking (Q8 resolved).
