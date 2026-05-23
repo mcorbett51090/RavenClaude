@@ -265,6 +265,8 @@ A command may match multiple concerns. The **highest severity** wins for the thr
 
 This design uses Norse-mythology codenames for the tribunal mechanism and its seats. The naming is evocative, not load-bearing: "tribunal" and "the Thing" are interchangeable in prose; the seat names are the Norse role descriptions that pair with the existing `ravenclaude-core` agents who fill them.
 
+> **User-facing label convention (2026-05-23 review).** Every dashboard / toggle / modal surface leads with the plain function and carries the Norse term as a parenthetical — **"Command review (the Thing)"**, "Review history (Sága)" — and the plain label is also the `aria-label`. Slash commands use functional primaries with Norse aliases (`/review-override`, alias `/thing-override`; `/review-rerun`, alias `/thing-rerun`) so no myth word is a canonical command identifier. The toggle row shows a **"~10–25 s per reviewed command"** caption (so the latency cost is visible at the point of decision) and a **"review in progress…"** state while the panel deliberates, so the pause never reads as a hang.
+
 | Norse name | What it refers to | Why it fits |
 |---|---|---|
 | **The Thing (Þing)** | The whole tribunal mechanism — the assembly that convenes to render a verdict. | The historical Norse *þing* was literally a judicial / governing assembly where disputes were heard and laws recited. Used interchangeably with "the tribunal" in this doc. Slash commands and config files use the `thing-` / `thing.yaml` prefix. |
@@ -459,6 +461,8 @@ This is the section where honesty matters. The tribunal must be implementable on
 
 ### B.5.1 The hook substrate
 
+> **⚠ Substrate verification status (2026-05-23 review — BLOCKING for T2+).** The hook-API claims in this section — `permissionDecision`, the `updatedInput` EDIT lever, the `prompt`/`agent` hook types, and "a `deny` blocks even under `--dangerously-skip-permissions`" — are **UNVERIFIED and partly contradict the repo's own `knowledge/claude-code-permissions.md`**, which documents the hook surface as exit 0 = allow / non-zero = deny. Both cannot be true. No phase past T0 ships until this is verified against the current Claude Code docs and the knowledge file is reconciled in one PR. **If `updatedInput` is not supported, the entire EDIT verdict path collapses to ALLOW / ASK / DENY.** Treat every "verified in the docs" line below as "claimed, pending re-verification."
+
 Per code.claude.com/docs/en/hooks (retrieved 2026-05-23):
 
 - `PreToolUse` hooks fire **before** any permission check. A hook `deny` blocks even under `bypassPermissions` or `--dangerously-skip-permissions`. This means the tribunal is a true gate, not a bypassable one.
@@ -466,7 +470,7 @@ Per code.claude.com/docs/en/hooks (retrieved 2026-05-23):
 - Hooks can return a JSON `hookSpecificOutput` with:
   - `permissionDecision: "allow" | "deny" | "ask" | "defer"`
   - `permissionDecisionReason: "<string>"`
-  - **`updatedInput: { ... }`** — replaces the original `tool_input` when `permissionDecision == "allow"`. **This is the EDIT lever.** Verified explicitly in the docs.
+  - **`updatedInput: { ... }`** — claimed to replace the original `tool_input` when `permissionDecision == "allow"`. **This is the EDIT lever — and the single most load-bearing UNVERIFIED claim in this doc** (see the verification callout above; the repo knowledge file does not corroborate it).
 - Hook types: `command` (shell), `http` (POST to a URL), `mcp_tool` (call an MCP tool), and the newer `prompt` (single-turn LLM, returns `{ok, reason}` JSON), `agent` (multi-turn subagent, experimental).
 - Default timeouts: `command` / `http` / `mcp_tool`: **600 s (10 minutes)**. `prompt`: **30 s**. `agent`: **60 s**. Configurable per hook. **Critical**: on timeout, Claude Code cancels the hook and treats it as a *non-blocking error* — i.e., the tool proceeds. Fail-open by default.
 
@@ -499,7 +503,7 @@ Why a single Lawspeaker hook (not three sibling `type: "prompt"` hooks):
 The Lawspeaker (POSIX shell, with `jq` for JSON):
 
 1. Reads the `tool_input` JSON from stdin.
-2. Reads `.ravenclaude/thing.yaml` (panel config, toggle-per-category list, opt-out patterns).
+2. Reads `.ravenclaude/thing.yaml` (panel config, toggle-per-category list, opt-out patterns). **If the toggle is ON for a category but `thing.yaml` is missing, unreadable, or malformed, the Lawspeaker emits `ask` (DEFER) — never a silent skip** (a misnamed or corrupt config must fail closed, not silently disable the Thing while the dashboard still shows the toggle ON). The config filename is `thing.yaml` everywhere — there is no `tribunal.yaml` variant.
 3. Determines the comfort-posture category for the command (re-uses the EMISSIONS-table logic from `apply-comfort-posture.py`, exposed as a helper).
 4. If the category does not have Thing toggled ON → exit 0 (no decision; fall through to normal permission flow).
 5. Computes the concern set (§A.2 + the relevant §A.3 list) using a precomputed concern-matcher table.
@@ -524,7 +528,7 @@ The Lawspeaker (POSIX shell, with `jq` for JSON):
 
 If the user perceives 8–22 seconds as too long per Bash call, two mitigations:
 
-- **Per-pattern bypass**: `.ravenclaude/thing.yaml` `bypass_patterns: ["Bash(ls:*)", "Bash(git status:*)"]` — patterns the user has pre-declared as low-risk skip the Thing even if the category is toggled. The bypass patterns themselves are reviewed by the Thing once at YAML-save time.
+- **Per-pattern bypass**: `.ravenclaude/thing.yaml` `bypass_patterns: ["Bash(ls:*)", "Bash(git status:*)"]` — patterns the user has pre-declared as low-risk skip the Thing even if the category is toggled. The bypass patterns themselves are reviewed by the Thing once at YAML-save time. **A bypass pattern that matches (after canonicalization) any `security_deny` or Fenrir-marked rule is rejected at save-time (`FENRIR_BYPASS_REJECTED: <pattern>`)** — a bypass can never shadow the always-on baseline, mirroring the Fenrir cannot-be-locally-overridden invariant. Gate-audit fixture: `bypass_patterns: ["Bash(git push:*)"]` must be rejected because it shadows the `srm.force-push` critical.
 - **Cached verdict**: identical commands within a session within 60 seconds reuse the prior verdict. Cache key: full `tool_input` JSON. Invalidate on any concern-trigger context change (env-context update, branch change).
 
 ### B.5.5 Existing precedent — what to fix first
@@ -787,18 +791,20 @@ This is a load-bearing invariant: an attacker who tricks the Thing into disablin
 
 The tribunal is large. Ship it in stages.
 
-| Phase | Plugin version | Scope | Effort | Status |
+> **Relationship to the build plan (2026-05-23 review).** The version numbers below were a **collision** — they minted `0.18.x–0.25.0`, the same range the 12-feature build plan (`norse-features-build-plan.md`) already owns. **The build plan owns version/sequencing; this doc does not assign versions.** The `T#` labels are *internal phase order only* — the actual release version is assigned when the build plan slots this work. The tribunal is **a separate track** and is **not** one of the build plan's 12 features today; before any T-phase ships, the Team Lead must give it an explicit home in (or alongside) that roadmap.
+
+| Phase | Order | Scope | Effort | Status |
 |---|---|---|---|---|
-| **T0** — Pre-work | ravenclaude-core 0.18.x | Migrate `guard-destructive.sh` to stdin-JSON + exit-2 (B.5.5); ratify the concern catalog (§A) as `knowledge/concerns-catalog.md`. | 4-6 h | proposed |
-| **T1** — Catalog + read-only dashboard | ravenclaude-core 0.20.0 | Concern catalog committed as machine-readable YAML; dashboard renders the tribunal toggle column (disabled / read-only); no orchestrator yet. The dashboard's info modal explains the upcoming feature. | 6-8 h | proposed |
-| **T2** — Single-seat tribunal (reviewer B only) | ravenclaude-core 0.21.0 | Orchestrator script that invokes ONE panelist (`code-reviewer`-shaped) via `claude -p --bare`, renders ALLOW/DENY (no EDIT yet), writes audit trail. Toggle only available for `shell_readonly` initially (lowest-stakes category). | 12-16 h | proposed |
-| **T3** — Three-seat panel + EDIT | ravenclaude-core 0.22.0 | All three reviewers + tie-breaker. EDIT verdict path with safety re-validation. Toggle available for `shell_remote_mutate`, `shell_code_exec`, `file_edit_project`. | 16-22 h | proposed |
-| **T4** — AlignmentCheck + injection hardening | ravenclaude-core 0.23.0 | Reviewer C (AlignmentCheck) seat; adversarial-content envelope; pre-LLM injection regex; full §B.9 implementation. | 10-14 h | proposed |
-| **T5** — Per-pattern bypass + caching | ravenclaude-core 0.24.0 | `bypass_patterns` in `tribunal.yaml`; verdict caching; session-fatigue counter; misconfiguration warnings in the dashboard. | 6-8 h | proposed |
-| **T6** — Override slash commands + log tab | ravenclaude-core 0.25.0 | `/tribunal-override`, `/tribunal-rerun`; dashboard Tribunal-log tab; filtering and replay. | 8-12 h | proposed |
+| **T0** — Pre-work | first | Migrate `guard-destructive.sh` to stdin-JSON + exit-2 (B.5.5); ratify the concern catalog (§A) as `knowledge/concerns-catalog.md`. | 4-6 h | proposed |
+| **T1** — Catalog + read-only dashboard | after T0 | Concern catalog committed as machine-readable YAML; dashboard renders the tribunal toggle column (disabled / read-only); no orchestrator yet. The dashboard's info modal explains the upcoming feature. | 6-8 h | proposed |
+| **T2** — Single-seat tribunal (reviewer B only) | after T1 | Orchestrator script that invokes ONE panelist (`code-reviewer`-shaped) via `claude -p --bare`, renders ALLOW/DENY (no EDIT yet), writes audit trail. Toggle only available for `shell_readonly` initially (lowest-stakes category). Gated on the §B.5.1 hook-API verification. | 12-16 h | proposed |
+| **T3** — Three-seat panel + EDIT | after T2 | All three reviewers + tie-breaker. EDIT verdict path with safety re-validation. Toggle available for `shell_remote_mutate`, `shell_code_exec`, `file_edit_project`. | 16-22 h | proposed |
+| **T4** — AlignmentCheck + injection hardening | after T3 | Reviewer C (AlignmentCheck) seat; adversarial-content envelope; pre-LLM injection regex; full §B.9 implementation. | 10-14 h | proposed |
+| **T5** — Per-pattern bypass + caching | after T4 | `bypass_patterns` in `thing.yaml` (with the Fenrir/`security_deny` save-time rejection guard); verdict caching; session-fatigue counter; misconfiguration warnings in the dashboard. | 6-8 h | proposed |
+| **T6** — Override slash commands + log tab | after T5 | `/review-override` (alias `/thing-override`), `/review-rerun` (alias `/thing-rerun`); dashboard review-log tab; filtering and replay. | 8-12 h | proposed |
 | **T7** — Domain extensions | per-plugin (rolling) | Domain plugins (`power-platform`, `finance`, …) add specialist seats. Concern catalog extended per domain. | 4-8 h per domain | proposed |
 
-**Total effort estimate** (T0 through T6, ramping to a full tribunal): **~60-90 focused hours**, comparable to Phase A of the dashboard build-out plan. Spread over ~6-10 weeks of part-time work.
+**Total effort estimate** (T0 through T6, ramping to a full tribunal): **~60-90 focused hours**, comparable to Phase A of the dashboard build-out plan. Spread over ~6-10 weeks of part-time work. Versions are assigned by the build plan, not here.
 
 **Critical path:** T0 → T2 → T3 → T4. T2 (single-seat) is the load-bearing release because it validates the orchestrator+hook substrate end-to-end before committing to multi-agent complexity.
 
