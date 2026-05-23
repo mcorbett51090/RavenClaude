@@ -211,6 +211,24 @@ rc=0; scripts/check-guide-fresh.sh >/dev/null 2>&1 || rc=$?
 gate "repo-guide freshness (clean tree)" must_pass "$rc"
 
 echo
+echo "── Gate 12: marketplace-claims (required files + skill counts) ────────────"
+# must_fail (a): a wrong skill count in a plugin.json must be detected.
+backup plugins/data-platform/.claude-plugin/plugin.json
+python3 -c "p='plugins/data-platform/.claude-plugin/plugin.json';s=open(p).read();open(p,'w').write(s.replace('11 skills','99 skills',1))"
+rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
+gate "marketplace-claims (wrong skill count)" must_fail "$rc"
+cp -p "$TMP/plugins_data-platform_.claude-plugin_plugin.json.bak" plugins/data-platform/.claude-plugin/plugin.json
+# must_fail (b): a missing required README must be detected.
+backup plugins/finance/README.md
+rm -f plugins/finance/README.md
+rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
+gate "marketplace-claims (missing README)" must_fail "$rc"
+cp -p "$TMP/plugins_finance_README.md.bak" plugins/finance/README.md
+# must_pass: clean tree.
+rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
+gate "marketplace-claims (clean tree)" must_pass "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 if [[ "$FAIL" -gt 0 ]]; then
