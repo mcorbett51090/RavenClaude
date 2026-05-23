@@ -2,6 +2,8 @@
 
 **A private Claude Code plugin marketplace** — bundled team rules, specialist agents, dispatch playbooks, and templates that travel with you across projects.
 
+> 🎛 **[▶ Open the RavenClaude dashboard](https://mcorbett51090.github.io/RavenClaude/plugins/ravenclaude-core/dashboard.html)** — point-and-click editor for your `.ravenclaude/comfort-posture.yaml` (per-tool permission rules driving the `/set-posture` skill). Adjust file / network / shell / package autonomy across Deny → Ask → Allow → Autopilot levels.
+
 > 📖 **[▶ View `repo-guide.html` rendered in your browser](https://mcorbett51090.github.io/RavenClaude/repo-guide.html)** — a self-contained single-page guide to every plugin, agent, skill, hook, rule, and template, with a searchable cross-plugin index. Regenerated from the manifests on every release.
 >
 > _(Or [view the raw HTML source](repo-guide.html), or download and open locally — no server, no build step.)_
