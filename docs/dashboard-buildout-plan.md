@@ -10,19 +10,84 @@
 
 ## Table of contents
 
-1. [Current state — what the dashboard is today, in one page](#1-current-state)
-   - 1.4 [Claude Code's settings precedence — the merge model (load-bearing)](#14-claude-codes-settings-precedence--the-merge-model-load-bearing)
-2. [Phase A — multi-layer comfort posture (user / project / local)](#phase-a)
-   - 2.3.3 [Precedence interaction — what happens if posture lands at multiple layers (CORRECTED)](#233-precedence-interaction--what-happens-if-posture-lands-at-multiple-layers-corrected)
-   - 2.3.5 [Dashboard UI — scope selector (revised for merge model)](#235-dashboard-ui--scope-selector-revised-for-merge-model)
-3. [Phase B — dashboard build-out](#phase-b)
-   - B.1 [Information architecture](#b1-information-architecture)
-   - B.2 [Slash-commands tab (3+ UI alternatives, recommendation)](#b2-slash-commands-tab)
-   - B.3 [Startup / install area](#b3-startup--install-area)
-   - B.4 [Other panels worth adding](#b4-other-panels)
-4. [Phase C — per-agent slash commands across all 7 plugins](#phase-c)
-5. [Phase D — risks, open questions, sequencing](#phase-d)
-6. [Appendix — references](#appendix)
+This document grew from v1 (925 lines) to v14 (3,000+ lines) over 14 iteration passes. The TOC below reflects all sections — read top-to-bottom for context, or jump to specific subsections via the anchor links.
+
+1. **Current state** — what the dashboard is today, in one page
+   - 1.1 What ships at v0.17.0
+   - 1.2 How the dashboard persists changes — the critical constraint
+   - 1.3 How the posture is applied today
+   - 1.4 Claude Code's settings precedence — the merge model (load-bearing; **corrected v2**)
+2. **Phase A — multi-layer comfort posture** (user / project / local)
+   - 2.1 The problem in one paragraph
+   - 2.2 The default rule we recommend
+   - 2.3 The mechanism (8 subsections)
+     - 2.3.3 Precedence interaction — what happens if posture lands at multiple layers (CORRECTED v2)
+     - 2.3.5 Dashboard UI — scope selector (revised v2 for merge model)
+     - 2.3.8 Concrete YAML and settings.json — what the emissions look like (v6)
+     - 2.3.9 Concrete code sketch — `apply-comfort-posture.py --scope` (v12)
+     - 2.3.10 Concrete code sketch — scope-selector HTML in the Settings tab (v12)
+   - 2.4 Edge cases & gotchas
+   - 2.5 Tests that have to pass
+   - 2.6 Effort estimate
+3. **Phase B — dashboard build-out**
+   - B.1 Information architecture
+   - B.2 Slash-commands tab
+     - B.2.1 Three UI design alternatives (card grid / palette / accordion / builder)
+     - B.2.2 Comparison matrix — head-to-head decision rubric (v3)
+     - B.2.3 Recommendation (card grid + palette overlay)
+     - B.2.4 Click behavior — deep-link mechanic in detail
+     - B.2.5 Concrete card markup — HTML/CSS/JS sketch (v12)
+   - B.3 Startup / install area
+     - B.3.1-B.3.4 Tab covering, design, first-touch UX
+     - B.3.5 Chicken-and-egg problem (v3)
+     - B.3.6 Private-marketplace access (v3)
+     - B.3.7 Failure modes (v3)
+   - B.4 Other panels worth adding
+     - B.4.1 Agents tab — full design (v7)
+     - B.4.2 Environment tab — full design (v8)
+     - B.4.3 Scenarios tab — full design (v8)
+     - B.4.4 Health tab — full design with merge-resolver JS (v6)
+     - B.4.5 Update notifier — banner + Changelog tab (v7)
+   - B.5 Accessibility & i18n checklist (v7)
+   - B.6 Deep-link mechanic — fallback chain (v7)
+4. **Phase C — per-agent slash commands across all 7 plugins** (~141 commands)
+   - 4.1 ravenclaude-core (14 agents)
+   - 4.2 power-platform (11 agents)
+   - 4.3 finance (7 agents)
+   - 4.4 regulatory-compliance (6 agents)
+   - 4.5 web-design (7 agents)
+   - 4.6 edtech-partner-success (6 agents)
+   - 4.7 data-platform (4 agents)
+   - 4.7.1 Additional commands from per-plugin verification (v7) — +42 commands
+   - 4.8 Cross-cutting observations
+   - 4.9 Naming and namespacing — built-in collisions (v4)
+   - 4.10 Verifying owner agents actually exist (v4)
+5. **Phase D — risks, open questions, sequencing**
+   - 5.0 Implementation kickoff — what to do tomorrow morning (v14)
+   - 5.0.1 Lessons-from-prior-ships retro (v0.15.0/0.16.0/0.17.0) (v14)
+   - 5.1 Risks — R1-R20, severity-scored (v14)
+   - 5.2 Open questions for Matt (Q1-Q14)
+   - 5.3 Phased build roadmap (revised v8 with detailed estimates)
+     - 5.3.1 `/__save` and `/__read` allow-list — concrete list (v8)
+     - 5.3.2 Glossary — 17 terms used in this plan (v8)
+   - 5.4 Tests and CI implications
+   - 5.5 Dependency graph — what blocks what (v5)
+   - 5.6 Decisions taken in this document vs decisions deferred (v5)
+   - 5.7 Composition with proposal 003 (v5)
+   - 5.8 First 30 minutes — brand-new user's experience narrative
+     - 5.8.1 Second narrative — team admin onboards a team (v9)
+     - 5.8.2 Decision summary — D1-D20 + Q1-Q14 (v9)
+     - 5.8.3 v0.18.0 ship checklist (v11)
+     - 5.8.4 Phase C first-5-per-plugin prioritized shortlist (v11)
+     - 5.8.5 Phase A migration runbook with day-by-day sequence (v11)
+     - 5.8.6 Telemetry — local-only usage.json (v11)
+     - 5.8.7 Plugin-author guide — command frontmatter shape (v13)
+     - 5.8.8 Success criteria — feedback signals + anti-signals (v13)
+     - 5.8.9 Stretch goals — 15 items deliberately deferred (v13)
+     - 5.8.10 Concrete `latest-versions.json` example (v13)
+   - 5.9 What we explicitly do NOT plan in this document
+6. **Appendix — references**
+7. **Iteration log** — v1 through v14 changelog
 
 **v2 headline change:** The §1.4 and §2.3.3 sections have been rewritten to reflect Claude Code's actual cross-layer permission semantics, which the v1 draft got wrong. Permission rules **MERGE** across the user / project / local layers (they don't override per-layer), with `deny > ask > allow` resolving within the merged set, and any `deny` in any layer being absolute. This changes the Phase A recommendation's *rationale* (project file is a permission floor, not a default) without changing the recommendation itself (user-scope default). The dashboard UI in §2.3.5 is updated accordingly.
 
@@ -3340,6 +3405,7 @@ The full shape, with values matching the marketplace's actual current state:
 - **v4 (2026-05-23, autonomous, Claude):** Naming / collision / owner-existence audits. Added §4.9 naming and namespacing — flagged `/security-review` as colliding with the Claude Code built-in skill (rename to `/team-security-review`); proposed `/rc:` qualified prefix for infrastructure commands that Claude Code might add later; proposed `scripts/audit-command-collisions.py` as a new CI gate. Added §4.10 owner-agent inventory — verified every "Owner" column entry across the 7 plugins resolves to a real agent on disk; 55 agents total, 95 commands; ~10 agents intentionally have zero dedicated commands (security-reviewer, prompt-engineer, the coders, designer, data-engineer, tester-qa) because their work is in-conversation. Added open questions #10-14 (enterprise-layer reading, `/security-review` rename, infrastructure-command namespacing, Install tab rename, project-scope modal strictness). Expanded §5.4 tests with merge-model property check, allow-at-project lint, built-in collision audit, owner-agent existence check.
 - **v5 (2026-05-23, autonomous, Claude):** Structural / decision-log additions. §5.5 dependency graph showing A → B.1 → B.4.4 as the critical path (Health tab makes the merge model visible to users; without it the user-scope-default change surprises). §5.6 decisions-taken vs decisions-deferred table — every recommendation in the doc tagged ✅ (committed) or 🟡 (recommended, open question for Matt). §5.7 composition with proposal 003 — explicit reconciliation showing 003 §4.3/§4.4/§4.7/§4.8/§7.1/§7.4/§9/§11 are all honored by this plan, with "proposal 003 wins on contradictions" as the tie-breaker rule. Renumbered the old §5.5 ("What we explicitly do NOT plan") to §5.8.
 - **v5.1 (2026-05-23, autonomous, Claude):** Cross-reference accuracy fix. v5's §5.7 referenced proposal-003 sections §3 ("no backend") and §10 ("release plan") — neither is accurate (003 §3 is "Prior-art summary"; 003 §10 is "Open questions"). Corrected the citations: "no backend" lives in 003 §4.3 / §4.4; the release plan lives in 003 §11 (Implementation phases). Added a 003 §7.4 reference (team-shared vs personal / gitignore) which the merge-model finding strengthens into a more directive guidance.
+- **v15 (2026-05-23, autonomous, Claude):** TOC refresh. The TOC was last updated at v2 and was lagging 13 versions of content. Rewrote to reflect every subsection added in v3-v14: B.2.5 card markup, B.3.5-B.3.7 install failure modes, B.4.1-B.4.5 full panel specs, B.5/B.6 cross-cutting checklists, 4.7.1/4.9/4.10 command verification + naming audit, 5.0-5.0.1 implementation kickoff + retro, 5.3.1-5.3.2 allow-list + glossary, 5.5-5.7 deps + decisions + 003 reconciliation, 5.8.1-5.8.10 narratives + ship checklist + first-5/plugin + migration runbook + telemetry + plugin-author guide + success criteria + stretch goals + latest-versions example. Each TOC entry is now tagged with the iteration version it was added in, so a reader can trace the document's evolution.
 - **v14 (2026-05-23, autonomous, Claude):** Three additions. (1) §5.0 — Implementation kickoff: tomorrow-morning action paths sized by available time (15 min skim / 1 hour reading / half-day building / week+ committing / never building). Names the §5.8.5 day-by-day ship sequence as the half-day path; names the §5.8.4 first-5-per-plugin commands as the week+ path. (2) §5.0.1 — Lessons-from-prior-ships retro covering v0.15.0 (per-plugin dashboard chassis), v0.16.0 (set-posture + snapshot-merge — the foot-gun that was fixed in v0.17.0), v0.17.0 (overwrite-mode + security_deny). 7 patterns that carry forward to Phase A (one source of truth, overwrite-mode, per-pattern overrides, always-on safety floors, polish the recommended path, migrate deliberately, one theme per release). (3) §5.1 risks revised: each scored as L × I = Sev; R14-R20 added (generator/script drift, /__read path-traversal fuzzing, worktree confusion, /install-doctor crash, GitHub Pages outage, telemetry file corruption, migration banner fatigue). R11 (merge surprise) and R12 (project-allow foot-gun) confirmed as the load-bearing High-severity items that justify shipping Health tab + project-scope confirmation modal alongside Phase A.
 - **v13 (2026-05-23, autonomous, Claude):** Four additions for ecosystem extensibility and post-ship observability. (1) §5.8.7 — Plugin-author guide: full required-frontmatter shape for `plugins/<plugin>/commands/*.md` (name, description, owner, plugin, args[], examples, tags, since, featured), CI enforcement spec, migration plan for existing 3 commands. Lets domain-plugin authors ship commands that surface in the dashboard correctly without ad-hoc docs lookups. (2) §5.8.8 — Success criteria: phase-by-phase feedback signals (Phase A: migration choice distribution, team-shared-config commit reduction; Phase B.1: launch vs copy rate, cards per session; Phase B.2: time-to-first-init-agent-ready, install-doctor pass rate; Phase C: commands shipped per month, bare vs qualified ratio; Phase B.4: agents-disable usage, Health test-a-call usage, scenario citation rate). Plus 4 anti-signals telling us the design is wrong. (3) §5.8.9 — Stretch-goals tracker: 15 items deliberately left out of any phase with why-deferred and trigger-to-revisit per item. Prevents drift back into "let's add this too" mid-build. (4) §5.8.10 — concrete `latest-versions.json` example with all 7 actual current plugin versions; clarifies the GitHub Pages security boundary (HTTPS-only; flags drive UI emphasis but not behavior).
 - **v12 (2026-05-23, autonomous, Claude):** Implementer-facing code sketches. (1) §B.2.5 — full HTML + CSS + JS for a single command card in the Design-1 card grid (~200 lines). Drops into the existing `dashboard.html` token system; integrates with the deep-link probe and the optional `recordInvocation()` telemetry hook from §5.8.6. (2) §2.3.9 — full Python patch sketch for `apply-comfort-posture.py --scope` (resolve_settings_path / resolve_side_car_path / detect_no_project_root / check_ephemeral_env / fire_migration_banner_if_needed / maybe_append_to_gitignore / write_side_car), preserving v0.17.0's emission logic untouched. (3) §2.3.10 — HTML for the Phase A scope selector + the project-scope confirmation modal (suppressed when the user's posture has no allow rules to avoid friction).
