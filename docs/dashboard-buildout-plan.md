@@ -1042,44 +1042,182 @@ A plugin declares mandatory agents in its CLAUDE.md under a `## Mandatory agents
 
 Sequenced as **ravenclaude-core 0.22.0**, after Phase A + B.1/B.2 ship. The work depends on existing scenario-authoring frontmatter being filled out (it is, per the marketplace.json `0.10.0` line: "v0.10.0: every agent ships example-scenario frontmatter").
 
-#### B.4.2 **Environment tab** — view (and re-discover) the project's environment context
+#### B.4.2 **Environment tab** — view (and re-discover) the project's environment context (expanded spec)
 
-`.ravenclaude/environment-context.md` exists per the CGP environment-context check (CLAUDE.md, 2026-05-22). It's prose. The dashboard surfaces it read-only:
+`.ravenclaude/environment-context.md` exists per the CGP environment-context check (CLAUDE.md, 2026-05-22). It's prose. The dashboard surfaces it read-only and offers the "re-discover" button.
 
-```
-┌─ Project: power-platform-engagement ──────────────────────────┐
-│  Active environments: DEV · TEST · PROD                       │
-│                                                                │
-│  ────────────────  DEV  ────────────────                       │
-│  Role:           sysadmin (SPN-bound)                          │
-│  Pre-authorized: solution import/export, Web API, pac CLI      │
-│  Forbidden:      production env switching                      │
-│                                                                │
-│  ────────────────  TEST ────────────────                       │
-│  …                                                             │
-│                                                                │
-│  [Re-run /environment-discovery]                              │
-│  Last updated: 2026-05-19  (3 days ago)                       │
-└────────────────────────────────────────────────────────────────┘
-```
+##### Purpose
 
-The **"Re-run /environment-discovery"** button is a deep link to that skill. The dashboard doesn't edit env-context.md (it's prose); it just displays + refreshes.
+Answer three user questions:
 
-#### B.4.3 **Scenarios tab** — browse the marketplace's lessons-learned bank
+1. **"What environments does this project have, per my own configuration?"** — DEV/TEST/PROD/sandbox/named environments, with the per-environment role and pre-authorized actions surfaced.
+2. **"Is what's on disk current?"** — show last-updated timestamp; flag stale (>90 days per the Researcher's deep-research cadence rule).
+3. **"How do I refresh it?"** — one-click deep link to `/environment-discovery` skill.
 
-The `/wrap` command writes scenarios to `plugins/<plugin>/scenarios/`. Today the only way to read them is to open the marketplace repo and skim. The Scenarios tab is a per-plugin read-only browser:
+##### Data sources
+
+| File | Role | Read mechanism |
+|---|---|---|
+| `.ravenclaude/environment-context.md` | Source of truth for the project's env-context posture | `/__read` (new allow-list entry) |
+| Per-plugin agent frontmatter `priors` blocks that reference env-context | Cross-check: which agents in installed plugins are actually consuming the env-context file? | Generator-time inline (zero runtime read) |
+
+##### UI layout
 
 ```
-power-platform scenarios (3)
-
-  2026-05-21 · spn-flow-create-403   tenant-specific   medium
-  2026-05-19 · pa-delegation-2000    likely-general    high
-  2026-05-14 · cascade-deactivate    version-specific  low
-
-  [Click a row to expand the scenario]
+┌─ Environment ─────────────────────────────────────────────────────────┐
+│                                                                        │
+│  Project: power-platform-engagement                                    │
+│  Source: .ravenclaude/environment-context.md                           │
+│  Last updated: 2026-05-19  (4 days ago)   ⓘ updated by /environment-discovery │
+│                                                                        │
+│  ┌─ DEV ──────────────────────────────────────────────────────────┐ │
+│  │  Role:           sysadmin (SPN-bound)                          │ │
+│  │  Endpoint:       https://dev.crm.dynamics.com                   │ │
+│  │  Pre-authorized: solution import/export, Web API, pac CLI       │ │
+│  │  Forbidden:      production env switching                      │ │
+│  │  Consumed by:    dataverse-architect, flow-engineer, solution-alm-engineer (3 agents) │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│                                                                        │
+│  ┌─ TEST ─────────────────────────────────────────────────────────┐ │
+│  │  Role:           system-customizer (Matt's own user)            │ │
+│  │  Endpoint:       https://test.crm.dynamics.com                  │ │
+│  │  Pre-authorized: solution import/export, Web API                │ │
+│  │  Forbidden:      data delete; tenant DLP changes                │ │
+│  │  Consumed by:    dataverse-architect, flow-engineer, …          │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│                                                                        │
+│  ┌─ PROD ─────────────────────────────────────────────────────────┐ │
+│  │  Role:           read-only (Matt — explicit on-call list)       │ │
+│  │  Endpoint:       https://prod.crm.dynamics.com                  │ │
+│  │  Pre-authorized: read-only Web API; pac data exports            │ │
+│  │  Forbidden:      ANY write; solution import; DLP changes        │ │
+│  │  Consumed by:    dataverse-architect (read-only diagnostics)    │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│                                                                        │
+│  Actions:                                                              │
+│  [Re-run /environment-discovery]   [Edit raw env-context.md]          │
+│                                                                        │
+│  ⚠ Stale warning: env-context.md is 92 days old. Per the Researcher's │
+│  rule, files older than 90 days should be re-verified.                │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-The data inlines at generator time (same mechanic as the Activity feed in proposal 003 §4.7).
+##### Components broken down
+
+1. **Project header** — shows project name (from `<repo_root>/.claude-plugin/plugin.json` if present, else CWD basename), source file path, last-updated timestamp with relative form.
+2. **Per-environment cards** — one card per environment in `environment-context.md`. Each card shows role, endpoint, pre-authorized action categories, forbidden actions, and the cross-referenced list of installed-plugin agents that consume this env-context per their agent frontmatter `priors` block.
+3. **Actions row** — two buttons. "Re-run /environment-discovery" is a deep link that triggers the skill (which prompts the user, runs read-only probes, presents a save/edit/skip flow). "Edit raw env-context.md" opens the file in the OS file association (no in-dashboard editing — the file is prose and the user should edit it deliberately).
+4. **Stale warning** — surfaces when last-updated > 90 days, in a yellow banner. The Researcher's Weekly Deep Research sweeps this file's age too; the Health tab also flags this; the warning here is the user-facing nudge.
+
+##### What this tab explicitly does NOT do
+
+- **Does not edit the env-context file.** It's prose. Editing in a structured form would require parsing the prose, which is brittle and removes the user's freedom to add notes.
+- **Does not run the discovery skill itself.** Only deep-links to `/environment-discovery`. The skill's confirmation step, read-only-probe contract, and credential-refusal rules belong inside the skill, not in a dashboard tab.
+- **Does not surface credentials.** Per the env-context template contract, credentials live in env vars / Key Vault, not in this file. If the user has mistakenly pasted a credential, the dashboard tab does NOT show it inline — it shows a redaction badge instead and surfaces a warning. (Same key-regex pattern as the Activity feed redaction in proposal 003 §4.7.)
+
+##### Effort estimate
+
+- `/__read` allow-list entry for `.ravenclaude/environment-context.md`: 0.5 hours (already allow-listed by `serve-dashboards.py` for write — same path for read)
+- Prose parser (extracts environment blocks, role lines, action categories): **4 hours**
+- UI cards + stale-detection logic: **3 hours**
+- Cross-reference with agent priors (generator-time inline): **2 hours**
+- Tests + a parser-resilience suite (the parser must tolerate users' free-form additions): **2 hours**
+- **Subtotal: 11-12 hours.**
+
+Sequenced as **ravenclaude-core 0.22.0** (same release as Agents tab — both are read-mostly diagnostic surfaces).
+
+#### B.4.3 **Scenarios tab** — browse the marketplace's lessons-learned bank (expanded spec)
+
+The `/wrap` command writes scenarios to `plugins/<plugin>/scenarios/`. Today the only way to read them is to open the marketplace repo and skim. The Scenarios tab is a per-plugin read-only browser.
+
+##### Purpose
+
+Answer three user questions:
+
+1. **"Has anyone hit a problem like mine before?"** — the load-bearing question. Browse the scenarios bank, filter by tag / scope / product, find the relevant lesson.
+2. **"What's the confidence on this scenario?"** — surface the `confidence: low|medium|high` and `scope: tenant-specific|version-specific|likely-general` frontmatter so the user can weigh whether to trust it.
+3. **"Where do I capture my own scenario?"** — one-click `/wrap` deep link.
+
+##### Data sources
+
+| File | Used for | Read |
+|---|---|---|
+| `plugins/<plugin>/scenarios/*.md` | Per-scenario YAML frontmatter (9 fields per `/wrap` schema) + body content | Generator-time inline. No runtime read (scenarios are static; refresh on `/plugin marketplace update` then `generate-dashboards.py` re-runs). |
+
+##### UI layout
+
+```
+┌─ Scenarios ───────────────────────────────────────────────────────────┐
+│                                                                        │
+│  Plugin filter: [● All  ○ power-platform  ○ data-platform  ○ …]      │
+│  Search:        [                                              🔍 ]   │
+│  Filters:       [☐ likely-general only  ☐ high-confidence only        │
+│                  ☐ from past 90 days only]                            │
+│                                                                        │
+│  Showing 12 of 47 scenarios                                            │
+│                                                                        │
+│  ┌─ power-platform ─────────────────────────────────────────────┐    │
+│  │                                                                 │   │
+│  │  2026-05-21 · spn-flow-create-403          tenant   medium  ▸  │   │
+│  │  2026-05-19 · pa-delegation-2000           general  high    ▸  │   │
+│  │  2026-05-14 · cascade-deactivate           version  low     ▸  │   │
+│  │                                                                 │   │
+│  │  (expanded row example below)                                  │   │
+│  │  ─────────────────────────────────────────────────────────    │   │
+│  │  2026-05-21 · spn-flow-create-403          tenant   medium  ▾  │   │
+│  │  Product: power-automate · Version: 2026.04                    │   │
+│  │  Tags: spn, flow, dataverse, web-api                           │   │
+│  │                                                                 │   │
+│  │  ── Problem ──                                                  │   │
+│  │  SPN got 403 calling PA Management API to create a flow.       │   │
+│  │                                                                 │   │
+│  │  ── Permissions context ──                                      │   │
+│  │  SPN had Flows.Manage.All not granted at consent time…         │   │
+│  │                                                                 │   │
+│  │  ── Attempts ──                                                 │   │
+│  │  - PA Management API → 403 (insufficient permission)           │   │
+│  │  - Dataverse Web API → success (same SPN, different surface)   │   │
+│  │                                                                 │   │
+│  │  ── Resolution ──                                               │   │
+│  │  Use Dataverse Web API path for programmatic flow CRUD;        │   │
+│  │  PA Management is undocumented for flow CRUD anyway.           │   │
+│  │                                                                 │   │
+│  │  ⓘ Unverified field note. Confidence: medium.                  │   │
+│  └────────────────────────────────────────────────────────────┘   │
+│                                                                        │
+│  ┌─ Capture a new scenario ─────────────────────────────────────┐    │
+│  │  When you hit a problem worth recording, run /wrap.            │   │
+│  │  [Launch /wrap]                                                │   │
+│  └─────────────────────────────────────────────────────────┘    │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+##### Components broken down
+
+1. **Multi-axis filters** — plugin chips, search box (substring against title + tags + body), and three checkbox filters (scope = likely-general, confidence = high, age < 90 days). Filter state persists in URL params so a user can share a link to a filtered view.
+2. **Per-plugin sections** — collapsible. Each scenario row is collapsed by default to a one-line summary; click to expand the full structured content.
+3. **Expanded row** — renders the four sections from the `/wrap` schema (Problem, Permissions context, Attempts, Resolution) plus a "Unverified field note. Confidence: <level>" badge at the bottom. Format mirrors what an agent would see when invoking the scenario-retrieval skill.
+4. **Capture-a-new-scenario footer** — deep link to `/wrap` for capturing fresh scenarios.
+
+##### Composition with the scenario-retrieval skill
+
+When an agent consults `plugins/<plugin>/scenarios/` via the `scenario-retrieval` skill (per `plugins/ravenclaude-core/skills/scenario-retrieval.md`), the **same data** powers the agent's mandatory "Unverified scenario detected" preamble. The dashboard's Scenarios tab is the human-facing surface; the skill is the agent-facing surface. Two surfaces, one data source.
+
+##### What this tab explicitly does NOT do
+
+- **Does not let the user edit scenarios in-place.** Editing flows through `/wrap` or direct file edit in the marketplace repo. The dashboard is read-only.
+- **Does not let the user delete or promote scenarios.** Promotion to canonical best-practices is a maintainer-side decision (v0.2.0+ of the feedback loop). The dashboard surfaces the data but doesn't curate.
+- **Does not pull scenarios from disconnected stores.** Only scenarios that ship in `plugins/<plugin>/scenarios/` of the installed marketplace appear. Remote scenario banks are out of scope.
+
+##### Effort estimate
+
+- Scenario YAML frontmatter parser (extends generator): **2 hours**
+- Inline all scenarios into dashboard.html at generator time (same mechanic as Activity feed): **2 hours**
+- UI: filter chips + search + expanded-row rendering: **5-7 hours**
+- URL-param state for shareable filtered views: **1 hour**
+- **Subtotal: 10-12 hours.**
+
+Sequenced as **ravenclaude-core 0.23.0**, same release as Health tab phase 2 cleanups.
 
 #### B.4.4 **Health tab** — diagnostics (expanded spec)
 
@@ -1778,25 +1916,93 @@ All owner-agent references in Phase C resolve to real agents in the plugins. The
 13. **Install tab rename.** Phase B.3 argues for renaming "Install" → "Setup" or "Welcome" because the true audience is users who already have the plugin installed. Confirm the rename, or keep "Install" as-is for the prereq doctor surface.
 14. **Project-scope confirmation modal copy.** The §2.3.5 design adds a confirmation modal on `/set-posture --scope project`. Two flavors: (a) gentle "are you sure?" reminder; (b) stricter "this affects everyone on the team; type 'i understand' to confirm." Recommend (a) for ergonomics, but (b) is defensible.
 
-### 5.3 Phased build roadmap
+### 5.3 Phased build roadmap (updated v7 with detailed spec estimates)
 
 | Phase | Version | Scope | Effort (focused hours) | Status |
 |---|---|---|---|---|
-| **A** | ravenclaude-core 0.18.0 | Multi-layer posture (`--scope` flag + dashboard scope selector + migration banner) | 8–11 | proposed |
-| **B.1** | ravenclaude-core 0.19.0 | Commands tab (Design 1: card grid + hover tooltip + deep-link Launch) for the existing 3 commands | 6–10 | proposed |
-| **B.2** | ravenclaude-core 0.20.0 | Install tab + `/install-doctor` + plugin switcher | 8–12 | proposed |
+| **A** | ravenclaude-core 0.18.0 | Multi-layer posture (`--scope` flag + dashboard scope selector + migration banner + side-car ack file + gitignore management) | 8–11 | proposed |
+| **B.1** | ravenclaude-core 0.19.0 | Commands tab (Design 1: card grid + hover tooltip + deep-link Launch with race-the-navigation probe) for the existing 3 commands | 6–10 | proposed |
+| **B.2** | ravenclaude-core 0.20.0 | Install tab + `/install-doctor` + plugin switcher in header | 8–12 | proposed |
 | **B.3** | ravenclaude-core 0.21.0 | Command palette overlay (Design 2) on top of card grid | 4–6 | proposed |
-| **C.1** | per-plugin (rolling) | Phase C commands shipped one plugin at a time, by priority. Start with ravenclaude-core's 15 new commands. | 2–4 per command average | proposed |
-| **C.2** | per-plugin (rolling) | Power-platform commands (≈21 new). High value, well-scoped. | 2–4 per command | proposed |
-| **C.3** | per-plugin (rolling) | Finance, regulatory-compliance, web-design, edtech-partner-success, data-platform commands. | 2–4 per command | proposed |
-| **B.4.1** | ravenclaude-core 0.22.0 | Agents tab (enable/disable + read-only configure) | 6–8 | proposed |
-| **B.4.2** | ravenclaude-core 0.22.0 | Environment tab (read-only display + re-run discovery link) | 3–4 | proposed |
-| **B.4.3** | ravenclaude-core 0.23.0 | Scenarios tab (inline at generator time) | 4–6 | proposed |
-| **B.4.4** | ravenclaude-core 0.23.0 | Health tab (diagnostics) | 6–8 | proposed |
-| **B.4.5** | ravenclaude-core 0.24.0 | Update notifier (banner + tab) | 3–5 | proposed |
-| **D** | ravenclaude-core 0.25.0 | Command builder (Design 4) — opt-in for the 5-6 most arg-heavy commands | 8–12 | proposed |
+| **B.4.4** | ravenclaude-core 0.18.0 | Health tab (revised v7 — full spec: 4 panels, merge resolver in JS, /__read endpoint, state health) | **18–20** *(revised from 6–8)* | proposed |
+| **B.4.1** | ravenclaude-core 0.22.0 | Agents tab (revised v7 — full spec: scope selector, per-agent enable/disable, mandatory enforcement, Team Lead dispatch wiring, `apply-agents.py` companion) | **19–21** *(revised from 6–8)* | proposed |
+| **B.4.2** | ravenclaude-core 0.22.0 | Environment tab (revised v7 — full spec: per-env cards, agent-priors cross-ref, prose parser, stale warning) | **11–12** *(revised from 3–4)* | proposed |
+| **B.4.3** | ravenclaude-core 0.23.0 | Scenarios tab (revised v7 — full spec: multi-axis filters, URL-param state, expanded-row rendering) | **10–12** *(revised from 4–6)* | proposed |
+| **B.4.5** | ravenclaude-core 0.24.0 | Update notifier (revised v7 — full spec: banner + Changelog tab + latest-versions.json mechanism + per-version dismissal) | **9–10** *(revised from 3–5)* | proposed |
+| **C.1** | per-plugin (rolling) | Phase C commands shipped one plugin at a time, by priority. Start with ravenclaude-core's 21 commands. | 2–4 per command average | proposed |
+| **C.2** | per-plugin (rolling) | Power-platform commands (33 with v7 additions). High value, well-scoped. | 2–4 per command | proposed |
+| **C.3** | per-plugin (rolling) | Finance, regulatory-compliance, web-design, edtech-partner-success, data-platform commands (87 with v7 additions). | 2–4 per command | proposed |
+| **D** | ravenclaude-core 0.25.0 | Command builder (Design 4) — opt-in for the 5-6 most arg-heavy commands; requires arg-schema declarations | 8–12 | proposed |
 
-**Total effort estimate** (Phases A + B + first ~15 commands): **~60-95 focused hours** spread across ~3-5 weeks of part-time work. Phase C is open-ended — each command is 2-4 hours.
+**Total effort estimate (revised v7)** — Phases A + B (all 5 subphases including the full-spec'd Health/Agents/Environment/Scenarios/Update notifier): **~100-135 focused hours**, spread across ~6-9 weeks of part-time work. Phase C is open-ended — at 2-4 hours per command and ~141 commands proposed, the C-arc is **280-560 hours** if every command ships; in practice we'd ship the top-20 first and the rest opportunistically.
+
+**Critical-path sequencing recommendation** (informed by §5.5 dependency graph):
+- **Ship together as 0.18.0:** Phase A + Health tab. The merge model surprises users; the Health tab is what unsurprises them. Don't release Phase A without it.
+- **Ship as 0.19.0:** Commands tab base (Design 1). Without it, the deep-link infrastructure has no consumer.
+- **Ship as 0.20.0:** Install tab. The first-session-friction wins are biggest here.
+- **Defer until proven demand:** Agents tab (B.4.1 — heavy dispatch-layer wiring), Update notifier (B.4.5 — cheap but adds noise to the UI). Both are nice-to-have; neither is on the critical path of "the dashboard is useful for daily work."
+
+**What ships in the first 4 weeks (target)**:
+- Week 1: Phase A + Health tab spec finalized; `apply-comfort-posture.py --scope` implemented and unit-tested
+- Week 2: Health tab UI + merge resolver JS; ship 0.18.0
+- Week 3: Commands tab Design 1 with the 3 existing commands; ship 0.19.0
+- Week 4: Install tab + `/install-doctor` + plugin switcher; ship 0.20.0
+
+That's the **first 60 hours of focused work** producing a meaningfully better dashboard. Everything else is incremental.
+
+### 5.3.1 `/__save` and `/__read` allow-list — concrete list
+
+The dashboard's save and read endpoints (in `serve-dashboards.py`) maintain hard-coded allow-lists for security. Today's `/__save` allow-list:
+
+```
+ALLOWED_TARGETS = {
+    ".ravenclaude/comfort-posture.yaml",
+    ".ravenclaude/environment-context.md",
+}
+```
+
+Phases A through B.4 require **expansions** to both `/__save` (write) and `/__read` (proposed new endpoint). Concrete table:
+
+| Phase | Endpoint | Path | Direction | Notes |
+|---|---|---|---|---|
+| A | `/__save` | `.claude/settings.local.json` | write | Phase A `--scope local` target. |
+| A | `/__save` | `.gitignore` | write (append) | Append `.claude/settings.local.json` if missing. Only `.gitignore` write the server ever does; idempotent. |
+| A | `/__save` | `.claude/.comfort-posture-applied.json` | write | Side-car file recording last-applied timestamp per scope. |
+| A | `/__read` | `.claude/settings.json` | read | For dashboard preview of current state. |
+| A | `/__read` | `.claude/settings.local.json` | read | Same. |
+| A | `/__read` | `~/.claude/settings.json` | read | User-scope settings read (NOTE: outside repo root — requires `/__read-user` separate endpoint with no path param). |
+| B.4.1 | `/__save` | `.ravenclaude/agents.yaml` | write | Per-agent enable/disable. |
+| B.4.1 | `/__save` | `.ravenclaude/agents.local.yaml` | write | Local-scope agent overrides. |
+| B.4.1 | `/__read` | `.ravenclaude/agents.yaml` | read | Dashboard re-renders on load with current state. |
+| B.4.1 | `/__read` | `.ravenclaude/agents.local.yaml` | read | Same. |
+| B.4.2 | `/__read` | `.ravenclaude/environment-context.md` | read | Already allow-listed for write; add read. |
+| B.4.4 | `/__read-managed` | OS-specific managed-settings.json path | read | New endpoint; no path parameter; returns the OS-default path's content or 404. |
+
+**Allow-list discipline (added 2026-05-23 in v8):** every `/__save` write target is also listed in the project's `.repo-layout.json` `allowed_globs` if it lives in the project tree, AND the path-traversal check in `serve-dashboards.py` rejects anything not in `ALLOWED_TARGETS`. The check is enforced server-side; the client cannot smuggle paths in. A new CI gate (`scripts/audit-allow-list-drift.py`) diffs the dashboard's enumerated write targets (extracted from the JS) against the server allow-list and fails CI on drift. Drift between client and server is the highest-risk path-traversal regression.
+
+### 5.3.2 Glossary — terms used in this plan
+
+Concentrated definitions to ensure terms are used consistently throughout the doc and avoid common confusions:
+
+| Term | Definition | What it is NOT |
+|---|---|---|
+| **Scope** | One of `user` / `project` / `local`, identifying which settings.json layer a posture or agents-file applies to. | Not the same as "category" (categories are subdivisions within a single posture). |
+| **Layer** | A settings.json file at one of the Claude Code-defined locations (enterprise / user / project / local). | Not a synonym for "scope" — scope is the user's choice; layer is the engine's location concept. |
+| **Posture** | A YAML document at `.ravenclaude/comfort-posture.yaml` describing per-category autonomy levels + per-pattern overrides + a security-deny list. | Not the same as `permissions.{allow,ask,deny}` in settings.json — the posture is the source; permissions are the emission. |
+| **Category** | One of 12 buckets in the posture YAML grouping related rules (e.g., `shell_remote_mutate`, `network_outbound`). | Not the same as a "rule" — a category is a group; a rule is a pattern like `Bash(git push:*)`. |
+| **Rule** | A single pattern string in `permissions.{allow,ask,deny}` (e.g., `Bash(git push:*)`). | Not a YAML key — rules are emitted from the YAML by `apply-comfort-posture.py`. |
+| **Level** | One of `deny` / `always-ask` / `mostly-ask` / `mostly-allow` / `autopilot`, assigned to a category or pattern in the posture YAML. | Not a bucket — levels collapse to buckets at emission time (deny→deny, always/mostly-ask→ask, mostly-allow/autopilot→allow). |
+| **Bucket** | One of `allow` / `ask` / `deny`, the three keys under `permissions` in settings.json. | Not the same as "level" — buckets are the post-collapse representation. |
+| **Merge** | The cross-layer combination of all rules into one resolved set; deny>ask>allow within the resolved set, first match wins. | Not "override" — the more-specific layer doesn't replace less-specific layers (verified §1.4). |
+| **Emission** | The act of converting posture YAML → settings.json buckets. Done by `apply-comfort-posture.py`. | Not a runtime concept — emissions are persisted files. |
+| **Mandatory agent** | An agent flagged in a plugin's CLAUDE.md as non-disableable (e.g., security-reviewer). Cannot be disabled via the Agents tab. | Not the same as "always dispatched" — mandatory means available; the Team Lead still picks per its decision tree. |
+| **Plugin** | One subdirectory of `plugins/` shipping `.claude-plugin/plugin.json`. Installed via `/plugin install`. | Not the same as "marketplace" — the marketplace is the catalog; plugins are entries in it. |
+| **Marketplace** | The RavenClaude meta-repo containing all plugins + the dashboard + the docs + the CI. | Not the same as one plugin — there is one marketplace, multiple plugins. |
+| **Scope selector** | The UI element (radio group) in the Settings and Agents tabs that picks which settings.json layer a posture / agents-file applies to. Persisted in `localStorage` per plugin. | Not the same as the segmented control in the Settings tab — that picks the level for one category. |
+| **Side-car file** | A small JSON file alongside settings.json holding machine-readable metadata that JSON-with-no-comments can't carry (e.g., last-applied timestamp). | Not an alternative to settings.json — it's auxiliary, gitignored. |
+| **Deep link** | A `claude-cli://open?q=<cmd>&cwd=<dir>` URL that opens Claude Code with a pre-filled but un-executed prompt. | Not "execute on click" — the user still presses Enter. |
+| **Probe** | The race-the-navigation pattern (§B.6) that detects whether the `claude-cli://` handler is registered. | Not a network call — it's a synthetic iframe + blur-event race. |
+| **CGP** | Capability Grounding Protocol. The four-clause discipline that governs agent action (pre-action env-context check + decision-tree traversal + alternate-methods enumeration + mandatory blocked-phrasing). | Not specific to the dashboard — it governs every agent in every plugin. |
 
 ### 5.4 Tests and CI implications
 
@@ -1949,5 +2155,6 @@ This narrative is the **acceptance test for Phase A + B.1 + B.2 + B.4.4 + the re
 - **v4 (2026-05-23, autonomous, Claude):** Naming / collision / owner-existence audits. Added §4.9 naming and namespacing — flagged `/security-review` as colliding with the Claude Code built-in skill (rename to `/team-security-review`); proposed `/rc:` qualified prefix for infrastructure commands that Claude Code might add later; proposed `scripts/audit-command-collisions.py` as a new CI gate. Added §4.10 owner-agent inventory — verified every "Owner" column entry across the 7 plugins resolves to a real agent on disk; 55 agents total, 95 commands; ~10 agents intentionally have zero dedicated commands (security-reviewer, prompt-engineer, the coders, designer, data-engineer, tester-qa) because their work is in-conversation. Added open questions #10-14 (enterprise-layer reading, `/security-review` rename, infrastructure-command namespacing, Install tab rename, project-scope modal strictness). Expanded §5.4 tests with merge-model property check, allow-at-project lint, built-in collision audit, owner-agent existence check.
 - **v5 (2026-05-23, autonomous, Claude):** Structural / decision-log additions. §5.5 dependency graph showing A → B.1 → B.4.4 as the critical path (Health tab makes the merge model visible to users; without it the user-scope-default change surprises). §5.6 decisions-taken vs decisions-deferred table — every recommendation in the doc tagged ✅ (committed) or 🟡 (recommended, open question for Matt). §5.7 composition with proposal 003 — explicit reconciliation showing 003 §4.3/§4.4/§4.7/§4.8/§7.1/§7.4/§9/§11 are all honored by this plan, with "proposal 003 wins on contradictions" as the tie-breaker rule. Renumbered the old §5.5 ("What we explicitly do NOT plan") to §5.8.
 - **v5.1 (2026-05-23, autonomous, Claude):** Cross-reference accuracy fix. v5's §5.7 referenced proposal-003 sections §3 ("no backend") and §10 ("release plan") — neither is accurate (003 §3 is "Prior-art summary"; 003 §10 is "Open questions"). Corrected the citations: "no backend" lives in 003 §4.3 / §4.4; the release plan lives in 003 §11 (Implementation phases). Added a 003 §7.4 reference (team-shared vs personal / gitignore) which the merge-model finding strengthens into a more directive guidance.
+- **v8 (2026-05-23, autonomous, Claude):** Three additions and one update. (1) §B.4.2 Environment tab expanded from a bullet list to a full design (purpose, data sources, UI cards per environment, agent-priors cross-reference, stale warning, what-it-does-NOT-do, 11-12h estimate). (2) §B.4.3 Scenarios tab expanded similarly (multi-axis filters with URL-param state, expanded-row rendering of the 4 sections from /wrap schema, composition with the scenario-retrieval skill, 10-12h estimate). (3) §5.3 Phased roadmap updated with revised effort estimates from v7 spec depth (Health 6→18-20h, Agents 6→19-21h, Environment 3→11-12h, Scenarios 4→10-12h, Update notifier 3→9-10h); total Phase A+B revised from 60-95h → 100-135h; critical-path sequencing recommendation added; "first 4 weeks (target)" concrete week-by-week shipping plan. (4) §5.3.1 — concrete `/__save` and `/__read` allow-list expansion table tracking every new write/read path needed for each phase (12 entries spanning Phase A through B.4.4), plus a new CI gate (`scripts/audit-allow-list-drift.py`). (5) §5.3.2 — glossary of 17 terms used in the plan, ensuring "scope", "layer", "posture", "category", "rule", "level", "bucket", "merge", "emission" etc. are used consistently.
 - **v7 (2026-05-23, autonomous, Claude):** Four major additions. (1) §B.4.1 Agents tab expanded from a bullet list to a full design (purpose, data sources, UI layout, components, settings file shape, Team Lead dispatch behavior, mandatory-agent enforcement, 19-21h effort estimate, sequenced as 0.22.0). (2) §B.4.5 Update notifier expanded from a paragraph to a full design (detection mechanism via `latest-versions.json` served from GitHub Pages, banner + dedicated Changelog tab, dismissal semantics, composition with Phase A migration banner, 9-10h effort estimate). (3) §B.5 Accessibility & i18n checklist — 10 mandatory accessibility requirements cross-cutting all new tabs; i18n deferred but recommends factoring strings into a `STRINGS` block for future-proofing. (4) §B.6 Deep-link mechanic — formal fallback chain (probe → claude-cli://, copy fallback, show fallback), race-the-navigation probe pattern with code, per-browser behavior matrix, hard rules for URL builder. (5) §4.7.1 — per-plugin command additions surfaced by three verification agents: +42 new commands (mostly power-platform +12, finance +12, regulatory-compliance +9), bringing total from ~95 to ~141. Also reassigns `/health-score-refresh` from PSM to learning-analytics-analyst (it's an analytics question, not a touchpoint).
 - **v6 (2026-05-23, autonomous, Claude):** Concrete grounding additions. (1) §B.4.4 Health-tab spec expanded from a hand-wavy bullet list to a full design with purpose, data sources (with `serve-dashboards.py` endpoint additions), UI layout sketch, four-component breakdown, merge-algorithm JS pseudocode, and effort estimate (revised to 18-20h, up from 6-8h — appropriately). The Health tab is on the critical path because it makes the merge model visible to users. (2) §2.3.8 added — concrete YAML + settings.json emission examples per scope, showing how Project-scope emission can silently grant the team all of one user's personal allows (R12 made tangible), and recommending a "denies + asks only" default emission for Project scope. (3) §5.8 First 30 minutes — a narrative walkthrough of a brand-new user's experience from minute 0 to minute 30 post-Phase A+B, including the dashboard's Health tab "Test a tool call" interaction explaining why the user's git push is being asked when they thought they'd allowed it. This narrative is the acceptance test for the proposed design.
