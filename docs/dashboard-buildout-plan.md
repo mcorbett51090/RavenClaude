@@ -11,7 +11,10 @@
 ## Table of contents
 
 1. [Current state — what the dashboard is today, in one page](#1-current-state)
+   - 1.4 [Claude Code's settings precedence — the merge model (load-bearing)](#14-claude-codes-settings-precedence--the-merge-model-load-bearing)
 2. [Phase A — multi-layer comfort posture (user / project / local)](#phase-a)
+   - 2.3.3 [Precedence interaction — what happens if posture lands at multiple layers (CORRECTED)](#233-precedence-interaction--what-happens-if-posture-lands-at-multiple-layers-corrected)
+   - 2.3.5 [Dashboard UI — scope selector (revised for merge model)](#235-dashboard-ui--scope-selector-revised-for-merge-model)
 3. [Phase B — dashboard build-out](#phase-b)
    - B.1 [Information architecture](#b1-information-architecture)
    - B.2 [Slash-commands tab (3+ UI alternatives, recommendation)](#b2-slash-commands-tab)
@@ -20,6 +23,8 @@
 4. [Phase C — per-agent slash commands across all 7 plugins](#phase-c)
 5. [Phase D — risks, open questions, sequencing](#phase-d)
 6. [Appendix — references](#appendix)
+
+**v2 headline change:** The §1.4 and §2.3.3 sections have been rewritten to reflect Claude Code's actual cross-layer permission semantics, which the v1 draft got wrong. Permission rules **MERGE** across the user / project / local layers (they don't override per-layer), with `deny > ask > allow` resolving within the merged set, and any `deny` in any layer being absolute. This changes the Phase A recommendation's *rationale* (project file is a permission floor, not a default) without changing the recommendation itself (user-scope default). The dashboard UI in §2.3.5 is updated accordingly.
 
 ---
 
@@ -62,17 +67,33 @@ After saving the YAML, the user runs `/set-posture` (or invokes `python3 ${CLAUD
 
 The script's **footer warning** is load-bearing context: *"Hand-edits to `permissions.allow/ask/deny` are wiped on next `/set-posture`. Put personal overrides in `.claude/settings.local.json` instead — Claude Code merges that on top of this file."* This is the gravitational pull toward Phase A.
 
-### 1.4 Claude Code's settings precedence (load-order recap)
+### 1.4 Claude Code's settings precedence — the merge model (load-bearing)
+
+> **CORRECTION over the v1 draft.** The v1 of this document described cross-layer precedence as "local > project > user" — the more-specific layer wins per-pattern. **That is wrong for `permissions.{allow,ask,deny}`.** The correct model, from `plugins/ravenclaude-core/knowledge/claude-code-permissions.md` and the upstream `code.claude.com/docs/en/permissions` page, is: permission rules **MERGE** across layers, and **`deny` always wins cross-layer** regardless of which layer it lives in. Within the merged set, `deny > ask > allow`. This changes the Phase A reasoning materially — see §2.3.3 (rewritten).
 
 | Layer | File | Scope | Tracked by git? |
 |---|---|---|---|
-| **Enterprise** | `/etc/claude-code/managed-settings.json` (Linux) etc. | Org-wide, set by IT | No (machine-managed) |
+| **Enterprise (managed)** | `/etc/claude-code/managed-settings.json` (Linux), `/Library/Application Support/ClaudeCode/managed-settings.json` (macOS), `C:\ProgramData\ClaudeCode\managed-settings.json` (Windows) | Org-wide, set by IT | No (machine-managed) |
 | **Command-line flags** | `claude --add-dir`, `--dangerously-skip-permissions`, etc. | Single session | n/a |
-| **Local** | `.claude/settings.local.json` | Per-project, per-user | **gitignored** |
+| **Local** | `.claude/settings.local.json` | Per-project, per-user | **gitignored by Claude Code's default `.gitignore` install** |
 | **Project** | `.claude/settings.json` | Per-project, team-shared | Committed |
 | **User** | `~/.claude/settings.json` | All projects, this machine | No (machine-local) |
 
-Precedence is **enterprise > flags > local > project > user**. So an `ask` rule at the project layer can be **overridden to `allow`** at the local layer for the same pattern. This is the lever Phase A pulls.
+**For non-permission settings** (theme, model, hooks blocks, `env`, etc.) the layer order is enterprise > flags > local > project > user — the more-specific layer wins, the less-specific layer is the fallback.
+
+**For `permissions.{allow,ask,deny}` specifically the model is different:**
+
+1. **Rules MERGE across layers.** Every rule from every layer is in scope simultaneously. There is no "local layer overrides project layer" for permission rules. If `~/.claude/settings.json` says `allow: ["Bash(git push:*)"]` and `.claude/settings.json` says `ask: ["Bash(git push:*)"]`, both rules are live; the engine resolves per-call.
+2. **Per-call resolution is `deny → ask → allow`.** The most-restrictive *applicable* rule wins. So under the example above, the merged set contains both `ask Bash(git push:*)` and `allow Bash(git push:*)`; per the deny>ask>allow rule, the call **asks**.
+3. **`deny` in ANY layer is absolute.** A `deny: ["Bash(rm -rf /*)"]` at the user layer blocks the call even if the project layer says allow. A deny at the enterprise layer cannot be overridden by anything below. *This is the security floor — and it's why a team-shared deny in `.claude/settings.json` is a hard constraint individual users cannot relax.*
+
+**Practical consequences for Phase A** (expanded in §2.3.3):
+
+- **A user-scope `allow` cannot loosen a project-scope `ask`.** If the team has decided `git push` is ask-only at the project layer, no amount of personal user-scope or local-scope posture can autopilot it. The personal-comfort use case where this matters is the user wants to be MORE permissive than the team — and **they can't.** They can only be more restrictive.
+- **A local-scope `deny` will block calls the project allows.** This is the lever a cautious user pulls if they're uncomfortable with the team's project-layer permissiveness. The team can't stop them; that's correct.
+- **The `ask` bucket is sticky.** Once any layer has `ask: Bash(X)`, no other layer can override to `allow: Bash(X)` because ask>allow in the merged-set resolution.
+
+Phase A's "personal comfort = user scope, team policy = project scope, per-project override = local scope" framing therefore works *only* in the direction of MORE restriction. To put it bluntly: **`.claude/settings.json` becomes a permission floor for the team. `.claude/settings.local.json` and `~/.claude/settings.json` are personal additions on top — they can deny more, ask more, or allow patterns the project doesn't mention, but they cannot relax what the project restricts.** This is the right behavior for the multi-developer case but is a non-obvious gotcha when designing the dashboard's scope selector — see §2.3.6.
 
 ---
 
@@ -93,7 +114,9 @@ The rationale traces directly to the "5 of 5 domain plugins have no plugin-speci
 
 ### 2.3 The mechanism — what changes where
 
-#### 2.3.1 Dashboard UI — scope selector
+#### 2.3.1 Dashboard UI — scope selector (initial sketch; superseded by 2.3.5)
+
+> *This subsection records the v1 sketch of the scope selector before the merge-model investigation. The actual recommended design is in [§2.3.5](#235-dashboard-ui--scope-selector-revised-for-merge-model), which treats Project scope as a load-bearing team-policy choice rather than a peer of User/Local.*
 
 Above the preset bar, a new compact row:
 
@@ -106,7 +129,7 @@ Above the preset bar, a new compact row:
 - "What's the difference?" opens an info modal with the precedence table from §1.4 + a one-paragraph plain-language description per scope:
   - **User:** "this is how I want Claude to behave in all my projects on this machine. Default. Doesn't get committed."
   - **Project:** "this is how the team agrees Claude should behave in this project. Committed to git. Use sparingly — only for shared safety floors (deny `npm publish`, ask before `git push`)."
-  - **Local:** "this is how I want Claude to behave in just this project. Overrides the project file for me only. Gitignored."
+  - **Local:** "this is how I want Claude to behave in just this project. ~~Overrides the project file for me only.~~ *(Strikethrough: this v1 claim was wrong — see §2.3.3. Local-scope cannot relax a project-scope rule; it can only further restrict.)* Gitignored."
 
 The selector affects only **which scope `/set-posture` writes to.** The YAML file itself stays in one place (`.ravenclaude/comfort-posture.yaml`); the **emission target** changes.
 
@@ -126,35 +149,102 @@ The v0.17.0 cleanup logic deletes a stale `_comfort-posture-snapshot.json` from 
 
 What we DO add: a **`# Last applied: <ISO-8601 timestamp> by /set-posture (scope=user)`** comment line at the top of the rules array in the target settings.json (machine-readable for tooling, human-readable for diffs). Claude Code's settings.json schema tolerates `//`-style comments? *(open question — verify; if not, store the timestamp inside a side-car file at `.claude/.comfort-posture-applied.json` per scope, gitignored by default.)*
 
-#### 2.3.3 Precedence interaction — what happens if posture lands at multiple layers
+#### 2.3.3 Precedence interaction — what happens if posture lands at multiple layers (CORRECTED)
 
-This is the gotcha question. Suppose Matt:
+This subsection is the heart of Phase A's design. The v1 draft of this document got the model wrong (described layer-wins precedence); the corrected model is **merge with `deny > ask > allow`** (see §1.4). The implications for `/set-posture` are significant and reshape the recommendation.
 
-1. Runs `/set-posture --scope user` with all categories on `mostly-allow`.
-2. Runs `/set-posture --scope project` with `shell_remote_mutate` on `always-ask` (the team's shared rule).
-3. Runs `/set-posture --scope local` with `shell_code_exec` on `autopilot` (his personal override).
+**The scenario.** Matt has applied posture at all three scopes:
 
-The translator emits **narrow rules** per category. The three layers each get their own set of rules. Claude Code's engine then resolves precedence per-pattern: local > project > user. So:
+1. `/set-posture --scope user` with all categories on `mostly-allow`.
+2. `/set-posture --scope project` with `shell_remote_mutate` on `always-ask` (the team's shared rule).
+3. `/set-posture --scope local` with `shell_code_exec` on `autopilot` (his personal override).
 
-- `Bash(git push:*)` — emitted as `ask` at project (team rule), `allow` at user (Matt's machine default). **Project wins → ask.** ✓ Team rule honored.
-- `Bash(python:*)` — emitted as `allow` at user (Matt's default `mostly-allow`), `allow` at local (his `autopilot` override). **Local wins → allow.** ✓ Personal override honored.
-- `Bash(rm -rf:*)` — emitted as `deny` at all three layers (security_deny is always present). **Deny wins regardless of layer.** ✓ Safety floor holds.
+The translator emits **narrow rules** per category. The three settings.json files each contain a different set of rules. At runtime, Claude Code **merges** all three sets into a single in-memory pool and resolves per-call as deny > ask > allow.
 
-**But there's a subtle trap.** The current EMISSIONS table emits the **same pattern** (e.g., `Bash(git push:*)`) into either `allow`, `ask`, or `deny` based on resolved level. If Matt's user-layer posture puts `shell_remote_mutate` at `mostly-allow`, that emits `Bash(git push:*)` into the user-layer `allow`. If his project-layer posture puts the same category at `always-ask`, that emits `Bash(git push:*)` into the project-layer `ask`. Claude Code's per-pattern precedence (deny > ask > allow) **within a single settings.json** would have downgraded to `ask`; the v0.17.0 architecture's "overwrite, not merge" was the cure. **Across layers, the precedence is local > project > user — the more-specific layer wins, NOT the more-restrictive bucket.** So a user-layer `allow` does NOT survive a project-layer `ask`. The team's project rule wins. ✓ That's the right outcome.
+**Worked examples — what the merged pool does to each pattern.**
 
-The trap to **avoid**: the script must not also write the same pattern into the user-layer file when project already has it. Otherwise we'd have two competing rules for the same pattern at two layers, and the user-layer rule is dead weight. **Optional v2 refinement:** when running `--scope user`, the script could detect already-emitted patterns at higher-precedence layers and skip them in the user emission. For v1 we accept the dead-weight as "correct-and-overridden, no harm done."
+| Pattern | User layer says | Project layer says | Local layer says | Merged set contains | Effective behavior | Why |
+|---|---|---|---|---|---|---|
+| `Bash(git push:*)` | `allow` (mostly-allow → allow) | `ask` (always-ask → ask) | (not emitted) | {ask, allow} | **ask** | ask > allow in merged set |
+| `Bash(python:*)` | `allow` (mostly-allow → allow) | (not emitted) | `allow` (autopilot → allow) | {allow, allow} | **allow** | only allow rules → allow |
+| `Bash(rm -rf:*)` | `deny` (security_deny baseline) | `deny` (security_deny baseline) | `deny` (security_deny baseline) | {deny} | **deny** | deny is absolute |
+| `Bash(curl \| sh)` | `deny` (security_deny) | (not emitted in this hypothetical) | (not emitted) | {deny} | **deny** | a single-layer deny still wins |
+| `WebFetch(domain:internal.acme.com)` | (not emitted) | `allow` (team trust) | (not emitted) | {allow} | **allow** | only one rule → allow |
 
-#### 2.3.4 Reading the right file back into the dashboard
+**The non-obvious findings.**
+
+1. **A user-layer `allow` does NOT loosen a project-layer `ask`.** Matt cannot autopilot a pattern the team has set to ask. He can only restrict further (add ask, add deny). This is **correct behavior** for multi-developer teams — the team's project file is a *permission floor*, not a default that personal layers override.
+
+2. **A local-layer `allow` does NOT loosen a project-layer `ask` either.** "Local overrides project" is true for *non-permission* settings (theme, model selection, custom hooks). It is **false** for permission rules. Anyone who's seen non-permission overrides work and assumed permissions follow the same pattern will be surprised.
+
+3. **The `ask` bucket is sticky upward.** Once any layer puts a pattern in `ask`, no other layer can move it to `allow`. The only way to "downgrade" an ask is to remove the rule from the layer that emits it — which for a project-layer ask means editing `.claude/settings.json` (a committed file) at the source, not adding a counter-rule at user/local.
+
+4. **The `deny` bucket is absolute.** A team-policy deny in the project file *cannot* be relaxed by an individual user. This is also correct, and is the lever for shared safety floors (deny `npm publish`, deny `git push --force:*`, deny `.env` reads).
+
+5. **Adding a rule at user-scope is "additive only."** The user-layer can:
+   - Add `deny` rules that don't exist elsewhere → tightens.
+   - Add `ask` rules for patterns no other layer mentions → tightens for those patterns.
+   - Add `allow` rules for patterns no other layer mentions → loosens (but only for unclaimed patterns).
+   - It **cannot** weaken a stricter rule from a higher-merge layer.
+
+6. **The "same pattern in two layers with different buckets" case is now well-defined.** Under v0.17.0's "overwrite, not merge" the engine never saw the same pattern in two buckets within one file. Under Phase A, the same pattern *can* appear in different buckets at different layers — and that's fine, because the merge resolves cleanly via deny > ask > allow.
+
+**Implications for the EMISSIONS strategy.**
+
+The v1 trap discussion warned about "dead-weight rules" if a user-layer rule conflicts with a project-layer rule. Under the correct merge model:
+
+- A user-layer `allow Bash(git push:*)` + project-layer `ask Bash(git push:*)` → both rules merge, ask wins. The user-layer rule is **not** dead weight in a semantic sense (it still represents the user's preference, and if the project rule ever disappears the user rule becomes effective). It is, however, **non-load-bearing** for the current effective behavior. We accept this — no optimization needed.
+- A user-layer `deny Bash(rm -rf:*)` + project-layer `deny Bash(rm -rf:*)` → both rules merge, deny wins (twice, harmlessly). This is the security_deny baseline behavior; we want it at all layers as defense-in-depth, even if redundant.
+- A user-layer `ask Bash(python:*)` + project-layer `allow Bash(python:*)` → both rules merge, ask wins (user has tightened the team's default). Working as intended.
+
+**The script needs no precedence-skipping logic.** Each scope emits its full rule set; the engine merges. This is much simpler than the v1 draft's "skip already-emitted patterns at higher-precedence layers" suggestion, which was based on the wrong precedence model.
+
+**The script DOES need a "merge preview" diagnostic.** Because the merge happens at engine runtime, a user editing the YAML and applying at one scope cannot see *the effective merged state* by looking at the file they just wrote — they'd need to read all three layers and merge mentally. Phase B.4.4 (Health tab) does this read-side merge and surfaces the effective set; for the CLI path, `apply-comfort-posture.py --preview-merge` reads all three settings.json files, computes the merged set, and prints it. Recommended for v0.18.0 (Phase A's release).
+
+#### 2.3.4 The new Phase A recommendation, given the merge model
+
+The v1 draft recommended `--scope user` as the new default because "personal traits should not pollute the project file." That recommendation **stands** but the rationale shifts:
+
+- **Old rationale (v1):** "Personal posture in the project file is a footgun because PR reviewers with different postures will revert it."
+- **New rationale (v2, given merge semantics):** "The project file is a *permission floor* the whole team operates under. Personal preferences should NOT be in the floor because the floor cannot be relaxed by individuals — it can only be tightened. Put personal preferences at `--scope user` (or `--scope local` for project-specific personal tuning); reserve `--scope project` for genuine team policy (shared denies, shared asks the team has agreed on)."
+
+The corollary: **`/set-posture --scope project` is for the rare case** where the team has explicitly agreed on a permission rule. The dashboard's scope selector should make this less prominent (smaller button, separate confirmation modal, "Are you sure this is a team policy?" prompt) — see §2.3.5.
+
+#### 2.3.5 Dashboard UI — scope selector (revised for merge model)
+
+The v1 scope selector was a 3-way radio (User / Project / Local) with User as default. Given the merge findings, we revise:
+
+```
+   Apply posture to:                                    ⓘ What does this mean?
+
+   [● User (default)]  for me, all my projects on this machine
+   [○ Local]           for me, just this project
+   [○ Project] *team*  for the team — this is a permission FLOOR everyone is bound by
+                       Requires explicit confirmation. Use sparingly.
+```
+
+The Project option gets:
+- A distinct visual treatment (smaller, separate row, "*team*" tag, warning copy).
+- A confirmation modal on submit: *"Project-scope rules are merged into every team member's effective permissions and cannot be relaxed by their personal layers. Use this only for shared policy (denies + asks the team has agreed on). For personal preferences, use User or Local."*
+- The modal lists the patterns that *would* be emitted and flags any that are `allow` — `allow` at project scope is usually wrong (it loosens defaults for the team, which is rarely intended). If the YAML's `allow` emission count is >0, the modal warns: *"You're about to emit N `allow` rules at project scope. The team will be granted these allows. Is this intentional?"*
+
+**Wording rationale.** The phrase "permission floor" is intentionally evocative — it conveys (a) all team members stand on it; (b) you can build up from it but not down through it; (c) it's load-bearing. The "what does this mean?" info modal carries the §1.4 + §2.3.3 explanation in plain language.
+
+#### 2.3.6 Reading the right file back into the dashboard (unchanged from v1, with merge note)
+
+#### 2.3.6 Reading the right file back into the dashboard
 
 When the dashboard loads, today it has nothing to load from — the YAML doesn't exist yet, and the dashboard initializes from defaults. After Phase A, the user might have a different posture at each scope. How should the dashboard initialize?
 
 **Recommendation:** The YAML file `.ravenclaude/comfort-posture.yaml` is still **one file**. It represents the **posture the user wants applied** in the current session, regardless of scope. The scope selector is a per-apply choice, not a per-file partition. If Matt wants different postures at different scopes, he edits the YAML, picks `--scope user`, applies; then edits the YAML, picks `--scope local`, applies. The YAML is the working draft; the three settings.json files are the emissions.
 
-If we wanted to support **"see my user-layer posture, see my local-layer posture, see my project-layer posture"** in the dashboard simultaneously, we'd need three YAML files (`comfort-posture.user.yaml`, `.project.yaml`, `.local.yaml`) and a tab/section that shows all three. This is **deferred to v2 of Phase A** as "Multi-posture authoring" — explicitly out of scope for the first cut because the additional UI complexity buys little for the solo-developer case.
+**The merge-model nuance.** Because the engine merges across layers, "what the YAML looks like" at a given scope no longer fully describes "what the user actually experiences." Two users with identical YAML at user scope but different YAML at project scope will experience different effective postures. The dashboard's Settings tab today shows *the working draft of the YAML*; the **effective merged posture** is a separate concept that lives in the Health tab (B.4.4) as a read-only diagnostic and as `apply-comfort-posture.py --preview-merge` on the CLI.
 
-For v1, the dashboard shows one posture; the user picks a scope at apply time; the YAML reflects the posture they last edited regardless of scope. This is the minimum viable shape that solves the load-bearing problem (personal posture polluting the project file).
+If we wanted to support **"see my user-layer posture, see my local-layer posture, see my project-layer posture"** in the dashboard simultaneously, we'd need three YAML files (`comfort-posture.user.yaml`, `.project.yaml`, `.local.yaml`) and a tab/section that shows all three. This is **deferred to v2 of Phase A** as "Multi-posture authoring" — explicitly out of scope for the first cut because the additional UI complexity buys little for the solo-developer case AND the merge model makes the "effective view" the more important question.
 
-#### 2.3.5 Migration — existing v0.17.0 users
+For v1, the dashboard shows one posture; the user picks a scope at apply time; the YAML reflects the posture they last edited regardless of scope. The Health tab (when it ships) is the place to see the merged effective posture.
+
+#### 2.3.7 Migration — existing v0.17.0 users
 
 Today's users have `.claude/settings.json` with permissions filled by `/set-posture --scope project` (the only mode that exists). After Phase A ships:
 
@@ -176,6 +266,33 @@ Today's users have `.claude/settings.json` with permissions filled by `/set-post
 3. The dashboard surfaces the same migration prompt as a one-time banner on first load post-upgrade.
 
 **Backward-compat hatch:** an env var `RAVENCLAUDE_POSTURE_LEGACY_SCOPE=project` makes the script default to project scope (the v0.17.0 behavior). Documented but not advertised. Removed in the version after the version after this one.
+
+**Migration copy needs updating for the merge model.** The v1 banner copy implies the user could swap project → user and still get the same behavior. Under merge semantics, the *effective* behavior is identical only if `user-scope rules ⊇ project-scope rules`. The corrected banner copy:
+
+```
+⚠ Detected legacy state: posture is applied at PROJECT scope (the previous default).
+
+Under Claude Code's merge model, anything in the project file is a permission
+FLOOR — visible and binding for every team member who clones this repo. Personal
+preferences should not live there.
+
+Choose one:
+  1. Migrate now to USER scope     (recommended for personal use)
+     → moves your current posture from .claude/settings.json
+       to ~/.claude/settings.json. The project file is cleared.
+
+  2. Keep at PROJECT scope         (this is a team policy)
+     → only choose this if everyone on the team needs these rules to apply.
+       The dashboard's Project-scope confirmation modal will warn on every save.
+
+  3. Apply at BOTH                 (advanced)
+     → keep the project file as a team-shared floor (denies + asks only,
+       no allows); duplicate the same posture at user scope for solo
+       sessions. Allows in the project file will be flagged by the
+       Project-scope confirmation modal.
+
+Re-run with --scope {user|project|both} to confirm. No changes made yet.
+```
 
 ### 2.4 Edge cases & gotchas
 
@@ -852,6 +969,9 @@ This section proposes the **slash commands** each agent / domain should expose. 
 | R8 | Static HTML cannot live-poll for `install-doctor.json` updates → user feels nothing happened after running the command | medium | low | The Install tab polls every 2s for the file existence (via `fetch` against `/__save` when serve-dashboards is running) OR shows a "Re-run detect, then reload this tab" affordance when not. |
 | R9 | The CGP environment-context interaction with Phase A's user-scope default: if a user has DEV/TEST/PROD environments at varying trust levels, the user-layer settings.json is the SAME across them — but the CGP env-context check is per-project per-environment | low | medium | Phase A explicitly documents: comfort-posture is a **machine-default**; CGP env-context is per-project per-environment; the two compose by Claude Code's deny > ask > allow precedence at the layer level. No code change; doc change only. |
 | R10 | A hostile static-HTML page hosted under file:// could read other origin storage via IndexedDB — but the dashboard's IDB only stores file handles for ITS OWN saves. No new attack surface. | very low | very low | Documented in the security section of proposal 003 §9. |
+| R11 | **Merge-model surprise.** A user who learned "local overrides project" from non-permission settings (theme, model) will assume the same for permission rules and write a `--scope local` `allow` expecting to relax a project-layer `ask`. It won't work; they'll be stuck asked and not know why. | high | medium | Scope selector info modal (§2.3.5) leads with the merge model in plain language; Health tab (B.4.4) shows the merged effective set; `apply-comfort-posture.py --preview-merge` runs the same merge and prints it. Onboarding tab (B.3) Step 5 explicitly mentions "your personal layer can only restrict the project layer further, not loosen it." |
+| R12 | **Project-layer `allow` is almost always wrong but easy to emit.** Today's `/set-posture --scope project` (the legacy default) blindly emits whatever `allow`s the YAML resolves to — meaning a single user can push their personal `mostly-allow` posture into the project file and silently grant the whole team patterns the team never discussed. | high | medium | Project-scope confirmation modal (§2.3.5) counts emitted `allow` rules and warns; migration banner (§2.3.7) explicitly offers a "BOTH" mode that keeps project-scope to denies+asks only. CI lint (proposed in §5.4) flags PRs where `.claude/settings.json` gains `permissions.allow` entries with a "is this team policy?" comment. |
+| R13 | **Enterprise managed-settings denies that we don't see.** The Health tab's merge preview reads user + project + local. It does NOT read the enterprise file (which lives outside the project tree and the user home). A pattern that looks `allow`ed in the merged preview can still be denied by enterprise. | low | low | Read enterprise file path on supported OSes; if present, include it in the merged preview with a "Read-only (managed by IT)" tag. If unreadable (permissions), show "Cannot read enterprise layer" warning rather than silently dropping it. |
 
 ### 5.2 Open questions for Matt
 
@@ -923,3 +1043,4 @@ This section proposes the **slash commands** each agent / domain should expose. 
 ## Iteration log
 
 - **v1 (2026-05-22, overnight, Claude):** First full pass. Covers current-state analysis, Phase A multi-layer posture, Phase B dashboard build-out (IA + 3+ slash-tab UI designs + Install tab + 5 additional panels), Phase C ~95 proposed commands across all 7 plugins (with the existing 3 explicitly preserved), Phase D risks / open questions / phased roadmap.
+- **v2 (2026-05-23, autonomous, Claude):** Merge-model correction. The v1 draft described cross-layer precedence as "local > project > user — more-specific layer wins," which is the model for *non-permission* settings (theme, model). For `permissions.{allow,ask,deny}`, Claude Code **merges** rules across layers and resolves per-call as `deny > ask > allow`, with `deny` in any layer being absolute. §1.4 was rewritten to state the merge model explicitly with a worked example. §2.3.3 was rewritten to derive Phase A's design from the merge model (was: "local layer wins"; now: "project layer is a permission floor that personal layers cannot relax, only further restrict"). §2.3.5 adds a revised scope-selector design that treats Project-scope as a load-bearing team-policy choice (separate visual treatment, confirmation modal, `allow`-emission warning). §2.3.6 adds a merge-model nuance to the YAML/effective-state discussion and points to a new `--preview-merge` CLI flag. §2.3.7 (migration) rewrites the banner copy to surface the floor/ceiling distinction. R11–R13 add three new risks (merge-model surprise, project-`allow` foot-gun, enterprise layer invisibility). v1's §2.3.1 is left in place but annotated as superseded by §2.3.5.
