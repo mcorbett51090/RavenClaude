@@ -260,17 +260,35 @@ A command may match multiple concerns. The **highest severity** wins for the thr
 
 # Part B — Tribunal feature design
 
+<a id="b0-naming"></a>
+## B.0 Naming — the Thing and its seats
+
+This design uses Norse-mythology codenames for the tribunal mechanism and its seats. The naming is evocative, not load-bearing: "tribunal" and "the Thing" are interchangeable in prose; the seat names are the Norse role descriptions that pair with the existing `ravenclaude-core` agents who fill them.
+
+| Norse name | What it refers to | Why it fits |
+|---|---|---|
+| **The Thing (Þing)** | The whole tribunal mechanism — the assembly that convenes to render a verdict. | The historical Norse *þing* was literally a judicial / governing assembly where disputes were heard and laws recited. Used interchangeably with "the tribunal" in this doc. Slash commands and config files use the `thing-` / `thing.yaml` prefix. |
+| **Forseti seat** | Reviewer A — the security-watch seat. Filled by `security-reviewer`. | Forseti is the Norse god of justice, law, and dispute resolution; in *Grímnismál* he presides over his hall Glitnir where "all who come to him with disputes go away reconciled." Right seat for the security/threat-modeling axis where the question is "who is harmed and how do we mitigate?" |
+| **Mímir seat** | Reviewer B — the correctness/counsel seat. Filled by `code-reviewer`. | Mímir embodies counsel and wisdom (Odin consults Mímir's head for guidance). Right seat for the correctness/workflow/scope axis where the question is "is this the right shape of the command?" |
+| **Heimdall seat** | Reviewer C — the AlignmentCheck / watchman seat. Filled by `prompt-engineer`. | Heimdall is the watchman of the gods; he "could see for a hundred leagues by night or day" and guards Bifröst against deception. Right seat for the prompt-injection / reasoning-trace inspection role — the seat whose job is to spot when the panel is being manipulated. |
+| **Thor seat** | Tie-breaker — convened only on disagreement or low-confidence. Filled by `architect`. | Confirmed codename per user. Thor's hammer Mjölnir settles the matter; the architect already adjudicates phase-boundary questions in the marketplace. The deadlock-breaking vote. |
+| **Lawspeaker** (lögsögumaður) | The orchestrator hook script — the component that convenes the Thing, marshals the seats, aggregates votes, and emits the verdict. | At the historical Althing, the lögsögumaður recited the law and ensured procedure was followed. Right name for the script that enforces protocol. Used once in §B.5 where it reads naturally; the file on disk is `thing-orchestrator.sh` for clarity. |
+| **Sága log** | The audit trail directory `.ravenclaude/runs/thing/`. | Sága is the Norse goddess of history and chronicle; Odin drinks with her daily at Sökkvabekkr. Optional flavor — the directory on disk is just `thing/`. |
+| **Gjallarhorn** | The user-facing banner when the Thing renders a verdict. | Heimdall's horn that signals warning. Optional flavor — banners in the dashboard say "Thing:" not "Gjallarhorn:" in v1. |
+
+**Convention.** Where the name reads cleanly (slash commands, file paths, the section that introduces the seats), use the Norse name. Where the technical term is clearer (decision tables, edge-case lists), say "tribunal" or "reviewer." Avoid stacking the names so densely that the design becomes a glossary exercise — the rigor lives in the mechanics, not the labels.
+
 <a id="b1-the-mechanism-in-one-paragraph"></a>
 ## B.1 The mechanism in one paragraph
 
-When a Bash (or other tool-use) call hits a comfort-posture category that has the **tribunal toggle ON**, the call is intercepted by a `PreToolUse` orchestrator hook. The orchestrator:
+When a Bash (or other tool-use) call hits a comfort-posture category that has the **Thing toggle ON**, the call is intercepted by a `PreToolUse` orchestrator hook (the Lawspeaker). The Lawspeaker:
 
 1. Computes the concern set for the call (cross-cutting + category-specific, §A.2/A.3).
-2. Convenes a panel of **3 reviewers + 1 tie-breaker** (the "Thor seat"), each an existing `ravenclaude-core` agent invoked via Claude Code's native `type: "prompt"` / `type: "agent"` hook mechanism or via headless `claude -p --bare` shell-out, depending on substrate availability.
-3. Each reviewer renders a verdict per concern: ALLOW, EDIT (with a proposed rewritten command), or DENY (with a cited concern id).
-4. The orchestrator aggregates: majority vote per concern, then composes a single command-level verdict.
-5. If the first two reviewers agree, the verdict stands. If they disagree, the tie-breaker (Thor seat) reviews **both their reasoning chains, not just their verdicts** (PRM-style; Lightman et al. 2023, arXiv:2305.20050) and casts the deciding vote.
-6. The orchestrator returns the Claude Code-standard `hookSpecificOutput.permissionDecision` of `"allow"` / `"ask"` / `"deny"` plus, on EDIT, an `updatedInput` rewriting the `tool_input.command`. The user sees a one-line banner naming the verdict, the concerns cited, and a deep link to the audit-trail entry. The command then runs (or doesn't) per the verdict.
+2. Convenes the Thing — **three reviewer seats (Forseti, Mímir, Heimdall) + one tie-breaker (Thor)** — each an existing `ravenclaude-core` agent invoked via Claude Code's native `type: "prompt"` / `type: "agent"` hook mechanism or via headless `claude -p --bare` shell-out, depending on substrate availability.
+3. Each seat renders a verdict per concern: ALLOW, EDIT (with a proposed rewritten command), or DENY (with a cited concern id).
+4. The Lawspeaker aggregates: majority vote per concern, then composes a single command-level verdict.
+5. If Forseti and Mímir agree, the verdict stands. If they disagree (or any seat returns low confidence, or Heimdall flags injection but the other two split on how to handle), the Thor seat is convened and reviews **the reasoning chains of all three seats, not just their verdicts** (PRM-style; Lightman et al. 2023, arXiv:2305.20050) and casts the deciding vote.
+6. The Lawspeaker returns the Claude Code-standard `hookSpecificOutput.permissionDecision` of `"allow"` / `"ask"` / `"deny"` plus, on EDIT, an `updatedInput` rewriting the `tool_input.command`. The user sees a one-line banner naming the verdict, the concerns cited, and a deep link to the Sága log entry. The command then runs (or doesn't) per the verdict.
 
 The whole flow targets a **10-25 second budget** per tribunal call. Latency is the dominant UX cost; §B.5 and §B.10 lay out the tradeoffs.
 
@@ -321,29 +339,29 @@ Each panelist is given:
 }
 ```
 
-### B.3.2 Aggregating panelist verdicts to a command verdict
+### B.3.2 Aggregating seat verdicts to a command verdict
 
-| Reviewer A | Reviewer B | Reviewer C (AlignmentCheck) | Tie-breaker (Thor) | Final verdict |
+| Forseti (security) | Mímir (correctness) | Heimdall (AlignmentCheck) | Thor (tie-breaker) | Final verdict |
 |---|---|---|---|---|
 | allow | allow | allow (no injection) | not convened | **ALLOW** |
-| allow | allow | injection detected | convened — reviews chain | DENY (injection findings override allow consensus) |
+| allow | allow | injection detected | convened — reviews chain | DENY (Heimdall's injection finding overrides allow consensus) |
 | deny | deny | * | not convened | **DENY** |
 | allow | deny | * | convened — reviews chain | **majority of all 4** |
-| edit | edit | * | convened only if A's and B's edited commands differ in substance | **EDIT(merged)** if Thor finds a compatible merge; else DENY |
+| edit | edit | * | convened only if Forseti's and Mímir's edited commands differ in substance | **EDIT(merged)** if Thor finds a compatible merge; else DENY |
 | edit | allow | * | convened | Thor decides between the edit and the bare allow |
 | edit | deny | * | convened | Thor decides; usually EDIT if the edit removes the cited concern |
-| any combination | — | any panelist confidence < 0.5 | convened | Low-confidence escalates regardless |
-| critical concern cited by any panelist | — | — | — | **DENY** (override; critical concerns are unilateral, §A.4) |
+| any combination | — | any seat confidence < 0.5 | convened | Low-confidence escalates regardless |
+| critical concern cited by any seat | — | — | — | **DENY** (override; critical concerns are unilateral, §A.4) |
 
-Mathematical reading: critical concerns are vetos. Otherwise, simple majority across the 3 reviewers + tie-breaker (when convened) wins. AlignmentCheck (Reviewer C) is special — its `injection_detected: true` is a unilateral DENY-trigger (the tribunal cannot be safely run on injected content).
+Mathematical reading: critical concerns are vetos. Otherwise, simple majority across the three seats + Thor (when convened) wins. Heimdall is special — its `injection_detected: true` is a unilateral DENY-trigger (the Thing cannot be safely seated on injected content).
 
 ### B.3.3 What ALLOW, EDIT, DENY do operationally
 
 | Verdict | Hook returns | Effect | User sees |
 |---|---|---|---|
-| **ALLOW** | `hookSpecificOutput.permissionDecision: "allow"` | Command runs as-is. | One-line banner: *"Tribunal: ALLOWED. Concerns considered: [none / minor]. Verdict log: `.ravenclaude/runs/tribunal-<id>.json`."* |
-| **EDIT** | `hookSpecificOutput.permissionDecision: "allow"` + `updatedInput: { command: "<revised>" }` | The revised command runs. Original is logged. | One-line banner: *"Tribunal: EDITED. Original: `<short>`. Revised: `<short>`. Concern resolved: `xc.outside-project-tree`. Verdict log: `.ravenclaude/runs/tribunal-<id>.json`."* |
-| **DENY** | `hookSpecificOutput.permissionDecision: "deny"` + `permissionDecisionReason: "<cited>"` | Command is blocked. Claude Code shows the reason to the agent; the agent typically re-plans. | Banner: *"Tribunal: DENIED. Cited concern: `nw.cloud-metadata-endpoint` (critical, unilateral). Verdict log: `.ravenclaude/runs/tribunal-<id>.json`. Override: run again with `/tribunal-override <id>`."* |
+| **ALLOW** | `hookSpecificOutput.permissionDecision: "allow"` | Command runs as-is. | One-line banner: *"Thing: ALLOWED. Concerns considered: [none / minor]. Sága log: `.ravenclaude/runs/thing/<id>.json`."* |
+| **EDIT** | `hookSpecificOutput.permissionDecision: "allow"` + `updatedInput: { command: "<revised>" }` | The revised command runs. Original is logged. | One-line banner: *"Thing: EDITED. Original: `<short>`. Revised: `<short>`. Concern resolved: `xc.outside-project-tree`. Sága log: `.ravenclaude/runs/thing/<id>.json`."* |
+| **DENY** | `hookSpecificOutput.permissionDecision: "deny"` + `permissionDecisionReason: "<cited>"` | Command is blocked. Claude Code shows the reason to the agent; the agent typically re-plans. | Banner: *"Thing: DENIED. Cited concern: `nw.cloud-metadata-endpoint` (critical, unilateral). Sága log: `.ravenclaude/runs/thing/<id>.json`. Override: run again with `/thing-override <id>`."* |
 | **DEFER** | `hookSpecificOutput.permissionDecision: "ask"` | User is interrupted to confirm. Reserved for low-confidence verdicts or panel errors. | Standard Claude Code permission prompt + tribunal context inline. |
 
 ### B.3.4 EDIT re-validation
@@ -372,14 +390,14 @@ This is the **EDIT-safety invariant**: an EDIT verdict's revised command must sa
 
 ### B.4.1 The seats
 
-The tribunal has **three reviewer seats + one tie-breaker seat**, each filled by an existing `ravenclaude-core` agent (no new agents created — this respects the "5 of 5 plugins agree" precedent in `plugins/ravenclaude-core/CLAUDE.md` House Rule: agents extend via skills + knowledge, not new parallel agents).
+The Thing seats **three reviewer roles + one tie-breaker**, each filled by an existing `ravenclaude-core` agent (no new agents created — this respects the "5 of 5 plugins agree" precedent in `plugins/ravenclaude-core/CLAUDE.md` House Rule: agents extend via skills + knowledge, not new parallel agents).
 
 | Seat | Role | Existing agent | Why this agent |
 |---|---|---|---|
-| **Reviewer A — Security Watch** | Evaluates the command primarily against the *security* slice of the concern catalog (cross-cutting, credentials, exfiltration, supply-chain, injection-shape). | `security-reviewer` | Already does structured threat-modeling and renders verdicts (`security-reviewer.md:89-101`). Output rubric is already verdict + findings + mitigations. Extending from diffs to Bash commands is a natural seam. |
-| **Reviewer B — Correctness Watch** | Evaluates the command against *workflow / correctness* concerns (scope match, layout, generated-file edits, command-shape correctness, idempotence). | `code-reviewer` | Already does structured pre-merge review (`code-reviewer.md:78-93`) with verdict shape `approve / nits / changes-requested`. Correctness-oriented; complements security. |
-| **Reviewer C — AlignmentCheck** | Inspects the *reasoning chain* (the conversation context + the tool call's stated rationale) for evidence of prompt injection from untrusted content. Pure injection-detection, not correctness. | `prompt-engineer` | The prompt-engineer's brief is meta-prompt design and protocol-adherence — they're the right party to flag "this command's stated rationale doesn't make sense given the prior turn" or "the heredoc body contains an instruction-shaped string." Borrows LlamaFirewall AlignmentCheck (arXiv:2505.03574). |
-| **Tie-breaker — Thor seat** | Convened only when reviewers A and B disagree (or when any panelist confidence < 0.5, or when Reviewer C flags injection but A/B disagree on how to handle). Reviews the **reasoning chains of A, B, and C** plus the original command, and casts the deciding vote. | `architect` | The architect already adjudicates phase-boundary questions in the marketplace (`architect.md:80-90`). Authority-bearing role; deliberative verdicts; reviews reasoning rather than rendering fresh. The "Thor" codename (per user's request) reads well here — the architect is the marketplace's existing god-of-decisions; "Thor opinion" = the tie-break. |
+| **Forseti — Security Watch** | Evaluates the command primarily against the *security* slice of the concern catalog (cross-cutting, credentials, exfiltration, supply-chain, injection-shape). | `security-reviewer` | Already does structured threat-modeling and renders verdicts (`security-reviewer.md:89-101`). Output rubric is already verdict + findings + mitigations. Extending from diffs to Bash commands is a natural seam. Forseti's domain — justice and reconciliation — lines up with security review's "who is harmed and how is it mitigated?" axis. |
+| **Mímir — Correctness Watch** | Evaluates the command against *workflow / correctness* concerns (scope match, layout, generated-file edits, command-shape correctness, idempotence). | `code-reviewer` | Already does structured pre-merge review (`code-reviewer.md:78-93`) with verdict shape `approve / nits / changes-requested`. Correctness-oriented; complements security. Mímir embodies counsel and wisdom; right name for the seat that asks "is this the right shape of the command?" |
+| **Heimdall — AlignmentCheck** | Inspects the *reasoning chain* (the conversation context + the tool call's stated rationale) for evidence of prompt injection from untrusted content. Pure injection-detection, not correctness. | `prompt-engineer` | The prompt-engineer's brief is meta-prompt design and protocol-adherence — they're the right party to flag "this command's stated rationale doesn't make sense given the prior turn" or "the heredoc body contains an instruction-shaped string." Borrows LlamaFirewall AlignmentCheck (arXiv:2505.03574). Heimdall is the watchman who guards against deception — exactly this seat's role. |
+| **Thor — Tie-breaker** | Convened only when Forseti and Mímir disagree (or when any seat's confidence < 0.5, or when Heimdall flags injection but the other two split on how to handle). Reviews the **reasoning chains of all three seats** plus the original command, and casts the deciding vote. | `architect` | The architect already adjudicates phase-boundary questions in the marketplace (`architect.md:80-90`). Authority-bearing role; deliberative verdicts; reviews reasoning rather than rendering fresh. Thor confirmed by the user as the codename — Mjölnir is the deadlock-breaking hammer; the architect is the marketplace's god-of-decisions seat. |
 
 ### B.4.2 Why these four and not others
 
@@ -392,41 +410,41 @@ The five remaining `ravenclaude-core` specialists are intentionally absent from 
 
 ### B.4.3 Heterogeneous backbones
 
-Per the LLM-as-judge / multi-agent-debate literature, panelist correlation is the dominant failure mode. To break correlation:
+Per the LLM-as-judge / multi-agent-debate literature, seat correlation is the dominant failure mode. To break correlation:
 
-- **Reviewer A and Reviewer B** should run on **different models** — default proposal: A on the user's primary model (e.g., Claude Opus); B on a smaller/different model (Claude Haiku or Sonnet) to reduce backbone correlation.
-- **Reviewer C (AlignmentCheck)** runs on the smallest fast model — its job is pattern recognition on the reasoning chain, not novel reasoning.
-- **Tie-breaker (Thor)** runs on the most capable model the user has access to. This is the seat with the most weight on each decision; spend the inference budget here.
+- **Forseti and Mímir** should run on **different models** — default proposal: Forseti on the user's primary model (e.g., Claude Opus); Mímir on a smaller/different model (Claude Haiku or Sonnet) to reduce backbone correlation.
+- **Heimdall (AlignmentCheck)** runs on the smallest fast model — its job is pattern recognition on the reasoning chain, not novel reasoning.
+- **Thor (tie-breaker)** runs on the most capable model the user has access to. This is the seat with the most weight on each decision; spend the inference budget here.
 
-This is configurable in `.ravenclaude/tribunal.yaml` (new file; §B.5.3). Default panel:
+This is configurable in `.ravenclaude/thing.yaml` (new file; §B.5.3). Default panel:
 
 ```yaml
 panel:
-  reviewer_a:
+  forseti:
     agent: security-reviewer
     model: claude-opus-4-7
-  reviewer_b:
+  mimir:
     agent: code-reviewer
     model: claude-haiku-4-5
-  reviewer_c:
+  heimdall:
     agent: prompt-engineer
     model: claude-haiku-4-5
-  tie_breaker:
+  thor:
     agent: architect
     model: claude-opus-4-7
 ```
 
 ### B.4.4 Per-concern routing
 
-Not every command needs all four seats. The orchestrator does a **fast routing pass** based on the concern set:
+Not every command needs all four seats. The Lawspeaker does a **fast routing pass** based on the concern set:
 
 | Concern class triggered | Seats convened |
 |---|---|
-| Only cross-cutting concerns, all low severity | Reviewer B only (single LLM, fast verdict) |
-| Any high-severity concern | All three reviewers; Thor only on disagreement |
-| Any critical-severity concern | Reviewers A + C (security + injection-detection); usually DENY pre-empted by veto rule (§B.3.2) |
-| Prompt-injection signature detected pre-LLM (regex match on `xc.injection-attempt`) | Reviewer C only — verdict is DENY almost certainly |
-| Layout-only concern (e.g., `fe.layout-violation`) | Reviewer B only; verdict is usually EDIT |
+| Only cross-cutting concerns, all low severity | Mímir only (single LLM, fast verdict) |
+| Any high-severity concern | Forseti + Mímir + Heimdall; Thor only on disagreement |
+| Any critical-severity concern | Forseti + Heimdall (security + injection-detection); usually DENY pre-empted by veto rule (§B.3.2) |
+| Prompt-injection signature detected pre-LLM (regex match on `xc.injection-attempt`) | Heimdall only — verdict is DENY almost certainly |
+| Layout-only concern (e.g., `fe.layout-violation`) | Mímir only; verdict is usually EDIT |
 
 This keeps the *typical* tribunal call to one or two LLM round-trips, not four.
 
@@ -452,9 +470,9 @@ Per code.claude.com/docs/en/hooks (retrieved 2026-05-23):
 - Hook types: `command` (shell), `http` (POST to a URL), `mcp_tool` (call an MCP tool), and the newer `prompt` (single-turn LLM, returns `{ok, reason}` JSON), `agent` (multi-turn subagent, experimental).
 - Default timeouts: `command` / `http` / `mcp_tool`: **600 s (10 minutes)**. `prompt`: **30 s**. `agent`: **60 s**. Configurable per hook. **Critical**: on timeout, Claude Code cancels the hook and treats it as a *non-blocking error* — i.e., the tool proceeds. Fail-open by default.
 
-### B.5.2 The orchestrator hook
+### B.5.2 The Lawspeaker hook
 
-The tribunal is implemented as a **single `type: "command"` `PreToolUse` hook** with matcher `Bash` (plus optionally `Edit`, `Write`, `MultiEdit` if file-edit categories are tribunal-toggled).
+The Thing is convened by a **single `type: "command"` `PreToolUse` hook — the Lawspeaker** — with matcher `Bash` (plus optionally `Edit`, `Write`, `MultiEdit` if file-edit categories are Thing-toggled). At the historical Althing the lögsögumaður recited the law and ensured procedure was followed; on disk the script is named for clarity (`thing-orchestrator.sh`), but it carries the Lawspeaker role.
 
 ```json
 {
@@ -462,51 +480,51 @@ The tribunal is implemented as a **single `type: "command"` `PreToolUse` hook** 
   "hooks": [
     {
       "type": "command",
-      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/tribunal-orchestrator.sh",
+      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/thing-orchestrator.sh",
       "timeout": 30,
-      "comment": "Tribunal multi-agent adjudicator. Only fires when tribunal toggle is ON for the matched category. Reads .ravenclaude/tribunal.yaml for config; emits hookSpecificOutput verdict + updatedInput on EDIT."
+      "comment": "Lawspeaker — the Thing's orchestrator. Only fires when Thing toggle is ON for the matched category. Reads .ravenclaude/thing.yaml for config; emits hookSpecificOutput verdict + updatedInput on EDIT."
     }
   ]
 }
 ```
 
-Why a single orchestrator hook (not three sibling `type: "prompt"` hooks):
+Why a single Lawspeaker hook (not three sibling `type: "prompt"` hooks):
 
-- The docs explicitly note that **when multiple hooks return `updatedInput`, "the last one to finish wins. Since hooks run in parallel, the order is non-deterministic."** A tribunal where all three reviewers independently propose EDITs would have a last-writer-wins race. The orchestrator-internal aggregation (§B.3.2) avoids this.
-- The merge-logic for verdicts (majority-vote across panelists, critical-concern veto, EDIT-safety invariant) is non-trivial and lives best in one place.
-- The orchestrator can decide *which* panelists to convene based on the routing pass (§B.4.4) — a static "always fire three hooks" registration cannot.
+- The docs explicitly note that **when multiple hooks return `updatedInput`, "the last one to finish wins. Since hooks run in parallel, the order is non-deterministic."** A Thing where all three seats independently propose EDITs would have a last-writer-wins race. The Lawspeaker-internal aggregation (§B.3.2) avoids this.
+- The merge-logic for verdicts (majority-vote across seats, critical-concern veto, EDIT-safety invariant) is non-trivial and lives best in one place.
+- The Lawspeaker can decide *which* seats to convene based on the routing pass (§B.4.4) — a static "always fire three hooks" registration cannot.
 
-### B.5.3 Inside the orchestrator
+### B.5.3 Inside the Lawspeaker
 
-The orchestrator (POSIX shell, with `jq` for JSON):
+The Lawspeaker (POSIX shell, with `jq` for JSON):
 
 1. Reads the `tool_input` JSON from stdin.
-2. Reads `.ravenclaude/tribunal.yaml` (panel config, toggle-per-category list, opt-out patterns).
+2. Reads `.ravenclaude/thing.yaml` (panel config, toggle-per-category list, opt-out patterns).
 3. Determines the comfort-posture category for the command (re-uses the EMISSIONS-table logic from `apply-comfort-posture.py`, exposed as a helper).
-4. If the category does not have tribunal toggled ON → exit 0 (no decision; fall through to normal permission flow).
+4. If the category does not have Thing toggled ON → exit 0 (no decision; fall through to normal permission flow).
 5. Computes the concern set (§A.2 + the relevant §A.3 list) using a precomputed concern-matcher table.
 6. If any critical concern matches pre-LLM (e.g., the static-regex part of `xc.injection-attempt`) → emit `permissionDecision: "deny"` immediately. No LLM round-trip needed.
-7. Otherwise: invoke the panel. Default invocation is **parallel `claude -p --bare` shell-outs** with explicit prompts per seat. Why this and not native `type: "prompt"`: the native prompt-hooks return `{ok, reason}` only, not the structured per-concern verdict JSON we need; reusing `claude -p` keeps the contract uniform across seats and keeps the orchestrator in control of merging.
-8. Collect verdicts with a hard **18-second internal timeout** (within the 30s hook timeout, so the orchestrator can compose the final verdict before Claude Code's outer cutoff).
+7. Otherwise: convene the relevant seats. Default invocation is **parallel `claude -p --bare` shell-outs** with explicit prompts per seat. Why this and not native `type: "prompt"`: the native prompt-hooks return `{ok, reason}` only, not the structured per-concern verdict JSON we need; reusing `claude -p` keeps the contract uniform across seats and keeps the Lawspeaker in control of merging.
+8. Collect verdicts with a hard **18-second internal timeout** (within the 30s hook timeout, so the Lawspeaker can compose the final verdict before Claude Code's outer cutoff).
 9. Aggregate (§B.3.2). Run the EDIT-safety re-validation if EDIT was the proposed verdict.
-10. Write the audit-trail entry to `.ravenclaude/runs/tribunal/<id>.json` (§B.8).
+10. Write the Sága-log entry to `.ravenclaude/runs/thing/<id>.json` (§B.8).
 11. Emit the final `hookSpecificOutput` JSON on stdout. Exit 0.
 
 ### B.5.4 Latency budget
 
 | Phase | Budget | Notes |
 |---|---|---|
-| Hook startup + JSON read + tribunal-yaml load | < 0.5 s | shell + jq |
+| Hook startup + JSON read + thing.yaml load | < 0.5 s | shell + jq |
 | Pre-LLM concern matcher (regex pass) | < 1 s | Many denials short-circuit here |
-| Parallel `claude -p --bare` invocations (×3 reviewers) | ~5–12 s | Cold start is the dominant cost; warm helps but unmeasured |
-| Tie-breaker (when convened) | ~3–8 s | Single round-trip, big-model |
-| Aggregation + EDIT re-validation + audit-trail write | < 1 s | local |
+| Parallel `claude -p --bare` invocations (Forseti + Mímir + Heimdall) | ~5–12 s | Cold start is the dominant cost; warm helps but unmeasured |
+| Thor (when convened) | ~3–8 s | Single round-trip, big-model |
+| Aggregation + EDIT re-validation + Sága-log write | < 1 s | local |
 | **Hook total (typical, no Thor)** | **~8–14 s** | Within the 30s outer timeout |
 | **Hook total (with Thor)** | **~12–22 s** | Comfortable margin |
 
 If the user perceives 8–22 seconds as too long per Bash call, two mitigations:
 
-- **Per-pattern bypass**: `.ravenclaude/tribunal.yaml` `bypass_patterns: ["Bash(ls:*)", "Bash(git status:*)"]` — patterns the user has pre-declared as low-risk skip the tribunal even if the category is toggled. The bypass patterns themselves are reviewed by tribunal once at YAML-save time.
+- **Per-pattern bypass**: `.ravenclaude/thing.yaml` `bypass_patterns: ["Bash(ls:*)", "Bash(git status:*)"]` — patterns the user has pre-declared as low-risk skip the Thing even if the category is toggled. The bypass patterns themselves are reviewed by the Thing once at YAML-save time.
 - **Cached verdict**: identical commands within a session within 60 seconds reuse the prior verdict. Cache key: full `tool_input` JSON. Invalidate on any concern-trigger context change (env-context update, branch change).
 
 ### B.5.5 Existing precedent — what to fix first
@@ -516,16 +534,16 @@ The repo's `plugins/ravenclaude-core/hooks/guard-destructive.sh` is the closest 
 - It reads `$1` (positional arg) instead of stdin JSON. The `hooks.json` registration passes `"$CLAUDE_TOOL_INPUT"` as `$1`, which is an env-var convention not documented as canonical. Verify on the next Claude Code release that this convention persists; migrate to stdin-JSON to be safe.
 - It exits `1` on block. Per current docs, exit `1` is non-blocking; **only exit `2` blocks**. The destructive-pattern matches in `guard-destructive.sh` may not actually be blocking today, which is a separate bug worth filing.
 
-**Recommended pre-work before tribunal ships:** migrate `guard-destructive.sh` to the stdin-JSON / exit-2 pattern. This is a small (~30 minute) fix and de-risks the tribunal orchestrator's surface.
+**Recommended pre-work before the Thing ships:** migrate `guard-destructive.sh` to the stdin-JSON / exit-2 pattern. This is a small (~30 minute) fix and de-risks the Lawspeaker's surface.
 
 ### B.5.6 Configuration files
 
-- **`.ravenclaude/tribunal.yaml`** (new, gitignored by default for v1, project-tracked optionally) — panel config (per §B.4.3), per-category toggles, per-pattern bypass list, audit-trail retention policy.
-- **`.ravenclaude/runs/tribunal/<id>.json`** — per-verdict audit-trail entry (§B.8).
-- **`plugins/ravenclaude-core/scripts/tribunal-orchestrator.sh`** (new) — the orchestrator hook script.
-- **`plugins/ravenclaude-core/scripts/tribunal-panelist.sh`** (new) — wrapper around `claude -p --bare` that knows the per-seat prompt template.
-- **`plugins/ravenclaude-core/skills/tribunal.md`** (new) — explains the panel, the concern catalog, the verdict aggregation rules. Lives alongside `set-posture.md`.
-- **`plugins/ravenclaude-core/knowledge/concerns-catalog.md`** (new) — the canonical machine-readable copy of §A above; the orchestrator reads it.
+- **`.ravenclaude/thing.yaml`** (new, gitignored by default for v1, project-tracked optionally) — panel config (per §B.4.3), per-category toggles, per-pattern bypass list, Sága-log retention policy.
+- **`.ravenclaude/runs/thing/<id>.json`** — per-verdict Sága-log entry (§B.8).
+- **`plugins/ravenclaude-core/hooks/thing-orchestrator.sh`** (new) — the Lawspeaker hook script.
+- **`plugins/ravenclaude-core/scripts/thing-seat.sh`** (new) — wrapper around `claude -p --bare` that knows the per-seat prompt template (one wrapper, called four times with different seat configs).
+- **`plugins/ravenclaude-core/skills/thing.md`** (new) — explains the Thing, the four seats, the concern catalog, the verdict aggregation rules. Lives alongside `set-posture.md`.
+- **`plugins/ravenclaude-core/knowledge/concerns-catalog.md`** (new) — the canonical machine-readable copy of §A above; the Lawspeaker reads it.
 
 <a id="b6-interaction-with-the-comfort-posture-scale"></a>
 ## B.6 Interaction with the comfort-posture scale
@@ -556,42 +574,42 @@ A new column to the right of the existing five-level segmented control, on each 
 ### B.7.1 Visual sketch
 
 ```
-file_edit_project              [deny] [always-ask] [mostly-ask] [● mostly-allow] [autopilot]    │ ⚖ Tribunal: ○ Off ● On  ⓘ
+file_edit_project              [deny] [always-ask] [mostly-ask] [● mostly-allow] [autopilot]    │ ⚖ Thing: ○ Off ● On  ⓘ
                                                                                                  │
-Edit files in this project                                                                      │ 4 reviewer panel
+Edit files in this project                                                                      │ Four-seat assembly
                                                                                                  │ adjudicates the
                                                                                                  │ "ask" cases for you.
 ```
 
 - The new column has the **scale-of-justice glyph ⚖** as the icon (semantically apt; visually distinct from the level segmented control).
 - Toggle is a simple two-state switch: **Off** (default; today's behavior) / **On**.
-- An info button to the right opens a modal explaining the tribunal (what it is, who's on the panel, latency budget, audit-trail location, override mechanism).
-- The whole row gets a tinted background when toggle is **On**, so the user can see at a glance which categories are tribunal-managed.
-- The five-level segmented control is unchanged; tribunal lives entirely to the right.
+- An info button to the right opens a modal explaining the Thing (what it is, who sits on the panel, latency budget, Sága-log location, override mechanism).
+- The whole row gets a tinted background when toggle is **On**, so the user can see at a glance which categories are Thing-managed.
+- The five-level segmented control is unchanged; the Thing toggle lives entirely to the right.
 
 ### B.7.2 The info modal (first-time interaction)
 
-When the user clicks ⓘ for the first time on any tribunal toggle:
+When the user clicks ⓘ for the first time on any Thing toggle:
 
 ```
-The tribunal
+The Thing (Þing)
 
 When ON for a category, commands that would otherwise interrupt you ("ask")
-get adjudicated by a panel of agents instead:
+get adjudicated by a four-seat assembly — the Thing — instead:
 
-  1. Security-Reviewer   — evaluates the command against security concerns
-  2. Code-Reviewer       — evaluates correctness, scope, and workflow concerns
-  3. Prompt-Engineer     — checks the reasoning trace for prompt injection
-  4. Architect (Thor)    — tie-breaker if 1, 2, 3 disagree
+  1. Forseti  (Security Watch)     — security-reviewer agent
+  2. Mímir    (Correctness Watch)  — code-reviewer agent
+  3. Heimdall (AlignmentCheck)     — prompt-engineer agent, watches for injection
+  4. Thor     (Tie-breaker)        — architect agent, settles deadlocks
 
-Panel renders ALLOW / EDIT / DENY in ~10-25 seconds. EDIT = the panel
-proposes a safer revision and runs that instead.
+Renders ALLOW / EDIT / DENY in ~10-25 seconds. EDIT = the seats
+propose a safer revision and run that instead.
 
-Tribunal CANNOT relax `deny` or `security_deny` rules. It only adjudicates
+The Thing CANNOT relax `deny` or `security_deny` rules. It only adjudicates
 inside the `ask` bucket — replacing user-interrupts with panel verdicts.
 
-Audit trail: `.ravenclaude/runs/tribunal/`
-Override last verdict: `/tribunal-override <id>` (slash command, to be added)
+Sága log: `.ravenclaude/runs/thing/`
+Override last verdict: `/thing-override <id>` (slash command, to be added)
 
 [Got it]    [Don't show again]
 ```
@@ -600,42 +618,41 @@ Override last verdict: `/tribunal-override <id>` (slash command, to be added)
 
 The dashboard warns inline (orange border, banner above the row) when:
 
-- Tribunal toggle is **On** for a category at level `deny` → "Tribunal cannot adjudicate denied categories. Toggle has no effect."
-- Tribunal toggle is **On** for a category at level `autopilot` → "Tribunal does not run under autopilot. Toggle has no effect."
-- Tribunal toggle is **On** for `mcp_tools` and no per-server MCP trust is configured → "MCP tribunal adjudication is best-effort without per-server trust."
+- Thing toggle is **On** for a category at level `deny` → "The Thing cannot adjudicate denied categories. Toggle has no effect."
+- Thing toggle is **On** for a category at level `autopilot` → "The Thing does not seat under autopilot. Toggle has no effect."
+- Thing toggle is **On** for `mcp_tools` and no per-server MCP trust is configured → "MCP adjudication is best-effort without per-server trust."
 
 ### B.7.4 Sticky settings & presets
 
-- Per-category tribunal toggles are saved in the YAML alongside the level. New YAML shape:
+- Per-category Thing toggles are saved in the YAML alongside the level. New YAML shape:
 
   ```yaml
   categories:
     file_edit_project:
       level: mostly-allow
-      tribunal: on   # NEW field; default off
+      thing: on   # NEW field; default off — convenes the Thing instead of user-interrupting
     shell_remote_mutate:
       level: always-ask
-      tribunal: on
-      # the always-ask category now goes through tribunal instead of user-interrupting
+      thing: on
   ```
 
-- The existing string-shorthand still works (`shell_readonly: mostly-allow`) — `tribunal: off` is implicit. Per-pattern overrides (v0.17.0) compose: a category's tribunal toggle applies to the category default, but per-pattern overrides can have their own `tribunal:` field. (Minor schema bump: this is the `schema_version: 5` shape.)
+- The existing string-shorthand still works (`shell_readonly: mostly-allow`) — `thing: off` is implicit. Per-pattern overrides (v0.17.0) compose: a category's `thing:` toggle applies to the category default, but per-pattern overrides can have their own `thing:` field. (Minor schema bump: this is the `schema_version: 5` shape.)
 
-- The recommended preset gets sensible tribunal defaults:
-  - `shell_remote_mutate: mostly-ask + tribunal: on` (the tribunal turns "ask on every push" into "adjudicated push" — high value here).
-  - `shell_code_exec: always-ask + tribunal: on` (similar argument).
-  - All other categories: `tribunal: off` by default. Opt-in only.
+- The recommended preset gets sensible Thing defaults:
+  - `shell_remote_mutate: mostly-ask + thing: on` (turns "ask on every push" into "adjudicated push" — high value here).
+  - `shell_code_exec: always-ask + thing: on` (similar argument).
+  - All other categories: `thing: off` by default. Opt-in only.
 
 <a id="b8-audit-trail"></a>
 ## B.8 Audit trail, override, and replay
 
-### B.8.1 Per-verdict log entry
+### B.8.1 Per-verdict Sága-log entry
 
-For every tribunal invocation, a JSON entry is written to `.ravenclaude/runs/tribunal/<id>.json`:
+For every Thing invocation, a JSON entry is written to `.ravenclaude/runs/thing/<id>.json`:
 
 ```json
 {
-  "id": "trib-2026-05-23-14-22-01-abc1",
+  "id": "thing-2026-05-23-14-22-01-abc1",
   "session_id": "<claude-code-session>",
   "timestamp": "2026-05-23T14:22:01.234Z",
   "tool_name": "Bash",
@@ -643,12 +660,12 @@ For every tribunal invocation, a JSON entry is written to `.ravenclaude/runs/tri
   "category": "shell_remote_mutate",
   "comfort_level": "mostly-ask",
   "concerns_matched": ["xc.no-undo"],
-  "panel": {
-    "reviewer_a": { "agent": "security-reviewer", "model": "claude-opus-4-7", "verdict": "allow", "confidence": 0.91, "reasoning": "...", "injection_detected": false },
-    "reviewer_b": { "agent": "code-reviewer", "model": "claude-haiku-4-5", "verdict": "allow", "confidence": 0.87, "reasoning": "...", "injection_detected": false },
-    "reviewer_c": { "agent": "prompt-engineer", "model": "claude-haiku-4-5", "verdict": "allow", "confidence": 0.95, "reasoning": "...", "injection_detected": false }
+  "seats": {
+    "forseti":  { "agent": "security-reviewer", "model": "claude-opus-4-7", "verdict": "allow", "confidence": 0.91, "reasoning": "...", "injection_detected": false },
+    "mimir":    { "agent": "code-reviewer",     "model": "claude-haiku-4-5", "verdict": "allow", "confidence": 0.87, "reasoning": "...", "injection_detected": false },
+    "heimdall": { "agent": "prompt-engineer",   "model": "claude-haiku-4-5", "verdict": "allow", "confidence": 0.95, "reasoning": "...", "injection_detected": false }
   },
-  "tie_breaker_convened": false,
+  "thor_convened": false,
   "final_verdict": "allow",
   "updated_input": null,
   "edit_safety_revalidated": null,
@@ -659,21 +676,21 @@ For every tribunal invocation, a JSON entry is written to `.ravenclaude/runs/tri
 
 ### B.8.2 Reviewing past verdicts
 
-The dashboard gets a new tab (or a sub-view under the existing Activity tab from `dashboard-buildout-plan.md` Phase B.4.4): **Tribunal log**. Lists recent verdicts, filterable by category / final-verdict / cited-concern. Each entry expandable to show full panel reasoning. This is what makes the tribunal *legible* — without it, a black-box panel is unauditable.
+The dashboard gets a new tab (or a sub-view under the existing Activity tab from `dashboard-buildout-plan.md` Phase B.4.4): **Sága log** (or "Thing log" if the audience prefers the technical noun). Lists recent verdicts, filterable by category / final-verdict / cited-concern. Each entry expandable to show full seat reasoning. This is what makes the Thing *legible* — without it, a black-box assembly is unauditable.
 
 ### B.8.3 Override mechanism
 
-The user can override the last tribunal verdict in two ways:
+The user can override the last Thing verdict in two ways:
 
-- **Slash command:** `/tribunal-override <id>` re-runs the original command, bypassing the tribunal *for that one call*. Recorded in the verdict log as `user_override: {timestamp, reason?}`.
-- **Slash command:** `/tribunal-rerun <id>` re-convenes the panel with an option to add user-provided context ("the path is intentional; this is a sandbox env"). Useful when the user has information the tribunal didn't.
+- **Slash command:** `/thing-override <id>` re-runs the original command, bypassing the Thing *for that one call*. Recorded in the Sága log as `user_override: {timestamp, reason?}`.
+- **Slash command:** `/thing-rerun <id>` re-convenes the panel with an option to add user-provided context ("the path is intentional; this is a sandbox env"). Useful when the user has information the seats didn't.
 - **Dashboard:** clicking "Override" on a verdict entry in the log surfaces the slash-command call ready to paste.
 
-The override is *not* an autopilot. The user must invoke it explicitly per call. Patterns the user wants tribunal-bypassed *forever* go into the `bypass_patterns` list in `.ravenclaude/tribunal.yaml`.
+The override is *not* an autopilot. The user must invoke it explicitly per call. Patterns the user wants the Thing to bypass *forever* go into the `bypass_patterns` list in `.ravenclaude/thing.yaml`.
 
 ### B.8.4 Retention policy
 
-Default: the last 1000 verdicts are kept; older ones rotate into `.ravenclaude/runs/tribunal/archive-<yyyy-mm>.jsonl`. Configurable in `tribunal.yaml`. The archive is gitignored by default; the active log is also gitignored (verdicts can contain command lines that may include sensitive paths).
+Default: the last 1000 verdicts are kept; older ones rotate into `.ravenclaude/runs/thing/archive-<yyyy-mm>.jsonl`. Configurable in `thing.yaml`. The archive is gitignored by default; the active log is also gitignored (verdicts can contain command lines that may include sensitive paths).
 
 <a id="b9-security--prompt-injection-considerations"></a>
 ## B.9 Security & prompt-injection considerations
@@ -731,18 +748,18 @@ The tribunal makes outbound API calls per panelist. Implications:
 - Network unavailability: tribunal fails to a DEFER (user-interrupt), not an ALLOW. See §B.3.5.
 - Egress cost: each tribunal call is 3-4 LLM round-trips (the seats), which has a token/billing cost. Per `claude -p` docs (retrieved 2026-05-23), as of June 15 2026, headless invocations on subscription plans draw from a separate credit pool. Estimate: a moderately active development session at 30 Bash calls/hour with tribunal toggled on for two categories generating ~15 tribunal invocations/hour ≈ 60 panelist round-trips/hour. Modest but non-zero.
 
-### B.9.5 Tribunal cannot disable itself
+### B.9.5 The Thing cannot disable itself
 
-The orchestrator MUST refuse any ALLOW or EDIT verdict that would:
+The Lawspeaker MUST refuse any ALLOW or EDIT verdict that would:
 
-- Disable the tribunal (`/set-posture` writes that turn tribunal off; edits to `.ravenclaude/tribunal.yaml`).
-- Modify the orchestrator script itself (`plugins/ravenclaude-core/scripts/tribunal-orchestrator.sh`).
-- Modify any seat panelist script.
-- Modify `hooks.json` to remove the tribunal hook.
+- Disable the Thing (`/set-posture` writes that turn the toggle off; edits to `.ravenclaude/thing.yaml`).
+- Modify the Lawspeaker script itself (`plugins/ravenclaude-core/hooks/thing-orchestrator.sh`).
+- Modify any seat wrapper script.
+- Modify `hooks.json` to remove the Lawspeaker hook.
 
-These are concern `fe.dot-claude-write` / `fe.ravenclaude-dir-write` (§A.3.2), elevated to **critical** when the touched path matches the tribunal substrate. Caught by pre-LLM regex; immediate DENY.
+These are concern `fe.dot-claude-write` / `fe.ravenclaude-dir-write` (§A.3.2), elevated to **critical** when the touched path matches the Thing substrate. Caught by pre-LLM regex; immediate DENY.
 
-This is a load-bearing invariant: an attacker who tricks the tribunal into disabling itself can do anything afterward. The path is closed at the highest priority.
+This is a load-bearing invariant: an attacker who tricks the Thing into disabling itself can do anything afterward. The path is closed at the highest priority.
 
 <a id="b10-edge-cases--failure-modes"></a>
 ## B.10 Edge cases & failure modes
@@ -802,17 +819,17 @@ The tribunal is large. Ship it in stages.
 
 6. **Domain plugins as panelists.** Should `power-platform`'s `dataverse-architect` be invokable as a fifth seat when `pac` CLI is in the command? Recommendation: yes in T7, but only as an *additional* seat (cannot replace core seats), and only when the command shape clearly matches the domain.
 
-7. **The Thor naming.** "Thor seat" reads well in design discussion but may not survive the public skill docs. Recommendation: keep "Thor seat" as the internal codename in the orchestrator script and the architect's own knowledge file; surface to users as "Tie-breaker (Architect)." The user-facing name should be functional; the internal name can be evocative.
+7. **Norse naming convention** — *resolved 2026-05-23 (v2).* The user confirmed the Norse theme: the Thing (Þing) for the mechanism; Forseti / Mímir / Heimdall / Thor for the four seats; Lawspeaker (lögsögumaður) for the orchestrator role. The naming is surfaced in the dashboard's info modal and the slash commands (`/thing-override`, `/thing-rerun`); file paths use `thing-` for distinctiveness. The technical noun "tribunal" remains valid in prose; the two are interchangeable. Sub-question still open: should the user-facing banner say "Thing:" (evocative) or "Tribunal:" (immediately legible to a new reader)? Recommendation: "Thing:" — distinctive, short, becomes familiar within one session.
 
 8. **Default panel models.** §B.4.3 proposes Opus + Haiku + Haiku + Opus. Is the Haiku model in 2026 strong enough for the AlignmentCheck and Reviewer-B seats? Pending empirical validation in T2/T3.
 
-9. **Tribunal vs Phase A `--scope` interaction.** If posture is set at user-scope `mostly-ask + tribunal: on` for `shell_remote_mutate`, but the project-scope settings.json has the same category at `always-ask + tribunal: off`, what wins? The settings.json buckets merge per Phase A; the tribunal toggle lives in `tribunal.yaml`. Recommendation: tribunal.yaml is per-scope just like comfort-posture.yaml; the orchestrator reads the scope-resolved tribunal toggle the same way it reads the scope-resolved level. Pending more thought after Phase A ships.
+9. **The Thing vs Phase A `--scope` interaction.** If posture is set at user-scope `mostly-ask + thing: on` for `shell_remote_mutate`, but the project-scope settings.json has the same category at `always-ask + thing: off`, what wins? The settings.json buckets merge per Phase A; the toggle lives in `thing.yaml`. Recommendation: `thing.yaml` is per-scope just like `comfort-posture.yaml`; the Lawspeaker reads the scope-resolved toggle the same way it reads the scope-resolved level. Pending more thought after Phase A ships.
 
-10. **Should the tribunal be opt-in per command session as well as per category?** I.e., a slash command `/tribunal-this` that says "for the next 10 commands, route everything through the tribunal regardless of toggle." Useful for high-stakes sessions (release day, prod deploy). Recommendation: defer to T6 alongside the other slash commands.
+10. **Per-session opt-in.** I.e., a slash command `/thing-this` that says "for the next 10 commands, convene the Thing regardless of toggle." Useful for high-stakes sessions (release day, prod deploy). Recommendation: defer to T6 alongside the other slash commands.
 
-11. **Audit-trail privacy.** The verdict log includes the original command (which may contain semi-sensitive paths). Should the log be in `.gitignore` by default? Recommendation: yes; surface a "share-redacted version" command (`/tribunal-share <id>`) for when the user explicitly wants to share a verdict.
+11. **Audit-trail privacy.** The Sága log includes the original command (which may contain semi-sensitive paths). Should the log be in `.gitignore` by default? Recommendation: yes; surface a "share-redacted version" command (`/thing-share <id>`) for when the user explicitly wants to share a verdict.
 
-12. **Tribunal of one.** If a user disables Reviewers B and C and only keeps Reviewer A + Tie-breaker, is that still a tribunal? Recommendation: yes mechanically (the orchestrator still runs), but the dashboard surfaces a banner: "single-reviewer tribunal is more susceptible to position bias and injection. Three-reviewer panel is recommended."
+12. **Single-seat Thing.** If a user disables Mímir and Heimdall and only keeps Forseti + Thor, is that still a Thing? Recommendation: yes mechanically (the Lawspeaker still runs), but the dashboard surfaces a banner: "single-seat assemblies are more susceptible to position bias and injection. Three-seat panel + Thor is recommended."
 
 ---
 
@@ -868,7 +885,8 @@ The tribunal is large. Ship it in stages.
 ### D. Iteration log
 
 - **v1 (2026-05-23, autonomous, Claude Opus 4.7):** First full pass. Concern catalog covering cross-cutting + 12 comfort-posture categories (≈75 concerns total); tribunal mechanism with 3 reviewers + Thor tie-breaker via existing security-reviewer / code-reviewer / prompt-engineer / architect agents; integration via single `type: "command"` `PreToolUse` orchestrator hook (rationale: avoid `updatedInput` last-writer-wins race); decision protocol with EDIT-safety invariant + critical-concern veto; per-category dashboard toggle; audit trail; full §B.9 prompt-injection-resistance treatment borrowing LlamaFirewall AlignmentCheck framing; phased rollout T0–T7; 12 open questions for follow-up.
+- **v2 (2026-05-23, follow-up, Claude Opus 4.7):** Norse-mythology naming pass. Added §B.0 introducing the Thing (Þing) as the mechanism's name and Forseti / Mímir / Heimdall / Thor as the four seats (filled by `security-reviewer` / `code-reviewer` / `prompt-engineer` / `architect` respectively). Renamed the orchestrator role to **Lawspeaker** (lögsögumaður), with `thing-orchestrator.sh` as the on-disk filename. Renamed configuration files (`tribunal.yaml` → `thing.yaml`), audit-trail directory (`runs/tribunal/` → `runs/thing/` — "Sága log"), and slash commands (`/tribunal-*` → `/thing-*`). Updated the YAML field name from `tribunal:` to `thing:`. Closed open question #7 on Thor naming. Technical content unchanged; only labels and codenames shifted. The technical noun "tribunal" remains valid in prose and used where readability beats theming.
 
 ---
 
-*End of v1. Tribunal design document.*
+*End of v2. Tribunal design document — the Thing.*
