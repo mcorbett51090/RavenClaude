@@ -2971,6 +2971,249 @@ The dashboard reads the file on Commands-tab open via `/__read`, ranks commands 
 - `.notrack` opt-out + Install tab nudge: **1-2 hours**
 - **Subtotal: 6-8 hours.** Sequenced as **0.21.0** (between Commands tab base and the per-agent command rollout, when there's enough data to make personalization meaningful).
 
+### 5.8.7 Plugin-author guide — how to declare commands so they show up in the dashboard
+
+For domain-plugin authors (today's 6 + future Salesforce / industry-specific plugins). The Commands tab discovers commands by scanning `plugins/<plugin>/commands/*.md` at generator time. Each command file must declare structured frontmatter so the dashboard can render the card, the hover tooltip, the args list, the launch deep-link, and the owner-agent badge.
+
+#### Required frontmatter shape
+
+```yaml
+---
+# REQUIRED — the slash name (kebab-case, lowercase). Without a leading slash.
+name: init-agent-ready
+
+# REQUIRED — one sentence, ≤ 100 chars, shown in the card body.
+description: Set up agent-readable boundary files for any AI coding tool.
+
+# REQUIRED — the agent that primarily implements this command.
+owner: architect
+
+# REQUIRED — the plugin slug. Self-contained against the file path so a
+# rename of the plugin dir still needs this updated deliberately.
+plugin: ravenclaude-core
+
+# OPTIONAL — arg schema. If absent, the card renders with no args section
+# and the Launch deep-link is just the bare command. If present, the
+# Command Builder (Design 4, Phase D) uses this to render the arg form.
+args:
+  - name: repo-type
+    type: enum
+    values: [application, library, monorepo, documentation, data-ML, IaC, plugin-marketplace]
+    required: false
+    description: What kind of repo this is.
+  - name: ci
+    type: bool
+    default: true
+    description: Whether to add the validate-layout.yml CI workflow.
+  - name: hygiene
+    type: bool
+    default: true
+    description: Whether to add CI-hygiene scaffold.
+
+# OPTIONAL — usage examples shown in the tooltip / Show preview.
+examples:
+  - /init-agent-ready
+  - /init-agent-ready repo-type=plugin-marketplace ci=yes hygiene=yes
+
+# OPTIONAL — tags for the Commands tab filter chips.
+tags: [setup, boundary-files, first-session]
+
+# OPTIONAL — feature-flag this command behind a plugin version.
+# If the installed plugin is older than this, the card is hidden.
+since: "0.15.0"
+
+# OPTIONAL — set to true to surface in the default-20 list.
+# Generator-side cap: at most 20 of these across the entire marketplace,
+# enforced by audit-gates.sh.
+featured: true
+---
+
+# /init-agent-ready
+
+The body of the .md file becomes the full slash-command implementation
+(passed to Claude when the command is invoked). See existing
+commands/init-agent-ready.md for the canonical shape.
+```
+
+#### CI enforcement
+
+`audit-gates.sh` gets a new gate `validate-command-frontmatter.sh`:
+
+- Every `plugins/*/commands/*.md` must have all required fields filled
+- `name` must match the filename basename (i.e., the file `init-agent-ready.md` must have `name: init-agent-ready`)
+- `owner` must resolve to an agent that exists in the same plugin (or be a cross-plugin reference like `ravenclaude-core/architect`)
+- `plugin` must match the directory path (`plugins/<this-plugin>/commands/...`)
+- No more than 20 commands across the marketplace may have `featured: true`
+- Slash-name collisions across plugins: error
+- Slash-name collisions with Claude Code built-ins (per the snapshot in `docs/claude-code-builtins.txt`): error
+- `args[].name` must match `^[a-z][a-z0-9-]*$` (no underscores; matches Claude Code's existing arg conventions)
+
+#### Migration for the existing 3 commands
+
+`/init-agent-ready`, `/set-posture`, `/wrap` today have minimal frontmatter (just `description` and sometimes `allowed-tools`). The Phase B.1 ship adds the full frontmatter shape to all three as the canonical examples. No behavioral change; just metadata.
+
+#### When the dashboard's generator runs
+
+`generate-dashboards.py --plugin <name>` reads all `commands/*.md` files in that plugin, parses frontmatter, emits the inline `window.__ravenclaude_commands = [{...}, {...}]` block in the dashboard. The `/wrap` command's "regenerate dashboard after capture" path (proposal 003 §4.7) also triggers a command-list re-scan because scenarios can affect what commands the user wants to surface (the Scenarios tab links back to commands).
+
+#### Why structured frontmatter (not free-form Markdown)
+
+The Commands tab's card grid + the Command Builder + the deep-link `q` allow-list + the audit-gates.sh checks all need machine-readable structure. Free-form prose works for human-readable command docs but doesn't scale to ~141 commands across 7 plugins with cross-cutting filters, search, and validation. The frontmatter is the contract; the body is the implementation.
+
+### 5.8.8 Success criteria — how we know we got the design right
+
+Feedback signals to watch for after each phase ships. If these signals are absent or inverted, the design is wrong and we revisit.
+
+#### Phase A (multi-layer posture)
+
+| Signal | What we want to see |
+|---|---|
+| Migration-banner choice distribution | ≥60% of users pick option 1 (migrate to user). If most pick option 2 (keep at project), the default may be wrong. |
+| Team-shared-config commits | The number of PRs that modify `.claude/settings.json`'s `permissions.allow` block drops by ≥50% after the default change. Personal posture stops leaking into team git history. |
+| "Why is Claude asking?" support questions | Users who hit a surprise should self-diagnose via the Health tab, not ask Matt. Track via the absence of these questions in the team Slack. |
+| `~/.claude/settings.json` file existence on machines | After 2 weeks, ≥80% of active users have a user-scope settings.json with `permissions` filled by `/set-posture`. |
+
+#### Phase B.1 (Commands tab base)
+
+| Signal | What we want to see |
+|---|---|
+| Launch click-through rate vs Copy | Want Launch > Copy on machines where the deep-link probe succeeds. If users prefer Copy even when Launch works, the deep-link UX has friction we missed. |
+| Commands tab open frequency | Want it to be the second-most-opened tab after Settings within 2 weeks of shipping. |
+| Cards per user-session | Median ≈ 1-3 launches per session. If it's 0, the cards aren't useful for actual work; if it's 10+, the tab might be a discovery surface that's stealing attention from real work — surface the palette overlay sooner. |
+| Most-used-20 ranking accuracy | After 30 days of telemetry, compute the actual top-20 from `usage.json` and compare to the hardcoded list. ≥70% overlap = the hardcoded list is fine; <50% overlap = personalization is overdue. |
+
+#### Phase B.2 (Install / Setup tab)
+
+| Signal | What we want to see |
+|---|---|
+| Time from "first opens dashboard" to "runs /init-agent-ready" | Median < 5 min for new users. If it's > 10 min, the Setup tab isn't directing users effectively. |
+| /install-doctor pass rate on first run | ≥80% all-green on first run. If <50% green, the prereq list is too aspirational; trim it. |
+| Drop-off between Step 3 (install plugins) and Step 5 (first-session setup) | <20% drop-off. If users install the plugins but never run /init-agent-ready, the dashboard isn't bridging install → use. |
+| Repeat opens of the Setup tab | Falls to near-zero after first 1-2 sessions. If users keep returning, the tab is doing reference work (good for the Install knowledge; bad for the rest of the dashboard's reuse). |
+
+#### Phase C (per-agent commands)
+
+| Signal | What we want to see |
+|---|---|
+| Commands shipped per month | Average ≥ 3 commands per month per active plugin. If commands stall, the plugin is over-aspirational or the agent is over-narrow. |
+| Bare vs qualified invocation ratio | ≥90% bare for high-traffic commands. If users type qualified names (`/finance:draft-variance-commentary`), the bare-name discovery isn't working. |
+| Featured-list churn | The `featured: true` list (cap of 20) churns by ≤5 entries per quarter. If it churns wildly, the underlying usage data is noisy or the cap is wrong. |
+
+#### Phase B.4 (Agents, Environment, Health, Scenarios, Update notifier)
+
+| Signal | What we want to see |
+|---|---|
+| Agents tab disable usage | ≥10% of users disable at least one agent within a month. If 0%, the tab is solving a problem nobody has. |
+| Health tab "Test a tool call" usage | ≥1 query per user per week during the first month after Phase A. Drops as users learn the merge model. Healthy. |
+| Environment tab open frequency | High for power-platform / finance / regulatory-compliance users; low for web-design / edtech (which often don't have env-context files). Validates the tab is plugin-relevance-weighted. |
+| Scenarios tab as a fallback for agents | The scenario-retrieval skill cites scenarios more often in agent runs over time. If citation rate stays flat, agents aren't picking up the scenarios. |
+| Update notifier dismissal rate per version | <30% of users dismiss without clicking through. If >70%, the banner is noise; consider raising the threshold for when it appears. |
+
+#### Anti-signals (what tells us we're wrong)
+
+- Matt finds himself answering "how do I make Claude stop asking about X?" more often after Phase A → the Health tab isn't doing its job; consider auto-surfacing the Test-a-tool-call panel after a permission ask.
+- Users discover commands by reading the marketplace README, not the Commands tab → the dashboard isn't a discovery surface; consider moving discovery to the repo-guide.
+- Teams check in `.claude/settings.local.json` accidentally despite the gitignore append → the gitignore append failed; investigate and harden.
+- The `/install-doctor` always shows green because users have everything → it's not actually a doctor, it's a placebo; rip it out and just trust people.
+
+### 5.8.9 Stretch goals — explicitly tracked, not in any phase
+
+Things deliberately left out of the roadmap but worth tracking so they don't get lost. Each becomes a candidate for v0.26.0+ if real demand surfaces.
+
+| # | Stretch goal | Why deferred | Trigger to revisit |
+|---|---|---|---|
+| S1 | **Multi-posture authoring** (separate YAML per scope, all three editable in the dashboard simultaneously) | UI complexity buys little for solo developers; would muddy the scope-selector mental model | A team using all three scopes complains about the working-draft confusion |
+| S2 | **Personalized command ranking** powered by `usage.json` | Telemetry doesn't exist until 0.21.0; needs data to be meaningful | When 0.21.0 has been live for 30 days |
+| S3 | **Command builder (Design 4)** for arg-heavy commands | Requires arg-schema declarations in command frontmatter; only 5-6 commands warrant the investment | When ≥10 commands have arg schemas AND the Commands tab telemetry shows users typing args manually frequently |
+| S4 | **Excel export** for the finance plugin's scenario / forecast outputs | Matt's native idiom; scope-creep risk; "agents can't read xlsx" gap | Finance-plugin engagement explicitly requests it |
+| S5 | **Activity-feed real-time updates** instead of generator-time inlining | Current inline approach scales to ~100 runs; live updates need WebSocket or polling against serve-dashboards.py | Activity feed exceeds 200 runs OR users complain about staleness |
+| S6 | **Plugin marketplace search** in the dashboard (find plugins not yet installed) | Repo-guide.html already does this; redundant surface | Repo-guide.html falls out of maintenance |
+| S7 | **Cross-plugin dashboard** (one super-dashboard for all 7 installed plugins) | Each plugin's dashboard is currently self-contained; merging is friction that may not pay off | User feedback that 7 separate dashboards is too much navigation overhead |
+| S8 | **Mobile-first responsive redesign** | Mobile is a read-only convenience surface; deep links don't work mobile → desktop CC | Real demand from Matt's iPad-from-couch workflow |
+| S9 | **In-dashboard environment-context editing** (parsing the prose into form fields) | Prose parser is brittle; removes the user's freedom to add notes | Never, probably — prose is the right interface here |
+| S10 | **Decision-tree path highlighting** in the Trees tab | Requires structured-condition convention that doesn't exist yet (proposal 003 dropped this; v7 honors that decision) | A structured-condition annotation convention emerges |
+| S11 | **Integration with external project trackers** (Linear, Jira, Asana) for the project-manager agent's RAID/activity log | Out-of-scope for a marketplace; belongs in a separate plugin if at all | Direct user ask from someone running a specific tracker |
+| S12 | **A Slack/Teams notifier** for `/wrap` captures and Update notifications | Network egress; auth complexity; privacy risk | Direct user ask from a team that wants shared visibility |
+| S13 | **A read-only public mode** for the dashboard (browse the marketplace as a non-installer) | Repo-guide.html already serves this; redundant | Repo-guide.html falls out of maintenance |
+| S14 | **Custom themes** beyond `prefers-color-scheme` | Visual polish; no functional gap | Aesthetic feedback that the current accent (`#14b8a6`) doesn't fit a team's brand |
+| S15 | **A `/dashboard <plugin>` slash command** that opens the right file:// URL in the user's default browser | Convenience; cross-platform `xdg-open` / `open` / `start` handling is annoying | When users start asking "where's the dashboard for power-platform again?" |
+
+### 5.8.10 Concrete `latest-versions.json` example for the Update notifier (B.4.5)
+
+The full shape, with values matching the marketplace's actual current state:
+
+```json
+{
+  "$schema": "https://github.com/mcorbett51090/RavenClaude/blob/main/scripts/latest-versions-schema.json",
+  "schema_version": 1,
+  "generated_at": "2026-05-23T11:00:00Z",
+  "marketplace_version": "0.26.0",
+  "marketplace_url": "https://github.com/mcorbett51090/RavenClaude",
+  "plugins": {
+    "ravenclaude-core": {
+      "version": "0.17.0",
+      "released_at": "2026-05-22",
+      "changelog_anchor": "v0-17-0",
+      "release_notes_url": "https://github.com/mcorbett51090/RavenClaude/releases/tag/ravenclaude-core-0.17.0",
+      "breaking_changes": false,
+      "security_fixes": false
+    },
+    "power-platform": {
+      "version": "0.12.2",
+      "released_at": "2026-05-20",
+      "changelog_anchor": "v0-12-2",
+      "release_notes_url": "https://github.com/mcorbett51090/RavenClaude/releases/tag/power-platform-0.12.2",
+      "breaking_changes": false,
+      "security_fixes": false
+    },
+    "finance": {
+      "version": "0.5.1",
+      "released_at": "2026-05-15",
+      "changelog_anchor": "v0-5-1",
+      "release_notes_url": "https://github.com/mcorbett51090/RavenClaude/releases/tag/finance-0.5.1",
+      "breaking_changes": false,
+      "security_fixes": false
+    },
+    "regulatory-compliance": {
+      "version": "0.4.1",
+      "released_at": "2026-05-14",
+      "changelog_anchor": "v0-4-1",
+      "release_notes_url": "https://github.com/mcorbett51090/RavenClaude/releases/tag/regulatory-compliance-0.4.1",
+      "breaking_changes": false,
+      "security_fixes": false
+    },
+    "web-design": {
+      "version": "0.4.2",
+      "released_at": "2026-05-13",
+      "changelog_anchor": "v0-4-2",
+      "release_notes_url": "https://github.com/mcorbett51090/RavenClaude/releases/tag/web-design-0.4.2",
+      "breaking_changes": false,
+      "security_fixes": false
+    },
+    "edtech-partner-success": {
+      "version": "0.4.2",
+      "released_at": "2026-05-13",
+      "changelog_anchor": "v0-4-2",
+      "release_notes_url": "https://github.com/mcorbett51090/RavenClaude/releases/tag/edtech-partner-success-0.4.2",
+      "breaking_changes": false,
+      "security_fixes": false
+    },
+    "data-platform": {
+      "version": "0.1.0",
+      "released_at": "2026-05-10",
+      "changelog_anchor": "v0-1-0",
+      "release_notes_url": "https://github.com/mcorbett51090/RavenClaude/releases/tag/data-platform-0.1.0",
+      "breaking_changes": false,
+      "security_fixes": false
+    }
+  }
+}
+```
+
+`generate-dashboards.py` reads each `plugins/<plugin>/.claude-plugin/plugin.json` for the version, walks the corresponding release notes for `breaking_changes` and `security_fixes` flags, and writes this JSON to `dashboards/latest-versions.json` on every release. The dashboard's Update notifier fetches it on tab open.
+
+**Security note:** the URL is `https://mcorbett51090.github.io/RavenClaude/dashboards/latest-versions.json` (GitHub Pages, HTTPS). The dashboard does NOT trust the file's content blindly — the breaking-changes and security-fixes flags drive UI emphasis (banner color) but not behavior. Even if the file is tampered with at the host (very unlikely with GitHub Pages), the worst outcome is the user sees a yellow banner instead of green or vice-versa; no auto-update is triggered.
+
 ### 5.9 What we explicitly do NOT plan in this document
 
 - Tree-viewer interactions beyond proposal 003 §4.8. Out of scope.
@@ -3007,6 +3250,7 @@ The dashboard reads the file on Commands-tab open via `/__read`, ranks commands 
 - **v4 (2026-05-23, autonomous, Claude):** Naming / collision / owner-existence audits. Added §4.9 naming and namespacing — flagged `/security-review` as colliding with the Claude Code built-in skill (rename to `/team-security-review`); proposed `/rc:` qualified prefix for infrastructure commands that Claude Code might add later; proposed `scripts/audit-command-collisions.py` as a new CI gate. Added §4.10 owner-agent inventory — verified every "Owner" column entry across the 7 plugins resolves to a real agent on disk; 55 agents total, 95 commands; ~10 agents intentionally have zero dedicated commands (security-reviewer, prompt-engineer, the coders, designer, data-engineer, tester-qa) because their work is in-conversation. Added open questions #10-14 (enterprise-layer reading, `/security-review` rename, infrastructure-command namespacing, Install tab rename, project-scope modal strictness). Expanded §5.4 tests with merge-model property check, allow-at-project lint, built-in collision audit, owner-agent existence check.
 - **v5 (2026-05-23, autonomous, Claude):** Structural / decision-log additions. §5.5 dependency graph showing A → B.1 → B.4.4 as the critical path (Health tab makes the merge model visible to users; without it the user-scope-default change surprises). §5.6 decisions-taken vs decisions-deferred table — every recommendation in the doc tagged ✅ (committed) or 🟡 (recommended, open question for Matt). §5.7 composition with proposal 003 — explicit reconciliation showing 003 §4.3/§4.4/§4.7/§4.8/§7.1/§7.4/§9/§11 are all honored by this plan, with "proposal 003 wins on contradictions" as the tie-breaker rule. Renumbered the old §5.5 ("What we explicitly do NOT plan") to §5.8.
 - **v5.1 (2026-05-23, autonomous, Claude):** Cross-reference accuracy fix. v5's §5.7 referenced proposal-003 sections §3 ("no backend") and §10 ("release plan") — neither is accurate (003 §3 is "Prior-art summary"; 003 §10 is "Open questions"). Corrected the citations: "no backend" lives in 003 §4.3 / §4.4; the release plan lives in 003 §11 (Implementation phases). Added a 003 §7.4 reference (team-shared vs personal / gitignore) which the merge-model finding strengthens into a more directive guidance.
+- **v13 (2026-05-23, autonomous, Claude):** Four additions for ecosystem extensibility and post-ship observability. (1) §5.8.7 — Plugin-author guide: full required-frontmatter shape for `plugins/<plugin>/commands/*.md` (name, description, owner, plugin, args[], examples, tags, since, featured), CI enforcement spec, migration plan for existing 3 commands. Lets domain-plugin authors ship commands that surface in the dashboard correctly without ad-hoc docs lookups. (2) §5.8.8 — Success criteria: phase-by-phase feedback signals (Phase A: migration choice distribution, team-shared-config commit reduction; Phase B.1: launch vs copy rate, cards per session; Phase B.2: time-to-first-init-agent-ready, install-doctor pass rate; Phase C: commands shipped per month, bare vs qualified ratio; Phase B.4: agents-disable usage, Health test-a-call usage, scenario citation rate). Plus 4 anti-signals telling us the design is wrong. (3) §5.8.9 — Stretch-goals tracker: 15 items deliberately left out of any phase with why-deferred and trigger-to-revisit per item. Prevents drift back into "let's add this too" mid-build. (4) §5.8.10 — concrete `latest-versions.json` example with all 7 actual current plugin versions; clarifies the GitHub Pages security boundary (HTTPS-only; flags drive UI emphasis but not behavior).
 - **v12 (2026-05-23, autonomous, Claude):** Implementer-facing code sketches. (1) §B.2.5 — full HTML + CSS + JS for a single command card in the Design-1 card grid (~200 lines). Drops into the existing `dashboard.html` token system; integrates with the deep-link probe and the optional `recordInvocation()` telemetry hook from §5.8.6. (2) §2.3.9 — full Python patch sketch for `apply-comfort-posture.py --scope` (resolve_settings_path / resolve_side_car_path / detect_no_project_root / check_ephemeral_env / fire_migration_banner_if_needed / maybe_append_to_gitignore / write_side_car), preserving v0.17.0's emission logic untouched. (3) §2.3.10 — HTML for the Phase A scope selector + the project-scope confirmation modal (suppressed when the user's posture has no allow rules to avoid friction).
 - **v11 (2026-05-23, autonomous, Claude):** Four operational additions for ship-readiness. (1) §5.8.3 — v0.18.0 ship checklist enumerating every concrete script change, server change, dashboard change, generator change, CI change, doc change, and 7 manual acceptance tests that must pass before tagging the first Phase A release. Names what is explicitly out of scope for 0.18.0. (2) §5.8.4 — Phase C "first 5 commands per plugin" prioritized shortlist (35 total — 5 new core + 5 per domain plugin). Selection criteria: high traffic, concrete output, low arg-schema burden, polished owner agent. Maps the ~141-command aspirational list onto a ~70-140h actionable shortlist. (3) §5.8.5 — Phase A migration runbook with 9×3 fixture matrix, 7-day ship-day sequence (script-first → dashboard → Health tab → default-flip → human review → retro), soft / hard rollback plans, communication plan. The Day 7 human-review checkpoint is the load-bearing safety net. (4) §5.8.6 — telemetry section: what we measure (command counts + tab opens + scope choices, local-only) vs what we do NOT (args, content, identifying info, network egress); single JSON at `~/.claude/ravenclaude-state/usage.json`, opt-out via `.notrack`, 6-8h effort, sequenced as 0.21.0 to enable personalized command ranking (Q8 resolved).
 - **v10 (2026-05-23, autonomous, Claude):** Executive-summary block added at the top of the document. A 2-minute read covering the three workstreams (Phase A, B, C), the five things to decide first (D1, D5, D7, D12, D14 from §5.8.2), the four "first 4 weeks" milestones (~60 focused hours), the single biggest correction from v1→v2 (permissions MERGE, not override), and the open questions to confirm. Designed for a busy reader who'll later read the full doc selectively.
