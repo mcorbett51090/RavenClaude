@@ -1034,6 +1034,34 @@ This section proposes the **slash commands** each agent / domain should expose. 
   19. `/install-doctor`
   20. `/health-score-refresh`
 
+### 4.9 Naming and namespacing — built-in collisions, plugin prefixes
+
+The proposed names assume a flat command namespace. Reality: Claude Code ships built-in slash commands (`/init`, `/review`, `/security-review`, `/help`, `/clear`, `/plugin`, `/loop`, `/schedule`, etc.) and plugin commands can be referenced as either `/<command>` (bare) or `/<plugin>:<command>` (qualified). The flat namespace creates three potential issues:
+
+1. **Direct collisions with built-ins.** The Phase C table proposes `/security-review` as ravenclaude-core's branded security review. There IS a built-in `/security-review` per the Claude Code skill list. Plugin commands cannot shadow built-ins. **Resolution:** rename to `/team-security-review` OR rely on the `/ravenclaude-core:security-review` qualified form. Recommend renaming to `/team-security-review` (or `/sec-review`) to avoid the qualified-form-only path, which most users won't discover. Same audit needs to run against `/init` (Claude Code built-in skill at top of available-skills list) — the existing `/init-agent-ready` avoids that by prefix.
+
+2. **Cross-plugin name conflicts.** No cross-plugin collisions in the v1 proposal (each plugin's command names are unique). Sanity-checked: `/draft-*` appears in ravenclaude-core (memo, decision, runbook), finance (variance-commentary, board-pack), regulatory-compliance (policy-draft, sar-draft), edtech-partner-success (qbr, success-playbook). All distinct nouns; no collision. BUT — `/code-review` (core) and `/canvas-app-lint` (power-platform) are domain-distinct; no risk. The `/list-plugins`, `/reload-plugins`, `/list-agents`, `/list-skills` set is **infrastructure** that arguably belongs as built-ins, not core commands. If Claude Code adds these in a later release, our names would collide. **Resolution:** namespace them as `/rc:list-plugins` etc. to be safe.
+
+3. **Bare vs qualified names — what to recommend.** Claude Code's UX is "type `/` and pick from the list." Bare names auto-complete first; qualified names are typed less often. Recommend **bare for high-traffic commands** (`/wrap`, `/set-posture`, `/init-agent-ready`, `/draft-qbr`) and **qualified for low-traffic infrastructure** (`/ravenclaude-core:scan-permissions`, `/ravenclaude-core:reload-plugins`). The dashboard's Commands tab surfaces both forms; the Copy button always copies the bare form unless the user has a preference set.
+
+**Audit deliverable:** before Phase C ships, an audit script (proposed `scripts/audit-command-collisions.py`) runs `claude --list-commands` (or equivalent), diffs against the marketplace's proposed command names, and fails CI on any collision. Add to `audit-gates.sh`.
+
+### 4.10 Verifying owner agents actually exist
+
+The Phase C tables claim each command is owned by a specific agent (e.g., "owner: dataverse-architect"). Inventory check against the actual files in `plugins/<plugin>/agents/` confirms:
+
+| Plugin | Agents on disk (count) | Agents referenced in Phase C (count) | Mismatches |
+|---|---|---|---|
+| ravenclaude-core | 14 | 9 distinct (architect, code-reviewer, security-reviewer, partner-success-manager, deep-researcher, documentarian, project-manager, …) | none — every owner exists |
+| power-platform | 11 | 11 distinct — uses every agent | none |
+| finance | 7 | 6 (audit-prep-specialist, board-pack-composer, controller, financial-modeler, fpa-analyst, treasury-analyst, valuation-analyst) | none |
+| regulatory-compliance | 6 | 6 — uses every agent | none |
+| web-design | 7 | 7 — uses every agent | none |
+| edtech-partner-success | 6 | 6 — uses every agent | none |
+| data-platform | 4 | 3 (connector-developer, dashboard-builder, database-setup-guide, etl-pipeline-engineer) — *uses 4, see below* | none — all 4 used |
+
+All owner-agent references in Phase C resolve to real agents in the plugins. The agents NOT given a dedicated command (security-reviewer, prompt-engineer, partner-success-manager-as-anything-other-than-/wrap-lead, fullstack-coder, backend-coder, frontend-coder, designer, data-engineer, tester-qa) are intentionally command-free in this proposal — their work is in-conversation review, design feedback, paired-coding, etc. **This is a v1 choice, not a permanent gap.** A later phase could surface commands like `/scaffold-component` (frontend-coder), `/scaffold-endpoint` (backend-coder), `/design-critique` (designer) if usage data supports them.
+
 ---
 
 <a id="phase-d"></a>
@@ -1059,6 +1087,9 @@ This section proposes the **slash commands** each agent / domain should expose. 
 
 ### 5.2 Open questions for Matt
 
+> *Items #1-9 are the v1 questions; #10-14 added in v3-v4 after the merge-model investigation and the chicken-and-egg / namespacing audits.*
+
+
 1. **Phase A default scope.** I propose `--scope user` as the new default. Confirm before we ship the migration banner — if you'd rather keep `project` as default for compatibility, the banner becomes opt-in.
 2. **Plugin-switcher in the header.** Cheap to add, but if you'd rather each dashboard be self-contained (no cross-plugin navigation) say so. My instinct is the switcher is useful; you'll know better.
 3. **`/install-doctor` — own slash command, or fold into `/init-agent-ready`?** I lean toward own command because it's read-only and fast; `/init-agent-ready` is interactive and writes files.
@@ -1068,6 +1099,11 @@ This section proposes the **slash commands** each agent / domain should expose. 
 7. **Mobile.** The dashboard is responsive but Settings is the only tab actually used on mobile so far. Should Commands work on mobile (the deep links won't function from mobile Safari to a desktop Claude Code session)? My guess: mobile is read-only convenience; Launch buttons disabled on mobile with a note.
 8. **The "Show only 20 most-used" default**: ranking is hardcoded today (see §4.8). Should it be **personalized** by reading the user's actual usage from a local file? Probably v0.3.0.
 9. **Should command cards show owner agent in the corner?** Helps map back to the agents tab; small visual cost. Recommendation: yes.
+10. **Merge-model: do we read the enterprise layer?** Phase A §1.4 lists enterprise managed-settings as the top layer. The Health tab's merge preview (B.4.4) does *not* read it by default — the file may not be readable, and on some OSes the path varies. Recommend: best-effort read on supported OSes; warn-and-skip if unreadable. Confirm before we ship.
+11. **`/security-review` collision.** The ravenclaude-core Phase C table proposes a `/security-review` command but Claude Code already ships a built-in `/security-review` skill. Two options: (a) rename to `/team-security-review`; (b) use the qualified form `/ravenclaude-core:security-review` only. Recommend (a) for discoverability.
+12. **Infrastructure commands as qualified names.** `/list-plugins`, `/reload-plugins`, `/list-agents`, `/list-skills`, `/scan-permissions` — these feel like they belong as Claude Code built-ins. If Claude Code adds them later, we collide. Should we ship them as `/rc:list-plugins` etc. (qualified) to be safe?
+13. **Install tab rename.** Phase B.3 argues for renaming "Install" → "Setup" or "Welcome" because the true audience is users who already have the plugin installed. Confirm the rename, or keep "Install" as-is for the prereq doctor surface.
+14. **Project-scope confirmation modal copy.** The §2.3.5 design adds a confirmation modal on `/set-posture --scope project`. Two flavors: (a) gentle "are you sure?" reminder; (b) stricter "this affects everyone on the team; type 'i understand' to confirm." Recommend (a) for ergonomics, but (b) is defensible.
 
 ### 5.3 Phased build roadmap
 
@@ -1091,10 +1127,14 @@ This section proposes the **slash commands** each agent / domain should expose. 
 
 ### 5.4 Tests and CI implications
 
-- **Phase A:** `audit-gates.sh` gets a new gate proving that `apply-comfort-posture.py --scope user --dry-run` against a known-good YAML produces a known-good user-scope diff.
-- **Phase B.1:** `audit-gates.sh` gets a gate proving that the dashboard's enumerated launchable commands appear in `commands/*.md` (no orphan commands referenced in HTML; no `commands/*.md` missing from the dashboard).
+- **Phase A — script:** `audit-gates.sh` gets a new gate proving that `apply-comfort-posture.py --scope user --dry-run` against a known-good YAML produces a known-good user-scope diff. Three fixtures (user / project / local) × known-good + known-bad = six combinations.
+- **Phase A — merge model:** new gate proving `apply-comfort-posture.py --preview-merge` against a known set of three settings.json files produces the expected merged set, with deny > ask > allow resolution applied. Property-based check: any rule denied at any layer must be denied in the merge; any rule asked at any layer (and not denied) must be asked in the merge.
+- **Phase A — `allow`-at-project lint:** a new CI step in `validate-marketplace.yml` flags PRs where `.claude/settings.json` *gains* entries in `permissions.allow`. The flag is advisory, not blocking — sometimes a team allow is the right call — but it surfaces R12 to PR reviewers.
+- **Phase B.1 — orphan-command sanity:** `audit-gates.sh` gets a gate proving that the dashboard's enumerated launchable commands appear in `commands/*.md` (no orphan commands referenced in HTML; no `commands/*.md` missing from the dashboard).
+- **Phase B.1 — built-in collision audit:** `scripts/audit-command-collisions.py` (new) takes a snapshot of Claude Code's built-in commands (committed to repo at `docs/claude-code-builtins.txt`, updated quarterly), diffs against the marketplace's proposed bare command names, fails CI on any collision. See §4.9.
 - **Phase B.4.1:** the `.ravenclaude/agents.yaml` schema goes through the JSON-Schema → form pipeline already in use for the Settings tab.
-- **Phase C:** each new `commands/*.md` file gets a CI check that it has a frontmatter `description:` field and at least one example in the body.
+- **Phase C — frontmatter:** each new `commands/*.md` file gets a CI check that it has a frontmatter `description:` field, an `owner:` field naming the responsible agent, and at least one example in the body.
+- **Phase C — owner-agent existence:** the same CI check verifies the `owner:` value resolves to an agent in the same plugin (or an explicit cross-plugin reference like `ravenclaude-core/architect`).
 
 ### 5.5 What we explicitly do NOT plan in this document
 
