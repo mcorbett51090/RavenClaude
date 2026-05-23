@@ -302,7 +302,7 @@ The "doomed to break" detail is design wisdom: any cross-tool bridge is going to
 
 **Feature-fit.** The dual nature — weapon _and_ consecrator — is the interesting bit. The "weapon" side is just a sharp action; many features could be called Mjölnir. The "consecrator" side is more specific: **the formal blessing of an artifact as ready to ship.** Today RavenClaude has fragments of this: the CI passes, the prettier check passes, the gate-audit passes, the version is bumped, the changelog is updated. None of these collectively names "this plugin is consecrated and ready."
 
-**Specific mapping.** A `/mjolnir` command (or button) that runs the full release blessing on a plugin: version-bump verified, all gates green, marketplace.json synced, NOTICE.md present if needed, hooks executable, contract tests pass. On success, the plugin is "consecrated" — a single named act that's currently four or five separate manual checks. The short-handle flaw is also worth invoking honestly: every release has a flaw the smith couldn't help. The blessing names that explicitly.
+**Specific mapping.** A `/release-check` command (or button) — themed alias `/mjolnir`, never the primary identifier (§6 principle 7) — that runs the full release blessing on a plugin: version-bump verified, all gates green, marketplace.json synced, NOTICE.md present if needed, hooks executable, contract tests pass. On success, the plugin is "consecrated" — a single named act that's currently four or five separate manual checks. The short-handle flaw is also worth invoking honestly: every release has a flaw the smith couldn't help. The blessing names that explicitly.
 
 **Verdict: Worth exploring.** Strong if the release process is centralized; thin if releases stay ad-hoc.
 
@@ -426,7 +426,7 @@ This pairs directly with **Fenrir** (the bound danger) and **Týr** (the cost pa
 
 **Myth.** _Níu Heimar_ — the conventional nine being Asgard, Vanaheim, Midgard, Jötunheim, Alfheim, Svartalfheim/Niðavellir, Niflheim, Muspelheim, Helheim. The exact list is a modern synthesis; primary sources don't enumerate.
 
-**Feature-fit.** Tempting mapping: **each plugin is a realm.** `ravenclaude-core` is Asgard (sovereign team), `power-platform` is one of the elf-realms (specialist craft), `finance` is its own realm, etc. The nine-realms naming gives the marketplace a navigable cosmology — but only if there are _roughly_ nine plugins, and if their identities map cleanly. Today there are six plugins and the mapping is forced.
+**Feature-fit.** Tempting mapping: **each plugin is a realm.** `ravenclaude-core` is Asgard (sovereign team), `power-platform` is one of the elf-realms (specialist craft), `finance` is its own realm, etc. The nine-realms naming gives the marketplace a navigable cosmology — but only if there are _roughly_ nine plugins, and if their identities map cleanly. Today there are seven plugins (`ravenclaude-core`, `power-platform`, `finance`, `regulatory-compliance`, `web-design`, `edtech-partner-success`, `data-platform`) and the mapping is still forced.
 
 The reverse risk: locking the count at nine is gimmicky (do we stop adding plugins?), and assigning realm-names to each plugin (Asgard, Vanaheim, etc.) becomes work to maintain.
 
@@ -479,6 +479,10 @@ A few principles to keep the theming from drifting into gimmick:
 
 6. **Skip is a valid verdict.** Most of this roster is "thin — skip." That's the correct ratio. A pantheon with three loud myths in active service does more work than one with twenty quiet ones decorating the corners.
 
+7. **Functional name is canonical; the myth is a display alias.** Slash-command identifiers, agent/skill slugs, file names, and hook IDs are ALWAYS plain functional names (`/release-check`, `code-reviewer.md`). A Norse name may appear as a _secondary alias_ or a display label only — never as the primary canonical identifier. A CI gate enforces this (it greps `commands/*.md`, `agents/*.md`, slugs, and frontmatter for leaked Norse names). Every diacritic name needs a defined ASCII form before it touches a CLI surface: Mímir→`mimir`, Bifröst→`bifrost`, Mjölnir→`mjolnir`, Ragnarök→`ragnarok`, Níðhöggr→`nidhoggr`.
+
+8. **Plain-language label first, themed term in parentheses.** Any user-facing tab, button, or panel leads with the plain function and carries the Norse name as a parenthetical/subtitle — "Perimeter alerts (Heimdall)", not "Heimdall". The accessible name (`aria-label`) always carries the plain function so screen-reader and search-by-text both work.
+
 ---
 
 ## 7. Sources
@@ -527,6 +531,7 @@ Where experts disagreed, the disagreement is surfaced rather than averaged. Wher
 - **Documentarian:** Approve. The mapping is structurally sound and the name shortens explanations naturally.
 - **Disagreement:** Sharp. Architect wants to defer entirely; designer agrees on deferring the interactive piece but wants a static structural artifact today; documentarian endorses the name regardless.
 - **Synthesized verdict: Deny on the interactive view; Approve-with-changes on a static diagram.** Add a static SVG/ASCII tree to the README (zero implementation cost) so the mental model lands now. Defer the interactive dashboard tab until ~5+ plugins justify it. This honors all three opinions.
+- _[Correction (2026-05-23 review): the architect's "at 2 plugins" premise is factually wrong — the marketplace has **7** plugins, so the architect's own "revisit at 5+" gate is **already met**. The interactive view is therefore scope-eligible on count; the open question is sequencing, not whether. This aligns with the user override recorded in `norse-features-build-plan.md`.]_
 
 #### The Norns panel — past / present / future per plugin
 
@@ -541,7 +546,7 @@ Where experts disagreed, the disagreement is surfaced rather than averaged. Wher
 
 - **Architect:** Approve — the candidate to build first. Consolidates four scattered signals (PreToolUse hook denies, validate-layout, validate-marketplace, audit-gates) into one operator view.
 - **Security:** Approve-with-changes. Real MTTN (mean-time-to-notice) win, but the Gjallarhorn banner must be _tiered_ (red for irrecoverable, amber for denials, grey for advisories) and the dashboard must read-only-mirror state — never accept "acknowledge and proceed" for Gjallarhorn-class actions without a second confirmation channel.
-- **Designer:** Approve. Add a new tab labeled "Heimdall" with a subtitle ("Perimeter alerts"); Gjallarhorn as a fixed-position banner; don't bury it.
+- **Designer:** Approve. Add a new tab whose **primary label is "Perimeter alerts"** with **"Heimdall" as the themed subtitle** (plain-language-first, per §6 principle 8); Gjallarhorn as a fixed-position banner; don't bury it. The tab's `aria-label` carries the plain function.
 - **Documentarian:** Approve. No diacritics; distinction from Huginn/Muninn (outbound scouts vs. perimeter watch) is clean and non-overlapping.
 - **Disagreement:** None — strong cross-expert convergence. This is the most-approved candidate of the 11.
 - **Synthesized verdict: Approve.** Build first. Tier the banner; read-only mirror; plain-language subtitle on the tab; pre-flight check that the hooks emit machine-readable logs before wiring the surface.
@@ -582,9 +587,9 @@ Where experts disagreed, the disagreement is surfaced rather than averaged. Wher
 
 - **Architect:** Approve — direct hit on real toil. Compose existing tools (version bumper, prettier, audit-gates, marketplace.json sync). Do NOT auto-commit or auto-push.
 - **QA:** Approve-with-changes. Ship the **reporting** path first; only add the hard-deny "consecrated" gate (with invalidation semantics for "consecrated but then edited") in a second pass. Each gate failure must produce a named, actionable error.
-- **Documentarian:** Approve-with-changes. ASCII form `/mjolnir` in the CLI; adopt only once the release workflow is actually centralized — don't name a command before it exists.
+- **Documentarian:** Approve-with-changes. The **primary command is a functional name (`/release-check`)** with `/mjolnir` as a documented alias (per §6 principle 7 — a myth word must not be the canonical command identifier, or the CI gate rejects it); ASCII form `mjolnir` in any CLI surface; adopt only once the release workflow is actually centralized.
 - **Disagreement:** Mild. Architect is ready to build now; QA wants a reporting-first staged rollout. The QA caveat is the safer path.
-- **Synthesized verdict: Approve-with-changes.** Ship `/mjolnir` as a release-readiness reporter first. Defer the binding "consecrated" label until invalidation semantics (what un-consecrates a plugin after a post-bless edit) are defined and tested.
+- **Synthesized verdict: Approve-with-changes.** Ship `/release-check` (alias `/mjolnir`) as a release-readiness reporter first. Defer the binding "consecrated" label until invalidation semantics (what un-consecrates a plugin after a post-bless edit) are defined and tested.
 
 #### Ragnarök — disaster-recovery / reset slash-command
 
@@ -602,6 +607,7 @@ Where experts disagreed, the disagreement is surfaced rather than averaged. Wher
 - **Documentarian:** Deny. Three compounding problems: heaviest diacritic burden in the roster (Níðhöggr), doesn't shorten the explanation ("tech debt" is already universal), and the myth's directional content ("feeds on the _dishonored_ dead") is mildly accusatory in a way that's the wrong posture for a debt panel.
 - **Disagreement:** **Strong, three-way.** Architect: too early. PM: high value, build it. Documentarian: useful concept, wrong name.
 - **Synthesized verdict: Deny on Níðhöggr as a name; defer the underlying panel.** The PM's signal is real (a debt-watch panel will earn its keep eventually) but the architect is right that the marketplace doesn't have enough surface to track yet, and the documentarian is right that the name is a net negative even when the panel exists. **When the panel lands, prefer a plain name** ("debt watch") or fold it into Skuld in the Norns panel. Reconsider at 5+ plugins.
+- _[Correction (2026-05-23 review): the architect's "premature at 2 plugins" premise is wrong — there are **7** plugins, so the panel is scope-eligible on count (the "5+" gate is met). The documentarian's objection to the **name** Níðhöggr stands independently of the count; if the panel is built, use a plain name ("debt watch") or fold it into Skuld.]_
 
 ---
 
@@ -613,7 +619,7 @@ A second architect pass re-examined every "Thin — skip" verdict against the sa
 
 **Ratatoskr** specifically remains a hard reject — the myth's content (the squirrel _slanders_, _distorts_) points the wrong direction for any subagent-message-passing feature, which must be _faithful_. The original verdict on directional content was correct.
 
-**Nine Realms** verdict ("flavor not structure") confirmed. Forcing a count of nine onto a growing plugin set creates maintenance debt; current scope (~2–6 plugins) doesn't justify the cosmology.
+**Nine Realms** verdict ("flavor not structure") confirmed. Forcing a count of nine onto a growing plugin set creates maintenance debt; the current scope (7 plugins) doesn't justify forcing the cosmology onto a fixed count of nine.
 
 ---
 
@@ -622,24 +628,30 @@ A second architect pass re-examined every "Thin — skip" verdict against the sa
 - **Consumer-facing surfaces stay plain English.** The architect explicitly flagged this and the designer's verdicts implicitly reinforce it: maintainer-facing dashboards and slash-commands can carry Norse names freely, but the `enforce-layout.sh` deny output, the `/init-agent-ready` flow, error messages from CI gates — these should not require a mythology primer to read. Worth a one-line house rule in `AGENTS.md` once 2–3 of these candidates land.
 - **ASCII-form discipline.** Documentarian flagged it most explicitly, but architect + designer touched it too: any name with a diacritic (`Mímir`, `Bifröst`, `Mjölnir`, `Ragnarök`, `Níðhöggr`) needs a defined ASCII form (`mimir`, `bifrost`, `mjolnir`, `ragnarok`) before it ships in any CLI surface. Codify in a style-guide line before any of these names land in a slash-command.
 - **Operator-only vs. agent-visible.** Security flagged this for Gleipnir's decay view; the same principle applies to Heimdall's deny-verdict log and Fenrir's annotated rules. Things that help a defender act faster can also help an attacker locate the weakest link. Default to operator-only surfaces; promote to broader visibility only after a deliberate review.
+- **Plain-language-primary naming (added 2026-05-23).** Every tab/button/panel verdict above is subject to §6 principles 7–8: the plain function is the primary label and the canonical identifier; the Norse name is a parenthetical/alias only. `/mjolnir`, `/ragnarok`, etc. are aliases, never primary command identifiers — the CI gate rejects a Norse name in any canonical identifier.
+- **Accessibility (added 2026-05-23).** Any Norse-named interactive element needs an `aria-label` carrying the plain-English function, so the themed display layer never costs screen-reader or keyboard users their wayfinding.
 
 ---
 
 ### 8.4 — Synthesized recommendation summary
 
-| # | Figure | Synthesized verdict | Key gate |
-|---|---|---|---|
-| 1 | Gleipnir | Approve-with-changes | Confirm six-axis decomposition; decay view operator-only |
-| 2 | Yggdrasil view | Deny interactive; Approve static diagram | Build the interactive view at 5+ plugins, not today |
-| 3 | Norns panel | Approve-with-changes | Past + present columns only; Skuld gated on manifest schema |
-| 4 | Heimdall surface | **Approve (build first)** | Tier the banner; read-only mirror |
-| 5 | Mímir's well + head | Approve-with-changes | Narrative-only renames; first-write disclosure + secret redaction |
-| 6 | Sleipnir | Approve-with-changes (copy-only) | No new component; labels + Activity widget |
-| 7 | Fenrir | Approve | Lands after Gleipnir; security_deny-cannot-be-overridden invariant |
-| 8 | Bifröst | Approve-with-changes | Wizard checklist, not automation |
-| 9 | Mjölnir | Approve-with-changes | Reporter first; consecrated label only after invalidation defined |
-| 10 | Ragnarök | Approve-with-changes | Primary command `/reset-plugin-cache` (alias `/ragnarok`); atomic-swap + dry-run mandatory |
-| 11 | Níðhöggr | Deny (the name); defer the underlying panel | Reconsider at 5+ plugins under a plain name or as Skuld content |
+> **Reconciliation note (2026-05-23).** Two verdicts below (Yggdrasil-interactive, Níðhöggr) were Denied on a "2 plugins" premise that is factually wrong — the marketplace has **7** plugins, so the architect's own "revisit at 5+" gate is met. The downstream build plan (`norse-features-build-plan.md`) records a **user override** that includes both; with the corrected count, that override now aligns with the architect's stated gate rather than contradicting it. The Níðhöggr **name** objection (documentarian) is independent of the count and still stands.
+>
+> **Payload class** distinguishes what a verdict actually commits to: _Docs-only_ (rename/label/copy, no new component), _New-invariant_ (a new enforced safety rule), _New-surface_ (a new tab/panel/command with real code). It exists so a build hand-off doesn't treat a one-sentence rename like a feature.
+
+| # | Figure | Synthesized verdict | Payload class | Key gate |
+|---|---|---|---|---|
+| 1 | Gleipnir | Approve-with-changes | Docs-only (viz later) | Confirm six-axis decomposition; decay view operator-only |
+| 2 | Yggdrasil view | Deny interactive; Approve static diagram | New-surface | Count premise corrected (7 plugins → "5+" gate met); scope-eligible, sequence later |
+| 3 | Norns panel | Approve-with-changes | New-surface | Past + present columns only; Skuld gated on manifest schema |
+| 4 | Heimdall surface | **Approve (build first)** | New-surface | Tier the banner; read-only mirror |
+| 5 | Mímir's well + head | Approve-with-changes | Docs-only (+ memory-writer prompt edit, reviewed separately) | Narrative-only renames; first-write disclosure + secret redaction |
+| 6 | Sleipnir | Approve-with-changes (copy-only) | Docs-only | No new component; labels + Activity widget |
+| 7 | Fenrir | Approve | New-invariant | Lands after Gleipnir; security_deny-cannot-be-overridden invariant |
+| 8 | Bifröst | Approve-with-changes | New-surface | Wizard checklist, not automation |
+| 9 | Mjölnir | Approve-with-changes | New-surface (command) | Primary `/release-check`, `/mjolnir` alias; reporter first; consecrated label only after invalidation defined |
+| 10 | Ragnarök | Approve-with-changes | New-surface + New-invariant | Primary command `/reset-plugin-cache` (alias `/ragnarok`); atomic-swap + dry-run mandatory |
+| 11 | Níðhöggr | Deny (the name); panel scope-eligible at 7 plugins | New-surface (deferred) | Count premise corrected; if built, use a plain name ("debt watch") or fold into Skuld |
 
 **Build order if all approvals land:** Heimdall → Mjölnir (reporter) → Fenrir (after Gleipnir docs) → Norns (past+present) → Bifröst (wizard) → Sleipnir copy → Mímir docs labels → static Yggdrasil diagram. Gleipnir docs rename can run anytime; Ragnarök and Mjölnir-consecrated and Yggdrasil-interactive and Níðhöggr remain deferred.
 
