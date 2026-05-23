@@ -107,6 +107,8 @@ There is no standing, scheduled capability that **proactively** runs the Researc
 
 Huginn & Muninn fills that gap.
 
+> **⚠ Substrate readiness & Phase-0 gate (2026-05-23 review — BLOCKING).** This panel reads an event-log substrate that **does not exist yet**: as of 2026-05-23, `scripts/generate-dashboards.py` reads only `dashboard-schema.json`, the Activity tab is a hard-coded stub, and no hook or skill emits any `.jsonl` / `findings.json`. So a **Phase 0 must ship first** and owns the full read+write pipeline: (a) `events.jsonl` / `findings.json` emission from the raven skills + `scenario-retrieval`, and (b) a generator function that globs `.ravenclaude/runs/dawn/*` and inlines `findings.json` (ignoring `*.tmp`). The panel (§7; "Phase 3" in §12) is **gated on Phase 0**, not merely on Phase A comfort-posture. Until Phase 0 lands, `findings.json` is empty and the panel renders its empty state.
+
 ---
 
 <a id="2-concept"></a>
@@ -442,6 +444,21 @@ The design therefore commits to **per-machine triage, repo-wide effect** as the 
 
 ## 7. Dashboard panel UI — Hliðskjálf
 
+### 7.0 Data-injection model (how findings reach the static HTML)
+
+The dashboard is **static generated HTML with no backend** — it cannot `fetch()` local files under `file://`. So findings are **inlined at generator run-time**: `generate-dashboards.py` reads `.ravenclaude/runs/dawn/<latest>/{muninn,huginn}/findings.json` from local disk and emits them as a `<script type="application/json" id="dawn-data">…</script>` block. The panel JS reads that block; it never fetches at runtime.
+
+| Context | Behavior |
+|---|---|
+| `file://` (opened locally) | Findings inlined at generation; full panel. |
+| GitHub Pages | `.ravenclaude/runs/` is gitignored → not in the repo → panel shows the **empty state** ("No local run data — open the generated dashboard from your project to see findings"). |
+
+The "latest dawn" directory is resolved by a **lexicographic `max()` over `YYYY-MM-DD` dirnames in the generator** — not a `_latest` symlink (symlinks are brittle cross-platform and add a failure mode for zero benefit). Atomic-write contract: ravens write `findings.json.tmp` then rename; the generator's glob ignores `*.tmp`.
+
+**Severity cue (a11y):** HIGH / MED / LOW must use a non-color channel — a Unicode prefix + text (e.g. `▲ HIGH` / `● MED` / `▼ LOW`), never color alone (WCAG 1.4.1). Status/empty/failure regions carry `aria-live` (`polite` for status, `assertive` for a failed dawn).
+
+**Domain-neutrality:** Huginn leads with domain-neutral finding kinds (repo-delta, dependency-drift on core's own declared tools); `platform-shift` (Power Platform / Salesforce release notes, etc.) is a **domain-plugin-contributed** capability — core ships the neutral fetch + novelty engine, domain plugins contribute `huginn_sources` — preserving House Rule 1.
+
 ### 7.1 Where it slots in the tab inventory
 
 Adding to the buildout plan's planned tab inventory (which after Phase B is: Settings, Commands, Trees, Activity, plus B.4 panels Agents / Environment / Scenarios / Health / Changelog):
@@ -459,7 +476,7 @@ Adding to the buildout plan's planned tab inventory (which after Phase B is: Set
 | **Hliðskjálf**    | **proposed** | **(this doc) — sibling to Activity / Scenarios; B.4.6.**        |
 | Changelog         | proposed     | (buildout B.4.5)                                                |
 
-The hash route is `#/hlidskjalf` (and a forgiving alias `#/recon`). Tab label in the bar: **"Recon"** with the small monochrome raven glyph, tooltip "Hliðskjálf — Huginn & Muninn's dawn report."
+The hash route is `#/hlidskjalf` (alias `#/recon`). **Tab-route wiring (for the implementer):** add `'hlidskjalf'` (and `'recon'`) to the JS `validTabs` array, emit the tab button + `<section>` panel from `generate-dashboards.py`, and add a `DOMContentLoaded` parse for `#/hlidskjalf?date=YYYY-MM-DD`. Tab-bar label: **"Recon"** (compressed form, **no emoji — use a CSS/SVG icon, not a glyph character**); the **panel's own H1 is the plain-primary form "Reconnaissance (Hliðskjálf)"** per the house naming pattern, with the plain function as its `aria-label`; tooltip "Hliðskjálf — Huginn & Muninn's dawn report."
 
 ### 7.2 Anatomy sketch
 
@@ -473,7 +490,7 @@ The hash route is `#/hlidskjalf` (and a forgiving alias `#/recon`). Tab label in
 │  └─────────────────────────────────────────────────────────────────┘ │
 │                                                                         │
 │  ┌─ Ask Muninn ─────────────────────────────────────────────────────┐ │
-│  │ 🔍 Have we seen this before?   [SPN flow create 403       ] [Go] │ │
+│  │ Have we seen this before?      [SPN flow create 403       ] [Go] │ │
 │  │   ↳ deep-links to /muninn-recall                                  │ │
 │  └─────────────────────────────────────────────────────────────────┘ │
 │                                                                         │
@@ -675,6 +692,10 @@ The Configure ⚙ menu's "Pause ravens" affordance can be set automatically by a
 ### 9.6 Agents tab (buildout B.4.1)
 
 **Read-only relationship.** The Agents tab's per-agent details modal could surface "Last referenced by Muninn: N days ago" for orphan detection visibility. Hliðskjálf doesn't write to or read from `.ravenclaude/agents.yaml`. The two surfaces share the agent frontmatter `priors` data but otherwise are independent.
+
+### 9.7 Víðarr event-log panel (norse-features-build §3.11)
+
+**Orthogonal surfaces; shared substrate.** Víðarr (in the build plan) surfaces the posture/security event log (`posture-events.jsonl` + `hook-events.jsonl`) as a read-only chronological table in Settings; Hliðskjálf surfaces a knowledge-findings _worklist_. The UIs are genuinely distinct and stay separate panels. But both independently invent a `.jsonl` event-log pipeline, so they must **share one event-log emission convention and schema**, defined once in `ravenclaude-core` CLAUDE.md (the build plan's Phase-0 P0.2 proposes exactly this); both readers parse that common format. Do not ship two divergent jsonl schemas.
 
 ---
 
