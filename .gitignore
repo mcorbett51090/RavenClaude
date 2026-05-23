@@ -28,6 +28,10 @@ npm-debug.log*
 *.tgz
 .cache/
 
+# Python bytecode (e.g. from apply-comfort-posture.py / generate-*.py)
+__pycache__/
+*.pyc
+
 # RavenClaude runtime artifacts (per-run agent handoff substrate; not committed)
 .ravenclaude/
 
