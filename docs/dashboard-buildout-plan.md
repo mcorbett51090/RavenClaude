@@ -925,27 +925,122 @@ These failure modes go into a collapsible "Troubleshooting" section at the botto
 
 Beyond the four base tabs + Install, the following panels are worth designing toward. They are ordered by usefulness (highest first).
 
-#### B.4.1 **Agents tab** — per-agent enable / disable / configure
+#### B.4.1 **Agents tab** — per-agent enable / disable / configure (expanded spec)
 
 Today each plugin's `agents/` directory ships an opinionated set of specialist agents. The user can implicitly disable an agent by never invoking it, but cannot turn one **off** at the dispatch layer. Some users want narrower specialist lists; others want to tune which skills an agent is allowed to call.
 
-The Agents tab lists every agent in every installed plugin, grouped by plugin. Each agent row shows:
+##### Purpose
+
+Answer three user questions:
+
+1. **"What agents am I shipping?"** — every agent across every installed plugin, with one-line capabilities and frontmatter metadata (audience, works-with, scenarios, quickstart).
+2. **"How do I turn one off?"** — pick an agent, disable it; the Team Lead refuses to dispatch it for the rest of the session. Re-enable later. Settings persist per scope (user / project / local) using the same scope selector as Phase A.
+3. **"What is this agent allowed to do?"** — read-only view of the agent's declared model, skills, and max-context budget. Tells the user the difference between (e.g.) a `designer` that can also be told to spec components in code vs one that is text-only.
+
+##### Data sources
+
+| Source | Used for | Where |
+|---|---|---|
+| `plugins/<plugin>/agents/*.md` frontmatter | Capability metadata (description, audience, scenarios, quickstart, model, allowed_tools) | Generator-time inline; no runtime read. |
+| `plugins/<plugin>/CLAUDE.md` "mandatory agents" block | List of agents the plugin marks non-disableable (e.g., `security-reviewer`) | Generator-time inline. |
+| `.ravenclaude/agents.yaml` (and `.local.yaml`) | Per-agent enable/disable state | Runtime read via `/__read`; runtime write via `/__save`. New allow-list entries. |
+| `~/.ravenclaude/agents.yaml` | User-scope per-agent state | Same. |
+
+##### UI layout
 
 ```
-┌─ ravenclaude-core ──────────────────────────────────────────┐
-│  architect          [● enabled]  [Configure]  [Hide pattern] │
-│  backend-coder      [● enabled]  [Configure]                │
-│  data-engineer      [○ disabled] [Enable]                   │
-│  designer           [● enabled]  [Configure]                │
-│  security-reviewer  [● enabled]  [Configure]   🔒 mandatory  │
-│  …                                                            │
-└─────────────────────────────────────────────────────────────┘
+┌─ Agents ──────────────────────────────────────────────────────────────┐
+│  Apply changes to: [● User  ○ Project  ○ Local]                       │
+│                                                                        │
+│  Filter: [ ☐ disabled only  ☐ mandatory only ]  Search: [          🔍 ]│
+│                                                                        │
+│  ┌─ ravenclaude-core · 14 agents · 14 enabled ──────────────────┐    │
+│  │  ▾ architect              [● enabled]  [details]  [hide in cmds] │ │
+│  │     Plans implementations; produces Keep/Update/Deny structures. │ │
+│  │     Audience: all  ·  Works with: code-reviewer, project-mgr    │ │
+│  │                                                                    │ │
+│  │  ▸ backend-coder          [● enabled]  [details]  [hide in cmds] │ │
+│  │  ▸ data-engineer          [○ DISABLED] [Enable]                  │ │
+│  │  ▸ security-reviewer      [● enabled]  [details]  🔒 mandatory   │ │
+│  │     ↳ This plugin's CLAUDE.md marks this agent as mandatory;    │ │
+│  │       cannot be disabled (would void the security review gate). │ │
+│  │  …                                                                 │ │
+│  └────────────────────────────────────────────────────────────────┘  │
+│                                                                        │
+│  ┌─ power-platform · 11 agents · 8 enabled ────────────────────┐    │
+│  │  ▸ copilot-studio-engineer  [● enabled]                       │  │
+│  │  ▸ dataverse-architect      [● enabled]                       │  │
+│  │  ▸ flow-engineer            [○ DISABLED]                      │  │
+│  │  ▸ pcf-developer            [○ DISABLED]   (no React in repo) │  │
+│  │  …                                                              │  │
+│  └────────────────────────────────────────────────────────────┘    │
+│                                                                       │
+│  ┌─ … other plugins (finance, regulatory-compliance, …) ─────┐     │
+│                                                                       │
+│  ┌─ Bulk actions ──────────────────────────────────────────┐        │
+│  │  [Disable all in <plugin>]  [Enable all]  [Reset to defaults]│   │
+│  └─────────────────────────────────────────────────────────┘        │
+└───────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Enable / disable** writes to `.ravenclaude/agents.yaml` (project) or `.local.yaml` — a list of `<plugin>/<agent>: enabled|disabled`. Team Lead reads at session start and refuses to dispatch disabled agents.
-- **Configure** opens a per-agent modal showing the agent's declared skills, default model, max-context budget, etc. — read-only for v1; editable for v2.
-- **Mandatory** flag on security-reviewer (and any agent the constitution declares non-disableable). The toggle is greyed out with a tooltip explaining why.
-- **Hide pattern** — a per-agent "I don't want to see this in the Commands tab" filter. Useful for users who never touch one specialty.
+##### Components broken down
+
+1. **Scope selector** (same UX as Phase A) — Apply changes at User / Project / Local. Default: User. Stored in `localStorage` per browser.
+2. **Agent groups by plugin** — collapsed by default to fit 55+ agents. Each agent row shows the agent's frontmatter `description`, `audience`, and `works_with` (per the scenario-authoring schema). Two actions: toggle enabled/disabled and "hide in commands" (filters out the agent's commands in the Commands tab).
+3. **Details modal** — opens on click of [details]. Shows: model declaration, allowed tool list, declared skills the agent calls, max-context budget, scenario summaries with links to the per-scenario file. Read-only in v1.
+4. **Mandatory flag** — agents marked mandatory in the plugin's CLAUDE.md cannot be disabled. The toggle is greyed out; tooltip explains why. The list of mandatory agents per plugin is generator-inlined.
+5. **Bulk actions** — quick disable/enable all in a plugin (useful when uninstalling a domain temporarily) and "Reset to defaults" (clears the YAML, restoring every agent to enabled).
+6. **"Hide in commands"** — per-agent flag that filters that agent's commands from the Commands tab. Lighter-weight than disabling because it doesn't prevent dispatch — just hides commands the user is uninterested in (e.g., they never touch `pcf-developer`'s commands).
+
+##### Settings file shape (`.ravenclaude/agents.yaml`)
+
+```yaml
+schema_version: 1
+
+# Disabled agents per plugin. Absence means enabled (the default).
+disabled:
+  power-platform:
+    - pcf-developer        # no React in repo
+    - copilot-studio-engineer
+  data-platform:
+    - connector-developer
+
+# Per-agent UI preferences.
+hide_in_commands:
+  - power-platform/pcf-developer
+  - data-platform/connector-developer
+```
+
+The YAML is **additive** — only agents the user has actively touched appear. Agents in this file but no longer in the marketplace (plugin uninstalled, agent removed) are reported as "stale" with a one-click cleanup.
+
+##### Team Lead dispatch behavior
+
+The Team Lead reads `.ravenclaude/agents.yaml` at session-start orientation (the same pass that loads `environment-context.md`). When a dispatch target appears in the disabled list:
+
+- **If alternative agents exist** (e.g., disabled `data-engineer`, but `architect` can plausibly cover) — Team Lead picks the next-best alternative per its decision tree.
+- **If no alternative exists** — Team Lead reports back to the user: *"I would dispatch `<agent>` for this work but it is disabled in your `.ravenclaude/agents.yaml`. Re-enable, or ask me to proceed without specialist input?"*
+
+A disabled agent is **not silently skipped** — the dispatch failure is reported so the user can revisit the decision.
+
+##### Mandatory-agent enforcement
+
+A plugin declares mandatory agents in its CLAUDE.md under a `## Mandatory agents` section, listing one agent slug per line. The generator parses this into the Agents tab's data inline. If a user edits `.ravenclaude/agents.yaml` manually to disable a mandatory agent, the Team Lead's session-start orientation pass:
+
+1. Detects the conflict.
+2. Emits a one-time warning: *"You've disabled `<agent>` which is marked mandatory by `<plugin>`. The Team Lead will continue to dispatch it; your disable is ignored for this agent."*
+3. Strikes the entry from the YAML on next `/set-agents` (proposed companion command) run.
+
+##### Effort estimate
+
+- `.ravenclaude/agents.yaml` schema + Team Lead orientation-pass read: **3 hours**
+- `apply-agents.py` (companion to `apply-comfort-posture.py`, same shape, writes the YAML based on dashboard input): **3 hours**
+- Dashboard tab UI: **6-8 hours**
+- Details modal + frontmatter inlining: **3 hours**
+- Mandatory-agent enforcement + Team Lead wiring: **2 hours**
+- Tests + fixtures (audit-gates.sh checks for stale agents in YAML): **2 hours**
+- **Subtotal: 19-21 hours.**
+
+Sequenced as **ravenclaude-core 0.22.0**, after Phase A + B.1/B.2 ship. The work depends on existing scenario-authoring frontmatter being filled out (it is, per the marketplace.json `0.10.0` line: "v0.10.0: every agent ships example-scenario frontmatter").
 
 #### B.4.2 **Environment tab** — view (and re-discover) the project's environment context
 
@@ -1128,9 +1223,204 @@ function resolveMerge(layers, patternToTest) {
 
 The Health tab is now bigger than the original estimate, but it's the most important downstream deliverable. Sequenced as **ravenclaude-core 0.20.0** (one minor after Phase A so users have a chance to hit the surprise before the diagnostic lands; better: ship Phase A + Health tab together as 0.18.0).
 
-#### B.4.5 **Update notifier**
+#### B.4.5 **Update notifier** (expanded spec)
 
-Not a tab — a top-bar banner that appears when the **installed plugin version** is older than the version at HEAD of the marketplace repo. Reads from a JSON file the generator emits with each release. One-click "Run /plugin marketplace update" + "/reload-plugins" deep links.
+Not a tab — a **top-bar banner + a dedicated changelog tab** that appears when the installed plugin version is older than the version at HEAD of the marketplace repo.
+
+##### Purpose
+
+Three questions:
+
+1. **"Am I behind?"** — a non-modal banner that flashes when a newer version exists. Dismissable per-version (won't nag again for the same version).
+2. **"What changed?"** — a Changelog tab listing the version diff: new commands, removed commands, schema-breaking changes, security-fix CVE references.
+3. **"How do I update?"** — one click to launch `/plugin marketplace update ravenclaude` followed by `/reload-plugins`, via the deep-link mechanic.
+
+##### Detection mechanism
+
+GitHub Pages serves a stable JSON manifest at `https://mcorbett51090.github.io/RavenClaude/dashboards/latest-versions.json`:
+
+```json
+{
+  "$schema": "https://github.com/mcorbett51090/RavenClaude/blob/main/scripts/latest-versions-schema.json",
+  "generated_at": "2026-05-23T14:23:00Z",
+  "marketplace_version": "0.26.0",
+  "plugins": {
+    "ravenclaude-core": {
+      "version": "0.17.0",
+      "released_at": "2026-05-22",
+      "changelog_anchor": "v0-17-0"
+    },
+    "power-platform": { "version": "0.12.2", "released_at": "…", "changelog_anchor": "…" },
+    "finance": { "version": "0.5.1", "released_at": "…", "changelog_anchor": "…" }
+  }
+}
+```
+
+`generate-dashboards.py` emits this on every release (it already reads `marketplace.json` and the per-plugin `plugin.json`). The dashboard does a single `fetch()` on tab open against this URL (which is `https://`, so works from `file://` because of the explicit HTTPS scheme). On `file://` mode with **no network**, the fetch silently fails — the banner does not appear (degrade by absence is correct here).
+
+The user's **installed version** comes from the dashboard.html itself: the generator inlines `<meta name="ravenclaude-installed-version" content="0.17.0">` into the head. Banner triggers when `installed < latest` per semver compare.
+
+##### UI
+
+**Banner** (top of every tab):
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│  ⓘ  ravenclaude-core 0.18.0 is available (you're on 0.17.0).         │
+│     [View changes]  [Update now]  [×]                                │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+- "View changes" — opens the Changelog tab and scrolls to the `v0-18-0` anchor.
+- "Update now" — deep-link to `/plugin marketplace update ravenclaude`, then a second deep-link to `/reload-plugins`. Both pre-filled, neither auto-executed.
+- "×" — dismisses the banner per-version. Stored in `localStorage`: `dismissed-banner: ["0.18.0"]`.
+
+The banner does NOT re-appear on the same machine for the same version. If 0.19.0 ships, the banner re-appears with the new version number.
+
+**Changelog tab content** is pulled at generator time from each plugin's release notes. Each release section is auto-anchored (`v0-17-0`, `v0-18-0`, etc.). Filter chip at top: `[All plugins · ravenclaude-core · power-platform · …]`. Per release, the structured content is:
+
+```
+## ravenclaude-core 0.18.0 — Multi-layer comfort posture
+  Released: 2026-05-30
+
+  ### New
+    + /set-posture --scope user|project|local — pick which settings layer to apply to
+    + Dashboard: scope selector above the preset bar
+    + Migration banner for legacy users
+
+  ### Breaking
+    ⚠ /set-posture default scope changed from project to user. Project-scope users
+       see a migration banner on first run; --scope project still works.
+
+  ### Security
+    none
+
+  ### Fixed
+    none
+```
+
+##### Composition with Phase A migration banner
+
+The Phase A first-run migration banner (described in §2.3.5) and the Update notifier are **distinct surfaces** but visually related. Decision: stack them when both apply, with the migration banner on top (more urgent). Both use the same dismissal pattern (`localStorage` per-version, per-banner-type).
+
+##### Effort estimate
+
+- `latest-versions.json` generation (extend `generate-dashboards.py`): **2 hours**
+- Banner + dismissal + localStorage: **2 hours**
+- Changelog tab (markdown render from inlined data): **3-4 hours**
+- Update deep-link sequence + error fallback: **2 hours**
+- **Subtotal: 9-10 hours.**
+
+Sequenced as **ravenclaude-core 0.24.0**.
+
+---
+
+### B.5 Accessibility & i18n checklist (cross-cutting)
+
+The dashboard already does well on accessibility — the existing Settings tab uses `role="radiogroup"`, `aria-selected`, `aria-controls`, focus-visible outlines, `prefers-reduced-motion` honoring, and `prefers-color-scheme` light/dark variants. The build-out preserves and extends this discipline.
+
+#### Mandatory for every new tab and interaction
+
+| # | Requirement | Where it applies |
+|---|---|---|
+| A1 | All interactive elements reachable by Tab; logical tab order matches visual order. | All tabs. |
+| A2 | Radio groups use APG radiogroup pattern (Tab between groups, Arrow keys within, Space to select). | Settings scope selector, Agents scope selector, Health layer-view radio. |
+| A3 | Icons that convey state always have a text label or `aria-label`. No state-by-color-only. | Command card status pills, Health rule-source tags, Agents enabled/disabled toggle. |
+| A4 | Hover-only affordances also work on focus and on touch. The B.2 Design 1 command card's hover tooltip becomes a focus-popover and a tap-popover on touch. | Commands tab cards. |
+| A5 | Modal dialogs trap focus; Escape closes; the trigger element receives focus on close. | Info modals, agent details modal, command preview modals. |
+| A6 | Live-region announcements for save status (`role="status"` on the "auto-saved" pill). | All tabs with auto-save. |
+| A7 | Color contrast ≥ 4.5:1 for normal text, ≥ 3:1 for large text. Verified in both `prefers-color-scheme: light` and `dark`. | All tabs. The existing accent (`#14b8a6`) on dark `--surface` (`#111827`) is 5.8:1 ✓. |
+| A8 | Keyboard shortcuts (`⌘K` palette, `?` for help) document themselves via a visible help affordance. | Commands tab palette overlay. |
+| A9 | No `outline: none` without a visible alternative. The existing CSS uses `outline: 2px solid var(--accent)` everywhere ✓ — preserve. | All tabs. |
+| A10 | Heading levels properly nested (h1 → h2 → h3). Each tab's root is h2; sections within are h3. | All tabs. |
+
+#### Internationalization
+
+Out of scope for this plan. The dashboard ships in English. If a consumer needs translation, the discipline is: all user-facing strings concentrated in a single object at the top of the inlined JS (already partially the case in `dashboard.html`) so a future i18n pass swaps strings without rebuilding the form-rendering code. **Recommendation:** factor strings into a `const STRINGS = {…}` block at the top of the generated `<script>` even though we don't translate today. Cost: trivial. Future-proofs.
+
+### B.6 Deep-link mechanic — fallback chain in detail (cross-cutting)
+
+The Commands tab, Install tab, Update notifier, Environment tab, and Activity feed all use the same deep-link → fallback chain. Specified once here.
+
+#### The fallback ladder
+
+```
+User clicks Launch
+       │
+       ▼
+[ Probe: claude-cli:// handler registered? ]──── yes ───▶ Open claude-cli://open?q=...&cwd=...
+       │                                                      │
+       │                                                      ▼
+       │                                              [ Claude Code receives ]
+       │                                                      │
+       │                                                      ▼
+       │                                            Prompt box pre-filled
+       │                                            (NOT auto-executed)
+       │
+       no ───────────────────────────────────────────┐
+       │                                              ▼
+       ▼                                       [ Copy to clipboard ]
+[ Fallback 1: Copy to clipboard ]                     │
+       │                                              ▼
+       │                                       Toast: "Copied — paste in Claude Code"
+       │
+[ Fallback 2: Show in modal ]
+       │
+       ▼
+Modal: 
+       /init-agent-ready repo-type=plugin-marketplace
+       
+       [Copy]  [Close]
+```
+
+#### Probe implementation
+
+There is no JavaScript API to query whether a URL scheme handler is registered. The pragmatic detection is the **race-the-navigation** pattern:
+
+```js
+async function probeClaudeCliHandler(timeoutMs = 800) {
+  return new Promise(resolve => {
+    let resolved = false;
+    const onBlur = () => { if (!resolved) { resolved = true; resolve(true); } };
+    window.addEventListener('blur', onBlur, { once: true });
+
+    // Use a synthetic iframe to avoid losing the current page.
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = 'claude-cli://probe';
+    document.body.appendChild(iframe);
+
+    setTimeout(() => {
+      window.removeEventListener('blur', onBlur);
+      if (!resolved) { resolved = true; resolve(false); }
+      iframe.remove();
+    }, timeoutMs);
+  });
+}
+```
+
+The probe runs once on page load and caches the result in `sessionStorage`. Re-runs on next session because handler registration can change (Claude Code uninstalled, etc.). On `false`, the Launch buttons render as Copy buttons instead.
+
+> **Limitations to honor.** The race-the-navigation pattern is best-effort. Safari ignores cross-scheme iframe sources entirely (no navigation, no blur, treated as no-handler). Firefox without scheme registration shows a chrome-level dialog the first time the scheme is invoked — survivable but noisy. Chrome / Edge handle gracefully. **Behavior matrix:**
+>
+> | Browser | Handler registered | Handler missing |
+> |---|---|---|
+> | Chrome / Edge | Opens CC ✓ | Probe returns false ✓ → Copy fallback |
+> | Firefox | First click: confirmation dialog ("Open with Claude Code?") then opens ✓; subsequent clicks: opens silently ✓ | Confirmation dialog with "No handler" → Copy fallback |
+> | Safari | Opens via OS handler ✓ | Probe returns false ✓ → Copy fallback |
+
+#### Hard rules for the URL builder
+
+(Repeating proposal 003 §9 for emphasis — these are not negotiable.)
+
+1. The `q` parameter is **always** a hard-coded slash command from a generator-time allow-list. Never user input.
+2. The `cwd` parameter is **always** derived from the dashboard's own file path. Never a form field.
+3. The `repo` parameter is **always** the marketplace URL. Never user input.
+4. No additional parameters beyond `q`, `cwd`, `repo`. If a command needs args, they appear **inside `q`** as part of the slash-command text (e.g., `?q=%2Fset-posture%20--scope%20user`).
+
+#### Why "pre-filled but not executed" is the right ceiling
+
+Claude Code's `claude-cli://open?q=...` deliberately pre-fills without executing. **We do not try to bypass this.** The user reading and pressing Enter is the consent gate. If a future Claude Code version added auto-execution, we would still keep the user-press-Enter step in our flow because the dashboard is opened from a browser — a different trust boundary than the terminal. Browser → CC bridge with no consent is a phishing waiting to happen.
 
 ---
 
@@ -1285,10 +1575,116 @@ This section proposes the **slash commands** each agent / domain should expose. 
 | `/dashboard-build` | dashboard-builder | `tool cube\|supabase\|other`, `dataset` | Build a customer-facing dashboard. |
 | `/embed-token-issue` | dashboard-builder | `dashboard-id`, `tenant` | JWT embed token issuance (uses the core skill). |
 
+### 4.7.1 Additional commands surfaced by per-plugin verification (v7 expansion)
+
+Three research passes (one per cluster of plugins) verified the v1 command tables against each agent's actual frontmatter `description` and Mission/Scope. They flagged gaps and proposed additions. The full additions, organized by plugin, are below. These are **proposed for Phase C** alongside the v1 list, bringing the total from ~95 to **~125 commands**.
+
+**ravenclaude-core (+0)** — already comprehensive; no additions surfaced.
+
+**power-platform (+12):**
+
+| Slash | Owner | Args | Notes |
+|---|---|---|---|
+| `/copilot-studio-design` | copilot-studio-engineer | `bot-name`, `topic?` | Walkthrough of topic + slot-filling + generative-answer boundaries. |
+| `/copilot-studio-test` | copilot-studio-engineer | `bot-name`, `payload-file` | Test a topic with payloads + assertions on conversation flow. |
+| `/dataverse-audit` | dataverse-architect | `solution-name` | Schema review for anti-patterns (native N:N, FLS over-use, cascade-all hazards). |
+| `/dataverse-plugin-review` | dataverse-architect | `plugin-file.cs` | Review plug-in C# for transactional correctness. |
+| `/flow-build` | flow-engineer | `flow-name`, `template?` | Scaffold a new cloud flow with Try-Catch-Finally boilerplate. |
+| `/custom-connector-build` | flow-engineer | `connector-name`, `auth-type` | Scaffold OpenAPI + auth for a custom connector. |
+| `/model-driven-form-script` | model-driven-engineer | `form`, `event onload\|onsave\|onchange` | Scaffold OnLoad/OnSave/OnChange handlers with modern Xrm API + async/await. |
+| `/pcf-test` | pcf-developer | `component-path`, `framework jest\|vitest` | Wire a Jest/vitest harness for PCF. |
+| `/pbip-init` | power-bi-engineer | `pbix-file` | Scaffold PBIP folder structure from a `.pbix`. |
+| `/dax-measure-review` | power-bi-engineer | `measure`, `model-path` | Walkthrough a measure for performance + semantic correctness with DAX Studio output. |
+| `/power-fx-delegate-check` | power-fx-engineer | `formula-or-screen` | Identify non-delegable predicates; suggest rewrites. |
+| `/component-scaffold` | power-fx-engineer | `component-name` | Create a reusable canvas component shell. |
+| `/power-pages-table-permissions` | power-pages-engineer | `portal`, `tables[]` | Design web-role → table-permission mapping. |
+| `/power-pages-auth-setup` | power-pages-engineer | `portal`, `auth b2c\|local` | Walkthrough B2C or local-account auth wiring. |
+| `/tenant-capacity-forecast` | power-platform-admin | `months` | Project Dataverse storage + API entitlements N months forward. |
+| `/managed-environment-design` | power-platform-admin | `env` | Walkthrough managed-env prerequisites + rollout. |
+| `/vertipaq-analyze` | power-platform-tester | `model-path` | Wrap VertiPaq Analyzer; flag cardinality/table-size deltas. |
+| `/solution-health-check` | solution-alm-engineer | `solution-name` | Deeper review of managed-vs-unmanaged state, circular dependencies, orphan components. |
+
+(Note: the verification agent suggested ~6-8 of these as highest-priority; ship the top 6-8 in the first power-platform pass, defer the rest.)
+
+**finance (+10):**
+
+| Slash | Owner | Args | Notes |
+|---|---|---|---|
+| `/kpi-pack-build` | fpa-analyst | `entity`, `period` | Assemble KPI pack — flagged as a core agent scenario missed in v1. |
+| `/scenario-modeling` | fpa-analyst | `topic` | "Three scenarios, always" — explicit fpa-analyst opinion. |
+| `/model-review` | financial-modeler | `model-file` | Core agent scenario — 7-pass review per the agent's CLAUDE.md. |
+| `/sensitivity-analysis` | financial-modeler | `model-file`, `var-1`, `var-2` | DCF/3-statement sensitivity table — expected output. |
+| `/valuation-range-blend` | valuation-analyst | `target` | Methodology weighting / triangulation — core valuation discipline. |
+| `/409a-refresh` | valuation-analyst | `entity` | 409A refresh — explicit core scenario. |
+| `/covenant-compliance` | treasury-analyst | `lender`, `period` | Covenant compliance pack — core scenario missed in v1. |
+| `/debt-schedule-review` | treasury-analyst | `entity` | Debt schedule walkthrough. |
+| `/soc-control-narrative` | audit-prep-specialist | `framework SOC1\|SOC2`, `control` | SOC1/SOC2 control narrative — explicit core scenario. |
+| `/deficiency-remediation` | audit-prep-specialist | `deficiency-id` | Remediation plan for an audit deficiency. |
+| `/investor-update-letter` | board-pack-composer | `quarter` | Investor update letter compose. |
+| `/lender-compliance-pack` | board-pack-composer | `lender`, `period` | Lender compliance pack — covenant + borrowing-base output. |
+
+**regulatory-compliance (+9, includes splitting /regulatory-return):**
+
+| Slash | Owner | Args | Notes |
+|---|---|---|---|
+| `/fatca-filing` | regulatory-reporting-analyst | `period` | FATCA filing — split from the overly-broad `/regulatory-return`. |
+| `/crs-filing` | regulatory-reporting-analyst | `period`, `jurisdiction` | CRS filing — split. |
+| `/supervisory-return-review` | regulatory-reporting-analyst | `return-type`, `period` | Supervisory return review. |
+| `/ebs-prep` | regulatory-reporting-analyst | `period` | BMA EBS prep — split (also pairs with Bermuda specialist). |
+| `/mra-response-draft` | examination-prep-specialist | `mra-id` | Management response to MRA / MRIA — explicit core scenario. |
+| `/mock-walkthrough` | examination-prep-specialist | `process`, `examiner-role` | Run a mock examiner walkthrough. |
+| `/risk-appetite-statement` | risk-and-controls-specialist | `entity` | Design a risk-appetite statement. |
+| `/gap-analysis` | policy-and-procedure-writer | `policy-area`, `regulation` | Gap analysis against new regulation. |
+| `/bma-class-determination` | bermuda-insurance-specialist | `entity` | Class determination — first scenario in the agent. |
+| `/captive-capital-calc` | bermuda-insurance-specialist | `captive`, `period` | Captive capital calculation. |
+| `/bscr-module` | bermuda-insurance-specialist | `module` | BSCR module-specific walkthrough. |
+
+(Replaces the v1 `/regulatory-return` which was too broad.)
+
+**web-design (+3):**
+
+| Slash | Owner | Args | Notes |
+|---|---|---|---|
+| `/re-platform-audit` | web-architect | `current-stack`, `target-stack` | Migration between stacks (Next → Astro, etc.). |
+| `/deploy-checklist` | frontend-implementer | `site` | Pre-launch verification (accessibility, perf, SEO gate). |
+| `/content-audit` | content-strategist | `site` | Inventory existing copy before authoring new. Pairs with `/copy-draft`. |
+
+**edtech-partner-success (+3, plus 1 reassignment):**
+
+| Slash | Owner | Args | Notes |
+|---|---|---|---|
+| `/health-score-refresh` | learning-analytics-analyst *(reassigned from partner-success-manager)* | `partner-id?` | Recompute health scores. v7 correction: health scoring is an analytics question, not a PSM touchpoint. |
+| `/adoption-diagnostic` | partner-success-manager | `partner-id` | Root-cause analysis for stalled adoption (rostering, training, champion, feature fit). |
+| `/ferpa-audit` | ferpa-comms-translator | `comms-file` | Scan existing partner comms for FERPA violations. |
+| `/adoption-sequencing` | success-playbook-designer | `lane`, `quarter` | Stage-aware activation rhythm (K-12 fall/spring/summer phases). |
+
+**data-platform (+3):**
+
+| Slash | Owner | Args | Notes |
+|---|---|---|---|
+| `/multi-tenant-migration` | database-setup-guide | `table`, `tenant-claim` | Backfill tenant_id, RLS introduction, JWT-claim migration. |
+| `/data-quality-test` | etl-pipeline-engineer | `pipeline`, `framework dbt\|great-expectations` | Define dbt tests, severity tiers, runbook-per-test. |
+| `/dashboard-performance-tune` | dashboard-builder | `dashboard-id` | Widget-by-widget budget enforcement, Cube pre-agg tiers, cache-layer selection. |
+
+#### Revised totals
+
+| Plugin | v1 commands | v7 additions | Total |
+|---|---|---|---|
+| ravenclaude-core | 21 | 0 | 21 |
+| power-platform | 21 | +12 | ~33 |
+| finance | 15 | +12 | ~27 |
+| regulatory-compliance | 11 | +9 (with split) | ~17 |
+| web-design | 15 | +3 | 18 |
+| edtech-partner-success | 11 | +3 | 14 |
+| data-platform | 8 | +3 | 11 |
+| **Total** | **102** | **+42** | **~141** |
+
+(Note: previously the doc claimed "~95"; the v1 count was actually 102 by a recount. v7 brings the total to ~141 commands across 55 agents — about 2.5 commands per agent.)
+
 ### 4.8 Cross-cutting observations
 
-- **Commands per agent**: median ≈ 2; range 0-5. Some agents (security-reviewer, prompt-engineer) have **zero** dedicated commands because their work is best done in-conversation; that's fine.
-- **Total commands proposed**: ~95 across all 7 plugins, plus the 3 existing. The Commands tab's card-grid view needs the "Show only 20 most-used" default to be usable.
+- **Commands per agent**: median ≈ 2.5; range 0-5. Some agents (security-reviewer, prompt-engineer, the coders, designer, data-engineer, tester-qa) have **zero** dedicated commands because their work is best done in-conversation; that's fine.
+- **Total commands proposed**: ~141 across all 7 plugins (was ~95 in v1; +42 from per-plugin verification), plus the 3 existing. The Commands tab's card-grid view needs the "Show only 20 most-used" default to be usable.
 - **Most-used commands** (the default 20 the Commands tab should surface) — informed by the use-case lookup table in `repo-guide.html`'s Overview tab plus first-session friction:
   1. `/init-agent-ready`
   2. `/set-posture`
@@ -1553,4 +1949,5 @@ This narrative is the **acceptance test for Phase A + B.1 + B.2 + B.4.4 + the re
 - **v4 (2026-05-23, autonomous, Claude):** Naming / collision / owner-existence audits. Added §4.9 naming and namespacing — flagged `/security-review` as colliding with the Claude Code built-in skill (rename to `/team-security-review`); proposed `/rc:` qualified prefix for infrastructure commands that Claude Code might add later; proposed `scripts/audit-command-collisions.py` as a new CI gate. Added §4.10 owner-agent inventory — verified every "Owner" column entry across the 7 plugins resolves to a real agent on disk; 55 agents total, 95 commands; ~10 agents intentionally have zero dedicated commands (security-reviewer, prompt-engineer, the coders, designer, data-engineer, tester-qa) because their work is in-conversation. Added open questions #10-14 (enterprise-layer reading, `/security-review` rename, infrastructure-command namespacing, Install tab rename, project-scope modal strictness). Expanded §5.4 tests with merge-model property check, allow-at-project lint, built-in collision audit, owner-agent existence check.
 - **v5 (2026-05-23, autonomous, Claude):** Structural / decision-log additions. §5.5 dependency graph showing A → B.1 → B.4.4 as the critical path (Health tab makes the merge model visible to users; without it the user-scope-default change surprises). §5.6 decisions-taken vs decisions-deferred table — every recommendation in the doc tagged ✅ (committed) or 🟡 (recommended, open question for Matt). §5.7 composition with proposal 003 — explicit reconciliation showing 003 §4.3/§4.4/§4.7/§4.8/§7.1/§7.4/§9/§11 are all honored by this plan, with "proposal 003 wins on contradictions" as the tie-breaker rule. Renumbered the old §5.5 ("What we explicitly do NOT plan") to §5.8.
 - **v5.1 (2026-05-23, autonomous, Claude):** Cross-reference accuracy fix. v5's §5.7 referenced proposal-003 sections §3 ("no backend") and §10 ("release plan") — neither is accurate (003 §3 is "Prior-art summary"; 003 §10 is "Open questions"). Corrected the citations: "no backend" lives in 003 §4.3 / §4.4; the release plan lives in 003 §11 (Implementation phases). Added a 003 §7.4 reference (team-shared vs personal / gitignore) which the merge-model finding strengthens into a more directive guidance.
+- **v7 (2026-05-23, autonomous, Claude):** Four major additions. (1) §B.4.1 Agents tab expanded from a bullet list to a full design (purpose, data sources, UI layout, components, settings file shape, Team Lead dispatch behavior, mandatory-agent enforcement, 19-21h effort estimate, sequenced as 0.22.0). (2) §B.4.5 Update notifier expanded from a paragraph to a full design (detection mechanism via `latest-versions.json` served from GitHub Pages, banner + dedicated Changelog tab, dismissal semantics, composition with Phase A migration banner, 9-10h effort estimate). (3) §B.5 Accessibility & i18n checklist — 10 mandatory accessibility requirements cross-cutting all new tabs; i18n deferred but recommends factoring strings into a `STRINGS` block for future-proofing. (4) §B.6 Deep-link mechanic — formal fallback chain (probe → claude-cli://, copy fallback, show fallback), race-the-navigation probe pattern with code, per-browser behavior matrix, hard rules for URL builder. (5) §4.7.1 — per-plugin command additions surfaced by three verification agents: +42 new commands (mostly power-platform +12, finance +12, regulatory-compliance +9), bringing total from ~95 to ~141. Also reassigns `/health-score-refresh` from PSM to learning-analytics-analyst (it's an analytics question, not a touchpoint).
 - **v6 (2026-05-23, autonomous, Claude):** Concrete grounding additions. (1) §B.4.4 Health-tab spec expanded from a hand-wavy bullet list to a full design with purpose, data sources (with `serve-dashboards.py` endpoint additions), UI layout sketch, four-component breakdown, merge-algorithm JS pseudocode, and effort estimate (revised to 18-20h, up from 6-8h — appropriately). The Health tab is on the critical path because it makes the merge model visible to users. (2) §2.3.8 added — concrete YAML + settings.json emission examples per scope, showing how Project-scope emission can silently grant the team all of one user's personal allows (R12 made tangible), and recommending a "denies + asks only" default emission for Project scope. (3) §5.8 First 30 minutes — a narrative walkthrough of a brand-new user's experience from minute 0 to minute 30 post-Phase A+B, including the dashboard's Health tab "Test a tool call" interaction explaining why the user's git push is being asked when they thought they'd allowed it. This narrative is the acceptance test for the proposed design.
