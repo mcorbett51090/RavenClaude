@@ -9,8 +9,8 @@ Two checks, both surfaced by the 2026-05-23 whole-repo self-review:
 
   2. Skill-count accuracy — the "<N> skills" claim in each plugin's plugin.json
      description AND in its .claude-plugin/marketplace.json entry must equal the
-     actual number of entries under plugins/<p>/skills/. Six plugins had stale
-     counts (e.g. core claimed 15, had 20) because nothing verified the prose.
+     actual number of entries under plugins/<p>/skills/. Five plugins had stale
+     counts (e.g. data-platform claimed 7, had 11) because nothing verified the prose.
 
 Exit 0 if everything matches; exit 1 with a report otherwise. Runs in CI
 (validate-marketplace.yml) and is exercised bidirectionally by audit-gates.sh.
