@@ -108,7 +108,7 @@ For a busy reader. Skip if you're reading the full document.
 
 - **Phase B — Dashboard build-out.** Fill in the three stubs (Commands / Trees / Activity) and add three new tabs (Install / Agents / Health) + one stretch tab (Environment). The **Commands tab** is the headline new surface: a card-grid of all available slash commands, each with a deep-link "Launch" button that pre-fills `claude-cli://open?q=<command>` (degrades to Copy if no handler). The **Install tab** walks new users through prerequisites → `/plugin marketplace add` → install → verify → first-session setup. The **Health tab** surfaces the merge model with an interactive "Test a tool call" box, so the user can see exactly which rule from which layer drives a permission ask. **Effort: ~80-100 hours across 5 sub-phases.**
 
-- **Phase C — Per-agent slash commands.** Today: 3 commands, all in ravenclaude-core. Proposed: **~141 commands distributed across all 55 agents** in the 7 plugins (≈2.5 per agent). Per-plugin tables in §4.1-§4.7 with owner, args, notes; verified against actual agent frontmatter by three parallel research passes. Top 20 most-used commands surface as the Commands tab's default view. **Effort: 2-4 hours per command, ship rolling.**
+- **Phase C — Per-agent slash commands.** Today: 3 commands, all in ravenclaude-core. Proposed: **~141 commands distributed across all 55 agents** in the 7 plugins (≈2.5 per agent). Per-plugin tables in §4.1-§4.7 with owner, args, notes; verified against actual agent frontmatter by three parallel research passes. Top 20 most-used commands surface as the Commands tab's default view. **Effort: 2-4 hours per command, ship rolling.** **Scope note (2026-05-23 review): Phase C (~141 commands, ~280–560 h) is documented _backlog_, NOT part of the 0.18.0–0.21.0 plan** — ship per-plugin commands only when a real engagement needs them (matching the owner's "ship when needed" pattern). The genuinely shippable near-term core is Phase A + the Health tab.
 
 **The five things to decide first** (D1-D5 from §5.8.2):
 
@@ -986,6 +986,10 @@ The discipline that "naming must shorten the explanation, not decorate" applies 
 ### B.2 Slash-commands tab
 
 This is the headline new tab. The user wants to **click a command to "launch" it**.
+
+> **Why a Commands tab honors "dashboards over slash commands" (2026-05-23 review).** The owner's stated constraint is _no memorized commands_ — and the dashboard satisfies it because the bottleneck it removes is **recall/discovery**, not typing: you browse and pick, you don't have to remember a command exists or its exact name. Copy-to-clipboard (the fallback when the deep-link handler is absent) is acceptable on that reading — paste is not the disliked friction; recall is. If that ever stops holding (e.g. the tab becomes a wall of 141 cards no one can navigate), downgrade Commands from a "headline" tab to a searchable reference.
+>
+> **Domain-neutrality (House Rule 1).** The Commands and Setup tabs must NOT hard-code the names of the domain plugins (finance, power-platform, …) inside the **core** dashboard generator. `generate-dashboards.py` discovers sibling plugins by scanning `plugins/*/commands/*.md` and `plugins/*/.claude-plugin/plugin.json` at build time; the per-plugin command list and the Setup-tab plugin list are **generated, not literal**. Core stays domain-neutral even though the tabs surface domain-plugin content.
 
 > **CRITICAL design constraint, stated honestly up front:** A browser dashboard cannot directly invoke a slash command in a running Claude Code session. There is no live IPC bridge from the page to the terminal/IDE — the dashboard is a static HTML file with no privileged access to the running CLI. "Launch" therefore means one of three things:
 >
