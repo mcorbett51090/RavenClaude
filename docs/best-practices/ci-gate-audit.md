@@ -42,6 +42,7 @@ The same script runs in [`.github/workflows/validate-marketplace.yml`](../../.gi
 - After fixing a gate that was discovered to be paper-tiger, re-run the full audit script — the fix may regress an adjacent gate.
 - Use **stdout-only or stderr-only capture** when wrapping a tool that exits 0 on findings. Merging streams with `2>&1` will trip on runner noise.
 - Pre-pull container images in a separate step so pull progress is out of the capture for any docker-based linter.
+- For a **container-based gate, probe real usability** (daemon up AND image present-or-pullable, every probe `timeout`-bounded) before asserting — `command -v docker` is not enough. If the tool can't actually run, the gate must **announce itself loudly, never silently skip or falsely pass**: skip-loud locally ("this is NOT a pass") and treat unrunnable-in-CI (`$CI` set) as a hard audit failure, since the real gate it mirrors already hard-fails there. (Gate 10 / actionlint is the reference implementation.)
 
 **Don't:**
 
@@ -69,4 +70,4 @@ Surfaced 2026-05-21 during the marketplace's R6 self-review chain. Originated fr
 
 ---
 
-_Last reviewed: 2026-05-21 by `@mcorbett51090`_
+_Last reviewed: 2026-05-24 by `@mcorbett51090`_
