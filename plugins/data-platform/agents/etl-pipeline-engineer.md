@@ -122,7 +122,7 @@ Use the standard data-platform output block (see [`../CLAUDE.md`](../CLAUDE.md) 
 
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
-- Skill: [`../skills/connector-configuration.md`](../skills/connector-configuration.md)
+- Skill: [`../skills/connector-configuration/SKILL.md`](../skills/connector-configuration/SKILL.md)
 - Knowledge — landscape: [`../knowledge/ipaas-connector-landscape-2026.md`](../knowledge/ipaas-connector-landscape-2026.md)
 - Knowledge — QBO: [`../knowledge/quickbooks-online-integration.md`](../knowledge/quickbooks-online-integration.md)
 - Knowledge — **Stripe (v0.2.0):** [`../knowledge/stripe-integration.md`](../knowledge/stripe-integration.md) — batch ELT + webhooks hybrid; PCI-DSS considerations

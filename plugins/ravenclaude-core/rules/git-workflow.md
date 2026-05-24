@@ -42,7 +42,7 @@ When a hook fails: **fix the underlying issue and create a NEW commit**. Never a
 - Path: `.claude/worktrees/<role>-<slug>/`
 - Branch: `agent/<role>/<slug>`
 - Base from `origin/main` (fetched fresh).
-- The Team Lead creates and tears down worktrees via [`new-worktree`](../skills/new-worktree.md) and [`cleanup-worktrees`](../skills/cleanup-worktrees.md).
+- The Team Lead creates and tears down worktrees via [`new-worktree`](../skills/new-worktree/SKILL.md) and [`cleanup-worktrees`](../skills/cleanup-worktrees/SKILL.md).
 - Two agents, two worktrees. Never share.
 
 ## Rebases vs. merges
@@ -53,5 +53,5 @@ When a hook fails: **fix the underlying issue and create a NEW commit**. Never a
 ## Pull requests
 - Opened by the Team Lead, never by a sub-agent.
 - Title in Conventional Commit format, ≤ 72 chars.
-- Body uses the template in [`create-pr`](../skills/create-pr.md).
+- Body uses the template in [`create-pr`](../skills/create-pr/SKILL.md).
 - Don't merge your own PR without an explicit user "ship it." Even on solo projects, the human approves the merge.

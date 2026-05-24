@@ -80,9 +80,9 @@ Find the vulnerability before an attacker does. Block merges that introduce risk
 
 When the diff touches an **embedded-analytics dashboard** (Apache Superset, Metabase, Cube, Power BI Embedded, Evidence) or its supporting infrastructure, consult these `data-platform` plugin skills:
 
-- [`../../data-platform/skills/jwt-embed-issuance.md`](../../data-platform/skills/jwt-embed-issuance.md) — canonical 2026 JWT-embed flow; required claims (`sub`, `tenant_id`, `iat`, `exp`, `iss`, `aud`, `nonce`); tool-specific verification patterns (Superset guest tokens, Metabase JWT URLs, Cube `Authorization: Bearer`, Power BI MSAL-via-AAD); 5-15 min expiration policy; cross-boundary denial test contract.
-- [`../../data-platform/skills/rls-policy-authoring.md`](../../data-platform/skills/rls-policy-authoring.md) — the **closeness-to-data invariant** (tenant isolation lives at the closest-to-data layer the viewer's token cannot influence; never at the rendering layer). Postgres RLS canonical pattern + 7 footguns. Semantic-layer enforcement (Cube `securityContext`, Power BI DAX roles + the DirectQuery+EffectiveIdentity narrow exception, Fabric OneLake, Snowflake row-access policies, Databricks Unity Catalog row-filters). Defense-in-depth matrix.
-- [`../../data-platform/skills/embed-csp-and-iframe-sandboxing.md`](../../data-platform/skills/embed-csp-and-iframe-sandboxing.md) — CSP `frame-ancestors`; iframe `sandbox` attributes; postMessage origin checks; web-component shadow-DOM boundary; tool-specific patterns.
+- [`../../data-platform/skills/jwt-embed-issuance/SKILL.md`](../../data-platform/skills/jwt-embed-issuance/SKILL.md) — canonical 2026 JWT-embed flow; required claims (`sub`, `tenant_id`, `iat`, `exp`, `iss`, `aud`, `nonce`); tool-specific verification patterns (Superset guest tokens, Metabase JWT URLs, Cube `Authorization: Bearer`, Power BI MSAL-via-AAD); 5-15 min expiration policy; cross-boundary denial test contract.
+- [`../../data-platform/skills/rls-policy-authoring/SKILL.md`](../../data-platform/skills/rls-policy-authoring/SKILL.md) — the **closeness-to-data invariant** (tenant isolation lives at the closest-to-data layer the viewer's token cannot influence; never at the rendering layer). Postgres RLS canonical pattern + 7 footguns. Semantic-layer enforcement (Cube `securityContext`, Power BI DAX roles + the DirectQuery+EffectiveIdentity narrow exception, Fabric OneLake, Snowflake row-access policies, Databricks Unity Catalog row-filters). Defense-in-depth matrix.
+- [`../../data-platform/skills/embed-csp-and-iframe-sandboxing/SKILL.md`](../../data-platform/skills/embed-csp-and-iframe-sandboxing/SKILL.md) — CSP `frame-ancestors`; iframe `sandbox` attributes; postMessage origin checks; web-component shadow-DOM boundary; tool-specific patterns.
 
 These three skills extend §4 (Sessions & tokens) and §5 (Database) above with embed-analytics-specific depth. Pattern: domain plugins extend core via skills, not parallel agents (the `data-platform` plugin's house rule, established 2026-05-21 — see `../CLAUDE.md`).
 
@@ -141,7 +141,7 @@ After your Markdown report above, emit the structured handoff block so the Team 
 
 `confidence` is a 0.0-1.0 float reflecting how sure you are of your output. Use ≥0.7 to trigger Cited-Adjudicator Escalation if you assert another agent's prior artifact is wrong; see [`rules/agent-collaboration.md`](../rules/agent-collaboration.md).
 
-See [`skills/structured-output.md`](../skills/structured-output.md) for the full schema and rationale.
+See [`skills/structured-output.md`](../skills/structured-output/SKILL.md) for the full schema and rationale.
 
 ## References
 - Constitution: [`CLAUDE.md`](../CLAUDE.md) §6

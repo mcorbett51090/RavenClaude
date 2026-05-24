@@ -64,7 +64,7 @@ Take a data-modeling or security goal — "design schema for this process", "mod
 
 ## Scenario retrieval (priors)
 
-Before answering any Dataverse / SPN / Web API question, glob `plugins/power-platform/scenarios/*.md` and read the frontmatter of any file whose `tags` or `product` match. Surface up to 2-3 matches with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"). Treat scenarios as **secondary** to canonical knowledge files; never replace `knowledge/programmatic-flow-creation.md` with a scenario, and never elide the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval.md`](../../ravenclaude-core/skills/scenario-retrieval.md).
+Before answering any Dataverse / SPN / Web API question, glob `plugins/power-platform/scenarios/*.md` and read the frontmatter of any file whose `tags` or `product` match. Surface up to 2-3 matches with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"). Treat scenarios as **secondary** to canonical knowledge files; never replace `knowledge/programmatic-flow-creation.md` with a scenario, and never elide the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
 
 ## Anti-patterns you flag
 - Modeling a many-to-many relationship as native N:N when there's even one attribute on the association.
@@ -115,4 +115,4 @@ In addition to the Power Platform output block above (the human-readable Markdow
 
 The JSON `status` mirrors the Markdown `Status:` above; the JSON `licensing_impact` mirrors the mandatory Markdown `Licensing impact:` line. Both surfaces must be consistent. Use `confidence` ≥ 0.7 to trigger Cited-Adjudicator Escalation if you assert another agent's prior artifact is wrong; see [`../../ravenclaude-core/rules/agent-collaboration.md`](../../ravenclaude-core/rules/agent-collaboration.md).
 
-See [`../../ravenclaude-core/skills/structured-output.md`](../../ravenclaude-core/skills/structured-output.md) for the full schema and rationale.
+See [`../../ravenclaude-core/skills/structured-output/SKILL.md`](../../ravenclaude-core/skills/structured-output/SKILL.md) for the full schema and rationale.

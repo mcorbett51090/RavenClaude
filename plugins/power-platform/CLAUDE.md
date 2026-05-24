@@ -139,7 +139,7 @@ Grounding checks performed: <brief note on skills/rules reviewed before any limi
 
 The `Licensing impact:` line remains mandatory for every Power Platform agent.
 
-**Plus the cross-plugin Structured Output Protocol JSON block.** Each Power Platform agent's `## Output Contract` section appends the `---RESULT_START--- … ---RESULT_END---` JSON block defined in [`../ravenclaude-core/skills/structured-output.md`](../ravenclaude-core/skills/structured-output.md), extended with a `licensing_impact` field that mirrors the Markdown `Licensing impact:` line above. The two surfaces must be consistent. The Team Lead reads the JSON for routing; the Markdown stays for human readers.
+**Plus the cross-plugin Structured Output Protocol JSON block.** Each Power Platform agent's `## Output Contract` section appends the `---RESULT_START--- … ---RESULT_END---` JSON block defined in [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md), extended with a `licensing_impact` field that mirrors the Markdown `Licensing impact:` line above. The two surfaces must be consistent. The Team Lead reads the JSON for routing; the Markdown stays for human readers.
 
 ---
 

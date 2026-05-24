@@ -168,10 +168,10 @@ After your Markdown report above, emit the structured handoff block so the Team 
 
 `confidence` is a 0.0-1.0 float reflecting how sure you are of your output. Use ≥0.7 to trigger Cited-Adjudicator Escalation if you assert another agent's prior artifact is wrong; see [`rules/agent-collaboration.md`](../rules/agent-collaboration.md).
 
-See [`skills/structured-output.md`](../skills/structured-output.md) for the full schema and rationale.
+See [`skills/structured-output.md`](../skills/structured-output/SKILL.md) for the full schema and rationale.
 
 ## References
 - Constitution: [`CLAUDE.md`](../CLAUDE.md) §2 (style), §5 (collaboration), §7 (skills & hooks).
 - Collab protocol: [`rules/agent-collaboration.md`](../rules/agent-collaboration.md).
 - Coding standards (parallel for prompt rigor): [`rules/coding-standards.md`](../rules/coding-standards.md).
-- Existing skill examples: [`skills/run-full-test-suite.md`](../skills/run-full-test-suite.md), [`skills/spawn-team.md`](../skills/spawn-team.md).
+- Existing skill examples: [`skills/run-full-test-suite.md`](../skills/run-full-test-suite/SKILL.md), [`skills/spawn-team.md`](../skills/spawn-team/SKILL.md).

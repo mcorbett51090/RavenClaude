@@ -113,10 +113,10 @@ After the Markdown report, emit the cross-plugin Structured Output Protocol JSON
 ---RESULT_END---
 ```
 
-See [`../../ravenclaude-core/skills/structured-output.md`](../../ravenclaude-core/skills/structured-output.md).
+See [`../../ravenclaude-core/skills/structured-output/SKILL.md`](../../ravenclaude-core/skills/structured-output/SKILL.md).
 
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
-- Skill: [`../skills/qbr-composition.md`](../skills/qbr-composition.md)
+- Skill: [`../skills/qbr-composition/SKILL.md`](../skills/qbr-composition/SKILL.md)
 - Template: [`../templates/qbr-deck-outline.md`](../templates/qbr-deck-outline.md)
 - Template: [`../templates/touchpoint-log.md`](../templates/touchpoint-log.md) (for post-QBR commitment capture)

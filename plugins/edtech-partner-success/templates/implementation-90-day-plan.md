@@ -4,7 +4,7 @@
 >
 > **When to fill in.** At contract close, alongside the [`success-plan.md`](success-plan.md). The implementation plan is the *technical* counterpart to the success plan's *outcome* framing.
 >
-> **Pair with:** [`../skills/implementation-90-day-arc.md`](../skills/implementation-90-day-arc.md) (the playbook), [`../knowledge/sis-sso-rostering-integration-patterns.md`](../knowledge/sis-sso-rostering-integration-patterns.md) (the technical reference), [`../knowledge/district-implementation-failure-modes.md`](../knowledge/district-implementation-failure-modes.md) (what to watch for).
+> **Pair with:** [`../skills/implementation-90-day-arc/SKILL.md`](../skills/implementation-90-day-arc/SKILL.md) (the playbook), [`../knowledge/sis-sso-rostering-integration-patterns.md`](../knowledge/sis-sso-rostering-integration-patterns.md) (the technical reference), [`../knowledge/district-implementation-failure-modes.md`](../knowledge/district-implementation-failure-modes.md) (what to watch for).
 
 ---
 
@@ -83,7 +83,7 @@ Before declaring the 90 days complete, audit against [`../knowledge/district-imp
 
 - [`success-plan.md`](success-plan.md) — the outcome-side partner; this template is the technical-side
 - [`onboarding-checklist.md`](onboarding-checklist.md) — the relationship-side counterpart (this template handles tech; that handles relationship)
-- [`../skills/implementation-90-day-arc.md`](../skills/implementation-90-day-arc.md) — the playbook
+- [`../skills/implementation-90-day-arc/SKILL.md`](../skills/implementation-90-day-arc/SKILL.md) — the playbook
 - [`../knowledge/sis-sso-rostering-integration-patterns.md`](../knowledge/sis-sso-rostering-integration-patterns.md) — technical reference
 - [`../knowledge/district-implementation-failure-modes.md`](../knowledge/district-implementation-failure-modes.md) — what to watch for
 - [`cross-functional-partnership-map.md`](cross-functional-partnership-map.md) — Implementation function row hand-back criterion

@@ -71,4 +71,4 @@ The partner's stated next-year plan (expansion, deeper rollout, new use case). T
 - [`../knowledge/edtech-reference-customer-patterns.md`](../knowledge/edtech-reference-customer-patterns.md) — the anonymization / consent / state-variance overlay
 - [`../knowledge/parent-comms-jurisdictional-bear-traps.md`](../knowledge/parent-comms-jurisdictional-bear-traps.md) — FERPA on student/parent quotes
 - [`reference-pipeline-tracker.md`](reference-pipeline-tracker.md) — where this case study fits in the broader advocacy pipeline
-- [`../skills/advocacy-program-design.md`](../skills/advocacy-program-design.md) — the playbook this case study fulfills
+- [`../skills/advocacy-program-design/SKILL.md`](../skills/advocacy-program-design/SKILL.md) — the playbook this case study fulfills

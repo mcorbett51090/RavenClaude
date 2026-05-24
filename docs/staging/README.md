@@ -43,7 +43,7 @@ flowchart LR
 
 ## How submissions arrive
 
-**Consumer side.** Claude (with `ravenclaude-core` installed) follows the [`contribute-finding`](../../plugins/ravenclaude-core/skills/contribute-finding.md) skill: qualifies the finding, picks the shape (lesson, best-practice, or both), and prints a copyable `RAVENCLAUDE-STAGING-SUBMISSION` block in canonical format.
+**Consumer side.** Claude (with `ravenclaude-core` installed) follows the [`contribute-finding`](../../plugins/ravenclaude-core/skills/contribute-finding/SKILL.md) skill: qualifies the finding, picks the shape (lesson, best-practice, or both), and prints a copyable `RAVENCLAUDE-STAGING-SUBMISSION` block in canonical format.
 
 **Maintainer side.** Matt (or whoever is reviewing) drops the block into a new file at:
 
@@ -66,8 +66,8 @@ In any Claude session running in this repo with `ravenclaude-core` active, invok
 The skill walks `docs/staging/incoming/` file by file, oldest first. For each one:
 
 1. **Display** the metadata (type, topic, proposed-by, proposed-on, target file) + the rendered body.
-2. **Security sweep (mandatory first gate).** An automated pattern scan checks for leaked secrets, unscrubbed real identifiers, prompt-injection signals, dangerous code examples, and non-canonical external URLs. The `security-reviewer` agent reads the submission as a second pass. The verdict is `CLEAN`, `CAUTION`, or `BLOCKED`. A `BLOCKED` verdict short-circuits the rest of the flow — the maintainer sees the security findings and the submission goes straight to keep/update/deny (where keep should require explicit override reasoning). Details in [`review-staged-contributions.md`](../../plugins/ravenclaude-core/skills/review-staged-contributions.md) Step 2.3.
-3. **Route by topic** (only if security verdict is CLEAN or CAUTION). The `topic:` field in the metadata picks the expert specialist agent — `architecture` → ravenclaude-core/architect, `power-platform` → the best-fit power-platform specialist, `security` → security-reviewer, and so on. The full routing table lives in [`review-staged-contributions.md`](../../plugins/ravenclaude-core/skills/review-staged-contributions.md) Step 2.5.
+2. **Security sweep (mandatory first gate).** An automated pattern scan checks for leaked secrets, unscrubbed real identifiers, prompt-injection signals, dangerous code examples, and non-canonical external URLs. The `security-reviewer` agent reads the submission as a second pass. The verdict is `CLEAN`, `CAUTION`, or `BLOCKED`. A `BLOCKED` verdict short-circuits the rest of the flow — the maintainer sees the security findings and the submission goes straight to keep/update/deny (where keep should require explicit override reasoning). Details in [`review-staged-contributions.md`](../../plugins/ravenclaude-core/skills/review-staged-contributions/SKILL.md) Step 2.3.
+3. **Route by topic** (only if security verdict is CLEAN or CAUTION). The `topic:` field in the metadata picks the expert specialist agent — `architecture` → ravenclaude-core/architect, `power-platform` → the best-fit power-platform specialist, `security` → security-reviewer, and so on. The full routing table lives in [`review-staged-contributions.md`](../../plugins/ravenclaude-core/skills/review-staged-contributions/SKILL.md) Step 2.5.
 4. **Spawn the expert.** The expert reads the submission and returns a structured analysis: *generalizes / one-off / unclear*, with reasoning, missed edge cases, recommended adjustments, and a confidence level.
 5. **Present to the maintainer.** The keep/update/deny prompt shows the submission, the security verdict + findings, AND the expert's verdict side by side.
 6. **Act on the decision:**
@@ -115,14 +115,14 @@ If a finding produces both a lesson AND a best-practice, expect **two staged fil
 
 ❌ **Project-specific incident reports** — if it's only useful to one consumer project, it stays in that project's repo, not here.
 
-The [`contribute-finding`](../../plugins/ravenclaude-core/skills/contribute-finding.md) skill enforces these checks on the consumer side. If something does slip through, deny it.
+The [`contribute-finding`](../../plugins/ravenclaude-core/skills/contribute-finding/SKILL.md) skill enforces these checks on the consumer side. If something does slip through, deny it.
 
 ---
 
 ## See also
 
-- [`contribute-finding`](../../plugins/ravenclaude-core/skills/contribute-finding.md) — consumer-side authoring playbook
-- [`review-staged-contributions`](../../plugins/ravenclaude-core/skills/review-staged-contributions.md) — maintainer-side review playbook
+- [`contribute-finding`](../../plugins/ravenclaude-core/skills/contribute-finding/SKILL.md) — consumer-side authoring playbook
+- [`review-staged-contributions`](../../plugins/ravenclaude-core/skills/review-staged-contributions/SKILL.md) — maintainer-side review playbook
 - [`lessons-vs-best-practices`](../best-practices/lessons-vs-best-practices.md) — meta-process for deciding whether a finding is a lesson, a best-practice, or both
 - [`pr-vs-direct-push`](../best-practices/pr-vs-direct-push.md) — when to push promoted submissions to main directly vs open a PR
 - [`CONTRIBUTING.md`](../../CONTRIBUTING.md) — the alternative flow for contributors with direct write access to this repo (PR-based, no staging step)

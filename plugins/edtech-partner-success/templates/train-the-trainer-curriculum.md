@@ -2,7 +2,7 @@
 
 > **What this is.** A curriculum template for the PSM-led session that equips 2-3 partner-side internal champions to run subsequent training waves for their own staff. Train-the-trainer is the *only* training model that scales in K-12 — direct teacher-by-teacher training by the vendor doesn't.
 >
-> **Pair with:** [`../skills/partner-training-program-design.md`](../skills/partner-training-program-design.md) (the playbook), [`../knowledge/k12-pd-norms-and-constraints.md`](../knowledge/k12-pd-norms-and-constraints.md) (PD hours, in-service days, modality norms), [`implementation-90-day-plan.md`](implementation-90-day-plan.md) (where in the arc this happens — weeks 5-6).
+> **Pair with:** [`../skills/partner-training-program-design/SKILL.md`](../skills/partner-training-program-design/SKILL.md) (the playbook), [`../knowledge/k12-pd-norms-and-constraints.md`](../knowledge/k12-pd-norms-and-constraints.md) (PD hours, in-service days, modality norms), [`implementation-90-day-plan.md`](implementation-90-day-plan.md) (where in the arc this happens — weeks 5-6).
 >
 > **Audience.** The 2-3 internal champions — usually a curriculum coach, an instructional coach, or a teacher-leader. They are NOT the end-user teachers; they are the people who will train end-users. Curriculum framing should reflect that.
 
@@ -64,7 +64,7 @@ These should be visible in the train-the-trainer process; surface them to the PS
 
 ## References
 
-- [`../skills/partner-training-program-design.md`](../skills/partner-training-program-design.md) — the broader playbook
+- [`../skills/partner-training-program-design/SKILL.md`](../skills/partner-training-program-design/SKILL.md) — the broader playbook
 - [`../knowledge/k12-pd-norms-and-constraints.md`](../knowledge/k12-pd-norms-and-constraints.md) — what makes K-12 PD different from corporate L&D
 - [`implementation-90-day-plan.md`](implementation-90-day-plan.md) — weeks 5-6 of that arc is where this curriculum lands
 - [`../knowledge/parent-comms-jurisdictional-bear-traps.md`](../knowledge/parent-comms-jurisdictional-bear-traps.md) — Module 5 content reference

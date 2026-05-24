@@ -2,7 +2,7 @@
 
 > **Last reviewed:** 2026-05-21. Status: pre-engagement-draft (no live K-12 advocacy program operating against this file yet; refresh on first real engagement signal via `/wrap`). Sources: FERPA / 34 CFR Part 99 (already referenced in [`parent-comms-jurisdictional-bear-traps.md`](parent-comms-jurisdictional-bear-traps.md)), state-specific media-release rules (CA Education Code, NY Ed Law §2-d guidance, IL SOPPA, district-level photo / media release conventions), practitioner synthesis from EdTech vendor marketing programs. Refresh when: (a) FERPA / COPPA materially changes (e.g., a new amendment cycle), (b) a state media-release rule changes substantially, or (c) live engagement scenarios surface patterns this file doesn't cover.
 
-This file is the **why-behind-the-anonymization-decision** for the advocacy program. The [`../skills/advocacy-program-design.md`](../skills/advocacy-program-design.md) skill consults this file before any case-study or reference ask. The [`../templates/case-study-draft.md`](../templates/case-study-draft.md) template uses these patterns in its pre-publication checklist.
+This file is the **why-behind-the-anonymization-decision** for the advocacy program. The [`../skills/advocacy-program-design/SKILL.md`](../skills/advocacy-program-design/SKILL.md) skill consults this file before any case-study or reference ask. The [`../templates/case-study-draft.md`](../templates/case-study-draft.md) template uses these patterns in its pre-publication checklist.
 
 ## 1. The three-bucket anonymization model
 
@@ -141,6 +141,6 @@ When the PSM (or `success-playbook-designer` authoring an advocacy play) needs a
 
 - [`parent-comms-jurisdictional-bear-traps.md`](parent-comms-jurisdictional-bear-traps.md) — FERPA + state student-privacy framework (this file builds on it)
 - [`ai-in-edtech-2026.md`](ai-in-edtech-2026.md) — COPPA-amended consent posture for AI-feature claims in case studies
-- [`../skills/advocacy-program-design.md`](../skills/advocacy-program-design.md) — the playbook this knowledge serves
+- [`../skills/advocacy-program-design/SKILL.md`](../skills/advocacy-program-design/SKILL.md) — the playbook this knowledge serves
 - [`../templates/case-study-draft.md`](../templates/case-study-draft.md) — the artifact whose pre-publication checklist uses these patterns
 - [`../templates/reference-pipeline-tracker.md`](../templates/reference-pipeline-tracker.md) — the per-partner status board

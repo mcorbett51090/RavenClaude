@@ -144,7 +144,7 @@ After the Markdown report, **emit the cross-plugin Structured Output Protocol JS
 
 The JSON `regulatory_citations`, `jurisdiction`, `confidentiality`, and `legal_advice_gate` fields mirror the mandatory Markdown lines. Both surfaces must be consistent. `confidence` ≥ 0.7 triggers Cited-Adjudicator Escalation per [`../ravenclaude-core/rules/agent-collaboration.md`](../ravenclaude-core/rules/agent-collaboration.md).
 
-See [`../ravenclaude-core/skills/structured-output.md`](../ravenclaude-core/skills/structured-output.md) for the schema and rationale.
+See [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md) for the schema and rationale.
 
 ---
 
@@ -172,15 +172,15 @@ The hook is **advisory by default** (prints to stderr, doesn't block). For sensi
 
 | Skill | Primary agent | What's inside |
 |---|---|---|
-| [`skills/aml-program-review.md`](skills/aml-program-review.md) | `aml-kyc-analyst` | Structured review of an AML program against FATF / FFIEC expectations; the 5 pillars; common findings |
-| [`skills/regulatory-mapping.md`](skills/regulatory-mapping.md) | `risk-and-controls-specialist`, `policy-and-procedure-writer` | Mapping internal controls to regulatory citations; gap analysis output |
-| [`skills/sar-narrative-drafting.md`](skills/sar-narrative-drafting.md) | `aml-kyc-analyst` | How to draft SAR / STR narratives that survive regulator review; the W's; what to omit |
-| [`skills/examination-readiness.md`](skills/examination-readiness.md) | `examination-prep-specialist` | Pre-exam playbook: PBC, walkthrough rehearsal, mock interviews, exam-week posture |
-| [`skills/kyc-edd-review.md`](skills/kyc-edd-review.md) | `aml-kyc-analyst` | KYC file + EDD review playbook: risk-rating logic, BOI/UBO verification, SoW vs SoF, EDD triggers, sign-off chain |
-| [`skills/sanctions-hit-disposition.md`](skills/sanctions-hit-disposition.md) | `aml-kyc-analyst` | Disposition framework for sanctions alerts: match-quality tiers, cleared-vs-escalated rationale, audit trail, list-version capture |
-| [`skills/risk-register-build.md`](skills/risk-register-build.md) | `risk-and-controls-specialist`, `policy-and-procedure-writer` | Build / refresh an enterprise risk register: cause-event-consequence statements, inherent + residual math, KRIs, three-lines ownership |
-| [`skills/supervisory-return-prep.md`](skills/supervisory-return-prep.md) | `regulatory-reporting-analyst` | Period-end supervisory / regulatory return prep: filing calendar, data lineage, maker-checker, common return families (FATCA, CRS, EBS, Solvency II, RBC) |
-| [`skills/control-testing.md`](skills/control-testing.md) | `risk-and-controls-specialist`, `aml-kyc-analyst` | Second-line compliance control testing rubric: design vs operating effectiveness, risk-based sampling, finding vs observation, MRA response |
+| [`skills/aml-program-review/SKILL.md`](skills/aml-program-review/SKILL.md) | `aml-kyc-analyst` | Structured review of an AML program against FATF / FFIEC expectations; the 5 pillars; common findings |
+| [`skills/regulatory-mapping/SKILL.md`](skills/regulatory-mapping/SKILL.md) | `risk-and-controls-specialist`, `policy-and-procedure-writer` | Mapping internal controls to regulatory citations; gap analysis output |
+| [`skills/sar-narrative-drafting/SKILL.md`](skills/sar-narrative-drafting/SKILL.md) | `aml-kyc-analyst` | How to draft SAR / STR narratives that survive regulator review; the W's; what to omit |
+| [`skills/examination-readiness/SKILL.md`](skills/examination-readiness/SKILL.md) | `examination-prep-specialist` | Pre-exam playbook: PBC, walkthrough rehearsal, mock interviews, exam-week posture |
+| [`skills/kyc-edd-review/SKILL.md`](skills/kyc-edd-review/SKILL.md) | `aml-kyc-analyst` | KYC file + EDD review playbook: risk-rating logic, BOI/UBO verification, SoW vs SoF, EDD triggers, sign-off chain |
+| [`skills/sanctions-hit-disposition/SKILL.md`](skills/sanctions-hit-disposition/SKILL.md) | `aml-kyc-analyst` | Disposition framework for sanctions alerts: match-quality tiers, cleared-vs-escalated rationale, audit trail, list-version capture |
+| [`skills/risk-register-build/SKILL.md`](skills/risk-register-build/SKILL.md) | `risk-and-controls-specialist`, `policy-and-procedure-writer` | Build / refresh an enterprise risk register: cause-event-consequence statements, inherent + residual math, KRIs, three-lines ownership |
+| [`skills/supervisory-return-prep/SKILL.md`](skills/supervisory-return-prep/SKILL.md) | `regulatory-reporting-analyst` | Period-end supervisory / regulatory return prep: filing calendar, data lineage, maker-checker, common return families (FATCA, CRS, EBS, Solvency II, RBC) |
+| [`skills/control-testing/SKILL.md`](skills/control-testing/SKILL.md) | `risk-and-controls-specialist`, `aml-kyc-analyst` | Second-line compliance control testing rubric: design vs operating effectiveness, risk-based sampling, finding vs observation, MRA response |
 
 **How an agent uses a skill**: read the skill file first for the entry-point playbook, then consult the relevant templates in `templates/` for the artifact shape.
 
@@ -234,7 +234,7 @@ When in doubt, the compliance team **declines and asks the Team Lead** rather th
 
 - Domain-neutral team constitution: [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md)
 - Capability Grounding Protocol (architectural): [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md) (`Capability Grounding Protocol` section); reference skill (when `power-platform` is installed): [`../power-platform/skills/grounding-protocol/SKILL.md`](../power-platform/skills/grounding-protocol/SKILL.md)
-- Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output.md`](../ravenclaude-core/skills/structured-output.md)
+- Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md)
 - Cited-Adjudicator Escalation: [`../ravenclaude-core/rules/agent-collaboration.md`](../ravenclaude-core/rules/agent-collaboration.md)
 - Sister plugins (when installed alongside): `finance` — financial close, controls testing, audit prep often paired with regulatory work. See [`../../docs/plugin-roadmap-analysis.md`](../../docs/plugin-roadmap-analysis.md) for the marketplace plan.
 - Marketplace-wide developer guide: [`../../CLAUDE.md`](../../CLAUDE.md)

@@ -57,4 +57,4 @@ Don't intervene without diagnosing. The same low-adoption signal can have wildly
 - [`../knowledge/partner-health-score-drift.md`](../knowledge/partner-health-score-drift.md) — score-vs-reality diagnostic
 - [`../knowledge/rostering-data-quality-typology.md`](../knowledge/rostering-data-quality-typology.md) — first-stop for "is the signal trustworthy"
 - [`../knowledge/k12-psm-operating-cadence.md`](../knowledge/k12-psm-operating-cadence.md) — dead-zone suppression
-- [`../skills/adoption-sequencing-k12.md`](../skills/adoption-sequencing-k12.md) — the broader skill this worksheet operates within
+- [`../skills/adoption-sequencing-k12/SKILL.md`](../skills/adoption-sequencing-k12/SKILL.md) — the broader skill this worksheet operates within

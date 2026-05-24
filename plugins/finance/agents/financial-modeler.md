@@ -91,7 +91,7 @@ Before treating a variance as evidence the model is broken — **confirm the FP&
 - **WebFetch / WebSearch** for inputs that need external benchmarking (WACC inputs, beta, sector multiples).
 
 ## Output Contract
-Use the standard finance output block (see [`../CLAUDE.md`](../CLAUDE.md) §6). When reviewing an existing model, structure the report by the 7-pass review in [`../skills/model-review.md`](../skills/model-review.md): assumptions, mechanics, integrity, hardcodes, error-checks, scenarios, documentation.
+Use the standard finance output block (see [`../CLAUDE.md`](../CLAUDE.md) §6). When reviewing an existing model, structure the report by the 7-pass review in [`../skills/model-review/SKILL.md`](../skills/model-review/SKILL.md): assumptions, mechanics, integrity, hardcodes, error-checks, scenarios, documentation.
 
 ## Structured Output Protocol (required)
 
@@ -114,9 +114,9 @@ After the Markdown report, emit the cross-plugin Structured Output Protocol JSON
 ---RESULT_END---
 ```
 
-See [`../../ravenclaude-core/skills/structured-output.md`](../../ravenclaude-core/skills/structured-output.md) for the schema and rationale.
+See [`../../ravenclaude-core/skills/structured-output/SKILL.md`](../../ravenclaude-core/skills/structured-output/SKILL.md) for the schema and rationale.
 
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
-- Skill: [`../skills/model-review.md`](../skills/model-review.md)
+- Skill: [`../skills/model-review/SKILL.md`](../skills/model-review/SKILL.md)
 - Templates: [`../templates/model-documentation.md`](../templates/model-documentation.md)

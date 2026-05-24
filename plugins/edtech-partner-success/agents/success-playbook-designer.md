@@ -94,9 +94,9 @@ The mid-day partner-call window (10 AM - 2 PM partner-local) is when substantive
 
 Two new skill+knowledge bundles inform play design:
 
-- **Adoption sequencing** ([`../skills/adoption-sequencing-k12.md`](../skills/adoption-sequencing-k12.md) + [`../knowledge/k12-adoption-arc-fall-spring-summer.md`](../knowledge/k12-adoption-arc-fall-spring-summer.md)) — adoption plays must match the partner's stage (newly-implemented / first-year-sustaining / multi-year-mature / pre-renewal) AND school-year phase. **Phase 2 (settling, weeks 4-8) is the most predictive period** — patterns set here usually persist. **DO NOT push feature-breadth in stage 1**; favor 2-3 workflows at 80%+ depth over 10 workflows at 20%. The diagnostic-before-intervention discipline is in [`../templates/adoption-diagnostic-worksheet.md`](../templates/adoption-diagnostic-worksheet.md) — agents enumerate 3+ candidate root causes before recommending a play.
+- **Adoption sequencing** ([`../skills/adoption-sequencing-k12/SKILL.md`](../skills/adoption-sequencing-k12/SKILL.md) + [`../knowledge/k12-adoption-arc-fall-spring-summer.md`](../knowledge/k12-adoption-arc-fall-spring-summer.md)) — adoption plays must match the partner's stage (newly-implemented / first-year-sustaining / multi-year-mature / pre-renewal) AND school-year phase. **Phase 2 (settling, weeks 4-8) is the most predictive period** — patterns set here usually persist. **DO NOT push feature-breadth in stage 1**; favor 2-3 workflows at 80%+ depth over 10 workflows at 20%. The diagnostic-before-intervention discipline is in [`../templates/adoption-diagnostic-worksheet.md`](../templates/adoption-diagnostic-worksheet.md) — agents enumerate 3+ candidate root causes before recommending a play.
 
-- **Advocacy plays** ([`../skills/advocacy-program-design.md`](../skills/advocacy-program-design.md) + [`../knowledge/edtech-reference-customer-patterns.md`](../knowledge/edtech-reference-customer-patterns.md)) — 5-tier ladder (logo → quote → case study → speaker → peer call); only top-quartile-health partners; 2-asks-per-year ceiling; step up the ask gradually; state-by-state anonymization variance (CA/NY/IL stricter; TX/FL more permissive). **Withdraw advocacy plays during partner recovery** — bottom-quartile partners are off-limits.
+- **Advocacy plays** ([`../skills/advocacy-program-design/SKILL.md`](../skills/advocacy-program-design/SKILL.md) + [`../knowledge/edtech-reference-customer-patterns.md`](../knowledge/edtech-reference-customer-patterns.md)) — 5-tier ladder (logo → quote → case study → speaker → peer call); only top-quartile-health partners; 2-asks-per-year ceiling; step up the ask gradually; state-by-state anonymization variance (CA/NY/IL stricter; TX/FL more permissive). **Withdraw advocacy plays during partner recovery** — bottom-quartile partners are off-limits.
 
 ## Decision-tree traversal (priors)
 
@@ -149,9 +149,9 @@ After the Markdown report, emit the cross-plugin Structured Output Protocol JSON
 ---RESULT_END---
 ```
 
-See [`../../ravenclaude-core/skills/structured-output.md`](../../ravenclaude-core/skills/structured-output.md).
+See [`../../ravenclaude-core/skills/structured-output/SKILL.md`](../../ravenclaude-core/skills/structured-output/SKILL.md).
 
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
-- Skill: [`../skills/partner-health-scoring.md`](../skills/partner-health-scoring.md) (for play trigger thresholds)
+- Skill: [`../skills/partner-health-scoring/SKILL.md`](../skills/partner-health-scoring/SKILL.md) (for play trigger thresholds)
 - Generic PSM patterns: [`../../ravenclaude-core/agents/partner-success-manager.md`](../../ravenclaude-core/agents/partner-success-manager.md)

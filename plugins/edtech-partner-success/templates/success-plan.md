@@ -39,7 +39,7 @@
 
 - [ ] `<specific check>` — owner `<name>` — date `<YYYY-MM-DD>`
 - [ ] Mid-cycle check-in completed
-- [ ] Rostering / data-quality validated (see [`../skills/rostering-data-quality.md`](../skills/rostering-data-quality.md) if any issue)
+- [ ] Rostering / data-quality validated (see [`../skills/rostering-data-quality/SKILL.md`](../skills/rostering-data-quality/SKILL.md) if any issue)
 - [ ] First measurable outcome trend visible (even if not yet at target)
 
 ### 90 days — by `<YYYY-MM-DD>`

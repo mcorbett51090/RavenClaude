@@ -1,6 +1,6 @@
 # Partner health score drift — when the score stops predicting outcomes
 
-> **Last reviewed:** 2026-05-21. Source: research-distilled from customer-success scoring practice (Gainsight / ChurnZero patterns), the [`partner-health-scoring`](../skills/partner-health-scoring.md) skill, and the team's house opinions on decay and signal citation. Refresh when: (a) the team's product mix changes materially (new module, deprecated feature), (b) a segment-shift event (district consolidation, higher-ed sector contraction) changes who the partners *are*, or (c) renewal-prediction accuracy drops below ~70% on the most recent quarter.
+> **Last reviewed:** 2026-05-21. Source: research-distilled from customer-success scoring practice (Gainsight / ChurnZero patterns), the [`partner-health-scoring`](../skills/partner-health-scoring/SKILL.md) skill, and the team's house opinions on decay and signal citation. Refresh when: (a) the team's product mix changes materially (new module, deprecated feature), (b) a segment-shift event (district consolidation, higher-ed sector contraction) changes who the partners *are*, or (c) renewal-prediction accuracy drops below ~70% on the most recent quarter.
 
 A partner health score earns its keep by **predicting outcomes** — renewal, expansion, advocacy, churn. When the score stops doing that, the dashboard becomes decoration and the PSM stops trusting it. This document captures the drift symptoms, the diagnostic tree, and the recalibration playbook.
 

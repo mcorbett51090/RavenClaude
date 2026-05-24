@@ -162,7 +162,7 @@ Role-coverage test in the engagement's CI: enumerate all DAX roles, verify each 
 
 ## JWT-claim-driven scoping (the source-of-truth for tenant_id)
 
-See [`../skills/jwt-embed-issuance.md`](../skills/jwt-embed-issuance.md) for the JWT issuance pattern. Key claims:
+See [`../skills/jwt-embed-issuance/SKILL.md`](../skills/jwt-embed-issuance/SKILL.md) for the JWT issuance pattern. Key claims:
 
 - `sub` — user
 - `tenant_id` — the boundary

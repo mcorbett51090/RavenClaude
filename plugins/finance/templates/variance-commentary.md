@@ -25,7 +25,7 @@
 | By segment / product | | | | |
 
 **Commentary:**
-- [Driver-named explanation per material variance, per [`../skills/variance-commentary.md`](../skills/variance-commentary.md).]
+- [Driver-named explanation per material variance, per [`../skills/variance-commentary/SKILL.md`](../skills/variance-commentary/SKILL.md).]
 - [Direction over time: one-time, trend, or seasonal?]
 - [Impact on outlook for next period / FY.]
 - [What's being done in response.]

@@ -2,7 +2,7 @@
 
 > **Last reviewed:** 2026-05-21. Status: pre-engagement-draft (extends the existing [`rostering-data-quality-typology.md`](rostering-data-quality-typology.md) production-lesson file with SSO + integration-pattern depth; refresh on first real engagement signal). Sources: OneRoster 1.2 spec (IMS Global / 1EdTech, 2024), Clever and ClassLink developer documentation, SAML 2.0 / OIDC standards, PowerSchool / Infinite Campus / Skyward / Synergy SIS documentation (vendor-public), district SSO patterns (Google Workspace for Education, Azure AD, district Active Directory). Refresh when: (a) OneRoster spec ships a new version (1.3 anticipated), (b) Clever or ClassLink change their integration model, (c) a major SIS vendor changes their export / API, (d) live engagement scenarios via `/wrap` surface integration patterns this file doesn't cover.
 
-This file is the **technical-integration reference** for the implementation 90-day arc. The [`../skills/implementation-90-day-arc.md`](../skills/implementation-90-day-arc.md) skill consults this file during weeks 1-2 (discovery) and weeks 3-4 (configuration). The [`../templates/implementation-90-day-plan.md`](../templates/implementation-90-day-plan.md) week-by-week checklist references this file.
+This file is the **technical-integration reference** for the implementation 90-day arc. The [`../skills/implementation-90-day-arc/SKILL.md`](../skills/implementation-90-day-arc/SKILL.md) skill consults this file during weeks 1-2 (discovery) and weeks 3-4 (configuration). The [`../templates/implementation-90-day-plan.md`](../templates/implementation-90-day-plan.md) week-by-week checklist references this file.
 
 This file is the **technical-config sibling** of [`rostering-data-quality-typology.md`](rostering-data-quality-typology.md) — that file covers data-quality diagnostics ongoing; this file covers integration-pattern setup at implementation time.
 
@@ -169,5 +169,5 @@ These are the failure patterns that show up in real implementations:
 - [`parent-comms-jurisdictional-bear-traps.md`](parent-comms-jurisdictional-bear-traps.md) — state student-privacy frameworks
 - [`ai-in-edtech-2026.md`](ai-in-edtech-2026.md) — COPPA-amended consent overlay for AI features
 - [`district-implementation-failure-modes.md`](district-implementation-failure-modes.md) — sibling file: implementation-arc failure modes broader than integration
-- [`../skills/implementation-90-day-arc.md`](../skills/implementation-90-day-arc.md) — the playbook this file serves
+- [`../skills/implementation-90-day-arc/SKILL.md`](../skills/implementation-90-day-arc/SKILL.md) — the playbook this file serves
 - [`../templates/implementation-90-day-plan.md`](../templates/implementation-90-day-plan.md) — the per-week checklist artifact

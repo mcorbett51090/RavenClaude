@@ -132,7 +132,7 @@ After the Markdown report, **emit the cross-plugin Structured Output Protocol JS
 
 The JSON `sources_cited`, `materiality_threshold`, and `confidentiality` fields mirror the mandatory Markdown lines. Both surfaces must be consistent. `confidence` ≥ 0.7 triggers Cited-Adjudicator Escalation per [`../ravenclaude-core/rules/agent-collaboration.md`](../ravenclaude-core/rules/agent-collaboration.md).
 
-See [`../ravenclaude-core/skills/structured-output.md`](../ravenclaude-core/skills/structured-output.md) for the schema and rationale.
+See [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md) for the schema and rationale.
 
 ---
 
@@ -157,15 +157,15 @@ When in doubt, the hook is conservative — it only fires on files in finance-co
 
 | Skill | Primary agent | What's inside |
 |---|---|---|
-| [`skills/month-end-close.md`](skills/month-end-close.md) | `controller` | Standard close calendar, JE buckets, reconciliation checklist, exception-triage playbook |
-| [`skills/variance-commentary.md`](skills/variance-commentary.md) | `fpa-analyst`, `board-pack-composer` | How to write variance commentary that tells a story instead of a table; templates for revenue, GM, opex, EBITDA, FCF |
-| [`skills/model-review.md`](skills/model-review.md) | `financial-modeler`, `valuation-analyst` | 7-pass review for financial models (assumptions, mechanics, integrity, hardcodes, error-checks, scenarios, documentation) |
-| [`skills/board-pack-composition.md`](skills/board-pack-composition.md) | `board-pack-composer` | Narrative-arc-first board pack assembly; section sequencing; KPI selection; executive-summary patterns |
-| [`skills/driver-based-forecasting.md`](skills/driver-based-forecasting.md) | `fpa-analyst`, `financial-modeler` | Build / refresh a driver-based rolling forecast — revenue tree by business model, opex by category-driver, working-capital roll, capex schedule, scenarios with probability weights, BS/CF integration checks |
-| [`skills/dcf-valuation.md`](skills/dcf-valuation.md) | `valuation-analyst`, `financial-modeler` | Defensible DCF — explicit-period steady-state criteria, terminal value (Gordon + exit multiple, reconciled), WACC build from primary sources, sensitivities, football-field cross-check |
-| [`skills/thirteen-week-cash-forecast.md`](skills/thirteen-week-cash-forecast.md) | `treasury-analyst`, `fpa-analyst` | Direct-method 13-week cash forecast — receipts by source / disbursements by category, variance-to-prior-forecast loop, covenant headroom, 3-scenario stress, trigger thresholds |
-| [`skills/soc-control-walkthrough.md`](skills/soc-control-walkthrough.md) | `audit-prep-specialist`, `controller` | Walkthrough documentation that satisfies the auditor on first review — control description's 6 dimensions, ToD vs ToE, sampling discipline, exception triage, deficiency severity (CD / SD / MW) |
-| [`skills/kpi-definition.md`](skills/kpi-definition.md) | `fpa-analyst`, `board-pack-composer` | KPI dictionary entry format, 6 properties of a defensible KPI, canonical SaaS definitions (ARR / NRR / LTV-CAC), reconciliation discipline, versioning of definition changes |
+| [`skills/month-end-close/SKILL.md`](skills/month-end-close/SKILL.md) | `controller` | Standard close calendar, JE buckets, reconciliation checklist, exception-triage playbook |
+| [`skills/variance-commentary/SKILL.md`](skills/variance-commentary/SKILL.md) | `fpa-analyst`, `board-pack-composer` | How to write variance commentary that tells a story instead of a table; templates for revenue, GM, opex, EBITDA, FCF |
+| [`skills/model-review/SKILL.md`](skills/model-review/SKILL.md) | `financial-modeler`, `valuation-analyst` | 7-pass review for financial models (assumptions, mechanics, integrity, hardcodes, error-checks, scenarios, documentation) |
+| [`skills/board-pack-composition/SKILL.md`](skills/board-pack-composition/SKILL.md) | `board-pack-composer` | Narrative-arc-first board pack assembly; section sequencing; KPI selection; executive-summary patterns |
+| [`skills/driver-based-forecasting/SKILL.md`](skills/driver-based-forecasting/SKILL.md) | `fpa-analyst`, `financial-modeler` | Build / refresh a driver-based rolling forecast — revenue tree by business model, opex by category-driver, working-capital roll, capex schedule, scenarios with probability weights, BS/CF integration checks |
+| [`skills/dcf-valuation/SKILL.md`](skills/dcf-valuation/SKILL.md) | `valuation-analyst`, `financial-modeler` | Defensible DCF — explicit-period steady-state criteria, terminal value (Gordon + exit multiple, reconciled), WACC build from primary sources, sensitivities, football-field cross-check |
+| [`skills/thirteen-week-cash-forecast/SKILL.md`](skills/thirteen-week-cash-forecast/SKILL.md) | `treasury-analyst`, `fpa-analyst` | Direct-method 13-week cash forecast — receipts by source / disbursements by category, variance-to-prior-forecast loop, covenant headroom, 3-scenario stress, trigger thresholds |
+| [`skills/soc-control-walkthrough/SKILL.md`](skills/soc-control-walkthrough/SKILL.md) | `audit-prep-specialist`, `controller` | Walkthrough documentation that satisfies the auditor on first review — control description's 6 dimensions, ToD vs ToE, sampling discipline, exception triage, deficiency severity (CD / SD / MW) |
+| [`skills/kpi-definition/SKILL.md`](skills/kpi-definition/SKILL.md) | `fpa-analyst`, `board-pack-composer` | KPI dictionary entry format, 6 properties of a defensible KPI, canonical SaaS definitions (ARR / NRR / LTV-CAC), reconciliation discipline, versioning of definition changes |
 
 **How an agent uses a skill**: read the skill file first for the entry-point playbook, then consult the relevant templates in `templates/` for the artifact shape. Don't pre-load every skill — they're on-demand reference.
 
@@ -220,7 +220,7 @@ When in doubt, the finance team **declines and asks the Team Lead** rather than 
 
 - Domain-neutral team constitution: [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md)
 - Capability Grounding Protocol (architectural): [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md) (`Capability Grounding Protocol` section); reference skill (when `power-platform` is installed): [`../power-platform/skills/grounding-protocol/SKILL.md`](../power-platform/skills/grounding-protocol/SKILL.md)
-- Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output.md`](../ravenclaude-core/skills/structured-output.md)
+- Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md)
 - Cited-Adjudicator Escalation: [`../ravenclaude-core/rules/agent-collaboration.md`](../ravenclaude-core/rules/agent-collaboration.md)
 - Sister plugins (when installed alongside): `regulatory-compliance` — finance work for a regulated entity routinely surfaces compliance concerns. See [`../../docs/plugin-roadmap-analysis.md`](../../docs/plugin-roadmap-analysis.md) for the marketplace plan.
 - Marketplace-wide developer guide: [`../../CLAUDE.md`](../../CLAUDE.md)
