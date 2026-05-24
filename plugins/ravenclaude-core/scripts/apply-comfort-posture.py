@@ -47,7 +47,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT_ENV = "CLAUDE_PROJECT_DIR"
@@ -242,6 +244,18 @@ DEFAULT_SECURITY_DENY: list[str] = [
 
 VALID_LEVELS = {"deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"}
 
+# Filesystem-root catch-alls — patterns anchored at "//" (the whole filesystem).
+# In the ALLOW bucket they correctly auto-approve the entire tree; in DENY they
+# block it. But in the ASK bucket they are both REDUNDANT (Claude Code already
+# prompts on any path no rule matches) AND HARMFUL: because "//**" also matches
+# project-internal paths and Claude Code's precedence is deny > ask > allow, an
+# ask-bucket "//**" overrides the project categories' autopilot/allow rules
+# (e.g. Read(**)), making every in-project read/edit prompt. So we suppress them
+# when they resolve to ask and let the engine's default "ask on unmatched" handle
+# genuinely-external paths. Home anchors (~/**) don't overlap the project, so they
+# stay. See knowledge/claude-code-permissions.md "Read/Edit path anchors".
+FS_ROOT_CATCHALLS = {"Read(//**)", "Edit(//**)", "Write(//**)"}
+
 
 def level_to_bucket(level: str) -> str:
     """Map a comfort-posture level to a permission-rule bucket.
@@ -428,6 +442,11 @@ def compute_emission(posture: dict) -> dict[str, list[str]]:
         for pattern in patterns:
             level = overrides.get(pattern, cat_default)
             bucket = level_to_bucket(level)
+            if bucket == "ask" and pattern in FS_ROOT_CATCHALLS:
+                # Redundant with the engine's default "ask on unmatched" AND would
+                # shadow project allow rules (ask > allow). Drop it; see the
+                # FS_ROOT_CATCHALLS comment above.
+                continue
             out[bucket].append(pattern)
 
     security_deny = posture.get("security_deny")
@@ -451,6 +470,237 @@ def compute_emission(posture: dict) -> dict[str, list[str]]:
     return out
 
 
+# ── Schema v5: per-layer authoring ────────────────────────────────────────
+# v5 lets each category carry separate levels for the user / local / project
+# settings layers. Claude Code merges all three at runtime as deny > ask > allow,
+# so the same category can be stricter at one layer than another. The dashboard's
+# expandable per-layer cards author this; "Save & apply all layers" emits one
+# settings file per active layer. See skills/set-posture/SKILL.md and
+# docs/dashboard-buildout-plan.md §2 (Phase A).
+
+SCRIPT_VERSION = "0.18.0"
+LAYERS = ("user", "local", "project")
+SIDE_CAR_NAME = ".comfort-posture-applied"
+
+
+def v5_value_to_bucket(value) -> str | None:
+    """Map a v5 per-layer value to a settings bucket, or None for inherit/unset."""
+    if value in (None, "inherit", ""):
+        return None
+    if value in ("allow", "ask", "deny"):
+        return value
+    # Tolerate the 5-level names too (so a v4 scalar carried into a v5 layer works).
+    return level_to_bucket(value)
+
+
+def resolve_settings_path(scope: str, root: Path) -> Path:
+    if scope == "user":
+        return Path.home() / ".claude" / "settings.json"
+    if scope == "local":
+        return root / ".claude" / "settings.local.json"
+    if scope == "project":
+        return root / ".claude" / "settings.json"
+    raise ValueError(f"unknown scope: {scope!r}")
+
+
+def resolve_side_car_path(scope: str, root: Path) -> Path:
+    """Tracks whether a non-project layer was last written by us, so we can clear it."""
+    if scope == "user":
+        return Path.home() / ".claude" / f"{SIDE_CAR_NAME}.user.json"
+    return root / ".claude" / f"{SIDE_CAR_NAME}.{scope}.json"
+
+
+def category_layer_value(cat_cfg, layer: str):
+    """Resolve a category's value at a layer. Tolerates a bare scalar (= user layer)."""
+    if isinstance(cat_cfg, str):
+        return cat_cfg if layer == "user" else "inherit"
+    if isinstance(cat_cfg, dict):
+        return cat_cfg.get(layer, "inherit")
+    return "inherit"
+
+
+def compute_emission_v5(posture: dict) -> dict[str, dict[str, list[str]]]:
+    """Return {layer: {bucket: [rules]}} for the three layers.
+
+    Category patterns go to their per-layer bucket. The security_deny floor is
+    emitted into the PROJECT layer only (the committed, always-present baseline);
+    deny is absolute under the merge, so one copy protects every layer.
+    """
+    categories = posture.get("categories", {}) or {}
+    layers = {L: {"allow": [], "ask": [], "deny": []} for L in LAYERS}
+
+    for cat, patterns in EMISSIONS.items():
+        cat_cfg = categories.get(cat)
+        for L in LAYERS:
+            bucket = v5_value_to_bucket(category_layer_value(cat_cfg, L))
+            if bucket is None:
+                continue
+            for pattern in patterns:
+                # Same fix as v4: never emit filesystem-root catch-alls into ask
+                # (they shadow project allow rules — see FS_ROOT_CATCHALLS above).
+                if bucket == "ask" and pattern in FS_ROOT_CATCHALLS:
+                    continue
+                layers[L][bucket].append(pattern)
+
+    security_deny = posture.get("security_deny")
+    if security_deny is None:
+        security_deny = list(DEFAULT_SECURITY_DENY)
+    if not isinstance(security_deny, list):
+        raise ValueError(f"`security_deny` must be a list, got {type(security_deny).__name__}")
+    layers["project"]["deny"].extend(security_deny)
+
+    # Per-layer cleanup: security-deny-wins + dedupe (mirrors compute_emission).
+    for L in LAYERS:
+        out = layers[L]
+        deny_set = set(out["deny"])
+        out["allow"] = [r for r in out["allow"] if r not in deny_set]
+        out["ask"] = [r for r in out["ask"] if r not in deny_set]
+        for bucket in out:
+            seen: set[str] = set()
+            out[bucket] = [r for r in out[bucket] if not (r in seen or seen.add(r))]
+    return layers
+
+
+def active_layers(posture: dict) -> set[str]:
+    """Layers the user has authored at least one non-inherit category for."""
+    categories = posture.get("categories", {}) or {}
+    active: set[str] = set()
+    for cat_cfg in categories.values():
+        for L in LAYERS:
+            if v5_value_to_bucket(category_layer_value(cat_cfg, L)) is not None:
+                active.add(L)
+    return active
+
+
+def compute_effective_v5(emission: dict[str, dict[str, list[str]]]) -> dict[str, str]:
+    """Merge the three layers into {pattern: effective-bucket} (deny > ask > allow)."""
+    rank = {"deny": 3, "ask": 2, "allow": 1}
+    eff: dict[str, str] = {}
+    for L in LAYERS:
+        for bucket, rules in emission[L].items():
+            for r in rules:
+                if r not in eff or rank[bucket] > rank[eff[r]]:
+                    eff[r] = bucket
+    return eff
+
+
+def write_side_car(path: Path, scope: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "scope": scope,
+                "script_version": SCRIPT_VERSION,
+                "applied_at": datetime.now(timezone.utc).isoformat(),
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def append_local_to_gitignore(root: Path) -> None:
+    gi = root / ".gitignore"
+    line = ".claude/settings.local.json"
+    existing = gi.read_text(encoding="utf-8") if gi.exists() else ""
+    if line in existing:
+        return
+    prefix = "" if (not existing or existing.endswith("\n")) else "\n"
+    with gi.open("a", encoding="utf-8") as f:
+        f.write(f"{prefix}{line}\n")
+    print(f"Appended {line} to .gitignore", file=sys.stderr)
+
+
+def ephemeral_user_warning() -> str | None:
+    if os.environ.get("CODESPACE_NAME"):
+        return ("you're in a GitHub Codespace; the user layer (~/.claude/settings.json) is "
+                "ephemeral and vanishes on rebuild. Prefer the local layer to persist in the project.")
+    if os.environ.get("CI") in ("1", "true"):
+        return "you're in CI; the user layer (~/.claude/settings.json) won't be seen by the next job."
+    return None
+
+
+def run_v5(posture: dict, root: Path, args) -> int:
+    """Apply a schema-v5 (per-layer) posture: emit one settings file per layer."""
+    emission = compute_emission_v5(posture)
+    active = active_layers(posture)
+
+    if args.preview_merge:
+        eff = compute_effective_v5(emission)
+        by_bucket: dict[str, list[str]] = {"deny": [], "ask": [], "allow": []}
+        for rule, bucket in sorted(eff.items()):
+            by_bucket[bucket].append(rule)
+        print("Merged effective posture (deny > ask > allow across user/local/project):")
+        for bucket in ("deny", "ask", "allow"):
+            print(f"\n  [{bucket}] ({len(by_bucket[bucket])})")
+            for r in by_bucket[bucket]:
+                print(f"    {r}")
+        return 0
+
+    scopes = list(LAYERS) if args.scope == "all" else [args.scope]
+
+    warn = ephemeral_user_warning()
+    if warn and "user" in scopes and "user" in active:
+        print(f"WARN: {warn}", file=sys.stderr)
+
+    wrote: list[str] = []
+    for scope in scopes:
+        target = resolve_settings_path(scope, root)
+        side_car = resolve_side_car_path(scope, root) if scope != "project" else None
+        # Project always carries the floor, so it is always considered active.
+        is_active = scope in active or scope == "project"
+
+        if not is_active:
+            # Nothing authored here now. If a side-car says we wrote it before, clear our buckets.
+            if side_car and side_car.is_file():
+                if not args.dry_run and target.is_file():
+                    settings = json.loads(target.read_text(encoding="utf-8"))
+                    overwrite_permissions(settings, {"allow": [], "ask": [], "deny": []})
+                    target.write_text(
+                        json.dumps(settings, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+                    )
+                    side_car.unlink(missing_ok=True)
+                print(f"{'(dry-run) ' if args.dry_run else ''}cleared posture rules from {scope} layer")
+            continue
+
+        em = emission[scope]
+        if target.is_file():
+            settings = json.loads(target.read_text(encoding="utf-8"))
+        else:
+            settings = {"$schema": "https://json.schemastore.org/claude-code-settings.json"}
+        prev = settings.get("permissions", {})
+        prev_counts = {b: len(prev.get(b, [])) for b in ("allow", "ask", "deny")}
+        overwrite_permissions(settings, em)
+        new_counts = {b: len(em[b]) for b in ("allow", "ask", "deny")}
+
+        rel = target if scope == "user" else target.relative_to(root)
+        if args.dry_run:
+            print(f"(dry-run) {scope} layer → {rel}")
+        else:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(json.dumps(settings, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            if side_car:
+                write_side_car(side_car, scope)
+            if scope == "local":
+                append_local_to_gitignore(root)
+            print(f"Applied {scope} layer → {rel}")
+        for b in ("allow", "ask", "deny"):
+            d = new_counts[b] - prev_counts[b]
+            print(f"    permissions.{b}: {prev_counts[b]} -> {new_counts[b]} ({'+' if d > 0 else ''}{d})")
+        wrote.append(scope)
+
+    verb = "(dry-run) would apply" if args.dry_run else "Applied"
+    print(f"\n{verb} layers: {', '.join(wrote) or '(none)'}")
+    print(
+        "\nNote: Claude Code merges all three layers as deny > ask > allow. A stricter "
+        "rule at any layer wins — a personal 'allow' cannot loosen a team 'ask'/'deny'.\n"
+        "Run with --preview-merge to see the merged effective posture."
+    )
+    return 0
+
+
 def overwrite_permissions(settings: dict, new_emission: dict[str, list[str]]) -> dict:
     """Replace settings['permissions'].{allow,ask,deny} with the new emission.
 
@@ -467,6 +717,18 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--project-root", help="Override project root detection. Default: search upward from CWD for .claude/ or .git/.")
     p.add_argument("--dry-run", action="store_true", help="Print what would change; don't write.")
+    p.add_argument(
+        "--scope",
+        choices=["user", "local", "project", "all"],
+        default="all",
+        help="(schema v5) Which layer(s) to write. 'all' (default) writes every active layer; "
+        "user=~/.claude/settings.json, local=.claude/settings.local.json, project=.claude/settings.json.",
+    )
+    p.add_argument(
+        "--preview-merge",
+        action="store_true",
+        help="(schema v5) Print the merged effective posture across all three layers; don't write.",
+    )
     args = p.parse_args()
 
     root = Path(args.project_root) if args.project_root else find_project_root(Path.cwd())
@@ -485,9 +747,14 @@ def main() -> int:
 
     posture = parse_yaml(posture_path.read_text(encoding="utf-8"))
     schema_version = posture.get("schema_version")
+
+    # Schema v5 — per-layer authoring. Distinct code path; v3/v4 fall through below.
+    if schema_version == 5:
+        return run_v5(posture, root, args)
+
     if schema_version not in (3, 4):
         print(
-            f"WARNING: posture schema_version is {schema_version!r}, expected 3 or 4. "
+            f"WARNING: posture schema_version is {schema_version!r}, expected 3, 4, or 5. "
             "Translation may be incomplete.",
             file=sys.stderr,
         )

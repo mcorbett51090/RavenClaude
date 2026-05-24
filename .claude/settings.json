@@ -80,11 +80,8 @@
     ],
     "ask": [
       "Read(~/**)",
-      "Read(//**)",
       "Edit(~/**)",
       "Write(~/**)",
-      "Edit(//**)",
-      "Write(//**)",
       "Bash(git push:*)",
       "Bash(git fetch:*)",
       "Bash(git pull:*)",

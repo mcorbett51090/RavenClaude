@@ -64,10 +64,12 @@ Each category emits a flat list of narrow Bash patterns plus the relevant file/n
 |---|---|
 | `file_read_project` | `Read(**)` |
 | `file_edit_project` | `Edit(**)`, `Write(**)`, `MultiEdit(**)` |
-| `file_read_global` | `Read(~/**)`, `Read(//**)` |
-| `file_edit_global` | `Edit(~/**)`, `Write(~/**)`, `Edit(//**)`, `Write(//**)` |
+| `file_read_global` | `Read(~/**)`, `Read(//**)` † |
+| `file_edit_global` | `Edit(~/**)`, `Write(~/**)`, `Edit(//**)` †, `Write(//**)` † |
 
 The path anchors follow Claude Code's documented gitignore-style anchors (see `knowledge/claude-code-permissions.md` §"Read/Edit path anchors"). `/path` anchors at project root, `~/path` at home, `//abs/path` at filesystem root, bare paths default to cwd.
+
+**† Filesystem-root catch-alls are suppressed in the `ask` bucket.** `//**` is anchored at the filesystem root, so it also matches *project-internal* paths. Because Claude Code resolves overlaps as deny > ask > allow, an `ask`-bucket `Read(//**)` would beat the project category's `Read(**)` allow rule and prompt on **every in-project read** (and likewise for edits) — silently defeating `file_read_project: autopilot`. So when `file_read_global` / `file_edit_global` resolve to an ask level (`always-ask` / `mostly-ask`), the generator drops the `//**` patterns and lets Claude Code's built-in "ask on any unmatched path" handle genuinely-external reads. The `//**` patterns are still emitted for `allow` levels (where you *want* to auto-approve the whole tree) and `deny` levels. The home anchor `~/**` is kept in all buckets — it doesn't overlap the project. Implemented as `FS_ROOT_CATCHALLS` in `apply-comfort-posture.py`'s `compute_emission()`.
 
 ### Shell categories
 
@@ -102,9 +104,40 @@ Implications:
 - **Hand-edits to `settings.json`'s `permissions.{allow,ask,deny}` are wiped.** If you find yourself wanting to add a rule there, ask whether it belongs in the posture YAML (so the dashboard reflects it) or in `settings.local.json` (personal-only).
 - **Stale snapshot files are cleaned up.** If a v0.16.0 `.claude/_comfort-posture-snapshot.json` is present, the script deletes it on first v0.17.0 run.
 
+## Schema v5 — per-layer authoring (v0.18.0+)
+
+v5 lets each category carry **separate levels for the three settings layers** Claude Code merges at runtime. The dashboard's expandable per-layer cards author this; `apply-comfort-posture.py`'s `run_v5()` emits one settings file per active layer.
+
+```yaml
+schema_version: 5
+security_deny: [ ... ] # floor (unchanged)
+categories:
+  shell_local_mutate:
+    user: allow # one of: allow | ask | deny | inherit
+    local: ask
+    project: inherit # inherit = emit nothing at this layer
+```
+
+| Layer | Settings file | Audience |
+|---|---|---|
+| `user` | `~/.claude/settings.json` | this machine, all projects (ephemeral in a Codespace) |
+| `local` | `.claude/settings.local.json` | this project, just me (gitignored; auto-added to `.gitignore`) |
+| `project` | `.claude/settings.json` | the whole team (committed); **always carries the `security_deny` floor** |
+
+Resolution: **deny > ask > allow** across the merged set — the strictest layer wins, so a personal `allow` cannot loosen a team `ask`/`deny` (this is also why putting personal preferences at `project` scope is a footgun the dashboard warns about). The per-layer value vocabulary is the 4-value `allow | ask | deny | inherit`; the `//**`-in-ask suppression (above) applies per layer.
+
+Mechanics:
+
+- **`--scope {user,local,project,all}`** (default `all`) chooses which layer(s) to write; the dashboard's "Save & apply all layers" uses `all`.
+- **`--preview-merge`** reads the three files, computes the merged effective posture, and prints it (deny/ask/allow) — the CLI counterpart to the dashboard's effective badges.
+- **Per-scope side-cars** (`.claude/.comfort-posture-applied.{local,project}.json`, `~/.claude/.comfort-posture-applied.user.json`) record what we wrote, so emptying a layer in the YAML clears that layer's posture rules on the next apply instead of orphaning them.
+- The `security_deny` floor is emitted into the **project** layer only — deny is absolute under the merge, so one copy protects every layer and keeps the shared safety baseline in the shared file.
+- **Back-compat:** v3/v4 single-layer postures still run the original single-file `compute_emission` path (project layer only). Only `schema_version: 5` triggers `run_v5()`.
+- **Migration note:** there is intentionally NO blocking migration banner — it would halt the dashboard's auto-apply flow. The dashboard handles v4→v5 migration on load (existing levels land on the Local layer).
+
 ## Always-on security deny
 
-`security_deny:` is a top-level list in the posture YAML carrying patterns that are **always denied regardless of category levels**. The default list covers `.env` / `.pem` / `credentials*` reads and the most common destructive shell commands (`rm -rf`, `git push --force`, `git reset --hard`, `curl | sh`).
+`security_deny:` is a top-level list in the posture YAML carrying patterns that are **always denied regardless of category levels**. The default list covers `.env` / `.pem` / `credentials*` reads and the most common destructive shell commands (`rm -rf`, `git push --force`, `git reset --hard`, `curl | sh`). Under schema v5 it is emitted into the **project** layer (the committed, always-present floor).
 
 - Add patterns to tighten your security floor.
 - Remove patterns only if you have a specific reason — these are the marketplace's recommended security baseline.

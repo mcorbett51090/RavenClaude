@@ -169,14 +169,7 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
             f'title="{html.escape(preset_desc)}">{html.escape(button_label)}</button>'
         )
 
-    # Global default segmented control
-    global_default_html = _render_segmented(
-        "global_default",
-        properties.get("global_default", {}),
-        "global-default",
-    )
-
-    # Per-category controls, grouped
+    # Per-category expandable cards, grouped
     categories_props = properties.get("categories", {}).get("properties", {})
     groups: dict[str, list[tuple[str, dict]]] = {}
     for cat_name in sorted(categories_props.keys()):
@@ -186,17 +179,12 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
 
     group_html_parts: list[str] = []
     for group_name in sorted(groups.keys()):
-        row_blocks: list[str] = []
+        card_blocks: list[str] = []
         for name, sch in groups[group_name]:
-            row_blocks.append(
-                _render_segmented(name, sch, f"cat-{name}", group=group_name)
-            )
-            patterns = EMISSIONS.get(name, [])
-            if patterns:
-                row_blocks.append(_render_pattern_details(name, patterns))
+            card_blocks.append(_render_category_card(name, sch))
         group_html_parts.append(
             f'<fieldset class="cat-group"><legend>{html.escape(group_name)}</legend>'
-            + "".join(row_blocks)
+            + "".join(card_blocks)
             + "</fieldset>"
         )
 
@@ -206,7 +194,6 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
 
     return _SETTINGS_TAB_TEMPLATE.format(
         preset_buttons="".join(preset_buttons),
-        global_default=global_default_html,
         category_groups="".join(group_html_parts),
         security_deny=security_deny_html,
     )
@@ -281,6 +268,101 @@ def _render_pattern_details(category: str, patterns: list[str]) -> str:
         f'</summary>'
         f'<div class="pattern-list">'
         + "".join(rows)
+        + "</div>"
+        f"</details>"
+    )
+
+
+def _render_layer_radios(name: str, layer: str, default_value: str = "inherit") -> str:
+    """Render one layer row (User / Local / Project) inside an expanded card.
+
+    Each row is a WAI-ARIA radiogroup with four options: allow / ask / deny / inherit.
+    Arrow keys cycle within the group; Space selects (native radio behavior).
+    """
+    layer_id = f"layer-{name}-{layer}"
+    values = [
+        ("allow", "allow"),
+        ("ask", "ask"),
+        ("deny", "deny"),
+        ("inherit", "inherit"),
+    ]
+    radios: list[str] = []
+    for value, label in values:
+        rid = f"{layer_id}-{value}"
+        checked = "checked" if value == default_value else ""
+        radios.append(
+            f'<input type="radio" id="{html.escape(rid)}" '
+            f'name="{html.escape(layer_id)}" value="{html.escape(value)}" {checked} '
+            f'data-category="{html.escape(name)}" data-layer="{html.escape(layer)}">'
+            f'<label for="{html.escape(rid)}" class="layer-opt layer-opt-{html.escape(value)}" '
+            f'title="{html.escape(value)}">{html.escape(label)}</label>'
+        )
+    label_text = layer.capitalize()
+    return (
+        f'<div class="layer-row" role="radiogroup" '
+        f'aria-label="{html.escape(label_text)} layer for {html.escape(name)}">'
+        f'<span class="layer-label">{html.escape(label_text)}</span>'
+        f'<div class="layer-radios">'
+        + "".join(radios)
+        + "</div>"
+        f"</div>"
+    )
+
+
+def _render_category_card(name: str, schema: dict) -> str:
+    """Render one expandable category card with three per-layer radiogroups.
+
+    Collapsed state: title + description + effective badge.
+    Expanded state: User / Local / Project rows, each with allow/ask/deny/inherit radios.
+    The card is a <details> element for native keyboard expand/collapse.
+    """
+    title = schema.get("title", name)
+    description = schema.get("description", "")
+    recommended = schema.get("x-recommended", "")
+    has_modal_content = bool(schema.get("x-controls") or schema.get("x-examples") or schema.get("x-guidance"))
+
+    # Map the old 5-level recommended value to the 4-value set for the Local layer default.
+    # deny -> deny, always-ask/mostly-ask -> ask, mostly-allow/autopilot -> allow, else inherit
+    rec_to_layer: dict[str, str] = {
+        "deny": "deny",
+        "always-ask": "ask",
+        "mostly-ask": "ask",
+        "mostly-allow": "allow",
+        "autopilot": "allow",
+    }
+    local_default = rec_to_layer.get(recommended, "inherit")
+
+    info_btn = (
+        f'<button type="button" class="info-btn" data-info-for="{html.escape(name)}" '
+        f'aria-label="Explain {html.escape(title)}" title="Explain this setting">?</button>'
+        if has_modal_content else ""
+    )
+
+    # Build layer rows (User=inherit, Local=recommended, Project=inherit)
+    user_row = _render_layer_radios(name, "user", "inherit")
+    local_row = _render_layer_radios(name, "local", local_default)
+    project_row = _render_layer_radios(name, "project", "inherit")
+
+    return (
+        f'<details class="cat-card" data-category="{html.escape(name)}">'
+        f'<summary class="cat-card-summary">'
+        f'<span class="cat-card-arrow" aria-hidden="true">&#9658;</span>'
+        f'<span class="cat-card-title-group">'
+        f'<span class="cat-card-title">{html.escape(title)}</span>'
+        f'{info_btn}'
+        f'</span>'
+        f'<span class="cat-card-desc">{html.escape(description)}</span>'
+        f'<span class="cat-card-badge" data-badge-for="{html.escape(name)}" '
+        f'aria-label="Effective level for {html.escape(title)}"></span>'
+        f'</summary>'
+        f'<div class="cat-card-body">'
+        f'<div class="cat-project-warn" data-warn-for="{html.escape(name)}" hidden>'
+        f'<span class="warn-icon" aria-hidden="true">&#9888;</span> '
+        f'Project-layer allows are granted to the whole team and cannot be relaxed by personal layers.'
+        f'</div>'
+        + user_row
+        + local_row
+        + project_row
         + "</div>"
         f"</details>"
     )
@@ -1088,6 +1170,7 @@ body {
   text-align: center;
 }
 .primary-help.muted { color: var(--warn); }
+.primary-help.warn { color: var(--warn); font-weight: 600; }
 .primary-help code {
   background: var(--surface-2);
   padding: 1px 5px;
@@ -1223,6 +1306,189 @@ footer.page-footer {
 }
 footer.page-footer a { color: var(--accent); text-decoration: none; }
 footer.page-footer a:hover { text-decoration: underline; }
+
+/* ── v5 Per-layer expandable cards ──────────────────────────────── */
+.cat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: 0 0 8px;
+  overflow: hidden;
+}
+.cat-card[open] {
+  border-color: var(--accent);
+}
+.cat-card-summary {
+  display: grid;
+  grid-template-columns: 20px 1fr auto auto;
+  gap: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  align-items: center;
+  list-style: none;
+  user-select: none;
+  min-height: 52px;
+  transition: background 80ms ease;
+}
+.cat-card-summary::-webkit-details-marker { display: none; }
+.cat-card-summary:hover { background: var(--surface-2); }
+.cat-card[open] > .cat-card-summary { background: var(--surface-2); border-bottom: 1px solid var(--border); }
+.cat-card-arrow {
+  color: var(--muted);
+  font-size: 11px;
+  transition: transform 120ms ease;
+  display: inline-block;
+  line-height: 1;
+}
+.cat-card[open] > .cat-card-summary .cat-card-arrow {
+  transform: rotate(90deg);
+  color: var(--accent);
+}
+.cat-card-title-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.cat-card-title {
+  font-weight: 500;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.cat-card-desc {
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Effective badge: small pill on the right of the summary */
+.cat-card-badge {
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  min-width: 80px;
+  text-align: center;
+}
+.cat-card-badge.badge-allow { border-color: #22c55e; color: #22c55e; background: rgba(34,197,94,0.08); }
+.cat-card-badge.badge-ask { border-color: var(--warn); color: var(--warn); background: rgba(251,191,36,0.08); }
+.cat-card-badge.badge-deny { border-color: var(--danger); color: var(--danger); background: rgba(239,68,68,0.08); }
+.cat-card-badge.badge-inherit { border-color: var(--border); color: var(--muted); }
+
+/* Body of the expanded card */
+.cat-card-body {
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Project-allow caution banner */
+.cat-project-warn {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid var(--warn);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--warn);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.cat-project-warn .warn-icon { margin-right: 4px; }
+
+/* Layer row: label + 4-option radiogroup */
+.layer-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px dotted var(--border);
+}
+.layer-row:last-child { border-bottom: none; }
+.layer-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  min-width: 56px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.layer-radios {
+  display: inline-flex;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 2px;
+  gap: 0;
+}
+.layer-radios input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.layer-opt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 11px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 80ms ease, color 80ms ease;
+  user-select: none;
+  min-width: 58px;
+  text-align: center;
+  white-space: nowrap;
+}
+.layer-radios input[type="radio"]:checked + .layer-opt { background: var(--accent); color: var(--bg); font-weight: 600; }
+.layer-radios input[type="radio"]:checked + .layer-opt-deny { background: var(--danger); color: white; }
+.layer-radios input[type="radio"]:checked + .layer-opt-ask { background: var(--warn); color: var(--bg); }
+.layer-radios input[type="radio"]:checked + .layer-opt-inherit { background: var(--surface); color: var(--text); }
+.layer-radios input[type="radio"]:focus-visible + .layer-opt {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.layer-opt:hover { color: var(--text); }
+
+/* Layers info modal */
+.modal.layers-modal { max-width: 520px; }
+.modal.layers-modal h2 { color: var(--accent); }
+.modal.layers-modal .layer-file-row {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 8px 12px;
+  align-items: start;
+  margin-bottom: 8px;
+}
+.modal.layers-modal .layer-file-label {
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  padding-top: 2px;
+}
+.modal.layers-modal .layer-file-desc {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+}
+.modal.layers-modal .layer-file-desc code {
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
 """.strip()
 
 
@@ -1230,13 +1496,12 @@ _SETTINGS_TAB_TEMPLATE = """
 <div class="settings-layout">
   <div class="settings-form">
     <div class="preset-bar">
-      <h3>Apply a preset</h3>
-      <p>Sets every category at once. You can still override individual rows below.</p>
+      <h3>Apply a preset
+        <button type="button" class="info-btn info-btn-section" id="layers-info-btn"
+          aria-label="How layers merge" title="How layers merge">&#9432;</button>
+      </h3>
+      <p>Sets every category&#39;s <strong>Local</strong> layer at once — your personal default. User and Project layers are untouched.</p>
       <div class="preset-buttons">{preset_buttons}</div>
-    </div>
-
-    <div class="global-default">
-      {global_default}
     </div>
 
     {category_groups}
@@ -1251,11 +1516,14 @@ _SETTINGS_TAB_TEMPLATE = """
     <pre id="yaml-output"></pre>
     <div class="yaml-primary-action">
       <button class="btn btn-primary" id="save-repo-btn" hidden>
-        <span class="btn-main">Save to repo</span>
-        <span class="btn-sub" id="save-repo-target">.ravenclaude/comfort-posture.yaml</span>
+        <span class="btn-main">Save &amp; apply all layers</span>
+        <span class="btn-sub" id="save-repo-target">.ravenclaude/comfort-posture.yaml &rarr; user/local/project settings</span>
       </button>
       <p class="primary-help" id="save-repo-help" hidden>
-        Saves directly to <code>.ravenclaude/comfort-posture.yaml</code> in this repo. The agent reads from there.
+        Saves to <code>.ravenclaude/comfort-posture.yaml</code> <strong>and immediately applies it to all three layers</strong> &mdash; re-runs the translator so your <code>settings.json</code> permission rules update right away.
+      </p>
+      <p class="primary-help warn" id="save-repo-warn" hidden>
+        &#9888; This overwrites the <code>allow</code> / <code>ask</code> / <code>deny</code> rules in all three settings files. Hand-edits to those rules are replaced. The three files are: <code>~/.claude/settings.json</code> (User), <code>.claude/settings.local.json</code> (Local, gitignored), and <code>.claude/settings.json</code> (Project, committed/shared).
       </p>
       <p class="primary-help muted" id="no-server-help" hidden>
         Save-to-repo needs the local server. Start it with <code>python3 scripts/serve-dashboards.py</code> and open the forwarded URL. Until then, the alternatives below work.
@@ -1264,7 +1532,7 @@ _SETTINGS_TAB_TEMPLATE = """
     <details class="yaml-alt-actions">
       <summary>Alternative ways to save</summary>
       <div class="yaml-actions">
-        <button class="btn secondary" id="connect-btn" hidden>Auto-save to file…</button>
+        <button class="btn secondary" id="connect-btn" hidden>Auto-save to file&hellip;</button>
         <button class="btn secondary" id="copy-btn">Copy</button>
         <button class="btn secondary" id="download-btn">Download</button>
       </div>
@@ -1285,17 +1553,29 @@ _SETTINGS_TAB_TEMPLATE = """
 
 
 _JS = r"""
-/* generate-dashboards.py output — Settings tab JS
+/* generate-dashboards.py output — Settings tab JS (v5 schema: per-layer cards)
  * Vanilla; no dependencies. Reads the inline JSON Schema at #schema-data,
- * watches form changes, emits live YAML preview + clipboard copy + download.
+ * watches form changes, emits live v5 YAML preview + clipboard copy + download.
+ *
+ * v5 state shape per category:
+ *   { user: "allow"|"ask"|"deny"|"inherit",
+ *     local: "allow"|"ask"|"deny"|"inherit",
+ *     project: "allow"|"ask"|"deny"|"inherit" }
+ *
+ * "inherit" means the layer emits no rule.  The effective badge is computed as
+ *   deny > ask > allow; "all inherit" -> "inherit (Claude default)".
+ *
+ * Presets apply to the LOCAL layer only.
  */
 (() => {
   const SCHEMA = JSON.parse(document.getElementById("schema-data").textContent);
   const presets = SCHEMA.presets || {};
   const props = SCHEMA.properties || {};
   const catProps = (props.categories && props.categories.properties) || {};
-  /* Pattern explanations loaded from a sibling JSON block. Used by the
-   * per-pattern modal opened from each pattern row's info button. */
+
+  const PLUGIN_KEY = "ravenclaude-dashboard-v5";
+
+  /* Pattern explanations loaded from a sibling JSON block. */
   let PATTERN_EXPLANATIONS = {};
   try {
     const el = document.getElementById("pattern-explanations-data");
@@ -1303,132 +1583,229 @@ _JS = r"""
   } catch (e) {
     console.error("Failed to parse pattern-explanations:", e);
   }
-  /* Section-level explanations rendered by clicking the legend's info button. */
+
   const SECTION_EXPLANATIONS = {
     "security_deny": {
       "title": "Danger Zone",
-      "what": "Patterns that are ALWAYS denied regardless of your category levels. The deny rules survive every preset — applying \"Autopilot\" doesn't relax them, applying \"Always Ask\" doesn't elevate them. They're the floor.",
-      "why": "Some actions are dangerous enough that no productivity tradeoff justifies them in a normal session: reading credential files (.env, .pem, AWS credentials), recursive force-deletes (rm -rf), force-pushing git history (git push --force), and the 'curl | sh' install pattern. Click \"Blocked\" to flip a rule to \"Allowed (unsafe)\" — the change persists to your comfort-posture.yaml after you save. Click again to restore. Add new patterns directly to the YAML if you want to extend the floor."
+      "what": "Patterns that are ALWAYS denied regardless of your category levels. The deny rules survive every preset — applying any preset doesn't relax them. They're the floor.",
+      "why": "Some actions are dangerous enough that no productivity tradeoff justifies them: reading credential files (.env, .pem, AWS credentials), recursive force-deletes (rm -rf), force-pushing git history (git push --force), and the 'curl | sh' install pattern. Click \"Blocked\" to flip a rule — the change persists after you save."
     }
   };
+
+  /* 5-level names -> 4-value set used in v5 layers */
+  function levelToLayerValue(level) {
+    if (!level || level === "inherit") return "inherit";
+    if (level === "deny") return "deny";
+    if (level === "always-ask" || level === "mostly-ask") return "ask";
+    if (level === "mostly-allow" || level === "autopilot") return "allow";
+    if (level === "allow" || level === "ask") return level; /* already 4-value */
+    return "inherit";
+  }
 
   /* ── State ───────────────────────────────────────────────────────── */
-  /* Each category's value is { default: <level>, overrides: { <pattern>: <level> } }.
-   * The YAML emitter outputs the plain-string form `cat: <level>` when overrides
-   * is empty, and the object form { default, overrides } otherwise. */
+  /* Each category: { user, local, project } all start as "inherit" except
+   * local which is seeded from x-recommended (mapped to 4-value). */
   const state = {
-    schema_version: SCHEMA.schema_version || 1,
-    global_default: (props.global_default || {}).default || "default",
+    schema_version: 5,
     categories: {},
-    /* security_deny: full array kept in state; checkbox toggles inclusion */
     security_deny: ((props.security_deny || {}).default || []).slice(),
     security_deny_baseline: ((props.security_deny || {}).default || []).slice(),
+    expanded: {},   /* category -> boolean */
   };
+
+  /* Seed from DOM (which reflects schema defaults already rendered) */
   for (const k of Object.keys(catProps).sort()) {
-    const def = catProps[k].default
-      || (catProps[k].enum && catProps[k].enum[Math.floor(catProps[k].enum.length / 2)])
-      || "default";
-    state.categories[k] = { default: def, overrides: {} };
+    const sch = catProps[k];
+    const rec = sch["x-recommended"] || "";
+    const localDefault = levelToLayerValue(rec);
+    state.categories[k] = { user: "inherit", local: localDefault, project: "inherit" };
   }
 
-  /* Read initial state from the DOM (checked radios reflect schema defaults) */
-  for (const inp of document.querySelectorAll('input[type="radio"]:checked')) {
-    if (inp.name === "global_default") {
-      state.global_default = inp.value;
-    } else if (catProps[inp.name]) {
-      state.categories[inp.name].default = inp.value;
+  /* Read actual checked radios from DOM to pick up any rendered defaults */
+  document.querySelectorAll('input[type="radio"][data-category][data-layer]').forEach(inp => {
+    if (inp.checked) {
+      const cat = inp.dataset.category;
+      const layer = inp.dataset.layer;
+      if (state.categories[cat] && ["user","local","project"].includes(layer)) {
+        state.categories[cat][layer] = inp.value;
+      }
+    }
+  });
+
+  /* Restore persisted state */
+  try {
+    const saved = localStorage.getItem(PLUGIN_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed.categories) {
+        for (const [k, v] of Object.entries(parsed.categories)) {
+          if (state.categories[k] && v && typeof v === "object") {
+            for (const L of ["user","local","project"]) {
+              if (["allow","ask","deny","inherit"].includes(v[L])) {
+                state.categories[k][L] = v[L];
+              }
+            }
+          }
+        }
+      }
+      if (Array.isArray(parsed.security_deny)) {
+        state.security_deny = parsed.security_deny.filter(
+          p => state.security_deny_baseline.includes(p)
+        );
+      }
+      if (parsed.expanded && typeof parsed.expanded === "object") {
+        Object.assign(state.expanded, parsed.expanded);
+      }
+    }
+  } catch (e) {
+    console.warn("Could not restore saved state:", e);
+  }
+
+  /* Sync DOM radios to state */
+  function syncDomToState() {
+    document.querySelectorAll('input[type="radio"][data-category][data-layer]').forEach(inp => {
+      const cat = inp.dataset.category;
+      const layer = inp.dataset.layer;
+      if (state.categories[cat]) {
+        inp.checked = inp.value === state.categories[cat][layer];
+      }
+    });
+    /* Restore expanded state */
+    document.querySelectorAll(".cat-card[data-category]").forEach(card => {
+      const cat = card.dataset.category;
+      if (state.expanded[cat]) card.setAttribute("open", "");
+    });
+    /* Sync security_deny checkboxes */
+    document.querySelectorAll(".sec-deny-checkbox").forEach(cb => {
+      cb.checked = state.security_deny.includes(cb.value);
+    });
+  }
+  syncDomToState();
+
+  /* ── Effective badge computation ─────────────────────────────────── */
+  function effectiveBucket(cat) {
+    const layers = state.categories[cat];
+    if (!layers) return "inherit";
+    const vals = [layers.user, layers.local, layers.project];
+    if (vals.includes("deny")) return "deny";
+    if (vals.includes("ask")) return "ask";
+    if (vals.includes("allow")) return "allow";
+    return "inherit";
+  }
+
+  const BADGE_LABELS = {
+    "deny":    "⛔ deny",
+    "ask":     "🟡 ask",
+    "allow":   "🟢 allow",
+    "inherit": "— inherit (Claude default)",
+  };
+  const BADGE_CLASSES = {
+    "deny": "badge-deny", "ask": "badge-ask",
+    "allow": "badge-allow", "inherit": "badge-inherit",
+  };
+
+  function updateBadge(cat) {
+    const badge = document.querySelector(`.cat-card-badge[data-badge-for="${CSS.escape(cat)}"]`);
+    if (!badge) return;
+    const eff = effectiveBucket(cat);
+    badge.textContent = BADGE_LABELS[eff] || eff;
+    badge.className = "cat-card-badge " + (BADGE_CLASSES[eff] || "badge-inherit");
+    badge.setAttribute("aria-label", "Effective level: " + (eff === "inherit" ? "inherit (Claude default)" : eff));
+  }
+
+  function updateProjectWarn(cat) {
+    const warn = document.querySelector(`.cat-project-warn[data-warn-for="${CSS.escape(cat)}"]`);
+    if (!warn) return;
+    warn.hidden = (state.categories[cat] || {}).project !== "allow";
+  }
+
+  function updateAllBadges() {
+    for (const cat of Object.keys(state.categories)) {
+      updateBadge(cat);
+      updateProjectWarn(cat);
     }
   }
 
-  /* ── YAML emit ───────────────────────────────────────────────────── */
+  /* ── YAML emit (v5 schema) ───────────────────────────────────────── */
   function quoteYamlKey(s) {
-    /* Patterns contain `(:*)` characters that YAML treats as special — always
-     * quote them to keep the output round-trippable. */
     return `"${s.replace(/\\/g, "\\\\").replace(/"/g, "\\\"")}"`;
   }
+
   function emitYaml() {
     const lines = [
-      "# Comfort-posture for Claude Code agents.",
+      "# Comfort-posture for Claude Code agents (v5 — per-layer).",
       "# Save to .ravenclaude/comfort-posture.yaml in your project root.",
-      "# The /set-posture skill translates this into .claude/settings.json rules.",
-      `schema_version: ${state.schema_version}`,
-      `global_default: ${state.global_default}`,
+      "# The /set-posture skill translates this into user/local/project settings files.",
+      "schema_version: 5",
       "",
     ];
-    /* security_deny — emit only patterns currently checked (preserve baseline order) */
+
+    /* security_deny */
     const activeDeny = state.security_deny_baseline.filter(
-      p => state.security_deny.indexOf(p) !== -1
+      p => state.security_deny.includes(p)
     );
     if (activeDeny.length) {
-      lines.push("# Always-on deny rules. Survive every preset.");
+      lines.push("# Always-on deny rules — layer-independent floor.");
       lines.push("security_deny:");
       for (const p of activeDeny) lines.push(`  - ${quoteYamlKey(p)}`);
       lines.push("");
     }
+
     lines.push("categories:");
     for (const k of Object.keys(state.categories).sort()) {
       const cat = state.categories[k];
-      const overrideKeys = Object.keys(cat.overrides);
-      if (overrideKeys.length === 0) {
-        lines.push(`  ${k}: ${cat.default}`);
+      const u = cat.user, l = cat.local, p = cat.project;
+      /* If all inherit, emit a compact comment-style entry */
+      if (u === "inherit" && l === "inherit" && p === "inherit") {
+        lines.push(`  ${k}:`);
+        lines.push(`    user: inherit`);
+        lines.push(`    local: inherit`);
+        lines.push(`    project: inherit`);
       } else {
         lines.push(`  ${k}:`);
-        lines.push(`    default: ${cat.default}`);
-        lines.push("    overrides:");
-        for (const pat of overrideKeys.sort()) {
-          lines.push(`      ${quoteYamlKey(pat)}: ${cat.overrides[pat]}`);
-        }
+        lines.push(`    user: ${u}`);
+        lines.push(`    local: ${l}`);
+        lines.push(`    project: ${p}`);
       }
     }
     return lines.join("\n") + "\n";
   }
 
-  function render() {
-    document.getElementById("yaml-output").textContent = emitYaml();
-    updateOverrideCounters();
+  function persistState() {
+    try {
+      localStorage.setItem(PLUGIN_KEY, JSON.stringify({
+        categories: state.categories,
+        security_deny: state.security_deny,
+        expanded: state.expanded,
+      }));
+    } catch (e) { /* storage full — ignore */ }
   }
 
-  /* Update the "N overridden" badge in each pattern-details summary. */
-  function updateOverrideCounters() {
-    document.querySelectorAll(".pattern-override-count[data-for]").forEach(el => {
-      const cat = el.getAttribute("data-for");
-      if (!state.categories[cat]) return;
-      const n = Object.keys(state.categories[cat].overrides).length;
-      el.textContent = n === 0 ? "0 overridden" : `${n} overridden`;
-      el.classList.toggle("has-overrides", n > 0);
-    });
-    const secEl = document.getElementById("sec-deny-active-count");
-    if (secEl) {
-      const active = state.security_deny.length;
-      const total = state.security_deny_baseline.length;
-      secEl.textContent = `${active}/${total} active`;
-      secEl.classList.toggle("has-overrides", active < total);
-    }
+  function render() {
+    document.getElementById("yaml-output").textContent = emitYaml();
+    updateAllBadges();
+    persistState();
   }
 
   /* ── Form change wiring ─────────────────────────────────────────── */
-  document.querySelectorAll('input[type="radio"]').forEach(inp => {
+  document.querySelectorAll('input[type="radio"][data-category][data-layer]').forEach(inp => {
     inp.addEventListener("change", () => {
-      if (inp.name === "global_default") {
-        state.global_default = inp.value;
-      } else if (catProps[inp.name]) {
-        state.categories[inp.name].default = inp.value;
-      } else if (inp.name && inp.name.startsWith("pat-")) {
-        const group = inp.closest(".seg-control-pattern");
-        if (group) {
-          const cat = group.getAttribute("data-category");
-          const pattern = group.getAttribute("data-pattern");
-          if (cat && pattern && state.categories[cat]) {
-            if (inp.value === "__default") {
-              delete state.categories[cat].overrides[pattern];
-            } else {
-              state.categories[cat].overrides[pattern] = inp.value;
-            }
-          }
-        }
+      const cat = inp.dataset.category;
+      const layer = inp.dataset.layer;
+      if (state.categories[cat] && ["user","local","project"].includes(layer)) {
+        state.categories[cat][layer] = inp.value;
       }
       flagUnsaved();
       render();
+    });
+  });
+
+  /* Track card expand/collapse for localStorage */
+  document.querySelectorAll(".cat-card[data-category]").forEach(card => {
+    card.addEventListener("toggle", () => {
+      const cat = card.dataset.category;
+      state.expanded[cat] = card.hasAttribute("open");
+      persistState();
     });
   });
 
@@ -1437,7 +1814,7 @@ _JS = r"""
     cb.addEventListener("change", () => {
       const pat = cb.value;
       if (cb.checked) {
-        if (state.security_deny.indexOf(pat) === -1) state.security_deny.push(pat);
+        if (!state.security_deny.includes(pat)) state.security_deny.push(pat);
       } else {
         state.security_deny = state.security_deny.filter(p => p !== pat);
       }
@@ -1446,36 +1823,33 @@ _JS = r"""
     });
   });
 
-  /* ── Preset application ─────────────────────────────────────────── */
+  /* ── Preset application (applies to LOCAL layer) ─────────────────── */
+  /* Map old 5-level preset values to 4-value layer set */
   document.querySelectorAll(".preset-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       const preset = presets[btn.dataset.preset];
       if (!preset) return;
       const ok = confirm(
         `Apply the "${btn.dataset.preset}" preset?\n\n` +
-        `This will overwrite all per-category values AND clear any per-pattern overrides.\n\n` +
+        `This sets every category's LOCAL layer. User and Project layers are untouched.\n\n` +
         (preset._description || "")
       );
       if (!ok) return;
-      state.global_default = preset.global_default || state.global_default;
       const presetCats = preset.categories || {};
       for (const k of Object.keys(state.categories)) {
-        if (presetCats[k]) state.categories[k].default = presetCats[k];
-        state.categories[k].overrides = {};
+        const raw = presetCats[k];
+        state.categories[k].local = raw ? levelToLayerValue(raw) : "inherit";
       }
-      /* Sync DOM: category radios + reset every per-pattern radio to __default */
-      for (const inp of document.querySelectorAll('input[type="radio"]')) {
-        if (inp.name === "global_default") {
-          inp.checked = inp.value === state.global_default;
-        } else if (catProps[inp.name]) {
-          inp.checked = inp.value === state.categories[inp.name].default;
-        } else if (inp.name && inp.name.startsWith("pat-")) {
-          inp.checked = inp.value === "__default";
+      /* Sync DOM radios for local layer */
+      document.querySelectorAll('input[type="radio"][data-layer="local"]').forEach(inp => {
+        const cat = inp.dataset.category;
+        if (state.categories[cat]) {
+          inp.checked = inp.value === state.categories[cat].local;
         }
-      }
+      });
       flagUnsaved();
       render();
-      toast(`Applied "${btn.dataset.preset}" preset`);
+      toast(`Applied "${btn.dataset.preset}" preset to Local layer`);
     });
   });
 
@@ -1489,6 +1863,7 @@ _JS = r"""
   const REPO_TARGET = ".ravenclaude/comfort-posture.yaml";
   const saveRepoBtn = document.getElementById("save-repo-btn");
   const saveRepoHelp = document.getElementById("save-repo-help");
+  const saveRepoWarn = document.getElementById("save-repo-warn");
   const noServerHelp = document.getElementById("no-server-help");
 
   async function probeRepoEndpoint() {
@@ -1516,8 +1891,19 @@ _JS = r"""
         return;
       }
       const j = await res.json();
-      setStatus(`saved to ${j.saved}`, "status-saved");
-      toast(`Saved to ${j.saved} (${j.bytes} bytes)`);
+      if (j.applied) {
+        setStatus(`saved & applied to settings.json`, "status-saved");
+        toast(`Saved ${j.saved} and applied to .claude/settings.json`);
+        if (j.apply_summary) console.info("set-posture:\n" + j.apply_summary);
+      } else if (j.apply_error) {
+        // The YAML saved, but the translator failed — surface it, don't swallow it.
+        setStatus(`saved, but apply failed — see console`, "status-error");
+        toast(`Saved ${j.saved}, but settings.json was NOT updated`);
+        console.error("set-posture apply failed:", j.apply_error);
+      } else {
+        setStatus(`saved to ${j.saved}`, "status-saved");
+        toast(`Saved to ${j.saved} (${j.bytes} bytes)`);
+      }
     } catch (err) {
       setStatus("save failed - see console", "status-error");
       console.error(err);
@@ -1533,6 +1919,7 @@ _JS = r"""
     if (available) {
       saveRepoBtn.hidden = false;
       saveRepoHelp.hidden = false;
+      if (saveRepoWarn) saveRepoWarn.hidden = false;
     } else {
       noServerHelp.hidden = false;
     }
@@ -1738,7 +2125,7 @@ _JS = r"""
     toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2200);
   }
 
-  /* ── Info modal ──────────────────────────────────────────────────── */
+  /* ── Info modal (category detail) ───────────────────────────────── */
   const modal = document.getElementById("info-modal");
   const modalTitle = document.getElementById("info-modal-title");
   const modalDesc = document.getElementById("info-modal-desc");
@@ -1751,17 +2138,11 @@ _JS = r"""
   let lastFocus = null;
 
   function openModal(catName) {
-    let sch;
-    if (catName === "global_default") {
-      sch = props.global_default;
-    } else {
-      sch = catProps[catName];
-    }
+    const sch = catProps[catName];
     if (!sch) return;
     modalTitle.textContent = sch.title || catName;
     modalDesc.textContent = sch.description || "";
     modalControls.textContent = sch["x-controls"] || "(no explanation provided)";
-    /* Examples as a list */
     const examples = sch["x-examples"] || [];
     modalExamples.innerHTML = "";
     for (const ex of examples) {
@@ -1787,6 +2168,7 @@ _JS = r"""
     modal.classList.remove("open");
     if (lastFocus && typeof lastFocus.focus === "function") lastFocus.focus();
   }
+
   /* ── Per-pattern info modal ──────────────────────────────────────── */
   const patternModal = document.getElementById("pattern-modal");
   const patternModalTitle = document.getElementById("pattern-modal-title");
@@ -1817,9 +2199,27 @@ _JS = r"""
     patternModalClose.focus();
   }
 
-  /* Wire all info buttons. Categories open the category modal; per-pattern
-   * and section info buttons open the pattern modal. */
+  /* ── Layers info modal ───────────────────────────────────────────── */
+  const layersModal = document.getElementById("layers-modal");
+  const layersModalClose = document.getElementById("layers-modal-close");
+  let layersLastFocus = null;
+  function openLayersModal() {
+    layersLastFocus = document.activeElement;
+    layersModal.classList.add("open");
+    layersModalClose.focus();
+  }
+  function closeLayersModal() {
+    layersModal.classList.remove("open");
+    if (layersLastFocus && typeof layersLastFocus.focus === "function") layersLastFocus.focus();
+  }
+  const layersInfoBtn = document.getElementById("layers-info-btn");
+  if (layersInfoBtn) layersInfoBtn.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); openLayersModal(); });
+  layersModalClose.addEventListener("click", closeLayersModal);
+  layersModal.addEventListener("click", e => { if (e.target === layersModal) closeLayersModal(); });
+
+  /* Wire all info buttons */
   document.querySelectorAll(".info-btn").forEach(btn => {
+    if (btn.id === "layers-info-btn" || btn.id === "layers-modal-close") return;
     btn.addEventListener("click", e => {
       e.preventDefault();
       e.stopPropagation();
@@ -1840,6 +2240,7 @@ _JS = r"""
     if (e.key === "Escape") {
       if (modal.classList.contains("open")) closeModal();
       if (patternModal.classList.contains("open")) closePatternModal();
+      if (layersModal.classList.contains("open")) closeLayersModal();
     }
   });
 
@@ -1942,6 +2343,30 @@ _PAGE_TEMPLATE = """<!doctype html>
     <p id="pattern-modal-what"></p>
     <h3>Why it's here</h3>
     <p id="pattern-modal-why"></p>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="layers-modal" role="dialog" aria-modal="true" aria-labelledby="layers-modal-title" tabindex="-1">
+  <div class="modal layers-modal">
+    <button type="button" class="close-btn" id="layers-modal-close" aria-label="Close">&times;</button>
+    <h2 id="layers-modal-title">How layers merge</h2>
+    <p style="font-size:13px;color:var(--muted);margin:0 0 16px">Claude Code reads three settings files and merges them at runtime. The strictest rule across all three always wins &mdash; a personal &ldquo;allow&rdquo; cannot loosen a team &ldquo;ask&rdquo; or &ldquo;deny&rdquo;.</p>
+    <div class="layer-file-row">
+      <span class="layer-file-label">User</span>
+      <span class="layer-file-desc"><code>~/.claude/settings.json</code> &mdash; applies to every project on your machine. Only you see it; it is never committed to git. Use it for personal preferences that apply everywhere.</span>
+    </div>
+    <div class="layer-file-row">
+      <span class="layer-file-label">Local</span>
+      <span class="layer-file-desc"><code>.claude/settings.local.json</code> &mdash; project-specific but gitignored. Stays on your machine. Use it for project-level tweaks you do not want to share with teammates.</span>
+    </div>
+    <div class="layer-file-row">
+      <span class="layer-file-label">Project</span>
+      <span class="layer-file-desc"><code>.claude/settings.json</code> &mdash; committed to the repo and shared with the whole team. Whatever you set here becomes the team baseline. A personal &ldquo;allow&rdquo; at User or Local cannot soften it.</span>
+    </div>
+    <h3 style="margin-top:20px">Merge rule</h3>
+    <p style="font-size:13px;line-height:1.55"><strong>deny &gt; ask &gt; allow.</strong> For any permission pattern, Claude Code takes the strictest bucket it finds across all three files. Setting &ldquo;inherit&rdquo; at a layer means that layer emits no rule &mdash; Claude Code falls back to its built-in default for that pattern.</p>
+    <h3>Dashboard convention</h3>
+    <p style="font-size:13px;line-height:1.55">Presets set the <strong>Local</strong> layer &mdash; your personal default for this project. The <strong>User</strong> layer is for cross-project preferences; the <strong>Project</strong> layer is for team-wide policy. Rows set to &ldquo;inherit&rdquo; are omitted from the emitted YAML.</p>
   </div>
 </div>
 
