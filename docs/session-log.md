@@ -10,7 +10,31 @@ and is always findable regardless of which branch work is happening on.
 
 ---
 
-## 1 — 2026-05-24 · Running-log request
+## 1 — 2026-05-24 · Resume build → ship v0.19.0 + description cap
+
+**Prompt:** "cont" (resume the in-progress build). Two decisions during the turn:
+(a) collapse the posture scale from 5 levels to 3 (Deny/Ask/Allow); (b) do the
+per-permission UI + the 3-level cleanup together in one PR. Mid-turn add: "make
+it a hard rule that marketplace descriptions can only have 1024 characters."
+
+**Response:** Finished the per-permission/per-layer feature and the 5→3 level
+collapse end-to-end — schema, translator (old level names still accepted for
+back-compat; emits identically), dashboard generator UI+JS (per-permission
+User/Local/Project selectors → v5 `overrides:` map), set-posture skill,
+pattern-explanations, README, live `comfort-posture.yaml`, plan-doc changelog.
+Bumped ravenclaude-core to **v0.19.0**, regenerated dashboard.html + repo-guide,
+**27/27 gates green**, opened **PR #82**. Then added the 1024-char description
+cap as Check 3 in `check-marketplace-claims.py` + a Gate 12 fixture, trimmed all
+8 over-cap descriptions, and folded it into PR #82 (same file as the version
+bump). Updated PR conventions in `AGENTS.md` (docs-only changes commit straight
+to main — which is why this log entry is a direct-to-main commit).
+
+**Current state / next step:** PR #82 open and green, awaiting Matt's review/merge.
+No follow-ups pending.
+
+---
+
+## 2 — 2026-05-24 · Running-log request
 
 **Prompt:** "I need a running log of the last 3 prompts and responses so I can
 always pick up my work where I left off. Do not run it through a PR. Just commit
@@ -29,7 +53,7 @@ in progress when this request came in. Next: resume the build (schema → genera
 
 ---
 
-## 2 — 2026-05-24 · "Go and then open a PR"
+## 3 — 2026-05-24 · "Go and then open a PR"
 
 **Prompt:** "Go and then open a PR"
 
@@ -42,19 +66,5 @@ the generator but were orphaned in v5, and all 112 permission tooltips already
 exist. Began implementation.
 
 **Current state / next step:** Building parts A–H; will open a PR when green.
-
----
-
-## 3 — 2026-05-24 · PR-process change
-
-**Prompt:** "btw, I want to change the PR process. If we are building plans, then
-those don't require PRs - they should just be allowed to commit to main"
-
-**Response:** Confirmed scope with Matt: **plan / design / proposal documents
-(under `docs/`) commit straight to `main`; plugin/code changes still get a PR.**
-Captured as a task to update the PR conventions in `AGENTS.md` + `CLAUDE.md`.
-
-**Current state / next step:** Doc change queued as part of the dashboard PR
-branch's work (task H).
 
 ---
