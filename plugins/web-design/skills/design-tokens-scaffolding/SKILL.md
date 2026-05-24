@@ -232,9 +232,9 @@ Once the system ships, drift is the failure mode:
 
 ## See also
 
-- Skill: [`./design-system-audit.md`](./design-system-audit.md)
-- Skill: [`./accessibility-review.md`](./accessibility-review.md) — color contrast checks live here
-- Template: [`../templates/design-system-spec.md`](../templates/design-system-spec.md)
-- Knowledge: [`../knowledge/design-references.md`](../knowledge/design-references.md)
-- Agent: [`../agents/visual-designer.md`](../agents/visual-designer.md)
-- Agent: [`../agents/frontend-implementer.md`](../agents/frontend-implementer.md)
+- Skill: [`../design-system-audit/SKILL.md`](../design-system-audit/SKILL.md)
+- Skill: [`../accessibility-review/SKILL.md`](../accessibility-review/SKILL.md) — color contrast checks live here
+- Template: [`../../templates/design-system-spec.md`](../../templates/design-system-spec.md)
+- Knowledge: [`../../knowledge/design-references.md`](../../knowledge/design-references.md)
+- Agent: [`../../agents/visual-designer.md`](../../agents/visual-designer.md)
+- Agent: [`../../agents/frontend-implementer.md`](../../agents/frontend-implementer.md)

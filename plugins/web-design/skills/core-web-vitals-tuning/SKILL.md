@@ -206,5 +206,5 @@ Enforce in CI where possible (Lighthouse CI, bundle-size action).
 
 ## See also
 
-- Template: [`../templates/performance-budget.md`](../templates/performance-budget.md)
-- Agent: [`../agents/performance-engineer.md`](../agents/performance-engineer.md)
+- Template: [`../../templates/performance-budget.md`](../../templates/performance-budget.md)
+- Agent: [`../../agents/performance-engineer.md`](../../agents/performance-engineer.md)

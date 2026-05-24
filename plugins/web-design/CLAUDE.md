@@ -168,15 +168,15 @@ The hook is conservative — it only fires on conventional web file extensions /
 
 | Skill | Primary agent | What's inside |
 |---|---|---|
-| [`skills/design-system-audit.md`](skills/design-system-audit.md) | `visual-designer`, `frontend-implementer` | Auditing a brand / design system for consistency, completeness, token coverage, dark-mode readiness |
-| [`skills/accessibility-review.md`](skills/accessibility-review.md) | `accessibility-auditor` | WCAG 2.2-aligned audit checklist (semantics, ARIA, keyboard, contrast, focus, motion); severity guide; tooling notes |
-| [`skills/core-web-vitals-tuning.md`](skills/core-web-vitals-tuning.md) | `performance-engineer` | Diagnosing and improving LCP / CLS / INP with the canonical fix-by-symptom map |
-| [`skills/seo-technical-audit.md`](skills/seo-technical-audit.md) | `web-architect`, `content-strategist` | Technical SEO sweep (crawlability, schema, sitemaps, OG / Twitter cards, hreflang, structured data) |
-| [`skills/information-architecture.md`](skills/information-architecture.md) | `web-architect`, `ux-designer` | Sitemap shapes, URL taxonomy, navigation patterns, card-sort discipline, content model + CMS implications, redirect plan for re-architecture |
-| [`skills/conversion-design.md`](skills/conversion-design.md) | `ux-designer`, `content-strategist` | Funnel definition, one-CTA discipline, form-field reduction, trust-signal placement, CTA microcopy, pricing-page patterns, measurement plan |
-| [`skills/content-audit.md`](skills/content-audit.md) | `content-strategist`, `web-architect` | Full content inventory, scoring across 5 dimensions, KKCR matrix (Keep / Consolidate / Kill / Rewrite), redirect plan, governance cadence |
-| [`skills/design-tokens-scaffolding.md`](skills/design-tokens-scaffolding.md) | `visual-designer`, `frontend-implementer` | Primitive vs semantic tokens, scale design, light/dark mode, W3C token JSON + Style Dictionary pipeline, Tailwind / Shadcn integration, drift audit |
-| [`skills/third-party-script-hygiene.md`](skills/third-party-script-hygiene.md) | `performance-engineer`, `web-architect` | Third-party inventory, category budgets, loading patterns, consent-mode v2 gating, CSP integration, CWV impact measurement, retirement criteria |
+| [`skills/design-system-audit/SKILL.md`](skills/design-system-audit/SKILL.md) | `visual-designer`, `frontend-implementer` | Auditing a brand / design system for consistency, completeness, token coverage, dark-mode readiness |
+| [`skills/accessibility-review/SKILL.md`](skills/accessibility-review/SKILL.md) | `accessibility-auditor` | WCAG 2.2-aligned audit checklist (semantics, ARIA, keyboard, contrast, focus, motion); severity guide; tooling notes |
+| [`skills/core-web-vitals-tuning/SKILL.md`](skills/core-web-vitals-tuning/SKILL.md) | `performance-engineer` | Diagnosing and improving LCP / CLS / INP with the canonical fix-by-symptom map |
+| [`skills/seo-technical-audit/SKILL.md`](skills/seo-technical-audit/SKILL.md) | `web-architect`, `content-strategist` | Technical SEO sweep (crawlability, schema, sitemaps, OG / Twitter cards, hreflang, structured data) |
+| [`skills/information-architecture/SKILL.md`](skills/information-architecture/SKILL.md) | `web-architect`, `ux-designer` | Sitemap shapes, URL taxonomy, navigation patterns, card-sort discipline, content model + CMS implications, redirect plan for re-architecture |
+| [`skills/conversion-design/SKILL.md`](skills/conversion-design/SKILL.md) | `ux-designer`, `content-strategist` | Funnel definition, one-CTA discipline, form-field reduction, trust-signal placement, CTA microcopy, pricing-page patterns, measurement plan |
+| [`skills/content-audit/SKILL.md`](skills/content-audit/SKILL.md) | `content-strategist`, `web-architect` | Full content inventory, scoring across 5 dimensions, KKCR matrix (Keep / Consolidate / Kill / Rewrite), redirect plan, governance cadence |
+| [`skills/design-tokens-scaffolding/SKILL.md`](skills/design-tokens-scaffolding/SKILL.md) | `visual-designer`, `frontend-implementer` | Primitive vs semantic tokens, scale design, light/dark mode, W3C token JSON + Style Dictionary pipeline, Tailwind / Shadcn integration, drift audit |
+| [`skills/third-party-script-hygiene/SKILL.md`](skills/third-party-script-hygiene/SKILL.md) | `performance-engineer`, `web-architect` | Third-party inventory, category budgets, loading patterns, consent-mode v2 gating, CSP integration, CWV impact measurement, retirement criteria |
 
 ---
 

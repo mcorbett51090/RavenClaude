@@ -76,7 +76,7 @@ description: Technical SEO sweep — crawlability, indexability, schema markup, 
 
 ### 7. Performance × SEO
 
-- Core Web Vitals pass (LCP / CLS / INP) — see [`./core-web-vitals-tuning.md`](./core-web-vitals-tuning.md)
+- Core Web Vitals pass (LCP / CLS / INP) — see [`../core-web-vitals-tuning/SKILL.md`](../core-web-vitals-tuning/SKILL.md)
 - HTTPS everywhere
 - Mobile-friendly (Google's mobile-friendliness test passes)
 - Page-experience signals on (CWV is the load-bearing one)
@@ -121,7 +121,7 @@ Plus:
 
 ## See also
 
-- Template: [`../templates/seo-audit-report.md`](../templates/seo-audit-report.md)
-- Skill: [`./core-web-vitals-tuning.md`](./core-web-vitals-tuning.md)
-- Agent: [`../agents/web-architect.md`](../agents/web-architect.md)
-- Agent: [`../agents/content-strategist.md`](../agents/content-strategist.md)
+- Template: [`../../templates/seo-audit-report.md`](../../templates/seo-audit-report.md)
+- Skill: [`../core-web-vitals-tuning/SKILL.md`](../core-web-vitals-tuning/SKILL.md)
+- Agent: [`../../agents/web-architect.md`](../../agents/web-architect.md)
+- Agent: [`../../agents/content-strategist.md`](../../agents/content-strategist.md)

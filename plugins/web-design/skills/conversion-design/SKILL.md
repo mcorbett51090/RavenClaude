@@ -157,9 +157,9 @@ A conversion design isn't done until the measurement is wired:
 
 ## See also
 
-- Template: [`../templates/design-brief.md`](../templates/design-brief.md)
-- Skill: [`./content-audit.md`](./content-audit.md)
-- Skill: [`./information-architecture.md`](./information-architecture.md)
-- Knowledge: [`../knowledge/design-references.md`](../knowledge/design-references.md)
-- Agent: [`../agents/ux-designer.md`](../agents/ux-designer.md)
-- Agent: [`../agents/content-strategist.md`](../agents/content-strategist.md)
+- Template: [`../../templates/design-brief.md`](../../templates/design-brief.md)
+- Skill: [`../content-audit/SKILL.md`](../content-audit/SKILL.md)
+- Skill: [`../information-architecture/SKILL.md`](../information-architecture/SKILL.md)
+- Knowledge: [`../../knowledge/design-references.md`](../../knowledge/design-references.md)
+- Agent: [`../../agents/ux-designer.md`](../../agents/ux-designer.md)
+- Agent: [`../../agents/content-strategist.md`](../../agents/content-strategist.md)

@@ -117,5 +117,5 @@ Default audit standard: **AA**. AAA where the product / audience warrants.
 
 ## See also
 
-- Template: [`../templates/accessibility-audit-report.md`](../templates/accessibility-audit-report.md)
-- Agent: [`../agents/accessibility-auditor.md`](../agents/accessibility-auditor.md)
+- Template: [`../../templates/accessibility-audit-report.md`](../../templates/accessibility-audit-report.md)
+- Agent: [`../../agents/accessibility-auditor.md`](../../agents/accessibility-auditor.md)

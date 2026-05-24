@@ -110,7 +110,7 @@ A one-time audit is a project. Audits that work are governance:
 
 When the audit feeds a re-platform:
 
-1. **Content model first** — what fields does the new CMS need? (See [`./information-architecture.md`](./information-architecture.md))
+1. **Content model first** — what fields does the new CMS need? (See [`../information-architecture/SKILL.md`](../information-architecture/SKILL.md))
 2. **Map old fields → new fields** — for each template type
 3. **Export → transform → import** — typically via the new CMS's import format (Contentful, Sanity, Strapi all have JSON / CSV importers)
 4. **Slug preservation rule** — preserve as many slugs as possible; if a slug must change, log the redirect
@@ -147,9 +147,9 @@ When the audit feeds a re-platform:
 
 ## See also
 
-- Template: [`../templates/content-style-guide.md`](../templates/content-style-guide.md)
-- Template: [`../templates/seo-audit-report.md`](../templates/seo-audit-report.md)
-- Skill: [`./information-architecture.md`](./information-architecture.md)
-- Skill: [`./seo-technical-audit.md`](./seo-technical-audit.md)
-- Agent: [`../agents/content-strategist.md`](../agents/content-strategist.md)
-- Agent: [`../agents/web-architect.md`](../agents/web-architect.md)
+- Template: [`../../templates/content-style-guide.md`](../../templates/content-style-guide.md)
+- Template: [`../../templates/seo-audit-report.md`](../../templates/seo-audit-report.md)
+- Skill: [`../information-architecture/SKILL.md`](../information-architecture/SKILL.md)
+- Skill: [`../seo-technical-audit/SKILL.md`](../seo-technical-audit/SKILL.md)
+- Agent: [`../../agents/content-strategist.md`](../../agents/content-strategist.md)
+- Agent: [`../../agents/web-architect.md`](../../agents/web-architect.md)

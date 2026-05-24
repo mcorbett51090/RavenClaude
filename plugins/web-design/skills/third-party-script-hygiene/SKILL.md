@@ -215,10 +215,10 @@ The retirement PR includes: removing the `<script>`, removing the CMP entry, rem
 
 ## See also
 
-- Skill: [`./core-web-vitals-tuning.md`](./core-web-vitals-tuning.md)
-- Skill: [`./seo-technical-audit.md`](./seo-technical-audit.md)
-- Skill: [`./accessibility-review.md`](./accessibility-review.md)
-- Template: [`../templates/performance-budget.md`](../templates/performance-budget.md)
-- Template: [`../templates/launch-checklist.md`](../templates/launch-checklist.md)
-- Agent: [`../agents/performance-engineer.md`](../agents/performance-engineer.md)
-- Agent: [`../agents/web-architect.md`](../agents/web-architect.md)
+- Skill: [`../core-web-vitals-tuning/SKILL.md`](../core-web-vitals-tuning/SKILL.md)
+- Skill: [`../seo-technical-audit/SKILL.md`](../seo-technical-audit/SKILL.md)
+- Skill: [`../accessibility-review/SKILL.md`](../accessibility-review/SKILL.md)
+- Template: [`../../templates/performance-budget.md`](../../templates/performance-budget.md)
+- Template: [`../../templates/launch-checklist.md`](../../templates/launch-checklist.md)
+- Agent: [`../../agents/performance-engineer.md`](../../agents/performance-engineer.md)
+- Agent: [`../../agents/web-architect.md`](../../agents/web-architect.md)

@@ -125,5 +125,5 @@ See [`../../ravenclaude-core/skills/structured-output.md`](../../ravenclaude-cor
 
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
-- Skill: [`../skills/accessibility-review.md`](../skills/accessibility-review.md)
+- Skill: [`../skills/accessibility-review/SKILL.md`](../skills/accessibility-review/SKILL.md)
 - Template: [`../templates/accessibility-audit-report.md`](../templates/accessibility-audit-report.md)

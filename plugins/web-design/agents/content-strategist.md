@@ -118,5 +118,5 @@ See [`../../ravenclaude-core/skills/structured-output.md`](../../ravenclaude-cor
 
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
-- Skill: [`../skills/seo-technical-audit.md`](../skills/seo-technical-audit.md)
+- Skill: [`../skills/seo-technical-audit/SKILL.md`](../skills/seo-technical-audit/SKILL.md)
 - Template: [`../templates/content-style-guide.md`](../templates/content-style-guide.md)
