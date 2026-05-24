@@ -114,9 +114,9 @@ After the Markdown report, emit the cross-plugin Structured Output Protocol JSON
 ---RESULT_END---
 ```
 
-See [`../../ravenclaude-core/skills/structured-output.md`](../../ravenclaude-core/skills/structured-output.md).
+See [`../../ravenclaude-core/skills/structured-output/SKILL.md`](../../ravenclaude-core/skills/structured-output/SKILL.md).
 
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
-- Skill: [`../skills/month-end-close.md`](../skills/month-end-close.md)
+- Skill: [`../skills/month-end-close/SKILL.md`](../skills/month-end-close/SKILL.md)
 - Templates: [`../templates/account-reconciliation.md`](../templates/account-reconciliation.md), [`../templates/month-end-close-calendar.md`](../templates/month-end-close-calendar.md)

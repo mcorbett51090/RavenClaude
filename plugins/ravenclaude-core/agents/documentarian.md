@@ -160,7 +160,7 @@ After your Markdown report above, emit the structured handoff block so the Team 
 
 `confidence` is a 0.0-1.0 float reflecting how sure you are of your output. Use ≥0.7 to trigger Cited-Adjudicator Escalation if you assert another agent's prior artifact is wrong; see [`rules/agent-collaboration.md`](../rules/agent-collaboration.md).
 
-See [`skills/structured-output.md`](../skills/structured-output.md) for the full schema and rationale.
+See [`skills/structured-output.md`](../skills/structured-output/SKILL.md) for the full schema and rationale.
 
 ## References
 - Templates: [`decision-memo.md`](../templates/deliverables/decision-memo.md), [`executive-summary.md`](../templates/deliverables/executive-summary.md), [`variance-commentary.md`](../templates/deliverables/variance-commentary.md), [`runbook.md`](../templates/deliverables/runbook.md), [`release-notes.md`](../templates/deliverables/release-notes.md)

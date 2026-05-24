@@ -46,4 +46,4 @@
 - [`case-study-draft.md`](case-study-draft.md) — the artifact this tracker feeds
 - [`cross-functional-partnership-map.md`](cross-functional-partnership-map.md) — Marketing function row for how the ask actually routes
 - [`../knowledge/edtech-reference-customer-patterns.md`](../knowledge/edtech-reference-customer-patterns.md) — the why-behind-the-state-anonymization-rules
-- [`../skills/advocacy-program-design.md`](../skills/advocacy-program-design.md) — playbook this tracker enables
+- [`../skills/advocacy-program-design/SKILL.md`](../skills/advocacy-program-design/SKILL.md) — playbook this tracker enables

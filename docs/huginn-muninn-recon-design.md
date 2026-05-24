@@ -6,7 +6,7 @@ _Design document. First draft 2026-05-23 (autonomous, Claude Opus 4.7). Iterativ
 >
 > **Relationship to other docs:**
 >
-> - This doc **extends** the Researcher meta-skill ([`plugins/ravenclaude-core/skills/researcher.md`](../plugins/ravenclaude-core/skills/researcher.md)), the [`knowledge-file-staleness-sweep`](../plugins/ravenclaude-core/skills/knowledge-file-staleness-sweep.md) skill, the [`/wrap`](../plugins/ravenclaude-core/commands/wrap.md) scenario-capture command, and the scenarios + knowledge file system across all domain plugins. It does not replace any of them — it grows them into a standing, scheduled capability that surfaces results in the dashboard.
+> - This doc **extends** the Researcher meta-skill ([`plugins/ravenclaude-core/skills/researcher.md`](../plugins/ravenclaude-core/skills/researcher/SKILL.md)), the [`knowledge-file-staleness-sweep`](../plugins/ravenclaude-core/skills/knowledge-file-staleness-sweep/SKILL.md) skill, the [`/wrap`](../plugins/ravenclaude-core/commands/wrap.md) scenario-capture command, and the scenarios + knowledge file system across all domain plugins. It does not replace any of them — it grows them into a standing, scheduled capability that surfaces results in the dashboard.
 > - This doc **cross-references but does not conflict with** the parallel [`docs/dashboard-buildout-plan.md`](dashboard-buildout-plan.md) (branch `plan/dashboard-buildout`). That plan covers Phase A (multi-layer comfort posture), Phase B.1–B.3 (IA, Commands, Install), and Phase B.4 panel candidates (Agents, Environment, Scenarios, Health, Update Notifier). Huginn & Muninn slots in as **B.4.6 — Reconnaissance panel** ("Hliðskjálf"), sibling to those panels. When the buildout plan and this doc disagree, the buildout plan wins for shared surfaces (tab inventory, persistence triple, scope semantics); this doc wins for raven mechanics, scheduling, and finding lifecycle.
 > - This doc **cross-references but does not conflict with** the parallel [`docs/tribunal-review-feature-design.md`](tribunal-review-feature-design.md) (branch `design/tribunal-review`). Tribunal adjudicates **commands** that the permission engine would otherwise ask/deny; the ravens adjudicate **knowledge** (Muninn) and surface **signal** (Huginn). The two features are orthogonal — they share the dashboard's persistence triple and the run-artifacts directory but never read or write each other's state.
 
@@ -74,7 +74,7 @@ _Design document. First draft 2026-05-23 (autonomous, Claude Opus 4.7). Iterativ
 
 The marketplace already has three closely-related mechanisms; the ravens compose them rather than replacing them.
 
-### 1.1 Researcher meta-skill ([`skills/researcher.md`](../plugins/ravenclaude-core/skills/researcher.md))
+### 1.1 Researcher meta-skill ([`skills/researcher.md`](../plugins/ravenclaude-core/skills/researcher/SKILL.md))
 
 The Researcher is the marketplace's existing "keep agents intellectually honest" meta-skill. It runs in two modes — **Daily Quick Check** (lightweight, first-session) and **Weekly Deep Research** (Sunday/Monday, comprehensive). It cross-checks every agent's declared skills + knowledge files against official sources and credible community/expert views, categorizes findings using a 5-tier schema (Consensus / Strong-Contextual / Divergent / Emerging / Deprecated), and proposes updates. It emits a Research Report via the Structured Output Protocol.
 
@@ -83,7 +83,7 @@ The two pieces of the Researcher that matter here:
 - It **is already scheduled in spirit** — the daily/weekly cadence is documented in the skill itself (skill body line 24). What's missing is the **wiring**: today the cadence is "the user remembers to invoke the Researcher." There is no automation.
 - It **already classifies** findings into the same tiers the staleness-sweep skill uses, so its output is consumable by downstream tooling without further translation.
 
-### 1.2 `knowledge-file-staleness-sweep` skill ([`skills/knowledge-file-staleness-sweep.md`](../plugins/ravenclaude-core/skills/knowledge-file-staleness-sweep.md))
+### 1.2 `knowledge-file-staleness-sweep` skill ([`skills/knowledge-file-staleness-sweep.md`](../plugins/ravenclaude-core/skills/knowledge-file-staleness-sweep/SKILL.md))
 
 The operational arm of the Researcher. Sweeps `plugins/*/knowledge/*.md`, skill files carrying `last-verified:` frontmatter, scenarios with `contributed_at:`, and any file with `## Decision Tree:` section headers. Applies the 90/180/365-day threshold ladder. Produces a CSV/markdown remediation queue at `.ravenclaude/runs/<sweep-id>/staleness-queue.md` and emits the Structured Output Protocol JSON block.
 
@@ -91,7 +91,7 @@ The skill is **the existing seed** for Muninn. Today it's invoked manually on th
 
 ### 1.3 `/wrap` lesson-capture command ([`commands/wrap.md`](../plugins/ravenclaude-core/commands/wrap.md))
 
-The user-invoked capture pathway. Detects engagement context, asks 4 minimum questions (plugin, scope, confidence, redaction), drafts a scenario with the 9-field YAML frontmatter (`scenario_id`, `contributed_at`, `plugin`, `product`, `product_version`, `scope`, `tags`, `confidence`, `reviewed: false`), and writes to `plugins/<plugin>/scenarios/<YYYY-MM-DD>-<slug>.md`. Scenarios are surfaced back into agent decision-making by [`skills/scenario-retrieval.md`](../plugins/ravenclaude-core/skills/scenario-retrieval.md) with a mandatory "Based on N unverified scenarios from YYYY-MM tagged [scope]" preamble.
+The user-invoked capture pathway. Detects engagement context, asks 4 minimum questions (plugin, scope, confidence, redaction), drafts a scenario with the 9-field YAML frontmatter (`scenario_id`, `contributed_at`, `plugin`, `product`, `product_version`, `scope`, `tags`, `confidence`, `reviewed: false`), and writes to `plugins/<plugin>/scenarios/<YYYY-MM-DD>-<slug>.md`. Scenarios are surfaced back into agent decision-making by [`skills/scenario-retrieval.md`](../plugins/ravenclaude-core/skills/scenario-retrieval/SKILL.md) with a mandatory "Based on N unverified scenarios from YYYY-MM tagged [scope]" preamble.
 
 `/wrap` is **the existing seed** for Huginn's action affordance "convert this finding into a scenario."
 
@@ -860,9 +860,9 @@ The smallest, highest-leverage shippable unit is **Phase 1 alone** — Muninn ma
 - [`AGENTS.md`](../AGENTS.md) — cross-tool agent instructions (House rules, layout, testing).
 - [`CLAUDE.md`](../CLAUDE.md) — Claude-Code-specific addendum + plan-mode default.
 - [`plugins/ravenclaude-core/CLAUDE.md`](../plugins/ravenclaude-core/CLAUDE.md) — the team constitution; Structured Output Protocol, Run Artifacts standard, dispatch architecture.
-- [`plugins/ravenclaude-core/skills/researcher.md`](../plugins/ravenclaude-core/skills/researcher.md) — the Researcher meta-skill that this design extends.
-- [`plugins/ravenclaude-core/skills/knowledge-file-staleness-sweep.md`](../plugins/ravenclaude-core/skills/knowledge-file-staleness-sweep.md) — Muninn's operational seed.
-- [`plugins/ravenclaude-core/skills/scenario-retrieval.md`](../plugins/ravenclaude-core/skills/scenario-retrieval.md) — consumes scenarios; will need a small `events.jsonl` emission addition.
+- [`plugins/ravenclaude-core/skills/researcher.md`](../plugins/ravenclaude-core/skills/researcher/SKILL.md) — the Researcher meta-skill that this design extends.
+- [`plugins/ravenclaude-core/skills/knowledge-file-staleness-sweep.md`](../plugins/ravenclaude-core/skills/knowledge-file-staleness-sweep/SKILL.md) — Muninn's operational seed.
+- [`plugins/ravenclaude-core/skills/scenario-retrieval.md`](../plugins/ravenclaude-core/skills/scenario-retrieval/SKILL.md) — consumes scenarios; will need a small `events.jsonl` emission addition.
 - [`plugins/ravenclaude-core/commands/wrap.md`](../plugins/ravenclaude-core/commands/wrap.md) — the `/wrap` lesson-capture command and 9-field scenario frontmatter schema.
 - [`plugins/ravenclaude-core/dashboard.html`](../plugins/ravenclaude-core/dashboard.html) — the static dashboard; Hliðskjálf adds a new tab at `#/hlidskjalf`.
 - [`plugins/ravenclaude-core/dashboard-schema.json`](../plugins/ravenclaude-core/dashboard-schema.json) — source of truth for category list, levels, presets.

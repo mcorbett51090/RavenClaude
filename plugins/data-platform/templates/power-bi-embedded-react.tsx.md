@@ -9,7 +9,7 @@
 >
 > Companion docs:
 >   - [`../knowledge/power-bi-embedded-for-consultants.md`](../knowledge/power-bi-embedded-for-consultants.md)
->   - [`../skills/embed-csp-and-iframe-sandboxing.md`](../skills/embed-csp-and-iframe-sandboxing.md)
+>   - [`../skills/embed-csp-and-iframe-sandboxing/SKILL.md`](../skills/embed-csp-and-iframe-sandboxing/SKILL.md)
 
 ## The seams this component owns
 

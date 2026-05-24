@@ -198,7 +198,7 @@ START: One or more PA flows are broken, off, misnamed, or have a trigger error
 | Pre-action traversal prior on `flow-engineer` | [`../../plugins/power-platform/agents/flow-engineer.md`](../../plugins/power-platform/agents/flow-engineer.md) §"Decision-tree traversal (priors)" |
 | Pre-action traversal prior on `solution-alm-engineer` | [`../../plugins/power-platform/agents/solution-alm-engineer.md`](../../plugins/power-platform/agents/solution-alm-engineer.md) §"Decision-tree traversal (priors)" |
 | Capability Grounding Protocol pre-action clause | [`../../plugins/ravenclaude-core/CLAUDE.md`](../../plugins/ravenclaude-core/CLAUDE.md) §"Pre-action traversal of decision trees (added 2026-05-21)" |
-| Researcher staleness check | [`../../plugins/ravenclaude-core/skills/researcher.md`](../../plugins/ravenclaude-core/skills/researcher.md) §"Decision-tree staleness check (added 2026-05-21)" |
+| Researcher staleness check | [`../../plugins/ravenclaude-core/skills/researcher/SKILL.md`](../../plugins/ravenclaude-core/skills/researcher/SKILL.md) §"Decision-tree staleness check (added 2026-05-21)" |
 | Sibling proposal (split out) | [`2026-05-22-001-environment-context-permission-posture.md`](2026-05-22-001-environment-context-permission-posture.md) |
 
 ## What did NOT ship (and why)

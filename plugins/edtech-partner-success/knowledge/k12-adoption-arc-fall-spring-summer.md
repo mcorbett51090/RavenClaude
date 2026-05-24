@@ -2,7 +2,7 @@
 
 > **Last reviewed:** 2026-05-21. Status: pre-engagement-draft (synthesis from existing v0.2.0 + v0.3.0 + v0.4.0 + v0.4.1 knowledge files + practitioner consensus; refresh on first real engagement signal). Sources: AASA "School Budgets 101" (calendar references), CoSN K-12 IT calendar conventions, EdWeek Research Center teacher-time-use surveys, [`k12-psm-operating-cadence.md`](k12-psm-operating-cadence.md), [`edtech-segment-fundamentals.md`](edtech-segment-fundamentals.md), [`partner-health-score-drift.md`](partner-health-score-drift.md). Refresh when: (a) K-12 calendar conventions shift (rare), (b) state-level assessment-window changes affect spring testing patterns, (c) live engagement signals via `/wrap` contradict the patterns here.
 
-This file is the **K-12 calendar overlay for adoption signal interpretation**. The [`../skills/adoption-sequencing-k12.md`](../skills/adoption-sequencing-k12.md) skill consults this file to distinguish *expected-slow* from *actually-broken*. The [`../templates/adoption-diagnostic-worksheet.md`](../templates/adoption-diagnostic-worksheet.md) template uses this file's calendar in its Section 2.
+This file is the **K-12 calendar overlay for adoption signal interpretation**. The [`../skills/adoption-sequencing-k12/SKILL.md`](../skills/adoption-sequencing-k12/SKILL.md) skill consults this file to distinguish *expected-slow* from *actually-broken*. The [`../templates/adoption-diagnostic-worksheet.md`](../templates/adoption-diagnostic-worksheet.md) template uses this file's calendar in its Section 2.
 
 This file complements [`k12-psm-operating-cadence.md`](k12-psm-operating-cadence.md) — that file covers WHEN to schedule touchpoints; this file covers WHAT adoption patterns to expect at each calendar phase.
 
@@ -123,5 +123,5 @@ When a multi-school partner has uneven adoption:
 - [`partner-health-score-drift.md`](partner-health-score-drift.md) — score-decay rules need this calendar overlay
 - [`edtech-segment-fundamentals.md`](edtech-segment-fundamentals.md) — broader K-12 calendar / regulatory framework
 - [`renewal-pricing-conversations-edtech.md`](renewal-pricing-conversations-edtech.md) — Q3 (Feb-Apr) renewal-build window
-- [`../skills/adoption-sequencing-k12.md`](../skills/adoption-sequencing-k12.md) — the playbook this knowledge serves
+- [`../skills/adoption-sequencing-k12/SKILL.md`](../skills/adoption-sequencing-k12/SKILL.md) — the playbook this knowledge serves
 - [`../templates/adoption-diagnostic-worksheet.md`](../templates/adoption-diagnostic-worksheet.md) — diagnostic that uses this file's overlay

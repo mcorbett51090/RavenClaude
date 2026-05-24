@@ -153,7 +153,7 @@ See [`multi-tenant-rls-patterns.md`](multi-tenant-rls-patterns.md) for the close
 - Semantic-layer enforcement for Cube (`securityContext`), Power BI (DAX roles), Fabric (workspace roles)
 - App-code filters are NEVER the load-bearing control on viewer-facing read paths
 
-See [`jwt-embed-issuance.md`](../skills/jwt-embed-issuance.md) for the JWT flow, [`rls-policy-authoring.md`](../skills/rls-policy-authoring.md) for the enforcement layer.
+See [`jwt-embed-issuance.md`](../skills/jwt-embed-issuance/SKILL.md) for the JWT flow, [`rls-policy-authoring.md`](../skills/rls-policy-authoring/SKILL.md) for the enforcement layer.
 
 ## Performance reference
 

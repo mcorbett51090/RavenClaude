@@ -114,7 +114,7 @@ Use the standard data-platform output block (see [`../CLAUDE.md`](../CLAUDE.md) 
 
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
-- Skill: [`../skills/connector-configuration.md`](../skills/connector-configuration.md) (shared with `etl-pipeline-engineer`)
+- Skill: [`../skills/connector-configuration/SKILL.md`](../skills/connector-configuration/SKILL.md) (shared with `etl-pipeline-engineer`)
 - Knowledge: [`../knowledge/edtech-lms-connector-gap.md`](../knowledge/edtech-lms-connector-gap.md) (canonical custom-connector use case)
 - Knowledge: [`../knowledge/ipaas-connector-landscape-2026.md`](../knowledge/ipaas-connector-landscape-2026.md)
 - Cross-plugin route: [`../../edtech-partner-success/CLAUDE.md`](../../edtech-partner-success/CLAUDE.md) (partner-success motions on top of LMS data)

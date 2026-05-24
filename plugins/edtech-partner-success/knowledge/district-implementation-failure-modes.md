@@ -2,7 +2,7 @@
 
 > **Last reviewed:** 2026-05-21. Status: pre-engagement-draft (synthesis from existing v0.2.0 production-lesson files + practitioner consensus; refresh on first real engagement signal via `/wrap`). Sources: LAUSD/AllHere $6M failure (2024 — already documented in [`ai-in-edtech-2026.md`](ai-in-edtech-2026.md)), CoSN implementation surveys, [`rostering-data-quality-typology.md`](rostering-data-quality-typology.md), [`partner-health-score-drift.md`](partner-health-score-drift.md), [`parent-comms-jurisdictional-bear-traps.md`](parent-comms-jurisdictional-bear-traps.md). Refresh when: (a) a new high-profile EdTech implementation failure becomes public knowledge worth incorporating, (b) the LAUSD/AllHere-driven CIO diligence shift evolves further, (c) live engagement scenarios via `/wrap` surface failure patterns not anticipated here.
 
-This file is the **pre-flight checklist** for implementation. The [`../skills/implementation-90-day-arc.md`](../skills/implementation-90-day-arc.md) skill consults this file in weeks 1-2 (discovery — what to pre-check) and at Day 90 (retrospective — did any patterns slip in). The [`../templates/implementation-90-day-plan.md`](../templates/implementation-90-day-plan.md) template's "Failure-mode checks" section is keyed to this file.
+This file is the **pre-flight checklist** for implementation. The [`../skills/implementation-90-day-arc/SKILL.md`](../skills/implementation-90-day-arc/SKILL.md) skill consults this file in weeks 1-2 (discovery — what to pre-check) and at Day 90 (retrospective — did any patterns slip in). The [`../templates/implementation-90-day-plan.md`](../templates/implementation-90-day-plan.md) template's "Failure-mode checks" section is keyed to this file.
 
 This file complements [`sis-sso-rostering-integration-patterns.md`](sis-sso-rostering-integration-patterns.md) — that file covers TECHNICAL integration patterns; this file covers BROADER failure modes (technical, relationship, calendar, process).
 
@@ -223,5 +223,5 @@ At week 9-12 stabilization:
 - [`ai-in-edtech-2026.md`](ai-in-edtech-2026.md) — failure-mode #6 (LAUSD/AllHere) + COPPA overlay
 - [`renewal-pricing-conversations-edtech.md`](renewal-pricing-conversations-edtech.md) — failure-mode #3 (superintendent turnover) data
 - [`partner-health-score-drift.md`](partner-health-score-drift.md) — score-vs-reality discipline applies to implementation-time signals too
-- [`../skills/implementation-90-day-arc.md`](../skills/implementation-90-day-arc.md) — the playbook this file serves
+- [`../skills/implementation-90-day-arc/SKILL.md`](../skills/implementation-90-day-arc/SKILL.md) — the playbook this file serves
 - [`../templates/implementation-90-day-plan.md`](../templates/implementation-90-day-plan.md) — the per-week checklist artifact

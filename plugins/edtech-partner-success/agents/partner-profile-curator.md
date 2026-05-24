@@ -151,7 +151,7 @@ After the Markdown report, emit the cross-plugin Structured Output Protocol JSON
 ---RESULT_END---
 ```
 
-The extended JSON fields (`champion_redundancy`, `profile_freshness_days`) are mandatory for this agent. See [`../../ravenclaude-core/skills/structured-output.md`](../../ravenclaude-core/skills/structured-output.md).
+The extended JSON fields (`champion_redundancy`, `profile_freshness_days`) are mandatory for this agent. See [`../../ravenclaude-core/skills/structured-output/SKILL.md`](../../ravenclaude-core/skills/structured-output/SKILL.md).
 
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6

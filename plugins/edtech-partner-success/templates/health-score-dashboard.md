@@ -28,7 +28,7 @@ For each partner:
 | Champion strength | `<value>` | `10%` | `60 days` | `<>` |
 | Usage breadth | `<value>` | `10%` | `30 days` | `<>` |
 
-> Weights are starting defaults; adjust per [`../skills/partner-health-scoring.md`](../skills/partner-health-scoring.md) Step 3.
+> Weights are starting defaults; adjust per [`../skills/partner-health-scoring/SKILL.md`](../skills/partner-health-scoring/SKILL.md) Step 3.
 
 ---
 
@@ -84,7 +84,7 @@ A partner showing "red" while their rostering data is stale is **not** a red par
 
 ## Refresh / governance
 
-- Score components reviewed quarterly per [`../skills/partner-health-scoring.md`](../skills/partner-health-scoring.md) Step 8.
+- Score components reviewed quarterly per [`../skills/partner-health-scoring/SKILL.md`](../skills/partner-health-scoring/SKILL.md) Step 8.
 - For each renewed partner: did the score correctly predict the renewal?
 - For each churned partner: did the score show red in time?
 - Any signals that correlate but don't predict → dropped.

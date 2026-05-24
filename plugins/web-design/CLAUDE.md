@@ -142,7 +142,7 @@ After the Markdown report, **emit the cross-plugin Structured Output Protocol JS
 
 The JSON `standards_cited`, `budget_impact`, and `tested_on` fields mirror the mandatory Markdown lines. Both surfaces must be consistent. `confidence` ≥ 0.7 triggers Cited-Adjudicator Escalation per [`../ravenclaude-core/rules/agent-collaboration.md`](../ravenclaude-core/rules/agent-collaboration.md).
 
-See [`../ravenclaude-core/skills/structured-output.md`](../ravenclaude-core/skills/structured-output.md).
+See [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md).
 
 ---
 
@@ -239,7 +239,7 @@ When in doubt, the web-design team **declines and asks the Team Lead** rather th
 
 - Domain-neutral team constitution: [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md)
 - Capability Grounding Protocol (upstream): [`../ravenclaude-core/skills/grounding-protocol`](../ravenclaude-core/skills/grounding-protocol)
-- Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output.md`](../ravenclaude-core/skills/structured-output.md)
+- Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md)
 - Cited-Adjudicator Escalation: [`../ravenclaude-core/rules/agent-collaboration.md`](../ravenclaude-core/rules/agent-collaboration.md)
 - Sister plugins (when installed alongside): `finance` and `regulatory-compliance` — web content that surfaces finance or regulatory disclosures routes through their teams. See [`../../docs/plugin-roadmap-analysis.md`](../../docs/plugin-roadmap-analysis.md) for the marketplace plan.
 - Marketplace-wide developer guide: [`../../CLAUDE.md`](../../CLAUDE.md)

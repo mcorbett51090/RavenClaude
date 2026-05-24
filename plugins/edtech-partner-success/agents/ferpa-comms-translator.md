@@ -80,7 +80,7 @@ When drafting partner-facing advocacy content (case studies, quotes, speaker scr
 - **AI-feature claims in case studies** must align with the COPPA-amended consent posture (post April 22 2026 — see [`../knowledge/ai-in-edtech-2026.md`](../knowledge/ai-in-edtech-2026.md)). "The AI learned from our partner's data" without separate opt-in consent is now an FTC-violation pattern.
 - **Sub-processor disclosures in case-study era** must match current vendor sub-processor list at publication time, not at contract time.
 
-For the case-study artifact shape + pre-publication checklist, use [`../templates/case-study-draft.md`](../templates/case-study-draft.md). The broader advocacy playbook is [`../skills/advocacy-program-design.md`](../skills/advocacy-program-design.md) — this agent is invoked by that skill for quote-redaction + consent-language + FERPA-overlay support.
+For the case-study artifact shape + pre-publication checklist, use [`../templates/case-study-draft.md`](../templates/case-study-draft.md). The broader advocacy playbook is [`../skills/advocacy-program-design/SKILL.md`](../skills/advocacy-program-design/SKILL.md) — this agent is invoked by that skill for quote-redaction + consent-language + FERPA-overlay support.
 
 ## Anti-patterns you flag
 - Multi-partner email that lists all partner / school / district names in the To: line (PII exposure; the hook catches this)
@@ -132,7 +132,7 @@ After the Markdown report, emit the cross-plugin Structured Output Protocol JSON
 ---RESULT_END---
 ```
 
-The extended JSON fields (`audiences_drafted`, `languages_drafted`, `privacy_flags`) are mandatory for this agent. See [`../../ravenclaude-core/skills/structured-output.md`](../../ravenclaude-core/skills/structured-output.md).
+The extended JSON fields (`audiences_drafted`, `languages_drafted`, `privacy_flags`) are mandatory for this agent. See [`../../ravenclaude-core/skills/structured-output/SKILL.md`](../../ravenclaude-core/skills/structured-output/SKILL.md).
 
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6

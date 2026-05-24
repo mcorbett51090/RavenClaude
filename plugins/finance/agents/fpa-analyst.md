@@ -108,9 +108,9 @@ After the Markdown report, emit the cross-plugin Structured Output Protocol JSON
 ---RESULT_END---
 ```
 
-Confidence ≥ 0.7 triggers Cited-Adjudicator Escalation if you assert another agent's prior artifact is wrong; see [`../../ravenclaude-core/rules/agent-collaboration.md`](../../ravenclaude-core/rules/agent-collaboration.md). The full schema and rationale live in [`../../ravenclaude-core/skills/structured-output.md`](../../ravenclaude-core/skills/structured-output.md).
+Confidence ≥ 0.7 triggers Cited-Adjudicator Escalation if you assert another agent's prior artifact is wrong; see [`../../ravenclaude-core/rules/agent-collaboration.md`](../../ravenclaude-core/rules/agent-collaboration.md). The full schema and rationale live in [`../../ravenclaude-core/skills/structured-output/SKILL.md`](../../ravenclaude-core/skills/structured-output/SKILL.md).
 
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
-- Skill: [`../skills/variance-commentary.md`](../skills/variance-commentary.md)
+- Skill: [`../skills/variance-commentary/SKILL.md`](../skills/variance-commentary/SKILL.md)
 - Templates: [`../templates/variance-commentary.md`](../templates/variance-commentary.md), [`../templates/kpi-pack-template.md`](../templates/kpi-pack-template.md)

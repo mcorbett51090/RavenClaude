@@ -120,9 +120,9 @@ Use the standard data-platform output block (see [`../CLAUDE.md`](../CLAUDE.md) 
 
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
-- Skill: [`../skills/cube-schema-scaffolding.md`](../skills/cube-schema-scaffolding.md) (primary)
-- Skill: [`../skills/jwt-embed-issuance.md`](../skills/jwt-embed-issuance.md) (co-consumed with `ravenclaude-core/security-reviewer`)
-- Skill: [`../skills/embed-csp-and-iframe-sandboxing.md`](../skills/embed-csp-and-iframe-sandboxing.md) (co-consumed)
+- Skill: [`../skills/cube-schema-scaffolding/SKILL.md`](../skills/cube-schema-scaffolding/SKILL.md) (primary)
+- Skill: [`../skills/jwt-embed-issuance/SKILL.md`](../skills/jwt-embed-issuance/SKILL.md) (co-consumed with `ravenclaude-core/security-reviewer`)
+- Skill: [`../skills/embed-csp-and-iframe-sandboxing/SKILL.md`](../skills/embed-csp-and-iframe-sandboxing/SKILL.md) (co-consumed)
 - Knowledge: [`../knowledge/embedded-analytics-landscape-2026.md`](../knowledge/embedded-analytics-landscape-2026.md)
 - Knowledge: [`../knowledge/multi-tenant-rls-patterns.md`](../knowledge/multi-tenant-rls-patterns.md)
 - Knowledge: [`../knowledge/power-bi-embedded-for-consultants.md`](../knowledge/power-bi-embedded-for-consultants.md)

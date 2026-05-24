@@ -8,7 +8,7 @@ This directory holds **scenarios** — war stories of "we hit X problem, here wa
 - **Visible to consumers** via `/plugin install` (privacy-protected by the `/wrap` scrub step that strips client-identifying info)
 - **Consulted by agents** as a *secondary* source — always surfaced with a mandatory unverified-scenario preamble
 
-For the full architecture, see [`../../ravenclaude-core/skills/scenario-retrieval.md`](../../ravenclaude-core/skills/scenario-retrieval.md). For how to contribute a scenario, see [`../../ravenclaude-core/commands/wrap.md`](../../ravenclaude-core/commands/wrap.md) (`/wrap` slash command).
+For the full architecture, see [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md). For how to contribute a scenario, see [`../../ravenclaude-core/commands/wrap.md`](../../ravenclaude-core/commands/wrap.md) (`/wrap` slash command).
 
 ## The 9-field schema
 
@@ -54,7 +54,7 @@ Other plugins do **not** yet have a `scenarios/` directory. To enable the bank i
 
 1. Create `plugins/<plugin>/scenarios/`
 2. Drop a `README.md` (copy the structure above; replace plugin-specific anchors)
-3. Add the inline-prior pattern (see [`../../ravenclaude-core/skills/scenario-retrieval.md`](../../ravenclaude-core/skills/scenario-retrieval.md) §"Inline-prior pattern for agents") to the plugin's most-likely-to-benefit agents
+3. Add the inline-prior pattern (see [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md) §"Inline-prior pattern for agents") to the plugin's most-likely-to-benefit agents
 4. Remove the `TODO: enable scenarios bank when first lesson surfaces` line from the plugin's CLAUDE.md
 
 The trigger to enable a plugin's scenarios bank is **the first real engagement scenario that lands** — don't pre-create empty banks across the marketplace. The point is for the bank to exist where there's actual material.

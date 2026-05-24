@@ -1,6 +1,6 @@
 # Board pack outline — [Entity] [Period]
 
-> Use the structure from [`../skills/board-pack-composition.md`](../skills/board-pack-composition.md). 12-15 body slides + appendix.
+> Use the structure from [`../skills/board-pack-composition/SKILL.md`](../skills/board-pack-composition/SKILL.md). 12-15 body slides + appendix.
 
 **Period:** [YYYY-Qn]
 **Audience:** founder board | PE/VC board | lender | investor / LP update | fundraising prospect
@@ -39,7 +39,7 @@
 
 ### 3.1 P&L summary
 
-[Revenue → GP → Opex → EBITDA → Net income, with variance commentary per [`../skills/variance-commentary.md`](../skills/variance-commentary.md)]
+[Revenue → GP → Opex → EBITDA → Net income, with variance commentary per [`../skills/variance-commentary/SKILL.md`](../skills/variance-commentary/SKILL.md)]
 
 ### 3.2 Cash and liquidity
 

@@ -55,7 +55,7 @@ For a real EdTech engagement, the connector path is:
 5. **Cursor-based pagination + state checkpointing** — production tenants have millions of rows; resumable runs are non-negotiable
 6. **Rate-limit-aware retry** — honor `Retry-After`, exponential backoff with ceiling
 
-See [`../skills/connector-configuration.md`](../skills/connector-configuration.md) for the operational pattern, and route deeper custom-connector work to `connector-developer`.
+See [`../skills/connector-configuration/SKILL.md`](../skills/connector-configuration/SKILL.md) for the operational pattern, and route deeper custom-connector work to `connector-developer`.
 
 ## Cross-plugin handoff to `edtech-partner-success`
 

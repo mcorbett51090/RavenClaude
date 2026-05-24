@@ -1,8 +1,8 @@
 # Claude Code permissions — the load-bearing model
 
-> **Last reviewed:** 2026-05-22 against the Anthropic Claude Code documentation site at code.claude.com (permissions, permission-modes, settings, tools-reference pages) AND the canonical GitHub Security Advisories at `github.com/anthropics/claude-code/security/advisories`. **Refresh when:** Anthropic ships a new permission mode, adds documented prompt-verbosity controls, changes the cross-layer merge rule, or publishes a new security advisory affecting the permission model. Companion to [`../skills/permission-hygiene.md`](../skills/permission-hygiene.md).
+> **Last reviewed:** 2026-05-22 against the Anthropic Claude Code documentation site at code.claude.com (permissions, permission-modes, settings, tools-reference pages) AND the canonical GitHub Security Advisories at `github.com/anthropics/claude-code/security/advisories`. **Refresh when:** Anthropic ships a new permission mode, adds documented prompt-verbosity controls, changes the cross-layer merge rule, or publishes a new security advisory affecting the permission model. Companion to [`../skills/permission-hygiene/SKILL.md`](../skills/permission-hygiene/SKILL.md).
 
-This document is the long-form "why these patterns" reference behind the [`permission-hygiene`](../skills/permission-hygiene.md) skill. The skill tells you what to do; this file tells you what the model is and where the surprises live.
+This document is the long-form "why these patterns" reference behind the [`permission-hygiene`](../skills/permission-hygiene/SKILL.md) skill. The skill tells you what to do; this file tells you what the model is and where the surprises live.
 
 ---
 
@@ -137,7 +137,7 @@ Settings files (`.claude/settings.json`, `.claude/settings.local.json`, managed-
 
 ### Implications for project hooks (the `permission-hygiene` decision tree)
 
-These CVEs reinforce three pieces of the [`permission-hygiene`](../skills/permission-hygiene.md) skill's discipline:
+These CVEs reinforce three pieces of the [`permission-hygiene`](../skills/permission-hygiene/SKILL.md) skill's discipline:
 
 - **Don't lower permission mode in a repo-shared `.claude/settings.json`.** A `defaultMode: "auto"` or `defaultMode: "bypassPermissions"` value in the team-shared file is exactly the attack vector `CVE-2026-33068` exploited. Permission-mode escalation belongs in the user-level `~/.claude/settings.json` or per-session flags, not project files.
 - **Hooks in `.claude/settings.json` execute with host privileges.** A repo-shared `PreToolUse` hook is a legitimate tool — that's how `enforce-layout.sh` and `guard-destructive.sh` work in this marketplace. But because every CVE in the table above ends in "attacker-controlled hook executes arbitrary code," code-review on every new hook script is mandatory, not optional.

@@ -187,7 +187,7 @@ After your Markdown report above, emit the cross-plugin structured handoff block
 
 The JSON `status` mirrors the Markdown `Status:` above; the JSON `licensing_impact` mirrors the mandatory Markdown `Licensing impact:` line. Both surfaces must be consistent. Use `confidence` ≥ 0.7 to trigger Cited-Adjudicator Escalation if you assert another agent's prior artifact is wrong; see [`../../ravenclaude-core/rules/agent-collaboration.md`](../../ravenclaude-core/rules/agent-collaboration.md).
 
-See [`../../ravenclaude-core/skills/structured-output.md`](../../ravenclaude-core/skills/structured-output.md) for the full schema and rationale.
+See [`../../ravenclaude-core/skills/structured-output/SKILL.md`](../../ravenclaude-core/skills/structured-output/SKILL.md) for the full schema and rationale.
 
 ## References
 

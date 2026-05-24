@@ -114,10 +114,10 @@ After the Markdown report, emit the cross-plugin Structured Output Protocol JSON
 ---RESULT_END---
 ```
 
-See [`../../ravenclaude-core/skills/structured-output.md`](../../ravenclaude-core/skills/structured-output.md).
+See [`../../ravenclaude-core/skills/structured-output/SKILL.md`](../../ravenclaude-core/skills/structured-output/SKILL.md).
 
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
-- Skill: [`../skills/aml-program-review.md`](../skills/aml-program-review.md)
-- Skill: [`../skills/sar-narrative-drafting.md`](../skills/sar-narrative-drafting.md)
+- Skill: [`../skills/aml-program-review/SKILL.md`](../skills/aml-program-review/SKILL.md)
+- Skill: [`../skills/sar-narrative-drafting/SKILL.md`](../skills/sar-narrative-drafting/SKILL.md)
 - Templates: [`../templates/aml-program-outline.md`](../templates/aml-program-outline.md), [`../templates/kyc-edd-workpaper.md`](../templates/kyc-edd-workpaper.md), [`../templates/sar-narrative-template.md`](../templates/sar-narrative-template.md)

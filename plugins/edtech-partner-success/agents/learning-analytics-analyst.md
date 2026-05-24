@@ -147,11 +147,11 @@ After the Markdown report, emit the cross-plugin Structured Output Protocol JSON
 ---RESULT_END---
 ```
 
-The extended `signals_cited` shape (with `source_query` and `baseline`) is enforced when this agent is the speaker. See [`../../ravenclaude-core/skills/structured-output.md`](../../ravenclaude-core/skills/structured-output.md).
+The extended `signals_cited` shape (with `source_query` and `baseline`) is enforced when this agent is the speaker. See [`../../ravenclaude-core/skills/structured-output/SKILL.md`](../../ravenclaude-core/skills/structured-output/SKILL.md).
 
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
-- Skill: [`../skills/partner-health-scoring.md`](../skills/partner-health-scoring.md)
-- Skill: [`../skills/rostering-data-quality.md`](../skills/rostering-data-quality.md)
+- Skill: [`../skills/partner-health-scoring/SKILL.md`](../skills/partner-health-scoring/SKILL.md)
+- Skill: [`../skills/rostering-data-quality/SKILL.md`](../skills/rostering-data-quality/SKILL.md)
 - Template: [`../templates/health-score-dashboard.md`](../templates/health-score-dashboard.md)
 - Generic data-engineering patterns: [`../../ravenclaude-core/agents/data-engineer.md`](../../ravenclaude-core/agents/data-engineer.md)

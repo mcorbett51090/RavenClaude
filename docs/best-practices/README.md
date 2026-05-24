@@ -27,7 +27,7 @@ For the companion log of dated, story-shaped findings (incidents we tried-failed
 4. Append a row to the index table above.
 5. Cross-link from any related doc (sibling best-practices, lessons it codifies, plugin agents that should consult it).
 
-For consumer-project Claude sessions contributing back via the staging path, the flow is automated through the [`contribute-finding`](../../plugins/ravenclaude-core/skills/contribute-finding.md) and [`review-staged-contributions`](../../plugins/ravenclaude-core/skills/review-staged-contributions.md) skills — the index here gets updated when the maintainer promotes a staged best-practice.
+For consumer-project Claude sessions contributing back via the staging path, the flow is automated through the [`contribute-finding`](../../plugins/ravenclaude-core/skills/contribute-finding/SKILL.md) and [`review-staged-contributions`](../../plugins/ravenclaude-core/skills/review-staged-contributions/SKILL.md) skills — the index here gets updated when the maintainer promotes a staged best-practice.
 
 ---
 

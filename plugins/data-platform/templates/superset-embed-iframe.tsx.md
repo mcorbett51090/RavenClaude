@@ -6,8 +6,8 @@
 > **Last reviewed:** 2026-05-21
 >
 > Companion docs:
->   - [`../skills/jwt-embed-issuance.md`](../skills/jwt-embed-issuance.md) — JWT issuance
->   - [`../skills/embed-csp-and-iframe-sandboxing.md`](../skills/embed-csp-and-iframe-sandboxing.md) — CSP / sandbox boundary
+>   - [`../skills/jwt-embed-issuance/SKILL.md`](../skills/jwt-embed-issuance/SKILL.md) — JWT issuance
+>   - [`../skills/embed-csp-and-iframe-sandboxing/SKILL.md`](../skills/embed-csp-and-iframe-sandboxing/SKILL.md) — CSP / sandbox boundary
 >   - [`../knowledge/embedded-analytics-landscape-2026.md`](../knowledge/embedded-analytics-landscape-2026.md) — Superset position in the landscape
 
 ## The seams this component owns

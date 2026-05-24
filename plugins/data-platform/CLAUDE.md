@@ -21,8 +21,8 @@
 
 **Two skill-routed escalations to `ravenclaude-core` (per the marketplace house rule on domain-plugins-extend-core-via-skills):**
 
-- **Stack-selection questions** ("what stack should I use for this engagement?") → `ravenclaude-core/architect`, which reads this plugin's [`skills/stack-selection.md`](skills/stack-selection.md) via an inline prior on the core architect's file
-- **Any change touching auth, JWT issuance, RLS policies, embed CSP/iframe-sandboxing** → `ravenclaude-core/security-reviewer`, which reads this plugin's [`skills/jwt-embed-issuance.md`](skills/jwt-embed-issuance.md), [`skills/rls-policy-authoring.md`](skills/rls-policy-authoring.md), and [`skills/embed-csp-and-iframe-sandboxing.md`](skills/embed-csp-and-iframe-sandboxing.md) via an inline pointer on the core security-reviewer's file
+- **Stack-selection questions** ("what stack should I use for this engagement?") → `ravenclaude-core/architect`, which reads this plugin's [`skills/stack-selection/SKILL.md`](skills/stack-selection/SKILL.md) via an inline prior on the core architect's file
+- **Any change touching auth, JWT issuance, RLS policies, embed CSP/iframe-sandboxing** → `ravenclaude-core/security-reviewer`, which reads this plugin's [`skills/jwt-embed-issuance/SKILL.md`](skills/jwt-embed-issuance/SKILL.md), [`skills/rls-policy-authoring/SKILL.md`](skills/rls-policy-authoring/SKILL.md), and [`skills/embed-csp-and-iframe-sandboxing/SKILL.md`](skills/embed-csp-and-iframe-sandboxing/SKILL.md) via an inline pointer on the core security-reviewer's file
 
 ---
 
@@ -109,7 +109,7 @@ Cross-boundary denial test status: <pass | not-yet-written | n/a (single-tenant)
 Grounding checks performed: <brief note on skills/rules reviewed before stating any limitation>
 ```
 
-**Plus the cross-plugin Structured Output Protocol JSON block** appended after the Markdown report. See [`../ravenclaude-core/skills/structured-output.md`](../ravenclaude-core/skills/structured-output.md) for the canonical schema; extend with `stack_context` and `pricing_claims_with_retrieval_dates` fields.
+**Plus the cross-plugin Structured Output Protocol JSON block** appended after the Markdown report. See [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md) for the canonical schema; extend with `stack_context` and `pricing_claims_with_retrieval_dates` fields.
 
 ---
 
@@ -134,17 +134,17 @@ Advisory by default (`exit 0` with stderr warnings). Flip the final `exit 0` to 
 
 | Skill | Primary consumer | What's inside |
 |---|---|---|
-| [`skills/stack-selection.md`](skills/stack-selection.md) | `ravenclaude-core/architect` (invoked via inline prior) | The Case A/B/C/D decision tree; per-viewer-pricing-trap heuristic; EdTech LMS connector-gap recognition. Output: populated `stack-decision-record.md`. |
-| [`skills/cloud-database-comparison.md`](skills/cloud-database-comparison.md) | `database-setup-guide` | Pricing tables (with retrieval dates), setup complexity matrix, when to pick Supabase vs Neon vs RDS vs Fabric vs DuckDB |
-| [`skills/connector-configuration.md`](skills/connector-configuration.md) | `etl-pipeline-engineer` | QBO OAuth + rate-limit handling; Stripe webhook + batch hybrid; Salesforce Bulk API 2.0; HubSpot API v3; GA4 BigQuery export; Shopify GraphQL Admin API |
-| [`skills/jwt-embed-issuance.md`](skills/jwt-embed-issuance.md) | `ravenclaude-core/security-reviewer` (invoked) + `dashboard-builder` (generates) | Canonical JWT-signing flow: app issues short-lived JWT with `tenant_id` claim → embed verifies → enforcement scopes at query time |
-| [`skills/rls-policy-authoring.md`](skills/rls-policy-authoring.md) | `ravenclaude-core/security-reviewer` (invoked) + `database-setup-guide` (generates) | Postgres RLS policy templates, force-RLS-on, CI-deployed policies, cross-boundary denial tests as part of skill output |
-| [`skills/cube-schema-scaffolding.md`](skills/cube-schema-scaffolding.md) | `dashboard-builder` | Cube `cubes/` definitions with `securityContext` baked in; measure/dimension patterns; pre-aggregation hints; cross-boundary denial test per stack contract |
-| [`skills/embed-csp-and-iframe-sandboxing.md`](skills/embed-csp-and-iframe-sandboxing.md) | `ravenclaude-core/security-reviewer` (invoked) + `dashboard-builder` (generates) | CSP `frame-ancestors`; iframe `sandbox` attributes; postMessage origin checks; web-component shadow-DOM boundary |
-| [`skills/dbt-project-scaffolding.md`](skills/dbt-project-scaffolding.md) | `etl-pipeline-engineer` (primary) + `dashboard-builder` | Sources → staging → intermediate → marts → metrics layer discipline; generic + custom tests; doc-blocks for every model; exposures; RLS-safe `dbt_build_role` / `dbt_query_role` separation; `dbt build` CI shape; dev/prod env-promotion via per-schema target |
-| [`skills/dashboard-performance-tuning.md`](skills/dashboard-performance-tuning.md) | `dashboard-builder` | Per-widget-class budgets (KPI <200ms, chart <800ms, table <1.5s); Cube pre-aggregation tiers (rollup → originalSql → rollupJoin); Postgres/DuckDB materialized views; TanStack Query + Cube Redis + warehouse cache layers; the measure → identify slow stage → fix at lowest-cost layer profile loop |
-| [`skills/multi-tenant-migration.md`](skills/multi-tenant-migration.md) | `database-setup-guide` (primary) + `dashboard-builder` | `tenant_id` column propagation (uuid, NOT NULL, indexed); backfill strategies (single-tenant + mid-migration disambiguation); post-hoc RLS / semantic-layer scope rule introduction; JWT-claim shape migration; parallel-mode → cutover → backout-window plan; mandatory cross-boundary denial test gate |
-| [`skills/data-quality-tests.md`](skills/data-quality-tests.md) | `etl-pipeline-engineer` (primary) | Test taxonomy (column / table / cross-table); dbt mechanics per category; severity tiers (`error` vs `warn`); row-count drift bands; cross-source reconciliation (Stripe ↔ QBO, etc.); runbook-entry-per-test discipline; escalation criteria to Great Expectations / Monte Carlo / Bigeye |
+| [`skills/stack-selection/SKILL.md`](skills/stack-selection/SKILL.md) | `ravenclaude-core/architect` (invoked via inline prior) | The Case A/B/C/D decision tree; per-viewer-pricing-trap heuristic; EdTech LMS connector-gap recognition. Output: populated `stack-decision-record.md`. |
+| [`skills/cloud-database-comparison/SKILL.md`](skills/cloud-database-comparison/SKILL.md) | `database-setup-guide` | Pricing tables (with retrieval dates), setup complexity matrix, when to pick Supabase vs Neon vs RDS vs Fabric vs DuckDB |
+| [`skills/connector-configuration/SKILL.md`](skills/connector-configuration/SKILL.md) | `etl-pipeline-engineer` | QBO OAuth + rate-limit handling; Stripe webhook + batch hybrid; Salesforce Bulk API 2.0; HubSpot API v3; GA4 BigQuery export; Shopify GraphQL Admin API |
+| [`skills/jwt-embed-issuance/SKILL.md`](skills/jwt-embed-issuance/SKILL.md) | `ravenclaude-core/security-reviewer` (invoked) + `dashboard-builder` (generates) | Canonical JWT-signing flow: app issues short-lived JWT with `tenant_id` claim → embed verifies → enforcement scopes at query time |
+| [`skills/rls-policy-authoring/SKILL.md`](skills/rls-policy-authoring/SKILL.md) | `ravenclaude-core/security-reviewer` (invoked) + `database-setup-guide` (generates) | Postgres RLS policy templates, force-RLS-on, CI-deployed policies, cross-boundary denial tests as part of skill output |
+| [`skills/cube-schema-scaffolding/SKILL.md`](skills/cube-schema-scaffolding/SKILL.md) | `dashboard-builder` | Cube `cubes/` definitions with `securityContext` baked in; measure/dimension patterns; pre-aggregation hints; cross-boundary denial test per stack contract |
+| [`skills/embed-csp-and-iframe-sandboxing/SKILL.md`](skills/embed-csp-and-iframe-sandboxing/SKILL.md) | `ravenclaude-core/security-reviewer` (invoked) + `dashboard-builder` (generates) | CSP `frame-ancestors`; iframe `sandbox` attributes; postMessage origin checks; web-component shadow-DOM boundary |
+| [`skills/dbt-project-scaffolding/SKILL.md`](skills/dbt-project-scaffolding/SKILL.md) | `etl-pipeline-engineer` (primary) + `dashboard-builder` | Sources → staging → intermediate → marts → metrics layer discipline; generic + custom tests; doc-blocks for every model; exposures; RLS-safe `dbt_build_role` / `dbt_query_role` separation; `dbt build` CI shape; dev/prod env-promotion via per-schema target |
+| [`skills/dashboard-performance-tuning/SKILL.md`](skills/dashboard-performance-tuning/SKILL.md) | `dashboard-builder` | Per-widget-class budgets (KPI <200ms, chart <800ms, table <1.5s); Cube pre-aggregation tiers (rollup → originalSql → rollupJoin); Postgres/DuckDB materialized views; TanStack Query + Cube Redis + warehouse cache layers; the measure → identify slow stage → fix at lowest-cost layer profile loop |
+| [`skills/multi-tenant-migration/SKILL.md`](skills/multi-tenant-migration/SKILL.md) | `database-setup-guide` (primary) + `dashboard-builder` | `tenant_id` column propagation (uuid, NOT NULL, indexed); backfill strategies (single-tenant + mid-migration disambiguation); post-hoc RLS / semantic-layer scope rule introduction; JWT-claim shape migration; parallel-mode → cutover → backout-window plan; mandatory cross-boundary denial test gate |
+| [`skills/data-quality-tests/SKILL.md`](skills/data-quality-tests/SKILL.md) | `etl-pipeline-engineer` (primary) | Test taxonomy (column / table / cross-table); dbt mechanics per category; severity tiers (`error` vs `warn`); row-count drift bands; cross-source reconciliation (Stripe ↔ QBO, etc.); runbook-entry-per-test discipline; escalation criteria to Great Expectations / Monte Carlo / Bigeye |
 
 ---
 
@@ -247,5 +247,5 @@ Data-platform agents stay within the four-layer scope (DB / ELT / dashboard / em
 
 - Domain-neutral team constitution: [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md)
 - Capability Grounding Protocol (upstream + alternate-methods rule): [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md) (`Capability Grounding Protocol` section)
-- Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output.md`](../ravenclaude-core/skills/structured-output.md)
+- Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md)
 - House rule on domain-plugins-extend-core: [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md) — implemented in this plugin per the B2 + B4 expert verdicts of 2026-05-21

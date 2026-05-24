@@ -2,7 +2,7 @@
 
 > **Last reviewed:** 2026-05-21. Status: pre-engagement-draft (synthesis from state-level PD frameworks + practitioner consensus; refresh on first real engagement signal). Sources: state-by-state teacher-licensure PD hour requirements (variable; CA / NY / FL / TX confirmed via state Dept. of Education portals), CoSN K-12 PD survey, EdWeek Research Center teacher-time-use data, AASA school-calendar conventions, district-level in-service-day patterns. Refresh when: (a) a state materially changes teacher-licensure PD hour requirements, (b) a state PD-credit framework changes, (c) live engagement signal via `/wrap` surfaces a district PD pattern this file doesn't anticipate.
 
-This file is the **K-12 PD context overlay** for partner-training-program design. The [`../skills/partner-training-program-design.md`](../skills/partner-training-program-design.md) skill consults this file to choose modality + duration + certification approach. The [`../templates/train-the-trainer-curriculum.md`](../templates/train-the-trainer-curriculum.md) template references this file's PD-credit and modality conventions.
+This file is the **K-12 PD context overlay** for partner-training-program design. The [`../skills/partner-training-program-design/SKILL.md`](../skills/partner-training-program-design/SKILL.md) skill consults this file to choose modality + duration + certification approach. The [`../templates/train-the-trainer-curriculum.md`](../templates/train-the-trainer-curriculum.md) template references this file's PD-credit and modality conventions.
 
 This file is K-12-specific. Higher-ed and corporate L&D PD have different conventions (briefly noted at the bottom).
 
@@ -156,7 +156,7 @@ For when the partner segment isn't K-12:
 
 ## 13. References
 
-- [`../skills/partner-training-program-design.md`](../skills/partner-training-program-design.md) — the playbook this knowledge serves
+- [`../skills/partner-training-program-design/SKILL.md`](../skills/partner-training-program-design/SKILL.md) — the playbook this knowledge serves
 - [`../templates/train-the-trainer-curriculum.md`](../templates/train-the-trainer-curriculum.md) — the train-the-trainer artifact
 - [`k12-psm-operating-cadence.md`](k12-psm-operating-cadence.md) — broader operating-cadence (in-service days fall in known calendar phases)
 - [`edtech-segment-fundamentals.md`](edtech-segment-fundamentals.md) — segment-by-segment differences
