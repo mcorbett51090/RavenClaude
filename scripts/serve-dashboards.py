@@ -42,6 +42,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import sys
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -52,6 +53,13 @@ ALLOWED_TARGETS = {
     ".ravenclaude/comfort-posture.yaml",
     ".ravenclaude/environment-context.md",
 }
+
+# Saving the comfort posture immediately re-runs the translator so
+# .claude/settings.json reflects the new YAML without a manual /set-posture.
+POSTURE_TARGET = ".ravenclaude/comfort-posture.yaml"
+APPLY_SCRIPT = (
+    REPO_ROOT / "plugins" / "ravenclaude-core" / "scripts" / "apply-comfort-posture.py"
+)
 
 
 class DashboardHandler(SimpleHTTPRequestHandler):
@@ -115,14 +123,44 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(content, encoding="utf-8", newline="\n")
 
-        response_body = json.dumps(
-            {"saved": str(out.relative_to(REPO_ROOT)), "bytes": len(content)}
-        ).encode("utf-8")
+        payload = {"saved": str(out.relative_to(REPO_ROOT)), "bytes": len(content)}
+        # Auto-apply: saving the posture re-runs the translator so the change
+        # lands in .claude/settings.json instantly (no manual /set-posture).
+        if target == POSTURE_TARGET:
+            payload.update(self._apply_posture())
+
+        response_body = json.dumps(payload).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(response_body)))
         self.end_headers()
         self.wfile.write(response_body)
+
+    def _apply_posture(self) -> dict:
+        """Re-run apply-comfort-posture.py after a posture save.
+
+        Returns a small status dict merged into the /__save JSON response so the
+        dashboard can tell the user whether settings.json was updated. The file
+        is already written by the time this runs, so an apply failure is reported
+        (not fatal): the YAML saved, only the translation to settings.json failed.
+        """
+        if not APPLY_SCRIPT.is_file():
+            return {"applied": False, "apply_error": "apply-comfort-posture.py not found"}
+        try:
+            proc = subprocess.run(
+                [sys.executable, str(APPLY_SCRIPT), "--project-root", str(REPO_ROOT)],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        except (subprocess.SubprocessError, OSError) as e:
+            return {"applied": False, "apply_error": f"could not run translator: {e}"}
+        if proc.returncode != 0:
+            err = (proc.stderr or proc.stdout or "non-zero exit").strip()
+            return {"applied": False, "apply_error": err[:500]}
+        # Trim the long session-mode footer; keep the "Applied ... bucket counts" head.
+        summary = (proc.stdout or "").split("\nNote:")[0].strip()
+        return {"applied": True, "apply_summary": summary[:1000]}
 
 
 def main() -> int:

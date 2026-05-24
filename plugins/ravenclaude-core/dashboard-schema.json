@@ -2,16 +2,32 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/mcorbett51090/RavenClaude/plugins/ravenclaude-core/dashboard-schema.json",
   "title": "RavenClaude comfort posture",
-  "description": "Categorical permission-autonomy scale for Claude Code. Edited via this plugin's dashboard.html Settings tab; saved to .ravenclaude/comfort-posture.yaml in the consumer's project. The /set-posture skill translates this YAML into .claude/settings.json permission rules. v4 adds top-level security_deny (always-on baseline) and per-pattern overrides inside each category.",
+  "description": "Categorical permission-autonomy scale for Claude Code. Edited via this plugin's dashboard.html Settings tab; saved to .ravenclaude/comfort-posture.yaml in the consumer's project. The /set-posture skill translates this YAML into .claude/settings.json permission rules. v5 adds per-layer (user/local/project) authoring inside each category. The three settings layers merge as deny > ask > allow at runtime.",
   "type": "object",
-  "schema_version": 4,
+  "schema_version": 5,
   "$defs": {
     "level": {
       "type": "string",
       "enum": ["deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"]
     },
+    "layer_value": {
+      "type": "string",
+      "enum": ["allow", "ask", "deny", "inherit"],
+      "description": "Per-layer value for a category. 'inherit' means this layer emits no rule and defers to Claude Code's default merge behaviour. Vocabulary: allow | ask | deny | inherit."
+    },
+    "category_layer_object": {
+      "type": "object",
+      "description": "v5 per-layer shape: each key is a settings layer. Omitted keys or 'inherit' values mean that layer emits no rule. Claude Code merges user + local + project at runtime; the strictest wins (deny > ask > allow).",
+      "properties": {
+        "user": { "$ref": "#/$defs/layer_value" },
+        "local": { "$ref": "#/$defs/layer_value" },
+        "project": { "$ref": "#/$defs/layer_value" }
+      },
+      "additionalProperties": false
+    },
     "category_overrides_object": {
       "type": "object",
+      "description": "Legacy v4 shape: a single default level with optional per-pattern overrides. Still accepted by the translator for backward compatibility.",
       "properties": {
         "default": { "$ref": "#/$defs/level" },
         "overrides": {
@@ -145,7 +161,7 @@
   "properties": {
     "schema_version": {
       "type": "integer",
-      "const": 4
+      "const": 5
     },
     "security_deny": {
       "type": "array",
@@ -175,13 +191,20 @@
       ]
     },
     "_category_value_shape": {
-      "description": "Documentation-only key (ignored by tooling). Each `categories.<name>` value can be EITHER a plain string (the level applied to every pattern in the category) OR an object `{ default: <level>, overrides: { <pattern>: <level> } }` for per-pattern control. Resolution precedence: per-pattern override > category default > global_default.",
+      "description": "Documentation-only key (ignored by tooling). Each `categories.<name>` value can be (a) a plain string (v3/v4 legacy: single level for all layers), (b) an object `{ default, overrides }` (v4 per-pattern), or (c) an object `{ user, local, project }` (v5 per-layer). v5 per-layer is the canonical shape produced by the dashboard. Resolution: each layer independently resolves patterns; Claude Code merges user+local+project at runtime as deny > ask > allow.",
       "examples": [
         { "shell_readonly": "mostly-allow" },
         {
           "shell_local_mutate": {
             "default": "mostly-allow",
             "overrides": { "Bash(rm:*)": "always-ask", "Bash(git reset:*)": "always-ask" }
+          }
+        },
+        {
+          "file_read_project": {
+            "user": "allow",
+            "local": "inherit",
+            "project": "inherit"
           }
         }
       ]
@@ -209,7 +232,11 @@
       "description": "Each category's autonomy level. Override the global default per category.",
       "properties": {
         "file_read_project": {
-          "oneOf": [{ "$ref": "#/$defs/level" }, { "$ref": "#/$defs/category_overrides_object" }],
+          "oneOf": [
+            { "$ref": "#/$defs/level" },
+            { "$ref": "#/$defs/category_overrides_object" },
+            { "$ref": "#/$defs/category_layer_object" }
+          ],
           "default": "mostly-allow",
           "title": "Read files in this project",
           "description": "Reading source files inside the current project directory.",
@@ -229,7 +256,11 @@
           "x-guidance": "Reading source files is essentially free — Claude can't break anything by looking. Most users keep this on 'Mostly Allow' or 'Autopilot'. Tighten to 'Mostly Ask' or 'Deny' only if your project has files Claude shouldn't routinely scan (a checked-in keystore, a vendored secret, a generated SBOM with binary blobs)."
         },
         "file_edit_project": {
-          "oneOf": [{ "$ref": "#/$defs/level" }, { "$ref": "#/$defs/category_overrides_object" }],
+          "oneOf": [
+            { "$ref": "#/$defs/level" },
+            { "$ref": "#/$defs/category_overrides_object" },
+            { "$ref": "#/$defs/category_layer_object" }
+          ],
           "default": "mostly-allow",
           "title": "Edit files in this project",
           "description": "Creating or modifying files inside the current project.",
@@ -249,7 +280,11 @@
           "x-guidance": "If you want to review every change before it lands, set this to 'Always Ask' or 'Mostly Ask'. If you trust Claude to refactor or generate freely and rely on git for review, 'Mostly Allow' or 'Autopilot' works — the diff is visible after the fact. Pair with 'Always Ask' on shell_remote_mutate so Claude can edit freely but still pauses before pushing."
         },
         "file_read_global": {
-          "oneOf": [{ "$ref": "#/$defs/level" }, { "$ref": "#/$defs/category_overrides_object" }],
+          "oneOf": [
+            { "$ref": "#/$defs/level" },
+            { "$ref": "#/$defs/category_overrides_object" },
+            { "$ref": "#/$defs/category_layer_object" }
+          ],
           "default": "always-ask",
           "title": "Read files outside this project",
           "description": "Reading anything outside the current project directory.",
@@ -269,7 +304,11 @@
           "x-guidance": "Almost always set to 'Always Ask' or 'Deny'. Files outside your project often contain secrets — SSH keys, AWS creds, browser cookies, ~/.netrc. Only relax this if you have a specific reason (e.g., a single global config the agent legitimately needs to consult)."
         },
         "file_edit_global": {
-          "oneOf": [{ "$ref": "#/$defs/level" }, { "$ref": "#/$defs/category_overrides_object" }],
+          "oneOf": [
+            { "$ref": "#/$defs/level" },
+            { "$ref": "#/$defs/category_overrides_object" },
+            { "$ref": "#/$defs/category_layer_object" }
+          ],
           "default": "always-ask",
           "title": "Edit files outside this project",
           "description": "Writing to your home directory or system paths.",
@@ -289,7 +328,11 @@
           "x-guidance": "Keep this on 'Always Ask' or 'Deny' unless you have a specific reason. CVE-2026-39861 is the canonical example of what goes wrong when sandboxed code escapes the workspace and writes outside. The few cases where you DO want global edits (e.g., updating ~/.gitconfig) are infrequent enough that always-asking is fine."
         },
         "shell_readonly": {
-          "oneOf": [{ "$ref": "#/$defs/level" }, { "$ref": "#/$defs/category_overrides_object" }],
+          "oneOf": [
+            { "$ref": "#/$defs/level" },
+            { "$ref": "#/$defs/category_overrides_object" },
+            { "$ref": "#/$defs/category_layer_object" }
+          ],
           "default": "mostly-allow",
           "title": "Read-only shell commands",
           "description": "ls, cat, git status, grep, find. Cheap shell with no side effects.",
@@ -310,7 +353,11 @@
           "x-guidance": "Claude Code already auto-allows many of these via its built-in READONLY_COMMANDS list, so the prompt rate is already low. 'Mostly Allow' or 'Autopilot' is usually right — 'never ask for cheap shell' is the most common preference. Tighten only if you want every command logged into the prompt history."
         },
         "shell_local_mutate": {
-          "oneOf": [{ "$ref": "#/$defs/level" }, { "$ref": "#/$defs/category_overrides_object" }],
+          "oneOf": [
+            { "$ref": "#/$defs/level" },
+            { "$ref": "#/$defs/category_overrides_object" },
+            { "$ref": "#/$defs/category_layer_object" }
+          ],
           "default": "mostly-allow",
           "title": "Local shell mutations",
           "description": "mkdir, mv, cp, git commit. Changes filesystem locally.",
@@ -331,7 +378,11 @@
           "x-guidance": "Local mutations are usually recoverable — git history catches deletes, files can be restored. 'Mostly Ask' or 'Mostly Allow' is the typical choice. Tighten if you're working in a directory where moves/deletes would be hard to recover (e.g., a folder Claude shouldn't restructure without confirmation)."
         },
         "shell_remote_mutate": {
-          "oneOf": [{ "$ref": "#/$defs/level" }, { "$ref": "#/$defs/category_overrides_object" }],
+          "oneOf": [
+            { "$ref": "#/$defs/level" },
+            { "$ref": "#/$defs/category_overrides_object" },
+            { "$ref": "#/$defs/category_layer_object" }
+          ],
           "default": "always-ask",
           "title": "Remote shell mutations",
           "description": "git push, gh pr create, npm publish — anything that touches a shared system.",
@@ -351,7 +402,11 @@
           "x-guidance": "Most users keep this on 'Always Ask' or 'Mostly Ask' to preserve the review step. The cost of a wrong push isn't just the bad commit — it's the explanation to teammates, the revert PR, the audit trail. Even when Claude is 'usually right,' the asymmetric cost makes confirming each push worth it."
         },
         "shell_code_exec": {
-          "oneOf": [{ "$ref": "#/$defs/level" }, { "$ref": "#/$defs/category_overrides_object" }],
+          "oneOf": [
+            { "$ref": "#/$defs/level" },
+            { "$ref": "#/$defs/category_overrides_object" },
+            { "$ref": "#/$defs/category_layer_object" }
+          ],
           "default": "always-ask",
           "title": "Arbitrary code execution",
           "description": "python -c, node -e, bash -c, eval.",
@@ -371,7 +426,11 @@
           "x-guidance": "This is the category most often abused in security incidents — Cursor's settings.json injection (GHSA-ff64-7w26-62rf) ended in arbitrary `python -c` execution via SessionStart hooks. 'Always Ask' or 'Mostly Ask' is the safe default. Don't relax this unless you have a specific reason (e.g., a sandboxed REPL where exec is the whole point)."
         },
         "shell_package_install": {
-          "oneOf": [{ "$ref": "#/$defs/level" }, { "$ref": "#/$defs/category_overrides_object" }],
+          "oneOf": [
+            { "$ref": "#/$defs/level" },
+            { "$ref": "#/$defs/category_overrides_object" },
+            { "$ref": "#/$defs/category_layer_object" }
+          ],
           "default": "always-ask",
           "title": "Package installs",
           "description": "npm install, pip install, apt install, brew install.",
@@ -392,7 +451,11 @@
           "x-guidance": "Most users keep this on 'Always Ask' so you can review the package name and source before it lands. Supply-chain attacks (typosquats, malicious updates of legitimate packages) are real — the request to install something is the right place to pause."
         },
         "network_read": {
-          "oneOf": [{ "$ref": "#/$defs/level" }, { "$ref": "#/$defs/category_overrides_object" }],
+          "oneOf": [
+            { "$ref": "#/$defs/level" },
+            { "$ref": "#/$defs/category_overrides_object" },
+            { "$ref": "#/$defs/category_layer_object" }
+          ],
           "default": "mostly-allow",
           "title": "Web reads",
           "description": "WebFetch on known documentation domains; HTTP GETs.",
@@ -412,7 +475,11 @@
           "x-guidance": "'Mostly Allow' is usually right — Claude needs to look things up to give grounded answers. Tighten to 'Mostly Ask' only if you're worried about data exfiltration via URL parameters (e.g., Claude embedding sensitive strings in a GET) — rare but possible."
         },
         "network_write": {
-          "oneOf": [{ "$ref": "#/$defs/level" }, { "$ref": "#/$defs/category_overrides_object" }],
+          "oneOf": [
+            { "$ref": "#/$defs/level" },
+            { "$ref": "#/$defs/category_overrides_object" },
+            { "$ref": "#/$defs/category_layer_object" }
+          ],
           "default": "always-ask",
           "title": "Web writes",
           "description": "POST, PUT, DELETE — anything that mutates remote state.",
@@ -432,7 +499,11 @@
           "x-guidance": "Keep this on 'Always Ask' or 'Mostly Ask' unless you're operating in a sandbox where remote writes are explicitly part of the workflow (e.g., a test environment with disposable resources). The 'I clicked the wrong button' cost is asymmetric — confirming each one is cheap."
         },
         "mcp_tools": {
-          "oneOf": [{ "$ref": "#/$defs/level" }, { "$ref": "#/$defs/category_overrides_object" }],
+          "oneOf": [
+            { "$ref": "#/$defs/level" },
+            { "$ref": "#/$defs/category_overrides_object" },
+            { "$ref": "#/$defs/category_layer_object" }
+          ],
           "default": "mostly-ask",
           "title": "MCP server tools",
           "description": "Tools provided by connected MCP servers.",
