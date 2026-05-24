@@ -181,20 +181,46 @@ fi
 
 echo
 echo "── Gate 10: Actionlint (parse + lint) ────────────────────────────────────"
+# A bare `command -v docker` is NOT a sufficient guard. Docker can be installed
+# while the daemon is down or the image is unpullable (offline / egress-restricted),
+# in which case actionlint never actually runs — `out` comes back empty and the
+# audit reports a FALSE verdict (a must_fail that "passed", a must_pass that "failed").
+# So probe real usability — image present locally OR pullable — before asserting.
+# Every probe is timeout-bounded (a wedged daemon can hang) and lives inside an `if`
+# so a nonzero probe can't trip `set -e` and abort the remaining gates. The
+# fixture-mutating block runs ONLY when docker is usable.
+ACTIONLINT_IMG="rhysd/actionlint:1.7.7"
+docker_usable=0
 if command -v docker >/dev/null 2>&1; then
-  docker pull --quiet rhysd/actionlint:1.7.7 >/dev/null 2>&1 || true
+  if timeout 20 docker image inspect "$ACTIONLINT_IMG" >/dev/null 2>&1 \
+    || timeout 120 docker pull --quiet "$ACTIONLINT_IMG" >/dev/null 2>&1; then
+    docker_usable=1
+  fi
+fi
+if [[ "$docker_usable" -eq 1 ]]; then
   backup .github/workflows/validate-layout.yml
   sed -i '5a\    BROKEN: **bad' .github/workflows/validate-layout.yml
-  out=$(docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color 2>/dev/null || true)
+  out=$(timeout 120 docker run --rm -v "$PWD:/repo" -w /repo "$ACTIONLINT_IMG" -color 2>/dev/null || true)
   # CI gate exits 1 when out is non-empty; translate that into rc for audit:
   rc=0; [[ -n "$out" ]] && rc=1
   gate "actionlint (injected YAML parse error)" must_fail "$rc"
   cp -p "$TMP/.github_workflows_validate-layout.yml.bak" .github/workflows/validate-layout.yml
-  out=$(docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color 2>/dev/null || true)
+  out=$(timeout 120 docker run --rm -v "$PWD:/repo" -w /repo "$ACTIONLINT_IMG" -color 2>/dev/null || true)
   rc=0; [[ -n "$out" ]] && rc=1
   gate "actionlint (clean tree)" must_pass "$rc"
+elif [[ -n "${CI:-}" ]]; then
+  # In CI the real actionlint step (validate-marketplace.yml) already hard-fails on
+  # docker problems. If the meta-test silently skipped here, the real gate could be
+  # down AND the audit blind to it simultaneously. So: unrunnable-in-CI is a hard
+  # audit FAILURE, never a skip.
+  printf '  ✗ %-40s %s\n' "actionlint" "UNRUNNABLE in CI — docker present but daemon/image unusable ($ACTIONLINT_IMG)"
+  FAIL=$((FAIL + 1))
+  FAILED_GATES+=("actionlint [unrunnable-in-CI]")
 else
-  echo "  ~ docker unavailable, skipping actionlint gate"
+  # Local dev without usable docker: skip, but LOUDLY — a skipped gate is not a pass.
+  echo "  ‼ actionlint gate SKIPPED — docker unusable (daemon down or image $ACTIONLINT_IMG unavailable)."
+  echo "    THIS IS NOT A PASS. Re-run where docker can obtain the image (CI, or a networked"
+  echo "    host) before claiming the gate set is fully audited."
 fi
 
 echo

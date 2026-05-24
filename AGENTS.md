@@ -76,6 +76,11 @@ A new file's path must match at least one glob in `.repo-layout.json` `allowed_g
 Before opening a PR:
 
 ```shell
+# 0. Checkout freshness (advisory) — warn if this tree is behind origin/main, so a
+#    test run is never silently trusted against a stale checkout (a fix already merged
+#    upstream can otherwise look "not done" locally). Auto-skips in CI; offline-safe.
+scripts/check-checkout-fresh.sh
+
 # 1. JSON validity
 python3 -m json.tool .claude-plugin/marketplace.json > /dev/null
 for m in plugins/*/.claude-plugin/plugin.json; do python3 -m json.tool "$m" > /dev/null; done
@@ -97,6 +102,9 @@ npx --yes prettier --check . --log-level warn   # verify clean — must return e
 scripts/audit-gates.sh
 # Proves each CI gate fails on a known-bad fixture AND passes on a known-good one.
 # Required reading before adding or changing any CI step: docs/best-practices/ci-gate-audit.md
+# NOTE: Gate 10 (actionlint) needs a usable docker daemon + the rhysd/actionlint image.
+#       Without it the gate LOUD-skips locally ("THIS IS NOT A PASS" — a skip is not a pass);
+#       in CI an unrunnable Gate 10 is a hard failure, never a silent skip.
 
 # 5. Local install test (from a separate test project)
 # /plugin marketplace add /workspaces/RavenClaude
