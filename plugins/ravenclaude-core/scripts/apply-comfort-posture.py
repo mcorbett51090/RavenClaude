@@ -27,17 +27,26 @@ Design constraints:
     for permissions.{allow,ask,deny}. Hand-edits to those buckets in
     settings.json are wiped on next /set-posture. Persist non-posture rules
     in .claude/settings.local.json instead — Claude Code merges that on top.
-  - **Five levels collapse to three buckets** in v0.1.0:
-      deny                        -> deny
-      always-ask, mostly-ask      -> ask
-      mostly-allow, autopilot     -> allow
-    v0.2.0 will split each Bash category into safe/risky shapes so
-    always-ask vs mostly-ask and mostly-allow vs autopilot become
-    meaningfully different (the architect's "split for risky shapes"
-    pattern from proposal 002 §5).
+  - **Three levels, one per bucket** (v0.19.0): the canonical vocabulary is
+    deny / ask / allow, mapping 1:1 to the deny/ask/allow buckets. Earlier
+    releases exposed five levels (deny, always-ask, mostly-ask, mostly-allow,
+    autopilot) that already collapsed to the same three buckets — the planned
+    safe/risky split that would have made always-ask ≠ mostly-ask never
+    shipped, so the extra levels were cosmetic. They are still ACCEPTED here so
+    a consumer's pre-0.19.0 posture YAML keeps translating unchanged after a
+    `/plugin marketplace update`; the dashboard only emits the 3-level form.
   - **Per-pattern overrides** (v0.17.0) let any single pattern in any
     category be set to a different level than its category default.
     See dashboard-schema.json `_category_value_shape` for the YAML shape.
+  - **Per-permission, per-layer overrides** (v0.19.0) extend the v5 per-layer
+    shape: a category's `overrides` map keys a permission pattern to a
+    { user, local, project } object, so one permission can be tightened or
+    relaxed independently at each layer. 'inherit' defers to the category.
+  - **defaultMode pin** (v0.19.0): applying the posture sets
+    permissions.defaultMode = "default" in the project settings so the
+    emitted allow/ask/deny rules are honoured on session start. The
+    SessionStart hook hooks/ensure-default-mode.sh warns if a session loads
+    in a bypass mode anyway.
 
 Dependencies: PyYAML if present (graceful fallback to a small built-in
 parser if not, since the YAML shape is tiny and constrained).
@@ -242,7 +251,19 @@ DEFAULT_SECURITY_DENY: list[str] = [
     "Read(**/secrets*)",
 ]
 
-VALID_LEVELS = {"deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"}
+# Canonical (v0.19.0) vocabulary is the first three. The legacy five-level
+# names are still accepted so pre-0.19.0 consumer posture YAMLs validate and
+# translate unchanged; see level_to_bucket() for the collapse.
+VALID_LEVELS = {
+    "deny",
+    "ask",
+    "allow",
+    # legacy — accepted, never emitted by the dashboard:
+    "always-ask",
+    "mostly-ask",
+    "mostly-allow",
+    "autopilot",
+}
 
 # Filesystem-root catch-alls — patterns anchored at "//" (the whole filesystem).
 # In the ALLOW bucket they correctly auto-approve the entire tree; in DENY they
@@ -260,15 +281,18 @@ FS_ROOT_CATCHALLS = {"Read(//**)", "Edit(//**)", "Write(//**)"}
 def level_to_bucket(level: str) -> str:
     """Map a comfort-posture level to a permission-rule bucket.
 
-    v0.1.0: 5 levels collapse to 3 buckets.
-    v0.2.0: split each Bash category into safe/risky shapes so always-ask
-    vs mostly-ask and mostly-allow vs autopilot become meaningfully different.
+    v0.19.0 canonical vocabulary is the 3-level deny / ask / allow (1:1 with the
+    buckets). The legacy 5-level names are still accepted so a consumer's
+    pre-0.19.0 posture YAML keeps translating after a marketplace update — they
+    collapse to the same three buckets the engine always used (always-ask ≡
+    mostly-ask, mostly-allow ≡ autopilot; the planned safe/risky split never
+    shipped).
     """
     if level == "deny":
         return "deny"
-    if level in ("always-ask", "mostly-ask"):
+    if level in ("ask", "always-ask", "mostly-ask"):
         return "ask"
-    if level in ("mostly-allow", "autopilot"):
+    if level in ("allow", "mostly-allow", "autopilot"):
         return "allow"
     raise ValueError(f"Unknown level: {level!r}")
 
@@ -434,7 +458,7 @@ def resolve_category(cat_value, global_default: str) -> tuple[str, dict[str, str
 def compute_emission(posture: dict) -> dict[str, list[str]]:
     """Walk the posture YAML and emit a {bucket: [rules]} dict."""
     out: dict[str, list[str]] = {"allow": [], "ask": [], "deny": []}
-    global_default = posture.get("global_default", "mostly-ask")
+    global_default = posture.get("global_default", "ask")
     categories = posture.get("categories", {}) or {}
 
     for cat, patterns in EMISSIONS.items():
@@ -478,7 +502,7 @@ def compute_emission(posture: dict) -> dict[str, list[str]]:
 # settings file per active layer. See skills/set-posture/SKILL.md and
 # docs/dashboard-buildout-plan.md §2 (Phase A).
 
-SCRIPT_VERSION = "0.18.0"
+SCRIPT_VERSION = "0.19.0"
 LAYERS = ("user", "local", "project")
 SIDE_CAR_NAME = ".comfort-posture-applied"
 
@@ -519,6 +543,29 @@ def category_layer_value(cat_cfg, layer: str):
     return "inherit"
 
 
+def category_overrides_map(cat_cfg) -> dict:
+    """Return a category's per-permission overrides map, or {} if none.
+
+    Shape (v5): { "<pattern>": { user, local, project } }. Each value is
+    allow | ask | deny | inherit and overrides the category-wide layer value
+    for that one permission. 'inherit' (or omitted) defers to the category.
+    """
+    if isinstance(cat_cfg, dict):
+        ov = cat_cfg.get("overrides")
+        if isinstance(ov, dict):
+            return ov
+    return {}
+
+
+def pattern_layer_value(override, layer: str):
+    """Resolve one permission override's value at a layer. Tolerates a scalar."""
+    if isinstance(override, str):
+        return override if layer == "user" else "inherit"
+    if isinstance(override, dict):
+        return override.get(layer, "inherit")
+    return "inherit"
+
+
 def compute_emission_v5(posture: dict) -> dict[str, dict[str, list[str]]]:
     """Return {layer: {bucket: [rules]}} for the three layers.
 
@@ -531,11 +578,22 @@ def compute_emission_v5(posture: dict) -> dict[str, dict[str, list[str]]]:
 
     for cat, patterns in EMISSIONS.items():
         cat_cfg = categories.get(cat)
+        ov_map = category_overrides_map(cat_cfg)
         for L in LAYERS:
-            bucket = v5_value_to_bucket(category_layer_value(cat_cfg, L))
-            if bucket is None:
-                continue
+            cat_bucket = v5_value_to_bucket(category_layer_value(cat_cfg, L))
             for pattern in patterns:
+                # Per-permission override wins over the category-wide value at this
+                # layer; 'inherit' (None) falls back to the category. A pattern can
+                # thus be tightened/relaxed on its own even when the category inherits.
+                override = ov_map.get(pattern)
+                ov_bucket = (
+                    v5_value_to_bucket(pattern_layer_value(override, L))
+                    if override is not None
+                    else None
+                )
+                bucket = ov_bucket if ov_bucket is not None else cat_bucket
+                if bucket is None:
+                    continue
                 # Same fix as v4: never emit filesystem-root catch-alls into ask
                 # (they shadow project allow rules — see FS_ROOT_CATCHALLS above).
                 if bucket == "ask" and pattern in FS_ROOT_CATCHALLS:
@@ -569,6 +627,11 @@ def active_layers(posture: dict) -> set[str]:
         for L in LAYERS:
             if v5_value_to_bucket(category_layer_value(cat_cfg, L)) is not None:
                 active.add(L)
+        # A layer is also active if any per-permission override touches it.
+        for override in category_overrides_map(cat_cfg).values():
+            for L in LAYERS:
+                if v5_value_to_bucket(pattern_layer_value(override, L)) is not None:
+                    active.add(L)
     return active
 
 
@@ -673,6 +736,8 @@ def run_v5(posture: dict, root: Path, args) -> int:
         prev = settings.get("permissions", {})
         prev_counts = {b: len(prev.get(b, [])) for b in ("allow", "ask", "deny")}
         overwrite_permissions(settings, em)
+        if scope == "project":
+            ensure_default_mode(settings)
         new_counts = {b: len(em[b]) for b in ("allow", "ask", "deny")}
 
         rel = target if scope == "user" else target.relative_to(root)
@@ -711,6 +776,18 @@ def overwrite_permissions(settings: dict, new_emission: dict[str, list[str]]) ->
     for bucket in ("allow", "ask", "deny"):
         perms[bucket] = list(new_emission[bucket])
     return settings
+
+
+def ensure_default_mode(settings: dict) -> None:
+    """Pin permissions.defaultMode to 'default' so the emitted allow/ask/deny
+    rules are honoured on session start and not silently bypassed by a sticky
+    acceptEdits / bypassPermissions mode carried over from a prior session.
+
+    Written to the project layer (the committed, shared baseline). A user can
+    still toggle modes mid-session with Shift+Tab; the companion SessionStart
+    hook (hooks/ensure-default-mode.sh) warns when that has happened.
+    """
+    settings.setdefault("permissions", {})["defaultMode"] = "default"
 
 
 def main() -> int:
@@ -770,6 +847,7 @@ def main() -> int:
     prev_counts = {b: len(prev_perms.get(b, [])) for b in ("allow", "ask", "deny")}
 
     updated = overwrite_permissions(settings, new_emission)
+    ensure_default_mode(updated)
     new_counts = {b: len(updated["permissions"][b]) for b in ("allow", "ask", "deny")}
 
     if args.dry_run:

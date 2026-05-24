@@ -51,6 +51,17 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/ensure-default-mode.sh",
+            "comment": "Advisory: warns when a session loads in acceptEdits/bypassPermissions mode, which bypasses the comfort-posture allow/ask/deny rules. The real pin is permissions.defaultMode=default (written by /set-posture). Reads permission_mode from stdin; never blocks."
+          }
+        ]
+      }
     ]
   }
 }

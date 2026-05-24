@@ -2,26 +2,55 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/mcorbett51090/RavenClaude/plugins/ravenclaude-core/dashboard-schema.json",
   "title": "RavenClaude comfort posture",
-  "description": "Categorical permission-autonomy scale for Claude Code. Edited via this plugin's dashboard.html Settings tab; saved to .ravenclaude/comfort-posture.yaml in the consumer's project. The /set-posture skill translates this YAML into .claude/settings.json permission rules. v5 adds per-layer (user/local/project) authoring inside each category. The three settings layers merge as deny > ask > allow at runtime.",
+  "description": "Categorical permission-autonomy scale for Claude Code. Edited via this plugin's dashboard.html Settings tab; saved to .ravenclaude/comfort-posture.yaml in the consumer's project. The /set-posture skill translates this YAML into .claude/settings.json permission rules. v5 adds per-layer (user/local/project) authoring inside each category. The three settings layers merge as deny > ask > allow at runtime. Each permission can also be fine-tuned per layer via per-category overrides.",
   "type": "object",
   "schema_version": 5,
   "$defs": {
     "level": {
       "type": "string",
-      "enum": ["deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"]
+      "enum": ["deny", "ask", "allow"]
     },
     "layer_value": {
       "type": "string",
       "enum": ["allow", "ask", "deny", "inherit"],
       "description": "Per-layer value for a category. 'inherit' means this layer emits no rule and defers to Claude Code's default merge behaviour. Vocabulary: allow | ask | deny | inherit."
     },
+    "pattern_layer_object": {
+      "type": "object",
+      "description": "Per-layer override for a single permission pattern. Each key is a settings layer; the value is allow | ask | deny | inherit. 'inherit' defers to the category-wide layer value for that pattern.",
+      "properties": {
+        "user": {
+          "$ref": "#/$defs/layer_value"
+        },
+        "local": {
+          "$ref": "#/$defs/layer_value"
+        },
+        "project": {
+          "$ref": "#/$defs/layer_value"
+        }
+      },
+      "additionalProperties": false
+    },
     "category_layer_object": {
       "type": "object",
-      "description": "v5 per-layer shape: each key is a settings layer. Omitted keys or 'inherit' values mean that layer emits no rule. Claude Code merges user + local + project at runtime; the strictest wins (deny > ask > allow).",
+      "description": "v5 per-layer shape: each key is a settings layer. Omitted keys or 'inherit' values mean that layer emits no rule. Claude Code merges user + local + project at runtime; the strictest wins (deny > ask > allow). The optional `overrides` map fine-tunes individual permissions within the category, per layer.",
       "properties": {
-        "user": { "$ref": "#/$defs/layer_value" },
-        "local": { "$ref": "#/$defs/layer_value" },
-        "project": { "$ref": "#/$defs/layer_value" }
+        "user": {
+          "$ref": "#/$defs/layer_value"
+        },
+        "local": {
+          "$ref": "#/$defs/layer_value"
+        },
+        "project": {
+          "$ref": "#/$defs/layer_value"
+        },
+        "overrides": {
+          "type": "object",
+          "description": "Optional per-permission fine-tuning. Keys are exact permission patterns (e.g. \"Bash(git push:*)\"); each value is a per-layer object of allow | ask | deny | inherit. A non-inherit value overrides the category-wide layer value for that one permission.",
+          "additionalProperties": {
+            "$ref": "#/$defs/pattern_layer_object"
+          }
+        }
       },
       "additionalProperties": false
     },
@@ -29,11 +58,15 @@
       "type": "object",
       "description": "Legacy v4 shape: a single default level with optional per-pattern overrides. Still accepted by the translator for backward compatibility.",
       "properties": {
-        "default": { "$ref": "#/$defs/level" },
+        "default": {
+          "$ref": "#/$defs/level"
+        },
         "overrides": {
           "type": "object",
-          "description": "Per-pattern overrides keyed by the exact Bash/Read/Write/etc. pattern string emitted by the translator. Use to tighten or relax specific patterns within the category. Example: { \"Bash(rm:*)\": \"always-ask\" }.",
-          "additionalProperties": { "$ref": "#/$defs/level" }
+          "description": "Per-pattern overrides keyed by the exact Bash/Read/Write/etc. pattern string emitted by the translator. Use to tighten or relax specific patterns within the category. Example: { \"Bash(rm:*)\": \"ask\" }.",
+          "additionalProperties": {
+            "$ref": "#/$defs/level"
+          }
         }
       },
       "required": ["default"],
@@ -42,29 +75,27 @@
   },
   "_level_descriptions": {
     "deny": "Hard block. Claude refuses the action even if asked.",
-    "always-ask": "Confirm every single time, even repeat actions.",
-    "mostly-ask": "Confirm except for obviously-safe cases.",
-    "mostly-allow": "Allow except for risky or destructive cases.",
-    "autopilot": "Never ask. Claude acts on every pattern in this category."
+    "ask": "Pause and confirm before acting.",
+    "allow": "Act without asking."
   },
   "presets": {
     "recommended": {
       "_label": "★ Recommended",
       "_description": "Applies the per-category recommended level. Reads inside the project flow; writes inside the project ask; everything that touches the outside world (git push, code exec, package install, web writes, files outside the project) asks. The 'we did the thinking for you' starting point — adjust individual rows from here.",
-      "global_default": "mostly-ask",
+      "global_default": "ask",
       "categories": {
-        "file_read_project": "mostly-allow",
-        "file_edit_project": "mostly-allow",
-        "file_read_global": "always-ask",
-        "file_edit_global": "always-ask",
-        "shell_readonly": "mostly-allow",
-        "shell_local_mutate": "mostly-allow",
-        "shell_remote_mutate": "mostly-ask",
-        "shell_code_exec": "always-ask",
-        "shell_package_install": "always-ask",
-        "network_read": "mostly-allow",
-        "network_write": "always-ask",
-        "mcp_tools": "mostly-ask"
+        "file_read_project": "allow",
+        "file_edit_project": "allow",
+        "file_read_global": "ask",
+        "file_edit_global": "ask",
+        "shell_readonly": "allow",
+        "shell_local_mutate": "allow",
+        "shell_remote_mutate": "ask",
+        "shell_code_exec": "ask",
+        "shell_package_install": "ask",
+        "network_read": "allow",
+        "network_write": "ask",
+        "mcp_tools": "ask"
       }
     },
     "deny": {
@@ -85,76 +116,40 @@
         "mcp_tools": "deny"
       }
     },
-    "always-ask": {
-      "_description": "Sets every category to ALWAYS ASK. Claude pauses before every non-trivial action, even repeat actions. Maximum oversight, slowest velocity. Good starting point per Koch et al.'s 'OK blindness' finding — relax specific categories as you build trust.",
-      "global_default": "always-ask",
+    "ask": {
+      "_description": "Sets every category to ASK. Claude pauses to confirm before every non-trivial action. Maximum oversight, slowest velocity — a good starting point per Koch et al.'s 'OK blindness' finding; relax specific categories as you build trust.",
+      "global_default": "ask",
       "categories": {
-        "file_read_project": "always-ask",
-        "file_edit_project": "always-ask",
-        "file_read_global": "always-ask",
-        "file_edit_global": "always-ask",
-        "shell_readonly": "always-ask",
-        "shell_local_mutate": "always-ask",
-        "shell_remote_mutate": "always-ask",
-        "shell_code_exec": "always-ask",
-        "shell_package_install": "always-ask",
-        "network_read": "always-ask",
-        "network_write": "always-ask",
-        "mcp_tools": "always-ask"
+        "file_read_project": "ask",
+        "file_edit_project": "ask",
+        "file_read_global": "ask",
+        "file_edit_global": "ask",
+        "shell_readonly": "ask",
+        "shell_local_mutate": "ask",
+        "shell_remote_mutate": "ask",
+        "shell_code_exec": "ask",
+        "shell_package_install": "ask",
+        "network_read": "ask",
+        "network_write": "ask",
+        "mcp_tools": "ask"
       }
     },
-    "mostly-ask": {
-      "_description": "Sets every category to MOSTLY ASK. Claude asks about anything ambiguous; allows the cheap, well-known patterns. Reasonable middle posture.",
-      "global_default": "mostly-ask",
+    "allow": {
+      "_description": "WARNING: Sets every category to ALLOW. Claude acts without asking on every pattern — INCLUDING git push, npm/pip install, arbitrary code execution (python -c), writes outside the project (~/.ssh, /etc), and POSTs to web endpoints. Use only inside throwaway sandboxes where damage can't propagate.",
+      "global_default": "allow",
       "categories": {
-        "file_read_project": "mostly-ask",
-        "file_edit_project": "mostly-ask",
-        "file_read_global": "mostly-ask",
-        "file_edit_global": "mostly-ask",
-        "shell_readonly": "mostly-ask",
-        "shell_local_mutate": "mostly-ask",
-        "shell_remote_mutate": "mostly-ask",
-        "shell_code_exec": "mostly-ask",
-        "shell_package_install": "mostly-ask",
-        "network_read": "mostly-ask",
-        "network_write": "mostly-ask",
-        "mcp_tools": "mostly-ask"
-      }
-    },
-    "mostly-allow": {
-      "_description": "Sets every category to MOSTLY ALLOW. Claude acts on most patterns; asks only when the shape is unusual or destructive. Tilts toward velocity but keeps a guardrail on outlier actions.",
-      "global_default": "mostly-allow",
-      "categories": {
-        "file_read_project": "mostly-allow",
-        "file_edit_project": "mostly-allow",
-        "file_read_global": "mostly-allow",
-        "file_edit_global": "mostly-allow",
-        "shell_readonly": "mostly-allow",
-        "shell_local_mutate": "mostly-allow",
-        "shell_remote_mutate": "mostly-allow",
-        "shell_code_exec": "mostly-allow",
-        "shell_package_install": "mostly-allow",
-        "network_read": "mostly-allow",
-        "network_write": "mostly-allow",
-        "mcp_tools": "mostly-allow"
-      }
-    },
-    "autopilot": {
-      "_description": "WARNING: Sets every category to AUTOPILOT. Claude acts without asking on every pattern. THIS INCLUDES git push, npm/pip install, arbitrary code execution (python -c), writes outside the project (~/.ssh, /etc, etc.), and POSTs to web endpoints. Use only inside throwaway sandboxes where damage can't propagate.",
-      "global_default": "autopilot",
-      "categories": {
-        "file_read_project": "autopilot",
-        "file_edit_project": "autopilot",
-        "file_read_global": "autopilot",
-        "file_edit_global": "autopilot",
-        "shell_readonly": "autopilot",
-        "shell_local_mutate": "autopilot",
-        "shell_remote_mutate": "autopilot",
-        "shell_code_exec": "autopilot",
-        "shell_package_install": "autopilot",
-        "network_read": "autopilot",
-        "network_write": "autopilot",
-        "mcp_tools": "autopilot"
+        "file_read_project": "allow",
+        "file_edit_project": "allow",
+        "file_read_global": "allow",
+        "file_edit_global": "allow",
+        "shell_readonly": "allow",
+        "shell_local_mutate": "allow",
+        "shell_remote_mutate": "allow",
+        "shell_code_exec": "allow",
+        "shell_package_install": "allow",
+        "network_read": "allow",
+        "network_write": "allow",
+        "mcp_tools": "allow"
       }
     }
   },
@@ -167,7 +162,9 @@
       "type": "array",
       "title": "Always-on security deny rules",
       "description": "Patterns that are ALWAYS denied regardless of category levels. These survive every preset. The default list covers .env / .pem / credential reads and the most common destructive shell commands. Add or remove patterns in this list to change your security floor.",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "default": [
         "Bash(rm -rf:*)",
         "Bash(git push --force:*)",
@@ -191,13 +188,17 @@
       ]
     },
     "_category_value_shape": {
-      "description": "Documentation-only key (ignored by tooling). Each `categories.<name>` value can be (a) a plain string (v3/v4 legacy: single level for all layers), (b) an object `{ default, overrides }` (v4 per-pattern), or (c) an object `{ user, local, project }` (v5 per-layer). v5 per-layer is the canonical shape produced by the dashboard. Resolution: each layer independently resolves patterns; Claude Code merges user+local+project at runtime as deny > ask > allow.",
+      "description": "Documentation-only key (ignored by tooling). Each `categories.<name>` value can be (a) a plain string (v3/v4 legacy: single level for all layers), (b) an object `{ default, overrides }` (v4 per-pattern), or (c) an object `{ user, local, project }` with an optional `overrides` map (v5 per-layer, the canonical shape produced by the dashboard). Resolution: each layer independently resolves patterns (per-permission overrides win over the category-wide layer value); Claude Code merges user+local+project at runtime as deny > ask > allow.",
       "examples": [
-        { "shell_readonly": "mostly-allow" },
+        {
+          "shell_readonly": "allow"
+        },
         {
           "shell_local_mutate": {
-            "default": "mostly-allow",
-            "overrides": { "Bash(rm:*)": "always-ask", "Bash(git reset:*)": "always-ask" }
+            "default": "allow",
+            "overrides": {
+              "Bash(rm:*)": "ask"
+            }
           }
         },
         {
@@ -206,25 +207,39 @@
             "local": "inherit",
             "project": "inherit"
           }
+        },
+        {
+          "shell_remote_mutate": {
+            "user": "inherit",
+            "local": "ask",
+            "project": "inherit",
+            "overrides": {
+              "Bash(git push:*)": {
+                "user": "inherit",
+                "local": "deny",
+                "project": "inherit"
+              }
+            }
+          }
         }
       ]
     },
     "global_default": {
       "type": "string",
-      "enum": ["deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"],
-      "default": "mostly-ask",
+      "enum": ["deny", "ask", "allow"],
+      "default": "ask",
       "title": "Global default",
       "description": "Used for any category not explicitly set below. Apply a preset to set this and all categories at once.",
       "x-widget": "segmented",
-      "x-recommended": "mostly-ask",
-      "x-rec-individual": "Mostly Ask — solo work usually wants a moderate default; relax specific categories where you trust Claude more.",
-      "x-rec-team": "Mostly Ask — collaborative work wants pauses in ambiguous places; keep the cautious default and grant Productive/Autopilot per category as needed.",
+      "x-recommended": "ask",
+      "x-rec-individual": "Ask — solo work usually wants a moderate default; relax specific categories where you trust Claude more.",
+      "x-rec-team": "Ask — collaborative work wants pauses in ambiguous places; keep the cautious default and grant Productive/Allow per category as needed.",
       "x-controls": "The fallback autonomy level for any category you don't set explicitly. Acts as a safety net so newly-added categories don't surprise you with a permissive default.",
       "x-examples": [
-        "If you set this to 'Mostly Ask' and don't touch any per-category row, every category behaves as Mostly Ask.",
-        "If you set this to 'Autopilot' but override `file_edit_global` to 'Deny', everything else is on autopilot — but Claude still refuses to write outside your project."
+        "If you set this to 'Ask' and don't touch any per-category row, every category behaves as Ask.",
+        "If you set this to 'Allow' but override `file_edit_global` to 'Deny', everything else is on allow — but Claude still refuses to write outside your project."
       ],
-      "x-guidance": "Most users start with 'Mostly Ask' here and relax specific categories where they trust Claude more. Setting this to 'Autopilot' is equivalent to enabling all categories at once — overrides become subtractive."
+      "x-guidance": "Most users start with 'Ask' here and relax specific categories where they trust Claude more. Setting this to 'Allow' is equivalent to enabling all categories at once — overrides become subtractive."
     },
     "categories": {
       "type": "object",
@@ -233,18 +248,24 @@
       "properties": {
         "file_read_project": {
           "oneOf": [
-            { "$ref": "#/$defs/level" },
-            { "$ref": "#/$defs/category_overrides_object" },
-            { "$ref": "#/$defs/category_layer_object" }
+            {
+              "$ref": "#/$defs/level"
+            },
+            {
+              "$ref": "#/$defs/category_overrides_object"
+            },
+            {
+              "$ref": "#/$defs/category_layer_object"
+            }
           ],
-          "default": "mostly-allow",
+          "default": "allow",
           "title": "Read files in this project",
           "description": "Reading source files inside the current project directory.",
           "x-widget": "segmented",
           "x-group": "Files",
-          "x-recommended": "mostly-allow",
-          "x-rec-individual": "Mostly Allow — solo work benefits from Claude moving through your codebase freely; reads are essentially free.",
-          "x-rec-team": "Mostly Allow — same as solo; reading shared code doesn't affect teammates and is cheap regardless.",
+          "x-recommended": "allow",
+          "x-rec-individual": "Allow — solo work benefits from Claude moving through your codebase freely; reads are essentially free.",
+          "x-rec-team": "Allow — same as solo; reading shared code doesn't affect teammates and is cheap regardless.",
           "x-controls": "Anything Claude does to LOOK at files inside your current project directory — opening, scanning, reading. No changes to disk, no shell side effects, no network calls. This is the cheapest category.",
           "x-examples": [
             "ls src/",
@@ -253,22 +274,28 @@
             "Opening a file in the IDE",
             "Walking the directory tree to understand the project layout"
           ],
-          "x-guidance": "Reading source files is essentially free — Claude can't break anything by looking. Most users keep this on 'Mostly Allow' or 'Autopilot'. Tighten to 'Mostly Ask' or 'Deny' only if your project has files Claude shouldn't routinely scan (a checked-in keystore, a vendored secret, a generated SBOM with binary blobs)."
+          "x-guidance": "Reading source files is essentially free — Claude can't break anything by looking. Most users keep this on 'Allow'. Tighten to 'Ask' or 'Deny' only if your project has files Claude shouldn't routinely scan (a checked-in keystore, a vendored secret, a generated SBOM with binary blobs)."
         },
         "file_edit_project": {
           "oneOf": [
-            { "$ref": "#/$defs/level" },
-            { "$ref": "#/$defs/category_overrides_object" },
-            { "$ref": "#/$defs/category_layer_object" }
+            {
+              "$ref": "#/$defs/level"
+            },
+            {
+              "$ref": "#/$defs/category_overrides_object"
+            },
+            {
+              "$ref": "#/$defs/category_layer_object"
+            }
           ],
-          "default": "mostly-allow",
+          "default": "allow",
           "title": "Edit files in this project",
           "description": "Creating or modifying files inside the current project.",
           "x-widget": "segmented",
           "x-group": "Files",
-          "x-recommended": "mostly-allow",
-          "x-rec-individual": "Mostly Allow — solo work can rely on git for review; let Claude refactor and generate freely, then look at the diff.",
-          "x-rec-team": "Mostly Ask — teammates will be reviewing or blocked-on the changes; pausing on each edit preserves the review handoff and keeps surprises small.",
+          "x-recommended": "allow",
+          "x-rec-individual": "Allow — solo work can rely on git for review; let Claude refactor and generate freely, then look at the diff.",
+          "x-rec-team": "Ask — teammates will be reviewing or blocked-on the changes; pausing on each edit preserves the review handoff and keeps surprises small.",
           "x-controls": "Write, Edit, MultiEdit — anything Claude does to CHANGE a file inside your current project. The change is recoverable via git as long as you commit regularly, but it does affect your working tree immediately.",
           "x-examples": [
             "Write('src/new-feature.py', ...) — creating a new file",
@@ -277,22 +304,28 @@
             "Generating a new test file from a spec",
             "Adding documentation to an existing module"
           ],
-          "x-guidance": "If you want to review every change before it lands, set this to 'Always Ask' or 'Mostly Ask'. If you trust Claude to refactor or generate freely and rely on git for review, 'Mostly Allow' or 'Autopilot' works — the diff is visible after the fact. Pair with 'Always Ask' on shell_remote_mutate so Claude can edit freely but still pauses before pushing."
+          "x-guidance": "If you want to review every change before it lands, set this to 'Ask'. If you trust Claude to refactor or generate freely and rely on git for review, 'Allow' works — the diff is visible after the fact. Pair with 'Ask' on shell_remote_mutate so Claude can edit freely but still pauses before pushing."
         },
         "file_read_global": {
           "oneOf": [
-            { "$ref": "#/$defs/level" },
-            { "$ref": "#/$defs/category_overrides_object" },
-            { "$ref": "#/$defs/category_layer_object" }
+            {
+              "$ref": "#/$defs/level"
+            },
+            {
+              "$ref": "#/$defs/category_overrides_object"
+            },
+            {
+              "$ref": "#/$defs/category_layer_object"
+            }
           ],
-          "default": "always-ask",
+          "default": "ask",
           "title": "Read files outside this project",
           "description": "Reading anything outside the current project directory.",
           "x-widget": "segmented",
           "x-group": "Files",
-          "x-recommended": "always-ask",
-          "x-rec-individual": "Always Ask — even solo, you don't want Claude reading ~/.ssh or ~/.aws without a deliberate prompt.",
-          "x-rec-team": "Always Ask — same as solo; secrets outside the project are always a deliberate decision regardless of who you work with.",
+          "x-recommended": "ask",
+          "x-rec-individual": "Ask — even solo, you don't want Claude reading ~/.ssh or ~/.aws without a deliberate prompt.",
+          "x-rec-team": "Ask — same as solo; secrets outside the project are always a deliberate decision regardless of who you work with.",
           "x-controls": "Anything Claude does to READ files that live OUTSIDE your current project — your home directory, system paths, other projects. These paths frequently contain secrets or configuration Claude has no business with.",
           "x-examples": [
             "cat ~/.ssh/config — SSH keys and known hosts",
@@ -301,22 +334,28 @@
             "Reading from another project's directory tree",
             "Inspecting browser cookie stores"
           ],
-          "x-guidance": "Almost always set to 'Always Ask' or 'Deny'. Files outside your project often contain secrets — SSH keys, AWS creds, browser cookies, ~/.netrc. Only relax this if you have a specific reason (e.g., a single global config the agent legitimately needs to consult)."
+          "x-guidance": "Almost always set to 'Ask' or 'Deny'. Files outside your project often contain secrets — SSH keys, AWS creds, browser cookies, ~/.netrc. Only relax this if you have a specific reason (e.g., a single global config the agent legitimately needs to consult)."
         },
         "file_edit_global": {
           "oneOf": [
-            { "$ref": "#/$defs/level" },
-            { "$ref": "#/$defs/category_overrides_object" },
-            { "$ref": "#/$defs/category_layer_object" }
+            {
+              "$ref": "#/$defs/level"
+            },
+            {
+              "$ref": "#/$defs/category_overrides_object"
+            },
+            {
+              "$ref": "#/$defs/category_layer_object"
+            }
           ],
-          "default": "always-ask",
+          "default": "ask",
           "title": "Edit files outside this project",
           "description": "Writing to your home directory or system paths.",
           "x-widget": "segmented",
           "x-group": "Files",
-          "x-recommended": "always-ask",
-          "x-rec-individual": "Always Ask — solo work that wants to touch ~/.gitconfig or a global setting is the exception, not the rule. Force the pause.",
-          "x-rec-team": "Always Ask — same as solo; global writes are infrequent enough that always asking is the safe default.",
+          "x-recommended": "ask",
+          "x-rec-individual": "Ask — solo work that wants to touch ~/.gitconfig or a global setting is the exception, not the rule. Force the pause.",
+          "x-rec-team": "Ask — same as solo; global writes are infrequent enough that always asking is the safe default.",
           "x-controls": "Anything Claude does to CHANGE files outside your current project — home directory, system config, other projects. These changes are often unrecoverable (no git tracking) and can affect every other workflow on your machine.",
           "x-examples": [
             "Write('~/.profile', ...) — adding to your shell init",
@@ -325,22 +364,28 @@
             "Modifying configs in ~/Library/ or ~/.config/",
             "Touching another project's files from this session"
           ],
-          "x-guidance": "Keep this on 'Always Ask' or 'Deny' unless you have a specific reason. CVE-2026-39861 is the canonical example of what goes wrong when sandboxed code escapes the workspace and writes outside. The few cases where you DO want global edits (e.g., updating ~/.gitconfig) are infrequent enough that always-asking is fine."
+          "x-guidance": "Keep this on 'Ask' or 'Deny' unless you have a specific reason. CVE-2026-39861 is the canonical example of what goes wrong when sandboxed code escapes the workspace and writes outside. The few cases where you DO want global edits (e.g., updating ~/.gitconfig) are infrequent enough that asking is fine."
         },
         "shell_readonly": {
           "oneOf": [
-            { "$ref": "#/$defs/level" },
-            { "$ref": "#/$defs/category_overrides_object" },
-            { "$ref": "#/$defs/category_layer_object" }
+            {
+              "$ref": "#/$defs/level"
+            },
+            {
+              "$ref": "#/$defs/category_overrides_object"
+            },
+            {
+              "$ref": "#/$defs/category_layer_object"
+            }
           ],
-          "default": "mostly-allow",
+          "default": "allow",
           "title": "Read-only shell commands",
           "description": "ls, cat, git status, grep, find. Cheap shell with no side effects.",
           "x-widget": "segmented",
           "x-group": "Shell",
-          "x-recommended": "mostly-allow",
-          "x-rec-individual": "Mostly Allow — cheap shell is cheap regardless of context; let it run freely.",
-          "x-rec-team": "Mostly Allow — same as solo; read-only commands can't affect teammates' state.",
+          "x-recommended": "allow",
+          "x-rec-individual": "Allow — cheap shell is cheap regardless of context; let it run freely.",
+          "x-rec-team": "Allow — same as solo; read-only commands can't affect teammates' state.",
           "x-controls": "Shell commands that DON'T change anything on disk and DON'T talk to a server. The 'cheap' shell — running them and not running them produces the same world afterward.",
           "x-examples": [
             "ls",
@@ -350,22 +395,28 @@
             "find . -name '*.md'",
             "wc -l, head, tail, file"
           ],
-          "x-guidance": "Claude Code already auto-allows many of these via its built-in READONLY_COMMANDS list, so the prompt rate is already low. 'Mostly Allow' or 'Autopilot' is usually right — 'never ask for cheap shell' is the most common preference. Tighten only if you want every command logged into the prompt history."
+          "x-guidance": "Claude Code already auto-allows many of these via its built-in READONLY_COMMANDS list, so the prompt rate is already low. 'Allow' is usually right — 'never ask for cheap shell' is the most common preference. Tighten only if you want every command logged into the prompt history."
         },
         "shell_local_mutate": {
           "oneOf": [
-            { "$ref": "#/$defs/level" },
-            { "$ref": "#/$defs/category_overrides_object" },
-            { "$ref": "#/$defs/category_layer_object" }
+            {
+              "$ref": "#/$defs/level"
+            },
+            {
+              "$ref": "#/$defs/category_overrides_object"
+            },
+            {
+              "$ref": "#/$defs/category_layer_object"
+            }
           ],
-          "default": "mostly-allow",
+          "default": "allow",
           "title": "Local shell mutations",
           "description": "mkdir, mv, cp, git commit. Changes filesystem locally.",
           "x-widget": "segmented",
           "x-group": "Shell",
-          "x-recommended": "mostly-allow",
-          "x-rec-individual": "Mostly Allow — solo work benefits from Claude restructuring and committing locally; git history catches anything that goes wrong.",
-          "x-rec-team": "Mostly Ask — even local mutations (git checkout switching branches, mkdir reorganizing things) can affect what teammates see if they touch the wrong file later. Pausing on local mutations is cheap insurance.",
+          "x-recommended": "allow",
+          "x-rec-individual": "Allow — solo work benefits from Claude restructuring and committing locally; git history catches anything that goes wrong.",
+          "x-rec-team": "Ask — even local mutations (git checkout switching branches, mkdir reorganizing things) can affect what teammates see if they touch the wrong file later. Pausing on local mutations is cheap insurance.",
           "x-controls": "Shell commands that CHANGE your local filesystem but DON'T talk to a server. Effects stay on your machine and are usually recoverable (git reflog exists, files can be restored from snapshots).",
           "x-examples": [
             "mkdir src/new-feature",
@@ -375,22 +426,28 @@
             "git checkout -b feature/x",
             "rm temp/scratch.txt (recoverable from trash on most OSes)"
           ],
-          "x-guidance": "Local mutations are usually recoverable — git history catches deletes, files can be restored. 'Mostly Ask' or 'Mostly Allow' is the typical choice. Tighten if you're working in a directory where moves/deletes would be hard to recover (e.g., a folder Claude shouldn't restructure without confirmation)."
+          "x-guidance": "Local mutations are usually recoverable — git history catches deletes, files can be restored. 'Ask' or 'Allow' is the typical choice. Tighten if you're working in a directory where moves/deletes would be hard to recover (e.g., a folder Claude shouldn't restructure without confirmation)."
         },
         "shell_remote_mutate": {
           "oneOf": [
-            { "$ref": "#/$defs/level" },
-            { "$ref": "#/$defs/category_overrides_object" },
-            { "$ref": "#/$defs/category_layer_object" }
+            {
+              "$ref": "#/$defs/level"
+            },
+            {
+              "$ref": "#/$defs/category_overrides_object"
+            },
+            {
+              "$ref": "#/$defs/category_layer_object"
+            }
           ],
-          "default": "always-ask",
+          "default": "ask",
           "title": "Remote shell mutations",
           "description": "git push, gh pr create, npm publish — anything that touches a shared system.",
           "x-widget": "segmented",
           "x-group": "Shell",
-          "x-recommended": "mostly-ask",
-          "x-rec-individual": "Mostly Ask — even solo, the audit-trail value of confirming each push is worth the friction.",
-          "x-rec-team": "Always Ask — pushes notify teammates, trigger CI, may break their working state. Every one deserves an explicit click.",
+          "x-recommended": "ask",
+          "x-rec-individual": "Ask — even solo, the audit-trail value of confirming each push is worth the friction.",
+          "x-rec-team": "Ask — pushes notify teammates, trigger CI, may break their working state. Every one deserves an explicit click.",
           "x-controls": "Shell commands that PUBLISH to a system other people can see — git remotes, GitHub Issues/PRs, package registries, cloud buckets. Once these complete, you can't simply 'undo' them; reversal usually requires a counter-action that's also visible.",
           "x-examples": [
             "git push origin main",
@@ -399,22 +456,28 @@
             "npm publish (uploads to the registry)",
             "aws s3 sync ... s3://bucket/ (changes remote state)"
           ],
-          "x-guidance": "Most users keep this on 'Always Ask' or 'Mostly Ask' to preserve the review step. The cost of a wrong push isn't just the bad commit — it's the explanation to teammates, the revert PR, the audit trail. Even when Claude is 'usually right,' the asymmetric cost makes confirming each push worth it."
+          "x-guidance": "Most users keep this on 'Ask' to preserve the review step. The cost of a wrong push isn't just the bad commit — it's the explanation to teammates, the revert PR, the audit trail. Even when Claude is 'usually right,' the asymmetric cost makes confirming each push worth it."
         },
         "shell_code_exec": {
           "oneOf": [
-            { "$ref": "#/$defs/level" },
-            { "$ref": "#/$defs/category_overrides_object" },
-            { "$ref": "#/$defs/category_layer_object" }
+            {
+              "$ref": "#/$defs/level"
+            },
+            {
+              "$ref": "#/$defs/category_overrides_object"
+            },
+            {
+              "$ref": "#/$defs/category_layer_object"
+            }
           ],
-          "default": "always-ask",
+          "default": "ask",
           "title": "Arbitrary code execution",
           "description": "python -c, node -e, bash -c, eval.",
           "x-widget": "segmented",
           "x-group": "Shell",
-          "x-recommended": "always-ask",
-          "x-rec-individual": "Always Ask — arbitrary code exec is the shortest path to RCE if a prompt goes sideways. Worth pausing on every one.",
-          "x-rec-team": "Always Ask — same as solo; the risk doesn't change with team size.",
+          "x-recommended": "ask",
+          "x-rec-individual": "Ask — arbitrary code exec is the shortest path to RCE if a prompt goes sideways. Worth pausing on every one.",
+          "x-rec-team": "Ask — same as solo; the risk doesn't change with team size.",
           "x-controls": "Any command that lets Claude run code that WASN'T pre-written. These bypass per-tool gating because the inner code can do anything the shell can do.",
           "x-examples": [
             "python -c 'import os; os.system(...)'",
@@ -423,22 +486,28 @@
             "eval $UNTRUSTED_STRING",
             "ruby -e '...', perl -e '...', awk 'BEGIN { system(...) }'"
           ],
-          "x-guidance": "This is the category most often abused in security incidents — Cursor's settings.json injection (GHSA-ff64-7w26-62rf) ended in arbitrary `python -c` execution via SessionStart hooks. 'Always Ask' or 'Mostly Ask' is the safe default. Don't relax this unless you have a specific reason (e.g., a sandboxed REPL where exec is the whole point)."
+          "x-guidance": "This is the category most often abused in security incidents — Cursor's settings.json injection (GHSA-ff64-7w26-62rf) ended in arbitrary `python -c` execution via SessionStart hooks. 'Ask' is the safe default. Don't relax this unless you have a specific reason (e.g., a sandboxed REPL where exec is the whole point)."
         },
         "shell_package_install": {
           "oneOf": [
-            { "$ref": "#/$defs/level" },
-            { "$ref": "#/$defs/category_overrides_object" },
-            { "$ref": "#/$defs/category_layer_object" }
+            {
+              "$ref": "#/$defs/level"
+            },
+            {
+              "$ref": "#/$defs/category_overrides_object"
+            },
+            {
+              "$ref": "#/$defs/category_layer_object"
+            }
           ],
-          "default": "always-ask",
+          "default": "ask",
           "title": "Package installs",
           "description": "npm install, pip install, apt install, brew install.",
           "x-widget": "segmented",
           "x-group": "Shell",
-          "x-recommended": "always-ask",
-          "x-rec-individual": "Always Ask — supply-chain typosquats are the most common attack vector; verify the package name once per install.",
-          "x-rec-team": "Always Ask — same as solo; package installs are usually rare enough that always-asking is cheap.",
+          "x-recommended": "ask",
+          "x-rec-individual": "Ask — supply-chain typosquats are the most common attack vector; verify the package name once per install.",
+          "x-rec-team": "Ask — same as solo; package installs are usually rare enough that asking is cheap.",
           "x-controls": "Commands that download and install packages from a registry. Package installs are higher-risk than they appear: many run post-install scripts with full shell access on your machine.",
           "x-examples": [
             "npm install foo-bar",
@@ -448,22 +517,28 @@
             "cargo install ...",
             "go install github.com/.../..."
           ],
-          "x-guidance": "Most users keep this on 'Always Ask' so you can review the package name and source before it lands. Supply-chain attacks (typosquats, malicious updates of legitimate packages) are real — the request to install something is the right place to pause."
+          "x-guidance": "Most users keep this on 'Ask' so you can review the package name and source before it lands. Supply-chain attacks (typosquats, malicious updates of legitimate packages) are real — the request to install something is the right place to pause."
         },
         "network_read": {
           "oneOf": [
-            { "$ref": "#/$defs/level" },
-            { "$ref": "#/$defs/category_overrides_object" },
-            { "$ref": "#/$defs/category_layer_object" }
+            {
+              "$ref": "#/$defs/level"
+            },
+            {
+              "$ref": "#/$defs/category_overrides_object"
+            },
+            {
+              "$ref": "#/$defs/category_layer_object"
+            }
           ],
-          "default": "mostly-allow",
+          "default": "allow",
           "title": "Web reads",
           "description": "WebFetch on known documentation domains; HTTP GETs.",
           "x-widget": "segmented",
           "x-group": "Network",
-          "x-recommended": "mostly-allow",
-          "x-rec-individual": "Mostly Allow — Claude needs to look things up to give grounded answers; reads are low-risk.",
-          "x-rec-team": "Mostly Allow — same as solo; reading public docs doesn't affect teammates.",
+          "x-recommended": "allow",
+          "x-rec-individual": "Allow — Claude needs to look things up to give grounded answers; reads are low-risk.",
+          "x-rec-team": "Allow — same as solo; reading public docs doesn't affect teammates.",
           "x-controls": "GET-style requests that READ from the web. No mutation, no side effects on the remote system. Risk is limited to what Claude does with the response (which it has to read carefully anyway).",
           "x-examples": [
             "WebFetch('https://docs.anthropic.com/...')",
@@ -472,22 +547,28 @@
             "Fetching a public RFC",
             "Querying a CDN for a library's docs"
           ],
-          "x-guidance": "'Mostly Allow' is usually right — Claude needs to look things up to give grounded answers. Tighten to 'Mostly Ask' only if you're worried about data exfiltration via URL parameters (e.g., Claude embedding sensitive strings in a GET) — rare but possible."
+          "x-guidance": "'Allow' is usually right — Claude needs to look things up to give grounded answers. Tighten to 'Ask' only if you're worried about data exfiltration via URL parameters (e.g., Claude embedding sensitive strings in a GET) — rare but possible."
         },
         "network_write": {
           "oneOf": [
-            { "$ref": "#/$defs/level" },
-            { "$ref": "#/$defs/category_overrides_object" },
-            { "$ref": "#/$defs/category_layer_object" }
+            {
+              "$ref": "#/$defs/level"
+            },
+            {
+              "$ref": "#/$defs/category_overrides_object"
+            },
+            {
+              "$ref": "#/$defs/category_layer_object"
+            }
           ],
-          "default": "always-ask",
+          "default": "ask",
           "title": "Web writes",
           "description": "POST, PUT, DELETE — anything that mutates remote state.",
           "x-widget": "segmented",
           "x-group": "Network",
-          "x-recommended": "always-ask",
-          "x-rec-individual": "Always Ask — POSTs have side effects (charged API calls, posted messages, triggered workflows). Even solo, the asymmetric cost makes pausing worth it.",
-          "x-rec-team": "Always Ask — webhooks may notify teammates or trigger their workflows; pausing is doubly important.",
+          "x-recommended": "ask",
+          "x-rec-individual": "Ask — POSTs have side effects (charged API calls, posted messages, triggered workflows). Even solo, the asymmetric cost makes pausing worth it.",
+          "x-rec-team": "Ask — webhooks may notify teammates or trigger their workflows; pausing is doubly important.",
           "x-controls": "HTTP methods that CHANGE state on the remote system. These have side effects ranging from 'charged my API account' to 'posted a message to a Slack channel' to 'triggered a production deployment.'",
           "x-examples": [
             "curl -X POST https://api.example.com/webhook",
@@ -496,22 +577,28 @@
             "Submitting a Stripe charge",
             "Calling a deployment trigger"
           ],
-          "x-guidance": "Keep this on 'Always Ask' or 'Mostly Ask' unless you're operating in a sandbox where remote writes are explicitly part of the workflow (e.g., a test environment with disposable resources). The 'I clicked the wrong button' cost is asymmetric — confirming each one is cheap."
+          "x-guidance": "Keep this on 'Ask' unless you're operating in a sandbox where remote writes are explicitly part of the workflow (e.g., a test environment with disposable resources). The 'I clicked the wrong button' cost is asymmetric — confirming each one is cheap."
         },
         "mcp_tools": {
           "oneOf": [
-            { "$ref": "#/$defs/level" },
-            { "$ref": "#/$defs/category_overrides_object" },
-            { "$ref": "#/$defs/category_layer_object" }
+            {
+              "$ref": "#/$defs/level"
+            },
+            {
+              "$ref": "#/$defs/category_overrides_object"
+            },
+            {
+              "$ref": "#/$defs/category_layer_object"
+            }
           ],
-          "default": "mostly-ask",
+          "default": "ask",
           "title": "MCP server tools",
           "description": "Tools provided by connected MCP servers.",
           "x-widget": "segmented",
           "x-group": "Other",
-          "x-recommended": "mostly-ask",
-          "x-rec-individual": "Mostly Ask — MCP tool trust is best done server-by-server; the global default should ask, then you pin trusted servers individually in your Claude Code config.",
-          "x-rec-team": "Mostly Ask — same as solo; the global default is conservative; per-server trust is where the team-vs-solo distinction actually matters.",
+          "x-recommended": "ask",
+          "x-rec-individual": "Ask — MCP tool trust is best done server-by-server; the global default should ask, then you pin trusted servers individually in your Claude Code config.",
+          "x-rec-team": "Ask — same as solo; the global default is conservative; per-server trust is where the team-vs-solo distinction actually matters.",
           "x-controls": "The DEFAULT autonomy level applied to any MCP (Model Context Protocol) server you've connected. Each server can also be configured individually in your Claude Code config; this is the fallback for servers without specific trust settings.",
           "x-examples": [
             "microsoft_learn.docs_search(...) — read-only docs, usually safe",
@@ -520,7 +607,7 @@
             "github_mcp.create_issue(...) — mutates a shared system",
             "filesystem_mcp.read_file(...) — depends on what path it can see"
           ],
-          "x-guidance": "MCP trust is best done server-by-server, not globally. Keep this on 'Mostly Ask' as a safety net and configure trusted servers individually in your Claude Code config. A blanket 'Autopilot' here means any MCP server you add automatically gets full autonomy — usually not what you want."
+          "x-guidance": "MCP trust is best done server-by-server, not globally. Keep this on 'Ask' as a safety net and configure trusted servers individually in your Claude Code config. A blanket 'Allow' here means any MCP server you add automatically gets full autonomy — usually not what you want."
         }
       },
       "additionalProperties": false

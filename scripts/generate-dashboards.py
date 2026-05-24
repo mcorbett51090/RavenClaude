@@ -199,25 +199,31 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
     )
 
 
-def _render_pattern_details(category: str, patterns: list[str]) -> str:
-    """Render a collapsible <details> block with per-pattern level controls.
+def _render_pattern_overrides(category: str) -> str:
+    """Render the collapsible per-permission, per-layer overrides block (v0.19.0).
 
-    Each pattern row contains: pattern name (mono code) + info button (mirrors
-    the category-row title-+-info-button layout), one-line `what` detail, and
-    a segmented radiogroup matching the parent category's 5-level scale, plus
-    a subtle 6th "Default" segment that clears the override.
+    Each permission in the category gets its own User / Local / Project control
+    (a compact <select> of Default | allow | ask | deny). "Default" (value
+    "inherit") defers to the category-wide layer value for that permission; any
+    other value overrides just that one permission at just that one layer. The
+    JS serializes non-inherit selections into the category's `overrides:` map,
+    matching the schema's `pattern_layer_object` and the translator's
+    per-permission resolution. Returns "" when the category emits no patterns.
     """
-    levels = [
-        ("__default", "Default"),
-        ("deny", "Deny"),
-        ("always-ask", "Always Ask"),
-        ("mostly-ask", "Mostly Ask"),
-        ("mostly-allow", "Mostly Allow"),
-        ("autopilot", "Autopilot"),
+    patterns = EMISSIONS.get(category, [])
+    if not patterns:
+        return ""
+    # Vocabulary matches the per-layer category radios (allow | ask | deny |
+    # inherit); "inherit" is surfaced as "Default" so the override semantics
+    # ("leave this to the category") read plainly.
+    opts_spec = [
+        ("inherit", "Default"),
+        ("allow", "allow"),
+        ("ask", "ask"),
+        ("deny", "deny"),
     ]
     rows: list[str] = []
     for idx, pattern in enumerate(patterns):
-        radio_name = f"pat-{category}-{idx}"
         explanation = PATTERN_EXPLANATIONS.get(pattern, {})
         what_text = explanation.get("what", "")
         info_btn = (
@@ -227,20 +233,22 @@ def _render_pattern_details(category: str, patterns: list[str]) -> str:
             f'title="Explain this pattern">?</button>'
             if explanation else ""
         )
-        radios: list[str] = []
-        for value, label in levels:
-            rid = f"{radio_name}-{value.replace('_', '-')}"
-            checked = "checked" if value == "__default" else ""
-            label_cls = (
-                "seg-label seg-pattern-default"
-                if value == "__default"
-                else f"seg-label seg-{html.escape(value)}"
+        layer_controls: list[str] = []
+        for layer in ("user", "local", "project"):
+            sid = f"ov-{category}-{idx}-{layer}"
+            options = "".join(
+                f'<option value="{html.escape(value)}"'
+                f'{" selected" if value == "inherit" else ""}>{html.escape(label)}</option>'
+                for value, label in opts_spec
             )
-            radios.append(
-                f'<input type="radio" id="{html.escape(rid)}" '
-                f'name="{html.escape(radio_name)}" value="{html.escape(value)}" {checked}>'
-                f'<label for="{html.escape(rid)}" class="{label_cls}" '
-                f'title="{html.escape(value)}">{html.escape(label)}</label>'
+            layer_controls.append(
+                f'<label class="ov-layer" for="{html.escape(sid)}">'
+                f'<span class="ov-layer-name">{layer.capitalize()}</span>'
+                f'<select id="{html.escape(sid)}" class="ov-select" '
+                f'data-category="{html.escape(category)}" '
+                f'data-pattern="{html.escape(pattern)}" '
+                f'data-ov-layer="{layer}">{options}</select>'
+                f"</label>"
             )
         rows.append(
             f'<div class="pattern-row" data-pattern="{html.escape(pattern)}">'
@@ -250,10 +258,9 @@ def _render_pattern_details(category: str, patterns: list[str]) -> str:
             f'{info_btn}'
             f"</div>"
             f'<span class="pattern-detail">{html.escape(what_text)}</span>'
-            f'<div class="seg-control seg-control-pattern" role="radiogroup" '
-            f'data-pattern="{html.escape(pattern)}" data-category="{html.escape(category)}" '
-            f'aria-label="Level for {html.escape(pattern)}">'
-            + "".join(radios)
+            f'<div class="pattern-layers" role="group" '
+            f'aria-label="Per-layer override for {html.escape(pattern)}">'
+            + "".join(layer_controls)
             + "</div>"
             f"</div>"
         )
@@ -261,7 +268,7 @@ def _render_pattern_details(category: str, patterns: list[str]) -> str:
         f'<details class="pattern-details" data-category="{html.escape(category)}">'
         f'<summary class="pattern-summary">'
         f'<span class="pattern-summary-text">'
-        f'Per-pattern overrides <span class="pattern-count">'
+        f'Per-permission overrides <span class="pattern-count">'
         f'({len(patterns)})</span></span>'
         f'<span class="pattern-override-count" data-for="{html.escape(category)}">'
         f'0 overridden</span>'
@@ -321,10 +328,14 @@ def _render_category_card(name: str, schema: dict) -> str:
     recommended = schema.get("x-recommended", "")
     has_modal_content = bool(schema.get("x-controls") or schema.get("x-examples") or schema.get("x-guidance"))
 
-    # Map the old 5-level recommended value to the 4-value set for the Local layer default.
-    # deny -> deny, always-ask/mostly-ask -> ask, mostly-allow/autopilot -> allow, else inherit
+    # Map a category's x-recommended level to the 4-value layer set for the
+    # Local-layer default. v0.19.0 recommendations are already deny/ask/allow
+    # (1:1); the legacy 5-level keys stay so an older schema still maps cleanly.
     rec_to_layer: dict[str, str] = {
         "deny": "deny",
+        "ask": "ask",
+        "allow": "allow",
+        # legacy 5-level (pre-0.19.0 schemas):
         "always-ask": "ask",
         "mostly-ask": "ask",
         "mostly-allow": "allow",
@@ -363,6 +374,7 @@ def _render_category_card(name: str, schema: dict) -> str:
         + user_row
         + local_row
         + project_row
+        + _render_pattern_overrides(name)
         + "</div>"
         f"</details>"
     )
@@ -429,55 +441,6 @@ def _render_security_deny(schema: dict) -> str:
 def _label_for(value: str) -> str:
     """Render an enum value as a short pill label (Title Case, spaces not hyphens)."""
     return " ".join(part.capitalize() for part in value.replace("_", " ").split("-"))
-
-
-def _render_segmented(name: str, schema: dict, id_prefix: str, group: str | None = None) -> str:
-    """Render one segmented-radiogroup row from a schema property.
-
-    Emits an info-icon button next to the title that the JS layer opens
-    into a modal with the category's controls / examples / guidance.
-    """
-    title = schema.get("title", name)
-    description = schema.get("description", "")
-    enum_values = schema.get("enum", ["deny", "always-ask", "mostly-ask", "mostly-allow", "autopilot"])
-    default_value = schema.get("default", enum_values[len(enum_values) // 2])
-    has_modal_content = bool(schema.get("x-controls") or schema.get("x-examples") or schema.get("x-guidance"))
-    group_attr = f' data-group="{html.escape(group)}"' if group else ""
-
-    recommended_value = schema.get("x-recommended")
-    radios = []
-    for v in enum_values:
-        rid = f"{id_prefix}-{v}"
-        checked = "checked" if v == default_value else ""
-        rec_marker = (
-            f'<span class="rec-badge" aria-label="Recommended for this category">Recommended</span>'
-            if v == recommended_value else ""
-        )
-        radios.append(
-            f'<input type="radio" id="{html.escape(rid)}" name="{html.escape(name)}" '
-            f'value="{html.escape(v)}" {checked}>'
-            f'<label for="{html.escape(rid)}" class="seg-label seg-{html.escape(v)}" '
-            f'title="{html.escape(v)}">'
-            f"{html.escape(_label_for(v))}{rec_marker}</label>"
-        )
-
-    info_btn = (
-        f'<button type="button" class="info-btn" data-info-for="{html.escape(name)}" '
-        f'aria-label="Explain {html.escape(title)}" title="Explain this setting">?</button>'
-        if has_modal_content else ""
-    )
-
-    return (
-        f'<div class="cat-row" data-category="{html.escape(name)}"{group_attr}>'
-        f'<div class="cat-meta">'
-        f'<div class="cat-title-row"><span class="cat-title">{html.escape(title)}</span>{info_btn}</div>'
-        f'<div class="cat-desc">{html.escape(description)}</div>'
-        f"</div>"
-        f'<div class="seg-control" role="radiogroup" aria-label="{html.escape(title)}">'
-        + "".join(radios)
-        + "</div>"
-        f"</div>"
-    )
 
 
 # ── HTML, CSS, JS templates ──────────────────────────────────────────────
@@ -616,10 +579,8 @@ body {
 .preset-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* Left-border tint matching the level color for visual link */
 .preset-btn.preset-deny { border-left-color: var(--danger); }
-.preset-btn.preset-always-ask { border-left-color: var(--warn); }
-.preset-btn.preset-mostly-ask { border-left-color: var(--accent); }
-.preset-btn.preset-mostly-allow { border-left-color: var(--accent); }
-.preset-btn.preset-autopilot { border-left-color: var(--warn); }
+.preset-btn.preset-ask { border-left-color: var(--warn); }
+.preset-btn.preset-allow { border-left-color: var(--accent); }
 /* The "★ Recommended" preset gets a stronger visual to mark it as primary */
 .preset-btn.preset-recommended {
   background: var(--accent);
@@ -867,25 +828,45 @@ body {
   vertical-align: middle;
 }
 
-/* Per-pattern segmented control — mimics the parent category's 5-level scale,
- * with a subtle "Default" segment at the start to clear the override. Uses
- * the same .seg-control class as the parent so the visual is consistent;
- * .seg-control-pattern is a denser variant when needed. */
-.seg-control-pattern { padding: 1px; }
-.seg-control-pattern .seg-label {
-  padding: 4px 10px;
-  font-size: 11.5px;
-  min-width: 68px;
+/* Per-permission, per-layer overrides (v0.19.0): each permission row carries
+ * three compact <select>s — User / Local / Project. "Default" (value
+ * "inherit") defers to the category-wide layer value; any other value
+ * overrides just that one permission at just that one layer. A select that
+ * holds a non-default value gets the .ov-set tint so overrides are scannable. */
+.pattern-layers {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-self: end;
 }
-.seg-control-pattern .seg-label.seg-pattern-default {
-  font-style: italic;
+.ov-layer {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--muted);
-  min-width: 56px;
 }
-.seg-control-pattern input[type="radio"]:checked + .seg-label.seg-pattern-default {
-  background: var(--surface);
+.ov-layer-name { padding-left: 2px; }
+.ov-select {
+  font: inherit;
+  font-size: 11.5px;
+  text-transform: none;
+  letter-spacing: 0;
   color: var(--text);
-  font-style: italic;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 6px;
+  cursor: pointer;
+  min-width: 72px;
+}
+.ov-select:hover { border-color: var(--accent); }
+.ov-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.ov-select.ov-set { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+@media (max-width: 1200px) {
+  .pattern-layers { justify-self: start; }
 }
 
 /* Danger Zone — modeled on GitHub's destructive-actions section.
@@ -1560,10 +1541,15 @@ _JS = r"""
  * v5 state shape per category:
  *   { user: "allow"|"ask"|"deny"|"inherit",
  *     local: "allow"|"ask"|"deny"|"inherit",
- *     project: "allow"|"ask"|"deny"|"inherit" }
+ *     project: "allow"|"ask"|"deny"|"inherit",
+ *     overrides: { "<pattern>": { user, local, project } } }
  *
  * "inherit" means the layer emits no rule.  The effective badge is computed as
  *   deny > ask > allow; "all inherit" -> "inherit (Claude default)".
+ *
+ * `overrides` is the v0.19.0 per-permission, per-layer feature: one permission
+ * can be tightened/relaxed at one layer independently of its category. An entry
+ * whose three layers are all "inherit" is dropped (no override).
  *
  * Presets apply to the LOCAL layer only.
  */
@@ -1618,7 +1604,7 @@ _JS = r"""
     const sch = catProps[k];
     const rec = sch["x-recommended"] || "";
     const localDefault = levelToLayerValue(rec);
-    state.categories[k] = { user: "inherit", local: localDefault, project: "inherit" };
+    state.categories[k] = { user: "inherit", local: localDefault, project: "inherit", overrides: {} };
   }
 
   /* Read actual checked radios from DOM to pick up any rendered defaults */
@@ -1645,6 +1631,21 @@ _JS = r"""
                 state.categories[k][L] = v[L];
               }
             }
+            /* per-permission overrides: keep only well-formed, non-all-inherit entries */
+            if (v.overrides && typeof v.overrides === "object") {
+              const restored = {};
+              for (const [pat, o] of Object.entries(v.overrides)) {
+                if (!o || typeof o !== "object") continue;
+                const rec = { user: "inherit", local: "inherit", project: "inherit" };
+                for (const L of ["user","local","project"]) {
+                  if (["allow","ask","deny","inherit"].includes(o[L])) rec[L] = o[L];
+                }
+                if (rec.user !== "inherit" || rec.local !== "inherit" || rec.project !== "inherit") {
+                  restored[pat] = rec;
+                }
+              }
+              state.categories[k].overrides = restored;
+            }
           }
         }
       }
@@ -1669,6 +1670,17 @@ _JS = r"""
       if (state.categories[cat]) {
         inp.checked = inp.value === state.categories[cat][layer];
       }
+    });
+    /* Sync per-permission override selects + their override tint */
+    document.querySelectorAll("select.ov-select[data-category][data-pattern][data-ov-layer]").forEach(sel => {
+      const cat = sel.dataset.category;
+      const pat = sel.dataset.pattern;
+      const layer = sel.dataset.ovLayer;
+      const ov = (state.categories[cat] || {}).overrides || {};
+      const rec = ov[pat];
+      const val = (rec && rec[layer]) ? rec[layer] : "inherit";
+      sel.value = val;
+      sel.classList.toggle("ov-set", val !== "inherit");
     });
     /* Restore expanded state */
     document.querySelectorAll(".cat-card[data-category]").forEach(card => {
@@ -1719,10 +1731,20 @@ _JS = r"""
     warn.hidden = (state.categories[cat] || {}).project !== "allow";
   }
 
+  function updateOverrideCount(cat) {
+    const badge = document.querySelector(`.pattern-override-count[data-for="${CSS.escape(cat)}"]`);
+    if (!badge) return;
+    const ov = (state.categories[cat] || {}).overrides || {};
+    const n = Object.keys(ov).length;
+    badge.textContent = n === 1 ? "1 overridden" : `${n} overridden`;
+    badge.classList.toggle("has-overrides", n > 0);
+  }
+
   function updateAllBadges() {
     for (const cat of Object.keys(state.categories)) {
       updateBadge(cat);
       updateProjectWarn(cat);
+      updateOverrideCount(cat);
     }
   }
 
@@ -1755,17 +1777,25 @@ _JS = r"""
     for (const k of Object.keys(state.categories).sort()) {
       const cat = state.categories[k];
       const u = cat.user, l = cat.local, p = cat.project;
-      /* If all inherit, emit a compact comment-style entry */
-      if (u === "inherit" && l === "inherit" && p === "inherit") {
-        lines.push(`  ${k}:`);
-        lines.push(`    user: inherit`);
-        lines.push(`    local: inherit`);
-        lines.push(`    project: inherit`);
-      } else {
-        lines.push(`  ${k}:`);
-        lines.push(`    user: ${u}`);
-        lines.push(`    local: ${l}`);
-        lines.push(`    project: ${p}`);
+      /* Per-permission overrides: only those with a non-inherit layer count. */
+      const ov = cat.overrides || {};
+      const ovKeys = Object.keys(ov).filter(pat => {
+        const o = ov[pat] || {};
+        return o.user !== "inherit" || o.local !== "inherit" || o.project !== "inherit";
+      }).sort();
+      lines.push(`  ${k}:`);
+      lines.push(`    user: ${u}`);
+      lines.push(`    local: ${l}`);
+      lines.push(`    project: ${p}`);
+      if (ovKeys.length) {
+        lines.push(`    overrides:`);
+        for (const pat of ovKeys) {
+          const o = ov[pat];
+          lines.push(`      ${quoteYamlKey(pat)}:`);
+          lines.push(`        user: ${o.user || "inherit"}`);
+          lines.push(`        local: ${o.local || "inherit"}`);
+          lines.push(`        project: ${o.project || "inherit"}`);
+        }
       }
     }
     return lines.join("\n") + "\n";
@@ -1795,6 +1825,28 @@ _JS = r"""
       if (state.categories[cat] && ["user","local","project"].includes(layer)) {
         state.categories[cat][layer] = inp.value;
       }
+      flagUnsaved();
+      render();
+    });
+  });
+
+  /* Per-permission override selects (User / Local / Project per permission) */
+  document.querySelectorAll("select.ov-select[data-category][data-pattern][data-ov-layer]").forEach(sel => {
+    sel.addEventListener("change", () => {
+      const cat = sel.dataset.category;
+      const pat = sel.dataset.pattern;
+      const layer = sel.dataset.ovLayer;
+      const c = state.categories[cat];
+      if (!c) return;
+      const ov = c.overrides || (c.overrides = {});
+      const rec = ov[pat] || (ov[pat] = { user: "inherit", local: "inherit", project: "inherit" });
+      rec[layer] = sel.value;
+      sel.classList.toggle("ov-set", sel.value !== "inherit");
+      /* Drop the entry entirely once it overrides nothing, so emitYaml stays clean */
+      if (rec.user === "inherit" && rec.local === "inherit" && rec.project === "inherit") {
+        delete ov[pat];
+      }
+      updateOverrideCount(cat);
       flagUnsaved();
       render();
     });
