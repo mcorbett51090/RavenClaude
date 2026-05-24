@@ -250,6 +250,12 @@ rm -f plugins/finance/README.md
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (missing README)" must_fail "$rc"
 cp -p "$TMP/plugins_finance_README.md.bak" plugins/finance/README.md
+# must_fail (c): a description over the 1024-char cap must be detected.
+backup plugins/finance/.claude-plugin/plugin.json
+python3 -c "import json;p='plugins/finance/.claude-plugin/plugin.json';d=json.load(open(p));d['description']=d['description']+(' padding'*200);json.dump(d,open(p,'w'),indent=2,ensure_ascii=False)"
+rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
+gate "marketplace-claims (description over 1024)" must_fail "$rc"
+cp -p "$TMP/plugins_finance_.claude-plugin_plugin.json.bak" plugins/finance/.claude-plugin/plugin.json
 # must_pass: clean tree.
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (clean tree)" must_pass "$rc"

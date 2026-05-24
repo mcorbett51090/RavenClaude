@@ -8,7 +8,7 @@
     },
     "Edit(**)": {
       "what": "Modify an existing file in this project.",
-      "why": "Recoverable via git as long as you commit regularly. Setting this to autopilot is the 'let Claude refactor, I'll review the diff' workflow."
+      "why": "Recoverable via git as long as you commit regularly. Setting this to allow is the 'let Claude refactor, I'll review the diff' workflow."
     },
     "Write(**)": {
       "what": "Create a new file or overwrite an existing one in this project.",
@@ -40,7 +40,7 @@
     },
     "Write(//**)": {
       "what": "Create a file at filesystem root.",
-      "why": "Same reasoning as Edit(//) — system writes are infrequent enough that always-asking is fine."
+      "why": "Same reasoning as Edit(//) — system writes are infrequent enough that asking is fine."
     },
     "Bash(ls:*)": {
       "what": "List directory contents.",
@@ -196,7 +196,7 @@
     },
     "Bash(rm:*)": {
       "what": "Remove files.",
-      "why": "Mostly recoverable from git history when the file was tracked. Override to always-ask if your workflow includes untracked files you'd be sad to lose. (rm -rf is hard-denied via security_deny.)"
+      "why": "Mostly recoverable from git history when the file was tracked. Override to ask if your workflow includes untracked files you'd be sad to lose. (rm -rf is hard-denied via security_deny.)"
     },
     "Bash(git add:*)": {
       "what": "Stage changes for the next commit.",
@@ -240,7 +240,7 @@
     },
     "Bash(git push:*)": {
       "what": "Send commits to a remote (typically GitHub).",
-      "why": "Visible to teammates and triggers CI. Override to always-ask even when other remote-mutate operations are mostly-allowed, since pushes are the most consequential."
+      "why": "Visible to teammates and triggers CI. Override to ask even when other remote-mutate operations are allowed, since pushes are the most consequential."
     },
     "Bash(git fetch:*)": {
       "what": "Download refs from a remote without merging.",

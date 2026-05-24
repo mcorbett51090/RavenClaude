@@ -20,39 +20,17 @@ flowchart LR
 
 The skill owns the translation step. The dashboard owns the input. The script owns the file I/O. v0.17.0 switched from snapshot-merge to clean overwrite: the posture YAML is the single source of truth for `permissions.{allow,ask,deny}`. Personal overrides belong in `.claude/settings.local.json`, which Claude Code merges on top.
 
-## Level → bucket (v0.1.0)
+## Level → bucket (v0.19.0)
 
-Five levels collapse to three buckets:
+The vocabulary is three levels, one per bucket:
 
 | YAML level | settings.json bucket |
 |---|---|
 | `deny` | `permissions.deny` |
-| `always-ask` | `permissions.ask` |
-| `mostly-ask` | `permissions.ask` |
-| `mostly-allow` | `permissions.allow` |
-| `autopilot` | `permissions.allow` |
+| `ask` | `permissions.ask` |
+| `allow` | `permissions.allow` |
 
-v0.1.0 makes `always-ask` ≡ `mostly-ask` and `mostly-allow` ≡ `autopilot`. The user sees five levels in the dashboard, but the engine sees three buckets. **This is a known v0.1.0 simplification.**
-
-## Level → bucket (v0.2.0+ planned)
-
-To make `always-ask` ≠ `mostly-ask` and `mostly-allow` ≠ `autopilot` actually distinct in the engine, each Bash category gets split into `safe_patterns` and `risky_patterns`:
-
-| YAML level | Safe patterns | Risky patterns |
-|---|---|---|
-| `deny` | deny | deny |
-| `always-ask` | ask | ask |
-| `mostly-ask` | ask | ask |
-| `mostly-allow` | allow | ask |
-| `autopilot` | allow | allow (except hard-deny circuit breakers) |
-
-Example for `shell_local_mutate`:
-- safe: `mkdir`, `mv`, `cp`, `touch`, `ln`, `git stash`, `git checkout`
-- risky: `rm`, `rm -rf`, `git reset --hard`, `git clean -fd`
-
-`mostly-allow` then means "create folders without asking, but pause before `rm`." Currently both shapes are bucketed identically.
-
-The architect's resolution in proposal 003 §10.5 deferred this split to v0.2.0; the gap is documented here for the next iteration.
+Earlier releases exposed five levels (`always-ask`, `mostly-ask`, `mostly-allow`, `autopilot` alongside `deny`) that already collapsed to these same three buckets — `always-ask` ≡ `mostly-ask` and `mostly-allow` ≡ `autopilot`. The planned v0.2.0 split that would have made those pairs behave differently (a per-category `safe_patterns` / `risky_patterns` shape) was never shipped, so the extra levels were always cosmetic. v0.19.0 retires them from the dashboard. The translator still **accepts** the old names so a consumer's pre-0.19.0 `comfort-posture.yaml` keeps translating unchanged after a `/plugin marketplace update`; see `level_to_bucket()` in `apply-comfort-posture.py`.
 
 ## Category → patterns (v0.1.0)
 
@@ -69,7 +47,7 @@ Each category emits a flat list of narrow Bash patterns plus the relevant file/n
 
 The path anchors follow Claude Code's documented gitignore-style anchors (see `knowledge/claude-code-permissions.md` §"Read/Edit path anchors"). `/path` anchors at project root, `~/path` at home, `//abs/path` at filesystem root, bare paths default to cwd.
 
-**† Filesystem-root catch-alls are suppressed in the `ask` bucket.** `//**` is anchored at the filesystem root, so it also matches *project-internal* paths. Because Claude Code resolves overlaps as deny > ask > allow, an `ask`-bucket `Read(//**)` would beat the project category's `Read(**)` allow rule and prompt on **every in-project read** (and likewise for edits) — silently defeating `file_read_project: autopilot`. So when `file_read_global` / `file_edit_global` resolve to an ask level (`always-ask` / `mostly-ask`), the generator drops the `//**` patterns and lets Claude Code's built-in "ask on any unmatched path" handle genuinely-external reads. The `//**` patterns are still emitted for `allow` levels (where you *want* to auto-approve the whole tree) and `deny` levels. The home anchor `~/**` is kept in all buckets — it doesn't overlap the project. Implemented as `FS_ROOT_CATCHALLS` in `apply-comfort-posture.py`'s `compute_emission()`.
+**† Filesystem-root catch-alls are suppressed in the `ask` bucket.** `//**` is anchored at the filesystem root, so it also matches *project-internal* paths. Because Claude Code resolves overlaps as deny > ask > allow, an `ask`-bucket `Read(//**)` would beat the project category's `Read(**)` allow rule and prompt on **every in-project read** (and likewise for edits) — silently defeating `file_read_project: allow`. So when `file_read_global` / `file_edit_global` resolve to the `ask` level, the generator drops the `//**` patterns and lets Claude Code's built-in "ask on any unmatched path" handle genuinely-external reads. The `//**` patterns are still emitted for `allow` levels (where you *want* to auto-approve the whole tree) and `deny` levels. The home anchor `~/**` is kept in all buckets — it doesn't overlap the project. Implemented as `FS_ROOT_CATCHALLS` in `apply-comfort-posture.py`'s `compute_emission()`.
 
 ### Shell categories
 
@@ -141,7 +119,7 @@ Mechanics:
 
 - Add patterns to tighten your security floor.
 - Remove patterns only if you have a specific reason — these are the marketplace's recommended security baseline.
-- The patterns survive every preset (Recommended, Always-Ask, Autopilot, etc.) because they live outside `categories:`.
+- The patterns survive every preset (Recommended, Deny, Ask, Allow) because they live outside `categories:`.
 
 ## Per-pattern overrides (v0.17.0+)
 
@@ -149,15 +127,34 @@ Each `categories.<name>` value can be either a plain string (level applied to ev
 
 ```yaml
 categories:
-  shell_readonly: mostly-allow      # all patterns: mostly-allow
+  shell_readonly: allow             # all patterns: allow
   shell_local_mutate:               # mixed
-    default: mostly-allow
+    default: allow
     overrides:
-      "Bash(rm:*)": always-ask
-      "Bash(git reset:*)": always-ask
+      "Bash(rm:*)": ask
+      "Bash(git reset:*)": ask
 ```
 
 Resolution precedence (highest wins): per-pattern override > category default > top-level `global_default`. Use overrides to tighten or relax specific patterns within a category without splitting the category itself.
+
+### Per-permission, per-layer overrides (v0.19.0)
+
+Under schema v5 the `overrides:` map keys a permission to a **per-layer object**, so a single permission can be set independently at User / Local / Project — the same `allow | ask | deny | inherit` vocabulary as the category layers, where `inherit` defers to the category-wide layer value:
+
+```yaml
+categories:
+  shell_remote_mutate:
+    user: inherit
+    local: ask # the category asks before any remote mutation at my layer …
+    project: inherit
+    overrides:
+      "Bash(git push:*)":
+        user: inherit
+        local: deny # … but git push is hard-blocked just for me
+        project: inherit
+```
+
+The dashboard authors this via the per-permission controls inside each category card. Resolution at each layer: per-permission override (non-`inherit`) wins over the category-wide layer value; layers then merge `deny > ask > allow` as usual. See `category_overrides_map()` / `pattern_layer_value()` in `apply-comfort-posture.py`.
 
 The pattern strings must match exactly what `EMISSIONS` in `apply-comfort-posture.py` declares — copy them from the dashboard's per-category list rather than typing freehand.
 

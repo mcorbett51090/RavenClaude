@@ -142,6 +142,7 @@ CI runs the same checks plus the gate-audit meta-test.
 
 ## PR conventions
 
+- **When a PR is required vs. not** — changes that ship inside `plugins/` (agents, skills, hooks, manifests, scripts, generated `dashboard.html`) or that touch CI / config / boundary files (`AGENTS.md`, `CLAUDE.md`, `.repo-layout.json`, `.github/`) go through a **PR**. Pure **documentation** under `docs/` — plan, design, proposal, and research write-ups, plus the rolling `docs/session-log.md` — commits **straight to `main`, no PR**. (Rationale: docs can't break a consumer's `/plugin marketplace update`, and the PR overhead slows the planning loop. The boundary is "could this change a consumer's installed plugin?" — if no, it's docs-only.)
 - **Branches** — `feat/<plugin-name>-<slug>`, `fix/<plugin-name>-<slug>`, `chore/<slug>`.
 - **Versioning** — bump the plugin's semver on every user-visible change.
 - **Migration notes** — if the change could break a consumer's existing project on `/plugin marketplace update`, add a "Migration" section to the plugin's release notes.
