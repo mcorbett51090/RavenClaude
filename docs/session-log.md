@@ -29,8 +29,10 @@ cap as Check 3 in `check-marketplace-claims.py` + a Gate 12 fixture, trimmed all
 bump). Updated PR conventions in `AGENTS.md` (docs-only changes commit straight
 to main — which is why this log entry is a direct-to-main commit).
 
-**Current state / next step:** PR #82 open and green, awaiting Matt's review/merge.
-No follow-ups pending.
+**Current state / next step:** **MERGED** as v0.19.0 (PR #82, squash `e7f703b`);
+Matt confirmed the dashboard UI looks good. He has unspecified dashboard
+**improvement ideas parked for a later session** — ask him to enumerate when raised.
+Nothing else outstanding.
 
 ---
 
