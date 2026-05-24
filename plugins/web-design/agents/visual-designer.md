@@ -121,5 +121,5 @@ See [`../../ravenclaude-core/skills/structured-output.md`](../../ravenclaude-cor
 
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
-- Skill: [`../skills/design-system-audit.md`](../skills/design-system-audit.md)
+- Skill: [`../skills/design-system-audit/SKILL.md`](../skills/design-system-audit/SKILL.md)
 - Template: [`../templates/design-system-spec.md`](../templates/design-system-spec.md)

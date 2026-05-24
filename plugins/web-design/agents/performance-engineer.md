@@ -123,5 +123,5 @@ See [`../../ravenclaude-core/skills/structured-output.md`](../../ravenclaude-cor
 
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
-- Skill: [`../skills/core-web-vitals-tuning.md`](../skills/core-web-vitals-tuning.md)
+- Skill: [`../skills/core-web-vitals-tuning/SKILL.md`](../skills/core-web-vitals-tuning/SKILL.md)
 - Template: [`../templates/performance-budget.md`](../templates/performance-budget.md)

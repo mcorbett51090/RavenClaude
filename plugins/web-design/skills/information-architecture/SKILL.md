@@ -183,8 +183,8 @@ Audit with a crawler (Screaming Frog) after the redirect map is in place but **b
 
 ## See also
 
-- Template: [`../templates/site-architecture.md`](../templates/site-architecture.md)
-- Skill: [`./seo-technical-audit.md`](./seo-technical-audit.md)
-- Skill: [`./content-audit.md`](./content-audit.md)
-- Agent: [`../agents/web-architect.md`](../agents/web-architect.md)
-- Agent: [`../agents/ux-designer.md`](../agents/ux-designer.md)
+- Template: [`../../templates/site-architecture.md`](../../templates/site-architecture.md)
+- Skill: [`../seo-technical-audit/SKILL.md`](../seo-technical-audit/SKILL.md)
+- Skill: [`../content-audit/SKILL.md`](../content-audit/SKILL.md)
+- Agent: [`../../agents/web-architect.md`](../../agents/web-architect.md)
+- Agent: [`../../agents/ux-designer.md`](../../agents/ux-designer.md)

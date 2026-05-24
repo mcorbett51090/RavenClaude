@@ -115,6 +115,6 @@ Plus:
 
 ## See also
 
-- Template: [`../templates/design-system-spec.md`](../templates/design-system-spec.md)
-- Agent: [`../agents/visual-designer.md`](../agents/visual-designer.md)
-- Agent: [`../agents/frontend-implementer.md`](../agents/frontend-implementer.md)
+- Template: [`../../templates/design-system-spec.md`](../../templates/design-system-spec.md)
+- Agent: [`../../agents/visual-designer.md`](../../agents/visual-designer.md)
+- Agent: [`../../agents/frontend-implementer.md`](../../agents/frontend-implementer.md)
