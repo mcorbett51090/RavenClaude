@@ -10,7 +10,41 @@ and is always findable regardless of which branch work is happening on.
 
 ---
 
-## 1 — 2026-05-25 · Tribunal: ship T1, verify substrate, unblock T2
+## 1 — 2026-05-25 · "405 on Save & apply from my phone" → diagnose + ship PR #89
+
+**Prompt:** "cont" → (clarified) "we were fixing a 405 on the save & apply
+button; double-check the status, I thought we merged it" → "go" → "keep live
+pages up to date with dashboard updates" → "I want to apply from my phone if
+possible" → "go".
+
+**Response:**
+
+- **Diagnosed the 405 — it is NOT a bug.** "Save & apply" POSTs to the local
+  `serve-dashboards.py` `/__save` endpoint. The README link points at **GitHub
+  Pages** (static host), which 405s on POST. Verified live: Pages `POST /__save`
+  → 405, `HEAD` → 404. The save infra (`do_HEAD`/`OPTIONS`/`POST` + client probe)
+  has been on `main` since #65/#81; the deployed `dashboard.html` is byte-identical
+  to `main` (not stale code). So Matt's "I thought we merged it" was **correct**.
+- **Reverted a stray uncommitted `.claude/settings.json`** — test residue from
+  clicking the button (empty `allow`, everything→`ask`); not real posture.
+- **Pages already auto-serves `main`** (legacy deploy-from-branch). The real gap:
+  `dashboard.html` had no freshness gate (repo-guide did).
+- **Shipped PR #89 (open + green), no version bump** (dev tool + CI, not shipped
+  to consumers): (A) `serve-dashboards.py` prints a **scannable QR of the
+  forwarded URL** so the dashboard opens on a phone where Save & apply works for
+  real; `qrcode` optional dep + devcontainer install + URL/hint fallback +
+  context-aware security note + stdout flush. (B) **"Verify dashboard.html is
+  fresh"** CI step (`generate-dashboards.py --check`) + **Gate 13** in
+  `audit-gates.sh`. 30/30 gates green, prettier clean.
+
+**Current state / next step:** PR #89 **open + green**, awaiting Matt's merge.
+Phone-apply path = open the **Codespace forwarded URL** (scan the QR), never the
+README/Pages link. Tribunal **T2 still unblocked** (single-seat orchestrator,
+design §B.11; estimate `claude -p` cost first) — unchanged from the prior session.
+
+---
+
+## 2 — 2026-05-25 · Tribunal: ship T1, verify substrate, unblock T2
 
 **Prompt:** "cont" → "cont" → "go / yes" (resume, proceed, then merge #87 + start
 the substrate-verification reconciliation).
@@ -32,18 +66,17 @@ platform fails OPEN on timeout. Updated design doc §B.5.1 → **v3 on main**
 (`c914998`, docs-commit-to-main).
 (3) **Knowledge reconciled** — added an "Advanced JSON output protocol" section to
 `knowledge/claude-code-permissions.md`, bumped ravenclaude-core **v0.22.0 →
-v0.23.0**, regenerated `repo-guide.html`, opened **PR #88** (green).
+v0.23.0**, regenerated `repo-guide.html`, opened **PR #88** (green, since merged).
 
-**Current state / next step:** PR #88 **open + green**, awaiting Matt's merge.
-**T2 is now UNBLOCKED** — next build is the single-seat orchestrator
-(`code-reviewer`-shaped via `claude -p`, ALLOW/DENY only, `shell_readonly` only,
-writes audit trail; design doc §B.11). Worth estimating `claude -p` credit-pool
-cost (open question #4) before T2. Full track status in auto-memory
-`project_2026-05-25_tribunal_track`.
+**Current state / next step:** PR #88 merged (`5087e7e`). **T2 is UNBLOCKED** —
+next build is the single-seat orchestrator (`code-reviewer`-shaped via `claude -p`,
+ALLOW/DENY only, `shell_readonly` only, writes audit trail; design doc §B.11).
+Worth estimating `claude -p` credit-pool cost (open question #4) before T2. Full
+track status in auto-memory `project_2026-05-25_tribunal_track`.
 
 ---
 
-## 2 — 2026-05-24 · Resume build → ship v0.19.0 + description cap
+## 3 — 2026-05-24 · Resume build → ship v0.19.0 + description cap
 
 **Prompt:** "cont" (resume the in-progress build). Two decisions during the turn:
 (a) collapse the posture scale from 5 levels to 3 (Deny/Ask/Allow); (b) do the
@@ -68,23 +101,3 @@ Matt confirmed the dashboard UI looks good. He has unspecified dashboard
 Nothing else outstanding.
 
 ---
-
-## 3 — 2026-05-24 · Running-log request
-
-**Prompt:** "I need a running log of the last 3 prompts and responses so I can
-always pick up my work where I left off. Do not run it through a PR. Just commit
-it to main. It only needs to store the last 3, so when another prompt and
-response happens then delete the oldest one."
-
-**Response:** Created this file (`docs/session-log.md`) as a rolling 3-entry
-continuity log and committed it straight to `main` (no PR). Each new turn
-prepends a pair and drops the oldest beyond 3.
-
-**Current state / next step:** Mid-build on branch
-`feat/ravenclaude-core-per-permission-layers` — the dashboard per-permission /
-per-layer feature (the 8-part plan Matt approved). Schema tooltip rewrite was
-in progress when this request came in. Next: resume the build (schema → generator
-→ translator → hook → regenerate → gates → PR).
-
----
-
