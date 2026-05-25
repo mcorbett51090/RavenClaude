@@ -157,8 +157,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/guard-destructive.sh \"$CLAUDE_TOOL_INPUT\"",
-            "comment": "Block obviously destructive commands that slipped past the deny list."
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/guard-destructive.sh",
+            "comment": "Block obviously destructive commands that slipped past the deny list. Reads the tool call as JSON on stdin; exits 2 to block (exit 1 would not block)."
           }
         ]
       },

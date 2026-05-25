@@ -121,10 +121,19 @@ gate "hook-executable-bit" must_pass "$rc"
 
 echo
 echo "── Gate 5: Behavioral guard-destructive ──────────────────────────────────"
-rc=0; plugins/ravenclaude-core/hooks/guard-destructive.sh "git reset --hard mybranch" >/dev/null 2>&1 || rc=$?
-gate "guard-destructive (--hard ref)" must_fail "$rc"
-rc=0; plugins/ravenclaude-core/hooks/guard-destructive.sh "git reset --soft HEAD~1" >/dev/null 2>&1 || rc=$?
-gate "guard-destructive (--soft HEAD~1)" must_pass "$rc"
+# Canonical invocation: the tool call arrives as JSON on stdin. The hook must
+# exit 2 to BLOCK — Claude Code treats exit 1 (and any other non-zero) as a
+# non-blocking error and runs the command anyway. So we assert exit 2 exactly,
+# not merely "non-zero" — otherwise the gate would pass on a hook that doesn't
+# actually block (the latent bug this migration fixed).
+rc=0; printf '%s' '{"tool_name":"Bash","tool_input":{"command":"git reset --hard mybranch"}}' \
+  | plugins/ravenclaude-core/hooks/guard-destructive.sh >/dev/null 2>&1 || rc=$?
+gate "guard-destructive (--hard ref) blocks" must_fail "$rc"
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "guard-destructive blocks with exit 2 (not 1)" must_pass "$rc_is_2"
+rc=0; printf '%s' '{"tool_name":"Bash","tool_input":{"command":"git reset --soft HEAD~1"}}' \
+  | plugins/ravenclaude-core/hooks/guard-destructive.sh >/dev/null 2>&1 || rc=$?
+gate "guard-destructive (--soft HEAD~1) allows" must_pass "$rc"
 
 echo
 echo "── Gate 6: Behavioral enforce-layout ─────────────────────────────────────"

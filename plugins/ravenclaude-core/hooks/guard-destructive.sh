@@ -2,12 +2,29 @@
 # guard-destructive.sh
 # PreToolUse hook for Bash. Catches obviously destructive commands that
 # slipped past the deny-list (e.g. inside subshells, pipes, here-docs).
-# Exits non-zero to block the command; prints a reason on stderr.
+#
+# Input:  the tool call as JSON on stdin — {"tool_input": {"command": "..."}}
+#         (the canonical Claude Code hook contract). Falls back to $1 for any
+#         legacy registration that still passes the command as a positional arg.
+# Output: exit 2 to BLOCK the command (stderr is fed back to the model).
+#         NOTE: exit 2 is the ONLY blocking code — Claude Code treats exit 1
+#         (and every other non-zero) as a NON-blocking error and runs the
+#         command anyway. See code.claude.com/docs/en/hooks ("Exit 2 ... blocks
+#         the tool call"). This hook previously exited 1 and read $1, neither of
+#         which actually blocked; migrated to stdin-JSON + exit-2 (tribunal T0).
 
 set -euo pipefail
 
-cmd="${1:-}"
-[[ -z "$cmd" ]] && exit 0
+# Prefer stdin JSON (canonical); fall back to the positional arg (legacy).
+cmd=""
+if [ ! -t 0 ]; then
+  payload="$(cat)"
+  if [ -n "$payload" ]; then
+    cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
+  fi
+fi
+[ -z "$cmd" ] && cmd="${1:-}"
+[ -z "$cmd" ] && exit 0
 
 # Patterns we refuse outright. The settings.json deny-list catches the
 # top-level form; this catches them when nested.
@@ -31,7 +48,7 @@ for pat in "${deny_patterns[@]}"; do
     echo "[guard-destructive] BLOCKED: command matches destructive pattern: $pat" >&2
     echo "[guard-destructive] cmd: $cmd" >&2
     echo "[guard-destructive] If you really need this, run it yourself with explicit confirmation." >&2
-    exit 1
+    exit 2   # 2 blocks the tool call; 1 would NOT (non-blocking error)
   fi
 done
 
