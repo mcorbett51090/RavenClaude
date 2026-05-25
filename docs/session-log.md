@@ -10,7 +10,32 @@ and is always findable regardless of which branch work is happening on.
 
 ---
 
-## 1 — 2026-05-24 · Resume build → ship v0.19.0 + description cap
+## 1 — 2026-05-25 · Resume tribunal track → open PR #87 for T1
+
+**Prompt:** "cont" (resume; then "cont" again to proceed).
+
+**Response:** Oriented from a cold context — this session log was stale (covered
+v0.19.0; the tribunal track had advanced two releases past it). Reconstructed
+state from git + `docs/tribunal-review-feature-design.md`: **T0** merged (PR #84,
+v0.21.0: guard-destructive fix + concern catalog); **T1** (read-only "Command
+review (the Thing)" preview UI, **v0.22.0**) was committed + pushed on branch
+`feat/ravenclaude-core-tribunal-t1` but had **no PR**. Verified the branch green
+(JSON valid, hooks parse, dashboard regen → no diff so it's fresh, `prettier
+--check .` exit 0; versions coherent at 0.22.0 in plugin.json + marketplace.json),
+then opened **PR #87**. T1 is intentionally inert — a "Preview" panel + disabled
+per-category toggles, no orchestrator, no behavior change.
+
+**Current state / next step:** **PR #87 open**, CI running (layout gate passed,
+manifests pending). After it merges: **T2 (single-seat orchestrator) is BLOCKED**
+on the §B.5.1 hook-API substrate verification — the `permissionDecision` /
+`updatedInput` claims contradict the repo's own
+`knowledge/claude-code-permissions.md` and must be reconciled in **one standalone
+PR** before any T2 code lands. That verification is the real next task, not
+building T2.
+
+---
+
+## 2 — 2026-05-24 · Resume build → ship v0.19.0 + description cap
 
 **Prompt:** "cont" (resume the in-progress build). Two decisions during the turn:
 (a) collapse the posture scale from 5 levels to 3 (Deny/Ask/Allow); (b) do the
@@ -36,7 +61,7 @@ Nothing else outstanding.
 
 ---
 
-## 2 — 2026-05-24 · Running-log request
+## 3 — 2026-05-24 · Running-log request
 
 **Prompt:** "I need a running log of the last 3 prompts and responses so I can
 always pick up my work where I left off. Do not run it through a PR. Just commit
@@ -55,18 +80,3 @@ in progress when this request came in. Next: resume the build (schema → genera
 
 ---
 
-## 3 — 2026-05-24 · "Go and then open a PR"
-
-**Prompt:** "Go and then open a PR"
-
-**Response:** Approved the 8-part dashboard plan. Created branch
-`feat/ravenclaude-core-per-permission-layers`, set up a 9-item task list, and
-explored the generator (`scripts/generate-dashboards.py`), schema
-(`plugins/ravenclaude-core/dashboard-schema.json`), and translator
-(`apply-comfort-posture.py`). Found that per-permission controls already exist in
-the generator but were orphaned in v5, and all 112 permission tooltips already
-exist. Began implementation.
-
-**Current state / next step:** Building parts A–H; will open a PR when green.
-
----
