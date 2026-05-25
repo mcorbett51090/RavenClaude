@@ -199,8 +199,40 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
     return _SETTINGS_TAB_TEMPLATE.format(
         preset_buttons="".join(preset_buttons),
         design_checkins=design_checkins_html,
+        thing_preview=_render_thing_preview(),
         category_groups="".join(group_html_parts),
         security_deny=security_deny_html,
+    )
+
+
+def _render_thing_preview() -> str:
+    """Render the 'Command review (the Thing)' PREVIEW panel (tribunal T1).
+
+    Read-only by design: the orchestrator that would actually convene the
+    review panel does not exist yet (that is a later phase). This panel + the
+    disabled per-category toggles preview the placement and explain the
+    upcoming feature honestly — it is labeled 'Preview' and says plainly that
+    it is not active. No state, no serialization, no claim that it works.
+    """
+    return (
+        '<div class="thing-preview">'
+        '<div class="thing-preview-head">'
+        '<h3>&#9878; Command review <span class="thing-aka">(the Thing)</span>'
+        '<span class="preview-pill">Preview</span></h3>'
+        "</div>"
+        "<p>Coming in a later release: when turned on for a category, commands that would "
+        "otherwise stop to <strong>ask you</strong> get adjudicated by a small panel of reviewer "
+        "agents instead &mdash; a security seat, a correctness seat, and an injection-watch seat, "
+        "with an architect tie-breaker on disagreement. The panel votes <strong>allow / edit / "
+        "deny</strong>; you are only interrupted if it can&rsquo;t decide. Expect roughly "
+        "<strong>10&ndash;25 seconds</strong> per reviewed command, and every verdict is logged.</p>"
+        '<p class="thing-preview-note"><strong>Not active yet.</strong> The toggles on each '
+        "category below are disabled previews; the review engine ships in a later release. It can "
+        "only ever resolve the <em>ask</em> cases &mdash; it never relaxes the Danger Zone floor. "
+        'Design: <a href="../../docs/tribunal-review-feature-design.md" target="_blank" '
+        'rel="noopener">tribunal-review-feature-design.md</a> &middot; the rules it will enforce: '
+        '<a href="knowledge/concerns-catalog.md" target="_blank" rel="noopener">concern catalog</a>.</p>'
+        "</div>"
     )
 
 
@@ -408,8 +440,29 @@ def _render_category_card(name: str, schema: dict) -> str:
         + local_row
         + project_row
         + _render_pattern_overrides(name)
+        + _render_thing_toggle(name)
         + "</div>"
         f"</details>"
+    )
+
+
+def _render_thing_toggle(name: str) -> str:
+    """Render the disabled per-category 'Command review' preview toggle (T1).
+
+    Intentionally disabled: there is no orchestrator yet, so a working toggle
+    would be a button that lies. The disabled state + 'Preview' pill make the
+    'coming soon' status legible at the point the eventual control will live.
+    """
+    return (
+        '<div class="cat-thing-row">'
+        '<span class="cat-thing-label">&#9878; Command review <span class="thing-aka">(the Thing)</span></span>'
+        '<label class="dc-switch thing-switch" '
+        f'title="Preview — command review for {html.escape(name)} ships in a later release; not active yet.">'
+        '<input type="checkbox" disabled aria-disabled="true">'
+        '<span class="dc-track"><span class="dc-thumb"></span></span>'
+        "</label>"
+        '<span class="preview-pill">Preview</span>'
+        "</div>"
     )
 
 
@@ -677,6 +730,54 @@ body {
 .dc-switch input:checked + .dc-track .dc-thumb { transform: translateX(20px); background: var(--bg); }
 .dc-switch input:focus-visible + .dc-track { outline: 2px solid var(--accent); outline-offset: 2px; }
 .dc-state { margin: 10px 0 0 0; font-weight: 600; font-size: 12.5px; color: var(--text); }
+/* Command review (the Thing) — T1 preview panel + disabled per-category toggle. */
+.thing-preview {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--warn);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.thing-preview-head h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.thing-preview p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.thing-preview p:last-child { margin-bottom: 0; }
+.thing-preview-note { color: var(--text) !important; }
+.thing-preview a { color: var(--accent); }
+.thing-aka { color: var(--muted); font-weight: 400; }
+.preview-pill {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--bg);
+  background: var(--warn);
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+.cat-thing-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+.cat-thing-label { font-size: 13px; color: var(--muted); }
+.dc-switch.thing-switch { cursor: not-allowed; opacity: 0.55; }
+.dc-switch.thing-switch input { cursor: not-allowed; }
 /* The "★ Recommended" preset gets a stronger visual to mark it as primary */
 .preset-btn.preset-recommended {
   background: var(--accent);
@@ -1607,6 +1708,7 @@ _SETTINGS_TAB_TEMPLATE = """
     </div>
 
     {design_checkins}
+    {thing_preview}
     {category_groups}
     {security_deny}
   </div>
