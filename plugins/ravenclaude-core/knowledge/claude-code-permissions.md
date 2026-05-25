@@ -1,6 +1,6 @@
 # Claude Code permissions — the load-bearing model
 
-> **Last reviewed:** 2026-05-22 against the Anthropic Claude Code documentation site at code.claude.com (permissions, permission-modes, settings, tools-reference pages) AND the canonical GitHub Security Advisories at `github.com/anthropics/claude-code/security/advisories`. **Refresh when:** Anthropic ships a new permission mode, adds documented prompt-verbosity controls, changes the cross-layer merge rule, or publishes a new security advisory affecting the permission model. Companion to [`../skills/permission-hygiene/SKILL.md`](../skills/permission-hygiene/SKILL.md).
+> **Last reviewed:** 2026-05-25 against the Anthropic Claude Code documentation site at code.claude.com (permissions, permission-modes, settings, tools-reference, **hooks, hooks-guide, and agent-sdk/hooks** pages) AND the canonical GitHub Security Advisories at `github.com/anthropics/claude-code/security/advisories`. The 2026-05-25 pass added the **"Advanced JSON output protocol"** section below (PreToolUse `hookSpecificOutput` — `permissionDecision`, `updatedInput`, hook types, bypass interaction). **Refresh when:** Anthropic ships a new permission mode, adds documented prompt-verbosity controls, changes the cross-layer merge rule, changes the hook output schema, or publishes a new security advisory affecting the permission model. Companion to [`../skills/permission-hygiene/SKILL.md`](../skills/permission-hygiene/SKILL.md).
 
 This document is the long-form "why these patterns" reference behind the [`permission-hygiene`](../skills/permission-hygiene/SKILL.md) skill. The skill tells you what to do; this file tells you what the model is and where the surprises live.
 
@@ -180,12 +180,67 @@ The hook reads the full command as JSON on **stdin** (`{tool_name, tool_input:{c
 
 The trap: `exit 1` is the conventional Unix failure code, so a policy hook that "fails" with `exit 1` looks like it blocked but doesn't. A hook meant to enforce a policy MUST `exit 2`. (Verified against [code.claude.com/docs/en/hooks](https://code.claude.com/docs/en/hooks), 2026-05-25: *"only exit code 2 blocks the action. Claude Code treats exit code 1 as a non-blocking error and proceeds."*) This composes — multiple hooks chain. RavenClaude's [`hooks/guard-destructive.sh`](../hooks/guard-destructive.sh) reads stdin JSON and exits 2 to block; it is the in-repo example.
 
+## Advanced JSON output protocol (the richer PreToolUse lever)
+
+> Verified 2026-05-25 against [hooks](https://code.claude.com/docs/en/hooks), [hooks-guide](https://code.claude.com/docs/en/hooks-guide), and [agent-sdk/hooks](https://code.claude.com/docs/en/agent-sdk/hooks). This is the mechanism behind the planned **command-review tribunal** (`docs/tribunal-review-feature-design.md`).
+
+The exit-code protocol above is the simple lever (block / allow / non-blocking-error). A `PreToolUse` hook can instead emit a **JSON `hookSpecificOutput` object on stdout** for richer control. **You pick one protocol per hook — not both:** Claude Code reads JSON **only on exit 0**; if the hook exits 2, any JSON is ignored and the call is blocked by the exit code. (This is why the exit-code table above says "allow … *unless the hook emits a `hookSpecificOutput.permissionDecision` JSON saying otherwise*" — the two protocols coexist, they don't contradict.)
+
+The shape, for a `PreToolUse` hook:
+
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "allow",
+    "permissionDecisionReason": "<string shown to the model>",
+    "updatedInput": { "command": "<rewritten command>" }
+  }
+}
+```
+
+### `permissionDecision` values
+
+| Value | Effect |
+| --- | --- |
+| `"allow"` | Skip the interactive permission prompt. **Does NOT override settings `deny`/`ask` rules** — see the asymmetry note below. |
+| `"deny"` | Cancel the tool call; `permissionDecisionReason` is fed back to the model so it re-plans. |
+| `"ask"` | Show the normal interactive permission prompt to the user. |
+| `"defer"` | **Headless-only** (`-p` / non-interactive mode). Exits with the tool call *preserved* so an Agent SDK wrapper can collect input and resume. Not usable in an interactive session. |
+
+When multiple hooks (or hooks + permission rules) apply, priority is **`deny` > `defer` > `ask` > `allow`**. A single `deny` from any hook blocks the call regardless of what the others return.
+
+### `updatedInput` — rewriting a tool call before it runs
+
+A `PreToolUse` hook **can rewrite the tool's input** by returning `updatedInput` inside `hookSpecificOutput`. The documented example redirects a `Write` to a sandbox path; the same lever can rewrite a `Bash` `command`. Rules that bite:
+
+- `updatedInput` only takes effect with `permissionDecision: "allow"` (auto-approve the rewrite) or `"ask"` (show the rewritten form to the user). With `"defer"` it is **ignored**.
+- It must be **inside `hookSpecificOutput`**, not at the top level, and `hookEventName` must be present.
+- Always return a **new object**, never mutate the original `tool_input`.
+- When multiple parallel hooks each return `updatedInput` for the same tool, **the last to finish wins** (non-deterministic order) — so don't have two hooks rewrite the same call. (This is the design rationale for the tribunal's *single* orchestrator hook doing the aggregation internally.)
+
+### The two asymmetries that make this safe
+
+1. **A hook `deny` beats permission-mode bypass.** *"PreToolUse hooks fire before any permission-mode check. A hook that returns `permissionDecision: "deny"` blocks the tool even in `bypassPermissions` mode or with `--dangerously-skip-permissions`."* A policy hook is a true gate users cannot disable by switching modes.
+2. **A hook `allow` does NOT beat a settings `deny`.** *"Returning `"allow"` skips the interactive prompt but does not override permission rules. If a deny rule matches the tool call, the call is blocked even when your hook returns `"allow"`."* Hooks can **tighten** restrictions but never **loosen** them past what the `permissions.deny` rules allow. Practical consequence: a hook (or a multi-agent reviewer built on one) **cannot relax the `security_deny` floor** — an `allow` verdict is still subordinate to settings deny rules.
+
+### Hook handler types
+
+Beyond `type: "command"` (shell script), `PreToolUse` accepts four more: `type: "http"` (POST to a URL), `type: "mcp_tool"` (call an MCP tool), `type: "prompt"` (single-turn LLM judge), and `type: "agent"` (multi-turn subagent — **experimental, may change**).
+
+### Timeouts fail OPEN
+
+Default timeouts: **600 s** for `command` / `http` / `mcp_tool`, **30 s** for `prompt`, **60 s** for `agent` (configurable per hook). On timeout or connection failure, Claude Code treats the hook as a **non-blocking error and the tool proceeds** — i.e. **fail-open**. A hook that must fail *closed* (block on its own error) has to enforce an internal deadline shorter than its `timeout` and emit an explicit `deny`/`ask` itself; the platform will not block for it.
+
 ## Citations
 
 - [Configure permissions — code.claude.com/docs/en/permissions](https://code.claude.com/docs/en/permissions) — primary source for rule syntax, precedence, Bash argument-fragility warning, hook integration.
 - [Choose a permission mode — code.claude.com/docs/en/permission-modes](https://code.claude.com/docs/en/permission-modes) — primary source for the six modes, auto-mode drop-broad-rules behavior, protected paths.
 - [Claude Code settings — code.claude.com/docs/en/settings](https://code.claude.com/docs/en/settings) — primary source for settings file layer precedence; confirmed absence of prompt-verbosity controls.
 - [Tools reference — code.claude.com/docs/en/tools-reference](https://code.claude.com/docs/en/tools-reference) — primary source for tool list, Edit-implies-Read, Bash tool behavior.
+- [Hooks reference — code.claude.com/docs/en/hooks](https://code.claude.com/docs/en/hooks) — primary source for exit-code semantics, `hookSpecificOutput` JSON schema, hook handler types, default timeouts.
+- [Hooks guide — code.claude.com/docs/en/hooks-guide](https://code.claude.com/docs/en/hooks-guide) — primary source for the `permissionDecision: "deny"` blocks-under-bypass guarantee and the allow-can't-override-deny asymmetry.
+- [Agent SDK hooks — code.claude.com/docs/en/agent-sdk/hooks](https://code.claude.com/docs/en/agent-sdk/hooks) — primary source for the `updatedInput` "Modify tool input" example, `permissionDecision` value priority, and `defer` headless-only semantics.
 - [GitHub issue #26796 — Bash tool prompts for permission on auto-approved commands](https://github.com/anthropics/claude-code/issues/26796) — confirms a known reliability bug: pre-approved commands sometimes still prompt.
 - [Korny's "Better Claude Code permissions"](https://blog.korny.info/2025/10/10/better-claude-code-permissions) — community guidance; argues hooks > broad rules.
 - Claude Code core `/fewer-permission-prompts` skill body — primary source for the `READONLY_COMMANDS` auto-allow list shape; references `src/tools/BashTool/readOnlyValidation.ts` and `src/utils/shell/readOnlyCommandValidation.ts`.
