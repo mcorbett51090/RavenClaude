@@ -243,6 +243,7 @@ DEFAULT_SECURITY_DENY: list[str] = [
     "Bash(curl * | bash)",
     "Bash(wget * | sh)",
     "Bash(wget * | bash)",
+    "Bash(sudo:*)",
     "Read(.env)",
     "Read(.env.*)",
     "Read(**/*.pem)",

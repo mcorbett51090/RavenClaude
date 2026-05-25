@@ -179,6 +179,7 @@
         "Bash(curl * | bash)",
         "Bash(wget * | sh)",
         "Bash(wget * | bash)",
+        "Bash(sudo:*)",
         "Read(.env)",
         "Read(.env.*)",
         "Read(**/*.pem)",
@@ -186,6 +187,15 @@
         "Read(**/credentials*)",
         "Read(**/secrets*)"
       ]
+    },
+    "design_checkins": {
+      "type": "boolean",
+      "default": true,
+      "title": "Design check-ins",
+      "description": "Separate from the permission levels below. When ON, Claude pauses to confirm structural / architectural / design decisions (Keep / Update / Deny) before implementing — at ANY permission level, including Allow. When OFF (nonstop), Claude proceeds through those decisions using its best judgment and reports them afterward. The permission scale governs whether tool actions need a click; this governs whether design judgment is surfaced first. Honored by the Team Lead, which reads this flag at session start — it is a behavioral commitment, not a machine-enforced lock.",
+      "x-widget": "toggle",
+      "x-on-label": "On — pause for design / architecture decisions",
+      "x-off-label": "Off — nonstop; decide and report afterward"
     },
     "_category_value_shape": {
       "description": "Documentation-only key (ignored by tooling). Each `categories.<name>` value can be (a) a plain string (v3/v4 legacy: single level for all layers), (b) an object `{ default, overrides }` (v4 per-pattern), or (c) an object `{ user, local, project }` with an optional `overrides` map (v5 per-layer, the canonical shape produced by the dashboard). Resolution: each layer independently resolves patterns (per-permission overrides win over the category-wide layer value); Claude Code merges user+local+project at runtime as deny > ask > allow.",
