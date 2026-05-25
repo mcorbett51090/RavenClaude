@@ -170,7 +170,15 @@ When a rule shape can't reliably express your intent, switch to a PreToolUse hoo
 }
 ```
 
-The hook reads the full command from stdin/env, decides, prints to stderr, and exits 0 (allow) or non-zero (deny with the stderr text shown to the user). This composes — multiple hooks chain. RavenClaude's [`hooks/guard-destructive.sh`](../hooks/guard-destructive.sh) is the in-repo example.
+The hook reads the full command as JSON on **stdin** (`{tool_name, tool_input:{command}, ...}`), decides, and prints any reason to stderr. **Exit codes are the load-bearing detail and the easy thing to get wrong:**
+
+| Exit code | Effect on a `PreToolUse` hook |
+| --- | --- |
+| `0` | Allow — the command proceeds (unless the hook emits a `hookSpecificOutput.permissionDecision` JSON saying otherwise). |
+| **`2`** | **Block** — the command is refused and the stderr text is fed back to the model. **This is the only blocking exit code.** |
+| `1` (or any other non-zero) | **Non-blocking error** — a notice is shown but **the command still runs.** |
+
+The trap: `exit 1` is the conventional Unix failure code, so a policy hook that "fails" with `exit 1` looks like it blocked but doesn't. A hook meant to enforce a policy MUST `exit 2`. (Verified against [code.claude.com/docs/en/hooks](https://code.claude.com/docs/en/hooks), 2026-05-25: *"only exit code 2 blocks the action. Claude Code treats exit code 1 as a non-blocking error and proceeds."*) This composes — multiple hooks chain. RavenClaude's [`hooks/guard-destructive.sh`](../hooks/guard-destructive.sh) reads stdin JSON and exits 2 to block; it is the in-repo example.
 
 ## Citations
 
