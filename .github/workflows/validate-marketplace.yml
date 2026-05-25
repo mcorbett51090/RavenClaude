@@ -237,6 +237,19 @@ jobs:
         # step fails. See scripts/check-guide-fresh.sh for the diff logic.
         run: scripts/check-guide-fresh.sh
 
+      - name: Verify dashboard.html is fresh
+        # If a contributor changed dashboard-schema.json, pattern-explanations.json,
+        # apply-comfort-posture.py, or generate-dashboards.py without re-running
+        # `python3 scripts/generate-dashboards.py`, the committed dashboard.html
+        # diverges from regenerated content. GitHub Pages serves main directly,
+        # so a stale committed dashboard.html is a stale PUBLISHED dashboard.
+        # The generator embeds no timestamps, so --check is a clean exact match.
+        run: |
+          if ! python3 scripts/generate-dashboards.py --check; then
+            echo "::error::dashboard.html is stale. Run: python3 scripts/generate-dashboards.py and commit the result." >&2
+            exit 1
+          fi
+
       - name: Cross-check version pins (marketplace.json vs plugin.json)
         run: |
           set -euo pipefail

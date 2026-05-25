@@ -270,6 +270,20 @@ rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (clean tree)" must_pass "$rc"
 
 echo
+echo "── Gate 13: dashboard.html freshness ──────────────────────────────────────"
+# must_fail: a stale committed dashboard.html (source changed but generator not
+# re-run) must be detected. Simulate by mutating the committed output so it no
+# longer matches what the generator would emit.
+backup plugins/ravenclaude-core/dashboard.html
+printf '\n<!-- AUDIT FIXTURE — should diff against regenerated output -->\n' >> plugins/ravenclaude-core/dashboard.html
+rc=0; python3 scripts/generate-dashboards.py --check >/dev/null 2>&1 || rc=$?
+gate "dashboard freshness (stale committed dashboard.html)" must_fail "$rc"
+cp -p "$TMP/plugins_ravenclaude-core_dashboard.html.bak" plugins/ravenclaude-core/dashboard.html
+# must_pass: pristine tree, the check should pass.
+rc=0; python3 scripts/generate-dashboards.py --check >/dev/null 2>&1 || rc=$?
+gate "dashboard freshness (clean tree)" must_pass "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 if [[ "$FAIL" -gt 0 ]]; then
