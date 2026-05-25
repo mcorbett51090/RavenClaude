@@ -58,4 +58,15 @@ else
   log "          libxrender1 libcairo2"
 fi
 
+# ── qrcode (optional) for serve-dashboards.py phone QR ──────────────
+# serve-dashboards.py prints a scannable QR of the forwarded URL so the
+# dashboard can be opened (and "Save & apply" run) from a phone. The lib is
+# optional — the server degrades to printing the URL + an install hint without
+# it — but installing here makes the QR appear by default. ASCII renderer only,
+# no Pillow/image deps. Non-fatal if pip is unavailable or offline.
+log "Installing qrcode (optional — phone QR for serve-dashboards.py)..."
+python3 -m pip install --quiet --disable-pip-version-check qrcode >/dev/null 2>&1 \
+  && log "  done" \
+  || log "  SKIP: qrcode not installed (serve-dashboards.py will print the URL + a hint instead)."
+
 log "Setup complete. Available tools: claude, gh, node."

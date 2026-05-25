@@ -9,7 +9,10 @@ step.
 
 Designed for:
   - Local development in a GitHub Codespace (port-forwarded URL is HTTPS,
-    which means File System Access API + clipboard work natively)
+    which means File System Access API + clipboard work natively). On start
+    we print a QR code of the forwarded URL so you can open the dashboard —
+    and run "Save & apply" for real — from your phone. (The README/Pages link
+    is a static host and CANNOT apply; it returns 405 on the save POST.)
   - Local development on a developer machine (open http://localhost:PORT/)
 
 NOT designed for:
@@ -163,6 +166,39 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         return {"applied": True, "apply_summary": summary[:1000]}
 
 
+def _lan_ip() -> str | None:
+    """Best-effort LAN IP for building a phone-reachable URL when bound to
+    0.0.0.0. No packets are sent — connecting a UDP socket just selects the
+    outbound route so we can read the local address. Returns None if it can't
+    be determined (no route, offline, etc.)."""
+    import socket
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+    except OSError:
+        return None
+    finally:
+        s.close()
+
+
+def _print_qr(url: str) -> bool:
+    """Print a scannable QR code of `url` to the terminal so it can be opened
+    on a phone. Returns False if the optional `qrcode` library isn't installed
+    (the caller then prints an install hint). ASCII output only — no Pillow /
+    image dependency."""
+    try:
+        import qrcode  # optional; pure-Python for the ASCII renderer
+    except ImportError:
+        return False
+    qr = qrcode.QRCode(border=2)
+    qr.add_data(url)
+    qr.make(fit=True)
+    qr.print_ascii(invert=True)
+    return True
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--port", type=int, default=8000)
@@ -174,13 +210,47 @@ def main() -> int:
 
     codespace = os.environ.get("CODESPACE_NAME")
     domain = os.environ.get("GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN", "app.github.dev")
+    dash_path = "/plugins/ravenclaude-core/dashboard.html"
     print(f"serve-dashboards: serving {REPO_ROOT} at http://{args.bind}:{args.port}/")
     print(f"  POST /__save  - writes a whitelisted file under .ravenclaude/")
     print(f"  allow-list   - {sorted(ALLOWED_TARGETS)}")
+
+    # Work out a phone-reachable URL (if any). localhost is NOT reachable from a
+    # phone, so it gets no QR. The QR lets you open the live dashboard on a phone
+    # — where "Save & apply" actually works, because it POSTs back to THIS server
+    # (unlike the static README/Pages link, which 405s on the save POST).
+    phone_url = None
+    security_note = None
     if codespace:
-        print(f"\n  Codespace forwarded URL:")
-        print(f"  https://{codespace}-{args.port}.{domain}/plugins/ravenclaude-core/dashboard.html")
+        phone_url = f"https://{codespace}-{args.port}.{domain}{dash_path}"
+        print("\n  Codespace forwarded URL (open THIS on your phone — not the README/Pages link):")
+        print(f"  {phone_url}")
+        security_note = (
+            "  Security: keep this forwarded port PRIVATE (the default) and stay signed\n"
+            "  into GitHub on the phone — /__save writes files and runs the translator."
+        )
+    elif args.bind == "0.0.0.0":
+        lan_ip = _lan_ip()
+        if lan_ip:
+            phone_url = f"http://{lan_ip}:{args.port}{dash_path}"
+            print("\n  LAN URL (reachable from a phone on the SAME Wi-Fi):")
+            print(f"  {phone_url}")
+            security_note = (
+                "  Security: bound to 0.0.0.0 — anyone on this network can reach /__save\n"
+                "  (no auth). Use only on a trusted network."
+            )
+
+    if phone_url:
+        print()
+        if _print_qr(phone_url):
+            print("  ^ scan with your phone camera to open the dashboard there.")
+        else:
+            print("  (For a scannable QR code here, run: pip install qrcode)")
+        if security_note:
+            print(security_note)
+
     print("\n  Ctrl+C to stop.")
+    sys.stdout.flush()  # ensure the banner (incl. the QR) appears even when piped/redirected
     try:
         server.serve_forever()
     except KeyboardInterrupt:
