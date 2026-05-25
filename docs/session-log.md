@@ -10,7 +10,40 @@ and is always findable regardless of which branch work is happening on.
 
 ---
 
-## 1 — 2026-05-25 · "405 on Save & apply from my phone" → diagnose + ship PR #89
+## 1 — 2026-05-25 · Tribunal T2 — ship the single-seat command-review orchestrator
+
+**Prompt:** "let's implement the command review (the Thing) now" + side
+questions (is the comfort posture applied? why did a command prompt me? design
+check-ins vs command review? `--bare` finding).
+
+**Response:** Built tribunal **T2 end-to-end** on `feat/ravenclaude-core-tribunal-t2`
+(approved scope: substrate **+** live dashboard toggle). New files:
+`hooks/thing-orchestrator.sh` (Lawspeaker — fast-grep short-circuit when no
+toggle, pre-LLM injection/secret screen, single-seat convene, Sága-log write,
+fail-closed verdicts), `scripts/thing-decision.py` (classifies via the EMISSIONS
+table — one source of truth — + reads the per-category `thing:` toggle),
+`scripts/thing-seat.sh` (lone code-reviewer seat via `claude -p`, with a
+`THING_SEAT_MOCK_VERDICT` test hook so CI never calls a live model),
+`skills/thing/SKILL.md`, `templates/thing.yaml`. Dashboard: the `shell_readonly`
+Command-review toggle is now **live** (writes `thing: on`; others stay Preview) —
+generator + JS + regenerated `dashboard.html`. Gate-audit **Gate 14** added.
+Bumped **v0.23.0 → v0.24.0** (+1 skill → 21), regenerated repo-guide,
+**35/35 gates green**, prettier clean. **Real finding:** `claude -p --bare` (per
+the design) fails under subscription/OAuth — needs `ANTHROPIC_API_KEY`; the seat
+defaults to plain `claude -p` from a scratch dir (`--bare` opt-in via
+`THING_SEAT_BARE=1`). Verified the live seat: `ls -la`→allow, injection→deny.
+
+**Current state / next step:** PR being opened off `feat/ravenclaude-core-tribunal-t2`.
+Did **not** sweep in pre-existing uncommitted local changes (`.gitignore` +
+`.claude/settings.json` posture-emptying + applied marker) — flagged to Matt as a
+separate decision; restored `settings.json` to `main + hook` only. Cost is real
+(~$0.05–0.10/reviewed command), so `shell_readonly` review is a validation
+switch, off by default. Next tribunal phase = **T3** (three-seat panel + Thor +
+EDIT verdicts; design §B.11).
+
+---
+
+## 2 — 2026-05-25 · "405 on Save & apply from my phone" → diagnose + ship PR #89
 
 **Prompt:** "cont" → (clarified) "we were fixing a 405 on the save & apply
 button; double-check the status, I thought we merged it" → "go" → "keep live
@@ -39,12 +72,11 @@ possible" → "go".
 
 **Current state / next step:** PR #89 **open + green**, awaiting Matt's merge.
 Phone-apply path = open the **Codespace forwarded URL** (scan the QR), never the
-README/Pages link. Tribunal **T2 still unblocked** (single-seat orchestrator,
-design §B.11; estimate `claude -p` cost first) — unchanged from the prior session.
+README/Pages link.
 
 ---
 
-## 2 — 2026-05-25 · Tribunal: ship T1, verify substrate, unblock T2
+## 3 — 2026-05-25 · Tribunal: ship T1, verify substrate, unblock T2
 
 **Prompt:** "cont" → "cont" → "go / yes" (resume, proceed, then merge #87 + start
 the substrate-verification reconciliation).
@@ -69,35 +101,7 @@ platform fails OPEN on timeout. Updated design doc §B.5.1 → **v3 on main**
 v0.23.0**, regenerated `repo-guide.html`, opened **PR #88** (green, since merged).
 
 **Current state / next step:** PR #88 merged (`5087e7e`). **T2 is UNBLOCKED** —
-next build is the single-seat orchestrator (`code-reviewer`-shaped via `claude -p`,
-ALLOW/DENY only, `shell_readonly` only, writes audit trail; design doc §B.11).
-Worth estimating `claude -p` credit-pool cost (open question #4) before T2. Full
-track status in auto-memory `project_2026-05-25_tribunal_track`.
-
----
-
-## 3 — 2026-05-24 · Resume build → ship v0.19.0 + description cap
-
-**Prompt:** "cont" (resume the in-progress build). Two decisions during the turn:
-(a) collapse the posture scale from 5 levels to 3 (Deny/Ask/Allow); (b) do the
-per-permission UI + the 3-level cleanup together in one PR. Mid-turn add: "make
-it a hard rule that marketplace descriptions can only have 1024 characters."
-
-**Response:** Finished the per-permission/per-layer feature and the 5→3 level
-collapse end-to-end — schema, translator (old level names still accepted for
-back-compat; emits identically), dashboard generator UI+JS (per-permission
-User/Local/Project selectors → v5 `overrides:` map), set-posture skill,
-pattern-explanations, README, live `comfort-posture.yaml`, plan-doc changelog.
-Bumped ravenclaude-core to **v0.19.0**, regenerated dashboard.html + repo-guide,
-**27/27 gates green**, opened **PR #82**. Then added the 1024-char description
-cap as Check 3 in `check-marketplace-claims.py` + a Gate 12 fixture, trimmed all
-8 over-cap descriptions, and folded it into PR #82 (same file as the version
-bump). Updated PR conventions in `AGENTS.md` (docs-only changes commit straight
-to main — which is why this log entry is a direct-to-main commit).
-
-**Current state / next step:** **MERGED** as v0.19.0 (PR #82, squash `e7f703b`);
-Matt confirmed the dashboard UI looks good. He has unspecified dashboard
-**improvement ideas parked for a later session** — ask him to enumerate when raised.
-Nothing else outstanding.
+next build is the single-seat orchestrator (now shipped, see entry 1). Full track
+status in auto-memory `project_2026-05-25_tribunal_track`.
 
 ---

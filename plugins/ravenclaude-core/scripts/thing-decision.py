@@ -1,0 +1,206 @@
+#!/usr/bin/env python3
+"""thing-decision.py — the routing brain of the command-review tribunal ("the Thing").
+
+Given a shell command, this answers three questions the orchestrator hook
+(`thing-orchestrator.sh`, the "Lawspeaker") needs before it spends an LLM call:
+
+  1. Which comfort-posture category does the command belong to? (reuses the
+     EMISSIONS table in apply-comfort-posture.py — the ONE source of truth, so
+     category matching never drifts from the permission translator).
+  2. Is command review toggled ON for that category? (reads the per-category
+     `thing:` field in .ravenclaude/comfort-posture.yaml — written by the
+     dashboard's Command-review toggle).
+  3. What seat config applies? (reads the optional .ravenclaude/thing.yaml;
+     falls back to built-in defaults when absent).
+
+It prints ONE JSON object to stdout and always exits 0 (so the bash orchestrator
+can `jq` the result without worrying about exit codes). A malformed thing.yaml
+is reported via a `config_error` field — the orchestrator fails closed (ask) on
+that, never a silent skip.
+
+T2 scope: single category supported end-to-end (`shell_readonly`), single seat.
+Classification covers all categories so T3+ only flips toggles, no code change.
+
+Usage:
+    thing-decision.py --root <project-dir> classify "<command string>"
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from pathlib import Path
+
+# ── Reuse the EMISSIONS table from apply-comfort-posture.py (single source of
+#    truth for category ⇄ command-pattern mapping). Same importlib trick the
+#    dashboard generator uses, so the two never drift. ────────────────────────
+import importlib.util
+
+_HERE = Path(__file__).resolve().parent
+_APPLY = _HERE / "apply-comfort-posture.py"
+
+
+def _load_emissions() -> dict[str, list[str]]:
+    spec = importlib.util.spec_from_file_location("_apply_comfort_posture", _APPLY)
+    if spec is None or spec.loader is None:
+        return {}
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)  # type: ignore[union-attr]
+    return dict(getattr(mod, "EMISSIONS", {}))
+
+
+_BASH_PATTERN_RE = re.compile(r"^Bash\((.+?)(:\*)?\)$")
+
+
+def _command_prefixes() -> list[tuple[str, str, bool]]:
+    """Flatten EMISSIONS into (category, prefix, is_wildcard) for Bash patterns.
+
+    `Bash(ls:*)`      -> ("shell_readonly", "ls", True)   # command starts with "ls"
+    `Bash(pwd)`       -> ("shell_readonly", "pwd", False) # command IS exactly "pwd"
+    """
+    out: list[tuple[str, str, bool]] = []
+    for category, patterns in _load_emissions().items():
+        for pat in patterns:
+            m = _BASH_PATTERN_RE.match(pat)
+            if not m:
+                continue  # non-Bash pattern (Read/Edit/WebFetch/...) — irrelevant here
+            prefix = m.group(1).strip()
+            is_wildcard = m.group(2) is not None
+            out.append((category, prefix, is_wildcard))
+    return out
+
+
+def classify(command: str) -> str | None:
+    """Return the comfort-posture category for a Bash command, or None.
+
+    Longest matching prefix wins (so `git status` beats a bare `git`). A
+    wildcard prefix matches when the command equals it or is followed by a
+    space; an exact prefix (no `:*`) matches only an exact command. The match
+    is on the leading segment of the command so a pipe/chain classifies by its
+    first command (`ls | grep x` -> shell_readonly).
+    """
+    cmd = command.strip()
+    if not cmd:
+        return None
+    # Leading segment only — split on the first shell separator so `ls | grep`
+    # classifies as its first command. Keep it conservative (T2 is low-stakes).
+    lead = re.split(r"\s*(?:\||\|\||&&|;)\s*", cmd, maxsplit=1)[0].strip()
+
+    best_cat: str | None = None
+    best_len = -1
+    for category, prefix, is_wildcard in _command_prefixes():
+        if is_wildcard:
+            matched = lead == prefix or lead.startswith(prefix + " ")
+        else:
+            matched = lead == prefix
+        if matched and len(prefix) > best_len:
+            best_cat, best_len = category, len(prefix)
+    return best_cat
+
+
+# ── Config reading ───────────────────────────────────────────────────────────
+
+
+def _load_yaml(path: Path):
+    """Load a YAML file with pyyaml; raise ValueError on a parse error."""
+    text = path.read_text(encoding="utf-8")
+    try:
+        import yaml  # type: ignore
+
+        return yaml.safe_load(text)
+    except ImportError:
+        # pyyaml is present in the devcontainer + CI; this path only triggers on
+        # a stripped consumer environment. Be honest rather than guess.
+        raise ValueError("pyyaml not available to parse YAML")
+
+
+_TRUTHY = {True, "on", "true", "yes", "1", 1}
+
+
+def thing_enabled_for(posture: dict, category: str | None) -> bool:
+    """Is the per-category `thing:` toggle ON in comfort-posture.yaml?"""
+    if not category:
+        return False
+    cats = (posture or {}).get("categories", {}) or {}
+    cfg = cats.get(category)
+    if isinstance(cfg, dict):
+        val = cfg.get("thing")
+        return val in _TRUTHY or (isinstance(val, str) and val.strip().lower() in {"on", "true", "yes"})
+    return False  # bare-string (legacy) category has no toggle
+
+
+_DEFAULT_SEAT = {"agent": "code-reviewer", "model": "haiku"}
+_DEFAULT_TIMEOUT = 18
+_DEFAULT_AUDIT_DIR = ".ravenclaude/runs/thing"
+
+
+def resolve_seat_config(root: Path) -> tuple[dict, str | None]:
+    """Return (config, error). config always has seat/internal_timeout/audit_dir.
+
+    thing.yaml is OPTIONAL — absent means defaults. A PRESENT-but-malformed
+    thing.yaml returns an error so the orchestrator can fail closed (ask).
+    """
+    cfg = {
+        "seat": dict(_DEFAULT_SEAT),
+        "internal_timeout_seconds": _DEFAULT_TIMEOUT,
+        "audit_dir": _DEFAULT_AUDIT_DIR,
+    }
+    path = root / ".ravenclaude" / "thing.yaml"
+    if not path.exists():
+        return cfg, None
+    try:
+        data = _load_yaml(path) or {}
+        if not isinstance(data, dict):
+            return cfg, "thing.yaml: top level is not a mapping"
+        seat = data.get("seat")
+        if isinstance(seat, dict):
+            cfg["seat"]["agent"] = seat.get("agent", cfg["seat"]["agent"])
+            cfg["seat"]["model"] = seat.get("model", cfg["seat"]["model"])
+        if isinstance(data.get("internal_timeout_seconds"), int):
+            cfg["internal_timeout_seconds"] = data["internal_timeout_seconds"]
+        audit = data.get("audit")
+        if isinstance(audit, dict) and isinstance(audit.get("dir"), str):
+            cfg["audit_dir"] = audit["dir"]
+        return cfg, None
+    except Exception as exc:  # malformed YAML — fail closed upstream
+        return cfg, f"thing.yaml: {exc}"
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--root", default=".", help="project root (consumer cwd)")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    c = sub.add_parser("classify", help="classify a command + report toggle state")
+    c.add_argument("command", help="the shell command string")
+    args = ap.parse_args()
+
+    root = Path(args.root).resolve()
+    category = classify(args.command)
+
+    result: dict = {"category": category, "thing_enabled": False}
+
+    posture_path = root / ".ravenclaude" / "comfort-posture.yaml"
+    if posture_path.exists():
+        try:
+            posture = _load_yaml(posture_path) or {}
+            result["thing_enabled"] = thing_enabled_for(posture, category)
+        except Exception as exc:
+            # Malformed posture: can't determine the toggle. Fall through to the
+            # settings.json floor (do NOT claim enabled). Report for visibility.
+            result["posture_error"] = f"comfort-posture.yaml: {exc}"
+
+    if result["thing_enabled"]:
+        seat_cfg, seat_err = resolve_seat_config(root)
+        result.update(seat_cfg)
+        if seat_err:
+            result["config_error"] = seat_err
+
+    json.dump(result, sys.stdout)
+    sys.stdout.write("\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

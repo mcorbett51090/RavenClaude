@@ -1,0 +1,39 @@
+# thing.yaml — command-review tribunal ("the Thing") seat config (OPTIONAL).
+#
+# Copy to .ravenclaude/thing.yaml in your project root to tune HOW the tribunal
+# reviews. This file is OPTIONAL: if absent, the built-in defaults below apply.
+#
+# WHERE THE ON/OFF TOGGLE LIVES — NOT HERE. Whether a category is reviewed is the
+# per-category `thing:` field in .ravenclaude/comfort-posture.yaml, set from the
+# dashboard's "Command review" toggle. This file only configures the reviewer.
+#
+# Phase status: T2 ships a SINGLE seat (code-reviewer-shaped) rendering ALLOW or
+# DENY — no command rewriting ("EDIT"), no multi-seat panel yet (those are T3+).
+# Only `shell_readonly` is proven end-to-end in T2.
+
+schema_version: 1
+
+# The single reviewing seat (T2). The multi-seat panel (Forseti/Mímir/Heimdall/
+# Thor) arrives in T3; for now this is the lone "Mímir" correctness seat.
+seat:
+  agent: code-reviewer
+  # Model alias passed to `claude -p --model`. A small fast model is the right
+  # default for a single-shot judge. Use a stronger model if you toggle review
+  # on for higher-stakes categories in T3+.
+  model: haiku
+
+# Hard wall-clock deadline for the seat call, in seconds. MUST stay under the
+# hook's own `timeout` (30 s, set in hooks.json) so the orchestrator can compose
+# a fail-closed "ask" before Claude Code's outer timeout fires (the platform
+# fails OPEN on hook timeout — guarding that is the orchestrator's job).
+internal_timeout_seconds: 18
+
+audit:
+  # Sága log — one JSON file per verdict, written under the consumer project.
+  # Gitignored by default (command lines can contain sensitive paths).
+  dir: .ravenclaude/runs/thing
+
+# AUTH NOTE (discovered 2026-05-25): on a Claude subscription / OAuth login the
+# seat uses plain `claude -p` (the default). `claude -p --bare` is faster and
+# more isolated but REFUSES OAuth — it needs ANTHROPIC_API_KEY. To opt into it,
+# export THING_SEAT_BARE=1 (only works if you have an API key configured).

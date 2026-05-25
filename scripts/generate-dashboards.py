@@ -206,31 +206,33 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
 
 
 def _render_thing_preview() -> str:
-    """Render the 'Command review (the Thing)' PREVIEW panel (tribunal T1).
+    """Render the 'Command review (the Thing)' panel.
 
-    Read-only by design: the orchestrator that would actually convene the
-    review panel does not exist yet (that is a later phase). This panel + the
-    disabled per-category toggles preview the placement and explain the
-    upcoming feature honestly — it is labeled 'Preview' and says plainly that
-    it is not active. No state, no serialization, no claim that it works.
+    Now partly live (tribunal T2): the single-seat orchestrator is wired for the
+    `shell_readonly` category, so that one toggle below is clickable; the rest
+    stay disabled previews until their phase ships. The copy stays honest about
+    exactly what works today (one reviewer, allow/deny) vs. the eventual panel.
     """
     return (
         '<div class="thing-preview">'
         '<div class="thing-preview-head">'
         '<h3>&#9878; Command review <span class="thing-aka">(the Thing)</span>'
-        '<span class="preview-pill">Preview</span></h3>'
+        '<span class="preview-pill">Early access</span></h3>'
         "</div>"
-        "<p>Coming in a later release: when turned on for a category, commands that would "
-        "otherwise stop to <strong>ask you</strong> get adjudicated by a small panel of reviewer "
-        "agents instead &mdash; a security seat, a correctness seat, and an injection-watch seat, "
-        "with an architect tie-breaker on disagreement. The panel votes <strong>allow / edit / "
-        "deny</strong>; you are only interrupted if it can&rsquo;t decide. Expect roughly "
-        "<strong>10&ndash;25 seconds</strong> per reviewed command, and every verdict is logged.</p>"
-        '<p class="thing-preview-note"><strong>Not active yet.</strong> The toggles on each '
-        "category below are disabled previews; the review engine ships in a later release. It can "
-        "only ever resolve the <em>ask</em> cases &mdash; it never relaxes the Danger Zone floor. "
+        "<p>When turned on for a category, commands that would otherwise stop to "
+        "<strong>ask you</strong> get adjudicated by reviewer agents instead &mdash; eventually a "
+        "security seat, a correctness seat, and an injection-watch seat with an architect "
+        "tie-breaker, voting <strong>allow / edit / deny</strong>. You are only interrupted if they "
+        "can&rsquo;t decide, and every verdict is logged. It can only ever resolve the <em>ask</em> "
+        "cases &mdash; it never relaxes the Danger Zone floor.</p>"
+        '<p class="thing-preview-note"><strong>Live now for one category &mdash; '
+        "<code>shell_readonly</code>.</strong> Its toggle below is clickable; the rest stay "
+        "disabled previews. Today a <em>single</em> reviewer votes <strong>allow / deny</strong> "
+        "(the full panel and <em>edit</em> verdicts arrive in later releases). Heads-up: reviewing "
+        "<code>shell_readonly</code> spends roughly <strong>10&ndash;15&nbsp;seconds and credits on "
+        "every read command</strong>, so treat it as a validation switch &mdash; off by default. "
         'Design: <a href="../../docs/tribunal-review-feature-design.md" target="_blank" '
-        'rel="noopener">tribunal-review-feature-design.md</a> &middot; the rules it will enforce: '
+        'rel="noopener">tribunal-review-feature-design.md</a> &middot; the rules it enforces: '
         '<a href="knowledge/concerns-catalog.md" target="_blank" rel="noopener">concern catalog</a>.</p>'
         "</div>"
     )
@@ -446,13 +448,33 @@ def _render_category_card(name: str, schema: dict) -> str:
     )
 
 
-def _render_thing_toggle(name: str) -> str:
-    """Render the disabled per-category 'Command review' preview toggle (T1).
+# Categories whose command-review orchestrator is wired end-to-end, so the
+# toggle is clickable (not a button that lies). T2 ships shell_readonly only.
+THING_LIVE_CATEGORIES = {"shell_readonly"}
 
-    Intentionally disabled: there is no orchestrator yet, so a working toggle
-    would be a button that lies. The disabled state + 'Preview' pill make the
-    'coming soon' status legible at the point the eventual control will live.
+
+def _render_thing_toggle(name: str) -> str:
+    """Render the per-category 'Command review' toggle.
+
+    Clickable for the categories proven end-to-end (T2: shell_readonly) — it
+    writes `thing: on` into the category's YAML; a disabled 'Preview' switch
+    elsewhere keeps the 'coming soon' status legible where the control will live.
     """
+    if name in THING_LIVE_CATEGORIES:
+        return (
+            '<div class="cat-thing-row cat-thing-live">'
+            '<span class="cat-thing-label">&#9878; Command review <span class="thing-aka">(the Thing)</span></span>'
+            '<label class="dc-switch thing-switch-live" '
+            f'title="Route {html.escape(name)} commands through a one-seat reviewer (allow/deny) '
+            'instead of asking you. Costs ~10–15s and credits per command — a validation switch, '
+            'not a daily setting. Off by default.">'
+            f'<input type="checkbox" data-thing-category="{html.escape(name)}" '
+            f'aria-label="Command review for {html.escape(name)}">'
+            '<span class="dc-track"><span class="dc-thumb"></span></span>'
+            "</label>"
+            '<span class="cat-thing-cost">~10–15s &amp; credits / command</span>'
+            "</div>"
+        )
     return (
         '<div class="cat-thing-row">'
         '<span class="cat-thing-label">&#9878; Command review <span class="thing-aka">(the Thing)</span></span>'
@@ -778,6 +800,9 @@ body {
 .cat-thing-label { font-size: 13px; color: var(--muted); }
 .dc-switch.thing-switch { cursor: not-allowed; opacity: 0.55; }
 .dc-switch.thing-switch input { cursor: not-allowed; }
+.dc-switch.thing-switch-live { cursor: pointer; }
+.cat-thing-row.cat-thing-live .cat-thing-label { color: var(--text); }
+.cat-thing-cost { font-size: 11px; color: var(--muted); white-space: nowrap; }
 /* The "★ Recommended" preset gets a stronger visual to mark it as primary */
 .preset-btn.preset-recommended {
   background: var(--accent);
@@ -1831,7 +1856,7 @@ _JS = r"""
     const sch = catProps[k];
     const rec = sch["x-recommended"] || "";
     const localDefault = levelToLayerValue(rec);
-    state.categories[k] = { user: "inherit", local: localDefault, project: "inherit", overrides: {} };
+    state.categories[k] = { user: "inherit", local: localDefault, project: "inherit", overrides: {}, thing: false };
   }
 
   /* Read actual checked radios from DOM to pick up any rendered defaults */
@@ -1873,6 +1898,8 @@ _JS = r"""
               }
               state.categories[k].overrides = restored;
             }
+            /* per-category command-review toggle */
+            if (typeof v.thing === "boolean") state.categories[k].thing = v.thing;
           }
         }
       }
@@ -1931,6 +1958,11 @@ _JS = r"""
     /* Sync security_deny checkboxes */
     document.querySelectorAll(".sec-deny-checkbox").forEach(cb => {
       cb.checked = state.security_deny.includes(cb.value);
+    });
+    /* Sync per-category command-review (the Thing) toggles */
+    document.querySelectorAll('input[type="checkbox"][data-thing-category]').forEach(cb => {
+      const cat = cb.dataset.thingCategory;
+      if (state.categories[cat]) cb.checked = !!state.categories[cat].thing;
     });
     syncDesignCheckins();
   }
@@ -2032,6 +2064,8 @@ _JS = r"""
       lines.push(`    user: ${u}`);
       lines.push(`    local: ${l}`);
       lines.push(`    project: ${p}`);
+      /* Command-review (the Thing) toggle — only emitted when on. */
+      if (cat.thing === true) lines.push(`    thing: on`);
       if (ovKeys.length) {
         lines.push(`    overrides:`);
         for (const pat of ovKeys) {
@@ -2106,6 +2140,16 @@ _JS = r"""
         delete ov[pat];
       }
       updateOverrideCount(cat);
+      flagUnsaved();
+      render();
+    });
+  });
+
+  /* Per-category command-review (the Thing) toggle — writes `thing: on` */
+  document.querySelectorAll('input[type="checkbox"][data-thing-category]').forEach(cb => {
+    cb.addEventListener("change", () => {
+      const cat = cb.dataset.thingCategory;
+      if (state.categories[cat]) state.categories[cat].thing = cb.checked;
       flagUnsaved();
       render();
     });
