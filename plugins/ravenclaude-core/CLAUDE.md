@@ -326,11 +326,16 @@ This closes the failure mode where a user relaxes permissions to move faster and
 
 - `agents/` — 14 specialist agent definitions (now includes `data-engineer`)
 - `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging, agent-quality-rubric, knowledge-file-staleness-sweep, prompt-pattern-library, plugin-release-checklist
-- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn (all registered in `hooks/hooks.json` for plugin-level distribution)
+- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator (all registered in `hooks/hooks.json` for plugin-level distribution)
+- `scripts/` — apply-comfort-posture.py (`/set-posture` translator), thing-decision.py + thing-seat.sh (command-review tribunal — see the `thing` skill)
 - `rules/` — coding-standards, security, git-workflow, agent-collaboration
-- `templates/` — memos, runbooks, design specs, RAID logs, partner-success, plus `agent-ready-repo/` templates used by `/init-agent-ready`
+- `templates/` — memos, runbooks, design specs, RAID logs, partner-success, `agent-ready-repo/` templates used by `/init-agent-ready`, plus `thing.yaml` (command-review seat config)
 - `commands/` — `/init-agent-ready` slash command shipped to consumers
-- `knowledge/` — reference material the Researcher cross-checks
+- `knowledge/` — reference material the Researcher cross-checks (incl. `concerns-catalog.md`, the tribunal constitution)
+
+### Command review (the Thing) — tribunal T2 (added 2026-05-25, v0.24.0)
+
+An opt-in command-review tribunal sits on top of the comfort-posture system: when a category's `thing:` toggle is on (set from the dashboard's Command-review switch, stored in `.ravenclaude/comfort-posture.yaml`), the `thing-orchestrator.sh` PreToolUse(Bash) hook routes that category's commands through a reviewer (T2: a single `code-reviewer`-shaped seat via `claude -p`) that votes ALLOW/DENY, writes a Sága-log audit entry under `.ravenclaude/runs/thing/`, and emits a Claude Code verdict. It fails closed (ask) on its own errors and can never relax the `security_deny` floor. The skill [`skills/thing/SKILL.md`](skills/thing/SKILL.md) is the operating reference; the design is [`docs/tribunal-review-feature-design.md`](../../docs/tribunal-review-feature-design.md) §B.11. T2 ships `shell_readonly` only (lowest-stakes; a validation switch — every read command costs a `claude -p` round-trip). The hook short-circuits with a single `grep` when no category is toggled, so it is a no-op for everyone who hasn't opted in.
 
 **Convention for future plugins:** every plugin under `plugins/` MUST have `.claude-plugin/plugin.json`, `README.md`, and `CLAUDE.md`. It MAY add purpose-specific directories (e.g. `solutions/`, `flows/` in `power-platform`) — declare any non-default component paths in `plugin.json` (the `agents`, `skills`, `commands`, `hooks` fields all accept arrays) and add a `## Layout` section to that plugin's CLAUDE.md explaining the deviation.
 
