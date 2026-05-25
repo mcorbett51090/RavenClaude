@@ -490,6 +490,10 @@
       "what": "wget variant of curl-pipe-bash.",
       "why": "Hard-denied. Same arbitrary-code concern."
     },
+    "Bash(sudo:*)": {
+      "what": "Run a command as the superuser (root) — full administrative privileges over the machine.",
+      "why": "Hard-denied. sudo escalates past every other guardrail: it can install system packages, overwrite system files, change users, and undo the safety floor itself. If a task genuinely needs root, run that one command yourself in a terminal rather than auto-approving it."
+    },
     "Read(.env)": {
       "what": "Read an .env file (environment-variable definitions).",
       "why": "Hard-denied. .env typically holds API keys, DB passwords, and other secrets. If Claude needs an env var, read it via process.env at runtime, not by parsing the file."

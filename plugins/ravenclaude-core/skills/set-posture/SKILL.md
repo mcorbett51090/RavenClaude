@@ -115,7 +115,7 @@ Mechanics:
 
 ## Always-on security deny
 
-`security_deny:` is a top-level list in the posture YAML carrying patterns that are **always denied regardless of category levels**. The default list covers `.env` / `.pem` / `credentials*` reads and the most common destructive shell commands (`rm -rf`, `git push --force`, `git reset --hard`, `curl | sh`). Under schema v5 it is emitted into the **project** layer (the committed, always-present floor).
+`security_deny:` is a top-level list in the posture YAML carrying patterns that are **always denied regardless of category levels**. The default list covers `.env` / `.pem` / `credentials*` reads and the most common destructive shell commands (`rm -rf`, `git push --force`, `git reset --hard`, `curl | sh`, `sudo`). Under schema v5 it is emitted into the **project** layer (the committed, always-present floor).
 
 - Add patterns to tighten your security floor.
 - Remove patterns only if you have a specific reason — these are the marketplace's recommended security baseline.

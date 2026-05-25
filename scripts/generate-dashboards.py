@@ -192,10 +192,43 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
         properties.get("security_deny", {})
     )
 
+    design_checkins_html = _render_design_checkins(
+        properties.get("design_checkins", {})
+    )
+
     return _SETTINGS_TAB_TEMPLATE.format(
         preset_buttons="".join(preset_buttons),
+        design_checkins=design_checkins_html,
         category_groups="".join(group_html_parts),
         security_deny=security_deny_html,
+    )
+
+
+def _render_design_checkins(prop: dict) -> str:
+    """Render the design-check-in toggle (a behavioral flag, NOT a permission).
+
+    This control is deliberately separate from the per-category permission cards:
+    the permission scale governs whether tool *actions* need approval, while this
+    flag governs whether Claude pauses to confirm design / architecture decisions.
+    The checkbox renders `checked` (default ON); the JS corrects it from persisted
+    state on load and serializes `design_checkins: <bool>` into the emitted YAML.
+    Returns "" if the schema has no `design_checkins` property.
+    """
+    if not prop:
+        return ""
+    title = html.escape(prop.get("title", "Design check-ins"))
+    desc = html.escape(prop.get("description", ""))
+    return (
+        '<div class="design-checkins-bar">'
+        '<div class="dc-row">'
+        f'<div class="dc-text"><h3>{title}</h3><p>{desc}</p></div>'
+        '<label class="dc-switch" title="Toggle design check-ins">'
+        '<input type="checkbox" id="design-checkins-toggle" checked>'
+        '<span class="dc-track"><span class="dc-thumb"></span></span>'
+        "</label>"
+        "</div>"
+        '<p class="dc-state" id="design-checkins-state"></p>'
+        "</div>"
     )
 
 
@@ -430,6 +463,23 @@ def _render_security_deny(schema: dict) -> str:
         f'The following patterns are ALWAYS denied, regardless of category levels. '
         f'Unblock individual rules at your own risk.'
         f'</p>'
+        f'<div class="danger-zone-note">'
+        f'<p><strong>These are preventive guardrails, not a malware scanner.</strong> '
+        f'They block the common <em>routes</em> malware and damage travel through &mdash; '
+        f'running remote scripts (<code>curl | sh</code>), gaining root (<code>sudo</code>), '
+        f'wiping files, and reading secrets &mdash; and they stop the command <em>before</em> it runs.</p>'
+        f'<p><strong>What they don&rsquo;t do:</strong> inspect a file&rsquo;s contents &mdash; so they cannot '
+        f'catch malware hidden inside something you explicitly approve. Treat the floor as a seatbelt, '
+        f'not a reason to skip reviewing what Claude produced.</p>'
+        f'<p class="danger-zone-note-maint">The floor and the hooks behind it '
+        f'(<code>guard-destructive</code> blocks destructive shell commands, <code>enforce-layout</code> '
+        f'blocks off-pattern file writes) are maintained in the RavenClaude marketplace and periodically '
+        f're-reviewed by the Researcher meta-skill, which adds new dangerous patterns here as they emerge. '
+        f'Learn more: '
+        f'<a href="https://code.claude.com/docs/en/settings" target="_blank" rel="noopener">Claude Code permissions</a> &middot; '
+        f'<a href="https://code.claude.com/docs/en/hooks" target="_blank" rel="noopener">how hooks work</a> &middot; '
+        f'<a href="rules/security.md" target="_blank" rel="noopener">this plugin&rsquo;s security rules</a>.</p>'
+        f'</div>'
         f'</header>'
         f'<div class="danger-zone-list">'
         + "".join(rows)
@@ -581,6 +631,52 @@ body {
 .preset-btn.preset-deny { border-left-color: var(--danger); }
 .preset-btn.preset-ask { border-left-color: var(--warn); }
 .preset-btn.preset-allow { border-left-color: var(--accent); }
+/* Design check-ins toggle — a behavioral flag, visually distinct from the
+   permission cards below (left accent edge, switch on the right). */
+.design-checkins-bar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.design-checkins-bar .dc-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.design-checkins-bar h3 { margin: 0 0 4px 0; font-size: 14px; }
+.design-checkins-bar .dc-text p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.dc-switch { position: relative; flex: 0 0 auto; cursor: pointer; }
+.dc-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.dc-track {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  transition: background 0.15s ease;
+}
+.dc-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease;
+}
+.dc-switch input:checked + .dc-track { background: var(--accent); border-color: var(--accent); }
+.dc-switch input:checked + .dc-track .dc-thumb { transform: translateX(20px); background: var(--bg); }
+.dc-switch input:focus-visible + .dc-track { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dc-state { margin: 10px 0 0 0; font-weight: 600; font-size: 12.5px; color: var(--text); }
 /* The "★ Recommended" preset gets a stronger visual to mark it as primary */
 .preset-btn.preset-recommended {
   background: var(--accent);
@@ -907,6 +1003,31 @@ body {
   line-height: 1.5;
   max-width: 720px;
 }
+/* Honest "what this is / isn't" note at the top of the Danger Zone. */
+.danger-zone-note {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-width: 720px;
+}
+.danger-zone-note p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.55;
+}
+.danger-zone-note p:last-child { margin-bottom: 0; }
+.danger-zone-note .danger-zone-note-maint { color: var(--muted); font-size: 12.5px; }
+.danger-zone-note code {
+  background: var(--bg);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+.danger-zone-note a { color: var(--accent); }
 .danger-zone-list { padding: 0; }
 .danger-zone-row {
   display: grid;
@@ -1485,6 +1606,7 @@ _SETTINGS_TAB_TEMPLATE = """
       <div class="preset-buttons">{preset_buttons}</div>
     </div>
 
+    {design_checkins}
     {category_groups}
     {security_deny}
   </div>
@@ -1596,6 +1718,9 @@ _JS = r"""
     categories: {},
     security_deny: ((props.security_deny || {}).default || []).slice(),
     security_deny_baseline: ((props.security_deny || {}).default || []).slice(),
+    /* Behavioral flag (NOT a permission): pause for design decisions? Default ON. */
+    design_checkins: (typeof ((props.design_checkins || {}).default) === "boolean")
+      ? props.design_checkins.default : true,
     expanded: {},   /* category -> boolean */
   };
 
@@ -1657,9 +1782,23 @@ _JS = r"""
       if (parsed.expanded && typeof parsed.expanded === "object") {
         Object.assign(state.expanded, parsed.expanded);
       }
+      if (typeof parsed.design_checkins === "boolean") {
+        state.design_checkins = parsed.design_checkins;
+      }
     }
   } catch (e) {
     console.warn("Could not restore saved state:", e);
+  }
+
+  /* Design check-ins toggle (behavioral flag, not a permission) */
+  const DC_PROP = props.design_checkins || {};
+  const DC_ON_LABEL = DC_PROP["x-on-label"] || "On — pause for design decisions";
+  const DC_OFF_LABEL = DC_PROP["x-off-label"] || "Off — nonstop";
+  function syncDesignCheckins() {
+    const cb = document.getElementById("design-checkins-toggle");
+    const lbl = document.getElementById("design-checkins-state");
+    if (cb) cb.checked = !!state.design_checkins;
+    if (lbl) lbl.textContent = state.design_checkins ? DC_ON_LABEL : DC_OFF_LABEL;
   }
 
   /* Sync DOM radios to state */
@@ -1691,6 +1830,7 @@ _JS = r"""
     document.querySelectorAll(".sec-deny-checkbox").forEach(cb => {
       cb.checked = state.security_deny.includes(cb.value);
     });
+    syncDesignCheckins();
   }
   syncDomToState();
 
@@ -1760,6 +1900,9 @@ _JS = r"""
       "# The /set-posture skill translates this into user/local/project settings files.",
       "schema_version: 5",
       "",
+      "# Pause for design / architectural decisions? Behavioral flag, separate from permissions.",
+      `design_checkins: ${state.design_checkins}`,
+      "",
     ];
 
     /* security_deny */
@@ -1806,6 +1949,7 @@ _JS = r"""
       localStorage.setItem(PLUGIN_KEY, JSON.stringify({
         categories: state.categories,
         security_deny: state.security_deny,
+        design_checkins: state.design_checkins,
         expanded: state.expanded,
       }));
     } catch (e) { /* storage full — ignore */ }
@@ -1818,6 +1962,19 @@ _JS = r"""
   }
 
   /* ── Form change wiring ─────────────────────────────────────────── */
+  /* Design check-ins toggle (behavioral flag, not a permission) */
+  {
+    const dcToggle = document.getElementById("design-checkins-toggle");
+    if (dcToggle) {
+      dcToggle.addEventListener("change", () => {
+        state.design_checkins = dcToggle.checked;
+        syncDesignCheckins();
+        flagUnsaved();
+        render();
+      });
+    }
+  }
+
   document.querySelectorAll('input[type="radio"][data-category][data-layer]').forEach(inp => {
     inp.addEventListener("change", () => {
       const cat = inp.dataset.category;

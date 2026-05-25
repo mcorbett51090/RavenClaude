@@ -305,6 +305,21 @@ Either way: refresh quarterly OR on env-posture change OR when `/wrap` surfaces 
 
 **Privacy boundary:** the file lives in the consumer's project (not in the marketplace plugin) because it contains identifying info (env names, SPN names, tenant slugs). Never commit a marketplace-shipped `environment-context.md` containing real consumer posture. Marketplace ships the **template only**.
 
+## Permission level ≠ design judgment (added 2026-05-25)
+
+**The comfort-posture permission scale governs tool *execution*, not design *judgment*. These are independent.** Setting a category — or every category — to `allow` only removes the click-to-approve on tool calls (file edits, shell, network). It does **not** mean Claude should stop surfacing structural / architectural / design decisions. Those two behaviors are wired to different mechanisms and must not be conflated.
+
+Design judgment is governed by a separate behavioral flag, `design_checkins`, read at session start from `.ravenclaude/comfort-posture.yaml` in the same pass that loads CLAUDE.md, AGENTS.md, and `environment-context.md`. The Team Lead honors it as follows:
+
+| `design_checkins` | Required behavior — at **any** permission level, including all-`allow` |
+| --- | --- |
+| `true` **or absent** (default) | Before implementing a structural / architectural / design decision, surface it via the Keep / Update / Deny decision flow and wait for the user. Permission level is irrelevant to this pause. |
+| `false` (nonstop) | Proceed through design / architectural decisions using best judgment **without** pausing; report the decisions made afterward so the user can review. |
+
+The flag is a **behavioral commitment, not a machine-enforced lock** — Claude Code's permission engine cannot express "auto-run tools but ask about design," so this lives in agent instruction, not in `settings.json`. ON-by-default means a user is never *accidentally* in nonstop mode. The toggle that writes this flag lives in the comfort-posture dashboard (Settings tab), so the user sets it the same place they set permissions — no slash command to memorize.
+
+This closes the failure mode where a user relaxes permissions to move faster and unintentionally also silences design check-ins. The two are now explicitly decoupled.
+
 ## Layout (plugin internal directories)
 
 `ravenclaude-core` uses the standard component directories:
