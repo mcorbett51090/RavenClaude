@@ -10,28 +10,36 @@ and is always findable regardless of which branch work is happening on.
 
 ---
 
-## 1 — 2026-05-25 · Resume tribunal track → open PR #87 for T1
+## 1 — 2026-05-25 · Tribunal: ship T1, verify substrate, unblock T2
 
-**Prompt:** "cont" (resume; then "cont" again to proceed).
+**Prompt:** "cont" → "cont" → "go / yes" (resume, proceed, then merge #87 + start
+the substrate-verification reconciliation).
 
-**Response:** Oriented from a cold context — this session log was stale (covered
-v0.19.0; the tribunal track had advanced two releases past it). Reconstructed
-state from git + `docs/tribunal-review-feature-design.md`: **T0** merged (PR #84,
-v0.21.0: guard-destructive fix + concern catalog); **T1** (read-only "Command
-review (the Thing)" preview UI, **v0.22.0**) was committed + pushed on branch
-`feat/ravenclaude-core-tribunal-t1` but had **no PR**. Verified the branch green
-(JSON valid, hooks parse, dashboard regen → no diff so it's fresh, `prettier
---check .` exit 0; versions coherent at 0.22.0 in plugin.json + marketplace.json),
-then opened **PR #87**. T1 is intentionally inert — a "Preview" panel + disabled
-per-category toggles, no orchestrator, no behavior change.
+**Response:** Oriented from a cold context (this log was stale, covered v0.19.0).
+Three things shipped this session:
+(1) **T1 merged** — found the read-only "Command review (the Thing)" preview UI
+(v0.22.0) committed on `feat/ravenclaude-core-tribunal-t1` with no PR; verified
+green, opened + squash-**merged PR #87** (`f9d5c84`). Intentionally inert UI.
+(2) **Substrate verified** — the §B.5.1 "both cannot be true" alarm was a **false
+alarm**. Re-verified the PreToolUse hook API against primary docs (hooks ref +
+hooks-guide + agent-sdk/hooks, cross-checked — the first WebFetch summary wrongly
+said bypass behavior was undocumented; a verbatim grep found it). Confirmed:
+`updatedInput` is real → **EDIT verdict path stands**; permissionDecision
+allow/deny/ask/defer (defer is `-p`-only); prompt/agent hook types real (agent
+experimental); a hook `deny` beats `--dangerously-skip-permissions` but a hook
+`allow` can't override a settings `deny` (so the Thing can't relax `security_deny`);
+platform fails OPEN on timeout. Updated design doc §B.5.1 → **v3 on main**
+(`c914998`, docs-commit-to-main).
+(3) **Knowledge reconciled** — added an "Advanced JSON output protocol" section to
+`knowledge/claude-code-permissions.md`, bumped ravenclaude-core **v0.22.0 →
+v0.23.0**, regenerated `repo-guide.html`, opened **PR #88** (green).
 
-**Current state / next step:** **PR #87 open**, CI running (layout gate passed,
-manifests pending). After it merges: **T2 (single-seat orchestrator) is BLOCKED**
-on the §B.5.1 hook-API substrate verification — the `permissionDecision` /
-`updatedInput` claims contradict the repo's own
-`knowledge/claude-code-permissions.md` and must be reconciled in **one standalone
-PR** before any T2 code lands. That verification is the real next task, not
-building T2.
+**Current state / next step:** PR #88 **open + green**, awaiting Matt's merge.
+**T2 is now UNBLOCKED** — next build is the single-seat orchestrator
+(`code-reviewer`-shaped via `claude -p`, ALLOW/DENY only, `shell_readonly` only,
+writes audit trail; design doc §B.11). Worth estimating `claude -p` credit-pool
+cost (open question #4) before T2. Full track status in auto-memory
+`project_2026-05-25_tribunal_track`.
 
 ---
 
