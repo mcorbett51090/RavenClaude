@@ -452,12 +452,68 @@ def resolve_tier_config(root: Path, posture: dict | None) -> tuple[dict, str | N
     return cfg, error
 
 
+def _decision_detail(root: Path, posture: dict, command: str, category: str | None) -> dict:
+    """Full tier/route/gate computation for a (command, category).
+
+    Used by `classify` when the category's toggle is on, AND by `preview`
+    unconditionally (the dashboard 'Test a command' simulator) so the preview
+    is the REAL engine decision, never a reimplementation that could drift.
+    """
+    d: dict = {}
+    cfg, cfg_err = resolve_tier_config(root, posture)
+    cfg.pop("timeout_posture_map", None)
+    d["seat_timeout_seconds"] = cfg["seat_timeout_seconds"]
+    d["panel_deadline_seconds"] = cfg["panel_deadline_seconds"]
+    d["audit_dir"] = cfg["audit_dir"]
+    if cfg_err:
+        d["config_error"] = cfg_err
+
+    route = _route(command, category)
+    d.update(route)
+
+    base_tier = _norm_tier(cfg["category_tier_map"].get(category), "medium")
+    final_tier = _escalate_tier(base_tier, route.get("max_severity"))
+    tier_cfg = cfg["tiers"][final_tier]
+    is_read = category in _READ_CATEGORIES
+    gate_floor = cfg["gate_floor"]
+
+    want = set(tier_cfg["seats"]) | set(tier_cfg["mandatory"])
+    convened = [s for s in _SEATS if s in want and s != "thor"]
+    if _TIER_RANK[final_tier] >= _TIER_RANK["medium"] and not convened:
+        convened = ["forseti", "mimir", "heimdall"]
+    d["panel"] = cfg["panel"]
+    d["convened_seats"] = convened
+    d["confidence_threshold"] = float(tier_cfg["confidence"])
+    d["tier"] = final_tier
+    d["base_tier"] = base_tier
+    d["is_read"] = is_read
+    d["gate_floor"] = gate_floor
+    d["panel_required"] = _TIER_RANK[final_tier] >= _TIER_RANK["medium"]
+    d["gate_allow"] = (not is_read) and _TIER_RANK[final_tier] >= _TIER_RANK[gate_floor]
+    d["timeout_posture"] = "deny"
+
+    # Human-readable predicted outcome for the simulator.
+    if d.get("pre_llm_deny"):
+        d["predicted_gate"] = f"DENY — blocked before any model runs ({d.get('deny_concern') or 'hard rule'})"
+    elif not d["panel_required"]:
+        d["predicted_gate"] = "ALLOW — clean low-risk command, no panel convened"
+    elif is_read:
+        d["predicted_gate"] = "panel auto-decides (reads are never surfaced to you)"
+    elif d["gate_allow"]:
+        d["predicted_gate"] = "a confident panel-ALLOW is surfaced to you as ASK; DENY blocks, EDIT rewrites"
+    else:
+        d["predicted_gate"] = "panel decides autonomously (tier is below gate_floor); DENY blocks, EDIT rewrites"
+    return d
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", default=".", help="project root (consumer cwd)")
     sub = ap.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("classify", help="classify a command + report toggle state")
     c.add_argument("command", help="the shell command string")
+    p = sub.add_parser("preview", help="full tier/seat/gate preview regardless of toggle (dashboard simulator)")
+    p.add_argument("command", help="the shell command string")
     args = ap.parse_args()
 
     root = Path(args.root).resolve()
@@ -482,52 +538,10 @@ def main() -> int:
             # settings.json floor (do NOT claim enabled). Report for visibility.
             result["posture_error"] = f"comfort-posture.yaml: {exc}"
 
-    if result["thing_enabled"]:
-        cfg, cfg_err = resolve_tier_config(root, posture)
-        cfg.pop("timeout_posture_map", None)  # superseded by the tier/gate model
-        result["seat_timeout_seconds"] = cfg["seat_timeout_seconds"]
-        result["panel_deadline_seconds"] = cfg["panel_deadline_seconds"]
-        result["audit_dir"] = cfg["audit_dir"]
-        if cfg_err:
-            result["config_error"] = cfg_err
-
-        # Deterministic screen — concerns, max severity, pre-LLM deny, high-blast.
-        route = _route(args.command, category)
-        result.update(route)
-
-        # Risk tier = category base tier + severity escalation bump.
-        base_tier = _norm_tier(cfg["category_tier_map"].get(category), "medium")
-        final_tier = _escalate_tier(base_tier, route.get("max_severity"))
-        tier_cfg = cfg["tiers"][final_tier]
-        is_read = category in _READ_CATEGORIES
-        gate_floor = cfg["gate_floor"]
-
-        # Convened panel comes from the TIER (mandatory seats re-unioned), in panel
-        # order — overrides the legacy severity routing carried by _route. Thor is
-        # never pre-convened; it is summoned at aggregation on a split.
-        want = set(tier_cfg["seats"]) | set(tier_cfg["mandatory"])
-        convened = [s for s in _SEATS if s in want and s != "thor"]
-        # A medium+ tier must convene at least one seat (else the orchestrator's
-        # aggregation has nothing to tally). If a config emptied it, fall back to
-        # the full review panel rather than silently running no review.
-        if _TIER_RANK[final_tier] >= _TIER_RANK["medium"] and not convened:
-            convened = ["forseti", "mimir", "heimdall"]
-        result["panel"] = cfg["panel"]
-        result["convened_seats"] = convened
-        result["confidence_threshold"] = float(tier_cfg["confidence"])
-        result["tier"] = final_tier
-        result["base_tier"] = base_tier
-        result["is_read"] = is_read
-        result["gate_floor"] = gate_floor
-        # Panel runs at medium+; a clean low command is cleared by the screen alone.
-        result["panel_required"] = _TIER_RANK[final_tier] >= _TIER_RANK["medium"]
-        # A confident panel-ALLOW is surfaced to the human (ask) when the tier is
-        # at/above gate_floor. Reads are never surfaced (handled in the hook).
-        result["gate_allow"] = (not is_read) and _TIER_RANK[final_tier] >= _TIER_RANK[gate_floor]
-        # Abstention / inconclusive panel always fails CLOSED (deny). Clean reads
-        # no longer convene a panel; an escalated read that abstains fails closed
-        # (P9b), never asks — so the old per-category `ask` posture is retired.
-        result["timeout_posture"] = "deny"
+    # `preview` (dashboard simulator) computes the full detail unconditionally;
+    # `classify` (the live hook path) only when the category's toggle is on.
+    if args.cmd == "preview" or result["thing_enabled"]:
+        result.update(_decision_detail(root, posture, args.command, category))
 
     json.dump(result, sys.stdout)
     sys.stdout.write("\n")
