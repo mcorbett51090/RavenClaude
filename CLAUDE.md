@@ -10,6 +10,17 @@ This file is Claude Code's entry point. The `@AGENTS.md` import above pulls in t
 
 For non-trivial changes touching more than two files (or any manifest), enter plan mode first and present a Keep / Update / Deny structure before writing. This matches Matt's documented preference; Cursor/Codex users won't see this guidance and don't need to.
 
+## Post-PR decision review (added 2026-05-26)
+
+After opening each PR, run a **decision review** before considering the task done — this is a standing step, not an optional extra:
+
+1. **Enumerate** every yes/no (binary) decision made during the work — both the ones surfaced to Matt and the ones taken autonomously.
+2. **Classify** each as _tribunal-eligible_ (a defensible answer is derivable from rules, CI gates, repo conventions, or facts) or _needs-human_ (a genuine preference / taste / risk-appetite call).
+3. **Route the tribunal-eligible ones through the tribunal (the Thing)** for a verdict, and record the outcome. The Thing currently adjudicates shell commands only, so live decision-adjudication is staged — see [`docs/post-pr-decision-review.md`](docs/post-pr-decision-review.md) for the classification rubric, the seat-routing map, and the engine extension that makes it real.
+4. **Log** the review as a comment on the PR (the per-PR artifact).
+
+Goal: shrink the set of decisions that interrupt Matt to only genuine-preference calls, and give the rule-derivable ones an auditable second opinion instead of a silent autonomous choice.
+
 ## Memory references
 
 User-scoped memory lives under your Claude Code home (e.g. `~/.claude/projects/<encoded-project-path>/memory/` on Linux/macOS or the equivalent on Windows). `MEMORY.md` is the index inside that directory. Update it when something durable about the user, project, or working style changes.
@@ -18,8 +29,8 @@ User-scoped memory lives under your Claude Code home (e.g. `~/.claude/projects/<
 
 Two registration paths exist, **both required**:
 
-1. **Plugin canonical** — `plugins/ravenclaude-core/hooks/hooks.json` registers all four hooks with `${CLAUDE_PLUGIN_ROOT}` paths. This is the path consumers get when they `/plugin install ravenclaude-core@ravenclaude`. The hooks fire from the installed-plugin cache (e.g. `~/.claude/plugins/cache/ravenclaude/ravenclaude-core/<version>/hooks/...`), not from the repo on disk.
-2. **Marketplace dev** — `.claude/settings.json` registers the same four hooks with `${CLAUDE_PROJECT_DIR}` paths against the working tree. This is what fires when you're editing the marketplace itself, because **Claude Code does NOT auto-load plugins from filesystem discovery** — plugins only load via `/plugin install` (verified against [Create plugins](https://code.claude.com/docs/en/plugins) and [Discover and install plugins](https://code.claude.com/docs/en/discover-plugins) docs, 2026-05). Without this block, edits in the working tree would fire the *installed* (possibly stale) plugin's hooks, not the version under development.
+1. **Plugin canonical** — `plugins/ravenclaude-core/hooks/hooks.json` registers all of its hooks with `${CLAUDE_PLUGIN_ROOT}` paths. This is the path consumers get when they `/plugin install ravenclaude-core@ravenclaude`. The hooks fire from the installed-plugin cache (e.g. `~/.claude/plugins/cache/ravenclaude/ravenclaude-core/<version>/hooks/...`), not from the repo on disk.
+2. **Marketplace dev** — `.claude/settings.json` registers the same hooks with `${CLAUDE_PROJECT_DIR}` paths against the working tree. This is what fires when you're editing the marketplace itself, because **Claude Code does NOT auto-load plugins from filesystem discovery** — plugins only load via `/plugin install` (verified against [Create plugins](https://code.claude.com/docs/en/plugins) and [Discover and install plugins](https://code.claude.com/docs/en/discover-plugins) docs, 2026-05). Without this block, edits in the working tree would fire the *installed* (possibly stale) plugin's hooks, not the version under development.
 
 Both wirings call idempotent scripts, but the two paths *do* fire on the same events when both are active. This is intentional during dev. To migrate to plugin-only, the maintainer would need to either (a) launch Claude Code with `claude --plugin-dir ./plugins/ravenclaude-core` (per the Create-plugins doc), or (b) run `/plugin marketplace update ravenclaude` after every commit and accept the cached-copy lag. The dev-mirror block is the pragmatic choice.
 
