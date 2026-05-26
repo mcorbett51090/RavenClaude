@@ -200,6 +200,7 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
         preset_buttons="".join(preset_buttons),
         design_checkins=design_checkins_html,
         thing_preview=_render_thing_preview(),
+        command_review_panel=_render_command_review_panel(),
         category_groups="".join(group_html_parts),
         security_deny=security_deny_html,
     )
@@ -208,10 +209,10 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
 def _render_thing_preview() -> str:
     """Render the 'Command review (the Thing)' panel.
 
-    Now partly live (tribunal T2): the single-seat orchestrator is wired for the
-    `shell_readonly` category, so that one toggle below is clickable; the rest
-    stay disabled previews until their phase ships. The copy stays honest about
-    exactly what works today (one reviewer, allow/deny) vs. the eventual panel.
+    Live (tribunal T3) for three categories — shell_readonly, shell_remote_mutate,
+    shell_code_exec — with the full panel (three seats + a tie-breaker) and the
+    EDIT verdict. The copy stays honest about cost and about which categories are
+    clickable vs. still disabled previews.
     """
     return (
         '<div class="thing-preview">'
@@ -220,20 +221,79 @@ def _render_thing_preview() -> str:
         '<span class="preview-pill">Early access</span></h3>'
         "</div>"
         "<p>When turned on for a category, commands that would otherwise stop to "
-        "<strong>ask you</strong> get adjudicated by reviewer agents instead &mdash; eventually a "
-        "security seat, a correctness seat, and an injection-watch seat with an architect "
-        "tie-breaker, voting <strong>allow / edit / deny</strong>. You are only interrupted if they "
-        "can&rsquo;t decide, and every verdict is logged. It can only ever resolve the <em>ask</em> "
-        "cases &mdash; it never relaxes the Danger Zone floor.</p>"
-        '<p class="thing-preview-note"><strong>Live now for one category &mdash; '
-        "<code>shell_readonly</code>.</strong> Its toggle below is clickable; the rest stay "
-        "disabled previews. Today a <em>single</em> reviewer votes <strong>allow / deny</strong> "
-        "(the full panel and <em>edit</em> verdicts arrive in later releases). Heads-up: reviewing "
-        "<code>shell_readonly</code> spends roughly <strong>10&ndash;15&nbsp;seconds and credits on "
-        "every read command</strong>, so treat it as a validation switch &mdash; off by default. "
-        'Design: <a href="../../docs/tribunal-review-feature-design.md" target="_blank" '
+        "<strong>ask you</strong> get adjudicated by reviewer agents instead &mdash; a "
+        "security seat (Forseti), a correctness seat (Mímir), and an injection-watch seat "
+        "(Heimdall) with an architect tie-breaker (Thor), voting "
+        "<strong>allow / edit / deny</strong>. A seat may <em>rewrite</em> a risky command into a "
+        "safe one (the rewrite is re-validated against the concern catalog before it runs). You are "
+        "only interrupted if they can&rsquo;t decide, and every verdict is logged. It can only ever "
+        "resolve the <em>ask</em> cases &mdash; it never relaxes the Danger Zone floor.</p>"
+        '<p class="thing-preview-note"><strong>Live for three categories &mdash; '
+        "<code>shell_readonly</code>, <code>shell_remote_mutate</code>, and "
+        "<code>shell_code_exec</code>.</strong> Their toggles below are clickable; the rest stay "
+        "disabled previews. The panel runs its seats in parallel, so a typical verdict lands in "
+        "<strong>seconds &mdash; but it spends credits on every reviewed command</strong>, so treat "
+        "it as a high-stakes guard, not a daily setting &mdash; off by default. Tune the seat models "
+        "and confidence below. Design: "
+        '<a href="../../docs/tribunal-review-feature-design.md" target="_blank" '
         'rel="noopener">tribunal-review-feature-design.md</a> &middot; the rules it enforces: '
         '<a href="knowledge/concerns-catalog.md" target="_blank" rel="noopener">concern catalog</a>.</p>'
+        "</div>"
+    )
+
+
+# Per-seat model choices offered by the dashboard's command-review panel section.
+_THING_MODEL_CHOICES = [
+    ("claude-opus-4-7", "Opus 4.7 — most capable"),
+    ("claude-sonnet-4-6", "Sonnet 4.6 — balanced"),
+    ("claude-haiku-4-5", "Haiku 4.5 — fast / cheap"),
+]
+# (seat key, display label, default model) — mirrors thing-decision.py defaults.
+_THING_SEAT_META = [
+    ("forseti", "Forseti — Security", "claude-opus-4-7"),
+    ("mimir", "Mímir — Correctness", "claude-haiku-4-5"),
+    ("heimdall", "Heimdall — Injection watch", "claude-haiku-4-5"),
+    ("thor", "Thor — Tie-breaker", "claude-opus-4-7"),
+]
+
+
+def _render_command_review_panel() -> str:
+    """Render the GLOBAL command-review panel config (per-seat model + threshold).
+
+    Modeled on the global `design_checkins` flag (not the per-category override
+    map): the JS keeps a single `state.command_review` object, persists it to
+    localStorage, and serializes a top-level `command_review:` block into the
+    emitted comfort-posture.yaml — which the tribunal backend reads with higher
+    precedence than a hand-edited thing.yaml. There is no YAML parse-back, so on
+    a fresh load the controls show defaults until the user saves (identical to
+    the per-category `thing:` toggle's behavior).
+    """
+    rows = []
+    for seat, label, default_model in _THING_SEAT_META:
+        opts = "".join(
+            f'<option value="{html.escape(v)}"'
+            f'{" selected" if v == default_model else ""}>{html.escape(t)}</option>'
+            for v, t in _THING_MODEL_CHOICES
+        )
+        rows.append(
+            f'<label class="cr-seat-row" for="cr-seat-{seat}">'
+            f'<span class="cr-seat-name">{html.escape(label)}</span>'
+            f'<select id="cr-seat-{seat}" class="cr-seat-select" data-cr-seat="{html.escape(seat)}">{opts}</select>'
+            "</label>"
+        )
+    seats_html = "".join(rows)
+    return (
+        '<div class="command-review-panel" id="command-review-panel">'
+        '<div class="crp-head"><h3>&#9878; Command-review panel</h3>'
+        '<p class="crp-sub">Which model fills each seat, and how unsure a seat may be before the '
+        "tie-breaker is convened. Applies wherever a category&rsquo;s review toggle (above) is on.</p>"
+        "</div>"
+        f'<div class="crp-seats">{seats_html}</div>'
+        '<label class="crp-threshold" for="cr-threshold">'
+        "<span class=\"crp-threshold-label\">Confidence threshold</span>"
+        '<input type="number" id="cr-threshold" min="0" max="1" step="0.05" value="0.5">'
+        '<span class="crp-hint">A seat that votes below this convenes Thor.</span>'
+        "</label>"
         "</div>"
     )
 
@@ -450,7 +510,7 @@ def _render_category_card(name: str, schema: dict) -> str:
 
 # Categories whose command-review orchestrator is wired end-to-end, so the
 # toggle is clickable (not a button that lies). T2 ships shell_readonly only.
-THING_LIVE_CATEGORIES = {"shell_readonly"}
+THING_LIVE_CATEGORIES = {"shell_readonly", "shell_remote_mutate", "shell_code_exec"}
 
 
 def _render_thing_toggle(name: str) -> str:
@@ -803,6 +863,49 @@ body {
 .dc-switch.thing-switch-live { cursor: pointer; }
 .cat-thing-row.cat-thing-live .cat-thing-label { color: var(--text); }
 .cat-thing-cost { font-size: 11px; color: var(--muted); white-space: nowrap; }
+/* Command-review panel — global per-seat model + confidence config (T3). */
+.command-review-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin: 0 0 16px;
+}
+.command-review-panel .crp-head h3 { margin: 0 0 4px 0; font-size: 14px; }
+.command-review-panel .crp-sub { margin: 0 0 12px 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.crp-seats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+.cr-seat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cr-seat-name { font-size: 13px; color: var(--text); }
+.cr-seat-select,
+.crp-threshold input {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12.5px;
+}
+.crp-threshold {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+.crp-threshold-label { font-size: 13px; color: var(--text); }
+.crp-threshold input { width: 72px; }
+.crp-hint { font-size: 11px; color: var(--muted); }
 /* The "★ Recommended" preset gets a stronger visual to mark it as primary */
 .preset-btn.preset-recommended {
   background: var(--accent);
@@ -1735,6 +1838,7 @@ _SETTINGS_TAB_TEMPLATE = """
     {design_checkins}
     {thing_preview}
     {category_groups}
+    {command_review_panel}
     {security_deny}
   </div>
 
@@ -1810,6 +1914,19 @@ _JS = r"""
 
   const PLUGIN_KEY = "ravenclaude-dashboard-v5";
 
+  /* Command-review panel defaults — mirror thing-decision.py's built-in panel.
+   * The dashboard only authors per-seat models + the confidence threshold; the
+   * timers / audit dir / timeout posture live in thing.yaml or the defaults. */
+  const CR_DEFAULT = Object.freeze({
+    forseti: "claude-opus-4-7",
+    mimir: "claude-haiku-4-5",
+    heimdall: "claude-haiku-4-5",
+    thor: "claude-opus-4-7",
+    confidence_threshold: 0.5,
+  });
+  const CR_SEATS = ["forseti", "mimir", "heimdall", "thor"];
+  const CR_MODELS = ["claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5"];
+
   /* Pattern explanations loaded from a sibling JSON block. */
   let PATTERN_EXPLANATIONS = {};
   try {
@@ -1848,6 +1965,7 @@ _JS = r"""
     /* Behavioral flag (NOT a permission): pause for design decisions? Default ON. */
     design_checkins: (typeof ((props.design_checkins || {}).default) === "boolean")
       ? props.design_checkins.default : true,
+    command_review: Object.assign({}, CR_DEFAULT),
     expanded: {},   /* category -> boolean */
   };
 
@@ -1914,6 +2032,16 @@ _JS = r"""
       if (typeof parsed.design_checkins === "boolean") {
         state.design_checkins = parsed.design_checkins;
       }
+      /* command-review panel: keep only known seats/models + a valid threshold */
+      if (parsed.command_review && typeof parsed.command_review === "object") {
+        for (const s of CR_SEATS) {
+          if (CR_MODELS.includes(parsed.command_review[s])) {
+            state.command_review[s] = parsed.command_review[s];
+          }
+        }
+        const t = parseFloat(parsed.command_review.confidence_threshold);
+        if (!Number.isNaN(t) && t >= 0 && t <= 1) state.command_review.confidence_threshold = t;
+      }
     }
   } catch (e) {
     console.warn("Could not restore saved state:", e);
@@ -1964,6 +2092,15 @@ _JS = r"""
       const cat = cb.dataset.thingCategory;
       if (state.categories[cat]) cb.checked = !!state.categories[cat].thing;
     });
+    /* Sync the global command-review panel controls */
+    document.querySelectorAll("select.cr-seat-select[data-cr-seat]").forEach(sel => {
+      const seat = sel.dataset.crSeat;
+      if (state.command_review[seat]) sel.value = state.command_review[seat];
+    });
+    {
+      const thr = document.getElementById("cr-threshold");
+      if (thr) thr.value = String(state.command_review.confidence_threshold);
+    }
     syncDesignCheckins();
   }
   syncDomToState();
@@ -2039,6 +2176,24 @@ _JS = r"""
       "",
     ];
 
+    /* command_review — the tribunal panel. Emitted only when the user has
+     * customized it, so an untouched dashboard leaves thing.yaml / the built-in
+     * defaults in control (this block has higher precedence than thing.yaml). */
+    const cr = state.command_review;
+    const crChanged = CR_SEATS.some(s => cr[s] !== CR_DEFAULT[s])
+      || cr.confidence_threshold !== CR_DEFAULT.confidence_threshold;
+    if (crChanged) {
+      lines.push("# Command-review tribunal panel (the Thing). Overrides .ravenclaude/thing.yaml.");
+      lines.push("command_review:");
+      lines.push("  panel:");
+      for (const s of CR_SEATS) {
+        lines.push(`    ${s}:`);
+        lines.push(`      model: ${cr[s]}`);
+      }
+      lines.push(`  confidence_threshold: ${cr.confidence_threshold}`);
+      lines.push("");
+    }
+
     /* security_deny */
     const activeDeny = state.security_deny_baseline.filter(
       p => state.security_deny.includes(p)
@@ -2086,6 +2241,7 @@ _JS = r"""
         categories: state.categories,
         security_deny: state.security_deny,
         design_checkins: state.design_checkins,
+        command_review: state.command_review,
         expanded: state.expanded,
       }));
     } catch (e) { /* storage full — ignore */ }
@@ -2154,6 +2310,32 @@ _JS = r"""
       render();
     });
   });
+
+  /* Global command-review panel — per-seat model selects + confidence threshold */
+  document.querySelectorAll("select.cr-seat-select[data-cr-seat]").forEach(sel => {
+    sel.addEventListener("change", () => {
+      const seat = sel.dataset.crSeat;
+      if (CR_SEATS.includes(seat) && CR_MODELS.includes(sel.value)) {
+        state.command_review[seat] = sel.value;
+        flagUnsaved();
+        render();
+      }
+    });
+  });
+  {
+    const thr = document.getElementById("cr-threshold");
+    if (thr) {
+      thr.addEventListener("change", () => {
+        let t = parseFloat(thr.value);
+        if (Number.isNaN(t)) t = CR_DEFAULT.confidence_threshold;
+        t = Math.min(1, Math.max(0, t));
+        state.command_review.confidence_threshold = t;
+        thr.value = String(t);
+        flagUnsaved();
+        render();
+      });
+    }
+  }
 
   /* Track card expand/collapse for localStorage */
   document.querySelectorAll(".cat-card[data-category]").forEach(card => {

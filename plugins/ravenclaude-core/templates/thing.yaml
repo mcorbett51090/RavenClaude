@@ -1,37 +1,77 @@
-# thing.yaml — command-review tribunal ("the Thing") seat config (OPTIONAL).
+# thing.yaml — command-review tribunal ("the Thing") config (OPTIONAL, advanced).
 #
 # Copy to .ravenclaude/thing.yaml in your project root to tune HOW the tribunal
 # reviews. This file is OPTIONAL: if absent, the built-in defaults below apply.
+#
+# PRECEDENCE (highest wins): the dashboard's "Command-review panel" section
+# writes a `command_review:` block into .ravenclaude/comfort-posture.yaml — that
+# block (per-seat model + confidence threshold) OVERRIDES this file. So most
+# users never touch this file; it exists for the timers, the audit dir, and the
+# per-category timeout posture, which the dashboard does not author.
+#
+#   comfort-posture.yaml `command_review:`  >  this file  >  built-in defaults
 #
 # WHERE THE ON/OFF TOGGLE LIVES — NOT HERE. Whether a category is reviewed is the
 # per-category `thing:` field in .ravenclaude/comfort-posture.yaml, set from the
 # dashboard's "Command review" toggle. This file only configures the reviewer.
 #
-# Phase status: T2 ships a SINGLE seat (code-reviewer-shaped) rendering ALLOW or
-# DENY — no command rewriting ("EDIT"), no multi-seat panel yet (those are T3+).
-# Only `shell_readonly` is proven end-to-end in T2.
+# Phase status: T3 ships the PANEL (up to three seats + a tie-breaker) and the
+# EDIT verdict (a seat may rewrite a risky command; the orchestrator re-validates
+# the rewrite deterministically). Live categories: shell_readonly,
+# shell_remote_mutate, shell_code_exec. (file_edit_project is deferred.)
 
-schema_version: 1
+schema_version: 2
 
-# The single reviewing seat (T2). The multi-seat panel (Forseti/Mímir/Heimdall/
-# Thor) arrives in T3; for now this is the lone "Mímir" correctness seat.
-seat:
-  agent: code-reviewer
-  # Model alias passed to `claude -p --model`. A small fast model is the right
-  # default for a single-shot judge. Use a stronger model if you toggle review
-  # on for higher-stakes categories in T3+.
-  model: haiku
+# The panel. Each seat is filled by an existing ravenclaude-core agent (no new
+# agents). Heterogeneous backbones break seat correlation: spend the budget on
+# the security + tie-break seats; run the fast seats on a small model.
+panel:
+  forseti: # Security Watch
+    agent: security-reviewer
+    model: claude-opus-4-7
+  mimir: # Correctness Watch (the lone T2 seat; convened alone for low-stakes)
+    agent: code-reviewer
+    model: claude-haiku-4-5
+  heimdall: # AlignmentCheck — prompt-injection detection
+    agent: prompt-engineer
+    model: claude-haiku-4-5
+  thor: # Tie-breaker — convened only on a split or low-confidence panel
+    agent: architect
+    model: claude-opus-4-7
 
-# Hard wall-clock deadline for the seat call, in seconds. MUST stay under the
-# hook's own `timeout` (30 s, set in hooks.json) so the orchestrator can compose
-# a fail-closed "ask" before Claude Code's outer timeout fires (the platform
-# fails OPEN on hook timeout — guarding that is the orchestrator's job).
-internal_timeout_seconds: 18
+# A seat verdict below this confidence escalates the panel to Thor.
+confidence_threshold: 0.5
+
+# Per-seat soft cap (s). Each seat call is wrapped in its own `timeout`.
+seat_timeout_seconds: 18
+
+# Panel hard deadline (s). The whole parallel fan-out is bounded by this and any
+# straggler seat is killed. MUST stay under the hook's `timeout` (90 s, set in
+# hooks.json) so the orchestrator emits a fail-closed verdict before Claude
+# Code's outer timeout fires (the platform fails OPEN on hook timeout).
+panel_deadline_seconds: 75
+
+# Timeout / abstention posture per category. The high-stakes categories fail
+# CLOSED (deny) — deny is the only verdict that holds under bypass modes, and
+# these are exactly where failing open is catastrophic. shell_readonly keeps
+# "ask" (a read command failing closed would be needlessly disruptive).
+timeout_posture:
+  shell_remote_mutate: deny
+  shell_code_exec: deny
+  shell_readonly: ask
 
 audit:
   # Sága log — one JSON file per verdict, written under the consumer project.
   # Gitignored by default (command lines can contain sensitive paths).
   dir: .ravenclaude/runs/thing
+
+# ── Back-compat (T2 → T3 migration) ───────────────────────────────────────────
+# A legacy T2 `seat:` block (single seat) still works: if `panel:` is absent it
+# maps to the Mímir seat. Migrate by replacing it with the `panel:` block above.
+#   seat:
+#     agent: code-reviewer
+#     model: haiku
+# The legacy `internal_timeout_seconds:` is still read as `seat_timeout_seconds`.
 
 # AUTH NOTE (discovered 2026-05-25): on a Claude subscription / OAuth login the
 # seat uses plain `claude -p` (the default). `claude -p --bare` is faster and
