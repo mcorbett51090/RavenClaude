@@ -68,6 +68,7 @@ def _route(command: str, category: str | None) -> dict:
         "pre_llm_deny": False,
         "deny_concern": None,
         "convened_seats": ["forseti", "mimir", "heimdall"],
+        "high_blast": False,
     }
     try:
         spec = importlib.util.spec_from_file_location("_thing_concerns", _CONCERNS)
@@ -293,6 +294,131 @@ def resolve_panel_config(root: Path, posture: dict | None) -> tuple[dict, str | 
     return cfg, error
 
 
+# ── T5 tier model (risk = category base tier + severity escalation bump) ──────
+# Every reviewed command resolves to one of four tiers. The category sets a base
+# tier; a deterministic high/critical concern bumps it up. The tier drives which
+# seats convene, the confidence bar, and whether a panel-ALLOW is surfaced to the
+# human (gate_floor). A clean low command (a read with no escalation) is cleared
+# by the zero-cost deterministic screen alone — no LLM panel.
+
+_TIER_ORDER = ("low", "medium", "high", "extreme")
+_TIER_RANK = {t: i for i, t in enumerate(_TIER_ORDER)}
+
+# Read-shaped categories are never surfaced to the human as an `ask`: a clean
+# read auto-allows, an escalated read is auto-decided by the panel. The low base
+# tier and this set coincide by construction.
+_READ_CATEGORIES = {
+    "file_read_project",
+    "file_read_global",
+    "shell_readonly",
+    "network_read",
+}
+
+# Category -> base risk tier, over the 12 comfort-posture categories (EMISSIONS).
+_DEFAULT_CATEGORY_TIER_MAP = {
+    "file_read_project": "low",
+    "file_read_global": "low",
+    "shell_readonly": "low",
+    "network_read": "low",
+    "file_edit_project": "medium",
+    "shell_local_mutate": "medium",
+    "shell_package_install": "medium",
+    "network_write": "medium",
+    "mcp_tools": "medium",
+    "file_edit_global": "high",
+    "shell_remote_mutate": "high",
+    "shell_code_exec": "extreme",
+}
+
+# Per-tier panel shape. `seats` = which seats convene; `mandatory` can't be
+# removed by a dashboard override (re-unioned in); `confidence` is the per-tier
+# bar (escalating with stakes) below which a seat vote convenes Thor. `low` runs
+# no panel.
+_DEFAULT_TIERS = {
+    "low": {"seats": [], "mandatory": [], "confidence": _DEFAULT_CONFIDENCE_THRESHOLD},
+    "medium": {"seats": ["mimir", "heimdall"], "mandatory": ["heimdall"], "confidence": 0.5},
+    "high": {"seats": ["forseti", "mimir", "heimdall"], "mandatory": ["heimdall"], "confidence": 0.6},
+    "extreme": {"seats": ["forseti", "mimir", "heimdall"], "mandatory": ["forseti", "heimdall"], "confidence": 0.7},
+}
+
+# Default lowest tier whose panel-ALLOW is surfaced to the human for confirmation.
+# medium..extreme is the dashboard-exposed range; `high` is the conservative
+# default (reads + low mutates auto-resolve via the panel; high/extreme surface).
+_DEFAULT_GATE_FLOOR = "high"
+
+
+def _norm_tier(value, fallback: str) -> str:
+    return value if isinstance(value, str) and value in _TIER_RANK else fallback
+
+
+def _escalate_tier(base: str, max_severity: str | None) -> str:
+    """Severity bump: a high concern bumps the base up one tier; a critical
+    concern bumps straight to extreme; low/medium/none does not bump."""
+    rank = _TIER_RANK.get(base, _TIER_RANK["medium"])
+    if max_severity == "critical":
+        rank = _TIER_RANK["extreme"]
+    elif max_severity == "high":
+        rank = min(_TIER_RANK["extreme"], rank + 1)
+    return _TIER_ORDER[rank]
+
+
+def resolve_tier_config(root: Path, posture: dict | None) -> tuple[dict, str | None]:
+    """Resolve the tier model, same precedence as the panel config:
+
+        comfort-posture.yaml `command_review:`  >  .ravenclaude/thing.yaml  >  defaults
+
+    Returns (cfg, error). cfg carries everything resolve_panel_config returns
+    (per-seat models, timers, audit dir) PLUS tiers, category_tier_map, gate_floor.
+    """
+    panel_cfg, error = resolve_panel_config(root, posture)
+    tiers = {t: dict(_DEFAULT_TIERS[t]) for t in _TIER_ORDER}
+    cat_map = dict(_DEFAULT_CATEGORY_TIER_MAP)
+    gate_floor = _DEFAULT_GATE_FLOOR
+
+    def _apply(block) -> None:
+        nonlocal gate_floor
+        if not isinstance(block, dict):
+            return
+        gf = block.get("gate_floor")
+        if isinstance(gf, str) and gf in _TIER_RANK and gf != "low":
+            gate_floor = gf
+        tm = block.get("category_tier_map")
+        if isinstance(tm, dict):
+            for cat, tier in tm.items():
+                if isinstance(tier, str) and tier in _TIER_RANK:
+                    cat_map[cat] = tier
+        tcfg = block.get("tiers")
+        if isinstance(tcfg, dict):
+            for t in _TIER_ORDER:
+                entry = tcfg.get(t)
+                if not isinstance(entry, dict):
+                    continue
+                if isinstance(entry.get("seats"), list):
+                    tiers[t]["seats"] = [s for s in entry["seats"] if s in _SEATS]
+                if isinstance(entry.get("mandatory_seats"), list):
+                    tiers[t]["mandatory"] = [s for s in entry["mandatory_seats"] if s in _SEATS]
+                if isinstance(entry.get("confidence_threshold"), (int, float)):
+                    tiers[t]["confidence"] = float(entry["confidence_threshold"])
+
+    # Layer 1: thing.yaml. Layer 2: comfort-posture command_review: (wins).
+    path = root / ".ravenclaude" / "thing.yaml"
+    if path.exists():
+        try:
+            data = _load_yaml(path) or {}
+            if isinstance(data, dict):
+                _apply(data)
+        except Exception as exc:
+            if not error:
+                error = f"thing.yaml: {exc}"
+    _apply((posture or {}).get("command_review"))
+
+    cfg = dict(panel_cfg)
+    cfg["tiers"] = tiers
+    cfg["category_tier_map"] = cat_map
+    cfg["gate_floor"] = gate_floor
+    return cfg, error
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", default=".", help="project root (consumer cwd)")
@@ -324,20 +450,51 @@ def main() -> int:
             result["posture_error"] = f"comfort-posture.yaml: {exc}"
 
     if result["thing_enabled"]:
-        cfg, cfg_err = resolve_panel_config(root, posture)
-        # Resolve the per-category timeout posture to a single value for the hook.
-        posture_map = cfg.pop("timeout_posture_map")
-        result["panel"] = cfg["panel"]
-        result["confidence_threshold"] = cfg["confidence_threshold"]
+        cfg, cfg_err = resolve_tier_config(root, posture)
+        cfg.pop("timeout_posture_map", None)  # superseded by the tier/gate model
         result["seat_timeout_seconds"] = cfg["seat_timeout_seconds"]
         result["panel_deadline_seconds"] = cfg["panel_deadline_seconds"]
         result["audit_dir"] = cfg["audit_dir"]
-        result["timeout_posture"] = posture_map.get(category, "ask")
         if cfg_err:
             result["config_error"] = cfg_err
-        # Deterministic routing — which seats to convene + pre-LLM screen. Done
-        # here so the orchestrator gets config + routing in ONE python call.
-        result.update(_route(args.command, category))
+
+        # Deterministic screen — concerns, max severity, pre-LLM deny, high-blast.
+        route = _route(args.command, category)
+        result.update(route)
+
+        # Risk tier = category base tier + severity escalation bump.
+        base_tier = _norm_tier(cfg["category_tier_map"].get(category), "medium")
+        final_tier = _escalate_tier(base_tier, route.get("max_severity"))
+        tier_cfg = cfg["tiers"][final_tier]
+        is_read = category in _READ_CATEGORIES
+        gate_floor = cfg["gate_floor"]
+
+        # Convened panel comes from the TIER (mandatory seats re-unioned), in panel
+        # order — overrides the legacy severity routing carried by _route. Thor is
+        # never pre-convened; it is summoned at aggregation on a split.
+        want = set(tier_cfg["seats"]) | set(tier_cfg["mandatory"])
+        convened = [s for s in _SEATS if s in want and s != "thor"]
+        # A medium+ tier must convene at least one seat (else the orchestrator's
+        # aggregation has nothing to tally). If a config emptied it, fall back to
+        # the full review panel rather than silently running no review.
+        if _TIER_RANK[final_tier] >= _TIER_RANK["medium"] and not convened:
+            convened = ["forseti", "mimir", "heimdall"]
+        result["panel"] = cfg["panel"]
+        result["convened_seats"] = convened
+        result["confidence_threshold"] = float(tier_cfg["confidence"])
+        result["tier"] = final_tier
+        result["base_tier"] = base_tier
+        result["is_read"] = is_read
+        result["gate_floor"] = gate_floor
+        # Panel runs at medium+; a clean low command is cleared by the screen alone.
+        result["panel_required"] = _TIER_RANK[final_tier] >= _TIER_RANK["medium"]
+        # A confident panel-ALLOW is surfaced to the human (ask) when the tier is
+        # at/above gate_floor. Reads are never surfaced (handled in the hook).
+        result["gate_allow"] = (not is_read) and _TIER_RANK[final_tier] >= _TIER_RANK[gate_floor]
+        # Abstention / inconclusive panel always fails CLOSED (deny). Clean reads
+        # no longer convene a panel; an escalated read that abstains fails closed
+        # (P9b), never asks — so the old per-category `ask` posture is retired.
+        result["timeout_posture"] = "deny"
 
     json.dump(result, sys.stdout)
     sys.stdout.write("\n")

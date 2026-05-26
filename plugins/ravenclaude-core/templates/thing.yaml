@@ -3,33 +3,30 @@
 # Copy to .ravenclaude/thing.yaml in your project root to tune HOW the tribunal
 # reviews. This file is OPTIONAL: if absent, the built-in defaults below apply.
 #
-# PRECEDENCE (highest wins): the dashboard's "Command-review panel" section
-# writes a `command_review:` block into .ravenclaude/comfort-posture.yaml — that
-# block (per-seat model + confidence threshold) OVERRIDES this file. So most
-# users never touch this file; it exists for the timers, the audit dir, and the
-# per-category timeout posture, which the dashboard does not author.
+# PRECEDENCE (highest wins): the dashboard's "Command review" section writes a
+# `command_review:` block into .ravenclaude/comfort-posture.yaml — that block
+# OVERRIDES this file. So most users never touch this file; it exists for the
+# timers, the audit dir, and any tier tuning you'd rather hand-edit than click.
 #
 #   comfort-posture.yaml `command_review:`  >  this file  >  built-in defaults
 #
 # WHERE THE ON/OFF TOGGLE LIVES — NOT HERE. Whether a category is reviewed is the
 # per-category `thing:` field in .ravenclaude/comfort-posture.yaml, set from the
 # dashboard's "Command review" toggle. This file only configures the reviewer.
-#
-# Phase status: T3 ships the PANEL (up to three seats + a tie-breaker) and the
-# EDIT verdict (a seat may rewrite a risky command; the orchestrator re-validates
-# the rewrite deterministically). Live categories: shell_readonly,
-# shell_remote_mutate, shell_code_exec. (file_edit_project is deferred.)
 
-schema_version: 2
+schema_version: 3
 
-# The panel. Each seat is filled by an existing ravenclaude-core agent (no new
-# agents). Heterogeneous backbones break seat correlation: spend the budget on
-# the security + tie-break seats; run the fast seats on a small model.
+# ── The panel ─────────────────────────────────────────────────────────────────
+# Each seat is filled by an existing ravenclaude-core agent (no new agents).
+# Heterogeneous backbones break seat correlation: spend the budget on the
+# security + tie-break seats; run the fast seats on a small model. The TIERS
+# below decide WHICH of these seats convene for a given command; this block sets
+# the model each seat runs on when it does.
 panel:
   forseti: # Security Watch
     agent: security-reviewer
     model: claude-opus-4-7
-  mimir: # Correctness Watch (the lone T2 seat; convened alone for low-stakes)
+  mimir: # Correctness Watch
     agent: code-reviewer
     model: claude-haiku-4-5
   heimdall: # AlignmentCheck — prompt-injection detection
@@ -39,45 +36,92 @@ panel:
     agent: architect
     model: claude-opus-4-7
 
-# A seat verdict below this confidence escalates the panel to Thor.
-confidence_threshold: 0.5
+# ── Risk tiers (T5) ─────────────────────────────────────────────────────────
+# Every reviewed command resolves to ONE tier = its category's base tier (see
+# category_tier_map) bumped up by any deterministic high/critical concern (a high
+# concern +1 tier; a critical concern straight to extreme). The tier decides:
+#   - which seats convene (`seats`; `mandatory_seats` can't be removed),
+#   - the confidence bar below which a seat vote convenes Thor (`confidence_threshold`).
+# `low` runs NO panel: a clean low-risk command (a read with no escalation) is
+# cleared by the zero-cost deterministic concern screen alone — no LLM call, no
+# cost. The panel begins at `medium`. Confidence escalates with stakes.
+tiers:
+  low:
+    seats: [] # no panel — deterministic screen only
+  medium:
+    seats: [mimir, heimdall]
+    mandatory_seats: [heimdall] # injection watch on every reviewed command
+    confidence_threshold: 0.5
+  high:
+    seats: [forseti, mimir, heimdall]
+    mandatory_seats: [heimdall]
+    confidence_threshold: 0.6
+  extreme:
+    seats: [forseti, mimir, heimdall]
+    mandatory_seats: [forseti, heimdall] # security seat is mandatory at extreme
+    confidence_threshold: 0.7
 
-# Per-seat soft cap (s). Each seat call is wrapped in its own `timeout`.
-# Parallel `claude -p` seats contend on cold-start (~24-29s observed; a single
-# warm seat is ~8s), so this must clear that with margin — 18s abstained the whole
-# panel on modest machines. Keep it under panel_deadline_seconds (75) and the 90s
-# hook timeout. Raise it if your environment's parallel seat latency is higher.
+# Category -> base risk tier, over the 12 comfort-posture categories. A command's
+# final tier is this base, bumped up by any high/critical concern it matches.
+category_tier_map:
+  file_read_project: low
+  file_read_global: low
+  shell_readonly: low
+  network_read: low
+  file_edit_project: medium
+  shell_local_mutate: medium
+  shell_package_install: medium
+  network_write: medium
+  mcp_tools: medium
+  file_edit_global: high
+  shell_remote_mutate: high
+  shell_code_exec: extreme
+
+# ── The human gate (gate_floor) ───────────────────────────────────────────────
+# The LOWEST tier whose confident panel-ALLOW is surfaced to you (an `ask`) for
+# confirmation rather than resolved autonomously. Range: medium | high | extreme.
+#   - medium  — reads run free; every mutate/exec at-or-above medium surfaces to you.
+#   - high    — reads + low mutates auto-resolve; high/extreme surface (default).
+#   - extreme — only extreme commands surface; everything below auto-resolves.
+# This gates ONLY a confident ALLOW. A DENY still blocks and an EDIT still rewrites
+# autonomously, so the tribunal keeps pre-filtering the dangerous/fixable commands
+# before one ever reaches you. Two hard overrides ignore this knob:
+#   - READS are never surfaced (a clean read auto-allows; an escalated read is
+#     auto-decided by the panel — block/allow — never an ask).
+#   - HIGH-BLAST / irreversible actions (force-push is denied outright; rm -rf,
+#     publish, gh pr merge, etc.) are ALWAYS surfaced on a panel-ALLOW.
+# An abstaining / inconclusive panel always fails CLOSED (deny), at every tier.
+gate_floor: high
+
+# ── Timers ────────────────────────────────────────────────────────────────────
+# Per-seat soft cap (s). Each seat call is wrapped in its own `timeout`. Parallel
+# `claude -p` seats contend on cold-start (~24-29s observed; a single warm seat is
+# ~8s), so this must clear that with margin — 18s abstained the whole panel on
+# modest machines. Keep it under panel_deadline_seconds (75) and the 90s hook timeout.
 seat_timeout_seconds: 45
 
 # Panel hard deadline (s). The whole parallel fan-out is bounded by this and any
 # straggler seat is killed. MUST stay under the hook's `timeout` (90 s, set in
-# hooks.json) so the orchestrator emits a fail-closed verdict before Claude
-# Code's outer timeout fires (the platform fails OPEN on hook timeout).
+# hooks.json) so the orchestrator emits a fail-closed verdict before Claude Code's
+# outer timeout fires (the platform fails OPEN on hook timeout).
 panel_deadline_seconds: 75
-
-# Timeout / abstention posture per category. The high-stakes categories fail
-# CLOSED (deny) — deny is the only verdict that holds under bypass modes, and
-# these are exactly where failing open is catastrophic. shell_readonly keeps
-# "ask" (a read command failing closed would be needlessly disruptive).
-timeout_posture:
-  shell_remote_mutate: deny
-  shell_code_exec: deny
-  shell_readonly: ask
 
 audit:
   # Sága log — one JSON file per verdict, written under the consumer project.
   # Gitignored by default (command lines can contain sensitive paths).
   dir: .ravenclaude/runs/thing
 
-# ── Back-compat (T2 → T3 migration) ───────────────────────────────────────────
-# A legacy T2 `seat:` block (single seat) still works: if `panel:` is absent it
-# maps to the Mímir seat. Migrate by replacing it with the `panel:` block above.
+# ── Back-compat ───────────────────────────────────────────────────────────────
+# T2 → T5 migration: a legacy single-seat `seat:` block still maps to Mímir, and
+# the old top-level `confidence_threshold:` is still read as a fallback. The T3
+# per-category `timeout_posture:` map is RETIRED — abstention now always fails
+# closed (deny) and the human gate is governed by gate_floor above; a leftover
+# `timeout_posture:` is ignored. Nothing in a consumer project breaks on update.
 #   seat:
 #     agent: code-reviewer
 #     model: haiku
-# The legacy `internal_timeout_seconds:` is still read as `seat_timeout_seconds`.
 
 # AUTH NOTE (discovered 2026-05-25): on a Claude subscription / OAuth login the
-# seat uses plain `claude -p` (the default). `claude -p --bare` is faster and
-# more isolated but REFUSES OAuth — it needs ANTHROPIC_API_KEY. To opt into it,
-# export THING_SEAT_BARE=1 (only works if you have an API key configured).
+# seat uses plain `claude -p` (the default). `claude -p --bare` is faster and more
+# isolated but REFUSES OAuth — it needs ANTHROPIC_API_KEY. To opt into it, export
+# THING_SEAT_BARE=1 (only works if you have an API key configured).

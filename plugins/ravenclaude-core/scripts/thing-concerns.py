@@ -98,14 +98,33 @@ def _has_triggers(concern: dict) -> bool:
     return bool((concern.get("triggers") or {}).get("regex"))
 
 
+# Concerns that make a command "high-blast" (irreversible / hard to undo). A
+# confident panel ALLOW on a high-blast command is still surfaced to the human
+# (orchestrator rule 3) regardless of the gate_floor knob — the action is too
+# costly to auto-run on the panel's say-so alone. Any critical concern is
+# high-blast by definition; xc.no-undo names the irreversible-in-seconds class
+# explicitly (force-push is pre_llm_deny, but rm -rf-not-git / publish / merge /
+# DELETE land here).
+_HIGH_BLAST_IDS = {"xc.no-undo"}
+
+
 def evaluate(catalog: dict, command: str, category: str | None) -> dict:
-    """Return matched concerns + max severity + routing for one command."""
+    """Return matched concerns + max severity + routing for one command.
+
+    `convened_seats` is the legacy severity-based routing (kept for back-compat
+    and any direct caller). The command-review path now derives the convened
+    panel from the risk TIER (category base tier + severity escalation bump) in
+    thing-decision.py, which overrides this field. `high_blast` is consumed by
+    the orchestrator's always-surface rule.
+    """
     matched = [c for c in _concerns_for(catalog, category) if _matches(c, command)]
     matched_ids = [c["id"] for c in matched]
 
     pre_deny = [c for c in matched if c.get("pre_llm_deny")]
     max_rank = max((_SEV_RANK.get(c.get("severity", "low"), 0) for c in matched), default=-1)
     max_sev = _RANK_SEV.get(max_rank) if max_rank >= 0 else None
+    has_critical = max_rank == _SEV_RANK["critical"]
+    high_blast = has_critical or any(i in _HIGH_BLAST_IDS for i in matched_ids)
 
     if pre_deny:
         convened: list[str] = []  # denied before any seat is convened
@@ -123,6 +142,7 @@ def evaluate(catalog: dict, command: str, category: str | None) -> dict:
         "pre_llm_deny": bool(pre_deny),
         "deny_concern": pre_deny[0]["id"] if pre_deny else None,
         "convened_seats": convened,
+        "high_blast": bool(high_blast),
     }
 
 

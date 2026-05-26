@@ -133,10 +133,15 @@ cross_cutting:
       because disabling the Thing affects every category. Scope is shell-level
       mutation (redirect / tee / rm / mv / cp / sed / chmod / …); an exotic
       in-process file write still routes to the panel under shell_code_exec.
+      Also covers a command that writes the T5 tier config (`command_review:` /
+      `gate_floor:`) into comfort-posture.yaml — neutering the tiers or pushing
+      the gate_floor to dodge the human-gate is a self-disable too. Legit tier
+      config is authored through the dashboard, never a tribunal-reviewed command.
     resolution: >-
       DENY unilaterally, pre-LLM, no seat convened — never ALLOW or EDIT. The
-      user turns the Thing off via the comfort-posture dashboard (the explicit
-      override path), not via a tribunal-reviewed command.
+      user turns the Thing off (or retunes the tiers / gate_floor) via the
+      comfort-posture dashboard (the explicit override path), not via a
+      tribunal-reviewed command.
     triggers:
       # Substrate = the Thing's own files AND the plugin directories that hold
       # them. Matching the DIRECTORY (`ravenclaude-core/(hooks|scripts)`) — not
@@ -153,6 +158,11 @@ cross_cutting:
         # (3) turning the per-category toggle OFF in comfort-posture.yaml (bounded
         #     lookaheads so a large heredoc body is not scanned twice unbounded)
         - '(?s)(?=.{0,4000}comfort-posture\.yaml)(?=.{0,4000}thing:\s*(off|false|no)\b)'
+        # (4) writing the T5 tier config (command_review: / gate_floor:) into
+        #     comfort-posture.yaml — neutering the tiers / gate_floor is a
+        #     self-disable. Scoped to the `key:` write-shape so a plain READ of
+        #     the file (grep/cat) is not over-blocked.
+        - '(?s)(?=.{0,4000}comfort-posture\.yaml)(?=.{0,4000}(command_review|gate_floor)\s*:)'
   - id: xc.outside-project-tree
     name: Target path resolves outside the project tree
     severity: high
