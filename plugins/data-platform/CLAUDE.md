@@ -240,6 +240,7 @@ Data-platform agents stay within the four-layer scope (DB / ELT / dashboard / em
 - **`power-platform`** (when installed) — engagements using Power BI Embedded; `power-bi-engineer` owns DAX/PBIP/semantic-model specifics; this plugin owns the embed pattern + non-Microsoft data stack
 - **`web-design`** (when installed) — host-site shell; `frontend-coder` + `visual-designer` integrate dashboard components into the marketing site
 - **`edtech-partner-success`** (when installed) — EdTech vertical engagement; this plugin owns the LMS connector + data layer; partner-success owns the renewal / QBR / health-scoring above
+- **`applied-statistics`** (when installed) — statistical validity of dashboard metrics; `dashboard-builder` invokes that plugin's `statistical-qa-of-metrics` skill when a widget shows a comparison/trend and the question is "is this movement real or noise?". data-platform owns "is the number *correct*?" (integrity); applied-statistics owns "is it *real*?" (inference)
 
 ---
 
