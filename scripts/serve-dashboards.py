@@ -73,6 +73,15 @@ APPLY_SCRIPT = (
 RAVENCLAUDE_SCRIPT = REPO_ROOT / "scripts" / "ravenclaude"
 ALLOWED_ACTIONS = {"install", "update", "status"}
 
+# GET /__read lets the dashboard HYDRATE its controls from the project's actual
+# committed config on load (so it reflects reality, not just defaults/localStorage).
+# Allow-list mirrors /__save. For YAML we also return a server-side PARSED form
+# (the server has Python+yaml) so the dashboard needs no JS YAML parser.
+ALLOWED_READ = {
+    ".ravenclaude/comfort-posture.yaml",
+    ".ravenclaude/environment-context.md",
+}
+
 
 class DashboardHandler(SimpleHTTPRequestHandler):
     """SimpleHTTPRequestHandler + POST /__save for dashboard writes."""
@@ -83,13 +92,48 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         )
 
     def do_HEAD(self):
-        if self.path in ("/__save", "/__run"):
+        if self.path in ("/__save", "/__run") or self.path.startswith("/__read"):
             self.send_response(200)
-            self.send_header("Allow", "POST, HEAD")
+            self.send_header("Allow", "GET, POST, HEAD")
             self.send_header("Content-Length", "0")
             self.end_headers()
             return
         super().do_HEAD()
+
+    def do_GET(self):
+        if self.path.startswith("/__read"):
+            self._handle_read()
+            return
+        super().do_GET()
+
+    def _handle_read(self):
+        """GET /__read?path=<allow-listed> — return a committed config file so the
+        dashboard can hydrate its controls from reality. For YAML, also return a
+        server-parsed JSON form (`parsed`). 404 when the file is absent."""
+        from urllib.parse import urlparse, parse_qs
+        qs = parse_qs(urlparse(self.path).query)
+        target = (qs.get("path") or [""])[0]
+        if target not in ALLOWED_READ:
+            self.send_error(403, f"path not in read allow-list: {target!r}")
+            return
+        out = (REPO_ROOT / target).resolve()
+        try:
+            out.relative_to(REPO_ROOT)
+        except ValueError:
+            self.send_error(403, "path escapes repo root")
+            return
+        if not out.is_file():
+            self._json(404, {"path": target, "exists": False})
+            return
+        content = out.read_text(encoding="utf-8")
+        payload = {"path": target, "exists": True, "content": content, "parsed": None}
+        if target.endswith((".yaml", ".yml")):
+            try:
+                import yaml  # present in the devcontainer
+                payload["parsed"] = yaml.safe_load(content)
+            except Exception:
+                payload["parsed"] = None  # dashboard falls back to defaults
+        self._json(200, payload)
 
     def do_OPTIONS(self):
         if self.path in ("/__save", "/__run"):
@@ -273,6 +317,8 @@ def main() -> int:
     print(f"  allow-list   - {sorted(ALLOWED_TARGETS)}")
     print(f"  POST /__run   - runs an allow-listed ravenclaude action (Install/Update buttons)")
     print(f"  actions      - {sorted(ALLOWED_ACTIONS)}")
+    print(f"  GET  /__read  - reads an allow-listed config file so the dashboard hydrates from it")
+    print(f"  read-list    - {sorted(ALLOWED_READ)}")
 
     # Work out a phone-reachable URL (if any). localhost is NOT reachable from a
     # phone, so it gets no QR. The QR lets you open the live dashboard on a phone

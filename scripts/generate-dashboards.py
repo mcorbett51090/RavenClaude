@@ -421,6 +421,8 @@ def _render_command_review_panel() -> str:
         '<div class="crp-head"><h3>&#9878; Command-review panel</h3>'
         '<p class="crp-sub">Which model fills each seat, and how unsure a seat may be before the '
         "tie-breaker is convened. Applies wherever a category&rsquo;s review toggle (above) is on.</p>"
+        '<span class="crp-hydrated" id="crp-hydrated-indicator" hidden>'
+        "&#10003; Loaded from <code>.ravenclaude/comfort-posture.yaml</code></span>"
         "</div>"
         + _render_gate_floor()
         + f'<div class="crp-seats">{seats_html}</div>'
@@ -1109,6 +1111,19 @@ body {
 }
 .command-review-panel .crp-head h3 { margin: 0 0 4px 0; font-size: 14px; }
 .command-review-panel .crp-sub { margin: 0 0 12px 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.crp-hydrated {
+  display: inline-block;
+  margin: 0 0 12px 0;
+  font-size: 11.5px;
+  color: var(--accent);
+}
+.crp-hydrated code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
 .crp-seats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -3605,6 +3620,109 @@ _JS = r"""
   });
   window.addEventListener("hashchange", applyHash);
   applyHash();
+
+  /* ── Hydrate command-review config from the committed YAML ──────────── */
+  /* When the page is served by scripts/serve-dashboards.py, the committed
+   * .ravenclaude/comfort-posture.yaml is the source of truth — it OVERRIDES
+   * localStorage so the controls reflect what is actually on disk, not a stale
+   * draft. Served mode is detected with a HEAD /__read probe, mirroring the
+   * Settings tab's HEAD /__save probe. GitHub Pages / file:// / `http.server`
+   * lack the endpoint, so we fail soft and keep the defaults/localStorage path.
+   *
+   * Scope: command_review (gate_floor + tiers + panel seats + confidence) and
+   * design_checkins ONLY. Every field access is guarded — missing keys are
+   * skipped, never thrown. */
+  const READ_TARGET = ".ravenclaude/comfort-posture.yaml";
+
+  async function probeReadEndpoint() {
+    try {
+      const res = await fetch("/__read", { method: "HEAD" });
+      return res.ok;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function hydrateFromParsed(parsed) {
+    let touched = false;
+    const cr = (parsed && typeof parsed.command_review === "object" && parsed.command_review) || null;
+    if (cr) {
+      /* gate_floor → state + matching radio */
+      if (GATE_FLOORS.includes(cr.gate_floor)) {
+        state.command_review.gate_floor = cr.gate_floor;
+        touched = true;
+      }
+      /* per-seat panel models */
+      const panel = (typeof cr.panel === "object" && cr.panel) || null;
+      if (panel) {
+        for (const seat of CR_SEATS) {
+          const ps = panel[seat];
+          if (ps && typeof ps === "object" && CR_MODELS.includes(ps.model)) {
+            state.command_review[seat] = ps.model;
+            touched = true;
+          }
+        }
+      }
+      /* global confidence threshold */
+      const gt = parseFloat(cr.confidence_threshold);
+      if (!Number.isNaN(gt) && gt >= 0 && gt <= 1) {
+        state.command_review.confidence_threshold = gt;
+        touched = true;
+      }
+      /* per-tier seats + thresholds (mandatory_seats stay engine-pinned) */
+      const tiers = (typeof cr.tiers === "object" && cr.tiers) || null;
+      if (tiers) {
+        for (const tier of TIERS) {
+          const pt = tiers[tier];
+          if (!pt || typeof pt !== "object") continue;
+          const dst = state.command_review.tiers[tier];
+          if (Array.isArray(pt.seats)) {
+            const seats = pt.seats.filter(s => TIER_SEATS.includes(s));
+            for (const m of dst.mandatory_seats) if (!seats.includes(m)) seats.push(m);
+            dst.seats = TIER_SEATS.filter(s => seats.includes(s));
+            touched = true;
+          }
+          const tt = parseFloat(pt.confidence_threshold);
+          if (!Number.isNaN(tt) && tt >= 0 && tt <= 1) {
+            dst.confidence_threshold = tt;
+            touched = true;
+          }
+        }
+      }
+    }
+    /* design_checkins behavioral flag */
+    if (typeof parsed.design_checkins === "boolean") {
+      state.design_checkins = parsed.design_checkins;
+      touched = true;
+    }
+    /* TODO: hydrate per-category posture from parsed.categories (follow-up) */
+    return touched;
+  }
+
+  async function hydrateFromRepo() {
+    try {
+      const res = await fetch("/__read?path=" + encodeURIComponent(READ_TARGET));
+      if (!res.ok) return;   /* 404 → file absent; keep defaults/localStorage */
+      const j = await res.json();
+      if (!j || j.exists !== true || j.parsed == null || typeof j.parsed !== "object") return;
+      const touched = hydrateFromParsed(j.parsed);
+      if (!touched) return;
+      /* The committed file won — reflect it in the controls, the live YAML
+       * preview, and localStorage so a later draft starts from disk truth. */
+      syncDomToState();
+      render();
+      persistState();
+      const indicator = document.getElementById("crp-hydrated-indicator");
+      if (indicator) indicator.hidden = false;
+    } catch (e) {
+      /* fail soft — any fetch/parse error leaves the defaults path intact */
+      console.warn("Could not hydrate from repo YAML:", e);
+    }
+  }
+
+  probeReadEndpoint().then(served => {
+    if (served) hydrateFromRepo();
+  });
 
   /* Initial render */
   render();
