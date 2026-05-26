@@ -82,6 +82,14 @@ ALLOWED_READ = {
     ".ravenclaude/environment-context.md",
 }
 
+# POST /__classify powers the dashboard's "Test a command" simulator: it runs the
+# REAL deterministic classifier (thing-decision.py) on the typed string so the
+# preview can't drift from the engine. It does NOT execute the command — the
+# string is analysed only (passed as a single argv to a read-only classifier).
+THING_DECISION = (
+    REPO_ROOT / "plugins" / "ravenclaude-core" / "scripts" / "thing-decision.py"
+)
+
 
 class DashboardHandler(SimpleHTTPRequestHandler):
     """SimpleHTTPRequestHandler + POST /__save for dashboard writes."""
@@ -92,7 +100,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         )
 
     def do_HEAD(self):
-        if self.path in ("/__save", "/__run") or self.path.startswith("/__read"):
+        if self.path in ("/__save", "/__run", "/__classify") or self.path.startswith("/__read"):
             self.send_response(200)
             self.send_header("Allow", "GET, POST, HEAD")
             self.send_header("Content-Length", "0")
@@ -146,6 +154,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/__run":
             self._handle_run()
+            return
+        if self.path == "/__classify":
+            self._handle_classify()
             return
         if self.path != "/__save":
             self.send_error(404, "endpoint not found")
@@ -258,6 +269,37 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         self._json(200, {"ok": proc.returncode == 0, "action": action,
                          "exit_code": proc.returncode, "output": output[:8000]})
 
+    def _handle_classify(self):
+        """POST /__classify {command} — run the real thing-decision classifier on
+        the string (no execution) so the 'Test a command' simulator matches the
+        engine. Returns the decision JSON (category/tier/seats/concerns/gate)."""
+        length = int(self.headers.get("Content-Length", "0"))
+        if length <= 0 or length > 64 * 1024:
+            self.send_error(413, "small JSON body required")
+            return
+        try:
+            command = json.loads(self.rfile.read(length).decode("utf-8"))["command"]
+        except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError) as e:
+            self.send_error(400, f"invalid JSON body: {e}")
+            return
+        if not isinstance(command, str) or not command.strip():
+            self._json(200, {"category": None})
+            return
+        if not THING_DECISION.is_file():
+            self._json(500, {"error": "thing-decision.py not found"})
+            return
+        try:
+            proc = subprocess.run(
+                [sys.executable, str(THING_DECISION), "--root", str(REPO_ROOT),
+                 "preview", command[:4000]],
+                cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=15,
+            )
+            decision = json.loads(proc.stdout) if proc.stdout.strip() else {"category": None}
+        except (subprocess.SubprocessError, OSError, json.JSONDecodeError) as e:
+            self._json(500, {"error": f"classify failed: {e}"})
+            return
+        self._json(200, decision)
+
     def _json(self, code: int, payload: dict):
         body = json.dumps(payload).encode("utf-8")
         self.send_response(code)
@@ -319,6 +361,7 @@ def main() -> int:
     print(f"  actions      - {sorted(ALLOWED_ACTIONS)}")
     print(f"  GET  /__read  - reads an allow-listed config file so the dashboard hydrates from it")
     print(f"  read-list    - {sorted(ALLOWED_READ)}")
+    print(f"  POST /__classify - runs the real command-review classifier on a string (Test-a-command simulator)")
 
     # Work out a phone-reachable URL (if any). localhost is NOT reachable from a
     # phone, so it gets no QR. The QR lets you open the live dashboard on a phone

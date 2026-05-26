@@ -37,6 +37,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
 import json
 import re
 import sys
@@ -94,6 +96,41 @@ def _matches(concern: dict, command: str) -> bool:
     return False
 
 
+_B64_RUN = re.compile(r"[A-Za-z0-9+/]{24,}={0,2}")
+
+
+def _decoded_payload_concerns(
+    catalog: dict, command: str, category: str | None, _depth: int = 0
+) -> set[str]:
+    """Base64-decode long tokens in the command and re-check the DECODED text for
+    concerns (assessment #14 — base64 is a common obfuscation vector; the raw
+    triggers only see the encoded blob). Returns the concern ids found inside any
+    decoded payload (excluding the base64 concern itself). Bounded recursion for
+    nested encodings; only acts when a token decodes to mostly-printable text, so
+    a benign binary blob adds nothing (this is what lets us narrow the cost of the
+    raw 100-char match — we escalate on CONTENT, not mere length)."""
+    if _depth > 1:
+        return set()
+    found: set[str] = set()
+    for m in _B64_RUN.finditer(command):
+        tok = m.group(0)
+        try:
+            dec = base64.b64decode(tok + "=" * (-len(tok) % 4), validate=False)
+        except (binascii.Error, ValueError):
+            continue
+        text = dec.decode("utf-8", "replace")
+        if not text:
+            continue
+        printable = sum(c.isprintable() or c.isspace() for c in text)
+        if printable / len(text) < 0.8:
+            continue  # binary noise, not a hidden command
+        for c in _concerns_for(catalog, category):
+            if c["id"] != "sce.embedded-base64-payload" and _matches(c, text):
+                found.add(c["id"])
+        found |= _decoded_payload_concerns(catalog, text, category, _depth + 1)
+    return found
+
+
 def _has_triggers(concern: dict) -> bool:
     return bool((concern.get("triggers") or {}).get("regex"))
 
@@ -118,6 +155,21 @@ def evaluate(catalog: dict, command: str, category: str | None) -> dict:
     the orchestrator's always-surface rule.
     """
     matched = [c for c in _concerns_for(catalog, category) if _matches(c, command)]
+
+    # #14: merge any concerns hidden inside base64-encoded payloads BEFORE the
+    # pre-deny tally, so a base64'd curl|sh / inline secret / injection is denied
+    # the same as its plaintext form. Cite sce.embedded-base64-payload too when
+    # the obfuscation concern is in scope for this category.
+    decoded_ids = _decoded_payload_concerns(catalog, command, category)
+    if decoded_ids:
+        by_id = {c["id"]: c for c in _concerns_for(catalog, category)}
+        have = {c["id"] for c in matched}
+        for cid in decoded_ids | {"sce.embedded-base64-payload"}:
+            c = by_id.get(cid)
+            if c and cid not in have:
+                matched.append(c)
+                have.add(cid)
+
     matched_ids = [c["id"] for c in matched]
 
     pre_deny = [c for c in matched if c.get("pre_llm_deny")]

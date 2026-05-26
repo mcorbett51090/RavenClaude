@@ -81,9 +81,14 @@ if [ ! -f "$posture_file" ] || ! grep -Eq '^[[:space:]]*thing:[[:space:]]*(on|tr
 fi
 
 # ── Routing + config (one python call). ───────────────────────────────────────
-[ -f "$DECISION" ] || emit ask "Command review enabled but decision helper is missing; deferring to you."
+# Fail CLOSED (deny), not ask: we are past the short-circuit, so a category is
+# toggled on — the user opted into gating. If the engine that knows the category
+# posture is missing or silent we cannot tell a high-stakes command from a read,
+# so denying (with a clear recovery path) is the safe posture, not punting the
+# decision back to the human as an `ask` (assessment must-fix #7).
+[ -f "$DECISION" ] || emit deny "Command review is enabled but its decision helper is missing (broken install). Failing closed. Fix the plugin install, or turn command review off in the comfort-posture dashboard."
 decision="$(THING_SEAT_ACTIVE= python3 "$DECISION" --root "$cwd" classify "$cmd" 2>/dev/null || true)"
-[ -z "$decision" ] && emit ask "Command review could not classify the command; deferring to you."
+[ -z "$decision" ] && emit deny "Command review could not classify the command (decision helper failed). Failing closed. Re-run, fix the install, or turn command review off in the dashboard."
 
 enabled="$(printf '%s' "$decision" | jq -r '.thing_enabled // false')"
 category="$(printf '%s' "$decision" | jq -r '.category // "unknown"')"
@@ -136,6 +141,12 @@ gate_allow="$(printf '%s' "$decision" | jq -r '.gate_allow // false')"
 high_blast="$(printf '%s' "$decision" | jq -r '.high_blast // false')"
 tier="$(printf '%s' "$decision" | jq -r '.tier // "unknown"')"
 gate_floor="$(printf '%s' "$decision" | jq -r '.gate_floor // "high"')"
+# #15 cost/UX knobs. The deterministic screen above already ran; these only let us
+# skip the EXPENSIVE panel. bypass_match already excludes a critical screen.
+bypass_match="$(printf '%s' "$decision" | jq -r '.bypass_match // false')"
+cache_ttl="$(printf '%s' "$decision" | jq -r '.cache_ttl_seconds // 0')"
+fatigue_threshold="$(printf '%s' "$decision" | jq -r '.fatigue_threshold // 0')"
+config_hash="$(printf '%s' "$decision" | jq -r '.config_hash // empty')"
 
 run_id="thing-$(date -u +%Y-%m-%dT%H-%M-%SZ)-$$"
 started_ms="$(date +%s%3N 2>/dev/null || echo 0)"
@@ -171,11 +182,34 @@ parse_seat() {  # parse_seat <role> <tmp>
   SINJ[$role]="$(printf '%s' "$out" | jq -r '.injection_detected // false')"
   SCITED[$role]="$(printf '%s' "$out" | jq -c '.concerns_cited // []')"
   SEDIT[$role]="$(printf '%s' "$out" | jq -r '.edited_command // empty')"
-  SREASON[$role]="$(printf '%s' "$out" | jq -r '.reasoning // ""')"
+  # Bound + strip control chars (assessment #13): a seat's reasoning is surfaced
+  # into the user banner (esp. Thor's) and the Sága log. A prompt-injected seat
+  # could return an over-long or newline/escape-laden string; cap at 200 chars and
+  # drop control bytes at the source so every downstream use is already safe.
+  SREASON[$role]="$(printf '%s' "$out" | jq -r '.reasoning // ""' | tr -d '\000-\037' | cut -c1-200)"
 }
 
 verdict="ask"; reason=""; revised=""; final_cited="$screen_concerns"
 phase="T3-panel"
+
+# ── #15 verdict cache (precompute). Keyed by command + category + config_hash so a
+#    rules/catalog change invalidates it; TTL-bounded. The hard-rule screen above
+#    always ran, so only the EXPENSIVE panel result is ever served from cache. ──
+cache_dir="${cwd}/${audit_dir_rel}/cache"
+cache_hit="false"; cache_verdict=""; cache_revised=""
+if [ "${cache_ttl:-0}" -gt 0 ] && [ -n "$config_hash" ] && command -v sha256sum >/dev/null 2>&1; then
+  cache_key="$(printf '%s' "${cmd}|${category}|${config_hash}" | sha256sum | cut -d' ' -f1)"
+  cache_file="${cache_dir}/${cache_key}.json"
+  if [ -f "$cache_file" ]; then
+    c_ts="$(jq -r '.ts // 0' "$cache_file" 2>/dev/null || echo 0)"
+    now_ts="$(date +%s 2>/dev/null || echo 0)"
+    if [ "$c_ts" -gt 0 ] && [ $(( now_ts - c_ts )) -lt "$cache_ttl" ]; then
+      cache_verdict="$(jq -r '.verdict // empty' "$cache_file" 2>/dev/null || true)"
+      cache_revised="$(jq -r '.revised // empty' "$cache_file" 2>/dev/null || true)"
+      [ -n "$cache_verdict" ] && cache_hit="true"
+    fi
+  fi
+fi
 
 if [ "$pre_llm_deny" = "true" ]; then
   # ── Deterministic hard-rule denial — no seat convened (design §B.9.3). ──────
@@ -190,6 +224,19 @@ elif [ "$panel_required" != "true" ]; then
   verdict="allow"
   reason="Command review: low-risk read (tier ${tier}) cleared by the deterministic screen; no panel convened."
   phase="T5-clean-read"
+elif [ "$bypass_match" = "true" ]; then
+  # ── #15 bypass-list: the user explicitly trusts this pattern. The hard-rule
+  #    screen already passed (not pre_llm_deny; bypass excludes critical), so
+  #    auto-allow without convening the panel. ──────────────────────────────────
+  verdict="allow"
+  reason="Command review: matched your command_review.bypass list — auto-allowed without convening the panel (the deterministic hard-rule screen still ran and was clean)."
+  phase="T5-bypass"
+elif [ "$cache_hit" = "true" ]; then
+  # ── #15 cache hit: reuse a recent panel verdict for an identical command under
+  #    the same config (TTL + config_hash bounded). The hard-rule screen re-ran. ─
+  verdict="$cache_verdict"; revised="$cache_revised"
+  reason="Command review: reusing a cached panel verdict (${verdict}) for an identical command within the ${cache_ttl}s cache window; no panel re-convened."
+  phase="T5-cache-hit"
 else
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' EXIT
@@ -347,6 +394,21 @@ if [ "$verdict" = "allow" ] && [ "$is_read" != "true" ] \
   fi
 fi
 
+# ── #15 session-fatigue counter (advisory ONLY — never relaxes the gate). Counts
+#    the asks surfaced this session; past the threshold it appends a nudge toward
+#    tuning gate_floor / adding a bypass. Per-session counter file. ─────────────
+if [ "$verdict" = "ask" ] && [ "${fatigue_threshold:-0}" -gt 0 ] && [ -n "$session_id" ]; then
+  safe_sid="$(printf '%s' "$session_id" | tr -dc 'A-Za-z0-9._-' | cut -c1-128)"
+  fdir="${cwd}/${audit_dir_rel}/fatigue"
+  if [ -n "$safe_sid" ] && mkdir -p "$fdir" 2>/dev/null; then
+    fcount=$(( $(cat "${fdir}/${safe_sid}" 2>/dev/null || echo 0) + 1 ))
+    printf '%s' "$fcount" > "${fdir}/${safe_sid}" 2>/dev/null || true
+    if [ "$fcount" -ge "$fatigue_threshold" ]; then
+      reason="${reason} [Command review has asked ${fcount} times this session — consider raising gate_floor or adding a command_review.bypass entry via the dashboard.]"
+    fi
+  fi
+fi
+
 # ── Sága log (best-effort; never let a logging failure change the verdict). ───
 audit_dir="${cwd}/${audit_dir_rel}"
 ended_ms="$(date +%s%3N 2>/dev/null || echo 0)"
@@ -354,14 +416,19 @@ duration_ms=$(( ended_ms - started_ms ))
 seats_json="[]"
 for role in "${seats_run[@]:-}"; do
   [ -z "$role" ] && continue
+  # Persist each seat's FULL verdict for forensics (assessment #18): verdict,
+  # status, confidence, injection flag, cited concerns, the bounded reasoning,
+  # and any proposed edit. jq --arg escapes the reasoning safely.
   seats_json="$(jq -cn --argjson a "$seats_json" \
     --arg name "$role" --arg v "${SV[$role]:-abstain}" --arg st "${SSTATUS[$role]:-abstain}" \
     --argjson cf "${SCONF[$role]:-0}" --arg inj "${SINJ[$role]:-false}" \
     --argjson ci "${SCITED[$role]:-[]}" \
-    '$a + [{name:$name,verdict:$v,status:$st,confidence:$cf,injection_detected:($inj=="true"),concerns_cited:$ci}]')"
+    --arg rsn "${SREASON[$role]:-}" --arg ec "${SEDIT[$role]:-}" \
+    '$a + [{name:$name,verdict:$v,status:$st,confidence:$cf,injection_detected:($inj=="true"),concerns_cited:$ci,reasoning:$rsn,edited_command:(if $ec=="" then null else $ec end)}]')"
 done
-if mkdir -p "$audit_dir" 2>/dev/null; then
-  jq -cn \
+# Write the Sága entry, capturing whether it actually persisted (assessment #10).
+audit_written="false"
+if mkdir -p "$audit_dir" 2>/dev/null && jq -cn \
     --arg id "$run_id" --arg sid "$session_id" \
     --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     --arg cmd "$cmd" --arg cat "$category" --arg phase "$phase" \
@@ -373,7 +440,34 @@ if mkdir -p "$audit_dir" 2>/dev/null; then
       seats:$seats,concerns_cited:$concerns,final_verdict:$verdict,
       updated_input:(if $revised=="" then null else {command:$revised} end),
       duration_ms:$duration}' \
-    > "${audit_dir}/${run_id}.json" 2>/dev/null || true
+    > "${audit_dir}/${run_id}.json" 2>/dev/null; then
+  audit_written="true"
+fi
+
+# #10: a permissive verdict (allow/edit) with NO audit record is downgraded to a
+# fail-closed DENY — never emit an unrecorded allow. A deny/ask needs no record to
+# be safe, so those still emit.
+if [ "$audit_written" != "true" ] && { [ "$verdict" = "allow" ] || [ "$verdict" = "edit" ]; }; then
+  verdict="deny"; revised=""
+  reason="Command review: the verdict could not be written to the Sága audit log, so the permissive result is downgraded to a fail-closed DENY (an allow requires an audit trail). Check write permissions on ${audit_dir_rel}. ${reason}"
+fi
+
+# ── #15 cache WRITE: persist a real PANEL verdict (allow/edit/deny) for reuse
+#    within the TTL window. Skip the non-panel phases (bypass / cache-hit / clean
+#    read / pre-screen / self-disable) and never cache an `ask`; only when the
+#    audit actually persisted (so a cache entry always has a Sága counterpart). ─
+case "$phase" in
+  T5-bypass | T5-cache-hit | T5-clean-read | T3-pre-screen | T4-self-disable) cacheable="false" ;;
+  *) cacheable="true" ;;
+esac
+if [ "${cache_ttl:-0}" -gt 0 ] && [ -n "$config_hash" ] && [ "$cacheable" = "true" ] \
+   && [ "$audit_written" = "true" ] && command -v sha256sum >/dev/null 2>&1 \
+   && { [ "$verdict" = "allow" ] || [ "$verdict" = "edit" ] || [ "$verdict" = "deny" ]; }; then
+  ckey="$(printf '%s' "${cmd}|${category}|${config_hash}" | sha256sum | cut -d' ' -f1)"
+  if mkdir -p "$cache_dir" 2>/dev/null; then
+    jq -cn --arg v "$verdict" --arg r "$revised" --argjson ts "$(date +%s 2>/dev/null || echo 0)" \
+      '{verdict:$v,revised:$r,ts:$ts}' > "${cache_dir}/${ckey}.json" 2>/dev/null || true
+  fi
 fi
 
 if [ "$verdict" = "edit" ]; then

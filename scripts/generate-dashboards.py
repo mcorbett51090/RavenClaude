@@ -131,6 +131,7 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         css=_CSS,
         settings_html=_render_settings_tab(properties, presets),
         install_html=_render_install_tab(),
+        simulator_html=_render_simulator_tab(),
         commands_html=_render_stub_tab("Commands", "v0.2.0"),
         trees_html=_render_stub_tab("Decision trees", "v0.2.0"),
         activity_html=_render_stub_tab("Activity", "v0.2.0"),
@@ -140,6 +141,19 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         ),
         js=_JS,
     )
+
+
+def _render_simulator_tab() -> str:
+    """Render the 'Test a command' simulator tab.
+
+    Answers "what would the Thing do with this command?" against the REAL engine
+    via POST /__classify (served mode only). The classification is NOT
+    reimplemented in JS — the tab always calls the endpoint. Availability is
+    probed with HEAD /__classify, mirroring the Settings tab's HEAD /__save and
+    the Install tab's HEAD /__run idioms; on a static host the button is disabled
+    and a help line points the user at scripts/serve-dashboards.py.
+    """
+    return _SIMULATOR_TAB_TEMPLATE
 
 
 def _render_stub_tab(name: str, when: str) -> str:
@@ -2323,6 +2337,153 @@ footer.page-footer a:hover { text-decoration: underline; }
   color: var(--muted);
 }
 .status-output { color: var(--muted); }
+
+/* ── Test-a-command simulator tab ────────────────────────────────── */
+.sim-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 820px;
+}
+.sim-intro,
+.sim-result {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+.sim-intro h2 { margin: 0 0 8px; font-size: 18px; }
+.sim-intro p {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.sim-intro code {
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.sim-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.sim-input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text);
+}
+.sim-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.sim-analyze { flex: 0 0 auto; }
+.sim-analyze[disabled] { opacity: 0.5; cursor: not-allowed; }
+.sim-disabled-help {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--warn);
+}
+.sim-disabled-help code {
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text);
+}
+.sim-result { display: flex; flex-direction: column; gap: 16px; }
+.sim-deny-banner {
+  background: var(--danger);
+  color: white;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.sim-deny-banner span { font-weight: 500; }
+.sim-result-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+.sim-field { display: flex; flex-direction: column; gap: 6px; }
+.sim-field-label,
+.sim-gate-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.sim-field-value {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text);
+}
+.sim-field-value.sim-no-category { color: var(--muted); font-style: italic; }
+.sim-tier-badge {
+  align-self: flex-start;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+.sim-tier-badge.tier-low { border-color: #22c55e; color: #22c55e; background: rgba(34, 197, 94, 0.08); }
+.sim-tier-badge.tier-medium { border-color: var(--warn); color: var(--warn); background: rgba(251, 191, 36, 0.08); }
+.sim-tier-badge.tier-high { border-color: #fb923c; color: #fb923c; background: rgba(251, 146, 60, 0.1); }
+.sim-tier-badge.tier-extreme { border-color: var(--danger); color: var(--danger); background: rgba(239, 68, 68, 0.1); }
+.sim-seats-block,
+.sim-concerns-block { display: flex; flex-direction: column; gap: 8px; }
+.sim-seats,
+.sim-concerns { display: flex; flex-wrap: wrap; gap: 8px; }
+.sim-seat-pill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  background: rgba(20, 184, 166, 0.08);
+}
+.sim-no-panel {
+  font-size: 12.5px;
+  color: var(--muted);
+  font-style: italic;
+}
+.sim-concern-pill {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--warn);
+  color: var(--warn);
+  background: rgba(251, 191, 36, 0.08);
+}
+.sim-gate {
+  border-top: 1px dashed var(--border);
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sim-gate-text {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.5;
+}
 """.strip()
 
 
@@ -2446,6 +2607,59 @@ _INSTALL_TAB_TEMPLATE = """
     <div class="status-panel" id="status-panel">
       <h4>Bridge status</h4>
       <pre class="status-output" id="status-output">Click <strong>Status</strong> to check which pieces (skills, hooks, MCP, package) are wired. Needs the local server.</pre>
+    </div>
+  </section>
+</div>
+""".strip()
+
+
+_SIMULATOR_TAB_TEMPLATE = """
+<div class="sim-layout">
+  <section class="sim-intro">
+    <h2>Test a command</h2>
+    <p>
+      Type any shell command and see <strong>what the Thing would do with it</strong> &mdash;
+      which category it lands in, the risk tier, which reviewer seats convene, the concerns
+      it cites, and whether it would be surfaced to you, auto-decided, or denied outright.
+      This runs the <strong>real command-review engine</strong> (no execution, no model calls
+      &mdash; just the deterministic screen + routing), so it matches what the hook does.
+    </p>
+    <div class="sim-input-row">
+      <input type="text" id="sim-command" class="sim-input"
+        placeholder="e.g. git push --force origin main"
+        aria-label="Command to analyze" autocomplete="off" spellcheck="false">
+      <button type="button" class="btn sim-analyze" id="sim-analyze-btn">Analyze</button>
+    </div>
+    <p class="sim-disabled-help" id="sim-disabled-help" hidden>
+      Run <code>python3 scripts/serve-dashboards.py</code> to simulate against the live engine.
+    </p>
+  </section>
+
+  <section class="sim-result" id="sim-result" hidden>
+    <div class="sim-deny-banner" id="sim-deny-banner" hidden>
+      &#9940; DENIED before any model runs<span id="sim-deny-reason"></span>
+    </div>
+    <div class="sim-result-grid">
+      <div class="sim-field">
+        <span class="sim-field-label">Category</span>
+        <span class="sim-field-value" id="sim-category">&mdash;</span>
+      </div>
+      <div class="sim-field">
+        <span class="sim-field-label">Risk tier</span>
+        <span class="sim-tier-badge" id="sim-tier-badge">&mdash;</span>
+      </div>
+    </div>
+    <div class="sim-seats-block">
+      <span class="sim-field-label">Seats convened</span>
+      <div class="sim-seats" id="sim-seats"></div>
+    </div>
+    <div class="sim-concerns-block" id="sim-concerns-block" hidden>
+      <span class="sim-field-label">Concerns cited</span>
+      <div class="sim-concerns" id="sim-concerns"></div>
+    </div>
+    <div class="sim-gate" id="sim-gate">
+      <span class="sim-gate-label">Predicted outcome</span>
+      <p class="sim-gate-text" id="sim-gate-text"></p>
     </div>
   </section>
 </div>
@@ -3600,8 +3814,159 @@ _JS = r"""
     }
   });
 
+  /* ── Test-a-command simulator tab ────────────────────────────────── */
+  /* Answers "what would the Thing do?" using the REAL engine via POST
+   * /__classify (served mode only). Classification is NEVER reimplemented in
+   * JS — we always call the endpoint. Availability is probed with HEAD
+   * /__classify, mirroring the Settings/Install HEAD probes. On a static host
+   * the button is disabled with a help line; fetch errors fail soft. */
+  const simCommand = document.getElementById("sim-command");
+  const simAnalyzeBtn = document.getElementById("sim-analyze-btn");
+  const simDisabledHelp = document.getElementById("sim-disabled-help");
+  const simResult = document.getElementById("sim-result");
+  const simDenyBanner = document.getElementById("sim-deny-banner");
+  const simDenyReason = document.getElementById("sim-deny-reason");
+  const simCategory = document.getElementById("sim-category");
+  const simTierBadge = document.getElementById("sim-tier-badge");
+  const simSeats = document.getElementById("sim-seats");
+  const simConcernsBlock = document.getElementById("sim-concerns-block");
+  const simConcerns = document.getElementById("sim-concerns");
+  const simGateText = document.getElementById("sim-gate-text");
+
+  const SIM_TIERS = ["low", "medium", "high", "extreme"];
+  const SIM_SEAT_LABELS = {
+    forseti: "Forseti — Security",
+    mimir: "Mímir — Correctness",
+    heimdall: "Heimdall — Injection watch",
+    thor: "Thor — Tie-breaker",
+  };
+
+  async function probeClassifyEndpoint() {
+    try {
+      const res = await fetch("/__classify", { method: "HEAD" });
+      return res.ok;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function renderDecision(d) {
+    if (simAnalyzeBtn) simAnalyzeBtn.disabled = false;
+    simResult.hidden = false;
+
+    /* Pre-LLM / self-disable deny banner. */
+    const denied = d.pre_llm_deny === true || d.self_disable_deny === true;
+    if (denied) {
+      const reason = d.deny_concern ? (" — " + d.deny_concern) : "";
+      simDenyReason.textContent = reason;
+      simDenyBanner.hidden = false;
+    } else {
+      simDenyBanner.hidden = true;
+    }
+
+    /* Category. */
+    if (d.category == null || d.category === "") {
+      simCategory.textContent = "(uncategorized — no review)";
+      simCategory.classList.add("sim-no-category");
+    } else {
+      simCategory.textContent = d.category;
+      simCategory.classList.remove("sim-no-category");
+    }
+
+    /* Tier badge, color-scaled low → extreme. */
+    const tier = SIM_TIERS.includes(d.tier) ? d.tier : null;
+    simTierBadge.textContent = tier || "—";
+    simTierBadge.className = "sim-tier-badge" + (tier ? " tier-" + tier : "");
+
+    /* Convened seats (or "no panel — clean read"). */
+    simSeats.innerHTML = "";
+    const seats = Array.isArray(d.convened_seats) ? d.convened_seats : [];
+    if (seats.length === 0 || d.panel_required === false) {
+      const span = document.createElement("span");
+      span.className = "sim-no-panel";
+      span.textContent = d.is_read === true
+        ? "no panel — clean read"
+        : "no panel convened";
+      simSeats.appendChild(span);
+    } else {
+      for (const seat of seats) {
+        const pill = document.createElement("span");
+        pill.className = "sim-seat-pill";
+        pill.textContent = SIM_SEAT_LABELS[seat] || seat;
+        simSeats.appendChild(pill);
+      }
+    }
+
+    /* Concerns cited (ids). */
+    simConcerns.innerHTML = "";
+    const concerns = Array.isArray(d.concerns) ? d.concerns : [];
+    if (concerns.length) {
+      for (const c of concerns) {
+        const pill = document.createElement("span");
+        pill.className = "sim-concern-pill";
+        pill.textContent = String(c);
+        simConcerns.appendChild(pill);
+      }
+      simConcernsBlock.hidden = false;
+    } else {
+      simConcernsBlock.hidden = true;
+    }
+
+    /* Predicted gate — the headline sentence. */
+    simGateText.textContent = d.predicted_gate || "(no prediction returned)";
+  }
+
+  async function analyzeCommand() {
+    const command = (simCommand && simCommand.value || "").trim();
+    if (!command) return;
+    simAnalyzeBtn.disabled = true;
+    simGateText.textContent = "Analyzing…";
+    try {
+      const res = await fetch("/__classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ command: command })
+      });
+      if (!res.ok) {
+        simResult.hidden = false;
+        simDenyBanner.hidden = true;
+        simGateText.textContent = "Engine error: HTTP " + res.status;
+        simAnalyzeBtn.disabled = false;
+        return;
+      }
+      const d = await res.json();
+      renderDecision(d);
+    } catch (err) {
+      simResult.hidden = false;
+      simDenyBanner.hidden = true;
+      simGateText.textContent = "Could not reach the engine — see console.";
+      console.error("/__classify failed:", err);
+      simAnalyzeBtn.disabled = false;
+    }
+  }
+
+  if (simAnalyzeBtn) {
+    simAnalyzeBtn.addEventListener("click", analyzeCommand);
+  }
+  if (simCommand) {
+    simCommand.addEventListener("keydown", e => {
+      if (e.key === "Enter") { e.preventDefault(); analyzeCommand(); }
+    });
+  }
+
+  probeClassifyEndpoint().then(available => {
+    if (available) {
+      if (simAnalyzeBtn) simAnalyzeBtn.disabled = false;
+      if (simDisabledHelp) simDisabledHelp.hidden = true;
+    } else {
+      if (simAnalyzeBtn) simAnalyzeBtn.disabled = true;
+      if (simCommand) simCommand.disabled = true;
+      if (simDisabledHelp) simDisabledHelp.hidden = false;
+    }
+  });
+
   /* ── Tab routing ─────────────────────────────────────────────────── */
-  const validTabs = ["settings", "install", "commands", "trees", "activity"];
+  const validTabs = ["settings", "install", "simulator", "commands", "trees", "activity"];
   function applyHash() {
     const hash = (location.hash || "#/settings").replace(/^#\//, "");
     const tab = validTabs.includes(hash) ? hash : "settings";
@@ -3629,9 +3994,10 @@ _JS = r"""
    * Settings tab's HEAD /__save probe. GitHub Pages / file:// / `http.server`
    * lack the endpoint, so we fail soft and keep the defaults/localStorage path.
    *
-   * Scope: command_review (gate_floor + tiers + panel seats + confidence) and
-   * design_checkins ONLY. Every field access is guarded — missing keys are
-   * skipped, never thrown. */
+   * Scope: command_review (gate_floor + tiers + panel seats + confidence),
+   * design_checkins, security_deny, and the per-category posture (per-layer
+   * levels + the per-category `thing:` toggle + per-permission overrides).
+   * Every field access is guarded — missing keys are skipped, never thrown. */
   const READ_TARGET = ".ravenclaude/comfort-posture.yaml";
 
   async function probeReadEndpoint() {
@@ -3695,7 +4061,102 @@ _JS = r"""
       state.design_checkins = parsed.design_checkins;
       touched = true;
     }
-    /* TODO: hydrate per-category posture from parsed.categories (follow-up) */
+    /* ── Per-category permission posture ─────────────────────────────── */
+    /* The committed file expresses the SAME shape the dashboard authors, so we
+     * map it back field-for-field, guarding every access (a key the file omits
+     * leaves the existing control untouched — we never throw on a missing key).
+     *
+     * Coverage vs. the v5 state model:
+     *   - parsed.global_default → the v5 per-layer model has no single
+     *     global-default control (it sets every category's local layer via a
+     *     preset, not a stored scalar), so there is no slot to hydrate; we read
+     *     it defensively and skip. Per-category values below fully express the
+     *     posture.
+     *   - parsed.security_deny (array) → state.security_deny (intersected with
+     *     the always-on baseline so unblocking only sticks for known patterns).
+     *   - parsed.categories[<cat>] → each category's user/local/project layers,
+     *     its `thing:` toggle, and its nested per-permission `overrides` map.
+     *   - parsed.overrides (top-level v5 per-permission map) is read defensively
+     *     and merged onto the matching category when the engine ever emits it at
+     *     the top level; the canonical home is per-category overrides above. */
+    const LAYER_VALUES = ["allow", "ask", "deny", "inherit"];
+    function hydrateOverrideMap(dst, src) {
+      /* dst: a category's overrides object; src: a {pattern:{user,local,project}}
+       * map. Keeps only well-formed, non-all-inherit entries. Returns true if it
+       * changed anything. */
+      if (!src || typeof src !== "object") return false;
+      let changed = false;
+      for (const pat of Object.keys(src)) {
+        const o = src[pat];
+        if (!o || typeof o !== "object") continue;
+        const rec = { user: "inherit", local: "inherit", project: "inherit" };
+        for (const L of ["user", "local", "project"]) {
+          if (LAYER_VALUES.includes(o[L])) rec[L] = o[L];
+        }
+        if (rec.user !== "inherit" || rec.local !== "inherit" || rec.project !== "inherit") {
+          dst[pat] = rec;
+          changed = true;
+        }
+      }
+      return changed;
+    }
+
+    /* parsed.global_default — defensive read; no state slot in the v5 model. */
+    if (typeof parsed.global_default === "string" && LAYER_VALUES.includes(parsed.global_default)) {
+      /* No global-default control to drive; per-category values carry the
+       * posture. Read + ignore so a present key is never a hard error. */
+    }
+
+    /* parsed.security_deny — intersect with the always-on baseline. */
+    if (Array.isArray(parsed.security_deny)) {
+      state.security_deny = parsed.security_deny.filter(
+        p => state.security_deny_baseline.includes(p)
+      );
+      touched = true;
+    }
+
+    /* parsed.categories — per-layer levels + thing toggle + overrides. */
+    const pcats = (typeof parsed.categories === "object" && parsed.categories) || null;
+    if (pcats) {
+      for (const cat of Object.keys(pcats)) {
+        const dst = state.categories[cat];
+        const src = pcats[cat];
+        if (!dst || !src || typeof src !== "object") continue;
+        for (const L of ["user", "local", "project"]) {
+          if (LAYER_VALUES.includes(src[L])) {
+            dst[L] = src[L];
+            touched = true;
+          }
+        }
+        /* `thing:` may be a YAML-truthy "on"/"off"/true/false. */
+        if (src.thing === true || src.thing === "on") {
+          dst.thing = true;
+          touched = true;
+        } else if (src.thing === false || src.thing === "off") {
+          dst.thing = false;
+          touched = true;
+        }
+        if (src.overrides && typeof src.overrides === "object") {
+          const ov = dst.overrides || (dst.overrides = {});
+          if (hydrateOverrideMap(ov, src.overrides)) touched = true;
+        }
+      }
+    }
+
+    /* parsed.overrides — top-level per-permission map, if the engine emits one.
+     * Merge each entry onto the category that owns its pattern (best-effort). */
+    if (parsed.overrides && typeof parsed.overrides === "object") {
+      for (const cat of Object.keys(state.categories)) {
+        const dst = state.categories[cat].overrides || (state.categories[cat].overrides = {});
+        /* A flat {pattern:{...}} map carries no category; only merge patterns
+         * the category already knows about so we never invent an override. */
+        const subset = {};
+        for (const pat of Object.keys(parsed.overrides)) {
+          if (Object.prototype.hasOwnProperty.call(dst, pat)) subset[pat] = parsed.overrides[pat];
+        }
+        if (hydrateOverrideMap(dst, subset)) touched = true;
+      }
+    }
     return touched;
   }
 
@@ -3749,6 +4210,7 @@ _PAGE_TEMPLATE = """<!doctype html>
   <nav class="tab-bar" role="tablist" aria-label="Dashboard tabs">
     <button class="tab-btn" data-tab="settings" role="tab" aria-selected="true">Settings</button>
     <button class="tab-btn" data-tab="install" role="tab" aria-selected="false">Install &amp; Update</button>
+    <button class="tab-btn" data-tab="simulator" role="tab" aria-selected="false">Test a command</button>
     <button class="tab-btn" data-tab="commands" role="tab" aria-selected="false">Commands</button>
     <button class="tab-btn" data-tab="trees" role="tab" aria-selected="false">Trees</button>
     <button class="tab-btn" data-tab="activity" role="tab" aria-selected="false">Activity</button>
@@ -3761,6 +4223,9 @@ _PAGE_TEMPLATE = """<!doctype html>
   </section>
   <section class="tab-panel" data-tab="install" role="tabpanel" aria-label="Install and Update">
 {install_html}
+  </section>
+  <section class="tab-panel" data-tab="simulator" role="tabpanel" aria-label="Test a command">
+{simulator_html}
   </section>
   <section class="tab-panel" data-tab="commands" role="tabpanel" aria-label="Commands">
 {commands_html}

@@ -28,6 +28,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -127,6 +128,34 @@ def _command_prefixes() -> list[tuple[str, str, bool]]:
     return out
 
 
+def _normalize_lead(lead: str) -> str:
+    """Strip wrappers that would let a command dodge EMISSIONS prefix matching.
+
+    Closes the classification holes from the tribunal assessment (§should-fix #8):
+    leading env-var assignments (`LS_COLORS=x ls`), `sudo`/`env` prefixes,
+    absolute interpreter paths (`/usr/bin/python3` -> `python3`), and `git`
+    global options (`git -c k=v push` -> `git push`). Conservative + idempotent.
+    """
+    prev = None
+    while lead and lead != prev:
+        prev = lead
+        # leading VAR=value assignments (one or more)
+        lead = re.sub(r"^[A-Za-z_][A-Za-z0-9_]*=\S*\s+", "", lead)
+        # sudo / env wrappers (with any of their own flags before the real cmd)
+        lead = re.sub(r"^(?:sudo|env|command|nohup|nice|stdbuf)\b(?:\s+-\S+)*\s+", "", lead)
+        lead = re.sub(r"^(?:sudo|env)\s+[A-Za-z_][A-Za-z0-9_]*=\S*\s+", "", lead)
+    # absolute / relative path on the first token -> basename (/usr/bin/python3 -> python3)
+    m = re.match(r"^(\S*/)?(\S+)(.*)$", lead, re.S)
+    if m and m.group(1):
+        lead = m.group(2) + m.group(3)
+    # git global options: `git -c k=v -C dir push` -> `git push`
+    if lead.startswith("git "):
+        rest = lead[4:]
+        rest = re.sub(r"^(?:\s*(?:-c\s+\S+|-C\s+\S+|--no-pager|-p|--paginate))+\s*", "", rest)
+        lead = "git " + rest.lstrip()
+    return lead.strip()
+
+
 def classify(command: str) -> str | None:
     """Return the comfort-posture category for a Bash command, or None.
 
@@ -142,6 +171,7 @@ def classify(command: str) -> str | None:
     # Leading segment only — split on the first shell separator so `ls | grep`
     # classifies as its first command. Keep it conservative (T2 is low-stakes).
     lead = re.split(r"\s*(?:\||\|\||&&|;)\s*", cmd, maxsplit=1)[0].strip()
+    lead = _normalize_lead(lead)
 
     best_cat: str | None = None
     best_len = -1
@@ -193,7 +223,11 @@ def thing_enabled_for(posture: dict, category: str | None) -> bool:
 _DEFAULT_PANEL = {
     "forseti": {"agent": "security-reviewer", "model": "claude-opus-4-7"},
     "mimir": {"agent": "code-reviewer", "model": "claude-haiku-4-5"},
-    "heimdall": {"agent": "prompt-engineer", "model": "claude-haiku-4-5"},
+    # Heimdall is the injection seat — the assessment (must-fix #4) flagged that
+    # running the adversarial-content reviewer on the weakest model is exactly
+    # where you don't want to economize. Bumped to Sonnet (Mímir, the correctness
+    # seat, stays on the fast/cheap Haiku).
+    "heimdall": {"agent": "prompt-engineer", "model": "claude-sonnet-4-6"},
     "thor": {"agent": "architect", "model": "claude-opus-4-7"},
 }
 _DEFAULT_CONFIDENCE_THRESHOLD = 0.5
@@ -374,14 +408,27 @@ def resolve_tier_config(root: Path, posture: dict | None) -> tuple[dict, str | N
     tiers = {t: dict(_DEFAULT_TIERS[t]) for t in _TIER_ORDER}
     cat_map = dict(_DEFAULT_CATEGORY_TIER_MAP)
     gate_floor = _DEFAULT_GATE_FLOOR
+    # #15 knobs (same precedence: command_review > thing.yaml > defaults).
+    bypass: list[str] = []
+    cache_ttl = 0
+    fatigue = 0
 
     def _apply(block) -> None:
-        nonlocal gate_floor
+        nonlocal gate_floor, bypass, cache_ttl, fatigue
         if not isinstance(block, dict):
             return
         gf = block.get("gate_floor")
         if isinstance(gf, str) and gf in _TIER_RANK and gf != "low":
             gate_floor = gf
+        if isinstance(block.get("bypass"), list):
+            bypass = [p for p in block["bypass"] if isinstance(p, str)]
+        for key, attr in (("cache_ttl_seconds", "cache_ttl"), ("fatigue_threshold", "fatigue")):
+            v = block.get(key)
+            if isinstance(v, int) and v >= 0:
+                if attr == "cache_ttl":
+                    cache_ttl = v
+                else:
+                    fatigue = v
         tm = block.get("category_tier_map")
         if isinstance(tm, dict):
             for cat, tier in tm.items():
@@ -416,7 +463,119 @@ def resolve_tier_config(root: Path, posture: dict | None) -> tuple[dict, str | N
     cfg["tiers"] = tiers
     cfg["category_tier_map"] = cat_map
     cfg["gate_floor"] = gate_floor
+    cfg["bypass"] = bypass
+    cfg["cache_ttl_seconds"] = cache_ttl
+    cfg["fatigue_threshold"] = fatigue
     return cfg, error
+
+
+# Anti-correlated-hallucination rule (Matt 2026-05-26): when >=2 seats convene, at
+# least two DISTINCT model backbones must run, so a single model's blind spot can't
+# pass the whole panel unseen. If a config collapsed the convened seats onto one
+# model, reassign one seat to a different (preferring equal-or-stronger) model.
+_DIVERSITY_PREF = ["claude-sonnet-4-6", "claude-opus-4-7", "claude-haiku-4-5"]
+
+
+def _enforce_model_diversity(panel: dict, convened: list[str]) -> tuple[dict, bool]:
+    """Return (panel, adjusted). Guarantees >=2 distinct models among `convened`."""
+    if len(convened) < 2:
+        return panel, False
+    models = [(panel.get(s) or {}).get("model") for s in convened]
+    if len({m for m in models if m}) >= 2:
+        return panel, False  # already heterogeneous
+    common = models[0]
+    alt = next((m for m in _DIVERSITY_PREF if m != common), "claude-sonnet-4-6")
+    out = {k: dict(v) for k, v in panel.items()}
+    out.setdefault(convened[-1], {})["model"] = alt  # diversify the last convened seat
+    return out, True
+
+
+def _decision_detail(root: Path, posture: dict, command: str, category: str | None) -> dict:
+    """Full tier/route/gate computation for a (command, category).
+
+    Used by `classify` when the category's toggle is on, AND by `preview`
+    unconditionally (the dashboard 'Test a command' simulator) so the preview
+    is the REAL engine decision, never a reimplementation that could drift.
+    """
+    d: dict = {}
+    cfg, cfg_err = resolve_tier_config(root, posture)
+    cfg.pop("timeout_posture_map", None)
+    d["seat_timeout_seconds"] = cfg["seat_timeout_seconds"]
+    d["panel_deadline_seconds"] = cfg["panel_deadline_seconds"]
+    d["audit_dir"] = cfg["audit_dir"]
+    if cfg_err:
+        d["config_error"] = cfg_err
+
+    route = _route(command, category)
+    d.update(route)
+
+    base_tier = _norm_tier(cfg["category_tier_map"].get(category), "medium")
+    final_tier = _escalate_tier(base_tier, route.get("max_severity"))
+    tier_cfg = cfg["tiers"][final_tier]
+    is_read = category in _READ_CATEGORIES
+    gate_floor = cfg["gate_floor"]
+
+    want = set(tier_cfg["seats"]) | set(tier_cfg["mandatory"])
+    convened = [s for s in _SEATS if s in want and s != "thor"]
+    if _TIER_RANK[final_tier] >= _TIER_RANK["medium"] and not convened:
+        convened = ["forseti", "mimir", "heimdall"]
+    # Enforce model heterogeneity across the convened panel (anti-correlated
+    # hallucination): >=2 seats must run >=2 distinct models.
+    panel_models, diversified = _enforce_model_diversity(cfg["panel"], convened)
+    d["panel"] = panel_models
+    d["convened_seats"] = convened
+    d["model_diversity_enforced"] = diversified
+    d["confidence_threshold"] = float(tier_cfg["confidence"])
+    d["tier"] = final_tier
+    d["base_tier"] = base_tier
+    d["is_read"] = is_read
+    d["gate_floor"] = gate_floor
+    d["panel_required"] = _TIER_RANK[final_tier] >= _TIER_RANK["medium"]
+    d["gate_allow"] = (not is_read) and _TIER_RANK[final_tier] >= _TIER_RANK[gate_floor]
+    d["timeout_posture"] = "deny"
+
+    # ── #15 cost/UX knobs (bypass-list / verdict cache / session-fatigue) ────────
+    # These let the orchestrator skip the EXPENSIVE LLM panel; the deterministic
+    # screen (pre_llm_deny + self-disable) ALWAYS runs regardless, so the hard
+    # floor is never bypassed. bypass also requires a non-critical screen.
+    bypass_match = False
+    for p in cfg.get("bypass") or []:
+        try:
+            if re.search(p, command):
+                bypass_match = True
+                break
+        except re.error:
+            continue
+    # Never bypass a critical-severity screen even if the pattern matches.
+    d["bypass_match"] = bool(bypass_match) and route.get("max_severity") != "critical"
+    d["cache_ttl_seconds"] = int(cfg.get("cache_ttl_seconds") or 0)
+    d["fatigue_threshold"] = int(cfg.get("fatigue_threshold") or 0)
+    # config_hash invalidates the verdict cache when the rules (tiers/panel/
+    # gate_floor/category map) OR the concern catalog change — so a cached
+    # permissive verdict is never reused after the policy that produced it moves.
+    cfg_blob = json.dumps(
+        {"tiers": cfg["tiers"], "panel": cfg["panel"], "gate_floor": cfg["gate_floor"],
+         "category_tier_map": cfg["category_tier_map"]},
+        sort_keys=True,
+    )
+    try:
+        cat_text = (_HERE.parent / "knowledge" / "concerns-catalog.md").read_text(encoding="utf-8")
+    except OSError:
+        cat_text = ""
+    d["config_hash"] = hashlib.sha256((cfg_blob + cat_text).encode("utf-8")).hexdigest()[:16]
+
+    # Human-readable predicted outcome for the simulator.
+    if d.get("pre_llm_deny"):
+        d["predicted_gate"] = f"DENY — blocked before any model runs ({d.get('deny_concern') or 'hard rule'})"
+    elif not d["panel_required"]:
+        d["predicted_gate"] = "ALLOW — clean low-risk command, no panel convened"
+    elif is_read:
+        d["predicted_gate"] = "panel auto-decides (reads are never surfaced to you)"
+    elif d["gate_allow"]:
+        d["predicted_gate"] = "a confident panel-ALLOW is surfaced to you as ASK; DENY blocks, EDIT rewrites"
+    else:
+        d["predicted_gate"] = "panel decides autonomously (tier is below gate_floor); DENY blocks, EDIT rewrites"
+    return d
 
 
 def main() -> int:
@@ -425,6 +584,8 @@ def main() -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("classify", help="classify a command + report toggle state")
     c.add_argument("command", help="the shell command string")
+    p = sub.add_parser("preview", help="full tier/seat/gate preview regardless of toggle (dashboard simulator)")
+    p.add_argument("command", help="the shell command string")
     args = ap.parse_args()
 
     root = Path(args.root).resolve()
@@ -449,52 +610,10 @@ def main() -> int:
             # settings.json floor (do NOT claim enabled). Report for visibility.
             result["posture_error"] = f"comfort-posture.yaml: {exc}"
 
-    if result["thing_enabled"]:
-        cfg, cfg_err = resolve_tier_config(root, posture)
-        cfg.pop("timeout_posture_map", None)  # superseded by the tier/gate model
-        result["seat_timeout_seconds"] = cfg["seat_timeout_seconds"]
-        result["panel_deadline_seconds"] = cfg["panel_deadline_seconds"]
-        result["audit_dir"] = cfg["audit_dir"]
-        if cfg_err:
-            result["config_error"] = cfg_err
-
-        # Deterministic screen — concerns, max severity, pre-LLM deny, high-blast.
-        route = _route(args.command, category)
-        result.update(route)
-
-        # Risk tier = category base tier + severity escalation bump.
-        base_tier = _norm_tier(cfg["category_tier_map"].get(category), "medium")
-        final_tier = _escalate_tier(base_tier, route.get("max_severity"))
-        tier_cfg = cfg["tiers"][final_tier]
-        is_read = category in _READ_CATEGORIES
-        gate_floor = cfg["gate_floor"]
-
-        # Convened panel comes from the TIER (mandatory seats re-unioned), in panel
-        # order — overrides the legacy severity routing carried by _route. Thor is
-        # never pre-convened; it is summoned at aggregation on a split.
-        want = set(tier_cfg["seats"]) | set(tier_cfg["mandatory"])
-        convened = [s for s in _SEATS if s in want and s != "thor"]
-        # A medium+ tier must convene at least one seat (else the orchestrator's
-        # aggregation has nothing to tally). If a config emptied it, fall back to
-        # the full review panel rather than silently running no review.
-        if _TIER_RANK[final_tier] >= _TIER_RANK["medium"] and not convened:
-            convened = ["forseti", "mimir", "heimdall"]
-        result["panel"] = cfg["panel"]
-        result["convened_seats"] = convened
-        result["confidence_threshold"] = float(tier_cfg["confidence"])
-        result["tier"] = final_tier
-        result["base_tier"] = base_tier
-        result["is_read"] = is_read
-        result["gate_floor"] = gate_floor
-        # Panel runs at medium+; a clean low command is cleared by the screen alone.
-        result["panel_required"] = _TIER_RANK[final_tier] >= _TIER_RANK["medium"]
-        # A confident panel-ALLOW is surfaced to the human (ask) when the tier is
-        # at/above gate_floor. Reads are never surfaced (handled in the hook).
-        result["gate_allow"] = (not is_read) and _TIER_RANK[final_tier] >= _TIER_RANK[gate_floor]
-        # Abstention / inconclusive panel always fails CLOSED (deny). Clean reads
-        # no longer convene a panel; an escalated read that abstains fails closed
-        # (P9b), never asks — so the old per-category `ask` posture is retired.
-        result["timeout_posture"] = "deny"
+    # `preview` (dashboard simulator) computes the full detail unconditionally;
+    # `classify` (the live hook path) only when the category's toggle is on.
+    if args.cmd == "preview" or result["thing_enabled"]:
+        result.update(_decision_detail(root, posture, args.command, category))
 
     json.dump(result, sys.stdout)
     sys.stdout.write("\n")

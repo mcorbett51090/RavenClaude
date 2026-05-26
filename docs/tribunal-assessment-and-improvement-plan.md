@@ -108,3 +108,32 @@ Weighted across 10 dimensions (architecture 8, routing 6, aggregation 7, **injec
 18. **Persist per-seat full verdict JSON** in the Sága log for forensics. _(Expert 1.)_
 
 **Highest leverage:** #1 (envelope) and #2 (self-protection) for security; #3 (secret-regex FP) for adoption.
+
+---
+
+## Status update — 2026-05-26 (v0.31.0 finish-out)
+
+The full improvement plan was worked through. Resolution by item:
+
+| # | Item | Status |
+|---|---|---|
+| 1 | Adversarial-envelope hardening | ✅ per-call random **nonce** delimiter (`<untrusted-{nonce}>`) in `thing-seat.sh`; literal delimiters in the command are defanged |
+| 2 | §B.9.5 self-protection | ✅ already shipped (T4 `xc.tribunal-self-disable`, extended for the T5 tier config) |
+| 3 | Secret-regex false-positive | ✅ the `-p\S{6,}` pre-deny is scoped to DB clients; benign `tar -pcvf`/`cp -p`/`ssh -p2222` no longer pre-denied (Gate 21) |
+| 4 | Heimdall (injection) on weakest model | ✅ moved to Sonnet; the pre-LLM injection regex already runs on every reviewed command |
+| 5 | Seat sandboxing | ✅ seats run `claude -p --tools ""` (all tools disabled) |
+| 6 | Force-push regex reconciliation | ✅ `xc.no-undo` now has the `--force-with-lease` lookahead, agreeing with `srm.force-push` |
+| 7 | High-stakes helper failure → deny | ✅ missing/failed decision helper now **denies** (fail closed), not `ask` |
+| 8 | Classification holes | ✅ lead segment normalized — env-var assignments / `sudo` / `env` / absolute interpreter paths / `git -c` stripped before EMISSIONS matching (Gate 21 fixtures) |
+| 9 | Greedy seat-verdict parse | ✅ replaced with a string-aware `json.JSONDecoder.raw_decode` last-object scan (survives a `}` in `reasoning`) |
+| 10 | Silent Sága-log failure | ✅ a permissive verdict whose audit write fails is downgraded to a fail-closed deny |
+| 11 | Mímir on criticals | ✅ the T5 tier model convenes Mímir at high + extreme tiers |
+| 12 | Trigger FP/FN + pre-deny unit tests | ✅ Gate 21 corpus (force-push / curl\|sh / secret / mysql `-p` all pre-deny; benign flags don't) |
+| 13 | Bound/escape interpolated seat reasoning | ✅ reasoning capped at 200 chars + control bytes stripped at capture |
+| 14 | base64 decode + recursive concern check | ✅ long base64 tokens are decoded and the decoded text re-evaluated; a base64'd curl\|sh / secret / injection is now caught + pre-denied; escalation keys on content, not length |
+| 16 | Dashboard config parse-back | ✅ `/__read` hydrate — command-review (PR #98) **and** per-category posture (this release) load from the committed `comfort-posture.yaml` |
+| 17 | CI: live-category concerns detectable | ✅ Gate 21 requires every live-category concern to carry `triggers` **or** an explicit `judgment_only` flag (7 seat-judged concerns marked) |
+| 18 | Persist per-seat verdict JSON | ✅ each seat's reasoning + proposed edit is written to the Sága log |
+| 15 | Caching / bypass-list / session-fatigue counter | ✅ all three (v0.32.0): `command_review.bypass` patterns skip the panel (hard-rule screen still runs; a critical-concern match is never bypassed); a config-hash-keyed, TTL-bounded verdict **cache** reuses an identical command's panel result; an advisory **session-fatigue** counter nudges toward tuning `gate_floor` after N asks |
+
+**Plus** (beyond the original list): a **"Test a command" dashboard simulator** (drives the real classifier via `/__classify`), and a **model-diversity rule** (Matt 2026-05-26) — when ≥2 seats convene, the engine guarantees ≥2 distinct model backbones so a single model's blind spot can't pass the whole panel (anti-correlated-hallucination). With #1–#18 closed, the full roadmap is complete; the remaining work is purely additive enhancement.
