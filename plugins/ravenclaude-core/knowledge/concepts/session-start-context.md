@@ -6,6 +6,8 @@ kind: platform-fact
 order: 22
 summary: "SessionStart hooks inject additionalContext into every session — additive only; they can't block or delay startup and are capped near 10k chars."
 see_also: [hook-lifecycle, capability-banner]
+node_links:
+  H: hook-lifecycle
 last_verified: 2026-05-26
 refresh_when: "Anthropic changes the SessionStart additionalContext field, its size cap, or matcher set."
 sources:

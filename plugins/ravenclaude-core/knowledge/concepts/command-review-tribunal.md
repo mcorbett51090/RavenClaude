@@ -6,6 +6,10 @@ kind: ravenclaude-built
 order: 30
 summary: "An opt-in panel of reviewer seats that votes ALLOW/EDIT/DENY on shell commands instead of interrupting you."
 see_also: [comfort-posture, permission-layers, hook-lifecycle]
+node_links:
+  B: comfort-posture
+  E: model-diversity
+  L: saga-log
 try_it:
   label: "Run a command through it in Test a command"
   href: "#/simulator"

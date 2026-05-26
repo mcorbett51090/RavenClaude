@@ -6,6 +6,8 @@ kind: ravenclaude-built
 order: 25
 summary: "A point-and-click editor that writes Claude Code permission rules per category and layer — and keeps design check-ins independent of permission level."
 see_also: [permission-layers, command-review-tribunal]
+node_links:
+  R: permission-layers
 widget: permission-resolver
 try_it:
   label: "Open the Settings tab"

@@ -2832,6 +2832,14 @@ footer.page-footer a:hover { text-decoration: underline; }
 .cw-verdict[data-v="allow"] { color: var(--accent); border-color: var(--accent); }
 .cw-why { font-size: 12.5px; color: var(--muted); flex: 1 1 200px; line-height: 1.5; }
 
+/* clickable diagram nodes (node_links) — cross-jump to a related concept */
+.concept-diagram-well .rc-node-link { cursor: pointer; }
+.concept-diagram-well .rc-node-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.concept-diagram-well .rc-node-link:hover rect,
+.concept-diagram-well .rc-node-link:hover polygon,
+.concept-diagram-well .rc-node-link:focus rect,
+.concept-diagram-well .rc-node-link:focus polygon { stroke: var(--accent) !important; stroke-width: 2.5px !important; }
+
 @keyframes rc-flash {
   0% { box-shadow: 0 0 0 2px var(--accent); }
   100% { box-shadow: 0 0 0 0 transparent; }
@@ -4633,6 +4641,36 @@ _JS = r"""
       setLayer("project", "deny");
       selects.forEach(s => s.addEventListener("change", compute));
       compute();
+    });
+  })();
+
+  /* ── Learn tab: clickable diagram nodes (node_links → deep-link) ────── */
+  (function initConceptNodeLinks() {
+    const data = document.getElementById("concepts-data");
+    if (!data) return;
+    let reg;
+    try { reg = JSON.parse(data.textContent); } catch (e) { return; }
+    (reg.concepts || []).forEach(c => {
+      const links = c.node_links || {};
+      if (!Object.keys(links).length) return;
+      const card = document.getElementById("learn-" + c.id);
+      const svg = card && card.querySelector(".concept-diagram-well svg");
+      if (!svg) return;
+      Object.keys(links).forEach(nodeId => {
+        const target = links[nodeId];
+        // node group ids are namespaced per-SVG: c-<concept>-flowchart-<NodeId>-<n>
+        const node = svg.querySelector('[id*="-flowchart-' + nodeId + '-"]');
+        if (!node) return;
+        node.classList.add("rc-node-link");
+        node.setAttribute("role", "link");
+        node.setAttribute("tabindex", "0");
+        node.setAttribute("aria-label", "Open concept: " + target);
+        const go = () => { location.hash = "/learn/" + target; };
+        node.addEventListener("click", go);
+        node.addEventListener("keydown", e => {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); }
+        });
+      });
     });
   })();
 

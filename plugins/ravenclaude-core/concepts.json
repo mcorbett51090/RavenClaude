@@ -36,6 +36,7 @@
       ],
       "widget": null,
       "try_it": null,
+      "node_links": {},
       "last_verified": "2026-05-26",
       "refresh_when": "The install steps, requirements, or slash-command surface change.",
       "sources": [
@@ -70,6 +71,7 @@
         "label": "Set your own layers on the Settings tab",
         "href": "#/settings"
       },
+      "node_links": {},
       "last_verified": "2026-05-25",
       "refresh_when": "Anthropic adds/removes a settings layer, or changes the cross-layer merge rule.",
       "sources": [
@@ -101,6 +103,7 @@
       ],
       "widget": null,
       "try_it": null,
+      "node_links": {},
       "last_verified": "2026-05-25",
       "refresh_when": "Anthropic adds/renames a permission mode or changes auto-mode's drop-broad-rules behavior.",
       "sources": [
@@ -132,6 +135,7 @@
       ],
       "widget": null,
       "try_it": null,
+      "node_links": {},
       "last_verified": "2026-05-25",
       "refresh_when": "Anthropic changes hook exit-code semantics, the hookSpecificOutput schema, or timeout behavior.",
       "sources": [
@@ -163,6 +167,9 @@
       ],
       "widget": null,
       "try_it": null,
+      "node_links": {
+        "H": "hook-lifecycle"
+      },
       "last_verified": "2026-05-26",
       "refresh_when": "Anthropic changes the SessionStart additionalContext field, its size cap, or matcher set.",
       "sources": [
@@ -192,6 +199,9 @@
       "try_it": {
         "label": "Open the Settings tab",
         "href": "#/settings"
+      },
+      "node_links": {
+        "R": "permission-layers"
       },
       "last_verified": "2026-05-26",
       "refresh_when": "The comfort-posture category set, the layer model, or the design_checkins decoupling changes.",
@@ -228,6 +238,11 @@
         "label": "Run a command through it in Test a command",
         "href": "#/simulator"
       },
+      "node_links": {
+        "B": "comfort-posture",
+        "E": "model-diversity",
+        "L": "saga-log"
+      },
       "last_verified": "2026-05-26",
       "refresh_when": "The tribunal's tier model, seat roster, or gate_floor semantics change.",
       "sources": [
@@ -259,6 +274,7 @@
       ],
       "widget": null,
       "try_it": null,
+      "node_links": {},
       "last_verified": "2026-05-26",
       "refresh_when": "The Sága log entry shape or its on-disk location changes.",
       "sources": [
@@ -285,6 +301,7 @@
       ],
       "widget": null,
       "try_it": null,
+      "node_links": {},
       "last_verified": "2026-05-26",
       "refresh_when": "The model-diversity guarantee or its auto-reassignment behavior changes.",
       "sources": [
@@ -316,6 +333,9 @@
       ],
       "widget": null,
       "try_it": null,
+      "node_links": {
+        "PANEL": "command-review-tribunal"
+      },
       "last_verified": "2026-05-26",
       "refresh_when": "The decision-review modes, the defer rules, or the high-blast carve-out change.",
       "sources": [
@@ -347,6 +367,9 @@
       ],
       "widget": null,
       "try_it": null,
+      "node_links": {
+        "G": "permission-layers"
+      },
       "last_verified": "2026-05-26",
       "refresh_when": "The capability-orientation hook's banner contents or its salience-not-enforcement framing change.",
       "sources": [
@@ -378,6 +401,7 @@
       ],
       "widget": null,
       "try_it": null,
+      "node_links": {},
       "last_verified": "2026-05-26",
       "refresh_when": "The environment-context pre-action check or the discovery skill's contract changes.",
       "sources": [
@@ -408,6 +432,7 @@
       ],
       "widget": null,
       "try_it": null,
+      "node_links": {},
       "last_verified": "2026-05-26",
       "refresh_when": "The decision-tree convention or its last-verified staleness discipline changes.",
       "sources": [
@@ -439,6 +464,7 @@
       ],
       "widget": null,
       "try_it": null,
+      "node_links": {},
       "last_verified": "2026-05-26",
       "refresh_when": "The enforce-layout hook, .repo-layout.json schema, or the validate-layout CI workflow changes.",
       "sources": [
@@ -469,6 +495,7 @@
       ],
       "widget": null,
       "try_it": null,
+      "node_links": {},
       "last_verified": "2026-05-26",
       "refresh_when": "The gate-audit approach or its skip-is-not-a-pass policy changes.",
       "sources": [
@@ -500,6 +527,7 @@
       ],
       "widget": null,
       "try_it": null,
+      "node_links": {},
       "last_verified": "2026-05-26",
       "refresh_when": "The Copilot package generator, the hook adapter's envelope mapping, or Copilot's plugin-hook bug status changes.",
       "sources": [
