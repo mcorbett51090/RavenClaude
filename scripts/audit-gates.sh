@@ -782,6 +782,61 @@ sys.exit(0 if h('high') != h('extreme') else 1)" || rc=1
 gate "thing#15: config_hash changes with the rules (cache invalidation)" must_pass "$rc"
 
 echo
+echo "── Gate 23: Learn-tab concept pipeline (registry + SVG + docs freshness) ──"
+# Proves the three concept generators' --check gates actually catch drift, so a
+# concept edited without regenerating can't ship a stale dashboard / docs. All
+# CI-safe: render-concepts --check reads a source-hash manifest (no Chromium).
+
+# concepts.py freshness: a committed concepts.json that no longer matches source.
+backup plugins/ravenclaude-core/concepts.json
+python3 - <<'PY'
+import json
+p = "plugins/ravenclaude-core/concepts.json"
+d = json.load(open(p))
+d["schema_version"] = 999
+open(p, "w").write(json.dumps(d, indent=2, ensure_ascii=False) + "\n")
+PY
+rc=0; python3 scripts/concepts.py --check >/dev/null 2>&1 || rc=$?
+gate "concepts.py freshness (stale concepts.json)" must_fail "$rc"
+cp -p "$TMP/plugins_ravenclaude-core_concepts.json.bak" plugins/ravenclaude-core/concepts.json
+rc=0; python3 scripts/concepts.py --check >/dev/null 2>&1 || rc=$?
+gate "concepts.py freshness (clean tree)" must_pass "$rc"
+
+# concepts.py staleness: a platform-fact with an ancient last_verified must fail.
+backup plugins/ravenclaude-core/knowledge/concepts/permission-layers.md
+sed -i 's/^last_verified:.*/last_verified: 2000-01-01/' plugins/ravenclaude-core/knowledge/concepts/permission-layers.md
+rc=0; python3 scripts/concepts.py --check >/dev/null 2>&1 || rc=$?
+gate "concepts.py staleness (platform-fact > 90d)" must_fail "$rc"
+cp -p "$TMP/plugins_ravenclaude-core_knowledge_concepts_permission-layers.md.bak" plugins/ravenclaude-core/knowledge/concepts/permission-layers.md
+
+# render-concepts.py: a committed SVG out of sync with its diagram source
+# (simulated by mutating a hash in the render manifest).
+MAN=plugins/ravenclaude-core/knowledge/concepts/visuals/.render-manifest.json
+backup "$MAN"
+python3 - <<'PY'
+import json
+p = "plugins/ravenclaude-core/knowledge/concepts/visuals/.render-manifest.json"
+d = json.load(open(p))
+k = sorted(d["concepts"])[0]
+d["concepts"][k] = "0" * 64
+open(p, "w").write(json.dumps(d, indent=2, sort_keys=True, ensure_ascii=False) + "\n")
+PY
+rc=0; python3 scripts/render-concepts.py --check >/dev/null 2>&1 || rc=$?
+gate "render-concepts SVG sync (mutated manifest)" must_fail "$rc"
+cp -p "$TMP/plugins_ravenclaude-core_knowledge_concepts_visuals_.render-manifest.json.bak" "$MAN"
+rc=0; python3 scripts/render-concepts.py --check >/dev/null 2>&1 || rc=$?
+gate "render-concepts SVG sync (clean tree)" must_pass "$rc"
+
+# generate-concepts-doc.py: a stale committed docs/concepts.md.
+backup docs/concepts.md
+printf '\nstale fixture line\n' >> docs/concepts.md
+rc=0; python3 scripts/generate-concepts-doc.py --check >/dev/null 2>&1 || rc=$?
+gate "concepts-doc freshness (stale docs/concepts.md)" must_fail "$rc"
+cp -p "$TMP/docs_concepts.md.bak" docs/concepts.md
+rc=0; python3 scripts/generate-concepts-doc.py --check >/dev/null 2>&1 || rc=$?
+gate "concepts-doc freshness (clean tree)" must_pass "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 if [[ "$FAIL" -gt 0 ]]; then
