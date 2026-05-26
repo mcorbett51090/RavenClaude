@@ -14,7 +14,7 @@
 # per-category `thing:` field in .ravenclaude/comfort-posture.yaml, set from the
 # dashboard's "Command review" toggle. This file only configures the reviewer.
 
-schema_version: 3
+schema_version: 4
 
 # ── The panel ─────────────────────────────────────────────────────────────────
 # Each seat is filled by an existing ravenclaude-core agent (no new agents).
@@ -92,6 +92,38 @@ category_tier_map:
 #     publish, gh pr merge, etc.) are ALWAYS surfaced on a panel-ALLOW.
 # An abstaining / inconclusive panel always fails CLOSED (deny), at every tier.
 gate_floor: high
+
+# ── Cost & ergonomics (#15) ───────────────────────────────────────────────────
+# These let you skip the EXPENSIVE LLM panel without weakening the hard floor:
+# the deterministic pre-LLM screen (hard-rule pre-deny + the self-disable guard)
+# ALWAYS runs regardless of any setting below.
+#
+# bypass — regex patterns you trust enough to skip the panel for. A match
+#   auto-allows WITHOUT convening seats, but only if the deterministic screen is
+#   clean (a bypassed force-push / inline secret / self-disable is still denied; a
+#   match that carries a critical concern is NOT bypassed). Python regex, matched
+#   against the full command. Default: none.
+# bypass:
+#   - '^npm (run )?test$'
+#   - '^git status'
+#
+# cache_ttl_seconds — reuse a recent PANEL verdict for an IDENTICAL command (same
+#   category + same effective config) within this window, skipping a second panel.
+#   0 = off (default). A rules/catalog change invalidates the cache automatically
+#   (it is config-hash keyed); only allow/edit/deny are cached, never an `ask`.
+# cache_ttl_seconds: 0
+#
+# fatigue_threshold — after the tribunal surfaces this many `ask`s in one session,
+#   append an advisory nudge (raise gate_floor / add a bypass). ADVISORY ONLY — it
+#   never auto-allows or relaxes the gate. 0 = off (default).
+# fatigue_threshold: 0
+
+# ── Model diversity (automatic — no setting) ──────────────────────────────────
+# When 2+ seats convene, the engine guarantees at least TWO distinct model
+# backbones run, so one model's blind spot can't pass the whole panel unseen. If
+# the `panel:` models above collapse the convened seats onto a single model, one
+# seat is automatically reassigned to a different (equal-or-stronger) model. The
+# default panel (opus + haiku + sonnet) is already diverse.
 
 # ── Timers ────────────────────────────────────────────────────────────────────
 # Per-seat soft cap (s). Each seat call is wrapped in its own `timeout`. Parallel

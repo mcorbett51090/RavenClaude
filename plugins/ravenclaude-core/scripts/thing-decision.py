@@ -28,6 +28,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -407,14 +408,27 @@ def resolve_tier_config(root: Path, posture: dict | None) -> tuple[dict, str | N
     tiers = {t: dict(_DEFAULT_TIERS[t]) for t in _TIER_ORDER}
     cat_map = dict(_DEFAULT_CATEGORY_TIER_MAP)
     gate_floor = _DEFAULT_GATE_FLOOR
+    # #15 knobs (same precedence: command_review > thing.yaml > defaults).
+    bypass: list[str] = []
+    cache_ttl = 0
+    fatigue = 0
 
     def _apply(block) -> None:
-        nonlocal gate_floor
+        nonlocal gate_floor, bypass, cache_ttl, fatigue
         if not isinstance(block, dict):
             return
         gf = block.get("gate_floor")
         if isinstance(gf, str) and gf in _TIER_RANK and gf != "low":
             gate_floor = gf
+        if isinstance(block.get("bypass"), list):
+            bypass = [p for p in block["bypass"] if isinstance(p, str)]
+        for key, attr in (("cache_ttl_seconds", "cache_ttl"), ("fatigue_threshold", "fatigue")):
+            v = block.get(key)
+            if isinstance(v, int) and v >= 0:
+                if attr == "cache_ttl":
+                    cache_ttl = v
+                else:
+                    fatigue = v
         tm = block.get("category_tier_map")
         if isinstance(tm, dict):
             for cat, tier in tm.items():
@@ -449,7 +463,31 @@ def resolve_tier_config(root: Path, posture: dict | None) -> tuple[dict, str | N
     cfg["tiers"] = tiers
     cfg["category_tier_map"] = cat_map
     cfg["gate_floor"] = gate_floor
+    cfg["bypass"] = bypass
+    cfg["cache_ttl_seconds"] = cache_ttl
+    cfg["fatigue_threshold"] = fatigue
     return cfg, error
+
+
+# Anti-correlated-hallucination rule (Matt 2026-05-26): when >=2 seats convene, at
+# least two DISTINCT model backbones must run, so a single model's blind spot can't
+# pass the whole panel unseen. If a config collapsed the convened seats onto one
+# model, reassign one seat to a different (preferring equal-or-stronger) model.
+_DIVERSITY_PREF = ["claude-sonnet-4-6", "claude-opus-4-7", "claude-haiku-4-5"]
+
+
+def _enforce_model_diversity(panel: dict, convened: list[str]) -> tuple[dict, bool]:
+    """Return (panel, adjusted). Guarantees >=2 distinct models among `convened`."""
+    if len(convened) < 2:
+        return panel, False
+    models = [(panel.get(s) or {}).get("model") for s in convened]
+    if len({m for m in models if m}) >= 2:
+        return panel, False  # already heterogeneous
+    common = models[0]
+    alt = next((m for m in _DIVERSITY_PREF if m != common), "claude-sonnet-4-6")
+    out = {k: dict(v) for k, v in panel.items()}
+    out.setdefault(convened[-1], {})["model"] = alt  # diversify the last convened seat
+    return out, True
 
 
 def _decision_detail(root: Path, posture: dict, command: str, category: str | None) -> dict:
@@ -481,8 +519,12 @@ def _decision_detail(root: Path, posture: dict, command: str, category: str | No
     convened = [s for s in _SEATS if s in want and s != "thor"]
     if _TIER_RANK[final_tier] >= _TIER_RANK["medium"] and not convened:
         convened = ["forseti", "mimir", "heimdall"]
-    d["panel"] = cfg["panel"]
+    # Enforce model heterogeneity across the convened panel (anti-correlated
+    # hallucination): >=2 seats must run >=2 distinct models.
+    panel_models, diversified = _enforce_model_diversity(cfg["panel"], convened)
+    d["panel"] = panel_models
     d["convened_seats"] = convened
+    d["model_diversity_enforced"] = diversified
     d["confidence_threshold"] = float(tier_cfg["confidence"])
     d["tier"] = final_tier
     d["base_tier"] = base_tier
@@ -491,6 +533,36 @@ def _decision_detail(root: Path, posture: dict, command: str, category: str | No
     d["panel_required"] = _TIER_RANK[final_tier] >= _TIER_RANK["medium"]
     d["gate_allow"] = (not is_read) and _TIER_RANK[final_tier] >= _TIER_RANK[gate_floor]
     d["timeout_posture"] = "deny"
+
+    # ── #15 cost/UX knobs (bypass-list / verdict cache / session-fatigue) ────────
+    # These let the orchestrator skip the EXPENSIVE LLM panel; the deterministic
+    # screen (pre_llm_deny + self-disable) ALWAYS runs regardless, so the hard
+    # floor is never bypassed. bypass also requires a non-critical screen.
+    bypass_match = False
+    for p in cfg.get("bypass") or []:
+        try:
+            if re.search(p, command):
+                bypass_match = True
+                break
+        except re.error:
+            continue
+    # Never bypass a critical-severity screen even if the pattern matches.
+    d["bypass_match"] = bool(bypass_match) and route.get("max_severity") != "critical"
+    d["cache_ttl_seconds"] = int(cfg.get("cache_ttl_seconds") or 0)
+    d["fatigue_threshold"] = int(cfg.get("fatigue_threshold") or 0)
+    # config_hash invalidates the verdict cache when the rules (tiers/panel/
+    # gate_floor/category map) OR the concern catalog change — so a cached
+    # permissive verdict is never reused after the policy that produced it moves.
+    cfg_blob = json.dumps(
+        {"tiers": cfg["tiers"], "panel": cfg["panel"], "gate_floor": cfg["gate_floor"],
+         "category_tier_map": cfg["category_tier_map"]},
+        sort_keys=True,
+    )
+    try:
+        cat_text = (_HERE.parent / "knowledge" / "concerns-catalog.md").read_text(encoding="utf-8")
+    except OSError:
+        cat_text = ""
+    d["config_hash"] = hashlib.sha256((cfg_blob + cat_text).encode("utf-8")).hexdigest()[:16]
 
     # Human-readable predicted outcome for the simulator.
     if d.get("pre_llm_deny"):

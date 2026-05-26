@@ -705,6 +705,83 @@ import sys;sys.exit(1 if bad else 0)" || rc=1
 gate "live-category detectability check catches a silent-gap concern" must_fail "$rc"
 
 echo
+echo "── Gate 22: tribunal #15 (bypass / cache / fatigue) + model diversity ─────"
+# bypass auto-allows a trusted pattern WITHOUT a panel, but the hard-rule screen
+# still runs (a bypassed force-push is still denied); an identical command is
+# served from cache (no second panel); and >=2 convened seats always run >=2
+# distinct models. Orchestrator paths use the mock seat hook — no live claude.
+DEC=plugins/ravenclaude-core/scripts/thing-decision.py
+G22="$TMP/thing15-proj"; SAGA22="$G22/.ravenclaude/runs/thing"
+mkdir -p "$G22/.ravenclaude"
+cat > "$G22/.ravenclaude/comfort-posture.yaml" <<'EOF'
+command_review:
+  gate_floor: high
+  cache_ttl_seconds: 900
+  fatigue_threshold: 2
+  bypass:
+    - '^npm install left-pad$'
+    - '^git push'
+  panel:
+    forseti: { model: claude-haiku-4-5 }
+    mimir: { model: claude-haiku-4-5 }
+    heimdall: { model: claude-haiku-4-5 }
+categories:
+  shell_package_install:
+    thing: on
+  shell_remote_mutate:
+    thing: on
+  shell_code_exec:
+    thing: on
+EOF
+ORCH=plugins/ravenclaude-core/hooks/thing-orchestrator.sh
+t15_run() {  # $1=mock $2=cmd -> full hookSpecificOutput JSON (keeps the Sága)
+  jq -cn --arg c "$2" --arg cwd "$G22" \
+    '{tool_name:"Bash",tool_input:{command:$c},cwd:$cwd,session_id:"audit15"}' \
+    | THING_SEAT_MOCK_VERDICT="$1" bash "$ORCH" 2>/dev/null
+}
+t15_dec() { t15_run "$1" "$2" | jq -r '.hookSpecificOutput.permissionDecision // "none"'; }
+t15_seatcount() { jq -r '.seats | length' "$(ls -t "$SAGA22"/*.json 2>/dev/null | head -1)" 2>/dev/null || echo "x"; }
+t15_phase() { jq -r '.phase' "$(ls -t "$SAGA22"/*.json 2>/dev/null | head -1)" 2>/dev/null || echo "x"; }
+
+# bypass: trusted pattern auto-allows with NO panel
+rm -rf "$SAGA22"; rc=0; { [ "$(t15_dec allow 'npm install left-pad')" = "allow" ] && [ "$(t15_phase)" = "T5-bypass" ] && [ "$(t15_seatcount)" = "0" ]; } || rc=1
+gate "thing#15: bypass pattern auto-allows, no panel" must_pass "$rc"
+# bypass does NOT override a hard rule: a bypassed force-push is still pre-denied
+rm -rf "$SAGA22"; rc=0; [ "$(t15_dec allow 'git push --force origin main')" = "deny" ] || rc=1
+gate "thing#15: bypass cannot override a force-push pre-deny" must_pass "$rc"
+# cache: first identical mutate runs the panel; the second is served from cache
+rm -rf "$SAGA22" "$G22/.ravenclaude/runs/thing/cache"
+first=$(t15_run allow 'npm install react'); fseats=$(t15_seatcount)
+second=$(t15_run allow 'npm install react'); sphase=$(t15_phase); sseats=$(t15_seatcount)
+rc=0; { [ "$fseats" -ge 1 ] 2>/dev/null && [ "$sphase" = "T5-cache-hit" ] && [ "$sseats" = "0" ]; } || rc=1
+gate "thing#15: identical command served from cache (no 2nd panel)" must_pass "$rc"
+# model diversity: an all-haiku config is diversified to >=2 distinct models
+rc=0; python3 -c "
+import json,subprocess,sys
+d=json.loads(subprocess.run(['python3','$DEC','--root','$G22','preview','rm -rf /tmp/z'],capture_output=True,text=True).stdout)
+conv=d['convened_seats']; models=[d['panel'][s]['model'] for s in conv]
+sys.exit(0 if len(conv)>=2 and len(set(models))>=2 and d.get('model_diversity_enforced') else 1)" || rc=1
+gate "thing#15: >=2 convened seats run >=2 distinct models" must_pass "$rc"
+# the default (heterogeneous) panel is NOT needlessly flagged as adjusted
+rc=0; python3 -c "
+import json,subprocess,sys
+P='$TMP/div-default'; import os; os.makedirs(P+'/.ravenclaude',exist_ok=True)
+open(P+'/.ravenclaude/comfort-posture.yaml','w').write('categories: { shell_local_mutate: { thing: on } }\n')
+d=json.loads(subprocess.run(['python3','$DEC','--root',P,'preview','rm -rf /tmp/z'],capture_output=True,text=True).stdout)
+models=[d['panel'][s]['model'] for s in d['convened_seats']]
+sys.exit(0 if len(set(models))>=2 and not d.get('model_diversity_enforced') else 1)" || rc=1
+gate "thing#15: default heterogeneous panel not flagged adjusted" must_pass "$rc"
+# config_hash changes when the rules change (so the cache invalidates)
+rc=0; python3 -c "
+import json,subprocess,sys,os
+def h(gf):
+    P=os.path.join('$TMP','ch-'+gf); os.makedirs(P+'/.ravenclaude',exist_ok=True)
+    open(P+'/.ravenclaude/comfort-posture.yaml','w').write('command_review: { gate_floor: '+gf+' }\ncategories: { shell_code_exec: { thing: on } }\n')
+    return json.loads(subprocess.run(['python3','$DEC','--root',P,'preview','python3 x.py'],capture_output=True,text=True).stdout)['config_hash']
+sys.exit(0 if h('high') != h('extreme') else 1)" || rc=1
+gate "thing#15: config_hash changes with the rules (cache invalidation)" must_pass "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 if [[ "$FAIL" -gt 0 ]]; then

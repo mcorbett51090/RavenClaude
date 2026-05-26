@@ -141,6 +141,12 @@ gate_allow="$(printf '%s' "$decision" | jq -r '.gate_allow // false')"
 high_blast="$(printf '%s' "$decision" | jq -r '.high_blast // false')"
 tier="$(printf '%s' "$decision" | jq -r '.tier // "unknown"')"
 gate_floor="$(printf '%s' "$decision" | jq -r '.gate_floor // "high"')"
+# #15 cost/UX knobs. The deterministic screen above already ran; these only let us
+# skip the EXPENSIVE panel. bypass_match already excludes a critical screen.
+bypass_match="$(printf '%s' "$decision" | jq -r '.bypass_match // false')"
+cache_ttl="$(printf '%s' "$decision" | jq -r '.cache_ttl_seconds // 0')"
+fatigue_threshold="$(printf '%s' "$decision" | jq -r '.fatigue_threshold // 0')"
+config_hash="$(printf '%s' "$decision" | jq -r '.config_hash // empty')"
 
 run_id="thing-$(date -u +%Y-%m-%dT%H-%M-%SZ)-$$"
 started_ms="$(date +%s%3N 2>/dev/null || echo 0)"
@@ -186,6 +192,25 @@ parse_seat() {  # parse_seat <role> <tmp>
 verdict="ask"; reason=""; revised=""; final_cited="$screen_concerns"
 phase="T3-panel"
 
+# ── #15 verdict cache (precompute). Keyed by command + category + config_hash so a
+#    rules/catalog change invalidates it; TTL-bounded. The hard-rule screen above
+#    always ran, so only the EXPENSIVE panel result is ever served from cache. ──
+cache_dir="${cwd}/${audit_dir_rel}/cache"
+cache_hit="false"; cache_verdict=""; cache_revised=""
+if [ "${cache_ttl:-0}" -gt 0 ] && [ -n "$config_hash" ] && command -v sha256sum >/dev/null 2>&1; then
+  cache_key="$(printf '%s' "${cmd}|${category}|${config_hash}" | sha256sum | cut -d' ' -f1)"
+  cache_file="${cache_dir}/${cache_key}.json"
+  if [ -f "$cache_file" ]; then
+    c_ts="$(jq -r '.ts // 0' "$cache_file" 2>/dev/null || echo 0)"
+    now_ts="$(date +%s 2>/dev/null || echo 0)"
+    if [ "$c_ts" -gt 0 ] && [ $(( now_ts - c_ts )) -lt "$cache_ttl" ]; then
+      cache_verdict="$(jq -r '.verdict // empty' "$cache_file" 2>/dev/null || true)"
+      cache_revised="$(jq -r '.revised // empty' "$cache_file" 2>/dev/null || true)"
+      [ -n "$cache_verdict" ] && cache_hit="true"
+    fi
+  fi
+fi
+
 if [ "$pre_llm_deny" = "true" ]; then
   # ── Deterministic hard-rule denial — no seat convened (design §B.9.3). ──────
   verdict="deny"
@@ -199,6 +224,19 @@ elif [ "$panel_required" != "true" ]; then
   verdict="allow"
   reason="Command review: low-risk read (tier ${tier}) cleared by the deterministic screen; no panel convened."
   phase="T5-clean-read"
+elif [ "$bypass_match" = "true" ]; then
+  # ── #15 bypass-list: the user explicitly trusts this pattern. The hard-rule
+  #    screen already passed (not pre_llm_deny; bypass excludes critical), so
+  #    auto-allow without convening the panel. ──────────────────────────────────
+  verdict="allow"
+  reason="Command review: matched your command_review.bypass list — auto-allowed without convening the panel (the deterministic hard-rule screen still ran and was clean)."
+  phase="T5-bypass"
+elif [ "$cache_hit" = "true" ]; then
+  # ── #15 cache hit: reuse a recent panel verdict for an identical command under
+  #    the same config (TTL + config_hash bounded). The hard-rule screen re-ran. ─
+  verdict="$cache_verdict"; revised="$cache_revised"
+  reason="Command review: reusing a cached panel verdict (${verdict}) for an identical command within the ${cache_ttl}s cache window; no panel re-convened."
+  phase="T5-cache-hit"
 else
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' EXIT
@@ -356,6 +394,21 @@ if [ "$verdict" = "allow" ] && [ "$is_read" != "true" ] \
   fi
 fi
 
+# ── #15 session-fatigue counter (advisory ONLY — never relaxes the gate). Counts
+#    the asks surfaced this session; past the threshold it appends a nudge toward
+#    tuning gate_floor / adding a bypass. Per-session counter file. ─────────────
+if [ "$verdict" = "ask" ] && [ "${fatigue_threshold:-0}" -gt 0 ] && [ -n "$session_id" ]; then
+  safe_sid="$(printf '%s' "$session_id" | tr -dc 'A-Za-z0-9._-' | cut -c1-128)"
+  fdir="${cwd}/${audit_dir_rel}/fatigue"
+  if [ -n "$safe_sid" ] && mkdir -p "$fdir" 2>/dev/null; then
+    fcount=$(( $(cat "${fdir}/${safe_sid}" 2>/dev/null || echo 0) + 1 ))
+    printf '%s' "$fcount" > "${fdir}/${safe_sid}" 2>/dev/null || true
+    if [ "$fcount" -ge "$fatigue_threshold" ]; then
+      reason="${reason} [Command review has asked ${fcount} times this session — consider raising gate_floor or adding a command_review.bypass entry via the dashboard.]"
+    fi
+  fi
+fi
+
 # ── Sága log (best-effort; never let a logging failure change the verdict). ───
 audit_dir="${cwd}/${audit_dir_rel}"
 ended_ms="$(date +%s%3N 2>/dev/null || echo 0)"
@@ -397,6 +450,24 @@ fi
 if [ "$audit_written" != "true" ] && { [ "$verdict" = "allow" ] || [ "$verdict" = "edit" ]; }; then
   verdict="deny"; revised=""
   reason="Command review: the verdict could not be written to the Sága audit log, so the permissive result is downgraded to a fail-closed DENY (an allow requires an audit trail). Check write permissions on ${audit_dir_rel}. ${reason}"
+fi
+
+# ── #15 cache WRITE: persist a real PANEL verdict (allow/edit/deny) for reuse
+#    within the TTL window. Skip the non-panel phases (bypass / cache-hit / clean
+#    read / pre-screen / self-disable) and never cache an `ask`; only when the
+#    audit actually persisted (so a cache entry always has a Sága counterpart). ─
+case "$phase" in
+  T5-bypass | T5-cache-hit | T5-clean-read | T3-pre-screen | T4-self-disable) cacheable="false" ;;
+  *) cacheable="true" ;;
+esac
+if [ "${cache_ttl:-0}" -gt 0 ] && [ -n "$config_hash" ] && [ "$cacheable" = "true" ] \
+   && [ "$audit_written" = "true" ] && command -v sha256sum >/dev/null 2>&1 \
+   && { [ "$verdict" = "allow" ] || [ "$verdict" = "edit" ] || [ "$verdict" = "deny" ]; }; then
+  ckey="$(printf '%s' "${cmd}|${category}|${config_hash}" | sha256sum | cut -d' ' -f1)"
+  if mkdir -p "$cache_dir" 2>/dev/null; then
+    jq -cn --arg v "$verdict" --arg r "$revised" --argjson ts "$(date +%s 2>/dev/null || echo 0)" \
+      '{verdict:$v,revised:$r,ts:$ts}' > "${cache_dir}/${ckey}.json" 2>/dev/null || true
+  fi
 fi
 
 if [ "$verdict" = "edit" ]; then
