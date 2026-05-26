@@ -110,6 +110,36 @@ _Last verified: 2026-05-25_
 
 ---
 
+### SessionStart context injection · _platform fact_
+
+> SessionStart hooks inject additionalContext into every session — additive only; they can't block or delay startup and are capped near 10k chars.
+
+`PreToolUse` hooks gate tool calls; **`SessionStart` hooks can't gate anything.** Their job is to add text to the session via a different field — `hookSpecificOutput.additionalContext` — and nothing more. The output is read **only on exit 0**; a non-zero exit is a non-blocking error and the session still starts. A SessionStart hook can never block or delay a session; its output is purely additive.
+
+Rules that bite: `additionalContext` is **capped near ~10,000 characters** (it's injected every session, so it's a recurring token cost — keep it tight); **multiple SessionStart hooks run in parallel and their outputs are concatenated**; the optional `matcher` is `startup` / `resume` / `clear` / `compact`; and like other hooks it **fails open** on timeout. This is the mechanism RavenClaude's capability banner rides on.
+
+```mermaid
+flowchart TD
+  S[Session starts] --> H[SessionStart hooks run in parallel]
+  H --> EX{exit 0?}
+  EX -- no --> SKIP[Non-blocking error · session starts anyway]
+  EX -- yes --> ADD[additionalContext concatenated into context]
+  ADD --> CAP[~10k char cap · injected every session]
+  CAP --> GO[Session proceeds · never blocked]
+  SKIP --> GO
+  class S,H,EX,SKIP,GO fact
+  class ADD,CAP built
+```
+
+**See also:** Hooks: verdicts & exit codes · Capability-orientation banner
+
+**Sources:** [Hooks reference](https://code.claude.com/docs/en/hooks)
+
+_Last verified: 2026-05-26_
+
+
+---
+
 
 ## Security
 
@@ -176,6 +206,94 @@ flowchart TD
 **See also:** Comfort-posture dashboard · Permission layers & precedence · Hooks: verdicts & exit codes
 
 **Sources:** [thing skill (operating reference)](plugins/ravenclaude-core/skills/thing/SKILL.md) · [Tribunal design](docs/tribunal-review-feature-design.md)
+
+_Last verified: 2026-05-26_
+
+
+---
+
+### The Sága audit log · _RavenClaude-built_
+
+> Every command-review verdict writes one JSON entry — command, category, tier, per-seat votes, concerns, final verdict — under .ravenclaude/runs/thing/.
+
+Every tribunal verdict — allow, edit, deny, or ask — writes exactly **one JSON entry** to `.ravenclaude/runs/thing/<id>.json`, the **Sága log**. The entry records the command, its category, the resolved tier, each seat's verdict, the concerns cited, the final verdict (and the revised command on an EDIT), and the duration.
+
+This is the observability substrate: it turns an otherwise opaque "the panel decided" into an auditable trail you can read after the fact to tune the panel, the `gate_floor`, or the bypass patterns. It's **gitignored by default** — the log is local operational data, not something to commit.
+
+```mermaid
+flowchart TD
+  V[Tribunal renders a verdict] --> E[Write one JSON entry]
+  E --> F[command · category · tier<br/>per-seat votes · concerns<br/>final verdict · duration]
+  F --> D[(.ravenclaude/runs/thing/&lt;id&gt;.json)]
+  D --> U[Audit · tune panel / gate_floor / bypass]
+  class V,E,F,D,U built
+```
+
+**See also:** Command-review tribunal (the Thing) · Model diversity on the panel
+
+**Sources:** [thing skill (operating reference)](plugins/ravenclaude-core/skills/thing/SKILL.md)
+
+_Last verified: 2026-05-26_
+
+
+---
+
+### Model diversity on the panel · _RavenClaude-built_
+
+> When ≥2 reviewer seats convene, the tribunal guarantees ≥2 distinct model backbones run — so one model's blind spot can't pass the whole panel.
+
+A panel of reviewers is only as strong as its diversity. If every seat runs on the same model, a single model's blind spot — a shared hallucination or a class of injection it doesn't catch — can pass the **whole** panel unnoticed. That's the **anti-correlated-hallucination** failure mode.
+
+So the engine enforces a **model-diversity rule**: whenever **two or more seats convene, at least two distinct model backbones run**. If a `panel:` config override happens to collapse the seats onto one model, the engine **auto-reassigns one seat to a different, equal-or-stronger model** rather than letting a monoculture review the command. It's proven by Gate 22.
+
+```mermaid
+flowchart TD
+  P{≥2 seats convened?} -- no --> ONE[Single seat · its own model]
+  P -- yes --> CHK{≥2 distinct models?}
+  CHK -- yes --> OK[Panel runs as configured]
+  CHK -- no --> RE[Auto-reassign one seat to a<br/>different equal-or-stronger model]
+  RE --> OK
+  class P,CHK fact
+  class ONE,OK,RE built
+```
+
+**See also:** Command-review tribunal (the Thing)
+
+**Sources:** [ravenclaude-core constitution](plugins/ravenclaude-core/CLAUDE.md) · [Tribunal assessment & improvement plan](docs/tribunal-assessment-and-improvement-plan.md)
+
+_Last verified: 2026-05-26_
+
+
+---
+
+
+## Orientation & capability
+
+### Capability-orientation banner · _RavenClaude-built_
+
+> A SessionStart hook injects what the project touches, the auth it holds (names only), and the effective permissions — so the agent never acts as if it has no access.
+
+The `capability-orientation.sh` SessionStart hook assembles a **capability banner** and injects it via `additionalContext` every session. It states the project's detected external surface, the auth it holds (env-var **names/presence only — never values; no network calls**), the effective `.claude/settings.json` permissions, and a presence/staleness summary of `environment-context.md`.
+
+Why it exists: the behavioral instruction "read the posture at session start" is prose the model often skips. The hook makes the summary impossible to miss. Crucially, it is a **salience boost, not enforcement** — the real gate is the permission rules; the banner just stops the agent acting as if it has no access (the "did you try X?" round-trip on actions it's already authorized for). The banner is a *pointer*; `environment-context.md` stays the authoritative source for per-environment detail.
+
+```mermaid
+flowchart TD
+  S[Session starts] --> H[capability-orientation.sh]
+  H --> R1[Detect project surface]
+  H --> R2[Read auth env-var NAMES · no values · no network]
+  H --> R3[Read effective settings.json permissions]
+  R1 & R2 & R3 --> B[Banner via additionalContext]
+  B --> A[Agent is oriented — but NOT gated]
+  A --> G[(Real gate: permission rules)]
+  class S,H,R1,R2,R3 built
+  class B,A built
+  class G fact
+```
+
+**See also:** SessionStart context injection · Comfort-posture dashboard
+
+**Sources:** [ravenclaude-core constitution](plugins/ravenclaude-core/CLAUDE.md) · [Claude Code permissions (SessionStart)](plugins/ravenclaude-core/knowledge/claude-code-permissions.md)
 
 _Last verified: 2026-05-26_
 

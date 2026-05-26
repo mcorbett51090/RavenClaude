@@ -8,6 +8,10 @@
     {
       "name": "Security",
       "order": 25
+    },
+    {
+      "name": "Orientation & capability",
+      "order": 40
     }
   ],
   "concepts": [
@@ -108,6 +112,33 @@
       "svg_mini": "knowledge/concepts/visuals/hook-lifecycle.mini.svg"
     },
     {
+      "id": "session-start-context",
+      "title": "SessionStart context injection",
+      "category": "Platform model",
+      "kind": "platform-fact",
+      "order": 22,
+      "summary": "SessionStart hooks inject additionalContext into every session — additive only; they can't block or delay startup and are capped near 10k chars.",
+      "see_also": [
+        "hook-lifecycle",
+        "capability-banner"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "Anthropic changes the SessionStart additionalContext field, its size cap, or matcher set.",
+      "sources": [
+        {
+          "label": "Hooks reference",
+          "url": "https://code.claude.com/docs/en/hooks"
+        }
+      ],
+      "body_md": "`PreToolUse` hooks gate tool calls; **`SessionStart` hooks can't gate anything.** Their job is to add text to the session via a different field — `hookSpecificOutput.additionalContext` — and nothing more. The output is read **only on exit 0**; a non-zero exit is a non-blocking error and the session still starts. A SessionStart hook can never block or delay a session; its output is purely additive.\n\nRules that bite: `additionalContext` is **capped near ~10,000 characters** (it's injected every session, so it's a recurring token cost — keep it tight); **multiple SessionStart hooks run in parallel and their outputs are concatenated**; the optional `matcher` is `startup` / `resume` / `clear` / `compact`; and like other hooks it **fails open** on timeout. This is the mechanism RavenClaude's capability banner rides on.",
+      "diagram": "flowchart TD\n  S[Session starts] --> H[SessionStart hooks run in parallel]\n  H --> EX{exit 0?}\n  EX -- no --> SKIP[Non-blocking error · session starts anyway]\n  EX -- yes --> ADD[additionalContext concatenated into context]\n  ADD --> CAP[~10k char cap · injected every session]\n  CAP --> GO[Session proceeds · never blocked]\n  SKIP --> GO\n  class S,H,EX,SKIP,GO fact\n  class ADD,CAP built",
+      "diagram_mini": "flowchart LR\n  S[SessionStart] --> A[additionalContext]\n  A --> C[added to context<br/>· can't block]\n  class A built",
+      "svg": "knowledge/concepts/visuals/session-start-context.svg",
+      "svg_mini": "knowledge/concepts/visuals/session-start-context.mini.svg"
+    },
+    {
       "id": "comfort-posture",
       "title": "Comfort-posture dashboard",
       "category": "Security",
@@ -175,6 +206,94 @@
       "diagram_mini": "flowchart LR\n  C[Command] --> P[Panel<br/>1–3 seats]\n  P --> V{Verdict}\n  V --> A[allow / edit / deny / ask]\n  class P,A built",
       "svg": "knowledge/concepts/visuals/command-review-tribunal.svg",
       "svg_mini": "knowledge/concepts/visuals/command-review-tribunal.mini.svg"
+    },
+    {
+      "id": "saga-log",
+      "title": "The Sága audit log",
+      "category": "Security",
+      "kind": "ravenclaude-built",
+      "order": 32,
+      "summary": "Every command-review verdict writes one JSON entry — command, category, tier, per-seat votes, concerns, final verdict — under .ravenclaude/runs/thing/.",
+      "see_also": [
+        "command-review-tribunal",
+        "model-diversity"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "The Sága log entry shape or its on-disk location changes.",
+      "sources": [
+        {
+          "label": "thing skill (operating reference)",
+          "url": "plugins/ravenclaude-core/skills/thing/SKILL.md"
+        }
+      ],
+      "body_md": "Every tribunal verdict — allow, edit, deny, or ask — writes exactly **one JSON entry** to `.ravenclaude/runs/thing/<id>.json`, the **Sága log**. The entry records the command, its category, the resolved tier, each seat's verdict, the concerns cited, the final verdict (and the revised command on an EDIT), and the duration.\n\nThis is the observability substrate: it turns an otherwise opaque \"the panel decided\" into an auditable trail you can read after the fact to tune the panel, the `gate_floor`, or the bypass patterns. It's **gitignored by default** — the log is local operational data, not something to commit.",
+      "diagram": "flowchart TD\n  V[Tribunal renders a verdict] --> E[Write one JSON entry]\n  E --> F[command · category · tier<br/>per-seat votes · concerns<br/>final verdict · duration]\n  F --> D[(.ravenclaude/runs/thing/&lt;id&gt;.json)]\n  D --> U[Audit · tune panel / gate_floor / bypass]\n  class V,E,F,D,U built",
+      "diagram_mini": "flowchart LR\n  V[Verdict] --> J[(Sága JSON entry)]\n  J --> A[auditable trail]\n  class V,J,A built",
+      "svg": "knowledge/concepts/visuals/saga-log.svg",
+      "svg_mini": "knowledge/concepts/visuals/saga-log.mini.svg"
+    },
+    {
+      "id": "model-diversity",
+      "title": "Model diversity on the panel",
+      "category": "Security",
+      "kind": "ravenclaude-built",
+      "order": 34,
+      "summary": "When ≥2 reviewer seats convene, the tribunal guarantees ≥2 distinct model backbones run — so one model's blind spot can't pass the whole panel.",
+      "see_also": [
+        "command-review-tribunal"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "The model-diversity guarantee or its auto-reassignment behavior changes.",
+      "sources": [
+        {
+          "label": "ravenclaude-core constitution",
+          "url": "plugins/ravenclaude-core/CLAUDE.md"
+        },
+        {
+          "label": "Tribunal assessment & improvement plan",
+          "url": "docs/tribunal-assessment-and-improvement-plan.md"
+        }
+      ],
+      "body_md": "A panel of reviewers is only as strong as its diversity. If every seat runs on the same model, a single model's blind spot — a shared hallucination or a class of injection it doesn't catch — can pass the **whole** panel unnoticed. That's the **anti-correlated-hallucination** failure mode.\n\nSo the engine enforces a **model-diversity rule**: whenever **two or more seats convene, at least two distinct model backbones run**. If a `panel:` config override happens to collapse the seats onto one model, the engine **auto-reassigns one seat to a different, equal-or-stronger model** rather than letting a monoculture review the command. It's proven by Gate 22.",
+      "diagram": "flowchart TD\n  P{≥2 seats convened?} -- no --> ONE[Single seat · its own model]\n  P -- yes --> CHK{≥2 distinct models?}\n  CHK -- yes --> OK[Panel runs as configured]\n  CHK -- no --> RE[Auto-reassign one seat to a<br/>different equal-or-stronger model]\n  RE --> OK\n  class P,CHK fact\n  class ONE,OK,RE built",
+      "diagram_mini": "flowchart LR\n  S[≥2 seats] --> D{≥2 models?}\n  D -- no --> R[reassign one]\n  D -- yes --> OK[run]\n  class R,OK built",
+      "svg": "knowledge/concepts/visuals/model-diversity.svg",
+      "svg_mini": "knowledge/concepts/visuals/model-diversity.mini.svg"
+    },
+    {
+      "id": "capability-banner",
+      "title": "Capability-orientation banner",
+      "category": "Orientation & capability",
+      "kind": "ravenclaude-built",
+      "order": 40,
+      "summary": "A SessionStart hook injects what the project touches, the auth it holds (names only), and the effective permissions — so the agent never acts as if it has no access.",
+      "see_also": [
+        "session-start-context",
+        "comfort-posture"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "The capability-orientation hook's banner contents or its salience-not-enforcement framing change.",
+      "sources": [
+        {
+          "label": "ravenclaude-core constitution",
+          "url": "plugins/ravenclaude-core/CLAUDE.md"
+        },
+        {
+          "label": "Claude Code permissions (SessionStart)",
+          "url": "plugins/ravenclaude-core/knowledge/claude-code-permissions.md"
+        }
+      ],
+      "body_md": "The `capability-orientation.sh` SessionStart hook assembles a **capability banner** and injects it via `additionalContext` every session. It states the project's detected external surface, the auth it holds (env-var **names/presence only — never values; no network calls**), the effective `.claude/settings.json` permissions, and a presence/staleness summary of `environment-context.md`.\n\nWhy it exists: the behavioral instruction \"read the posture at session start\" is prose the model often skips. The hook makes the summary impossible to miss. Crucially, it is a **salience boost, not enforcement** — the real gate is the permission rules; the banner just stops the agent acting as if it has no access (the \"did you try X?\" round-trip on actions it's already authorized for). The banner is a *pointer*; `environment-context.md` stays the authoritative source for per-environment detail.",
+      "diagram": "flowchart TD\n  S[Session starts] --> H[capability-orientation.sh]\n  H --> R1[Detect project surface]\n  H --> R2[Read auth env-var NAMES · no values · no network]\n  H --> R3[Read effective settings.json permissions]\n  R1 & R2 & R3 --> B[Banner via additionalContext]\n  B --> A[Agent is oriented — but NOT gated]\n  A --> G[(Real gate: permission rules)]\n  class S,H,R1,R2,R3 built\n  class B,A built\n  class G fact",
+      "diagram_mini": "flowchart LR\n  S[SessionStart] --> B[surface + auth + perms]\n  B --> A[agent oriented<br/>· not enforcement]\n  class B,A built",
+      "svg": "knowledge/concepts/visuals/capability-banner.svg",
+      "svg_mini": "knowledge/concepts/visuals/capability-banner.mini.svg"
     }
   ]
 }
