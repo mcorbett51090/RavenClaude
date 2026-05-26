@@ -64,8 +64,11 @@ cross_cutting:
       ALLOW a command with an inline secret.
     triggers:
       # The space-separated `-p PASSWORD` form is intentionally NOT matched here:
-      # it collides with `cp -p file` / `mkdir -p dir`. The attached form
-      # (`mysql -psecret`) and the explicit `--password` flag are unambiguous.
+      # it collides with `cp -p file` / `mkdir -p dir`. The bare attached form
+      # `-p<value>` also false-positived as a pre_llm_deny on long combined flags
+      # (`tar -pcvf…`, `-pdflatex`), so it is SCOPED to DB clients where
+      # `-p<secret>` is unambiguous (`mysql -psecret`); the `--password` /
+      # `--token` long flags stay global.
       regex:
         - 'AKIA[0-9A-Z]{12,}'
         - 'sk-(ant-)?[A-Za-z0-9-]{20,}'
@@ -78,7 +81,7 @@ cross_cutting:
         - '-----BEGIN [A-Z ]*PRIVATE KEY-----'
         - '--password[=\s]\S+'
         - '--token[=\s]\S+'
-        - '(^|\s)-p\S{6,}'
+        - '\b(mysql|mariadb|mysqldump|psql|redis-cli|mongo|mongosh)\b[^|&;]*\s-p\S+'
   - id: xc.injection-attempt
     name: Prompt-injection payload in command content
     severity: critical
@@ -190,7 +193,9 @@ cross_cutting:
       exists and the user has not signaled consent in the session.
     triggers:
       regex:
-        - 'git push\b.*(--force\b|-f\b)'
+        # --force-with-lease is reversible-ish (it refuses to clobber unseen work),
+        # so exclude it — matching srm.force-push, which the two concerns must agree on.
+        - 'git push\b.*(--force(?!-with-lease)\b|\s-f\b)'
         - 'rm\s+-[a-z]*r[a-z]*f[a-z]*|rm\s+-[a-z]*f[a-z]*r[a-z]*'
         - '(npm|pnpm|yarn)\s+publish'
         - 'cargo\s+publish'

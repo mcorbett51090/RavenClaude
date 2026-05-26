@@ -127,6 +127,34 @@ def _command_prefixes() -> list[tuple[str, str, bool]]:
     return out
 
 
+def _normalize_lead(lead: str) -> str:
+    """Strip wrappers that would let a command dodge EMISSIONS prefix matching.
+
+    Closes the classification holes from the tribunal assessment (§should-fix #8):
+    leading env-var assignments (`LS_COLORS=x ls`), `sudo`/`env` prefixes,
+    absolute interpreter paths (`/usr/bin/python3` -> `python3`), and `git`
+    global options (`git -c k=v push` -> `git push`). Conservative + idempotent.
+    """
+    prev = None
+    while lead and lead != prev:
+        prev = lead
+        # leading VAR=value assignments (one or more)
+        lead = re.sub(r"^[A-Za-z_][A-Za-z0-9_]*=\S*\s+", "", lead)
+        # sudo / env wrappers (with any of their own flags before the real cmd)
+        lead = re.sub(r"^(?:sudo|env|command|nohup|nice|stdbuf)\b(?:\s+-\S+)*\s+", "", lead)
+        lead = re.sub(r"^(?:sudo|env)\s+[A-Za-z_][A-Za-z0-9_]*=\S*\s+", "", lead)
+    # absolute / relative path on the first token -> basename (/usr/bin/python3 -> python3)
+    m = re.match(r"^(\S*/)?(\S+)(.*)$", lead, re.S)
+    if m and m.group(1):
+        lead = m.group(2) + m.group(3)
+    # git global options: `git -c k=v -C dir push` -> `git push`
+    if lead.startswith("git "):
+        rest = lead[4:]
+        rest = re.sub(r"^(?:\s*(?:-c\s+\S+|-C\s+\S+|--no-pager|-p|--paginate))+\s*", "", rest)
+        lead = "git " + rest.lstrip()
+    return lead.strip()
+
+
 def classify(command: str) -> str | None:
     """Return the comfort-posture category for a Bash command, or None.
 
@@ -142,6 +170,7 @@ def classify(command: str) -> str | None:
     # Leading segment only — split on the first shell separator so `ls | grep`
     # classifies as its first command. Keep it conservative (T2 is low-stakes).
     lead = re.split(r"\s*(?:\||\|\||&&|;)\s*", cmd, maxsplit=1)[0].strip()
+    lead = _normalize_lead(lead)
 
     best_cat: str | None = None
     best_len = -1
@@ -193,7 +222,11 @@ def thing_enabled_for(posture: dict, category: str | None) -> bool:
 _DEFAULT_PANEL = {
     "forseti": {"agent": "security-reviewer", "model": "claude-opus-4-7"},
     "mimir": {"agent": "code-reviewer", "model": "claude-haiku-4-5"},
-    "heimdall": {"agent": "prompt-engineer", "model": "claude-haiku-4-5"},
+    # Heimdall is the injection seat — the assessment (must-fix #4) flagged that
+    # running the adversarial-content reviewer on the weakest model is exactly
+    # where you don't want to economize. Bumped to Sonnet (Mímir, the correctness
+    # seat, stays on the fast/cheap Haiku).
+    "heimdall": {"agent": "prompt-engineer", "model": "claude-sonnet-4-6"},
     "thor": {"agent": "architect", "model": "claude-opus-4-7"},
 }
 _DEFAULT_CONFIDENCE_THRESHOLD = 0.5
