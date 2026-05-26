@@ -37,7 +37,7 @@ import concepts as concepts_mod  # noqa: E402
 # Pin the renderer so committed SVGs stay reproducible across machines/time.
 MMDC_VERSION = "11.15.0"
 # Bump when the normalizer logic below changes (invalidates every committed SVG).
-NORMALIZER_VERSION = 2
+NORMALIZER_VERSION = 3
 
 VISUALS_DIR = "plugins/ravenclaude-core/knowledge/concepts/visuals"
 MANIFEST_NAME = ".render-manifest.json"
@@ -71,6 +71,10 @@ def _theme_style(svg_id: str) -> str:
         "{stroke:var(--muted)!important}"
         f"{s} .node.built rect,{s} .node.built polygon,{s} .node.built path,{s} .node.built circle"
         "{fill:var(--surface)!important;stroke:var(--accent)!important}"
+        # hover/focus highlight — the :hover pseudo-class out-specifies the base
+        # node rule above, so the inlined diagram feels live without extra JS
+        f"{s} .node:hover rect,{s} .node:hover polygon,{s} .node:hover circle,{s} .node:hover path"
+        "{stroke:var(--accent)!important;stroke-width:2.5px!important;cursor:default}"
         "</style>"
     )
 

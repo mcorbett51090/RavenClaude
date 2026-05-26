@@ -7,7 +7,7 @@
     },
     {
       "name": "Security",
-      "order": 30
+      "order": 25
     }
   ],
   "concepts": [
@@ -46,6 +46,37 @@
       "svg_mini": "knowledge/concepts/visuals/permission-layers.mini.svg"
     },
     {
+      "id": "permission-modes",
+      "title": "Permission modes",
+      "category": "Platform model",
+      "kind": "platform-fact",
+      "order": 15,
+      "summary": "Six modes from default to bypassPermissions — but bypass still prompts on rm -rf /, and auto silently drops broad allow rules.",
+      "see_also": [
+        "permission-layers",
+        "hook-lifecycle"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-25",
+      "refresh_when": "Anthropic adds/renames a permission mode or changes auto-mode's drop-broad-rules behavior.",
+      "sources": [
+        {
+          "label": "Choose a permission mode",
+          "url": "https://code.claude.com/docs/en/permission-modes"
+        },
+        {
+          "label": "Configure permissions",
+          "url": "https://code.claude.com/docs/en/permissions"
+        }
+      ],
+      "body_md": "The permission **mode** sets the baseline posture on top of your allow/ask/deny rules. There are six: `default` (prompt when uncertain), `acceptEdits` (auto-approve common filesystem Bash inside the cwd), `plan` (read/think only — no writes), `auto` (research-preview classifier-driven autonomy), `dontAsk` (auto-deny anything not explicitly allowed — handy for CI), and `bypassPermissions` (skips most checks).\n\nTwo surprises bite. **`bypassPermissions` is not a total kill-switch:** `rm -rf /` and `rm -rf ~` *still* prompt as a circuit breaker, and a `PreToolUse` hook `deny` still blocks. **`auto` mode silently drops broad allow rules** — `Bash(*)`, wildcarded interpreters, `npm run *`, and all `Agent` allows are dropped while it's active (they restore when you leave), and `defaultMode: \"auto\"` is *ignored* in project settings — it must live in user-level `~/.claude/settings.json`.",
+      "diagram": "flowchart TD\n  M[Permission mode] --> DEF[default · prompt on uncertain]\n  M --> AE[acceptEdits · auto-approve cwd file ops]\n  M --> AUTO[auto · classifier autonomy<br/>drops broad allow rules]\n  M --> BP[bypassPermissions · skips most checks]\n  BP --> CB{rm -rf / or ~ ?}\n  CB -- yes --> STOP[still prompts · circuit breaker]\n  CB -- no --> RUN[runs]\n  class M,DEF,AE,AUTO,BP fact\n  class STOP built",
+      "diagram_mini": "flowchart LR\n  D[default] --> A[acceptEdits] --> AU[auto] --> B[bypass]\n  B --> S[rm -rf / still blocks]\n  class S built",
+      "svg": "knowledge/concepts/visuals/permission-modes.svg",
+      "svg_mini": "knowledge/concepts/visuals/permission-modes.mini.svg"
+    },
+    {
       "id": "hook-lifecycle",
       "title": "Hooks: verdicts & exit codes",
       "category": "Platform model",
@@ -77,6 +108,40 @@
       "svg_mini": "knowledge/concepts/visuals/hook-lifecycle.mini.svg"
     },
     {
+      "id": "comfort-posture",
+      "title": "Comfort-posture dashboard",
+      "category": "Security",
+      "kind": "ravenclaude-built",
+      "order": 25,
+      "summary": "A point-and-click editor that writes Claude Code permission rules per category and layer — and keeps design check-ins independent of permission level.",
+      "see_also": [
+        "permission-layers",
+        "command-review-tribunal"
+      ],
+      "widget": "permission-resolver",
+      "try_it": {
+        "label": "Open the Settings tab",
+        "href": "#/settings"
+      },
+      "last_verified": "2026-05-26",
+      "refresh_when": "The comfort-posture category set, the layer model, or the design_checkins decoupling changes.",
+      "sources": [
+        {
+          "label": "ravenclaude-core constitution",
+          "url": "plugins/ravenclaude-core/CLAUDE.md"
+        },
+        {
+          "label": "apply-comfort-posture translator",
+          "url": "plugins/ravenclaude-core/scripts/apply-comfort-posture.py"
+        }
+      ],
+      "body_md": "**Comfort posture** is RavenClaude's friendly front-end over the raw permission model. Instead of hand-editing `settings.json`, you set a level — **deny / ask / allow** — per *category* of action (file reads, code execution, remote mutations, …) and per *layer* (user / local / project). The dashboard's Settings tab serializes that to `.ravenclaude/comfort-posture.yaml`, and `apply-comfort-posture.py` translates it into the actual Claude Code permission rules — so the layer-precedence rules still govern what finally wins.\n\nThe load-bearing subtlety: **permission level ≠ design judgment.** Setting a category to `allow` only removes the click-to-approve on tool calls — it does **not** tell Claude to stop surfacing architectural decisions. That behavior is a *separate* flag, `design_checkins` (on by default), so relaxing permissions to move faster never silently mutes design check-ins. The two are deliberately decoupled.",
+      "diagram": "flowchart TD\n  U[You set deny/ask/allow<br/>per category · per layer] --> Y[(comfort-posture.yaml)]\n  Y --> T[apply-comfort-posture.py]\n  T --> R[Claude Code permission rules]\n  U --> DC{design_checkins}\n  DC -- \"on (default)\" --> PAUSE[Surface design decisions<br/>at any permission level]\n  DC -- off --> FAST[Proceed · report after]\n  class Y,T,R,PAUSE,FAST built\n  class DC fact",
+      "diagram_mini": "flowchart LR\n  L[deny/ask/allow<br/>per category] --> Y[(posture.yaml)] --> R[permission rules]\n  class Y,R built",
+      "svg": "knowledge/concepts/visuals/comfort-posture.svg",
+      "svg_mini": "knowledge/concepts/visuals/comfort-posture.mini.svg"
+    },
+    {
       "id": "command-review-tribunal",
       "title": "Command-review tribunal (the Thing)",
       "category": "Security",
@@ -84,6 +149,7 @@
       "order": 30,
       "summary": "An opt-in panel of reviewer seats that votes ALLOW/EDIT/DENY on shell commands instead of interrupting you.",
       "see_also": [
+        "comfort-posture",
         "permission-layers",
         "hook-lifecycle"
       ],

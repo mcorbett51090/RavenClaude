@@ -48,6 +48,36 @@ _Last verified: 2026-05-25_
 
 ---
 
+### Permission modes · _platform fact_
+
+> Six modes from default to bypassPermissions — but bypass still prompts on rm -rf /, and auto silently drops broad allow rules.
+
+The permission **mode** sets the baseline posture on top of your allow/ask/deny rules. There are six: `default` (prompt when uncertain), `acceptEdits` (auto-approve common filesystem Bash inside the cwd), `plan` (read/think only — no writes), `auto` (research-preview classifier-driven autonomy), `dontAsk` (auto-deny anything not explicitly allowed — handy for CI), and `bypassPermissions` (skips most checks).
+
+Two surprises bite. **`bypassPermissions` is not a total kill-switch:** `rm -rf /` and `rm -rf ~` *still* prompt as a circuit breaker, and a `PreToolUse` hook `deny` still blocks. **`auto` mode silently drops broad allow rules** — `Bash(*)`, wildcarded interpreters, `npm run *`, and all `Agent` allows are dropped while it's active (they restore when you leave), and `defaultMode: "auto"` is *ignored* in project settings — it must live in user-level `~/.claude/settings.json`.
+
+```mermaid
+flowchart TD
+  M[Permission mode] --> DEF[default · prompt on uncertain]
+  M --> AE[acceptEdits · auto-approve cwd file ops]
+  M --> AUTO[auto · classifier autonomy<br/>drops broad allow rules]
+  M --> BP[bypassPermissions · skips most checks]
+  BP --> CB{rm -rf / or ~ ?}
+  CB -- yes --> STOP[still prompts · circuit breaker]
+  CB -- no --> RUN[runs]
+  class M,DEF,AE,AUTO,BP fact
+  class STOP built
+```
+
+**See also:** Permission layers & precedence · Hooks: verdicts & exit codes
+
+**Sources:** [Choose a permission mode](https://code.claude.com/docs/en/permission-modes) · [Configure permissions](https://code.claude.com/docs/en/permissions)
+
+_Last verified: 2026-05-25_
+
+
+---
+
 ### Hooks: verdicts & exit codes · _platform fact_
 
 > Only exit 2 blocks a tool call; a hook deny beats bypass mode, but a hook allow can't override a settings deny.
@@ -83,6 +113,35 @@ _Last verified: 2026-05-25_
 
 ## Security
 
+### Comfort-posture dashboard · _RavenClaude-built_
+
+> A point-and-click editor that writes Claude Code permission rules per category and layer — and keeps design check-ins independent of permission level.
+
+**Comfort posture** is RavenClaude's friendly front-end over the raw permission model. Instead of hand-editing `settings.json`, you set a level — **deny / ask / allow** — per *category* of action (file reads, code execution, remote mutations, …) and per *layer* (user / local / project). The dashboard's Settings tab serializes that to `.ravenclaude/comfort-posture.yaml`, and `apply-comfort-posture.py` translates it into the actual Claude Code permission rules — so the layer-precedence rules still govern what finally wins.
+
+The load-bearing subtlety: **permission level ≠ design judgment.** Setting a category to `allow` only removes the click-to-approve on tool calls — it does **not** tell Claude to stop surfacing architectural decisions. That behavior is a *separate* flag, `design_checkins` (on by default), so relaxing permissions to move faster never silently mutes design check-ins. The two are deliberately decoupled.
+
+```mermaid
+flowchart TD
+  U[You set deny/ask/allow<br/>per category · per layer] --> Y[(comfort-posture.yaml)]
+  Y --> T[apply-comfort-posture.py]
+  T --> R[Claude Code permission rules]
+  U --> DC{design_checkins}
+  DC -- "on (default)" --> PAUSE[Surface design decisions<br/>at any permission level]
+  DC -- off --> FAST[Proceed · report after]
+  class Y,T,R,PAUSE,FAST built
+  class DC fact
+```
+
+**See also:** Permission layers & precedence · Command-review tribunal (the Thing)
+
+**Sources:** [ravenclaude-core constitution](plugins/ravenclaude-core/CLAUDE.md) · [apply-comfort-posture translator](plugins/ravenclaude-core/scripts/apply-comfort-posture.py)
+
+_Last verified: 2026-05-26_
+
+
+---
+
 ### Command-review tribunal (the Thing) · _RavenClaude-built_
 
 > An opt-in panel of reviewer seats that votes ALLOW/EDIT/DENY on shell commands instead of interrupting you.
@@ -114,7 +173,7 @@ flowchart TD
   class GATE fact
 ```
 
-**See also:** Permission layers & precedence · Hooks: verdicts & exit codes
+**See also:** Comfort-posture dashboard · Permission layers & precedence · Hooks: verdicts & exit codes
 
 **Sources:** [thing skill (operating reference)](plugins/ravenclaude-core/skills/thing/SKILL.md) · [Tribunal design](docs/tribunal-review-feature-design.md)
 

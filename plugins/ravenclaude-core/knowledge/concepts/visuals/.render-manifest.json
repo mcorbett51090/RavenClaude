@@ -1,9 +1,11 @@
 {
   "concepts": {
-    "command-review-tribunal": "d7906849340f8c93768060b02f16974f3f84495489060f772d0f449649e498e9",
-    "hook-lifecycle": "bf5c77b0133ca3cb0a32bb52a34548c0d7d3142727cca9360209909f17f91fff",
-    "permission-layers": "60401f2422a2a49c8fabcc398080d9ea3af0cbc17c665b4d140fff943398e664"
+    "comfort-posture": "6c908cbb021fe337d822dae00f85510c4b52b8f421c9a1f71e996978489b80f9",
+    "command-review-tribunal": "32d857c3d1c72581474b96b0f1693b711f2338b248f4c0277279eb6ef5450e18",
+    "hook-lifecycle": "dca533effdf857833e658e18830a0a0fa9e7c6a2420676856e9a7fcc41774790",
+    "permission-layers": "e02468866f8cd55f8dba249c5aa24c870f6bdf5d3f536a0fadbbd3a30941ffcf",
+    "permission-modes": "0e6d43778999857cd46c55598af8b3c8949fb8eba0e76ed2ad86939990e1371d"
   },
   "mmdc_version": "11.15.0",
-  "normalizer_version": 2
+  "normalizer_version": 3
 }
