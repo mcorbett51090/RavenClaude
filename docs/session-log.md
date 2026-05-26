@@ -10,7 +10,52 @@ and is always findable regardless of which branch work is happening on.
 
 ---
 
-## 1 — 2026-05-25 · Tribunal T2 — ship the single-seat command-review orchestrator
+## 1 — 2026-05-26 · Tribunal T4 — injection & self-protection hardening (v0.26.0, PR #94 merged)
+
+**Prompt:** "cont" → (chose) Tribunal T4/T3.5 → "T4, go" → "Keep" (build the plan) →
+"merge after pr commit".
+
+**Response:** Built tribunal **T4 (§B.9 hardening)** end-to-end and **squash-merged
+PR #94** (`99a53cf`). Grounding showed T4 was mostly already standing from T2/T3
+(Heimdall/AlignmentCheck seat, basic `<untrusted>` envelope, injection + secret
+concerns already `pre_llm_deny`, the `injection_detected` unilateral DENY). Closed
+the genuine gaps: **(1) §B.9.5 "the Thing cannot disable itself"** — new
+cross-cutting `xc.tribunal-self-disable` (critical, `pre_llm_deny`, new
+`always_screen` flag) denies any Bash mutation of the orchestrator / seat wrapper /
+concern+decision scripts / the plugin `hooks/`+`scripts/` **directories** /
+`.ravenclaude/thing.yaml`, or a `thing: off` write into `comfort-posture.yaml`.
+`always_screen` runs it **category-independently** (`screen_always` →
+`_screen_always` → an orchestrator check before the per-category enabled gate), so
+a self-disabling command shaped to classify into a toggled-OFF category is still
+denied. **(2)** Hardened `xc.injection-attempt` (6→18 patterns) + canonical
+AlignmentCheck envelope framing. **(3) §B.9.4** egress secret backstop in
+`thing-seat.sh` (deny locally, never transmit) + broadened secret families in the
+seat **and** catalog. **Gate 15** (adversarial fixtures + category-independent
+self-disable + negative control + seat backstop) and **Gate 16** (every catalog
+regex compiles); **47/47 gates green**, prettier clean. Bumped **v0.25.1 →
+v0.26.0**. **`security-reviewer` ran pre-merge** and found 2 real shell-level
+bypasses of the first-cut literal-filename guard (`tee -a` append; `rm -rf <dir>` /
+glob / `$var` path obfuscation) — both fixed via **directory-level matching** +
+the `tee` verb and pinned as Gate 15 fixtures; also bounded the trigger-3
+lookaheads (ReDoS), made `screen_always` fail **closed** on a bad regex. **Build
+finding:** the seat secret-scan `grep` parsed `-`-leading patterns as options,
+silently failed, and fell through to a **live `claude` call** — Gate 15 caught it;
+fixed with `grep -e`.
+
+**Current state / next step:** **PR #94 merged to `main`** (`99a53cf`); local main
+updated; freshness gate green (the `Generated`/`Last updated` lines are
+strip-volatile, so the raw-diff "stale" was a false alarm). CI `pull_request`
+checks did **not** register runs for the PR (anomalous; push-to-main runs work) —
+merged on GitHub's `MERGEABLE/CLEAN/0-checks` + full local gate parity per Matt's
+"merge after pr" instruction. **One reviewer item deferred to Matt's call:**
+`xc.injection-attempt` stays `pre_llm_deny` (design-faithful to §B.9.3) despite FP
+surface — option to demote weak shapes to panel-routed. Tribunal roadmap: **T5**
+(per-pattern bypass + caching) or **T3.5** (review Edit/Write tools, not just Bash)
+next. Track status in auto-memory `project_2026-05-25_tribunal_track`.
+
+---
+
+## 2 — 2026-05-25 · Tribunal T2 — ship the single-seat command-review orchestrator
 
 **Prompt:** "let's implement the command review (the Thing) now" + side
 questions (is the comfort posture applied? why did a command prompt me? design
@@ -33,17 +78,12 @@ the design) fails under subscription/OAuth — needs `ANTHROPIC_API_KEY`; the se
 defaults to plain `claude -p` from a scratch dir (`--bare` opt-in via
 `THING_SEAT_BARE=1`). Verified the live seat: `ls -la`→allow, injection→deny.
 
-**Current state / next step:** PR being opened off `feat/ravenclaude-core-tribunal-t2`.
-Did **not** sweep in pre-existing uncommitted local changes (`.gitignore` +
-`.claude/settings.json` posture-emptying + applied marker) — flagged to Matt as a
-separate decision; restored `settings.json` to `main + hook` only. Cost is real
-(~$0.05–0.10/reviewed command), so `shell_readonly` review is a validation
-switch, off by default. Next tribunal phase = **T3** (three-seat panel + Thor +
-EDIT verdicts; design §B.11).
+**Current state / next step:** PR #90 merged (T2, v0.24.0). Next tribunal phase
+was **T3** (three-seat panel + Thor + EDIT verdicts; design §B.11) — since shipped.
 
 ---
 
-## 2 — 2026-05-25 · "405 on Save & apply from my phone" → diagnose + ship PR #89
+## 3 — 2026-05-25 · "405 on Save & apply from my phone" → diagnose + ship PR #89
 
 **Prompt:** "cont" → (clarified) "we were fixing a 405 on the save & apply
 button; double-check the status, I thought we merged it" → "go" → "keep live
@@ -70,38 +110,7 @@ possible" → "go".
   fresh"** CI step (`generate-dashboards.py --check`) + **Gate 13** in
   `audit-gates.sh`. 30/30 gates green, prettier clean.
 
-**Current state / next step:** PR #89 **open + green**, awaiting Matt's merge.
-Phone-apply path = open the **Codespace forwarded URL** (scan the QR), never the
-README/Pages link.
-
----
-
-## 3 — 2026-05-25 · Tribunal: ship T1, verify substrate, unblock T2
-
-**Prompt:** "cont" → "cont" → "go / yes" (resume, proceed, then merge #87 + start
-the substrate-verification reconciliation).
-
-**Response:** Oriented from a cold context (this log was stale, covered v0.19.0).
-Three things shipped this session:
-(1) **T1 merged** — found the read-only "Command review (the Thing)" preview UI
-(v0.22.0) committed on `feat/ravenclaude-core-tribunal-t1` with no PR; verified
-green, opened + squash-**merged PR #87** (`f9d5c84`). Intentionally inert UI.
-(2) **Substrate verified** — the §B.5.1 "both cannot be true" alarm was a **false
-alarm**. Re-verified the PreToolUse hook API against primary docs (hooks ref +
-hooks-guide + agent-sdk/hooks, cross-checked — the first WebFetch summary wrongly
-said bypass behavior was undocumented; a verbatim grep found it). Confirmed:
-`updatedInput` is real → **EDIT verdict path stands**; permissionDecision
-allow/deny/ask/defer (defer is `-p`-only); prompt/agent hook types real (agent
-experimental); a hook `deny` beats `--dangerously-skip-permissions` but a hook
-`allow` can't override a settings `deny` (so the Thing can't relax `security_deny`);
-platform fails OPEN on timeout. Updated design doc §B.5.1 → **v3 on main**
-(`c914998`, docs-commit-to-main).
-(3) **Knowledge reconciled** — added an "Advanced JSON output protocol" section to
-`knowledge/claude-code-permissions.md`, bumped ravenclaude-core **v0.22.0 →
-v0.23.0**, regenerated `repo-guide.html`, opened **PR #88** (green, since merged).
-
-**Current state / next step:** PR #88 merged (`5087e7e`). **T2 is UNBLOCKED** —
-next build is the single-seat orchestrator (now shipped, see entry 1). Full track
-status in auto-memory `project_2026-05-25_tribunal_track`.
+**Current state / next step:** PR #89 merged. Phone-apply path = open the
+**Codespace forwarded URL** (scan the QR), never the README/Pages link.
 
 ---
