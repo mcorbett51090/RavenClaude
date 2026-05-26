@@ -5,7 +5,7 @@ category: "Platform model"
 kind: platform-fact
 order: 10
 summary: "Four settings files merge — a deny in ANY layer wins, and you can't override it down from a later layer."
-see_also: [command-review-tribunal]
+see_also: [hook-lifecycle, command-review-tribunal]
 widget: permission-resolver
 try_it:
   label: "Set your own layers on the Settings tab"

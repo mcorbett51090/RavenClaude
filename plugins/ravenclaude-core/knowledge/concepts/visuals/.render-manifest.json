@@ -1,6 +1,7 @@
 {
   "concepts": {
     "command-review-tribunal": "d7906849340f8c93768060b02f16974f3f84495489060f772d0f449649e498e9",
+    "hook-lifecycle": "bf5c77b0133ca3cb0a32bb52a34548c0d7d3142727cca9360209909f17f91fff",
     "permission-layers": "60401f2422a2a49c8fabcc398080d9ea3af0cbc17c665b4d140fff943398e664"
   },
   "mmdc_version": "11.15.0",

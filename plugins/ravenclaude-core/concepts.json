@@ -19,6 +19,7 @@
       "order": 10,
       "summary": "Four settings files merge — a deny in ANY layer wins, and you can't override it down from a later layer.",
       "see_also": [
+        "hook-lifecycle",
         "command-review-tribunal"
       ],
       "widget": "permission-resolver",
@@ -45,6 +46,37 @@
       "svg_mini": "knowledge/concepts/visuals/permission-layers.mini.svg"
     },
     {
+      "id": "hook-lifecycle",
+      "title": "Hooks: verdicts & exit codes",
+      "category": "Platform model",
+      "kind": "platform-fact",
+      "order": 20,
+      "summary": "Only exit 2 blocks a tool call; a hook deny beats bypass mode, but a hook allow can't override a settings deny.",
+      "see_also": [
+        "permission-layers",
+        "command-review-tribunal"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-25",
+      "refresh_when": "Anthropic changes hook exit-code semantics, the hookSpecificOutput schema, or timeout behavior.",
+      "sources": [
+        {
+          "label": "Hooks reference",
+          "url": "https://code.claude.com/docs/en/hooks"
+        },
+        {
+          "label": "Hooks guide",
+          "url": "https://code.claude.com/docs/en/hooks-guide"
+        }
+      ],
+      "body_md": "A `PreToolUse` hook reads the pending tool call as JSON on stdin and decides its fate. **Exit codes are the load-bearing, easy-to-get-wrong detail:** only **exit 2** blocks (and the hook's stderr is fed back to the model); **exit 0** allows; and **exit 1 or any other code is a *non-blocking* error — the tool still runs.** The trap is that `exit 1` is the conventional Unix \"failure\", so a policy hook that fails with `exit 1` *looks* like it blocked but doesn't.\n\nFor richer control, a hook can instead print a `hookSpecificOutput.permissionDecision` JSON on **exit 0**: `allow`, `deny`, `ask`, or `defer` (headless-only). When several hooks and rules apply, priority is **`deny` > `defer` > `ask` > `allow`**.\n\nTwo asymmetries make this safe: a hook **`deny` beats permission-mode bypass** (it blocks even under `bypassPermissions`), but a hook **`allow` does NOT override a settings `deny`** — hooks can *tighten* but never *loosen*. Note hooks **fail open**: on timeout or crash the tool proceeds, so a hook that must fail closed has to emit its own `deny` before its deadline.",
+      "diagram": "flowchart TD\n  H[PreToolUse hook] --> EX{exit code?}\n  EX -- \"exit 2\" --> BLOCK[Blocked · stderr fed to model]\n  EX -- \"exit 1 / other\" --> NB[Non-blocking error · tool still RUNS]\n  EX -- \"exit 0\" --> J{JSON permissionDecision?}\n  J -- deny --> DEN[Denied · beats bypass mode]\n  J -- ask --> ASK[User prompted]\n  J -- \"allow / none\" --> ALL[Prompt skipped · settings deny still wins]\n  class H,EX,J,NB,ASK,ALL fact\n  class BLOCK,DEN built",
+      "diagram_mini": "flowchart LR\n  E{exit?} -- \"2\" --> B[blocks]\n  E -- \"0\" --> J[JSON verdict]\n  E -- \"1\" --> R[runs anyway]\n  class B built",
+      "svg": "knowledge/concepts/visuals/hook-lifecycle.svg",
+      "svg_mini": "knowledge/concepts/visuals/hook-lifecycle.mini.svg"
+    },
+    {
       "id": "command-review-tribunal",
       "title": "Command-review tribunal (the Thing)",
       "category": "Security",
@@ -52,7 +84,8 @@
       "order": 30,
       "summary": "An opt-in panel of reviewer seats that votes ALLOW/EDIT/DENY on shell commands instead of interrupting you.",
       "see_also": [
-        "permission-layers"
+        "permission-layers",
+        "hook-lifecycle"
       ],
       "widget": null,
       "try_it": {

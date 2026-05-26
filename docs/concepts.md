@@ -39,9 +39,41 @@ flowchart TD
   class D,A,AL fact
 ```
 
-**See also:** Command-review tribunal (the Thing)
+**See also:** Hooks: verdicts & exit codes · Command-review tribunal (the Thing)
 
 **Sources:** [Configure permissions](https://code.claude.com/docs/en/permissions) · [Claude Code settings](https://code.claude.com/docs/en/settings)
+
+_Last verified: 2026-05-25_
+
+
+---
+
+### Hooks: verdicts & exit codes · _platform fact_
+
+> Only exit 2 blocks a tool call; a hook deny beats bypass mode, but a hook allow can't override a settings deny.
+
+A `PreToolUse` hook reads the pending tool call as JSON on stdin and decides its fate. **Exit codes are the load-bearing, easy-to-get-wrong detail:** only **exit 2** blocks (and the hook's stderr is fed back to the model); **exit 0** allows; and **exit 1 or any other code is a *non-blocking* error — the tool still runs.** The trap is that `exit 1` is the conventional Unix "failure", so a policy hook that fails with `exit 1` *looks* like it blocked but doesn't.
+
+For richer control, a hook can instead print a `hookSpecificOutput.permissionDecision` JSON on **exit 0**: `allow`, `deny`, `ask`, or `defer` (headless-only). When several hooks and rules apply, priority is **`deny` > `defer` > `ask` > `allow`**.
+
+Two asymmetries make this safe: a hook **`deny` beats permission-mode bypass** (it blocks even under `bypassPermissions`), but a hook **`allow` does NOT override a settings `deny`** — hooks can *tighten* but never *loosen*. Note hooks **fail open**: on timeout or crash the tool proceeds, so a hook that must fail closed has to emit its own `deny` before its deadline.
+
+```mermaid
+flowchart TD
+  H[PreToolUse hook] --> EX{exit code?}
+  EX -- "exit 2" --> BLOCK[Blocked · stderr fed to model]
+  EX -- "exit 1 / other" --> NB[Non-blocking error · tool still RUNS]
+  EX -- "exit 0" --> J{JSON permissionDecision?}
+  J -- deny --> DEN[Denied · beats bypass mode]
+  J -- ask --> ASK[User prompted]
+  J -- "allow / none" --> ALL[Prompt skipped · settings deny still wins]
+  class H,EX,J,NB,ASK,ALL fact
+  class BLOCK,DEN built
+```
+
+**See also:** Permission layers & precedence · Command-review tribunal (the Thing)
+
+**Sources:** [Hooks reference](https://code.claude.com/docs/en/hooks) · [Hooks guide](https://code.claude.com/docs/en/hooks-guide)
 
 _Last verified: 2026-05-25_
 
@@ -82,7 +114,7 @@ flowchart TD
   class GATE fact
 ```
 
-**See also:** Permission layers & precedence
+**See also:** Permission layers & precedence · Hooks: verdicts & exit codes
 
 **Sources:** [thing skill (operating reference)](plugins/ravenclaude-core/skills/thing/SKILL.md) · [Tribunal design](docs/tribunal-review-feature-design.md)
 
