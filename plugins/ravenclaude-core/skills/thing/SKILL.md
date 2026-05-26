@@ -1,6 +1,6 @@
 ---
 name: thing
-description: Command review (the Thing) — the opt-in command-review tribunal that votes ALLOW/EDIT/DENY on shell commands a comfort-posture category is set to review. Read this when wiring, debugging, or explaining the tribunal: the PreToolUse orchestrator, the reviewer panel + tie-breaker, the deterministic concern evaluator, the dashboard-configurable panel, the per-category toggle, the audit trail, and the fail-closed rules. T3 = up to 3 seats + Thor, EDIT verdict, live for shell_readonly / shell_remote_mutate / shell_code_exec.
+description: "Command review (the Thing) — the opt-in command-review tribunal that votes ALLOW/EDIT/DENY on shell commands a comfort-posture category is set to review. Read this when wiring, debugging, or explaining the tribunal: the PreToolUse orchestrator, the reviewer panel + tie-breaker, the deterministic concern evaluator, the dashboard-configurable panel, the per-category toggle, the audit trail, and the fail-closed rules. T3 = up to 3 seats + Thor, EDIT verdict, live for shell_readonly / shell_remote_mutate / shell_code_exec."
 ---
 
 # Skill: command review (the Thing)

@@ -31,7 +31,7 @@ This is the prerequisite plugin — domain plugins (`power-platform`, `finance`,
 - **Capability Grounding Protocol** — pre-action environment + decision-tree checks, alternate-methods enumeration, and honest blocked-phrasing before any "I can't."
 - **Structured Output Protocol** — every handoff ends with a `---RESULT_START--- … ---RESULT_END---` JSON block alongside human-readable Markdown.
 - **Comfort-posture** — `/set-posture` translates a per-category YAML into `.claude/settings.json` permission rules, with an always-on `security_deny` baseline.
-- **Per-plugin dashboard** — `generate-dashboards.py` renders an interactive settings/activity dashboard.
+- **Comfort-posture dashboard** — a static, no-backend `dashboard.html` ships **inside the installed plugin** (at `~/.claude/plugins/cache/ravenclaude/ravenclaude-core/<version>/dashboard.html`). Open it in a browser, pick deny/ask/allow rules + command-review toggles, Copy/Download the generated YAML into `.ravenclaude/comfort-posture.yaml`, then run `/set-posture`. Claude-Code-specific — other tools (Copilot/Cursor/Codex) don't execute it.
 
 See [`CLAUDE.md`](CLAUDE.md) for the full team constitution (dispatch rules, agent-routing decision tree, knowledge-freshness discipline, run-artifacts standard).
 
