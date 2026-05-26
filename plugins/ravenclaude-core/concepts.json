@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "categories": [
+    {
+      "name": "Platform model",
+      "order": 10
+    },
+    {
+      "name": "Security",
+      "order": 30
+    }
+  ],
+  "concepts": [
+    {
+      "id": "permission-layers",
+      "title": "Permission layers & precedence",
+      "category": "Platform model",
+      "kind": "platform-fact",
+      "order": 10,
+      "summary": "Four settings files merge — a deny in ANY layer wins, and you can't override it down from a later layer.",
+      "see_also": [
+        "command-review-tribunal"
+      ],
+      "last_verified": "2026-05-25",
+      "refresh_when": "Anthropic adds/removes a settings layer, or changes the cross-layer merge rule.",
+      "sources": [
+        {
+          "label": "Configure permissions",
+          "url": "https://code.claude.com/docs/en/permissions"
+        },
+        {
+          "label": "Claude Code settings",
+          "url": "https://code.claude.com/docs/en/settings"
+        }
+      ],
+      "body_md": "Permission rules live under `permissions.allow`, `permissions.ask`, and `permissions.deny` in any of the settings files. Each rule is either a bare tool name (`Bash`, `WebSearch`) or a tool plus a specifier (`Bash(git status:*)`, `Read(/etc/**)`).\n\n**Within one file**, rules evaluate `deny → ask → allow` — the first match wins, so deny always beats ask and ask always beats allow.\n\n**Across files**, the layers **merge** rather than override: a deny in *any* layer blocks the action regardless of allow rules elsewhere. You **cannot override down** — if your user-level settings deny `Bash(rm *)`, no project-level allow re-enables it. That's the safe behavior, but it surprises people who expect a later layer to win.\n\nThe most-surprising rule: a **bare-tool deny** (`deny: [\"Bash\"]`) removes the tool from Claude's context entirely — Claude never sees it. A **scoped deny** (`Bash(rm *)`) keeps the tool and blocks only matching calls.",
+      "diagram": "flowchart TD\n  CALL[Tool call] --> MERGE[Merge rules across all layers]\n  MERGE --> D{Any layer<br/>DENY match?}\n  D -- yes --> BLOCK[Blocked — cannot be overridden]\n  D -- no --> A{Any layer<br/>ASK match?}\n  A -- yes --> PROMPT[Prompt the user]\n  A -- no --> AL{Any layer<br/>ALLOW match?}\n  AL -- yes --> RUN[Run without asking]\n  AL -- no --> PROMPT\n  class BLOCK built\n  class D,A,AL fact",
+      "diagram_mini": "flowchart LR\n  C[Call] --> D{deny<br/>anywhere?}\n  D -- yes --> X[Blocked]\n  D -- no --> OK[allow / ask]\n  class X built",
+      "svg": "knowledge/concepts/visuals/permission-layers.svg",
+      "svg_mini": "knowledge/concepts/visuals/permission-layers.mini.svg"
+    },
+    {
+      "id": "command-review-tribunal",
+      "title": "Command-review tribunal (the Thing)",
+      "category": "Security",
+      "kind": "ravenclaude-built",
+      "order": 30,
+      "summary": "An opt-in panel of reviewer seats that votes ALLOW/EDIT/DENY on shell commands instead of interrupting you.",
+      "see_also": [
+        "permission-layers"
+      ],
+      "last_verified": "2026-05-26",
+      "refresh_when": "The tribunal's tier model, seat roster, or gate_floor semantics change.",
+      "sources": [
+        {
+          "label": "thing skill (operating reference)",
+          "url": "plugins/ravenclaude-core/skills/thing/SKILL.md"
+        },
+        {
+          "label": "Tribunal design",
+          "url": "docs/tribunal-review-feature-design.md"
+        }
+      ],
+      "body_md": "**Command review** — codename *the Thing* — is an opt-in panel of reviewer agents that adjudicates shell commands instead of stopping to ask you. It sits **on top of** comfort-posture: posture sets the policy (allow/ask/deny per category); the tribunal is the adjudicator you switch on for a category so a verdict lands in seconds.\n\nRouting is **tiered**. Every command resolves to `low → medium → high → extreme` (its category base tier, bumped by a deterministic high/critical concern). A clean `low` read runs **no panel at all** (zero cost); seat count and the confidence bar escalate with the tier. Up to three seats run in parallel — **Forseti** (security), **Mímir** (code), **Heimdall** (injection) — with **Thor** (architect) convened only on a split.\n\nThe **`gate_floor`** knob (default `high`) is the lowest tier whose *confident ALLOW* is surfaced to you as an `ask`. DENY still blocks and EDIT still rewrites autonomously, so the tribunal pre-filters the dangerous and the fixable before either reaches you. Two hard overrides ignore the knob: **reads are never surfaced**, and **irreversible high-blast allows always are**. An abstaining panel always fails **closed**. It can never relax the `security_deny` floor.",
+      "diagram": "flowchart TD\n  A[Bash PreToolUse] --> B{category toggled on?}\n  B -- no --> Z[normal flow]\n  B -- yes --> C[classify: category · tier · routing]\n  C -- unarguable critical --> DENY[DENY · no LLM]\n  C -- clean low read --> ALLOW[allow · no panel]\n  C -- tier ≥ medium --> E[convene seats in parallel]\n  E -- split / low confidence --> T[convene Thor]\n  T --> AGG[aggregate]\n  E --> AGG\n  AGG -- deny / critical --> DENY\n  AGG -- edit safe --> EDIT[allow + rewrite]\n  AGG -- allow --> GATE{tier ≥ gate_floor<br/>or high-blast?}\n  GATE -- yes --> ASK[ask · you confirm]\n  GATE -- no --> ALLOW\n  DENY & ALLOW & EDIT & ASK --> L[(Sága log)]\n  class DENY,ALLOW,EDIT,ASK,E,T built\n  class GATE fact",
+      "diagram_mini": "flowchart LR\n  C[Command] --> P[Panel<br/>1–3 seats]\n  P --> V{Verdict}\n  V --> A[allow / edit / deny / ask]\n  class P,A built",
+      "svg": "knowledge/concepts/visuals/command-review-tribunal.svg",
+      "svg_mini": "knowledge/concepts/visuals/command-review-tribunal.mini.svg"
+    }
+  ]
+}
