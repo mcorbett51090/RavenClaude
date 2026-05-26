@@ -37,7 +37,7 @@ import concepts as concepts_mod  # noqa: E402
 # Pin the renderer so committed SVGs stay reproducible across machines/time.
 MMDC_VERSION = "11.15.0"
 # Bump when the normalizer logic below changes (invalidates every committed SVG).
-NORMALIZER_VERSION = 3
+NORMALIZER_VERSION = 4
 
 VISUALS_DIR = "plugins/ravenclaude-core/knowledge/concepts/visuals"
 MANIFEST_NAME = ".render-manifest.json"
@@ -54,8 +54,10 @@ def _theme_style(svg_id: str) -> str:
     return (
         "<style>"
         f"{s} .nodeLabel,{s} .edgeLabel,{s} text,{s} span,{s} p,{s} div"
-        "{fill:var(--text)!important;color:var(--text)!important;"
-        "font-family:var(--font-mono)!important;background:transparent!important}"
+        # theme the text COLOR only — never the font-family: Mermaid baked node
+        # widths using its own font at render time, so forcing a wider font here
+        # would overflow the shapes (clipped labels).
+        "{fill:var(--text)!important;color:var(--text)!important;background:transparent!important}"
         f"{s} .node rect,{s} .node polygon,{s} .node circle,{s} .node path,{s} .label-container"
         "{fill:var(--surface-2)!important;stroke:var(--border)!important;stroke-width:1.5px!important}"
         f"{s} .cluster rect{{fill:var(--surface)!important;stroke:var(--border)!important}}"

@@ -1,22 +1,22 @@
 {
   "concepts": {
-    "audit-gates": "77de1062047c43c69d47c31ec20153e1810d4668694d7b113309b3df7355ae95",
-    "capability-banner": "bef6b71be3c60d32a1535a635b2e67668e7aaa26b298ae888e177b550f986cae",
-    "comfort-posture": "6c908cbb021fe337d822dae00f85510c4b52b8f421c9a1f71e996978489b80f9",
-    "command-review-tribunal": "32d857c3d1c72581474b96b0f1693b711f2338b248f4c0277279eb6ef5450e18",
-    "copilot-bridge": "dea64ea265e959c9b4a2b7d27ebe96fa704e35598722905654ec7535deec7c5d",
-    "decision-review": "5e0c1925615fee72337ee1ef68c9bc097431cf9ce081cecbdd3600c2802dd137",
-    "decision-trees": "ff2777f77c627a1b37d7a1c1a3bd4e7904867d096722c4b7fcb8f7208a89c093",
-    "environment-context": "a6209fb4e355d8e60fba9ab6dfcf8be356f10d48bd567f9c936ff41afca556ca",
-    "getting-started": "b12e7f3eb1213590081e479bd86f07a20f441ca6cec85c3c9905efa1e4cbf5c2",
-    "hook-lifecycle": "dca533effdf857833e658e18830a0a0fa9e7c6a2420676856e9a7fcc41774790",
-    "layout-hook": "45848083a53ad8d3f21fd7e4a132e0809b8f8603f29833afe20cc01477d86a05",
-    "model-diversity": "ddb4b75389a51501d628fb300b71773b38589acee1db17a69a2b1152e5bf2f57",
-    "permission-layers": "e02468866f8cd55f8dba249c5aa24c870f6bdf5d3f536a0fadbbd3a30941ffcf",
-    "permission-modes": "0e6d43778999857cd46c55598af8b3c8949fb8eba0e76ed2ad86939990e1371d",
-    "saga-log": "5ba8538c4f7a0dda0ce624a85a63957f1de8ed666cef3f7c99eb5bc519ef56d1",
-    "session-start-context": "295349951b636d9c25c7bf9dae55f8bfd4744dc37fa35e10fe23bf50025fbf0d"
+    "audit-gates": "c63691397c8f75c686b460de6ba844dc092130af90e2f37ae701a78272815b3d",
+    "capability-banner": "23f9e5449861493f9362166961b55715643851b9ca77c233531e63b1ef8c6e34",
+    "comfort-posture": "5186ddae8f063925b9b847d95f31d67bc61e7aba3bdbc7c63cdf9103350383ee",
+    "command-review-tribunal": "da30ecf7aacd5590eb92a364f5a413ffaa6f6a9382e467921fb45d36004d15e4",
+    "copilot-bridge": "f48fc188d8003dd76fb527e8cd03576c933c14f6ea838f7d2b28549799f3fc55",
+    "decision-review": "31e212127f274a88819fa239e72a47727de25a3a11858ee92afd4a4a5b58402f",
+    "decision-trees": "f100fc5adf9ecfd42e66eff7824a5c062986ff95bd356a71728e8e96a51ee01f",
+    "environment-context": "15de17f5065f6b01ad5d0ac1c71b7e02ced75dd3ad0a36e8ec52a728fd8715af",
+    "getting-started": "ab78f439d4837f4c0623f2768adf33aa1fc1487849123a58eb165a11b3d83c16",
+    "hook-lifecycle": "8f896d063d990f81899d7fe546af0eef621e37816e91d9a93acc7bb5753679b8",
+    "layout-hook": "a0b55bac577f80a606f3bfb939cbb53e214cce2343cb11fef29f7989faacdae9",
+    "model-diversity": "156dfafda61935e054e182112db6da1366d08eabc4170f465c7234e8c84c00a6",
+    "permission-layers": "5d740e1ba8a065adc333dc918e302f69aced5d35b06e00bc540e908593cd5713",
+    "permission-modes": "c2a96ff985928caabc206ba28aaca23685c76c9109420a9bef123b29d1cfe4d1",
+    "saga-log": "6f260caa0071efe53d8f0d3ada620f085c7d876e0d9b50c7f59c15b899481d6a",
+    "session-start-context": "a9fd1336a708e17dbff97245e18705ba4854f00693924496c0658d8398429e7b"
   },
   "mmdc_version": "11.15.0",
-  "normalizer_version": 3
+  "normalizer_version": 4
 }
