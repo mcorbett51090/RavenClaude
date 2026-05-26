@@ -2,6 +2,10 @@
   "schema_version": 1,
   "categories": [
     {
+      "name": "Getting started",
+      "order": 5
+    },
+    {
       "name": "Platform model",
       "order": 10
     },
@@ -19,6 +23,37 @@
     }
   ],
   "concepts": [
+    {
+      "id": "getting-started",
+      "title": "Getting started",
+      "category": "Getting started",
+      "kind": "ravenclaude-built",
+      "order": 5,
+      "summary": "Add the marketplace, install ravenclaude-core, run /dashboard. Needs jq + python3; under Copilot CLI it's `ravenclaude install`.",
+      "see_also": [
+        "comfort-posture",
+        "capability-banner"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "The install steps, requirements, or slash-command surface change.",
+      "sources": [
+        {
+          "label": "ravenclaude-core README",
+          "url": "plugins/ravenclaude-core/README.md"
+        },
+        {
+          "label": "AGENTS.md — Setup commands",
+          "url": "AGENTS.md"
+        }
+      ],
+      "body_md": "RavenClaude is a Claude Code **plugin marketplace**. To use the core plugin: add the marketplace, install the plugin, reload. `jq` and `python3` are required for the CI workflows and the layout-enforcement hook (both ship in the devcontainer).\n\n```text\n/plugin marketplace add mcorbett51090/RavenClaude\n/plugin install ravenclaude-core@ravenclaude\n/reload-plugins\n```\n\nAfter install, run **`/dashboard`** to launch the comfort-posture editor (point-and-click permission rules + command-review toggles, with one-click Save & apply). Domain plugins (`power-platform`, `finance`, …) build on core, so install it first. Running under **GitHub Copilot CLI** instead? Use `bash scripts/ravenclaude install` — and from then on, updating is just `git pull`.",
+      "diagram": "flowchart TD\n  A[/plugin marketplace add …/] --> B[/plugin install ravenclaude-core/]\n  B --> C[/reload-plugins/]\n  C --> D[Run /dashboard]\n  D --> E[Set comfort posture · opt into command review]\n  E --> F[Start working — capability banner orients each session]\n  class A,B,C,D,E,F built",
+      "diagram_mini": "flowchart LR\n  I[install] --> D[\"/dashboard\"] --> P[set posture]\n  class I,D,P built",
+      "svg": "knowledge/concepts/visuals/getting-started.svg",
+      "svg_mini": "knowledge/concepts/visuals/getting-started.mini.svg"
+    },
     {
       "id": "permission-layers",
       "title": "Permission layers & precedence",
@@ -269,6 +304,37 @@
       "svg_mini": "knowledge/concepts/visuals/model-diversity.mini.svg"
     },
     {
+      "id": "decision-review",
+      "title": "Decision-review tribunal",
+      "category": "Security",
+      "kind": "ravenclaude-built",
+      "order": 36,
+      "summary": "A sibling tribunal votes yes/no/defer on yes-or-no DECISIONS before they reach you — binding only if you opt in, and high-blast calls always defer.",
+      "see_also": [
+        "command-review-tribunal",
+        "model-diversity"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "The decision-review modes, the defer rules, or the high-blast carve-out change.",
+      "sources": [
+        {
+          "label": "Post-PR decision review",
+          "url": "docs/post-pr-decision-review.md"
+        },
+        {
+          "label": "ravenclaude-core constitution",
+          "url": "plugins/ravenclaude-core/CLAUDE.md"
+        }
+      ],
+      "body_md": "The command-review tribunal adjudicates *shell commands*; the **decision-review** tribunal adjudicates *yes/no decisions* — the kind an agent would otherwise interrupt you with. The `decision-review` skill convenes the same seats on a yes/no question (engine: `thing-decide.py`) and returns **`yes` / `no` / `defer`**. A binding yes/no is acted on without pausing you; a `defer` asks you. The panel defers genuine preferences, low-confidence or split calls, and anything high-blast.\n\nTwo guardrails: **high-blast / irreversible decisions never auto-resolve** — force-push, deletes, prod actions, the `security_deny` family always `defer` to you, regardless of mode. And the mode knob `decision_review: off | advisory | binding` is **off by default**, so nothing is auto-decided unless you opt in. (The seats run via `claude -p`; without it the panel abstains and fails safe to `defer`.) After each PR, a retrospective routes the PR's decisions through the same panel and logs the verdicts.",
+      "diagram": "flowchart TD\n  Q[A yes/no decision] --> HB{high-blast /<br/>irreversible?}\n  HB -- yes --> DEFER[defer · always ask you]\n  HB -- no --> MODE{decision_review mode}\n  MODE -- \"off (default)\" --> ASK[ask you]\n  MODE -- \"binding\" --> PANEL[convene seats · thing-decide.py]\n  PANEL --> V{yes / no / defer}\n  V -- yes/no --> ACT[act without pausing you]\n  V -- defer --> DEFER\n  class Q,HB,MODE fact\n  class DEFER,ASK,PANEL,V,ACT built",
+      "diagram_mini": "flowchart LR\n  Q[yes/no decision] --> P[panel]\n  P --> V[yes / no / defer]\n  class P,V built",
+      "svg": "knowledge/concepts/visuals/decision-review.svg",
+      "svg_mini": "knowledge/concepts/visuals/decision-review.mini.svg"
+    },
+    {
       "id": "capability-banner",
       "title": "Capability-orientation banner",
       "category": "Orientation & capability",
@@ -420,6 +486,37 @@
       "diagram_mini": "flowchart LR\n  B[known-bad] --> F{fails?}\n  F -- yes --> P[known-good passes → trusted]\n  F -- no --> X[gate broken]\n  class P,X built",
       "svg": "knowledge/concepts/visuals/audit-gates.svg",
       "svg_mini": "knowledge/concepts/visuals/audit-gates.mini.svg"
+    },
+    {
+      "id": "copilot-bridge",
+      "title": "GitHub Copilot CLI bridge",
+      "category": "Marketplace engineering",
+      "kind": "ravenclaude-built",
+      "order": 54,
+      "summary": "RavenClaude runs under GitHub Copilot CLI too — via a generated package + a hook adapter — and updating is just `git pull`, never a re-install.",
+      "see_also": [
+        "layout-hook",
+        "hook-lifecycle"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "The Copilot package generator, the hook adapter's envelope mapping, or Copilot's plugin-hook bug status changes.",
+      "sources": [
+        {
+          "label": "ravenclaude-core constitution",
+          "url": "plugins/ravenclaude-core/CLAUDE.md"
+        },
+        {
+          "label": "generate-copilot-plugin.py",
+          "url": "scripts/generate-copilot-plugin.py"
+        }
+      ],
+      "body_md": "Copilot CLI is itself a plugin host with the same lifecycle events (SessionStart / PreToolUse / …), Agent Skills, AGENTS.md, and MCP — so most of the plugin ports. Three pieces make it work: `generate-copilot-plugin.py` **projects** the canonical plugin into a Copilot package (generated, never hand-maintained, `--check`-gated like the dashboard); a **hook adapter** translates the I/O envelopes so the *unmodified* hook scripts run under Copilot (mapping its `toolName`/`toolArgs` ⇄ Claude's `tool_name`/`tool_input`, and the verdict shapes); and **enforcement hooks ship repo-level** in `.github/hooks/` because a Copilot bug stops plugin-level `preToolUse` hooks from firing.\n\nThe design pillar is **frictionless updates**: instead of Copilot's re-install-to-update flow, the plugin loads **live** via `copilot --plugin-dir copilot/`, so an update is just **`git pull`** (`ravenclaude update`). No re-install, ever.",
+      "diagram": "flowchart TD\n  CANON[Canonical plugin] --> GEN[generate-copilot-plugin.py]\n  GEN --> PKG[copilot/ package · --check gated]\n  CO[Copilot PreToolUse envelope] --> AD[hook adapter]\n  AD --> CL[unmodified hook scripts]\n  CL --> AD\n  UP[Update] --> PULL[git pull · loads live]\n  class CANON,GEN,PKG,AD,CL,UP,PULL built\n  class CO fact",
+      "diagram_mini": "flowchart LR\n  C[Canonical plugin] --> A[adapter] --> CO[Copilot CLI]\n  C --> U[update = git pull]\n  class C,A,U built",
+      "svg": "knowledge/concepts/visuals/copilot-bridge.svg",
+      "svg_mini": "knowledge/concepts/visuals/copilot-bridge.mini.svg"
     }
   ]
 }

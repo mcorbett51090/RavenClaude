@@ -11,6 +11,42 @@ interactive diagrams, search, and live widgets — in the comfort-posture
 dashboard's **Learn** tab (`/dashboard`).
 
 
+## Getting started
+
+### Getting started · _RavenClaude-built_
+
+> Add the marketplace, install ravenclaude-core, run /dashboard. Needs jq + python3; under Copilot CLI it's `ravenclaude install`.
+
+RavenClaude is a Claude Code **plugin marketplace**. To use the core plugin: add the marketplace, install the plugin, reload. `jq` and `python3` are required for the CI workflows and the layout-enforcement hook (both ship in the devcontainer).
+
+```text
+/plugin marketplace add mcorbett51090/RavenClaude
+/plugin install ravenclaude-core@ravenclaude
+/reload-plugins
+```
+
+After install, run **`/dashboard`** to launch the comfort-posture editor (point-and-click permission rules + command-review toggles, with one-click Save & apply). Domain plugins (`power-platform`, `finance`, …) build on core, so install it first. Running under **GitHub Copilot CLI** instead? Use `bash scripts/ravenclaude install` — and from then on, updating is just `git pull`.
+
+```mermaid
+flowchart TD
+  A[/plugin marketplace add …/] --> B[/plugin install ravenclaude-core/]
+  B --> C[/reload-plugins/]
+  C --> D[Run /dashboard]
+  D --> E[Set comfort posture · opt into command review]
+  E --> F[Start working — capability banner orients each session]
+  class A,B,C,D,E,F built
+```
+
+**See also:** Comfort-posture dashboard · Capability-orientation banner
+
+**Sources:** [ravenclaude-core README](plugins/ravenclaude-core/README.md) · [AGENTS.md — Setup commands](AGENTS.md)
+
+_Last verified: 2026-05-26_
+
+
+---
+
+
 ## Platform model
 
 ### Permission layers & precedence · _platform fact_
@@ -266,6 +302,37 @@ _Last verified: 2026-05-26_
 
 ---
 
+### Decision-review tribunal · _RavenClaude-built_
+
+> A sibling tribunal votes yes/no/defer on yes-or-no DECISIONS before they reach you — binding only if you opt in, and high-blast calls always defer.
+
+The command-review tribunal adjudicates *shell commands*; the **decision-review** tribunal adjudicates *yes/no decisions* — the kind an agent would otherwise interrupt you with. The `decision-review` skill convenes the same seats on a yes/no question (engine: `thing-decide.py`) and returns **`yes` / `no` / `defer`**. A binding yes/no is acted on without pausing you; a `defer` asks you. The panel defers genuine preferences, low-confidence or split calls, and anything high-blast.
+
+Two guardrails: **high-blast / irreversible decisions never auto-resolve** — force-push, deletes, prod actions, the `security_deny` family always `defer` to you, regardless of mode. And the mode knob `decision_review: off | advisory | binding` is **off by default**, so nothing is auto-decided unless you opt in. (The seats run via `claude -p`; without it the panel abstains and fails safe to `defer`.) After each PR, a retrospective routes the PR's decisions through the same panel and logs the verdicts.
+
+```mermaid
+flowchart TD
+  Q[A yes/no decision] --> HB{high-blast /<br/>irreversible?}
+  HB -- yes --> DEFER[defer · always ask you]
+  HB -- no --> MODE{decision_review mode}
+  MODE -- "off (default)" --> ASK[ask you]
+  MODE -- "binding" --> PANEL[convene seats · thing-decide.py]
+  PANEL --> V{yes / no / defer}
+  V -- yes/no --> ACT[act without pausing you]
+  V -- defer --> DEFER
+  class Q,HB,MODE fact
+  class DEFER,ASK,PANEL,V,ACT built
+```
+
+**See also:** Command-review tribunal (the Thing) · Model diversity on the panel
+
+**Sources:** [Post-PR decision review](docs/post-pr-decision-review.md) · [ravenclaude-core constitution](plugins/ravenclaude-core/CLAUDE.md)
+
+_Last verified: 2026-05-26_
+
+
+---
+
 
 ## Orientation & capability
 
@@ -416,6 +483,35 @@ flowchart TD
 **See also:** Layout enforcement
 
 **Sources:** [CI gate audit](docs/best-practices/ci-gate-audit.md) · [AGENTS.md — Testing instructions](AGENTS.md)
+
+_Last verified: 2026-05-26_
+
+
+---
+
+### GitHub Copilot CLI bridge · _RavenClaude-built_
+
+> RavenClaude runs under GitHub Copilot CLI too — via a generated package + a hook adapter — and updating is just `git pull`, never a re-install.
+
+Copilot CLI is itself a plugin host with the same lifecycle events (SessionStart / PreToolUse / …), Agent Skills, AGENTS.md, and MCP — so most of the plugin ports. Three pieces make it work: `generate-copilot-plugin.py` **projects** the canonical plugin into a Copilot package (generated, never hand-maintained, `--check`-gated like the dashboard); a **hook adapter** translates the I/O envelopes so the *unmodified* hook scripts run under Copilot (mapping its `toolName`/`toolArgs` ⇄ Claude's `tool_name`/`tool_input`, and the verdict shapes); and **enforcement hooks ship repo-level** in `.github/hooks/` because a Copilot bug stops plugin-level `preToolUse` hooks from firing.
+
+The design pillar is **frictionless updates**: instead of Copilot's re-install-to-update flow, the plugin loads **live** via `copilot --plugin-dir copilot/`, so an update is just **`git pull`** (`ravenclaude update`). No re-install, ever.
+
+```mermaid
+flowchart TD
+  CANON[Canonical plugin] --> GEN[generate-copilot-plugin.py]
+  GEN --> PKG[copilot/ package · --check gated]
+  CO[Copilot PreToolUse envelope] --> AD[hook adapter]
+  AD --> CL[unmodified hook scripts]
+  CL --> AD
+  UP[Update] --> PULL[git pull · loads live]
+  class CANON,GEN,PKG,AD,CL,UP,PULL built
+  class CO fact
+```
+
+**See also:** Layout enforcement · Hooks: verdicts & exit codes
+
+**Sources:** [ravenclaude-core constitution](plugins/ravenclaude-core/CLAUDE.md) · [generate-copilot-plugin.py](scripts/generate-copilot-plugin.py)
 
 _Last verified: 2026-05-26_
 
