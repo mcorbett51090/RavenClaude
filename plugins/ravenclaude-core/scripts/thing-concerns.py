@@ -161,6 +161,40 @@ def revalidate(
     }
 
 
+def screen_always(catalog: dict, command: str) -> dict:
+    """Category-independent hard screen (design §B.9.5 — the Thing cannot disable
+    itself).
+
+    Concerns flagged `always_screen` are evaluated regardless of which category
+    the command classifies into, or whether that category's toggle is on. This
+    closes the evasion where an attacker crafts a Thing-disabling command that
+    falls in a category whose toggle happens to be off: disabling the Thing
+    affects EVERY category, so the guard cannot be category-gated.
+
+    Only cross-cutting concerns are considered (a category-specific concern is by
+    definition not category-independent). A match denies the command pre-LLM.
+    """
+    hits: list[str] = []
+    for c in catalog.get("cross_cutting") or []:
+        if not c.get("always_screen"):
+            continue
+        for rx in (c.get("triggers") or {}).get("regex", []) or []:
+            try:
+                matched = bool(re.search(rx, command, re.IGNORECASE))
+            except re.error:
+                # Fail CLOSED: an uncompilable self-protection trigger must never
+                # silently stop protecting (unlike _matches, which skips it for
+                # the soft routing path). Treat it as a match -> deny.
+                matched = True
+            if matched:
+                hits.append(c["id"])
+                break
+    return {
+        "self_disable_deny": bool(hits),
+        "self_disable_concern": hits[0] if hits else None,
+    }
+
+
 def severity(catalog: dict, ids: list[str]) -> dict:
     """Map cited concern ids to severities; flag whether any is critical.
 
@@ -195,6 +229,9 @@ def main() -> int:
     sv = sub.add_parser("severity", help="report whether any cited id is critical")
     sv.add_argument("--ids", required=True, help="comma-separated concern ids")
 
+    sa = sub.add_parser("screen-always", help="category-independent self-disable screen (§B.9.5)")
+    sa.add_argument("command")
+
     args = ap.parse_args()
 
     try:
@@ -209,6 +246,8 @@ def main() -> int:
     elif args.cmd == "severity":
         ids = [i.strip() for i in args.ids.split(",") if i.strip()]
         result = severity(catalog, ids)
+    elif args.cmd == "screen-always":
+        result = screen_always(catalog, args.command)
     else:
         result = revalidate(catalog, args.category, args.cited, args.original, args.revised)
 

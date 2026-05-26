@@ -82,6 +82,29 @@ def _route(command: str, category: str | None) -> dict:
         return fallback
 
 
+def _screen_always(command: str) -> dict:
+    """Category-independent self-disable screen (§B.9.5), via thing-concerns.py.
+
+    Runs regardless of the per-category toggle: a command that would disable or
+    tamper with the Thing is denied pre-LLM whenever the orchestrator reached us
+    (i.e. some category is toggled on), even if THIS command's own category is
+    off. On any failure to load/evaluate, returns a conservative no-deny (the
+    orchestrator's other fail-closed paths still apply) rather than crashing.
+    """
+    fallback = {"self_disable_deny": False, "self_disable_concern": None}
+    try:
+        spec = importlib.util.spec_from_file_location("_thing_concerns", _CONCERNS)
+        if spec is None or spec.loader is None:
+            return fallback
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        catalog = mod._load_catalog()
+        res = mod.screen_always(catalog, command)
+        return {k: res[k] for k in fallback}
+    except Exception:
+        return fallback
+
+
 _BASH_PATTERN_RE = re.compile(r"^Bash\((.+?)(:\*)?\)$")
 
 
@@ -282,6 +305,12 @@ def main() -> int:
     category = classify(args.command)
 
     result: dict = {"category": category, "thing_enabled": False}
+
+    # §B.9.5 — the self-disable guard is CATEGORY-INDEPENDENT. The orchestrator
+    # only reaches us when some category is toggled on, and disabling the Thing
+    # affects every category, so this is screened regardless of THIS command's
+    # category or whether that category's own toggle is on.
+    result.update(_screen_always(args.command))
 
     posture: dict = {}
     posture_path = root / ".ravenclaude" / "comfort-posture.yaml"

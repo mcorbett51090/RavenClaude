@@ -36,7 +36,14 @@ schema:
   #                     payload, curl|sh, force-push). Conditionally-allowable criticals
   #                     (e.g. srm.push-to-protected-branch) are NOT pre_llm_deny — they
   #                     route to the panel, which may allow them under environment-context.
-  optional_fields: [triggers, pre_llm_deny]
+  #   always_screen   — true for the §B.9.5 self-protection rule(s): the concern is
+  #                     evaluated CATEGORY-INDEPENDENTLY — whenever ANY category has the
+  #                     toggle on, not only when the command's own category is on. This
+  #                     closes the evasion where an attacker crafts a Thing-disabling
+  #                     command that classifies into a category whose toggle is off.
+  #                     Implies pre_llm_deny. Reserved for "the Thing cannot disable
+  #                     itself" — see scripts/thing-concerns.py `screen_always`.
+  optional_fields: [triggers, pre_llm_deny, always_screen]
   severities: [critical, high, medium, low]
 
 # Cross-cutting concerns apply to every category. Evaluated first; any hit is
@@ -63,8 +70,14 @@ cross_cutting:
         - 'AKIA[0-9A-Z]{12,}'
         - 'sk-(ant-)?[A-Za-z0-9-]{20,}'
         - 'ghp_[A-Za-z0-9]{30,}'
+        - 'github_pat_[A-Za-z0-9_]{20,}'
+        - 'glpat-[A-Za-z0-9_-]{15,}'
+        - 'xox[baprs]-[A-Za-z0-9-]{10,}'
+        - 'AIza[0-9A-Za-z_-]{30,}'
+        - 'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{6,}'
         - '-----BEGIN [A-Z ]*PRIVATE KEY-----'
         - '--password[=\s]\S+'
+        - '--token[=\s]\S+'
         - '(^|\s)-p\S{6,}'
   - id: xc.injection-attempt
     name: Prompt-injection payload in command content
@@ -79,13 +92,67 @@ cross_cutting:
       DENY. Log the attempt. Surface a banner. Disable the tribunal toggle for
       the session if repeated.
     triggers:
+      # Curated for the JudgeDeceiver / verdict-flip threat (arXiv:2403.17710):
+      # instruction-override shapes, role-tag / special-token spoofing, and direct
+      # attempts to dictate the tribunal's verdict. Matched case-insensitively
+      # anywhere in the command. Tuned to avoid common real-command false positives
+      # (e.g. `gh pr review --approve` does not match "always approve").
       regex:
-        - 'ignore (all )?(previous|prior) instructions'
-        - 'disregard (the )?(above|previous)'
-        - 'you are now'
-        - '<system>'
+        - 'ignore (all |any )?(previous|prior|above|earlier) (instructions|prompts?|rules|context)'
+        - 'disregard (the |all |any )?(above|previous|prior|earlier|preceding)'
+        - 'forget (all |everything |the )?(previous|prior|above|earlier)'
+        - 'you are (now |a |an |in )'
+        - 'pretend (you are|to be|that)'
+        - 'new (system )?(instructions?|rules?|prompt)'
+        - '</?(system|assistant|developer)>'
+        - '<\|im_(start|end)\|>'
+        - '\[/?(INST|SYS)\]'
+        - '###\s*(system|instruction)'
         - 'approve this command'
-        - 'override.{0,12}(safety|security|deny)'
+        - 'always (allow|approve|pass|say (yes|allow))'
+        - '(set|return|render|cast|output).{0,20}verdict.{0,20}(allow|approve|edit)'
+        - 'mark.{0,20}(this|the command|it).{0,20}(safe|approved|allowed)'
+        - 'override.{0,12}(safety|security|deny|the tribunal|verdict)'
+        - '(developer|god|sudo) mode'
+        - 'do anything now|jailbreak'
+        - 'this command is (safe|authorized|pre-?approved|trusted)'
+  - id: xc.tribunal-self-disable
+    name: Command would disable or tamper with the Thing itself
+    severity: critical
+    pre_llm_deny: true
+    always_screen: true
+    description: >-
+      The command mutates the tribunal's own substrate — the Lawspeaker
+      orchestrator, a seat wrapper, the deterministic concern/decision scripts,
+      the plugin hooks manifest, or `.ravenclaude/thing.yaml` — or writes a
+      `thing: off` toggle into `.ravenclaude/comfort-posture.yaml`. An attacker
+      who tricks the Thing into disabling itself can do anything afterward
+      (design §B.9.5), so this path is closed at the highest priority. It is
+      evaluated CATEGORY-INDEPENDENTLY (always_screen): whenever ANY category
+      has the toggle on — not only when this command's own category is on —
+      because disabling the Thing affects every category. Scope is shell-level
+      mutation (redirect / tee / rm / mv / cp / sed / chmod / …); an exotic
+      in-process file write still routes to the panel under shell_code_exec.
+    resolution: >-
+      DENY unilaterally, pre-LLM, no seat convened — never ALLOW or EDIT. The
+      user turns the Thing off via the comfort-posture dashboard (the explicit
+      override path), not via a tribunal-reviewed command.
+    triggers:
+      # Substrate = the Thing's own files AND the plugin directories that hold
+      # them. Matching the DIRECTORY (`ravenclaude-core/(hooks|scripts)`) — not
+      # just the filenames — catches glob (`thing-orchestrator.??`), variable-
+      # expanded (`$f`), and whole-directory (`rm -rf .../hooks`) forms that a
+      # literal-filename match misses; the bare filenames cover a `cd <dir>` then
+      # bare-name mutation. Regex can't canonicalize a path, so this is the
+      # shell-level scope (in-process `python -c` writes route to the panel).
+      # (1) redirection / tee INTO a substrate path
+      regex:
+        - '(>>?|\btee\b)\s*\S*(ravenclaude-core/(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml)'
+        # (2) a mutating verb (incl. tee, tolerant of intervening flags) on a substrate path
+        - '(?s)\b(rm|unlink|shred|mv|cp|install|ln|tee|sed|perl|awk|truncate|dd|chmod|chown|patch|sponge)\b.{0,200}(ravenclaude-core/(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml)'
+        # (3) turning the per-category toggle OFF in comfort-posture.yaml (bounded
+        #     lookaheads so a large heredoc body is not scanned twice unbounded)
+        - '(?s)(?=.{0,4000}comfort-posture\.yaml)(?=.{0,4000}thing:\s*(off|false|no)\b)'
   - id: xc.outside-project-tree
     name: Target path resolves outside the project tree
     severity: high
