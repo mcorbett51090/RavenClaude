@@ -206,22 +206,27 @@ jobs:
           npx --yes prettier --check . --log-level warn
 
       - name: Actionlint (GitHub Actions semantic check)
-        # actionlint 1.7.7 has no -exit-code flag — by design it reports
-        # findings to stdout but exits 0. We pre-pull the image (so pull
-        # progress doesn't pollute the capture), then run with stdout-only
-        # capture and gate on non-empty stdout. PR 12's first attempt used
-        # 2>&1 and tripped on docker pull noise on a fresh runner — fixed
-        # here by separating concerns: docker stderr is discarded, only
-        # actionlint stdout matters.
+        # Pinned-binary actionlint (rhysd/actionlint v1.7.7) downloaded from the
+        # GitHub release and sha256-verified — NO Docker Hub dependency, so the
+        # gate is immune to anonymous image-pull rate-limits (the failure mode
+        # that broke this job on PR #93). The binary exits non-zero on findings
+        # (1) and on operational errors; 0 only when clean — so we gate on exit
+        # code, not on captured output. A pinned checksum also beats a mutable
+        # `:1.7.7` image tag for supply-chain integrity.
         run: |
           set -euo pipefail
-          docker pull --quiet rhysd/actionlint:1.7.7 >/dev/null
-          out=$(docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color)
-          echo "$out"
-          if [[ -n "$out" ]]; then
+          ver=1.7.7
+          sha=023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757
+          tgz="$(mktemp)"
+          curl -fsSL "https://github.com/rhysd/actionlint/releases/download/v${ver}/actionlint_${ver}_linux_amd64.tar.gz" -o "$tgz"
+          printf '%s  %s\n' "$sha" "$tgz" | sha256sum -c -
+          dir="$(dirname "$tgz")"
+          tar -xzf "$tgz" -C "$dir" actionlint
+          if ! "$dir/actionlint" -color; then
             echo "::error::actionlint reported findings"
             exit 1
           fi
+          echo "actionlint: clean"
 
       - name: Audit every gate (meta-test — prove each gate fails on bad input AND passes on good)
         # Codifies docs/best-practices/ci-gate-audit.md. If any CI gate
