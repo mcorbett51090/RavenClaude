@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+# ravenclaude — install / update the RavenClaude plugins for GitHub Copilot CLI.
+#
+# The frictionless answer to "Copilot's plugin-update method is intolerable": we
+# DON'T use Copilot's install-and-cache mechanism. Everything Copilot reads is a
+# LIVE-from-disk surface, so an update is just `git pull` + a re-materialize:
+#
+#   * the plugin is loaded with `copilot --plugin-dir <marketplace>/plugins/ravenclaude-core/copilot`
+#     (live from the directory — never installed/cached)
+#   * skills live in <project>/.claude/skills      (Copilot reads .claude/skills live)
+#   * hooks live in <project>/.github/hooks         (Copilot reads repo hooks live; also the
+#                                                    #2540 workaround — plugin-level hooks don't fire)
+#   * MCP servers are written to ~/.copilot/mcp-config.json
+#
+# Subcommands:
+#   ravenclaude install [--project DIR]   one-time wiring into a project (default: $PWD)
+#   ravenclaude update                    git pull the marketplace + regenerate the Copilot package
+#   ravenclaude status [--project DIR]    show what is wired
+#
+# Re-running install is safe (idempotent). After `update`, run `/skills reload` in
+# your Copilot session (or relaunch) to pick up changes — no re-install ever.
+
+set -euo pipefail
+
+# The marketplace checkout = the repo this script lives in.
+MARKET="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+COPILOT_PKG="$MARKET/plugins/ravenclaude-core/copilot"
+CORE="$MARKET/plugins/ravenclaude-core"
+SKILLS_SRC="$CORE/skills"
+GEN="$MARKET/scripts/generate-copilot-plugin.py"
+
+note() { printf '  %s\n' "$*"; }
+ok()   { printf '\033[32m✓\033[0m %s\n' "$*"; }
+warn() { printf '\033[33m!\033[0m %s\n' "$*" >&2; }
+
+regen() {
+  if [ -f "$GEN" ] && command -v python3 >/dev/null 2>&1; then
+    python3 "$GEN" >/dev/null 2>&1 && ok "regenerated the Copilot package" \
+      || warn "could not regenerate the Copilot package (using the committed copy)"
+  fi
+}
+
+cmd_update() {
+  printf '== ravenclaude update ==\n'
+  if git -C "$MARKET" rev-parse --git-dir >/dev/null 2>&1; then
+    local branch; branch="$(git -C "$MARKET" symbolic-ref --short HEAD 2>/dev/null || echo HEAD)"
+    if git -C "$MARKET" pull --ff-only >/dev/null 2>&1; then
+      ok "pulled latest ($branch)"
+    else
+      warn "git pull --ff-only failed (local changes or diverged?) — skills/hooks still update from whatever is checked out"
+    fi
+  else
+    warn "$MARKET is not a git checkout — nothing to pull"
+  fi
+  regen
+  ok "up to date. In your Copilot session run '/skills reload' (or relaunch) to apply."
+}
+
+cmd_install() {
+  local project="$PWD"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --project) project="$2"; shift 2 ;;
+      *) shift ;;
+    esac
+  done
+  project="$(cd "$project" && pwd)"
+  printf '== ravenclaude install -> %s ==\n' "$project"
+
+  # 1. Skills: symlink each skill dir into <project>/.claude/skills so Copilot
+  #    (and Claude) read them live; a git pull of the marketplace updates them
+  #    with zero re-copy. Fall back to a copy if symlinks aren't supported.
+  mkdir -p "$project/.claude/skills"
+  local n=0
+  if [ -d "$SKILLS_SRC" ]; then
+    for d in "$SKILLS_SRC"/*/; do
+      [ -d "$d" ] || continue
+      local name; name="$(basename "$d")"
+      local dest="$project/.claude/skills/$name"
+      rm -rf "$dest"
+      ln -s "$d" "$dest" 2>/dev/null || cp -r "$d" "$dest"
+      n=$((n + 1))
+    done
+  fi
+  ok "wired $n skills into .claude/skills (read live by Copilot + Claude)"
+
+  # 2. Hooks: write a Copilot-schema hooks file into <project>/.github/hooks that
+  #    routes each enforcement hook through the adapter (absolute paths into the
+  #    marketplace checkout, so a git pull updates the behavior live).
+  mkdir -p "$project/.github/hooks"
+  local adapter="$CORE/hooks/copilot-hook-adapter.sh"
+  python3 - "$project/.github/hooks/ravenclaude.json" "$adapter" "$CORE" <<'PY'
+import json, sys
+out, adapter, core = sys.argv[1], sys.argv[2], sys.argv[3]
+h = core + "/hooks"
+def bash(mode, script, *extra):
+    return {"type": "command", "bash": f'"{adapter}" {mode} "{h}/{script}" ' + " ".join(extra),
+            "timeoutSec": 90}
+cfg = {
+    "version": 1,
+    "hooks": {
+        "SessionStart": [bash("sessionstart", "capability-orientation.sh")],
+        "PreToolUse": [
+            bash("bash-pretool", "guard-destructive.sh"),
+            bash("bash-pretool", "thing-orchestrator.sh"),
+            bash("file-pretool", "enforce-layout.sh"),
+        ],
+        "PostToolUse": [bash("posttool", "format-on-write.sh")],
+    },
+}
+open(out, "w").write(json.dumps(cfg, indent=2) + "\n")
+PY
+  ok "wired hooks into .github/hooks/ravenclaude.json (via the Copilot adapter)"
+
+  # 3. MCP: merge the package's bundled servers into ~/.copilot/mcp-config.json.
+  local mcp_src="$COPILOT_PKG/.mcp.json"
+  local mcp_dest="${COPILOT_HOME:-$HOME/.copilot}/mcp-config.json"
+  if [ -f "$mcp_src" ]; then
+    mkdir -p "$(dirname "$mcp_dest")"
+    python3 - "$mcp_src" "$mcp_dest" <<'PY'
+import json, sys
+src, dest = sys.argv[1], sys.argv[2]
+try:
+    add = json.load(open(src)).get("mcpServers", {})
+except Exception:
+    add = {}
+try:
+    cur = json.load(open(dest))
+except Exception:
+    cur = {}
+cur.setdefault("mcpServers", {}).update(add)
+open(dest, "w").write(json.dumps(cur, indent=2) + "\n")
+print(f"  merged {len(add)} MCP server(s) into {dest}")
+PY
+    ok "merged bundled MCP servers into $mcp_dest"
+  fi
+
+  # 4. The launch alias — one command that updates then launches Copilot live.
+  printf '\nAdd this to your shell rc (~/.bashrc / ~/.zshrc) for one-command use:\n\n'
+  printf "  alias rc='%s/scripts/ravenclaude update && copilot --plugin-dir %s'\n\n" "$MARKET" "$COPILOT_PKG"
+  ok "install complete. Launch with:  copilot --plugin-dir $COPILOT_PKG"
+  note "Updates from now on: just run 'ravenclaude update' (or 'rc'). No re-install, ever."
+}
+
+cmd_status() {
+  local project="${2:-$PWD}"; project="$(cd "$project" && pwd)"
+  printf '== ravenclaude status -> %s ==\n' "$project"
+  [ -d "$project/.claude/skills" ] && note "skills:  $(find "$project/.claude/skills" -maxdepth 1 -mindepth 1 -type l -o -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l | tr -d ' ') in .claude/skills" || note "skills:  not wired"
+  [ -f "$project/.github/hooks/ravenclaude.json" ] && note "hooks:   .github/hooks/ravenclaude.json present" || note "hooks:   not wired"
+  [ -f "${COPILOT_HOME:-$HOME/.copilot}/mcp-config.json" ] && note "mcp:     ~/.copilot/mcp-config.json present" || note "mcp:     not configured"
+  [ -d "$COPILOT_PKG" ] && note "package: $COPILOT_PKG" || note "package: MISSING — run 'ravenclaude update' to generate it"
+}
+
+case "${1:-}" in
+  install) shift; cmd_install "$@" ;;
+  update)  cmd_update ;;
+  status)  cmd_status "$@" ;;
+  *) printf 'usage: ravenclaude {install [--project DIR]|update|status}\n'; exit 2 ;;
+esac

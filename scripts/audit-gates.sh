@@ -577,6 +577,49 @@ rc=0; secret_absent "the value is $CAP_SECRET" || rc=1
 gate "capability: leak-detector catches a planted secret" must_fail "$rc"
 
 echo
+echo "── Gate 20: Copilot bridge (hook adapter I/O + package freshness) ─────────"
+# Proves (a) the copilot-hook-adapter translates Copilot's PreToolUse envelope
+# (toolName/toolArgs-as-json-string -> Claude tool_name/tool_input; Claude
+# hookSpecificOutput.permissionDecision OR exit-2 -> Copilot top-level
+# permissionDecision), and (b) the generated Copilot package is fresh (committed
+# == generator output). CI-safe: a stub hook stands in for the real reviewers.
+ADAPTER=plugins/ravenclaude-core/hooks/copilot-hook-adapter.sh
+G20_IN="$(jq -cn '{toolName:"shell",toolArgs:({command:"benign-cmd arg"}|tostring),cwd:"/x",sessionId:"s"}')"
+# (a) Claude deny verdict -> Copilot top-level deny (no hookSpecificOutput wrapper)
+G20_STUB="$TMP/g20-deny.sh"
+cat > "$G20_STUB" <<'EOF'
+#!/usr/bin/env bash
+in="$(cat)"
+[ "$(printf '%s' "$in" | jq -r '.tool_input.command')" = "benign-cmd arg" ] || exit 9
+printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"stub"}}'
+EOF
+chmod +x "$G20_STUB"
+g20out="$(printf '%s' "$G20_IN" | bash "$ADAPTER" bash-pretool "$G20_STUB" 2>/dev/null)"
+rc=0; printf '%s' "$g20out" | jq -e '.permissionDecision=="deny" and (has("hookSpecificOutput")|not)' >/dev/null 2>&1 || rc=1
+gate "copilot: adapter translates deny -> top-level permissionDecision" must_pass "$rc"
+# (b) Claude exit-2 block -> Copilot deny
+G20_BLK="$TMP/g20-block.sh"; printf '#!/usr/bin/env bash\ncat >/dev/null\nexit 2\n' > "$G20_BLK"; chmod +x "$G20_BLK"
+g20b="$(printf '%s' "$G20_IN" | bash "$ADAPTER" bash-pretool "$G20_BLK" 2>/dev/null)"
+rc=0; printf '%s' "$g20b" | jq -e '.permissionDecision=="deny"' >/dev/null 2>&1 || rc=1
+gate "copilot: adapter translates Claude exit-2 -> deny" must_pass "$rc"
+# (c) bidirectional control: a Claude allow stays allow (adapter doesn't over-deny)
+G20_ALW="$TMP/g20-allow.sh"
+printf '#!/usr/bin/env bash\ncat >/dev/null\nprintf %s '"'"'{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"ok"}}'"'"'\n' > "$G20_ALW"; chmod +x "$G20_ALW"
+g20a="$(printf '%s' "$G20_IN" | bash "$ADAPTER" bash-pretool "$G20_ALW" 2>/dev/null)"
+rc=0; printf '%s' "$g20a" | jq -e '.permissionDecision=="deny"' >/dev/null 2>&1 && rc=1
+gate "copilot: adapter does not over-deny an allow" must_pass "$rc"
+# (d) generated Copilot package is fresh (committed == generator output)
+GENCP=scripts/generate-copilot-plugin.py
+rc=0; python3 "$GENCP" --check >/dev/null 2>&1 || rc=$?
+gate "copilot: package freshness (clean tree)" must_pass "$rc"
+# bidirectional: a stale committed package must be detected
+backup plugins/ravenclaude-core/copilot/plugin.json
+python3 -c "import json;p='plugins/ravenclaude-core/copilot/plugin.json';d=json.load(open(p));d['description']='AUDIT FIXTURE drift';json.dump(d,open(p,'w'),indent=2)"
+rc=0; python3 "$GENCP" --check >/dev/null 2>&1 || rc=$?
+gate "copilot: package freshness (stale committed package)" must_fail "$rc"
+cp -p "$TMP/plugins_ravenclaude-core_copilot_plugin.json.bak" plugins/ravenclaude-core/copilot/plugin.json
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 if [[ "$FAIL" -gt 0 ]]; then

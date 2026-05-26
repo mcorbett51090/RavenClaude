@@ -64,6 +64,15 @@ APPLY_SCRIPT = (
     REPO_ROOT / "plugins" / "ravenclaude-core" / "scripts" / "apply-comfort-posture.py"
 )
 
+# POST /__run lets the dashboard's "Install & Update" buttons run the Copilot
+# bridge installer/updater with ONE click (Codespace / local dev only — this
+# server is never public). Security: only these FIXED actions are runnable, each
+# maps to a fixed `ravenclaude <action>` subcommand with NO caller-supplied args
+# or shell, so there is no arbitrary-command surface (same spirit as the /__save
+# allow-list). Mirrors the path whitelist above.
+RAVENCLAUDE_SCRIPT = REPO_ROOT / "scripts" / "ravenclaude"
+ALLOWED_ACTIONS = {"install", "update", "status"}
+
 
 class DashboardHandler(SimpleHTTPRequestHandler):
     """SimpleHTTPRequestHandler + POST /__save for dashboard writes."""
@@ -74,7 +83,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         )
 
     def do_HEAD(self):
-        if self.path == "/__save":
+        if self.path in ("/__save", "/__run"):
             self.send_response(200)
             self.send_header("Allow", "POST, HEAD")
             self.send_header("Content-Length", "0")
@@ -83,7 +92,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         super().do_HEAD()
 
     def do_OPTIONS(self):
-        if self.path == "/__save":
+        if self.path in ("/__save", "/__run"):
             self.send_response(204)
             self.send_header("Allow", "POST, HEAD, OPTIONS")
             self.end_headers()
@@ -91,6 +100,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         self.send_error(405)
 
     def do_POST(self):
+        if self.path == "/__run":
+            self._handle_run()
+            return
         if self.path != "/__save":
             self.send_error(404, "endpoint not found")
             return
@@ -165,6 +177,51 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         summary = (proc.stdout or "").split("\nNote:")[0].strip()
         return {"applied": True, "apply_summary": summary[:1000]}
 
+    def _handle_run(self):
+        """POST /__run — run a FIXED, allow-listed `ravenclaude <action>` for the
+        dashboard's one-click Install/Update buttons. No caller-supplied args or
+        shell; the action name is validated against ALLOWED_ACTIONS, so this is not
+        an arbitrary-command surface. Local-only server (see module docstring)."""
+        length = int(self.headers.get("Content-Length", "0"))
+        if length <= 0 or length > 64 * 1024:
+            self.send_error(413, "small JSON body required")
+            return
+        try:
+            body = json.loads(self.rfile.read(length).decode("utf-8"))
+            action = body["action"]
+        except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError) as e:
+            self.send_error(400, f"invalid JSON body: {e}")
+            return
+        if action not in ALLOWED_ACTIONS:
+            self.send_error(403, f"action not in allow-list: {action!r}")
+            return
+        if not RAVENCLAUDE_SCRIPT.is_file():
+            self._json(500, {"ok": False, "action": action, "error": "ravenclaude script not found"})
+            return
+        # Fixed argv — no shell, no interpolation of caller input beyond the
+        # validated action name. `install`/`status` target the repo root.
+        argv = ["bash", str(RAVENCLAUDE_SCRIPT), action]
+        if action in ("install", "status"):
+            argv += ["--project", str(REPO_ROOT)]
+        try:
+            proc = subprocess.run(
+                argv, cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=120
+            )
+        except (subprocess.SubprocessError, OSError) as e:
+            self._json(500, {"ok": False, "action": action, "error": f"could not run: {e}"})
+            return
+        output = ((proc.stdout or "") + (proc.stderr or "")).strip()
+        self._json(200, {"ok": proc.returncode == 0, "action": action,
+                         "exit_code": proc.returncode, "output": output[:8000]})
+
+    def _json(self, code: int, payload: dict):
+        body = json.dumps(payload).encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
 
 def _lan_ip() -> str | None:
     """Best-effort LAN IP for building a phone-reachable URL when bound to
@@ -214,6 +271,8 @@ def main() -> int:
     print(f"serve-dashboards: serving {REPO_ROOT} at http://{args.bind}:{args.port}/")
     print(f"  POST /__save  - writes a whitelisted file under .ravenclaude/")
     print(f"  allow-list   - {sorted(ALLOWED_TARGETS)}")
+    print(f"  POST /__run   - runs an allow-listed ravenclaude action (Install/Update buttons)")
+    print(f"  actions      - {sorted(ALLOWED_ACTIONS)}")
 
     # Work out a phone-reachable URL (if any). localhost is NOT reachable from a
     # phone, so it gets no QR. The QR lets you open the live dashboard on a phone

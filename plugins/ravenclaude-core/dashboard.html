@@ -1192,6 +1192,187 @@ footer.page-footer a:hover { text-decoration: underline; }
   font-family: var(--font-mono);
   font-size: 11.5px;
 }
+
+/* ── Install & Update tab ───────────────────────────────────────── */
+.install-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 820px;
+}
+.install-guide,
+.install-commands,
+.install-oneclick {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+.install-oneclick {
+  border-left: 3px solid var(--accent);
+}
+.install-guide h2 { margin: 0 0 8px; font-size: 18px; }
+.install-guide h3,
+.install-commands h3,
+.install-oneclick h3 {
+  margin: 16px 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+}
+.install-oneclick .oneclick-head h3 { margin: 0; }
+.install-commands h3 { margin-top: 0; }
+.install-guide p,
+.install-commands-sub {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.install-prereqs,
+.install-wiring {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+}
+.install-prereqs li::marker,
+.install-wiring li::marker { color: var(--accent); }
+.install-guide code,
+.install-commands-sub code,
+.oneclick-sub code,
+.status-output strong {
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.status-output strong { background: transparent; padding: 0; }
+.cmd-block { margin: 0 0 12px; }
+.cmd-block:last-child { margin-bottom: 0; }
+.cmd-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.cmd-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+.cmd-code {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text);
+  overflow-x: auto;
+  white-space: pre;
+  display: flex;
+  align-items: center;
+}
+.cmd-copy { flex: 0 0 auto; }
+.oneclick-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+}
+.oneclick-sub {
+  margin: 6px 0 12px;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.oneclick-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.oneclick-buttons .btn { flex: 0 0 auto; }
+.run-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: rc-spin 0.7s linear infinite;
+}
+@keyframes rc-spin { to { transform: rotate(360deg); } }
+.run-result {
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.run-result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+.run-result-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.run-result-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.run-result-badge.badge-ok { color: var(--bg); background: var(--accent); }
+.run-result-badge.badge-fail { color: white; background: var(--danger); }
+.run-result-output,
+.status-output {
+  margin: 0;
+  padding: 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.status-panel {
+  margin-top: 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.status-panel h4 {
+  margin: 0;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.status-output { color: var(--muted); }
 </style>
 </head>
 <body>
@@ -1202,6 +1383,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   <p class="page-desc"><span class="plugin-name">ravenclaude-core</span> &middot; static dashboard, no backend. Edits stay in your browser until you click Download.</p>
   <nav class="tab-bar" role="tablist" aria-label="Dashboard tabs">
     <button class="tab-btn" data-tab="settings" role="tab" aria-selected="true">Settings</button>
+    <button class="tab-btn" data-tab="install" role="tab" aria-selected="false">Install &amp; Update</button>
     <button class="tab-btn" data-tab="commands" role="tab" aria-selected="false">Commands</button>
     <button class="tab-btn" data-tab="trees" role="tab" aria-selected="false">Trees</button>
     <button class="tab-btn" data-tab="activity" role="tab" aria-selected="false">Activity</button>
@@ -1268,6 +1450,67 @@ footer.page-footer a:hover { text-decoration: underline; }
       </p>
     </details>
   </aside>
+</div>
+  </section>
+  <section class="tab-panel" data-tab="install" role="tabpanel" aria-label="Install and Update">
+<div class="install-layout">
+  <section class="install-guide">
+    <h2>Wire RavenClaude into GitHub Copilot CLI</h2>
+    <p>
+      This bridges the RavenClaude plugins &mdash; their agents, skills, hooks, and
+      MCP servers &mdash; into the <code>copilot</code> CLI so they work the same way
+      they do in Claude Code.
+    </p>
+    <h3>Prerequisites</h3>
+    <ul class="install-prereqs">
+      <li>A local checkout of this marketplace (you are looking at its dashboard).</li>
+      <li>The <code>copilot</code> CLI on your <code>PATH</code>.</li>
+    </ul>
+    <h3>What gets wired</h3>
+    <ul class="install-wiring">
+      <li><strong>Agents</strong> &mdash; launched via <code>copilot --plugin-dir plugins/ravenclaude-core/copilot</code>.</li>
+      <li><strong>Skills</strong> &mdash; linked into <code>.claude/skills</code>.</li>
+      <li><strong>Hooks</strong> &mdash; linked into <code>.github/hooks</code>.</li>
+      <li><strong>MCP servers</strong> &mdash; merged into <code>~/.copilot/mcp-config.json</code>.</li>
+    </ul>
+  </section>
+
+  <section class="install-commands">
+    <h3>Commands</h3>
+    <p class="install-commands-sub">
+      Copy any of these and run them in your checkout. They work everywhere, even
+      when this page is opened from GitHub Pages or a file.
+    </p>
+    <div class="cmd-block"><span class="cmd-label">Install (wire the bridge)</span><div class="cmd-row"><code class="cmd-code" id="cmd-install">bash scripts/ravenclaude install</code><button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-install">Copy</button></div></div><div class="cmd-block"><span class="cmd-label">Launch Copilot with the plugin</span><div class="cmd-row"><code class="cmd-code" id="cmd-launch">copilot --plugin-dir plugins/ravenclaude-core/copilot</code><button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-launch">Copy</button></div></div><div class="cmd-block"><span class="cmd-label">Update (re-sync after a marketplace pull)</span><div class="cmd-row"><code class="cmd-code" id="cmd-update">bash scripts/ravenclaude update</code><button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-update">Copy</button></div></div><div class="cmd-block"><span class="cmd-label">One-command alias (update, then launch)</span><div class="cmd-row"><code class="cmd-code" id="cmd-alias">alias rc=&#x27;bash scripts/ravenclaude update &amp;&amp; copilot --plugin-dir plugins/ravenclaude-core/copilot&#x27;</code><button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-alias">Copy</button></div></div>
+  </section>
+
+  <section class="install-oneclick" id="install-oneclick">
+    <div class="oneclick-head">
+      <h3>One-click run</h3>
+      <span class="live-badge" id="run-live-badge" hidden>&#9679; live</span>
+    </div>
+    <p class="oneclick-sub" id="run-oneclick-sub">
+      Run <code>python3 scripts/serve-dashboards.py</code> for one-click, or use the copy
+      buttons above.
+    </p>
+    <div class="oneclick-buttons">
+      <button type="button" class="btn" id="run-install-btn" data-run-action="install" disabled>Install</button>
+      <button type="button" class="btn" id="run-update-btn" data-run-action="update" disabled>Update now</button>
+      <button type="button" class="btn secondary" id="run-status-btn" data-run-action="status" disabled>Status</button>
+      <span class="run-spinner" id="run-spinner" hidden aria-hidden="true"></span>
+    </div>
+    <div class="run-result" id="run-result" hidden>
+      <div class="run-result-head">
+        <span class="run-result-title" id="run-result-title">Result</span>
+        <span class="run-result-badge" id="run-result-badge"></span>
+      </div>
+      <pre class="run-result-output" id="run-result-output"></pre>
+    </div>
+    <div class="status-panel" id="status-panel">
+      <h4>Bridge status</h4>
+      <pre class="status-output" id="status-output">Click <strong>Status</strong> to check which pieces (skills, hooks, MCP, package) are wired. Needs the local server.</pre>
+    </div>
+  </section>
 </div>
   </section>
   <section class="tab-panel" data-tab="commands" role="tabpanel" aria-label="Commands">
@@ -3411,8 +3654,119 @@ footer.page-footer a:hover { text-decoration: underline; }
     }
   });
 
+  /* ── Install & Update tab ────────────────────────────────────────── */
+  /* Copy-to-clipboard command blocks work on ANY host (GitHub Pages, file://,
+   * served). The one-click Install/Update/Status buttons POST to /__run, which
+   * only exists when scripts/serve-dashboards.py is serving the page. We detect
+   * that with a HEAD /__run probe — exactly mirroring the Settings tab's
+   * HEAD /__save probe. */
+  document.querySelectorAll(".cmd-copy[data-copy-for]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const code = document.getElementById(btn.dataset.copyFor);
+      const text = code ? code.textContent : "";
+      try {
+        await navigator.clipboard.writeText(text);
+        toast("Copied to clipboard");
+      } catch (e) {
+        const range = document.createRange();
+        range.selectNodeContents(code);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        toast("Select-all + Cmd/Ctrl+C to copy");
+      }
+    });
+  });
+
+  const RUN_ACTIONS = ["install", "update", "status"];
+  const runButtons = Array.from(document.querySelectorAll("button[data-run-action]"));
+  const runLiveBadge = document.getElementById("run-live-badge");
+  const runOneclickSub = document.getElementById("run-oneclick-sub");
+  const runSpinner = document.getElementById("run-spinner");
+  const runResult = document.getElementById("run-result");
+  const runResultTitle = document.getElementById("run-result-title");
+  const runResultBadge = document.getElementById("run-result-badge");
+  const runResultOutput = document.getElementById("run-result-output");
+  const statusOutput = document.getElementById("status-output");
+
+  async function probeRunEndpoint() {
+    try {
+      const res = await fetch("/__run", { method: "HEAD" });
+      return res.ok;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function setRunBusy(busy) {
+    runButtons.forEach(b => { b.disabled = busy; });
+    runSpinner.hidden = !busy;
+  }
+
+  async function runAction(action) {
+    if (!RUN_ACTIONS.includes(action)) return;
+    setRunBusy(true);
+    runResult.hidden = false;
+    runResultTitle.textContent = "Running " + action + "…";
+    runResultBadge.textContent = "";
+    runResultBadge.className = "run-result-badge";
+    runResultOutput.textContent = "";
+    try {
+      const res = await fetch("/__run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: action })
+      });
+      if (!res.ok) {
+        runResultTitle.textContent = action + " failed";
+        runResultBadge.textContent = "HTTP " + res.status;
+        runResultBadge.classList.add("badge-fail");
+        runResultOutput.textContent = (await res.text().catch(() => "")) || "(no output)";
+        return;
+      }
+      const j = await res.json();
+      runResultTitle.textContent = (j.action || action) + " — exit " + j.exit_code;
+      if (j.ok) {
+        runResultBadge.textContent = "ok";
+        runResultBadge.classList.add("badge-ok");
+      } else {
+        runResultBadge.textContent = "failed";
+        runResultBadge.classList.add("badge-fail");
+      }
+      runResultOutput.textContent = j.output || "(no output)";
+      if (action === "status") {
+        statusOutput.textContent = j.output || "(no output)";
+      }
+      toast(action + (j.ok ? " ok" : " failed"));
+    } catch (err) {
+      runResultTitle.textContent = action + " failed";
+      runResultBadge.textContent = "error";
+      runResultBadge.classList.add("badge-fail");
+      runResultOutput.textContent = String(err);
+      console.error("/__run failed:", err);
+    } finally {
+      setRunBusy(false);
+    }
+  }
+
+  runButtons.forEach(b => {
+    b.addEventListener("click", () => runAction(b.dataset.runAction));
+  });
+
+  probeRunEndpoint().then(available => {
+    if (available) {
+      runButtons.forEach(b => { b.disabled = false; });
+      runLiveBadge.hidden = false;
+      runOneclickSub.innerHTML =
+        "One-click run is live &mdash; the local server is serving this page.";
+    } else {
+      runButtons.forEach(b => { b.disabled = true; });
+      runLiveBadge.hidden = true;
+    }
+  });
+
   /* ── Tab routing ─────────────────────────────────────────────────── */
-  const validTabs = ["settings", "commands", "trees", "activity"];
+  const validTabs = ["settings", "install", "commands", "trees", "activity"];
   function applyHash() {
     const hash = (location.hash || "#/settings").replace(/^#\//, "");
     const tab = validTabs.includes(hash) ? hash : "settings";

@@ -345,6 +345,19 @@ T3 is live for `shell_readonly`, `shell_remote_mutate`, and `shell_code_exec`. F
 
 **Convention for future plugins:** every plugin under `plugins/` MUST have `.claude-plugin/plugin.json`, `README.md`, and `CLAUDE.md`. It MAY add purpose-specific directories (e.g. `solutions/`, `flows/` in `power-platform`) — declare any non-default component paths in `plugin.json` (the `agents`, `skills`, `commands`, `hooks` fields all accept arrays) and add a `## Layout` section to that plugin's CLAUDE.md explaining the deviation.
 
+## GitHub Copilot CLI bridge (added 2026-05-26, v0.30.0)
+
+RavenClaude runs under **GitHub Copilot CLI** (GA Feb 2026), not just Claude Code. Copilot CLI is itself a plugin host with the same lifecycle hook events (SessionStart / PreToolUse / PostToolUse / …), Agent Skills (it reads `.claude/skills` directly), AGENTS.md, and MCP — so most of the plugin ports. The pieces:
+
+- **Generated package** — [`scripts/generate-copilot-plugin.py`](../../scripts/generate-copilot-plugin.py) projects the canonical plugin into a Copilot plugin at [`copilot/`](copilot/) (`plugin.json` + `agents/*.agent.md`). It is **generated, never hand-maintained** (single source of truth; `--check` freshness gate, like the dashboard/repo-guide generators). It declares only `agents` — skills + hooks ship via the installer's repo-level surfaces (below), not bundled.
+- **Hook adapter** — [`hooks/copilot-hook-adapter.sh`](hooks/copilot-hook-adapter.sh) translates the I/O envelopes so the **existing, unmodified** hook scripts run under Copilot: Copilot's PreToolUse stdin (`toolName` + `toolArgs`-as-JSON-string) ⇄ Claude's (`tool_name`/`tool_input`), and Claude's `hookSpecificOutput.permissionDecision` / exit-2-block ⇄ Copilot's **top-level** `permissionDecision`. Also maps SessionStart `additionalContext`.
+- **Enforcement hooks ship as repo-level `.github/hooks/*.json`**, NOT plugin-level — Copilot bug [github/copilot-cli#2540](https://github.com/github/copilot-cli/issues/2540) (plugin `preToolUse` hooks don't fire) forces this; repo-level hooks do fire. Migrate to plugin-level when #2540 closes.
+- **Installer / updater** — [`scripts/ravenclaude`](../../scripts/ravenclaude) (`install` / `update` / `status`) wires skills→`.claude/skills`, hooks→`.github/hooks` (via the adapter), and the bundled MCP→`~/.copilot/mcp-config.json`, and prints an `rc` launch alias.
+- **Frictionless update (the design pillar):** we deliberately do **NOT** use Copilot's install-and-cache mechanism (its re-install-to-update flow is the pain point). The plugin loads **live** via `copilot --plugin-dir copilot/`, and every other surface (`.claude/skills`, `.github/hooks`, MCP config, AGENTS.md) is read live from disk — so an **update is just `git pull`** (`ravenclaude update` / the `rc` alias). No re-install, ever.
+- **One-click from the dashboard** — `serve-dashboards.py` exposes an allow-listed `POST /__run` (actions `install`/`update`/`status` only — no arbitrary commands), and the dashboard's **Install & Update** tab drives it with buttons (served mode) + copy-to-clipboard commands (everywhere).
+
+Slash commands (`/set-posture`, `/wrap`) don't port (Copilot CLI has no user slash commands yet) — they're documented shell invocations. Live Copilot-CLI behavior is owner-verified (the SDK isn't present in CI); the adapter I/O translation + package freshness are gated (Gate 20).
+
 ## New skills (v0.13.0)
 
 Four meta-discipline skills added to support agent authoring, knowledge hygiene, and release operations across the marketplace:
