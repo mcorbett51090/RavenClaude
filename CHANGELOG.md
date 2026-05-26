@@ -2,6 +2,17 @@
 
 All notable changes to the RavenClaude marketplace and its plugins. Format loosely follows [Keep a Changelog](https://keepachangelog.com/). The marketplace version (`metadata.version` in `.claude-plugin/marketplace.json`) bumps when the catalog shape or cross-plugin contracts change; individual plugins have their own semver tracked in their `plugin.json`.
 
+## ravenclaude-core 0.26.0 — 2026-05-26 (comfort-posture auto-apply on the web)
+
+Makes a dashboard-composed comfort posture take effect on Claude Code on the web without anyone running `/set-posture` by hand. On the web the container is ephemeral and only committed files survive, so the committed project-layer posture is the one that persists across sessions.
+
+### ravenclaude-core 0.26.0
+
+- **New SessionStart hook `hooks/reapply-posture.sh`** — regenerates the project-layer permission rules from `.ravenclaude/comfort-posture.yaml` at session start (via the existing `apply-comfort-posture.py --scope project`). Silent no-op when no posture file exists; never blocks a session; idempotent (re-running on an unchanged YAML produces identical output, so no spurious git diff). Registered in both `hooks/hooks.json` (consumers, `${CLAUDE_PLUGIN_ROOT}`) and the dev-mirror `.claude/settings.json` (`${CLAUDE_PROJECT_DIR}`).
+- **Docs** — `docs/comfort-posture-web-setup.md`: maintainer + per-client setup checklist for the GitHub Pages → paste-to-Claude → committed-posture flow, including why a served dashboard can't reach a web user (no inbound port forwarding) and the project-layer persistence rationale.
+
+**Migration for consumers:** `/plugin marketplace update ravenclaude` + `/reload-plugins`. Strictly additive — no breaking changes. Consumers who never created `.ravenclaude/comfort-posture.yaml` see no behavior change (the hook no-ops silently).
+
 ## marketplace 0.25.0 — 2026-05-22 (lesson capture: cross-platform-determinism)
 
 Self-improvement loop in action. Two real bugs landed in `scripts/generate-repo-guide.py` on the same day — both stemmed from non-deterministic, OS-dependent output in a generated artifact that gets committed and diff-checked in CI. Captured as a new skill so the lesson applies to every future generator the team writes.
