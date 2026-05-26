@@ -10,7 +10,45 @@ and is always findable regardless of which branch work is happening on.
 
 ---
 
-## 1 — 2026-05-26 · CI-stall diagnosis + new `applied-statistics` plugin (PR #95 open)
+## 1 — 2026-05-26 · Power Automate auth-dead-end feedback → `dataverse-token-acquisition` (PR #100 merged)
+
+**Prompt:** "cont" → (statistician-PR collision worry while Matt builds the tribunal
+elsewhere) → analyze/research Matt's Power Automate auth-dead-end after-action and put
+it in a plan for a plugin → "Both" → "It's merged and synced. Go." → (Matt: "should
+core be getting PP-specific instruction in environment-discovery?") → "merge it".
+
+**Response.** **(A) Resume hygiene.** "cont" landed on a stale, already-merged branch —
+`applied-statistics` (PR #95) was merged and `main` had moved to **v0.30.0 then v0.32.0**
+(tribunal #96/#98/#99) in parallel sessions my notes didn't reflect. Synced to fresh main;
+clarified the statistician PR was **already merged** (nothing to collide); identified the
+only real collision surface as `marketplace.json` + `repo-guide.html`, so HELD all work
+until the tribunal PR landed. **(B) Triaged Matt's 3 root causes:** C (the `clientdata`
+shape) was **already covered** (programmatic-flow-creation.md + flow-clientdata-shape-drift
+scenario); the genuine gap was **token acquisition (A+B)**. Researched + verified (MS Learn):
+no `pac` token-print command (agent was right); `az account get-access-token --resource
+https://ORG.crm.dynamics.com` is the clean path; PAC MSAL cache is **plaintext on
+Linux/macOS but DPAPI-encrypted on Windows** (caveat the feedback missed); scopes
+`/.default` (confidential) vs `/user_impersonation` (public). Wrote a held plan to gitignored
+`docs/research/`. **(C) After tribunal #99 merged, shipped PR #100** (squash `619d691`):
+new `power-platform/knowledge/dataverse-token-acquisition.md` (Mermaid decision tree ordered
+by what's already authenticated; "absence of AZURE_CLIENT_SECRET = switch paths, not retry")
++ `scenarios/2026-05-26-dataverse-token-acquisition-deadends.md` + token priors on
+flow-engineer/solution-alm-engineer/dataverse-architect/power-platform-admin + §8a row
+(**power-platform v0.12.4**). **Matt caught a real boundary violation** — my first cut put
+Dataverse specifics into core's `environment-discovery`; fixed to a **domain-neutral seam**
+(pointer-only, never the domain plugin's commands/scopes) (**ravenclaude-core v0.32.1**).
+**87/87 audit-gates**, prettier clean, generators fresh, no version drift, links resolve.
+
+**Current state / next step:** **PR #100 squash-merged to `main`** (`619d691`); branch
+deleted, tree clean, both CI checks passed (CLEAN/MERGEABLE — CI is healthy again, unlike
+the entry-2 stall). Status tracked in auto-memory `project_dataverse_token_acquisition_plan`.
+Still-open follow-up (separate, also touches marketplace.json + repo-guide.html): the broken
+cross-plugin scenario-retrieval/grounding-protocol links in 5 plugins' CLAUDE.md
+(`project_followups_skill_format_cleanup`).
+
+---
+
+## 2 — 2026-05-26 · CI-stall diagnosis + new `applied-statistics` plugin (PR #95 open)
 
 **Prompt:** "check why CI didn't run on the PR" → "Afterwards, I want a statistician
 plug-in please research and build out" → (chose) "all of the above" + name
@@ -50,7 +88,7 @@ off `pre_llm_deny`.
 
 ---
 
-## 2 — 2026-05-26 · Tribunal T4 — injection & self-protection hardening (v0.26.0, PR #94 merged)
+## 3 — 2026-05-26 · Tribunal T4 — injection & self-protection hardening (v0.26.0, PR #94 merged)
 
 **Prompt:** "cont" → (chose) Tribunal T4/T3.5 → "T4, go" → "Keep" (build the plan) →
 "merge after pr commit".
@@ -83,25 +121,5 @@ fell through to a **live `claude` call** — Gate 15 caught it; fixed with `grep
 checks did **not** register (the stall in entry 1) — merged on local gate parity per
 "merge after pr". Tribunal roadmap: **T5** (bypass + caching) or **T3.5** (review
 Edit/Write tools) next. Track status in auto-memory `project_2026-05-25_tribunal_track`.
-
----
-
-## 3 — 2026-05-25 · Tribunal T2 — ship the single-seat command-review orchestrator
-
-**Prompt:** "let's implement the command review (the Thing) now" + side
-questions (is the comfort posture applied? why did a command prompt me? design
-check-ins vs command review? `--bare` finding).
-
-**Response:** Built tribunal **T2 end-to-end** — `hooks/thing-orchestrator.sh`
-(Lawspeaker), `scripts/thing-decision.py` (classify via the EMISSIONS table + read
-the per-category `thing:` toggle), `scripts/thing-seat.sh` (lone seat via `claude -p`
-with a `THING_SEAT_MOCK_VERDICT` test hook), `skills/thing/SKILL.md`,
-`templates/thing.yaml`. Dashboard `shell_readonly` toggle went live. **Real finding:**
-`claude -p --bare` fails under subscription/OAuth — needs `ANTHROPIC_API_KEY`; the
-seat defaults to plain `claude -p` from a scratch dir (`--bare` opt-in via
-`THING_SEAT_BARE=1`).
-
-**Current state / next step:** PR #90 merged (T2, v0.24.0). T3 (panel + EDIT) was the
-next phase — since shipped (and T4 after it).
 
 ---
