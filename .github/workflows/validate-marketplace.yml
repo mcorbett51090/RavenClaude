@@ -261,6 +261,19 @@ jobs:
             exit 1
           fi
 
+      - name: Verify Learn-tab concept artifacts are fresh
+        # The dashboard's Learn tab and docs/concepts.md are generated from
+        # plugins/ravenclaude-core/knowledge/concepts/. If a concept (or its
+        # diagram) changed without re-running the generators, the committed
+        # concepts.json / SVGs / docs/concepts.md diverge. The schema gate also
+        # fails platform-fact concepts whose last_verified is > 90 days old. The
+        # SVG gate checks a source-hash manifest, so CI needs no headless browser.
+        run: |
+          set -e
+          python3 scripts/concepts.py --check
+          python3 scripts/render-concepts.py --check
+          python3 scripts/generate-concepts-doc.py --check
+
       - name: Cross-check version pins (marketplace.json vs plugin.json)
         run: |
           set -euo pipefail

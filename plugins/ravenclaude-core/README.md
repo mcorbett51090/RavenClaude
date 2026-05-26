@@ -4,6 +4,8 @@
 
 > 🎛 **Comfort-posture dashboard** — a point-and-click editor for your permission rules (deny → ask → allow, per layer + per permission) and command-review toggles, no YAML by hand. After install, run **`/dashboard`** for the fully-functioning version (one-click **Save & apply**), or take a **[quick look on the hosted copy](https://mcorbett51090.github.io/RavenClaude/plugins/ravenclaude-core/dashboard.html)** (Copy/Download only). Details in [Comfort-posture dashboard](#the-protocols-it-provides-to-the-whole-marketplace) below.
 
+> 📚 **New here?** The dashboard's **Learn** tab explains the moving parts — permission layers, the command-review tribunal, hooks — with diagrams and interactive widgets. The same reference, readable on GitHub, is generated at **[docs/concepts.md](../../docs/concepts.md)**.
+
 Ships the orchestrator-worker dispatch model, 14 generalist specialist agents (architect, backend/frontend/fullstack coders, code-reviewer, security-reviewer, tester-qa, data-engineer, deep-researcher, designer, documentarian, project-manager, partner-success-manager, prompt-engineer), 20 skills, 5 hooks, 4 rule-sets, working templates, slash commands (`/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard`), and a knowledge bank the Researcher cross-checks. Every other plugin in the marketplace extends this one.
 
 ## Install

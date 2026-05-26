@@ -1,0 +1,522 @@
+{
+  "schema_version": 1,
+  "categories": [
+    {
+      "name": "Getting started",
+      "order": 5
+    },
+    {
+      "name": "Platform model",
+      "order": 10
+    },
+    {
+      "name": "Security",
+      "order": 25
+    },
+    {
+      "name": "Orientation & capability",
+      "order": 40
+    },
+    {
+      "name": "Marketplace engineering",
+      "order": 50
+    }
+  ],
+  "concepts": [
+    {
+      "id": "getting-started",
+      "title": "Getting started",
+      "category": "Getting started",
+      "kind": "ravenclaude-built",
+      "order": 5,
+      "summary": "Add the marketplace, install ravenclaude-core, run /dashboard. Needs jq + python3; under Copilot CLI it's `ravenclaude install`.",
+      "see_also": [
+        "comfort-posture",
+        "capability-banner"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "The install steps, requirements, or slash-command surface change.",
+      "sources": [
+        {
+          "label": "ravenclaude-core README",
+          "url": "plugins/ravenclaude-core/README.md"
+        },
+        {
+          "label": "AGENTS.md — Setup commands",
+          "url": "AGENTS.md"
+        }
+      ],
+      "body_md": "RavenClaude is a Claude Code **plugin marketplace**. To use the core plugin: add the marketplace, install the plugin, reload. `jq` and `python3` are required for the CI workflows and the layout-enforcement hook (both ship in the devcontainer).\n\n```text\n/plugin marketplace add mcorbett51090/RavenClaude\n/plugin install ravenclaude-core@ravenclaude\n/reload-plugins\n```\n\nAfter install, run **`/dashboard`** to launch the comfort-posture editor (point-and-click permission rules + command-review toggles, with one-click Save & apply). Domain plugins (`power-platform`, `finance`, …) build on core, so install it first. Running under **GitHub Copilot CLI** instead? Use `bash scripts/ravenclaude install` — and from then on, updating is just `git pull`.",
+      "diagram": "flowchart TD\n  A[/plugin marketplace add …/] --> B[/plugin install ravenclaude-core/]\n  B --> C[/reload-plugins/]\n  C --> D[Run /dashboard]\n  D --> E[Set comfort posture · opt into command review]\n  E --> F[Start working — capability banner orients each session]\n  class A,B,C,D,E,F built",
+      "diagram_mini": "flowchart LR\n  I[install] --> D[\"/dashboard\"] --> P[set posture]\n  class I,D,P built",
+      "svg": "knowledge/concepts/visuals/getting-started.svg",
+      "svg_mini": "knowledge/concepts/visuals/getting-started.mini.svg"
+    },
+    {
+      "id": "permission-layers",
+      "title": "Permission layers & precedence",
+      "category": "Platform model",
+      "kind": "platform-fact",
+      "order": 10,
+      "summary": "Four settings files merge — a deny in ANY layer wins, and you can't override it down from a later layer.",
+      "see_also": [
+        "hook-lifecycle",
+        "command-review-tribunal"
+      ],
+      "widget": "permission-resolver",
+      "try_it": {
+        "label": "Set your own layers on the Settings tab",
+        "href": "#/settings"
+      },
+      "last_verified": "2026-05-25",
+      "refresh_when": "Anthropic adds/removes a settings layer, or changes the cross-layer merge rule.",
+      "sources": [
+        {
+          "label": "Configure permissions",
+          "url": "https://code.claude.com/docs/en/permissions"
+        },
+        {
+          "label": "Claude Code settings",
+          "url": "https://code.claude.com/docs/en/settings"
+        }
+      ],
+      "body_md": "Permission rules live under `permissions.allow`, `permissions.ask`, and `permissions.deny` in any of the settings files. Each rule is either a bare tool name (`Bash`, `WebSearch`) or a tool plus a specifier (`Bash(git status:*)`, `Read(/etc/**)`).\n\n**Within one file**, rules evaluate `deny → ask → allow` — the first match wins, so deny always beats ask and ask always beats allow.\n\n**Across files**, the layers **merge** rather than override: a deny in *any* layer blocks the action regardless of allow rules elsewhere. You **cannot override down** — if your user-level settings deny `Bash(rm *)`, no project-level allow re-enables it. That's the safe behavior, but it surprises people who expect a later layer to win.\n\nThe most-surprising rule: a **bare-tool deny** (`deny: [\"Bash\"]`) removes the tool from Claude's context entirely — Claude never sees it. A **scoped deny** (`Bash(rm *)`) keeps the tool and blocks only matching calls.",
+      "diagram": "flowchart TD\n  CALL[Tool call] --> MERGE[Merge rules across all layers]\n  MERGE --> D{Any layer<br/>DENY match?}\n  D -- yes --> BLOCK[Blocked — cannot be overridden]\n  D -- no --> A{Any layer<br/>ASK match?}\n  A -- yes --> PROMPT[Prompt the user]\n  A -- no --> AL{Any layer<br/>ALLOW match?}\n  AL -- yes --> RUN[Run without asking]\n  AL -- no --> PROMPT\n  class BLOCK built\n  class D,A,AL fact",
+      "diagram_mini": "flowchart LR\n  C[Call] --> D{deny<br/>anywhere?}\n  D -- yes --> X[Blocked]\n  D -- no --> OK[allow / ask]\n  class X built",
+      "svg": "knowledge/concepts/visuals/permission-layers.svg",
+      "svg_mini": "knowledge/concepts/visuals/permission-layers.mini.svg"
+    },
+    {
+      "id": "permission-modes",
+      "title": "Permission modes",
+      "category": "Platform model",
+      "kind": "platform-fact",
+      "order": 15,
+      "summary": "Six modes from default to bypassPermissions — but bypass still prompts on rm -rf /, and auto silently drops broad allow rules.",
+      "see_also": [
+        "permission-layers",
+        "hook-lifecycle"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-25",
+      "refresh_when": "Anthropic adds/renames a permission mode or changes auto-mode's drop-broad-rules behavior.",
+      "sources": [
+        {
+          "label": "Choose a permission mode",
+          "url": "https://code.claude.com/docs/en/permission-modes"
+        },
+        {
+          "label": "Configure permissions",
+          "url": "https://code.claude.com/docs/en/permissions"
+        }
+      ],
+      "body_md": "The permission **mode** sets the baseline posture on top of your allow/ask/deny rules. There are six: `default` (prompt when uncertain), `acceptEdits` (auto-approve common filesystem Bash inside the cwd), `plan` (read/think only — no writes), `auto` (research-preview classifier-driven autonomy), `dontAsk` (auto-deny anything not explicitly allowed — handy for CI), and `bypassPermissions` (skips most checks).\n\nTwo surprises bite. **`bypassPermissions` is not a total kill-switch:** `rm -rf /` and `rm -rf ~` *still* prompt as a circuit breaker, and a `PreToolUse` hook `deny` still blocks. **`auto` mode silently drops broad allow rules** — `Bash(*)`, wildcarded interpreters, `npm run *`, and all `Agent` allows are dropped while it's active (they restore when you leave), and `defaultMode: \"auto\"` is *ignored* in project settings — it must live in user-level `~/.claude/settings.json`.",
+      "diagram": "flowchart TD\n  M[Permission mode] --> DEF[default · prompt on uncertain]\n  M --> AE[acceptEdits · auto-approve cwd file ops]\n  M --> AUTO[auto · classifier autonomy<br/>drops broad allow rules]\n  M --> BP[bypassPermissions · skips most checks]\n  BP --> CB{rm -rf / or ~ ?}\n  CB -- yes --> STOP[still prompts · circuit breaker]\n  CB -- no --> RUN[runs]\n  class M,DEF,AE,AUTO,BP fact\n  class STOP built",
+      "diagram_mini": "flowchart LR\n  D[default] --> A[acceptEdits] --> AU[auto] --> B[bypass]\n  B --> S[rm -rf / still blocks]\n  class S built",
+      "svg": "knowledge/concepts/visuals/permission-modes.svg",
+      "svg_mini": "knowledge/concepts/visuals/permission-modes.mini.svg"
+    },
+    {
+      "id": "hook-lifecycle",
+      "title": "Hooks: verdicts & exit codes",
+      "category": "Platform model",
+      "kind": "platform-fact",
+      "order": 20,
+      "summary": "Only exit 2 blocks a tool call; a hook deny beats bypass mode, but a hook allow can't override a settings deny.",
+      "see_also": [
+        "permission-layers",
+        "command-review-tribunal"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-25",
+      "refresh_when": "Anthropic changes hook exit-code semantics, the hookSpecificOutput schema, or timeout behavior.",
+      "sources": [
+        {
+          "label": "Hooks reference",
+          "url": "https://code.claude.com/docs/en/hooks"
+        },
+        {
+          "label": "Hooks guide",
+          "url": "https://code.claude.com/docs/en/hooks-guide"
+        }
+      ],
+      "body_md": "A `PreToolUse` hook reads the pending tool call as JSON on stdin and decides its fate. **Exit codes are the load-bearing, easy-to-get-wrong detail:** only **exit 2** blocks (and the hook's stderr is fed back to the model); **exit 0** allows; and **exit 1 or any other code is a *non-blocking* error — the tool still runs.** The trap is that `exit 1` is the conventional Unix \"failure\", so a policy hook that fails with `exit 1` *looks* like it blocked but doesn't.\n\nFor richer control, a hook can instead print a `hookSpecificOutput.permissionDecision` JSON on **exit 0**: `allow`, `deny`, `ask`, or `defer` (headless-only). When several hooks and rules apply, priority is **`deny` > `defer` > `ask` > `allow`**.\n\nTwo asymmetries make this safe: a hook **`deny` beats permission-mode bypass** (it blocks even under `bypassPermissions`), but a hook **`allow` does NOT override a settings `deny`** — hooks can *tighten* but never *loosen*. Note hooks **fail open**: on timeout or crash the tool proceeds, so a hook that must fail closed has to emit its own `deny` before its deadline.",
+      "diagram": "flowchart TD\n  H[PreToolUse hook] --> EX{exit code?}\n  EX -- \"exit 2\" --> BLOCK[Blocked · stderr fed to model]\n  EX -- \"exit 1 / other\" --> NB[Non-blocking error · tool still RUNS]\n  EX -- \"exit 0\" --> J{JSON permissionDecision?}\n  J -- deny --> DEN[Denied · beats bypass mode]\n  J -- ask --> ASK[User prompted]\n  J -- \"allow / none\" --> ALL[Prompt skipped · settings deny still wins]\n  class H,EX,J,NB,ASK,ALL fact\n  class BLOCK,DEN built",
+      "diagram_mini": "flowchart LR\n  E{exit?} -- \"2\" --> B[blocks]\n  E -- \"0\" --> J[JSON verdict]\n  E -- \"1\" --> R[runs anyway]\n  class B built",
+      "svg": "knowledge/concepts/visuals/hook-lifecycle.svg",
+      "svg_mini": "knowledge/concepts/visuals/hook-lifecycle.mini.svg"
+    },
+    {
+      "id": "session-start-context",
+      "title": "SessionStart context injection",
+      "category": "Platform model",
+      "kind": "platform-fact",
+      "order": 22,
+      "summary": "SessionStart hooks inject additionalContext into every session — additive only; they can't block or delay startup and are capped near 10k chars.",
+      "see_also": [
+        "hook-lifecycle",
+        "capability-banner"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "Anthropic changes the SessionStart additionalContext field, its size cap, or matcher set.",
+      "sources": [
+        {
+          "label": "Hooks reference",
+          "url": "https://code.claude.com/docs/en/hooks"
+        }
+      ],
+      "body_md": "`PreToolUse` hooks gate tool calls; **`SessionStart` hooks can't gate anything.** Their job is to add text to the session via a different field — `hookSpecificOutput.additionalContext` — and nothing more. The output is read **only on exit 0**; a non-zero exit is a non-blocking error and the session still starts. A SessionStart hook can never block or delay a session; its output is purely additive.\n\nRules that bite: `additionalContext` is **capped near ~10,000 characters** (it's injected every session, so it's a recurring token cost — keep it tight); **multiple SessionStart hooks run in parallel and their outputs are concatenated**; the optional `matcher` is `startup` / `resume` / `clear` / `compact`; and like other hooks it **fails open** on timeout. This is the mechanism RavenClaude's capability banner rides on.",
+      "diagram": "flowchart TD\n  S[Session starts] --> H[SessionStart hooks run in parallel]\n  H --> EX{exit 0?}\n  EX -- no --> SKIP[Non-blocking error · session starts anyway]\n  EX -- yes --> ADD[additionalContext concatenated into context]\n  ADD --> CAP[~10k char cap · injected every session]\n  CAP --> GO[Session proceeds · never blocked]\n  SKIP --> GO\n  class S,H,EX,SKIP,GO fact\n  class ADD,CAP built",
+      "diagram_mini": "flowchart LR\n  S[SessionStart] --> A[additionalContext]\n  A --> C[added to context<br/>· can't block]\n  class A built",
+      "svg": "knowledge/concepts/visuals/session-start-context.svg",
+      "svg_mini": "knowledge/concepts/visuals/session-start-context.mini.svg"
+    },
+    {
+      "id": "comfort-posture",
+      "title": "Comfort-posture dashboard",
+      "category": "Security",
+      "kind": "ravenclaude-built",
+      "order": 25,
+      "summary": "A point-and-click editor that writes Claude Code permission rules per category and layer — and keeps design check-ins independent of permission level.",
+      "see_also": [
+        "permission-layers",
+        "command-review-tribunal"
+      ],
+      "widget": "permission-resolver",
+      "try_it": {
+        "label": "Open the Settings tab",
+        "href": "#/settings"
+      },
+      "last_verified": "2026-05-26",
+      "refresh_when": "The comfort-posture category set, the layer model, or the design_checkins decoupling changes.",
+      "sources": [
+        {
+          "label": "ravenclaude-core constitution",
+          "url": "plugins/ravenclaude-core/CLAUDE.md"
+        },
+        {
+          "label": "apply-comfort-posture translator",
+          "url": "plugins/ravenclaude-core/scripts/apply-comfort-posture.py"
+        }
+      ],
+      "body_md": "**Comfort posture** is RavenClaude's friendly front-end over the raw permission model. Instead of hand-editing `settings.json`, you set a level — **deny / ask / allow** — per *category* of action (file reads, code execution, remote mutations, …) and per *layer* (user / local / project). The dashboard's Settings tab serializes that to `.ravenclaude/comfort-posture.yaml`, and `apply-comfort-posture.py` translates it into the actual Claude Code permission rules — so the layer-precedence rules still govern what finally wins.\n\nThe load-bearing subtlety: **permission level ≠ design judgment.** Setting a category to `allow` only removes the click-to-approve on tool calls — it does **not** tell Claude to stop surfacing architectural decisions. That behavior is a *separate* flag, `design_checkins` (on by default), so relaxing permissions to move faster never silently mutes design check-ins. The two are deliberately decoupled.",
+      "diagram": "flowchart TD\n  U[You set deny/ask/allow<br/>per category · per layer] --> Y[(comfort-posture.yaml)]\n  Y --> T[apply-comfort-posture.py]\n  T --> R[Claude Code permission rules]\n  U --> DC{design_checkins}\n  DC -- \"on (default)\" --> PAUSE[Surface design decisions<br/>at any permission level]\n  DC -- off --> FAST[Proceed · report after]\n  class Y,T,R,PAUSE,FAST built\n  class DC fact",
+      "diagram_mini": "flowchart LR\n  L[deny/ask/allow<br/>per category] --> Y[(posture.yaml)] --> R[permission rules]\n  class Y,R built",
+      "svg": "knowledge/concepts/visuals/comfort-posture.svg",
+      "svg_mini": "knowledge/concepts/visuals/comfort-posture.mini.svg"
+    },
+    {
+      "id": "command-review-tribunal",
+      "title": "Command-review tribunal (the Thing)",
+      "category": "Security",
+      "kind": "ravenclaude-built",
+      "order": 30,
+      "summary": "An opt-in panel of reviewer seats that votes ALLOW/EDIT/DENY on shell commands instead of interrupting you.",
+      "see_also": [
+        "comfort-posture",
+        "permission-layers",
+        "hook-lifecycle"
+      ],
+      "widget": null,
+      "try_it": {
+        "label": "Run a command through it in Test a command",
+        "href": "#/simulator"
+      },
+      "last_verified": "2026-05-26",
+      "refresh_when": "The tribunal's tier model, seat roster, or gate_floor semantics change.",
+      "sources": [
+        {
+          "label": "thing skill (operating reference)",
+          "url": "plugins/ravenclaude-core/skills/thing/SKILL.md"
+        },
+        {
+          "label": "Tribunal design",
+          "url": "docs/tribunal-review-feature-design.md"
+        }
+      ],
+      "body_md": "**Command review** — codename *the Thing* — is an opt-in panel of reviewer agents that adjudicates shell commands instead of stopping to ask you. It sits **on top of** comfort-posture: posture sets the policy (allow/ask/deny per category); the tribunal is the adjudicator you switch on for a category so a verdict lands in seconds.\n\nRouting is **tiered**. Every command resolves to `low → medium → high → extreme` (its category base tier, bumped by a deterministic high/critical concern). A clean `low` read runs **no panel at all** (zero cost); seat count and the confidence bar escalate with the tier. Up to three seats run in parallel — **Forseti** (security), **Mímir** (code), **Heimdall** (injection) — with **Thor** (architect) convened only on a split.\n\nThe **`gate_floor`** knob (default `high`) is the lowest tier whose *confident ALLOW* is surfaced to you as an `ask`. DENY still blocks and EDIT still rewrites autonomously, so the tribunal pre-filters the dangerous and the fixable before either reaches you. Two hard overrides ignore the knob: **reads are never surfaced**, and **irreversible high-blast allows always are**. An abstaining panel always fails **closed**. It can never relax the `security_deny` floor.",
+      "diagram": "flowchart TD\n  A[Bash PreToolUse] --> B{category toggled on?}\n  B -- no --> Z[normal flow]\n  B -- yes --> C[classify: category · tier · routing]\n  C -- unarguable critical --> DENY[DENY · no LLM]\n  C -- clean low read --> ALLOW[allow · no panel]\n  C -- tier ≥ medium --> E[convene seats in parallel]\n  E -- split / low confidence --> T[convene Thor]\n  T --> AGG[aggregate]\n  E --> AGG\n  AGG -- deny / critical --> DENY\n  AGG -- edit safe --> EDIT[allow + rewrite]\n  AGG -- allow --> GATE{tier ≥ gate_floor<br/>or high-blast?}\n  GATE -- yes --> ASK[ask · you confirm]\n  GATE -- no --> ALLOW\n  DENY & ALLOW & EDIT & ASK --> L[(Sága log)]\n  class DENY,ALLOW,EDIT,ASK,E,T built\n  class GATE fact",
+      "diagram_mini": "flowchart LR\n  C[Command] --> P[Panel<br/>1–3 seats]\n  P --> V{Verdict}\n  V --> A[allow / edit / deny / ask]\n  class P,A built",
+      "svg": "knowledge/concepts/visuals/command-review-tribunal.svg",
+      "svg_mini": "knowledge/concepts/visuals/command-review-tribunal.mini.svg"
+    },
+    {
+      "id": "saga-log",
+      "title": "The Sága audit log",
+      "category": "Security",
+      "kind": "ravenclaude-built",
+      "order": 32,
+      "summary": "Every command-review verdict writes one JSON entry — command, category, tier, per-seat votes, concerns, final verdict — under .ravenclaude/runs/thing/.",
+      "see_also": [
+        "command-review-tribunal",
+        "model-diversity"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "The Sága log entry shape or its on-disk location changes.",
+      "sources": [
+        {
+          "label": "thing skill (operating reference)",
+          "url": "plugins/ravenclaude-core/skills/thing/SKILL.md"
+        }
+      ],
+      "body_md": "Every tribunal verdict — allow, edit, deny, or ask — writes exactly **one JSON entry** to `.ravenclaude/runs/thing/<id>.json`, the **Sága log**. The entry records the command, its category, the resolved tier, each seat's verdict, the concerns cited, the final verdict (and the revised command on an EDIT), and the duration.\n\nThis is the observability substrate: it turns an otherwise opaque \"the panel decided\" into an auditable trail you can read after the fact to tune the panel, the `gate_floor`, or the bypass patterns. It's **gitignored by default** — the log is local operational data, not something to commit.",
+      "diagram": "flowchart TD\n  V[Tribunal renders a verdict] --> E[Write one JSON entry]\n  E --> F[command · category · tier<br/>per-seat votes · concerns<br/>final verdict · duration]\n  F --> D[(.ravenclaude/runs/thing/&lt;id&gt;.json)]\n  D --> U[Audit · tune panel / gate_floor / bypass]\n  class V,E,F,D,U built",
+      "diagram_mini": "flowchart LR\n  V[Verdict] --> J[(Sága JSON entry)]\n  J --> A[auditable trail]\n  class V,J,A built",
+      "svg": "knowledge/concepts/visuals/saga-log.svg",
+      "svg_mini": "knowledge/concepts/visuals/saga-log.mini.svg"
+    },
+    {
+      "id": "model-diversity",
+      "title": "Model diversity on the panel",
+      "category": "Security",
+      "kind": "ravenclaude-built",
+      "order": 34,
+      "summary": "When ≥2 reviewer seats convene, the tribunal guarantees ≥2 distinct model backbones run — so one model's blind spot can't pass the whole panel.",
+      "see_also": [
+        "command-review-tribunal"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "The model-diversity guarantee or its auto-reassignment behavior changes.",
+      "sources": [
+        {
+          "label": "ravenclaude-core constitution",
+          "url": "plugins/ravenclaude-core/CLAUDE.md"
+        },
+        {
+          "label": "Tribunal assessment & improvement plan",
+          "url": "docs/tribunal-assessment-and-improvement-plan.md"
+        }
+      ],
+      "body_md": "A panel of reviewers is only as strong as its diversity. If every seat runs on the same model, a single model's blind spot — a shared hallucination or a class of injection it doesn't catch — can pass the **whole** panel unnoticed. That's the **anti-correlated-hallucination** failure mode.\n\nSo the engine enforces a **model-diversity rule**: whenever **two or more seats convene, at least two distinct model backbones run**. If a `panel:` config override happens to collapse the seats onto one model, the engine **auto-reassigns one seat to a different, equal-or-stronger model** rather than letting a monoculture review the command. It's proven by Gate 22.",
+      "diagram": "flowchart TD\n  P{≥2 seats convened?} -- no --> ONE[Single seat · its own model]\n  P -- yes --> CHK{≥2 distinct models?}\n  CHK -- yes --> OK[Panel runs as configured]\n  CHK -- no --> RE[Auto-reassign one seat to a<br/>different equal-or-stronger model]\n  RE --> OK\n  class P,CHK fact\n  class ONE,OK,RE built",
+      "diagram_mini": "flowchart LR\n  S[≥2 seats] --> D{≥2 models?}\n  D -- no --> R[reassign one]\n  D -- yes --> OK[run]\n  class R,OK built",
+      "svg": "knowledge/concepts/visuals/model-diversity.svg",
+      "svg_mini": "knowledge/concepts/visuals/model-diversity.mini.svg"
+    },
+    {
+      "id": "decision-review",
+      "title": "Decision-review tribunal",
+      "category": "Security",
+      "kind": "ravenclaude-built",
+      "order": 36,
+      "summary": "A sibling tribunal votes yes/no/defer on yes-or-no DECISIONS before they reach you — binding only if you opt in, and high-blast calls always defer.",
+      "see_also": [
+        "command-review-tribunal",
+        "model-diversity"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "The decision-review modes, the defer rules, or the high-blast carve-out change.",
+      "sources": [
+        {
+          "label": "Post-PR decision review",
+          "url": "docs/post-pr-decision-review.md"
+        },
+        {
+          "label": "ravenclaude-core constitution",
+          "url": "plugins/ravenclaude-core/CLAUDE.md"
+        }
+      ],
+      "body_md": "The command-review tribunal adjudicates *shell commands*; the **decision-review** tribunal adjudicates *yes/no decisions* — the kind an agent would otherwise interrupt you with. The `decision-review` skill convenes the same seats on a yes/no question (engine: `thing-decide.py`) and returns **`yes` / `no` / `defer`**. A binding yes/no is acted on without pausing you; a `defer` asks you. The panel defers genuine preferences, low-confidence or split calls, and anything high-blast.\n\nTwo guardrails: **high-blast / irreversible decisions never auto-resolve** — force-push, deletes, prod actions, the `security_deny` family always `defer` to you, regardless of mode. And the mode knob `decision_review: off | advisory | binding` is **off by default**, so nothing is auto-decided unless you opt in. (The seats run via `claude -p`; without it the panel abstains and fails safe to `defer`.) After each PR, a retrospective routes the PR's decisions through the same panel and logs the verdicts.",
+      "diagram": "flowchart TD\n  Q[A yes/no decision] --> HB{high-blast /<br/>irreversible?}\n  HB -- yes --> DEFER[defer · always ask you]\n  HB -- no --> MODE{decision_review mode}\n  MODE -- \"off (default)\" --> ASK[ask you]\n  MODE -- \"binding\" --> PANEL[convene seats · thing-decide.py]\n  PANEL --> V{yes / no / defer}\n  V -- yes/no --> ACT[act without pausing you]\n  V -- defer --> DEFER\n  class Q,HB,MODE fact\n  class DEFER,ASK,PANEL,V,ACT built",
+      "diagram_mini": "flowchart LR\n  Q[yes/no decision] --> P[panel]\n  P --> V[yes / no / defer]\n  class P,V built",
+      "svg": "knowledge/concepts/visuals/decision-review.svg",
+      "svg_mini": "knowledge/concepts/visuals/decision-review.mini.svg"
+    },
+    {
+      "id": "capability-banner",
+      "title": "Capability-orientation banner",
+      "category": "Orientation & capability",
+      "kind": "ravenclaude-built",
+      "order": 40,
+      "summary": "A SessionStart hook injects what the project touches, the auth it holds (names only), and the effective permissions — so the agent never acts as if it has no access.",
+      "see_also": [
+        "session-start-context",
+        "comfort-posture"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "The capability-orientation hook's banner contents or its salience-not-enforcement framing change.",
+      "sources": [
+        {
+          "label": "ravenclaude-core constitution",
+          "url": "plugins/ravenclaude-core/CLAUDE.md"
+        },
+        {
+          "label": "Claude Code permissions (SessionStart)",
+          "url": "plugins/ravenclaude-core/knowledge/claude-code-permissions.md"
+        }
+      ],
+      "body_md": "The `capability-orientation.sh` SessionStart hook assembles a **capability banner** and injects it via `additionalContext` every session. It states the project's detected external surface, the auth it holds (env-var **names/presence only — never values; no network calls**), the effective `.claude/settings.json` permissions, and a presence/staleness summary of `environment-context.md`.\n\nWhy it exists: the behavioral instruction \"read the posture at session start\" is prose the model often skips. The hook makes the summary impossible to miss. Crucially, it is a **salience boost, not enforcement** — the real gate is the permission rules; the banner just stops the agent acting as if it has no access (the \"did you try X?\" round-trip on actions it's already authorized for). The banner is a *pointer*; `environment-context.md` stays the authoritative source for per-environment detail.",
+      "diagram": "flowchart TD\n  S[Session starts] --> H[capability-orientation.sh]\n  H --> R1[Detect project surface]\n  H --> R2[Read auth env-var NAMES · no values · no network]\n  H --> R3[Read effective settings.json permissions]\n  R1 & R2 & R3 --> B[Banner via additionalContext]\n  B --> A[Agent is oriented — but NOT gated]\n  A --> G[(Real gate: permission rules)]\n  class S,H,R1,R2,R3 built\n  class B,A built\n  class G fact",
+      "diagram_mini": "flowchart LR\n  S[SessionStart] --> B[surface + auth + perms]\n  B --> A[agent oriented<br/>· not enforcement]\n  class B,A built",
+      "svg": "knowledge/concepts/visuals/capability-banner.svg",
+      "svg_mini": "knowledge/concepts/visuals/capability-banner.mini.svg"
+    },
+    {
+      "id": "environment-context",
+      "title": "Environment context & discovery",
+      "category": "Orientation & capability",
+      "kind": "ravenclaude-built",
+      "order": 42,
+      "summary": "An optional file maps which environments your creds reach and what's pre-authorized — so the agent acts without asking where allowed, and stops on forbidden actions.",
+      "see_also": [
+        "capability-banner",
+        "decision-trees"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "The environment-context pre-action check or the discovery skill's contract changes.",
+      "sources": [
+        {
+          "label": "ravenclaude-core constitution",
+          "url": "plugins/ravenclaude-core/CLAUDE.md"
+        },
+        {
+          "label": "environment-context template",
+          "url": "plugins/ravenclaude-core/templates/environment-context.md"
+        }
+      ],
+      "body_md": "`.ravenclaude/environment-context.md` (at the **consumer's** project root, optional) records each environment (DEV / TEST / PROD / named), its role, its **pre-authorized action categories**, and a **forbidden** list. The Capability Grounding Protocol does a **pre-action check** against it: if the current environment pre-authorizes the action category, the agent **executes without asking** (no \"did you try X?\" round-trip); if the action is forbidden, it **stops** for explicit confirmation regardless of role; if the file is silent, it falls through to alternate-methods enumeration.\n\nWhen the file is absent, the agent offers the **environment-discovery** skill instead of asking you to fill in a template by hand — it probes installed CLIs read-only, decodes any acquired JWTs, and drafts the file for you to save/edit/skip. Discovery never runs without confirmation, is read-only by contract, and **never writes credentials** (those live in env vars / Key Vault; the file holds posture, not secrets).",
+      "diagram": "flowchart TD\n  ACT[Agent about to act] --> F{environment-context.md present?}\n  F -- no --> ALT[Fall through to alternate-methods]\n  F -- yes --> CAT{Action pre-authorized<br/>for current env?}\n  CAT -- yes --> RUN[Execute · no prompt]\n  CAT -- forbidden --> STOP[Stop · require confirmation]\n  CAT -- \"not listed\" --> ALT\n  class ACT,F,CAT fact\n  class ALT,RUN,STOP built",
+      "diagram_mini": "flowchart LR\n  A[Action] --> C{pre-authorized<br/>here?}\n  C -- yes --> R[run]\n  C -- forbidden --> S[stop]\n  class R,S built",
+      "svg": "knowledge/concepts/visuals/environment-context.svg",
+      "svg_mini": "knowledge/concepts/visuals/environment-context.mini.svg"
+    },
+    {
+      "id": "decision-trees",
+      "title": "Decision trees in knowledge files",
+      "category": "Orientation & capability",
+      "kind": "ravenclaude-built",
+      "order": 44,
+      "summary": "Knowledge files carry Mermaid decision trees the agent traverses BEFORE picking a method — preventing wrong-branch-from-the-start, with a mandatory staleness date.",
+      "see_also": [
+        "environment-context"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "The decision-tree convention or its last-verified staleness discipline changes.",
+      "sources": [
+        {
+          "label": "Decision trees in knowledge files",
+          "url": "docs/best-practices/decision-trees-in-knowledge-files.md"
+        },
+        {
+          "label": "ravenclaude-core constitution",
+          "url": "plugins/ravenclaude-core/CLAUDE.md"
+        }
+      ],
+      "body_md": "When a knowledge file contains a `## Decision Tree: <Domain>` section, the agent must **traverse the Mermaid graph top-to-bottom before selecting a method** — resolving each condition node against the user's actual context (not keyword-matching the request), defaulting to the **leaf with the smaller blast radius**, and escalating to a higher-blast leaf only after the smaller one demonstrably fails.\n\nThis closes the **wrong-branch-from-the-start** failure mode (the agent picks the wrong method on the first try because the branches weren't visible). It composes with alternate-methods enumeration (which handles \"method failed, try the next\") and the environment-context check (which handles \"I'm already authorized\"). Every diagram-bearing knowledge file carries a mandatory **`last-verified` date**, and the Researcher's sweep flags any tree older than 90 days — the same discipline these Learn concepts follow.",
+      "diagram": "flowchart TD\n  SIT[Situation matches a tree's entry] --> TRAV[Traverse the graph top-to-bottom]\n  TRAV --> RES[Resolve each node against real context]\n  RES --> LEAF[Default to the smaller-blast leaf]\n  LEAF --> TRY[Try it]\n  TRY -- works --> DONE[Done]\n  TRY -- fails --> ESC[Escalate to higher-blast leaf]\n  class SIT,TRAV,RES,LEAF,TRY,ESC,DONE built",
+      "diagram_mini": "flowchart LR\n  S[Situation] --> T[traverse tree]\n  T --> L[smaller-blast leaf first]\n  class T,L built",
+      "svg": "knowledge/concepts/visuals/decision-trees.svg",
+      "svg_mini": "knowledge/concepts/visuals/decision-trees.mini.svg"
+    },
+    {
+      "id": "layout-hook",
+      "title": "Layout enforcement",
+      "category": "Marketplace engineering",
+      "kind": "ravenclaude-built",
+      "order": 50,
+      "summary": "A PreToolUse hook plus a CI backstop block off-pattern file creation against .repo-layout.json — because path-scoped rule files load on Read, not Write.",
+      "see_also": [
+        "audit-gates",
+        "hook-lifecycle"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "The enforce-layout hook, .repo-layout.json schema, or the validate-layout CI workflow changes.",
+      "sources": [
+        {
+          "label": "AGENTS.md — Layout & boundary rules",
+          "url": "AGENTS.md"
+        },
+        {
+          "label": "Claude Code issue #23478",
+          "url": "https://github.com/anthropics/claude-code/issues/23478"
+        }
+      ],
+      "body_md": "`hooks/enforce-layout.sh` runs `PreToolUse` on `Write|Edit|MultiEdit`: it reads `.repo-layout.json`, matches the target path against `allowed_globs`, and **denies an off-pattern write with a suggested correct location**. If the manifest is absent it silently allows everything — so consumers who install the plugin without a layout manifest aren't surprised.\n\nWhy a hook **and** CI: Claude Code issue #23478 confirms that path-scoped rule files (`paths:` frontmatter) load only on **Read**, not on **Write** — they cannot prevent off-pattern file *creation*. So the in-loop hook gives fast feedback during a session (Claude only), and `.github/workflows/validate-layout.yml` is the **cross-tool backstop** that catches direct human commits, Cursor/Codex/Aider edits, and any case where the hook didn't fire.",
+      "diagram": "flowchart TD\n  W[Write / Edit / MultiEdit] --> H[enforce-layout.sh · PreToolUse]\n  H --> M{path matches an<br/>allowed_glob?}\n  M -- yes --> OK[allow]\n  M -- no --> DENY[deny + suggest correct path]\n  PR[Any commit · any tool] --> CI[validate-layout.yml]\n  CI --> CIM{matches allow-list?}\n  CIM -- no --> FAIL[CI fails]\n  CIM -- yes --> PASS[CI passes]\n  class W,H,M,PR fact\n  class OK,DENY,CI,CIM,FAIL,PASS built",
+      "diagram_mini": "flowchart LR\n  W[Write] --> H{matches<br/>allow-list?}\n  H -- no --> D[deny + CI backstop]\n  H -- yes --> A[allow]\n  class D,A built",
+      "svg": "knowledge/concepts/visuals/layout-hook.svg",
+      "svg_mini": "knowledge/concepts/visuals/layout-hook.mini.svg"
+    },
+    {
+      "id": "audit-gates",
+      "title": "The gate-audit meta-test",
+      "category": "Marketplace engineering",
+      "kind": "ravenclaude-built",
+      "order": 52,
+      "summary": "Every CI gate is itself tested: audit-gates.sh proves each gate FAILS on a known-bad fixture and PASSES on a known-good one — so a gate can't silently rot into a no-op.",
+      "see_also": [
+        "layout-hook"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "The gate-audit approach or its skip-is-not-a-pass policy changes.",
+      "sources": [
+        {
+          "label": "CI gate audit",
+          "url": "docs/best-practices/ci-gate-audit.md"
+        },
+        {
+          "label": "AGENTS.md — Testing instructions",
+          "url": "AGENTS.md"
+        }
+      ],
+      "body_md": "A CI gate that never fails is worse than no gate — it gives false confidence. So RavenClaude runs a **meta-test**: `scripts/audit-gates.sh` proves, for each gate, that it **fails on a known-bad fixture AND passes on a known-good one**. If a gate can't be made to fail on input it's supposed to reject, the gate is broken and the audit says so.\n\nThis is required reading before adding or changing any CI step — a new gate ships with its fail/pass fixtures, not just its happy path. And **a skip is not a pass**: when a gate can't run locally (e.g. the actionlint gate needs a Docker daemon), it **loudly** skips (\"THIS IS NOT A PASS\"), and in CI an unrunnable gate is a hard failure, never a silent skip.",
+      "diagram": "flowchart TD\n  G[For each CI gate] --> BAD[Run it on a known-BAD fixture]\n  BAD --> FB{does it FAIL?}\n  FB -- no --> BROKEN[Gate is broken · audit fails]\n  FB -- yes --> GOOD[Run it on a known-GOOD fixture]\n  GOOD --> FG{does it PASS?}\n  FG -- no --> BROKEN\n  FG -- yes --> TRUST[Gate trusted]\n  class G,BAD,FB,GOOD,FG built\n  class BROKEN built\n  class TRUST built",
+      "diagram_mini": "flowchart LR\n  B[known-bad] --> F{fails?}\n  F -- yes --> P[known-good passes → trusted]\n  F -- no --> X[gate broken]\n  class P,X built",
+      "svg": "knowledge/concepts/visuals/audit-gates.svg",
+      "svg_mini": "knowledge/concepts/visuals/audit-gates.mini.svg"
+    },
+    {
+      "id": "copilot-bridge",
+      "title": "GitHub Copilot CLI bridge",
+      "category": "Marketplace engineering",
+      "kind": "ravenclaude-built",
+      "order": 54,
+      "summary": "RavenClaude runs under GitHub Copilot CLI too — via a generated package + a hook adapter — and updating is just `git pull`, never a re-install.",
+      "see_also": [
+        "layout-hook",
+        "hook-lifecycle"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "The Copilot package generator, the hook adapter's envelope mapping, or Copilot's plugin-hook bug status changes.",
+      "sources": [
+        {
+          "label": "ravenclaude-core constitution",
+          "url": "plugins/ravenclaude-core/CLAUDE.md"
+        },
+        {
+          "label": "generate-copilot-plugin.py",
+          "url": "scripts/generate-copilot-plugin.py"
+        }
+      ],
+      "body_md": "Copilot CLI is itself a plugin host with the same lifecycle events (SessionStart / PreToolUse / …), Agent Skills, AGENTS.md, and MCP — so most of the plugin ports. Three pieces make it work: `generate-copilot-plugin.py` **projects** the canonical plugin into a Copilot package (generated, never hand-maintained, `--check`-gated like the dashboard); a **hook adapter** translates the I/O envelopes so the *unmodified* hook scripts run under Copilot (mapping its `toolName`/`toolArgs` ⇄ Claude's `tool_name`/`tool_input`, and the verdict shapes); and **enforcement hooks ship repo-level** in `.github/hooks/` because a Copilot bug stops plugin-level `preToolUse` hooks from firing.\n\nThe design pillar is **frictionless updates**: instead of Copilot's re-install-to-update flow, the plugin loads **live** via `copilot --plugin-dir copilot/`, so an update is just **`git pull`** (`ravenclaude update`). No re-install, ever.",
+      "diagram": "flowchart TD\n  CANON[Canonical plugin] --> GEN[generate-copilot-plugin.py]\n  GEN --> PKG[copilot/ package · --check gated]\n  CO[Copilot PreToolUse envelope] --> AD[hook adapter]\n  AD --> CL[unmodified hook scripts]\n  CL --> AD\n  UP[Update] --> PULL[git pull · loads live]\n  class CANON,GEN,PKG,AD,CL,UP,PULL built\n  class CO fact",
+      "diagram_mini": "flowchart LR\n  C[Canonical plugin] --> A[adapter] --> CO[Copilot CLI]\n  C --> U[update = git pull]\n  class C,A,U built",
+      "svg": "knowledge/concepts/visuals/copilot-bridge.svg",
+      "svg_mini": "knowledge/concepts/visuals/copilot-bridge.mini.svg"
+    }
+  ]
+}

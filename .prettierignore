@@ -30,3 +30,10 @@ repo-guide.html
 # Generated artifacts — produced by scripts/generate-dashboards.py from each
 # plugin's dashboard-schema.json. Same rationale as repo-guide.html above.
 plugins/*/dashboard.html
+
+# Generated artifacts — the Learn-tab concept registry (scripts/concepts.py) and
+# the pre-rendered, theme-normalized concept diagrams + render manifest
+# (scripts/render-concepts.py). Both emit canonical, byte-deterministic output
+# guarded by their own --check freshness gates; prettier would only churn them.
+plugins/*/concepts.json
+plugins/*/knowledge/concepts/visuals/

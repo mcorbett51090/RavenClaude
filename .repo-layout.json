@@ -40,6 +40,7 @@
     "plugins/*/docs/**",
     "plugins/*/dashboard-schema.json",
     "plugins/*/dashboard.html",
+    "plugins/*/concepts.json",
     "plugins/*/pattern-explanations.json",
     "plugins/*/dashboard-assets/**",
     "plugins/*/scripts/**",

@@ -1,0 +1,22 @@
+{
+  "concepts": {
+    "audit-gates": "c63691397c8f75c686b460de6ba844dc092130af90e2f37ae701a78272815b3d",
+    "capability-banner": "23f9e5449861493f9362166961b55715643851b9ca77c233531e63b1ef8c6e34",
+    "comfort-posture": "5186ddae8f063925b9b847d95f31d67bc61e7aba3bdbc7c63cdf9103350383ee",
+    "command-review-tribunal": "da30ecf7aacd5590eb92a364f5a413ffaa6f6a9382e467921fb45d36004d15e4",
+    "copilot-bridge": "f48fc188d8003dd76fb527e8cd03576c933c14f6ea838f7d2b28549799f3fc55",
+    "decision-review": "31e212127f274a88819fa239e72a47727de25a3a11858ee92afd4a4a5b58402f",
+    "decision-trees": "f100fc5adf9ecfd42e66eff7824a5c062986ff95bd356a71728e8e96a51ee01f",
+    "environment-context": "15de17f5065f6b01ad5d0ac1c71b7e02ced75dd3ad0a36e8ec52a728fd8715af",
+    "getting-started": "ab78f439d4837f4c0623f2768adf33aa1fc1487849123a58eb165a11b3d83c16",
+    "hook-lifecycle": "8f896d063d990f81899d7fe546af0eef621e37816e91d9a93acc7bb5753679b8",
+    "layout-hook": "a0b55bac577f80a606f3bfb939cbb53e214cce2343cb11fef29f7989faacdae9",
+    "model-diversity": "156dfafda61935e054e182112db6da1366d08eabc4170f465c7234e8c84c00a6",
+    "permission-layers": "5d740e1ba8a065adc333dc918e302f69aced5d35b06e00bc540e908593cd5713",
+    "permission-modes": "c2a96ff985928caabc206ba28aaca23685c76c9109420a9bef123b29d1cfe4d1",
+    "saga-log": "6f260caa0071efe53d8f0d3ada620f085c7d876e0d9b50c7f59c15b899481d6a",
+    "session-start-context": "a9fd1336a708e17dbff97245e18705ba4854f00693924496c0658d8398429e7b"
+  },
+  "mmdc_version": "11.15.0",
+  "normalizer_version": 4
+}

@@ -132,10 +132,12 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         settings_html=_render_settings_tab(properties, presets),
         install_html=_render_install_tab(),
         simulator_html=_render_simulator_tab(),
+        learn_html=_render_learn_tab(plugin_dir),
         commands_html=_render_stub_tab("Commands", "v0.2.0"),
         trees_html=_render_stub_tab("Decision trees", "v0.2.0"),
         activity_html=_render_stub_tab("Activity", "v0.2.0"),
         schema_json=json.dumps(schema, indent=2),
+        concepts_json=_concepts_json(plugin_dir),
         pattern_explanations_json=json.dumps(
             PATTERN_EXPLANATIONS, indent=2, sort_keys=True
         ),
@@ -164,6 +166,213 @@ def _render_stub_tab(name: str, when: str) -> str:
         f'See <code>docs/proposals/2026-05-22-003-per-plugin-dashboard.md</code> for the design.</p>'
         f"</div>"
     )
+
+
+# ── Learn tab ──────────────────────────────────────────────────────────────
+# Built from the generated concept registry (scripts/concepts.py) + the
+# pre-rendered, theme-normalized SVGs (scripts/render-concepts.py). The dashboard
+# inlines both at build time so the tab is fully offline. See concepts.py.
+
+import re as _re
+
+_MD_LINK_RE = _re.compile(r"\[([^\]]+)\]\((https?://[^\s)]+|[^\s):]+)\)")
+_MD_CODE_RE = _re.compile(r"`([^`]+)`")
+_MD_BOLD_RE = _re.compile(r"\*\*([^*]+)\*\*")
+_MD_ITALIC_RE = _re.compile(r"(?<!\*)\*([^*]+)\*(?!\*)")
+
+
+def _md_to_html(text: str) -> str:
+    """Minimal, safe markdown→HTML for concept bodies: paragraphs, **bold**,
+    *italic*, `code`, and [label](url) (http(s) or relative only — `:` is
+    excluded from bare paths so `javascript:` can't slip through). HTML is
+    escaped first, so no raw markup from the source survives."""
+    out = []
+    for para in _re.split(r"\n\s*\n", text.strip()):
+        s = html.escape(para)
+        s = _MD_LINK_RE.sub(
+            lambda m: f'<a href="{m.group(2)}" rel="noopener">{m.group(1)}</a>', s
+        )
+        s = _MD_CODE_RE.sub(r"<code>\1</code>", s)
+        s = _MD_BOLD_RE.sub(r"<strong>\1</strong>", s)
+        s = _MD_ITALIC_RE.sub(r"<em>\1</em>", s)
+        out.append("<p>" + s.replace("\n", " ") + "</p>")
+    return "".join(out)
+
+
+_CONCEPT_ICONS = {
+    # color + SHAPE dual channel (passes the color-blind / squint test)
+    "platform-fact": (
+        "Platform fact",
+        '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">'
+        '<circle cx="8" cy="8" r="5" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+    ),
+    "ravenclaude-built": (
+        "RavenClaude-built",
+        '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">'
+        '<path d="M8 1.5 14.5 8 8 14.5 1.5 8Z" fill="currentColor"/></svg>',
+    ),
+}
+
+
+def _inline_concept_svg(plugin_dir: Path, rel: str | None) -> str:
+    if not rel:
+        return ""
+    p = plugin_dir / rel
+    return p.read_text(encoding="utf-8").strip() if p.is_file() else ""
+
+
+# Named interactive widgets a concept can embed via its `widget:` frontmatter.
+# Markup only — the behavior is wired in _JS (initConceptWidgets). Pure
+# client-side: no endpoint, so it works identically offline and served.
+_PERMISSION_RESOLVER_ROWS = [
+    ("managed", "Managed (enterprise)"),
+    ("project", "Project · .claude/settings.json"),
+    ("local", "Local · .claude/settings.local.json"),
+    ("user", "User · ~/.claude/settings.json"),
+]
+_CONCEPT_WIDGETS = {
+    "permission-resolver": (
+        '<div class="concept-widget" data-widget="permission-resolver">'
+        '<div class="cw-title">Try it: which layer wins?</div>'
+        '<p class="cw-hint">Set a rule in each layer and watch the cross-layer merge decide. '
+        "A deny in any layer always wins; you can't override it down.</p>"
+        '<div class="cw-rows">'
+        + "".join(
+            f'<label class="cw-row"><span class="cw-layer">{html.escape(name)}</span>'
+            f'<select class="cw-select" data-layer="{key}" aria-label="{html.escape(name)} rule">'
+            '<option value="inherit">— none —</option>'
+            '<option value="allow">allow</option>'
+            '<option value="ask">ask</option>'
+            '<option value="deny">deny</option>'
+            "</select></label>"
+            for key, name in _PERMISSION_RESOLVER_ROWS
+        )
+        + "</div>"
+        '<div class="cw-result"><span class="cw-verdict" data-verdict>—</span>'
+        '<span class="cw-why" data-why></span></div>'
+        "</div>"
+    ),
+}
+
+
+def _try_it_html(try_it: dict | None) -> str:
+    if not try_it:
+        return ""
+    return (
+        f'<a class="concept-tryit" href="{html.escape(try_it["href"])}">'
+        f'{html.escape(try_it["label"])} <span aria-hidden="true">&rarr;</span></a>'
+    )
+
+
+def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> str:
+    kind = c["kind"]
+    badge_label, badge_icon = _CONCEPT_ICONS.get(kind, ("", ""))
+    badge_cls = "fact" if kind == "platform-fact" else "built"
+
+    svg = _inline_concept_svg(plugin_dir, c.get("svg"))
+    well = (
+        f'<div class="concept-diagram-well" role="img" '
+        f'aria-label="{html.escape(c["title"])} diagram">{svg}</div>'
+        if svg
+        else ""
+    )
+
+    see_also = "".join(
+        f'<a class="concept-chip" href="#/learn/{html.escape(ref)}">'
+        f'{html.escape(titles.get(ref, ref))}</a>'
+        for ref in c.get("see_also", [])
+        if ref in titles
+    )
+    see_also_block = f'<div class="concept-seealso">{see_also}</div>' if see_also else ""
+
+    sources = "".join(
+        f'<a class="concept-source" href="{html.escape(s["url"])}" rel="noopener">'
+        f'{html.escape(s["label"])}</a>'
+        for s in c.get("sources", [])
+    )
+    verified = ""
+    if c.get("last_verified"):
+        verified = f'<span class="concept-verified">verified {html.escape(c["last_verified"])}</span>'
+
+    search_blob = html.escape(
+        f"{c['title']} {c['summary']} {c['body_md']}".lower(), quote=True
+    )
+
+    return (
+        f'<article class="concept-card" id="learn-{html.escape(c["id"])}" '
+        f'data-concept="{html.escape(c["id"])}" data-search="{search_blob}" tabindex="-1">'
+        f'<div class="concept-eyebrow">{html.escape(c["category"])}</div>'
+        f'<div class="concept-head">'
+        f'<h3 class="concept-title">{html.escape(c["title"])}</h3>'
+        f'<span class="concept-badge {badge_cls}">{badge_icon}{html.escape(badge_label)}</span>'
+        f"</div>"
+        f'<p class="concept-deck">{html.escape(c["summary"])}</p>'
+        f"{well}"
+        f'<div class="concept-body">{_md_to_html(c["body_md"])}</div>'
+        f'{_CONCEPT_WIDGETS.get(c.get("widget") or "", "")}'
+        f'{_try_it_html(c.get("try_it"))}'
+        f"{see_also_block}"
+        f'<div class="concept-sources-row">{sources}{verified}</div>'
+        f"</article>"
+    )
+
+
+def _render_learn_tab(plugin_dir: Path) -> str:
+    reg_path = plugin_dir / "concepts.json"
+    if not reg_path.is_file():
+        return _render_stub_tab("Learn", "next")
+    reg = json.loads(reg_path.read_text(encoding="utf-8"))
+    concepts = reg.get("concepts", [])
+    if not concepts:
+        return _render_stub_tab("Learn", "next")
+
+    titles = {c["id"]: c["title"] for c in concepts}
+    groups: dict[str, list[dict]] = {}
+    order: list[str] = []
+    for c in concepts:
+        if c["category"] not in groups:
+            groups[c["category"]] = []
+            order.append(c["category"])
+        groups[c["category"]].append(c)
+
+    cats_html = []
+    for cat in order:
+        cards = "".join(_render_concept_card(plugin_dir, c, titles) for c in groups[cat])
+        cats_html.append(
+            f'<details class="concept-cat" open>'
+            f'<summary class="concept-cat-head">'
+            f'<span class="concept-cat-name">{html.escape(cat)}</span>'
+            f'<span class="concept-cat-count">{len(groups[cat])}</span></summary>'
+            f'<div class="concept-grid">{cards}</div></details>'
+        )
+
+    return (
+        '<div class="learn-tab">'
+        '<div class="learn-toolbar">'
+        '<input type="search" id="learn-search" class="learn-search" '
+        'placeholder="Search concepts…" aria-label="Search concepts" '
+        'autocomplete="off" spellcheck="false">'
+        f'<span class="learn-count" id="learn-count">{len(concepts)} concepts</span>'
+        '<span class="learn-toolbar-spacer"></span>'
+        '<button type="button" class="learn-linkbtn" id="learn-expand">Expand all</button>'
+        '<button type="button" class="learn-linkbtn" id="learn-collapse">Collapse all</button>'
+        "</div>"
+        '<div class="learn-legend" aria-hidden="true">'
+        '<span class="learn-legend-item"><span class="learn-swatch fact"></span>Platform fact</span>'
+        '<span class="learn-legend-item"><span class="learn-swatch built"></span>RavenClaude-built</span>'
+        "</div>"
+        + "".join(cats_html)
+        + '<div class="stub learn-noresults" id="learn-noresults" hidden>'
+        '<h2>No matching concepts</h2><p>Try a different search term.</p></div>'
+        + "</div>"
+    )
+
+
+def _concepts_json(plugin_dir: Path) -> str:
+    """The concept registry, embedded verbatim for the Learn tab's search/tooltip
+    JS. Empty object until scripts/concepts.py has generated it."""
+    reg_path = plugin_dir / "concepts.json"
+    return reg_path.read_text(encoding="utf-8").strip() if reg_path.is_file() else "{}"
 
 
 # Copy-to-clipboard command blocks for the Install & Update tab. Each is a
@@ -2484,6 +2693,154 @@ footer.page-footer a:hover { text-decoration: underline; }
   color: var(--text);
   line-height: 1.5;
 }
+
+/* ── Learn tab ──────────────────────────────────────────────────────── */
+.learn-tab { max-width: 1100px; margin: 0 auto; }
+.learn-toolbar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.learn-search {
+  flex: 1 1 260px; min-width: 200px; padding: 8px 12px;
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px; font-size: 14px;
+}
+.learn-search:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.learn-count { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.learn-toolbar-spacer { flex: 1 1 auto; }
+.learn-linkbtn {
+  background: none; border: none; color: var(--accent); cursor: pointer;
+  font-size: 13px; padding: 4px 6px; font-family: inherit;
+}
+.learn-linkbtn:hover { text-decoration: underline; }
+.learn-linkbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 4px; }
+.learn-legend { display: flex; gap: 18px; margin-bottom: 18px; font-size: 12px; color: var(--muted); }
+.learn-legend-item { display: inline-flex; align-items: center; gap: 7px; }
+.learn-swatch { width: 13px; height: 13px; display: inline-block; }
+.learn-swatch.fact { border: 2px solid var(--muted); border-radius: 50%; }
+.learn-swatch.built {
+  background: var(--accent);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+.concept-cat { margin-bottom: 14px; }
+.concept-cat[hidden] { display: none; }
+.concept-cat-head {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  padding: 8px 0; list-style: none; user-select: none;
+  border-bottom: 1px solid var(--border);
+}
+.concept-cat-head::-webkit-details-marker { display: none; }
+.concept-cat-head::before {
+  content: "\\25B8"; color: var(--accent); font-size: 12px;
+  transition: transform 0.12s ease;
+}
+.concept-cat[open] > .concept-cat-head::before { transform: rotate(90deg); }
+.concept-cat-name {
+  text-transform: uppercase; letter-spacing: 0.06em; font-size: 12px;
+  font-weight: 700; color: var(--accent);
+}
+.concept-cat-count {
+  margin-left: auto; color: var(--muted); font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.concept-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 16px; padding: 16px 0;
+}
+@media (max-width: 900px) { .concept-grid { grid-template-columns: 1fr; } }
+
+.concept-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 18px; scroll-margin-top: 16px;
+}
+.concept-card[hidden] { display: none; }
+.concept-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.concept-eyebrow {
+  text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;
+  color: var(--muted); margin-bottom: 4px;
+}
+.concept-head { display: flex; align-items: flex-start; gap: 10px; justify-content: space-between; }
+.concept-title { font-size: 16px; margin: 0; color: var(--text); }
+.concept-badge {
+  display: inline-flex; align-items: center; gap: 5px; flex: none;
+  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  border: 1px solid; white-space: nowrap;
+}
+.concept-badge svg { width: 11px; height: 11px; }
+.concept-badge.fact { color: var(--muted); border-color: var(--muted); background: rgba(148, 163, 184, 0.1); }
+.concept-badge.built { color: var(--accent); border-color: var(--accent); background: rgba(20, 184, 166, 0.1); }
+.concept-deck { font-size: 13.5px; color: var(--muted); margin: 8px 0 12px; line-height: 1.5; }
+.concept-diagram-well {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px; margin-bottom: 12px;
+  overflow: auto; text-align: center;
+}
+.rc-concept-diagram { max-width: 100%; height: auto; }
+.concept-body { font-size: 14px; line-height: 1.6; color: var(--text); }
+.concept-body p { margin: 0 0 10px; }
+.concept-body p:last-child { margin-bottom: 0; }
+.concept-body code {
+  background: var(--surface-2); padding: 1px 5px; border-radius: 4px;
+  font-family: var(--font-mono); font-size: 12.5px;
+}
+.concept-seealso { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.concept-chip {
+  font-size: 12px; color: var(--text); text-decoration: none;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 999px; padding: 2px 10px;
+}
+.concept-chip:hover { border-color: var(--accent); color: var(--accent); }
+.concept-sources-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border);
+}
+.concept-source { font-family: var(--font-mono); font-size: 11.5px; color: var(--accent); }
+.concept-verified { margin-left: auto; font-size: 11px; color: var(--muted); }
+
+.concept-tryit {
+  display: inline-block; margin-top: 12px; font-size: 13px;
+  color: var(--accent); text-decoration: none; font-weight: 600;
+}
+.concept-tryit:hover { text-decoration: underline; }
+.concept-tryit:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+/* interactive concept widgets (e.g. the permission-layer resolver) */
+.concept-widget {
+  margin-top: 14px; padding: 14px; background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: var(--radius);
+}
+.cw-title { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+.cw-hint { font-size: 12.5px; color: var(--muted); margin: 0 0 12px; line-height: 1.5; }
+.cw-rows { display: grid; gap: 8px; margin-bottom: 12px; }
+.cw-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cw-layer { font-family: var(--font-mono); font-size: 12px; color: var(--text); }
+.cw-select {
+  background: var(--bg); color: var(--text); border: 1px solid var(--border);
+  border-radius: 5px; padding: 4px 8px; font-size: 12px; flex: none;
+}
+.cw-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.cw-result {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px;
+  padding-top: 10px; border-top: 1px solid var(--border);
+}
+.cw-verdict {
+  font-weight: 700; font-size: 13px; padding: 2px 10px; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--muted); white-space: nowrap;
+}
+.cw-verdict[data-v="deny"] { color: var(--danger); border-color: var(--danger); }
+.cw-verdict[data-v="ask"] { color: var(--warn); border-color: var(--warn); }
+.cw-verdict[data-v="allow"] { color: var(--accent); border-color: var(--accent); }
+.cw-why { font-size: 12.5px; color: var(--muted); flex: 1 1 200px; line-height: 1.5; }
+
+@keyframes rc-flash {
+  0% { box-shadow: 0 0 0 2px var(--accent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.concept-card.rc-flash { animation: rc-flash 1.2s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .concept-card.rc-flash { animation: none; }
+  .concept-cat-head::before { transition: none; }
+}
 """.strip()
 
 
@@ -3966,10 +4323,23 @@ _JS = r"""
   });
 
   /* ── Tab routing ─────────────────────────────────────────────────── */
-  const validTabs = ["settings", "install", "simulator", "commands", "trees", "activity"];
+  const validTabs = ["settings", "install", "simulator", "learn", "commands", "trees", "activity"];
+  function openConcept(id) {
+    const card = document.getElementById("learn-" + id);
+    if (!card) return;
+    let el = card.parentElement;
+    while (el) {
+      if (el.tagName === "DETAILS") el.open = true;
+      el = el.parentElement;
+    }
+    card.scrollIntoView({ block: "start", behavior: "smooth" });
+    card.classList.remove("rc-flash");
+    void card.offsetWidth; /* restart the animation */
+    card.classList.add("rc-flash");
+  }
   function applyHash() {
-    const hash = (location.hash || "#/settings").replace(/^#\//, "");
-    const tab = validTabs.includes(hash) ? hash : "settings";
+    const seg = (location.hash || "#/settings").replace(/^#\//, "").split("/");
+    const tab = validTabs.includes(seg[0]) ? seg[0] : "settings";
     document.querySelectorAll(".tab-btn").forEach(b => {
       const sel = b.dataset.tab === tab;
       b.setAttribute("aria-selected", sel ? "true" : "false");
@@ -3977,6 +4347,7 @@ _JS = r"""
     document.querySelectorAll(".tab-panel").forEach(p => {
       p.classList.toggle("active", p.dataset.tab === tab);
     });
+    if (tab === "learn" && seg[1]) openConcept(seg[1]);
   }
   document.querySelectorAll(".tab-btn").forEach(b => {
     b.addEventListener("click", () => {
@@ -4185,6 +4556,86 @@ _JS = r"""
     if (served) hydrateFromRepo();
   });
 
+  /* ── Learn tab: search · expand/collapse · no-results ──────────────── */
+  (function initLearn() {
+    const panel = document.querySelector('.tab-panel[data-tab="learn"]');
+    if (!panel) return;
+    const search = panel.querySelector("#learn-search");
+    const count = panel.querySelector("#learn-count");
+    const noResults = panel.querySelector("#learn-noresults");
+    const cards = Array.from(panel.querySelectorAll(".concept-card"));
+    const cats = Array.from(panel.querySelectorAll(".concept-cat"));
+    const total = cards.length;
+
+    function applyFilter(raw) {
+      const q = (raw || "").trim().toLowerCase();
+      let shown = 0;
+      cards.forEach(card => {
+        const hit = !q || (card.dataset.search || "").indexOf(q) !== -1;
+        card.hidden = !hit;
+        if (hit) shown++;
+      });
+      cats.forEach(cat => {
+        const any = cat.querySelector(".concept-card:not([hidden])") !== null;
+        cat.hidden = !any;
+        if (q && any) cat.open = true;
+      });
+      if (count) count.textContent = q ? shown + " of " + total : total + " concepts";
+      if (noResults) noResults.hidden = shown > 0;
+    }
+
+    if (search) search.addEventListener("input", () => applyFilter(search.value));
+    const expand = panel.querySelector("#learn-expand");
+    const collapse = panel.querySelector("#learn-collapse");
+    if (expand) expand.addEventListener("click", () => cats.forEach(c => { c.open = true; }));
+    if (collapse) collapse.addEventListener("click", () => cats.forEach(c => { c.open = false; }));
+    applyFilter("");
+  })();
+
+  /* ── Learn tab: interactive concept widgets ────────────────────────── */
+  (function initConceptWidgets() {
+    const LAYER_NAME = { managed: "Managed", project: "Project", local: "Local", user: "User" };
+    const ORDER = ["managed", "project", "local", "user"];
+    document.querySelectorAll('[data-widget="permission-resolver"]').forEach(w => {
+      const selects = Array.from(w.querySelectorAll(".cw-select"));
+      const verdict = w.querySelector("[data-verdict]");
+      const why = w.querySelector("[data-why]");
+      function setLayer(layer, val) {
+        const s = selects.find(x => x.dataset.layer === layer);
+        if (s) s.value = val;
+      }
+      function compute() {
+        const vals = {};
+        selects.forEach(s => { vals[s.dataset.layer] = s.value; });
+        const denies = ORDER.filter(k => vals[k] === "deny");
+        const asks = ORDER.filter(k => vals[k] === "ask");
+        const allows = ORDER.filter(k => vals[k] === "allow");
+        let v, text;
+        if (denies.length) {
+          v = "deny";
+          text = LAYER_NAME[denies[0]] + " denies — a deny in any layer blocks the action, and no other layer can override it down.";
+        } else if (asks.length) {
+          v = "ask";
+          text = LAYER_NAME[asks[0]] + " asks — with no deny anywhere, ask beats allow, so you get prompted.";
+        } else if (allows.length) {
+          v = "allow";
+          text = allows.map(k => LAYER_NAME[k]).join(" + ") + " allow and nothing denies or asks — it runs without prompting.";
+        } else {
+          v = "none";
+          text = "No layer sets a rule — Claude Code falls back to its default behavior.";
+        }
+        verdict.textContent = v === "none" ? "no rule" : v.toUpperCase();
+        verdict.dataset.v = v;
+        why.textContent = text;
+      }
+      /* open on the classic gotcha: a User allow that a Project deny overrides */
+      setLayer("user", "allow");
+      setLayer("project", "deny");
+      selects.forEach(s => s.addEventListener("change", compute));
+      compute();
+    });
+  })();
+
   /* Initial render */
   render();
 })();
@@ -4211,6 +4662,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <button class="tab-btn" data-tab="settings" role="tab" aria-selected="true">Settings</button>
     <button class="tab-btn" data-tab="install" role="tab" aria-selected="false">Install &amp; Update</button>
     <button class="tab-btn" data-tab="simulator" role="tab" aria-selected="false">Test a command</button>
+    <button class="tab-btn" data-tab="learn" role="tab" aria-selected="false">Learn</button>
     <button class="tab-btn" data-tab="commands" role="tab" aria-selected="false">Commands</button>
     <button class="tab-btn" data-tab="trees" role="tab" aria-selected="false">Trees</button>
     <button class="tab-btn" data-tab="activity" role="tab" aria-selected="false">Activity</button>
@@ -4226,6 +4678,9 @@ _PAGE_TEMPLATE = """<!doctype html>
   </section>
   <section class="tab-panel" data-tab="simulator" role="tabpanel" aria-label="Test a command">
 {simulator_html}
+  </section>
+  <section class="tab-panel" data-tab="learn" role="tabpanel" aria-label="Learn">
+{learn_html}
   </section>
   <section class="tab-panel" data-tab="commands" role="tabpanel" aria-label="Commands">
 {commands_html}
@@ -4309,6 +4764,9 @@ _PAGE_TEMPLATE = """<!doctype html>
 </script>
 <script type="application/json" id="pattern-explanations-data">
 {pattern_explanations_json}
+</script>
+<script type="application/json" id="concepts-data">
+{concepts_json}
 </script>
 <script>
 {js}
