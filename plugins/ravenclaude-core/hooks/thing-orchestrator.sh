@@ -81,9 +81,14 @@ if [ ! -f "$posture_file" ] || ! grep -Eq '^[[:space:]]*thing:[[:space:]]*(on|tr
 fi
 
 # ── Routing + config (one python call). ───────────────────────────────────────
-[ -f "$DECISION" ] || emit ask "Command review enabled but decision helper is missing; deferring to you."
+# Fail CLOSED (deny), not ask: we are past the short-circuit, so a category is
+# toggled on — the user opted into gating. If the engine that knows the category
+# posture is missing or silent we cannot tell a high-stakes command from a read,
+# so denying (with a clear recovery path) is the safe posture, not punting the
+# decision back to the human as an `ask` (assessment must-fix #7).
+[ -f "$DECISION" ] || emit deny "Command review is enabled but its decision helper is missing (broken install). Failing closed. Fix the plugin install, or turn command review off in the comfort-posture dashboard."
 decision="$(THING_SEAT_ACTIVE= python3 "$DECISION" --root "$cwd" classify "$cmd" 2>/dev/null || true)"
-[ -z "$decision" ] && emit ask "Command review could not classify the command; deferring to you."
+[ -z "$decision" ] && emit deny "Command review could not classify the command (decision helper failed). Failing closed. Re-run, fix the install, or turn command review off in the dashboard."
 
 enabled="$(printf '%s' "$decision" | jq -r '.thing_enabled // false')"
 category="$(printf '%s' "$decision" | jq -r '.category // "unknown"')"
@@ -171,7 +176,11 @@ parse_seat() {  # parse_seat <role> <tmp>
   SINJ[$role]="$(printf '%s' "$out" | jq -r '.injection_detected // false')"
   SCITED[$role]="$(printf '%s' "$out" | jq -c '.concerns_cited // []')"
   SEDIT[$role]="$(printf '%s' "$out" | jq -r '.edited_command // empty')"
-  SREASON[$role]="$(printf '%s' "$out" | jq -r '.reasoning // ""')"
+  # Bound + strip control chars (assessment #13): a seat's reasoning is surfaced
+  # into the user banner (esp. Thor's) and the Sága log. A prompt-injected seat
+  # could return an over-long or newline/escape-laden string; cap at 200 chars and
+  # drop control bytes at the source so every downstream use is already safe.
+  SREASON[$role]="$(printf '%s' "$out" | jq -r '.reasoning // ""' | tr -d '\000-\037' | cut -c1-200)"
 }
 
 verdict="ask"; reason=""; revised=""; final_cited="$screen_concerns"
@@ -354,14 +363,19 @@ duration_ms=$(( ended_ms - started_ms ))
 seats_json="[]"
 for role in "${seats_run[@]:-}"; do
   [ -z "$role" ] && continue
+  # Persist each seat's FULL verdict for forensics (assessment #18): verdict,
+  # status, confidence, injection flag, cited concerns, the bounded reasoning,
+  # and any proposed edit. jq --arg escapes the reasoning safely.
   seats_json="$(jq -cn --argjson a "$seats_json" \
     --arg name "$role" --arg v "${SV[$role]:-abstain}" --arg st "${SSTATUS[$role]:-abstain}" \
     --argjson cf "${SCONF[$role]:-0}" --arg inj "${SINJ[$role]:-false}" \
     --argjson ci "${SCITED[$role]:-[]}" \
-    '$a + [{name:$name,verdict:$v,status:$st,confidence:$cf,injection_detected:($inj=="true"),concerns_cited:$ci}]')"
+    --arg rsn "${SREASON[$role]:-}" --arg ec "${SEDIT[$role]:-}" \
+    '$a + [{name:$name,verdict:$v,status:$st,confidence:$cf,injection_detected:($inj=="true"),concerns_cited:$ci,reasoning:$rsn,edited_command:(if $ec=="" then null else $ec end)}]')"
 done
-if mkdir -p "$audit_dir" 2>/dev/null; then
-  jq -cn \
+# Write the Sága entry, capturing whether it actually persisted (assessment #10).
+audit_written="false"
+if mkdir -p "$audit_dir" 2>/dev/null && jq -cn \
     --arg id "$run_id" --arg sid "$session_id" \
     --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     --arg cmd "$cmd" --arg cat "$category" --arg phase "$phase" \
@@ -373,7 +387,16 @@ if mkdir -p "$audit_dir" 2>/dev/null; then
       seats:$seats,concerns_cited:$concerns,final_verdict:$verdict,
       updated_input:(if $revised=="" then null else {command:$revised} end),
       duration_ms:$duration}' \
-    > "${audit_dir}/${run_id}.json" 2>/dev/null || true
+    > "${audit_dir}/${run_id}.json" 2>/dev/null; then
+  audit_written="true"
+fi
+
+# #10: a permissive verdict (allow/edit) with NO audit record is downgraded to a
+# fail-closed DENY — never emit an unrecorded allow. A deny/ask needs no record to
+# be safe, so those still emit.
+if [ "$audit_written" != "true" ] && { [ "$verdict" = "allow" ] || [ "$verdict" = "edit" ]; }; then
+  verdict="deny"; revised=""
+  reason="Command review: the verdict could not be written to the Sága audit log, so the permissive result is downgraded to a fail-closed DENY (an allow requires an audit trail). Check write permissions on ${audit_dir_rel}. ${reason}"
 fi
 
 if [ "$verdict" = "edit" ]; then
