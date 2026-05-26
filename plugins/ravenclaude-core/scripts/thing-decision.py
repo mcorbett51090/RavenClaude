@@ -51,6 +51,37 @@ def _load_emissions() -> dict[str, list[str]]:
     return dict(getattr(mod, "EMISSIONS", {}))
 
 
+_CONCERNS = _HERE / "thing-concerns.py"
+
+
+def _route(command: str, category: str | None) -> dict:
+    """Deterministic seat routing + pre-LLM screen, via thing-concerns.py.
+
+    Returns the routing subset {concerns, max_severity, pre_llm_deny,
+    deny_concern, convened_seats}. On any failure to load/evaluate, returns a
+    conservative fallback that convenes the full panel (never silently empties
+    the routing) so the orchestrator still reviews the command.
+    """
+    fallback = {
+        "concerns": [],
+        "max_severity": None,
+        "pre_llm_deny": False,
+        "deny_concern": None,
+        "convened_seats": ["forseti", "mimir", "heimdall"],
+    }
+    try:
+        spec = importlib.util.spec_from_file_location("_thing_concerns", _CONCERNS)
+        if spec is None or spec.loader is None:
+            return fallback
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        catalog = mod._load_catalog()
+        res = mod.evaluate(catalog, command, category)
+        return {k: res[k] for k in fallback}
+    except Exception:
+        return fallback
+
+
 _BASH_PATTERN_RE = re.compile(r"^Bash\((.+?)(:\*)?\)$")
 
 
@@ -131,41 +162,109 @@ def thing_enabled_for(posture: dict, category: str | None) -> bool:
     return False  # bare-string (legacy) category has no toggle
 
 
-_DEFAULT_SEAT = {"agent": "code-reviewer", "model": "haiku"}
-_DEFAULT_TIMEOUT = 18
+# ── T3 panel defaults (design §B.4.3) ─────────────────────────────────────────
+# The four seats, each filled by an existing ravenclaude-core agent (no new
+# agents — House Rule). Heterogeneous backbones break seat correlation: spend
+# the budget on the security + tie-break seats, run the fast seats on Haiku.
+_DEFAULT_PANEL = {
+    "forseti": {"agent": "security-reviewer", "model": "claude-opus-4-7"},
+    "mimir": {"agent": "code-reviewer", "model": "claude-haiku-4-5"},
+    "heimdall": {"agent": "prompt-engineer", "model": "claude-haiku-4-5"},
+    "thor": {"agent": "architect", "model": "claude-opus-4-7"},
+}
+_DEFAULT_CONFIDENCE_THRESHOLD = 0.5
+_DEFAULT_SEAT_TIMEOUT = 18  # per-seat soft cap (s)
+_DEFAULT_PANEL_DEADLINE = 75  # panel hard deadline (s); must stay < hook timeout (90)
 _DEFAULT_AUDIT_DIR = ".ravenclaude/runs/thing"
+# Timeout / abstention posture per category. The high-stakes categories fail
+# CLOSED (deny) — *deviation from design §B.3.5* (which says "ask"): deny is the
+# only verdict that holds under bypass modes, and these are exactly where
+# failing open is catastrophic. shell_readonly keeps "ask".
+_DEFAULT_TIMEOUT_POSTURE = {
+    "shell_remote_mutate": "deny",
+    "shell_code_exec": "deny",
+    "shell_readonly": "ask",
+}
+_SEATS = ("forseti", "mimir", "heimdall", "thor")
 
 
-def resolve_seat_config(root: Path) -> tuple[dict, str | None]:
-    """Return (config, error). config always has seat/internal_timeout/audit_dir.
+def _merge_panel(base: dict, override) -> None:
+    """Per-seat merge of a panel override (mutates base in place)."""
+    if not isinstance(override, dict):
+        return
+    for seat in _SEATS:
+        entry = override.get(seat)
+        if isinstance(entry, dict):
+            if isinstance(entry.get("agent"), str):
+                base[seat]["agent"] = entry["agent"]
+            if isinstance(entry.get("model"), str):
+                base[seat]["model"] = entry["model"]
 
-    thing.yaml is OPTIONAL — absent means defaults. A PRESENT-but-malformed
-    thing.yaml returns an error so the orchestrator can fail closed (ask).
+
+def resolve_panel_config(root: Path, posture: dict | None) -> tuple[dict, str | None]:
+    """Resolve the tribunal panel config with precedence:
+
+        comfort-posture.yaml `command_review:`  (dashboard-authored)
+          >  .ravenclaude/thing.yaml             (advanced / manual)
+          >  built-in defaults
+
+    Dashboard authors only per-seat models + the confidence threshold; the
+    timers, audit dir, and per-category timeout posture come from thing.yaml or
+    the defaults. Returns (config, error); a malformed thing.yaml yields an
+    error so the orchestrator fails closed.
     """
     cfg = {
-        "seat": dict(_DEFAULT_SEAT),
-        "internal_timeout_seconds": _DEFAULT_TIMEOUT,
+        "panel": {s: dict(_DEFAULT_PANEL[s]) for s in _SEATS},
+        "confidence_threshold": _DEFAULT_CONFIDENCE_THRESHOLD,
+        "seat_timeout_seconds": _DEFAULT_SEAT_TIMEOUT,
+        "panel_deadline_seconds": _DEFAULT_PANEL_DEADLINE,
         "audit_dir": _DEFAULT_AUDIT_DIR,
+        "timeout_posture_map": dict(_DEFAULT_TIMEOUT_POSTURE),
     }
+    error: str | None = None
+
+    # Layer 1: thing.yaml (advanced / manual).
     path = root / ".ravenclaude" / "thing.yaml"
-    if not path.exists():
-        return cfg, None
-    try:
-        data = _load_yaml(path) or {}
-        if not isinstance(data, dict):
-            return cfg, "thing.yaml: top level is not a mapping"
-        seat = data.get("seat")
-        if isinstance(seat, dict):
-            cfg["seat"]["agent"] = seat.get("agent", cfg["seat"]["agent"])
-            cfg["seat"]["model"] = seat.get("model", cfg["seat"]["model"])
-        if isinstance(data.get("internal_timeout_seconds"), int):
-            cfg["internal_timeout_seconds"] = data["internal_timeout_seconds"]
-        audit = data.get("audit")
-        if isinstance(audit, dict) and isinstance(audit.get("dir"), str):
-            cfg["audit_dir"] = audit["dir"]
-        return cfg, None
-    except Exception as exc:  # malformed YAML — fail closed upstream
-        return cfg, f"thing.yaml: {exc}"
+    if path.exists():
+        try:
+            data = _load_yaml(path) or {}
+            if not isinstance(data, dict):
+                error = "thing.yaml: top level is not a mapping"
+            else:
+                _merge_panel(cfg["panel"], data.get("panel"))
+                # Legacy T2 single-seat config maps to the Mímir seat.
+                legacy = data.get("seat")
+                if isinstance(legacy, dict) and not data.get("panel"):
+                    if isinstance(legacy.get("agent"), str):
+                        cfg["panel"]["mimir"]["agent"] = legacy["agent"]
+                    if isinstance(legacy.get("model"), str):
+                        cfg["panel"]["mimir"]["model"] = legacy["model"]
+                if isinstance(data.get("confidence_threshold"), (int, float)):
+                    cfg["confidence_threshold"] = float(data["confidence_threshold"])
+                # Accept the new timer names and the legacy internal_timeout_seconds.
+                for key in ("seat_timeout_seconds", "internal_timeout_seconds"):
+                    if isinstance(data.get(key), int):
+                        cfg["seat_timeout_seconds"] = data[key]
+                if isinstance(data.get("panel_deadline_seconds"), int):
+                    cfg["panel_deadline_seconds"] = data["panel_deadline_seconds"]
+                if isinstance(data.get("timeout_posture"), dict):
+                    cfg["timeout_posture_map"].update(
+                        {k: v for k, v in data["timeout_posture"].items() if isinstance(v, str)}
+                    )
+                audit = data.get("audit")
+                if isinstance(audit, dict) and isinstance(audit.get("dir"), str):
+                    cfg["audit_dir"] = audit["dir"]
+        except Exception as exc:  # malformed YAML — fail closed upstream
+            error = f"thing.yaml: {exc}"
+
+    # Layer 2: comfort-posture.yaml `command_review:` (dashboard-authored; wins).
+    cr = (posture or {}).get("command_review")
+    if isinstance(cr, dict):
+        _merge_panel(cfg["panel"], cr.get("panel"))
+        if isinstance(cr.get("confidence_threshold"), (int, float)):
+            cfg["confidence_threshold"] = float(cr["confidence_threshold"])
+
+    return cfg, error
 
 
 def main() -> int:
@@ -181,6 +280,7 @@ def main() -> int:
 
     result: dict = {"category": category, "thing_enabled": False}
 
+    posture: dict = {}
     posture_path = root / ".ravenclaude" / "comfort-posture.yaml"
     if posture_path.exists():
         try:
@@ -192,10 +292,20 @@ def main() -> int:
             result["posture_error"] = f"comfort-posture.yaml: {exc}"
 
     if result["thing_enabled"]:
-        seat_cfg, seat_err = resolve_seat_config(root)
-        result.update(seat_cfg)
-        if seat_err:
-            result["config_error"] = seat_err
+        cfg, cfg_err = resolve_panel_config(root, posture)
+        # Resolve the per-category timeout posture to a single value for the hook.
+        posture_map = cfg.pop("timeout_posture_map")
+        result["panel"] = cfg["panel"]
+        result["confidence_threshold"] = cfg["confidence_threshold"]
+        result["seat_timeout_seconds"] = cfg["seat_timeout_seconds"]
+        result["panel_deadline_seconds"] = cfg["panel_deadline_seconds"]
+        result["audit_dir"] = cfg["audit_dir"]
+        result["timeout_posture"] = posture_map.get(category, "ask")
+        if cfg_err:
+            result["config_error"] = cfg_err
+        # Deterministic routing — which seats to convene + pre-LLM screen. Done
+        # here so the orchestrator gets config + routing in ONE python call.
+        result.update(_route(args.command, category))
 
     json.dump(result, sys.stdout)
     sys.stdout.write("\n")

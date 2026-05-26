@@ -1,0 +1,221 @@
+#!/usr/bin/env python3
+"""thing-concerns.py — the deterministic concern evaluator of the command-review
+tribunal ("the Thing"), tribunal T3.
+
+Given a shell command and its comfort-posture category, this answers — with NO
+live model call — which catalog concerns the command deterministically matches,
+how severe they are, and which seats the Lawspeaker should convene. It is the
+single source of truth for two things the orchestrator (`thing-orchestrator.sh`)
+must do reproducibly:
+
+  1. **Per-concern routing** (design §B.4.4): low/no concern -> Mímir only;
+     any high -> Forseti + Mímir + Heimdall; any (non-pre_llm_deny) critical ->
+     Forseti + Heimdall. Thor is convened later, at aggregation time, on a
+     split or low-confidence panel — not here.
+  2. **The EDIT-safety invariant** (design §B.3.4): an EDIT verdict's revised
+     command must satisfy `concerns(revised) ⊆ concerns(original) − {cited}`.
+     This is a *security property*, so it must be reproducible and CI-testable
+     with no model in the loop — hence a deterministic evaluator over the
+     machine-readable `triggers` in `knowledge/concerns-catalog.md`, not a
+     second LLM pass.
+
+A `triggers.regex` match is a *candidate* concern, not a citation: the seats
+decide whether to actually cite — EXCEPT for concerns flagged `pre_llm_deny`
+(the §B.9.3 hard rules: inline secret, injection-shaped payload, curl|sh,
+force-push), where a match denies the command before any seat is convened.
+
+Always prints ONE JSON object to stdout and exits 0 (so the bash orchestrator
+can `jq` it without minding exit codes). A load/parse failure is reported via an
+`error` field; the orchestrator fails closed on that.
+
+Usage:
+    thing-concerns.py [--root <dir>] evaluate --category <cat> "<command>"
+    thing-concerns.py [--root <dir>] revalidate --category <cat> \\
+        --cited <concern.id> --original "<cmd>" --revised "<cmd>"
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from pathlib import Path
+
+_HERE = Path(__file__).resolve().parent
+_CATALOG = _HERE.parent / "knowledge" / "concerns-catalog.md"
+
+# Severity ordering for max-severity + routing.
+_SEV_RANK = {"low": 0, "medium": 1, "high": 2, "critical": 3}
+_RANK_SEV = {v: k for k, v in _SEV_RANK.items()}
+
+# §B.4.4 routing by the highest severity among matched concerns.
+_SEATS_CRITICAL = ["forseti", "heimdall"]
+_SEATS_HIGH = ["forseti", "mimir", "heimdall"]
+_SEATS_DEFAULT = ["mimir"]
+
+
+def _load_catalog() -> dict:
+    """Parse the ```yaml block out of concerns-catalog.md. Raises on failure."""
+    text = _CATALOG.read_text(encoding="utf-8")
+    m = re.search(r"```yaml\n(.*?)```", text, re.S)
+    if not m:
+        raise ValueError("no ```yaml block in concerns-catalog.md")
+    try:
+        import yaml  # type: ignore
+    except ImportError:
+        raise ValueError("pyyaml not available to parse the concern catalog")
+    data = yaml.safe_load(m.group(1))
+    if not isinstance(data, dict):
+        raise ValueError("concern catalog did not parse to a mapping")
+    return data
+
+
+def _concerns_for(catalog: dict, category: str | None) -> list[dict]:
+    """Cross-cutting concerns + the category's own concerns (cross-cutting first)."""
+    out: list[dict] = list(catalog.get("cross_cutting") or [])
+    cat_map = catalog.get("categories") or {}
+    if category and isinstance(cat_map.get(category), list):
+        out += cat_map[category]
+    return out
+
+
+def _matches(concern: dict, command: str) -> bool:
+    """True if any of the concern's trigger regexes matches the command."""
+    triggers = concern.get("triggers") or {}
+    for rx in triggers.get("regex", []) or []:
+        try:
+            if re.search(rx, command, re.IGNORECASE):
+                return True
+        except re.error:
+            # A malformed catalog regex must not crash the gate — skip it.
+            # (CI compiles every regex, so this only guards a live edge.)
+            continue
+    return False
+
+
+def _has_triggers(concern: dict) -> bool:
+    return bool((concern.get("triggers") or {}).get("regex"))
+
+
+def evaluate(catalog: dict, command: str, category: str | None) -> dict:
+    """Return matched concerns + max severity + routing for one command."""
+    matched = [c for c in _concerns_for(catalog, category) if _matches(c, command)]
+    matched_ids = [c["id"] for c in matched]
+
+    pre_deny = [c for c in matched if c.get("pre_llm_deny")]
+    max_rank = max((_SEV_RANK.get(c.get("severity", "low"), 0) for c in matched), default=-1)
+    max_sev = _RANK_SEV.get(max_rank) if max_rank >= 0 else None
+
+    if pre_deny:
+        convened: list[str] = []  # denied before any seat is convened
+    elif max_rank == _SEV_RANK["critical"]:
+        convened = list(_SEATS_CRITICAL)
+    elif max_rank == _SEV_RANK["high"]:
+        convened = list(_SEATS_HIGH)
+    else:
+        convened = list(_SEATS_DEFAULT)
+
+    return {
+        "category": category,
+        "concerns": matched_ids,
+        "max_severity": max_sev,
+        "pre_llm_deny": bool(pre_deny),
+        "deny_concern": pre_deny[0]["id"] if pre_deny else None,
+        "convened_seats": convened,
+    }
+
+
+def revalidate(
+    catalog: dict, category: str | None, cited: str, original: str, revised: str
+) -> dict:
+    """Enforce the EDIT-safety invariant deterministically.
+
+    ok == True iff every concern the *revised* command matches was already
+    matched by the original MINUS the cited concern, AND the cited concern is no
+    longer matched. If the cited concern is not deterministically checkable (no
+    triggers in the catalog), we cannot verify the edit removed it — fail closed.
+    """
+    by_id = {c["id"]: c for c in _concerns_for(catalog, category)}
+    cited_concern = by_id.get(cited)
+
+    if cited_concern is None or not _has_triggers(cited_concern):
+        return {
+            "ok": False,
+            "cited_resolved": False,
+            "new_concerns": [],
+            "reason": f"cited concern '{cited}' is not deterministically verifiable",
+        }
+
+    orig_ids = set(evaluate(catalog, original, category)["concerns"])
+    rev_ids = set(evaluate(catalog, revised, category)["concerns"])
+    allowed = orig_ids - {cited}
+    new_concerns = sorted(rev_ids - allowed)
+    cited_resolved = cited not in rev_ids
+    ok = cited_resolved and not new_concerns
+    return {
+        "ok": ok,
+        "cited_resolved": cited_resolved,
+        "new_concerns": new_concerns,
+        "reason": "" if ok else "edit introduces new concerns or fails to remove the cited one",
+    }
+
+
+def severity(catalog: dict, ids: list[str]) -> dict:
+    """Map cited concern ids to severities; flag whether any is critical.
+
+    Used by the orchestrator's critical-concern veto: a seat that CITES a
+    critical concern means ALLOW is off the table (design §A.4), so any critical
+    citation is a unilateral DENY.
+    """
+    by_id: dict[str, dict] = {}
+    by_id.update({c["id"]: c for c in (catalog.get("cross_cutting") or [])})
+    for lst in (catalog.get("categories") or {}).values():
+        if isinstance(lst, list):
+            by_id.update({c["id"]: c for c in lst})
+    crit = [i for i in ids if by_id.get(i, {}).get("severity") == "critical"]
+    return {"has_critical": bool(crit), "critical_ids": crit}
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--root", default=".", help="project root (unused today; kept for parity)")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    ev = sub.add_parser("evaluate", help="match concerns + route seats for a command")
+    ev.add_argument("--category", default=None)
+    ev.add_argument("command")
+
+    rv = sub.add_parser("revalidate", help="check the EDIT-safety invariant")
+    rv.add_argument("--category", default=None)
+    rv.add_argument("--cited", required=True)
+    rv.add_argument("--original", required=True)
+    rv.add_argument("--revised", required=True)
+
+    sv = sub.add_parser("severity", help="report whether any cited id is critical")
+    sv.add_argument("--ids", required=True, help="comma-separated concern ids")
+
+    args = ap.parse_args()
+
+    try:
+        catalog = _load_catalog()
+    except Exception as exc:
+        json.dump({"error": f"catalog load failed: {exc}"}, sys.stdout)
+        sys.stdout.write("\n")
+        return 0
+
+    if args.cmd == "evaluate":
+        result = evaluate(catalog, args.command, args.category)
+    elif args.cmd == "severity":
+        ids = [i.strip() for i in args.ids.split(",") if i.strip()]
+        result = severity(catalog, ids)
+    else:
+        result = revalidate(catalog, args.category, args.cited, args.original, args.revised)
+
+    json.dump(result, sys.stdout)
+    sys.stdout.write("\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

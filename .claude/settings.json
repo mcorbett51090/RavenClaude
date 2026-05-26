@@ -163,8 +163,8 @@
           {
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/thing-orchestrator.sh",
-            "timeout": 30,
-            "comment": "Marketplace-dev hook. Command review (the Thing) — T2 single-seat tribunal. No-ops (fast grep) unless a category has `thing: on` in .ravenclaude/comfort-posture.yaml. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because the script is idempotent and short-circuits when no toggle is set."
+            "timeout": 90,
+            "comment": "Marketplace-dev hook. Command review (the Thing) — T3 panel tribunal. No-ops (fast grep) unless a category has `thing: on` in .ravenclaude/comfort-posture.yaml. The internal panel deadline (~75s) stays under this 90s hook timeout. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because the script is idempotent and short-circuits when no toggle is set."
           }
         ]
       },
