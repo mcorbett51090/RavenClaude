@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for applied-statistics. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-statistical-smells.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags 4 mechanically-detectable statistical smells in analysis files (.py/.ipynb/.R/.Rmd/.qmd/.md/.sql) — (1) a p-value with no effect size/CI, (2) 3+ tests with no multiple-comparison correction, (3) a parametric test with no assumption check, (4) correlation language paired with causal verbs. Set APPLIED_STATS_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "data-platform",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Data-platform team — 4 specialist agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) for cloud-database setup (Supabase / Fabric / RDS / Neon), ELT pipelines (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4 / Shopify / HRIS, and interactive dashboards (Evidence.dev / Superset / Metabase / Cube + Tremor) embedded in marketing sites and client apps. 11 skills — three (jwt-embed-issuance, rls-policy-authoring, embed-csp-and-iframe-sandboxing) invoked by ravenclaude-core/security-reviewer; one (stack-selection) by its architect. 12 templates (security-critical + conceptual + stubs + dbt-project-starter + cube-schema-starter), 1 advisory hook, and a 13-doc knowledge bank. Opinionated against per-viewer-priced BI tools (Looker / Tableau / Sigma) for SMB-consulting use cases.",
   "author": {
     "name": "Matt Corbett"

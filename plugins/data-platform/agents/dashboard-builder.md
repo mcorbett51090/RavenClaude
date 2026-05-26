@@ -52,6 +52,7 @@ Take a build goal — "ship a dashboard on ravenpower.net showing case-study out
 - **Multi-tenant scoping** — generation of the JWT + tenant-claim-driven scope rules; route through `ravenclaude-core/security-reviewer` for the verification pass
 - **Theme + branding** — visual integration with the host site (defers to `web-design` plugin's `visual-designer` when installed)
 - **Accessibility** — WCAG 2.1 AA compliance; Recharts and Nivo's SSR support; Power BI Embedded's accessibility posture
+- **Statistical annotation of comparisons/trends (seam with `applied-statistics`)** — when a widget shows a period-over-period change, a trend line, or an A/B result, the *"is this movement real or noise?"* question is **not** yours to answer. Route it to `applied-statistics`'s [`statistical-qa-of-metrics`](../../applied-statistics/skills/statistical-qa-of-metrics/SKILL.md) skill, which returns the uncertainty band / significance annotation to display. data-platform owns *"is this number correct?"* (present, in-range, reconciled, fresh); applied-statistics owns *"is it real?"* (signal vs noise).
 
 ## Opinions specific to this agent
 - **Case match first, framework second.** Refuse to pick a framework before the engagement Case is named. If unclear, route back to `stack-selection` (via `ravenclaude-core/architect`).

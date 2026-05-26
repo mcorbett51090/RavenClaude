@@ -133,7 +133,7 @@
       "name": "data-platform",
       "source": "./plugins/data-platform",
       "description": "Data-platform team — 4 specialist agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) that guide cloud-database setup, ELT pipelines (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4 / Shopify / HRIS, and interactive dashboards (Evidence.dev / Superset / Metabase / Cube + Tremor) embedded in marketing sites and client apps. 11 skills — three invoked by ravenclaude-core/security-reviewer, one by its architect — implementing the house rule 'domain plugins extend core via skills, not parallel agents'. 12 templates, 1 advisory hook, and a 13-doc knowledge bank (landscape, RLS, QuickBooks, Power BI Embedded, plus per-connector deep-dives). Opinionated against per-viewer-priced BI tools (Looker / Tableau / Sigma) for SMB consulting; requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.3",
+      "version": "0.3.4",
       "author": {
         "name": "Matt Corbett"
       },
@@ -152,6 +152,30 @@
         "rls",
         "multi-tenant",
         "quickbooks"
+      ]
+    },
+    {
+      "name": "applied-statistics",
+      "source": "./plugins/applied-statistics",
+      "description": "Applied-statistics team — 1 specialist agent (applied-statistician) that answers 'is this difference/trend statistically REAL?' for SMB consulting: which test to use (decision-tree-driven), A/B-test and experiment design (power/MDE, primary + guardrail metrics, pre-registered analysis plans), regression and time-series forecasting review, a causal-inference primer, and statistical QA of dashboard metrics. 5 skills, a 5-doc knowledge bank (a Mermaid test-selection decision tree, a 9-item pitfalls guardrail, experiment-design best practice, 2026 tooling tiers, a causal-inference primer), 4 templates, and 1 advisory anti-pattern hook. Python-first (scipy.stats / statsmodels / pingouin Tier 1; PyMC / bambi / linearmodels Tier 2). Seams cleanly with data-platform: data-platform answers 'is this number correct?'; this plugin answers 'is it real?'. Method-before-library; always report effect size + CI. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "applied-statistics",
+        "hypothesis-testing",
+        "ab-testing",
+        "experiment-design",
+        "power-analysis",
+        "regression",
+        "forecasting",
+        "causal-inference",
+        "statistical-qa",
+        "p-hacking",
+        "scipy",
+        "statsmodels",
+        "pingouin"
       ]
     }
   ]
