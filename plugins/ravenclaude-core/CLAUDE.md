@@ -325,9 +325,9 @@ This closes the failure mode where a user relaxes permissions to move faster and
 `ravenclaude-core` uses the standard component directories:
 
 - `agents/` — 14 specialist agent definitions (now includes `data-engineer`)
-- `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging, agent-quality-rubric, knowledge-file-staleness-sweep, prompt-pattern-library, plugin-release-checklist
-- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator (all registered in `hooks/hooks.json` for plugin-level distribution)
-- `scripts/` — apply-comfort-posture.py (`/set-posture` translator), thing-decision.py + thing-seat.sh (command-review tribunal — see the `thing` skill)
+- `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging, agent-quality-rubric, knowledge-file-staleness-sweep, prompt-pattern-library, plugin-release-checklist, decision-review (route yes/no decisions through the tribunal)
+- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture (all registered in `hooks/hooks.json` for plugin-level distribution)
+- `scripts/` — apply-comfort-posture.py (`/set-posture` translator), thing-decision.py + thing-seat.sh (command-review tribunal — see the `thing` skill), thing-decide.py (decision-review tribunal — see the `decision-review` skill)
 - `rules/` — coding-standards, security, git-workflow, agent-collaboration
 - `templates/` — memos, runbooks, design specs, RAID logs, partner-success, `agent-ready-repo/` templates used by `/init-agent-ready`, plus `thing.yaml` (command-review seat config)
 - `commands/` — `/init-agent-ready` slash command shipped to consumers

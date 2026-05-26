@@ -89,6 +89,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/reapply-posture.sh",
+            "comment": "Marketplace-dev hook. Regenerates the comfort-posture project-layer rules from .ravenclaude/comfort-posture.yaml at session start. No-ops in this repo because it has no .ravenclaude/comfort-posture.yaml. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because the script is idempotent and no-ops when the posture file is absent."
+          },
+          {
+            "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/ensure-default-mode.sh",
             "comment": "Marketplace-dev hook. Warns when a session loads in acceptEdits/bypassPermissions mode, which bypasses the comfort-posture rules. The plugin's hooks/hooks.json registers the same hook for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because the script is advisory and idempotent."
           }

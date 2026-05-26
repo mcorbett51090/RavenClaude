@@ -190,46 +190,49 @@ fi
 
 echo
 echo "── Gate 10: Actionlint (parse + lint) ────────────────────────────────────"
-# A bare `command -v docker` is NOT a sufficient guard. Docker can be installed
-# while the daemon is down or the image is unpullable (offline / egress-restricted),
-# in which case actionlint never actually runs — `out` comes back empty and the
-# audit reports a FALSE verdict (a must_fail that "passed", a must_pass that "failed").
-# So probe real usability — image present locally OR pullable — before asserting.
-# Every probe is timeout-bounded (a wedged daemon can hang) and lives inside an `if`
-# so a nonzero probe can't trip `set -e` and abort the remaining gates. The
-# fixture-mutating block runs ONLY when docker is usable.
-ACTIONLINT_IMG="rhysd/actionlint:1.7.7"
-docker_usable=0
-if command -v docker >/dev/null 2>&1; then
-  if timeout 20 docker image inspect "$ACTIONLINT_IMG" >/dev/null 2>&1 \
-    || timeout 120 docker pull --quiet "$ACTIONLINT_IMG" >/dev/null 2>&1; then
-    docker_usable=1
+# Pinned-binary actionlint (rhysd/actionlint v1.7.7), sha256-verified — NO Docker
+# Hub dependency (eliminates the image-pull rate-limit flakiness that broke
+# validate-marketplace on PR #93). Mirrors the real CI step. The binary exits
+# non-zero on findings (1) and 0 only when clean, so we gate on exit code. Obtain
+# it from PATH, a cached /tmp/actionlint, or a checksum-pinned download; if none is
+# reachable (offline) it LOUD-skips locally and hard-fails in CI — a skip is never
+# a pass. actionlint requires a git project, which audit-gates already runs inside.
+AL_VER=1.7.7
+AL_SHA=023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757
+al_bin=""
+if command -v actionlint >/dev/null 2>&1; then
+  al_bin="$(command -v actionlint)"
+elif [[ -x /tmp/actionlint ]]; then
+  al_bin=/tmp/actionlint
+else
+  al_tgz="$TMP/actionlint.tgz"
+  if curl -fsSL "https://github.com/rhysd/actionlint/releases/download/v${AL_VER}/actionlint_${AL_VER}_linux_amd64.tar.gz" -o "$al_tgz" 2>/dev/null \
+    && printf '%s  %s\n' "$AL_SHA" "$al_tgz" | sha256sum -c - >/dev/null 2>&1 \
+    && tar -xzf "$al_tgz" -C "$TMP" actionlint 2>/dev/null; then
+    chmod +x "$TMP/actionlint"
+    al_bin="$TMP/actionlint"
   fi
 fi
-if [[ "$docker_usable" -eq 1 ]]; then
+if [[ -n "$al_bin" ]]; then
   backup .github/workflows/validate-layout.yml
   sed -i '5a\    BROKEN: **bad' .github/workflows/validate-layout.yml
-  out=$(timeout 120 docker run --rm -v "$PWD:/repo" -w /repo "$ACTIONLINT_IMG" -color 2>/dev/null || true)
-  # CI gate exits 1 when out is non-empty; translate that into rc for audit:
-  rc=0; [[ -n "$out" ]] && rc=1
+  rc=0; "$al_bin" -color >/dev/null 2>&1 || rc=$?
   gate "actionlint (injected YAML parse error)" must_fail "$rc"
   cp -p "$TMP/.github_workflows_validate-layout.yml.bak" .github/workflows/validate-layout.yml
-  out=$(timeout 120 docker run --rm -v "$PWD:/repo" -w /repo "$ACTIONLINT_IMG" -color 2>/dev/null || true)
-  rc=0; [[ -n "$out" ]] && rc=1
+  rc=0; "$al_bin" -color >/dev/null 2>&1 || rc=$?
   gate "actionlint (clean tree)" must_pass "$rc"
 elif [[ -n "${CI:-}" ]]; then
-  # In CI the real actionlint step (validate-marketplace.yml) already hard-fails on
-  # docker problems. If the meta-test silently skipped here, the real gate could be
-  # down AND the audit blind to it simultaneously. So: unrunnable-in-CI is a hard
-  # audit FAILURE, never a skip.
-  printf '  ✗ %-40s %s\n' "actionlint" "UNRUNNABLE in CI — docker present but daemon/image unusable ($ACTIONLINT_IMG)"
+  # In CI the real actionlint step (validate-marketplace.yml) already hard-fails if
+  # the binary can't be obtained. If the meta-test silently skipped here, the real
+  # gate could be down AND the audit blind to it simultaneously. So: unrunnable-in-CI
+  # is a hard audit FAILURE, never a skip.
+  printf '  ✗ %-40s %s\n' "actionlint" "UNRUNNABLE in CI — could not obtain pinned actionlint binary v$AL_VER"
   FAIL=$((FAIL + 1))
   FAILED_GATES+=("actionlint [unrunnable-in-CI]")
 else
-  # Local dev without usable docker: skip, but LOUDLY — a skipped gate is not a pass.
-  echo "  ‼ actionlint gate SKIPPED — docker unusable (daemon down or image $ACTIONLINT_IMG unavailable)."
-  echo "    THIS IS NOT A PASS. Re-run where docker can obtain the image (CI, or a networked"
-  echo "    host) before claiming the gate set is fully audited."
+  # Local dev offline: skip, but LOUDLY — a skipped gate is not a pass.
+  echo "  ‼ actionlint gate SKIPPED — no actionlint binary and download unavailable (offline)."
+  echo "    THIS IS NOT A PASS. Re-run with network access (CI, or a networked host)."
 fi
 
 echo
@@ -492,6 +495,42 @@ BADCAT="$TMP/bad-catalog.md"
 printf '```yaml\ncross_cutting:\n  - id: x.bad\n    triggers:\n      regex:\n        - "(unclosed"\n```\n' > "$BADCAT"
 rc=0; catalog_regex_check "$BADCAT" >/dev/null 2>&1 || rc=$?
 gate "catalog-regex-compile (malformed regex)" must_fail "$rc"
+
+echo
+echo "── Gate 17: decision-review tribunal (thing-decide.py) ───────────────────"
+# Proves the decision panel discriminates yes/no/defer, binding mode auto-resolves
+# a confident yes, high-blast decisions never auto-resolve (defer), a split convenes
+# Thor, and abstention/injection fail safe to defer. CI-safe — every case uses the
+# THING_DECIDE_MOCK_VERDICT hook, so NO live `claude` call is made.
+DECIDE17=plugins/ravenclaude-core/scripts/thing-decide.py
+G17B="$TMP/decide-binding"; G17O="$TMP/decide-off"
+mkdir -p "$G17B/.ravenclaude" "$G17O/.ravenclaude"
+printf 'schema_version: 5\ndecision_review: binding\n' > "$G17B/.ravenclaude/comfort-posture.yaml"
+printf 'schema_version: 5\n' > "$G17O/.ravenclaude/comfort-posture.yaml"
+decide_field() { # $1=mock $2=root $3=high_blast $4=field -> prints field value
+  printf '{"question":"q?","context":"x","high_blast":%s}' "$3" \
+    | THING_DECIDE_MOCK_VERDICT="$1" python3 "$DECIDE17" --root "$2" decide 2>/dev/null \
+    | jq -r ".$4 // empty"
+}
+# off mode (default) -> defer: nothing is auto-decided unless opted in
+rc=0; [[ "$(decide_field yes "$G17O" false verdict)" == "defer" ]] || rc=1
+gate "decide: off mode -> defer" must_pass "$rc"
+# binding + confident yes -> yes, binding=true
+rc=0; { [[ "$(decide_field yes "$G17B" false verdict)" == "yes" ]] \
+        && [[ "$(decide_field yes "$G17B" false binding)" == "true" ]]; } || rc=1
+gate "decide: binding yes -> yes (binding)" must_pass "$rc"
+# high-blast never auto-resolves -> defer even on a confident yes
+rc=0; [[ "$(decide_field yes "$G17B" true verdict)" == "defer" ]] || rc=1
+gate "decide: high-blast -> defer (never auto-resolve)" must_pass "$rc"
+# split panel convenes Thor and reaches a defined verdict (no)
+rc=0; [[ "$(decide_field split "$G17B" false verdict)" == "no" ]] || rc=1
+gate "decide: split -> Thor -> no" must_pass "$rc"
+# >=2 seats abstain -> defer (fail safe)
+rc=0; [[ "$(decide_field abstain "$G17B" false verdict)" == "defer" ]] || rc=1
+gate "decide: abstain -> defer (fail safe)" must_pass "$rc"
+# injection in the decision context -> defer
+rc=0; [[ "$(decide_field inject "$G17B" false verdict)" == "defer" ]] || rc=1
+gate "decide: injection -> defer" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
