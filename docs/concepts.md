@@ -299,3 +299,125 @@ _Last verified: 2026-05-26_
 
 
 ---
+
+### Environment context & discovery · _RavenClaude-built_
+
+> An optional file maps which environments your creds reach and what's pre-authorized — so the agent acts without asking where allowed, and stops on forbidden actions.
+
+`.ravenclaude/environment-context.md` (at the **consumer's** project root, optional) records each environment (DEV / TEST / PROD / named), its role, its **pre-authorized action categories**, and a **forbidden** list. The Capability Grounding Protocol does a **pre-action check** against it: if the current environment pre-authorizes the action category, the agent **executes without asking** (no "did you try X?" round-trip); if the action is forbidden, it **stops** for explicit confirmation regardless of role; if the file is silent, it falls through to alternate-methods enumeration.
+
+When the file is absent, the agent offers the **environment-discovery** skill instead of asking you to fill in a template by hand — it probes installed CLIs read-only, decodes any acquired JWTs, and drafts the file for you to save/edit/skip. Discovery never runs without confirmation, is read-only by contract, and **never writes credentials** (those live in env vars / Key Vault; the file holds posture, not secrets).
+
+```mermaid
+flowchart TD
+  ACT[Agent about to act] --> F{environment-context.md present?}
+  F -- no --> ALT[Fall through to alternate-methods]
+  F -- yes --> CAT{Action pre-authorized<br/>for current env?}
+  CAT -- yes --> RUN[Execute · no prompt]
+  CAT -- forbidden --> STOP[Stop · require confirmation]
+  CAT -- "not listed" --> ALT
+  class ACT,F,CAT fact
+  class ALT,RUN,STOP built
+```
+
+**See also:** Capability-orientation banner · Decision trees in knowledge files
+
+**Sources:** [ravenclaude-core constitution](plugins/ravenclaude-core/CLAUDE.md) · [environment-context template](plugins/ravenclaude-core/templates/environment-context.md)
+
+_Last verified: 2026-05-26_
+
+
+---
+
+### Decision trees in knowledge files · _RavenClaude-built_
+
+> Knowledge files carry Mermaid decision trees the agent traverses BEFORE picking a method — preventing wrong-branch-from-the-start, with a mandatory staleness date.
+
+When a knowledge file contains a `## Decision Tree: <Domain>` section, the agent must **traverse the Mermaid graph top-to-bottom before selecting a method** — resolving each condition node against the user's actual context (not keyword-matching the request), defaulting to the **leaf with the smaller blast radius**, and escalating to a higher-blast leaf only after the smaller one demonstrably fails.
+
+This closes the **wrong-branch-from-the-start** failure mode (the agent picks the wrong method on the first try because the branches weren't visible). It composes with alternate-methods enumeration (which handles "method failed, try the next") and the environment-context check (which handles "I'm already authorized"). Every diagram-bearing knowledge file carries a mandatory **`last-verified` date**, and the Researcher's sweep flags any tree older than 90 days — the same discipline these Learn concepts follow.
+
+```mermaid
+flowchart TD
+  SIT[Situation matches a tree's entry] --> TRAV[Traverse the graph top-to-bottom]
+  TRAV --> RES[Resolve each node against real context]
+  RES --> LEAF[Default to the smaller-blast leaf]
+  LEAF --> TRY[Try it]
+  TRY -- works --> DONE[Done]
+  TRY -- fails --> ESC[Escalate to higher-blast leaf]
+  class SIT,TRAV,RES,LEAF,TRY,ESC,DONE built
+```
+
+**See also:** Environment context & discovery
+
+**Sources:** [Decision trees in knowledge files](docs/best-practices/decision-trees-in-knowledge-files.md) · [ravenclaude-core constitution](plugins/ravenclaude-core/CLAUDE.md)
+
+_Last verified: 2026-05-26_
+
+
+---
+
+
+## Marketplace engineering
+
+### Layout enforcement · _RavenClaude-built_
+
+> A PreToolUse hook plus a CI backstop block off-pattern file creation against .repo-layout.json — because path-scoped rule files load on Read, not Write.
+
+`hooks/enforce-layout.sh` runs `PreToolUse` on `Write|Edit|MultiEdit`: it reads `.repo-layout.json`, matches the target path against `allowed_globs`, and **denies an off-pattern write with a suggested correct location**. If the manifest is absent it silently allows everything — so consumers who install the plugin without a layout manifest aren't surprised.
+
+Why a hook **and** CI: Claude Code issue #23478 confirms that path-scoped rule files (`paths:` frontmatter) load only on **Read**, not on **Write** — they cannot prevent off-pattern file *creation*. So the in-loop hook gives fast feedback during a session (Claude only), and `.github/workflows/validate-layout.yml` is the **cross-tool backstop** that catches direct human commits, Cursor/Codex/Aider edits, and any case where the hook didn't fire.
+
+```mermaid
+flowchart TD
+  W[Write / Edit / MultiEdit] --> H[enforce-layout.sh · PreToolUse]
+  H --> M{path matches an<br/>allowed_glob?}
+  M -- yes --> OK[allow]
+  M -- no --> DENY[deny + suggest correct path]
+  PR[Any commit · any tool] --> CI[validate-layout.yml]
+  CI --> CIM{matches allow-list?}
+  CIM -- no --> FAIL[CI fails]
+  CIM -- yes --> PASS[CI passes]
+  class W,H,M,PR fact
+  class OK,DENY,CI,CIM,FAIL,PASS built
+```
+
+**See also:** The gate-audit meta-test · Hooks: verdicts & exit codes
+
+**Sources:** [AGENTS.md — Layout & boundary rules](AGENTS.md) · [Claude Code issue #23478](https://github.com/anthropics/claude-code/issues/23478)
+
+_Last verified: 2026-05-26_
+
+
+---
+
+### The gate-audit meta-test · _RavenClaude-built_
+
+> Every CI gate is itself tested: audit-gates.sh proves each gate FAILS on a known-bad fixture and PASSES on a known-good one — so a gate can't silently rot into a no-op.
+
+A CI gate that never fails is worse than no gate — it gives false confidence. So RavenClaude runs a **meta-test**: `scripts/audit-gates.sh` proves, for each gate, that it **fails on a known-bad fixture AND passes on a known-good one**. If a gate can't be made to fail on input it's supposed to reject, the gate is broken and the audit says so.
+
+This is required reading before adding or changing any CI step — a new gate ships with its fail/pass fixtures, not just its happy path. And **a skip is not a pass**: when a gate can't run locally (e.g. the actionlint gate needs a Docker daemon), it **loudly** skips ("THIS IS NOT A PASS"), and in CI an unrunnable gate is a hard failure, never a silent skip.
+
+```mermaid
+flowchart TD
+  G[For each CI gate] --> BAD[Run it on a known-BAD fixture]
+  BAD --> FB{does it FAIL?}
+  FB -- no --> BROKEN[Gate is broken · audit fails]
+  FB -- yes --> GOOD[Run it on a known-GOOD fixture]
+  GOOD --> FG{does it PASS?}
+  FG -- no --> BROKEN
+  FG -- yes --> TRUST[Gate trusted]
+  class G,BAD,FB,GOOD,FG built
+  class BROKEN built
+  class TRUST built
+```
+
+**See also:** Layout enforcement
+
+**Sources:** [CI gate audit](docs/best-practices/ci-gate-audit.md) · [AGENTS.md — Testing instructions](AGENTS.md)
+
+_Last verified: 2026-05-26_
+
+
+---

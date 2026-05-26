@@ -12,6 +12,10 @@
     {
       "name": "Orientation & capability",
       "order": 40
+    },
+    {
+      "name": "Marketplace engineering",
+      "order": 50
     }
   ],
   "concepts": [
@@ -294,6 +298,128 @@
       "diagram_mini": "flowchart LR\n  S[SessionStart] --> B[surface + auth + perms]\n  B --> A[agent oriented<br/>· not enforcement]\n  class B,A built",
       "svg": "knowledge/concepts/visuals/capability-banner.svg",
       "svg_mini": "knowledge/concepts/visuals/capability-banner.mini.svg"
+    },
+    {
+      "id": "environment-context",
+      "title": "Environment context & discovery",
+      "category": "Orientation & capability",
+      "kind": "ravenclaude-built",
+      "order": 42,
+      "summary": "An optional file maps which environments your creds reach and what's pre-authorized — so the agent acts without asking where allowed, and stops on forbidden actions.",
+      "see_also": [
+        "capability-banner",
+        "decision-trees"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "The environment-context pre-action check or the discovery skill's contract changes.",
+      "sources": [
+        {
+          "label": "ravenclaude-core constitution",
+          "url": "plugins/ravenclaude-core/CLAUDE.md"
+        },
+        {
+          "label": "environment-context template",
+          "url": "plugins/ravenclaude-core/templates/environment-context.md"
+        }
+      ],
+      "body_md": "`.ravenclaude/environment-context.md` (at the **consumer's** project root, optional) records each environment (DEV / TEST / PROD / named), its role, its **pre-authorized action categories**, and a **forbidden** list. The Capability Grounding Protocol does a **pre-action check** against it: if the current environment pre-authorizes the action category, the agent **executes without asking** (no \"did you try X?\" round-trip); if the action is forbidden, it **stops** for explicit confirmation regardless of role; if the file is silent, it falls through to alternate-methods enumeration.\n\nWhen the file is absent, the agent offers the **environment-discovery** skill instead of asking you to fill in a template by hand — it probes installed CLIs read-only, decodes any acquired JWTs, and drafts the file for you to save/edit/skip. Discovery never runs without confirmation, is read-only by contract, and **never writes credentials** (those live in env vars / Key Vault; the file holds posture, not secrets).",
+      "diagram": "flowchart TD\n  ACT[Agent about to act] --> F{environment-context.md present?}\n  F -- no --> ALT[Fall through to alternate-methods]\n  F -- yes --> CAT{Action pre-authorized<br/>for current env?}\n  CAT -- yes --> RUN[Execute · no prompt]\n  CAT -- forbidden --> STOP[Stop · require confirmation]\n  CAT -- \"not listed\" --> ALT\n  class ACT,F,CAT fact\n  class ALT,RUN,STOP built",
+      "diagram_mini": "flowchart LR\n  A[Action] --> C{pre-authorized<br/>here?}\n  C -- yes --> R[run]\n  C -- forbidden --> S[stop]\n  class R,S built",
+      "svg": "knowledge/concepts/visuals/environment-context.svg",
+      "svg_mini": "knowledge/concepts/visuals/environment-context.mini.svg"
+    },
+    {
+      "id": "decision-trees",
+      "title": "Decision trees in knowledge files",
+      "category": "Orientation & capability",
+      "kind": "ravenclaude-built",
+      "order": 44,
+      "summary": "Knowledge files carry Mermaid decision trees the agent traverses BEFORE picking a method — preventing wrong-branch-from-the-start, with a mandatory staleness date.",
+      "see_also": [
+        "environment-context"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "The decision-tree convention or its last-verified staleness discipline changes.",
+      "sources": [
+        {
+          "label": "Decision trees in knowledge files",
+          "url": "docs/best-practices/decision-trees-in-knowledge-files.md"
+        },
+        {
+          "label": "ravenclaude-core constitution",
+          "url": "plugins/ravenclaude-core/CLAUDE.md"
+        }
+      ],
+      "body_md": "When a knowledge file contains a `## Decision Tree: <Domain>` section, the agent must **traverse the Mermaid graph top-to-bottom before selecting a method** — resolving each condition node against the user's actual context (not keyword-matching the request), defaulting to the **leaf with the smaller blast radius**, and escalating to a higher-blast leaf only after the smaller one demonstrably fails.\n\nThis closes the **wrong-branch-from-the-start** failure mode (the agent picks the wrong method on the first try because the branches weren't visible). It composes with alternate-methods enumeration (which handles \"method failed, try the next\") and the environment-context check (which handles \"I'm already authorized\"). Every diagram-bearing knowledge file carries a mandatory **`last-verified` date**, and the Researcher's sweep flags any tree older than 90 days — the same discipline these Learn concepts follow.",
+      "diagram": "flowchart TD\n  SIT[Situation matches a tree's entry] --> TRAV[Traverse the graph top-to-bottom]\n  TRAV --> RES[Resolve each node against real context]\n  RES --> LEAF[Default to the smaller-blast leaf]\n  LEAF --> TRY[Try it]\n  TRY -- works --> DONE[Done]\n  TRY -- fails --> ESC[Escalate to higher-blast leaf]\n  class SIT,TRAV,RES,LEAF,TRY,ESC,DONE built",
+      "diagram_mini": "flowchart LR\n  S[Situation] --> T[traverse tree]\n  T --> L[smaller-blast leaf first]\n  class T,L built",
+      "svg": "knowledge/concepts/visuals/decision-trees.svg",
+      "svg_mini": "knowledge/concepts/visuals/decision-trees.mini.svg"
+    },
+    {
+      "id": "layout-hook",
+      "title": "Layout enforcement",
+      "category": "Marketplace engineering",
+      "kind": "ravenclaude-built",
+      "order": 50,
+      "summary": "A PreToolUse hook plus a CI backstop block off-pattern file creation against .repo-layout.json — because path-scoped rule files load on Read, not Write.",
+      "see_also": [
+        "audit-gates",
+        "hook-lifecycle"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "The enforce-layout hook, .repo-layout.json schema, or the validate-layout CI workflow changes.",
+      "sources": [
+        {
+          "label": "AGENTS.md — Layout & boundary rules",
+          "url": "AGENTS.md"
+        },
+        {
+          "label": "Claude Code issue #23478",
+          "url": "https://github.com/anthropics/claude-code/issues/23478"
+        }
+      ],
+      "body_md": "`hooks/enforce-layout.sh` runs `PreToolUse` on `Write|Edit|MultiEdit`: it reads `.repo-layout.json`, matches the target path against `allowed_globs`, and **denies an off-pattern write with a suggested correct location**. If the manifest is absent it silently allows everything — so consumers who install the plugin without a layout manifest aren't surprised.\n\nWhy a hook **and** CI: Claude Code issue #23478 confirms that path-scoped rule files (`paths:` frontmatter) load only on **Read**, not on **Write** — they cannot prevent off-pattern file *creation*. So the in-loop hook gives fast feedback during a session (Claude only), and `.github/workflows/validate-layout.yml` is the **cross-tool backstop** that catches direct human commits, Cursor/Codex/Aider edits, and any case where the hook didn't fire.",
+      "diagram": "flowchart TD\n  W[Write / Edit / MultiEdit] --> H[enforce-layout.sh · PreToolUse]\n  H --> M{path matches an<br/>allowed_glob?}\n  M -- yes --> OK[allow]\n  M -- no --> DENY[deny + suggest correct path]\n  PR[Any commit · any tool] --> CI[validate-layout.yml]\n  CI --> CIM{matches allow-list?}\n  CIM -- no --> FAIL[CI fails]\n  CIM -- yes --> PASS[CI passes]\n  class W,H,M,PR fact\n  class OK,DENY,CI,CIM,FAIL,PASS built",
+      "diagram_mini": "flowchart LR\n  W[Write] --> H{matches<br/>allow-list?}\n  H -- no --> D[deny + CI backstop]\n  H -- yes --> A[allow]\n  class D,A built",
+      "svg": "knowledge/concepts/visuals/layout-hook.svg",
+      "svg_mini": "knowledge/concepts/visuals/layout-hook.mini.svg"
+    },
+    {
+      "id": "audit-gates",
+      "title": "The gate-audit meta-test",
+      "category": "Marketplace engineering",
+      "kind": "ravenclaude-built",
+      "order": 52,
+      "summary": "Every CI gate is itself tested: audit-gates.sh proves each gate FAILS on a known-bad fixture and PASSES on a known-good one — so a gate can't silently rot into a no-op.",
+      "see_also": [
+        "layout-hook"
+      ],
+      "widget": null,
+      "try_it": null,
+      "last_verified": "2026-05-26",
+      "refresh_when": "The gate-audit approach or its skip-is-not-a-pass policy changes.",
+      "sources": [
+        {
+          "label": "CI gate audit",
+          "url": "docs/best-practices/ci-gate-audit.md"
+        },
+        {
+          "label": "AGENTS.md — Testing instructions",
+          "url": "AGENTS.md"
+        }
+      ],
+      "body_md": "A CI gate that never fails is worse than no gate — it gives false confidence. So RavenClaude runs a **meta-test**: `scripts/audit-gates.sh` proves, for each gate, that it **fails on a known-bad fixture AND passes on a known-good one**. If a gate can't be made to fail on input it's supposed to reject, the gate is broken and the audit says so.\n\nThis is required reading before adding or changing any CI step — a new gate ships with its fail/pass fixtures, not just its happy path. And **a skip is not a pass**: when a gate can't run locally (e.g. the actionlint gate needs a Docker daemon), it **loudly** skips (\"THIS IS NOT A PASS\"), and in CI an unrunnable gate is a hard failure, never a silent skip.",
+      "diagram": "flowchart TD\n  G[For each CI gate] --> BAD[Run it on a known-BAD fixture]\n  BAD --> FB{does it FAIL?}\n  FB -- no --> BROKEN[Gate is broken · audit fails]\n  FB -- yes --> GOOD[Run it on a known-GOOD fixture]\n  GOOD --> FG{does it PASS?}\n  FG -- no --> BROKEN\n  FG -- yes --> TRUST[Gate trusted]\n  class G,BAD,FB,GOOD,FG built\n  class BROKEN built\n  class TRUST built",
+      "diagram_mini": "flowchart LR\n  B[known-bad] --> F{fails?}\n  F -- yes --> P[known-good passes → trusted]\n  F -- no --> X[gate broken]\n  class P,X built",
+      "svg": "knowledge/concepts/visuals/audit-gates.svg",
+      "svg_mini": "knowledge/concepts/visuals/audit-gates.mini.svg"
     }
   ]
 }
