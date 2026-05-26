@@ -10,7 +10,47 @@ and is always findable regardless of which branch work is happening on.
 
 ---
 
-## 1 — 2026-05-26 · Tribunal T4 — injection & self-protection hardening (v0.26.0, PR #94 merged)
+## 1 — 2026-05-26 · CI-stall diagnosis + new `applied-statistics` plugin (PR #95 open)
+
+**Prompt:** "check why CI didn't run on the PR" → "Afterwards, I want a statistician
+plug-in please research and build out" → (chose) "all of the above" + name
+`applied-statistics` + wire the data-platform seam now.
+
+**Response — two threads.**
+**(A) CI stall — diagnosed, ACTION NEEDED.** GitHub Actions has run **nothing for
+this repo since ~10:00 UTC** today: the T4 merge to main, the session-log push, and
+PR #94/#95 all produced **zero** runs, and GitHub's own `github-pages` + `claude`
+check-suites are stuck `queued`. Ruled out: config (workflows `active`, valid
+triggers, no skip-ci token), billing (repo is **public** = unlimited minutes), and
+PR-specificity (push-to-main also stopped). My integration token can't read Actions
+admin (403). **Two things only Matt can check:** githubstatus.com for an Actions
+incident, and **Settings → Actions → General** (was Actions disabled?). Until it's
+back, T4 (on main) + this PR owe a real CI pass; both verified via **full local gate
+parity** (`audit-gates.sh` = the CI meta-test).
+**(B) Shipped `applied-statistics` v0.1.0 (PR #95, open).** New sibling domain
+plugin (deep-researcher-briefed, cited). The "statistician in the room": answers
+"is this difference/trend **REAL**?" (inference) — the clean complement to
+data-platform's "is this number **correct**?" (integrity). 1 agent
+(`applied-statistician` — method-before-library, always effect-size+CI), 5 skills,
+5 knowledge files (Mermaid test-selection tree, 9-item pitfalls guardrail,
+experiment-design, 2026 tooling tiers, causal-inference primer), 1 advisory hook
+(`flag-statistical-smells.sh`), 4 templates. **Seam wired:**
+`data-platform/dashboard-builder` → invokes `statistical-qa-of-metrics`;
+data-platform bumped **0.3.3 → 0.3.4** (additive). Fact-check discipline applied
+(SMB frequency = heuristic; vendor sequential methods mSPRT/CAA/GAVI retrieval-dated
++ "verify"; Bayesian-peeking nuance hedged). **47/47 gates green**, prettier clean,
+layout clean (20 new files, standard subdirs, no `.repo-layout.json` change),
+repo-guide regenerated.
+
+**Current state / next step:** **PR #95 open, awaiting Matt's review/merge** (not
+auto-merged — brand-new consumer-facing plugin). **CI is the blocker to watch** —
+Matt to check Actions status/settings; re-run CI on T4's main commit + PR #95 once
+Actions recovers. Deferred (Matt's call): demote weak `xc.injection-attempt` shapes
+off `pre_llm_deny`.
+
+---
+
+## 2 — 2026-05-26 · Tribunal T4 — injection & self-protection hardening (v0.26.0, PR #94 merged)
 
 **Prompt:** "cont" → (chose) Tribunal T4/T3.5 → "T4, go" → "Keep" (build the plan) →
 "merge after pr commit".
@@ -30,87 +70,38 @@ a self-disabling command shaped to classify into a toggled-OFF category is still
 denied. **(2)** Hardened `xc.injection-attempt` (6→18 patterns) + canonical
 AlignmentCheck envelope framing. **(3) §B.9.4** egress secret backstop in
 `thing-seat.sh` (deny locally, never transmit) + broadened secret families in the
-seat **and** catalog. **Gate 15** (adversarial fixtures + category-independent
-self-disable + negative control + seat backstop) and **Gate 16** (every catalog
-regex compiles); **47/47 gates green**, prettier clean. Bumped **v0.25.1 →
-v0.26.0**. **`security-reviewer` ran pre-merge** and found 2 real shell-level
-bypasses of the first-cut literal-filename guard (`tee -a` append; `rm -rf <dir>` /
-glob / `$var` path obfuscation) — both fixed via **directory-level matching** +
-the `tee` verb and pinned as Gate 15 fixtures; also bounded the trigger-3
-lookaheads (ReDoS), made `screen_always` fail **closed** on a bad regex. **Build
-finding:** the seat secret-scan `grep` parsed `-`-leading patterns as options,
-silently failed, and fell through to a **live `claude` call** — Gate 15 caught it;
-fixed with `grep -e`.
+seat **and** catalog. **Gate 15** + **Gate 16**; **47/47 gates green**. Bumped
+**v0.25.1 → v0.26.0**. **`security-reviewer` ran pre-merge** and found 2 real
+shell-level bypasses of the first-cut literal-filename guard (`tee -a` append;
+`rm -rf <dir>` / glob / `$var` path obfuscation) — both fixed via **directory-level
+matching** + the `tee` verb and pinned as fixtures; bounded the trigger-3 lookaheads
+(ReDoS), made `screen_always` fail **closed** on a bad regex. **Build finding:** the
+seat secret-scan `grep` parsed `-`-leading patterns as options, silently failed, and
+fell through to a **live `claude` call** — Gate 15 caught it; fixed with `grep -e`.
 
-**Current state / next step:** **PR #94 merged to `main`** (`99a53cf`); local main
-updated; freshness gate green (the `Generated`/`Last updated` lines are
-strip-volatile, so the raw-diff "stale" was a false alarm). CI `pull_request`
-checks did **not** register runs for the PR (anomalous; push-to-main runs work) —
-merged on GitHub's `MERGEABLE/CLEAN/0-checks` + full local gate parity per Matt's
-"merge after pr" instruction. **One reviewer item deferred to Matt's call:**
-`xc.injection-attempt` stays `pre_llm_deny` (design-faithful to §B.9.3) despite FP
-surface — option to demote weak shapes to panel-routed. Tribunal roadmap: **T5**
-(per-pattern bypass + caching) or **T3.5** (review Edit/Write tools, not just Bash)
-next. Track status in auto-memory `project_2026-05-25_tribunal_track`.
+**Current state / next step:** PR #94 merged to `main` (`99a53cf`). CI `pull_request`
+checks did **not** register (the stall in entry 1) — merged on local gate parity per
+"merge after pr". Tribunal roadmap: **T5** (bypass + caching) or **T3.5** (review
+Edit/Write tools) next. Track status in auto-memory `project_2026-05-25_tribunal_track`.
 
 ---
 
-## 2 — 2026-05-25 · Tribunal T2 — ship the single-seat command-review orchestrator
+## 3 — 2026-05-25 · Tribunal T2 — ship the single-seat command-review orchestrator
 
 **Prompt:** "let's implement the command review (the Thing) now" + side
 questions (is the comfort posture applied? why did a command prompt me? design
 check-ins vs command review? `--bare` finding).
 
-**Response:** Built tribunal **T2 end-to-end** on `feat/ravenclaude-core-tribunal-t2`
-(approved scope: substrate **+** live dashboard toggle). New files:
-`hooks/thing-orchestrator.sh` (Lawspeaker — fast-grep short-circuit when no
-toggle, pre-LLM injection/secret screen, single-seat convene, Sága-log write,
-fail-closed verdicts), `scripts/thing-decision.py` (classifies via the EMISSIONS
-table — one source of truth — + reads the per-category `thing:` toggle),
-`scripts/thing-seat.sh` (lone code-reviewer seat via `claude -p`, with a
-`THING_SEAT_MOCK_VERDICT` test hook so CI never calls a live model),
-`skills/thing/SKILL.md`, `templates/thing.yaml`. Dashboard: the `shell_readonly`
-Command-review toggle is now **live** (writes `thing: on`; others stay Preview) —
-generator + JS + regenerated `dashboard.html`. Gate-audit **Gate 14** added.
-Bumped **v0.23.0 → v0.24.0** (+1 skill → 21), regenerated repo-guide,
-**35/35 gates green**, prettier clean. **Real finding:** `claude -p --bare` (per
-the design) fails under subscription/OAuth — needs `ANTHROPIC_API_KEY`; the seat
-defaults to plain `claude -p` from a scratch dir (`--bare` opt-in via
-`THING_SEAT_BARE=1`). Verified the live seat: `ls -la`→allow, injection→deny.
+**Response:** Built tribunal **T2 end-to-end** — `hooks/thing-orchestrator.sh`
+(Lawspeaker), `scripts/thing-decision.py` (classify via the EMISSIONS table + read
+the per-category `thing:` toggle), `scripts/thing-seat.sh` (lone seat via `claude -p`
+with a `THING_SEAT_MOCK_VERDICT` test hook), `skills/thing/SKILL.md`,
+`templates/thing.yaml`. Dashboard `shell_readonly` toggle went live. **Real finding:**
+`claude -p --bare` fails under subscription/OAuth — needs `ANTHROPIC_API_KEY`; the
+seat defaults to plain `claude -p` from a scratch dir (`--bare` opt-in via
+`THING_SEAT_BARE=1`).
 
-**Current state / next step:** PR #90 merged (T2, v0.24.0). Next tribunal phase
-was **T3** (three-seat panel + Thor + EDIT verdicts; design §B.11) — since shipped.
-
----
-
-## 3 — 2026-05-25 · "405 on Save & apply from my phone" → diagnose + ship PR #89
-
-**Prompt:** "cont" → (clarified) "we were fixing a 405 on the save & apply
-button; double-check the status, I thought we merged it" → "go" → "keep live
-pages up to date with dashboard updates" → "I want to apply from my phone if
-possible" → "go".
-
-**Response:**
-
-- **Diagnosed the 405 — it is NOT a bug.** "Save & apply" POSTs to the local
-  `serve-dashboards.py` `/__save` endpoint. The README link points at **GitHub
-  Pages** (static host), which 405s on POST. Verified live: Pages `POST /__save`
-  → 405, `HEAD` → 404. The save infra (`do_HEAD`/`OPTIONS`/`POST` + client probe)
-  has been on `main` since #65/#81; the deployed `dashboard.html` is byte-identical
-  to `main` (not stale code). So Matt's "I thought we merged it" was **correct**.
-- **Reverted a stray uncommitted `.claude/settings.json`** — test residue from
-  clicking the button (empty `allow`, everything→`ask`); not real posture.
-- **Pages already auto-serves `main`** (legacy deploy-from-branch). The real gap:
-  `dashboard.html` had no freshness gate (repo-guide did).
-- **Shipped PR #89 (open + green), no version bump** (dev tool + CI, not shipped
-  to consumers): (A) `serve-dashboards.py` prints a **scannable QR of the
-  forwarded URL** so the dashboard opens on a phone where Save & apply works for
-  real; `qrcode` optional dep + devcontainer install + URL/hint fallback +
-  context-aware security note + stdout flush. (B) **"Verify dashboard.html is
-  fresh"** CI step (`generate-dashboards.py --check`) + **Gate 13** in
-  `audit-gates.sh`. 30/30 gates green, prettier clean.
-
-**Current state / next step:** PR #89 merged. Phone-apply path = open the
-**Codespace forwarded URL** (scan the QR), never the README/Pages link.
+**Current state / next step:** PR #90 merged (T2, v0.24.0). T3 (panel + EDIT) was the
+next phase — since shipped (and T4 after it).
 
 ---
