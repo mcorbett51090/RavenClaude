@@ -429,6 +429,15 @@ categories:
       resolution: >-
         EDIT to a move-to-trash equivalent (gio trash, trash, Windows Recycle
         Bin). DENY if no trash command is available on the platform.
+      # Matches `rm` as a leading command token (after start / a shell separator /
+      # a subshell paren), requiring at least one argument so a bare `rm` typo and
+      # `npm`/`charm`/`rm-something` substrings don't match. Whether the target is
+      # under version control is the seat's call (high severity routes it there);
+      # the trigger only detects the rm shape. `rm -rf` is also caught by the
+      # settings security floor before it reaches the panel.
+      triggers:
+        regex:
+          - '(?:^|[\s;&|(])rm\s+\S'
     - id: slm.git-reset-hard-uncommitted
       name: git reset --hard with uncommitted changes in worktree
       severity: high
@@ -436,36 +445,62 @@ categories:
       resolution: >-
         EDIT to `git stash --include-untracked && git reset --hard` if the work
         is salvageable. DENY otherwise.
+      # `git reset … --hard` in any flag order (`git reset --hard HEAD~1`,
+      # `git reset HEAD~1 --hard`). Whether the worktree has uncommitted work is
+      # the seat's call. Also caught by the settings floor (`git reset --hard:*`).
+      triggers:
+        regex:
+          - 'git\s+reset\b[^|&;]*--hard\b'
     - id: slm.checkout-orphans-staged
       name: git checkout <branch> with staged changes that would be silently lost
       severity: medium
-      description: Git's silent merge of staged work into the new branch can produce surprising commits.
+      judgment_only: true
+      description: Git's silent merge of staged work into the new branch can produce surprising commits. Detecting "staged changes exist" needs live `git status` state, not a regex.
       resolution: EDIT to `git stash && git checkout <branch> && git stash pop`. ALLOW otherwise.
     - id: slm.commit-without-staging-review
       name: git commit -am after broad edits
       severity: low
-      description: The -a flag commits every tracked change, not the curated set the user reviewed.
+      judgment_only: true
+      description: The -a flag commits every tracked change, not the curated set the user reviewed. Whether the diff is "broad" needs the live worktree diff, not a regex.
       resolution: EDIT to `git add <specific-files> && git commit` when the diff is broad. ALLOW for narrow single-file diffs.
     - id: slm.mv-across-fs-boundary
       name: mv from project tree to outside (or vice versa)
       severity: medium
-      description: Crosses categories; arguably file_edit_global.
+      judgment_only: true
+      description: Crosses categories; arguably file_edit_global. Deciding "outside the project tree" needs realpath resolution of both operands against the project root, not a regex over the raw argv.
       resolution: EDIT to cp + verify + rm. DENY across-fs mv of secret-shaped paths.
     - id: slm.merge-or-rebase-with-uncommitted
       name: git merge / git rebase with dirty worktree
       severity: medium
-      description: Git refuses some shapes; others silently merge. Worth pre-empting.
+      judgment_only: true
+      description: Git refuses some shapes; others silently merge. Worth pre-empting. "Dirty worktree" is live `git status` state, not a regex over the command.
       resolution: EDIT to stash first. ALLOW only if the worktree is clean.
     - id: slm.delete-protected-branch-locally
       name: git branch -D main / git branch -D master
       severity: high
       description: Deletes the local main; doesn't affect remote, but breaks workflow.
       resolution: DENY.
+      # Force-delete (`-D`, or `--delete --force` in either order) of a protected
+      # local branch, with the flag before or after the branch name. Plain `-d`
+      # (only deletes merged branches) is intentionally NOT matched — it's safe.
+      triggers:
+        regex:
+          - 'git\s+branch\b[^|&;]*\s-D\b[^|&;]*\b(?:main|master)\b'
+          - 'git\s+branch\b[^|&;]*\b(?:main|master)\b[^|&;]*\s-D\b'
+          - 'git\s+branch\b[^|&;]*--delete\b[^|&;]*--force\b[^|&;]*\b(?:main|master)\b'
     - id: slm.chmod-broad
       name: chmod -R 777 or chmod -R 000 on the project tree
       severity: high
       description: 777 is caught by security_deny; the 000 case is the inverse footgun (locks the user out).
       resolution: DENY.
+      # Recursive chmod to a broad mode (777 = world-writable, 000 = lock-out), in
+      # either flag order. Non-recursive single-file chmod is left to the seat.
+      triggers:
+        regex:
+          - 'chmod\b[^|&;]*\s-[A-Za-z]*R[A-Za-z]*\b[^|&;]*\b(?:000|777)\b'
+          - 'chmod\b[^|&;]*--recursive\b[^|&;]*\b(?:000|777)\b'
+          - 'chmod\b[^|&;]*\b(?:000|777)\b[^|&;]*\s-[A-Za-z]*R[A-Za-z]*\b'
+          - 'chmod\b[^|&;]*\b(?:000|777)\b[^|&;]*--recursive\b'
   shell_remote_mutate:
     - id: srm.push-to-protected-branch
       name: git push origin main / master (direct, not PR-shaped)
@@ -590,33 +625,63 @@ categories:
     - id: spi.typosquat-risk
       name: Package name close to a known popular package (Levenshtein <= 2 from a top-1000 name)
       severity: high
-      description: Classic supply-chain attack (requets instead of requests). Check against a known-good list per registry.
+      judgment_only: true
+      description: Classic supply-chain attack (requets instead of requests). Check against a known-good list per registry. Requires a Levenshtein comparison against a top-package corpus, not a fixed regex.
       resolution: DENY; surface "did you mean <correct>?"
     - id: spi.no-pinned-version
       name: install without a version pin
       severity: medium
       description: Floating-version installs are reproducibility-hostile.
       resolution: EDIT to add the version pin (look up the latest stable). ALLOW with banner if the user wants latest.
+      # A named package argument carrying NO version specifier. npm/pnpm/yarn pins
+      # with `pkg@1.2.3` (the `[^\s@]+` stops before `@`, so a pinned token does
+      # not match); pip pins with `==`/`>=`/`~=`/etc (stopped by `[^\s=<>~!]`). A
+      # bare `npm install` (no arg → lockfile install, already pinned), a flag
+      # (`-D`, `-r`), or `pip install .` (editable local) do NOT match.
+      triggers:
+        regex:
+          - '\b(?:npm|pnpm|yarn)\s+(?:install|i|add)\s+(?![-@])[^\s@]+(?:\s|$)'
+          - '\bpip3?\s+install\s+(?![-.])[^\s=<>~!]+(?:\s|$)'
     - id: spi.global-install
       name: npm install -g / pip install --user / cargo install --force
       severity: high
       description: Modifies global state; persists across sessions; hard to audit.
       resolution: EDIT to a project-scoped install. DENY for -g unless the user explicitly toggled "I want global installs".
+      # Global / user-scoped / forced installs across the common package managers.
+      triggers:
+        regex:
+          - '\b(?:npm|pnpm)\s+(?:install|i|add)\b[^|&;]*\s(?:-g\b|--global\b)'
+          - '\byarn\s+global\s+add\b'
+          - '\bpip3?\s+install\b[^|&;]*\s--user\b'
+          - '\bcargo\s+install\b[^|&;]*\s--force\b'
     - id: spi.post-install-script-risk
       name: Package known to run a non-trivial post-install script
       severity: high
-      description: Post-install runs with shell privileges. Most supply-chain attacks land here.
+      judgment_only: true
+      description: Post-install runs with shell privileges. Most supply-chain attacks land here. Whether a named package ships a post-install hook needs a package-metadata lookup, not a regex over the command.
       resolution: ALLOW with banner naming the post-install behavior. DENY if the package is on a known-malicious list.
     - id: spi.private-registry-leak
       name: Install from a non-default registry with creds in the URL
       severity: medium
       description: Private-registry URLs sometimes contain tokens (https://_authToken@registry.npmjs.org/...).
       resolution: DENY if the registry URL contains credentials. EDIT to use .npmrc / env-var auth instead.
+      # An inline auth token, or a userinfo (`user:pass@`) credential in a URL.
+      # Scoped by the shell_package_install category, so the cred-in-URL form is
+      # an install-time registry leak rather than a generic match.
+      triggers:
+        regex:
+          - '_auth(?:Token)?=\S+'
+          - 'https?://[^\s/]+:[^\s/@]+@\S+'
     - id: spi.local-tarball-from-tmp
       name: npm install /tmp/foo.tgz or similar
       severity: high
       description: Installing an arbitrary tarball is the install-from-disk attack.
       resolution: DENY unless the tarball is inside the project tree and the user explicitly authorized.
+      # Install of an archive/wheel from a world-writable temp dir (/tmp, /var/tmp).
+      triggers:
+        regex:
+          - '\b(?:npm|pnpm|yarn)\s+(?:install|add|i)\b[^|&;]*\s/(?:tmp|var/tmp)/\S+\.(?:tgz|tar\.gz|tar)\b'
+          - '\bpip3?\s+install\b[^|&;]*\s/(?:tmp|var/tmp)/\S+\.(?:whl|tar\.gz|zip)\b'
   network_read:
     - id: nr.exfil-via-url-params
       name: URL query string contains a secret-shaped string
