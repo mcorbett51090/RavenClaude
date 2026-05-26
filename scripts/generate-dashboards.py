@@ -221,6 +221,49 @@ def _inline_concept_svg(plugin_dir: Path, rel: str | None) -> str:
     return p.read_text(encoding="utf-8").strip() if p.is_file() else ""
 
 
+# Named interactive widgets a concept can embed via its `widget:` frontmatter.
+# Markup only — the behavior is wired in _JS (initConceptWidgets). Pure
+# client-side: no endpoint, so it works identically offline and served.
+_PERMISSION_RESOLVER_ROWS = [
+    ("managed", "Managed (enterprise)"),
+    ("project", "Project · .claude/settings.json"),
+    ("local", "Local · .claude/settings.local.json"),
+    ("user", "User · ~/.claude/settings.json"),
+]
+_CONCEPT_WIDGETS = {
+    "permission-resolver": (
+        '<div class="concept-widget" data-widget="permission-resolver">'
+        '<div class="cw-title">Try it: which layer wins?</div>'
+        '<p class="cw-hint">Set a rule in each layer and watch the cross-layer merge decide. '
+        "A deny in any layer always wins; you can't override it down.</p>"
+        '<div class="cw-rows">'
+        + "".join(
+            f'<label class="cw-row"><span class="cw-layer">{html.escape(name)}</span>'
+            f'<select class="cw-select" data-layer="{key}" aria-label="{html.escape(name)} rule">'
+            '<option value="inherit">— none —</option>'
+            '<option value="allow">allow</option>'
+            '<option value="ask">ask</option>'
+            '<option value="deny">deny</option>'
+            "</select></label>"
+            for key, name in _PERMISSION_RESOLVER_ROWS
+        )
+        + "</div>"
+        '<div class="cw-result"><span class="cw-verdict" data-verdict>—</span>'
+        '<span class="cw-why" data-why></span></div>'
+        "</div>"
+    ),
+}
+
+
+def _try_it_html(try_it: dict | None) -> str:
+    if not try_it:
+        return ""
+    return (
+        f'<a class="concept-tryit" href="{html.escape(try_it["href"])}">'
+        f'{html.escape(try_it["label"])} <span aria-hidden="true">&rarr;</span></a>'
+    )
+
+
 def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> str:
     kind = c["kind"]
     badge_label, badge_icon = _CONCEPT_ICONS.get(kind, ("", ""))
@@ -266,6 +309,8 @@ def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> s
         f'<p class="concept-deck">{html.escape(c["summary"])}</p>'
         f"{well}"
         f'<div class="concept-body">{_md_to_html(c["body_md"])}</div>'
+        f'{_CONCEPT_WIDGETS.get(c.get("widget") or "", "")}'
+        f'{_try_it_html(c.get("try_it"))}'
         f"{see_also_block}"
         f'<div class="concept-sources-row">{sources}{verified}</div>'
         f"</article>"
@@ -2752,6 +2797,41 @@ footer.page-footer a:hover { text-decoration: underline; }
 .concept-source { font-family: var(--font-mono); font-size: 11.5px; color: var(--accent); }
 .concept-verified { margin-left: auto; font-size: 11px; color: var(--muted); }
 
+.concept-tryit {
+  display: inline-block; margin-top: 12px; font-size: 13px;
+  color: var(--accent); text-decoration: none; font-weight: 600;
+}
+.concept-tryit:hover { text-decoration: underline; }
+.concept-tryit:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+/* interactive concept widgets (e.g. the permission-layer resolver) */
+.concept-widget {
+  margin-top: 14px; padding: 14px; background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: var(--radius);
+}
+.cw-title { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+.cw-hint { font-size: 12.5px; color: var(--muted); margin: 0 0 12px; line-height: 1.5; }
+.cw-rows { display: grid; gap: 8px; margin-bottom: 12px; }
+.cw-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cw-layer { font-family: var(--font-mono); font-size: 12px; color: var(--text); }
+.cw-select {
+  background: var(--bg); color: var(--text); border: 1px solid var(--border);
+  border-radius: 5px; padding: 4px 8px; font-size: 12px; flex: none;
+}
+.cw-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.cw-result {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px;
+  padding-top: 10px; border-top: 1px solid var(--border);
+}
+.cw-verdict {
+  font-weight: 700; font-size: 13px; padding: 2px 10px; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--muted); white-space: nowrap;
+}
+.cw-verdict[data-v="deny"] { color: var(--danger); border-color: var(--danger); }
+.cw-verdict[data-v="ask"] { color: var(--warn); border-color: var(--warn); }
+.cw-verdict[data-v="allow"] { color: var(--accent); border-color: var(--accent); }
+.cw-why { font-size: 12.5px; color: var(--muted); flex: 1 1 200px; line-height: 1.5; }
+
 @keyframes rc-flash {
   0% { box-shadow: 0 0 0 2px var(--accent); }
   100% { box-shadow: 0 0 0 0 transparent; }
@@ -4510,6 +4590,50 @@ _JS = r"""
     if (expand) expand.addEventListener("click", () => cats.forEach(c => { c.open = true; }));
     if (collapse) collapse.addEventListener("click", () => cats.forEach(c => { c.open = false; }));
     applyFilter("");
+  })();
+
+  /* ── Learn tab: interactive concept widgets ────────────────────────── */
+  (function initConceptWidgets() {
+    const LAYER_NAME = { managed: "Managed", project: "Project", local: "Local", user: "User" };
+    const ORDER = ["managed", "project", "local", "user"];
+    document.querySelectorAll('[data-widget="permission-resolver"]').forEach(w => {
+      const selects = Array.from(w.querySelectorAll(".cw-select"));
+      const verdict = w.querySelector("[data-verdict]");
+      const why = w.querySelector("[data-why]");
+      function setLayer(layer, val) {
+        const s = selects.find(x => x.dataset.layer === layer);
+        if (s) s.value = val;
+      }
+      function compute() {
+        const vals = {};
+        selects.forEach(s => { vals[s.dataset.layer] = s.value; });
+        const denies = ORDER.filter(k => vals[k] === "deny");
+        const asks = ORDER.filter(k => vals[k] === "ask");
+        const allows = ORDER.filter(k => vals[k] === "allow");
+        let v, text;
+        if (denies.length) {
+          v = "deny";
+          text = LAYER_NAME[denies[0]] + " denies — a deny in any layer blocks the action, and no other layer can override it down.";
+        } else if (asks.length) {
+          v = "ask";
+          text = LAYER_NAME[asks[0]] + " asks — with no deny anywhere, ask beats allow, so you get prompted.";
+        } else if (allows.length) {
+          v = "allow";
+          text = allows.map(k => LAYER_NAME[k]).join(" + ") + " allow and nothing denies or asks — it runs without prompting.";
+        } else {
+          v = "none";
+          text = "No layer sets a rule — Claude Code falls back to its default behavior.";
+        }
+        verdict.textContent = v === "none" ? "no rule" : v.toUpperCase();
+        verdict.dataset.v = v;
+        why.textContent = text;
+      }
+      /* open on the classic gotcha: a User allow that a Project deny overrides */
+      setLayer("user", "allow");
+      setLayer("project", "deny");
+      selects.forEach(s => s.addEventListener("change", compute));
+      compute();
+    });
   })();
 
   /* Initial render */

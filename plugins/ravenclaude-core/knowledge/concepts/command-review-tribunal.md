@@ -6,6 +6,9 @@ kind: ravenclaude-built
 order: 30
 summary: "An opt-in panel of reviewer seats that votes ALLOW/EDIT/DENY on shell commands instead of interrupting you."
 see_also: [permission-layers]
+try_it:
+  label: "Run a command through it in Test a command"
+  href: "#/simulator"
 last_verified: 2026-05-26
 refresh_when: "The tribunal's tier model, seat roster, or gate_floor semantics change."
 sources:

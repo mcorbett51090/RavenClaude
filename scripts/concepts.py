@@ -105,6 +105,20 @@ def _parse_one(path: Path) -> dict:
     if not isinstance(see_also, list) or not all(isinstance(x, str) for x in see_also):
         raise ConceptError(f"{rel}: 'see_also' must be a list of concept ids")
 
+    widget = fm.get("widget")
+    if widget is not None and (not isinstance(widget, str) or not widget.strip()):
+        raise ConceptError(f"{rel}: 'widget' must be a non-empty string (an interactive widget name)")
+
+    try_it = fm.get("try_it")
+    if try_it is not None:
+        if (
+            not isinstance(try_it, dict)
+            or not isinstance(try_it.get("label"), str)
+            or not isinstance(try_it.get("href"), str)
+        ):
+            raise ConceptError(f"{rel}: 'try_it' must be a mapping with string 'label' and 'href'")
+        try_it = {"label": try_it["label"], "href": try_it["href"]}
+
     last_verified = fm.get("last_verified")
     if last_verified is not None:
         # PyYAML may parse an unquoted YYYY-MM-DD into a date; accept both.
@@ -148,6 +162,8 @@ def _parse_one(path: Path) -> dict:
         "order": order,
         "summary": summary,
         "see_also": list(see_also),
+        "widget": widget,
+        "try_it": try_it,
         "last_verified": last_verified,
         "refresh_when": refresh_when,
         "sources": norm_sources,

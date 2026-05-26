@@ -6,6 +6,10 @@ kind: platform-fact
 order: 10
 summary: "Four settings files merge — a deny in ANY layer wins, and you can't override it down from a later layer."
 see_also: [command-review-tribunal]
+widget: permission-resolver
+try_it:
+  label: "Set your own layers on the Settings tab"
+  href: "#/settings"
 last_verified: 2026-05-25
 refresh_when: "Anthropic adds/removes a settings layer, or changes the cross-layer merge rule."
 sources:

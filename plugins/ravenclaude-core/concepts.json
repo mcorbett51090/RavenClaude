@@ -21,6 +21,11 @@
       "see_also": [
         "command-review-tribunal"
       ],
+      "widget": "permission-resolver",
+      "try_it": {
+        "label": "Set your own layers on the Settings tab",
+        "href": "#/settings"
+      },
       "last_verified": "2026-05-25",
       "refresh_when": "Anthropic adds/removes a settings layer, or changes the cross-layer merge rule.",
       "sources": [
@@ -49,6 +54,11 @@
       "see_also": [
         "permission-layers"
       ],
+      "widget": null,
+      "try_it": {
+        "label": "Run a command through it in Test a command",
+        "href": "#/simulator"
+      },
       "last_verified": "2026-05-26",
       "refresh_when": "The tribunal's tier model, seat roster, or gate_floor semantics change.",
       "sources": [
