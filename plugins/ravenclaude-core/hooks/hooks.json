@@ -70,6 +70,11 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/ensure-default-mode.sh",
             "comment": "Advisory: warns when a session loads in acceptEdits/bypassPermissions mode, which bypasses the comfort-posture allow/ask/deny rules. The real pin is permissions.defaultMode=default (written by /set-posture). Reads permission_mode from stdin; never blocks."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/capability-orientation.sh",
+            "comment": "Injects a session-start capability banner via hookSpecificOutput.additionalContext so the agent opens every session aware of the project's external surface, its detected auth (env-var NAMES/presence only — never values), and its effective .claude/settings.json permissions. Cheap + local (no network, no CLI subprocesses); points to the environment-discovery skill for deep enumeration. Fail-silent; never blocks (SessionStart hooks cannot). Salience boost for the Capability Grounding Protocol, not enforcement."
           }
         ]
       }

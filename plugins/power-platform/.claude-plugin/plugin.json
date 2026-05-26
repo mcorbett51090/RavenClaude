@@ -1,6 +1,6 @@
 {
   "name": "power-platform",
-  "version": "0.12.2",
+  "version": "0.12.3",
   "description": "Power Platform specialist team — 11 agents (including power-platform-tester and power-bi-engineer) and 18 skills (including maintainability-review), with strong ALM/git coverage for solutions, flows, and PBIP projects. A house-opinions hook flags 8 mechanically-detectable §3/§4 violations. The knowledge bank captures production lessons — `programmatic-flow-creation.md` carries a Mermaid decision tree for PA flow recovery — plus a scenarios bank from real engagements. Every agent ships example-scenario frontmatter feeding the repo-guide's per-agent cards and 'I want to…' lookup. Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval without Power BI Desktop (requires `pip install pbix-mcp`). Extends ravenclaude-core.",
   "author": {
     "name": "Matt Corbett"

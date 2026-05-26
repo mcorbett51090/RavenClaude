@@ -82,6 +82,18 @@ The decision-tree pre-action traversal handles the **proactive** case: agent has
 
 The two compose. CGP catches what the tree missed; the tree prevents needing CGP in the first place.
 
+## Node prerequisites: the `requires:` annotation (added 2026-05-26)
+
+A leaf often only works if the agent holds a specific **auth or permission** — e.g. the Dataverse-Web-API branch in [`../../plugins/power-platform/knowledge/programmatic-flow-creation.md`](../../plugins/power-platform/knowledge/programmatic-flow-creation.md) only works with a service principal that has `System Administrator` (or create/update on the `workflow` table) in the target environment. Make that prerequisite explicit so the agent checks it **before** committing to the branch instead of discovering the gap mid-execution.
+
+Annotate the leaf with a `requires:` note in the rationale list (or a `Requires?` column in the tradeoffs table):
+
+> - *Method B (Dataverse Web API)* — … **requires:** SPN with `System Administrator` (or create/update on the `workflow` table) in the target Dataverse environment.
+
+**How the agent uses it (convention, not a parser):** at session start the [`capability-orientation`](../../plugins/ravenclaude-core/hooks/capability-orientation.sh) hook injects a capability banner naming the agent's detected auth + effective permissions, and `.ravenclaude/environment-context.md` stays authoritative for per-environment roles. Before traversing into a `requires:`-annotated branch, the agent cross-checks the prerequisite against that banner / file. If the prerequisite is held → proceed without asking. If it is NOT held (or unknown) → that is exactly the "do I have authority?" moment the Capability Grounding Protocol's pre-action environment-context check governs: confirm or escalate before picking the branch.
+
+This keeps the **mechanism** in core (the banner + the CGP check) and the **permission taxonomy** with the domain tree (each tree names the roles/scopes its own branches need) — no central registry, no parser, consistent with "Forbidden infrastructure" below.
+
 ## Forbidden infrastructure (house-rule alignment — added 2026-05-21)
 
 This best-practice is a **convention**, not a parser. Do NOT add:

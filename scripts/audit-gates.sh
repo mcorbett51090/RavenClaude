@@ -547,6 +547,36 @@ rc=0; python3 scripts/check-frontmatter.py >/dev/null 2>&1 || rc=$?
 gate "frontmatter (real tree)" must_pass "$rc"
 
 echo
+echo "── Gate 19: capability-orientation banner (emits context, never leaks a value) ──"
+# Proves the SessionStart capability banner (a) emits a SessionStart additionalContext
+# block for a project with settings + creds, (b) reports detected auth by env-var NAME,
+# and (c) — the load-bearing security property — NEVER emits the VALUE of any env var
+# (not the SPN secret, not even a non-secret id). The leak-detector itself is proven
+# bidirectional: it catches a planted secret (must_fail on the secret-absent check).
+G19="$TMP/cap-proj"
+mkdir -p "$G19/.claude"
+cat > "$G19/.claude/settings.json" <<'EOF'
+{ "permissions": { "allow": ["Bash(git status:*)", "Read(**)"], "ask": ["Bash(git push:*)"], "deny": ["Bash(rm -rf:*)"] } }
+EOF
+: > "$G19/package.json"
+CAP_HOOK=plugins/ravenclaude-core/hooks/capability-orientation.sh
+CAP_SECRET="GATE19_SECRET_d34db33f"
+cap_out="$(CLAUDE_PROJECT_DIR="$G19" AZURE_CLIENT_ID="cid-abc-not-secret" AZURE_CLIENT_SECRET="$CAP_SECRET" GATE19_API_TOKEN="$CAP_SECRET" bash "$CAP_HOOK" 2>/dev/null || true)"
+# (a) emits a SessionStart additionalContext banner
+rc=0; printf '%s' "$cap_out" | jq -e '.hookSpecificOutput.additionalContext | test("ravenclaude-capabilities")' >/dev/null 2>&1 || rc=1
+gate "capability: emits SessionStart banner" must_pass "$rc"
+# (b) reports the SPN by env-var NAME (proves detection works)
+rc=0; printf '%s' "$cap_out" | grep -q "AZURE_CLIENT_SECRET" || rc=1
+gate "capability: reports SPN env NAME" must_pass "$rc"
+# (c) never emits ANY env-var value — neither the secret nor the non-secret id
+secret_absent() { ! printf '%s' "$1" | grep -qF "$CAP_SECRET"; }
+rc=0; { secret_absent "$cap_out" && ! printf '%s' "$cap_out" | grep -qF "cid-abc-not-secret"; } || rc=1
+gate "capability: banner emits no env-var value" must_pass "$rc"
+# bidirectional: the secret-absent check FAILS on a planted leak (so it can catch one)
+rc=0; secret_absent "the value is $CAP_SECRET" || rc=1
+gate "capability: leak-detector catches a planted secret" must_fail "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 if [[ "$FAIL" -gt 0 ]]; then

@@ -1,6 +1,6 @@
 # Claude Code permissions — the load-bearing model
 
-> **Last reviewed:** 2026-05-25 against the Anthropic Claude Code documentation site at code.claude.com (permissions, permission-modes, settings, tools-reference, **hooks, hooks-guide, and agent-sdk/hooks** pages) AND the canonical GitHub Security Advisories at `github.com/anthropics/claude-code/security/advisories`. The 2026-05-25 pass added the **"Advanced JSON output protocol"** section below (PreToolUse `hookSpecificOutput` — `permissionDecision`, `updatedInput`, hook types, bypass interaction). **Refresh when:** Anthropic ships a new permission mode, adds documented prompt-verbosity controls, changes the cross-layer merge rule, changes the hook output schema, or publishes a new security advisory affecting the permission model. Companion to [`../skills/permission-hygiene/SKILL.md`](../skills/permission-hygiene/SKILL.md).
+> **Last reviewed:** 2026-05-25 against the Anthropic Claude Code documentation site at code.claude.com (permissions, permission-modes, settings, tools-reference, **hooks, hooks-guide, and agent-sdk/hooks** pages) AND the canonical GitHub Security Advisories at `github.com/anthropics/claude-code/security/advisories`. The 2026-05-25 pass added the **"Advanced JSON output protocol"** section below (PreToolUse `hookSpecificOutput` — `permissionDecision`, `updatedInput`, hook types, bypass interaction). The 2026-05-26 pass added the **"SessionStart hooks: `additionalContext`"** section (context injection, not gating). **Refresh when:** Anthropic ships a new permission mode, adds documented prompt-verbosity controls, changes the cross-layer merge rule, changes the hook output schema, or publishes a new security advisory affecting the permission model. Companion to [`../skills/permission-hygiene/SKILL.md`](../skills/permission-hygiene/SKILL.md).
 
 This document is the long-form "why these patterns" reference behind the [`permission-hygiene`](../skills/permission-hygiene/SKILL.md) skill. The skill tells you what to do; this file tells you what the model is and where the surprises live.
 
@@ -231,6 +231,29 @@ Beyond `type: "command"` (shell script), `PreToolUse` accepts four more: `type: 
 ### Timeouts fail OPEN
 
 Default timeouts: **600 s** for `command` / `http` / `mcp_tool`, **30 s** for `prompt`, **60 s** for `agent` (configurable per hook). On timeout or connection failure, Claude Code treats the hook as a **non-blocking error and the tool proceeds** — i.e. **fail-open**. A hook that must fail *closed* (block on its own error) has to enforce an internal deadline shorter than its `timeout` and emit an explicit `deny`/`ask` itself; the platform will not block for it.
+
+## SessionStart hooks: `additionalContext` (context injection, not gating)
+
+`permissionDecision`/`updatedInput` above are the **PreToolUse** levers. The **SessionStart** event uses a *different* `hookSpecificOutput` field — `additionalContext` — and it cannot gate anything: a SessionStart hook adds text to the session's context and nothing more.
+
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": "<text added to the session context>"
+  }
+}
+```
+
+Rules that bite:
+
+- **Only on exit 0.** The JSON (or plain stdout, which SessionStart also folds into context) is read only when the hook exits 0. A non-zero exit is a **non-blocking error** — its stderr is surfaced (exit 2) or logged, and the session **still starts**. A SessionStart hook **cannot block or delay** a session; its output is purely additive.
+- **`additionalContext` is capped at ~10,000 characters.** Keep it tight — it is injected every session, so it is a recurring token cost.
+- **Multiple SessionStart hooks run in parallel and their `additionalContext` outputs are concatenated.** One hook emitting JSON `additionalContext` and another writing a plain-text warning to stderr do not conflict (different streams).
+- **Optional `matcher`:** `"startup"` | `"resume"` | `"clear"` | `"compact"`; omit for all session-start kinds. Handler `type` is restricted to `command` and `mcp_tool` (no `http`/`prompt`/`agent`).
+- **Default timeout 600 s, fail-open** (as above) — a slow SessionStart hook never wedges a session.
+
+This is the mechanism behind `hooks/capability-orientation.sh`: it injects a session-start capability banner so the agent is *aware* of its surface/auth/permissions. Awareness is a strong salience boost, **not enforcement** — the actual gate remains the `permissions.{allow,ask,deny}` rules. Verified 2026-05-26 against the hooks reference.
 
 ## Citations
 

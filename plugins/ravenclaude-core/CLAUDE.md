@@ -284,7 +284,9 @@ For long-running or multi-turn team collaborations:
 
 This prevents degradation in output quality due to context window pressure and maintains high signal-to-noise in agent reasoning.
 
-## Session-start environment-context load (added 2026-05-22)
+## Session-start environment-context load (added 2026-05-22; capability banner added 2026-05-26)
+
+**Enforced injection (added 2026-05-26):** the `SessionStart` hook [`hooks/capability-orientation.sh`](hooks/capability-orientation.sh) now injects a **capability banner** into the session context every session via `hookSpecificOutput.additionalContext` (see [`knowledge/claude-code-permissions.md`](knowledge/claude-code-permissions.md) §"SessionStart hooks"). The banner states the project's detected external surface, the auth it holds (env-var NAMES/presence only — never values; no network calls), the effective `.claude/settings.json` permissions, and a presence/staleness summary of `environment-context.md`. This exists because the behavioral "the Team Lead reads the posture at session start" instruction below is prose the model often skips; the hook makes the summary impossible to miss. **It is a salience boost, not enforcement** — the real gate is the permission rules; the banner just stops the agent acting as if it has no access. The banner is a *pointer*: `environment-context.md` stays the **authoritative** source for per-environment roles/pre-authorized actions, and the agent reads that file for detail.
 
 The Team Lead reads `.ravenclaude/environment-context.md` at the consumer's project root **as part of session-start orientation**, in the same pass that loads CLAUDE.md and AGENTS.md. The file is OPTIONAL — its absence is informational, not an error. When present, the Team Lead:
 
