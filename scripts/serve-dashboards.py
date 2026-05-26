@@ -90,6 +90,14 @@ THING_DECISION = (
     REPO_ROOT / "plugins" / "ravenclaude-core" / "scripts" / "thing-decision.py"
 )
 
+# Populated in main(). The write/read/run/classify endpoints check these so a
+# malicious web page the user is viewing can't drive this server cross-origin: a
+# 127.0.0.1 bind does NOT stop a browser from POSTing to localhost (CSRF), and a
+# forged Host enables DNS-rebinding. We reject any request whose Origin (always
+# sent by browsers on cross-origin POST) isn't ours, or whose Host isn't known.
+_ALLOWED_HOSTS: set[str] = set()
+_ALLOWED_ORIGINS: set[str] = set()
+
 
 class DashboardHandler(SimpleHTTPRequestHandler):
     """SimpleHTTPRequestHandler + POST /__save for dashboard writes."""
@@ -98,6 +106,22 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         sys.stderr.write(
             "[%s] %s\n" % (self.log_date_time_string(), format % args)
         )
+
+    def _local_request_ok(self) -> bool:
+        """Refuse cross-origin / DNS-rebinding requests to the dashboard endpoints."""
+        sfs = self.headers.get("Sec-Fetch-Site")
+        if sfs is not None and sfs not in ("same-origin", "none"):
+            return False
+        origin = self.headers.get("Origin")
+        if origin is not None and origin not in _ALLOWED_ORIGINS:
+            return False
+        # Fail CLOSED on Host: a browser (HTTP/1.1) always sends Host, so the legit
+        # dashboard never trips this — but a header-absent non-browser request must
+        # not slip through. Host must be present AND a known local/forwarded host.
+        host = self.headers.get("Host")
+        if host is None or host not in _ALLOWED_HOSTS:
+            return False
+        return True
 
     def do_HEAD(self):
         if self.path in ("/__save", "/__run", "/__classify") or self.path.startswith("/__read"):
@@ -109,6 +133,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         super().do_HEAD()
 
     def do_GET(self):
+        # NOTE: static GETs are intentionally ungated. Any NEW data-returning GET
+        # endpoint added here MUST call self._local_request_ok() first (as
+        # _handle_read does) — do not let it ride the static path.
         if self.path.startswith("/__read"):
             self._handle_read()
             return
@@ -118,6 +145,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         """GET /__read?path=<allow-listed> — return a committed config file so the
         dashboard can hydrate its controls from reality. For YAML, also return a
         server-parsed JSON form (`parsed`). 404 when the file is absent."""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
         from urllib.parse import urlparse, parse_qs
         qs = parse_qs(urlparse(self.path).query)
         target = (qs.get("path") or [""])[0]
@@ -152,6 +182,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         self.send_error(405)
 
     def do_POST(self):
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
         if self.path == "/__run":
             self._handle_run()
             return
@@ -291,7 +324,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         try:
             proc = subprocess.run(
                 [sys.executable, str(THING_DECISION), "--root", str(REPO_ROOT),
-                 "preview", command[:4000]],
+                 "preview", "--", command[:4000]],
                 cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=15,
             )
             decision = json.loads(proc.stdout) if proc.stdout.strip() else {"category": None}
@@ -353,6 +386,21 @@ def main() -> int:
 
     codespace = os.environ.get("CODESPACE_NAME")
     domain = os.environ.get("GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN", "app.github.dev")
+
+    # Build the Origin/Host allow-lists the CSRF/rebinding guard checks against.
+    global _ALLOWED_HOSTS, _ALLOWED_ORIGINS
+    _ALLOWED_HOSTS = {f"127.0.0.1:{args.port}", f"localhost:{args.port}", "127.0.0.1", "localhost"}
+    _ALLOWED_ORIGINS = {f"http://127.0.0.1:{args.port}", f"http://localhost:{args.port}"}
+    if codespace:
+        _fwd = f"{codespace}-{args.port}.{domain}"
+        _ALLOWED_HOSTS.add(_fwd)
+        _ALLOWED_ORIGINS.add(f"https://{_fwd}")
+    if args.bind == "0.0.0.0":
+        _ip = _lan_ip()
+        if _ip:
+            _ALLOWED_HOSTS.add(f"{_ip}:{args.port}")
+            _ALLOWED_ORIGINS.add(f"http://{_ip}:{args.port}")
+
     dash_path = "/plugins/ravenclaude-core/dashboard.html"
     print(f"serve-dashboards: serving {REPO_ROOT} at http://{args.bind}:{args.port}/")
     print(f"  POST /__save  - writes a whitelisted file under .ravenclaude/")
