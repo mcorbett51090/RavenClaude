@@ -86,9 +86,34 @@ decision="$(THING_SEAT_ACTIVE= python3 "$DECISION" --root "$cwd" classify "$cmd"
 [ -z "$decision" ] && emit ask "Command review could not classify the command; deferring to you."
 
 enabled="$(printf '%s' "$decision" | jq -r '.thing_enabled // false')"
+category="$(printf '%s' "$decision" | jq -r '.category // "unknown"')"
+
+# ── §B.9.5: the Thing cannot disable itself. This guard is CATEGORY-INDEPENDENT
+#    — it fires whenever ANY category is toggled on (we are past the short-circuit
+#    above), even if THIS command's own category is off — because disabling the
+#    Thing affects every category. Pre-LLM, unilateral DENY; no seat convened.
+#    Closes the evasion where a self-disabling command is shaped to classify into
+#    a category whose toggle happens to be off. ────────────────────────────────
+self_disable="$(printf '%s' "$decision" | jq -r '.self_disable_deny // false')"
+if [ "$self_disable" = "true" ]; then
+  sd_concern="$(printf '%s' "$decision" | jq -r '.self_disable_concern // "xc.tribunal-self-disable"')"
+  sd_run_id="thing-$(date -u +%Y-%m-%dT%H-%M-%SZ)-$$"
+  sd_audit="${cwd}/.ravenclaude/runs/thing"  # config audit_dir is resolved later
+  if mkdir -p "$sd_audit" 2>/dev/null; then
+    jq -cn --arg id "$sd_run_id" --arg sid "$session_id" \
+      --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg cmd "$cmd" \
+      --arg cat "$category" --arg concern "$sd_concern" \
+      '{id:$id,session_id:$sid,timestamp:$ts,tool_name:"Bash",
+        tool_input:{command:$cmd},category:$cat,phase:"T4-self-disable",
+        seats:[],concerns_cited:[$concern],final_verdict:"deny",
+        updated_input:null,duration_ms:0}' \
+      > "${sd_audit}/${sd_run_id}.json" 2>/dev/null || true
+  fi
+  emit deny "Command review (the Thing): DENIED — this command would disable or tamper with the Thing itself (${sd_concern}). Refused unilaterally (§B.9.5); turn the Thing off in the comfort-posture dashboard instead. Sága log: .ravenclaude/runs/thing/${sd_run_id}.json"
+fi
+
 [ "$enabled" != "true" ] && exit 0   # category not toggled on -> normal flow
 
-category="$(printf '%s' "$decision" | jq -r '.category // "unknown"')"
 config_error="$(printf '%s' "$decision" | jq -r '.config_error // empty')"
 [ -n "$config_error" ] && emit ask "Command review config error ($config_error); deferring to you."
 

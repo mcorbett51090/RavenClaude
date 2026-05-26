@@ -2,31 +2,25 @@
 
 All notable changes to the RavenClaude marketplace and its plugins. Format loosely follows [Keep a Changelog](https://keepachangelog.com/). The marketplace version (`metadata.version` in `.claude-plugin/marketplace.json`) bumps when the catalog shape or cross-plugin contracts change; individual plugins have their own semver tracked in their `plugin.json`.
 
-## ravenclaude-core 0.27.0 — 2026-05-26 (decision-review tribunal)
+## ravenclaude-core 0.27.0 — 2026-05-26 (decision-review tribunal + posture re-apply on the web)
 
-Extends the tribunal (the Thing) from command review to **decision review**: yes/no decisions can now be routed to a panel verdict instead of always interrupting the human.
+Extends the tribunal (the Thing) from command review to **decision review**: yes/no decisions can now be routed to a panel verdict instead of always interrupting the human. Also makes a dashboard-composed comfort posture take effect on Claude Code on the web automatically.
 
 ### ravenclaude-core 0.27.0
 
 - **New `scripts/thing-decide.py`** — adjudicates a yes/no decision by convening the same role-shaped seats as command review (Forseti / Mímir / Heimdall, + Thor on a split) and returning `yes` / `no` / `defer`. **Self-contained:** it convenes its own seats and does NOT touch the live `PreToolUse(Bash)` path (`thing-seat.sh` / `thing-orchestrator.sh`), so command review is unchanged. Reuses `thing-decision.resolve_panel_config` so the two panels never drift.
 - **New skill `skills/decision-review`** — the operating reference: before asking the human a yes/no question, route it through the tribunal; act on a binding `yes`/`no`, ask the human on `defer`. Also drives the post-PR retrospective.
 - **Safety envelope (binding mode):** `decision_review: off | advisory | binding` in `.ravenclaude/comfort-posture.yaml`, **off by default**. High-blast / irreversible decisions never auto-resolve (always `defer`); abstention / low-confidence / split-to-defer / detected injection all fail safe to `defer`. Every routed decision is Sága-logged under `.ravenclaude/runs/thing/decisions/`.
+- **New SessionStart hook `hooks/reapply-posture.sh`** — regenerates the project-layer permission rules from `.ravenclaude/comfort-posture.yaml` at session start (via `apply-comfort-posture.py --scope project`), so a dashboard-composed posture persists on Claude Code on the web (ephemeral container; only committed files survive). Silent no-op without a posture file; never blocks; idempotent. Registered in `hooks/hooks.json` + the dev-mirror; setup checklist in `docs/comfort-posture-web-setup.md`. _(Originally cut as 0.26.0 on this branch; rebased onto main's 0.26.0 = tribunal T4, so it ships in 0.27.0.)_
 - **Docs** — `docs/post-pr-decision-review.md` updated to "shipped" with the classification rubric, seat-routing map, and the all-yes/no-questions scope; the standing trigger lives in the root `CLAUDE.md`.
 
 **Verification caveat:** the seats call `claude -p`, which can't run in CI / some sandboxes. The engine is tested via the `THING_DECIDE_MOCK_VERDICT` hook (every tally + envelope path); true live behavior needs a real session with the CLI present.
 
 **Migration for consumers:** `/plugin marketplace update ravenclaude` + `/reload-plugins`. Strictly additive — `decision_review` is off by default, so behavior is unchanged until opted in.
 
-## ravenclaude-core 0.26.0 — 2026-05-26 (comfort-posture auto-apply on the web)
+## ravenclaude-core 0.26.0 — 2026-05-26 (command-review tribunal T4 — injection & self-protection hardening) (#94)
 
-Makes a dashboard-composed comfort posture take effect on Claude Code on the web without anyone running `/set-posture` by hand. On the web the container is ephemeral and only committed files survive, so the committed project-layer posture is the one that persists across sessions.
-
-### ravenclaude-core 0.26.0
-
-- **New SessionStart hook `hooks/reapply-posture.sh`** — regenerates the project-layer permission rules from `.ravenclaude/comfort-posture.yaml` at session start (via the existing `apply-comfort-posture.py --scope project`). Silent no-op when no posture file exists; never blocks a session; idempotent (re-running on an unchanged YAML produces identical output, so no spurious git diff). Registered in both `hooks/hooks.json` (consumers, `${CLAUDE_PLUGIN_ROOT}`) and the dev-mirror `.claude/settings.json` (`${CLAUDE_PROJECT_DIR}`).
-- **Docs** — `docs/comfort-posture-web-setup.md`: maintainer + per-client setup checklist for the GitHub Pages → paste-to-Claude → committed-posture flow, including why a served dashboard can't reach a web user (no inbound port forwarding) and the project-layer persistence rationale.
-
-**Migration for consumers:** `/plugin marketplace update ravenclaude` + `/reload-plugins`. Strictly additive — no breaking changes. Consumers who never created `.ravenclaude/comfort-posture.yaml` see no behavior change (the hook no-ops silently).
+Injection and self-protection hardening for the command-review tribunal (the Thing): the seats are hardened against prompt-injection carried in command context, and the panel resists attempts to disable its own review. Shipped via PR #94 (merged to `main`). See `docs/tribunal-review-feature-design.md` (§B.9) and the bidirectional fixtures in `scripts/audit-gates.sh` (Gates 15–16).
 
 ## marketplace 0.25.0 — 2026-05-22 (lesson capture: cross-platform-determinism)
 
