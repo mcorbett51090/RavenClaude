@@ -122,10 +122,18 @@ works once `classify_payload` returns those categories.
 
 ## Phasing
 
-> Engine Foundation (Phase 0) lands first and gates all of the below.
+> **Two parallel tracks (owner decision 2026-05-26).** Track A and Track B share
+> no code and can proceed concurrently (at the cost of two concurrent
+> security-review PRs):
+>
+> - **Track A — Pre-phase only.** Author the 14 `slm.*`/`spi.*` concerns + flip
+>   the 2 Bash categories live. Self-contained: needs **no** Engine Foundation
+>   (it's pure Bash, already classified). Ships independently.
+> - **Track B — Engine Foundation (Phase 0) → Phase 1 → 2 → 3 → 4.** Engine
+>   Foundation lands first and gates everything in this track.
 
-- **Pre-phase — flip `shell_local_mutate` + `shell_package_install` live. NOT
-  free (P0-4):** requires authoring all 14 concerns to satisfy Gate 21 #17
+- **Pre-phase (Track A) — flip `shell_local_mutate` + `shell_package_install`
+  live. NOT free (P0-4):** requires authoring all 14 concerns to satisfy Gate 21 #17
   (triggers OR `judgment_only`), a security-reviewed constitution change with new
   regexes that must pass Gate 16 (compile) + new Gate 21 FP/FN corpus cases.
   Per-concern disposition (final call is part of the PR's security review):
@@ -162,23 +170,22 @@ in `plugin.json` **and** `marketplace.json` (Gate 8 cross-check); regenerate
 repo-guide + copilot (Gate 11, Gate 20 freshness). `thing.yaml` already lists all
 12 categories in `category_tier_map` — no change.
 
-## Open decisions for the owner
+## Resolved decisions (owner, 2026-05-26)
 
-1. **EDIT-rewrite for file content** — defer; **ALLOW/DENY-only for file shapes
-   v1.** Accepted residual risk: the machine-checked `concerns(revised) ⊆
+1. **EDIT-rewrite for file content → ALLOW/DENY-only v1.** Defer the rewrite.
+   Accepted residual risk: the machine-checked `concerns(revised) ⊆
    concerns(original)` invariant does **not** exist for file content — a seat's
-   reasoning is the only screen on edit content. (Recommended; confirm.)
-2. **URL/MCP have no verifiable rewrite** → EDIT disabled for those shapes.
-   (Recommended; confirm.)
-3. **MCP unknown/unconventional verb** — the v1 "deny-write vs ask" framing is
-   moot: reads are never surfaced and `mcp_tools` base tier is `medium`
-   (`thing-decision.py:361`), so an `ask` only happens if `gate_floor ≤ medium`.
-   **Real decision: how to classify an unknown verb's `is_read` + tier.** Proposal:
-   unknown verb → treat as **write, tier escalated** (surfaces for review) rather
-   than silent read. Owner call.
-4. **WebFetch `prompt`** — `xc.injection-attempt` is `pre_llm_deny` (hard DENY, no
-   panel recourse). Reviewing the `prompt` means a legitimate prompt containing
-   "ignore previous…" patterns gets hard-denied with no appeal — higher-stakes
-   than "false positives." Choice: **URL-only** (safer, misses prompt-injection-
-   via-fetch) vs **URL+prompt** (catches it, risks hard-denying legit prompts).
-   Owner call.
+   reasoning + the DENY path are the only screen on edit content.
+2. **URL/MCP EDIT disabled** (no verifiable rewrite) — consistent with #1.
+3. **MCP unknown/unconventional verb → classify as WRITE at an escalated tier**
+   (surfaces for review), never a silent read. (The v1 "deny-write vs ask"
+   framing was moot — reads are never surfaced and `mcp_tools` base tier is
+   `medium`, `thing-decision.py:361`; the real lever is `is_read` + tier, set
+   here to write/escalated.) Phase 4 also adds the server allowlist (P1-3).
+4. **WebFetch → review the URL only, not the `prompt`.** Rationale: the actual
+   prompt-injection-via-fetch threat is the *fetched content* reaching the model
+   **after** the fetch, which a PreToolUse screen cannot observe; the `prompt`
+   field is our own instruction to the summarizer, so screening it yields false
+   `pre_llm_deny` hard-denies (no appeal) without catching the real threat. The
+   URL screen covers SSRF, cloud-metadata endpoints, `localhost`, and
+   credential-in-URL.
