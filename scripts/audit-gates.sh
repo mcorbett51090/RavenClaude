@@ -379,6 +379,42 @@ rc=0; [[ "$(saga_seat_count)" == "3" ]] || rc=1
 gate "thing: high-severity routes to 3 seats" must_pass "$rc"
 
 echo
+echo "── Gate 15: decision-review tribunal (thing-decide.py) ───────────────────"
+# Proves the decision panel discriminates yes/no/defer, binding mode auto-resolves
+# a confident yes, high-blast decisions never auto-resolve (defer), a split convenes
+# Thor, and abstention/injection fail safe to defer. CI-safe — every case uses the
+# THING_DECIDE_MOCK_VERDICT hook, so NO live `claude` call is made.
+DECIDE15=plugins/ravenclaude-core/scripts/thing-decide.py
+G15B="$TMP/decide-binding"; G15O="$TMP/decide-off"
+mkdir -p "$G15B/.ravenclaude" "$G15O/.ravenclaude"
+printf 'schema_version: 5\ndecision_review: binding\n' > "$G15B/.ravenclaude/comfort-posture.yaml"
+printf 'schema_version: 5\n' > "$G15O/.ravenclaude/comfort-posture.yaml"
+decide_field() { # $1=mock $2=root $3=high_blast $4=field -> prints field value
+  printf '{"question":"q?","context":"x","high_blast":%s}' "$3" \
+    | THING_DECIDE_MOCK_VERDICT="$1" python3 "$DECIDE15" --root "$2" decide 2>/dev/null \
+    | jq -r ".$4 // empty"
+}
+# off mode (default) -> defer: nothing is auto-decided unless opted in
+rc=0; [[ "$(decide_field yes "$G15O" false verdict)" == "defer" ]] || rc=1
+gate "decide: off mode -> defer" must_pass "$rc"
+# binding + confident yes -> yes, binding=true
+rc=0; { [[ "$(decide_field yes "$G15B" false verdict)" == "yes" ]] \
+        && [[ "$(decide_field yes "$G15B" false binding)" == "true" ]]; } || rc=1
+gate "decide: binding yes -> yes (binding)" must_pass "$rc"
+# high-blast never auto-resolves -> defer even on a confident yes
+rc=0; [[ "$(decide_field yes "$G15B" true verdict)" == "defer" ]] || rc=1
+gate "decide: high-blast -> defer (never auto-resolve)" must_pass "$rc"
+# split panel convenes Thor and reaches a defined verdict (no)
+rc=0; [[ "$(decide_field split "$G15B" false verdict)" == "no" ]] || rc=1
+gate "decide: split -> Thor -> no" must_pass "$rc"
+# >=2 seats abstain -> defer (fail safe)
+rc=0; [[ "$(decide_field abstain "$G15B" false verdict)" == "defer" ]] || rc=1
+gate "decide: abstain -> defer (fail safe)" must_pass "$rc"
+# injection in the decision context -> defer
+rc=0; [[ "$(decide_field inject "$G15B" false verdict)" == "defer" ]] || rc=1
+gate "decide: injection -> defer" must_pass "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 if [[ "$FAIL" -gt 0 ]]; then

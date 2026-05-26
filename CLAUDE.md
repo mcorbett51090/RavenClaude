@@ -10,16 +10,20 @@ This file is Claude Code's entry point. The `@AGENTS.md` import above pulls in t
 
 For non-trivial changes touching more than two files (or any manifest), enter plan mode first and present a Keep / Update / Deny structure before writing. This matches Matt's documented preference; Cursor/Codex users won't see this guidance and don't need to.
 
-## Post-PR decision review (added 2026-05-26)
+## Decision review — route yes/no decisions through the tribunal (added 2026-05-26)
 
-After opening each PR, run a **decision review** before considering the task done — this is a standing step, not an optional extra:
+**All yes/no decisions route through the tribunal (the Thing) before they reach Matt.** The `decision-review` skill convenes the same seats as command review on a yes/no question and returns `yes` / `no` / `defer`; the engine is [`plugins/ravenclaude-core/scripts/thing-decide.py`](plugins/ravenclaude-core/scripts/thing-decide.py). Full operating reference: [`docs/post-pr-decision-review.md`](docs/post-pr-decision-review.md).
 
-1. **Enumerate** every yes/no (binary) decision made during the work — both the ones surfaced to Matt and the ones taken autonomously.
-2. **Classify** each as _tribunal-eligible_ (a defensible answer is derivable from rules, CI gates, repo conventions, or facts) or _needs-human_ (a genuine preference / taste / risk-appetite call).
-3. **Route the tribunal-eligible ones through the tribunal (the Thing)** for a verdict, and record the outcome. The Thing currently adjudicates shell commands only, so live decision-adjudication is staged — see [`docs/post-pr-decision-review.md`](docs/post-pr-decision-review.md) for the classification rubric, the seat-routing map, and the engine extension that makes it real.
-4. **Log** the review as a comment on the PR (the per-PR artifact).
+**Real-time (every yes/no question):** before asking Matt a yes/no question, route it through the tribunal.
 
-Goal: shrink the set of decisions that interrupt Matt to only genuine-preference calls, and give the rule-derivable ones an auditable second opinion instead of a silent autonomous choice.
+- A **binding** `yes`/`no` → act on it without pausing Matt.
+- `defer` → ask Matt. The panel defers genuine preferences, low-confidence/split calls, and anything tagged high-blast.
+
+**High-blast / irreversible decisions never auto-resolve** (force-push, deletes, prod actions, the `security_deny` family) — always `defer` to Matt, regardless of mode. The mode knob `decision_review: off | advisory | binding` lives in `.ravenclaude/comfort-posture.yaml`; **off by default**, so nothing is auto-decided unless Matt opts in. The seats run via `claude -p`, so live verdicts need that available; absent it, the panel abstains and fails safe to `defer`.
+
+**Post-PR retrospective:** after opening each PR, run the decision review over the PR's decisions — enumerate, classify _tribunal-eligible_ vs _needs-human_, route the eligible ones, and log the result as a PR comment.
+
+Goal: shrink the decisions that interrupt Matt to only genuine-preference calls, and give the rule-derivable ones an auditable panel verdict instead of a silent autonomous choice.
 
 ## Memory references
 

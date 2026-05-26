@@ -39,18 +39,29 @@ Each eligible decision is routed to the tribunal seat whose axis it matches (sam
 
 A decision can cite more than one seat; the panel tally and tie-break rules are identical to command review.
 
-## Running a decision through the tribunal
+## Scope: all yes/no questions route through the tribunal
 
-**Today (T3):** the Thing's seats (`thing-seat.sh`) are hardwired to shell commands — they require `THING_CMD` and reason over command-shaped concern IDs. They **cannot** yet adjudicate an abstract yes/no decision. So in the current state the per-PR review produces the **classification + seat-routing determination** (the table above, applied), which is the "determine how we can get it to run through the tribunal" deliverable.
+This is not only a post-PR retrospective. **Every yes/no decision routes through the tribunal before it reaches the human** — the post-PR pass is just one application. The flow:
 
-**The engine extension that makes it live (proposed — needs its own build + review):**
+1. Facing a yes/no decision (real-time, or while reviewing a PR), invoke the `decision-review` skill.
+2. A **binding** `yes`/`no` → act on it without pausing the human.
+3. `defer` → ask the human. The panel defers genuine preferences, low-confidence / split calls, anything tagged `high_blast`, and any decision when `decision_review` is `off`.
 
-1. **Decision mode in the seat runner.** Teach `thing-seat.sh` a `THING_DECISION` input (a yes/no question + structured context) alongside the existing `THING_CMD`, with decision-flavored role briefs (Forseti judges risk/reversibility, Mímir judges rule/convention compliance, Thor breaks ties). Verdict contract becomes `{"verdict":"yes"|"no"|"defer","reasoning","confidence","concerns_cited"}`. The command path is untouched — decision mode is a sibling, guarded by which input is set.
-2. **A decision entrypoint** (`thing-decide.py` or a flag on `thing-decision.py`) that convenes the panel, applies the same parallel-seats + Thor-on-split + confidence-threshold logic, and writes a Sága-log entry under `.ravenclaude/runs/thing/decisions/`.
-3. **A `/decision-review` skill** in `ravenclaude-core` that automates the per-PR loop: collect the session's decisions, classify, fan the eligible ones to the decision entrypoint, and assemble the PR-comment artifact.
-4. **Autonomy knob.** A `decision_review` setting (sibling of `design_checkins`) controls whether the tribunal's verdict on an eligible decision is *advisory* (recorded, agent still acts) or *binding* (agent must follow `yes`/`no`, `defer` → ask Matt). Default advisory until the panel earns trust.
+## Running a decision through the tribunal (shipped)
 
-This is architecturally significant (it parallels the entire T3 command-review path), so it ships as its own PR after review — not folded into an unrelated change.
+The engine is [`plugins/ravenclaude-core/scripts/thing-decide.py`](../plugins/ravenclaude-core/scripts/thing-decide.py), driven by the [`decision-review`](../plugins/ravenclaude-core/skills/decision-review/SKILL.md) skill. It is **self-contained** — it convenes its own seats and does **not** touch the live `PreToolUse(Bash)` command path (`thing-seat.sh` / `thing-orchestrator.sh`), so command review stays pristine. It reuses `thing-decision.resolve_panel_config`, so the decision panel never drifts from the command panel.
+
+```bash
+echo '{"question":"<yes/no>","context":"<why + the rule/fact that bears on it>","high_blast":false}' \
+  | python3 "${CLAUDE_PLUGIN_ROOT}/scripts/thing-decide.py" --root "$CLAUDE_PROJECT_DIR" decide
+```
+
+- Seats run sequentially (a review is not latency-critical); abstention / low-confidence / split-to-defer / injection all fail safe to `defer`.
+- `decision_review: off | advisory | binding` in `.ravenclaude/comfort-posture.yaml` controls autonomy; **off by default**.
+- `high_blast: true` decisions never auto-resolve — always `defer`.
+- Every routed decision is Sága-logged under `.ravenclaude/runs/thing/decisions/`.
+
+**Verification caveat:** the seats call `claude -p`, which can't run in CI or some sandboxes. The engine is tested via the `THING_DECIDE_MOCK_VERDICT` hook (every tally + envelope path) and the gate-audit; true live behavior needs a real session with the CLI present.
 
 ## Worked example
 
