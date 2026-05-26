@@ -59,6 +59,12 @@ jobs:
           done
           exit $status
 
+      - name: Validate skill/agent frontmatter (strict YAML)
+        # A skill/agent whose frontmatter doesn't parse under a STRICT YAML parser
+        # silently fails to load in strict hosts (e.g. GitHub Copilot) even though
+        # Claude Code's lenient loader tolerates it. Catch it here.
+        run: python3 scripts/check-frontmatter.py
+
       - name: Validate hook shell syntax
         run: |
           set -euo pipefail

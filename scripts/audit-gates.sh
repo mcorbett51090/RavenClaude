@@ -533,6 +533,20 @@ rc=0; [[ "$(decide_field inject "$G17B" false verdict)" == "defer" ]] || rc=1
 gate "decide: injection -> defer" must_pass "$rc"
 
 echo
+echo "── Gate 18: skill/agent frontmatter strict-YAML ──────────────────────────"
+# Proves check-frontmatter.py catches a malformed (unquoted colon-space) skill
+# frontmatter AND passes the real tree. This is the gate that would have caught
+# the thing-skill load failure — strict YAML hosts (e.g. Copilot) reject such a
+# skill even though Claude Code's lenient loader tolerates it.
+FM_BAD="$TMP/fm-bad/plugins/x/skills/bad"
+mkdir -p "$FM_BAD"
+printf -- '---\nname: bad\ndescription: foo: bar baz\n---\nbody\n' > "$FM_BAD/SKILL.md"
+rc=0; python3 scripts/check-frontmatter.py --root "$TMP/fm-bad" >/dev/null 2>&1 || rc=$?
+gate "frontmatter (unquoted colon-space)" must_fail "$rc"
+rc=0; python3 scripts/check-frontmatter.py >/dev/null 2>&1 || rc=$?
+gate "frontmatter (real tree)" must_pass "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 if [[ "$FAIL" -gt 0 ]]; then

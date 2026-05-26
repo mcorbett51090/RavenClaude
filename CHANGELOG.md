@@ -2,6 +2,16 @@
 
 All notable changes to the RavenClaude marketplace and its plugins. Format loosely follows [Keep a Changelog](https://keepachangelog.com/). The marketplace version (`metadata.version` in `.claude-plugin/marketplace.json`) bumps when the catalog shape or cross-plugin contracts change; individual plugins have their own semver tracked in their `plugin.json`.
 
+## ravenclaude-core 0.27.1 — 2026-05-26 (fix: `thing` skill load + frontmatter gate + dashboard docs)
+
+Bug fix + hardening, prompted by a consumer install under GitHub Copilot.
+
+- **Fix — `thing` skill failed to load in strict YAML hosts.** Its `description` frontmatter was an unquoted scalar containing an inline `: ` (`…explaining the tribunal: the PreToolUse…`), which is a YAML mapping indicator. Claude Code's lenient loader tolerated it, but strict parsers (e.g. Copilot) threw `mapping values are not allowed here` and dropped the skill. The description is now quoted. It was the only one of 22 skills affected.
+- **New CI gate — skill/agent frontmatter strict-YAML validation.** `scripts/check-frontmatter.py` parses every `skills/*/SKILL.md` and `agents/*.md` frontmatter with a strict parser and requires a string `description`; wired into `validate-marketplace.yml` and covered bidirectionally by `audit-gates.sh` Gate 18. This is the gate that would have caught the bug — no malformed frontmatter can ship again.
+- **Docs — how to open the comfort-posture dashboard.** The consumer `CLAUDE.md` template and the plugin README now explain where `dashboard.html` lives (the plugin cache), how to open it (static page, no server), the Copy→`comfort-posture.yaml`→`/set-posture` flow, and a **cross-tool note** that the dashboard / comfort-posture / tribunal are Claude-Code-specific (Copilot/Cursor/Codex don't execute them).
+
+**Migration for consumers:** `/plugin marketplace update ravenclaude` + `/reload-plugins`. The `thing` skill will then load in strict hosts. No behavior change for existing Claude Code installs beyond the skill now loading everywhere.
+
 ## ravenclaude-core 0.27.0 — 2026-05-26 (decision-review tribunal + posture re-apply on the web)
 
 Extends the tribunal (the Thing) from command review to **decision review**: yes/no decisions can now be routed to a panel verdict instead of always interrupting the human. Also makes a dashboard-composed comfort posture take effect on Claude Code on the web automatically.

@@ -25,6 +25,18 @@ The `ravenclaude-core` plugin installs four hooks automatically:
 
 To disable any of them, override in `.claude/settings.json`.
 
+## Comfort-posture dashboard (Claude Code only)
+
+`ravenclaude-core` ships an interactive **comfort-posture dashboard** — a point-and-click way to set Claude Code permission rules (deny / ask / allow, per category and per settings layer) and toggle the command-review tribunal (the Thing). It's a static, no-backend HTML page that ships **inside the installed plugin**, at the plugin cache root:
+
+```
+~/.claude/plugins/cache/ravenclaude/ravenclaude-core/<version>/dashboard.html
+```
+
+(On Windows: the equivalent path under your user profile's `.claude/plugins/cache`.) Open that file in any browser — it needs no server. Make your choices, then use the page's **Copy** / **Download** button to put the generated YAML into `.ravenclaude/comfort-posture.yaml`, and run `/set-posture` to translate it into `settings.json` permission rules. (On Claude Code on the web, the `reapply-posture` SessionStart hook re-applies a committed posture automatically.)
+
+> **Cross-tool note:** the dashboard, comfort-posture, and the command-review tribunal are **Claude-Code-specific** — they work through Claude Code's `settings.json` permissions and PreToolUse hooks. Cursor, Codex, Aider, and GitHub Copilot do **not** execute them, so opening the dashboard there has no effect on those tools.
+
 ## Memory
 
 User-scoped memory lives under `~/.claude/projects/`. Update `MEMORY.md` when something durable about the user, project, or working style changes.
