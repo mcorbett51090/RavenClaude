@@ -110,6 +110,7 @@ For each (CLI, environment, identity) tuple discovered, build an entry following
 - **Environment name + ID/URL** — from the probe (`pac org list` returns names + IDs; `az account list` returns subscription names + IDs; etc.)
 - **Role** — inferred from probe results (e.g., `pac admin list-app-roles` returned "System Customizer" → role: System Customizer)
 - **Auth mechanism** — from the probe (`pac auth list` says "Service Principal" or "User"; `aws sts get-caller-identity` shows `arn:aws:iam::...:user/X` vs `arn:aws:sts::...:assumed-role/X`)
+- **Token-acquisition path (domain-neutral seam)** — when a probed CLI has a token-acquisition guide in an *installed domain plugin* (e.g. `power-platform/knowledge/dataverse-token-acquisition.md`), record a one-line pointer to it plus *which* path applies given what's authenticated here (client-secret present / cloud CLI logged in / vendor CLI has a cached session / interactive only). Record the *path name + a pointer only* — never the domain plugin's specific commands, scopes, or any token value (those live in the domain plugin). This is what stops a future session re-deriving the auth path from scratch; the domain plugin owns the how.
 - **Pre-authorized action categories** — default-conservative inference per role:
   - **System Customizer / sysadmin / Owner / Admin / full IAM perms** → broad set (solution import/export, Web API, pac CLI, programmatic flow creation, env-var/connection-ref edits)
   - **Contributor / write-but-not-admin** → narrower set (Web API reads, scoped writes)

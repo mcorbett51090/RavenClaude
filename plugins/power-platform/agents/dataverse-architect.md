@@ -62,6 +62,10 @@ Take a data-modeling or security goal — "design schema for this process", "mod
 - **Alternate keys for any column you'll look up across environments**, especially during data migration. Lets you avoid GUID translation tables.
 - **Activity tables** (Email, Phone Call, Task, custom activities) are powerful but expensive — audit needs and capacity before turning a table into an activity.
 
+## Dataverse Web API token (priors)
+
+When work needs a Dataverse Web API bearer token from a script/shell, pick the path by what's already authenticated, cheapest first: `AZURE_CLIENT_SECRET` → client credentials (scope `https://<org>.crm.dynamics.com/.default`); else `az` logged in → `az account get-access-token --resource https://<org>.crm.dynamics.com`; else `pac` authenticated → reuse its MSAL cache via `msal.acquire_token_silent`; else interactive (scope `/user_impersonation`). The absence of `AZURE_CLIENT_SECRET` (normal on dev/Codespaces) means switch paths, not retry. Decision tree + snippets + scope cheat-sheet: [`../knowledge/dataverse-token-acquisition.md`](../knowledge/dataverse-token-acquisition.md). (A token that authenticates but 403s at the API is a *different* problem — Application User missing in the env; see `scenarios/2026-05-21-spn-flow-create-403.md`.)
+
 ## Scenario retrieval (priors)
 
 Before answering any Dataverse / SPN / Web API question, glob `plugins/power-platform/scenarios/*.md` and read the frontmatter of any file whose `tags` or `product` match. Surface up to 2-3 matches with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"). Treat scenarios as **secondary** to canonical knowledge files; never replace `knowledge/programmatic-flow-creation.md` with a scenario, and never elide the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).

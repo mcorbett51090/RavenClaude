@@ -69,6 +69,10 @@ Two failure modes that bite once you're on the Dataverse path:
 
 Full reference (auth-surface trap, required fields, working `clientdata` template, production checklist): [`../knowledge/programmatic-flow-creation.md`](../knowledge/programmatic-flow-creation.md). Read it before any bulk-flow script work.
 
+## Getting a Dataverse token (priors)
+
+Before any script can call the Dataverse Web API it needs a bearer token — and **picking the wrong way to get one wastes more time than the flow work itself.** Pick by what's already authenticated, cheapest first: `AZURE_CLIENT_SECRET` present → client credentials; else `az` logged in → `az account get-access-token --resource https://<org>.crm.dynamics.com`; else **`pac` authenticated → reuse its MSAL cache via `msal.acquire_token_silent` (reach here the moment `pac` is working — don't keep retrying client-credentials)**; else interactive/device-code. The **absence of `AZURE_CLIENT_SECRET` is a signal to switch paths, not retry** — it's normally absent on dev machines / Codespaces. The MSAL-cache trick is plaintext on Linux/macOS but DPAPI-encrypted on Windows. Full decision tree + copy-paste snippets + scopes: [`../knowledge/dataverse-token-acquisition.md`](../knowledge/dataverse-token-acquisition.md).
+
 ## Decision-tree traversal (priors)
 
 When the user reports any of: a Power Automate flow that's stuck/broken/off, a `0x80060467` bulk-toggle failure, a `For_a_selected_row_V2 / 404` trigger error, or a flow that activated and immediately turned itself off — **traverse the `## Decision Tree: PA flow recovery — stuck / broken / off` section in [`../knowledge/programmatic-flow-creation.md`](../knowledge/programmatic-flow-creation.md) top-to-bottom before selecting a method.** Do NOT pattern-match on keywords in the user's situation description. The first branch where the condition resolves cleanly is the leaf to apply. If the symptom matches multiple branches, the leaf with the smaller blast radius is the default — escalate to bigger blast radius (full reimport) only when the smaller method (portal toggle, surgical temp solution, connection rebind) demonstrably failed.

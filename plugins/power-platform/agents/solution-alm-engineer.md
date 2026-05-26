@@ -70,6 +70,7 @@ Operational consequences for ALM design:
 - **For bulk flow create / update / delete in pipelines, prefer the Dataverse Web API.** Cloud flows are `workflow` records (`category=5`, `type=1`, `primaryentity="none"`); the same SPN you already use for solution import works without any new permission grant. Use `AddSolutionComponent` with `ComponentType=29` to bind newly-created flows to a named solution.
 - **Document the auth surface in the script header.** A future contributor adding "let me just hit the PA API" is the most likely failure mode; head it off in the script comments.
 - **`pac flow` does not exist** (verified v2.7.4). No CLI escape hatch.
+- **Getting the Dataverse token for a pipeline/script:** pick by what's authenticated, cheapest first — `AZURE_CLIENT_SECRET` → client credentials (the CI path); else `az` logged in → `az account get-access-token --resource https://<org>.crm.dynamics.com`; else `pac` authenticated → reuse its MSAL cache via `msal.acquire_token_silent`. The absence of `AZURE_CLIENT_SECRET` (common on dev machines/Codespaces) is a signal to switch paths, not retry. Decision tree + snippets: [`../knowledge/dataverse-token-acquisition.md`](../knowledge/dataverse-token-acquisition.md).
 
 Full reference (the trap, the workaround, the `clientdata` shape gotchas, production checklist for bulk creates): [`../knowledge/programmatic-flow-creation.md`](../knowledge/programmatic-flow-creation.md).
 

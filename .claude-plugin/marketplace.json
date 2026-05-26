@@ -13,7 +13,7 @@
       "name": "ravenclaude-core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: a Team Lead that dispatches 14 specialist agents (architect, backend/frontend/fullstack coders, code + security reviewers, tester-QA, data-engineer, project-manager, documentarian, designer, prompt-engineer, partner-success), 22 skills, format/lint/test gates, hooks, rules, and templates. Ships the Capability Grounding Protocol (pre-action environment + decision-tree checks, alternate-methods enumeration, honest blocked-reporting), the Structured Output Protocol for agent handoffs, a Researcher meta-skill for knowledge freshness, and a point-and-click comfort-posture dashboard that writes Claude Code permission rules — per layer (user/local/project) and per individual permission, on a 3-level deny/ask/allow scale, plus an opt-in command-review tribunal (the Thing): a tiered panel voting allow/edit/deny, with a configurable human-gate. Slash commands: /init-agent-ready, /wrap, /set-posture. Domain plugins extend core via skills + knowledge rather than parallel agents.",
-      "version": "0.32.0",
+      "version": "0.32.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -30,7 +30,7 @@
       "name": "power-platform",
       "source": "./plugins/power-platform",
       "description": "Microsoft Power Platform specialist team — 11 specialists (Test Studio + DAX + pac solution check tester, PBIP-git + DAX + ADO power-bi-engineer, canvas/Power Fx, Power Automate + connectors, Dataverse modeling, model-driven apps, pac CLI + ALM, tenant governance/DLP, PCF, Copilot Studio + AI Builder, Power Pages). 18 skills spanning solution-check, DAX, ALM, BI, and maintainability review. House-opinions hook covers 8 mechanically-detectable §3/§4 violations. v0.11.0: first Mermaid decision tree in a knowledge file (PA flow recovery). v0.10.0: scenarios bank with 3 seed scenarios from the customer DEV engagement. **v0.12.0 — all 11 agents now ship example-scenario frontmatter** (audience + works_with + scenarios + quickstart), feeding the repo-guide's per-agent cards and Overview-tab use-case lookup. Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval (requires `pip install pbix-mcp`).",
-      "version": "0.12.3",
+      "version": "0.12.4",
       "author": {
         "name": "Matt Corbett"
       },
