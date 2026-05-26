@@ -6,6 +6,8 @@ kind: ravenclaude-built
 order: 40
 summary: "A SessionStart hook injects what the project touches, the auth it holds (names only), and the effective permissions — so the agent never acts as if it has no access."
 see_also: [session-start-context, comfort-posture]
+node_links:
+  G: permission-layers
 last_verified: 2026-05-26
 refresh_when: "The capability-orientation hook's banner contents or its salience-not-enforcement framing change."
 sources:

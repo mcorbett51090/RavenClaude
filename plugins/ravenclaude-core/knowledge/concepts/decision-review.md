@@ -6,6 +6,8 @@ kind: ravenclaude-built
 order: 36
 summary: "A sibling tribunal votes yes/no/defer on yes-or-no DECISIONS before they reach you — binding only if you opt in, and high-blast calls always defer."
 see_also: [command-review-tribunal, model-diversity]
+node_links:
+  PANEL: command-review-tribunal
 last_verified: 2026-05-26
 refresh_when: "The decision-review modes, the defer rules, or the high-blast carve-out change."
 sources:

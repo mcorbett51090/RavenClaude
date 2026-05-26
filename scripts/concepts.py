@@ -109,6 +109,16 @@ def _parse_one(path: Path) -> dict:
     if widget is not None and (not isinstance(widget, str) or not widget.strip()):
         raise ConceptError(f"{rel}: 'widget' must be a non-empty string (an interactive widget name)")
 
+    node_links = fm.get("node_links")
+    if node_links is not None:
+        if not isinstance(node_links, dict) or not all(
+            isinstance(k, str) and isinstance(v, str) for k, v in node_links.items()
+        ):
+            raise ConceptError(f"{rel}: 'node_links' must be a mapping of Mermaid node id -> concept id")
+        node_links = {str(k): v for k, v in node_links.items()}
+    else:
+        node_links = {}
+
     try_it = fm.get("try_it")
     if try_it is not None:
         if (
@@ -164,6 +174,7 @@ def _parse_one(path: Path) -> dict:
         "see_also": list(see_also),
         "widget": widget,
         "try_it": try_it,
+        "node_links": node_links,
         "last_verified": last_verified,
         "refresh_when": refresh_when,
         "sources": norm_sources,
@@ -189,6 +200,9 @@ def load_concepts(root: Path) -> list[dict]:
         for ref in c["see_also"]:
             if ref not in ids:
                 raise ConceptError(f"{c['id']}: see_also references unknown concept '{ref}'")
+        for node, ref in c["node_links"].items():
+            if ref not in ids:
+                raise ConceptError(f"{c['id']}: node_links['{node}'] references unknown concept '{ref}'")
 
     cat_min = {}
     for c in concepts:
