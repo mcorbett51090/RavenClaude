@@ -43,7 +43,15 @@ schema:
   #                     command that classifies into a category whose toggle is off.
   #                     Implies pre_llm_deny. Reserved for "the Thing cannot disable
   #                     itself" — see scripts/thing-concerns.py `screen_always`.
-  optional_fields: [triggers, pre_llm_deny, always_screen]
+  #   judgment_only   — true for concerns with NO clean deterministic regex: the LLM
+  #                     seat judges them (volume/rate, "is this remote a fork", "is the
+  #                     logged file sensitive", audit-trail etiquette). They carry no
+  #                     `triggers` by design. CI (Gate 21 / §B.9 #17) requires every
+  #                     LIVE-category concern to have EITHER `triggers` OR this flag, so
+  #                     a concern is never ACCIDENTALLY undetectable. Routing does not
+  #                     collapse: the category's base risk tier (thing-decision.py)
+  #                     convenes the panel regardless, and the seat then weighs these.
+  optional_fields: [triggers, pre_llm_deny, always_screen, judgment_only]
   severities: [critical, high, medium, low]
 
 # Cross-cutting concerns apply to every category. Evaluated first; any hit is
@@ -398,16 +406,19 @@ categories:
     - id: shr.recursive-traversal-cost
       name: find / grep -r over a large tree
       severity: low
+      judgment_only: true
       description: A `find /` or `grep -r foo /` hangs the agent and burns IO.
       resolution: EDIT to scope the search. ALLOW with banner if the user explicitly invoked global search.
     - id: shr.gh-api-rate-limit-risk
       name: Many gh pr view / gh issue view in a tight loop
       severity: medium
+      judgment_only: true
       description: GitHub API has rate limits; agents in loops have hit them and broken downstream tooling.
       resolution: EDIT to batch via gh api graphql if N > 10. ALLOW otherwise.
     - id: shr.git-log-sensitive-files
       name: git log / git show on a file matching secret heuristics
       severity: medium
+      judgment_only: true
       description: A committed secret may be readable via history even after a "fix" commit.
       resolution: ALLOW with banner suggesting git-filter-repo; do not DENY (the secret is already there).
   shell_local_mutate:
@@ -488,6 +499,7 @@ categories:
     - id: srm.cross-fork-push
       name: git push <fork> where the remote isn't the originating fork
       severity: high
+      judgment_only: true
       description: Could leak in-progress work to an unrelated fork.
       resolution: DENY.
     - id: srm.publish-without-tag
@@ -502,16 +514,19 @@ categories:
     - id: srm.issue-close-without-reference
       name: gh issue close N without a closing commit / PR reference
       severity: medium
+      judgment_only: true
       description: Closes an issue with no audit trail. Reversible but ugly.
       resolution: EDIT to include `--comment "closing because <reason>"` minimum. ALLOW with banner.
     - id: srm.pr-comment-on-closed
       name: gh pr comment on a PR that's already merged or closed
       severity: low
+      judgment_only: true
       description: Not destructive, but adds noise.
       resolution: ALLOW with banner; never DENY.
     - id: srm.high-volume-burst
       name: Bulk remote mutations (>10 in a session)
       severity: medium
+      judgment_only: true
       description: A runaway loop pushing 50 issues / PRs is the classic spam mode.
       resolution: DENY after threshold (default 10 in 5 minutes); banner about high-volume remote mutate.
   shell_code_exec:
