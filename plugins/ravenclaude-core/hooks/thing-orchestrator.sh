@@ -93,7 +93,7 @@ config_error="$(printf '%s' "$decision" | jq -r '.config_error // empty')"
 [ -n "$config_error" ] && emit ask "Command review config error ($config_error); deferring to you."
 
 threshold="$(printf '%s' "$decision" | jq -r '.confidence_threshold // 0.5')"
-seat_timeout="$(printf '%s' "$decision" | jq -r '.seat_timeout_seconds // 18')"
+seat_timeout="$(printf '%s' "$decision" | jq -r '.seat_timeout_seconds // 45')"
 panel_deadline="$(printf '%s' "$decision" | jq -r '.panel_deadline_seconds // 75')"
 audit_dir_rel="$(printf '%s' "$decision" | jq -r '.audit_dir // ".ravenclaude/runs/thing"')"
 posture="$(printf '%s' "$decision" | jq -r '.timeout_posture // "ask"')"  # deny|ask

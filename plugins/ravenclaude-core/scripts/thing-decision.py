@@ -173,7 +173,10 @@ _DEFAULT_PANEL = {
     "thor": {"agent": "architect", "model": "claude-opus-4-7"},
 }
 _DEFAULT_CONFIDENCE_THRESHOLD = 0.5
-_DEFAULT_SEAT_TIMEOUT = 18  # per-seat soft cap (s)
+_DEFAULT_SEAT_TIMEOUT = 45  # per-seat soft cap (s); parallel `claude -p` cold-starts
+#   contend and run ~24-29s (a single warm seat is ~8s), so 18s abstained the
+#   whole panel on modest machines. 45s clears the observed parallel latency with
+#   margin and stays well under panel_deadline_seconds (75) and the 90s hook timeout.
 _DEFAULT_PANEL_DEADLINE = 75  # panel hard deadline (s); must stay < hook timeout (90)
 _DEFAULT_AUDIT_DIR = ".ravenclaude/runs/thing"
 # Timeout / abstention posture per category. The high-stakes categories fail

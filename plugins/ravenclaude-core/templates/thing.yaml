@@ -43,7 +43,11 @@ panel:
 confidence_threshold: 0.5
 
 # Per-seat soft cap (s). Each seat call is wrapped in its own `timeout`.
-seat_timeout_seconds: 18
+# Parallel `claude -p` seats contend on cold-start (~24-29s observed; a single
+# warm seat is ~8s), so this must clear that with margin — 18s abstained the whole
+# panel on modest machines. Keep it under panel_deadline_seconds (75) and the 90s
+# hook timeout. Raise it if your environment's parallel seat latency is higher.
+seat_timeout_seconds: 45
 
 # Panel hard deadline (s). The whole parallel fan-out is bounded by this and any
 # straggler seat is killed. MUST stay under the hook's `timeout` (90 s, set in
