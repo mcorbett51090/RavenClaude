@@ -234,6 +234,40 @@
         }
       ]
     },
+    "_command_review_shape": {
+      "description": "Documentation-only key (ignored by tooling). Shape of the top-level `command_review:` block authored by the dashboard's Command-review panel and read by the command-review tribunal (the Thing) with higher precedence than .ravenclaude/thing.yaml. `panel` sets the per-seat model; `confidence_threshold` is the global fallback bar (also feeds decision-review); `gate_floor` is the headline comfort knob (enum medium | high | extreme, default high) that decides which risk tier and above is surfaced to the human after the tribunal clears it; `tiers` is the advanced per-tier override map. Tiers are exactly medium | high | extreme (the `low` tier runs no panel and is never emitted). Each tier carries `seats` (which of forseti | mimir | heimdall convene — thor is the tie-breaker and never appears here), `mandatory_seats` (a subset of `seats` that must vote), and a per-tier `confidence_threshold`. A deterministic high/critical concern can bump a command's base tier upward; the resolved tier selects the seats, the confidence bar, and whether a confident panel-ALLOW is surfaced to the human.",
+      "examples": [
+        {
+          "command_review": {
+            "panel": {
+              "forseti": { "model": "claude-opus-4-7" },
+              "mimir": { "model": "claude-haiku-4-5" },
+              "heimdall": { "model": "claude-haiku-4-5" },
+              "thor": { "model": "claude-opus-4-7" }
+            },
+            "confidence_threshold": 0.5,
+            "gate_floor": "high",
+            "tiers": {
+              "medium": {
+                "seats": ["mimir", "heimdall"],
+                "mandatory_seats": ["heimdall"],
+                "confidence_threshold": 0.5
+              },
+              "high": {
+                "seats": ["forseti", "mimir", "heimdall"],
+                "mandatory_seats": ["heimdall"],
+                "confidence_threshold": 0.6
+              },
+              "extreme": {
+                "seats": ["forseti", "mimir", "heimdall"],
+                "mandatory_seats": ["forseti", "heimdall"],
+                "confidence_threshold": 0.7
+              }
+            }
+          }
+        }
+      ]
+    },
     "global_default": {
       "type": "string",
       "enum": ["deny", "ask", "allow"],

@@ -96,6 +96,11 @@
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/ensure-default-mode.sh",
             "comment": "Marketplace-dev hook. Warns when a session loads in acceptEdits/bypassPermissions mode, which bypasses the comfort-posture rules. The plugin's hooks/hooks.json registers the same hook for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because the script is advisory and idempotent."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/capability-orientation.sh",
+            "comment": "Marketplace-dev hook. Injects a session-start capability banner (project surface + detected auth by env-var NAME only + effective settings.json permissions) via hookSpecificOutput.additionalContext. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because it is read-only, fail-silent, and emits nothing when there is nothing to report."
           }
         ]
       }

@@ -126,6 +126,16 @@ pre_llm_deny="$(printf '%s' "$decision" | jq -r '.pre_llm_deny // false')"
 deny_concern="$(printf '%s' "$decision" | jq -r '.deny_concern // empty')"
 convened="$(printf '%s' "$decision" | jq -r '.convened_seats[]?' )"
 screen_concerns="$(printf '%s' "$decision" | jq -c '.concerns // []')"
+# T5 tier model: the tier drives the panel + the human-gate behavior. NOTE: jq's
+# `//` treats BOTH null and `false` as empty, so `.panel_required // true` would
+# wrongly yield "true" for a clean read (panel_required:false). Test == false
+# explicitly; absent/null defaults to "true" (fail toward convening the panel).
+panel_required="$(printf '%s' "$decision" | jq -r 'if .panel_required == false then "false" else "true" end')"
+is_read="$(printf '%s' "$decision" | jq -r '.is_read // false')"
+gate_allow="$(printf '%s' "$decision" | jq -r '.gate_allow // false')"
+high_blast="$(printf '%s' "$decision" | jq -r '.high_blast // false')"
+tier="$(printf '%s' "$decision" | jq -r '.tier // "unknown"')"
+gate_floor="$(printf '%s' "$decision" | jq -r '.gate_floor // "high"')"
 
 run_id="thing-$(date -u +%Y-%m-%dT%H-%M-%SZ)-$$"
 started_ms="$(date +%s%3N 2>/dev/null || echo 0)"
@@ -172,6 +182,14 @@ if [ "$pre_llm_deny" = "true" ]; then
   verdict="deny"
   reason="Command review (the Thing): DENIED before review — matched unarguable critical concern ${deny_concern}."
   phase="T3-pre-screen"
+elif [ "$panel_required" != "true" ]; then
+  # ── Clean low-risk read (T5 tier model): the zero-cost deterministic screen
+  #    found nothing, so no LLM panel is convened. Reads are never surfaced to
+  #    you; a clean one auto-allows. (An escalated read DOES convene a panel — it
+  #    falls through to the branch below — and is auto-decided, never asked.) ──
+  verdict="allow"
+  reason="Command review: low-risk read (tier ${tier}) cleared by the deterministic screen; no panel convened."
+  phase="T5-clean-read"
 else
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' EXIT
@@ -311,6 +329,21 @@ else
     verdict="deny"
     reason="Command review: DENIED — a critical concern was cited; ALLOW is not a permitted verdict (§A.4)."
     final_cited="$all_cited"
+  fi
+fi
+
+# ── gate_floor (T5): surface a confident panel-ALLOW to you (ask) when the
+#    command's tier is at/above the configured floor, OR when it is high-blast
+#    (irreversible) regardless of floor. Reads are never surfaced. A DENY blocks
+#    and an EDIT rewrites autonomously — only a plain ALLOW is gated, so the
+#    tribunal still pre-filters the dangerous/fixable commands before you see one.
+if [ "$verdict" = "allow" ] && [ "$is_read" != "true" ] \
+   && { [ "$gate_allow" = "true" ] || [ "$high_blast" = "true" ]; }; then
+  verdict="ask"
+  if [ "$high_blast" = "true" ]; then
+    reason="Command review: the tribunal found no blocker, but this is an irreversible (high-blast) action — surfacing for your confirmation. ${reason}"
+  else
+    reason="Command review: the tribunal found no blocker (tier ${tier} at/above your gate_floor ${gate_floor}); surfacing for your confirmation. ${reason}"
   fi
 fi
 

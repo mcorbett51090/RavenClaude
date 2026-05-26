@@ -5,7 +5,6 @@
   "author": {
     "name": "Matt Corbett"
   },
-  "homepage": "https://github.com/mcorbett51090/RavenClaude",
   "license": "MIT",
   "keywords": [
     "team-lead",
@@ -14,5 +13,6 @@
     "code-review",
     "project-management",
     "partner-success"
-  ]
+  ],
+  "agents": "agents/"
 }

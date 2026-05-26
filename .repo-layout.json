@@ -29,6 +29,7 @@
     "plugins/*/CLAUDE.md",
     "plugins/*/README.md",
     "plugins/*/agents/**",
+    "plugins/*/copilot/**",
     "plugins/*/skills/**",
     "plugins/*/hooks/**",
     "plugins/*/rules/**",

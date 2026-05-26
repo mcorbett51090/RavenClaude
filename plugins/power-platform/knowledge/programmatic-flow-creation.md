@@ -44,6 +44,11 @@ flowchart TD
 
 If the symptom matches multiple branches, the leaf with the **smaller blast radius is the default**. Escalate to the bigger blast radius only when the smaller one demonstrably failed.
 
+**Node prerequisites (`requires:` — check the session-start capability banner first):**
+
+- *Surgical temp solution* and *Full solution reimport* — **requires:** a service principal (or user) with `System Administrator`, or at minimum create/update/delete on the Dataverse `solution` + `workflow` tables, in the **target environment**. Before choosing either branch, confirm this against the capability banner the [`capability-orientation`](../../ravenclaude-core/hooks/capability-orientation.sh) hook injects at session start and the authoritative `.ravenclaude/environment-context.md`. If the role is held, proceed without asking; if it is absent or unknown, that is the Capability Grounding Protocol's "do I have authority?" moment — confirm or escalate before acting. (Convention per [`docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md) §"Node prerequisites".)
+- *Portal toggle* and *Connection-reference rebind* — no special Dataverse role; an interactive portal session suffices.
+
 ---
 
 ## The trap (and why it isn't your fault)

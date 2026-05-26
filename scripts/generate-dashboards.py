@@ -130,6 +130,7 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         description=html.escape(description),
         css=_CSS,
         settings_html=_render_settings_tab(properties, presets),
+        install_html=_render_install_tab(),
         commands_html=_render_stub_tab("Commands", "v0.2.0"),
         trees_html=_render_stub_tab("Decision trees", "v0.2.0"),
         activity_html=_render_stub_tab("Activity", "v0.2.0"),
@@ -149,6 +150,70 @@ def _render_stub_tab(name: str, when: str) -> str:
         f'See <code>docs/proposals/2026-05-22-003-per-plugin-dashboard.md</code> for the design.</p>'
         f"</div>"
     )
+
+
+# Copy-to-clipboard command blocks for the Install & Update tab. Each is a
+# fixed, non-interpolated command — they work on ANY host (GitHub Pages, file://,
+# served), since they only feed the clipboard. The one-click buttons below them
+# (served mode only) POST to /__run instead.
+_INSTALL_COMMANDS = [
+    (
+        "install",
+        "Install (wire the bridge)",
+        "bash scripts/ravenclaude install",
+    ),
+    (
+        "launch",
+        "Launch Copilot with the plugin",
+        "copilot --plugin-dir plugins/ravenclaude-core/copilot",
+    ),
+    (
+        "update",
+        "Update (re-sync after a marketplace pull)",
+        "bash scripts/ravenclaude update",
+    ),
+    (
+        "alias",
+        "One-command alias (update, then launch)",
+        "alias rc='bash scripts/ravenclaude update "
+        "&& copilot --plugin-dir plugins/ravenclaude-core/copilot'",
+    ),
+]
+
+
+def _render_command_block(key: str, label: str, command: str) -> str:
+    """Render one copy-to-clipboard command block: a labeled <code> + Copy button.
+
+    Works on every host — the Copy button only writes to the clipboard, so the
+    block is the universal fallback when the one-click /__run buttons are absent
+    (GitHub Pages, file://, or `python3 -m http.server`).
+    """
+    return (
+        '<div class="cmd-block">'
+        f'<span class="cmd-label">{html.escape(label)}</span>'
+        '<div class="cmd-row">'
+        f'<code class="cmd-code" id="cmd-{html.escape(key)}">{html.escape(command)}</code>'
+        f'<button type="button" class="btn secondary cmd-copy" '
+        f'data-copy-for="cmd-{html.escape(key)}">Copy</button>'
+        "</div>"
+        "</div>"
+    )
+
+
+def _render_install_tab() -> str:
+    """Render the 'Install & Update' tab.
+
+    Guides a GitHub Copilot CLI user to wire RavenClaude's agents/skills/hooks/MCP
+    into Copilot. Copy-to-clipboard command blocks work on any host; the one-click
+    Install / Update / Status buttons light up only when the page is served by
+    scripts/serve-dashboards.py (probed via HEAD /__run, mirroring the Settings
+    tab's HEAD /__save probe). Clicking a button POSTs {"action":...} to /__run.
+    """
+    command_blocks = "".join(
+        _render_command_block(key, label, command)
+        for key, label, command in _INSTALL_COMMANDS
+    )
+    return _INSTALL_TAB_TEMPLATE.format(command_blocks=command_blocks)
 
 
 def _render_settings_tab(properties: dict, presets: dict) -> str:
@@ -256,6 +321,75 @@ _THING_SEAT_META = [
     ("thor", "Thor — Tie-breaker", "claude-opus-4-7"),
 ]
 
+# gate_floor headline control — enum medium | high | extreme, default high.
+# (value, label, recommended-suffix, tooltip). Copy is the exact directive copy.
+_GATE_FLOOR_META = [
+    (
+        "medium",
+        "Medium",
+        "",
+        "Most oversight. Reads still run free, but every change at medium risk "
+        "or above — file edits, local mutations, package installs, web writes — "
+        "is surfaced to you for confirmation after the tribunal clears it.",
+    ),
+    (
+        "high",
+        "High",
+        "Recommended",
+        "Balanced (recommended). Reads and low-risk mutations resolve "
+        "automatically; higher-risk commands — writing outside the project, git "
+        "push, arbitrary code execution — are surfaced to you. The tribunal still "
+        "blocks or rewrites dangerous commands at every tier.",
+    ),
+    (
+        "extreme",
+        "Extreme",
+        "",
+        "Most autonomy. Only extreme commands — arbitrary code execution, plus "
+        "anything a concern escalates to extreme — are surfaced to you; "
+        "everything below resolves automatically. Irreversible (high-blast) "
+        "actions always surface regardless.",
+    ),
+]
+_GATE_FLOOR_DEFAULT = "high"
+
+# Per-tier panel defaults — mirror thing-decision.py's built-in tier table.
+# Seat keys are exactly forseti | mimir | heimdall (thor is the tie-breaker and
+# never sits in a tier's `seats`). The `low` tier runs no panel and is omitted.
+# (tier, label, seats, mandatory_seats, confidence_threshold, caption).
+_TIER_SEATS = ["forseti", "mimir", "heimdall"]
+_TIER_SEAT_LABELS = {
+    "forseti": "Forseti",
+    "mimir": "Mímir",
+    "heimdall": "Heimdall",
+}
+_TIER_META = [
+    (
+        "medium",
+        "Medium",
+        ["mimir", "heimdall"],
+        ["heimdall"],
+        0.5,
+        "By default Mímir + Heimdall convene; Heimdall is required.",
+    ),
+    (
+        "high",
+        "High",
+        ["forseti", "mimir", "heimdall"],
+        ["heimdall"],
+        0.6,
+        "By default Forseti + Mímir + Heimdall convene; Heimdall is required.",
+    ),
+    (
+        "extreme",
+        "Extreme",
+        ["forseti", "mimir", "heimdall"],
+        ["forseti", "heimdall"],
+        0.7,
+        "By default Forseti + Mímir + Heimdall convene; Forseti + Heimdall are required.",
+    ),
+]
+
 
 def _render_command_review_panel() -> str:
     """Render the GLOBAL command-review panel config (per-seat model + threshold).
@@ -287,14 +421,117 @@ def _render_command_review_panel() -> str:
         '<div class="crp-head"><h3>&#9878; Command-review panel</h3>'
         '<p class="crp-sub">Which model fills each seat, and how unsure a seat may be before the '
         "tie-breaker is convened. Applies wherever a category&rsquo;s review toggle (above) is on.</p>"
+        '<span class="crp-hydrated" id="crp-hydrated-indicator" hidden>'
+        "&#10003; Loaded from <code>.ravenclaude/comfort-posture.yaml</code></span>"
         "</div>"
-        f'<div class="crp-seats">{seats_html}</div>'
+        + _render_gate_floor()
+        + f'<div class="crp-seats">{seats_html}</div>'
         '<label class="crp-threshold" for="cr-threshold">'
         "<span class=\"crp-threshold-label\">Confidence threshold</span>"
         '<input type="number" id="cr-threshold" min="0" max="1" step="0.05" value="0.5">'
         '<span class="crp-hint">A seat that votes below this convenes Thor.</span>'
         "</label>"
+        + _render_tier_panel()
+        + "</div>"
+    )
+
+
+def _render_gate_floor() -> str:
+    """Render the headline `gate_floor` segmented control (medium | high | extreme).
+
+    The comfort knob: it decides which risk tier and above is surfaced to the
+    human after the tribunal clears it. Default High. Each option carries the
+    directive tooltip via title=, matching the rest of the panel's tooltip idiom.
+    """
+    opts: list[str] = []
+    for value, label, rec, tip in _GATE_FLOOR_META:
+        checked = " checked" if value == _GATE_FLOOR_DEFAULT else ""
+        rec_badge = (
+            f'<span class="rec-badge">{html.escape(rec)}</span>' if rec else ""
+        )
+        opts.append(
+            f'<input type="radio" id="gate-floor-{value}" name="gate-floor" '
+            f'value="{value}"{checked} data-gate-floor="{value}">'
+            f'<label for="gate-floor-{value}" class="seg-label gate-floor-{value}" '
+            f'title="{html.escape(tip)}">{html.escape(label)}{rec_badge}</label>'
+        )
+    return (
+        '<div class="crp-gate-floor">'
+        '<span class="crp-gate-floor-label">Comfort level &mdash; which commands you confirm</span>'
+        '<div class="seg-control gate-floor-seg" role="radiogroup" '
+        'aria-label="Comfort level (which risk tier and above is surfaced to you)">'
+        + "".join(opts)
+        + "</div>"
+        '<p class="crp-gate-floor-note">Reads are never interrupted, and the tribunal '
+        "always blocks or rewrites dangerous commands &mdash; this only changes which "
+        "safe-looking commands you confirm.</p>"
         "</div>"
+    )
+
+
+def _render_tier_panel() -> str:
+    """Render the advanced per-tier expansion (medium | high | extreme).
+
+    Behind a <details> like the per-permission overrides. Each tier card shows a
+    seat checkbox per forseti/mimir/heimdall (mandatory seats render checked +
+    disabled with a 'required' marker) and a per-tier confidence input. `low`
+    runs no panel and gets no card — only a note.
+    """
+    cards: list[str] = []
+    for tier, label, seats, mandatory, threshold, caption in _TIER_META:
+        seat_rows: list[str] = []
+        for seat in _TIER_SEATS:
+            in_seats = seat in seats
+            is_mandatory = seat in mandatory
+            cid = f"tier-{tier}-seat-{seat}"
+            checked = " checked" if (in_seats or is_mandatory) else ""
+            disabled = " disabled" if is_mandatory else ""
+            mandatory_attr = ' data-mandatory="1"' if is_mandatory else ""
+            req_marker = (
+                '<span class="tier-seat-req">required</span>' if is_mandatory else ""
+            )
+            seat_rows.append(
+                f'<label class="tier-seat" for="{cid}">'
+                f'<input type="checkbox" id="{cid}" class="tier-seat-cb" '
+                f'data-tier="{tier}" data-tier-seat="{seat}"'
+                f'{mandatory_attr}{checked}{disabled}>'
+                f'<span class="tier-seat-name">{html.escape(_TIER_SEAT_LABELS[seat])}</span>'
+                f"{req_marker}"
+                "</label>"
+            )
+        cards.append(
+            f'<div class="tier-card" data-tier="{tier}">'
+            f'<div class="tier-card-head">'
+            f'<span class="tier-card-title">{html.escape(label)} risk</span>'
+            f'</div>'
+            f'<div class="tier-seats" role="group" '
+            f'aria-label="Seats that convene at {html.escape(label)} risk">'
+            + "".join(seat_rows)
+            + "</div>"
+            f'<label class="tier-threshold" for="tier-{tier}-threshold">'
+            f'<span class="tier-threshold-label">Confidence threshold</span>'
+            f'<input type="number" id="tier-{tier}-threshold" '
+            f'class="tier-threshold-input" data-tier-threshold="{tier}" '
+            f'min="0" max="1" step="0.05" value="{threshold}">'
+            f"</label>"
+            f'<p class="tier-caption">{html.escape(caption)}</p>'
+            f"</div>"
+        )
+    return (
+        '<details class="pattern-details tier-details">'
+        '<summary class="pattern-summary">'
+        '<span class="pattern-summary-text">Per-tier panel '
+        '<span class="pattern-count">(advanced)</span></span>'
+        "</summary>"
+        '<div class="tier-list">'
+        '<p class="tier-intro">Override which seats convene and how confident the '
+        "panel must be at each risk tier. A required seat (set by the tier&rsquo;s "
+        "mandatory list) is always checked and can&rsquo;t be removed.</p>"
+        + "".join(cards)
+        + '<p class="tier-low-note"><strong>Low risk</strong> runs no panel &mdash; clean '
+        "reads pass the deterministic screen for free and are never sent to the tribunal.</p>"
+        "</div>"
+        "</details>"
     )
 
 
@@ -874,6 +1111,19 @@ body {
 }
 .command-review-panel .crp-head h3 { margin: 0 0 4px 0; font-size: 14px; }
 .command-review-panel .crp-sub { margin: 0 0 12px 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.crp-hydrated {
+  display: inline-block;
+  margin: 0 0 12px 0;
+  font-size: 11.5px;
+  color: var(--accent);
+}
+.crp-hydrated code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
 .crp-seats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -906,6 +1156,78 @@ body {
 .crp-threshold-label { font-size: 13px; color: var(--text); }
 .crp-threshold input { width: 72px; }
 .crp-hint { font-size: 11px; color: var(--muted); }
+/* gate_floor — headline comfort knob (segmented control + always-visible note). */
+.crp-gate-floor {
+  margin: 4px 0 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed var(--border);
+}
+.crp-gate-floor-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.seg-control.gate-floor-seg { margin-bottom: 8px; }
+.seg-control input[type="radio"]:checked + .seg-label.gate-floor-medium { background: var(--warn); color: var(--bg); }
+.seg-control input[type="radio"]:checked + .seg-label.gate-floor-extreme { background: var(--danger); color: white; }
+.crp-gate-floor-note { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+/* Per-tier advanced expansion — tier cards with seat checkboxes + threshold. */
+.tier-details { margin: 14px 0 0; }
+.tier-list { padding: 12px 8px 8px; }
+.tier-intro { margin: 0 0 12px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+.tier-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+.tier-card-head { margin-bottom: 8px; }
+.tier-card-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.tier-seats { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 10px; }
+.tier-seat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text);
+  cursor: pointer;
+}
+.tier-seat input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; }
+.tier-seat input[type="checkbox"]:disabled { cursor: not-allowed; }
+.tier-seat:has(input:disabled) { color: var(--muted); cursor: default; }
+.tier-seat-req {
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+.tier-threshold {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.tier-threshold-label { font-size: 12px; color: var(--muted); }
+.tier-threshold-input {
+  width: 72px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12.5px;
+}
+.tier-caption { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+.tier-low-note {
+  margin: 12px 0 0;
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
 /* The "★ Recommended" preset gets a stronger visual to mark it as primary */
 .preset-btn.preset-recommended {
   background: var(--accent);
@@ -1820,6 +2142,187 @@ footer.page-footer a:hover { text-decoration: underline; }
   font-family: var(--font-mono);
   font-size: 11.5px;
 }
+
+/* ── Install & Update tab ───────────────────────────────────────── */
+.install-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 820px;
+}
+.install-guide,
+.install-commands,
+.install-oneclick {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+.install-oneclick {
+  border-left: 3px solid var(--accent);
+}
+.install-guide h2 { margin: 0 0 8px; font-size: 18px; }
+.install-guide h3,
+.install-commands h3,
+.install-oneclick h3 {
+  margin: 16px 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+}
+.install-oneclick .oneclick-head h3 { margin: 0; }
+.install-commands h3 { margin-top: 0; }
+.install-guide p,
+.install-commands-sub {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.install-prereqs,
+.install-wiring {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+}
+.install-prereqs li::marker,
+.install-wiring li::marker { color: var(--accent); }
+.install-guide code,
+.install-commands-sub code,
+.oneclick-sub code,
+.status-output strong {
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.status-output strong { background: transparent; padding: 0; }
+.cmd-block { margin: 0 0 12px; }
+.cmd-block:last-child { margin-bottom: 0; }
+.cmd-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.cmd-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+.cmd-code {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text);
+  overflow-x: auto;
+  white-space: pre;
+  display: flex;
+  align-items: center;
+}
+.cmd-copy { flex: 0 0 auto; }
+.oneclick-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+}
+.oneclick-sub {
+  margin: 6px 0 12px;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.oneclick-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.oneclick-buttons .btn { flex: 0 0 auto; }
+.run-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: rc-spin 0.7s linear infinite;
+}
+@keyframes rc-spin { to { transform: rotate(360deg); } }
+.run-result {
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.run-result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+.run-result-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.run-result-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.run-result-badge.badge-ok { color: var(--bg); background: var(--accent); }
+.run-result-badge.badge-fail { color: white; background: var(--danger); }
+.run-result-output,
+.status-output {
+  margin: 0;
+  padding: 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.status-panel {
+  margin-top: 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.status-panel h4 {
+  margin: 0;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.status-output { color: var(--muted); }
 """.strip()
 
 
@@ -1886,6 +2389,69 @@ _SETTINGS_TAB_TEMPLATE = """
 """.strip()
 
 
+_INSTALL_TAB_TEMPLATE = """
+<div class="install-layout">
+  <section class="install-guide">
+    <h2>Wire RavenClaude into GitHub Copilot CLI</h2>
+    <p>
+      This bridges the RavenClaude plugins &mdash; their agents, skills, hooks, and
+      MCP servers &mdash; into the <code>copilot</code> CLI so they work the same way
+      they do in Claude Code.
+    </p>
+    <h3>Prerequisites</h3>
+    <ul class="install-prereqs">
+      <li>A local checkout of this marketplace (you are looking at its dashboard).</li>
+      <li>The <code>copilot</code> CLI on your <code>PATH</code>.</li>
+    </ul>
+    <h3>What gets wired</h3>
+    <ul class="install-wiring">
+      <li><strong>Agents</strong> &mdash; launched via <code>copilot --plugin-dir plugins/ravenclaude-core/copilot</code>.</li>
+      <li><strong>Skills</strong> &mdash; linked into <code>.claude/skills</code>.</li>
+      <li><strong>Hooks</strong> &mdash; linked into <code>.github/hooks</code>.</li>
+      <li><strong>MCP servers</strong> &mdash; merged into <code>~/.copilot/mcp-config.json</code>.</li>
+    </ul>
+  </section>
+
+  <section class="install-commands">
+    <h3>Commands</h3>
+    <p class="install-commands-sub">
+      Copy any of these and run them in your checkout. They work everywhere, even
+      when this page is opened from GitHub Pages or a file.
+    </p>
+    {command_blocks}
+  </section>
+
+  <section class="install-oneclick" id="install-oneclick">
+    <div class="oneclick-head">
+      <h3>One-click run</h3>
+      <span class="live-badge" id="run-live-badge" hidden>&#9679; live</span>
+    </div>
+    <p class="oneclick-sub" id="run-oneclick-sub">
+      Run <code>python3 scripts/serve-dashboards.py</code> for one-click, or use the copy
+      buttons above.
+    </p>
+    <div class="oneclick-buttons">
+      <button type="button" class="btn" id="run-install-btn" data-run-action="install" disabled>Install</button>
+      <button type="button" class="btn" id="run-update-btn" data-run-action="update" disabled>Update now</button>
+      <button type="button" class="btn secondary" id="run-status-btn" data-run-action="status" disabled>Status</button>
+      <span class="run-spinner" id="run-spinner" hidden aria-hidden="true"></span>
+    </div>
+    <div class="run-result" id="run-result" hidden>
+      <div class="run-result-head">
+        <span class="run-result-title" id="run-result-title">Result</span>
+        <span class="run-result-badge" id="run-result-badge"></span>
+      </div>
+      <pre class="run-result-output" id="run-result-output"></pre>
+    </div>
+    <div class="status-panel" id="status-panel">
+      <h4>Bridge status</h4>
+      <pre class="status-output" id="status-output">Click <strong>Status</strong> to check which pieces (skills, hooks, MCP, package) are wired. Needs the local server.</pre>
+    </div>
+  </section>
+</div>
+""".strip()
+
+
 _JS = r"""
 /* generate-dashboards.py output — Settings tab JS (v5 schema: per-layer cards)
  * Vanilla; no dependencies. Reads the inline JSON Schema at #schema-data,
@@ -1923,9 +2489,39 @@ _JS = r"""
     heimdall: "claude-haiku-4-5",
     thor: "claude-opus-4-7",
     confidence_threshold: 0.5,
+    gate_floor: "high",
   });
   const CR_SEATS = ["forseti", "mimir", "heimdall", "thor"];
   const CR_MODELS = ["claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5"];
+
+  /* gate_floor headline control — enum medium | high | extreme, default high. */
+  const GATE_FLOORS = ["medium", "high", "extreme"];
+
+  /* Per-tier panel defaults — mirror thing-decision.py's built-in tier table.
+   * Seats are forseti | mimir | heimdall (thor is the tie-breaker, never a seat).
+   * The `low` tier runs no panel and is never authored here. */
+  const TIER_SEATS = ["forseti", "mimir", "heimdall"];
+  const TIERS = ["medium", "high", "extreme"];
+  const TIER_DEFAULT = Object.freeze({
+    medium: Object.freeze({ seats: ["mimir", "heimdall"], mandatory_seats: ["heimdall"], confidence_threshold: 0.5 }),
+    high: Object.freeze({ seats: ["forseti", "mimir", "heimdall"], mandatory_seats: ["heimdall"], confidence_threshold: 0.6 }),
+    extreme: Object.freeze({ seats: ["forseti", "mimir", "heimdall"], mandatory_seats: ["forseti", "heimdall"], confidence_threshold: 0.7 }),
+  });
+  /* mandatory_seats are fixed by the engine — the dashboard renders them
+   * checked + disabled and never lets the user change them, so we clone the
+   * defaults verbatim into the working tier state. */
+  function freshTiers() {
+    const out = {};
+    for (const t of TIERS) {
+      const d = TIER_DEFAULT[t];
+      out[t] = {
+        seats: d.seats.slice(),
+        mandatory_seats: d.mandatory_seats.slice(),
+        confidence_threshold: d.confidence_threshold,
+      };
+    }
+    return out;
+  }
 
   /* Pattern explanations loaded from a sibling JSON block. */
   let PATTERN_EXPLANATIONS = {};
@@ -1965,7 +2561,7 @@ _JS = r"""
     /* Behavioral flag (NOT a permission): pause for design decisions? Default ON. */
     design_checkins: (typeof ((props.design_checkins || {}).default) === "boolean")
       ? props.design_checkins.default : true,
-    command_review: Object.assign({}, CR_DEFAULT),
+    command_review: Object.assign({}, CR_DEFAULT, { tiers: freshTiers() }),
     expanded: {},   /* category -> boolean */
   };
 
@@ -2034,13 +2630,33 @@ _JS = r"""
       }
       /* command-review panel: keep only known seats/models + a valid threshold */
       if (parsed.command_review && typeof parsed.command_review === "object") {
+        const pcr = parsed.command_review;
         for (const s of CR_SEATS) {
-          if (CR_MODELS.includes(parsed.command_review[s])) {
-            state.command_review[s] = parsed.command_review[s];
+          if (CR_MODELS.includes(pcr[s])) {
+            state.command_review[s] = pcr[s];
           }
         }
-        const t = parseFloat(parsed.command_review.confidence_threshold);
+        const t = parseFloat(pcr.confidence_threshold);
         if (!Number.isNaN(t) && t >= 0 && t <= 1) state.command_review.confidence_threshold = t;
+        /* gate_floor — only one of the known enum values */
+        if (GATE_FLOORS.includes(pcr.gate_floor)) state.command_review.gate_floor = pcr.gate_floor;
+        /* per-tier overrides — keep well-formed entries; mandatory_seats stay
+         * pinned to the engine defaults (the UI can't change them). */
+        if (pcr.tiers && typeof pcr.tiers === "object") {
+          for (const tier of TIERS) {
+            const pt = pcr.tiers[tier];
+            if (!pt || typeof pt !== "object") continue;
+            const dst = state.command_review.tiers[tier];
+            if (Array.isArray(pt.seats)) {
+              const seats = pt.seats.filter(s => TIER_SEATS.includes(s));
+              /* mandatory seats are always present regardless of what was stored */
+              for (const m of dst.mandatory_seats) if (!seats.includes(m)) seats.push(m);
+              dst.seats = TIER_SEATS.filter(s => seats.includes(s));
+            }
+            const tt = parseFloat(pt.confidence_threshold);
+            if (!Number.isNaN(tt) && tt >= 0 && tt <= 1) dst.confidence_threshold = tt;
+          }
+        }
       }
     }
   } catch (e) {
@@ -2101,6 +2717,27 @@ _JS = r"""
       const thr = document.getElementById("cr-threshold");
       if (thr) thr.value = String(state.command_review.confidence_threshold);
     }
+    /* Sync the gate_floor segmented control */
+    document.querySelectorAll('input[type="radio"][data-gate-floor]').forEach(inp => {
+      inp.checked = inp.dataset.gateFloor === state.command_review.gate_floor;
+    });
+    /* Sync per-tier seat checkboxes + thresholds */
+    document.querySelectorAll('input[type="checkbox"][data-tier-seat]').forEach(cb => {
+      const tier = cb.dataset.tier;
+      const seat = cb.dataset.tierSeat;
+      const tcfg = state.command_review.tiers[tier];
+      if (!tcfg) return;
+      if (tcfg.mandatory_seats.includes(seat)) {
+        cb.checked = true;   /* required seats stay checked + disabled */
+      } else {
+        cb.checked = tcfg.seats.includes(seat);
+      }
+    });
+    document.querySelectorAll("input.tier-threshold-input[data-tier-threshold]").forEach(inp => {
+      const tier = inp.dataset.tierThreshold;
+      const tcfg = state.command_review.tiers[tier];
+      if (tcfg) inp.value = String(tcfg.confidence_threshold);
+    });
     syncDesignCheckins();
   }
   syncDomToState();
@@ -2180,8 +2817,17 @@ _JS = r"""
      * customized it, so an untouched dashboard leaves thing.yaml / the built-in
      * defaults in control (this block has higher precedence than thing.yaml). */
     const cr = state.command_review;
+    function tierChanged(tier) {
+      const d = TIER_DEFAULT[tier], t = cr.tiers[tier];
+      if (t.confidence_threshold !== d.confidence_threshold) return true;
+      if (t.seats.length !== d.seats.length) return true;
+      return t.seats.some(s => !d.seats.includes(s));
+    }
+    const tiersChanged = TIERS.some(tierChanged);
     const crChanged = CR_SEATS.some(s => cr[s] !== CR_DEFAULT[s])
-      || cr.confidence_threshold !== CR_DEFAULT.confidence_threshold;
+      || cr.confidence_threshold !== CR_DEFAULT.confidence_threshold
+      || cr.gate_floor !== CR_DEFAULT.gate_floor
+      || tiersChanged;
     if (crChanged) {
       lines.push("# Command-review tribunal panel (the Thing). Overrides .ravenclaude/thing.yaml.");
       lines.push("command_review:");
@@ -2191,6 +2837,22 @@ _JS = r"""
         lines.push(`      model: ${cr[s]}`);
       }
       lines.push(`  confidence_threshold: ${cr.confidence_threshold}`);
+      lines.push(`  gate_floor: ${cr.gate_floor}`);
+      /* Per-tier panel — emitted only when a tier differs from its default, so
+       * an untouched advanced section leaves the engine tier table in control.
+       * low has no panel and is never emitted. */
+      if (tiersChanged) {
+        lines.push("  tiers:");
+        for (const tier of TIERS) {
+          const t = cr.tiers[tier];
+          const seats = TIER_SEATS.filter(s => t.seats.includes(s));
+          const mand = TIER_SEATS.filter(s => t.mandatory_seats.includes(s));
+          lines.push(`    ${tier}:`);
+          lines.push(`      seats: [${seats.join(", ")}]`);
+          lines.push(`      mandatory_seats: [${mand.join(", ")}]`);
+          lines.push(`      confidence_threshold: ${t.confidence_threshold}`);
+        }
+      }
       lines.push("");
     }
 
@@ -2336,6 +2998,52 @@ _JS = r"""
       });
     }
   }
+
+  /* gate_floor headline control (medium | high | extreme) */
+  document.querySelectorAll('input[type="radio"][data-gate-floor]').forEach(inp => {
+    inp.addEventListener("change", () => {
+      if (inp.checked && GATE_FLOORS.includes(inp.dataset.gateFloor)) {
+        state.command_review.gate_floor = inp.dataset.gateFloor;
+        flagUnsaved();
+        render();
+      }
+    });
+  });
+
+  /* Per-tier seat checkboxes — mandatory seats are disabled, so only optional
+   * seats fire here. Keeps the tier's seat list canonically ordered. */
+  document.querySelectorAll('input[type="checkbox"][data-tier-seat]').forEach(cb => {
+    cb.addEventListener("change", () => {
+      const tier = cb.dataset.tier;
+      const seat = cb.dataset.tierSeat;
+      const tcfg = state.command_review.tiers[tier];
+      if (!tcfg || !TIER_SEATS.includes(seat)) return;
+      if (tcfg.mandatory_seats.includes(seat)) { cb.checked = true; return; }
+      const set = new Set(tcfg.seats);
+      if (cb.checked) set.add(seat); else set.delete(seat);
+      /* mandatory seats are always present */
+      for (const m of tcfg.mandatory_seats) set.add(m);
+      tcfg.seats = TIER_SEATS.filter(s => set.has(s));
+      flagUnsaved();
+      render();
+    });
+  });
+
+  /* Per-tier confidence thresholds */
+  document.querySelectorAll("input.tier-threshold-input[data-tier-threshold]").forEach(inp => {
+    inp.addEventListener("change", () => {
+      const tier = inp.dataset.tierThreshold;
+      const tcfg = state.command_review.tiers[tier];
+      if (!tcfg) return;
+      let t = parseFloat(inp.value);
+      if (Number.isNaN(t)) t = TIER_DEFAULT[tier].confidence_threshold;
+      t = Math.min(1, Math.max(0, t));
+      tcfg.confidence_threshold = t;
+      inp.value = String(t);
+      flagUnsaved();
+      render();
+    });
+  });
 
   /* Track card expand/collapse for localStorage */
   document.querySelectorAll(".cat-card[data-category]").forEach(card => {
@@ -2781,8 +3489,119 @@ _JS = r"""
     }
   });
 
+  /* ── Install & Update tab ────────────────────────────────────────── */
+  /* Copy-to-clipboard command blocks work on ANY host (GitHub Pages, file://,
+   * served). The one-click Install/Update/Status buttons POST to /__run, which
+   * only exists when scripts/serve-dashboards.py is serving the page. We detect
+   * that with a HEAD /__run probe — exactly mirroring the Settings tab's
+   * HEAD /__save probe. */
+  document.querySelectorAll(".cmd-copy[data-copy-for]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const code = document.getElementById(btn.dataset.copyFor);
+      const text = code ? code.textContent : "";
+      try {
+        await navigator.clipboard.writeText(text);
+        toast("Copied to clipboard");
+      } catch (e) {
+        const range = document.createRange();
+        range.selectNodeContents(code);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        toast("Select-all + Cmd/Ctrl+C to copy");
+      }
+    });
+  });
+
+  const RUN_ACTIONS = ["install", "update", "status"];
+  const runButtons = Array.from(document.querySelectorAll("button[data-run-action]"));
+  const runLiveBadge = document.getElementById("run-live-badge");
+  const runOneclickSub = document.getElementById("run-oneclick-sub");
+  const runSpinner = document.getElementById("run-spinner");
+  const runResult = document.getElementById("run-result");
+  const runResultTitle = document.getElementById("run-result-title");
+  const runResultBadge = document.getElementById("run-result-badge");
+  const runResultOutput = document.getElementById("run-result-output");
+  const statusOutput = document.getElementById("status-output");
+
+  async function probeRunEndpoint() {
+    try {
+      const res = await fetch("/__run", { method: "HEAD" });
+      return res.ok;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function setRunBusy(busy) {
+    runButtons.forEach(b => { b.disabled = busy; });
+    runSpinner.hidden = !busy;
+  }
+
+  async function runAction(action) {
+    if (!RUN_ACTIONS.includes(action)) return;
+    setRunBusy(true);
+    runResult.hidden = false;
+    runResultTitle.textContent = "Running " + action + "…";
+    runResultBadge.textContent = "";
+    runResultBadge.className = "run-result-badge";
+    runResultOutput.textContent = "";
+    try {
+      const res = await fetch("/__run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: action })
+      });
+      if (!res.ok) {
+        runResultTitle.textContent = action + " failed";
+        runResultBadge.textContent = "HTTP " + res.status;
+        runResultBadge.classList.add("badge-fail");
+        runResultOutput.textContent = (await res.text().catch(() => "")) || "(no output)";
+        return;
+      }
+      const j = await res.json();
+      runResultTitle.textContent = (j.action || action) + " — exit " + j.exit_code;
+      if (j.ok) {
+        runResultBadge.textContent = "ok";
+        runResultBadge.classList.add("badge-ok");
+      } else {
+        runResultBadge.textContent = "failed";
+        runResultBadge.classList.add("badge-fail");
+      }
+      runResultOutput.textContent = j.output || "(no output)";
+      if (action === "status") {
+        statusOutput.textContent = j.output || "(no output)";
+      }
+      toast(action + (j.ok ? " ok" : " failed"));
+    } catch (err) {
+      runResultTitle.textContent = action + " failed";
+      runResultBadge.textContent = "error";
+      runResultBadge.classList.add("badge-fail");
+      runResultOutput.textContent = String(err);
+      console.error("/__run failed:", err);
+    } finally {
+      setRunBusy(false);
+    }
+  }
+
+  runButtons.forEach(b => {
+    b.addEventListener("click", () => runAction(b.dataset.runAction));
+  });
+
+  probeRunEndpoint().then(available => {
+    if (available) {
+      runButtons.forEach(b => { b.disabled = false; });
+      runLiveBadge.hidden = false;
+      runOneclickSub.innerHTML =
+        "One-click run is live &mdash; the local server is serving this page.";
+    } else {
+      runButtons.forEach(b => { b.disabled = true; });
+      runLiveBadge.hidden = true;
+    }
+  });
+
   /* ── Tab routing ─────────────────────────────────────────────────── */
-  const validTabs = ["settings", "commands", "trees", "activity"];
+  const validTabs = ["settings", "install", "commands", "trees", "activity"];
   function applyHash() {
     const hash = (location.hash || "#/settings").replace(/^#\//, "");
     const tab = validTabs.includes(hash) ? hash : "settings";
@@ -2801,6 +3620,109 @@ _JS = r"""
   });
   window.addEventListener("hashchange", applyHash);
   applyHash();
+
+  /* ── Hydrate command-review config from the committed YAML ──────────── */
+  /* When the page is served by scripts/serve-dashboards.py, the committed
+   * .ravenclaude/comfort-posture.yaml is the source of truth — it OVERRIDES
+   * localStorage so the controls reflect what is actually on disk, not a stale
+   * draft. Served mode is detected with a HEAD /__read probe, mirroring the
+   * Settings tab's HEAD /__save probe. GitHub Pages / file:// / `http.server`
+   * lack the endpoint, so we fail soft and keep the defaults/localStorage path.
+   *
+   * Scope: command_review (gate_floor + tiers + panel seats + confidence) and
+   * design_checkins ONLY. Every field access is guarded — missing keys are
+   * skipped, never thrown. */
+  const READ_TARGET = ".ravenclaude/comfort-posture.yaml";
+
+  async function probeReadEndpoint() {
+    try {
+      const res = await fetch("/__read", { method: "HEAD" });
+      return res.ok;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function hydrateFromParsed(parsed) {
+    let touched = false;
+    const cr = (parsed && typeof parsed.command_review === "object" && parsed.command_review) || null;
+    if (cr) {
+      /* gate_floor → state + matching radio */
+      if (GATE_FLOORS.includes(cr.gate_floor)) {
+        state.command_review.gate_floor = cr.gate_floor;
+        touched = true;
+      }
+      /* per-seat panel models */
+      const panel = (typeof cr.panel === "object" && cr.panel) || null;
+      if (panel) {
+        for (const seat of CR_SEATS) {
+          const ps = panel[seat];
+          if (ps && typeof ps === "object" && CR_MODELS.includes(ps.model)) {
+            state.command_review[seat] = ps.model;
+            touched = true;
+          }
+        }
+      }
+      /* global confidence threshold */
+      const gt = parseFloat(cr.confidence_threshold);
+      if (!Number.isNaN(gt) && gt >= 0 && gt <= 1) {
+        state.command_review.confidence_threshold = gt;
+        touched = true;
+      }
+      /* per-tier seats + thresholds (mandatory_seats stay engine-pinned) */
+      const tiers = (typeof cr.tiers === "object" && cr.tiers) || null;
+      if (tiers) {
+        for (const tier of TIERS) {
+          const pt = tiers[tier];
+          if (!pt || typeof pt !== "object") continue;
+          const dst = state.command_review.tiers[tier];
+          if (Array.isArray(pt.seats)) {
+            const seats = pt.seats.filter(s => TIER_SEATS.includes(s));
+            for (const m of dst.mandatory_seats) if (!seats.includes(m)) seats.push(m);
+            dst.seats = TIER_SEATS.filter(s => seats.includes(s));
+            touched = true;
+          }
+          const tt = parseFloat(pt.confidence_threshold);
+          if (!Number.isNaN(tt) && tt >= 0 && tt <= 1) {
+            dst.confidence_threshold = tt;
+            touched = true;
+          }
+        }
+      }
+    }
+    /* design_checkins behavioral flag */
+    if (typeof parsed.design_checkins === "boolean") {
+      state.design_checkins = parsed.design_checkins;
+      touched = true;
+    }
+    /* TODO: hydrate per-category posture from parsed.categories (follow-up) */
+    return touched;
+  }
+
+  async function hydrateFromRepo() {
+    try {
+      const res = await fetch("/__read?path=" + encodeURIComponent(READ_TARGET));
+      if (!res.ok) return;   /* 404 → file absent; keep defaults/localStorage */
+      const j = await res.json();
+      if (!j || j.exists !== true || j.parsed == null || typeof j.parsed !== "object") return;
+      const touched = hydrateFromParsed(j.parsed);
+      if (!touched) return;
+      /* The committed file won — reflect it in the controls, the live YAML
+       * preview, and localStorage so a later draft starts from disk truth. */
+      syncDomToState();
+      render();
+      persistState();
+      const indicator = document.getElementById("crp-hydrated-indicator");
+      if (indicator) indicator.hidden = false;
+    } catch (e) {
+      /* fail soft — any fetch/parse error leaves the defaults path intact */
+      console.warn("Could not hydrate from repo YAML:", e);
+    }
+  }
+
+  probeReadEndpoint().then(served => {
+    if (served) hydrateFromRepo();
+  });
 
   /* Initial render */
   render();
@@ -2826,6 +3748,7 @@ _PAGE_TEMPLATE = """<!doctype html>
   <p class="page-desc"><span class="plugin-name">{plugin_name}</span> &middot; static dashboard, no backend. Edits stay in your browser until you click Download.</p>
   <nav class="tab-bar" role="tablist" aria-label="Dashboard tabs">
     <button class="tab-btn" data-tab="settings" role="tab" aria-selected="true">Settings</button>
+    <button class="tab-btn" data-tab="install" role="tab" aria-selected="false">Install &amp; Update</button>
     <button class="tab-btn" data-tab="commands" role="tab" aria-selected="false">Commands</button>
     <button class="tab-btn" data-tab="trees" role="tab" aria-selected="false">Trees</button>
     <button class="tab-btn" data-tab="activity" role="tab" aria-selected="false">Activity</button>
@@ -2835,6 +3758,9 @@ _PAGE_TEMPLATE = """<!doctype html>
 <main>
   <section class="tab-panel active" data-tab="settings" role="tabpanel" aria-label="Settings">
 {settings_html}
+  </section>
+  <section class="tab-panel" data-tab="install" role="tabpanel" aria-label="Install and Update">
+{install_html}
   </section>
   <section class="tab-panel" data-tab="commands" role="tabpanel" aria-label="Commands">
 {commands_html}

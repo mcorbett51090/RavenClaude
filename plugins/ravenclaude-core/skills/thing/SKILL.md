@@ -1,6 +1,6 @@
 ---
 name: thing
-description: "Command review (the Thing) — the opt-in command-review tribunal that votes ALLOW/EDIT/DENY on shell commands a comfort-posture category is set to review. Read this when wiring, debugging, or explaining the tribunal: the PreToolUse orchestrator, the reviewer panel + tie-breaker, the deterministic concern evaluator, the dashboard-configurable panel, the per-category toggle, the audit trail, and the fail-closed rules. T3 = up to 3 seats + Thor, EDIT verdict, live for shell_readonly / shell_remote_mutate / shell_code_exec."
+description: "Command review (the Thing) — the opt-in command-review tribunal that votes ALLOW/EDIT/DENY on shell commands a comfort-posture category is set to review. Read this when wiring, debugging, or explaining the tribunal: the PreToolUse orchestrator, the reviewer panel + tie-breaker, the deterministic concern evaluator, the tier model, the dashboard-configurable panel, the per-category toggle, the audit trail, and the fail-closed rules. T5 = tiered routing (low→extreme) where a clean low-risk read gets no LLM panel, seat count + confidence escalate with the tier, and a dashboard-configurable gate_floor decides which confident allows you confirm; live for shell_readonly / shell_remote_mutate / shell_code_exec."
 ---
 
 # Skill: command review (the Thing)
@@ -9,23 +9,25 @@ description: "Command review (the Thing) — the opt-in command-review tribunal 
 
 The authoritative design is [`docs/tribunal-review-feature-design.md`](../../../../docs/tribunal-review-feature-design.md); the concern catalog the tribunal cites is [`knowledge/concerns-catalog.md`](../../knowledge/concerns-catalog.md). This skill documents **what actually ships today** and how to operate it.
 
-## What ships in T3 (this release)
+## What ships (T5)
 
-T3 turns the tribunal into a real **panel**: up to three reviewer seats run in parallel, a tie-breaker is convened only when they disagree, and a seat may **rewrite** a risky command (the rewrite is re-validated against the concern catalog before it runs).
+The tribunal is a real **panel**: up to three reviewer seats run in parallel, a tie-breaker is convened only when they disagree, and a seat may **rewrite** a risky command (the rewrite is re-validated against the concern catalog before it runs). T5 makes routing **tiered** and adds a configurable **human gate**.
 
-| Dimension | T3 reality | Arrives later |
+| Dimension | T5 reality | Arrives later |
 | --- | --- | --- |
 | Seats | **Up to 3** — Forseti (security-reviewer), Mímir (code-reviewer), Heimdall (prompt-engineer) — **+ Thor** (architect) convened only on a split or low-confidence panel | Domain specialist seats (T7) |
-| Verdicts | **ALLOW / EDIT / DENY** (+ fail-closed ASK or DENY) | — |
+| Verdicts | **ALLOW / EDIT / DENY** (+ fail-closed DENY, or an `ask` when the gate surfaces a command) | — |
 | Categories | **`shell_readonly`, `shell_remote_mutate`, `shell_code_exec`** | `file_edit_project` (Edit/Write tool shape) |
-| Routing | Deterministic `concerns(cmd)` evaluator picks seats by severity: low/none → 1 seat, high → 3, unarguable critical → pre-LLM DENY | — |
-| Injection defense | Pre-LLM `triggers` screen (catalog-driven) + each seat's own check | Full AlignmentCheck hardening + adversarial envelope (T4) |
-| Panel config | Per-seat model + confidence threshold, **set from the dashboard** | — |
+| **Tiers** | Every command resolves to `low`→`medium`→`high`→`extreme` = its category **base tier** (`category_tier_map`) bumped up by a deterministic high/critical concern. **`low` runs no panel** (clean reads are free); seat count + the confidence bar escalate with the tier; `extreme` carries a mandatory Forseti seat | — |
+| Routing | Tier-driven: `low` → deterministic screen only (0 seats), `medium` → 2 seats, `high`/`extreme` → 3 seats; unarguable critical → pre-LLM DENY | — |
+| **Human gate** | `gate_floor` (`medium`..`extreme`, default `high`) = lowest tier whose **confident ALLOW** is surfaced to you as `ask`. Reads are never surfaced; high-blast allows always are; DENY/EDIT stay autonomous | — |
+| Injection defense | Pre-LLM `triggers` screen on **every** command (catalog-driven) + Heimdall (the LLM injection seat) from the first mutate tier + each seat's own check + adversarial envelope | — |
+| Panel config | Per-seat model, per-tier seats + confidence, and `gate_floor` — **set from the dashboard** | — |
 | Default | **OFF for every category** | unchanged — always opt-in |
 
 ## Turning it on
 
-The on/off toggle is a **per-category `thing:` field in `.ravenclaude/comfort-posture.yaml`**, set from the dashboard's **Command review** toggle on the Settings tab (live for `shell_readonly`, `shell_remote_mutate`, and `shell_code_exec` in T3; the rest remain Preview). The dashboard's **Command-review panel** section sets the per-seat models + confidence threshold, serialized as a top-level `command_review:` block. Turning a category on writes:
+The on/off toggle is a **per-category `thing:` field in `.ravenclaude/comfort-posture.yaml`**, set from the dashboard's **Command review** toggle on the Settings tab (live for `shell_readonly`, `shell_remote_mutate`, and `shell_code_exec`; the rest remain Preview). The dashboard's **Command-review panel** section sets the per-seat models, the **comfort level** (`gate_floor`), and — behind an Advanced expansion — the per-tier seats + confidence, all serialized as a top-level `command_review:` block. Turning a category on writes:
 
 ```yaml
 categories:
@@ -46,11 +48,12 @@ The extra `thing:` key is ignored by `apply-comfort-posture.py` (it only reads t
 flowchart TD
   A[Bash PreToolUse] --> B{posture file has<br/>thing: on anywhere?}
   B -- no --> Z[exit 0 · normal flow]
-  B -- yes --> C[thing-decision.py + thing-concerns.py:<br/>category · toggle · panel config · routing]
+  B -- yes --> C[thing-decision.py + thing-concerns.py:<br/>category · toggle · tier · routing]
   C -- toggle off / unknown cat --> Z
   C -- unarguable critical<br/>pre_llm_deny --> DENY[DENY · no LLM call]
-  C -- routed seats --> E[run convened seats IN PARALLEL<br/>thing-seat.sh · panel deadline + kill]
-  E -- ≥2 abstain --> POST[timeout posture:<br/>deny high-stakes · ask readonly]
+  C -- clean low read<br/>tier=low --> ALLOW[allow · no panel]
+  C -- tier ≥ medium --> E[run convened seats IN PARALLEL<br/>thing-seat.sh · panel deadline + kill]
+  E -- ≥2 abstain / inconclusive --> DENY
   E -- any injection_detected --> DENY
   E -- split / low confidence --> T[convene Thor]
   T --> AGG[aggregate]
@@ -59,9 +62,11 @@ flowchart TD
   AGG -- edit --> RV{re-validate:<br/>concerns⊆orig−cited?}
   RV -- ok --> EDIT[allow + updatedInput]
   RV -- fail --> DENY
-  AGG -- allow --> ALLOW[allow]
   AGG -- deny --> DENY
-  DENY & ALLOW & EDIT & POST --> L[(Sága log)]
+  AGG -- allow --> GATE{not a read AND<br/>tier ≥ gate_floor<br/>or high-blast?}
+  GATE -- yes --> ASK[ask · you confirm]
+  GATE -- no --> ALLOW
+  DENY & ALLOW & EDIT & ASK --> L[(Sága log)]
   L --> OUT[emit permissionDecision]
 ```
 
@@ -71,28 +76,32 @@ Components (all under the plugin):
 - `scripts/thing-decision.py` — classifies a command into a comfort-posture category (reusing the EMISSIONS table — one source of truth), reads the toggle, resolves the panel config (precedence: `comfort-posture.yaml command_review:` > `thing.yaml` > defaults), and merges in routing from thing-concerns — all in one call.
 - `scripts/thing-concerns.py` — the **deterministic concern evaluator**. Reads the catalog's machine-readable `triggers` to return matched concerns + max severity + which seats to convene, and enforces the **EDIT-safety invariant** (`concerns(revised) ⊆ concerns(original) − {cited}`). No live model — reproducible + CI-testable.
 - `scripts/thing-seat.sh` — invokes ONE reviewer seat (role via `THING_SEAT_ROLE`) via `claude -p` and returns its verdict JSON (now including `edited_command`). A role-aware `THING_SEAT_MOCK_VERDICT` test hook lets CI/gate-audit exercise the whole panel with no live model.
-- `templates/thing.yaml` — optional advanced config (panel models, confidence threshold, seat/panel timers, per-category timeout posture, audit dir); `schema_version: 2`. Absent ⇒ defaults; legacy `seat:` maps to Mímir.
+- `templates/thing.yaml` — optional advanced config (panel models, **`tiers`** = per-tier seats + confidence + mandatory seats, **`category_tier_map`**, **`gate_floor`**, seat/panel timers, audit dir); `schema_version: 3`. Absent ⇒ defaults; legacy `seat:` maps to Mímir; a leftover T3 `timeout_posture:` is ignored.
 
 ## Verdict semantics & fail-closed rules
 
 | Situation | Verdict emitted |
 | --- | --- |
-| Panel agrees allow, all seats' confidence ≥ threshold, no critical cited | `allow` (the command runs) |
+| **Clean low-risk command** (tier `low`, deterministic screen clean) | `allow` — **no panel convened** (zero cost) |
+| Panel agrees allow, confidence ≥ tier threshold, no critical cited, tier **below** `gate_floor` (or a read) | `allow` (the command runs autonomously) |
+| Panel agrees allow but the tier is **at/above `gate_floor`**, or the command is **high-blast** (irreversible), and it is **not** a read | `ask` — surfaced to you for confirmation (the tribunal already cleared it) |
 | Panel votes deny, or a critical concern is cited | `deny` (blocked — beats `--dangerously-skip-permissions`) |
-| A seat proposes EDIT and the revision passes the safety invariant | `allow` + `updatedInput:{command:<revised>}` (the rewrite runs) |
+| A seat proposes EDIT and the revision passes the safety invariant | `allow` + `updatedInput:{command:<revised>}` (the rewrite runs autonomously) |
 | EDIT revision fails the invariant (new concern / cited not removed) | `deny` |
 | Pre-LLM unarguable-critical `triggers` hit (`pre_llm_deny`) | `deny` immediately, no LLM call |
 | Any seat reports `injection_detected: true` | `deny` (unilateral) |
-| Seats split or a seat's confidence < threshold | Thor convened; Thor's verdict decides |
-| ≥2 convened seats (or the whole panel) abstain | per-category **timeout posture** — `deny` for `shell_remote_mutate`/`shell_code_exec`, `ask` for `shell_readonly` |
+| Seats split or a seat's confidence < tier threshold | Thor convened; Thor's verdict decides |
+| ≥2 convened seats (or the whole panel) abstain / inconclusive | `deny` — abstention always fails **closed** at every tier (an escalated read that abstains denies too) |
 | `thing.yaml` present but malformed | `ask` |
 | `jq` missing | block (exit 2) — detect-and-deny |
+
+> **Reads are never surfaced.** A read-shaped category (`file_read_*`, `shell_readonly`, `network_read`) never emits `ask`: a clean read auto-allows, and an escalated read (a concern bumped it to `medium`+) is auto-decided by the panel — `allow` or `deny`, never a prompt. The `gate_floor` knob and the high-blast override both yield to this rule.
 
 The platform **fails open** on hook timeout, so the orchestrator enforces its own **panel deadline** (`panel_deadline_seconds`, default 75 s, under the 90 s hook timeout), killing straggler seats, and emits an explicit fail-closed verdict rather than letting the tool slip through. Each seat additionally has a soft cap (`seat_timeout_seconds`, default 45 s — parallel `claude -p` cold-starts run ~24-29 s, well over the original 18 s, which abstained the whole panel on modest machines; raise it if your parallel seat latency is higher).
 
 Every verdict writes one JSON entry to `.ravenclaude/runs/thing/<id>.json` (the Sága log) — command, category, `phase`, per-seat verdicts, concerns cited, final verdict, the revised command on EDIT, and duration. Gitignored by default.
 
-## Known T3 limitations (so they don't surprise you)
+## Known limitations (so they don't surprise you)
 
 - **Compound / control-flow commands classify by their leading segment.** `ls | grep x` reviews as `shell_readonly`; a bare `for …; do …; done` classifies as nothing and is **not** reviewed (falls through to normal flow).
 - **Deterministic routing is regex-based.** `triggers` are added for the cross-cutting concerns + the two newly-live categories only; concerns without `triggers` (and the not-yet-live categories) rely on the seats' own judgment, not the pre-LLM screen.
