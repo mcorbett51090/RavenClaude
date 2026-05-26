@@ -256,6 +256,75 @@ _THING_SEAT_META = [
     ("thor", "Thor — Tie-breaker", "claude-opus-4-7"),
 ]
 
+# gate_floor headline control — enum medium | high | extreme, default high.
+# (value, label, recommended-suffix, tooltip). Copy is the exact directive copy.
+_GATE_FLOOR_META = [
+    (
+        "medium",
+        "Medium",
+        "",
+        "Most oversight. Reads still run free, but every change at medium risk "
+        "or above — file edits, local mutations, package installs, web writes — "
+        "is surfaced to you for confirmation after the tribunal clears it.",
+    ),
+    (
+        "high",
+        "High",
+        "Recommended",
+        "Balanced (recommended). Reads and low-risk mutations resolve "
+        "automatically; higher-risk commands — writing outside the project, git "
+        "push, arbitrary code execution — are surfaced to you. The tribunal still "
+        "blocks or rewrites dangerous commands at every tier.",
+    ),
+    (
+        "extreme",
+        "Extreme",
+        "",
+        "Most autonomy. Only extreme commands — arbitrary code execution, plus "
+        "anything a concern escalates to extreme — are surfaced to you; "
+        "everything below resolves automatically. Irreversible (high-blast) "
+        "actions always surface regardless.",
+    ),
+]
+_GATE_FLOOR_DEFAULT = "high"
+
+# Per-tier panel defaults — mirror thing-decision.py's built-in tier table.
+# Seat keys are exactly forseti | mimir | heimdall (thor is the tie-breaker and
+# never sits in a tier's `seats`). The `low` tier runs no panel and is omitted.
+# (tier, label, seats, mandatory_seats, confidence_threshold, caption).
+_TIER_SEATS = ["forseti", "mimir", "heimdall"]
+_TIER_SEAT_LABELS = {
+    "forseti": "Forseti",
+    "mimir": "Mímir",
+    "heimdall": "Heimdall",
+}
+_TIER_META = [
+    (
+        "medium",
+        "Medium",
+        ["mimir", "heimdall"],
+        ["heimdall"],
+        0.5,
+        "By default Mímir + Heimdall convene; Heimdall is required.",
+    ),
+    (
+        "high",
+        "High",
+        ["forseti", "mimir", "heimdall"],
+        ["heimdall"],
+        0.6,
+        "By default Forseti + Mímir + Heimdall convene; Heimdall is required.",
+    ),
+    (
+        "extreme",
+        "Extreme",
+        ["forseti", "mimir", "heimdall"],
+        ["forseti", "heimdall"],
+        0.7,
+        "By default Forseti + Mímir + Heimdall convene; Forseti + Heimdall are required.",
+    ),
+]
+
 
 def _render_command_review_panel() -> str:
     """Render the GLOBAL command-review panel config (per-seat model + threshold).
@@ -288,13 +357,114 @@ def _render_command_review_panel() -> str:
         '<p class="crp-sub">Which model fills each seat, and how unsure a seat may be before the '
         "tie-breaker is convened. Applies wherever a category&rsquo;s review toggle (above) is on.</p>"
         "</div>"
-        f'<div class="crp-seats">{seats_html}</div>'
+        + _render_gate_floor()
+        + f'<div class="crp-seats">{seats_html}</div>'
         '<label class="crp-threshold" for="cr-threshold">'
         "<span class=\"crp-threshold-label\">Confidence threshold</span>"
         '<input type="number" id="cr-threshold" min="0" max="1" step="0.05" value="0.5">'
         '<span class="crp-hint">A seat that votes below this convenes Thor.</span>'
         "</label>"
+        + _render_tier_panel()
+        + "</div>"
+    )
+
+
+def _render_gate_floor() -> str:
+    """Render the headline `gate_floor` segmented control (medium | high | extreme).
+
+    The comfort knob: it decides which risk tier and above is surfaced to the
+    human after the tribunal clears it. Default High. Each option carries the
+    directive tooltip via title=, matching the rest of the panel's tooltip idiom.
+    """
+    opts: list[str] = []
+    for value, label, rec, tip in _GATE_FLOOR_META:
+        checked = " checked" if value == _GATE_FLOOR_DEFAULT else ""
+        rec_badge = (
+            f'<span class="rec-badge">{html.escape(rec)}</span>' if rec else ""
+        )
+        opts.append(
+            f'<input type="radio" id="gate-floor-{value}" name="gate-floor" '
+            f'value="{value}"{checked} data-gate-floor="{value}">'
+            f'<label for="gate-floor-{value}" class="seg-label gate-floor-{value}" '
+            f'title="{html.escape(tip)}">{html.escape(label)}{rec_badge}</label>'
+        )
+    return (
+        '<div class="crp-gate-floor">'
+        '<span class="crp-gate-floor-label">Comfort level &mdash; which commands you confirm</span>'
+        '<div class="seg-control gate-floor-seg" role="radiogroup" '
+        'aria-label="Comfort level (which risk tier and above is surfaced to you)">'
+        + "".join(opts)
+        + "</div>"
+        '<p class="crp-gate-floor-note">Reads are never interrupted, and the tribunal '
+        "always blocks or rewrites dangerous commands &mdash; this only changes which "
+        "safe-looking commands you confirm.</p>"
         "</div>"
+    )
+
+
+def _render_tier_panel() -> str:
+    """Render the advanced per-tier expansion (medium | high | extreme).
+
+    Behind a <details> like the per-permission overrides. Each tier card shows a
+    seat checkbox per forseti/mimir/heimdall (mandatory seats render checked +
+    disabled with a 'required' marker) and a per-tier confidence input. `low`
+    runs no panel and gets no card — only a note.
+    """
+    cards: list[str] = []
+    for tier, label, seats, mandatory, threshold, caption in _TIER_META:
+        seat_rows: list[str] = []
+        for seat in _TIER_SEATS:
+            in_seats = seat in seats
+            is_mandatory = seat in mandatory
+            cid = f"tier-{tier}-seat-{seat}"
+            checked = " checked" if (in_seats or is_mandatory) else ""
+            disabled = " disabled" if is_mandatory else ""
+            mandatory_attr = ' data-mandatory="1"' if is_mandatory else ""
+            req_marker = (
+                '<span class="tier-seat-req">required</span>' if is_mandatory else ""
+            )
+            seat_rows.append(
+                f'<label class="tier-seat" for="{cid}">'
+                f'<input type="checkbox" id="{cid}" class="tier-seat-cb" '
+                f'data-tier="{tier}" data-tier-seat="{seat}"'
+                f'{mandatory_attr}{checked}{disabled}>'
+                f'<span class="tier-seat-name">{html.escape(_TIER_SEAT_LABELS[seat])}</span>'
+                f"{req_marker}"
+                "</label>"
+            )
+        cards.append(
+            f'<div class="tier-card" data-tier="{tier}">'
+            f'<div class="tier-card-head">'
+            f'<span class="tier-card-title">{html.escape(label)} risk</span>'
+            f'</div>'
+            f'<div class="tier-seats" role="group" '
+            f'aria-label="Seats that convene at {html.escape(label)} risk">'
+            + "".join(seat_rows)
+            + "</div>"
+            f'<label class="tier-threshold" for="tier-{tier}-threshold">'
+            f'<span class="tier-threshold-label">Confidence threshold</span>'
+            f'<input type="number" id="tier-{tier}-threshold" '
+            f'class="tier-threshold-input" data-tier-threshold="{tier}" '
+            f'min="0" max="1" step="0.05" value="{threshold}">'
+            f"</label>"
+            f'<p class="tier-caption">{html.escape(caption)}</p>'
+            f"</div>"
+        )
+    return (
+        '<details class="pattern-details tier-details">'
+        '<summary class="pattern-summary">'
+        '<span class="pattern-summary-text">Per-tier panel '
+        '<span class="pattern-count">(advanced)</span></span>'
+        "</summary>"
+        '<div class="tier-list">'
+        '<p class="tier-intro">Override which seats convene and how confident the '
+        "panel must be at each risk tier. A required seat (set by the tier&rsquo;s "
+        "mandatory list) is always checked and can&rsquo;t be removed.</p>"
+        + "".join(cards)
+        + '<p class="tier-low-note"><strong>Low risk</strong> runs no panel &mdash; clean '
+        "reads pass the deterministic screen for free and are never sent to the tribunal.</p>"
+        "</div>"
+        "</details>"
     )
 
 
@@ -906,6 +1076,78 @@ body {
 .crp-threshold-label { font-size: 13px; color: var(--text); }
 .crp-threshold input { width: 72px; }
 .crp-hint { font-size: 11px; color: var(--muted); }
+/* gate_floor — headline comfort knob (segmented control + always-visible note). */
+.crp-gate-floor {
+  margin: 4px 0 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed var(--border);
+}
+.crp-gate-floor-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.seg-control.gate-floor-seg { margin-bottom: 8px; }
+.seg-control input[type="radio"]:checked + .seg-label.gate-floor-medium { background: var(--warn); color: var(--bg); }
+.seg-control input[type="radio"]:checked + .seg-label.gate-floor-extreme { background: var(--danger); color: white; }
+.crp-gate-floor-note { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+/* Per-tier advanced expansion — tier cards with seat checkboxes + threshold. */
+.tier-details { margin: 14px 0 0; }
+.tier-list { padding: 12px 8px 8px; }
+.tier-intro { margin: 0 0 12px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+.tier-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+.tier-card-head { margin-bottom: 8px; }
+.tier-card-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.tier-seats { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 10px; }
+.tier-seat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text);
+  cursor: pointer;
+}
+.tier-seat input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; }
+.tier-seat input[type="checkbox"]:disabled { cursor: not-allowed; }
+.tier-seat:has(input:disabled) { color: var(--muted); cursor: default; }
+.tier-seat-req {
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+.tier-threshold {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.tier-threshold-label { font-size: 12px; color: var(--muted); }
+.tier-threshold-input {
+  width: 72px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12.5px;
+}
+.tier-caption { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+.tier-low-note {
+  margin: 12px 0 0;
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
 /* The "★ Recommended" preset gets a stronger visual to mark it as primary */
 .preset-btn.preset-recommended {
   background: var(--accent);
@@ -1923,9 +2165,39 @@ _JS = r"""
     heimdall: "claude-haiku-4-5",
     thor: "claude-opus-4-7",
     confidence_threshold: 0.5,
+    gate_floor: "high",
   });
   const CR_SEATS = ["forseti", "mimir", "heimdall", "thor"];
   const CR_MODELS = ["claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5"];
+
+  /* gate_floor headline control — enum medium | high | extreme, default high. */
+  const GATE_FLOORS = ["medium", "high", "extreme"];
+
+  /* Per-tier panel defaults — mirror thing-decision.py's built-in tier table.
+   * Seats are forseti | mimir | heimdall (thor is the tie-breaker, never a seat).
+   * The `low` tier runs no panel and is never authored here. */
+  const TIER_SEATS = ["forseti", "mimir", "heimdall"];
+  const TIERS = ["medium", "high", "extreme"];
+  const TIER_DEFAULT = Object.freeze({
+    medium: Object.freeze({ seats: ["mimir", "heimdall"], mandatory_seats: ["heimdall"], confidence_threshold: 0.5 }),
+    high: Object.freeze({ seats: ["forseti", "mimir", "heimdall"], mandatory_seats: ["heimdall"], confidence_threshold: 0.6 }),
+    extreme: Object.freeze({ seats: ["forseti", "mimir", "heimdall"], mandatory_seats: ["forseti", "heimdall"], confidence_threshold: 0.7 }),
+  });
+  /* mandatory_seats are fixed by the engine — the dashboard renders them
+   * checked + disabled and never lets the user change them, so we clone the
+   * defaults verbatim into the working tier state. */
+  function freshTiers() {
+    const out = {};
+    for (const t of TIERS) {
+      const d = TIER_DEFAULT[t];
+      out[t] = {
+        seats: d.seats.slice(),
+        mandatory_seats: d.mandatory_seats.slice(),
+        confidence_threshold: d.confidence_threshold,
+      };
+    }
+    return out;
+  }
 
   /* Pattern explanations loaded from a sibling JSON block. */
   let PATTERN_EXPLANATIONS = {};
@@ -1965,7 +2237,7 @@ _JS = r"""
     /* Behavioral flag (NOT a permission): pause for design decisions? Default ON. */
     design_checkins: (typeof ((props.design_checkins || {}).default) === "boolean")
       ? props.design_checkins.default : true,
-    command_review: Object.assign({}, CR_DEFAULT),
+    command_review: Object.assign({}, CR_DEFAULT, { tiers: freshTiers() }),
     expanded: {},   /* category -> boolean */
   };
 
@@ -2034,13 +2306,33 @@ _JS = r"""
       }
       /* command-review panel: keep only known seats/models + a valid threshold */
       if (parsed.command_review && typeof parsed.command_review === "object") {
+        const pcr = parsed.command_review;
         for (const s of CR_SEATS) {
-          if (CR_MODELS.includes(parsed.command_review[s])) {
-            state.command_review[s] = parsed.command_review[s];
+          if (CR_MODELS.includes(pcr[s])) {
+            state.command_review[s] = pcr[s];
           }
         }
-        const t = parseFloat(parsed.command_review.confidence_threshold);
+        const t = parseFloat(pcr.confidence_threshold);
         if (!Number.isNaN(t) && t >= 0 && t <= 1) state.command_review.confidence_threshold = t;
+        /* gate_floor — only one of the known enum values */
+        if (GATE_FLOORS.includes(pcr.gate_floor)) state.command_review.gate_floor = pcr.gate_floor;
+        /* per-tier overrides — keep well-formed entries; mandatory_seats stay
+         * pinned to the engine defaults (the UI can't change them). */
+        if (pcr.tiers && typeof pcr.tiers === "object") {
+          for (const tier of TIERS) {
+            const pt = pcr.tiers[tier];
+            if (!pt || typeof pt !== "object") continue;
+            const dst = state.command_review.tiers[tier];
+            if (Array.isArray(pt.seats)) {
+              const seats = pt.seats.filter(s => TIER_SEATS.includes(s));
+              /* mandatory seats are always present regardless of what was stored */
+              for (const m of dst.mandatory_seats) if (!seats.includes(m)) seats.push(m);
+              dst.seats = TIER_SEATS.filter(s => seats.includes(s));
+            }
+            const tt = parseFloat(pt.confidence_threshold);
+            if (!Number.isNaN(tt) && tt >= 0 && tt <= 1) dst.confidence_threshold = tt;
+          }
+        }
       }
     }
   } catch (e) {
@@ -2101,6 +2393,27 @@ _JS = r"""
       const thr = document.getElementById("cr-threshold");
       if (thr) thr.value = String(state.command_review.confidence_threshold);
     }
+    /* Sync the gate_floor segmented control */
+    document.querySelectorAll('input[type="radio"][data-gate-floor]').forEach(inp => {
+      inp.checked = inp.dataset.gateFloor === state.command_review.gate_floor;
+    });
+    /* Sync per-tier seat checkboxes + thresholds */
+    document.querySelectorAll('input[type="checkbox"][data-tier-seat]').forEach(cb => {
+      const tier = cb.dataset.tier;
+      const seat = cb.dataset.tierSeat;
+      const tcfg = state.command_review.tiers[tier];
+      if (!tcfg) return;
+      if (tcfg.mandatory_seats.includes(seat)) {
+        cb.checked = true;   /* required seats stay checked + disabled */
+      } else {
+        cb.checked = tcfg.seats.includes(seat);
+      }
+    });
+    document.querySelectorAll("input.tier-threshold-input[data-tier-threshold]").forEach(inp => {
+      const tier = inp.dataset.tierThreshold;
+      const tcfg = state.command_review.tiers[tier];
+      if (tcfg) inp.value = String(tcfg.confidence_threshold);
+    });
     syncDesignCheckins();
   }
   syncDomToState();
@@ -2180,8 +2493,17 @@ _JS = r"""
      * customized it, so an untouched dashboard leaves thing.yaml / the built-in
      * defaults in control (this block has higher precedence than thing.yaml). */
     const cr = state.command_review;
+    function tierChanged(tier) {
+      const d = TIER_DEFAULT[tier], t = cr.tiers[tier];
+      if (t.confidence_threshold !== d.confidence_threshold) return true;
+      if (t.seats.length !== d.seats.length) return true;
+      return t.seats.some(s => !d.seats.includes(s));
+    }
+    const tiersChanged = TIERS.some(tierChanged);
     const crChanged = CR_SEATS.some(s => cr[s] !== CR_DEFAULT[s])
-      || cr.confidence_threshold !== CR_DEFAULT.confidence_threshold;
+      || cr.confidence_threshold !== CR_DEFAULT.confidence_threshold
+      || cr.gate_floor !== CR_DEFAULT.gate_floor
+      || tiersChanged;
     if (crChanged) {
       lines.push("# Command-review tribunal panel (the Thing). Overrides .ravenclaude/thing.yaml.");
       lines.push("command_review:");
@@ -2191,6 +2513,22 @@ _JS = r"""
         lines.push(`      model: ${cr[s]}`);
       }
       lines.push(`  confidence_threshold: ${cr.confidence_threshold}`);
+      lines.push(`  gate_floor: ${cr.gate_floor}`);
+      /* Per-tier panel — emitted only when a tier differs from its default, so
+       * an untouched advanced section leaves the engine tier table in control.
+       * low has no panel and is never emitted. */
+      if (tiersChanged) {
+        lines.push("  tiers:");
+        for (const tier of TIERS) {
+          const t = cr.tiers[tier];
+          const seats = TIER_SEATS.filter(s => t.seats.includes(s));
+          const mand = TIER_SEATS.filter(s => t.mandatory_seats.includes(s));
+          lines.push(`    ${tier}:`);
+          lines.push(`      seats: [${seats.join(", ")}]`);
+          lines.push(`      mandatory_seats: [${mand.join(", ")}]`);
+          lines.push(`      confidence_threshold: ${t.confidence_threshold}`);
+        }
+      }
       lines.push("");
     }
 
@@ -2336,6 +2674,52 @@ _JS = r"""
       });
     }
   }
+
+  /* gate_floor headline control (medium | high | extreme) */
+  document.querySelectorAll('input[type="radio"][data-gate-floor]').forEach(inp => {
+    inp.addEventListener("change", () => {
+      if (inp.checked && GATE_FLOORS.includes(inp.dataset.gateFloor)) {
+        state.command_review.gate_floor = inp.dataset.gateFloor;
+        flagUnsaved();
+        render();
+      }
+    });
+  });
+
+  /* Per-tier seat checkboxes — mandatory seats are disabled, so only optional
+   * seats fire here. Keeps the tier's seat list canonically ordered. */
+  document.querySelectorAll('input[type="checkbox"][data-tier-seat]').forEach(cb => {
+    cb.addEventListener("change", () => {
+      const tier = cb.dataset.tier;
+      const seat = cb.dataset.tierSeat;
+      const tcfg = state.command_review.tiers[tier];
+      if (!tcfg || !TIER_SEATS.includes(seat)) return;
+      if (tcfg.mandatory_seats.includes(seat)) { cb.checked = true; return; }
+      const set = new Set(tcfg.seats);
+      if (cb.checked) set.add(seat); else set.delete(seat);
+      /* mandatory seats are always present */
+      for (const m of tcfg.mandatory_seats) set.add(m);
+      tcfg.seats = TIER_SEATS.filter(s => set.has(s));
+      flagUnsaved();
+      render();
+    });
+  });
+
+  /* Per-tier confidence thresholds */
+  document.querySelectorAll("input.tier-threshold-input[data-tier-threshold]").forEach(inp => {
+    inp.addEventListener("change", () => {
+      const tier = inp.dataset.tierThreshold;
+      const tcfg = state.command_review.tiers[tier];
+      if (!tcfg) return;
+      let t = parseFloat(inp.value);
+      if (Number.isNaN(t)) t = TIER_DEFAULT[tier].confidence_threshold;
+      t = Math.min(1, Math.max(0, t));
+      tcfg.confidence_threshold = t;
+      inp.value = String(t);
+      flagUnsaved();
+      render();
+    });
+  });
 
   /* Track card expand/collapse for localStorage */
   document.querySelectorAll(".cat-card[data-category]").forEach(card => {
