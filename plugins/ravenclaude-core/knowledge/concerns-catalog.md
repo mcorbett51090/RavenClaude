@@ -483,24 +483,30 @@ categories:
       # Force-delete (`-D`, or `--delete --force` in either order) of a protected
       # local branch, with the flag before or after the branch name. Plain `-d`
       # (only deletes merged branches) is intentionally NOT matched — it's safe.
+      # The branch token is bounded by (?<![\w./-]) … (?![\w./-]) so it is the
+      # WHOLE name `main`/`master`, not a substring of `feature/main` or
+      # `main-backup` (those are safe feature branches, never matched).
       triggers:
         regex:
-          - 'git\s+branch\b[^|&;]*\s-D\b[^|&;]*\b(?:main|master)\b'
-          - 'git\s+branch\b[^|&;]*\b(?:main|master)\b[^|&;]*\s-D\b'
-          - 'git\s+branch\b[^|&;]*--delete\b[^|&;]*--force\b[^|&;]*\b(?:main|master)\b'
+          - 'git\s+branch\b[^|&;]*\s-D\b[^|&;]*(?<![\w./-])(?:main|master)(?![\w./-])'
+          - 'git\s+branch\b[^|&;]*(?<![\w./-])(?:main|master)(?![\w./-])[^|&;]*\s-D\b'
+          - 'git\s+branch\b[^|&;]*--delete\b[^|&;]*--force\b[^|&;]*(?<![\w./-])(?:main|master)(?![\w./-])'
     - id: slm.chmod-broad
       name: chmod -R 777 or chmod -R 000 on the project tree
       severity: high
       description: 777 is caught by security_deny; the 000 case is the inverse footgun (locks the user out).
       resolution: DENY.
       # Recursive chmod to a broad mode (777 = world-writable, 000 = lock-out), in
-      # either flag order. Non-recursive single-file chmod is left to the seat.
+      # either flag order. The mode matcher (?<![0-7])0?(?:000|777)(?![0-7])
+      # accepts the 3- and 4-digit octal forms (777, 0777, 000, 0000) without
+      # firing on a benign mode like 0644. Non-recursive single-file chmod is
+      # left to the seat.
       triggers:
         regex:
-          - 'chmod\b[^|&;]*\s-[A-Za-z]*R[A-Za-z]*\b[^|&;]*\b(?:000|777)\b'
-          - 'chmod\b[^|&;]*--recursive\b[^|&;]*\b(?:000|777)\b'
-          - 'chmod\b[^|&;]*\b(?:000|777)\b[^|&;]*\s-[A-Za-z]*R[A-Za-z]*\b'
-          - 'chmod\b[^|&;]*\b(?:000|777)\b[^|&;]*--recursive\b'
+          - 'chmod\b[^|&;]*\s-[A-Za-z]*R[A-Za-z]*\b[^|&;]*(?<![0-7])0?(?:000|777)(?![0-7])'
+          - 'chmod\b[^|&;]*--recursive\b[^|&;]*(?<![0-7])0?(?:000|777)(?![0-7])'
+          - 'chmod\b[^|&;]*(?<![0-7])0?(?:000|777)(?![0-7])[^|&;]*\s-[A-Za-z]*R[A-Za-z]*\b'
+          - 'chmod\b[^|&;]*(?<![0-7])0?(?:000|777)(?![0-7])[^|&;]*--recursive\b'
   shell_remote_mutate:
     - id: srm.push-to-protected-branch
       name: git push origin main / master (direct, not PR-shaped)
@@ -633,27 +639,43 @@ categories:
       severity: medium
       description: Floating-version installs are reproducibility-hostile.
       resolution: EDIT to add the version pin (look up the latest stable). ALLOW with banner if the user wants latest.
-      # A named package argument carrying NO version specifier. npm/pnpm/yarn pins
-      # with `pkg@1.2.3` (the `[^\s@]+` stops before `@`, so a pinned token does
-      # not match); pip pins with `==`/`>=`/`~=`/etc (stopped by `[^\s=<>~!]`). A
-      # bare `npm install` (no arg → lockfile install, already pinned), a flag
-      # (`-D`, `-r`), or `pip install .` (editable local) do NOT match.
+      # A named package argument carrying NO version specifier. Two unpinned
+      # shapes are matched: a plain name (`express`) and a SCOPED name with no
+      # second `@` (`@scope/pkg`). A pinned token does not match — `pkg@1.2.3`
+      # (the `[^\s@]+` stops before `@`) nor `@scope/pkg@1.2.3` (the scoped
+      # alternative requires `(?:\s|$)` right after the name, which a trailing
+      # `@version` breaks). pip pins with `==`/`>=`/`~=`/etc (stopped by
+      # `[^\s=<>~!]`). A bare `npm install` (no arg → lockfile install, already
+      # pinned), a flag (`-D`, `-r`), or `pip install .` (editable local) do NOT
+      # match.
       triggers:
         regex:
-          - '\b(?:npm|pnpm|yarn)\s+(?:install|i|add)\s+(?![-@])[^\s@]+(?:\s|$)'
+          - '\b(?:npm|pnpm|yarn)\s+(?:install|i|add)\s+(?:(?![-@])[^\s@]+|@[^\s@/]+/[^\s@]+)(?:\s|$)'
           - '\bpip3?\s+install\s+(?![-.])[^\s=<>~!]+(?:\s|$)'
     - id: spi.global-install
-      name: npm install -g / pip install --user / cargo install --force
+      name: npm -g / yarn global / pip --user / cargo·pipx·gem·go install / uv --system
       severity: high
-      description: Modifies global state; persists across sessions; hard to audit.
+      description: >-
+        Modifies global state; persists across sessions; hard to audit. Covers
+        npm/pnpm `-g`/`--global`, `yarn global add`, `pip install --user`,
+        `cargo install`, `pipx install`, `gem install`, `go install`, and
+        `uv pip install --system` — the package managers whose install is global
+        by default need no extra flag to qualify.
       resolution: EDIT to a project-scoped install. DENY for -g unless the user explicitly toggled "I want global installs".
       # Global / user-scoped / forced installs across the common package managers.
+      # cargo/pipx/gem/go install are global by default, so the bare verb matches
+      # (no flag required); npm/pnpm/pip/uv need their global flag. Triggers route
+      # to the panel (not a pre-LLM deny), so erring inclusive just convenes review.
       triggers:
         regex:
           - '\b(?:npm|pnpm)\s+(?:install|i|add)\b[^|&;]*\s(?:-g\b|--global\b)'
           - '\byarn\s+global\s+add\b'
           - '\bpip3?\s+install\b[^|&;]*\s--user\b'
-          - '\bcargo\s+install\b[^|&;]*\s--force\b'
+          - '\bcargo\s+install\b'
+          - '\bpipx\s+install\b'
+          - '\bgem\s+install\b'
+          - '\bgo\s+install\b'
+          - '\buv\s+pip\s+install\b[^|&;]*\s--system\b'
     - id: spi.post-install-script-risk
       name: Package known to run a non-trivial post-install script
       severity: high
@@ -677,11 +699,12 @@ categories:
       severity: high
       description: Installing an arbitrary tarball is the install-from-disk attack.
       resolution: DENY unless the tarball is inside the project tree and the user explicitly authorized.
-      # Install of an archive/wheel from a world-writable temp dir (/tmp, /var/tmp).
+      # Install of an archive/wheel from a world-writable temp dir
+      # (/tmp, /var/tmp, /dev/shm).
       triggers:
         regex:
-          - '\b(?:npm|pnpm|yarn)\s+(?:install|add|i)\b[^|&;]*\s/(?:tmp|var/tmp)/\S+\.(?:tgz|tar\.gz|tar)\b'
-          - '\bpip3?\s+install\b[^|&;]*\s/(?:tmp|var/tmp)/\S+\.(?:whl|tar\.gz|zip)\b'
+          - '\b(?:npm|pnpm|yarn)\s+(?:install|add|i)\b[^|&;]*\s/(?:tmp|var/tmp|dev/shm)/\S+\.(?:tgz|tar\.gz|tar)\b'
+          - '\bpip3?\s+install\b[^|&;]*\s/(?:tmp|var/tmp|dev/shm)/\S+\.(?:whl|tar\.gz|zip)\b'
   network_read:
     - id: nr.exfil-via-url-params
       name: URL query string contains a secret-shaped string

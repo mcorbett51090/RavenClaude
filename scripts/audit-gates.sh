@@ -716,7 +716,17 @@ for spec in \
   "chmod -R 777 .|shell_local_mutate|slm.chmod-broad" \
   "npm install -g typescript|shell_package_install|spi.global-install" \
   "npm install express|shell_package_install|spi.no-pinned-version" \
-  "npm install /tmp/foo.tgz|shell_package_install|spi.local-tarball-from-tmp"; do
+  "npm install /tmp/foo.tgz|shell_package_install|spi.local-tarball-from-tmp" \
+  "git branch master -D|shell_local_mutate|slm.delete-protected-branch-locally" \
+  "chmod -R 0777 .|shell_local_mutate|slm.chmod-broad" \
+  "chmod -R 0000 .|shell_local_mutate|slm.chmod-broad" \
+  "npm install @scope/pkg|shell_package_install|spi.no-pinned-version" \
+  "pnpm add @types/node|shell_package_install|spi.no-pinned-version" \
+  "cargo install ripgrep|shell_package_install|spi.global-install" \
+  "pipx install black|shell_package_install|spi.global-install" \
+  "gem install rails|shell_package_install|spi.global-install" \
+  "uv pip install --system flask|shell_package_install|spi.global-install" \
+  "npm install /dev/shm/x.tgz|shell_package_install|spi.local-tarball-from-tmp"; do
   IFS='|' read -r cmd cat cid <<EOF
 $spec
 EOF
@@ -728,6 +738,10 @@ for spec in \
   "charm install widget|shell_local_mutate|slm.rm-without-trash" \
   "npm ci|shell_local_mutate|slm.rm-without-trash" \
   "git branch -d feature|shell_local_mutate|slm.delete-protected-branch-locally" \
+  "git branch -D feature/main|shell_local_mutate|slm.delete-protected-branch-locally" \
+  "git branch -D main-backup|shell_local_mutate|slm.delete-protected-branch-locally" \
+  "chmod -R 0644 .|shell_local_mutate|slm.chmod-broad" \
+  "npm install @scope/pkg@1.0.0|shell_package_install|spi.no-pinned-version" \
   "npm install lodash@4.17.21|shell_package_install|spi.no-pinned-version" \
   "pip install -r requirements.txt|shell_package_install|spi.no-pinned-version"; do
   IFS='|' read -r cmd cat cid <<EOF

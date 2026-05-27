@@ -76,7 +76,7 @@ Components (all under the plugin):
 - `scripts/thing-decision.py` — classifies a command into a comfort-posture category (reusing the EMISSIONS table — one source of truth), reads the toggle, resolves the panel config (precedence: `comfort-posture.yaml command_review:` > `thing.yaml` > defaults), and merges in routing from thing-concerns — all in one call.
 - `scripts/thing-concerns.py` — the **deterministic concern evaluator**. Reads the catalog's machine-readable `triggers` to return matched concerns + max severity + which seats to convene, and enforces the **EDIT-safety invariant** (`concerns(revised) ⊆ concerns(original) − {cited}`). No live model — reproducible + CI-testable.
 - `scripts/thing-seat.sh` — invokes ONE reviewer seat (role via `THING_SEAT_ROLE`) via `claude -p` and returns its verdict JSON (now including `edited_command`). A role-aware `THING_SEAT_MOCK_VERDICT` test hook lets CI/gate-audit exercise the whole panel with no live model.
-- `templates/thing.yaml` — optional advanced config (panel models, **`tiers`** = per-tier seats + confidence + mandatory seats, **`category_tier_map`**, **`gate_floor`**, seat/panel timers, audit dir); `schema_version: 3`. Absent ⇒ defaults; legacy `seat:` maps to Mímir; a leftover T3 `timeout_posture:` is ignored.
+- `templates/thing.yaml` — optional advanced config (panel models, **`tiers`** = per-tier seats + confidence + mandatory seats, **`category_tier_map`**, **`gate_floor`**, seat/panel timers, audit dir); `schema_version: 4`. Absent ⇒ defaults; legacy `seat:` maps to Mímir; a leftover T3 `timeout_posture:` is ignored.
 
 ## Verdict semantics & fail-closed rules
 
@@ -104,7 +104,7 @@ Every verdict writes one JSON entry to `.ravenclaude/runs/thing/<id>.json` (the 
 ## Known limitations (so they don't surprise you)
 
 - **Compound / control-flow commands classify by their leading segment.** `ls | grep x` reviews as `shell_readonly`; a bare `for …; do …; done` classifies as nothing and is **not** reviewed (falls through to normal flow).
-- **Deterministic routing is regex-based.** `triggers` are added for the cross-cutting concerns + the two newly-live categories only; concerns without `triggers` (and the not-yet-live categories) rely on the seats' own judgment, not the pre-LLM screen.
+- **Deterministic routing is regex-based.** `triggers` are added for the cross-cutting concerns plus the live categories' deterministic concerns; concerns without `triggers` (the `judgment_only` ones and the not-yet-live categories) rely on the seats' own judgment, not the pre-LLM screen.
 - **EDIT only when deterministically verifiable.** An EDIT is accepted only if the cited concern has `triggers` (so the invariant can confirm removal); otherwise it fails closed to DENY.
 - **No file-edit review.** Only Bash is reviewed; `file_edit_project` (Edit/Write tool shape) is deferred.
 
