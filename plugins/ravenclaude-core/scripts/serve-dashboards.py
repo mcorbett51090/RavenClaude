@@ -275,7 +275,11 @@ def _print_qr(url: str) -> bool:
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--port", type=int, default=8000)
-    p.add_argument("--bind", default="127.0.0.1", help="default 127.0.0.1 (local only)")
+    p.add_argument(
+        "--bind",
+        default=None,
+        help="bind address; auto 0.0.0.0 in a Codespace (so the forwarded port is reachable), else 127.0.0.1. An explicit value always wins.",
+    )
     p.add_argument(
         "--project-root",
         default=None,
@@ -316,10 +320,14 @@ def main() -> int:
     # chdir, so PROJECT_ROOT (the consumer's project, captured above) stays intact
     # for .ravenclaude/ reads/writes and the translator.
     handler = functools.partial(DashboardHandler, directory=str(PLUGIN_DIR))
-    server = ThreadingHTTPServer((args.bind, args.port), handler)
 
     codespace = os.environ.get("CODESPACE_NAME")
     domain = os.environ.get("GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN", "app.github.dev")
+    # In a Codespace the port-forwarder can't reach a 127.0.0.1-only socket, so default
+    # to 0.0.0.0 there — kept safe by the Private forwarded port + the Origin/Host CSRF
+    # guard below. Off-Codespace stay loopback-only. An explicit --bind always wins.
+    bind = args.bind or ("0.0.0.0" if codespace else "127.0.0.1")
+    server = ThreadingHTTPServer((bind, args.port), handler)
 
     # Build the Origin/Host allow-lists the CSRF/rebinding guard checks against.
     global _ALLOWED_HOSTS, _ALLOWED_ORIGINS
@@ -332,7 +340,7 @@ def main() -> int:
 
     print(f"serve-dashboards (plugin): serving {PLUGIN_DIR}")
     print(f"  project root (writes here): {PROJECT_ROOT}")
-    print(f"  local URL: http://{args.bind}:{args.port}{DASH_PATH}")
+    print(f"  local URL: http://127.0.0.1:{args.port}{DASH_PATH}  (bound to {bind})")
     print(f"  POST /__save  - writes an allow-listed file under .ravenclaude/ + auto-applies")
     print(f"  GET  /__read  - hydrates the dashboard from your committed config")
     print(f"  POST /__classify - command-review 'Test a command' simulator (read-only)")
@@ -340,7 +348,8 @@ def main() -> int:
     phone_url = None
     if codespace:
         phone_url = f"https://{codespace}-{args.port}.{domain}{DASH_PATH}"
-        print("\n  Codespace forwarded URL (open THIS in a real browser tab — not the VS Code preview):")
+        print("\n  Codespace forwarded URL — open it via the Ports panel -> Open in Browser")
+        print("  (that handles the GitHub auth; a raw paste needs you already signed in):")
         print(f"  {phone_url}")
         print("  Security: keep this forwarded port PRIVATE — /__save writes files + applies the posture.")
     if phone_url:

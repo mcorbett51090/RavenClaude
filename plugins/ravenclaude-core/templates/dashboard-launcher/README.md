@@ -22,8 +22,10 @@ Each starts a small **local** server. Once it's running, the dashboard for **thi
 That link is filled in for your current environment — the live **Codespace-forwarded** URL in
 a Codespace, or `localhost` otherwise — so you don't have to hunt for it. (`ravenclaude setup`
 regenerates this file, so a rebuilt Codespace always gets a fresh, working link.) In a
-Codespace, open it in a **real browser tab**, not VS Code's Simple Browser (which blocks the
-page). Press `Ctrl+C` to stop the server when you're done.
+Codespace, open it from the **Ports** panel → port **8000** → 🌐 **Open in Browser** — that
+handles the GitHub sign-in for the private port (a raw link paste can hit an auth wall). Use a
+real browser tab, not VS Code's Simple Browser (which blocks the page). Press `Ctrl+C` to stop
+the server when you're done.
 
 > Scoped & safe: the launcher pins this repo's path, and the server refuses to run if it's
 > ever pointed at the marketplace clone — so a consumer dashboard can only edit its own repo.
