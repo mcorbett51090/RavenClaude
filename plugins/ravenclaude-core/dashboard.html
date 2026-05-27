@@ -1839,7 +1839,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         &#9888; This overwrites the <code>allow</code> / <code>ask</code> / <code>deny</code> rules in all three settings files. Hand-edits to those rules are replaced. The three files are: <code>~/.claude/settings.json</code> (User), <code>.claude/settings.local.json</code> (Local, gitignored), and <code>.claude/settings.json</code> (Project, committed/shared).
       </p>
       <p class="primary-help muted" id="no-server-help" hidden>
-        Save-to-repo needs the local server. Start it with <code>python3 scripts/serve-dashboards.py</code> and open the forwarded URL. Until then, the alternatives below work.
+        <strong>No local server behind this page.</strong> The published / static dashboard (e.g. on <code>github.io</code>) can&rsquo;t write to your repo, so <em>Save &amp; apply</em> won&rsquo;t work here. Start the local dashboard with <code>ravenclaude dashboard --project &lt;repo&gt;</code> (or <code>bash .ravenclaude/dashboard.sh</code>, or VS Code &rarr; Run Task &rarr; &ldquo;RavenClaude: Comfort-posture dashboard&rdquo;) and open the URL it prints &mdash; Save &amp; apply works there. Meanwhile, use <strong>Download</strong> below and drop the file into <code>.ravenclaude/comfort-posture.yaml</code>.
       </p>
     </div>
     <details class="yaml-alt-actions">
@@ -4585,6 +4585,18 @@ the design pillar is **frictionless updates**: instead of copilot&#x27;s re-inst
     }
   }
 
+  /* No local server behind this page (the published/static copy, or the local
+   * server isn't running). Explain it plainly and steer to the working paths
+   * instead of surfacing a raw status code. */
+  function showNoServer() {
+    setStatus("no local server — changes NOT saved", "status-error");
+    if (saveRepoBtn) saveRepoBtn.hidden = true;
+    if (saveRepoHelp) saveRepoHelp.hidden = true;
+    if (saveRepoWarn) saveRepoWarn.hidden = true;
+    if (noServerHelp) noServerHelp.hidden = false;
+    toast("No local server to save to — run 'ravenclaude dashboard', or use Download. See the note above.");
+  }
+
   async function saveToRepo() {
     saveRepoBtn.disabled = true;
     setStatus("saving to repo…", "status-unsaved");
@@ -4594,6 +4606,13 @@ the design pillar is **frictionless updates**: instead of copilot&#x27;s re-inst
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path: REPO_TARGET, content: emitYaml() })
       });
+      // 404/405 = there is no /__save endpoint behind this page (the published
+      // static copy on github.io, or a plain file/http server). Don't leak a raw
+      // status code — explain that this page has no server and offer the real paths.
+      if (res.status === 404 || res.status === 405) {
+        showNoServer();
+        return;
+      }
       if (!res.ok) {
         const errText = await res.text().catch(() => "");
         setStatus(`save failed: ${res.status}`, "status-error");
@@ -4615,7 +4634,9 @@ the design pillar is **frictionless updates**: instead of copilot&#x27;s re-inst
         toast(`Saved to ${j.saved} (${j.bytes} bytes)`);
       }
     } catch (err) {
-      setStatus("save failed - see console", "status-error");
+      // A TypeError/network failure here usually also means no local server
+      // (static host, or a blocked request) — treat it the same friendly way.
+      showNoServer();
       console.error(err);
     } finally {
       saveRepoBtn.disabled = false;
