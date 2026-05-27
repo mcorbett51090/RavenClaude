@@ -43,16 +43,22 @@ schema:
   #                         (xc.tribunal-self-disable); and
   #                       (§B.9.3) the unarguable hard-deny rules that are catastrophic
   #                         regardless of how the command was routed — force-push to a
-  #                         protected branch, curl|sh, an inline secret. Marking these
-  #                         always_screen closes the evasion where a wrapped or
-  #                         mis-classified form (`nice git push --force`,
-  #                         `git status && git push --force`, a command that classifies
-  #                         to an untoggled category) dodges the hard DENY because its
-  #                         own category isn't the toggled one.
+  #                         protected branch, and curl|sh. Marking these always_screen
+  #                         closes the evasion where a wrapped or mis-classified form
+  #                         (`nice git push --force`, `git status && git push --force`,
+  #                         a command that classifies to an untoggled category) dodges
+  #                         the hard DENY because its own category isn't the toggled one.
   #                     Screened in scripts/thing-concerns.py `screen_always` (raw ∪
-  #                     normalized command). NOT used for xc.injection-attempt: an
-  #                     injection payload is only a threat when a seat is actually
-  #                     convened, so it is screened via the normal category path.
+  #                     normalized command). Reserved for triggers whose match is
+  #                     INTENT-BEARING (the command IS doing the dangerous thing). NOT
+  #                     used for:
+  #                       - xc.injection-attempt — only a threat when a seat is convened;
+  #                       - xc.secret-in-command — its triggers are presence-of-substring
+  #                         (`--password=…`, `--token=…`), which match env-var refs
+  #                         (`--password=$DBPASS`) and quoted/grep mentions; a
+  #                         category-INDEPENDENT, non-overridable hard DENY of those is
+  #                         too wide a false-positive blast. It stays pre_llm_deny within
+  #                         its classified category (the original scope).
   #   judgment_only   — true for concerns with NO clean deterministic regex: the LLM
   #                     seat judges them (volume/rate, "is this remote a fork", "is the
   #                     logged file sensitive", audit-trail etiquette). They carry no
@@ -71,7 +77,6 @@ cross_cutting:
     name: Secret material in the command line
     severity: critical
     pre_llm_deny: true
-    always_screen: true
     description: >-
       The command contains a string that pattern-matches a credential (AWS
       access key, OpenAI/Anthropic API key prefix, GitHub PAT prefix, SSH

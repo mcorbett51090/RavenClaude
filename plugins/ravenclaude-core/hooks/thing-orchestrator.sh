@@ -117,10 +117,10 @@ if [ "$self_disable" = "true" ]; then
   emit deny "Command review (the Thing): DENIED — this command would disable or tamper with the Thing itself (${sd_concern}). Refused unilaterally (§B.9.5); turn the Thing off in the comfort-posture dashboard instead. Sága log: .ravenclaude/runs/thing/${sd_run_id}.json"
 fi
 
-# ── §B.9.3: unarguable hard-deny rules (force-push to a protected branch, curl|sh,
-#    inline secret) are CATEGORY-INDEPENDENT too — `always_screen` in the catalog.
-#    They fire whenever ANY category is toggled, even if THIS command classifies
-#    into an untoggled category or None, so a wrapped / mis-routed form
+# ── §B.9.3: unarguable hard-deny rules (force-push to a protected branch, curl|sh)
+#    are CATEGORY-INDEPENDENT too — `always_screen` in the catalog. They fire
+#    whenever ANY category is toggled, even if THIS command classifies into an
+#    untoggled category or None, so a wrapped / mis-routed form
 #    (`nice git push --force`, `git status && git push --force`) cannot dodge the
 #    hard DENY. Pre-LLM, unilateral; no seat convened. ──────────────────────────
 hard_rule="$(printf '%s' "$decision" | jq -r '.hard_rule_deny // false')"
