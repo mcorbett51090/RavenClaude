@@ -30,8 +30,10 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import sys
+import unicodedata
 from pathlib import Path
 
 # ── Reuse the EMISSIONS table from apply-comfort-posture.py (single source of
@@ -218,6 +220,110 @@ def classify(command: str) -> str | None:
         if force_delete:
             best_cat = "shell_local_mutate"
     return best_cat
+
+
+# ── Payload classification (Track B Engine Foundation §1) ─────────────────────
+# Bash classifies by the EMISSIONS command-prefix table (classify, above). Every
+# OTHER reviewed tool shape (file Edit/Write/MultiEdit/Read, network
+# WebFetch/WebSearch, MCP) is NAME-keyed here — mcp_tools EMISSIONS is empty and
+# the file/network patterns are path/URL-shaped, not command prefixes. Bump
+# CLASSIFY_PAYLOAD_VERSION by hand whenever this logic changes; it folds into
+# config_hash so a cached verdict is invalidated when classification changes.
+CLASSIFY_PAYLOAD_VERSION = "1"
+
+# MCP verb read/write split (locked decision 4): a fixed read-verb prefix set;
+# everything else is a write at an escalated tier. Shipped now so the version is
+# stable across phases (the allowlist + concern triggers land in Phase 4).
+_MCP_READ_VERB_PREFIXES = ("get_", "list_", "read_", "search_", "describe_", "fetch_")
+
+
+def _path_scope(raw_path: str, project_root: Path) -> str:
+    """'project' or 'global' for a file-shape target (§4). Resolves stricter:
+    ANY ambiguity (empty, lexical `..`, leading `~`, unresolvable, or a realpath
+    outside the project) returns 'global' — mis-classification may only bump the
+    tier, never skip the screen."""
+    if not raw_path:
+        return "global"
+    norm = unicodedata.normalize("NFC", raw_path)
+    if norm.startswith("~") or ".." in norm.replace("\\", "/").split("/"):
+        return "global"  # lexical traversal / home → stricter tier
+    try:
+        p = Path(norm)
+        if not p.is_absolute():
+            p = project_root / p
+        rp = unicodedata.normalize("NFC", os.path.realpath(str(p)))
+        root_rp = unicodedata.normalize("NFC", os.path.realpath(str(project_root)))
+        if os.path.normcase(rp) == os.path.normcase(root_rp):
+            return "project"
+        try:
+            common = os.path.commonpath([os.path.normcase(rp), os.path.normcase(root_rp)])
+        except ValueError:
+            return "global"  # different drives / mixed abs+rel
+        return "project" if common == os.path.normcase(root_rp) else "global"
+    except (OSError, ValueError):
+        return "global"
+
+
+def mcp_verb_is_read(tool_name: str) -> bool:
+    """True if an mcp__server__verb tool name's verb starts with a read-verb
+    prefix. Unknown / non-prefixed verbs are writes (escalated), per decision 4."""
+    parts = tool_name.split("__", 2)
+    verb = parts[2] if len(parts) >= 3 else ""
+    return verb.startswith(_MCP_READ_VERB_PREFIXES)
+
+
+def classify_payload(tool_name: str, tool_input: dict, project_root: Path) -> str | None:
+    """Comfort-posture category for ANY reviewed tool shape, or None. Bash
+    delegates to classify(); the rest are name-keyed (§1)."""
+    ti = tool_input or {}
+    if not tool_name:
+        return None
+    if tool_name == "Bash":
+        return classify(ti.get("command", "") or "")
+    if tool_name in ("Edit", "Write", "MultiEdit"):
+        scope = _path_scope(ti.get("file_path", "") or "", project_root)
+        return "file_edit_project" if scope == "project" else "file_edit_global"
+    if tool_name == "Read":
+        scope = _path_scope(ti.get("file_path", "") or "", project_root)
+        return "file_read_project" if scope == "project" else "file_read_global"
+    if tool_name in ("WebFetch", "WebSearch"):
+        return "network_read"
+    if tool_name.startswith("mcp__"):
+        return "mcp_tools"
+    return None
+
+
+def reviewed_text(tool_name: str, tool_input: dict) -> str:
+    """The text a non-Bash payload is SCREENED against (§3). Per locked decisions:
+    WebFetch reviews the URL only (not the prompt); MCP reviews canonical-json
+    args; file shapes review path + content/diff."""
+    ti = tool_input or {}
+    if tool_name == "Bash":
+        return ti.get("command", "") or ""
+    if tool_name == "Write":
+        return f"{ti.get('file_path', '')}\n{ti.get('content', '')}"
+    if tool_name == "Edit":
+        return f"{ti.get('file_path', '')}\n{ti.get('old_string', '')}\n{ti.get('new_string', '')}"
+    if tool_name == "MultiEdit":
+        edits = ti.get("edits") or []
+        parts = [str(ti.get("file_path", ""))]
+        for e in edits:
+            if isinstance(e, dict):
+                parts.append(f"{e.get('old_string', '')}\n{e.get('new_string', '')}")
+        return "\n".join(parts)
+    if tool_name == "Read":
+        return ti.get("file_path", "") or ""
+    if tool_name == "WebFetch":
+        return ti.get("url", "") or ""  # URL only (decision 4)
+    if tool_name == "WebSearch":
+        return ti.get("query", "") or ""
+    if tool_name.startswith("mcp__"):
+        args = ti.get("arguments", ti)
+        try:
+            return tool_name + "\n" + json.dumps(args, sort_keys=True, default=str)
+        except (TypeError, ValueError):
+            return tool_name
+    return ti.get("command", "") or ""
 
 
 # ── Config reading ───────────────────────────────────────────────────────────
@@ -621,18 +727,35 @@ def main() -> int:
     c.add_argument("command", help="the shell command string")
     p = sub.add_parser("preview", help="full tier/seat/gate preview regardless of toggle (dashboard simulator)")
     p.add_argument("command", help="the shell command string")
+    # Track B: classify ANY tool shape. Reads {tool_name, tool_input} as JSON on
+    # stdin (not argv — a 1 MiB Write.content would overflow ARG_MAX).
+    sub.add_parser("classify-payload", help="classify a tool-call payload (JSON on stdin)")
     args = ap.parse_args()
 
     root = Path(args.root).resolve()
-    category = classify(args.command)
 
-    result: dict = {"category": category, "thing_enabled": False}
+    # `screened` is the text the self-disable / hard-rule / concern screens run
+    # against; `category` is the routing target. Bash uses the command string;
+    # other shapes extract a per-shape reviewed text (§3).
+    if args.cmd == "classify-payload":
+        try:
+            payload = json.load(sys.stdin)
+        except (json.JSONDecodeError, ValueError):
+            payload = {}
+        tool_name = payload.get("tool_name", "") or ""
+        tool_input = payload.get("tool_input", {}) or {}
+        category = classify_payload(tool_name, tool_input, root)
+        screened = reviewed_text(tool_name, tool_input)
+        result: dict = {"category": category, "tool_name": tool_name, "thing_enabled": False}
+    else:
+        category = classify(args.command)
+        screened = args.command
+        result = {"category": category, "thing_enabled": False}
 
-    # §B.9.5 — the self-disable guard is CATEGORY-INDEPENDENT. The orchestrator
-    # only reaches us when some category is toggled on, and disabling the Thing
-    # affects every category, so this is screened regardless of THIS command's
-    # category or whether that category's own toggle is on.
-    result.update(_screen_always(args.command))
+    # §B.9.5 / §B.9.3 — the self-disable + hard-rule screens are CATEGORY-
+    # INDEPENDENT. The orchestrator only reaches us when some category is toggled
+    # on, so this is screened regardless of THIS payload's category or toggle.
+    result.update(_screen_always(screened))
 
     posture: dict = {}
     posture_path = root / ".ravenclaude" / "comfort-posture.yaml"
@@ -646,9 +769,9 @@ def main() -> int:
             result["posture_error"] = f"comfort-posture.yaml: {exc}"
 
     # `preview` (dashboard simulator) computes the full detail unconditionally;
-    # `classify` (the live hook path) only when the category's toggle is on.
+    # `classify`/`classify-payload` (the live hook path) only when toggled on.
     if args.cmd == "preview" or result["thing_enabled"]:
-        result.update(_decision_detail(root, posture, args.command, category))
+        result.update(_decision_detail(root, posture, screened, category))
 
     json.dump(result, sys.stdout)
     sys.stdout.write("\n")
