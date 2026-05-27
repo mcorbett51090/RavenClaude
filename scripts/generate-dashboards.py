@@ -497,10 +497,11 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
 def _render_thing_preview() -> str:
     """Render the 'Command review (the Thing)' panel.
 
-    Live (tribunal T3) for three categories — shell_readonly, shell_remote_mutate,
-    shell_code_exec — with the full panel (three seats + a tie-breaker) and the
-    EDIT verdict. The copy stays honest about cost and about which categories are
-    clickable vs. still disabled previews.
+    Live for five categories — shell_readonly, shell_remote_mutate,
+    shell_code_exec, shell_local_mutate, shell_package_install — with the full
+    panel (three seats + a tie-breaker) and the EDIT verdict. The copy stays
+    honest about cost and about which categories are clickable vs. still
+    disabled previews.
     """
     return (
         '<div class="thing-preview">'
@@ -516,9 +517,10 @@ def _render_thing_preview() -> str:
         "safe one (the rewrite is re-validated against the concern catalog before it runs). You are "
         "only interrupted if they can&rsquo;t decide, and every verdict is logged. It can only ever "
         "resolve the <em>ask</em> cases &mdash; it never relaxes the Danger Zone floor.</p>"
-        '<p class="thing-preview-note"><strong>Live for three categories &mdash; '
-        "<code>shell_readonly</code>, <code>shell_remote_mutate</code>, and "
-        "<code>shell_code_exec</code>.</strong> Their toggles below are clickable; the rest stay "
+        '<p class="thing-preview-note"><strong>Live for five categories &mdash; '
+        "<code>shell_readonly</code>, <code>shell_remote_mutate</code>, "
+        "<code>shell_code_exec</code>, <code>shell_local_mutate</code>, and "
+        "<code>shell_package_install</code>.</strong> Their toggles below are clickable; the rest stay "
         "disabled previews. The panel runs its seats in parallel, so a typical verdict lands in "
         "<strong>seconds &mdash; but it spends credits on every reviewed command</strong>, so treat "
         "it as a high-stakes guard, not a daily setting &mdash; off by default. Tune the seat models "
@@ -969,8 +971,14 @@ def _render_category_card(name: str, schema: dict) -> str:
 
 
 # Categories whose command-review orchestrator is wired end-to-end, so the
-# toggle is clickable (not a button that lies). T2 ships shell_readonly only.
-THING_LIVE_CATEGORIES = {"shell_readonly", "shell_remote_mutate", "shell_code_exec"}
+# toggle is clickable (not a button that lies).
+THING_LIVE_CATEGORIES = {
+    "shell_readonly",
+    "shell_remote_mutate",
+    "shell_code_exec",
+    "shell_local_mutate",
+    "shell_package_install",
+}
 
 
 def _render_thing_toggle(name: str) -> str:

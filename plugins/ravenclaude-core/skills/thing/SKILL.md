@@ -1,6 +1,6 @@
 ---
 name: thing
-description: "Command review (the Thing) — the opt-in command-review tribunal that votes ALLOW/EDIT/DENY on shell commands a comfort-posture category is set to review. Read this when wiring, debugging, or explaining the tribunal: the PreToolUse orchestrator, the reviewer panel + tie-breaker, the deterministic concern evaluator, the tier model, the dashboard-configurable panel, the per-category toggle, the audit trail, and the fail-closed rules. T5 = tiered routing (low→extreme) where a clean low-risk read gets no LLM panel, seat count + confidence escalate with the tier, and a dashboard-configurable gate_floor decides which confident allows you confirm; live for shell_readonly / shell_remote_mutate / shell_code_exec."
+description: "Command review (the Thing) — the opt-in command-review tribunal that votes ALLOW/EDIT/DENY on shell commands a comfort-posture category is set to review. Read this when wiring, debugging, or explaining the tribunal: the PreToolUse orchestrator, the reviewer panel + tie-breaker, the deterministic concern evaluator, the tier model, the dashboard-configurable panel, the per-category toggle, the audit trail, and the fail-closed rules. T5 = tiered routing (low→extreme) where a clean low-risk read gets no LLM panel, seat count + confidence escalate with the tier, and a dashboard-configurable gate_floor decides which confident allows you confirm; live for shell_readonly / shell_remote_mutate / shell_code_exec / shell_local_mutate / shell_package_install."
 ---
 
 # Skill: command review (the Thing)
@@ -17,7 +17,7 @@ The tribunal is a real **panel**: up to three reviewer seats run in parallel, a 
 | --- | --- | --- |
 | Seats | **Up to 3** — Forseti (security-reviewer), Mímir (code-reviewer), Heimdall (prompt-engineer) — **+ Thor** (architect) convened only on a split or low-confidence panel | Domain specialist seats (T7) |
 | Verdicts | **ALLOW / EDIT / DENY** (+ fail-closed DENY, or an `ask` when the gate surfaces a command) | — |
-| Categories | **`shell_readonly`, `shell_remote_mutate`, `shell_code_exec`** | `file_edit_project` (Edit/Write tool shape) |
+| Categories | **`shell_readonly`, `shell_remote_mutate`, `shell_code_exec`, `shell_local_mutate`, `shell_package_install`** | `file_edit_project` (Edit/Write tool shape) |
 | **Tiers** | Every command resolves to `low`→`medium`→`high`→`extreme` = its category **base tier** (`category_tier_map`) bumped up by a deterministic high/critical concern. **`low` runs no panel** (clean reads are free); seat count + the confidence bar escalate with the tier; `extreme` carries a mandatory Forseti seat | — |
 | Routing | Tier-driven: `low` → deterministic screen only (0 seats), `medium` → 2 seats, `high`/`extreme` → 3 seats; unarguable critical → pre-LLM DENY | — |
 | **Human gate** | `gate_floor` (`medium`..`extreme`, default `high`) = lowest tier whose **confident ALLOW** is surfaced to you as `ask`. Reads are never surfaced; high-blast allows always are; DENY/EDIT stay autonomous | — |
@@ -27,7 +27,7 @@ The tribunal is a real **panel**: up to three reviewer seats run in parallel, a 
 
 ## Turning it on
 
-The on/off toggle is a **per-category `thing:` field in `.ravenclaude/comfort-posture.yaml`**, set from the dashboard's **Command review** toggle on the Settings tab (live for `shell_readonly`, `shell_remote_mutate`, and `shell_code_exec`; the rest remain Preview). The dashboard's **Command-review panel** section sets the per-seat models, the **comfort level** (`gate_floor`), and — behind an Advanced expansion — the per-tier seats + confidence, all serialized as a top-level `command_review:` block. Turning a category on writes:
+The on/off toggle is a **per-category `thing:` field in `.ravenclaude/comfort-posture.yaml`**, set from the dashboard's **Command review** toggle on the Settings tab (live for `shell_readonly`, `shell_remote_mutate`, `shell_code_exec`, `shell_local_mutate`, and `shell_package_install`; the rest remain Preview). The dashboard's **Command-review panel** section sets the per-seat models, the **comfort level** (`gate_floor`), and — behind an Advanced expansion — the per-tier seats + confidence, all serialized as a top-level `command_review:` block. Turning a category on writes:
 
 ```yaml
 categories:
@@ -40,7 +40,7 @@ categories:
 
 The extra `thing:` key is ignored by `apply-comfort-posture.py` (it only reads the layer keys), so it never disturbs the permission translation.
 
-> **Cost & latency, stated plainly.** Each reviewed command convenes one to three `claude -p` seats **in parallel**, so a verdict lands in roughly the time of the slowest seat (seconds), not the sum — but it still spends real credits on every reviewed command. `shell_readonly` is the highest-frequency category (`ls`, `cat`, `grep`, `git status`); leaving its toggle ON taxes daily work and is best used as a **validation switch**. The categories where review actually earns its cost are `shell_remote_mutate` (push / publish / PR mutations) and `shell_code_exec` (python/node/bash -c/eval) — turn those on for high-stakes sessions. All toggles are **off by default**.
+> **Cost & latency, stated plainly.** Each reviewed command convenes one to three `claude -p` seats **in parallel**, so a verdict lands in roughly the time of the slowest seat (seconds), not the sum — but it still spends real credits on every reviewed command. `shell_readonly` is the highest-frequency category (`ls`, `cat`, `grep`, `git status`); leaving its toggle ON taxes daily work and is best used as a **validation switch**. The categories where review actually earns its cost are `shell_remote_mutate` (push / publish / PR mutations), `shell_code_exec` (python/node/bash -c/eval), `shell_package_install` (supply-chain: global installs, unpinned versions, cred-in-registry-URL, tarball-from-`/tmp`), and `shell_local_mutate` (destructive local: `rm`, `git reset --hard`, force-deleting `main`, recursive `chmod 000/777`) — turn those on for high-stakes sessions. All toggles are **off by default**.
 
 ## How a reviewed command flows
 

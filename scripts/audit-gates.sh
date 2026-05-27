@@ -689,7 +689,7 @@ gate "pre-deny: base64-obfuscated curl|sh (#14)" must_pass "$rc"
 _live_detectable() {
   python3 -c "import importlib.util,sys
 s=importlib.util.spec_from_file_location('t','$TC');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
-c=m._load_catalog();live=['shell_readonly','shell_remote_mutate','shell_code_exec']
+c=m._load_catalog();live=['shell_readonly','shell_remote_mutate','shell_code_exec','shell_local_mutate','shell_package_install']
 bad=[x.get('id') for cat in live for x in (c.get('categories',{}).get(cat) or [])
      if not (x.get('triggers') or {}).get('regex') and not x.get('judgment_only')]
 sys.exit(1 if bad else 0)"
@@ -703,6 +703,39 @@ bad=[x for x in fake['categories']['shell_code_exec']
      if not (x.get('triggers') or {}).get('regex') and not x.get('judgment_only')]
 import sys;sys.exit(1 if bad else 0)" || rc=1
 gate "live-category detectability check catches a silent-gap concern" must_fail "$rc"
+# #17b: FP/FN corpus for the now-live shell_local_mutate + shell_package_install
+# regexes (v0.36.0 flip). These triggers route to the panel (not pre_llm_deny), so
+# assert on the matched-concern set via _concerns, not _predeny. A " ID " membership
+# test over the space-padded output (same idiom as the --force-with-lease check).
+_has_concern() { case " $(_concerns "$1" "$2") " in *" $3 "*) return 0;; *) return 1;; esac; }
+# FN — the shape MUST match its concern:
+for spec in \
+  "rm foo.txt|shell_local_mutate|slm.rm-without-trash" \
+  "git reset --hard HEAD~1|shell_local_mutate|slm.git-reset-hard-uncommitted" \
+  "git branch -D main|shell_local_mutate|slm.delete-protected-branch-locally" \
+  "chmod -R 777 .|shell_local_mutate|slm.chmod-broad" \
+  "npm install -g typescript|shell_package_install|spi.global-install" \
+  "npm install express|shell_package_install|spi.no-pinned-version" \
+  "npm install /tmp/foo.tgz|shell_package_install|spi.local-tarball-from-tmp"; do
+  IFS='|' read -r cmd cat cid <<EOF
+$spec
+EOF
+  rc=0; _has_concern "$cmd" "$cat" "$cid" || rc=1
+  gate "slm/spi FN: '$cmd' matches $cid" must_pass "$rc"
+done
+# FP — the benign form must NOT match the concern:
+for spec in \
+  "charm install widget|shell_local_mutate|slm.rm-without-trash" \
+  "npm ci|shell_local_mutate|slm.rm-without-trash" \
+  "git branch -d feature|shell_local_mutate|slm.delete-protected-branch-locally" \
+  "npm install lodash@4.17.21|shell_package_install|spi.no-pinned-version" \
+  "pip install -r requirements.txt|shell_package_install|spi.no-pinned-version"; do
+  IFS='|' read -r cmd cat cid <<EOF
+$spec
+EOF
+  rc=0; _has_concern "$cmd" "$cat" "$cid" && rc=1
+  gate "slm/spi FP: '$cmd' does NOT match $cid" must_pass "$rc"
+done
 
 echo
 echo "── Gate 22: tribunal #15 (bypass / cache / fatigue) + model diversity ─────"
