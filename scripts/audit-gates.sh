@@ -1299,6 +1299,50 @@ rc=0; [ "$(tb_dec "$G24L" Bash "$(jq -cn '{command:"curl -X DELETE https://api.e
 gate "tb(L): curl -X DELETE (network_write ON) -> deny" must_pass "$rc"
 
 echo
+echo "── Gate 25: MCP identity — deterministic server allowlist (§MCP identity) ──"
+# A configured mcp.allowed_servers (thing.yaml) turns a WRITE verb from a NON-listed
+# server into a pre-LLM DENY (cite mcp.unverified-server); reads + listed servers
+# fall through to the panel; an ABSENT allowlist denies nothing (opt-in strictness).
+# The deny reuses pre_llm_deny, so the orchestrator needs no special-casing.
+G25="$TMP/mcp-allow"; mkdir -p "$G25/.ravenclaude"
+printf 'schema_version: 5\ncategories:\n  mcp_tools:\n    thing: on\n' > "$G25/.ravenclaude/comfort-posture.yaml"
+printf 'mcp:\n  allowed_servers: [github, atlassian]\n' > "$G25/.ravenclaude/thing.yaml"
+G25N="$TMP/mcp-noallow"; mkdir -p "$G25N/.ravenclaude"
+printf 'schema_version: 5\ncategories:\n  mcp_tools:\n    thing: on\n' > "$G25N/.ravenclaude/comfort-posture.yaml"
+_mcp_pld() { jq -cn --arg tn "$2" '{tool_name:$tn,tool_input:{}}' | python3 "$DECP" --root "$1" classify-payload 2>/dev/null | jq -r '.pre_llm_deny'; }
+_mcp_concern() { jq -cn --arg tn "$2" '{tool_name:$tn,tool_input:{}}' | python3 "$DECP" --root "$1" classify-payload 2>/dev/null | jq -r '.deny_concern // empty'; }
+# non-listed WRITE -> deterministic pre-LLM deny citing mcp.unverified-server
+rc=0; [ "$(_mcp_pld "$G25" mcp__slack__post_message)" = "true" ] || rc=1
+gate "mcp: non-allowlisted write -> pre_llm_deny" must_pass "$rc"
+rc=0; [ "$(_mcp_concern "$G25" mcp__slack__post_message)" = "mcp.unverified-server" ] || rc=1
+gate "mcp: deny cites mcp.unverified-server" must_pass "$rc"
+# bare mcp__server (no verb = write) non-listed -> deny
+rc=0; [ "$(_mcp_pld "$G25" mcp__evilserver)" = "true" ] || rc=1
+gate "mcp: non-allowlisted verbless call -> pre_llm_deny (treated as write)" must_pass "$rc"
+# non-listed READ -> NOT pre-denied (panel handles)
+rc=0; [ "$(_mcp_pld "$G25" mcp__slack__list_channels)" != "true" ] || rc=1
+gate "mcp: non-allowlisted READ is not pre-denied" must_pass "$rc"
+# listed WRITE -> NOT pre-denied (panel reviews it)
+rc=0; [ "$(_mcp_pld "$G25" mcp__github__create_issue)" != "true" ] || rc=1
+gate "mcp: allowlisted write is not pre-denied (panel reviews)" must_pass "$rc"
+# ABSENT allowlist -> opt-in: non-listed write NOT pre-denied (seat-judged fallback)
+rc=0; [ "$(_mcp_pld "$G25N" mcp__slack__post_message)" != "true" ] || rc=1
+gate "mcp: no allowlist configured -> non-listed write NOT pre-denied (opt-in)" must_pass "$rc"
+# config_hash invalidation: changing the allowlist flips the hash
+h1="$(jq -cn '{tool_name:"mcp__github__get_issue",tool_input:{}}' | python3 "$DECP" --root "$G25" classify-payload | jq -r .config_hash)"
+printf 'mcp:\n  allowed_servers: [github, atlassian, slack]\n' > "$G25/.ravenclaude/thing.yaml"
+h2="$(jq -cn '{tool_name:"mcp__github__get_issue",tool_input:{}}' | python3 "$DECP" --root "$G25" classify-payload | jq -r .config_hash)"
+rc=0; { [ -n "$h1" ] && [ "$h1" != "$h2" ]; } || rc=1
+gate "mcp: allowlist change invalidates config_hash" must_pass "$rc"
+printf 'mcp:\n  allowed_servers: [github, atlassian]\n' > "$G25/.ravenclaude/thing.yaml"  # restore
+# end-to-end via the orchestrator (mock seats): the pre-LLM deny beats mock=allow;
+# an allowlisted write is panel-decided (not pre-denied).
+rc=0; [ "$(tb_dec "$G25" mcp__slack__post_message "$(jq -cn '{}')" allow)" = "deny" ] || rc=1
+gate "mcp(e2e): non-allowlisted write denies even under mock=allow" must_pass "$rc"
+rc=0; [ "$(tb_dec "$G25" mcp__github__create_issue "$(jq -cn '{}')" allow)" != "deny" ] || rc=1
+gate "mcp(e2e): allowlisted write is panel-decided (mock allow -> not denied)" must_pass "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 if [[ "$FAIL" -gt 0 ]]; then

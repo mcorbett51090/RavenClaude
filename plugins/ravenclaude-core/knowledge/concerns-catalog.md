@@ -990,14 +990,20 @@ categories:
   # reviewed_text is "mcp__server__verb\n<canonical-json args>" (the verb is the
   # token after the last `__` on line 1). classify_payload already splits read vs
   # write by the fixed read-verb prefix set; base tier `medium`. The deterministic
-  # `mcp.allowed_servers` allowlist (design §MCP identity) is a tracked FOLLOW-UP —
-  # until it lands, the three server-identity concerns are seat-judged.
+  # `mcp.allowed_servers` allowlist (design §MCP identity) SHIPPED in v0.41.0: when
+  # an allowlist is configured (thing.yaml `mcp.allowed_servers:`), a WRITE verb
+  # from a server NOT on it is denied pre-LLM (cite mcp.unverified-server) — see
+  # thing-decision._decision_detail. The check is engine config (a server-name
+  # comparison), NOT a catalog regex, so the server-identity concerns stay
+  # judgment_only; they fall back to seat-judged when no allowlist is configured
+  # (opt-in strictness — nothing is newly blocked unless you set the allowlist).
   mcp_tools:
     - id: mcp.unknown-server
       name: MCP server hasn't been per-server-configured for trust
       severity: medium
-      # judgment_only: "configured for trust" needs the (not-yet-shipped)
-      # mcp.allowed_servers allowlist; until then the seat decides per verb.
+      # judgment_only: "configured for trust" is now backed by the mcp.allowed_servers
+      # allowlist (engine config, not a regex). With an allowlist set, a non-listed
+      # server's write is a deterministic pre-LLM deny; absent one, the seat decides.
       judgment_only: true
       description: Global default applies — but the tribunal can render a smarter verdict (read-only methods OK, write methods escalate).
       resolution: ALLOW for get_* / list_* / read_* / search_*. ASK or DENY for create_* / update_* / delete_* / send_*.
@@ -1026,15 +1032,19 @@ categories:
       name: Two MCP servers expose a tool with the same name
       severity: high
       # judgment_only: detecting a name collision needs the full live tool registry
-      # across all connected servers, not a regex over one call.
+      # across all connected servers — NOT available in the single-tool-call hook
+      # payload, so this one stays seat-judged even with the allowlist shipped.
       judgment_only: true
       description: Disambiguation footgun; could call the wrong service.
       resolution: DENY; surface the conflict.
     - id: mcp.unverified-server
       name: MCP server added in the current session, not verified (no signature, no allowlist entry)
       severity: high
-      # judgment_only: "added this session / no allowlist entry" needs session +
-      # allowlist state (the design §MCP identity allowlist, a tracked follow-up).
+      # judgment_only by catalog shape, but ENGINE-backed: when an mcp.allowed_servers
+      # allowlist is configured, a write verb from a non-listed server is a
+      # deterministic pre-LLM deny citing THIS concern (thing-decision._decision_detail).
+      # Absent an allowlist it falls back to the seat. (A regex can't express "server
+      # NOT in the user's list", so it remains judgment_only in the catalog.)
       judgment_only: true
       description: A newly-installed MCP could be malicious.
       resolution: DENY for write methods. ALLOW read methods with banner.

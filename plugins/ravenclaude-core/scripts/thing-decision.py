@@ -297,6 +297,15 @@ def mcp_verb_is_read(tool_name: str) -> bool:
     return verb.startswith(_MCP_READ_VERB_PREFIXES)
 
 
+def mcp_server_name(tool_name: str) -> str:
+    """The server segment of an `mcp__server__verb` tool name (between the first
+    and second `__`), or '' if not an mcp tool. `mcp__github__create_issue` →
+    'github'; a bare `mcp__slack` → 'slack'."""
+    if not tool_name.startswith("mcp__"):
+        return ""
+    return tool_name[len("mcp__"):].split("__", 1)[0]
+
+
 def classify_payload(tool_name: str, tool_input: dict, project_root: Path) -> str | None:
     """Comfort-posture category for ANY reviewed tool shape, or None. Bash
     delegates to classify(); the rest are name-keyed (§1)."""
@@ -727,11 +736,18 @@ def resolve_tier_config(root: Path, posture: dict | None) -> tuple[dict, str | N
     bypass: list[str] = []
     cache_ttl = 0
     fatigue = 0
+    # §MCP identity — the deterministic server allowlist. thing.yaml carries it at
+    # top level (`mcp.allowed_servers:`); comfort-posture carries it under
+    # `command_review.mcp.allowed_servers`. Last-present-wins (posture > thing.yaml).
+    mcp_allowed: list[str] = []
 
     def _apply(block) -> None:
-        nonlocal gate_floor, bypass, cache_ttl, fatigue
+        nonlocal gate_floor, bypass, cache_ttl, fatigue, mcp_allowed
         if not isinstance(block, dict):
             return
+        mcp_block = block.get("mcp")
+        if isinstance(mcp_block, dict) and isinstance(mcp_block.get("allowed_servers"), list):
+            mcp_allowed = [s for s in mcp_block["allowed_servers"] if isinstance(s, str)]
         gf = block.get("gate_floor")
         if isinstance(gf, str) and gf in _TIER_RANK and gf != "low":
             gate_floor = gf
@@ -781,6 +797,7 @@ def resolve_tier_config(root: Path, posture: dict | None) -> tuple[dict, str | N
     cfg["bypass"] = bypass
     cfg["cache_ttl_seconds"] = cache_ttl
     cfg["fatigue_threshold"] = fatigue
+    cfg["mcp_allowed_servers"] = mcp_allowed
     return cfg, error
 
 
@@ -823,6 +840,27 @@ def _decision_detail(root: Path, posture: dict, command: str, category: str | No
 
     route = _route(command, category)
     d.update(route)
+
+    # §MCP identity — deterministic server allowlist (design §MCP identity). When an
+    # allowlist IS configured, a WRITE verb from a server NOT on it is denied pre-LLM
+    # (cite mcp.unverified-server) — folded into pre_llm_deny so the orchestrator's
+    # existing deny path handles emit + Sága with no special-casing. An ABSENT
+    # allowlist changes nothing (opt-in strictness): the mcp concerns stay
+    # seat-judged, so no existing mcp_tools user is newly blocked. Reads and
+    # allowlisted-server writes fall through to the panel as before. The `command`
+    # arg is the reviewed_text; for mcp its first line is the `mcp__server__verb`.
+    allowed = cfg.get("mcp_allowed_servers") or []
+    d["mcp_allowed_servers"] = allowed
+    d["mcp_unverified_deny"] = False
+    if category == "mcp_tools" and allowed:
+        mcp_tool = command.split("\n", 1)[0]
+        server = mcp_server_name(mcp_tool)
+        if server and server not in allowed and not mcp_verb_is_read(mcp_tool):
+            d["pre_llm_deny"] = True
+            d["deny_concern"] = "mcp.unverified-server"
+            d["mcp_unverified_deny"] = True
+            if "mcp.unverified-server" not in (d.get("concerns") or []):
+                d["concerns"] = list(d.get("concerns") or []) + ["mcp.unverified-server"]
 
     base_tier = _norm_tier(cfg["category_tier_map"].get(category), "medium")
     final_tier = _escalate_tier(base_tier, route.get("max_severity"))
@@ -875,7 +913,10 @@ def _decision_detail(root: Path, posture: dict, command: str, category: str | No
          # cached verdict is invalidated when either changes (the VALUEs, not file
          # mtimes — deterministic across checkouts).
          "substrate": sorted(THING_SUBSTRATE),
-         "classify_payload_version": CLASSIFY_PAYLOAD_VERSION},
+         "classify_payload_version": CLASSIFY_PAYLOAD_VERSION,
+         # §MCP identity — a change to the server allowlist must invalidate a cached
+         # mcp_tools verdict (a server added/removed flips the deterministic deny).
+         "mcp_allowed_servers": sorted(cfg.get("mcp_allowed_servers") or [])},
         sort_keys=True,
     )
     try:
