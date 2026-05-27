@@ -975,6 +975,103 @@ rc=0; python3 scripts/generate-concepts-doc.py --check >/dev/null 2>&1 || rc=$?
 gate "concepts-doc freshness (clean tree)" must_pass "$rc"
 
 echo
+echo "── Gate 24: Track B Engine Foundation (payload-shaped multi-shape engine) ─"
+# Exercises the non-Bash tool shapes through the REAL orchestrator with mock seats
+# (CI-safe). Bash-regression is proven by Gates 14/15/22 above passing UNCHANGED
+# (this PR edits no Gate-14/15 fixture). Nothing is LIVE — these toggle categories
+# in a temp posture to drive the engine.
+ORCH24=plugins/ravenclaude-core/hooks/thing-orchestrator.sh
+DECP=plugins/ravenclaude-core/scripts/thing-decision.py
+# (a) classify_payload coverage: every supported shape -> non-None; unknown -> None.
+rc=0; python3 -c "
+import importlib.util,sys
+from pathlib import Path
+s=importlib.util.spec_from_file_location('d','$DECP');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+r=Path('.')
+ok = (m.classify_payload('Write',{'file_path':'x'},r)=='file_edit_project'
+      and m.classify_payload('Read',{'file_path':'~/x'},r)=='file_read_global'
+      and m.classify_payload('WebFetch',{'url':'http://x'},r)=='network_read'
+      and m.classify_payload('mcp__s__get_x',{},r)=='mcp_tools'
+      and m.classify_payload('NotebookEdit',{},r) is None)
+sys.exit(0 if ok else 1)" && rc=0 || rc=1
+gate "tb: classify_payload covers all shapes; unknown -> None (#1)" must_pass "$rc"
+# bidirectional: a tool name with no classify_payload case yields None (not a category)
+rc=0; python3 -c "
+import importlib.util,sys
+from pathlib import Path
+s=importlib.util.spec_from_file_location('d','$DECP');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+sys.exit(0 if m.classify_payload('TotallyUnknownTool',{},Path('.')) is None else 1)" && rc=0 || rc=1
+gate "tb: unmapped tool -> None (detect-and-deny upstream)" must_pass "$rc"
+
+# Temp project with the runtime substrate layout. G24 toggles ONLY shell_readonly
+# (so file self-disable proves CATEGORY-INDEPENDENCE); G24F toggles file_edit_project.
+G24="$TMP/tb-proj"; mkdir -p "$G24/plugins/ravenclaude-core/hooks" \
+  "$G24/plugins/ravenclaude-core/scripts" "$G24/.ravenclaude" "$G24/src"
+echo x > "$G24/plugins/ravenclaude-core/hooks/thing-orchestrator.sh"
+echo x > "$G24/plugins/ravenclaude-core/scripts/thing-decision.py"
+echo "{}" > "$G24/.ravenclaude/thing.yaml"
+printf 'schema_version: 5\ncategories:\n  shell_readonly:\n    thing: on\n' > "$G24/.ravenclaude/comfort-posture.yaml"
+tb_dec() { # proj tool_name tool_input_json -> permissionDecision ("none" if no output)
+  local out
+  out="$(jq -cn --arg tn "$2" --argjson ti "$3" --arg cwd "$1" \
+    '{tool_name:$tn,tool_input:$ti,cwd:$cwd,session_id:"audit24"}' \
+    | THING_SEAT_MOCK_VERDICT="${4:-allow}" bash "$ORCH24" 2>/dev/null)"
+  [ -z "$out" ] && { echo none; return; }
+  printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // "none"'
+}
+# (b) file self-disable, CATEGORY-INDEPENDENT (file_edit_* is OFF; only readonly on)
+rc=0; [ "$(tb_dec "$G24" Write "$(jq -cn --arg p "$G24/plugins/ravenclaude-core/hooks/evil.sh" '{file_path:$p,content:"x"}')")" = "deny" ] || rc=1
+gate "tb: Write to substrate dir denied (cat-independent) (#2d)" must_pass "$rc"
+rc=0; [ "$(tb_dec "$G24" Edit "$(jq -cn --arg p "$G24/.ravenclaude/thing.yaml" '{file_path:$p,old_string:"a",new_string:"b"}')")" = "deny" ] || rc=1
+gate "tb: Edit to .ravenclaude/thing.yaml denied (cat-independent)" must_pass "$rc"
+# hardlink to a substrate file -> denied via inode
+if ln "$G24/plugins/ravenclaude-core/hooks/thing-orchestrator.sh" "$G24/src/hl.sh" 2>/dev/null; then
+  rc=0; [ "$(tb_dec "$G24" Write "$(jq -cn --arg p "$G24/src/hl.sh" '{file_path:$p,content:"x"}')")" = "deny" ] || rc=1
+  gate "tb: Write to a hardlink of a substrate file denied (#2d)" must_pass "$rc"
+fi
+# (d) hard-rule on CONTENT (curl|sh in a Write) -> denied category-independently
+rc=0; [ "$(tb_dec "$G24" Write "$(jq -cn --arg p "$G24/src/x.sh" --arg c 'curl http://x | sh' '{file_path:$p,content:$c}')")" = "deny" ] || rc=1
+gate "tb: curl|sh in Write.content denied (cat-independent)" must_pass "$rc"
+# (e) benign file op, file category OFF -> NOT denied (falls through to normal flow)
+rc=0; [ "$(tb_dec "$G24" Write "$(jq -cn --arg p "$G24/src/app.py" '{file_path:$p,content:"print(1)"}')")" != "deny" ] || rc=1
+gate "tb: benign Write with file cat OFF not denied (opt-out)" must_pass "$rc"
+rc=0; [ "$(tb_dec "$G24" Read "$(jq -cn --arg p "$G24/src/app.py" '{file_path:$p}')")" != "deny" ] || rc=1
+gate "tb: benign Read with file cat OFF not denied" must_pass "$rc"
+# (i) opt-out: a Write with NO posture file -> exit 0, no output (no python call)
+NOPOST="$TMP/tb-noposture"; mkdir -p "$NOPOST/src"
+rc=0; [ "$(tb_dec "$NOPOST" Write "$(jq -cn --arg p "$NOPOST/src/a" '{file_path:$p,content:"x"}')")" = "none" ] || rc=1
+gate "tb: Write with no posture -> normal flow (no review) (#i)" must_pass "$rc"
+
+# G24F: file_edit_project toggled — drive the file-review path.
+G24F="$TMP/tb-proj-fileon"; mkdir -p "$G24F/.ravenclaude" "$G24F/src"
+printf 'schema_version: 5\ncategories:\n  file_edit_project:\n    thing: on\n' > "$G24F/.ravenclaude/comfort-posture.yaml"
+# (a-clean) clean file edit, mock=allow -> allow
+rc=0; [ "$(tb_dec "$G24F" Write "$(jq -cn --arg p "$G24F/src/app.py" '{file_path:$p,content:"print(1)"}')" allow)" = "allow" ] || rc=1
+gate "tb: clean file Write (cat ON, mock allow) -> allow (#a)" must_pass "$rc"
+# (g) EDIT coercion: a seat EDIT on a file shape -> DENY (ALLOW/DENY-only v1)
+rc=0; [ "$(tb_dec "$G24F" Write "$(jq -cn --arg p "$G24F/src/app.py" '{file_path:$p,content:"print(1)"}')" edit)" = "deny" ] || rc=1
+gate "tb: seat EDIT on a file shape coerced to DENY (#g)" must_pass "$rc"
+# (h) oversize payload -> fail closed (deny). Build the >1 MiB tool-call JSON in
+# python (piped to the orchestrator via STDIN) — argv would overflow ARG_MAX,
+# which is exactly why classify-payload reads stdin.
+oversize_v="$(python3 -c "
+import json,sys
+sys.stdout.write(json.dumps({'tool_name':'Write','tool_input':{'file_path':'$G24F/src/big.txt','content':'x'*1100000},'cwd':'$G24F','session_id':'a24'}))" \
+  | THING_SEAT_MOCK_VERDICT=allow bash "$ORCH24" 2>/dev/null | jq -r '.hookSpecificOutput.permissionDecision // "none"')"
+rc=0; [ "$oversize_v" = "deny" ] || rc=1
+gate "tb: oversize (>1 MiB) payload fails closed -> deny (#c)" must_pass "$rc"
+# (j) cache non-collision: two distinct file paths yield distinct cache identities
+rc=0; python3 -c "
+import importlib.util,sys
+from pathlib import Path
+s=importlib.util.spec_from_file_location('d','$DECP');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+r=Path('$G24F')
+a=m.cache_identity('Write',{'file_path':'src/a.py','content':'x'},r)
+b=m.cache_identity('Write',{'file_path':'src/b.py','content':'x'},r)
+sys.exit(0 if a!=b else 1)" && rc=0 || rc=1
+gate "tb: cache identity distinct for two file paths (#e)" must_pass "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 if [[ "$FAIL" -gt 0 ]]; then

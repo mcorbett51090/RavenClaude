@@ -143,36 +143,57 @@ def _matches(concern: dict, command: str) -> bool:
 
 _B64_RUN = re.compile(r"[A-Za-z0-9+/]{24,}={0,2}")
 
+# Track B §Payload caps: bound the base64 pass by BOTH a candidate-run count AND
+# a total decoded-output budget. A run cap alone leaves the pass quadratic inside
+# the 1 MiB screen budget — a 1 MiB Write.content that is one giant base64 blob
+# decodes to ~768 KiB, which is then re-scanned with every regex and
+# re-base64-scanned. The byte budget is shared across the whole pass (incl. the
+# depth-1 recursion); once reached the pass stops (the raw full-payload screen has
+# already run on the undecoded text, so stopping never skips the primary screen).
+DECODE_MAX_RUNS = 200
+DECODE_MAX_BYTES = 256 * 1024
+
 
 def _decoded_payload_concerns(
-    catalog: dict, command: str, category: str | None, _depth: int = 0
+    catalog: dict, command: str, category: str | None, _depth: int = 0, _budget: dict | None = None
 ) -> set[str]:
     """Base64-decode long tokens in the command and re-check the DECODED text for
     concerns (assessment #14 — base64 is a common obfuscation vector; the raw
     triggers only see the encoded blob). Returns the concern ids found inside any
     decoded payload (excluding the base64 concern itself). Bounded recursion for
-    nested encodings; only acts when a token decodes to mostly-printable text, so
-    a benign binary blob adds nothing (this is what lets us narrow the cost of the
-    raw 100-char match — we escalate on CONTENT, not mere length)."""
+    nested encodings AND bounded by DECODE_MAX_RUNS / DECODE_MAX_BYTES; only acts
+    when a token decodes to mostly-printable text, so a benign binary blob adds
+    nothing (we escalate on CONTENT, not mere length)."""
     if _depth > 1:
         return set()
+    if _budget is None:
+        _budget = {"runs": 0, "bytes": 0}
     found: set[str] = set()
     for m in _B64_RUN.finditer(command):
+        remaining = DECODE_MAX_BYTES - _budget["bytes"]
+        if _budget["runs"] >= DECODE_MAX_RUNS or remaining <= 0:
+            break
+        _budget["runs"] += 1
         tok = m.group(0)
         try:
             dec = base64.b64decode(tok + "=" * (-len(tok) % 4), validate=False)
         except (binascii.Error, ValueError):
             continue
+        # Only decode/scan up to the remaining byte budget, so the regex pass over
+        # the decoded text is bounded even for one giant blob (no quadratic cost).
+        if len(dec) > remaining:
+            dec = dec[:remaining]
         text = dec.decode("utf-8", "replace")
         if not text:
             continue
+        _budget["bytes"] += len(dec)
         printable = sum(c.isprintable() or c.isspace() for c in text)
         if printable / len(text) < 0.8:
             continue  # binary noise, not a hidden command
         for c in _concerns_for(catalog, category):
             if c["id"] != "sce.embedded-base64-payload" and _matches(c, text):
                 found.add(c["id"])
-        found |= _decoded_payload_concerns(catalog, text, category, _depth + 1)
+        found |= _decoded_payload_concerns(catalog, text, category, _depth + 1, _budget)
     return found
 
 

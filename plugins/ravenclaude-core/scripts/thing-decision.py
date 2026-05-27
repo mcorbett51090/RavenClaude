@@ -30,8 +30,10 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import sys
+import unicodedata
 from pathlib import Path
 
 # ── Reuse the EMISSIONS table from apply-comfort-posture.py (single source of
@@ -218,6 +220,264 @@ def classify(command: str) -> str | None:
         if force_delete:
             best_cat = "shell_local_mutate"
     return best_cat
+
+
+# ── Payload classification (Track B Engine Foundation §1) ─────────────────────
+# Bash classifies by the EMISSIONS command-prefix table (classify, above). Every
+# OTHER reviewed tool shape (file Edit/Write/MultiEdit/Read, network
+# WebFetch/WebSearch, MCP) is NAME-keyed here — mcp_tools EMISSIONS is empty and
+# the file/network patterns are path/URL-shaped, not command prefixes. Bump
+# CLASSIFY_PAYLOAD_VERSION by hand whenever this logic changes; it folds into
+# config_hash so a cached verdict is invalidated when classification changes.
+CLASSIFY_PAYLOAD_VERSION = "1"
+
+# MCP verb read/write split (locked decision 4): a fixed read-verb prefix set;
+# everything else is a write at an escalated tier. Shipped now so the version is
+# stable across phases (the allowlist + concern triggers land in Phase 4).
+_MCP_READ_VERB_PREFIXES = ("get_", "list_", "read_", "search_", "describe_", "fetch_")
+
+# Track B §Payload caps: the local screen scans up to SCREEN_MAX_BYTES of reviewed
+# text IN FULL. A larger payload DENIES for a toggled category (cannot fully screen
+# → fail closed) — it is never truncate-then-screened.
+SCREEN_MAX_BYTES = 1024 * 1024
+
+
+def _path_scope(raw_path: str, project_root: Path) -> str:
+    """'project' or 'global' for a file-shape target (§4). Resolves stricter:
+    ANY ambiguity (empty, lexical `..`, leading `~`, unresolvable, or a realpath
+    outside the project) returns 'global' — mis-classification may only bump the
+    tier, never skip the screen."""
+    if not raw_path:
+        return "global"
+    norm = unicodedata.normalize("NFC", raw_path)
+    if norm.startswith("~") or ".." in norm.replace("\\", "/").split("/"):
+        return "global"  # lexical traversal / home → stricter tier
+    try:
+        p = Path(norm)
+        if not p.is_absolute():
+            p = project_root / p
+        rp = unicodedata.normalize("NFC", os.path.realpath(str(p)))
+        root_rp = unicodedata.normalize("NFC", os.path.realpath(str(project_root)))
+        if os.path.normcase(rp) == os.path.normcase(root_rp):
+            return "project"
+        try:
+            common = os.path.commonpath([os.path.normcase(rp), os.path.normcase(root_rp)])
+        except ValueError:
+            return "global"  # different drives / mixed abs+rel
+        return "project" if common == os.path.normcase(root_rp) else "global"
+    except (OSError, ValueError):
+        return "global"
+
+
+def mcp_verb_is_read(tool_name: str) -> bool:
+    """True if an mcp__server__verb tool name's verb starts with a read-verb
+    prefix. Unknown / non-prefixed verbs are writes (escalated), per decision 4."""
+    parts = tool_name.split("__", 2)
+    verb = parts[2] if len(parts) >= 3 else ""
+    return verb.startswith(_MCP_READ_VERB_PREFIXES)
+
+
+def classify_payload(tool_name: str, tool_input: dict, project_root: Path) -> str | None:
+    """Comfort-posture category for ANY reviewed tool shape, or None. Bash
+    delegates to classify(); the rest are name-keyed (§1)."""
+    ti = tool_input or {}
+    if not tool_name:
+        return None
+    if tool_name == "Bash":
+        return classify(ti.get("command", "") or "")
+    if tool_name in ("Edit", "Write", "MultiEdit"):
+        scope = _path_scope(ti.get("file_path", "") or "", project_root)
+        return "file_edit_project" if scope == "project" else "file_edit_global"
+    if tool_name == "Read":
+        scope = _path_scope(ti.get("file_path", "") or "", project_root)
+        return "file_read_project" if scope == "project" else "file_read_global"
+    if tool_name in ("WebFetch", "WebSearch"):
+        return "network_read"
+    if tool_name.startswith("mcp__"):
+        return "mcp_tools"
+    return None
+
+
+def reviewed_text(tool_name: str, tool_input: dict) -> str:
+    """The text a non-Bash payload is SCREENED against (§3). Per locked decisions:
+    WebFetch reviews the URL only (not the prompt); MCP reviews canonical-json
+    args; file shapes review path + content/diff."""
+    ti = tool_input or {}
+    if tool_name == "Bash":
+        return ti.get("command", "") or ""
+    if tool_name == "Write":
+        return f"{ti.get('file_path', '')}\n{ti.get('content', '')}"
+    if tool_name == "Edit":
+        return f"{ti.get('file_path', '')}\n{ti.get('old_string', '')}\n{ti.get('new_string', '')}"
+    if tool_name == "MultiEdit":
+        edits = ti.get("edits") or []
+        parts = [str(ti.get("file_path", ""))]
+        for e in edits:
+            if isinstance(e, dict):
+                parts.append(f"{e.get('old_string', '')}\n{e.get('new_string', '')}")
+        return "\n".join(parts)
+    if tool_name == "Read":
+        return ti.get("file_path", "") or ""
+    if tool_name == "WebFetch":
+        return ti.get("url", "") or ""  # URL only (decision 4)
+    if tool_name == "WebSearch":
+        return ti.get("query", "") or ""
+    if tool_name.startswith("mcp__"):
+        args = ti.get("arguments", ti)
+        try:
+            return tool_name + "\n" + json.dumps(args, sort_keys=True, default=str)
+        except (TypeError, ValueError):
+            return tool_name
+    return ti.get("command", "") or ""
+
+
+# ── Per-shape serialization (Track B §Serialization) ──────────────────────────
+def saga_tool_input(tool_name: str, tool_input: dict) -> dict:
+    """The `tool_input` recorded in the Sága audit log — per shape, and NEVER the
+    full content (a content hash + byte count instead)."""
+    ti = tool_input or {}
+    if tool_name in ("Edit", "Write", "MultiEdit"):
+        content = reviewed_text(tool_name, ti)
+        b = content.encode("utf-8", "replace")
+        return {"file_path": ti.get("file_path", "") or "",
+                "content_sha256": hashlib.sha256(b).hexdigest(), "bytes": len(b)}
+    if tool_name in ("WebFetch", "WebSearch"):
+        return {"url": ti.get("url", "") or ti.get("query", "") or ""}
+    if tool_name.startswith("mcp__"):
+        try:
+            args = json.dumps(ti.get("arguments", ti), sort_keys=True, default=str)
+        except (TypeError, ValueError):
+            args = ""
+        return {"name": tool_name, "args_sha256": hashlib.sha256(args.encode("utf-8", "replace")).hexdigest()}
+    return {"command": ti.get("command", "") or ""}
+
+
+def cache_identity(tool_name: str, tool_input: dict, project_root: Path) -> str:
+    """The per-shape identity in the verdict-cache key (file = realpath + content
+    hash; network = URL; MCP = name + args hash; Bash = the command string)."""
+    ti = tool_input or {}
+    if tool_name in ("Edit", "Write", "MultiEdit"):
+        try:
+            rp = os.path.realpath(str(project_root / (ti.get("file_path", "") or "")))
+        except (OSError, ValueError):
+            rp = ti.get("file_path", "") or ""
+        return rp + "|" + hashlib.sha256(reviewed_text(tool_name, ti).encode("utf-8", "replace")).hexdigest()
+    if tool_name in ("WebFetch", "WebSearch"):
+        return ti.get("url", "") or ti.get("query", "") or ""
+    if tool_name.startswith("mcp__"):
+        try:
+            args = json.dumps(ti.get("arguments", ti), sort_keys=True, default=str)
+        except (TypeError, ValueError):
+            args = ""
+        return tool_name + "|" + hashlib.sha256(args.encode("utf-8", "replace")).hexdigest()
+    return ti.get("command", "") or ""
+
+
+# ── File-shape self-disable: screen_substrate_path (Track B §2/§2a/§4) ────────
+# The Bash self-disable guard (xc.tribunal-self-disable) is command-shaped — it
+# matches `rm/tee/sed … <substrate path>`. A FILE-shape mutation (a Write/Edit
+# tool whose TARGET is a substrate file) has no shell verb, so it dodges that
+# regex. screen_substrate_path is the catalog-INDEPENDENT (stdlib-only) path
+# check that closes it: it never loads the concern catalog (so no catalog-load
+# except-branch), and denies if the canonicalized target is — or is under — any
+# substrate path, by lexical path, realpath, OR st_ino (the inode check closes a
+# hardlink to a substrate file). SINGLE SOURCE for the runtime substrate set.
+THING_SUBSTRATE = [
+    "plugins/*/hooks",  # dir — any write under the plugin hooks
+    "plugins/*/scripts",  # dir — thing-*, apply-comfort-posture, serve-dashboards, …
+    "plugins/*/knowledge/concerns-catalog.md",
+    "scripts/generate-dashboards.py",
+    ".ravenclaude/thing.yaml",
+]
+
+
+def _substrate_paths(project_root: Path) -> tuple[set[str], set[tuple[int, int]]]:
+    """Concrete substrate realpaths (normcased) + their (dev, ino) under the
+    project root. CI tooling (audit-gates.sh, fixtures) is intentionally OUT of
+    scope — editing a CI gate cannot disable the runtime hook (§2a)."""
+    rps: set[str] = set()
+    inodes: set[tuple[int, int]] = set()
+    for pat in THING_SUBSTRATE:
+        for p in project_root.glob(pat):
+            try:
+                rps.add(os.path.normcase(os.path.realpath(str(p))))
+            except OSError:
+                continue
+            # Inode set: the matched path itself PLUS, if it is a directory, every
+            # file under it — so a hardlink to ANY substrate file (e.g. a hardlink
+            # to plugins/*/hooks/thing-orchestrator.sh) is caught (§4 step 5).
+            targets = [p] + ([f for f in p.rglob("*") if f.is_file()] if p.is_dir() else [])
+            for t in targets:
+                try:
+                    st = os.stat(str(t))
+                    inodes.add((st.st_dev, st.st_ino))
+                except OSError:
+                    continue
+    return rps, inodes
+
+
+def screen_substrate_path(target_raw: str, project_root: Path) -> tuple[bool, str | None]:
+    """(deny, concern_id) for a file-shape target that mutates the Thing's own
+    substrate. Catalog-independent; fail-closed on doubt for a toggled category."""
+    if not target_raw:
+        return False, None
+    norm = unicodedata.normalize("NFC", target_raw)
+    rps, inodes = _substrate_paths(project_root)
+    p = Path(norm)
+    if not p.is_absolute() and not norm.startswith("~"):
+        p = project_root / p
+    cands = {
+        os.path.normcase(os.path.realpath(str(p))),  # resolves .. and symlinks
+        os.path.normcase(os.path.abspath(str(p))),  # lexical (target may not exist yet)
+    }
+    for sp in rps:
+        for c in cands:
+            if c == sp or c.startswith(sp + os.sep):
+                return True, "xc.tribunal-self-disable"
+    try:  # inode membership — catches a hardlink to a substrate file
+        st = os.stat(str(p))
+        if (st.st_dev, st.st_ino) in inodes:
+            return True, "xc.tribunal-self-disable"
+    except OSError:
+        pass
+    return False, None
+
+
+def _posture_write_disables(tool_name: str, tool_input: dict, project_root: Path) -> bool:
+    """True if a Write to comfort-posture.yaml would self-disable: parse the
+    RESULTING document (not a regex — a regex over content is evaded by
+    reformatting, §2a) and deny if it flips any category's `thing:` off or carries
+    a `command_review:` / `gate_floor:` block. Unparseable → DENY (fail closed).
+    Only the Write (full-content) shape is parse-screened here; Edit/MultiEdit to
+    the posture file fall back to the xc.tribunal-self-disable text regex via
+    screen_always (it cannot see the resulting doc without the original)."""
+    ti = tool_input or {}
+    if tool_name != "Write":
+        return False
+    target = unicodedata.normalize("NFC", ti.get("file_path", "") or "")
+    if not target.endswith("comfort-posture.yaml"):
+        return False
+    content = ti.get("content", "")
+    try:
+        import yaml  # type: ignore
+
+        doc = yaml.safe_load(content)
+    except Exception:
+        return True  # unparseable posture write → DENY
+    if not isinstance(doc, dict):
+        return True
+    if "command_review" in doc or "gate_floor" in doc:
+        return True
+    cats = doc.get("categories") or {}
+    if isinstance(cats, dict):
+        for cfg in cats.values():
+            if isinstance(cfg, dict):
+                v = cfg.get("thing")
+                if isinstance(v, str) and v.strip().lower() in {"off", "false", "no"}:
+                    return True
+                if v is False:
+                    return True
+    return False
 
 
 # ── Config reading ───────────────────────────────────────────────────────────
@@ -590,7 +850,12 @@ def _decision_detail(root: Path, posture: dict, command: str, category: str | No
     # permissive verdict is never reused after the policy that produced it moves.
     cfg_blob = json.dumps(
         {"tiers": cfg["tiers"], "panel": cfg["panel"], "gate_floor": cfg["gate_floor"],
-         "category_tier_map": cfg["category_tier_map"]},
+         "category_tier_map": cfg["category_tier_map"],
+         # Track B §Serialization: fold the substrate set + classifier version so a
+         # cached verdict is invalidated when either changes (the VALUEs, not file
+         # mtimes — deterministic across checkouts).
+         "substrate": sorted(THING_SUBSTRATE),
+         "classify_payload_version": CLASSIFY_PAYLOAD_VERSION},
         sort_keys=True,
     )
     try:
@@ -621,18 +886,75 @@ def main() -> int:
     c.add_argument("command", help="the shell command string")
     p = sub.add_parser("preview", help="full tier/seat/gate preview regardless of toggle (dashboard simulator)")
     p.add_argument("command", help="the shell command string")
+    # Track B: classify ANY tool shape. Reads {tool_name, tool_input} as JSON on
+    # stdin (not argv — a 1 MiB Write.content would overflow ARG_MAX).
+    sub.add_parser("classify-payload", help="classify a tool-call payload (JSON on stdin)")
     args = ap.parse_args()
 
     root = Path(args.root).resolve()
-    category = classify(args.command)
 
-    result: dict = {"category": category, "thing_enabled": False}
+    # `screened` is the text the self-disable / hard-rule / concern screens run
+    # against; `category` is the routing target. Bash uses the command string;
+    # other shapes extract a per-shape reviewed text (§3).
+    if args.cmd == "classify-payload":
+        try:
+            payload = json.load(sys.stdin)
+        except (json.JSONDecodeError, ValueError):
+            payload = {}
+        tool_name = payload.get("tool_name", "") or ""
+        tool_input = payload.get("tool_input", {}) or {}
+        category = classify_payload(tool_name, tool_input, root)
+        screened = reviewed_text(tool_name, tool_input)
+        result: dict = {"category": category, "tool_name": tool_name, "thing_enabled": False}
+    else:
+        category = classify(args.command)
+        screened = args.command
+        result = {"category": category, "thing_enabled": False}
 
-    # §B.9.5 — the self-disable guard is CATEGORY-INDEPENDENT. The orchestrator
-    # only reaches us when some category is toggled on, and disabling the Thing
-    # affects every category, so this is screened regardless of THIS command's
-    # category or whether that category's own toggle is on.
-    result.update(_screen_always(args.command))
+    # §Payload caps — a reviewed payload larger than SCREEN_MAX_BYTES cannot be
+    # fully screened, so it fails closed (the orchestrator denies it for a toggled
+    # category). Don't scan the oversize content; the path-based file self-disable
+    # below still runs (it's content-independent).
+    payload_too_large = (
+        args.cmd == "classify-payload"
+        and len(screened.encode("utf-8", "replace")) > SCREEN_MAX_BYTES
+    )
+    result["payload_too_large"] = payload_too_large
+    # The orchestrator passes this to the seat as THING_PAYLOAD (non-Bash shapes).
+    # Omitted when oversize (we deny before convening) so the JSON isn't bloated.
+    if args.cmd == "classify-payload":
+        # Per-shape Sága tool_input + cache identity (§Serialization) — always
+        # emitted (cheap; the Sága self-disable/hard-rule writes need them even
+        # when oversize denies before the panel).
+        result["saga_tool_input"] = saga_tool_input(tool_name, tool_input)
+        result["cache_identity"] = cache_identity(tool_name, tool_input, root)
+    if args.cmd == "classify-payload" and not payload_too_large:
+        result["reviewed_text"] = screened
+        result["payload_shape"] = (
+            "file" if (result.get("tool_name") or "") in ("Edit", "Write", "MultiEdit")
+            else "network" if (result.get("tool_name") or "") in ("WebFetch", "WebSearch")
+            else "mcp" if (result.get("tool_name") or "").startswith("mcp__")
+            else "command"
+        )
+
+    # §B.9.5 / §B.9.3 — the self-disable + hard-rule screens are CATEGORY-
+    # INDEPENDENT. The orchestrator only reaches us when some category is toggled
+    # on, so this is screened regardless of THIS payload's category or toggle.
+    if not payload_too_large:
+        result.update(_screen_always(screened))
+
+    # §2/§2a — FILE-shape self-disable: a Write/Edit/MultiEdit whose target is a
+    # substrate path (or a Write that rewrites comfort-posture.yaml to disable a
+    # category / retune the tiers) has no shell verb for screen_always to match,
+    # so screen it here, category-independently, and merge into the self-disable
+    # verdict the orchestrator already denies on.
+    if args.cmd == "classify-payload" and tool_name in ("Edit", "Write", "MultiEdit"):
+        sd, concern = screen_substrate_path((tool_input or {}).get("file_path", "") or "", root)
+        if not sd and _posture_write_disables(tool_name, tool_input, root):
+            sd, concern = True, "xc.tribunal-self-disable"
+        if sd:
+            result["self_disable_deny"] = True
+            result["self_disable_concern"] = concern
 
     posture: dict = {}
     posture_path = root / ".ravenclaude" / "comfort-posture.yaml"
@@ -646,9 +968,11 @@ def main() -> int:
             result["posture_error"] = f"comfort-posture.yaml: {exc}"
 
     # `preview` (dashboard simulator) computes the full detail unconditionally;
-    # `classify` (the live hook path) only when the category's toggle is on.
-    if args.cmd == "preview" or result["thing_enabled"]:
-        result.update(_decision_detail(root, posture, args.command, category))
+    # `classify`/`classify-payload` (the live hook path) only when toggled on.
+    # Skip the detail/panel for an oversize payload — it fails closed (deny) without
+    # convening, so there's no need to run evaluate() over >1 MiB of text.
+    if (args.cmd == "preview" or result["thing_enabled"]) and not payload_too_large:
+        result.update(_decision_detail(root, posture, screened, category))
 
     json.dump(result, sys.stdout)
     sys.stdout.write("\n")

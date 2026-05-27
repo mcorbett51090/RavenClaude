@@ -29,7 +29,12 @@
 # so it can never recursively reconvene the tribunal.
 #
 # Inputs (env):
-#   THING_CMD          required — the command string under review
+#   THING_CMD          the Bash command string under review (Bash path / back-compat)
+#   THING_PAYLOAD      Track B (§3a) — the full reviewed TEXT for a non-Bash shape
+#                      (file content/diff, URL, MCP args). Takes precedence over
+#                      THING_CMD. Either THING_PAYLOAD or THING_CMD is required.
+#   THING_PAYLOAD_SHAPE  optional — the shape tag for prompt framing
+#                      (command|file|network|mcp; default "command").
 #   THING_CATEGORY     required — the comfort-posture category (e.g. shell_code_exec)
 #   THING_SEAT_ROLE    optional — forseti|mimir|heimdall|thor (default: mimir)
 #   THING_MODEL        optional — claude model alias/id (default: claude-haiku-4-5)
@@ -46,12 +51,21 @@
 
 set -euo pipefail
 
-cmd="${THING_CMD:-}"
+# THING_PAYLOAD (the full reviewed text for any shape) takes precedence; THING_CMD
+# is the Bash alias (back-compat). `cmd` below is the reviewed text either way.
+cmd="${THING_PAYLOAD:-${THING_CMD:-}}"
+shape="${THING_PAYLOAD_SHAPE:-command}"
 category="${THING_CATEGORY:-shell_readonly}"
 role="${THING_SEAT_ROLE:-mimir}"
 model="${THING_MODEL:-claude-haiku-4-5}"
 
-[ -z "$cmd" ] && { echo '{"error":"no command"}' >&2; exit 3; }
+# §3a: the seat prompt is capped at SEAT_MAX_BYTES (with a [truncated] marker) —
+# but the egress backstop below + the orchestrator's local screen run on the FULL
+# reviewed text first, so truncation never shrinks what is screened, only what is
+# sent to the model.
+SEAT_MAX_BYTES=$((64 * 1024))
+
+[ -z "$cmd" ] && { echo '{"error":"no payload"}' >&2; exit 3; }
 
 # ── Egress secret backstop (design §B.9.4) ────────────────────────────────────
 # Each seat transmits the command to the model API. The orchestrator's pre-LLM
@@ -155,7 +169,12 @@ esac
 # suspenders: defang any literal `<untrusted`/`</untrusted` in the command too.
 nonce="$(head -c 16 /dev/urandom 2>/dev/null | od -An -tx1 | tr -d ' \n')"
 [ -z "$nonce" ] && nonce="$(printf '%04x%04x%04x%04x' "$RANDOM" "$RANDOM" "$RANDOM" "$RANDOM")"
-safe_cmd="$(printf '%s' "$cmd" | sed 's#<\(/\{0,1\}\)untrusted#<\1u‑ntrusted#g')"
+# §3a: cap the text SENT to the model at SEAT_MAX_BYTES (the egress backstop + the
+# orchestrator's local screen already ran on the full payload).
+seat_text="$(printf '%s' "$cmd" | head -c "$SEAT_MAX_BYTES")"
+[ "${#seat_text}" -lt "${#cmd}" ] && seat_text="${seat_text}
+[…truncated for the review prompt; the full payload was screened locally]"
+safe_cmd="$(printf '%s' "$seat_text" | sed 's#<\(/\{0,1\}\)untrusted#<\1u‑ntrusted#g')"
 
 read -r -d '' SEAT_SYSTEM <<SYS || true
 ${role_brief}
@@ -184,7 +203,7 @@ SYS
 # superset of the design's separate <untrusted heredoc_body> extraction: a Bash
 # command is judged by its effect, and any instruction-shaped text anywhere in it
 # is an injection attempt, so the whole string is data to be evaluated.
-user_prompt="Adjudicate this command in category ${category}.
+user_prompt="Adjudicate this ${shape} in category ${category}.
 
 <untrusted-${nonce}>
 ${safe_cmd}

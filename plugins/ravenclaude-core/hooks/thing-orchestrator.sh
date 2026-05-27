@@ -65,33 +65,67 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 tool_name="$(printf '%s' "$payload" | jq -r '.tool_name // empty')"
-[ "$tool_name" != "Bash" ] && exit 0
-
-cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty')"
-[ -z "$cmd" ] && exit 0
+# Track B: review the tool shapes the Thing handles; anything else → normal flow.
+# (The hooks.json matcher already filters to these; this is defense-in-depth so a
+# direct/odd invocation can't reach the per-shape extraction below.)
+case "$tool_name" in
+  Bash | Write | Edit | MultiEdit | WebFetch | WebSearch | mcp__*) ;;
+  *) exit 0 ;;
+esac
 
 cwd="$(printf '%s' "$payload" | jq -r '.cwd // empty')"
 [ -z "$cwd" ] && cwd="$PWD"
 session_id="$(printf '%s' "$payload" | jq -r '.session_id // empty')"
 
-# ── Fast short-circuit: if no category is toggled on, do nothing. ─────────────
+# ── Fast short-circuit: if no category is toggled on, do nothing. Runs BEFORE any
+#    per-shape extraction or python call, so an opted-out consumer pays nothing
+#    (one grep) regardless of tool shape — incl. a Write with no posture file. ──
 posture_file="${cwd}/.ravenclaude/comfort-posture.yaml"
 if [ ! -f "$posture_file" ] || ! grep -Eq '^[[:space:]]*thing:[[:space:]]*(on|true|yes)\b' "$posture_file"; then
   exit 0
 fi
 
-# ── Routing + config (one python call). ───────────────────────────────────────
-# Fail CLOSED (deny), not ask: we are past the short-circuit, so a category is
-# toggled on — the user opted into gating. If the engine that knows the category
-# posture is missing or silent we cannot tell a high-stakes command from a read,
-# so denying (with a clear recovery path) is the safe posture, not punting the
-# decision back to the human as an `ask` (assessment must-fix #7).
+# ── Routing + config. Fail CLOSED (deny), not ask: past the short-circuit a
+# category is toggled on — the user opted into gating; a missing/silent engine
+# can't distinguish a high-stakes mutation from a read, so deny (assessment #7).
 [ -f "$DECISION" ] || emit deny "Command review is enabled but its decision helper is missing (broken install). Failing closed. Fix the plugin install, or turn command review off in the comfort-posture dashboard."
-decision="$(THING_SEAT_ACTIVE= python3 "$DECISION" --root "$cwd" classify "$cmd" 2>/dev/null || true)"
-[ -z "$decision" ] && emit deny "Command review could not classify the command (decision helper failed). Failing closed. Re-run, fix the install, or turn command review off in the dashboard."
+
+# Bash classifies via the command string (UNCHANGED path); every other shape
+# classifies the whole tool-call payload via classify-payload (JSON on stdin).
+if [ "$tool_name" = "Bash" ]; then
+  cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty')"
+  [ -z "$cmd" ] && exit 0
+  payload_shape="command"
+  decision="$(THING_SEAT_ACTIVE= python3 "$DECISION" --root "$cwd" classify "$cmd" 2>/dev/null || true)"
+else
+  cmd=""
+  decision="$(printf '%s' "$payload" | THING_SEAT_ACTIVE= python3 "$DECISION" --root "$cwd" classify-payload 2>/dev/null || true)"
+  payload_shape="$(printf '%s' "$decision" | jq -r '.payload_shape // "command"')"
+fi
+[ -z "$decision" ] && emit deny "Command review could not classify the tool call (decision helper failed). Failing closed. Re-run, fix the install, or turn command review off in the dashboard."
 
 enabled="$(printf '%s' "$decision" | jq -r '.thing_enabled // false')"
 category="$(printf '%s' "$decision" | jq -r '.category // "unknown"')"
+reviewed="$(printf '%s' "$decision" | jq -r '.reviewed_text // empty')"
+
+# §Serialization — per-shape Sága tool_input + cache identity. Bash keeps the
+# exact prior {command} / command-string forms (byte-identical Sága + cache);
+# other shapes use the shape-appropriate forms from classify-payload.
+if [ "$tool_name" = "Bash" ]; then
+  saga_ti="$(jq -cn --arg c "$cmd" '{command:$c}')"
+  cache_id="$cmd"
+else
+  saga_ti="$(printf '%s' "$decision" | jq -c '.saga_tool_input // {command:""}')"
+  cache_id="$(printf '%s' "$decision" | jq -r '.cache_identity // empty')"
+fi
+
+# §Fail-open: a non-Bash shape that matched the hook but did NOT classify (e.g. a
+# future matcher entry with no classify_payload case) fails CLOSED. We are past
+# the short-circuit, so the Thing is active; an unmappable matched shape is a
+# config/code error, not a free pass.
+if [ "$tool_name" != "Bash" ] && { [ -z "$category" ] || [ "$category" = "null" ] || [ "$category" = "unknown" ]; }; then
+  emit deny "Command review: DENIED — could not classify this ${tool_name} tool call (unmapped shape). Failing closed."
+fi
 
 # ── §B.9.5: the Thing cannot disable itself. This guard is CATEGORY-INDEPENDENT
 #    — it fires whenever ANY category is toggled on (we are past the short-circuit
@@ -106,10 +140,10 @@ if [ "$self_disable" = "true" ]; then
   sd_audit="${cwd}/.ravenclaude/runs/thing"  # config audit_dir is resolved later
   if mkdir -p "$sd_audit" 2>/dev/null; then
     jq -cn --arg id "$sd_run_id" --arg sid "$session_id" \
-      --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg cmd "$cmd" \
+      --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --argjson ti "$saga_ti" --arg tn "$tool_name" \
       --arg cat "$category" --arg concern "$sd_concern" \
-      '{id:$id,session_id:$sid,timestamp:$ts,tool_name:"Bash",
-        tool_input:{command:$cmd},category:$cat,phase:"T4-self-disable",
+      '{id:$id,session_id:$sid,timestamp:$ts,tool_name:$tn,
+        tool_input:$ti,category:$cat,phase:"T4-self-disable",
         seats:[],concerns_cited:[$concern],final_verdict:"deny",
         updated_input:null,duration_ms:0}' \
       > "${sd_audit}/${sd_run_id}.json" 2>/dev/null || true
@@ -130,10 +164,10 @@ if [ "$hard_rule" = "true" ]; then
   hr_audit="${cwd}/.ravenclaude/runs/thing"
   if mkdir -p "$hr_audit" 2>/dev/null; then
     jq -cn --arg id "$hr_run_id" --arg sid "$session_id" \
-      --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg cmd "$cmd" \
+      --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --argjson ti "$saga_ti" --arg tn "$tool_name" \
       --arg cat "$category" --arg concern "$hr_concern" \
-      '{id:$id,session_id:$sid,timestamp:$ts,tool_name:"Bash",
-        tool_input:{command:$cmd},category:$cat,phase:"hard-rule-deny",
+      '{id:$id,session_id:$sid,timestamp:$ts,tool_name:$tn,
+        tool_input:$ti,category:$cat,phase:"hard-rule-deny",
         seats:[],concerns_cited:[$concern],final_verdict:"deny",
         updated_input:null,duration_ms:0}' \
       > "${hr_audit}/${hr_run_id}.json" 2>/dev/null || true
@@ -142,6 +176,11 @@ if [ "$hard_rule" = "true" ]; then
 fi
 
 [ "$enabled" != "true" ] && exit 0   # category not toggled on -> normal flow
+
+# §Payload caps: a reviewed payload too large to screen in full fails CLOSED.
+if [ "$(printf '%s' "$decision" | jq -r '.payload_too_large // false')" = "true" ]; then
+  emit deny "Command review (the Thing): DENIED — the ${payload_shape} payload exceeds the screening size limit and cannot be fully reviewed. Failing closed."
+fi
 
 config_error="$(printf '%s' "$decision" | jq -r '.config_error // empty')"
 [ -n "$config_error" ] && emit ask "Command review config error ($config_error); deferring to you."
@@ -182,10 +221,21 @@ seats_run=()
 # Run one seat: writes verdict JSON to $tmp/$role.json, rc to $tmp/$role.rc.
 run_seat() {  # run_seat <role> <model> <tmp> [peer_verdicts_json]
   local role="$1" model="$2" tmp="$3" peers="${4:-}" out rc=0
-  out="$(THING_SEAT_ACTIVE=1 THING_CMD="$cmd" THING_CATEGORY="$category" \
-         THING_SEAT_ROLE="$role" THING_MODEL="$model" THING_PEER_VERDICTS="$peers" \
-         THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
-         timeout "${seat_timeout}s" bash "$SEAT" 2>/dev/null)" || rc=$?
+  # Bash: THING_CMD (unchanged path). Non-Bash: THING_PAYLOAD (the reviewed text)
+  # + THING_PAYLOAD_SHAPE. The full-payload secret screen already ran in
+  # classify-payload, and the seat re-caps to SEAT_MAX_BYTES.
+  if [ "$payload_shape" = "command" ]; then
+    out="$(THING_SEAT_ACTIVE=1 THING_CMD="$cmd" THING_CATEGORY="$category" \
+           THING_SEAT_ROLE="$role" THING_MODEL="$model" THING_PEER_VERDICTS="$peers" \
+           THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
+           timeout "${seat_timeout}s" bash "$SEAT" 2>/dev/null)" || rc=$?
+  else
+    out="$(THING_SEAT_ACTIVE=1 THING_PAYLOAD="$reviewed" THING_PAYLOAD_SHAPE="$payload_shape" \
+           THING_CATEGORY="$category" \
+           THING_SEAT_ROLE="$role" THING_MODEL="$model" THING_PEER_VERDICTS="$peers" \
+           THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
+           timeout "${seat_timeout}s" bash "$SEAT" 2>/dev/null)" || rc=$?
+  fi
   printf '%s' "$out" > "$tmp/$role.json"
   printf '%s' "$rc" > "$tmp/$role.rc"
 }
@@ -222,7 +272,7 @@ phase="T3-panel"
 cache_dir="${cwd}/${audit_dir_rel}/cache"
 cache_hit="false"; cache_verdict=""; cache_revised=""
 if [ "${cache_ttl:-0}" -gt 0 ] && [ -n "$config_hash" ] && command -v sha256sum >/dev/null 2>&1; then
-  cache_key="$(printf '%s' "${cmd}|${category}|${config_hash}" | sha256sum | cut -d' ' -f1)"
+  cache_key="$(printf '%s' "${cache_id}|${category}|${config_hash}" | sha256sum | cut -d' ' -f1)"
   cache_file="${cache_dir}/${cache_key}.json"
   if [ -f "$cache_file" ]; then
     c_ts="$(jq -r '.ts // 0' "$cache_file" 2>/dev/null || echo 0)"
@@ -379,6 +429,16 @@ else
     fi
   fi
 
+  # ── §EDIT coercion: file/network/MCP shapes are ALLOW/DENY-only v1 (decision 2)
+  #    — there is no machine-checked concerns(revised) ⊆ concerns(original)
+  #    invariant for non-command content, so a seat EDIT is coerced to DENY before
+  #    the emit_edit path can ever be reached. ─────────────────────────────────
+  if [ "$payload_shape" != "command" ] && [ "$verdict" = "edit" ]; then
+    verdict="deny"
+    revised=""
+    reason="Command review: DENIED — EDIT is not supported for ${payload_shape} shapes (ALLOW/DENY only); a seat proposed a rewrite."
+  fi
+
   # ── EDIT-safety invariant: re-validate the revision deterministically. ──────
   if [ "$verdict" = "edit" ]; then
     if [ -z "$revised" ] || [ "$revised" = "null" ]; then
@@ -455,12 +515,12 @@ audit_written="false"
 if mkdir -p "$audit_dir" 2>/dev/null && jq -cn \
     --arg id "$run_id" --arg sid "$session_id" \
     --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-    --arg cmd "$cmd" --arg cat "$category" --arg phase "$phase" \
+    --argjson ti "$saga_ti" --arg tn "$tool_name" --arg cat "$category" --arg phase "$phase" \
     --arg verdict "$verdict" --arg revised "$revised" \
     --argjson seats "$seats_json" --argjson concerns "${final_cited:-[]}" \
     --argjson duration "${duration_ms:-0}" \
-    '{id:$id,session_id:$sid,timestamp:$ts,tool_name:"Bash",
-      tool_input:{command:$cmd},category:$cat,phase:$phase,
+    '{id:$id,session_id:$sid,timestamp:$ts,tool_name:$tn,
+      tool_input:$ti,category:$cat,phase:$phase,
       seats:$seats,concerns_cited:$concerns,final_verdict:$verdict,
       updated_input:(if $revised=="" then null else {command:$revised} end),
       duration_ms:$duration}' \
@@ -487,7 +547,7 @@ esac
 if [ "${cache_ttl:-0}" -gt 0 ] && [ -n "$config_hash" ] && [ "$cacheable" = "true" ] \
    && [ "$audit_written" = "true" ] && command -v sha256sum >/dev/null 2>&1 \
    && { [ "$verdict" = "allow" ] || [ "$verdict" = "edit" ] || [ "$verdict" = "deny" ]; }; then
-  ckey="$(printf '%s' "${cmd}|${category}|${config_hash}" | sha256sum | cut -d' ' -f1)"
+  ckey="$(printf '%s' "${cache_id}|${category}|${config_hash}" | sha256sum | cut -d' ' -f1)"
   if mkdir -p "$cache_dir" 2>/dev/null; then
     jq -cn --arg v "$verdict" --arg r "$revised" --argjson ts "$(date +%s 2>/dev/null || echo 0)" \
       '{verdict:$v,revised:$r,ts:$ts}' > "${cache_dir}/${ckey}.json" 2>/dev/null || true
