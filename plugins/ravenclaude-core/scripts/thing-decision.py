@@ -331,6 +331,48 @@ def reviewed_text(tool_name: str, tool_input: dict) -> str:
     return ti.get("command", "") or ""
 
 
+# ── Per-shape serialization (Track B §Serialization) ──────────────────────────
+def saga_tool_input(tool_name: str, tool_input: dict) -> dict:
+    """The `tool_input` recorded in the Sága audit log — per shape, and NEVER the
+    full content (a content hash + byte count instead)."""
+    ti = tool_input or {}
+    if tool_name in ("Edit", "Write", "MultiEdit"):
+        content = reviewed_text(tool_name, ti)
+        b = content.encode("utf-8", "replace")
+        return {"file_path": ti.get("file_path", "") or "",
+                "content_sha256": hashlib.sha256(b).hexdigest(), "bytes": len(b)}
+    if tool_name in ("WebFetch", "WebSearch"):
+        return {"url": ti.get("url", "") or ti.get("query", "") or ""}
+    if tool_name.startswith("mcp__"):
+        try:
+            args = json.dumps(ti.get("arguments", ti), sort_keys=True, default=str)
+        except (TypeError, ValueError):
+            args = ""
+        return {"name": tool_name, "args_sha256": hashlib.sha256(args.encode("utf-8", "replace")).hexdigest()}
+    return {"command": ti.get("command", "") or ""}
+
+
+def cache_identity(tool_name: str, tool_input: dict, project_root: Path) -> str:
+    """The per-shape identity in the verdict-cache key (file = realpath + content
+    hash; network = URL; MCP = name + args hash; Bash = the command string)."""
+    ti = tool_input or {}
+    if tool_name in ("Edit", "Write", "MultiEdit"):
+        try:
+            rp = os.path.realpath(str(project_root / (ti.get("file_path", "") or "")))
+        except (OSError, ValueError):
+            rp = ti.get("file_path", "") or ""
+        return rp + "|" + hashlib.sha256(reviewed_text(tool_name, ti).encode("utf-8", "replace")).hexdigest()
+    if tool_name in ("WebFetch", "WebSearch"):
+        return ti.get("url", "") or ti.get("query", "") or ""
+    if tool_name.startswith("mcp__"):
+        try:
+            args = json.dumps(ti.get("arguments", ti), sort_keys=True, default=str)
+        except (TypeError, ValueError):
+            args = ""
+        return tool_name + "|" + hashlib.sha256(args.encode("utf-8", "replace")).hexdigest()
+    return ti.get("command", "") or ""
+
+
 # ── File-shape self-disable: screen_substrate_path (Track B §2/§2a/§4) ────────
 # The Bash self-disable guard (xc.tribunal-self-disable) is command-shaped — it
 # matches `rm/tee/sed … <substrate path>`. A FILE-shape mutation (a Write/Edit
@@ -880,6 +922,12 @@ def main() -> int:
     result["payload_too_large"] = payload_too_large
     # The orchestrator passes this to the seat as THING_PAYLOAD (non-Bash shapes).
     # Omitted when oversize (we deny before convening) so the JSON isn't bloated.
+    if args.cmd == "classify-payload":
+        # Per-shape Sága tool_input + cache identity (§Serialization) — always
+        # emitted (cheap; the Sága self-disable/hard-rule writes need them even
+        # when oversize denies before the panel).
+        result["saga_tool_input"] = saga_tool_input(tool_name, tool_input)
+        result["cache_identity"] = cache_identity(tool_name, tool_input, root)
     if args.cmd == "classify-payload" and not payload_too_large:
         result["reviewed_text"] = screened
         result["payload_shape"] = (
