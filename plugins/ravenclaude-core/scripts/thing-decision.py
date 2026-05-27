@@ -326,6 +326,113 @@ def reviewed_text(tool_name: str, tool_input: dict) -> str:
     return ti.get("command", "") or ""
 
 
+# ── File-shape self-disable: screen_substrate_path (Track B §2/§2a/§4) ────────
+# The Bash self-disable guard (xc.tribunal-self-disable) is command-shaped — it
+# matches `rm/tee/sed … <substrate path>`. A FILE-shape mutation (a Write/Edit
+# tool whose TARGET is a substrate file) has no shell verb, so it dodges that
+# regex. screen_substrate_path is the catalog-INDEPENDENT (stdlib-only) path
+# check that closes it: it never loads the concern catalog (so no catalog-load
+# except-branch), and denies if the canonicalized target is — or is under — any
+# substrate path, by lexical path, realpath, OR st_ino (the inode check closes a
+# hardlink to a substrate file). SINGLE SOURCE for the runtime substrate set.
+THING_SUBSTRATE = [
+    "plugins/*/hooks",  # dir — any write under the plugin hooks
+    "plugins/*/scripts",  # dir — thing-*, apply-comfort-posture, serve-dashboards, …
+    "plugins/*/knowledge/concerns-catalog.md",
+    "scripts/generate-dashboards.py",
+    ".ravenclaude/thing.yaml",
+]
+
+
+def _substrate_paths(project_root: Path) -> tuple[set[str], set[tuple[int, int]]]:
+    """Concrete substrate realpaths (normcased) + their (dev, ino) under the
+    project root. CI tooling (audit-gates.sh, fixtures) is intentionally OUT of
+    scope — editing a CI gate cannot disable the runtime hook (§2a)."""
+    rps: set[str] = set()
+    inodes: set[tuple[int, int]] = set()
+    for pat in THING_SUBSTRATE:
+        for p in project_root.glob(pat):
+            try:
+                rps.add(os.path.normcase(os.path.realpath(str(p))))
+            except OSError:
+                continue
+            # Inode set: the matched path itself PLUS, if it is a directory, every
+            # file under it — so a hardlink to ANY substrate file (e.g. a hardlink
+            # to plugins/*/hooks/thing-orchestrator.sh) is caught (§4 step 5).
+            targets = [p] + ([f for f in p.rglob("*") if f.is_file()] if p.is_dir() else [])
+            for t in targets:
+                try:
+                    st = os.stat(str(t))
+                    inodes.add((st.st_dev, st.st_ino))
+                except OSError:
+                    continue
+    return rps, inodes
+
+
+def screen_substrate_path(target_raw: str, project_root: Path) -> tuple[bool, str | None]:
+    """(deny, concern_id) for a file-shape target that mutates the Thing's own
+    substrate. Catalog-independent; fail-closed on doubt for a toggled category."""
+    if not target_raw:
+        return False, None
+    norm = unicodedata.normalize("NFC", target_raw)
+    rps, inodes = _substrate_paths(project_root)
+    p = Path(norm)
+    if not p.is_absolute() and not norm.startswith("~"):
+        p = project_root / p
+    cands = {
+        os.path.normcase(os.path.realpath(str(p))),  # resolves .. and symlinks
+        os.path.normcase(os.path.abspath(str(p))),  # lexical (target may not exist yet)
+    }
+    for sp in rps:
+        for c in cands:
+            if c == sp or c.startswith(sp + os.sep):
+                return True, "xc.tribunal-self-disable"
+    try:  # inode membership — catches a hardlink to a substrate file
+        st = os.stat(str(p))
+        if (st.st_dev, st.st_ino) in inodes:
+            return True, "xc.tribunal-self-disable"
+    except OSError:
+        pass
+    return False, None
+
+
+def _posture_write_disables(tool_name: str, tool_input: dict, project_root: Path) -> bool:
+    """True if a Write to comfort-posture.yaml would self-disable: parse the
+    RESULTING document (not a regex — a regex over content is evaded by
+    reformatting, §2a) and deny if it flips any category's `thing:` off or carries
+    a `command_review:` / `gate_floor:` block. Unparseable → DENY (fail closed).
+    Only the Write (full-content) shape is parse-screened here; Edit/MultiEdit to
+    the posture file fall back to the xc.tribunal-self-disable text regex via
+    screen_always (it cannot see the resulting doc without the original)."""
+    ti = tool_input or {}
+    if tool_name != "Write":
+        return False
+    target = unicodedata.normalize("NFC", ti.get("file_path", "") or "")
+    if not target.endswith("comfort-posture.yaml"):
+        return False
+    content = ti.get("content", "")
+    try:
+        import yaml  # type: ignore
+
+        doc = yaml.safe_load(content)
+    except Exception:
+        return True  # unparseable posture write → DENY
+    if not isinstance(doc, dict):
+        return True
+    if "command_review" in doc or "gate_floor" in doc:
+        return True
+    cats = doc.get("categories") or {}
+    if isinstance(cats, dict):
+        for cfg in cats.values():
+            if isinstance(cfg, dict):
+                v = cfg.get("thing")
+                if isinstance(v, str) and v.strip().lower() in {"off", "false", "no"}:
+                    return True
+                if v is False:
+                    return True
+    return False
+
+
 # ── Config reading ───────────────────────────────────────────────────────────
 
 
@@ -696,7 +803,12 @@ def _decision_detail(root: Path, posture: dict, command: str, category: str | No
     # permissive verdict is never reused after the policy that produced it moves.
     cfg_blob = json.dumps(
         {"tiers": cfg["tiers"], "panel": cfg["panel"], "gate_floor": cfg["gate_floor"],
-         "category_tier_map": cfg["category_tier_map"]},
+         "category_tier_map": cfg["category_tier_map"],
+         # Track B §Serialization: fold the substrate set + classifier version so a
+         # cached verdict is invalidated when either changes (the VALUEs, not file
+         # mtimes — deterministic across checkouts).
+         "substrate": sorted(THING_SUBSTRATE),
+         "classify_payload_version": CLASSIFY_PAYLOAD_VERSION},
         sort_keys=True,
     )
     try:
@@ -756,6 +868,19 @@ def main() -> int:
     # INDEPENDENT. The orchestrator only reaches us when some category is toggled
     # on, so this is screened regardless of THIS payload's category or toggle.
     result.update(_screen_always(screened))
+
+    # §2/§2a — FILE-shape self-disable: a Write/Edit/MultiEdit whose target is a
+    # substrate path (or a Write that rewrites comfort-posture.yaml to disable a
+    # category / retune the tiers) has no shell verb for screen_always to match,
+    # so screen it here, category-independently, and merge into the self-disable
+    # verdict the orchestrator already denies on.
+    if args.cmd == "classify-payload" and tool_name in ("Edit", "Write", "MultiEdit"):
+        sd, concern = screen_substrate_path((tool_input or {}).get("file_path", "") or "", root)
+        if not sd and _posture_write_disables(tool_name, tool_input, root):
+            sd, concern = True, "xc.tribunal-self-disable"
+        if sd:
+            result["self_disable_deny"] = True
+            result["self_disable_concern"] = concern
 
     posture: dict = {}
     posture_path = root / ".ravenclaude" / "comfort-posture.yaml"
