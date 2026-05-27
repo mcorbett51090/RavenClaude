@@ -236,6 +236,11 @@ CLASSIFY_PAYLOAD_VERSION = "1"
 # stable across phases (the allowlist + concern triggers land in Phase 4).
 _MCP_READ_VERB_PREFIXES = ("get_", "list_", "read_", "search_", "describe_", "fetch_")
 
+# Track B §Payload caps: the local screen scans up to SCREEN_MAX_BYTES of reviewed
+# text IN FULL. A larger payload DENIES for a toggled category (cannot fully screen
+# → fail closed) — it is never truncate-then-screened.
+SCREEN_MAX_BYTES = 1024 * 1024
+
 
 def _path_scope(raw_path: str, project_root: Path) -> str:
     """'project' or 'global' for a file-shape target (§4). Resolves stricter:
@@ -864,10 +869,21 @@ def main() -> int:
         screened = args.command
         result = {"category": category, "thing_enabled": False}
 
+    # §Payload caps — a reviewed payload larger than SCREEN_MAX_BYTES cannot be
+    # fully screened, so it fails closed (the orchestrator denies it for a toggled
+    # category). Don't scan the oversize content; the path-based file self-disable
+    # below still runs (it's content-independent).
+    payload_too_large = (
+        args.cmd == "classify-payload"
+        and len(screened.encode("utf-8", "replace")) > SCREEN_MAX_BYTES
+    )
+    result["payload_too_large"] = payload_too_large
+
     # §B.9.5 / §B.9.3 — the self-disable + hard-rule screens are CATEGORY-
     # INDEPENDENT. The orchestrator only reaches us when some category is toggled
     # on, so this is screened regardless of THIS payload's category or toggle.
-    result.update(_screen_always(screened))
+    if not payload_too_large:
+        result.update(_screen_always(screened))
 
     # §2/§2a — FILE-shape self-disable: a Write/Edit/MultiEdit whose target is a
     # substrate path (or a Write that rewrites comfort-posture.yaml to disable a
@@ -895,7 +911,9 @@ def main() -> int:
 
     # `preview` (dashboard simulator) computes the full detail unconditionally;
     # `classify`/`classify-payload` (the live hook path) only when toggled on.
-    if args.cmd == "preview" or result["thing_enabled"]:
+    # Skip the detail/panel for an oversize payload — it fails closed (deny) without
+    # convening, so there's no need to run evaluate() over >1 MiB of text.
+    if (args.cmd == "preview" or result["thing_enabled"]) and not payload_too_large:
         result.update(_decision_detail(root, posture, screened, category))
 
     json.dump(result, sys.stdout)

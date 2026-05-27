@@ -184,12 +184,12 @@ cross_cutting:
         - '(?s)\b(rm|unlink|shred|mv|cp|install|ln|tee|sed|perl|awk|truncate|dd|chmod|chown|patch|sponge)\b.{0,200}(ravenclaude-core/(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml)'
         # (3) turning the per-category toggle OFF in comfort-posture.yaml (bounded
         #     lookaheads so a large heredoc body is not scanned twice unbounded)
-        - '(?s)(?=.{0,4000}comfort-posture\.yaml)(?=.{0,4000}thing:\s*(off|false|no)\b)'
+        - '(?s)\A(?=.{0,4000}comfort-posture\.yaml)(?=.{0,4000}thing:\s*(off|false|no)\b)'
         # (4) writing the T5 tier config (command_review: / gate_floor:) into
         #     comfort-posture.yaml — neutering the tiers / gate_floor is a
         #     self-disable. Scoped to the `key:` write-shape so a plain READ of
         #     the file (grep/cat) is not over-blocked.
-        - '(?s)(?=.{0,4000}comfort-posture\.yaml)(?=.{0,4000}(command_review|gate_floor)\s*:)'
+        - '(?s)\A(?=.{0,4000}comfort-posture\.yaml)(?=.{0,4000}(command_review|gate_floor)\s*:)'
   - id: xc.outside-project-tree
     name: Target path resolves outside the project tree
     severity: high
