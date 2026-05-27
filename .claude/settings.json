@@ -47,7 +47,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash|Write|Edit|MultiEdit|WebFetch|WebSearch|mcp__.*",
+        "matcher": "Bash|Read|Write|Edit|MultiEdit|WebFetch|WebSearch|mcp__.*",
         "hooks": [
           {
             "type": "command",

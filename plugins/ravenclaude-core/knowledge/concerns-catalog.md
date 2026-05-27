@@ -281,6 +281,10 @@ cross_cutting:
 
 # Per-category concerns. Keys are the 12 comfort-posture categories.
 categories:
+  # file_read_project went LIVE in v0.39.0 (Track B Phases 2-4), ALLOW/DENY-only.
+  # reviewed_text for a Read is the PATH only (no content), so triggers are path
+  # regexes. Base tier is `low` (reads are cheap) — only a high/critical concern
+  # escalates to a seat; a medium-only match is cited in the banner without a panel.
   file_read_project:
     - id: fr.secret-file-path
       name: Read targets a file path that matches secret heuristics
@@ -289,7 +293,13 @@ categories:
         Path matches .env, *.pem, *.key, credentials*, secrets*, id_rsa*,
         *.kdbx — usually caught by security_deny, but a tribunal-toggled
         category may need the edge case (reading .env.example in a review task).
-      resolution: EDIT to read a redacted/example variant. DENY for real secret files.
+      resolution: DENY for real secret files; ALLOW only for a redacted / example variant.
+      triggers:
+        regex:
+          - '(?:^|/)\.env(?:\.|/|$)'
+          - '(?:^|/)id_(?:rsa|dsa|ecdsa|ed25519)(?![A-Za-z0-9])'
+          - '\.(?:pem|key|kdbx|p12|pfx|jks)(?![A-Za-z0-9])'
+          - '(?:^|/)(?:credentials|secrets)[^/\n]*'
     - id: fr.binary-blob
       name: Read targets a large binary file likely to flood context
       severity: medium
@@ -297,11 +307,19 @@ categories:
         Path matches a binary extension (.png, .zip, .iso, .parquet, .sqlite) or
         the resolved file is > 1 MB. Reading floods context and wastes tokens.
       resolution: >-
-        EDIT to use a metadata tool (file, head -c, stat). ALLOW only if a
-        specific small region is requested.
+        Use a metadata tool (file, head -c, stat); ALLOW only if a specific small
+        region is requested.
+      # Extension-detectable; the > 1 MB size is the seat's call (and medium
+      # severity does not escalate the low base tier, so this is banner-only).
+      triggers:
+        regex:
+          - '\.(?:png|jpe?g|gif|bmp|ico|zip|gz|tar|tgz|iso|dmg|exe|dll|so|parquet|sqlite3?|db|mp4|mov|avi|woff2?)(?![A-Za-z0-9])'
     - id: fr.checked-in-key
       name: Path looks like a committed key/cert
       severity: high
+      # judgment_only: "tracked by git" is live state, not a regex. The extension
+      # half overlaps fr.secret-file-path's deterministic .pem/.key triggers.
+      judgment_only: true
       description: >-
         Extension is .pem, .key, .p12, .pfx, .jks and the file is tracked by git
         (a likely committed key, often by mistake).
@@ -309,12 +327,16 @@ categories:
     - id: fr.path-traversal
       name: Path includes `..` segments
       severity: medium
+      # judgment_only: a `..` path is canonicalized to file_read_GLOBAL by
+      # classify_payload (the stricter tier), so within file_read_project the seat
+      # handles any residual traversal nuance; a regex here would never fire in prod.
+      judgment_only: true
       description: >-
         Command path uses `..` to escape the working subdirectory. May be
         intentional (sibling subdir) or accidental.
       resolution: >-
-        EDIT to absolute project-relative path. ALLOW if canonicalized path
-        stays inside project. DENY if it escapes.
+        ALLOW if the canonicalized path stays inside the project; DENY if it
+        escapes.
   # file_edit_project went LIVE in v0.38.0 (Track B Phase 1), ALLOW/DENY-ONLY:
   # a seat `edit` verdict on a file shape is coerced to DENY by the engine
   # (§EDIT-coercion). The `resolution:` text below documents the ideal fix the
@@ -424,6 +446,9 @@ categories:
         regex:
           - '(?m)^<{7}(?:\s|$)'
           - '(?m)^>{7}(?:\s|$)'
+  # file_read_global went LIVE in v0.39.0 (Track B Phases 2-4), ALLOW/DENY-only.
+  # reviewed_text is the PATH only. Base tier `low`; the critical credential reads
+  # escalate to a mandatory seat, the high one to a panel.
   file_read_global:
     - id: frg.ssh-or-cloud-credentials
       name: Path points at ~/.ssh, ~/.aws, ~/.gnupg, ~/.kube, ~/.docker/config.json
@@ -434,14 +459,28 @@ categories:
       resolution: >-
         DENY by default; ALLOW only if the user explicitly authorized this
         category for the session (/set-posture --temporary or equivalent).
+      triggers:
+        regex:
+          - '(?:^|/)\.(?:ssh|aws|gnupg|kube)(?:/|$)'
+          - '(?:^|/)\.docker/config\.json\b'
     - id: frg.browser-or-keychain
       name: Path points at browser cookie store, OS keychain, Outlook PST
       severity: critical
       description: Cookies, keychains, and PSTs contain durable auth material.
       resolution: DENY.
+      triggers:
+        regex:
+          - '(?:^|/)Library/Keychains/'
+          - '(?:^|/)Cookies(?:/|$)'
+          - '(?i)cookies\.sqlite\b'
+          - '(?:^|/)Login Data\b'
+          - '\.pst(?![A-Za-z0-9])'
     - id: frg.other-project
       name: Path points at another project's tree
       severity: medium
+      # judgment_only: "another project's tree" needs the project boundary +
+      # cross-read posture, not a static regex.
+      judgment_only: true
       description: >-
         Reading code from another project may be legitimate (cross-repo
         refactor) or accidental scope creep.
@@ -453,27 +492,52 @@ categories:
       severity: high
       description: Mostly mooted by OS permissions, but the tribunal can catch read-of-config-that-might-contain-secrets earlier.
       resolution: DENY for /etc/shadow, /proc/*/environ. ALLOW with banner for /etc/hosts, /etc/resolv.conf.
+      # /etc/shadow + /etc/passwd + /proc/<pid>/environ — the genuinely sensitive
+      # ones (the resolution allows /etc/hosts, /etc/resolv.conf, which do not match).
+      triggers:
+        regex:
+          - '(?:^|/)etc/(?:shadow|passwd)(?![A-Za-z0-9])'
+          - '(?:^|/)proc/[^/\n]+/environ\b'
+  # file_edit_global went LIVE in v0.39.0 (Track B Phases 2-4), ALLOW/DENY-only.
+  # reviewed_text is "<path>\n<content>" so path triggers anchor with \A[^\n]* (the
+  # path is line 1; content cannot false-positive). Base tier `high` — always a panel.
   file_edit_global:
     - id: feg.shell-init-write
       name: Edit targets ~/.bashrc, ~/.zshrc, ~/.profile, ~/.gitconfig (global)
       severity: critical
       description: Shell init runs on every future session; a malicious or buggy edit persists.
       resolution: DENY by default. ALLOW only with explicit per-edit confirmation surfaced to the user (escalation, not autonomous).
+      triggers:
+        regex:
+          - '\A[^\n]*/\.(?:bashrc|zshrc|bash_profile|zprofile|profile|gitconfig|bash_login|zshenv)(?![A-Za-z0-9])'
     - id: feg.crontab-or-systemd
       name: Edit creates / modifies user crontab, systemd unit, launchd plist, Task Scheduler entry
       severity: critical
       description: Persistent execution outside the session; hardest to audit.
       resolution: DENY. Always escalate.
+      triggers:
+        regex:
+          - '\A[^\n]*/(?:crontab|cron\.d/|cron\.(?:daily|hourly|weekly|monthly)/)'
+          - '\A[^\n]*/(?:systemd/|LaunchAgents/|LaunchDaemons/)'
+          - '\A[^\n]*\.(?:service|timer|plist)(?![A-Za-z0-9])'
     - id: feg.system-write
       name: Path is under /etc/, /usr/, /var/, /opt/, C:\Windows\, C:\Program Files\
       severity: critical
       description: Requires sudo / admin in most cases, but the tribunal should pre-empt the prompt.
       resolution: DENY.
+      triggers:
+        regex:
+          - '\A[^\n]*/(?:etc|usr|var|opt|bin|sbin|boot|sys)/'
+          - '\A[^\n]*[A-Za-z]:\\(?:Windows|Program Files)'
     - id: feg.global-tooling-config
       name: Edit targets ~/.claude/, ~/.cursor/, ~/.codex/, ~/.gh/config.yml
       severity: high
       description: Changes the agent's own user-layer posture or other tools' config.
       resolution: DENY unless invoked via a command explicitly meant to write user-layer (/set-posture --scope user).
+      triggers:
+        regex:
+          - '\A[^\n]*/\.(?:claude|cursor|codex)(?:/|$)'
+          - '\A[^\n]*/\.(?:gh|config/gh)/config\.ya?ml\b'
   shell_readonly:
     - id: shr.recursive-traversal-cost
       name: find / grep -r over a large tree
@@ -796,37 +860,65 @@ categories:
         regex:
           - '\b(?:npm|pnpm|yarn)\s+(?:install|add|i)\b[^|&;]*\s/(?:tmp|var/tmp|dev/shm)/\S+\.(?:tgz|tar\.gz|tar)\b'
           - '\bpip3?\s+install\b[^|&;]*\s/(?:tmp|var/tmp|dev/shm)/\S+\.(?:whl|tar\.gz|zip)\b'
+  # network_read went LIVE in v0.39.0 (Track B Phases 2-4), ALLOW/DENY-only.
+  # reviewed_text is the URL (WebFetch) or the query (WebSearch) — so URL-shaped
+  # triggers fire on a WebFetch, while a WebSearch query is seat-judged. Base tier
+  # `low`; the critical metadata endpoint escalates to a mandatory seat.
   network_read:
     - id: nr.exfil-via-url-params
       name: URL query string contains a secret-shaped string
       severity: high
+      # judgment_only: a secret-in-query regex is presence-of-substring and would
+      # over-block (`?secret=false`, `?token_type=bearer`); the seat judges whether
+      # the embedded value is genuine secret material.
+      judgment_only: true
       description: A token or sensitive content embedded in the URL is visible in server logs, CDNs, browser histories.
-      resolution: EDIT to use the request body or an auth header. DENY if the embedded value is genuine secret material.
+      resolution: Use the request body or an auth header; DENY if the embedded value is genuine secret material.
     - id: nr.localhost-target
       name: URL points at localhost / 127.0.0.1 / 0.0.0.0 / link-local
       severity: medium
       description: SSRF / localhost-side-channel risk. May be intentional (dev server) or accidental.
       resolution: ALLOW if a local dev server is known running (process list / well-known ports). DENY if no known local service.
+      triggers:
+        regex:
+          - '(?i)https?://(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|169\.254\.)'
     - id: nr.cloud-metadata-endpoint
       name: URL is 169.254.169.254 (AWS/GCP/Azure metadata)
       severity: critical
       description: Cloud-metadata endpoints leak instance IAM credentials. Classic SSRF target.
       resolution: DENY. Always.
+      triggers:
+        regex:
+          - '(?i)https?://(?:169\.254\.169\.254|metadata\.google\.internal|\[fd00:ec2::254\])'
     - id: nr.tracking-pixel-shape
       name: URL has tracking-pixel shape (1x1 png, no useful content)
       severity: low
+      # judgment_only: a 1x1 tracking pixel is not reliably distinguishable from a
+      # legitimate small image by URL alone.
+      judgment_only: true
       description: Useless and arguably privacy-hostile.
       resolution: ALLOW with banner.
     - id: nr.large-binary-fetch
       name: URL points at a known-binary content type; estimated size > 10 MB
       severity: medium
       description: Floods context; wastes tokens.
-      resolution: EDIT to fetch a metadata HEAD first. ALLOW with banner if the user explicitly wants the file.
+      resolution: Fetch a metadata HEAD first; ALLOW with banner if the user explicitly wants the file.
+      # Binary extension in the URL path is detectable; the > 10 MB estimate is the
+      # seat's call (and medium severity is banner-only at the low base tier).
+      triggers:
+        regex:
+          - '(?i)\.(?:zip|gz|tar|tgz|iso|dmg|exe|mp4|mov|avi|pdf|parquet|sqlite3?)(?:[?#]|$)'
     - id: nr.untrusted-domain
       name: Domain not in any allowlist and looks unusual (newly-registered, IP-only, IDN homograph)
       severity: medium
       description: Phishing / typosquat reach-out.
       resolution: DENY for IP-only and IDN-homograph cases. ALLOW with banner for unusual-but-plausible domains.
+      # The deterministic halves — IP-only host and IDN (xn--) homograph — are
+      # detectable; "newly-registered / looks unusual" is the seat's call.
+      triggers:
+        regex:
+          - '(?i)https?://\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?(?:[/?#]|$)'
+          - '(?i)https?://(?:[^/\n]*\.)?xn--'
   network_write:
     - id: nw.webhook-to-unallowed-host
       name: POST to a host not in the allowlist
@@ -858,30 +950,56 @@ categories:
       severity: high
       description: Mistargeted writes (wrong account, wrong project).
       resolution: DENY if the target doesn't match .ravenclaude/environment-context.md.
+  # mcp_tools went LIVE in v0.39.0 (Track B Phases 2-4), ALLOW/DENY-only.
+  # reviewed_text is "mcp__server__verb\n<canonical-json args>" (the verb is the
+  # token after the last `__` on line 1). classify_payload already splits read vs
+  # write by the fixed read-verb prefix set; base tier `medium`. The deterministic
+  # `mcp.allowed_servers` allowlist (design §MCP identity) is a tracked FOLLOW-UP —
+  # until it lands, the three server-identity concerns are seat-judged.
   mcp_tools:
     - id: mcp.unknown-server
       name: MCP server hasn't been per-server-configured for trust
       severity: medium
+      # judgment_only: "configured for trust" needs the (not-yet-shipped)
+      # mcp.allowed_servers allowlist; until then the seat decides per verb.
+      judgment_only: true
       description: Global default applies — but the tribunal can render a smarter verdict (read-only methods OK, write methods escalate).
       resolution: ALLOW for get_* / list_* / read_* / search_*. ASK or DENY for create_* / update_* / delete_* / send_*.
     - id: mcp.broad-data-read
       name: MCP method returns a broad data slice (e.g., google_drive.list_all_files)
       severity: medium
       description: Floods context, may include private docs.
-      resolution: EDIT to narrow scope (list_files(folder=X)).
+      resolution: Narrow the scope (list_files(folder=X)); ALLOW a scoped call.
+      # A `*_all*` verb shape (list_all_files, get_all_users) is detectable on the
+      # tool name; the data-volume judgement is the seat's.
+      triggers:
+        regex:
+          - '(?im)^mcp__\S*_all(?![A-Za-z])'
     - id: mcp.cross-service-write
       name: MCP method writes to a third-party shared system (Slack post, Notion page create)
       severity: high
       description: Visible to other humans.
       resolution: DENY unless the target channel / workspace is explicitly allowlisted.
+      # A write-verb on the tool name (create_/update_/delete_/send_/post_/…). The
+      # "third-party shared" nuance is the seat's; the write shape is detectable and
+      # mirrors classify_payload's read-vs-write verb split.
+      triggers:
+        regex:
+          - '(?im)^mcp__\S*__(?:create|update|delete|remove|send|post|put|insert|write|publish|merge|close|archive|move|rename)(?:_|\b)'
     - id: mcp.tool-shadowing
       name: Two MCP servers expose a tool with the same name
       severity: high
+      # judgment_only: detecting a name collision needs the full live tool registry
+      # across all connected servers, not a regex over one call.
+      judgment_only: true
       description: Disambiguation footgun; could call the wrong service.
       resolution: DENY; surface the conflict.
     - id: mcp.unverified-server
       name: MCP server added in the current session, not verified (no signature, no allowlist entry)
       severity: high
+      # judgment_only: "added this session / no allowlist entry" needs session +
+      # allowlist state (the design §MCP identity allowlist, a tracked follow-up).
+      judgment_only: true
       description: A newly-installed MCP could be malicious.
       resolution: DENY for write methods. ALLOW read methods with banner.
 ```

@@ -69,7 +69,7 @@ tool_name="$(printf '%s' "$payload" | jq -r '.tool_name // empty')"
 # (The hooks.json matcher already filters to these; this is defense-in-depth so a
 # direct/odd invocation can't reach the per-shape extraction below.)
 case "$tool_name" in
-  Bash | Write | Edit | MultiEdit | WebFetch | WebSearch | mcp__*) ;;
+  Bash | Read | Write | Edit | MultiEdit | WebFetch | WebSearch | mcp__*) ;;
   *) exit 0 ;;
 esac
 
