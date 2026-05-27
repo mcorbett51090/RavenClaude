@@ -374,6 +374,18 @@ RavenClaude runs under **GitHub Copilot CLI** (GA Feb 2026), not just Claude Cod
 - **Frictionless update (the design pillar):** we deliberately do **NOT** use Copilot's install-and-cache mechanism (its re-install-to-update flow is the pain point). The plugin loads **live** via `copilot --plugin-dir copilot/`, and every other surface (`.claude/skills`, `.github/hooks`, MCP config, AGENTS.md) is read live from disk — so an **update is just `git pull`** (`ravenclaude update` / the `rc` alias). No re-install, ever.
 - **One-click from the dashboard** — `serve-dashboards.py` exposes an allow-listed `POST /__run` (actions `install`/`update`/`status` only — no arbitrary commands), and the dashboard's **Install & Update** tab drives it with buttons (served mode) + copy-to-clipboard commands (everywhere).
 
+**Setup & update — one-click or by hand.** The dashboard's **Install & Update** tab (served via `/dashboard` → `serve-dashboards.py`) drives `install` / `update` / `status` with buttons, so a consumer never has to type them. The equivalent manual commands, run from a marketplace clone (`RC`):
+
+```shell
+RC=~/RavenClaude                                                  # the marketplace clone
+bash "$RC/scripts/ravenclaude" install --project /path/to/repo    # one-time wiring (idempotent)
+bash "$RC/scripts/ravenclaude" status  --project /path/to/repo    # show what's wired
+bash "$RC/scripts/ravenclaude" update                             # git pull + regenerate — anytime
+copilot --plugin-dir "$RC/plugins/ravenclaude-core/copilot"       # launch live (run in a terminal)
+```
+
+`install` and `status` both accept `--project DIR` (default `$PWD`); `status` also takes a bare positional path.
+
 Slash commands (`/set-posture`, `/wrap`) don't port (Copilot CLI has no user slash commands yet) — they're documented shell invocations. Live Copilot-CLI behavior is owner-verified (the SDK isn't present in CI); the adapter I/O translation + package freshness are gated (Gate 20).
 
 ## New skills (v0.13.0)
