@@ -1,0 +1,97 @@
+# Balanced comfort-posture seed for a NEW repo (schema v5 — per-layer).
+# `ravenclaude setup` drops this into .ravenclaude/comfort-posture.yaml when a
+# repo doesn't already have one; apply-comfort-posture.py then translates it into
+# .claude/settings.json permission rules.
+#
+# "Balanced" = local development runs without prompts; anything that reaches
+# OUTSIDE the repo (remote git / PRs, network writes, edits to files outside the
+# project) prompts first; a hard security floor is always denied. Re-tune any of
+# this point-and-click in the comfort-posture dashboard (/dashboard).
+#
+# Levels are authored at the PROJECT layer so they commit with the repo as the
+# shared baseline (and survive Codespace rebuilds). Personal relaxations belong
+# in the local layer — add them via the dashboard, not here.
+#
+# Block style (not { } flow style) is intentional: it parses under both PyYAML
+# and apply-comfort-posture.py's built-in fallback parser.
+schema_version: 5
+
+# Pause for design / architectural decisions before implementing them?
+design_checkins: true
+
+# Always-on deny rules — layer-independent floor. Category levels never relax these.
+security_deny:
+  - "Bash(rm -rf:*)"
+  - "Bash(git push --force:*)"
+  - "Bash(git push -f:*)"
+  - "Bash(git reset --hard:*)"
+  - "Bash(git clean -fd:*)"
+  - "Bash(npm publish:*)"
+  - "Bash(pnpm publish:*)"
+  - "Bash(yarn publish:*)"
+  - "Bash(cargo publish:*)"
+  - "Bash(curl * | sh)"
+  - "Bash(curl * | bash)"
+  - "Bash(wget * | sh)"
+  - "Bash(wget * | bash)"
+  - "Bash(sudo:*)"
+  - "Read(.env)"
+  - "Read(.env.*)"
+  - "Read(**/*.pem)"
+  - "Read(**/*.key)"
+  - "Read(**/credentials*)"
+  - "Read(**/secrets*)"
+
+# allow = run without asking · ask = prompt first · deny = block · inherit = defer
+categories:
+  # ── Reads — allowed ─────────────────────────────────────────────
+  file_read_project:
+    user: inherit
+    local: inherit
+    project: allow
+  file_read_global:
+    user: inherit
+    local: inherit
+    project: allow
+  network_read:
+    user: inherit
+    local: inherit
+    project: allow
+  shell_readonly:
+    user: inherit
+    local: inherit
+    project: allow
+  # ── Local development — allowed ─────────────────────────────────
+  file_edit_project:
+    user: inherit
+    local: inherit
+    project: allow
+  shell_local_mutate:
+    user: inherit
+    local: inherit
+    project: allow
+  shell_code_exec:
+    user: inherit
+    local: inherit
+    project: allow
+  shell_package_install:
+    user: inherit
+    local: inherit
+    project: allow
+  mcp_tools:
+    user: inherit
+    local: inherit
+    project: allow
+  # ── Reaches outside the repo — prompt first ─────────────────────
+  file_edit_global:
+    user: inherit
+    local: inherit
+    project: ask
+  shell_remote_mutate:
+    user: inherit
+    local: inherit
+    project: ask
+  network_write:
+    user: inherit
+    local: inherit
+    project: ask
