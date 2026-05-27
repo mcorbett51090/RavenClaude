@@ -878,6 +878,16 @@ def main() -> int:
         and len(screened.encode("utf-8", "replace")) > SCREEN_MAX_BYTES
     )
     result["payload_too_large"] = payload_too_large
+    # The orchestrator passes this to the seat as THING_PAYLOAD (non-Bash shapes).
+    # Omitted when oversize (we deny before convening) so the JSON isn't bloated.
+    if args.cmd == "classify-payload" and not payload_too_large:
+        result["reviewed_text"] = screened
+        result["payload_shape"] = (
+            "file" if (result.get("tool_name") or "") in ("Edit", "Write", "MultiEdit")
+            else "network" if (result.get("tool_name") or "") in ("WebFetch", "WebSearch")
+            else "mcp" if (result.get("tool_name") or "").startswith("mcp__")
+            else "command"
+        )
 
     # §B.9.5 / §B.9.3 — the self-disable + hard-rule screens are CATEGORY-
     # INDEPENDENT. The orchestrator only reaches us when some category is toggled
