@@ -1,6 +1,6 @@
 ---
 name: thing
-description: "Command review (the Thing) — the opt-in command-review tribunal that votes ALLOW/EDIT/DENY on shell commands a comfort-posture category is set to review. Read this when wiring, debugging, or explaining the tribunal: the PreToolUse orchestrator, the reviewer panel + tie-breaker, the deterministic concern evaluator, the tier model, the dashboard-configurable panel, the per-category toggle, the audit trail, and the fail-closed rules. T5 = tiered routing (low→extreme) where a clean low-risk read gets no LLM panel, seat count + confidence escalate with the tier, and a dashboard-configurable gate_floor decides which confident allows you confirm; live for shell_readonly / shell_remote_mutate / shell_code_exec / shell_local_mutate / shell_package_install."
+description: "Command review (the Thing) — the opt-in command-review tribunal that votes ALLOW/EDIT/DENY on shell commands (and ALLOW/DENY on file edits) a comfort-posture category is set to review. Read this when wiring, debugging, or explaining the tribunal: the PreToolUse orchestrator, the reviewer panel + tie-breaker, the deterministic concern evaluator, the tier model, the dashboard-configurable panel, the per-category toggle, the audit trail, and the fail-closed rules. T5 = tiered routing (low→extreme) where a clean low-risk read gets no LLM panel, seat count + confidence escalate with the tier, and a dashboard-configurable gate_floor decides which confident allows you confirm; live for shell_readonly / shell_remote_mutate / shell_code_exec / shell_local_mutate / shell_package_install / file_edit_project (the last is ALLOW/DENY-only — a seat EDIT is coerced to DENY)."
 ---
 
 # Skill: command review (the Thing)
@@ -17,7 +17,7 @@ The tribunal is a real **panel**: up to three reviewer seats run in parallel, a 
 | --- | --- | --- |
 | Seats | **Up to 3** — Forseti (security-reviewer), Mímir (code-reviewer), Heimdall (prompt-engineer) — **+ Thor** (architect) convened only on a split or low-confidence panel | Domain specialist seats (T7) |
 | Verdicts | **ALLOW / EDIT / DENY** (+ fail-closed DENY, or an `ask` when the gate surfaces a command) | — |
-| Categories | **`shell_readonly`, `shell_remote_mutate`, `shell_code_exec`, `shell_local_mutate`, `shell_package_install`** | `file_edit_project` (Edit/Write tool shape) |
+| Categories | **`shell_readonly`, `shell_remote_mutate`, `shell_code_exec`, `shell_local_mutate`, `shell_package_install`** (shell, ALLOW/EDIT/DENY) + **`file_edit_project`** (Write/Edit/MultiEdit tool shape, **ALLOW/DENY-only** — v0.38.0) | `file_edit_global` + file reads, then WebFetch/WebSearch, then MCP tools |
 | **Tiers** | Every command resolves to `low`→`medium`→`high`→`extreme` = its category **base tier** (`category_tier_map`) bumped up by a deterministic high/critical concern. **`low` runs no panel** (clean reads are free); seat count + the confidence bar escalate with the tier; `extreme` carries a mandatory Forseti seat | — |
 | Routing | Tier-driven: `low` → deterministic screen only (0 seats), `medium` → 2 seats, `high`/`extreme` → 3 seats; unarguable critical → pre-LLM DENY | — |
 | **Human gate** | `gate_floor` (`medium`..`extreme`, default `high`) = lowest tier whose **confident ALLOW** is surfaced to you as `ask`. Reads are never surfaced; high-blast allows always are; DENY/EDIT stay autonomous | — |
@@ -27,7 +27,7 @@ The tribunal is a real **panel**: up to three reviewer seats run in parallel, a 
 
 ## Turning it on
 
-The on/off toggle is a **per-category `thing:` field in `.ravenclaude/comfort-posture.yaml`**, set from the dashboard's **Command review** toggle on the Settings tab (live for `shell_readonly`, `shell_remote_mutate`, `shell_code_exec`, `shell_local_mutate`, and `shell_package_install`; the rest remain Preview). The dashboard's **Command-review panel** section sets the per-seat models, the **comfort level** (`gate_floor`), and — behind an Advanced expansion — the per-tier seats + confidence, all serialized as a top-level `command_review:` block. Turning a category on writes:
+The on/off toggle is a **per-category `thing:` field in `.ravenclaude/comfort-posture.yaml`**, set from the dashboard's **Command review** toggle on the Settings tab (live for `shell_readonly`, `shell_remote_mutate`, `shell_code_exec`, `shell_local_mutate`, `shell_package_install`, and `file_edit_project`; the rest remain Preview). The dashboard's **Command-review panel** section sets the per-seat models, the **comfort level** (`gate_floor`), and — behind an Advanced expansion — the per-tier seats + confidence, all serialized as a top-level `command_review:` block. Turning a category on writes:
 
 ```yaml
 categories:
@@ -40,7 +40,7 @@ categories:
 
 The extra `thing:` key is ignored by `apply-comfort-posture.py` (it only reads the layer keys), so it never disturbs the permission translation.
 
-> **Cost & latency, stated plainly.** Each reviewed command convenes one to three `claude -p` seats **in parallel**, so a verdict lands in roughly the time of the slowest seat (seconds), not the sum — but it still spends real credits on every reviewed command. `shell_readonly` is the highest-frequency category (`ls`, `cat`, `grep`, `git status`); leaving its toggle ON taxes daily work and is best used as a **validation switch**. The categories where review actually earns its cost are `shell_remote_mutate` (push / publish / PR mutations), `shell_code_exec` (python/node/bash -c/eval), `shell_package_install` (supply-chain: global installs, unpinned versions, cred-in-registry-URL, tarball-from-`/tmp`), and `shell_local_mutate` (destructive local: `rm`, `git reset --hard`, force-deleting `main`, recursive `chmod 000/777`) — turn those on for high-stakes sessions. All toggles are **off by default**.
+> **Cost & latency, stated plainly.** Each reviewed command convenes one to three `claude -p` seats **in parallel**, so a verdict lands in roughly the time of the slowest seat (seconds), not the sum — but it still spends real credits on every reviewed command. `shell_readonly` is the highest-frequency category (`ls`, `cat`, `grep`, `git status`); leaving its toggle ON taxes daily work and is best used as a **validation switch**. The categories where review actually earns its cost are `shell_remote_mutate` (push / publish / PR mutations), `shell_code_exec` (python/node/bash -c/eval), `shell_package_install` (supply-chain: global installs, unpinned versions, cred-in-registry-URL, tarball-from-`/tmp`), and `shell_local_mutate` (destructive local: `rm`, `git reset --hard`, force-deleting `main`, recursive `chmod 000/777`) — turn those on for high-stakes sessions. `file_edit_project` (Write/Edit/MultiEdit) reviews **file edits** instead of shell commands — a posture write into `.claude/`/`.ravenclaude/`, a conflict-marker left in a file, or a vendored/generated-file edit; it is **ALLOW/DENY-only** (a seat rewrite is coerced to DENY). All toggles are **off by default**.
 
 ## How a reviewed command flows
 
@@ -104,9 +104,9 @@ Every verdict writes one JSON entry to `.ravenclaude/runs/thing/<id>.json` (the 
 ## Known limitations (so they don't surprise you)
 
 - **Compound / control-flow commands classify by their leading segment.** `ls | grep x` reviews as `shell_readonly`; a bare `for …; do …; done` classifies as nothing and is **not** reviewed (falls through to normal flow).
-- **Deterministic routing is regex-based.** `triggers` are added for the cross-cutting concerns plus the live categories' deterministic concerns; concerns without `triggers` (the `judgment_only` ones and the not-yet-live categories) rely on the seats' own judgment, not the pre-LLM screen.
-- **EDIT only when deterministically verifiable.** An EDIT is accepted only if the cited concern has `triggers` (so the invariant can confirm removal); otherwise it fails closed to DENY.
-- **No file-edit review.** Only Bash is reviewed; `file_edit_project` (Edit/Write tool shape) is deferred.
+- **Deterministic routing is regex-based.** `triggers` are added for the cross-cutting concerns plus the live categories' deterministic concerns; concerns without `triggers` (the `judgment_only` ones and the not-yet-live categories) rely on the seats' own judgment, not the pre-LLM screen. For the file shape, triggers run against the reviewed text `"<file_path>\n<content>"`, so a path-anchored regex screens the path and a content regex screens the body.
+- **EDIT only when deterministically verifiable.** An EDIT is accepted only if the cited concern has `triggers` (so the invariant can confirm removal); otherwise it fails closed to DENY. **File edits are ALLOW/DENY-only** regardless — a seat EDIT verdict on a `file_edit_project` call is coerced to DENY (there is no machine-checkable `concerns(revised) ⊆ concerns(original)` invariant for free-form file content).
+- **File-edit review is live for the project tree only.** `file_edit_project` (Write/Edit/MultiEdit on a path inside the project) is reviewed when toggled on; `file_edit_global` (outside the project), file **reads**, WebFetch/WebSearch, and MCP tools are wired in the engine but **not yet live** (later Track B phases). A `..`/`~`/outside-project path resolves to the stricter `file_edit_global`, so it is not silently reviewed as project.
 
 ## Auth note
 
