@@ -727,6 +727,8 @@ for spec in \
   "git branch --delete --force main|shell_local_mutate" \
   "git branch -d main|shell_readonly" \
   "git branch|shell_readonly" \
+  "git -C /p branch -D main|shell_local_mutate" \
+  "git -C /p branch newfeature|shell_readonly" \
   "/bin/rm foo.txt|shell_local_mutate"; do
   IFS='|' read -r cmd want <<EOF
 $spec
@@ -741,6 +743,11 @@ for spec in \
   "git reset --hard HEAD~1|shell_local_mutate|slm.git-reset-hard-uncommitted" \
   "git branch -D main|shell_local_mutate|slm.delete-protected-branch-locally" \
   "git branch --delete --force main|shell_local_mutate|slm.delete-protected-branch-locally" \
+  "git branch --force --delete main|shell_local_mutate|slm.delete-protected-branch-locally" \
+  "git branch -Dr main|shell_local_mutate|slm.delete-protected-branch-locally" \
+  "git -C /p branch -D main|shell_local_mutate|slm.delete-protected-branch-locally" \
+  "git -C /p reset --hard HEAD~3|shell_local_mutate|slm.git-reset-hard-uncommitted" \
+  "git -C /p push --force origin main|shell_remote_mutate|srm.force-push" \
   "git branch master -D|shell_local_mutate|slm.delete-protected-branch-locally" \
   "chmod -R 777 .|shell_local_mutate|slm.chmod-broad" \
   "chmod -R 0777 .|shell_local_mutate|slm.chmod-broad" \

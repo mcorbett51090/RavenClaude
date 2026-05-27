@@ -82,12 +82,42 @@ def _concerns_for(catalog: dict, category: str | None) -> list[dict]:
     return out
 
 
+def _normalize_for_match(command: str) -> str:
+    """Mirror the classifier's `_normalize_lead` (thing-decision.py) so a command
+    is SCREENED the same way it is ROUTED.
+
+    The classifier strips leading wrappers (VAR=, sudo/env/…), basenames a leading
+    path, and removes `git` global options (`git -C dir push` -> `git push`).
+    Concern triggers, however, run against the raw command and anchor on
+    `git\\s+push` / `git\\s+branch` / `git\\s+reset`. Without this mirror, a
+    `git -C <dir> push --force` classifies as a remote-mutate yet dodges every
+    force-push trigger — the pre-LLM hard DENY is silently bypassed (and the same
+    for `git -C <dir> branch -D main`). Matching is unioned with the raw command
+    (below), so normalization can only ADD a match, never remove one.
+    """
+    cmd = command
+    prev = None
+    while cmd and cmd != prev:
+        prev = cmd
+        cmd = re.sub(r"^[A-Za-z_][A-Za-z0-9_]*=\S*\s+", "", cmd)
+        cmd = re.sub(r"^(?:sudo|env|command|nohup|nice|stdbuf)\b(?:\s+-\S+)*\s+", "", cmd)
+        cmd = re.sub(r"^(?:sudo|env)\s+[A-Za-z_][A-Za-z0-9_]*=\S*\s+", "", cmd)
+    m = re.match(r"^(\S*/)?(\S+)(.*)$", cmd, re.S)
+    if m and m.group(1):
+        cmd = m.group(2) + m.group(3)
+    # git global options anywhere in the command (covers a chained `… && git -C …`)
+    cmd = re.sub(r"\bgit\s+(?:(?:-c\s+\S+|-C\s+\S+|--no-pager|-p|--paginate)\s+)+", "git ", cmd)
+    return cmd
+
+
 def _matches(concern: dict, command: str) -> bool:
-    """True if any of the concern's trigger regexes matches the command."""
+    """True if any trigger regex matches the command or its normalized form."""
     triggers = concern.get("triggers") or {}
+    normalized = _normalize_for_match(command)
+    variants = (command, normalized) if normalized != command else (command,)
     for rx in triggers.get("regex", []) or []:
         try:
-            if re.search(rx, command, re.IGNORECASE):
+            if any(re.search(rx, v, re.IGNORECASE) for v in variants):
                 return True
         except re.error:
             # A malformed catalog regex must not crash the gate — skip it.
@@ -247,12 +277,14 @@ def screen_always(catalog: dict, command: str) -> dict:
     definition not category-independent). A match denies the command pre-LLM.
     """
     hits: list[str] = []
+    normalized = _normalize_for_match(command)
+    variants = (command, normalized) if normalized != command else (command,)
     for c in catalog.get("cross_cutting") or []:
         if not c.get("always_screen"):
             continue
         for rx in (c.get("triggers") or {}).get("regex", []) or []:
             try:
-                matched = bool(re.search(rx, command, re.IGNORECASE))
+                matched = any(bool(re.search(rx, v, re.IGNORECASE)) for v in variants)
             except re.error:
                 # Fail CLOSED: an uncompilable self-protection trigger must never
                 # silently stop protecting (unlike _matches, which skips it for

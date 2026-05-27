@@ -481,20 +481,19 @@ categories:
       severity: high
       description: Deletes the local main; doesn't affect remote, but breaks workflow.
       resolution: DENY.
-      # Force-delete (`-D`, or `--delete --force` in either order) of a protected
-      # local branch, with the flag before or after the branch name. `-D` is
-      # matched case-sensitively via (?-i:-D) — the catalog evaluator compiles
-      # every trigger with re.IGNORECASE, so a plain `\s-D` would also match the
-      # SAFE lowercase `-d` (merged-only delete). (?-i:…) forces case-sensitivity
-      # for that token only, so `git branch -d main` is correctly NOT matched.
-      # The branch token is bounded by (?<![\w./-]) … (?![\w./-]) so it is the
-      # WHOLE name `main`/`master`, not a substring of `feature/main` or
-      # `main-backup` (those are safe feature branches, never matched).
+      # Force-delete of a protected local branch. Lookaheads make the token order
+      # irrelevant (flag before/after the branch; `--delete`+`--force` in either
+      # order). `-D` is matched case-sensitively via (?-i:…) — the evaluator
+      # compiles every trigger with re.IGNORECASE, so a plain `-D` would also
+      # match the SAFE lowercase `-d` (merged-only delete); (?-i:[A-Za-z]*D…)
+      # requires an uppercase D while still allowing clustered flags (`-Dr`,
+      # `-rD`, `-vD`), so `git branch -d main` is correctly NOT matched. The
+      # branch token is bounded by (?<![\w./-]) … (?![\w./-]) so it is the WHOLE
+      # name `main`/`master`, not a substring of `feature/main` or `main-backup`.
       triggers:
         regex:
-          - 'git\s+branch\b[^|&;]*\s(?-i:-D)\b[^|&;]*(?<![\w./-])(?:main|master)(?![\w./-])'
-          - 'git\s+branch\b[^|&;]*(?<![\w./-])(?:main|master)(?![\w./-])[^|&;]*\s(?-i:-D)\b'
-          - 'git\s+branch\b[^|&;]*--delete\b[^|&;]*--force\b[^|&;]*(?<![\w./-])(?:main|master)(?![\w./-])'
+          - 'git\s+branch\b(?=[^|&;]*\s-(?-i:[A-Za-z]*D[A-Za-z]*)\b)(?=[^|&;]*(?<![\w./-])(?:main|master)(?![\w./-]))'
+          - 'git\s+branch\b(?=[^|&;]*--delete\b)(?=[^|&;]*--force\b)(?=[^|&;]*(?<![\w./-])(?:main|master)(?![\w./-]))'
     - id: slm.chmod-broad
       name: chmod -R 777 or chmod -R 000 on the project tree
       severity: high

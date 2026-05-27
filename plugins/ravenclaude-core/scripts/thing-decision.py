@@ -190,7 +190,10 @@ def classify(command: str) -> str | None:
     # Without this, slm.delete-protected-branch-locally is unreachable: the
     # command auto-allows as a "read" before its concern can ever fire.
     if best_cat == "shell_readonly" and re.match(r"git\s+branch\b", lead):
-        force_delete = re.search(r"(?:^|\s)-[A-Za-z]*D\b", lead) or (
+        # `-D` matched case-sensitively (so safe `-d` is excluded) but allowing
+        # other flag letters around it (`-Dr`, `-rD`, `-vD`); or `--delete` +
+        # `--force` in any order.
+        force_delete = re.search(r"(?:^|\s)-[A-Za-z]*D[A-Za-z]*\b", lead) or (
             re.search(r"(?:^|\s)--delete\b", lead) and re.search(r"(?:^|\s)--force\b", lead)
         )
         if force_delete:
