@@ -378,14 +378,22 @@ def _print_qr(url: str) -> bool:
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--port", type=int, default=8000)
-    p.add_argument("--bind", default="127.0.0.1", help="default 127.0.0.1; use 0.0.0.0 to accept from LAN")
+    p.add_argument(
+        "--bind",
+        default=None,
+        help="bind address; auto 0.0.0.0 in a Codespace (so the forwarded port is reachable), else 127.0.0.1; pass 0.0.0.0 to accept from LAN. An explicit value always wins.",
+    )
     args = p.parse_args()
-
-    os.chdir(REPO_ROOT)
-    server = ThreadingHTTPServer((args.bind, args.port), DashboardHandler)
 
     codespace = os.environ.get("CODESPACE_NAME")
     domain = os.environ.get("GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN", "app.github.dev")
+    # In a Codespace the port-forwarder can't reach a 127.0.0.1-only socket, so default
+    # to 0.0.0.0 there — kept safe by the Private forwarded port + the Origin/Host CSRF
+    # guard below. Off-Codespace stay loopback-only. An explicit --bind always wins.
+    bind = args.bind or ("0.0.0.0" if codespace else "127.0.0.1")
+
+    os.chdir(REPO_ROOT)
+    server = ThreadingHTTPServer((bind, args.port), DashboardHandler)
 
     # Build the Origin/Host allow-lists the CSRF/rebinding guard checks against.
     global _ALLOWED_HOSTS, _ALLOWED_ORIGINS
@@ -395,14 +403,14 @@ def main() -> int:
         _fwd = f"{codespace}-{args.port}.{domain}"
         _ALLOWED_HOSTS.add(_fwd)
         _ALLOWED_ORIGINS.add(f"https://{_fwd}")
-    if args.bind == "0.0.0.0":
+    if bind == "0.0.0.0":
         _ip = _lan_ip()
         if _ip:
             _ALLOWED_HOSTS.add(f"{_ip}:{args.port}")
             _ALLOWED_ORIGINS.add(f"http://{_ip}:{args.port}")
 
     dash_path = "/plugins/ravenclaude-core/dashboard.html"
-    print(f"serve-dashboards: serving {REPO_ROOT} at http://{args.bind}:{args.port}/")
+    print(f"serve-dashboards: serving {REPO_ROOT} at http://127.0.0.1:{args.port}/  (bound to {bind})")
     print(f"  POST /__save  - writes a whitelisted file under .ravenclaude/")
     print(f"  allow-list   - {sorted(ALLOWED_TARGETS)}")
     print(f"  POST /__run   - runs an allow-listed ravenclaude action (Install/Update buttons)")
@@ -425,7 +433,7 @@ def main() -> int:
             "  Security: keep this forwarded port PRIVATE (the default) and stay signed\n"
             "  into GitHub on the phone — /__save writes files and runs the translator."
         )
-    elif args.bind == "0.0.0.0":
+    elif bind == "0.0.0.0":
         lan_ip = _lan_ip()
         if lan_ip:
             phone_url = f"http://{lan_ip}:{args.port}{dash_path}"
