@@ -117,6 +117,30 @@ if [ "$self_disable" = "true" ]; then
   emit deny "Command review (the Thing): DENIED — this command would disable or tamper with the Thing itself (${sd_concern}). Refused unilaterally (§B.9.5); turn the Thing off in the comfort-posture dashboard instead. Sága log: .ravenclaude/runs/thing/${sd_run_id}.json"
 fi
 
+# ── §B.9.3: unarguable hard-deny rules (force-push to a protected branch, curl|sh)
+#    are CATEGORY-INDEPENDENT too — `always_screen` in the catalog. They fire
+#    whenever ANY category is toggled, even if THIS command classifies into an
+#    untoggled category or None, so a wrapped / mis-routed form
+#    (`nice git push --force`, `git status && git push --force`) cannot dodge the
+#    hard DENY. Pre-LLM, unilateral; no seat convened. ──────────────────────────
+hard_rule="$(printf '%s' "$decision" | jq -r '.hard_rule_deny // false')"
+if [ "$hard_rule" = "true" ]; then
+  hr_concern="$(printf '%s' "$decision" | jq -r '.hard_rule_concern // "hard rule"')"
+  hr_run_id="thing-$(date -u +%Y-%m-%dT%H-%M-%SZ)-$$"
+  hr_audit="${cwd}/.ravenclaude/runs/thing"
+  if mkdir -p "$hr_audit" 2>/dev/null; then
+    jq -cn --arg id "$hr_run_id" --arg sid "$session_id" \
+      --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg cmd "$cmd" \
+      --arg cat "$category" --arg concern "$hr_concern" \
+      '{id:$id,session_id:$sid,timestamp:$ts,tool_name:"Bash",
+        tool_input:{command:$cmd},category:$cat,phase:"hard-rule-deny",
+        seats:[],concerns_cited:[$concern],final_verdict:"deny",
+        updated_input:null,duration_ms:0}' \
+      > "${hr_audit}/${hr_run_id}.json" 2>/dev/null || true
+  fi
+  emit deny "Command review (the Thing): DENIED — this command matches an unarguable hard rule (${hr_concern}) and is refused pre-LLM, regardless of which category routed it (§B.9.3). Sága log: .ravenclaude/runs/thing/${hr_run_id}.json"
+fi
+
 [ "$enabled" != "true" ] && exit 0   # category not toggled on -> normal flow
 
 config_error="$(printf '%s' "$decision" | jq -r '.config_error // empty')"

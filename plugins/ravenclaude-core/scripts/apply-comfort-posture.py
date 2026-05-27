@@ -199,6 +199,10 @@ EMISSIONS: dict[str, list[str]] = {
         "Bash(apt-get install:*)",
         "Bash(cargo install:*)",
         "Bash(go install:*)",
+        "Bash(pipx install:*)",
+        "Bash(gem install:*)",
+        "Bash(bun add:*)",
+        "Bash(bun install:*)",
     ],
     # ── Network categories ──────────────────────────────────────
     "network_read": [

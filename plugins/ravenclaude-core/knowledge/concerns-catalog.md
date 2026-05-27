@@ -36,13 +36,29 @@ schema:
   #                     payload, curl|sh, force-push). Conditionally-allowable criticals
   #                     (e.g. srm.push-to-protected-branch) are NOT pre_llm_deny — they
   #                     route to the panel, which may allow them under environment-context.
-  #   always_screen   — true for the §B.9.5 self-protection rule(s): the concern is
-  #                     evaluated CATEGORY-INDEPENDENTLY — whenever ANY category has the
-  #                     toggle on, not only when the command's own category is on. This
-  #                     closes the evasion where an attacker crafts a Thing-disabling
-  #                     command that classifies into a category whose toggle is off.
-  #                     Implies pre_llm_deny. Reserved for "the Thing cannot disable
-  #                     itself" — see scripts/thing-concerns.py `screen_always`.
+  #   always_screen   — the concern is evaluated CATEGORY-INDEPENDENTLY — whenever
+  #                     ANY category has the toggle on, not only when the command's
+  #                     own category is on. Implies pre_llm_deny. Two uses:
+  #                       (§B.9.5) self-protection — "the Thing cannot disable itself"
+  #                         (xc.tribunal-self-disable); and
+  #                       (§B.9.3) the unarguable hard-deny rules that are catastrophic
+  #                         regardless of how the command was routed — force-push to a
+  #                         protected branch, and curl|sh. Marking these always_screen
+  #                         closes the evasion where a wrapped or mis-classified form
+  #                         (`nice git push --force`, `git status && git push --force`,
+  #                         a command that classifies to an untoggled category) dodges
+  #                         the hard DENY because its own category isn't the toggled one.
+  #                     Screened in scripts/thing-concerns.py `screen_always` (raw ∪
+  #                     normalized command). Reserved for triggers whose match is
+  #                     INTENT-BEARING (the command IS doing the dangerous thing). NOT
+  #                     used for:
+  #                       - xc.injection-attempt — only a threat when a seat is convened;
+  #                       - xc.secret-in-command — its triggers are presence-of-substring
+  #                         (`--password=…`, `--token=…`), which match env-var refs
+  #                         (`--password=$DBPASS`) and quoted/grep mentions; a
+  #                         category-INDEPENDENT, non-overridable hard DENY of those is
+  #                         too wide a false-positive blast. It stays pre_llm_deny within
+  #                         its classified category (the original scope).
   #   judgment_only   — true for concerns with NO clean deterministic regex: the LLM
   #                     seat judges them (volume/rate, "is this remote a fork", "is the
   #                     logged file sensitive", audit-trail etiquette). They carry no
@@ -429,6 +445,16 @@ categories:
       resolution: >-
         EDIT to a move-to-trash equivalent (gio trash, trash, Windows Recycle
         Bin). DENY if no trash command is available on the platform.
+      # Matches `rm` as a leading command token (after start / a shell separator /
+      # a subshell paren), with an OPTIONAL leading path so `/bin/rm` and
+      # `/usr/bin/rm` are caught too, requiring at least one argument so a bare
+      # `rm` typo and `npm`/`charm`/`rm-something` substrings don't match. Whether
+      # the target is under version control is the seat's call (high severity
+      # routes it there); the trigger only detects the rm shape. `rm -rf` is also
+      # caught by the settings security floor before it reaches the panel.
+      triggers:
+        regex:
+          - '(?:^|[\s;&|(])(?:[\w./-]*/)?rm\s+\S'
     - id: slm.git-reset-hard-uncommitted
       name: git reset --hard with uncommitted changes in worktree
       severity: high
@@ -436,36 +462,75 @@ categories:
       resolution: >-
         EDIT to `git stash --include-untracked && git reset --hard` if the work
         is salvageable. DENY otherwise.
+      # `git reset … --hard` in any flag order (`git reset --hard HEAD~1`,
+      # `git reset HEAD~1 --hard`). Whether the worktree has uncommitted work is
+      # the seat's call. Also caught by the settings floor (`git reset --hard:*`).
+      triggers:
+        regex:
+          - 'git\s+reset\b[^|&;]*--hard\b'
     - id: slm.checkout-orphans-staged
       name: git checkout <branch> with staged changes that would be silently lost
       severity: medium
-      description: Git's silent merge of staged work into the new branch can produce surprising commits.
+      judgment_only: true
+      description: Git's silent merge of staged work into the new branch can produce surprising commits. Detecting "staged changes exist" needs live `git status` state, not a regex.
       resolution: EDIT to `git stash && git checkout <branch> && git stash pop`. ALLOW otherwise.
     - id: slm.commit-without-staging-review
       name: git commit -am after broad edits
       severity: low
-      description: The -a flag commits every tracked change, not the curated set the user reviewed.
+      judgment_only: true
+      description: The -a flag commits every tracked change, not the curated set the user reviewed. Whether the diff is "broad" needs the live worktree diff, not a regex.
       resolution: EDIT to `git add <specific-files> && git commit` when the diff is broad. ALLOW for narrow single-file diffs.
     - id: slm.mv-across-fs-boundary
       name: mv from project tree to outside (or vice versa)
       severity: medium
-      description: Crosses categories; arguably file_edit_global.
+      judgment_only: true
+      description: Crosses categories; arguably file_edit_global. Deciding "outside the project tree" needs realpath resolution of both operands against the project root, not a regex over the raw argv.
       resolution: EDIT to cp + verify + rm. DENY across-fs mv of secret-shaped paths.
     - id: slm.merge-or-rebase-with-uncommitted
       name: git merge / git rebase with dirty worktree
       severity: medium
-      description: Git refuses some shapes; others silently merge. Worth pre-empting.
+      judgment_only: true
+      description: Git refuses some shapes; others silently merge. Worth pre-empting. "Dirty worktree" is live `git status` state, not a regex over the command.
       resolution: EDIT to stash first. ALLOW only if the worktree is clean.
     - id: slm.delete-protected-branch-locally
       name: git branch -D main / git branch -D master
       severity: high
       description: Deletes the local main; doesn't affect remote, but breaks workflow.
       resolution: DENY.
+      # Force-delete of a protected local branch. Lookaheads make the token order
+      # irrelevant (flag before/after the branch; `--delete`+`--force` in either
+      # order). `-D` is matched case-sensitively via (?-i:…) — the evaluator
+      # compiles every trigger with re.IGNORECASE, so a plain `-D` would also
+      # match the SAFE lowercase `-d` (merged-only delete); (?-i:[A-Za-z]*D…)
+      # requires an uppercase D while still allowing clustered flags (`-Dr`,
+      # `-rD`, `-vD`), so `git branch -d main` is correctly NOT matched. The
+      # branch token is bounded by (?<![\w./-]) … (?![\w./-]) so it is the WHOLE
+      # name `main`/`master`, not a substring of `feature/main` or `main-backup`.
+      triggers:
+        regex:
+          - 'git\s+branch\b(?=[^|&;]*\s-(?-i:[A-Za-z]*D[A-Za-z]*)\b)(?=[^|&;]*(?<![\w./-])(?:main|master)(?![\w./-]))'
+          - 'git\s+branch\b(?=[^|&;]*--delete\b)(?=[^|&;]*--force\b)(?=[^|&;]*(?<![\w./-])(?:main|master)(?![\w./-]))'
     - id: slm.chmod-broad
       name: chmod -R 777 or chmod -R 000 on the project tree
       severity: high
       description: 777 is caught by security_deny; the 000 case is the inverse footgun (locks the user out).
       resolution: DENY.
+      # Recursive chmod to a broad mode, in either flag order. The numeric matcher
+      # (?<![0-7])0?(?:000|777)(?![0-7]) accepts the 3- and 4-digit octal forms
+      # (777, 0777, 000, 0000) without firing on a benign mode like 0644. The
+      # symbolic matcher (?<![ugoa])(?:[ugoa]*[oa][ugoa]*|)[+=][rwxXst]*w catches
+      # the symbolic equivalents that grant WRITE to other/all (`a+rwx`, `a=rwx`,
+      # `o+w`, `a+w`, bare `+w`) while leaving owner/group-only grants (`u+x`,
+      # `ug+w`) and execute-only-to-all (`a+x`) alone. Non-recursive single-file
+      # chmod is left to the seat.
+      triggers:
+        regex:
+          - 'chmod\b[^|&;]*\s-[A-Za-z]*R[A-Za-z]*\b[^|&;]*(?<![0-7])0?(?:000|777)(?![0-7])'
+          - 'chmod\b[^|&;]*--recursive\b[^|&;]*(?<![0-7])0?(?:000|777)(?![0-7])'
+          - 'chmod\b[^|&;]*(?<![0-7])0?(?:000|777)(?![0-7])[^|&;]*\s-[A-Za-z]*R[A-Za-z]*\b'
+          - 'chmod\b[^|&;]*(?<![0-7])0?(?:000|777)(?![0-7])[^|&;]*--recursive\b'
+          - 'chmod\b[^|&;]*\s-[A-Za-z]*R[A-Za-z]*\b[^|&;]*(?<![ugoa])(?:[ugoa]*[oa][ugoa]*|)[+=][rwxXst]*w'
+          - 'chmod\b[^|&;]*--recursive\b[^|&;]*(?<![ugoa])(?:[ugoa]*[oa][ugoa]*|)[+=][rwxXst]*w'
   shell_remote_mutate:
     - id: srm.push-to-protected-branch
       name: git push origin main / master (direct, not PR-shaped)
@@ -480,14 +545,24 @@ categories:
         regex:
           - 'git\s+push\b.*\b(origin\s+)?(main|master)(\s|$)'
     - id: srm.force-push
-      name: git push --force / -f (without --force-with-lease)
+      name: git push --force / -f / +<refspec> (without --force-with-lease)
       severity: critical
       pre_llm_deny: true
-      description: Caught by security_deny. The tribunal must continue to deny; never relax.
+      always_screen: true
+      description: >-
+        Caught by security_deny. The tribunal must continue to deny; never relax.
+        Includes the `+<refspec>` force form (`git push origin +main`), which
+        force-updates the named ref exactly like `--force`.
       resolution: DENY. (Reaffirms the baseline.)
       triggers:
+        # `--force` (but not `--force-with-lease`) or short `-f`. The second regex
+        # catches a `+`-prefixed refspec (`git push origin +main`,
+        # `git push origin +HEAD:main`) — the leading `+` force-updates that ref.
+        # It is scoped to the push segment ([^|&;]) so a ` +token` in a LATER
+        # chained command (`git push origin main && echo "+1"`) does not match.
         regex:
           - 'git\s+push\b.*(--force(?!-with-lease)\b|\s-f\b)'
+          - 'git\s+push\b[^|&;]*\s\+\S'
     - id: srm.pr-merge-without-checks
       name: gh pr merge on a PR whose CI is not passing
       severity: high
@@ -534,6 +609,7 @@ categories:
       name: Inline string includes curl ... | sh / | bash / wget ... | sh
       severity: critical
       pre_llm_deny: true
+      always_screen: true
       description: Caught by security_deny. The tribunal must reaffirm; never EDIT to allow.
       resolution: DENY.
       triggers:
@@ -590,33 +666,80 @@ categories:
     - id: spi.typosquat-risk
       name: Package name close to a known popular package (Levenshtein <= 2 from a top-1000 name)
       severity: high
-      description: Classic supply-chain attack (requets instead of requests). Check against a known-good list per registry.
+      judgment_only: true
+      description: Classic supply-chain attack (requets instead of requests). Check against a known-good list per registry. Requires a Levenshtein comparison against a top-package corpus, not a fixed regex.
       resolution: DENY; surface "did you mean <correct>?"
     - id: spi.no-pinned-version
       name: install without a version pin
       severity: medium
       description: Floating-version installs are reproducibility-hostile.
       resolution: EDIT to add the version pin (look up the latest stable). ALLOW with banner if the user wants latest.
+      # A named package argument carrying NO version specifier. Two unpinned
+      # shapes are matched: a plain name (`express`) and a SCOPED name with no
+      # second `@` (`@scope/pkg`). A pinned token does not match — `pkg@1.2.3`
+      # (the `[^\s@]+` stops before `@`) nor `@scope/pkg@1.2.3` (the scoped
+      # alternative requires `(?:\s|$)` right after the name, which a trailing
+      # `@version` breaks). pip pins with `==`/`>=`/`~=`/etc (stopped by
+      # `[^\s=<>~!]`). A bare `npm install` (no arg → lockfile install, already
+      # pinned), a flag (`-D`, `-r`), or `pip install .` (editable local) do NOT
+      # match.
+      triggers:
+        regex:
+          - '\b(?:npm|pnpm|yarn|bun)\s+(?:install|i|add)\s+(?:(?![-@])[^\s@]+|@[^\s@/]+/[^\s@]+)(?:\s|$)'
+          - '\bpip3?\s+install\s+(?![-.])[^\s=<>~!]+(?:\s|$)'
     - id: spi.global-install
-      name: npm install -g / pip install --user / cargo install --force
+      name: npm -g / yarn global / pip --user / cargo·pipx·gem·go install / uv --system
       severity: high
-      description: Modifies global state; persists across sessions; hard to audit.
+      description: >-
+        Modifies global state; persists across sessions; hard to audit. Covers
+        npm/pnpm/bun `-g`/`--global`/`--location=global`, `yarn global add`,
+        `pip install --user`, `cargo install`, `pipx install`, `gem install`,
+        `go install`, and `uv pip install --system` — the package managers whose
+        install is global by default need no extra flag to qualify.
       resolution: EDIT to a project-scoped install. DENY for -g unless the user explicitly toggled "I want global installs".
+      # Global / user-scoped / forced installs across the common package managers.
+      # cargo/pipx/gem/go install are global by default, so the bare verb matches
+      # (no flag required); npm/pnpm/pip/uv need their global flag. Triggers route
+      # to the panel (not a pre-LLM deny), so erring inclusive just convenes review.
+      triggers:
+        regex:
+          - '\b(?:npm|pnpm|bun)\s+(?:install|i|add)\b[^|&;]*\s(?:-g\b|--global\b|--location[= ]global\b)'
+          - '\byarn\s+global\s+add\b'
+          - '\bpip3?\s+install\b[^|&;]*\s--user\b'
+          - '\bcargo\s+install\b'
+          - '\bpipx\s+install\b'
+          - '\bgem\s+install\b'
+          - '\bgo\s+install\b'
+          - '\buv\s+pip\s+install\b[^|&;]*\s--system\b'
     - id: spi.post-install-script-risk
       name: Package known to run a non-trivial post-install script
       severity: high
-      description: Post-install runs with shell privileges. Most supply-chain attacks land here.
+      judgment_only: true
+      description: Post-install runs with shell privileges. Most supply-chain attacks land here. Whether a named package ships a post-install hook needs a package-metadata lookup, not a regex over the command.
       resolution: ALLOW with banner naming the post-install behavior. DENY if the package is on a known-malicious list.
     - id: spi.private-registry-leak
       name: Install from a non-default registry with creds in the URL
       severity: medium
       description: Private-registry URLs sometimes contain tokens (https://_authToken@registry.npmjs.org/...).
       resolution: DENY if the registry URL contains credentials. EDIT to use .npmrc / env-var auth instead.
+      # An inline auth token, or a userinfo (`user:pass@`) credential in a URL.
+      # Scoped by the shell_package_install category, so the cred-in-URL form is
+      # an install-time registry leak rather than a generic match.
+      triggers:
+        regex:
+          - '_auth(?:Token)?=\S+'
+          - 'https?://[^\s/]+:[^\s/@]+@\S+'
     - id: spi.local-tarball-from-tmp
       name: npm install /tmp/foo.tgz or similar
       severity: high
       description: Installing an arbitrary tarball is the install-from-disk attack.
       resolution: DENY unless the tarball is inside the project tree and the user explicitly authorized.
+      # Install of an archive/wheel from a world-writable temp dir
+      # (/tmp, /var/tmp, /dev/shm).
+      triggers:
+        regex:
+          - '\b(?:npm|pnpm|yarn)\s+(?:install|add|i)\b[^|&;]*\s/(?:tmp|var/tmp|dev/shm)/\S+\.(?:tgz|tar\.gz|tar)\b'
+          - '\bpip3?\s+install\b[^|&;]*\s/(?:tmp|var/tmp|dev/shm)/\S+\.(?:whl|tar\.gz|zip)\b'
   network_read:
     - id: nr.exfil-via-url-params
       name: URL query string contains a secret-shaped string

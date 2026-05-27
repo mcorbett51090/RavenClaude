@@ -32,7 +32,7 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/thing-orchestrator.sh",
             "timeout": 90,
-            "comment": "Command review (the Thing) — T3 panel tribunal. No-ops (fast grep) unless a category has `thing: on` in .ravenclaude/comfort-posture.yaml. When a command's category is toggled on, convenes up to three reviewer seats in parallel (Forseti/Mímir/Heimdall) + Thor on a split, renders ALLOW/DENY/EDIT, writes a Sága-log audit entry, emits hookSpecificOutput (with updatedInput on EDIT). The internal panel deadline (~75s) stays under this 90s hook timeout so the script emits its own verdict before the platform's fail-OPEN-on-timeout fires. Fails closed (deny for high-stakes categories, ask for shell_readonly) on its own errors. Live for shell_readonly, shell_remote_mutate, shell_code_exec."
+            "comment": "Command review (the Thing) — T3 panel tribunal. No-ops (fast grep) unless a category has `thing: on` in .ravenclaude/comfort-posture.yaml. When a command's category is toggled on, convenes up to three reviewer seats in parallel (Forseti/Mímir/Heimdall) + Thor on a split, renders ALLOW/DENY/EDIT, writes a Sága-log audit entry, emits hookSpecificOutput (with updatedInput on EDIT). The internal panel deadline (~75s) stays under this 90s hook timeout so the script emits its own verdict before the platform's fail-OPEN-on-timeout fires. Fails closed (deny for high-stakes categories, ask for shell_readonly) on its own errors. Live for shell_readonly, shell_remote_mutate, shell_code_exec, shell_local_mutate, shell_package_install."
           }
         ]
       },

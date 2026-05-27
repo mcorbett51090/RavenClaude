@@ -93,7 +93,12 @@ def _screen_always(command: str) -> dict:
     off. On any failure to load/evaluate, returns a conservative no-deny (the
     orchestrator's other fail-closed paths still apply) rather than crashing.
     """
-    fallback = {"self_disable_deny": False, "self_disable_concern": None}
+    fallback = {
+        "self_disable_deny": False,
+        "self_disable_concern": None,
+        "hard_rule_deny": False,
+        "hard_rule_concern": None,
+    }
     try:
         spec = importlib.util.spec_from_file_location("_thing_concerns", _CONCERNS)
         if spec is None or spec.loader is None:
@@ -102,7 +107,7 @@ def _screen_always(command: str) -> dict:
         spec.loader.exec_module(mod)  # type: ignore[union-attr]
         catalog = mod._load_catalog()
         res = mod.screen_always(catalog, command)
-        return {k: res[k] for k in fallback}
+        return {k: res.get(k, fallback[k]) for k in fallback}
     except Exception:
         return fallback
 
@@ -128,13 +133,27 @@ def _command_prefixes() -> list[tuple[str, str, bool]]:
     return out
 
 
+# git global options that precede the subcommand. A `git <globals> <subcmd>`
+# must normalize to `git <subcmd>` so a force-push / branch -D hidden behind
+# `--git-dir=`, `-C`, etc. is still classified (and screened) correctly.
+# MUST stay identical to `_GIT_GLOBAL_OPT` in thing-concerns.py — the Gate 21
+# git-global FN corpus (audit-gates.sh) fails if either copy drifts.
+_GIT_GLOBAL_OPT = (
+    r"-[cC]\s+\S+"
+    r"|--(?:git-dir|work-tree|namespace|super-prefix)(?:=\S+|\s+\S+)"
+    r"|--exec-path(?:=\S+)?"
+    r"|--no-pager|--paginate|-p"
+    r"|--bare|--literal-pathspecs|--no-replace-objects|--no-optional-locks|--no-advice"
+)
+
+
 def _normalize_lead(lead: str) -> str:
     """Strip wrappers that would let a command dodge EMISSIONS prefix matching.
 
     Closes the classification holes from the tribunal assessment (§should-fix #8):
     leading env-var assignments (`LS_COLORS=x ls`), `sudo`/`env` prefixes,
     absolute interpreter paths (`/usr/bin/python3` -> `python3`), and `git`
-    global options (`git -c k=v push` -> `git push`). Conservative + idempotent.
+    global options (`git --git-dir=/x push` -> `git push`). Conservative + idempotent.
     """
     prev = None
     while lead and lead != prev:
@@ -148,10 +167,10 @@ def _normalize_lead(lead: str) -> str:
     m = re.match(r"^(\S*/)?(\S+)(.*)$", lead, re.S)
     if m and m.group(1):
         lead = m.group(2) + m.group(3)
-    # git global options: `git -c k=v -C dir push` -> `git push`
+    # git global options: `git --git-dir=/x -C dir push` -> `git push`
     if lead.startswith("git "):
         rest = lead[4:]
-        rest = re.sub(r"^(?:\s*(?:-c\s+\S+|-C\s+\S+|--no-pager|-p|--paginate))+\s*", "", rest)
+        rest = re.sub(r"^(?:\s*(?:" + _GIT_GLOBAL_OPT + r"))+\s*", "", rest)
         lead = "git " + rest.lstrip()
     return lead.strip()
 
@@ -182,6 +201,22 @@ def classify(command: str) -> str | None:
             matched = lead == prefix
         if matched and len(prefix) > best_len:
             best_cat, best_len = category, len(prefix)
+    # Flag-aware tribunal override (routing only — does NOT touch the permission
+    # EMISSIONS table). EMISSIONS lumps every `git branch` form into
+    # shell_readonly, but a FORCE delete (`-D`, or `--delete` together with
+    # `--force`) is a destructive local mutation, not a read. Match `-D`
+    # case-sensitively so `-d` — the safe merged-only delete — is NOT re-routed.
+    # Without this, slm.delete-protected-branch-locally is unreachable: the
+    # command auto-allows as a "read" before its concern can ever fire.
+    if best_cat == "shell_readonly" and re.match(r"git\s+branch\b", lead):
+        # `-D` matched case-sensitively (so safe `-d` is excluded) but allowing
+        # other flag letters around it (`-Dr`, `-rD`, `-vD`); or `--delete` +
+        # `--force` in any order.
+        force_delete = re.search(r"(?:^|\s)-[A-Za-z]*D[A-Za-z]*\b", lead) or (
+            re.search(r"(?:^|\s)--delete\b", lead) and re.search(r"(?:^|\s)--force\b", lead)
+        )
+        if force_delete:
+            best_cat = "shell_local_mutate"
     return best_cat
 
 

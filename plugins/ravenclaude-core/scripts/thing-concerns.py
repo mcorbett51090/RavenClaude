@@ -82,12 +82,57 @@ def _concerns_for(catalog: dict, category: str | None) -> list[dict]:
     return out
 
 
+# git global options that precede the subcommand. MUST stay identical to
+# `_GIT_GLOBAL_OPT` in thing-decision.py — the Gate 21 git-global FN corpus
+# (audit-gates.sh) feeds wrapped force-push / branch -D commands through BOTH
+# the classifier (which uses _normalize_lead) and this matcher, so a drift in
+# either copy turns the gate red.
+_GIT_GLOBAL_OPT = (
+    r"-[cC]\s+\S+"
+    r"|--(?:git-dir|work-tree|namespace|super-prefix)(?:=\S+|\s+\S+)"
+    r"|--exec-path(?:=\S+)?"
+    r"|--no-pager|--paginate|-p"
+    r"|--bare|--literal-pathspecs|--no-replace-objects|--no-optional-locks|--no-advice"
+)
+_GIT_GLOBAL_STRIP_RE = re.compile(r"\bgit\s+(?:(?:" + _GIT_GLOBAL_OPT + r")\s+)+")
+
+
+def _normalize_for_match(command: str) -> str:
+    """Mirror the classifier's `_normalize_lead` (thing-decision.py) so a command
+    is SCREENED the same way it is ROUTED.
+
+    The classifier strips leading wrappers (VAR=, sudo/env/…), basenames a leading
+    path, and removes `git` global options (`git --git-dir=/x push` -> `git push`).
+    Concern triggers, however, run against the raw command and anchor on
+    `git\\s+push` / `git\\s+branch` / `git\\s+reset`. Without this mirror, a
+    `git --git-dir=<dir> push --force` classifies as a remote-mutate yet dodges
+    every force-push trigger — the pre-LLM hard DENY is silently bypassed (same
+    for `git -C <dir> branch -D main`). Matching is unioned with the raw command
+    (below), so normalization can only ADD a match, never remove one.
+    """
+    cmd = command
+    prev = None
+    while cmd and cmd != prev:
+        prev = cmd
+        cmd = re.sub(r"^[A-Za-z_][A-Za-z0-9_]*=\S*\s+", "", cmd)
+        cmd = re.sub(r"^(?:sudo|env|command|nohup|nice|stdbuf)\b(?:\s+-\S+)*\s+", "", cmd)
+        cmd = re.sub(r"^(?:sudo|env)\s+[A-Za-z_][A-Za-z0-9_]*=\S*\s+", "", cmd)
+    m = re.match(r"^(\S*/)?(\S+)(.*)$", cmd, re.S)
+    if m and m.group(1):
+        cmd = m.group(2) + m.group(3)
+    # git global options anywhere in the command (covers a chained `… && git -C …`)
+    cmd = _GIT_GLOBAL_STRIP_RE.sub("git ", cmd)
+    return cmd
+
+
 def _matches(concern: dict, command: str) -> bool:
-    """True if any of the concern's trigger regexes matches the command."""
+    """True if any trigger regex matches the command or its normalized form."""
     triggers = concern.get("triggers") or {}
+    normalized = _normalize_for_match(command)
+    variants = (command, normalized) if normalized != command else (command,)
     for rx in triggers.get("regex", []) or []:
         try:
-            if re.search(rx, command, re.IGNORECASE):
+            if any(re.search(rx, v, re.IGNORECASE) for v in variants):
                 return True
         except re.error:
             # A malformed catalog regex must not crash the gate — skip it.
@@ -233,37 +278,65 @@ def revalidate(
     }
 
 
+_SELF_DISABLE_ID = "xc.tribunal-self-disable"
+
+
 def screen_always(catalog: dict, command: str) -> dict:
-    """Category-independent hard screen (design §B.9.5 — the Thing cannot disable
-    itself).
+    """Category-independent hard screen (design §B.9.3 + §B.9.5).
 
     Concerns flagged `always_screen` are evaluated regardless of which category
-    the command classifies into, or whether that category's toggle is on. This
-    closes the evasion where an attacker crafts a Thing-disabling command that
-    falls in a category whose toggle happens to be off: disabling the Thing
-    affects EVERY category, so the guard cannot be category-gated.
+    the command classifies into, or whether that category's toggle is on — the
+    orchestrator reaches us whenever ANY category is toggled. Two kinds:
+      - SELF-DISABLE (xc.tribunal-self-disable): the Thing cannot disable itself
+        (disabling it affects every category).
+      - HARD-RULE (force-push to a protected branch, curl|sh, inline secret):
+        unarguable catastrophes that must DENY no matter how the command was
+        routed. Marking them always_screen closes the evasion where a wrapped /
+        mis-classified form dodges the hard DENY because its own category isn't
+        the toggled one.
 
-    Only cross-cutting concerns are considered (a category-specific concern is by
-    definition not category-independent). A match denies the command pre-LLM.
+    Scans cross-cutting AND every category's concern list (a hard-rule concern
+    like srm.force-push lives under a category). Matching unions the raw and
+    normalized command. Returns the self-disable verdict (unchanged contract) AND
+    a parallel hard-rule verdict; the orchestrator denies pre-LLM on either.
     """
-    hits: list[str] = []
-    for c in catalog.get("cross_cutting") or []:
-        if not c.get("always_screen"):
-            continue
-        for rx in (c.get("triggers") or {}).get("regex", []) or []:
-            try:
-                matched = bool(re.search(rx, command, re.IGNORECASE))
-            except re.error:
-                # Fail CLOSED: an uncompilable self-protection trigger must never
-                # silently stop protecting (unlike _matches, which skips it for
-                # the soft routing path). Treat it as a match -> deny.
-                matched = True
-            if matched:
-                hits.append(c["id"])
-                break
+    normalized = _normalize_for_match(command)
+    variants = (command, normalized) if normalized != command else (command,)
+    pools: list[list] = [catalog.get("cross_cutting") or []]
+    for cat_concerns in (catalog.get("categories") or {}).values():
+        if isinstance(cat_concerns, list):
+            pools.append(cat_concerns)
+
+    self_hit: str | None = None
+    hard_hit: str | None = None
+    for pool in pools:
+        for c in pool:
+            if not c.get("always_screen"):
+                continue
+            matched = False
+            for rx in (c.get("triggers") or {}).get("regex", []) or []:
+                try:
+                    if any(re.search(rx, v, re.IGNORECASE) for v in variants):
+                        matched = True
+                        break
+                except re.error:
+                    # Fail CLOSED: an uncompilable always-screen trigger must never
+                    # silently stop protecting (unlike _matches, which skips it for
+                    # the soft routing path). Treat it as a match -> deny.
+                    matched = True
+                    break
+            if not matched:
+                continue
+            if c["id"] == _SELF_DISABLE_ID:
+                self_hit = self_hit or c["id"]
+            else:
+                hard_hit = hard_hit or c["id"]
+
     return {
-        "self_disable_deny": bool(hits),
-        "self_disable_concern": hits[0] if hits else None,
+        "self_disable_deny": self_hit is not None,
+        "self_disable_concern": self_hit,
+        "hard_rule_deny": hard_hit is not None,
+        "hard_rule_concern": hard_hit,
     }
 
 
