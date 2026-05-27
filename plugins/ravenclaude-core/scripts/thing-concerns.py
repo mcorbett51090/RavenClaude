@@ -82,16 +82,31 @@ def _concerns_for(catalog: dict, category: str | None) -> list[dict]:
     return out
 
 
+# git global options that precede the subcommand. MUST stay identical to
+# `_GIT_GLOBAL_OPT` in thing-decision.py — the Gate 21 git-global FN corpus
+# (audit-gates.sh) feeds wrapped force-push / branch -D commands through BOTH
+# the classifier (which uses _normalize_lead) and this matcher, so a drift in
+# either copy turns the gate red.
+_GIT_GLOBAL_OPT = (
+    r"-[cC]\s+\S+"
+    r"|--(?:git-dir|work-tree|namespace|super-prefix)(?:=\S+|\s+\S+)"
+    r"|--exec-path(?:=\S+)?"
+    r"|--no-pager|--paginate|-p"
+    r"|--bare|--literal-pathspecs|--no-replace-objects|--no-optional-locks|--no-advice"
+)
+_GIT_GLOBAL_STRIP_RE = re.compile(r"\bgit\s+(?:(?:" + _GIT_GLOBAL_OPT + r")\s+)+")
+
+
 def _normalize_for_match(command: str) -> str:
     """Mirror the classifier's `_normalize_lead` (thing-decision.py) so a command
     is SCREENED the same way it is ROUTED.
 
     The classifier strips leading wrappers (VAR=, sudo/env/…), basenames a leading
-    path, and removes `git` global options (`git -C dir push` -> `git push`).
+    path, and removes `git` global options (`git --git-dir=/x push` -> `git push`).
     Concern triggers, however, run against the raw command and anchor on
     `git\\s+push` / `git\\s+branch` / `git\\s+reset`. Without this mirror, a
-    `git -C <dir> push --force` classifies as a remote-mutate yet dodges every
-    force-push trigger — the pre-LLM hard DENY is silently bypassed (and the same
+    `git --git-dir=<dir> push --force` classifies as a remote-mutate yet dodges
+    every force-push trigger — the pre-LLM hard DENY is silently bypassed (same
     for `git -C <dir> branch -D main`). Matching is unioned with the raw command
     (below), so normalization can only ADD a match, never remove one.
     """
@@ -106,7 +121,7 @@ def _normalize_for_match(command: str) -> str:
     if m and m.group(1):
         cmd = m.group(2) + m.group(3)
     # git global options anywhere in the command (covers a chained `… && git -C …`)
-    cmd = re.sub(r"\bgit\s+(?:(?:-c\s+\S+|-C\s+\S+|--no-pager|-p|--paginate)\s+)+", "git ", cmd)
+    cmd = _GIT_GLOBAL_STRIP_RE.sub("git ", cmd)
     return cmd
 
 

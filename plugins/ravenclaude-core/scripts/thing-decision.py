@@ -128,13 +128,27 @@ def _command_prefixes() -> list[tuple[str, str, bool]]:
     return out
 
 
+# git global options that precede the subcommand. A `git <globals> <subcmd>`
+# must normalize to `git <subcmd>` so a force-push / branch -D hidden behind
+# `--git-dir=`, `-C`, etc. is still classified (and screened) correctly.
+# MUST stay identical to `_GIT_GLOBAL_OPT` in thing-concerns.py — the Gate 21
+# git-global FN corpus (audit-gates.sh) fails if either copy drifts.
+_GIT_GLOBAL_OPT = (
+    r"-[cC]\s+\S+"
+    r"|--(?:git-dir|work-tree|namespace|super-prefix)(?:=\S+|\s+\S+)"
+    r"|--exec-path(?:=\S+)?"
+    r"|--no-pager|--paginate|-p"
+    r"|--bare|--literal-pathspecs|--no-replace-objects|--no-optional-locks|--no-advice"
+)
+
+
 def _normalize_lead(lead: str) -> str:
     """Strip wrappers that would let a command dodge EMISSIONS prefix matching.
 
     Closes the classification holes from the tribunal assessment (§should-fix #8):
     leading env-var assignments (`LS_COLORS=x ls`), `sudo`/`env` prefixes,
     absolute interpreter paths (`/usr/bin/python3` -> `python3`), and `git`
-    global options (`git -c k=v push` -> `git push`). Conservative + idempotent.
+    global options (`git --git-dir=/x push` -> `git push`). Conservative + idempotent.
     """
     prev = None
     while lead and lead != prev:
@@ -148,10 +162,10 @@ def _normalize_lead(lead: str) -> str:
     m = re.match(r"^(\S*/)?(\S+)(.*)$", lead, re.S)
     if m and m.group(1):
         lead = m.group(2) + m.group(3)
-    # git global options: `git -c k=v -C dir push` -> `git push`
+    # git global options: `git --git-dir=/x -C dir push` -> `git push`
     if lead.startswith("git "):
         rest = lead[4:]
-        rest = re.sub(r"^(?:\s*(?:-c\s+\S+|-C\s+\S+|--no-pager|-p|--paginate))+\s*", "", rest)
+        rest = re.sub(r"^(?:\s*(?:" + _GIT_GLOBAL_OPT + r"))+\s*", "", rest)
         lead = "git " + rest.lstrip()
     return lead.strip()
 

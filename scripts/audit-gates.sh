@@ -720,6 +720,16 @@ s=importlib.util.spec_from_file_location('d','$DEC');m=importlib.util.module_fro
 print(m.classify(sys.argv[1]) or 'None')" "$1"
 }
 _fires_in_prod() { [ "$(_classify "$1")" = "$2" ] && _has_concern "$1" "$2" "$3"; }
+# Anti-drift: the git-global strip list is duplicated in the classifier
+# (_normalize_lead) and the concern matcher (_normalize_for_match). They MUST be
+# byte-identical or a command can route one way and screen another (the round-4
+# bug class). Assert string equality of the two _GIT_GLOBAL_OPT constants.
+rc=0; python3 -c "import importlib.util,sys
+def L(p,n):
+ s=importlib.util.spec_from_file_location(n,p);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
+d=L('$DEC','d');t=L('$TC','t')
+sys.exit(0 if d._GIT_GLOBAL_OPT==t._GIT_GLOBAL_OPT else 1)" || rc=1
+gate "git-global strip list identical in classifier + matcher" must_pass "$rc"
 # Routing guards — a destructive form must reach its MUTATE category; the safe
 # lowercase / plain / path forms must route as expected:
 for spec in \
@@ -748,6 +758,10 @@ for spec in \
   "git -C /p branch -D main|shell_local_mutate|slm.delete-protected-branch-locally" \
   "git -C /p reset --hard HEAD~3|shell_local_mutate|slm.git-reset-hard-uncommitted" \
   "git -C /p push --force origin main|shell_remote_mutate|srm.force-push" \
+  "git --git-dir=/x/.git push --force origin main|shell_remote_mutate|srm.force-push" \
+  "git --git-dir /x/.git push --force origin main|shell_remote_mutate|srm.force-push" \
+  "git --work-tree=/x push --force|shell_remote_mutate|srm.force-push" \
+  "git --git-dir=/x/.git branch -D main|shell_local_mutate|slm.delete-protected-branch-locally" \
   "git branch master -D|shell_local_mutate|slm.delete-protected-branch-locally" \
   "chmod -R 777 .|shell_local_mutate|slm.chmod-broad" \
   "chmod -R 0777 .|shell_local_mutate|slm.chmod-broad" \
