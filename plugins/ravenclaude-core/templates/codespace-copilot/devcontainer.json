@@ -1,0 +1,9 @@
+{
+  "name": "RavenClaude + Copilot",
+  "image": "mcr.microsoft.com/devcontainers/universal:2-linux",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "postCreateCommand": "bash .devcontainer/ravenclaude-post-create.sh",
+  "remoteUser": "codespace"
+}

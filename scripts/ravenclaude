@@ -13,12 +13,16 @@
 #   * MCP servers are written to ~/.copilot/mcp-config.json
 #
 # Subcommands:
+#   ravenclaude setup [--project DIR]     one-shot: install + seed & apply a balanced
+#                                         comfort-posture + add an `rc` launch alias
 #   ravenclaude install [--project DIR]   one-time wiring into a project (default: $PWD)
 #   ravenclaude update                    git pull the marketplace + regenerate the Copilot package
 #   ravenclaude status [--project DIR]    show what is wired
+#   ravenclaude init-codespace [--project DIR]
+#                                         stamp the Codespace auto-setup .devcontainer/ into a repo
 #
-# Re-running install is safe (idempotent). After `update`, run `/skills reload` in
-# your Copilot session (or relaunch) to pick up changes — no re-install ever.
+# Re-running any subcommand is safe (idempotent). After `update`, run `/skills reload`
+# in your Copilot session (or relaunch) to pick up changes — no re-install ever.
 
 set -euo pipefail
 
@@ -32,6 +36,19 @@ GEN="$MARKET/scripts/generate-copilot-plugin.py"
 note() { printf '  %s\n' "$*"; }
 ok()   { printf '\033[32m✓\033[0m %s\n' "$*"; }
 warn() { printf '\033[33m!\033[0m %s\n' "$*" >&2; }
+
+# Append the one-word `rc` launch alias (update + launch Copilot live) to ~/.bashrc.
+# Idempotent: skips if a matching alias line is already present.
+add_rc_alias() {
+  local bashrc="$HOME/.bashrc"
+  local line="alias rc='$MARKET/scripts/ravenclaude update && copilot --plugin-dir $COPILOT_PKG'"
+  if [ -f "$bashrc" ] && grep -qF 'scripts/ravenclaude update && copilot --plugin-dir' "$bashrc"; then
+    note "rc alias already in ~/.bashrc"
+  else
+    printf '\n# RavenClaude — launch Copilot with the live plugin (added by ravenclaude setup)\n%s\n' "$line" >> "$bashrc"
+    ok "added 'rc' alias to ~/.bashrc (run: source ~/.bashrc, then 'rc')"
+  fi
+}
 
 regen() {
   if [ -f "$GEN" ] && command -v python3 >/dev/null 2>&1; then
@@ -136,10 +153,13 @@ PY
   fi
 
   # 4. The launch alias — one command that updates then launches Copilot live.
-  printf '\nAdd this to your shell rc (~/.bashrc / ~/.zshrc) for one-command use:\n\n'
-  printf "  alias rc='%s/scripts/ravenclaude update && copilot --plugin-dir %s'\n\n" "$MARKET" "$COPILOT_PKG"
-  ok "install complete. Launch with:  copilot --plugin-dir $COPILOT_PKG"
-  note "Updates from now on: just run 'ravenclaude update' (or 'rc'). No re-install, ever."
+  #    Suppressed when invoked by `setup`, which writes the alias to ~/.bashrc itself.
+  if [ -z "${RC_FROM_SETUP:-}" ]; then
+    printf '\nAdd this to your shell rc (~/.bashrc / ~/.zshrc) for one-command use:\n\n'
+    printf "  alias rc='%s/scripts/ravenclaude update && copilot --plugin-dir %s'\n\n" "$MARKET" "$COPILOT_PKG"
+    ok "install complete. Launch with:  copilot --plugin-dir $COPILOT_PKG"
+    note "Updates from now on: just run 'ravenclaude update' (or 'rc'). No re-install, ever."
+  fi
 }
 
 cmd_status() {
@@ -158,9 +178,79 @@ cmd_status() {
   [ -d "$COPILOT_PKG" ] && note "package: $COPILOT_PKG" || note "package: MISSING — run 'ravenclaude update' to generate it"
 }
 
+cmd_setup() {
+  local project="$PWD"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --project) project="$2"; shift 2 ;;
+      *) project="$1"; shift ;;
+    esac
+  done
+  project="$(cd "$project" && pwd)"
+  printf '== ravenclaude setup -> %s ==\n' "$project"
+
+  # 1. Wire skills + hooks + MCP (RC_FROM_SETUP suppresses install's alias hint).
+  export RC_FROM_SETUP=1
+  cmd_install --project "$project"
+  unset RC_FROM_SETUP
+
+  # 2. Seed a balanced comfort-posture if the repo doesn't already have one.
+  local posture="$project/.ravenclaude/comfort-posture.yaml"
+  local seed="$CORE/templates/comfort-posture-balanced.yaml"
+  if [ -f "$posture" ]; then
+    note "comfort-posture.yaml already present — left as-is"
+  elif [ -f "$seed" ]; then
+    mkdir -p "$project/.ravenclaude"
+    cp "$seed" "$posture"
+    ok "seeded .ravenclaude/comfort-posture.yaml (balanced default)"
+  else
+    warn "balanced posture template missing ($seed) — skipped posture seed"
+  fi
+
+  # 3. Apply the posture to .claude/settings.json (best-effort).
+  local apply="$CORE/scripts/apply-comfort-posture.py"
+  if [ -f "$posture" ] && [ -f "$apply" ] && command -v python3 >/dev/null 2>&1; then
+    python3 "$apply" --project-root "$project" >/dev/null 2>&1 \
+      && ok "applied comfort-posture -> .claude/settings.json" \
+      || warn "could not apply comfort-posture (open the dashboard or run /set-posture later)"
+  fi
+
+  # 4. The one-word launch alias.
+  add_rc_alias
+
+  ok "setup complete. Launch with:  rc    (or: copilot --plugin-dir $COPILOT_PKG)"
+}
+
+cmd_init_codespace() {
+  local project="$PWD"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --project) project="$2"; shift 2 ;;
+      *) project="$1"; shift ;;
+    esac
+  done
+  project="$(cd "$project" && pwd)"
+  printf '== ravenclaude init-codespace -> %s ==\n' "$project"
+  local tpl="$CORE/templates/codespace-copilot"
+  [ -d "$tpl" ] || { warn "template missing: $tpl"; return 1; }
+  mkdir -p "$project/.devcontainer"
+  if [ -f "$project/.devcontainer/devcontainer.json" ]; then
+    warn ".devcontainer/devcontainer.json exists — NOT overwritten. Merge the postCreateCommand from $tpl/devcontainer.json by hand."
+  else
+    cp "$tpl/devcontainer.json" "$project/.devcontainer/devcontainer.json"
+    ok "wrote .devcontainer/devcontainer.json"
+  fi
+  cp "$tpl/ravenclaude-post-create.sh" "$project/.devcontainer/ravenclaude-post-create.sh"
+  chmod +x "$project/.devcontainer/ravenclaude-post-create.sh"
+  ok "wrote .devcontainer/ravenclaude-post-create.sh"
+  note "Commit .devcontainer/ and (re)build the Codespace — setup then runs automatically."
+}
+
 case "${1:-}" in
-  install) shift; cmd_install "$@" ;;
-  update)  cmd_update ;;
-  status)  shift; cmd_status "$@" ;;
-  *) printf 'usage: ravenclaude {install [--project DIR]|update|status [--project DIR]}\n'; exit 2 ;;
+  setup)          shift; cmd_setup "$@" ;;
+  install)        shift; cmd_install "$@" ;;
+  update)         cmd_update ;;
+  status)         shift; cmd_status "$@" ;;
+  init-codespace) shift; cmd_init_codespace "$@" ;;
+  *) printf 'usage: ravenclaude {setup|install|update|status|init-codespace} [--project DIR]\n'; exit 2 ;;
 esac

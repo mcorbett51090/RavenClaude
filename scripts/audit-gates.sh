@@ -1343,6 +1343,27 @@ rc=0; [ "$(tb_dec "$G25" mcp__github__create_issue "$(jq -cn '{}')" allow)" != "
 gate "mcp(e2e): allowlisted write is panel-decided (mock allow -> not denied)" must_pass "$rc"
 
 echo
+echo "── Gate 26: Codespace auto-setup (balanced comfort-posture seed validity) ─"
+G26APPLY="plugins/ravenclaude-core/scripts/apply-comfort-posture.py"
+G26SEED="plugins/ravenclaude-core/templates/comfort-posture-balanced.yaml"
+# pass-on-good: the shipped balanced seed applies cleanly...
+G26="$TMP/g26"; mkdir -p "$G26/.ravenclaude"
+cp "$G26SEED" "$G26/.ravenclaude/comfort-posture.yaml"
+rc=0; python3 "$G26APPLY" --project-root "$G26" >/dev/null 2>&1 || rc=$?
+gate "autosetup: balanced seed applies" must_pass "$rc"
+# ...emits allow rules into the project settings...
+rc=0; [ "$(jq '.permissions.allow | length' "$G26/.claude/settings.json" 2>/dev/null || echo 0)" -gt 0 ] || rc=1
+gate "autosetup: balanced seed emits allow rules" must_pass "$rc"
+# ...and carries the security floor into deny.
+rc=0; jq -e '.permissions.deny | index("Bash(rm -rf:*)")' "$G26/.claude/settings.json" >/dev/null 2>&1 || rc=1
+gate "autosetup: balanced seed carries security floor" must_pass "$rc"
+# fail-on-bad: a corrupted seed (invalid level) must be REJECTED, not silently applied.
+G26B="$TMP/g26bad"; mkdir -p "$G26B/.ravenclaude"
+sed 's/project: allow/project: boguslevel/' "$G26SEED" > "$G26B/.ravenclaude/comfort-posture.yaml"
+rc=0; python3 "$G26APPLY" --project-root "$G26B" >/dev/null 2>&1 || rc=$?
+gate "autosetup: corrupted seed (bad level) rejected" must_fail "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 if [[ "$FAIL" -gt 0 ]]; then
