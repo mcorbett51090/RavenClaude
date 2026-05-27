@@ -315,6 +315,16 @@ categories:
       resolution: >-
         EDIT to absolute project-relative path. ALLOW if canonicalized path
         stays inside project. DENY if it escapes.
+  # file_edit_project went LIVE in v0.38.0 (Track B Phase 1), ALLOW/DENY-ONLY:
+  # a seat `edit` verdict on a file shape is coerced to DENY by the engine
+  # (§EDIT-coercion). The `resolution:` text below documents the ideal fix the
+  # USER should make; it is NOT an automated rewrite. Triggers run against the
+  # shape's reviewed text — `"<file_path>\n<content>"` (thing-decision.reviewed_text)
+  # — so a `\A[^\n]*…` regex anchors on the PATH (line 1) and a `(?m)^…` regex
+  # anchors on the CONTENT. Triggers are panel-routed (NOT pre_llm_deny): a match
+  # convenes the seat with the concern cited; the seat decides ALLOW/DENY. Concerns
+  # whose detection needs live state (diff size, the layout allow-list) or whose
+  # regex would over-block (literal-secret vs env-ref in content) are judgment_only.
   file_edit_project:
     - id: fe.dot-claude-write
       name: Write into `.claude/` config files
@@ -324,8 +334,15 @@ categories:
         change the agent's own operating posture (cf. the Cursor settings-
         injection CVE GHSA-ff64-7w26-62rf).
       resolution: >-
-        EDIT to a sanity-checked subset (no new hooks; no SessionStart
-        injection). DENY for changes that add or modify hook entries.
+        DENY for changes that add or modify hook entries or SessionStart
+        injection. ALLOW only for a sanity-checked subset that does neither.
+      # Path-anchored (line 1 of the reviewed text). The sensitive leaves only —
+      # a write elsewhere under the project does not fire this. The marketplace's
+      # OWN .claude/ + the plugin substrate are separately covered category-
+      # independently by xc.tribunal-self-disable / screen_substrate_path.
+      triggers:
+        regex:
+          - '\A[^\n]*\.claude/(?:settings(?:\.local)?\.json|hooks/|agents/)'
     - id: fe.ravenclaude-dir-write
       name: Write into `.ravenclaude/` config files
       severity: high
@@ -336,14 +353,30 @@ categories:
         DENY for environment-context.md / comfort-posture.yaml unless the user
         invoked an authoring command (/set-posture, /init-environment). ALLOW
         for .ravenclaude/runs/<id>/ artifact writes.
+      # Path-anchored to the config files ONLY — `.ravenclaude/runs/<id>/` artifact
+      # writes deliberately do NOT match (the resolution allows them). A
+      # comfort-posture.yaml write that toggles `thing: off` is ALSO caught
+      # category-independently by xc.tribunal-self-disable.
+      triggers:
+        regex:
+          - '\A[^\n]*\.ravenclaude/(?:environment-context\.md|comfort-posture\.yaml|thing\.yaml)'
     - id: fe.committed-secrets-introduction
       name: Edit would introduce a secret-shaped string into a tracked file
       severity: critical
+      # judgment_only: a content secret-regex over arbitrary file bodies is
+      # presence-of-substring and over-blocks (it would FP on env-var refs,
+      # comments, and test fixtures). The seat judges literal-secret vs env-ref;
+      # the deterministic backstop is the egress scan in thing-seat.sh, which
+      # denies locally if a real secret reaches a seat.
+      judgment_only: true
       description: New content matches xc.secret-in-command patterns; risk of being committed and pushed.
-      resolution: EDIT to use .env / env-var reference. DENY if the new content is the literal secret.
+      resolution: DENY if the new content is a literal secret; ALLOW only when it is a .env / env-var reference.
     - id: fe.large-rewrite
       name: Edit rewrites > 500 lines or > 50% of a file
       severity: medium
+      # judgment_only: "> 500 lines / > 50% / > 80% of a > 2000-line file" is diff
+      # arithmetic against the existing file, not a regex over the payload.
+      judgment_only: true
       description: A bulk rewrite is hard to review and rarely the smallest change that works.
       resolution: >-
         ALLOW with a banner suggesting smaller diffs; DENY if the file is > 2000
@@ -355,19 +388,42 @@ categories:
         Path matches node_modules/, vendor/, dist/, build/, *.lock.json,
         *.min.js, *.bundle.js, or @generated markers. The source should be
         edited instead.
-      resolution: EDIT to redirect to the upstream source. DENY for lock-file direct edits.
+      resolution: >-
+        DENY for lock-file / vendored direct edits; ALLOW only when the edit
+        cannot be redirected to the upstream source.
+      # First two regexes path-anchor (line 1); the third matches the @generated
+      # marker anywhere in the content. Segment-anchored so `myvendor/` etc. do
+      # not false-positive.
+      triggers:
+        regex:
+          - '\A(?:[^\n]*/)?(?:node_modules|vendor|dist|build)/'
+          - '\A[^\n]*(?:\.lock\.json|\.min\.js|\.bundle\.js)(?=\n|$)'
+          - '(?m)^[^\n]*@generated\b'
     - id: fe.layout-violation
       name: Path violates `.repo-layout.json` allow-list
       severity: medium
+      # judgment_only: deciding "violates the allow-list" requires loading the
+      # project's .repo-layout.json and glob-matching — live state, not a static
+      # regex. Already enforced deterministically by hooks/enforce-layout.sh; the
+      # seat adds a smarter "suggest the correct directory" verdict.
+      judgment_only: true
       description: >-
         Already caught by enforce-layout.sh, but the tribunal can render a
         smarter verdict (suggest the correct directory).
-      resolution: EDIT to a path that matches the allow-list. DENY if no allow-list match exists.
+      resolution: DENY if no allow-list match exists; ALLOW only for a path that matches the allow-list.
     - id: fe.merge-conflict-marker
       name: Edit would introduce or leave merge-conflict markers
       severity: high
       description: New content contains conflict markers (<<<<<<<, =======, >>>>>>>).
       resolution: DENY; surface a "resolve the conflict first" banner.
+      # Content-anchored (any line). The angle-bracket markers are unambiguous;
+      # the `=======` divider alone is intentionally NOT matched (it false-positives
+      # on rule lines / setext headings) — a real conflict always carries the
+      # angle markers too.
+      triggers:
+        regex:
+          - '(?m)^<{7}(?:\s|$)'
+          - '(?m)^>{7}(?:\s|$)'
   file_read_global:
     - id: frg.ssh-or-cloud-credentials
       name: Path points at ~/.ssh, ~/.aws, ~/.gnupg, ~/.kube, ~/.docker/config.json

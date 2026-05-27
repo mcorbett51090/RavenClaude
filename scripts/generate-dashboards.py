@@ -497,11 +497,13 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
 def _render_thing_preview() -> str:
     """Render the 'Command review (the Thing)' panel.
 
-    Live for five categories — shell_readonly, shell_remote_mutate,
-    shell_code_exec, shell_local_mutate, shell_package_install — with the full
-    panel (three seats + a tie-breaker) and the EDIT verdict. The copy stays
-    honest about cost and about which categories are clickable vs. still
-    disabled previews.
+    Live for six categories — the five shell categories (shell_readonly,
+    shell_remote_mutate, shell_code_exec, shell_local_mutate,
+    shell_package_install) with the full panel (three seats + a tie-breaker) and
+    the EDIT verdict, plus file_edit_project (the Write/Edit/MultiEdit tool
+    shape, v0.38.0 / Track B Phase 1) which is ALLOW/DENY-only — a seat EDIT is
+    coerced to DENY. The copy stays honest about cost and about which categories
+    are clickable vs. still disabled previews.
     """
     return (
         '<div class="thing-preview">'
@@ -517,10 +519,14 @@ def _render_thing_preview() -> str:
         "safe one (the rewrite is re-validated against the concern catalog before it runs). You are "
         "only interrupted if they can&rsquo;t decide, and every verdict is logged. It can only ever "
         "resolve the <em>ask</em> cases &mdash; it never relaxes the Danger Zone floor.</p>"
-        '<p class="thing-preview-note"><strong>Live for five categories &mdash; '
+        '<p class="thing-preview-note"><strong>Live for six categories &mdash; '
         "<code>shell_readonly</code>, <code>shell_remote_mutate</code>, "
-        "<code>shell_code_exec</code>, <code>shell_local_mutate</code>, and "
-        "<code>shell_package_install</code>.</strong> Their toggles below are clickable; the rest stay "
+        "<code>shell_code_exec</code>, <code>shell_local_mutate</code>, "
+        "<code>shell_package_install</code>, and <code>file_edit_project</code>.</strong> "
+        "The first five review shell commands (allow / edit / deny); "
+        "<code>file_edit_project</code> reviews <code>Write</code>/<code>Edit</code>/"
+        "<code>MultiEdit</code> tool calls and is <strong>allow / deny only</strong> (a seat "
+        "rewrite is coerced to deny). Their toggles below are clickable; the rest stay "
         "disabled previews. The panel runs its seats in parallel, so a typical verdict lands in "
         "<strong>seconds &mdash; but it spends credits on every reviewed command</strong>, so treat "
         "it as a high-stakes guard, not a daily setting &mdash; off by default. Tune the seat models "
@@ -978,6 +984,8 @@ THING_LIVE_CATEGORIES = {
     "shell_code_exec",
     "shell_local_mutate",
     "shell_package_install",
+    # Track B Phase 1 (v0.38.0) — first non-shell shape. ALLOW/DENY-only.
+    "file_edit_project",
 }
 
 
