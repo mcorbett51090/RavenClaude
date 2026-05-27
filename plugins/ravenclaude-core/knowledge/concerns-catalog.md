@@ -545,15 +545,24 @@ categories:
         regex:
           - 'git\s+push\b.*\b(origin\s+)?(main|master)(\s|$)'
     - id: srm.force-push
-      name: git push --force / -f (without --force-with-lease)
+      name: git push --force / -f / +<refspec> (without --force-with-lease)
       severity: critical
       pre_llm_deny: true
       always_screen: true
-      description: Caught by security_deny. The tribunal must continue to deny; never relax.
+      description: >-
+        Caught by security_deny. The tribunal must continue to deny; never relax.
+        Includes the `+<refspec>` force form (`git push origin +main`), which
+        force-updates the named ref exactly like `--force`.
       resolution: DENY. (Reaffirms the baseline.)
       triggers:
+        # `--force` (but not `--force-with-lease`) or short `-f`. The second regex
+        # catches a `+`-prefixed refspec (`git push origin +main`,
+        # `git push origin +HEAD:main`) — the leading `+` force-updates that ref.
+        # It is scoped to the push segment ([^|&;]) so a ` +token` in a LATER
+        # chained command (`git push origin main && echo "+1"`) does not match.
         regex:
           - 'git\s+push\b.*(--force(?!-with-lease)\b|\s-f\b)'
+          - 'git\s+push\b[^|&;]*\s\+\S'
     - id: srm.pr-merge-without-checks
       name: gh pr merge on a PR whose CI is not passing
       severity: high
