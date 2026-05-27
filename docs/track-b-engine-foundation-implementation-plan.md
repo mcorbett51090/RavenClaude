@@ -1,7 +1,8 @@
 # Track B — Engine Foundation (Phase 0) — Implementation Plan
 
-> **Status:** plan, **v2 (gap-analysis-refined, 7.5/10 → addressing P0/P1)**, pending
-> owner confirmation of the open decisions below. This is the FIRST Track B PR. It
+> **Status:** plan, **v3 — gap-analysis-refined (7.5/10 P0/P1 addressed) + owner
+> decisions locked (2026-05-27). Ready to implement on the owner's go-ahead.** This
+> is the FIRST Track B PR (ships as ONE PR). It
 > builds the shared, payload-shaped machinery every non-Bash tool shape needs —
 > fixture-gated, with **zero Bash regression**. **Nothing goes live**
 > (`THING_LIVE_CATEGORIES` untouched). Phase 1 (`file_edit_project`,
@@ -64,12 +65,11 @@ the read/matcher are unaligned. Commits 6–7 finalize serialization + gates.
   `_global` by canonicalized path; Read → `file_read_*`; WebFetch/WebSearch →
   `network_read`; `mcp__server__verb` → `mcp_tools`, **read vs write by the fixed
   read-verb prefix set `get_ list_ read_ search_ describe_ fetch_`** (everything
-  else → write/escalated, per locked decision 4). _[Open #4 — recommended A: ship
-  the verb set now so `CLASSIFY_PAYLOAD_VERSION` stays stable across phases; the
-  `mcp.allowed_servers` allowlist + the 5 `mcp_tools` concern triggers remain
-  Phase 4.]_
+  else → write/escalated). _[Decision 4, LOCKED: ship the verb set now so
+  `CLASSIFY_PAYLOAD_VERSION` stays stable across phases; the `mcp.allowed_servers`
+  allowlist + the 5 `mcp_tools` concern triggers remain Phase 4.]_
 - `main`: add a `classify-payload` subcommand that reads the tool-call JSON
-  **from stdin** (`{tool_name, tool_input}`) — _[Open #3 — recommended stdin: a
+  **from stdin** (`{tool_name, tool_input}`) — _[Decision 3, LOCKED: stdin, because a
   1 MiB `Write.content` on argv risks `ARG_MAX`]_. Keep `classify <cmd>` (argv) for
   the Bash path / back-compat.
 - **Gate 24**: every supported tool name → non-None category; an unknown tool → None.
@@ -100,9 +100,9 @@ the read/matcher are unaligned. Commits 6–7 finalize serialization + gates.
 - **Introduce BOTH caps in `_decoded_payload_concerns`** (gap P0-1 — neither exists
   today): a **200-candidate-run cap** AND a **`DECODE_MAX_BYTES = 256 KiB`**
   total-decoded-output budget across the pass incl. the depth-1 recursion — kills
-  the quadratic base64 path inside the 1 MiB budget. _[Open #2 — recommended:
-  accept the design's `SCREEN_MAX_BYTES`=1 MiB / `SEAT_MAX_BYTES`=64 KiB /
-  `DECODE_MAX_BYTES`=256 KiB defaults; they're flagged tunable and revisitable.]_
+  the quadratic base64 path inside the 1 MiB budget. _[Decision 2, LOCKED: the
+  design defaults `SCREEN_MAX_BYTES`=1 MiB / `SEAT_MAX_BYTES`=64 KiB /
+  `DECODE_MAX_BYTES`=256 KiB; tunable later.]_
 - **Gates**: secret/injection/`curl|sh` inside `Write.content` screened; >1 MiB
   payload → deny; a 1 MiB single base64 blob stops at `DECODE_MAX_BYTES`.
 
@@ -185,22 +185,16 @@ to EMISSIONS `network_read`) → Phase 4 MCP (verb-based + `mcp.allowed_servers`
 allowlist; author the 5 `mcp_tools` concern triggers first). Each later phase that
 widens behavior carries its own migration note.
 
-## Open decisions (recommendations marked; pending owner confirmation)
+## Resolved decisions (owner-confirmed 2026-05-27)
 
-1. **Phase 0 as one PR vs split at C4/C5.** _Recommend ONE PR_ — the Bash-regression
-   proof (Gate 14/15 parity) lands in a single `audit-gates.sh` run, and a split
-   risks an intermediate where the matcher is widened (C5) before gates land (C7).
-2. **Cap values.** _Recommend the design defaults_ (`SCREEN_MAX_BYTES`=1 MiB,
-   `SEAT_MAX_BYTES`=64 KiB, `DECODE_MAX_BYTES`=256 KiB) — documented + tunable later;
-   no live traffic in Phase 0 to tune against.
-3. **`classify-payload` input transport.** _Recommend stdin_ — argv breaks on a
-   1 MiB `Write.content` (`ARG_MAX`); stdin is the only safe path for large content.
-4. **MCP verb classification in Phase 0 vs Phase 4.** _Recommend A (verb set now)_ —
-   ship the read-verb prefix set in Commit 1 so `CLASSIFY_PAYLOAD_VERSION` is stable
-   across phases (no cache-invalidating re-bump when verbs land); allowlist +
+1. **Ship as ONE PR.** The Bash-regression proof (Gate 14/15 parity) lands in a
+   single `audit-gates.sh` run; the atomic multi-shape switch stays with its gates.
+2. **Design-default caps** — `SCREEN_MAX_BYTES`=1 MiB, `SEAT_MAX_BYTES`=64 KiB,
+   `DECODE_MAX_BYTES`=256 KiB; tunable later.
+3. **stdin** for `classify-payload` input (argv would break on a 1 MiB
+   `Write.content` via `ARG_MAX`).
+4. **MCP read-verb prefix set ships in Commit 1** so `CLASSIFY_PAYLOAD_VERSION` is
+   stable across phases; `mcp.allowed_servers` allowlist + the 5 `mcp_tools` concern
    triggers stay Phase 4.
-5. **Collapse the triplicated live-list now?** _Recommend DEFER_ — no new shape in
-   Phase 0 needs it; collapsing is scope-creep. Track as a follow-up.
-6. **EDIT-coercion in Phase 0?** _Recommend KEEP_ — the seam is Bash-only-reachable
-   today (dead until a non-Bash seat exists), but it's cheap and the design wants it
-   gated as a prerequisite; future-proofs Phase 1.
+5. **Defer** the triplicated-live-list collapse (no Phase-0 need; tracked follow-up).
+6. **Keep** the EDIT-coercion seam + gate (cheap; future-proofs Phase 1).
