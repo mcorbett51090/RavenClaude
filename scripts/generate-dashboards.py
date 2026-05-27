@@ -667,8 +667,35 @@ def _render_command_review_panel() -> str:
         '<input type="number" id="cr-threshold" min="0" max="1" step="0.05" value="0.5">'
         '<span class="crp-hint">A seat that votes below this convenes Thor.</span>'
         "</label>"
+        + _render_mcp_allowlist()
         + _render_tier_panel()
         + "</div>"
+    )
+
+
+def _render_mcp_allowlist() -> str:
+    """Render the MCP server allowlist input (§MCP identity, v0.41.0).
+
+    A free-text field of trusted MCP server names (the `<server>` in
+    `mcp__<server>__<verb>`). When non-empty, the JS serializes
+    `command_review.mcp.allowed_servers: [...]`, which the tribunal reads: a WRITE
+    verb from a server NOT on the list is denied pre-LLM. Opt-in — empty means the
+    server-identity concerns stay seat-judged (nothing newly blocked). Only takes
+    effect while the `mcp_tools` category's review toggle is on.
+    """
+    return (
+        '<label class="crp-mcp-allow" for="cr-mcp-allow">'
+        '<span class="crp-mcp-allow-label">Trusted MCP servers '
+        '<span class="crp-mcp-allow-opt">(optional allowlist)</span></span>'
+        '<input type="text" id="cr-mcp-allow" class="crp-mcp-allow-input" '
+        'placeholder="e.g. github, atlassian, sentry" '
+        'aria-describedby="cr-mcp-allow-hint">'
+        '<span class="crp-hint" id="cr-mcp-allow-hint">Comma-separated server names '
+        "(the <code>&lt;server&gt;</code> in <code>mcp__&lt;server&gt;__&lt;verb&gt;</code>). "
+        "When set, a <strong>write</strong> call from a server not listed here is denied before any "
+        "model runs (reads and listed servers still go to the panel). Leave empty to let the panel "
+        "judge every MCP call. Applies when <code>mcp_tools</code> review is on.</span>"
+        "</label>"
     )
 
 
@@ -1410,6 +1437,27 @@ body {
 .crp-threshold-label { font-size: 13px; color: var(--text); }
 .crp-threshold input { width: 72px; }
 .crp-hint { font-size: 11px; color: var(--muted); }
+/* MCP server allowlist (§MCP identity) — a wide text field, stacked label/input/hint. */
+.crp-mcp-allow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+.crp-mcp-allow-label { font-size: 13px; color: var(--text); }
+.crp-mcp-allow-opt { font-size: 11px; color: var(--muted); font-weight: normal; }
+.crp-mcp-allow-input {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12.5px;
+  font-family: var(--mono, monospace);
+}
+.crp-mcp-allow .crp-hint code { font-size: 10.5px; }
 /* gate_floor — headline comfort knob (segmented control + always-visible note). */
 .crp-gate-floor {
   margin: 4px 0 16px;
@@ -3171,7 +3219,7 @@ _JS = r"""
     /* Behavioral flag (NOT a permission): pause for design decisions? Default ON. */
     design_checkins: (typeof ((props.design_checkins || {}).default) === "boolean")
       ? props.design_checkins.default : true,
-    command_review: Object.assign({}, CR_DEFAULT, { tiers: freshTiers() }),
+    command_review: Object.assign({}, CR_DEFAULT, { tiers: freshTiers(), mcp_allowed_servers: [] }),
     expanded: {},   /* category -> boolean */
   };
 
@@ -3267,6 +3315,12 @@ _JS = r"""
             if (!Number.isNaN(tt) && tt >= 0 && tt <= 1) dst.confidence_threshold = tt;
           }
         }
+        /* MCP server allowlist (§MCP identity) — command_review.mcp.allowed_servers */
+        if (pcr.mcp && typeof pcr.mcp === "object" && Array.isArray(pcr.mcp.allowed_servers)) {
+          const seen = new Set();
+          state.command_review.mcp_allowed_servers = pcr.mcp.allowed_servers
+            .filter(s => typeof s === "string" && /^[A-Za-z0-9._-]+$/.test(s) && !seen.has(s) && seen.add(s));
+        }
       }
     }
   } catch (e) {
@@ -3326,6 +3380,10 @@ _JS = r"""
     {
       const thr = document.getElementById("cr-threshold");
       if (thr) thr.value = String(state.command_review.confidence_threshold);
+    }
+    {
+      const mcpIn = document.getElementById("cr-mcp-allow");
+      if (mcpIn) mcpIn.value = (state.command_review.mcp_allowed_servers || []).join(", ");
     }
     /* Sync the gate_floor segmented control */
     document.querySelectorAll('input[type="radio"][data-gate-floor]').forEach(inp => {
@@ -3437,6 +3495,7 @@ _JS = r"""
     const crChanged = CR_SEATS.some(s => cr[s] !== CR_DEFAULT[s])
       || cr.confidence_threshold !== CR_DEFAULT.confidence_threshold
       || cr.gate_floor !== CR_DEFAULT.gate_floor
+      || (cr.mcp_allowed_servers && cr.mcp_allowed_servers.length > 0)
       || tiersChanged;
     if (crChanged) {
       lines.push("# Command-review tribunal panel (the Thing). Overrides .ravenclaude/thing.yaml.");
@@ -3448,6 +3507,12 @@ _JS = r"""
       }
       lines.push(`  confidence_threshold: ${cr.confidence_threshold}`);
       lines.push(`  gate_floor: ${cr.gate_floor}`);
+      /* MCP server allowlist (§MCP identity) — emitted only when non-empty. The
+       * tribunal denies a write verb from a server NOT on this list pre-LLM. */
+      if (cr.mcp_allowed_servers && cr.mcp_allowed_servers.length) {
+        lines.push("  mcp:");
+        lines.push(`    allowed_servers: [${cr.mcp_allowed_servers.join(", ")}]`);
+      }
       /* Per-tier panel — emitted only when a tier differs from its default, so
        * an untouched advanced section leaves the engine tier table in control.
        * low has no panel and is never emitted. */
@@ -3603,6 +3668,24 @@ _JS = r"""
         t = Math.min(1, Math.max(0, t));
         state.command_review.confidence_threshold = t;
         thr.value = String(t);
+        flagUnsaved();
+        render();
+      });
+    }
+  }
+
+  /* MCP server allowlist (§MCP identity) — comma/space-separated server names,
+   * validated to the tool-name charset, deduped, normalized back into the field. */
+  {
+    const mcpIn = document.getElementById("cr-mcp-allow");
+    if (mcpIn) {
+      mcpIn.addEventListener("change", () => {
+        const seen = new Set();
+        const servers = mcpIn.value.split(/[\s,]+/)
+          .map(s => s.trim())
+          .filter(s => s && /^[A-Za-z0-9._-]+$/.test(s) && !seen.has(s) && seen.add(s));
+        state.command_review.mcp_allowed_servers = servers;
+        mcpIn.value = servers.join(", ");
         flagUnsaved();
         render();
       });
