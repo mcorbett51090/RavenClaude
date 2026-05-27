@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "RavenClaude: Comfort-posture dashboard",
+      "detail": "Open the point-and-click permission/command-review editor for THIS repo.",
+      "type": "shell",
+      "command": "bash",
+      "args": ["${workspaceFolder}/.ravenclaude/dashboard.sh"],
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    }
+  ]
+}

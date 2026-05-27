@@ -18,6 +18,8 @@
 #   ravenclaude install [--project DIR]   one-time wiring into a project (default: $PWD)
 #   ravenclaude update                    git pull the marketplace + regenerate the Copilot package
 #   ravenclaude status [--project DIR]    show what is wired
+#   ravenclaude dashboard [--project DIR] [--port N]
+#                                         open the comfort-posture dashboard scoped to a repo
 #   ravenclaude init-codespace [--project DIR]
 #                                         stamp the Codespace auto-setup .devcontainer/ into a repo
 #
@@ -48,6 +50,26 @@ add_rc_alias() {
     printf '\n# RavenClaude — launch Copilot with the live plugin (added by ravenclaude setup)\n%s\n' "$line" >> "$bashrc"
     ok "added 'rc' alias to ~/.bashrc (run: source ~/.bashrc, then 'rc')"
   fi
+}
+
+# Drop the repo-local dashboard launch surfaces into a consumer project: a self-resolving
+# .ravenclaude/dashboard.sh, a .ravenclaude/README.md with the link, and a one-click VS Code
+# task. All scoped to <project> — they never touch the marketplace.
+wire_dashboard_launchers() {
+  local project="$1"
+  local tpl="$CORE/templates/dashboard-launcher"
+  [ -d "$tpl" ] || { warn "dashboard-launcher template missing ($tpl) — skipped"; return 0; }
+  mkdir -p "$project/.ravenclaude"
+  cp "$tpl/dashboard.sh" "$project/.ravenclaude/dashboard.sh"
+  chmod +x "$project/.ravenclaude/dashboard.sh"
+  cp "$tpl/README.md" "$project/.ravenclaude/README.md"
+  mkdir -p "$project/.vscode"
+  if [ -f "$project/.vscode/tasks.json" ]; then
+    note "left existing .vscode/tasks.json alone — add the RavenClaude task from $tpl/tasks.json by hand"
+  else
+    cp "$tpl/tasks.json" "$project/.vscode/tasks.json"
+  fi
+  ok "wired dashboard launchers (.ravenclaude/dashboard.sh + README.md + .vscode task)"
 }
 
 regen() {
@@ -218,7 +240,11 @@ cmd_setup() {
   # 4. The one-word launch alias.
   add_rc_alias
 
+  # 5. Repo-local comfort-posture dashboard launchers (scoped to this repo).
+  wire_dashboard_launchers "$project"
+
   ok "setup complete. Launch with:  rc    (or: copilot --plugin-dir $COPILOT_PKG)"
+  note "Edit this repo's posture anytime: bash .ravenclaude/dashboard.sh  (or the VS Code task 'RavenClaude: Comfort-posture dashboard')"
 }
 
 cmd_init_codespace() {
@@ -246,11 +272,30 @@ cmd_init_codespace() {
   note "Commit .devcontainer/ and (re)build the Codespace — setup then runs automatically."
 }
 
+cmd_dashboard() {
+  local project="$PWD" port="8000"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --project) project="$2"; shift 2 ;;
+      --port) port="$2"; shift 2 ;;
+      *) project="$1"; shift ;;
+    esac
+  done
+  project="$(cd "$project" && pwd)"
+  local server="$CORE/scripts/serve-dashboards.py"
+  [ -f "$server" ] || { warn "dashboard server missing: $server"; return 1; }
+  printf '== ravenclaude dashboard -> %s ==\n' "$project"
+  note "Open the URL it prints (Codespace: Ports panel -> Open in Browser). Ctrl+C to stop."
+  # --project-root pins the repo; the server hard-refuses if it ever resolves to the marketplace.
+  exec python3 "$server" --project-root "$project" --port "$port"
+}
+
 case "${1:-}" in
   setup)          shift; cmd_setup "$@" ;;
   install)        shift; cmd_install "$@" ;;
   update)         cmd_update ;;
   status)         shift; cmd_status "$@" ;;
+  dashboard)      shift; cmd_dashboard "$@" ;;
   init-codespace) shift; cmd_init_codespace "$@" ;;
-  *) printf 'usage: ravenclaude {setup|install|update|status|init-codespace} [--project DIR]\n'; exit 2 ;;
+  *) printf 'usage: ravenclaude {setup|install|update|status|dashboard|init-codespace} [--project DIR]\n'; exit 2 ;;
 esac
