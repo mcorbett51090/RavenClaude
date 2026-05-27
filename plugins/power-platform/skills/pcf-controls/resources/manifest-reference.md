@@ -167,7 +167,7 @@ Declares all files the control needs at runtime.
   <css path="css/MyControl.css" order="1" />
   <resx path="strings/MyControl.1033.resx" version="1.0.0" />
   <img path="img/icon.png" />
-  <platform-library name="React" version="16.8.6" />
+  <platform-library name="React" version="16.14.0" />
   <platform-library name="Fluent" version="9.46.2" />
 </resources>
 ```
@@ -180,6 +180,8 @@ Declares all files the control needs at runtime.
 | `<img path="..." />` | Image files (icons, graphics) used by the control. |
 | `<platform-library name="React" version="..." />` | **Required for virtual controls.** Declares that the platform should provide React. Do NOT bundle your own React — the platform hosts it. |
 | `<platform-library name="Fluent" version="..." />` | **Optional for virtual controls.** Declares Fluent UI React dependency provided by the platform. |
+
+> **Canonical version source:** the React/Fluent v8/v9 version numbers (allowed-vs-runtime-loaded), the "can't declare Fluent v8 and v9 in the same manifest" rule, GA status, the CLI `>=1.37` rebuild note, and the no-auto-convert gotcha live in [`../../../knowledge/pcf-react-fluent-platform-libraries.md`](../../../knowledge/pcf-react-fluent-platform-libraries.md). That file also holds the **`## Decision Tree: PCF — Which React surface?`** (virtual control vs code-app vs canvas control vs Power Pages vs web resource). Quote versions from there, not from the examples below — examples can drift.
 
 ---
 
@@ -375,7 +377,7 @@ A React virtual field control using Fluent UI platform libraries.
 
     <resources>
       <code path="index.ts" order="1" />
-      <platform-library name="React" version="16.8.6" />
+      <platform-library name="React" version="16.14.0" />
       <platform-library name="Fluent" version="9.46.2" />
       <resx path="strings/ColorPickerControl.1033.resx" version="1.0.0" />
     </resources>

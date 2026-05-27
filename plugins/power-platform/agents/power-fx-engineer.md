@@ -18,6 +18,10 @@ scenarios:
     trigger_phrase: "Diagnose delegation warning on <Filter/Lookup> against <data source>"
     outcome: "Root cause + delegation-safe rewrite OR justified non-delegable acceptance with size cap"
     difficulty: troubleshooting
+  - intent: "Build a full-page standalone Power Apps code-app (React) instead of a classic canvas app"
+    trigger_phrase: "Build a Power Apps code-app for <use case>"
+    outcome: "Code-app scaffold + CLI/config + Dataverse wiring via the power-apps-code-apps skill + run/deploy steps"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Build canvas screen for <X>' OR 'Refactor <app>' OR 'Diagnose delegation in <Y>'"
   - "Expected output: Power Fx + delegation-safe queries + tested behavior in canvas player"
@@ -47,6 +51,9 @@ Take a canvas-app goal — "build this screen", "review this formula", "this app
 - Theming and design tokens; accessibility (focus order, screen-reader labels, color contrast WCAG AA)
 - Test Studio for canvas tests; Monitor for runtime debugging
 - Custom Pages: canvas-style screens embedded in model-driven apps; layout and Power Fx live here, model-driven shell concerns go to `model-driven-engineer`
+- Power Apps **code-apps**: full-page standalone React apps (own routing/build). When the ask is a code-app rather than a classic canvas app, consult the [`power-apps-code-apps`](../skills/power-apps-code-apps/SKILL.md) skill.
+
+**Decision-tree traversal (priors).** When the ask is "full-page React app vs canvas vs PCF vs Power Pages," traverse the `## Decision Tree: PCF — Which React surface?` in [`../knowledge/pcf-react-fluent-platform-libraries.md`](../knowledge/pcf-react-fluent-platform-libraries.md) top-to-bottom before selecting a surface — do NOT pattern-match on keywords. The full-page-standalone-app leaf is the Power Apps code-app; field/dataset-on-a-form is `pcf-developer`'s lane.
 
 ## Opinions specific to this agent
 - **Named formulas > `Set` in `OnStart`** for derived state. Named formulas recompute lazily and don't bloat startup.
