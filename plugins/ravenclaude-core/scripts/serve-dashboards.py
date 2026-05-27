@@ -43,7 +43,13 @@ from pathlib import Path
 
 # The plugin install dir (…/ravenclaude-core/<version>/) — static files come from here.
 PLUGIN_DIR = Path(__file__).resolve().parent.parent
+# The marketplace checkout root (the dir that contains plugins/). A CONSUMER launcher must
+# never target this — the guard in main() refuses an explicit --project-root pointing here,
+# so a consumer-repo dashboard can only edit its own repo, never the marketplace.
+MARKETPLACE_ROOT = PLUGIN_DIR.parent.parent
 # The consumer's project — captured at startup, BEFORE any chdir. Reads/writes go here.
+# Overridable with --project-root (the repo-local launcher pins it explicitly so the
+# dashboard is correctly scoped regardless of the launch directory).
 PROJECT_ROOT = Path.cwd().resolve()
 
 ALLOWED_TARGETS = {
@@ -270,7 +276,41 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--port", type=int, default=8000)
     p.add_argument("--bind", default="127.0.0.1", help="default 127.0.0.1 (local only)")
+    p.add_argument(
+        "--project-root",
+        default=None,
+        help="Pin the repo whose .ravenclaude/ is edited (default: current dir). The "
+        "repo-local launcher passes this so the dashboard can never target the wrong repo.",
+    )
+    p.add_argument(
+        "--validate",
+        action="store_true",
+        help="Resolve + guard-check the project root, print it, and exit without serving.",
+    )
     args = p.parse_args()
+
+    global PROJECT_ROOT
+    if args.project_root is not None:
+        root = Path(args.project_root).resolve()
+        # Hard guard: a CONSUMER launcher (which always passes --project-root) must never
+        # edit the marketplace checkout itself. The marketplace's own /dashboard launches
+        # WITHOUT --project-root (cwd-based), so it is unaffected by this check.
+        if root == MARKETPLACE_ROOT or MARKETPLACE_ROOT in root.parents:
+            sys.stderr.write(
+                f"ERROR: refusing to run — --project-root ({root}) is inside the RavenClaude "
+                f"marketplace checkout ({MARKETPLACE_ROOT}).\n"
+                "A consumer dashboard must edit a consumer repo, never the marketplace. "
+                "Launch it from your own repo.\n"
+            )
+            return 2
+        if not root.is_dir():
+            sys.stderr.write(f"ERROR: --project-root {root} is not a directory.\n")
+            return 2
+        PROJECT_ROOT = root
+
+    if args.validate:
+        print(f"project root OK: {PROJECT_ROOT}")
+        return 0
 
     # Serve static files from the PLUGIN dir (dashboard.html lives there); do NOT
     # chdir, so PROJECT_ROOT (the consumer's project, captured above) stays intact

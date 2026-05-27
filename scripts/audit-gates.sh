@@ -1364,6 +1364,17 @@ rc=0; python3 "$G26APPLY" --project-root "$G26B" >/dev/null 2>&1 || rc=$?
 gate "autosetup: corrupted seed (bad level) rejected" must_fail "$rc"
 
 echo
+echo "── Gate 27: consumer dashboard is repo-scoped (marketplace-write guard) ───"
+G27SRV="plugins/ravenclaude-core/scripts/serve-dashboards.py"
+# fail-on-bad: a --project-root inside the marketplace checkout is REFUSED.
+rc=0; python3 "$G27SRV" --validate --project-root "$(pwd)" >/dev/null 2>&1 || rc=$?
+gate "dashboard: refuses --project-root inside the marketplace" must_fail "$rc"
+# pass-on-good: a real consumer repo dir validates.
+G27="$TMP/g27repo"; mkdir -p "$G27/.ravenclaude"
+rc=0; python3 "$G27SRV" --validate --project-root "$G27" >/dev/null 2>&1 || rc=$?
+gate "dashboard: accepts --project-root in a consumer repo" must_pass "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 if [[ "$FAIL" -gt 0 ]]; then
