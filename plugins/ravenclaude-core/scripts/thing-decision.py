@@ -445,6 +445,118 @@ def _substrate_paths(project_root: Path) -> tuple[set[str], set[tuple[int, int]]
     return rps, inodes
 
 
+# ── Maintainer-substrate exemption (dev-repo only) ──────────────────────────
+# Suppresses the self-disable DENY for marketplace-substrate paths when ALL
+# three signals hold: (a) opt-in flag in posture, (b) gh-authenticated repo
+# identity == mcorbett51090/RavenClaude, (c) marketplace.json exists + has
+# name "ravenclaude". FAIL-SAFE OFF: any error/missing gh/no auth/network
+# failure/mismatch → False (enforce). Never weakens the hard-rule floor.
+
+
+def _gh_owner(root: Path) -> str | None:
+    """Return the gh-authenticated repo's 'owner/repo' string, or None on any error.
+
+    Calls `gh repo view --json nameWithOwner -q .nameWithOwner` from `root`.
+    This is the ONLY signal used for repo identity — NOT a marker file, path
+    string, or remote URL the session could forge. Wrapped in try/except so
+    any failure (missing gh, no auth, network, non-zero exit) returns None.
+
+    Designed to be thin so tests can stub it: pass an injected owner via
+    `_maintainer_substrate_exempt(root, posture, _resolved_owner=<stub>)`.
+
+    Defense-in-depth residual: this function trusts the `gh` binary resolved
+    on PATH and assumes an uncompromised maintainer environment. A compromised
+    PATH (e.g. a malicious `gh` wrapper that echoes the expected owner) could
+    spoof the identity check. The exemption is therefore a dev-time convenience
+    only — never enabled in consumer repos (dev_repo_exempt is opt-in and False
+    by default). No mitigation exists at this layer for a fully compromised host.
+    """
+    import subprocess  # stdlib only — no new dependency
+
+    try:
+        result = subprocess.run(
+            ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(root),
+        )
+        if result.returncode != 0:
+            return None
+        owner = result.stdout.strip()
+        return owner if owner else None
+    except Exception:
+        return None
+
+
+_EXEMPT_REPO = "mcorbett51090/RavenClaude"
+
+
+def _marketplace_json_valid(root: Path) -> bool:
+    """True iff <root>/.claude-plugin/marketplace.json exists and parses with name 'ravenclaude'."""
+    mp = root / ".claude-plugin" / "marketplace.json"
+    if not mp.is_file():
+        return False
+    try:
+        import json as _json
+
+        doc = _json.loads(mp.read_text(encoding="utf-8"))
+        return isinstance(doc, dict) and doc.get("name") == "ravenclaude"
+    except Exception:
+        return False
+
+
+_OWNER_NOT_INJECTED = object()  # sentinel: "use live gh", distinguishable from None (gh failed)
+
+
+def _maintainer_substrate_exempt(
+    root: Path,
+    posture: dict,
+    *,
+    _resolved_owner: object = _OWNER_NOT_INJECTED,
+) -> tuple[bool, str | None]:
+    """Return (exempt, resolved_owner_or_None).
+
+    True ONLY when ALL hold:
+      (a) posture's command_review.dev_repo_exempt is strictly True (opt-in),
+      (b) gh-authenticated repo identity == mcorbett51090/RavenClaude,
+      (c) <root>/.claude-plugin/marketplace.json exists + parses with name 'ravenclaude'.
+
+    _resolved_owner: test injection point. Supply a string to skip the live gh call.
+    Supply None explicitly to simulate a gh failure (owner not resolved). Leave as
+    the default sentinel to invoke the live _gh_owner() call.
+
+    FAIL-SAFE OFF: any missing signal, error, or mismatch → (False, None).
+    EFFECT: suppresses ONLY the substrate-path self-disable DENY; the hard-rule
+    floor (force-push, curl|sh), secret-egress backstop, xc.injection-attempt,
+    and the discretionary panel are never touched by this exemption.
+    """
+    try:
+        cr = (posture or {}).get("command_review")
+        if not isinstance(cr, dict):
+            return False, None
+        dev_exempt = cr.get("dev_repo_exempt")
+        if dev_exempt is not True:  # strict is True — must be a Python bool True
+            return False, None
+
+        # Signal (b): gh-authenticated repo identity.
+        # _resolved_owner sentinel → live call; None → simulate gh failure; str → injected.
+        if _resolved_owner is _OWNER_NOT_INJECTED:
+            owner: str | None = _gh_owner(root)
+        else:
+            owner = _resolved_owner  # type: ignore[assignment]
+        if owner != _EXEMPT_REPO:
+            return False, None
+
+        # Signal (c): marketplace.json presence + name.
+        if not _marketplace_json_valid(root):
+            return False, None
+
+        return True, owner
+    except Exception:
+        return False, None
+
+
 def screen_substrate_path(target_raw: str, project_root: Path) -> tuple[bool, str | None]:
     """(deny, concern_id) for a file-shape target that mutates the Thing's own
     substrate. Catalog-independent; fail-closed on doubt for a toggled category."""
@@ -529,9 +641,26 @@ _TRUTHY = {True, "on", "true", "yes", "1", 1}
 
 
 def thing_enabled_for(posture: dict, category: str | None) -> bool:
-    """Is the per-category `thing:` toggle ON in comfort-posture.yaml?"""
+    """Is the per-category `thing:` toggle ON in comfort-posture.yaml?
+
+    Effective enabled = master_gate AND per-category toggle.
+
+    Master gate (`command_review.enabled`): absent/True → enabled; False →
+    globally off (no category is reviewed, regardless of per-category toggles).
+    This is the AND-gate: master must be True (or absent) AND the per-category
+    `thing:` must be truthy. The dashboard serialises `command_review.enabled`
+    when it is explicitly set; consumers who never touch it get the default (True)
+    via the absent-key logic here. NOT a bulk per-category setter — it is a
+    top-level circuit-breaker only.
+    """
     if not category:
         return False
+    # Master gate: absent → True (enabled by default).
+    cr = (posture or {}).get("command_review")
+    if isinstance(cr, dict):
+        master = cr.get("enabled")
+        if master is False or (isinstance(master, str) and master.strip().lower() in {"off", "false", "no", "0"}):
+            return False
     cats = (posture or {}).get("categories", {}) or {}
     cfg = cats.get(category)
     if isinstance(cfg, dict):
@@ -1009,13 +1138,17 @@ def main() -> int:
     # category / retune the tiers) has no shell verb for screen_always to match,
     # so screen it here, category-independently, and merge into the self-disable
     # verdict the orchestrator already denies on.
+    _file_sd: bool = False
+    _file_sd_concern: str | None = None
     if args.cmd == "classify-payload" and tool_name in ("Edit", "Write", "MultiEdit"):
-        sd, concern = screen_substrate_path((tool_input or {}).get("file_path", "") or "", root)
-        if not sd and _posture_write_disables(tool_name, tool_input, root):
-            sd, concern = True, "xc.tribunal-self-disable"
-        if sd:
+        _file_sd, _file_sd_concern = screen_substrate_path(
+            (tool_input or {}).get("file_path", "") or "", root
+        )
+        if not _file_sd and _posture_write_disables(tool_name, tool_input, root):
+            _file_sd, _file_sd_concern = True, "xc.tribunal-self-disable"
+        if _file_sd:
             result["self_disable_deny"] = True
-            result["self_disable_concern"] = concern
+            result["self_disable_concern"] = _file_sd_concern
 
     posture: dict = {}
     posture_path = root / ".ravenclaude" / "comfort-posture.yaml"
@@ -1027,6 +1160,36 @@ def main() -> int:
             # Malformed posture: can't determine the toggle. Fall through to the
             # settings.json floor (do NOT claim enabled). Report for visibility.
             result["posture_error"] = f"comfort-posture.yaml: {exc}"
+
+    # §Maintainer-substrate exemption — suppresses the file-shape self-disable DENY
+    # for marketplace-substrate paths ONLY. Applies after posture is loaded (the
+    # exemption reads command_review.dev_repo_exempt).
+    #
+    # Both trigger sources that can set _file_sd=True are eligible for suppression:
+    #   • screen_substrate_path branch  → Write/Edit/MultiEdit targeting a substrate
+    #     path (orchestrator, seat wrappers, decision script, hooks/ dir, etc.).
+    #   • _posture_write_disables branch → Write to comfort-posture.yaml whose PARSED
+    #     result would flip a category off or retune tiers (§2a).
+    # Either way _file_sd=True → self_disable_deny=True, and the exemption gate at
+    # the `if _file_sd and result.get("self_disable_deny")` check below can clear it.
+    # The safety guarantee rests ENTIRELY on the gh-authenticated-owner gate (signal b
+    # in _maintainer_substrate_exempt) — not on which trigger source set the flag.
+    #
+    # Bash-shaped self-disables (sed/rm/echo >> on the same files) are NOT in scope
+    # here; those are pre-LLM denied by screen_always (xc.tribunal-self-disable,
+    # always_screen) independently of _file_sd, and the exemption never touches
+    # _screen_always results.
+    # NOT touched: hard-rule floor, secret-egress backstop, xc.injection-attempt,
+    # the discretionary panel, or _screen_always results.
+    if _file_sd and result.get("self_disable_deny"):
+        exempt, exempt_owner = _maintainer_substrate_exempt(root, posture)
+        if exempt:
+            # Clear ONLY the substrate-path self-disable; preserve everything else.
+            result.pop("self_disable_deny", None)
+            result.pop("self_disable_concern", None)
+            # Audit field: the orchestrator logs why a substrate edit wasn't denied.
+            result["maintainer_substrate_exempt"] = True
+            result["maintainer_substrate_exempt_owner"] = exempt_owner
 
     # `preview` (dashboard simulator) computes the full detail unconditionally;
     # `classify`/`classify-payload` (the live hook path) only when toggled on.

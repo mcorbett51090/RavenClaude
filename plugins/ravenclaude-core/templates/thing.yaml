@@ -13,6 +13,37 @@
 # WHERE THE ON/OFF TOGGLE LIVES — NOT HERE. Whether a category is reviewed is the
 # per-category `thing:` field in .ravenclaude/comfort-posture.yaml, set from the
 # dashboard's "Command review" toggle. This file only configures the reviewer.
+#
+# TWO ADDITIONAL KEYS live in the `command_review:` block of comfort-posture.yaml
+# (dashboard-authored; that block wins over this file):
+#
+#   command_review:
+#     enabled: true        # Master AND-gate (absent = true = enabled by default).
+#                          # false → ALL tribunal review is globally off, regardless
+#                          # of per-category toggles. NOT a bulk per-category setter:
+#                          # it is a top-level circuit-breaker only. The self-disable
+#                          # (§B.9.5) and hard-rule floors (§B.9.3) still run whenever
+#                          # any category is toggled on, independent of this flag.
+#
+#     dev_repo_exempt: false   # Maintainer-substrate exemption. FAIL-SAFE OFF:
+#                              # absent/false → no exemption. true → suppresses ONLY
+#                              # the substrate-path self-disable DENY for marketplace-
+#                              # substrate edits (plugins/*/hooks, plugins/*/scripts,
+#                              # knowledge/concerns-catalog.md, scripts/generate-dashboards.py,
+#                              # .ravenclaude/thing.yaml) — allowing the plugin maintainer
+#                              # to edit those paths in the RavenClaude marketplace repo.
+#                              # Requires ALL three signals:
+#                              #   (a) this flag is strictly true,
+#                              #   (b) `gh repo view` → mcorbett51090/RavenClaude,
+#                              #   (c) .claude-plugin/marketplace.json name == 'ravenclaude'.
+#                              # Any error / missing gh / no auth / network failure /
+#                              # mismatch → exemption OFF (enforce). Does NOT weaken
+#                              # the hard-rule floor (force-push, curl|sh), the
+#                              # secret-egress backstop, xc.injection-attempt, or the
+#                              # discretionary panel. When the exemption fires, a Sága
+#                              # entry is written recording the gh-verified owner so
+#                              # a security-reviewer can audit why a substrate edit
+#                              # was not denied.
 
 schema_version: 4
 

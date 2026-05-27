@@ -488,58 +488,183 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
         preset_buttons="".join(preset_buttons),
         design_checkins=design_checkins_html,
         thing_preview=_render_thing_preview(),
-        command_review_panel=_render_command_review_panel(),
         category_groups="".join(group_html_parts),
         security_deny=security_deny_html,
     )
 
 
-def _render_thing_preview() -> str:
-    """Render the 'Command review (the Thing)' panel.
+def _scales_svg(state_key: str, aria_label: str) -> str:
+    """Return an inline SVG scales-of-justice icon for a given review state.
 
-    Live for twelve categories — six command categories with the full panel
-    (three seats + a tie-breaker) and the EDIT verdict: the five shell categories
-    (shell_readonly, shell_remote_mutate, shell_code_exec, shell_local_mutate,
-    shell_package_install) plus network_write (curl/wget/gh writes, v0.40.0); and
-    six tool-shape categories that are ALLOW/DENY-only (a seat EDIT is coerced to
-    DENY): file_edit_project (v0.38.0 / Phase 1) and — as of v0.39.0 / Phases 2-4 —
-    file_edit_global, file_read_project, file_read_global, network_read, and
-    mcp_tools. The copy stays honest about cost and about which categories are
-    clickable vs. still disabled previews.
+    state_key must be one of: reviewed | off | paused
+    The element carries role="img", aria-label, and data-review-state so that
+    CSS and JS can both read the effective state without relying on colour alone.
     """
     return (
-        '<div class="thing-preview">'
-        '<div class="thing-preview-head">'
-        '<h3>&#9878; Command review <span class="thing-aka">(the Thing)</span>'
+        f'<svg class="review-scales-icon" data-review-state="{html.escape(state_key)}" '
+        f'role="img" aria-label="{html.escape(aria_label)}" '
+        'xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" '
+        'width="18" height="18" fill="none" aria-hidden="false">'
+        # Beam / crossbar
+        '<line x1="2" y1="5" x2="18" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'
+        # Central pillar
+        '<line x1="10" y1="5" x2="10" y2="16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'
+        # Base
+        '<line x1="6" y1="16" x2="14" y2="16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'
+        # Left pan arc
+        '<path d="M2 5 L4 10 Q5 12 6 10 L8 5" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+        # Right pan arc
+        '<path d="M12 5 L14 10 Q15 12 16 10 L18 5" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+        "</svg>"
+    )
+
+
+def _render_cr_category_summary() -> str:
+    """Return a read-only grid of all 12 live categories with their scales icon.
+
+    The icons are initialised server-side to 'off' (default); JS updates them
+    to the effective state (reviewed | off | paused) after restore + on every
+    change via updateReviewIcons().
+    """
+    cells: list[str] = []
+    for cat in sorted(THING_LIVE_CATEGORIES):
+        icon_html = _scales_svg("off", f"Command review: off — {cat}")
+        cells.append(
+            f'<div class="cr-summary-cell" data-cr-summary-cat="{html.escape(cat)}">'
+            f'<span class="cr-summary-icon">{icon_html}</span>'
+            f'<span class="cr-summary-label"><code>{html.escape(cat)}</code></span>'
+            f'<span class="cr-summary-micro" data-cr-micro-for="{html.escape(cat)}">off</span>'
+            "</div>"
+        )
+    return (
+        '<div class="cr-summary-grid" aria-label="Command review status per category">'
+        + "".join(cells)
+        + "</div>"
+    )
+
+
+def _render_thing_preview() -> str:
+    """Render the consolidated 'Command review (the Thing)' block.
+
+    Now delegates to _render_command_review_block(). This name is kept so
+    existing call-sites in _render_settings_tab() keep working unchanged; the
+    template slot {thing_preview} is the canonical position for this block.
+    """
+    return _render_command_review_block()
+
+
+def _render_command_review_block() -> str:
+    """Single consolidated command-review block.
+
+    Order:
+      (a) header + scales icon + master enable switch
+      (b) one-paragraph explainer + credits-cost warning
+      (c) gate_floor segmented control
+      (d) read-only per-category status summary (informational mirror of toggle state)
+      (e) Advanced <details>: seat model selects, confidence, MCP allowlist, per-tier panel
+    """
+    rows = []
+    for seat, label, default_model in _THING_SEAT_META:
+        opts = "".join(
+            f'<option value="{html.escape(v)}"'
+            f'{" selected" if v == default_model else ""}>{html.escape(t)}</option>'
+            for v, t in _THING_MODEL_CHOICES
+        )
+        rows.append(
+            f'<label class="cr-seat-row" for="cr-seat-{seat}">'
+            f'<span class="cr-seat-name">{html.escape(label)}</span>'
+            f'<select id="cr-seat-{seat}" class="cr-seat-select" data-cr-seat="{html.escape(seat)}">{opts}</select>'
+            "</label>"
+        )
+    seats_html = "".join(rows)
+
+    # (a) Header row: title + scales icon + master switch
+    header = (
+        '<div class="crb-head">'
+        '<div class="crb-title-row">'
+        + _scales_svg("off", "Command review: master off")
+        + '<h3 id="crb-heading">&#9878; Command review <span class="thing-aka">(the Thing)</span>'
         '<span class="preview-pill">Early access</span></h3>'
         "</div>"
-        "<p>When turned on for a category, commands that would otherwise stop to "
-        "<strong>ask you</strong> get adjudicated by reviewer agents instead &mdash; a "
-        "security seat (Forseti), a correctness seat (Mímir), and an injection-watch seat "
-        "(Heimdall) with an architect tie-breaker (Thor), voting "
-        "<strong>allow / edit / deny</strong>. A seat may <em>rewrite</em> a risky command into a "
-        "safe one (the rewrite is re-validated against the concern catalog before it runs). You are "
-        "only interrupted if they can&rsquo;t decide, and every verdict is logged. It can only ever "
-        "resolve the <em>ask</em> cases &mdash; it never relaxes the Danger Zone floor.</p>"
-        '<p class="thing-preview-note"><strong>Live for twelve categories.</strong> '
-        "The five <strong>shell</strong> categories (<code>shell_readonly</code>, "
-        "<code>shell_remote_mutate</code>, <code>shell_code_exec</code>, "
-        "<code>shell_local_mutate</code>, <code>shell_package_install</code>) plus "
-        "<code>network_write</code> (curl / wget / gh writes) review commands "
-        "(allow / edit / deny). The six <strong>tool-shape</strong> categories "
-        "(<code>file_edit_project</code>, <code>file_edit_global</code>, "
-        "<code>file_read_project</code>, <code>file_read_global</code>, <code>network_read</code>, "
-        "<code>mcp_tools</code>) review file edits/reads, web fetches/searches, and MCP calls and "
-        "are <strong>allow / deny only</strong> (a seat rewrite is coerced to deny). Their toggles "
-        "below are clickable; the rest stay disabled previews. The panel runs its seats in "
-        "parallel, so a typical verdict lands in "
-        "<strong>seconds &mdash; but it spends credits on every reviewed command</strong>, so treat "
-        "it as a high-stakes guard, not a daily setting &mdash; off by default. Tune the seat models "
-        "and confidence below. Design: "
-        '<a href="../../docs/tribunal-review-feature-design.md" target="_blank" '
-        'rel="noopener">tribunal-review-feature-design.md</a> &middot; the rules it enforces: '
-        '<a href="knowledge/concerns-catalog.md" target="_blank" rel="noopener">concern catalog</a>.</p>'
+        '<div class="crb-master-row">'
+        '<label class="crb-master-label" for="cr-master-enable">'
+        "Master enable &mdash; when off, all per-category toggles are paused (not cleared)"
+        "</label>"
+        '<label class="dc-switch" title="Master enable for command review. '
+        "When off, review is paused globally; per-category settings are preserved."
+        '">'
+        '<input type="checkbox" id="cr-master-enable" checked '
+        'aria-label="Command review master enable" aria-describedby="crb-master-state">'
+        '<span class="dc-track"><span class="dc-thumb"></span></span>'
+        "</label>"
         "</div>"
+        '<p class="crb-master-state" id="crb-master-state"></p>'
+        "</div>"
+    )
+
+    # (b) Explainer paragraph
+    explainer = (
+        "<p>When turned on for a category, commands that would otherwise stop to "
+        "<strong>ask you</strong> get adjudicated by reviewer agents &mdash; "
+        "Forseti (security), Mímir (correctness), and Heimdall (injection watch) "
+        "with Thor as tie-breaker, voting <strong>allow / edit / deny</strong>. "
+        "A seat may <em>rewrite</em> a risky command into a safe one (re-validated "
+        "before it runs). You are interrupted only when the panel can&rsquo;t decide; "
+        "every verdict is logged. It resolves <em>ask</em> cases only &mdash; it never "
+        "relaxes the Danger Zone floor. "
+        '<strong class="crb-cost-warn">Costs credits on every reviewed command</strong> '
+        "&mdash; treat it as a high-stakes guard, not a daily setting. "
+        'Design: <a href="../../docs/tribunal-review-feature-design.md" target="_blank" '
+        'rel="noopener">tribunal-review-feature-design.md</a> &middot; '
+        '<a href="knowledge/concerns-catalog.md" target="_blank" rel="noopener">concern catalog</a>.</p>'
+        '<p class="crb-live-note"><strong>Live for twelve categories:</strong> '
+        "the five <strong>shell</strong> categories plus <code>network_write</code> "
+        "(allow / edit / deny); six <strong>tool-shape</strong> categories "
+        "(<code>file_edit_*</code>, <code>file_read_*</code>, <code>network_read</code>, "
+        "<code>mcp_tools</code>) are allow / deny only. "
+        "Turn each on via its toggle inside the category card below.</p>"
+    )
+
+    # (d) Per-category status summary (read-only mirror)
+    summary = (
+        '<div class="crb-summary-section">'
+        '<span class="crb-summary-title">Per-category review status</span>'
+        + _render_cr_category_summary()
+        + "</div>"
+    )
+
+    # (e) Advanced details
+    advanced = (
+        '<details class="crb-advanced pattern-details">'
+        '<summary class="pattern-summary">'
+        '<span class="pattern-summary-text">Advanced &mdash; seat models, confidence &amp; per-tier panel</span>'
+        "</summary>"
+        '<div class="crb-advanced-body">'
+        '<p class="crb-adv-sub">Which model fills each seat and how unsure a seat may be before the '
+        "tie-breaker is convened. Applies wherever a category&rsquo;s review toggle is on.</p>"
+        '<span class="crp-hydrated" id="crp-hydrated-indicator" hidden>'
+        "&#10003; Loaded from <code>.ravenclaude/comfort-posture.yaml</code></span>"
+        + _render_gate_floor()
+        + f'<div class="crp-seats">{seats_html}</div>'
+        '<label class="crp-threshold" for="cr-threshold">'
+        "<span class=\"crp-threshold-label\">Confidence threshold</span>"
+        '<input type="number" id="cr-threshold" min="0" max="1" step="0.05" value="0.5">'
+        '<span class="crp-hint">A seat that votes below this convenes Thor.</span>'
+        "</label>"
+        + _render_mcp_allowlist()
+        + _render_tier_panel()
+        + "</div>"
+        "</details>"
+    )
+
+    return (
+        '<div class="command-review-block" id="command-review-panel" '
+        'aria-labelledby="crb-heading">'
+        + header
+        + explainer
+        + summary
+        + advanced
+        + "</div>"
     )
 
 
@@ -628,49 +753,13 @@ _TIER_META = [
 
 
 def _render_command_review_panel() -> str:
-    """Render the GLOBAL command-review panel config (per-seat model + threshold).
+    """Removed — content is now part of _render_command_review_block() (via _render_thing_preview).
 
-    Modeled on the global `design_checkins` flag (not the per-category override
-    map): the JS keeps a single `state.command_review` object, persists it to
-    localStorage, and serializes a top-level `command_review:` block into the
-    emitted comfort-posture.yaml — which the tribunal backend reads with higher
-    precedence than a hand-edited thing.yaml. There is no YAML parse-back, so on
-    a fresh load the controls show defaults until the user saves (identical to
-    the per-category `thing:` toggle's behavior).
+    Returns empty string so any accidental legacy call-site is a no-op rather
+    than a crash. The {command_review_panel} template slot has been removed from
+    _SETTINGS_TAB_TEMPLATE; this stub is kept only for safety.
     """
-    rows = []
-    for seat, label, default_model in _THING_SEAT_META:
-        opts = "".join(
-            f'<option value="{html.escape(v)}"'
-            f'{" selected" if v == default_model else ""}>{html.escape(t)}</option>'
-            for v, t in _THING_MODEL_CHOICES
-        )
-        rows.append(
-            f'<label class="cr-seat-row" for="cr-seat-{seat}">'
-            f'<span class="cr-seat-name">{html.escape(label)}</span>'
-            f'<select id="cr-seat-{seat}" class="cr-seat-select" data-cr-seat="{html.escape(seat)}">{opts}</select>'
-            "</label>"
-        )
-    seats_html = "".join(rows)
-    return (
-        '<div class="command-review-panel" id="command-review-panel">'
-        '<div class="crp-head"><h3>&#9878; Command-review panel</h3>'
-        '<p class="crp-sub">Which model fills each seat, and how unsure a seat may be before the '
-        "tie-breaker is convened. Applies wherever a category&rsquo;s review toggle (above) is on.</p>"
-        '<span class="crp-hydrated" id="crp-hydrated-indicator" hidden>'
-        "&#10003; Loaded from <code>.ravenclaude/comfort-posture.yaml</code></span>"
-        "</div>"
-        + _render_gate_floor()
-        + f'<div class="crp-seats">{seats_html}</div>'
-        '<label class="crp-threshold" for="cr-threshold">'
-        "<span class=\"crp-threshold-label\">Confidence threshold</span>"
-        '<input type="number" id="cr-threshold" min="0" max="1" step="0.05" value="0.5">'
-        '<span class="crp-hint">A seat that votes below this convenes Thor.</span>'
-        "</label>"
-        + _render_mcp_allowlist()
-        + _render_tier_panel()
-        + "</div>"
-    )
+    return ""
 
 
 def _render_mcp_allowlist() -> str:
@@ -1039,6 +1128,7 @@ def _render_thing_toggle(name: str) -> str:
     elsewhere keeps the 'coming soon' status legible where the control will live.
     """
     if name in THING_LIVE_CATEGORIES:
+        icon_html = _scales_svg("off", f"Command review: off — {html.escape(name)}")
         return (
             '<div class="cat-thing-row cat-thing-live">'
             '<span class="cat-thing-label">&#9878; Command review <span class="thing-aka">(the Thing)</span></span>'
@@ -1050,6 +1140,7 @@ def _render_thing_toggle(name: str) -> str:
             f'aria-label="Command review for {html.escape(name)}">'
             '<span class="dc-track"><span class="dc-thumb"></span></span>'
             "</label>"
+            f'<span class="cat-thing-scales" data-scales-for="{html.escape(name)}">{icon_html}</span>'
             '<span class="cat-thing-cost">~10–15s &amp; credits / command</span>'
             "</div>"
         )
@@ -1530,6 +1621,127 @@ body {
   color: var(--muted);
   line-height: 1.5;
 }
+/* ── Consolidated command-review block (replaces separate thing-preview +
+   command-review-panel; rendered once above category cards) ─────────── */
+.command-review-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--warn);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.crb-head { margin-bottom: 12px; }
+.crb-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.crb-title-row h3 {
+  margin: 0;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.crb-master-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.crb-master-label {
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.crb-master-state {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+.command-review-block p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.command-review-block p:last-of-type { margin-bottom: 0; }
+.command-review-block a { color: var(--accent); }
+.crb-cost-warn { color: var(--warn); }
+.crb-live-note { color: var(--text) !important; }
+/* Per-category read-only summary grid */
+.crb-summary-section {
+  margin: 12px 0;
+  padding: 10px 0;
+  border-top: 1px dashed var(--border);
+  border-bottom: 1px dashed var(--border);
+}
+.crb-summary-title {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.cr-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px 8px;
+}
+.cr-summary-cell {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 4px;
+  border-radius: 4px;
+}
+.cr-summary-cell .cr-summary-label {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.cr-summary-micro {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+/* Advanced details wrapper */
+.crb-advanced { margin-top: 10px; }
+.crb-advanced-body { padding: 10px 4px 4px; }
+.crb-adv-sub { margin: 0 0 12px; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+/* ── Scales-of-justice icon — 3 effective review states ──────────── */
+.review-scales-icon { flex-shrink: 0; display: inline-block; vertical-align: middle; }
+/* reviewed: master on AND per-category thing on */
+.review-scales-icon[data-review-state="reviewed"] {
+  color: var(--accent);
+}
+/* off: per-category thing off (regardless of master) */
+.review-scales-icon[data-review-state="off"] {
+  color: var(--border);
+}
+/* paused: thing on but master off — greyed with dashed outline affordance */
+.review-scales-icon[data-review-state="paused"] {
+  color: var(--muted);
+  outline: 1.5px dashed var(--muted);
+  border-radius: 3px;
+}
+/* Micro-label matching each state */
+.cr-summary-micro[data-state="reviewed"] { color: var(--accent); }
+.cr-summary-micro[data-state="off"] { color: var(--border); }
+.cr-summary-micro[data-state="paused"] { color: var(--muted); }
+/* Card-level scales icon (in cat-thing-row) */
+.cat-thing-scales { display: inline-flex; align-items: center; }
 /* The "★ Recommended" preset gets a stronger visual to mark it as primary */
 .preset-btn.preset-recommended {
   background: var(--accent);
@@ -2946,7 +3158,6 @@ _SETTINGS_TAB_TEMPLATE = """
     {design_checkins}
     {thing_preview}
     {category_groups}
-    {command_review_panel}
     {security_deny}
   </div>
 
@@ -3142,6 +3353,10 @@ _JS = r"""
    * The dashboard only authors per-seat models + the confidence threshold; the
    * timers / audit dir / timeout posture live in thing.yaml or the defaults. */
   const CR_DEFAULT = Object.freeze({
+    /* enabled: master AND-gate. true = reviews fire when a category's thing is on.
+     * false = all per-category reviews are paused (thing values preserved, not cleared).
+     * Absent in storage / YAML ⇒ true (enabled). We only persist/emit when false. */
+    enabled: true,
     forseti: "claude-opus-4-7",
     mimir: "claude-haiku-4-5",
     heimdall: "claude-haiku-4-5",
@@ -3289,6 +3504,9 @@ _JS = r"""
       /* command-review panel: keep only known seats/models + a valid threshold */
       if (parsed.command_review && typeof parsed.command_review === "object") {
         const pcr = parsed.command_review;
+        /* Master enable — absent or non-boolean ⇒ default true (enabled).
+         * We store it only when false, so a missing key means enabled. */
+        if (typeof pcr.enabled === "boolean") state.command_review.enabled = pcr.enabled;
         for (const s of CR_SEATS) {
           if (CR_MODELS.includes(pcr[s])) {
             state.command_review[s] = pcr[s];
@@ -3336,6 +3554,31 @@ _JS = r"""
     const lbl = document.getElementById("design-checkins-state");
     if (cb) cb.checked = !!state.design_checkins;
     if (lbl) lbl.textContent = state.design_checkins ? DC_ON_LABEL : DC_OFF_LABEL;
+  }
+
+  /* Command-review master enable (AND-gate, not bulk-setter).
+   * Syncs the checkbox + the status label beneath the master row.
+   * Does NOT touch per-category `thing` values. */
+  function syncMasterEnable() {
+    const cb = document.getElementById("cr-master-enable");
+    const lbl = document.getElementById("crb-master-state");
+    const enabled = !!state.command_review.enabled;
+    if (cb) cb.checked = enabled;
+    if (lbl) {
+      lbl.textContent = enabled
+        ? "On — reviews fire when a category\\u2019s toggle is on"
+        : "Paused — per-category toggles are preserved but no reviews will run";
+    }
+    /* Also update the header-level scales icon state */
+    const headerIcon = document.querySelector(".command-review-block .crb-title-row .review-scales-icon");
+    if (headerIcon) {
+      /* header icon reflects master state only — "reviewed" if enabled, "paused" if not */
+      const s = enabled ? "reviewed" : "paused";
+      headerIcon.setAttribute("data-review-state", s);
+      headerIcon.setAttribute("aria-label", enabled
+        ? "Command review: master on"
+        : "Command review: master paused");
+    }
   }
 
   /* Sync DOM radios to state */
@@ -3407,8 +3650,64 @@ _JS = r"""
       if (tcfg) inp.value = String(tcfg.confidence_threshold);
     });
     syncDesignCheckins();
+    syncMasterEnable();
   }
   syncDomToState();
+
+  /* ── Review-state icon helpers ───────────────────────────────────── */
+  /* Computes the effective review state for a category:
+   *   reviewed — master on AND per-category thing on
+   *   paused   — master off AND per-category thing on (will resume if master re-enabled)
+   *   off      — per-category thing off (regardless of master)
+   * The icon is rendered server-side to 'off'; this function corrects it to
+   * the live effective state after restore and on every relevant change. */
+  const REVIEW_STATE_LABELS = {
+    reviewed: "Command review: on",
+    paused: "Command review: on, paused by master",
+    off: "Command review: off",
+  };
+  const REVIEW_MICRO_LABELS = {
+    reviewed: "on",
+    paused: "paused",
+    off: "off",
+  };
+
+  function effectiveReviewState(cat) {
+    const enabled = !!state.command_review.enabled;
+    const thing = !!(state.categories[cat] || {}).thing;
+    if (!thing) return "off";
+    return enabled ? "reviewed" : "paused";
+  }
+
+  function updateReviewIcon(cat) {
+    /* Update the icon in the category card */
+    const cardIcon = document.querySelector(`.cat-thing-scales[data-scales-for="${CSS.escape(cat)}"] .review-scales-icon`);
+    /* Update the icon in the top summary grid */
+    const summaryCell = document.querySelector(`.cr-summary-cell[data-cr-summary-cat="${CSS.escape(cat)}"]`);
+    const summaryIcon = summaryCell && summaryCell.querySelector(".review-scales-icon");
+    const summaryMicro = summaryCell && summaryCell.querySelector(".cr-summary-micro");
+    const rs = effectiveReviewState(cat);
+    const label = REVIEW_STATE_LABELS[rs] + " \\u2014 " + cat;
+    if (cardIcon) {
+      cardIcon.setAttribute("data-review-state", rs);
+      cardIcon.setAttribute("aria-label", label);
+    }
+    if (summaryIcon) {
+      summaryIcon.setAttribute("data-review-state", rs);
+      summaryIcon.setAttribute("aria-label", label);
+    }
+    if (summaryMicro) {
+      summaryMicro.textContent = REVIEW_MICRO_LABELS[rs];
+      summaryMicro.setAttribute("data-state", rs);
+    }
+  }
+
+  function updateReviewIcons() {
+    for (const cat of Object.keys(state.categories)) {
+      updateReviewIcon(cat);
+    }
+    syncMasterEnable();
+  }
 
   /* ── Effective badge computation ─────────────────────────────────── */
   function effectiveBucket(cat) {
@@ -3462,6 +3761,7 @@ _JS = r"""
       updateProjectWarn(cat);
       updateOverrideCount(cat);
     }
+    updateReviewIcons();
   }
 
   /* ── YAML emit (v5 schema) ───────────────────────────────────────── */
@@ -3492,7 +3792,11 @@ _JS = r"""
       return t.seats.some(s => !d.seats.includes(s));
     }
     const tiersChanged = TIERS.some(tierChanged);
-    const crChanged = CR_SEATS.some(s => cr[s] !== CR_DEFAULT[s])
+    /* cr.enabled === false must always be persisted so a master-OFF state survives
+     * a page reload even when no other setting has changed. Absent ⇒ true (enabled). */
+    const masterOff = cr.enabled === false;
+    const crChanged = masterOff
+      || CR_SEATS.some(s => cr[s] !== CR_DEFAULT[s])
       || cr.confidence_threshold !== CR_DEFAULT.confidence_threshold
       || cr.gate_floor !== CR_DEFAULT.gate_floor
       || (cr.mcp_allowed_servers && cr.mcp_allowed_servers.length > 0)
@@ -3500,6 +3804,8 @@ _JS = r"""
     if (crChanged) {
       lines.push("# Command-review tribunal panel (the Thing). Overrides .ravenclaude/thing.yaml.");
       lines.push("command_review:");
+      /* Only emit 'enabled: false'; omit the key entirely when true (absent ⇒ true). */
+      if (masterOff) lines.push("  enabled: false");
       lines.push("  panel:");
       for (const s of CR_SEATS) {
         lines.push(`    ${s}:`);
@@ -3591,6 +3897,21 @@ _JS = r"""
   }
 
   /* ── Form change wiring ─────────────────────────────────────────── */
+  /* Command-review master enable (AND-gate — does NOT bulk-clear per-category toggles) */
+  {
+    const masterCb = document.getElementById("cr-master-enable");
+    if (masterCb) {
+      masterCb.addEventListener("change", () => {
+        /* enabled: true is the default; only store/emit when false */
+        state.command_review.enabled = masterCb.checked ? true : false;
+        syncMasterEnable();
+        updateReviewIcons();
+        flagUnsaved();
+        render();
+      });
+    }
+  }
+
   /* Design check-ins toggle (behavioral flag, not a permission) */
   {
     const dcToggle = document.getElementById("design-checkins-toggle");
@@ -3643,6 +3964,7 @@ _JS = r"""
     cb.addEventListener("change", () => {
       const cat = cb.dataset.thingCategory;
       if (state.categories[cat]) state.categories[cat].thing = cb.checked;
+      updateReviewIcon(cat);
       flagUnsaved();
       render();
     });

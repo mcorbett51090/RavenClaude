@@ -81,6 +81,11 @@ session_id="$(printf '%s' "$payload" | jq -r '.session_id // empty')"
 #    per-shape extraction or python call, so an opted-out consumer pays nothing
 #    (one grep) regardless of tool shape — incl. a Write with no posture file. ──
 posture_file="${cwd}/.ravenclaude/comfort-posture.yaml"
+# NOTE: do NOT "optimize" this grep to also parse `enabled:` from command_review.
+# The self-disable + hard-rule floors (§B.9.5, §B.9.3) must run whenever ANY
+# category is toggled on, regardless of command_review.enabled. Suppressing the
+# short-circuit here to avoid a python call would silently remove those floors for
+# consumers who have categories toggled on but set enabled: false.
 if [ ! -f "$posture_file" ] || ! grep -Eq '^[[:space:]]*thing:[[:space:]]*(on|true|yes)\b' "$posture_file"; then
   exit 0
 fi
@@ -149,6 +154,32 @@ if [ "$self_disable" = "true" ]; then
       > "${sd_audit}/${sd_run_id}.json" 2>/dev/null || true
   fi
   emit deny "Command review (the Thing): DENIED — this command would disable or tamper with the Thing itself (${sd_concern}). Refused unilaterally (§B.9.5); turn the Thing off in the comfort-posture dashboard instead. Sága log: .ravenclaude/runs/thing/${sd_run_id}.json"
+fi
+
+# ── Maintainer-substrate exemption audit (dev-repo only). ────────────────────
+# When thing-decision.py sets maintainer_substrate_exempt=true, the substrate-path
+# self-disable was suppressed (the edit falls through to the normal panel). Log WHY
+# the substrate edit wasn't denied — audit trail for post-PR security review. This
+# block DOES NOT alter any verdict; it only writes a Sága entry and continues.
+# The hard-rule floor (§B.9.3, above) still runs first, and force-push / curl|sh
+# are denied before we ever reach here.
+maint_exempt="$(printf '%s' "$decision" | jq -r '.maintainer_substrate_exempt // false')"
+if [ "$maint_exempt" = "true" ]; then
+  maint_owner="$(printf '%s' "$decision" | jq -r '.maintainer_substrate_exempt_owner // "unknown"')"
+  maint_run_id="thing-$(date -u +%Y-%m-%dT%H-%M-%SZ)-$$-exempt"
+  maint_audit="${cwd}/.ravenclaude/runs/thing"
+  if mkdir -p "$maint_audit" 2>/dev/null; then
+    jq -cn --arg id "$maint_run_id" --arg sid "$session_id" \
+      --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --argjson ti "$saga_ti" --arg tn "$tool_name" \
+      --arg cat "$category" --arg owner "$maint_owner" \
+      '{id:$id,session_id:$sid,timestamp:$ts,tool_name:$tn,
+        tool_input:$ti,category:$cat,phase:"maintainer-substrate-exempt",
+        maintainer_substrate_exempt:true,gh_repo_owner:$owner,
+        seats:[],concerns_cited:[],final_verdict:"panel-pending",
+        updated_input:null,duration_ms:0}' \
+      > "${maint_audit}/${maint_run_id}.json" 2>/dev/null || true
+  fi
+  # Do NOT emit here — fall through to the normal panel below.
 fi
 
 # ── §B.9.3: unarguable hard-deny rules (force-push to a protected branch, curl|sh)
