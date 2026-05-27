@@ -93,7 +93,12 @@ def _screen_always(command: str) -> dict:
     off. On any failure to load/evaluate, returns a conservative no-deny (the
     orchestrator's other fail-closed paths still apply) rather than crashing.
     """
-    fallback = {"self_disable_deny": False, "self_disable_concern": None}
+    fallback = {
+        "self_disable_deny": False,
+        "self_disable_concern": None,
+        "hard_rule_deny": False,
+        "hard_rule_concern": None,
+    }
     try:
         spec = importlib.util.spec_from_file_location("_thing_concerns", _CONCERNS)
         if spec is None or spec.loader is None:
@@ -102,7 +107,7 @@ def _screen_always(command: str) -> dict:
         spec.loader.exec_module(mod)  # type: ignore[union-attr]
         catalog = mod._load_catalog()
         res = mod.screen_always(catalog, command)
-        return {k: res[k] for k in fallback}
+        return {k: res.get(k, fallback[k]) for k in fallback}
     except Exception:
         return fallback
 

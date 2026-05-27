@@ -36,13 +36,23 @@ schema:
   #                     payload, curl|sh, force-push). Conditionally-allowable criticals
   #                     (e.g. srm.push-to-protected-branch) are NOT pre_llm_deny — they
   #                     route to the panel, which may allow them under environment-context.
-  #   always_screen   — true for the §B.9.5 self-protection rule(s): the concern is
-  #                     evaluated CATEGORY-INDEPENDENTLY — whenever ANY category has the
-  #                     toggle on, not only when the command's own category is on. This
-  #                     closes the evasion where an attacker crafts a Thing-disabling
-  #                     command that classifies into a category whose toggle is off.
-  #                     Implies pre_llm_deny. Reserved for "the Thing cannot disable
-  #                     itself" — see scripts/thing-concerns.py `screen_always`.
+  #   always_screen   — the concern is evaluated CATEGORY-INDEPENDENTLY — whenever
+  #                     ANY category has the toggle on, not only when the command's
+  #                     own category is on. Implies pre_llm_deny. Two uses:
+  #                       (§B.9.5) self-protection — "the Thing cannot disable itself"
+  #                         (xc.tribunal-self-disable); and
+  #                       (§B.9.3) the unarguable hard-deny rules that are catastrophic
+  #                         regardless of how the command was routed — force-push to a
+  #                         protected branch, curl|sh, an inline secret. Marking these
+  #                         always_screen closes the evasion where a wrapped or
+  #                         mis-classified form (`nice git push --force`,
+  #                         `git status && git push --force`, a command that classifies
+  #                         to an untoggled category) dodges the hard DENY because its
+  #                         own category isn't the toggled one.
+  #                     Screened in scripts/thing-concerns.py `screen_always` (raw ∪
+  #                     normalized command). NOT used for xc.injection-attempt: an
+  #                     injection payload is only a threat when a seat is actually
+  #                     convened, so it is screened via the normal category path.
   #   judgment_only   — true for concerns with NO clean deterministic regex: the LLM
   #                     seat judges them (volume/rate, "is this remote a fork", "is the
   #                     logged file sensitive", audit-trail etiquette). They carry no
@@ -61,6 +71,7 @@ cross_cutting:
     name: Secret material in the command line
     severity: critical
     pre_llm_deny: true
+    always_screen: true
     description: >-
       The command contains a string that pattern-matches a credential (AWS
       access key, OpenAI/Anthropic API key prefix, GitHub PAT prefix, SSH
@@ -532,6 +543,7 @@ categories:
       name: git push --force / -f (without --force-with-lease)
       severity: critical
       pre_llm_deny: true
+      always_screen: true
       description: Caught by security_deny. The tribunal must continue to deny; never relax.
       resolution: DENY. (Reaffirms the baseline.)
       triggers:
@@ -583,6 +595,7 @@ categories:
       name: Inline string includes curl ... | sh / | bash / wget ... | sh
       severity: critical
       pre_llm_deny: true
+      always_screen: true
       description: Caught by security_deny. The tribunal must reaffirm; never EDIT to allow.
       resolution: DENY.
       triggers:
