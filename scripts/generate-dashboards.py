@@ -497,14 +497,15 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
 def _render_thing_preview() -> str:
     """Render the 'Command review (the Thing)' panel.
 
-    Live for eleven categories — the five shell categories (shell_readonly,
-    shell_remote_mutate, shell_code_exec, shell_local_mutate,
-    shell_package_install) with the full panel (three seats + a tie-breaker) and
-    the EDIT verdict, plus six tool-shape categories that are ALLOW/DENY-only (a
-    seat EDIT is coerced to DENY): file_edit_project (v0.38.0 / Phase 1) and — as
-    of v0.39.0 / Phases 2-4 — file_edit_global, file_read_project,
-    file_read_global, network_read, and mcp_tools. The copy stays honest about
-    cost and about which categories are clickable vs. still disabled previews.
+    Live for twelve categories — six command categories with the full panel
+    (three seats + a tie-breaker) and the EDIT verdict: the five shell categories
+    (shell_readonly, shell_remote_mutate, shell_code_exec, shell_local_mutate,
+    shell_package_install) plus network_write (curl/wget/gh writes, v0.40.0); and
+    six tool-shape categories that are ALLOW/DENY-only (a seat EDIT is coerced to
+    DENY): file_edit_project (v0.38.0 / Phase 1) and — as of v0.39.0 / Phases 2-4 —
+    file_edit_global, file_read_project, file_read_global, network_read, and
+    mcp_tools. The copy stays honest about cost and about which categories are
+    clickable vs. still disabled previews.
     """
     return (
         '<div class="thing-preview">'
@@ -520,11 +521,12 @@ def _render_thing_preview() -> str:
         "safe one (the rewrite is re-validated against the concern catalog before it runs). You are "
         "only interrupted if they can&rsquo;t decide, and every verdict is logged. It can only ever "
         "resolve the <em>ask</em> cases &mdash; it never relaxes the Danger Zone floor.</p>"
-        '<p class="thing-preview-note"><strong>Live for eleven categories.</strong> '
+        '<p class="thing-preview-note"><strong>Live for twelve categories.</strong> '
         "The five <strong>shell</strong> categories (<code>shell_readonly</code>, "
         "<code>shell_remote_mutate</code>, <code>shell_code_exec</code>, "
-        "<code>shell_local_mutate</code>, <code>shell_package_install</code>) review shell "
-        "commands (allow / edit / deny). The six <strong>tool-shape</strong> categories "
+        "<code>shell_local_mutate</code>, <code>shell_package_install</code>) plus "
+        "<code>network_write</code> (curl / wget / gh writes) review commands "
+        "(allow / edit / deny). The six <strong>tool-shape</strong> categories "
         "(<code>file_edit_project</code>, <code>file_edit_global</code>, "
         "<code>file_read_project</code>, <code>file_read_global</code>, <code>network_read</code>, "
         "<code>mcp_tools</code>) review file edits/reads, web fetches/searches, and MCP calls and "
@@ -996,6 +998,9 @@ THING_LIVE_CATEGORIES = {
     "file_read_global",
     "network_read",
     "mcp_tools",
+    # Track B (v0.40.0) — the final category. Bash-shaped (curl/wget/gh), so
+    # ALLOW/EDIT/DENY like the shell categories, not ALLOW/DENY-only.
+    "network_write",
 }
 
 

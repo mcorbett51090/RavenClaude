@@ -722,7 +722,7 @@ gate "pre-deny: base64-obfuscated curl|sh (#14)" must_pass "$rc"
 _live_detectable() {
   python3 -c "import importlib.util,sys
 s=importlib.util.spec_from_file_location('t','$TC');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
-c=m._load_catalog();live=['shell_readonly','shell_remote_mutate','shell_code_exec','shell_local_mutate','shell_package_install','file_edit_project','file_edit_global','file_read_project','file_read_global','network_read','mcp_tools']
+c=m._load_catalog();live=['shell_readonly','shell_remote_mutate','shell_code_exec','shell_local_mutate','shell_package_install','file_edit_project','file_edit_global','file_read_project','file_read_global','network_read','mcp_tools','network_write']
 bad=[x.get('id') for cat in live for x in (c.get('categories',{}).get(cat) or [])
      if not (x.get('triggers') or {}).get('regex') and not x.get('judgment_only')]
 sys.exit(1 if bad else 0)"
@@ -987,6 +987,44 @@ WebSearch|how to center a div|network_read
 mcp__server__get_thing|-|mcp_tools
 EOF
 
+# #17e: FP/FN corpus for the v0.40.0 network_write flip. network_write is Bash-
+# classified (curl/wget/gh), so it reuses the command idiom (_fires_in_prod /
+# _has_concern), NOT the payload idiom. The classify() flag-aware override is the
+# load-bearing routing layer here — an implicit-POST (`curl -d`, `wget --post-data`,
+# `gh api -X POST`) misrouting to network_read would auto-allow as a "read", so the
+# FN rows assert classify(cmd)==network_write AND the concern fires.
+while IFS='|' read -r cmd cat cid; do
+  [ -z "$cmd" ] && continue
+  rc=0; _fires_in_prod "$cmd" "$cat" "$cid" || rc=1
+  gate "nw FN (prod): '$cmd' -> network_write fires $cid" must_pass "$rc"
+done <<'EOF'
+curl -X DELETE https://api.x/r/1|network_write|nw.delete-shared-resource
+curl --request DELETE https://api.x/y|network_write|nw.delete-shared-resource
+gh api -X DELETE /repos/o/r/releases/1|network_write|nw.delete-shared-resource
+curl -X POST https://hooks.slack.com/services/T/B/z -d @m|network_write|nw.webhook-to-unallowed-host
+curl -d @m https://discord.com/api/webhooks/1/abc|network_write|nw.webhook-to-unallowed-host
+EOF
+# FP: a write that routes to network_write but must NOT fire the delete concern
+rc=0; _has_concern "curl -X POST https://api.stripe.com/v1/charges -d a=1" network_write nw.delete-shared-resource && rc=1
+gate "nw FP: POST charge does NOT fire nw.delete-shared-resource" must_pass "$rc"
+# routing-override guards: implicit-POST / =-attached / gh-flag forms that the
+# space-delimited EMISSIONS prefix matcher misses must still reach network_write,
+# and a GET / wget-debug form must NOT be re-routed.
+for spec in \
+  "curl -d a=b https://x/y|network_write" \
+  "curl --data-binary @f https://x/y|network_write" \
+  "curl -T ./f https://x/put|network_write" \
+  "wget --post-data=foo https://x/api|network_write" \
+  "gh api -X POST /repos/o/r/issues|network_write" \
+  "curl -X GET https://x/y|network_read" \
+  "wget -d https://x/y|network_read"; do
+  IFS='|' read -r cmd want <<EOF
+$spec
+EOF
+  rc=0; [ "$(_classify "$cmd")" = "$want" ] || rc=1
+  gate "nw routing: '$cmd' -> $want" must_pass "$rc"
+done
+
 echo
 echo "── Gate 22: tribunal #15 (bypass / cache / fatigue) + model diversity ─────"
 # bypass auto-allows a trusted pattern WITHOUT a panel, but the hard-rule screen
@@ -1232,7 +1270,7 @@ gate "tb: cache identity distinct for two file paths (#e)" must_pass "$rc"
 # so only a high/critical concern convenes a panel); mock=deny -> deny proves the
 # live verdict flows for every shape.
 G24L="$TMP/tb-proj-allon"; mkdir -p "$G24L/.ravenclaude" "$G24L/src"
-printf 'schema_version: 5\ncategories:\n  file_read_project:\n    thing: on\n  file_read_global:\n    thing: on\n  file_edit_global:\n    thing: on\n  network_read:\n    thing: on\n  mcp_tools:\n    thing: on\n' > "$G24L/.ravenclaude/comfort-posture.yaml"
+printf 'schema_version: 5\ncategories:\n  file_read_project:\n    thing: on\n  file_read_global:\n    thing: on\n  file_edit_global:\n    thing: on\n  network_read:\n    thing: on\n  mcp_tools:\n    thing: on\n  network_write:\n    thing: on\n' > "$G24L/.ravenclaude/comfort-posture.yaml"
 # file_read_global — read of ~/.ssh/id_rsa (critical) -> seat -> deny
 rc=0; [ "$(tb_dec "$G24L" Read "$(jq -cn '{file_path:"~/.ssh/id_rsa"}')" deny)" = "deny" ] || rc=1
 gate "tb(L): Read ~/.ssh/id_rsa (file_read_global ON) -> deny" must_pass "$rc"
@@ -1255,6 +1293,10 @@ gate "tb(L): clean in-project Read is low-tier (no seat) -> not denied" must_pas
 # benign WebFetch (no concern) -> low tier -> not denied
 rc=0; [ "$(tb_dec "$G24L" WebFetch "$(jq -cn '{url:"https://example.com/docs"}')" deny)" != "deny" ] || rc=1
 gate "tb(L): benign WebFetch is low-tier (no seat) -> not denied" must_pass "$rc"
+# network_write — Bash-shaped (curl DELETE), base tier `medium` -> always panels;
+# the implicit-POST override routes it, mock=deny -> deny.
+rc=0; [ "$(tb_dec "$G24L" Bash "$(jq -cn '{command:"curl -X DELETE https://api.example.com/r/1"}')" deny)" = "deny" ] || rc=1
+gate "tb(L): curl -X DELETE (network_write ON) -> deny" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
