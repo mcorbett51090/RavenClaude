@@ -143,7 +143,14 @@ PY
 }
 
 cmd_status() {
-  local project="${2:-$PWD}"; project="$(cd "$project" && pwd)"
+  local project="$PWD"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --project) project="$2"; shift 2 ;;
+      *) project="$1"; shift ;;
+    esac
+  done
+  project="$(cd "$project" && pwd)"
   printf '== ravenclaude status -> %s ==\n' "$project"
   [ -d "$project/.claude/skills" ] && note "skills:  $(find "$project/.claude/skills" -maxdepth 1 -mindepth 1 -type l -o -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l | tr -d ' ') in .claude/skills" || note "skills:  not wired"
   [ -f "$project/.github/hooks/ravenclaude.json" ] && note "hooks:   .github/hooks/ravenclaude.json present" || note "hooks:   not wired"
@@ -154,6 +161,6 @@ cmd_status() {
 case "${1:-}" in
   install) shift; cmd_install "$@" ;;
   update)  cmd_update ;;
-  status)  cmd_status "$@" ;;
-  *) printf 'usage: ravenclaude {install [--project DIR]|update|status}\n'; exit 2 ;;
+  status)  shift; cmd_status "$@" ;;
+  *) printf 'usage: ravenclaude {install [--project DIR]|update|status [--project DIR]}\n'; exit 2 ;;
 esac
