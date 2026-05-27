@@ -1,9 +1,13 @@
 # Tribunal tool-review extension — design & phasing
 
-> **Status:** design, **v3** (4 independent expert reviews total). v1 scored 5/10;
-> v2 filled those gaps; two further independent reviews (security-rigor, shippability)
-> scored v2 **6.5/10** and **7/10**. This v3 closes every finding from that second
-> round and is the intended **9/10** pre-execution baseline.
+> **Status:** design, **v3.1** (5 independent expert reviews total). v1 scored 5/10;
+> v2 filled those gaps; two further reviews (security-rigor, shippability) scored v2
+> **6.5/10** and **7/10**; v3 closed those, and a final verification review scored v3
+> **8.5/10** with 4 narrow remaining items (none reopening a silent-bypass class). This
+> **v3.1** closes those four — the implementability of the file-shape fail-closed path
+> (split into a catalog-independent `screen_substrate_path`), the `config_hash`
+> substrate-hash serialization, a `DECODE_MAX_BYTES` budget, and two factual slips — and
+> is the intended **9/10** pre-execution baseline.
 >
 > This extends the command-review tribunal ("the Thing") from **Bash-only** review
 > to the **file (Edit/Write/MultiEdit), network (WebFetch/WebSearch), and MCP**
@@ -80,11 +84,25 @@ not EMISSIONS-prefix-keyed. **Fixture:** every supported tool name yields a non-
 category.
 
 ### §2 — Self-disable screen above any tool gate, path-aware
-Remove the `tool_name != "Bash"` early-return as the first gate. Run
-`xc.tribunal-self-disable` (`always_screen`) **first**, for every tool shape, against
-the canonicalized target (§4) for file shapes. Category-independent: it fires even
-when the file categories are off, and (per §Fail-open) even when `_screen_always`
-itself throws on a substrate target.
+Remove the `tool_name != "Bash"` early-return as the first gate. Run the self-disable
+screen **first**, for every tool shape, above the per-category enabled gate. There are
+**two distinct screens** (a v3.1 correction — the original "run `screen_always` against
+a path" was not implementable, because `screen_always` takes a command string and its
+except-branch fires on catalog-load failure, so it cannot know the target path):
+
+- **Command/text shapes (Bash):** `screen_always(catalog, text)` — the existing T4
+  catalog-regex self-disable. Its except-branch keeps failing **closed** (deny) per T4.
+- **File shapes (Write/Edit/MultiEdit):** `screen_substrate_path(target, inode_set)` —
+  a **new, catalog-independent** path-membership check (stdlib only: `os.path` +
+  `os.stat`). It denies if the canonicalized target (§4) — by lexical path, by realpath,
+  or by `st_ino` — is in/under `THING_SUBSTRATE` (§2a). Because it never loads the
+  catalog, it cannot hit a catalog-load except-branch; its own residual failure mode
+  (e.g. `os.stat` raising because the Write target does not exist yet — the normal case)
+  falls back to the lexical+realpath membership test, and any remaining doubt for a
+  toggled category resolves to **DENY**. This is what makes the file-shape fail-closed
+  path actually implementable.
+
+Both are category-independent: they fire even when the file categories are off.
 
 ### §2a — Substrate set (exhaustive, single source of truth)
 The self-disable screen for **file shapes** fires when the canonicalized target *is*,
@@ -92,7 +110,7 @@ or is *under*, any of:
 
 ```
 plugins/*/hooks/                              # orchestrator + adapters + all hooks
-plugins/*/scripts/thing-*.{py,sh}             # decision/concerns/seat/decide
+plugins/*/scripts/thing-*.{py,sh}             # decision + concerns + seat + decide (glob covers all four)
 plugins/*/scripts/apply-comfort-posture.py    # the EMISSIONS source — breaks classify if rewritten
 plugins/*/scripts/serve-dashboards.py         # served dashboard copy
 plugins/*/knowledge/concerns-catalog.md       # the catalog the screen itself reads
@@ -104,7 +122,15 @@ Plus: a Write/Edit to `.ravenclaude/comfort-posture.yaml` is a self-disable **if
 resulting document** flips `thing:` off for a live category, or alters
 `command_review:` / `gate_floor:`. Because a `Write` replaces the whole file, screen
 the **parsed YAML of the new content**, not a regex over it (a regex over content is
-trivially evaded by reformatting).
+trivially evaded by reformatting). **Unparseable** new posture content → **DENY**
+(extraction-fail, §Fail-open) — a write that corrupts the posture file is never allowed
+through.
+
+**Scope:** this set is the **runtime** substrate (the files whose mutation disables or
+re-tunes live enforcement). CI-only tooling (`scripts/audit-gates.sh` and the test
+fixtures) is intentionally **out of scope** — editing a CI gate cannot disable the
+runtime hook on a consumer's machine; CI is the cross-tool backstop, screened by code
+review, not the runtime self-disable guard.
 
 **Single source:** this set lives in ONE constant (e.g. `THING_SUBSTRATE` in
 `thing-concerns.py`) imported by the screen. The separately-triplicated *live-category*
@@ -159,8 +185,14 @@ Every file-shape target is normalized as:
   `[truncated]` marker. **Truncation applies only to the seat prompt, after the local
   screen has already run on the full ≤1 MiB text** — it never shrinks what the local
   screen inspects.
-- The base64 decode pass caps at the **first 200 candidate runs** per payload (a large
-  file has many `[A-Za-z0-9+/]{24,}` runs; this bounds the quadratic).
+- The base64 decode pass caps at the **first 200 candidate runs** per payload AND at a
+  total **`DECODE_MAX_BYTES = 256 KiB`** of decoded output across the whole pass
+  (including the depth-1 recursion). A run count alone is insufficient: a 1 MiB
+  `Write.content` that is itself one giant base64 blob decodes to ~768 KiB which is then
+  re-scanned with every regex and re-base64-scanned — quadratic *within* the 1 MiB
+  budget. Once `DECODE_MAX_BYTES` is reached the pass stops (the raw full-payload screen
+  has already run on the undecoded text, so stopping the decode never skips the primary
+  screen).
 
 ### §Fail-open enumeration table
 Every `exit 0` / fallback is tabulated; for a *toggled* category every row resolves to
@@ -176,7 +208,8 @@ a verdict, never a silent allow.
 | extraction-fail (new shapes) | file/net/MCP | on | **DENY** |
 | `classify_payload`→None but tool matched a new matcher | new | on | **DENY** |
 | `thing-decision.py:83` `_route` except | any | on | full panel (safe) |
-| `thing-decision.py:96/106` `_screen_always` except | any | on | **fail CLOSED to self-disable-DENY when the target is a substrate path** (today returns no-deny) |
+| `thing-decision.py:96/106` `_screen_always` except (catalog-load fail) | Bash/text | on | **fail CLOSED to self-disable-DENY** (today returns no-deny) |
+| `screen_substrate_path` `os.stat` raise (target absent) | file | on | fall back to lexical+realpath membership; residual doubt → **DENY** (catalog-independent, §2) |
 
 Only a genuinely unmatched tool name with **no** category toggled may fail open.
 
@@ -221,9 +254,12 @@ drift):
 - network = full URL
 - MCP = `server__verb` + `sha256(canonical-json(args))`
 
-`config_hash` (`thing-decision.py:565`) must additionally fold in **a hash of the §2a
-substrate set + a `classify_payload` version tag**, so a cached file verdict is
-invalidated when the substrate set or classifier changes.
+`config_hash` (`thing-decision.py:565`) must additionally fold in, **concretely**:
+`sha256` of the JSON-serialized **sorted `THING_SUBSTRATE`** glob-list constant, plus a
+`CLASSIFY_PAYLOAD_VERSION` string literal bumped by hand whenever the classifier logic
+changes. (The constant's *value*, not file mtimes — mtimes are non-deterministic across
+checkouts.) So a cached file verdict is invalidated when the substrate set or the
+classifier changes.
 
 ### §MCP identity
 - Server allowlist lives in `.ravenclaude/thing.yaml` `mcp.allowed_servers:`. Absent ⇒
@@ -233,9 +269,11 @@ invalidated when the substrate set or classifier changes.
   write/escalated (per decision 3).
 - A server not on the allowlist, OR a name colliding with another active server, ⇒
   **deny** write verbs (cite `mcp.unverified-server` / `mcp.tool-shadowing`).
-- **Author `triggers`/`judgment_only` on all six `mcp_tools` concerns before the
-  category goes live** — Gate 21 #17 fails the moment `mcp_tools` joins the live list
-  otherwise (same prerequisite Track A satisfied for slm/spi).
+- **Author `triggers`/`judgment_only` on all five `mcp_tools` concerns** (`mcp.unknown-server`,
+  `mcp.broad-data-read`, `mcp.cross-service-write`, `mcp.tool-shadowing`,
+  `mcp.unverified-server`) **before the category goes live** — Gate 21 #17 fails the
+  moment `mcp_tools` joins the live list otherwise (same prerequisite Track A satisfied
+  for slm/spi).
 
 ## Security must-haves
 
@@ -269,7 +307,7 @@ invalidated when the substrate set or classifier changes.
 - **Phase 3** — WebFetch/WebSearch → `network_read` (ALLOW/DENY-only). **Adds
   `WebSearch` to EMISSIONS `network_read`** (V3-5).
 - **Phase 4** — MCP tools (verb-based read/write + server identity; ALLOW/DENY).
-  Author the 6 `mcp_tools` concern triggers first.
+  Author the 5 `mcp_tools` concern triggers first.
 
 ### §Track sequencing (V3-10)
 **Track A merges first** (flip-only, smaller). **Track B rebases on it.** Whoever
@@ -361,11 +399,14 @@ Flipping a category live touches:
 
 ## Self-assessment vs 9/10
 
-This v3 turns every "intent" statement the second-round reviewers flagged into a
-concrete, implementable spec: the path-canonicalization algorithm (§4), the exhaustive
-single-source substrate set (§2a), the payload-shaped seat backstop (§3a), the
-per-shape fail-open table, the EDIT-coercion code-path guard, the Sága/cache
-serialization with a collision gate, and the corrected flip-only Track A. The remaining
-genuine unknowns are operational, not design (e.g. exact `SEAT_MAX_BYTES` tuning under
-real latency, the eventual single-source refactor of the triplicated live-list) — both
-flagged inline rather than hand-waved.
+v3 turned every "intent" statement the second-round reviewers flagged into a concrete,
+implementable spec; v3.1 then closed the verification reviewer's four items: the
+file-shape self-disable is now an implementable **catalog-independent
+`screen_substrate_path`** (the one finding with design substance — the prior "fail
+closed when target is a substrate path" was unimplementable because `screen_always` is
+catalog-dependent and path-blind), the `config_hash` substrate hash is pinned to
+`sha256(sorted THING_SUBSTRATE)` + a version tag, `DECODE_MAX_BYTES` bounds the decode
+pass by output bytes (not just run count), and the MCP-concern count / substrate-scope
+slips are corrected. The remaining genuine unknowns are operational, not design (e.g.
+exact `SEAT_MAX_BYTES`/`DECODE_MAX_BYTES` tuning under real latency, the eventual
+single-source refactor of the triplicated live-list) — flagged inline, not hand-waved.
