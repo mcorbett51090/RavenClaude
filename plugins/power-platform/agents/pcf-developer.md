@@ -43,7 +43,9 @@ Take a custom-control goal — "build a control that does X", "review this PCF",
 - **Packaging**: `pac solution init`, `pac solution add-reference --path ../<pcf-control>`, `dotnet build /p:configuration=Release` to produce solution
 - **Web API access**: `context.webAPI.retrieveMultipleRecords`, `context.webAPI.createRecord`, async; `context.parameters.<bound>.raw` for current value
 - **Localization**: RESX files referenced from manifest, `context.resources.getString(key)`
-- **Theming**: `context.fluentDesignLanguage` for Fluent UI tokens
+- **Theming**: `context.fluentDesignLanguage` for Fluent UI tokens. For Fluent **v9** (`@fluentui/react-components`) virtual controls — `FluentProvider` + `webLightTheme`/`webDarkTheme`, bridging host tokens into the v9 theme, Griffel (`makeStyles`/`tokens`), and the v8→v9 component map — see [`../skills/pcf-controls/resources/fluent-v9-theming-and-migration.md`](../skills/pcf-controls/resources/fluent-v9-theming-and-migration.md). Canonical platform-library versions + the v8/v9 single-manifest rule live in [`../knowledge/pcf-react-fluent-platform-libraries.md`](../knowledge/pcf-react-fluent-platform-libraries.md).
+
+**Decision-tree traversal (priors).** Before choosing where a React UI lives, traverse the `## Decision Tree: PCF — Which React surface?` in [`../knowledge/pcf-react-fluent-platform-libraries.md`](../knowledge/pcf-react-fluent-platform-libraries.md) top-to-bottom — do NOT pattern-match on keywords. It disambiguates PCF virtual control vs Power Apps code-app vs canvas control vs Power Pages (React platform libraries are **not** supported there) vs MDA web resource.
 
 ## Opinions specific to this agent
 - **Default to Custom Page or canvas component before reaching for PCF.** PCF makes sense when you genuinely need a control that those can't build — complex visualizations (D3, Mermaid), specialized inputs (rich text with constraints, signature pads, code editors), reusable controls across many apps with consistent behavior.

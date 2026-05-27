@@ -50,6 +50,8 @@ Take an external-portal goal — "build a partner portal", "add anonymous form s
 - **Site settings** for runtime configuration without re-deploying
 - **Power Pages capacity** SKU: page views per month, authenticated users, anonymous browsing — distinct from Power Apps licensing
 
+**Decision-tree traversal (priors).** When someone asks for a React control on a Power Pages site, traverse the `## Decision Tree: PCF — Which React surface?` in [`../knowledge/pcf-react-fluent-platform-libraries.md`](../knowledge/pcf-react-fluent-platform-libraries.md) top-to-bottom before answering — do NOT pattern-match on keywords. The load-bearing leaf: **React controls & platform libraries are NOT supported in Power Pages** — use a standard (non-virtual) PCF or a web template instead.
+
 ## Opinions specific to this agent
 - **Power Pages for anonymous and B2C; canvas/model-driven for tenant users.** Don't try to use Power Pages for an internal app — you'll fight the licensing model and lose a lot of conveniences (Office 365 SSO, no separate B2C tenant).
 - **Table permissions designed before forms.** Every form is consuming a table; if the permission model isn't right, the form leaks data.
