@@ -704,43 +704,80 @@ bad=[x for x in fake['categories']['shell_code_exec']
 import sys;sys.exit(1 if bad else 0)" || rc=1
 gate "live-category detectability check catches a silent-gap concern" must_fail "$rc"
 # #17b: FP/FN corpus for the now-live shell_local_mutate + shell_package_install
-# regexes (v0.36.0 flip). These triggers route to the panel (not pre_llm_deny), so
-# assert on the matched-concern set via _concerns, not _predeny. A " ID " membership
-# test over the space-padded output (same idiom as the --force-with-lease check).
+# categories (v0.36.0 flip). A trigger regex is only meaningful if the command
+# first CLASSIFIES into the category, so two layers are tested:
+#   - routing guards + FN rows assert the PRODUCTION path: classify(cmd)==cat
+#     AND the concern fires. This catches a routing miss (e.g. `git branch -D`
+#     landing in shell_readonly and auto-allowing), not just a regex miss.
+#   - FP rows assert the regex does not fire when evaluated against the category.
+# Triggers route to the panel (not pre_llm_deny), so assert on the matched
+# concern set via _concerns (same idiom as the --force-with-lease check).
+DEC=plugins/ravenclaude-core/scripts/thing-decision.py
 _has_concern() { case " $(_concerns "$1" "$2") " in *" $3 "*) return 0;; *) return 1;; esac; }
-# FN — the shape MUST match its concern:
+_classify() {
+  python3 -c "import importlib.util,sys
+s=importlib.util.spec_from_file_location('d','$DEC');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+print(m.classify(sys.argv[1]) or 'None')" "$1"
+}
+_fires_in_prod() { [ "$(_classify "$1")" = "$2" ] && _has_concern "$1" "$2" "$3"; }
+# Routing guards — a destructive form must reach its MUTATE category; the safe
+# lowercase / plain / path forms must route as expected:
+for spec in \
+  "git branch -D main|shell_local_mutate" \
+  "git branch --delete --force main|shell_local_mutate" \
+  "git branch -d main|shell_readonly" \
+  "git branch|shell_readonly" \
+  "/bin/rm foo.txt|shell_local_mutate"; do
+  IFS='|' read -r cmd want <<EOF
+$spec
+EOF
+  rc=0; [ "$(_classify "$cmd")" = "$want" ] || rc=1
+  gate "classify routing: '$cmd' -> $want" must_pass "$rc"
+done
+# FN — the dangerous shape MUST classify into its category AND fire its concern:
 for spec in \
   "rm foo.txt|shell_local_mutate|slm.rm-without-trash" \
+  "/bin/rm foo.txt|shell_local_mutate|slm.rm-without-trash" \
   "git reset --hard HEAD~1|shell_local_mutate|slm.git-reset-hard-uncommitted" \
   "git branch -D main|shell_local_mutate|slm.delete-protected-branch-locally" \
-  "chmod -R 777 .|shell_local_mutate|slm.chmod-broad" \
-  "npm install -g typescript|shell_package_install|spi.global-install" \
-  "npm install express|shell_package_install|spi.no-pinned-version" \
-  "npm install /tmp/foo.tgz|shell_package_install|spi.local-tarball-from-tmp" \
+  "git branch --delete --force main|shell_local_mutate|slm.delete-protected-branch-locally" \
   "git branch master -D|shell_local_mutate|slm.delete-protected-branch-locally" \
+  "chmod -R 777 .|shell_local_mutate|slm.chmod-broad" \
   "chmod -R 0777 .|shell_local_mutate|slm.chmod-broad" \
   "chmod -R 0000 .|shell_local_mutate|slm.chmod-broad" \
-  "npm install @scope/pkg|shell_package_install|spi.no-pinned-version" \
-  "pnpm add @types/node|shell_package_install|spi.no-pinned-version" \
+  "chmod -R a+rwx .|shell_local_mutate|slm.chmod-broad" \
+  "chmod -R o+w .|shell_local_mutate|slm.chmod-broad" \
+  "npm install -g typescript|shell_package_install|spi.global-install" \
+  "npm install --location=global typescript|shell_package_install|spi.global-install" \
   "cargo install ripgrep|shell_package_install|spi.global-install" \
   "pipx install black|shell_package_install|spi.global-install" \
   "gem install rails|shell_package_install|spi.global-install" \
   "uv pip install --system flask|shell_package_install|spi.global-install" \
+  "bun add -g foo|shell_package_install|spi.global-install" \
+  "npm install express|shell_package_install|spi.no-pinned-version" \
+  "npm install @scope/pkg|shell_package_install|spi.no-pinned-version" \
+  "pnpm add @types/node|shell_package_install|spi.no-pinned-version" \
+  "bun add express|shell_package_install|spi.no-pinned-version" \
+  "npm install /tmp/foo.tgz|shell_package_install|spi.local-tarball-from-tmp" \
   "npm install /dev/shm/x.tgz|shell_package_install|spi.local-tarball-from-tmp"; do
   IFS='|' read -r cmd cat cid <<EOF
 $spec
 EOF
-  rc=0; _has_concern "$cmd" "$cat" "$cid" || rc=1
-  gate "slm/spi FN: '$cmd' matches $cid" must_pass "$rc"
+  rc=0; _fires_in_prod "$cmd" "$cat" "$cid" || rc=1
+  gate "slm/spi FN (prod): '$cmd' -> $cat fires $cid" must_pass "$rc"
 done
-# FP — the benign form must NOT match the concern:
+# FP — the benign form must NOT match the concern (regex-level):
 for spec in \
   "charm install widget|shell_local_mutate|slm.rm-without-trash" \
   "npm ci|shell_local_mutate|slm.rm-without-trash" \
   "git branch -d feature|shell_local_mutate|slm.delete-protected-branch-locally" \
+  "git branch -d main|shell_local_mutate|slm.delete-protected-branch-locally" \
   "git branch -D feature/main|shell_local_mutate|slm.delete-protected-branch-locally" \
   "git branch -D main-backup|shell_local_mutate|slm.delete-protected-branch-locally" \
   "chmod -R 0644 .|shell_local_mutate|slm.chmod-broad" \
+  "chmod -R u+x .|shell_local_mutate|slm.chmod-broad" \
+  "chmod -R a+x .|shell_local_mutate|slm.chmod-broad" \
+  "chmod -R ug+w .|shell_local_mutate|slm.chmod-broad" \
   "npm install @scope/pkg@1.0.0|shell_package_install|spi.no-pinned-version" \
   "npm install lodash@4.17.21|shell_package_install|spi.no-pinned-version" \
   "pip install -r requirements.txt|shell_package_install|spi.no-pinned-version"; do

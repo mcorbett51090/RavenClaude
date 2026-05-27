@@ -430,14 +430,15 @@ categories:
         EDIT to a move-to-trash equivalent (gio trash, trash, Windows Recycle
         Bin). DENY if no trash command is available on the platform.
       # Matches `rm` as a leading command token (after start / a shell separator /
-      # a subshell paren), requiring at least one argument so a bare `rm` typo and
-      # `npm`/`charm`/`rm-something` substrings don't match. Whether the target is
-      # under version control is the seat's call (high severity routes it there);
-      # the trigger only detects the rm shape. `rm -rf` is also caught by the
-      # settings security floor before it reaches the panel.
+      # a subshell paren), with an OPTIONAL leading path so `/bin/rm` and
+      # `/usr/bin/rm` are caught too, requiring at least one argument so a bare
+      # `rm` typo and `npm`/`charm`/`rm-something` substrings don't match. Whether
+      # the target is under version control is the seat's call (high severity
+      # routes it there); the trigger only detects the rm shape. `rm -rf` is also
+      # caught by the settings security floor before it reaches the panel.
       triggers:
         regex:
-          - '(?:^|[\s;&|(])rm\s+\S'
+          - '(?:^|[\s;&|(])(?:[\w./-]*/)?rm\s+\S'
     - id: slm.git-reset-hard-uncommitted
       name: git reset --hard with uncommitted changes in worktree
       severity: high
@@ -481,32 +482,40 @@ categories:
       description: Deletes the local main; doesn't affect remote, but breaks workflow.
       resolution: DENY.
       # Force-delete (`-D`, or `--delete --force` in either order) of a protected
-      # local branch, with the flag before or after the branch name. Plain `-d`
-      # (only deletes merged branches) is intentionally NOT matched — it's safe.
+      # local branch, with the flag before or after the branch name. `-D` is
+      # matched case-sensitively via (?-i:-D) — the catalog evaluator compiles
+      # every trigger with re.IGNORECASE, so a plain `\s-D` would also match the
+      # SAFE lowercase `-d` (merged-only delete). (?-i:…) forces case-sensitivity
+      # for that token only, so `git branch -d main` is correctly NOT matched.
       # The branch token is bounded by (?<![\w./-]) … (?![\w./-]) so it is the
       # WHOLE name `main`/`master`, not a substring of `feature/main` or
       # `main-backup` (those are safe feature branches, never matched).
       triggers:
         regex:
-          - 'git\s+branch\b[^|&;]*\s-D\b[^|&;]*(?<![\w./-])(?:main|master)(?![\w./-])'
-          - 'git\s+branch\b[^|&;]*(?<![\w./-])(?:main|master)(?![\w./-])[^|&;]*\s-D\b'
+          - 'git\s+branch\b[^|&;]*\s(?-i:-D)\b[^|&;]*(?<![\w./-])(?:main|master)(?![\w./-])'
+          - 'git\s+branch\b[^|&;]*(?<![\w./-])(?:main|master)(?![\w./-])[^|&;]*\s(?-i:-D)\b'
           - 'git\s+branch\b[^|&;]*--delete\b[^|&;]*--force\b[^|&;]*(?<![\w./-])(?:main|master)(?![\w./-])'
     - id: slm.chmod-broad
       name: chmod -R 777 or chmod -R 000 on the project tree
       severity: high
       description: 777 is caught by security_deny; the 000 case is the inverse footgun (locks the user out).
       resolution: DENY.
-      # Recursive chmod to a broad mode (777 = world-writable, 000 = lock-out), in
-      # either flag order. The mode matcher (?<![0-7])0?(?:000|777)(?![0-7])
-      # accepts the 3- and 4-digit octal forms (777, 0777, 000, 0000) without
-      # firing on a benign mode like 0644. Non-recursive single-file chmod is
-      # left to the seat.
+      # Recursive chmod to a broad mode, in either flag order. The numeric matcher
+      # (?<![0-7])0?(?:000|777)(?![0-7]) accepts the 3- and 4-digit octal forms
+      # (777, 0777, 000, 0000) without firing on a benign mode like 0644. The
+      # symbolic matcher (?<![ugoa])(?:[ugoa]*[oa][ugoa]*|)[+=][rwxXst]*w catches
+      # the symbolic equivalents that grant WRITE to other/all (`a+rwx`, `a=rwx`,
+      # `o+w`, `a+w`, bare `+w`) while leaving owner/group-only grants (`u+x`,
+      # `ug+w`) and execute-only-to-all (`a+x`) alone. Non-recursive single-file
+      # chmod is left to the seat.
       triggers:
         regex:
           - 'chmod\b[^|&;]*\s-[A-Za-z]*R[A-Za-z]*\b[^|&;]*(?<![0-7])0?(?:000|777)(?![0-7])'
           - 'chmod\b[^|&;]*--recursive\b[^|&;]*(?<![0-7])0?(?:000|777)(?![0-7])'
           - 'chmod\b[^|&;]*(?<![0-7])0?(?:000|777)(?![0-7])[^|&;]*\s-[A-Za-z]*R[A-Za-z]*\b'
           - 'chmod\b[^|&;]*(?<![0-7])0?(?:000|777)(?![0-7])[^|&;]*--recursive\b'
+          - 'chmod\b[^|&;]*\s-[A-Za-z]*R[A-Za-z]*\b[^|&;]*(?<![ugoa])(?:[ugoa]*[oa][ugoa]*|)[+=][rwxXst]*w'
+          - 'chmod\b[^|&;]*--recursive\b[^|&;]*(?<![ugoa])(?:[ugoa]*[oa][ugoa]*|)[+=][rwxXst]*w'
   shell_remote_mutate:
     - id: srm.push-to-protected-branch
       name: git push origin main / master (direct, not PR-shaped)
@@ -650,17 +659,17 @@ categories:
       # match.
       triggers:
         regex:
-          - '\b(?:npm|pnpm|yarn)\s+(?:install|i|add)\s+(?:(?![-@])[^\s@]+|@[^\s@/]+/[^\s@]+)(?:\s|$)'
+          - '\b(?:npm|pnpm|yarn|bun)\s+(?:install|i|add)\s+(?:(?![-@])[^\s@]+|@[^\s@/]+/[^\s@]+)(?:\s|$)'
           - '\bpip3?\s+install\s+(?![-.])[^\s=<>~!]+(?:\s|$)'
     - id: spi.global-install
       name: npm -g / yarn global / pip --user / cargo·pipx·gem·go install / uv --system
       severity: high
       description: >-
         Modifies global state; persists across sessions; hard to audit. Covers
-        npm/pnpm `-g`/`--global`, `yarn global add`, `pip install --user`,
-        `cargo install`, `pipx install`, `gem install`, `go install`, and
-        `uv pip install --system` — the package managers whose install is global
-        by default need no extra flag to qualify.
+        npm/pnpm/bun `-g`/`--global`/`--location=global`, `yarn global add`,
+        `pip install --user`, `cargo install`, `pipx install`, `gem install`,
+        `go install`, and `uv pip install --system` — the package managers whose
+        install is global by default need no extra flag to qualify.
       resolution: EDIT to a project-scoped install. DENY for -g unless the user explicitly toggled "I want global installs".
       # Global / user-scoped / forced installs across the common package managers.
       # cargo/pipx/gem/go install are global by default, so the bare verb matches
@@ -668,7 +677,7 @@ categories:
       # to the panel (not a pre-LLM deny), so erring inclusive just convenes review.
       triggers:
         regex:
-          - '\b(?:npm|pnpm)\s+(?:install|i|add)\b[^|&;]*\s(?:-g\b|--global\b)'
+          - '\b(?:npm|pnpm|bun)\s+(?:install|i|add)\b[^|&;]*\s(?:-g\b|--global\b|--location[= ]global\b)'
           - '\byarn\s+global\s+add\b'
           - '\bpip3?\s+install\b[^|&;]*\s--user\b'
           - '\bcargo\s+install\b'

@@ -182,6 +182,19 @@ def classify(command: str) -> str | None:
             matched = lead == prefix
         if matched and len(prefix) > best_len:
             best_cat, best_len = category, len(prefix)
+    # Flag-aware tribunal override (routing only — does NOT touch the permission
+    # EMISSIONS table). EMISSIONS lumps every `git branch` form into
+    # shell_readonly, but a FORCE delete (`-D`, or `--delete` together with
+    # `--force`) is a destructive local mutation, not a read. Match `-D`
+    # case-sensitively so `-d` — the safe merged-only delete — is NOT re-routed.
+    # Without this, slm.delete-protected-branch-locally is unreachable: the
+    # command auto-allows as a "read" before its concern can ever fire.
+    if best_cat == "shell_readonly" and re.match(r"git\s+branch\b", lead):
+        force_delete = re.search(r"(?:^|\s)-[A-Za-z]*D\b", lead) or (
+            re.search(r"(?:^|\s)--delete\b", lead) and re.search(r"(?:^|\s)--force\b", lead)
+        )
+        if force_delete:
+            best_cat = "shell_local_mutate"
     return best_cat
 
 
