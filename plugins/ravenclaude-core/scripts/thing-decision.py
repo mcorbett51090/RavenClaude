@@ -219,6 +219,26 @@ def classify(command: str) -> str | None:
         )
         if force_delete:
             best_cat = "shell_local_mutate"
+    # Flag-aware network-write override (routing only — does NOT touch EMISSIONS,
+    # same pattern as the git branch -D override above). The EMISSIONS prefixes
+    # catch explicit `curl -X POST` / `gh api POST`, but curl/wget also write via
+    # data/upload flags (implicit POST) and `=`-attached method flags the space-
+    # delimited prefix matcher can't see — those fall through to network_read
+    # (curl/wget:*) or None and would auto-allow as a "read" before a write concern
+    # can fire. A curl/wget/gh command carrying a write signal is network_write.
+    if best_cat in ("network_read", None) and re.match(r"(?:curl|wget|gh)\b", lead):
+        has_method = re.search(
+            r"(?:^|\s)(?:-X|--request|--method)[=\s]+(?:POST|PUT|PATCH|DELETE)\b", lead, re.I
+        )
+        curl_body = re.match(r"curl\b", lead) and re.search(
+            r"(?:^|\s)(?:-[dFT]\b|--(?:data(?:-ascii|-binary|-raw|-urlencode)?|form|upload-file)\b)",
+            lead,
+        )
+        wget_body = re.match(r"wget\b", lead) and re.search(
+            r"(?:^|\s)--(?:post-data|post-file|body-data|body-file)\b", lead
+        )
+        if has_method or curl_body or wget_body:
+            best_cat = "network_write"
     return best_cat
 
 

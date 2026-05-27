@@ -919,15 +919,35 @@ categories:
         regex:
           - '(?i)https?://\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?(?:[/?#]|$)'
           - '(?i)https?://(?:[^/\n]*\.)?xn--'
+  # network_write went LIVE in v0.40.0 (Track B). Unlike the file/read/MCP tool
+  # shapes, network_write is reached via BASH (curl/wget/gh) — reviewed_text is the
+  # COMMAND string, so it is ALLOW/EDIT/DENY (a seat rewrite is re-validated, like
+  # the shell categories) and triggers are command regexes. classify() carries a
+  # flag-aware override that re-routes implicit-POST (`curl -d`, `wget --post-data`,
+  # `gh api -X POST`) into network_write (else they'd auto-allow as a "read").
+  # Base tier `medium` — always convenes a panel. The host/body/cost/tenant
+  # allowlist comparisons need live state, so those concerns are seat-judged.
   network_write:
     - id: nw.webhook-to-unallowed-host
       name: POST to a host not in the allowlist
       severity: high
       description: Webhooks are a common exfiltration channel.
       resolution: DENY for unknown hosts. ALLOW only for hosts on the project's declared allowlist.
+      # The webhook SHAPE (known provider endpoints) is detectable; "unallowed host"
+      # is the seat's call against the project allowlist.
+      triggers:
+        regex:
+          - '(?i)https://hooks\.slack\.com/services/'
+          - '(?i)https://discord(?:app)?\.com/api/webhooks/'
+          - '(?i)https://[^/\s]+\.webhook\.office\.com/'
+          - '(?i)https?://[^\s]+/webhooks?(?:/|\b)'
     - id: nw.body-contains-secret
       name: Request body contains secret-shaped strings
       severity: critical
+      # judgment_only: a secret-in-body match is presence-of-substring and would
+      # over-block (`-d 'token_type=bearer'`); the seat judges genuine secret
+      # material, and the egress secret scan in thing-seat.sh backstops it.
+      judgment_only: true
       description: Exfiltration via a legitimate-looking POST.
       resolution: DENY.
     - id: nw.delete-shared-resource
@@ -935,19 +955,35 @@ categories:
       severity: critical
       description: Often irreversible.
       resolution: DENY unless the resource is in a sandbox path (s3://*-sandbox/, repo with -sandbox suffix).
+      # The DELETE method is detectable on the command; "shared / not a sandbox" is
+      # the seat's call.
+      triggers:
+        regex:
+          - '(?i)(?:-X|--request|--method)[=\s]+DELETE\b'
+          - '(?i)\bgh\s+api\s+(?:-X\s+|--method[=\s]+)?DELETE\b'
     - id: nw.high-cost-api
       name: POST to an API known to cost real money (Stripe charge create, very-high-volume completions)
       severity: high
+      # judgment_only: "known to cost real money" needs an API-cost catalog, not a
+      # regex; the seat decides (and may EDIT in an idempotency-key).
+      judgment_only: true
       description: A runaway loop can rack up real billing.
-      resolution: EDIT to add an idempotency-key. DENY for charge-creation calls outside explicit user intent.
+      resolution: Add an idempotency-key. DENY for charge-creation calls outside explicit user intent.
     - id: nw.idempotency-missing
       name: PUT / PATCH without an idempotency mechanism for a non-idempotent API
       severity: medium
+      # judgment_only: this is an ABSENCE (no idempotency-key header) on a
+      # non-idempotent API — not a positive regex, and "non-idempotent" needs API
+      # knowledge. The seat decides; it may EDIT in a key.
+      judgment_only: true
       description: Retry storms cause duplicate side effects.
-      resolution: EDIT to add an idempotency-key header. ALLOW with banner otherwise.
+      resolution: Add an idempotency-key header. ALLOW with banner otherwise.
     - id: nw.cross-tenant-write
       name: API call targets a tenant / project not declared in environment-context
       severity: high
+      # judgment_only: "declared tenant/project" needs .ravenclaude/environment-context.md,
+      # not a static regex.
+      judgment_only: true
       description: Mistargeted writes (wrong account, wrong project).
       resolution: DENY if the target doesn't match .ravenclaude/environment-context.md.
   # mcp_tools went LIVE in v0.39.0 (Track B Phases 2-4), ALLOW/DENY-only.
