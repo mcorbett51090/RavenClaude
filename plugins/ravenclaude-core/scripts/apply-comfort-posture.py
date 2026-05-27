@@ -207,6 +207,7 @@ EMISSIONS: dict[str, list[str]] = {
     # ── Network categories ──────────────────────────────────────
     "network_read": [
         "WebFetch",
+        "WebSearch",
         "Bash(curl:*)",
         "Bash(wget:*)",
     ],
