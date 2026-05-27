@@ -62,7 +62,29 @@ wire_dashboard_launchers() {
   mkdir -p "$project/.ravenclaude"
   cp "$tpl/dashboard.sh" "$project/.ravenclaude/dashboard.sh"
   chmod +x "$project/.ravenclaude/dashboard.sh"
-  cp "$tpl/README.md" "$project/.ravenclaude/README.md"
+
+  # README carries a clickable dashboard link computed for THIS environment: the live
+  # Codespace-forwarded URL when in a Codespace, else localhost (port 8000 = the default).
+  local dash_url
+  if [ -n "${CODESPACE_NAME:-}" ]; then
+    dash_url="https://${CODESPACE_NAME}-8000.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}/dashboard.html"
+  else
+    dash_url="http://127.0.0.1:8000/dashboard.html"
+  fi
+  python3 - "$tpl/README.md" "$project/.ravenclaude/README.md" "$dash_url" <<'PY'
+import sys
+src, dest, url = sys.argv[1], sys.argv[2], sys.argv[3]
+open(dest, "w", encoding="utf-8").write(
+    open(src, encoding="utf-8").read().replace("__RC_DASHBOARD_URL__", url)
+)
+PY
+  # The link is environment-specific (a Codespace name changes per rebuild), so keep the
+  # generated README out of git to avoid churn — setup regenerates it fresh each time.
+  local gi="$project/.gitignore"
+  if ! { [ -f "$gi" ] && grep -qxF ".ravenclaude/README.md" "$gi"; }; then
+    printf '%s\n' ".ravenclaude/README.md" >> "$gi"
+  fi
+
   mkdir -p "$project/.vscode"
   if [ -f "$project/.vscode/tasks.json" ]; then
     note "left existing .vscode/tasks.json alone — add the RavenClaude task from $tpl/tasks.json by hand"
