@@ -5130,6 +5130,21 @@ _JS = r"""
     void card.offsetWidth; /* restart the animation */
     card.classList.add("rc-flash");
   }
+  /* ── Review log (saga) tab state ─────────────────────────────────────
+   * Declared BEFORE applyHash() is called below. A deep-link / reload on
+   * #/saga makes the initial applyHash() call reach loadSaga(), which reads
+   * this state; if it were still in the temporal dead zone the saga tab
+   * would throw ("Cannot access 'sagaLoaded' before initialization") and
+   * never render. */
+  let sagaLoaded = false;
+  let sagaRecords = [];
+
+  const sagaContent  = document.getElementById("saga-content");
+  const sagaCount    = document.getElementById("saga-count");
+  const sagaVerdFil  = document.getElementById("saga-verdict-filter");
+  const sagaCatFil   = document.getElementById("saga-cat-filter");
+  const sagaRefBtn   = document.getElementById("saga-refresh-btn");
+
   function applyHash() {
     const seg = (location.hash || "#/settings").replace(/^#\//, "").split("/");
     const tab = validTabs.includes(seg[0]) ? seg[0] : "settings";
@@ -5152,14 +5167,7 @@ _JS = r"""
   applyHash();
 
   /* ── Review log (saga) tab ──────────────────────────────────────── */
-  let sagaLoaded = false;
-  let sagaRecords = [];
-
-  const sagaContent  = document.getElementById("saga-content");
-  const sagaCount    = document.getElementById("saga-count");
-  const sagaVerdFil  = document.getElementById("saga-verdict-filter");
-  const sagaCatFil   = document.getElementById("saga-cat-filter");
-  const sagaRefBtn   = document.getElementById("saga-refresh-btn");
+  /* State + element refs are declared above applyHash() (see the TDZ note). */
 
   /* Safe HTML-escape for every untrusted string before it touches innerHTML.
    * All user/tool data from /__saga must pass through esc() before injection.
