@@ -5,5 +5,14 @@
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
   "postCreateCommand": "bash .devcontainer/ravenclaude-post-create.sh",
-  "remoteUser": "codespace"
+  "remoteUser": "codespace",
+  // Auto-open the dashboard in the browser when the server starts on port 8000.
+  // serve-dashboards.py binds 0.0.0.0 in a Codespace so the forwarded port is
+  // reachable; onAutoForward: openBrowser opens it in a real tab (not Simple Browser).
+  "portsAttributes": {
+    "8000": {
+      "label": "RavenClaude dashboard",
+      "onAutoForward": "openBrowser"
+    }
+  }
 }

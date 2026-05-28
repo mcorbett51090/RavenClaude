@@ -43,10 +43,12 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import errno
 import json
 import os
 import subprocess
 import sys
+import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -136,6 +138,16 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         # NOTE: static GETs are intentionally ungated. Any NEW data-returning GET
         # endpoint added here MUST call self._local_request_ok() first (as
         # _handle_read does) — do not let it ride the static path.
+        if self.path in ("/", ""):
+            # Redirect bare root to the dashboard page so VS Code's
+            # onAutoForward: openBrowser lands on the dashboard, not a directory
+            # listing.  The target path is injected by main() after it resolves
+            # the actual dash_path.
+            target = getattr(self.server, "_dash_path", "/plugins/ravenclaude-core/dashboard.html")
+            self.send_response(302)
+            self.send_header("Location", target)
+            self.end_headers()
+            return
         if self.path.startswith("/__read"):
             self._handle_read()
             return
@@ -383,6 +395,12 @@ def main() -> int:
         default=None,
         help="bind address; auto 0.0.0.0 in a Codespace (so the forwarded port is reachable), else 127.0.0.1; pass 0.0.0.0 to accept from LAN. An explicit value always wins.",
     )
+    p.add_argument(
+        "--no-open",
+        action="store_true",
+        default=False,
+        help="skip auto-opening the browser on start (auto-open is ON by default for local/desktop runs)",
+    )
     args = p.parse_args()
 
     codespace = os.environ.get("CODESPACE_NAME")
@@ -393,24 +411,47 @@ def main() -> int:
     bind = args.bind or ("0.0.0.0" if codespace else "127.0.0.1")
 
     os.chdir(REPO_ROOT)
-    server = ThreadingHTTPServer((bind, args.port), DashboardHandler)
+
+    # Stable port: try the requested port and up to 5 successive ones to find a
+    # free socket.  This avoids "address already in use" errors when the server
+    # is relaunched quickly or another process holds the default port.
+    server = None
+    actual_port = args.port
+    for candidate in range(args.port, args.port + 6):
+        try:
+            server = ThreadingHTTPServer((bind, candidate), DashboardHandler)
+            actual_port = candidate
+            break
+        except OSError as exc:
+            if exc.errno == errno.EADDRINUSE:
+                continue
+            raise
+    if server is None:
+        sys.exit(
+            f"serve-dashboards: could not bind on ports {args.port}–{args.port + 5} "
+            f"(all in use). Free one of those ports and retry."
+        )
 
     # Build the Origin/Host allow-lists the CSRF/rebinding guard checks against.
     global _ALLOWED_HOSTS, _ALLOWED_ORIGINS
-    _ALLOWED_HOSTS = {f"127.0.0.1:{args.port}", f"localhost:{args.port}", "127.0.0.1", "localhost"}
-    _ALLOWED_ORIGINS = {f"http://127.0.0.1:{args.port}", f"http://localhost:{args.port}"}
+    _ALLOWED_HOSTS = {f"127.0.0.1:{actual_port}", f"localhost:{actual_port}", "127.0.0.1", "localhost"}
+    _ALLOWED_ORIGINS = {f"http://127.0.0.1:{actual_port}", f"http://localhost:{actual_port}"}
     if codespace:
-        _fwd = f"{codespace}-{args.port}.{domain}"
+        _fwd = f"{codespace}-{actual_port}.{domain}"
         _ALLOWED_HOSTS.add(_fwd)
         _ALLOWED_ORIGINS.add(f"https://{_fwd}")
     if bind == "0.0.0.0":
         _ip = _lan_ip()
         if _ip:
-            _ALLOWED_HOSTS.add(f"{_ip}:{args.port}")
-            _ALLOWED_ORIGINS.add(f"http://{_ip}:{args.port}")
+            _ALLOWED_HOSTS.add(f"{_ip}:{actual_port}")
+            _ALLOWED_ORIGINS.add(f"http://{_ip}:{actual_port}")
 
     dash_path = "/plugins/ravenclaude-core/dashboard.html"
-    print(f"serve-dashboards: serving {REPO_ROOT} at http://127.0.0.1:{args.port}/  (bound to {bind})")
+    # Attach dash_path to the server so do_GET's root redirect can read it
+    # without a global variable.
+    server._dash_path = dash_path  # type: ignore[attr-defined]
+
+    print(f"serve-dashboards: serving {REPO_ROOT} at http://127.0.0.1:{actual_port}/  (bound to {bind})")
     print(f"  POST /__save  - writes a whitelisted file under .ravenclaude/")
     print(f"  allow-list   - {sorted(ALLOWED_TARGETS)}")
     print(f"  POST /__run   - runs an allow-listed ravenclaude action (Install/Update buttons)")
@@ -423,10 +464,11 @@ def main() -> int:
     # phone, so it gets no QR. The QR lets you open the live dashboard on a phone
     # — where "Save & apply" actually works, because it POSTs back to THIS server
     # (unlike the static README/Pages link, which 405s on the save POST).
+    local_url = f"http://127.0.0.1:{actual_port}{dash_path}"
     phone_url = None
     security_note = None
     if codespace:
-        phone_url = f"https://{codespace}-{args.port}.{domain}{dash_path}"
+        phone_url = f"https://{codespace}-{actual_port}.{domain}{dash_path}"
         print("\n  Codespace forwarded URL (open THIS on your phone — not the README/Pages link):")
         print(f"  {phone_url}")
         security_note = (
@@ -436,7 +478,7 @@ def main() -> int:
     elif bind == "0.0.0.0":
         lan_ip = _lan_ip()
         if lan_ip:
-            phone_url = f"http://{lan_ip}:{args.port}{dash_path}"
+            phone_url = f"http://{lan_ip}:{actual_port}{dash_path}"
             print("\n  LAN URL (reachable from a phone on the SAME Wi-Fi):")
             print(f"  {phone_url}")
             security_note = (
@@ -452,6 +494,17 @@ def main() -> int:
             print("  (For a scannable QR code here, run: pip install qrcode)")
         if security_note:
             print(security_note)
+
+    # Auto-open the browser on local/desktop runs.  In a Codespace the container
+    # has no display, and VS Code's onAutoForward: openBrowser (wired in
+    # devcontainer.json) handles the open via the forwarded port — so we skip it
+    # there.  The --no-open flag lets scripts/CI suppress this behaviour.
+    if not args.no_open and not codespace:
+        print(f"\n  Opening your browser at {local_url} …")
+        try:
+            webbrowser.open(local_url)
+        except Exception:
+            pass  # silently fall back to the printed URL
 
     print("\n  Ctrl+C to stop.")
     sys.stdout.flush()  # ensure the banner (incl. the QR) appears even when piped/redirected
