@@ -1,12 +1,18 @@
 # Session log — pick up where you left off
 
-A rolling log of the **last 3 prompt/response pairs**, newest first. When a new
-turn happens, the newest pair is prepended and the oldest is dropped so only 3
-remain. Committed directly to `main` (no PR) so it survives Codespace rebuilds
-and is always findable regardless of which branch work is happening on.
+A rolling log to **pick up where you left off**, newest first. **Retention rule (updated 2026-05-28):** keep an entry if it is among the **last 10 prompt/response pairs OR occurred within the last 30 minutes** — whichever keeps *more* (a union). So a rapid burst of >10 turns inside 30 minutes is fully retained, and a slow session always keeps at least the last 10. Each turn, prepend the newest pair; drop an entry only once it is **both** beyond the 10 most-recent **and** older than 30 minutes. Committed directly to `main` (no PR) so it survives Codespace rebuilds and is always findable regardless of which branch work is happening on.
 
-> Maintained by Claude each turn. "Response" is a concise summary of what was
-> done plus the current state and next step — not a verbatim transcript.
+> Maintained by Claude each turn. **Every entry begins with an ISO-8601 timestamp** (`YYYY-MM-DDThh:mmZ`) so the 30-minute window is computable; the heading then carries a short slug. "Response" is a concise summary of what was done plus the current state and next step — not a verbatim transcript.
+
+---
+
+## 0 — 2026-05-28T05:00Z · Overnight build loop → 3 new plugins + knowledge deepening (PR #119 open)
+
+**Prompt(s):** "analyze the repo, determine the most useful next addition, research, plan, expert-review, build" → "find the next most valuable thing and run the same process, loop" → "3 and 4" → "Pp and Web, especially SEO" → "keep going on the same theme" + "next: design language / Fluent + React" → "1) build out the Claude engineer 2) make the session-log rolling 10 / last-30-min 3) auto-route yes/no prompts through review".
+
+**Response.** A multi-round autonomous loop, all on branch `claude/repo-analysis-build-plan-1CWTV` (**draft PR #119**, nothing merged to `main`). Shipped 3 new plugins — **`microsoft-fabric`** (7 agents, 9-doc KB), **`claude-app-engineering`** (6 agents, now **13-doc** KB after task 1), **`azure-cloud`** (7 agents, 10-doc KB) — each from a researched + two-reviewer-approved plan in `docs/*-plugin-analysis.md`, with reciprocal cross-plugin seams. Then knowledge deepening: web-design (modern stacks/CSS/web-platform/**AEO-GEO**/design-systems/**Fluent-UI-v9** + a new `fluent-react-implementation` skill → v0.6.0), power-platform (copilot-agents / managed-environments / power-pages → v0.13.4), fabric (data-science/AI), azure (AI Foundry). Verified all 11 plugins/74 agents already carry full scenario frontmatter (corrected the stale status table). Catalog `metadata.version` → 0.29.0. **Every push: audit-gates 257/0** + prettier/frontmatter/marketplace-claims/layout clean + repo-guide fresh.
+
+**Current state / next step:** PR #119 open (draft), CI layout-gate green each push. **Task 2 (this entry's process change) done.** **Next: task 3** — implement auto-routing of yes/no prompts through the decision-review tribunal so Matt stops answering rule-derivable ones. Flagged-for-Matt strategic calls still open: `salesforce` (roadmap-deferred) and a `microsoft-365-copilot` plugin.
 
 ---
 

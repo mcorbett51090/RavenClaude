@@ -268,6 +268,18 @@ python3 -c "import json;p='plugins/finance/.claude-plugin/plugin.json';d=json.lo
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (description over 1024)" must_fail "$rc"
 cp -p "$TMP/plugins_finance_.claude-plugin_plugin.json.bak" plugins/finance/.claude-plugin/plugin.json
+# must_fail (d): a plugin missing from the architecture.md Status table must be detected.
+backup docs/architecture.md
+python3 -c "p='docs/architecture.md';s=open(p).read();open(p,'w').write(s.replace('](../plugins/finance/)','](../plugins/finance-REMOVED/)'))"
+rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
+gate "marketplace-claims (plugin missing from architecture.md)" must_fail "$rc"
+cp -p "$TMP/docs_architecture.md.bak" docs/architecture.md
+# must_fail (e): a wrong README "ships **N plugins**" count must be detected.
+backup README.md
+python3 -c "import re;p='README.md';s=open(p).read();open(p,'w').write(re.sub(r'ships \*\*\d+ plugins\*\*','ships **999 plugins**',s,count=1))"
+rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
+gate "marketplace-claims (wrong README plugin count)" must_fail "$rc"
+cp -p "$TMP/README.md.bak" README.md
 # must_pass: clean tree.
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (clean tree)" must_pass "$rc"
@@ -601,6 +613,13 @@ mkdir -p "$FM_BAD"
 printf -- '---\nname: bad\ndescription: foo: bar baz\n---\nbody\n' > "$FM_BAD/SKILL.md"
 rc=0; python3 scripts/check-frontmatter.py --root "$TMP/fm-bad" >/dev/null 2>&1 || rc=$?
 gate "frontmatter (unquoted colon-space)" must_fail "$rc"
+# must_fail (b): an agent missing the scenario-authoring schema must be detected,
+# even with a valid description. Guards the AGENTS.md step-7 contract.
+FM_AGENT="$TMP/fm-bad-agent/plugins/x/agents"
+mkdir -p "$FM_AGENT"
+printf -- '---\nname: noschema\ndescription: A valid description but no scenario schema.\n---\nbody\n' > "$FM_AGENT/noschema.md"
+rc=0; python3 scripts/check-frontmatter.py --root "$TMP/fm-bad-agent" >/dev/null 2>&1 || rc=$?
+gate "frontmatter (agent missing scenario schema)" must_fail "$rc"
 rc=0; python3 scripts/check-frontmatter.py >/dev/null 2>&1 || rc=$?
 gate "frontmatter (real tree)" must_pass "$rc"
 
@@ -1553,6 +1572,138 @@ result = m._screen_always(cmd)
 print('true' if result.get('hard_rule_deny') else 'false')" "$FORCE_PUSH_CMD")"
 [[ "$_hr21" == "true" ]] || rc=1
 gate "exempt T21: force-push WITH exemption -> hard_rule_deny STILL true (floor unaffected)" must_pass "$rc"
+
+echo
+echo "── Gate 29: markdown relative-link resolution (check-md-links.py) ──────────"
+# must_fail: an unresolvable relative link in a scanned doc must be detected.
+backup docs/architecture.md
+printf '\n[audit fixture broken link](./this-target-does-not-exist-audit.md)\n' >> docs/architecture.md
+rc=0; python3 scripts/check-md-links.py >/dev/null 2>&1 || rc=$?
+gate "md-links (unresolvable relative link)" must_fail "$rc"
+cp -p "$TMP/docs_architecture.md.bak" docs/architecture.md
+# must_pass: clean tree — every relative link resolves.
+rc=0; python3 scripts/check-md-links.py >/dev/null 2>&1 || rc=$?
+gate "md-links (clean tree)" must_pass "$rc"
+
+echo
+echo "── Gate 30: domain anti-pattern hooks (one fire + no-fire fixture each) ────"
+# Each domain plugin ships one advisory PreToolUse(file) hook. The contract is
+# uniform: a flagged anti-pattern emits a message (and/or a non-zero exit under
+# STRICT); a clean file is silent and exits 0. We prove both directions per hook.
+# "fires" = combined stdout+stderr non-empty OR non-zero exit; "silent" = empty
+# output AND exit 0. Hooks take the target file path as $1 (the hooks.json wiring
+# passes the tool's file_path through).
+DH="$TMP/domain-hooks"
+mkdir -p "$DH/models" "$DH/src"
+
+_hook_run() { # $1=hook $2=file -> sets HOOK_OUT, HOOK_RC
+  HOOK_RC=0
+  bash "$1" "$2" >"$TMP/dh-out" 2>&1 || HOOK_RC=$?
+  HOOK_OUT="$(cat "$TMP/dh-out")"
+}
+assert_hook_fires() { # $1=label $2=hook $3=file
+  _hook_run "$2" "$3"
+  local rc=0
+  { [[ -n "$HOOK_OUT" ]] || [[ "$HOOK_RC" -ne 0 ]]; } || rc=1
+  gate "$1 (fires on anti-pattern)" must_pass "$rc"
+}
+assert_hook_silent() { # $1=label $2=hook $3=file
+  _hook_run "$2" "$3"
+  local rc=0
+  { [[ -z "$HOOK_OUT" ]] && [[ "$HOOK_RC" -eq 0 ]]; } || rc=1
+  gate "$1 (silent on clean)" must_pass "$rc"
+}
+
+# 1. power-platform — default publisher prefix in a customizations XML.
+printf '<ImportExportXml><CustomizationPrefix>new</CustomizationPrefix></ImportExportXml>\n' > "$DH/bad-customizations.xml"
+printf '<ImportExportXml><CustomizationPrefix>rvn</CustomizationPrefix></ImportExportXml>\n' > "$DH/good-customizations.xml"
+assert_hook_fires  "pp house-opinions"  plugins/power-platform/hooks/check-house-opinions.sh "$DH/bad-customizations.xml"
+assert_hook_silent "pp house-opinions"  plugins/power-platform/hooks/check-house-opinions.sh "$DH/good-customizations.xml"
+
+# 2. finance — hardcoded discount/growth rate in a model doc.
+printf 'rev = base * 0.45\n' > "$DH/models/bad.md"
+printf 'Revenue planning notes for the model.\n' > "$DH/models/good.md"
+assert_hook_fires  "finance anti-patterns" plugins/finance/hooks/flag-finance-anti-patterns.sh "$DH/models/bad.md"
+assert_hook_silent "finance anti-patterns" plugins/finance/hooks/flag-finance-anti-patterns.sh "$DH/models/good.md"
+
+# 3. regulatory-compliance — SSN-shaped PII in a KYC doc.
+printf 'Customer SSN: 222-33-4444\n' > "$DH/kyc-bad.md"
+printf 'Customer onboarding notes.\n' > "$DH/kyc-good.md"
+assert_hook_fires  "regcomp PII-scrub" plugins/regulatory-compliance/hooks/scrub-confidential-pre-write.sh "$DH/kyc-bad.md"
+assert_hook_silent "regcomp PII-scrub" plugins/regulatory-compliance/hooks/scrub-confidential-pre-write.sh "$DH/kyc-good.md"
+
+# 4. web-design — <img> with no alt (vs a complete, accessible page).
+printf '<img src="a.png">\n' > "$DH/src/bad.html"
+printf '<!doctype html><html lang="en"><head><title>T</title><meta name="description" content="d"></head><body><img src="a.png" alt="a"></body></html>\n' > "$DH/src/good.html"
+assert_hook_fires  "web anti-patterns" plugins/web-design/hooks/check-web-anti-patterns.sh "$DH/src/bad.html"
+assert_hook_silent "web anti-patterns" plugins/web-design/hooks/check-web-anti-patterns.sh "$DH/src/good.html"
+
+# 5. edtech-partner-success — a bare metric with no source/baseline in a QBR.
+printf 'Engagement rose 45%% overall.\n' > "$DH/qbr-bad.md"
+printf 'Quarterly business review summary.\n' > "$DH/qbr-good.md"
+assert_hook_fires  "edtech anti-patterns" plugins/edtech-partner-success/hooks/flag-psm-anti-patterns.sh "$DH/qbr-bad.md"
+assert_hook_silent "edtech anti-patterns" plugins/edtech-partner-success/hooks/flag-psm-anti-patterns.sh "$DH/qbr-good.md"
+
+# 6. data-platform — a hardcoded API secret (vs a trivially clean file).
+printf 'api_key = "abcdef1234567890abcd"\n' > "$DH/dp-bad.py"
+printf 'x = 1\n' > "$DH/dp-good.py"
+assert_hook_fires  "data-platform smells" plugins/data-platform/hooks/flag-data-platform-smells.sh "$DH/dp-bad.py"
+assert_hook_silent "data-platform smells" plugins/data-platform/hooks/flag-data-platform-smells.sh "$DH/dp-good.py"
+
+# 7. applied-statistics — a p-value with no effect size / CI.
+printf 'p = 0.03\n' > "$DH/st-bad.py"
+printf 'x = 1\n' > "$DH/st-good.py"
+assert_hook_fires  "applied-stats smells" plugins/applied-statistics/hooks/flag-statistical-smells.sh "$DH/st-bad.py"
+assert_hook_silent "applied-stats smells" plugins/applied-statistics/hooks/flag-statistical-smells.sh "$DH/st-good.py"
+
+# 8. claude-app-engineering — a hardcoded sk-ant- key.
+printf 'key = "sk-ant-abcd1234efgh"\n' > "$DH/ca-bad.py"
+printf 'x = 1\n' > "$DH/ca-good.py"
+assert_hook_fires  "claude-app anti-patterns" plugins/claude-app-engineering/hooks/check-claude-app-anti-patterns.sh "$DH/ca-bad.py"
+assert_hook_silent "claude-app anti-patterns" plugins/claude-app-engineering/hooks/check-claude-app-anti-patterns.sh "$DH/ca-good.py"
+
+# 9. azure-cloud — a 0.0.0.0/0 public exposure in a Bicep file.
+printf "rule = '0.0.0.0/0'\n" > "$DH/az-bad.bicep"
+printf 'param name string\n' > "$DH/az-good.bicep"
+assert_hook_fires  "azure anti-patterns" plugins/azure-cloud/hooks/check-azure-anti-patterns.sh "$DH/az-bad.bicep"
+assert_hook_silent "azure anti-patterns" plugins/azure-cloud/hooks/check-azure-anti-patterns.sh "$DH/az-good.bicep"
+
+# 10. microsoft-fabric — spark.ms.autotune.enabled (use NEE instead).
+printf 'spark.ms.autotune.enabled = true\n' > "$DH/fb-bad.py"
+printf 'x = 1\n' > "$DH/fb-good.py"
+assert_hook_fires  "fabric anti-patterns" plugins/microsoft-fabric/hooks/check-fabric-anti-patterns.sh "$DH/fb-bad.py"
+assert_hook_silent "fabric anti-patterns" plugins/microsoft-fabric/hooks/check-fabric-anti-patterns.sh "$DH/fb-good.py"
+
+echo
+echo "── Gate 31: route-decision-review (decision tribunal routing) ─────────────"
+# The PreToolUse(AskUserQuestion) hook auto-resolves rule/fact-derivable yes/no
+# prompts via the decision-review tribunal (thing-decide.py). Deterministic paths,
+# no live claude -p: THING_DECIDE_MOCK_VERDICT mocks the seat verdict. The engine
+# lives in the real plugin (CLAUDE_PLUGIN_ROOT); the posture lives in a fixture
+# project root (CLAUDE_PROJECT_DIR).
+DRR="plugins/ravenclaude-core/hooks/route-decision-review.sh"
+DRPR="$PWD/plugins/ravenclaude-core"
+DRROOT="$TMP/drr"; mkdir -p "$DRROOT/.ravenclaude"
+DR_ELIG='{"tool_name":"AskUserQuestion","cwd":"'"$DRROOT"'","tool_input":{"questions":[{"question":"Should we use tabs for indentation?","multiSelect":false,"options":[{"label":"Yes"},{"label":"No"}]}]}}'
+DR_MULTI='{"tool_name":"AskUserQuestion","cwd":"'"$DRROOT"'","tool_input":{"questions":[{"question":"Which features?","multiSelect":true,"options":[{"label":"Yes"},{"label":"No"}]}]}}'
+_dr_decision() { printf '%s' "$1" | jq -r '.hookSpecificOutput.permissionDecision // "none"' 2>/dev/null || echo none; }
+
+# off (default) -> allow (no engine call when not opted in).
+printf 'schema_version: 5\ndecision_review: off\n' > "$DRROOT/.ravenclaude/comfort-posture.yaml"
+out="$(printf '%s' "$DR_ELIG" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" bash "$DRR" 2>/dev/null || true)"
+rc=0; [[ "$(_dr_decision "$out")" == "allow" ]] || rc=1
+gate "route-decision-review (off -> allow)" must_pass "$rc"
+
+# binding + eligible yes/no + binding verdict -> deny (auto-resolve, no human ask).
+printf 'schema_version: 5\ndecision_review: binding\n' > "$DRROOT/.ravenclaude/comfort-posture.yaml"
+out="$(printf '%s' "$DR_ELIG" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" THING_DECIDE_MOCK_VERDICT=yes bash "$DRR" 2>/dev/null || true)"
+rc=0; [[ "$(_dr_decision "$out")" == "deny" ]] || rc=1
+gate "route-decision-review (binding yes/no -> auto-resolve/deny)" must_pass "$rc"
+
+# binding + multi-select -> allow (ineligible; the human answers).
+out="$(printf '%s' "$DR_MULTI" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" THING_DECIDE_MOCK_VERDICT=yes bash "$DRR" 2>/dev/null || true)"
+rc=0; [[ "$(_dr_decision "$out")" == "allow" ]] || rc=1
+gate "route-decision-review (multi-select -> allow)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

@@ -109,6 +109,8 @@ Run periodic sweeps. Things that drift over time: section ordering, frontmatter 
 ### 5. Track Claude-platform updates
 When Anthropic ships new guidance — model capabilities, prompt caching changes, tool-use patterns, agent SDK features — read the docs, decide what's worth absorbing into the library, and propose changes. Use the `claude-api` skill (if available) for API-app prompts; use Claude Code documentation for agent / skill / hook patterns.
 
+> **Seam → `claude-app-engineering` (when installed):** this agent owns the *prompt-as-artifact* meta-layer (authoring/critiquing agent + skill files, reusable prompt patterns, tracking Anthropic's guidance). When the work is the *application's* prompt-caching strategy, context-budget management, thinking config, structured-output-via-tools, or token economics of a running Claude app — not the prompt text itself — surface to the Team Lead for `claude-app-engineering/prompt-and-context-engineer`. Eval of an *app* prompt/model change is `claude-app-engineering/eval-engineer`; eval of an *agent-file's* prompt quality stays here via the `agent-quality-rubric` skill.
+
 ## Output Contract
 
 Pick the format that matches the mode:

@@ -39,7 +39,7 @@ Take a web-architecture goal — "we're building a new marketing site, what stac
 
 ## Surface area
 - **Stack selection**: Astro / Next / Eleventy / Hugo / SvelteKit / Remix / plain HTML — strengths, weaknesses, build cost
-- **Hosting**: Vercel / Netlify / Cloudflare Pages / AWS S3+CloudFront / Azure Static Web Apps / GitHub Pages
+- **Hosting**: Vercel / Netlify / Cloudflare Pages / AWS S3+CloudFront / Azure Static Web Apps / GitHub Pages. (When the host is **Azure Static Web Apps** and the `azure-cloud` plugin is installed, `azure-cloud/app-platform-engineer` provisions + scales the host via IaC; this agent owns the site that runs on it.)
 - **CDN strategy**: cache headers, image CDN, geo-edge, ISR (incremental static regeneration), on-demand revalidation
 - **Build pipeline**: monorepo vs polyrepo, build cache, preview deployments, branch deployments, environment promotion
 - **Information architecture**: page-type taxonomy, navigation patterns (primary / secondary / utility / footer), URL structure, breadcrumb design

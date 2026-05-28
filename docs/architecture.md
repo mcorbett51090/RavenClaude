@@ -16,8 +16,8 @@ flowchart TB
         subgraph plugindir["<code>plugins/</code>"]
             direction LR
             core["<b>ravenclaude-core</b><br/>domain-neutral<br/>14 specialist agents<br/>dispatch, gates, hooks, templates"]
-            pp["<b>power-platform</b><br/>Microsoft Power Platform<br/>10 specialist agents<br/>13 skills (9 imported MIT + 4 in-house)<br/>bundles pbix-mcp server"]
-            future["<i>future plugins</i><br/>finance, EdTech,<br/>Salesforce, …"]
+            domains["<b>10 domain plugins</b><br/>power-platform, finance, regulatory-compliance,<br/>web-design, edtech-partner-success, data-platform,<br/>applied-statistics, microsoft-fabric,<br/>claude-app-engineering, azure-cloud"]
+            future["<i>future plugins</i><br/>Salesforce, …"]
         end
         catalog -.->|references| plugindir
     end
@@ -31,7 +31,7 @@ flowchart TB
     classDef future fill:#374151,stroke:#9ca3af,color:#e5e7eb,stroke-dasharray: 4 3
     classDef consumer fill:#7c2d12,stroke:#fed7aa,color:#fff7ed
     class catalog hub
-    class core,pp plugin
+    class core,domains plugin
     class future future
     class consumer consumer
 ```
@@ -62,7 +62,7 @@ The marketplace contains a domain-neutral core plus one plugin per significant d
 
 | Lives in `plugins/ravenclaude-core/` | Lives in a domain plugin (e.g. `plugins/power-platform/`) |
 |---|---|
-| Generic agent role definitions (architect, coder, tester, reviewer, designer, documentarian, project-manager, prompt-engineer, deep-researcher, partner-success-manager, etc.) | Domain-specific agent definitions (`power-fx-engineer`, `flow-engineer`, `dataverse-architect`, future Salesforce / finance / EdTech specialists) |
+| Generic agent role definitions (architect, coder, tester, reviewer, designer, documentarian, project-manager, prompt-engineer, deep-researcher, partner-success-manager, etc.) | Domain-specific agent definitions (`power-fx-engineer`, `flow-engineer`, `dataverse-architect`, `fabric-architect`, `claude-solution-architect`, `azure-architect`, … across the 10 domain plugins) |
 | Cross-domain skills (dispatch playbook, worktree helpers, generic code-review patterns) | Domain-specific skills (Power Platform's `dataverse-web-api`, `pcf-controls`, `power-apps-code-apps`, etc.) |
 | Cross-domain hooks (format-on-write, guard-destructive, remind-tests) | Domain-specific hooks (only if a hook is meaningless outside that domain) |
 | Generic rules (coding standards, security baseline, git workflow, agent collaboration) | Domain-specific rules (Power Platform's "solutions, always" and "managed in test+prod" opinions) |
@@ -93,7 +93,7 @@ RavenClaude/
 │       ├── .claude-plugin/plugin.json   ← also declares bundled pbix-mcp MCP server
 │       ├── CLAUDE.md
 │       ├── NOTICE.md                    ← MIT attribution for imported skills + pbix-mcp
-│       ├── agents/                      ← 10 specialist agent files
+│       ├── agents/                      ← 11 specialist agent files
 │       ├── hooks/                       ← check-house-opinions (advisory)
 │       └── skills/                      ← 13 skills (9 imported Daniel Kerridge MIT + 4 in-house)
 │
@@ -186,19 +186,26 @@ The existing plugins are the reference implementations — `ravenclaude-core` fo
 
 ## Status
 
-**Active plugins:**
+**Active plugins (11).** The table below is the canonical roster; **per-plugin versions live in [`../.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json)** (the single source of truth, CI-gated for catalog↔plugin.json parity) and the generated [`../repo-guide.html`](../repo-guide.html) — they are deliberately not duplicated here to avoid drift. A CI check (`scripts/check-marketplace-claims.py`) asserts every `plugins/*/` directory appears in this table.
 
-| Plugin | Version | Description |
-|---|---|---|
-| [`ravenclaude-core`](../plugins/ravenclaude-core/) | 0.7.0 | Domain-neutral: 14 specialist agents (includes `data-engineer`; all with active Structured Output Protocol blocks), dispatch playbook with Cross-plugin dispatch section, gates, **5 hooks** (includes the advisory `guard-recursive-spawn`), contribution-staging workflow, templates, Cited-Adjudicator Escalation rule, audit-ci-gates skill + scaffold. **Capability Grounding Protocol now requires agents to enumerate alternative implementation paths from easiest to most difficult and try them in order before declaring blocked — no more "did you try X?" round-trips.** |
-| [`power-platform`](../plugins/power-platform/) | 0.9.0 | Microsoft Power Platform: 11 specialist agents (includes `power-platform-tester`; all with active cross-plugin Structured Output Protocol blocks + licensing_impact field), 13 skills + advisory house-opinion hook covering **8 checks** + bundled pbix-mcp MCP server + knowledge bank capturing production lessons (programmatic cloud-flow creation via Dataverse Web API when the PA Management API is blocked). §5 reinforced with alternate-methods rule (REST → SDK → CLI → portal-with-automation-around-it laddering). |
-| [`finance`](../plugins/finance/) | 0.2.0 | Corporate finance & FP&A: 7 specialist agents, 4 skills, 8 templates, advisory anti-pattern hook. §5 reinforced with alternate-methods rule (revenue-recognition framing, peer-comp vs DCF triangulation). Inherits `ravenclaude-core` protocols; requires `ravenclaude-core@>=0.5.0`. |
-| [`regulatory-compliance`](../plugins/regulatory-compliance/) | 0.2.0 | Financial-regulatory: 6 specialist agents, 4 skills, 8 templates, 1 defensive PreToolUse PII-scrub hook. Field-experience positioning (BMA). §5 reinforced with alternate-methods rule (alternative frameworks, control-narrative gap documentation, primary vs derivative citation laddering). Inherits `ravenclaude-core` protocols. |
-| [`web-design`](../plugins/web-design/) | 0.3.0 | Web design & build: 7 specialist agents, 4 skills, 8 templates, 1 advisory hook, and a knowledge bank with the 2026 "cutting edge yet simple" reference set (Linear, Vercel, Raycast, Resend, Cursor, v0, Tldraw, Cal.com). §5 reinforced with alternate-methods rule (grid → flex → subgrid, lighter library, build-time vs runtime laddering). Inherits `ravenclaude-core` protocols. |
-| [`edtech-partner-success`](../plugins/edtech-partner-success/) | 0.1.0 | EdTech Partner Success Manager team: 6 specialist agents (partner-success-manager, success-playbook-designer, qbr-composer, learning-analytics-analyst, ferpa-comms-translator, partner-profile-curator), 4 skills (partner-health-scoring, success-plan-authoring, qbr-composition, rostering-data-quality), 8 templates, 1 advisory hook flagging PSM anti-patterns (action items without dates, generic boilerplate, unverified numeric claims, multi-partner names visible in `To:` lines, health-score status without named signals). Vertical-explicit but segment-agnostic (K-12 / higher-ed / corp L&D). Inherits `ravenclaude-core` protocols; requires `ravenclaude-core@>=0.7.0`. |
+| Plugin | What it is |
+|---|---|
+| [`ravenclaude-core`](../plugins/ravenclaude-core/) | Domain-neutral foundation: 14 specialist agents, 22 skills, the dispatch playbook, 11 hooks, rules, templates; the Capability Grounding Protocol, Structured Output Protocol, the Researcher meta-skill, the comfort-posture dashboard, and the command-review + decision-review tribunal (the Thing). |
+| [`power-platform`](../plugins/power-platform/) | Microsoft Power Platform: 11 specialist agents, 18 skills, an 8-check house-opinion hook, a knowledge bank (PA-flow recovery, Dataverse token acquisition, PCF React/Fluent, Copilot agents 2026, managed environments, Power Pages 2026), and the bundled pbix-mcp server. |
+| [`finance`](../plugins/finance/) | Corporate finance & FP&A: 7 specialist agents, 9 skills, 8 templates, 1 advisory anti-pattern hook, 1 knowledge doc. Inherits `ravenclaude-core` protocols. |
+| [`regulatory-compliance`](../plugins/regulatory-compliance/) | Financial-regulatory: 6 specialist agents, 9 skills, 8 templates, 1 defensive PII-scrub hook, 1 knowledge doc. BMA field-experience positioning. |
+| [`web-design`](../plugins/web-design/) | Web design & build: 7 specialist agents, 10 skills (incl. Fluent UI v9 + React implementation), 8 templates, 1 advisory hook, a 7-doc knowledge bank (2026 stacks/CSS/web-platform/AEO-GEO/design-systems/Fluent). |
+| [`edtech-partner-success`](../plugins/edtech-partner-success/) | EdTech Partner Success Manager team: 6 specialist agents, 12 skills, 16-doc knowledge bank, 15 templates, 1 advisory PSM-anti-pattern hook. Segment-agnostic (K-12 / higher-ed / corp L&D). |
+| [`data-platform`](../plugins/data-platform/) | Non-Microsoft / SMB embedded-analytics: 4 specialist agents, 11 skills, 6 templates, 1 advisory hook, 13-doc knowledge bank (Supabase/Neon/RDS, Airbyte/Fivetran, Evidence/Superset/Metabase/Cube). Opinionated against per-viewer-priced BI; reciprocal seam with `microsoft-fabric`. |
+| [`applied-statistics`](../plugins/applied-statistics/) | "Is this difference/trend REAL?" — 1 specialist (applied-statistician), 5 skills, 5-doc knowledge bank, 4 templates, 1 advisory hook. Seams with data-platform ("is it correct?" vs "is it real?"). |
+| [`microsoft-fabric`](../plugins/microsoft-fabric/) | Microsoft Fabric: 7 agents (architect / lakehouse / warehouse / data-factory / realtime-intelligence / semantic-model / admin), 9-doc citation-grounded knowledge bank (two Mermaid decision trees + a dated 2026 capability map), 6 templates, 1 advisory hook. Reciprocal seams with `data-platform`, `power-platform/power-bi-engineer`, `azure-cloud`. |
+| [`claude-app-engineering`](../plugins/claude-app-engineering/) | Building apps on the Claude API + Agent SDK + MCP: 6 agents, 13-doc knowledge bank (build-surface / caching / tools / MCP / Agent SDK / evals / RAG / prompt-engineering / orchestration / context-engineering / FinOps), 6 templates, 1 advisory hook. Ships no security/architect clone — escalates to core. |
+| [`azure-cloud`](../plugins/azure-cloud/) | Azure infrastructure & platform: 7 agents (architect / bicep-iac / entra-identity / network / app-platform / integration / ops), 10-doc knowledge bank (CAF landing zones, IaC, compute + integration decision trees, Entra, networking, observability/FinOps, AI Foundry, dated 2026 capability map), 6 templates, 1 advisory hook. Reciprocal seams across power-platform / fabric / claude-app-engineering / web-design. |
 
-**Memory bank:** 4 lessons recorded (see [`memory-bank/lessons-learned.md`](memory-bank/lessons-learned.md)) — PMP discipline (project-manager), PSM discipline (partner-success-manager), mermaid for conceptual diagrams, and rebase-orphan branch cleanup.
+The three Microsoft/AI-stack plugins (`microsoft-fabric`, `claude-app-engineering`, `azure-cloud`) were built from researched, expert-reviewed plans under [`docs/`](.) (`*-plugin-analysis.md`).
 
-**Decision log:** No entries yet — first decision will be recorded the next time an architectural choice deserves a written rationale.
+**Memory bank:** see [`memory-bank/lessons-learned.md`](memory-bank/lessons-learned.md).
 
-**Planned plugins** (on the roadmap): Salesforce. EdTech is now shipping as `edtech-partner-success` (anchored on the PSM lane). See [`./plugin-roadmap-analysis.md`](./plugin-roadmap-analysis.md) for the original prioritization analysis behind the finance / regulatory-compliance / web-design selection.
+**Decision log:** see [`memory-bank/decision-log.md`](memory-bank/decision-log.md).
+
+**Planned plugins** (on the roadmap): **Salesforce** (deliberately deferred — competes with the Power Platform brand focus; see [`./plugin-roadmap-analysis.md`](./plugin-roadmap-analysis.md)). `finance`, `regulatory-compliance`, `web-design`, `edtech-partner-success`, `data-platform`, `applied-statistics`, `microsoft-fabric`, `claude-app-engineering`, and `azure-cloud` have all since shipped.

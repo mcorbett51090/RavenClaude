@@ -13,6 +13,13 @@ This gate parses the frontmatter of every `plugins/*/skills/*/SKILL.md` and
 non-empty string `description`. It prints each offender and exits non-zero if any
 fail, so a malformed front-matter can never ship again.
 
+Agents carry an additional contract: the scenario-authoring schema (AGENTS.md
+step 7, docs/best-practices/agent-scenario-authoring.md). Every `agents/*.md`
+must declare `audience`, `works_with`, a non-empty `scenarios` list whose items
+each have `intent` / `trigger_phrase` / `outcome` / `difficulty`, and a non-empty
+`quickstart`. The repo-guide generator surfaces these in per-agent cards and the
+Overview use-case lookup table, so a missing block ships a blank card silently.
+
 Usage:
     check-frontmatter.py [--root <dir>]
 """
@@ -26,6 +33,36 @@ import sys
 from pathlib import Path
 
 _FM = re.compile(r"^---\n(.*?)\n---", re.DOTALL)
+
+_SCENARIO_ITEM_KEYS = ("intent", "trigger_phrase", "outcome", "difficulty")
+
+
+def _agent_scenario_violations(data: dict) -> list[str]:
+    """Return the scenario-authoring-schema problems for one agent's frontmatter."""
+    problems: list[str] = []
+
+    for key in ("audience", "works_with"):
+        if key not in data or data[key] in (None, "", [], {}):
+            problems.append(f"missing or empty '{key}' (scenario-authoring schema)")
+
+    scenarios = data.get("scenarios")
+    if not isinstance(scenarios, list) or not scenarios:
+        problems.append("missing or empty 'scenarios' list (scenario-authoring schema)")
+    else:
+        for i, item in enumerate(scenarios):
+            if not isinstance(item, dict):
+                problems.append(f"scenarios[{i}] is not a mapping")
+                continue
+            for k in _SCENARIO_ITEM_KEYS:
+                v = item.get(k)
+                if not isinstance(v, str) or not v.strip():
+                    problems.append(f"scenarios[{i}] missing or non-string '{k}'")
+
+    quickstart = data.get("quickstart")
+    if quickstart in (None, "", [], {}):
+        problems.append("missing or empty 'quickstart' (scenario-authoring schema)")
+
+    return problems
 
 
 def _violations(root: Path) -> list[tuple[str, str]]:
@@ -51,8 +88,13 @@ def _violations(root: Path) -> list[tuple[str, str]]:
             continue
         if not isinstance(data, dict):
             bad.append((rel, "frontmatter is not a mapping"))
-        elif not isinstance(data.get("description"), str) or not data["description"].strip():
+            continue
+        if not isinstance(data.get("description"), str) or not data["description"].strip():
             bad.append((rel, "missing or non-string 'description'"))
+        # Agents additionally carry the scenario-authoring schema.
+        if Path(f).parent.name == "agents":
+            for why in _agent_scenario_violations(data):
+                bad.append((rel, why))
     return bad
 
 
@@ -69,7 +111,10 @@ def main() -> int:
             print(f"  ✗ {rel}\n      {why}")
         print("\nFix: quote the offending scalar (e.g. wrap description in double quotes).")
         return 1
-    print("Frontmatter OK — every skill/agent frontmatter parses as strict YAML with a description.")
+    print(
+        "Frontmatter OK — every skill/agent parses as strict YAML with a description, "
+        "and every agent carries the scenario-authoring schema."
+    )
     return 0
 
 

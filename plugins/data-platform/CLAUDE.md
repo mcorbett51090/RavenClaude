@@ -60,7 +60,7 @@ These plugin-wide opinions are inherited by all **4** agents.
 9. **Pricing changes quarterly.** Every pricing claim in this plugin has a retrieval date. Re-verify before quoting a client.
 10. **Don't reinvent the warehouse.** If the client is already on Snowflake or Databricks, recommend data sharing (Snowflake Data Sharing / Delta Sharing), not a new ELT pipeline.
 11. **EdTech LMS is a connector-gap.** Native ELT vendor support for Canvas / Moodle / Schoology is thin; custom Airbyte connector is the path. This is the highest-leverage proprietary claim in this plugin — see [`knowledge/edtech-lms-connector-gap.md`](knowledge/edtech-lms-connector-gap.md). Flag this when the engagement is EdTech.
-12. **Microsoft is special.** When the client is M365-stack, Power BI Embedded + Fabric is often correct even when it's not the cheapest. Brand familiarity, Entra-ID-based RLS, and the F-SKU app-owns-data flow change the calculus.
+12. **Microsoft is special — and enterprise Fabric hands off.** When the client is M365-stack, Power BI Embedded + Fabric is often correct even when it's not the cheapest (brand familiarity, Entra-ID-based RLS, the F-SKU app-owns-data flow). But this plugin's lane is the **non-Microsoft / SMB / embedded-app** stack: stand up an Azure SQL / Fabric SQL endpoint as a plain database for an SMB embed if needed, but **enterprise Fabric architecture — lakehouse/warehouse topology, capacity sizing, medallion, FinOps, OneLake security — hands off to `microsoft-fabric`** (when installed). `microsoft-fabric` hands the embedded-app rendering layer (JWT embed, CSP, per-viewer-pricing economics) back here.
 
 ---
 
@@ -179,12 +179,12 @@ Each file carries a `Last reviewed:` date and refresh triggers. Pricing claims h
 
 ## 8b. Scenarios bank — TODO (planned)
 
-**Status:** not yet enabled in this plugin. The marketplace-wide scenarios bank ([`../../ravenclaude-core/skills/scenario-retrieval.md`](../../ravenclaude-core/skills/scenario-retrieval.md), shipped v0.1.0 of the feedback loop on 2026-05-21) is currently live in `power-platform` only. Other plugins enable their bank **when the first real engagement scenario surfaces** via `/wrap`.
+**Status:** not yet enabled in this plugin. The marketplace-wide scenarios bank ([`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md), shipped v0.1.0 of the feedback loop on 2026-05-21) is currently live in `power-platform` only. Other plugins enable their bank **when the first real engagement scenario surfaces** via `/wrap`.
 
 To enable when a scenario surfaces:
 
 1. Create `plugins/data-platform/scenarios/` with a `README.md` (copy the structure from `plugins/power-platform/scenarios/README.md`)
-2. Add the **Scenario retrieval (priors)** inline-prior block to this plugin's most-likely-to-benefit agents (see the pattern in [`../../ravenclaude-core/skills/scenario-retrieval.md`](../../ravenclaude-core/skills/scenario-retrieval.md) §"Inline-prior pattern for agents")
+2. Add the **Scenario retrieval (priors)** inline-prior block to this plugin's most-likely-to-benefit agents (see the pattern in [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md) §"Inline-prior pattern for agents")
 3. Remove this §8b TODO block
 
 ---
@@ -238,6 +238,7 @@ Data-platform agents stay within the four-layer scope (DB / ELT / dashboard / em
 - **`ravenclaude-core/project-manager`** — engagement RAID, status, stakeholder tracking for a multi-week dashboard build
 - **`ravenclaude-core/documentarian`** — stakeholder-facing deliverable prose (engagement quote, project summary memo, executive update)
 - **`power-platform`** (when installed) — engagements using Power BI Embedded; `power-bi-engineer` owns DAX/PBIP/semantic-model specifics; this plugin owns the embed pattern + non-Microsoft data stack
+- **`microsoft-fabric`** (when installed) — **the enterprise Microsoft data-platform lane.** One-question router: enterprise Microsoft shop on Fabric capacity (OneLake / Direct Lake / Purview)? → `microsoft-fabric` (lakehouse/warehouse topology, capacity FinOps, medallion, OneLake security). Non-Microsoft / SMB / cost-sensitive / embedded-in-app? → stays here. This plugin may stand up a Fabric SQL endpoint as a plain DB for an SMB embed, but enterprise Fabric architecture hands off; `microsoft-fabric` hands the embed rendering layer back. (Reciprocal of `microsoft-fabric/CLAUDE.md` §10.)
 - **`web-design`** (when installed) — host-site shell; `frontend-coder` + `visual-designer` integrate dashboard components into the marketing site
 - **`edtech-partner-success`** (when installed) — EdTech vertical engagement; this plugin owns the LMS connector + data layer; partner-success owns the renewal / QBR / health-scoring above
 - **`applied-statistics`** (when installed) — statistical validity of dashboard metrics; `dashboard-builder` invokes that plugin's `statistical-qa-of-metrics` skill when a widget shows a comparison/trend and the question is "is this movement real or noise?". data-platform owns "is the number *correct*?" (integrity); applied-statistics owns "is it *real*?" (inference)

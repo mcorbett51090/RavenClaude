@@ -5,15 +5,15 @@
     "name": "Matt Corbett"
   },
   "metadata": {
-    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. A domain-neutral core (Team Lead + 14 specialist agents, 20 skills, hooks, the Capability Grounding Protocol, the Structured Output Protocol, and a comfort-posture permission dashboard) plus domain plugins that extend it via skills and knowledge. Every agent ships example-scenario frontmatter; the repo-guide surfaces an 'I want to…' use-case lookup across all plugins. Plugins: ravenclaude-core, power-platform (+ bundled pbix-mcp), finance, regulatory-compliance (+ BMA Bermuda specialist), web-design (WCAG/CWV/SEO), edtech-partner-success (PSM lane), data-platform (dashboard engagements). Salesforce on the roadmap.",
-    "version": "0.26.0"
+    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. A domain-neutral core (Team Lead + 14 specialist agents, 20 skills, hooks, the Capability Grounding Protocol, the Structured Output Protocol, and a comfort-posture permission dashboard) plus domain plugins that extend it via skills and knowledge. Every agent ships example-scenario frontmatter; the repo-guide surfaces an 'I want to…' use-case lookup across all plugins. Plugins: ravenclaude-core, power-platform (+ bundled pbix-mcp), finance, regulatory-compliance (+ BMA Bermuda specialist), web-design (WCAG/CWV/SEO), edtech-partner-success (PSM lane), data-platform (dashboard engagements), applied-statistics, microsoft-fabric (OneLake / Lakehouse / Warehouse / Data Factory / Real-Time Intelligence / Direct Lake / capacity FinOps), claude-app-engineering (Claude API / Agent SDK / MCP / evals / LLM FinOps), azure-cloud (landing zones / Bicep / Entra / networking / compute / FinOps). Salesforce on the roadmap.",
+    "version": "0.29.0"
   },
   "plugins": [
     {
       "name": "ravenclaude-core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: a Team Lead that dispatches 14 specialist agents (architect, backend/frontend/fullstack coders, code + security reviewers, tester-QA, data-engineer, project-manager, documentarian, designer, prompt-engineer, partner-success), 22 skills, format/lint/test gates, hooks, rules, and templates. Ships the Capability Grounding Protocol (pre-action environment + decision-tree checks, alternate-methods enumeration, honest blocked-reporting), the Structured Output Protocol for agent handoffs, a Researcher meta-skill for knowledge freshness, and a point-and-click comfort-posture dashboard that writes Claude Code permission rules — per layer (user/local/project) and per individual permission, on a 3-level deny/ask/allow scale, plus an opt-in command-review tribunal (the Thing): a tiered panel voting allow/edit/deny, with a human-gate. Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard. Domain plugins extend core via skills + knowledge rather than parallel agents.",
-      "version": "0.48.0",
+      "version": "0.49.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -30,7 +30,7 @@
       "name": "power-platform",
       "source": "./plugins/power-platform",
       "description": "Microsoft Power Platform specialist team — 11 agents (canvas/Power Fx, Power Automate, Dataverse, model-driven, pac CLI/ALM, governance/DLP, PCF, Copilot Studio, Power Pages, power-bi-engineer, power-platform-tester) + 18 skills (solution-check, DAX, ALM, BI, PCF, maintainability); a house-opinions hook flags 8 §3/§4 violations; the knowledge bank carries production decision trees (PA-flow recovery, Dataverse token-acquisition). v0.13.0 — PCF React + Fluent UI v9: a canonical platform-library version source + the `Decision Tree: PCF — Which React surface?` (virtual / code-app / canvas / Power-Pages-unsupported / web resource), a Fluent-v9 theming + v8→v9 migration skill resource, and traversal priors on pcf-developer / power-fx-engineer / power-pages-engineer. Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval (requires `pip install pbix-mcp`).",
-      "version": "0.13.0",
+      "version": "0.13.4",
       "author": {
         "name": "Matt Corbett"
       },
@@ -91,8 +91,8 @@
     {
       "name": "web-design",
       "source": "./plugins/web-design",
-      "description": "Web design & build specialist team — web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens), frontend implementer (HTML/CSS/JS, React, Astro, Next), content strategist (copy, microcopy, SEO content), accessibility auditor (WCAG 2.2 AA/AAA), and performance engineer (Core Web Vitals, image/font optimization). 9 skills (design-system audit, accessibility review, Core Web Vitals tuning, technical SEO audit, information architecture, conversion design, content audit, design-tokens scaffolding, third-party-script hygiene), 8 templates, 1 advisory hook, and a knowledge bank seeded with a curated 2026 reference set of \"cutting edge yet simple\" marketing-site donors (Linear, Vercel, Raycast, Resend, Cursor, v0, Tldraw, Cal.com) — visual-designer / ux-designer / frontend-implementer / web-architect all carry compact inline priors plus a pointer to the full brief. Inherits ravenclaude-core protocols.",
-      "version": "0.4.3",
+      "description": "Web design & build specialist team — web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens), frontend implementer (HTML/CSS/JS, React, Astro, Next), content strategist (copy, microcopy, SEO content), accessibility auditor (WCAG 2.2 AA/AAA), and performance engineer (Core Web Vitals, image/font optimization). 10 skills (design-system audit, accessibility review, Core Web Vitals tuning, technical SEO audit, information architecture, conversion design, content audit, design-tokens scaffolding, third-party-script hygiene, Fluent UI v9 + React implementation), 8 templates, 1 advisory hook, and a knowledge bank seeded with a curated 2026 reference set of \"cutting edge yet simple\" marketing-site donors (Linear, Vercel, Raycast, Resend, Cursor, v0, Tldraw, Cal.com) — visual-designer / ux-designer / frontend-implementer / web-architect all carry compact inline priors plus a pointer to the full brief. Inherits ravenclaude-core protocols.",
+      "version": "0.6.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -133,7 +133,7 @@
       "name": "data-platform",
       "source": "./plugins/data-platform",
       "description": "Data-platform team — 4 specialist agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) that guide cloud-database setup, ELT pipelines (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4 / Shopify / HRIS, and interactive dashboards (Evidence.dev / Superset / Metabase / Cube + Tremor) embedded in marketing sites and client apps. 11 skills — three invoked by ravenclaude-core/security-reviewer, one by its architect — implementing the house rule 'domain plugins extend core via skills, not parallel agents'. 12 templates, 1 advisory hook, and a 13-doc knowledge bank (landscape, RLS, QuickBooks, Power BI Embedded, plus per-connector deep-dives). Opinionated against per-viewer-priced BI tools (Looker / Tableau / Sigma) for SMB consulting; requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.4",
+      "version": "0.3.5",
       "author": {
         "name": "Matt Corbett"
       },
@@ -158,7 +158,7 @@
       "name": "applied-statistics",
       "source": "./plugins/applied-statistics",
       "description": "Applied-statistics team — 1 specialist agent (applied-statistician) that answers 'is this difference/trend statistically REAL?' for SMB consulting: which test to use (decision-tree-driven), A/B-test and experiment design (power/MDE, primary + guardrail metrics, pre-registered analysis plans), regression and time-series forecasting review, a causal-inference primer, and statistical QA of dashboard metrics. 5 skills, a 5-doc knowledge bank (a Mermaid test-selection decision tree, a 9-item pitfalls guardrail, experiment-design best practice, 2026 tooling tiers, a causal-inference primer), 4 templates, and 1 advisory anti-pattern hook. Python-first (scipy.stats / statsmodels / pingouin Tier 1; PyMC / bambi / linearmodels Tier 2). Seams cleanly with data-platform: data-platform answers 'is this number correct?'; this plugin answers 'is it real?'. Method-before-library; always report effect size + CI. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -176,6 +176,75 @@
         "scipy",
         "statsmodels",
         "pingouin"
+      ]
+    },
+    {
+      "name": "microsoft-fabric",
+      "source": "./plugins/microsoft-fabric",
+      "description": "Microsoft Fabric specialist team — 7 agents (fabric-architect, lakehouse-engineer, warehouse-engineer, data-factory-engineer, realtime-intelligence-engineer, fabric-semantic-model-engineer, fabric-admin) covering OneLake, Lakehouse (Spark/Delta/medallion/materialized lake views), Warehouse (T-SQL/ACID), Data Factory (mirroring/copy-job/dataflow-gen2/pipelines), Real-Time Intelligence (Eventstream/Eventhouse/KQL/Activator), Direct Lake semantic models, and platform admin (capacity FinOps, OneLake security, domains, Purview, ALM). 9-doc citation-grounded knowledge bank (two Mermaid decision trees + a dated 2026 capability map), 6 templates, 1 advisory hook (14 house opinions). Seams: enterprise Microsoft/Fabric here vs non-Microsoft/SMB embedded to data-platform; Fabric storage + Direct Lake here vs standalone Power BI/.pbix to power-platform/power-bi-engineer. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.2",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "microsoft-fabric",
+        "onelake",
+        "lakehouse",
+        "data-warehouse",
+        "data-factory",
+        "real-time-intelligence",
+        "direct-lake",
+        "power-bi",
+        "delta-lake",
+        "medallion",
+        "kql",
+        "alm",
+        "capacity-finops"
+      ]
+    },
+    {
+      "name": "claude-app-engineering",
+      "source": "./plugins/claude-app-engineering",
+      "description": "Claude app-engineering specialist team — 6 agents (claude-solution-architect, prompt-and-context-engineer, mcp-and-server-tools-engineer, agent-sdk-engineer, eval-engineer, claude-app-ops-engineer) for building production applications on the Claude API, the Claude Agent SDK, and MCP. Covers the build-surface decision (Messages API / Agent SDK / Managed Agents), model right-sizing (Opus 4.7 / Sonnet 4.6 / Haiku 4.5, 1M context), prompt caching, tool use + structured output, MCP server authoring + Anthropic-hosted server tools (computer use, code execution, Files API, memory), evals (golden sets, LLM-as-judge), and FinOps + reliability (batch, model routing, backoff, observability). 13-doc dated-and-cited knowledge bank, 6 templates, 1 advisory hook (14 house opinions). Seams: prompt-as-artifact, security, and cross-domain architecture escalate to ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "claude",
+        "anthropic",
+        "claude-api",
+        "claude-agent-sdk",
+        "mcp",
+        "prompt-caching",
+        "tool-use",
+        "evals",
+        "llm-ops",
+        "agents",
+        "managed-agents"
+      ]
+    },
+    {
+      "name": "azure-cloud",
+      "source": "./plugins/azure-cloud",
+      "description": "Azure cloud infrastructure & platform specialist team — 7 agents (azure-architect, bicep-iac-engineer, entra-identity-engineer, network-engineer, app-platform-engineer, integration-engineer, azure-ops-engineer) for the Azure layer under the Microsoft stack: landing zones / CAF, IaC (Bicep + Terraform + Azure Verified Modules + Deployment Stacks), Entra identity (managed identity, workload identity federation, RBAC, PIM, External ID), networking (Private Endpoints, hub-spoke, Front Door, WAF), compute selection (App Service / Container Apps / Functions / AKS), integration (Logic Apps, Service Bus, Event Grid, APIM), and observability + FinOps + governance. 10-doc dated knowledge bank (two Mermaid decision trees + a 2026 capability map), 6 templates, 1 advisory hook (16 house opinions). Seams: Logic Apps here vs Power Automate to power-platform; Fabric data to microsoft-fabric; Azure host here vs Claude app to claude-app-engineering. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.1",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "azure",
+        "bicep",
+        "terraform",
+        "landing-zones",
+        "entra-id",
+        "managed-identity",
+        "container-apps",
+        "azure-functions",
+        "private-endpoints",
+        "azure-policy",
+        "finops",
+        "iac"
       ]
     }
   ]

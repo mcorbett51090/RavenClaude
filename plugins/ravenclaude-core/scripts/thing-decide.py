@@ -7,9 +7,15 @@ split) and rendering yes / no / defer.
 
 This is SELF-CONTAINED on purpose: it does NOT touch the live command-review
 path (thing-seat.sh / thing-orchestrator.sh), so the PreToolUse command tribunal
-stays pristine. It is invoked by the /decision-review skill during the post-PR
-decision review (see docs/post-pr-decision-review.md), never by a PreToolUse
-hook — there is no "decision" tool-call event to intercept.
+stays pristine. It is invoked two ways:
+  - by the /decision-review skill during the post-PR retrospective (see
+    docs/post-pr-decision-review.md); and
+  - (added 2026-05-28) by the PreToolUse(AskUserQuestion) hook
+    route-decision-review.sh, which treats a binary AskUserQuestion as the
+    "decision" tool-call event — enforcing real-time routing so it no longer
+    depends on the model remembering to call the skill. That hook only forwards
+    eligible single binary yes/no questions and acts only on a binding verdict;
+    everything else (and any error) falls back to asking the human.
 
 Safety envelope (decision_review = binding):
   - decision_review is OFF (default)        -> defer (human decides)
