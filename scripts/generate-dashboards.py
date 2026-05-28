@@ -1083,7 +1083,8 @@ def _render_category_card(name: str, schema: dict) -> str:
         f'<span class="cat-card-desc">{html.escape(description)}</span>'
         f'<span class="cat-card-badge" data-badge-for="{html.escape(name)}" '
         f'aria-label="Effective level for {html.escape(title)}"></span>'
-        f'</summary>'
+        + _render_thing_header_toggle(name)
+        + f'</summary>'
         f'<div class="cat-card-body">'
         f'<div class="cat-project-warn" data-warn-for="{html.escape(name)}" hidden>'
         f'<span class="warn-icon" aria-hidden="true">&#9888;</span> '
@@ -1093,7 +1094,6 @@ def _render_category_card(name: str, schema: dict) -> str:
         + local_row
         + project_row
         + _render_pattern_overrides(name)
-        + _render_thing_toggle(name)
         + "</div>"
         f"</details>"
     )
@@ -1122,12 +1122,64 @@ THING_LIVE_CATEGORIES = {
 }
 
 
+def _render_thing_header_toggle(name: str) -> str:
+    """Render a compact command-review toggle for the always-visible card header.
+
+    For live categories: scales icon + switch only; the full label and cost note
+    are in the ``title=`` tooltip so the header row stays tidy.  For non-live
+    categories: a disabled switch with a 'Preview' pill, also compact.
+
+    The ``data-thing-category`` input attribute and
+    ``.cat-thing-scales[data-scales-for=…]`` span are preserved exactly so the
+    existing JS change handler and ``updateReviewIcon`` keep working without
+    modification.  The surrounding ``<span class="cat-hdr-thing">`` wrapper is
+    used for CSS positioning; the ``cat-hdr-thing-live`` modifier class is added
+    when the category is live.
+
+    Click isolation (preventing the click from also toggling the ``<details>``)
+    is handled entirely in JS — see the 'Header command-review switch isolation'
+    block wired after the standard change handler.
+    """
+    if name in THING_LIVE_CATEGORIES:
+        icon_html = _scales_svg("off", f"Command review: off — {html.escape(name)}")
+        return (
+            '<span class="cat-hdr-thing cat-hdr-thing-live">'
+            f'<span class="cat-thing-scales" data-scales-for="{html.escape(name)}">{icon_html}</span>'
+            '<label class="dc-switch thing-switch-live cat-hdr-switch" '
+            f'title="Command review (the Thing) — route {html.escape(name)} commands through a '
+            'one-seat reviewer (allow/deny) instead of asking you. ~10–15s &amp; credits / command. '
+            'Off by default." '
+            f'aria-label="Command review for {html.escape(name)}">'
+            f'<input type="checkbox" data-thing-category="{html.escape(name)}" '
+            f'aria-label="Command review for {html.escape(name)}">'
+            '<span class="dc-track"><span class="dc-thumb"></span></span>'
+            "</label>"
+            "</span>"
+        )
+    return (
+        '<span class="cat-hdr-thing">'
+        '<label class="dc-switch thing-switch cat-hdr-switch" '
+        f'title="Preview — command review for {html.escape(name)} ships in a later release; not active yet.">'
+        '<input type="checkbox" disabled aria-disabled="true">'
+        '<span class="dc-track"><span class="dc-thumb"></span></span>'
+        "</label>"
+        '<span class="preview-pill">Preview</span>'
+        "</span>"
+    )
+
+
 def _render_thing_toggle(name: str) -> str:
-    """Render the per-category 'Command review' toggle.
+    """Render the per-category 'Command review' toggle inside the card body.
 
     Clickable for the categories proven end-to-end (T2: shell_readonly) — it
     writes `thing: on` into the category's YAML; a disabled 'Preview' switch
     elsewhere keeps the 'coming soon' status legible where the control will live.
+
+    .. deprecated::
+        The body toggle has been replaced by the compact header toggle
+        (``_render_thing_header_toggle``).  This function is retained so that
+        call-sites can be removed cleanly one at a time without a broken import.
+        Do not call it for new cards.
     """
     if name in THING_LIVE_CATEGORIES:
         icon_html = _scales_svg("off", f"Command review: off — {html.escape(name)}")
@@ -2527,7 +2579,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 }
 .cat-card-summary {
   display: grid;
-  grid-template-columns: 20px 1fr auto auto;
+  grid-template-columns: 20px 1fr auto auto auto;
   gap: 10px;
   padding: 14px 16px;
   cursor: pointer;
@@ -2586,6 +2638,24 @@ footer.page-footer a:hover { text-decoration: underline; }
 .cat-card-badge.badge-ask { border-color: var(--warn); color: var(--warn); background: rgba(251,191,36,0.08); }
 .cat-card-badge.badge-deny { border-color: var(--danger); color: var(--danger); background: rgba(239,68,68,0.08); }
 .cat-card-badge.badge-inherit { border-color: var(--border); color: var(--muted); }
+
+/* Compact command-review toggle in the always-visible card header */
+.cat-hdr-thing {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  /* Stop the summary's user-select: none from swallowing pointer events on
+     the switch — the JS click isolation handles the details-toggle prevention. */
+  user-select: none;
+}
+/* Dimmed when the category is not yet live (preview state) */
+.cat-hdr-thing:not(.cat-hdr-thing-live) { opacity: 0.55; }
+.cat-hdr-thing:not(.cat-hdr-thing-live) .cat-hdr-switch { cursor: not-allowed; }
+/* The scales icon sits to the left of the switch; keep it tightly packed */
+.cat-hdr-thing .cat-thing-scales { display: inline-flex; align-items: center; }
+/* Preview pill inside the header is slightly smaller than the body variant */
+.cat-hdr-thing .preview-pill { font-size: 9.5px; padding: 1px 5px; }
 
 /* Body of the expanded card */
 .cat-card-body {
@@ -3963,13 +4033,23 @@ _JS = r"""
   }
 
   /* ── Form change wiring ─────────────────────────────────────────── */
-  /* Command-review master enable (AND-gate — does NOT bulk-clear per-category toggles) */
+  /* Command-review master enable — cascades to every live per-category toggle.
+   * When the master is flipped, every non-disabled data-thing-category checkbox
+   * is set to match and its state entry is updated.  Per-category toggles remain
+   * independently operable after the cascade. */
   {
     const masterCb = document.getElementById("cr-master-enable");
     if (masterCb) {
       masterCb.addEventListener("change", () => {
         /* enabled: true is the default; only store/emit when false */
         state.command_review.enabled = masterCb.checked ? true : false;
+        /* Cascade master state down to every live per-category toggle */
+        document.querySelectorAll('input[type="checkbox"][data-thing-category]').forEach(cb => {
+          if (cb.disabled) return;
+          cb.checked = masterCb.checked;
+          const cat = cb.dataset.thingCategory;
+          if (state.categories[cat]) state.categories[cat].thing = masterCb.checked;
+        });
         syncMasterEnable();
         updateReviewIcons();
         flagUnsaved();
@@ -4033,6 +4113,30 @@ _JS = r"""
       updateReviewIcon(cat);
       flagUnsaved();
       render();
+    });
+  });
+
+  /* ── Header command-review switch isolation ──────────────────────────
+   * A <label> or <input> inside a <summary> will, by default, both:
+   *   (a) toggle the checkbox/label, AND
+   *   (b) toggle the parent <details> open/closed.
+   * We intercept the click on the header switch label, call
+   * preventDefault() + stopPropagation() to cancel the details-toggle,
+   * then manually flip the checkbox and fire a synthetic "change" event
+   * so the data-thing-category change handler above still runs exactly once.
+   * Guard: disabled checkboxes (Preview state) are left alone.
+   * Keyboard note: Space on a focused checkbox triggers a "click" event
+   * *on the checkbox itself*, not on the label, so this handler fires for
+   * keyboard users too — the behavior is consistent across input methods.
+   */
+  document.querySelectorAll(".cat-hdr-switch").forEach(label => {
+    label.addEventListener("click", e => {
+      const cb = label.querySelector('input[type="checkbox"]');
+      if (!cb || cb.disabled) return;
+      e.preventDefault();
+      e.stopPropagation();
+      cb.checked = !cb.checked;
+      cb.dispatchEvent(new Event("change", { bubbles: true }));
     });
   });
 

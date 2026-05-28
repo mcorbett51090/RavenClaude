@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for power-platform. Auto-merged with the consumer's session hooks when the plugin is installed.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-house-opinions.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: Power Platform house-opinion violations (GUIDs in Power Fx, default publisher prefix, hard-coded tenant URLs, binary .pbix, flow Try/Catch, premium-connector licensing note, Power Fx var/col prefix, plaintext secret in env-var default). Advisory by default; flip the script's final exit 0 to exit 1 to enforce."
+          }
+        ]
+      }
+    ]
+  }
+}

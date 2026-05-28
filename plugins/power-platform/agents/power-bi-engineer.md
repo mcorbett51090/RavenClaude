@@ -79,6 +79,7 @@ Take a Power BI goal — "design this semantic model", "review my DAX for perfor
 - Tenant governance, capacity for large models, DLP, licensing (Premium per capacity vs Pro) → `power-platform-admin`
 - Complex JS or custom visuals in reports → `model-driven-engineer` or `pcf-developer` if relevant
 - Broader Azure architecture or identity for gateways/service principals → `ravenclaude-core` `architect` + `security-reviewer`
+- Direct Lake semantic models on Microsoft Fabric, OneLake / Lakehouse / Warehouse storage, or Fabric capacity sizing (vs Power BI Pro / PPU) → `microsoft-fabric` (`fabric-semantic-model-engineer` for Direct Lake; `fabric-architect` for storage + capacity). This agent owns standalone Power BI / `.pbix` / Import + DirectQuery / Pro-capacity work; hand off the moment the model is Direct-Lake-on-Fabric. (Reciprocal of [`../../microsoft-fabric/CLAUDE.md`](../../microsoft-fabric/CLAUDE.md)'s seam back to `power-bi-engineer`.)
 
 ## Tools
 - **Bash** for Tabular Editor CLI, pbi-tools (if available), git, jq, az cli or Power BI REST scripts.
