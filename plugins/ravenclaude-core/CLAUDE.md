@@ -160,6 +160,8 @@ Before any agent claims it cannot do something or that information is outdated, 
 
 The Researcher itself must apply this protocol to its own findings.
 
+Once an agent has confirmed it *can* act, the **Last-Mile Completion Protocol** (below) governs how far it must carry the work before handing back — CGP is the floor (don't falsely claim blocked), Last-Mile is the ceiling (finish everything automatable; tee up and deep-link the human-only residue).
+
 ### Try alternative paths before declaring blocked (added 2026-05-21)
 
 When an agent (or the Team Lead) hits a wall on Approach A — a tool fails, an API returns an error, a permission is denied, a CLI command doesn't exist, a library doesn't expose what's needed — the next move is **NOT** to report "this can't be done" or to ask the user to authorize the original approach. The next move is to **enumerate the alternative paths the same outcome could take, rank them from easiest to most difficult, and try them in that order.**
@@ -242,6 +244,36 @@ This phrasing communicates effort, narrows the user's decision space, and protec
 ### How this interacts with the Structured Output Protocol
 
 When emitting the SOP JSON block, agents whose final status is `blocked` or `partial` must populate `risks_or_open_questions` with the alternatives ruled out and `next_actions` with the recommended escalation path. The Markdown report carries the human-readable narrative of what was tried.
+
+## Last-Mile Completion Protocol (added 2026-05-28)
+
+The Capability Grounding Protocol governs the **floor** — an agent must not falsely claim it's blocked, and must try alternatives before reporting blockage. This protocol governs the **ceiling**: once an agent has confirmed it *can* act, it carries the work as far toward done as its authority allows before handing anything back. **The human should do as little as possible — ideally only the irreducibly-human residue, reduced to a confirm or a click.**
+
+Before returning work, every agent and the Team Lead applies these five rules:
+
+1. **Do everything automatable.** If a step can be completed with the tools and permissions on hand, complete it — do not hand back a to-do the agent could have executed itself. This is the action-side complement to CGP: CGP says "don't falsely claim you can't"; this says "then actually do it." A "next steps" list whose items the agent could have done is a defect.
+2. **Partial-do the partially-automatable.** When only part of a step is automatable, do that part and hand back only the irreducible remainder. Generate the file, the config, the script, the draft, the migration — leave only the action that genuinely needs human credentials, judgment, or authority.
+3. **Tee up the human-only residue.** For the steps only a human can do (a click behind their SSO, a signed approval, a payment, a destructive prod action), prepare everything *around* the action: pre-fill the values, draft the message / PR / commit / email, stage the exact inputs, and state the one specific thing to do. The human's job is reduced to **confirm or click**, never **assemble**.
+4. **Deep-link, don't narrate.** Whenever the human must go somewhere, give a **direct link to the exact destination** — the specific portal blade, a GitHub "create PR" URL with branch + title + body pre-filled as query params, the precise settings page, the exact dashboard row — not "go to the portal, navigate to X, then click Y." A click beats a recipe. If a deep link genuinely can't be constructed, give the shortest path plus the exact search term to paste.
+5. **Report as done vs. your-turn.** The final report separates **✅ done** from **👉 your turn** — and the your-turn list is short, ordered, one action each, each with its deep link. The human sees their entire remaining surface at a glance and finishes it in minutes.
+
+**Composition with the Capability Grounding Protocol:**
+
+| Question | Protocol that answers it |
+|---|---|
+| "Can this be done at all? Did I try the alternatives?" | Capability Grounding Protocol |
+| "I can do it — how much must I actually finish before handing back?" | **Last-Mile Completion Protocol (this section)** |
+| "What's the irreducibly-human part, and how do I make it one click?" | **Last-Mile rules 3–4** |
+
+**Anti-patterns this protocol flags:**
+
+- Handing back instructions for something the agent could have executed.
+- A "next steps" list that is really automatable work the agent skipped.
+- Navigation prose ("open the portal → click Settings → …") where a deep link exists.
+- Declaring a task done while leaving assembled-but-unsubmitted work the human now has to figure out how to finish.
+- Asking the human to gather inputs the agent already has or could compute.
+
+This protocol is inherited by every plugin via this constitution — the same way the Capability Grounding Protocol and the Structured Output Protocol are; it is not restated in each agent file. Domain plugins add domain-specific deep-link sources to their agents (e.g. `power-platform` → maker-portal solution-import URLs; `azure-cloud` → portal blade deep links; `microsoft-fabric` → workspace item URLs) but do not restate the protocol.
 
 ## Run Artifacts & Observability Standard (Recommended — for multi-step orchestrations)
 
