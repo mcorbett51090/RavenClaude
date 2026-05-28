@@ -133,6 +133,7 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         install_html=_render_install_tab(),
         simulator_html=_render_simulator_tab(),
         learn_html=_render_learn_tab(plugin_dir),
+        saga_html=_render_saga_tab(),
         commands_html=_render_stub_tab("Commands", "v0.2.0"),
         trees_html=_render_stub_tab("Decision trees", "v0.2.0"),
         activity_html=_render_stub_tab("Activity", "v0.2.0"),
@@ -166,6 +167,16 @@ def _render_stub_tab(name: str, when: str) -> str:
         f'See <code>docs/proposals/2026-05-22-003-per-plugin-dashboard.md</code> for the design.</p>'
         f"</div>"
     )
+
+
+def _render_saga_tab() -> str:
+    """Render the 'Review log' tab — a live, filterable table of Thing verdicts.
+
+    Fetches GET /__saga on open/refresh. Falls back gracefully when the server
+    is not running (static file / GitHub Pages). The fetch and render logic lives
+    entirely in _JS so the generated HTML is a static skeleton.
+    """
+    return _SAGA_TAB_TEMPLATE
 
 
 # ── Learn tab ──────────────────────────────────────────────────────────────
@@ -3270,6 +3281,62 @@ footer.page-footer a:hover { text-decoration: underline; }
     font-size: 14px;
   }
 }
+
+/* ── Review log (saga) tab ──────────────────────────────────── */
+.saga-layout { padding: 20px; }
+.saga-hdr { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.saga-hdr h2 { margin: 0; }
+.saga-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.saga-filters label { font-size: 13px; color: var(--muted); }
+.saga-filters select {
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+  border-radius: 4px; padding: 4px 8px; font-size: 13px; cursor: pointer;
+}
+.saga-refresh {
+  background: transparent; color: var(--accent); border: 1px solid var(--accent);
+  border-radius: 4px; padding: 4px 10px; font-size: 13px; cursor: pointer;
+}
+.saga-refresh:hover { background: var(--accent); color: var(--bg); }
+.saga-refresh:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.saga-count { font-size: 12px; color: var(--muted); }
+.saga-table-wrap { overflow-x: auto; }
+.saga-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.saga-table th, .saga-table td {
+  padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.saga-table th { font-weight: 600; color: var(--muted); white-space: nowrap; position: sticky; top: 0; background: var(--surface); }
+.saga-table tr:hover td { background: var(--surface-2); }
+.saga-action { font-family: var(--font-mono); font-size: 11.5px; word-break: break-word; max-width: 260px; }
+.saga-verdict-pill {
+  display: inline-block; padding: 2px 8px; border-radius: 10px;
+  font-size: 11.5px; font-weight: 600; white-space: nowrap;
+}
+.saga-verdict-allow { background: #14b8a620; color: var(--accent); border: 1px solid var(--accent); }
+.saga-verdict-ask   { background: #fbbf2420; color: var(--warn);   border: 1px solid var(--warn); }
+.saga-verdict-deny  { background: #ef444420; color: var(--danger); border: 1px solid var(--danger); }
+.saga-verdict-edit  { background: #3b82f620; color: #60a5fa;       border: 1px solid #3b82f6; }
+.saga-seat-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 1px 6px; border-radius: 8px; font-size: 11px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  margin: 1px 2px 1px 0; white-space: nowrap;
+}
+.saga-seat-allow { border-color: var(--accent); color: var(--accent); }
+.saga-seat-deny  { border-color: var(--danger); color: var(--danger); }
+.saga-seat-ask   { border-color: var(--warn);   color: var(--warn); }
+.saga-seat-det   { color: var(--muted); font-style: italic; }
+.saga-concerns   { font-size: 11.5px; color: var(--muted); word-break: break-word; }
+.saga-rewrite summary { cursor: pointer; font-size: 11.5px; color: var(--accent); }
+.saga-rewrite pre { margin: 4px 0 0; font-size: 11px; font-family: var(--font-mono); white-space: pre-wrap; word-break: break-all; color: var(--text); }
+.saga-empty {
+  text-align: center; padding: 40px 20px;
+  background: var(--surface); border-radius: var(--radius);
+  border: 1px solid var(--border); color: var(--muted);
+}
+.saga-empty p { margin: 8px 0 0; font-size: 13px; }
 """.strip()
 
 
@@ -3400,6 +3467,36 @@ _INSTALL_TAB_TEMPLATE = """
       <pre class="status-output" id="status-output">Click <strong>Status</strong> to check which pieces (skills, hooks, MCP, package) are wired. Needs the local server.</pre>
     </div>
   </section>
+</div>
+""".strip()
+
+
+_SAGA_TAB_TEMPLATE = """
+<div class="saga-layout">
+  <div class="saga-hdr">
+    <h2>&#9878; Review log</h2>
+    <button type="button" class="saga-refresh" id="saga-refresh-btn">Refresh</button>
+    <span class="saga-count" id="saga-count"></span>
+  </div>
+  <div class="saga-filters">
+    <label for="saga-verdict-filter">Verdict:</label>
+    <select id="saga-verdict-filter" aria-label="Filter by verdict">
+      <option value="">All</option>
+      <option value="allow">allow</option>
+      <option value="ask">ask</option>
+      <option value="deny">deny</option>
+      <option value="edit">edit</option>
+    </select>
+    <label for="saga-cat-filter">Category:</label>
+    <select id="saga-cat-filter" aria-label="Filter by category">
+      <option value="">All</option>
+    </select>
+  </div>
+  <div id="saga-content">
+    <div class="saga-empty" id="saga-loading">
+      <p>Loading review log&hellip;</p>
+    </div>
+  </div>
 </div>
 """.strip()
 
@@ -4964,7 +5061,7 @@ _JS = r"""
   });
 
   /* ── Tab routing ─────────────────────────────────────────────────── */
-  const validTabs = ["settings", "install", "simulator", "learn", "commands", "trees", "activity"];
+  const validTabs = ["settings", "install", "simulator", "learn", "saga", "commands", "trees", "activity"];
   function openConcept(id) {
     const card = document.getElementById("learn-" + id);
     if (!card) return;
@@ -4989,6 +5086,7 @@ _JS = r"""
       p.classList.toggle("active", p.dataset.tab === tab);
     });
     if (tab === "learn" && seg[1]) openConcept(seg[1]);
+    if (tab === "saga" && !sagaLoaded) loadSaga();
   }
   document.querySelectorAll(".tab-btn").forEach(b => {
     b.addEventListener("click", () => {
@@ -4997,6 +5095,217 @@ _JS = r"""
   });
   window.addEventListener("hashchange", applyHash);
   applyHash();
+
+  /* ── Review log (saga) tab ──────────────────────────────────────── */
+  let sagaLoaded = false;
+  let sagaRecords = [];
+
+  const sagaContent  = document.getElementById("saga-content");
+  const sagaCount    = document.getElementById("saga-count");
+  const sagaVerdFil  = document.getElementById("saga-verdict-filter");
+  const sagaCatFil   = document.getElementById("saga-cat-filter");
+  const sagaRefBtn   = document.getElementById("saga-refresh-btn");
+
+  /* Safe HTML-escape for every untrusted string before it touches innerHTML.
+   * All user/tool data from /__saga must pass through esc() before injection.
+   * Fixed-structure HTML (class names, element tags) is always hardcoded. */
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function sagaVerdictClass(v) {
+    if (v === "allow") return "saga-verdict-allow";
+    if (v === "ask")   return "saga-verdict-ask";
+    if (v === "deny")  return "saga-verdict-deny";
+    if (v === "edit")  return "saga-verdict-edit";
+    return "";
+  }
+
+  function sagaSeatClass(verdict) {
+    const v = (verdict || "").toLowerCase();
+    if (v === "allow") return "saga-seat-allow";
+    if (v === "deny")  return "saga-seat-deny";
+    if (v === "ask")   return "saga-seat-ask";
+    return "";
+  }
+
+  /* Build a static "offline / empty" panel using only DOM methods — no
+   * innerHTML / insertAdjacentHTML so there is no XSS sink even if this
+   * helper is ever called from a new code path. */
+  function sagaEmptyPanel(primaryText, codeSnippet) {
+    /* Renders:  <div class="saga-empty"><p>{primaryText} <code>{codeSnippet}</code></p></div>
+     * codeSnippet is optional; both values are set via textContent, never innerHTML. */
+    const wrap = document.createElement("div");
+    wrap.className = "saga-empty";
+    const p = document.createElement("p");
+    p.textContent = primaryText;
+    if (codeSnippet) {
+      const code = document.createElement("code");
+      code.textContent = codeSnippet;
+      p.appendChild(document.createTextNode(" "));
+      p.appendChild(code);
+    }
+    wrap.appendChild(p);
+    return wrap;
+  }
+
+  function renderSagaTable(records) {
+    if (!sagaContent) return;
+    if (!records || records.length === 0) {
+      const isStatic = location.protocol === "file:";
+      sagaContent.replaceChildren(
+        isStatic
+          ? sagaEmptyPanel("Open the dashboard via", "rc dashboard")
+          : sagaEmptyPanel("No reviewed actions yet — the log fills as the Thing judges commands.")
+      );
+      if (sagaCount) sagaCount.textContent = "";
+      return;
+    }
+
+    /* Populate category filter from data (sorted, deduplicated).
+     * Category values come from /__saga; escape them when building option text. */
+    if (sagaCatFil) {
+      const cats = [...new Set(records.map(r => r.category).filter(Boolean))].sort();
+      const cur = sagaCatFil.value;
+      /* option values and text are set via textContent/value — no innerHTML. */
+      const all = document.createElement("option");
+      all.value = ""; all.textContent = "All";
+      sagaCatFil.replaceChildren(all);
+      for (const c of cats) {
+        const opt = document.createElement("option");
+        opt.value = c;
+        opt.textContent = c;
+        if (c === cur) opt.selected = true;
+        sagaCatFil.appendChild(opt);
+      }
+    }
+
+    filterAndRenderSaga();
+  }
+
+  function filterAndRenderSaga() {
+    if (!sagaContent) return;
+    const verdF = sagaVerdFil ? sagaVerdFil.value : "";
+    const catF  = sagaCatFil  ? sagaCatFil.value  : "";
+
+    const filtered = sagaRecords.filter(r =>
+      (!verdF || r.final_verdict === verdF) &&
+      (!catF  || r.category === catF)
+    );
+
+    if (sagaCount) sagaCount.textContent = filtered.length + " of " + sagaRecords.length + " entries";
+
+    if (filtered.length === 0) {
+      sagaContent.replaceChildren(
+        sagaEmptyPanel("No entries match the current filters.")
+      );
+      return;
+    }
+
+    /* Build the table rows as an HTML string. Every data field is passed through
+     * esc() before interpolation. Fixed class names and element tags are literals. */
+    let rows = "";
+    for (const r of filtered) {
+      /* Time — the localized string comes from the JS engine, not server data. */
+      let timeStr = r.timestamp || "";
+      try {
+        if (timeStr) timeStr = new Date(timeStr).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
+      } catch (_) { /* keep raw ISO string */ }
+
+      /* Action cell — esc() both parts before joining. */
+      const fullAction = esc(r.tool_name || "") + ": " + esc(r.action || "");
+      const dispAction = fullAction.length > 82 ? fullAction.slice(0, 82) + "…" : fullAction;
+
+      /* Seats */
+      let seatsHtml = "";
+      if (!r.seats || r.seats.length === 0) {
+        seatsHtml = '<span class="saga-seat-chip saga-seat-det">deterministic / pre-LLM</span>';
+      } else {
+        for (const s of r.seats) {
+          const pct = s.confidence != null ? Math.round(s.confidence * 100) + "%" : "";
+          const cls = sagaSeatClass(s.verdict);
+          /* name and verdict are seat identifiers — esc them. */
+          seatsHtml += `<span class="saga-seat-chip ${cls}">${esc(s.name)} ${esc(s.verdict)} ${esc(pct)}</span>`;
+        }
+      }
+
+      /* Verdict pill — final_verdict is an enum from the engine; still esc. */
+      const vv = r.final_verdict || "";
+      const vPill = `<span class="saga-verdict-pill ${sagaVerdictClass(vv)}">${esc(vv) || "&mdash;"}</span>`;
+
+      /* Concerns — array of concern-id strings from the engine. */
+      const concerns = Array.isArray(r.concerns_cited) && r.concerns_cited.length
+        ? r.concerns_cited.map(c => esc(c)).join(", ")
+        : "&mdash;";
+
+      /* Rewrite — esc the rewrite text inside a <pre>. */
+      let rewriteHtml = "&mdash;";
+      if (r.rewrite) {
+        rewriteHtml = `<details class="saga-rewrite"><summary>show rewrite</summary><pre>${esc(r.rewrite)}</pre></details>`;
+      }
+
+      /* fullAction is already escaped above; use it directly in title attr. */
+      rows += `<tr>
+        <td>${esc(timeStr)}</td>
+        <td class="saga-action" title="${fullAction}">${dispAction}</td>
+        <td>${esc(r.category) || "&mdash;"}</td>
+        <td>${esc(r.phase) || "&mdash;"}</td>
+        <td>${seatsHtml}</td>
+        <td>${vPill}</td>
+        <td class="saga-concerns">${concerns}</td>
+        <td>${rewriteHtml}</td>
+      </tr>`;
+    }
+
+    /* The outer skeleton is fixed HTML; only `rows` contains escaped data. */
+    sagaContent.innerHTML =
+      '<div class="saga-table-wrap"><table class="saga-table" aria-label="Review log">'
+      + '<thead><tr>'
+      + '<th scope="col">Time</th>'
+      + '<th scope="col">Action</th>'
+      + '<th scope="col">Category</th>'
+      + '<th scope="col">Phase / Tier</th>'
+      + '<th scope="col">Seats</th>'
+      + '<th scope="col">Verdict</th>'
+      + '<th scope="col">Reason</th>'
+      + '<th scope="col">Rewrite</th>'
+      + '</tr></thead>'
+      + '<tbody>' + rows + '</tbody>'
+      + '</table></div>';
+  }
+
+  async function loadSaga() {
+    sagaLoaded = true;
+    if (sagaContent) sagaContent.replaceChildren(
+      sagaEmptyPanel("Loading review log…")
+    );
+    try {
+      const res = await fetch("/__saga?limit=200");
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      sagaRecords = await res.json();
+      renderSagaTable(sagaRecords);
+    } catch (e) {
+      sagaLoaded = false; /* allow retry on next tab visit */
+      if (sagaContent) {
+        const isStatic = location.protocol === "file:" || e.name === "TypeError";
+        sagaContent.replaceChildren(
+          isStatic
+            ? sagaEmptyPanel("Open the dashboard via", "rc dashboard")
+            : sagaEmptyPanel("Could not reach /__saga. Is the server running?", "python3 scripts/serve-dashboards.py")
+        );
+        if (sagaCount) sagaCount.textContent = "";
+      }
+    }
+  }
+
+  if (sagaRefBtn) sagaRefBtn.addEventListener("click", () => { sagaLoaded = false; loadSaga(); });
+  if (sagaVerdFil) sagaVerdFil.addEventListener("change", filterAndRenderSaga);
+  if (sagaCatFil)  sagaCatFil.addEventListener("change", filterAndRenderSaga);
 
   /* ── Hydrate command-review config from the committed YAML ──────────── */
   /* When the page is served by scripts/serve-dashboards.py, the committed
@@ -5334,6 +5643,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <button class="tab-btn" data-tab="install" role="tab" aria-selected="false">Install &amp; Update</button>
     <button class="tab-btn" data-tab="simulator" role="tab" aria-selected="false">Test a command</button>
     <button class="tab-btn" data-tab="learn" role="tab" aria-selected="false">Learn</button>
+    <button class="tab-btn" data-tab="saga" role="tab" aria-selected="false">&#9878; Review log</button>
     <button class="tab-btn" data-tab="commands" role="tab" aria-selected="false">Commands</button>
     <button class="tab-btn" data-tab="trees" role="tab" aria-selected="false">Trees</button>
     <button class="tab-btn" data-tab="activity" role="tab" aria-selected="false">Activity</button>
@@ -5352,6 +5662,9 @@ _PAGE_TEMPLATE = """<!doctype html>
   </section>
   <section class="tab-panel" data-tab="learn" role="tabpanel" aria-label="Learn">
 {learn_html}
+  </section>
+  <section class="tab-panel" data-tab="saga" role="tabpanel" aria-label="Review log">
+{saga_html}
   </section>
   <section class="tab-panel" data-tab="commands" role="tabpanel" aria-label="Commands">
 {commands_html}
