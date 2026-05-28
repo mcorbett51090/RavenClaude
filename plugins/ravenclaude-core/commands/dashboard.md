@@ -17,25 +17,31 @@ It serves the version-matched `dashboard.html` and exposes only `/__save`, `/__r
 
 ## How to launch it
 
-Run the bundled server **in the background, from the user's project root** (so it writes
-`.ravenclaude/` into their project), then give the user the URL. `${CLAUDE_PLUGIN_ROOT}`
-resolves to the plugin's install location:
+`rc dashboard` is the one-verb front door. It runs the bundled server, and on a
+local/desktop machine **the browser opens automatically**. In a Codespace, VS Code's
+`onAutoForward: openBrowser` wiring opens the forwarded URL in a real browser tab the
+moment the port comes up — no copy-paste required in either case.
+
+To launch it manually (e.g. from Claude with the Bash tool), run the bundled server
+**in the background, from the user's project root** (so it writes `.ravenclaude/` into
+their project). `${CLAUDE_PLUGIN_ROOT}` resolves to the plugin's install location:
 
 ```bash
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/serve-dashboards.py" --port 8000
 ```
 
 - Run it with the Bash tool's **background mode** (it's a long-running server).
-- If port 8000 is already in use, retry with `--port 8001` (and so on) until one is free.
+- If port 8000 is already in use, the server automatically tries 8001–8005; it prints
+  the actual port it bound. Pass `--no-open` to suppress browser auto-open in scripts.
 - Read the server's startup output and relay the exact **URL** it prints to the user.
 
 ## What to tell the user
 
-1. **The URL to open** — the `http://127.0.0.1:<port>/dashboard.html` line (and, in a
-   Codespace, the forwarded `https://…app.github.dev/…/dashboard.html` line + QR).
+1. **Browser auto-opens** on a local machine; in a Codespace the forwarded tab opens
+   automatically via `onAutoForward`. If it doesn't, use the URL the server prints.
 2. **Open it in a real browser tab** — *not* the VS Code "Simple Browser" / "Live Preview",
    which sandboxes the page and shows "content is blocked". In a Codespace, use the **Ports**
-   panel → port → 🌐 "Open in Browser", or click the forwarded URL and choose "Open in Browser".
+   panel → port → "Open in Browser", or click the forwarded URL and choose "Open in Browser".
 3. **Save & apply works here** — picking rules and clicking Save writes
    `.ravenclaude/comfort-posture.yaml` and applies it to `.claude/settings.json` in one step.
 4. **Keep the forwarded port Private** (the Codespace default) — `/__save` writes files and
