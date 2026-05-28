@@ -130,6 +130,17 @@ Domain-specific team constitution: [`plugins/microsoft-fabric/CLAUDE.md`](plugin
 
 Domain-specific team constitution: [`plugins/claude-app-engineering/CLAUDE.md`](plugins/claude-app-engineering/CLAUDE.md). Covers building production apps on the **Claude API + Claude Agent SDK + MCP** (build-surface decision, prompt caching, tool use, MCP servers + hosted server tools, Agent SDK / Managed Agents, evals, LLM FinOps). Ships **no** security-reviewer/architect clone — AI-app security and cross-domain architecture escalate to `ravenclaude-core` (a reciprocal prompt-engineer prior was added to core). The marketplace itself is the worked example. No bundled MCP — documents the Anthropic SDK / Claude Agent SDK prerequisite. Built from a researched, expert-reviewed plan ([`docs/claude-app-engineering-plugin-analysis.md`](docs/claude-app-engineering-plugin-analysis.md)).
 
+### `azure-cloud`
+
+| Component | Count | Where |
+|-----------|-------|-------|
+| Specialist agents | 7 (`azure-architect`, `bicep-iac-engineer`, `entra-identity-engineer`, `network-engineer`, `app-platform-engineer`, `integration-engineer`, `azure-ops-engineer`) | `plugins/azure-cloud/agents/` |
+| Knowledge bank | 9 citation-grounded, retrieval-dated docs (landing zones & governance, IaC decision + Bicep, compute + integration decision trees, Entra identity, networking & connectivity, observability & FinOps, deployment & CI/CD, dated 2026 capability map) | `plugins/azure-cloud/knowledge/` |
+| Templates | 6 (landing-zone plan, IaC deployment spec, architecture spec, Entra identity design, cost & observability review, CI/CD runbook) | `plugins/azure-cloud/templates/` |
+| Hooks | 1 advisory anti-pattern hook (hardcoded secret, public exposure, broad RBAC, TLS/HTTPS-off, hardcoded GUID, Terraform local backend); `AZURE_STRICT=1` to block | `plugins/azure-cloud/hooks/` |
+
+Domain-specific team constitution: [`plugins/azure-cloud/CLAUDE.md`](plugins/azure-cloud/CLAUDE.md). Covers the **Azure infrastructure & platform layer** under the Microsoft stack (landing zones / CAF, Bicep/Terraform/AVM/Deployment-Stacks, Entra identity, networking, compute selection, integration, observability + FinOps + governance). Ships **no** security-reviewer/architect clone — escalates to `ravenclaude-core`. Seams reciprocally with `power-platform` (Logic Apps vs Power Automate), `claude-app-engineering` (Azure host), `microsoft-fabric` (raw Azure data services), and `web-design` (Static Web Apps). No bundled MCP — documents the `az` CLI / Bicep / Terraform prerequisite. Built from a researched, expert-reviewed plan ([`docs/azure-cloud-plugin-analysis.md`](docs/azure-cloud-plugin-analysis.md)).
+
 ---
 
 ## Contributing back from a consumer project (no repo access needed)

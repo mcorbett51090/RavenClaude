@@ -160,6 +160,8 @@ Not yet enabled. Per the marketplace pattern, enable when the first real engagem
 
 **`web-design`** — the app's marketing site / UI shell. **`data-platform` / `microsoft-fabric`** — the app's data backend (SMB-embedded vs enterprise-Microsoft).
 
+**`azure-cloud/app-platform-engineer`** (when installed) — provisions the **Azure host** the Claude app deploys to (Container Apps / Functions / Foundry), its scaling, networking, and the IaC. **Litmus test:** *prompt / caching / tool / eval code → here; "where on Azure does this run and how is it provisioned" → `azure-cloud/app-platform-engineer`.* `claude-solution-architect` names the deployment target; azure-cloud provisions + scales it. (Reciprocal of [`../azure-cloud/CLAUDE.md`](../azure-cloud/CLAUDE.md) §10.)
+
 ---
 
 ## 11. The SDK prerequisite (no bundled MCP at v0.1.0)

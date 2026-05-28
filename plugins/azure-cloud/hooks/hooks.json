@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for azure-cloud. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-azure-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags 6 mechanically-detectable Azure IaC anti-patterns in .bicep/.tf/.json/.yml/.yaml — (1) hardcoded secret, (2) public exposure (0.0.0.0/0 / publicNetworkAccess Enabled / allowBlobPublicAccess / allowSharedKeyAccess), (3) Owner/Contributor at subscription/MG scope, (4) TLS<1.2 / HTTPS-off, (5) hardcoded subscription/tenant GUID, (6) Terraform local backend. Set AZURE_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}

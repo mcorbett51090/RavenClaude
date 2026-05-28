@@ -13,7 +13,7 @@
 | Agent | Owns | When to spawn |
 |---|---|---|
 | [`power-fx-engineer`](agents/power-fx-engineer.md) | Canvas apps + Power Fx + Custom Page layouts | Canvas screen design, Power Fx authoring/review, delegation puzzles, components, performance, accessibility |
-| [`flow-engineer`](agents/flow-engineer.md) | Power Automate cloud flows, desktop flows, custom connectors | Flow design/build/review, custom connector authoring, "Power Automate vs Logic App vs Function" decisions |
+| [`flow-engineer`](agents/flow-engineer.md) | Power Automate cloud flows, desktop flows, custom connectors | Flow design/build/review, custom connector authoring, the **initial** "Power Automate vs Logic Apps vs Function" call — hands off to `azure-cloud/integration-engineer` (when installed) the moment the answer is Logic Apps (§11) |
 | [`power-bi-engineer`](agents/power-bi-engineer.md) | **NEW** — Power BI semantic models, DAX, reports, dataflows, PBIP git + Azure DevOps integration, deployment, refresh | Semantic model design/review, complex DAX, PBIP source control & ADO pipelines, refresh/gateway issues, Power BI + solution ALM coordination |
 | [`dataverse-architect`](agents/dataverse-architect.md) | Data modeling, security, plug-ins, business rules | Schema design, security design, plug-in vs flow decisions, Excel/SharePoint → Dataverse migrations |
 | [`model-driven-engineer`](agents/model-driven-engineer.md) | Model-driven apps, forms/views/dashboards, command bar, JS web resources | Building or reviewing model-driven UI, business process flows, form scripting |
@@ -274,5 +274,6 @@ Power Platform agents stay within Power Platform. When a question crosses out, e
 - `ravenclaude-core` **security-reviewer** — for any change touching FLS, RLS, sharing across business units, custom connector auth, or any flow that handles PII/PCI/PHI.
 - `ravenclaude-core` **deep-researcher** — when an answer requires recent Power Platform release notes, connector behavior, or licensing math that needs to be verified against current Microsoft docs.
 - `ravenclaude-core` **project-manager** — when a Power Platform delivery needs RAID/risk tracking or a stakeholder status report.
+- `azure-cloud` **integration-engineer** (when installed) — when an integration belongs in an **Azure subscription** (Logic Apps Consumption/Standard, Service Bus, Event Grid, APIM) rather than as an O365-licensed Power Automate flow. **Litmus test:** *a citizen maker owns it, licensed per-user under O365/DLP → `flow-engineer`; it lives in an Azure subscription, deploys via Bicep/Terraform, and is governed by Azure Policy → `azure-cloud/integration-engineer`.* `flow-engineer` makes the initial call and hands off the moment the answer is Logic Apps. (Reciprocal of [`../azure-cloud/CLAUDE.md`](../azure-cloud/CLAUDE.md) §10.)
 
 When in doubt, the Power Platform team **declines and asks the Team Lead** rather than guessing.

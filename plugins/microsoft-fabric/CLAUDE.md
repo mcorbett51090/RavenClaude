@@ -159,6 +159,8 @@ Not yet enabled. Per the marketplace pattern, enable the scenarios bank when the
 
 **`ravenclaude-core/data-engineer`** — generic (non-Fabric) ELT / dbt / warehouse modeling stays in core; Fabric-specific lives here.
 
+**`azure-cloud`** (when installed) — the Fabric **analytics platform** (OneLake / Lakehouse / Warehouse / Direct Lake / capacity) is this plugin; **raw, non-Fabric Azure data services** used as an app backend (Azure SQL / Cosmos / PostgreSQL Flexible Server / Storage) belong to `azure-cloud` (its `azure-architect` owns the non-Fabric data-tier decision; `network-engineer` wires their Private Endpoints). The Azure capacity + subscription/landing-zone Fabric runs on is also `azure-cloud`. (Reciprocal of [`../azure-cloud/CLAUDE.md`](../azure-cloud/CLAUDE.md) §10.)
+
 **`ravenclaude-core/architect`** — cross-domain boundary adjudication when a question crosses a plugin line.
 
 ---
