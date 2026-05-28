@@ -261,6 +261,14 @@ jobs:
             exit 1
           fi
 
+      - name: Verify dashboard server endpoint parity (root vs bundled plugin)
+        # The bundled plugin serve-dashboards.py is a hand-maintained copy of the root
+        # dev server, so endpoints can silently drift — that is how the /__saga gap
+        # shipped in v0.52.0 (the dashboard fetched an endpoint the consumer's bundled
+        # server didn't serve). Asserts every root /__ endpoint (minus the intentional
+        # /__run omission) also exists in the plugin server. See check-dashboard-server-parity.py.
+        run: python3 scripts/check-dashboard-server-parity.py
+
       - name: Verify Learn-tab concept artifacts are fresh
         # The dashboard's Learn tab and docs/concepts.md are generated from
         # plugins/ravenclaude-core/knowledge/concepts/. If a concept (or its

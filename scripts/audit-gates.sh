@@ -1705,6 +1705,24 @@ out="$(printf '%s' "$DR_MULTI" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT
 rc=0; [[ "$(_dr_decision "$out")" == "allow" ]] || rc=1
 gate "route-decision-review (multi-select -> allow)" must_pass "$rc"
 
+echo "── Gate 32: dashboard server endpoint parity (root vs bundled plugin) ─────"
+# The bundled plugin serve-dashboards.py is a HAND-MAINTAINED copy of the root dev
+# server — nothing generates it, so endpoints can silently drift. That is exactly
+# how the /__saga gap shipped in v0.52.0 (the dashboard fetched an endpoint the
+# bundled server didn't serve). check-dashboard-server-parity.py asserts every /__
+# endpoint the root server exposes (minus the intentional /__run omission) also
+# exists in the plugin server.
+DSP="scripts/check-dashboard-server-parity.py"
+# must_pass: the real, in-sync tree.
+rc=0; python3 "$DSP" >/dev/null 2>&1 || rc=$?
+gate "dashboard-server-parity (in-sync tree)" must_pass "$rc"
+# must_fail: a plugin-server copy with every /__saga reference stripped — the exact
+# v0.52.0 drift. The check must catch the now-missing endpoint.
+DSP_BAD="$TMP/serve-dashboards-drifted.py"
+grep -v '/__saga' plugins/ravenclaude-core/scripts/serve-dashboards.py > "$DSP_BAD"
+rc=0; python3 "$DSP" --plugin-server "$DSP_BAD" >/dev/null 2>&1 || rc=$?
+gate "dashboard-server-parity (drifted: /__saga stripped)" must_fail "$rc"
+
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
