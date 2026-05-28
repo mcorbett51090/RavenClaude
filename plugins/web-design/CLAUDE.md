@@ -185,8 +185,11 @@ The hook is conservative — it only fires on conventional web file extensions /
 | File | Read when |
 |---|---|
 | [`knowledge/design-references.md`](knowledge/design-references.md) | Scoping a new site, pitching a new aesthetic direction, or evaluating an existing site against the field. Curated reference set of marketing / product sites praised in 2024–2026 design discourse as "cutting edge yet simple" — pattern donors, what to borrow, what to avoid. Refreshed roughly annually. |
+| [`knowledge/modern-web-stacks-2026.md`](knowledge/modern-web-stacks-2026.md) | Choosing a stack / rendering model — the rendering-model table (SSG/ISR/SSR/RSC/CSR/islands) + framework decision tree (Astro / Next.js 16 RSC / React Router / SvelteKit / Eleventy / Hugo). Owned by `web-architect` + `frontend-implementer`. Dated 2026-05-28. |
+| [`knowledge/modern-css-2026.md`](knowledge/modern-css-2026.md) | Building UI with current CSS — container queries, `:has()`, cascade layers, subgrid, `oklch()` color, View Transitions, Tailwind v4 (Oxide / CSS-first `@theme`), logical properties, native nesting. Owned by `visual-designer` + `frontend-implementer`. Dated 2026-05-28. |
+| [`knowledge/web-platform-capabilities-2026.md`](knowledge/web-platform-capabilities-2026.md) | Performance + platform — 2026 Core Web Vitals thresholds (LCP/INP/CLS; INP is the most-failed), Speculation Rules API, bfcache, `fetchpriority`, native `<dialog>`/Popover, WCAG 2.2 + the EU Accessibility Act. The dated freshness anchor. Owned by `performance-engineer` + `web-architect`. Dated 2026-05-28. |
 
-The `visual-designer`, `ux-designer`, `frontend-implementer`, and `web-architect` agents all carry a compact "Pattern library priors" section that summarizes this knowledge inline; the full brief in `knowledge/` is the source of truth and gets re-read on demand.
+The `visual-designer`, `ux-designer`, `frontend-implementer`, and `web-architect` agents all carry a compact "Pattern library priors" section that summarizes this knowledge inline; the full briefs in `knowledge/` are the source of truth and get re-read on demand. The three `*-2026.md` docs are dated freshness anchors — the Researcher staleness sweep re-dates them (the web platform ships continuously).
 
 ---
 
