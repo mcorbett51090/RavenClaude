@@ -1979,6 +1979,62 @@ footer.page-footer a:hover { text-decoration: underline; }
     font-size: 14px;
   }
 }
+
+/* ── Review log (saga) tab ──────────────────────────────────── */
+.saga-layout { padding: 20px; }
+.saga-hdr { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.saga-hdr h2 { margin: 0; }
+.saga-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.saga-filters label { font-size: 13px; color: var(--muted); }
+.saga-filters select {
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+  border-radius: 4px; padding: 4px 8px; font-size: 13px; cursor: pointer;
+}
+.saga-refresh {
+  background: transparent; color: var(--accent); border: 1px solid var(--accent);
+  border-radius: 4px; padding: 4px 10px; font-size: 13px; cursor: pointer;
+}
+.saga-refresh:hover { background: var(--accent); color: var(--bg); }
+.saga-refresh:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.saga-count { font-size: 12px; color: var(--muted); }
+.saga-table-wrap { overflow-x: auto; }
+.saga-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.saga-table th, .saga-table td {
+  padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.saga-table th { font-weight: 600; color: var(--muted); white-space: nowrap; position: sticky; top: 0; background: var(--surface); }
+.saga-table tr:hover td { background: var(--surface-2); }
+.saga-action { font-family: var(--font-mono); font-size: 11.5px; word-break: break-word; max-width: 260px; }
+.saga-verdict-pill {
+  display: inline-block; padding: 2px 8px; border-radius: 10px;
+  font-size: 11.5px; font-weight: 600; white-space: nowrap;
+}
+.saga-verdict-allow { background: #14b8a620; color: var(--accent); border: 1px solid var(--accent); }
+.saga-verdict-ask   { background: #fbbf2420; color: var(--warn);   border: 1px solid var(--warn); }
+.saga-verdict-deny  { background: #ef444420; color: var(--danger); border: 1px solid var(--danger); }
+.saga-verdict-edit  { background: #3b82f620; color: #60a5fa;       border: 1px solid #3b82f6; }
+.saga-seat-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 1px 6px; border-radius: 8px; font-size: 11px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  margin: 1px 2px 1px 0; white-space: nowrap;
+}
+.saga-seat-allow { border-color: var(--accent); color: var(--accent); }
+.saga-seat-deny  { border-color: var(--danger); color: var(--danger); }
+.saga-seat-ask   { border-color: var(--warn);   color: var(--warn); }
+.saga-seat-det   { color: var(--muted); font-style: italic; }
+.saga-concerns   { font-size: 11.5px; color: var(--muted); word-break: break-word; }
+.saga-rewrite summary { cursor: pointer; font-size: 11.5px; color: var(--accent); }
+.saga-rewrite pre { margin: 4px 0 0; font-size: 11px; font-family: var(--font-mono); white-space: pre-wrap; word-break: break-all; color: var(--text); }
+.saga-empty {
+  text-align: center; padding: 40px 20px;
+  background: var(--surface); border-radius: var(--radius);
+  border: 1px solid var(--border); color: var(--muted);
+}
+.saga-empty p { margin: 8px 0 0; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -1992,6 +2048,7 @@ footer.page-footer a:hover { text-decoration: underline; }
     <button class="tab-btn" data-tab="install" role="tab" aria-selected="false">Install &amp; Update</button>
     <button class="tab-btn" data-tab="simulator" role="tab" aria-selected="false">Test a command</button>
     <button class="tab-btn" data-tab="learn" role="tab" aria-selected="false">Learn</button>
+    <button class="tab-btn" data-tab="saga" role="tab" aria-selected="false">&#9878; Review log</button>
     <button class="tab-btn" data-tab="commands" role="tab" aria-selected="false">Commands</button>
     <button class="tab-btn" data-tab="trees" role="tab" aria-selected="false">Trees</button>
     <button class="tab-btn" data-tab="activity" role="tab" aria-selected="false">Activity</button>
@@ -2225,6 +2282,34 @@ why a hook **and** ci: claude code issue #23478 confirms that path-scoped rule f
 this is required reading before adding or changing any ci step — a new gate ships with its fail/pass fixtures, not just its happy path. and **a skip is not a pass**: when a gate can&#x27;t run locally (e.g. the actionlint gate needs a docker daemon), it **loudly** skips (&quot;this is not a pass&quot;), and in ci an unrunnable gate is a hard failure, never a silent skip." tabindex="-1"><div class="concept-eyebrow">Marketplace engineering</div><div class="concept-head"><h3 class="concept-title">The gate-audit meta-test</h3><span class="concept-badge built"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.5 14.5 8 8 14.5 1.5 8Z" fill="currentColor"/></svg>RavenClaude-built</span></div><p class="concept-deck">Every CI gate is itself tested: audit-gates.sh proves each gate FAILS on a known-bad fixture and PASSES on a known-good one — so a gate can&#x27;t silently rot into a no-op.</p><div class="concept-diagram-well" role="img" aria-label="The gate-audit meta-test diagram"><svg id="c-audit-gates" width="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" class="rc-concept-diagram flowchart" style="max-width: 495.223px; background-color: transparent;" viewBox="0 0 495.22265625 905.375" role="graphics-document document" aria-roledescription="flowchart-v2"><style>#c-audit-gates .nodeLabel,#c-audit-gates .edgeLabel,#c-audit-gates text,#c-audit-gates span,#c-audit-gates p,#c-audit-gates div{fill:var(--text)!important;color:var(--text)!important;background:transparent!important}#c-audit-gates .node rect,#c-audit-gates .node polygon,#c-audit-gates .node circle,#c-audit-gates .node path,#c-audit-gates .label-container{fill:var(--surface-2)!important;stroke:var(--border)!important;stroke-width:1.5px!important}#c-audit-gates .cluster rect{fill:var(--surface)!important;stroke:var(--border)!important}#c-audit-gates .edgePath .path,#c-audit-gates .edgePath path,#c-audit-gates path.flowchart-link,#c-audit-gates .flowchart-link{stroke:var(--muted)!important;stroke-width:1.5px!important;fill:none!important}#c-audit-gates marker path,#c-audit-gates .arrowMarkerPath,#c-audit-gates #arrowhead path{fill:var(--muted)!important;stroke:none!important}#c-audit-gates .edgeLabel rect,#c-audit-gates .edgeLabel .labelBkg,#c-audit-gates .label-container.edgeLabel{fill:var(--bg)!important;opacity:1!important}#c-audit-gates .edgeLabel text,#c-audit-gates .edgeLabel span{fill:var(--muted)!important;color:var(--muted)!important}#c-audit-gates .node.fact rect,#c-audit-gates .node.fact polygon,#c-audit-gates .node.fact path,#c-audit-gates .node.fact circle{stroke:var(--muted)!important}#c-audit-gates .node.built rect,#c-audit-gates .node.built polygon,#c-audit-gates .node.built path,#c-audit-gates .node.built circle{fill:var(--surface)!important;stroke:var(--accent)!important}#c-audit-gates .node:hover rect,#c-audit-gates .node:hover polygon,#c-audit-gates .node:hover circle,#c-audit-gates .node:hover path{stroke:var(--accent)!important;stroke-width:2.5px!important;cursor:default}</style><style>#c-audit-gates{font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:16px;fill:#333;}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#c-audit-gates .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#c-audit-gates .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#c-audit-gates .error-icon{fill:#552222;}#c-audit-gates .error-text{fill:#552222;stroke:#552222;}#c-audit-gates .edge-thickness-normal{stroke-width:1px;}#c-audit-gates .edge-thickness-thick{stroke-width:3.5px;}#c-audit-gates .edge-pattern-solid{stroke-dasharray:0;}#c-audit-gates .edge-thickness-invisible{stroke-width:0;fill:none;}#c-audit-gates .edge-pattern-dashed{stroke-dasharray:3;}#c-audit-gates .edge-pattern-dotted{stroke-dasharray:2;}#c-audit-gates .marker{fill:#333333;stroke:#333333;}#c-audit-gates .marker.cross{stroke:#333333;}#c-audit-gates svg{font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:16px;}#c-audit-gates p{margin:0;}#c-audit-gates .label{font-family:"trebuchet ms",verdana,arial,sans-serif;color:#333;}#c-audit-gates .cluster-label text{fill:#333;}#c-audit-gates .cluster-label span{color:#333;}#c-audit-gates .cluster-label span p{background-color:transparent;}#c-audit-gates .label text,#c-audit-gates span{fill:#333;color:#333;}#c-audit-gates .node rect,#c-audit-gates .node circle,#c-audit-gates .node ellipse,#c-audit-gates .node polygon,#c-audit-gates .node path{fill:#ECECFF;stroke:#9370DB;stroke-width:1px;}#c-audit-gates .rough-node .label text,#c-audit-gates .node .label text,#c-audit-gates .image-shape .label,#c-audit-gates .icon-shape .label{text-anchor:middle;}#c-audit-gates .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#c-audit-gates .rough-node .label,#c-audit-gates .node .label,#c-audit-gates .image-shape .label,#c-audit-gates .icon-shape .label{text-align:center;}#c-audit-gates .node.clickable{cursor:pointer;}#c-audit-gates .root .anchor path{fill:#333333!important;stroke-width:0;stroke:#333333;}#c-audit-gates .arrowheadPath{fill:#333333;}#c-audit-gates .edgePath .path{stroke:#333333;stroke-width:1px;}#c-audit-gates .flowchart-link{stroke:#333333;fill:none;}#c-audit-gates .edgeLabel{background-color:rgba(232,232,232, 0.8);text-align:center;}#c-audit-gates .edgeLabel p{background-color:rgba(232,232,232, 0.8);}#c-audit-gates .edgeLabel rect{opacity:0.5;background-color:rgba(232,232,232, 0.8);fill:rgba(232,232,232, 0.8);}#c-audit-gates .labelBkg{background-color:rgba(232, 232, 232, 0.5);}#c-audit-gates .cluster rect{fill:#ffffde;stroke:#aaaa33;stroke-width:1px;}#c-audit-gates .cluster text{fill:#333;}#c-audit-gates .cluster span{color:#333;}#c-audit-gates div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:12px;background:hsl(80, 100%, 96.2745098039%);border:1px solid #aaaa33;border-radius:2px;pointer-events:none;z-index:100;}#c-audit-gates .flowchartTitleText{text-anchor:middle;font-size:18px;fill:#333;}#c-audit-gates rect.text{fill:none;stroke-width:0;}#c-audit-gates .icon-shape,#c-audit-gates .image-shape{background-color:rgba(232,232,232, 0.8);text-align:center;}#c-audit-gates .icon-shape p,#c-audit-gates .image-shape p{background-color:rgba(232,232,232, 0.8);padding:2px;}#c-audit-gates .icon-shape .label rect,#c-audit-gates .image-shape .label rect{opacity:0.5;background-color:rgba(232,232,232, 0.8);fill:rgba(232,232,232, 0.8);}#c-audit-gates .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#c-audit-gates .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#c-audit-gates .node .neo-node{stroke:#9370DB;}#c-audit-gates [data-look="neo"].node rect,#c-audit-gates [data-look="neo"].cluster rect,#c-audit-gates [data-look="neo"].node polygon{stroke:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#c-audit-gates [data-look="neo"].node path{stroke:#9370DB;stroke-width:1px;}#c-audit-gates [data-look="neo"].node .outer-path{filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#c-audit-gates [data-look="neo"].node .neo-line path{stroke:#9370DB;filter:none;}#c-audit-gates [data-look="neo"].node circle{stroke:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#c-audit-gates [data-look="neo"].node circle .state-start{fill:#000000;}#c-audit-gates [data-look="neo"].icon-shape .icon{fill:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#c-audit-gates [data-look="neo"].icon-shape .icon-neo path{stroke:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#c-audit-gates :root{--mermaid-font-family:"trebuchet ms",verdana,arial,sans-serif;}</style><g><marker id="c-audit-gates_flowchart-v2-pointEnd" class="marker flowchart-v2" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="c-audit-gates_flowchart-v2-pointStart" class="marker flowchart-v2" viewBox="0 0 10 10" refX="4.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 5 L 10 10 L 10 0 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="c-audit-gates_flowchart-v2-pointEnd-margin" class="marker flowchart-v2" viewBox="0 0 11.5 14" refX="11.5" refY="7" markerUnits="userSpaceOnUse" markerWidth="10.5" markerHeight="14" orient="auto"><path d="M 0 0 L 11.5 7 L 0 14 z" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="c-audit-gates_flowchart-v2-pointStart-margin" class="marker flowchart-v2" viewBox="0 0 11.5 14" refX="1" refY="7" markerUnits="userSpaceOnUse" markerWidth="11.5" markerHeight="14" orient="auto"><polygon points="0,7 11.5,14 11.5,0" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="c-audit-gates_flowchart-v2-circleEnd" class="marker flowchart-v2" viewBox="0 0 10 10" refX="11" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="c-audit-gates_flowchart-v2-circleStart" class="marker flowchart-v2" viewBox="0 0 10 10" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="c-audit-gates_flowchart-v2-circleEnd-margin" class="marker flowchart-v2" viewBox="0 0 10 10" refY="5" refX="12.25" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="c-audit-gates_flowchart-v2-circleStart-margin" class="marker flowchart-v2" viewBox="0 0 10 10" refX="-2" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="c-audit-gates_flowchart-v2-crossEnd" class="marker cross flowchart-v2" viewBox="0 0 11 11" refX="12" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"/></marker><marker id="c-audit-gates_flowchart-v2-crossStart" class="marker cross flowchart-v2" viewBox="0 0 11 11" refX="-1" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"/></marker><marker id="c-audit-gates_flowchart-v2-crossEnd-margin" class="marker cross flowchart-v2" viewBox="0 0 15 15" refX="17.7" refY="7.5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 1,1 L 14,14 M 1,14 L 14,1" class="arrowMarkerPath" style="stroke-width: 2.5;"/></marker><marker id="c-audit-gates_flowchart-v2-crossStart-margin" class="marker cross flowchart-v2" viewBox="0 0 15 15" refX="-3.5" refY="7.5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 1,1 L 14,14 M 1,14 L 14,1" class="arrowMarkerPath" style="stroke-width: 2.5; stroke-dasharray: 1, 0;"/></marker><g class="root"><g class="clusters"/><g class="edgePaths"><path d="M254.418,62L254.418,66.167C254.418,70.333,254.418,78.667,254.418,86.333C254.418,94,254.418,101,254.418,104.5L254.418,108" id="c-audit-gates-L_G_BAD_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_G_BAD_0" data-points="W3sieCI6MjU0LjQxNzk2ODc1LCJ5Ijo2Mn0seyJ4IjoyNTQuNDE3OTY4NzUsInkiOjg3fSx7IngiOjI1NC40MTc5Njg3NSwieSI6MTEyfV0=" data-look="classic" marker-end="url(#c-audit-gates_flowchart-v2-pointEnd)"/><path d="M254.418,190L254.418,194.167C254.418,198.333,254.418,206.667,254.418,214.333C254.418,222,254.418,229,254.418,232.5L254.418,236" id="c-audit-gates-L_BAD_FB_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_BAD_FB_0" data-points="W3sieCI6MjU0LjQxNzk2ODc1LCJ5IjoxOTB9LHsieCI6MjU0LjQxNzk2ODc1LCJ5IjoyMTV9LHsieCI6MjU0LjQxNzk2ODc1LCJ5IjoyNDB9XQ==" data-look="classic" marker-end="url(#c-audit-gates_flowchart-v2-pointEnd)"/><path d="M213.534,346.507L197.36,359.487C181.185,372.468,148.837,398.429,132.663,424.077C116.488,449.724,116.488,475.057,116.488,500.391C116.488,525.724,116.488,551.057,116.488,582.889C116.488,614.721,116.488,653.052,116.488,691.383C116.488,729.714,116.488,768.044,117.734,792.726C118.979,817.408,121.47,828.44,122.715,833.957L123.961,839.473" id="c-audit-gates-L_FB_BROKEN_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_FB_BROKEN_0" data-points="W3sieCI6MjEzLjUzNDAyMTM0NTkxODE4LCJ5IjozNDYuNTA2Njc3NTk1OTE4Mn0seyJ4IjoxMTYuNDg4MjgxMjUsInkiOjQyNC4zOTA2MjV9LHsieCI6MTE2LjQ4ODI4MTI1LCJ5Ijo1MDAuMzkwNjI1fSx7IngiOjExNi40ODgyODEyNSwieSI6NTc2LjM5MDYyNX0seyJ4IjoxMTYuNDg4MjgxMjUsInkiOjY5MS4zODI4MTI1fSx7IngiOjExNi40ODgyODEyNSwieSI6ODA2LjM3NX0seyJ4IjoxMjQuODQxNzM1ODM5ODQzNzUsInkiOjg0My4zNzV9XQ==" data-look="classic" marker-end="url(#c-audit-gates_flowchart-v2-pointEnd)"/><path d="M289.904,351.905L301.124,363.986C312.343,376.067,334.783,400.229,346.003,417.81C357.223,435.391,357.223,446.391,357.223,451.891L357.223,457.391" id="c-audit-gates-L_FB_GOOD_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_FB_GOOD_0" data-points="W3sieCI6Mjg5LjkwMzc5MzQ0MjE2NTUsInkiOjM1MS45MDQ4MDAzMDc4MzQ1fSx7IngiOjM1Ny4yMjI2NTYyNSwieSI6NDI0LjM5MDYyNX0seyJ4IjozNTcuMjIyNjU2MjUsInkiOjQ2MS4zOTA2MjV9XQ==" data-look="classic" marker-end="url(#c-audit-gates_flowchart-v2-pointEnd)"/><path d="M357.223,539.391L357.223,545.557C357.223,551.724,357.223,564.057,357.223,575.724C357.223,587.391,357.223,598.391,357.223,603.891L357.223,609.391" id="c-audit-gates-L_GOOD_FG_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_GOOD_FG_0" data-points="W3sieCI6MzU3LjIyMjY1NjI1LCJ5Ijo1MzkuMzkwNjI1fSx7IngiOjM1Ny4yMjI2NTYyNSwieSI6NTc2LjM5MDYyNX0seyJ4IjozNTcuMjIyNjU2MjUsInkiOjYxMy4zOTA2MjV9XQ==" data-look="classic" marker-end="url(#c-audit-gates_flowchart-v2-pointEnd)"/><path d="M316.839,728.991L302.989,741.888C289.14,754.786,261.441,780.58,238.252,799.292C215.063,818.004,196.383,829.632,187.044,835.447L177.704,841.261" id="c-audit-gates-L_FG_BROKEN_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_FG_BROKEN_0" data-points="W3sieCI6MzE2LjgzODUyMTU1Mzg5NTI1LCJ5Ijo3MjguOTkwODY1MzAzODk1Mn0seyJ4IjoyMzMuNzQyMTg3NSwieSI6ODA2LjM3NX0seyJ4IjoxNzQuMzA4MjI3NTM5MDYyNSwieSI6ODQzLjM3NX1d" data-look="classic" marker-end="url(#c-audit-gates_flowchart-v2-pointEnd)"/><path d="M369.109,757.489L370.574,765.637C372.039,773.784,374.969,790.08,376.433,803.727C377.898,817.375,377.898,828.375,377.898,833.875L377.898,839.375" id="c-audit-gates-L_FG_TRUST_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_FG_TRUST_0" data-points="W3sieCI6MzY5LjEwODY1NTc0NDMyNzg1LCJ5Ijo3NTcuNDg5MDAwNTA1NjcyMn0seyJ4IjozNzcuODk4NDM3NSwieSI6ODA2LjM3NX0seyJ4IjozNzcuODk4NDM3NSwieSI6ODQzLjM3NX1d" data-look="classic" marker-end="url(#c-audit-gates_flowchart-v2-pointEnd)"/></g><g class="edgeLabels"><g class="edgeLabel"><g class="label" data-id="L_G_BAD_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_BAD_FB_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel" transform="translate(116.48828125, 576.390625)"><g class="label" data-id="L_FB_BROKEN_0" transform="translate(-8.8984375, -12)"><foreignObject width="17.796875" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"><p>no</p></span></div></foreignObject></g></g><g class="edgeLabel" transform="translate(357.22265625, 424.390625)"><g class="label" data-id="L_FB_GOOD_0" transform="translate(-12.453125, -12)"><foreignObject width="24.90625" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"><p>yes</p></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_GOOD_FG_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel" transform="translate(249.67327, 791.53905)"><g class="label" data-id="L_FG_BROKEN_0" transform="translate(-8.8984375, -12)"><foreignObject width="17.796875" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"><p>no</p></span></div></foreignObject></g></g><g class="edgeLabel" transform="translate(377.8984375, 806.375)"><g class="label" data-id="L_FG_TRUST_0" transform="translate(-12.453125, -12)"><foreignObject width="24.90625" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"><p>yes</p></span></div></foreignObject></g></g></g><g class="nodes"><g class="node default built" id="c-audit-gates-flowchart-G-0" data-look="classic" transform="translate(254.41796875, 35)"><rect class="basic label-container" style="" x="-89.5859375" y="-27" width="179.171875" height="54"/><g class="label" style="" transform="translate(-59.5859375, -12)"><rect/><foreignObject width="119.171875" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>For each CI gate</p></span></div></foreignObject></g></g><g class="node default built" id="c-audit-gates-flowchart-BAD-1" data-look="classic" transform="translate(254.41796875, 151)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"/><g class="label" style="" transform="translate(-100, -24)"><rect/><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>Run it on a known-BAD fixture</p></span></div></foreignObject></g></g><g class="node default built" id="c-audit-gates-flowchart-FB-3" data-look="classic" transform="translate(254.41796875, 313.6953125)"><polygon points="73.6953125,0 147.390625,-73.6953125 73.6953125,-147.390625 0,-73.6953125" class="label-container" transform="translate(-73.1953125, 73.6953125)"/><g class="label" style="" transform="translate(-46.6953125, -12)"><rect/><foreignObject width="93.390625" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>does it FAIL?</p></span></div></foreignObject></g></g><g class="node default built" id="c-audit-gates-flowchart-BROKEN-5" data-look="classic" transform="translate(130.9375, 870.375)"><rect class="basic label-container" style="" x="-122.9375" y="-27" width="245.875" height="54"/><g class="label" style="" transform="translate(-92.9375, -12)"><rect/><foreignObject width="185.875" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>Gate is broken · audit fails</p></span></div></foreignObject></g></g><g class="node default built" id="c-audit-gates-flowchart-GOOD-7" data-look="classic" transform="translate(357.22265625, 500.390625)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"/><g class="label" style="" transform="translate(-100, -24)"><rect/><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>Run it on a known-GOOD fixture</p></span></div></foreignObject></g></g><g class="node default built" id="c-audit-gates-flowchart-FG-9" data-look="classic" transform="translate(357.22265625, 691.3828125)"><polygon points="77.9921875,0 155.984375,-77.9921875 77.9921875,-155.984375 0,-77.9921875" class="label-container" transform="translate(-77.4921875, 77.9921875)"/><g class="label" style="" transform="translate(-50.9921875, -12)"><rect/><foreignObject width="101.984375" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>does it PASS?</p></span></div></foreignObject></g></g><g class="node default built" id="c-audit-gates-flowchart-TRUST-13" data-look="classic" transform="translate(377.8984375, 870.375)"><rect class="basic label-container" style="" x="-74.0234375" y="-27" width="148.046875" height="54"/><g class="label" style="" transform="translate(-44.0234375, -12)"><rect/><foreignObject width="88.046875" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>Gate trusted</p></span></div></foreignObject></g></g></g></g></g><defs><filter id="c-audit-gates-drop-shadow" height="130%" width="130%"><feDropShadow dx="4" dy="4" stdDeviation="0" flood-opacity="0.06" flood-color="#000000"/></filter></defs><defs><filter id="c-audit-gates-drop-shadow-small" height="150%" width="150%"><feDropShadow dx="2" dy="2" stdDeviation="0" flood-opacity="0.06" flood-color="#000000"/></filter></defs></svg></div><div class="concept-body"><p>A CI gate that never fails is worse than no gate — it gives false confidence. So RavenClaude runs a <strong>meta-test</strong>: <code>scripts/audit-gates.sh</code> proves, for each gate, that it <strong>fails on a known-bad fixture AND passes on a known-good one</strong>. If a gate can&#x27;t be made to fail on input it&#x27;s supposed to reject, the gate is broken and the audit says so.</p><p>This is required reading before adding or changing any CI step — a new gate ships with its fail/pass fixtures, not just its happy path. And <strong>a skip is not a pass</strong>: when a gate can&#x27;t run locally (e.g. the actionlint gate needs a Docker daemon), it <strong>loudly</strong> skips (&quot;THIS IS NOT A PASS&quot;), and in CI an unrunnable gate is a hard failure, never a silent skip.</p></div><div class="concept-seealso"><a class="concept-chip" href="#/learn/layout-hook">Layout enforcement</a></div><div class="concept-sources-row"><a class="concept-source" href="docs/best-practices/ci-gate-audit.md" rel="noopener">CI gate audit</a><a class="concept-source" href="AGENTS.md" rel="noopener">AGENTS.md — Testing instructions</a><span class="concept-verified">verified 2026-05-26</span></div></article><article class="concept-card" id="learn-copilot-bridge" data-concept="copilot-bridge" data-search="github copilot cli bridge ravenclaude runs under github copilot cli too — via a generated package + a hook adapter — and updating is just `git pull`, never a re-install. copilot cli is itself a plugin host with the same lifecycle events (sessionstart / pretooluse / …), agent skills, agents.md, and mcp — so most of the plugin ports. three pieces make it work: `generate-copilot-plugin.py` **projects** the canonical plugin into a copilot package (generated, never hand-maintained, `--check`-gated like the dashboard); a **hook adapter** translates the i/o envelopes so the *unmodified* hook scripts run under copilot (mapping its `toolname`/`toolargs` ⇄ claude&#x27;s `tool_name`/`tool_input`, and the verdict shapes); and **enforcement hooks ship repo-level** in `.github/hooks/` because a copilot bug stops plugin-level `pretooluse` hooks from firing.
 
 the design pillar is **frictionless updates**: instead of copilot&#x27;s re-install-to-update flow, the plugin loads **live** via `copilot --plugin-dir copilot/`, so an update is just **`git pull`** (`ravenclaude update`). no re-install, ever." tabindex="-1"><div class="concept-eyebrow">Marketplace engineering</div><div class="concept-head"><h3 class="concept-title">GitHub Copilot CLI bridge</h3><span class="concept-badge built"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.5 14.5 8 8 14.5 1.5 8Z" fill="currentColor"/></svg>RavenClaude-built</span></div><p class="concept-deck">RavenClaude runs under GitHub Copilot CLI too — via a generated package + a hook adapter — and updating is just `git pull`, never a re-install.</p><div class="concept-diagram-well" role="img" aria-label="GitHub Copilot CLI bridge diagram"><svg id="c-copilot-bridge" width="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" class="rc-concept-diagram flowchart" style="max-width: 769.43px; background-color: transparent;" viewBox="0 0 769.4296875 326" role="graphics-document document" aria-roledescription="flowchart-v2"><style>#c-copilot-bridge .nodeLabel,#c-copilot-bridge .edgeLabel,#c-copilot-bridge text,#c-copilot-bridge span,#c-copilot-bridge p,#c-copilot-bridge div{fill:var(--text)!important;color:var(--text)!important;background:transparent!important}#c-copilot-bridge .node rect,#c-copilot-bridge .node polygon,#c-copilot-bridge .node circle,#c-copilot-bridge .node path,#c-copilot-bridge .label-container{fill:var(--surface-2)!important;stroke:var(--border)!important;stroke-width:1.5px!important}#c-copilot-bridge .cluster rect{fill:var(--surface)!important;stroke:var(--border)!important}#c-copilot-bridge .edgePath .path,#c-copilot-bridge .edgePath path,#c-copilot-bridge path.flowchart-link,#c-copilot-bridge .flowchart-link{stroke:var(--muted)!important;stroke-width:1.5px!important;fill:none!important}#c-copilot-bridge marker path,#c-copilot-bridge .arrowMarkerPath,#c-copilot-bridge #arrowhead path{fill:var(--muted)!important;stroke:none!important}#c-copilot-bridge .edgeLabel rect,#c-copilot-bridge .edgeLabel .labelBkg,#c-copilot-bridge .label-container.edgeLabel{fill:var(--bg)!important;opacity:1!important}#c-copilot-bridge .edgeLabel text,#c-copilot-bridge .edgeLabel span{fill:var(--muted)!important;color:var(--muted)!important}#c-copilot-bridge .node.fact rect,#c-copilot-bridge .node.fact polygon,#c-copilot-bridge .node.fact path,#c-copilot-bridge .node.fact circle{stroke:var(--muted)!important}#c-copilot-bridge .node.built rect,#c-copilot-bridge .node.built polygon,#c-copilot-bridge .node.built path,#c-copilot-bridge .node.built circle{fill:var(--surface)!important;stroke:var(--accent)!important}#c-copilot-bridge .node:hover rect,#c-copilot-bridge .node:hover polygon,#c-copilot-bridge .node:hover circle,#c-copilot-bridge .node:hover path{stroke:var(--accent)!important;stroke-width:2.5px!important;cursor:default}</style><style>#c-copilot-bridge{font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:16px;fill:#333;}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#c-copilot-bridge .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#c-copilot-bridge .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#c-copilot-bridge .error-icon{fill:#552222;}#c-copilot-bridge .error-text{fill:#552222;stroke:#552222;}#c-copilot-bridge .edge-thickness-normal{stroke-width:1px;}#c-copilot-bridge .edge-thickness-thick{stroke-width:3.5px;}#c-copilot-bridge .edge-pattern-solid{stroke-dasharray:0;}#c-copilot-bridge .edge-thickness-invisible{stroke-width:0;fill:none;}#c-copilot-bridge .edge-pattern-dashed{stroke-dasharray:3;}#c-copilot-bridge .edge-pattern-dotted{stroke-dasharray:2;}#c-copilot-bridge .marker{fill:#333333;stroke:#333333;}#c-copilot-bridge .marker.cross{stroke:#333333;}#c-copilot-bridge svg{font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:16px;}#c-copilot-bridge p{margin:0;}#c-copilot-bridge .label{font-family:"trebuchet ms",verdana,arial,sans-serif;color:#333;}#c-copilot-bridge .cluster-label text{fill:#333;}#c-copilot-bridge .cluster-label span{color:#333;}#c-copilot-bridge .cluster-label span p{background-color:transparent;}#c-copilot-bridge .label text,#c-copilot-bridge span{fill:#333;color:#333;}#c-copilot-bridge .node rect,#c-copilot-bridge .node circle,#c-copilot-bridge .node ellipse,#c-copilot-bridge .node polygon,#c-copilot-bridge .node path{fill:#ECECFF;stroke:#9370DB;stroke-width:1px;}#c-copilot-bridge .rough-node .label text,#c-copilot-bridge .node .label text,#c-copilot-bridge .image-shape .label,#c-copilot-bridge .icon-shape .label{text-anchor:middle;}#c-copilot-bridge .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#c-copilot-bridge .rough-node .label,#c-copilot-bridge .node .label,#c-copilot-bridge .image-shape .label,#c-copilot-bridge .icon-shape .label{text-align:center;}#c-copilot-bridge .node.clickable{cursor:pointer;}#c-copilot-bridge .root .anchor path{fill:#333333!important;stroke-width:0;stroke:#333333;}#c-copilot-bridge .arrowheadPath{fill:#333333;}#c-copilot-bridge .edgePath .path{stroke:#333333;stroke-width:1px;}#c-copilot-bridge .flowchart-link{stroke:#333333;fill:none;}#c-copilot-bridge .edgeLabel{background-color:rgba(232,232,232, 0.8);text-align:center;}#c-copilot-bridge .edgeLabel p{background-color:rgba(232,232,232, 0.8);}#c-copilot-bridge .edgeLabel rect{opacity:0.5;background-color:rgba(232,232,232, 0.8);fill:rgba(232,232,232, 0.8);}#c-copilot-bridge .labelBkg{background-color:rgba(232, 232, 232, 0.5);}#c-copilot-bridge .cluster rect{fill:#ffffde;stroke:#aaaa33;stroke-width:1px;}#c-copilot-bridge .cluster text{fill:#333;}#c-copilot-bridge .cluster span{color:#333;}#c-copilot-bridge div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:"trebuchet ms",verdana,arial,sans-serif;font-size:12px;background:hsl(80, 100%, 96.2745098039%);border:1px solid #aaaa33;border-radius:2px;pointer-events:none;z-index:100;}#c-copilot-bridge .flowchartTitleText{text-anchor:middle;font-size:18px;fill:#333;}#c-copilot-bridge rect.text{fill:none;stroke-width:0;}#c-copilot-bridge .icon-shape,#c-copilot-bridge .image-shape{background-color:rgba(232,232,232, 0.8);text-align:center;}#c-copilot-bridge .icon-shape p,#c-copilot-bridge .image-shape p{background-color:rgba(232,232,232, 0.8);padding:2px;}#c-copilot-bridge .icon-shape .label rect,#c-copilot-bridge .image-shape .label rect{opacity:0.5;background-color:rgba(232,232,232, 0.8);fill:rgba(232,232,232, 0.8);}#c-copilot-bridge .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#c-copilot-bridge .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#c-copilot-bridge .node .neo-node{stroke:#9370DB;}#c-copilot-bridge [data-look="neo"].node rect,#c-copilot-bridge [data-look="neo"].cluster rect,#c-copilot-bridge [data-look="neo"].node polygon{stroke:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#c-copilot-bridge [data-look="neo"].node path{stroke:#9370DB;stroke-width:1px;}#c-copilot-bridge [data-look="neo"].node .outer-path{filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#c-copilot-bridge [data-look="neo"].node .neo-line path{stroke:#9370DB;filter:none;}#c-copilot-bridge [data-look="neo"].node circle{stroke:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#c-copilot-bridge [data-look="neo"].node circle .state-start{fill:#000000;}#c-copilot-bridge [data-look="neo"].icon-shape .icon{fill:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#c-copilot-bridge [data-look="neo"].icon-shape .icon-neo path{stroke:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#c-copilot-bridge :root{--mermaid-font-family:"trebuchet ms",verdana,arial,sans-serif;}</style><g><marker id="c-copilot-bridge_flowchart-v2-pointEnd" class="marker flowchart-v2" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="c-copilot-bridge_flowchart-v2-pointStart" class="marker flowchart-v2" viewBox="0 0 10 10" refX="4.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 5 L 10 10 L 10 0 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="c-copilot-bridge_flowchart-v2-pointEnd-margin" class="marker flowchart-v2" viewBox="0 0 11.5 14" refX="11.5" refY="7" markerUnits="userSpaceOnUse" markerWidth="10.5" markerHeight="14" orient="auto"><path d="M 0 0 L 11.5 7 L 0 14 z" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="c-copilot-bridge_flowchart-v2-pointStart-margin" class="marker flowchart-v2" viewBox="0 0 11.5 14" refX="1" refY="7" markerUnits="userSpaceOnUse" markerWidth="11.5" markerHeight="14" orient="auto"><polygon points="0,7 11.5,14 11.5,0" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="c-copilot-bridge_flowchart-v2-circleEnd" class="marker flowchart-v2" viewBox="0 0 10 10" refX="11" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="c-copilot-bridge_flowchart-v2-circleStart" class="marker flowchart-v2" viewBox="0 0 10 10" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="c-copilot-bridge_flowchart-v2-circleEnd-margin" class="marker flowchart-v2" viewBox="0 0 10 10" refY="5" refX="12.25" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="c-copilot-bridge_flowchart-v2-circleStart-margin" class="marker flowchart-v2" viewBox="0 0 10 10" refX="-2" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="c-copilot-bridge_flowchart-v2-crossEnd" class="marker cross flowchart-v2" viewBox="0 0 11 11" refX="12" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"/></marker><marker id="c-copilot-bridge_flowchart-v2-crossStart" class="marker cross flowchart-v2" viewBox="0 0 11 11" refX="-1" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"/></marker><marker id="c-copilot-bridge_flowchart-v2-crossEnd-margin" class="marker cross flowchart-v2" viewBox="0 0 15 15" refX="17.7" refY="7.5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 1,1 L 14,14 M 1,14 L 14,1" class="arrowMarkerPath" style="stroke-width: 2.5;"/></marker><marker id="c-copilot-bridge_flowchart-v2-crossStart-margin" class="marker cross flowchart-v2" viewBox="0 0 15 15" refX="-3.5" refY="7.5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 1,1 L 14,14 M 1,14 L 14,1" class="arrowMarkerPath" style="stroke-width: 2.5; stroke-dasharray: 1, 0;"/></marker><g class="root"><g class="clusters"/><g class="edgePaths"><path d="M138,74L138,80.167C138,86.333,138,98.667,138,108.333C138,118,138,125,138,128.5L138,132" id="c-copilot-bridge-L_CANON_GEN_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_CANON_GEN_0" data-points="W3sieCI6MTM4LCJ5Ijo3NH0seyJ4IjoxMzgsInkiOjExMX0seyJ4IjoxMzgsInkiOjEzNn1d" data-look="classic" marker-end="url(#c-copilot-bridge_flowchart-v2-pointEnd)"/><path d="M138,190L138,194.167C138,198.333,138,206.667,138,214.333C138,222,138,229,138,232.5L138,236" id="c-copilot-bridge-L_GEN_PKG_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_GEN_PKG_0" data-points="W3sieCI6MTM4LCJ5IjoxOTB9LHsieCI6MTM4LCJ5IjoyMTV9LHsieCI6MTM4LCJ5IjoyNDB9XQ==" data-look="classic" marker-end="url(#c-copilot-bridge_flowchart-v2-pointEnd)"/><path d="M432.047,86L432.047,90.167C432.047,94.333,432.047,102.667,432.047,110.333C432.047,118,432.047,125,432.047,128.5L432.047,132" id="c-copilot-bridge-L_CO_AD_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_CO_AD_0" data-points="W3sieCI6NDMyLjA0Njg3NSwieSI6ODZ9LHsieCI6NDMyLjA0Njg3NSwieSI6MTExfSx7IngiOjQzMi4wNDY4NzUsInkiOjEzNn1d" data-look="classic" marker-end="url(#c-copilot-bridge_flowchart-v2-pointEnd)"/><path d="M360.9,190L349.921,194.167C338.941,198.333,316.982,206.667,318.602,216.718C320.221,226.769,345.418,238.538,358.017,244.423L370.616,250.307" id="c-copilot-bridge-L_AD_CL_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_AD_CL_0" data-points="W3sieCI6MzYwLjkwMDA5MDE0NDIzMDgsInkiOjE5MH0seyJ4IjoyOTUuMDIzNDM3NSwieSI6MjE1fSx7IngiOjM3NC4yNDAxMTIzMDQ2ODc1LCJ5IjoyNTJ9XQ==" data-look="classic" marker-end="url(#c-copilot-bridge_flowchart-v2-pointEnd)"/><path d="M436.266,252L437.229,245.833C438.193,239.667,440.12,227.333,440.408,217.655C440.696,207.976,439.345,200.952,438.67,197.44L437.995,193.928" id="c-copilot-bridge-L_CL_AD_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_CL_AD_0" data-points="W3sieCI6NDM2LjI2NTYyNSwieSI6MjUyfSx7IngiOjQ0Mi4wNDY4NzUsInkiOjIxNX0seyJ4Ijo0MzcuMjM5MTgyNjkyMzA3NywieSI6MTkwfV0=" data-look="classic" marker-end="url(#c-copilot-bridge_flowchart-v2-pointEnd)"/><path d="M667.844,74L667.844,80.167C667.844,86.333,667.844,98.667,667.844,108.333C667.844,118,667.844,125,667.844,128.5L667.844,132" id="c-copilot-bridge-L_UP_PULL_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_UP_PULL_0" data-points="W3sieCI6NjY3Ljg0Mzc1LCJ5Ijo3NH0seyJ4Ijo2NjcuODQzNzUsInkiOjExMX0seyJ4Ijo2NjcuODQzNzUsInkiOjEzNn1d" data-look="classic" marker-end="url(#c-copilot-bridge_flowchart-v2-pointEnd)"/></g><g class="edgeLabels"><g class="edgeLabel"><g class="label" data-id="L_CANON_GEN_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_GEN_PKG_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_CO_AD_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_AD_CL_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_CL_AD_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_UP_PULL_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g></g><g class="nodes"><g class="node default built" id="c-copilot-bridge-flowchart-CANON-0" data-look="classic" transform="translate(138, 47)"><rect class="basic label-container" style="" x="-89.15625" y="-27" width="178.3125" height="54"/><g class="label" style="" transform="translate(-59.15625, -12)"><rect/><foreignObject width="118.3125" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>Canonical plugin</p></span></div></foreignObject></g></g><g class="node default built" id="c-copilot-bridge-flowchart-GEN-1" data-look="classic" transform="translate(138, 163)"><rect class="basic label-container" style="" x="-122.0625" y="-27" width="244.125" height="54"/><g class="label" style="" transform="translate(-92.0625, -12)"><rect/><foreignObject width="184.125" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>generate-copilot-plugin.py</p></span></div></foreignObject></g></g><g class="node default built" id="c-copilot-bridge-flowchart-PKG-3" data-look="classic" transform="translate(138, 279)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"/><g class="label" style="" transform="translate(-100, -24)"><rect/><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>copilot/ package · --check gated</p></span></div></foreignObject></g></g><g class="node default fact" id="c-copilot-bridge-flowchart-CO-4" data-look="classic" transform="translate(432.046875, 47)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"/><g class="label" style="" transform="translate(-100, -24)"><rect/><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>Copilot PreToolUse envelope</p></span></div></foreignObject></g></g><g class="node default built" id="c-copilot-bridge-flowchart-AD-5" data-look="classic" transform="translate(432.046875, 163)"><rect class="basic label-container" style="" x="-76.703125" y="-27" width="153.40625" height="54"/><g class="label" style="" transform="translate(-46.703125, -12)"><rect/><foreignObject width="93.40625" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>hook adapter</p></span></div></foreignObject></g></g><g class="node default built" id="c-copilot-bridge-flowchart-CL-7" data-look="classic" transform="translate(432.046875, 279)"><rect class="basic label-container" style="" x="-114.046875" y="-27" width="228.09375" height="54"/><g class="label" style="" transform="translate(-84.046875, -12)"><rect/><foreignObject width="168.09375" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>unmodified hook scripts</p></span></div></foreignObject></g></g><g class="node default built" id="c-copilot-bridge-flowchart-UP-10" data-look="classic" transform="translate(667.84375, 47)"><rect class="basic label-container" style="" x="-55.796875" y="-27" width="111.59375" height="54"/><g class="label" style="" transform="translate(-25.796875, -12)"><rect/><foreignObject width="51.59375" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>Update</p></span></div></foreignObject></g></g><g class="node default built" id="c-copilot-bridge-flowchart-PULL-11" data-look="classic" transform="translate(667.84375, 163)"><rect class="basic label-container" style="" x="-93.5859375" y="-27" width="187.171875" height="54"/><g class="label" style="" transform="translate(-63.5859375, -12)"><rect/><foreignObject width="127.171875" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>git pull · loads live</p></span></div></foreignObject></g></g></g></g></g><defs><filter id="c-copilot-bridge-drop-shadow" height="130%" width="130%"><feDropShadow dx="4" dy="4" stdDeviation="0" flood-opacity="0.06" flood-color="#000000"/></filter></defs><defs><filter id="c-copilot-bridge-drop-shadow-small" height="150%" width="150%"><feDropShadow dx="2" dy="2" stdDeviation="0" flood-opacity="0.06" flood-color="#000000"/></filter></defs></svg></div><div class="concept-body"><p>Copilot CLI is itself a plugin host with the same lifecycle events (SessionStart / PreToolUse / …), Agent Skills, AGENTS.md, and MCP — so most of the plugin ports. Three pieces make it work: <code>generate-copilot-plugin.py</code> <strong>projects</strong> the canonical plugin into a Copilot package (generated, never hand-maintained, <code>--check</code>-gated like the dashboard); a <strong>hook adapter</strong> translates the I/O envelopes so the <em>unmodified</em> hook scripts run under Copilot (mapping its <code>toolName</code>/<code>toolArgs</code> ⇄ Claude&#x27;s <code>tool_name</code>/<code>tool_input</code>, and the verdict shapes); and <strong>enforcement hooks ship repo-level</strong> in <code>.github/hooks/</code> because a Copilot bug stops plugin-level <code>preToolUse</code> hooks from firing.</p><p>The design pillar is <strong>frictionless updates</strong>: instead of Copilot&#x27;s re-install-to-update flow, the plugin loads <strong>live</strong> via <code>copilot --plugin-dir copilot/</code>, so an update is just <strong><code>git pull</code></strong> (<code>ravenclaude update</code>). No re-install, ever.</p></div><div class="concept-seealso"><a class="concept-chip" href="#/learn/layout-hook">Layout enforcement</a><a class="concept-chip" href="#/learn/hook-lifecycle">Hooks: verdicts &amp; exit codes</a></div><div class="concept-sources-row"><a class="concept-source" href="plugins/ravenclaude-core/CLAUDE.md" rel="noopener">ravenclaude-core constitution</a><a class="concept-source" href="scripts/generate-copilot-plugin.py" rel="noopener">generate-copilot-plugin.py</a><span class="concept-verified">verified 2026-05-26</span></div></article></div></details><div class="stub learn-noresults" id="learn-noresults" hidden><h2>No matching concepts</h2><p>Try a different search term.</p></div></div>
+  </section>
+  <section class="tab-panel" data-tab="saga" role="tabpanel" aria-label="Review log">
+<div class="saga-layout">
+  <div class="saga-hdr">
+    <h2>&#9878; Review log</h2>
+    <button type="button" class="saga-refresh" id="saga-refresh-btn">Refresh</button>
+    <span class="saga-count" id="saga-count"></span>
+  </div>
+  <div class="saga-filters">
+    <label for="saga-verdict-filter">Verdict:</label>
+    <select id="saga-verdict-filter" aria-label="Filter by verdict">
+      <option value="">All</option>
+      <option value="allow">allow</option>
+      <option value="ask">ask</option>
+      <option value="deny">deny</option>
+      <option value="edit">edit</option>
+    </select>
+    <label for="saga-cat-filter">Category:</label>
+    <select id="saga-cat-filter" aria-label="Filter by category">
+      <option value="">All</option>
+    </select>
+  </div>
+  <div id="saga-content">
+    <div class="saga-empty" id="saga-loading">
+      <p>Loading review log&hellip;</p>
+    </div>
+  </div>
+</div>
   </section>
   <section class="tab-panel" data-tab="commands" role="tabpanel" aria-label="Commands">
 <div class="stub"><h2>Commands tab</h2><p>Ships in <strong>v0.2.0</strong>. See <code>docs/proposals/2026-05-22-003-per-plugin-dashboard.md</code> for the design.</p></div>
@@ -5593,7 +5678,7 @@ the design pillar is **frictionless updates**: instead of copilot&#x27;s re-inst
   });
 
   /* ── Tab routing ─────────────────────────────────────────────────── */
-  const validTabs = ["settings", "install", "simulator", "learn", "commands", "trees", "activity"];
+  const validTabs = ["settings", "install", "simulator", "learn", "saga", "commands", "trees", "activity"];
   function openConcept(id) {
     const card = document.getElementById("learn-" + id);
     if (!card) return;
@@ -5618,6 +5703,7 @@ the design pillar is **frictionless updates**: instead of copilot&#x27;s re-inst
       p.classList.toggle("active", p.dataset.tab === tab);
     });
     if (tab === "learn" && seg[1]) openConcept(seg[1]);
+    if (tab === "saga" && !sagaLoaded) loadSaga();
   }
   document.querySelectorAll(".tab-btn").forEach(b => {
     b.addEventListener("click", () => {
@@ -5626,6 +5712,217 @@ the design pillar is **frictionless updates**: instead of copilot&#x27;s re-inst
   });
   window.addEventListener("hashchange", applyHash);
   applyHash();
+
+  /* ── Review log (saga) tab ──────────────────────────────────────── */
+  let sagaLoaded = false;
+  let sagaRecords = [];
+
+  const sagaContent  = document.getElementById("saga-content");
+  const sagaCount    = document.getElementById("saga-count");
+  const sagaVerdFil  = document.getElementById("saga-verdict-filter");
+  const sagaCatFil   = document.getElementById("saga-cat-filter");
+  const sagaRefBtn   = document.getElementById("saga-refresh-btn");
+
+  /* Safe HTML-escape for every untrusted string before it touches innerHTML.
+   * All user/tool data from /__saga must pass through esc() before injection.
+   * Fixed-structure HTML (class names, element tags) is always hardcoded. */
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function sagaVerdictClass(v) {
+    if (v === "allow") return "saga-verdict-allow";
+    if (v === "ask")   return "saga-verdict-ask";
+    if (v === "deny")  return "saga-verdict-deny";
+    if (v === "edit")  return "saga-verdict-edit";
+    return "";
+  }
+
+  function sagaSeatClass(verdict) {
+    const v = (verdict || "").toLowerCase();
+    if (v === "allow") return "saga-seat-allow";
+    if (v === "deny")  return "saga-seat-deny";
+    if (v === "ask")   return "saga-seat-ask";
+    return "";
+  }
+
+  /* Build a static "offline / empty" panel using only DOM methods — no
+   * innerHTML / insertAdjacentHTML so there is no XSS sink even if this
+   * helper is ever called from a new code path. */
+  function sagaEmptyPanel(primaryText, codeSnippet) {
+    /* Renders:  <div class="saga-empty"><p>{primaryText} <code>{codeSnippet}</code></p></div>
+     * codeSnippet is optional; both values are set via textContent, never innerHTML. */
+    const wrap = document.createElement("div");
+    wrap.className = "saga-empty";
+    const p = document.createElement("p");
+    p.textContent = primaryText;
+    if (codeSnippet) {
+      const code = document.createElement("code");
+      code.textContent = codeSnippet;
+      p.appendChild(document.createTextNode(" "));
+      p.appendChild(code);
+    }
+    wrap.appendChild(p);
+    return wrap;
+  }
+
+  function renderSagaTable(records) {
+    if (!sagaContent) return;
+    if (!records || records.length === 0) {
+      const isStatic = location.protocol === "file:";
+      sagaContent.replaceChildren(
+        isStatic
+          ? sagaEmptyPanel("Open the dashboard via", "rc dashboard")
+          : sagaEmptyPanel("No reviewed actions yet — the log fills as the Thing judges commands.")
+      );
+      if (sagaCount) sagaCount.textContent = "";
+      return;
+    }
+
+    /* Populate category filter from data (sorted, deduplicated).
+     * Category values come from /__saga; escape them when building option text. */
+    if (sagaCatFil) {
+      const cats = [...new Set(records.map(r => r.category).filter(Boolean))].sort();
+      const cur = sagaCatFil.value;
+      /* option values and text are set via textContent/value — no innerHTML. */
+      const all = document.createElement("option");
+      all.value = ""; all.textContent = "All";
+      sagaCatFil.replaceChildren(all);
+      for (const c of cats) {
+        const opt = document.createElement("option");
+        opt.value = c;
+        opt.textContent = c;
+        if (c === cur) opt.selected = true;
+        sagaCatFil.appendChild(opt);
+      }
+    }
+
+    filterAndRenderSaga();
+  }
+
+  function filterAndRenderSaga() {
+    if (!sagaContent) return;
+    const verdF = sagaVerdFil ? sagaVerdFil.value : "";
+    const catF  = sagaCatFil  ? sagaCatFil.value  : "";
+
+    const filtered = sagaRecords.filter(r =>
+      (!verdF || r.final_verdict === verdF) &&
+      (!catF  || r.category === catF)
+    );
+
+    if (sagaCount) sagaCount.textContent = filtered.length + " of " + sagaRecords.length + " entries";
+
+    if (filtered.length === 0) {
+      sagaContent.replaceChildren(
+        sagaEmptyPanel("No entries match the current filters.")
+      );
+      return;
+    }
+
+    /* Build the table rows as an HTML string. Every data field is passed through
+     * esc() before interpolation. Fixed class names and element tags are literals. */
+    let rows = "";
+    for (const r of filtered) {
+      /* Time — the localized string comes from the JS engine, not server data. */
+      let timeStr = r.timestamp || "";
+      try {
+        if (timeStr) timeStr = new Date(timeStr).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
+      } catch (_) { /* keep raw ISO string */ }
+
+      /* Action cell — esc() both parts before joining. */
+      const fullAction = esc(r.tool_name || "") + ": " + esc(r.action || "");
+      const dispAction = fullAction.length > 82 ? fullAction.slice(0, 82) + "…" : fullAction;
+
+      /* Seats */
+      let seatsHtml = "";
+      if (!r.seats || r.seats.length === 0) {
+        seatsHtml = '<span class="saga-seat-chip saga-seat-det">deterministic / pre-LLM</span>';
+      } else {
+        for (const s of r.seats) {
+          const pct = s.confidence != null ? Math.round(s.confidence * 100) + "%" : "";
+          const cls = sagaSeatClass(s.verdict);
+          /* name and verdict are seat identifiers — esc them. */
+          seatsHtml += `<span class="saga-seat-chip ${cls}">${esc(s.name)} ${esc(s.verdict)} ${esc(pct)}</span>`;
+        }
+      }
+
+      /* Verdict pill — final_verdict is an enum from the engine; still esc. */
+      const vv = r.final_verdict || "";
+      const vPill = `<span class="saga-verdict-pill ${sagaVerdictClass(vv)}">${esc(vv) || "&mdash;"}</span>`;
+
+      /* Concerns — array of concern-id strings from the engine. */
+      const concerns = Array.isArray(r.concerns_cited) && r.concerns_cited.length
+        ? r.concerns_cited.map(c => esc(c)).join(", ")
+        : "&mdash;";
+
+      /* Rewrite — esc the rewrite text inside a <pre>. */
+      let rewriteHtml = "&mdash;";
+      if (r.rewrite) {
+        rewriteHtml = `<details class="saga-rewrite"><summary>show rewrite</summary><pre>${esc(r.rewrite)}</pre></details>`;
+      }
+
+      /* fullAction is already escaped above; use it directly in title attr. */
+      rows += `<tr>
+        <td>${esc(timeStr)}</td>
+        <td class="saga-action" title="${fullAction}">${dispAction}</td>
+        <td>${esc(r.category) || "&mdash;"}</td>
+        <td>${esc(r.phase) || "&mdash;"}</td>
+        <td>${seatsHtml}</td>
+        <td>${vPill}</td>
+        <td class="saga-concerns">${concerns}</td>
+        <td>${rewriteHtml}</td>
+      </tr>`;
+    }
+
+    /* The outer skeleton is fixed HTML; only `rows` contains escaped data. */
+    sagaContent.innerHTML =
+      '<div class="saga-table-wrap"><table class="saga-table" aria-label="Review log">'
+      + '<thead><tr>'
+      + '<th scope="col">Time</th>'
+      + '<th scope="col">Action</th>'
+      + '<th scope="col">Category</th>'
+      + '<th scope="col">Phase / Tier</th>'
+      + '<th scope="col">Seats</th>'
+      + '<th scope="col">Verdict</th>'
+      + '<th scope="col">Reason</th>'
+      + '<th scope="col">Rewrite</th>'
+      + '</tr></thead>'
+      + '<tbody>' + rows + '</tbody>'
+      + '</table></div>';
+  }
+
+  async function loadSaga() {
+    sagaLoaded = true;
+    if (sagaContent) sagaContent.replaceChildren(
+      sagaEmptyPanel("Loading review log…")
+    );
+    try {
+      const res = await fetch("/__saga?limit=200");
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      sagaRecords = await res.json();
+      renderSagaTable(sagaRecords);
+    } catch (e) {
+      sagaLoaded = false; /* allow retry on next tab visit */
+      if (sagaContent) {
+        const isStatic = location.protocol === "file:" || e.name === "TypeError";
+        sagaContent.replaceChildren(
+          isStatic
+            ? sagaEmptyPanel("Open the dashboard via", "rc dashboard")
+            : sagaEmptyPanel("Could not reach /__saga. Is the server running?", "python3 scripts/serve-dashboards.py")
+        );
+        if (sagaCount) sagaCount.textContent = "";
+      }
+    }
+  }
+
+  if (sagaRefBtn) sagaRefBtn.addEventListener("click", () => { sagaLoaded = false; loadSaga(); });
+  if (sagaVerdFil) sagaVerdFil.addEventListener("change", filterAndRenderSaga);
+  if (sagaCatFil)  sagaCatFil.addEventListener("change", filterAndRenderSaga);
 
   /* ── Hydrate command-review config from the committed YAML ──────────── */
   /* When the page is served by scripts/serve-dashboards.py, the committed

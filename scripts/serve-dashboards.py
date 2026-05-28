@@ -126,7 +126,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         return True
 
     def do_HEAD(self):
-        if self.path in ("/__save", "/__run", "/__classify") or self.path.startswith("/__read"):
+        if self.path in ("/__save", "/__run", "/__classify") or self.path.startswith("/__read") or self.path.startswith("/__saga"):
             self.send_response(200)
             self.send_header("Allow", "GET, POST, HEAD")
             self.send_header("Content-Length", "0")
@@ -150,6 +150,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if self.path.startswith("/__read"):
             self._handle_read()
+            return
+        if self.path.startswith("/__saga"):
+            self._handle_saga()
             return
         super().do_GET()
 
@@ -184,6 +187,105 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             except Exception:
                 payload["parsed"] = None  # dashboard falls back to defaults
         self._json(200, payload)
+
+    def _handle_saga(self):
+        """GET /__saga[?limit=N] — return the last N command-review verdicts from
+        .ravenclaude/runs/thing/*.json (newest-first, capped at 500, default 200).
+        Only the top-level thing-*.json files are read; the decisions/ subdir is
+        ignored. Malformed files are skipped without erroring. Read-only; guarded
+        by the same Origin/Host CSRF check as /__read."""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        from urllib.parse import urlparse, parse_qs
+        import glob as _glob
+        import os as _os
+
+        qs = parse_qs(urlparse(self.path).query)
+        try:
+            limit = max(1, min(500, int((qs.get("limit") or ["200"])[0])))
+        except (ValueError, TypeError):
+            limit = 200
+
+        runs_dir = REPO_ROOT / ".ravenclaude" / "runs" / "thing"
+        pattern = str(runs_dir / "thing-*.json")
+        paths = sorted(_glob.glob(pattern), reverse=True)  # filename sort ≈ timestamp sort
+
+        records = []
+        for path in paths:
+            if len(records) >= limit:
+                break
+            try:
+                raw = Path(path).read_text(encoding="utf-8").strip()
+                if not raw:
+                    continue
+                d = json.loads(raw)
+            except (OSError, json.JSONDecodeError, ValueError):
+                continue  # skip malformed / unreadable files
+
+            # Derive the human "action" string — never expose file content.
+            tool_input = d.get("tool_input") or {}
+            tool_name = d.get("tool_name", "")
+            if isinstance(tool_input, dict):
+                if "command" in tool_input:
+                    cmd = str(tool_input["command"])
+                    action = cmd[:160] + ("…" if len(cmd) > 160 else "")
+                elif "file_path" in tool_input:
+                    basename = _os.path.basename(str(tool_input.get("file_path", "")))
+                    bytes_val = tool_input.get("bytes", "?")
+                    action = f"{basename} ({bytes_val}b)"
+                elif "description" in tool_input:
+                    desc = str(tool_input["description"])
+                    action = desc[:160] + ("…" if len(desc) > 160 else "")
+                else:
+                    action = str(list(tool_input.keys()))[:80]
+            else:
+                action = ""
+
+            # Normalise seats — the schema evolved: some records have a singular
+            # "seat" key (T2 single-seat), others have "seats" (T3+ panel / empty).
+            raw_seats = d.get("seats")
+            if raw_seats is None:
+                single = d.get("seat")
+                raw_seats = [single] if isinstance(single, dict) else []
+            compact_seats = []
+            for s in (raw_seats or []):
+                if not isinstance(s, dict):
+                    continue
+                compact_seats.append({
+                    "name": s.get("name", ""),
+                    "verdict": s.get("verdict") or s.get("status", ""),
+                    "confidence": s.get("confidence", 0),
+                })
+
+            # Rewrite field: only for edit verdicts, truncated, command text only.
+            rewrite = None
+            if d.get("final_verdict") == "edit":
+                upd = d.get("updated_input")
+                if isinstance(upd, dict):
+                    rw_text = upd.get("command") or str(upd)
+                elif upd is not None:
+                    rw_text = str(upd)
+                else:
+                    rw_text = None
+                if rw_text:
+                    rewrite = rw_text[:200] + ("…" if len(rw_text) > 200 else "")
+
+            records.append({
+                "id": d.get("id", ""),
+                "timestamp": d.get("timestamp", ""),
+                "tool_name": tool_name,
+                "action": action,
+                "category": d.get("category", ""),
+                "phase": d.get("phase", ""),
+                "final_verdict": d.get("final_verdict", ""),
+                "duration_ms": d.get("duration_ms", 0),
+                "concerns_cited": d.get("concerns_cited") or [],
+                "seats": compact_seats,
+                "rewrite": rewrite,
+            })
+
+        self._json(200, records)
 
     def do_OPTIONS(self):
         if self.path in ("/__save", "/__run"):
@@ -459,6 +561,7 @@ def main() -> int:
     print(f"  GET  /__read  - reads an allow-listed config file so the dashboard hydrates from it")
     print(f"  read-list    - {sorted(ALLOWED_READ)}")
     print(f"  POST /__classify - runs the real command-review classifier on a string (Test-a-command simulator)")
+    print(f"  GET  /__saga     - read-only list of Thing verdicts from .ravenclaude/runs/thing/ (?limit=N, default 200)")
 
     # Work out a phone-reachable URL (if any). localhost is NOT reachable from a
     # phone, so it gets no QR. The QR lets you open the live dashboard on a phone
