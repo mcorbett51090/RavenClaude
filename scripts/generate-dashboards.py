@@ -1003,11 +1003,13 @@ def _render_layer_radios(name: str, layer: str, default_value: str = "inherit") 
     Arrow keys cycle within the group; Space selects (native radio behavior).
     """
     layer_id = f"layer-{name}-{layer}"
+    # "inherit" is displayed as "Default" (value unchanged) so it reads the same as
+    # the per-permission override selects that already use "Default" for inherit.
     values = [
         ("allow", "allow"),
         ("ask", "ask"),
         ("deny", "deny"),
-        ("inherit", "inherit"),
+        ("inherit", "Default"),
     ]
     radios: list[str] = []
     for value, label in values:
@@ -1308,7 +1310,14 @@ body {
   display: flex;
   gap: 4px;
   margin-top: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Prevent line-wrapping that would break the tablist role */
+  flex-wrap: nowrap;
+  /* Hide scrollbar on browsers that support it; keeps it functional */
+  scrollbar-width: none;
 }
+.tab-bar::-webkit-scrollbar { display: none; }
 .tab-btn {
   background: transparent;
   border: none;
@@ -1318,6 +1327,9 @@ body {
   border-bottom: 2px solid transparent;
   cursor: pointer;
   font-weight: 500;
+  /* Prevent flex from shrinking tabs below their natural width when the bar overflows */
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .tab-btn[aria-selected="true"] {
   color: var(--text);
@@ -2372,6 +2384,34 @@ body {
 .yaml-status.status-unsaved { color: var(--warn); }
 .yaml-status.status-saved { color: var(--accent); }
 .yaml-status.status-error { color: var(--danger); }
+/* Apply-error inline block — shown when YAML saved but settings.json translation failed */
+.apply-error-block {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: var(--danger);
+  text-align: left;
+}
+.apply-error-block strong { font-weight: 700; }
+.apply-error-detail {
+  margin: 6px 0 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text);
+  background: var(--surface-2);
+  padding: 6px 8px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.apply-error-hint {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
 .yaml-connected-row {
   display: flex;
   justify-content: space-between;
@@ -3140,6 +3180,26 @@ footer.page-footer a:hover { text-decoration: underline; }
   .concept-card.rc-flash { animation: none; }
   .concept-cat-head::before { transition: none; }
 }
+
+/* ── Mobile touch-target fixes ─────────────────────────────── */
+/* Lift .layer-opt pill buttons and .info-btn to ≥44px tap targets on
+   coarse-pointer (touch) devices so allow/ask/deny pills aren't a
+   fat-finger hazard. Desktop layout is unaffected. */
+@media (pointer: coarse), (max-width: 900px) {
+  .layer-opt {
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+  .layer-radios {
+    gap: 2px;
+  }
+  .info-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 14px;
+  }
+}
 """.strip()
 
 
@@ -3180,7 +3240,13 @@ _SETTINGS_TAB_TEMPLATE = """
       </p>
       <p class="primary-help muted" id="no-server-help" hidden>
         <strong>No local server behind this page.</strong> The published / static dashboard (e.g. on <code>github.io</code>) can&rsquo;t write to your repo, so <em>Save &amp; apply</em> won&rsquo;t work here. Start the local dashboard with <code>ravenclaude dashboard --project &lt;repo&gt;</code> (or <code>bash .ravenclaude/dashboard.sh</code>, or VS Code &rarr; Run Task &rarr; &ldquo;RavenClaude: Comfort-posture dashboard&rdquo;) and open the URL it prints &mdash; Save &amp; apply works there. Meanwhile, use <strong>Download</strong> below and drop the file into <code>.ravenclaude/comfort-posture.yaml</code>.
+        In a Codespace? Make sure you opened the <strong>forwarded</strong> URL the server printed (Ports panel &rarr; Open in Browser), not the static GitHub Pages copy.
       </p>
+      <div class="primary-help apply-error-block" id="apply-error-block" hidden>
+        <strong>&#9888; YAML saved &mdash; settings.json was not updated.</strong>
+        <p id="apply-error-detail" class="apply-error-detail"></p>
+        <p class="apply-error-hint">Your YAML file is saved; only the automatic settings.json translation failed. Re-open the dashboard and try again, or use <strong>Download</strong> and place the file at <code>.ravenclaude/comfort-posture.yaml</code> manually.</p>
+      </div>
     </div>
     <details class="yaml-alt-actions">
       <summary>Alternative ways to save</summary>
@@ -3566,7 +3632,7 @@ _JS = r"""
     if (cb) cb.checked = enabled;
     if (lbl) {
       lbl.textContent = enabled
-        ? "On — reviews fire when a category\\u2019s toggle is on"
+        ? "On — reviews fire when a category’s toggle is on"
         : "Paused — per-category toggles are preserved but no reviews will run";
     }
     /* Also update the header-level scales icon state */
@@ -3687,7 +3753,7 @@ _JS = r"""
     const summaryIcon = summaryCell && summaryCell.querySelector(".review-scales-icon");
     const summaryMicro = summaryCell && summaryCell.querySelector(".cr-summary-micro");
     const rs = effectiveReviewState(cat);
-    const label = REVIEW_STATE_LABELS[rs] + " \\u2014 " + cat;
+    const label = REVIEW_STATE_LABELS[rs] + " — " + cat;
     if (cardIcon) {
       cardIcon.setAttribute("data-review-state", rs);
       cardIcon.setAttribute("aria-label", label);
@@ -4165,19 +4231,25 @@ _JS = r"""
       }
       if (!res.ok) {
         const errText = await res.text().catch(() => "");
-        setStatus(`save failed: ${res.status}`, "status-error");
+        setStatus("save failed — check your connection or try restarting the dashboard server", "status-error");
         console.error("Save-to-repo failed:", res.status, errText);
         return;
       }
       const j = await res.json();
+      // Hide any previous apply-error block on a fresh successful attempt
+      const applyErrBlock = document.getElementById("apply-error-block");
+      const applyErrDetail = document.getElementById("apply-error-detail");
+      if (applyErrBlock) applyErrBlock.hidden = true;
       if (j.applied) {
         setStatus(`saved & applied to settings.json`, "status-saved");
         toast(`Saved ${j.saved} and applied to .claude/settings.json`);
         if (j.apply_summary) console.info("set-posture:\n" + j.apply_summary);
       } else if (j.apply_error) {
-        // The YAML saved, but the translator failed — surface it, don't swallow it.
-        setStatus(`saved, but apply failed — see console`, "status-error");
+        // The YAML saved, but the translator failed — surface it on-page.
+        setStatus("saved — settings.json not updated (see below)", "status-error");
         toast(`Saved ${j.saved}, but settings.json was NOT updated`);
+        if (applyErrBlock) applyErrBlock.hidden = false;
+        if (applyErrDetail) applyErrDetail.textContent = j.apply_error;
         console.error("set-posture apply failed:", j.apply_error);
       } else {
         setStatus(`saved to ${j.saved}`, "status-saved");
@@ -4280,7 +4352,7 @@ _JS = r"""
       setStatus("auto-saved", "status-saved");
     } catch (err) {
       console.error("Auto-save failed:", err);
-      setStatus("save failed — see console", "status-error");
+      setStatus("auto-save failed — try disconnecting and reconnecting the file", "status-error");
     }
   }
 
@@ -4311,7 +4383,7 @@ _JS = r"""
     } catch (err) {
       if (err && err.name === "AbortError") return; /* user cancelled */
       console.error("Connect failed:", err);
-      setStatus("connect failed — see console", "status-error");
+      setStatus("could not connect to file — check browser permissions and try again", "status-error");
     }
   }
 
@@ -4761,7 +4833,7 @@ _JS = r"""
     } catch (err) {
       simResult.hidden = false;
       simDenyBanner.hidden = true;
-      simGateText.textContent = "Could not reach the engine — see console.";
+      simGateText.textContent = "Could not reach the engine. Make sure the local dashboard server is running (ravenclaude dashboard --project <repo>) and the forwarded URL is open.";
       console.error("/__classify failed:", err);
       simAnalyzeBtn.disabled = false;
     }
