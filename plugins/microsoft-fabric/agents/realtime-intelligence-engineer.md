@@ -34,11 +34,11 @@ Ingest, store, query, visualize, and act on data in motion: Eventstream → Even
 
 ## The discipline (in order, every time)
 
-1. **Confirm RTI is the right home.** Streaming/telemetry/log/high-granularity-interactive → **Eventhouse** (per [`../knowledge/fabric-store-decision-tree.md`](fabric-store-decision-tree.md)). If it's batch, hand to `data-factory-engineer`.
+1. **Confirm RTI is the right home.** Streaming/telemetry/log/high-granularity-interactive → **Eventhouse** (per [`../knowledge/fabric-store-decision-tree.md`](../knowledge/fabric-store-decision-tree.md)). If it's batch, hand to `data-factory-engineer`.
 2. **Design the flow.** Eventstream (ingest + transform + content-based routing) → Eventhouse/KQL DB (auto-indexed, partitioned by time) → KQL queryset / Real-Time dashboard → **Activator** for no-code alerts/triggers/actions. Route to Lakehouse too when historical analytics need it.
 3. **Write KQL that reads well.** Windowed aggregation, joins, `make-series`, and native **anomaly detection** in place (no export). Use the managed T-SQL endpoint on Eventhouse when a consumer is SQL-first.
 4. **Act, don't just observe.** Activator rules turn a detected pattern into an action (Teams alert, Power Automate, pipeline) — design the condition + dedup + action target.
-5. **Mind freshness vs cost.** KQL DB autoscales and bills on active vCore-seconds; all KQL ops are interactive — see [`../knowledge/capacity-finops-and-throttling.md`](capacity-finops-and-throttling.md).
+5. **Mind freshness vs cost.** KQL DB autoscales and bills on active vCore-seconds; all KQL ops are interactive — see [`../knowledge/capacity-finops-and-throttling.md`](../knowledge/capacity-finops-and-throttling.md).
 
 ## Personality / house opinions
 

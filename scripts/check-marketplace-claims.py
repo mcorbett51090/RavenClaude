@@ -18,6 +18,15 @@ Three checks, the first two surfaced by the 2026-05-23 whole-repo self-review:
      capability summaries; version history belongs in the `version` field and
      release notes, not stuffed into the description.
 
+  4. Doc completeness — narrative docs that enumerate the plugin roster must not
+     silently fall behind when a plugin is added:
+       a. docs/architecture.md Status table must list every plugins/<p>/ as a
+          `](../plugins/<p>/)` row link.
+       b. README.md's "ships **N plugins**" claim must equal the actual count of
+          plugins/<p>/ directories.
+     This is the doc-drift gate: CI used to stay green while these hand-maintained
+     rosters rotted (README said "five plugins" with 11 present).
+
 Exit 0 if everything matches; exit 1 with a report otherwise. Runs in CI
 (validate-marketplace.yml) and is exercised bidirectionally by audit-gates.sh.
 """
@@ -30,8 +39,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PLUGINS = ROOT / "plugins"
 MARKETPLACE = ROOT / ".claude-plugin" / "marketplace.json"
+ARCHITECTURE = ROOT / "docs" / "architecture.md"
+README = ROOT / "README.md"
 REQUIRED = ["README.md", "CLAUDE.md", ".claude-plugin/plugin.json"]
 SKILLS_RE = re.compile(r"(\d+)\s+skills", re.IGNORECASE)
+README_COUNT_RE = re.compile(r"ships\s+\*\*(\d+)\s+plugins\*\*", re.IGNORECASE)
 MAX_DESCRIPTION_CHARS = 1024
 
 failures = []
@@ -60,16 +72,58 @@ def check_description_length(label: str, text: str) -> None:
         )
 
 
+def check_doc_completeness(plugin_names: list[str]) -> None:
+    """Check 4 — narrative-doc rosters must enumerate every plugin."""
+    # 4a. architecture.md Status table lists each plugin as a row link.
+    if not ARCHITECTURE.is_file():
+        failures.append("docs/architecture.md: missing (cannot verify plugin roster)")
+    else:
+        arch = ARCHITECTURE.read_text()
+        for name in plugin_names:
+            if f"](../plugins/{name}/)" not in arch:
+                failures.append(
+                    f"docs/architecture.md: Status table is missing a row link for "
+                    f"'{name}' (expected '](../plugins/{name}/)') — add it so the "
+                    f"canonical roster doesn't fall behind"
+                )
+
+    # 4b. README "ships **N plugins**" claim equals the actual count.
+    if not README.is_file():
+        failures.append("README.md: missing (cannot verify plugin count)")
+    else:
+        readme = README.read_text()
+        m = README_COUNT_RE.search(readme)
+        if m is None:
+            failures.append(
+                "README.md: could not find a 'ships **N plugins**' claim to verify "
+                "against the actual plugin count"
+            )
+        else:
+            claimed = int(m.group(1))
+            actual = len(plugin_names)
+            if claimed != actual:
+                failures.append(
+                    f"README.md: claims 'ships {claimed} plugins' but plugins/ has "
+                    f"{actual} — update the count and the plugin list"
+                )
+
+
 def main() -> int:
     marketplace = json.loads(MARKETPLACE.read_text())
     mp_entries = {p["name"]: p for p in marketplace.get("plugins", [])}
+
+    plugin_dirs = sorted(p for p in PLUGINS.iterdir() if p.is_dir())
+    plugin_names = [p.name for p in plugin_dirs]
 
     # Check 3 (catalog-level) — the marketplace metadata.description cap.
     check_description_length(
         "marketplace metadata", marketplace.get("metadata", {}).get("description", "")
     )
 
-    for plugin_dir in sorted(p for p in PLUGINS.iterdir() if p.is_dir()):
+    # Check 4 — doc-roster completeness (architecture.md + README plugin count).
+    check_doc_completeness(plugin_names)
+
+    for plugin_dir in plugin_dirs:
         name = plugin_dir.name
 
         # Check 1 — required files

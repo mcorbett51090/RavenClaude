@@ -55,7 +55,9 @@ fi
 # ---------------------------------------------------------------------------
 # Check 2: 3+ test calls with no multiple-comparison correction
 # ---------------------------------------------------------------------------
-n_tests=$(grep -niEo "$test_call_re" "$file" 2>/dev/null | wc -l | tr -d ' ')
+# `|| true` keeps a no-match grep (exit 1) under `set -o pipefail` from aborting
+# the whole advisory hook on a clean file (it must exit 0 when nothing is flagged).
+n_tests=$(grep -niEo "$test_call_re" "$file" 2>/dev/null | wc -l | tr -d ' ' || true)
 if [[ "${n_tests:-0}" -ge 3 ]]; then
   if ! grep -niEq "$correction_re" "$file" 2>/dev/null; then
     violations+=("${n_tests} hypothesis tests in one file with no multiple-comparison correction. Apply Holm/Bonferroni (confirmatory) or Benjamini-Hochberg (exploratory). (pitfall #2)")

@@ -199,12 +199,12 @@ The `visual-designer`, `ux-designer`, `frontend-implementer`, and `web-architect
 
 ## 8b. Scenarios bank — TODO (planned)
 
-**Status:** not yet enabled in this plugin. The marketplace-wide scenarios bank ([`../../ravenclaude-core/skills/scenario-retrieval.md`](../../ravenclaude-core/skills/scenario-retrieval.md), shipped v0.1.0 of the feedback loop on 2026-05-21) is currently live in `power-platform` only. Other plugins enable their bank **when the first real engagement scenario surfaces** via `/wrap`.
+**Status:** not yet enabled in this plugin. The marketplace-wide scenarios bank ([`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md), shipped v0.1.0 of the feedback loop on 2026-05-21) is currently live in `power-platform` only. Other plugins enable their bank **when the first real engagement scenario surfaces** via `/wrap`.
 
 To enable when a scenario surfaces:
 
 1. Create `plugins/web-design/scenarios/` with a `README.md` (copy the structure from `plugins/power-platform/scenarios/README.md`)
-2. Add the **Scenario retrieval (priors)** inline-prior block to this plugin's most-likely-to-benefit agents (see the pattern in [`../../ravenclaude-core/skills/scenario-retrieval.md`](../../ravenclaude-core/skills/scenario-retrieval.md) §"Inline-prior pattern for agents")
+2. Add the **Scenario retrieval (priors)** inline-prior block to this plugin's most-likely-to-benefit agents (see the pattern in [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md) §"Inline-prior pattern for agents")
 3. Remove this §8b TODO block
 
 ---
@@ -245,7 +245,7 @@ When in doubt, the web-design team **declines and asks the Team Lead** rather th
 ## 11. References
 
 - Domain-neutral team constitution: [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md)
-- Capability Grounding Protocol (upstream): [`../ravenclaude-core/skills/grounding-protocol`](../ravenclaude-core/skills/grounding-protocol)
+- Capability Grounding Protocol (upstream): [`../power-platform/skills/grounding-protocol/SKILL.md`](../power-platform/skills/grounding-protocol/SKILL.md)
 - Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md)
 - Cited-Adjudicator Escalation: [`../ravenclaude-core/rules/agent-collaboration.md`](../ravenclaude-core/rules/agent-collaboration.md)
 - Sister plugins (when installed alongside): `finance` and `regulatory-compliance` — web content that surfaces finance or regulatory disclosures routes through their teams. See [`../../docs/plugin-roadmap-analysis.md`](../../docs/plugin-roadmap-analysis.md) for the marketplace plan.

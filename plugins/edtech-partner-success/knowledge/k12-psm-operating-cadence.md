@@ -99,7 +99,7 @@ A K-12 PSM's calendar should be structured around the partner's cadence, not the
 |---|---|---|
 | **Weekly** | 15-min async pulse check (Slack/email): "anything new, any blockers?" | Catches issues before they become escalations; respects partner time |
 | **Monthly** | 30-min sync touchpoint: review usage, surface 1-2 priorities | Cadence partners actually keep; quarterly is too sparse for active partners |
-| **Quarterly** | QBR (45-60 min); see [`../templates/qbr-deck.md`](../templates/qbr-deck.md) | Outcomes + commitments + roadmap signaling |
+| **Quarterly** | QBR (45-60 min); see [`../templates/qbr-deck-outline.md`](../templates/qbr-deck-outline.md) | Outcomes + commitments + roadmap signaling |
 | **Annual** | Annual partner review (full day or half-day in person/video) | Strategic re-baselining + multi-year direction |
 
 ### When to deviate

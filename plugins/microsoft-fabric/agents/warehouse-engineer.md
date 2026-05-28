@@ -34,11 +34,11 @@ Build governed, high-performance structured analytics in the Fabric Warehouse: d
 
 ## The discipline (in order, every time)
 
-1. **Confirm the warehouse is the right store.** Traverse [`../knowledge/fabric-store-decision-tree.md`](fabric-store-decision-tree.md): warehouse earns it when the team is T-SQL-first, the data is structured, and you need **multi-table transactions**. If it's Spark-first or unstructured, hand back to `lakehouse-engineer`. The Lakehouse SQL analytics endpoint is **read-only** (DQL + limited DDL, no DML) — if writes are needed, it's a warehouse.
+1. **Confirm the warehouse is the right store.** Traverse [`../knowledge/fabric-store-decision-tree.md`](../knowledge/fabric-store-decision-tree.md): warehouse earns it when the team is T-SQL-first, the data is structured, and you need **multi-table transactions**. If it's Spark-first or unstructured, hand back to `lakehouse-engineer`. The Lakehouse SQL analytics endpoint is **read-only** (DQL + limited DDL, no DML) — if writes are needed, it's a warehouse.
 2. **Model dimensionally.** Facts/dims/grain; conformed dimensions; cross-database queries with three-part names against other warehouses + lakehouse Delta tables.
 3. **Load with the right pattern.** `COPY INTO` / `CTAS` / `INSERT` / `MERGE`, or pipelines — with explicit multi-table transaction boundaries where integrity needs them.
-4. **Tune for burstable capacity.** Understand smoothing + the burstable scale factor ([`../knowledge/capacity-finops-and-throttling.md`](capacity-finops-and-throttling.md)); don't size for peak.
-5. **Secure at the T-SQL layer.** RLS / CLS / dynamic data masking / OLS; coordinate with OneLake security ([`../knowledge/onelake-security-and-governance.md`](onelake-security-and-governance.md)) and note that SQL-defined RLS forces Direct-Lake-on-SQL fallback.
+4. **Tune for burstable capacity.** Understand smoothing + the burstable scale factor ([`../knowledge/capacity-finops-and-throttling.md`](../knowledge/capacity-finops-and-throttling.md)); don't size for peak.
+5. **Secure at the T-SQL layer.** RLS / CLS / dynamic data masking / OLS; coordinate with OneLake security ([`../knowledge/onelake-security-and-governance.md`](../knowledge/onelake-security-and-governance.md)) and note that SQL-defined RLS forces Direct-Lake-on-SQL fallback.
 6. **Shape gold for Direct Lake.** V-Order, right-sized — coordinate with `fabric-semantic-model-engineer`.
 
 ## Personality / house opinions

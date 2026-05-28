@@ -54,13 +54,17 @@ Every plugin **must** have `.claude-plugin/plugin.json`, `README.md`, and `CLAUD
 4. Append the plugin to `plugins[]` in `.claude-plugin/marketplace.json`.
 5. Add any new top-level dirs to `.repo-layout.json` `allowed_globs`.
 6. Bump the plugin's `version` on every user-visible change (semver).
-7. **For every new agent, fill in the scenario-authoring schema** (`audience`, `works_with`, `scenarios`, `quickstart`) in the agent's YAML frontmatter — see [`docs/best-practices/agent-scenario-authoring.md`](docs/best-practices/agent-scenario-authoring.md). The repo-guide generator picks them up automatically and surfaces them in per-agent cards + the Overview tab use-case lookup table.
+7. **For every new agent, fill in the scenario-authoring schema** (`audience`, `works_with`, `scenarios`, `quickstart`) in the agent's YAML frontmatter — see [`docs/best-practices/agent-scenario-authoring.md`](docs/best-practices/agent-scenario-authoring.md). The repo-guide generator picks them up automatically and surfaces them in per-agent cards + the Overview tab use-case lookup table. **This is gated:** `scripts/check-frontmatter.py` fails the build if an `agents/*.md` is missing the schema (each `scenarios` item needs `intent` / `trigger_phrase` / `outcome` / `difficulty`).
 
 ## Modifying an existing plugin
 
 1. Edit files inside `plugins/<plugin-name>/`.
 2. Bump `version` in `plugins/<plugin-name>/.claude-plugin/plugin.json` **and** in `.claude-plugin/marketplace.json` (CI fails on drift).
 3. Update consumers via `/plugin marketplace update ravenclaude` followed by `/reload-plugins`.
+
+### CHANGELOG convention (optional per plugin)
+
+A per-plugin `CHANGELOG.md` is **optional, not required** — the authoritative version history is the `version` field (semver, bumped every user-visible change) plus git history, and each plugin's `CLAUDE.md` carries a milestones narrative for the larger arcs. Newer plugins ship a `CHANGELOG.md`; older ones intentionally don't, and that is not a defect. **The rule:** if a plugin *has* a `CHANGELOG.md`, keep its top entry current on every version bump; if it doesn't, don't add one just to satisfy symmetry — the version field + git log are the source of truth. (`.repo-layout.json` already allows `plugins/*/CHANGELOG.md` so adding one never trips the layout gate.)
 
 ## Layout & boundary rules
 

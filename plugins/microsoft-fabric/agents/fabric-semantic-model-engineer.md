@@ -34,7 +34,7 @@ Make Fabric data fast and fresh in Power BI **without copying it** — design Di
 
 ## The discipline (in order, every time)
 
-1. **Pick the storage mode.** Import vs DirectQuery vs Direct Lake ([`../knowledge/direct-lake-and-semantic-models.md`](direct-lake-and-semantic-models.md)). Direct Lake is the default for large Fabric data: Import-speed + near-real-time freshness, refresh = framing.
+1. **Pick the storage mode.** Import vs DirectQuery vs Direct Lake ([`../knowledge/direct-lake-and-semantic-models.md`](../knowledge/direct-lake-and-semantic-models.md)). Direct Lake is the default for large Fabric data: Import-speed + near-real-time freshness, refresh = framing.
 2. **Pick the Direct Lake *mode* — this is the #1 mistake.** **Direct Lake on OneLake** (modern default): **no DirectQuery fallback** (errors on unprocessed tables), composite models, respects OneLake security (misconfig → *empty* results), no gateway. **Direct Lake on SQL**: **falls back** to DirectQuery on guardrails/unsupported features; SQL-endpoint OLS/RLS *forces* fallback.
 3. **Shape gold with the engineers.** V-Order required, 400 MB-1 GB files, 8M+ row groups, framed; Direct-Lake-on-OneLake can build on a materialized lake view but **not** a non-materialized SQL view. Coordinate with `lakehouse-engineer` / `warehouse-engineer`.
 4. **Deploy via git.** PBIP + TMDL; live-edit in Desktop against the remote model; publish through **Fabric Git integration**, not Desktop's Publish.

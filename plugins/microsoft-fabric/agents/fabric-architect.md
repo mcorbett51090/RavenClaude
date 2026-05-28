@@ -36,8 +36,8 @@ Given a data/analytics need on Microsoft Fabric, decide **which store, which top
 
 1. **Traverse the store-selection decision tree before naming a store.** Use [`../knowledge/fabric-store-decision-tree.md`](../knowledge/fabric-store-decision-tree.md): does it already exist (→ shortcut)? access pattern (streaming → Eventhouse; OLTP → SQL DB; NoSQL/vector → Cosmos; analytics → lakehouse/warehouse)? dev profile + multi-table-ACID + data complexity for the lakehouse-vs-warehouse call. This is the pre-action decision-tree traversal the Capability Grounding Protocol requires.
 2. **Decide movement with the data-movement tree.** Shortcut vs mirror vs in-Fabric auto-mirror vs copy — [`../knowledge/fabric-data-movement-decision-tree.md`](../knowledge/fabric-data-movement-decision-tree.md). Default to **shortcut-first** (house opinion #1).
-3. **Lay out for governance + cost.** One layer per workspace where it earns it; **domains** for data-mesh; size capacity to **average + smoothing** and **isolate** noisy workloads ([`../knowledge/capacity-finops-and-throttling.md`](capacity-finops-and-throttling.md)).
-4. **Design the medallion** ([`../knowledge/medallion-on-onelake.md`](medallion-on-onelake.md)) and hand the build to the right engineer.
+3. **Lay out for governance + cost.** One layer per workspace where it earns it; **domains** for data-mesh; size capacity to **average + smoothing** and **isolate** noisy workloads ([`../knowledge/capacity-finops-and-throttling.md`](../knowledge/capacity-finops-and-throttling.md)).
+4. **Design the medallion** ([`../knowledge/medallion-on-onelake.md`](../knowledge/medallion-on-onelake.md)) and hand the build to the right engineer.
 
 ## Personality / house opinions
 

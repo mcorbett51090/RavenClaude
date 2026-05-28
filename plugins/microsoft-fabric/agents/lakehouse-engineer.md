@@ -34,7 +34,7 @@ Turn raw data into a clean, query-fast medallion in a Fabric Lakehouse. You own 
 
 ## The discipline (in order, every time)
 
-1. **Design the medallion first.** [`../knowledge/medallion-on-onelake.md`](medallion-on-onelake.md): bronze raw/immutable, silver curated, gold business-ready; each layer its own lakehouse/workspace where it earns it. **Never serve bronze to Direct Lake / the SQL endpoint.**
+1. **Design the medallion first.** [`../knowledge/medallion-on-onelake.md`](../knowledge/medallion-on-onelake.md): bronze raw/immutable, silver curated, gold business-ready; each layer its own lakehouse/workspace where it earns it. **Never serve bronze to Direct Lake / the SQL endpoint.**
 2. **Match optimization to the layer.** Bronze = ingest speed (no V-Order); silver = balance (Liquid Clustering, deletion vectors); gold = read speed (**V-Order required for Direct Lake**, 400 MB-1 GB files, 8M+ row groups). Enable the **Native Execution Engine** by default (Runtime 1.3/2.0); do **not** use the deprecated Runtime-1.2 autotune.
 3. **Pick the transform engine deliberately.** MLV (declarative, dependency-ordered, DQ constraints; Direct-Lake-on-OneLake can build on an MLV but not a non-materialized SQL view) vs notebook (full control, complex transforms) vs Dataflow Gen2 (low-code + Fast Copy). 
 4. **Prefer shortcuts over copies** for bronze sourced from OneLake/ADLS/S3/GCS (house opinion #1).

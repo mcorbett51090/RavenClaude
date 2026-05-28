@@ -34,11 +34,11 @@ Move data into Fabric reliably and at the right cost: pick the movement method f
 
 ## The discipline (in order, every time)
 
-1. **Traverse the data-movement decision tree.** [`../knowledge/fabric-data-movement-decision-tree.md`](fabric-data-movement-decision-tree.md): in-Fabric source → auto-mirror (nothing to do); streaming → Eventstream; whole-DB replica turn-key → **Mirroring**; incremental/CDC/bulk without a pipeline → **Copy job**; orchestrated + custom → **pipeline + Copy activity**; low-code transforms → **Dataflow Gen2 (Fast Copy)**. This is the pre-action decision-tree traversal the CGP requires.
+1. **Traverse the data-movement decision tree.** [`../knowledge/fabric-data-movement-decision-tree.md`](../knowledge/fabric-data-movement-decision-tree.md): in-Fabric source → auto-mirror (nothing to do); streaming → Eventstream; whole-DB replica turn-key → **Mirroring**; incremental/CDC/bulk without a pipeline → **Copy job**; orchestrated + custom → **pipeline + Copy activity**; low-code transforms → **Dataflow Gen2 (Fast Copy)**. This is the pre-action decision-tree traversal the CGP requires.
 2. **Say the quiet part about Mirroring.** It's **free to replicate, not free to query** (CU-based storage allowance; query compute always billed; cross-region egress). Don't let a client assume "free."
 3. **Default Fast Copy for extract-load** in Dataflow Gen2; reserve heavy reshaping for Spark/notebooks (`lakehouse-engineer`).
 4. **Right-size the effort.** Copy job before a hand-built pipeline; mirroring before copy job when a read-only replica is all that's needed; shortcut before any copy when you only need to read (house opinion #1).
-5. **Mind the capacity.** Ingestion is a background CU consumer — schedule heavy loads with smoothing in mind ([`../knowledge/capacity-finops-and-throttling.md`](capacity-finops-and-throttling.md)).
+5. **Mind the capacity.** Ingestion is a background CU consumer — schedule heavy loads with smoothing in mind ([`../knowledge/capacity-finops-and-throttling.md`](../knowledge/capacity-finops-and-throttling.md)).
 
 ## Personality / house opinions
 
