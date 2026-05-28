@@ -5399,15 +5399,13 @@ _JS = r"""
       }
 
       /* Step 4 — What happened (phase label) */
-      const phaseLabels = {
-        pre_llm: "Blocked by deterministic safety rule (no AI ran)",
-        deterministic: "Passed the deterministic screen",
-        panel: "Sent to the reviewer panel",
-        gate_floor: "Cleared the panel and surfaced to you per comfort level",
-        auto: "Resolved automatically below the comfort floor",
-      };
-      const phaseKey = (r.phase || "").toLowerCase().replace(/[^a-z_]/g, "");
-      const stepWhat = esc(phaseLabels[phaseKey] || r.phase || "&mdash;");
+      const phLower = (r.phase || "").toLowerCase();
+      let stepWhat;
+      if (phLower.includes("clean-read")) stepWhat = "Low-risk read - allowed automatically; no panel needed.";
+      else if (phLower.includes("self-disable")) stepWhat = "Blocked before any panel - it tried to change the safety system itself.";
+      else if (phLower.includes("single-seat")) stepWhat = "Reviewed by a single seat.";
+      else if (phLower.includes("panel")) stepWhat = "Reviewed by a " + (Array.isArray(r.seats) ? r.seats.length : "?") + "-seat panel.";
+      else stepWhat = esc(r.phase || "&mdash;");
 
       /* Step 5 — Panel votes (seat chips) */
       const stepVotes = seatsHtml || '<span class="saga-seat-chip saga-seat-det">no panel ran</span>';
@@ -5425,7 +5423,7 @@ _JS = r"""
 
       const detailPanel =
         `<td colspan="7" style="padding:0 10px 10px">` +
-        `<div class="saga-detail-panel" id="${esc(detailId)}">` +
+        `<div class="saga-detail-panel">` +
         `<div class="saga-detail-steps">` +
         `<span class="saga-detail-label">Action</span><span class="saga-detail-val">${stepAction}</span>` +
         `<span class="saga-detail-label">Risk</span><span class="saga-detail-val">${stepRisk}</span>` +
@@ -5446,7 +5444,7 @@ _JS = r"""
         `<td>${vPill}</td>` +
         `<td>${reasonCell}</td>` +
         `</tr>` +
-        `<tr class="saga-detail-row" data-detail-for="${idx}">${detailPanel}</tr>`;
+        `<tr class="saga-detail-row" id="${esc(detailId)}">${detailPanel}</tr>`;
     }
 
     /* The outer skeleton is fixed HTML; only `rows` contains escaped data. */
