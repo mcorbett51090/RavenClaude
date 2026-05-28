@@ -5,8 +5,8 @@
     "name": "Matt Corbett"
   },
   "metadata": {
-    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. A domain-neutral core (Team Lead + 14 specialist agents, 20 skills, hooks, the Capability Grounding Protocol, the Structured Output Protocol, and a comfort-posture permission dashboard) plus domain plugins that extend it via skills and knowledge. Every agent ships example-scenario frontmatter; the repo-guide surfaces an 'I want to…' use-case lookup across all plugins. Plugins: ravenclaude-core, power-platform (+ bundled pbix-mcp), finance, regulatory-compliance (+ BMA Bermuda specialist), web-design (WCAG/CWV/SEO), edtech-partner-success (PSM lane), data-platform (dashboard engagements). Salesforce on the roadmap.",
-    "version": "0.26.0"
+    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. A domain-neutral core (Team Lead + 14 specialist agents, 20 skills, hooks, the Capability Grounding Protocol, the Structured Output Protocol, and a comfort-posture permission dashboard) plus domain plugins that extend it via skills and knowledge. Every agent ships example-scenario frontmatter; the repo-guide surfaces an 'I want to…' use-case lookup across all plugins. Plugins: ravenclaude-core, power-platform (+ bundled pbix-mcp), finance, regulatory-compliance (+ BMA Bermuda specialist), web-design (WCAG/CWV/SEO), edtech-partner-success (PSM lane), data-platform (dashboard engagements), applied-statistics, microsoft-fabric (OneLake / Lakehouse / Warehouse / Data Factory / Real-Time Intelligence / Direct Lake / capacity FinOps). Salesforce on the roadmap.",
+    "version": "0.27.0"
   },
   "plugins": [
     {
@@ -176,6 +176,30 @@
         "scipy",
         "statsmodels",
         "pingouin"
+      ]
+    },
+    {
+      "name": "microsoft-fabric",
+      "source": "./plugins/microsoft-fabric",
+      "description": "Microsoft Fabric specialist team — 7 agents (fabric-architect, lakehouse-engineer, warehouse-engineer, data-factory-engineer, realtime-intelligence-engineer, fabric-semantic-model-engineer, fabric-admin) covering OneLake, Lakehouse (Spark/Delta/V-Order/medallion/materialized lake views), Warehouse (T-SQL/ACID), Data Factory (mirroring/copy-job/dataflow-gen2/pipelines), Real-Time Intelligence (Eventstream/Eventhouse/KQL/Activator), Direct Lake semantic models, and platform admin (capacity FinOps, OneLake security RLS/CLS/OLS, domains, Purview, ALM via Git + deployment pipelines + Fabric CLI). 8-doc citation-grounded knowledge bank (two Mermaid decision trees + medallion/Direct-Lake/capacity/security/ALM references + a dated 2026 capability map), 6 templates, 1 advisory hook (14 house opinions). Seams: enterprise Microsoft/Fabric here vs non-Microsoft/SMB embedded analytics to data-platform; Fabric storage + Direct Lake here vs standalone Power BI/.pbix to power-platform/power-bi-engineer. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "microsoft-fabric",
+        "onelake",
+        "lakehouse",
+        "data-warehouse",
+        "data-factory",
+        "real-time-intelligence",
+        "direct-lake",
+        "power-bi",
+        "delta-lake",
+        "medallion",
+        "kql",
+        "alm",
+        "capacity-finops"
       ]
     }
   ]

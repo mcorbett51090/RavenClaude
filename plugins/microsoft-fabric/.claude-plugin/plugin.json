@@ -1,0 +1,29 @@
+{
+  "name": "microsoft-fabric",
+  "version": "0.1.0",
+  "description": "Microsoft Fabric specialist team — 7 agents (fabric-architect, lakehouse-engineer, warehouse-engineer, data-factory-engineer, realtime-intelligence-engineer, fabric-semantic-model-engineer, fabric-admin) covering OneLake, Lakehouse (Spark/Delta/V-Order/medallion/materialized lake views), Warehouse (T-SQL/ACID), Data Factory (mirroring/copy-job/dataflow-gen2/pipelines), Real-Time Intelligence (Eventstream/Eventhouse/KQL/Activator), Direct Lake semantic models, and platform admin (capacity FinOps, OneLake security RLS/CLS/OLS, domains, Purview, ALM via Git + deployment pipelines + Fabric CLI). An 8-doc citation-grounded knowledge bank carries two Mermaid decision trees (store-selection, data-movement), the medallion + Direct Lake + capacity + security + ALM references, and a dated 2026 capability map. 6 templates, 1 advisory anti-pattern hook (14 house opinions). Seams cleanly: enterprise Microsoft/Fabric here, non-Microsoft/SMB embedded analytics to data-platform; Fabric storage + Direct Lake here, standalone Power BI/.pbix to power-platform/power-bi-engineer; 'is it real?' to applied-statistics. Advisory and interactive — recommends and emits runnable fab CLI / KQL / T-SQL / PySpark snippets; the consultant runs them. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "microsoft-fabric",
+    "onelake",
+    "lakehouse",
+    "data-warehouse",
+    "data-factory",
+    "real-time-intelligence",
+    "direct-lake",
+    "power-bi",
+    "delta-lake",
+    "medallion",
+    "kql",
+    "data-engineering",
+    "alm",
+    "capacity-finops"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
