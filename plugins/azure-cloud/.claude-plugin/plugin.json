@@ -1,0 +1,29 @@
+{
+  "name": "azure-cloud",
+  "version": "0.1.0",
+  "description": "Azure cloud infrastructure & platform specialist team — 7 agents (azure-architect, bicep-iac-engineer, entra-identity-engineer, network-engineer, app-platform-engineer, integration-engineer, azure-ops-engineer) for the Azure layer under the Microsoft stack: landing zones / CAF, IaC (Bicep + Terraform + Azure Verified Modules + Deployment Stacks), Entra identity (managed identity, workload identity federation, RBAC, PIM, External ID), networking (Private Endpoints, hub-spoke, Front Door, WAF), compute selection (App Service / Container Apps / Functions / AKS), integration (Logic Apps, Service Bus, Event Grid, APIM), and observability + FinOps + governance. 9-doc dated knowledge bank (two Mermaid decision trees + a 2026 capability map), 6 templates, 1 advisory hook (16 house opinions). Seams: Logic Apps here vs Power Automate to power-platform; Fabric data to microsoft-fabric; Azure host here vs Claude app to claude-app-engineering. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "azure",
+    "bicep",
+    "terraform",
+    "landing-zones",
+    "entra-id",
+    "managed-identity",
+    "workload-identity-federation",
+    "container-apps",
+    "azure-functions",
+    "private-endpoints",
+    "azure-policy",
+    "finops",
+    "iac",
+    "cloud-adoption-framework"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
