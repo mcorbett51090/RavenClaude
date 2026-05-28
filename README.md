@@ -108,6 +108,17 @@ For a full list of agents and when to spawn each, see the team-roster table in [
 
 Domain-specific team constitution: [`plugins/power-platform/CLAUDE.md`](plugins/power-platform/CLAUDE.md). Inherits the neutral team from `ravenclaude-core` and extends with PP-specific routing, house opinions, and anti-patterns. See attribution in [`plugins/power-platform/NOTICE.md`](plugins/power-platform/NOTICE.md).
 
+### `microsoft-fabric`
+
+| Component | Count | Where |
+|-----------|-------|-------|
+| Specialist agents | 7 (`fabric-architect`, `lakehouse-engineer`, `warehouse-engineer`, `data-factory-engineer`, `realtime-intelligence-engineer`, `fabric-semantic-model-engineer`, `fabric-admin`) | `plugins/microsoft-fabric/agents/` |
+| Knowledge bank | 8 citation-grounded, retrieval-dated docs (store-selection + data-movement Mermaid decision trees, medallion-on-OneLake, Direct Lake two-mode, capacity FinOps, OneLake security GA/preview matrix, ALM/CI-CD, a dated 2026 capability map) | `plugins/microsoft-fabric/knowledge/` |
+| Templates | 6 (workspace-and-capacity plan, medallion spec, ingestion design, Direct Lake model spec, capacity-cost review, ALM runbook) | `plugins/microsoft-fabric/templates/` |
+| Hooks | 1 advisory anti-pattern hook (autotune-not-NEE, mirroring-free-unqualified, V-Order-off-on-gold, Direct-Lake-no-mode); `FABRIC_STRICT=1` to block | `plugins/microsoft-fabric/hooks/` |
+
+Domain-specific team constitution: [`plugins/microsoft-fabric/CLAUDE.md`](plugins/microsoft-fabric/CLAUDE.md). Covers the **enterprise Microsoft / Fabric** lane (OneLake, Lakehouse, Warehouse, Data Factory, Real-Time Intelligence, Direct Lake, capacity FinOps, OneLake security, ALM). Seams reciprocally with `data-platform` (non-Microsoft/SMB embedded) and `power-platform/power-bi-engineer` (standalone Power BI / `.pbix`). No bundled MCP — documents the `fab` CLI / REST prerequisite. Built from a researched, expert-reviewed plan ([`docs/microsoft-fabric-plugin-analysis.md`](docs/microsoft-fabric-plugin-analysis.md)).
+
 ---
 
 ## Contributing back from a consumer project (no repo access needed)
@@ -169,11 +180,11 @@ The container at `.devcontainer/` auto-installs the Claude Code CLI on rebuild, 
 
 ## Roadmap
 
-Planned future plugins (each in its own subfolder under `plugins/`, all in this same repo):
+**Shipped since the original roadmap:** `finance`, `regulatory-compliance`, `web-design`, `edtech-partner-success`, `data-platform`, `applied-statistics`, and `microsoft-fabric` (OneLake / Lakehouse / Warehouse / Data Factory / Real-Time Intelligence / Direct Lake / capacity FinOps — the enterprise-Microsoft data-platform lane, built from a researched + expert-reviewed plan in [`docs/microsoft-fabric-plugin-analysis.md`](docs/microsoft-fabric-plugin-analysis.md)).
 
-- **`finance`** — FP&A, variance analysis, financial-modeling specialists.
-- **`edtech`** — partner-success, rostering, FERPA-aware translation specialists.
-- **`salesforce`** — Salesforce metadata, Apex, Flow specialists.
+Still planned:
+
+- **`salesforce`** — Salesforce metadata, Apex, Flow specialists (deferred — see [`docs/plugin-roadmap-analysis.md`](docs/plugin-roadmap-analysis.md) for why it ranks below the Microsoft-stack work).
 
 Each builds on top of `ravenclaude-core` (which provides the neutral team) and adds domain-specific agents that the consumer can choose to install or skip. `power-platform` is the reference implementation of this pattern.
 

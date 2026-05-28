@@ -133,7 +133,7 @@
       "name": "data-platform",
       "source": "./plugins/data-platform",
       "description": "Data-platform team — 4 specialist agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) that guide cloud-database setup, ELT pipelines (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4 / Shopify / HRIS, and interactive dashboards (Evidence.dev / Superset / Metabase / Cube + Tremor) embedded in marketing sites and client apps. 11 skills — three invoked by ravenclaude-core/security-reviewer, one by its architect — implementing the house rule 'domain plugins extend core via skills, not parallel agents'. 12 templates, 1 advisory hook, and a 13-doc knowledge bank (landscape, RLS, QuickBooks, Power BI Embedded, plus per-connector deep-dives). Opinionated against per-viewer-priced BI tools (Looker / Tableau / Sigma) for SMB consulting; requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.4",
+      "version": "0.3.5",
       "author": {
         "name": "Matt Corbett"
       },
@@ -181,7 +181,7 @@
     {
       "name": "microsoft-fabric",
       "source": "./plugins/microsoft-fabric",
-      "description": "Microsoft Fabric specialist team — 7 agents (fabric-architect, lakehouse-engineer, warehouse-engineer, data-factory-engineer, realtime-intelligence-engineer, fabric-semantic-model-engineer, fabric-admin) covering OneLake, Lakehouse (Spark/Delta/V-Order/medallion/materialized lake views), Warehouse (T-SQL/ACID), Data Factory (mirroring/copy-job/dataflow-gen2/pipelines), Real-Time Intelligence (Eventstream/Eventhouse/KQL/Activator), Direct Lake semantic models, and platform admin (capacity FinOps, OneLake security RLS/CLS/OLS, domains, Purview, ALM via Git + deployment pipelines + Fabric CLI). 8-doc citation-grounded knowledge bank (two Mermaid decision trees + medallion/Direct-Lake/capacity/security/ALM references + a dated 2026 capability map), 6 templates, 1 advisory hook (14 house opinions). Seams: enterprise Microsoft/Fabric here vs non-Microsoft/SMB embedded analytics to data-platform; Fabric storage + Direct Lake here vs standalone Power BI/.pbix to power-platform/power-bi-engineer. Requires ravenclaude-core@>=0.7.0.",
+      "description": "Microsoft Fabric specialist team — 7 agents (fabric-architect, lakehouse-engineer, warehouse-engineer, data-factory-engineer, realtime-intelligence-engineer, fabric-semantic-model-engineer, fabric-admin) covering OneLake, Lakehouse (Spark/Delta/medallion/materialized lake views), Warehouse (T-SQL/ACID), Data Factory (mirroring/copy-job/dataflow-gen2/pipelines), Real-Time Intelligence (Eventstream/Eventhouse/KQL/Activator), Direct Lake semantic models, and platform admin (capacity FinOps, OneLake security, domains, Purview, ALM). 8-doc citation-grounded knowledge bank (two Mermaid decision trees + a dated 2026 capability map), 6 templates, 1 advisory hook (14 house opinions). Seams: enterprise Microsoft/Fabric here vs non-Microsoft/SMB embedded to data-platform; Fabric storage + Direct Lake here vs standalone Power BI/.pbix to power-platform/power-bi-engineer. Requires ravenclaude-core@>=0.7.0.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"

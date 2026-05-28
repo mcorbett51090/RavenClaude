@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for microsoft-fabric. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-fabric-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags 4 mechanically-detectable Microsoft Fabric anti-patterns in Fabric-ish files (.py/.ipynb/.sql/.kql/.tmdl/.json/.conf/.md) — (1) spark.ms.autotune.enabled set true (use the Native Execution Engine), (2) 'mirroring is free' with no replicate-vs-query qualifier, (3) V-Order disabled on a gold/Direct-Lake table, (4) 'Direct Lake' written with no mode (on OneLake / on SQL). Set FABRIC_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -28,6 +28,7 @@
     "plugins/*/.claude-plugin/plugin.json",
     "plugins/*/CLAUDE.md",
     "plugins/*/README.md",
+    "plugins/*/CHANGELOG.md",
     "plugins/*/agents/**",
     "plugins/*/copilot/**",
     "plugins/*/skills/**",
