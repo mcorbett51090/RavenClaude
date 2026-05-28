@@ -71,6 +71,17 @@
             "comment": "Layout enforcement: deny writes that don't match .repo-layout.json. Same script the plugin distributes to consumers."
           }
         ]
+      },
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/route-decision-review.sh",
+            "timeout": 90,
+            "comment": "Marketplace-dev hook. Decision-review enforcement (the Thing, decision mode). No-ops (fast grep) unless `decision_review: advisory|binding` is set in .ravenclaude/comfort-posture.yaml (default off; this repo has no such file so it no-ops). When opted in AND the AskUserQuestion is a single binary non-multiselect yes/no-shaped question, routes it through thing-decide.py and on a BINDING yes/no DENIES the prompt with the verdict so the agent proceeds without interrupting the user; defer/advisory/high-blast/error -> allow. Same script the plugin distributes to consumers via ${CLAUDE_PLUGIN_ROOT}."
+          }
+        ]
       }
     ],
     "Stop": [

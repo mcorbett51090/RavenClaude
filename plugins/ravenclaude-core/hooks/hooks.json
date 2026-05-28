@@ -45,6 +45,17 @@
             "comment": "Layout enforcement. Reads .repo-layout.json from the consumer's project root; no-ops silently if the manifest is absent."
           }
         ]
+      },
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/route-decision-review.sh",
+            "timeout": 90,
+            "comment": "Decision-review enforcement (the Thing, decision mode). No-ops (fast grep) unless `decision_review: advisory|binding` is set in .ravenclaude/comfort-posture.yaml (default off). When opted in AND the AskUserQuestion is a single, binary, non-multiselect yes/no-shaped question, routes it through thing-decide.py; on a BINDING yes/no verdict it DENIES the prompt with the verdict + reasoning so the agent proceeds without interrupting the user. Defer / advisory / high-blast / low-confidence / any error -> allow (the human answers). Every routed decision is Saga-logged under .ravenclaude/runs/thing/decisions/."
+          }
+        ]
       }
     ],
     "Stop": [

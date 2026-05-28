@@ -9,7 +9,7 @@ Routes a **yes/no decision** through the tribunal's seats (Forseti / Mímir / He
 
 ## When to use it
 
-1. **Before asking the user any yes/no question.** Route it here first. If the tribunal returns a binding `yes`/`no`, act on it; if it returns `defer`, ask the user.
+1. **Before asking the user any yes/no question.** Route it here first. If the tribunal returns a binding `yes`/`no`, act on it; if it returns `defer`, ask the user. **Now enforced** (added 2026-05-28): the `PreToolUse(AskUserQuestion)` hook [`hooks/route-decision-review.sh`](../../hooks/route-decision-review.sh) intercepts binary yes/no `AskUserQuestion` calls and runs this routing automatically, so it no longer depends on remembering to invoke the skill manually. The hook handles the **real-time** path; this skill is still the surface for #2.
 2. **In the post-PR decision review** (see [`docs/post-pr-decision-review.md`](../../../../docs/post-pr-decision-review.md)) — enumerate the PR's decisions and route the tribunal-eligible ones.
 
 ## How to invoke
