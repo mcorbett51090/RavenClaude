@@ -119,6 +119,17 @@ Domain-specific team constitution: [`plugins/power-platform/CLAUDE.md`](plugins/
 
 Domain-specific team constitution: [`plugins/microsoft-fabric/CLAUDE.md`](plugins/microsoft-fabric/CLAUDE.md). Covers the **enterprise Microsoft / Fabric** lane (OneLake, Lakehouse, Warehouse, Data Factory, Real-Time Intelligence, Direct Lake, capacity FinOps, OneLake security, ALM). Seams reciprocally with `data-platform` (non-Microsoft/SMB embedded) and `power-platform/power-bi-engineer` (standalone Power BI / `.pbix`). No bundled MCP — documents the `fab` CLI / REST prerequisite. Built from a researched, expert-reviewed plan ([`docs/microsoft-fabric-plugin-analysis.md`](docs/microsoft-fabric-plugin-analysis.md)).
 
+### `claude-app-engineering`
+
+| Component | Count | Where |
+|-----------|-------|-------|
+| Specialist agents | 6 (`claude-solution-architect`, `prompt-and-context-engineer`, `mcp-and-server-tools-engineer`, `agent-sdk-engineer`, `eval-engineer`, `claude-app-ops-engineer`) | `plugins/claude-app-engineering/agents/` |
+| Knowledge bank | 9 citation-grounded, retrieval-dated docs (build-surface decision tree, dated 2026 capability map, prompt-caching playbook, tool-use + structured output, MCP server authoring, server-side tools + Files API, Agent SDK + Managed Agents, evals + quality, FinOps + reliability + security) | `plugins/claude-app-engineering/knowledge/` |
+| Templates | 6 (architecture spec, prompt-and-caching design, MCP server spec, eval plan, cost model, Agent SDK runbook) | `plugins/claude-app-engineering/templates/` |
+| Hooks | 1 advisory anti-pattern hook (hardcoded `sk-ant-` key, Messages API call with no `max_tokens`, retired model id, full-message logging); `CLAUDE_APP_STRICT=1` to block | `plugins/claude-app-engineering/hooks/` |
+
+Domain-specific team constitution: [`plugins/claude-app-engineering/CLAUDE.md`](plugins/claude-app-engineering/CLAUDE.md). Covers building production apps on the **Claude API + Claude Agent SDK + MCP** (build-surface decision, prompt caching, tool use, MCP servers + hosted server tools, Agent SDK / Managed Agents, evals, LLM FinOps). Ships **no** security-reviewer/architect clone — AI-app security and cross-domain architecture escalate to `ravenclaude-core` (a reciprocal prompt-engineer prior was added to core). The marketplace itself is the worked example. No bundled MCP — documents the Anthropic SDK / Claude Agent SDK prerequisite. Built from a researched, expert-reviewed plan ([`docs/claude-app-engineering-plugin-analysis.md`](docs/claude-app-engineering-plugin-analysis.md)).
+
 ---
 
 ## Contributing back from a consumer project (no repo access needed)

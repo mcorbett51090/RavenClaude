@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for claude-app-engineering. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-claude-app-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags 4 mechanically-detectable Claude-app anti-patterns in source files (.py/.ts/.js/.tsx/.jsx) — (1) hardcoded sk-ant- API key, (2) a Messages API call with no max_tokens anywhere in the file, (3) a retired model id (claude-2/claude-instant/claude-1), (4) full-message logging (print(messages)/console.log(messages)). Set CLAUDE_APP_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}
