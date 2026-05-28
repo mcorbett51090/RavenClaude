@@ -5,8 +5,8 @@
     "name": "Matt Corbett"
   },
   "metadata": {
-    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. A domain-neutral core (Team Lead + 14 specialist agents, 20 skills, hooks, the Capability Grounding Protocol, the Structured Output Protocol, and a comfort-posture permission dashboard) plus domain plugins that extend it via skills and knowledge. Every agent ships example-scenario frontmatter; the repo-guide surfaces an 'I want to…' use-case lookup across all plugins. Plugins: ravenclaude-core, power-platform (+ bundled pbix-mcp), finance, regulatory-compliance (+ BMA Bermuda specialist), web-design (WCAG/CWV/SEO), edtech-partner-success (PSM lane), data-platform (dashboard engagements), applied-statistics, microsoft-fabric (OneLake / Lakehouse / Warehouse / Data Factory / Real-Time Intelligence / Direct Lake / capacity FinOps). Salesforce on the roadmap.",
-    "version": "0.27.0"
+    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. A domain-neutral core (Team Lead + 14 specialist agents, 20 skills, hooks, the Capability Grounding Protocol, the Structured Output Protocol, and a comfort-posture permission dashboard) plus domain plugins that extend it via skills and knowledge. Every agent ships example-scenario frontmatter; the repo-guide surfaces an 'I want to…' use-case lookup across all plugins. Plugins: ravenclaude-core, power-platform (+ bundled pbix-mcp), finance, regulatory-compliance (+ BMA Bermuda specialist), web-design (WCAG/CWV/SEO), edtech-partner-success (PSM lane), data-platform (dashboard engagements), applied-statistics, microsoft-fabric (OneLake / Lakehouse / Warehouse / Data Factory / Real-Time Intelligence / Direct Lake / capacity FinOps), claude-app-engineering (Claude API / Agent SDK / MCP / evals / LLM FinOps). Salesforce on the roadmap.",
+    "version": "0.28.0"
   },
   "plugins": [
     {
@@ -200,6 +200,28 @@
         "kql",
         "alm",
         "capacity-finops"
+      ]
+    },
+    {
+      "name": "claude-app-engineering",
+      "source": "./plugins/claude-app-engineering",
+      "description": "Claude app-engineering specialist team — 6 agents (claude-solution-architect, prompt-and-context-engineer, mcp-and-server-tools-engineer, agent-sdk-engineer, eval-engineer, claude-app-ops-engineer) for building production applications on the Claude API, the Claude Agent SDK, and MCP. Covers the build-surface decision (Messages API / Agent SDK / Managed Agents), model right-sizing (Opus 4.7 / Sonnet 4.6 / Haiku 4.5, 1M context), prompt caching, tool use + structured output, MCP server authoring + Anthropic-hosted server tools (computer use, code execution, Files API, memory), evals (golden sets, LLM-as-judge), and FinOps + reliability (batch, model routing, backoff, observability). 9-doc dated-and-cited knowledge bank, 6 templates, 1 advisory hook (14 house opinions). Seams: prompt-as-artifact, security, and cross-domain architecture escalate to ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "claude",
+        "anthropic",
+        "claude-api",
+        "claude-agent-sdk",
+        "mcp",
+        "prompt-caching",
+        "tool-use",
+        "evals",
+        "llm-ops",
+        "agents",
+        "managed-agents"
       ]
     }
   ]
