@@ -35,6 +35,9 @@ __pycache__/
 # RavenClaude runtime artifacts (per-run agent handoff substrate; not committed)
 .ravenclaude/
 
+# `remember` plugin session logs — local cross-session memory; may carry client context, never commit
+.remember/
+
 # Deep-research artifacts — persistent across Codespace restarts, not for commit
 # (research drafts; if/when distilled into a knowledge file or proposal, that artifact gets committed instead)
 docs/research/

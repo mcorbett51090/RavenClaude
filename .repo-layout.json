@@ -29,6 +29,8 @@
     "plugins/*/CLAUDE.md",
     "plugins/*/README.md",
     "plugins/*/CHANGELOG.md",
+    "plugins/*/NOTICE.md",
+    "plugins/*/portable/**",
     "plugins/*/agents/**",
     "plugins/*/copilot/**",
     "plugins/*/skills/**",
