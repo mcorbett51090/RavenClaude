@@ -114,6 +114,7 @@ Reference docs with `Last reviewed:` dates + source URLs. Dated/numeric claims c
 | [`knowledge/azure-observability-and-finops.md`](knowledge/azure-observability-and-finops.md) | Observability + FinOps + governance enforcement |
 | [`knowledge/azure-deployment-cicd.md`](knowledge/azure-deployment-cicd.md) | Passwordless CI/CD — GitHub Actions / Azure DevOps + workload identity federation |
 | [`knowledge/azure-2026-capability-map.md`](knowledge/azure-2026-capability-map.md) | "Is this GA or deprecated?" — the dated freshness anchor |
+| [`knowledge/azure-ai-foundry.md`](knowledge/azure-ai-foundry.md) | The Azure AI hosting layer — Microsoft Foundry (rebrand), Foundry vs hub-based projects, the model catalog (serverless vs managed compute), Foundry Agent Service; the seams to `claude-app-engineering` (agent logic) + `microsoft-fabric` (Foundry IQ) + `power-platform` (Copilot custom-engine). Owned by `app-platform-engineer` + `azure-architect`. Dated 2026-05-28. |
 
 ---
 

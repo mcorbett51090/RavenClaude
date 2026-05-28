@@ -126,12 +126,18 @@ The `scripts/generate-repo-guide.py` script reads the YAML frontmatter and produ
 | Plugin | Agents | Backfilled? |
 |---|---|---|
 | `ravenclaude-core` | 14 | ✅ v0.1.0 of this convention (PR #36) |
-| `power-platform` | 11 | Pending backfill |
-| `edtech-partner-success` | 6 | Pending backfill |
-| `data-platform` | 4 | Pending backfill |
-| `finance` | 7 | Pending backfill |
-| `regulatory-compliance` | 6 | Pending backfill |
-| `web-design` | 7 | Pending backfill |
+| `power-platform` | 11 | ✅ |
+| `edtech-partner-success` | 6 | ✅ |
+| `data-platform` | 4 | ✅ |
+| `finance` | 7 | ✅ |
+| `regulatory-compliance` | 6 | ✅ |
+| `web-design` | 7 | ✅ |
+| `applied-statistics` | 1 | ✅ |
+| `microsoft-fabric` | 7 | ✅ (shipped with the schema at v0.1.0) |
+| `claude-app-engineering` | 6 | ✅ (shipped with the schema at v0.1.0) |
+| `azure-cloud` | 7 | ✅ (shipped with the schema at v0.1.0) |
+
+**Status (verified 2026-05-28):** every agent in every plugin now carries the full `audience`/`works_with`/`scenarios`/`quickstart` schema. New agents ship it from v0.1.0 (the three Microsoft/AI-stack plugins added in the 2026-05-28 build loop did so). The repo-guide's "I want to…" use-case lookup therefore aggregates intents across the whole marketplace.
 
 **The repo-guide gracefully handles missing fields** — an un-backfilled agent renders with just its description, like before. Backfill is non-breaking and can happen incrementally.
 

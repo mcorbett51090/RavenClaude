@@ -125,6 +125,7 @@ Reference docs with `Last reviewed:` dates + confidence notation + Microsoft Lea
 | [`knowledge/onelake-security-and-governance.md`](knowledge/onelake-security-and-governance.md) | The security model — two planes, RLS/CLS/OLS GA/preview matrix, domains, Purview |
 | [`knowledge/fabric-alm-cicd.md`](knowledge/fabric-alm-cicd.md) | CI-CD — Git integration + deployment pipelines + Fabric CLI / fabric-cicd / REST |
 | [`knowledge/fabric-2026-capability-map.md`](knowledge/fabric-2026-capability-map.md) | "Is this GA or preview?" — runtimes, NEE, stores, Direct Lake, RTI, AI, ALM (dated; the freshness anchor) |
+| [`knowledge/fabric-data-science-and-ai.md`](knowledge/fabric-data-science-and-ai.md) | AI over OneLake + the ML lifecycle — Fabric Data Agents (GA), Operations Agents, AI functions, AutoML, MLflow (cross-workspace), Semantic Link, Copilot, GraphQL + Foundry IQ. Owned by `lakehouse-engineer` (interim, until the v0.2.0 `fabric-data-ai-engineer`). Dated 2026-05-28. |
 
 ---
 
