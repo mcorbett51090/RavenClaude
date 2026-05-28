@@ -12,7 +12,8 @@ Copy/Download step).
 
 This launches a small **local** server (`serve-dashboards.py`) bundled inside the plugin.
 It serves the version-matched `dashboard.html` and exposes only `/__save`, `/__read`
-(allow-listed to `.ravenclaude/` files), and `/__classify` (read-only). It binds
+(allow-listed to `.ravenclaude/` files), `/__saga` (read-only Review-log feed from
+`.ravenclaude/runs/thing/`), and `/__classify` (read-only). It binds
 `127.0.0.1` and is single-user/local — there is no `/__run`, no auth, no multi-user mode.
 
 ## How to launch it

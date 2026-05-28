@@ -3337,6 +3337,61 @@ footer.page-footer a:hover { text-decoration: underline; }
   border: 1px solid var(--border); color: var(--muted);
 }
 .saga-empty p { margin: 8px 0 0; font-size: 13px; }
+
+/* ── Review log: plain-language reason + expandable decision panel ── */
+.saga-reason {
+  font-size: 12px; color: var(--text); line-height: 1.45;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.saga-expand-btn {
+  background: none; border: none; color: var(--accent);
+  font: inherit; font-size: 11.5px; cursor: pointer;
+  padding: 0; text-decoration: underline; text-align: left;
+  width: fit-content;
+}
+.saga-expand-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.saga-detail-row { display: none; }
+.saga-detail-row.open { display: table-row; }
+.saga-detail-panel {
+  background: var(--surface-2); border-radius: var(--radius);
+  padding: 14px 16px; margin: 4px 0 8px;
+  border-left: 3px solid var(--accent);
+}
+.saga-detail-steps {
+  display: grid; grid-template-columns: auto 1fr; gap: 6px 14px;
+  align-items: baseline;
+}
+.saga-detail-label {
+  font-size: 11.5px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.saga-detail-val {
+  font-size: 12.5px; color: var(--text); line-height: 1.5;
+}
+.saga-detail-val code {
+  font-family: var(--font-mono); font-size: 11.5px;
+  background: var(--surface); padding: 1px 5px; border-radius: 3px;
+}
+.saga-detail-panel pre {
+  margin: 6px 0 0; font-size: 11px; font-family: var(--font-mono);
+  white-space: pre-wrap; word-break: break-all;
+  color: var(--text); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 8px 10px;
+}
+
+/* ── Risk tier badges (saga + simulator shared) ──────────────── */
+.saga-tier-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 10px;
+  font-size: 11.5px; font-weight: 600; white-space: nowrap;
+  border: 1px solid var(--border); color: var(--muted);
+  background: var(--surface-2);
+}
+.saga-tier-badge-low     { border-color: var(--accent); color: var(--accent); background: #14b8a610; }
+.saga-tier-badge-medium  { border-color: var(--warn);   color: var(--warn);   background: #fbbf2410; }
+.saga-tier-badge-high    { border-color: #f97316;       color: #f97316;       background: #f9731610; }
+.saga-tier-badge-extreme { border-color: var(--danger); color: var(--danger); background: #ef444410; }
 """.strip()
 
 
@@ -5075,6 +5130,21 @@ _JS = r"""
     void card.offsetWidth; /* restart the animation */
     card.classList.add("rc-flash");
   }
+  /* ── Review log (saga) tab state ─────────────────────────────────────
+   * Declared BEFORE applyHash() is called below. A deep-link / reload on
+   * #/saga makes the initial applyHash() call reach loadSaga(), which reads
+   * this state; if it were still in the temporal dead zone the saga tab
+   * would throw ("Cannot access 'sagaLoaded' before initialization") and
+   * never render. */
+  let sagaLoaded = false;
+  let sagaRecords = [];
+
+  const sagaContent  = document.getElementById("saga-content");
+  const sagaCount    = document.getElementById("saga-count");
+  const sagaVerdFil  = document.getElementById("saga-verdict-filter");
+  const sagaCatFil   = document.getElementById("saga-cat-filter");
+  const sagaRefBtn   = document.getElementById("saga-refresh-btn");
+
   function applyHash() {
     const seg = (location.hash || "#/settings").replace(/^#\//, "").split("/");
     const tab = validTabs.includes(seg[0]) ? seg[0] : "settings";
@@ -5097,14 +5167,7 @@ _JS = r"""
   applyHash();
 
   /* ── Review log (saga) tab ──────────────────────────────────────── */
-  let sagaLoaded = false;
-  let sagaRecords = [];
-
-  const sagaContent  = document.getElementById("saga-content");
-  const sagaCount    = document.getElementById("saga-count");
-  const sagaVerdFil  = document.getElementById("saga-verdict-filter");
-  const sagaCatFil   = document.getElementById("saga-cat-filter");
-  const sagaRefBtn   = document.getElementById("saga-refresh-btn");
+  /* State + element refs are declared above applyHash() (see the TDZ note). */
 
   /* Safe HTML-escape for every untrusted string before it touches innerHTML.
    * All user/tool data from /__saga must pass through esc() before injection.
@@ -5133,6 +5196,68 @@ _JS = r"""
     if (v === "ask")   return "saga-seat-ask";
     return "";
   }
+
+  /* sagaTierClass — maps a risk tier string to the matching CSS modifier class. */
+  function sagaTierClass(tier) {
+    const t = (tier || "").toLowerCase();
+    if (t === "low")     return "saga-tier-badge-low";
+    if (t === "medium")  return "saga-tier-badge-medium";
+    if (t === "high")    return "saga-tier-badge-high";
+    if (t === "extreme") return "saga-tier-badge-extreme";
+    return "";
+  }
+
+  /* reasonPlain — produces a plain-language (5th-grade) one-liner that explains
+   * the outcome of a review entry. Keyed on phase + final_verdict + concerns.
+   * Never surfaced via innerHTML; used as textContent only via the esc() path. */
+  function reasonPlain(r) {
+    const v = (r.final_verdict || "").toLowerCase();
+    const phase = (r.phase || "").toLowerCase();
+    const concerns = Array.isArray(r.concerns_cited) ? r.concerns_cited : [];
+    const hasConcerns = concerns.length > 0;
+    const tier = (r.final_tier || r.base_tier || "").toLowerCase();
+
+    if (phase === "pre_llm" || phase === "deterministic") {
+      if (v === "deny")  return "Blocked before any AI ran — a safety rule matched the command.";
+      if (v === "allow") return "Cleared automatically — the command matched the safe-pass list.";
+    }
+    if (v === "allow") {
+      if (!hasConcerns) return "Panel reviewed the command and found no problems. Cleared to run.";
+      return "Panel reviewed the command. Concerns were noted but did not block it.";
+    }
+    if (v === "deny") {
+      if (hasConcerns) return "Panel found concerns and blocked the command before it ran.";
+      return "Panel blocked the command.";
+    }
+    if (v === "edit") {
+      return "Panel rewrote the command into a safer form before it ran.";
+    }
+    if (v === "ask") {
+      return "Panel could not agree, so you were asked to decide.";
+    }
+    if (tier === "low") return "Low-risk — passed the fast screen without a panel.";
+    return "Reviewed by the panel.";
+  }
+
+  /* sagaToggleDetail — toggles the visibility of an expand panel row.
+   * Keyboard-operable: the button carries aria-expanded / aria-controls.
+   * Exposed on window so the inline onclick attribute can reach it from
+   * inside the IIFE. */
+  function sagaToggleDetail(btn, detailId) {
+    const open = btn.getAttribute("aria-expanded") === "true";
+    const row = document.getElementById(detailId);
+    if (!row) return;
+    if (open) {
+      btn.setAttribute("aria-expanded", "false");
+      btn.textContent = "How this was decided ▾";
+      row.classList.remove("open");
+    } else {
+      btn.setAttribute("aria-expanded", "true");
+      btn.textContent = "Hide ▴";
+      row.classList.add("open");
+    }
+  }
+  window.sagaToggleDetail = sagaToggleDetail;
 
   /* Build a static "offline / empty" panel using only DOM methods — no
    * innerHTML / insertAdjacentHTML so there is no XSS sink even if this
@@ -5210,7 +5335,10 @@ _JS = r"""
     /* Build the table rows as an HTML string. Every data field is passed through
      * esc() before interpolation. Fixed class names and element tags are literals. */
     let rows = "";
-    for (const r of filtered) {
+    for (let idx = 0; idx < filtered.length; idx++) {
+      const r = filtered[idx];
+      const detailId = "saga-detail-" + idx;
+
       /* Time — the localized string comes from the JS engine, not server data. */
       let timeStr = r.timestamp || "";
       try {
@@ -5238,28 +5366,93 @@ _JS = r"""
       const vv = r.final_verdict || "";
       const vPill = `<span class="saga-verdict-pill ${sagaVerdictClass(vv)}">${esc(vv) || "&mdash;"}</span>`;
 
-      /* Concerns — array of concern-id strings from the engine. */
-      const concerns = Array.isArray(r.concerns_cited) && r.concerns_cited.length
-        ? r.concerns_cited.map(c => esc(c)).join(", ")
-        : "&mdash;";
+      /* Reason column: plain-language summary + "How this was decided" button.
+       * reasonPlain() returns a hardcoded string derived from typed fields; esc()
+       * is still applied for defence-in-depth. */
+      const reasonText = esc(reasonPlain(r));
+      const expandBtn =
+        `<button type="button" class="saga-expand-btn"` +
+        ` aria-expanded="false" aria-controls="${esc(detailId)}"` +
+        ` onclick="sagaToggleDetail(this,'${esc(detailId)}')"` +
+        `>How this was decided &#9660;</button>`;
+      const reasonCell =
+        `<div class="saga-reason">${reasonText}${expandBtn}</div>`;
 
-      /* Rewrite — esc the rewrite text inside a <pre>. */
-      let rewriteHtml = "&mdash;";
-      if (r.rewrite) {
-        rewriteHtml = `<details class="saga-rewrite"><summary>show rewrite</summary><pre>${esc(r.rewrite)}</pre></details>`;
+      /* ── Decision detail panel (6 steps) ─────────────────────────── */
+      /* Step 1 — Action (full command, monospaced) */
+      const stepAction = `<code>${fullAction}</code>`;
+
+      /* Step 2 — Risk category + base_tier badge */
+      const baseTier = r.base_tier || r.tier || "";
+      const baseTierBadge = baseTier
+        ? `<span class="saga-tier-badge ${sagaTierClass(baseTier)}">${esc(baseTier)}</span>`
+        : "&mdash;";
+      const stepRisk = `${esc(r.category) || "&mdash;"} &nbsp; ${baseTierBadge}`;
+
+      /* Step 3 — Concerns cited; show which raised the tier to final_tier if different */
+      const concerns = Array.isArray(r.concerns_cited) ? r.concerns_cited : [];
+      const finalTier = r.final_tier || baseTier;
+      let stepConcerns;
+      if (concerns.length === 0) {
+        stepConcerns = "None";
+      } else {
+        const concEsc = concerns.map(c => `<code>${esc(c)}</code>`).join(", ");
+        if (finalTier && finalTier !== baseTier) {
+          const finalBadge =
+            `<span class="saga-tier-badge ${sagaTierClass(finalTier)}">${esc(finalTier)}</span>`;
+          stepConcerns = `${concEsc} &rarr; raised tier to ${finalBadge}`;
+        } else {
+          stepConcerns = concEsc;
+        }
       }
 
+      /* Step 4 — What happened (phase label) */
+      const phLower = (r.phase || "").toLowerCase();
+      let stepWhat;
+      if (phLower.includes("clean-read")) stepWhat = "Low-risk read - allowed automatically; no panel needed.";
+      else if (phLower.includes("self-disable")) stepWhat = "Blocked before any panel - it tried to change the safety system itself.";
+      else if (phLower.includes("single-seat")) stepWhat = "Reviewed by a single seat.";
+      else if (phLower.includes("panel")) stepWhat = "Reviewed by a " + (Array.isArray(r.seats) ? r.seats.length : "?") + "-seat panel.";
+      else stepWhat = esc(r.phase || "&mdash;");
+
+      /* Step 5 — Panel votes (seat chips) */
+      const stepVotes = seatsHtml || '<span class="saga-seat-chip saga-seat-det">no panel ran</span>';
+
+      /* Step 6 — Decision: verdict + duration + rewrite */
+      const finalBadge =
+        `<span class="saga-verdict-pill ${sagaVerdictClass(vv)}">${esc(vv) || "&mdash;"}</span>`;
+      const durationMs = r.duration_ms != null ? esc(String(Math.round(r.duration_ms))) + " ms" : "";
+      let stepDecision = finalBadge;
+      if (durationMs) stepDecision += ` &nbsp; <span style="font-size:11px;color:var(--muted)">${durationMs}</span>`;
+      if (r.rewrite) {
+        stepDecision +=
+          `<details class="saga-rewrite"><summary>show rewrite</summary><pre>${esc(r.rewrite)}</pre></details>`;
+      }
+
+      const detailPanel =
+        `<td colspan="7" style="padding:0 10px 10px">` +
+        `<div class="saga-detail-panel">` +
+        `<div class="saga-detail-steps">` +
+        `<span class="saga-detail-label">Action</span><span class="saga-detail-val">${stepAction}</span>` +
+        `<span class="saga-detail-label">Risk</span><span class="saga-detail-val">${stepRisk}</span>` +
+        `<span class="saga-detail-label">Concerns</span><span class="saga-detail-val">${stepConcerns}</span>` +
+        `<span class="saga-detail-label">What happened</span><span class="saga-detail-val">${stepWhat}</span>` +
+        `<span class="saga-detail-label">Panel votes</span><span class="saga-detail-val">${stepVotes}</span>` +
+        `<span class="saga-detail-label">Decision</span><span class="saga-detail-val">${stepDecision}</span>` +
+        `</div></div></td>`;
+
       /* fullAction is already escaped above; use it directly in title attr. */
-      rows += `<tr>
-        <td>${esc(timeStr)}</td>
-        <td class="saga-action" title="${fullAction}">${dispAction}</td>
-        <td>${esc(r.category) || "&mdash;"}</td>
-        <td>${esc(r.phase) || "&mdash;"}</td>
-        <td>${seatsHtml}</td>
-        <td>${vPill}</td>
-        <td class="saga-concerns">${concerns}</td>
-        <td>${rewriteHtml}</td>
-      </tr>`;
+      rows +=
+        `<tr>` +
+        `<td>${esc(timeStr)}</td>` +
+        `<td class="saga-action" title="${fullAction}">${dispAction}</td>` +
+        `<td>${esc(r.category) || "&mdash;"}</td>` +
+        `<td>${esc(r.phase) || "&mdash;"}</td>` +
+        `<td>${seatsHtml}</td>` +
+        `<td>${vPill}</td>` +
+        `<td>${reasonCell}</td>` +
+        `</tr>` +
+        `<tr class="saga-detail-row" id="${esc(detailId)}">${detailPanel}</tr>`;
     }
 
     /* The outer skeleton is fixed HTML; only `rows` contains escaped data. */
@@ -5273,7 +5466,6 @@ _JS = r"""
       + '<th scope="col">Seats</th>'
       + '<th scope="col">Verdict</th>'
       + '<th scope="col">Reason</th>'
-      + '<th scope="col">Rewrite</th>'
       + '</tr></thead>'
       + '<tbody>' + rows + '</tbody>'
       + '</table></div>';

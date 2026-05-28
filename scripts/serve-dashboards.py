@@ -92,6 +92,107 @@ THING_DECISION = (
     REPO_ROOT / "plugins" / "ravenclaude-core" / "scripts" / "thing-decision.py"
 )
 
+# ── Tier helpers for /__saga enrichment ─────────────────────────────────────
+# Loaded once at module start (not per-request) using the same importlib pattern
+# generate-dashboards.py uses for EMISSIONS. The tier map and escalation function
+# are imported directly from thing-decision.py — single source of truth so the
+# dashboard tab never drifts from the engine's own logic.
+_THING_CONCERNS_SCRIPT = (
+    REPO_ROOT / "plugins" / "ravenclaude-core" / "scripts" / "thing-concerns.py"
+)
+
+
+def _load_tier_helpers() -> tuple[dict, object, object, object]:
+    """Return (cat_tier_map, escalate_fn, severity_fn, catalog).
+
+    cat_tier_map  — category → base tier string (from thing-decision.py).
+    escalate_fn   — _escalate_tier(base, max_severity) from thing-decision.py.
+    severity_fn   — severity(catalog, ids) from thing-concerns.py.
+    catalog       — parsed concern catalog dict (from thing-concerns.py).
+
+    Any failure returns a partial result with None for the missing pieces;
+    _compute_saga_tiers() falls back gracefully.
+    """
+    import importlib.util as _ilu
+
+    cat_map: dict = {}
+    escalate_fn = None
+    severity_fn = None
+    catalog = None
+
+    # Load category→tier map + escalation function from thing-decision.py.
+    try:
+        spec = _ilu.spec_from_file_location("_td_srv", str(THING_DECISION))
+        if spec and spec.loader:
+            mod = _ilu.module_from_spec(spec)
+            spec.loader.exec_module(mod)  # type: ignore[union-attr]
+            cat_map = dict(getattr(mod, "_DEFAULT_CATEGORY_TIER_MAP", {}))
+            escalate_fn = getattr(mod, "_escalate_tier", None)
+    except Exception:
+        pass
+
+    # Load severity function + catalog from thing-concerns.py.
+    try:
+        spec2 = _ilu.spec_from_file_location("_tc_srv", str(_THING_CONCERNS_SCRIPT))
+        if spec2 and spec2.loader:
+            mod2 = _ilu.module_from_spec(spec2)
+            spec2.loader.exec_module(mod2)  # type: ignore[union-attr]
+            severity_fn = getattr(mod2, "severity", None)
+            load_cat = getattr(mod2, "_load_catalog", None)
+            if load_cat:
+                try:
+                    catalog = load_cat()
+                except Exception:
+                    catalog = None
+    except Exception:
+        pass
+
+    return cat_map, escalate_fn, severity_fn, catalog
+
+
+_SAGA_CAT_TIER_MAP, _SAGA_ESCALATE, _SAGA_SEVERITY, _SAGA_CATALOG = _load_tier_helpers()
+
+# Severity rank used to find max severity among cited concerns.
+_SAGA_SEV_RANK = {"low": 0, "medium": 1, "high": 2, "critical": 3}
+
+
+def _compute_saga_tiers(category: str, concerns_cited: list) -> tuple[str, str]:
+    """Return (base_tier, final_tier) for one /__saga log entry.
+
+    base_tier  — from the engine's category→tier map; defaults to "medium".
+    final_tier — base_tier bumped by the max severity of concerns_cited using
+                 the engine's own _escalate_tier function.
+    """
+    base = _SAGA_CAT_TIER_MAP.get(category, "medium")
+    if not concerns_cited:
+        return base, base
+
+    # Find max severity among cited concerns via the catalog.
+    max_sev: str | None = None
+    if _SAGA_CATALOG is not None:
+        by_id: dict = {}
+        by_id.update({c["id"]: c for c in (_SAGA_CATALOG.get("cross_cutting") or [])})
+        for lst in (_SAGA_CATALOG.get("categories") or {}).values():
+            if isinstance(lst, list):
+                by_id.update({c["id"]: c for c in lst})
+        max_rank = -1
+        for cid in concerns_cited:
+            rank = _SAGA_SEV_RANK.get(by_id.get(cid, {}).get("severity", ""), -1)
+            if rank > max_rank:
+                max_rank = rank
+                max_sev = by_id[cid].get("severity") if cid in by_id else None
+
+    if _SAGA_ESCALATE is not None:
+        try:
+            final = _SAGA_ESCALATE(base, max_sev)
+        except Exception:
+            final = base
+    else:
+        final = base
+
+    return base, final
+
+
 # Populated in main(). The write/read/run/classify endpoints check these so a
 # malicious web page the user is viewing can't drive this server cross-origin: a
 # 127.0.0.1 bind does NOT stop a browser from POSTing to localhost (CSRF), and a
@@ -271,18 +372,23 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 if rw_text:
                     rewrite = rw_text[:200] + ("…" if len(rw_text) > 200 else "")
 
+            entry_cited = d.get("concerns_cited") or []
+            entry_cat = d.get("category", "")
+            base_t, final_t = _compute_saga_tiers(entry_cat, entry_cited)
             records.append({
                 "id": d.get("id", ""),
                 "timestamp": d.get("timestamp", ""),
                 "tool_name": tool_name,
                 "action": action,
-                "category": d.get("category", ""),
+                "category": entry_cat,
                 "phase": d.get("phase", ""),
                 "final_verdict": d.get("final_verdict", ""),
                 "duration_ms": d.get("duration_ms", 0),
-                "concerns_cited": d.get("concerns_cited") or [],
+                "concerns_cited": entry_cited,
                 "seats": compact_seats,
                 "rewrite": rewrite,
+                "base_tier": base_t,
+                "final_tier": final_t,
             })
 
         self._json(200, records)

@@ -71,6 +71,101 @@ APPLY_SCRIPT = PLUGIN_DIR / "scripts" / "apply-comfort-posture.py"
 # can't drift from the engine.
 THING_DECISION = PLUGIN_DIR / "scripts" / "thing-decision.py"
 
+# ── Tier helpers for /__saga enrichment ─────────────────────────────────────
+# Imported once at module start from the plugin's own thing-decision.py /
+# thing-concerns.py (single source of truth) so the Review-log tab's tier column
+# never drifts from the engine. Any failure degrades gracefully (base "medium").
+_THING_CONCERNS_SCRIPT = PLUGIN_DIR / "scripts" / "thing-concerns.py"
+
+
+def _load_tier_helpers() -> tuple:
+    """Return (cat_tier_map, escalate_fn, severity_fn, catalog).
+
+    cat_tier_map  — category → base tier string (from thing-decision.py).
+    escalate_fn   — _escalate_tier(base, max_severity) from thing-decision.py.
+    severity_fn   — severity(catalog, ids) from thing-concerns.py.
+    catalog       — parsed concern catalog dict (from thing-concerns.py).
+
+    Any failure returns a partial result with None for the missing pieces;
+    _compute_saga_tiers() falls back gracefully.
+    """
+    import importlib.util as _ilu
+
+    cat_map: dict = {}
+    escalate_fn = None
+    severity_fn = None
+    catalog = None
+
+    try:
+        spec = _ilu.spec_from_file_location("_td_srv", str(THING_DECISION))
+        if spec and spec.loader:
+            mod = _ilu.module_from_spec(spec)
+            spec.loader.exec_module(mod)  # type: ignore[union-attr]
+            cat_map = dict(getattr(mod, "_DEFAULT_CATEGORY_TIER_MAP", {}))
+            escalate_fn = getattr(mod, "_escalate_tier", None)
+    except Exception:
+        pass
+
+    try:
+        spec2 = _ilu.spec_from_file_location("_tc_srv", str(_THING_CONCERNS_SCRIPT))
+        if spec2 and spec2.loader:
+            mod2 = _ilu.module_from_spec(spec2)
+            spec2.loader.exec_module(mod2)  # type: ignore[union-attr]
+            severity_fn = getattr(mod2, "severity", None)
+            load_cat = getattr(mod2, "_load_catalog", None)
+            if load_cat:
+                try:
+                    catalog = load_cat()
+                except Exception:
+                    catalog = None
+    except Exception:
+        pass
+
+    return cat_map, escalate_fn, severity_fn, catalog
+
+
+_SAGA_CAT_TIER_MAP, _SAGA_ESCALATE, _SAGA_SEVERITY, _SAGA_CATALOG = _load_tier_helpers()
+
+# Severity rank used to find max severity among cited concerns.
+_SAGA_SEV_RANK = {"low": 0, "medium": 1, "high": 2, "critical": 3}
+
+
+def _compute_saga_tiers(category: str, concerns_cited: list) -> tuple:
+    """Return (base_tier, final_tier) for one /__saga log entry.
+
+    base_tier  — from the engine's category→tier map; defaults to "medium".
+    final_tier — base_tier bumped by the max severity of concerns_cited using
+                 the engine's own _escalate_tier function.
+    """
+    base = _SAGA_CAT_TIER_MAP.get(category, "medium")
+    if not concerns_cited:
+        return base, base
+
+    max_sev = None
+    if _SAGA_CATALOG is not None:
+        by_id: dict = {}
+        by_id.update({c["id"]: c for c in (_SAGA_CATALOG.get("cross_cutting") or [])})
+        for lst in (_SAGA_CATALOG.get("categories") or {}).values():
+            if isinstance(lst, list):
+                by_id.update({c["id"]: c for c in lst})
+        max_rank = -1
+        for cid in concerns_cited:
+            rank = _SAGA_SEV_RANK.get(by_id.get(cid, {}).get("severity", ""), -1)
+            if rank > max_rank:
+                max_rank = rank
+                max_sev = by_id[cid].get("severity") if cid in by_id else None
+
+    if _SAGA_ESCALATE is not None:
+        try:
+            final = _SAGA_ESCALATE(base, max_sev)
+        except Exception:
+            final = base
+    else:
+        final = base
+
+    return base, final
+
+
 DASH_PATH = "/dashboard.html"
 
 # Populated in main(). The state-changing/read endpoints check these so a malicious
@@ -107,7 +202,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         return True
 
     def do_HEAD(self):
-        if self.path == "/__save" or self.path == "/__classify" or self.path.startswith("/__read"):
+        if (
+            self.path == "/__save"
+            or self.path == "/__classify"
+            or self.path.startswith("/__read")
+            or self.path.startswith("/__saga")
+        ):
             self.send_response(200)
             self.send_header("Allow", "GET, POST, HEAD")
             self.send_header("Content-Length", "0")
@@ -122,6 +222,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         # the static path.
         if self.path.startswith("/__read"):
             self._handle_read()
+            return
+        if self.path.startswith("/__saga"):
+            self._handle_saga()
             return
         super().do_GET()
 
@@ -205,6 +308,110 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             except Exception:
                 payload["parsed"] = None
         self._json(200, payload)
+
+    def _handle_saga(self):
+        """GET /__saga[?limit=N] — return the last N command-review verdicts from
+        the CONSUMER project's .ravenclaude/runs/thing/*.json (newest-first, capped
+        at 500, default 200). Only the top-level thing-*.json files are read; the
+        decisions/ subdir is ignored. Malformed files are skipped without erroring.
+        Read-only; guarded by the same Origin/Host CSRF check as /__read."""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        from urllib.parse import urlparse, parse_qs
+        import glob as _glob
+        import os as _os
+
+        qs = parse_qs(urlparse(self.path).query)
+        try:
+            limit = max(1, min(500, int((qs.get("limit") or ["200"])[0])))
+        except (ValueError, TypeError):
+            limit = 200
+
+        runs_dir = PROJECT_ROOT / ".ravenclaude" / "runs" / "thing"
+        pattern = str(runs_dir / "thing-*.json")
+        paths = sorted(_glob.glob(pattern), reverse=True)  # filename sort ≈ timestamp sort
+
+        records = []
+        for path in paths:
+            if len(records) >= limit:
+                break
+            try:
+                raw = Path(path).read_text(encoding="utf-8").strip()
+                if not raw:
+                    continue
+                d = json.loads(raw)
+            except (OSError, json.JSONDecodeError, ValueError):
+                continue  # skip malformed / unreadable files
+
+            # Derive the human "action" string — never expose file content.
+            tool_input = d.get("tool_input") or {}
+            tool_name = d.get("tool_name", "")
+            if isinstance(tool_input, dict):
+                if "command" in tool_input:
+                    cmd = str(tool_input["command"])
+                    action = cmd[:160] + ("…" if len(cmd) > 160 else "")
+                elif "file_path" in tool_input:
+                    basename = _os.path.basename(str(tool_input.get("file_path", "")))
+                    bytes_val = tool_input.get("bytes", "?")
+                    action = f"{basename} ({bytes_val}b)"
+                elif "description" in tool_input:
+                    desc = str(tool_input["description"])
+                    action = desc[:160] + ("…" if len(desc) > 160 else "")
+                else:
+                    action = str(list(tool_input.keys()))[:80]
+            else:
+                action = ""
+
+            # Normalise seats — the schema evolved: some records have a singular
+            # "seat" key (T2 single-seat), others have "seats" (T3+ panel / empty).
+            raw_seats = d.get("seats")
+            if raw_seats is None:
+                single = d.get("seat")
+                raw_seats = [single] if isinstance(single, dict) else []
+            compact_seats = []
+            for s in (raw_seats or []):
+                if not isinstance(s, dict):
+                    continue
+                compact_seats.append({
+                    "name": s.get("name", ""),
+                    "verdict": s.get("verdict") or s.get("status", ""),
+                    "confidence": s.get("confidence", 0),
+                })
+
+            # Rewrite field: only for edit verdicts, truncated, command text only.
+            rewrite = None
+            if d.get("final_verdict") == "edit":
+                upd = d.get("updated_input")
+                if isinstance(upd, dict):
+                    rw_text = upd.get("command") or str(upd)
+                elif upd is not None:
+                    rw_text = str(upd)
+                else:
+                    rw_text = None
+                if rw_text:
+                    rewrite = rw_text[:200] + ("…" if len(rw_text) > 200 else "")
+
+            entry_cited = d.get("concerns_cited") or []
+            entry_cat = d.get("category", "")
+            base_t, final_t = _compute_saga_tiers(entry_cat, entry_cited)
+            records.append({
+                "id": d.get("id", ""),
+                "timestamp": d.get("timestamp", ""),
+                "tool_name": tool_name,
+                "action": action,
+                "category": entry_cat,
+                "phase": d.get("phase", ""),
+                "final_verdict": d.get("final_verdict", ""),
+                "duration_ms": d.get("duration_ms", 0),
+                "concerns_cited": entry_cited,
+                "seats": compact_seats,
+                "rewrite": rewrite,
+                "base_tier": base_t,
+                "final_tier": final_t,
+            })
+
+        self._json(200, records)
 
     def _apply_posture(self) -> dict:
         """Re-run apply-comfort-posture.py against the CONSUMER's project after a save."""
@@ -343,6 +550,7 @@ def main() -> int:
     print(f"  local URL: http://127.0.0.1:{args.port}{DASH_PATH}  (bound to {bind})")
     print(f"  POST /__save  - writes an allow-listed file under .ravenclaude/ + auto-applies")
     print(f"  GET  /__read  - hydrates the dashboard from your committed config")
+    print(f"  GET  /__saga  - read-only Review-log feed from .ravenclaude/runs/thing/ (?limit=N, default 200)")
     print(f"  POST /__classify - command-review 'Test a command' simulator (read-only)")
 
     phone_url = None
