@@ -2,6 +2,17 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.2.0] — 2026-05-28
+
+Knowledge-bank expansion (9 → 13 docs) — a wide-net gap scan surfaced four missing surfaces, each researched and fleshed out:
+
+- `retrieval-and-rag-2026.md` — the RAG-vs-long-context-vs-Files decision (skip RAG under ~200K tokens + caching), Anthropic **Contextual Retrieval** (contextual embeddings + contextual BM25 + RRF + reranking; 49%/67% fewer failed retrievals), Voyage embeddings, chunking, agentic RAG.
+- `prompt-engineering-techniques.md` — the quality craft (the leverage ladder: clear+direct → multishot → CoT/thinking → XML → role/system → prefill → chaining), output control, hallucination reduction, the prompt→eval loop. Distinct from the caching (cost) doc and core/prompt-engineer (artifacts).
+- `agent-orchestration-patterns.md` — workflows vs agents + the five Anthropic patterns (prompt chaining / routing / parallelization / orchestrator-workers / evaluator-optimizer), Agent Skills as the shared standard, start-simple discipline. RavenClaude is the worked orchestrator-worker example.
+- `context-engineering-2026.md` — curating the right tokens in a 1M window: caching layout, retrieve-vs-hold, ordering, context editing/compaction, the memory tool, sub-agent context isolation.
+
+Wired into CLAUDE.md §8. Grounded in Anthropic docs + "Building effective agents" + Contextual Retrieval (retrieved 2026-05-28), dated freshness anchors.
+
 ## [0.1.0] — 2026-05-28
 
 Initial release. A Claude app-engineering specialist team built from a researched, expert-reviewed plan (see [`docs/claude-app-engineering-plugin-analysis.md`](../../docs/claude-app-engineering-plugin-analysis.md)).

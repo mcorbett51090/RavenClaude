@@ -126,6 +126,10 @@ Reference docs with `Last reviewed:` dates + confidence + source URLs. Inline pr
 | [`knowledge/agent-sdk-and-managed-agents.md`](knowledge/agent-sdk-and-managed-agents.md) | Building with the Agent SDK or Managed Agents |
 | [`knowledge/evals-and-quality.md`](knowledge/evals-and-quality.md) | Setting up evals / making an LLM-judge trustworthy + cheap |
 | [`knowledge/claude-app-finops-reliability-and-security.md`](knowledge/claude-app-finops-reliability-and-security.md) | Cost / reliability / observability + the AI-app security section (escalates to core) |
+| [`knowledge/retrieval-and-rag-2026.md`](knowledge/retrieval-and-rag-2026.md) | Answering over a corpus — the RAG-vs-long-context-vs-Files decision (skip RAG under ~200K tokens), Anthropic **Contextual Retrieval** (contextual embeddings + BM25 + RRF + reranking), Voyage embeddings, chunking, agentic RAG. Owned by `prompt-and-context-engineer` + `mcp-and-server-tools-engineer` |
+| [`knowledge/prompt-engineering-techniques.md`](knowledge/prompt-engineering-techniques.md) | Making a running app's prompt produce the right output — the leverage ladder (clear+direct → multishot → CoT/thinking → XML structure → role/system → prefill → chaining), output control, hallucination reduction, the prompt→eval loop. Owned by `prompt-and-context-engineer` |
+| [`knowledge/agent-orchestration-patterns.md`](knowledge/agent-orchestration-patterns.md) | Workflows vs agents + the 5 Anthropic patterns (prompt chaining / routing / parallelization / orchestrator-workers / evaluator-optimizer), Agent Skills as the shared standard, start-simple discipline. RavenClaude is the orchestrator-worker example. Owned by `agent-sdk-engineer` + `claude-solution-architect` |
+| [`knowledge/context-engineering-2026.md`](knowledge/context-engineering-2026.md) | Curating the right tokens in a 1M window — caching layout, retrieve-vs-hold, ordering, context editing/compaction, the memory tool, sub-agent context isolation, thinking-block cost. Owned by `prompt-and-context-engineer` |
 
 ---
 
