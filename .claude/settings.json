@@ -41,6 +41,11 @@
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/format-on-write.sh \"$CLAUDE_TOOL_FILE_PATH\"",
             "comment": "Marketplace-dev hook. The plugin's hooks/hooks.json registers the same hook for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because the script is idempotent."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/guard-recursive-spawn.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Advisory: warns when an edit to a plugin agent file looks like the agent is instructing itself to spawn a sub-agent. Set RC_GUARD_RECURSIVE_SPAWN_STRICT=1 to make it blocking."
           }
         ]
       }
@@ -59,6 +64,11 @@
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/thing-orchestrator.sh",
             "timeout": 90,
             "comment": "Marketplace-dev hook. Command review (the Thing) — T3 panel tribunal. No-ops (fast grep) unless a category has `thing: on` in .ravenclaude/comfort-posture.yaml. The internal panel deadline (~75s) stays under this 90s hook timeout. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because the script is idempotent and short-circuits when no toggle is set."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/runaway-brake.sh",
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Runaway/rabbit-hole brake — portable replacement for native auto-mode's 3/20 brake. No-ops unless .ravenclaude/comfort-posture.yaml exists (this repo has none, so it no-ops); exits 2 when the agent thrashes (default 8 identical calls in a row) or blows a total-call ceiling (default 200). Deterministic, no model."
           }
         ]
       },
@@ -89,8 +99,13 @@
         "hooks": [
           {
             "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/dod-gate.sh",
+            "comment": "Marketplace-dev hook (dev-mirror). Definition-of-done gate: no-ops unless definition_of_done.cmd is set in .ravenclaude/comfort-posture.yaml (this repo has none, so it no-ops). When set + source changed, runs the gate command at Stop and blocks until it passes (self-limited to max_blocks). Closes the correctness/hallucination gap."
+          },
+          {
+            "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/remind-tests.sh",
-            "comment": "Remind the Team Lead to run the full test suite when source files changed."
+            "comment": "Remind the Team Lead to run the full test suite when source files changed. Advisory fallback when no definition_of_done.cmd is configured."
           }
         ]
       }

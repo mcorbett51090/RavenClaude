@@ -18,7 +18,7 @@
 #
 # Usage (from a Copilot hooks.json `bash` entry):
 #   copilot-hook-adapter.sh <mode> <real-hook> [real-hook-args...]
-#     mode = bash-pretool | file-pretool | sessionstart | posttool
+#     mode = bash-pretool | file-pretool | sessionstart | posttool | stop
 #
 # Fail-open is Copilot's default on hook error; for the PreToolUse command hooks
 # we translate a Claude `exit 2` (block) into a Copilot `deny` so the block still
@@ -102,6 +102,26 @@ case "$mode" in
     fp="$(printf '%s' "$payload" | jq -r \
       '(.toolArgs // "{}") | (try fromjson catch {}) | (.file_path // .path // .filePath // empty)' 2>/dev/null)"
     CLAUDE_PROJECT_DIR="$cw" bash "$real" "$fp" >/dev/null 2>&1 || true
+    exit 0
+    ;;
+  stop)
+    # Stop hooks (dod-gate, remind-tests). Re-shape Copilot's stop payload to the
+    # Claude stdin {cwd, session_id} and translate a Claude Stop block back.
+    claude_stdin="$(printf '%s' "$payload" | jq -c \
+      '{cwd: (.cwd // .workspaceRoot // "."),
+        session_id: (.sessionId // .session_id // "")}' 2>/dev/null)"
+    out="$(printf '%s' "$claude_stdin" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" 2>/dev/null)"; rc=$?
+    # A Claude Stop block is either {"decision":"block","reason":...} on stdout or exit 2.
+    dec="$(printf '%s' "$out" | jq -r '.decision // empty' 2>/dev/null)"
+    reason="$(printf '%s' "$out" | jq -r '.reason // empty' 2>/dev/null)"
+    if [ "$dec" = "block" ] || [ "$rc" -eq 2 ]; then
+      [ -z "$reason" ] && reason="RavenClaude definition-of-done gate: work is not yet verified done."
+      # Best-effort: emit BOTH a structured decision and the plain reason, mirroring
+      # the sessionstart dual-emit, since Copilot's exact stop-block shape is
+      # unverified (VERIFY-IN-COPILOT). Fail-open if Copilot ignores it.
+      jq -cn --arg r "$reason" '{decision:"block",reason:$r}'
+      printf '%s\n' "$reason" >&2
+    fi
     exit 0
     ;;
   *)

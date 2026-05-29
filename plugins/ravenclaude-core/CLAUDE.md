@@ -275,6 +275,27 @@ Before returning work, every agent and the Team Lead applies these five rules:
 
 This protocol is inherited by every plugin via this constitution — the same way the Capability Grounding Protocol and the Structured Output Protocol are; it is not restated in each agent file. Domain plugins add domain-specific deep-link sources to their agents (e.g. `power-platform` → maker-portal solution-import URLs; `azure-cloud` → portal blade deep links; `microsoft-fabric` → workspace item URLs) but do not restate the protocol.
 
+## Auto-mode guardrails — runaway brake + definition-of-done gate (added 2026-05-29, v0.56.0)
+
+Two **deterministic, model-free** hooks port Claude Code's native auto-mode safety to the model-agnostic Copilot-CLI surface (Claude / ChatGPT / Grok routing), where the Anthropic-API-only auto-mode brake is unavailable. Both are **opt-in** (no-op without `.ravenclaude/comfort-posture.yaml` — a single `stat`/`grep`, zero cost for non-adopters), **fail-safe**, and self-limited against deadlock. They are NOT the tribunal: command review (the Thing) gates command *safety*; these gate *runaway behavior* and work *correctness* — the two failure modes a safety reviewer can't see.
+
+- **`runaway-brake.sh`** — `PreToolUse` brake. Counts tool calls per session in `.ravenclaude/runs/thing/runaway/<session_id>` and trips (exit 2 / Copilot deny) when the agent **thrashes** (≥ `max_consecutive` byte-identical calls in a row — the "looping on a fabricated error" rabbit-hole signal, default 8) or blows a generous total-call ceiling (`max_total`, default 200). A new `session_id` starts fresh. The portable equivalent of the native 3-consecutive / 20-total auto-mode block.
+- **`dod-gate.sh`** — `Stop` definition-of-done gate. When source files changed this session **and** a `definition_of_done.cmd` is configured, it runs that command (tests / build / lint) on Stop and **blocks the stop until it passes** — turning "looks done" into "is done" without the human being the verification loop (Anthropic best-practices Layer 5). Self-limits to `max_blocks` (default 8) consecutive blocks, then force-allows with a warning (Claude Code force-overrides Stop after 8; Copilot CLI has no such guarantee, so the cap is ours). With no `definition_of_done.cmd` set it exits 0 and the advisory `remind-tests.sh` nudge still fires.
+
+Config (all knobs optional; sensible defaults):
+
+```yaml
+# .ravenclaude/comfort-posture.yaml
+runaway:
+  max_consecutive: 8     # identical calls in a row before tripping (or `runaway: off`)
+  max_total: 200         # total tool calls this session before tripping
+definition_of_done:
+  cmd: "npm test && npm run lint"   # unset -> gate is inert, remind-tests advises instead
+  max_blocks: 8          # consecutive Stop-blocks before force-allow (anti-deadlock)
+```
+
+Both register in all three wiring paths (plugin `hooks.json`, dev-mirror `.claude/settings.json`, and the Copilot installer `scripts/ravenclaude` via the `stop`/`bash-pretool` adapter modes) and run **unchanged** under Copilot through `copilot-hook-adapter.sh`. **Migration:** none — both default off (absent config = inert), so nothing changes on `/plugin marketplace update` unless a consumer adds the config block.
+
 ## Run Artifacts & Observability Standard (Recommended — for multi-step orchestrations)
 
 To enable inspection, debugging, learning, and continuous improvement of the agent team (and to mirror best practices from high-quality agent runtimes), **multi-step workflows orchestrated by the Team Lead SHOULD produce standardized on-disk artifacts**. Single-agent dispatches and one-shot reviews emit the Structured Output Protocol JSON block *inline* in the agent's reply — no on-disk artifact is required for those. The artifact substrate below applies when a run spans 2+ specialist dispatches that benefit from a re-readable record.
@@ -360,7 +381,7 @@ This closes the failure mode where a user relaxes permissions to move faster and
 
 - `agents/` — 14 specialist agent definitions (now includes `data-engineer`)
 - `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging, agent-quality-rubric, knowledge-file-staleness-sweep, prompt-pattern-library, plugin-release-checklist, decision-review (route yes/no decisions through the tribunal)
-- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review (all registered in `hooks/hooks.json` for plugin-level distribution)
+- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate (all registered in `hooks/hooks.json` for plugin-level distribution)
 - `scripts/` — apply-comfort-posture.py (`/set-posture` translator), serve-dashboards.py (the consumer dashboard server launched by `/dashboard` — serves the version-matched `dashboard.html` and writes `.ravenclaude/` into the consumer's project; `/__save` + `/__read` + `/__classify` only, no `/__run`, binds 127.0.0.1), thing-decision.py + thing-seat.sh (command-review tribunal — see the `thing` skill), thing-decide.py (decision-review tribunal — see the `decision-review` skill)
 - `rules/` — coding-standards, security, git-workflow, agent-collaboration
 - `templates/` — memos, runbooks, design specs, RAID logs, partner-success, `agent-ready-repo/` templates used by `/init-agent-ready`, plus `thing.yaml` (command-review seat config)
