@@ -1,0 +1,5 @@
+{
+  "_comment": "Optional per-task write-scope guard (Gap 6). Copy to .ravenclaude/task-scope.json in the CONSUMER repo to bound the current task's blast radius; delete it when the task is done. Enforced by enforce-layout.sh (PreToolUse on Write|Edit|MultiEdit) under both Claude Code and Copilot CLI. A write to a path matching no in_scope glob is DENIED. Fail-safe: absent file or empty in_scope -> no-op (allow). Globs use bash [[ == pattern ]] semantics (a single * matches across /, like .repo-layout.json).",
+  "in_scope": ["src/**", "tests/**", "docs/*.md"],
+  "spec": "SPEC.md"
+}

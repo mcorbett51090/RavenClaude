@@ -2,10 +2,22 @@
 # enforce-layout.sh
 # PreToolUse hook for Write | Edit | MultiEdit.
 #
-# Reads .repo-layout.json from the consumer's project root. If absent, no-ops
-# silently (allow everything). If present, checks the target path against the
-# allowed_globs / forbidden_globs allow-list and denies off-pattern writes
-# with a helpful message including a suggested correct location.
+# Enforces TWO independent, optional, fail-safe path policies on every write:
+#
+#   1. Repo layout (.repo-layout.json) — repo STRUCTURE: where files may live
+#      (allowed_globs / forbidden_globs). The marketplace's own discipline.
+#   2. Task scope (.ravenclaude/task-scope.json) — the CURRENT TASK's declared
+#      blast radius: {"in_scope":[globs], "spec":"SPEC.md"}. A write touching a
+#      path that matches no in_scope glob is denied — this is Gap 6 of the
+#      command-review gap-closure plan: it bounds an agent's exploration BREADTH
+#      (the runaway-brake bounds DEPTH, the DoD gate bounds correctness). The
+#      file is dashboard/owner-authored per task and deleted when the task ends.
+#
+# Both policies are independent: either, both, or neither may be present, and an
+# absent file is a silent no-op (allow). Both compose — a write must satisfy
+# whichever policies ARE configured. This hook is already wired PreToolUse on
+# Write|Edit|MultiEdit under both hosts (Claude via hooks.json, Copilot via the
+# adapter's file-pretool mode), so task-scope ships with ZERO new wiring.
 #
 # Deny mechanism: emits hookSpecificOutput JSON to stdout (the modern, more
 # reliable form per Claude Code issue #40580) AND exits 2 (belt-and-suspenders
@@ -20,13 +32,14 @@ file="${1:-}"
 
 project_root="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 manifest="$project_root/.repo-layout.json"
+task_scope="$project_root/.ravenclaude/task-scope.json"
 
-# No layout policy in this project → allow everything.
-[[ ! -f "$manifest" ]] && exit 0
+# Neither policy configured in this project → allow everything.
+[[ ! -f "$manifest" && ! -f "$task_scope" ]] && exit 0
 
-# Layout policy exists but jq missing → fail open with a stderr note.
+# A policy exists but jq missing → fail open with a stderr note.
 if ! command -v jq >/dev/null 2>&1; then
-  echo "[enforce-layout] jq not found; skipping layout check. Install jq to enable enforcement." >&2
+  echo "[enforce-layout] jq not found; skipping layout/scope checks. Install jq to enable enforcement." >&2
   exit 0
 fi
 
@@ -56,6 +69,29 @@ if [[ "$rel_path" == *..* ]]; then
   emit_deny "Layout policy: path '$rel_path' contains '..' — refused as a path-traversal scrub."
 fi
 
+# ── Task-scope check (Gap 6) ────────────────────────────────────────────────
+# Bounds the CURRENT task's write blast radius. Runs BEFORE the layout check so
+# it is never short-circuited by the layout's forbid-only `exit 0`. Fail-safe:
+# an absent file, an absent/empty in_scope list, or unparseable JSON → no-op.
+if [[ -f "$task_scope" ]]; then
+  mapfile -t in_scope < <(jq -r '.in_scope[]?' "$task_scope" 2>/dev/null)
+  if [[ "${#in_scope[@]}" -gt 0 ]]; then
+    scope_ok=0
+    for pat in "${in_scope[@]}"; do
+      [[ -z "$pat" ]] && continue
+      if [[ "$rel_path" == $pat ]]; then
+        scope_ok=1
+        break
+      fi
+    done
+    if [[ "$scope_ok" -eq 0 ]]; then
+      spec="$(jq -r '.spec // empty' "$task_scope" 2>/dev/null)"
+      emit_deny "Task scope: '$rel_path' is outside this task's declared in_scope set (.ravenclaude/task-scope.json).${spec:+ Task spec: ${spec}.} If this write is genuinely part of the task, add the glob to in_scope (or clear task-scope.json when the task is done)."
+    fi
+  fi
+fi
+
+# ── Repo-layout check ───────────────────────────────────────────────────────
 # Read patterns once.
 # Matching note: this script uses bash `[[ string == pattern ]]` semantics,
 # which is *pattern matching*, NOT filename expansion. Two consequences:

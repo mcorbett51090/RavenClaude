@@ -1,5 +1,7 @@
 # Track B — Engine Foundation (Phase 0) — Implementation Plan
 
+> **RECONCILIATION (2026-05-29): ✅ DONE — shipped, treat as stale-complete.** Verified against `plugins/ravenclaude-core/scripts/thing-decision.py` (core now v0.54.0): `classify_payload` (`:309`), per-shape `reviewed_text` (`:330`), `SCREEN_MAX_BYTES`=1 MiB fail-closed (`:262`/`:1108`), `screen_substrate_path` with inode/hardlink membership (`:560`), per-shape Sága/cache identity (`:364`/`:384`). **Phase 0 shipped v0.37.0; all follow-on phases also landed** — `file_edit_project` (v0.38.0), every non-Bash shape (v0.39.0), `network_write` (v0.40.0), MCP allowlist (v0.41.0), dashboard MCP UI (v0.42.0). Per the CLAUDE.md milestones, **"Track B is feature-complete"** (12/12 categories live). Body retained as the historical design record; no build work remains.
+
 > **Status:** plan, **v3 — gap-analysis-refined (7.5/10 P0/P1 addressed) + owner
 > decisions locked (2026-05-27). Ready to implement on the owner's go-ahead.** This
 > is the FIRST Track B PR (ships as ONE PR). It

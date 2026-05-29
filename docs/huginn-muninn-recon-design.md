@@ -1,5 +1,7 @@
 # Huginn & Muninn — reconnaissance & memory panel design
 
+> **RECONCILIATION (2026-05-29): DESIGN, NOT-STARTED — keep as design, lowest priority.** None of the prerequisites landed: no raven agents, no `.ravenclaude/runs/dawn/**`, and the structured event-emission substrate it shares with the Norse plan (P0.2/P0.4 `events.jsonl`) is still unbuilt. The dashboard panel it slots into (B.4.6 "Hliðskjálf") doesn't exist — the **Saga tab** is the only run-reading surface built. Claude Code still has **no native scheduler**, so the "dawn flight" remains an external concern (cron / CI / Codespace prebuild). Build only after the event substrate + a scheduling decision exist.
+
 _Design document. First draft 2026-05-23 (autonomous, Claude Opus 4.7). Iteratively refined._
 
 > **Status:** DESIGN — not a commitment to ship. This document captures the design space for a pair of scheduled "raven" agents (Huginn = Thought, Muninn = Memory) that fly out each dawn, gather, and report to a dedicated dashboard panel. Scope, sequencing, and version numbers are proposals, not promises.

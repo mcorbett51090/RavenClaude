@@ -1,6 +1,6 @@
 ---
 name: prompt-pattern-library
-description: Curated, applied prompt-pattern catalog used across this marketplace — decision-tree traversal pre-action prior, alternate-methods-before-blocked, Structured Output Protocol `---RESULT_START---` block, scenario-retrieval inline prior, escalation-by-mandatory-phrasing, citation-aware research, environment-context preamble, orchestrator-worker reinforcement, agent-scenario-authoring frontmatter. Each pattern includes when to use it, what it composes with, an example block, and the failure mode it prevents. Reach for this skill when authoring a new agent, when an existing agent shows a behavior gap that a known pattern would close, or when the `prompt-engineer` is consulting on an agent revision. Used by `prompt-engineer` (primary).
+description: Curated, applied prompt-pattern catalog used across this marketplace — decision-tree traversal pre-action prior, alternate-methods-before-blocked, Structured Output Protocol `---RESULT_START---` block, scenario-retrieval inline prior, escalation-by-mandatory-phrasing, citation-aware research, environment-context preamble, orchestrator-worker reinforcement, agent-scenario-authoring frontmatter, claim-grounding/source-honesty marker. Each pattern includes when to use it, what it composes with, an example block, and the failure mode it prevents. Reach for this skill when authoring a new agent, when an existing agent shows a behavior gap that a known pattern would close, or when the `prompt-engineer` is consulting on an agent revision. Used by `prompt-engineer` (primary).
 ---
 
 # Skill: prompt-pattern-library
@@ -253,6 +253,26 @@ quickstart: |
 ```
 
 **Anti-pattern.** Generic scenarios ("when you need help with X" — no user types that). Fewer than 3 scenarios — the use-case lookup table thins out and users see "limited coverage."
+
+---
+
+### 10. Claim-grounding / source-honesty marker
+
+**What it is.** For a **consequential** factual claim about a tool/platform/API (one that gates an irreversible action or gets written into a durable doc), the agent either cites the this-session check that backs it **inline and falsifiable** (the exact command + output, or `file:line`) or marks it `[unverified — training knowledge]` and offers to verify before acting. No High/Med/Low confidence label (uncalibrated). On correction, verify before yielding (don't reflexively concede or dig in). Full protocol: [core CLAUDE.md § "Claim Grounding & Source Honesty"](../../CLAUDE.md).
+
+**What it prevents.** Confident reasoning errors — a flawed mental model stated as fact with no uncertainty marker (e.g. "you can't export solutions as unmanaged" when false), which drives a bad irreversible action. This is the over-claiming-certainty axis that the Capability Grounding Protocol (which covers under-claiming ability) does not.
+
+**When to compose.** Any agent that makes platform/API/version/default/capability claims a user could act on — especially under GitHub Copilot CLI (Claude/GPT/Grok), where prose rules are weakest and the enforced complements matter most. Composes with: pattern 2 (alternate-methods — abstain only after trying ≥2 paths), pattern 4 (scenario-retrieval, which carries the same `[unverified]` family), pattern 6 (citation discipline for research output). The same `[unverified]` marker, source-as-suffix — do not coin a new tag.
+
+**Example block:**
+
+```markdown
+`pac solution export` defaults to unmanaged `[unverified — training knowledge;
+confirm with \`pac solution export --help\`]` — a default that gates the export
+command, so it must be verified or marked before acting.
+```
+
+**Anti-pattern.** Stating a platform behavior as fact from training memory before an irreversible action. A High/Med/Low confidence label on a claim (stamps false claims "High"). Tagging *everything* — the marker must be rare (consequential-only) to stay informative.
 
 ---
 

@@ -1,0 +1,6 @@
+{"ts": "2026-05-29T00:00:00Z", "agent": "team-lead", "event": "run_started", "detail": "Short description of the task/epic and its scope."}
+{"ts": "2026-05-29T00:01:12Z", "agent": "team-lead", "event": "dispatch", "detail": "Dispatched <specialist> with a focused-task brief.", "to": "architect"}
+{"ts": "2026-05-29T00:03:40Z", "agent": "architect", "event": "handoff", "detail": "Returned design; recommended next specialist.", "to": "backend-coder", "confidence": 0.86}
+{"ts": "2026-05-29T00:09:05Z", "agent": "backend-coder", "event": "tool_use", "detail": "Edited <file> (N lines).", "tool": "Edit"}
+{"ts": "2026-05-29T00:12:30Z", "agent": "tester-qa", "event": "check", "detail": "Test suite run.", "result": "pass"}
+{"ts": "2026-05-29T00:13:00Z", "agent": "team-lead", "event": "run_finished", "detail": "One-line outcome.", "status": "complete"}

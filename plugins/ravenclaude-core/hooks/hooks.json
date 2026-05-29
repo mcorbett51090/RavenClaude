@@ -15,6 +15,11 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-recursive-spawn.sh \"$CLAUDE_TOOL_FILE_PATH\"",
             "comment": "Advisory: warns when an edit to a plugin agent definition file looks like the agent is instructing itself to spawn another sub-agent — only the Team Lead dispatches. Set RC_GUARD_RECURSIVE_SPAWN_STRICT=1 to make this blocking."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/claim-grounding-lint.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory (Claim Grounding & Source Honesty): nudges when an unhedged absolute capability claim ('you can't…', 'not possible') is written into a knowledge/ or docs/ markdown file without an inline provenance marker — a durable false prior the next session would trust. Opt-in (no-op unless the project has a .ravenclaude/comfort-posture.yaml); skips frontmatter/code-fences/blockquotes/headings + conditional phrasings; honors a `claim-lint-ok` line escape. Exit 0 always; never blocks. Cannot see the chat answer (no hook can) — this is the durable-artifact surface only."
           }
         ]
       }
@@ -33,6 +38,11 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/thing-orchestrator.sh",
             "timeout": 90,
             "comment": "Command review (the Thing) — T3 panel tribunal. No-ops (fast grep) unless a category has `thing: on` in .ravenclaude/comfort-posture.yaml. When a command's category is toggled on, convenes up to three reviewer seats in parallel (Forseti/Mímir/Heimdall) + Thor on a split, renders ALLOW/DENY/EDIT, writes a Sága-log audit entry, emits hookSpecificOutput (with updatedInput on EDIT). The internal panel deadline (~75s) stays under this 90s hook timeout so the script emits its own verdict before the platform's fail-OPEN-on-timeout fires. Fails closed (deny for high-stakes categories, ask for shell_readonly) on its own errors. Live for shell_readonly, shell_remote_mutate, shell_code_exec, shell_local_mutate, shell_package_install."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/runaway-brake.sh",
+            "comment": "Runaway / rabbit-hole brake. Portable replacement for native auto-mode's 3/20 block brake (unavailable under Copilot CLI / multi-model). No-ops unless .ravenclaude/comfort-posture.yaml exists; counts tool calls per session and exits 2 (block) when the agent thrashes (default 8 byte-identical calls in a row) or blows a generous total-call ceiling (default 200). Tune under `runaway:` or disable with `runaway: off`. Deterministic, no model."
           }
         ]
       },
@@ -63,8 +73,13 @@
         "hooks": [
           {
             "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/dod-gate.sh",
+            "comment": "Definition-of-done gate. No-ops unless `definition_of_done.cmd` is set in .ravenclaude/comfort-posture.yaml. When set AND source changed this session, runs the gate command (tests/build/lint) at Stop and BLOCKS the stop (decision:block) until it passes — closing the 'looks done != is done' hallucination gap. Self-limited to max_blocks (default 8) consecutive blocks so it can't deadlock. Deterministic; ports to Copilot via the adapter's stop mode."
+          },
+          {
+            "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/remind-tests.sh",
-            "comment": "If any source files changed this session, remind the Team Lead to run the full test suite before reporting done."
+            "comment": "If any source files changed this session, remind the Team Lead to run the full test suite before reporting done. Advisory fallback when no definition_of_done.cmd is configured (dod-gate.sh no-ops in that case)."
           }
         ]
       }

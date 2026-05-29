@@ -1,5 +1,7 @@
 # Visual settings UI for non-technical users — plan
 
+> **RECONCILIATION (2026-05-29): ~85% DONE — update-then-close the thin residue.** The plan's "single biggest blocker" (the project-root-aware server) is shipped: `plugins/ravenclaude-core/scripts/serve-dashboards.py` exists with `--project-root` + a `MARKETPLACE_ROOT` hard guard (the refactor-don't-fork + anchor-traversal resolutions). Build steps shipped: **(1)** server, **(2)** launcher — shipped as `/dashboard` (not `/posture-dashboard`), **(4)** presets-first Simple mode (`_render_settings_tab` preset-bar + Advanced `<details>`), **(5)** web inheritance (`reapply-posture` hook + `comfort-posture-balanced.yaml` seeded by `ravenclaude setup`, v0.43.0; per-repo launchers v0.44.0). **Residue to verify/ship:** the `set-posture` conversational/preset branch and any dead-end "run scripts/serve-dashboards.py" help copy (build step 3). Recommendation: one small verification PR closes it.
+
 _Two-agent planning exercise, 2026-05-26. Two architects independently produced a plan (path + setup + build plan + gap analysis); a third independent agent cross-reviewed both and reconciled them. This document records all three._
 
 ## Problem

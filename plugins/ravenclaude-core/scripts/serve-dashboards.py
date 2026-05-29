@@ -178,6 +178,56 @@ _ALLOWED_HOSTS: set[str] = set()
 _ALLOWED_ORIGINS: set[str] = set()
 
 
+def _summarize_run(d: Path) -> dict:
+    """Summarize one .ravenclaude/runs/<id>/ directory for the Activity feed.
+    Reads summary.md (truncated), the structured-result status, the events line
+    count, and which artifact files are present. Reads only under `d` (no root
+    reference), so this is byte-identical with the root dev server — keep the two
+    copies in sync (the parity gate guards the endpoints, not this helper)."""
+    import datetime as _dt
+
+    rec = {"id": d.name, "timestamp": "", "status": "", "summary": "",
+           "artifacts": [], "event_count": 0}
+    try:
+        rec["timestamp"] = _dt.datetime.utcfromtimestamp(
+            d.stat().st_mtime
+        ).strftime("%Y-%m-%dT%H:%M:%SZ")
+    except OSError:
+        pass
+    for name in ("summary.md", "SUMMARY.md"):
+        p = d / name
+        if p.is_file():
+            rec["artifacts"].append(name)
+            try:
+                txt = p.read_text(encoding="utf-8").strip()
+                rec["summary"] = txt[:400] + ("…" if len(txt) > 400 else "")
+            except OSError:
+                pass
+            break
+    for name in ("structured-output.json", "structured-result.json", "result.json"):
+        p = d / name
+        if p.is_file():
+            rec["artifacts"].append(name)
+            try:
+                obj = json.loads(p.read_text(encoding="utf-8"))
+                if isinstance(obj, dict) and isinstance(obj.get("status"), str):
+                    rec["status"] = obj["status"][:40]
+            except (OSError, json.JSONDecodeError, ValueError):
+                pass
+            break
+    for name in ("events.jsonl", "actions.log"):
+        p = d / name
+        if p.is_file():
+            rec["artifacts"].append(name)
+            try:
+                with p.open(encoding="utf-8") as f:
+                    rec["event_count"] = sum(1 for line in f if line.strip())
+            except OSError:
+                pass
+            break
+    return rec
+
+
 class DashboardHandler(SimpleHTTPRequestHandler):
     """SimpleHTTPRequestHandler (serving the plugin dir) + the dashboard endpoints."""
 
@@ -207,6 +257,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             or self.path == "/__classify"
             or self.path.startswith("/__read")
             or self.path.startswith("/__saga")
+            or self.path.startswith("/__runs")
         ):
             self.send_response(200)
             self.send_header("Allow", "GET, POST, HEAD")
@@ -225,6 +276,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if self.path.startswith("/__saga"):
             self._handle_saga()
+            return
+        if self.path.startswith("/__runs"):
+            self._handle_runs()
             return
         super().do_GET()
 
@@ -458,6 +512,35 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         self._json(200, decision)
 
+    def _handle_runs(self):
+        """GET /__runs[?limit=N] — recent multi-step runs from
+        .ravenclaude/runs/<id>/ (newest-first by mtime, capped 500, default 200).
+        The thing/ verdict dir is owned by /__saga and skipped here. Read-only;
+        same Origin/Host CSRF guard as /__read. (Mirror of the root dev server's
+        /__runs, with REPO_ROOT → PROJECT_ROOT — kept in lockstep per the
+        dashboard-server-parity gate.)"""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        from urllib.parse import urlparse, parse_qs
+
+        qs = parse_qs(urlparse(self.path).query)
+        try:
+            limit = max(1, min(500, int((qs.get("limit") or ["200"])[0])))
+        except (ValueError, TypeError):
+            limit = 200
+
+        runs_dir = PROJECT_ROOT / ".ravenclaude" / "runs"
+        records = []
+        if runs_dir.is_dir():
+            run_dirs = [
+                d for d in runs_dir.iterdir() if d.is_dir() and d.name != "thing"
+            ]
+            run_dirs.sort(key=lambda d: d.stat().st_mtime, reverse=True)
+            for d in run_dirs[:limit]:
+                records.append(_summarize_run(d))
+        self._json(200, records)
+
     def _json(self, code: int, payload: dict):
         body = json.dumps(payload).encode("utf-8")
         self.send_response(code)
@@ -551,6 +634,7 @@ def main() -> int:
     print(f"  POST /__save  - writes an allow-listed file under .ravenclaude/ + auto-applies")
     print(f"  GET  /__read  - hydrates the dashboard from your committed config")
     print(f"  GET  /__saga  - read-only Review-log feed from .ravenclaude/runs/thing/ (?limit=N, default 200)")
+    print(f"  GET  /__runs  - read-only Activity feed from .ravenclaude/runs/<id>/ (?limit=N, default 200)")
     print(f"  POST /__classify - command-review 'Test a command' simulator (read-only)")
 
     phone_url = None

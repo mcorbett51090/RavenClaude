@@ -4,6 +4,8 @@
 
 The natural path for bulk cloud-flow creation is the [Power Automate Management API](https://learn.microsoft.com/en-us/connectors/flowmanagement/) at `https://api.flow.microsoft.com`. **That path is almost always blocked for service principals in real customer tenants.** This document captures the trap, the workaround, the exact API shape that works, and the pitfalls that bite once you're on the workaround.
 
+> **Canonical confident-error case.** This lesson is also the textbook example for the core [Claim Grounding & Source Honesty protocol](../../ravenclaude-core/CLAUDE.md): "There is no `pac flow` command" is a **verified** behavioral fact (checked against `pac` v2.6.4/v2.7.4 — note the version, since a `pac` claim is only as good as the `pac --version` behind it). The dangerous, *unverified* leap a confident agent makes next — "so cloud flows can't be created programmatically" — is **false**, and acting on it abandons the whole Dataverse Web API path below. Verified halves earn no tag; the unverified capability leap must be marked `[unverified — training knowledge]` or, better, replaced by the alternate-paths enumeration the Capability Grounding Protocol requires.
+
 ---
 
 ## Decision Tree: PA flow recovery — stuck / broken / off

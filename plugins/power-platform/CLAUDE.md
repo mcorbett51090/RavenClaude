@@ -120,6 +120,14 @@ If you (or an agent) hear any of these, strongly consider invoking the grounding
 
 This protocol applies to **all** agents in this plugin.
 
+### 5a. Claim grounding — worked examples (added 2026-05-29)
+
+§5 above stops the agent *under*-claiming ability ("I can't do X"). Its twin — the core [Claim Grounding & Source Honesty protocol](../ravenclaude-core/CLAUDE.md) — stops the agent *over*-claiming certainty: a confident Power Platform behavioral claim stated as fact when it's wrong. Power Platform is the canonical home for this failure because so many platform behaviors are version- and license-gated. For any claim that gates a consequential action, **cite the this-session check, or mark `[unverified — training knowledge]` and verify before acting.** Worked examples:
+
+- **The "you can't" that's actually false.** "There is no `pac flow` command" is true (`programmatic-flow-creation.md` verified it against `pac` v2.6.4/v2.7.4) — but the *next* sentence a confident agent adds, "so cloud flows can't be created programmatically," is **false**: the Dataverse Web API path exists. The verified half earns no tag; the unverified leap must be tagged or, better, not made. Cite the version you checked: a behavioral claim about `pac` is only as good as the `pac --version` it was verified against.
+- **Managed vs unmanaged export.** "You can't export a solution as unmanaged" is a confident-reasoning-error stated as fact; the correct grounded claim cites `pac solution export --help` (which shows the managed/unmanaged flag) — or marks the claim `[unverified — training knowledge]` until checked.
+- **License/environment gating.** "This connector isn't premium" or "this works in the default environment" are behavioral claims that gate a consequential action (a build, a deployment); they need a this-session check (the connector metadata, the environment type) or the `[unverified]` marker — never a confident assertion from training memory.
+
 ---
 
 ## 6. Output Contract (every Power Platform agent)

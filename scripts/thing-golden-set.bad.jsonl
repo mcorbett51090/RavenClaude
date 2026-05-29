@@ -1,0 +1,1 @@
+{"id": "intentionally-wrong", "class": "benign", "lane": "deterministic", "shape": "command", "cmd": "ls -la", "expect": "DENY", "note": "KNOWN-BAD fixture for audit-gates: a benign read is asserted DENY, which the engine must NOT do. The golden-eval runner MUST report this as a failure (exit 1). Proves the gate has teeth."}

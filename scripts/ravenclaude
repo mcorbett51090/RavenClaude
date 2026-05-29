@@ -164,9 +164,17 @@ cfg = {
         "PreToolUse": [
             bash("bash-pretool", "guard-destructive.sh"),
             bash("bash-pretool", "thing-orchestrator.sh"),
+            bash("bash-pretool", "runaway-brake.sh"),
             bash("file-pretool", "enforce-layout.sh"),
         ],
-        "PostToolUse": [bash("posttool", "format-on-write.sh")],
+        "PostToolUse": [
+            bash("posttool", "format-on-write.sh"),
+            bash("posttool", "claim-grounding-lint.sh"),
+        ],
+        "Stop": [
+            bash("stop", "dod-gate.sh"),
+            bash("stop", "remind-tests.sh"),
+        ],
     },
 }
 open(out, "w").write(json.dumps(cfg, indent=2) + "\n")

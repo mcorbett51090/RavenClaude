@@ -147,6 +147,21 @@ rc=0; CLAUDE_PROJECT_DIR="$TMP/proj" plugins/ravenclaude-core/hooks/enforce-layo
 gate "enforce-layout (in-pattern)" must_pass "$rc"
 rc=0; CLAUDE_PROJECT_DIR="$TMP/proj" plugins/ravenclaude-core/hooks/enforce-layout.sh "$TMP/proj/docs/../../etc/passwd" >/dev/null 2>&1 || rc=$?
 gate "enforce-layout (..-traversal scrub)" must_fail "$rc"
+# Gap 6: task-scope gate — runs in the SAME hook, independent of .repo-layout.json.
+# Fresh proj with ONLY task-scope.json (no layout manifest) proves the independence.
+mkdir -p "$TMP/scopeproj/.ravenclaude" "$TMP/scopeproj/src"
+cat > "$TMP/scopeproj/.ravenclaude/task-scope.json" <<EOF
+{ "in_scope": ["src/**"], "spec": "SPEC.md" }
+EOF
+rc=0; CLAUDE_PROJECT_DIR="$TMP/scopeproj" plugins/ravenclaude-core/hooks/enforce-layout.sh "$TMP/scopeproj/src/app.ts" >/dev/null 2>&1 || rc=$?
+gate "task-scope (in-scope, no layout manifest)" must_pass "$rc"
+rc=0; CLAUDE_PROJECT_DIR="$TMP/scopeproj" plugins/ravenclaude-core/hooks/enforce-layout.sh "$TMP/scopeproj/secret/keys.txt" >/dev/null 2>&1 || rc=$?
+gate "task-scope (out-of-scope -> deny)" must_fail "$rc"
+cat > "$TMP/scopeproj/.ravenclaude/task-scope.json" <<EOF
+{ "in_scope": [] }
+EOF
+rc=0; CLAUDE_PROJECT_DIR="$TMP/scopeproj" plugins/ravenclaude-core/hooks/enforce-layout.sh "$TMP/scopeproj/secret/keys.txt" >/dev/null 2>&1 || rc=$?
+gate "task-scope (empty in_scope -> fail-safe allow)" must_pass "$rc"
 
 echo
 echo "── Gate 7: Email-leak guard ──────────────────────────────────────────────"
@@ -1722,6 +1737,49 @@ DSP_BAD="$TMP/serve-dashboards-drifted.py"
 grep -v '/__saga' plugins/ravenclaude-core/scripts/serve-dashboards.py > "$DSP_BAD"
 rc=0; python3 "$DSP" --plugin-server "$DSP_BAD" >/dev/null 2>&1 || rc=$?
 gate "dashboard-server-parity (drifted: /__saga stripped)" must_fail "$rc"
+
+echo
+echo "── Gate 33: command-review golden set (deterministic regression lane) ─────"
+# Gap 4: thing-golden-eval.py runs a corpus of {dangerous, benign, injection,
+# secret, scope} payloads through the REAL engine (thing-decision.py) and asserts
+# each deterministic disposition (pre-LLM deny / hard-rule / clean-allow / routes-
+# to-panel). No model call — CI-cheap. Guards against the engine silently starting
+# to auto-allow a dangerous command or pre-deny a benign one.
+GE="scripts/thing-golden-eval.py"
+# must_pass: the real golden set on the live engine.
+rc=0; python3 "$GE" >/dev/null 2>&1 || rc=$?
+gate "golden-set (real corpus, live engine)" must_pass "$rc"
+# must_fail: a known-bad corpus that asserts a benign read must DENY — the runner
+# must report the mismatch (exit 1), proving the gate actually checks the verdict.
+rc=0; python3 "$GE" --corpus scripts/thing-golden-set.bad.jsonl >/dev/null 2>&1 || rc=$?
+gate "golden-set (known-bad corpus -> runner must fail)" must_fail "$rc"
+
+echo
+echo "── Gate 34: claim-grounding lint (advisory; fires on bad, silent on good) ──"
+# The hook is advisory (exit 0 always), so we assert on its stderr nudge, not exit
+# code. Fires on a bare unhedged claim in a knowledge/ file (proves teeth), silent
+# on a conditional, on the claim-lint-ok escape, and without an opt-in posture.
+CGL="plugins/ravenclaude-core/hooks/claim-grounding-lint.sh"
+G34="$TMP/cg"
+mkdir -p "$G34/proj/.ravenclaude" "$G34/proj/knowledge" "$G34/np/knowledge"
+printf 'schema_version: 5\n' > "$G34/proj/.ravenclaude/comfort-posture.yaml"
+# apostrophe-free fixtures: the hook regex makes the apostrophe optional (can'?t)
+printf '# Doc\nYou cant export solutions as unmanaged.\n' > "$G34/proj/knowledge/bad.md"
+printf '# Doc\nIf you cant export, use the Dataverse API.\n' > "$G34/proj/knowledge/cond.md"
+printf '# Doc\nYou cant export unmanaged here. claim-lint-ok\n' > "$G34/proj/knowledge/esc.md"
+printf '# Doc\nYou cant export solutions as unmanaged.\n' > "$G34/np/knowledge/bad.md"
+bash "$CGL" "$G34/proj/knowledge/bad.md" 2>"$TMP/cg.err" || true
+rc=0; grep -q "unhedged absolute" "$TMP/cg.err" || rc=1
+gate "claim-grounding (fires on bare claim)" must_pass "$rc"
+bash "$CGL" "$G34/proj/knowledge/cond.md" 2>"$TMP/cg.err" || true
+rc=0; grep -q "unhedged absolute" "$TMP/cg.err" && rc=1
+gate "claim-grounding (silent on conditional)" must_pass "$rc"
+bash "$CGL" "$G34/proj/knowledge/esc.md" 2>"$TMP/cg.err" || true
+rc=0; grep -q "unhedged absolute" "$TMP/cg.err" && rc=1
+gate "claim-grounding (silent on escape marker)" must_pass "$rc"
+bash "$CGL" "$G34/np/knowledge/bad.md" 2>"$TMP/cg.err" || true
+rc=0; grep -q "unhedged absolute" "$TMP/cg.err" && rc=1
+gate "claim-grounding (silent without opt-in posture)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

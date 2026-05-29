@@ -2,6 +2,8 @@
 
 *Living planning document. First draft 2026-05-22 (overnight). Iteratively refined.*
 
+> **RECONCILIATION (2026-05-29, core v0.54.0).** As-built tab status: **LIVE** — Settings (presets + scope), Install, Simulator ("Test a command"), **Saga** (verdict feed via `GET /__saga`), **Learn** (concept cards) — the last two post-date the original IA. **STUB → now building** — Commands/Trees/Activity. **Commands tab is now BUILT** this cycle (`_render_commands_tab` in `scripts/generate-dashboards.py`: a domain-neutral card grid scanned from `plugins/*/commands/*.md`, copy-to-clipboard via the universal `.cmd-copy` handler). Remaining stubs: **Activity** — reframe as *generalize the existing Saga tab* to read all `.ravenclaude/runs/*` artifacts, **not** a from-scratch build; still blocked on the missing `templates/run-artifacts/events.jsonl` template (degrade to `summary.md`/`structured-output.json` until it lands). **Trees** — decision-tree SVGs pre-rendered at generator time via a mermaid-CLI/headless-Node step (heaviest; build last). Phase C (~141 per-agent commands) stays an explicit ship-when-needed backlog.
+
 > **Status:** PLAN — not a commitment to ship. This document captures the design space for the next major phase of the RavenClaude dashboard. Sequencing, scope, and version numbers are proposals, not promises.
 
 > **Scope of this document:** the **product-facing** dashboard at `plugins/<plugin>/dashboard.html`. The marketplace's separate `repo-guide.html` (the read-only catalog) is mentioned only at composition boundaries. This document does not duplicate proposal-003 — it picks up where 003 left off and answers the next-layer questions Matt asked.
