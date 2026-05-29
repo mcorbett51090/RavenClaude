@@ -136,7 +136,7 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         saga_html=_render_saga_tab(),
         commands_html=_render_commands_tab(),
         trees_html=_render_stub_tab("Decision trees", "v0.2.0"),
-        activity_html=_render_stub_tab("Activity", "v0.2.0"),
+        activity_html=_render_activity_tab(),
         schema_json=json.dumps(schema, indent=2),
         concepts_json=_concepts_json(plugin_dir),
         pattern_explanations_json=json.dumps(
@@ -177,6 +177,20 @@ def _render_saga_tab() -> str:
     entirely in _JS so the generated HTML is a static skeleton.
     """
     return _SAGA_TAB_TEMPLATE
+
+
+def _render_activity_tab() -> str:
+    """Render the 'Activity' tab — a newest-first feed of multi-step runs.
+
+    Generalizes the Review-log (Saga) tab from tribunal verdicts to ALL run
+    artifacts under `.ravenclaude/runs/<id>/` (summary.md, structured-result
+    status, events count). Fetches GET /__runs on open/refresh; degrades
+    gracefully on a static host (file:// / GitHub Pages) exactly like Saga. The
+    fetch + render logic lives in _JS so the generated HTML is a static skeleton;
+    it reuses the Saga tab's CSS (.saga-empty/.saga-refresh/.saga-count) plus a
+    small .activity-* card block.
+    """
+    return _ACTIVITY_TAB_TEMPLATE
 
 
 # ── Learn tab ──────────────────────────────────────────────────────────────
@@ -3467,6 +3481,31 @@ footer.page-footer a:hover { text-decoration: underline; }
 }
 .saga-empty p { margin: 8px 0 0; font-size: 13px; }
 
+/* ── Activity tab — run feed (reuses .saga-layout/.saga-hdr/.saga-empty) ── */
+.activity-intro { color: var(--muted); font-size: 13px; margin: 0 20px 16px; max-width: 72ch; }
+#activity-content { padding: 0 20px 20px; display: flex; flex-direction: column; gap: 12px; }
+.activity-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px;
+}
+.activity-card-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.activity-id { margin: 0; font-family: var(--font-mono); font-size: 13.5px; color: var(--text); word-break: break-all; flex: 1; }
+.activity-time { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.activity-status {
+  flex: 0 0 auto; font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.03em; border-radius: 999px; padding: 2px 9px; border: 1px solid var(--border);
+}
+.activity-status-ok      { background: #14b8a620; color: var(--accent); border-color: var(--accent); }
+.activity-status-warn    { background: #fbbf2420; color: var(--warn);   border-color: var(--warn); }
+.activity-status-bad     { background: #ef444420; color: var(--danger); border-color: var(--danger); }
+.activity-status-neutral { background: var(--surface-2); color: var(--muted); }
+.activity-summary { margin: 8px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+.activity-arts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.activity-art {
+  font-size: 11px; font-family: var(--font-mono); color: var(--muted);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 7px;
+}
+
 /* ── Review log: plain-language reason + expandable decision panel ── */
 .saga-reason {
   font-size: 12px; color: var(--text); line-height: 1.45;
@@ -3684,6 +3723,20 @@ _SAGA_TAB_TEMPLATE = """
 </div>
 """.strip()
 
+
+_ACTIVITY_TAB_TEMPLATE = """
+<div class="saga-layout">
+  <div class="saga-hdr">
+    <h2>&#128220; Activity</h2>
+    <button type="button" class="saga-refresh" id="activity-refresh-btn">Refresh</button>
+    <span class="saga-count" id="activity-count"></span>
+  </div>
+  <p class="activity-intro">Run history from <code>.ravenclaude/runs/</code> &mdash; newest first. Each card is one multi-step run (its summary, structured-result status, and event count). Command-review verdicts live in the <strong>Review log</strong> tab.</p>
+  <div id="activity-content">
+    <div class="saga-empty" id="activity-loading"><p>Loading activity&hellip;</p></div>
+  </div>
+</div>
+""".strip()
 
 _SIMULATOR_TAB_TEMPLATE = """
 <div class="sim-layout">
@@ -5274,6 +5327,16 @@ _JS = r"""
   const sagaCatFil   = document.getElementById("saga-cat-filter");
   const sagaRefBtn   = document.getElementById("saga-refresh-btn");
 
+  /* ── Activity tab state ──────────────────────────────────────────────
+   * Declared above applyHash() for the same TDZ reason as the saga state:
+   * a #/activity deep-link makes the initial applyHash() reach loadActivity(),
+   * which reads activityLoaded. */
+  let activityLoaded = false;
+  let activityRecords = [];
+  const activityContent = document.getElementById("activity-content");
+  const activityCount   = document.getElementById("activity-count");
+  const activityRefBtn  = document.getElementById("activity-refresh-btn");
+
   function applyHash() {
     const seg = (location.hash || "#/settings").replace(/^#\//, "").split("/");
     const tab = validTabs.includes(seg[0]) ? seg[0] : "settings";
@@ -5286,6 +5349,7 @@ _JS = r"""
     });
     if (tab === "learn" && seg[1]) openConcept(seg[1]);
     if (tab === "saga" && !sagaLoaded) loadSaga();
+    if (tab === "activity" && !activityLoaded) loadActivity();
   }
   document.querySelectorAll(".tab-btn").forEach(b => {
     b.addEventListener("click", () => {
@@ -5627,6 +5691,77 @@ _JS = r"""
   if (sagaRefBtn) sagaRefBtn.addEventListener("click", () => { sagaLoaded = false; loadSaga(); });
   if (sagaVerdFil) sagaVerdFil.addEventListener("change", filterAndRenderSaga);
   if (sagaCatFil)  sagaCatFil.addEventListener("change", filterAndRenderSaga);
+
+  /* ── Activity tab — generalizes the Review log over .ravenclaude/runs/<id>/ ──
+   * Reuses esc() + sagaEmptyPanel() (same IIFE scope). All /__runs data passes
+   * through esc() before innerHTML, exactly like renderSagaTable. */
+  function activityStatusClass(s) {
+    const v = (s || "").toLowerCase();
+    if (v === "complete" || v === "success" || v === "passed" || v === "done") return "activity-status-ok";
+    if (v === "partial"  || v === "needs_changes" || v === "warn")             return "activity-status-warn";
+    if (v === "blocked"  || v === "failed" || v === "error")                   return "activity-status-bad";
+    return "activity-status-neutral";
+  }
+
+  function renderActivity(records) {
+    if (!activityContent) return;
+    if (!records || records.length === 0) {
+      const isStatic = location.protocol === "file:";
+      activityContent.replaceChildren(
+        isStatic
+          ? sagaEmptyPanel("Open the dashboard via", "rc dashboard")
+          : sagaEmptyPanel("No runs recorded yet — this fills as multi-step tasks write artifacts under .ravenclaude/runs/.")
+      );
+      if (activityCount) activityCount.textContent = "";
+      return;
+    }
+    if (activityCount) activityCount.textContent = records.length + (records.length === 1 ? " run" : " runs");
+    let html = "";
+    for (const r of records) {
+      let timeStr = r.timestamp || "";
+      try { if (timeStr) timeStr = new Date(timeStr).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }); } catch (_) { /* keep raw */ }
+      const status = r.status || "—";
+      const cls = activityStatusClass(r.status);
+      const arts = (Array.isArray(r.artifacts) ? r.artifacts : [])
+        .map(a => '<span class="activity-art">' + esc(a) + "</span>").join("");
+      const evt = r.event_count ? '<span class="activity-art">' + esc(String(r.event_count)) + " events</span>" : "";
+      const summary = r.summary ? '<p class="activity-summary">' + esc(r.summary) + "</p>" : "";
+      html += '<article class="activity-card">'
+        + '<header class="activity-card-head">'
+        + '<span class="activity-status ' + cls + '">' + esc(status) + "</span>"
+        + '<h3 class="activity-id">' + esc(r.id || "") + "</h3>"
+        + '<span class="activity-time">' + esc(timeStr) + "</span>"
+        + "</header>"
+        + summary
+        + '<div class="activity-arts">' + arts + evt + "</div>"
+        + "</article>";
+    }
+    activityContent.innerHTML = html;
+  }
+
+  async function loadActivity() {
+    activityLoaded = true;
+    if (activityContent) activityContent.replaceChildren(sagaEmptyPanel("Loading activity…"));
+    try {
+      const res = await fetch("/__runs?limit=200");
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      activityRecords = await res.json();
+      renderActivity(activityRecords);
+    } catch (e) {
+      activityLoaded = false; /* allow retry on next tab visit */
+      if (activityContent) {
+        const isStatic = location.protocol === "file:" || e.name === "TypeError";
+        activityContent.replaceChildren(
+          isStatic
+            ? sagaEmptyPanel("Open the dashboard via", "rc dashboard")
+            : sagaEmptyPanel("Could not reach /__runs. Is the server running?", "python3 scripts/serve-dashboards.py")
+        );
+        if (activityCount) activityCount.textContent = "";
+      }
+    }
+  }
+
+  if (activityRefBtn) activityRefBtn.addEventListener("click", () => { activityLoaded = false; loadActivity(); });
 
   /* ── Hydrate command-review config from the committed YAML ──────────── */
   /* When the page is served by scripts/serve-dashboards.py, the committed
