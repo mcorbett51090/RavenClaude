@@ -67,6 +67,21 @@ Ranked by leverage. **[D]** = deterministic/no-interrupt · **[H]** = interrupts
 
 **Bottom line:** the Thing is the right *kind* of thing (deterministic-first, fail-closed, audited) built for the wrong *single* job. Keep it for domain concerns + yes/no-defer + audit; let `auto` mode own containment + the runaway brake; add the one layer nobody currently owns — a Stop-hook definition-of-done gate — to close the hallucination hole. **That combination is bounded autonomy; the Thing alone is bounded destruction.**
 
+## 6a. Does the `design_checkins` feature cover the gaps? (addendum, 2026-05-29)
+
+Matt asked whether the **design check-in** feature covers the hallucination + rabbit-hole gaps that command review leaves open. **Partially — but at a different layer, and in the advisory/high-touch way the goal is trying to move away from.**
+
+`design_checkins` is a **behavioral flag** (on by default in the balanced posture), read by the Team Lead at session start (`CLAUDE.md:346`) — explicitly *"a behavioral commitment, not a machine-enforced lock."* Confirmed: **no hook enforces it** (it's wired only into the dashboard UI + the model's session-start instructions). When ON, Claude pauses for Keep/Update/Deny on structural/architectural decisions at any permission level.
+
+| Failure mode | Design check-ins catch | Do **not** catch |
+|---|---|---|
+| **Rabbit-holing** | *Direction-level*: a wrong architectural path surfaced for Keep/Update/Deny before commitment. | *Execution-level*: looping/thrashing, chasing a fabricated error, infinite exploration — none are "design decisions," so the pause never fires. **No iteration cap.** |
+| **Hallucinating** | A *premise* hallucination surfaced as a design choice (e.g. building on a non-existent API). | A *correctness* hallucination — code that looks done but is wrong. Check-ins confirm **intent before building**, never **results after building** (no test run, evidence, or diff review). |
+
+Two structural problems for the goal: (1) it's the **same category of mechanism as plan mode** — advisory + human-interrupting, just fired less often — so it's "plan-mode-lite," movement *along* the high-touch axis, not off it; (2) it's **not enforced**, so it inherits the advisory-boundary fragility (lost to compaction on long runs) — unlike command review, which is a deterministic hook.
+
+**Verdict:** a useful complement (reduces wrong-*direction* risk at decision points), **not the missing layer**. The hallucination + execution-rabbit-hole gaps are closed deterministically and without interruption by rec **#1 (Stop-hook DoD gate)** and the hard iteration cap from native `auto` (rec #3). Keep `design_checkins` as the optional "confirm the plan" layer above those; don't count it as covering the gap. If even direction-confirmation must survive long autonomous runs, promote it from an advisory flag to something a hook re-asserts.
+
 ## 7. How this maps to the build queue
 
 The recommendations above are deliberately concrete and mostly **[D]eterministic**, so they fit the "bounded by up-front input, no per-edit babysitting" goal. Suggested sequencing for follow-up PRs: **#1 (Stop-hook DoD gate)** and **#2 (default-on posture)** first — together they convert the marketplace from "bounded destruction, opt-in" to "bounded autonomy, default" — then **#4 (sandbox posture)** and **#3 (reposition vs `auto`)**, with **#7 (measure the panel)** as the standing regression gate. These are tracked against the not-yet-implemented plans in the companion plan-reconciliation note.
