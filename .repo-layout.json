@@ -19,6 +19,7 @@
     ".claude-plugin/marketplace.json",
     ".claude/settings.json",
     ".claude/settings.local.json",
+    ".claude/workflows/**.js",
     ".devcontainer/**",
     ".github/**",
     "docs/**",
