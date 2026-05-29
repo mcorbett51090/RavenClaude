@@ -2,7 +2,9 @@
 
 **A private Claude Code plugin marketplace** — bundled team rules, specialist agents, dispatch playbooks, and templates that travel with you across projects.
 
-> 🎛 **[▶ Open the RavenClaude dashboard](https://mcorbett51090.github.io/RavenClaude/plugins/ravenclaude-core/dashboard.html)** — point-and-click editor for your `.ravenclaude/comfort-posture.yaml`: set per-tool file, network, shell, and package autonomy across three levels (deny → ask → allow) — per layer (user / local / project) and per individual permission — without editing YAML by hand.
+> 🎛 **[▶ Open the RavenClaude dashboard](https://mcorbett51090.github.io/RavenClaude/plugins/ravenclaude-core/dashboard.html)** — point-and-click editor for your `.ravenclaude/comfort-posture.yaml`: set per-tool file, network, shell, and package autonomy across three levels (deny → ask → allow) — per layer (user / local / project) and per individual permission — without editing YAML by hand. _(That link is the published, read-only preview.)_
+
+> 🖥 **Working on this repo?** Launch the **functional local dashboard** (where **Save & apply** actually writes this repo's config) with one command: `bash scripts/open-dashboard.sh`. It kills any running dashboard server, starts a fresh one, and opens it in your browser automatically. _(VS Code users: a `.vscode/tasks.json` wired as the default build task — Ctrl/Cmd+Shift+B — runs the same script; `.vscode/` is gitignored, so add it locally if you want the keybinding.)_
 
 > 📖 **[▶ View `repo-guide.html` rendered in your browser](https://mcorbett51090.github.io/RavenClaude/repo-guide.html)** — a self-contained single-page guide to every plugin, agent, skill, hook, rule, and template, with a searchable cross-plugin index. Regenerated from the manifests on every release.
 >
