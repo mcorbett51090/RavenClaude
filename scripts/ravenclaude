@@ -63,27 +63,10 @@ wire_dashboard_launchers() {
   cp "$tpl/dashboard.sh" "$project/.ravenclaude/dashboard.sh"
   chmod +x "$project/.ravenclaude/dashboard.sh"
 
-  # README carries a clickable dashboard link computed for THIS environment: the live
-  # Codespace-forwarded URL when in a Codespace, else localhost (port 8000 = the default).
-  local dash_url
-  if [ -n "${CODESPACE_NAME:-}" ]; then
-    dash_url="https://${CODESPACE_NAME}-8000.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}/dashboard.html"
-  else
-    dash_url="http://127.0.0.1:8000/dashboard.html"
-  fi
-  python3 - "$tpl/README.md" "$project/.ravenclaude/README.md" "$dash_url" <<'PY'
-import sys
-src, dest, url = sys.argv[1], sys.argv[2], sys.argv[3]
-open(dest, "w", encoding="utf-8").write(
-    open(src, encoding="utf-8").read().replace("__RC_DASHBOARD_URL__", url)
-)
-PY
-  # The link is environment-specific (a Codespace name changes per rebuild), so keep the
-  # generated README out of git to avoid churn — setup regenerates it fresh each time.
-  local gi="$project/.gitignore"
-  if ! { [ -f "$gi" ] && grep -qxF ".ravenclaude/README.md" "$gi"; }; then
-    printf '%s\n' ".ravenclaude/README.md" >> "$gi"
-  fi
+  # The README is static: the launcher (dashboard.sh) computes the dashboard URL at runtime,
+  # so there is no environment-specific link to bake in (nothing to go stale per Codespace
+  # rebuild) — copy it straight across, same as the other launcher files.
+  cp "$tpl/README.md" "$project/.ravenclaude/README.md"
 
   mkdir -p "$project/.vscode"
   if [ -f "$project/.vscode/tasks.json" ]; then
@@ -102,6 +85,13 @@ regen() {
 }
 
 cmd_update() {
+  local project="$PWD"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --project) project="$2"; shift 2 ;;
+      *) project="$1"; shift ;;
+    esac
+  done
   printf '== ravenclaude update ==\n'
   if git -C "$MARKET" rev-parse --git-dir >/dev/null 2>&1; then
     local branch; branch="$(git -C "$MARKET" symbolic-ref --short HEAD 2>/dev/null || echo HEAD)"
@@ -114,6 +104,19 @@ cmd_update() {
     warn "$MARKET is not a git checkout — nothing to pull"
   fi
   regen
+  # Self-heal the repo-local dashboard launchers when update is run from inside a wired
+  # consumer repo, so an improved launcher / README arrives on `update` (or the `rc` alias),
+  # not only on `setup`. Skip when we're sitting in the marketplace clone itself — that uses
+  # open-dashboard.sh, not the consumer launcher.
+  project="$(cd "$project" 2>/dev/null && pwd || echo "$project")"
+  case "$project" in
+    "$MARKET" | "$MARKET"/*) : ;; # inside the marketplace — nothing to re-wire
+    *)
+      if [ -d "$project/.ravenclaude" ]; then
+        wire_dashboard_launchers "$project"
+      fi
+      ;;
+  esac
   ok "up to date. In your Copilot session run '/skills reload' (or relaunch) to apply."
 }
 
