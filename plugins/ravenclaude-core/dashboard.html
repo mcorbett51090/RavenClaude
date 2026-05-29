@@ -1563,6 +1563,55 @@ footer.page-footer a:hover { text-decoration: underline; }
   align-items: center;
 }
 .cmd-copy { flex: 0 0 auto; }
+/* Commands tab — card grid of marketplace slash commands */
+.cmd-intro { margin: 0 0 18px; }
+.cmd-intro h2 { margin: 0 0 6px; }
+.cmd-intro p { margin: 0; color: var(--muted); max-width: 64ch; }
+.cmd-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+.cmd-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cmd-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cmd-card-title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--accent);
+  word-break: break-all;
+}
+.cmd-card-badge {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.cmd-card-desc {
+  margin: 0;
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+}
 .oneclick-head {
   display: flex;
   align-items: center;
@@ -2367,7 +2416,7 @@ the design pillar is **frictionless updates**: instead of copilot&#x27;s re-inst
 </div>
   </section>
   <section class="tab-panel" data-tab="commands" role="tabpanel" aria-label="Commands">
-<div class="stub"><h2>Commands tab</h2><p>Ships in <strong>v0.2.0</strong>. See <code>docs/proposals/2026-05-22-003-per-plugin-dashboard.md</code> for the design.</p></div>
+<div class="cmd-intro"><h2>Commands</h2><p>4 slash commands shipped by the marketplace plugins. Copy a command and paste it into Claude Code to run it — or type <code>/</code> in Claude Code to see the same list inline.</p></div><div class="cmd-grid"><article class="cmd-card"><header class="cmd-card-head"><h3 class="cmd-card-title">/dashboard</h3><span class="cmd-card-badge" title="Shipped by the ravenclaude-core plugin">ravenclaude-core</span></header><p class="cmd-card-desc">Launch the fully-functioning comfort-posture dashboard (Save &amp; apply works) in your browser.</p><div class="cmd-row"><code class="cmd-code" id="cmd-card-ravenclaude-core-dashboard">/dashboard</code><button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-card-ravenclaude-core-dashboard">Copy</button></div></article><article class="cmd-card"><header class="cmd-card-head"><h3 class="cmd-card-title">/init-agent-ready</h3><span class="cmd-card-badge" title="Shipped by the ravenclaude-core plugin">ravenclaude-core</span></header><p class="cmd-card-desc">Set up agent-readable boundary files (AGENTS.md + CLAUDE.md + .repo-layout.json + optional CI) tailored to this repo&#x27;s purpose.</p><div class="cmd-row"><code class="cmd-code" id="cmd-card-ravenclaude-core-init-agent-ready">/init-agent-ready</code><button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-card-ravenclaude-core-init-agent-ready">Copy</button></div></article><article class="cmd-card"><header class="cmd-card-head"><h3 class="cmd-card-title">/set-posture</h3><span class="cmd-card-badge" title="Shipped by the ravenclaude-core plugin">ravenclaude-core</span></header><p class="cmd-card-desc">Apply the comfort-posture YAML to .claude/settings.json permission rules.</p><div class="cmd-row"><code class="cmd-code" id="cmd-card-ravenclaude-core-set-posture">/set-posture</code><button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-card-ravenclaude-core-set-posture">Copy</button></div></article><article class="cmd-card"><header class="cmd-card-head"><h3 class="cmd-card-title">/wrap</h3><span class="cmd-card-badge" title="Shipped by the ravenclaude-core plugin">ravenclaude-core</span></header><p class="cmd-card-desc">Capture a lesson-learned scenario from the current engagement and write it directly to the RavenClaude marketplace as a structured YAML+markdown file. Low-friction replacement for the multi-step /contribute-finding flow.</p><div class="cmd-row"><code class="cmd-code" id="cmd-card-ravenclaude-core-wrap">/wrap</code><button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-card-ravenclaude-core-wrap">Copy</button></div></article></div>
   </section>
   <section class="tab-panel" data-tab="trees" role="tabpanel" aria-label="Decision trees">
 <div class="stub"><h2>Decision trees tab</h2><p>Ships in <strong>v0.2.0</strong>. See <code>docs/proposals/2026-05-22-003-per-plugin-dashboard.md</code> for the design.</p></div>

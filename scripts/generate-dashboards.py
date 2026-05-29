@@ -134,7 +134,7 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         simulator_html=_render_simulator_tab(),
         learn_html=_render_learn_tab(plugin_dir),
         saga_html=_render_saga_tab(),
-        commands_html=_render_stub_tab("Commands", "v0.2.0"),
+        commands_html=_render_commands_tab(),
         trees_html=_render_stub_tab("Decision trees", "v0.2.0"),
         activity_html=_render_stub_tab("Activity", "v0.2.0"),
         schema_json=json.dumps(schema, indent=2),
@@ -432,6 +432,86 @@ def _render_command_block(key: str, label: str, command: str) -> str:
         "</div>"
         "</div>"
     )
+
+
+# ── Commands tab ─────────────────────────────────────────────────────────
+# A domain-neutral card grid of every slash command shipped by ANY plugin in
+# the marketplace, discovered at generator time from plugins/*/commands/*.md
+# (name = filename stem; description = frontmatter `description:`; owner =
+# plugin dir). The core generator must DISCOVER sibling plugins, never hard-code
+# domain names (House Rule 1). Each card carries the canonical /name in a
+# copy-to-clipboard block reusing the universal `.cmd-copy[data-copy-for]`
+# handler, so it works on every host (file://, GitHub Pages, or served) — there
+# is no live IPC to launch a command from a browser, so Copy is the reliable
+# mechanic (the plan's deep-link tier needs a desktop handler we can't assume).
+
+_FRONTMATTER_DESC_RE = _re.compile(r"(?m)^description:\s*(.+?)\s*$")
+
+
+def _commands_inventory() -> list[dict]:
+    """Discover slash commands across all plugins. Returns dicts sorted by
+    (owner, name): {"name", "owner", "description"}."""
+    cmds: list[dict] = []
+    for cmd_path in sorted(PLUGINS_DIR.glob("*/commands/*.md")):
+        owner = cmd_path.parent.parent.name
+        name = cmd_path.stem
+        desc = ""
+        try:
+            text = cmd_path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if text.startswith("---"):
+            fm_end = text.find("\n---", 3)
+            frontmatter = text[3:fm_end] if fm_end > 0 else ""
+            m = _FRONTMATTER_DESC_RE.search(frontmatter)
+            if m:
+                desc = m.group(1).strip().strip("\"'")
+        cmds.append({"name": name, "owner": owner, "description": desc})
+    return cmds
+
+
+def _render_command_card(cmd: dict) -> str:
+    slash = "/" + cmd["name"]
+    cid = f"cmd-card-{html.escape(cmd['owner'])}-{html.escape(cmd['name'])}"
+    desc = cmd["description"] or "No description provided."
+    return (
+        '<article class="cmd-card">'
+        '<header class="cmd-card-head">'
+        f'<h3 class="cmd-card-title">{html.escape(slash)}</h3>'
+        f'<span class="cmd-card-badge" '
+        f'title="Shipped by the {html.escape(cmd["owner"])} plugin">'
+        f'{html.escape(cmd["owner"])}</span>'
+        "</header>"
+        f'<p class="cmd-card-desc">{html.escape(desc)}</p>'
+        '<div class="cmd-row">'
+        f'<code class="cmd-code" id="{cid}">{html.escape(slash)}</code>'
+        f'<button type="button" class="btn secondary cmd-copy" '
+        f'data-copy-for="{cid}">Copy</button>'
+        "</div>"
+        "</article>"
+    )
+
+
+def _render_commands_tab() -> str:
+    """Render the Commands tab: a card grid of every marketplace slash command.
+    Empty-state when no plugin ships a command."""
+    cmds = _commands_inventory()
+    if not cmds:
+        return (
+            '<div class="stub"><h2>Commands</h2>'
+            "<p>No slash commands are shipped by the installed plugins yet.</p></div>"
+        )
+    cards = "".join(_render_command_card(c) for c in cmds)
+    plural = "s" if len(cmds) != 1 else ""
+    intro = (
+        '<div class="cmd-intro">'
+        "<h2>Commands</h2>"
+        f"<p>{len(cmds)} slash command{plural} shipped by the marketplace plugins. "
+        "Copy a command and paste it into Claude Code to run it — or type "
+        "<code>/</code> in Claude Code to see the same list inline.</p>"
+        "</div>"
+    )
+    return intro + f'<div class="cmd-grid">{cards}</div>'
 
 
 def _render_install_tab() -> str:
@@ -2865,6 +2945,55 @@ footer.page-footer a:hover { text-decoration: underline; }
   align-items: center;
 }
 .cmd-copy { flex: 0 0 auto; }
+/* Commands tab — card grid of marketplace slash commands */
+.cmd-intro { margin: 0 0 18px; }
+.cmd-intro h2 { margin: 0 0 6px; }
+.cmd-intro p { margin: 0; color: var(--muted); max-width: 64ch; }
+.cmd-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+.cmd-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cmd-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cmd-card-title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--accent);
+  word-break: break-all;
+}
+.cmd-card-badge {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.cmd-card-desc {
+  margin: 0;
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+}
 .oneclick-head {
   display: flex;
   align-items: center;
