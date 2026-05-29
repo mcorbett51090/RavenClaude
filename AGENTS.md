@@ -158,3 +158,7 @@ CI runs the same checks plus the gate-audit meta-test.
 2. Plugin agents reference *plugin-internal* files only. They never hard-code paths inside a consumer's repo unless those paths are conventional (e.g. `docs/pm/raid-log.md`).
 3. Before merging any plugin change, simulate: "what happens when a consumer runs `/plugin marketplace update`?" If the answer is "their project breaks," add a migration note.
 4. Don't restate things the lint / CI / hook already enforces. They are the source of truth.
+
+## Accuracy discipline (cross-tool pointer)
+
+Confident reasoning errors — a flawed belief about a tool/platform/API stated as fact with no uncertainty marker — are as dangerous as hallucinations and harder to catch. For any **consequential** claim (one that gates an irreversible action or gets written into a durable doc): **cite the this-session check that backs it inline, or mark it `[unverified — training knowledge]` and offer to verify before acting** — and never falsely concede (or dig in) when corrected; verify first. This applies to every agentic tool reading this file (Claude Code, GitHub Copilot CLI routing Claude/GPT/Grok, Cursor, Codex). Full protocol + the enforced complements: [`plugins/ravenclaude-core/CLAUDE.md`](plugins/ravenclaude-core/CLAUDE.md) § "Claim Grounding & Source Honesty".

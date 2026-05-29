@@ -19,6 +19,19 @@ schema_version: 5
 # Pause for design / architectural decisions before implementing them?
 design_checkins: true
 
+# Definition-of-done gate (the ONE confident claim that IS machine-checkable).
+# The dod-gate.sh Stop hook runs this command and blocks "done" until it passes —
+# turning the agent's "it's done / tests pass" claim from an assertion into a fact.
+# This catches that single confident-error class; it does NOT verify general claim
+# honesty (that's the behavioral Claim Grounding & Source Honesty protocol).
+# Commented OFF by default: uncommenting makes the gate active for THIS repo, so
+# set it to your real check. MIGRATION: shipping it uncommented in a consumer's
+# posture would start blocking their Stop on /plugin marketplace update — leave it
+# commented in the seed; consumers opt in per-repo via the dashboard.
+# definition_of_done:
+#   cmd: "npm test && npm run lint"   # your repo's real test/build/lint command
+#   max_blocks: 8                     # consecutive Stop-blocks before force-allow
+
 # Always-on deny rules — layer-independent floor. Category levels never relax these.
 security_deny:
   - "Bash(rm -rf:*)"
