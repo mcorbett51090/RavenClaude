@@ -147,6 +147,21 @@ rc=0; CLAUDE_PROJECT_DIR="$TMP/proj" plugins/ravenclaude-core/hooks/enforce-layo
 gate "enforce-layout (in-pattern)" must_pass "$rc"
 rc=0; CLAUDE_PROJECT_DIR="$TMP/proj" plugins/ravenclaude-core/hooks/enforce-layout.sh "$TMP/proj/docs/../../etc/passwd" >/dev/null 2>&1 || rc=$?
 gate "enforce-layout (..-traversal scrub)" must_fail "$rc"
+# Gap 6: task-scope gate — runs in the SAME hook, independent of .repo-layout.json.
+# Fresh proj with ONLY task-scope.json (no layout manifest) proves the independence.
+mkdir -p "$TMP/scopeproj/.ravenclaude" "$TMP/scopeproj/src"
+cat > "$TMP/scopeproj/.ravenclaude/task-scope.json" <<EOF
+{ "in_scope": ["src/**"], "spec": "SPEC.md" }
+EOF
+rc=0; CLAUDE_PROJECT_DIR="$TMP/scopeproj" plugins/ravenclaude-core/hooks/enforce-layout.sh "$TMP/scopeproj/src/app.ts" >/dev/null 2>&1 || rc=$?
+gate "task-scope (in-scope, no layout manifest)" must_pass "$rc"
+rc=0; CLAUDE_PROJECT_DIR="$TMP/scopeproj" plugins/ravenclaude-core/hooks/enforce-layout.sh "$TMP/scopeproj/secret/keys.txt" >/dev/null 2>&1 || rc=$?
+gate "task-scope (out-of-scope -> deny)" must_fail "$rc"
+cat > "$TMP/scopeproj/.ravenclaude/task-scope.json" <<EOF
+{ "in_scope": [] }
+EOF
+rc=0; CLAUDE_PROJECT_DIR="$TMP/scopeproj" plugins/ravenclaude-core/hooks/enforce-layout.sh "$TMP/scopeproj/secret/keys.txt" >/dev/null 2>&1 || rc=$?
+gate "task-scope (empty in_scope -> fail-safe allow)" must_pass "$rc"
 
 echo
 echo "── Gate 7: Email-leak guard ──────────────────────────────────────────────"

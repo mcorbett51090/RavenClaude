@@ -9,6 +9,10 @@ description: "Command review (the Thing) — the opt-in command-review tribunal 
 
 The authoritative design is [`docs/tribunal-review-feature-design.md`](../../../../docs/tribunal-review-feature-design.md); the concern catalog the tribunal cites is [`knowledge/concerns-catalog.md`](../../knowledge/concerns-catalog.md). This skill documents **what actually ships today** and how to operate it.
 
+> **When command review is for you.** The Thing exists to put _portable, model-agnostic_ guardrails on **agentic AI that routes across multiple model vendors** (e.g. GitHub Copilot CLI using Claude + ChatGPT + Grok), where Claude Code's native **`auto` permission mode is unavailable** (it is Anthropic-API/Claude-only). In that setup the Thing is the only layer that delivers a deterministic catastrophe floor, a self-tamper guard, secret-egress prevention, cross-vendor anti-correlated review, and low-touch ALLOW/EDIT/DENY disposition.
+>
+> **If you run _only_ Claude Code, native `auto` mode may be sufficient** — it provides a hardened classifier plus a non-configurable 3-consecutive/20-total runaway brake that this tribunal does not yet replicate (the portable [`runaway-brake.sh`](../../hooks/runaway-brake.sh) hook is RavenClaude's cross-host equivalent). On pure Claude Code, prefer `auto` for containment and treat the Thing as an _optional_ add-on for its domain concerns, audit trail, and yes/no decision-routing. The tribunal earns its cost most clearly where `auto` cannot run.
+
 ## What ships (T5)
 
 The tribunal is a real **panel**: up to three reviewer seats run in parallel, a tie-breaker is convened only when they disagree, and a seat may **rewrite** a risky command (the rewrite is re-validated against the concern catalog before it runs). T5 makes routing **tiered** and adds a configurable **human gate**.

@@ -730,6 +730,26 @@ def _render_command_review_block() -> str:
         "Turn each on via its toggle inside the category card below.</p>"
     )
 
+    # (b2) Scope disclaimer — when command review is for you, and when it's optional.
+    disclaimer = (
+        '<details class="crb-disclaimer">'
+        '<summary>Is command review for me? (scope &amp; when it&rsquo;s optional)</summary>'
+        "<p>Command review exists to put <strong>portable, model-agnostic</strong> "
+        "guardrails on agentic AI that routes across <strong>multiple model vendors</strong> "
+        "(e.g. GitHub Copilot CLI using Claude + ChatGPT + Grok), where Claude Code&rsquo;s "
+        "native <code>auto</code> permission mode is unavailable (it is Anthropic-API/Claude-only). "
+        "There it is the only layer giving you a deterministic catastrophe floor, a self-tamper "
+        "guard, secret-egress prevention, cross-vendor anti-correlated review, and low-touch "
+        "allow / edit / deny disposition.</p>"
+        "<p><strong>If you run <em>only</em> Claude Code, native <code>auto</code> mode may be "
+        "enough</strong> &mdash; it adds a hardened classifier plus a non-configurable "
+        "3-consecutive / 20-total runaway brake. On pure Claude Code, prefer <code>auto</code> for "
+        "containment and treat command review as an <em>optional</em> add-on for its domain "
+        "concerns, audit trail, and yes/no decision-routing. The tribunal earns its credits cost "
+        "most clearly where <code>auto</code> cannot run.</p>"
+        "</details>"
+    )
+
     # (d) Per-category status summary (read-only mirror)
     summary = (
         '<div class="crb-summary-section">'
@@ -767,6 +787,7 @@ def _render_command_review_block() -> str:
         'aria-labelledby="crb-heading">'
         + header
         + explainer
+        + disclaimer
         + summary
         + advanced
         + "</div>"
