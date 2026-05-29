@@ -1739,6 +1739,22 @@ rc=0; python3 "$DSP" --plugin-server "$DSP_BAD" >/dev/null 2>&1 || rc=$?
 gate "dashboard-server-parity (drifted: /__saga stripped)" must_fail "$rc"
 
 echo
+echo "── Gate 33: command-review golden set (deterministic regression lane) ─────"
+# Gap 4: thing-golden-eval.py runs a corpus of {dangerous, benign, injection,
+# secret, scope} payloads through the REAL engine (thing-decision.py) and asserts
+# each deterministic disposition (pre-LLM deny / hard-rule / clean-allow / routes-
+# to-panel). No model call — CI-cheap. Guards against the engine silently starting
+# to auto-allow a dangerous command or pre-deny a benign one.
+GE="scripts/thing-golden-eval.py"
+# must_pass: the real golden set on the live engine.
+rc=0; python3 "$GE" >/dev/null 2>&1 || rc=$?
+gate "golden-set (real corpus, live engine)" must_pass "$rc"
+# must_fail: a known-bad corpus that asserts a benign read must DENY — the runner
+# must report the mismatch (exit 1), proving the gate actually checks the verdict.
+rc=0; python3 "$GE" --corpus scripts/thing-golden-set.bad.jsonl >/dev/null 2>&1 || rc=$?
+gate "golden-set (known-bad corpus -> runner must fail)" must_fail "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 if [[ "$FAIL" -gt 0 ]]; then
