@@ -1,10 +1,14 @@
 export const meta = {
   name: "two-panel-plan-review",
   description:
-    "Two fresh-independent expert panels review a strategic plan, fill its gaps, author a tactical build plan, then a different panel cold-reviews the build plan and emits P0/P1 recommendations.",
+    "Two fresh-independent expert panels review a strategic plan, fill its gaps, author a tactical build plan, then a different panel cold-reviews the build plan and emits P0/P1 recommendations. Includes an upfront advisory routing analysis recommending Ultraplan (cloud) vs. local for the task.",
   whenToUse:
     "When you have a strategic plan (a 'what/why' doc) and want it stress-tested by one expert panel, gap-filled, accompanied by a tactical build plan (a 'how' doc), and then have THAT build plan independently cold-reviewed by a different panel. Useful before committing engineering effort to a non-trivial proposal.",
   phases: [
+    {
+      title: "Ultraplan vs. local routing analysis",
+      detail: "1 routing agent weighs plan size/scope, web-research need, and privacy",
+    },
     {
       title: "Panel 1 review of the strategic plan",
       detail: "4 lenses by default: architect, security, ops, devil's-advocate",
@@ -142,6 +146,12 @@ const BUILD_PLAN_REQUIREMENTS = a.buildPlanRequirements || DEFAULT_BUILD_PLAN_RE
 const PANEL1_AXES = Array.isArray(a.panel1Axes) ? a.panel1Axes : [];
 const PANEL2_AXES = Array.isArray(a.panel2Axes) ? a.panel2Axes : [];
 
+// Routing config. The router is ADVISORY ONLY by default — it recommends Ultraplan vs.
+// local but the workflow always proceeds. Override with `routingMode` if desired.
+//   "advisory" (default) — print recommendation; always run locally; prepend to build plan
+//   "off"               — skip the routing phase entirely (back to v1 behavior)
+const ROUTING_MODE = a.routingMode || "advisory";
+
 // ─── Shared schema ─────────────────────────────────────────────────────────────
 
 const GAP_SCHEMA = {
@@ -268,6 +278,128 @@ function digestPanel(results, lenses, label) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// Phase 0 — Advisory routing analysis (Ultraplan vs. local)
+//
+// One agent reads the strategic plan and weighs three signals: plan size/scope,
+// whether the plan needs fresh web research, and whether the plan touches sensitive
+// data that should not leave the container. Verdict is ADVISORY: the workflow always
+// proceeds with the local two-panel review, but the recommendation is prepended to
+// the build plan so Matt sees it before deciding the next step.
+//
+// Ultraplan = Claude Code on the web / cloud session. Matt routes to it by declining
+// ExitPlanMode with a note like "sending to Ultraplan" — the harness opens a browser
+// session and the remote run lands a PR. This workflow CANNOT invoke Ultraplan; it
+// only recommends when Matt should consider doing that handoff manually.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ROUTING_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    plan_readable: { type: "boolean" },
+    verdict: {
+      type: "string",
+      enum: ["use_local", "consider_ultraplan", "lean_ultraplan"],
+      description:
+        "use_local = local two-panel is the right surface. consider_ultraplan = mixed signals, Matt should weigh. lean_ultraplan = the analysis strongly favors Ultraplan for this task.",
+    },
+    confidence: { type: "number" },
+    signal_size_scope: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        observation: { type: "string", description: "what about the plan's size/scope" },
+        favors: { type: "string", enum: ["local", "ultraplan", "neutral"] },
+      },
+      required: ["observation", "favors"],
+    },
+    signal_web_research: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        observation: { type: "string" },
+        favors: { type: "string", enum: ["local", "ultraplan", "neutral"] },
+      },
+      required: ["observation", "favors"],
+    },
+    signal_privacy: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        observation: { type: "string" },
+        favors: { type: "string", enum: ["local", "ultraplan", "neutral"] },
+      },
+      required: ["observation", "favors"],
+    },
+    one_line_recommendation: {
+      type: "string",
+      description: "Short sentence Matt sees first.",
+    },
+    rationale: { type: "string", description: "2-4 sentences explaining the verdict." },
+  },
+  required: [
+    "plan_readable",
+    "verdict",
+    "confidence",
+    "signal_size_scope",
+    "signal_web_research",
+    "signal_privacy",
+    "one_line_recommendation",
+    "rationale",
+  ],
+};
+
+let routingResult = null;
+if (ROUTING_MODE !== "off") {
+  phase("Ultraplan vs. local routing analysis");
+
+  routingResult = await agent(
+    `You are a routing analyst. Read the strategic plan at ${PLAN_PATH} and decide whether the task it describes is better served by:
+
+(A) **Local two-panel review** (this workflow): the plan is reviewed by two expert panels here in the user's container. Output is reviewed plan docs only — no PR is opened. Good for: medium-sized plans, plans rooted in repo files, plans where the data should not leave the container.
+
+(B) **Ultraplan** (Claude Code cloud session): the user takes the plan to a browser-based Claude Code session that can execute it end-to-end and land a PR on origin. Good for: substantial multi-file builds, plans that need fresh web research, plans the user wants executed (not just reviewed).
+
+# Context for the plan
+${CONTEXT}
+
+# Mandatory precondition
+Use Read on ${PLAN_PATH}. If Read fails, set \`plan_readable\` to false and recommend "use_local" with low confidence and a note that routing cannot be evaluated.
+
+# Weigh these three signals (and ONLY these)
+
+1. **Plan size/scope.** Substantial / multi-file / multi-system plans (many phases, many files touched, cross-plugin impact) lean Ultraplan. Small, single-target, single-system plans lean local.
+
+2. **Need for fresh web research.** If the plan's load-bearing claims require verifying current docs / APIs / pricing / vendor policies from outside the repo, Ultraplan's cloud session handles that more cleanly. If the plan is rooted in repo state + already-verified citations, local is fine.
+
+3. **Sensitive data / privacy.** Local stays in the user's container. Ultraplan transmits the plan to the cloud session. Plans referencing client names, credentials, partner-confidential content, or specific customer engagements should stay LOCAL — privacy considerations veto Ultraplan even if the other two signals favor it.
+
+# Decision rules
+- If signal 3 (privacy) says "ultraplan" or "neutral" but the plan clearly touches client/partner-confidential content: override to **use_local** regardless of other signals.
+- 2 or 3 signals favor ultraplan AND no privacy block → **lean_ultraplan**
+- Signals are split or borderline → **consider_ultraplan**
+- 2 or 3 signals favor local → **use_local**
+
+Be honest. If the analysis is borderline, say "consider_ultraplan" with mid-range confidence rather than forcing a verdict.
+
+Return findings per the schema.`,
+    {
+      label: "routing-analysis",
+      phase: "Ultraplan vs. local routing analysis",
+      schema: ROUTING_SCHEMA,
+    },
+  );
+
+  if (routingResult) {
+    log(
+      `Routing analysis: verdict=${routingResult.verdict} confidence=${routingResult.confidence}. "${routingResult.one_line_recommendation}"`,
+    );
+  } else {
+    log(`Routing analysis returned null; proceeding with local workflow as fallback.`);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // Phase 1 — Panel 1 reviews the strategic plan
 // ═══════════════════════════════════════════════════════════════════════════════
 phase("Panel 1 review of the strategic plan");
@@ -320,7 +452,33 @@ const synth1Brief = `You are the synthesis writer. TWO STEPS:
 # STEP 2 — Author the build plan at ${BUILD_PATH}
 This is a NEW file (or full overwrite if it exists). It is the tactical companion to the updated strategic plan.
 
-${BUILD_PLAN_REQUIREMENTS}
+${
+  routingResult
+    ? `**MANDATORY: Prepend a "Routing recommendation" section at the very top of the build plan (immediately after the title + status line) with this content verbatim:**
+
+\`\`\`markdown
+## Routing recommendation (advisory)
+
+> The two-panel-plan-review workflow analyzed this plan against three signals (size/scope, web-research need, privacy) before convening the panels. This is ADVISORY: the panels ran locally; the recommendation is information for Matt to weigh before committing engineering effort.
+
+**Verdict:** \`${routingResult.verdict}\` (confidence ${routingResult.confidence})
+**One-line:** ${routingResult.one_line_recommendation}
+
+**Signals:**
+- **Size/scope:** favors *${routingResult.signal_size_scope.favors}* — ${routingResult.signal_size_scope.observation}
+- **Web research need:** favors *${routingResult.signal_web_research.favors}* — ${routingResult.signal_web_research.observation}
+- **Privacy:** favors *${routingResult.signal_privacy.favors}* — ${routingResult.signal_privacy.observation}
+
+**Rationale:** ${routingResult.rationale}
+
+> If the verdict is \`lean_ultraplan\` or \`consider_ultraplan\` and Matt decides to route this plan to Ultraplan instead of executing locally, decline \`ExitPlanMode\` with a "sending to Ultraplan" note — the harness opens the browser session.
+\`\`\`
+
+After the routing block, proceed with the rest of the build plan as specified below.
+
+`
+    : ""
+}${BUILD_PLAN_REQUIREMENTS}
 
 # CRITICAL — Read-after-Write verification (mandatory)
 After both Writes, you MUST:
