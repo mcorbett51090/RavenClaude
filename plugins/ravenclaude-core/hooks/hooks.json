@@ -42,7 +42,7 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/runaway-brake.sh",
-            "comment": "Runaway / rabbit-hole brake. Portable replacement for native auto-mode's 3/20 block brake (unavailable under Copilot CLI / multi-model). No-ops unless .ravenclaude/comfort-posture.yaml exists; counts tool calls per session and exits 2 (block) when the agent thrashes (default 8 byte-identical calls in a row) or blows a generous total-call ceiling (default 200). Tune under `runaway:` or disable with `runaway: off`. Deterministic, no model."
+            "comment": "Runaway / rabbit-hole brake. Portable replacement for native auto-mode's 3/20 block brake (unavailable under Copilot CLI / multi-model). No-ops unless .ravenclaude/comfort-posture.yaml exists; counts tool calls per session and exits 2 (block) when the agent thrashes (default 8 byte-identical calls in a row) or blows a generous total-call ceiling (default 1200). Tune under `runaway:` or disable with `runaway: off`. Deterministic, no model."
           }
         ]
       },
