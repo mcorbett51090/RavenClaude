@@ -29,3 +29,31 @@ the server when you're done.
 
 > Scoped & safe: the launcher pins this repo's path, and the server refuses to run if it's
 > ever pointed at the marketplace clone — so a consumer dashboard can only edit its own repo.
+
+## Containment posture — where the real blast-radius boundary is
+
+The comfort-posture and the command-review tribunal are **model-layer** guardrails: they stop
+the agent's own tools (a `Read`, an `Edit`, a `Bash` command) and refuse the dangerous ones.
+That covers most of the risk, but it has one honest gap — it can't bound a **subprocess** the
+agent spawns. A `deny` on `Read(~/.ssh/**)` stops the agent reading your keys with its Read
+tool; it does **not** stop a script the agent writes and runs (`python -c "open('~/.ssh/id_rsa')…"`).
+Only the **operating system** can enforce that boundary, because the OS — not the model — holds
+the line even when a command is mislabeled or an injected instruction slips through.
+
+So the sanctioned containment posture is **defense in depth**:
+
+1. **Run inside the container (strongest, and the same under any model).** The devcontainer this
+   marketplace scaffolds — `ravenclaude init-codespace`, or a GitHub Codespace — is the real
+   blast-radius boundary: the agent can only touch what's mounted into the container, and that
+   holds whether you run Claude Code, GitHub Copilot CLI, or anything else. For risky or
+   parallel work, add a **git worktree** so a run is isolated to its own branch checkout.
+2. **Tool-layer deny rules (this repo's posture).** The balanced posture denies reads of host
+   credential stores that live outside the repo (`~/.ssh`, `~/.aws`, `~/.config/gcloud`,
+   `~/.azure`, `~/.kube/config`, `~/.docker/config.json`) plus in-repo secrets (`.env`, `*.pem`,
+   `*.key`). These are honored by Claude Code's permission engine **and** by the Thing's
+   `file_read_global` review, so they port to Copilot CLI — but remember they are tool-layer,
+   not OS isolation (see the subprocess gap above). Re-tune them in the dashboard.
+3. **Claude Code's OS sandbox is Claude-only — do not rely on it under Copilot.** Claude Code can
+   add an OS sandbox (Seatbelt / bubblewrap) that *does* contain subprocesses. There is no
+   evidence GitHub Copilot CLI honors it, so **under Copilot the container/worktree is your
+   containment, not the sandbox.** Don't assume OS isolation you aren't actually running.

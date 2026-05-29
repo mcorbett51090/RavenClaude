@@ -41,7 +41,18 @@ security_deny:
   - "Read(**/*.key)"
   - "Read(**/credentials*)"
   - "Read(**/secrets*)"
-
+  # Containment depth (Gap 5) — deny reads of host credential stores that live
+  # OUTSIDE the repo. This is a TOOL-LAYER deny (Claude Code's Read tool + the
+  # Thing's file_read_global both honor it), portable to Copilot CLI. It is NOT
+  # OS isolation: a subprocess Claude writes can still read these paths — only an
+  # OS sandbox or the devcontainer/worktree boundary stops that. See the
+  # "Containment posture" note in .ravenclaude/README.md.
+  - "Read(~/.ssh/**)"
+  - "Read(~/.aws/**)"
+  - "Read(~/.config/gcloud/**)"
+  - "Read(~/.azure/**)"
+  - "Read(~/.kube/config)"
+  - "Read(~/.docker/config.json)"
 # allow = run without asking · ask = prompt first · deny = block · inherit = defer
 categories:
   # ── Reads — allowed ─────────────────────────────────────────────
