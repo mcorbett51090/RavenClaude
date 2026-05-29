@@ -85,4 +85,30 @@ Two structural problems for the goal: (1) it's the **same category of mechanism 
 ## 7. How this maps to the build queue
 
 The recommendations above are deliberately concrete and mostly **[D]eterministic**, so they fit the "bounded by up-front input, no per-edit babysitting" goal. Suggested sequencing for follow-up PRs: **#1 (Stop-hook DoD gate)** and **#2 (default-on posture)** first — together they convert the marketplace from "bounded destruction, opt-in" to "bounded autonomy, default" — then **#4 (sandbox posture)** and **#3 (reposition vs `auto`)**, with **#7 (measure the panel)** as the standing regression gate. These are tracked against the not-yet-implemented plans in the companion plan-reconciliation note.
-</content>
+
+## 8. Panel re-assessment under the Copilot-CLI / multi-model constraint (2026-05-29)
+
+> **This section CORRECTS §1–§7's load-bearing error.** A two-reviewer panel (security-engineer + systems-architect) re-ran the analysis after the owner clarified the real setup: **he runs GitHub Copilot CLI, routing across Claude + ChatGPT + Grok.** Native Claude Code `auto` mode is **Anthropic-API/Claude-only** (research doc Layer 2) → **unavailable to him.** Every §6 recommendation that delegates to `auto` (esp. #3 "adopt auto for containment + the free 3/20 brake") is **invalid for his stack**; the gaps must be closed in the **portable hook layer**.
+
+### Redundancy verdict: NOT redundant (both panelists, independently)
+
+The §5 "redundancy vs native `auto`" penalty was an artifact of assuming a competitor the owner cannot run. Remove `auto` and the charge collapses; the strong form (from the code) is that the tribunal is the **sole provider** in his stack of: (1) a deterministic, vendor-independent catastrophe floor (`thing-concerns.py:305 screen_always` — force-push / `curl|sh` denied category-independently, pre-LLM, no model needed → runs identically under Grok/GPT/Claude); (2) the self-tamper guard (`thing-decision.py:560`, inode + parsed-YAML); (3) domain concerns + the **secret-egress backstop** (`thing-seat.sh:81-103`, denies locally before any API call); (4) **low-touch** autonomous ALLOW/EDIT/DENY disposition (the only alternative in his stack is `default` per-edit babysitting or `bypassPermissions` blank check); and (5) the Sága audit. **Unique opportunity:** the model-diversity rule (`thing-decision.py:940`) is today Claude-only (`_DIVERSITY_PREF`), but the per-seat-subprocess architecture is exactly the shape to seat **Claude + GPT + Grok** — cross-vendor anti-correlated review, the strongest anti-correlated-hallucination posture available, which single-vendor `auto` structurally cannot offer. His "limitation" is here an advantage.
+
+### Re-score: ≈ 48–51 / 100 (panel range), up from 44 — honestly, by re-weighting, not gap-closure
+
+| Dimension | Prior (44) | Panel | Why it moved |
+|---|---|---|---|
+| Non-redundancy / unique value in the stack | 5/10 | **9/10** | Inverts — `auto` unavailable; tribunal is sole provider (above). |
+| Off-by-default risk | 2/10 | **5/10** | `ravenclaude setup` seeds `comfort-posture-balanced.yaml` — the real install flow is **not** inert (only a raw marketplace checkout is). |
+| Low-touch security fitness (owner's stated value) | (undervalued) | **8/10** | The deterministic screen delivers silent containment with near-zero interruption — exactly what the owner praises. |
+| Cost/latency | 3/10 | 4/10 | Seat fan-out could route to cheaper vendor models; reads short-circuit free. Still weakest non-gap. |
+| **Runaway prevention ("rabbit holes")** | 2/10 | **2/10 (UNCHANGED)** | Still no hard brake — and the §6 escape hatch ("auto's 3/20 covers it") is **gone**, making this gap *more* urgent. |
+| **Verification ("hallucinating")** | 2/10 | **2/10 (UNCHANGED)** | Still gates command safety, never work correctness. |
+
+**The two real gaps did not move** — the score rose only because redundancy + off-by-default were mis-weighted for his actual stack. As a containment+audit+low-touch layer it scores 8–9; as a full bounded-autonomy guardrail it's low-50s with two layers unbuilt and the panel layer environmentally fragile.
+
+### The decisive new finding (both panels, code-grounded): the Copilot bridge has NO Stop path
+
+The Copilot installer (`scripts/ravenclaude:160-171`) wires only **SessionStart / PreToolUse / PostToolUse**; `copilot-hook-adapter.sh` has **no `stop` mode** (modes: `bash-pretool | file-pretool | sessionstart | posttool`), and the `posttool` mode **discards hook output**. The plugin's `hooks.json` Stop hook is the *Claude Code* path, which Copilot bug #2540 says doesn't fire. **Consequence:** under Copilot today, **Stop is not wired and PostToolUse cannot block** — so the "headline" Stop-hook DoD gate **does not port until the bridge is extended.** And `remind-tests.sh:40` is confirmed advisory `exit 0`, not a gate. **Sharpest risk:** the seats hard-require the `claude` CLI (`thing-seat.sh:146,240`) on Anthropic auth — in a GPT/Grok-routed Copilot session the panel may abstain entirely → high-stakes mutates deny (safe) but the *judgment layer is absent and unmeasured*. What the owner feels "helping" is almost certainly the deterministic screen, not the panel.
+
+**Full sequenced gap-closure plan (portable hook layer) → [`command-review-gap-closure-plan-2026-05-29.md`](command-review-gap-closure-plan-2026-05-29.md).**
