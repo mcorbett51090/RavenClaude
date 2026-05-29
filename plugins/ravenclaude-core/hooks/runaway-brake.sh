@@ -13,7 +13,7 @@
 # Tune with:
 #   runaway:
 #     max_consecutive: 8     # identical calls in a row before tripping
-#     max_total: 200         # total tool calls this session before tripping
+#     max_total: 1200         # total tool calls this session before tripping
 #
 # Deterministic: no model in the loop. Ports to Copilot via the bash-pretool
 # adapter (a Claude exit-2 block -> a Copilot deny). State is a per-session
@@ -38,7 +38,7 @@ grep -Eq '^[[:space:]]*runaway:[[:space:]]*off[[:space:]]*$' "$posture" 2>/dev/n
 max_consec="$(sed -n 's/^[[:space:]]*max_consecutive:[[:space:]]*\([0-9]\{1,\}\).*/\1/p' "$posture" 2>/dev/null | head -1)"
 max_total="$(sed -n 's/^[[:space:]]*max_total:[[:space:]]*\([0-9]\{1,\}\).*/\1/p' "$posture" 2>/dev/null | head -1)"
 [ -z "$max_consec" ] && max_consec=8
-[ -z "$max_total" ] && max_total=200
+[ -z "$max_total" ] && max_total=1200
 
 sid="$(printf '%s' "$payload" | jq -r '.session_id // empty' 2>/dev/null)"
 [ -z "$sid" ] && exit 0

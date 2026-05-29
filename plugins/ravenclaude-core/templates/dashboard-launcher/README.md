@@ -15,17 +15,14 @@ A point-and-click editor for the settings above. **Save & apply** writes
 - **Terminal (from this repo):** `bash .ravenclaude/dashboard.sh`
 - **From anywhere:** `ravenclaude dashboard --project /path/to/this/repo`
 
-Each starts a small **local** server. Once it's running, the dashboard for **this repo** is at:
-
-➡️ **<__RC_DASHBOARD_URL__>**
-
-That link is filled in for your current environment — the live **Codespace-forwarded** URL in
-a Codespace, or `localhost` otherwise — so you don't have to hunt for it. (`ravenclaude setup`
-regenerates this file, so a rebuilt Codespace always gets a fresh, working link.) In a
-Codespace, open it from the **Ports** panel → port **8000** → 🌐 **Open in Browser** — that
-handles the GitHub sign-in for the private port (a raw link paste can hit an auth wall). Use a
-real browser tab, not VS Code's Simple Browser (which blocks the page). Press `Ctrl+C` to stop
-the server when you're done.
+Each starts a small **local** server scoped to **this repo**, then **prints the dashboard URL
+and opens it in your browser automatically**. The URL is computed fresh at launch — the live
+**Codespace-forwarded** address in a Codespace, or `localhost` otherwise — so there is never a
+stale link to hunt for or fix (nothing is baked in to rot when a Codespace is rebuilt). In a
+Codespace, if the tab doesn't open, use the **Ports** panel → port **8000** → 🌐 **Open in
+Browser** — that handles the GitHub sign-in for the private port (a raw link paste can hit an
+auth wall). Use a real browser tab, not VS Code's Simple Browser (which blocks the page). Run
+the launcher again to restart it, or `pkill -f serve-dashboards.py` to stop it.
 
 > Scoped & safe: the launcher pins this repo's path, and the server refuses to run if it's
 > ever pointed at the marketplace clone — so a consumer dashboard can only edit its own repo.

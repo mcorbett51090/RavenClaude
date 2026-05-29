@@ -1,47 +1,20 @@
-# Dependencies
+# RavenClaude marketplace — ignore consumer-side runtime artifacts and local config.
+
+# Comfort-posture run artifacts (Thing audit logs, runaway counters, etc.)
+.ravenclaude/runs/
+
+# Local dashboard server logs
+*.log
+
+# Node modules (if any tooling is added)
 node_modules/
 
-# Build
- dist/
-.next/
-out/
-
-# Environment
-.env
-.env.local
-.env.*.local
-
-# IDE
-.idea/
-.vscode/
-*.swp
-
-# OS
+# Editor / OS noise
 .DS_Store
-Thumbs.db
 
-# Logs
-*.log
-npm-debug.log*
+# Local Claude Code runtime state
+.claude/scheduled_tasks.lock
+.claude/__pycache__/
 
-# Misc
-*.tgz
-.cache/
-
-# Python bytecode (e.g. from apply-comfort-posture.py / generate-*.py)
-__pycache__/
+# Python cache
 *.pyc
-
-# RavenClaude runtime artifacts (per-run agent handoff substrate; not committed)
-.ravenclaude/
-
-# `remember` plugin session logs — local cross-session memory; may carry client context, never commit
-.remember/
-
-# Deep-research artifacts — persistent across Codespace restarts, not for commit
-# (research drafts; if/when distilled into a knowledge file or proposal, that artifact gets committed instead)
-docs/research/
-.claude/settings.local.json
-
-# Comfort-posture per-machine apply markers (side-cars written by apply-comfort-posture.py)
-.claude/.comfort-posture-applied.*.json
