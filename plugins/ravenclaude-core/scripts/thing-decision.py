@@ -1181,15 +1181,35 @@ def main() -> int:
     # _screen_always results.
     # NOT touched: hard-rule floor, secret-egress backstop, xc.injection-attempt,
     # the discretionary panel, or _screen_always results.
-    if _file_sd and result.get("self_disable_deny"):
-        exempt, exempt_owner = _maintainer_substrate_exempt(root, posture)
-        if exempt:
-            # Clear ONLY the substrate-path self-disable; preserve everything else.
-            result.pop("self_disable_deny", None)
-            result.pop("self_disable_concern", None)
-            # Audit field: the orchestrator logs why a substrate edit wasn't denied.
-            result["maintainer_substrate_exempt"] = True
-            result["maintainer_substrate_exempt_owner"] = exempt_owner
+    # The exemption is computed ONCE here. The cheap dict-gate inside
+    # _maintainer_substrate_exempt (command_review.dev_repo_exempt must be strictly
+    # True) short-circuits to (False, None) BEFORE the live `gh` probe, so in a
+    # consumer repo — where the flag is never set — this is a couple of dict lookups
+    # with zero subprocess cost. The gh-owner probe only fires in the opted-in dev
+    # repo, exactly where both exemption effects below are wanted.
+    dev_exempt, dev_exempt_owner = _maintainer_substrate_exempt(root, posture)
+
+    if _file_sd and result.get("self_disable_deny") and dev_exempt:
+        # Clear ONLY the substrate-path self-disable; preserve everything else.
+        result.pop("self_disable_deny", None)
+        result.pop("self_disable_concern", None)
+        # Audit field: the orchestrator logs why a substrate edit wasn't denied.
+        result["maintainer_substrate_exempt"] = True
+        result["maintainer_substrate_exempt_owner"] = dev_exempt_owner
+
+    # §A1 — abstain-downgrade (the dev-repo lockout fix). In the SAME verified
+    # maintainer dev-repo context, an abstaining / inconclusive panel downgrades its
+    # fail-closed DENY to ASK (never to ALLOW). The orchestrator reads this flag at
+    # abstain time and substitutes "ask" for the "deny" timeout_posture. An abstain
+    # in the maintainer context is a latency artifact (parallel `claude -p` seats
+    # cold-starting past the per-seat soft cap), not a security signal — so it should
+    # defer to the human, not hard-block the maintainer editing the Thing's own
+    # engine in the Thing's own repo. UNTOUCHED — all resolve before/independent of
+    # the posture branch the orchestrator applies this to: the hard-rule floor
+    # (force-push, curl|sh), the self-disable guard, the injection DENY, and the
+    # secret-egress backstop. It can only ever turn a deny into an ask, never allow.
+    if dev_exempt:
+        result["dev_repo_abstain_downgrade"] = True
 
     # `preview` (dashboard simulator) computes the full detail unconditionally;
     # `classify`/`classify-payload` (the live hook path) only when toggled on.

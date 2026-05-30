@@ -221,6 +221,20 @@ seat_timeout="$(printf '%s' "$decision" | jq -r '.seat_timeout_seconds // 45')"
 panel_deadline="$(printf '%s' "$decision" | jq -r '.panel_deadline_seconds // 75')"
 audit_dir_rel="$(printf '%s' "$decision" | jq -r '.audit_dir // ".ravenclaude/runs/thing"')"
 posture="$(printf '%s' "$decision" | jq -r '.timeout_posture // "ask"')"  # deny|ask
+# §A1 dev-repo lockout fix: in the verified maintainer dev-repo context (the engine
+# sets dev_repo_abstain_downgrade only after the dev_repo_exempt + gh-owner +
+# marketplace.json AND-gate passes), an abstaining/inconclusive panel defers to the
+# human instead of failing closed — an abstain there is a `claude -p` cold-start
+# latency artifact, not a security signal. This downgrades ONLY the abstain/
+# inconclusive posture (deny->ask); the hard-rule floor, self-disable guard,
+# injection DENY, and secret-egress backstop all resolve before this branch and are
+# untouched. It can never turn a deny into an allow.
+posture_phrase="failing ${posture}"
+abstain_downgrade="$(printf '%s' "$decision" | jq -r '.dev_repo_abstain_downgrade // false')"
+if [ "$abstain_downgrade" = "true" ] && [ "$posture" = "deny" ]; then
+  posture="ask"
+  posture_phrase="deferring to you (maintainer dev-repo: an abstain here is a latency artifact, not a security signal — DENY downgraded to ASK)"
+fi
 pre_llm_deny="$(printf '%s' "$decision" | jq -r '.pre_llm_deny // false')"
 deny_concern="$(printf '%s' "$decision" | jq -r '.deny_concern // empty')"
 convened="$(printf '%s' "$decision" | jq -r '.convened_seats[]?' )"
@@ -394,7 +408,7 @@ else
   # 1. Abstention gate: >=2 abstained, or the whole convened panel abstained.
   if [ "$n_abstain" -ge 2 ] || { [ "$n_convened" -gt 0 ] && [ "$n_abstain" -eq "$n_convened" ]; }; then
     verdict="$posture"
-    reason="Command review: the panel abstained (timeout or error); failing ${posture} for ${category}."
+    reason="Command review: the panel abstained (timeout or error); ${posture_phrase} for ${category}."
   # 2. Injection override (unilateral DENY).
   elif [ "$any_injection" = "true" ]; then
     verdict="deny"
@@ -429,7 +443,7 @@ else
       tv="${SV[thor]}"
       final_cited="${SCITED[thor]}"
       if [ "${SSTATUS[thor]}" = "abstain" ]; then
-        verdict="$posture"; reason="Command review: tie-breaker abstained; failing ${posture} for ${category}."
+        verdict="$posture"; reason="Command review: tie-breaker abstained; ${posture_phrase} for ${category}."
       elif [ "${SINJ[thor]}" = "true" ]; then
         verdict="deny"; reason="Command review: DENIED — tie-breaker detected injection. ${SREASON[thor]}"
       elif [ "$tv" = "edit" ]; then
@@ -455,7 +469,7 @@ else
             fi
           done
           reason="Command review: EDIT proposed." ;;
-        *)     verdict="$posture"; reason="Command review: inconclusive; failing ${posture}." ;;
+        *)     verdict="$posture"; reason="Command review: inconclusive; ${posture_phrase}." ;;
       esac
     fi
   fi
