@@ -1,4 +1,6 @@
-# Dashboard UX — tactical build plan (v2, 2026-05-30)
+# Dashboard UX — tactical build plan (v3, 2026-05-30)
+
+> **v3** applies six grounding fixes from re-review (scored 96/100): best-practices preview = net-new *extend* not free reuse; `open-dashboard.sh` cites `:25`/`:29-30`; exact per-action `/__run` argv (`--project` on install/status only); the Gate-35 largest-`<script>` hazard + mitigation; the literal disabled-state help string ("root dev server only"); per-PR version bumps (3 total); and the default-tab two-coupled-sites note. **PR-1 is now implemented** (Overview tab + clickable-command cards with mandatory tooltips + best-practice preview-on-click).
 
 > **v2** folds in [`dashboard-ux-gap-analysis.md`](./dashboard-ux-gap-analysis.md) (cold-review verdict: *sound-with-fixes*). The v1 premises that were **factually wrong** are corrected here and called out inline as **[gap-fix]**.
 > **Inputs:** [`ux-handoff-repo-inventory.md`](./ux-handoff-repo-inventory.md) + [`ux-dashboard-analysis.md`](./ux-dashboard-analysis.md). This doc is the **how**; the UX audit is the **what/why**; the gap analysis is the **adversarial check**.
