@@ -1,0 +1,25 @@
+# RavenClaude dev-repo posture — pre-arms the maintainer-substrate exemption so a
+# fresh checkout / Codespace rebuild of THIS repo never re-hits the command-review
+# lockout. See plugins/ravenclaude-core/CLAUDE.md → "Dev-repo lockout fix —
+# abstain-downgrade in the maintainer context (v0.60.0, fix A1)".
+#
+# The ONLY load-bearing line is command_review.dev_repo_exempt: true. It is inert
+# everywhere the 3-signal AND-gate fails — it activates ONLY when the gh-authenticated
+# repo owner is mcorbett51090/RavenClaude AND .claude-plugin/marketplace.json parses
+# with name "ravenclaude". So this file is safe in any fork/clone: the exemption
+# simply stays off there.
+#
+# It only has an effect once command review is turned on (per-category `thing: on`,
+# set point-and-click in /dashboard). With the Thing off this is a no-op; with it on,
+# an abstaining/inconclusive panel here defers to you (ASK) instead of failing closed
+# (DENY) — a panel abstain in this repo is a `claude -p` cold-start latency artifact,
+# not a security signal. The hard-rule floor (force-push, curl|sh), the self-disable
+# guard, the injection DENY, and the secret-egress backstop are all untouched.
+#
+# This intentionally seeds ONLY the exemption flag, not a permission baseline — this
+# repo's permission rules live in .claude/settings.json. Toggle command review and
+# tune anything else point-and-click in /dashboard (personal relaxations go in the
+# local layer, not here).
+schema_version: 5
+command_review:
+  dev_repo_exempt: true

@@ -16,6 +16,7 @@
     ".gitattributes",
     ".prettierrc.json",
     ".repo-layout.json",
+    ".ravenclaude/comfort-posture.yaml",
     ".claude-plugin/marketplace.json",
     ".claude/settings.json",
     ".claude/settings.local.json",
