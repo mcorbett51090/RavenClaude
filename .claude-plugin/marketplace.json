@@ -5,8 +5,8 @@
     "name": "Matt Corbett"
   },
   "metadata": {
-    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. A domain-neutral core (Team Lead + 14 specialist agents, 20 skills, hooks, the Capability Grounding Protocol, the Structured Output Protocol, and a comfort-posture permission dashboard) plus domain plugins that extend it via skills and knowledge. Every agent ships example-scenario frontmatter; the repo-guide surfaces an 'I want to…' use-case lookup across all plugins. Plugins: ravenclaude-core, power-platform (+ bundled pbix-mcp), finance, regulatory-compliance (+ BMA Bermuda specialist), web-design (WCAG/CWV/SEO), edtech-partner-success (PSM lane), data-platform (dashboard engagements), applied-statistics, microsoft-fabric (OneLake / Lakehouse / Warehouse / Real-Time Intelligence / Direct Lake), claude-app-engineering (Claude API / Agent SDK / MCP / evals / LLM FinOps), azure-cloud (landing zones / Bicep / Entra / networking / compute / FinOps), salesforce (Apex / Flow / Agentforce / sharing model / 2GP DevOps).",
-    "version": "0.30.0"
+    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. A domain-neutral core (Team Lead + 14 specialist agents, 20 skills, hooks, the Capability Grounding Protocol, the Structured Output Protocol, and a comfort-posture permission dashboard) plus domain plugins that extend it via skills and knowledge. Every agent ships example-scenario frontmatter; the repo-guide surfaces an 'I want to…' use-case lookup across all plugins. Plugins: ravenclaude-core, power-platform (+ bundled pbix-mcp), finance, regulatory-compliance, web-design (WCAG/CWV/SEO), edtech-partner-success (PSM lane), data-platform, applied-statistics, microsoft-fabric (OneLake / Lakehouse / Direct Lake), claude-app-engineering (Claude API / Agent SDK / MCP / evals), azure-cloud (landing zones / Bicep / Entra / networking / compute), salesforce (Apex / Flow / Agentforce / sharing model / 2GP DevOps), microsoft-365-copilot (declarative/custom-engine agents / Graph connectors / Purview).",
+    "version": "0.31.0"
   },
   "plugins": [
     {
@@ -271,6 +271,31 @@
         "sfdx",
         "data-cloud",
         "large-data-volume"
+      ]
+    },
+    {
+      "name": "microsoft-365-copilot",
+      "source": "./plugins/microsoft-365-copilot",
+      "description": "Microsoft 365 Copilot extensibility & administration team — 6 agents (copilot-extensibility-architect, declarative-agent-engineer, graph-connector-engineer, api-plugin-engineer, agents-sdk-engineer, copilot-admin-governance) covering declarative agents (pinned manifest schema + the 50/25/4096/45s hard-limit wall), custom-engine agents on the M365 Agents SDK/Toolkit, Copilot (Graph) connectors (synced vs federated/MCP, semantic labels, ACL trimming), API plugins (OpenAPI + Entra/OAuth2), the app-package publish lifecycle, and M365 Agent Registry + Purview DLP-for-Copilot governance. 9-doc citation-grounded knowledge bank (two Mermaid decision trees), 5 skills, 5 templates, 1 advisory hook (15 house opinions). Disjoint from power-platform's Copilot Studio low-code coverage (cross-linked). Seams: Copilot Studio → power-platform; CEA engine → claude-app-engineering; Entra/hosting → azure-cloud; security → ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "microsoft-365-copilot",
+        "copilot-extensibility",
+        "declarative-agent",
+        "custom-engine-agent",
+        "copilot-connector",
+        "graph-connector",
+        "api-plugin",
+        "agents-sdk",
+        "agents-toolkit",
+        "purview-dlp",
+        "agent-registry",
+        "data-residency",
+        "openapi",
+        "m365"
       ]
     }
   ]

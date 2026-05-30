@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for microsoft-365-copilot. Auto-merged with the consumer's session hooks when the plugin is installed.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-copilot-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: M365 Copilot house-opinion violations (unpinned declarative-agent manifest schema, instructions over the ~8000-char budget, connector schema property without semantic labels, org-data grounding doc missing a 'Licensing impact' line, RSS/RCD described as a security boundary). Advisory by default; set M365_COPILOT_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}
