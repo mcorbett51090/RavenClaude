@@ -233,15 +233,94 @@ def _fmt_rules(rules: list[str], cap: int = 6) -> str:
     return ", ".join(shown) + suffix
 
 
+# ── Recent runtime activity — DERIVED COUNTS ONLY from the event substrate ────
+# Reads the structured event substrate (hook-events.jsonl across recent run dirs,
+# posture-events.jsonl) and surfaces COUNTS + a date only — never the raw command,
+# path, or rule text (injection safety: a hostile path written into a deny event
+# must not flow into the banner as instructions). This is the impossible-to-miss
+# complement to the `check-runtime-state` best-practice: open every session aware
+# of "a guardrail denied N things; posture last changed on DATE", so the agent
+# consults Heimdall/Víðarr before repeating a denied action. Fail-silent.
+def summarize_runtime_activity(root: Path) -> dict | None:
+    rc = root / ".ravenclaude"
+    runs = rc / "runs"
+    deny = warn = 0
+    sessions_seen = 0
+    if runs.is_dir():
+        # Bound the work: newest ~20 run dirs by mtime (cheap, no full walk).
+        try:
+            run_dirs = sorted(
+                (d for d in runs.iterdir() if d.is_dir()),
+                key=lambda d: d.stat().st_mtime,
+                reverse=True,
+            )[:20]
+        except OSError:
+            run_dirs = []
+        for d in run_dirs:
+            log = d / "hook-events.jsonl"
+            if not log.is_file():
+                continue
+            sessions_seen += 1
+            try:
+                with log.open(encoding="utf-8") as fh:
+                    for line in fh:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            ev = json.loads(line)
+                        except Exception:
+                            continue
+                        if not isinstance(ev, dict):
+                            continue
+                        v = ev.get("verdict")
+                        if v == "deny":
+                            deny += 1
+                        elif v == "warn":
+                            warn += 1
+            except OSError:
+                continue
+
+    # Most-recent posture change: the max ts seen (a date string only).
+    last_posture = None
+    plog = rc / "posture-events.jsonl"
+    if plog.is_file():
+        try:
+            with plog.open(encoding="utf-8") as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        ev = json.loads(line)
+                    except Exception:
+                        continue
+                    ts = ev.get("ts") if isinstance(ev, dict) else None
+                    if isinstance(ts, str) and (last_posture is None or ts > last_posture):
+                        last_posture = ts
+        except OSError:
+            pass
+
+    if not (deny or warn or last_posture):
+        return None
+    return {
+        "deny": deny,
+        "warn": warn,
+        "sessions": sessions_seen,
+        "last_posture": last_posture,
+    }
+
+
 def build_banner(root: Path) -> str:
     surface = detect_surface(root)
     env_auth = detect_env_auth()
     cli_auth = detect_cli_auth()
     perms = summarize_permissions(root)
     envctx = summarize_env_context(root)
+    runtime = summarize_runtime_activity(root)
 
     # If we have nothing useful at all, emit nothing (don't inject an empty box).
-    if not (surface or env_auth or cli_auth or perms or (envctx and envctx.get("present"))):
+    if not (surface or env_auth or cli_auth or perms or (envctx and envctx.get("present")) or runtime):
         return ""
 
     lines: list[str] = []
@@ -289,6 +368,24 @@ def build_banner(root: Path) -> str:
     else:
         lines.append("  not present. Run the environment-discovery skill to map which environments")
         lines.append("  your detected credentials can reach and what they're authorized to do.")
+
+    if runtime:
+        lines.append("")
+        lines.append("RECENT GUARDRAIL ACTIVITY (counts only, from the event substrate):")
+        bits = []
+        if runtime["deny"]:
+            bits.append(f"{runtime['deny']} hook denial(s)")
+        if runtime["warn"]:
+            bits.append(f"{runtime['warn']} warning(s)")
+        across = f" across {runtime['sessions']} recent session(s)" if runtime["sessions"] else ""
+        if bits:
+            lines.append(f"  {', '.join(bits)}{across}.")
+        if runtime["last_posture"]:
+            lines.append(f"  posture last changed: {runtime['last_posture']}.")
+        lines.append(
+            "  Open the Heimdall (perimeter) / Víðarr (security log) dashboard tabs for "
+            "what fired and why before retrying a denied action or re-proposing a posture change."
+        )
 
     lines.append("</ravenclaude-capabilities>")
 
