@@ -166,7 +166,7 @@ flowchart TD
     Q2 -->|No, a one-off layout calc| CALC[Local calc/value — but its INPUTS are tokens]
     TOKEN --> Q3{Building many composite components needing a11y + theming?}
     Q3 -->|Yes, and Fluent/MS-aligned| FLUENT[Fluent UI v9: BrandVariants → createLightTheme/createDarkTheme]
-    Q3 -->|Yes, want full visual control| HEADLESS[Headless primitives (Radix/React Aria) + your token layer]
+    Q3 -->|Yes, want full visual control| HEADLESS["Headless primitives (Radix/React Aria) + your token layer"]
     Q3 -->|No, a few simple components| OWN[Hand-build on semantic tokens; no library tax]
 ```
 

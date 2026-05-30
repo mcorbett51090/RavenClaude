@@ -138,7 +138,7 @@ flowchart TD
 flowchart TD
     START[Query on a high-volume object] --> Q1{Filters on an indexed field? Id/Name/audit/lookup/extId/unique/custom-index}
     Q1 -->|NO| ADDIDX[Add a custom index or refilter on an indexed field]
-    Q1 -->|YES| Q2{Filter uses leading % wildcard or negative operator (!=, NOT, NOT IN)?}
+    Q1 -->|YES| Q2{"Filter uses leading % wildcard or negative operator (!=, NOT, NOT IN)?"}
     Q2 -->|YES| REWRITE[Rewrite as a positive, bounded predicate]
     Q2 -->|NO| Q3{Predicate selective enough to clear the optimizer threshold?}
     Q3 -->|NO| BOUND[Add a bounded date/status window to narrow the set]
@@ -184,7 +184,7 @@ flowchart TD
     START[Apex touching records] --> Q1{SOQL or DML inside a for/while loop — directly or via a called method?}
     Q1 -->|YES| HOIST[NOT bulk-safe — hoist the query/DML out of the loop]
     Q1 -->|NO| Q2{Correlating two collections with a nested loop?}
-    Q2 -->|YES| MAP[Replace with a Map keyed on the join field — O(1) lookup]
+    Q2 -->|YES| MAP["Replace with a Map keyed on the join field — O(1) lookup"]
     Q2 -->|NO| Q3{Queries collect IDs into a Set/Map first, query once?}
     Q3 -->|NO| HOIST
     Q3 -->|YES| Q4{DML issued once on a collection, not per record?}

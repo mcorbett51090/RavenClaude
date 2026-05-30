@@ -280,6 +280,7 @@ jobs:
           set -e
           python3 scripts/concepts.py --check
           python3 scripts/render-concepts.py --check
+          python3 scripts/render-trees.py --check
           python3 scripts/generate-concepts-doc.py --check
 
       - name: Marketplace self-description (required files, skill counts, doc rosters)

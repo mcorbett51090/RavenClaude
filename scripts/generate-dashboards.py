@@ -915,16 +915,30 @@ def _render_commands_tab() -> str:
 
 _DT_HEADER_RE = _re.compile(r"(?m)^##\s+Decision Tree:\s*(.+?)\s*$")
 _DT_WHEN_RE = _re.compile(r"\*\*When this applies:\*\*\s*(.+)")
+_DT_MERMAID_RE = _re.compile(r"```mermaid\s*\n(.*?)\n```", _re.DOTALL)
+_DT_NEXT_HEADER_RE = _re.compile(r"(?m)^##\s")
 _BP_STATUS_RE = _re.compile(r"(?mi)^\*\*Status:\*\*\s*(.+?)\s*$")
+_SLUG_STRIP_RE = _re.compile(r"[^a-z0-9]+")
+
+
+def _tree_slug(text: str) -> str:
+    """Stable, filesystem-safe slug from a tree title (id survives re-renders so
+    long as the title is stable). Lowercase, non-alnum → '-', trimmed, capped."""
+    s = _SLUG_STRIP_RE.sub("-", text.lower()).strip("-")
+    return s[:60] or "tree"
 
 
 def _decision_trees_inventory() -> list[dict]:
     """Discover canonical '## Decision Tree: <title>' sections across all plugins
-    (knowledge/ + skills/). Returns {owner, title, when, path} sorted by (owner, title)."""
+    (knowledge/ + skills/). Returns {id, owner, title, when, mermaid, path} sorted
+    by (owner, title). `id` is stable (owner + title slug, deduped) and `mermaid`
+    is the FIRST mermaid fence inside the section (empty string if none) — both are
+    consumed by render-trees.py to pre-render an inline SVG per tree."""
     out: list[dict] = []
     paths = sorted(PLUGINS_DIR.glob("*/knowledge/**/*.md")) + sorted(
         PLUGINS_DIR.glob("*/skills/**/*.md")
     )
+    seen_ids: dict[str, int] = {}
     for md in paths:
         try:
             owner = md.relative_to(PLUGINS_DIR).parts[0]
@@ -933,12 +947,23 @@ def _decision_trees_inventory() -> list[dict]:
             continue
         for m in _DT_HEADER_RE.finditer(text):
             title = m.group(1).strip()
-            wm = _DT_WHEN_RE.search(text[m.end():m.end() + 600])
+            # Section body = from this header to the next '## ' (or EOF).
+            nxt = _DT_NEXT_HEADER_RE.search(text, m.end())
+            section = text[m.end(): nxt.start() if nxt else len(text)]
+            wm = _DT_WHEN_RE.search(section[:600])
             when = wm.group(1).strip() if wm else ""
+            mm = _DT_MERMAID_RE.search(section)
+            mermaid = mm.group(1).strip() if mm else ""
+            base = f"{owner}--{_tree_slug(title)}"
+            n = seen_ids.get(base, 0)
+            seen_ids[base] = n + 1
+            tid = base if n == 0 else f"{base}-{n + 1}"
             out.append({
+                "id": tid,
                 "owner": owner,
                 "title": title,
                 "when": when,
+                "mermaid": mermaid,
                 "path": str(md.relative_to(REPO_ROOT)),
             })
     out.sort(key=lambda d: (d["owner"], d["title"].lower()))
@@ -999,9 +1024,31 @@ def _best_practices_inventory() -> list[dict]:
     return out
 
 
+# Pre-rendered decision-tree SVGs (scripts/render-trees.py). Loaded lazily + cached
+# so the generator stays fast when the dir is absent (graceful: no diagram, just
+# the source link). Path mirrors render-trees.py VISUALS_DIR.
+TREE_VISUALS_DIR = PLUGINS_DIR / "ravenclaude-core" / "knowledge" / "tree-visuals"
+_TREE_SVG_CACHE: dict[str, str] = {}
+
+
+def _load_tree_svg(tree_id: str) -> str:
+    """Return the committed, themed SVG for a tree id, or '' if not rendered yet."""
+    if tree_id in _TREE_SVG_CACHE:
+        return _TREE_SVG_CACHE[tree_id]
+    svg_path = TREE_VISUALS_DIR / f"{tree_id}.svg"
+    try:
+        svg = svg_path.read_text(encoding="utf-8")
+    except OSError:
+        svg = ""
+    _TREE_SVG_CACHE[tree_id] = svg
+    return svg
+
+
 def _render_trees_tab() -> str:
     """Marketplace-wide Guidance tab: every plugin's decision trees + best practices.
-    Static (build-time embed) — no server needed, works on any host."""
+    Static (build-time embed) — no server needed, works on any host. Each tree's
+    pre-rendered SVG (scripts/render-trees.py) is inlined inside a native <details>
+    so it expands without JS and stays collapsed (page-weight-friendly) by default."""
     trees = _decision_trees_inventory()
     practices = _best_practices_inventory()
     owners = sorted({t["owner"] for t in trees} | {p["owner"] for p in practices})
@@ -1024,17 +1071,30 @@ def _render_trees_tab() -> str:
     for owner in owners:
         ot = [t for t in trees if t["owner"] == owner]
         op = [p for p in practices if p["owner"] == owner]
-        tree_items = "".join(
-            '<li class="guide-item"><a href="../../{path}" class="guide-link">'
-            "<span class=\"guide-kind guide-kind-tree\">tree</span>"
-            "<span class=\"guide-title\">{title}</span></a>"
-            '{when}</li>'.format(
-                path=html.escape(t["path"]),
-                title=html.escape(t["title"]),
-                when=(f'<p class="guide-when">{html.escape(t["when"])}</p>' if t["when"] else ""),
+        tree_parts = []
+        for t in ot:
+            link = (
+                '<a href="../../{path}" class="guide-link">'
+                '<span class="guide-kind guide-kind-tree">tree</span>'
+                '<span class="guide-title">{title}</span></a>'.format(
+                    path=html.escape(t["path"]), title=html.escape(t["title"])
+                )
             )
-            for t in ot
-        )
+            when = f'<p class="guide-when">{html.escape(t["when"])}</p>' if t["when"] else ""
+            svg = _load_tree_svg(t["id"])
+            if svg:
+                # Native <details> — opens without JS, collapsed by default so the
+                # page stays light with 150+ inlined diagrams. SVG is pre-themed.
+                diagram = (
+                    '<details class="guide-tree-diagram">'
+                    '<summary class="guide-tree-summary">Diagram</summary>'
+                    f'<div class="guide-tree-svg">{svg}</div>'
+                    "</details>"
+                )
+            else:
+                diagram = ""
+            tree_parts.append(f'<li class="guide-item">{link}{when}{diagram}</li>')
+        tree_items = "".join(tree_parts)
         bp_parts = []
         for idx, p in enumerate(op):
             pid = f"bp-prev-{html.escape(p['owner'])}-{idx}"
@@ -3556,6 +3616,31 @@ footer.page-footer a:hover { text-decoration: underline; }
 .guide-kind-bp { background: var(--surface-2); color: var(--muted); }
 .guide-title { font-size: 14px; }
 .guide-when { margin: 2px 0 0 56px; font-size: 12px; color: var(--muted); max-width: 70ch; }
+/* Inline decision-tree diagram (pre-rendered SVG, collapsed by default) */
+.guide-tree-diagram { margin: 6px 0 0 56px; }
+.guide-tree-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--accent);
+  list-style: none;
+  user-select: none;
+}
+.guide-tree-summary::-webkit-details-marker { display: none; }
+.guide-tree-summary::before { content: "▸"; font-size: 10px; transition: transform 0.12s; }
+.guide-tree-diagram[open] .guide-tree-summary::before { transform: rotate(90deg); }
+.guide-tree-svg {
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+.guide-tree-svg svg { max-width: 100%; height: auto; }
 .cmd-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

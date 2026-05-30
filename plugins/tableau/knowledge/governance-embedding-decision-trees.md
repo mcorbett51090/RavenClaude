@@ -117,7 +117,7 @@ flowchart TD
 flowchart TD
     START[Embed a viz in an external/host app] --> Q1{Is the data public — same view for everyone, no row restriction, no login?}
     Q1 -->|YES — truly public data| LEAF_C[Public/anon embed — no per-user auth, no RLS]
-    Q1 -->|NO — per-user or restricted| Q2{Does the host app already federate identity via your IdP (SAML/OIDC)?}
+    Q1 -->|NO — per-user or restricted| Q2{"Does the host app already federate identity via your IdP (SAML/OIDC)?"}
     Q2 -->|YES — and seamless SSO into Tableau is acceptable| LEAF_B[SAML/IdP SSO embed — IdP-initiated session]
     Q2 -->|NO, or you want app-controlled, short-lived tokens| LEAF_A[Connected App + signed JWT via Embedding API v3]
     LEAF_A --> NOTE[Bind the JWT subject/scope to the RLS entitlement key]

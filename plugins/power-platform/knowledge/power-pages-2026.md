@@ -17,7 +17,7 @@ flowchart TD
     D -->|Yes, and want managed auth + hosting + security| PP{How custom is the UI/UX?}
     D -->|No — marketing/content/app, non-Dataverse data| CW[Custom React/Fluent site<br/>→ web-design + azure-cloud host]
     PP -->|Low-code, forms/lists over Dataverse| PPLC[Power Pages design studio<br/>pages + data workspace + Liquid]
-    PP -->|Highly interactive / bespoke UX| PPSPA[Power Pages + React SPA (GA 2026)<br/>bring-your-own React/Fluent, hosted on Power Pages]
+    PP -->|Highly interactive / bespoke UX| PPSPA["Power Pages + React SPA (GA 2026)<br/>bring-your-own React/Fluent, hosted on Power Pages"]
     CW --> WD[web-design builds it; azure-cloud / Static Web Apps hosts it; Entra External ID for CIAM]
 ```
 

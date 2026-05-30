@@ -1182,6 +1182,25 @@ cp -p "$TMP/plugins_ravenclaude-core_knowledge_concepts_visuals_.render-manifest
 rc=0; python3 scripts/render-concepts.py --check >/dev/null 2>&1 || rc=$?
 gate "render-concepts SVG sync (clean tree)" must_pass "$rc"
 
+# render-trees.py: a committed decision-tree SVG out of sync with its diagram
+# source (simulated by mutating a hash in the tree render manifest). CI-safe:
+# --check reads the source-hash manifest, never launches Chromium.
+TMAN=plugins/ravenclaude-core/knowledge/tree-visuals/.render-manifest.json
+backup "$TMAN"
+python3 - <<'PY'
+import json
+p = "plugins/ravenclaude-core/knowledge/tree-visuals/.render-manifest.json"
+d = json.load(open(p))
+k = sorted(d["trees"])[0]
+d["trees"][k] = "0" * 64
+open(p, "w").write(json.dumps(d, indent=2, sort_keys=True, ensure_ascii=False) + "\n")
+PY
+rc=0; python3 scripts/render-trees.py --check >/dev/null 2>&1 || rc=$?
+gate "render-trees SVG sync (mutated manifest)" must_fail "$rc"
+cp -p "$TMP/plugins_ravenclaude-core_knowledge_tree-visuals_.render-manifest.json.bak" "$TMAN"
+rc=0; python3 scripts/render-trees.py --check >/dev/null 2>&1 || rc=$?
+gate "render-trees SVG sync (clean tree)" must_pass "$rc"
+
 # generate-concepts-doc.py: a stale committed docs/concepts.md.
 backup docs/concepts.md
 printf '\nstale fixture line\n' >> docs/concepts.md

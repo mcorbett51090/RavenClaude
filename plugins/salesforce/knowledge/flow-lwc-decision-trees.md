@@ -153,9 +153,9 @@ graph TD
   B -->|Yes| Z[Often no message — both wire getRecord, share LDS cache]
   B -->|No| C{In the same parent/child tree?}
   C -->|Yes| D{Which direction?}
-  D -->|Parent to child: data| P[**@api** public property]
+  D -->|Parent to child: data| P["**@api** public property"]
   D -->|Child to parent: notify| EV[CustomEvent — events up]
-  D -->|Parent calls child behavior| M[**@api** public method on child]
+  D -->|Parent calls child behavior| M["**@api** public method on child"]
   C -->|No common ancestor / different regions| LMS[Lightning Message Service]
 ```
 
