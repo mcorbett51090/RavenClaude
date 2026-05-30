@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude \u2014 a private marketplace of opinionated Claude Code plugins. A domain-neutral core (Team Lead + 14 specialist agents, 20 skills, hooks, the Capability Grounding Protocol, the Structured Output Protocol, and a comfort-posture permission dashboard) plus domain plugins that extend it via skills and knowledge. Every agent ships example-scenario frontmatter; the repo-guide surfaces an 'I want to\u2026' use-case lookup across all plugins. Plugins: ravenclaude-core, power-platform (+ bundled pbix-mcp), finance, regulatory-compliance, web-design (WCAG/CWV/SEO), edtech-partner-success (PSM lane), data-platform, applied-statistics, microsoft-fabric (OneLake / Lakehouse / Direct Lake), claude-app-engineering (Claude API / Agent SDK / MCP / evals), azure-cloud (landing zones / Bicep / Entra / networking / compute), salesforce (Apex / Flow / Agentforce / sharing model / 2GP DevOps), microsoft-365-copilot (declarative/custom-engine agents / Graph connectors / Purview).",
-    "version": "0.36.0"
+    "version": "0.37.0"
   },
   "plugins": [
     {
@@ -133,7 +133,7 @@
       "name": "data-platform",
       "source": "./plugins/data-platform",
       "description": "Data-platform team \u2014 4 specialist agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) that guide cloud-database setup, ELT pipelines (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4 / Shopify / HRIS, and interactive dashboards (Evidence.dev / Superset / Metabase / Cube + Tremor) embedded in marketing sites and client apps. 11 skills \u2014 three invoked by ravenclaude-core/security-reviewer, one by its architect \u2014 implementing the house rule 'domain plugins extend core via skills, not parallel agents'. 12 templates, 1 advisory hook, and a 13-doc knowledge bank (landscape, RLS, QuickBooks, Power BI Embedded, plus per-connector deep-dives). Opinionated against per-viewer-priced BI tools (Looker / Tableau / Sigma) for SMB consulting; requires ravenclaude-core@>=0.7.0.",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -182,7 +182,7 @@
       "name": "microsoft-fabric",
       "source": "./plugins/microsoft-fabric",
       "description": "Microsoft Fabric specialist team \u2014 7 agents (fabric-architect, lakehouse-engineer, warehouse-engineer, data-factory-engineer, realtime-intelligence-engineer, fabric-semantic-model-engineer, fabric-admin) covering OneLake, Lakehouse (Spark/Delta/medallion/materialized lake views), Warehouse (T-SQL/ACID), Data Factory (mirroring/copy-job/dataflow-gen2/pipelines), Real-Time Intelligence (Eventstream/Eventhouse/KQL/Activator), Direct Lake semantic models, and platform admin (capacity FinOps, OneLake security, domains, Purview, ALM). 9-doc citation-grounded knowledge bank (two Mermaid decision trees + a dated 2026 capability map), 6 templates, 1 advisory hook (14 house opinions). Seams: enterprise Microsoft/Fabric here vs non-Microsoft/SMB embedded to data-platform; Fabric storage + Direct Lake here vs standalone Power BI/.pbix to power-platform/power-bi-engineer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -206,7 +206,7 @@
       "name": "claude-app-engineering",
       "source": "./plugins/claude-app-engineering",
       "description": "Claude app-engineering specialist team \u2014 6 agents (claude-solution-architect, prompt-and-context-engineer, mcp-and-server-tools-engineer, agent-sdk-engineer, eval-engineer, claude-app-ops-engineer) for building production applications on the Claude API, the Claude Agent SDK, and MCP. Covers the build-surface decision (Messages API / Agent SDK / Managed Agents), model right-sizing (Opus 4.7 / Sonnet 4.6 / Haiku 4.5, 1M context), prompt caching, tool use + structured output, MCP server authoring + Anthropic-hosted server tools (computer use, code execution, Files API, memory), evals (golden sets, LLM-as-judge), and FinOps + reliability (batch, model routing, backoff, observability). 13-doc dated-and-cited knowledge bank, 6 templates, 1 advisory hook (14 house opinions). Seams: prompt-as-artifact, security, and cross-domain architecture escalate to ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -228,7 +228,7 @@
       "name": "azure-cloud",
       "source": "./plugins/azure-cloud",
       "description": "Azure cloud infrastructure & platform specialist team \u2014 7 agents (azure-architect, bicep-iac-engineer, entra-identity-engineer, network-engineer, app-platform-engineer, integration-engineer, azure-ops-engineer) for the Azure layer under the Microsoft stack: landing zones / CAF, IaC (Bicep + Terraform + Azure Verified Modules + Deployment Stacks), Entra identity (managed identity, workload identity federation, RBAC, PIM, External ID), networking (Private Endpoints, hub-spoke, Front Door, WAF), compute selection (App Service / Container Apps / Functions / AKS), integration (Logic Apps, Service Bus, Event Grid, APIM), and observability + FinOps + governance. 10-doc dated knowledge bank (two Mermaid decision trees + a 2026 capability map), 6 templates, 1 advisory hook (16 house opinions). Seams: Logic Apps here vs Power Automate to power-platform; Fabric data to microsoft-fabric; Azure host here vs Claude app to claude-app-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -277,7 +277,7 @@
       "name": "microsoft-365-copilot",
       "source": "./plugins/microsoft-365-copilot",
       "description": "Microsoft 365 Copilot extensibility & administration team \u2014 6 agents (copilot-extensibility-architect, declarative-agent-engineer, graph-connector-engineer, api-plugin-engineer, agents-sdk-engineer, copilot-admin-governance) covering declarative agents (pinned manifest schema + the 50/25/4096/45s hard-limit wall), custom-engine agents on the M365 Agents SDK/Toolkit, Copilot (Graph) connectors (synced vs federated/MCP, semantic labels, ACL trimming), API plugins (OpenAPI + Entra/OAuth2), the app-package publish lifecycle, and M365 Agent Registry + Purview DLP-for-Copilot governance. 9-doc citation-grounded knowledge bank (two Mermaid decision trees), 5 skills, 5 templates, 1 advisory hook (15 house opinions). Disjoint from power-platform's Copilot Studio low-code coverage (cross-linked). Seams: Copilot Studio \u2192 power-platform; CEA engine \u2192 claude-app-engineering; Entra/hosting \u2192 azure-cloud; security \u2192 ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
