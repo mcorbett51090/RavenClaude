@@ -387,6 +387,112 @@ def _read_hook_events(runs_dir: Path, days: int = 30, per_hook: int = 10) -> dic
     }
 
 
+# Víðarr — which hook denials count as SECURITY events (vs. operational noise).
+# Posture-events are always security-relevant; among hook-events only the deny
+# verdicts are (a warn is advisory — it lives in Heimdall's grey tier, not the
+# security audit log).
+def _vidarr_hook_is_security(ev: dict) -> bool:
+    """A hook event belongs in the security log iff it is a deny verdict.
+    (destructive-pattern, off-allow-list, forbidden-pattern, task-scope, … —
+    every deny is a security-relevant block; warns are excluded.)"""
+    return ev.get("verdict") == "deny"
+
+
+def _read_vidarr_events(runs_dir: Path, posture_log: Path, days: int = 30) -> dict:
+    """Build the Víðarr posture/security event log: posture changes
+    (`posture-events.jsonl`) interleaved with security-relevant hook denials
+    (`hook-events.jsonl`, deny-only), normalized to one chronological shape and
+    sorted newest-first. Read-only mirror — surfaces what the substrate emitted.
+
+    Each returned event has: {ts, kind, category, summary, source} where `kind`
+    is "posture-change" | "security-deny". Reads only under the given paths (no
+    root reference) so this is byte-identical in the root and bundled plugin
+    server — keep the two copies in sync (the parity gate guards endpoint NAMES;
+    this helper is duplicated, so edit both). Tolerant of torn lines / missing ts.
+    """
+    import datetime as _dt
+
+    cutoff = _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=days)
+
+    def _in_window(ts: str) -> bool:
+        try:
+            parsed = _dt.datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ").replace(
+                tzinfo=_dt.timezone.utc
+            )
+            return parsed >= cutoff
+        except (ValueError, TypeError):
+            return True
+
+    def _iter_jsonl(path: Path):
+        try:
+            with path.open(encoding="utf-8") as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        obj = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if isinstance(obj, dict):
+                        yield obj
+        except OSError:
+            return
+
+    events: list[dict] = []
+
+    # Posture changes — every one is security-relevant. Summarize the diff.
+    if posture_log.is_file():
+        for ev in _iter_jsonl(posture_log):
+            ts = ev.get("ts", "")
+            if not _in_window(ts):
+                continue
+            sd = ev.get("security_deny_diff") or {}
+            ov = ev.get("override_diff") or {}
+            parts = []
+            for label, diff in (("deny", sd), ("override", ov)):
+                added = diff.get("added") or []
+                removed = diff.get("removed") or []
+                if added:
+                    parts.append(f"+{len(added)} {label}")
+                if removed:
+                    parts.append(f"-{len(removed)} {label}")
+            events.append(
+                {
+                    "ts": ts,
+                    "kind": "posture-change",
+                    "category": ev.get("scope", ""),
+                    "summary": ", ".join(parts) or "posture re-applied",
+                    "source": ev.get("source", "unknown"),
+                }
+            )
+
+    # Security-relevant hook denials.
+    if runs_dir.is_dir():
+        for log in sorted(runs_dir.glob("*/hook-events.jsonl")):
+            for ev in _iter_jsonl(log):
+                ts = ev.get("ts", "")
+                if not _in_window(ts) or not _vidarr_hook_is_security(ev):
+                    continue
+                events.append(
+                    {
+                        "ts": ts,
+                        "kind": "security-deny",
+                        "category": ev.get("hook", ""),
+                        "summary": (ev.get("rule", "") or "deny")
+                        + (f" · {ev.get('path')}" if ev.get("path") else ""),
+                        "source": ev.get("tool", "") or "hook",
+                    }
+                )
+
+    events.sort(key=lambda e: e.get("ts", ""), reverse=True)
+    return {
+        "events": events,
+        "total": len(events),
+        "window_days": days,
+    }
+
+
 class DashboardHandler(SimpleHTTPRequestHandler):
     """SimpleHTTPRequestHandler + POST /__save for dashboard writes."""
 
@@ -412,7 +518,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         return True
 
     def do_HEAD(self):
-        if self.path in ("/__save", "/__run", "/__classify") or self.path.startswith("/__read") or self.path.startswith("/__saga") or self.path.startswith("/__heimdall") or self.path.startswith("/__runs"):
+        if self.path in ("/__save", "/__run", "/__classify") or self.path.startswith("/__read") or self.path.startswith("/__saga") or self.path.startswith("/__heimdall") or self.path.startswith("/__vidarr") or self.path.startswith("/__runs"):
             self.send_response(200)
             self.send_header("Allow", "GET, POST, HEAD")
             self.send_header("Content-Length", "0")
@@ -442,6 +548,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if self.path.startswith("/__heimdall"):
             self._handle_heimdall()
+            return
+        if self.path.startswith("/__vidarr"):
+            self._handle_vidarr()
             return
         if self.path.startswith("/__runs"):
             self._handle_runs()
@@ -634,6 +743,26 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         except (ValueError, TypeError):
             days = 30
         self._json(200, _read_hook_events(REPO_ROOT / ".ravenclaude" / "runs", days=days))
+
+    def _handle_vidarr(self):
+        """GET /__vidarr[?days=N] — the Víðarr Security-log tab. Interleaves
+        posture changes (.ravenclaude/posture-events.jsonl) with security-relevant
+        hook denials (.ravenclaude/runs/*/hook-events.jsonl, deny-only) into one
+        newest-first chronological log. Read-only; same Origin/Host CSRF guard as
+        /__read. (Mirror of the bundled plugin server's /__vidarr with REPO_ROOT →
+        PROJECT_ROOT — kept in lockstep per the dashboard-server-parity gate.)"""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        from urllib.parse import urlparse, parse_qs
+
+        qs = parse_qs(urlparse(self.path).query)
+        try:
+            days = max(1, min(36500, int((qs.get("days") or ["30"])[0])))
+        except (ValueError, TypeError):
+            days = 30
+        rc = REPO_ROOT / ".ravenclaude"
+        self._json(200, _read_vidarr_events(rc / "runs", rc / "posture-events.jsonl", days=days))
 
     def do_OPTIONS(self):
         if self.path in ("/__save", "/__run"):
