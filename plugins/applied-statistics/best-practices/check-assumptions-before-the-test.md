@@ -47,7 +47,7 @@ Report which checks were run and their result on the Output Contract's `Assumpti
 
 - [`../knowledge/test-selection-decision-tree.md`](../knowledge/test-selection-decision-tree.md) — the decision tree, the parametric ↔ nonparametric fallback table, and the assumption gate this codifies.
 - [`../knowledge/statistical-pitfalls.md`](../knowledge/statistical-pitfalls.md) — pitfall #7 (assumption violations) and the multiple-comparisons guidance for the post-hoc step.
-- [`./report-effect-size-not-just-p.md`](./report-effect-size-not-just-p.md) — the companion rule on what to report once the test is valid.
+- [`./effect-size-and-ci-not-bare-p.md`](./effect-size-and-ci-not-bare-p.md) — the companion rule on what to report once the test is valid.
 - [`../agents/applied-statistician.md`](../agents/applied-statistician.md) — "never hand over a parametric test without its assumption check and its named nonparametric fallback".
 
 ## Provenance
