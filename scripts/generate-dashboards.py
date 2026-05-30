@@ -140,6 +140,7 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         activity_html=_render_activity_tab(),
         heimdall_html=_render_heimdall_tab(),
         vidarr_html=_render_vidarr_tab(),
+        norns_html=_render_norns_tab(),
         pipeline_html=_render_pipeline_tab(),
         schema_json=json.dumps(schema, indent=2),
         heimdall_json=json.dumps(
@@ -243,6 +244,19 @@ def _render_vidarr_tab() -> str:
     returns a static skeleton the JS hydrates on open.
     """
     return _VIDARR_TAB_TEMPLATE
+
+
+def _render_norns_tab() -> str:
+    """Render the 'Lineage' (Norns) tab — a read-only three-column past/present/
+    future view (Urðr / Verðandi / Skuld) for the core plugin.
+
+    Data is fetched from /__norns (served-only — it reads live git log + scenario
+    events.jsonl, which vary by clone depth and so must NOT be inlined at
+    generator time or they would break the exact-match dashboard freshness gate).
+    On a static host the tab degrades to an honest empty state. The fetch/render
+    logic lives in _JS; this returns a static skeleton the JS hydrates on open.
+    """
+    return _NORNS_TAB_TEMPLATE
 
 
 def _render_activity_tab() -> str:
@@ -4457,6 +4471,31 @@ footer.page-footer a:hover { text-decoration: underline; }
 .vidarr-kind--security-deny  { background: #ef444420; color: var(--danger); border: 1px solid var(--danger); }
 .vidarr-row--security-deny td:nth-child(1) { border-left: 3px solid var(--danger); }
 
+/* ── Norns tab — plugin lineage, three columns (reuses .saga-hdr/.saga-empty) ── */
+.norns-layout { padding: 20px; }
+.norns-legend { margin: 0 20px 14px; font-size: 13px; color: var(--text); }
+.norns-sub { color: var(--muted); font-size: 0.9em; font-weight: 400; }
+.norns-cols {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px; padding: 0 20px 20px;
+}
+.norns-col {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px;
+}
+.norns-col h3 { margin: 0 0 12px; font-size: 15px; color: var(--text); }
+.norns-grouphdr {
+  margin: 12px 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--muted); font-weight: 700;
+}
+.norns-grouphdr:first-child { margin-top: 0; }
+.norns-itemlist { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 3px; }
+.norns-itemlist li { font-size: 12px; font-family: var(--font-mono); color: var(--text); word-break: break-word; }
+.norns-dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
+.norns-dl dt { font-size: 12px; color: var(--muted); }
+.norns-dl dd { margin: 0; font-size: 12px; font-family: var(--font-mono); color: var(--text); }
+.norns-nextver { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--accent); }
+
 /* ── Review log: plain-language reason + expandable decision panel ── */
 .saga-reason {
   font-size: 12px; color: var(--text); line-height: 1.45;
@@ -4754,6 +4793,31 @@ _VIDARR_TAB_TEMPLATE = """
   </div>
   <div id="vidarr-content">
     <div class="saga-empty" id="vidarr-loading"><p>Loading security log&hellip;</p></div>
+  </div>
+</div>
+""".strip()
+
+_NORNS_TAB_TEMPLATE = """
+<div class="norns-layout">
+  <div class="saga-hdr">
+    <h2><span aria-hidden="true">&#127795;</span> Lineage</h2>
+    <button type="button" class="saga-refresh" id="norns-refresh-btn">Refresh</button>
+  </div>
+  <p class="activity-intro">Plugin lineage <em>(The Norns)</em> for <code>ravenclaude-core</code> &mdash; past, present, and proposed future, drawn live from git history, surfaced scenarios, and the manifest.</p>
+  <p class="norns-legend">Urðr <span class="norns-sub">(Lessons &amp; history)</span> &middot; Verðandi <span class="norns-sub">(Current)</span> &middot; Skuld <span class="norns-sub">(Proposed)</span></p>
+  <div class="norns-cols">
+    <section class="norns-col" aria-labelledby="norns-urdr-h">
+      <h3 id="norns-urdr-h">Urðr <span class="norns-sub">Lessons &amp; history</span></h3>
+      <div id="norns-urdr"><div class="saga-empty"><p>Loading&hellip;</p></div></div>
+    </section>
+    <section class="norns-col" aria-labelledby="norns-verdandi-h">
+      <h3 id="norns-verdandi-h">Verðandi <span class="norns-sub">Current</span></h3>
+      <div id="norns-verdandi"><div class="saga-empty"><p>Loading&hellip;</p></div></div>
+    </section>
+    <section class="norns-col" aria-labelledby="norns-skuld-h">
+      <h3 id="norns-skuld-h">Skuld <span class="norns-sub">Proposed</span></h3>
+      <div id="norns-skuld"><div class="saga-empty"><p>Loading&hellip;</p></div></div>
+    </section>
   </div>
 </div>
 """.strip()
@@ -6477,7 +6541,7 @@ _JS = r"""
   });
 
   /* ── Tab routing ─────────────────────────────────────────────────── */
-  const validTabs = ["overview", "settings", "pipeline", "install", "simulator", "learn", "saga", "commands", "trees", "activity", "heimdall", "vidarr"];
+  const validTabs = ["overview", "settings", "pipeline", "install", "simulator", "learn", "saga", "commands", "trees", "activity", "heimdall", "vidarr", "norns"];
   function openConcept(id) {
     const card = document.getElementById("learn-" + id);
     if (!card) return;
@@ -6513,6 +6577,7 @@ _JS = r"""
   let activityLoaded = false;
   let heimdallLoaded = false;
   let vidarrLoaded = false;
+  let nornsLoaded = false;
   let vidarrEvents = [];
   let vidarrKindFilter = "all";
   let activityRecords = [];
@@ -6539,6 +6604,7 @@ _JS = r"""
     if (tab === "activity" && !activityLoaded) loadActivity();
     if (tab === "heimdall" && !heimdallLoaded) loadHeimdall();
     if (tab === "vidarr" && !vidarrLoaded) loadVidarr();
+    if (tab === "norns" && !nornsLoaded) loadNorns();
     if (tab === "pipeline") syncPipelineTab();
   }
   document.querySelectorAll(".tab-btn").forEach(b => {
@@ -7431,6 +7497,126 @@ _JS = r"""
     });
   }
 
+  /* ── Norns — read-only plugin lineage (Urðr / Verðandi / Skuld) ─────────
+   * Three columns drawn live from /__norns (git log + scenario events + the
+   * manifest). Served-only — git/scenario data varies by clone depth so it is
+   * NEVER inlined into the committed HTML (that would break the freshness gate).
+   * On a static host the columns degrade to an honest empty state. */
+  function nornsList(items, emptyText, fmt) {
+    const wrap = document.createElement("div");
+    if (!items || items.length === 0) {
+      wrap.appendChild(hmEmpty(emptyText));
+      return wrap;
+    }
+    const ul = document.createElement("ul");
+    ul.className = "norns-itemlist";
+    for (const it of items) {
+      const li = document.createElement("li");
+      li.textContent = fmt ? fmt(it) : String(it);
+      ul.appendChild(li);
+    }
+    wrap.appendChild(ul);
+    return wrap;
+  }
+
+  function renderNornsUrdr(urdr) {
+    const host = document.getElementById("norns-urdr");
+    if (!host) return;
+    urdr = urdr || {};
+    const frag = document.createDocumentFragment();
+    const sc = document.createElement("h4");
+    sc.className = "norns-grouphdr";
+    sc.textContent = "Surfaced scenarios";
+    frag.append(sc, nornsList((urdr.scenarios || []).map((s) => s.scenario_path || ""), "No surfaced scenarios in scope.", (p) => p.split("/").pop()));
+    const dc = document.createElement("h4");
+    dc.className = "norns-grouphdr";
+    dc.textContent = "Decisions";
+    frag.append(dc, nornsList(urdr.decisions || [], "No decision-log entries."));
+    const cm = document.createElement("h4");
+    cm.className = "norns-grouphdr";
+    cm.textContent = "Recent commits";
+    frag.append(cm, nornsList(urdr.commits || [], "No commits in scope (or git unavailable)."));
+    host.replaceChildren(frag);
+  }
+
+  function renderNornsVerdandi(v) {
+    const host = document.getElementById("norns-verdandi");
+    if (!host) return;
+    v = v || {};
+    const rows = [
+      ["Version", v.version || "—"],
+      ["Active hooks", String(v.hooks != null ? v.hooks : "—")],
+      ["Active rules", String(v.rules != null ? v.rules : "—")],
+      ["Last release", v.last_release || "—"],
+    ];
+    const dl = document.createElement("dl");
+    dl.className = "norns-dl";
+    for (const [k, val] of rows) {
+      const dt = document.createElement("dt");
+      dt.textContent = k;
+      const dd = document.createElement("dd");
+      dd.textContent = val;
+      dl.append(dt, dd);
+    }
+    host.replaceChildren(dl);
+  }
+
+  function renderNornsSkuld(s) {
+    const host = document.getElementById("norns-skuld");
+    if (!host) return;
+    s = s || {};
+    /* Gated empty state: no plugin declares next_version yet (P0.1 not shipped). */
+    if (!s.next_version && (!s.roadmap || s.roadmap.length === 0) && (!s.proposals || s.proposals.length === 0)) {
+      host.replaceChildren(
+        hmEmpty("No proposed version. Add a next_version field to this plugin's plugin.json to populate Skuld."),
+      );
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    if (s.next_version) {
+      const p = document.createElement("p");
+      p.className = "norns-nextver";
+      p.textContent = "Proposed version: " + s.next_version;
+      frag.appendChild(p);
+    }
+    if (s.roadmap && s.roadmap.length) {
+      const h = document.createElement("h4");
+      h.className = "norns-grouphdr";
+      h.textContent = "Roadmap";
+      frag.append(h, nornsList(s.roadmap, "—"));
+    }
+    const ph = document.createElement("h4");
+    ph.className = "norns-grouphdr";
+    ph.textContent = "Open proposals";
+    frag.append(ph, nornsList(s.proposals || [], "No proposals reference this plugin."));
+    host.replaceChildren(frag);
+  }
+
+  async function loadNorns() {
+    nornsLoaded = true;
+    try {
+      const res = await fetch("/__norns?plugin=ravenclaude-core");
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      renderNornsUrdr(data.urdr);
+      renderNornsVerdandi(data.verdandi);
+      renderNornsSkuld(data.skuld);
+    } catch (e) {
+      nornsLoaded = false; /* allow retry on next visit */
+      const served = await probeReadEndpoint();
+      const msg = served
+        ? ["Could not reach /__norns. Is the server running?", "python3 scripts/serve-dashboards.py"]
+        : ["Plugin lineage needs the served dashboard — open it via", "rc dashboard"];
+      for (const id of ["norns-urdr", "norns-verdandi", "norns-skuld"]) {
+        const host = document.getElementById(id);
+        if (host) host.replaceChildren(hmEmpty(msg[0], msg[1]));
+      }
+    }
+  }
+
+  const nornsRefBtn = document.getElementById("norns-refresh-btn");
+  if (nornsRefBtn) nornsRefBtn.addEventListener("click", () => { nornsLoaded = false; loadNorns(); });
+
   /* ── Hydrate command-review config from the committed YAML ──────────── */
   /* When the page is served by scripts/serve-dashboards.py, the committed
    * .ravenclaude/comfort-posture.yaml is the source of truth — it OVERRIDES
@@ -7779,6 +7965,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <button class="tab-btn" data-tab="activity" role="tab" aria-selected="false">Activity</button>
     <button class="tab-btn" data-tab="heimdall" role="tab" aria-selected="false">Heimdall</button>
     <button class="tab-btn" data-tab="vidarr" role="tab" aria-selected="false">Security log</button>
+    <button class="tab-btn" data-tab="norns" role="tab" aria-selected="false">Lineage</button>
   </nav>
 </header>
 
@@ -7818,6 +8005,9 @@ _PAGE_TEMPLATE = """<!doctype html>
   </section>
   <section class="tab-panel" data-tab="vidarr" role="tabpanel" aria-label="Security log">
 {vidarr_html}
+  </section>
+  <section class="tab-panel" data-tab="norns" role="tabpanel" aria-label="Plugin lineage">
+{norns_html}
   </section>
 </main>
 
