@@ -4435,6 +4435,14 @@ footer.page-footer a:hover { text-decoration: underline; }
 .gjallarhorn--red   { background: var(--danger); color: #fff; }
 .gjallarhorn--amber { background: var(--warn);   color: #1a1205; }
 .gjallarhorn--grey  { background: var(--surface-2); color: var(--text); border-bottom: 1px solid var(--border); }
+/* Níðhöggr "Debt watch" card (lives inside the Heimdall grid). */
+.heimdall-card--wide { grid-column: 1 / -1; }
+.heimdall-card--wide #heimdall-debt { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.nid-section { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+.nid-hdr { margin: 0 0 6px; font-size: 12px; font-weight: 700; color: var(--text); }
+.nid-clean { margin: 0; font-size: 12px; color: var(--accent); }
+.nid-list { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 3px; }
+.nid-list li { font-size: 11.5px; font-family: var(--font-mono); color: var(--text); word-break: break-word; }
 
 /* ── Víðarr tab — posture/security event log (reuses .saga-hdr/.saga-empty) ── */
 .vidarr-layout { padding: 20px; }
@@ -4764,6 +4772,13 @@ _HEIMDALL_TAB_TEMPLATE = """
       <h3 id="hm-alarm-h">Active alarms (Gjallarhorn)</h3>
       <p class="heimdall-sub">The highest-severity signal currently flagged.</p>
       <div id="heimdall-alarm"></div>
+    </section>
+    <section class="heimdall-card heimdall-card--wide" aria-labelledby="hm-debt-h">
+      <h3 id="hm-debt-h">Debt watch (Níðhöggr)</h3>
+      <p class="heimdall-sub">Slow-rotting bits at the foundations &mdash; low-noise marketplace maintenance signals.</p>
+      <div id="heimdall-debt">
+        <div class="saga-empty" id="heimdall-debt-loading"><p>Loading debt signals&hellip;</p></div>
+      </div>
     </section>
   </div>
 </div>
@@ -7367,6 +7382,7 @@ _JS = r"""
     const inline = readHeimdallInline();
     renderVersionDrift(inline.versionDrift || []);
     fetchCiStatus();
+    loadNidhoggr();
     /* Hook events + Gjallarhorn need the served endpoint. */
     const hookHost = document.getElementById("heimdall-hooks");
     try {
@@ -7386,6 +7402,64 @@ _JS = r"""
         );
       }
       renderGjallarhorn(null);
+    }
+  }
+
+  /* Níðhöggr "Debt watch" — served-only (git-derived signals vary by clone depth,
+   * so never inlined). One section per signal with a count + a short list. */
+  function nidhoggrSection(label, items, fmt) {
+    const wrap = document.createElement("div");
+    wrap.className = "nid-section";
+    const h = document.createElement("h4");
+    h.className = "nid-hdr";
+    h.textContent = label + " (" + (items ? items.length : 0) + ")";
+    wrap.appendChild(h);
+    if (!items || items.length === 0) {
+      const p = document.createElement("p");
+      p.className = "nid-clean";
+      p.textContent = "clean";
+      wrap.appendChild(p);
+      return wrap;
+    }
+    const ul = document.createElement("ul");
+    ul.className = "nid-list";
+    for (const it of items.slice(0, 10)) {
+      const li = document.createElement("li");
+      li.textContent = fmt(it);
+      ul.appendChild(li);
+    }
+    wrap.appendChild(ul);
+    return wrap;
+  }
+
+  function renderNidhoggr(data) {
+    const host = document.getElementById("heimdall-debt");
+    if (!host) return;
+    data = data || {};
+    const thr = data.stale_threshold_days || 120;
+    const frag = document.createDocumentFragment();
+    frag.appendChild(nidhoggrSection("Plugins not bumped in " + thr + "+ days", data.stale_plugins, (p) => p.plugin + " (last " + p.last_bump + ")"));
+    frag.appendChild(nidhoggrSection("Hooks without a CI gate", data.ungated_hooks, (h) => h.hook + " — " + h.plugin));
+    frag.appendChild(nidhoggrSection("Superseded decisions", data.superseded_decisions, (s) => String(s)));
+    frag.appendChild(nidhoggrSection("TODO/FIXME in commits", data.todo_commits, (t) => String(t)));
+    host.replaceChildren(frag);
+  }
+
+  async function loadNidhoggr() {
+    const host = document.getElementById("heimdall-debt");
+    try {
+      const res = await fetch("/__nidhoggr");
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      renderNidhoggr(await res.json());
+    } catch (e) {
+      const served = await probeReadEndpoint();
+      if (host) {
+        host.replaceChildren(
+          served
+            ? hmEmpty("Could not reach /__nidhoggr. Is the server running?", "python3 scripts/serve-dashboards.py")
+            : hmEmpty("Debt signals need the served dashboard — open it via", "rc dashboard")
+        );
+      }
     }
   }
 

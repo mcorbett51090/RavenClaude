@@ -2133,6 +2133,51 @@ sys.exit(0)
 PY
 gate "norns reader present in both server copies" must_pass "$rc"
 
+echo "── Gate 41: Níðhöggr debt-watch card (render + server reader) ─────────────"
+# (A) Behavioral render test: drives the REAL renderNidhoggr from the generated
+#     dashboard.html (four signals render counts; populated lists items; empty→clean).
+if command -v node >/dev/null 2>&1; then
+  rc=0; node scripts/check-nidhoggr-render.mjs >/dev/null 2>&1 || rc=$?
+  gate "nidhoggr render (real dashboard.html)" must_pass "$rc"
+  # must_fail: a drifted dashboard whose "clean" empty-state word is renamed, so the
+  # all-clean assertion (four 'clean' sections) breaks.
+  ND_BAD="$TMP/dashboard-nidhoggr-drift.html"
+  sed 's/p.textContent = "clean";/p.textContent = "ok";/' plugins/ravenclaude-core/dashboard.html > "$ND_BAD"
+  rc=0; node scripts/check-nidhoggr-render.mjs "$ND_BAD" >/dev/null 2>&1 || rc=$?
+  gate "nidhoggr render (drifted: clean label changed)" must_fail "$rc"
+else
+  echo "  (skipped — node not available; CI has node)"
+fi
+# (B) Server reader: returns the four signal keys + total; git failure degrades to
+#     empty (never raises). Drives _read_nidhoggr directly.
+rc=0
+python3 - <<'PY' || rc=$?
+import importlib.util, sys, tempfile
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("srv", "scripts/serve-dashboards.py")
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+out = m._read_nidhoggr(Path("."))
+for k in ("stale_plugins", "ungated_hooks", "superseded_decisions", "todo_commits", "total"):
+    assert k in out, (k, out)
+assert isinstance(out["total"], int), out
+# git failure degrades to [] (non-repo tmp), never raises.
+o2 = m._read_nidhoggr(Path(tempfile.gettempdir()))
+assert o2["stale_plugins"] == [] and o2["todo_commits"] == [], o2
+sys.exit(0)
+PY
+gate "nidhoggr server reader (4 signals; git-failure degrades)" must_pass "$rc"
+# Both server copies must expose _read_nidhoggr identically.
+rc=0
+python3 - <<'PY' || rc=$?
+import importlib.util, sys
+for p in ("scripts/serve-dashboards.py", "plugins/ravenclaude-core/scripts/serve-dashboards.py"):
+    s = importlib.util.spec_from_file_location("m", p)
+    m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
+    assert hasattr(m, "_read_nidhoggr"), p
+sys.exit(0)
+PY
+gate "nidhoggr reader present in both server copies" must_pass "$rc"
+
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
