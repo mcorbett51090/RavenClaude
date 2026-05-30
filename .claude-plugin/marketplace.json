@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude \u2014 a private marketplace of opinionated Claude Code plugins. A domain-neutral core (Team Lead + 14 specialist agents, 20 skills, hooks, the Capability Grounding Protocol, the Structured Output Protocol, and a comfort-posture permission dashboard) plus domain plugins that extend it via skills and knowledge. Every agent ships example-scenario frontmatter; the repo-guide surfaces an 'I want to\u2026' use-case lookup across all plugins. Plugins: ravenclaude-core, power-platform (+ bundled pbix-mcp), finance, regulatory-compliance, web-design (WCAG/CWV/SEO), edtech-partner-success (PSM lane), data-platform, applied-statistics, microsoft-fabric (OneLake / Lakehouse / Direct Lake), claude-app-engineering (Claude API / Agent SDK / MCP / evals), azure-cloud (landing zones / Bicep / Entra / networking / compute), salesforce (Apex / Flow / Agentforce / sharing model / 2GP DevOps), microsoft-365-copilot (declarative/custom-engine agents / Graph connectors / Purview).",
-    "version": "0.32.0"
+    "version": "0.33.0"
   },
   "plugins": [
     {
@@ -30,7 +30,7 @@
       "name": "power-platform",
       "source": "./plugins/power-platform",
       "description": "Microsoft Power Platform specialist team \u2014 11 agents (canvas/Power Fx, Power Automate, Dataverse, model-driven, pac CLI/ALM, governance/DLP, PCF, Copilot Studio, Power Pages, power-bi-engineer, power-platform-tester) + 18 skills (solution-check, DAX, ALM, BI, PCF, maintainability); a house-opinions hook flags 8 \u00a73/\u00a74 violations; the knowledge bank carries production decision trees (PA-flow recovery, Dataverse token-acquisition). v0.13.0 \u2014 PCF React + Fluent UI v9: a canonical platform-library version source + the `Decision Tree: PCF \u2014 Which React surface?` (virtual / code-app / canvas / Power-Pages-unsupported / web resource), a Fluent-v9 theming + v8\u2192v9 migration skill resource, and traversal priors on pcf-developer / power-fx-engineer / power-pages-engineer. Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval (requires `pip install pbix-mcp`).",
-      "version": "0.14.0",
+      "version": "0.15.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -251,7 +251,7 @@
       "name": "salesforce",
       "source": "./plugins/salesforce",
       "description": "Salesforce practitioner team \u2014 5 agents (apex-engineer, flow-automation-architect, agentforce-architect, salesforce-platform-architect, salesforce-reviewer) covering governor-safe bulkified Apex (triggers/async/services), declarative automation by density (Flow vs Apex), Agentforce agent design (topics/subagents, Agent Script determinism, RAG grounding, Trust Layer), org architecture (data model, OWD\u2192role\u2192sharing\u2192Apex security model, 2GP packaging/DevOps, LDV), and a forked review rubric (the 15 house opinions as pass/fail). 9-doc citation-grounded knowledge bank (9 Mermaid decision trees, dated 2026-05-30), 5 skills, 5 templates, 1 advisory hook (grep-able anti-patterns: SOQL/DML-in-loop, hard-coded IDs, SeeAllData=true, missing with-sharing). Seams: integration\u2192azure-cloud, analytics\u2192data-platform/microsoft-fabric, LWC styling\u2192web-design, methodology/DevOps/security-review\u2192ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },

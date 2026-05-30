@@ -1,6 +1,6 @@
 {
   "name": "salesforce",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Salesforce practitioner team — 5 agents (apex-engineer, flow-automation-architect, agentforce-architect, salesforce-platform-architect, salesforce-reviewer) covering governor-safe bulkified Apex (triggers/async/services), declarative automation by density (Flow vs Apex), Agentforce agent design (topics/subagents, Agent Script determinism, RAG grounding, Trust Layer), org architecture (data model, OWD→role→sharing→Apex security model, 2GP packaging/DevOps, LDV), and a forked review rubric (the 15 house opinions as pass/fail). 9-doc citation-grounded knowledge bank (9 Mermaid decision trees, dated 2026-05-30), 5 skills, 5 templates, 1 advisory hook (grep-able anti-patterns: SOQL/DML-in-loop, hard-coded IDs, SeeAllData=true, missing with-sharing). Seams: integration→azure-cloud, analytics→data-platform/microsoft-fabric, LWC styling→web-design, methodology/DevOps/security-review→ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"
