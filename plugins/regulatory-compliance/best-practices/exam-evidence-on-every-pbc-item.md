@@ -47,7 +47,7 @@ Rehearse the walkthrough against *actual practice*, not the policy text — the 
 
 - [`./classify-severity-before-you-respond.md`](./classify-severity-before-you-respond.md) — when a finding lands, classify severity before the response playbook.
 - [`./no-control-without-a-cite-and-evidence.md`](./no-control-without-a-cite-and-evidence.md) — the same evidence-over-assertion discipline, control-side.
-- [`./records-retention-on-a-schedule.md`](./records-retention-on-a-schedule.md) — the evidence has to still exist when the exam asks for it.
+- [`./records-retention-on-a-schedule-not-on-disposal-instinct.md`](./records-retention-on-a-schedule-not-on-disposal-instinct.md) — the evidence has to still exist when the exam asks for it.
 - [`../agents/examination-prep-specialist.md`](../agents/examination-prep-specialist.md) — "Walkthroughs reflect actual practice, not the policy"; "Every information request gets an audit trail."
 
 ## Provenance
