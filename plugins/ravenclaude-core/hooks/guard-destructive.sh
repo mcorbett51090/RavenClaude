@@ -15,6 +15,14 @@
 
 set -euo pipefail
 
+# Structured event log (P0.2). No-op fallback first so a missing/un-sourceable
+# helper can never abort this guard under `set -e` (a `command not found` would
+# exit 127 instead of the intended 2). The sourced helper overrides the stub.
+_emit_hook_event() { :; }
+_HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null)" || _HOOK_DIR=""
+# shellcheck source=/dev/null
+[ -n "$_HOOK_DIR" ] && [ -f "$_HOOK_DIR/_emit-event.sh" ] && . "$_HOOK_DIR/_emit-event.sh"
+
 # Prefer stdin JSON (canonical); fall back to the positional arg (legacy).
 cmd=""
 if [ ! -t 0 ]; then
@@ -48,6 +56,7 @@ for pat in "${deny_patterns[@]}"; do
     echo "[guard-destructive] BLOCKED: command matches destructive pattern: $pat" >&2
     echo "[guard-destructive] cmd: $cmd" >&2
     echo "[guard-destructive] If you really need this, run it yourself with explicit confirmation." >&2
+    _emit_hook_event "guard-destructive.sh" "deny" "Bash" "$cmd" "$pat" 2
     exit 2   # 2 blocks the tool call; 1 would NOT (non-blocking error)
   fi
 done

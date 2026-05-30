@@ -379,6 +379,29 @@ Store artifacts in a project-local directory:
 
 This creates a powerful feedback loop for making outputs progressively more ideal over time.
 
+## Event substrate — machine-readable hook + posture logs (added 2026-05-30)
+
+The guard hooks and the posture translator emit human-readable stderr/banners, but that output vanishes after the turn — a dashboard panel can't read it after the fact. Two append-only JSONL logs give those signals a structured trail (the substrate the planned **Heimdall** perimeter-alarm and **Víðarr** posture/security panels read; the prerequisite that was previously unbuilt). Both are **best-effort and fail-safe**: a logging failure never breaks the hook or the apply, and both files are gitignored (consumer-side runtime state).
+
+### Hook event log — `.ravenclaude/runs/<session_id>/hook-events.jsonl`
+
+The four deny/warn-capable hooks source the shared helper [`hooks/_emit-event.sh`](hooks/_emit-event.sh) and append one event per verdict (their existing stderr/banner output is unchanged):
+
+| Hook | Event | verdict |
+|---|---|---|
+| `guard-destructive.sh` | a destructive Bash command was blocked | `deny` (exit 2) |
+| `enforce-layout.sh` | an off-allow-list / forbidden / task-scope / traversal write was blocked | `deny` (exit 2) |
+| `guard-recursive-spawn.sh` | an agent file instructs itself to spawn a sub-agent | `warn` (advisory) / `deny` (strict mode) |
+| `format-on-write.sh` | a file was auto-formatted (telemetry) | `warn` |
+
+Schema (one JSON object per line): `{schema_version, ts, hook, verdict, tool, path, rule, session_id, exit_code}`. The helper no-ops when `jq` is absent and defines a no-op `_emit_hook_event` fallback **before** sourcing, so a missing helper can never `exit 127` in place of a hook's intended exit code under `set -e`.
+
+### Posture event log — `.ravenclaude/posture-events.jsonl`
+
+[`scripts/apply-comfort-posture.py`](scripts/apply-comfort-posture.py) appends one event per apply: `{schema_version, ts, scope, source, category, level_from, level_to, security_deny_diff, override_diff}`. The diff is computed from the old vs new `.claude/settings.json` permission buckets and mapped back to the owning categories; `source` is one of `dashboard-save | slash-command | cli-direct | migration | unknown` (a caller sets `RC_POSTURE_SOURCE`; a direct CLI run defaults to `cli-direct`).
+
+Both are proven by the fixture test [`hooks/tests/test-event-emission.sh`](hooks/tests/test-event-emission.sh) (one good + one bad fixture per hook plus the posture script), wired into `scripts/audit-gates.sh` and `validate-marketplace.yml`. **Migration:** none — both logs are new, gitignored, opt-in runtime artifacts; nothing changes on `/plugin marketplace update`.
+
 ## Context & Session Hygiene (New Guidance)
 
 For long-running or multi-turn team collaborations:

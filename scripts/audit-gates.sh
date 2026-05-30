@@ -1201,6 +1201,21 @@ cp -p "$TMP/plugins_ravenclaude-core_knowledge_tree-visuals_.render-manifest.jso
 rc=0; python3 scripts/render-trees.py --check >/dev/null 2>&1 || rc=$?
 gate "render-trees SVG sync (clean tree)" must_pass "$rc"
 
+# Hook + posture event substrate (P0.2 + P0.4): the four instrumented hooks and
+# apply-comfort-posture.py must each emit exactly one valid jsonl event per
+# deny/warn/apply. The fixture test proves it; the bad half tampers the shared
+# emitter to a no-op stub so a hook that silently stopped emitting is caught.
+EMIT_TEST=plugins/ravenclaude-core/hooks/tests/test-event-emission.sh
+EMIT_HELPER=plugins/ravenclaude-core/hooks/_emit-event.sh
+rc=0; bash "$EMIT_TEST" >/dev/null 2>&1 || rc=$?
+gate "event substrate (4 hooks + posture emit valid jsonl)" must_pass "$rc"
+
+backup "$EMIT_HELPER"
+printf '#!/usr/bin/env bash\n_emit_hook_event() { :; }\n' > "$EMIT_HELPER"
+rc=0; bash "$EMIT_TEST" >/dev/null 2>&1 || rc=$?
+gate "event substrate (broken emitter caught)" must_fail "$rc"
+cp -p "$TMP/plugins_ravenclaude-core_hooks__emit-event.sh.bak" "$EMIT_HELPER"
+
 # generate-concepts-doc.py: a stale committed docs/concepts.md.
 backup docs/concepts.md
 printf '\nstale fixture line\n' >> docs/concepts.md

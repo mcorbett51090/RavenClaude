@@ -27,6 +27,13 @@
 set -euo pipefail
 shopt -s extglob globstar nullglob
 
+# Structured event log (P0.2). No-op fallback first so a missing helper can never
+# abort this guard under `set -e`; the sourced helper overrides the stub.
+_emit_hook_event() { :; }
+_HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null)" || _HOOK_DIR=""
+# shellcheck source=/dev/null
+[ -n "$_HOOK_DIR" ] && [ -f "$_HOOK_DIR/_emit-event.sh" ] && . "$_HOOK_DIR/_emit-event.sh"
+
 file="${1:-}"
 [[ -z "$file" ]] && exit 0
 
@@ -53,10 +60,12 @@ fi
 
 emit_deny() {
   local reason="$1"
+  local rule="${2:-layout-policy}"
   # JSON output is preferred form; quote the reason safely via jq.
   jq -n --arg r "$reason" \
     '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $r}}'
   echo "[enforce-layout] BLOCKED: $reason" >&2
+  _emit_hook_event "enforce-layout.sh" "deny" "${CLAUDE_TOOL_NAME:-Write/Edit/MultiEdit}" "${rel_path:-$file}" "$rule" 2
   exit 2
 }
 
@@ -66,7 +75,7 @@ emit_deny() {
 # The hook can only be invoked by an agent that already has Write access, so
 # this is low-severity, but the check is cheap and the failure mode is real.
 if [[ "$rel_path" == *..* ]]; then
-  emit_deny "Layout policy: path '$rel_path' contains '..' — refused as a path-traversal scrub."
+  emit_deny "Layout policy: path '$rel_path' contains '..' — refused as a path-traversal scrub." "path-traversal"
 fi
 
 # ── Task-scope check (Gap 6) ────────────────────────────────────────────────
@@ -86,7 +95,7 @@ if [[ -f "$task_scope" ]]; then
     done
     if [[ "$scope_ok" -eq 0 ]]; then
       spec="$(jq -r '.spec // empty' "$task_scope" 2>/dev/null)"
-      emit_deny "Task scope: '$rel_path' is outside this task's declared in_scope set (.ravenclaude/task-scope.json).${spec:+ Task spec: ${spec}.} If this write is genuinely part of the task, add the glob to in_scope (or clear task-scope.json when the task is done)."
+      emit_deny "Task scope: '$rel_path' is outside this task's declared in_scope set (.ravenclaude/task-scope.json).${spec:+ Task spec: ${spec}.} If this write is genuinely part of the task, add the glob to in_scope (or clear task-scope.json when the task is done)." "task-scope"
     fi
   fi
 fi
@@ -111,7 +120,7 @@ for pat in "${forbidden[@]:-}"; do
   [[ -z "$pat" ]] && continue
   if [[ "$rel_path" == $pat ]]; then
     suggestion=$(jq -r --arg p "$pat" '.suggestions[$p] // empty' "$manifest")
-    emit_deny "Layout policy: '$rel_path' matches forbidden pattern '$pat'.${suggestion:+ ${suggestion}}"
+    emit_deny "Layout policy: '$rel_path' matches forbidden pattern '$pat'.${suggestion:+ ${suggestion}}" "forbidden-glob"
   fi
 done
 
@@ -129,4 +138,4 @@ done
 
 # No match — deny with a generic suggestion.
 generic=$(jq -r '.suggestions["New top-level directory"] // empty' "$manifest")
-emit_deny "Layout policy: '$rel_path' does not match any allowed_globs in .repo-layout.json. ${generic:-Add the glob to .repo-layout.json first if this location is intentional.}"
+emit_deny "Layout policy: '$rel_path' does not match any allowed_globs in .repo-layout.json. ${generic:-Add the glob to .repo-layout.json first if this location is intentional.}" "off-allow-list"

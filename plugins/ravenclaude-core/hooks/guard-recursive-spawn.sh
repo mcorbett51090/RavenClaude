@@ -38,6 +38,13 @@
 
 set -euo pipefail
 
+# Structured event log (P0.2). No-op fallback first so a missing helper can never
+# abort this hook under `set -e`; the sourced helper overrides the stub.
+_emit_hook_event() { :; }
+_HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null)" || _HOOK_DIR=""
+# shellcheck source=/dev/null
+[ -n "$_HOOK_DIR" ] && [ -f "$_HOOK_DIR/_emit-event.sh" ] && . "$_HOOK_DIR/_emit-event.sh"
+
 file="${1:-}"
 [[ -z "$file" ]] && exit 0
 [[ ! -f "$file" ]] && exit 0
@@ -111,8 +118,11 @@ EOF
 
 EOF
   if [[ "${RC_GUARD_RECURSIVE_SPAWN_STRICT:-0}" == "1" ]]; then
+    _emit_hook_event "guard-recursive-spawn.sh" "deny" "${CLAUDE_TOOL_NAME:-Edit/Write/MultiEdit}" "$file" "recursive-spawn" 1
     exit 1
   fi
+  # Advisory (non-blocking) path — logged as a warn for telemetry.
+  _emit_hook_event "guard-recursive-spawn.sh" "warn" "${CLAUDE_TOOL_NAME:-Edit/Write/MultiEdit}" "$file" "recursive-spawn" 0
 fi
 
 exit 0

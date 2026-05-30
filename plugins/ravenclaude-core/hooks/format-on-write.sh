@@ -7,6 +7,13 @@
 
 set -euo pipefail
 
+# Structured event log (P0.2). No-op fallback first so a missing helper can never
+# abort this hook under `set -e`; the sourced helper overrides the stub.
+_emit_hook_event() { :; }
+_HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null)" || _HOOK_DIR=""
+# shellcheck source=/dev/null
+[ -n "$_HOOK_DIR" ] && [ -f "$_HOOK_DIR/_emit-event.sh" ] && . "$_HOOK_DIR/_emit-event.sh"
+
 file="${1:-}"
 
 # No file path? Nothing to do (e.g. multi-file edit summary).
@@ -17,8 +24,11 @@ file="${1:-}"
 abs="$(cd "$(dirname "$file")" && pwd)/$(basename "$file")"
 
 run() {
-  # Run a formatter quietly. Failure is logged but never blocks.
+  # Run a formatter quietly. Failure is logged but never blocks. Also records a
+  # warn-verdict telemetry event (the file was auto-formatted) — useful signal
+  # for the dashboard even though this hook never blocks.
   "$@" >/dev/null 2>&1 || true
+  _emit_hook_event "format-on-write.sh" "warn" "${CLAUDE_TOOL_NAME:-Edit/Write/MultiEdit}" "$file" "auto-format:$1" 0
 }
 
 case "$file" in

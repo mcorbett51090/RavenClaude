@@ -512,6 +512,91 @@ SCRIPT_VERSION = "0.19.0"
 LAYERS = ("user", "local", "project")
 SIDE_CAR_NAME = ".comfort-posture-applied"
 
+# ── Posture-event emission (P0.4, event substrate) ─────────────────────────
+# One append-only JSON line per apply, to .ravenclaude/posture-events.jsonl, so
+# the dashboard's Víðarr panel can surface posture changes as a named event log
+# instead of a buried diff. Best-effort: a logging failure never fails an apply.
+POSTURE_EVENTS_NAME = "posture-events.jsonl"
+VALID_POSTURE_SOURCES = {
+    "dashboard-save",
+    "slash-command",
+    "cli-direct",
+    "migration",
+    "unknown",
+}
+
+# Reverse of the EMISSIONS table: rule pattern -> owning category. Lets the event
+# name which categories moved, from the rule-level settings.json diff.
+_RULE_TO_CATEGORY: dict[str, str] = {
+    pat: cat for cat, pats in EMISSIONS.items() for pat in pats
+}
+
+
+def _detect_posture_source() -> str:
+    """Resolve the `source` field. A caller (dashboard server, /set-posture) can
+    set RC_POSTURE_SOURCE to one of VALID_POSTURE_SOURCES; otherwise a direct CLI
+    invocation is `cli-direct`."""
+    src = os.environ.get("RC_POSTURE_SOURCE", "").strip()
+    if src in VALID_POSTURE_SOURCES:
+        return src
+    return "cli-direct"
+
+
+def _emit_posture_event(
+    root: Path,
+    scope: str,
+    old_buckets: dict[str, list[str]],
+    new_buckets: dict[str, list[str]],
+    floor: list[str],
+) -> None:
+    """Append one posture-change event. Diffs old vs new permission buckets
+    (the observable settings.json change), maps moved rules back to categories,
+    and isolates the security_deny floor delta. Never raises."""
+    try:
+        old_of = {r: b for b in ("allow", "ask", "deny") for r in old_buckets.get(b, [])}
+        new_of = {r: b for b in ("allow", "ask", "deny") for r in new_buckets.get(b, [])}
+        floor_set = set(floor)
+
+        # Rules whose bucket changed (added, removed, or moved between buckets).
+        moved = sorted(
+            r for r in (set(old_of) | set(new_of)) if old_of.get(r) != new_of.get(r)
+        )
+        override_diff = {
+            "added": sorted(r for r in moved if r not in old_of),
+            "removed": sorted(r for r in moved if r not in new_of),
+            "moved": sorted(
+                f"{r}:{old_of[r]}->{new_of[r]}"
+                for r in moved
+                if r in old_of and r in new_of
+            ),
+        }
+        security_deny_diff = {
+            "added": sorted(set(new_buckets.get("deny", [])) & floor_set - set(old_buckets.get("deny", []))),
+            "removed": sorted(set(old_buckets.get("deny", [])) & floor_set - set(new_buckets.get("deny", []))),
+        }
+        categories = sorted({
+            _RULE_TO_CATEGORY[r] for r in moved if r in _RULE_TO_CATEGORY
+        })
+
+        event = {
+            "schema_version": 1,
+            "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "scope": scope,
+            "source": _detect_posture_source(),
+            "category": categories,
+            "level_from": {b: len(old_buckets.get(b, [])) for b in ("allow", "ask", "deny")},
+            "level_to": {b: len(new_buckets.get(b, [])) for b in ("allow", "ask", "deny")},
+            "security_deny_diff": security_deny_diff,
+            "override_diff": override_diff,
+        }
+        dest = root / ".ravenclaude" / POSTURE_EVENTS_NAME
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        with dest.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(event, ensure_ascii=False) + "\n")
+    except Exception:
+        # Telemetry is best-effort; an apply must never fail because the log did.
+        pass
+
 
 def v5_value_to_bucket(value) -> str | None:
     """Map a v5 per-layer value to a settings bucket, or None for inherit/unset."""
@@ -741,6 +826,8 @@ def run_v5(posture: dict, root: Path, args) -> int:
             settings = {"$schema": "https://json.schemastore.org/claude-code-settings.json"}
         prev = settings.get("permissions", {})
         prev_counts = {b: len(prev.get(b, [])) for b in ("allow", "ask", "deny")}
+        # Snapshot old contents before overwrite_permissions mutates them in place.
+        old_buckets = {b: list(prev.get(b, [])) for b in ("allow", "ask", "deny")}
         overwrite_permissions(settings, em)
         if scope == "project":
             ensure_default_mode(settings)
@@ -757,6 +844,12 @@ def run_v5(posture: dict, root: Path, args) -> int:
             if scope == "local":
                 append_local_to_gitignore(root)
             print(f"Applied {scope} layer → {rel}")
+            # The floor lives only in the project layer (compute_emission_v5).
+            floor = []
+            if scope == "project":
+                sd = posture.get("security_deny")
+                floor = sd if isinstance(sd, list) else list(DEFAULT_SECURITY_DENY)
+            _emit_posture_event(root, scope, old_buckets, em, floor)
         for b in ("allow", "ask", "deny"):
             d = new_counts[b] - prev_counts[b]
             print(f"    permissions.{b}: {prev_counts[b]} -> {new_counts[b]} ({'+' if d > 0 else ''}{d})")
@@ -851,6 +944,10 @@ def main() -> int:
 
     prev_perms = settings.get("permissions", {})
     prev_counts = {b: len(prev_perms.get(b, [])) for b in ("allow", "ask", "deny")}
+    # Snapshot old bucket CONTENTS before overwrite_permissions mutates them
+    # in place (it edits the same dict prev_perms references) — needed for the
+    # posture-event diff.
+    old_buckets = {b: list(prev_perms.get(b, [])) for b in ("allow", "ask", "deny")}
 
     updated = overwrite_permissions(settings, new_emission)
     ensure_default_mode(updated)
@@ -879,6 +976,10 @@ def main() -> int:
             delta = new_counts[bucket] - prev_counts[bucket]
             sign = "+" if delta > 0 else ""
             print(f"  permissions.{bucket}: {prev_counts[bucket]} -> {new_counts[bucket]} ({sign}{delta})")
+        floor = posture.get("security_deny")
+        if not isinstance(floor, list):
+            floor = list(DEFAULT_SECURITY_DENY)
+        _emit_posture_event(root, "project", old_buckets, new_emission, floor)
 
     print(
         "\nNote: comfort-posture works best with session mode at 'default'.\n"
