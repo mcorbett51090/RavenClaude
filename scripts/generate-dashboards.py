@@ -135,7 +135,7 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         learn_html=_render_learn_tab(plugin_dir),
         saga_html=_render_saga_tab(),
         commands_html=_render_commands_tab(),
-        trees_html=_render_stub_tab("Decision trees", "v0.2.0"),
+        trees_html=_render_trees_tab(),
         activity_html=_render_activity_tab(),
         pipeline_html=_render_pipeline_tab(),
         schema_json=json.dumps(schema, indent=2),
@@ -745,6 +745,143 @@ def _render_commands_tab() -> str:
         "</div>"
     )
     return intro + f'<div class="cmd-grid">{cards}</div>'
+
+
+# ── Guidance tab (marketplace-wide decision trees + best practices) ──────────
+# The dashboard is a marketplace-wide control surface, not a single-plugin view:
+# this tab discovers EVERY plugin's canonical `## Decision Tree:` sections and
+# its best-practices/ docs (House Rule 1 — discover siblings, never hard-code
+# domain names) and embeds them at build time, so the surface works identically
+# on a static host (GitHub Pages / file://) and a served dashboard — there is no
+# fetch. It answers "what priors + rules does each installed plugin give my
+# agents?" in one place.
+
+_DT_HEADER_RE = _re.compile(r"(?m)^##\s+Decision Tree:\s*(.+?)\s*$")
+_DT_WHEN_RE = _re.compile(r"\*\*When this applies:\*\*\s*(.+)")
+_BP_STATUS_RE = _re.compile(r"(?mi)^\*\*Status:\*\*\s*(.+?)\s*$")
+
+
+def _decision_trees_inventory() -> list[dict]:
+    """Discover canonical '## Decision Tree: <title>' sections across all plugins
+    (knowledge/ + skills/). Returns {owner, title, when, path} sorted by (owner, title)."""
+    out: list[dict] = []
+    paths = sorted(PLUGINS_DIR.glob("*/knowledge/**/*.md")) + sorted(
+        PLUGINS_DIR.glob("*/skills/**/*.md")
+    )
+    for md in paths:
+        try:
+            owner = md.relative_to(PLUGINS_DIR).parts[0]
+            text = md.read_text(encoding="utf-8")
+        except (OSError, ValueError):
+            continue
+        for m in _DT_HEADER_RE.finditer(text):
+            title = m.group(1).strip()
+            wm = _DT_WHEN_RE.search(text[m.end():m.end() + 600])
+            when = wm.group(1).strip() if wm else ""
+            out.append({
+                "owner": owner,
+                "title": title,
+                "when": when,
+                "path": str(md.relative_to(REPO_ROOT)),
+            })
+    out.sort(key=lambda d: (d["owner"], d["title"].lower()))
+    return out
+
+
+def _best_practices_inventory() -> list[dict]:
+    """Discover best-practices/*.md (excluding README) across all plugins.
+    Returns {owner, title, status, path} sorted by (owner, title)."""
+    out: list[dict] = []
+    for md in sorted(PLUGINS_DIR.glob("*/best-practices/*.md")):
+        if md.name.lower() == "readme.md":
+            continue
+        try:
+            owner = md.relative_to(PLUGINS_DIR).parts[0]
+            text = md.read_text(encoding="utf-8")
+        except (OSError, ValueError):
+            continue
+        title = md.stem
+        for line in text.splitlines():
+            s = line.strip()
+            if s.startswith("# "):
+                title = s[2:].strip()
+                break
+        sm = _BP_STATUS_RE.search(text)
+        out.append({
+            "owner": owner,
+            "title": title,
+            "status": sm.group(1).strip() if sm else "",
+            "path": str(md.relative_to(REPO_ROOT)),
+        })
+    out.sort(key=lambda d: (d["owner"], d["title"].lower()))
+    return out
+
+
+def _render_trees_tab() -> str:
+    """Marketplace-wide Guidance tab: every plugin's decision trees + best practices.
+    Static (build-time embed) — no server needed, works on any host."""
+    trees = _decision_trees_inventory()
+    practices = _best_practices_inventory()
+    owners = sorted({t["owner"] for t in trees} | {p["owner"] for p in practices})
+    if not owners:
+        return _render_stub_tab("Guidance", "next")
+
+    intro = (
+        '<div class="cmd-intro">'
+        "<h2>Guidance — decision trees &amp; best practices</h2>"
+        f"<p>{len(trees)} decision tree{'s' if len(trees) != 1 else ''} and "
+        f"{len(practices)} best-practice doc{'s' if len(practices) != 1 else ''} "
+        f"across {len(owners)} marketplace plugin{'s' if len(owners) != 1 else ''}. "
+        "These are the priors (when-this-applies decision trees) and named rules "
+        "each installed plugin gives your agents in a consumer repo. Click any item "
+        "to open its source file.</p>"
+        "</div>"
+    )
+
+    blocks = []
+    for owner in owners:
+        ot = [t for t in trees if t["owner"] == owner]
+        op = [p for p in practices if p["owner"] == owner]
+        tree_items = "".join(
+            '<li class="guide-item"><a href="../../{path}" class="guide-link">'
+            "<span class=\"guide-kind guide-kind-tree\">tree</span>"
+            "<span class=\"guide-title\">{title}</span></a>"
+            '{when}</li>'.format(
+                path=html.escape(t["path"]),
+                title=html.escape(t["title"]),
+                when=(f'<p class="guide-when">{html.escape(t["when"])}</p>' if t["when"] else ""),
+            )
+            for t in ot
+        )
+        bp_items = "".join(
+            '<li class="guide-item"><a href="../../{path}" class="guide-link">'
+            "<span class=\"guide-kind guide-kind-bp\">{status}</span>"
+            "<span class=\"guide-title\">{title}</span></a></li>".format(
+                path=html.escape(p["path"]),
+                title=html.escape(p["title"]),
+                status=html.escape(p["status"] or "rule"),
+            )
+            for p in op
+        )
+        tree_section = (
+            f'<h4 class="guide-subhd">Decision trees <span class="guide-count">{len(ot)}</span></h4>'
+            f"<ul class=\"guide-list\">{tree_items}</ul>"
+            if ot else ""
+        )
+        bp_section = (
+            f'<h4 class="guide-subhd">Best practices <span class="guide-count">{len(op)}</span></h4>'
+            f"<ul class=\"guide-list\">{bp_items}</ul>"
+            if op else ""
+        )
+        blocks.append(
+            '<details class="guide-plugin" open>'
+            f'<summary class="guide-plugin-name">{html.escape(owner)}'
+            f'<span class="guide-plugin-counts">{len(ot)} trees · {len(op)} practices</span>'
+            "</summary>"
+            f'<div class="guide-plugin-body">{tree_section}{bp_section}</div>'
+            "</details>"
+        )
+    return intro + '<div class="guide-wrap">' + "".join(blocks) + "</div>"
 
 
 def _render_install_tab() -> str:
@@ -3203,6 +3340,25 @@ footer.page-footer a:hover { text-decoration: underline; }
 .cmd-intro { margin: 0 0 18px; }
 .cmd-intro h2 { margin: 0 0 6px; }
 .cmd-intro p { margin: 0; color: var(--muted); max-width: 64ch; }
+
+/* ── Guidance tab (marketplace-wide trees + best practices) ── */
+.guide-wrap { display: flex; flex-direction: column; gap: 10px; }
+.guide-plugin { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+.guide-plugin-name { cursor: pointer; padding: 12px 16px; font-weight: 600; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.guide-plugin-name:hover { background: var(--surface-2); }
+.guide-plugin-counts { font-size: 12px; color: var(--muted); font-weight: 400; white-space: nowrap; }
+.guide-plugin-body { padding: 4px 16px 14px; border-top: 1px solid var(--border); }
+.guide-subhd { margin: 12px 0 6px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.guide-count { display: inline-block; margin-left: 6px; font-size: 11px; color: var(--muted); background: var(--surface-2); border-radius: 10px; padding: 0 7px; }
+.guide-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.guide-item { padding: 4px 0; }
+.guide-link { display: flex; align-items: baseline; gap: 8px; text-decoration: none; color: var(--text); }
+.guide-link:hover .guide-title { text-decoration: underline; }
+.guide-kind { flex: none; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; border-radius: 4px; padding: 1px 6px; white-space: nowrap; }
+.guide-kind-tree { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent); }
+.guide-kind-bp { background: var(--surface-2); color: var(--muted); }
+.guide-title { font-size: 14px; }
+.guide-when { margin: 2px 0 0 56px; font-size: 12px; color: var(--muted); max-width: 70ch; }
 .cmd-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -6591,7 +6747,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <button class="tab-btn" data-tab="learn" role="tab" aria-selected="false">Learn</button>
     <button class="tab-btn" data-tab="saga" role="tab" aria-selected="false">&#9878; Review log</button>
     <button class="tab-btn" data-tab="commands" role="tab" aria-selected="false">Commands</button>
-    <button class="tab-btn" data-tab="trees" role="tab" aria-selected="false">Trees</button>
+    <button class="tab-btn" data-tab="trees" role="tab" aria-selected="false">Guidance</button>
     <button class="tab-btn" data-tab="activity" role="tab" aria-selected="false">Activity</button>
   </nav>
 </header>
@@ -6618,7 +6774,7 @@ _PAGE_TEMPLATE = """<!doctype html>
   <section class="tab-panel" data-tab="commands" role="tabpanel" aria-label="Commands">
 {commands_html}
   </section>
-  <section class="tab-panel" data-tab="trees" role="tabpanel" aria-label="Decision trees">
+  <section class="tab-panel" data-tab="trees" role="tabpanel" aria-label="Decision trees and best practices">
 {trees_html}
   </section>
   <section class="tab-panel" data-tab="activity" role="tabpanel" aria-label="Activity">
