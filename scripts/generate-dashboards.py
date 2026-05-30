@@ -711,7 +711,21 @@ def _commands_inventory() -> list[dict]:
 # (PR-1 keeps the security delta at zero). The classifier is data-driven so a future
 # shell-shaped command lights up a Run button without touching this renderer.
 _CLASS_A_RUN_ACTION = {
-    # "command-name": "install" | "update" | "status"   (must already be in ALLOWED_ACTIONS)
+    # command-name -> an action in serve-dashboards.py RUN_ACTIONS (fixed argv,
+    # non-destructive, served-dev-server only). The slash command still copies
+    # for in-Claude use; the Run button executes the equivalent shell effect.
+    # /set-posture's effect = apply comfort-posture.yaml -> .claude/settings.json,
+    # the same fixed argv /__save already runs (PR-2: entry point, not capability).
+    "set-posture": "set-posture",
+}
+
+# Human-readable form of each Class-A/C action's fixed server argv (RUN_ACTIONS
+# in serve-dashboards.py), for the card's "Run executes:" line. Display only.
+_RUN_ACTION_LITERAL = {
+    "install": "ravenclaude install",
+    "update": "ravenclaude update",
+    "status": "ravenclaude status",
+    "set-posture": "apply-comfort-posture.py",
 }
 
 
@@ -722,13 +736,17 @@ def _render_command_card(cmd: dict) -> str:
     run_action = _CLASS_A_RUN_ACTION.get(cmd["name"])
 
     if run_action:
-        # Class A — shell-executable via an existing allow-listed /__run action.
-        runs_literal = f"bash scripts/ravenclaude {run_action}"
+        # Class C — a slash command whose shell EFFECT maps to a fixed /__run
+        # action. Offer both: Run (the shell effect, served only) + Copy (the
+        # slash command, runs in Claude). The literal shown is the human form of
+        # the fixed argv the server runs — kept in sync with RUN_ACTIONS.
+        runs_literal = _RUN_ACTION_LITERAL.get(run_action, run_action)
         what_runs = (
             '<p class="cmd-what" '
-            f'title="Runs the fixed command: {html.escape(runs_literal)} (served dashboard only)">'
-            "<span class=\"cmd-what-label\">Runs:</span> "
-            f'<code>{html.escape(runs_literal)}</code></p>'
+            f'title="Run here executes the fixed command {html.escape(runs_literal)} (served dashboard only). Pasting {html.escape(slash)} into Claude Code does the same thing inside your session.">'
+            "<span class=\"cmd-what-label\">Run executes:</span> "
+            f'<code>{html.escape(runs_literal)}</code>'
+            f' &middot; <span class="cmd-what-label">in Claude:</span> <code>{html.escape(slash)}</code></p>'
         )
         actions = (
             f'<button type="button" class="btn cmd-run" data-run-action="{html.escape(run_action)}" '
@@ -737,7 +755,7 @@ def _render_command_card(cmd: dict) -> str:
             f'<code class="cmd-code" id="{cid}">{html.escape(slash)}</code>'
             f'<button type="button" class="btn secondary cmd-copy" data-copy-for="{cid}">Copy</button>'
         )
-        pill = ""
+        pill = '<span class="cmd-pill" title="Run executes the shell effect when served; the slash command runs in Claude Code">Run here · or in Claude</span>'
     else:
         # Class B — a Claude Code slash command. A browser cannot launch it (no IPC);
         # be honest: show exactly what it is, copy it, and say where it runs.

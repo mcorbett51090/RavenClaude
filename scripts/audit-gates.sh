@@ -1871,6 +1871,44 @@ PY
   gate "pipeline JSON-target validation ($(basename "$(dirname "$SRV")"))" must_pass "$rc"
 done
 
+# ── Gate: /__run argv-integrity ──────────────────────────────────────────────
+# The dashboard server's POST /__run runs a fixed allow-listed action. This gate
+# proves every RUN_ACTIONS entry is a constant argv (no shell, no interpolation),
+# so a future edit that interpolates request data fails CI, not in an incident.
+ARGV_CHECK="scripts/check-run-actions-argv.py"
+# must_pass: the real server file
+rc=0
+python3 "$ARGV_CHECK" --file "scripts/serve-dashboards.py" >/dev/null 2>&1 || rc=$?
+gate "run-actions argv-integrity (real serve-dashboards.py)" must_pass "$rc"
+# must_fail: a fixture with a shell -c form
+ARGV_TMP="$(mktemp -d)"
+cat > "$ARGV_TMP/bad.py" <<'PY'
+import sys
+RUN_ACTIONS = {"evil": ["bash", "-c", f"echo {sys.argv}"]}
+PY
+rc=0
+python3 "$ARGV_CHECK" --file "$ARGV_TMP/bad.py" >/dev/null 2>&1 || rc=$?
+gate "run-actions argv-integrity (shell -c form rejected)" must_fail "$rc"
+# must_fail: a fixture interpolating into argv via f-string
+cat > "$ARGV_TMP/bad2.py" <<'PY'
+RUN_ACTIONS = {"x": ["bash", f"scripts/{__name__}"]}
+PY
+rc=0
+python3 "$ARGV_CHECK" --file "$ARGV_TMP/bad2.py" >/dev/null 2>&1 || rc=$?
+gate "run-actions argv-integrity (f-string argv rejected)" must_fail "$rc"
+# must_pass: a clean constant-argv fixture
+cat > "$ARGV_TMP/good.py" <<'PY'
+import sys
+from pathlib import Path
+REPO_ROOT = Path("/x")
+RUN_ACTIONS = {"status": ["bash", str(REPO_ROOT / "ravenclaude"), "status"],
+               "p": [sys.executable, str(REPO_ROOT / "a.py"), "--project-root", str(REPO_ROOT)]}
+PY
+rc=0
+python3 "$ARGV_CHECK" --file "$ARGV_TMP/good.py" >/dev/null 2>&1 || rc=$?
+gate "run-actions argv-integrity (clean fixture passes)" must_pass "$rc"
+rm -rf "$ARGV_TMP"
+
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"

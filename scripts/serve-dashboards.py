@@ -73,14 +73,34 @@ APPLY_SCRIPT = (
     REPO_ROOT / "plugins" / "ravenclaude-core" / "scripts" / "apply-comfort-posture.py"
 )
 
-# POST /__run lets the dashboard's "Install & Update" buttons run the Copilot
-# bridge installer/updater with ONE click (Codespace / local dev only — this
-# server is never public). Security: only these FIXED actions are runnable, each
-# maps to a fixed `ravenclaude <action>` subcommand with NO caller-supplied args
-# or shell, so there is no arbitrary-command surface (same spirit as the /__save
-# allow-list). Mirrors the path whitelist above.
+# POST /__run lets the dashboard's one-click buttons run a FIXED, allow-listed
+# action (Codespace / local dev only — this server is never public). Security
+# envelope (non-negotiable): each action name maps to ONE fixed argv built from
+# constants only — NO caller-supplied args, NO shell, NO string interpolation of
+# the body beyond the closed-set membership test. There is no arbitrary-command
+# surface (same spirit as the /__save path allow-list). High-blast / irreversible
+# actions are deliberately NOT on this list (those stay copy + run-in-Claude so a
+# human is in the loop). Each entry is documented with a one-line justification so
+# the allow-list is self-auditing; the argv-integrity audit gate asserts every
+# entry is a constant list with no '{'/format placeholders.
 RAVENCLAUDE_SCRIPT = REPO_ROOT / "scripts" / "ravenclaude"
-ALLOWED_ACTIONS = {"install", "update", "status"}
+
+# action name -> fixed argv (constants only). To add an action: add a row here
+# with a justification comment, and confirm it is non-destructive + needs no
+# caller input. NEVER interpolate request data into these lists.
+RUN_ACTIONS: dict[str, list[str]] = {
+    # Wire / refresh / inspect the Copilot bridge for this repo. Idempotent;
+    # install/status are read-mostly, update is a `git pull` + regenerate.
+    "install": ["bash", str(RAVENCLAUDE_SCRIPT), "install", "--project", str(REPO_ROOT)],
+    "update": ["bash", str(RAVENCLAUDE_SCRIPT), "update"],
+    "status": ["bash", str(RAVENCLAUDE_SCRIPT), "status", "--project", str(REPO_ROOT)],
+    # Apply the committed comfort-posture.yaml -> .claude/settings.json. Same
+    # fixed argv the /__save handler already runs via _apply_posture(); exposing
+    # it as a named button changes the ENTRY POINT, not the capability. Non-
+    # destructive (rewrites settings.json from the posture the user already saved).
+    "set-posture": [sys.executable, str(APPLY_SCRIPT), "--project-root", str(REPO_ROOT)],
+}
+ALLOWED_ACTIONS = set(RUN_ACTIONS)
 
 # GET /__read lets the dashboard HYDRATE its controls from the project's actual
 # committed config on load (so it reflects reality, not just defaults/localStorage).
@@ -624,17 +644,15 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError) as e:
             self.send_error(400, f"invalid JSON body: {e}")
             return
-        if action not in ALLOWED_ACTIONS:
+        if action not in RUN_ACTIONS:
             self.send_error(403, f"action not in allow-list: {action!r}")
             return
-        if not RAVENCLAUDE_SCRIPT.is_file():
-            self._json(500, {"ok": False, "action": action, "error": "ravenclaude script not found"})
+        # Fixed argv looked up from the constant dispatch map — NO interpolation
+        # of caller input beyond the closed-set membership test above.
+        argv = RUN_ACTIONS[action]
+        if not Path(argv[1]).is_file():
+            self._json(500, {"ok": False, "action": action, "error": "target script not found"})
             return
-        # Fixed argv — no shell, no interpolation of caller input beyond the
-        # validated action name. `install`/`status` target the repo root.
-        argv = ["bash", str(RAVENCLAUDE_SCRIPT), action]
-        if action in ("install", "status"):
-            argv += ["--project", str(REPO_ROOT)]
         try:
             proc = subprocess.run(
                 argv, cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=120
