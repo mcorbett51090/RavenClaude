@@ -44,7 +44,7 @@ Cash from financing:
 
 ## Edge cases / when the rule does NOT apply
 
-- **Direct-method 13-week treasury forecasts** are receipts-and-disbursements, not an indirect bridge — see [`treasury-cash-conversion-cycle.md`](./treasury-cash-conversion-cycle.md) and the `thirteen-week-cash-forecast` skill.
+- **Direct-method 13-week treasury forecasts** are receipts-and-disbursements, not an indirect bridge — see [`treasury-forecast-cash-direct-method-thirteen-weeks.md`](./treasury-forecast-cash-direct-method-thirteen-weeks.md) and the `thirteen-week-cash-forecast` skill.
 - **Financial-institution models** present cash flow differently (interest received/paid can sit in operating under IFRS election) — state the election on the Documentation tab.
 - **A pure P&L or margin walk** with no balance sheet carries no cash-flow bridge; the rule attaches only once a BS exists.
 
