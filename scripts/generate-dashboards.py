@@ -138,8 +138,12 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         commands_html=_render_commands_tab(),
         trees_html=_render_trees_tab(),
         activity_html=_render_activity_tab(),
+        heimdall_html=_render_heimdall_tab(),
         pipeline_html=_render_pipeline_tab(),
         schema_json=json.dumps(schema, indent=2),
+        heimdall_json=json.dumps(
+            {"versionDrift": _compute_version_drift()}, indent=2, sort_keys=True
+        ),
         concepts_json=_concepts_json(plugin_dir),
         pattern_explanations_json=json.dumps(
             PATTERN_EXPLANATIONS, indent=2, sort_keys=True
@@ -179,6 +183,52 @@ def _render_saga_tab() -> str:
     entirely in _JS so the generated HTML is a static skeleton.
     """
     return _SAGA_TAB_TEMPLATE
+
+
+def _compute_version_drift() -> list:
+    """Compute plugin-version drift: each plugin's plugin.json version vs the
+    marketplace.json catalog entry. Pure committed-repo state, so this card works
+    in BOTH GitHub Pages and locally-served modes. Inlined at generator time."""
+    rows = []
+    try:
+        catalog = json.loads(
+            (REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        cat = {p.get("name", ""): p.get("version", "") for p in catalog.get("plugins", [])}
+    except (OSError, json.JSONDecodeError, ValueError):
+        return rows
+    for pj in sorted((REPO_ROOT / "plugins").glob("*/.claude-plugin/plugin.json")):
+        try:
+            d = json.loads(pj.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, ValueError):
+            continue
+        name = d.get("name", "")
+        plugin_ver = d.get("version", "")
+        catalog_ver = cat.get(name, "")
+        rows.append(
+            {
+                "plugin": name,
+                "marketplace_version": catalog_ver,
+                "plugin_version": plugin_ver,
+                "drift": plugin_ver != catalog_ver,
+            }
+        )
+    return rows
+
+
+def _render_heimdall_tab() -> str:
+    """Render the 'Heimdall' tab — a read-only perimeter-alarm surface.
+
+    Four cards: recent hook denials (fetched from /__heimdall, served-only),
+    recent CI runs (fetched client-side from the GitHub API), plugin version
+    drift (inlined from committed manifests, works on a static host too), and the
+    Gjallarhorn banner (derived from the hook-event tiers). Heimdall WRITES
+    nothing — it mirrors what the hooks/manifests already emit. The fetch/render
+    logic lives in _JS; this returns a static skeleton the JS hydrates on open.
+    """
+    return _HEIMDALL_TAB_TEMPLATE
 
 
 def _render_activity_tab() -> str:
@@ -4298,6 +4348,66 @@ footer.page-footer a:hover { text-decoration: underline; }
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 7px;
 }
 
+/* ── Heimdall tab — perimeter alerts (reuses .saga-hdr/.saga-empty/.activity-intro) ── */
+.heimdall-layout { padding: 20px; }
+.heimdall-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px; padding: 0 20px 20px;
+}
+.heimdall-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px;
+}
+.heimdall-card h3 { margin: 0 0 2px; font-size: 14px; color: var(--text); }
+.heimdall-sub { margin: 0 0 12px; font-size: 12px; color: var(--muted); line-height: 1.4; }
+.hm-hookgroup { margin-bottom: 12px; }
+.hm-hookname { margin: 0 0 5px; font-family: var(--font-mono); font-size: 12.5px; color: var(--text); }
+.hm-evt {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px;
+  padding: 5px 8px; border-radius: 5px; border-left: 3px solid var(--border);
+  background: var(--surface-2); margin-bottom: 4px; font-size: 12px;
+}
+.hm-evt--red   { border-left-color: var(--danger); }
+.hm-evt--amber { border-left-color: var(--warn); }
+.hm-evt--grey  { border-left-color: var(--muted); }
+.hm-badge {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+  border-radius: 999px; padding: 1px 8px; white-space: nowrap;
+}
+.hm-badge--red   { background: #ef444420; color: var(--danger); border: 1px solid var(--danger); }
+.hm-badge--amber { background: #fbbf2420; color: var(--warn);   border: 1px solid var(--warn); }
+.hm-badge--grey  { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+.hm-verdict { color: var(--muted); font-size: 11.5px; }
+.hm-path { font-family: var(--font-mono); font-size: 11px; color: var(--text); word-break: break-all; grid-column: 2 / 4; }
+.hm-ts { font-size: 10.5px; color: var(--muted); white-space: nowrap; }
+.hm-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.hm-table th { text-align: left; padding: 4px 8px; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); }
+.hm-table td { padding: 4px 8px; border-bottom: 1px solid var(--border); font-family: var(--font-mono); }
+.hm-row--drift { background: #ef444412; }
+.hm-stat--ok    { color: var(--accent); }
+.hm-stat--drift { color: var(--danger); font-weight: 700; }
+.hm-ci-row { display: flex; align-items: center; gap: 8px; padding: 6px 4px; text-decoration: none; border-bottom: 1px solid var(--border); }
+.hm-ci-row:hover { background: var(--surface-2); }
+.hm-ci-dot { width: 9px; height: 9px; border-radius: 999px; flex: 0 0 auto; }
+.hm-ci-dot--ok   { background: var(--accent); }
+.hm-ci-dot--fail { background: var(--danger); }
+.hm-ci-dot--run  { background: var(--warn); }
+.hm-ci-name { flex: 1; font-size: 12px; color: var(--text); }
+.hm-ci-meta { font-size: 11px; color: var(--muted); white-space: nowrap; }
+/* Gjallarhorn banner — fixed, tiered, hidden until a signal fires. */
+.gjallarhorn {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  display: flex; align-items: center; gap: 12px; padding: 10px 18px;
+  font-size: 13.5px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+.gjallarhorn[hidden] { display: none; }
+.gjallarhorn-glyph { font-size: 18px; }
+.gjallarhorn-text { flex: 1; }
+.gjallarhorn-link { color: inherit; text-decoration: underline; font-weight: 600; white-space: nowrap; }
+.gjallarhorn--red   { background: var(--danger); color: #fff; }
+.gjallarhorn--amber { background: var(--warn);   color: #1a1205; }
+.gjallarhorn--grey  { background: var(--surface-2); color: var(--text); border-bottom: 1px solid var(--border); }
+
 /* ── Review log: plain-language reason + expandable decision panel ── */
 .saga-reason {
   font-size: 12px; color: var(--text); line-height: 1.45;
@@ -4526,6 +4636,47 @@ _ACTIVITY_TAB_TEMPLATE = """
   <p class="activity-intro">Run history from <code>.ravenclaude/runs/</code> &mdash; newest first. Each card is one multi-step run (its summary, structured-result status, and event count). Command-review verdicts live in the <strong>Review log</strong> tab.</p>
   <div id="activity-content">
     <div class="saga-empty" id="activity-loading"><p>Loading activity&hellip;</p></div>
+  </div>
+</div>
+""".strip()
+
+_HEIMDALL_TAB_TEMPLATE = """
+<div class="gjallarhorn" id="gjallarhorn-banner" role="status" tabindex="-1" hidden>
+  <span class="gjallarhorn-glyph" aria-hidden="true">&#9888;</span>
+  <span class="gjallarhorn-text" id="gjallarhorn-text"></span>
+  <a class="gjallarhorn-link" id="gjallarhorn-link" href="#/heimdall">View event detail</a>
+</div>
+<div class="heimdall-layout">
+  <div class="saga-hdr">
+    <h2><span aria-hidden="true">&#128737;</span> Heimdall</h2>
+    <button type="button" class="saga-refresh" id="heimdall-refresh-btn">Refresh</button>
+  </div>
+  <p class="activity-intro">Perimeter alerts &mdash; a <strong>read-only mirror</strong> of what your guardrails already flagged. Heimdall never blocks anything itself; it shows the most recent hook denials, CI runs, and version drift so you can answer &ldquo;what tripped, when, and why?&rdquo; in one glance.</p>
+  <div class="heimdall-grid">
+    <section class="heimdall-card" aria-labelledby="hm-hooks-h">
+      <h3 id="hm-hooks-h">Recent hook denials</h3>
+      <p class="heimdall-sub">When did a guardrail say &ldquo;no&rdquo;? (red = irrecoverable, amber = blocked, grey = advisory)</p>
+      <div id="heimdall-hooks">
+        <div class="saga-empty" id="heimdall-hooks-loading"><p>Loading hook events&hellip;</p></div>
+      </div>
+    </section>
+    <section class="heimdall-card" aria-labelledby="hm-ci-h">
+      <h3 id="hm-ci-h">Recent CI runs</h3>
+      <p class="heimdall-sub">The last few GitHub Actions runs on this marketplace.</p>
+      <div id="heimdall-ci">
+        <div class="saga-empty" id="heimdall-ci-loading"><p>Loading CI status&hellip;</p></div>
+      </div>
+    </section>
+    <section class="heimdall-card" aria-labelledby="hm-drift-h">
+      <h3 id="hm-drift-h">Plugin version drift</h3>
+      <p class="heimdall-sub">Does each plugin&rsquo;s version match the marketplace catalog?</p>
+      <div id="heimdall-drift"></div>
+    </section>
+    <section class="heimdall-card" aria-labelledby="hm-alarm-h">
+      <h3 id="hm-alarm-h">Active alarms (Gjallarhorn)</h3>
+      <p class="heimdall-sub">The highest-severity signal currently flagged.</p>
+      <div id="heimdall-alarm"></div>
+    </section>
   </div>
 </div>
 """.strip()
@@ -6249,7 +6400,7 @@ _JS = r"""
   });
 
   /* ── Tab routing ─────────────────────────────────────────────────── */
-  const validTabs = ["overview", "settings", "pipeline", "install", "simulator", "learn", "saga", "commands", "trees", "activity"];
+  const validTabs = ["overview", "settings", "pipeline", "install", "simulator", "learn", "saga", "commands", "trees", "activity", "heimdall"];
   function openConcept(id) {
     const card = document.getElementById("learn-" + id);
     if (!card) return;
@@ -6283,10 +6434,15 @@ _JS = r"""
    * a #/activity deep-link makes the initial applyHash() reach loadActivity(),
    * which reads activityLoaded. */
   let activityLoaded = false;
+  let heimdallLoaded = false;
   let activityRecords = [];
   const activityContent = document.getElementById("activity-content");
   const activityCount   = document.getElementById("activity-count");
   const activityRefBtn  = document.getElementById("activity-refresh-btn");
+
+  /* Heimdall element handles + repo coordinates for the client-side CI fetch. */
+  const REPO_OWNER = "mcorbett51090";
+  const REPO_NAME  = "RavenClaude";
 
   function applyHash() {
     const seg = (location.hash || "#/overview").replace(/^#\//, "").split("/");
@@ -6301,6 +6457,7 @@ _JS = r"""
     if (tab === "learn" && seg[1]) openConcept(seg[1]);
     if (tab === "saga" && !sagaLoaded) loadSaga();
     if (tab === "activity" && !activityLoaded) loadActivity();
+    if (tab === "heimdall" && !heimdallLoaded) loadHeimdall();
     if (tab === "pipeline") syncPipelineTab();
   }
   document.querySelectorAll(".tab-btn").forEach(b => {
@@ -6859,6 +7016,235 @@ _JS = r"""
 
   if (activityRefBtn) activityRefBtn.addEventListener("click", () => { activityLoaded = false; loadActivity(); });
 
+  /* ── Heimdall — read-only perimeter-alarm surface ───────────────────────
+   * Four cards: hook denials (served-only, /__heimdall), CI runs (client-side
+   * GitHub API fetch), version drift (inlined at generate time, works static),
+   * and the Gjallarhorn banner (derived from the hook-event tiers). Heimdall
+   * never writes — it mirrors what hooks/manifests already emitted. */
+  const TIER_LABEL = { red: "Irrecoverable", amber: "Blocked", grey: "Advisory" };
+
+  function hmEmpty(primaryText, codeSnippet) { return sagaEmptyPanel(primaryText, codeSnippet); }
+
+  function renderHookEvents(data) {
+    const host = document.getElementById("heimdall-hooks");
+    if (!host) return;
+    const byHook = (data && data.by_hook) || {};
+    const hooks = Object.keys(byHook).sort();
+    if (hooks.length === 0) {
+      host.replaceChildren(hmEmpty("No recent events — your perimeter has been quiet."));
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    for (const hook of hooks) {
+      const group = document.createElement("div");
+      group.className = "hm-hookgroup";
+      const h4 = document.createElement("h4");
+      h4.className = "hm-hookname";
+      h4.textContent = hook;
+      group.appendChild(h4);
+      for (const ev of byHook[hook]) {
+        const row = document.createElement("div");
+        const tier = ev.tier || "grey";
+        row.className = "hm-evt hm-evt--" + tier;
+        const badge = document.createElement("span");
+        badge.className = "hm-badge hm-badge--" + tier;
+        badge.textContent = TIER_LABEL[tier] || tier;
+        const verdict = document.createElement("span");
+        verdict.className = "hm-verdict";
+        verdict.textContent = (ev.verdict || "") + (ev.rule ? " · " + ev.rule : "");
+        const path = document.createElement("code");
+        path.className = "hm-path";
+        path.textContent = ev.path || ev.tool || "";
+        const ts = document.createElement("span");
+        ts.className = "hm-ts";
+        ts.textContent = ev.ts || "";
+        row.append(badge, verdict, path, ts);
+        group.appendChild(row);
+      }
+      frag.appendChild(group);
+    }
+    host.replaceChildren(frag);
+  }
+
+  function renderVersionDrift(rows) {
+    const host = document.getElementById("heimdall-drift");
+    if (!host) return;
+    if (!rows || rows.length === 0) {
+      host.replaceChildren(hmEmpty("No plugin manifests found."));
+      return;
+    }
+    const drifted = rows.filter(r => r.drift);
+    const table = document.createElement("table");
+    table.className = "hm-table";
+    const thead = document.createElement("thead");
+    const htr = document.createElement("tr");
+    for (const label of ["Plugin", "Catalog", "Plugin.json", "Status"]) {
+      const th = document.createElement("th");
+      th.textContent = label;
+      htr.appendChild(th);
+    }
+    thead.appendChild(htr);
+    table.appendChild(thead);
+    const tbody = document.createElement("tbody");
+    for (const r of rows) {
+      const tr = document.createElement("tr");
+      if (r.drift) tr.className = "hm-row--drift";
+      const cells = [r.plugin, r.marketplace_version, r.plugin_version];
+      for (const c of cells) {
+        const td = document.createElement("td");
+        td.textContent = c || "—";
+        tr.appendChild(td);
+      }
+      const stat = document.createElement("td");
+      stat.textContent = r.drift ? "DRIFT" : "ok";
+      stat.className = r.drift ? "hm-stat--drift" : "hm-stat--ok";
+      tr.appendChild(stat);
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    const caption = document.createElement("p");
+    caption.className = "heimdall-sub";
+    caption.textContent = drifted.length === 0
+      ? "All " + rows.length + " plugins in sync with the catalog."
+      : drifted.length + " of " + rows.length + " plugins drift from the catalog.";
+    host.replaceChildren(caption, table);
+  }
+
+  function renderGjallarhorn(tier) {
+    const banner = document.getElementById("gjallarhorn-banner");
+    const alarmCard = document.getElementById("heimdall-alarm");
+    const txt = document.getElementById("gjallarhorn-text");
+    if (alarmCard) {
+      alarmCard.replaceChildren(
+        tier
+          ? hmEmpty((TIER_LABEL[tier] || tier) + "-tier alarm active — see Recent hook denials above.")
+          : hmEmpty("No active alarms. All clear.")
+      );
+    }
+    if (!banner) return;
+    if (!tier) { banner.hidden = true; banner.className = "gjallarhorn"; return; }
+    banner.hidden = false;
+    banner.className = "gjallarhorn gjallarhorn--" + tier;
+    /* a11y: red is assertive (interrupts), amber/grey polite. */
+    banner.setAttribute("aria-live", tier === "red" ? "assertive" : "polite");
+    if (txt) {
+      txt.textContent = tier === "red"
+        ? "Irrecoverable action was blocked — review the most recent hook denial."
+        : tier === "amber"
+          ? "A guardrail denied an action. Review recent hook denials."
+          : "Advisory notice from a guardrail.";
+    }
+  }
+
+  async function fetchCiStatus() {
+    const host = document.getElementById("heimdall-ci");
+    if (!host) return;
+    /* Cache for 5 min in sessionStorage — the 60 req/hr unauth limit is generous,
+     * this is defensive against tab-flipping. */
+    const cacheKey = "hm-ci-" + REPO_OWNER + "-" + REPO_NAME;
+    let cached = null;
+    try {
+      const raw = sessionStorage.getItem(cacheKey);
+      if (raw) { const o = JSON.parse(raw); if (Date.now() - o.t < 300000) cached = o.d; }
+    } catch (e) { /* ignore */ }
+    if (cached) { renderCiStatus(cached); return; }
+    try {
+      const url = "https://api.github.com/repos/" + REPO_OWNER + "/" + REPO_NAME + "/actions/runs?per_page=5";
+      const res = await fetch(url, { headers: { "Accept": "application/vnd.github+json" } });
+      if (res.status === 403) { renderCiState("rate-limited"); return; }
+      if (res.status === 404) { renderCiState("private"); return; }
+      if (!res.ok) { renderCiState("offline"); return; }
+      const data = await res.json();
+      const runs = (data.workflow_runs || []).slice(0, 5).map(r => ({
+        name: r.name, status: r.status, conclusion: r.conclusion,
+        url: r.html_url, created_at: r.created_at, branch: r.head_branch
+      }));
+      try { sessionStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), d: runs })); } catch (e) {}
+      renderCiStatus(runs);
+    } catch (e) {
+      renderCiState("offline");
+    }
+  }
+
+  function renderCiState(kind) {
+    const host = document.getElementById("heimdall-ci");
+    if (!host) return;
+    const msg = {
+      "rate-limited": "GitHub API rate-limited — try again shortly.",
+      "private": "This marketplace is private; the CI card needs a token. Run the served dashboard with gh auth to populate it.",
+      "offline": "Could not reach the GitHub API (offline or blocked)."
+    }[kind] || "CI status unavailable.";
+    host.replaceChildren(hmEmpty(msg));
+  }
+
+  function renderCiStatus(runs) {
+    const host = document.getElementById("heimdall-ci");
+    if (!host) return;
+    if (!runs || runs.length === 0) {
+      host.replaceChildren(hmEmpty("No recent CI runs."));
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    for (const r of runs) {
+      const row = document.createElement("a");
+      row.className = "hm-ci-row";
+      row.href = r.url || "#";
+      row.target = "_blank";
+      row.rel = "noopener noreferrer";
+      const done = r.status === "completed";
+      const ok = r.conclusion === "success";
+      const dot = document.createElement("span");
+      dot.className = "hm-ci-dot " + (!done ? "hm-ci-dot--run" : ok ? "hm-ci-dot--ok" : "hm-ci-dot--fail");
+      dot.setAttribute("aria-hidden", "true");
+      const name = document.createElement("span");
+      name.className = "hm-ci-name";
+      name.textContent = r.name || "workflow";
+      const meta = document.createElement("span");
+      meta.className = "hm-ci-meta";
+      meta.textContent = (r.branch ? r.branch + " · " : "") + (done ? (r.conclusion || "") : (r.status || ""));
+      row.append(dot, name, meta);
+      frag.appendChild(row);
+    }
+    host.replaceChildren(frag);
+  }
+
+  function readHeimdallInline() {
+    const el = document.getElementById("heimdall-data");
+    if (!el) return {};
+    try { return JSON.parse(el.textContent); } catch (e) { return {}; }
+  }
+
+  async function loadHeimdall() {
+    heimdallLoaded = true;
+    /* Version drift + CI are mode-independent — render them immediately. */
+    const inline = readHeimdallInline();
+    renderVersionDrift(inline.versionDrift || []);
+    fetchCiStatus();
+    /* Hook events + Gjallarhorn need the served endpoint. */
+    const hookHost = document.getElementById("heimdall-hooks");
+    try {
+      const res = await fetch("/__heimdall?days=30");
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      renderHookEvents(data);
+      renderGjallarhorn(data.gjallarhorn_tier);
+    } catch (e) {
+      heimdallLoaded = false; /* allow retry on next visit */
+      const served = await probeReadEndpoint();
+      if (hookHost) {
+        hookHost.replaceChildren(
+          served
+            ? hmEmpty("Could not reach /__heimdall. Is the server running?", "python3 scripts/serve-dashboards.py")
+            : hmEmpty("Hook-event history needs the served dashboard — open it via", "rc dashboard")
+        );
+      }
+      renderGjallarhorn(null);
+    }
+  }
+
+  const heimdallRefBtn = document.getElementById("heimdall-refresh-btn");
+  if (heimdallRefBtn) heimdallRefBtn.addEventListener("click", () => { heimdallLoaded = false; loadHeimdall(); });
+
   /* ── Hydrate command-review config from the committed YAML ──────────── */
   /* When the page is served by scripts/serve-dashboards.py, the committed
    * .ravenclaude/comfort-posture.yaml is the source of truth — it OVERRIDES
@@ -7205,6 +7591,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <button class="tab-btn" data-tab="commands" role="tab" aria-selected="false">Commands</button>
     <button class="tab-btn" data-tab="trees" role="tab" aria-selected="false">Guidance</button>
     <button class="tab-btn" data-tab="activity" role="tab" aria-selected="false">Activity</button>
+    <button class="tab-btn" data-tab="heimdall" role="tab" aria-selected="false">Heimdall</button>
   </nav>
 </header>
 
@@ -7238,6 +7625,9 @@ _PAGE_TEMPLATE = """<!doctype html>
   </section>
   <section class="tab-panel" data-tab="activity" role="tabpanel" aria-label="Activity">
 {activity_html}
+  </section>
+  <section class="tab-panel" data-tab="heimdall" role="tabpanel" aria-label="Heimdall perimeter alerts">
+{heimdall_html}
   </section>
 </main>
 
@@ -7315,6 +7705,9 @@ _PAGE_TEMPLATE = """<!doctype html>
 </script>
 <script type="application/json" id="concepts-data">
 {concepts_json}
+</script>
+<script type="application/json" id="heimdall-data">
+{heimdall_json}
 </script>
 <script>
 {js}
