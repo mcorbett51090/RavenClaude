@@ -37,3 +37,9 @@ plugins/*/dashboard.html
 # guarded by their own --check freshness gates; prettier would only churn them.
 plugins/*/concepts.json
 plugins/*/knowledge/concepts/visuals/
+
+# Generated artifacts — pre-rendered, theme-normalized decision-tree diagrams +
+# render manifest (scripts/render-trees.py), guarded by their own --check
+# freshness gate. Byte-deterministic; prettier has no SVG parser and would only
+# churn the manifest JSON. Same rationale as the concept visuals above.
+plugins/ravenclaude-core/knowledge/tree-visuals/

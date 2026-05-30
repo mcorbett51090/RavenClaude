@@ -97,7 +97,7 @@ flowchart TD
     Q2 -->|YES| STDPCF["Standard (non-virtual) PCF or web template<br/>— React platform libraries NOT supported on Pages"]
     Q2 -->|NO| Q3{Interactive UI, reusable in-app, that a Custom Page / canvas component can build?}
     Q3 -->|YES| CUSTOMPAGE["Custom Page / canvas component"]
-    Q3 -->|NO| Q4{Model-driven form logic JS can do (no novel rendering)?}
+    Q3 -->|NO| Q4{"Model-driven form logic JS can do (no novel rendering)?"}
     Q4 -->|YES| WEBRES["JS web resource (TypeScript, source-controlled)"]
     Q4 -->|NO| PCF["PCF control<br/>(complex viz / specialized input / cross-app reuse)"]
 ```

@@ -130,7 +130,7 @@ flowchart TD
     Q1 -->|One block among many| Q2{Independent block whose failure<br/>shouldn't abort the rest?}
     Q2 -->|YES| SCOPE["Wrap that block in a Scope<br/>+ Configure run after on its successor"]
     Q2 -->|NO — a single action| Q3{Failure is a transient backend fault?}
-    Q3 -->|YES| Q4{Is the operation idempotent<br/>(safe to repeat)?}
+    Q3 -->|YES| Q4{"Is the operation idempotent<br/>(safe to repeat)?"}
     Q4 -->|YES| RETRY["Retry policy: Default/Exponential<br/>on that action's Settings"]
     Q4 -->|NO — non-idempotent write| NONE["Retry = None + handle failure<br/>in Catch yourself"]
     Q3 -->|NO — 401/403/404/permission| RUNAFTER["No retry — Configure run after<br/>to a fix/notify path; it's a wall not a fault"]
@@ -166,7 +166,7 @@ flowchart TD
 flowchart TD
     START[Create/update/delete cloud flows programmatically] --> Q1{PA Management API token<br/>has non-null roles claim<br/>AND Flows.Manage.All consented?}
     Q1 -->|YES — rare in customer tenants| APPROACH_A["Approach A:<br/>PA Management API<br/>(api.flow.microsoft.com)"]
-    Q1 -->|NO — 401, roles: null| Q2{SPN has Dataverse System Admin<br/>(or create/update on workflow table)?}
+    Q1 -->|NO — 401, roles: null| Q2{"SPN has Dataverse System Admin<br/>(or create/update on workflow table)?"}
     Q2 -->|YES| APPROACH_B["Approach B:<br/>Dataverse Web API<br/>(workflow entity, category=5, type=1)"]
     Q2 -->|NO| ESCALATE["Blocked on permissions —<br/>escalate: request SPN role<br/>or Global Admin consent"]
 ```
