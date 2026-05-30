@@ -516,7 +516,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return {"applied": False, "apply_error": "apply-comfort-posture.py not found"}
         try:
             proc = subprocess.run(
-                [sys.executable, str(APPLY_SCRIPT), "--project-root", str(PROJECT_ROOT)],
+                [sys.executable, str(APPLY_SCRIPT), "--project-root", str(PROJECT_ROOT), "--source", "dashboard-save"],
                 capture_output=True, text=True, timeout=30,
             )
         except (subprocess.SubprocessError, OSError) as e:

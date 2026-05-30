@@ -37,6 +37,28 @@ When invoked, the agent should:
 
 For v0.1.0, the pattern is **plain file-system glob + frontmatter parsing**. No vector index. No semantic similarity. Tag-based filtering is the load-bearing mechanism.
 
+## Emit a surfaced-scenario event (observability — P0.6)
+
+After surfacing a scenario to the user (i.e., whenever you actually cite one per the preamble rule below), append **one line per surfaced scenario** to the current run's event log so the retrieval is observable after the fact (this is the read-side substrate the Norns _Urðr_ "last-surfaced" column consumes — without it, "when was this scenario last useful?" is unanswerable):
+
+```
+.ravenclaude/runs/<run-id>/events.jsonl
+```
+
+Line shape (one compact JSON object, newline-terminated — the same `events.jsonl` convention as the Run Artifacts standard):
+
+```json
+{
+  "schema_version": 1,
+  "type": "scenario_surfaced",
+  "ts": "2026-05-30T18:00:00Z",
+  "scenario_path": "plugins/power-platform/scenarios/2026-05-21-spn-flow-create-403.md",
+  "surfaced_to": "power-platform-dataverse-architect"
+}
+```
+
+Where `<run-id>` is the active run directory (create `.ravenclaude/runs/<run-id>/` if this dispatch hasn't already), `surfaced_to` is the agent that received the scenario, and `ts` is the UTC time of surfacing. This is **best-effort and additive** — if the run directory can't be determined or written, surface the scenario anyway; never let the telemetry write block the answer. Emit nothing when no scenario is surfaced (the "no match" case writes no line).
+
 ## The mandatory unverified-scenario preamble
 
 When an agent **cites a scenario** in its response to the user, it MUST prefix the citation with a one-line preamble. This is non-negotiable.

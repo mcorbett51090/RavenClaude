@@ -38,6 +38,15 @@
 
 set -euo pipefail
 
+# Structured hook-event substrate (P0.2). Sourced fail-safe — a missing helper
+# becomes a no-op so the emit call below can never throw.
+_emit_event_helper="$(dirname "$0")/_emit-event.sh"
+if [[ -f "$_emit_event_helper" ]]; then
+  # shellcheck source=/dev/null
+  source "$_emit_event_helper" 2>/dev/null || true
+fi
+command -v _emit_hook_event >/dev/null 2>&1 || _emit_hook_event() { :; }
+
 file="${1:-}"
 [[ -z "$file" ]] && exit 0
 [[ ! -f "$file" ]] && exit 0
@@ -78,6 +87,13 @@ for pat in "${patterns[@]}"; do
 done
 
 if [[ ${#violations[@]} -gt 0 ]]; then
+  # Telemetry: one warn event per flagged file. exit_code reflects strict mode
+  # (1 = enforced block, 0 = advisory). Best-effort; never throws.
+  if [[ "${RC_GUARD_RECURSIVE_SPAWN_STRICT:-0}" == "1" ]]; then
+    _emit_hook_event "guard-recursive-spawn.sh" "warn" "" "$file" "recursive-spawn" 1
+  else
+    _emit_hook_event "guard-recursive-spawn.sh" "warn" "" "$file" "recursive-spawn" 0
+  fi
   cat >&2 <<EOF
 
 ────────────────────────────────────────────────────────────────────
