@@ -149,6 +149,43 @@ A re-baseline on a new platform model is a **deliberate** eval event, not an aut
 
 ---
 
+## Decision Tree: Orchestration shape — single call vs workflow vs agent
+
+**When this applies:** A multi-step Claude-backed task needs a structure and the observable inputs are: **can the steps be predetermined** (a fixed pipeline) or must they be **decided dynamically** by the model; if fixed, is it **one step or many**; and does the task need **iterative refinement to a checkable rubric**. Use this once the build surface is chosen ([`claude-build-surface-decision-tree.md`](claude-build-surface-decision-tree.md)) — orchestration shape and surface are related but distinct (a workflow can run on the Messages API; an agent implies the Agent SDK / Managed Agents).
+
+**Last verified:** 2026-05-30 against [`agent-orchestration-patterns.md`](agent-orchestration-patterns.md) (Anthropic "Building effective agents", durable, 2026-05-28).
+
+```mermaid
+flowchart TD
+    A[Multi-step Claude task] --> R{Needs iterative refinement<br/>to a checkable rubric?}
+    R -->|Yes| EO[Evaluator-optimizer loop<br/>generate -> evaluate -> repeat until it passes]
+    R -->|No| P{Can the steps be predetermined?}
+    P -->|No, dynamic decomposition| OW[Orchestrator-workers<br/>orchestrator delegates to workers, synthesizes]
+    P -->|Yes| S{One step or many?}
+    S -->|One| ONE[Single prompt + tools + retrieval<br/>the start-simple default]
+    S -->|Many, fixed| WF[Workflow: chaining / routing / parallelization]
+```
+
+**Rationale per leaf:**
+
+- _Single prompt + tools + retrieval_ — the **start-simple default**; a single well-prompted call with retrieval + good examples beats a multi-agent system for most tasks. Add complexity only when it measurably wins.
+- _Workflow (chaining / routing / parallelization)_ — fixed, predeterminable steps: chain for sequential decomposition, route to send each input to a specialized prompt/model (the cost ladder), parallelize independent subtasks. Predictable, debuggable, cheaper than an agent.
+- _Orchestrator-workers_ — the subtask shape is **unpredictable** (e.g. multi-file code changes): an orchestrator LLM decomposes and delegates, then synthesizes. **RavenClaude itself is this pattern.** Workers don't spawn workers.
+- _Evaluator-optimizer_ — clear iterative quality gains against a checkable rubric: one model generates, another evaluates, loop until it passes.
+
+**Tradeoffs summary table:**
+
+| Shape | Predictability | Cost / latency | Autonomy | Use when |
+|---|---|---|---|---|
+| Single prompt + tools | highest | lowest | none | most tasks — the start-simple default |
+| Workflow (chain/route/parallel) | high | low-mid | none (you wire the paths) | steps are fixed and predeterminable |
+| Orchestrator-workers | low | higher | model decomposes dynamically | subtask shape is unpredictable |
+| Evaluator-optimizer | medium | higher (loops) | bounded by the rubric | clear iterative gains to a checkable rubric |
+
+Prove the added complexity with an **eval delta** before shipping it (house opinion #4) — autonomy buys outcomes at the cost of latency, tokens, and unpredictability; spend it deliberately. Any agentic leaf inherits the loop guardrails ([`../best-practices/agent-guardrail-the-loop.md`](../best-practices/agent-guardrail-the-loop.md)).
+
+---
+
 ## Sources
 
 Every leaf above is grounded in this plugin's own knowledge bank (all retrieved 2026-05-28, re-confirmed for these trees 2026-05-30): [`model-selection-and-2026-capability-map.md`](model-selection-and-2026-capability-map.md), [`retrieval-and-rag-2026.md`](retrieval-and-rag-2026.md), [`mcp-server-authoring.md`](mcp-server-authoring.md), [`tool-use-and-structured-output.md`](tool-use-and-structured-output.md), [`evals-and-quality.md`](evals-and-quality.md), [`agent-orchestration-patterns.md`](agent-orchestration-patterns.md), and the canonical build-surface tree in [`claude-build-surface-decision-tree.md`](claude-build-surface-decision-tree.md). The platform ships monthly — re-verify every dated model id / GA status / threshold on the Researcher sweep and re-date the `Last verified:` lines.
