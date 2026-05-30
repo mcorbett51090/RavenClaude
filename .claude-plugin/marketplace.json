@@ -13,7 +13,7 @@
       "name": "ravenclaude-core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: a Team Lead that dispatches 14 specialist agents (architect, backend/frontend/fullstack coders, code + security reviewers, tester-QA, data-engineer, project-manager, documentarian, designer, prompt-engineer, partner-success), 22 skills, format/lint/test gates, hooks, rules, and templates. Ships the Capability Grounding Protocol (pre-action environment + decision-tree checks, alternate-methods enumeration, honest blocked-reporting), the Structured Output Protocol for agent handoffs, a Researcher meta-skill for knowledge freshness, and a point-and-click comfort-posture dashboard that writes Claude Code permission rules \u2014 per layer (user/local/project) and per individual permission, on a 3-level deny/ask/allow scale, plus an opt-in command-review tribunal (the Thing): a tiered panel voting allow/edit/deny, with a human-gate. Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard. Domain plugins extend core via skills + knowledge rather than parallel agents.",
-      "version": "0.66.0",
+      "version": "0.67.0",
       "author": {
         "name": "Matt Corbett"
       },

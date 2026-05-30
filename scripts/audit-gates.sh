@@ -1961,6 +1961,55 @@ rc=0; [[ "$c1" -eq "$c2" ]] || rc=1
 gate "identical posture reapply emits no new event (no-flood)" must_pass "$rc"
 rm -rf "$EV_TMP"
 
+echo "── Gate 37: Heimdall perimeter-alarm tab (render logic + server reader) ───"
+# (A) Behavioral render test: drives the REAL render functions extracted from the
+#     generated dashboard.html against fixtures (red→red banner, empty→hidden,
+#     drift→DRIFT row, aria-live tiers). Must-pass on the real dashboard.
+if command -v node >/dev/null 2>&1; then
+  rc=0; node scripts/check-heimdall-render.mjs >/dev/null 2>&1 || rc=$?
+  gate "heimdall render (real dashboard.html)" must_pass "$rc"
+  # must_fail: a drifted dashboard whose red-tier aria-live line is broken (the
+  # render test asserts red→assertive). Simulates a regression in the banner a11y.
+  HM_BAD="$TMP/dashboard-heimdall-drift.html"
+  sed 's/tier === "red" ? "assertive" : "polite"/"polite"/' plugins/ravenclaude-core/dashboard.html > "$HM_BAD"
+  rc=0; node scripts/check-heimdall-render.mjs "$HM_BAD" >/dev/null 2>&1 || rc=$?
+  gate "heimdall render (drifted: red aria-live broken)" must_fail "$rc"
+else
+  echo "  (skipped — node not available; CI has node)"
+fi
+# (B) The /__heimdall endpoint must exist in BOTH server copies (parity gate
+#     covers this too, but assert here that the reader returns the documented
+#     shape: by_hook + gjallarhorn_tier on a real fixture, red for a destructive
+#     deny). Drives the root server's _read_hook_events directly.
+HM_TMP="$TMP/heimdall-runs"; mkdir -p "$HM_TMP/.ravenclaude/runs/s1"
+printf '{"schema_version":1,"ts":"%s","hook":"guard-destructive.sh","verdict":"deny","tool":"Bash","path":"forced","rule":"destructive-pattern","session_id":"s1","exit_code":2}\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$HM_TMP/.ravenclaude/runs/s1/hook-events.jsonl"
+rc=0
+python3 - "$HM_TMP" <<'PY' || rc=$?
+import importlib.util, sys
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("srv", "scripts/serve-dashboards.py")
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+out = m._read_hook_events(Path(sys.argv[1]) / ".ravenclaude" / "runs", days=30)
+assert out.get("gjallarhorn_tier") == "red", out
+assert "guard-destructive.sh" in out.get("by_hook", {}), out
+assert out["by_hook"]["guard-destructive.sh"][0]["tier"] == "red", out
+sys.exit(0)
+PY
+gate "heimdall server reader (destructive deny -> red tier)" must_pass "$rc"
+# Both server copies must expose the _read_hook_events helper identically.
+rc=0
+python3 - <<'PY' || rc=$?
+import importlib.util, sys
+for p in ("scripts/serve-dashboards.py", "plugins/ravenclaude-core/scripts/serve-dashboards.py"):
+    s = importlib.util.spec_from_file_location("m", p)
+    m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
+    assert hasattr(m, "_read_hook_events") and hasattr(m, "_heimdall_tier"), p
+sys.exit(0)
+PY
+gate "heimdall reader present in both server copies" must_pass "$rc"
+rm -rf "$HM_TMP"
+
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"

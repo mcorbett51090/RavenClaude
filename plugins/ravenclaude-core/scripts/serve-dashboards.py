@@ -258,6 +258,90 @@ def _summarize_run(d: Path) -> dict:
     return rec
 
 
+# Heimdall hook-event tiering. The destructive-guard denials are the
+# irrecoverable-action class (red); other denials are amber; warns are grey.
+# Kept as a module constant so both server copies classify identically.
+_HEIMDALL_RED_RULES = {"destructive-pattern"}
+
+
+def _heimdall_tier(ev: dict):
+    """Map one hook event to a Gjallarhorn tier: red | amber | grey | None.
+    red = irrecoverable deny (destructive-guard), amber = other deny,
+    grey = warn. allow/unknown verdicts carry no banner (None)."""
+    verdict = ev.get("verdict")
+    if verdict == "deny":
+        return "red" if ev.get("rule") in _HEIMDALL_RED_RULES else "amber"
+    if verdict == "warn":
+        return "grey"
+    return None
+
+
+def _read_hook_events(runs_dir: Path, days: int = 30, per_hook: int = 10) -> dict:
+    """Read .ravenclaude/runs/*/hook-events.jsonl under `runs_dir`, window to the
+    last `days`, classify each event's tier, group by hook (cap `per_hook` newest
+    each), and surface the highest tier present as the Gjallarhorn banner state.
+
+    Reads only under `runs_dir` (no root reference) so this is byte-identical in
+    the root and bundled plugin server — keep the two copies in sync (the parity
+    gate guards endpoint NAMES; this helper is duplicated, so edit both). Tolerant
+    of torn/garbage lines and missing timestamps (best-effort observability)."""
+    import datetime as _dt
+
+    cutoff = _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=days)
+
+    def _in_window(ev: dict) -> bool:
+        ts = ev.get("ts", "")
+        try:
+            parsed = _dt.datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ").replace(
+                tzinfo=_dt.timezone.utc
+            )
+            return parsed >= cutoff
+        except (ValueError, TypeError):
+            return True  # keep events we can't date rather than silently drop them
+
+    rows: list[dict] = []
+    if runs_dir.is_dir():
+        for log in sorted(runs_dir.glob("*/hook-events.jsonl")):
+            try:
+                with log.open(encoding="utf-8") as fh:
+                    for line in fh:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            ev = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+                        if isinstance(ev, dict):
+                            rows.append(ev)
+            except OSError:
+                continue
+
+    rows = [e for e in rows if _in_window(e)]
+    rows.sort(key=lambda e: e.get("ts", ""), reverse=True)
+
+    order = {"red": 3, "amber": 2, "grey": 1}
+    top = None
+    by_hook: dict[str, list] = {}
+    for e in rows:
+        tier = _heimdall_tier(e)
+        if tier and (top is None or order[tier] > order[top]):
+            top = tier
+        hook = e.get("hook", "unknown")
+        bucket = by_hook.setdefault(hook, [])
+        if len(bucket) < per_hook:
+            enriched = dict(e)
+            enriched["tier"] = tier
+            bucket.append(enriched)
+
+    return {
+        "by_hook": by_hook,
+        "total": len(rows),
+        "gjallarhorn_tier": top,
+        "window_days": days,
+    }
+
+
 class DashboardHandler(SimpleHTTPRequestHandler):
     """SimpleHTTPRequestHandler (serving the plugin dir) + the dashboard endpoints."""
 
@@ -287,6 +371,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             or self.path == "/__classify"
             or self.path.startswith("/__read")
             or self.path.startswith("/__saga")
+            or self.path.startswith("/__heimdall")
             or self.path.startswith("/__runs")
         ):
             self.send_response(200)
@@ -306,6 +391,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if self.path.startswith("/__saga"):
             self._handle_saga()
+            return
+        if self.path.startswith("/__heimdall"):
+            self._handle_heimdall()
             return
         if self.path.startswith("/__runs"):
             self._handle_runs()
@@ -583,6 +671,25 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             for d in run_dirs[:limit]:
                 records.append(_summarize_run(d))
         self._json(200, records)
+
+    def _handle_heimdall(self):
+        """GET /__heimdall[?days=N] — the Heimdall tab's hook-event card. Globs
+        .ravenclaude/runs/*/hook-events.jsonl (last N days, default 30), groups by
+        hook, tier-classifies each event, and returns the Gjallarhorn banner tier.
+        Read-only; same Origin/Host CSRF guard as /__read. (Mirror of the root dev
+        server's /__heimdall with REPO_ROOT → PROJECT_ROOT — kept in lockstep per
+        the dashboard-server-parity gate.)"""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        from urllib.parse import urlparse, parse_qs
+
+        qs = parse_qs(urlparse(self.path).query)
+        try:
+            days = max(1, min(365, int((qs.get("days") or ["30"])[0])))
+        except (ValueError, TypeError):
+            days = 30
+        self._json(200, _read_hook_events(PROJECT_ROOT / ".ravenclaude" / "runs", days=days))
 
     def _json(self, code: int, payload: dict):
         body = json.dumps(payload).encode("utf-8")
