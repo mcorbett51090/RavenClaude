@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude \u2014 a private marketplace of opinionated Claude Code plugins. A domain-neutral core (Team Lead + 14 specialist agents, 20 skills, hooks, the Capability Grounding Protocol, the Structured Output Protocol, and a comfort-posture permission dashboard) plus domain plugins that extend it via skills and knowledge. Every agent ships example-scenario frontmatter; the repo-guide surfaces an 'I want to\u2026' use-case lookup across all plugins. Plugins: ravenclaude-core, power-platform (+ bundled pbix-mcp), finance, regulatory-compliance, web-design (WCAG/CWV/SEO), edtech-partner-success (PSM lane), data-platform, applied-statistics, microsoft-fabric (OneLake / Lakehouse / Direct Lake), claude-app-engineering (Claude API / Agent SDK / MCP / evals), azure-cloud (landing zones / Bicep / Entra / networking / compute), salesforce (Apex / Flow / Agentforce / sharing model / 2GP DevOps), microsoft-365-copilot (declarative/custom-engine agents / Graph connectors / Purview).",
-    "version": "0.33.0"
+    "version": "0.34.0"
   },
   "plugins": [
     {
@@ -296,6 +296,34 @@
         "data-residency",
         "openapi",
         "m365"
+      ]
+    },
+    {
+      "name": "tableau",
+      "source": "./plugins/tableau",
+      "description": "Tableau analytics team \u2014 specialist agents for Tableau Desktop/Cloud/Server, Tableau Prep, and the developer surface: VizQL and chart-type selection, calculations (LOD expressions, table calcs, FIXED/INCLUDE/EXCLUDE), data modeling (relationships vs joins vs blends, extracts vs live), workbook/extract performance, Server/Cloud governance and permissions, content/ALM promotion, embedding (Embedding API v3, Connected Apps/JWT), and the next-gen surface (Tableau Pulse, Tableau Next, CRM Analytics, Einstein/Agent). Citation-grounded knowledge bank with Mermaid decision trees + a best-practices library. Seams: Salesforce platform data \u2192 salesforce; warehouse/semantic modeling \u2192 data-platform/microsoft-fabric; Power BI comparison \u2192 power-platform; methodology/security-review \u2192 ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "tableau",
+        "vizql",
+        "lod-expressions",
+        "table-calculations",
+        "tableau-prep",
+        "tableau-server",
+        "tableau-cloud",
+        "extracts",
+        "hyper",
+        "data-modeling",
+        "row-level-security",
+        "embedding-api",
+        "connected-apps",
+        "tableau-pulse",
+        "tableau-next",
+        "crm-analytics",
+        "dashboard-performance"
       ]
     }
   ]
