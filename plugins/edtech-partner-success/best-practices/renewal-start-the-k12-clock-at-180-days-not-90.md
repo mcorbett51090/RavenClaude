@@ -49,7 +49,7 @@ K-12 renewal clock (July-1 fiscal-year district):
 ## See also
 
 - [`./risk-confirm-the-decision-maker-is-alive-in-the-role-every-quarter.md`](./risk-confirm-the-decision-maker-is-alive-in-the-role-every-quarter.md) — the confirmation step inside the renewal clock
-- [`./cadence-schedule-in-the-partners-timezone-and-suppress-dead-zones.md`](./cadence-schedule-in-the-partners-timezone-and-suppress-dead-zones.md) — the dead-zone overlay the renewal clock rides on
+- [`./cadence-schedule-in-the-partners-timezone-and-suppress-calendar-dead-zones.md`](./cadence-schedule-in-the-partners-timezone-and-suppress-calendar-dead-zones.md) — the dead-zone overlay the renewal clock rides on
 - [`../knowledge/renewal-pricing-conversations-edtech.md`](../knowledge/renewal-pricing-conversations-edtech.md) — the 120-180-day clock, annual-appropriation principle, RFP win rates, Recurly 71%
 - [`../skills/renewal-play-design/SKILL.md`](../skills/renewal-play-design/SKILL.md) — the T-180 → T-0 motion
 - [`../templates/renewal-decision-memo.md`](../templates/renewal-decision-memo.md) — the memo that lands 120-180 days out

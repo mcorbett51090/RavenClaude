@@ -46,7 +46,7 @@ QBR narrative arc (outcomes-first):
 ## See also
 
 - [`./qbr-end-every-qbr-with-dated-owned-commitments.md`](./qbr-end-every-qbr-with-dated-owned-commitments.md) — the sibling rule on how the QBR closes
-- [`./analytics-normalize-to-partner-size-and-cite-the-baseline.md`](./analytics-normalize-to-partner-size-and-cite-the-baseline.md) — every "up 18%" needs a normalized, baselined source
+- [`./analytics-normalize-to-partner-size-and-state-the-comparison-baseline.md`](./analytics-normalize-to-partner-size-and-state-the-comparison-baseline.md) — every "up 18%" needs a normalized, baselined source
 - [`../skills/qbr-composition/SKILL.md`](../skills/qbr-composition/SKILL.md) — the data → narrative → deck → talk track → followups playbook
 - [`../knowledge/customer-success-frameworks.md`](../knowledge/customer-success-frameworks.md) — the Value Realization Plan shape the QBR follows
 - [`../agents/qbr-composer.md`](../agents/qbr-composer.md) — owns the QBR end-to-end
