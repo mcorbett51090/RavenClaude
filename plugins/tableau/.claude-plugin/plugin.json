@@ -5,6 +5,24 @@
   "author": { "name": "Matt Corbett" },
   "homepage": "https://github.com/mcorbett51090/RavenClaude",
   "license": "MIT",
-  "keywords": ["tableau", "vizql", "lod-expressions", "table-calculations", "tableau-prep", "tableau-server", "tableau-cloud", "extracts", "hyper", "data-modeling", "row-level-security", "embedding-api", "connected-apps", "tableau-pulse", "tableau-next", "crm-analytics", "dashboard-performance"],
+  "keywords": [
+    "tableau",
+    "vizql",
+    "lod-expressions",
+    "table-calculations",
+    "tableau-prep",
+    "tableau-server",
+    "tableau-cloud",
+    "extracts",
+    "hyper",
+    "data-modeling",
+    "row-level-security",
+    "embedding-api",
+    "connected-apps",
+    "tableau-pulse",
+    "tableau-next",
+    "crm-analytics",
+    "dashboard-performance"
+  ],
   "requires": { "plugins": ["ravenclaude-core@>=0.7.0"] }
 }

@@ -185,7 +185,7 @@ flowchart TD
 - [`../best-practices/server-promote-content-dont-rebuild.md`](../best-practices/server-promote-content-dont-rebuild.md)
 - [`../best-practices/embed-connected-apps-jwt-not-trusted-tickets.md`](../best-practices/embed-connected-apps-jwt-not-trusted-tickets.md)
 - [`../best-practices/next-pulse-vs-dashboard-for-metrics.md`](../best-practices/next-pulse-vs-dashboard-for-metrics.md)
-- [`../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../docs/best-practices/decision-trees-in-knowledge-files.md) — the format these trees follow
+- [`../../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md) — the format these trees follow
 
 ---
 
