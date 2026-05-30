@@ -42,7 +42,7 @@ For bronze, if the source already lives in OneLake / ADLS / S3 / GCS, **shortcut
 
 - **Tiny, single-source, throwaway POC** — a two-layer (bronze→gold) shape can be defensible; *write down* that silver was deliberately skipped so the next engineer doesn't assume it's missing by accident.
 - **Already-clean operational source auto-mirroring into OneLake** (SQL DB / Cosmos DB in Fabric) — the mirrored Delta is effectively a managed bronze; build silver/gold on top of it rather than re-copying.
-- **Real-time telemetry** belongs in an Eventhouse, not a lakehouse medallion — the layers map to KQL update policies / materialized views instead (see [`rti-eventhouse-shaping.md`](./rti-eventhouse-shaping.md)).
+- **Real-time telemetry** belongs in an Eventhouse, not a lakehouse medallion — the layers map to KQL update policies / materialized views instead (see [`rti-eventhouse-shaping.md`](./rti-shape-at-ingest-with-update-policies.md)).
 
 ## See also
 
