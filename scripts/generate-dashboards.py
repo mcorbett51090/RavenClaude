@@ -129,6 +129,7 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         title=html.escape(title),
         description=html.escape(description),
         css=_CSS,
+        overview_html=_render_overview_tab(),
         settings_html=_render_settings_tab(properties, presets),
         install_html=_render_install_tab(),
         simulator_html=_render_simulator_tab(),
@@ -703,10 +704,55 @@ def _commands_inventory() -> list[dict]:
     return cmds
 
 
+# Commands map to one of three execution classes (see docs/dashboard-ux-build-plan.md §4).
+# All 4 shipped commands are Claude Code slash commands → Class B (copy + run-in-Claude).
+# A command becomes Class A only when its effect maps to an EXISTING /__run action
+# (install/update/status) — none do today, so no new /__run action is introduced here
+# (PR-1 keeps the security delta at zero). The classifier is data-driven so a future
+# shell-shaped command lights up a Run button without touching this renderer.
+_CLASS_A_RUN_ACTION = {
+    # "command-name": "install" | "update" | "status"   (must already be in ALLOWED_ACTIONS)
+}
+
+
 def _render_command_card(cmd: dict) -> str:
     slash = "/" + cmd["name"]
     cid = f"cmd-card-{html.escape(cmd['owner'])}-{html.escape(cmd['name'])}"
     desc = cmd["description"] or "No description provided."
+    run_action = _CLASS_A_RUN_ACTION.get(cmd["name"])
+
+    if run_action:
+        # Class A — shell-executable via an existing allow-listed /__run action.
+        runs_literal = f"bash scripts/ravenclaude {run_action}"
+        what_runs = (
+            '<p class="cmd-what" '
+            f'title="Runs the fixed command: {html.escape(runs_literal)} (served dashboard only)">'
+            "<span class=\"cmd-what-label\">Runs:</span> "
+            f'<code>{html.escape(runs_literal)}</code></p>'
+        )
+        actions = (
+            f'<button type="button" class="btn cmd-run" data-run-action="{html.escape(run_action)}" '
+            f'title="Execute {html.escape(runs_literal)} — available only when served by the root dev server" '
+            "disabled>&#9654; Run</button>"
+            f'<code class="cmd-code" id="{cid}">{html.escape(slash)}</code>'
+            f'<button type="button" class="btn secondary cmd-copy" data-copy-for="{cid}">Copy</button>'
+        )
+        pill = ""
+    else:
+        # Class B — a Claude Code slash command. A browser cannot launch it (no IPC);
+        # be honest: show exactly what it is, copy it, and say where it runs.
+        what_runs = (
+            '<p class="cmd-what" '
+            f'title="This is a Claude Code slash command. Paste {html.escape(slash)} into Claude Code to run it — it runs inside your Claude session, not from this page.">'
+            "<span class=\"cmd-what-label\">Runs in Claude Code:</span> "
+            f'<code>{html.escape(slash)}</code></p>'
+        )
+        actions = (
+            f'<code class="cmd-code" id="{cid}">{html.escape(slash)}</code>'
+            f'<button type="button" class="btn cmd-copy" data-copy-for="{cid}">Copy</button>'
+        )
+        pill = '<span class="cmd-pill" title="Runs inside your Claude Code session, not from the browser">Runs inside Claude Code</span>'
+
     return (
         '<article class="cmd-card">'
         '<header class="cmd-card-head">'
@@ -714,14 +760,100 @@ def _render_command_card(cmd: dict) -> str:
         f'<span class="cmd-card-badge" '
         f'title="Shipped by the {html.escape(cmd["owner"])} plugin">'
         f'{html.escape(cmd["owner"])}</span>'
+        f"{pill}"
         "</header>"
         f'<p class="cmd-card-desc">{html.escape(desc)}</p>'
-        '<div class="cmd-row">'
-        f'<code class="cmd-code" id="{cid}">{html.escape(slash)}</code>'
-        f'<button type="button" class="btn secondary cmd-copy" '
-        f'data-copy-for="{cid}">Copy</button>'
-        "</div>"
+        f"{what_runs}"
+        f'<div class="cmd-row">{actions}</div>'
         "</article>"
+    )
+
+
+def _render_overview_tab() -> str:
+    """Marketplace-wide Overview / 'Start here' tab — the default landing surface.
+    Build-time, generator-discovered (House Rule 1 — never hard-code counts/names),
+    so it renders identically on a static host and when served. The only live
+    element is the served/static banner (toggled by the HEAD /__save probe in JS)."""
+    plugin_dirs = sorted(
+        p for p in PLUGINS_DIR.glob("*/.claude-plugin/plugin.json")
+    )
+    n_plugins = len(plugin_dirs)
+    n_agents = len(list(PLUGINS_DIR.glob("*/agents/*.md")))
+    n_skills = len(
+        [p for p in PLUGINS_DIR.glob("*/skills/*") if p.is_dir()]
+        + [p for p in PLUGINS_DIR.glob("*/skills/*.md") if p.is_file()]
+    )
+    n_commands = len(_commands_inventory())
+    n_trees = len(_decision_trees_inventory())
+    n_practices = len(_best_practices_inventory())
+
+    stat = lambda n, label: (
+        f'<div class="ov-stat"><strong>{n}</strong><span>{html.escape(label)}</span></div>'
+    )
+    stats = "".join([
+        stat(n_plugins, "plugins"),
+        stat(n_agents, "agents"),
+        stat(n_skills, "skills"),
+        stat(n_commands, "commands"),
+        stat(n_trees, "decision trees"),
+        stat(n_practices, "best practices"),
+    ])
+
+    def card(title, body, target, cta):
+        return (
+            f'<a class="ov-card" href="#/{target}">'
+            f'<h4>{html.escape(title)}</h4>'
+            f'<p>{html.escape(body)}</p>'
+            f'<span class="ov-card-cta">{html.escape(cta)} &rarr;</span>'
+            "</a>"
+        )
+
+    systems = "".join([
+        card("Comfort posture",
+             "Tune how autonomous your agents are — per-category deny / ask / allow, "
+             "and the security floor that never relaxes.",
+             "settings", "Open Settings"),
+        card("Guardrail pipeline",
+             "See every guard an action passes through, SessionStart → PreToolUse "
+             "→ PostToolUse → Stop, with live on/off badges.",
+             "pipeline", "Open Pipeline"),
+        card("Command-review tribunal",
+             "The Thing reviews risky commands and logs an auditable verdict. "
+             "Browse the verdict history.",
+             "saga", "Open Review log"),
+        card("Install & update bridge",
+             "Wire the plugin into Claude Code or GitHub Copilot CLI, and update with a "
+             "single git pull.",
+             "install", "Open Install"),
+    ])
+
+    steps = "".join([
+        '<li><a href="#/settings">Pick a posture preset</a> — set how much your agents do without asking.</li>',
+        '<li><a href="#/pipeline">See what the guardrails do</a> — the map of every check, in plain language.</li>',
+        '<li><a href="#/install">Wire it into your tool</a> — one-time setup, then updates are a git pull.</li>',
+        '<li><a href="#/trees">Browse the guidance</a> — the decision trees + best practices each plugin gives your agents.</li>',
+    ])
+
+    return (
+        '<div class="ov-wrap">'
+        '<div class="ov-hero">'
+        "<h2>RavenClaude &mdash; your control surface</h2>"
+        "<p>RavenClaude is your private Claude Code <strong>plugin marketplace</strong>. "
+        "This dashboard is where you <strong>tune how autonomous your agents are</strong>, "
+        "watch the guardrails every action passes through, and wire the plugin into your tools. "
+        "(Looking for the public catalog of every agent &amp; skill? That's "
+        "<code>repo-guide.html</code> &mdash; this dashboard is the <em>controls</em>, not the catalog.)</p>"
+        '<div id="ov-mode-banner" class="ov-banner ov-banner-static">'
+        "<strong>Preview</strong> &mdash; this is a read-only view. Run the served dashboard "
+        "(<code>rc dashboard</code> or <code>python3 scripts/serve-dashboards.py</code>) to save changes to your repo."
+        "</div>"
+        "</div>"
+        f'<div class="ov-stats">{stats}</div>'
+        '<h3 class="ov-h3">The big systems</h3>'
+        f'<div class="ov-cards">{systems}</div>'
+        '<h3 class="ov-h3">Start here</h3>'
+        f'<ol class="ov-steps">{steps}</ol>'
+        "</div>"
     )
 
 
@@ -736,12 +868,19 @@ def _render_commands_tab() -> str:
         )
     cards = "".join(_render_command_card(c) for c in cmds)
     plural = "s" if len(cmds) != 1 else ""
+    n_run = sum(1 for c in cmds if _CLASS_A_RUN_ACTION.get(c["name"]))
+    run_note = (
+        f" {n_run} can run from here when the dashboard is served; the rest are "
+        "Claude Code slash commands."
+        if n_run else
+        " Each card shows exactly what it runs. These are Claude Code slash "
+        "commands — they run inside your Claude session, so copy one and paste it "
+        "into Claude Code (a browser can't launch a slash command)."
+    )
     intro = (
         '<div class="cmd-intro">'
         "<h2>Commands</h2>"
-        f"<p>{len(cmds)} slash command{plural} shipped by the marketplace plugins. "
-        "Copy a command and paste it into Claude Code to run it — or type "
-        "<code>/</code> in Claude Code to see the same list inline.</p>"
+        f"<p>{len(cmds)} command{plural} shipped by the marketplace plugins.{run_note}</p>"
         "</div>"
     )
     return intro + f'<div class="cmd-grid">{cards}</div>'
@@ -788,9 +927,33 @@ def _decision_trees_inventory() -> list[dict]:
     return out
 
 
+_MD_LINK_RE = _re.compile(r"\[([^\]]+)\]\([^)]*\)")
+
+
+def _bp_preview(text: str) -> str:
+    """Extract a short preview for the Guidance tab: the first paragraph of the
+    '## Why this exists' section (or the first body paragraph), with inline
+    markdown links flattened to their text and capped. Net-new parse — the rest
+    of the inventory only reads the title + Status."""
+    m = _re.search(r"(?ms)^##\s+Why this exists\s*\n+(.+?)(?:\n##|\Z)", text)
+    body = ""
+    if m:
+        body = m.group(1)
+    else:
+        # Fall back to the first non-heading, non-blank, non-metadata paragraph.
+        for para in _re.split(r"\n\s*\n", text):
+            s = para.strip()
+            if not s or s.startswith("#") or s.startswith("**") or s.startswith("---"):
+                continue
+            body = s
+            break
+    body = _MD_LINK_RE.sub(r"\1", " ".join(body.split()))
+    return body[:280] + ("…" if len(body) > 280 else "")
+
+
 def _best_practices_inventory() -> list[dict]:
     """Discover best-practices/*.md (excluding README) across all plugins.
-    Returns {owner, title, status, path} sorted by (owner, title)."""
+    Returns {owner, title, status, preview, path} sorted by (owner, title)."""
     out: list[dict] = []
     for md in sorted(PLUGINS_DIR.glob("*/best-practices/*.md")):
         if md.name.lower() == "readme.md":
@@ -811,6 +974,7 @@ def _best_practices_inventory() -> list[dict]:
             "owner": owner,
             "title": title,
             "status": sm.group(1).strip() if sm else "",
+            "preview": _bp_preview(text),
             "path": str(md.relative_to(REPO_ROOT)),
         })
     out.sort(key=lambda d: (d["owner"], d["title"].lower()))
@@ -833,8 +997,8 @@ def _render_trees_tab() -> str:
         f"{len(practices)} best-practice doc{'s' if len(practices) != 1 else ''} "
         f"across {len(owners)} marketplace plugin{'s' if len(owners) != 1 else ''}. "
         "These are the priors (when-this-applies decision trees) and named rules "
-        "each installed plugin gives your agents in a consumer repo. Click any item "
-        "to open its source file.</p>"
+        "each installed plugin gives your agents in a consumer repo. Click a best-practice "
+        "<strong>preview</strong> to read its rationale inline, or the title to open its source file.</p>"
         "</div>"
     )
 
@@ -853,16 +1017,31 @@ def _render_trees_tab() -> str:
             )
             for t in ot
         )
-        bp_items = "".join(
-            '<li class="guide-item"><a href="../../{path}" class="guide-link">'
-            "<span class=\"guide-kind guide-kind-bp\">{status}</span>"
-            "<span class=\"guide-title\">{title}</span></a></li>".format(
-                path=html.escape(p["path"]),
-                title=html.escape(p["title"]),
-                status=html.escape(p["status"] or "rule"),
+        bp_parts = []
+        for idx, p in enumerate(op):
+            pid = f"bp-prev-{html.escape(p['owner'])}-{idx}"
+            preview = p.get("preview") or ""
+            toggle = (
+                f'<button type="button" class="guide-bp-toggle" '
+                f'data-bp-toggle="{pid}" aria-expanded="false">preview</button>'
+                if preview else ""
             )
-            for p in op
-        )
+            preview_html = (
+                f'<p class="guide-bp-preview" id="{pid}" hidden>{html.escape(preview)}</p>'
+                if preview else ""
+            )
+            bp_parts.append(
+                '<li class="guide-item"><a href="../../{path}" class="guide-link">'
+                "<span class=\"guide-kind guide-kind-bp\">{status}</span>"
+                "<span class=\"guide-title\">{title}</span></a>{toggle}{preview}</li>".format(
+                    path=html.escape(p["path"]),
+                    title=html.escape(p["title"]),
+                    status=html.escape(p["status"] or "rule"),
+                    toggle=toggle,
+                    preview=preview_html,
+                )
+            )
+        bp_items = "".join(bp_parts)
         tree_section = (
             f'<h4 class="guide-subhd">Decision trees <span class="guide-count">{len(ot)}</span></h4>'
             f"<ul class=\"guide-list\">{tree_items}</ul>"
@@ -3404,6 +3583,120 @@ footer.page-footer a:hover { text-decoration: underline; }
   line-height: 1.5;
   color: var(--text);
 }
+/* Commands tab — always-visible "what this runs" line + Class-B pill */
+.cmd-what {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.cmd-what-label { font-weight: 600; color: var(--text); }
+.cmd-what code {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  word-break: break-all;
+}
+.cmd-pill {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.cmd-run { flex: 0 0 auto; }
+/* Overview tab */
+.ov-wrap { display: flex; flex-direction: column; gap: 22px; max-width: 980px; }
+.ov-hero h2 { margin: 0 0 8px; }
+.ov-hero p { margin: 0; color: var(--text); line-height: 1.6; max-width: 72ch; }
+.ov-banner {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  line-height: 1.5;
+  border: 1px solid var(--border);
+}
+.ov-banner-static { background: var(--surface-2); color: var(--muted); }
+.ov-banner-live {
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  border-color: var(--accent);
+  color: var(--text);
+}
+.ov-banner code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.ov-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+.ov-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ov-stat strong { font-size: 24px; color: var(--accent); line-height: 1; }
+.ov-stat span { font-size: 12px; color: var(--muted); }
+.ov-h3 { margin: 4px 0 0; font-size: 15px; }
+.ov-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+}
+.ov-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-decoration: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  color: var(--text);
+  transition: border-color 0.12s, transform 0.12s;
+}
+.ov-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+.ov-card h4 { margin: 0; font-size: 14px; color: var(--accent); }
+.ov-card p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.ov-card-cta { margin-top: auto; font-size: 12px; font-weight: 600; color: var(--accent); }
+.ov-steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; }
+.ov-steps li { font-size: 13px; line-height: 1.5; color: var(--text); }
+.ov-steps a { color: var(--accent); font-weight: 600; }
+/* Guidance — best-practice preview-on-click */
+.guide-bp-preview {
+  margin: 4px 0 2px 22px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+  border-left: 2px solid var(--border);
+  padding-left: 10px;
+}
+.guide-bp-toggle {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 11.5px;
+  cursor: pointer;
+  padding: 0 0 0 6px;
+}
+.guide-bp-toggle:hover { text-decoration: underline; }
 .oneclick-head {
   display: flex;
   align-items: center;
@@ -4137,7 +4430,7 @@ _ACTIVITY_TAB_TEMPLATE = """
 _SIMULATOR_TAB_TEMPLATE = """
 <div class="sim-layout">
   <section class="sim-intro">
-    <h2>Test a command</h2>
+    <h2>Preview a command's review</h2>
     <p>
       Type any shell command and see <strong>what the Thing would do with it</strong> &mdash;
       which category it lands in, the risk tier, which reviewer seats convene, the concerns
@@ -5642,6 +5935,65 @@ _JS = r"""
     }
   });
 
+  /* ── Overview served/static banner ───────────────────────────────────
+   * Build-time the banner renders in its "Preview" (static) state. When the
+   * page is served by serve-dashboards.py, HEAD /__save succeeds (the Settings
+   * tab uses the same probe) and we flip the banner to "Live". Static hosts
+   * (GitHub Pages / file://) keep the read-only Preview message. */
+  (function wireOverviewBanner() {
+    const banner = document.getElementById("ov-mode-banner");
+    if (!banner) return;
+    fetch("/__save", { method: "HEAD" }).then(res => {
+      if (res && res.ok) {
+        banner.classList.remove("ov-banner-static");
+        banner.classList.add("ov-banner-live");
+        banner.innerHTML =
+          "<strong>Live</strong> &mdash; this dashboard is served locally; "
+          + "changes you save are written to <em>this</em> repo.";
+      }
+    }).catch(() => { /* static host — keep the Preview message */ });
+  })();
+
+  /* ── Command Run buttons (Class A) — honest disabled copy ─────────────
+   * Class-A command Run buttons reuse the exact /__run mechanic + button
+   * wiring as the Install tab (they share the button[data-run-action]
+   * selector, so they auto-enable on the same HEAD /__run probe). The only
+   * addition: an honest disabled-state note. A consumer running `rc dashboard`
+   * is running the BUNDLED server, which has no /__run — so the correct copy
+   * is "root dev server only", never "run serve-dashboards.py". */
+  (function wireCommandRunNote() {
+    const runCmds = Array.from(document.querySelectorAll(".cmd-run[data-run-action]"));
+    if (!runCmds.length) return;
+    fetch("/__run", { method: "HEAD" }).then(res => {
+      const served = res && res.ok;
+      runCmds.forEach(b => {
+        if (!served) {
+          b.disabled = true;
+          b.title = "Run is available only when served by the root dev server";
+        }
+      });
+    }).catch(() => {
+      runCmds.forEach(b => {
+        b.disabled = true;
+        b.title = "Run is available only when served by the root dev server";
+      });
+    });
+  })();
+
+  /* ── Guidance — best-practice preview-on-click ────────────────────────
+   * Build-time-embedded previews (no fetch — static-host safe). Each toggle
+   * shows/hides the rationale paragraph for one best-practice. */
+  document.querySelectorAll(".guide-bp-toggle[data-bp-toggle]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const el = document.getElementById(btn.dataset.bpToggle);
+      if (!el) return;
+      const open = el.hidden;
+      el.hidden = !open;
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+      btn.textContent = open ? "hide" : "preview";
+    });
+  });
+
   /* ── Test-a-command simulator tab ────────────────────────────────── */
   /* Answers "what would the Thing do?" using the REAL engine via POST
    * /__classify (served mode only). Classification is NEVER reimplemented in
@@ -5794,7 +6146,7 @@ _JS = r"""
   });
 
   /* ── Tab routing ─────────────────────────────────────────────────── */
-  const validTabs = ["settings", "pipeline", "install", "simulator", "learn", "saga", "commands", "trees", "activity"];
+  const validTabs = ["overview", "settings", "pipeline", "install", "simulator", "learn", "saga", "commands", "trees", "activity"];
   function openConcept(id) {
     const card = document.getElementById("learn-" + id);
     if (!card) return;
@@ -5834,8 +6186,8 @@ _JS = r"""
   const activityRefBtn  = document.getElementById("activity-refresh-btn");
 
   function applyHash() {
-    const seg = (location.hash || "#/settings").replace(/^#\//, "").split("/");
-    const tab = validTabs.includes(seg[0]) ? seg[0] : "settings";
+    const seg = (location.hash || "#/overview").replace(/^#\//, "").split("/");
+    const tab = validTabs.includes(seg[0]) ? seg[0] : "overview";
     document.querySelectorAll(".tab-btn").forEach(b => {
       const sel = b.dataset.tab === tab;
       b.setAttribute("aria-selected", sel ? "true" : "false");
@@ -6740,10 +7092,11 @@ _PAGE_TEMPLATE = """<!doctype html>
   <p class="page-desc">{description}</p>
   <p class="page-desc"><span class="plugin-name">{plugin_name}</span> &middot; static dashboard, no backend. Edits stay in your browser until you click Download.</p>
   <nav class="tab-bar" role="tablist" aria-label="Dashboard tabs">
-    <button class="tab-btn" data-tab="settings" role="tab" aria-selected="true">Settings</button>
+    <button class="tab-btn" data-tab="overview" role="tab" aria-selected="true">Overview</button>
+    <button class="tab-btn" data-tab="settings" role="tab" aria-selected="false">Settings</button>
     <button class="tab-btn" data-tab="pipeline" role="tab" aria-selected="false">Pipeline</button>
     <button class="tab-btn" data-tab="install" role="tab" aria-selected="false">Install &amp; Update</button>
-    <button class="tab-btn" data-tab="simulator" role="tab" aria-selected="false">Test a command</button>
+    <button class="tab-btn" data-tab="simulator" role="tab" aria-selected="false">Preview a review</button>
     <button class="tab-btn" data-tab="learn" role="tab" aria-selected="false">Learn</button>
     <button class="tab-btn" data-tab="saga" role="tab" aria-selected="false">&#9878; Review log</button>
     <button class="tab-btn" data-tab="commands" role="tab" aria-selected="false">Commands</button>
@@ -6753,7 +7106,10 @@ _PAGE_TEMPLATE = """<!doctype html>
 </header>
 
 <main>
-  <section class="tab-panel active" data-tab="settings" role="tabpanel" aria-label="Settings">
+  <section class="tab-panel active" data-tab="overview" role="tabpanel" aria-label="Overview">
+{overview_html}
+  </section>
+  <section class="tab-panel" data-tab="settings" role="tabpanel" aria-label="Settings">
 {settings_html}
   </section>
   <section class="tab-panel" data-tab="pipeline" role="tabpanel" aria-label="Guardrail pipeline">
@@ -6762,7 +7118,7 @@ _PAGE_TEMPLATE = """<!doctype html>
   <section class="tab-panel" data-tab="install" role="tabpanel" aria-label="Install and Update">
 {install_html}
   </section>
-  <section class="tab-panel" data-tab="simulator" role="tabpanel" aria-label="Test a command">
+  <section class="tab-panel" data-tab="simulator" role="tabpanel" aria-label="Preview a command's review">
 {simulator_html}
   </section>
   <section class="tab-panel" data-tab="learn" role="tabpanel" aria-label="Learn">
