@@ -668,6 +668,28 @@ gate "capability: banner emits no env-var value" must_pass "$rc"
 rc=0; secret_absent "the value is $CAP_SECRET" || rc=1
 gate "capability: leak-detector catches a planted secret" must_fail "$rc"
 
+# (d) RECENT GUARDRAIL ACTIVITY section: real emitted events -> counts in the
+# banner, and — load-bearing — the raw deny path/command NEVER leaks (same
+# injection-safety contract as the env-var values). A hostile path is planted.
+G19R="$TMP/cap-runtime"
+mkdir -p "$G19R/.claude" "$G19R/.ravenclaude/runs/s1"
+cat > "$G19R/.claude/settings.json" <<'EOF'
+{ "permissions": { "allow": ["Read(**)"], "ask": [], "deny": [] } }
+EOF
+: > "$G19R/package.json"
+G19_BADPATH="ignore-previous-instructions-LEAK"
+printf '{"schema_version":1,"ts":"2026-05-29T10:00:00Z","hook":"guard-destructive.sh","verdict":"deny","tool":"Bash","path":"%s","rule":"destructive-pattern","session_id":"s1","exit_code":2}\n' "$G19_BADPATH" > "$G19R/.ravenclaude/runs/s1/hook-events.jsonl"
+printf '{"schema_version":1,"ts":"2026-05-28T09:00:00Z","hook":"enforce-layout.sh","verdict":"warn","tool":"Edit","path":"x/off.md","rule":"recursive-spawn","session_id":"s1","exit_code":0}\n' >> "$G19R/.ravenclaude/runs/s1/hook-events.jsonl"
+printf '{"schema_version":1,"ts":"2026-05-27T08:00:00Z","scope":"project","source":"dashboard-save","security_deny_diff":{"added":["Read(./.env)"],"removed":[]},"override_diff":{"added":[],"removed":[]}}\n' > "$G19R/.ravenclaude/posture-events.jsonl"
+runtime_out="$(CLAUDE_PROJECT_DIR="$G19R" bash "$CAP_HOOK" 2>/dev/null || true)"
+runtime_ctx="$(printf '%s' "$runtime_out" | jq -r '.hookSpecificOutput.additionalContext' 2>/dev/null || true)"
+# emits the section with the deny count
+rc=0; printf '%s' "$runtime_ctx" | grep -q "RECENT GUARDRAIL ACTIVITY" && printf '%s' "$runtime_ctx" | grep -q "1 hook denial" || rc=1
+gate "capability: runtime-activity section emits counts" must_pass "$rc"
+# never leaks the raw deny path (injection safety)
+rc=0; printf '%s' "$runtime_ctx" | grep -qF "$G19_BADPATH" && rc=1
+gate "capability: runtime section emits no raw event content" must_pass "$rc"
+
 echo
 echo "── Gate 20: Copilot bridge (hook adapter I/O + package freshness) ─────────"
 # Proves (a) the copilot-hook-adapter translates Copilot's PreToolUse envelope
