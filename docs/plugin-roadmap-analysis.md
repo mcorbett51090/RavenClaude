@@ -256,6 +256,18 @@ These cross-links are documented inside each plugin's `CLAUDE.md` "Escalating ou
 
 ---
 
+## 7.5 Parked feature workstreams (not plugins — core/infrastructure)
+
+These are cross-cutting feature efforts (not new plugins) that are **on the roadmap but parked**, tracked here so they stay discoverable on each roadmap re-read.
+
+| Workstream | Status (2026-05-30) | Go/no-go gate | Docs |
+|---|---|---|---|
+| **Orchestrator hybrid** (Team Lead as a dispatchable MCP tool, for Copilot CLI which lacks a whole-turn delegation primitive) | **PARKED** at Matt's instruction. Phase 0 feasibility partially run: the **hard-stop gate (nested-loop hook load+enforce, Probe 5) CLEARED** — the build is *not* killed. Probes 2/4/8 also passed. | **Phase −1 demand** is the real go/no-go (≥3 of last 20 Copilot-CLI sessions that would've benefited from Team-Lead fan-out) — needs consumer session data outside this repo. Plus Probes 1/3/6/7 (interactive Copilot CLI session + a browser fetch of the OAuth-policy article). | strategic: [`orchestrator-hybrid-plan-2026-05-29.md`](./orchestrator-hybrid-plan-2026-05-29.md) · build: [`orchestrator-hybrid-BUILD-plan-2026-05-29.md`](./orchestrator-hybrid-BUILD-plan-2026-05-29.md) · spike: [`research/2026-05-30-mcp-spike/findings.md`](./research/2026-05-30-mcp-spike/findings.md) · demand: [`research/2026-05-30-mcp-hybrid-demand/findings.md`](./research/2026-05-30-mcp-hybrid-demand/findings.md) |
+
+**Unpark trigger:** a real engagement surfaces Team-Lead fan-out demand under Copilot CLI, OR Matt runs the residual Phase 0 probes and clears the Phase −1 demand gate. On unpark, the next step is the Phase 1 MCP-wrapper spike (no product code shipped until the decision matrix resolves the auth path).
+
+---
+
 ## 8. Update path
 
 When this analysis ages:
