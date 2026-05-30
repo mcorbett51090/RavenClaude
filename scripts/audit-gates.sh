@@ -2062,6 +2062,55 @@ PY
 gate "vidarr reader present in both server copies" must_pass "$rc"
 rm -rf "$VD_TMP"
 
+echo "── Gate 40: Norns lineage tab (render + Skuld gating + server reader) ─────"
+# (A) Behavioral render test: drives the REAL Norns render functions from the
+#     generated dashboard.html (Urðr scenarios/commits, Verðandi counts, Skuld
+#     gated-empty-state when next_version absent + populated when present).
+if command -v node >/dev/null 2>&1; then
+  rc=0; node scripts/check-norns-render.mjs >/dev/null 2>&1 || rc=$?
+  gate "norns render (real dashboard.html)" must_pass "$rc"
+  # must_fail: a drifted dashboard whose Skuld gated-empty-state condition is
+  # broken (forced false) so the gated message never shows — the render test
+  # asserts it appears when next_version is absent.
+  NR_BAD="$TMP/dashboard-norns-drift.html"
+  sed 's/if (!s.next_version \&\& (!s.roadmap/if (false \&\& (!s.roadmap/' plugins/ravenclaude-core/dashboard.html > "$NR_BAD"
+  rc=0; node scripts/check-norns-render.mjs "$NR_BAD" >/dev/null 2>&1 || rc=$?
+  gate "norns render (drifted: Skuld gating broken)" must_fail "$rc"
+else
+  echo "  (skipped — node not available; CI has node)"
+fi
+# (B) Server reader: returns the three lineage keys with real data; git failure
+#     degrades to empty commits (never raises). Drives _read_norns directly.
+rc=0
+python3 - <<'PY' || rc=$?
+import importlib.util, sys
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("srv", "scripts/serve-dashboards.py")
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+out = m._read_norns(Path("."), "ravenclaude-core")
+assert set(out) >= {"urdr", "verdandi", "skuld"}, out
+assert out["verdandi"]["hooks"] >= 1 and out["verdandi"]["rules"] >= 1, out["verdandi"]
+assert out["verdandi"]["version"], out["verdandi"]
+assert "README.md" not in out["skuld"]["proposals"], out["skuld"]
+# git failure must degrade to [], not raise: point at a non-repo tmp dir.
+import tempfile
+out2 = m._read_norns(Path(tempfile.gettempdir()), "ravenclaude-core")
+assert out2["urdr"]["commits"] == [], out2["urdr"]["commits"]
+sys.exit(0)
+PY
+gate "norns server reader (3 keys; git-failure degrades to empty)" must_pass "$rc"
+# Both server copies must expose _read_norns identically.
+rc=0
+python3 - <<'PY' || rc=$?
+import importlib.util, sys
+for p in ("scripts/serve-dashboards.py", "plugins/ravenclaude-core/scripts/serve-dashboards.py"):
+    s = importlib.util.spec_from_file_location("m", p)
+    m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
+    assert hasattr(m, "_read_norns") and hasattr(m, "_norns_git_lines"), p
+sys.exit(0)
+PY
+gate "norns reader present in both server copies" must_pass "$rc"
+
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"

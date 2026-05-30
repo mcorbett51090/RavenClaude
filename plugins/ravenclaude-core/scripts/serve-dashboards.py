@@ -448,6 +448,135 @@ def _read_vidarr_events(runs_dir: Path, posture_log: Path, days: int = 30) -> di
     }
 
 
+def _norns_git_lines(args: list, cwd: Path) -> list:
+    """Run `git <args>` under cwd, returning stdout lines (empty on ANY failure:
+    no git, shallow clone, non-repo, timeout). Norns inlines NOTHING git-derived
+    into the committed dashboard.html — this runs live in the served endpoint —
+    so a git failure must degrade to an empty list, never raise."""
+    import subprocess as _sp
+
+    try:
+        out = _sp.run(
+            ["git"] + args, cwd=str(cwd), capture_output=True, text=True, timeout=10
+        )
+        if out.returncode != 0:
+            return []
+        return [ln for ln in out.stdout.splitlines() if ln.strip()]
+    except (OSError, _sp.SubprocessError):
+        return []
+
+
+def _read_norns(repo_root: Path, plugin: str) -> dict:
+    """Build the Norns lineage view for one plugin: Urðr (past — scenario
+    surfaces + decisions + commits), Verðandi (present — version + hook/rule
+    counts + last release), Skuld (future — next_version + roadmap + proposals).
+
+    Reads live (git log, events.jsonl, plugin.json, docs/proposals/) — this is
+    why it lives in the served endpoint, NOT inlined at generator time: git
+    output varies between a full clone and CI's shallow checkout and would break
+    the exact-match dashboard freshness gate. Duplicated byte-identically in both
+    server copies (parity gate guards endpoint NAMES; edit both). Every source is
+    guarded — a missing file / git failure yields an empty section, never raises.
+    """
+    pdir = f"plugins/{plugin}"
+    manifest: dict = {}
+    pj = repo_root / pdir / ".claude-plugin" / "plugin.json"
+    try:
+        manifest = json.loads(pj.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, ValueError):
+        manifest = {}
+
+    # ── Urðr (past) ──────────────────────────────────────────────────────────
+    # Scenario surfaces from events.jsonl, filtered to this plugin's scenarios.
+    scenarios: list = []
+    runs = repo_root / ".ravenclaude" / "runs"
+    if runs.is_dir():
+        for ev_file in sorted(runs.glob("*/events.jsonl")):
+            try:
+                with ev_file.open(encoding="utf-8") as fh:
+                    for line in fh:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            ev = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+                        if not isinstance(ev, dict):
+                            continue
+                        if ev.get("type") == "scenario_surfaced" and str(
+                            ev.get("scenario_path", "")
+                        ).startswith(f"{pdir}/scenarios/"):
+                            scenarios.append(ev)
+            except OSError:
+                continue
+    scenarios.sort(key=lambda e: e.get("ts", ""), reverse=True)
+    scenarios = scenarios[:5]
+
+    # Decision-log entries (docs/decisions/<plugin>-*.md) — absent today; guarded.
+    decisions: list = []
+    dec_dir = repo_root / "docs" / "decisions"
+    if dec_dir.is_dir():
+        matches = sorted(
+            dec_dir.glob(f"{plugin}-*.md"), key=lambda p: p.stat().st_mtime, reverse=True
+        )
+        decisions = [p.name for p in matches[:5]]
+
+    commits = _norns_git_lines(["log", "--oneline", "-10", "--", pdir], repo_root)
+
+    # ── Verðandi (present) ─────────────────────────────────────────────────────
+    # Hooks exclude leading-underscore sourced helpers (matches the repo-guide
+    # rule); rules = any file under rules/.
+    hooks_dir = repo_root / pdir / "hooks"
+    hook_count = 0
+    if hooks_dir.is_dir():
+        hook_count = sum(
+            1
+            for p in hooks_dir.glob("*.sh")
+            if p.is_file() and not p.name.startswith("_")
+        )
+    rules_dir = repo_root / pdir / "rules"
+    rule_count = (
+        sum(1 for p in rules_dir.iterdir() if p.is_file()) if rules_dir.is_dir() else 0
+    )
+    rel = _norns_git_lines(
+        ["log", "-1", "--format=%cs", "--", f"{pdir}/.claude-plugin/plugin.json"],
+        repo_root,
+    )
+
+    # ── Skuld (future) ─────────────────────────────────────────────────────────
+    # next_version / roadmap (P0.1 — absent today → gated empty state in the UI);
+    # open proposals naming this plugin (README excluded).
+    proposals: list = []
+    prop_dir = repo_root / "docs" / "proposals"
+    if prop_dir.is_dir():
+        for md in sorted(prop_dir.glob("*.md")):
+            if md.name == "README.md":
+                continue
+            try:
+                body = md.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                body = ""
+            if plugin in md.name or plugin in body:
+                proposals.append(md.name)
+
+    return {
+        "plugin": plugin,
+        "urdr": {"scenarios": scenarios, "decisions": decisions, "commits": commits},
+        "verdandi": {
+            "version": manifest.get("version", ""),
+            "hooks": hook_count,
+            "rules": rule_count,
+            "last_release": rel[0] if rel else "",
+        },
+        "skuld": {
+            "next_version": manifest.get("next_version", ""),
+            "roadmap": manifest.get("roadmap", []) or [],
+            "proposals": proposals[:5],
+        },
+    }
+
+
 class DashboardHandler(SimpleHTTPRequestHandler):
     """SimpleHTTPRequestHandler (serving the plugin dir) + the dashboard endpoints."""
 
@@ -479,6 +608,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             or self.path.startswith("/__saga")
             or self.path.startswith("/__heimdall")
             or self.path.startswith("/__vidarr")
+            or self.path.startswith("/__norns")
             or self.path.startswith("/__runs")
         ):
             self.send_response(200)
@@ -504,6 +634,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if self.path.startswith("/__vidarr"):
             self._handle_vidarr()
+            return
+        if self.path.startswith("/__norns"):
+            self._handle_norns()
             return
         if self.path.startswith("/__runs"):
             self._handle_runs()
@@ -820,6 +953,26 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             days = 30
         rc = PROJECT_ROOT / ".ravenclaude"
         self._json(200, _read_vidarr_events(rc / "runs", rc / "posture-events.jsonl", days=days))
+
+    def _handle_norns(self):
+        """GET /__norns?plugin=<name> — the Norns lineage view (Urðr/Verðandi/
+        Skuld) for one plugin. Reads live git log + events.jsonl + plugin.json +
+        docs/proposals (NOT inlined at generator time — git output varies by
+        clone depth and would break the exact-match dashboard freshness gate).
+        Read-only; same Origin/Host CSRF guard as /__read. (Mirror of the root dev
+        server's /__norns with REPO_ROOT → PROJECT_ROOT — kept in lockstep per the
+        dashboard-server-parity gate.)"""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        from urllib.parse import urlparse, parse_qs
+
+        qs = parse_qs(urlparse(self.path).query)
+        plugin = (qs.get("plugin") or ["ravenclaude-core"])[0]
+        if not plugin or "/" in plugin or "\\" in plugin or ".." in plugin:
+            self.send_error(400, "invalid plugin name")
+            return
+        self._json(200, _read_norns(PROJECT_ROOT, plugin))
 
     def _json(self, code: int, payload: dict):
         body = json.dumps(payload).encode("utf-8")
