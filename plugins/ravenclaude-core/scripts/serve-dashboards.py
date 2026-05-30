@@ -577,6 +577,108 @@ def _read_norns(repo_root: Path, plugin: str) -> dict:
     }
 
 
+def _read_nidhoggr(repo_root: Path) -> dict:
+    """Níðhöggr "Debt watch" — marketplace-wide debt signals for the Heimdall tab.
+    Four cheap, low-noise signals, each read live (NOT inlined at generator time:
+    two are git-derived and vary by clone depth, which would break the exact-match
+    dashboard freshness gate — same reason Norns is served). Duplicated
+    byte-identically in both server copies (parity gate guards endpoint NAMES;
+    edit both). Every source is guarded — a git failure / missing dir yields an
+    empty signal, never raises.
+
+    Signals: stale_plugins (no version-manifest commit in >=120d), ungated_hooks
+    (a hooks/*.sh referenced by neither a workflow nor audit-gates.sh — the real
+    gate harness), superseded_decisions (docs/decisions entries with a successor
+    via `supersedes:` frontmatter — absent today), todo_commits (TODO/FIXME in
+    commit subjects).
+    """
+    import datetime as _dt
+
+    out = {
+        "stale_plugins": [],
+        "ungated_hooks": [],
+        "superseded_decisions": [],
+        "todo_commits": [],
+        "stale_threshold_days": 120,
+    }
+
+    # 1) Plugins with no plugin.json commit in >=120 days.
+    cutoff = _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=120)
+    plugins_dir = repo_root / "plugins"
+    if plugins_dir.is_dir():
+        for pj in sorted(plugins_dir.glob("*/.claude-plugin/plugin.json")):
+            rel = pj.relative_to(repo_root).as_posix()
+            iso = _norns_git_lines(["log", "-1", "--format=%cI", "--", rel], repo_root)
+            if not iso:
+                continue
+            try:
+                when = _dt.datetime.fromisoformat(iso[0].strip())
+            except (ValueError, TypeError):
+                continue
+            if when < cutoff:
+                out["stale_plugins"].append(
+                    {"plugin": pj.parent.parent.name, "last_bump": iso[0][:10]}
+                )
+
+    # 2) Hooks referenced by neither a workflow nor audit-gates.sh.
+    refs = ""
+    wf_dir = repo_root / ".github" / "workflows"
+    if wf_dir.is_dir():
+        for wf in wf_dir.glob("*.yml"):
+            try:
+                refs += wf.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                pass
+    audit = repo_root / "scripts" / "audit-gates.sh"
+    if audit.is_file():
+        try:
+            refs += audit.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            pass
+    if plugins_dir.is_dir() and refs:
+        for h in sorted(plugins_dir.glob("*/hooks/*.sh")):
+            name = h.name
+            if name.startswith("_"):
+                continue
+            if name not in refs:
+                out["ungated_hooks"].append(
+                    {"hook": name, "plugin": h.parent.parent.name}
+                )
+
+    # 3) Superseded decision-log entries (docs/decisions/, `supersedes:` frontmatter).
+    dec_dir = repo_root / "docs" / "decisions"
+    if dec_dir.is_dir():
+        superseded: set = set()
+        for md in dec_dir.glob("*.md"):
+            try:
+                head = md.read_text(encoding="utf-8", errors="ignore")[:1000]
+            except OSError:
+                continue
+            for line in head.splitlines():
+                s = line.strip()
+                if s.lower().startswith("supersedes:"):
+                    target = s.split(":", 1)[1].strip().strip("\"'")
+                    if target:
+                        superseded.add(target)
+        out["superseded_decisions"] = sorted(superseded)[:10]
+
+    # 4) TODO/FIXME in commit subjects.
+    for line in _norns_git_lines(["log", "--all", "--format=%h %s"], repo_root):
+        up = line.upper()
+        if "TODO" in up or "FIXME" in up:
+            out["todo_commits"].append(line[:120])
+        if len(out["todo_commits"]) >= 10:
+            break
+
+    out["total"] = (
+        len(out["stale_plugins"])
+        + len(out["ungated_hooks"])
+        + len(out["superseded_decisions"])
+        + len(out["todo_commits"])
+    )
+    return out
+
+
 class DashboardHandler(SimpleHTTPRequestHandler):
     """SimpleHTTPRequestHandler (serving the plugin dir) + the dashboard endpoints."""
 
@@ -609,6 +711,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             or self.path.startswith("/__heimdall")
             or self.path.startswith("/__vidarr")
             or self.path.startswith("/__norns")
+            or self.path.startswith("/__nidhoggr")
             or self.path.startswith("/__runs")
         ):
             self.send_response(200)
@@ -637,6 +740,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if self.path.startswith("/__norns"):
             self._handle_norns()
+            return
+        if self.path.startswith("/__nidhoggr"):
+            self._handle_nidhoggr()
             return
         if self.path.startswith("/__runs"):
             self._handle_runs()
@@ -973,6 +1079,19 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(400, "invalid plugin name")
             return
         self._json(200, _read_norns(PROJECT_ROOT, plugin))
+
+    def _handle_nidhoggr(self):
+        """GET /__nidhoggr — Níðhöggr "Debt watch" marketplace-wide debt signals
+        for the Heimdall tab. Reads live git log + workflow/audit refs + decisions
+        (NOT inlined at generator time — git output varies by clone depth and
+        would break the exact-match dashboard freshness gate). Read-only; same
+        Origin/Host CSRF guard as /__read. (Mirror of the root dev server's
+        /__nidhoggr with REPO_ROOT → PROJECT_ROOT — kept in lockstep per the
+        dashboard-server-parity gate.)"""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        self._json(200, _read_nidhoggr(PROJECT_ROOT))
 
     def _json(self, code: int, payload: dict):
         body = json.dumps(payload).encode("utf-8")
