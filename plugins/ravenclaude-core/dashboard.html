@@ -6486,11 +6486,16 @@ the design pillar is **frictionless updates**: instead of copilot&#x27;s re-inst
     } catch (e) {
       sagaLoaded = false; /* allow retry on next tab visit */
       if (sagaContent) {
-        const isStatic = location.protocol === "file:" || e.name === "TypeError";
+        /* Distinguish a static host (GitHub Pages / file://) from a genuine
+         * server error by probing whether the dashboard server is up at all.
+         * A failed /__saga fetch on GitHub Pages returns an HTTP-404 *Error*
+         * (not a TypeError), so protocol/error-name sniffing misreports static
+         * hosts as "server down" — the HEAD /__read probe is the robust signal. */
+        const served = await probeReadEndpoint();
         sagaContent.replaceChildren(
-          isStatic
-            ? sagaEmptyPanel("Open the dashboard via", "rc dashboard")
-            : sagaEmptyPanel("Could not reach /__saga. Is the server running?", "python3 scripts/serve-dashboards.py")
+          served
+            ? sagaEmptyPanel("Could not reach /__saga. Is the server running?", "python3 scripts/serve-dashboards.py")
+            : sagaEmptyPanel("The review log needs the served dashboard — open it via", "rc dashboard")
         );
         if (sagaCount) sagaCount.textContent = "";
       }
@@ -6559,11 +6564,14 @@ the design pillar is **frictionless updates**: instead of copilot&#x27;s re-inst
     } catch (e) {
       activityLoaded = false; /* allow retry on next tab visit */
       if (activityContent) {
-        const isStatic = location.protocol === "file:" || e.name === "TypeError";
+        /* Same robust static-vs-server-error detection as loadSaga: a failed
+         * /__runs fetch on GitHub Pages is an HTTP-404 Error, not a TypeError,
+         * so probe HEAD /__read rather than sniff protocol/error-name. */
+        const served = await probeReadEndpoint();
         activityContent.replaceChildren(
-          isStatic
-            ? sagaEmptyPanel("Open the dashboard via", "rc dashboard")
-            : sagaEmptyPanel("Could not reach /__runs. Is the server running?", "python3 scripts/serve-dashboards.py")
+          served
+            ? sagaEmptyPanel("Could not reach /__runs. Is the server running?", "python3 scripts/serve-dashboards.py")
+            : sagaEmptyPanel("Activity needs the served dashboard — open it via", "rc dashboard")
         );
         if (activityCount) activityCount.textContent = "";
       }

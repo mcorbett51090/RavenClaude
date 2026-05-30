@@ -36,3 +36,33 @@ flowchart TD
 
 ## CI/CD
 Deploy via GitHub Actions / Azure DevOps with **workload identity federation** (passwordless), `what-if`/`plan` gates, environments + approvals — see [`azure-deployment-cicd.md`](azure-deployment-cicd.md) and [`entra-identity-and-access.md`](entra-identity-and-access.md).
+
+---
+
+## Decision Tree: Azure IaC — Bicep vs Terraform for an estate
+
+**When this applies:** The user asks "Bicep or Terraform?" / "which IaC tool for our Azure work?" — i.e. a new IaC effort is starting and the observable inputs are: is the estate **Azure-only** or **multi/hybrid-cloud**, and is there an **existing Terraform estate** the team already operates. Not for *how* to author a specific resource (that's the AVM/module question, downstream of this call).
+
+**Last verified:** 2026-05-30 against [comparing Terraform and Bicep](https://learn.microsoft.com/azure/developer/terraform/comparing-terraform-and-bicep) + [Azure Verified Modules](https://learn.microsoft.com/community/content/azure-verified-modules) (the same sources as the header, re-confirmed).
+
+```mermaid
+flowchart TD
+    A[Need IaC for Azure] --> Q{Azure-only, or multi/hybrid-cloud?}
+    Q -->|Azure-only| B[Bicep]
+    Q -->|Multi/hybrid-cloud or existing TF estate| T[Terraform azurerm]
+    B --> AVM1[Use Azure Verified Modules]
+    T --> AVM2[Use Azure Verified Modules]
+```
+
+**Rationale per leaf:**
+
+- _Bicep_ — Azure-only work: no separate user-managed state file (history + server-side resource state live in Azure), `what-if` preview, **preflight policy validation** that fails *before* deploy, and Deployment Stacks (GA) for grouped lifecycle + `denySettings` accidental-deletion protection. The default for Azure-only.
+- _Terraform (azurerm)_ — multi/hybrid-cloud, or an existing Terraform estate the team already operates: `terraform plan` preview, `lifecycle`/`destroy`, and a portable provider model. **requires:** remote, locked, encrypted state (Azure Storage backend) — never `backend "local"` for shared infra (the hook flags it).
+- Either leaf → **use Azure Verified Modules** (Microsoft-maintained, WAF-aligned, versioned, for both languages, incl. the ALZ accelerator + subscription-vending modules).
+
+**Tradeoffs summary table:**
+
+| Tool | Scope | State | Policy check | Lifecycle / deletion guard | Use when |
+|---|---|---|---|---|---|
+| Bicep | Azure-only | none user-managed (in-Azure history) | **preflight** (before deploy) | Deployment Stacks (`denySettings`) | Azure-only estate |
+| Terraform azurerm | multi/hybrid-cloud | `terraform.tfstate` (remote, locked, encrypted) | during apply | `lifecycle` meta-arg, `destroy` | multi-cloud or existing TF estate |

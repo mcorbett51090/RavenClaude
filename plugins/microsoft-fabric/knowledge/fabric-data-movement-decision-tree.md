@@ -19,6 +19,53 @@ flowchart TD
     E -->|Orchestrated pipeline,<br/>control flow, custom code| PL[Pipeline + Copy activity<br/>you manage incremental state]
 ```
 
+---
+
+## Decision Tree: Fabric data movement — how to get a source into Fabric
+
+**When this applies:** you have a named source (an operational SQL/Cosmos DB, a streaming event feed, a file landing in ADLS/S3/GCS, or an in-Fabric store) and must pick *how* the data arrives in OneLake. Observable entry terms: the source type is known, you are choosing between Mirroring / Copy job / pipeline / Eventstream / Dataflow Gen2, and you have not yet committed to one. **Traverse top-to-bottom before naming a method — do NOT keyword-match "real-time" or "CDC" to a method without checking the earlier branches.**
+
+**Last verified:** 2026-05-30 against Microsoft Learn (Fabric Data Factory decision guides, retrieved 2026-05-28; convention re-confirmed 2026-05-30).
+
+```mermaid
+flowchart TD
+    A[Bring data into Fabric] --> S{Source already a SQL DB<br/>or Cosmos DB *in Fabric*?}
+    S -->|Yes| AM[AUTO-MIRROR — nothing to do<br/>auto-replicates to OneLake Delta]
+    S -->|No| B{Real-time / streaming events?}
+    B -->|Yes| ES[EVENTSTREAM<br/>→ Eventhouse / Lakehouse / Activator]
+    B -->|No| C{Replicate a whole operational DB,<br/>minimal setup, read-only OK?}
+    C -->|Yes| MIR[MIRRORING<br/>near-real-time read-only replica]
+    C -->|No| D{Need incremental / CDC / bulk<br/>without building a pipeline?}
+    D -->|Yes| CJ[COPY JOB<br/>watermark + native CDC]
+    D -->|No, need orchestration<br/>+ heavy transforms| E{Low-code transforms<br/>or custom orchestration?}
+    E -->|Low-code 300+ transforms| DF[DATAFLOW GEN2<br/>+ Fast Copy for extract-load]
+    E -->|Orchestrated control flow,<br/>custom code| PL[PIPELINE + Copy activity<br/>you own incremental state]
+```
+
+**Rationale per leaf:**
+
+- *Auto-mirror* — if the source is **already a SQL DB / Cosmos DB in Fabric**, it replicates itself to OneLake Delta with zero config (HTAP); there is nothing to set up.
+- *Eventstream* — the only **no-code low-latency streaming** path; also does CDC initial-snapshot and content-based routing to Eventhouse / Lakehouse / Activator.
+- *Mirroring* — turn-key **near-real-time read-only Delta replica** of an *external* operational DB; **free to replicate, billed to query**, single read-only destination.
+- *Copy job* — fills the gap between Mirroring (too simple) and pipelines (too much to manage): native **incremental + CDC**, 50+ connectors, no pipeline scaffolding.
+- *Dataflow Gen2* — **low-code 300+ transforms** with Fast Copy for extract-load; the analyst-led path. Fast Copy is 13–21× faster but only on folding-friendly extract-load steps.
+- *Pipeline* — **orchestration**: `ForEach` / `Lookup` / notebook / SQL / Dataflow activities, schedule or event triggers; you own incremental state via watermark + control table.
+
+**Tradeoffs summary table:**
+
+| Method | Copies data? | CDC | Incremental | Cost | Use when |
+|---|---|---|---|---|---|
+| **Auto-mirror** | Yes, zero-config | Yes | continuous | CU-billed query, replicate-free | Source is a SQL/Cosmos DB already in Fabric |
+| **Mirroring** | Yes, read-only replica | Yes | — | **free to replicate, billed to query** | Replicate an external operational DB, minimal setup |
+| **Eventstream** | continuous | Yes (snapshot) | — (continuous) | billed | Real-time / streaming / event-driven |
+| **Copy job** | Yes | Yes | Yes (watermark) | billed | Incremental / CDC / bulk, no pipeline to build |
+| **Dataflow Gen2** | Yes | — | — | billed | Low-code transforms (300+) + Fast Copy ingest |
+| **Pipeline** | Yes | — | manual (control table) | billed | Orchestrated ELT, control flow, custom code |
+
+> If the situation matches multiple branches, prefer the **earlier** leaf (less to build, less duplication): shortcut/auto-mirror before mirror before copy job before pipeline.
+
+---
+
 ## The comparison
 
 | Method | Use case | Flexibility | CDC | Incremental | Cost |
