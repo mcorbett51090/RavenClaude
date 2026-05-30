@@ -1,6 +1,10 @@
 # Build Plan — orchestrator hybrid (Team Lead as a dispatchable MCP tool)
 
-> **Status:** v1 — BUILD PLAN. Awaiting Matt's approval before Phase 0 spike.
+> **Status:** v1 — BUILD PLAN. Matt approved the spike (2026-05-30); **Phase 0 PARTIALLY RUN** — the
+> autonomously-runnable probes (2, 4, 5, 8) executed from the container, **hard-stop gate (Probe 5) CLEARED**;
+> probes 1/3/6/7 are Matt-residue (interactive Copilot CLI + browser fetch). Results:
+> [`docs/research/2026-05-30-mcp-spike/findings.md`](research/2026-05-30-mcp-spike/findings.md).
+> Phase −1 (demand) remains ⛔ PARKED — the real go/no-go.
 > Companion to: `docs/orchestrator-hybrid-plan-2026-05-29.md` (v2 strategic plan).
 > Authored: 2026-05-29 after the Panel 1 (architect/security/ops/devil's-advocate) review of the
 > strategic plan raised 32 gaps, all now folded into both docs.
@@ -23,9 +27,9 @@ with task-level granularity, exact file paths, schema shapes, test fixtures, and
 | Subscription Agent SDK credit from 2026-06-15 | `code.claude.com/docs/en/headless` | ✅ in wf_3802f995-301 |
 | `claude -p --bare` refuses OAuth | Existing repo memory `reference_claude_p_bare_auth.md` | ✅ documented |
 | MCP server tool-call timeout semantics | Anthropic MCP spec — **NOT YET FETCHED** | ❌ [unverified — Phase 0 Probe 1 settles] |
-| `claude -p` cold-start latency on target host | RavenClaude memory (~24-29s) | ❌ [unverified — Phase 0 Probe 2 benchmarks] |
+| `claude -p` cold-start latency on target host | RavenClaude memory (~24-29s) | ⚠️ [Probe 2: cold 2.7s/warm ~2-6s **in the container** — contradicts the memory; **unconfirmed on Matt's target host**] |
 | OAuth/subscription policy for personal use | `support.claude.com/en/articles/15036540` | ❌ [unverified — Phase 0 Probe 3 settles] |
-| Hooks fire in `claude -p`-spawned nested subtree | RavenClaude memory + Agent SDK hooks docs | ❌ [unverified — Phase 0 Probe 5 settles] |
+| Hooks fire in `claude -p`-spawned nested subtree | RavenClaude memory + Agent SDK hooks docs | ✅ [Probe 5, 2026-05-30: project + user `.claude/settings.json` hooks load AND a `PreToolUse` exit-2 deny enforces in the nested loop — see findings.md] |
 
 Every load-bearing claim above either has a cited source verified this session OR carries an
 `[unverified]` marker AND has a Phase 0 probe that settles it.
