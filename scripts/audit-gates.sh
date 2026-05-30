@@ -2010,6 +2010,58 @@ PY
 gate "heimdall reader present in both server copies" must_pass "$rc"
 rm -rf "$HM_TMP"
 
+echo "── Gate 38: Víðarr security-log tab (render + filter + server reader) ─────"
+# (A) Behavioral render test: drives the REAL renderVidarrTable from the generated
+#     dashboard.html (both kinds render, type filter narrows, empty→quiet).
+if command -v node >/dev/null 2>&1; then
+  rc=0; node scripts/check-vidarr-render.mjs >/dev/null 2>&1 || rc=$?
+  gate "vidarr render (real dashboard.html)" must_pass "$rc"
+  # must_fail: a drifted dashboard whose kind-filter compare is broken (replaced
+  # with a constant true) so the type filter no longer narrows — the render test
+  # asserts the posture filter yields exactly one row.
+  VD_BAD="$TMP/dashboard-vidarr-drift.html"
+  sed 's/vidarrKindFilter === "all" || e.kind === vidarrKindFilter/true/' plugins/ravenclaude-core/dashboard.html > "$VD_BAD"
+  rc=0; node scripts/check-vidarr-render.mjs "$VD_BAD" >/dev/null 2>&1 || rc=$?
+  gate "vidarr render (drifted: kind filter broken)" must_fail "$rc"
+else
+  echo "  (skipped — node not available; CI has node)"
+fi
+# (B) Server reader: a posture-change + a security deny render (warn EXCLUDED),
+#     newest-first. Drives the root server's _read_vidarr_events directly.
+VD_TMP="$TMP/vidarr-runs"; mkdir -p "$VD_TMP/.ravenclaude/runs/s1"
+NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+printf '{"schema_version":1,"ts":"%s","scope":"project","source":"dashboard-save","security_deny_diff":{"added":["Read(./.env)"],"removed":[]},"override_diff":{"added":[],"removed":[]}}\n' \
+  "$NOW" > "$VD_TMP/.ravenclaude/posture-events.jsonl"
+printf '{"schema_version":1,"ts":"%s","hook":"guard-destructive.sh","verdict":"deny","tool":"Bash","path":"forced","rule":"destructive-pattern","session_id":"s1","exit_code":2}\n{"schema_version":1,"ts":"%s","hook":"guard-recursive-spawn.sh","verdict":"warn","tool":"","path":"a.md","rule":"recursive-spawn","session_id":"s1","exit_code":0}\n' \
+  "$NOW" "$NOW" > "$VD_TMP/.ravenclaude/runs/s1/hook-events.jsonl"
+rc=0
+python3 - "$VD_TMP" <<'PY' || rc=$?
+import importlib.util, sys
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("srv", "scripts/serve-dashboards.py")
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+rc = Path(sys.argv[1]) / ".ravenclaude"
+out = m._read_vidarr_events(rc / "runs", rc / "posture-events.jsonl", days=30)
+kinds = sorted({e["kind"] for e in out["events"]})
+assert out["total"] == 2, out                       # posture + 1 deny; warn excluded
+assert kinds == ["posture-change", "security-deny"], kinds
+assert all("recursive-spawn" not in e["summary"] for e in out["events"]), "warn leaked"
+sys.exit(0)
+PY
+gate "vidarr server reader (posture + deny; warn excluded)" must_pass "$rc"
+# Both server copies must expose _read_vidarr_events identically.
+rc=0
+python3 - <<'PY' || rc=$?
+import importlib.util, sys
+for p in ("scripts/serve-dashboards.py", "plugins/ravenclaude-core/scripts/serve-dashboards.py"):
+    s = importlib.util.spec_from_file_location("m", p)
+    m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
+    assert hasattr(m, "_read_vidarr_events") and hasattr(m, "_vidarr_hook_is_security"), p
+sys.exit(0)
+PY
+gate "vidarr reader present in both server copies" must_pass "$rc"
+rm -rf "$VD_TMP"
+
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"

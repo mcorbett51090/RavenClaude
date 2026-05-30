@@ -139,6 +139,7 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         trees_html=_render_trees_tab(),
         activity_html=_render_activity_tab(),
         heimdall_html=_render_heimdall_tab(),
+        vidarr_html=_render_vidarr_tab(),
         pipeline_html=_render_pipeline_tab(),
         schema_json=json.dumps(schema, indent=2),
         heimdall_json=json.dumps(
@@ -229,6 +230,19 @@ def _render_heimdall_tab() -> str:
     logic lives in _JS; this returns a static skeleton the JS hydrates on open.
     """
     return _HEIMDALL_TAB_TEMPLATE
+
+
+def _render_vidarr_tab() -> str:
+    """Render the 'Security log' (Víðarr) tab — a read-only, filterable,
+    chronological log of posture changes + security-relevant hook denials.
+
+    Data is fetched from /__vidarr (served-only — posture-events.jsonl and the
+    consumer's hook-events.jsonl are git-ignored, per-consumer, so a generator
+    run in the marketplace cannot see them). On a static host the tab degrades to
+    an honest empty state. The fetch/render/filter logic lives in _JS; this
+    returns a static skeleton the JS hydrates on open.
+    """
+    return _VIDARR_TAB_TEMPLATE
 
 
 def _render_activity_tab() -> str:
@@ -4408,6 +4422,41 @@ footer.page-footer a:hover { text-decoration: underline; }
 .gjallarhorn--amber { background: var(--warn);   color: #1a1205; }
 .gjallarhorn--grey  { background: var(--surface-2); color: var(--text); border-bottom: 1px solid var(--border); }
 
+/* ── Víðarr tab — posture/security event log (reuses .saga-hdr/.saga-empty) ── */
+.vidarr-layout { padding: 20px; }
+.vidarr-myth em { color: var(--muted); font-style: italic; }
+.vidarr-filters {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 0 20px 14px; margin: 0 0 4px;
+}
+.vidarr-filters label { font-size: 12px; color: var(--muted); }
+.vidarr-filters select {
+  font: inherit; font-size: 12px; padding: 4px 8px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text);
+}
+.vidarr-typechips { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.vidarr-chip {
+  font: inherit; font-size: 11.5px; padding: 3px 11px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer;
+}
+.vidarr-chip--active { background: var(--accent); color: #04201c; border-color: var(--accent); font-weight: 600; }
+#vidarr-content { padding: 0 20px 20px; }
+.vidarr-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.vidarr-table th {
+  text-align: left; padding: 6px 8px; color: var(--muted); font-weight: 600;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.vidarr-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.vidarr-table td:nth-child(1) { font-family: var(--font-mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
+.vidarr-table td:nth-child(4) { font-family: var(--font-mono); font-size: 11px; word-break: break-all; }
+.vidarr-kind {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+  border-radius: 999px; padding: 1px 8px; white-space: nowrap;
+}
+.vidarr-kind--posture-change { background: #3b82f620; color: #3b82f6; border: 1px solid #3b82f6; }
+.vidarr-kind--security-deny  { background: #ef444420; color: var(--danger); border: 1px solid var(--danger); }
+.vidarr-row--security-deny td:nth-child(1) { border-left: 3px solid var(--danger); }
+
 /* ── Review log: plain-language reason + expandable decision panel ── */
 .saga-reason {
   font-size: 12px; color: var(--text); line-height: 1.45;
@@ -4677,6 +4726,34 @@ _HEIMDALL_TAB_TEMPLATE = """
       <p class="heimdall-sub">The highest-severity signal currently flagged.</p>
       <div id="heimdall-alarm"></div>
     </section>
+  </div>
+</div>
+""".strip()
+
+_VIDARR_TAB_TEMPLATE = """
+<div class="vidarr-layout">
+  <div class="saga-hdr">
+    <h2><span aria-hidden="true">&#128095;</span> Security log</h2>
+    <button type="button" class="saga-refresh" id="vidarr-refresh-btn">Refresh</button>
+    <span class="saga-count" id="vidarr-count"></span>
+  </div>
+  <p class="activity-intro vidarr-myth">Posture &amp; security event log <em>(Víðarr&rsquo;s shoe)</em> &mdash; a <strong>read-only</strong> chronological record of how your security posture changed and which guardrails blocked an action. Víðarr&rsquo;s shoe was assembled from leather scraps across all of time; this log is the same &mdash; small events accumulating against the day someone needs to know exactly what happened.</p>
+  <div class="vidarr-filters" role="group" aria-label="Filter the security log">
+    <label for="vidarr-range">Time range:</label>
+    <select id="vidarr-range" aria-label="Time range">
+      <option value="1">Last 24 hours</option>
+      <option value="7">Last 7 days</option>
+      <option value="30" selected>Last 30 days</option>
+      <option value="36500">All time</option>
+    </select>
+    <span class="vidarr-typechips" id="vidarr-typechips">
+      <button type="button" class="vidarr-chip vidarr-chip--active" data-kind="all" aria-pressed="true">All</button>
+      <button type="button" class="vidarr-chip" data-kind="posture-change" aria-pressed="false">Posture changes</button>
+      <button type="button" class="vidarr-chip" data-kind="security-deny" aria-pressed="false">Security denials</button>
+    </span>
+  </div>
+  <div id="vidarr-content">
+    <div class="saga-empty" id="vidarr-loading"><p>Loading security log&hellip;</p></div>
   </div>
 </div>
 """.strip()
@@ -6400,7 +6477,7 @@ _JS = r"""
   });
 
   /* ── Tab routing ─────────────────────────────────────────────────── */
-  const validTabs = ["overview", "settings", "pipeline", "install", "simulator", "learn", "saga", "commands", "trees", "activity", "heimdall"];
+  const validTabs = ["overview", "settings", "pipeline", "install", "simulator", "learn", "saga", "commands", "trees", "activity", "heimdall", "vidarr"];
   function openConcept(id) {
     const card = document.getElementById("learn-" + id);
     if (!card) return;
@@ -6435,6 +6512,9 @@ _JS = r"""
    * which reads activityLoaded. */
   let activityLoaded = false;
   let heimdallLoaded = false;
+  let vidarrLoaded = false;
+  let vidarrEvents = [];
+  let vidarrKindFilter = "all";
   let activityRecords = [];
   const activityContent = document.getElementById("activity-content");
   const activityCount   = document.getElementById("activity-count");
@@ -6458,6 +6538,7 @@ _JS = r"""
     if (tab === "saga" && !sagaLoaded) loadSaga();
     if (tab === "activity" && !activityLoaded) loadActivity();
     if (tab === "heimdall" && !heimdallLoaded) loadHeimdall();
+    if (tab === "vidarr" && !vidarrLoaded) loadVidarr();
     if (tab === "pipeline") syncPipelineTab();
   }
   document.querySelectorAll(".tab-btn").forEach(b => {
@@ -7245,6 +7326,111 @@ _JS = r"""
   const heimdallRefBtn = document.getElementById("heimdall-refresh-btn");
   if (heimdallRefBtn) heimdallRefBtn.addEventListener("click", () => { heimdallLoaded = false; loadHeimdall(); });
 
+  /* ── Víðarr — read-only posture/security event log ──────────────────────
+   * A chronological, filterable table of posture changes (posture-events.jsonl)
+   * interleaved with security-relevant hook denials (hook-events.jsonl, deny-
+   * only). Served-only (both sources are git-ignored/per-consumer); on a static
+   * host it degrades to an honest empty state. Filters are client-side over the
+   * fetched set for type; the time range re-fetches with a ?days= param. */
+  const VIDARR_KIND_LABEL = { "posture-change": "Posture change", "security-deny": "Security denial" };
+
+  function renderVidarrTable(events) {
+    const host = document.getElementById("vidarr-content");
+    const countEl = document.getElementById("vidarr-count");
+    if (!host) return;
+    const filtered = (events || []).filter(
+      (e) => vidarrKindFilter === "all" || e.kind === vidarrKindFilter,
+    );
+    if (countEl) countEl.textContent = filtered.length ? filtered.length + " event" + (filtered.length === 1 ? "" : "s") : "";
+    if (filtered.length === 0) {
+      host.replaceChildren(hmEmpty("No security events. Your perimeter has been quiet."));
+      return;
+    }
+    const table = document.createElement("table");
+    table.className = "vidarr-table";
+    const thead = document.createElement("thead");
+    const htr = document.createElement("tr");
+    for (const label of ["When", "Type", "Category", "Summary", "Source"]) {
+      const th = document.createElement("th");
+      th.textContent = label;
+      htr.appendChild(th);
+    }
+    thead.appendChild(htr);
+    table.appendChild(thead);
+    const tbody = document.createElement("tbody");
+    for (const e of filtered) {
+      const tr = document.createElement("tr");
+      tr.className = "vidarr-row vidarr-row--" + (e.kind || "");
+      const cells = [
+        e.ts || "",
+        VIDARR_KIND_LABEL[e.kind] || e.kind || "",
+        e.category || "",
+        e.summary || "",
+        e.source || "",
+      ];
+      cells.forEach((c, i) => {
+        const td = document.createElement("td");
+        td.textContent = c;
+        if (i === 1) {
+          const tag = document.createElement("span");
+          tag.className = "vidarr-kind vidarr-kind--" + (e.kind || "");
+          tag.textContent = c;
+          td.replaceChildren(tag);
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    host.replaceChildren(table);
+  }
+
+  async function loadVidarr() {
+    vidarrLoaded = true;
+    const host = document.getElementById("vidarr-content");
+    const rangeSel = document.getElementById("vidarr-range");
+    const days = (rangeSel && rangeSel.value) || "30";
+    if (host) host.replaceChildren(hmEmpty("Loading security log…"));
+    try {
+      const res = await fetch("/__vidarr?days=" + encodeURIComponent(days));
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      vidarrEvents = (data && data.events) || [];
+      renderVidarrTable(vidarrEvents);
+    } catch (e) {
+      vidarrLoaded = false; /* allow retry on next visit */
+      const served = await probeReadEndpoint();
+      if (host) {
+        host.replaceChildren(
+          served
+            ? hmEmpty("Could not reach /__vidarr. Is the server running?", "python3 scripts/serve-dashboards.py")
+            : hmEmpty("The security log needs the served dashboard — open it via", "rc dashboard")
+        );
+      }
+      const countEl = document.getElementById("vidarr-count");
+      if (countEl) countEl.textContent = "";
+    }
+  }
+
+  const vidarrRefBtn = document.getElementById("vidarr-refresh-btn");
+  if (vidarrRefBtn) vidarrRefBtn.addEventListener("click", () => { vidarrLoaded = false; loadVidarr(); });
+  const vidarrRangeSel = document.getElementById("vidarr-range");
+  if (vidarrRangeSel) vidarrRangeSel.addEventListener("change", () => { vidarrLoaded = false; loadVidarr(); });
+  const vidarrChips = document.getElementById("vidarr-typechips");
+  if (vidarrChips) {
+    vidarrChips.addEventListener("click", (ev) => {
+      const btn = ev.target.closest(".vidarr-chip");
+      if (!btn) return;
+      vidarrKindFilter = btn.dataset.kind || "all";
+      vidarrChips.querySelectorAll(".vidarr-chip").forEach((b) => {
+        const on = b === btn;
+        b.classList.toggle("vidarr-chip--active", on);
+        b.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+      renderVidarrTable(vidarrEvents);
+    });
+  }
+
   /* ── Hydrate command-review config from the committed YAML ──────────── */
   /* When the page is served by scripts/serve-dashboards.py, the committed
    * .ravenclaude/comfort-posture.yaml is the source of truth — it OVERRIDES
@@ -7592,6 +7778,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <button class="tab-btn" data-tab="trees" role="tab" aria-selected="false">Guidance</button>
     <button class="tab-btn" data-tab="activity" role="tab" aria-selected="false">Activity</button>
     <button class="tab-btn" data-tab="heimdall" role="tab" aria-selected="false">Heimdall</button>
+    <button class="tab-btn" data-tab="vidarr" role="tab" aria-selected="false">Security log</button>
   </nav>
 </header>
 
@@ -7628,6 +7815,9 @@ _PAGE_TEMPLATE = """<!doctype html>
   </section>
   <section class="tab-panel" data-tab="heimdall" role="tabpanel" aria-label="Heimdall perimeter alerts">
 {heimdall_html}
+  </section>
+  <section class="tab-panel" data-tab="vidarr" role="tabpanel" aria-label="Security log">
+{vidarr_html}
   </section>
 </main>
 
