@@ -23,8 +23,9 @@ Parse/route on ingest with update policies; pre-aggregate hot dashboard queries 
 
 ```kusto
 // Update policy: parse raw free-text into a typed target table on ingest (bronze→silver, streaming).
-.alter table TracesParsed policy update
-```[{ "IsEnabled": true, "Source": "TracesRaw", "Query": "TracesRaw | parse Message with ... | project Timestamp, Level, Code", "IsTransactional": true }]```
+// .alter table TracesParsed policy update <[{ IsEnabled: true, Source: "TracesRaw",
+//    Query: "TracesRaw | parse Message with ... | project Timestamp, Level, Code",
+//    IsTransactional: true }]>   (the policy body is a JSON array; transform runs on every ingest)
 
 // Materialized view: pre-aggregate so dashboards read the materialized part, not raw extents.
 .create materialized-view HourlyErrors on table TracesParsed { TracesParsed | summarize count() by bin(Timestamp,1h), Code }
