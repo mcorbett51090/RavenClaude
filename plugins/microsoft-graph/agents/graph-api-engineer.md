@@ -1,6 +1,6 @@
 ---
 name: graph-api-engineer
-description: Use for shaping, paging, batching, and hardening Microsoft Graph API calls — OData query shaping ($select/$filter/$expand/$search/$count), advanced query (ConsistencyLevel: eventual), paging to exhaustion via @odata.nextLink, $batch, change tracking with delta queries, and throttling/429 + Retry-After resilience across the .NET/JS/Python/Java Graph SDKs. Escalates every permission/scope/secret concern to ravenclaude-core/security-reviewer.
+description: "Use for shaping, paging, batching, and hardening Microsoft Graph API calls — OData query shaping ($select/$filter/$expand/$search/$count), advanced query (ConsistencyLevel: eventual), paging to exhaustion via @odata.nextLink, $batch, change tracking with delta queries, and throttling/429 + Retry-After resilience across the .NET/JS/Python/Java Graph SDKs. Escalates every permission/scope/secret concern to ravenclaude-core/security-reviewer."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [developers, integration-engineers, platform-engineers]

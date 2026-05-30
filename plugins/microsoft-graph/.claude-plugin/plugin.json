@@ -5,6 +5,23 @@
   "author": { "name": "Matt Corbett" },
   "homepage": "https://github.com/mcorbett51090/RavenClaude",
   "license": "MIT",
-  "keywords": ["microsoft-graph", "graph-api", "entra-id", "oauth2", "delegated-permissions", "application-permissions", "consent", "odata", "delta-query", "change-notifications", "graph-sdk", "throttling", "batch", "teams-api", "outlook-api", "sharepoint-api"],
+  "keywords": [
+    "microsoft-graph",
+    "graph-api",
+    "entra-id",
+    "oauth2",
+    "delegated-permissions",
+    "application-permissions",
+    "consent",
+    "odata",
+    "delta-query",
+    "change-notifications",
+    "graph-sdk",
+    "throttling",
+    "batch",
+    "teams-api",
+    "outlook-api",
+    "sharepoint-api"
+  ],
   "requires": { "plugins": ["ravenclaude-core@>=0.7.0"] }
 }

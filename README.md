@@ -10,7 +10,7 @@
 >
 > _(Or [view the raw HTML source](repo-guide.html), or download and open locally — no server, no build step.)_
 
-Today this marketplace ships **14 plugins**:
+Today this marketplace ships **15 plugins**:
 
 - **[`ravenclaude-core`](plugins/ravenclaude-core/)** — domain-neutral Team Lead + 14 specialists (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, data-engineer, etc.), plus dispatch playbooks (with a Cross-plugin dispatch section), gates, 22 skills, 11 hooks, templates, and the **cross-project contribution-staging loop**.
 - **[`power-platform`](plugins/power-platform/)** — 11 Microsoft Power Platform specialists (Power Fx, flows, Power BI, Dataverse, model-driven, PCF, Copilot Studio, Power Pages, admin, ALM, tester), 18 skills, an advisory house-opinions hook covering 8 checks, and the bundled `pbix-mcp` MCP server.
@@ -26,6 +26,7 @@ Today this marketplace ships **14 plugins**:
 - **[`salesforce`](plugins/salesforce/)** — 5 Salesforce specialists (apex-engineer, flow-automation-architect, agentforce-architect, salesforce-platform-architect, salesforce-reviewer) covering governor-safe bulkified Apex, Flow-vs-Apex automation density, Agentforce design (Atlas/Agent Script/Trust Layer), org/data/sharing architecture & 2GP DevOps, with a 9-doc decision-tree knowledge bank, 5 skills, 5 templates, and a forked review rubric.
 - **[`microsoft-365-copilot`](plugins/microsoft-365-copilot/)** — 6 M365 Copilot extensibility & governance specialists (copilot-extensibility-architect, declarative-agent-engineer, graph-connector-engineer, api-plugin-engineer, agents-sdk-engineer, copilot-admin-governance) covering declarative & custom-engine agents, Copilot (Graph) connectors, API plugins, the M365 Agents SDK/Toolkit, and Agent Registry + Purview DLP-for-Copilot governance, with a 9-doc decision-tree knowledge bank, 5 skills, 5 templates, and an advisory hook. Disjoint from power-platform's Copilot Studio coverage.
 - **[`tableau`](plugins/tableau/)** — 3 Tableau analytics specialists (tableau-viz-engineer, tableau-data-architect, tableau-admin) covering VizQL & calculations (LOD/table-calcs), data modeling (relationships vs joins vs blends, extracts vs live), workbook performance, Tableau Prep, Server/Cloud governance & RLS, content ALM, embedding (Connected Apps/JWT), and the Pulse/Tableau-Next surface — with a 26-rule best-practices library and 3 decision-tree knowledge files (15 Mermaid trees).
+- **[`microsoft-graph`](plugins/microsoft-graph/)** — 3 Microsoft Graph developer specialists (graph-api-engineer, graph-identity-engineer, graph-workloads-engineer) covering OData query shaping/paging/`$batch`/delta + throttling discipline + the Graph SDKs, Entra app registration & delegated-vs-application permissions/consent/auth-flows/least-privilege, and the workload surfaces (mail/calendar, Teams, files, users/groups, change-notification subscriptions) — with an 18-rule best-practices library and 3 decision-tree knowledge files (13 Mermaid trees). Cross-links the Copilot-connector (microsoft-365-copilot) and tenant-identity (azure-cloud) surfaces rather than duplicating them.
 
 ---
 
