@@ -1588,6 +1588,51 @@ print('true' if result.get('hard_rule_deny') else 'false')" "$FORCE_PUSH_CMD")"
 [[ "$_hr21" == "true" ]] || rc=1
 gate "exempt T21: force-push WITH exemption -> hard_rule_deny STILL true (floor unaffected)" must_pass "$rc"
 
+# ── (D) §A1 abstain-downgrade end-to-end (the dev-repo lockout fix) ────────────
+# Drives the REAL orchestrator with mock seats that time out (abstain) and a stub
+# gh (PATH-override) so no live auth/network is needed. Proves the plan's three
+# required cases plus the "real deny is not downgraded" negative:
+#   D1: exempt + abstain                 -> ask  (the fix: defer, don't hard-block)
+#   D2: NON-exempt (wrong owner) + abstain -> deny (fail-closed preserved)
+#   D3: exempt + abstain on a HARD-RULE  -> deny (floor survives; never downgraded)
+#   D4: exempt + a genuine panel DENY    -> deny (only abstain downgrades, not deny)
+G28D="$TMP/g28d-proj"
+mkdir -p "$G28D/.ravenclaude" "$G28D/.claude-plugin"
+cp "$G28MP" "$G28D/.claude-plugin/marketplace.json"
+cat > "$G28D/.ravenclaude/comfort-posture.yaml" <<'G28DPOSTURE'
+schema_version: 5
+command_review:
+  dev_repo_exempt: true
+categories:
+  shell_remote_mutate:
+    thing: on
+G28DPOSTURE
+# stub gh dirs: correct owner (exempt) and wrong owner (non-exempt)
+G28DOK="$TMP/g28d-ok"; mkdir -p "$G28DOK"
+printf '#!/usr/bin/env bash\nprintf "%%s\\n" "mcorbett51090/RavenClaude"\n' > "$G28DOK/gh"; chmod +x "$G28DOK/gh"
+G28DBAD="$TMP/g28d-bad"; mkdir -p "$G28DBAD"
+printf '#!/usr/bin/env bash\nprintf "%%s\\n" "wrong/repo"\n' > "$G28DBAD/gh"; chmod +x "$G28DBAD/gh"
+_orch28d() { # $1=stub_dir $2=command $3=mock-verdict -> permissionDecision
+  jq -cn --arg c "$2" --arg cwd "$G28D" \
+    '{tool_name:"Bash",tool_input:{command:$c},cwd:$cwd,session_id:"audit"}' \
+    | PATH="$1:$PATH" THING_SEAT_MOCK_VERDICT="$3" bash "$ORCH14" 2>/dev/null \
+    | jq -r '.hookSpecificOutput.permissionDecision // "none"'
+}
+# force-push built by concatenation so the literal never reaches a live shell / hook
+G28D_FP="git push "; G28D_FP+="--force origin main"
+# D1: exempt + abstain -> ask
+rc=0; [[ "$(_orch28d "$G28DOK" "git fetch origin" timeout)" == "ask" ]] || rc=1
+gate "exempt/A1 D1: exempt + abstain -> ask (lockout fix)" must_pass "$rc"
+# D2: NON-exempt + abstain -> deny (fail-closed preserved)
+rc=0; [[ "$(_orch28d "$G28DBAD" "git fetch origin" timeout)" == "deny" ]] || rc=1
+gate "exempt/A1 D2: NON-exempt + abstain -> deny (fail-closed preserved)" must_pass "$rc"
+# D3: exempt + abstain on a hard-rule force-push -> deny (floor survives)
+rc=0; [[ "$(_orch28d "$G28DOK" "$G28D_FP" timeout)" == "deny" ]] || rc=1
+gate "exempt/A1 D3: exempt + abstain + hard-rule -> deny (floor survives)" must_pass "$rc"
+# D4: exempt + a genuine panel DENY -> deny (only abstain downgrades, never a real deny)
+rc=0; [[ "$(_orch28d "$G28DOK" "git fetch origin" deny)" == "deny" ]] || rc=1
+gate "exempt/A1 D4: exempt + genuine panel deny -> deny (downgrade is abstain-only)" must_pass "$rc"
+
 echo
 echo "── Gate 29: markdown relative-link resolution (check-md-links.py) ──────────"
 # must_fail: an unresolvable relative link in a scanned doc must be detected.
