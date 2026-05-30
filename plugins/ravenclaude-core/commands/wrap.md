@@ -72,6 +72,15 @@ Skim the conversation history for clues. Look for:
 
 Form a hypothesis. Don't ask the user "tell me about your engagement" — you should be able to draft from context.
 
+### Step 2b — Consult the event substrate (situational awareness)
+
+The chat transcript is one source; the **structured event substrate** is a second, often-sharper one — it's a machine record of what the guardrails actually saw this engagement, which is prime raw material for a grounded scenario. Before drafting, glance at:
+
+- **`.ravenclaude/runs/<session>/hook-events.jsonl`** — the deny/warn verdicts that fired (the `rule` tokens: `off-allow-list`, `destructive-pattern`, `task-scope-out-of-scope`, …). A repeated deny is a strong signal of where the engagement hit friction — exactly the "we kept getting blocked on X" shape a scenario captures. The same data is in the **Heimdall** dashboard tab.
+- **`.ravenclaude/posture-events.jsonl`** — posture changes during the session (what `security_deny`/override rules were added/removed, and why). The **Víðarr** tab surfaces the same. A mid-engagement posture change often *is* the lesson ("we had to relax X to get unblocked").
+
+Treat these as **corroboration for your transcript hypothesis**, not a replacement: they tell you *what tripped*, the transcript tells you *why and how it was resolved*. If a deny fired repeatedly and the transcript shows how it was worked around, that pairing is the ideal scenario. This is the `/wrap`-time application of the [`best-practices/check-runtime-state.md`](../best-practices/check-runtime-state.md) discipline. (Both files are git-ignored/per-consumer; if absent — e.g. the guardrails never fired — just rely on the transcript. Never block on them.)
+
 ## Step 3 — Ask the 4 minimum questions (use AskUserQuestion)
 
 Even with strong context, confirm these explicitly. Ask all 4 in **one** AskUserQuestion batch:
