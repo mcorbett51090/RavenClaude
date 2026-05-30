@@ -32,10 +32,21 @@ When invoked, the agent should:
    ```
 2. **Read** the YAML frontmatter of each match (cheap — 9 fields).
 3. **Filter** by `tags`, `product`, `product_version`, and `scope` to find scenarios that match the current engagement's context.
-4. **Rank** by recency (newer first) and `confidence` (high before medium before low). De-prioritize `scope: tenant-specific` scenarios unless the current engagement matches that specific tenant context.
+4. **Rank** by recency (newer first) and `confidence` (high before medium before low). De-prioritize `scope: tenant-specific` scenarios unless the current engagement matches that specific tenant context. **Also weigh the scenario's own surfacing history** (next section) — a scenario that has been surfaced before is a stronger prior than one that never has; one that was surfaced and then contradicted is a flag, not an endorsement.
 5. **Surface** at most the top 2-3 matches to the user — more is noise.
 
 For v0.1.0, the pattern is **plain file-system glob + frontmatter parsing**. No vector index. No semantic similarity. Tag-based filtering is the load-bearing mechanism.
+
+## Read the surfacing history as a ranking signal (situational awareness)
+
+The `events.jsonl` surfacing log this skill writes (next section) is not just a Norns/Urðr display feed — it is **a signal you read back at retrieval time**, closing the loop on the scenario event stream the same way Heimdall/Víðarr close the hook/posture streams. Before finalizing the top 2-3, cheaply consult the prior surfacing record for the candidates:
+
+- **Glob** `.ravenclaude/runs/*/events.jsonl`, filter for `type: "scenario_surfaced"` lines whose `scenario_path` matches a candidate (this is exactly what the Norns _Urðr_ column shows, so the dashboard is the human-facing view of the same data).
+- **A scenario surfaced repeatedly across distinct engagements is a stronger prior** — it has proven relevant more than once — so it edges ahead on a tie. Surface that corroboration to the user when it's load-bearing ("this pattern has come up on N prior engagements").
+- **A scenario surfaced before but whose advice the user then rejected / that was contradicted is a flag** — do not silently re-promote it; if you surface it, say it was previously questioned so the user re-evaluates rather than trusts the repetition.
+- **Never invert the trust model on frequency alone.** Surfacing count is a *tie-breaker and a caution flag*, never a substitute for `scope`/`confidence` or for the mandatory unverified preamble. A frequently-surfaced `tenant-specific`/`low`-confidence note is still secondary to a fresh `likely-general`/`high` one.
+
+This is **best-effort**: if the log is absent (a fresh consumer, or the guardrails never wrote one) just rank by recency + confidence as before — never block retrieval on reading it. It is the retrieval-time application of the [`../../best-practices/check-runtime-state.md`](../../best-practices/check-runtime-state.md) discipline.
 
 ## Emit a surfaced-scenario event (observability — P0.6)
 
