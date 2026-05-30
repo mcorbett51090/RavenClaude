@@ -19,6 +19,52 @@ flowchart TD
     C -->|Don't know yet /<br/>mixed skills| LH
 ```
 
+---
+
+## Decision Tree: Fabric store selection — which store for this workload?
+
+**When this applies:** you need a place to land or serve data in Fabric and must name the store *before* building. Observable entry terms: the data either already exists elsewhere (another OneLake item / workspace / tenant / ADLS/S3/GCS) or doesn't, and you are choosing among Lakehouse / Warehouse / Eventhouse / SQL DB in Fabric / Cosmos DB in Fabric / shortcut. **Traverse top-to-bottom before naming a store — never keyword-match a store to a request (e.g. "SQL" → Warehouse) without checking the access-pattern and dev-profile branches.**
+
+**Last verified:** 2026-05-30 against Microsoft Learn (Fabric "Choose the right data store" + "Warehouse vs Lakehouse" decision guides, retrieved 2026-05-28; convention re-confirmed 2026-05-30).
+
+```mermaid
+flowchart TD
+    A[Need a data store in Fabric] --> Z{Data already exists in another<br/>OneLake item / workspace / tenant<br/>or ADLS/S3/GCS?}
+    Z -->|Yes, want one source of truth| SC[SHORTCUT — zero-copy virtualization]
+    Z -->|No, need a managed store| B{Primary access pattern?}
+    B -->|Streaming / telemetry / logs,<br/>high-granularity interactive| EH[EVENTHOUSE / KQL DB]
+    B -->|OLTP / operational app writes| SQ[SQL DATABASE IN FABRIC<br/>auto-mirrors to OneLake]
+    B -->|NoSQL / vector / global| CDB[COSMOS DB IN FABRIC<br/>auto-mirrors, Entra-only auth]
+    B -->|Analytics / BI / engineering| C{How do you develop?}
+    C -->|Spark / Python / notebooks,<br/>un- or semi-structured| LH[LAKEHOUSE]
+    C -->|T-SQL, structured,<br/>multi-table ACID| WH[WAREHOUSE]
+    C -->|Don't know yet / mixed skills| LH2[LAKEHOUSE]
+```
+
+**Rationale per leaf:**
+
+- *Shortcut* — the data **already exists**; virtualize it for a single source of truth with **no copy** (compute bills to the consumer, storage stays with the owner). House opinion #1: shortcut-first.
+- *Eventhouse / KQL DB* — **streaming / telemetry / time-series / logs** with auto-index + time-partition and high-granularity interactive query.
+- *SQL database in Fabric* — **OLTP / operational app writes** in T-SQL; auto-mirrors to OneLake Delta for analytics (HTAP), no mirroring to set up.
+- *Cosmos DB in Fabric* — **NoSQL / vector search / globally distributed, low-latency**; auto-mirrors to OneLake; CU-billed; Entra-only auth.
+- *Lakehouse* — **analytics/engineering with Spark/Python** over un/semi/structured data; the default when the dev profile is unclear or skills are mixed. SQL analytics endpoint is **read-only** T-SQL (no DML).
+- *Warehouse* — **structured star-schema, SQL-first team, multi-table ACID**; full T-SQL (DQL/DML/DDL).
+
+**Tradeoffs summary table:**
+
+| Store | Dev profile | Multi-table ACID | Engine | Pick when |
+|---|---|---|---|---|
+| **Shortcut** | n/a | n/a | virtualization (no copy) | Data already exists elsewhere; want one source of truth |
+| **Eventhouse** | analyst / engineer (KQL) | n/a | KQL + managed T-SQL endpoint | Streaming, telemetry, time-series, logs |
+| **SQL DB in Fabric** | app developer (T-SQL) | Yes | T-SQL; auto-mirrors to OneLake | OLTP + operational analytics |
+| **Cosmos DB in Fabric** | app developer | per-item | NoSQL; auto-mirrors; Entra-only | NoSQL, vector search, low-latency global |
+| **Lakehouse** | data engineer (Spark/Python) | No | Spark + read-only SQL endpoint | Big data, medallion, mixed/unknown skills |
+| **Warehouse** | SQL developer | **Yes** | full T-SQL | Structured star-schema, SQL-first, multi-table ACID |
+
+> Many teams use **both** Lakehouse and Warehouse: land + transform in a Lakehouse with Spark, expose curated gold to a Warehouse for SQL-first reporting (medallion pattern 2). If the situation matches multiple branches, prefer the **earlier** leaf — shortcut before any managed store.
+
+---
+
 ## The criteria table
 
 | Store | Pick when | Dev profile | Multi-table ACID | Engine |

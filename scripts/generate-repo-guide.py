@@ -104,6 +104,7 @@ class Plugin:
     hooks: list[Item] = field(default_factory=list)
     rules: list[Item] = field(default_factory=list)
     templates: list[Item] = field(default_factory=list)
+    best_practices: list[Item] = field(default_factory=list)
     bundled_mcp: list[Item] = field(default_factory=list)
     last_updated: str = ""  # YYYY-MM-DD from `git log -1 -- plugins/<name>`
     decision_trees: list[DecisionTree] = field(default_factory=list)
@@ -494,6 +495,14 @@ def load_plugin(plugin_dir: Path, manifest_entry: dict) -> Plugin:
             key=lambda x: x.name,
         )
 
+    bp_dir = plugin_dir / "best-practices"
+    if bp_dir.is_dir():
+        plugin.best_practices = sorted(
+            (parse_rule(p) for p in bp_dir.glob("*.md")
+             if p.is_file() and p.name.lower() != "readme.md"),
+            key=lambda x: x.name,
+        )
+
     mcp = plugin_json.get("mcpServers", {})
     if mcp:
         plugin.bundled_mcp = [Item(name=k, description=str(v)) for k, v in mcp.items()]
@@ -639,6 +648,7 @@ def render_plugin(plugin: Plugin) -> str:
         ("Hooks", len(plugin.hooks)),
         ("Rules", len(plugin.rules)),
         ("Templates", len(plugin.templates)),
+        ("Best practices", len(plugin.best_practices)),
         ("MCP servers", len(plugin.bundled_mcp)),
     ]
     count_pills = "".join(
@@ -652,6 +662,7 @@ def render_plugin(plugin: Plugin) -> str:
             render_section("Hooks", plugin.hooks, "hook"),
             render_section("Rules", plugin.rules, "rule"),
             render_section("Templates", plugin.templates, "template"),
+            render_section("Best practices", plugin.best_practices, "best-practice"),
             render_section("Bundled MCP servers", plugin.bundled_mcp, "mcp"),
         ] if s
     )
@@ -685,6 +696,7 @@ def render_index(plugins: list[Plugin]) -> str:
             ("hook", plugin.hooks),
             ("rule", plugin.rules),
             ("template", plugin.templates),
+            ("best-practice", plugin.best_practices),
         ]:
             for item in items:
                 rows.append({

@@ -1,6 +1,6 @@
 {
   "name": "regulatory-compliance",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "Financial-regulatory & compliance specialist team \u2014 AML/KYC analyst (sanctions, EDD, SAR/STR), regulatory-reporting analyst (FATCA/CRS, supervisory returns, Solvency II, BMA EBS), risk-and-controls specialist (three lines of defense, KRIs, risk registers), policy & procedure writer, examination-prep specialist, and Bermuda-insurance specialist (BMA insurance code, captives, SAC, IL/ILS). Ships 9 skills (AML program review, regulatory mapping, SAR narrative drafting, examination readiness, KYC/EDD review, sanctions-hit disposition, risk-register build, supervisory-return prep, control testing), 8 templates, and a defensive PII-scrubbing hook (SSN, IBAN, account numbers, Bermuda TIN patterns). Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"

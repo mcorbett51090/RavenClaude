@@ -41,6 +41,7 @@
     "plugins/*/templates/**",
     "plugins/*/commands/**",
     "plugins/*/knowledge/**",
+    "plugins/*/best-practices/**",
     "plugins/*/scenarios/**",
     "plugins/*/docs/**",
     "plugins/*/dashboard-schema.json",

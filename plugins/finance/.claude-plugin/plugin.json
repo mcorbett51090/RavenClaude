@@ -1,6 +1,6 @@
 {
   "name": "finance",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "description": "Corporate finance & FP&A specialist team \u2014 FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. Ships 9 skills (month-end close, variance commentary, model review, board-pack composition, driver-based-forecasting, dcf-valuation, thirteen-week-cash-forecast, soc-control-walkthrough, kpi-definition), 8 templates, and an advisory hook flagging finance anti-patterns. Inherits ravenclaude-core protocols (Grounding, Structured Output, Cited-Adjudicator).",
   "author": {
     "name": "Matt Corbett"
