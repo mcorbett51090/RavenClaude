@@ -1928,6 +1928,39 @@ python3 "$ARGV_CHECK" --file "$ARGV_TMP/good.py" >/dev/null 2>&1 || rc=$?
 gate "run-actions argv-integrity (clean fixture passes)" must_pass "$rc"
 rm -rf "$ARGV_TMP"
 
+echo "── Gate 36: structured event substrate (hook-events + posture-events) ─────"
+# The core event substrate (P0.2 hook-events.jsonl + P0.4 posture-events.jsonl).
+# (A) The fixture test exercises _emit-event.sh through all three wired hooks and
+#     asserts one valid JSON line per deny/warn + no line on clean input.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-hook-events.sh >/dev/null 2>&1 || rc=$?
+gate "hook-events fixture test (real wired hooks)" must_pass "$rc"
+# (B) The JSONL validity check has teeth: a malformed line must be rejected.
+printf '{"schema_version":1,"verdict":"deny"\n' > "$TMP/bad-event.jsonl"
+rc=0; jq -e . < "$TMP/bad-event.jsonl" >/dev/null 2>&1 || rc=$?
+gate "hook-event jsonl validity rejects a malformed line" must_fail "$rc"
+
+# (C) Posture events: a real posture change emits a valid JSONL line; an identical
+#     reapply emits NOTHING new (no-flood). Both proven against the real translator.
+EV_TMP="$TMP/posture-events"; mkdir -p "$EV_TMP/.ravenclaude" "$EV_TMP/.claude"
+APPLY="plugins/ravenclaude-core/scripts/apply-comfort-posture.py"
+printf 'schema_version: 5\nglobal_default: allow\nsecurity_deny:\n  - "Read(./.env)"\ncategories:\n  shell_remote_mutate:\n    project: ask\n' \
+  > "$EV_TMP/.ravenclaude/comfort-posture.yaml"
+python3 "$APPLY" --project-root "$EV_TMP" --scope project --source dashboard-save >/dev/null 2>&1
+EVLOG="$EV_TMP/.ravenclaude/posture-events.jsonl"
+rc=0
+if [[ -f "$EVLOG" ]] && [[ "$(wc -l < "$EVLOG")" -ge 1 ]]; then
+  while IFS= read -r l; do printf '%s' "$l" | jq -e . >/dev/null 2>&1 || rc=1; done < "$EVLOG"
+else
+  rc=1
+fi
+gate "posture change emits valid posture-events.jsonl" must_pass "$rc"
+c1=$(wc -l < "$EVLOG")
+python3 "$APPLY" --project-root "$EV_TMP" --scope project --source reapply >/dev/null 2>&1
+c2=$(wc -l < "$EVLOG")
+rc=0; [[ "$c1" -eq "$c2" ]] || rc=1
+gate "identical posture reapply emits no new event (no-flood)" must_pass "$rc"
+rm -rf "$EV_TMP"
+
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"

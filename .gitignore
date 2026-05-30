@@ -1,7 +1,10 @@
 # RavenClaude marketplace — ignore consumer-side runtime artifacts and local config.
 
-# Comfort-posture run artifacts (Thing audit logs, runaway counters, etc.)
+# Comfort-posture run artifacts (Thing audit logs, runaway counters, hook-events.jsonl, etc.)
 .ravenclaude/runs/
+
+# Posture-change audit log (per-project, append-only — P0.4 event substrate)
+.ravenclaude/posture-events.jsonl
 
 # Local dashboard server logs
 *.log

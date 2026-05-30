@@ -58,7 +58,7 @@ fi
 
 # Regenerate the project-layer rules from the YAML. Success is silent; only a
 # failure is surfaced (to stderr) so the user knows to run /set-posture by hand.
-if ! out="$(python3 "$translator" --project-root "$project_dir" --scope project 2>&1)"; then
+if ! out="$(python3 "$translator" --project-root "$project_dir" --scope project --source reapply 2>&1)"; then
   {
     echo "ravenclaude: could not auto-apply comfort posture from .ravenclaude/comfort-posture.yaml"
     printf '%s\n' "$out" | sed 's/^/  /'

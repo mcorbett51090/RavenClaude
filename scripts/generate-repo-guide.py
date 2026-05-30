@@ -476,8 +476,14 @@ def load_plugin(plugin_dir: Path, manifest_entry: dict) -> Plugin:
 
     hooks_dir = plugin_dir / "hooks"
     if hooks_dir.is_dir():
+        # Leading-underscore scripts are sourced helpers (e.g. _emit-event.sh),
+        # not registered/firing hooks — exclude them from the hook listing/count.
         plugin.hooks = sorted(
-            (parse_hook(p) for p in hooks_dir.glob("*.sh") if p.is_file()),
+            (
+                parse_hook(p)
+                for p in hooks_dir.glob("*.sh")
+                if p.is_file() and not p.name.startswith("_")
+            ),
             key=lambda x: x.name,
         )
 

@@ -348,6 +348,38 @@ The runaway brake bounds *depth*, the DoD gate bounds *correctness*, the task-sc
 - **Portable tool-layer denies (seeded, not a gate).** [`templates/comfort-posture-balanced.yaml`](templates/comfort-posture-balanced.yaml)'s `security_deny` floor now denies reads of host credential stores outside the repo — `~/.ssh`, `~/.aws`, `~/.config/gcloud`, `~/.azure`, `~/.kube/config`, `~/.docker/config.json` — alongside the existing in-repo secret denies. These translate to `permissions.deny` rules via [`apply-comfort-posture.py`](scripts/apply-comfort-posture.py) and are honored by Claude Code's permission engine **and** the Thing's `file_read_global` review, so they port to Copilot. They are tool-layer, **not** OS isolation (the subprocess gap above).
 - **Honest caveat: Claude Code's OS sandbox is Claude-only.** Claude Code can add an OS sandbox (Seatbelt/bubblewrap, `denyRead`/`denyWrite`, `autoAllowBashIfSandboxed`) that *does* contain subprocesses, but there is no evidence Copilot CLI honors it — so under Copilot the container/worktree is the containment, **not** the sandbox. We deliberately do **not** write a Claude-only sandbox config and present it as portable. The consumer-facing version of this guidance ships in the per-repo [`templates/dashboard-launcher/README.md`](templates/dashboard-launcher/README.md) "Containment posture" section that `ravenclaude setup` drops into `.ravenclaude/README.md`. The subprocess-vs-tool-layer limit is grounded in [`knowledge/claude-code-permissions.md`](knowledge/claude-code-permissions.md) §"Read/Edit rules do not protect against subprocess access". **Migration:** none — the seeded denies only affect a **new** repo's seed (an existing `comfort-posture.yaml` is never clobbered by `setup`), and the rest is documentation.
 
+## Structured event substrate — hook-events + posture-events (added 2026-05-30, v0.66.0)
+
+The **core event substrate**: two append-only JSONL logs that make guardrail verdicts and posture changes observable *after the fact* (today they go only to stderr/in-place and vanish). This is the read-side foundation the Norse event-driven dashboard panels (Heimdall perimeter-alarm, Víðarr posture/security log, Norns _Urðr_ column) consume — it is deliberately built **first**, as the shared emission convention, so those panels read one format rather than each inventing its own. Both logs are **fail-safe and additive**: a telemetry write can never break the guardrail or posture apply that produced it.
+
+### Hook event log (`hook-events.jsonl`) — P0.2
+
+The shared sourced helper [`hooks/_emit-event.sh`](hooks/_emit-event.sh) (function `_emit_hook_event`) appends one JSON line per **deny/warn verdict** to:
+
+```
+${CLAUDE_PROJECT_DIR}/.ravenclaude/runs/${CLAUDE_SESSION_ID:-unknown}/hook-events.jsonl
+```
+
+Line shape (schema_version 1):
+
+```json
+{"schema_version":1,"ts":"2026-05-30T18:00:00Z","hook":"enforce-layout.sh","verdict":"deny","tool":"Edit","path":"plugins/foo/bar.md","rule":"off-allow-list","session_id":"...","exit_code":2}
+```
+
+Wired into the three hooks that produce a **verdict**: `enforce-layout.sh` (deny — `path-traversal-scrub` / `task-scope-out-of-scope` / `forbidden-pattern` / `off-allow-list`), `guard-destructive.sh` (deny — `destructive-pattern`), and `guard-recursive-spawn.sh` (warn — `recursive-spawn`). **`format-on-write.sh` is intentionally NOT wired** — it is a pure formatter with no verdict, so emitting per format would flood the log with one event per file write. Existing stderr/banner output is unchanged; emission is purely additive. The helper carries no top-level `set` (it is sourced), uses `jq` with a hand-escaped no-jq fallback, and no-ops silently if `$CLAUDE_PROJECT_DIR` is unset or the path is unwritable. `_emit-event.sh` is a leading-underscore sourced helper, **not** a registered hook (the repo-guide generator excludes `_`-prefixed scripts from the hook count for this reason).
+
+### Posture event log (`posture-events.jsonl`) — P0.4
+
+[`scripts/apply-comfort-posture.py`](scripts/apply-comfort-posture.py) (`_emit_posture_event`) appends one JSON line per posture change to the per-project, append-only `${PROJECT_DIR}/.ravenclaude/posture-events.jsonl`. The diff is computed from the old-vs-new `.claude/settings.json` permission buckets (the plan's "diff old vs new settings.json" mechanism):
+
+```json
+{"schema_version":1,"ts":"2026-05-30T18:00:00Z","scope":"project","source":"dashboard-save","security_deny_diff":{"added":["Read(./.env)"],"removed":[]},"override_diff":{"added":["Bash(git push:*)"],"removed":[]}}
+```
+
+`security_deny_diff` = added/removed `deny`-bucket rules; `override_diff` = added/removed `allow`+`ask`-bucket rules. `source` is one of `dashboard-save` / `slash-command` / `cli-direct` / `migration` / `reapply` / `unknown`, resolved from `--source` > `$RAVENCLAUDE_POSTURE_SOURCE` > `cli-direct` (the dashboard server passes `dashboard-save`; the `reapply-posture.sh` SessionStart hook passes `reapply`). **An identical reapply emits nothing** (the diff is empty) — so the SessionStart reapply hook does not flood the log. Per-category `level_from`/`level_to` is intentionally **not** emitted: the script loads only the *new* posture, not the prior one, so a faithful per-category level delta would require persisting a prior-posture snapshot; the bucket-level rule diff is what is reliably computable today and is exactly what a read-side panel needs.
+
+Both logs live under `.ravenclaude/` and are git-ignored (`.ravenclaude/runs/` + `.ravenclaude/posture-events.jsonl`). Proven by **Gate 36** (the fixture test [`hooks/tests/test-hook-events.sh`](hooks/tests/test-hook-events.sh) drives all three wired hooks; the posture half asserts a real change emits valid JSONL and an identical reapply emits nothing). **Migration:** none — the substrate is additive and consumer-invisible until a panel reads it; nothing changes on `/plugin marketplace update`.
+
 ## Run Artifacts & Observability Standard (Recommended — for multi-step orchestrations)
 
 To enable inspection, debugging, learning, and continuous improvement of the agent team (and to mirror best practices from high-quality agent runtimes), **multi-step workflows orchestrated by the Team Lead SHOULD produce standardized on-disk artifacts**. Single-agent dispatches and one-shot reviews emit the Structured Output Protocol JSON block *inline* in the agent's reply — no on-disk artifact is required for those. The artifact substrate below applies when a run spans 2+ specialist dispatches that benefit from a re-readable record.
@@ -433,7 +465,7 @@ This closes the failure mode where a user relaxes permissions to move faster and
 
 - `agents/` — 14 specialist agent definitions (now includes `data-engineer`)
 - `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging, agent-quality-rubric, knowledge-file-staleness-sweep, prompt-pattern-library, plugin-release-checklist, decision-review (route yes/no decisions through the tribunal)
-- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate (all registered in `hooks/hooks.json` for plugin-level distribution)
+- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate (all registered in `hooks/hooks.json` for plugin-level distribution), plus the sourced helper `_emit-event.sh` (the hook-event substrate — sourced by the verdict-emitting hooks, not a registered hook itself) and `tests/` (the hook-event fixture test)
 - `scripts/` — apply-comfort-posture.py (`/set-posture` translator), serve-dashboards.py (the consumer dashboard server launched by `/dashboard` — serves the version-matched `dashboard.html` and writes `.ravenclaude/` into the consumer's project; `/__save` + `/__read` + `/__classify` only, no `/__run`, binds 127.0.0.1), thing-decision.py + thing-seat.sh (command-review tribunal — see the `thing` skill), thing-decide.py (decision-review tribunal — see the `decision-review` skill)
 - `rules/` — coding-standards, security, git-workflow, agent-collaboration
 - `templates/` — memos, runbooks, design specs, RAID logs, partner-success, `agent-ready-repo/` templates used by `/init-agent-ready`, plus `thing.yaml` (command-review seat config)

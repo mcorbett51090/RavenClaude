@@ -739,8 +739,12 @@ def run_v5(posture: dict, root: Path, args) -> int:
             settings = json.loads(target.read_text(encoding="utf-8"))
         else:
             settings = {"$schema": "https://json.schemastore.org/claude-code-settings.json"}
-        prev = settings.get("permissions", {})
-        prev_counts = {b: len(prev.get(b, [])) for b in ("allow", "ask", "deny")}
+        # Snapshot the prior buckets BEFORE overwrite — overwrite_permissions
+        # mutates settings["permissions"] in place, so a live reference would
+        # already reflect the new state by the time we diff for the audit event.
+        _prev_live = settings.get("permissions", {})
+        prev = {b: list(_prev_live.get(b, []) or []) for b in ("allow", "ask", "deny")}
+        prev_counts = {b: len(prev[b]) for b in ("allow", "ask", "deny")}
         overwrite_permissions(settings, em)
         if scope == "project":
             ensure_default_mode(settings)
@@ -756,6 +760,7 @@ def run_v5(posture: dict, root: Path, args) -> int:
                 write_side_car(side_car, scope)
             if scope == "local":
                 append_local_to_gitignore(root)
+            _emit_posture_event(root, scope, prev, em, _resolve_source(args))
             print(f"Applied {scope} layer → {rel}")
         for b in ("allow", "ask", "deny"):
             d = new_counts[b] - prev_counts[b]
@@ -796,6 +801,100 @@ def ensure_default_mode(settings: dict) -> None:
     settings.setdefault("permissions", {})["defaultMode"] = "default"
 
 
+POSTURE_EVENT_SOURCES = (
+    "dashboard-save",
+    "slash-command",
+    "cli-direct",
+    "migration",
+    "reapply",
+    "unknown",
+)
+
+
+def _emit_posture_event(
+    root: Path,
+    scope: str,
+    prev_perms: dict,
+    new_em: dict,
+    source: str,
+) -> None:
+    """Append one structured audit event per posture change (P0.4).
+
+    Writes a single JSON line to ``<root>/.ravenclaude/posture-events.jsonl``
+    (per-project, append-only) capturing the delta to the ENFORCED permission
+    surface that this apply produced for ``scope``. The diff is computed from
+    the old-vs-new settings buckets (the plan's "diff old vs new settings.json"
+    mechanism), mapped as:
+
+        security_deny_diff -> added/removed rules in the ``deny`` bucket
+        override_diff      -> added/removed rules in the ``allow``+``ask`` buckets
+
+    (Per-category ``level_from``/``level_to`` is intentionally NOT emitted: the
+    script loads only the *new* posture, not the prior one, so a faithful
+    per-category level delta would require persisting a prior-posture snapshot.
+    The bucket-level rule diff above is what is reliably computable today and is
+    exactly what a read-side panel needs — "which deny/allow rules changed".)
+
+    Read-side substrate for the Víðarr posture/security event panel. Best-effort
+    and fail-safe: any error is swallowed so a telemetry write can never break a
+    posture apply. Emits nothing when the delta is empty (so an identical
+    reapply — e.g. the SessionStart reapply hook — does not flood the log).
+    """
+    try:
+
+        def _bucket(d: dict, *names: str) -> set:
+            out: set = set()
+            for n in names:
+                vals = d.get(n) or []
+                if isinstance(vals, list):
+                    out.update(str(v) for v in vals)
+            return out
+
+        prev_deny = _bucket(prev_perms, "deny")
+        new_deny = _bucket(new_em, "deny")
+        prev_over = _bucket(prev_perms, "allow", "ask")
+        new_over = _bucket(new_em, "allow", "ask")
+
+        deny_added = sorted(new_deny - prev_deny)
+        deny_removed = sorted(prev_deny - new_deny)
+        over_added = sorted(new_over - prev_over)
+        over_removed = sorted(prev_over - new_over)
+
+        # Nothing actually changed for this scope — stay silent.
+        if not (deny_added or deny_removed or over_added or over_removed):
+            return
+
+        if source not in POSTURE_EVENT_SOURCES:
+            source = "unknown"
+
+        event = {
+            "schema_version": 1,
+            "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "scope": scope,
+            "source": source,
+            "security_deny_diff": {"added": deny_added, "removed": deny_removed},
+            "override_diff": {"added": over_added, "removed": over_removed},
+        }
+
+        log = root / ".ravenclaude" / "posture-events.jsonl"
+        log.parent.mkdir(parents=True, exist_ok=True)
+        with log.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(event, ensure_ascii=False) + "\n")
+    except Exception:
+        # Telemetry must never break the apply.
+        return
+
+
+def _resolve_source(args) -> str:
+    """Resolve the posture-event source: explicit --source > env > default."""
+    if getattr(args, "source", None):
+        return args.source
+    env = os.environ.get("RAVENCLAUDE_POSTURE_SOURCE", "").strip()
+    if env:
+        return env
+    return "cli-direct"
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--project-root", help="Override project root detection. Default: search upward from CWD for .claude/ or .git/.")
@@ -811,6 +910,13 @@ def main() -> int:
         "--preview-merge",
         action="store_true",
         help="(schema v5) Print the merged effective posture across all three layers; don't write.",
+    )
+    p.add_argument(
+        "--source",
+        choices=list(POSTURE_EVENT_SOURCES),
+        default=None,
+        help="Provenance recorded in .ravenclaude/posture-events.jsonl for this apply. "
+        "Falls back to $RAVENCLAUDE_POSTURE_SOURCE, then 'cli-direct'.",
     )
     args = p.parse_args()
 
@@ -849,8 +955,10 @@ def main() -> int:
     else:
         settings = {"$schema": "https://json.schemastore.org/claude-code-settings.json"}
 
-    prev_perms = settings.get("permissions", {})
-    prev_counts = {b: len(prev_perms.get(b, [])) for b in ("allow", "ask", "deny")}
+    # Snapshot before overwrite — overwrite_permissions mutates in place.
+    _prev_live = settings.get("permissions", {})
+    prev_perms = {b: list(_prev_live.get(b, []) or []) for b in ("allow", "ask", "deny")}
+    prev_counts = {b: len(prev_perms[b]) for b in ("allow", "ask", "deny")}
 
     updated = overwrite_permissions(settings, new_emission)
     ensure_default_mode(updated)
@@ -874,6 +982,7 @@ def main() -> int:
         if stale_snapshot.is_file():
             stale_snapshot.unlink()
             print(f"Deleted stale snapshot: {stale_snapshot.relative_to(root)}")
+        _emit_posture_event(root, "project", prev_perms, new_emission, _resolve_source(args))
         print(f"Applied comfort posture to {settings_path.relative_to(root)}:")
         for bucket in ("allow", "ask", "deny"):
             delta = new_counts[bucket] - prev_counts[bucket]

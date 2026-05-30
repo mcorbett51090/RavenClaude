@@ -15,6 +15,15 @@
 
 set -euo pipefail
 
+# Structured hook-event substrate (P0.2). Sourced fail-safe — a missing helper
+# becomes a no-op so the emit call below can never throw or block the verdict.
+_emit_event_helper="$(dirname "$0")/_emit-event.sh"
+if [ -f "$_emit_event_helper" ]; then
+  # shellcheck source=/dev/null
+  . "$_emit_event_helper" 2>/dev/null || true
+fi
+command -v _emit_hook_event >/dev/null 2>&1 || _emit_hook_event() { :; }
+
 # Prefer stdin JSON (canonical); fall back to the positional arg (legacy).
 cmd=""
 if [ ! -t 0 ]; then
@@ -45,6 +54,7 @@ deny_patterns=(
 
 for pat in "${deny_patterns[@]}"; do
   if [[ "$cmd" =~ $pat ]]; then
+    _emit_hook_event "guard-destructive.sh" "deny" "Bash" "$cmd" "destructive-pattern" 2
     echo "[guard-destructive] BLOCKED: command matches destructive pattern: $pat" >&2
     echo "[guard-destructive] cmd: $cmd" >&2
     echo "[guard-destructive] If you really need this, run it yourself with explicit confirmation." >&2
