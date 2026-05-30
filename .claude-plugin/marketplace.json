@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. A domain-neutral core (Team Lead + 14 specialist agents, 20 skills, hooks, the Capability Grounding Protocol, the Structured Output Protocol, and a comfort-posture permission dashboard) plus domain plugins that extend it via skills and knowledge. Every agent ships example-scenario frontmatter; the repo-guide surfaces an 'I want to…' use-case lookup across all plugins. Plugins: ravenclaude-core, power-platform (+ bundled pbix-mcp), finance, regulatory-compliance (+ BMA Bermuda specialist), web-design (WCAG/CWV/SEO), edtech-partner-success (PSM lane), data-platform (dashboard engagements), applied-statistics, microsoft-fabric (OneLake / Lakehouse / Warehouse / Data Factory / Real-Time Intelligence / Direct Lake / capacity FinOps), claude-app-engineering (Claude API / Agent SDK / MCP / evals / LLM FinOps), azure-cloud (landing zones / Bicep / Entra / networking / compute / FinOps). Salesforce on the roadmap.",
-    "version": "0.29.0"
+    "version": "0.30.0"
   },
   "plugins": [
     {
@@ -245,6 +245,32 @@
         "azure-policy",
         "finops",
         "iac"
+      ]
+    },
+    {
+      "name": "salesforce",
+      "source": "./plugins/salesforce",
+      "description": "Salesforce practitioner team — 5 agents (apex-engineer, flow-automation-architect, agentforce-architect, salesforce-platform-architect, salesforce-reviewer) covering governor-safe bulkified Apex (triggers/async/services), declarative automation by density (Flow vs Apex), Agentforce agent design (topics/subagents, Agent Script determinism, RAG grounding, Trust Layer), org architecture (data model, OWD→role→sharing→Apex security model, 2GP packaging/DevOps, LDV), and a forked review rubric (the 15 house opinions as pass/fail). 9-doc citation-grounded knowledge bank (9 Mermaid decision trees, dated 2026-05-30), 5 skills, 5 templates, 1 advisory hook (grep-able anti-patterns: SOQL/DML-in-loop, hard-coded IDs, SeeAllData=true, missing with-sharing). Seams: integration→azure-cloud, analytics→data-platform/microsoft-fabric, LWC styling→web-design, methodology/DevOps/security-review→ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "salesforce",
+        "apex",
+        "soql",
+        "lwc",
+        "flow",
+        "agentforce",
+        "atlas-reasoning-engine",
+        "governor-limits",
+        "bulkification",
+        "trigger-framework",
+        "sharing-model",
+        "2gp-packaging",
+        "sfdx",
+        "data-cloud",
+        "large-data-volume"
       ]
     }
   ]
