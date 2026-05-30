@@ -52,14 +52,44 @@ MARKETPLACE_ROOT = PLUGIN_DIR.parent.parent
 # dashboard is correctly scoped regardless of the launch directory).
 PROJECT_ROOT = Path.cwd().resolve()
 
+# Pipeline-tab editable config files. JSON-validated before write (a malformed
+# write to .repo-layout.json would brick the layout gate, so we never persist
+# unparseable JSON or a structurally-wrong layout file).
+JSON_EDIT_TARGETS = {
+    ".repo-layout.json",
+    ".ravenclaude/task-scope.json",
+}
 ALLOWED_TARGETS = {
     ".ravenclaude/comfort-posture.yaml",
     ".ravenclaude/environment-context.md",
-}
+} | JSON_EDIT_TARGETS
 ALLOWED_READ = {
     ".ravenclaude/comfort-posture.yaml",
     ".ravenclaude/environment-context.md",
-}
+} | JSON_EDIT_TARGETS
+
+def _validate_json_target(target: str, content: str) -> str | None:
+    """Structural pre-write validation for a JSON_EDIT_TARGETS file. Returns an
+    error string (→ HTTP 400) or None when the content is safe to persist.
+
+    .repo-layout.json IS the layout security gate, so we require valid JSON whose
+    `allowed_globs` is a list — a malformed write would brick layout enforcement.
+    task-scope.json must be a JSON object; `in_scope`, when present, must be a list.
+    """
+    try:
+        doc = json.loads(content)
+    except (json.JSONDecodeError, TypeError) as e:
+        return f"{target}: not valid JSON ({e})"
+    if not isinstance(doc, dict):
+        return f"{target}: top-level value must be a JSON object"
+    if target == ".repo-layout.json":
+        if not isinstance(doc.get("allowed_globs"), list):
+            return ".repo-layout.json: 'allowed_globs' must be a list"
+    if target == ".ravenclaude/task-scope.json":
+        if "in_scope" in doc and not isinstance(doc["in_scope"], list):
+            return "task-scope.json: 'in_scope', when present, must be a list"
+    return None
+
 
 # Saving the comfort posture immediately re-runs the translator so the consumer's
 # .claude/settings.json reflects the new YAML without a manual /set-posture.
@@ -326,6 +356,14 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(400, "content must be a string")
             return
 
+        # JSON-validate the layout / task-scope targets BEFORE writing — never
+        # persist unparseable JSON or a structurally-broken layout file.
+        if target in JSON_EDIT_TARGETS:
+            err = _validate_json_target(target, content)
+            if err:
+                self.send_error(400, err)
+                return
+
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(content, encoding="utf-8", newline="\n")
 
@@ -359,6 +397,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             try:
                 import yaml
                 payload["parsed"] = yaml.safe_load(content)
+            except Exception:
+                payload["parsed"] = None
+        elif target.endswith(".json"):
+            try:
+                payload["parsed"] = json.loads(content)
             except Exception:
                 payload["parsed"] = None
         self._json(200, payload)

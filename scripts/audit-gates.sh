@@ -1827,6 +1827,51 @@ rc=0; grep -q "unhedged absolute" "$TMP/cg.err" && rc=1
 gate "claim-grounding (silent without opt-in posture)" must_pass "$rc"
 
 echo
+echo "── Gate 35: dashboard serializer round-trip + Pipeline-tab server validation ─"
+# (A) Guards the comfort-posture serializer (emitYaml) against the round-trip
+# data-loss class: the Pipeline tab's runaway / decision_review / definition_of_done
+# / dev_repo_exempt keys must survive emit + hydrate, and defaults must stay absent.
+# The test extracts the REAL functions from the generated dashboard.html (no DOM).
+RT="scripts/check-dashboard-roundtrip.mjs"
+if command -v node >/dev/null 2>&1; then
+  # must_pass: the real, in-sync dashboard.
+  rc=0; node "$RT" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (real dashboard.html)" must_pass "$rc"
+  # must_fail: a drifted dashboard whose decision_review emission line is stripped
+  # (simulating the pre-fix serializer that silently dropped the key). The test
+  # must catch the now-missing key.
+  RT_BAD="$TMP/dashboard-drifted.html"
+  grep -v 'decision_review: ${state.decision_review}' plugins/ravenclaude-core/dashboard.html > "$RT_BAD"
+  rc=0; node "$RT" "$RT_BAD" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (drifted: decision_review emit stripped)" must_fail "$rc"
+else
+  echo "  (skipped — node not available; CI has node)"
+fi
+
+# (B) Pipeline-tab editable file targets: _validate_json_target must reject bad
+# JSON / a structurally-broken .repo-layout.json and accept a valid one. Proven on
+# BOTH server copies (root + bundled plugin) so the widened write surface can't
+# drift between them.
+for SRV in scripts/serve-dashboards.py plugins/ravenclaude-core/scripts/serve-dashboards.py; do
+  rc=0
+  python3 - "$SRV" <<'PY' || rc=$?
+import importlib.util, sys
+s = importlib.util.spec_from_file_location("srv", sys.argv[1])
+m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
+ok = True
+ok &= m._validate_json_target(".repo-layout.json", "{not json") is not None      # bad JSON rejected
+ok &= m._validate_json_target(".repo-layout.json", '{"x":1}') is not None          # missing allowed_globs rejected
+ok &= m._validate_json_target(".repo-layout.json", '{"allowed_globs":["a"]}') is None  # valid accepted
+ok &= m._validate_json_target(".ravenclaude/task-scope.json", '{"in_scope":"x"}') is not None  # bad shape rejected
+ok &= m._validate_json_target(".ravenclaude/task-scope.json", '{"in_scope":["a"]}') is None    # valid accepted
+ok &= {".repo-layout.json", ".ravenclaude/task-scope.json"} <= m.ALLOWED_TARGETS  # both writable
+ok &= {".repo-layout.json", ".ravenclaude/task-scope.json"} <= m.ALLOWED_READ     # both readable
+sys.exit(0 if ok else 1)
+PY
+  gate "pipeline JSON-target validation ($(basename "$(dirname "$SRV")"))" must_pass "$rc"
+done
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 if [[ "$FAIL" -gt 0 ]]; then

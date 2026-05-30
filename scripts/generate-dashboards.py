@@ -137,6 +137,7 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         commands_html=_render_commands_tab(),
         trees_html=_render_stub_tab("Decision trees", "v0.2.0"),
         activity_html=_render_activity_tab(),
+        pipeline_html=_render_pipeline_tab(),
         schema_json=json.dumps(schema, indent=2),
         concepts_json=_concepts_json(plugin_dir),
         pattern_explanations_json=json.dumps(
@@ -191,6 +192,224 @@ def _render_activity_tab() -> str:
     small .activity-* card block.
     """
     return _ACTIVITY_TAB_TEMPLATE
+
+
+# ── Pipeline tab ─────────────────────────────────────────────────────────────
+# A visual map of EVERY guardrail an agent passes through (SessionStart →
+# PreToolUse → PostToolUse → Stop), grounded in hooks/hooks.json. Each stage
+# carries a live ON/OFF badge, a 5th-grade tooltip, and (where tunable) inline
+# editors. Posture-backed knobs round-trip the SAME comfort-posture.yaml the
+# Settings tab uses (shared `state` + emitYaml + /__save). The two file-backed
+# stages (.repo-layout.json, .ravenclaude/task-scope.json) round-trip via
+# /__read + /__save with server-side JSON validation. All JS lives in _JS; this
+# returns a static skeleton the JS hydrates on tab open.
+_PIPELINE_LANES = [
+    {
+        "event": "SessionStart",
+        "when": "When a session starts",
+        "tip": "Right when the robot wakes up, it loads your settings and reminds itself what it's allowed to do.",
+        "stages": [
+            {"id": "reapply-posture", "title": "Re-apply settings", "badge": "always",
+             "tip": "Loads your saved safety settings so they're on from the very first step."},
+            {"id": "ensure-default-mode", "title": "Safe starting mode", "badge": "always",
+             "tip": "Picks a safe mode to start the session in."},
+            {"id": "capability-orientation", "title": "Capability check", "badge": "always",
+             "tip": "Reminds the robot what tools and access it already has, so it doesn't say “I can't” by mistake."},
+        ],
+    },
+    {
+        "event": "PreToolUse",
+        "when": "Before the robot runs a command or edits a file",
+        "tip": "This is the busiest checkpoint. Every command and every file edit goes through these in order before it's allowed to happen.",
+        "stages": [
+            {"id": "guard-destructive", "title": "Danger guard", "badge": "always",
+             "tip": "Stops really dangerous commands (like deleting everything) before they can run."},
+            {"id": "thing", "title": "Command review (the Thing)", "badge": "dynamic", "controls": "thing",
+             "tip": "A panel of robot reviewers votes yes / no / fix on a command before it runs. You choose how strict it is."},
+            {"id": "runaway-brake", "title": "Runaway brake", "badge": "dynamic", "controls": "runaway",
+             "tip": "Counts the robot's steps. If it loops forever or takes way too many steps, it pauses so it can't run away."},
+            {"id": "enforce-layout", "title": "Folder & task limits", "badge": "dynamic", "controls": "files",
+             "tip": "Makes sure new files go in the right folders, and that the robot only touches the files this task is allowed to."},
+            {"id": "route-decision-review", "title": "Decision routing", "badge": "dynamic", "controls": "decision",
+             "tip": "When the robot would ask you a yes/no question, a panel answers the easy ones so you're not interrupted."},
+        ],
+    },
+    {
+        "event": "PostToolUse",
+        "when": "Right after a command runs or a file is saved",
+        "tip": "After something happens, these tidy up and double-check the work.",
+        "stages": [
+            {"id": "format-on-write", "title": "Auto-tidy", "badge": "always",
+             "tip": "Tidies up a file's formatting right after it's saved."},
+            {"id": "guard-recursive-spawn", "title": "Copy guard", "badge": "always",
+             "tip": "Stops the robot from making endless copies of itself."},
+            {"id": "claim-grounding-lint", "title": "Fact check", "badge": "advisory",
+             "tip": "Reminds the robot to say where a fact came from when it writes one into a document."},
+        ],
+    },
+    {
+        "event": "Stop",
+        "when": "When the robot thinks it's done",
+        "tip": "Before the robot is allowed to stop, it proves the work is really finished.",
+        "stages": [
+            {"id": "dod-gate", "title": "Done check", "badge": "dynamic", "controls": "dod",
+             "tip": "Before the robot says “done,” it runs your tests. If they fail, it keeps working."},
+            {"id": "remind-tests", "title": "Test reminder", "badge": "advisory",
+             "tip": "A gentle nudge to run the tests when there's no done-check set up."},
+        ],
+    },
+]
+
+_PIPELINE_CONTROLS = {
+    "thing": (
+        '<label class="pipe-ctl"><input type="checkbox" id="pipe-thing-enabled"> '
+        "Command review is on</label>"
+        '<label class="pipe-ctl"><input type="checkbox" id="pipe-dev-exempt"> '
+        "Dev-repo exemption (maintainer only — lets an over-slow panel ask instead of blocking)</label>"
+        '<label class="pipe-ctl">Ask me when risk is at or above '
+        '<select id="pipe-gate-floor"><option value="medium">medium</option>'
+        '<option value="high">high</option><option value="extreme">extreme</option></select></label>'
+        '<p class="pipe-hint">Turn individual command types on/off, and tune the reviewer panel, in the '
+        '<a href="#/settings">Settings</a> tab.</p>'
+    ),
+    "runaway": (
+        '<label class="pipe-ctl"><input type="checkbox" id="pipe-runaway-off"> Turn the brake off</label>'
+        '<label class="pipe-ctl">Most steps in one session '
+        '<input type="number" id="pipe-runaway-total" min="1" step="1"></label>'
+        '<label class="pipe-ctl">Most identical tries in a row '
+        '<input type="number" id="pipe-runaway-consec" min="1" step="1"></label>'
+    ),
+    "decision": (
+        '<label class="pipe-ctl">Mode '
+        '<select id="pipe-decision-review">'
+        '<option value="off">off — you answer every yes/no</option>'
+        '<option value="advisory">advisory — panel suggests, you still answer</option>'
+        '<option value="binding">binding — panel answers the easy ones</option>'
+        "</select></label>"
+    ),
+    "dod": (
+        '<label class="pipe-ctl">Test / build command '
+        '<input type="text" id="pipe-dod-cmd" placeholder="npm test &amp;&amp; npm run lint"></label>'
+        '<label class="pipe-ctl">Times it may re-try before giving up '
+        '<input type="number" id="pipe-dod-maxblocks" min="1" step="1"></label>'
+        '<p class="pipe-hint">Leave the command empty to turn the done-check off.</p>'
+    ),
+    "files": (
+        '<div class="pipe-file" data-file=".repo-layout.json">'
+        '<div class="pipe-file-head"><strong>Allowed folders</strong> '
+        '<code>.repo-layout.json</code>'
+        '<button type="button" class="pipe-file-load" data-target=".repo-layout.json">Load</button>'
+        '<button type="button" class="pipe-file-save" data-target=".repo-layout.json">Save</button></div>'
+        '<textarea class="pipe-file-text" data-target=".repo-layout.json" spellcheck="false" '
+        'aria-label="repo-layout.json contents"></textarea>'
+        '<span class="pipe-file-status" data-target=".repo-layout.json"></span></div>'
+        '<div class="pipe-file" data-file=".ravenclaude/task-scope.json">'
+        '<div class="pipe-file-head"><strong>This task’s files</strong> '
+        '<code>.ravenclaude/task-scope.json</code>'
+        '<button type="button" class="pipe-file-load" data-target=".ravenclaude/task-scope.json">Load</button>'
+        '<button type="button" class="pipe-file-save" data-target=".ravenclaude/task-scope.json">Save</button></div>'
+        '<textarea class="pipe-file-text" data-target=".ravenclaude/task-scope.json" spellcheck="false" '
+        'aria-label="task-scope.json contents" '
+        'placeholder=\'{ "in_scope": ["src/**"], "spec": "SPEC.md" }\'></textarea>'
+        '<span class="pipe-file-status" data-target=".ravenclaude/task-scope.json"></span></div>'
+    ),
+}
+
+
+_PIPELINE_CSS = """<style>
+.pipeline-tab { max-width: 900px; }
+.pipe-note { margin: .5rem 0 1rem; padding: .6rem .8rem; border-radius: 6px;
+  background: var(--card, #1c1c22); border: 1px solid var(--border, #33333a);
+  color: var(--muted, #aaa); font-size: .9rem; }
+.pipe-lane { border: 1px solid var(--border, #33333a); border-radius: 8px;
+  padding: .75rem .9rem; margin: 0; background: var(--card, #1c1c22); }
+.pipe-lane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.pipe-lane-when { font-weight: 600; color: var(--text, #eee); }
+.pipe-lane-event { font-family: ui-monospace, monospace; font-size: .78rem;
+  color: var(--muted, #999); background: var(--bg, #111); padding: .1rem .4rem;
+  border-radius: 4px; }
+.pipe-lane-tip { margin: .3rem 0 .7rem; color: var(--muted, #aaa); font-size: .88rem; }
+.pipe-row { display: flex; flex-wrap: wrap; gap: .6rem; }
+.pipe-stage { flex: 1 1 220px; min-width: 200px; border: 1px solid var(--border, #33333a);
+  border-radius: 6px; padding: .55rem .65rem; background: var(--bg, #141418); }
+.pipe-stage-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.pipe-stage-title { font-weight: 600; font-size: .92rem; }
+.pipe-tip { margin: .35rem 0 0; font-size: .82rem; color: var(--muted, #aaa); line-height: 1.35; }
+.pipe-badge { font-size: .7rem; font-weight: 600; padding: .12rem .42rem; border-radius: 10px;
+  white-space: nowrap; }
+.pipe-badge-on { background: #14532d; color: #bbf7d0; }
+.pipe-badge-off { background: #4b1113; color: #fecaca; }
+.pipe-badge-advisory { background: #3a3a42; color: #cbd5e1; }
+.pipe-badge-dynamic { background: #3a3a42; color: #cbd5e1; }
+.pipe-controls { margin-top: .55rem; display: flex; flex-direction: column; gap: .4rem; }
+.pipe-ctl { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; font-size: .84rem; }
+.pipe-ctl input[type=number] { width: 6rem; }
+.pipe-ctl input[type=text] { flex: 1 1 12rem; min-width: 10rem; }
+.pipe-hint { margin: .1rem 0 0; font-size: .78rem; color: var(--muted, #888); }
+.pipe-arrow { text-align: center; font-size: 1.2rem; color: var(--muted, #666); margin: .15rem 0; }
+.pipe-file { margin-top: .5rem; }
+.pipe-file-head { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; font-size: .82rem; }
+.pipe-file-text { width: 100%; min-height: 6rem; font-family: ui-monospace, monospace;
+  font-size: .78rem; margin-top: .3rem; box-sizing: border-box; }
+.pipe-file-status { font-size: .78rem; color: var(--muted, #999); }
+.pipe-savebar { display: flex; align-items: center; gap: .8rem; margin: 1.2rem 0 .5rem;
+  position: sticky; bottom: 0; padding: .6rem 0; background: linear-gradient(transparent, var(--bg, #111) 40%); }
+.pipe-save-status { font-size: .85rem; color: var(--muted, #aaa); }
+</style>"""
+
+
+def _render_pipeline_tab() -> str:
+    """Render the Pipeline tab — the all-events guardrail flow with live state,
+    5th-grade tooltips, and inline editors. JS (in _JS) hydrates it on open."""
+    lanes_html = []
+    for lane in _PIPELINE_LANES:
+        cards = []
+        for st in lane["stages"]:
+            badge = st["badge"]
+            if badge == "always":
+                badge_html = '<span class="pipe-badge pipe-badge-on">Always on</span>'
+            elif badge == "advisory":
+                badge_html = '<span class="pipe-badge pipe-badge-advisory">Advisory</span>'
+            else:  # dynamic — JS fills it
+                badge_html = (
+                    f'<span class="pipe-badge pipe-badge-dynamic" '
+                    f'data-pipe-badge="{html.escape(st["id"])}">…</span>'
+                )
+            controls = st.get("controls")
+            controls_html = (
+                f'<div class="pipe-controls">{_PIPELINE_CONTROLS[controls]}</div>'
+                if controls else ""
+            )
+            cards.append(
+                f'<div class="pipe-stage" data-stage="{html.escape(st["id"])}">'
+                f'<div class="pipe-stage-head">'
+                f'<span class="pipe-stage-title">{html.escape(st["title"])}</span>'
+                f"{badge_html}</div>"
+                f'<p class="pipe-tip">{html.escape(st["tip"])}</p>'
+                f"{controls_html}</div>"
+            )
+        arrow = '<div class="pipe-arrow" aria-hidden="true">↓</div>'
+        lanes_html.append(
+            '<section class="pipe-lane">'
+            '<div class="pipe-lane-head">'
+            f'<span class="pipe-lane-when">{html.escape(lane["when"])}</span>'
+            f'<span class="pipe-lane-event">{html.escape(lane["event"])}</span></div>'
+            f'<p class="pipe-lane-tip">{html.escape(lane["tip"])}</p>'
+            f'<div class="pipe-row">{"".join(cards)}</div>'
+            "</section>"
+        )
+    body = arrow.join(lanes_html)
+    return f"""{_PIPELINE_CSS}
+<div class="pipeline-tab">
+  <h2>Guardrail pipeline</h2>
+  <p class="page-desc">Everything an AI agent passes through, top to bottom. Each box shows whether it's on right now, what it does (in plain words), and the knobs you can turn. Changes save to your <code>.ravenclaude/comfort-posture.yaml</code>.</p>
+  <div id="pipeline-server-note" class="pipe-note" hidden>This page has no server behind it, so the live state and editors are read-only. Launch the dashboard with <code>ravenclaude dashboard --project &lt;repo&gt;</code> to edit and apply.</div>
+  {body}
+  <div class="pipe-savebar">
+    <button type="button" id="pipeline-save-btn" class="btn-primary">Save &amp; apply</button>
+    <span id="pipeline-save-status" class="pipe-save-status"></span>
+  </div>
+</div>"""
 
 
 # ── Learn tab ──────────────────────────────────────────────────────────────
@@ -3854,12 +4073,25 @@ _JS = r"""
     thor: "claude-opus-4-7",
     confidence_threshold: 0.5,
     gate_floor: "high",
+    /* Dev-repo lockout fix (v0.60.0): when true (and the gh-owner + marketplace.json
+     * AND-gate passes) an abstaining panel defers (ASK) instead of failing closed.
+     * Owner-gated — inert in any consumer repo. Emitted only when true. */
+    dev_repo_exempt: false,
   });
   const CR_SEATS = ["forseti", "mimir", "heimdall", "thor"];
   const CR_MODELS = ["claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5"];
 
   /* gate_floor headline control — enum medium | high | extreme, default high. */
   const GATE_FLOORS = ["medium", "high", "extreme"];
+
+  /* Pipeline-stage guardrail config (model-free hooks; see the Pipeline tab).
+   * Each mirrors the hook's own defaults so emitYaml only writes a block when the
+   * user changed it — preserving "absent ⇒ default" so a consumer's untouched
+   * posture is never bloated and nothing changes on /plugin marketplace update. */
+  const RUNAWAY_DEFAULT = Object.freeze({ max_total: 1200, max_consecutive: 8, off: false });
+  const DOD_DEFAULT = Object.freeze({ cmd: "", max_blocks: 8 });
+  const DECISION_REVIEW_VALUES = ["off", "advisory", "binding"];
+  const DECISION_REVIEW_DEFAULT = "off";
 
   /* Per-tier panel defaults — mirror thing-decision.py's built-in tier table.
    * Seats are forseti | mimir | heimdall (thor is the tie-breaker, never a seat).
@@ -3926,6 +4158,11 @@ _JS = r"""
     design_checkins: (typeof ((props.design_checkins || {}).default) === "boolean")
       ? props.design_checkins.default : true,
     command_review: Object.assign({}, CR_DEFAULT, { tiers: freshTiers(), mcp_allowed_servers: [] }),
+    /* Pipeline-stage guardrails (model-free hooks). Cloned from the *_DEFAULT
+     * constants; emitYaml writes each block only when it differs from default. */
+    runaway: Object.assign({}, RUNAWAY_DEFAULT),
+    decision_review: DECISION_REVIEW_DEFAULT,
+    definition_of_done: Object.assign({}, DOD_DEFAULT),
     expanded: {},   /* category -> boolean */
   };
 
@@ -3992,6 +4229,9 @@ _JS = r"""
       if (typeof parsed.design_checkins === "boolean") {
         state.design_checkins = parsed.design_checkins;
       }
+      /* Pipeline-stage guardrails (runaway / decision_review / definition_of_done
+       * / dev_repo_exempt) — restored via the shared validator. */
+      applyGuardrailConfig(parsed);
       /* command-review panel: keep only known seats/models + a valid threshold */
       if (parsed.command_review && typeof parsed.command_review === "object") {
         const pcr = parsed.command_review;
@@ -4260,6 +4500,42 @@ _JS = r"""
     return `"${s.replace(/\\/g, "\\\\").replace(/"/g, "\\\"")}"`;
   }
 
+  /* Shared guardrail-config hydrator — used by BOTH the localStorage restore and
+   * the live /__read path. The dashboard state and the committed YAML express
+   * runaway / decision_review / definition_of_done / command_review.dev_repo_exempt
+   * with the same shape, so one validator covers both. Mutates state defensively:
+   * a missing / malformed key leaves the existing (default) value untouched.
+   * Returns true if anything was applied. */
+  function applyGuardrailConfig(src) {
+    if (!src || typeof src !== "object") return false;
+    let touched = false;
+    const rw = src.runaway;
+    if (rw && typeof rw === "object") {
+      const mt = parseInt(rw.max_total, 10);
+      if (Number.isFinite(mt) && mt > 0) { state.runaway.max_total = mt; touched = true; }
+      const mc = parseInt(rw.max_consecutive, 10);
+      if (Number.isFinite(mc) && mc > 0) { state.runaway.max_consecutive = mc; touched = true; }
+      if (typeof rw.off === "boolean") { state.runaway.off = rw.off; touched = true; }
+    } else if (rw === false || rw === "off") {
+      /* scalar `runaway: off` form (YAML `off` parses to boolean false) */
+      state.runaway.off = true; touched = true;
+    }
+    if (DECISION_REVIEW_VALUES.includes(src.decision_review)) {
+      state.decision_review = src.decision_review; touched = true;
+    }
+    const dod = src.definition_of_done;
+    if (dod && typeof dod === "object") {
+      if (typeof dod.cmd === "string") { state.definition_of_done.cmd = dod.cmd; touched = true; }
+      const mb = parseInt(dod.max_blocks, 10);
+      if (Number.isFinite(mb) && mb > 0) { state.definition_of_done.max_blocks = mb; touched = true; }
+    }
+    const cr = src.command_review;
+    if (cr && typeof cr === "object" && typeof cr.dev_repo_exempt === "boolean") {
+      state.command_review.dev_repo_exempt = cr.dev_repo_exempt; touched = true;
+    }
+    return touched;
+  }
+
   function emitYaml() {
     const lines = [
       "# Comfort-posture for Claude Code agents (v5 — per-layer).",
@@ -4290,6 +4566,7 @@ _JS = r"""
       || CR_SEATS.some(s => cr[s] !== CR_DEFAULT[s])
       || cr.confidence_threshold !== CR_DEFAULT.confidence_threshold
       || cr.gate_floor !== CR_DEFAULT.gate_floor
+      || cr.dev_repo_exempt === true
       || (cr.mcp_allowed_servers && cr.mcp_allowed_servers.length > 0)
       || tiersChanged;
     if (crChanged) {
@@ -4304,6 +4581,10 @@ _JS = r"""
       }
       lines.push(`  confidence_threshold: ${cr.confidence_threshold}`);
       lines.push(`  gate_floor: ${cr.gate_floor}`);
+      /* Dev-repo lockout fix — emitted only when true (owner-gated, inert in any
+       * consumer repo). Lets an abstaining panel defer (ASK) instead of failing
+       * closed for the verified marketplace maintainer. */
+      if (cr.dev_repo_exempt === true) lines.push(`  dev_repo_exempt: true`);
       /* MCP server allowlist (§MCP identity) — emitted only when non-empty. The
        * tribunal denies a write verb from a server NOT on this list pre-LLM. */
       if (cr.mcp_allowed_servers && cr.mcp_allowed_servers.length) {
@@ -4325,6 +4606,41 @@ _JS = r"""
           lines.push(`      confidence_threshold: ${t.confidence_threshold}`);
         }
       }
+      lines.push("");
+    }
+
+    /* ── Pipeline-stage guardrails (model-free hooks) ──────────────────────
+     * Each block is emitted ONLY when it differs from the hook's built-in
+     * default, so an untouched posture stays minimal and "absent ⇒ default"
+     * holds — nothing changes for a consumer on /plugin marketplace update
+     * unless they explicitly tune a value here. */
+    const rw = state.runaway;
+    if (rw.off === true) {
+      lines.push("# Runaway brake — disabled for this repo.");
+      lines.push("runaway: off");
+      lines.push("");
+    } else if (rw.max_total !== RUNAWAY_DEFAULT.max_total
+            || rw.max_consecutive !== RUNAWAY_DEFAULT.max_consecutive) {
+      lines.push("# Runaway brake — bounds tool-call depth (loop/runaway protection).");
+      lines.push("runaway:");
+      lines.push(`  max_consecutive: ${rw.max_consecutive}`);
+      lines.push(`  max_total: ${rw.max_total}`);
+      lines.push("");
+    }
+
+    if (DECISION_REVIEW_VALUES.includes(state.decision_review)
+        && state.decision_review !== DECISION_REVIEW_DEFAULT) {
+      lines.push("# Yes/no decision routing through the tribunal (off | advisory | binding).");
+      lines.push(`decision_review: ${state.decision_review}`);
+      lines.push("");
+    }
+
+    const dod = state.definition_of_done;
+    if (dod.cmd && dod.cmd.trim()) {
+      lines.push("# Definition-of-done gate — runs on Stop; blocks 'done' until it passes.");
+      lines.push("definition_of_done:");
+      lines.push(`  cmd: ${quoteYamlKey(dod.cmd)}`);
+      lines.push(`  max_blocks: ${dod.max_blocks}`);
       lines.push("");
     }
 
@@ -4376,6 +4692,9 @@ _JS = r"""
         security_deny: state.security_deny,
         design_checkins: state.design_checkins,
         command_review: state.command_review,
+        runaway: state.runaway,
+        decision_review: state.decision_review,
+        definition_of_done: state.definition_of_done,
         expanded: state.expanded,
       }));
     } catch (e) { /* storage full — ignore */ }
@@ -5319,7 +5638,7 @@ _JS = r"""
   });
 
   /* ── Tab routing ─────────────────────────────────────────────────── */
-  const validTabs = ["settings", "install", "simulator", "learn", "saga", "commands", "trees", "activity"];
+  const validTabs = ["settings", "pipeline", "install", "simulator", "learn", "saga", "commands", "trees", "activity"];
   function openConcept(id) {
     const card = document.getElementById("learn-" + id);
     if (!card) return;
@@ -5371,6 +5690,7 @@ _JS = r"""
     if (tab === "learn" && seg[1]) openConcept(seg[1]);
     if (tab === "saga" && !sagaLoaded) loadSaga();
     if (tab === "activity" && !activityLoaded) loadActivity();
+    if (tab === "pipeline") syncPipelineTab();
   }
   document.querySelectorAll(".tab-btn").forEach(b => {
     b.addEventListener("click", () => {
@@ -5379,6 +5699,142 @@ _JS = r"""
   });
   window.addEventListener("hashchange", applyHash);
   applyHash();
+
+  /* ── Pipeline tab ──────────────────────────────────────────────────────
+   * Visual guardrail map. Posture-backed knobs mutate the SHARED `state` and
+   * save through the same emitYaml()/saveToRepo() path as Settings (so the
+   * serializer is the single source of truth). The two file-backed editors
+   * round-trip .repo-layout.json / .ravenclaude/task-scope.json via /__read +
+   * /__save (server-validated). Read-only on a static host. */
+  let pipelineServerAvailable = false;
+  let pipelineWired = false;
+
+  function pipeBadge(id, text, cls) {
+    const el = document.querySelector('[data-pipe-badge="' + id + '"]');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.remove("pipe-badge-on", "pipe-badge-off", "pipe-badge-advisory", "pipe-badge-dynamic");
+    el.classList.add(cls);
+  }
+
+  function syncPipelineTab() {
+    const cr = state.command_review;
+    const en = document.getElementById("pipe-thing-enabled");
+    if (en) en.checked = cr.enabled !== false;
+    const dx = document.getElementById("pipe-dev-exempt");
+    if (dx) dx.checked = cr.dev_repo_exempt === true;
+    const gf = document.getElementById("pipe-gate-floor");
+    if (gf) gf.value = cr.gate_floor;
+    pipeBadge("thing", cr.enabled === false ? "Paused" : "On",
+              cr.enabled === false ? "pipe-badge-off" : "pipe-badge-on");
+    const ro = document.getElementById("pipe-runaway-off");
+    if (ro) ro.checked = state.runaway.off === true;
+    const rt = document.getElementById("pipe-runaway-total");
+    if (rt) rt.value = state.runaway.max_total;
+    const rc = document.getElementById("pipe-runaway-consec");
+    if (rc) rc.value = state.runaway.max_consecutive;
+    pipeBadge("runaway-brake", state.runaway.off ? "Off" : ("On · " + state.runaway.max_total + " steps"),
+              state.runaway.off ? "pipe-badge-off" : "pipe-badge-on");
+    const dr = document.getElementById("pipe-decision-review");
+    if (dr) dr.value = state.decision_review;
+    pipeBadge("route-decision-review", state.decision_review,
+              state.decision_review === "off" ? "pipe-badge-off" : "pipe-badge-on");
+    const dc = document.getElementById("pipe-dod-cmd");
+    if (dc) dc.value = state.definition_of_done.cmd || "";
+    const dm = document.getElementById("pipe-dod-maxblocks");
+    if (dm) dm.value = state.definition_of_done.max_blocks;
+    const dodOn = !!(state.definition_of_done.cmd && state.definition_of_done.cmd.trim());
+    pipeBadge("dod-gate", dodOn ? "On" : "Off", dodOn ? "pipe-badge-on" : "pipe-badge-off");
+    pipeBadge("enforce-layout", pipelineServerAvailable ? "Editable" : "Read-only",
+              pipelineServerAvailable ? "pipe-badge-on" : "pipe-badge-advisory");
+  }
+
+  function cssEsc(s) { return (window.CSS && CSS.escape) ? CSS.escape(s) : s.replace(/"/g, '\\\\"'); }
+  function pipeFileArea(target) {
+    return document.querySelector('.pipe-file-text[data-target="' + cssEsc(target) + '"]');
+  }
+  function pipeFileStatus(target, msg) {
+    const el = document.querySelector('.pipe-file-status[data-target="' + cssEsc(target) + '"]');
+    if (el) el.textContent = msg;
+  }
+
+  async function pipeFileLoad(target) {
+    pipeFileStatus(target, "loading…");
+    try {
+      const res = await fetch("/__read?path=" + encodeURIComponent(target));
+      if (res.status === 404) {
+        const a = pipeFileArea(target); if (a) a.value = "";
+        pipeFileStatus(target, "no file yet — type JSON and Save to create it");
+        return;
+      }
+      if (!res.ok) { pipeFileStatus(target, "could not load (no server?)"); return; }
+      const j = await res.json();
+      const a = pipeFileArea(target);
+      if (a) a.value = j.content || "";
+      pipeFileStatus(target, "loaded");
+    } catch (e) { pipeFileStatus(target, "could not load (no server?)"); }
+  }
+
+  async function pipeFileSave(target) {
+    const a = pipeFileArea(target);
+    if (!a) return;
+    try { JSON.parse(a.value); }
+    catch (e) { pipeFileStatus(target, "not valid JSON — fix and try again"); return; }
+    pipeFileStatus(target, "saving…");
+    try {
+      const res = await fetch("/__save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: target, content: a.value }),
+      });
+      if (res.status === 404 || res.status === 405) { pipeFileStatus(target, "no server — cannot save from this page"); return; }
+      if (!res.ok) { const t = await res.text().catch(() => ""); pipeFileStatus(target, "rejected: " + (t || res.status)); return; }
+      pipeFileStatus(target, "saved");
+    } catch (e) { pipeFileStatus(target, "save failed (no server?)"); }
+  }
+
+  function wirePipelineControls() {
+    if (pipelineWired) return;
+    pipelineWired = true;
+    function onChange(id, fn) {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("change", () => { fn(el); render(); syncPipelineTab(); });
+    }
+    function onInput(id, fn) {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("input", () => { fn(el); render(); });
+    }
+    onChange("pipe-thing-enabled", el => { state.command_review.enabled = el.checked ? true : false; syncMasterEnable(); });
+    onChange("pipe-dev-exempt", el => { state.command_review.dev_repo_exempt = el.checked; });
+    onChange("pipe-gate-floor", el => { if (GATE_FLOORS.includes(el.value)) state.command_review.gate_floor = el.value; });
+    onChange("pipe-runaway-off", el => { state.runaway.off = el.checked; });
+    onInput("pipe-runaway-total", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.runaway.max_total = v; });
+    onInput("pipe-runaway-consec", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.runaway.max_consecutive = v; });
+    onChange("pipe-decision-review", el => { if (DECISION_REVIEW_VALUES.includes(el.value)) state.decision_review = el.value; });
+    onInput("pipe-dod-cmd", el => { state.definition_of_done.cmd = el.value; });
+    onInput("pipe-dod-maxblocks", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.definition_of_done.max_blocks = v; });
+
+    const saveBtn = document.getElementById("pipeline-save-btn");
+    if (saveBtn) saveBtn.addEventListener("click", () => {
+      const st = document.getElementById("pipeline-save-status");
+      if (st) st.textContent = "saving…";
+      saveToRepo().then(() => { if (st) st.textContent = "saved"; }).catch(() => { if (st) st.textContent = "save failed"; });
+    });
+    document.querySelectorAll(".pipe-file-load").forEach(b => b.addEventListener("click", () => pipeFileLoad(b.dataset.target)));
+    document.querySelectorAll(".pipe-file-save").forEach(b => b.addEventListener("click", () => pipeFileSave(b.dataset.target)));
+  }
+
+  async function initPipelineTab() {
+    wirePipelineControls();
+    pipelineServerAvailable = await probeRepoEndpoint();
+    const note = document.getElementById("pipeline-server-note");
+    if (note) note.hidden = pipelineServerAvailable;
+    document.querySelectorAll(".pipe-file-text, .pipe-file-save, .pipe-file-load").forEach(el => { el.disabled = !pipelineServerAvailable; });
+    const sb = document.getElementById("pipeline-save-btn");
+    if (sb) sb.disabled = !pipelineServerAvailable;
+    syncPipelineTab();
+  }
+  initPipelineTab();
 
   /* ── Review log (saga) tab ──────────────────────────────────────── */
   /* State + element refs are declared above applyHash() (see the TDZ note). */
@@ -5859,6 +6315,10 @@ _JS = r"""
       state.design_checkins = parsed.design_checkins;
       touched = true;
     }
+    /* Pipeline-stage guardrails — runaway / decision_review / definition_of_done
+     * / command_review.dev_repo_exempt, via the shared validator (same shape as
+     * the localStorage path). */
+    if (applyGuardrailConfig(parsed)) touched = true;
     /* ── Per-category permission posture ─────────────────────────────── */
     /* The committed file expresses the SAME shape the dashboard authors, so we
      * map it back field-for-field, guarding every access (a key the file omits
@@ -6117,6 +6577,7 @@ _PAGE_TEMPLATE = """<!doctype html>
   <p class="page-desc"><span class="plugin-name">{plugin_name}</span> &middot; static dashboard, no backend. Edits stay in your browser until you click Download.</p>
   <nav class="tab-bar" role="tablist" aria-label="Dashboard tabs">
     <button class="tab-btn" data-tab="settings" role="tab" aria-selected="true">Settings</button>
+    <button class="tab-btn" data-tab="pipeline" role="tab" aria-selected="false">Pipeline</button>
     <button class="tab-btn" data-tab="install" role="tab" aria-selected="false">Install &amp; Update</button>
     <button class="tab-btn" data-tab="simulator" role="tab" aria-selected="false">Test a command</button>
     <button class="tab-btn" data-tab="learn" role="tab" aria-selected="false">Learn</button>
@@ -6130,6 +6591,9 @@ _PAGE_TEMPLATE = """<!doctype html>
 <main>
   <section class="tab-panel active" data-tab="settings" role="tabpanel" aria-label="Settings">
 {settings_html}
+  </section>
+  <section class="tab-panel" data-tab="pipeline" role="tabpanel" aria-label="Guardrail pipeline">
+{pipeline_html}
   </section>
   <section class="tab-panel" data-tab="install" role="tabpanel" aria-label="Install and Update">
 {install_html}
