@@ -1,6 +1,6 @@
 {
   "name": "power-platform",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "Power Platform specialist team — 11 agents (incl. power-platform-tester, power-bi-engineer) and 18 skills, with strong ALM/git coverage for solutions, flows, and PBIP. A house-opinions hook flags 8 §3/§4 violations; the knowledge bank carries production decision trees (PA-flow recovery, Dataverse token-acquisition) plus a real-engagement scenarios bank. v0.13.0 adds PCF React + Fluent UI v9: a canonical platform-library version source, the `Decision Tree: PCF — Which React surface?` (PCF virtual / code-app / canvas / Power-Pages-unsupported / web resource), a Fluent-v9 theming + v8→v9 migration skill resource, and decision-tree-traversal priors on pcf-developer, power-fx-engineer, and power-pages-engineer. Every agent ships example-scenario frontmatter feeding the repo-guide. Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval (requires `pip install pbix-mcp`). Extends ravenclaude-core.",
   "author": {
     "name": "Matt Corbett"
