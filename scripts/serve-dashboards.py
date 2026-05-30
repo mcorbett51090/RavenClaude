@@ -658,9 +658,14 @@ def _read_nidhoggr(repo_root: Path) -> dict:
                 continue
             try:
                 when = _dt.datetime.fromisoformat(iso[0].strip())
+                # Guard the COMPARISON too (not just the parse): a tz-naive `when`
+                # vs the tz-aware `cutoff` raises TypeError. %cI always emits an
+                # offset so this is defensive, but it keeps the docstring's
+                # "a git failure yields an empty signal, never raises" honest.
+                is_stale = when < cutoff
             except (ValueError, TypeError):
                 continue
-            if when < cutoff:
+            if is_stale:
                 out["stale_plugins"].append(
                     {"plugin": pj.parent.parent.name, "last_bump": iso[0][:10]}
                 )
