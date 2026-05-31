@@ -90,9 +90,9 @@ The user's request doesn't map to any playbook above. Don't guess.
 
 ---
 
-## Step 3 — Allocate worktrees
+## Step 3 — Allocate worktrees (Sleipnir)
 
-For each coder agent, create an isolated worktree using [`new-worktree`](../new-worktree/SKILL.md). Naming:
+For each coder agent, create an isolated worktree using [`new-worktree`](../new-worktree/SKILL.md) — in user-facing prose, "send **Sleipnir** to that branch" (the labeling convention; the mechanism is plain `git worktree`). Naming:
 
 ```
 .claude/worktrees/<role>-<short-slug>/

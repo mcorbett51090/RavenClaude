@@ -729,6 +729,25 @@ def _read_nidhoggr(repo_root: Path) -> dict:
     return out
 
 
+def _read_sleipnir(project_root: Path) -> dict:
+    """Sleipnir's stables — the current git worktrees under .claude/worktrees/.
+    Read-only directory listing (names + count), no git invocation. Reads only
+    under project_root (no root reference) so this is byte-identical in the root
+    and bundled plugin server — keep the two copies in sync (the parity gate
+    guards endpoint NAMES; this helper is duplicated, so edit both). Any failure
+    (missing dir, unreadable) degrades to an empty stable, never raises."""
+    out: dict = {"worktrees": [], "count": 0}
+    wt_dir = project_root / ".claude" / "worktrees"
+    if wt_dir.is_dir():
+        try:
+            names = sorted(d.name for d in wt_dir.iterdir() if d.is_dir())
+        except OSError:
+            names = []
+        out["worktrees"] = names
+        out["count"] = len(names)
+    return out
+
+
 class DashboardHandler(SimpleHTTPRequestHandler):
     """SimpleHTTPRequestHandler + POST /__save for dashboard writes."""
 
@@ -754,7 +773,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         return True
 
     def do_HEAD(self):
-        if self.path in ("/__save", "/__run", "/__classify") or self.path.startswith("/__read") or self.path.startswith("/__saga") or self.path.startswith("/__heimdall") or self.path.startswith("/__vidarr") or self.path.startswith("/__norns") or self.path.startswith("/__nidhoggr") or self.path.startswith("/__runs"):
+        if self.path in ("/__save", "/__run", "/__classify") or self.path.startswith("/__read") or self.path.startswith("/__saga") or self.path.startswith("/__heimdall") or self.path.startswith("/__vidarr") or self.path.startswith("/__norns") or self.path.startswith("/__nidhoggr") or self.path.startswith("/__sleipnir") or self.path.startswith("/__runs"):
             self.send_response(200)
             self.send_header("Allow", "GET, POST, HEAD")
             self.send_header("Content-Length", "0")
@@ -793,6 +812,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if self.path.startswith("/__nidhoggr"):
             self._handle_nidhoggr()
+            return
+        if self.path.startswith("/__sleipnir"):
+            self._handle_sleipnir()
             return
         if self.path.startswith("/__runs"):
             self._handle_runs()

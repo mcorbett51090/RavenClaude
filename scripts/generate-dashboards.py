@@ -4368,6 +4368,11 @@ footer.page-footer a:hover { text-decoration: underline; }
 
 /* ── Activity tab — run feed (reuses .saga-layout/.saga-hdr/.saga-empty) ── */
 .activity-intro { color: var(--muted); font-size: 13px; margin: 0 20px 16px; max-width: 72ch; }
+/* Sleipnir's stables — one-row worktree widget at the top of the Activity tab. */
+.sleipnir-stables { display: flex; align-items: center; gap: 8px; margin: 0 20px 14px; padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; font-size: 12.5px; }
+.sleipnir-glyph { font-size: 15px; }
+.sleipnir-label { font-weight: 700; color: var(--text); }
+.sleipnir-body { color: var(--muted); font-family: var(--font-mono); font-size: 12px; word-break: break-word; }
 #activity-content { padding: 0 20px 20px; display: flex; flex-direction: column; gap: 12px; }
 .activity-card {
   background: var(--surface); border: 1px solid var(--border);
@@ -4774,6 +4779,11 @@ _ACTIVITY_TAB_TEMPLATE = """
     <span class="saga-count" id="activity-count"></span>
   </div>
   <p class="activity-intro">Run history from <code>.ravenclaude/runs/</code> &mdash; newest first. Each card is one multi-step run (its summary, structured-result status, and event count). Command-review verdicts live in the <strong>Review log</strong> tab.</p>
+  <div class="sleipnir-stables" id="sleipnir-stables" aria-label="Sleipnir's stables — active worktrees">
+    <span class="sleipnir-glyph" aria-hidden="true">&#128014;</span>
+    <span class="sleipnir-label">Sleipnir&rsquo;s stables</span>
+    <span class="sleipnir-body" id="sleipnir-body">&hellip;</span>
+  </div>
   <div id="activity-content">
     <div class="saga-empty" id="activity-loading"><p>Loading activity&hellip;</p></div>
   </div>
@@ -7300,8 +7310,37 @@ _JS = r"""
     activityContent.innerHTML = html;
   }
 
+  /* Sleipnir's stables — the active git worktrees, shown as a one-row widget at
+   * the top of the Activity tab. Served-only (reads .claude/worktrees/); on a
+   * static host it shows a short "served dashboard only" note. Labeling only —
+   * the worktree mechanism is unchanged. */
+  function renderSleipnir(data) {
+    const body = document.getElementById("sleipnir-body");
+    if (!body) return;
+    const n = (data && typeof data.count === "number") ? data.count : 0;
+    if (n === 0) {
+      body.textContent = "no active worktrees";
+      return;
+    }
+    const names = (data.worktrees || []).slice(0, 8).join(", ");
+    body.textContent = n + (n === 1 ? " worktree: " : " worktrees: ") + names;
+  }
+
+  async function loadSleipnir() {
+    const body = document.getElementById("sleipnir-body");
+    try {
+      const res = await fetch("/__sleipnir");
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      renderSleipnir(await res.json());
+    } catch (e) {
+      const served = await probeReadEndpoint();
+      if (body) body.textContent = served ? "unavailable" : "served dashboard only";
+    }
+  }
+
   async function loadActivity() {
     activityLoaded = true;
+    loadSleipnir();
     if (activityContent) activityContent.replaceChildren(sagaEmptyPanel("Loading activity…"));
     try {
       const res = await fetch("/__runs?limit=200");

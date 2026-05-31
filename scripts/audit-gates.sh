@@ -2219,6 +2219,50 @@ sys.exit(0)
 PY
 gate "bifrost tab issues no fetch / runs no command" must_pass "$rc"
 
+echo "── Gate 43: Sleipnir worktree widget (render + server reader) ─────────────"
+# (A) Behavioral render test from the generated dashboard.html (count+names,
+#     singular, empty, undefined→no-crash).
+if command -v node >/dev/null 2>&1; then
+  rc=0; node scripts/check-sleipnir-render.mjs >/dev/null 2>&1 || rc=$?
+  gate "sleipnir render (real dashboard.html)" must_pass "$rc"
+  # must_fail: a drifted dashboard whose empty-state text is renamed, so the
+  # 0-worktrees assertion ("no active worktrees") no longer holds.
+  SL_BAD="$TMP/dashboard-sleipnir-drift.html"
+  python3 -c "p='plugins/ravenclaude-core/dashboard.html'; o='$TMP/dashboard-sleipnir-drift.html'; s=open(p,encoding='utf-8').read(); s=s.replace('no active worktrees','none'); open(o,'w',encoding='utf-8').write(s)"
+  rc=0; node scripts/check-sleipnir-render.mjs "$SL_BAD" >/dev/null 2>&1 || rc=$?
+  gate "sleipnir render (drifted: empty-state text changed)" must_fail "$rc"
+else
+  echo "  (skipped — node not available; CI has node)"
+fi
+# (B) Server reader: lists .claude/worktrees/ (count + sorted names); empty dir
+#     degrades to count 0. Drives _read_sleipnir directly.
+SL_TMP="$TMP/sleipnir-proj"; mkdir -p "$SL_TMP/.claude/worktrees/coder-a" "$SL_TMP/.claude/worktrees/coder-b"
+rc=0
+python3 - "$SL_TMP" <<'PY' || rc=$?
+import importlib.util, sys, tempfile
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("srv", "scripts/serve-dashboards.py")
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+out = m._read_sleipnir(Path(sys.argv[1]))
+assert out["count"] == 2 and out["worktrees"] == ["coder-a", "coder-b"], out
+empty = m._read_sleipnir(Path(tempfile.mkdtemp()))
+assert empty["count"] == 0 and empty["worktrees"] == [], empty
+sys.exit(0)
+PY
+gate "sleipnir server reader (lists worktrees; empty degrades)" must_pass "$rc"
+# Both server copies must expose _read_sleipnir identically.
+rc=0
+python3 - <<'PY' || rc=$?
+import importlib.util, sys
+for p in ("scripts/serve-dashboards.py", "plugins/ravenclaude-core/scripts/serve-dashboards.py"):
+    s = importlib.util.spec_from_file_location("m", p)
+    m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
+    assert hasattr(m, "_read_sleipnir"), p
+sys.exit(0)
+PY
+gate "sleipnir reader present in both server copies" must_pass "$rc"
+rm -rf "$SL_TMP"
+
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
