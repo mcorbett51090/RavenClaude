@@ -387,6 +387,26 @@ def build_banner(root: Path) -> str:
             "what fired and why before retrying a denied action or re-proposing a posture change."
         )
 
+    # Method-selection discipline — always shown (a standing instruction, not
+    # data). This is the impossible-to-miss surface for the decision-tree +
+    # requires:-check disciplines that otherwise live only as prose the model
+    # (especially a non-Claude model under Copilot) may skip. It does NOT make
+    # the choice — it points the agent at the priors it must consult before
+    # picking a method, reconciled against the EFFECTIVE PERMISSIONS listed above.
+    lines.append("")
+    lines.append("BEFORE PICKING A METHOD (route + permission discipline):")
+    lines.append(
+        "  If the active plugin's knowledge has a `## Decision Tree` for this goal, "
+        "traverse it top-to-bottom and pick the smaller-blast-radius leaf — do NOT "
+        "keyword-match the request to a method."
+    )
+    lines.append(
+        "  Check each candidate route's `requires:` note (the role/scope it needs) "
+        "against the EFFECTIVE PERMISSIONS above and `.ravenclaude/environment-context.md`: "
+        "if you hold it, proceed; if not, pick a route you ARE authorized for, or escalate "
+        "— never default to the highest-privilege path."
+    )
+
     lines.append("</ravenclaude-capabilities>")
 
     banner = "\n".join(lines)

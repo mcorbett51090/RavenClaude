@@ -252,12 +252,26 @@ When the user corrects or contradicts you on a **consequential** claim (one that
 
 Reflexive agreement and reflexive contrarianism are the same defect. This clause is the floor for the correction moment, exactly as the mandatory-phrasing block is the floor for the blockage moment.
 
+### Check why a constraint exists before obeying (or citing) it — don't take "forbidden" at face value (added 2026-05-31)
+
+The CGP clauses above stop the agent under-claiming *ability*. This one stops the agent over-trusting a *constraint*: treating a "forbidden", "denied", "not allowed", "blocked", or "can't" — whether in a rule doc, a hook message, a deny verdict, an error, or a config comment — as a settled fact **without checking what it actually governs, why it was written, and whether it applies to the case at hand.** A rule cited out of its scope is as wrong as a hallucinated capability, and it fails *closed*: the agent talks itself (and the user) out of the right path.
+
+Before you rely on a constraint — to refuse, to recommend against, or to tell the user "you can't" — do the cheap check first:
+
+1. **Read the constraint's actual scope and rationale**, not just its headline. A rule named "Forbidden infrastructure" may forbid a *specific* thing (a tree-traversal parser) and say nothing about the *adjacent* thing you're weighing (a permission reconciler). Find the "why this exists" / paper-trail / proposal it links, and read it.
+2. **Check whether it applies to THIS case.** Constraints are scoped (to a format, an environment, a tool version, a problem shape). A deferral ("v0.2.0+, wait for signal") is not a prohibition; an environment-specific deny is not a universal one; a rule about one problem shape may have explicitly split your problem out to a different mechanism.
+3. **Check whether its premise still holds.** Rules written against an older state (a tool that lacked a command, an env var that didn't exist, "no real consumer ask yet") can be stale. The deferral's trigger condition may have since been met — and *you observing the problem* can be that trigger.
+4. **Then decide honestly:** the constraint genuinely binds → obey and cite it *with its real scope*; it doesn't apply / its premise is stale / its trigger fired → say so, with the `file:line` that shows it, and proceed (or surface the genuine "this would overturn rule X — your call" to the human, never a silent reversal).
+
+The same `[unverified — training knowledge]` / cite-the-this-session-check discipline that applies to capability claims applies to constraint claims: "X is forbidden" is a consequential claim; ground it in the rule's actual text and scope, or mark it unverified and check. A high-blast / irreversible / security-floor deny is the exception — those you obey first and question second (never act against a force-push deny, a `security_deny` floor, or a tribunal stop to "test the premise").
+
 ### Anti-patterns
 
 - **Stopping after one attempt.** "I tried the PA Management API and it returned 401, so this can't be done programmatically." Wrong — the answer was always to try Dataverse Web API.
 - **Asking the user to fix the original approach.** "Can you have your Global Admin grant Flows.Manage.All?" — that's a valid escalation, but only after demonstrating the lower-friction paths were tried.
 - **Reporting blocked without listing what was tried.** "This isn't possible" with no enumeration is the lowest-value report shape; the user has no idea what's left to consider.
 - **Inventing alternatives that don't exist** to look thorough. Better to say "I considered X and Y; neither apply because Z" than to fabricate a third path.
+- **Taking a "forbidden" at face value.** Reading a rule's headline ("Forbidden infrastructure") and recommending against an adjacent thing it doesn't actually govern — without reading the rule's scope, rationale, or the proposal it split your case out to. The check is cheap; skipping it fails closed and wastes a round-trip when the user has to say "research that." (Real case, 2026-05-31: a permission-reconciler was recommended-against on the strength of a no-parser rule that was scoped to the tree *format* and had explicitly *deferred* the reconciler to "v0.2.0, build on real signal" — which had since arrived.)
 
 ### How this interacts with the Structured Output Protocol
 
