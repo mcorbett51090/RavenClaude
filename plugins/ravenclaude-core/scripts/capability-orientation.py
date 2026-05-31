@@ -44,7 +44,12 @@ from pathlib import Path
 
 # Hard cap on the injected banner (well under Claude Code's 10k additionalContext
 # limit; keeps the per-session token cost small since this fires every session).
-_MAX_CHARS = 1800
+# Raised 1800→2700 (v0.85.0) to fit the "verify before you declare you can't"
+# standing clause without truncating richer-surface projects' route sections
+# (the route-discipline block is emitted LAST, so it is what truncation clips
+# first; richer projects start larger than this repo's minimal surface). Still
+# far under Claude Code's 10k additionalContext limit.
+_MAX_CHARS = 2700
 
 # ── Project-surface detection — HIGH-SIGNAL evidence only ─────────────────────
 # Map a surface label to filename globs / markers that *prove* the repo targets
@@ -405,6 +410,14 @@ def build_banner(root: Path) -> str:
         "against the EFFECTIVE PERMISSIONS above and `.ravenclaude/environment-context.md`: "
         "if you hold it, proceed; if not, pick a route you ARE authorized for, or escalate "
         "— never default to the highest-privilege path."
+    )
+    lines.append(
+        "  Before reporting you \"can't\" do something or that a tool is unavailable: a "
+        "`command not found`, a 401/403, or a not-yet-loaded deferred/MCP tool is "
+        "evidence about ONE route — not proof the capability is absent. Load the "
+        "sanctioned route (search/await the MCP tool) and try ≥2 alternatives before "
+        "declaring blocked; then cite the this-session check or mark "
+        "`[unverified — training knowledge]`."
     )
 
     lines.append("</ravenclaude-capabilities>")
