@@ -6416,12 +6416,19 @@ _JS = r"""
         await navigator.clipboard.writeText(text);
         toast("Copied to clipboard");
       } catch (e) {
-        const range = document.createRange();
-        range.selectNodeContents(code);
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(range);
-        toast("Select-all + Cmd/Ctrl+C to copy");
+        // clipboard.writeText can reject (insecure context / permission denied).
+        // Only fall back to a manual selection if the source element exists —
+        // selectNodeContents(null) would otherwise throw a second time.
+        if (code) {
+          const range = document.createRange();
+          range.selectNodeContents(code);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+          toast("Select-all + Cmd/Ctrl+C to copy");
+        } else {
+          toast("Copy failed — select the command manually");
+        }
       }
     });
   });
@@ -6778,6 +6785,9 @@ _JS = r"""
     document.querySelectorAll(".tab-btn").forEach(b => {
       const sel = b.dataset.tab === tab;
       b.setAttribute("aria-selected", sel ? "true" : "false");
+      // Roving tabindex (WAI-ARIA tabs pattern): only the selected tab is in the
+      // Tab order; arrow keys move between the rest. Keeps Tab from cycling all 14.
+      b.setAttribute("tabindex", sel ? "0" : "-1");
     });
     document.querySelectorAll(".tab-panel").forEach(p => {
       p.classList.toggle("active", p.dataset.tab === tab);
@@ -6795,6 +6805,28 @@ _JS = r"""
       location.hash = "/" + b.dataset.tab;
     });
   });
+  // Keyboard navigation for the tablist (WAI-ARIA Authoring Practices "Tabs"):
+  // Left/Right move between tabs, Home/End jump to first/last. Automatic
+  // activation — moving focus also selects the tab (via the hash) and focuses it.
+  const tablist = document.querySelector('.tab-bar[role="tablist"]');
+  if (tablist) {
+    tablist.addEventListener("keydown", e => {
+      const keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
+      if (!keys.includes(e.key)) return;
+      const tabs = Array.from(tablist.querySelectorAll('.tab-btn[role="tab"]'));
+      if (!tabs.length) return;
+      const cur = tabs.findIndex(t => t.getAttribute("aria-selected") === "true");
+      let next = cur < 0 ? 0 : cur;
+      if (e.key === "ArrowRight") next = (cur + 1) % tabs.length;
+      else if (e.key === "ArrowLeft") next = (cur - 1 + tabs.length) % tabs.length;
+      else if (e.key === "Home") next = 0;
+      else if (e.key === "End") next = tabs.length - 1;
+      e.preventDefault();
+      const target = tabs[next];
+      location.hash = "/" + target.dataset.tab; // applyHash() syncs aria-selected + tabindex
+      target.focus();
+    });
+  }
   window.addEventListener("hashchange", applyHash);
   applyHash();
 
@@ -8311,64 +8343,64 @@ _PAGE_TEMPLATE = """<!doctype html>
   <p class="page-desc">{description}</p>
   <p class="page-desc"><span class="plugin-name">{plugin_name}</span> &middot; static dashboard, no backend. Edits stay in your browser until you click Download.</p>
   <nav class="tab-bar" role="tablist" aria-label="Dashboard tabs">
-    <button class="tab-btn" data-tab="overview" role="tab" aria-selected="true">Overview</button>
-    <button class="tab-btn" data-tab="settings" role="tab" aria-selected="false">Settings</button>
-    <button class="tab-btn" data-tab="pipeline" role="tab" aria-selected="false">Pipeline</button>
-    <button class="tab-btn" data-tab="install" role="tab" aria-selected="false">Install &amp; Update</button>
-    <button class="tab-btn" data-tab="simulator" role="tab" aria-selected="false">Preview a review</button>
-    <button class="tab-btn" data-tab="learn" role="tab" aria-selected="false">Learn</button>
-    <button class="tab-btn" data-tab="saga" role="tab" aria-selected="false">&#9878; Review log</button>
-    <button class="tab-btn" data-tab="commands" role="tab" aria-selected="false">Commands</button>
-    <button class="tab-btn" data-tab="trees" role="tab" aria-selected="false">Guidance</button>
-    <button class="tab-btn" data-tab="activity" role="tab" aria-selected="false">Activity</button>
-    <button class="tab-btn" data-tab="heimdall" role="tab" aria-selected="false">Heimdall</button>
-    <button class="tab-btn" data-tab="vidarr" role="tab" aria-selected="false">Security log</button>
-    <button class="tab-btn" data-tab="norns" role="tab" aria-selected="false">Lineage</button>
-    <button class="tab-btn" data-tab="bifrost" role="tab" aria-selected="false">Install a plugin</button>
+    <button class="tab-btn" id="tab-overview" data-tab="overview" role="tab" aria-selected="true" aria-controls="panel-overview" title="Overview — start here: what this dashboard is for">Overview</button>
+    <button class="tab-btn" id="tab-settings" data-tab="settings" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-settings" title="Settings — choose what Claude can do on its own (deny / ask / allow)">Settings</button>
+    <button class="tab-btn" id="tab-pipeline" data-tab="pipeline" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-pipeline" title="Pipeline — the safety checks every command passes through">Pipeline</button>
+    <button class="tab-btn" id="tab-install" data-tab="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-install" title="Install &amp; Update — set up or upgrade this plugin">Install &amp; Update</button>
+    <button class="tab-btn" id="tab-simulator" data-tab="simulator" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-simulator" title="Preview a review — see how a command would be judged before you run it">Preview a review</button>
+    <button class="tab-btn" id="tab-learn" data-tab="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-learn" title="Learn — plain-English explainers for each concept">Learn</button>
+    <button class="tab-btn" id="tab-saga" data-tab="saga" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-saga" title="Review log — past decisions the reviewer panel made (Sága)">&#9878; Review log</button>
+    <button class="tab-btn" id="tab-commands" data-tab="commands" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-commands" title="Commands — ready-to-run slash-command playbooks">Commands</button>
+    <button class="tab-btn" id="tab-trees" data-tab="trees" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-trees" title="Guidance — decision trees and best practices">Guidance</button>
+    <button class="tab-btn" id="tab-activity" data-tab="activity" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-activity" title="Activity — what Claude is doing right now (runs &amp; worktrees)">Activity</button>
+    <button class="tab-btn" id="tab-heimdall" data-tab="heimdall" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-heimdall" title="Heimdall — alerts your guardrails caught at the perimeter">Heimdall</button>
+    <button class="tab-btn" id="tab-vidarr" data-tab="vidarr" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-vidarr" title="Security log — a record of your permission changes (Víðarr)">Security log</button>
+    <button class="tab-btn" id="tab-norns" data-tab="norns" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-norns" title="Lineage — how your plugins connect and depend on each other (Norns)">Lineage</button>
+    <button class="tab-btn" id="tab-bifrost" data-tab="bifrost" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-bifrost" title="Install a plugin — guided steps to add a plugin (Bifröst bridge)">Install a plugin</button>
   </nav>
 </header>
 
 <main>
-  <section class="tab-panel active" data-tab="overview" role="tabpanel" aria-label="Overview">
+  <section class="tab-panel active" id="panel-overview" data-tab="overview" role="tabpanel" aria-label="Overview">
 {overview_html}
   </section>
-  <section class="tab-panel" data-tab="settings" role="tabpanel" aria-label="Settings">
+  <section class="tab-panel" id="panel-settings" data-tab="settings" role="tabpanel" aria-label="Settings">
 {settings_html}
   </section>
-  <section class="tab-panel" data-tab="pipeline" role="tabpanel" aria-label="Guardrail pipeline">
+  <section class="tab-panel" id="panel-pipeline" data-tab="pipeline" role="tabpanel" aria-label="Guardrail pipeline">
 {pipeline_html}
   </section>
-  <section class="tab-panel" data-tab="install" role="tabpanel" aria-label="Install and Update">
+  <section class="tab-panel" id="panel-install" data-tab="install" role="tabpanel" aria-label="Install and Update">
 {install_html}
   </section>
-  <section class="tab-panel" data-tab="simulator" role="tabpanel" aria-label="Preview a command's review">
+  <section class="tab-panel" id="panel-simulator" data-tab="simulator" role="tabpanel" aria-label="Preview a command's review">
 {simulator_html}
   </section>
-  <section class="tab-panel" data-tab="learn" role="tabpanel" aria-label="Learn">
+  <section class="tab-panel" id="panel-learn" data-tab="learn" role="tabpanel" aria-label="Learn">
 {learn_html}
   </section>
-  <section class="tab-panel" data-tab="saga" role="tabpanel" aria-label="Review log">
+  <section class="tab-panel" id="panel-saga" data-tab="saga" role="tabpanel" aria-label="Review log">
 {saga_html}
   </section>
-  <section class="tab-panel" data-tab="commands" role="tabpanel" aria-label="Commands">
+  <section class="tab-panel" id="panel-commands" data-tab="commands" role="tabpanel" aria-label="Commands">
 {commands_html}
   </section>
-  <section class="tab-panel" data-tab="trees" role="tabpanel" aria-label="Decision trees and best practices">
+  <section class="tab-panel" id="panel-trees" data-tab="trees" role="tabpanel" aria-label="Decision trees and best practices">
 {trees_html}
   </section>
-  <section class="tab-panel" data-tab="activity" role="tabpanel" aria-label="Activity">
+  <section class="tab-panel" id="panel-activity" data-tab="activity" role="tabpanel" aria-label="Activity">
 {activity_html}
   </section>
-  <section class="tab-panel" data-tab="heimdall" role="tabpanel" aria-label="Heimdall perimeter alerts">
+  <section class="tab-panel" id="panel-heimdall" data-tab="heimdall" role="tabpanel" aria-label="Heimdall perimeter alerts">
 {heimdall_html}
   </section>
-  <section class="tab-panel" data-tab="vidarr" role="tabpanel" aria-label="Security log">
+  <section class="tab-panel" id="panel-vidarr" data-tab="vidarr" role="tabpanel" aria-label="Security log">
 {vidarr_html}
   </section>
-  <section class="tab-panel" data-tab="norns" role="tabpanel" aria-label="Plugin lineage">
+  <section class="tab-panel" id="panel-norns" data-tab="norns" role="tabpanel" aria-label="Plugin lineage">
 {norns_html}
   </section>
-  <section class="tab-panel" data-tab="bifrost" role="tabpanel" aria-label="Install a plugin (Bifröst)">
+  <section class="tab-panel" id="panel-bifrost" data-tab="bifrost" role="tabpanel" aria-label="Install a plugin (Bifröst)">
 {bifrost_html}
   </section>
 </main>
