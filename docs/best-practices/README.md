@@ -10,6 +10,7 @@ For the companion log of dated, story-shaped findings (incidents we tried-failed
 
 | Doc | Status | Use when |
 |---|---|---|
+| [`authoring-plugin-slash-commands.md`](./authoring-plugin-slash-commands.md) | Pattern | Writing a `plugins/<plugin>/commands/*.md` slash command — frontmatter, the namespaced `/<plugin>:<command>` invocation, multi-step body shape, and why the dashboard is copy-to-run (not press-to-run) |
 | [`ci-gate-audit.md`](./ci-gate-audit.md) | Absolute rule | Adding or changing any CI step that claims to enforce a property — every gate must fail on a known-bad input AND pass on a known-good input |
 | [`diagrams-in-docs.md`](./diagrams-in-docs.md) | Pattern | Adding any conceptual / flow diagram to a markdown doc — reach for mermaid, not ASCII box-art |
 | [`hook-authoring.md`](./hook-authoring.md) | Pattern | Writing a new PreToolUse / PostToolUse / Stop hook for a plugin |

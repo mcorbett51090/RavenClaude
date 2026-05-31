@@ -8,10 +8,12 @@ containing a colon-space, e.g.
 
     description: Foo — explaining the bar: the baz   # ScannerError
 
-This gate parses the frontmatter of every `plugins/*/skills/*/SKILL.md` and
-`plugins/*/agents/*.md` with `yaml.safe_load` and requires a mapping with a
-non-empty string `description`. It prints each offender and exits non-zero if any
-fail, so a malformed front-matter can never ship again.
+This gate parses the frontmatter of every `plugins/*/skills/*/SKILL.md`,
+`plugins/*/agents/*.md`, and `plugins/*/commands/*.md` with `yaml.safe_load` and
+requires a mapping with a non-empty string `description`. It prints each offender
+and exits non-zero if any fail, so a malformed front-matter can never ship again.
+(Commands were added 2026-05-31 when the marketplace began shipping 5+ per
+plugin — their `description` is what the dashboard's Commands tab surfaces.)
 
 Agents carry an additional contract: the scenario-authoring schema (AGENTS.md
 step 7, docs/best-practices/agent-scenario-authoring.md). Every `agents/*.md`
@@ -71,7 +73,11 @@ def _violations(root: Path) -> list[tuple[str, str]]:
     except ImportError:
         return [("<environment>", "pyyaml not available to validate frontmatter")]
 
-    patterns = ["plugins/*/skills/*/SKILL.md", "plugins/*/agents/*.md"]
+    patterns = [
+        "plugins/*/skills/*/SKILL.md",
+        "plugins/*/agents/*.md",
+        "plugins/*/commands/*.md",
+    ]
     files = sorted({f for p in patterns for f in glob.glob(str(root / p))})
     bad: list[tuple[str, str]] = []
     for f in files:

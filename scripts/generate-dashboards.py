@@ -823,7 +823,12 @@ _RUN_ACTION_LITERAL = {
 
 
 def _render_command_card(cmd: dict) -> str:
-    slash = "/" + cmd["name"]
+    # Plugin commands are invoked NAMESPACED as /<plugin>:<command> — that form is
+    # always correct and can never collide with another plugin's command (verified
+    # against Claude Code's skills/commands docs, 2026-05). The bare /<command>
+    # form is not guaranteed for an installed plugin, so the dashboard shows and
+    # copies the namespaced form.
+    slash = f"/{cmd['owner']}:{cmd['name']}"
     cid = f"cmd-card-{html.escape(cmd['owner'])}-{html.escape(cmd['name'])}"
     desc = cmd["description"] or "No description provided."
     run_action = _CLASS_A_RUN_ACTION.get(cmd["name"])
@@ -836,33 +841,37 @@ def _render_command_card(cmd: dict) -> str:
         runs_literal = _RUN_ACTION_LITERAL.get(run_action, run_action)
         what_runs = (
             '<p class="cmd-what" '
-            f'title="Run here executes the fixed command {html.escape(runs_literal)} (served dashboard only). Pasting {html.escape(slash)} into Claude Code does the same thing inside your session.">'
-            "<span class=\"cmd-what-label\">Run executes:</span> "
+            f'title="The green Run button does one fixed, safe thing right here in the page: it runs {html.escape(runs_literal)}. Or copy the command and paste it into Claude Code to do the same thing in your chat.">'
+            "<span class=\"cmd-what-label\">Run does:</span> "
             f'<code>{html.escape(runs_literal)}</code>'
-            f' &middot; <span class="cmd-what-label">in Claude:</span> <code>{html.escape(slash)}</code></p>'
+            f' &middot; <span class="cmd-what-label">or in Claude:</span> <code>{html.escape(slash)}</code></p>'
         )
         actions = (
             f'<button type="button" class="btn cmd-run" data-run-action="{html.escape(run_action)}" '
-            f'title="Execute {html.escape(runs_literal)} — available only when served by the root dev server" '
+            f'title="Press to run {html.escape(runs_literal)} now. Only works when you opened this page with the dev server; on a plain web page it stays greyed out." '
             "disabled>&#9654; Run</button>"
             f'<code class="cmd-code" id="{cid}">{html.escape(slash)}</code>'
-            f'<button type="button" class="btn secondary cmd-copy" data-copy-for="{cid}">Copy</button>'
+            f'<button type="button" class="btn secondary cmd-copy" data-copy-for="{cid}" '
+            f'title="Copies {html.escape(slash)}. Paste it into Claude Code and press enter to run the whole thing.">Copy</button>'
         )
-        pill = '<span class="cmd-pill" title="Run executes the shell effect when served; the slash command runs in Claude Code">Run here · or in Claude</span>'
+        pill = '<span class="cmd-pill" title="The Run button works here; the slash command works inside Claude Code. Both do the same safe thing.">Run here · or in Claude</span>'
     else:
-        # Class B — a Claude Code slash command. A browser cannot launch it (no IPC);
-        # be honest: show exactly what it is, copy it, and say where it runs.
+        # Class B — a Claude Code slash command. A browser CANNOT launch it (there
+        # is no way for a web page to type into your Claude chat — verified against
+        # Claude Code's docs). So the honest, working UX is: copy it, paste it into
+        # Claude Code, and the command runs the whole multi-step job there.
         what_runs = (
             '<p class="cmd-what" '
-            f'title="This is a Claude Code slash command. Paste {html.escape(slash)} into Claude Code to run it — it runs inside your Claude session, not from this page.">'
-            "<span class=\"cmd-what-label\">Runs in Claude Code:</span> "
-            f'<code>{html.escape(slash)}</code></p>'
+            f'title="This is a Claude Code command. A web page can&#39;t run it for you. Press Copy, then paste {html.escape(slash)} into Claude Code and press enter — Claude does the whole job for you there.">'
+            "<span class=\"cmd-what-label\">How to run it:</span> "
+            f'copy it, then paste into Claude Code &mdash; <code>{html.escape(slash)}</code></p>'
         )
         actions = (
             f'<code class="cmd-code" id="{cid}">{html.escape(slash)}</code>'
-            f'<button type="button" class="btn cmd-copy" data-copy-for="{cid}">Copy</button>'
+            f'<button type="button" class="btn cmd-copy" data-copy-for="{cid}" '
+            f'title="Copies {html.escape(slash)}. Paste it into Claude Code and press enter — that runs the whole command.">Copy</button>'
         )
-        pill = '<span class="cmd-pill" title="Runs inside your Claude Code session, not from the browser">Runs inside Claude Code</span>'
+        pill = '<span class="cmd-pill" title="A web page can&#39;t run this for you. Copy it and paste it into Claude Code, where it runs the whole job.">Copy &rarr; paste into Claude</span>'
 
     return (
         '<article class="cmd-card">'
