@@ -190,6 +190,35 @@ cross_cutting:
         #     self-disable. Scoped to the `key:` write-shape so a plain READ of
         #     the file (grep/cat) is not over-blocked.
         - '(?s)\A(?=.{0,4000}comfort-posture\.yaml)(?=.{0,4000}(command_review|gate_floor)\s*:)'
+  - id: xc.ragnarok-non-user-invocation
+    name: Command would execute a plugin-cache reset (Ragnarök) by shelling its script
+    severity: critical
+    pre_llm_deny: true
+    always_screen: true
+    description: >-
+      The command shells `reset-plugin-cache.py` (or a `ragnarok` script) with
+      `--execute` — the high-blast-radius plugin-cache disaster-recovery flow
+      (atomic file-swap of the installed cache). Ragnarök is **user-only**: the
+      slash command obtains an interactive confirmation a human types, which an
+      agent cannot supply. An agent that bypasses the command by shelling the
+      script directly with `--execute` is exactly the path the user-only gate
+      exists to stop. Evaluated CATEGORY-INDEPENDENTLY (always_screen) so it is
+      caught regardless of which comfort-posture category is toggled. The
+      script's OWN `--confirm` check fails such an invocation closed
+      (RAGNAROK_NOT_USER_INVOKED); this concern is the tribunal-layer
+      belt-and-suspenders that denies the shelled form before it ever runs.
+      A DRY-RUN (`reset-plugin-cache.py <plugin>` with no `--execute`) is read
+      only and NOT matched — agents may surface a dry-run inventory to the user.
+    resolution: >-
+      DENY unilaterally, pre-LLM, no seat convened. A plugin-cache reset is a
+      user-invoked action: the human runs `/reset-plugin-cache` and confirms
+      interactively. An agent never executes it.
+    triggers:
+      # Match an --execute invocation of the reset script (tolerant of flags /
+      # path prefixes between the script name and the flag). A bare dry-run
+      # (no --execute) is deliberately NOT matched.
+      regex:
+        - '(?s)(reset-plugin-cache\.py|\bragnarok\b)\b.{0,200}--execute\b'
   - id: xc.outside-project-tree
     name: Target path resolves outside the project tree
     severity: high

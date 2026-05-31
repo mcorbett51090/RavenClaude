@@ -1,0 +1,8 @@
+{
+  "_comment": "Named error codes emitted by reset-plugin-cache.py (Ragnarök). The script prints `ERROR <CODE>: <message>` and exits non-zero. These are stable identifiers — tests and the slash command reference them by name. See docs/ragnarok-reset-plugin-cache-tee-up.md.",
+  "RAGNAROK_PLUGIN_NOT_INSTALLED": "The named plugin has no cache directory under the resolved cache root — nothing to reset.",
+  "RAGNAROK_NOT_USER_INVOKED": "Execute mode requires interactive user confirmation; it was invoked without the confirmation token (e.g. programmatically by an agent). Refused.",
+  "RAGNAROK_SHA_NOT_FOUND": "The --pin <sha> argument is missing, malformed, or does not resolve in the marketplace — refusing to fetch a fresh tree from a floating ref.",
+  "RAGNAROK_FRESH_TREE_GATES_FAILED": "The freshly-fetched tree failed audit-gates.sh — aborting before touching the live cache; the original cache is untouched.",
+  "RAGNAROK_ATOMIC_SWAP_PARTIAL": "The two-rename atomic swap failed partway (the second rename did not complete). The first rename was rolled back; the original cache is restored. Inspect the snapshot before retrying."
+}
