@@ -7136,7 +7136,7 @@ _JS = r"""
       sagaContent.replaceChildren(
         isStatic
           ? sagaEmptyPanel("Open the dashboard via", "rc dashboard")
-          : sagaEmptyPanel("No reviewed actions yet — the log fills as the Thing judges commands.")
+          : sagaEmptyPanel("No command reviews yet. Turn on command review in Settings, and each command\u2019s verdict (allow / edit / deny) shows up here.")
       );
       if (sagaCount) sagaCount.textContent = "";
       return;
@@ -7327,7 +7327,7 @@ _JS = r"""
       sagaEmptyPanel("Loading review log…")
     );
     try {
-      const res = await fetch("/__saga?limit=200");
+      const res = await fetchT("/__saga?limit=200");
       if (!res.ok) throw new Error("HTTP " + res.status);
       sagaRecords = await res.json();
       renderSagaTable(sagaRecords);
@@ -7372,7 +7372,7 @@ _JS = r"""
       activityContent.replaceChildren(
         isStatic
           ? sagaEmptyPanel("Open the dashboard via", "rc dashboard")
-          : sagaEmptyPanel("No runs recorded yet — this fills as multi-step tasks write artifacts under .ravenclaude/runs/.")
+          : sagaEmptyPanel("No runs yet. When a task fans out to several specialists, they record it here automatically — start a multi-step task and come back to see it.")
       );
       if (activityCount) activityCount.textContent = "";
       return;
@@ -7417,10 +7417,22 @@ _JS = r"""
     body.textContent = n + (n === 1 ? " worktree: " : " worktrees: ") + names;
   }
 
+  /* fetch() has no built-in timeout — a server that accepts the connection but
+   * never sends a body would hang a loader's "Loading…" state forever. Wrap the
+   * read-only data loaders in an AbortController (default 15s) so a hung endpoint
+   * rejects and falls into the loader's existing catch (the honest "could not
+   * reach" / served-only state). Declared as a hoisted function so every loader
+   * above and below can use it. */
+  function fetchT(url, ms) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), ms || 15000);
+    return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(id));
+  }
+
   async function loadSleipnir() {
     const body = document.getElementById("sleipnir-body");
     try {
-      const res = await fetch("/__sleipnir");
+      const res = await fetchT("/__sleipnir");
       if (!res.ok) throw new Error("HTTP " + res.status);
       renderSleipnir(await res.json());
     } catch (e) {
@@ -7434,7 +7446,7 @@ _JS = r"""
     loadSleipnir();
     if (activityContent) activityContent.replaceChildren(sagaEmptyPanel("Loading activity…"));
     try {
-      const res = await fetch("/__runs?limit=200");
+      const res = await fetchT("/__runs?limit=200");
       if (!res.ok) throw new Error("HTTP " + res.status);
       activityRecords = await res.json();
       renderActivity(activityRecords);
@@ -7558,8 +7570,8 @@ _JS = r"""
     if (alarmCard) {
       alarmCard.replaceChildren(
         tier
-          ? hmEmpty((TIER_LABEL[tier] || tier) + "-tier alarm active — see Recent hook denials above.")
-          : hmEmpty("No active alarms. All clear.")
+          ? hmEmpty((TIER_LABEL[tier] || tier) + "-tier alert active — see Recent hook denials above for what was caught and why.")
+          : hmEmpty("All clear — no guardrail has blocked or warned on an action this session.")
       );
     }
     if (!banner) return;
@@ -7665,7 +7677,7 @@ _JS = r"""
     /* Hook events + Gjallarhorn need the served endpoint. */
     const hookHost = document.getElementById("heimdall-hooks");
     try {
-      const res = await fetch("/__heimdall?days=30");
+      const res = await fetchT("/__heimdall?days=30");
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
       renderHookEvents(data);
@@ -7727,7 +7739,7 @@ _JS = r"""
   async function loadNidhoggr() {
     const host = document.getElementById("heimdall-debt");
     try {
-      const res = await fetch("/__nidhoggr");
+      const res = await fetchT("/__nidhoggr");
       if (!res.ok) throw new Error("HTTP " + res.status);
       renderNidhoggr(await res.json());
     } catch (e) {
@@ -7811,7 +7823,7 @@ _JS = r"""
     const days = (rangeSel && rangeSel.value) || "30";
     if (host) host.replaceChildren(hmEmpty("Loading security log…"));
     try {
-      const res = await fetch("/__vidarr?days=" + encodeURIComponent(days));
+      const res = await fetchT("/__vidarr?days=" + encodeURIComponent(days));
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
       vidarrEvents = (data && data.events) || [];
@@ -7948,7 +7960,7 @@ _JS = r"""
   async function loadNorns() {
     nornsLoaded = true;
     try {
-      const res = await fetch("/__norns?plugin=ravenclaude-core");
+      const res = await fetchT("/__norns?plugin=ravenclaude-core");
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
       renderNornsUrdr(data.urdr);
