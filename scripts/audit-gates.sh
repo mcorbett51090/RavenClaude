@@ -2317,6 +2317,31 @@ PY
 gate "ragnarok user-only gate has teeth (defeated --confirm → fixture catches it)" must_fail "$rc"
 
 echo
+echo "── Gate 45: lineup-citation grounding (check-lineup-citations.py) ─────────"
+# Proves the gate that keeps the ai-coding-model-guidance plugin's volatile
+# third-party model numbers honest: an opted-in file with a BARE uncited price
+# row must FAIL; the same row with a date/citation/verify marker must PASS; and a
+# file WITHOUT the opt-in marker must PASS (conservative skip — the gate never
+# false-positives on an unrelated doc). Also asserts the real tree is clean.
+LC="$TMP/lineup-cit"
+mkdir -p "$LC/plugins/x/knowledge"
+# must_fail: opted-in file, bare uncited price row
+printf -- '<!-- lineup-citations: enforce -->\n# bad\n\n| Model | Price |\n|---|---|\n| Grok 9 | $1.25 in / $2.50 out |\n' > "$LC/plugins/x/knowledge/bad.md"
+rc=0; python3 scripts/check-lineup-citations.py --root "$LC" >/dev/null 2>&1 || rc=$?
+gate "lineup-citations (bare uncited price)" must_fail "$rc"
+# must_pass: same row grounded with an ISO date
+printf -- '<!-- lineup-citations: enforce -->\n# good\n\n| Model | Price |\n|---|---|\n| Grok 9 | $1.25 in / $2.50 out (2026-05-31) |\n' > "$LC/plugins/x/knowledge/bad.md"
+rc=0; python3 scripts/check-lineup-citations.py --root "$LC" >/dev/null 2>&1 || rc=$?
+gate "lineup-citations (dated row)" must_pass "$rc"
+# must_pass: NOT opted in — conservative skip even with a bare price
+printf -- '# no marker\n\n| Model | Price |\n|---|---|\n| Grok 9 | $1.25 |\n' > "$LC/plugins/x/knowledge/bad.md"
+rc=0; python3 scripts/check-lineup-citations.py --root "$LC" >/dev/null 2>&1 || rc=$?
+gate "lineup-citations (no opt-in marker → skip)" must_pass "$rc"
+# must_pass: the real tree is clean
+rc=0; python3 scripts/check-lineup-citations.py >/dev/null 2>&1 || rc=$?
+gate "lineup-citations (real tree)" must_pass "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 if [[ "$FAIL" -gt 0 ]]; then
