@@ -141,6 +141,7 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         heimdall_html=_render_heimdall_tab(),
         vidarr_html=_render_vidarr_tab(),
         norns_html=_render_norns_tab(),
+        bifrost_html=_render_bifrost_tab(),
         pipeline_html=_render_pipeline_tab(),
         schema_json=json.dumps(schema, indent=2),
         heimdall_json=json.dumps(
@@ -257,6 +258,20 @@ def _render_norns_tab() -> str:
     logic lives in _JS; this returns a static skeleton the JS hydrates on open.
     """
     return _NORNS_TAB_TEMPLATE
+
+
+def _render_bifrost_tab() -> str:
+    """Render the 'Install a plugin (Bifröst)' tab — a guided 4-step copy-paste
+    wizard for installing a marketplace plugin into a Claude Code project (§3.6).
+
+    Fully client-side and static: the wizard NEVER executes a slash command — the
+    user runs each in their own session and pastes the output back; the JS only
+    parses that output (per-step success/failure regex) to advance the bridge and
+    auto-expand the matching failure-mode accordion. No server endpoint, no fetch.
+    Distinct from the 'Install & Update' tab (which wires RavenClaude into Copilot
+    CLI). The verify/copy/accordion logic lives in _JS.
+    """
+    return _BIFROST_TAB_TEMPLATE
 
 
 def _render_activity_tab() -> str:
@@ -4444,6 +4459,35 @@ footer.page-footer a:hover { text-decoration: underline; }
 .nid-list { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 3px; }
 .nid-list li { font-size: 11.5px; font-family: var(--font-mono); color: var(--text); word-break: break-word; }
 
+/* ── Bifröst tab — install-bridge wizard (§3.6) ── */
+.bifrost-layout { padding: 20px; }
+.bifrost-steps { list-style: none; margin: 0 20px 20px; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.bifrost-step { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+.bifrost-step--ready { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.bifrost-step-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.bifrost-step-title { margin: 0; font-size: 14px; color: var(--text); }
+.bifrost-badge { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+.bifrost-badge--grey  { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
+.bifrost-badge--green { background: #14b8a620; color: var(--accent); border: 1px solid var(--accent); }
+.bifrost-badge--amber { background: #fbbf2420; color: var(--warn);   border: 1px solid var(--warn); }
+.bifrost-badge--red   { background: #ef444420; color: var(--danger); border: 1px solid var(--danger); }
+.bifrost-explain { margin: 8px 0; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+.bifrost-cmd { display: flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; }
+.bifrost-cmd code { flex: 1; font-family: var(--font-mono); font-size: 12px; color: var(--text); word-break: break-all; }
+.bifrost-copy { flex: 0 0 auto; font: inherit; font-size: 11.5px; padding: 3px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
+.bifrost-copy:hover { border-color: var(--accent); }
+.bifrost-paste-label { display: block; margin: 10px 0 2px; font-size: 12px; font-weight: 600; color: var(--text); }
+.bifrost-paste-hint { margin: 0 0 4px; font-size: 11.5px; color: var(--muted); }
+.bifrost-paste { width: 100%; box-sizing: border-box; font-family: var(--font-mono); font-size: 12px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-2); color: var(--text); resize: vertical; }
+.bifrost-verify { margin-top: 8px; font: inherit; font-size: 12px; font-weight: 600; padding: 5px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: #04201c; cursor: pointer; }
+.bifrost-faults { margin: 0 20px 20px; }
+.bifrost-faults > h3 { font-size: 13px; color: var(--text); margin: 0 0 8px; }
+.bifrost-fault { border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; overflow: hidden; }
+.bifrost-fault-toggle { width: 100%; text-align: left; font: inherit; font-size: 12.5px; font-weight: 600; padding: 8px 12px; background: var(--surface-2); color: var(--text); border: 0; cursor: pointer; }
+.bifrost-fault-toggle::before { content: "\\25B8  "; color: var(--muted); }
+.bifrost-fault-toggle[aria-expanded="true"]::before { content: "\\25BE  "; }
+.bifrost-fault-body { padding: 8px 12px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+
 /* ── Víðarr tab — posture/security event log (reuses .saga-hdr/.saga-empty) ── */
 .vidarr-layout { padding: 20px; }
 .vidarr-myth em { color: var(--muted); font-style: italic; }
@@ -4836,6 +4880,111 @@ _NORNS_TAB_TEMPLATE = """
   </div>
 </div>
 """.strip()
+
+# Bifröst — the install-bridge wizard (§3.6). A guided 4-step copy-paste flow for
+# installing a marketplace plugin into a Claude Code project. The wizard NEVER
+# executes a slash command — the user runs each in their own session and pastes
+# the output back; the JS only parses that output to advance the bridge. Distinct
+# from the "Install & Update" tab (which wires RavenClaude into GitHub Copilot CLI).
+_BIFROST_STEPS = [
+    (
+        "1",
+        "Add the marketplace",
+        "Point Claude Code at the RavenClaude marketplace (a URL or a local path to a clone).",
+        "/plugin marketplace add &lt;url-or-path&gt;",
+        "Paste what Claude Code printed (e.g. “marketplace added” or an error).",
+    ),
+    (
+        "2",
+        "Install the plugin",
+        "Install a plugin from the marketplace into your project. The name must match an entry in <code>marketplace.json</code>’s <code>plugins[]</code>.",
+        "/plugin install &lt;plugin-name&gt;@ravenclaude",
+        "Paste the install result.",
+    ),
+    (
+        "3",
+        "Reload plugins",
+        "Make Claude Code pick up the newly-installed plugin.",
+        "/reload-plugins",
+        "Confirm you can see the plugin in your <code>/plugin</code> menu, then paste anything it printed (or type “I see it”).",
+    ),
+    (
+        "4",
+        "Verify the bridge",
+        "Confirm the project is agent-ready with the plugin wired in.",
+        "/init-agent-ready --check",
+        "Paste the check output — green means the bridge holds.",
+    ),
+]
+
+_BIFROST_FAILURES = [
+    (
+        "Marketplace add failed",
+        "Check the URL or path. Common causes: a typo, a missing <code>.claude-plugin/marketplace.json</code> at that location, or no read permission. For a local clone, pass the absolute path to the repo root.",
+    ),
+    (
+        "Plugin install failed",
+        "Check that the plugin name exactly matches an entry in the marketplace’s <code>marketplace.json</code> <code>plugins[]</code> array, and that you added the marketplace in step 1 (the <code>@ravenclaude</code> suffix is the marketplace name).",
+    ),
+    (
+        "Reload failed",
+        "Try fully restarting Claude Code — the plugin cache can be stale. If it still doesn’t appear, re-run step 2; a partial install won’t show in the <code>/plugin</code> menu.",
+    ),
+    (
+        "Verify failed",
+        "Open <code>plugins/&lt;plugin&gt;/CLAUDE.md</code> for the plugin’s required environment (env vars, CLIs, MCP servers). A red check usually means a missing prerequisite, not a broken install.",
+    ),
+]
+
+
+def _bifrost_step_html(num, title, explain, command, paste_hint):
+    return f"""    <li class="bifrost-step" id="bifrost-step-{num}" data-step="{num}">
+      <div class="bifrost-step-head">
+        <span class="bifrost-badge bifrost-badge--grey" id="bifrost-badge-{num}" role="status">Not started</span>
+        <h3 class="bifrost-step-title">Step {num}. {title}</h3>
+      </div>
+      <p class="bifrost-explain">{explain}</p>
+      <div class="bifrost-cmd">
+        <code id="bifrost-cmd-{num}">{command}</code>
+        <button type="button" class="bifrost-copy" data-copy-target="bifrost-cmd-{num}" aria-label="Copy the step {num} command to the clipboard">Copy</button>
+      </div>
+      <label class="bifrost-paste-label" for="bifrost-paste-{num}">What I see now</label>
+      <p class="bifrost-paste-hint">{paste_hint}</p>
+      <textarea class="bifrost-paste" id="bifrost-paste-{num}" rows="2" aria-label="Paste the step {num} output here"></textarea>
+      <button type="button" class="bifrost-verify" data-verify-step="{num}">Verify step {num}</button>
+    </li>"""
+
+
+def _bifrost_failure_html(idx, title, body):
+    return f"""      <div class="bifrost-fault" id="bifrost-fault-{idx}">
+        <button type="button" class="bifrost-fault-toggle" aria-expanded="false" aria-controls="bifrost-fault-body-{idx}">{title}</button>
+        <div class="bifrost-fault-body" id="bifrost-fault-body-{idx}" hidden>
+          <p>{body}</p>
+        </div>
+      </div>"""
+
+
+_BIFROST_TAB_TEMPLATE = (
+    """
+<div class="bifrost-layout">
+  <div class="saga-hdr">
+    <h2><span aria-hidden="true">&#127752;</span> Install a plugin (Bifröst)</h2>
+  </div>
+  <p class="activity-intro">Bifröst is the rainbow bridge between the marketplace and your project. Follow these four steps to install a plugin. Each step is <strong>copy-paste only</strong> &mdash; Bifröst guides you, but you cross the bridge yourself. Nothing here runs a command for you; you run each in your Claude Code session and paste the result back so Bifröst can light the next step.</p>
+  <ol class="bifrost-steps">
+"""
+    + "\n".join(_bifrost_step_html(*s) for s in _BIFROST_STEPS)
+    + """
+  </ol>
+  <section class="bifrost-faults" aria-label="If the bridge is down">
+    <h3>If the bridge is down&hellip;</h3>
+"""
+    + "\n".join(_bifrost_failure_html(i + 1, t, b) for i, (t, b) in enumerate(_BIFROST_FAILURES))
+    + """
+  </section>
+</div>
+""".rstrip()
+).strip()
 
 _SIMULATOR_TAB_TEMPLATE = """
 <div class="sim-layout">
@@ -6556,7 +6705,7 @@ _JS = r"""
   });
 
   /* ── Tab routing ─────────────────────────────────────────────────── */
-  const validTabs = ["overview", "settings", "pipeline", "install", "simulator", "learn", "saga", "commands", "trees", "activity", "heimdall", "vidarr", "norns"];
+  const validTabs = ["overview", "settings", "pipeline", "install", "simulator", "learn", "saga", "commands", "trees", "activity", "heimdall", "vidarr", "norns", "bifrost"];
   function openConcept(id) {
     const card = document.getElementById("learn-" + id);
     if (!card) return;
@@ -7691,6 +7840,93 @@ _JS = r"""
   const nornsRefBtn = document.getElementById("norns-refresh-btn");
   if (nornsRefBtn) nornsRefBtn.addEventListener("click", () => { nornsLoaded = false; loadNorns(); });
 
+  /* ── Bifröst — install-bridge wizard (§3.6) ─────────────────────────────
+   * Pure client-side copy-paste flow. The wizard NEVER runs a slash command —
+   * the user runs each in their session and pastes the output; we parse it with
+   * a per-step success/failure regex to advance the bridge (light the next
+   * step's badge) or auto-expand the matching failure-mode accordion row. No
+   * fetch, no /__ endpoint, no programmatic command invocation. */
+  const BIFROST_RULES = {
+    "1": { ok: /marketplace\s+added|added\s+marketplace|successfully\s+added/i, bad: /failed|error|not\s+found|could\s+not/i },
+    "2": { ok: /installed|install\s+complete|successfully\s+installed/i, bad: /failed|error|no\s+such\s+plugin|not\s+found/i },
+    "3": { ok: /reloaded|reload\s+complete|i\s+see\s+it|plugins?\s+reloaded/i, bad: /failed|error|stale/i },
+    "4": { ok: /\bgreen\b|pass(ed)?|agent[- ]ready|all\s+checks?\s+pass/i, bad: /\bred\b|fail(ed)?|missing|error/i },
+  };
+
+  function bifrostSetBadge(step, state) {
+    const badge = document.getElementById("bifrost-badge-" + step);
+    if (!badge) return;
+    badge.className = "bifrost-badge bifrost-badge--" + state;
+    badge.textContent =
+      state === "green" ? "Done"
+      : state === "red" ? "Needs attention"
+      : state === "amber" ? "Unclear — re-check"
+      : "Not started";
+  }
+
+  function bifrostExpandFault(idx) {
+    const toggle = document.querySelector('#bifrost-fault-' + idx + ' .bifrost-fault-toggle');
+    const body = document.getElementById("bifrost-fault-body-" + idx);
+    if (toggle && body) {
+      toggle.setAttribute("aria-expanded", "true");
+      body.hidden = false;
+    }
+  }
+
+  function bifrostVerify(step) {
+    const ta = document.getElementById("bifrost-paste-" + step);
+    const out = ta ? (ta.value || "") : "";
+    const rules = BIFROST_RULES[step];
+    if (!out.trim()) { bifrostSetBadge(step, "amber"); return; }
+    if (rules && rules.bad.test(out)) {
+      bifrostSetBadge(step, "red");
+      bifrostExpandFault(step); /* fault rows are 1:1 with steps */
+      return;
+    }
+    if (rules && rules.ok.test(out)) {
+      bifrostSetBadge(step, "green");
+      /* Light the next step's badge from grey → "ready" cue via amber-less hint:
+       * we leave it "Not started" but scroll it into view for linear flow. */
+      const next = document.getElementById("bifrost-step-" + (parseInt(step, 10) + 1));
+      if (next) next.classList.add("bifrost-step--ready");
+      return;
+    }
+    /* Output present but matched neither pattern → unclear. */
+    bifrostSetBadge(step, "amber");
+  }
+
+  function bifrostCopy(targetId, btn) {
+    const el = document.getElementById(targetId);
+    if (!el) return;
+    const text = el.textContent || "";
+    const done = () => { if (btn) { const o = btn.textContent; btn.textContent = "Copied!"; setTimeout(() => { btn.textContent = o; }, 1200); } };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, () => {});
+    } else {
+      const r = document.createRange(); r.selectNodeContents(el);
+      const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      try { document.execCommand("copy"); done(); } catch (e) {}
+      sel.removeAllRanges();
+    }
+  }
+
+  const bifrostPanel = document.querySelector('.tab-panel[data-tab="bifrost"]');
+  if (bifrostPanel) {
+    bifrostPanel.addEventListener("click", (ev) => {
+      const copyBtn = ev.target.closest(".bifrost-copy");
+      if (copyBtn) { bifrostCopy(copyBtn.dataset.copyTarget, copyBtn); return; }
+      const verifyBtn = ev.target.closest(".bifrost-verify");
+      if (verifyBtn) { bifrostVerify(verifyBtn.dataset.verifyStep); return; }
+      const faultToggle = ev.target.closest(".bifrost-fault-toggle");
+      if (faultToggle) {
+        const expanded = faultToggle.getAttribute("aria-expanded") === "true";
+        faultToggle.setAttribute("aria-expanded", expanded ? "false" : "true");
+        const body = faultToggle.parentElement.querySelector(".bifrost-fault-body");
+        if (body) body.hidden = expanded;
+      }
+    });
+  }
+
   /* ── Hydrate command-review config from the committed YAML ──────────── */
   /* When the page is served by scripts/serve-dashboards.py, the committed
    * .ravenclaude/comfort-posture.yaml is the source of truth — it OVERRIDES
@@ -8040,6 +8276,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <button class="tab-btn" data-tab="heimdall" role="tab" aria-selected="false">Heimdall</button>
     <button class="tab-btn" data-tab="vidarr" role="tab" aria-selected="false">Security log</button>
     <button class="tab-btn" data-tab="norns" role="tab" aria-selected="false">Lineage</button>
+    <button class="tab-btn" data-tab="bifrost" role="tab" aria-selected="false">Install a plugin</button>
   </nav>
 </header>
 
@@ -8082,6 +8319,9 @@ _PAGE_TEMPLATE = """<!doctype html>
   </section>
   <section class="tab-panel" data-tab="norns" role="tabpanel" aria-label="Plugin lineage">
 {norns_html}
+  </section>
+  <section class="tab-panel" data-tab="bifrost" role="tabpanel" aria-label="Install a plugin (Bifröst)">
+{bifrost_html}
   </section>
 </main>
 
