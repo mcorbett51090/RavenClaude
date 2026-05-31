@@ -142,6 +142,7 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         vidarr_html=_render_vidarr_tab(),
         norns_html=_render_norns_tab(),
         bifrost_html=_render_bifrost_tab(),
+        about_html=_render_about_tab(description, plugin_name),
         pipeline_html=_render_pipeline_tab(),
         schema_json=json.dumps(schema, indent=2),
         heimdall_json=json.dumps(
@@ -176,6 +177,29 @@ def _render_stub_tab(name: str, when: str) -> str:
         f'See <code>docs/proposals/2026-05-22-003-per-plugin-dashboard.md</code> for the design.</p>'
         f"</div>"
     )
+
+
+def _render_about_tab(description: str, plugin_name: str) -> str:
+    """About & help page. Holds the full explainer that used to sit in the global
+    page header (relocated so it stops crowding the top of every tab) plus a guide
+    to how the pages are grouped into categories."""
+    desc = html.escape(description)
+    name = html.escape(plugin_name)
+    return f"""
+    <div class="about-wrap">
+      <h2>About this dashboard</h2>
+      <p class="about-lead">{desc}</p>
+      <p class="about-note"><span class="plugin-name">{name}</span> &middot; static dashboard, no backend. Your edits stay in your browser until you click <strong>Download</strong>.</p>
+      <h3>How the pages are organized</h3>
+      <p class="about-note">Pick a category in the top bar, then a page within it.</p>
+      <ul class="about-cats">
+        <li><strong>Set&nbsp;up</strong> — Overview, Settings (what Claude may do), Pipeline (the safety checks every command passes through), and Preview&nbsp;a&nbsp;review.</li>
+        <li><strong>Look&nbsp;back</strong> — Review&nbsp;log, Run&nbsp;feed, Perimeter&nbsp;alerts, Security&nbsp;log, and Lineage.</li>
+        <li><strong>Learn</strong> — plain-English explainers, ready-to-run command playbooks, and decision-tree guidance.</li>
+        <li><strong>Install&nbsp;&amp;&nbsp;help</strong> — add a plugin (Bifröst), wire RavenClaude into Copilot, and this page.</li>
+      </ul>
+    </div>
+    """
 
 
 def _render_saga_tab() -> str:
@@ -2289,6 +2313,43 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   margin: 6px 2px;
   background: var(--border);
 }
+/* ── Two-tier nav: top-level CATEGORIES reveal their pages (website-style) ── */
+.cat-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 4px 0 2px;
+}
+.cat-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font: inherit;
+  font-family: var(--font-display, inherit);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  padding: 7px 15px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cat-btn:hover { color: var(--text); border-color: var(--accent-2, var(--accent)); }
+.cat-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cat-btn[aria-pressed="true"] {
+  color: #000;
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 16px var(--accent-glow, transparent);
+}
+/* Only the active category's page tabs are shown in the tablist. */
+.tab-bar .tab-btn:not(.in-cat) { display: none; }
+.header-about-link { white-space: nowrap; }
+.about-wrap { max-width: 760px; }
+.about-lead { font-size: 15px; color: var(--text); line-height: 1.6; }
+.about-note { color: var(--muted); font-size: 13px; }
+.about-cats { line-height: 1.7; padding-left: 20px; margin: 8px 0 0; }
+.about-cats li { margin: 4px 0; }
 .category-intro {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -6814,7 +6875,7 @@ _JS = r"""
   });
 
   /* ── Tab routing ─────────────────────────────────────────────────── */
-  const validTabs = ["overview", "settings", "pipeline", "install", "simulator", "learn", "saga", "commands", "trees", "activity", "heimdall", "vidarr", "norns", "bifrost"];
+  const validTabs = ["overview", "settings", "pipeline", "install", "simulator", "learn", "saga", "commands", "trees", "activity", "heimdall", "vidarr", "norns", "bifrost", "about"];
   function openConcept(id) {
     const card = document.getElementById("learn-" + id);
     if (!card) return;
@@ -6862,14 +6923,33 @@ _JS = r"""
   const REPO_OWNER = "mcorbett51090";
   const REPO_NAME  = "RavenClaude";
 
+  // Two-tier nav: derive each page's category from the DOM (data-cat on the tab
+  // buttons) and remember the first page of each category (for category clicks).
+  const pageCat = {};
+  const catFirst = {};
+  document.querySelectorAll('.tab-bar .tab-btn[data-cat]').forEach(b => {
+    pageCat[b.dataset.tab] = b.dataset.cat;
+    if (!(b.dataset.cat in catFirst)) catFirst[b.dataset.cat] = b.dataset.tab;
+  });
+  function setCategory(cat) {
+    document.querySelectorAll('.cat-btn').forEach(c => {
+      c.setAttribute('aria-pressed', c.dataset.cat === cat ? 'true' : 'false');
+    });
+    // Only the active category's page tabs are shown (CSS hides :not(.in-cat)).
+    document.querySelectorAll('.tab-bar .tab-btn').forEach(b => {
+      b.classList.toggle('in-cat', b.dataset.cat === cat);
+    });
+  }
+
   function applyHash() {
     const seg = (location.hash || "#/overview").replace(/^#\//, "").split("/");
     const tab = validTabs.includes(seg[0]) ? seg[0] : "overview";
+    setCategory(pageCat[tab] || "setup");
     document.querySelectorAll(".tab-btn").forEach(b => {
       const sel = b.dataset.tab === tab;
       b.setAttribute("aria-selected", sel ? "true" : "false");
       // Roving tabindex (WAI-ARIA tabs pattern): only the selected tab is in the
-      // Tab order; arrow keys move between the rest. Keeps Tab from cycling all 14.
+      // Tab order; arrow keys move between the rest within the active category.
       b.setAttribute("tabindex", sel ? "0" : "-1");
     });
     document.querySelectorAll(".tab-panel").forEach(p => {
@@ -6888,15 +6968,24 @@ _JS = r"""
       location.hash = "/" + b.dataset.tab;
     });
   });
+  // Clicking a category reveals its pages and jumps to the first page in it.
+  document.querySelectorAll(".cat-btn").forEach(c => {
+    c.addEventListener("click", () => {
+      const cat = c.dataset.cat;
+      setCategory(cat);
+      const first = catFirst[cat];
+      if (first) location.hash = "/" + first;
+    });
+  });
   // Keyboard navigation for the tablist (WAI-ARIA Authoring Practices "Tabs"):
-  // Left/Right move between tabs, Home/End jump to first/last. Automatic
-  // activation — moving focus also selects the tab (via the hash) and focuses it.
+  // Left/Right/Home/End move between the VISIBLE (active-category) tabs only.
   const tablist = document.querySelector('.tab-bar[role="tablist"]');
   if (tablist) {
     tablist.addEventListener("keydown", e => {
       const keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
       if (!keys.includes(e.key)) return;
-      const tabs = Array.from(tablist.querySelectorAll('.tab-btn[role="tab"]'));
+      const tabs = Array.from(tablist.querySelectorAll('.tab-btn[role="tab"]'))
+        .filter(t => t.classList.contains("in-cat"));
       if (!tabs.length) return;
       const cur = tabs.findIndex(t => t.getAttribute("aria-selected") === "true");
       let next = cur < 0 ? 0 : cur;
@@ -8440,30 +8529,29 @@ _PAGE_TEMPLATE = """<!doctype html>
 
 <header class="page-header">
   <h1>{title}</h1>
-  <p class="page-desc">{description}</p>
-  <p class="page-desc"><span class="plugin-name">{plugin_name}</span> &middot; static dashboard, no backend. Edits stay in your browser until you click Download.</p>
-  <nav class="tab-bar" role="tablist" aria-label="Dashboard tabs">
-    <span class="tab-section-label" role="presentation" aria-hidden="true">Set up</span>
-    <button class="tab-btn" id="tab-overview" data-tab="overview" role="tab" aria-selected="true" aria-controls="panel-overview" title="Overview — start here: what this dashboard is for">Overview</button>
-    <button class="tab-btn" id="tab-settings" data-tab="settings" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-settings" title="Settings — choose what Claude can do on its own (deny / ask / allow)">Settings</button>
-    <button class="tab-btn" id="tab-pipeline" data-tab="pipeline" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-pipeline" title="Pipeline — the safety checks every command passes through">Pipeline</button>
-    <button class="tab-btn" id="tab-simulator" data-tab="simulator" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-simulator" title="Preview a review — see how a command would be judged before you run it">Preview a review</button>
-    <span class="tab-divider" role="presentation" aria-hidden="true"></span>
-    <span class="tab-section-label" role="presentation" aria-hidden="true">Look back</span>
-    <button class="tab-btn" id="tab-saga" data-tab="saga" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-saga" title="Review log — past decisions the reviewer panel made (Sága)">&#9878; Review log</button>
-    <button class="tab-btn" id="tab-activity" data-tab="activity" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-activity" title="Run feed — what Claude is doing right now: runs &amp; worktrees (Sleipnir)">Run feed</button>
-    <button class="tab-btn" id="tab-heimdall" data-tab="heimdall" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-heimdall" title="Perimeter alerts — what your guardrails caught at the edge (Heimdall)">Perimeter alerts</button>
-    <button class="tab-btn" id="tab-vidarr" data-tab="vidarr" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-vidarr" title="Security log — a record of your permission changes (Víðarr)">Security log</button>
-    <button class="tab-btn" id="tab-norns" data-tab="norns" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-norns" title="Lineage — how your plugins connect and depend on each other (Norns)">Lineage</button>
-    <span class="tab-divider" role="presentation" aria-hidden="true"></span>
-    <span class="tab-section-label" role="presentation" aria-hidden="true">Learn</span>
-    <button class="tab-btn" id="tab-learn" data-tab="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-learn" title="Learn — plain-English explainers for each concept">Learn</button>
-    <button class="tab-btn" id="tab-commands" data-tab="commands" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-commands" title="Commands — ready-to-run slash-command playbooks">Commands</button>
-    <button class="tab-btn" id="tab-trees" data-tab="trees" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-trees" title="Guidance — decision trees and best practices">Guidance</button>
-    <span class="tab-divider" role="presentation" aria-hidden="true"></span>
-    <span class="tab-section-label" role="presentation" aria-hidden="true">Add to your repo</span>
-    <button class="tab-btn" id="tab-install" data-tab="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-install" title="Install &amp; Update — wire RavenClaude into GitHub Copilot CLI">Install &amp; Update</button>
-    <button class="tab-btn" id="tab-bifrost" data-tab="bifrost" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-bifrost" title="Add plugin — guided steps to install a plugin into Claude Code (Bifröst bridge)">Add plugin</button>
+  <p class="page-desc">Your control panel for Claude&nbsp;Code guardrails — set what Claude may do, watch what it's doing, and add plugins. <a href="#/about" class="header-about-link">What is this?</a></p>
+  <nav class="cat-bar" aria-label="Dashboard categories">
+    <button class="cat-btn" type="button" data-cat="setup" aria-pressed="true" title="Set up — Overview, permissions, the safety pipeline, and a review preview">Set up</button>
+    <button class="cat-btn" type="button" data-cat="lookback" aria-pressed="false" title="Look back — review log, run feed, perimeter alerts, security log, lineage">Look back</button>
+    <button class="cat-btn" type="button" data-cat="learn" aria-pressed="false" title="Learn — explainers, command playbooks, decision-tree guidance">Learn</button>
+    <button class="cat-btn" type="button" data-cat="install" aria-pressed="false" title="Install &amp; help — add plugins and learn what this dashboard is">Install &amp; help</button>
+  </nav>
+  <nav class="tab-bar" role="tablist" aria-label="Pages in the selected category">
+    <button class="tab-btn in-cat" id="tab-overview" data-tab="overview" data-cat="setup" role="tab" aria-selected="true" aria-controls="panel-overview" title="Overview — start here: what this dashboard is for">Overview</button>
+    <button class="tab-btn in-cat" id="tab-settings" data-tab="settings" data-cat="setup" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-settings" title="Settings — choose what Claude can do on its own (deny / ask / allow)">Settings</button>
+    <button class="tab-btn in-cat" id="tab-pipeline" data-tab="pipeline" data-cat="setup" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-pipeline" title="Pipeline — the safety checks every command passes through">Pipeline</button>
+    <button class="tab-btn in-cat" id="tab-simulator" data-tab="simulator" data-cat="setup" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-simulator" title="Preview a review — see how a command would be judged before you run it">Preview a review</button>
+    <button class="tab-btn" id="tab-saga" data-tab="saga" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-saga" title="Review log — past decisions the reviewer panel made (Sága)">&#9878; Review log</button>
+    <button class="tab-btn" id="tab-activity" data-tab="activity" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-activity" title="Run feed — what Claude is doing right now: runs &amp; worktrees (Sleipnir)">Run feed</button>
+    <button class="tab-btn" id="tab-heimdall" data-tab="heimdall" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-heimdall" title="Perimeter alerts — what your guardrails caught at the edge (Heimdall)">Perimeter alerts</button>
+    <button class="tab-btn" id="tab-vidarr" data-tab="vidarr" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-vidarr" title="Security log — a record of your permission changes (Víðarr)">Security log</button>
+    <button class="tab-btn" id="tab-norns" data-tab="norns" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-norns" title="Lineage — how your plugins connect and depend on each other (Norns)">Lineage</button>
+    <button class="tab-btn" id="tab-learn" data-tab="learn" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-learn" title="Learn — plain-English explainers for each concept">Learn</button>
+    <button class="tab-btn" id="tab-commands" data-tab="commands" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-commands" title="Commands — ready-to-run slash-command playbooks">Commands</button>
+    <button class="tab-btn" id="tab-trees" data-tab="trees" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-trees" title="Guidance — decision trees and best practices">Guidance</button>
+    <button class="tab-btn" id="tab-install" data-tab="install" data-cat="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-install" title="Install &amp; Update — wire RavenClaude into GitHub Copilot CLI">Install &amp; Update</button>
+    <button class="tab-btn" id="tab-bifrost" data-tab="bifrost" data-cat="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-bifrost" title="Add plugin — guided steps to install a plugin into Claude Code (Bifröst bridge)">Add plugin</button>
+    <button class="tab-btn" id="tab-about" data-tab="about" data-cat="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-about" title="About &amp; help — what this dashboard is and how it's organized">About &amp; help</button>
   </nav>
 </header>
 
@@ -8509,6 +8597,9 @@ _PAGE_TEMPLATE = """<!doctype html>
   </section>
   <section class="tab-panel" id="panel-bifrost" data-tab="bifrost" role="tabpanel" aria-label="Add plugin">
 {bifrost_html}
+  </section>
+  <section class="tab-panel" id="panel-about" data-tab="about" role="tabpanel" aria-label="About and help">
+{about_html}
   </section>
 </main>
 
