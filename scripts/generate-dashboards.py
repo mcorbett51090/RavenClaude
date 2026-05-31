@@ -934,8 +934,8 @@ def _render_overview_tab() -> str:
              "and the security floor that never relaxes.",
              "settings", "Open Settings"),
         card("Guardrail pipeline",
-             "See every guard an action passes through, SessionStart → PreToolUse "
-             "→ PostToolUse → Stop, with live on/off badges.",
+             "See every guard an action passes through — from session start, through "
+             "command review, to completion — with live on/off badges.",
              "pipeline", "Open Pipeline"),
         card("Command-review tribunal",
              "The Thing — RavenClaude's command-review engine — checks risky "
@@ -1003,9 +1003,8 @@ def _render_commands_tab() -> str:
         f" {n_run} can run from here when the dashboard is served; the rest are "
         "Claude Code slash commands."
         if n_run else
-        " Each card shows exactly what it runs. These are Claude Code slash "
-        "commands — they run inside your Claude session, so copy one and paste it "
-        "into Claude Code (a browser can't launch a slash command)."
+        " Each card shows exactly what it runs. Copy a command and paste it into your "
+        "Claude Code session to run it — a browser can't launch a slash command."
     )
     intro = (
         '<div class="cmd-intro">'
@@ -1173,8 +1172,8 @@ def _render_trees_tab() -> str:
         f"<p>{len(trees)} decision tree{'s' if len(trees) != 1 else ''} and "
         f"{len(practices)} best-practice doc{'s' if len(practices) != 1 else ''} "
         f"across {len(owners)} marketplace plugin{'s' if len(owners) != 1 else ''}. "
-        "These are the priors (when-this-applies decision trees) and named rules "
-        "each installed plugin gives your agents in a consumer repo. Click a best-practice "
+        "These are the decision trees (when-this-applies guidance) and named best-practice "
+        "rules each installed plugin gives your agents. Click a best-practice "
         "<strong>preview</strong> to read its rationale inline, or the title to open its source file.</p>"
         "</div>"
     )
@@ -4860,7 +4859,7 @@ _SAGA_TAB_TEMPLATE = """
 _ACTIVITY_TAB_TEMPLATE = """
 <div class="saga-layout">
   <div class="saga-hdr">
-    <h2>&#128220; Activity</h2>
+    <h2>&#128220; Run feed</h2>
     <button type="button" class="saga-refresh" id="activity-refresh-btn">Refresh</button>
     <span class="saga-count" id="activity-count"></span>
   </div>
@@ -4884,7 +4883,7 @@ _HEIMDALL_TAB_TEMPLATE = """
 </div>
 <div class="heimdall-layout">
   <div class="saga-hdr">
-    <h2><span aria-hidden="true">&#128737;</span> Heimdall</h2>
+    <h2><span aria-hidden="true">&#128737;</span> Perimeter alerts</h2>
     <button type="button" class="saga-refresh" id="heimdall-refresh-btn">Refresh</button>
   </div>
   <p class="activity-intro">Perimeter alerts &mdash; a <strong>read-only mirror</strong> of what your guardrails already flagged. Heimdall never blocks anything itself; it shows the most recent hook denials, CI runs, and version drift so you can answer &ldquo;what tripped, when, and why?&rdquo; in one glance.</p>
@@ -5064,7 +5063,7 @@ _BIFROST_TAB_TEMPLATE = (
     """
 <div class="bifrost-layout">
   <div class="saga-hdr">
-    <h2><span aria-hidden="true">&#127752;</span> Install a plugin (Bifröst)</h2>
+    <h2><span aria-hidden="true">&#127752;</span> Add plugin</h2>
   </div>
   <p class="activity-intro">Bifröst is the rainbow bridge between the marketplace and your project. Follow these four steps to install a plugin. Each step is <strong>copy-paste only</strong> &mdash; Bifröst guides you, but you cross the bridge yourself. Nothing here runs a command for you; you run each in your Claude Code session and paste the result back so Bifröst can light the next step.</p>
   <ol class="bifrost-steps">
@@ -5087,11 +5086,11 @@ _SIMULATOR_TAB_TEMPLATE = """
   <section class="sim-intro">
     <h2>Preview a command's review</h2>
     <p>
-      Type any shell command and see <strong>what the Thing would do with it</strong> &mdash;
-      which category it lands in, the risk tier, which reviewer seats convene, the concerns
-      it cites, and whether it would be surfaced to you, auto-decided, or denied outright.
-      This runs the <strong>real command-review engine</strong> (no execution, no model calls
-      &mdash; just the deterministic screen + routing), so it matches what the hook does.
+      Type any shell command to see how command review (the Thing) would handle it &mdash;
+      which category it lands in, its risk tier, which reviewers weigh in, and whether it
+      would be allowed, auto-fixed, surfaced to you, or denied. It runs the
+      <strong>real review engine</strong> &mdash; no command is run and no AI is called &mdash;
+      so it matches what happens for real.
     </p>
     <div class="sim-input-row">
       <input type="text" id="sim-command" class="sim-input"
@@ -8484,10 +8483,10 @@ _PAGE_TEMPLATE = """<!doctype html>
   <section class="tab-panel" id="panel-trees" data-tab="trees" role="tabpanel" aria-label="Decision trees and best practices">
 {trees_html}
   </section>
-  <section class="tab-panel" id="panel-activity" data-tab="activity" role="tabpanel" aria-label="Activity">
+  <section class="tab-panel" id="panel-activity" data-tab="activity" role="tabpanel" aria-label="Run feed">
 {activity_html}
   </section>
-  <section class="tab-panel" id="panel-heimdall" data-tab="heimdall" role="tabpanel" aria-label="Heimdall perimeter alerts">
+  <section class="tab-panel" id="panel-heimdall" data-tab="heimdall" role="tabpanel" aria-label="Perimeter alerts">
 {heimdall_html}
   </section>
   <section class="tab-panel" id="panel-vidarr" data-tab="vidarr" role="tabpanel" aria-label="Security log">
@@ -8496,7 +8495,7 @@ _PAGE_TEMPLATE = """<!doctype html>
   <section class="tab-panel" id="panel-norns" data-tab="norns" role="tabpanel" aria-label="Plugin lineage">
 {norns_html}
   </section>
-  <section class="tab-panel" id="panel-bifrost" data-tab="bifrost" role="tabpanel" aria-label="Install a plugin (Bifröst)">
+  <section class="tab-panel" id="panel-bifrost" data-tab="bifrost" role="tabpanel" aria-label="Add plugin">
 {bifrost_html}
   </section>
 </main>
