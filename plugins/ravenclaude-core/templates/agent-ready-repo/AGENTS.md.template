@@ -24,6 +24,13 @@ This is the canonical agent-instruction file for this repo. `CLAUDE.md` imports 
 
 {{STYLE_BULLETS}}
 
+## Accuracy & capability discipline
+
+Two reasoning errors waste the most time and tokens; both are out of bounds here. They apply to every agentic tool reading this file (Claude Code, GitHub Copilot, Cursor, Codex, Aider).
+
+- **Don't assert an unverified fact as certain.** For any claim that gates an irreversible action or goes into a durable doc, cite the this-session check that backs it (a command + its output, or `file:line`), or mark it `[unverified]` and verify before acting. Never falsely concede — or dig in — when corrected; verify first.
+- **Don't falsely claim you _can't_ do something.** A `command not found`, an HTTP 401/403, or a tool/API that merely *looks* unavailable (including an agent tool whose schema isn't loaded yet) is evidence about **one route** — never proof the capability is absent. Before reporting blocked: find the sanctioned route on this host, try ≥2 alternatives, and say what you tried. A wrong path is not a missing capability.
+
 ## Testing instructions
 
 ```shell
