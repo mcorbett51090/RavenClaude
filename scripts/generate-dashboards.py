@@ -938,8 +938,8 @@ def _render_overview_tab() -> str:
              "→ PostToolUse → Stop, with live on/off badges.",
              "pipeline", "Open Pipeline"),
         card("Command-review tribunal",
-             "The Thing reviews risky commands and logs an auditable verdict. "
-             "Browse the verdict history.",
+             "The Thing — RavenClaude's command-review engine — checks risky "
+             "commands and logs an allow / edit / deny verdict you can browse.",
              "saga", "Open Review log"),
         card("Install & update bridge",
              "Wire the plugin into Claude Code or GitHub Copilot CLI, and update with a "
@@ -947,10 +947,12 @@ def _render_overview_tab() -> str:
              "install", "Open Install"),
     ])
 
-    steps = "".join([
+    steps_required = "".join([
         '<li><a href="#/settings">Pick a posture preset</a> — set how much your agents do without asking.</li>',
-        '<li><a href="#/pipeline">See what the guardrails do</a> — the map of every check, in plain language.</li>',
         '<li><a href="#/install">Wire it into your tool</a> — one-time setup, then updates are a git pull.</li>',
+    ])
+    steps_optional = "".join([
+        '<li><a href="#/pipeline">See what the guardrails do</a> — the map of every check, in plain language.</li>',
         '<li><a href="#/trees">Browse the guidance</a> — the decision trees + best practices each plugin gives your agents.</li>',
     ])
 
@@ -968,11 +970,19 @@ def _render_overview_tab() -> str:
         "(<code>rc dashboard</code> or <code>python3 scripts/serve-dashboards.py</code>) to save changes to your repo."
         "</div>"
         "</div>"
+        f'<p class="ov-stats-lead">You have <strong>{n_plugins}</strong> plugins installed &mdash; '
+        f"<strong>{n_agents}</strong> specialist agents and <strong>{n_trees}</strong> decision trees "
+        "ready to help your agents stay in bounds.</p>"
         f'<div class="ov-stats">{stats}</div>'
         '<h3 class="ov-h3">The big systems</h3>'
         f'<div class="ov-cards">{systems}</div>'
         '<h3 class="ov-h3">Start here</h3>'
-        f'<ol class="ov-steps">{steps}</ol>'
+        '<p class="ov-steps-lead">New here? The two <strong>required</strong> steps take about five minutes. '
+        "The rest you can explore whenever.</p>"
+        '<p class="ov-steps-cap">Required</p>'
+        f'<ol class="ov-steps">{steps_required}</ol>'
+        '<p class="ov-steps-cap ov-steps-cap-optional">Optional &mdash; when you want to go deeper</p>'
+        f'<ol class="ov-steps ov-steps-optional" start="3">{steps_optional}</ol>'
         "</div>"
     )
 
@@ -2254,12 +2264,15 @@ body {
   align-self: center;
   flex-shrink: 0;
   white-space: nowrap;
+  /* No opacity: --muted alone is 7.34:1 (dark) / 7.24:1 (light) on --bg, which
+     passes WCAG AA for this 11px non-large text; an earlier opacity:0.7 blended
+     it down to ~4.1:1 / ~3.5:1 and FAILED AA. Keep the muted look via the token,
+     not a blend. */
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  opacity: 0.7;
   padding: 0 6px 0 8px;
   user-select: none;
 }
@@ -2269,7 +2282,6 @@ body {
   align-self: stretch;
   margin: 6px 2px;
   background: var(--border);
-  opacity: 0.6;
 }
 .category-intro {
   background: var(--surface);
@@ -2301,6 +2313,15 @@ body {
 }
 @media (max-width: 900px) {
   .settings-layout { grid-template-columns: 1fr; }
+}
+/* Phone widths: the 32px side padding left ~311px of content on a 375px screen.
+   Tighten the page/panel/modal chrome so content keeps its breathing room. */
+@media (max-width: 600px) {
+  .page-header { padding: 16px 16px 0; }
+  .tab-panel { padding: 16px 16px; }
+  .stub { padding: 16px; }
+  .modal-backdrop { padding: 12px; }
+  .modal { padding: 16px; }
 }
 .preset-bar {
   background: var(--surface);
@@ -3933,6 +3954,12 @@ footer.page-footer a:hover { text-decoration: underline; }
 .ov-steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; }
 .ov-steps li { font-size: 13px; line-height: 1.5; color: var(--text); }
 .ov-steps a { color: var(--accent); font-weight: 600; }
+.ov-stats-lead { margin: 0 0 10px; font-size: 14px; color: var(--text); }
+.ov-steps-lead { margin: 6px 0 10px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.ov-steps-cap { margin: 12px 0 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+/* Optional steps stay present but visually recede so the required path leads. */
+.ov-steps-optional { opacity: 0.92; }
+.ov-steps-optional li { color: var(--muted); }
 /* Guidance — best-practice preview-on-click */
 .guide-bp-preview {
   margin: 4px 0 2px 22px;
