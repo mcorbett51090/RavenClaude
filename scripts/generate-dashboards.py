@@ -2165,32 +2165,26 @@ def _label_for(value: str) -> str:
 
 _CSS = """
 :root {
-  color-scheme: light dark;
-  --bg: #0b1120;
-  --surface: #111827;
-  --surface-2: #1f2937;
-  --border: #334155;
-  --text: #f1f5f9;
-  --muted: #94a3b8;
-  --accent: #14b8a6;
-  --accent-dim: #0d9488;
-  --warn: #fbbf24;
-  --danger: #ef4444;
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color-scheme: dark;
+  /* Raven Power palette (mirrors ravenpower.net site/styles.css) — dark + gold. */
+  --bg: #07080a;
+  --surface: #0a0c10;
+  --surface-2: #10131a;
+  --border: rgba(255, 255, 255, 0.10);
+  --text: #f5f7fa;
+  --muted: #9aa3b2;
+  --accent: #C9A249;
+  --accent-dim: #b9923f;
+  --accent-2: #D9B459;
+  --accent-soft: rgba(201, 162, 73, 0.16);
+  --accent-glow: rgba(201, 162, 73, 0.35);
+  --warn: #E8995A;
+  --danger: #ff7676;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  --radius: 8px;
-}
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #f8fafc;
-    --surface: #ffffff;
-    --surface-2: #e2e8f0;
-    --border: #cbd5e1;
-    --text: #0f172a;
-    --muted: #475569;
-    --accent: #0d9488;
-    --accent-dim: #14b8a6;
-  }
+  --radius: 10px;
+  --radius-sm: 4px;
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
@@ -2198,22 +2192,36 @@ _CSS = """
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body {
-  background: var(--bg);
+  /* Faint gold hero glow + the site's subtle graph-paper grid texture. */
+  background:
+    radial-gradient(60% 45% at 55% -8%, rgba(201, 162, 73, 0.06), transparent 60%),
+    var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
   font-size: 15px;
   line-height: 1.5;
   min-height: 100vh;
 }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.02em; }
+::selection { background: var(--accent); color: #000; }
 .page-header {
+  position: relative;
   padding: 24px 32px 0;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
 }
+/* Gold hairline along the top edge — the site's signature section accent. */
+.page-header::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--accent) 50%, transparent 100%);
+}
 .page-header h1 {
   margin: 0 0 4px 0;
   font-size: 22px;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 .page-header .plugin-name {
   color: var(--accent);
@@ -2263,10 +2271,9 @@ body {
   align-self: center;
   flex-shrink: 0;
   white-space: nowrap;
-  /* No opacity: --muted alone is 7.34:1 (dark) / 7.24:1 (light) on --bg, which
-     passes WCAG AA for this 11px non-large text; an earlier opacity:0.7 blended
-     it down to ~4.1:1 / ~3.5:1 and FAILED AA. Keep the muted look via the token,
-     not a blend. */
+  /* No opacity: --muted (#9aa3b2) on the Raven dark --bg (#07080a) is ~7.7:1,
+     which passes WCAG AA for this 11px non-large text; an earlier opacity:0.7
+     blended it down below AA. Keep the muted look via the token, not a blend. */
   color: var(--muted);
   font-size: 11px;
   font-weight: 700;
@@ -8420,6 +8427,11 @@ _PAGE_TEMPLATE = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
+<!-- Raven Power brand fonts. Loads when online; falls back to system-ui offline (the
+     --font-sans / --font-display stacks already degrade gracefully). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
 <style>
 {css}
 </style>
