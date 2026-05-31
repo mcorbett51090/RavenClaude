@@ -295,6 +295,14 @@ python3 -c "import re;p='README.md';s=open(p).read();open(p,'w').write(re.sub(r'
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (wrong README plugin count)" must_fail "$rc"
 cp -p "$TMP/README.md.bak" README.md
+# must_fail (f): a wrong "<N> skills" claim in the top-level metadata.description
+# (the catalog prose describing core) must be detected — previously ungated, it
+# silently drifted to "20 skills" while core had 22 (caught by the v0.74.0 panel).
+backup .claude-plugin/marketplace.json
+python3 -c "p='.claude-plugin/marketplace.json';s=open(p).read();open(p,'w').write(s.replace('22 skills','20 skills',1))"
+rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
+gate "marketplace-claims (wrong metadata.description skill count)" must_fail "$rc"
+cp -p "$TMP/.claude-plugin_marketplace.json.bak" .claude-plugin/marketplace.json
 # must_pass: clean tree.
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (clean tree)" must_pass "$rc"

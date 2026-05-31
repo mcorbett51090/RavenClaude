@@ -116,9 +116,23 @@ def main() -> int:
     plugin_names = [p.name for p in plugin_dirs]
 
     # Check 3 (catalog-level) — the marketplace metadata.description cap.
-    check_description_length(
-        "marketplace metadata", marketplace.get("metadata", {}).get("description", "")
-    )
+    metadata_desc = marketplace.get("metadata", {}).get("description", "")
+    check_description_length("marketplace metadata", metadata_desc)
+
+    # Check 3b — the metadata.description "<N> skills" claim describes the core
+    # plugin, so it must match ravenclaude-core's actual skill count. The
+    # per-plugin loop below only checks each plugin's OWN description; the
+    # top-level catalog prose was previously ungated and silently drifted
+    # (it said "20 skills" while core had 22 — caught by the v0.74.0 panel).
+    core_dir = PLUGINS / "ravenclaude-core"
+    if core_dir.is_dir():
+        meta_skill_claim = first_skill_claim(metadata_desc)
+        core_actual = actual_skill_count(core_dir)
+        if meta_skill_claim is not None and meta_skill_claim != core_actual:
+            failures.append(
+                f"marketplace.json metadata.description says '{meta_skill_claim} skills' "
+                f"but ravenclaude-core/skills/ has {core_actual} — update the catalog prose"
+            )
 
     # Check 4 — doc-roster completeness (architecture.md + README plugin count).
     check_doc_completeness(plugin_names)
