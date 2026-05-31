@@ -2263,6 +2263,44 @@ PY
 gate "sleipnir reader present in both server copies" must_pass "$rc"
 rm -rf "$SL_TMP"
 
+echo "── Gate 44: Ragnarök plugin-cache reset (DR flow, fixture-only) ───────────"
+# The §3.10 disaster-recovery flow, driven against a SYNTHETIC tmp cache (never
+# ~/.claude). check-ragnarok.py runs the 6 acceptance fixtures: dry-run safety,
+# user-only gate, abort-on-failed-gates (live untouched), atomic swap + snapshot
+# + audit JSON, and MEMORY survival.
+rc=0; python3 scripts/check-ragnarok.py >/dev/null 2>&1 || rc=$?
+gate "ragnarok fixtures (real reset-plugin-cache.py)" must_pass "$rc"
+# must_fail: a broken script whose user-only --confirm check is defeated (always
+# treats the invocation as confirmed) makes the "refuse without confirm" fixture
+# fail — proving that fixture actually guards the user-only gate.
+RAG_BAD="$TMP/reset-plugin-cache-bad.py"
+sed 's/if args.confirm != args.plugin:/if False:/' plugins/ravenclaude-core/scripts/reset-plugin-cache.py > "$RAG_BAD"
+rc=0
+python3 - "$RAG_BAD" <<'PY' || rc=$?
+import subprocess, sys, tempfile, shutil
+from pathlib import Path
+script = sys.argv[1]
+tmp = Path(tempfile.mkdtemp())
+try:
+    v = tmp / "c" / "mkt" / "ravenclaude-core" / "0.1.0"; v.mkdir(parents=True)
+    (v / "MARKER").write_text("live\n")
+    fresh = tmp / "fresh"; (fresh / "scripts").mkdir(parents=True)
+    g = fresh / "scripts" / "audit-gates.sh"; g.write_text("#!/usr/bin/env bash\nexit 0\n"); g.chmod(0o755)
+    # No --confirm token: the REAL script refuses (RAGNAROK_NOT_USER_INVOKED).
+    # The BROKEN script (--confirm check defeated) proceeds → exit 0 → this
+    # must_fail fixture should see a non-refusal and FAIL the assertion below.
+    r = subprocess.run([sys.executable, script, "ravenclaude-core", "--execute",
+                        "--pin", "abc1234", "--cache-root", str(tmp / "c"),
+                        "--fresh-tree", str(fresh), "--runs-dir", str(tmp / "runs")],
+                       capture_output=True, text=True)
+    # assert the user-only gate held (refused). On the broken script it did NOT.
+    assert r.returncode != 0 and "RAGNAROK_NOT_USER_INVOKED" in r.stderr, "gate did not hold"
+    sys.exit(0)
+finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+PY
+gate "ragnarok user-only gate has teeth (defeated --confirm → fixture catches it)" must_fail "$rc"
+
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
