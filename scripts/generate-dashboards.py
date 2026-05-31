@@ -934,12 +934,12 @@ def _render_overview_tab() -> str:
              "and the security floor that never relaxes.",
              "settings", "Open Settings"),
         card("Guardrail pipeline",
-             "See every guard an action passes through, SessionStart → PreToolUse "
-             "→ PostToolUse → Stop, with live on/off badges.",
+             "See every guard an action passes through — from session start, through "
+             "command review, to completion — with live on/off badges.",
              "pipeline", "Open Pipeline"),
         card("Command-review tribunal",
-             "The Thing reviews risky commands and logs an auditable verdict. "
-             "Browse the verdict history.",
+             "The Thing — RavenClaude's command-review engine — checks risky "
+             "commands and logs an allow / edit / deny verdict you can browse.",
              "saga", "Open Review log"),
         card("Install & update bridge",
              "Wire the plugin into Claude Code or GitHub Copilot CLI, and update with a "
@@ -947,10 +947,12 @@ def _render_overview_tab() -> str:
              "install", "Open Install"),
     ])
 
-    steps = "".join([
+    steps_required = "".join([
         '<li><a href="#/settings">Pick a posture preset</a> — set how much your agents do without asking.</li>',
-        '<li><a href="#/pipeline">See what the guardrails do</a> — the map of every check, in plain language.</li>',
         '<li><a href="#/install">Wire it into your tool</a> — one-time setup, then updates are a git pull.</li>',
+    ])
+    steps_optional = "".join([
+        '<li><a href="#/pipeline">See what the guardrails do</a> — the map of every check, in plain language.</li>',
         '<li><a href="#/trees">Browse the guidance</a> — the decision trees + best practices each plugin gives your agents.</li>',
     ])
 
@@ -968,11 +970,19 @@ def _render_overview_tab() -> str:
         "(<code>rc dashboard</code> or <code>python3 scripts/serve-dashboards.py</code>) to save changes to your repo."
         "</div>"
         "</div>"
+        f'<p class="ov-stats-lead">You have <strong>{n_plugins}</strong> plugins installed &mdash; '
+        f"<strong>{n_agents}</strong> specialist agents and <strong>{n_trees}</strong> decision trees "
+        "ready to help your agents stay in bounds.</p>"
         f'<div class="ov-stats">{stats}</div>'
         '<h3 class="ov-h3">The big systems</h3>'
         f'<div class="ov-cards">{systems}</div>'
         '<h3 class="ov-h3">Start here</h3>'
-        f'<ol class="ov-steps">{steps}</ol>'
+        '<p class="ov-steps-lead">New here? The two <strong>required</strong> steps take about five minutes. '
+        "The rest you can explore whenever.</p>"
+        '<p class="ov-steps-cap">Required</p>'
+        f'<ol class="ov-steps">{steps_required}</ol>'
+        '<p class="ov-steps-cap ov-steps-cap-optional">Optional &mdash; when you want to go deeper</p>'
+        f'<ol class="ov-steps ov-steps-optional" start="3">{steps_optional}</ol>'
         "</div>"
     )
 
@@ -993,9 +1003,8 @@ def _render_commands_tab() -> str:
         f" {n_run} can run from here when the dashboard is served; the rest are "
         "Claude Code slash commands."
         if n_run else
-        " Each card shows exactly what it runs. These are Claude Code slash "
-        "commands — they run inside your Claude session, so copy one and paste it "
-        "into Claude Code (a browser can't launch a slash command)."
+        " Each card shows exactly what it runs. Copy a command and paste it into your "
+        "Claude Code session to run it — a browser can't launch a slash command."
     )
     intro = (
         '<div class="cmd-intro">'
@@ -1163,8 +1172,8 @@ def _render_trees_tab() -> str:
         f"<p>{len(trees)} decision tree{'s' if len(trees) != 1 else ''} and "
         f"{len(practices)} best-practice doc{'s' if len(practices) != 1 else ''} "
         f"across {len(owners)} marketplace plugin{'s' if len(owners) != 1 else ''}. "
-        "These are the priors (when-this-applies decision trees) and named rules "
-        "each installed plugin gives your agents in a consumer repo. Click a best-practice "
+        "These are the decision trees (when-this-applies guidance) and named best-practice "
+        "rules each installed plugin gives your agents. Click a best-practice "
         "<strong>preview</strong> to read its rationale inline, or the title to open its source file.</p>"
         "</div>"
     )
@@ -1304,10 +1313,23 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
         properties.get("design_checkins", {})
     )
 
+    category_intro_html = (
+        '<div class="category-intro"><p>'
+        "Each row below is a <strong>type of action</strong> Claude might take "
+        "&mdash; for example, <code>shell_code_exec</code> means &ldquo;run code "
+        "such as <code>python -c &hellip;</code>&rdquo;. For each one you pick "
+        "<strong>Deny</strong> (never), <strong>Ask</strong> (check with me first), "
+        "or <strong>Allow</strong> (go ahead). Start from the "
+        "<strong>&#9733; Recommended</strong> preset above and loosen or tighten "
+        "from there as you build trust."
+        "</p></div>"
+    )
+
     return _SETTINGS_TAB_TEMPLATE.format(
         preset_buttons="".join(preset_buttons),
         design_checkins=design_checkins_html,
         thing_preview=_render_thing_preview(),
+        category_intro=category_intro_html,
         category_groups="".join(group_html_parts),
         security_deny=security_deny_html,
     )
@@ -1424,14 +1446,19 @@ def _render_command_review_block() -> str:
 
     # (b) Explainer paragraph
     explainer = (
-        "<p>When turned on for a category, commands that would otherwise stop to "
-        "<strong>ask you</strong> get adjudicated by reviewer agents &mdash; "
-        "Forseti (security), Mímir (correctness), and Heimdall (injection watch) "
-        "with Thor as tie-breaker, voting <strong>allow / edit / deny</strong>. "
-        "A seat may <em>rewrite</em> a risky command into a safe one (re-validated "
+        "<p>When turned on for a category, a command that would normally stop to "
+        "<strong>ask you</strong> is instead checked by a panel of AI reviewers "
+        "before it runs. Each one looks for a different problem: "
+        "<strong>Forseti</strong> checks for security risks, "
+        "<strong>Mímir</strong> checks the command is correct, and "
+        "<strong>Heimdall</strong> watches for hidden instructions trying to trick "
+        "the system (a &ldquo;prompt injection&rdquo;). <strong>Thor</strong> breaks "
+        "a tie if they disagree. They vote <strong>allow / edit / deny</strong>, and "
+        "a reviewer may <em>rewrite</em> a risky command into a safe one (re-checked "
         "before it runs). You are interrupted only when the panel can&rsquo;t decide; "
-        "every verdict is logged. It resolves <em>ask</em> cases only &mdash; it never "
-        "relaxes the Danger Zone floor. "
+        "every verdict is logged. It can only resolve the <em>ask</em> cases &mdash; "
+        "it can never unblock the always-denied &ldquo;danger zone&rdquo; commands "
+        "(like force-pushing or wiping a folder). "
         '<strong class="crb-cost-warn">Costs credits on every reviewed command</strong> '
         "&mdash; treat it as a high-stakes guard, not a daily setting. "
         'Design: <a href="../../docs/tribunal-review-feature-design.md" target="_blank" '
@@ -2230,6 +2257,39 @@ body {
 }
 .tab-btn:hover { color: var(--text); }
 .tab-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+/* Visual-only section grouping inside the tablist. Both are role="presentation"
+   + aria-hidden, so they never enter the a11y tree or the roving-tabindex set. */
+.tab-section-label {
+  align-self: center;
+  flex-shrink: 0;
+  white-space: nowrap;
+  /* No opacity: --muted alone is 7.34:1 (dark) / 7.24:1 (light) on --bg, which
+     passes WCAG AA for this 11px non-large text; an earlier opacity:0.7 blended
+     it down to ~4.1:1 / ~3.5:1 and FAILED AA. Keep the muted look via the token,
+     not a blend. */
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0 6px 0 8px;
+  user-select: none;
+}
+.tab-divider {
+  flex-shrink: 0;
+  width: 1px;
+  align-self: stretch;
+  margin: 6px 2px;
+  background: var(--border);
+}
+.category-intro {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.category-intro p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
 .tab-panel { display: none; padding: 24px 32px; }
 .tab-panel.active { display: block; }
 .stub {
@@ -2252,6 +2312,15 @@ body {
 }
 @media (max-width: 900px) {
   .settings-layout { grid-template-columns: 1fr; }
+}
+/* Phone widths: the 32px side padding left ~311px of content on a 375px screen.
+   Tighten the page/panel/modal chrome so content keeps its breathing room. */
+@media (max-width: 600px) {
+  .page-header { padding: 16px 16px 0; }
+  .tab-panel { padding: 16px 16px; }
+  .stub { padding: 16px; }
+  .modal-backdrop { padding: 12px; }
+  .modal { padding: 16px; }
 }
 .preset-bar {
   background: var(--surface);
@@ -3884,6 +3953,12 @@ footer.page-footer a:hover { text-decoration: underline; }
 .ov-steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; }
 .ov-steps li { font-size: 13px; line-height: 1.5; color: var(--text); }
 .ov-steps a { color: var(--accent); font-weight: 600; }
+.ov-stats-lead { margin: 0 0 10px; font-size: 14px; color: var(--text); }
+.ov-steps-lead { margin: 6px 0 10px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.ov-steps-cap { margin: 12px 0 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+/* Optional steps stay present but visually recede so the required path leads. */
+.ov-steps-optional { opacity: 0.92; }
+.ov-steps-optional li { color: var(--muted); }
 /* Guidance — best-practice preview-on-click */
 .guide-bp-preview {
   margin: 4px 0 2px 22px;
@@ -4633,6 +4708,7 @@ _SETTINGS_TAB_TEMPLATE = """
 
     {design_checkins}
     {thing_preview}
+    {category_intro}
     {category_groups}
     {security_deny}
   </div>
@@ -4783,7 +4859,7 @@ _SAGA_TAB_TEMPLATE = """
 _ACTIVITY_TAB_TEMPLATE = """
 <div class="saga-layout">
   <div class="saga-hdr">
-    <h2>&#128220; Activity</h2>
+    <h2>&#128220; Run feed</h2>
     <button type="button" class="saga-refresh" id="activity-refresh-btn">Refresh</button>
     <span class="saga-count" id="activity-count"></span>
   </div>
@@ -4807,7 +4883,7 @@ _HEIMDALL_TAB_TEMPLATE = """
 </div>
 <div class="heimdall-layout">
   <div class="saga-hdr">
-    <h2><span aria-hidden="true">&#128737;</span> Heimdall</h2>
+    <h2><span aria-hidden="true">&#128737;</span> Perimeter alerts</h2>
     <button type="button" class="saga-refresh" id="heimdall-refresh-btn">Refresh</button>
   </div>
   <p class="activity-intro">Perimeter alerts &mdash; a <strong>read-only mirror</strong> of what your guardrails already flagged. Heimdall never blocks anything itself; it shows the most recent hook denials, CI runs, and version drift so you can answer &ldquo;what tripped, when, and why?&rdquo; in one glance.</p>
@@ -4987,7 +5063,7 @@ _BIFROST_TAB_TEMPLATE = (
     """
 <div class="bifrost-layout">
   <div class="saga-hdr">
-    <h2><span aria-hidden="true">&#127752;</span> Install a plugin (Bifröst)</h2>
+    <h2><span aria-hidden="true">&#127752;</span> Add plugin</h2>
   </div>
   <p class="activity-intro">Bifröst is the rainbow bridge between the marketplace and your project. Follow these four steps to install a plugin. Each step is <strong>copy-paste only</strong> &mdash; Bifröst guides you, but you cross the bridge yourself. Nothing here runs a command for you; you run each in your Claude Code session and paste the result back so Bifröst can light the next step.</p>
   <ol class="bifrost-steps">
@@ -5010,11 +5086,11 @@ _SIMULATOR_TAB_TEMPLATE = """
   <section class="sim-intro">
     <h2>Preview a command's review</h2>
     <p>
-      Type any shell command and see <strong>what the Thing would do with it</strong> &mdash;
-      which category it lands in, the risk tier, which reviewer seats convene, the concerns
-      it cites, and whether it would be surfaced to you, auto-decided, or denied outright.
-      This runs the <strong>real command-review engine</strong> (no execution, no model calls
-      &mdash; just the deterministic screen + routing), so it matches what the hook does.
+      Type any shell command to see how command review (the Thing) would handle it &mdash;
+      which category it lands in, its risk tier, which reviewers weigh in, and whether it
+      would be allowed, auto-fixed, surfaced to you, or denied. It runs the
+      <strong>real review engine</strong> &mdash; no command is run and no AI is called &mdash;
+      so it matches what happens for real.
     </p>
     <div class="sim-input-row">
       <input type="text" id="sim-command" class="sim-input"
@@ -7086,7 +7162,7 @@ _JS = r"""
       sagaContent.replaceChildren(
         isStatic
           ? sagaEmptyPanel("Open the dashboard via", "rc dashboard")
-          : sagaEmptyPanel("No reviewed actions yet — the log fills as the Thing judges commands.")
+          : sagaEmptyPanel("No command reviews yet. Turn on command review in Settings, and each command\u2019s verdict (allow / edit / deny) shows up here.")
       );
       if (sagaCount) sagaCount.textContent = "";
       return;
@@ -7277,7 +7353,7 @@ _JS = r"""
       sagaEmptyPanel("Loading review log…")
     );
     try {
-      const res = await fetch("/__saga?limit=200");
+      const res = await fetchT("/__saga?limit=200");
       if (!res.ok) throw new Error("HTTP " + res.status);
       sagaRecords = await res.json();
       renderSagaTable(sagaRecords);
@@ -7322,7 +7398,7 @@ _JS = r"""
       activityContent.replaceChildren(
         isStatic
           ? sagaEmptyPanel("Open the dashboard via", "rc dashboard")
-          : sagaEmptyPanel("No runs recorded yet — this fills as multi-step tasks write artifacts under .ravenclaude/runs/.")
+          : sagaEmptyPanel("No runs yet. When a task fans out to several specialists, they record it here automatically — start a multi-step task and come back to see it.")
       );
       if (activityCount) activityCount.textContent = "";
       return;
@@ -7367,10 +7443,22 @@ _JS = r"""
     body.textContent = n + (n === 1 ? " worktree: " : " worktrees: ") + names;
   }
 
+  /* fetch() has no built-in timeout — a server that accepts the connection but
+   * never sends a body would hang a loader's "Loading…" state forever. Wrap the
+   * read-only data loaders in an AbortController (default 15s) so a hung endpoint
+   * rejects and falls into the loader's existing catch (the honest "could not
+   * reach" / served-only state). Declared as a hoisted function so every loader
+   * above and below can use it. */
+  function fetchT(url, ms) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), ms || 15000);
+    return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(id));
+  }
+
   async function loadSleipnir() {
     const body = document.getElementById("sleipnir-body");
     try {
-      const res = await fetch("/__sleipnir");
+      const res = await fetchT("/__sleipnir");
       if (!res.ok) throw new Error("HTTP " + res.status);
       renderSleipnir(await res.json());
     } catch (e) {
@@ -7384,7 +7472,7 @@ _JS = r"""
     loadSleipnir();
     if (activityContent) activityContent.replaceChildren(sagaEmptyPanel("Loading activity…"));
     try {
-      const res = await fetch("/__runs?limit=200");
+      const res = await fetchT("/__runs?limit=200");
       if (!res.ok) throw new Error("HTTP " + res.status);
       activityRecords = await res.json();
       renderActivity(activityRecords);
@@ -7508,8 +7596,8 @@ _JS = r"""
     if (alarmCard) {
       alarmCard.replaceChildren(
         tier
-          ? hmEmpty((TIER_LABEL[tier] || tier) + "-tier alarm active — see Recent hook denials above.")
-          : hmEmpty("No active alarms. All clear.")
+          ? hmEmpty((TIER_LABEL[tier] || tier) + "-tier alert active — see Recent hook denials above for what was caught and why.")
+          : hmEmpty("All clear — no guardrail has blocked or warned on an action this session.")
       );
     }
     if (!banner) return;
@@ -7615,7 +7703,7 @@ _JS = r"""
     /* Hook events + Gjallarhorn need the served endpoint. */
     const hookHost = document.getElementById("heimdall-hooks");
     try {
-      const res = await fetch("/__heimdall?days=30");
+      const res = await fetchT("/__heimdall?days=30");
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
       renderHookEvents(data);
@@ -7677,7 +7765,7 @@ _JS = r"""
   async function loadNidhoggr() {
     const host = document.getElementById("heimdall-debt");
     try {
-      const res = await fetch("/__nidhoggr");
+      const res = await fetchT("/__nidhoggr");
       if (!res.ok) throw new Error("HTTP " + res.status);
       renderNidhoggr(await res.json());
     } catch (e) {
@@ -7761,7 +7849,7 @@ _JS = r"""
     const days = (rangeSel && rangeSel.value) || "30";
     if (host) host.replaceChildren(hmEmpty("Loading security log…"));
     try {
-      const res = await fetch("/__vidarr?days=" + encodeURIComponent(days));
+      const res = await fetchT("/__vidarr?days=" + encodeURIComponent(days));
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
       vidarrEvents = (data && data.events) || [];
@@ -7898,7 +7986,7 @@ _JS = r"""
   async function loadNorns() {
     nornsLoaded = true;
     try {
-      const res = await fetch("/__norns?plugin=ravenclaude-core");
+      const res = await fetchT("/__norns?plugin=ravenclaude-core");
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
       renderNornsUrdr(data.urdr);
@@ -8343,20 +8431,27 @@ _PAGE_TEMPLATE = """<!doctype html>
   <p class="page-desc">{description}</p>
   <p class="page-desc"><span class="plugin-name">{plugin_name}</span> &middot; static dashboard, no backend. Edits stay in your browser until you click Download.</p>
   <nav class="tab-bar" role="tablist" aria-label="Dashboard tabs">
+    <span class="tab-section-label" role="presentation" aria-hidden="true">Set up</span>
     <button class="tab-btn" id="tab-overview" data-tab="overview" role="tab" aria-selected="true" aria-controls="panel-overview" title="Overview — start here: what this dashboard is for">Overview</button>
     <button class="tab-btn" id="tab-settings" data-tab="settings" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-settings" title="Settings — choose what Claude can do on its own (deny / ask / allow)">Settings</button>
     <button class="tab-btn" id="tab-pipeline" data-tab="pipeline" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-pipeline" title="Pipeline — the safety checks every command passes through">Pipeline</button>
-    <button class="tab-btn" id="tab-install" data-tab="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-install" title="Install &amp; Update — set up or upgrade this plugin">Install &amp; Update</button>
     <button class="tab-btn" id="tab-simulator" data-tab="simulator" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-simulator" title="Preview a review — see how a command would be judged before you run it">Preview a review</button>
-    <button class="tab-btn" id="tab-learn" data-tab="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-learn" title="Learn — plain-English explainers for each concept">Learn</button>
+    <span class="tab-divider" role="presentation" aria-hidden="true"></span>
+    <span class="tab-section-label" role="presentation" aria-hidden="true">Look back</span>
     <button class="tab-btn" id="tab-saga" data-tab="saga" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-saga" title="Review log — past decisions the reviewer panel made (Sága)">&#9878; Review log</button>
-    <button class="tab-btn" id="tab-commands" data-tab="commands" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-commands" title="Commands — ready-to-run slash-command playbooks">Commands</button>
-    <button class="tab-btn" id="tab-trees" data-tab="trees" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-trees" title="Guidance — decision trees and best practices">Guidance</button>
-    <button class="tab-btn" id="tab-activity" data-tab="activity" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-activity" title="Activity — what Claude is doing right now (runs &amp; worktrees)">Activity</button>
-    <button class="tab-btn" id="tab-heimdall" data-tab="heimdall" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-heimdall" title="Heimdall — alerts your guardrails caught at the perimeter">Heimdall</button>
+    <button class="tab-btn" id="tab-activity" data-tab="activity" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-activity" title="Run feed — what Claude is doing right now: runs &amp; worktrees (Sleipnir)">Run feed</button>
+    <button class="tab-btn" id="tab-heimdall" data-tab="heimdall" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-heimdall" title="Perimeter alerts — what your guardrails caught at the edge (Heimdall)">Perimeter alerts</button>
     <button class="tab-btn" id="tab-vidarr" data-tab="vidarr" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-vidarr" title="Security log — a record of your permission changes (Víðarr)">Security log</button>
     <button class="tab-btn" id="tab-norns" data-tab="norns" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-norns" title="Lineage — how your plugins connect and depend on each other (Norns)">Lineage</button>
-    <button class="tab-btn" id="tab-bifrost" data-tab="bifrost" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-bifrost" title="Install a plugin — guided steps to add a plugin (Bifröst bridge)">Install a plugin</button>
+    <span class="tab-divider" role="presentation" aria-hidden="true"></span>
+    <span class="tab-section-label" role="presentation" aria-hidden="true">Learn</span>
+    <button class="tab-btn" id="tab-learn" data-tab="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-learn" title="Learn — plain-English explainers for each concept">Learn</button>
+    <button class="tab-btn" id="tab-commands" data-tab="commands" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-commands" title="Commands — ready-to-run slash-command playbooks">Commands</button>
+    <button class="tab-btn" id="tab-trees" data-tab="trees" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-trees" title="Guidance — decision trees and best practices">Guidance</button>
+    <span class="tab-divider" role="presentation" aria-hidden="true"></span>
+    <span class="tab-section-label" role="presentation" aria-hidden="true">Add to your repo</span>
+    <button class="tab-btn" id="tab-install" data-tab="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-install" title="Install &amp; Update — wire RavenClaude into GitHub Copilot CLI">Install &amp; Update</button>
+    <button class="tab-btn" id="tab-bifrost" data-tab="bifrost" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-bifrost" title="Add plugin — guided steps to install a plugin into Claude Code (Bifröst bridge)">Add plugin</button>
   </nav>
 </header>
 
@@ -8388,10 +8483,10 @@ _PAGE_TEMPLATE = """<!doctype html>
   <section class="tab-panel" id="panel-trees" data-tab="trees" role="tabpanel" aria-label="Decision trees and best practices">
 {trees_html}
   </section>
-  <section class="tab-panel" id="panel-activity" data-tab="activity" role="tabpanel" aria-label="Activity">
+  <section class="tab-panel" id="panel-activity" data-tab="activity" role="tabpanel" aria-label="Run feed">
 {activity_html}
   </section>
-  <section class="tab-panel" id="panel-heimdall" data-tab="heimdall" role="tabpanel" aria-label="Heimdall perimeter alerts">
+  <section class="tab-panel" id="panel-heimdall" data-tab="heimdall" role="tabpanel" aria-label="Perimeter alerts">
 {heimdall_html}
   </section>
   <section class="tab-panel" id="panel-vidarr" data-tab="vidarr" role="tabpanel" aria-label="Security log">
@@ -8400,7 +8495,7 @@ _PAGE_TEMPLATE = """<!doctype html>
   <section class="tab-panel" id="panel-norns" data-tab="norns" role="tabpanel" aria-label="Plugin lineage">
 {norns_html}
   </section>
-  <section class="tab-panel" id="panel-bifrost" data-tab="bifrost" role="tabpanel" aria-label="Install a plugin (Bifröst)">
+  <section class="tab-panel" id="panel-bifrost" data-tab="bifrost" role="tabpanel" aria-label="Add plugin">
 {bifrost_html}
   </section>
 </main>

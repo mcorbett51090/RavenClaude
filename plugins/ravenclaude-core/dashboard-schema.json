@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/mcorbett51090/RavenClaude/plugins/ravenclaude-core/dashboard-schema.json",
   "title": "RavenClaude comfort posture",
-  "description": "Categorical permission-autonomy scale for Claude Code. Edited via this plugin's dashboard.html Settings tab; saved to .ravenclaude/comfort-posture.yaml in the consumer's project. The /set-posture skill translates this YAML into .claude/settings.json permission rules. v5 adds per-layer (user/local/project) authoring inside each category. The three settings layers merge as deny > ask > allow at runtime. Each permission can also be fine-tuned per layer via per-category overrides.",
+  "description": "Decide what Claude Code can do on its own. For each type of action (reading files, editing, running commands, web requests), you pick Deny (never), Ask (check with you first), or Allow (go ahead). You set this in the Settings tab; it saves to .ravenclaude/comfort-posture.yaml, and the /set-posture skill turns that into Claude Code's own .claude/settings.json permission rules. You can fine-tune each choice across three layers (User, Local, Project); when they differ, the strictest one wins (Deny beats Ask beats Allow).",
   "type": "object",
   "schema_version": 5,
   "$defs": {
