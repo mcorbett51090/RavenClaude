@@ -48,6 +48,16 @@ security_deny:
   - "Bash(wget * | sh)"
   - "Bash(wget * | bash)"
   - "Bash(sudo:*)"
+  # Whole-disk / filesystem destruction + branch force-delete (two-panel audit
+  # 2026-05-31). These are prefix-glob rules — the variant-catcher is the
+  # guard-destructive.sh hook (normalized matching). These add the canonical
+  # forms to the permission-engine layer for `ravenclaude setup` consumers, who
+  # otherwise have only the hook.
+  - "Bash(mkfs:*)"
+  - "Bash(shred:*)"
+  - "Bash(wipefs:*)"
+  - "Bash(git branch -D:*)"
+  - "Bash(git branch -D *)"
   - "Read(.env)"
   - "Read(.env.*)"
   - "Read(**/*.pem)"
