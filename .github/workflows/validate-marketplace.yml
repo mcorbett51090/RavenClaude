@@ -289,6 +289,16 @@ jobs:
         # Status table lists every plugin; README's "ships **N plugins**" count is right).
         run: python3 scripts/check-marketplace-claims.py
 
+      - name: Verify volatile model-lineup numbers are cited
+        # The ai-coding-model-guidance plugin ships deliberately-volatile third-party
+        # model facts (Copilot/Codex/Grok prices + context windows) past the author's
+        # training cutoff. A file that opts in with `<!-- lineup-citations: enforce -->`
+        # must ground every quoted price/context-window table row with a citation link,
+        # an ISO date, or a verify-at-use marker — so a bare, uncited number (the exact
+        # failure mode the plugin exists to prevent) can never ship green. Conservative:
+        # only opted-in knowledge files are scanned. See scripts/check-lineup-citations.py.
+        run: python3 scripts/check-lineup-citations.py
+
       - name: Verify markdown relative links resolve
         # Catches the 2026-05 class of broken cross-plugin CLAUDE.md / agent links
         # that shipped green. Resolves every relative link in the boundary docs,

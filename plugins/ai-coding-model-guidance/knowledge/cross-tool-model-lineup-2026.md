@@ -1,3 +1,5 @@
+<!-- lineup-citations: enforce — every price/context-window row below must carry a citation link, a date, or a verify-at-use marker (scripts/check-lineup-citations.py) -->
+
 # Cross-tool model selection & 2026 lineup (Copilot · Codex · Grok)
 
 **Last reviewed:** 2026-05-31 · **Confidence:** medium — these three vendors ship **weekly-to-monthly**, faster than the Claude platform; treat this as the freshness anchor the Researcher sweep re-dates. Every numeric / availability claim carries a retrieval date — **verify against the cited primary source before quoting it to anyone.**
