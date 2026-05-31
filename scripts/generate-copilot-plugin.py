@@ -41,6 +41,20 @@ CANONICAL_MANIFEST = CORE_DIR / ".claude-plugin" / "plugin.json"
 AGENTS_DIR = CORE_DIR / "agents"
 OUTPUT_DIR = CORE_DIR / "copilot"
 
+# The root AGENTS.md section projected into copilot/AGENTS.md. This is the
+# cross-tool-portable claim-grounding discipline (it already names GitHub Copilot
+# CLI as an audience). Copilot reads root AGENTS.md *natively* — but only the one
+# in the consumer's repo, NOT RavenClaude's — so when core's agents are installed
+# into a consumer repo via --plugin-dir, the discipline does not travel unless we
+# ship it alongside them. We project it (single source of truth = root AGENTS.md;
+# the --check freshness gate guarantees it never drifts) so the consumer can wire
+# it via COPILOT_CUSTOM_INSTRUCTIONS_DIRS (see the generated README).
+# Verified 2026-05-31 against GitHub docs: Copilot CLI reads AGENTS.md from the
+# repo root, cwd, or any dir named in COPILOT_CUSTOM_INSTRUCTIONS_DIRS
+# (docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions).
+ROOT_AGENTS_MD = REPO_ROOT / "AGENTS.md"
+GROUNDING_SECTION_HEADER = "## Accuracy discipline (cross-tool pointer)"
+
 # Copilot plugin.json description field cap.
 MAX_DESCRIPTION = 1024
 
@@ -147,6 +161,10 @@ def build_readme() -> str:
         "  translated to Copilot's `.agent.md` form: YAML frontmatter carrying\n"
         "  only `name` + `description`, followed by the full original agent body\n"
         "  verbatim.\n"
+        "- `AGENTS.md` — the cross-tool claim-grounding discipline, projected\n"
+        "  verbatim from RavenClaude's root `AGENTS.md`. Copilot reads `AGENTS.md`\n"
+        "  natively, but only from *your* repo — so this travels the discipline\n"
+        "  with the agents. Wire it via `COPILOT_CUSTOM_INSTRUCTIONS_DIRS` (below).\n"
         "\n"
         "## Launching\n"
         "\n"
@@ -155,6 +173,13 @@ def build_readme() -> str:
         "\n"
         "```shell\n"
         "copilot --plugin-dir plugins/ravenclaude-core/copilot\n"
+        "```\n"
+        "\n"
+        "To also load the claim-grounding discipline (`AGENTS.md`), point\n"
+        "`COPILOT_CUSTOM_INSTRUCTIONS_DIRS` at this directory:\n"
+        "\n"
+        "```shell\n"
+        "export COPILOT_CUSTOM_INSTRUCTIONS_DIRS=plugins/ravenclaude-core/copilot\n"
         "```\n"
         "\n"
         "## Skills, hooks, and MCP — wired at the repo level, not in this package\n"
@@ -187,6 +212,63 @@ def build_readme() -> str:
     )
 
 
+def extract_section(text: str, header: str) -> str:
+    """Return a `## ` section (header line through the line before the next
+    `## ` header, or EOF), trailing-whitespace-trimmed. Raises if absent so a
+    rename of the canonical header fails the build loudly rather than silently
+    shipping an empty grounding file."""
+    lines = text.splitlines()
+    start = None
+    for i, line in enumerate(lines):
+        if line.rstrip() == header:
+            start = i
+            break
+    if start is None:
+        raise SystemExit(
+            f"generate-copilot-plugin: '{header}' not found in root AGENTS.md — "
+            "the grounding-digest projection depends on it. If the header was "
+            "renamed, update GROUNDING_SECTION_HEADER."
+        )
+    end = len(lines)
+    for j in range(start + 1, len(lines)):
+        if lines[j].startswith("## "):
+            end = j
+            break
+    return "\n".join(lines[start:end]).rstrip()
+
+
+def build_agents_md() -> str:
+    """Render copilot/AGENTS.md: a fixed banner + the verbatim grounding section
+    projected from the root AGENTS.md. Copilot reads this natively when the dir
+    is on COPILOT_CUSTOM_INSTRUCTIONS_DIRS, so the discipline travels with the
+    installed agents instead of being left behind in RavenClaude's own repo."""
+    section = extract_section(read_text(ROOT_AGENTS_MD), GROUNDING_SECTION_HEADER)
+    banner = (
+        "# ravenclaude-core — Copilot grounding instructions\n"
+        "\n"
+        "<!-- AUTO-GENERATED from the root AGENTS.md by "
+        "scripts/generate-copilot-plugin.py. Do not edit by hand; edit the root "
+        "AGENTS.md and regenerate. The --check freshness gate fails CI on drift. -->\n"
+        "\n"
+        "GitHub Copilot reads `AGENTS.md` natively from the repo root, the current\n"
+        "working directory, or any directory named in the\n"
+        "`COPILOT_CUSTOM_INSTRUCTIONS_DIRS` environment variable. When you install\n"
+        "the `ravenclaude-core` agents into your own repo via\n"
+        "`copilot --plugin-dir plugins/ravenclaude-core/copilot`, add this\n"
+        "directory to that variable so the claim-grounding discipline below loads\n"
+        "alongside the agents — it lives in RavenClaude's root AGENTS.md, which\n"
+        "Copilot would otherwise not see from your repo:\n"
+        "\n"
+        "```shell\n"
+        "export COPILOT_CUSTOM_INSTRUCTIONS_DIRS=plugins/ravenclaude-core/copilot\n"
+        "```\n"
+        "\n"
+        "---\n"
+        "\n"
+    )
+    return banner + section + "\n"
+
+
 def generate() -> dict[str, str]:
     """Build the full copilot/ tree in memory.
 
@@ -199,6 +281,7 @@ def generate() -> dict[str, str]:
     rel_root = OUTPUT_DIR.relative_to(REPO_ROOT).as_posix()
     tree[f"{rel_root}/plugin.json"] = build_manifest(canonical)
     tree[f"{rel_root}/README.md"] = build_readme()
+    tree[f"{rel_root}/AGENTS.md"] = build_agents_md()
 
     for agent_path in sorted(AGENTS_DIR.glob("*.md"), key=lambda p: p.name):
         if not agent_path.is_file():

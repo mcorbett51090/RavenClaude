@@ -755,6 +755,35 @@ python3 -c "import json;p='plugins/ravenclaude-core/copilot/plugin.json';d=json.
 rc=0; python3 "$GENCP" --check >/dev/null 2>&1 || rc=$?
 gate "copilot: package freshness (stale committed package)" must_fail "$rc"
 cp -p "$TMP/plugins_ravenclaude-core_copilot_plugin.json.bak" plugins/ravenclaude-core/copilot/plugin.json
+# (e) the projected grounding digest (copilot/AGENTS.md) is covered by the same
+# freshness gate — drift in the projected claim-grounding section must be caught,
+# not just plugin.json. This is the file that travels the discipline to consumers.
+backup plugins/ravenclaude-core/copilot/AGENTS.md
+printf '\nAUDIT FIXTURE drift line\n' >> plugins/ravenclaude-core/copilot/AGENTS.md
+rc=0; python3 "$GENCP" --check >/dev/null 2>&1 || rc=$?
+gate "copilot: grounding-digest freshness (stale AGENTS.md)" must_fail "$rc"
+cp -p "$TMP/plugins_ravenclaude-core_copilot_AGENTS.md.bak" plugins/ravenclaude-core/copilot/AGENTS.md
+# (f) a renamed canonical section header must fail the GENERATOR loudly (SystemExit),
+# never silently ship an empty digest. Run the generator against a temp root whose
+# AGENTS.md lacks the expected header.
+GROUND_TMP="$TMP/copilot-ground"
+mkdir -p "$GROUND_TMP"
+# Minimal harness: import the module, point its paths at a fixture with no header.
+rc=0
+python3 - "$GROUND_TMP" <<'PY' || rc=$?
+import sys, importlib.util
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("gencp", "scripts/generate-copilot-plugin.py")
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+m.ROOT_AGENTS_MD = Path(sys.argv[1]) / "AGENTS.md"
+m.ROOT_AGENTS_MD.write_text("# no grounding section here\n", encoding="utf-8")
+try:
+    m.build_agents_md()
+except SystemExit:
+    sys.exit(0)  # expected: loud failure
+sys.exit(1)      # silently produced a digest with no section -> bug
+PY
+gate "copilot: renamed grounding header fails generator loudly" must_pass "$rc"
 
 echo
 echo "── Gate 21: tribunal trigger corpus (FP/FN + pre-deny + live-category triggers) ──"

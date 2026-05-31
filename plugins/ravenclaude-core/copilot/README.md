@@ -15,6 +15,10 @@ single source of truth; this package is regenerated from it.
   translated to Copilot's `.agent.md` form: YAML frontmatter carrying
   only `name` + `description`, followed by the full original agent body
   verbatim.
+- `AGENTS.md` — the cross-tool claim-grounding discipline, projected
+  verbatim from RavenClaude's root `AGENTS.md`. Copilot reads `AGENTS.md`
+  natively, but only from *your* repo — so this travels the discipline
+  with the agents. Wire it via `COPILOT_CUSTOM_INSTRUCTIONS_DIRS` (below).
 
 ## Launching
 
@@ -23,6 +27,13 @@ directory:
 
 ```shell
 copilot --plugin-dir plugins/ravenclaude-core/copilot
+```
+
+To also load the claim-grounding discipline (`AGENTS.md`), point
+`COPILOT_CUSTOM_INSTRUCTIONS_DIRS` at this directory:
+
+```shell
+export COPILOT_CUSTOM_INSTRUCTIONS_DIRS=plugins/ravenclaude-core/copilot
 ```
 
 ## Skills, hooks, and MCP — wired at the repo level, not in this package
