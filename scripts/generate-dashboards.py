@@ -1304,10 +1304,23 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
         properties.get("design_checkins", {})
     )
 
+    category_intro_html = (
+        '<div class="category-intro"><p>'
+        "Each row below is a <strong>type of action</strong> Claude might take "
+        "&mdash; for example, <code>shell_code_exec</code> means &ldquo;run code "
+        "such as <code>python -c &hellip;</code>&rdquo;. For each one you pick "
+        "<strong>Deny</strong> (never), <strong>Ask</strong> (check with me first), "
+        "or <strong>Allow</strong> (go ahead). Start from the "
+        "<strong>&#9733; Recommended</strong> preset above and loosen or tighten "
+        "from there as you build trust."
+        "</p></div>"
+    )
+
     return _SETTINGS_TAB_TEMPLATE.format(
         preset_buttons="".join(preset_buttons),
         design_checkins=design_checkins_html,
         thing_preview=_render_thing_preview(),
+        category_intro=category_intro_html,
         category_groups="".join(group_html_parts),
         security_deny=security_deny_html,
     )
@@ -1424,14 +1437,19 @@ def _render_command_review_block() -> str:
 
     # (b) Explainer paragraph
     explainer = (
-        "<p>When turned on for a category, commands that would otherwise stop to "
-        "<strong>ask you</strong> get adjudicated by reviewer agents &mdash; "
-        "Forseti (security), Mímir (correctness), and Heimdall (injection watch) "
-        "with Thor as tie-breaker, voting <strong>allow / edit / deny</strong>. "
-        "A seat may <em>rewrite</em> a risky command into a safe one (re-validated "
+        "<p>When turned on for a category, a command that would normally stop to "
+        "<strong>ask you</strong> is instead checked by a panel of AI reviewers "
+        "before it runs. Each one looks for a different problem: "
+        "<strong>Forseti</strong> checks for security risks, "
+        "<strong>Mímir</strong> checks the command is correct, and "
+        "<strong>Heimdall</strong> watches for hidden instructions trying to trick "
+        "the system (a &ldquo;prompt injection&rdquo;). <strong>Thor</strong> breaks "
+        "a tie if they disagree. They vote <strong>allow / edit / deny</strong>, and "
+        "a reviewer may <em>rewrite</em> a risky command into a safe one (re-checked "
         "before it runs). You are interrupted only when the panel can&rsquo;t decide; "
-        "every verdict is logged. It resolves <em>ask</em> cases only &mdash; it never "
-        "relaxes the Danger Zone floor. "
+        "every verdict is logged. It can only resolve the <em>ask</em> cases &mdash; "
+        "it can never unblock the always-denied &ldquo;danger zone&rdquo; commands "
+        "(like force-pushing or wiping a folder). "
         '<strong class="crb-cost-warn">Costs credits on every reviewed command</strong> '
         "&mdash; treat it as a high-stakes guard, not a daily setting. "
         'Design: <a href="../../docs/tribunal-review-feature-design.md" target="_blank" '
@@ -2230,6 +2248,37 @@ body {
 }
 .tab-btn:hover { color: var(--text); }
 .tab-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+/* Visual-only section grouping inside the tablist. Both are role="presentation"
+   + aria-hidden, so they never enter the a11y tree or the roving-tabindex set. */
+.tab-section-label {
+  align-self: center;
+  flex-shrink: 0;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+  padding: 0 6px 0 8px;
+  user-select: none;
+}
+.tab-divider {
+  flex-shrink: 0;
+  width: 1px;
+  align-self: stretch;
+  margin: 6px 2px;
+  background: var(--border);
+  opacity: 0.6;
+}
+.category-intro {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.category-intro p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
 .tab-panel { display: none; padding: 24px 32px; }
 .tab-panel.active { display: block; }
 .stub {
@@ -4633,6 +4682,7 @@ _SETTINGS_TAB_TEMPLATE = """
 
     {design_checkins}
     {thing_preview}
+    {category_intro}
     {category_groups}
     {security_deny}
   </div>
@@ -8343,20 +8393,27 @@ _PAGE_TEMPLATE = """<!doctype html>
   <p class="page-desc">{description}</p>
   <p class="page-desc"><span class="plugin-name">{plugin_name}</span> &middot; static dashboard, no backend. Edits stay in your browser until you click Download.</p>
   <nav class="tab-bar" role="tablist" aria-label="Dashboard tabs">
+    <span class="tab-section-label" role="presentation" aria-hidden="true">Set up</span>
     <button class="tab-btn" id="tab-overview" data-tab="overview" role="tab" aria-selected="true" aria-controls="panel-overview" title="Overview — start here: what this dashboard is for">Overview</button>
     <button class="tab-btn" id="tab-settings" data-tab="settings" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-settings" title="Settings — choose what Claude can do on its own (deny / ask / allow)">Settings</button>
     <button class="tab-btn" id="tab-pipeline" data-tab="pipeline" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-pipeline" title="Pipeline — the safety checks every command passes through">Pipeline</button>
-    <button class="tab-btn" id="tab-install" data-tab="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-install" title="Install &amp; Update — set up or upgrade this plugin">Install &amp; Update</button>
     <button class="tab-btn" id="tab-simulator" data-tab="simulator" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-simulator" title="Preview a review — see how a command would be judged before you run it">Preview a review</button>
-    <button class="tab-btn" id="tab-learn" data-tab="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-learn" title="Learn — plain-English explainers for each concept">Learn</button>
+    <span class="tab-divider" role="presentation" aria-hidden="true"></span>
+    <span class="tab-section-label" role="presentation" aria-hidden="true">Look back</span>
     <button class="tab-btn" id="tab-saga" data-tab="saga" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-saga" title="Review log — past decisions the reviewer panel made (Sága)">&#9878; Review log</button>
-    <button class="tab-btn" id="tab-commands" data-tab="commands" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-commands" title="Commands — ready-to-run slash-command playbooks">Commands</button>
-    <button class="tab-btn" id="tab-trees" data-tab="trees" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-trees" title="Guidance — decision trees and best practices">Guidance</button>
-    <button class="tab-btn" id="tab-activity" data-tab="activity" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-activity" title="Activity — what Claude is doing right now (runs &amp; worktrees)">Activity</button>
-    <button class="tab-btn" id="tab-heimdall" data-tab="heimdall" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-heimdall" title="Heimdall — alerts your guardrails caught at the perimeter">Heimdall</button>
+    <button class="tab-btn" id="tab-activity" data-tab="activity" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-activity" title="Run feed — what Claude is doing right now: runs &amp; worktrees (Sleipnir)">Run feed</button>
+    <button class="tab-btn" id="tab-heimdall" data-tab="heimdall" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-heimdall" title="Perimeter alerts — what your guardrails caught at the edge (Heimdall)">Perimeter alerts</button>
     <button class="tab-btn" id="tab-vidarr" data-tab="vidarr" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-vidarr" title="Security log — a record of your permission changes (Víðarr)">Security log</button>
     <button class="tab-btn" id="tab-norns" data-tab="norns" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-norns" title="Lineage — how your plugins connect and depend on each other (Norns)">Lineage</button>
-    <button class="tab-btn" id="tab-bifrost" data-tab="bifrost" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-bifrost" title="Install a plugin — guided steps to add a plugin (Bifröst bridge)">Install a plugin</button>
+    <span class="tab-divider" role="presentation" aria-hidden="true"></span>
+    <span class="tab-section-label" role="presentation" aria-hidden="true">Learn</span>
+    <button class="tab-btn" id="tab-learn" data-tab="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-learn" title="Learn — plain-English explainers for each concept">Learn</button>
+    <button class="tab-btn" id="tab-commands" data-tab="commands" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-commands" title="Commands — ready-to-run slash-command playbooks">Commands</button>
+    <button class="tab-btn" id="tab-trees" data-tab="trees" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-trees" title="Guidance — decision trees and best practices">Guidance</button>
+    <span class="tab-divider" role="presentation" aria-hidden="true"></span>
+    <span class="tab-section-label" role="presentation" aria-hidden="true">Add to your repo</span>
+    <button class="tab-btn" id="tab-install" data-tab="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-install" title="Install &amp; Update — wire RavenClaude into GitHub Copilot CLI">Install &amp; Update</button>
+    <button class="tab-btn" id="tab-bifrost" data-tab="bifrost" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-bifrost" title="Add plugin — guided steps to install a plugin into Claude Code (Bifröst bridge)">Add plugin</button>
   </nav>
 </header>
 
