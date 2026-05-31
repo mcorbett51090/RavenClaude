@@ -1,6 +1,6 @@
 {
   "name": "applied-statistics",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Applied-statistics team — 1 specialist agent (applied-statistician) that answers 'is this difference/trend statistically REAL?' for SMB consulting: which test to use (decision-tree-driven), A/B-test and experiment design (power/MDE, primary + guardrail metrics, pre-registered analysis plans), regression and time-series forecasting review, a causal-inference primer, and statistical QA of dashboard metrics. 5 skills, a 5-doc knowledge bank (a Mermaid test-selection decision tree, a 9-item pitfalls guardrail, experiment-design best practice, 2026 tooling tiers, a causal-inference primer), 4 templates, and 1 advisory anti-pattern hook. Python-first (scipy.stats / statsmodels / pingouin Tier 1; PyMC / bambi / linearmodels Tier 2). Seams cleanly with data-platform: data-platform answers 'is this number correct?'; this plugin answers 'is it real?'. Method-before-library; always report effect size + CI. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"
