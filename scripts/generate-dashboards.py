@@ -6941,9 +6941,12 @@ _JS = r"""
     });
   }
 
-  function applyHash() {
-    const seg = (location.hash || "#/overview").replace(/^#\//, "").split("/");
-    const tab = validTabs.includes(seg[0]) ? seg[0] : "overview";
+  // Core activation — switch the visible page. Runs SYNCHRONOUSLY on click so
+  // navigation never depends on the hashchange event firing (which a sandboxed
+  // preview / some webviews suppress). `sub` carries a deep-link sub-segment
+  // (e.g. #/learn/<concept>).
+  function activate(tab, sub) {
+    if (!validTabs.includes(tab)) tab = "overview";
     setCategory(pageCat[tab] || "setup");
     document.querySelectorAll(".tab-btn").forEach(b => {
       const sel = b.dataset.tab === tab;
@@ -6955,7 +6958,7 @@ _JS = r"""
     document.querySelectorAll(".tab-panel").forEach(p => {
       p.classList.toggle("active", p.dataset.tab === tab);
     });
-    if (tab === "learn" && seg[1]) openConcept(seg[1]);
+    if (tab === "learn" && sub) openConcept(sub);
     if (tab === "saga" && !sagaLoaded) loadSaga();
     if (tab === "activity" && !activityLoaded) loadActivity();
     if (tab === "heimdall" && !heimdallLoaded) loadHeimdall();
@@ -6963,10 +6966,19 @@ _JS = r"""
     if (tab === "norns" && !nornsLoaded) loadNorns();
     if (tab === "pipeline") syncPipelineTab();
   }
+  // Navigate: activate immediately, then reflect the page in the URL hash for
+  // deep-linking + browser back/forward. (The hashchange listener re-applies on
+  // back/forward; the redundant re-activate is idempotent.)
+  function goTo(tab) {
+    activate(tab);
+    if (location.hash !== "#/" + tab) location.hash = "/" + tab;
+  }
+  function applyHash() {
+    const seg = (location.hash || "#/overview").replace(/^#\//, "").split("/");
+    activate(seg[0], seg[1]);
+  }
   document.querySelectorAll(".tab-btn").forEach(b => {
-    b.addEventListener("click", () => {
-      location.hash = "/" + b.dataset.tab;
-    });
+    b.addEventListener("click", () => goTo(b.dataset.tab));
   });
   // Clicking a category reveals its pages and jumps to the first page in it.
   document.querySelectorAll(".cat-btn").forEach(c => {
@@ -6974,9 +6986,12 @@ _JS = r"""
       const cat = c.dataset.cat;
       setCategory(cat);
       const first = catFirst[cat];
-      if (first) location.hash = "/" + first;
+      if (first) goTo(first);
     });
   });
+  // Header "What is this?" link → About, without depending on hashchange.
+  const aboutLink = document.querySelector(".header-about-link");
+  if (aboutLink) aboutLink.addEventListener("click", e => { e.preventDefault(); goTo("about"); });
   // Keyboard navigation for the tablist (WAI-ARIA Authoring Practices "Tabs"):
   // Left/Right/Home/End move between the VISIBLE (active-category) tabs only.
   const tablist = document.querySelector('.tab-bar[role="tablist"]');
@@ -6995,7 +7010,7 @@ _JS = r"""
       else if (e.key === "End") next = tabs.length - 1;
       e.preventDefault();
       const target = tabs[next];
-      location.hash = "/" + target.dataset.tab; // applyHash() syncs aria-selected + tabindex
+      goTo(target.dataset.tab);
       target.focus();
     });
   }
