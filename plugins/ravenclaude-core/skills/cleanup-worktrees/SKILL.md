@@ -5,6 +5,8 @@ description: Remove finished agent worktrees, prune their branches, and surface 
 
 # Skill: cleanup-worktrees
 
+> **Labeling (Sleipnir):** worktrees are "Sleipnir's stables" in user-facing prose (see `ravenclaude-core/CLAUDE.md` → "Sleipnir"); this skill returns Sleipnir to the stable. Labeling only; the mechanics below are unchanged.
+
 ## Procedure
 1. **List.** `git worktree list --porcelain`. Show the user a short table: path, branch, HEAD, dirty?
 2. **Classify each worktree.**

@@ -5,6 +5,8 @@ description: Create an isolated git worktree under .claude/worktrees/ for a sub-
 
 # Skill: new-worktree
 
+> **Labeling (Sleipnir):** in user-facing prose, call this "sending **Sleipnir** to that branch" — the worktree-traversal labeling convention (see `ravenclaude-core/CLAUDE.md` → "Sleipnir"). Labeling only; the mechanics below (`git worktree`) are unchanged.
+
 ## Inputs
 - `role` — one of: `architect`, `backend-coder`, `frontend-coder`, `fullstack-coder`, `tester`.
 - `slug` — short kebab-case identifier of the task (e.g. `auth-refresh`, `nav-redesign`).
