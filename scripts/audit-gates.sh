@@ -643,6 +643,21 @@ mkdir -p "$FM_AGENT"
 printf -- '---\nname: noschema\ndescription: A valid description but no scenario schema.\n---\nbody\n' > "$FM_AGENT/noschema.md"
 rc=0; python3 scripts/check-frontmatter.py --root "$TMP/fm-bad-agent" >/dev/null 2>&1 || rc=$?
 gate "frontmatter (agent missing scenario schema)" must_fail "$rc"
+# must_fail (c): a COMMAND with missing/empty description must be detected — the
+# gate began scanning plugins/*/commands/*.md in v0.78.0 (the 5+-commands-per-
+# plugin build), so the dashboard's Commands tab can never surface a blank card.
+FM_CMD="$TMP/fm-bad-cmd/plugins/x/commands"
+mkdir -p "$FM_CMD"
+printf -- '---\nname: nodesc\n---\nbody\n' > "$FM_CMD/nodesc.md"
+rc=0; python3 scripts/check-frontmatter.py --root "$TMP/fm-bad-cmd" >/dev/null 2>&1 || rc=$?
+gate "frontmatter (command missing description)" must_fail "$rc"
+# A command does NOT need the agent scenario schema — a valid command frontmatter
+# (description only) must PASS even though it lacks scenarios.
+FM_CMD_OK="$TMP/fm-ok-cmd/plugins/x/commands"
+mkdir -p "$FM_CMD_OK"
+printf -- '---\ndescription: A perfectly valid command with just a description.\n---\nbody\n' > "$FM_CMD_OK/ok.md"
+rc=0; python3 scripts/check-frontmatter.py --root "$TMP/fm-ok-cmd" >/dev/null 2>&1 || rc=$?
+gate "frontmatter (valid command, no scenario schema needed)" must_pass "$rc"
 rc=0; python3 scripts/check-frontmatter.py >/dev/null 2>&1 || rc=$?
 gate "frontmatter (real tree)" must_pass "$rc"
 
