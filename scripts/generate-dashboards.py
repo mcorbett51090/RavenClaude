@@ -128,6 +128,7 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         plugin_name=html.escape(plugin_name),
         title=html.escape(title),
         description=html.escape(description),
+        raven_mark=_RAVEN_MARK_DATA_URI,
         css=_CSS,
         overview_html=_render_overview_tab(),
         settings_html=_render_settings_tab(properties, presets),
@@ -2247,8 +2248,21 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   height: 1px;
   background: linear-gradient(90deg, transparent 0%, var(--accent) 50%, transparent 100%);
 }
-.page-header h1 {
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin: 0 0 4px 0;
+}
+.brand-mark {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 6px var(--accent-glow));
+}
+.page-header h1 {
+  margin: 0;
   font-size: 22px;
   letter-spacing: -0.02em;
 }
@@ -8555,7 +8569,10 @@ _PAGE_TEMPLATE = """<!doctype html>
 <body>
 
 <header class="page-header">
-  <h1>{title}</h1>
+  <div class="brand-row">
+    <img class="brand-mark" src="{raven_mark}" width="28" height="28" alt="" aria-hidden="true">
+    <h1>{title}</h1>
+  </div>
   <p class="page-desc">Your control panel for Claude&nbsp;Code guardrails — set what Claude may do, watch what it's doing, and add plugins. <a href="#/about" class="header-about-link">What is this?</a></p>
   <nav class="cat-bar" aria-label="Dashboard categories">
     <button class="cat-btn" type="button" data-cat="setup" aria-pressed="true" title="Set up — Overview, permissions, the safety pipeline, and a review preview">Set up</button>
