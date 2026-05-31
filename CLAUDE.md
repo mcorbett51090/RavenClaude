@@ -6,6 +6,28 @@ This file is Claude Code's entry point. The `@AGENTS.md` import above pulls in t
 
 ---
 
+## Remote-environment PR mechanics (Claude Code on the web) — added 2026-05-31
+
+**In the web/remote execution environment, creating a PR is *always* the GitHub MCP path — never `gh`, never the GitHub API.** A prior session wrongly reported it "couldn't create a PR" after a CLI/API dead-end; this records the one working recipe so that never recurs.
+
+The capability chain here has exactly one live path:
+
+| Path | Works? | Why |
+|---|---|---|
+| `gh` / `hub` CLI | ❌ | Not installed in the container (`command -v gh` → not found) |
+| Direct GitHub API (`curl api.github.com`) | ❌ | Network policy returns `403` |
+| `git push` | ✅ (push only) | Remote is a **local git proxy** (`http://local_proxy@127.0.0.1:.../git/...`), not github.com — moves commits, can't open PRs |
+| **GitHub MCP server** (`mcp__github__*`) | ✅ | The only sanctioned PR path |
+
+**Working recipe:** `git push -u origin <branch>` → **ToolSearch** the deferred schema (`select:mcp__github__list_pull_requests,mcp__github__create_pull_request`) → `list_pull_requests` (dedupe) → `create_pull_request` with `draft:true`.
+
+**Two traps that caused the false "can't create a PR":**
+
+1. **`mcp__github__*` tools are deferred + lazy-loaded.** At session start the github MCP server may show as *"still connecting"* and its tools are name-only (no schema) — calling one directly fails with `InputValidationError`. **Run `ToolSearch` first** (it waits for connecting servers and loads the schema); only declare the capability absent if ToolSearch itself returns nothing. Never infer "tool doesn't exist" from a missing schema.
+2. **A `gh: not found` or API `403` is the *wrong path*, not a missing capability.** Don't generalize a CLI/API failure into "no PR capability." The session-start capability hook says it plainly: *consult it before claiming you "can't" do something.*
+
+**Owner/repo casing:** the git remote reads `mcorbett51090/RavenClaude` (capital R); the MCP scope is `mcorbett51090/ravenclaude` (lowercase). GitHub is case-insensitive, so either works — don't hard-fail on the mismatch.
+
 ## Plan-mode default
 
 For non-trivial changes touching more than two files (or any manifest), enter plan mode first and present a Keep / Update / Deny structure before writing. This matches Matt's documented preference; Cursor/Codex users won't see this guidance and don't need to.
