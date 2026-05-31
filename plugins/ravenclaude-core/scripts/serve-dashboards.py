@@ -684,6 +684,25 @@ def _read_nidhoggr(repo_root: Path) -> dict:
     return out
 
 
+def _read_sleipnir(project_root: Path) -> dict:
+    """Sleipnir's stables — the current git worktrees under .claude/worktrees/.
+    Read-only directory listing (names + count), no git invocation. Reads only
+    under project_root (no root reference) so this is byte-identical in the root
+    and bundled plugin server — keep the two copies in sync (the parity gate
+    guards endpoint NAMES; this helper is duplicated, so edit both). Any failure
+    (missing dir, unreadable) degrades to an empty stable, never raises."""
+    out: dict = {"worktrees": [], "count": 0}
+    wt_dir = project_root / ".claude" / "worktrees"
+    if wt_dir.is_dir():
+        try:
+            names = sorted(d.name for d in wt_dir.iterdir() if d.is_dir())
+        except OSError:
+            names = []
+        out["worktrees"] = names
+        out["count"] = len(names)
+    return out
+
+
 class DashboardHandler(SimpleHTTPRequestHandler):
     """SimpleHTTPRequestHandler (serving the plugin dir) + the dashboard endpoints."""
 
@@ -717,6 +736,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             or self.path.startswith("/__vidarr")
             or self.path.startswith("/__norns")
             or self.path.startswith("/__nidhoggr")
+            or self.path.startswith("/__sleipnir")
             or self.path.startswith("/__runs")
         ):
             self.send_response(200)
@@ -748,6 +768,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if self.path.startswith("/__nidhoggr"):
             self._handle_nidhoggr()
+            return
+        if self.path.startswith("/__sleipnir"):
+            self._handle_sleipnir()
             return
         if self.path.startswith("/__runs"):
             self._handle_runs()
@@ -1097,6 +1120,16 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
         self._json(200, _read_nidhoggr(PROJECT_ROOT))
+
+    def _handle_sleipnir(self):
+        """GET /__sleipnir — Sleipnir's stables: the current git worktrees under
+        .claude/worktrees/ (names + count). Read-only; same Origin/Host CSRF guard
+        as /__read. (Mirror of the root dev server's /__sleipnir with REPO_ROOT →
+        PROJECT_ROOT — kept in lockstep per the parity gate.)"""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        self._json(200, _read_sleipnir(PROJECT_ROOT))
 
     def _json(self, code: int, payload: dict):
         body = json.dumps(payload).encode("utf-8")
