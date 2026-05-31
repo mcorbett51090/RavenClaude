@@ -2186,6 +2186,39 @@ sys.exit(0)
 PY
 gate "nidhoggr reader present in both server copies" must_pass "$rc"
 
+echo "── Gate 42: Bifröst install-wizard (verify logic + no-command-exec) ───────"
+# Behavioral test: drives the REAL bifrostVerify from the generated dashboard.html
+# (success→green, failure→red+fault-expand, empty→amber) AND asserts the verify
+# path executes no command — the §3.6 "copy-paste only, never invokes a slash
+# command" acceptance criterion, checked structurally.
+if command -v node >/dev/null 2>&1; then
+  rc=0; node scripts/check-bifrost-render.mjs >/dev/null 2>&1 || rc=$?
+  gate "bifrost render (real dashboard.html)" must_pass "$rc"
+  # must_fail: a drifted dashboard whose failure verdict is broken — the bad-path
+  # `bifrostSetBadge(step, "red")` is rewritten to "amber", so a known-failure
+  # paste no longer turns the badge red (the render test asserts step-2 → red).
+  BF_BAD="$TMP/dashboard-bifrost-drift.html"
+  python3 -c "p='plugins/ravenclaude-core/dashboard.html'; o='$TMP/dashboard-bifrost-drift.html'; s=open(p,encoding='utf-8').read(); s=s.replace('bifrostSetBadge(step, \"red\");','bifrostSetBadge(step, \"amber\");'); open(o,'w',encoding='utf-8').write(s)"
+  rc=0; node scripts/check-bifrost-render.mjs "$BF_BAD" >/dev/null 2>&1 || rc=$?
+  gate "bifrost render (drifted: failure regex broken)" must_fail "$rc"
+else
+  echo "  (skipped — node not available; CI has node)"
+fi
+# Structural: the generated Bifröst tab must NOT fetch a /__ endpoint or invoke a
+# command — confirm the wizard is purely client-side copy-paste.
+rc=0
+python3 - <<'PY' || rc=$?
+import re, sys
+html = open("plugins/ravenclaude-core/dashboard.html", encoding="utf-8").read()
+# Extract the bifrost JS region (between the wizard comment and the next section).
+m = re.search(r"Bifröst — install-bridge wizard.*?Hydrate command-review config", html, re.DOTALL)
+assert m, "bifrost JS block not found"
+blob = m.group(0)
+assert "fetch(" not in blob, "Bifröst must not fetch — it is copy-paste only"
+sys.exit(0)
+PY
+gate "bifrost tab issues no fetch / runs no command" must_pass "$rc"
+
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"

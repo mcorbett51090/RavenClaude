@@ -22,6 +22,8 @@ Don't let them drift toward each other.
 
 `jq` and `python3` are required for the CI workflows and the layout-enforcement hook. Both are present in the devcontainer.
 
+For a guided, copy-paste install (with per-step verification and a "if the bridge is down…" troubleshooting accordion), open the dashboard's **Install a plugin (Bifröst)** tab (`/dashboard` → `#/bifrost`) — it walks the four steps above and lights each one as you paste back the command output.
+
 ## Repo layout
 
 ```
