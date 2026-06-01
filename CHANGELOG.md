@@ -2,6 +2,58 @@
 
 All notable changes to the RavenClaude marketplace and its plugins. Format loosely follows [Keep a Changelog](https://keepachangelog.com/). The marketplace version (`metadata.version` in `.claude-plugin/marketplace.json`) bumps when the catalog shape or cross-plugin contracts change; individual plugins have their own semver tracked in their `plugin.json`.
 
+## ravenclaude-core 0.101.0 — 2026-06-01 (bundled P0–P2 gap closure: onboarding + evals + knowledge-health + security floor + doctor)
+
+A single bundled gap-closure PR. New consumer-facing surfaces, one HIGH-severity security fix, one consumer-visible default change.
+
+**New onboarding surface (P0):**
+
+- `GETTING_STARTED.md` at repo root — 10-minute canonical end-to-end walkthrough with one new orienting Mermaid diagram and two worked examples (a domain-neutral docs dispatch, and a Power Platform posture configuration). Linked from `README.md` via a new "First Workflow in 10 Minutes" callout.
+- `STRATEGY.md` stub — placeholder for public-core / private-extension direction; content pending Matt's direction.
+- `docs/best-practices/diagrams-in-docs.md` — new "Root-doc summary diagram pattern" section codifying one orienting Mermaid in root docs + link out for depth.
+
+**Evals harness (P1):**
+
+- New `evals/` directory: `README.md`, `rubric.md`, `runner.py` (pure-stdlib scorer reading `.ravenclaude/runs/<id>/`), 5 case YAMLs (3 core + 2 power-platform), gitignored `results/`.
+- `docs/evaluation.md` — long-form interpretation guide.
+
+**Knowledge freshness (P1):**
+
+- `plugins/ravenclaude-core/scripts/knowledge-health.py` + `skills/knowledge-health/SKILL.md` — sweeps every `plugins/*/knowledge/**.md`, groups by stale / due_soon / untracked / fresh.
+- `checklists/release-checklist.md` — new Step 1.5 (run knowledge-health) and Step 1.6 (confirm the `security_deny` floor invariant via the new unit test).
+
+**Security (P1) — one HIGH fix + one default flip + audit artifact:**
+
+- **HIGH** — `plugins/ravenclaude-core/scripts/apply-comfort-posture.py`: `security_deny` now always unions `DEFAULT_SECURITY_DENY`, never replaces. A user saving `security_deny: []` from the dashboard cannot wipe the security floor. Regression test in `tests/fixtures/test_security_deny_floor.py` (6 cases, all pass).
+- **CONSUMER-VISIBLE DEFAULT CHANGE** — `plugins/ravenclaude-core/templates/comfort-posture-balanced.yaml` flips `shell_package_install` from `allow` to `ask` at the project layer. Supply-chain guard. Consumers on `/plugin marketplace update` will see one new prompt per `npm install` / `pip install`; opt back to `allow` from the dashboard if desired.
+- `SECURITY.md` — new §"Defaults and floors" documenting the non-removable floor, Codespace port-visibility expectation, CSRF posture, and the `shell_package_install` change.
+- `docs/security/2026-06-dashboard-and-posture-apply-review.md` — full 4-seat panel security review of the dashboard server + posture-apply pipeline; 6 findings (1 HIGH fixed, 1 MEDIUM as default change, 4 logged follow-ups).
+
+**Doctor + worktree helpers + CI schemas (P2):**
+
+- `scripts/ravenclaude doctor` — new subcommand. Checks `.repo-layout.json` parse, posture/settings presence, knowledge-health, layout-gate.
+- `scripts/worktree-new.sh` + `scripts/worktree-clean.sh` — thin wrappers for sub-agent dispatch isolation.
+- `schemas/plugin.schema.json` + `schemas/marketplace.schema.json` + `.github/workflows/validate-schemas.yml` — new lenient CI gate catching gross manifest defects (missing required fields, malformed semver).
+
+**Self-referential workflow (P2):**
+
+- `docs/best-practices/self-referential-improvement.md` — "Use RavenClaude to improve RavenClaude" pattern with one worked example.
+
+**Manifest + layout:**
+
+- `.repo-layout.json` — adds `GETTING_STARTED.md`, `STRATEGY.md`, `evals/**`, `schemas/**`, `tests/fixtures/**` to `allowed_globs`.
+- `.github/workflows/validate-marketplace.yml` — `paths:` triggers extended to cover the new top-level files.
+- `scripts/check-md-links.py` — extended root-files tuple to include `GETTING_STARTED.md` and `STRATEGY.md`.
+
+**Deferred follow-ups (intentionally NOT in this PR — tracked):**
+
+- CSRF token + Codespace port-visibility check + posture-file size cap in `serve-dashboards.py` — see `docs/security/2026-06-dashboard-and-posture-apply-review.md` findings #3–#6.
+- `audit-gates.sh` fixtures for the new schema-validation gate (gate ships without the meta-test; will land in a follow-up).
+- Knowledge-health dashboard card under the "Look back" tab — script is ready; UI integration deferred.
+- `STRATEGY.md` content — Matt-preference call.
+
+**Migration for consumers:** `/plugin marketplace update ravenclaude` + `/reload-plugins`. One new prompt to expect: the first time the agent runs `npm install` / `pip install` you'll see an ask-prompt instead of silent execution. Approve or flip the category back to `allow` from `/dashboard`.
+
 ## ravenclaude-core 0.27.1 — 2026-05-26 (fix: `thing` skill load + frontmatter gate + dashboard docs)
 
 Bug fix + hardening, prompted by a consumer install under GitHub Copilot.
