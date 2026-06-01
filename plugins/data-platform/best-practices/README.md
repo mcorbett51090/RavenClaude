@@ -6,12 +6,13 @@ Named, citable rules for the `data-platform` plugin's four-layer dashboard engag
 
 ## Index
 
-_19 rules. Each file is one named, citable rule; read and apply it whole._
+_20 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
 | [`connector-avoid-per-viewer-and-per-row-pricing-traps.md`](./connector-avoid-per-viewer-and-per-row-pricing-traps.md) | Pattern — the plugin's standing stance for SMB consulting (4-6 engagements/year); deviate only when a specific client constraint (handoff, brand, compliance) outweighs the cost math, and say so in writing. | The two pricing models that quietly destroy a fixed-fee consulting margin are **per-viewer** BI licensing and **per-row (MAR/event)** ELT billing — bo… |
 | [`connector-document-the-handoff-at-design-time.md`](./connector-document-the-handoff-at-design-time.md) | Absolute rule — an ELT pipeline (or custom connector) ships with a written handoff plan, or it doesn't ship. A pipeline with no exit plan is a churn vector. | A consulting dashboard engagement ends; the data pipeline does not. |
+| [`connector-handle-source-schema-drift.md`](./connector-handle-source-schema-drift.md) | Absolute rule — a pipeline that ingests a changed source shape with no drift policy is silently corrupting the warehouse; detect-and-adapt or detect-and-halt, never don't-detect. | A SaaS source renames/drops a column or changes a type; a connector with no drift policy silently drops or coerces it and the dashboard goes wrong wee… |
 | [`connector-incremental-with-backfill.md`](./connector-incremental-with-backfill.md) | Pattern — strong default for every custom or configured connector; deviate only for tables small enough that full-refresh is cheaper than the cursor bookkeeping. | A connector that re-pulls the full source on every run works on a 100-row dev account and falls over on a 10M-row production tenant — it blows the rat… |
 | [`connector-webhooks-for-events-batch-for-history.md`](./connector-webhooks-for-events-batch-for-history.md) | Pattern — strong default for event-shaped sources (Stripe, Shopify, webhook-capable SaaS); deviate only when the source has no webhook surface or real-time signals aren't part of the deliverable. | Event-shaped sources (Stripe charges/refunds, Shopify orders/inventory, anything with a webhook surface) have *two* faces, and forcing them into one p… |
 | [`dashboard-set-data-freshness-slas.md`](./dashboard-set-data-freshness-slas.md) | Pattern — strong default for every engagement; deviate only when a documented real-time requirement justifies streaming. | "How fresh is this number?" is the question every dashboard implicitly answers and most never state. |

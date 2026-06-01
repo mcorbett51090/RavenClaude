@@ -215,6 +215,51 @@ flowchart TD
 
 ---
 
+## Decision Tree: Pipeline failure — what broke, and what's the recovery move?
+
+**When this applies:** a scheduled ELT sync failed, alerted, or produced a wrong/stale number, OR a client asks "the dashboard is wrong/empty — what happened?" This tree triages the failure to a class and routes to the recovery move; it does **not** replace the per-source runbook (it tells you which runbook section to open). Observable inputs: the sync's exit signal (error vs success-but-wrong), the error class (auth / rate-limit / schema / data-quality), and whether the warehouse holds a last-good state to recover from.
+
+**Last verified:** 2026-06-01 against [`ipaas-connector-landscape-2026.md`](ipaas-connector-landscape-2026.md) and the [`../skills/data-quality-tests/SKILL.md`](../skills/data-quality-tests/SKILL.md) taxonomy. The failure-class taxonomy is stable; vendor-specific error codes are `[verify-at-build]`.
+
+```mermaid
+flowchart TD
+    START[Pipeline failed or dashboard is wrong] --> Q0{Did the sync error, or succeed-but-wrong?}
+    Q0 -->|Succeeded but data wrong/stale| DQ{dbt test or freshness check failing?}
+    Q0 -->|Errored / did not complete| Q1{What error class?}
+    DQ -->|YES — a test caught it| QUARANTINE["Halt the mart build<br/>investigate the failing test, fix at source<br/>NEVER patch the number in the mart"]
+    DQ -->|NO — no test caught it| GAP["Coverage gap — add the test first<br/>then treat as caught (data-quality-tests skill)"]
+    Q1 -->|Auth / token expired / 401-403| AUTH["Re-auth: refresh OAuth token / rotate key<br/>QBO 100-day refresh, Salesforce session<br/>then re-run from last cursor"]
+    Q1 -->|Rate limit / 429 / quota| RATE["Back off + resume — do NOT full-refresh<br/>honor Retry-After; lower concurrency<br/>(QBO 10 req/s, HubSpot 4/s Search)"]
+    Q1 -->|Schema drift / column or type changed| SCHEMA["Classify the drift<br/>additive: auto-adopt · narrowing/rename/key: HALT<br/>(connector-handle-source-schema-drift BP)"]
+    Q1 -->|Source outage / 5xx / timeout| TRANSIENT{Idempotent + has cursor?}
+    TRANSIENT -->|YES| REPLAY["Replay from last cursor — safe<br/>incremental state makes this a no-op retry"]
+    TRANSIENT -->|NO| BACKFILL["Bounded backfill from last-good watermark<br/>(connector-incremental-with-backfill BP)"]
+```
+
+**Rationale per leaf:**
+- *QUARANTINE* — a succeeded-but-wrong sync is the dangerous case; the fix is upstream (fix the source / staging cast), never an override in the mart cell — that's the data-platform equivalent of the compliance "fix-the-source-not-the-return" rule. Halt the mart so the wrong number never publishes.
+- *GAP* — if nothing caught it, the test coverage is the defect; add the test (so it catches the *next* occurrence), then proceed as caught. House discipline: no test, no merge.
+- *AUTH* — token/credential expiry is the single most common recurring failure on handed-off pipelines; the recovery is re-auth then resume from cursor, not a full re-pull.
+- *RATE* — a 429 is a *pacing* problem, not a data problem; full-refreshing on a rate-limit error makes it worse and can trip the 2026 Fivetran deletes-count-as-MAR cost cliff. Honor `Retry-After`, lower concurrency, resume.
+- *SCHEMA* — routes to the schema-drift BP's classification table; the recovery branches on drift kind (auto-adopt additive, halt on narrowing/rename/key change).
+- *REPLAY* — an idempotent connector with a cursor turns a transient source outage into a safe no-op retry; this is *why* `connector-incremental-with-backfill` is a standing default.
+- *BACKFILL* — without idempotency/cursor, recover by re-running a bounded window from the last-good watermark, not the whole history.
+
+**Tradeoffs summary:**
+
+| Failure class | Recovery move | Re-pull scope | Cost risk if mishandled |
+|---|---|---|---|
+| Succeeded-but-wrong | Halt mart, fix source | none (don't write) | Wrong number ships to client |
+| Auth / 401 | Re-auth, resume from cursor | incremental only | Repeated full-pull on each expiry |
+| Rate limit / 429 | Back off, resume | incremental only | MAR cost cliff (Fivetran) |
+| Schema drift | Classify → adopt or halt | depends on kind | Silent column drop / type corruption |
+| Transient 5xx (idempotent) | Replay from cursor | last cursor | none — safe retry |
+| Transient 5xx (not idempotent) | Bounded backfill | last-good window | Duplicate rows / double-count |
+
+**Escalation:** a PII/PHI source that failed mid-load → loop in `ravenclaude-core/security-reviewer` before replaying (don't re-expose partial sensitive data); a structural re-plan (key change, source split) → back to `etl-pipeline-engineer` for topology, `connector-developer` if a custom source needs rework.
+
+---
+
 ## See also
 
 - [`../skills/stack-selection/SKILL.md`](../skills/stack-selection/SKILL.md) — the Case A/B/C/D tree these layer-trees sit under
