@@ -2,6 +2,11 @@
 
 **Goal (user directive, 2026-06-01):** flesh out best-practices + decision trees across all 16 plugins to cover **98% of situations**. Process per plugin/cluster: **Panel 1** (research + plan) → **Panel 2** (independent research + gap analysis) → **Panel 3** (tiebreak where the two disagree) → build → PR. Iterate until panels agree. Persist across token resets — this file is the durable state.
 
+## ⚠️ BUILD-ORDER CONSTRAINT — the mermaid renderer is unavailable in this container (2026-06-01)
+`scripts/render-trees.py` needs `npx @mermaid-js/mermaid-cli` + a working headless Chromium to render `## Decision Tree` Mermaid blocks → committed SVGs. **Verified this session:** `mmdc` not installed; `npx` fetches the CLI but the puppeteer/Chromium render step fails with an in-browser parse error. `render-trees --check` (CI + local) compares committed SVGs to a manifest and will FAIL on any new tree whose SVG isn't rendered. **Consequence:** any PR that ADDS a `## Decision Tree` cannot pass the gate here right now. **Strategy:** build all BP-only items first (they need no SVG); batch every tree-bearing item for a session where the renderer works (or render them then). microsoft-graph PR #176 succeeded earlier because the renderer was working that session — it has since stopped. This is an environment limitation, not a content blocker; the tree CONTENT is authored in the campaign spec regardless.
+
+**Tree-deferred queue (author content, render+PR when mmdc works):** power-platform (PBI-deploy/refresh, custom-connector), regulatory-compliance (which-return, Bermuda), claude-app (document-input), finance (3 trees), data-platform (pipeline-failure-recovery), microsoft-fabric (data-security-plane), web-design (5 trees), ai-coding-model-guidance (reasoning-vs-bigger-model). BP-only items ship now.
+
 ## Operating definition
 - **"98% coverage"** = the review panels cannot name a *material, common* situation in the plugin's domain that lacks a best-practice rule or a decision-tree leaf. Rare/exotic edge cases are the 2% tail, explicitly out of scope.
 - **"Agreement"** = Panel 2's gap analysis surfaces no P0/P1 gap that Panel 1 missed (P2 polish is acceptable to defer). Disagreement on a *material* gap → Panel 3 tiebreak (binding).
@@ -105,6 +110,28 @@
 8. **finance** (C3, mild): keep or cut the accrual-cutoff BP?
 9. **applied-statistics** (C3, mild): keep or cut the FWER/FDR tree (duplicates existing BP)?
 10. **salesforce** (C4, mild): add a guest-user/Experience-Cloud rule, or hold (security seam)?
+
+## ★ PANEL 3 BINDING VERDICTS (2026-06-01) — authoritative build spec ★
+
+**CUT entirely (not built):** m365-copilot eval-BP + adaptive-cards-BP + eval-tree (eval is shipped skill + house opinion #15; cards are agent prose) · microsoft-fabric RTI-alerting tree (agent prose, linear) · finance accrual-cutoff BP (dup of month-end-close skill) · applied-statistics FWER/FDR tree (dup of named BP, depth-1) · data-platform row-count BP (owned by data-quality-tests skill) · ai-coding 2 of 3 trees.
+
+**BUILD — binding final list:**
+| Plugin | Build spec | Status |
+|---|---|---|
+| microsoft-graph | 3 BP + 2 trees | ✅ MERGED #176 |
+| power-platform | bi-refresh-and-gateway-reliability BP, connector-custom-connector-auth-and-policy BP, PBI-deploy/refresh tree, custom-connector tree | ✅ built (branch feat/power-platform-connector-bi-coverage) |
+| regulatory-compliance | reporting-classify-the-entity BP, bermuda-state-the-capital-regime BP, which-return tree, Bermuda class/capital tree | TODO |
+| claude-app-engineering | multimodal-extract-vs-native BP, model-migrate-behind-eval-gate BP, document-input tree | TODO |
+| finance | audit-classify-deficiency-severity BP + 3 trees (rev-rec timing, deficiency CD/SD/MW, treasury cash-shortfall) | TODO |
+| azure-cloud | data-tier-pick-the-azure-database BP, migration-assess-then-iac BP (NO trees) | TODO |
+| data-platform | connector-handle-source-schema-drift BP + 1 pipeline-failure-recovery tree | TODO |
+| microsoft-fabric | warehouse-scd-and-merge-patterns BP, warehouse-security-rls-cls-masking BP, rti-retention-and-caching-policy BP, data-security-plane tree (RTI-alerting tree CUT) | TODO |
+| tableau | viz-densification-and-domain-padding BP, viz-analytics-pane-statistics-validity BP | TODO |
+| web-design | 5 trees: IA, conversion, responsive breakpoint-vs-container, CMS, motion/animation-mechanism | TODO |
+| ai-coding-model-guidance | 1 tree (reasoning-vs-bigger-model) + 2 in-file durable-reasoning sections, all in cross-tool-model-lineup-2026.md, NO best-practices/ dir | TODO |
+| salesforce | security-guest-user-and-experience-cloud-sharing BP (domain rubric; defers verdict to core) | TODO |
+
+No build (comprehensive): edtech-partner-success, ravenclaude-core, applied-statistics, microsoft-365-copilot.
 
 ## FULLY AGREED (no tiebreak — safe to build now)
 - **microsoft-graph**: 3 BP + 2 trees ✅ BUILT (PR #176).
