@@ -57,6 +57,16 @@
         ]
       },
       {
+        "matcher": "WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-web-access.sh",
+            "comment": "Website allow/deny enforcement. Reads .ravenclaude/web-access.yaml (+ the per-session allow file): a whitelisted domain auto-allows with no prompt, a blacklisted domain is blocked (exit 2), an unlisted domain falls through to the normal per-domain prompt. Fail-safe: absent config / missing jq -> no-op (ask as normal). The deterministic backstop for the agent-surfaced once/session/permanent/deny choice."
+          }
+        ]
+      },
+      {
         "matcher": "AskUserQuestion",
         "hooks": [
           {

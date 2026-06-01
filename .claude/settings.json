@@ -88,6 +88,16 @@
         ]
       },
       {
+        "matcher": "WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/guard-web-access.sh",
+            "comment": "Marketplace-dev mirror of the plugin's WebFetch entry. Website allow/deny enforcement: whitelisted domain auto-allows, blacklisted blocks (exit 2), unlisted falls through to the prompt. Reads .ravenclaude/web-access.yaml; no-ops if absent."
+          }
+        ]
+      },
+      {
         "matcher": "AskUserQuestion",
         "hooks": [
           {

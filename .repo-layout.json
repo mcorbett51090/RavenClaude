@@ -19,6 +19,7 @@
     ".repo-layout.json",
     ".ravenclaude/comfort-posture.yaml",
     ".ravenclaude/plugins/*.yaml",
+    ".ravenclaude/web-access.yaml",
     ".claude-plugin/marketplace.json",
     ".claude/settings.json",
     ".claude/worktrees/**",
@@ -58,7 +59,7 @@
   ],
   "forbidden_globs": [],
   "suggestions": {
-    "Power Platform content inside ravenclaude-core": "Move to plugins/power-platform/ — ravenclaude-core stays domain-neutral.",
+    "Power Platform content inside ravenclaude-core": "Move to plugins/power-platform/ \u2014 ravenclaude-core stays domain-neutral.",
     "Finance / EdTech / Salesforce content inside ravenclaude-core": "Create a new domain plugin under plugins/<domain>/ and add it to .claude-plugin/marketplace.json.",
     "New top-level directory": "Add the glob to .repo-layout.json allowed_globs first, with rationale in the PR description."
   }
