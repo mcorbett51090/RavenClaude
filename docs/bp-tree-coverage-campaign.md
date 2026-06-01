@@ -131,14 +131,14 @@
 | microsoft-fabric | warehouse-scd-and-merge-patterns BP, warehouse-security-rls-cls-masking BP, rti-retention-and-caching-policy BP, data-security-plane tree (RTI-alerting tree CUT) | ✅ MERGED #180 (BP) + #190 (tree) |
 | tableau | viz-densification-and-domain-padding BP, viz-analytics-pane-statistics-validity BP | ✅ MERGED #179 |
 | web-design | 5 trees: IA, conversion, responsive breakpoint-vs-container, CMS, motion/animation-mechanism | ✅ MERGED #184 |
-| ai-coding-model-guidance | 1 tree (reasoning-vs-bigger-model) + 2 in-file durable-reasoning sections, all in cross-tool-model-lineup-2026.md, NO best-practices/ dir | 🔄 PR #191 (CI green-pending; final item) |
+| ai-coding-model-guidance | 1 tree (reasoning-vs-bigger-model) + 2 in-file durable-reasoning sections, all in cross-tool-model-lineup-2026.md, NO best-practices/ dir | ✅ MERGED #191 |
 | salesforce | security-guest-user-and-experience-cloud-sharing BP (domain rubric; defers verdict to core) | ✅ MERGED #181 |
 
 No build (comprehensive): edtech-partner-success, ravenclaude-core, applied-statistics, microsoft-365-copilot.
 
 ## ★ CAMPAIGN COMPLETE (2026-06-01) ★
 
-Every item in Panel 3's binding build list has been built and shipped. **15 PRs merged (#176–#190) + #191 in flight (CI green-pending, the final item)** across the BP-first wave and the tree batch:
+Every item in Panel 3's binding build list has shipped. **16 PRs merged (#176–#191)** across the BP-first wave and the tree batch:
 
 - **Best-practices wave (BP-only, renderer-independent):** #176 microsoft-graph · #177 power-platform · #178 azure-cloud · #179 tableau · #180 microsoft-fabric · #181 salesforce · #182 claude-app · #183 finance + regulatory-compliance.
 - **Tree batch (after `npx puppeteer browsers install chrome` unblocked the Mermaid renderer):** #184 web-design (5) · #185 data-platform (BP+tree) · #186 reg-compliance (2) · #187 claude-app (1) · #188 power-platform (2) · #189 finance (3) · #190 microsoft-fabric (1) · #191 ai-coding (1 tree + 2 in-file reasoning sections).
