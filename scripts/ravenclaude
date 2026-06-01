@@ -426,6 +426,56 @@ cmd_doctor() {
     fi
   fi
 
+  # 6. Plugin version alignment — every plugin.json version matches its
+  #    marketplace.json entry. Reuses scripts/check-marketplace-claims.py as a
+  #    subprocess (single source of truth for marketplace drift checks).
+  if [ -x "$project/scripts/check-marketplace-claims.py" ]; then
+    if (cd "$project" && python3 scripts/check-marketplace-claims.py >/dev/null 2>&1); then
+      ok "plugin version alignment: all plugins match marketplace.json"
+    else
+      printf '\033[31mx\033[0m plugin version alignment: plugin.json/marketplace.json drift detected - run scripts/check-marketplace-claims.py\n'
+      fail=$((fail+1))
+    fi
+  fi
+
+  # 7. Worktree + run-artifact age — surface aging artifacts before they
+  #    become confusing. Worktree >90 days → fail (likely abandoned); >30 days
+  #    → warn. Run dirs >90 days → warn (archival hint, never fail — may
+  #    contain partner-confidential artifacts the user should hand-archive).
+  if [ -d "$project/.claude/worktrees" ]; then
+    local wt_old=0 wt_warn=0
+    for wt in "$project"/.claude/worktrees/*/; do
+      [ -d "$wt" ] || continue
+      local age_days
+      age_days="$(python3 -c "import os,time; print(int((time.time()-os.path.getmtime('$wt'))/86400))" 2>/dev/null)"
+      if [ "${age_days:-0}" -gt 90 ]; then wt_old=$((wt_old+1))
+      elif [ "${age_days:-0}" -gt 30 ]; then wt_warn=$((wt_warn+1))
+      fi
+    done
+    if [ "$wt_old" -gt 0 ]; then
+      printf '\033[31mx\033[0m worktree hygiene: %s worktree(s) > 90 days old; run scripts/worktree-clean.sh --status\n' "$wt_old"
+      fail=$((fail+1))
+    elif [ "$wt_warn" -gt 0 ]; then
+      warn "worktree hygiene: ${wt_warn} worktree(s) > 30 days old"; warning=$((warning+1))
+    else
+      ok "worktree hygiene: no aging worktrees"
+    fi
+  fi
+  if [ -d "$project/.ravenclaude/runs" ]; then
+    local run_old=0
+    for r in "$project"/.ravenclaude/runs/*/; do
+      [ -d "$r" ] || continue
+      local age_days
+      age_days="$(python3 -c "import os,time; print(int((time.time()-os.path.getmtime('$r'))/86400))" 2>/dev/null)"
+      if [ "${age_days:-0}" -gt 90 ]; then run_old=$((run_old+1)); fi
+    done
+    if [ "$run_old" -gt 0 ]; then
+      warn "run-artifact hygiene: ${run_old} run dir(s) > 90 days old (archive if no longer needed)"; warning=$((warning+1))
+    else
+      ok "run-artifact hygiene: no aging runs"
+    fi
+  fi
+
   printf -- '----\n'
   if [ "$fail" -eq 0 ] && [ "$warning" -eq 0 ]; then
     ok "doctor: all checks passed"
