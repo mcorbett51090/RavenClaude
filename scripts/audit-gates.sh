@@ -74,6 +74,24 @@ gate() {
   fi
 }
 
+# A node/npx-dependent gate could not run because the interpreter is absent.
+# In CI this is a HARD FAILURE (the render/round-trip .mjs gates run ONLY inside
+# audit-gates.sh — there is no standalone CI step and no actions/setup-node — so
+# a silent skip would let a broken gate ship green). Locally (offline dev) it is
+# a LOUD skip: a skip is never a pass. Mirrors the Gate 10 / actionlint pattern.
+# Usage: _skip_or_fail "<gate name>" "<interpreter, e.g. node>"
+_skip_or_fail() {
+  local gate_name="$1" interp="${2:-node}"
+  if [[ -n "${CI:-}" ]]; then
+    printf '  ✗ %-40s %s\n' "$gate_name" "UNRUNNABLE in CI — '$interp' not found (CI must provide it)"
+    FAIL=$((FAIL + 1))
+    FAILED_GATES+=("$gate_name [unrunnable-in-CI: no $interp]")
+  else
+    echo "  ‼ $gate_name SKIPPED — '$interp' not available (offline dev)."
+    echo "    THIS IS NOT A PASS. Re-run where $interp is present (CI, or a networked host)."
+  fi
+}
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Gate fixtures
 # ─────────────────────────────────────────────────────────────────────────────
@@ -166,6 +184,30 @@ for c in "${gd_pass[@]}"; do
 done
 
 echo
+echo "── Gate 5b: check-layout.py (the CI layout matcher, full-tree + diff) ─────"
+# The CI workflow validate-layout.yml calls scripts/check-layout.py for both its
+# diff check and its full-tree scan. Before this gate that matcher had NO
+# bidirectional fixture (Gate 6 tests the enforce-layout.sh HOOK, a different
+# matcher) — so the central layout-enforcement code could stop gating while CI
+# stayed green (two-panel audit 2026-05-31, P1). Prove both directions against a
+# throwaway git repo (check-layout.py shells out to git ls-files / git diff).
+CL="$TMP/cl-repo"
+mkdir -p "$CL/docs"
+git -C "$CL" init -q
+printf '{ "allowed_globs": ["docs/**", ".repo-layout.json"], "forbidden_globs": [], "suggestions": {} }\n' > "$CL/.repo-layout.json"
+printf 'ok\n' > "$CL/docs/ok.md"
+git -C "$CL" add -A >/dev/null 2>&1
+# must_pass: every tracked file is allow-listed
+rc=0; python3 scripts/check-layout.py --root "$CL" --all >/dev/null 2>&1 || rc=$?
+gate "check-layout (--all, clean tree)" must_pass "$rc"
+# must_fail: an off-allow-list tracked file (full-tree catches it even though it
+# isn't a fresh diff add — the exact gap the diff-only check missed)
+printf 'nope\n' > "$CL/stray.txt"
+git -C "$CL" add -A >/dev/null 2>&1
+rc=0; python3 scripts/check-layout.py --root "$CL" --all >/dev/null 2>&1 || rc=$?
+gate "check-layout (--all, off-allow-list file)" must_fail "$rc"
+
+echo
 echo "── Gate 6: Behavioral enforce-layout ─────────────────────────────────────"
 mkdir -p "$TMP/proj/docs"
 cat > "$TMP/proj/.repo-layout.json" <<EOF
@@ -230,7 +272,7 @@ if command -v npx >/dev/null 2>&1; then
   rc=0; npx --yes prettier --check . --log-level error >/dev/null 2>&1 || rc=$?
   gate "prettier-check (tree clean)" must_pass "$rc"
 else
-  echo "  ~ npx unavailable, skipping prettier gate"
+  _skip_or_fail "Gate 9 (prettier)" npx
 fi
 
 echo
@@ -1968,7 +2010,7 @@ if command -v node >/dev/null 2>&1; then
   rc=0; node "$RT" "$RT_BAD" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: decision_review emit stripped)" must_fail "$rc"
 else
-  echo "  (skipped — node not available; CI has node)"
+  _skip_or_fail "Gate 35 (dashboard round-trip)" node
 fi
 
 # (B) Pipeline-tab editable file targets: _validate_json_target must reject bad
@@ -2079,7 +2121,7 @@ if command -v node >/dev/null 2>&1; then
   rc=0; node scripts/check-heimdall-render.mjs "$HM_BAD" >/dev/null 2>&1 || rc=$?
   gate "heimdall render (drifted: red aria-live broken)" must_fail "$rc"
 else
-  echo "  (skipped — node not available; CI has node)"
+  _skip_or_fail "Gate 36 (event substrate)" node
 fi
 # (B) The /__heimdall endpoint must exist in BOTH server copies (parity gate
 #     covers this too, but assert here that the reader returns the documented
@@ -2128,7 +2170,7 @@ if command -v node >/dev/null 2>&1; then
   rc=0; node scripts/check-vidarr-render.mjs "$VD_BAD" >/dev/null 2>&1 || rc=$?
   gate "vidarr render (drifted: kind filter broken)" must_fail "$rc"
 else
-  echo "  (skipped — node not available; CI has node)"
+  _skip_or_fail "Gate 37 (Heimdall render)" node
 fi
 # (B) Server reader: a posture-change + a security deny render (warn EXCLUDED),
 #     newest-first. Drives the root server's _read_vidarr_events directly.
@@ -2181,7 +2223,7 @@ if command -v node >/dev/null 2>&1; then
   rc=0; node scripts/check-norns-render.mjs "$NR_BAD" >/dev/null 2>&1 || rc=$?
   gate "norns render (drifted: Skuld gating broken)" must_fail "$rc"
 else
-  echo "  (skipped — node not available; CI has node)"
+  _skip_or_fail "Gate 38 (Vidarr render)" node
 fi
 # (B) Server reader: returns the three lineage keys with real data; git failure
 #     degrades to empty commits (never raises). Drives _read_norns directly.
@@ -2228,7 +2270,7 @@ if command -v node >/dev/null 2>&1; then
   rc=0; node scripts/check-nidhoggr-render.mjs "$ND_BAD" >/dev/null 2>&1 || rc=$?
   gate "nidhoggr render (drifted: clean label changed)" must_fail "$rc"
 else
-  echo "  (skipped — node not available; CI has node)"
+  _skip_or_fail "Gate 40 (Norns render)" node
 fi
 # (B) Server reader: returns the four signal keys + total; git failure degrades to
 #     empty (never raises). Drives _read_nidhoggr directly.
@@ -2276,7 +2318,7 @@ if command -v node >/dev/null 2>&1; then
   rc=0; node scripts/check-bifrost-render.mjs "$BF_BAD" >/dev/null 2>&1 || rc=$?
   gate "bifrost render (drifted: failure regex broken)" must_fail "$rc"
 else
-  echo "  (skipped — node not available; CI has node)"
+  _skip_or_fail "Gate 41 (Nidhoggr render)" node
 fi
 # Structural: the generated Bifröst tab must NOT fetch a /__ endpoint or invoke a
 # command — confirm the wizard is purely client-side copy-paste.
@@ -2306,7 +2348,7 @@ if command -v node >/dev/null 2>&1; then
   rc=0; node scripts/check-sleipnir-render.mjs "$SL_BAD" >/dev/null 2>&1 || rc=$?
   gate "sleipnir render (drifted: empty-state text changed)" must_fail "$rc"
 else
-  echo "  (skipped — node not available; CI has node)"
+  _skip_or_fail "Gate 42 (Bifrost render)" node
 fi
 # (B) Server reader: lists .claude/worktrees/ (count + sorted names); empty dir
 #     degrades to count 0. Drives _read_sleipnir directly.
