@@ -8,7 +8,7 @@ The placeholder exists so the `.repo-layout.json` glob reservation is backed by 
 
 **Until then:**
 
-- The business direction in [memory](../../home/codespace/.claude/projects/-workspaces-RavenClaude/memory/project_business_direction.md) (consulting-first; $25–50k per engagement; SaaS a long bet) is the load-bearing prior.
+- The business direction (consulting-first; $25–50k per engagement; SaaS a long bet) is the load-bearing prior. Maintainer-private; lives in Matt's session memory, not in this repo.
 - Plugin-versioning and compatibility-direction prose lives in [`docs/best-practices/plugin-versioning.md`](docs/best-practices/plugin-versioning.md).
 - Public-vs-private posture for individual files is governed by the existing `.gitignore` + `.repo-layout.json` discipline plus the `email`-field-removal rule in [`AGENTS.md`](AGENTS.md) §PR conventions.
 
