@@ -1,0 +1,54 @@
+name: Validate Schemas
+
+on:
+  pull_request:
+    paths:
+      - ".claude-plugin/marketplace.json"
+      - "plugins/*/.claude-plugin/plugin.json"
+      - "schemas/**"
+      - ".github/workflows/validate-schemas.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - ".claude-plugin/marketplace.json"
+      - "plugins/*/.claude-plugin/plugin.json"
+      - "schemas/**"
+      - ".github/workflows/validate-schemas.yml"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate plugin and marketplace JSON Schemas
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install jsonschema
+        run: pip install --quiet jsonschema
+
+      - name: Validate every plugin.json against schemas/plugin.schema.json
+        run: |
+          set -euo pipefail
+          fail=0
+          for m in plugins/*/.claude-plugin/plugin.json; do
+            if ! python3 -m jsonschema --instance "$m" schemas/plugin.schema.json; then
+              echo "::error file=$m::Failed validation against schemas/plugin.schema.json"
+              fail=1
+            else
+              echo "OK  $m"
+            fi
+          done
+          exit $fail
+
+      - name: Validate marketplace.json against schemas/marketplace.schema.json
+        run: |
+          set -euo pipefail
+          python3 -m jsonschema --instance .claude-plugin/marketplace.json schemas/marketplace.schema.json
+          echo "OK  .claude-plugin/marketplace.json"

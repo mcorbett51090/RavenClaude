@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mcorbett51090/RavenClaude/schemas/plugin.schema.json",
+  "title": "RavenClaude plugin manifest",
+  "description": "Validates plugins/*/.claude-plugin/plugin.json. Intentionally lenient — Claude Code itself defines the authoritative schema; this gate catches gross structural defects (missing name/description/version, malformed semver) before they reach a consumer.",
+  "type": "object",
+  "required": ["name", "description", "version"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Lowercase kebab-case plugin name. Matches the directory under plugins/."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "description": "One-paragraph description of the plugin's value. Used in /plugin UI."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[A-Za-z0-9.-]+)?(?:\\+[A-Za-z0-9.-]+)?$",
+      "description": "Semver. Must match the plugin's entry in marketplace.json (CI version-drift gate enforces)."
+    },
+    "author": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" }
+      },
+      "additionalProperties": true
+    },
+    "homepage": { "type": "string", "format": "uri" },
+    "license": { "type": "string" },
+    "keywords": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "requires": {
+      "type": "object",
+      "description": "Compatibility constraints. The `ravenclaude-core` key is the conventional way for domain plugins to declare a minimum core version.",
+      "properties": {
+        "ravenclaude-core": {
+          "type": "string",
+          "pattern": "^[><=^~]{0,2}\\d+\\.\\d+\\.\\d+$"
+        }
+      },
+      "additionalProperties": true
+    },
+    "agents": { "type": "array", "items": { "type": "string" } },
+    "skills": { "type": "array", "items": { "type": "string" } },
+    "hooks": { "type": "array", "items": { "type": "string" } },
+    "commands": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": true
+}

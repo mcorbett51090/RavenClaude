@@ -63,7 +63,7 @@ def is_excluded(p: Path) -> bool:
 
 
 def iter_markdown_files():
-    for name in ("README.md", "AGENTS.md", "CLAUDE.md"):
+    for name in ("README.md", "AGENTS.md", "CLAUDE.md", "GETTING_STARTED.md", "STRATEGY.md"):
         p = ROOT / name
         if p.is_file() and not is_excluded(p):
             yield p

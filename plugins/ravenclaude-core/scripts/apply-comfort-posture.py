@@ -481,9 +481,15 @@ def compute_emission(posture: dict) -> dict[str, list[str]]:
 
     security_deny = posture.get("security_deny")
     if security_deny is None:
-        security_deny = list(DEFAULT_SECURITY_DENY)
+        security_deny = []
     if not isinstance(security_deny, list):
         raise ValueError(f"`security_deny` must be a list, got {type(security_deny).__name__}")
+    # Non-removable floor: always union the DEFAULT_SECURITY_DENY baseline.
+    # A user saving `security_deny: []` (or omitting any baseline entry) MUST
+    # NOT wipe the floor — the baseline is a hard guardrail, not a default.
+    # Custom entries are honored in addition to the baseline.
+    extras = [r for r in security_deny if r not in DEFAULT_SECURITY_DENY]
+    security_deny = list(DEFAULT_SECURITY_DENY) + extras
     out["deny"].extend(security_deny)
 
     # Security-deny wins. A pattern emitted into allow/ask AND listed in
@@ -608,9 +614,13 @@ def compute_emission_v5(posture: dict) -> dict[str, dict[str, list[str]]]:
 
     security_deny = posture.get("security_deny")
     if security_deny is None:
-        security_deny = list(DEFAULT_SECURITY_DENY)
+        security_deny = []
     if not isinstance(security_deny, list):
         raise ValueError(f"`security_deny` must be a list, got {type(security_deny).__name__}")
+    # Non-removable floor (mirrors compute_emission): always union the
+    # DEFAULT_SECURITY_DENY baseline so an empty/missing list cannot wipe it.
+    extras = [r for r in security_deny if r not in DEFAULT_SECURITY_DENY]
+    security_deny = list(DEFAULT_SECURITY_DENY) + extras
     layers["project"]["deny"].extend(security_deny)
 
     # Per-layer cleanup: security-deny-wins + dedupe (mirrors compute_emission).

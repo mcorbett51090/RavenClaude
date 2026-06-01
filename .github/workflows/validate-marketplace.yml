@@ -15,7 +15,11 @@ on:
       - "README.md"
       - "AGENTS.md"
       - "CLAUDE.md"
+      - "GETTING_STARTED.md"
+      - "STRATEGY.md"
       - "docs/**"
+      - "evals/**"
+      - "schemas/**"
       - ".github/workflows/validate-marketplace.yml"
   push:
     branches:
@@ -28,7 +32,11 @@ on:
       - "README.md"
       - "AGENTS.md"
       - "CLAUDE.md"
+      - "GETTING_STARTED.md"
+      - "STRATEGY.md"
       - "docs/**"
+      - "evals/**"
+      - "schemas/**"
       - ".github/workflows/validate-marketplace.yml"
   workflow_dispatch:
 

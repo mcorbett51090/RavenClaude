@@ -75,6 +75,32 @@ We'll credit reporters by name (or pseudonym, if you prefer) in the relevant `CH
 
 ---
 
+## Defaults and floors (added 2026-06-01, v0.101.0)
+
+These are the security-relevant default behaviors the marketplace ships. Consumers can tune some of them through the dashboard; **the floor cannot be tuned away**.
+
+### The non-removable `security_deny` floor
+
+`comfort-posture.yaml`'s `security_deny:` list is **always unioned with `DEFAULT_SECURITY_DENY`** when emitted to `.claude/settings.json`. A user (or the dashboard, or an attacker via a typo) **cannot wipe the baseline** by setting `security_deny: []` or omitting the field — the baseline always appears first in the emitted `permissions.deny` bucket.
+
+Baseline entries cover: `rm -rf`, `git push --force`, `git reset --hard`, `git clean -fd`, `npm publish`, `curl | sh`, `wget | sh`, reads of `.env*` / `~/.ssh` / `~/.aws` / `~/.config/gcloud` / `~/.azure` / `~/.kube/config` / `~/.docker/config.json`, and the in-repo secret files listed in `apply-comfort-posture.py:DEFAULT_SECURITY_DENY`. Authoritative source: that constant.
+
+Regression contract: `tests/fixtures/test_security_deny_floor.py`. If you find a way to bypass the floor, treat it as a high-severity report and email per the disclosure policy above.
+
+### Codespace forwarded ports must stay Private
+
+`scripts/serve-dashboards.py` binds to `0.0.0.0` so it works through Codespace port forwarding. **The port must remain Private** (the default). If you flip it to Public, the `/__save` + `/__run` POST surface becomes reachable from the public internet on a path that doesn't expect to be public. The startup banner check refusing `0.0.0.0` on `GITHUB_CODESPACES_PORT_VISIBILITY=public` is a tracked follow-up (`docs/security/2026-06-dashboard-and-posture-apply-review.md` finding #3).
+
+### CSRF posture
+
+The dashboard server validates `Origin` / `Host` / `Sec-Fetch-Site` on state-changing endpoints. This blocks a malicious webpage in the same browser session from POSTing to `127.0.0.1`. A scripted HTTP client that omits `Origin` and sets `Host: 127.0.0.1:8000` would bypass the check — currently mitigated by loopback / private-port-forwarding only. A per-process random CSRF token (embedded in `dashboard.html`, checked on every state-changing endpoint) is a tracked follow-up (`docs/security/2026-06-dashboard-and-posture-apply-review.md` finding #4).
+
+### `shell_package_install: ask` is the consumer-facing default
+
+As of v0.101.0, the balanced posture seed defaults `shell_package_install` to `ask` at the project layer. A malicious dependency in `package.json` (registry confusion, post-install script, tarball-from-`/tmp`) would otherwise execute silently when an agent runs `npm install` / `pip install`. The friction is one prompt per install. Consumers who have vetted their supply chain can flip this back to `allow` from the dashboard's Set up tab.
+
+**`shell_code_exec` stays `allow`** — flipping to `ask` would prompt on every script the agent executes, which would surface dozens of times per session and likely push consumers off the marketplace. If you're working on partner-confidential code, consider flipping this in your own posture via the dashboard.
+
 ## Hardening notes (for collaborators editing this repo)
 
 These aren't disclosure rules — they're house rules for contributors to reduce the chance of introducing the kind of issue this policy is about:

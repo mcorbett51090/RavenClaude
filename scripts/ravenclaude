@@ -354,12 +354,98 @@ cmd_dashboard() {
   exec python3 "$server" --project-root "$project" --port "$port"
 }
 
+cmd_doctor() {
+  # ravenclaude doctor — repo health check.
+  # Five checks, each prints OK / WARN / FAIL. Exits 0 if no FAIL, 1 otherwise.
+  # Designed to be safe to run anywhere — never mutates state.
+  local fail=0 warning=0
+  local project="$PWD"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --project) project="$2"; shift 2 ;;
+      *) project="$1"; shift ;;
+    esac
+  done
+  project="$(cd "$project" && pwd)"
+  printf '== ravenclaude doctor -> %s ==\n' "$project"
+
+  # 1. .repo-layout.json present + parses
+  if [ -f "$project/.repo-layout.json" ]; then
+    if python3 -m json.tool "$project/.repo-layout.json" >/dev/null 2>&1; then
+      ok ".repo-layout.json parses"
+    else
+      printf '\033[31mx\033[0m .repo-layout.json present but invalid JSON\n'; fail=$((fail+1))
+    fi
+  else
+    warn ".repo-layout.json missing (run /init-agent-ready to seed)"; warning=$((warning+1))
+  fi
+
+  # 2. .ravenclaude/comfort-posture.yaml present (informational)
+  if [ -f "$project/.ravenclaude/comfort-posture.yaml" ]; then
+    ok "comfort-posture.yaml present"
+  else
+    warn "comfort-posture.yaml missing (run /dashboard or /set-posture)"; warning=$((warning+1))
+  fi
+
+  # 3. .claude/settings.json present + parses (the applied posture)
+  if [ -f "$project/.claude/settings.json" ]; then
+    if python3 -m json.tool "$project/.claude/settings.json" >/dev/null 2>&1; then
+      ok ".claude/settings.json parses"
+    else
+      printf '\033[31mx\033[0m .claude/settings.json present but invalid JSON\n'; fail=$((fail+1))
+    fi
+  else
+    warn ".claude/settings.json missing (Claude Code will use built-in defaults)"; warning=$((warning+1))
+  fi
+
+  # 4. Knowledge-health summary (if running in the marketplace repo)
+  if [ -d "$project/plugins" ] && [ -x "$project/plugins/ravenclaude-core/scripts/knowledge-health.py" ]; then
+    local out stale untracked
+    out="$(python3 "$project/plugins/ravenclaude-core/scripts/knowledge-health.py" --json 2>/dev/null)" || out=""
+    if [ -n "$out" ]; then
+      stale="$(printf '%s' "$out" | python3 -c "import json,sys; print(json.load(sys.stdin)['counts']['stale'])" 2>/dev/null)"
+      untracked="$(printf '%s' "$out" | python3 -c "import json,sys; print(json.load(sys.stdin)['counts']['untracked'])" 2>/dev/null)"
+      if [ "${stale:-0}" -gt 0 ]; then
+        printf '\033[31mx\033[0m knowledge-health: %s stale file(s); run scripts/knowledge-health.py\n' "$stale"
+        fail=$((fail+1))
+      elif [ "${untracked:-0}" -gt 0 ]; then
+        warn "knowledge-health: ${untracked} untracked file(s) (missing Last reviewed: date)"; warning=$((warning+1))
+      else
+        ok "knowledge-health: nothing stale"
+      fi
+    fi
+  fi
+
+  # 5. Layout-gate self-check (every committed file matches an allowed glob)
+  if [ -x "$project/scripts/check-layout.py" ]; then
+    if (cd "$project" && python3 scripts/check-layout.py --all >/dev/null 2>&1); then
+      ok "layout-gate: every file matches an allowed_glob"
+    else
+      printf '\033[31mx\033[0m layout-gate: some files do NOT match .repo-layout.json - run scripts/check-layout.py\n'
+      fail=$((fail+1))
+    fi
+  fi
+
+  printf -- '----\n'
+  if [ "$fail" -eq 0 ] && [ "$warning" -eq 0 ]; then
+    ok "doctor: all checks passed"
+    return 0
+  fi
+  if [ "$fail" -eq 0 ]; then
+    note "doctor: $warning warning(s); no hard failures"
+    return 0
+  fi
+  warn "doctor: $fail failure(s), $warning warning(s)"
+  return 1
+}
+
 case "${1:-}" in
   setup)          shift; cmd_setup "$@" ;;
   install)        shift; cmd_install "$@" ;;
   update)         cmd_update ;;
   status)         shift; cmd_status "$@" ;;
   dashboard)      shift; cmd_dashboard "$@" ;;
+  doctor)         shift; cmd_doctor "$@" ;;
   init-codespace) shift; cmd_init_codespace "$@" ;;
-  *) printf 'usage: ravenclaude {setup|install|update|status|dashboard|init-codespace} [--project DIR]\n'; exit 2 ;;
+  *) printf 'usage: ravenclaude {setup|install|update|status|dashboard|doctor|init-codespace} [--project DIR]\n'; exit 2 ;;
 esac

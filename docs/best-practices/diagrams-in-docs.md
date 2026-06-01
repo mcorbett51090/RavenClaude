@@ -89,6 +89,12 @@ plugins/
 - **Documents intended primarily for terminal viewing** (e.g. agent prompts read by Claude itself, not by humans on GitHub) — Claude reads markdown source, not rendered mermaid. ASCII may communicate the structure more directly there. Most files in `plugins/*/agents/` fall in this category, so don't aggressively mermaid-ify them.
 - **Time-critical incident notes** — a quick scribble in lessons-learned.md doesn't need a polished diagram. Add one in a follow-up if the lesson endures.
 
+## Root-doc summary-diagram pattern (added 2026-06-01)
+
+Root-level boundary docs — `README.md`, `GETTING_STARTED.md`, `STRATEGY.md` — should carry **at most one** orienting Mermaid diagram each, with deeper diagrams **linked out** to the canonical place (`docs/concepts.md`, `docs/architecture.md`). The summary diagram answers "where do I sit in this picture?"; depth lives in one place and is updated in one place, avoiding drift between the root doc and the deep doc.
+
+Pattern in practice: `GETTING_STARTED.md` carries one Mermaid showing `you → Team Lead → specialists → run artifacts → synthesis → you`, with a side annotation pointing at the three governance layers; for the per-layer mechanics, it links to the four diagrams already in `docs/concepts.md` (Permission layers, Permission modes, Comfort-posture dashboard, Command-review tribunal) instead of redrawing them. If you ever feel the urge to redraw a `docs/concepts.md` diagram in a root doc, that's the smell — improve the deep diagram and link to it instead.
+
 ## See also
 
 - [`docs/architecture.md`](../architecture.md) — canonical example of the marketplace model rendered as a mermaid `flowchart` with `classDef` color coding.
