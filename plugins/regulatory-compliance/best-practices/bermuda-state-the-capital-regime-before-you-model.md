@@ -34,14 +34,14 @@ A pure advisory question that doesn't touch capital (a licensing-process questio
 
 ## See also
 
-- [`../knowledge/compliance-decision-trees.md`](../knowledge/compliance-decision-trees.md) — the regime-selection tree (which routes *to* the Bermuda specialist)
+- [`../knowledge/compliance-decision-trees.md`](../knowledge/compliance-decision-trees.md) — the regime-selection tree (which routes *to* the Bermuda specialist) **and** the **Bermuda class/capital** tree that operationalizes this rule
 - [`../knowledge/regulator-finding-severity-triage.md`](../knowledge/regulator-finding-severity-triage.md) — the BMA severity vocabulary (supervisory letter / Insurance Act direction)
 - [`../agents/bermuda-insurance-specialist.md`](../agents/bermuda-insurance-specialist.md) — owns the Bermuda capital regime
 - BMA Insurance Act + the class-specific prudential rules — authoritative (`[verify-at-build]` current rules)
 
 ## Provenance
 
-Surfaced by the two-panel + tiebreak coverage campaign (2026-06-01): the `bermuda-insurance-specialist` is a named agent with rich prose but had **zero** dedicated best-practice or tree for its own primary subject (class + capital regime). (Panel 2 corrected Panel 1's "zero rule/tree" framing — the agent does have a BMA severity-tree *branch* — but confirmed the class/capital-regime gap is real.) Grounded in the BMA prudential framework. Class definitions + capital ratios are `[verify-at-build]`. (The matching class/capital *tree* is deferred to the campaign's tree batch.)
+Surfaced by the two-panel + tiebreak coverage campaign (2026-06-01): the `bermuda-insurance-specialist` is a named agent with rich prose but had **zero** dedicated best-practice or tree for its own primary subject (class + capital regime). (Panel 2 corrected Panel 1's "zero rule/tree" framing — the agent does have a BMA severity-tree *branch* — but confirmed the class/capital-regime gap is real.) Grounded in the BMA prudential framework. Class definitions + capital ratios are `[verify-at-build]`. (The matching class/capital *tree* ships in [`../knowledge/compliance-decision-trees.md`](../knowledge/compliance-decision-trees.md).)
 
 ---
 
