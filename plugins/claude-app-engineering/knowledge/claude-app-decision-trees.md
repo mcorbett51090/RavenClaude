@@ -3,7 +3,7 @@
 **Last reviewed:** 2026-05-30 · **Confidence:** high (grounded in this plugin's own knowledge bank — caching, model-selection, RAG, tool-use, MCP, evals, orchestration — all retrieved 2026-05-28; statuses dated).
 **Owner:** all six agents (traverse the relevant tree **before** recommending — don't keyword-match on the user's situation).
 
-This file collects the plugin's canonical `## Decision Tree:` sections in the marketplace's standard shape ([`../../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md)). The **build-surface** tree (Messages API / Agent SDK / Managed Agents / Workbench) already lives canonically in [`claude-build-surface-decision-tree.md`](claude-build-surface-decision-tree.md) `## Decision Tree: Claude Build Surface` — traverse it there; this file does **not** duplicate it. The sections below cover the model, retrieval strategy, capability home (tool / MCP / prompt-only), and the eval-gate decisions.
+This file collects the plugin's canonical `## Decision Tree:` sections in the marketplace's standard shape ([`../../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md)). The **build-surface** tree (Messages API / Agent SDK / Managed Agents / Workbench) already lives canonically in [`claude-build-surface-decision-tree.md`](claude-build-surface-decision-tree.md) `## Decision Tree: Claude Build Surface` — traverse it there; this file does **not** duplicate it. The sections below cover the model, retrieval strategy, single-document input mode, capability home (tool / MCP / prompt-only), and the eval-gate decisions.
 
 > **Decision-tree traversal (priors).** When the user's situation matches a tree's entry condition, traverse the Mermaid graph top-to-bottom before selecting an approach. Do NOT pattern-match on keywords in the situation description. The first branch where the condition resolves cleanly is the leaf to apply. Every numeric/GA fact below is dated — confirm against [`model-selection-and-2026-capability-map.md`](model-selection-and-2026-capability-map.md) before quoting a client.
 
@@ -76,6 +76,46 @@ flowchart TD
 | Contextual Retrieval (RAG) | high (pipeline + eval) | mid (retrieve + generate) | dynamic / per-tenant | strong (chunk→source) | large/dynamic KB; must cite sources |
 
 A "fine-tune-equivalent" outcome (domain adaptation) is reached on Claude via **better context** — retrieval + examples + a strong system prompt — not a weight update; this tree is that adaptation lever. Eval the retriever **separately** from the generator on the RAG branch ([`../best-practices/eval-the-retriever-separately.md`](../best-practices/eval-the-retriever-separately.md)).
+
+---
+
+## Decision Tree: Document input — native PDF/image, pre-extracted text, or Files API?
+
+**When this applies:** the app feeds **one document** (or a known small set) to Claude — a contract, invoice, report, scanned form — and the observable inputs are: does the task need the document's **visual layer** (layout, tables, figures, handwriting, charts) or just the **words**; is the **same document reused** across many requests/turns; and what's the **volume** (native document tokens are a real line item at scale). This is the _single-document input-mode_ fork; for answering over a _corpus_ (many documents, search), use the retrieval-strategy tree above instead. The failure it prevents: defaulting to "just send the PDF" (cost) or naive text extraction that discards the layout the task needed (fidelity).
+
+**Last verified:** 2026-05-30 against [`model-selection-and-2026-capability-map.md`](model-selection-and-2026-capability-map.md) + [`server-side-tools-and-files.md`](server-side-tools-and-files.md) (Anthropic vision + Files API docs, 2026-05-28). Vision-model support, per-page token costs, and Files API retention/limits are volatile — `[verify-at-use]`, never quote from memory.
+
+```mermaid
+flowchart TD
+    A[Feed a document to Claude] --> CORPUS{One document / known small set, or a whole corpus?}
+    CORPUS -->|A corpus — search over many docs| SEERAG["Use the retrieval-strategy tree<br/>(long-context / Files API / RAG)"]
+    CORPUS -->|One document or a known small set| VIS{Does the task need the visual layer?<br/>layout / tables / figures / handwriting / charts}
+    VIS -->|Yes — layout carries meaning| NATIVE["Native PDF / image to a vision-capable model<br/>confirm vision support in the capability map"]
+    VIS -->|No — genuinely text-only| TEXT["Pre-extract text (OCR/parse), send the text<br/>cheaper, you control chunking"]
+    NATIVE --> REUSE{Same document referenced across many requests/turns?}
+    TEXT --> REUSE
+    REUSE -->|Yes| FILES["Files API — upload once, reference by id<br/>pairs with native OR extracted input"]
+    REUSE -->|No — one-shot| INLINE["Send inline this request<br/>native bytes or extracted text"]
+```
+
+**Rationale per leaf:**
+
+- _SEERAG_ — a question spanning many documents is a retrieval problem, not an input-mode one; this tree is for getting a _single_ document into context. Skip RAG under ~200K tokens ([`../best-practices/rag-skip-it-under-200k.md`](../best-practices/rag-skip-it-under-200k.md)).
+- _NATIVE_ — when layout/tables/figures/handwriting/charts carry meaning, send the document natively to a vision-capable model; pre-extraction here silently drops the signal the task needed. Costs more tokens per page — justified only when fidelity > cost.
+- _TEXT_ — a genuinely text-only document (plain article, text contract clause) needs only the words; pre-extract to cut cost and control chunking. Lossy for anything visual — don't use where layout matters.
+- _FILES_ — the same document referenced across many requests/turns: upload once via the Files API, reference by id, stop re-sending bytes every call. Pairs with either native or extracted input.
+- _INLINE_ — a one-shot, low-reuse read: send it inline this request and move on; the Files API's upload step isn't worth it for a single use.
+
+**Tradeoffs summary:**
+
+| Input mode | Per-page/token cost | Fidelity | Reuse efficiency | Use when |
+|---|---|---|---|---|
+| Native PDF / image | Highest (vision tokens) | Full (visual layer) | Low (re-sends bytes) | Layout/tables/figures/handwriting matter |
+| Pre-extracted text | Low | Lossy (words only) | Low | Genuinely text-only documents |
+| Files API (native or text) | Low after upload | Inherits chosen mode | Highest (by-id) | Same document reused across requests |
+| Inline one-shot | Per-request | Inherits chosen mode | n/a | One-off, low-volume read |
+
+This tree operationalizes [`../best-practices/multimodal-extract-vs-native-document-input.md`](../best-practices/multimodal-extract-vs-native-document-input.md); at volume, measure cost-per-resolved-task and pre-extract where the visual layer adds nothing.
 
 ---
 
