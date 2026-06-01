@@ -43,3 +43,11 @@ plugins/*/knowledge/concepts/visuals/
 # freshness gate. Byte-deterministic; prettier has no SVG parser and would only
 # churn the manifest JSON. Same rationale as the concept visuals above.
 plugins/ravenclaude-core/knowledge/tree-visuals/
+
+# Local-only session-buffer storage for the remember system (now.md, recent.md,
+# today-*.md, tmp/last-*.{ts,json}). The whole `.remember/` dir is git-ignored
+# and never reaches CI — but a local `prettier --check .` scans the working tree
+# regardless, so the scratch files would otherwise trip the gate locally even
+# though the prod-CI run is clean. Same rationale as the bundled-vendor and
+# generated-artifact exclusions above.
+.remember/

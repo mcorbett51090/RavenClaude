@@ -51,6 +51,11 @@
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/claim-grounding-lint.sh \"$CLAUDE_TOOL_FILE_PATH\"",
             "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Advisory (Claim Grounding & Source Honesty): nudges on an unhedged absolute capability claim written into a knowledge/ or docs/ markdown file without a provenance marker. Opt-in, skips frontmatter/code/blockquotes/headings/conditionals, honors `claim-lint-ok`. Exit 0 always."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/regen-on-manifest-change.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). When a plugin.json or marketplace.json version changes inside this marketplace clone, regenerates the Copilot package + dashboard.html + repo-guide.html — the artifacts CI freshness gates check. No-op on non-manifest edits and when version is unchanged."
           }
         ]
       }
