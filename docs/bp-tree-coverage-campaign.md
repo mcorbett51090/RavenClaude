@@ -143,3 +143,11 @@ No build (comprehensive): edtech-partner-success, ravenclaude-core, applied-stat
 
 ## Status log
 - 2026-06-01: Panel 1 complete (27 BP + 29 trees). Panel 2 C1+C2 in — pattern is Panel 1 OVER-added (P2 cut 4 in C1, 11 in C2; 0 ADDs). Strong convergence: power-platform, microsoft-graph, claude-app (mostly). Awaiting Panel 2 C3+C4, then Panel 3 tiebreak on the queue above.
+
+
+## BUILD PROGRESS LOG (autonomous run, 2026-06-01)
+- ✅ microsoft-graph 3 BP + 2 trees — MERGED #176
+- ✅ power-platform 2 BP (trees deferred) — MERGED #177
+- 🔄 azure-cloud 2 BP — PR #178 (CI running)
+- BP-only queue remaining: tableau (2), salesforce (1), microsoft-fabric (3 warehouse), data-platform (1), claude-app (2), finance (1), regulatory-compliance (2)
+- TREE batch (deferred until mermaid renderer works): power-platform ×2, reg-comp ×2, claude-app ×1, finance ×3, data-platform ×1, fabric ×1 (security-plane), web-design ×5, ai-coding ×1
