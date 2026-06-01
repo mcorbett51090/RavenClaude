@@ -203,6 +203,51 @@ flowchart TD
 
 ---
 
+## Decision Tree: Data security — which plane (and engine) enforces this restriction?
+
+**When this applies:** sensitive data lives in Fabric and you must decide **where** the access restriction is enforced — not _whether_ (assume it's required), but on _which plane and engine_. Observable inputs: is the restriction "can they open the item at all" vs "which rows/columns inside it", and **how the consumer reads the data** (direct SQL on the Warehouse/SQL endpoint · a Power BI semantic model · raw OneLake files via Spark/notebooks/shortcuts). The failure this prevents: enforcing row security in two engines and silently double-filtering — or worse, assuming a workspace role _is_ data security (it is not — house opinion #6).
+
+**Last verified:** 2026-05-30 against [`onelake-security-and-governance.md`](onelake-security-and-governance.md) (the two-plane model + GA/preview matrix) and [`../best-practices/warehouse-security-rls-cls-masking.md`](../best-practices/warehouse-security-rls-cls-masking.md). RLS/CLS/OneLake-data-access-role GA-vs-preview status varies by surface and ships monthly — `[verify-at-build]`; **every data-security verdict escalates to `ravenclaude-core/security-reviewer`** (house rule).
+
+```mermaid
+flowchart TD
+    START[Restrict access to sensitive Fabric data] --> GRAIN{Coarse — open the item at all, or fine — which rows/columns inside?}
+    GRAIN -->|Coarse — who can access the item| PLANE["Item permissions / sharing on the DATA plane<br/>NOT workspace roles — those are control-plane, not data access"]
+    GRAIN -->|Fine — row/column inside the data| HOW{How does the consumer read the data?}
+    HOW -->|Direct SQL on Warehouse / SQL endpoint| SQLNATIVE["SQL-native security IN the warehouse<br/>RLS security policy + predicate · CLS GRANT/DENY · DDM=display only<br/>(warehouse-security BP)"]
+    HOW -->|Via a Power BI semantic model| SEMANTIC["Semantic-model RLS / OLS<br/>(Power BI roles)"]
+    HOW -->|Raw OneLake files — Spark / notebooks / shortcuts| ONELAKE["OneLake data-access roles<br/>folder/table-grain on the lake plane"]
+    SQLNATIVE --> CANON{Also consumed via a Direct Lake semantic model?}
+    SEMANTIC --> CANON
+    CANON -->|YES| ONECANON["Pick ONE canonical RLS layer — NOT both<br/>warehouse RLS can force Direct Lake to DirectQuery fallback"]
+    CANON -->|NO| DONE["Enforce in the single plane the consumer uses"]
+    ONELAKE --> MASK{True access control, or just display masking?}
+    MASK -->|Display masking only| DDM["DDM masks display — NOT access control<br/>never rely on it where CLS/RLS is the real requirement"]
+    MASK -->|Real access control| DONE
+```
+
+**Rationale per leaf:**
+
+- _PLANE_ — coarse "can they touch the item" is a data-plane permission (item share / OneLake), **not** a workspace role. The two-plane model (house opinion #6) is explicit: workspace roles are administration, not data access; granting Viewer is not a data-security control.
+- _SQLNATIVE_ — when end users query the Warehouse/SQL endpoint directly, enforce in the SQL engine: RLS via a security policy + predicate function, CLS via column GRANT/DENY, DDM for display only. This is the `warehouse-security-rls-cls-masking` BP.
+- _SEMANTIC_ — when users only ever consume through a Power BI semantic model, model RLS/OLS is the natural canonical layer and the warehouse may not need its own RLS.
+- _ONELAKE_ — when Spark/notebooks/shortcuts read raw OneLake files, OneLake data-access roles enforce folder/table-grain security on the lake plane (the SQL engine isn't in the path).
+- _ONECANON_ — the load-bearing trap: if the same data is also read via a **Direct Lake** model, enabling warehouse RLS can force the model to **fall back to DirectQuery** (on-SQL mode) or error (on-OneLake mode). Decide one canonical RLS layer (warehouse _or_ semantic model), never silently both (house opinion #8).
+- _DDM_ — dynamic data masking obfuscates display; a determined querier can infer values. Never use it as the access control where CLS/RLS is the real requirement.
+
+**Tradeoffs summary table:**
+
+| Plane / engine | Grain | Enforced by | Use when | Trap avoided |
+|---|---|---|---|---|
+| Item permission (data plane) | whole item | OneLake / sharing | coarse "can they open it" | mistaking a workspace role for data security |
+| Warehouse SQL-native (RLS/CLS/DDM) | row / column / display | SQL engine | direct SQL consumers | DDM treated as access control |
+| Semantic-model RLS / OLS | row / column (model) | Power BI | model-only consumers | double RLS with the warehouse |
+| OneLake data-access roles | folder / table | lake plane | Spark/notebook/shortcut readers | SQL-only thinking on raw-file access |
+
+Plane definitions, the GA/preview matrix, and the "workspace roles ≠ data access" rule are owned by [`onelake-security-and-governance.md`](onelake-security-and-governance.md); this tree routes _which_ plane/engine, that file owns _what each plane is_. Every verdict escalates to `ravenclaude-core/security-reviewer`.
+
+---
+
 ## Staleness note
 
 Per [`../../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md), each tree's **Last verified** date is the anti-staleness backstop; the Researcher sweep re-verifies any tree older than ~90 days. Fabric ships monthly — re-confirm GA/preview-sensitive leaves (Direct Lake variants, capacity overage, RLS-on-Eventhouse) against [What's new in Fabric](https://learn.microsoft.com/fabric/fundamentals/whats-new) before quoting to a client (house opinion #9). See also the freshness anchor [`fabric-2026-capability-map.md`](fabric-2026-capability-map.md).
