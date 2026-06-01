@@ -108,10 +108,14 @@ categories:
     user: inherit
     local: inherit
     project: allow
+  # shell_package_install defaults to `ask` (changed in v0.101.0) — a malicious
+  # dependency in a tarball, post-install script, or registry-confused name
+  # would otherwise execute silently. One prompt per `npm install` / `pip install`
+  # is acceptable friction; flip to `allow` here if you've vetted the supply chain.
   shell_package_install:
     user: inherit
     local: inherit
-    project: allow
+    project: ask
   mcp_tools:
     user: inherit
     local: inherit
