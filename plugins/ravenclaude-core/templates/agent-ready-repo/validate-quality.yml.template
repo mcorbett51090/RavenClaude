@@ -1,0 +1,113 @@
+# Portable quality gates for an agent-ready repo.
+#
+# Scaffolded by RavenClaude's /init-agent-ready. Complements validate-layout.yml
+# (which enforces .repo-layout.json) with the language-agnostic LINT / FORMAT /
+# SYNTAX gates every repo benefits from. Each step is a real GATE: it fails on a
+# known-bad input and passes on a known-good one (the audit-ci-gates discipline).
+#
+# Tailor to your repo: delete the Python (ruff) job if you have no Python, the
+# prettier job if you have no JS/TS/JSON/YAML/CSS, etc. Keep the rest.
+
+name: Validate Quality
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Lint, format, and syntax gates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js (for Prettier)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Set up Python (for Ruff + config validation)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      # ── Format: Prettier (JSON / YAML / JS / TS / CSS; markdown excluded via
+      #    .prettierignore — prose is human-reviewed). Runs on the whole tree, so a
+      #    single mis-formatted file fails the gate. Auto-fix locally with
+      #    `npx prettier --write .` before pushing.
+      - name: Prettier (format check)
+        run: npx --yes prettier --check . --log-level warn
+
+      # ── Lint: Ruff (Python). Conservative ruleset in ruff.toml — pyflakes
+      #    correctness (F), syntax errors (E9), bugbear (B), comprehensions (C4),
+      #    simplify (SIM), import order (I). Delete this job if you have no Python.
+      - name: Ruff (Python lint)
+        run: |
+          set -euo pipefail
+          if ! find . -name '*.py' -not -path './.git/*' -print -quit | grep -q .; then
+            echo "No Python files — skipping Ruff."
+            exit 0
+          fi
+          pipx run ruff check .
+          pipx run ruff format --check .
+
+      # ── Syntax: shell scripts must parse, and be executable if they're hooks.
+      - name: Shell syntax (bash -n)
+        run: |
+          set -euo pipefail
+          shopt -s globstar nullglob
+          status=0
+          for sh in **/*.sh; do
+            [[ -f "$sh" ]] || continue
+            if ! bash -n "$sh"; then
+              echo "::error file=$sh::shell syntax error"
+              status=1
+            fi
+          done
+          exit $status
+
+      # ── Config validity: never persist an unparseable JSON / YAML config (a
+      #    broken config silently disables whatever reads it).
+      - name: Config files parse (JSON + YAML)
+        run: |
+          set -euo pipefail
+          status=0
+          while IFS= read -r f; do
+            if ! python3 -m json.tool "$f" > /dev/null 2>&1; then
+              echo "::error file=$f::invalid JSON"; status=1
+            fi
+          done < <(git ls-files '*.json')
+          while IFS= read -r f; do
+            if ! python3 -c "import sys,yaml; yaml.safe_load(open(sys.argv[1]))" "$f" 2>/dev/null; then
+              echo "::error file=$f::invalid YAML"; status=1
+            fi
+          done < <(git ls-files '*.yml' '*.yaml')
+          exit $status
+
+      # ── Workflow lint: actionlint via a checksum-pinned release binary (no Docker
+      #    Hub dependency, immune to anonymous-pull rate limits). Gate on exit code.
+      - name: Actionlint (workflow lint)
+        run: |
+          set -euo pipefail
+          ver=1.7.7
+          sha=023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757
+          tgz="$(mktemp)"
+          curl -fsSL "https://github.com/rhysd/actionlint/releases/download/v${ver}/actionlint_${ver}_linux_amd64.tar.gz" -o "$tgz"
+          printf '%s  %s\n' "$sha" "$tgz" | sha256sum -c -
+          dir="$(dirname "$tgz")"
+          tar -xzf "$tgz" -C "$dir" actionlint
+          "$dir/actionlint" -color
+
+      # ── Meta-gate: prove the gates above actually gate (fail-on-bad AND
+      #    pass-on-good). Uncomment once you've filled scripts/audit-gates.sh with
+      #    real fixtures — see the audit-ci-gates skill. A gate that runs without
+      #    gating is invisible from a green dashboard.
+      # - name: Audit every gate (meta-test)
+      #   run: bash scripts/audit-gates.sh

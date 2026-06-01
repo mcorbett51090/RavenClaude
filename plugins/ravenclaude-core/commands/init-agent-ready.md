@@ -12,6 +12,7 @@ You are helping the user make this repository agent-readable. Your goal is to cr
 4. **`.repo-layout.json`** — machine-readable allow-list of file path globs. Both the layout-enforcement hook (in Claude Code) and an optional CI workflow read this file to block off-pattern file creation.
 5. **(optional) `.github/workflows/validate-layout.yml`** — CI backstop that fails PRs adding files outside the allow-list. Recommended for any repo with a GitHub remote.
 6. **(optional) CI-hygiene scaffold** — `.prettierrc.json`, `.prettierignore`, and `scripts/audit-gates.sh` (the gate-audit scaffold defined by [`audit-ci-gates`](../skills/audit-ci-gates/SKILL.md)). Recommended for any repo that ships CI workflows meant to enforce properties — see [`docs/best-practices/ci-gate-audit.md`](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/best-practices/ci-gate-audit.md) in the marketplace for the rule this scaffold encodes.
+7. **(optional) Portable quality gates** — `.github/workflows/validate-quality.yml` (a language-agnostic LINT / FORMAT / SYNTAX CI: Prettier format-check, **Ruff** Python lint+format, shell `bash -n`, JSON/YAML config-parse, and checksum-pinned actionlint) plus `ruff.toml` (a conservative starting ruleset). This is the installable version of the gates RavenClaude runs on itself — each step is a real gate (fails on bad input, passes on good). Recommended for any repo with a GitHub remote; tailor by deleting jobs for languages you don't use.
 
 ## How to proceed
 
@@ -30,14 +31,15 @@ Inspect the working directory. Note which of these already exist: `AGENTS.md`, `
 - `notebooks/`, `dvc.yaml`, `mlflow/` → data / ML pipeline
 - `.claude-plugin/marketplace.json` → Claude Code plugin marketplace (this is RavenClaude itself or similar)
 
-### Step 2 — Ask the user three questions (use AskUserQuestion)
+### Step 2 — Ask the user four questions (use AskUserQuestion)
 
 Ask in one batch:
 
 1. **What kind of repo is this?** Options: application, library, monorepo, documentation, data/ML pipeline, infrastructure-as-code, plugin marketplace, other. Pre-select the most likely option based on your detection in Step 1.
 2. **Should we add the CI workflow `.github/workflows/validate-layout.yml`?** Options: yes (recommended) / no.
-3. **Should we add the CI-hygiene scaffold (`.prettierrc.json`, `.prettierignore`, `scripts/audit-gates.sh`)?** Options: yes (recommended if your repo has CI workflows that enforce properties) / no. Adding `audit-gates.sh` as a scaffold ships with one example fixture — fill in real gates as you wire CI.
-4. **For any boundary file that already exists, what should we do?** Options: skip / overwrite / merge intelligently. Only ask this if at least one already exists.
+3. **Should we add the portable quality gates (`.github/workflows/validate-quality.yml` + `ruff.toml`)?** Options: yes (recommended) / no. This is the lint/format/syntax CI — Prettier, Ruff (Python), shell `bash -n`, config-parse, actionlint. Mention the conservative-ruleset-first discipline: the first `ruff check --fix . && ruff format .` will surface and fix a lot on a never-linted codebase, so run it once and commit before turning the gate on.
+4. **Should we add the CI-hygiene scaffold (`.prettierrc.json`, `.prettierignore`, `scripts/audit-gates.sh`)?** Options: yes (recommended if your repo has CI workflows that enforce properties) / no. Adding `audit-gates.sh` as a scaffold ships with one example fixture — fill in real gates (incl. fixtures for the quality gates above) as you wire CI.
+5. **For any boundary file that already exists, what should we do?** Options: skip / overwrite / merge intelligently. Only ask this if at least one already exists.
 
 ### Step 3 — Plan the files and show Keep / Update / Deny
 
@@ -48,7 +50,9 @@ About to create / update:
 - AGENTS.md           (NEW, ~80 lines)
 - CLAUDE.md           (NEW, ~30 lines)
 - .repo-layout.json   (NEW, allow-list tailored to <repo-type>)
-- .github/workflows/validate-layout.yml  (NEW, optional CI gate)
+- .github/workflows/validate-layout.yml   (NEW, optional CI gate)
+- .github/workflows/validate-quality.yml  (NEW, optional lint/format/syntax gates)
+- ruff.toml                                (NEW, optional — Python repos only)
 ```
 
 Then ask the user via AskUserQuestion: Keep all / Update specific files / Deny.
@@ -105,6 +109,13 @@ Tailor `allowed_globs` per repo type. Use these starter sets:
 Always include `AGENTS.md`, `CLAUDE.md`, `README.md`, `.repo-layout.json`, and `docs/team-constitution.md` in `allowed_globs`.
 
 **`.github/workflows/validate-layout.yml`** (only if user approved): copy the structure from RavenClaude's own workflow at `${CLAUDE_PLUGIN_ROOT}/templates/agent-ready-repo/validate-layout.yml.template` — adjust nothing except header comments.
+
+**Portable quality gates** (only if user approved): copy two files from `${CLAUDE_PLUGIN_ROOT}/templates/agent-ready-repo/`:
+
+- `validate-quality.yml.template` → `.github/workflows/validate-quality.yml` (the lint/format/syntax CI). **Tailor it:** delete the Ruff job if there's no Python, the Prettier job if there's no JS/TS/JSON/YAML/CSS, etc. — keep only the gates that apply.
+- `ruff.toml.template` → `ruff.toml` (the conservative Python ruleset) — only if the repo has Python. Then tell the user to run `ruff check --fix . && ruff format .` once, review + commit the result, and only then rely on the gate (the first lint of a never-linted codebase surfaces a lot). Add `ruff.toml` to `.repo-layout.json` `allowed_globs`.
+
+When the quality workflow is added, point the user at the [`audit-ci-gates`](../skills/audit-ci-gates/SKILL.md) skill to add a fail-on-bad/pass-on-good fixture per gate in `scripts/audit-gates.sh`, then uncomment the meta-gate step in `validate-quality.yml`.
 
 **CI-hygiene scaffold** (only if user approved): copy three files from `${CLAUDE_PLUGIN_ROOT}/templates/agent-ready-repo/`:
 
