@@ -148,6 +148,8 @@ No build (comprehensive): edtech-partner-success, ravenclaude-core, applied-stat
 ## BUILD PROGRESS LOG (autonomous run, 2026-06-01)
 - ✅ microsoft-graph 3 BP + 2 trees — MERGED #176
 - ✅ power-platform 2 BP (trees deferred) — MERGED #177
-- 🔄 azure-cloud 2 BP — PR #178 (CI running)
+- ✅ azure-cloud 2 BP — MERGED #178
+- 🔄 tableau 2 BP — PR #179 (CI running)
+- BP-only queue remaining: microsoft-fabric (3 warehouse), salesforce (1), data-platform (1), claude-app (2), finance (1), regulatory-compliance (2)
 - BP-only queue remaining: tableau (2), salesforce (1), microsoft-fabric (3 warehouse), data-platform (1), claude-app (2), finance (1), regulatory-compliance (2)
 - TREE batch (deferred until mermaid renderer works): power-platform ×2, reg-comp ×2, claude-app ×1, finance ×3, data-platform ×1, fabric ×1 (security-plane), web-design ×5, ai-coding ×1
