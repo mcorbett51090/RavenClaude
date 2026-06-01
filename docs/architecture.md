@@ -16,7 +16,7 @@ flowchart TB
         subgraph plugindir["<code>plugins/</code>"]
             direction LR
             core["<b>ravenclaude-core</b><br/>domain-neutral<br/>14 specialist agents<br/>dispatch, gates, hooks, templates"]
-            domains["<b>12 domain plugins</b><br/>power-platform, finance, regulatory-compliance,<br/>web-design, edtech-partner-success, data-platform,<br/>applied-statistics, microsoft-fabric,<br/>claude-app-engineering, azure-cloud, tableau, microsoft-graph"]
+            domains["<b>15 domain plugins</b><br/>power-platform, finance, regulatory-compliance,<br/>web-design, edtech-partner-success, data-platform,<br/>applied-statistics, microsoft-fabric,<br/>claude-app-engineering, azure-cloud, salesforce, tableau,<br/>microsoft-365-copilot, microsoft-graph, ai-coding-model-guidance"]
             future["<i>future plugins</i><br/>Salesforce, …"]
         end
         catalog -.->|references| plugindir
@@ -62,7 +62,7 @@ The marketplace contains a domain-neutral core plus one plugin per significant d
 
 | Lives in `plugins/ravenclaude-core/` | Lives in a domain plugin (e.g. `plugins/power-platform/`) |
 |---|---|
-| Generic agent role definitions (architect, coder, tester, reviewer, designer, documentarian, project-manager, prompt-engineer, deep-researcher, partner-success-manager, etc.) | Domain-specific agent definitions (`power-fx-engineer`, `flow-engineer`, `dataverse-architect`, `fabric-architect`, `claude-solution-architect`, `azure-architect`, `tableau-viz-engineer`, `graph-api-engineer`, … across the 12 domain plugins) |
+| Generic agent role definitions (architect, coder, tester, reviewer, designer, documentarian, project-manager, prompt-engineer, deep-researcher, partner-success-manager, etc.) | Domain-specific agent definitions (`power-fx-engineer`, `flow-engineer`, `dataverse-architect`, `fabric-architect`, `claude-solution-architect`, `azure-architect`, `tableau-viz-engineer`, `graph-api-engineer`, … across the 15 domain plugins) |
 | Cross-domain skills (dispatch playbook, worktree helpers, generic code-review patterns) | Domain-specific skills (Power Platform's `dataverse-web-api`, `pcf-controls`, `power-apps-code-apps`, etc.) |
 | Cross-domain hooks (format-on-write, guard-destructive, remind-tests) | Domain-specific hooks (only if a hook is meaningless outside that domain) |
 | Generic rules (coding standards, security baseline, git workflow, agent collaboration) | Domain-specific rules (Power Platform's "solutions, always" and "managed in test+prod" opinions) |
@@ -83,7 +83,7 @@ RavenClaude/
 │   ├── ravenclaude-core/
 │   │   ├── .claude-plugin/plugin.json   ← manifest (name, version, author)
 │   │   ├── CLAUDE.md                    ← team constitution that auto-loads
-│   │   ├── agents/                      ← 13 specialist agent files
+│   │   ├── agents/                      ← 14 specialist agent files
 │   │   ├── skills/                      ← dispatch playbook, worktree helpers, etc.
 │   │   ├── hooks/                       ← format-on-write, guard-destructive, remind-tests
 │   │   ├── rules/                       ← coding-standards, security, git-workflow, agent-collab
@@ -186,11 +186,11 @@ The existing plugins are the reference implementations — `ravenclaude-core` fo
 
 ## Status
 
-**Active plugins (11).** The table below is the canonical roster; **per-plugin versions live in [`../.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json)** (the single source of truth, CI-gated for catalog↔plugin.json parity) and the generated [`../repo-guide.html`](../repo-guide.html) — they are deliberately not duplicated here to avoid drift. A CI check (`scripts/check-marketplace-claims.py`) asserts every `plugins/*/` directory appears in this table.
+**Active plugins (16).** The table below is the canonical roster; **per-plugin versions live in [`../.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json)** (the single source of truth, CI-gated for catalog↔plugin.json parity) and the generated [`../repo-guide.html`](../repo-guide.html) — they are deliberately not duplicated here to avoid drift. A CI check (`scripts/check-marketplace-claims.py`) asserts every `plugins/*/` directory appears in this table.
 
 | Plugin | What it is |
 |---|---|
-| [`ravenclaude-core`](../plugins/ravenclaude-core/) | Domain-neutral foundation: 14 specialist agents, 22 skills, the dispatch playbook, 11 hooks, rules, templates; the Capability Grounding Protocol, Structured Output Protocol, the Researcher meta-skill, the comfort-posture dashboard, and the command-review + decision-review tribunal (the Thing). |
+| [`ravenclaude-core`](../plugins/ravenclaude-core/) | Domain-neutral foundation: 14 specialist agents, 22 skills, the dispatch playbook, 13 hooks, rules, templates; the Capability Grounding Protocol, Structured Output Protocol, the Researcher meta-skill, the comfort-posture dashboard, and the command-review + decision-review tribunal (the Thing). |
 | [`power-platform`](../plugins/power-platform/) | Microsoft Power Platform: 11 specialist agents, 18 skills, an 8-check house-opinion hook, a knowledge bank (PA-flow recovery, Dataverse token acquisition, PCF React/Fluent, Copilot agents 2026, managed environments, Power Pages 2026), and the bundled pbix-mcp server. |
 | [`finance`](../plugins/finance/) | Corporate finance & FP&A: 7 specialist agents, 9 skills, 8 templates, 1 advisory anti-pattern hook, 1 knowledge doc. Inherits `ravenclaude-core` protocols. |
 | [`regulatory-compliance`](../plugins/regulatory-compliance/) | Financial-regulatory: 6 specialist agents, 9 skills, 8 templates, 1 defensive PII-scrub hook, 1 knowledge doc. BMA field-experience positioning. |
@@ -213,4 +213,4 @@ The Microsoft/AI-stack plugins (`microsoft-fabric`, `claude-app-engineering`, `a
 
 **Decision log:** see [`memory-bank/decision-log.md`](memory-bank/decision-log.md).
 
-**Planned plugins** (on the roadmap): **Salesforce** (deliberately deferred — competes with the Power Platform brand focus; see [`./plugin-roadmap-analysis.md`](./plugin-roadmap-analysis.md)). `finance`, `regulatory-compliance`, `web-design`, `edtech-partner-success`, `data-platform`, `applied-statistics`, `microsoft-fabric`, `claude-app-engineering`, and `azure-cloud` have all since shipped.
+**Planned plugins** (on the roadmap): none outstanding — the full roster above has shipped. `finance`, `regulatory-compliance`, `web-design`, `edtech-partner-success`, `data-platform`, `applied-statistics`, `microsoft-fabric`, `claude-app-engineering`, `azure-cloud`, `salesforce`, `tableau`, `microsoft-365-copilot`, `microsoft-graph`, and `ai-coding-model-guidance` were all once roadmap items and have since shipped (see [`./plugin-roadmap-analysis.md`](./plugin-roadmap-analysis.md) for the historical analysis).
