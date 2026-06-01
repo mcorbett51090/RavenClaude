@@ -56,7 +56,41 @@
 - **applied-statistics** — COMPREHENSIVE. +0 BP, +1 tree (FWER-vs-FDR multiple-comparison method choice — only genuine branching gap).
 - C3 total: **4 BP, 7 trees.**
 
+### C4 dev/CRM/web/core (in)
+- **salesforce** — COMPREHENSIVE. +0/+0 (49 BP / 31 trees already saturate the space).
+- **tableau** — COMPREHENSIVE. +0/+0 (26 BP / 14 unique trees).
+- **web-design** — MATERIAL (trees only; BP library comprehensive). +0 BP, +6 trees (IA flat/hier/hub-spoke; conversion intervention; content KKCR; technical-SEO method; responsive breakpoint-vs-container; CMS headless-vs-traditional). Home: new `knowledge/ux-content-ia-decision-trees.md` or extend web-design-decision-trees.
+- **ravenclaude-core** — COMPREHENSIVE by design (domain-neutral; BP = protocols in CLAUDE.md + repo-root docs/best-practices). +0/+0 (proposing domain BP would violate house rule).
+- C4 total: **0 BP, 6 trees.**
+
+## PANEL 1 FINAL TALLY: 27 best-practices + 29 trees proposed across 16 plugins.
+- At 98% bar already (no change): edtech-partner-success, applied-statistics, salesforce, tableau, ravenclaude-core.
+- Material gaps: microsoft-fabric (warehouse craft), data-platform (pipeline observability/schema drift), web-design (tree surface).
+- Minor gaps: power-platform, m365-copilot, microsoft-graph, azure-cloud, claude-app-engineering, finance, regulatory-compliance, ai-coding-model-guidance.
+
+## Panel 2 — independent gap analysis (vs Panel 1)
+
+### C1 Microsoft (in)
+- **power-platform**: AGREE 4, CUT 0, ADD 0. (Scope caveat: connector tree must not re-tread PA-vs-LogicApps-vs-Function.)
+- **microsoft-fabric**: AGREE 4 (3 BP + security tree), CUT 1 → **TIEBREAK: RTI-alerting tree** (P1=tree / P2=agent-prose, no real branch). Scope caveat: warehouse-security BP defers two-plane model to existing workspace-domain-governance BP.
+- **microsoft-365-copilot**: AGREE 0, CUT 3 → **TIEBREAK ×3**: eval BP (P2: already a shipped skill `copilot-agent-eval-harness` + house opinion #15), adaptive-cards BP (P2: established agent prose), eval/monitoring tree (P2: not a branch).
+- **microsoft-graph**: AGREE 5, CUT 0, ADD 0. (Scope: mail-attachments BP avoid overlap with file-upload tree.)
+
+### C2 Cloud/AI/data (in)
+- **azure-cloud**: AGREE 2 (`data-tier-pick-the-azure-database`, `migration-assess-then-iac`), CUT 4 → **TIEBREAK**: `network-front-door-waf-ddos` (P2: already in networking knowledge:13-21), `reliability-multi-region-bcdr` (P2: already in landing-zones:35-36 + region tree), Resilience-ladder tree + Data-tier tree (P2: redundant / fold to BP).
+- **claude-app-engineering**: AGREE 2 BP + 1 tree, CUT 2 → `streaming-design-token-ux` (P2: web-design lane + reliability BP covers it — P1 already flagged borderline; low-contest), version-migration tree (P2: linear procedure not a branch, fold into BP). Document-input tree + multimodal BP + model-migrate BP all AGREE.
+- **data-platform**: AGREE 2 BP + 1 tree, CUT 3 → **TIEBREAK (material-vs-minor)**: P1 said MATERIAL; P2 says MINOR — spreadsheet-migration (already database-setup-guide.md:13-14,50,74) + reverse-ETL (already etl-pipeline-engineer.md:54 + ipaas knowledge) covered; schema-change tree folds into pipeline-failure tree. Keep: schema-drift BP, row-count-reconcile BP (re-scope off freshness), pipeline-failure tree.
+- **ai-coding-model-guidance**: AGREE 2 reasoning-rules but **reframe (semi-disagree)**: keep them as named sections IN the lineup file, NOT a best-practices/ dir; cut trees +3 → +1 max (keep reasoning-vs-bigger-model dial only). §7 governs volatile facts, not durable reasoning — so +2 reasoning is OK in-file.
+
+### C3 business — PENDING
 ### C4 dev/CRM/web/core — PENDING
 
+## Tiebreak queue (Panel 3) — material disagreements only
+1. m365-copilot: are eval-BP / adaptive-cards-BP / eval-tree real gaps, or already covered by the shipped skill + agent prose? (P2 strongly says covered.)
+2. azure-cloud: are BCDR-by-tier + Front-Door-WAF real BP gaps, or already in knowledge? + are the 2 trees redundant?
+3. data-platform: MATERIAL or MINOR? (spreadsheet-migration + reverse-ETL already covered per P2.)
+4. microsoft-fabric: RTI-alerting — tree or agent-prose?
+5. ai-coding-model-guidance: trees +3 or +1; BP-dir vs in-file sections.
+
 ## Status log
-- 2026-06-01: baseline taken; Panel 1 launched. C1 + C2 + C3 reported (27 BP + 23 trees proposed so far). Awaiting C4. edtech + applied-statistics confirmed already at 98% bar.
+- 2026-06-01: Panel 1 complete (27 BP + 29 trees). Panel 2 C1+C2 in — pattern is Panel 1 OVER-added (P2 cut 4 in C1, 11 in C2; 0 ADDs). Strong convergence: power-platform, microsoft-graph, claude-app (mostly). Awaiting Panel 2 C3+C4, then Panel 3 tiebreak on the queue above.
