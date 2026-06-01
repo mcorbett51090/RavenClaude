@@ -146,10 +146,16 @@ No build (comprehensive): edtech-partner-success, ravenclaude-core, applied-stat
 
 
 ## BUILD PROGRESS LOG (autonomous run, 2026-06-01)
-- ✅ microsoft-graph 3 BP + 2 trees — MERGED #176
-- ✅ power-platform 2 BP (trees deferred) — MERGED #177
-- ✅ azure-cloud 2 BP — MERGED #178
-- 🔄 tableau 2 BP — PR #179 (CI running)
-- BP-only queue remaining: microsoft-fabric (3 warehouse), salesforce (1), data-platform (1), claude-app (2), finance (1), regulatory-compliance (2)
-- BP-only queue remaining: tableau (2), salesforce (1), microsoft-fabric (3 warehouse), data-platform (1), claude-app (2), finance (1), regulatory-compliance (2)
-- TREE batch (deferred until mermaid renderer works): power-platform ×2, reg-comp ×2, claude-app ×1, finance ×3, data-platform ×1, fabric ×1 (security-plane), web-design ×5, ai-coding ×1
+**Merged:** #176 microsoft-graph (3 BP+2 trees) · #177 power-platform (2 BP) · #178 azure-cloud (2 BP) · #179 tableau (2 BP).
+**In flight:** #180 microsoft-fabric (3 BP) — CI running.
+**BP-only queue remaining:** salesforce (1 BP, guest-user), data-platform (1 BP, schema-drift), claude-app (2 BP: multimodal + model-migrate), finance (1 BP: deficiency-severity), regulatory-compliance (2 BP: entity-classification + Bermuda-capital).
+**TREE BATCH (deferred — mermaid renderer mmdc/Chromium unavailable this session; render+PR when it works):**
+- power-platform ×2 (PBI-deploy/refresh, custom-connector build-path) — CONTENT AUTHORED, reverted from #177, in campaign spec
+- regulatory-compliance ×2 (which-return, Bermuda class/capital)
+- claude-app ×1 (document-input)
+- finance ×3 (rev-rec timing, deficiency CD/SD/MW, treasury cash-shortfall)
+- data-platform ×1 (pipeline-failure-recovery)
+- microsoft-fabric ×1 (data-security-plane)
+- web-design ×5 (IA, conversion, responsive, CMS, motion) — ENTIRE web-design build is trees, fully deferred
+- ai-coding-model-guidance ×1 (reasoning-vs-bigger-model) + 2 in-file reasoning sections
+**Tree authoring note:** all tree CONTENT (Mermaid + rationale + tradeoff tables) should be drafted into the knowledge files; the only blocker is rendering the committed SVG that render-trees --check gates on. When mmdc works: author/restore trees -> render-trees.py -> commit SVGs -> PR per plugin.
