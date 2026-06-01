@@ -68,6 +68,42 @@ ALLOWED_READ = {
     ".ravenclaude/environment-context.md",
 } | JSON_EDIT_TARGETS
 
+# Per-plugin variable files written by the dashboard's Plugins tab. The plugin
+# name is variable, so these are matched by SHAPE (not an exact whitelist entry):
+# .ravenclaude/plugins/<slug>.yaml where <slug> is lowercase alphanumeric+hyphen.
+# This stays inside .ravenclaude/plugins/ (no traversal) and is YAML-validated as
+# a mapping before write, mirroring the JSON-target defense.
+_PLUGIN_CFG_PREFIX = ".ravenclaude/plugins/"
+
+
+def _is_plugin_config_target(target: str) -> bool:
+    if not target.startswith(_PLUGIN_CFG_PREFIX) or not target.endswith(".yaml"):
+        return False
+    slug = target[len(_PLUGIN_CFG_PREFIX):-len(".yaml")]
+    return bool(slug) and all(c.islower() or c.isdigit() or c == "-" for c in slug) \
+        and slug[0] != "-" and "/" not in slug and ".." not in slug
+
+
+def _validate_plugin_config(content: str) -> str | None:
+    """Plugin-config files must parse as a YAML mapping (or be empty). Returns an
+    error string (→ HTTP 400) or None when safe to persist. If PyYAML isn't
+    available, skip validation (don't block the write) — same posture as the
+    /__read parsed-form, which treats yaml as optional."""
+    if not content.strip():
+        return None
+    try:
+        import yaml  # present in the devcontainer; optional elsewhere
+    except ImportError:
+        return None
+    try:
+        doc = yaml.safe_load(content)
+    except yaml.YAMLError as e:
+        return f"not valid YAML ({e})"
+    if doc is not None and not isinstance(doc, dict):
+        return "plugin config must be a YAML mapping (key: value pairs)"
+    return None
+
+
 def _validate_json_target(target: str, content: str) -> str | None:
     """Structural pre-write validation for a JSON_EDIT_TARGETS file. Returns an
     error string (→ HTTP 400) or None when the content is safe to persist.
@@ -808,7 +844,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(400, f"invalid JSON body: {e}")
             return
 
-        if target not in ALLOWED_TARGETS:
+        is_plugin_cfg = _is_plugin_config_target(target)
+        if target not in ALLOWED_TARGETS and not is_plugin_cfg:
             self.send_error(403, f"path not in allow-list: {target}")
             return
         out = (PROJECT_ROOT / target).resolve()
@@ -829,6 +866,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self.send_error(400, err)
                 return
 
+        # YAML-validate per-plugin variable files (must be a mapping) before write.
+        if is_plugin_cfg:
+            err = _validate_plugin_config(content)
+            if err:
+                self.send_error(400, f"{target}: {err}")
+                return
+
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(content, encoding="utf-8", newline="\n")
 
@@ -844,7 +888,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         from urllib.parse import urlparse, parse_qs
         qs = parse_qs(urlparse(self.path).query)
         target = (qs.get("path") or [""])[0]
-        if target not in ALLOWED_READ:
+        if target not in ALLOWED_READ and not _is_plugin_config_target(target):
             self.send_error(403, f"path not in read allow-list: {target!r}")
             return
         out = (PROJECT_ROOT / target).resolve()
