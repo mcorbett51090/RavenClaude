@@ -1,0 +1,20 @@
+# Website access allow/deny lists for AI coding agents (Claude Code, Copilot CLI, …).
+#
+# Consumed by ravenclaude-core's guard-web-access.sh PreToolUse(WebFetch) hook when
+# the plugin is installed, and readable as plain YAML by any other CLI tool that
+# clones this repo. Edit by hand, or point-and-click in the dashboard's
+# "Web access" page (Set up category).
+#
+#   allow:  domains auto-approved with no prompt. A rule matches the domain AND its
+#           subdomains (e.g. `github.com` also allows `api.github.com`).
+#   deny:   domains always blocked (the agent's WebFetch is refused).
+#
+# An unlisted domain falls through to the agent's normal per-domain prompt, where
+# the agent offers: once / this session / permanently (→ allow) / deny (→ deny).
+# "This session" is recorded in .ravenclaude/runs/<session>/web-allow.txt and
+# cleared when the session ends; "permanently" and "deny" edit the lists below.
+#
+# Copy this file to .ravenclaude/web-access.yaml in your project root.
+
+allow: []
+deny: []

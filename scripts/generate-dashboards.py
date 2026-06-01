@@ -138,6 +138,7 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         settings_html=_render_settings_tab(properties, presets),
         install_html=_render_install_tab(),
         simulator_html=_render_simulator_tab(),
+        web_access_html=_render_web_access_page(),
         learn_html=_render_learn_tab(plugin_dir),
         saga_html=_render_saga_tab(),
         commands_html=_render_commands_tab(),
@@ -4786,7 +4787,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 .saga-tier-badge-extreme { border-color: var(--danger); color: var(--danger); background: #ef444410; }
 
 /* ── Plugins category: per-plugin variable + content pages ── */
-.plugin-page { max-width: 880px; }
+.plugin-page, .web-access-page { max-width: 880px; }
 .pp-title { margin: 0 0 4px; font-family: var(--font-display); }
 .pp-sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
 .pp-section { margin: 0 0 24px; }
@@ -7023,6 +7024,7 @@ _JS = r"""
     if (tab === "norns" && !nornsLoaded) loadNorns();
     if (tab === "pipeline") syncPipelineTab();
     if (tab.indexOf("plugin-") === 0) hydratePluginPage(tab.slice(7));
+    if (tab === "web-access") hydrateWebAccess();
   }
   // Navigate: activate immediately, then reflect the page in the URL hash for
   // deep-linking + browser back/forward. (The hashchange listener re-applies on
@@ -7198,6 +7200,99 @@ _JS = r"""
       setPluginStatus(plugin, "downloaded " + plugin + ".yaml", "status-ok");
     });
   });
+
+  /* ── Web access allow/deny editor (portal → .ravenclaude/web-access.yaml) ── */
+  let webAccessHydrated = false;
+  function waPanel() { return document.querySelector(".web-access-page"); }
+  function waLines(sel) {
+    const p = waPanel();
+    const t = p && p.querySelector(sel);
+    if (!t) return [];
+    return t.value.split(/\r?\n/).map(s => s.trim().toLowerCase()).filter(Boolean);
+  }
+  function emitWebAccessYaml() {
+    const mk = (key, items) => items.length
+      ? key + ":\n" + items.map(d => "  - " + d).join("\n") + "\n"
+      : key + ": []\n";
+    return "# Website access allow/deny lists — managed by the RavenClaude dashboard\n"
+      + mk("allow", waLines(".wa-allow")) + mk("deny", waLines(".wa-deny"));
+  }
+  function applyWebAccess(text) {
+    const panel = waPanel();
+    if (!panel || !text) return;
+    const allow = [], deny = [];
+    let sec = null;
+    text.split(/\r?\n/).forEach(line => {
+      const m = line.match(/^([A-Za-z_]+):/);
+      if (m) { sec = m[1].toLowerCase(); return; }
+      const it = line.match(/^\s*-\s*(.+?)\s*$/);
+      if (!it) return;
+      const v = it[1].replace(/["']/g, "").trim();
+      if (sec === "allow") allow.push(v);
+      else if (sec === "deny") deny.push(v);
+    });
+    const a = panel.querySelector(".wa-allow"), d = panel.querySelector(".wa-deny");
+    if (a) a.value = allow.join("\n");
+    if (d) d.value = deny.join("\n");
+  }
+  async function hydrateWebAccess() {
+    if (webAccessHydrated) return;
+    webAccessHydrated = true;
+    const panel = waPanel();
+    if (!panel) return;
+    try {
+      const res = await fetch("/__read?path=" + encodeURIComponent(panel.dataset.target));
+      if (res.ok) {
+        const j = await res.json();
+        if (j && typeof j.content === "string" && j.content.trim()) { applyWebAccess(j.content); return; }
+      }
+    } catch (e) { /* static host */ }
+    const ls = localStorage.getItem("rc-web-access");
+    if (ls) applyWebAccess(ls);
+  }
+  function waStatus(msg, cls) {
+    const p = waPanel();
+    const el = p && p.querySelector(".wa-status");
+    if (el) { el.textContent = msg; el.className = "wa-status pp-status " + (cls || ""); }
+  }
+  (function wireWebAccess() {
+    const panel = waPanel();
+    if (!panel) return;
+    const saveBtn = panel.querySelector(".wa-save");
+    const dlBtn = panel.querySelector(".wa-download");
+    if (saveBtn) saveBtn.addEventListener("click", async () => {
+      const yaml = emitWebAccessYaml();
+      localStorage.setItem("rc-web-access", yaml);
+      waStatus("saving…", "status-unsaved");
+      try {
+        const res = await fetch("/__save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: panel.dataset.target, content: yaml })
+        });
+        if (res.status === 404 || res.status === 405) {
+          waStatus("saved in browser (no server)", "status-unsaved");
+          const ns = panel.querySelector(".wa-noserver"); if (ns) ns.hidden = false;
+          return;
+        }
+        if (!res.ok) { waStatus("save failed (" + res.status + ")", "status-error"); return; }
+        waStatus("saved to " + panel.dataset.target, "status-ok");
+      } catch (e) {
+        waStatus("saved in browser (no server)", "status-unsaved");
+        const ns = panel.querySelector(".wa-noserver"); if (ns) ns.hidden = false;
+      }
+    });
+    if (dlBtn) dlBtn.addEventListener("click", () => {
+      const yaml = emitWebAccessYaml();
+      const blob = new Blob([yaml], { type: "text/yaml" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "web-access.yaml";
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      waStatus("downloaded web-access.yaml", "status-ok");
+    });
+  })();
 
   window.addEventListener("hashchange", applyHash);
   applyHash();
@@ -8998,6 +9093,34 @@ def _all_plugin_dirs() -> list[Path]:
     )
 
 
+def _render_web_access_page() -> str:
+    """The 'Web access' page (Set up category): edit the website allow/deny lists
+    that guard-web-access.sh enforces, persisted to .ravenclaude/web-access.yaml
+    via the /__save portal (localStorage + Download fallback on a static host)."""
+    target = ".ravenclaude/web-access.yaml"
+    t = html.escape(target)
+    return f"""
+    <div class="web-access-page" data-target="{t}">
+      <h2 class="pp-title">Web access — allow &amp; deny lists</h2>
+      <p class="pp-sub">Domains the agent may fetch <strong>without asking</strong> (allow) or <strong>never</strong> (deny). Saves to <code>{t}</code> via the dashboard server; the <code>guard-web-access.sh</code> hook enforces it for Claude when the plugin is installed, and any cloned CLI tool can read the same plain-YAML file. On the static/published copy edits stay in your browser — use <strong>Download</strong>. One domain per line; a rule matches the domain <em>and</em> its subdomains (e.g. <code>github.com</code> also allows <code>api.github.com</code>). Unlisted domains fall through to the agent's once / this-session / permanently / deny prompt.</p>
+      <section class="pp-section">
+        <h3>Allow <span class="pp-count">auto-approved</span></h3>
+        <textarea class="wa-allow pv-extra" rows="6" spellcheck="false" placeholder="github.com&#10;docs.anthropic.com"></textarea>
+      </section>
+      <section class="pp-section">
+        <h3>Deny <span class="pp-count">always blocked</span></h3>
+        <textarea class="wa-deny pv-extra" rows="6" spellcheck="false" placeholder="ads.example.com"></textarea>
+      </section>
+      <div class="pp-actions">
+        <button type="button" class="wa-save pp-save">Save to repo</button>
+        <button type="button" class="wa-download pp-download">Download .yaml</button>
+        <span class="wa-status pp-status" role="status"></span>
+      </div>
+      <p class="pp-noserver wa-noserver" hidden>No local dashboard server behind this page, so <strong>Save to repo</strong> is off. Run <code>ravenclaude dashboard</code> (or <code>bash .ravenclaude/dashboard.sh</code>) and reopen, or use <strong>Download</strong> and drop the file into <code>{t}</code>.</p>
+    </div>
+    """
+
+
 _PAGE_TEMPLATE = """<!doctype html>
 <html lang="en">
 <head>
@@ -9033,6 +9156,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <button class="tab-btn in-cat" id="tab-settings" data-tab="settings" data-cat="setup" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-settings" title="Settings — choose what Claude can do on its own (deny / ask / allow)">Settings</button>
     <button class="tab-btn in-cat" id="tab-pipeline" data-tab="pipeline" data-cat="setup" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-pipeline" title="Pipeline — the safety checks every command passes through">Pipeline</button>
     <button class="tab-btn in-cat" id="tab-simulator" data-tab="simulator" data-cat="setup" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-simulator" title="Preview a review — see how a command would be judged before you run it">Preview a review</button>
+    <button class="tab-btn in-cat" id="tab-web-access" data-tab="web-access" data-cat="setup" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-web-access" title="Web access — allow/deny which websites the agent may fetch">Web access</button>
     <button class="tab-btn" id="tab-saga" data-tab="saga" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-saga" title="Review log — past decisions the reviewer panel made (Sága)">&#9878; Review log</button>
     <button class="tab-btn" id="tab-activity" data-tab="activity" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-activity" title="Run feed — what Claude is doing right now: runs &amp; worktrees (Sleipnir)">Run feed</button>
     <button class="tab-btn" id="tab-heimdall" data-tab="heimdall" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-heimdall" title="Perimeter alerts — what your guardrails caught at the edge (Heimdall)">Perimeter alerts</button>
@@ -9063,6 +9187,9 @@ _PAGE_TEMPLATE = """<!doctype html>
   </section>
   <section class="tab-panel" id="panel-simulator" data-tab="simulator" role="tabpanel" aria-label="Preview a command's review">
 {simulator_html}
+  </section>
+  <section class="tab-panel" id="panel-web-access" data-tab="web-access" role="tabpanel" aria-label="Web access allow and deny lists">
+{web_access_html}
   </section>
   <section class="tab-panel" id="panel-learn" data-tab="learn" role="tabpanel" aria-label="Learn">
 {learn_html}

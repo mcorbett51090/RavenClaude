@@ -59,13 +59,18 @@ JSON_EDIT_TARGETS = {
     ".repo-layout.json",
     ".ravenclaude/task-scope.json",
 }
+# Plain YAML-mapping config files (validated as a mapping before write).
+WEB_ACCESS_TARGET = ".ravenclaude/web-access.yaml"
+YAML_MAPPING_TARGETS = {WEB_ACCESS_TARGET}
 ALLOWED_TARGETS = {
     ".ravenclaude/comfort-posture.yaml",
     ".ravenclaude/environment-context.md",
+    WEB_ACCESS_TARGET,
 } | JSON_EDIT_TARGETS
 ALLOWED_READ = {
     ".ravenclaude/comfort-posture.yaml",
     ".ravenclaude/environment-context.md",
+    WEB_ACCESS_TARGET,
 } | JSON_EDIT_TARGETS
 
 # Per-plugin variable files written by the dashboard's Plugins tab. The plugin
@@ -866,8 +871,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self.send_error(400, err)
                 return
 
-        # YAML-validate per-plugin variable files (must be a mapping) before write.
-        if is_plugin_cfg:
+        # YAML-validate per-plugin variable files + the web-access list (must be a
+        # mapping) before write.
+        if is_plugin_cfg or target in YAML_MAPPING_TARGETS:
             err = _validate_plugin_config(content)
             if err:
                 self.send_error(400, f"{target}: {err}")
