@@ -33,7 +33,64 @@ flowchart TD
     Q3 -->|No — most everyday work| MID[Balanced default<br/>Copilot: Auto / Sonnet-class · Codex: GPT-5.5 · Grok: Grok 4.3]
 ```
 
-**Right-size, don't default to the top.** Same discipline as `claude-app-engineering` house opinion #3: a cheap/fast model for triage and inline work, escalate-on-difficulty to the balanced default, and reserve the top frontier (and its cost premium) for the genuinely hard tail. The metric is **cost-per-resolved-task**, not raw model rank.
+**Right-size, don't default to the top.** Same discipline as `claude-app-engineering` house opinion #3: a cheap/fast model for triage and inline work, escalate-on-difficulty to the balanced default, and reserve the top frontier (and its cost premium) for the genuinely hard tail. The metric is **cost-per-resolved-task**, not raw model rank (see the durable-reasoning rule below).
+
+---
+
+## Decision Tree: Reasoning level vs a bigger model (the cheaper lever first)
+
+The "which model/tier" tree above picks a starting tier. This tree handles the **next** moment — the current model is struggling — and codifies house opinion #6: **raise the reasoning/thinking effort on the same model before jumping to a bigger, pricier SKU.** Vendor-neutral; the dial's name differs (Codex `/model` reasoning level, a thinking/effort budget elsewhere), the logic doesn't. Traverse it before escalating cost.
+
+```mermaid
+flowchart TD
+    A[Current model is struggling on a task] --> Q1{Capability ceiling, or effort ceiling?}
+    Q1 -->|"Effort — right model class, just needs to think longer/harder"| DIAL["Raise the reasoning/thinking level on the SAME model<br/>cheapest lever; re-run before changing SKU"]
+    Q1 -->|"Capability — this model class can't do this kind of reasoning"| Q2{Already at max reasoning on the current tier?}
+    Q2 -->|No| DIAL
+    Q2 -->|Yes — maxed and still failing| Q3{Does the latency/cost budget allow a bigger SKU?}
+    Q3 -->|Yes| BIGGER["Escalate one tier up<br/>balanced -> top frontier; accept the cost premium for the hard tail"]
+    Q3 -->|No| RESHAPE["Reshape the task, not the model<br/>narrow scope, add context, decompose into steps"]
+```
+
+**Rationale per leaf:**
+
+- _DIAL_ — most "the model got it wrong" cases are an **effort** ceiling, not a **capability** one: the same model at a higher reasoning/thinking level resolves the task at a fraction of the cost of a bigger SKU. This is the cheaper lever and the default first move (Codex makes it explicit — `/model` sets both the model **and** its reasoning level; raise the level before switching).
+- _Q2 (max-reasoning gate)_ — only after the current tier is genuinely **maxed on reasoning and still failing** is a bigger model the right escalation; jumping SKUs while reasoning headroom remains spends money the dial would have saved (anti-pattern #6).
+- _BIGGER_ — a true capability ceiling on the hard tail justifies the next tier up and its cost premium — that's exactly what the top frontier is reserved for. Map the leaf to the vendor's current top SKU via the tables below.
+- _RESHAPE_ — when budget forbids a bigger SKU, the lever is the **task**, not the model: narrow the scope, supply better context/examples, or decompose into steps a balanced model can each handle. Often a better-shaped task on the cheaper model beats a bigger model on a sprawling one.
+
+**Tradeoffs summary:**
+
+| Move | Cost delta | Try when | Trap avoided |
+|---|---|---|---|
+| Raise reasoning on same model | ~none (more tokens) | effort ceiling; reasoning headroom remains | paying for a bigger SKU the dial would've fixed |
+| Escalate one tier up | + (per-token + premium) | reasoning maxed, true capability ceiling, budget allows | over-spending on everyday work |
+| Reshape the task | none | budget forbids a bigger SKU | brute-forcing a sprawling task with raw model size |
+
+---
+
+## Durable reasoning: right-size by cost-per-resolved-task, not model rank
+
+**This is a framework rule, not a volatile fact — it does not churn with the lineup.** The instinct to reach for the highest-ranked model "to be safe" is the most expensive habit in AI-assisted coding, because the cost of the top tier is paid on **every** call, while its advantage only shows up on the hard tail.
+
+- **The metric is cost-per-resolved-task, not raw model rank or benchmark position.** A cheaper model that resolves the task in one pass beats a frontier model that resolves it in one pass at 5–20× the cost — they have the **same** outcome and very different bills. Rank only matters where the cheaper tier actually *fails*.
+- **Tier the work, not the developer.** Inline edits / autocomplete → cheapest fast tier; everyday implementation/refactor/debug → the balanced default; the genuinely hard tail (system design, rare debugging, eval rubrics) → the top frontier. Most work lives in the middle tier.
+- **Escalate on observed difficulty, not in anticipation of it.** Start at the right-sized tier and move up only when the task demonstrably needs it (and first via the reasoning dial, per the tree above) — not pre-emptively because the task "feels important."
+- **`Auto`/default pickers encode this** — let the tool right-size when you have no specific reason from the tree to override (Copilot `Auto`, the Codex default model).
+
+Mirrors `claude-app-engineering` house opinion #3 and this plugin's house opinion #2. It is vendor-neutral and outlives any specific SKU in the tables below.
+
+---
+
+## Durable reasoning: scope model availability by surface + plan + date
+
+**This is a framework rule, not a volatile fact.** "Is model X available in tool Y?" has **no flat universal answer** — availability is a function of three axes, and stating it without them is how this plugin's agents would ship a wrong claim.
+
+- **Surface.** A model present in one surface (coding agent, cloud agent, chat, completions, mobile) is not necessarily in another. A 2026-05-20 changelog removed several models from **Copilot Chat on the web specifically** — that was *not* a picker-wide removal. Always scope the claim to the surface.
+- **Plan.** Free vs Pro vs Business vs Enterprise expose different model sets, and org **model rules** can further restrict them. Never promise a model without knowing the consumer's plan/org policy.
+- **Date.** These three vendors ship weekly-to-monthly; an availability claim is only true as of a retrieval date. Carry the date and a `[verify-at-use]` rider; re-verify against the live picker/source before quoting.
+
+The practical phrasing: **"as of `<date>`, on `<surface>`, for `<plan>`, model X is available — verify live."** Never "model X is in tool Y" as a standalone universal. Mirrors house opinions #3 and #4; the dated specifics live in the per-ecosystem tables below, this rule governs how to *state* them.
 
 ---
 
