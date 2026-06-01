@@ -343,6 +343,13 @@ python3 -c "p='plugins/data-platform/.claude-plugin/plugin.json';s=open(p).read(
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (wrong skill count)" must_fail "$rc"
 cp -p "$TMP/plugins_data-platform_.claude-plugin_plugin.json.bak" plugins/data-platform/.claude-plugin/plugin.json
+# must_fail (a2): a wrong AGENT count in a plugin.json must be detected (the
+# drift class the two-panel audit found ungated — 4 stale roster numbers).
+backup plugins/salesforce/.claude-plugin/plugin.json
+python3 -c "p='plugins/salesforce/.claude-plugin/plugin.json';s=open(p).read();open(p,'w').write(s.replace('5 agents','99 agents',1))"
+rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
+gate "marketplace-claims (wrong agent count)" must_fail "$rc"
+cp -p "$TMP/plugins_salesforce_.claude-plugin_plugin.json.bak" plugins/salesforce/.claude-plugin/plugin.json
 # must_fail (b): a missing required README must be detected.
 backup plugins/finance/README.md
 rm -f plugins/finance/README.md
