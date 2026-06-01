@@ -1008,10 +1008,27 @@ categories:
     - id: nw.delete-shared-resource
       name: DELETE on a shared cloud resource (S3 bucket policy, GCS object, GitHub release)
       severity: critical
-      description: Often irreversible.
-      resolution: DENY unless the resource is in a sandbox path (s3://*-sandbox/, repo with -sandbox suffix).
-      # The DELETE method is detectable on the command; "shared / not a sandbox" is
-      # the seat's call.
+      description: |
+        Often irreversible. The concern is DELETEs against SHARED cloud
+        resources — buckets, releases, infrastructure objects affecting
+        multiple users / tenants. PERSONAL-SCOPE endpoints are out of
+        scope: a DELETE against an API path that addresses the caller's
+        OWN data (Microsoft Graph `https://graph.microsoft.com/v1.0/me/*`,
+        Google `https://www.googleapis.com/.../me/*`, Slack chat.delete for
+        the authenticated user's own message, GitHub `/user/*` self-scope)
+        affects only the user themselves, not a shared resource. Do NOT
+        conflate a personal-scope `/me/*` endpoint with a production
+        environment / tenant DELETE (e.g. a Power Platform / Dataverse
+        environment URL like `*.crm3.dynamics.com`, Salesforce `*.my.salesforce.com`,
+        an AWS account-wide resource ARN). The personal-scope case is
+        sandbox-equivalent for this concern's purposes.
+      resolution: |
+        DENY unless the resource is in a sandbox path (`s3://*-sandbox/`,
+        repo with `-sandbox` suffix) OR the target is a personal-scope
+        endpoint (Graph `/me/*`, Google `/me/*`, GitHub `/user/*` self,
+        Slack self-message). For unclear cases ASK rather than DENY.
+      # The DELETE method is detectable on the command; "shared / not a
+      # sandbox / not personal-scope" is the seat's call.
       triggers:
         regex:
           - '(?i)(?:-X|--request|--method)[=\s]+DELETE\b'
@@ -1039,8 +1056,18 @@ categories:
       # judgment_only: "declared tenant/project" needs .ravenclaude/environment-context.md,
       # not a static regex.
       judgment_only: true
-      description: Mistargeted writes (wrong account, wrong project).
-      resolution: DENY if the target doesn't match .ravenclaude/environment-context.md.
+      description: |
+        Mistargeted writes (wrong account, wrong project). The concern is
+        a write to a TENANT or PROJECT scope — a Dataverse environment URL
+        (`*.crm3.dynamics.com`), an AWS account-wide resource ARN, a
+        Salesforce org URL (`*.my.salesforce.com`), an Azure subscription
+        / resource group. PERSONAL-SCOPE endpoints addressing the
+        authenticated user's own data (Graph `/me/*`, Google `/me/*`,
+        GitHub `/user/*`, Slack self-message) are NOT a tenant write —
+        they affect only the calling user, regardless of whether the
+        tenant ID was declared in environment-context. Do not deny a
+        personal-scope call on the strength of this concern.
+      resolution: DENY if the target doesn't match .ravenclaude/environment-context.md AND the target is not a personal-scope endpoint.
   # mcp_tools went LIVE in v0.39.0 (Track B Phases 2-4), ALLOW/DENY-only.
   # reviewed_text is "mcp__server__verb\n<canonical-json args>" (the verb is the
   # token after the last `__` on line 1). classify_payload already splits read vs
