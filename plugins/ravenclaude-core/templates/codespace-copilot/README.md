@@ -12,11 +12,25 @@ Codespace builds, `ravenclaude-post-create.sh` runs and:
 
 Then, in a new terminal, you just type **`rc`** to launch Copilot with RavenClaude.
 
+**The dashboard auto-launches.** Two devcontainer hooks make the comfort-posture
+dashboard discoverable without you having to remember where it is or how to start it:
+
+- `postStartCommand` runs `.ravenclaude/dashboard.sh` on every Codespace start **and
+  resume** (`postCreateCommand` only fires on first build, so a resume wouldn't
+  re-start the server otherwise). Guarded on the launcher's presence, so a fresh
+  repo where `ravenclaude setup` hasn't yet run still starts cleanly.
+- `forwardPorts: [8000]` pre-forwards the dashboard port so it appears in the
+  **Ports** panel from container start — labeled "RavenClaude dashboard" — even
+  before the server binds. `portsAttributes."8000".onAutoForward: openBrowser`
+  opens the URL in a real browser tab as soon as the server answers.
+
+Net effect: open the Codespace, the dashboard URL opens itself. No hunt.
+
 ## Files
 
 | File | Purpose |
 | --- | --- |
-| `devcontainer.json` | Codespace definition; its `postCreateCommand` runs the script below. |
+| `devcontainer.json` | Codespace definition; its `postCreateCommand` runs the script below, and its `postStartCommand` auto-launches the dashboard server on every resume. |
 | `ravenclaude-post-create.sh` | The auto-setup itself. Idempotent — safe on every rebuild. |
 
 ## Three ways to use it
@@ -44,7 +58,14 @@ Then, in a new terminal, you just type **`rc`** to launch Copilot with RavenClau
   and/or `RAVENCLAUDE_DIR` in `devcontainer.json` `containerEnv` or your Codespace
   secrets — the script reads both.
 - **Already have a `devcontainer.json`?** `init-codespace` won't overwrite it;
-  merge the `postCreateCommand` line in by hand instead.
+  merge the `postCreateCommand`, `postStartCommand`, `forwardPorts`, and
+  `portsAttributes` lines in by hand instead.
 - The script does **not** create a marketplace clone inside your repo — it clones
   to `~/RavenClaude` and points Copilot at it live, so updates are just
   `ravenclaude update` (which `rc` runs for you before each launch).
+- **Port visibility (private vs public):** by default a forwarded port is
+  **Private** to your GitHub account, which is fine for solo use — open the URL
+  while you're signed in and it just works. If your Codespace shows
+  "this Codespace is private" when you click the forwarded URL, that's the
+  port-visibility doing its job, not an error. Don't make port 8000 public —
+  the dashboard server's `/__save` writes files and applies posture.
