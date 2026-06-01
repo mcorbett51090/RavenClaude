@@ -1,0 +1,48 @@
+# Ruff config — scaffolded by RavenClaude's /init-agent-ready.
+#
+# A CONSERVATIVE starting ruleset for a repo that has never been linted: it
+# catches real correctness + efficiency problems (unused imports/vars, undefined
+# names, mutable defaults, needless list comprehensions, redundant branches)
+# without drowning you in style nits on day one. Run `ruff check --fix .` and
+# `ruff format .` once to clean the tree, commit, then TIGHTEN over time by
+# adding rule families to `select` below.
+#
+# Docs: https://docs.astral.sh/ruff/rules/
+
+line-length = 100
+target-version = "py39" # raise to your minimum supported Python
+
+[lint]
+# Start conservative — correctness + obvious-inefficiency families:
+#   F    pyflakes      (unused imports/vars, undefined names, f-string bugs)
+#   E9   syntax errors (a file that won't parse)
+#   B    flake8-bugbear (mutable default args, except-without-name, etc.)
+#   C4   comprehensions (needless list()/dict() wrapping, etc.)
+#   SIM  flake8-simplify (collapsible if/return, redundant branches)
+#   I    isort         (import ordering — autofixable)
+#   UP   pyupgrade     (modernize syntax — autofixable)
+select = ["F", "E9", "B", "C4", "SIM", "I", "UP"]
+
+# Tighten later by adding, e.g.: "E", "W" (pycodestyle), "N" (naming),
+# "PERF" (perflint), "RET" (return), "ARG" (unused args), "PTH" (use pathlib).
+ignore = []
+
+# Files/dirs ruff should not touch (generated code, vendored deps).
+exclude = [
+  ".git",
+  "__pycache__",
+  "build",
+  "dist",
+  "node_modules",
+  "vendor",
+]
+
+[lint.per-file-ignores]
+# Tests and __init__ files often want laxer rules — add as needed, e.g.:
+# "__init__.py" = ["F401"]   # re-exports
+# "tests/**"    = ["B011"]
+
+[format]
+# Ruff's formatter is Black-compatible. `ruff format --check .` gates it in CI.
+quote-style = "double"
+indent-style = "space"
