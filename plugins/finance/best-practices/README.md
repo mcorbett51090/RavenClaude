@@ -8,10 +8,11 @@ These complement, and do not restate, the cross-cutting house opinions in the te
 
 ## Index
 
-_21 rules. Each file is one named, citable rule; read and apply it whole._
+_22 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
+| [`audit-classify-deficiency-severity.md`](./audit-classify-deficiency-severity.md) | Absolute rule — calling every exception a "finding" (or burying a material weakness) misstates the control environment; severity is a defined judgment. | A failed control test must be classified CD / SD / material weakness — likelihood × magnitude vs materiality — which drives remediation and disclosure. |
 | [`audit-controls-need-an-owner-frequency-and-evidence.md`](./audit-controls-need-an-owner-frequency-and-evidence.md) | Absolute rule | An auditor does not accept that a control exists because someone says it does — they ask "who runs it, how often, and what proves it fired?" A control… |
 | [`board-open-with-the-narrative-not-the-table.md`](./board-open-with-the-narrative-not-the-table.md) | Pattern | A board pack that opens with a table is a request to skim, and a board that skims makes worse decisions. |
 | [`controller-every-journal-entry-carries-a-memo-and-reviewer.md`](./controller-every-journal-entry-carries-a-memo-and-reviewer.md) | Absolute rule | A journal entry without a memo is a number an auditor cannot trust six months later, and a recon without a reviewer signature is one person's unchecke… |
