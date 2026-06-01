@@ -186,3 +186,38 @@ flowchart TD
 | Escalate | n/a | n/a | n/a | Neither permission held |
 
 The canonical write-up — auth-surface trap, the `clientdata` live-shape gotcha, the GUID-injection rule, and the full bulk-create checklist — is [`programmatic-flow-creation.md`](programmatic-flow-creation.md); the adjacent best-practice is [`../best-practices/create-cloud-flows-via-dataverse-web-api.md`](../best-practices/create-cloud-flows-via-dataverse-web-api.md).
+
+---
+
+## Decision Tree: Calling an external API — raw HTTP action, custom connector, or certified connector?
+
+**When this applies:** a flow (or app) needs to call an external/back-end API and the question is _how to wrap it_ — a raw `HTTP` action inline, an authored **custom connector**, or pursuing **Microsoft certification**. Observable inputs: how many flows/makers will reuse it, whether the API is Entra-protected vs key-based, whether per-user delegated access is needed, and whether you're an ISV publishing for _other_ tenants. **Scope:** this tree is about _how to wrap an HTTP-callable API_; it does **not** decide Power Automate vs Logic Apps vs Azure Function (that's the automation-surface call `flow-engineer` makes per §11) — assume the work already belongs in a Power Platform flow/app.
+
+**Last verified:** 2026-05-30 against [`../best-practices/connector-custom-connector-auth-and-policy.md`](../best-practices/connector-custom-connector-auth-and-policy.md). Certification mechanics + the policy-template catalog are platform-version-sensitive — `[verify-at-build]`.
+
+```mermaid
+flowchart TD
+    START[Flow/app must call an external API] --> REUSE{Reused across many flows / makers / apps?}
+    REUSE -->|NO — one or two calls in one flow| HTTP{Entra-protected API?}
+    HTTP -->|YES| HTTPENTRA["Raw HTTP action with Entra auth<br/>(or HTTP-with-Microsoft-Entra-ID connector)<br/>simplest for a one-off"]
+    HTTP -->|NO — key/basic| HTTPKEY["Raw HTTP action<br/>key as a secure input / env-var, NOT inline"]
+    REUSE -->|YES — shared surface| ISV{"Publishing for OTHER tenants? (ISV)"}
+    ISV -->|NO — internal to your tenant| CUSTOM["Custom connector (tenant-private)<br/>match auth to the API: OAuth2/Entra · API key · none-if-public<br/>+ policy templates to pin host/headers<br/>+ classify in DLP"]
+    ISV -->|YES — multi-tenant distribution| CERT["Certified (public) connector<br/>multi-week Microsoft review — only worth it for ISV distribution"]
+```
+
+**Rationale per leaf:**
+
+- _HTTPENTRA / HTTPKEY_ — a one-off call doesn't justify authoring a whole connector; a raw HTTP action (Entra auth for Entra-protected APIs, key as a **secure input / env-var** for key-based) is simpler. Never inline a secret in the action (anti-pattern; auth verdict escalates to `ravenclaude-core/security-reviewer`).
+- _CUSTOM_ — the moment the API is reused across flows/makers, author a **tenant-private custom connector**: it lives in your environment, is governed by your DLP, needs no Microsoft review. Match the auth scheme to the API's real model (OAuth2/Entra · API key as a connection credential · none only for genuinely public read-only), use policy templates to pin the backend host/headers, and **classify it in DLP** (Business/Non-Business/Blocked) so it doesn't default-surprise.
+- _CERT_ — certification is a multi-week Microsoft process worth it **only** if you're an ISV publishing the connector for other tenants; it is not a deployment step for an internal connector.
+
+**Tradeoffs summary:**
+
+| Path | Reuse | Auth handling | Governance | Effort | Use when |
+|---|---|---|---|---|---|
+| Raw HTTP action | none (one flow) | inline action auth (secret as secure input) | per-flow | lowest | one/two calls, one flow |
+| Custom connector (tenant-private) | across your tenant | declared scheme (OAuth2/key) + policy templates | your DLP, no MS review | medium | reused internal API |
+| Certified (public) | across other tenants | declared scheme + MS review | Microsoft + your DLP | highest (multi-week) | ISV distributing to other tenants |
+
+This tree operationalizes [`../best-practices/connector-custom-connector-auth-and-policy.md`](../best-practices/connector-custom-connector-auth-and-policy.md); DLP classification of any new connector runs through the [`alm-governance-decision-trees.md`](alm-governance-decision-trees.md) connector-classification tree, and any auth/secret verdict escalates to `ravenclaude-core/security-reviewer`.
