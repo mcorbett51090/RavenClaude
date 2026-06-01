@@ -891,7 +891,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if not self._local_request_ok():
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
-        from urllib.parse import urlparse, parse_qs
+        from urllib.parse import parse_qs, urlparse
         qs = parse_qs(urlparse(self.path).query)
         target = (qs.get("path") or [""])[0]
         if target not in ALLOWED_READ and not _is_plugin_config_target(target):
@@ -930,9 +930,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if not self._local_request_ok():
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
-        from urllib.parse import urlparse, parse_qs
         import glob as _glob
         import os as _os
+        from urllib.parse import parse_qs, urlparse
 
         qs = parse_qs(urlparse(self.path).query)
         try:
@@ -1080,7 +1080,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if not self._local_request_ok():
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
-        from urllib.parse import urlparse, parse_qs
+        from urllib.parse import parse_qs, urlparse
 
         qs = parse_qs(urlparse(self.path).query)
         try:
@@ -1109,7 +1109,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if not self._local_request_ok():
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
-        from urllib.parse import urlparse, parse_qs
+        from urllib.parse import parse_qs, urlparse
 
         qs = parse_qs(urlparse(self.path).query)
         try:
@@ -1128,7 +1128,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if not self._local_request_ok():
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
-        from urllib.parse import urlparse, parse_qs
+        from urllib.parse import parse_qs, urlparse
 
         qs = parse_qs(urlparse(self.path).query)
         try:
@@ -1149,7 +1149,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if not self._local_request_ok():
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
-        from urllib.parse import urlparse, parse_qs
+        from urllib.parse import parse_qs, urlparse
 
         qs = parse_qs(urlparse(self.path).query)
         plugin = (qs.get("plugin") or ["ravenclaude-core"])[0]
@@ -1271,11 +1271,11 @@ def main() -> int:
     print(f"serve-dashboards (plugin): serving {PLUGIN_DIR}")
     print(f"  project root (writes here): {PROJECT_ROOT}")
     print(f"  local URL: http://127.0.0.1:{args.port}{DASH_PATH}  (bound to {bind})")
-    print(f"  POST /__save  - writes an allow-listed file under .ravenclaude/ + auto-applies")
-    print(f"  GET  /__read  - hydrates the dashboard from your committed config")
-    print(f"  GET  /__saga  - read-only Review-log feed from .ravenclaude/runs/thing/ (?limit=N, default 200)")
-    print(f"  GET  /__runs  - read-only Activity feed from .ravenclaude/runs/<id>/ (?limit=N, default 200)")
-    print(f"  POST /__classify - command-review 'Test a command' simulator (read-only)")
+    print("  POST /__save  - writes an allow-listed file under .ravenclaude/ + auto-applies")
+    print("  GET  /__read  - hydrates the dashboard from your committed config")
+    print("  GET  /__saga  - read-only Review-log feed from .ravenclaude/runs/thing/ (?limit=N, default 200)")
+    print("  GET  /__runs  - read-only Activity feed from .ravenclaude/runs/<id>/ (?limit=N, default 200)")
+    print("  POST /__classify - command-review 'Test a command' simulator (read-only)")
 
     phone_url = None
     if codespace:

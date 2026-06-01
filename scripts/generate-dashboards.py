@@ -1876,7 +1876,7 @@ def _render_pattern_overrides(category: str) -> str:
             f'aria-label="Per-layer override for {html.escape(pattern)}">'
             + "".join(layer_controls)
             + "</div>"
-            f"</div>"
+            "</div>"
         )
     return (
         f'<details class="pattern-details" data-category="{html.escape(category)}">'
@@ -1890,7 +1890,7 @@ def _render_pattern_overrides(category: str) -> str:
         f'<div class="pattern-list">'
         + "".join(rows)
         + "</div>"
-        f"</details>"
+        "</details>"
     )
 
 
@@ -1928,7 +1928,7 @@ def _render_layer_radios(name: str, layer: str, default_value: str = "inherit") 
         f'<div class="layer-radios">'
         + "".join(radios)
         + "</div>"
-        f"</div>"
+        "</div>"
     )
 
 
@@ -1993,7 +1993,7 @@ def _render_category_card(name: str, schema: dict) -> str:
         + project_row
         + _render_pattern_overrides(name)
         + "</div>"
-        f"</details>"
+        "</details>"
     )
 
 
@@ -2147,40 +2147,40 @@ def _render_security_deny(schema: dict) -> str:
             f"</div>"
         )
     return (
-        f'<section class="danger-zone">'
-        f'<header class="danger-zone-header">'
-        f'<h3 class="danger-zone-title">Danger Zone'
-        f'<button type="button" class="info-btn info-btn-section" '
-        f'data-info-section="security_deny" '
-        f'aria-label="Explain the Danger Zone" '
-        f'title="Explain the Danger Zone">?</button>'
-        f'</h3>'
-        f'<p class="danger-zone-subtitle">'
-        f'The following patterns are ALWAYS denied, regardless of category levels. '
-        f'Unblock individual rules at your own risk.'
-        f'</p>'
-        f'<div class="danger-zone-note">'
-        f'<p><strong>These are preventive guardrails, not a malware scanner.</strong> '
-        f'They block the common <em>routes</em> malware and damage travel through &mdash; '
-        f'running remote scripts (<code>curl | sh</code>), gaining root (<code>sudo</code>), '
-        f'wiping files, and reading secrets &mdash; and they stop the command <em>before</em> it runs.</p>'
-        f'<p><strong>What they don&rsquo;t do:</strong> inspect a file&rsquo;s contents &mdash; so they cannot '
-        f'catch malware hidden inside something you explicitly approve. Treat the floor as a seatbelt, '
-        f'not a reason to skip reviewing what Claude produced.</p>'
-        f'<p class="danger-zone-note-maint">The floor and the hooks behind it '
-        f'(<code>guard-destructive</code> blocks destructive shell commands, <code>enforce-layout</code> '
-        f'blocks off-pattern file writes) are maintained in the RavenClaude marketplace and periodically '
-        f're-reviewed by the Researcher meta-skill, which adds new dangerous patterns here as they emerge. '
-        f'Learn more: '
-        f'<a href="https://code.claude.com/docs/en/settings" target="_blank" rel="noopener">Claude Code permissions</a> &middot; '
-        f'<a href="https://code.claude.com/docs/en/hooks" target="_blank" rel="noopener">how hooks work</a> &middot; '
-        f'<a href="rules/security.md" target="_blank" rel="noopener">this plugin&rsquo;s security rules</a>.</p>'
-        f'</div>'
-        f'</header>'
-        f'<div class="danger-zone-list">'
+        '<section class="danger-zone">'
+        '<header class="danger-zone-header">'
+        '<h3 class="danger-zone-title">Danger Zone'
+        '<button type="button" class="info-btn info-btn-section" '
+        'data-info-section="security_deny" '
+        'aria-label="Explain the Danger Zone" '
+        'title="Explain the Danger Zone">?</button>'
+        '</h3>'
+        '<p class="danger-zone-subtitle">'
+        'The following patterns are ALWAYS denied, regardless of category levels. '
+        'Unblock individual rules at your own risk.'
+        '</p>'
+        '<div class="danger-zone-note">'
+        '<p><strong>These are preventive guardrails, not a malware scanner.</strong> '
+        'They block the common <em>routes</em> malware and damage travel through &mdash; '
+        'running remote scripts (<code>curl | sh</code>), gaining root (<code>sudo</code>), '
+        'wiping files, and reading secrets &mdash; and they stop the command <em>before</em> it runs.</p>'
+        '<p><strong>What they don&rsquo;t do:</strong> inspect a file&rsquo;s contents &mdash; so they cannot '
+        'catch malware hidden inside something you explicitly approve. Treat the floor as a seatbelt, '
+        'not a reason to skip reviewing what Claude produced.</p>'
+        '<p class="danger-zone-note-maint">The floor and the hooks behind it '
+        '(<code>guard-destructive</code> blocks destructive shell commands, <code>enforce-layout</code> '
+        'blocks off-pattern file writes) are maintained in the RavenClaude marketplace and periodically '
+        're-reviewed by the Researcher meta-skill, which adds new dangerous patterns here as they emerge. '
+        'Learn more: '
+        '<a href="https://code.claude.com/docs/en/settings" target="_blank" rel="noopener">Claude Code permissions</a> &middot; '
+        '<a href="https://code.claude.com/docs/en/hooks" target="_blank" rel="noopener">how hooks work</a> &middot; '
+        '<a href="rules/security.md" target="_blank" rel="noopener">this plugin&rsquo;s security rules</a>.</p>'
+        '</div>'
+        '</header>'
+        '<div class="danger-zone-list">'
         + "".join(rows)
         + "</div>"
-        f"</section>"
+        "</section>"
     )
 
 

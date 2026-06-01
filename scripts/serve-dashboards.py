@@ -870,7 +870,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if not self._local_request_ok():
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
-        from urllib.parse import urlparse, parse_qs
+        from urllib.parse import parse_qs, urlparse
         qs = parse_qs(urlparse(self.path).query)
         target = (qs.get("path") or [""])[0]
         if target not in ALLOWED_READ and not _is_plugin_config_target(target):
@@ -909,9 +909,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if not self._local_request_ok():
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
-        from urllib.parse import urlparse, parse_qs
         import glob as _glob
         import os as _os
+        from urllib.parse import parse_qs, urlparse
 
         qs = parse_qs(urlparse(self.path).query)
         try:
@@ -1012,7 +1012,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if not self._local_request_ok():
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
-        from urllib.parse import urlparse, parse_qs
+        from urllib.parse import parse_qs, urlparse
 
         qs = parse_qs(urlparse(self.path).query)
         try:
@@ -1041,7 +1041,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if not self._local_request_ok():
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
-        from urllib.parse import urlparse, parse_qs
+        from urllib.parse import parse_qs, urlparse
 
         qs = parse_qs(urlparse(self.path).query)
         try:
@@ -1060,7 +1060,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if not self._local_request_ok():
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
-        from urllib.parse import urlparse, parse_qs
+        from urllib.parse import parse_qs, urlparse
 
         qs = parse_qs(urlparse(self.path).query)
         try:
@@ -1081,7 +1081,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if not self._local_request_ok():
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
-        from urllib.parse import urlparse, parse_qs
+        from urllib.parse import parse_qs, urlparse
 
         qs = parse_qs(urlparse(self.path).query)
         plugin = (qs.get("plugin") or ["ravenclaude-core"])[0]
@@ -1387,15 +1387,15 @@ def main() -> int:
     server._dash_path = dash_path  # type: ignore[attr-defined]
 
     print(f"serve-dashboards: serving {REPO_ROOT} at http://127.0.0.1:{actual_port}/  (bound to {bind})")
-    print(f"  POST /__save  - writes a whitelisted file under .ravenclaude/")
+    print("  POST /__save  - writes a whitelisted file under .ravenclaude/")
     print(f"  allow-list   - {sorted(ALLOWED_TARGETS)}")
-    print(f"  POST /__run   - runs an allow-listed ravenclaude action (Install/Update buttons)")
+    print("  POST /__run   - runs an allow-listed ravenclaude action (Install/Update buttons)")
     print(f"  actions      - {sorted(ALLOWED_ACTIONS)}")
-    print(f"  GET  /__read  - reads an allow-listed config file so the dashboard hydrates from it")
+    print("  GET  /__read  - reads an allow-listed config file so the dashboard hydrates from it")
     print(f"  read-list    - {sorted(ALLOWED_READ)}")
-    print(f"  POST /__classify - runs the real command-review classifier on a string (Test-a-command simulator)")
-    print(f"  GET  /__saga     - read-only list of Thing verdicts from .ravenclaude/runs/thing/ (?limit=N, default 200)")
-    print(f"  GET  /__runs     - read-only list of multi-step runs from .ravenclaude/runs/<id>/ (?limit=N, default 200)")
+    print("  POST /__classify - runs the real command-review classifier on a string (Test-a-command simulator)")
+    print("  GET  /__saga     - read-only list of Thing verdicts from .ravenclaude/runs/thing/ (?limit=N, default 200)")
+    print("  GET  /__runs     - read-only list of multi-step runs from .ravenclaude/runs/<id>/ (?limit=N, default 200)")
 
     # Work out a phone-reachable URL (if any). localhost is NOT reachable from a
     # phone, so it gets no QR. The QR lets you open the live dashboard on a phone

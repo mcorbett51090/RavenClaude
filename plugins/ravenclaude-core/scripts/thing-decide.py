@@ -57,7 +57,7 @@ _HERE = Path(__file__).resolve().parent
 _DECISION = _HERE / "thing-decision.py"
 
 _SEATS = ("forseti", "mimir", "heimdall")
-_TRUTHY = {True, "on", "true", "yes", "1", 1}
+_TRUTHY = {True, "on", "true", "yes", "1"}
 
 
 def _load_decision_module():

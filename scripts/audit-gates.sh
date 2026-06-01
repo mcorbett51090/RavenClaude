@@ -276,6 +276,23 @@ else
 fi
 
 echo
+echo "── Gate 9b: Ruff (Python lint) ───────────────────────────────────────────"
+# Lint the marketplace's ~20k LOC of Python against ruff.toml (correctness +
+# efficiency families F/E9/B/C4/I/UP). The CI step installs ruff before this runs.
+if command -v ruff >/dev/null 2>&1; then
+  ruff_bad="$TMP/ruff_bad.py"
+  printf 'import os\n' > "$ruff_bad" # F401 unused-import — a real finding under select=F
+  rc=0
+  ruff check "$ruff_bad" --config ruff.toml >/dev/null 2>&1 || rc=$?
+  gate "ruff (unused import)" must_fail "$rc"
+  rc=0
+  ruff check . >/dev/null 2>&1 || rc=$?
+  gate "ruff (clean tree)" must_pass "$rc"
+else
+  _skip_or_fail "Gate 9b (ruff)" ruff
+fi
+
+echo
 echo "── Gate 10: Actionlint (parse + lint) ────────────────────────────────────"
 # Pinned-binary actionlint (rhysd/actionlint v1.7.7), sha256-verified — NO Docker
 # Hub dependency (eliminates the image-pull rate-limit flakiness that broke
