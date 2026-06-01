@@ -36,6 +36,7 @@
 - **"Audit this tenant"** → `power-platform-admin` (governance + licensing + capacity); pull in `dataverse-architect` for schema concerns.
 - **"Migrate this 50,000-row Excel workbook to a real Power App"** → `dataverse-architect` (schema) → `solution-alm-engineer` (env strategy) → `power-fx-engineer` or `model-driven-engineer` (UI) — in that order.
 - **"Build a chatbot that does X"** → `copilot-studio-engineer` (bot design) → `flow-engineer` (any actions the bot calls) → `solution-alm-engineer` (package).
+- **"Let an agent read/query/write Dataverse data live" / "connect Claude to Dataverse via MCP"** → `dataverse-architect` (data ops) + `power-platform-admin` (tenant enablement) using the **official Dataverse MCP** (§9a — recommended, not bundled; mind the **billing** + admin-consent prerequisites); auth/consent decision → `ravenclaude-core/security-reviewer`.
 - **Anything touching auth, FLS, RLS, secrets, or PII** → also route through `ravenclaude-core` `security-reviewer`.
 - When reviewing a solution for long-term health or before major handoff, consider invoking the `maintainability-review` skill (and its template).
 
@@ -246,6 +247,43 @@ Until that's done, the MCP will fail to start and its tools will be unavailable.
 **Boundary** — the `powerbi-editor` MCP is for `.pbix`/`.pbit` file manipulation. It is **not** a connection to the Power BI service, and it does not replace the Power BI REST API or `pac` CLI. For tenant-level Power BI operations (workspaces, datasets, refresh schedules), use the Power BI REST API directly via `flow-engineer` or `power-platform-admin`.
 
 See [`NOTICE.md`](NOTICE.md) for license attribution and a PATH-fallback configuration for consumers whose Python install doesn't put `pbix-mcp-server` on PATH.
+
+---
+
+## 9a. Recommended (not bundled) MCP — the official Dataverse MCP server
+
+> **Verified 2026-06-01** against Microsoft Learn ([Connect to Dataverse with MCP](https://learn.microsoft.com/en-us/power-apps/maker/data-platform/data-platform-mcp) · [non-Microsoft clients](https://learn.microsoft.com/en-us/power-apps/maker/data-platform/data-platform-mcp-other-clients)). GA/preview status, the app IDs, and **billing** are platform-current — re-confirm against the live docs before relying on them (house opinion §9 of `claude-app-engineering`; the claim-grounding discipline applies — these are volatile Microsoft platform facts).
+
+Unlike `powerbi-editor` (a zero-config bundled binary), the **Dataverse MCP server is NOT bundled** — it's a per-tenant, authenticated Microsoft service, so it cannot ship a hardcoded `mcpServers` entry (the org URL is consumer-specific). It is **recommended and consumer-configured**: when an engagement needs an agent to read/query/write **Dataverse data live** (list/describe tables, query rows, create/update rows), point the consumer at Microsoft's own first-party server rather than authoring one.
+
+**Owned by** `dataverse-architect` (schema/data operations) + `power-platform-admin` (tenant enablement). **Any auth/consent/secret decision escalates to `ravenclaude-core/security-reviewer`** (house rule, §11).
+
+**Local-proxy setup (recommended for Claude Code), as documented by Microsoft:**
+
+```bash
+# Node.js 18+ required. Connects via the @microsoft/dataverse local proxy (stdio).
+claude mcp add dataverse -t stdio -- npx -y @microsoft/dataverse mcp https://yourorg.crm.dynamics.com
+```
+
+Consumer prerequisites (all consumer-side, none shipped by this plugin):
+
+1. **Enable the Dataverse MCP server** for the target environment (Power Platform admin center → Environment → Settings → Product → Features → *Dataverse Model Context Protocol*).
+2. **One-time tenant-admin consent** for the Dataverse CLI app (app ID `0c412cc3-0dd6-449b-987f-05b053db9457`) via `https://login.microsoftonline.com/{tenant-id}/adminconsent?client_id=0c412cc3-0dd6-449b-987f-05b053db9457`, then enable that **Dataverse CLI** client in the environment's MCP **Advanced Settings**.
+3. **Remote-endpoint alternative** (no local proxy): connect to `https://<org-url>/api/mcp` using a custom Entra app granted the **Dynamics CRM → `mcp.tools`** permission, added to the environment's allowed-clients list.
+
+> **⚠️ Billing (consumer-impacting — always surface it).** As of **2026-06-01 [verify-at-use]**, Dataverse MCP tools are **charged** when accessed by AI agents **outside Microsoft Copilot Studio** (which includes Claude Code) — *unless* the consumer holds **Dynamics 365 Premium** or an **M365 Copilot User Subscription License**. Never recommend this MCP without stating the billing condition; it is the `grok-code-fast-1`-class "silent cost" trap for this server. The companion **Power Apps MCP server** is **preview** at the retrieval date — scope it accordingly (house opinion: cite GA/preview with a date).
+
+**This is a `microsoft-fabric`-/`claude-app-engineering`-style "no bundled MCP, recommend the first-party path" stance** (their §11), applied here because the official server is per-tenant + billed and a community re-implementation would be strictly worse on supply chain and maintenance.
+
+### 9a.1 Power Automate flow tooling — optional, evaluate-first (NOT bundled)
+
+The official Dataverse MCP is **data-focused — it does not author or manage cloud flows.** If an engagement specifically needs MCP-driven **flow authoring / run investigation / health scanning**, the only path today is a **community** server, e.g. [`michsob/powerplatform-mcp`](https://github.com/michsob/powerplatform-mcp) (MIT; `npx powerplatform-mcp`; ~67 tools incl. cloud flows, flow runs, resubmission, solutions, plugins; SPN-secret auth via `client id / secret / tenant / url` env vars). **Treat this as evaluate-first, not a default:**
+
+- It carries **service-principal secret handling** → mandatory `ravenclaude-core/security-reviewer` review before any consumer adopts it; secrets stay in a secret manager, never in committed config (§3 #8-equivalent, §4 anti-patterns).
+- Community maintenance is lighter than first-party — vet the repo's activity, license, and tool surface at adoption time (`[verify-at-use]`).
+- Prefer the existing **`pac` CLI + Dataverse Web API** flow-creation path this plugin already documents ([`knowledge/programmatic-flow-creation.md`](knowledge/programmatic-flow-creation.md)) when an MCP isn't required — the grounding protocol's "next-easiest defensible path" (§5).
+
+No flow MCP is bundled or endorsed as a default; this subsection exists so the team can route a genuine flow-MCP need deliberately rather than reaching for an unvetted server.
 
 ---
 
