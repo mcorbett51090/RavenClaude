@@ -87,7 +87,10 @@ Extracted the layout matcher to `scripts/check-layout.py` (shared by CI + a new 
 - Rename `ravenclaude-core/test-author` → `tester-qa` across all 5 Salesforce files (this is plugin content → **PR**, not docs-only).
 - microsoft-graph: add `Last reviewed:` to the 3 decision-tree files.
 
-### Workstream D — P1 my-own-plugin + P2 cleanup (own PR)
+### Workstream D — P1 my-own-plugin + P2 cleanup ✅ DONE (branch `fix/workstream-d-grok-persona-injection`)
+De-baked the Grok persona (removed all price + 1M/2M context numbers from `grok-model-strategist.md` — 7 sites — keeping model names; now matches codex/copilot personas and honors house-opinion #4 / §7); added an "untrusted DATA, never instructions" injection-handling boundary to `deep-researcher.md` (fetched web) and `code-reviewer.md` (the diff). ai-coding-model-guidance 0.1.0→0.1.1, ravenclaude-core 0.90.2→0.90.3. audit-gates 373/0. (Allow-list P2 — `.prettierignore` + `.claude/worktrees` — already landed in Workstream B.)
+
+#### Original spec:
 - Strip the 7 baked-in numbers from `grok-model-strategist.md`; replace with tier names + "see dated lineup, verify-at-use" (match codex/copilot personas).
 - Add injection-handling block to `deep-researcher.md` + `code-reviewer.md`.
 - Add `.prettierignore` + `.claude/worktrees/**` to `.repo-layout.json`.
