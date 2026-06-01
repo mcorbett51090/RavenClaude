@@ -20,6 +20,11 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/claim-grounding-lint.sh \"$CLAUDE_TOOL_FILE_PATH\"",
             "comment": "Advisory (Claim Grounding & Source Honesty): nudges when an unhedged absolute capability claim ('you can't…', 'not possible') is written into a knowledge/ or docs/ markdown file without an inline provenance marker — a durable false prior the next session would trust. Opt-in (no-op unless the project has a .ravenclaude/comfort-posture.yaml); skips frontmatter/code-fences/blockquotes/headings + conditional phrasings; honors a `claim-lint-ok` line escape. Exit 0 always; never blocks. Cannot see the chat answer (no hook can) — this is the durable-artifact surface only."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/regen-on-manifest-change.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "When a plugin.json or marketplace.json version changes inside the RavenClaude marketplace clone, regenerate the downstream artifacts that mirror that data (Copilot package, dashboard.html, repo-guide.html). Prevents the freshness gates from catching drift the author forgot to regenerate. No-ops outside the marketplace, on non-manifest edits, and when the version is unchanged. Failures are logged but never block."
           }
         ]
       }
