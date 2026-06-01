@@ -120,33 +120,61 @@ cmd_update() {
   ok "up to date. In your Copilot session run '/skills reload' (or relaunch) to apply."
 }
 
+# Symlink one plugin's skills into <project>/.claude/skills. Used by cmd_install
+# for ravenclaude-core (always) and each --with-plugin entry. Live symlinks so a
+# `git pull` of the marketplace updates skills with zero re-copy; falls back to a
+# cp -r where symlinks aren't supported (e.g. Windows without dev mode).
+#
+# Echoes the count of skills wired. A missing plugin name (no skills dir) prints
+# a warning and echoes 0 — never fails the install.
+wire_plugin_skills() {
+  local project="$1" plugin_name="$2"
+  local skills_src="$MARKET/plugins/$plugin_name/skills"
+  if [ ! -d "$skills_src" ]; then
+    warn "plugin '$plugin_name' has no skills/ directory (looked at $skills_src) — skipped"
+    echo 0; return 0
+  fi
+  mkdir -p "$project/.claude/skills"
+  local n=0
+  for d in "$skills_src"/*/; do
+    [ -d "$d" ] || continue
+    local name; name="$(basename "$d")"
+    local dest="$project/.claude/skills/$name"
+    rm -rf "$dest"
+    ln -s "$d" "$dest" 2>/dev/null || cp -r "$d" "$dest"
+    n=$((n + 1))
+  done
+  echo "$n"
+}
+
 cmd_install() {
   local project="$PWD"
+  local extra_plugins=()
   while [ $# -gt 0 ]; do
     case "$1" in
       --project) project="$2"; shift 2 ;;
+      --with-plugin) extra_plugins+=("$2"); shift 2 ;;
       *) shift ;;
     esac
   done
   project="$(cd "$project" && pwd)"
   printf '== ravenclaude install -> %s ==\n' "$project"
 
-  # 1. Skills: symlink each skill dir into <project>/.claude/skills so Copilot
-  #    (and Claude) read them live; a git pull of the marketplace updates them
-  #    with zero re-copy. Fall back to a copy if symlinks aren't supported.
-  mkdir -p "$project/.claude/skills"
-  local n=0
-  if [ -d "$SKILLS_SRC" ]; then
-    for d in "$SKILLS_SRC"/*/; do
-      [ -d "$d" ] || continue
-      local name; name="$(basename "$d")"
-      local dest="$project/.claude/skills/$name"
-      rm -rf "$dest"
-      ln -s "$d" "$dest" 2>/dev/null || cp -r "$d" "$dest"
-      n=$((n + 1))
+  # 1. Skills — wire ravenclaude-core (the base kit) into <project>/.claude/skills,
+  #    plus any extra plugins requested via --with-plugin. Skills are read live by
+  #    Copilot and Claude, so the symlink is the only wiring needed.
+  local n_core
+  n_core="$(wire_plugin_skills "$project" "ravenclaude-core")"
+  ok "wired $n_core skills from ravenclaude-core into .claude/skills"
+  if [ "${#extra_plugins[@]}" -gt 0 ]; then
+    local plugin
+    for plugin in "${extra_plugins[@]}"; do
+      [ -z "$plugin" ] && continue
+      local n_extra
+      n_extra="$(wire_plugin_skills "$project" "$plugin")"
+      ok "wired $n_extra skills from $plugin"
     done
   fi
-  ok "wired $n skills into .claude/skills (read live by Copilot + Claude)"
 
   # 2. Hooks: write a Copilot-schema hooks file into <project>/.github/hooks that
   #    routes each enforcement hook through the adapter (absolute paths into the
@@ -235,9 +263,11 @@ cmd_status() {
 
 cmd_setup() {
   local project="$PWD"
+  local install_args=()
   while [ $# -gt 0 ]; do
     case "$1" in
       --project) project="$2"; shift 2 ;;
+      --with-plugin) install_args+=("--with-plugin" "$2"); shift 2 ;;
       *) project="$1"; shift ;;
     esac
   done
@@ -245,8 +275,9 @@ cmd_setup() {
   printf '== ravenclaude setup -> %s ==\n' "$project"
 
   # 1. Wire skills + hooks + MCP (RC_FROM_SETUP suppresses install's alias hint).
+  #    Threads any --with-plugin entries through to cmd_install.
   export RC_FROM_SETUP=1
-  cmd_install --project "$project"
+  cmd_install --project "$project" "${install_args[@]:-}"
   unset RC_FROM_SETUP
 
   # 2. Seed a balanced comfort-posture if the repo doesn't already have one.
