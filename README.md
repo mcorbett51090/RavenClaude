@@ -10,7 +10,7 @@
 >
 > _(Or [view the raw HTML source](repo-guide.html), or download and open locally — no server, no build step.)_
 
-Today this marketplace ships **16 plugins**:
+Today this marketplace ships **17 plugins**:
 
 - **[`ravenclaude-core`](plugins/ravenclaude-core/)** — domain-neutral Team Lead + 14 specialists (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, data-engineer, etc.), plus dispatch playbooks (with a Cross-plugin dispatch section), gates, 22 skills, 13 hooks, templates, and the **cross-project contribution-staging loop**.
 - **[`power-platform`](plugins/power-platform/)** — 11 Microsoft Power Platform specialists (Power Fx, flows, Power BI, Dataverse, model-driven, PCF, Copilot Studio, Power Pages, admin, ALM, tester), 18 skills, an advisory house-opinions hook covering 8 checks, and the bundled `pbix-mcp` MCP server.
@@ -28,6 +28,7 @@ Today this marketplace ships **16 plugins**:
 - **[`tableau`](plugins/tableau/)** — 3 Tableau analytics specialists (tableau-viz-engineer, tableau-data-architect, tableau-admin) covering VizQL & calculations (LOD/table-calcs), data modeling (relationships vs joins vs blends, extracts vs live), workbook performance, Tableau Prep, Server/Cloud governance & RLS, content ALM, embedding (Connected Apps/JWT), and the Pulse/Tableau-Next surface — with a 26-rule best-practices library and 3 decision-tree knowledge files (15 Mermaid trees).
 - **[`microsoft-graph`](plugins/microsoft-graph/)** — 3 Microsoft Graph developer specialists (graph-api-engineer, graph-identity-engineer, graph-workloads-engineer) covering OData query shaping/paging/`$batch`/delta + throttling discipline + the Graph SDKs, Entra app registration & delegated-vs-application permissions/consent/auth-flows/least-privilege, and the workload surfaces (mail/calendar, Teams, files, users/groups, change-notification subscriptions) — with an 18-rule best-practices library and 3 decision-tree knowledge files (13 Mermaid trees). Cross-links the Copilot-connector (microsoft-365-copilot) and tenant-identity (azure-cloud) surfaces rather than duplicating them.
 - **[`ai-coding-model-guidance`](plugins/ai-coding-model-guidance/)** — 3 strategist agents (copilot-model-strategist, codex-model-strategist, grok-model-strategist) for choosing a model in the **non-Claude** AI-coding ecosystems (GitHub Copilot's picker, OpenAI Codex CLI/cloud, xAI Grok) over a single dated, citation-grounded lineup with a vendor-neutral decision tree, right-sizing discipline, and a closed-world anti-hallucination rule. Seams to claude-app-engineering for Claude models.
+- **[`project-management`](plugins/project-management/)** — 4 project & delivery specialists (delivery-lead, scrum-master, risk-and-raid-analyst, stakeholder-comms-lead) across the predictive (PMBOK/PMP) and agile (Scrum/Kanban) tracks plus hybrid — baselines + earned value, sprint facilitation, scored qual+quant risk registers, stakeholder/PMO governance — with a predictive-vs-agile-vs-hybrid decision tree and a best-practices library. **Deepens, not replaces,** `ravenclaude-core`'s lightweight `project-manager` (hygiene → core, running the project → here).
 
 ---
 

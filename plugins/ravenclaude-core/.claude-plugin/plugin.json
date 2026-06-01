@@ -1,7 +1,7 @@
 {
   "name": "ravenclaude-core",
   "description": "Domain-neutral Team Lead + specialist-agents pattern for Claude Code: 14 specialists, 22 skills, a dispatch playbook, format/lint/test gates, hooks, rules, and templates. Includes the Capability Grounding Protocol (environment + decision-tree priors, alternate-methods enumeration, honest blocked-reporting), the Structured Output Protocol for handoffs, a Researcher meta-skill, a comfort-posture dashboard that writes Claude Code permission rules per layer (user/local/project) and per permission on a 3-level deny/ask/allow scale, and an opt-in command-review tribunal (the Thing) in early access — a three-seat reviewer panel + tie-breaker that votes allow/edit/deny on read-only, remote-mutate, code-exec, local-mutate, and package-install commands, with a dashboard-configurable panel. Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard.",
-  "version": "0.92.0",
+  "version": "0.93.0",
   "author": {
     "name": "Matt Corbett"
   },
