@@ -63,7 +63,10 @@
 
 ## 4. Remediation plan — sequenced, batched by blast radius
 
-### Workstream A — P0 security (own PR, highest priority)
+### Workstream A — P0 security ✅ DONE (branch `fix/ravenclaude-core-guard-destructive-bypass`, core 0.90.2)
+Hardened `guard-destructive.sh` with a normalization pass + order-independent matchers; all 21 audit bypass variants now block (exit 2), 9 canonical forms still block, 9 benign controls still pass. Extended BOTH test surfaces (CI behavioral `must_block` + audit-gates Gate 5, now stdin-JSON + assert-exit-2). Seeded whole-disk/branch-delete denies into `comfort-posture-balanced.yaml`. audit-gates 371/0.
+
+#### Original spec:
 Harden `guard-destructive.sh`: **normalize before matching** (collapse flag order + whitespace, expand `~`/`$HOME`/`${HOME}`, strip quotes); add patterns for `rm` with any cluster of `r`+`f` in any order; `git push … +<refspec>`; `git branch -D <branch>`; `bash <(…)` / `<cmd> | sudo? (bash|sh|zsh|python|perl|ruby|node)`; `mkfs`/`shred`/`wipefs`/`> /dev/…`; broaden `dd of=/dev/` device class (+`disk`,`vd`,`xvd`,`mmcblk`). **Then extend BOTH** the CI behavioral `must_block` array AND audit-gates Gate 5 with every bypass variant + stdin-JSON + assert-exit-2 (this is what let it ship). Seed the same hardened denies into `templates/comfort-posture-balanced.yaml` so `ravenclaude setup` consumers get the second layer. Ship as a `ravenclaude-core` patch bump with a migration note.
 
 ### Workstream B — P1 CI structural integrity (own PR)
