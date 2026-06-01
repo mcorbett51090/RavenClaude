@@ -202,7 +202,7 @@ def _render_about_tab(description: str, plugin_name: str) -> str:
         <li><strong>Set&nbsp;up</strong> — Overview, Settings (what Claude may do), Pipeline (the safety checks every command passes through), and Preview&nbsp;a&nbsp;review.</li>
         <li><strong>Look&nbsp;back</strong> — Review&nbsp;log, Run&nbsp;feed, Perimeter&nbsp;alerts, Security&nbsp;log, and Lineage.</li>
         <li><strong>Learn</strong> — plain-English explainers, ready-to-run command playbooks, and decision-tree guidance.</li>
-        <li><strong>Install&nbsp;&amp;&nbsp;help</strong> — add a plugin (Bifröst), wire RavenClaude into Copilot, and this page.</li>
+        <li><strong>Install&nbsp;&amp;&nbsp;help</strong> — two install &amp; update guides, one per tool: Claude&nbsp;Code (the Bifröst bridge) and GitHub&nbsp;Copilot&nbsp;CLI &mdash; plus this page.</li>
       </ul>
     </div>
     """
@@ -749,8 +749,13 @@ def _concepts_json(plugin_dir: Path) -> str:
 # (served mode only) POST to /__run instead.
 _INSTALL_COMMANDS = [
     (
+        "setup",
+        "Set up (one-shot: install + balanced posture + rc alias)",
+        "bash scripts/ravenclaude setup",
+    ),
+    (
         "install",
-        "Install (wire the bridge)",
+        "Install (one-time wiring only)",
         "bash scripts/ravenclaude install",
     ),
     (
@@ -760,8 +765,13 @@ _INSTALL_COMMANDS = [
     ),
     (
         "update",
-        "Update (re-sync after a marketplace pull)",
+        "Update (git pull + re-sync, then /skills reload in Copilot)",
         "bash scripts/ravenclaude update",
+    ),
+    (
+        "status",
+        "Status (show what is wired)",
+        "bash scripts/ravenclaude status",
     ),
     (
         "alias",
@@ -971,15 +981,15 @@ def _render_overview_tab() -> str:
              "The Thing — RavenClaude's command-review engine — checks risky "
              "commands and logs an allow / edit / deny verdict you can browse.",
              "saga", "Open Review log"),
-        card("Install & update bridge",
-             "Wire the plugin into Claude Code or GitHub Copilot CLI, and update with a "
-             "single git pull.",
-             "install", "Open Install"),
+        card("Install & update",
+             "Two guides, one per tool: install &amp; update RavenClaude in Claude Code "
+             "(the Bifröst bridge) or in GitHub Copilot CLI.",
+             "bifrost", "Open install guides"),
     ])
 
     steps_required = "".join([
         '<li><a href="#/settings">Pick a posture preset</a> — set how much your agents do without asking.</li>',
-        '<li><a href="#/install">Wire it into your tool</a> — one-time setup, then updates are a git pull.</li>',
+        '<li>Wire it into your tool — <a href="#/bifrost">Claude&nbsp;Code</a> or <a href="#/install">Copilot&nbsp;CLI</a>. One-time setup, then updates are a git pull.</li>',
     ])
     steps_optional = "".join([
         '<li><a href="#/pipeline">See what the guardrails do</a> — the map of every check, in plain language.</li>',
@@ -3808,6 +3818,13 @@ footer.page-footer a:hover { text-decoration: underline; }
   color: var(--muted);
   line-height: 1.55;
 }
+.install-pillar {
+  border-left: 3px solid var(--accent);
+  background: var(--surface-2);
+  padding: 10px 12px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  margin: 4px 0 6px;
+}
 .install-prereqs,
 .install-wiring {
   margin: 0;
@@ -4659,6 +4676,9 @@ footer.page-footer a:hover { text-decoration: underline; }
 .bifrost-cmd code { flex: 1; font-family: var(--font-mono); font-size: 12px; color: var(--text); word-break: break-all; }
 .bifrost-copy { flex: 0 0 auto; font: inherit; font-size: 11.5px; padding: 3px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
 .bifrost-copy:hover { border-color: var(--accent); }
+.bifrost-update { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); max-width: 820px; }
+.bifrost-update h3 { margin: 0 0 8px; font-size: 15px; }
+.bifrost-update > p { font-size: 13px; color: var(--muted); line-height: 1.55; margin: 0 0 12px; }
 .bifrost-paste-label { display: block; margin: 10px 0 2px; font-size: 12px; font-weight: 600; color: var(--text); }
 .bifrost-paste-hint { margin: 0 0 4px; font-size: 11.5px; color: var(--muted); }
 .bifrost-paste { width: 100%; box-sizing: border-box; font-family: var(--font-mono); font-size: 12px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-2); color: var(--text); resize: vertical; }
@@ -4890,24 +4910,79 @@ _SETTINGS_TAB_TEMPLATE = """
 _INSTALL_TAB_TEMPLATE = """
 <div class="install-layout">
   <section class="install-guide">
-    <h2>Wire RavenClaude into GitHub Copilot CLI</h2>
+    <h2>Install &amp; Update &mdash; GitHub Copilot CLI</h2>
     <p>
-      This bridges the RavenClaude plugins &mdash; their agents, skills, hooks, and
-      MCP servers &mdash; into the <code>copilot</code> CLI so they work the same way
-      they do in Claude Code.
+      This wires RavenClaude &mdash; its agents, skills, hooks, and MCP servers &mdash; into
+      the <code>copilot</code> CLI so they behave the same way they do in Claude Code.
+      <strong>Using Claude Code instead?</strong> See the <a href="#/bifrost">Claude&nbsp;Code</a> page.
     </p>
+    <p class="install-pillar">
+      <strong>The design pillar:</strong> everything Copilot reads is <strong>live from disk</strong>
+      &mdash; the plugin loads via <code>--plugin-dir</code>, skills from <code>.claude/skills</code>,
+      hooks from <code>.github/hooks</code>, MCP from <code>~/.copilot/mcp-config.json</code>. So an
+      <strong>update is just a <code>git&nbsp;pull</code></strong> &mdash; there is no re-install, ever.
+    </p>
+
     <h3>Prerequisites</h3>
     <ul class="install-prereqs">
-      <li>A local checkout of this marketplace (you are looking at its dashboard).</li>
-      <li>The <code>copilot</code> CLI on your <code>PATH</code>.</li>
+      <li>The <code>copilot</code> CLI on your <code>PATH</code> (Node.js&nbsp;22+): <code>npm install -g @github/copilot</code> &mdash; or Homebrew / WinGet. Check with <code>copilot --version</code>.</li>
+      <li>Signed in: launch <code>copilot</code> once and run <code>/login</code>.</li>
+      <li>A local checkout of this marketplace (the repo serving this dashboard).</li>
     </ul>
-    <h3>What gets wired</h3>
+
+    <h3>1. Install &mdash; one-time wiring</h3>
+    <p>
+      Run <code>bash scripts/ravenclaude install</code> from your marketplace checkout (or
+      <code>setup</code> for the batteries-included one-shot). It is idempotent &mdash; safe to
+      re-run. It wires:
+    </p>
     <ul class="install-wiring">
-      <li><strong>Agents</strong> &mdash; launched via <code>copilot --plugin-dir plugins/ravenclaude-core/copilot</code>.</li>
-      <li><strong>Skills</strong> &mdash; linked into <code>.claude/skills</code>.</li>
-      <li><strong>Hooks</strong> &mdash; linked into <code>.github/hooks</code>.</li>
-      <li><strong>MCP servers</strong> &mdash; merged into <code>~/.copilot/mcp-config.json</code>.</li>
+      <li><strong>Skills</strong> &rarr; <code>.claude/skills</code> (Copilot reads these live; it also reads <code>.github/skills</code> / <code>.agents/skills</code>).</li>
+      <li><strong>Hooks</strong> &rarr; <code>.github/hooks/ravenclaude.json</code> via the Copilot hook adapter. Repo-level, not plugin-level &mdash; a workaround for <a href="https://github.com/github/copilot-cli/issues/2540">copilot-cli#2540</a> (plugin <code>preToolUse</code> hooks don&rsquo;t fire).</li>
+      <li><strong>MCP servers</strong> &rarr; <code>~/.copilot/mcp-config.json</code> (override the directory with <code>COPILOT_HOME</code>).</li>
     </ul>
+
+    <h3>2. Launch</h3>
+    <p>
+      <code>copilot --plugin-dir plugins/ravenclaude-core/copilot</code> loads the agents
+      <em>live</em> from the directory &mdash; never installed or cached. To also load the
+      claim-grounding discipline (<code>AGENTS.md</code>), first run
+      <code>export COPILOT_CUSTOM_INSTRUCTIONS_DIRS=plugins/ravenclaude-core/copilot</code>.
+    </p>
+
+    <h3>3. Update &mdash; anytime</h3>
+    <p>Updating is copy-paste only &mdash; <strong>no re-install, ever.</strong> Run these from anywhere:</p>
+    <div class="cmd-block">
+      <span class="cmd-label">a. Update the marketplace clone</span>
+      <div class="cmd-row">
+        <code class="cmd-code" id="cmd-copilot-pull">git -C ~/RavenClaude pull</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-copilot-pull">Copy</button>
+      </div>
+    </div>
+    <div class="cmd-block">
+      <span class="cmd-label">b. Update the plugins (re-sync skills, hooks, MCP, and the Copilot package)</span>
+      <div class="cmd-row">
+        <code class="cmd-code" id="cmd-copilot-update">bash ~/RavenClaude/scripts/ravenclaude update</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-copilot-update">Copy</button>
+      </div>
+    </div>
+    <p>
+      Then, in your running Copilot session, run <code>/skills reload</code> &mdash; or relaunch &mdash;
+      to pick up the changes. <em>Note: <code>ravenclaude update</code> already runs <code>git&nbsp;pull</code>
+      on the clone internally, so step&nbsp;(b) alone is enough; run step&nbsp;(a) too if you keep your
+      clone somewhere other than <code>~/RavenClaude</code> or want to pull without re-syncing.</em>
+      The <code>rc</code> alias below does it all in one word.
+    </p>
+
+    <h3>Check what is wired</h3>
+    <p><code>bash scripts/ravenclaude status</code> reports the state of skills, hooks, MCP, and the generated package.</p>
+
+    <h3>Zero-command Codespace</h3>
+    <p>
+      <code>bash scripts/ravenclaude init-codespace</code> stamps a devcontainer whose
+      <code>postCreateCommand</code> runs <code>ravenclaude setup</code> on build. Open the
+      Codespace, type <code>rc</code>, and Copilot launches fully wired &mdash; nothing else to type.
+    </p>
   </section>
 
   <section class="install-commands">
@@ -5187,9 +5262,9 @@ _BIFROST_TAB_TEMPLATE = (
     """
 <div class="bifrost-layout">
   <div class="saga-hdr">
-    <h2><span aria-hidden="true">&#127752;</span> Add plugin</h2>
+    <h2><span aria-hidden="true">&#127752;</span> Install &amp; Update &mdash; Claude Code</h2>
   </div>
-  <p class="activity-intro">Bifröst is the rainbow bridge between the marketplace and your project. Follow these four steps to install a plugin. Each step is <strong>copy-paste only</strong> &mdash; Bifröst guides you, but you cross the bridge yourself. Nothing here runs a command for you; you run each in your Claude Code session and paste the result back so Bifröst can light the next step.</p>
+  <p class="activity-intro">Bifröst is the rainbow bridge between the marketplace and your Claude Code project. Follow these four steps to install a plugin, then see <a href="#bifrost-update">Updating an installed plugin</a> below. Each step is <strong>copy-paste only</strong> &mdash; Bifröst guides you, but you cross the bridge yourself. Nothing here runs a command for you; you run each in your Claude Code session and paste the result back so Bifröst can light the next step. <strong>Using GitHub Copilot CLI instead?</strong> See the <a href="#/install">Copilot&nbsp;CLI</a> page.</p>
   <ol class="bifrost-steps">
 """
     + "\n".join(_bifrost_step_html(*s) for s in _BIFROST_STEPS)
@@ -5200,6 +5275,25 @@ _BIFROST_TAB_TEMPLATE = (
 """
     + "\n".join(_bifrost_failure_html(i + 1, t, b) for i, (t, b) in enumerate(_BIFROST_FAILURES))
     + """
+  </section>
+  <section class="bifrost-update" id="bifrost-update" aria-label="Updating an installed plugin">
+    <h3>Updating an installed plugin</h3>
+    <p>Once a plugin is installed you don&rsquo;t re-run the wizard to update it &mdash; just refresh the marketplace catalog and reload. Run both in your Claude Code session:</p>
+    <div class="cmd-block">
+      <span class="cmd-label">1. Pull the latest marketplace catalog</span>
+      <div class="cmd-row">
+        <code class="cmd-code" id="cmd-claude-update">/plugin marketplace update ravenclaude</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-claude-update">Copy</button>
+      </div>
+    </div>
+    <div class="cmd-block">
+      <span class="cmd-label">2. Apply it in your session</span>
+      <div class="cmd-row">
+        <code class="cmd-code" id="cmd-claude-reload">/reload-plugins</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-claude-reload">Copy</button>
+      </div>
+    </div>
+    <p>Plugin versions bump on every user-visible change, so the catalog update is what surfaces a new version. Re-run <code>/init-agent-ready --check</code> (step&nbsp;4) afterward to confirm the bridge still holds. If a reload doesn&rsquo;t take, fully restart Claude Code &mdash; the plugin cache can be stale.</p>
   </section>
 </div>
 """.rstrip()
@@ -9149,7 +9243,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <button class="cat-btn" type="button" data-cat="lookback" aria-pressed="false" title="Look back — review log, run feed, perimeter alerts, security log, lineage">Look back</button>
     <button class="cat-btn" type="button" data-cat="learn" aria-pressed="false" title="Learn — explainers, command playbooks, decision-tree guidance">Learn</button>
     <button class="cat-btn" type="button" data-cat="plugins" aria-pressed="false" title="Plugins — per-plugin variables, best practices, and decision trees">Plugins</button>
-    <button class="cat-btn" type="button" data-cat="install" aria-pressed="false" title="Install &amp; help — add plugins and learn what this dashboard is">Install &amp; help</button>
+    <button class="cat-btn" type="button" data-cat="install" aria-pressed="false" title="Install &amp; help — install &amp; update RavenClaude in Claude Code or GitHub Copilot CLI, plus help">Install &amp; help</button>
   </nav>
   <nav class="tab-bar" role="tablist" aria-label="Pages in the selected category">
     <button class="tab-btn in-cat" id="tab-overview" data-tab="overview" data-cat="setup" role="tab" aria-selected="true" aria-controls="panel-overview" title="Overview — start here: what this dashboard is for">Overview</button>
@@ -9165,8 +9259,8 @@ _PAGE_TEMPLATE = """<!doctype html>
     <button class="tab-btn" id="tab-learn" data-tab="learn" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-learn" title="Learn — plain-English explainers for each concept">Learn</button>
     <button class="tab-btn" id="tab-commands" data-tab="commands" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-commands" title="Commands — ready-to-run slash-command playbooks">Commands</button>
     <button class="tab-btn" id="tab-trees" data-tab="trees" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-trees" title="Guidance — decision trees and best practices">Guidance</button>
-    <button class="tab-btn" id="tab-install" data-tab="install" data-cat="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-install" title="Install &amp; Update — wire RavenClaude into GitHub Copilot CLI">Install &amp; Update</button>
-    <button class="tab-btn" id="tab-bifrost" data-tab="bifrost" data-cat="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-bifrost" title="Add plugin — guided steps to install a plugin into Claude Code (Bifröst bridge)">Add plugin</button>
+    <button class="tab-btn" id="tab-bifrost" data-tab="bifrost" data-cat="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-bifrost" title="Claude Code — install &amp; update a plugin in Claude Code (the Bifröst bridge)">Claude&nbsp;Code</button>
+    <button class="tab-btn" id="tab-install" data-tab="install" data-cat="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-install" title="Copilot CLI — install &amp; update RavenClaude in GitHub Copilot CLI">Copilot&nbsp;CLI</button>
     <button class="tab-btn" id="tab-about" data-tab="about" data-cat="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-about" title="About &amp; help — what this dashboard is and how it's organized">About &amp; help</button>
 {plugins_tabs}
   </nav>
