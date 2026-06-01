@@ -124,7 +124,11 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
     presets = schema.get("presets", {})
     properties = schema.get("properties", {})
 
+    plugins_tabs, plugins_panels = _render_plugins_category(_all_plugin_dirs())
+
     return _PAGE_TEMPLATE.format(
+        plugins_tabs=plugins_tabs,
+        plugins_panels=plugins_panels,
         plugin_name=html.escape(plugin_name),
         title=html.escape(title),
         description=html.escape(description),
@@ -4780,6 +4784,36 @@ footer.page-footer a:hover { text-decoration: underline; }
 .saga-tier-badge-medium  { border-color: var(--warn);   color: var(--warn);   background: #fbbf2410; }
 .saga-tier-badge-high    { border-color: #f97316;       color: #f97316;       background: #f9731610; }
 .saga-tier-badge-extreme { border-color: var(--danger); color: var(--danger); background: #ef444410; }
+
+/* ── Plugins category: per-plugin variable + content pages ── */
+.plugin-page { max-width: 880px; }
+.pp-title { margin: 0 0 4px; font-family: var(--font-display); }
+.pp-sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+.pp-section { margin: 0 0 24px; }
+.pp-section > h3 { margin: 0 0 10px; font-size: 15px; }
+.pp-count { display: inline-block; min-width: 20px; padding: 0 7px; margin-left: 6px; border-radius: 999px; background: var(--ok-soft); color: var(--ok); font-size: 12px; font-weight: 600; }
+.pp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.pp-list { margin: 0; padding-left: 18px; }
+.pp-list li { margin: 2px 0; font-size: 13px; }
+.pp-empty { color: var(--muted); font-size: 13px; font-style: italic; }
+.pv-curated { display: flex; flex-direction: column; gap: 14px; }
+.pv-row { display: grid; grid-template-columns: 200px 1fr; gap: 6px 14px; align-items: center; }
+.pv-label { font-size: 13px; font-weight: 600; }
+.pv-control { padding: 6px 9px; border: 1px solid var(--border); border-radius: 7px; background: var(--panel); color: var(--text); font: inherit; font-size: 13px; min-width: 180px; }
+.pv-help { grid-column: 2; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.pv-freeform { margin-top: 18px; }
+.pv-freeform h4 { margin: 0 0 4px; font-size: 13px; }
+.pv-extra { width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); color: var(--text); font-family: var(--font-mono, ui-monospace, monospace); font-size: 12.5px; resize: vertical; }
+.pp-actions { display: flex; align-items: center; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+.pp-save, .pp-download { padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.pp-save { background: var(--accent, #d4a017); color: #1a1408; border-color: transparent; }
+.pp-save:hover, .pp-download:hover { filter: brightness(1.08); }
+.pp-status { font-size: 12px; color: var(--muted); }
+.pp-status.status-ok { color: var(--ok); }
+.pp-status.status-error { color: var(--danger); }
+.pp-status.status-unsaved { color: var(--warn); }
+.pp-noserver { margin: 12px 0 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--ok-soft); color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+@media (max-width: 720px) { .pv-row { grid-template-columns: 1fr; } .pv-help { grid-column: 1; } .pp-cols { grid-template-columns: 1fr; } }
 """.strip()
 
 
@@ -6896,7 +6930,9 @@ _JS = r"""
   });
 
   /* ── Tab routing ─────────────────────────────────────────────────── */
-  const validTabs = ["overview", "settings", "pipeline", "install", "simulator", "learn", "saga", "commands", "trees", "activity", "heimdall", "vidarr", "norns", "bifrost", "about"];
+  // Derived from the DOM so new pages (e.g. the per-plugin Plugins category)
+  // route automatically without re-listing them here.
+  const validTabs = Array.from(document.querySelectorAll(".tab-btn")).map(b => b.dataset.tab);
   function openConcept(id) {
     const card = document.getElementById("learn-" + id);
     if (!card) return;
@@ -6986,6 +7022,7 @@ _JS = r"""
     if (tab === "vidarr" && !vidarrLoaded) loadVidarr();
     if (tab === "norns" && !nornsLoaded) loadNorns();
     if (tab === "pipeline") syncPipelineTab();
+    if (tab.indexOf("plugin-") === 0) hydratePluginPage(tab.slice(7));
   }
   // Navigate: activate immediately, then reflect the page in the URL hash for
   // deep-linking + browser back/forward. (The hashchange listener re-applies on
@@ -7035,6 +7072,133 @@ _JS = r"""
       target.focus();
     });
   }
+  /* ── Plugins category: per-plugin variable editor (portal → repo file) ─── */
+  const PLUGIN_LS_PREFIX = "rc-plugin-vars:";
+  const pluginPagesHydrated = {};
+  function pluginPanel(plugin) {
+    return document.querySelector('.plugin-page[data-plugin="' + plugin + '"]');
+  }
+  function pluginYamlQuote(v) {
+    v = String(v);
+    if (v === "") return '""';
+    if (/^[A-Za-z0-9_.\/$%-]+$/.test(v) && !/^(true|false|null|yes|no|on|off)$/i.test(v)) return v;
+    return '"' + v.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';
+  }
+  function emitPluginYaml(plugin) {
+    const panel = pluginPanel(plugin);
+    if (!panel) return "";
+    const lines = ["# " + plugin + " — variables managed by the RavenClaude dashboard Plugins tab"];
+    panel.querySelectorAll(".pv-control[data-pvar]").forEach(c => {
+      const key = c.dataset.pvar;
+      const val = c.value;
+      if (c.dataset.ptype === "number") {
+        lines.push(key + ": " + (val === "" ? '""' : val));
+      } else {
+        lines.push(key + ": " + pluginYamlQuote(val));
+      }
+    });
+    const extra = panel.querySelector(".pv-extra");
+    if (extra && extra.value.trim()) {
+      lines.push("# free-form");
+      extra.value.split(/\r?\n/).forEach(l => { if (l.trim()) lines.push(l.replace(/\s+$/, "")); });
+    }
+    return lines.join("\n") + "\n";
+  }
+  function applyPluginConfig(plugin, text) {
+    const panel = pluginPanel(plugin);
+    if (!panel || !text) return;
+    const curatedKeys = new Set(
+      Array.from(panel.querySelectorAll(".pv-control[data-pvar]")).map(c => c.dataset.pvar)
+    );
+    const extraLines = [];
+    text.split(/\r?\n/).forEach(line => {
+      const s = line.trim();
+      if (!s || s[0] === "#") return;
+      const i = s.indexOf(":");
+      if (i < 0) return;
+      const key = s.slice(0, i).trim();
+      let val = s.slice(i + 1).trim();
+      if ((val[0] === '"' && val.slice(-1) === '"') || (val[0] === "'" && val.slice(-1) === "'")) {
+        val = val.slice(1, -1);
+      }
+      if (curatedKeys.has(key)) {
+        const c = panel.querySelector('.pv-control[data-pvar="' + key + '"]');
+        if (c) c.value = val;
+      } else {
+        extraLines.push(line.replace(/\s+$/, ""));
+      }
+    });
+    const extra = panel.querySelector(".pv-extra");
+    if (extra) extra.value = extraLines.join("\n");
+  }
+  async function hydratePluginPage(plugin) {
+    if (pluginPagesHydrated[plugin]) return;
+    pluginPagesHydrated[plugin] = true;
+    const panel = pluginPanel(plugin);
+    if (!panel) return;
+    const target = panel.dataset.target;
+    try {
+      const res = await fetch("/__read?path=" + encodeURIComponent(target));
+      if (res.ok) {
+        const j = await res.json();
+        if (j && typeof j.content === "string" && j.content.trim()) {
+          applyPluginConfig(plugin, j.content);
+          return;
+        }
+      }
+    } catch (e) { /* static host — fall through to localStorage */ }
+    const ls = localStorage.getItem(PLUGIN_LS_PREFIX + plugin);
+    if (ls) applyPluginConfig(plugin, ls);
+  }
+  function setPluginStatus(plugin, msg, cls) {
+    const el = document.querySelector('.pp-status[data-plugin="' + plugin + '"]');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = "pp-status " + (cls || "");
+  }
+  document.querySelectorAll(".pp-save").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const plugin = btn.dataset.plugin;
+      const panel = pluginPanel(plugin);
+      const target = panel.dataset.target;
+      const yaml = emitPluginYaml(plugin);
+      localStorage.setItem(PLUGIN_LS_PREFIX + plugin, yaml);
+      setPluginStatus(plugin, "saving…", "status-unsaved");
+      try {
+        const res = await fetch("/__save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: target, content: yaml })
+        });
+        if (res.status === 404 || res.status === 405) {
+          setPluginStatus(plugin, "saved in browser (no server)", "status-unsaved");
+          const ns = document.querySelector('.pp-noserver[data-plugin="' + plugin + '"]');
+          if (ns) ns.hidden = false;
+          return;
+        }
+        if (!res.ok) { setPluginStatus(plugin, "save failed (" + res.status + ")", "status-error"); return; }
+        setPluginStatus(plugin, "saved to " + target, "status-ok");
+      } catch (e) {
+        setPluginStatus(plugin, "saved in browser (no server)", "status-unsaved");
+        const ns = document.querySelector('.pp-noserver[data-plugin="' + plugin + '"]');
+        if (ns) ns.hidden = false;
+      }
+    });
+  });
+  document.querySelectorAll(".pp-download").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const plugin = btn.dataset.plugin;
+      const yaml = emitPluginYaml(plugin);
+      const blob = new Blob([yaml], { type: "text/yaml" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = plugin + ".yaml";
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      setPluginStatus(plugin, "downloaded " + plugin + ".yaml", "status-ok");
+    });
+  });
+
   window.addEventListener("hashchange", applyHash);
   applyHash();
 
@@ -8551,6 +8715,289 @@ _JS = r"""
 # base64 data URI so the static dashboard stays offline-safe / self-contained.
 _RAVEN_MARK_DATA_URI = "data:image/png;base64,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"
 
+# ──────────────────────────────────────────────────────────────────────────
+# Plugins category — one page per plugin: editable variables (portal → repo
+# file via /__read + /__save), plus that plugin's best-practices, decision
+# trees, agents and skills. Variables are CURATED (typed, grounded knobs) PLUS
+# a FREE-FORM key/value section for arbitrary project variables. Each plugin's
+# values persist to .ravenclaude/plugins/<plugin>.yaml (whitelisted in
+# scripts/serve-dashboards.py); the static/published dashboard falls back to
+# localStorage + Download, exactly like the Settings tab.
+# ──────────────────────────────────────────────────────────────────────────
+
+# Universal knob for every plugin that ships an advisory hook (13 of 16). Maps
+# to the hook's advisory(exit 0)/blocking(exit 1) toggle + its STRICT env var.
+_PLUGINS_WITH_HOOK = {
+    "applied-statistics", "azure-cloud", "claude-app-engineering", "data-platform",
+    "edtech-partner-success", "finance", "microsoft-365-copilot", "microsoft-fabric",
+    "power-platform", "ravenclaude-core", "regulatory-compliance", "salesforce",
+    "web-design",
+}
+_HOOK_ENFORCEMENT_VAR = {
+    "key": "hook_enforcement",
+    "label": "Hook enforcement",
+    "type": "enum",
+    "options": ["advisory", "blocking"],
+    "default": "advisory",
+    "help": "advisory = warn on stderr, never block (exit 0); blocking = fail the edit on a violation (exit 1, the STRICT env var).",
+}
+
+# Plugin-specific curated knobs, grounded in each plugin's CLAUDE.md house
+# opinions. The free-form section covers everything not enumerated here.
+_PLUGIN_CURATED_VARS: dict[str, list[dict]] = {
+    "power-platform": [
+        {"key": "publisher_prefix", "label": "Publisher prefix", "type": "text", "default": "rvn_",
+         "help": "House opinion #5 — a prefix you control (not the default cr_) so customizations are traceable."},
+        {"key": "default_environment_url", "label": "Default environment URL", "type": "text", "default": "",
+         "help": "Environment-variable discipline (#2) — never hard-code; set the engagement's default here."},
+        {"key": "dataverse_mcp_org_url", "label": "Dataverse MCP org URL", "type": "text", "default": "",
+         "help": "Per-tenant org URL for the official Dataverse MCP (CLAUDE.md §9a). e.g. https://contoso.crm.dynamics.com"},
+        {"key": "pbix_mcp_enabled", "label": "pbix-mcp enabled", "type": "enum", "options": ["no", "yes"], "default": "no",
+         "help": "Whether the bundled Power BI pbix-mcp server is wired (requires pip install pbix-mcp)."},
+    ],
+    "microsoft-fabric": [
+        {"key": "default_capacity_sku", "label": "Default capacity SKU", "type": "text", "default": "F2",
+         "help": "Size to average + smoothing (house opinion #5); record the engagement's default capacity."},
+        {"key": "direct_lake_mode_default", "label": "Direct Lake mode", "type": "enum",
+         "options": ["on-onelake", "on-sql"], "default": "on-onelake",
+         "help": "House opinion #8 — on-OneLake has NO DirectQuery fallback; on-SQL falls back. Name it."},
+    ],
+    "data-platform": [
+        {"key": "default_case", "label": "Default engagement Case", "type": "enum",
+         "options": ["A", "B", "C", "D", "not-yet-determined"], "default": "not-yet-determined",
+         "help": "The stack-selection Case (A/B/C/D) this engagement fits."},
+        {"key": "jwt_ttl_minutes", "label": "Embed JWT TTL (minutes)", "type": "number", "default": "15",
+         "help": "House opinion #4 — embed tokens are short-lived (5–15 min)."},
+    ],
+    "finance": [
+        {"key": "materiality_threshold", "label": "Materiality threshold", "type": "text", "default": "$50K or 5%",
+         "help": "House opinion #5 — materiality is a design constraint; document the threshold."},
+        {"key": "confidentiality_default", "label": "Confidentiality default", "type": "enum",
+         "options": ["internal", "client-confidential", "privileged"], "default": "internal",
+         "help": "House opinion #10 — finance data is sensitive; set the default handling class."},
+    ],
+    "regulatory-compliance": [
+        {"key": "default_jurisdiction", "label": "Default jurisdiction / regime", "type": "text", "default": "",
+         "help": "House opinion #12 — name the regulator + regime so the same word isn't read across regimes."},
+    ],
+    "claude-app-engineering": [
+        {"key": "default_model_tier", "label": "Default model tier", "type": "enum",
+         "options": ["fast", "balanced", "frontier"], "default": "balanced",
+         "help": "House opinion #3 — right-size by cost-per-resolved-task; the everyday default tier."},
+    ],
+    "microsoft-graph": [
+        {"key": "default_cloud", "label": "Default cloud", "type": "enum",
+         "options": ["global", "gcc", "gcc-high", "dod"], "default": "global",
+         "help": "The Microsoft national cloud the engagement targets (endpoints differ)."},
+        {"key": "use_immutable_ids", "label": "Use immutable IDs", "type": "enum",
+         "options": ["yes", "no"], "default": "yes",
+         "help": "Store immutable IDs for stored references (the immutable-ids best-practice)."},
+    ],
+    "salesforce": [
+        {"key": "default_api_version", "label": "Default API version", "type": "text", "default": "",
+         "help": "The Salesforce API version this org/engagement pins (e.g. v62.0)."},
+    ],
+    "applied-statistics": [
+        {"key": "default_alpha", "label": "Default significance level (α)", "type": "number", "default": "0.05",
+         "help": "The default α for hypothesis tests; document deviations."},
+        {"key": "multiple_comparison_default", "label": "Multiple-comparison correction", "type": "enum",
+         "options": ["none", "bonferroni", "benjamini-hochberg"], "default": "none",
+         "help": "Default family-wise / FDR correction when running many tests."},
+    ],
+    "edtech-partner-success": [
+        {"key": "health_red_threshold", "label": "Account-health RED threshold", "type": "number", "default": "",
+         "help": "The score below which an account is RED in the health model."},
+    ],
+    "ravenclaude-core": [
+        {"key": "decision_review_mode", "label": "Decision review (the Thing)", "type": "enum",
+         "options": ["off", "advisory", "binding"], "default": "off",
+         "help": "Canonical config is .ravenclaude/comfort-posture.yaml (Settings tab). Mirrored here for visibility."},
+    ],
+}
+
+
+def _plugin_curated_vars(name: str) -> list[dict]:
+    """Curated, typed knobs for a plugin: the universal hook_enforcement (when the
+    plugin ships a hook) followed by its plugin-specific knobs."""
+    out: list[dict] = []
+    if name in _PLUGINS_WITH_HOOK:
+        out.append(_HOOK_ENFORCEMENT_VAR)
+    out.extend(_PLUGIN_CURATED_VARS.get(name, []))
+    return out
+
+
+def _gather_plugin_best_practices(plugin_dir: Path) -> list[str]:
+    """Best-practice rule slugs for a plugin (filenames minus README/_TEMPLATE)."""
+    bp_dir = plugin_dir / "best-practices"
+    if not bp_dir.is_dir():
+        return []
+    out = []
+    for f in sorted(bp_dir.glob("*.md")):
+        if f.stem.lower() in {"readme", "_template"}:
+            continue
+        out.append(f.stem)
+    return out
+
+
+def _gather_plugin_trees(plugin_dir: Path) -> list[str]:
+    """Decision-tree titles for a plugin (the `## Decision Tree:` headers in
+    knowledge/*.md)."""
+    kn = plugin_dir / "knowledge"
+    if not kn.is_dir():
+        return []
+    titles: list[str] = []
+    for f in sorted(kn.glob("*.md")):
+        try:
+            for line in f.read_text(encoding="utf-8").splitlines():
+                s = line.strip()
+                if s.startswith("## Decision Tree"):
+                    t = s.lstrip("#").strip()
+                    if t.lower().startswith("decision tree:"):
+                        t = t[len("decision tree:"):].strip()
+                    titles.append(t)
+        except OSError:
+            continue
+    return titles
+
+
+def _gather_plugin_dir_names(plugin_dir: Path, sub: str, dirs: bool = False) -> list[str]:
+    base = plugin_dir / sub
+    if not base.is_dir():
+        return []
+    if dirs:
+        return sorted(p.name for p in base.iterdir() if p.is_dir())
+    return sorted(p.stem for p in base.glob("*.md") if p.stem.lower() != "readme")
+
+
+def _render_plugin_var_control(plugin: str, var: dict) -> str:
+    """One curated-variable control (enum→select, number/text→input) carrying the
+    data-* attributes the editor JS reads on save."""
+    key = var["key"]
+    label = html.escape(var["label"])
+    help_txt = html.escape(var.get("help", ""))
+    default = html.escape(str(var.get("default", "")))
+    vtype = var["type"]
+    cid = f"pv-{plugin}-{key}"
+    if vtype == "enum":
+        opts = "".join(
+            f'<option value="{html.escape(o)}"{" selected" if o == var.get("default") else ""}>{html.escape(o)}</option>'
+            for o in var.get("options", [])
+        )
+        control = (
+            f'<select id="{cid}" class="pv-control" data-pvar="{html.escape(key)}" '
+            f'data-ptype="enum" data-pdefault="{default}">{opts}</select>'
+        )
+    else:
+        input_type = "number" if vtype == "number" else "text"
+        control = (
+            f'<input id="{cid}" class="pv-control" type="{input_type}" '
+            f'data-pvar="{html.escape(key)}" data-ptype="{html.escape(vtype)}" '
+            f'data-pdefault="{default}" value="{default}">'
+        )
+    return (
+        '<div class="pv-row">'
+        f'<label class="pv-label" for="{cid}">{label}</label>'
+        f'{control}'
+        f'<p class="pv-help">{help_txt}</p>'
+        "</div>"
+    )
+
+
+def _render_plugin_page(plugin_dir: Path) -> str:
+    """The full panel for one plugin: editable variables (curated + free-form)
+    wired to the /__save portal, plus best-practices, decision trees, agents and
+    skills for that plugin."""
+    name = plugin_dir.name
+    esc = html.escape(name)
+    curated = _plugin_curated_vars(name)
+    target = f".ravenclaude/plugins/{name}.yaml"
+
+    controls = "".join(_render_plugin_var_control(name, v) for v in curated) or (
+        '<p class="pv-help">No curated knobs for this plugin yet — use the free-form section below.</p>'
+    )
+
+    bps = _gather_plugin_best_practices(plugin_dir)
+    trees = _gather_plugin_trees(plugin_dir)
+    agents = _gather_plugin_dir_names(plugin_dir, "agents")
+    skills = _gather_plugin_dir_names(plugin_dir, "skills", dirs=True)
+
+    def _li_list(items: list[str], empty: str) -> str:
+        if not items:
+            return f'<p class="pp-empty">{empty}</p>'
+        return '<ul class="pp-list">' + "".join(f"<li>{html.escape(i)}</li>" for i in items) + "</ul>"
+
+    bp_html = _li_list(bps, "No best-practice docs in this plugin.")
+    tree_html = _li_list(trees, "No decision trees in this plugin.")
+    agents_html = _li_list(agents, "No agents in this plugin.")
+    skills_html = _li_list(skills, "No skills in this plugin.")
+
+    return f"""
+    <div class="plugin-page" data-plugin="{esc}" data-target="{html.escape(target)}">
+      <h2 class="pp-title">{esc}</h2>
+      <p class="pp-sub">Variables for <code>{esc}</code> save to <code>{html.escape(target)}</code> via the dashboard server. On the static/published copy, edits stay in your browser — use <strong>Download</strong>.</p>
+
+      <section class="pp-section">
+        <h3>Variables</h3>
+        <div class="pv-curated">{controls}</div>
+        <div class="pv-freeform">
+          <h4>Free-form variables</h4>
+          <p class="pv-help">One <code>key: value</code> per line (YAML). For project variables not covered by the curated knobs above.</p>
+          <textarea class="pv-extra" data-plugin="{esc}" rows="5" spellcheck="false" placeholder="my_key: my value&#10;another_key: 123"></textarea>
+        </div>
+        <div class="pp-actions">
+          <button type="button" class="pp-save" data-plugin="{esc}">Save to repo</button>
+          <button type="button" class="pp-download" data-plugin="{esc}">Download .yaml</button>
+          <span class="pp-status" data-plugin="{esc}" role="status"></span>
+        </div>
+        <p class="pp-noserver" data-plugin="{esc}" hidden>No local dashboard server behind this page, so <strong>Save to repo</strong> is off. Run <code>ravenclaude dashboard</code> (or <code>bash .ravenclaude/dashboard.sh</code>) and reopen, or use <strong>Download</strong> and drop the file into <code>{html.escape(target)}</code>.</p>
+      </section>
+
+      <section class="pp-section">
+        <h3>Best practices <span class="pp-count">{len(bps)}</span></h3>
+        {bp_html}
+      </section>
+      <section class="pp-section">
+        <h3>Decision trees <span class="pp-count">{len(trees)}</span></h3>
+        {tree_html}
+      </section>
+      <section class="pp-section pp-cols">
+        <div><h3>Agents <span class="pp-count">{len(agents)}</span></h3>{agents_html}</div>
+        <div><h3>Skills <span class="pp-count">{len(skills)}</span></h3>{skills_html}</div>
+      </section>
+    </div>
+    """
+
+
+def _render_plugins_category(plugin_dirs: list[Path]) -> tuple[str, str]:
+    """Return (tabs_html, panels_html) for the Plugins category — one tab-btn and
+    one tab-panel per plugin, matching the existing two-tier nav contract."""
+    tabs: list[str] = []
+    panels: list[str] = []
+    for pd in plugin_dirs:
+        name = pd.name
+        esc = html.escape(name)
+        tab_id = f"plugin-{name}"
+        tabs.append(
+            f'<button class="tab-btn" id="tab-{html.escape(tab_id)}" data-tab="{html.escape(tab_id)}" '
+            f'data-cat="plugins" role="tab" aria-selected="false" tabindex="-1" '
+            f'aria-controls="panel-{html.escape(tab_id)}" title="{esc} — variables, best practices, trees">{esc}</button>'
+        )
+        panels.append(
+            f'<section class="tab-panel" id="panel-{html.escape(tab_id)}" data-tab="{html.escape(tab_id)}" '
+            f'role="tabpanel" aria-label="{esc} plugin">{_render_plugin_page(pd)}</section>'
+        )
+    return "\n".join(tabs), "\n".join(panels)
+
+
+def _all_plugin_dirs() -> list[Path]:
+    """Every plugin directory (has .claude-plugin/plugin.json), sorted by name."""
+    return sorted(
+        (p for p in (REPO_ROOT / "plugins").iterdir()
+         if (p / ".claude-plugin" / "plugin.json").is_file()),
+        key=lambda p: p.name,
+    )
+
+
 _PAGE_TEMPLATE = """<!doctype html>
 <html lang="en">
 <head>
@@ -8578,6 +9025,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <button class="cat-btn" type="button" data-cat="setup" aria-pressed="true" title="Set up — Overview, permissions, the safety pipeline, and a review preview">Set up</button>
     <button class="cat-btn" type="button" data-cat="lookback" aria-pressed="false" title="Look back — review log, run feed, perimeter alerts, security log, lineage">Look back</button>
     <button class="cat-btn" type="button" data-cat="learn" aria-pressed="false" title="Learn — explainers, command playbooks, decision-tree guidance">Learn</button>
+    <button class="cat-btn" type="button" data-cat="plugins" aria-pressed="false" title="Plugins — per-plugin variables, best practices, and decision trees">Plugins</button>
     <button class="cat-btn" type="button" data-cat="install" aria-pressed="false" title="Install &amp; help — add plugins and learn what this dashboard is">Install &amp; help</button>
   </nav>
   <nav class="tab-bar" role="tablist" aria-label="Pages in the selected category">
@@ -8596,6 +9044,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <button class="tab-btn" id="tab-install" data-tab="install" data-cat="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-install" title="Install &amp; Update — wire RavenClaude into GitHub Copilot CLI">Install &amp; Update</button>
     <button class="tab-btn" id="tab-bifrost" data-tab="bifrost" data-cat="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-bifrost" title="Add plugin — guided steps to install a plugin into Claude Code (Bifröst bridge)">Add plugin</button>
     <button class="tab-btn" id="tab-about" data-tab="about" data-cat="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-about" title="About &amp; help — what this dashboard is and how it's organized">About &amp; help</button>
+{plugins_tabs}
   </nav>
 </header>
 
@@ -8645,6 +9094,7 @@ _PAGE_TEMPLATE = """<!doctype html>
   <section class="tab-panel" id="panel-about" data-tab="about" role="tabpanel" aria-label="About and help">
 {about_html}
   </section>
+{plugins_panels}
 </main>
 
 <div class="modal-backdrop" id="info-modal" role="dialog" aria-modal="true" aria-labelledby="info-modal-title" tabindex="-1">
