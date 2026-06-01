@@ -306,6 +306,30 @@ parse_seat() {  # parse_seat <role> <tmp>
   # could return an over-long or newline/escape-laden string; cap at 200 chars and
   # drop control bytes at the source so every downstream use is already safe.
   SREASON[$role]="$(printf '%s' "$out" | jq -r '.reasoning // ""' | tr -d '\000-\037' | cut -c1-200)"
+  # ── Resolved-false concern strip (v0.97+). The orchestrator already
+  #    deterministically resolves some concerns before the panel runs (e.g. the
+  #    category `file_edit_project` proves the target path is INSIDE the tree —
+  #    the seat envelope is told this, but if a seat still cites
+  #    xc.outside-project-tree we strip it as a confirmed false positive). If
+  #    the seat's deny was based SOLELY on the stripped concern, downgrade to
+  #    abstain so the abstain-gate (and dev_repo_exempt's abstain-downgrade)
+  #    catch it instead of a confident-but-wrong deny carrying. Real denies that
+  #    cite other concerns alongside are unaffected.
+  local orig_cited="${SCITED[$role]}"
+  local stripped_cited="$orig_cited"
+  if [ "$category" = "file_edit_project" ]; then
+    stripped_cited="$(printf '%s' "$orig_cited" | jq -c 'map(select(. != "xc.outside-project-tree"))')"
+  fi
+  if [ "$stripped_cited" != "$orig_cited" ]; then
+    SCITED[$role]="$stripped_cited"
+    local removed
+    removed="$(jq -cn --argjson o "$orig_cited" --argjson s "$stripped_cited" '$o - $s')"
+    RESOLVED_STRIPS="$(jq -cn --argjson a "${RESOLVED_STRIPS:-[]}" --arg seat "$role" --argjson removed "$removed" \
+      '$a + [{seat:$seat, removed:$removed, reason:"category=file_edit_project proves in-tree"}]')"
+    if [ "${SV[$role]}" = "deny" ] && [ "$(printf '%s' "$stripped_cited" | jq -r 'length')" = "0" ]; then
+      SSTATUS[$role]="abstain"; SV[$role]="abstain"
+    fi
+  fi
 }
 
 verdict="ask"; reason=""; revised=""; final_cited="$screen_concerns"
@@ -563,10 +587,12 @@ if mkdir -p "$audit_dir" 2>/dev/null && jq -cn \
     --argjson ti "$saga_ti" --arg tn "$tool_name" --arg cat "$category" --arg phase "$phase" \
     --arg verdict "$verdict" --arg revised "$revised" \
     --argjson seats "$seats_json" --argjson concerns "${final_cited:-[]}" \
+    --argjson strips "${RESOLVED_STRIPS:-[]}" \
     --argjson duration "${duration_ms:-0}" \
     '{id:$id,session_id:$sid,timestamp:$ts,tool_name:$tn,
       tool_input:$ti,category:$cat,phase:$phase,
       seats:$seats,concerns_cited:$concerns,final_verdict:$verdict,
+      resolved_false_strips:$strips,
       updated_input:(if $revised=="" then null else {command:$revised} end),
       duration_ms:$duration}' \
     > "${audit_dir}/${run_id}.json" 2>/dev/null; then
