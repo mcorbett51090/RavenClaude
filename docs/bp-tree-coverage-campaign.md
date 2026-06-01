@@ -82,15 +82,37 @@
 - **data-platform**: AGREE 2 BP + 1 tree, CUT 3 → **TIEBREAK (material-vs-minor)**: P1 said MATERIAL; P2 says MINOR — spreadsheet-migration (already database-setup-guide.md:13-14,50,74) + reverse-ETL (already etl-pipeline-engineer.md:54 + ipaas knowledge) covered; schema-change tree folds into pipeline-failure tree. Keep: schema-drift BP, row-count-reconcile BP (re-scope off freshness), pipeline-failure tree.
 - **ai-coding-model-guidance**: AGREE 2 reasoning-rules but **reframe (semi-disagree)**: keep them as named sections IN the lineup file, NOT a best-practices/ dir; cut trees +3 → +1 max (keep reasoning-vs-bigger-model dial only). §7 governs volatile facts, not durable reasoning — so +2 reasoning is OK in-file.
 
-### C3 business — PENDING
-### C4 dev/CRM/web/core — PENDING
+### C3 business (Panel 2 in)
+- **finance**: AGREE 4 (3 trees + deficiency BP). `controller-accrual-vs-prepaid-vs-deferral-cutoff` BP = marginal (P2 borderline-CUT, covered in close skill) → TIEBREAK.
+- **regulatory-compliance**: AGREE 4 (2 trees + 2 BP). P2 correction: Panel 1's "Bermuda has ZERO rule/tree" is factually wrong (it has a BMA carve-out tree branch); proposals survive, fix the rationale. No tiebreak on the items.
+- **edtech-partner-success**: AGREE comprehensive. P2 CUT the 1 optional privacy tree (redundant with existing FERPA tree which already segments K-12/higher-ed; GDPR routes to reg-compliance per domain boundary). → effectively 0 new (both panels ~agree it's done).
+- **applied-statistics**: AGREE comprehensive. P2 soft-CUT the FWER/FDR tree (duplicates the existing named BP `test-correct-for-multiple-comparisons`). → TIEBREAK (mild).
 
-## Tiebreak queue (Panel 3) — material disagreements only
-1. m365-copilot: are eval-BP / adaptive-cards-BP / eval-tree real gaps, or already covered by the shipped skill + agent prose? (P2 strongly says covered.)
-2. azure-cloud: are BCDR-by-tier + Front-Door-WAF real BP gaps, or already in knowledge? + are the 2 trees redundant?
-3. data-platform: MATERIAL or MINOR? (spreadsheet-migration + reverse-ETL already covered per P2.)
-4. microsoft-fabric: RTI-alerting — tree or agent-prose?
-5. ai-coding-model-guidance: trees +3 or +1; BP-dir vs in-file sections.
+### C4 dev/CRM/web/core (Panel 2 in)
+- **salesforce**: AGREE comprehensive (P2 probed 3 senior situations, all covered). 1 borderline guest-user/Experience-Cloud ADD flagged, leans no (security-verdict escalation seam). → TIEBREAK (mild).
+- **tableau**: P2 DISAGREES with "comprehensive" → **ADD 2**: densification/domain-padding tree, analytics-pane-statistics (forecasting/clustering) BP-or-tree. Panel 1 missed both. → TIEBREAK (P1 said done, P2 found 2 gaps).
+- **web-design**: P2 confirms 4 of 6 trees, **CUTs 2** (Content-KKCR = already a scored matrix in content-audit skill; Technical-SEO = a checklist not a fork), **ADDs 1** (motion/animation-mechanism tree). → TIEBREAK on the 2 cuts + 1 add.
+- **ravenclaude-core**: AGREE +0/+0 (domain-neutral house rule). No tiebreak.
+
+## TIEBREAK QUEUE (Panel 3) — material disagreements
+1. **m365-copilot** (C1): eval-BP / adaptive-cards-BP / eval-tree — real gaps or already covered (shipped skill `copilot-agent-eval-harness` + house opinion #15 + agent prose)? P2 strongly says covered.
+2. **azure-cloud** (C2): BCDR-by-tier BP + Front-Door-WAF BP — real or already in knowledge (networking:13-21, landing-zones:35-36)? Both trees redundant? P2 says cut to 2 BP, 0 trees.
+3. **data-platform** (C2): MATERIAL or MINOR? spreadsheet-migration + reverse-ETL already in agents/knowledge per P2 → keep only schema-drift BP + row-count-reconcile BP + 1 pipeline-failure tree.
+4. **microsoft-fabric** (C1): RTI-alerting tree — tree or agent-prose (no real branch)?
+5. **ai-coding-model-guidance** (C2): trees +3 or +1; the +2 reasoning rules as in-file sections (NOT a best-practices/ dir).
+6. **tableau** (C4): is it comprehensive (P1) or does it need +2 (densification, analytics-pane-stats) (P2)?
+7. **web-design** (C4): cut Content-KKCR + Technical-SEO trees? add motion-mechanism tree? Net 6 → ~5 (IA, conversion, responsive, CMS, motion).
+8. **finance** (C3, mild): keep or cut the accrual-cutoff BP?
+9. **applied-statistics** (C3, mild): keep or cut the FWER/FDR tree (duplicates existing BP)?
+10. **salesforce** (C4, mild): add a guest-user/Experience-Cloud rule, or hold (security seam)?
+
+## FULLY AGREED (no tiebreak — safe to build now)
+- **microsoft-graph**: 3 BP + 2 trees ✅ BUILT (PR #176).
+- **power-platform**: 2 BP + 2 trees (both panels AGREE 4/4; scope caveat: connector tree ≠ PA-vs-LogicApps).
+- **microsoft-graph** done. **regulatory-compliance**: 2 BP + 2 trees (items agreed; only rationale corrected).
+- **claude-app-engineering**: 2 BP (multimodal, model-migrate) + 1 tree (document-input) agreed; streaming BP + version-migration tree cut by P2 (P1 had flagged streaming borderline) — treat cuts as accepted.
+- **web-design**: 4 trees agreed (IA, conversion, responsive, CMS) regardless of tiebreak outcome on the other 2.
+- **finance**: 3 trees + deficiency BP agreed. **azure-cloud**: 2 BP agreed (data-tier, migration-assess).
 
 ## Status log
 - 2026-06-01: Panel 1 complete (27 BP + 29 trees). Panel 2 C1+C2 in — pattern is Panel 1 OVER-added (P2 cut 4 in C1, 11 in C2; 0 ADDs). Strong convergence: power-platform, microsoft-graph, claude-app (mostly). Awaiting Panel 2 C3+C4, then Panel 3 tiebreak on the queue above.
