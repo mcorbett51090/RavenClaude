@@ -78,7 +78,32 @@ Each agent ends its report with its role-specific contract (see the agent file) 
 |---|---|
 | [`knowledge/pm-decision-trees.md`](knowledge/pm-decision-trees.md) | Choosing how to run a project — the predictive-vs-agile-vs-hybrid delivery-approach tree (+ Scrum-vs-Kanban within agile). Traverse before recommending an approach. |
 
-Best-practice rules live in [`best-practices/`](best-practices/) (single-owner, baseline-before-change, narrative-first status). The lightweight RAID/status templates stay in [`../ravenclaude-core/templates/`](../ravenclaude-core/templates/) (`raid-log.md`, `status-report.md`) — this plugin's specialists produce the deeper artifacts on top.
+Best-practice rules live in [`best-practices/`](best-practices/) (single-owner, baseline-before-change, narrative-first status).
+
+---
+
+## 7b. Skills (one per agent)
+
+Each skill is an entry-point playbook; read the `SKILL.md` first, then the referenced template.
+
+| Skill | Primary agent | What's inside |
+|---|---|---|
+| [`skills/project-charter-and-baseline/`](skills/project-charter-and-baseline/SKILL.md) | `delivery-lead` | Charter → scope/WBS (single-owner work packages) → critical path → the scope/schedule/cost baseline that change control measures against |
+| [`skills/sprint-planning/`](skills/sprint-planning/SKILL.md) | `scrum-master` | Sprint goal → capacity-sized commitment → acceptance criteria + owner per item → explicit carry-over; Scrum-vs-Kanban |
+| [`skills/raid-facilitation/`](skills/raid-facilitation/SKILL.md) | `risk-and-raid-analyst` | Cause→event→consequence risks, a stated scoring rubric, qual+quant/EMV, responses + owners + triggers; issue triage, assumptions, dependencies |
+| [`skills/status-and-steering-pack/`](skills/status-and-steering-pack/SKILL.md) | `stakeholder-comms-lead` | Stakeholder/power-interest map → comms plan → narrative-first status (RAG that matches the numbers) → steering pack → escalation memo |
+
+## 7c. Templates
+
+Deeper-artifact templates the specialists produce (the lightweight `raid-log.md` / `status-report.md` stay in [`../ravenclaude-core/templates/`](../ravenclaude-core/templates/)):
+
+| Template | Use for |
+|---|---|
+| [`templates/project-charter.md`](templates/project-charter.md) | The predictive charter (objective, success criteria, sponsor, scope, assumptions) |
+| [`templates/change-request.md`](templates/change-request.md) | A baselined-project change request with impact analysis + disposition |
+| [`templates/sprint-plan.md`](templates/sprint-plan.md) | A sprint plan: goal, capacity-sized commitment, acceptance + owners, carry-over |
+| [`templates/risk-register.md`](templates/risk-register.md) | A decision-grade RAID register (scored risks + issues + assumptions + dependencies) |
+| [`templates/steering-pack-outline.md`](templates/steering-pack-outline.md) | A narrative-first steering / exec pack |
 
 ---
 

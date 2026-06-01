@@ -29,6 +29,8 @@ Requires `ravenclaude-core@>=0.7.0`.
 ## Layout
 
 - `agents/` — the four specialists (each with scenario-authoring frontmatter)
+- `skills/` — one playbook per agent (project-charter-and-baseline, sprint-planning, raid-facilitation, status-and-steering-pack)
+- `templates/` — deeper-artifact skeletons (charter, change-request, sprint-plan, risk-register, steering-pack)
 - `knowledge/` — the delivery-approach decision tree
 - `best-practices/` — named, citable rules (single-owner, baseline-before-change, narrative-first status)
 - `CLAUDE.md` — the team constitution (roster, routing, hybrid stance, the house-rule carve-out)
