@@ -2,6 +2,7 @@
   "mmdc_version": "11.15.0",
   "normalizer_version": 1,
   "trees": {
+    "ai-coding-model-guidance--reasoning-level-vs-a-bigger-model-the-cheaper-lever-first": "dfe5b57bf84487716692d055e223cf281659919f8289ddac2d3deec3422873d9",
     "ai-coding-model-guidance--which-model-tier-independent-of-vendor": "364252aacdafe9e4edc9fbb814fc02c04d84244b512ee6f4134d26e893f3fdb5",
     "applied-statistics--causal-inference-which-identification-strategy": "8054670c7a5862bd83e5ef908f86978d8498a2fe38882ecfefcfd37fb3a9afeb",
     "applied-statistics--hypothesis-tests-which-test-for-this-data-group-structure": "e7f981e6901cca1a05487bede397dac843131b09b3b88a4481a30304c5bea3fb",
