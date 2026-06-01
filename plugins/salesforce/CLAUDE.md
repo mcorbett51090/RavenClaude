@@ -39,7 +39,7 @@ These are baked into every agent and are the `salesforce-reviewer`'s rubric:
 ## Escalating out — cross-plugin seams
 
 - **Security verdicts** — SOQL injection, secret handling, and FLS-as-a-security-control escalate to `ravenclaude-core/security-reviewer`. This plugin supplies the domain rubric; core owns the verdict. There is deliberately **no** security agent here.
-- **Generic test authoring** escalates to `ravenclaude-core/test-author`; `apex-engineer` owns the Salesforce-specific bulk/assert discipline.
+- **Generic test authoring** escalates to `ravenclaude-core/tester-qa`; `apex-engineer` owns the Salesforce-specific bulk/assert discipline.
 - **Azure-native integration** (middleware, Event Grid, queues crossing into Azure) coordinates with `azure-cloud/*`.
 - **The accuracy / grounding / Structured Output protocols** are inherited from the root constitution.
 
@@ -53,3 +53,4 @@ These are baked into every agent and are the `salesforce-reviewer`'s rubric:
 ## Milestones
 
 - **v0.1.0** — initial roster (5 agents), 9 knowledge docs, 5 skills, 5 templates, anti-pattern hook.
+- **v0.4.1** — fixed a dead cross-plugin seam: `apex-engineer` escalated generic test authoring to `ravenclaude-core/test-author`, which does not exist (the core test agent is `tester-qa`). Renamed all 5 references — incl. the machine-read `works_with` frontmatter that drives routing — to `ravenclaude-core/tester-qa` (two-panel audit 2026-05-31).
