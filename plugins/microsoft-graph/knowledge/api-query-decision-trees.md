@@ -1,5 +1,7 @@
 # Microsoft Graph — API & query decision trees
 
+**Last reviewed:** 2026-05-30 · **Confidence:** medium-high (first-party Microsoft Learn). Volatile facts (throttling limits, beta-vs-v1.0 availability, header names) carry inline markers + per-tree `Last verified` dates; re-verify on the Researcher sweep before quoting.
+
 > Canonical decision trees for the `graph-api-engineer` surface. Traverse the relevant tree top-to-bottom against the user's observable situation **before** choosing a method (per the pre-action-traversal prior in [`../CLAUDE.md`](../CLAUDE.md) §5). Default to the smaller-blast-radius leaf; escalate only when it demonstrably fails.
 >
 > Volatile facts (throttling limits, beta-vs-v1.0 endpoint availability, header names) are marked inline and re-verified before quoting. See [`api-honor-throttling-and-retry-after.md`](../best-practices/api-honor-throttling-and-retry-after.md), [`api-page-to-exhaustion.md`](../best-practices/api-page-to-exhaustion.md), [`api-delta-for-what-changed.md`](../best-practices/api-delta-for-what-changed.md).

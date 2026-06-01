@@ -1,5 +1,7 @@
 # Microsoft Graph — workloads & notifications decision trees
 
+**Last reviewed:** 2026-05-30 · **Confidence:** medium-high (first-party Microsoft Learn). Resource availability + limits are volatile — carried with inline markers + per-tree `Last verified` dates; re-verify on the Researcher sweep before quoting.
+
 > Canonical decision trees for the `graph-workloads-engineer` surface (users/groups, mail/calendar, Teams, files, change notifications). Traverse before choosing a mechanism. Notification-payload decryption keys and any permission choice escalate to `ravenclaude-core/security-reviewer` (per [`../CLAUDE.md`](../CLAUDE.md) §1, §8).
 >
 > Resource availability and limits are volatile — marked inline and re-verified before quoting. See [`notify-subscriptions-need-renewal-and-lifecycle-handling.md`](../best-practices/notify-subscriptions-need-renewal-and-lifecycle-handling.md), [`notify-validate-the-handshake-and-verify-the-sender.md`](../best-practices/notify-validate-the-handshake-and-verify-the-sender.md), [`notify-encrypt-rich-payloads-and-guard-the-key.md`](../best-practices/notify-encrypt-rich-payloads-and-guard-the-key.md).

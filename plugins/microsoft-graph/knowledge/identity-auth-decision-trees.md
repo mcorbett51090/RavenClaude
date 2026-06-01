@@ -1,5 +1,7 @@
 # Microsoft Graph — identity & authorization decision trees
 
+**Last reviewed:** 2026-05-30 · **Confidence:** medium-high (first-party Microsoft Learn). Permission names + flow availability are volatile — carried with inline markers + per-tree `Last verified` dates; re-verify on the Researcher sweep before quoting.
+
 > Canonical decision trees for the `graph-identity-engineer` surface. Traverse before choosing a permission type, auth flow, or credential. **Every leaf here is security-relevant — the permission/scope/secret verdict escalates to `ravenclaude-core/security-reviewer`** (per [`../CLAUDE.md`](../CLAUDE.md) §1, §8).
 >
 > Permission names and flow availability are volatile — marked inline and re-verified before quoting. See [`identity-least-privilege-permission-selection.md`](../best-practices/identity-least-privilege-permission-selection.md), [`identity-delegated-vs-application-is-a-design-choice.md`](../best-practices/identity-delegated-vs-application-is-a-design-choice.md), [`auth-pick-the-flow-by-client-type.md`](../best-practices/auth-pick-the-flow-by-client-type.md).
