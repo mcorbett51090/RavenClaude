@@ -2,7 +2,10 @@
 
 **Goal (user directive, 2026-06-01):** flesh out best-practices + decision trees across all 16 plugins to cover **98% of situations**. Process per plugin/cluster: **Panel 1** (research + plan) → **Panel 2** (independent research + gap analysis) → **Panel 3** (tiebreak where the two disagree) → build → PR. Iterate until panels agree. Persist across token resets — this file is the durable state.
 
-## ⚠️ BUILD-ORDER CONSTRAINT — the mermaid renderer is unavailable in this container (2026-06-01)
+## ✅ RENDERER UNBLOCKED (2026-06-01, later in session)
+`npx puppeteer browsers install chrome` fetched Chrome; `render-trees.py` (which already passes `--no-sandbox`) now renders all SVGs. CI's `render-trees --check` is a manifest compare (no Chrome needed in CI), so committed SVGs pass. Tree batch is NOW BUILDABLE. Mermaid gotcha learned: parens in EDGE labels (`|Looks risky (payment)|`) break the parser — remove them or quote node labels. web-design 5 trees shipped (PR #184) as proof.
+
+### (historical) earlier-session blocker:
 `scripts/render-trees.py` needs `npx @mermaid-js/mermaid-cli` + a working headless Chromium to render `## Decision Tree` Mermaid blocks → committed SVGs. **Verified this session:** `mmdc` not installed; `npx` fetches the CLI but the puppeteer/Chromium render step fails with an in-browser parse error. `render-trees --check` (CI + local) compares committed SVGs to a manifest and will FAIL on any new tree whose SVG isn't rendered. **Consequence:** any PR that ADDS a `## Decision Tree` cannot pass the gate here right now. **Strategy:** build all BP-only items first (they need no SVG); batch every tree-bearing item for a session where the renderer works (or render them then). microsoft-graph PR #176 succeeded earlier because the renderer was working that session — it has since stopped. This is an environment limitation, not a content blocker; the tree CONTENT is authored in the campaign spec regardless.
 
 **Tree-deferred queue (author content, render+PR when mmdc works):** power-platform (PBI-deploy/refresh, custom-connector), regulatory-compliance (which-return, Bermuda), claude-app (document-input), finance (3 trees), data-platform (pipeline-failure-recovery), microsoft-fabric (data-security-plane), web-design (5 trees), ai-coding-model-guidance (reasoning-vs-bigger-model). BP-only items ship now.
