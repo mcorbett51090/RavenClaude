@@ -1,0 +1,277 @@
+/*
+ * RavenClaude — Shared Design Tokens
+ * ----------------------------------------------------------------------------
+ * Single source of truth for color, typography, spacing, radii, and shadow
+ * tokens consumed by all three web surfaces:
+ *
+ *   - index.html             (landing)
+ *   - repo-guide.html        (marketplace catalog)
+ *   - dashboard.html         (comfort-posture editor + Norse panels)
+ *
+ * Each surface's generator reads this file at generate-time and inlines the
+ * tokens into the surface's <style> block. NO RUNTIME LOAD — every HTML
+ * artifact stays self-contained.
+ *
+ * Aesthetic: Intercom-inspired calm monochromatic light beige with two
+ * accents — gold (dashboard, Norse-thematic) and teal (index + repo-guide).
+ *
+ * a11y discipline:
+ *   - --gold on --bg is ~3.6:1 (AA-LARGE only). Never use --gold as body
+ *     text. Use --gold for borders, headings, icons, accent rules.
+ *   - --teal on --bg passes AA for body text at ~4.5:1.
+ *   - --warn on --bg passes AA for badge labels (12-13px) at ~4.6:1.
+ *
+ * Class-naming discipline:
+ *   - All shared classes use the .rc-* prefix to avoid collision with
+ *     per-surface classes (repo-guide and dashboard each define their own
+ *     .tab-btn with different geometry; prefixing prevents the conflict).
+ *   - Per-surface classes keep their existing names.
+ *
+ * See plugins/ravenclaude-core/dashboard-assets/README.md for the full
+ * design-system reference.
+ */
+
+:root {
+  /* ── Neutrals — light beige base ─────────────────────────────────── */
+  --rc-bg: #faf7f0;
+  --rc-surface: #ffffff;
+  --rc-surface-2: #f4f0e8;
+  --rc-border: #e8e0d0;
+  --rc-border-strong: #d6cab2;
+
+  /* ── Text ────────────────────────────────────────────────────────── */
+  --rc-text: #1a1614;
+  --rc-muted: #6b6259;
+  --rc-faint: #a8a098;
+
+  /* ── Accent: gold (dashboard primary, Norse identity) ────────────── */
+  /* CONTRAST NOTE: --rc-gold is ~3.6:1 on --rc-bg — AA-LARGE only.
+     Never use --rc-gold as body text. Use for borders / headings / icons
+     / accent rules / decorative dividers exclusively. */
+  --rc-gold: #a8882e;
+  --rc-gold-soft: #c9aa55;
+
+  /* ── Accent: teal (index + repo-guide primary) ───────────────────── */
+  /* CONTRAST NOTE: --rc-teal passes AA on --rc-bg at ~4.5:1 — safe for
+     body text and inline links. */
+  --rc-teal: #1f7f78;
+  --rc-teal-soft: #4a9590;
+
+  /* ── Status ──────────────────────────────────────────────────────── */
+  --rc-ok: #1f7a3f;
+  --rc-warn: #9a7010;
+  --rc-danger: #b03f3f;
+
+  /* Status-on-surface pairs (Norse pipeline badges, alert chips). The
+     -bg variants are intentionally light tints so the -fg variants stay
+     readable. Replaces the previously-hardcoded badge color literals. */
+  --rc-ok-bg: #e6f3ea;
+  --rc-ok-fg: #14532d;
+  --rc-warn-bg: #f6ecd6;
+  --rc-warn-fg: #6b4c0a;
+  --rc-danger-bg: #fbe5e5;
+  --rc-danger-fg: #6b1414;
+  --rc-neutral-bg: #ece8e0;
+  --rc-neutral-fg: #4a4640;
+
+  /* ── Typography ──────────────────────────────────────────────────── */
+  --rc-font-sans:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --rc-font-mono:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Letter-spacing scale: tighter on display, looser on small caps */
+  --rc-tracking-tight: -0.02em;
+  --rc-tracking-snug: -0.01em;
+  --rc-tracking-normal: 0;
+  --rc-tracking-wide: 0.04em;
+
+  /* ── Spacing scale (4px base, Intercom-generous) ─────────────────── */
+  --rc-space-1: 4px;
+  --rc-space-2: 8px;
+  --rc-space-3: 12px;
+  --rc-space-4: 16px;
+  --rc-space-5: 24px;
+  --rc-space-6: 32px;
+  --rc-space-7: 48px;
+  --rc-space-8: 64px;
+
+  /* ── Radii ───────────────────────────────────────────────────────── */
+  --rc-radius-sm: 6px;
+  --rc-radius: 10px;
+  --rc-radius-lg: 16px;
+  --rc-radius-pill: 999px;
+
+  /* ── Shadows — Intercom-soft, low-opacity, warm-tinted ───────────── */
+  --rc-shadow-sm: 0 1px 2px rgba(26, 22, 20, 0.04);
+  --rc-shadow: 0 2px 8px rgba(26, 22, 20, 0.06);
+  --rc-shadow-lg: 0 8px 24px rgba(26, 22, 20, 0.08);
+
+  /* ── Focus ring (a11y) ───────────────────────────────────────────── */
+  --rc-focus-ring: 0 0 0 3px rgba(31, 127, 120, 0.32); /* teal at .32 */
+  --rc-focus-ring-gold: 0 0 0 3px rgba(168, 136, 46, 0.32); /* gold at .32 */
+}
+
+/* ── Shared component classes (prefixed .rc-* to avoid collision) ──── */
+
+.rc-card {
+  background: var(--rc-surface);
+  border: 1px solid var(--rc-border);
+  border-radius: var(--rc-radius);
+  padding: var(--rc-space-5);
+  box-shadow: var(--rc-shadow-sm);
+  transition:
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+.rc-card:hover {
+  box-shadow: var(--rc-shadow);
+  border-color: var(--rc-border-strong);
+}
+
+.rc-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rc-space-2);
+  padding: var(--rc-space-1) var(--rc-space-3);
+  border: 1px solid var(--rc-border);
+  border-radius: var(--rc-radius-pill);
+  background: var(--rc-surface);
+  color: var(--rc-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: var(--rc-tracking-snug);
+}
+
+.rc-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--rc-radius-sm);
+  font-family: var(--rc-font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: var(--rc-tracking-wide);
+  text-transform: uppercase;
+}
+.rc-badge--ok {
+  background: var(--rc-ok-bg);
+  color: var(--rc-ok-fg);
+}
+.rc-badge--warn {
+  background: var(--rc-warn-bg);
+  color: var(--rc-warn-fg);
+}
+.rc-badge--danger {
+  background: var(--rc-danger-bg);
+  color: var(--rc-danger-fg);
+}
+.rc-badge--neutral {
+  background: var(--rc-neutral-bg);
+  color: var(--rc-neutral-fg);
+}
+
+.rc-tab {
+  background: transparent;
+  color: var(--rc-muted);
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--rc-space-3) var(--rc-space-4);
+  cursor: pointer;
+  font-family: var(--rc-font-sans);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: var(--rc-tracking-snug);
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+.rc-tab:hover {
+  color: var(--rc-text);
+}
+.rc-tab.is-active {
+  color: var(--rc-text);
+  border-bottom-color: var(--rc-teal);
+}
+/* Gold variant for the dashboard's Norse tab strip */
+.rc-tab.is-active.rc-tab--gold {
+  border-bottom-color: var(--rc-gold);
+}
+
+.rc-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rc-space-2);
+  padding: var(--rc-space-2) var(--rc-space-4);
+  border: 1px solid var(--rc-border-strong);
+  border-radius: var(--rc-radius-sm);
+  background: var(--rc-surface);
+  color: var(--rc-text);
+  font-family: var(--rc-font-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: var(--rc-tracking-snug);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.rc-button:hover {
+  background: var(--rc-surface-2);
+  border-color: var(--rc-muted);
+}
+.rc-button:focus-visible {
+  outline: none;
+  box-shadow: var(--rc-focus-ring);
+}
+.rc-button--primary {
+  background: var(--rc-teal);
+  color: var(--rc-surface);
+  border-color: var(--rc-teal);
+}
+.rc-button--primary:hover {
+  background: var(--rc-teal-soft);
+  border-color: var(--rc-teal-soft);
+}
+.rc-button--gold {
+  background: var(--rc-gold);
+  color: var(--rc-surface);
+  border-color: var(--rc-gold);
+}
+.rc-button--gold:hover {
+  background: var(--rc-gold-soft);
+  border-color: var(--rc-gold-soft);
+}
+.rc-button--gold:focus-visible {
+  box-shadow: var(--rc-focus-ring-gold);
+}
+
+.rc-input {
+  padding: var(--rc-space-2) var(--rc-space-3);
+  border: 1px solid var(--rc-border-strong);
+  border-radius: var(--rc-radius-sm);
+  background: var(--rc-surface);
+  color: var(--rc-text);
+  font-family: var(--rc-font-sans);
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.rc-input:focus {
+  outline: none;
+  border-color: var(--rc-teal);
+  box-shadow: var(--rc-focus-ring);
+}
+
+.rc-code {
+  font-family: var(--rc-font-mono);
+  background: var(--rc-surface-2);
+  border: 1px solid var(--rc-border);
+  border-radius: var(--rc-radius-sm);
+  padding: 1px 6px;
+  font-size: 0.875em;
+  color: var(--rc-text);
+}
