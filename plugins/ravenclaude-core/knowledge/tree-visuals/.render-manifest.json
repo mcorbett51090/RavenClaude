@@ -20,6 +20,7 @@
     "azure-cloud--secret-store-where-does-this-secret-credential-live": "1c1d9643f452447dd63f9439bfe69126bea1bc2e11d4577ff9d8408fee583d57",
     "claude-app-engineering--capability-home-prompt-only-vs-in-process-tool-vs-mcp-server": "1a5e6df62c9c8214bb43b9ccb4b3eecf4148700301943907311ff832eddd6151",
     "claude-app-engineering--claude-build-surface-choosing-how-to-build-a-claude-backed-f": "0921e96f7e45e3e3e0faf13e61292d7a0426b6e2bcb2645f19dbe8bbf92d2d55",
+    "claude-app-engineering--document-input-native-pdf-image-pre-extracted-text-or-files-": "c58ebe96183110b01f337eaa400f69afda01ce644aa62eeee26ccd8af76bc206",
     "claude-app-engineering--model-selection-which-claude-model-for-this-task": "0b7374f272855d81a5e5ee82092b5abead2950c29deb21ff4df6772aa42e3eb5",
     "claude-app-engineering--orchestration-shape-single-call-vs-workflow-vs-agent": "0c059e8e1476a814059164f6b7fdd50dfe4b061f50cceb361c9ca93e08ec1ce0",
     "claude-app-engineering--retrieval-strategy-long-context-vs-files-api-vs-rag": "28a8dab1e28546896a3cb61ba646e9f15862e4e78dbe60cebd2e39ca756107ca",

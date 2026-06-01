@@ -37,6 +37,7 @@ A one-off, low-volume document read where engineering time > token cost: just se
 - [`../knowledge/model-selection-and-2026-capability-map.md`](../knowledge/model-selection-and-2026-capability-map.md) — which models are vision-capable; Files API limits (dated)
 - [`../knowledge/server-side-tools-and-files.md`](../knowledge/server-side-tools-and-files.md) — Files API mechanics
 - [`../agents/prompt-and-context-engineer.md`](../agents/prompt-and-context-engineer.md) — owns context/input design
+- [`../knowledge/claude-app-decision-trees.md`](../knowledge/claude-app-decision-trees.md) — the **document-input** tree that operationalizes this rule
 
 ## Provenance
 
