@@ -8,7 +8,7 @@ For the full reference material (limits tables, decision trees, sources) see [`.
 
 ## Index
 
-_49 rules. Each file is one named, citable rule; read and apply it whole._
+_50 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -61,6 +61,7 @@ _49 rules. Each file is one named, citable rule; read and apply it whole._
 | [`platform-config-as-metadata-not-data.md`](./platform-config-as-metadata-not-data.md) | Absolute rule for environment-varying configuration — a hard-coded ID or a config-bearing data record is a bug. | Configuration that lives as a **data record** (a row in a custom object, or a List Custom Setting) does not travel through the release pipeline — it has to be r… |
 | [`platform-declarative-before-code.md`](./platform-declarative-before-code.md) | Pattern — strong default for any new automation or customization; deviate only with a written reason. | Every line of Apex you write is a line you own forever: it needs a test class, a bulk assertion, a deploy gate, a code review, and a developer to change it next… |
 | [`platform-org-strategy-and-environments.md`](./platform-org-strategy-and-environments.md) | Pattern — strong default; a multi-org split is a deliberate, expensive, written decision. | "How many production orgs?" is one of the most expensive decisions in Salesforce, and it is nearly irreversible — merging two orgs later is a multi-year migrati… |
+| [`security-guest-user-and-experience-cloud-sharing.md`](./security-guest-user-and-experience-cloud-sharing.md) | Absolute rule — a misconfigured guest user is the highest-blast-radius public-exposure mistake; the verdict escalates to `ravenclaude-core/security-reviewer`. | Experience Cloud guest users follow a stricter model (no role, no hierarchy, guest sharing rules only) that internal-sharing intuition gets wrong. |
 
 ---
 
