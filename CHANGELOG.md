@@ -2,6 +2,37 @@
 
 All notable changes to the RavenClaude marketplace and its plugins. Format loosely follows [Keep a Changelog](https://keepachangelog.com/). The marketplace version (`metadata.version` in `.claude-plugin/marketplace.json`) bumps when the catalog shape or cross-plugin contracts change; individual plugins have their own semver tracked in their `plugin.json`.
 
+## ravenclaude-core 0.102.0 — 2026-06-01 (UI design-system unification + doctor extensions + plugin-versioning surface)
+
+A single bundled PR landing two distinct workstreams: a visual unification across all three web surfaces (Intercom-inspired light beige + dual gold/teal accents) and small extensions on doctor/versioning surfacing that round out v0.101.0's work.
+
+**Design system (P0 — visual refresh, consumer-visible on next `/plugin marketplace update`):**
+
+- New `plugins/ravenclaude-core/dashboard-assets/shared-tokens.css` — single source of truth for color, typography, spacing, radii, shadow tokens. Read at generate-time by all three generators (`generate-index-dashboard.py`, `generate-repo-guide.py`, `generate-dashboards.py`) and inlined into each surface's `<style>` block via a `/*__SHARED_TOKENS__*/` marker substitution. Surfaces stay self-contained — no runtime asset load.
+- New `plugins/ravenclaude-core/dashboard-assets/README.md` — design-system docs: token reference, a11y discipline (gold is accent-only on light bg; teal passes AA-body), `.rc-*` class-naming rule, generator integration pattern.
+- **Aesthetic flip — light beige base** (`#faf7f0`), warm near-black text (`#1a1614`), Intercom-soft shadows. **Two accents — by design**: gold (`#a8882e`) for the dashboard (preserves the Heimdall/Víðarr/Norns Norse identity — gold-on-beige reads as parchment-and-gilt); teal (`#1f7f78`) for index + repo-guide (consumer-facing surfaces).
+- The dashboard's hard-coded pipeline-badge color literals (`#14532d`/`#bbf7d0`/`#4b1113`/`#fecaca`/`#3a3a42`/`#cbd5e1`) replaced with `var(--rc-{ok,danger,neutral}-{bg,fg})` tokens.
+- `index.html` `<meta name="color-scheme">` flipped from `dark` to `light`; `theme-color` from `#0b1120` to `#faf7f0`.
+
+**Doctor extensions (P1):**
+
+- `ravenclaude doctor` adds two checks (now 7 total): **plugin version alignment** (reuses `scripts/check-marketplace-claims.py` as subprocess — single source of truth for drift checks) and **worktree + run-artifact hygiene** (worktrees >90 days → fail, >30 days → warn; run dirs >90 days → warn-only since artifacts may be partner-confidential).
+
+**Plugin versioning surface (P1):**
+
+- `scripts/generate-repo-guide.py` adds `_format_requires()` helper — every per-plugin card in `repo-guide.html` now renders `Requires` as `ravenclaude-core ≥ 0.X.Y` (clean readable line) instead of the prior raw `{'plugins': ['ravenclaude-core@>=0.X.Y']}` dict literal. 16/17 plugins already declare `requires.ravenclaude-core`; the surfacing was the missing piece.
+- `README.md` — new **"Updating and version pinning"** section documenting the update flow, SHA-pinning recipe, compatibility via the repo-guide `Requires` row, the `shell_package_install: ask` migration prompt, and the non-removable security floor reference.
+
+**Deferred to follow-up (explicit):**
+
+- **`PLUGIN_COLORS` 17-plugin retune for the beige base** — the current 5 entries stay; the 12 fall-throughs keep `DEFAULT_COLOR`. Re-tuning all 17 to read against beige requires browser-tested WCAG checks; landing later as v0.103.0 prevents fragile hex-juggling in this PR.
+- **Full audience-chip / difficulty-chip / Mermaid theme retune** in `generate-repo-guide.py` — the existing 31 hardcoded hexes remain alongside the shared tokens; a follow-up will migrate them to `var(--rc-*)` references and re-tune for the beige base.
+- **`serve-dashboards.py` twin parity** — a pre-existing ~7 KB drift between the root and plugin copies (not caused by this PR) was surfaced by the panel; logged in `project_v0101_followups.md` for the next pass.
+- **Meta-task template / skill** (spec item #5 second half) — owner: maintainer. Logged in `project_v0101_followups.md`.
+- **STRATEGY.md content direction** (still open from PR #207).
+
+**Migration for consumers:** `/plugin marketplace update ravenclaude` + `/reload-plugins`. The dashboard's `/dashboard` page will look visually different on next launch (same controls + behavior — every Save & apply path, every Norse panel, every endpoint unchanged; only colors/typography/spacing refreshed). No new prompts beyond v0.101.0's `shell_package_install: ask`.
+
 ## ravenclaude-core 0.101.0 — 2026-06-01 (bundled P0–P2 gap closure: onboarding + evals + knowledge-health + security floor + doctor)
 
 A single bundled gap-closure PR. New consumer-facing surfaces, one HIGH-severity security fix, one consumer-visible default change.
