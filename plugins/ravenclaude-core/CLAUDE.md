@@ -19,6 +19,8 @@ The marketplace precedent at the time of the rule's extraction was unanimous: **
 
 This rule prevents two specific failure modes: (a) **dispatch ambiguity** on diffs that cross plugin boundaries (Team Lead doesn't know which security-reviewer to dispatch), and (b) **rubric drift** as plugin-specific reviewers diverge from the core review rubric over time.
 
+**Carve-out — the `project-management` plugin (added 2026-06-01).** The rule's strictest grip is on *review* roles (security-reviewer, architect), which never fork. A *generalist* concern may earn its own plugin when it splits cleanly into "domain-neutral hygiene" (stays core) and "deep specialist craft" (the plugin). **Project management is the worked example:** the lightweight RAID/status-hygiene agent stays as `ravenclaude-core/project-manager` (every plugin keeps routing to it, unchanged), while the deep PM craft — predictive baselines + earned value, agile sprint facilitation, scored/quantified risk registers, stakeholder/PMO governance — lives in the [`project-management`](../project-management/CLAUDE.md) plugin, which **extends** the core agent rather than replacing it. The litmus test that keeps this honest: *hygiene → core; running the project → the plugin.* This is a deliberate carve-out, not a precedent to fork every generalist — it earns the split only because PMBOK/PMP + the Agile canon is a genuine specialist body the core generalist doesn't carry.
+
 ## Multi-Agent Coordination & Dispatch Rules (Core Principle)
 
 This marketplace follows the **orchestrator-worker / hierarchical** pattern, which is the dominant recommended approach in production multi-agent systems (including Anthropic’s own research architecture and patterns validated in robust agent runtimes).
