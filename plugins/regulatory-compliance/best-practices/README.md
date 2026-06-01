@@ -10,7 +10,7 @@ These complement, and do not restate, the cross-cutting house opinions in the te
 
 ## Index
 
-_22 rules. Each file is one named, citable rule; read and apply it whole._
+_24 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -20,6 +20,7 @@ _22 rules. Each file is one named, citable rule; read and apply it whole._
 | [`aml-sanctions-screening-hygiene.md`](./aml-sanctions-screening-hygiene.md) | Absolute rule | A sanctions screen is only as defensible as the list it ran against and the trail it left. |
 | [`aml-sar-narrative-answers-why.md`](./aml-sar-narrative-answers-why.md) | Absolute rule | A SAR/STR narrative that names the customer and recites the transaction — "Customer wired $X to Y on date Z" — tells the financial-intelligence unit *… |
 | [`aml-tune-transaction-monitoring-with-data.md`](./aml-tune-transaction-monitoring-with-data.md) | Absolute rule | Transaction-monitoring rules drift out of calibration the moment they ship and are rarely re-tuned. |
+| [`bermuda-state-the-capital-regime-before-you-model.md`](./bermuda-state-the-capital-regime-before-you-model.md) | Absolute rule — modeling a Bermuda (re)insurer's capital before fixing its class and regime computes against the wrong yardstick. | The registration class drives the BMA capital framework (BSCR/ECR/MMS, EBS); it's the first decision, not a discovered input. |
 | [`classify-severity-before-you-respond.md`](./classify-severity-before-you-respond.md) | Primary diagnostic | When a regulator delivers a finding, the most expensive mistake is misreading **severity** before deciding how to respond. |
 | [`controls-classify-the-control-type-before-you-rate-it.md`](./controls-classify-the-control-type-before-you-rate-it.md) | Primary diagnostic | The kind of control you have determines what evidence proves it works, how its failure shows up, and how much residual risk it actually removes — yet … |
 | [`controls-inherent-residual-target-are-three-ratings.md`](./controls-inherent-residual-target-are-three-ratings.md) | Absolute rule | A risk register exists to answer one question: is the firm over- or under-controlled against its appetite? |
@@ -35,6 +36,7 @@ _22 rules. Each file is one named, citable rule; read and apply it whole._
 | [`policy-frame-conduct-and-consumer-outcomes.md`](./policy-frame-conduct-and-consumer-outcomes.md) | Pattern | Conduct and consumer-protection regimes `[verify-at-build — e.g. |
 | [`policy-separate-policy-from-procedure.md`](./policy-separate-policy-from-procedure.md) | Absolute rule | Policy and procedure answer different questions, move at different speeds, and are approved by different people — so binding them into one document gu… |
 | [`records-retention-on-a-schedule-not-on-disposal-instinct.md`](./records-retention-on-a-schedule-not-on-disposal-instinct.md) | Absolute rule | Compliance evidence is only useful if it still exists when the regulator asks for it — and the firm can only prove it kept the right things for the ri… |
+| [`reporting-classify-the-entity-before-you-file.md`](./reporting-classify-the-entity-before-you-file.md) | Absolute rule — filing the wrong return, or the right return on a wrong entity classification, is a reportable error; classification is the upstream decision. | FATCA/CRS entity status (FI vs active/passive NFE) decides which return is owed; the filing-hygiene rules assume it's already right. |
 | [`scope-the-jurisdiction-before-you-map.md`](./scope-the-jurisdiction-before-you-map.md) | Absolute rule | The same word means different things across regulators, and the same control answers to different cites in different regimes. |
 
 ---
