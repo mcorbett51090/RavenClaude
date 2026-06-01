@@ -43,6 +43,55 @@ See: [`../best-practices/bi-storage-mode-selection.md`](../best-practices/bi-sto
 
 ---
 
+## Decision Tree: Power BI — Deployment & refresh (the day-2 layer)
+
+**When this applies:** the model is built and the question is how it reaches production and stays fresh — "how do I promote dev→test→prod?", "the 6 a.m. refresh keeps failing", "do I need a gateway?", "the full refresh times out". Observable inputs: storage mode (resolve the storage-mode tree above first), whether any source is on-prem/VNet-bound, fact-table size, and whether multiple stages exist. This is the operational complement to the modeling trees; it does **not** re-decide storage mode.
+
+**Last verified:** 2026-05-30 against [`../best-practices/bi-refresh-and-gateway-reliability.md`](../best-practices/bi-refresh-and-gateway-reliability.md). Capacity refresh-time limits and refresh-concurrency are SKU-specific — `[verify-at-build]`, never quote from memory.
+
+```mermaid
+flowchart TD
+    START[Model built — get it to prod and keep it fresh] --> PROMO{"More than one stage<br/>dev / test / prod?"}
+    PROMO -->|YES| PIPE["Deployment Pipelines (Premium/PPU/Fabric)<br/>promote across stages, parameterize sources per stage"]
+    PROMO -->|NO — single workspace| DIRECT["Publish to the workspace directly<br/>still version the .pbip in source control"]
+    PIPE --> MODE
+    DIRECT --> MODE{Storage mode of the model?}
+    MODE -->|Direct Lake| DL["No scheduled refresh — reads OneLake directly<br/>manage framing / reframing, not a schedule"]
+    MODE -->|DirectQuery| DQ["No import refresh — tune source + query folding<br/>gateway still needed if source is on-prem"]
+    MODE -->|Import / Composite| GW{Any on-prem or VNet-bound source?}
+    GW -->|YES| GWCFG["Clustered STANDARD gateway, >=2 members<br/>service principal / service account creds<br/>size host for heaviest mashup"]
+    GW -->|NO — cloud-only source| NOGW["No gateway — cloud-to-cloud refresh<br/>service principal creds still"]
+    GWCFG --> SIZE
+    NOGW --> SIZE{Largest fact table size?}
+    SIZE -->|Large fact| INCR["Incremental refresh<br/>RangeStart/RangeEnd, partition by date<br/>+ alert on refresh failure"]
+    SIZE -->|Small / medium| FULL["Scheduled full refresh<br/>stagger datasets under the capacity limit<br/>+ alert on refresh failure"]
+```
+
+**Rationale per leaf:**
+
+- _PIPE_ — multi-stage deployments use Power BI / Fabric Deployment Pipelines to promote a dataset+report across dev/test/prod with per-stage data-source rules; hand-republishing per stage drifts. **requires:** Premium / PPU / Fabric capacity.
+- _DIRECT_ — a single-workspace deliverable can publish directly, but still version the `.pbip` so the model is recoverable and diffable.
+- _DL_ — Direct Lake reads OneLake directly: there is no import-refresh schedule; you manage framing/reframing instead. Don't stand up a refresh schedule it doesn't use.
+- _DQ_ — DirectQuery has no import refresh; "stale" there is a source/query-folding problem, and a gateway is still required if the source is on-prem.
+- _GWCFG_ — any on-prem/VNet source needs a **clustered standard** gateway (a single node or a personal gateway is the top silent-failure cause), with service-principal/service-account creds so a person leaving or an MFA prompt doesn't kill the schedule.
+- _NOGW_ — a cloud-only source (Dataverse, SharePoint Online, Azure SQL reachable from the Service) needs **no** gateway; don't add one out of habit.
+- _INCR_ — a large fact table must use incremental refresh or it eventually exceeds the capacity refresh-time limit; pair with a refresh-failure alert so staleness isn't discovered by a stakeholder.
+- _FULL_ — small/medium tables refresh fully; stagger schedules under the capacity concurrency/time limit and alert on failure.
+
+**Tradeoffs summary table:**
+
+| Leaf | Refresh model | Gateway? | Identity | Use when |
+|---|---|---|---|---|
+| Deployment Pipelines | inherits model | inherits model | SPN | dev/test/prod stages (Premium/PPU/Fabric) |
+| Direct Lake | framing/reframe (no schedule) | no | SPN | Fabric-hosted model on OneLake |
+| DirectQuery | none (live) | if source on-prem | SPN | real-time / very large source |
+| Import + clustered gateway | incremental or full | yes (clustered standard) | SPN / service acct | on-prem / VNet source |
+| Import cloud-only | incremental or full | no | SPN | cloud-only source |
+
+Refresh-failure triage: read the refresh-history error → classify (credential/auth · gateway-unreachable · timeout/limit · source-side) → fix that class, don't blind-rerun ([`../best-practices/bi-refresh-and-gateway-reliability.md`](../best-practices/bi-refresh-and-gateway-reliability.md)). Storage-mode-dependent leaves resolve the storage-mode tree above first.
+
+---
+
 ## Decision Tree: Power BI — Measure vs calculated column
 
 **When this applies:** You are adding a derived value to a semantic model and must decide whether it is a measure, a calculated column, or a Power Query / source transform. Observable trigger: "I need a new field for X" where X is a number, a ratio, a classification, or a key.
