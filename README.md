@@ -95,6 +95,37 @@ You lose auto-update and version pinning. To update, `git pull` and re-copy. Oth
 
 ---
 
+## Updating and version pinning
+
+The marketplace ships **semver-versioned** plugins (`plugin.json` `version` + matching `marketplace.json` entry, CI-gated for drift). 16 of the 17 plugins declare `requires.ravenclaude-core` — a minimum `ravenclaude-core` version they expect, surfaced in the per-plugin card of [`repo-guide.html`](repo-guide.html).
+
+**To update everything to the marketplace's latest:**
+
+```shell
+/plugin marketplace update ravenclaude
+/reload-plugins
+```
+
+That pulls the catalog head + reloads every installed plugin. Safe for day-to-day use; CI's version-drift gate catches manifest mismatches before they ship.
+
+**To pin to a specific commit SHA** (recommended for client engagements where surprise updates are unwelcome):
+
+```shell
+/plugin marketplace add mcorbett51090/RavenClaude#<git-sha>
+/plugin install ravenclaude-core@ravenclaude
+/reload-plugins
+```
+
+The pin survives `/plugin marketplace update` — the pinned SHA is the catalog's source of truth for that engagement until you re-add at a newer SHA.
+
+**To check compatibility** between a domain plugin and your installed `ravenclaude-core`: open [`repo-guide.html`](repo-guide.html), find the plugin's card, read the **Requires** row. If your installed core version is older, update core first (`/plugin install ravenclaude-core@ravenclaude` to latest, or pin to a SHA ≥ the requirement).
+
+**When an upgrade prompts an `ask`** in the comfort-posture dashboard: that's expected — `shell_package_install` defaults to `ask` in the balanced seed (added v0.101.0). Click **Allow once** the first time; flip the category to `allow` from the dashboard's Set up tab if you'd rather not see the prompt.
+
+**The non-removable security floor** (force-push, `rm -rf`, `curl | sh`, host credential reads — `~/.ssh`, `~/.aws`, etc.) cannot be wiped by editing `comfort-posture.yaml` — `apply-comfort-posture.py` always unions the baseline with whatever the user supplies. Verified by `tests/fixtures/test_security_deny_floor.py`. See [`SECURITY.md`](SECURITY.md) §"Defaults and floors" for the full list.
+
+---
+
 ## What's in each plugin
 
 ### `ravenclaude-core`

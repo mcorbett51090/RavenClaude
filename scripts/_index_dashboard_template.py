@@ -2,9 +2,13 @@
 # HTML/CSS/JS shell for the redesigned RavenClaude landing dashboard.
 #
 # Placeholders substituted by the generator:
-#   /*__RC_DATA__*/  → embedded JSON data object (window.__RC_DATA__)
-#   __GENERATED__    → human-readable generation timestamp
-#   __MKT_VERSION__  → marketplace catalog version
+#   /*__RC_DATA__*/        → embedded JSON data object (window.__RC_DATA__)
+#   /*__SHARED_TOKENS__*/  → :root contents from shared-tokens.css
+#                            (read at generate-time, inlined as the design-system
+#                            source of truth; see plugins/ravenclaude-core/
+#                            dashboard-assets/README.md)
+#   __GENERATED__          → human-readable generation timestamp
+#   __MKT_VERSION__        → marketplace catalog version
 #
 # Keep this a RAW string (r"""...""") so the JS/CSS braces pass through verbatim.
 
@@ -15,8 +19,8 @@ TEMPLATE = r"""<!doctype html>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>RavenClaude — AI Engineering Team Platform</title>
     <meta name="description" content="RavenClaude is a private Claude Code plugin marketplace — a domain-neutral orchestration core plus specialist teams for Microsoft, Salesforce, web, data, finance and compliance. Browse plugins, the specialist roster, and the comfort-posture permission editor." />
-    <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" content="#0b1120" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#faf7f0" />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="index.html" />
     <!-- Open Graph / social -->
@@ -26,37 +30,44 @@ TEMPLATE = r"""<!doctype html>
     <meta property="og:site_name" content="RavenClaude" />
     <meta name="twitter:card" content="summary" />
     <style>
+      /* ── Shared tokens from plugins/ravenclaude-core/dashboard-assets/shared-tokens.css
+         (substituted at generate-time by generate-index-dashboard.py). */
+      /*__SHARED_TOKENS__*/
+
+      /* ── Local aliases — map the existing index.html variables onto the
+         shared tokens so the cascade lights this surface as light-beige +
+         teal (the index/landing accent). Per-surface overrides live below. */
       :root {
-        --bg: #0b1120;
-        --bg-2: #0e1626;
-        --surface: #111c30;
-        --surface-2: #16243c;
-        --surface-3: #1c2e4a;
-        --border: rgba(148, 197, 214, 0.14);
-        --border-strong: rgba(148, 197, 214, 0.28);
-        --text: #eef4f8;
-        --muted: #93a4bd;
-        --faint: #6b7d97;
-        --teal: #2dd4bf;
-        --teal-2: #5eead4;
-        --teal-dim: #14b8a6;
-        --teal-soft: rgba(45, 212, 191, 0.14);
-        --teal-glow: rgba(45, 212, 191, 0.40);
-        --ok: #34d399;
-        --warn: #fbbf24;
-        --danger: #fb7185;
-        --deny: #fb7185;
-        --ask: #fbbf24;
-        --allow: #34d399;
-        --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-        --radius: 14px;
-        --radius-sm: 9px;
+        --bg: var(--rc-bg);
+        --bg-2: var(--rc-surface-2);
+        --surface: var(--rc-surface);
+        --surface-2: var(--rc-surface-2);
+        --surface-3: var(--rc-border);
+        --border: var(--rc-border);
+        --border-strong: var(--rc-border-strong);
+        --text: var(--rc-text);
+        --muted: var(--rc-muted);
+        --faint: var(--rc-faint);
+        --teal: var(--rc-teal);
+        --teal-2: var(--rc-teal);
+        --teal-dim: var(--rc-teal-soft);
+        --teal-soft: rgba(31, 127, 120, 0.10);
+        --teal-glow: rgba(31, 127, 120, 0.28);
+        --ok: var(--rc-ok);
+        --warn: var(--rc-warn);
+        --danger: var(--rc-danger);
+        --deny: var(--rc-danger);
+        --ask: var(--rc-warn);
+        --allow: var(--rc-ok);
+        --font-sans: var(--rc-font-sans);
+        --font-mono: var(--rc-font-mono);
+        --radius: var(--rc-radius-lg);
+        --radius-sm: var(--rc-radius-sm);
         --sidebar-w: 264px;
         --sidebar-collapsed: 72px;
         --topbar-h: 64px;
-        --shadow: 0 18px 50px -20px rgba(0, 0, 0, 0.65);
-        --ring: 0 0 0 3px var(--teal-soft);
+        --shadow: var(--rc-shadow-lg);
+        --ring: var(--rc-focus-ring);
       }
       * { box-sizing: border-box; }
       html { scroll-behavior: smooth; }

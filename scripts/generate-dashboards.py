@@ -43,6 +43,42 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PLUGINS_DIR = REPO_ROOT / "plugins"
 
+# Shared design tokens — single source of truth at
+# plugins/ravenclaude-core/dashboard-assets/shared-tokens.css. Read at
+# generate-time, inlined into the <style> block via the
+# /*__SHARED_TOKENS__*/ marker substitution at the end of render_dashboard().
+_SHARED_TOKENS_PATH = (
+    REPO_ROOT / "plugins" / "ravenclaude-core" / "dashboard-assets" / "shared-tokens.css"
+)
+
+
+def _load_shared_tokens_root() -> str:
+    """Extract the :root { ... } block from shared-tokens.css.
+
+    Returns the full `:root { ... }` block (token declarations + inline
+    contrast-note comments), ready to inline into a surface's <style>
+    block at generate-time. The shared-tokens.css component-class section
+    is NOT injected here — each surface consumes the tokens and applies
+    its own structural CSS. Deterministic: explicit utf-8, source order.
+    """
+    text = _SHARED_TOKENS_PATH.read_text(encoding="utf-8")
+    start = text.find(":root {")
+    if start < 0:
+        raise RuntimeError(f"shared-tokens.css missing :root block at {_SHARED_TOKENS_PATH}")
+    i = text.index("{", start)
+    body_start = i + 1
+    depth = 0
+    while i < len(text):
+        ch = text[i]
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return ":root {\n" + text[body_start:i].strip("\n") + "\n}\n"
+        i += 1
+    raise RuntimeError(f"shared-tokens.css :root block is unbalanced at {_SHARED_TOKENS_PATH}")
+
 
 def _load_emissions() -> dict[str, list[str]]:
     """Import EMISSIONS from apply-comfort-posture.py so the dashboard and the
@@ -126,7 +162,7 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
 
     plugins_tabs, plugins_panels = _render_plugins_category(_all_plugin_dirs())
 
-    return _PAGE_TEMPLATE.format(
+    result = _PAGE_TEMPLATE.format(
         plugins_tabs=plugins_tabs,
         plugins_panels=plugins_panels,
         plugin_name=html.escape(plugin_name),
@@ -160,6 +196,7 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         ),
         js=_JS,
     )
+    return result.replace("/*__SHARED_TOKENS__*/", _load_shared_tokens_root())
 
 
 def _render_simulator_tab() -> str:
@@ -461,10 +498,10 @@ _PIPELINE_CSS = """<style>
 .pipe-tip { margin: .35rem 0 0; font-size: .82rem; color: var(--muted, #aaa); line-height: 1.35; }
 .pipe-badge { font-size: .7rem; font-weight: 600; padding: .12rem .42rem; border-radius: 10px;
   white-space: nowrap; }
-.pipe-badge-on { background: #14532d; color: #bbf7d0; }
-.pipe-badge-off { background: #4b1113; color: #fecaca; }
-.pipe-badge-advisory { background: #3a3a42; color: #cbd5e1; }
-.pipe-badge-dynamic { background: #3a3a42; color: #cbd5e1; }
+.pipe-badge-on { background: var(--rc-ok-bg); color: var(--rc-ok-fg); }
+.pipe-badge-off { background: var(--rc-danger-bg); color: var(--rc-danger-fg); }
+.pipe-badge-advisory { background: var(--rc-neutral-bg); color: var(--rc-neutral-fg); }
+.pipe-badge-dynamic { background: var(--rc-neutral-bg); color: var(--rc-neutral-fg); }
 .pipe-controls { margin-top: .55rem; display: flex; flex-direction: column; gap: .4rem; }
 .pipe-ctl { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; font-size: .84rem; }
 .pipe-ctl input[type=number] { width: 6rem; }
@@ -2239,32 +2276,36 @@ def _label_for(value: str) -> str:
 # editable dashboard look like the same product family.
 
 _CSS = """
+/*__SHARED_TOKENS__*/
+
 :root {
-  color-scheme: dark;
-  /* Raven Power palette (mirrors ravenpower.net site/styles.css) — dark + gold. */
-  --bg: #07080a;
-  --surface: #0a0c10;
-  --surface-2: #10131a;
-  --border: rgba(255, 255, 255, 0.10);
-  --text: #f5f7fa;
-  --muted: #9aa3b2;
-  --accent: #C9A249;
-  --accent-dim: #b9923f;
-  --accent-2: #D9B459;
-  --accent-soft: rgba(201, 162, 73, 0.16);
-  --accent-glow: rgba(201, 162, 73, 0.35);
+  color-scheme: light;
+  /* Dashboard palette — light beige + gold (Norse identity preserved).
+     Tokens alias the shared design system at plugins/ravenclaude-core/
+     dashboard-assets/shared-tokens.css. */
+  --bg: var(--rc-bg);
+  --surface: var(--rc-surface);
+  --surface-2: var(--rc-surface-2);
+  --border: var(--rc-border);
+  --text: var(--rc-text);
+  --muted: var(--rc-muted);
+  --accent: var(--rc-gold);
+  --accent-dim: var(--rc-gold);
+  --accent-2: var(--rc-gold-soft);
+  --accent-soft: rgba(168, 136, 46, 0.14);
+  --accent-glow: rgba(168, 136, 46, 0.28);
   /* Semantic status colors — kept SEPARATE from the gold brand accent so
      "allow / ok / safe" reads green, "ask" amber, "deny" red, regardless of
      the navigation's gold theme. */
-  --ok: #22c55e;
-  --ok-soft: rgba(34, 197, 94, 0.10);
-  --warn: #E8995A;
-  --danger: #ff7676;
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  --radius: 10px;
-  --radius-sm: 4px;
+  --ok: var(--rc-ok);
+  --ok-soft: rgba(31, 122, 63, 0.10);
+  --warn: var(--rc-warn);
+  --danger: var(--rc-danger);
+  --font-sans: var(--rc-font-sans);
+  --font-display: var(--rc-font-sans);
+  --font-mono: var(--rc-font-mono);
+  --radius: var(--rc-radius);
+  --radius-sm: var(--rc-radius-sm);
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
