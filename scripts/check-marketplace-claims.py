@@ -12,6 +12,12 @@ Three checks, the first two surfaced by the 2026-05-23 whole-repo self-review:
      actual number of entries under plugins/<p>/skills/. Five plugins had stale
      counts (e.g. data-platform claimed 7, had 11) because nothing verified the prose.
 
+  2b. Agent-count accuracy — the "<N> agents" / "<N> specialist agents" /
+      "<N> strategist agents" claim in each plugin.json + marketplace.json entry
+      must equal the actual count under plugins/<p>/agents/. Added after the
+      two-panel audit (2026-05-31) found 4 stale agent/roster numbers that no
+      gate caught — the same drift class as the skill counts above.
+
   3. Description length cap — every `description` field must be <= 1024 characters:
      each plugin entry in marketplace.json, the marketplace `metadata.description`,
      and each plugin's plugin.json description. Keeps descriptions as concise
@@ -43,6 +49,12 @@ ARCHITECTURE = ROOT / "docs" / "architecture.md"
 README = ROOT / "README.md"
 REQUIRED = ["README.md", "CLAUDE.md", ".claude-plugin/plugin.json"]
 SKILLS_RE = re.compile(r"(\d+)\s+skills", re.IGNORECASE)
+# Agent-count claims drift the same way skill counts did (the two-panel audit
+# 2026-05-31 found 4 stale agent/roster numbers that no gate caught). Match
+# "N agents", "N specialist agents", "N strategist agents" — the phrasings the
+# 16 plugin descriptions actually use. Like SKILLS_RE it reads the FIRST such
+# claim; a description with no agent-count claim is simply not checked.
+AGENTS_RE = re.compile(r"(\d+)\s+(?:specialist\s+|strategist\s+)?agents?\b", re.IGNORECASE)
 README_COUNT_RE = re.compile(r"ships\s+\*\*(\d+)\s+plugins\*\*", re.IGNORECASE)
 MAX_DESCRIPTION_CHARS = 1024
 
@@ -57,8 +69,20 @@ def actual_skill_count(plugin_dir: Path) -> int:
     return sum(1 for e in skills.iterdir() if not e.name.startswith("."))
 
 
+def actual_agent_count(plugin_dir: Path) -> int:
+    agents = plugin_dir / "agents"
+    if not agents.is_dir():
+        return 0
+    return sum(1 for e in agents.glob("*.md") if e.is_file())
+
+
 def first_skill_claim(text: str):
     m = SKILLS_RE.search(text or "")
+    return int(m.group(1)) if m else None
+
+
+def first_agent_claim(text: str):
+    m = AGENTS_RE.search(text or "")
     return int(m.group(1)) if m else None
 
 
@@ -165,6 +189,20 @@ def main() -> int:
             if mp_claim is not None and mp_claim != actual:
                 failures.append(
                     f"{name}: marketplace.json says '{mp_claim} skills' but plugins/{name}/skills/ has {actual}"
+                )
+
+        # Check 2b — agent-count accuracy (same drift class as skills, was ungated)
+        actual_agents = actual_agent_count(plugin_dir)
+        pj_agent_claim = first_agent_claim(manifest.get("description", ""))
+        if pj_agent_claim is not None and pj_agent_claim != actual_agents:
+            failures.append(
+                f"{name}: plugin.json says '{pj_agent_claim} agents' but plugins/{name}/agents/ has {actual_agents}"
+            )
+        if mp:
+            mp_agent_claim = first_agent_claim(mp.get("description", ""))
+            if mp_agent_claim is not None and mp_agent_claim != actual_agents:
+                failures.append(
+                    f"{name}: marketplace.json says '{mp_agent_claim} agents' but plugins/{name}/agents/ has {actual_agents}"
                 )
 
         # Check 3 (per-plugin) — description length cap, both files.
