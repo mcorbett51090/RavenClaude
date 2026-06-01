@@ -158,10 +158,15 @@
     "tableau--where-to-filter-source-vs-data-source-vs-context-vs-dimensio": "d90ebf65acbab56f1bfc097a49a1e5b28b9db2b816bfa5b5584df965f0722b68",
     "web-design--accessibility-native-element-vs-aria-widget": "d374a0a50c0716aa1c24dec7cdea226676df82b75c65d51e336b9c5b976395b1",
     "web-design--architecture-rendering-strategy-ssg-ssg-isr-ssr-rsc-islands-": "bbc2c128071cd47b649c6e7b1fea9e37a17a537867811a9e2327dda849ee5fe1",
+    "web-design--cms-content-model-headless-vs-traditional-vs-static-content-": "05fb9e47a3be8aafbe1e0cc2c737e7e641e350d231e49b997a303fbf58c5df38",
+    "web-design--conversion-reduce-fields-vs-add-trust-vs-split-into-steps": "2cf220c0f9661eef459129af6caa1fc2f39584b3dcccc0194d1a9cccc902ff95",
     "web-design--cwv-root-cause-triage": "93a92183b5fb95c886c4cf790c7f2f85640e4f18e8a165c322c02faf38061e69",
     "web-design--design-systems-reach-for-a-token-system-component-foundation": "426ceeb3f3c298023c85045f2d262e54c0c57ccee08cb4c8d8bc38f4237a4fe3",
+    "web-design--information-architecture-flat-vs-hierarchical-vs-hub-and-spo": "0399aa101d45adcd2270e00ee741a616610bde3f838f7fb9d1d46d55c12665fd",
+    "web-design--motion-when-to-animate-and-which-mechanism-css-waapi-view-tr": "394f6caf825492bac14b36c2840a23ed32b8d7fc04731b6b5a43df0a52c221ea",
     "web-design--performance-image-format-loading-choice": "26b59098c9fb33121d602bdebb6957a961b2ccf865040b21f8d71e2d7b4d1935",
     "web-design--performance-which-core-web-vital-is-failing-which-fix": "20440dc2a58238126a3c2918f0046c344e8aa8040153859449ea54b2db43d616",
+    "web-design--responsive-breakpoint-media-queries-vs-container-queries-vs-": "3d3a60d1f036087135f8236e3da83f8c7b0430f3239e3dccbd2f71505a9af03b",
     "web-design--which-component-foundation": "a4437cbd8309a0e3d3b775ad01d9846018a07a18efc63b5ae6bd201f8a4fbdba"
   }
 }

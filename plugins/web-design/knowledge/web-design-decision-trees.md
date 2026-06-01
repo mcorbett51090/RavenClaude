@@ -190,6 +190,191 @@ flowchart TD
 
 ---
 
+## Decision Tree: Information architecture — flat vs hierarchical vs hub-and-spoke
+
+**When this applies:** You're structuring a site's navigation/sitemap and choosing the IA shape. Observable inputs: page count, how related the content is, and the user's task model (browse vs find vs convert).
+
+**Last verified:** 2026-06-01 against IA practice (card-sort, nav patterns) + the `information-architecture` skill.
+
+```mermaid
+flowchart TD
+    START[Structuring the site nav/sitemap] --> Q1{How many pages?}
+    Q1 -->|Under ~50, mostly peers| FLAT[Flat IA — shallow, most pages 1-2 clicks from home]
+    Q1 -->|Many pages with clear categories| Q2{Do users arrive knowing their category, or explore?}
+    Q2 -->|Know the category| HIER[Hierarchical — deep category tree, breadcrumbs]
+    Q2 -->|Explore across related topics| HUB[Hub-and-spoke — topic hubs linking related spokes + cross-links]
+    HIER --> Q3{Is any branch more than ~3 levels deep?}
+    Q3 -->|Yes| FLATTEN[Flatten or add faceted nav/search — depth past 3 hurts findability]
+    Q3 -->|No| OK[Keep the hierarchy]
+```
+
+**Rationale per leaf:**
+
+- _Flat_ — a small site is fastest to use shallow; deep nesting on <50 pages is over-engineering.
+- _Hierarchical_ — clear categories + users who know where they're going; breadcrumbs make depth navigable.
+- _Hub-and-spoke_ — exploratory content (guides, docs, content marketing) where related topics cross-link; hubs concentrate authority (good for SEO too).
+- _Flatten/facet_ — depth past ~3 levels tanks findability; add facets/search or restructure.
+
+**Tradeoffs summary:**
+
+| Shape | Best at | Page-count fit | Watch out |
+|---|---|---|---|
+| Flat | speed, small sites | <~50 | doesn't scale |
+| Hierarchical | known-category finding | medium-large | depth >3 hurts |
+| Hub-and-spoke | exploration, content SEO | large content sites | needs disciplined cross-linking |
+
+See the [`information-architecture`](../skills/information-architecture/SKILL.md) skill.
+
+---
+
+## Decision Tree: Conversion — reduce fields vs add trust vs split into steps
+
+**When this applies:** A form/funnel underperforms and you're choosing the intervention. Observable inputs: where users drop off, how many fields, and whether the ask feels risky to the user.
+
+**Last verified:** 2026-06-01 against the `conversion-design` skill + `ux-form-design` best-practice.
+
+```mermaid
+flowchart TD
+    START[Form/funnel converting poorly] --> Q1{Where do users drop off?}
+    Q1 -->|Before starting — they bounce at the sight of it| Q2{Does it look long or risky?}
+    Q1 -->|Mid-form — they start then abandon| Q3{Too many fields, or one scary field?}
+    Q2 -->|Looks long| SPLIT[Split into steps / progressive disclosure — shorten the visible ask]
+    Q2 -->|Looks risky — payment or personal data| TRUST[Add trust signals near the ask — security badges, social proof, privacy note]
+    Q3 -->|Too many fields| REDUCE[Cut to the minimum fields; defer the rest post-conversion]
+    Q3 -->|One field causes drop, e.g. phone| OPTIONAL[Make it optional or explain why you need it]
+```
+
+**Rationale per leaf:**
+
+- _Reduce fields_ — every field is friction; the highest-leverage fix is usually removal, not persuasion. Defer nice-to-haves to after the conversion.
+- _Add trust_ — when the ask itself feels risky (payment, PII), the blocker is confidence, not length; trust signals at the point of friction.
+- _Split into steps_ — a long form that's all-or-nothing intimidates; progressive steps with a progress indicator reduce the perceived ask.
+- _Make optional / explain_ — a single high-drop field (phone number) is often better optional or justified inline.
+
+**Tradeoffs summary:**
+
+| Intervention | Fixes | Cost | Use when |
+|---|---|---|---|
+| Reduce fields | length friction | low | too many fields |
+| Add trust signals | confidence | low | risky-feeling ask |
+| Split into steps | perceived length | medium | long but necessary form |
+| Optional/explain a field | single-field drop | low | one field causes abandonment |
+
+See the [`conversion-design`](../skills/conversion-design/SKILL.md) skill.
+
+---
+
+## Decision Tree: Responsive — breakpoint media queries vs container queries vs intrinsic
+
+**When this applies:** Choosing how a layout/component adapts across viewport sizes. Observable inputs: whether the thing reused in multiple contexts, and whether it adapts to the *page* or to its *container*.
+
+**Last verified:** 2026-06-01 against `modern-css-2026.md` (container queries, intrinsic layout).
+
+```mermaid
+flowchart TD
+    START[Making a layout/component responsive] --> Q1{Is it a reusable component placed in varying containers?}
+    Q1 -->|Yes — sidebar, grid cell, varies by slot| CQ[Container queries — component adapts to ITS container, not the viewport]
+    Q1 -->|No — page-level layout| Q2{Can it adapt fluidly without hard breakpoints?}
+    Q2 -->|Yes — flexible grid/flex, fluid sizing| INTRINSIC["Intrinsic/fluid — auto-fit minmax, clamp(), no breakpoints needed"]
+    Q2 -->|No — distinct layouts per size class| BP[Breakpoint media queries — mobile-first, min-width steps]
+```
+
+**Rationale per leaf:**
+
+- _Container queries_ — the 2026 default for reusable components: a card in a wide main vs a narrow sidebar should adapt to *its* space, which viewport media queries can't express.
+- _Intrinsic/fluid_ — `grid-template-columns: repeat(auto-fit, minmax(...))` + `clamp()` adapt with zero breakpoints; fewest lines, no magic numbers.
+- _Breakpoint media queries_ — still correct for genuinely distinct page-level layouts per size class; mobile-first `min-width` steps (house opinion #3).
+
+**Tradeoffs summary:**
+
+| Method | Adapts to | Best for | Note |
+|---|---|---|---|
+| Container queries | the element's container | reusable components | 2026 default for components |
+| Intrinsic/fluid | available space | grids, simple layouts | no breakpoints, no magic numbers |
+| Breakpoint media queries | the viewport | distinct page layouts | mobile-first; don't overuse |
+
+See [`modern-css-2026.md`](modern-css-2026.md) and [`../best-practices/frontend-fluid-type-and-space.md`](../best-practices/frontend-fluid-type-and-space.md).
+
+---
+
+## Decision Tree: CMS / content model — headless vs traditional vs static content files
+
+**When this applies:** Choosing where a site's content lives. Observable inputs: who edits (developers vs non-technical authors), how often, and whether content feeds multiple channels.
+
+**Last verified:** 2026-06-01 against the `information-architecture` skill (content model) + modern-web-stacks.
+
+```mermaid
+flowchart TD
+    START[Where does the site content live?] --> Q1{Do non-technical people edit content regularly?}
+    Q1 -->|No — developers own it, changes ship with code| STATIC[Static content files — Markdown/MDX/JSON in the repo, built at deploy]
+    Q1 -->|Yes — authors edit independently| Q2{Does content feed multiple channels/apps, or just this site?}
+    Q2 -->|Multiple channels / app + site| HEADLESS[Headless CMS — content API, front-end agnostic]
+    Q2 -->|Just this website| Q3{Do authors want in-context/visual editing tied to the site?}
+    Q3 -->|Yes| TRAD[Traditional/coupled CMS or a headless+visual-editing combo]
+    Q3 -->|No, structured editing is fine| HEADLESS
+```
+
+**Rationale per leaf:**
+
+- _Static content files_ — when developers own content and it ships with code, Markdown/MDX in the repo is simplest, versioned, and fastest (static-first, house opinion #9). No CMS to run.
+- _Headless CMS_ — non-technical authors + content reused across channels (site + app + email); the API decouples content from the front end.
+- _Traditional/coupled_ — authors who want tightly-integrated visual/in-context editing for a single site may prefer a coupled CMS (or headless + a visual-editing layer).
+
+This is **distinct from the rendering-strategy tree** (SSG/SSR/RSC) above — *where content lives* vs *how pages render*; they compose (e.g. headless CMS + SSG).
+
+**Tradeoffs summary:**
+
+| Option | Editor | Channels | Ops weight | Use when |
+|---|---|---|---|---|
+| Static files | developers | this site | none | dev-owned content |
+| Headless CMS | non-technical | multi-channel | a service to run | authors + reuse |
+| Traditional/coupled | non-technical | mostly one site | a service to run | authors want visual editing |
+
+See the [`information-architecture`](../skills/information-architecture/SKILL.md) skill and [`modern-web-stacks-2026.md`](modern-web-stacks-2026.md).
+
+---
+
+## Decision Tree: Motion — when to animate and which mechanism (CSS / WAAPI / View Transitions / JS lib)
+
+**When this applies:** Adding animation/motion and choosing the implementation. Observable inputs: whether motion serves a purpose, its complexity, and the reduced-motion + INP budget.
+
+**Last verified:** 2026-06-01 against `modern-css-2026.md` (View Transitions) + `a11y-respect-motion` best-practice.
+
+```mermaid
+flowchart TD
+    START[Considering adding motion] --> Q0{Does the motion serve a purpose — feedback, continuity, affordance?}
+    Q0 -->|No, decorative only| MINIMAL[Skip it or keep it minimal — motion is a cost, not a default]
+    Q0 -->|Yes| Q1{Always gate on prefers-reduced-motion}
+    Q1 --> Q2{What kind of motion?}
+    Q2 -->|Simple state/hover/enter-exit transition| CSS[CSS transition / @keyframes — cheapest, GPU-friendly]
+    Q2 -->|Page/element transition between views/routes| VT[View Transitions API — native cross-document/SPA transitions]
+    Q2 -->|Dynamic, interrupt-driven, JS-computed values| WAAPI[Web Animations API — scriptable, no library]
+    Q2 -->|Complex orchestration/physics beyond the above| LIB[A JS animation library — last resort; weigh the bundle vs INP budget]
+```
+
+**Rationale per leaf:**
+
+- _Skip/minimal_ — motion costs INP budget, battery, and accessibility surface; decorative-only animation is debt (house opinion #13).
+- _CSS transition/keyframes_ — the cheapest, most GPU-friendly path for the vast majority of UI motion; reach here first.
+- _View Transitions API_ — native page/route/element transitions (2026 baseline-ish) without a library; the right tool for view-to-view continuity.
+- _WAAPI_ — when values are computed/interrupt-driven at runtime and CSS can't express it, before reaching for a library.
+- _JS library_ — only for genuine complex orchestration/physics; weigh the bundle against the INP/perf budget, and still gate on reduced-motion.
+
+**Always:** every branch gates on `prefers-reduced-motion: reduce` (house opinion #13, the `a11y-respect-motion-and-forced-colors-preferences` rule) and respects the INP budget (`perf-*`).
+
+**Tradeoffs summary:**
+
+| Mechanism | Cost | Best for | Note |
+|---|---|---|---|
+| CSS transition/keyframes | lowest | most UI motion | reach first |
+| View Transitions API | low | view/route transitions | native, no lib |
+| WAAPI | low-medium | dynamic/interrupt-driven | scriptable, no lib |
+| JS library | highest (bundle) | complex orchestration | last resort; mind INP |
+
+See [`modern-css-2026.md`](modern-css-2026.md) and [`../best-practices/a11y-respect-motion-and-forced-colors-preferences.md`](../best-practices/a11y-respect-motion-and-forced-colors-preferences.md).
+
+---
+
 ## See also
 
 - [`../best-practices/`](../best-practices/) — the named rules these trees terminate in (`perf-*`, `a11y-*`, `visual-*`, `frontend-*`, `content-*`, `seo-*`)
