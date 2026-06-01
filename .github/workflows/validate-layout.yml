@@ -37,58 +37,16 @@ jobs:
             echo "ref=HEAD~1" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: List changed files
-        id: changed
-        run: |
-          set -euo pipefail
-          base="${{ steps.base.outputs.ref }}"
-          # Added (A), Copied (C), Renamed (R) — we only care about new file paths
-          changed=$(git diff --name-only --diff-filter=ACR "$base"...HEAD || true)
-          echo "Changed files vs $base:"
-          echo "$changed"
-          # Write to a file so the next step reads it cleanly (env vars don't handle newlines well)
-          echo "$changed" > /tmp/changed-files.txt
+      - name: Check added/changed paths against allowed_globs (diff)
+        # The match logic lives in scripts/check-layout.py — the SAME script the
+        # audit-gates meta-test exercises (two-panel audit 2026-05-31, P1: the
+        # prior inline bash matcher had no bidirectional fixture, so it could stop
+        # gating while CI stayed green).
+        run: python3 scripts/check-layout.py --diff "${{ steps.base.outputs.ref }}"
 
-      - name: Check each changed path against allowed_globs
-        run: |
-          set -euo pipefail
-          shopt -s extglob globstar nullglob
-
-          mapfile -t allowed < <(jq -r '.allowed_globs[]' .repo-layout.json)
-          mapfile -t forbidden < <(jq -r '.forbidden_globs[]?' .repo-layout.json 2>/dev/null || true)
-
-          status=0
-          while IFS= read -r path; do
-            [[ -z "$path" ]] && continue
-
-            # Check forbidden first
-            for pat in "${forbidden[@]:-}"; do
-              [[ -z "$pat" ]] && continue
-              # shellcheck disable=SC2053 # intentional: unquoted $pat enables glob matching
-              if [[ "$path" == $pat ]]; then
-                suggestion=$(jq -r --arg p "$pat" '.suggestions[$p] // empty' .repo-layout.json)
-                echo "::error file=$path::Layout violation — path matches forbidden pattern '$pat'.${suggestion:+ $suggestion}"
-                status=1
-                continue 2
-              fi
-            done
-
-            # Then check allowed
-            matched=0
-            for pat in "${allowed[@]}"; do
-              # shellcheck disable=SC2053 # intentional: unquoted $pat enables glob matching
-              if [[ "$path" == $pat ]]; then
-                matched=1
-                break
-              fi
-            done
-
-            if [[ "$matched" -eq 0 ]]; then
-              echo "::error file=$path::Layout violation — path does not match any allowed_globs in .repo-layout.json. If this is a legitimate new location, add the glob to .repo-layout.json first."
-              status=1
-            else
-              echo "OK $path"
-            fi
-          done < /tmp/changed-files.txt
-
-          exit $status
+      - name: Check EVERY tracked file against allowed_globs (full tree)
+        # The diff check only sees Added/Copied/Renamed paths, so a pre-existing or
+        # merely-modified off-allow-list file is invisible to it (two-panel audit
+        # 2026-05-31, P1). This full-tree scan is the backstop. It runs on every PR
+        # and push, so a stale violation can't hide behind an unrelated diff.
+        run: python3 scripts/check-layout.py --all

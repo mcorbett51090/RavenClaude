@@ -69,7 +69,10 @@ Hardened `guard-destructive.sh` with a normalization pass + order-independent ma
 #### Original spec:
 Harden `guard-destructive.sh`: **normalize before matching** (collapse flag order + whitespace, expand `~`/`$HOME`/`${HOME}`, strip quotes); add patterns for `rm` with any cluster of `r`+`f` in any order; `git push … +<refspec>`; `git branch -D <branch>`; `bash <(…)` / `<cmd> | sudo? (bash|sh|zsh|python|perl|ruby|node)`; `mkfs`/`shred`/`wipefs`/`> /dev/…`; broaden `dd of=/dev/` device class (+`disk`,`vd`,`xvd`,`mmcblk`). **Then extend BOTH** the CI behavioral `must_block` array AND audit-gates Gate 5 with every bypass variant + stdin-JSON + assert-exit-2 (this is what let it ship). Seed the same hardened denies into `templates/comfort-posture-balanced.yaml` so `ravenclaude setup` consumers get the second layer. Ship as a `ravenclaude-core` patch bump with a migration note.
 
-### Workstream B — P1 CI structural integrity (own PR)
+### Workstream B — P1 CI structural integrity ✅ DONE (branch `fix/ci-structural-integrity`)
+Extracted the layout matcher to `scripts/check-layout.py` (shared by CI + a new audit Gate 5b, bidirectional); added a **full-tree** layout scan beside the diff-only check (and added `.prettierignore` + `.claude/worktrees/**` to the allow-list so it passes); added `README.md`/`AGENTS.md`/`CLAUDE.md`/`docs/**` to the `validate-marketplace.yml` paths filter; replaced 7 node + 1 npx silent-skip branches in audit-gates with `_skip_or_fail` (hard-fail in CI, loud-skip locally) and added `actions/setup-node`. The CI behavioral guard-test fix (stdin-JSON + assert-exit-2) already shipped in Workstream A. audit-gates 373/0; actionlint clean.
+
+#### Original spec:
 - Add `README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/**` to both `paths:` blocks in `validate-marketplace.yml`.
 - Add a full-tree `git ls-files` allow-list scan (push-to-main or a periodic job) beside the diff-only check.
 - Extract `validate-layout.yml`'s inline matcher to a script both the workflow and a new audit gate call; add the bidirectional fixture.
