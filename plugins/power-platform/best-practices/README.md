@@ -8,7 +8,7 @@ For the cross-tool rule format and the marketplace-wide index, see [`docs/best-p
 
 ## Index
 
-_58 rules. Each file is one named, citable rule; read and apply it whole._
+_60 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -33,9 +33,11 @@ _58 rules. Each file is one named, citable rule; read and apply it whole._
 | [`apps-power-fx-named-formulas-and-with.md`](./apps-power-fx-named-formulas-and-with.md) | Pattern — strong default; reserve `App.OnStart` `Set` for non-derivable side effects. | A monolithic `App.OnStart` that `Set()`s a dozen globals serially delays first paint by seconds — the user stares at the splash screen while every value is comp… |
 | [`apps-react-virtual-controls-default.md`](./apps-react-virtual-controls-default.md) | Pattern — strong default for new PCF work; non-virtual is legacy. | Virtual controls reuse the host's React and Fluent via `<platform-library>` declarations instead of bundling their own copy. |
 | [`bi-measures-not-calculated-columns.md`](./bi-measures-not-calculated-columns.md) | Pattern — strong default; deviate only with a written reason. | A **calculated column** is computed once at refresh, materialized into the model, and consumes VertiPaq memory on every row forever — and it cannot respond to t… |
+| [`bi-refresh-and-gateway-reliability.md`](./bi-refresh-and-gateway-reliability.md) | Primary diagnostic — when a published report is stale or refresh fails, check refresh + gateway config before the model. | The modeling rules get the dataset right on the desktop; none cover what breaks after publish — scheduled refresh, gateway HA, incremental refresh, refresh identity. |
 | [`bi-row-level-security-tested-as-role.md`](./bi-row-level-security-tested-as-role.md) | Absolute rule — shipping an RLS model you only tested as the author is a security defect. | Row-level security (RLS) filters rows by the viewer's identity. |
 | [`bi-star-schema-not-flat-table.md`](./bi-star-schema-not-flat-table.md) | Absolute rule — a flat-table Power BI model is a defect, not a style choice. | The VertiPaq engine that powers Import and Direct Lake storage is built to compress and join a **star schema** — narrow fact tables surrounded by dimension tabl… |
 | [`bi-storage-mode-selection.md`](./bi-storage-mode-selection.md) | Primary diagnostic — when a model is slow, over-budget on capacity, or stale, check storage mode first. | Storage mode is the single decision that most determines a semantic model's performance, freshness, and capacity cost — and it is the hardest to change later be… |
+| [`connector-custom-connector-auth-and-policy.md`](./connector-custom-connector-auth-and-policy.md) | Pattern — strong default for custom-connector authoring; get the auth scheme + policy template right before publish. | Pick the wrong auth (key in the definition vs OAuth2) or skip a policy template and you ship a credential leak or an unconstrained connector every maker inherits. |
 | [`copilot-escalation-and-guardrails.md`](./copilot-escalation-and-guardrails.md) | Pattern — strong default; an agent with no escalation path is a liability, not a product. | A bot that **never escalates** is usually hallucinating instead of admitting it doesn't know. |
 | [`copilot-grounding-source-selection.md`](./copilot-grounding-source-selection.md) | Primary diagnostic — when a Copilot Studio agent hallucinates, check the knowledge sources first, not the model. | Generative answers are retrieval-augmented: the agent reads from its **knowledge sources** at query time and an LLM composes the reply. |
 | [`copilot-topic-vs-generative-routing.md`](./copilot-topic-vs-generative-routing.md) | Pattern — strong default; the boundary test below decides each intent. | A Copilot Studio agent answers an utterance one of two ways: an **authored topic** (deterministic — it says exactly what you wrote, with slot-filling and explic… |
