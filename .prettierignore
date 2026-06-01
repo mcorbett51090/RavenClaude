@@ -31,6 +31,14 @@ repo-guide.html
 # plugin's dashboard-schema.json. Same rationale as repo-guide.html above.
 plugins/*/dashboard.html
 
+# Generated artifact — the redesigned landing dashboard produced by
+# scripts/generate-index-dashboard.py from the marketplace + plugin manifests
+# + the comfort-posture schema. Re-running the generator produces canonical
+# output guarded by its own --check freshness gate; prettier's HTML printer
+# would rewrite the inline CSS / JS in ways that don't match the emit style.
+# Same rationale as repo-guide.html above.
+index.html
+
 # Generated artifacts — the Learn-tab concept registry (scripts/concepts.py) and
 # the pre-rendered, theme-normalized concept diagrams + render manifest
 # (scripts/render-concepts.py). Both emit canonical, byte-deterministic output

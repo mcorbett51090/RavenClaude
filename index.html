@@ -2,24 +2,826 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>RavenClaude — Marketplace Guide</title>
-    <meta http-equiv="refresh" content="0; url=repo-guide.html" />
-    <link rel="canonical" href="repo-guide.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>RavenClaude — AI Engineering Team Platform</title>
+    <meta name="description" content="RavenClaude is a private Claude Code plugin marketplace — a domain-neutral orchestration core plus specialist teams for Microsoft, Salesforce, web, data, finance and compliance. Browse plugins, the specialist roster, and the comfort-posture permission editor." />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0b1120" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="index.html" />
+    <!-- Open Graph / social -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="RavenClaude — AI Engineering Team Platform" />
+    <meta property="og:description" content="A private Claude Code plugin marketplace: orchestration core + specialist teams, with a point-and-click comfort-posture permission editor." />
+    <meta property="og:site_name" content="RavenClaude" />
+    <meta name="twitter:card" content="summary" />
     <style>
+      :root {
+        --bg: #0b1120;
+        --bg-2: #0e1626;
+        --surface: #111c30;
+        --surface-2: #16243c;
+        --surface-3: #1c2e4a;
+        --border: rgba(148, 197, 214, 0.14);
+        --border-strong: rgba(148, 197, 214, 0.28);
+        --text: #eef4f8;
+        --muted: #93a4bd;
+        --faint: #6b7d97;
+        --teal: #2dd4bf;
+        --teal-2: #5eead4;
+        --teal-dim: #14b8a6;
+        --teal-soft: rgba(45, 212, 191, 0.14);
+        --teal-glow: rgba(45, 212, 191, 0.40);
+        --ok: #34d399;
+        --warn: #fbbf24;
+        --danger: #fb7185;
+        --deny: #fb7185;
+        --ask: #fbbf24;
+        --allow: #34d399;
+        --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        --radius: 14px;
+        --radius-sm: 9px;
+        --sidebar-w: 264px;
+        --sidebar-collapsed: 72px;
+        --topbar-h: 64px;
+        --shadow: 0 18px 50px -20px rgba(0, 0, 0, 0.65);
+        --ring: 0 0 0 3px var(--teal-soft);
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
       body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        background: #0b1120;
-        color: #f1f5f9;
         margin: 0;
-        padding: 2rem;
-        text-align: center;
+        font-family: var(--font-sans);
+        color: var(--text);
+        background:
+          radial-gradient(1100px 700px at 100% -10%, rgba(45, 212, 191, 0.10), transparent 60%),
+          radial-gradient(900px 600px at -10% 10%, rgba(56, 189, 248, 0.08), transparent 55%),
+          var(--bg);
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+        min-height: 100vh;
       }
-      a {
-        color: #5eead4;
+      a { color: var(--teal-2); text-decoration: none; }
+      a:hover { color: var(--teal); }
+      h1, h2, h3, h4 { letter-spacing: -0.02em; line-height: 1.15; margin: 0; }
+      h1 { font-size: clamp(1.9rem, 4vw, 2.8rem); }
+      p { line-height: 1.6; }
+      ::selection { background: var(--teal); color: #04121a; }
+      :focus-visible { outline: none; box-shadow: var(--ring); border-radius: 8px; }
+      button { font-family: inherit; cursor: pointer; }
+
+      /* ---------- Layout shell ---------- */
+      .app { display: grid; grid-template-columns: var(--sidebar-w) 1fr; min-height: 100vh; transition: grid-template-columns 0.25s ease; }
+      body.sidebar-collapsed .app { grid-template-columns: var(--sidebar-collapsed) 1fr; }
+
+      /* ---------- Sidebar ---------- */
+      .sidebar {
+        position: sticky; top: 0; height: 100vh;
+        background: linear-gradient(180deg, var(--bg-2), var(--bg));
+        border-right: 1px solid var(--border);
+        display: flex; flex-direction: column;
+        overflow: hidden; z-index: 40;
       }
+      .brand { display: flex; align-items: center; gap: 12px; padding: 16px 18px; height: var(--topbar-h); border-bottom: 1px solid var(--border); white-space: nowrap; }
+      .brand .mark { flex: 0 0 auto; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: var(--teal-soft); border: 1px solid var(--border-strong); color: var(--teal-2); box-shadow: 0 0 18px -4px var(--teal-glow); }
+      .brand .mark svg { width: 20px; height: 20px; }
+      .brand .name { font-weight: 700; font-size: 1.05rem; }
+      .brand .name b { color: var(--teal-2); }
+      .brand .tag { display: block; font-size: 0.66rem; color: var(--faint); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
+      body.sidebar-collapsed .brand .meta { display: none; }
+
+      .nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; flex: 1; }
+      .nav .group-label { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--faint); padding: 14px 12px 6px; }
+      body.sidebar-collapsed .nav .group-label { opacity: 0; }
+      .nav a.nav-item {
+        display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--radius-sm);
+        color: var(--muted); font-weight: 500; font-size: 0.92rem; white-space: nowrap;
+        transition: background 0.15s, color 0.15s; position: relative;
+      }
+      .nav a.nav-item svg { width: 19px; height: 19px; flex: 0 0 auto; }
+      .nav a.nav-item:hover { background: var(--surface); color: var(--text); }
+      .nav a.nav-item.active { background: var(--teal-soft); color: var(--teal-2); }
+      .nav a.nav-item.active::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 3px; background: var(--teal); }
+      body.sidebar-collapsed .nav a.nav-item .label { display: none; }
+      body.sidebar-collapsed .nav a.nav-item { justify-content: center; }
+
+      .sidebar-foot { padding: 12px; border-top: 1px solid var(--border); font-size: 0.72rem; color: var(--faint); white-space: nowrap; }
+      body.sidebar-collapsed .sidebar-foot .detail { display: none; }
+
+      /* ---------- Main ---------- */
+      .main { min-width: 0; display: flex; flex-direction: column; }
+      .topbar {
+        position: sticky; top: 0; z-index: 30; height: var(--topbar-h);
+        display: flex; align-items: center; gap: 14px; padding: 0 20px;
+        background: rgba(11, 17, 32, 0.82); backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border);
+      }
+      .icon-btn { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); transition: 0.15s; }
+      .icon-btn:hover { color: var(--text); border-color: var(--border-strong); background: var(--surface-2); }
+      .icon-btn svg { width: 18px; height: 18px; }
+
+      .search { position: relative; flex: 1; max-width: 520px; }
+      .search input {
+        width: 100%; height: 40px; padding: 0 14px 0 40px; border-radius: 10px;
+        background: var(--surface); border: 1px solid var(--border); color: var(--text);
+        font-size: 0.9rem; font-family: inherit; transition: 0.15s;
+      }
+      .search input::placeholder { color: var(--faint); }
+      .search input:focus { border-color: var(--teal-dim); background: var(--surface-2); }
+      .search .s-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--faint); width: 18px; height: 18px; pointer-events: none; }
+      .search kbd { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.68rem; color: var(--faint); border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; font-family: var(--font-mono); }
+      .search-results {
+        position: absolute; top: 48px; left: 0; right: 0; max-height: 60vh; overflow-y: auto;
+        background: var(--surface); border: 1px solid var(--border-strong); border-radius: 12px;
+        box-shadow: var(--shadow); padding: 6px; display: none;
+      }
+      .search-results.open { display: block; }
+      .search-results .res {
+        display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; color: var(--text); cursor: pointer;
+      }
+      .search-results .res:hover, .search-results .res.cursor { background: var(--surface-2); }
+      .search-results .res .kind { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--teal-2); border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; flex: 0 0 auto; }
+      .search-results .res .meta { color: var(--faint); font-size: 0.78rem; margin-left: auto; }
+      .search-results .empty { padding: 16px; color: var(--faint); text-align: center; font-size: 0.85rem; }
+
+      .topbar .actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+      .btn {
+        display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 10px;
+        font-size: 0.85rem; font-weight: 600; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+        transition: 0.15s; white-space: nowrap;
+      }
+      .btn svg { width: 16px; height: 16px; }
+      .btn:hover { border-color: var(--border-strong); background: var(--surface-2); }
+      .btn.primary { background: linear-gradient(180deg, var(--teal), var(--teal-dim)); color: #04121a; border-color: transparent; box-shadow: 0 8px 22px -10px var(--teal-glow); }
+      .btn.primary:hover { filter: brightness(1.06); }
+      .btn.ghost { background: transparent; }
+      .hide-sm { }
+
+      /* ---------- Content ---------- */
+      .content { padding: 28px clamp(16px, 4vw, 40px) 64px; max-width: 1320px; width: 100%; margin: 0 auto; animation: fade 0.35s ease; }
+      @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+      .page-head { margin-bottom: 24px; }
+      .page-head .eyebrow { color: var(--teal-2); font-size: 0.74rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+      .page-head p.lede { color: var(--muted); margin-top: 8px; max-width: 70ch; }
+
+      .card { background: linear-gradient(180deg, var(--surface), var(--bg-2)); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; transition: 0.18s; }
+      .card:hover { border-color: var(--border-strong); transform: translateY(-2px); box-shadow: var(--shadow); }
+      .grid { display: grid; gap: 16px; }
+      .cols-2 { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+      .cols-3 { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+      .cols-4 { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+
+      /* Hero */
+      .hero { position: relative; overflow: hidden; border-radius: 20px; padding: clamp(28px, 5vw, 52px); margin-bottom: 28px;
+        background: radial-gradient(700px 360px at 88% -20%, rgba(45,212,191,0.18), transparent 60%), linear-gradient(180deg, var(--surface), var(--bg-2));
+        border: 1px solid var(--border); }
+      .hero .pill { display: inline-flex; align-items: center; gap: 8px; font-size: 0.74rem; font-weight: 600; color: var(--teal-2); background: var(--teal-soft); border: 1px solid var(--border-strong); padding: 6px 12px; border-radius: 999px; }
+      .hero h1 { margin: 18px 0 10px; }
+      .hero h1 .accent { background: linear-gradient(90deg, var(--teal-2), var(--teal-dim)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .hero p { color: var(--muted); max-width: 64ch; font-size: 1.05rem; }
+      .hero .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+
+      /* Stat cards */
+      .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+      .stat { display: flex; flex-direction: column; gap: 4px; }
+      .stat .v { font-size: 2.1rem; font-weight: 700; color: var(--teal-2); line-height: 1; }
+      .stat .k { color: var(--muted); font-size: 0.86rem; }
+      .stat .sub { color: var(--faint); font-size: 0.74rem; }
+
+      /* Action tiles */
+      .action-tile { display: flex; gap: 14px; align-items: flex-start; text-align: left; width: 100%; }
+      .action-tile .ico { width: 44px; height: 44px; flex: 0 0 auto; border-radius: 12px; display: grid; place-items: center; background: var(--teal-soft); color: var(--teal-2); border: 1px solid var(--border-strong); }
+      .action-tile .ico svg { width: 22px; height: 22px; }
+      .action-tile .t { font-weight: 600; font-size: 1rem; }
+      .action-tile .d { color: var(--muted); font-size: 0.84rem; margin-top: 2px; }
+
+      .section-title { display: flex; align-items: baseline; gap: 12px; margin: 34px 0 14px; }
+      .section-title h2 { font-size: 1.3rem; }
+      .section-title .hint { color: var(--faint); font-size: 0.82rem; }
+
+      .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); }
+      .chip.teal { color: var(--teal-2); border-color: var(--border-strong); background: var(--teal-soft); }
+      .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+
+      /* Plugin card */
+      .plugin-card { display: flex; flex-direction: column; height: 100%; }
+      .plugin-card .pc-head { display: flex; align-items: center; gap: 10px; }
+      .plugin-card .pc-head .nm { font-weight: 700; font-size: 1.02rem; }
+      .plugin-card .ver { margin-left: auto; font-family: var(--font-mono); font-size: 0.72rem; color: var(--faint); }
+      .plugin-card .desc { color: var(--muted); font-size: 0.86rem; margin: 10px 0 0; flex: 1; }
+      .plugin-card .metrics { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; font-size: 0.76rem; color: var(--faint); }
+      .plugin-card .metrics b { color: var(--teal-2); }
+      .plugin-card .pc-foot { display: flex; gap: 8px; margin-top: 14px; }
+
+      /* Marketplace layout */
+      .mkt { display: grid; grid-template-columns: 240px 1fr; gap: 22px; align-items: start; }
+      .mkt-nav { position: sticky; top: calc(var(--topbar-h) + 20px); display: flex; flex-direction: column; gap: 4px; }
+      .mkt-nav button { display: flex; align-items: center; gap: 10px; text-align: left; padding: 10px 12px; border-radius: 10px; background: transparent; border: 1px solid transparent; color: var(--muted); font-size: 0.88rem; font-weight: 500; }
+      .mkt-nav button svg { width: 17px; height: 17px; }
+      .mkt-nav button:hover { background: var(--surface); color: var(--text); }
+      .mkt-nav button.active { background: var(--teal-soft); color: var(--teal-2); border-color: var(--border-strong); }
+      .mkt-nav button .count { margin-left: auto; font-size: 0.72rem; color: var(--faint); }
+      .mkt-filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; align-items: center; }
+      .mkt-filters input { flex: 1; min-width: 200px; height: 40px; padding: 0 14px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: inherit; }
+      .mkt-filters input:focus { border-color: var(--teal-dim); }
+
+      /* Roster table */
+      .roster-controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+      .roster-controls select, .roster-controls input { height: 40px; padding: 0 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: inherit; font-size: 0.88rem; }
+      .roster-controls input { flex: 1; min-width: 200px; }
+      .agent-card .ac-head { display: flex; align-items: center; gap: 10px; }
+      .agent-card .ac-head .nm { font-weight: 600; }
+      .agent-card .role { margin-left: auto; }
+      .agent-card .desc { color: var(--muted); font-size: 0.84rem; margin-top: 8px; }
+      .agent-card .trig { margin-top: 10px; font-size: 0.78rem; color: var(--faint); }
+      .agent-card .trig code { color: var(--teal-2); background: var(--surface-2); padding: 1px 6px; border-radius: 6px; font-family: var(--font-mono); }
+
+      details.lib { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; background: var(--surface); overflow: hidden; }
+      details.lib > summary { list-style: none; cursor: pointer; padding: 14px 16px; display: flex; align-items: center; gap: 10px; font-weight: 600; }
+      details.lib > summary::-webkit-details-marker { display: none; }
+      details.lib > summary .caret { margin-left: auto; transition: transform 0.2s; color: var(--faint); }
+      details.lib[open] > summary .caret { transform: rotate(90deg); }
+      details.lib .lib-body { padding: 0 16px 16px; color: var(--muted); font-size: 0.86rem; }
+      details.lib .lib-body .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+
+      /* Configuration / posture */
+      .config-grid { display: grid; grid-template-columns: 1fr 380px; gap: 22px; align-items: start; }
+      .preset-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+      .preset-btn { padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-weight: 600; font-size: 0.86rem; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; max-width: 230px; text-align: left; }
+      .preset-btn small { font-weight: 400; color: var(--faint); font-size: 0.72rem; }
+      .preset-btn:hover { border-color: var(--teal-dim); }
+      .preset-btn.active { border-color: var(--teal); background: var(--teal-soft); }
+
+      .pcat-group { margin-top: 20px; }
+      .pcat-group h4 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--faint); margin-bottom: 10px; }
+      .pcat { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+      .pcat .pc-info { min-width: 0; flex: 1; }
+      .pcat .pc-info .t { font-weight: 600; font-size: 0.92rem; }
+      .pcat .pc-info .d { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+      .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; flex: 0 0 auto; background: var(--bg-2); }
+      .seg button { padding: 7px 14px; background: transparent; border: none; color: var(--muted); font-size: 0.8rem; font-weight: 600; transition: 0.12s; }
+      .seg button + button { border-left: 1px solid var(--border); }
+      .seg button[data-level="deny"].on { background: rgba(251,113,133,0.18); color: var(--deny); }
+      .seg button[data-level="ask"].on { background: rgba(251,191,36,0.18); color: var(--ask); }
+      .seg button[data-level="allow"].on { background: rgba(52,211,153,0.18); color: var(--allow); }
+
+      .yaml-panel { position: sticky; top: calc(var(--topbar-h) + 20px); }
+      .yaml-panel pre { background: #060c16; border: 1px solid var(--border); border-radius: 12px; padding: 14px; overflow: auto; max-height: 460px; font-family: var(--font-mono); font-size: 0.76rem; color: #cfe7e2; line-height: 1.5; }
+      .yaml-panel .yp-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+      .toggle-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+      .switch { position: relative; width: 46px; height: 26px; flex: 0 0 auto; }
+      .switch input { opacity: 0; width: 0; height: 0; }
+      .switch .track { position: absolute; inset: 0; background: var(--surface-3); border-radius: 999px; transition: 0.2s; border: 1px solid var(--border); }
+      .switch .track::before { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: var(--muted); border-radius: 50%; transition: 0.2s; }
+      .switch input:checked + .track { background: var(--teal-soft); border-color: var(--teal); }
+      .switch input:checked + .track::before { transform: translateX(20px); background: var(--teal-2); }
+
+      .floor-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+      .floor-list code { font-family: var(--font-mono); font-size: 0.72rem; color: var(--danger); background: rgba(251,113,133,0.10); border: 1px solid rgba(251,113,133,0.25); padding: 2px 8px; border-radius: 6px; }
+
+      .callout { border: 1px solid var(--border-strong); border-radius: 12px; padding: 14px 16px; background: var(--teal-soft); color: var(--text); font-size: 0.86rem; display: flex; gap: 12px; }
+      .callout svg { width: 20px; height: 20px; color: var(--teal-2); flex: 0 0 auto; margin-top: 2px; }
+
+      .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface-3); border: 1px solid var(--teal); color: var(--text); padding: 12px 18px; border-radius: 10px; font-size: 0.86rem; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: 0.25s; z-index: 90; }
+      .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+      .empty-state { text-align: center; padding: 60px 20px; color: var(--faint); }
+      .activity-item { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--border); }
+      .activity-item .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--teal); margin-top: 6px; flex: 0 0 auto; box-shadow: 0 0 10px var(--teal-glow); }
+      .activity-item .when { color: var(--faint); font-size: 0.76rem; margin-left: auto; white-space: nowrap; }
+
+      .scrim { position: fixed; inset: 0; background: rgba(4,8,16,0.6); backdrop-filter: blur(2px); z-index: 35; opacity: 0; pointer-events: none; transition: 0.2s; }
+      body.mobile-nav-open .scrim { opacity: 1; pointer-events: auto; }
+
+      /* ---------- Responsive ---------- */
+      @media (max-width: 1020px) {
+        .config-grid { grid-template-columns: 1fr; }
+        .yaml-panel { position: static; }
+        .mkt { grid-template-columns: 1fr; }
+        .mkt-nav { position: static; flex-direction: row; flex-wrap: wrap; }
+      }
+      @media (max-width: 820px) {
+        .app { grid-template-columns: 1fr !important; }
+        .sidebar { position: fixed; left: 0; top: 0; width: var(--sidebar-w); transform: translateX(-100%); transition: transform 0.25s ease; box-shadow: var(--shadow); }
+        body.mobile-nav-open .sidebar { transform: translateX(0); }
+        body.sidebar-collapsed .nav a.nav-item .label,
+        body.sidebar-collapsed .brand .meta { display: revert; }
+        .desktop-collapse { display: none; }
+        .hide-sm { display: none; }
+        .search kbd { display: none; }
+      }
+      @media (min-width: 821px) { .mobile-only { display: none; } }
+      @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto; } }
     </style>
   </head>
   <body>
-    <p>Redirecting to <a href="repo-guide.html">repo-guide.html</a>…</p>
+    <div class="scrim" id="scrim" aria-hidden="true"></div>
+    <div class="app">
+      <!-- ======================= SIDEBAR ======================= -->
+      <aside class="sidebar" id="sidebar">
+        <div class="brand">
+          <span class="mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11l9-7 9 7v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 21v-7h6v7" stroke="currentColor"/></svg>
+          </span>
+          <span class="meta">
+            <span class="name">Raven<b>Claude</b></span>
+            <span class="tag">Engineering Team Platform</span>
+          </span>
+        </div>
+        <nav class="nav" id="primary-nav" aria-label="Primary"></nav>
+        <div class="sidebar-foot">
+          <div>v<span id="foot-version">0.41.0</span></div>
+          <div class="detail">Updated 2026-06-01 20:34 UTC</div>
+        </div>
+      </aside>
+
+      <!-- ======================= MAIN ======================= -->
+      <div class="main">
+        <header class="topbar">
+          <button class="icon-btn mobile-only" id="mobile-toggle" aria-label="Open navigation">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          </button>
+          <button class="icon-btn desktop-collapse" id="collapse-toggle" aria-label="Collapse sidebar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 4v16M4 7l-2 5 2 5" /><rect x="3" y="4" width="18" height="16" rx="2"/></svg>
+          </button>
+          <div class="search" id="search">
+            <svg class="s-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="search" id="search-input" placeholder="Search plugins, specialists, skills…" aria-label="Search" autocomplete="off" />
+            <kbd>/</kbd>
+            <div class="search-results" id="search-results" role="listbox"></div>
+          </div>
+          <div class="actions">
+            <a class="btn ghost hide-sm" href="repo-guide.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Repo Guide</a>
+            <a class="btn primary" href="#/marketplace"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v4H3z"/><path d="M5 7v12h14V7"/><path d="M9 11h6"/></svg>Browse Plugins</a>
+          </div>
+        </header>
+        <main class="content" id="view" tabindex="-1"></main>
+      </div>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+      window.__RC_DATA__ = {"generated":"2026-06-01 20:34 UTC","generated_date":"2026-06-01","marketplace_version":"0.41.0","stats":{"plugins":17,"specialists":100,"skills":110,"hooks":30},"categories":[{"id":"core-orchestration","label":"Core & Orchestration","icon":"hub","blurb":"The domain-neutral foundation every other plugin builds on — the Team Lead, delivery management, and the protocols.","plugins":["ravenclaude-core","project-management"]},{"id":"microsoft","label":"Microsoft Ecosystem","icon":"windows","blurb":"Power Platform, Azure, Fabric, Graph, and M365 Copilot specialist teams.","plugins":["power-platform","azure-cloud","microsoft-fabric","microsoft-graph","microsoft-365-copilot"]},{"id":"enterprise","label":"Enterprise Platforms","icon":"building","blurb":"Salesforce delivery craft and Claude application engineering.","plugins":["salesforce","claude-app-engineering"]},{"id":"web-design","label":"Web & Design","icon":"palette","blurb":"Design, build, accessibility, performance, and SEO for the web.","plugins":["web-design"]},{"id":"data-analytics","label":"Data & Analytics","icon":"chart","blurb":"Embedded analytics, BI, and the statistics layer that asks 'is it real?'","plugins":["data-platform","tableau","applied-statistics"]},{"id":"finance-compliance","label":"Finance & Compliance","icon":"shield","blurb":"Corporate finance / FP&A and the financial-regulatory lane.","plugins":["finance","regulatory-compliance"]},{"id":"specialized","label":"Specialized","icon":"sparkle","blurb":"Vertical and cross-tool plugins that don't fit the buckets above.","plugins":["edtech-partner-success","ai-coding-model-guidance"]}],"plugins":[{"name":"ravenclaude-core","label":"Ravenclaude Core","version":"0.100.0","description":"Domain-neutral Claude Code foundation: a Team Lead that dispatches 14 specialist agents (architect, backend/frontend/fullstack coders, code + security reviewers, tester-QA, data-engineer, project-manager, documentarian, designer, prompt-engineer, partner-success), 22 skills, format/lint/test gates, hooks, rules, and templates. Ships the Capability Grounding Protocol (pre-action environment + decision-tree checks, alternate-methods enumeration, honest blocked-reporting), the Structured Output Protocol for agent handoffs, a Researcher meta-skill for knowledge freshness, and a point-and-click comfort-posture dashboard that writes Claude Code permission rules — per layer (user/local/project) and per individual permission, on a 3-level deny/ask/allow scale, plus an opt-in command-review tribunal (the Thing): a tiered panel voting allow/edit/deny, with a human-gate. Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard. Domain plugins extend core via skills + knowledge rather than parallel agents.","short":"Domain-neutral Claude Code foundation: a Team Lead that dispatches 14 specialist agents (architect, backend/frontend/fullstack coders, code + security reviewers…","keywords":["team-lead","agents","orchestration","code-review","project-management","partner-success"],"category":"core-orchestration","category_label":"Core & Orchestration","requires":[],"agents":[{"name":"architect","label":"Architect","description":"Use this agent as the technical conscience across the entire software lifecycle — design, build, test, review, iterate.","model":"opus","audience":["dev","consultant","data-engineer","analyst"],"works_with":["backend-coder","frontend-coder","code-reviewer","security-reviewer","deep-researcher"],"triggers":["Help me design <feature> before I start writing code","Reviewer says my <choice> doesn't compose with <constraint> — what's the right shape?","Tests say X but my design says Y — adjudicate"]},{"name":"backend-coder","label":"Backend Coder","description":"Use this agent to implement server-side code — API handlers, business logic, database queries, background jobs, integrations.","model":"sonnet","audience":["dev","data-engineer"],"works_with":["architect","code-reviewer","tester-qa","security-reviewer"],"triggers":["Implement the <path> endpoint per the architect's plan","Add idempotency-key handling to /webhook and a worker that retries on 5xx","Profile and fix the memory leak in <handler> — load test repros it at 50 req/s"]},{"name":"code-reviewer","label":"Code Reviewer","description":"Use this agent for pre-merge review of any non-trivial diff.","model":"opus","audience":["dev","consultant"],"works_with":["architect","security-reviewer","backend-coder","frontend-coder","tester-qa"],"triggers":["Review the diff on branch <branch>","Confirm this <N>-file refactor doesn't leave stragglers or dead code","Independent read on this controversial diff — what's blocker vs taste?"]},{"name":"data-engineer","label":"Data Engineer","description":"Use this agent for data-shaped work that isn't tied to a specific domain plugin — pipeline design, data modeling, ETL/ELT, warehouse and lake schemas, query performance, data quality, lineage, ingesti…","model":"sonnet","audience":["data-engineer","dev","analyst"],"works_with":["architect","code-reviewer","backend-coder"],"triggers":["Add a stg_<name> + dim_<name> model with tests","Plan + execute the migration from <source> to <target> with parallel-run verification","Why is <metric> down from <date>? Source data looks correct"]},{"name":"deep-researcher","label":"Deep Researcher","description":"Use this agent for rigorous, multi-source research — troubleshooting unfamiliar errors, comparing tools/libraries, verifying claims, or going deeper than a single web search.","model":"opus","audience":["consultant","dev","psm","analyst"],"works_with":["architect","documentarian","prompt-engineer"],"triggers":["Research the 3 leading <category> options for <context>","I'm hitting <error> on <platform> — synthesize what practitioners + docs say","Fact-check the <vendor> claim that <X> against primary sources"]},{"name":"designer","label":"Designer","description":"Use this agent for UX direction and visual design — wireframes, user flows, screen layouts, design specs, accessibility checks, visual hierarchy.","model":"sonnet","audience":["dev","consultant","psm"],"works_with":["frontend-coder","documentarian","architect"],"triggers":["Wireframe the <feature> screen with the 3 main user flows","Audit <surface> against WCAG 2.2 AA and rank the gaps","Design the visual system (typography, color, spacing) for <product>"]},{"name":"documentarian","label":"Documentarian","description":"Use this agent for stakeholder-facing written deliverables — executive summaries, decision memos, variance commentary, partner briefs, runbooks, SOPs, release notes, READMEs, onboarding guides, long-f…","model":"sonnet","audience":["consultant","psm","analyst","compliance"],"works_with":["deep-researcher","project-manager","partner-success-manager"],"triggers":["Summarize the <decision> + rationale + next steps in 1 page","Write a stakeholder-readable summary of <incident>","Document <procedure> as a step-by-step runbook with prereqs and recovery"]},{"name":"frontend-coder","label":"Frontend Coder","description":"Use this agent to implement UI work — components, pages, client-side state, styling, accessibility, browser-side integrations.","model":"sonnet","audience":["dev"],"works_with":["designer","architect","code-reviewer","tester-qa"],"triggers":["Implement the <component> from <design spec link>","Refactor <feature> from class components to hooks","Diagnose the CLS regression in <route> — Core Web Vitals broke"]},{"name":"fullstack-coder","label":"Fullstack Coder","description":"Use this agent only for changes that genuinely cross the client/server boundary in one cohesive unit (e.g., a new endpoint plus the UI that calls it).","model":"sonnet","audience":["dev"],"works_with":["architect","code-reviewer","tester-qa","backend-coder","frontend-coder"],"triggers":["Build the /<endpoint> + the form that posts to it","Add real-time updates to <feature>"]},{"name":"partner-success-manager","label":"Partner Success Manager","description":"Use this agent for any Partner Success Manager work — maintaining partner profiles, success plans, QBRs, health scores, onboarding checklists, touchpoint logs, and the team's growing AI workflow libra…","model":"sonnet","audience":["psm","consultant"],"works_with":["project-manager","documentarian","deep-researcher"],"triggers":["Partner <name> hasn't responded in 3 weeks — what's the read?","New partner <name> onboarded — draft the 30/60/90","QBR for <name> next week — pull the data + draft the narrative"]},{"name":"project-manager","label":"Project Manager","description":"Use this agent for any project hygiene work — maintaining the RAID log, task list, weekly status report, activity log, or stakeholder register.","model":"sonnet","audience":["consultant","psm","dev"],"works_with":["documentarian","deep-researcher","partner-success-manager"],"triggers":["Generate this week's status from the activity log","Refresh the RAID log — we descoped <feature> this week","Risk: <description>. Draft the escalation memo"]},{"name":"prompt-engineer","label":"Prompt Engineer","description":"Use this agent to author, critique, refine, or refactor agent definitions, skill files, and prompt patterns across RavenClaude and any Expert repo (PowerPlatformExpert, SalesforceExpert, etc.).","model":"opus","audience":["dev","consultant"],"works_with":["architect","code-reviewer","deep-researcher"],"triggers":["Draft the <name> agent with proper inline priors + tools + output contract","Why does <agent> produce inconsistent output on <X>?","Find <pattern> drift across plugins and propose a shared skill"]},{"name":"security-reviewer","label":"Security Reviewer","description":"Use this agent whenever a diff touches authentication, authorization, cryptography, secrets, sessions, untrusted input parsing, file uploads, deserialization, SQL, shell, network egress, or third-part…","model":"opus","audience":["dev","compliance"],"works_with":["architect","code-reviewer","backend-coder"],"triggers":["Review the auth changes in <PR>","Threat-model the <integration> with attention to <input source>","Audit logs / log statements for <suspected pattern>"]},{"name":"tester-qa","label":"Tester Qa","description":"Use this agent to design test plans, hunt flakes, plug coverage gaps, or harden tests around a new feature.","model":"sonnet","audience":["dev"],"works_with":["backend-coder","frontend-coder","code-reviewer","architect"],"triggers":["Cover <feature> with happy / sad / edge cases","Find and fix flakes in <suite>","What's failing intermittently in <suite> and why?"]}],"counts":{"agents":14,"skills":22,"hooks":17,"commands":6,"templates":46,"knowledge":233}},{"name":"power-platform","label":"Power Platform","version":"0.18.0","description":"Microsoft Power Platform specialist team — 11 agents (canvas/Power Fx, Power Automate, Dataverse, model-driven, pac CLI/ALM, governance/DLP, PCF, Copilot Studio, Power Pages, power-bi-engineer, power-platform-tester) + 18 skills (solution-check, DAX, ALM, BI, PCF, maintainability); a house-opinions hook flags 8 §3/§4 violations; the knowledge bank carries production decision trees (PA-flow recovery, Dataverse token-acquisition). v0.13.0 — PCF React + Fluent UI v9: a canonical platform-library version source + the `Decision Tree: PCF — Which React surface?` (virtual / code-app / canvas / Power-Pages-unsupported / web resource), a Fluent-v9 theming + v8→v9 migration skill resource, and traversal priors on pcf-developer / power-fx-engineer / power-pages-engineer. Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval (requires `pip install pbix-mcp`).","short":"Microsoft Power Platform specialist team — 11 agents (canvas/Power Fx, Power Automate, Dataverse, model-driven, pac CLI/ALM, governance/DLP, PCF, Copilot Studio…","keywords":["power-platform","power-apps","power-automate","dataverse","power-fx","power-bi","pbip","copilot-studio"],"category":"microsoft","category_label":"Microsoft Ecosystem","requires":["ravenclaude-core@>=0.2.0"],"agents":[{"name":"copilot-studio-engineer","label":"Copilot Studio Engineer","description":"Use this agent for Copilot Studio (formerly Power Virtual Agents) bot design and AI Builder integration — topics, generative answers, knowledge sources, prompts in flows, custom and prebuilt AI Builde…","model":"sonnet","audience":["power-platform-maker","dev"],"works_with":["flow-engineer","dataverse-architect","solution-alm-engineer"],"triggers":["Build a Copilot Studio bot grounded on <SharePoint site | PDF library | URL>","Should this use Copilot Studio or a direct Azure OpenAI call?","Lock the bot's generative answers to <scope> without bleeding to public sources"]},{"name":"dataverse-architect","label":"Dataverse Architect","description":"Use this agent for Dataverse data modeling, security model design, plug-ins, and business rules.","model":"sonnet","audience":["power-platform-maker","dev"],"works_with":["model-driven-engineer","power-fx-engineer","solution-alm-engineer","security-reviewer"],"triggers":["Design the Dataverse schema for <business process>","Migrate this <N>-row Excel workbook to Dataverse","Should this be a plug-in, a flow, or a business rule?"]},{"name":"flow-engineer","label":"Flow Engineer","description":"Use this agent for Power Automate work — cloud flows, desktop flows (RPA), and custom connectors.","model":"sonnet","audience":["power-platform-maker","dev"],"works_with":["dataverse-architect","solution-alm-engineer","copilot-studio-engineer"],"triggers":["Build a flow that watches <list> and posts to <channel>","Bulk-create flows via Dataverse Web API — script + clientdata template","PA flow turns itself off after activation — what's the fix?"]},{"name":"model-driven-engineer","label":"Model Driven Engineer","description":"Use this agent for model-driven app construction — site maps, app modules, forms (main/quick create/quick view), views, dashboards, charts, business process flows, command bar customization, JS web re…","model":"sonnet","audience":["power-platform-maker","dev"],"works_with":["dataverse-architect","power-fx-engineer","solution-alm-engineer"],"triggers":["Build the model-driven app for <process> with sitemap + forms + views","Add a JS web resource that validates <field> on save","Embed a canvas Custom Page in <app> for <use case>"]},{"name":"pcf-developer","label":"Pcf Developer","description":"Use this agent for Power Apps Component Framework (PCF) custom controls — TypeScript, manifest, lifecycle, build, package, register.","model":"sonnet","audience":["power-platform-maker","dev"],"works_with":["model-driven-engineer","power-fx-engineer","solution-alm-engineer"],"triggers":["Build a PCF control that renders <input type>","Make this PCF control work in both canvas and model-driven apps"]},{"name":"power-bi-engineer","label":"Power Bi Engineer","description":"Use this agent for Power BI semantic models, DAX authoring/review, reports, dataflows, PBIP project source control, git integration with Azure DevOps / Azure Repos, deployment strategies (Deployment P…","model":"sonnet","audience":["power-platform-maker","dev","analyst"],"works_with":["solution-alm-engineer","dataverse-architect","data-engineer"],"triggers":["Design the semantic model for <fact + dim tables>","Move <pbix> to PBIP under git + set up ADO pipeline","Power BI refresh failing in prod with <error> — diagnose"]},{"name":"power-fx-engineer","label":"Power Fx Engineer","description":"Use this agent for canvas Power App work — screen architecture, Power Fx formulas, components and component libraries, delegation, performance, theming, accessibility, Test Studio, Monitor.","model":"sonnet","audience":["power-platform-maker","dev"],"works_with":["dataverse-architect","model-driven-engineer","solution-alm-engineer"],"triggers":["Build a canvas screen with gallery + form for <table>","Refactor <app> — too many flows; move logic into delegated Power Fx + components","Diagnose delegation warning on <Filter/Lookup> against <data source>"]},{"name":"power-pages-engineer","label":"Power Pages Engineer","description":"Use this agent for Power Pages (formerly Power Apps Portals) — external-facing sites for anonymous or B2C users.","model":"sonnet","audience":["power-platform-maker","dev"],"works_with":["dataverse-architect","security-reviewer","solution-alm-engineer"],"triggers":["Build a portal for <use case> with anon home + auth-required pages","Set up Azure AD B2C on this portal with <N> permission tiers","Power Pages vs canvas for <external use case>?"]},{"name":"power-platform-admin","label":"Power Platform Admin","description":"Use this agent for tenant-level Power Platform admin work — environment strategy (Default avoidance, Production / Sandbox / Developer / Trial / Teams), managed environments, environment groups, DLP po…","model":"sonnet","audience":["power-platform-maker","dev","compliance"],"works_with":["solution-alm-engineer","dataverse-architect","security-reviewer"],"triggers":["Design DLP for <tenant> with <connector classifications>","Audit our tenant — licenses, capacity, where we're throttle-risk","Flow <id> is hitting throttle in prod — what's the cap?"]},{"name":"power-platform-tester","label":"Power Platform Tester","description":"Use this agent for Power Platform-specific testing — Power Fx unit/integration tests in Test Studio, canvas-app monitor traces, Power Automate flow tests (`Test → Manually`, telemetry-driven assertion…","model":"sonnet","audience":["power-platform-maker","dev"],"works_with":["power-fx-engineer","flow-engineer","power-bi-engineer","solution-alm-engineer"],"triggers":["Build Test Studio tests for <screen / flow> in <app>","Add `pac solution check` to our ADO pipeline + fail on warnings above <threshold>","Audit DAX measure <name> for correctness + performance"]},{"name":"solution-alm-engineer","label":"Solution Alm Engineer","description":"Use this agent for Power Platform Application Lifecycle Management — pac CLI mastery, source control of unpacked solutions, environment variables, connection references, environment strategy at the so…","model":"sonnet","audience":["power-platform-maker","dev"],"works_with":["dataverse-architect","flow-engineer","power-platform-admin"],"triggers":["Unpack <solution.zip> and commit the tree to git","Design our dev → test → prod pipeline for <solution>","Solution import to <env> failed with <error>"]}],"counts":{"agents":11,"skills":18,"hooks":1,"commands":8,"templates":1,"knowledge":12}},{"name":"finance","label":"Finance","version":"0.9.0","description":"Corporate finance & FP&A specialist team — FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. 9 skills, 8 templates, 1 advisory hook (hardcoded rates, plaintext PII, missing Sources / Assumptions). Inherits ravenclaude-core protocols.","short":"Corporate finance & FP&A specialist team — FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (…","keywords":["finance","fpa","financial-modeling","controller","month-end-close","valuation","treasury","audit-prep"],"category":"finance-compliance","category_label":"Finance & Compliance","requires":["ravenclaude-core@>=0.5.0"],"agents":[{"name":"audit-prep-specialist","label":"Audit Prep Specialist","description":"Use this agent for audit readiness — PBC (provided-by-client) list management, walkthrough documentation, SOC1 / SOC2 control narratives, deficiency remediation, examiner walkthrough rehearsals.","model":"sonnet","audience":["analyst","consultant","compliance"],"works_with":["controller","fpa-analyst"],"triggers":["Audit kicks off in <N> weeks — stand up the PBC list","Draft the SOC2 narrative for <control area>","Remediate the <prior-year deficiency> finding before fieldwork"]},{"name":"board-pack-composer","label":"Board Pack Composer","description":"Use this agent for board / investor / lender reporting packs — narrative-first composition, section sequencing, KPI selection, executive-summary patterns.","model":"opus","audience":["analyst","consultant"],"works_with":["fpa-analyst","financial-modeler","treasury-analyst"],"triggers":["Board pack for Q<N> — assemble the narrative + sections from <inputs>","Build the lender covenant-compliance pack for <period>","Build the fundraising data-room narrative for <round>"]},{"name":"controller","label":"Controller","description":"Use this agent for month-end / quarter-end close work — JE design and review, account reconciliations, accruals, intercompany, close-calendar mechanics, deferred revenue / prepaids / fixed-asset rolls…","model":"sonnet","audience":["analyst"],"works_with":["fpa-analyst","audit-prep-specialist"],"triggers":["Close calendar for <period> — day-by-day owners + deliverables","<account> recon is off by <amount> — diagnose","Design the <accrual type> roll for our new <revenue stream>"]},{"name":"financial-modeler","label":"Financial Modeler","description":"Use this agent for financial-model work — three-statement models, DCF, scenario / sensitivity, model architecture, model documentation.","model":"opus","audience":["analyst","consultant"],"works_with":["fpa-analyst","valuation-analyst"],"triggers":["Build a 3-statement model for <target> with <X year> projections","Review <model> — 7-pass review","Refactor <model> — too many tabs, broken formulas, unclear assumptions"]},{"name":"fpa-analyst","label":"Fpa Analyst","description":"Use this agent for FP&A work — budgeting, rolling forecasts, KPI commentary, variance walks, scenario modeling at the P&L level, headcount and opex planning.","model":"sonnet","audience":["analyst","consultant"],"works_with":["financial-modeler","controller","board-pack-composer"],"triggers":["Variance commentary for <period> — why is <line item> off by <amount>?","Refresh the rolling forecast for <next N months>","Build the KPI pack for <period> for <audience>"]},{"name":"treasury-analyst","label":"Treasury Analyst","description":"Use this agent for treasury and cash-management work — 13-week direct cash forecasts, working-capital optimization, debt covenant compliance, FX exposure and hedging, banking operations, debt-schedule…","model":"sonnet","audience":["analyst","consultant"],"works_with":["fpa-analyst","controller"],"triggers":["Refresh the 13-week cash forecast — runway looks tight","Calculate <covenant> for <period> + flag waiver risk","Design FX hedging for our <currency> exposure"]},{"name":"valuation-analyst","label":"Valuation Analyst","description":"Use this agent for valuation work — business valuation (DCF + comparable companies + precedent transactions), 409A valuations, fairness-opinion support, valuation methodology defense, ESOP / RSU strik…","model":"opus","audience":["analyst","consultant"],"works_with":["financial-modeler","fpa-analyst"],"triggers":["Valuation for <target> — DCF + comps + precedent triangulation","409A refresh — last one was <date>","<stakeholder> is pushing back on the valuation — defend it"]}],"counts":{"agents":7,"skills":9,"hooks":1,"commands":5,"templates":8,"knowledge":2}},{"name":"regulatory-compliance","label":"Regulatory Compliance","version":"0.8.0","description":"Financial-regulatory & compliance specialist team — AML/KYC analyst (sanctions, EDD, SAR/STR), regulatory-reporting analyst (FATCA/CRS, supervisory returns, Solvency II, BMA EBS), risk-and-controls specialist (three lines of defense, KRIs), policy & procedure writer, examination-prep specialist, and Bermuda-insurance specialist. 9 skills, 8 templates, 1 defensive PreToolUse hook (PII scrub — SSN/IBAN/credit-card/Bermuda TIN/wire instructions). Positioning reflects field experience inside a Tier-1 financial regulator (BMA). Inherits ravenclaude-core protocols.","short":"Financial-regulatory & compliance specialist team — AML/KYC analyst (sanctions, EDD, SAR/STR), regulatory-reporting analyst (FATCA/CRS, supervisory returns, Sol…","keywords":["regulatory-compliance","aml","kyc","sanctions","regulatory-reporting","risk-management","bermuda","bma"],"category":"finance-compliance","category_label":"Finance & Compliance","requires":["ravenclaude-core@>=0.5.0"],"agents":[{"name":"aml-kyc-analyst","label":"Aml Kyc Analyst","description":"Use this agent for AML / KYC / sanctions / financial-crime work — customer-onboarding KYC, sanctions screening / hit clearing, EDD (enhanced due diligence), SAR / STR narrative drafting, transaction-m…","model":"sonnet","audience":["compliance"],"works_with":["risk-and-controls-specialist","policy-and-procedure-writer"],"triggers":["Review the KYC file for <customer> — higher-risk indicators?","Sanctions hit on <name> — clear or escalate?","Draft a SAR narrative for <transaction pattern> on <customer>"]},{"name":"bermuda-insurance-specialist","label":"Bermuda Insurance Specialist","description":"Use this agent for Bermuda-domiciled insurance work — BMA Insurance Act 1978 + Rules / Codes, captives (Class 1 / 2 / 3 / 3A / 3B), commercial insurers (Class 4 / 3A / IIGB), long-term insurers (Class…","model":"opus","audience":["compliance","consultant"],"works_with":["regulatory-reporting-analyst","examination-prep-specialist","policy-and-procedure-writer"],"triggers":["Classify <entity> under BMA Insurance Act for capital + filing implications","Calculate BSCR for <entity> based on current EBS","BMA exam in <N> weeks for <entity> — walkthrough rehearsal"]},{"name":"examination-prep-specialist","label":"Examination Prep Specialist","description":"Use this agent for regulator examination readiness — PBC list management for exam, walkthrough rehearsals, mock examiner interviews, examiner Q&A drafting, MRA / MRIA / management-letter responses, re…","model":"sonnet","audience":["compliance"],"works_with":["aml-kyc-analyst","regulatory-reporting-analyst","risk-and-controls-specialist","policy-and-procedure-writer"],"triggers":["BMA/Fed/OCC exam in <N> weeks — stand up readiness","Draft response to <MRA/MRIA/finding> — due in <N> weeks","Mock walkthrough on <control area> — find weak spots before fieldwork"]},{"name":"policy-and-procedure-writer","label":"Policy And Procedure Writer","description":"Use this agent for compliance manual / policy / procedure authoring — new policy drafting, P&P refreshes, gap analysis against new regulation, regulator-facing documentation, jurisdictional adaptation…","model":"opus","audience":["compliance"],"works_with":["risk-and-controls-specialist","aml-kyc-analyst"],"triggers":["Draft a <policy area> policy — we don't have one","<new regulation> just landed — gap analysis against our current P&Ps","Annual refresh of <policy> — check against current regulation + practice"]},{"name":"regulatory-reporting-analyst","label":"Regulatory Reporting Analyst","description":"Use this agent for regulatory filings — FATCA, CRS, supervisory returns, Solvency II QRTs, BMA EBS, US RBC, statutory financial statements, supervisory reports, capital adequacy calculations.","model":"sonnet","audience":["compliance","analyst"],"works_with":["examination-prep-specialist","risk-and-controls-specialist"],"triggers":["Prep <filing> for <period> — data lineage + maker-checker chain","Review <return> before submission — find errors","Source data for <return> has <issue> — can we file?"]},{"name":"risk-and-controls-specialist","label":"Risk And Controls Specialist","description":"Use this agent for enterprise risk management — risk-framework design, three lines of defense, risk-appetite statements, risk registers, KRI design, control self-assessment, ORM / ERM.","model":"sonnet","audience":["compliance"],"works_with":["policy-and-procedure-writer","examination-prep-specialist","aml-kyc-analyst"],"triggers":["Build the risk register for <entity / domain> — inherent + residual ratings","Draft a risk-appetite statement for <domain>","Assess three-lines-of-defense for <control area> — are accountabilities clear?"]}],"counts":{"agents":6,"skills":9,"hooks":1,"commands":5,"templates":8,"knowledge":2}},{"name":"web-design","label":"Web Design","version":"0.10.0","description":"Web design & build specialist team — web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens), frontend implementer (HTML/CSS/JS, React, Astro, Next), content strategist (copy, microcopy, SEO content), accessibility auditor (WCAG 2.2 AA/AAA), and performance engineer (Core Web Vitals, image/font optimization). 10 skills (design-system audit, accessibility review, Core Web Vitals tuning, technical SEO audit, information architecture, conversion design, content audit, design-tokens scaffolding, third-party-script hygiene, Fluent UI v9 + React implementation), 8 templates, 1 advisory hook, and a knowledge bank seeded with a curated 2026 reference set of \"cutting edge yet simple\" marketing-site donors (Linear, Vercel, Raycast, Resend, Cursor, v0, Tldraw, Cal.com) — visual-designer / ux-designer / frontend-implementer / web-architect all carry compact inline priors plus a pointer to the full brief. Inherits ravenclaude-core protocols.","short":"Web design & build specialist team — web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens…","keywords":["web-design","accessibility","wcag","performance","core-web-vitals","seo","design-system","frontend"],"category":"web-design","category_label":"Web & Design","requires":["ravenclaude-core@>=0.5.0"],"agents":[{"name":"accessibility-auditor","label":"Accessibility Auditor","description":"Use this agent for accessibility work — WCAG 2.2 AA / AAA audits, ARIA review, keyboard-navigation review, screen-reader testing, color-contrast checks, focus management, reduced-motion / reduced-data…","model":"opus","audience":["dev"],"works_with":["ux-designer","visual-designer","frontend-implementer"],"triggers":["Audit <site> against WCAG 2.2 AA — what blocks launch?","Review <component> for ARIA + keyboard nav","Audit <design system> for contrast + prefers-reduced-motion compliance"]},{"name":"content-strategist","label":"Content Strategist","description":"Use this agent for content / copy work — site copy, content hierarchy, microcopy, SEO content, content style guide, content audit, content modeling for headless CMS.","model":"opus","audience":["dev","consultant"],"works_with":["ux-designer","web-architect"],"triggers":["Write the home + <product page> copy in <brand voice>","Audit the content on <site> — SEO + voice + accuracy","Design the content model for <CMS> for a <site type>"]},{"name":"frontend-implementer","label":"Frontend Implementer","description":"Use this agent for web frontend implementation — HTML, CSS, vanilla JS, React, Astro, Next, component-library work, responsive patterns, design-token wiring, build integration.","model":"sonnet","audience":["dev"],"works_with":["visual-designer","ux-designer","performance-engineer","accessibility-auditor"],"triggers":["Implement <component> from <design spec> — semantic HTML + token-only colors","Wire <design system> tokens into <codebase>","Refactor <component> — replace hardcoded values with design tokens"]},{"name":"performance-engineer","label":"Performance Engineer","description":"Use this agent for web performance work — Core Web Vitals (LCP / CLS / INP) diagnosis and tuning, image / font / JS optimization, CDN strategy, caching, third-party hygiene, performance budgets.","model":"opus","audience":["dev"],"works_with":["frontend-implementer","web-architect"],"triggers":["<page> is slow — what's the LCP / CLS / INP story?","Define perf budget for <site> + wire CI to enforce","Audit our third-party scripts for perf + privacy cost"]},{"name":"ux-designer","label":"Ux Designer","description":"Use this agent for UX work — wireframes, user flows, screen-level layouts, conversion design, interaction design, usability heuristics.","model":"opus","audience":["dev","consultant"],"works_with":["visual-designer","content-strategist","frontend-implementer"],"triggers":["Wireframe the <feature> with the 3 main user flows","<form/page> conversion is <X%> — redesign for conversion","Usability review of <screen> — find the rough edges"]},{"name":"visual-designer","label":"Visual Designer","description":"Use this agent for visual / brand work — brand systems, typography, color, layout grids, design tokens, component visual style, theming, dark-mode, motion design.","model":"opus","audience":["dev","consultant"],"works_with":["ux-designer","frontend-implementer"],"triggers":["Design the brand system for <site/product> — voice / typography / color / grid / tokens","Audit <design system>'s tokens — find drift + propose consolidation","Add dark-mode support to <design system>"]},{"name":"web-architect","label":"Web Architect","description":"Use this agent for web architecture decisions — site architecture, information architecture, tech-stack selection, hosting / CDN, build pipeline, repo structure, content modeling for headless CMS, tec…","model":"opus","audience":["dev","consultant"],"works_with":["frontend-implementer","content-strategist","performance-engineer"],"triggers":["Stack for a new marketing site — <constraints>","Technical SEO audit of <site> — crawl + schema + sitemaps + OG","Re-platform <site> from <current> to <candidate>?"]}],"counts":{"agents":7,"skills":10,"hooks":1,"commands":5,"templates":8,"knowledge":8}},{"name":"edtech-partner-success","label":"Edtech Partner Success","version":"0.8.0","description":"EdTech-flavored Partner Success Manager team — 6 specialist agents anchored on the PSM lane, with 12 skills, 15 templates, 1 advisory hook, and a 15-doc knowledge bank covering QBRs, success plans, health scoring, onboarding, adoption sequencing, 90-day implementation arcs, training programs, advocacy/reference pipelines, and renewal motions. Team expansion is expressed as skills + knowledge + templates rather than parallel agents (per the marketplace house rule). Primary-source citations carry retrieval dates and confidence notation. Vertical-explicit but segment-agnostic — fits K-12, higher-ed, corporate L&D, or mixed EdTech books. Inherits ravenclaude-core protocols; requires ravenclaude-core@>=0.7.0.","short":"EdTech-flavored Partner Success Manager team — 6 specialist agents anchored on the PSM lane, with 12 skills, 15 templates, 1 advisory hook, and a 15-doc knowled…","keywords":["edtech","partner-success","customer-success","psm","qbr","health-score","ferpa","rostering"],"category":"specialized","category_label":"Specialized","requires":["ravenclaude-core@>=0.7.0"],"agents":[{"name":"ferpa-comms-translator","label":"Ferpa Comms Translator","description":"Use this agent for FERPA-aware (and segment-equivalent data-privacy) multilingual, multi-audience partner & end-user communication.","model":"opus","audience":["psm","consultant"],"works_with":["partner-success-manager","qbr-composer","partner-profile-curator"],"triggers":["Translate <email> for parent audience — non-English-primary families included","Review this district memo for FERPA / state-privacy issues before sending","Write a case-study quote from a parent in <state>; what consent is needed?"]},{"name":"learning-analytics-analyst","label":"Learning Analytics Analyst","description":"Use this agent for partner-engagement signal design, health-score architecture, dashboard specs, and metric interpretation.","model":"opus","audience":["psm","consultant","analyst"],"works_with":["partner-success-manager","success-playbook-designer","qbr-composer"],"triggers":["Design a health score for <partner segment> — what signals, what weights, what decay?","Partner X's <metric> dropped — diagnose","<partner> says 'the data isn't right' — what's the rostering smell?"]},{"name":"partner-profile-curator","label":"Partner Profile Curator","description":"Use this agent to maintain the durable partner record — the context that outlives any one PSM seat.","model":"opus","audience":["psm","consultant"],"works_with":["partner-success-manager","qbr-composer","success-playbook-designer"],"triggers":["New partner <name> closed Friday — start the profile","Refresh the profile for <partner> — call is tomorrow","Handoff: <new PSM> is taking over partner <X>"]},{"name":"partner-success-manager","label":"Partner Success Manager","description":"Use this agent for EdTech-specialized PSM work — onboarding, adoption, ongoing pulse, day-to-day partner-facing work.","model":"opus","audience":["psm","consultant"],"works_with":["success-playbook-designer","qbr-composer","learning-analytics-analyst","partner-profile-curator"],"triggers":["Partner <name> hasn't responded in 3 weeks — what's the read?","New K-12 partner <name> — draft the 30/60/90 with rostering + train-the-trainer milestones","Stand up the 90-day implementation for partner <X>"]},{"name":"qbr-composer","label":"Qbr Composer","description":"Use this agent for Quarterly Business Review materials end-to-end — data pull plan → narrative → deck → talk track → followup tracker.","model":"opus","audience":["psm","consultant"],"works_with":["learning-analytics-analyst","partner-success-manager","ferpa-comms-translator"],"triggers":["QBR for partner <X> is in a week — prep the deck + talk track","Renewal QBR for <X> — they're in Q3 of the fiscal year","Build the post-QBR commitment tracker for the <date> QBR with <partner>"]},{"name":"success-playbook-designer","label":"Success Playbook Designer","description":"Use this agent to design or refresh PSM plays — renewal plays, expansion plays, recovery (red-flag intervention) plays, advocacy plays.","model":"opus","audience":["psm","consultant"],"works_with":["partner-success-manager","learning-analytics-analyst","qbr-composer"],"triggers":["We need a recovery play for partners hitting <signal threshold>","The renewal play for <segment> isn't working — refresh it","Design an advocacy play to surface top-quartile candidates"]}],"counts":{"agents":6,"skills":12,"hooks":1,"commands":5,"templates":15,"knowledge":17}},{"name":"data-platform","label":"Data Platform","version":"0.7.0","description":"Data-platform team — 4 specialist agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) that guide cloud-database setup, ELT pipelines (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4 / Shopify / HRIS, and interactive dashboards (Evidence.dev / Superset / Metabase / Cube + Tremor) embedded in marketing sites and client apps. 11 skills — three invoked by ravenclaude-core/security-reviewer, one by its architect — implementing the house rule 'domain plugins extend core via skills, not parallel agents'. 12 templates, 1 advisory hook, and a 13-doc knowledge bank (landscape, RLS, QuickBooks, Power BI Embedded, plus per-connector deep-dives). Opinionated against per-viewer-priced BI tools (Looker / Tableau / Sigma) for SMB consulting; requires ravenclaude-core@>=0.7.0.","short":"Data-platform team — 4 specialist agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) that guide cloud-database setup,…","keywords":["data-platform","interactive-dashboards","embedded-analytics","cube","evidence-dev","metabase","superset","power-bi-embedded"],"category":"data-analytics","category_label":"Data & Analytics","requires":["ravenclaude-core@>=0.7.0"],"agents":[{"name":"connector-developer","label":"Connector Developer","description":"Use this agent for custom Airbyte connector authoring when an ELT vendor doesn't ship a connector for the source the engagement needs.","model":"opus","audience":["data-engineer","dev"],"works_with":["etl-pipeline-engineer","database-setup-guide"],"triggers":["Build a Canvas LMS Airbyte connector — Fivetran/Airbyte don't ship one","<vendor> has a partial connector but missing <table> — build or fork?"]},{"name":"dashboard-builder","label":"Dashboard Builder","description":"Use this agent for interactive dashboard front-end generation — Evidence.dev (marketing-site portfolio), Apache Superset / Metabase OSS (client deliverable), Cube + Next.js + Tremor + Recharts + shadc…","model":"opus","audience":["data-engineer","dev","analyst"],"works_with":["database-setup-guide","etl-pipeline-engineer"],"triggers":["Build an Evidence.dev dashboard for ravenpower.net showing <metric>","Cube schema for <client> — multi-tenant with per-customer filtering","Embed <dashboard> into <client app> via iframe — JWT-secured"]},{"name":"database-setup-guide","label":"Database Setup Guide","description":"Use this agent for cloud-database setup guidance — Supabase, Neon, RDS, Azure SQL, Fabric, DuckDB, MotherDuck, Snowflake, Databricks, Turso.","model":"opus","audience":["data-engineer","dev","consultant"],"works_with":["etl-pipeline-engineer","dashboard-builder"],"triggers":["Stand up a database for <client> — multi-tenant, <N> tenants, mostly <workload>","Migrate <client>'s spreadsheet sprawl to a real DB","Supabase vs Neon vs Fabric for <use case>?"]},{"name":"etl-pipeline-engineer","label":"Etl Pipeline Engineer","description":"Use this agent for ELT pipeline design and configuration — Airbyte, Fivetran, n8n, custom integrations.","model":"opus","audience":["data-engineer","dev"],"works_with":["connector-developer","database-setup-guide"],"triggers":["Set up the QBO → <warehouse> pipeline for <client>","Fivetran MAR is going to blow our budget on <client> — what now?","Airbyte vs Fivetran vs n8n for <engagement context>?"]}],"counts":{"agents":4,"skills":11,"hooks":1,"commands":5,"templates":18,"knowledge":14}},{"name":"applied-statistics","label":"Applied Statistics","version":"0.4.0","description":"Applied-statistics team — 1 specialist agent (applied-statistician) that answers 'is this difference/trend statistically REAL?' for SMB consulting: which test to use (decision-tree-driven), A/B-test and experiment design (power/MDE, primary + guardrail metrics, pre-registered analysis plans), regression and time-series forecasting review, a causal-inference primer, and statistical QA of dashboard metrics. 5 skills, a 5-doc knowledge bank (a Mermaid test-selection decision tree, a 9-item pitfalls guardrail, experiment-design best practice, 2026 tooling tiers, a causal-inference primer), 4 templates, and 1 advisory anti-pattern hook. Python-first (scipy.stats / statsmodels / pingouin Tier 1; PyMC / bambi / linearmodels Tier 2). Seams cleanly with data-platform: data-platform answers 'is this number correct?'; this plugin answers 'is it real?'. Method-before-library; always report effect size + CI. Requires ravenclaude-core@>=0.7.0.","short":"Applied-statistics team — 1 specialist agent (applied-statistician) that answers 'is this difference/trend statistically REAL?' for SMB consulting: which test t…","keywords":["applied-statistics","hypothesis-testing","ab-testing","experiment-design","power-analysis","regression","forecasting","causal-inference"],"category":"data-analytics","category_label":"Data & Analytics","requires":["ravenclaude-core@>=0.7.0"],"agents":[{"name":"applied-statistician","label":"Applied Statistician","description":"Use this agent for applied-statistics judgment on real data — \"which test do I use?\", \"is this A/B winner real?\", \"how big a sample do I need?\", \"is this dashboard movement signal or noise?\", \"what dr…","model":"opus","audience":["analyst","data-engineer","dev","consultant"],"works_with":["data-platform/dashboard-builder","ravenclaude-core/data-engineer","finance"],"triggers":["Which test should I use to compare <groups> on <metric>?","Design (or analyze) an A/B test for <change> on <primary metric>","Revenue is up 18% on the dashboard — is that real?"]}],"counts":{"agents":1,"skills":5,"hooks":1,"commands":9,"templates":4,"knowledge":6}},{"name":"microsoft-fabric","label":"Microsoft Fabric","version":"0.5.0","description":"Microsoft Fabric specialist team — 7 agents (fabric-architect, lakehouse-engineer, warehouse-engineer, data-factory-engineer, realtime-intelligence-engineer, fabric-semantic-model-engineer, fabric-admin) covering OneLake, Lakehouse (Spark/Delta/medallion/materialized lake views), Warehouse (T-SQL/ACID), Data Factory (mirroring/copy-job/dataflow-gen2/pipelines), Real-Time Intelligence (Eventstream/Eventhouse/KQL/Activator), Direct Lake semantic models, and platform admin (capacity FinOps, OneLake security, domains, Purview, ALM). 9-doc citation-grounded knowledge bank (two Mermaid decision trees + a dated 2026 capability map), 6 templates, 1 advisory hook (14 house opinions). Seams: enterprise Microsoft/Fabric here vs non-Microsoft/SMB embedded to data-platform; Fabric storage + Direct Lake here vs standalone Power BI/.pbix to power-platform/power-bi-engineer. Requires ravenclaude-core@>=0.7.0.","short":"Microsoft Fabric specialist team — 7 agents (fabric-architect, lakehouse-engineer, warehouse-engineer, data-factory-engineer, realtime-intelligence-engineer, fa…","keywords":["microsoft-fabric","onelake","lakehouse","data-warehouse","data-factory","real-time-intelligence","direct-lake","power-bi"],"category":"microsoft","category_label":"Microsoft Ecosystem","requires":["ravenclaude-core@>=0.7.0"],"agents":[{"name":"data-factory-engineer","label":"Data Factory Engineer","description":"Use this agent to get data INTO Fabric — it traverses the data-movement decision tree (Mirroring / Copy job / Copy activity in pipelines / Eventstream / Dataflow Gen2) and designs the ingestion: conne…","model":"opus","audience":["data-engineer","consultant","dev"],"works_with":["fabric-architect","lakehouse-engineer","realtime-intelligence-engineer","warehouse-engineer"],"triggers":["How should I get <source> into Fabric?","Set up incremental (or CDC) loading of <table> into the lakehouse","This pipeline is slow / failing on <step>"]},{"name":"fabric-admin","label":"Fabric Admin","description":"Use this agent for Fabric platform administration — capacity management & FinOps (SKU sizing, CU, smoothing/bursting/throttling, reservations, capacity isolation, the Capacity Metrics app), OneLake se…","model":"opus","audience":["data-engineer","consultant","compliance"],"works_with":["fabric-architect","lakehouse-engineer","warehouse-engineer","ravenclaude-core/security-reviewer"],"triggers":["My Fabric capacity is throttling / costing too much — fix it","Set up data access so <group> sees only <data> in <item>","Set up dev/test/prod CI-CD for our Fabric workspaces"]},{"name":"fabric-architect","label":"Fabric Architect","description":"Use this agent for Microsoft Fabric architecture decisions — workspace/domain topology, capacity sizing & SKU choice, the store-selection decision (lakehouse / warehouse / eventhouse / SQL DB / Cosmos…","model":"opus","audience":["data-engineer","consultant","dev"],"works_with":["lakehouse-engineer","warehouse-engineer","data-factory-engineer","fabric-admin","ravenclaude-core/architect"],"triggers":["Lakehouse or warehouse for <workload>?","Design the Fabric workspace/domain/capacity topology for <org>","Should I shortcut, mirror, or copy <source> into Fabric?"]},{"name":"fabric-semantic-model-engineer","label":"Fabric Semantic Model Engineer","description":"Use this agent for Power BI semantic models ON Fabric — Direct Lake (on-OneLake vs on-SQL), framing, DirectQuery-fallback avoidance, gold-table shaping for the model, storage-mode choice (Import / Dir…","model":"opus","audience":["data-engineer","analyst","consultant"],"works_with":["lakehouse-engineer","warehouse-engineer","power-platform/power-bi-engineer","fabric-architect"],"triggers":["Build a Direct Lake semantic model on <lakehouse/warehouse>","Why did my Direct Lake model fall back to DirectQuery / go slow?","Import, DirectQuery, or Direct Lake for <model>?"]},{"name":"lakehouse-engineer","label":"Lakehouse Engineer","description":"Use this agent to build the Fabric Lakehouse + Spark/Python data-engineering layer — medallion bronze/silver/gold, Delta tables with V-Order, the Native Execution Engine, Liquid Clustering, deletion v…","model":"opus","audience":["data-engineer","consultant","dev"],"works_with":["fabric-architect","data-factory-engineer","fabric-semantic-model-engineer","warehouse-engineer","applied-statistics/applied-statistician"],"triggers":["Build the medallion pipeline for <source> in a Fabric lakehouse","Should silver be a notebook, a materialized lake view, or a Dataflow Gen2?","This Delta table is slow / has too many small files — fix it"]},{"name":"realtime-intelligence-engineer","label":"Realtime Intelligence Engineer","description":"Use this agent for Fabric Real-Time Intelligence — Eventstream ingestion/routing, Eventhouse + KQL databases, KQL queries/querysets, Real-Time dashboards, Activator (no-code alerts/triggers/actions),…","model":"opus","audience":["data-engineer","consultant","dev"],"works_with":["data-factory-engineer","fabric-architect","fabric-semantic-model-engineer","applied-statistics/applied-statistician"],"triggers":["Ingest <stream> and show it on a real-time dashboard with alerts","Write KQL to <aggregate / detect / join> over <Eventhouse table>","Trigger <action> when <metric> crosses <threshold> in the stream"]},{"name":"warehouse-engineer","label":"Warehouse Engineer","description":"Use this agent to build and optimize the Fabric Data Warehouse — T-SQL ELT, dimensional / star-schema modeling, multi-table ACID transactions, the SQL analytics endpoint, cross-database (three-part-na…","model":"opus","audience":["data-engineer","consultant","dev"],"works_with":["fabric-architect","lakehouse-engineer","fabric-semantic-model-engineer","fabric-admin"],"triggers":["Build a star schema for <subject area> in a Fabric warehouse","Should this be a warehouse or the lakehouse SQL endpoint?","This warehouse query is slow / the capacity is throttling"]}],"counts":{"agents":7,"skills":0,"hooks":1,"commands":5,"templates":6,"knowledge":10}},{"name":"claude-app-engineering","label":"Claude App Engineering","version":"0.6.0","description":"Claude app-engineering specialist team — 6 agents (claude-solution-architect, prompt-and-context-engineer, mcp-and-server-tools-engineer, agent-sdk-engineer, eval-engineer, claude-app-ops-engineer) for building production applications on the Claude API, the Claude Agent SDK, and MCP. Covers the build-surface decision (Messages API / Agent SDK / Managed Agents), model right-sizing (Opus 4.7 / Sonnet 4.6 / Haiku 4.5, 1M context), prompt caching, tool use + structured output, MCP server authoring + Anthropic-hosted server tools (computer use, code execution, Files API, memory), evals (golden sets, LLM-as-judge), and FinOps + reliability (batch, model routing, backoff, observability). 13-doc dated-and-cited knowledge bank, 6 templates, 1 advisory hook (14 house opinions). Seams: prompt-as-artifact, security, and cross-domain architecture escalate to ravenclaude-core. Requires ravenclaude-core@>=0.7.0.","short":"Claude app-engineering specialist team — 6 agents (claude-solution-architect, prompt-and-context-engineer, mcp-and-server-tools-engineer, agent-sdk-engineer, ev…","keywords":["claude","anthropic","claude-api","claude-agent-sdk","mcp","prompt-caching","tool-use","evals"],"category":"enterprise","category_label":"Enterprise Platforms","requires":["ravenclaude-core@>=0.7.0"],"agents":[{"name":"agent-sdk-engineer","label":"Agent Sdk Engineer","description":"Use this agent to build agents with the Claude Agent SDK (Python/TypeScript) or Managed Agents — subagents, hooks, skills, slash commands, sessions (resume/fork), permissions/sandboxing, plan mode, MC…","model":"opus","audience":["dev"],"works_with":["claude-solution-architect","mcp-and-server-tools-engineer","prompt-and-context-engineer","ravenclaude-core/security-reviewer"],"triggers":["Build an Agent SDK agent that does <task>","Add a <PreToolUse hook / subagent / skill> to my agent","Move my Agent SDK prototype to Managed Agents"]},{"name":"claude-app-ops-engineer","label":"Claude App Ops Engineer","description":"Use this agent for Claude app production ops — token-cost FinOps (cache hit rate, the model routing ladder, the Batch API, cost-per-resolved-task), reliability (429/overloaded exponential backoff + ji…","model":"opus","audience":["dev"],"works_with":["prompt-and-context-engineer","claude-solution-architect","eval-engineer","ravenclaude-core/security-reviewer"],"triggers":["My Claude API bill is too high — cut it","Handle 429s / overloaded errors and make the app reliable under load","Add observability / cost + latency dashboards to my Claude app"]},{"name":"claude-solution-architect","label":"Claude Solution Architect","description":"Use this agent to decide HOW to build a Claude-backed feature — the build-surface choice (Messages API vs Claude Agent SDK vs Managed Agents vs Workbench), model right-sizing (Opus 4.7 / Sonnet 4.6 /…","model":"opus","audience":["dev"],"works_with":["prompt-and-context-engineer","agent-sdk-engineer","claude-app-ops-engineer","ravenclaude-core/architect"],"triggers":["Should I build <feature> on the Messages API, the Agent SDK, or Managed Agents?","Which Claude model + deployment (API / Bedrock / Vertex / Foundry) for <workload>?","Architect a Claude app that does <X>"]},{"name":"eval-engineer","label":"Eval Engineer","description":"Use this agent to measure Claude app quality — eval design, golden datasets, programmatic + LLM-as-judge grading, regression suites, and the before/after delta that gates a prompt/model/tool change.","model":"opus","audience":["dev"],"works_with":["prompt-and-context-engineer","agent-sdk-engineer","claude-app-ops-engineer","ravenclaude-core/prompt-engineer"],"triggers":["Set up evals for <app/feature>","Did changing <prompt/model> regress quality?","My LLM judge is unreliable / expensive"]},{"name":"mcp-and-server-tools-engineer","label":"Mcp And Server Tools Engineer","description":"Use this agent to connect Claude to external systems — authoring MCP servers (tools/resources/prompts/sampling/elicitation over stdio / SSE / Streamable HTTP, with auth) and using Anthropic-hosted ser…","model":"opus","audience":["dev"],"works_with":["prompt-and-context-engineer","agent-sdk-engineer","claude-solution-architect","ravenclaude-core/security-reviewer"],"triggers":["Build an MCP server for <system>","Should <capability> be an MCP server or an in-process tool?","Set up <computer use / code execution / the Files API / the memory tool> for <app>"]},{"name":"prompt-and-context-engineer","label":"Prompt And Context Engineer","description":"Use this agent to engineer the application's prompt + context + tool layer on the Claude API — prompt-caching strategy (breakpoints, TTL, hit rate), 1M-context management, structured output, adaptive/…","model":"opus","audience":["dev"],"works_with":["claude-solution-architect","mcp-and-server-tools-engineer","eval-engineer","ravenclaude-core/prompt-engineer"],"triggers":["Design the prompt + caching strategy for <app> / my cache hit rate is low","Make Claude return structured <shape> reliably","Design the tools (and the loop) for <app>"]}],"counts":{"agents":6,"skills":0,"hooks":1,"commands":5,"templates":6,"knowledge":14}},{"name":"azure-cloud","label":"Azure Cloud","version":"0.4.1","description":"Azure cloud infrastructure & platform specialist team — 7 agents (azure-architect, bicep-iac-engineer, entra-identity-engineer, network-engineer, app-platform-engineer, integration-engineer, azure-ops-engineer) for the Azure layer under the Microsoft stack: landing zones / CAF, IaC (Bicep + Terraform + Azure Verified Modules + Deployment Stacks), Entra identity (managed identity, workload identity federation, RBAC, PIM, External ID), networking (Private Endpoints, hub-spoke, Front Door, WAF), compute selection (App Service / Container Apps / Functions / AKS), integration (Logic Apps, Service Bus, Event Grid, APIM), and observability + FinOps + governance. 10-doc dated knowledge bank (two Mermaid decision trees + a 2026 capability map), 6 templates, 1 advisory hook (16 house opinions). Seams: Logic Apps here vs Power Automate to power-platform; Fabric data to microsoft-fabric; Azure host here vs Claude app to claude-app-engineering. Requires ravenclaude-core@>=0.7.0.","short":"Azure cloud infrastructure & platform specialist team — 7 agents (azure-architect, bicep-iac-engineer, entra-identity-engineer, network-engineer, app-platform-e…","keywords":["azure","bicep","terraform","landing-zones","entra-id","managed-identity","container-apps","azure-functions"],"category":"microsoft","category_label":"Microsoft Ecosystem","requires":["ravenclaude-core@>=0.7.0"],"agents":[{"name":"app-platform-engineer","label":"App Platform Engineer","description":"Use this agent to choose and configure where an app runs on Azure — the compute decision (App Service / Container Apps / Functions Flex Consumption / Static Web Apps / AKS), scaling, deployment slots,…","model":"opus","audience":["dev"],"works_with":["azure-architect","bicep-iac-engineer","network-engineer","claude-app-engineering/claude-solution-architect"],"triggers":["Where should <app> run on Azure? / App Service or Container Apps or Functions?","Host our Claude app on Azure (Container Apps / Functions / Foundry)","My App Service / Container App / Function is slow / not scaling / cold-starting"]},{"name":"azure-architect","label":"Azure Architect","description":"Use this agent for Azure architecture decisions — landing zones / CAF (management-group + subscription topology, subscription vending), the cross-service 'which Azure service?' adjudication, the non-F…","model":"opus","audience":["consultant","dev"],"works_with":["bicep-iac-engineer","network-engineer","entra-identity-engineer","azure-ops-engineer","ravenclaude-core/architect"],"triggers":["Design our Azure landing zone / management-group + subscription topology","Which Azure service should I use for <workload>?","Review this Azure architecture for reliability / cost / security"]},{"name":"azure-ops-engineer","label":"Azure Ops Engineer","description":"Use this agent for Azure operations — observability (Azure Monitor / Log Analytics / workspace-based Application Insights / OpenTelemetry), FinOps (budgets, cost alerts, Log Analytics cost control via…","model":"opus","audience":["consultant","dev"],"works_with":["azure-architect","bicep-iac-engineer","ravenclaude-core/documentarian","ravenclaude-core/security-reviewer"],"triggers":["My Azure bill is too high — cut it","Add observability / monitoring to <workload>","Enforce governance / Azure Policy / Defender across our subscriptions"]},{"name":"bicep-iac-engineer","label":"Bicep Iac Engineer","description":"Use this agent to author Azure Infrastructure-as-Code — Bicep (and Terraform azurerm), Azure Verified Modules, Deployment Stacks, what-if/plan previews, preflight policy, remote state, and the CI/CD p…","model":"opus","audience":["dev"],"works_with":["azure-architect","network-engineer","entra-identity-engineer","app-platform-engineer"],"triggers":["Write the Bicep (or Terraform) for <resources>","Should we use Bicep or Terraform?","Set up the CI/CD pipeline to deploy our Azure infra"]},{"name":"entra-identity-engineer","label":"Entra Identity Engineer","description":"Use this agent for Microsoft Entra identity & access on Azure — managed identity vs app registration vs workload identity federation (passwordless), RBAC least-privilege, PIM just-in-time elevation, E…","model":"opus","audience":["dev"],"works_with":["bicep-iac-engineer","azure-architect","network-engineer","ravenclaude-core/security-reviewer"],"triggers":["Set up passwordless auth for <CI/CD or external workload>","Design RBAC + PIM so <team> has least-privilege access to <scope>","Set up customer identity (CIAM) for our app"]},{"name":"integration-engineer","label":"Integration Engineer","description":"Use this agent to connect systems on Azure — Logic Apps (workflows), Service Bus (commands/messaging), Event Grid (events), Event Hubs (streaming), API Management (published APIs), and Functions glue.","model":"opus","audience":["dev"],"works_with":["azure-architect","bicep-iac-engineer","app-platform-engineer","power-platform/flow-engineer"],"triggers":["Connect <system A> to <system B> on Azure / orchestrate <workflow>","Service Bus or Event Grid for <scenario>?","Publish <API> with API Management"]},{"name":"network-engineer","label":"Network Engineer","description":"Use this agent for Azure networking & connectivity — VNet/subnet design, Private Endpoints + Private DNS (deny-public-by-default for PaaS data planes), hub-spoke vs Virtual WAN, NSG/UDR, Azure Front D…","model":"opus","audience":["dev"],"works_with":["azure-architect","bicep-iac-engineer","app-platform-engineer","ravenclaude-core/security-reviewer"],"triggers":["Lock down public access to <Key Vault / Storage / SQL / Cosmos>","Design our hub-spoke (or Virtual WAN) network topology","Add a WAF in front of <app> / choose Front Door vs App Gateway"]}],"counts":{"agents":7,"skills":0,"hooks":1,"commands":5,"templates":6,"knowledge":11}},{"name":"salesforce","label":"Salesforce","version":"0.4.2","description":"Salesforce practitioner team — 5 agents (apex-engineer, flow-automation-architect, agentforce-architect, salesforce-platform-architect, salesforce-reviewer) covering governor-safe bulkified Apex (triggers/async/services), declarative automation by density (Flow vs Apex), Agentforce agent design (topics/subagents, Agent Script determinism, RAG grounding, Trust Layer), org architecture (data model, OWD→role→sharing→Apex security model, 2GP packaging/DevOps, LDV), and a forked review rubric (the 15 house opinions as pass/fail). 9-doc citation-grounded knowledge bank (9 Mermaid decision trees, dated 2026-05-30), 5 skills, 5 templates, 1 advisory hook (grep-able anti-patterns: SOQL/DML-in-loop, hard-coded IDs, SeeAllData=true, missing with-sharing). Seams: integration→azure-cloud, analytics→data-platform/microsoft-fabric, LWC styling→web-design, methodology/DevOps/security-review→ravenclaude-core. Requires ravenclaude-core@>=0.7.0.","short":"Salesforce practitioner team — 5 agents (apex-engineer, flow-automation-architect, agentforce-architect, salesforce-platform-architect, salesforce-reviewer) cov…","keywords":["salesforce","apex","soql","lwc","flow","agentforce","atlas-reasoning-engine","governor-limits"],"category":"enterprise","category_label":"Enterprise Platforms","requires":["ravenclaude-core@>=0.7.0"],"agents":[{"name":"agentforce-architect","label":"Agentforce Architect","description":"Use for designing Agentforce agents — topics, actions, the Atlas reasoning engine, determinism levels, and the Einstein Trust Layer.","model":"sonnet","audience":["admins","salesforce-engineers","architects"],"works_with":["salesforce-platform-architect","apex-engineer","ravenclaude-core/security-reviewer"],"triggers":["design an Agentforce agent for this","should this be an agent or a Flow","expose this Apex to an agent"]},{"name":"apex-engineer","label":"Apex Engineer","description":"Use for writing, fixing, and reviewing server-side Apex — triggers, classes, async (Batch/Queueable/Future/Schedulable), SOQL/SOSL, and test classes.","model":"sonnet","audience":["developers","salesforce-engineers","architects"],"works_with":["salesforce-reviewer","salesforce-platform-architect","ravenclaude-core/security-reviewer","ravenclaude-core/tester-qa"],"triggers":["this trigger hits SOQL limits in bulk","this needs to run async","write tests for this Apex"]},{"name":"flow-automation-architect","label":"Flow Automation Architect","description":"Use for declarative-automation decisions — which automation tool to use, whether something should be code at all, automation-density triage on an object, and record-triggered Flow design.","model":"sonnet","audience":["admins","salesforce-engineers","architects"],"works_with":["apex-engineer","salesforce-reviewer","salesforce-platform-architect"],"triggers":["too many automations are firing on this object","should this be a Flow or Apex","build a record-triggered Flow for this"]},{"name":"salesforce-platform-architect","label":"Salesforce Platform Architect","description":"Use for cross-cutting Salesforce platform decisions — data model, sharing & visibility, large-data-volume design, packaging (2GP), DevOps/release pipelines, and integration patterns.","model":"opus","audience":["architects","salesforce-engineers","platform-engineers"],"works_with":["apex-engineer","flow-automation-architect","agentforce-architect","salesforce-reviewer","ravenclaude-core/security-reviewer","azure-cloud/app-platform-engineer"],"triggers":["design the sharing model for this org","this object will hold tens of millions of rows","how should Salesforce talk to this external system"]},{"name":"salesforce-reviewer","label":"Salesforce Reviewer","description":"Use to review Salesforce code and config against the 15 house opinions as a pass/fail rubric — Apex bulk-safety, trigger structure, recursion, sharing/FLS, SOQL binding, bulk tests, automation density…","model":"opus","audience":["reviewers","salesforce-engineers","architects"],"works_with":["apex-engineer","flow-automation-architect","agentforce-architect","salesforce-platform-architect","ravenclaude-core/security-reviewer"],"triggers":["review this Apex PR","is this trigger bulk-safe","review this Flow for density"]}],"counts":{"agents":5,"skills":5,"hooks":1,"commands":8,"templates":5,"knowledge":13}},{"name":"microsoft-365-copilot","label":"Microsoft 365 Copilot","version":"0.4.0","description":"Microsoft 365 Copilot extensibility & administration team — 6 agents (copilot-extensibility-architect, declarative-agent-engineer, graph-connector-engineer, api-plugin-engineer, agents-sdk-engineer, copilot-admin-governance) covering declarative agents (pinned manifest schema + the 50/25/4096/45s hard-limit wall), custom-engine agents on the M365 Agents SDK/Toolkit, Copilot (Graph) connectors (synced vs federated/MCP, semantic labels, ACL trimming), API plugins (OpenAPI + Entra/OAuth2), the app-package publish lifecycle, and M365 Agent Registry + Purview DLP-for-Copilot governance. 9-doc citation-grounded knowledge bank (two Mermaid decision trees), 5 skills, 5 templates, 1 advisory hook (15 house opinions). Disjoint from power-platform's Copilot Studio low-code coverage (cross-linked). Seams: Copilot Studio → power-platform; CEA engine → claude-app-engineering; Entra/hosting → azure-cloud; security → ravenclaude-core. Requires ravenclaude-core@>=0.7.0.","short":"Microsoft 365 Copilot extensibility & administration team — 6 agents (copilot-extensibility-architect, declarative-agent-engineer, graph-connector-engineer, api…","keywords":["microsoft-365-copilot","copilot-extensibility","declarative-agent","custom-engine-agent","copilot-connector","graph-connector","api-plugin","agents-sdk"],"category":"microsoft","category_label":"Microsoft Ecosystem","requires":["ravenclaude-core@>=0.7.0"],"agents":[{"name":"agents-sdk-engineer","label":"Agents Sdk Engineer","description":"Use this agent to build a Microsoft 365 CUSTOM-ENGINE AGENT on the M365 Agents SDK (the Bot Framework SDK successor) and the Agents Toolkit (`atk`, the Teams Toolkit successor, with the Playground) —…","model":"opus","audience":["dev"],"works_with":["copilot-extensibility-architect","declarative-agent-engineer","copilot-admin-governance","claude-app-engineering/claude-solution-architect","azure-cloud/app-platform-engineer"],"triggers":["Build a custom-engine agent that <does iterative / proactive / off-M365 work>","Convert my declarative agent to a CEA / my DA hit the hard-limit wall","Publish my agent to Teams and web / migrate my Bot Framework bot"]},{"name":"api-plugin-engineer","label":"Api Plugin Engineer","description":"Use this agent to turn a REST API into a Microsoft 365 Copilot API PLUGIN / action — the four-file architecture (app manifest + plugin manifest + OpenAPI spec + adaptive-card templates), the plugin-ma…","model":"opus","audience":["dev"],"works_with":["copilot-extensibility-architect","declarative-agent-engineer","graph-connector-engineer","azure-cloud/entra-identity-engineer"],"triggers":["Turn this API into a Copilot action / build an API plugin for <service>","Add OAuth / Entra auth to my Copilot plugin / my plugin gets 401","My operationId mapping is wrong / Copilot won't call my action / the wrong operation fires"]},{"name":"copilot-admin-governance","label":"Copilot Admin Governance","description":"Use this agent for Microsoft 365 Copilot ADMINISTRATION & GOVERNANCE — the M365 admin center Agent Registry lifecycle (agent + MCP-tool approval by AI-Admin/Global-Admin), the app-package publish path…","model":"opus","audience":["dev","admin"],"works_with":["copilot-extensibility-architect","graph-connector-engineer","agents-sdk-engineer","power-platform/power-platform-admin"],"triggers":["Approve/govern this agent / set up the Agent Registry / who approves agents and MCP tools?","Remediate oversharing before we turn on Copilot / Copilot surfaces things people shouldn't see","Where does our Copilot data live? / EU Data Boundary / audit + eDiscovery for Copilot"]},{"name":"copilot-extensibility-architect","label":"Copilot Extensibility Architect","description":"Use this agent to choose HOW to extend Microsoft 365 Copilot — declarative agent vs custom-engine agent vs (the seam) Copilot Studio; which grounding source (synced/federated connector vs SharePoint k…","model":"opus","audience":["dev"],"works_with":["declarative-agent-engineer","graph-connector-engineer","api-plugin-engineer","agents-sdk-engineer","copilot-admin-governance","power-platform/copilot-studio-engineer","claude-app-engineering/claude-solution-architect"],"triggers":["Declarative agent or custom-engine? / How should I extend Copilot for <use case>?","Will this fit in a declarative agent? / Why is my Copilot agent timing out / truncating?","Should I build this in Agent Builder/Agents Toolkit or Copilot Studio?"]},{"name":"declarative-agent-engineer","label":"Declarative Agent Engineer","description":"Use this agent to author or review a Microsoft 365 Copilot DECLARATIVE AGENT — the manifest (pinned schema, currently v1.7), the instructions (within the ~8,000-char budget), capabilities (web search…","model":"opus","audience":["dev"],"works_with":["copilot-extensibility-architect","graph-connector-engineer","api-plugin-engineer","copilot-admin-governance"],"triggers":["Build a declarative agent that does <X> / write the manifest","My instructions are too long / my agent ignores its grounding / RAI validation fails","Should I build this in Agent Builder or Agents Toolkit? / add an API action to my agent"]},{"name":"graph-connector-engineer","label":"Graph Connector Engineer","description":"Use this agent to design and build a Microsoft 365 Copilot (Graph) CONNECTOR — synced (index into the Microsoft Graph, semantic ranking, ACL-trimmed) vs federated (real-time over MCP, no index); the s…","model":"opus","audience":["dev"],"works_with":["copilot-extensibility-architect","declarative-agent-engineer","api-plugin-engineer","copilot-admin-governance","microsoft-fabric/fabric-architect"],"triggers":["Index <line-of-business source> into Copilot / design the connector schema","Synced or federated connector? / do I need real-time data in Copilot?","My connector data doesn't show up in Copilot / the wrong items rank / users see items they shouldn't"]}],"counts":{"agents":6,"skills":5,"hooks":1,"commands":5,"templates":5,"knowledge":10}},{"name":"tableau","label":"Tableau","version":"0.2.1","description":"Tableau analytics team — specialist agents for Tableau Desktop/Cloud/Server, Tableau Prep, and the developer surface: VizQL and chart-type selection, calculations (LOD expressions, table calcs, FIXED/INCLUDE/EXCLUDE), data modeling (relationships vs joins vs blends, extracts vs live), workbook/extract performance, Server/Cloud governance and permissions, content/ALM promotion, embedding (Embedding API v3, Connected Apps/JWT), and the next-gen surface (Tableau Pulse, Tableau Next, CRM Analytics, Einstein/Agent). Citation-grounded knowledge bank with Mermaid decision trees + a best-practices library. Seams: Salesforce platform data → salesforce; warehouse/semantic modeling → data-platform/microsoft-fabric; Power BI comparison → power-platform; methodology/security-review → ravenclaude-core. Requires ravenclaude-core@>=0.7.0.","short":"Tableau analytics team — specialist agents for Tableau Desktop/Cloud/Server, Tableau Prep, and the developer surface: VizQL and chart-type selection, calculatio…","keywords":["tableau","vizql","lod-expressions","table-calculations","tableau-prep","tableau-server","tableau-cloud","extracts"],"category":"data-analytics","category_label":"Data & Analytics","requires":["ravenclaude-core@>=0.7.0"],"agents":[{"name":"tableau-admin","label":"Tableau Admin","description":"Use for Tableau Server/Cloud governance — sites/projects/permissions (the locked-project model), Row-Level Security (user filters vs entitlements-table/data-policy RLS), content promotion/ALM (Content…","model":"opus","audience":["platform-admins","analytics-engineers","architects"],"works_with":["tableau-data-architect","tableau-viz-engineer","ravenclaude-core/security-reviewer","ravenclaude-core/documentarian"],"triggers":["set up permissions so Finance and Sales can't see each other's workbooks","each regional manager should only see their region","embed this dashboard in our portal with per-tenant data isolation"]},{"name":"tableau-data-architect","label":"Tableau Data Architect","description":"Use for Tableau data modeling and performance — relationships vs joins vs blends, extracts vs live connections (Hyper), extract optimization (aggregation, hidden fields, incremental refresh), Tableau…","model":"sonnet","audience":["analytics-engineers","data-analysts","bi-developers","architects"],"works_with":["tableau-viz-engineer","tableau-admin","ravenclaude-core/security-reviewer","data-platform"],"triggers":["should this be a relationship, a join, or a blend?","this dashboard takes 40 seconds to load","this extract takes too long to refresh"]},{"name":"tableau-viz-engineer","label":"Tableau Viz Engineer","description":"Use for the Tableau developer craft — chart-type/VizQL selection, calculations (LOD FIXED/INCLUDE/EXCLUDE, table calcs with explicit addressing/partitioning, aggregate vs row-level), dashboard layout…","model":"sonnet","audience":["analysts","bi-developers","data-viz-designers","tableau-engineers"],"works_with":["tableau-data-architect","tableau-admin","ravenclaude-core/code-reviewer","ravenclaude-core/security-reviewer"],"triggers":["this number is double-counting / the total is wrong","which chart should I use for this?","build this dashboard / make these views talk to each other"]}],"counts":{"agents":3,"skills":0,"hooks":0,"commands":5,"templates":0,"knowledge":3}},{"name":"microsoft-graph","label":"Microsoft Graph","version":"0.3.0","description":"Microsoft Graph developer team — specialist agents for the Graph API surface: querying (OData $select/$filter/$expand/$search, paging, $batch, change tracking via delta), throttling/429 + retry discipline, the Graph SDKs; identity & authorization on Entra (app registration, delegated vs application permissions, scopes/consent, least-privilege, auth-code/client-credentials/OBO flows, certificate creds); and the workloads (users/groups, mail/calendar, Teams, SharePoint/OneDrive files, change notifications/subscriptions + lifecycle, Graph connectors). Citation-grounded knowledge bank with Mermaid decision trees + a best-practices library. Seams: Copilot Graph connectors → microsoft-365-copilot; Entra tenant/identity infrastructure → azure-cloud; Power Platform Dataverse → power-platform; methodology/security-review → ravenclaude-core. Requires ravenclaude-core@>=0.7.0.","short":"Microsoft Graph developer team — specialist agents for the Graph API surface: querying (OData $select/$filter/$expand/$search, paging, $batch, change tracking v…","keywords":["microsoft-graph","graph-api","entra-id","oauth2","delegated-permissions","application-permissions","consent","odata"],"category":"microsoft","category_label":"Microsoft Ecosystem","requires":["ravenclaude-core@>=0.7.0"],"agents":[{"name":"graph-api-engineer","label":"Graph Api Engineer","description":"Use for shaping, paging, batching, and hardening Microsoft Graph API calls — OData query shaping ($select/$filter/$expand/$search/$count), advanced query (ConsistencyLevel: eventual), paging to exhaus…","model":"sonnet","audience":["developers","integration-engineers","platform-engineers"],"works_with":["graph-identity-engineer","graph-workloads-engineer","ravenclaude-core/security-reviewer"],"triggers":["this GET /users is slow and returns everything","I poll /users every hour to find what changed","we're getting 429s in production"]},{"name":"graph-identity-engineer","label":"Graph Identity Engineer","description":"Use for Microsoft Graph identity and authorization — Entra app registration, delegated vs application permissions, scopes + admin consent, least-privilege permission selection, auth flows (auth-code +…","model":"sonnet","audience":["developers","graph-engineers","identity-engineers","architects"],"works_with":["graph-api-engineer","graph-workloads-engineer","ravenclaude-core/security-reviewer","azure-cloud/entra-identity"],"triggers":["which permission do I need to read users — and is it delegated or app?","set up app-only auth for a daemon that runs on Azure","consent is failing / this scope list looks too broad"]},{"name":"graph-workloads-engineer","label":"Graph Workloads Engineer","description":"Use for the Microsoft Graph workload surfaces — users/groups & directory objects, mail/calendar (Outlook), Teams (chat/channel messages, lifecycle), SharePoint/OneDrive files (driveItems, large-file u…","model":"sonnet","audience":["developers","m365-engineers","integration-engineers","architects"],"works_with":["graph-api-engineer","graph-identity-engineer","ravenclaude-core/security-reviewer","microsoft-365-copilot/graph-connector-engineer"],"triggers":["subscribe to changes / set up a Graph webhook","upload a large file to OneDrive/SharePoint","read all Teams messages / post to a channel"]}],"counts":{"agents":3,"skills":0,"hooks":1,"commands":5,"templates":0,"knowledge":3}},{"name":"ai-coding-model-guidance","label":"Ai Coding Model Guidance","version":"0.2.0","description":"Cross-tool AI-coding model guidance — three strategist agents that help you reason about model selection in the non-Claude coding ecosystems: GitHub Copilot's model picker (completions / chat / coding agent / cloud agent + org model rules), OpenAI Codex (CLI + cloud model lineup, reasoning levels, /model), and xAI Grok (Grok 4.x lineup + the coding-tool surface). Teaches the DURABLE reasoning — task-complexity → reasoning-level → cost-tier → surface — over a single citation-grounded, dated lineup that is the marketplace's freshness anchor for non-Claude model facts. Volatile specifics (prices, context windows, picker availability) carry retrieval dates + a re-verify-at-use rider, and the agents fetch live before quoting. Seam: when the answer is a CLAUDE model or a Claude-app build, escalate to claude-app-engineering/claude-solution-architect — this plugin owns the non-Claude tools. Requires ravenclaude-core@>=0.7.0.","short":"Cross-tool AI-coding model guidance — three strategist agents that help you reason about model selection in the non-Claude coding ecosystems: GitHub Copilot's m…","keywords":["github-copilot","copilot-model-picker","openai-codex","codex-cli","gpt-5","xai-grok","grok","model-selection"],"category":"specialized","category_label":"Specialized","requires":["ravenclaude-core@>=0.7.0"],"agents":[{"name":"codex-model-strategist","label":"Codex Model Strategist","description":"Use for choosing a model AND reasoning level in OpenAI Codex (CLI + cloud) — GPT-5.5 as the start-here default, GPT-5.5-Pro for the hard 1%, GPT-5.3-Codex / GPT-5-Codex for long autonomous agentic run…","model":"sonnet","audience":["developers","engineering-leads","platform-engineers"],"works_with":["copilot-model-strategist","grok-model-strategist","claude-app-engineering/claude-solution-architect","ravenclaude-core/deep-researcher"],"triggers":["which Codex model should I run for this?","this problem is hard — bigger model or more reasoning?","I'm handing Codex a multi-hour task and won't watch it"]},{"name":"copilot-model-strategist","label":"Copilot Model Strategist","description":"Use for choosing a model in GitHub Copilot's model picker across surfaces — code completion, Copilot Chat, the coding agent, the cloud agent, and mobile — plus org-level model rules and plan-gated ava…","model":"sonnet","audience":["developers","engineering-leads","platform-engineers"],"works_with":["codex-model-strategist","grok-model-strategist","claude-app-engineering/claude-solution-architect","ravenclaude-core/deep-researcher"],"triggers":["which Copilot model should I use for this?","a model vanished from Copilot Chat on the web — is it gone?","restrict which Copilot models my org can pick"]},{"name":"grok-model-strategist","label":"Grok Model Strategist","description":"Use for choosing an xAI Grok model for coding work — Grok 4.3 as the current flagship/default, Grok 4.1 Fast / Grok 4.20 for very-long-context or multi-agent runs — and for the critical migration warn…","model":"sonnet","audience":["developers","engineering-leads","platform-engineers"],"works_with":["copilot-model-strategist","codex-model-strategist","claude-app-engineering/claude-solution-architect","ravenclaude-core/deep-researcher"],"triggers":["which Grok model should I use?","I'm still calling grok-code-fast-1","I need a huge context window on Grok cheaply"]}],"counts":{"agents":3,"skills":0,"hooks":0,"commands":0,"templates":0,"knowledge":1}},{"name":"project-management","label":"Project Management","version":"0.2.0","description":"Project & delivery management team — four specialists across the predictive (PMBOK/PMP) and agile (Scrum/Kanban) tracks and the hybrid between: delivery-lead (charter, schedule, scope/change control, earned value), scrum-master (backlog, sprints, ceremonies, velocity, impediments), risk-and-raid-analyst (scored qual+quant risk, RAID depth, mitigation/contingency, issue triage), and stakeholder-comms-lead (stakeholder register, comms plan, status/exec reporting, escalation memos, steering packs). Deepens — does NOT replace — ravenclaude-core's domain-neutral project-manager (the lightweight RAID/status-hygiene default every plugin routes to); this is the deep PM craft layer. Knowledge: a predictive-vs-agile-vs-hybrid decision tree + a best-practices library. Seams: prose polish → ravenclaude-core/documentarian; system design → architect. Requires ravenclaude-core@>=0.7.0.","short":"Project & delivery management team — four specialists across the predictive (PMBOK/PMP) and agile (Scrum/Kanban) tracks and the hybrid between: delivery-lead (c…","keywords":["project-management","pmbok","pmp","agile","scrum","kanban","raid-log","risk-management"],"category":"core-orchestration","category_label":"Core & Orchestration","requires":["ravenclaude-core@>=0.7.0"],"agents":[{"name":"delivery-lead","label":"Delivery Lead","description":"Use this agent for predictive (PMBOK/PMP) delivery management — project charter, scope statement + WBS, schedule/critical path, baselines, integrated change control, and earned-value (EV/SV/CV/SPI/CPI…","model":"sonnet","audience":["consultant","pm","dev"],"works_with":["scrum-master","risk-and-raid-analyst","stakeholder-comms-lead"],"triggers":["Draft the charter + scope + WBS for <project>","We want to add <feature> — run it through change control","Give me earned-value status as of this period"]},{"name":"risk-and-raid-analyst","label":"Risk And Raid Analyst","description":"Use this agent for risk-and-RAID depth beyond hygiene — a real risk register (qualitative probability×impact scoring AND quantitative ranges/EMV where warranted), mitigation vs contingency vs acceptan…","model":"sonnet","audience":["pm","consultant","dev"],"works_with":["delivery-lead","scrum-master","stakeholder-comms-lead"],"triggers":["Build the risk register for <project>","Quantify the schedule risk on <dependency>","Here are this week's issues — triage and escalate"]},{"name":"scrum-master","label":"Scrum Master","description":"Use this agent for the agile track — product backlog shaping, sprint planning, the Scrum ceremonies (planning / daily / review / retro), velocity + capacity, impediment removal, and Kanban WIP/flow wh…","model":"sonnet","audience":["psm","dev","consultant"],"works_with":["delivery-lead","risk-and-raid-analyst","stakeholder-comms-lead"],"triggers":["Plan sprint <n> — here's the backlog and our capacity","Our velocity swings wildly sprint to sprint — why?","Should this team run Scrum or Kanban?"]},{"name":"stakeholder-comms-lead","label":"Stakeholder Comms Lead","description":"Use this agent for the PMO / stakeholder-communications lane — stakeholder register + power/interest mapping, a communications plan (who hears what, how often, in what channel), recurring status/exec…","model":"sonnet","audience":["consultant","pm","psm"],"works_with":["delivery-lead","scrum-master","risk-and-raid-analyst"],"triggers":["Map the stakeholders for <project> and build a comms plan","Build this month's steering pack","We need to escalate <issue> to the sponsor — draft it"]}],"counts":{"agents":4,"skills":4,"hooks":0,"commands":0,"templates":5,"knowledge":1}}],"featured":[{"title":"Microsoft delivery stack","plugins":["power-platform","azure-cloud","microsoft-fabric"],"blurb":"Build, host, and analyze across the Microsoft cloud — low-code apps, Azure infra, and Fabric data in one team."},{"title":"Data-driven product","plugins":["data-platform","applied-statistics","web-design"],"blurb":"Ship embedded analytics that are correct, real, and beautifully presented — engineering, statistics, and design."},{"title":"Claude-native application","plugins":["claude-app-engineering","ravenclaude-core"],"blurb":"Architect a production app on the Claude API / Agent SDK with the orchestration core underneath."},{"title":"Regulated finance shop","plugins":["finance","regulatory-compliance"],"blurb":"FP&A and financial modeling alongside AML/KYC and regulatory-reporting craft."}],"posture":{"presets":[{"id":"strict_production","label":"Strict Production","blurb":"Maximum guardrails. Reads inside the project run free; every mutation and anything that leaves the repo pauses or is blocked.","design_checkins":true,"global_default":"ask","levels":{"file_read_project":"allow","file_read_global":"ask","file_edit_project":"ask","file_edit_global":"deny","shell_readonly":"allow","shell_local_mutate":"ask","shell_remote_mutate":"deny","shell_code_exec":"ask","shell_package_install":"ask","network_read":"allow","network_write":"deny","mcp_tools":"ask"}},{"id":"client_delivery","label":"Client Delivery","blurb":"The recommended balance. Local development runs without prompts; anything reaching outside the repo prompts first.","design_checkins":true,"global_default":"ask","levels":{"file_read_project":"allow","file_read_global":"ask","file_edit_project":"allow","file_edit_global":"ask","shell_readonly":"allow","shell_local_mutate":"allow","shell_remote_mutate":"ask","shell_code_exec":"ask","shell_package_install":"ask","network_read":"allow","network_write":"ask","mcp_tools":"ask"}},{"id":"exploratory","label":"Exploratory","blurb":"Fast iteration on a throwaway or solo repo. Most actions run freely; only writes that leave the repo still pause.","design_checkins":false,"global_default":"allow","levels":{"file_read_project":"allow","file_read_global":"allow","file_edit_project":"allow","file_edit_global":"ask","shell_readonly":"allow","shell_local_mutate":"allow","shell_remote_mutate":"ask","shell_code_exec":"allow","shell_package_install":"allow","network_read":"allow","network_write":"ask","mcp_tools":"allow"}},{"id":"maximum_autonomy","label":"Maximum Autonomy","blurb":"Hands-off. Every category is ALLOW — the always-on security floor is the only thing left blocking. Use with care.","design_checkins":false,"global_default":"allow","levels":{"file_read_project":"allow","file_read_global":"allow","file_edit_project":"allow","file_edit_global":"allow","shell_readonly":"allow","shell_local_mutate":"allow","shell_remote_mutate":"allow","shell_code_exec":"allow","shell_package_install":"allow","network_read":"allow","network_write":"allow","mcp_tools":"allow"}}],"categories":[{"id":"file_read_project","title":"Read files in this project","group":"Files","description":"Reading source files inside the current project directory.","guidance":"Reading source files is essentially free — Claude can't break anything by looking. Most users keep this on 'Allow'. Tighten to 'Ask' or 'Deny' only if your project has files Claude shouldn't routinely scan (a checked-in keystore, a vendored secret, a generated SBOM with binary blobs).","recommended":"allow"},{"id":"file_edit_project","title":"Edit files in this project","group":"Files","description":"Creating or modifying files inside the current project.","guidance":"If you want to review every change before it lands, set this to 'Ask'. If you trust Claude to refactor or generate freely and rely on git for review, 'Allow' works — the diff is visible after the fact. Pair with 'Ask' on shell_remote_mutate so Claude can edit freely but still pauses before pushing.","recommended":"allow"},{"id":"file_read_global","title":"Read files outside this project","group":"Files","description":"Reading anything outside the current project directory.","guidance":"Almost always set to 'Ask' or 'Deny'. Files outside your project often contain secrets — SSH keys, AWS creds, browser cookies, ~/.netrc. Only relax this if you have a specific reason (e.g., a single global config the agent legitimately needs to consult).","recommended":"ask"},{"id":"file_edit_global","title":"Edit files outside this project","group":"Files","description":"Writing to your home directory or system paths.","guidance":"Keep this on 'Ask' or 'Deny' unless you have a specific reason. CVE-2026-39861 is the canonical example of what goes wrong when sandboxed code escapes the workspace and writes outside. The few cases where you DO want global edits (e.g., updating ~/.gitconfig) are infrequent enough that asking is fine.","recommended":"ask"},{"id":"shell_readonly","title":"Read-only shell commands","group":"Shell","description":"ls, cat, git status, grep, find. Cheap shell with no side effects.","guidance":"Claude Code already auto-allows many of these via its built-in READONLY_COMMANDS list, so the prompt rate is already low. 'Allow' is usually right — 'never ask for cheap shell' is the most common preference. Tighten only if you want every command logged into the prompt history.","recommended":"allow"},{"id":"shell_local_mutate","title":"Local shell mutations","group":"Shell","description":"mkdir, mv, cp, git commit. Changes filesystem locally.","guidance":"Local mutations are usually recoverable — git history catches deletes, files can be restored. 'Ask' or 'Allow' is the typical choice. Tighten if you're working in a directory where moves/deletes would be hard to recover (e.g., a folder Claude shouldn't restructure without confirmation).","recommended":"allow"},{"id":"shell_remote_mutate","title":"Remote shell mutations","group":"Shell","description":"git push, gh pr create, npm publish — anything that touches a shared system.","guidance":"Most users keep this on 'Ask' to preserve the review step. The cost of a wrong push isn't just the bad commit — it's the explanation to teammates, the revert PR, the audit trail. Even when Claude is 'usually right,' the asymmetric cost makes confirming each push worth it.","recommended":"ask"},{"id":"shell_code_exec","title":"Arbitrary code execution","group":"Shell","description":"python -c, node -e, bash -c, eval.","guidance":"This is the category most often abused in security incidents — Cursor's settings.json injection (GHSA-ff64-7w26-62rf) ended in arbitrary `python -c` execution via SessionStart hooks. 'Ask' is the safe default. Don't relax this unless you have a specific reason (e.g., a sandboxed REPL where exec is the whole point).","recommended":"ask"},{"id":"shell_package_install","title":"Package installs","group":"Shell","description":"npm install, pip install, apt install, brew install.","guidance":"Most users keep this on 'Ask' so you can review the package name and source before it lands. Supply-chain attacks (typosquats, malicious updates of legitimate packages) are real — the request to install something is the right place to pause.","recommended":"ask"},{"id":"network_read","title":"Web reads","group":"Network","description":"WebFetch on known documentation domains; HTTP GETs.","guidance":"'Allow' is usually right — Claude needs to look things up to give grounded answers. Tighten to 'Ask' only if you're worried about data exfiltration via URL parameters (e.g., Claude embedding sensitive strings in a GET) — rare but possible.","recommended":"allow"},{"id":"network_write","title":"Web writes","group":"Network","description":"POST, PUT, DELETE — anything that mutates remote state.","guidance":"Keep this on 'Ask' unless you're operating in a sandbox where remote writes are explicitly part of the workflow (e.g., a test environment with disposable resources). The 'I clicked the wrong button' cost is asymmetric — confirming each one is cheap.","recommended":"ask"},{"id":"mcp_tools","title":"MCP server tools","group":"Other","description":"Tools provided by connected MCP servers.","guidance":"MCP trust is best done server-by-server, not globally. Keep this on 'Ask' as a safety net and configure trusted servers individually in your Claude Code config. A blanket 'Allow' here means any MCP server you add automatically gets full autonomy — usually not what you want.","recommended":"ask"}],"security_floor":["Bash(rm -rf:*)","Bash(git push --force:*)","Bash(git push -f:*)","Bash(git reset --hard:*)","Bash(git clean -fd:*)","Bash(npm publish:*)","Bash(curl * | sh)","Bash(curl * | bash)","Bash(sudo:*)","Bash(mkfs:*)","Bash(shred:*)","Bash(git branch -D:*)","Read(.env)","Read(.env.*)","Read(**/*.pem)","Read(**/*.key)","Read(**/credentials*)","Read(**/secrets*)","Read(~/.ssh/**)","Read(~/.aws/**)","Read(~/.azure/**)","Read(~/.kube/config)"],"levels":["deny","ask","allow"]},"collab_rules":[{"title":"Core stays domain-neutral","body":"The ravenclaude-core plugin never absorbs domain specifics. Power Platform, finance, Salesforce, web, and data each live in their own plugin and extend core via skills + knowledge, not parallel agents."},{"title":"Team Lead dispatches, specialists execute","body":"Requests route through the Team Lead, which selects the smaller-blast-radius specialist using the dispatch playbooks rather than keyword-matching the task to a method."},{"title":"Structured Output Protocol on every handoff","body":"Agents hand off with a structured envelope so the next agent — or the human — gets a predictable summary, decisions, and open questions."},{"title":"Capability Grounding before 'I can't'","body":"A command-not-found, a 401/403, or an unloaded MCP tool is evidence about one route — never proof a capability is absent. Load the sanctioned route and try ≥2 alternatives before reporting blocked."},{"title":"Claim grounding & source honesty","body":"Consequential claims cite the this-session check that backs them or are marked unverified. Confident reasoning errors are treated as as dangerous as hallucinations."},{"title":"Gates are the source of truth","body":"Format, lint, test, layout, and frontmatter gates enforce the rules. Agents don't restate what CI / hooks already guarantee."}],"quick_actions":[{"id":"init-team","label":"Initialize Team","desc":"Scaffold AGENTS.md, CLAUDE.md & layout via /init-agent-ready","icon":"rocket","command":"/init-agent-ready"},{"id":"posture","label":"Comfort Posture Editor","desc":"Tune per-category deny / ask / allow permissions","icon":"sliders","route":"#/configuration"},{"id":"repo-guide","label":"Generate Repo Guide","desc":"Open the full per-agent reference & use-case lookup","icon":"book","href":"repo-guide.html"},{"id":"staging","label":"Contribution Staging Loop","desc":"Stage a finding into the marketplace via /wrap","icon":"git","command":"/wrap"}]};
+    </script>
+    <script>
+      "use strict";
+      const D = window.__RC_DATA__;
+      const $ = (s, r = document) => r.querySelector(s);
+      const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+      const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      const byName = (n) => D.plugins.find((p) => p.name === n);
+
+      /* ---------------- Icons ---------------- */
+      const ICONS = {
+        home: '<path d="M3 11l9-7 9 7v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+        team: '<circle cx="9" cy="8" r="3"/><path d="M2 20c0-3.3 3.1-5 7-5s7 1.7 7 5"/><path d="M16 5a3 3 0 0 1 0 6"/><path d="M22 20c0-2.4-1.5-4-4-4.5"/>',
+        market: '<path d="M3 3h18v4H3z"/><path d="M5 7v12h14V7"/><path d="M9 11h6"/>',
+        config: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+        resources: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+        hub: '<circle cx="12" cy="12" r="2.5"/><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M10.2 10.2 6.5 6.5M13.8 10.2l3.7-3.7M10.2 13.8l-3.7 3.7M13.8 13.8l3.7 3.7"/>',
+        windows: '<path d="M3 5.5 10.5 4.5v7H3zM10.5 4.3 21 3v8.5H10.5zM3 12.5h7.5v7L3 18.5zM10.5 12.5H21V21l-10.5-1.5z"/>',
+        building: '<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 7h.01M15 7h.01M9 11h.01M15 11h.01M9 15h.01M15 15h.01M10 21v-3h4v3"/>',
+        palette: '<path d="M12 22a10 10 0 1 1 0-20 8 8 0 0 1 8 8c0 2.2-1.8 3-4 3h-1a2 2 0 0 0-1 3.7A2 2 0 0 1 12 22z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16.5" cy="10.5" r="1"/>',
+        chart: '<path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="13" width="3" height="4"/>',
+        shield: '<path d="M12 2 4 5v6c0 5 3.4 8.5 8 11 4.6-2.5 8-6 8-11V5z"/><path d="m9 12 2 2 4-4"/>',
+        sparkle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+        rocket: '<path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2 0-2.8a2 2 0 0 0-3 .2z"/><path d="M12 15l-3-3a22 22 0 0 1 8-10c2 0 4 2 4 4a22 22 0 0 1-10 8z"/><path d="M9 12H4s.5-3 2-4 5 0 5 0M12 15v5s3-.5 4-2 0-5 0-5"/>',
+        sliders: '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+        book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+        git: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="9" r="3"/><path d="M6 9v6M18 12c0 3-4 3-6 3"/>',
+        copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
+        download: '<path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
+        spark: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+        info: '<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/>',
+        plus: '<path d="M12 5v14M5 12h14"/>',
+        tree: '<circle cx="12" cy="4" r="2"/><circle cx="5" cy="20" r="2"/><circle cx="19" cy="20" r="2"/><path d="M12 6v4M12 10 5 18M12 10l7 8"/>',
+        check: '<path d="m20 6-11 11-5-5"/>',
+        external: '<path d="M15 3h6v6M10 14 21 3M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/>',
+      };
+      const svg = (name, cls = "") => `<svg ${cls ? 'class="' + cls + '" ' : ""}viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[name] || ICONS.sparkle}</svg>`;
+
+      /* ---------------- Sidebar nav ---------------- */
+      const NAV = [
+        { id: "home", label: "Home", icon: "home" },
+        { id: "team", label: "Team", icon: "team" },
+        { id: "marketplace", label: "Marketplace", icon: "market" },
+        { id: "configuration", label: "Configuration", icon: "config" },
+        { id: "resources", label: "Resources", icon: "resources" },
+      ];
+      function renderNav(active) {
+        $("#primary-nav").innerHTML =
+          '<div class="group-label">Platform</div>' +
+          NAV.map((n) => `<a class="nav-item${n.id === active ? " active" : ""}" href="#/${n.id}" data-nav="${n.id}"${n.id === active ? ' aria-current="page"' : ""}>${svg(n.icon)}<span class="label">${n.label}</span></a>`).join("");
+      }
+
+      /* ---------------- Toast ---------------- */
+      let toastT;
+      function toast(msg) {
+        const t = $("#toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        clearTimeout(toastT);
+        toastT = setTimeout(() => t.classList.remove("show"), 2400);
+      }
+      function copyText(text, label) {
+        navigator.clipboard?.writeText(text).then(
+          () => toast((label || "Copied") + " to clipboard"),
+          () => toast("Copy failed — select & copy manually")
+        );
+      }
+      window.__copy = copyText;
+
+      /* ---------------- HOME ---------------- */
+      function viewHome() {
+        const s = D.stats;
+        const qa = D.quick_actions.map((a) => {
+          const href = a.route || a.href || "#/home";
+          const onclick = a.command ? ` onclick="window.__copy('${esc(a.command)}','Command ${esc(a.command)}'); return ${a.href || a.route ? "true" : "false"};"` : "";
+          const tag = a.href ? "a" : a.route ? "a" : "button";
+          const attrs = a.href ? `href="${esc(a.href)}"` : a.route ? `href="${esc(a.route)}"` : "type=\"button\"";
+          return `<${tag} class="card"${onclick} ${attrs} style="display:block">
+            <div class="action-tile"><span class="ico">${svg(a.icon)}</span><span><span class="t">${esc(a.label)}</span><span class="d">${esc(a.desc)}</span></span></div>
+          </${tag}>`;
+        }).join("");
+
+        const featured = D.featured.map((f) => {
+          const plugins = f.plugins.map(byName).filter(Boolean);
+          const tags = plugins.map((p) => `<span class="chip teal">${esc(p.label)}</span>`).join("");
+          const total = plugins.reduce((n, p) => n + p.counts.agents, 0);
+          return `<div class="card"><div style="font-weight:700">${esc(f.title)}</div>
+            <p class="desc" style="color:var(--muted);font-size:.86rem;margin:8px 0 0">${esc(f.blurb)}</p>
+            <div class="tags">${tags}</div>
+            <div class="metrics" style="margin-top:12px;font-size:.76rem;color:var(--faint)"><span><b style="color:var(--teal-2)">${total}</b> specialists combined</span></div>
+            <div class="pc-foot" style="margin-top:14px"><a class="btn" href="#/marketplace">View in marketplace</a></div></div>`;
+        }).join("");
+
+        const activity = [
+          { t: `Marketplace catalog at v${D.marketplace_version} — ${s.plugins} plugins published`, w: D.generated_date },
+          { t: `Dashboard regenerated from live repo data`, w: D.generated_date },
+          { t: `${s.specialists} specialist agents across the roster`, w: D.generated_date },
+        ].map((a) => `<div class="activity-item"><span class="dot"></span><span>${esc(a.t)}</span><span class="when">${esc(a.w)}</span></div>`).join("");
+
+        $("#view").innerHTML = `
+          <section class="hero">
+            <span class="pill">${svg("spark")} Private Claude Code marketplace · v${esc(D.marketplace_version)}</span>
+            <h1>The <span class="accent">AI Engineering Team</span> Platform</h1>
+            <p>A domain-neutral orchestration core plus ${s.plugins - 1} specialist teams — Microsoft, Salesforce, web, data, finance and compliance — wired into Claude Code with a point-and-click permission posture you control.</p>
+            <div class="hero-cta">
+              <a class="btn primary" href="#/marketplace">${svg("market")} Explore the Marketplace</a>
+              <a class="btn" href="#/configuration">${svg("sliders")} Tune Comfort Posture</a>
+              <a class="btn ghost" href="repo-guide.html">${svg("book")} Full Repo Guide</a>
+            </div>
+          </section>
+
+          <div class="stats">
+            <div class="card stat"><span class="v">${s.plugins}</span><span class="k">Active Plugins</span><span class="sub">in the catalog</span></div>
+            <div class="card stat"><span class="v">${s.specialists}</span><span class="k">Specialists</span><span class="sub">agents on the roster</span></div>
+            <div class="card stat"><span class="v">${s.hooks}</span><span class="k">Active Hooks</span><span class="sub">gates & guardrails</span></div>
+            <div class="card stat"><span class="v">${s.skills}</span><span class="k">Skills</span><span class="sub">invokable capabilities</span></div>
+          </div>
+
+          <div class="section-title"><h2>Quick actions</h2><span class="hint">one click to the things you do most</span></div>
+          <div class="grid cols-4">${qa}</div>
+
+          <div class="section-title"><h2>Featured plugin combinations</h2><span class="hint">teams that work well together</span></div>
+          <div class="grid cols-2">${featured}</div>
+
+          <div class="section-title"><h2>Recent activity</h2><span class="hint">generated snapshot</span></div>
+          <div class="card">${activity}<p style="color:var(--faint);font-size:.8rem;margin:14px 0 0">Live activity (PR events, posture changes) streams here once wired to the session feed.</p></div>
+        `;
+      }
+
+      /* ---------------- TEAM ---------------- */
+      const allAgents = () => D.plugins.flatMap((p) => p.agents.map((a) => ({ ...a, plugin: p.name, pluginLabel: p.label, domain: p.category_label })));
+      function viewTeam() {
+        const agents = allAgents();
+        const domains = [...new Set(agents.map((a) => a.domain))].sort();
+        $("#view").innerHTML = `
+          <div class="page-head"><span class="eyebrow">The Team</span><h1>Specialist roster &amp; collaboration</h1>
+            <p class="lede">${agents.length} agents across ${D.plugins.length} plugins. The Team Lead dispatches; specialists execute. Filter the roster, browse the skills &amp; hooks library, and review the rules that govern hand-offs.</p></div>
+
+          <div class="section-title"><h2>Agents roster</h2><span class="hint" id="roster-count"></span></div>
+          <div class="roster-controls">
+            <input type="search" id="roster-q" placeholder="Filter by name or description…" aria-label="Filter agents" />
+            <select id="roster-domain" aria-label="Filter by domain"><option value="">All domains</option>${domains.map((d) => `<option>${esc(d)}</option>`).join("")}</select>
+            <select id="roster-plugin" aria-label="Filter by plugin"><option value="">All plugins</option>${D.plugins.map((p) => `<option value="${esc(p.name)}">${esc(p.label)}</option>`).join("")}</select>
+          </div>
+          <div class="grid cols-3" id="roster-grid"></div>
+
+          <div class="section-title"><h2>Dispatch playbooks</h2><span class="hint">how work is routed</span></div>
+          <div class="grid cols-3">
+            ${[
+              { t: "Route by blast radius", d: "The Team Lead traverses the decision tree and picks the smaller-blast-radius specialist rather than keyword-matching the request to a method." },
+              { t: "Escalate across domains", d: "Cross-domain or security-sensitive work escalates to ravenclaude-core (architect / security-reviewer) before a specialist proceeds." },
+              { t: "Hand off structured", d: "Every hand-off carries the Structured Output Protocol envelope — summary, decisions, artifacts, open questions — so the next agent has full context." },
+            ].map((x) => `<div class="card"><div style="display:flex;gap:10px;align-items:center"><span class="ico" style="width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--teal-soft);color:var(--teal-2);border:1px solid var(--border-strong)">${svg("tree")}</span><b>${esc(x.t)}</b></div><p style="color:var(--muted);font-size:.85rem;margin:10px 0 0">${esc(x.d)}</p></div>`).join("")}
+          </div>
+
+          <div class="section-title"><h2>Skills &amp; hooks library</h2><span class="hint">per plugin · ${D.stats.skills} skills · ${D.stats.hooks} hooks</span></div>
+          <div id="lib-list"></div>
+
+          <div class="section-title"><h2>Collaboration rules</h2><span class="hint">the constitution, summarized</span></div>
+          <div class="grid cols-2">
+            ${D.collab_rules.map((r) => `<div class="card"><div style="display:flex;gap:10px;align-items:center"><span style="color:var(--teal-2)">${svg("check")}</span><b>${esc(r.title)}</b></div><p style="color:var(--muted);font-size:.86rem;margin:10px 0 0">${esc(r.body)}</p></div>`).join("")}
+          </div>
+        `;
+        // Library
+        $("#lib-list").innerHTML = D.plugins.filter((p) => p.counts.skills || p.counts.hooks || p.counts.commands).map((p) => `
+          <details class="lib"><summary>${esc(p.label)} <span class="chip teal" style="margin-left:4px">${p.counts.skills} skills</span> <span class="chip">${p.counts.hooks} hooks</span> <span class="chip">${p.counts.commands} commands</span><span class="caret">${svg("tree")}</span></summary>
+            <div class="lib-body">${esc(p.short)}<div class="pill-row">${p.keywords.map((k) => `<span class="chip">${esc(k)}</span>`).join("")}</div></div></details>`).join("");
+
+        // Roster filtering
+        const grid = $("#roster-grid");
+        function renderRoster() {
+          const q = $("#roster-q").value.toLowerCase().trim();
+          const dom = $("#roster-domain").value;
+          const plg = $("#roster-plugin").value;
+          const list = agents.filter((a) =>
+            (!dom || a.domain === dom) && (!plg || a.plugin === plg) &&
+            (!q || a.label.toLowerCase().includes(q) || (a.description || "").toLowerCase().includes(q) || a.name.toLowerCase().includes(q)));
+          $("#roster-count").textContent = `${list.length} of ${agents.length}`;
+          grid.innerHTML = list.length ? list.map((a) => `
+            <div class="card agent-card">
+              <div class="ac-head"><span class="nm">${esc(a.label)}</span><span class="chip teal role">${esc(a.pluginLabel)}</span></div>
+              <div class="desc">${esc(a.description || "Specialist agent.")}</div>
+              ${a.triggers && a.triggers.length ? `<div class="trig">Try: <code>${esc(a.triggers[0])}</code></div>` : ""}
+            </div>`).join("") : `<div class="empty-state">No agents match those filters.</div>`;
+        }
+        ["roster-q", "roster-domain", "roster-plugin"].forEach((id) => { $("#" + id).addEventListener("input", renderRoster); });
+        renderRoster();
+      }
+
+      /* ---------------- MARKETPLACE ---------------- */
+      let mktState = { cat: "all", q: "" };
+      function viewMarketplace(catId) {
+        mktState.cat = catId || "all";
+        const cats = D.categories;
+        const counts = {};
+        D.plugins.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
+        const navBtns = `<button data-cat="all" class="${mktState.cat === "all" ? "active" : ""}">${svg("market")} All plugins <span class="count">${D.plugins.length}</span></button>` +
+          cats.map((c) => `<button data-cat="${c.id}" class="${mktState.cat === c.id ? "active" : ""}">${svg(c.icon)} ${esc(c.label)} <span class="count">${counts[c.id] || 0}</span></button>`).join("");
+
+        $("#view").innerHTML = `
+          <div class="page-head"><span class="eyebrow">Marketplace</span><h1>Browse the plugin catalog</h1>
+            <p class="lede">${D.plugins.length} opinionated plugins, grouped by domain. Each ships specialist agents, skills, and a knowledge bank. Pick a category or search across everything.</p></div>
+          <div class="mkt-filters">
+            <input type="search" id="mkt-q" placeholder="Search plugins by name, description or technology…" value="${esc(mktState.q)}" aria-label="Search plugins" />
+          </div>
+          <div class="mkt">
+            <nav class="mkt-nav" id="mkt-nav" aria-label="Plugin categories">${navBtns}</nav>
+            <div id="mkt-grid"></div>
+          </div>`;
+
+        function pluginCard(p) {
+          const reqs = (p.requires || []).length ? `<span class="chip">requires core</span>` : "";
+          return `<div class="card plugin-card">
+            <div class="pc-head"><span class="ico" style="width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--teal-soft);color:var(--teal-2);border:1px solid var(--border-strong)">${svg((cats.find((c) => c.id === p.category) || {}).icon || "sparkle")}</span><span class="nm">${esc(p.label)}</span><span class="ver">v${esc(p.version)}</span></div>
+            <p class="desc">${esc(p.short)}</p>
+            <div class="metrics"><span><b>${p.counts.agents}</b> specialists</span><span><b>${p.counts.skills}</b> skills</span><span><b>${p.counts.knowledge}</b> knowledge docs</span></div>
+            <div class="tags">${p.keywords.slice(0, 5).map((k) => `<span class="chip">${esc(k)}</span>`).join("")} ${reqs}</div>
+            <div class="pc-foot"><button class="btn primary" type="button" onclick="window.__copy('/plugin install ${esc(p.name)}@ravenclaude','Install command')">${svg("plus")} Add to Project</button><button class="btn" type="button" onclick="window.__openPlugin('${esc(p.name)}')">Details</button></div>
+          </div>`;
+        }
+        function renderGrid() {
+          const q = mktState.q.toLowerCase().trim();
+          let list = D.plugins.filter((p) => mktState.cat === "all" || p.category === mktState.cat);
+          if (q) list = list.filter((p) => (p.label + " " + p.description + " " + p.keywords.join(" ")).toLowerCase().includes(q));
+          const cat = cats.find((c) => c.id === mktState.cat);
+          const head = cat ? `<div class="callout" style="margin-bottom:18px">${svg("info")}<span><b>${esc(cat.label)}</b> — ${esc(cat.blurb)}</span></div>` : "";
+          $("#mkt-grid").innerHTML = head + (list.length ? `<div class="grid cols-2">${list.map(pluginCard).join("")}</div>` : `<div class="empty-state">No plugins match “${esc(mktState.q)}”.</div>`);
+        }
+        $("#mkt-nav").addEventListener("click", (e) => {
+          const b = e.target.closest("button"); if (!b) return;
+          mktState.cat = b.dataset.cat;
+          $$("#mkt-nav button").forEach((x) => x.classList.toggle("active", x === b));
+          if (mktState.cat === "all") { history.replaceState(null, "", "#/marketplace"); } else { history.replaceState(null, "", "#/marketplace/" + mktState.cat); }
+          renderGrid();
+        });
+        $("#mkt-q").addEventListener("input", (e) => { mktState.q = e.target.value; renderGrid(); });
+        renderGrid();
+      }
+      window.__openPlugin = function (name) {
+        const p = byName(name); if (!p) return;
+        const cats = D.categories;
+        const agents = p.agents.map((a) => `<div class="card agent-card" style="padding:14px"><div class="ac-head"><span class="nm">${esc(a.label)}</span></div><div class="desc">${esc(a.description || "")}</div>${a.triggers && a.triggers[0] ? `<div class="trig">Try: <code>${esc(a.triggers[0])}</code></div>` : ""}</div>`).join("");
+        $("#view").innerHTML = `
+          <a class="btn ghost" href="#/marketplace/${p.category}" style="margin-bottom:18px">← Back to ${esc((cats.find((c) => c.id === p.category) || {}).label || "Marketplace")}</a>
+          <div class="page-head"><span class="eyebrow">${esc(p.category_label)}</span><h1>${esc(p.label)} <span style="font-family:var(--font-mono);font-size:1rem;color:var(--faint)">v${esc(p.version)}</span></h1>
+            <p class="lede">${esc(p.description)}</p>
+            <div class="hero-cta" style="margin-top:16px"><button class="btn primary" type="button" onclick="window.__copy('/plugin install ${esc(p.name)}@ravenclaude','Install command')">${svg("plus")} Copy install command</button></div></div>
+          <div class="stats">
+            <div class="card stat"><span class="v">${p.counts.agents}</span><span class="k">Specialists</span></div>
+            <div class="card stat"><span class="v">${p.counts.skills}</span><span class="k">Skills</span></div>
+            <div class="card stat"><span class="v">${p.counts.templates}</span><span class="k">Templates</span></div>
+            <div class="card stat"><span class="v">${p.counts.knowledge}</span><span class="k">Knowledge docs</span></div>
+          </div>
+          ${agents ? `<div class="section-title"><h2>Specialists</h2></div><div class="grid cols-3">${agents}</div>` : ""}
+          <div class="tags" style="margin-top:20px">${p.keywords.map((k) => `<span class="chip">${esc(k)}</span>`).join("")}</div>`;
+        $("#view").focus();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      };
+
+      /* ---------------- CONFIGURATION ---------------- */
+      const posture = { levels: {}, design_checkins: true, global_default: "ask", activePreset: "client_delivery" };
+      function applyPreset(id) {
+        const pr = D.posture.presets.find((p) => p.id === id);
+        if (!pr) return;
+        posture.levels = { ...pr.levels };
+        posture.design_checkins = pr.design_checkins;
+        posture.global_default = pr.global_default;
+        posture.activePreset = id;
+      }
+      function postureYaml() {
+        const lines = ["# Generated by the RavenClaude comfort-posture editor", "# Drop into .ravenclaude/comfort-posture.yaml, then run apply-comfort-posture.py", "schema_version: 5", "", `design_checkins: ${posture.design_checkins}`, `global_default: ${posture.global_default}`, "", "security_deny:"];
+        D.posture.security_floor.forEach((r) => lines.push(`  - ${JSON.stringify(r)}`));
+        lines.push("", "categories:");
+        D.posture.categories.forEach((c) => {
+          const lvl = posture.levels[c.id] || posture.global_default;
+          lines.push(`  ${c.id}:`, "    user: inherit", "    local: inherit", `    project: ${lvl}`);
+        });
+        return lines.join("\n");
+      }
+      function viewConfiguration() {
+        if (!Object.keys(posture.levels).length) applyPreset(posture.activePreset);
+        const groups = {};
+        D.posture.categories.forEach((c) => { (groups[c.group] = groups[c.group] || []).push(c); });
+        const presetRow = D.posture.presets.map((p) => `<button class="preset-btn${p.id === posture.activePreset ? " active" : ""}" data-preset="${p.id}"><span>${esc(p.label)}</span><small>${esc(p.blurb)}</small></button>`).join("");
+        const groupHtml = Object.entries(groups).map(([g, cats]) => `
+          <div class="pcat-group"><h4>${esc(g)}</h4>${cats.map((c) => `
+            <div class="pcat" data-cat="${c.id}">
+              <div class="pc-info"><div class="t">${esc(c.title)}</div><div class="d">${esc(c.description)}${c.recommended ? ` · <span style="color:var(--teal-2)">recommended: ${esc(c.recommended)}</span>` : ""}</div></div>
+              <div class="seg" role="group" aria-label="${esc(c.title)} level">${D.posture.levels.map((lv) => `<button type="button" data-level="${lv}" data-cat="${c.id}">${lv}</button>`).join("")}</div>
+            </div>`).join("")}</div>`).join("");
+
+        $("#view").innerHTML = `
+          <div class="page-head"><span class="eyebrow">Configuration</span><h1>Comfort posture &amp; environment</h1>
+            <p class="lede">Set how much your agents do without asking — per category, on a deny / ask / allow scale. Start from a profile, fine-tune, then copy the generated <code>comfort-posture.yaml</code>. The always-on security floor can never be relaxed.</p></div>
+
+          <div class="callout" style="margin-bottom:20px">${svg("info")}<span>This editor produces the <b>project-layer</b> baseline. For the full per-layer (user / local / project) editor with live writes to <code>.claude/settings.json</code>, open the deep dashboard via <code>/dashboard</code> or <a href="plugins/ravenclaude-core/dashboard.html">dashboard.html</a>.</span></div>
+
+          <div class="section-title"><h2>Preset profiles</h2><span class="hint">a starting point — tune below</span></div>
+          <div class="preset-row" id="preset-row">${presetRow}</div>
+
+          <div class="config-grid">
+            <div>
+              <div class="toggle-row"><label class="switch"><input type="checkbox" id="design-checkins" ${posture.design_checkins ? "checked" : ""}><span class="track"></span></label><div><div style="font-weight:600">Design check-ins</div><div style="color:var(--muted);font-size:.82rem">Pause for architectural decisions before implementing them.</div></div></div>
+              <div class="toggle-row"><div style="font-weight:600;min-width:120px">Global default</div><div class="seg" id="global-default" role="group" aria-label="Global default level">${D.posture.levels.map((lv) => `<button type="button" data-level="${lv}">${lv}</button>`).join("")}</div><div style="color:var(--muted);font-size:.82rem">Fallback for any category left unset.</div></div>
+              ${groupHtml}
+              <div class="section-title"><h2>Always-on security floor</h2><span class="hint">layer-independent · never relaxed</span></div>
+              <div class="floor-list">${D.posture.security_floor.map((r) => `<code>${esc(r)}</code>`).join("")}</div>
+            </div>
+            <div class="yaml-panel">
+              <div class="yp-head">${svg("sliders")}<b>comfort-posture.yaml</b></div>
+              <pre id="yaml-out"></pre>
+              <div class="pc-foot" style="margin-top:12px"><button class="btn primary" type="button" id="copy-yaml">${svg("copy")} Copy</button><button class="btn" type="button" id="dl-yaml">${svg("download")} Download</button></div>
+              <div class="section-title" style="margin-top:24px"><h2 style="font-size:1.05rem">Plugin activation</h2></div>
+              <div id="plugin-toggles"></div>
+            </div>
+          </div>
+
+          <div class="section-title"><h2>Environment context</h2><span class="hint">discovered at session start</span></div>
+          <div class="grid cols-2">
+            <div class="card"><b>Network policy</b><p style="color:var(--muted);font-size:.85rem;margin:8px 0 0">Outbound access is governed by the environment's network policy chosen at creation. See the <a href="https://code.claude.com/docs/en/claude-code-on-the-web" target="_blank" rel="noopener">Claude Code on the web docs ${svg("external")}</a>.</p></div>
+            <div class="card"><b>Run environment discovery</b><p style="color:var(--muted);font-size:.85rem;margin:8px 0 0">Map which credentials your environment can reach with the <code>environment-discovery</code> skill, then record it in <code>.ravenclaude/environment-context.md</code>.</p></div>
+          </div>`;
+
+        const yamlOut = $("#yaml-out");
+        function refresh() {
+          // segmented states
+          $$(".pcat .seg button").forEach((b) => b.classList.toggle("on", posture.levels[b.dataset.cat] === b.dataset.level));
+          $$("#global-default button").forEach((b) => b.classList.toggle("on", posture.global_default === b.dataset.level));
+          $$("#preset-row .preset-btn").forEach((b) => b.classList.toggle("active", b.dataset.preset === posture.activePreset));
+          $("#design-checkins").checked = posture.design_checkins;
+          yamlOut.textContent = postureYaml();
+        }
+        $("#preset-row").addEventListener("click", (e) => { const b = e.target.closest(".preset-btn"); if (!b) return; applyPreset(b.dataset.preset); refresh(); toast(`Applied “${b.querySelector("span").textContent}” profile`); });
+        $$(".pcat .seg button").forEach((b) => b.addEventListener("click", () => { posture.levels[b.dataset.cat] = b.dataset.level; posture.activePreset = "custom"; refresh(); }));
+        $$("#global-default button").forEach((b) => b.addEventListener("click", () => { posture.global_default = b.dataset.level; refresh(); }));
+        $("#design-checkins").addEventListener("change", (e) => { posture.design_checkins = e.target.checked; refresh(); });
+        $("#copy-yaml").addEventListener("click", () => copyText(postureYaml(), "comfort-posture.yaml"));
+        $("#dl-yaml").addEventListener("click", () => {
+          const blob = new Blob([postureYaml()], { type: "text/yaml" });
+          const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "comfort-posture.yaml"; a.click(); URL.revokeObjectURL(a.href); toast("Downloaded comfort-posture.yaml");
+        });
+        $("#plugin-toggles").innerHTML = D.plugins.slice().sort((a, b) => a.label.localeCompare(b.label)).map((p) => `
+          <div class="toggle-row" style="padding:9px 0"><label class="switch"><input type="checkbox" ${p.name === "ravenclaude-core" ? "checked disabled" : "checked"}><span class="track"></span></label><div style="min-width:0"><div style="font-weight:600;font-size:.9rem">${esc(p.label)}</div><div style="color:var(--faint);font-size:.74rem">v${esc(p.version)}${p.name === "ravenclaude-core" ? " · required" : ""}</div></div></div>`).join("");
+        refresh();
+      }
+
+      /* ---------------- RESOURCES ---------------- */
+      function viewResources() {
+        const totalTemplates = D.plugins.reduce((n, p) => n + p.counts.templates, 0);
+        const totalKnowledge = D.plugins.reduce((n, p) => n + p.counts.knowledge, 0);
+        const templateCards = D.plugins.filter((p) => p.counts.templates).sort((a, b) => b.counts.templates - a.counts.templates).map((p) => `
+          <div class="card"><div style="display:flex;align-items:center;gap:8px"><span style="color:var(--teal-2)">${svg("book")}</span><b>${esc(p.label)}</b><span class="ver" style="margin-left:auto;font-family:var(--font-mono);font-size:.72rem;color:var(--faint)">${p.counts.templates} templates</span></div><p style="color:var(--muted);font-size:.82rem;margin:8px 0 0">${esc(p.short)}</p></div>`).join("");
+        const treeCards = D.plugins.filter((p) => p.counts.knowledge).sort((a, b) => b.counts.knowledge - a.counts.knowledge).slice(0, 9).map((p) => `
+          <div class="card"><div style="display:flex;align-items:center;gap:8px"><span style="color:var(--teal-2)">${svg("tree")}</span><b>${esc(p.label)}</b><span class="ver" style="margin-left:auto;font-family:var(--font-mono);font-size:.72rem;color:var(--faint)">${p.counts.knowledge} docs</span></div><p style="color:var(--muted);font-size:.82rem;margin:8px 0 0">Citation-grounded knowledge bank with decision trees &amp; best-practice libraries.</p></div>`).join("");
+
+        $("#view").innerHTML = `
+          <div class="page-head"><span class="eyebrow">Resources</span><h1>Templates, decision trees &amp; knowledge</h1>
+            <p class="lede">${totalTemplates} templates and ${totalKnowledge} knowledge docs ship across the marketplace. Export the full documentation or jump into a plugin's knowledge bank.</p></div>
+
+          <div class="grid cols-4" style="margin-bottom:8px">
+            <a class="card" href="repo-guide.html" style="display:block"><div class="action-tile"><span class="ico">${svg("book")}</span><span><span class="t">Full Repo Guide</span><span class="d">Per-agent reference &amp; “I want to…” lookup</span></span></div></a>
+            <a class="card" href="README.md" style="display:block"><div class="action-tile"><span class="ico">${svg("info")}</span><span><span class="t">README</span><span class="d">Marketplace overview &amp; setup</span></span></div></a>
+            <a class="card" href="plugins/ravenclaude-core/dashboard.html" style="display:block"><div class="action-tile"><span class="ico">${svg("sliders")}</span><span><span class="t">Deep Dashboard</span><span class="d">Full posture &amp; tribunal controls</span></span></div></a>
+            <a class="card" href="CHANGELOG.md" style="display:block"><div class="action-tile"><span class="ico">${svg("git")}</span><span><span class="t">Changelog</span><span class="d">Version history</span></span></div></a>
+          </div>
+
+          <div class="section-title"><h2>Templates gallery</h2><span class="hint">${totalTemplates} starter artifacts</span></div>
+          <div class="grid cols-3">${templateCards}</div>
+
+          <div class="section-title"><h2>Decision trees &amp; knowledge banks</h2><span class="hint">top knowledge banks</span></div>
+          <div class="grid cols-3">${treeCards}</div>
+
+          <div class="section-title"><h2>Best practices &amp; anti-patterns</h2></div>
+          <div class="grid cols-2">
+            <div class="card"><div style="display:flex;align-items:center;gap:8px"><span style="color:var(--allow)">${svg("check")}</span><b>House best practices</b></div><p style="color:var(--muted);font-size:.85rem;margin:8px 0 0">Method-before-library, effect-size + CI on every statistic, structured hand-offs, gates as the source of truth. Each plugin's advisory hook flags its own §3/§4 violations.</p></div>
+            <div class="card"><div style="display:flex;align-items:center;gap:8px"><span style="color:var(--danger)">${svg("info")}</span><b>Anti-patterns flagged</b></div><p style="color:var(--muted);font-size:.85rem;margin:8px 0 0">SOQL/DML-in-loop, hardcoded rates, plaintext PII, per-viewer-priced BI for SMB, p-hacking, missing Sources/Assumptions — caught by per-plugin hooks at author time.</p></div>
+          </div>
+
+          <div class="section-title"><h2>Export documentation</h2></div>
+          <div class="callout">${svg("download")}<span>Regenerate this dashboard and the full guide from source: <code>python3 scripts/generate-index-dashboard.py</code> and <code>python3 scripts/generate-repo-guide.py</code>. Both read the live catalog so the docs never drift.</span></div>`;
+      }
+
+      /* ---------------- Global search ---------------- */
+      function buildSearchIndex() {
+        const idx = [];
+        D.plugins.forEach((p) => {
+          idx.push({ kind: "plugin", label: p.label, meta: p.category_label, hay: (p.label + " " + p.description + " " + p.keywords.join(" ")).toLowerCase(), route: "#/marketplace/" + p.category, open: p.name });
+          p.agents.forEach((a) => idx.push({ kind: "agent", label: a.label, meta: p.label, hay: (a.label + " " + a.description).toLowerCase(), route: "#/team" }));
+        });
+        return idx;
+      }
+      const SEARCH_IDX = buildSearchIndex();
+      let searchCursor = -1, searchMatches = [];
+      function runSearch(q) {
+        const box = $("#search-results");
+        q = q.toLowerCase().trim();
+        if (!q) { box.classList.remove("open"); return; }
+        searchMatches = SEARCH_IDX.filter((x) => x.hay.includes(q)).slice(0, 12);
+        searchCursor = -1;
+        box.innerHTML = searchMatches.length ? searchMatches.map((m, i) => `<div class="res" data-i="${i}" role="option"><span class="kind">${m.kind}</span><span>${esc(m.label)}</span><span class="meta">${esc(m.meta)}</span></div>`).join("") : `<div class="empty">No matches for “${esc(q)}”</div>`;
+        box.classList.add("open");
+        $$("#search-results .res").forEach((el) => el.addEventListener("click", () => gotoSearch(searchMatches[+el.dataset.i])));
+      }
+      function gotoSearch(m) {
+        $("#search-results").classList.remove("open");
+        $("#search-input").value = "";
+        if (m.open) { location.hash = m.route; setTimeout(() => window.__openPlugin(m.open), 30); }
+        else location.hash = m.route;
+      }
+
+      /* ---------------- Router ---------------- */
+      function route() {
+        const hash = location.hash.replace(/^#\/?/, "") || "home";
+        const [section, sub] = hash.split("/");
+        renderNav(NAV.some((n) => n.id === section) ? section : "home");
+        document.body.classList.remove("mobile-nav-open");
+        switch (section) {
+          case "team": viewTeam(); break;
+          case "marketplace": viewMarketplace(sub); break;
+          case "configuration": viewConfiguration(); break;
+          case "resources": viewResources(); break;
+          case "home":
+          default: viewHome(); break;
+        }
+        $("#view").focus({ preventScroll: true });
+        window.scrollTo({ top: 0 });
+      }
+      window.addEventListener("hashchange", route);
+
+      /* ---------------- Chrome wiring ---------------- */
+      // Sidebar collapse (persisted)
+      if (localStorage.getItem("rc-sidebar") === "collapsed") document.body.classList.add("sidebar-collapsed");
+      $("#collapse-toggle").addEventListener("click", () => {
+        document.body.classList.toggle("sidebar-collapsed");
+        localStorage.setItem("rc-sidebar", document.body.classList.contains("sidebar-collapsed") ? "collapsed" : "open");
+      });
+      // Mobile nav
+      $("#mobile-toggle").addEventListener("click", () => document.body.classList.toggle("mobile-nav-open"));
+      $("#scrim").addEventListener("click", () => document.body.classList.remove("mobile-nav-open"));
+      // Search
+      const si = $("#search-input");
+      si.addEventListener("input", (e) => runSearch(e.target.value));
+      si.addEventListener("keydown", (e) => {
+        const box = $("#search-results");
+        if (e.key === "Escape") { si.value = ""; box.classList.remove("open"); si.blur(); }
+        else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          e.preventDefault();
+          searchCursor = Math.max(0, Math.min(searchMatches.length - 1, searchCursor + (e.key === "ArrowDown" ? 1 : -1)));
+          $$("#search-results .res").forEach((el, i) => el.classList.toggle("cursor", i === searchCursor));
+        } else if (e.key === "Enter" && searchMatches.length) {
+          gotoSearch(searchMatches[Math.max(0, searchCursor)]);
+        }
+      });
+      document.addEventListener("click", (e) => { if (!e.target.closest("#search")) $("#search-results").classList.remove("open"); });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "/" && document.activeElement !== si && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) { e.preventDefault(); si.focus(); }
+      });
+
+      route();
+    </script>
   </body>
 </html>
