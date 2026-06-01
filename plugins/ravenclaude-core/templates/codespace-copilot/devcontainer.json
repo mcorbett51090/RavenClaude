@@ -5,10 +5,20 @@
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
   "postCreateCommand": "bash .devcontainer/ravenclaude-post-create.sh",
+  // postStartCommand fires on every Codespace start AND resume (postCreateCommand
+  // only fires on first build). Auto-launch the per-repo dashboard server so the
+  // forwarded port is live the moment the Codespace is ready — no "how do I find
+  // the dashboard?" hunt. The launcher is dropped into .ravenclaude/ by
+  // `ravenclaude setup` (the postCreateCommand step above); guard on its presence
+  // so a fresh repo doesn't fail before setup has run.
+  "postStartCommand": "test -x .ravenclaude/dashboard.sh && bash .ravenclaude/dashboard.sh >/tmp/rc-dashboard-postStart.log 2>&1 || true",
   "remoteUser": "codespace",
-  // Auto-open the dashboard in the browser when the server starts on port 8000.
-  // serve-dashboards.py binds 0.0.0.0 in a Codespace so the forwarded port is
-  // reachable; onAutoForward: openBrowser opens it in a real tab (not Simple Browser).
+  // Pre-forward port 8000 so the Ports panel shows it from container start (a
+  // discoverable label, even before the server binds). onAutoForward: openBrowser
+  // then opens the URL in a real browser tab — not the VS Code Simple Browser,
+  // which sandboxes the page — the moment the server actually answers.
+  // serve-dashboards.py binds 0.0.0.0 in a Codespace so the forward is reachable.
+  "forwardPorts": [8000],
   "portsAttributes": {
     "8000": {
       "label": "RavenClaude dashboard",

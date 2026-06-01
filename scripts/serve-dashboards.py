@@ -790,6 +790,44 @@ def _read_sleipnir(project_root: Path) -> dict:
     return out
 
 
+# Module-level cache of the loaded analyzer — avoid re-importing on every request.
+_CONCERN_STATS_MOD = None
+
+
+def _read_concern_stats(project_root: Path) -> dict:
+    """Per-concern false-positive signals computed from the Sága log
+    (.ravenclaude/runs/thing/*.json). Powers the Pipeline tab's "Concern
+    reliability" card. Delegates to thing-concern-stats.py's compute() so the
+    CLI tool and the dashboard endpoint share a single source of truth.
+
+    In-process (no subprocess) — matches the Heimdall/Vidarr/Norns/Sleipnir
+    reader pattern in this file. Duplicated byte-identically in both server
+    copies — keep them in sync (the parity gate guards endpoint NAMES). Every
+    failure (missing analyzer, import error, malformed Sága entry) degrades to
+    an empty payload with an `error` field, never raises."""
+    global _CONCERN_STATS_MOD
+    empty = {"schema_version": 1, "total_reviews": 0, "concerns": []}
+    if _CONCERN_STATS_MOD is None:
+        import importlib.util
+        script = project_root / "plugins" / "ravenclaude-core" / "scripts" / "thing-concern-stats.py"
+        if not script.is_file():
+            # Bundled-plugin install ships the analyzer alongside this server.
+            script = Path(__file__).resolve().parent / "thing-concern-stats.py"
+        if not script.is_file():
+            return {**empty, "error": "analyzer not found"}
+        try:
+            spec = importlib.util.spec_from_file_location("thing_concern_stats", script)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            _CONCERN_STATS_MOD = mod
+        except Exception as e:  # noqa: BLE001 — best-effort observability tool
+            return {**empty, "error": f"analyzer import failed: {str(e)[:200]}"}
+    try:
+        return _CONCERN_STATS_MOD.compute(project_root)
+    except Exception as e:  # noqa: BLE001 — single Sága entry failure → empty, never raises
+        return {**empty, "error": str(e)[:200]}
+
+
 class DashboardHandler(SimpleHTTPRequestHandler):
     """SimpleHTTPRequestHandler + POST /__save for dashboard writes."""
 
@@ -815,7 +853,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         return True
 
     def do_HEAD(self):
-        if self.path in ("/__save", "/__run", "/__classify") or self.path.startswith("/__read") or self.path.startswith("/__saga") or self.path.startswith("/__heimdall") or self.path.startswith("/__vidarr") or self.path.startswith("/__norns") or self.path.startswith("/__nidhoggr") or self.path.startswith("/__sleipnir") or self.path.startswith("/__runs"):
+        if self.path in ("/__save", "/__run", "/__classify") or self.path.startswith("/__read") or self.path.startswith("/__saga") or self.path.startswith("/__heimdall") or self.path.startswith("/__vidarr") or self.path.startswith("/__norns") or self.path.startswith("/__nidhoggr") or self.path.startswith("/__sleipnir") or self.path.startswith("/__runs") or self.path.startswith("/__concern-stats"):
             self.send_response(200)
             self.send_header("Allow", "GET, POST, HEAD")
             self.send_header("Content-Length", "0")
@@ -860,6 +898,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if self.path.startswith("/__runs"):
             self._handle_runs()
+            return
+        if self.path.startswith("/__concern-stats"):
+            self._handle_concern_stats()
             return
         super().do_GET()
 
@@ -1104,6 +1145,19 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
         self._json(200, _read_nidhoggr(REPO_ROOT))
+
+    def _handle_concern_stats(self):
+        """GET /__concern-stats — per-concern false-positive signals computed
+        from .ravenclaude/runs/thing/*.json (the Sága log). Powers the
+        "Concern reliability" card on the Pipeline tab — surfaces concerns the
+        tribunal is over-citing so the operator can tune them. Read-only; same
+        Origin/Host CSRF guard as /__read. (Mirror of the bundled plugin server's
+        /__concern-stats with REPO_ROOT → PROJECT_ROOT — kept in lockstep per
+        the dashboard-server-parity gate.)"""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        self._json(200, _read_concern_stats(REPO_ROOT))
 
     def do_OPTIONS(self):
         if self.path in ("/__save", "/__run"):

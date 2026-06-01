@@ -204,7 +204,23 @@ SYS
 # superset of the design's separate <untrusted heredoc_body> extraction: a Bash
 # command is judged by its effect, and any instruction-shaped text anywhere in it
 # is an injection attempt, so the whole string is data to be evaluated.
+# §3b: defang ${CLAUDE_PROJECT_DIR} before inlining into the seat envelope. The
+# resolved-facts block sits OUTSIDE the nonce-wrapped <untrusted> region (it's
+# trusted orchestrator preamble), so a hostile project path containing newlines
+# or non-printable bytes could otherwise forge a second resolved-fact line and
+# launder instructions into the seat's trusted preamble. The env var is host-
+# controlled, not orchestrator-validated, so strip control chars + bound length
+# at the source. Cap at 512 chars (file system paths are typically far shorter)
+# and replace anything non-printable with '_' so the substitution is always a
+# single-line printable string.
+safe_project_dir="$(printf '%s' "${CLAUDE_PROJECT_DIR:-unknown}" | tr -d '\000-\037' | tr -c '[:print:]' '_' | cut -c1-512)"
+[ -z "$safe_project_dir" ] && safe_project_dir="unknown"
+
 user_prompt="Adjudicate this ${shape} in category ${category}.
+
+Resolved facts (from the orchestrator; do NOT contradict from your own cwd or environment):
+- Project root: ${safe_project_dir}
+- Category ${category} means: the orchestrator has already deterministically classified the target. For file_edit_project, the path has been realpath-verified to be INSIDE the project tree — do NOT cite xc.outside-project-tree. For file_edit_global, the target is outside the project tree.
 
 <untrusted-${nonce}>
 ${safe_cmd}
