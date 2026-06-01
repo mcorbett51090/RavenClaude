@@ -479,6 +479,20 @@ _PIPELINE_CSS = """<style>
 .pipe-savebar { display: flex; align-items: center; gap: .8rem; margin: 1.2rem 0 .5rem;
   position: sticky; bottom: 0; padding: .6rem 0; background: linear-gradient(transparent, var(--bg, #111) 40%); }
 .pipe-save-status { font-size: .85rem; color: var(--muted, #aaa); }
+.concern-stats { margin-top: 1.8rem; padding: 1rem 1.1rem; border: 1px solid var(--border, #2a2a2a);
+  border-radius: 8px; background: var(--surface, #161616); }
+.concern-stats h3 { margin: 0 0 .4rem; font-size: 15px; }
+.concern-stats-state { font-size: 12.5px; color: var(--muted, #999); padding: .6rem 0; }
+.concern-stats-table { width: 100%; border-collapse: collapse; margin-top: .4rem; font-size: 12.5px; }
+.concern-stats-table th, .concern-stats-table td {
+  text-align: left; padding: .35rem .5rem; border-bottom: 1px solid var(--border, #2a2a2a);
+}
+.concern-stats-table th { color: var(--muted, #999); font-weight: 600; font-size: 11.5px;
+  text-transform: uppercase; letter-spacing: .03em; }
+.concern-stats-table td.num, .concern-stats-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.concern-stats-table tr.concern-row-hot td { color: var(--warn, #fbbf24); }
+.concern-stats-table tr.concern-row-cold td { color: var(--text, #ddd); }
+.concern-stats-table code { font-family: ui-monospace, monospace; font-size: 12px; }
 </style>"""
 
 
@@ -533,6 +547,27 @@ def _render_pipeline_tab() -> str:
     <button type="button" id="pipeline-save-btn" class="btn-primary">Save &amp; apply</button>
     <span id="pipeline-save-status" class="pipe-save-status"></span>
   </div>
+
+  <section class="concern-stats" id="concern-stats-card" aria-labelledby="concern-stats-h">
+    <h3 id="concern-stats-h">Concern reliability</h3>
+    <p class="page-desc">
+      Per-concern false-positive signals from the command-review S&aacute;ga log. <strong>Stripped</strong> means the orchestrator deterministically caught a cite the seat shouldn&rsquo;t have made (e.g. <code>xc.outside-project-tree</code> on a file the path-classifier already proved is in-tree). <strong>Heimdall-disagreed</strong> means another seat cited the concern and voted deny while Heimdall (injection-only) voted allow &mdash; a behavioural false-positive signal. A high <strong>FP ratio</strong> is the queue of concerns worth tuning. Read live from <code>.ravenclaude/runs/thing/</code> via <code>/__concern-stats</code>; static hosts show an empty state.
+    </p>
+    <div id="concern-stats-state" class="concern-stats-state" role="status">Loading&hellip;</div>
+    <table id="concern-stats-table" class="concern-stats-table" hidden>
+      <thead>
+        <tr>
+          <th scope="col">Concern</th>
+          <th scope="col" class="num">Cited</th>
+          <th scope="col" class="num">Stripped</th>
+          <th scope="col" class="num">Heimdall&nbsp;≠</th>
+          <th scope="col" class="num">Final&nbsp;deny</th>
+          <th scope="col" class="num">FP ratio</th>
+        </tr>
+      </thead>
+      <tbody id="concern-stats-tbody"></tbody>
+    </table>
+  </section>
 </div>"""
 
 
@@ -3825,6 +3860,15 @@ footer.page-footer a:hover { text-decoration: underline; }
   border-radius: 0 var(--radius) var(--radius) 0;
   margin: 4px 0 6px;
 }
+.install-cross-tool {
+  border-left: 3px solid var(--warn);
+  background: var(--surface-2);
+  padding: 10px 12px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  margin: 14px 0 6px;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
 .install-prereqs,
 .install-wiring {
   margin: 0;
@@ -4966,12 +5010,35 @@ _INSTALL_TAB_TEMPLATE = """
         <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-copilot-update">Copy</button>
       </div>
     </div>
+    <div class="cmd-block">
+      <span class="cmd-label">c. Apply the new skills inside your running Copilot session</span>
+      <div class="cmd-row">
+        <code class="cmd-code" id="cmd-copilot-skills-reload">/skills reload</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-copilot-skills-reload">Copy</button>
+      </div>
+    </div>
     <p>
-      Then, in your running Copilot session, run <code>/skills reload</code> &mdash; or relaunch &mdash;
-      to pick up the changes. <em>Note: <code>ravenclaude update</code> already runs <code>git&nbsp;pull</code>
-      on the clone internally, so step&nbsp;(b) alone is enough; run step&nbsp;(a) too if you keep your
-      clone somewhere other than <code>~/RavenClaude</code> or want to pull without re-syncing.</em>
+      <code>/skills reload</code> picks up new or edited skills without restarting Copilot. <strong>Hooks and MCP servers do not hot-reload</strong> &mdash; if step&nbsp;(b) changed <code>.github/hooks/ravenclaude.json</code> or merged a new MCP server into <code>~/.copilot/mcp-config.json</code>, fully relaunch:
+    </p>
+    <div class="cmd-block">
+      <span class="cmd-label">d. Relaunch Copilot to pick up new hooks / MCP servers</span>
+      <div class="cmd-row">
+        <code class="cmd-code" id="cmd-copilot-relaunch">copilot --plugin-dir plugins/ravenclaude-core/copilot</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-copilot-relaunch">Copy</button>
+      </div>
+    </div>
+    <p>
+      <em>Note: <code>ravenclaude update</code> already runs <code>git&nbsp;pull</code> on the clone
+      internally, so step&nbsp;(b) alone is enough; run step&nbsp;(a) too if you keep your clone
+      somewhere other than <code>~/RavenClaude</code> or want to pull without re-syncing.</em>
       The <code>rc</code> alias below does it all in one word.
+    </p>
+    <p class="install-cross-tool">
+      <strong>Using Claude Code on the same machine?</strong> <code>ravenclaude update</code> only refreshes
+      the Copilot-side wiring (live <code>--plugin-dir</code> + live <code>.claude/skills</code>) &mdash;
+      it does not touch Claude Code&rsquo;s plugin cache at <code>~/.claude/plugins/cache/</code>.
+      To update that side too, run <code>/plugin marketplace update ravenclaude</code> + <code>/reload-plugins</code>
+      <em>inside Claude Code</em>. See the <a href="#bifrost-verify-cache">Bifröst cache-verification steps</a>.
     </p>
 
     <h3>Check what is wired</h3>
@@ -4982,6 +5049,17 @@ _INSTALL_TAB_TEMPLATE = """
       <code>bash scripts/ravenclaude init-codespace</code> stamps a devcontainer whose
       <code>postCreateCommand</code> runs <code>ravenclaude setup</code> on build. Open the
       Codespace, type <code>rc</code>, and Copilot launches fully wired &mdash; nothing else to type.
+    </p>
+    <p>
+      <strong>The dashboard auto-launches too.</strong> The same devcontainer pre-forwards port&nbsp;8000
+      (<code>forwardPorts: [8000]</code> &mdash; the &ldquo;RavenClaude dashboard&rdquo; row appears in the
+      <strong>Ports</strong> panel from the moment the Codespace is ready, even before the server binds), and a
+      <code>postStartCommand</code> runs <code>.ravenclaude/dashboard.sh</code> on every Codespace start
+      <em>and resume</em> &mdash; so the dashboard URL opens itself in a real browser tab without you having to
+      find it. (<code>postCreateCommand</code> only fires on first build; <code>postStartCommand</code> covers
+      the resume case.) The forwarded port stays <strong>Private</strong> by default &mdash; keep it that way:
+      <code>/__save</code> writes files and applies posture, so a public port&nbsp;8000 would be a remote-write
+      surface to your repo.
     </p>
   </section>
 
@@ -5293,7 +5371,24 @@ _BIFROST_TAB_TEMPLATE = (
         <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-claude-reload">Copy</button>
       </div>
     </div>
-    <p>Plugin versions bump on every user-visible change, so the catalog update is what surfaces a new version. Re-run <code>/init-agent-ready --check</code> (step&nbsp;4) afterward to confirm the bridge still holds. If a reload doesn&rsquo;t take, fully restart Claude Code &mdash; the plugin cache can be stale.</p>
+    <p>Plugin versions bump on every user-visible change, so the catalog update is what surfaces a new version. Re-run <code>/init-agent-ready --check</code> (step&nbsp;4) afterward to confirm the bridge still holds.</p>
+    <h3 id="bifrost-verify-cache">Verify the cache actually advanced</h3>
+    <p>Claude Code reads installed plugins from <code>~/.claude/plugins/cache/&lt;marketplace&gt;/&lt;plugin&gt;/&lt;version&gt;/</code>, indexed by <code>~/.claude/plugins/installed_plugins.json</code>. If a reload doesn&rsquo;t seem to take, check the cache directly &mdash; the most common failure mode is a stale entry. Run these in a shell (not in Claude Code):</p>
+    <div class="cmd-block">
+      <span class="cmd-label">a. Cached version for ravenclaude-core</span>
+      <div class="cmd-row">
+        <code class="cmd-code" id="cmd-claude-cache-version">jq -r '.plugins[&quot;ravenclaude-core@ravenclaude&quot;][0].version' ~/.claude/plugins/installed_plugins.json</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-claude-cache-version">Copy</button>
+      </div>
+    </div>
+    <div class="cmd-block">
+      <span class="cmd-label">b. Versions on disk in the cache</span>
+      <div class="cmd-row">
+        <code class="cmd-code" id="cmd-claude-cache-list">ls ~/.claude/plugins/cache/ravenclaude/ravenclaude-core/</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-claude-cache-list">Copy</button>
+      </div>
+    </div>
+    <p>The cached version should match the marketplace&rsquo;s current <code>version</code> in <code>plugins/ravenclaude-core/.claude-plugin/plugin.json</code>. If they differ, re-run the two commands above (catalog update + reload). If they still differ, <strong>fully restart Claude Code</strong> &mdash; the cache lookup is read once at startup and the running session won&rsquo;t pick up a newly-extracted version mid-flight.</p>
   </section>
 </div>
 """.rstrip()
@@ -7524,8 +7619,75 @@ _JS = r"""
     const sb = document.getElementById("pipeline-save-btn");
     if (sb) sb.disabled = !pipelineServerAvailable;
     syncPipelineTab();
+    loadConcernStats();
   }
   initPipelineTab();
+
+  /* ── Concern reliability card (Pipeline tab) ──────────────────────────────
+   * Reads /__concern-stats (served only) and renders a per-concern FP-signal
+   * table. Static hosts surface an honest empty state — never silently empty. */
+  function renderConcernStats(payload) {
+    const state = document.getElementById("concern-stats-state");
+    const tbl = document.getElementById("concern-stats-table");
+    const tb  = document.getElementById("concern-stats-tbody");
+    if (!state || !tbl || !tb) return;
+    const reviews = (payload && payload.total_reviews) || 0;
+    const rows = (payload && payload.concerns) || [];
+    if (!rows.length) {
+      tbl.hidden = true;
+      state.textContent = reviews
+        ? "No concerns have been cited yet in " + reviews + " reviews."
+        : "No command-review data yet — the tribunal has not run in this project.";
+      return;
+    }
+    // Pure DOM construction — no innerHTML. textContent on every leaf node so
+    // a hostile/buggy server payload can never inject markup.
+    while (tb.firstChild) tb.removeChild(tb.firstChild);
+    const numCell = v => {
+      const td = document.createElement("td");
+      td.className = "num";
+      const n = Number(v);
+      td.textContent = Number.isFinite(n) ? String(n) : "—";
+      return td;
+    };
+    rows.forEach(r => {
+      const ratio = Number(r && r.fp_ratio);
+      const tr = document.createElement("tr");
+      tr.className = (Number.isFinite(ratio) && ratio >= 0.5) ? "concern-row-hot" : "concern-row-cold";
+      // Concern id cell — text only, wrapped in <code> for monospace.
+      const tdId = document.createElement("td");
+      const code = document.createElement("code");
+      code.textContent = String((r && r.id) || "");
+      tdId.appendChild(code);
+      tr.appendChild(tdId);
+      tr.appendChild(numCell(r && r.cited_total));
+      tr.appendChild(numCell(r && r.stripped));
+      tr.appendChild(numCell(r && r.heimdall_disagreed));
+      tr.appendChild(numCell(r && r.final_deny));
+      const tdRatio = document.createElement("td");
+      tdRatio.className = "num";
+      tdRatio.textContent = Number.isFinite(ratio) ? (ratio * 100).toFixed(0) + "%" : "—";
+      tr.appendChild(tdRatio);
+      tb.appendChild(tr);
+    });
+    state.textContent = rows.length + " concerns over " + reviews + " reviews";
+    tbl.hidden = false;
+  }
+  window.__renderConcernStats = renderConcernStats;
+
+  async function loadConcernStats() {
+    const state = document.getElementById("concern-stats-state");
+    try {
+      const res = await fetch("/__concern-stats", { credentials: "same-origin" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      renderConcernStats(data);
+    } catch (e) {
+      if (state) state.textContent = "No server behind this page — open via the dashboard server to see live concern stats.";
+      const tbl = document.getElementById("concern-stats-table");
+      if (tbl) tbl.hidden = true;
+    }
+  }
 
   /* ── Review log (saga) tab ──────────────────────────────────────── */
   /* State + element refs are declared above applyHash() (see the TDZ note). */
