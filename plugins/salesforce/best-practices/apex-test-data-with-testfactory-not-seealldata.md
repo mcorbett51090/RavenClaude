@@ -67,7 +67,7 @@ A handful of object types are **not** insertable in test context and are visible
 - [`../templates/apex-test-class.md`](../templates/apex-test-class.md) — the bulk test class + factory skeleton
 - [`./apex-one-trigger-per-object-handler.md`](./apex-one-trigger-per-object-handler.md) — the handler these tests exercise at bulk scale
 - [`./bulkify-every-soql-and-dml.md`](./bulkify-every-soql-and-dml.md) — what the 200-record test proves
-- [`../agents/apex-engineer.md`](../agents/apex-engineer.md) — owns the Salesforce bulk/assert discipline; generic scaffolding escalates to `ravenclaude-core/test-author`
+- [`../agents/apex-engineer.md`](../agents/apex-engineer.md) — owns the Salesforce bulk/assert discipline; generic scaffolding escalates to `ravenclaude-core/tester-qa`
 
 ## Provenance
 
