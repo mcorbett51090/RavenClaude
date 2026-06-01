@@ -36,12 +36,13 @@ A single-regime entity with a long-stable, documented classification and no trig
 - [`./filing-source-trace-every-load-bearing-cell.md`](./filing-source-trace-every-load-bearing-cell.md) — the hygiene rules that apply *after* the return is selected
 - [`./filing-maker-checker-is-two-people.md`](./filing-maker-checker-is-two-people.md) · [`./filing-explain-the-variance-before-you-submit.md`](./filing-explain-the-variance-before-you-submit.md)
 - [`./scope-the-jurisdiction-before-you-map.md`](./scope-the-jurisdiction-before-you-map.md) — the parallel "scope before you map" discipline
+- [`../knowledge/compliance-decision-trees.md`](../knowledge/compliance-decision-trees.md) — the **which-return** tree that operationalizes this rule (classify → select return → hygiene)
 - [`../agents/regulatory-reporting-analyst.md`](../agents/regulatory-reporting-analyst.md) — owns reporting classification
 - FATCA/CRS guidance + the entity's supervisory framework — authoritative (`[verify-at-build]` thresholds/categories)
 
 ## Provenance
 
-Surfaced by the two-panel + tiebreak coverage campaign (2026-06-01): the `regulatory-reporting-analyst` had four filing-hygiene rules but none covered the upstream entity-classification that decides *which* return applies. Grounded in FATCA/CRS classification frameworks. Categories/thresholds are `[verify-at-build]`. (The matching which-return *tree* is deferred to the campaign's tree batch.)
+Surfaced by the two-panel + tiebreak coverage campaign (2026-06-01): the `regulatory-reporting-analyst` had four filing-hygiene rules but none covered the upstream entity-classification that decides *which* return applies. Grounded in FATCA/CRS classification frameworks. Categories/thresholds are `[verify-at-build]`. (The matching which-return *tree* ships in [`../knowledge/compliance-decision-trees.md`](../knowledge/compliance-decision-trees.md).)
 
 ---
 
