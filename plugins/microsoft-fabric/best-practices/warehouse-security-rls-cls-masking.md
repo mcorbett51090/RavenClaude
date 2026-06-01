@@ -41,6 +41,7 @@ If the canonical security boundary is the **semantic model** (Power BI RLS roles
 
 - [`./workspace-domain-governance-boundary.md`](./workspace-domain-governance-boundary.md) — the two-plane model this rule operates *within* (the authority on plane + preview caveat)
 - [`./warehouse-scd-and-merge-patterns.md`](./warehouse-scd-and-merge-patterns.md) — modeling the warehouse this rule secures
+- [`../knowledge/fabric-decision-trees.md`](../knowledge/fabric-decision-trees.md) — the **data-security-plane** tree that routes *which* plane/engine enforces a restriction (this BP is the warehouse-engine leaf)
 - [`../agents/warehouse-engineer.md`](../agents/warehouse-engineer.md) — owns warehouse security implementation
 - Security verdict escalates to [`ravenclaude-core/security-reviewer`](../../ravenclaude-core/agents/security-reviewer.md)
 - [Fabric Warehouse — row-level / column-level security, DDM](https://learn.microsoft.com/fabric/data-warehouse/security) — authoritative

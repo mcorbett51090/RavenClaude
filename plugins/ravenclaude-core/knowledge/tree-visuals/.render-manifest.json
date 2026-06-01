@@ -55,6 +55,7 @@
     "microsoft-365-copilot--which-agent-platform": "84b5cbe8b9ec1ae9ded2bc928f7334736131e5bb327707dfc34bf35533870607",
     "microsoft-365-copilot--which-grounding-source": "c621b7546265af9c0fc8d8d1e28f9683063f75b4862d7a57d318981148b63faa",
     "microsoft-fabric--capacity-is-throttled-what-do-i-do-right-now": "badcd223f7ee41a6c84c784b54d849d9dfee0121f66f712c38da96e06e05c965",
+    "microsoft-fabric--data-security-which-plane-and-engine-enforces-this-restricti": "f02a0b40cf801fbf4a0fd634db9e2df540f3b336edbe5356cbb9d34377abbb0b",
     "microsoft-fabric--fabric-data-movement-how-to-get-a-source-into-fabric": "3edf4c664752c3f7df96b3e05e794225c777ae88c74b5da72b6b505dae2ac843",
     "microsoft-fabric--fabric-storage-engine-lakehouse-vs-warehouse-vs-kql-db": "355296189d0cea8731d67a8316d69eaa057498c2822041b59f07cbad879d91c1",
     "microsoft-fabric--fabric-store-selection-which-store-for-this-workload": "0b7c948dd19f33b4404209bd24c0a52f2e90ee0e4bc32a738fdabe447c309922",
