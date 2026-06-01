@@ -122,19 +122,34 @@
 | Plugin | Build spec | Status |
 |---|---|---|
 | microsoft-graph | 3 BP + 2 trees | ✅ MERGED #176 |
-| power-platform | bi-refresh-and-gateway-reliability BP, connector-custom-connector-auth-and-policy BP, PBI-deploy/refresh tree, custom-connector tree | ✅ built (branch feat/power-platform-connector-bi-coverage) |
-| regulatory-compliance | reporting-classify-the-entity BP, bermuda-state-the-capital-regime BP, which-return tree, Bermuda class/capital tree | TODO |
-| claude-app-engineering | multimodal-extract-vs-native BP, model-migrate-behind-eval-gate BP, document-input tree | TODO |
-| finance | audit-classify-deficiency-severity BP + 3 trees (rev-rec timing, deficiency CD/SD/MW, treasury cash-shortfall) | TODO |
-| azure-cloud | data-tier-pick-the-azure-database BP, migration-assess-then-iac BP (NO trees) | TODO |
-| data-platform | connector-handle-source-schema-drift BP + 1 pipeline-failure-recovery tree | TODO |
-| microsoft-fabric | warehouse-scd-and-merge-patterns BP, warehouse-security-rls-cls-masking BP, rti-retention-and-caching-policy BP, data-security-plane tree (RTI-alerting tree CUT) | TODO |
-| tableau | viz-densification-and-domain-padding BP, viz-analytics-pane-statistics-validity BP | TODO |
-| web-design | 5 trees: IA, conversion, responsive breakpoint-vs-container, CMS, motion/animation-mechanism | TODO |
-| ai-coding-model-guidance | 1 tree (reasoning-vs-bigger-model) + 2 in-file durable-reasoning sections, all in cross-tool-model-lineup-2026.md, NO best-practices/ dir | TODO |
-| salesforce | security-guest-user-and-experience-cloud-sharing BP (domain rubric; defers verdict to core) | TODO |
+| power-platform | bi-refresh-and-gateway-reliability BP, connector-custom-connector-auth-and-policy BP, PBI-deploy/refresh tree, custom-connector tree | ✅ MERGED #177 (BP) + #188 (trees) |
+| regulatory-compliance | reporting-classify-the-entity BP, bermuda-state-the-capital-regime BP, which-return tree, Bermuda class/capital tree | ✅ MERGED #183 (BP) + #186 (trees) |
+| claude-app-engineering | multimodal-extract-vs-native BP, model-migrate-behind-eval-gate BP, document-input tree | ✅ MERGED #182 (BP) + #187 (tree) |
+| finance | audit-classify-deficiency-severity BP + 3 trees (rev-rec timing, deficiency CD/SD/MW, treasury cash-shortfall) | ✅ MERGED #183 (BP) + #189 (trees) |
+| azure-cloud | data-tier-pick-the-azure-database BP, migration-assess-then-iac BP (NO trees) | ✅ MERGED #178 |
+| data-platform | connector-handle-source-schema-drift BP + 1 pipeline-failure-recovery tree | ✅ MERGED #185 |
+| microsoft-fabric | warehouse-scd-and-merge-patterns BP, warehouse-security-rls-cls-masking BP, rti-retention-and-caching-policy BP, data-security-plane tree (RTI-alerting tree CUT) | ✅ MERGED #180 (BP) + #190 (tree) |
+| tableau | viz-densification-and-domain-padding BP, viz-analytics-pane-statistics-validity BP | ✅ MERGED #179 |
+| web-design | 5 trees: IA, conversion, responsive breakpoint-vs-container, CMS, motion/animation-mechanism | ✅ MERGED #184 |
+| ai-coding-model-guidance | 1 tree (reasoning-vs-bigger-model) + 2 in-file durable-reasoning sections, all in cross-tool-model-lineup-2026.md, NO best-practices/ dir | 🔄 PR #191 (CI green-pending; final item) |
+| salesforce | security-guest-user-and-experience-cloud-sharing BP (domain rubric; defers verdict to core) | ✅ MERGED #181 |
 
 No build (comprehensive): edtech-partner-success, ravenclaude-core, applied-statistics, microsoft-365-copilot.
+
+## ★ CAMPAIGN COMPLETE (2026-06-01) ★
+
+Every item in Panel 3's binding build list has been built and shipped. **15 PRs merged (#176–#190) + #191 in flight (CI green-pending, the final item)** across the BP-first wave and the tree batch:
+
+- **Best-practices wave (BP-only, renderer-independent):** #176 microsoft-graph · #177 power-platform · #178 azure-cloud · #179 tableau · #180 microsoft-fabric · #181 salesforce · #182 claude-app · #183 finance + regulatory-compliance.
+- **Tree batch (after `npx puppeteer browsers install chrome` unblocked the Mermaid renderer):** #184 web-design (5) · #185 data-platform (BP+tree) · #186 reg-compliance (2) · #187 claude-app (1) · #188 power-platform (2) · #189 finance (3) · #190 microsoft-fabric (1) · #191 ai-coding (1 tree + 2 in-file reasoning sections).
+
+**Total new content:** ~22 best-practice rules + ~17 decision trees (177 tree SVGs in the manifest, up from 160 at campaign start). Three plugins (edtech-partner-success, ravenclaude-core, applied-statistics) and microsoft-365-copilot were assessed **comprehensive** by both panels and correctly received **no** padding — the campaign was targeted gap-filling, not volume.
+
+**Process notes banked for the next campaign:**
+- Renderer recipe: `npx puppeteer browsers install chrome` then `PUPPETEER_EXECUTABLE_PATH=<chrome> python3 scripts/render-trees.py`; CI re-checks via manifest (no Chrome in CI). Always `git checkout -- …/applied-statistics--*.svg` to revert this container's float-width render noise.
+- Mermaid gotcha (hit twice, both fixed): `<br/>`, parens `()`, and `>` inside an **unquoted** decision node `{…}` break the parser — quote the node label (`{"…"}`). `&` inside a quoted `["…"]` label is fine.
+- Cadence that avoided generated-file conflicts: one PR per plugin, merge before starting the next; author the next plugin's content on a branch off main while CI runs, then rebase onto the post-merge main and regenerate guide+dashboard+SVGs as the final step.
+- Every version bump regenerates BOTH `generate-repo-guide.py` AND `generate-dashboards.py` (the stale-dashboard CI failure from earlier sessions).
 
 ## FULLY AGREED (no tiebreak — safe to build now)
 - **microsoft-graph**: 3 BP + 2 trees ✅ BUILT (PR #176).
