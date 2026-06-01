@@ -1,0 +1,36 @@
+# Power Platform — flow-documentation run. The documentarian + power-automate
+# specialist produce a partner-facing flow walkthrough.
+
+case:
+  name: "Document a Power Automate cloud flow for a partner"
+  domain: "power-platform"
+  intent: |
+    A consumer asks for a partner-facing document explaining a specific
+    Power Automate cloud flow (triggers, branches, error handling). Team Lead
+    dispatches the power-automate-engineer (knowledge) and documentarian
+    (prose). Output is a single markdown file under docs/ in the consumer
+    project, with embedded mermaid for the flow's branch tree.
+
+expected:
+  playbook: "document"
+  specialists:
+    - power-automate-engineer
+    - documentarian
+
+  artifacts:
+    - "01-flow-walkthrough.md"
+    - "summary.md"
+
+  gates:
+    must_fire: []
+    must_not_fire:
+      - "thing/security_deny"
+
+budget:
+  tokens: 40000
+  wall_seconds: 240
+
+pass_conditions:
+  - "every_specialist_emitted_structured_output"
+  - "no_deny_then_retry"
+  - "no_high_blast_auto_decision"

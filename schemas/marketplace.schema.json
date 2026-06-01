@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mcorbett51090/RavenClaude/schemas/marketplace.schema.json",
+  "title": "RavenClaude marketplace catalog",
+  "description": "Validates .claude-plugin/marketplace.json. Intentionally lenient — Claude Code itself defines the authoritative schema; this gate catches gross structural defects (missing top-level fields, malformed plugin entries) before they reach a consumer.",
+  "type": "object",
+  "required": ["name", "owner", "plugins"],
+  "properties": {
+    "name": { "type": "string" },
+    "owner": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "url": { "type": "string", "format": "uri" }
+      },
+      "additionalProperties": true
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "plugins": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "source", "version"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "source": {
+            "description": "Where the plugin is fetched from. May be a string path or a structured source descriptor.",
+            "oneOf": [
+              { "type": "string" },
+              {
+                "type": "object",
+                "additionalProperties": true
+              }
+            ]
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[A-Za-z0-9.-]+)?(?:\\+[A-Za-z0-9.-]+)?$"
+          },
+          "description": { "type": "string" },
+          "author": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "keywords": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -27,6 +27,17 @@ If unsure, mentally simulate: "a consumer runs `/plugin marketplace update raven
 - [ ] `docs/architecture.md` Status table updated if version numbers there are now stale.
 - [ ] No secrets, no client identifiers, no internal URLs in the diff. Skim `git diff` once more.
 
+### 1.5 Knowledge health (added 2026-06-01)
+
+- [ ] **Run the knowledge-health sweep:** `python3 plugins/ravenclaude-core/scripts/knowledge-health.py`. The script lists every `plugins/*/knowledge/**.md` and groups them by `stale` (>90 days since last verified), `due_soon` (60-90 days), `untracked` (no date marker), `fresh` (<60 days).
+- [ ] Any **stale** entry inside the release diff must be re-verified in this PR (or explicitly deferred with a memory entry + a follow-up issue). Stale content shipping unchanged into consumers is the highest-priority knowledge-layer failure mode the marketplace is set up to prevent.
+- [ ] Any **untracked** entry: ideally add a `Last reviewed: YYYY-MM-DD` marker in this PR. If out of scope, file the gap as a follow-up — untracked files escape every future sweep.
+
+### 1.6 Security floor invariant (added 2026-06-01)
+
+- [ ] **Confirm the `security_deny` floor is non-removable:** `python3 tests/fixtures/test_security_deny_floor.py`. All 6 cases must pass. A regression here means a consumer could wipe the security floor from the dashboard by saving an empty list. **This is the highest-severity invariant the marketplace ships.**
+- [ ] If this release changes `plugins/ravenclaude-core/scripts/apply-comfort-posture.py`, hand-confirm the diff does not weaken the `compute_emission` / `compute_emission_v5` union path.
+
 ---
 
 ## 2. Local validation
