@@ -56,6 +56,21 @@ Three coherent personas (API / identity / workloads). Per the marketplace house 
 
 ---
 
+## 4a. Automated checks (hook)
+
+The `hooks/` directory ships [`check-graph-anti-patterns.sh`](hooks/check-graph-anti-patterns.sh) — a **PreToolUse** Edit/Write/MultiEdit hook on Graph code/request files (`.cs`/`.ts`/`.tsx`/`.js`/`.jsx`/`.py`/`.ps1`/`.http`) that flags four mechanically-detectable violations of §3/§4:
+
+| Check | What it catches | Rule |
+|---|---|---|
+| `/beta` endpoint | `graph.microsoft.com/beta` referenced in code | §3 #9 — never ship `/beta` to production without flagging it |
+| Hardcoded client secret | `client_secret`/`ClientSecret = "<literal>"` (not an env/Key-Vault reference) | §3 #8 — secrets are certificates/managed identity, never strings; escalates to `security-reviewer` |
+| Broad write-`.All` scope | `Directory.*.All` / a `*.ReadWrite*.All` permission string | §3 #1 — confirm least-privilege; prefer delegated + narrowest/resource-scoped |
+| Advanced query w/o `ConsistencyLevel` | `$search=`/`$count=true` with no `ConsistencyLevel: eventual` | §3 #3/#4 — the classic Graph `400`; advanced queries need the eventual header + `$count` |
+
+**Advisory by default** (prints to stderr, exits 0). Set `MSGRAPH_STRICT=1` to make violations blocking (exit 2). The hook is conservative — it only fires on Graph-relevant code/request file extensions, so unrelated edits aren't flagged. The plugin's [`hooks/hooks.json`](hooks/hooks.json) wires it in automatically when the plugin is installed.
+
+---
+
 ## 5. Capability Grounding Protocol (Anti-Hallucination)
 
 Inherits the CGP from `ravenclaude-core`. Before an agent says "I can't" or asserts a Graph fact (a permission name, an endpoint, a throttling limit, delegated-vs-app applicability), it must: (1) check the knowledge bank + decision trees; (2) **traverse the relevant `## Decision Tree:` section** before choosing (permission type, auth flow, query vs delta vs subscription, paging/batching) — don't keyword-match; (3) try the next-easiest defensible path before declaring blocked; (4) escalate with the mandatory phrasing. Permission names, endpoint availability (v1.0 vs beta), and throttling numbers are **volatile** and carry inline `[verify-at-build]` / `[unverified — training knowledge]` markers per the Claim-Grounding discipline. See [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md).

@@ -330,7 +330,7 @@
       "name": "microsoft-graph",
       "source": "./plugins/microsoft-graph",
       "description": "Microsoft Graph developer team \u2014 specialist agents for the Graph API surface: querying (OData $select/$filter/$expand/$search, paging, $batch, change tracking via delta), throttling/429 + retry discipline, the Graph SDKs; identity & authorization on Entra (app registration, delegated vs application permissions, scopes/consent, least-privilege, auth-code/client-credentials/OBO flows, certificate creds); and the workloads (users/groups, mail/calendar, Teams, SharePoint/OneDrive files, change notifications/subscriptions + lifecycle, Graph connectors). Citation-grounded knowledge bank with Mermaid decision trees + a best-practices library. Seams: Copilot Graph connectors \u2192 microsoft-365-copilot; Entra tenant/identity infrastructure \u2192 azure-cloud; Power Platform Dataverse \u2192 power-platform; methodology/security-review \u2192 ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.2",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
