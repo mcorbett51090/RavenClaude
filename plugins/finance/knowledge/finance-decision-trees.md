@@ -192,6 +192,124 @@ Test debt capacity against the actual covenants before committing — [`../best-
 
 ---
 
+## Decision Tree: Revenue — over-time vs point-in-time recognition (ASC 606 step 5)
+
+**When this applies:** a contract's revenue is being recognized and the decision is _when_ — recognized **over time** as the work progresses, or **at a point in time** when control transfers. Observable trigger: a new contract type (a subscription, a construction/build-to-order job, a milestone-based service, a product sale), or a period-end question "should this be deferred / how much is earned?". Assumes ASC 606 steps 1–4 are done (contract identified, performance obligations separated, price allocated); this is **step 5**. It does **not** decide GAAP-vs-management view (house opinion #12) — state the basis separately.
+
+**Last verified:** 2026-05-30 against ASC 606 step-5 criteria (domain-standard framing). The specific over-time criteria, the input/output method rules, and any industry-specific guidance are **standard-version-specific** — `[verify-at-build]` against the current standard; this is an accounting-judgment area that escalates to the `controller` and, for anything novel, to technical-accounting/audit sign-off.
+
+```mermaid
+flowchart TD
+    START[Recognize revenue for a performance obligation] --> OT{Does it meet ANY of the three over-time criteria?}
+    OT -->|Criterion 1: customer simultaneously receives + consumes the benefits| OTREC["OVER TIME<br/>(e.g. routine/recurring service, SaaS access)"]
+    OT -->|Criterion 2: creates/enhances an asset the customer controls as it's built| OTREC
+    OT -->|Criterion 3: no alternative use to the entity AND enforceable right to payment for work to date| OTREC
+    OT -->|None of the three| PIT["POINT IN TIME<br/>recognize when control transfers"]
+    OTREC --> METHOD{Can progress be measured reliably?}
+    METHOD -->|YES — measurable| MEASURE["Pick an input OR output measure of progress<br/>(cost-to-cost / units / milestones) — apply it consistently"]
+    METHOD -->|NO — not reliably measurable| RECOVER["Recognize only to the extent of costs recoverable<br/>until progress becomes estimable"]
+    PIT --> CONTROL["Assess control-transfer indicators<br/>(right to payment, legal title, physical possession,<br/>risks & rewards, customer acceptance)"]
+```
+
+**Rationale per leaf:**
+
+- _OVER TIME (any of three)_ — meeting **any one** of the three criteria forces over-time recognition; the most common is criterion 1 (a recurring service the customer consumes as delivered — the SaaS/subscription default). Criterion 3 is the build-to-order/custom-asset case that surprises teams who assume "we deliver at the end, so recognize at the end."
+- _MEASURE_ — once over-time, you must choose a measure of progress (input methods like cost-to-cost, or output methods like units/milestones) and apply it consistently; switching mid-contract to flatter a period is a misstatement.
+- _RECOVER_ — if progress genuinely can't be estimated yet, recognize revenue only up to recoverable costs (zero margin) until it can — don't guess a percentage.
+- _POINT IN TIME_ — when none of the three over-time criteria are met (a standard product sale), recognize at control transfer; "control" is assessed on the indicator set, not on shipment date alone.
+
+**Tradeoffs summary:**
+
+| Outcome | Trigger | Recognition pattern | Common case | Trap avoided |
+|---|---|---|---|---|
+| Over time — measurable progress | any over-time criterion + estimable | as progress is measured | SaaS, long-term service, construction | Deferring earned revenue to delivery |
+| Over time — cost-recovery only | over-time but not estimable | up to recoverable cost | early-stage custom build | Guessing a % complete |
+| Point in time | none of the three criteria | at control transfer | product sale | Recognizing on ship date vs control |
+
+Revenue-recognition conclusions are accounting judgments — document the criteria assessment and route novel/material judgments to the `controller` and audit sign-off; state GAAP-vs-management basis explicitly (house opinion #12).
+
+---
+
+## Decision Tree: Audit — control-deficiency severity (CD / SD / material weakness)
+
+**When this applies:** a control test failed (or a control is missing) and the exception must be **classified by severity** before it's tracked, escalated, or disclosed. Observable trigger: a test-of-operating-effectiveness exception, a walkthrough gap, or a self-identified control failure. This operationalizes [`../best-practices/audit-classify-deficiency-severity.md`](../best-practices/audit-classify-deficiency-severity.md): severity is **likelihood × magnitude vs materiality**, not the cosmetic size of the gap.
+
+**Last verified:** 2026-05-30 against the deficiency-severity best-practice (grounded in PCAOB AS 2201 / COSO). Specific framework definitions and any regulator-specific severity vocabulary are framework-/jurisdiction-specific — `[verify-at-build]` against the current standard.
+
+```mermaid
+flowchart TD
+    START[A control failed or is missing — classify it] --> AGG["First: aggregate related deficiencies<br/>over the SAME assertion/account<br/>(several minor CDs can combine upward)"]
+    AGG --> COMP{Compensating control that operates at sufficient PRECISION to catch the misstatement?}
+    COMP -->|YES — documented precision| DOWN["Downgrade severity by the compensating control<br/>(document WHY it qualifies — don't assume)"]
+    COMP -->|NO| ASSESS{Reasonable possibility of a MATERIAL misstatement not prevented/detected timely?}
+    DOWN --> ASSESS
+    ASSESS -->|YES| MW["MATERIAL WEAKNESS<br/>disclosable, certification-affecting"]
+    ASSESS -->|NO| SD{More-than-inconsequential misstatement possible — merits governance attention?}
+    SD -->|YES| SIGDEF["SIGNIFICANT DEFICIENCY<br/>escalate to those charged with governance (audit committee)"]
+    SD -->|NO — potential misstatement less than significant| CD["CONTROL DEFICIENCY<br/>track + remediate; not individually disclosable"]
+```
+
+**Rationale per leaf:**
+
+- _AGG (aggregate first)_ — severity is assessed on the **cluster**, not each exception in isolation; several individually-minor CDs over the same account/assertion can combine into an SD or MW. Skipping aggregation is how a real weakness hides as a list of small ones.
+- _DOWN (compensating control)_ — a compensating control downgrades severity **only** if it operates at a precision that would actually catch the misstatement; document the precision rationale rather than treating any compensating control as an automatic downgrade.
+- _MW_ — a reasonable possibility that a **material** misstatement wouldn't be caught timely; this is the disclosable, management-certification-affecting one. Never downgrade it because remediation is inconvenient.
+- _SD_ — less than material but important enough to merit audit-committee attention (a reasonable possibility of a more-than-inconsequential misstatement).
+- _CD_ — the control failed but the potential misstatement is less than significant; track and remediate, not individually disclosable. Magnitude (an immaterial account) can cap severity at CD even on a full failure.
+
+**Tradeoffs summary:**
+
+| Severity | Likelihood × magnitude | Disclosure / escalation | Heightened-scrutiny bias |
+|---|---|---|---|
+| Control deficiency (CD) | potential misstatement < significant | track + remediate | — |
+| Significant deficiency (SD) | more-than-inconsequential possible | audit committee / governance | — |
+| Material weakness (MW) | reasonable possibility of **material** | disclosable + certification-affecting | fraud + close-process controls bias toward SD/MW |
+
+Deficiencies in controls over the financial-reporting process itself (period-end close, journal entries) and fraud-related deficiencies carry heightened scrutiny and bias upward regardless of single-instance magnitude. Final classification is an audit judgment — owned by `audit-prep-specialist`, defended with the framework cite.
+
+---
+
+## Decision Tree: Treasury — cash-shortfall response ladder (cheapest, most-reversible first)
+
+**When this applies:** the 13-week direct-method cash forecast (or a covenant headroom check) shows a projected shortfall, and the question is _which lever to pull, in what order_. Observable trigger: a forecast week dips below the minimum cash buffer, a covenant test is at risk, or a large disbursement can't be funded. The discipline: exhaust **operating/working-capital levers** before **financing** ones, and reversible before irreversible — pulling an expensive or dilutive lever first destroys value a timing fix would have solved.
+
+**Last verified:** 2026-05-30 against this plugin's `treasury-analyst` opinions and the `thirteen-week-cash-forecast` skill. Covenant definitions and facility terms are agreement-specific — `[verify-at-build]` against the actual agreement before relying on available headroom.
+
+```mermaid
+flowchart TD
+    START[13-week forecast shows a shortfall] --> SEV{"Timing gap, or structural — burn exceeds inflow ongoing?"}
+    SEV -->|Structural / ongoing burn| STRUCT["Not a treasury-lever problem alone<br/>→ FP&A: cut burn / re-plan; escalate (raise or restructure)"]
+    SEV -->|Timing gap — covered later| WC{Working-capital levers available?}
+    WC -->|YES| WCLEVER["1. Accelerate receivables (collections, deposits, factoring)<br/>2. Stretch payables within terms<br/>3. Defer discretionary spend"]
+    WC -->|Exhausted / insufficient| FACILITY{Committed facility with headroom?}
+    FACILITY -->|YES — revolver / line| DRAW["Draw the committed revolver<br/>(cheapest external cash; check covenant impact of the draw)"]
+    FACILITY -->|NO / tapped| ASSET{Non-core assets or financeable receivables?}
+    ASSET -->|YES| MONETIZE["Monetize: AR financing, asset sale-leaseback,<br/>delay non-critical capex"]
+    ASSET -->|NO| RAISE["New financing — debt before equity if capacity exists<br/>(financing tree); equity / emergency last"]
+```
+
+**Rationale per leaf:**
+
+- _STRUCT (structural)_ — a persistent burn-exceeds-inflow gap is not a liquidity-lever problem; pulling treasury levers only buys weeks. Route to `fpa-analyst` to cut burn / re-plan and escalate a raise or restructuring; don't paper a structural hole with a revolver draw.
+- _WCLEVER (working capital first)_ — accelerating collections, stretching payables _within terms_, and deferring discretionary spend are the cheapest and most reversible moves; exhaust them before any external draw. (Stretching payables beyond terms damages supplier relationships — a cost, not a free lever.)
+- _DRAW (committed facility)_ — a committed revolver is the cheapest external cash and is what the facility is for; check the draw's effect on leverage covenants before drawing (a draw can itself trip a ratio).
+- _MONETIZE_ — AR financing, sale-leaseback, and capex deferral convert balance-sheet items to cash without new permanent financing; mid-cost, partly reversible.
+- _RAISE (new financing last)_ — new debt (if covenant/capacity allows) before equity; equity and emergency/bridge financing are the most expensive/dilutive and least reversible — last resort. Route the debt-vs-equity choice through the financing tree above.
+
+**Tradeoffs summary:**
+
+| Lever | Cost | Reversibility | Speed | Use when |
+|---|---|---|---|---|
+| Working-capital levers | lowest | high | days–weeks | timing gap, levers available |
+| Draw committed revolver | low (interest) | high (repay) | days | facility headroom + covenant-safe |
+| Monetize assets / AR | medium | partial | weeks | facility tapped, financeable assets exist |
+| New debt | medium–high | low | weeks–months | covenant capacity remains |
+| Equity / emergency | highest (dilution) | none | weeks–months | all else exhausted; structural need |
+
+Always test the lever against the actual covenants ([`../best-practices/treasury-cite-the-agreement-on-every-covenant.md`](../best-practices/treasury-cite-the-agreement-on-every-covenant.md)) and re-run the 13-week forecast after; a structural shortfall escalates to `fpa-analyst` and, for a raise, the financing tree above.
+
+---
+
 ## When to escalate
 
 - **Forecast-method choice lands on ZERO-BASED for a whole cost base** → coordinate with `fpa-analyst` (budget owner) and the relevant department owners; ZBB is a process, not a single build.
@@ -210,5 +328,8 @@ These trees codify method-selection decisions already implicit in this plugin's 
 - Valuation-method tree — `valuation-analyst` ("three methodologies, weighted," "pre-revenue by DCF alone is a methodology mismatch," control-premium discipline), `dcf-valuation` skill.
 - Variance-decomposition tree — `fpa-analyst` (`rate × volume / mix / FX` decomposition) and the PVM/FX/ONE-TIME leaves of [`variance-root-cause-triage.md`](./variance-root-cause-triage.md).
 - Build-vs-buy and financing trees — `treasury-analyst` (liquidity > leverage, covenant capacity, capital-structure decisions) and `valuation-analyst` (NPV / cost-of-capital) surface areas, plus standard corporate-finance NPV and capital-structure framing. The ASC 842 lease-liability framing and ASC 606 references are domain-standard pointers, not engagement advice — confirm against the current standard for a live deliverable.
+- Revenue-recognition-timing tree — `controller` (close/JE/revenue-cutoff judgment) and ASC 606 step-5 standard framing; an accounting-judgment area that escalates for novel/material cases. Added by the coverage campaign (2026-06-01).
+- Deficiency-severity tree — `audit-prep-specialist`, the `soc-control-walkthrough` skill, and [`../best-practices/audit-classify-deficiency-severity.md`](../best-practices/audit-classify-deficiency-severity.md) (PCAOB AS 2201 / COSO framing). Added by the coverage campaign (2026-06-01).
+- Cash-shortfall-ladder tree — `treasury-analyst` (liquidity-first, cheapest-and-most-reversible-first) and the `thirteen-week-cash-forecast` skill. Added by the coverage campaign (2026-06-01).
 
 Method definitions are stated as standard framings; where a branch turns on a volatile market input or a current accounting standard, the input carries the accuracy-discipline caveat (verify before it gates an irreversible action).

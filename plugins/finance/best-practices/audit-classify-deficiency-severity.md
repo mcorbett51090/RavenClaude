@@ -41,7 +41,7 @@ A deficiency in a control over an **immaterial, low-risk** account may genuinely
 
 ## Provenance
 
-Surfaced by the two-panel + tiebreak coverage campaign (2026-06-01): the `audit-prep-specialist` owns deficiency work and the SOC walkthrough skill mentions CD/SD/MW, but no standalone citable rule made the severity classification the durable judgment. Grounded in PCAOB/COSO deficiency-severity definitions. Framework specifics are `[verify-at-build]`. (The matching deficiency-severity *tree* is deferred to the campaign's tree batch.)
+Surfaced by the two-panel + tiebreak coverage campaign (2026-06-01): the `audit-prep-specialist` owns deficiency work and the SOC walkthrough skill mentions CD/SD/MW, but no standalone citable rule made the severity classification the durable judgment. Grounded in PCAOB/COSO deficiency-severity definitions. Framework specifics are `[verify-at-build]`. (The matching deficiency-severity *tree* ships in [`../knowledge/finance-decision-trees.md`](../knowledge/finance-decision-trees.md).)
 
 ---
 
