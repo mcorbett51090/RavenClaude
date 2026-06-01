@@ -12,7 +12,7 @@
 
 Today this marketplace ships **16 plugins**:
 
-- **[`ravenclaude-core`](plugins/ravenclaude-core/)** — domain-neutral Team Lead + 14 specialists (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, data-engineer, etc.), plus dispatch playbooks (with a Cross-plugin dispatch section), gates, 22 skills, 11 hooks, templates, and the **cross-project contribution-staging loop**.
+- **[`ravenclaude-core`](plugins/ravenclaude-core/)** — domain-neutral Team Lead + 14 specialists (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, data-engineer, etc.), plus dispatch playbooks (with a Cross-plugin dispatch section), gates, 22 skills, 13 hooks, templates, and the **cross-project contribution-staging loop**.
 - **[`power-platform`](plugins/power-platform/)** — 11 Microsoft Power Platform specialists (Power Fx, flows, Power BI, Dataverse, model-driven, PCF, Copilot Studio, Power Pages, admin, ALM, tester), 18 skills, an advisory house-opinions hook covering 8 checks, and the bundled `pbix-mcp` MCP server.
 - **[`finance`](plugins/finance/)** — 7 corporate-finance & FP&A specialists (FP&A analyst, financial modeler, controller, treasury, valuation, audit-prep, board-pack composer), 9 skills, templates, advisory anti-pattern hook.
 - **[`regulatory-compliance`](plugins/regulatory-compliance/)** — 6 financial-regulatory specialists (AML/KYC, regulatory reporting, risk-and-controls, policy & procedure writer, examination prep, Bermuda-insurance), 9 skills, templates, defensive PII-scrub hook.
@@ -100,7 +100,7 @@ You lose auto-update and version pinning. To update, `git pull` and re-copy. Oth
 |-----------|-------|-------|
 | Specialist agents | 14 | `plugins/ravenclaude-core/agents/` |
 | Skills | 22 (dispatch via `spawn-team`, `new-worktree` / `cleanup-worktrees`, `create-pr`, `run-full-test-suite`, `draft-agent-brief`, `structured-output`; the cross-domain staging loop `contribute-finding` / `review-staged-contributions`; the tribunal `thing` / `decision-review`; posture + capability skills `set-posture`, `permission-hygiene`, `environment-discovery`; quality skills `agent-quality-rubric`, `audit-ci-gates`, `cross-platform-determinism`, `knowledge-file-staleness-sweep`, `plugin-release-checklist`, `prompt-pattern-library`, `scenario-retrieval`; plus the `researcher/` meta-skill) | `plugins/ravenclaude-core/skills/` |
-| Hooks | 11 (format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, capability-orientation, ensure-default-mode, reapply-posture, route-decision-review, thing-orchestrator, copilot-hook-adapter) | `plugins/ravenclaude-core/hooks/` |
+| Hooks | 13 (format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, capability-orientation, ensure-default-mode, reapply-posture, route-decision-review, thing-orchestrator, claim-grounding-lint, dod-gate, runaway-brake) | `plugins/ravenclaude-core/hooks/` |
 | Rules | 4 (coding-standards, security, git-workflow, agent-collaboration) | `plugins/ravenclaude-core/rules/` |
 | Commands | 4 (`/init-agent-ready`, `/dashboard`, `/set-posture`, `/wrap`) | `plugins/ravenclaude-core/commands/` |
 | Templates | memos, runbooks, design specs, RAID logs, partner-success artifacts, agent-ready-repo scaffold | `plugins/ravenclaude-core/templates/` |
