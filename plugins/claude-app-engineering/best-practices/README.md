@@ -8,7 +8,7 @@ These docs codify the cross-cutting **house opinions** in [`../CLAUDE.md`](../CL
 
 ## Index
 
-_20 rules. Each file is one named, citable rule; read and apply it whole._
+_22 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -23,6 +23,8 @@ _20 rules. Each file is one named, citable rule; read and apply it whole._
 | [`evals-before-vibes.md`](./evals-before-vibes.md) | Absolute rule — "it looks better" is not a result. | Prompt, model, and tool-definition changes are invisible until they regress in production: a reworded system prompt that helps one case quietly breaks… |
 | [`mcp-author-the-narrow-server.md`](./mcp-author-the-narrow-server.md) | Pattern — strong default; a sprawling server with 40 thin tools, non-idempotent effects, and trust-the-client auth is the failure shape. | An MCP server is a long-lived attack surface and a tool menu the model has to reason over — both get worse as the server grows. |
 | [`mcp-vs-in-process-tool.md`](./mcp-vs-in-process-tool.md) | Pattern — strong default; standing up an MCP server for one app's one function is the named anti-pattern (#12). | A capability Claude can call lives in one of two homes, and picking the wrong one costs either reuse or needless operational weight. |
+| [`model-migrate-behind-an-eval-gate.md`](./model-migrate-behind-an-eval-gate.md) | Pattern — strong default for any model-version change (upgrade or forced retirement); deviate only with a written reason. | Models get versioned and retired on the platform's schedule; the silent swap regresses prompts tuned for the old version in production. |
+| [`multimodal-extract-vs-native-document-input.md`](./multimodal-extract-vs-native-document-input.md) | Pattern — strong default for any app feeding documents to Claude; deviate only with a written reason. | Three ways to get a document into context (native PDF/image, pre-extracted text, Files API) with very different cost/fidelity; teams default to one unweighed. |
 | [`output-structured-via-forced-tool.md`](./output-structured-via-forced-tool.md) | Absolute rule — parsing JSON out of prose (or asking for "JSON only" and hoping) is the named anti-pattern (#5). | When an app needs machine-readable output, the unreliable path is to ask Claude to "respond in JSON" and then parse the result with a regex or `json.l… |
 | [`prompt-climb-the-leverage-ladder.md`](./prompt-climb-the-leverage-ladder.md) | Pattern — strong default; reaching for a multi-agent system before exhausting clear+direct+examples is the anti-pattern. | Most "the model won't do what I want" tickets are an underspecified prompt, not a model limitation — and the fix is almost always cheaper than the one… |
 | [`rag-retrieve-quality-over-quantity.md`](./rag-retrieve-quality-over-quantity.md) | Pattern — strong default; "retrieve top-50 and let the model sort it out" is the failure mode that quietly tanks answer quality. | Once you've decided RAG is warranted (`rag-skip-it-under-200k.md`), the instinct is to maximize *recall* — pull more chunks so the answer is "definite… |
