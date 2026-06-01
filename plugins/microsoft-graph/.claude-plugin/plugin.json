@@ -1,6 +1,6 @@
 {
   "name": "microsoft-graph",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Microsoft Graph developer team — specialist agents for the Graph API surface: querying (OData $select/$filter/$expand/$search, paging, $batch, change tracking via delta), throttling/429 + retry discipline, the Graph SDKs; identity & authorization on Entra (app registration, delegated vs application permissions, scopes/consent, least-privilege, auth-code/client-credentials/OBO flows, certificate creds); and the workloads (users/groups, mail/calendar, Teams, SharePoint/OneDrive files, change notifications/subscriptions + lifecycle, Graph connectors). Citation-grounded knowledge bank with Mermaid decision trees + a best-practices library. Seams: Copilot Graph connectors → microsoft-365-copilot; Entra tenant/identity infrastructure → azure-cloud; Power Platform Dataverse → power-platform; methodology/security-review → ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"
