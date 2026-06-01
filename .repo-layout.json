@@ -15,6 +15,7 @@
     ".gitignore",
     ".gitattributes",
     ".prettierrc.json",
+    "ruff.toml",
     ".prettierignore",
     ".repo-layout.json",
     ".ravenclaude/comfort-posture.yaml",

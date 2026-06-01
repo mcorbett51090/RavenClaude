@@ -118,9 +118,9 @@ def dry_run(plugin: str, version_dir: Path, pin: str | None, ttl_days: int) -> i
     print(f"  live cache dir:    {version_dir}")
     print(f"  would snapshot to: {snap}  (retained {ttl_days} days)")
     print(f"  would fetch fresh pinned to: {pin or '<required: --pin <sha>>'}")
-    print(f"  would verify fresh tree with: scripts/audit-gates.sh (abort on failure)")
+    print("  would verify fresh tree with: scripts/audit-gates.sh (abort on failure)")
     print(f"  would atomic-swap: live → {pre}, fresh → {version_dir}")
-    print(f"  MEMORY / ~/.claude/projects/.../memory: NOT touched (outside the cache)")
+    print("  MEMORY / ~/.claude/projects/.../memory: NOT touched (outside the cache)")
     print("\nNo changes made.")
     return 0
 

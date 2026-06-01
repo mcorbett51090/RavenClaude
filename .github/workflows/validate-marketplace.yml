@@ -292,6 +292,15 @@ jobs:
           fi
           echo "actionlint: clean"
 
+      - name: Ruff (Python lint)
+        # Lint the marketplace's ~20k LOC of Python against ruff.toml (correctness +
+        # efficiency families F/E9/B/C4/I/UP; SIM/B904/UP031 deferred — see ruff.toml).
+        # Installed here so it's also on PATH for the audit-gates ruff fixture (Gate 9b),
+        # which runs in the next step. Pinned for determinism.
+        run: |
+          python3 -m pip install --quiet 'ruff==0.15.8'
+          ruff check .
+
       - name: Audit every gate (meta-test — prove each gate fails on bad input AND passes on good)
         # Codifies docs/best-practices/ci-gate-audit.md. If any CI gate
         # stops gating (or starts gating the wrong thing), this step catches

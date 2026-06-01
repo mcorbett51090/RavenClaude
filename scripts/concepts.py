@@ -265,7 +265,7 @@ def main() -> int:
             print(f"concepts.json missing at {REGISTRY_PATH} — run: scripts/concepts.py")
             return 1
         if out_path.read_text(encoding="utf-8") != serialized:
-            print(f"concepts.json is STALE — regenerate with: scripts/concepts.py")
+            print("concepts.json is STALE — regenerate with: scripts/concepts.py")
             return 1
         print(f"Concepts OK — {len(registry['concepts'])} concept(s), registry fresh, no stale platform-facts.")
         return 0

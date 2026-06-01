@@ -21,7 +21,6 @@ from __future__ import annotations
 import argparse
 import html
 import json
-import os
 import re
 import subprocess
 import sys
@@ -184,7 +183,6 @@ def parse_frontmatter(text: str) -> tuple[dict, str]:
             # Possible block list. Look ahead at indentation.
             j = i + 1
             block_items: list = []
-            block_was_mapping = False
             while j < len(lines):
                 nxt = lines[j]
                 if nxt.strip() == "":
@@ -198,7 +196,6 @@ def parse_frontmatter(text: str) -> tuple[dict, str]:
                     kv2 = YAML_KV_RE.match(item_body)
                     if kv2 and kv2.group(2).strip() != "":
                         # First field of a mapping inside a list.
-                        block_was_mapping = True
                         item: dict[str, str] = {}
                         ik, iv = kv2.group(1), kv2.group(2).strip()
                         item[ik] = iv.strip('"').strip("'")

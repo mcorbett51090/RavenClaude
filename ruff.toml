@@ -1,0 +1,28 @@
+# Ruff config for the RavenClaude marketplace's Python (generators, server, hooks,
+# check scripts — ~20k LOC). Adopted lint-only (no formatter gate) to catch real
+# correctness + efficiency issues without a 20k-line reformat churn; `ruff format`
+# adoption is a separate future step. Tighten `select` over time.
+#
+# Run locally: `ruff check .`  (and `ruff check --fix .` to auto-fix).
+
+line-length = 100
+target-version = "py39"
+
+[lint]
+# Correctness + obvious-inefficiency families (the high-value, low-noise set):
+#   F   pyflakes (unused imports/vars, undefined names, f-string bugs)
+#   E9  syntax errors
+#   B   flake8-bugbear (raise-without-from, mutable defaults, duplicate values)
+#   C4  comprehensions
+#   I   isort (import ordering)
+#   UP  pyupgrade (modernize syntax)
+# SIM (flake8-simplify) is deliberately NOT selected yet — its suggestions are
+# subjective and would need broad manual rewrites; revisit once the above is clean.
+select = ["F", "E9", "B", "C4", "I", "UP"]
+# Deferred (tighten later) — judgment-y, not correctness bugs, and a hand-rewrite
+# in load-bearing files (tribunal engine, server) carries more risk than value now:
+#   B904  raise-without-from inside except (4 sites; exception chaining)
+#   UP031 printf-style % formatting (3 sites; some are stdlib log_message idioms)
+ignore = ["B904", "UP031"]
+
+exclude = [".git", "__pycache__", "scripts/vendor"]

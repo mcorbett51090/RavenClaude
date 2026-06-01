@@ -29,17 +29,17 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+
+# ── Reuse the EMISSIONS table from apply-comfort-posture.py (single source of
+#    truth for category ⇄ command-pattern mapping). Same importlib trick the
+#    dashboard generator uses, so the two never drift. ────────────────────────
+import importlib.util
 import json
 import os
 import re
 import sys
 import unicodedata
 from pathlib import Path
-
-# ── Reuse the EMISSIONS table from apply-comfort-posture.py (single source of
-#    truth for category ⇄ command-pattern mapping). Same importlib trick the
-#    dashboard generator uses, so the two never drift. ────────────────────────
-import importlib.util
 
 _HERE = Path(__file__).resolve().parent
 _APPLY = _HERE / "apply-comfort-posture.py"
@@ -637,7 +637,7 @@ def _load_yaml(path: Path):
         raise ValueError("pyyaml not available to parse YAML")
 
 
-_TRUTHY = {True, "on", "true", "yes", "1", 1}
+_TRUTHY = {True, "on", "true", "yes", "1"}
 
 
 def thing_enabled_for(posture: dict, category: str | None) -> bool:

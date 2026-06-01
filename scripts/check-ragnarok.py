@@ -142,7 +142,7 @@ def main() -> int:
 
         # ── 6. MEMORY survival: a sentinel OUTSIDE the cache is untouched ─────
         root6 = tmp / "c6"
-        v6 = make_cache(root6, "ravenclaude", "ravenclaude-core", "0.1.0")
+        make_cache(root6, "ravenclaude", "ravenclaude-core", "0.1.0")
         memory = tmp / "home6" / ".claude" / "projects" / "proj" / "memory"
         memory.mkdir(parents=True)
         mem_file = memory / "MEMORY.md"
