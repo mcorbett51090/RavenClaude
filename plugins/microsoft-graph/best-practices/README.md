@@ -8,7 +8,7 @@ For the cross-tool rule format and the marketplace-wide index, see [`docs/best-p
 
 ## Index
 
-_18 rules. Each file is one named, citable rule; read and apply it whole._
+_21 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -30,6 +30,9 @@ _18 rules. Each file is one named, citable rule; read and apply it whole._
 | [`notify-encrypt-rich-payloads-and-guard-the-key.md`](./notify-encrypt-rich-payloads-and-guard-the-key.md) | Absolute rule — the decryption private key for rich notifications is a security control; it lives in Key Vault and its handling escalates to security review, never decided silently. | A **rich** (resource-data) subscription (`includeResourceData: true`) ships the full changed resource *inside the notification*, encrypted, so you skip a follow… |
 | [`notify-subscriptions-need-renewal-and-lifecycle-handling.md`](./notify-subscriptions-need-renewal-and-lifecycle-handling.md) | Absolute rule — a change-notification subscription with no renewal timer and no lifecycle handling is a silent outage, not a working integration. | A Microsoft Graph subscription has a **limited, resource-specific lifetime** set at creation via `expirationDateTime`. |
 | [`notify-validate-the-handshake-and-verify-the-sender.md`](./notify-validate-the-handshake-and-verify-the-sender.md) | Absolute rule — a webhook endpoint that skips the validation handshake never receives a subscription, and one that processes notifications without verifying the sender is an injection surface. | Change notifications arrive at a **publicly accessible HTTPS endpoint** — which means anyone can POST to it. |
+| [`workloads-calendar-recurrence-and-timezone.md`](./workloads-calendar-recurrence-and-timezone.md) | Primary diagnostic — wrong/missing event times or only one occurrence of a recurring series → check the read shape (`calendarView` vs `/events`) and the time-zone header first. | `GET /events` returns the series master, not its occurrences; default times are UTC. |
+| [`workloads-mail-and-attachments-at-scale.md`](./workloads-mail-and-attachments-at-scale.md) | Pattern — inline attachment under the size ceiling, upload session above it; `$select` + `$batch` for reads, never `$expand=attachments` on a list. | Mail is simple until a large attachment, a big mailbox, or an over-fetching list loop hits. |
+| [`workloads-use-immutable-ids-for-stored-references.md`](./workloads-use-immutable-ids-for-stored-references.md) | Absolute rule — persisting a default Outlook item ID is a latent bug; default IDs change on folder move. Store `Prefer: IdType="ImmutableId"` IDs. | A stored mail/event ID 404s "later" once the item moves folders. |
 
 ---
 

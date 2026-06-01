@@ -129,6 +129,60 @@ flowchart TD
 
 ---
 
+## Decision Tree: Graph Outlook — which ID to store (default vs immutable)
+
+**When this applies:** You are about to persist a `message`, `event`, or `contact` ID (a DB row, a webhook correlation key, a stored `eventId`) and will look it up later. Observable symptom of getting this wrong: a stored ID 404s "later" after the item moved folders.
+
+**Last verified:** 2026-06-01 against Graph Outlook immutable-ID docs. `[verify-at-build]` — mailbox/tenant feature-enablement state varies.
+
+```mermaid
+flowchart TD
+    START[About to use an Outlook item ID] --> Q1{Will you STORE it and look it up later?}
+    Q1 -->|NO, transient — list/act/discard| DEFAULT[Default id is fine — no header needed]
+    Q1 -->|YES, persisted reference| Q2{Is the item one that can move folders? mail/event/contact = yes}
+    Q2 -->|YES| IMM[Request Prefer: IdType=&quot;ImmutableId&quot; and store THAT id]
+    Q2 -->|NO — driveItem / directory object| OWNID[Use the resource's own stable id — immutable header N/A]
+```
+
+**Rationale per leaf:**
+
+- _Default id (transient)_ — a list you render and discard never outlives a move; the header is pure overhead.
+- _Immutable id (persisted)_ — the default Outlook id changes on folder move; `Prefer: IdType="ImmutableId"` returns one that survives, so stored references don't break.
+- _Own stable id_ — drive items and directory objects already have stable IDs; the Outlook immutable-ID header doesn't apply.
+
+See [`../best-practices/workloads-use-immutable-ids-for-stored-references.md`](../best-practices/workloads-use-immutable-ids-for-stored-references.md).
+
+---
+
+## Decision Tree: Graph calendar — reading recurring events (events vs calendarView vs instances)
+
+**When this applies:** You need to read calendar data and the calendar contains recurring series. Observable symptom of getting this wrong: a weekly meeting shows up as one row instead of N occurrences, or all times render in UTC.
+
+**Last verified:** 2026-06-01 against Graph calendar/calendarView/recurrence docs. `[verify-at-build]` — Windows-vs-IANA tz-name support is version-sensitive.
+
+```mermaid
+flowchart TD
+    START[Need to read calendar data] --> Q1{What do you need?}
+    Q1 -->|What's on the calendar in a date window| CV[GET /calendarView with start/end window — expands recurrence into occurrences]
+    Q1 -->|The recurrence RULE itself, to edit the series| EV[GET /events — returns the seriesMaster with its recurrence]
+    Q1 -->|One specific instance| INST[GET the occurrence id from calendarView, then act on that instance]
+    CV --> TZ[Always send Prefer: outlook.timezone so times aren't UTC]
+    EV --> TZ
+    INST --> Q2{Edit ALL occurrences or just ONE?}
+    Q2 -->|all| PM[PATCH the seriesMaster]
+    Q2 -->|one| PO[PATCH the occurrence — creates an exception]
+```
+
+**Rationale per leaf:**
+
+- _calendarView_ — the only read that expands a recurring series into its individual occurrences in a window; this is the "what's on my calendar" read.
+- _events_ — returns the series master (one object + recurrence rule); use it to edit the rule, not to enumerate occurrences.
+- _PATCH master vs occurrence_ — patching the master changes every instance; patching an occurrence creates a single-instance exception. Choosing wrong silently over- or under-applies the edit.
+
+See [`../best-practices/workloads-calendar-recurrence-and-timezone.md`](../best-practices/workloads-calendar-recurrence-and-timezone.md).
+
+---
+
 ## See also
 
 - [`../../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md) — the format these trees follow
