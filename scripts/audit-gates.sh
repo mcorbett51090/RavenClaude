@@ -880,6 +880,39 @@ except SystemExit:
 sys.exit(1)      # silently produced a digest with no section -> bug
 PY
 gate "copilot: renamed grounding header fails generator loudly" must_pass "$rc"
+# (g) deny on call A does NOT poison a subsequent allow on call B — the
+#     "session lockout after deny" regression. A stub hook that denies one
+#     specific command and allows everything else is driven through the
+#     adapter back-to-back; the second invocation must come back as allow
+#     (or no-decision = pass-through), never as a sticky deny. This proves
+#     the adapter holds no per-session state and translates each call fresh.
+G20_STATE_STUB="$TMP/g20-stateful.sh"
+cat > "$G20_STATE_STUB" <<'EOF'
+#!/usr/bin/env bash
+in="$(cat)"
+cmd="$(printf '%s' "$in" | jq -r '.tool_input.command // ""')"
+if printf '%s' "$cmd" | grep -q 'DELETE-shaped-call'; then
+  printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"stub: DELETE denied"}}'
+else
+  printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"stub: clean"}}'
+fi
+EOF
+chmod +x "$G20_STATE_STUB"
+G20_IN_DENY="$(jq -cn '{toolName:"shell",toolArgs:({command:"DELETE-shaped-call /me/events/123"}|tostring),cwd:"/x",sessionId:"sticky-session"}')"
+G20_IN_ECHO="$(jq -cn '{toolName:"shell",toolArgs:({command:"echo hello"}|tostring),cwd:"/x",sessionId:"sticky-session"}')"
+# Call A (denying input) — establishes the "after deny" state if any leaks.
+g20g1="$(printf '%s' "$G20_IN_DENY" | bash "$ADAPTER" bash-pretool "$G20_STATE_STUB" 2>/dev/null)"
+rc=0; printf '%s' "$g20g1" | jq -e '.permissionDecision=="deny"' >/dev/null 2>&1 || rc=1
+gate "copilot: stateful stub denies call A as expected" must_pass "$rc"
+# Call B (benign input, same session_id) — must NOT come back deny.
+g20g2="$(printf '%s' "$G20_IN_ECHO" | bash "$ADAPTER" bash-pretool "$G20_STATE_STUB" 2>/dev/null)"
+rc=0; printf '%s' "$g20g2" | jq -e '.permissionDecision=="deny"' >/dev/null 2>&1 && rc=1
+gate "copilot: subsequent allow on call B is NOT sticky-denied (lockout regression)" must_pass "$rc"
+# Bidirectional: a known-broken adapter that hard-denies every call should fail this
+# gate. Simulate by running call B through the always-deny block stub from (b).
+g20g3="$(printf '%s' "$G20_IN_ECHO" | bash "$ADAPTER" bash-pretool "$G20_BLK" 2>/dev/null)"
+rc=0; printf '%s' "$g20g3" | jq -e '.permissionDecision=="deny"' >/dev/null 2>&1 || rc=1
+gate "copilot: must-fail control — a hard-deny stub would lock out call B" must_pass "$rc"
 
 echo
 echo "── Gate 21: tribunal trigger corpus (FP/FN + pre-deny + live-category triggers) ──"

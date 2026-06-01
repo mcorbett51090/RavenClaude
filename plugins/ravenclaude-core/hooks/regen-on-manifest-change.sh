@@ -20,7 +20,17 @@
 
 set -euo pipefail
 
+# Prefer the positional arg (set via `$CLAUDE_TOOL_FILE_PATH` in hooks.json), and
+# fall back to stdin JSON (`.tool_input.file_path`) for the case where the env
+# var isn't populated on PostToolUse. Same dual-source pattern guard-destructive.sh
+# uses on PreToolUse — robust against either pathway.
 file="${1:-}"
+if [ -z "$file" ] && [ ! -t 0 ] && command -v jq >/dev/null 2>&1; then
+  payload="$(cat 2>/dev/null || true)"
+  if [ -n "$payload" ]; then
+    file="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null || true)"
+  fi
+fi
 [ -z "$file" ] && exit 0
 [ ! -f "$file" ] && exit 0
 
