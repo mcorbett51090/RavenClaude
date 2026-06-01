@@ -18,6 +18,7 @@
     ".prettierignore",
     ".repo-layout.json",
     ".ravenclaude/comfort-posture.yaml",
+    ".ravenclaude/plugins/*.yaml",
     ".claude-plugin/marketplace.json",
     ".claude/settings.json",
     ".claude/worktrees/**",
