@@ -8,7 +8,7 @@ For the cross-tool rule format and the marketplace-wide index, see [`docs/best-p
 
 ## Index
 
-_26 rules. Each file is one named, citable rule; read and apply it whole._
+_28 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -34,9 +34,11 @@ _26 rules. Each file is one named, citable rule; read and apply it whole._
 | [`server-promote-content-dont-rebuild.md`](./server-promote-content-dont-rebuild.md) | Absolute rule — hand-republishing into a governed prod environment breaks the audit chain and drifts connections. Content moves through a repeatable migration path. | When you open prod, download the dev workbook, tweak the data connection, and re-publish by hand, three things silently break: the connection string drifts (you… |
 | [`server-publish-with-separated-data-sources.md`](./server-publish-with-separated-data-sources.md) | Pattern — separated published data sources are the strong default; an embedded per-workbook extract is the deviation you justify. | When a workbook embeds its own extract, the data model, the extract refresh, and the connection string all live *inside the workbook file*. |
 | [`viz-actions-and-interactivity.md`](./viz-actions-and-interactivity.md) | Pattern — match the interaction (filter action / highlight action / parameter / set action) to what the user is trying to *do*; reach past the default quick-filter only with a reason, but reach for the right mechanism deliberately. | "Make these views talk to each other" has four common, *non-interchangeable* answers, and choosing the wrong one produces a dashboard that technically responds … |
+| [`viz-analytics-pane-statistics-validity.md`](./viz-analytics-pane-statistics-validity.md) | Primary diagnostic — before dragging Forecast/Cluster/Trend onto a viz, check the statistical preconditions; an indefensible model with a confidence band is a wrong answer. | The Analytics pane makes real statistical models drag-and-drop, so they get applied without the judgment they require. |
 | [`viz-axis-and-dual-axis-integrity.md`](./viz-axis-and-dual-axis-integrity.md) | Absolute rule — a truncated quantitative axis, an unsynchronized dual axis, or a two-point "trend" misleads the reader, and a misleading chart is a defect regardless of how it looks. | The chart's geometry *is* the argument. |
 | [`viz-chart-type-follows-the-question.md`](./viz-chart-type-follows-the-question.md) | Absolute rule — chart type is determined by the *class of question* (comparison / trend / distribution / correlation / part-to-whole / geographic), not by what looks impressive. | The single most common dashboard failure is a chart chosen for its appearance rather than its fit to the question. |
 | [`viz-dashboard-performance-by-design.md`](./viz-dashboard-performance-by-design.md) | Pattern — performance is a design constraint applied while building (filter at source, minimize marks, keep the hot path cheap), not a rescue operation after a dashboard is already slow. | A dashboard's load time is set mostly by decisions made while building it: how many marks render, how many queries fire, how much work each calc does, and how m… |
+| [`viz-densification-and-domain-padding.md`](./viz-densification-and-domain-padding.md) | Primary diagnostic — phantom rows / extra marks / missing gaps in a sparse series with the grain looking right → suspect densification/domain-padding before re-checking the calc. | Tableau silently completes or pads the domain, and a table calc can force it — producing wrong marks, not a wrong grain. |
 | [`viz-formatting-and-accessibility.md`](./viz-formatting-and-accessibility.md) | Pattern — format every shipped view for fast reading and for users who can't perceive color, contrast, or fine detail; treat accessibility as a build requirement, not a polish step. | Roughly 1 in 12 men and 1 in 200 women have a color-vision deficiency `[unverified — training knowledge]`, so a red/green KPI that encodes meaning **only** in h… |
 
 ---
