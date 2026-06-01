@@ -41,6 +41,44 @@ PLUGIN_COLORS = {
 }
 DEFAULT_COLOR = "#64748b"
 
+# Shared design tokens — single source of truth at
+# plugins/ravenclaude-core/dashboard-assets/shared-tokens.css. Read at
+# generate-time, inlined into the <style> block via the
+# /*__SHARED_TOKENS__*/ marker substitution at the bottom of render().
+_SHARED_TOKENS_PATH = (
+    REPO_ROOT / "plugins" / "ravenclaude-core" / "dashboard-assets" / "shared-tokens.css"
+)
+
+
+def _load_shared_tokens_root() -> str:
+    """Extract the :root { ... } block from shared-tokens.css.
+
+    Returns just the inner declarations + the CSS contrast-note comments,
+    wrapped in `:root { ... }`, ready to inline into a surface's <style>
+    block at generate-time. The shared-tokens.css component-class section
+    (.rc-card, .rc-pill, etc.) is intentionally NOT injected here — each
+    surface consumes the tokens (CSS custom properties) and applies its
+    own structural CSS. Deterministic: explicit utf-8, source order preserved.
+    """
+    text = _SHARED_TOKENS_PATH.read_text(encoding="utf-8")
+    start = text.find(":root {")
+    if start < 0:
+        raise RuntimeError(f"shared-tokens.css missing :root block at {_SHARED_TOKENS_PATH}")
+    i = text.index("{", start)
+    body_start = i + 1
+    depth = 0
+    while i < len(text):
+        ch = text[i]
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return ":root {\n" + text[body_start:i].strip("\n") + "\n}\n"
+        i += 1
+    raise RuntimeError(f"shared-tokens.css :root block is unbalanced at {_SHARED_TOKENS_PATH}")
+
+
 # Audience taxonomy — fixed at 7 values per the deep-researcher recommendation.
 # Documented in docs/best-practices/agent-scenario-authoring.md.
 AUDIENCE_LABELS = {
@@ -637,10 +675,62 @@ def render_section(title: str, items: list[Item], kind: str) -> str:
     )
 
 
+def _format_requires(requires) -> str:
+    """Render the plugin manifest's `requires` field as a readable line.
+
+    Accepts either:
+      - dict  e.g. {"plugins": ["ravenclaude-core@>=0.5.0"]}
+      - str   e.g. "ravenclaude-core@>=0.5.0"  (rare; pre-schema plugins)
+      - str-of-dict from raw conversion (fallback)
+
+    Returns one or more `<code>name ≥ version</code>` chunks joined by `, `.
+    Returns empty string if `requires` is empty / unparseable.
+    """
+    if not requires:
+        return ""
+    items: list[str] = []
+    if isinstance(requires, dict):
+        plugins = requires.get("plugins") or []
+        if isinstance(plugins, list):
+            items.extend(str(x) for x in plugins)
+    elif isinstance(requires, str):
+        # Accept "name@>=ver" directly OR a dict-as-string (which is what
+        # the Plugin dataclass currently stores after a raw str(json_value)
+        # conversion). Try to parse the dict-string form first.
+        s = requires.strip()
+        if s.startswith("{"):
+            import ast
+            try:
+                parsed = ast.literal_eval(s)
+                if isinstance(parsed, dict):
+                    plugins = parsed.get("plugins") or []
+                    if isinstance(plugins, list):
+                        items.extend(str(x) for x in plugins)
+            except (ValueError, SyntaxError):
+                return esc(s)  # truly unparseable — surface raw, escaped
+        else:
+            items.append(s)
+    if not items:
+        return ""
+    parts = []
+    for it in items:
+        name, _, ver = it.partition("@")
+        ver = ver.lstrip(">=").lstrip("~^").strip()
+        if name and ver:
+            parts.append(f"<code>{esc(name.strip())} ≥ {esc(ver)}</code>")
+        else:
+            parts.append(f"<code>{esc(it)}</code>")
+    return ", ".join(parts)
+
+
 def render_plugin(plugin: Plugin) -> str:
     color = PLUGIN_COLORS.get(plugin.name, DEFAULT_COLOR)
     keywords = " ".join(f'<span class="kw">{esc(k)}</span>' for k in plugin.keywords)
-    requires_html = f'<div class="meta-row"><span class="meta-label">Requires</span> <code>{esc(plugin.requires)}</code></div>' if plugin.requires else ""
+    requires_formatted = _format_requires(plugin.requires)
+    requires_html = (
+        f'<div class="meta-row"><span class="meta-label">Requires</span> {requires_formatted}</div>'
+        if requires_formatted else ""
+    )
     last_updated_html = (
         f'<div class="meta-row"><span class="meta-label">Last updated</span> <code>{esc(plugin.last_updated)}</code></div>'
         if plugin.last_updated else ""
@@ -966,23 +1056,24 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
     except OSError:
         mermaid_lib_src = ""  # If missing, Mermaid blocks will not render but the page still works.
 
-    return f"""<!doctype html>
+    result = f"""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>RavenClaude — Marketplace Guide</title>
   <style>
+    /*__SHARED_TOKENS__*/
     :root {{
-      --bg: #0b1120;
-      --surface: #111827;
-      --surface-2: #1f2937;
-      --border: #334155;
-      --text: #f1f5f9;
-      --muted: #94a3b8;
-      --accent: #14b8a6;
-      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      --bg: var(--rc-bg);
+      --surface: var(--rc-surface);
+      --surface-2: var(--rc-surface-2);
+      --border: var(--rc-border);
+      --text: var(--rc-text);
+      --muted: var(--rc-muted);
+      --accent: var(--rc-teal);
+      --font-sans: var(--rc-font-sans);
+      --font-mono: var(--rc-font-mono);
     }}
     * {{ box-sizing: border-box; }}
     html, body {{
@@ -990,7 +1081,7 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
       background: var(--bg); color: var(--text);
       font-family: var(--font-sans); font-size: 15px; line-height: 1.5;
     }}
-    a {{ color: #5eead4; text-decoration: none; }}
+    a {{ color: var(--rc-teal); text-decoration: none; }}
     a:hover {{ text-decoration: underline; }}
     code {{ font-family: var(--font-mono); background: var(--surface-2); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; }}
     header.site {{
@@ -1424,6 +1515,7 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
 </body>
 </html>
 """
+    return result.replace("/*__SHARED_TOKENS__*/", _load_shared_tokens_root())
 
 
 def main() -> int:

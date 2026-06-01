@@ -475,10 +475,48 @@ def scan_repo() -> dict:
 # ----------------------------------------------------------------------------
 # Rendering
 # ----------------------------------------------------------------------------
+_SHARED_TOKENS_PATH = (
+    Path(__file__).resolve().parent.parent
+    / "plugins" / "ravenclaude-core" / "dashboard-assets" / "shared-tokens.css"
+)
+
+
+def _load_shared_tokens_root() -> str:
+    """Read the :root { ... } block from shared-tokens.css and return only
+    its inner declarations + the contrast-note comment, ready to inline
+    into a surface's <style> block at generate-time. The component-class
+    section of shared-tokens.css is not injected here — each surface
+    consumes the tokens (CSS custom properties) and applies its own
+    structural CSS. Determinism: explicit utf-8, sorted-free (lines kept
+    in source order), single trailing newline."""
+    text = _SHARED_TOKENS_PATH.read_text(encoding="utf-8")
+    # Extract everything from `:root {` through its matching `}` (the first
+    # block — shared-tokens.css's authoritative root token declaration).
+    start = text.find(":root {")
+    if start < 0:
+        raise RuntimeError(f"shared-tokens.css missing :root block at {_SHARED_TOKENS_PATH}")
+    # Brace-match starting from the `{` after `:root `.
+    depth = 0
+    i = text.index("{", start)
+    body_start = i + 1
+    while i < len(text):
+        ch = text[i]
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[body_start:i].strip("\n") + "\n"
+        i += 1
+    raise RuntimeError(f"shared-tokens.css :root block is unbalanced at {_SHARED_TOKENS_PATH}")
+
+
 def render_html(data: dict) -> str:
     template = _TEMPLATE
+    shared_tokens = _load_shared_tokens_root()
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
-    html = template.replace("/*__RC_DATA__*/", payload)
+    html = template.replace("/*__SHARED_TOKENS__*/", shared_tokens)
+    html = html.replace("/*__RC_DATA__*/", payload)
     html = html.replace("__GENERATED__", data["generated"])
     html = html.replace("__MKT_VERSION__", data["marketplace_version"])
     return html
