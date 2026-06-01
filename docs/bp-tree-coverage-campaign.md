@@ -49,8 +49,14 @@
 - **ai-coding-model-guidance** — comprehensive by design. +2 durable-reasoning BP only (`right-size-by-cost-per-resolved-task-not-rank`, `scope-model-availability-by-surface-plan-date`), +3 trees (all in the existing lineup file: reasoning-vs-bigger-model; retired-model; cost-escalation). NO BP library (respects §7).
 - C2 total: **13 BP, 9 trees.**
 
-### C3 business domains — PENDING
+### C3 business domains (in)
+- **finance** — minor. +2 BP (`controller-accrual-vs-prepaid-vs-deferral-cutoff`, `audit-classify-deficiency-severity-cd-sd-mw`), +3 trees (ASC-606 rev-rec timing; audit deficiency CD/SD/MW; treasury cash-shortfall response ladder). Deepen finance-decision-trees + variance-root-cause.
+- **regulatory-compliance** — minor. +2 BP (`reporting-classify-the-entity-before-you-file`, `bermuda-state-the-capital-regime-before-you-model`), +2 trees (which-return/entity-classification; Bermuda class & capital regime). Bermuda agent currently has ZERO dedicated rule/tree.
+- **edtech-partner-success** — COMPREHENSIVE. +0 BP, +1 optional tree (segment-equivalent privacy regime FERPA/higher-ed/GDPR — closes stated segment-agnosticism gap).
+- **applied-statistics** — COMPREHENSIVE. +0 BP, +1 tree (FWER-vs-FDR multiple-comparison method choice — only genuine branching gap).
+- C3 total: **4 BP, 7 trees.**
+
 ### C4 dev/CRM/web/core — PENDING
 
 ## Status log
-- 2026-06-01: baseline taken; Panel 1 launched. C1 + C2 reported (23 BP + 16 trees proposed so far). Awaiting C3, C4.
+- 2026-06-01: baseline taken; Panel 1 launched. C1 + C2 + C3 reported (27 BP + 23 trees proposed so far). Awaiting C4. edtech + applied-statistics confirmed already at 98% bar.
