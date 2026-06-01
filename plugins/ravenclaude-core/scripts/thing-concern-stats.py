@@ -143,7 +143,7 @@ def compute(project: Path) -> dict:
                 row["final_deny"] += 1
 
     rows = []
-    for cid, row in per_concern.items():
+    for row in per_concern.values():
         total = max(row["cited_total"], 1)
         row["fp_ratio"] = round(
             (row["stripped"] + row["heimdall_disagreed"]) / total, 4
