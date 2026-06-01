@@ -3870,7 +3870,8 @@ footer.page-footer a:hover { text-decoration: underline; }
   line-height: 1.55;
 }
 .install-prereqs,
-.install-wiring {
+.install-wiring,
+.install-plugin-list {
   margin: 0;
   padding-left: 20px;
   font-size: 13px;
@@ -3878,7 +3879,115 @@ footer.page-footer a:hover { text-decoration: underline; }
   color: var(--text);
 }
 .install-prereqs li::marker,
-.install-wiring li::marker { color: var(--accent); }
+.install-wiring li::marker,
+.install-plugin-list li::marker { color: var(--accent); }
+.install-intro {
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin: 4px 0 14px;
+  color: var(--text);
+}
+.install-explain {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  margin: 6px 0 12px;
+}
+.install-situation {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0;
+  margin: 10px 0 14px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.install-situation > summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  list-style: none;
+  position: relative;
+  user-select: none;
+}
+.install-situation > summary::before {
+  content: "\\25B8  ";
+  color: var(--muted);
+}
+.install-situation[open] > summary::before { content: "\\25BE  "; }
+.install-situation[open] > summary {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.install-situation-body { padding: 12px 16px 16px; }
+.install-steplist {
+  margin: 4px 0 8px;
+  padding-left: 22px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.install-steplist > li { margin: 10px 0; }
+.install-steplist > li::marker {
+  color: var(--accent);
+  font-weight: 700;
+}
+.install-after {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: var(--ok-soft, rgba(34, 197, 94, 0.08));
+  border-left: 3px solid var(--ok, #22c55e);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.install-rebuild-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0 16px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.install-rebuild-table th,
+.install-rebuild-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.install-rebuild-table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.install-rebuild-table td.reb-yes { color: var(--danger, #ef4444); }
+.install-rebuild-table td.reb-no { color: var(--ok, #22c55e); }
+.install-rebuild-table td.reb-maybe { color: var(--warn, #fbbf24); }
+.install-trouble {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: 6px 0;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.install-trouble > summary {
+  cursor: pointer;
+  padding: 10px 12px;
+  font-size: 13px;
+  list-style: none;
+  user-select: none;
+}
+.install-trouble > summary::before {
+  content: "\\25B8  ";
+  color: var(--muted);
+}
+.install-trouble[open] > summary::before { content: "\\25BE  "; }
+.install-trouble[open] > summary {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.install-trouble-body { padding: 10px 14px 12px; font-size: 12.5px; line-height: 1.55; }
+.install-design-note { margin-top: 22px; }
 .install-guide code,
 .install-commands-sub code,
 .oneclick-sub code,
@@ -4954,112 +5063,401 @@ _SETTINGS_TAB_TEMPLATE = """
 _INSTALL_TAB_TEMPLATE = """
 <div class="install-layout">
   <section class="install-guide">
-    <h2>Install &amp; Update &mdash; GitHub Copilot CLI</h2>
-    <p>
-      This wires RavenClaude &mdash; its agents, skills, hooks, and MCP servers &mdash; into
-      the <code>copilot</code> CLI so they behave the same way they do in Claude Code.
+    <h2>Install RavenClaude &mdash; GitHub Copilot CLI</h2>
+    <p class="install-intro">
+      Follow these steps in order. Every command has a <strong>Copy</strong> button &mdash; you don&rsquo;t
+      need to type anything. Each step tells you what to expect <em>after</em> you run it.
       <strong>Using Claude Code instead?</strong> See the <a href="#/bifrost">Claude&nbsp;Code</a> page.
     </p>
-    <p class="install-pillar">
-      <strong>The design pillar:</strong> everything Copilot reads is <strong>live from disk</strong>
-      &mdash; the plugin loads via <code>--plugin-dir</code>, skills from <code>.claude/skills</code>,
-      hooks from <code>.github/hooks</code>, MCP from <code>~/.copilot/mcp-config.json</code>. So an
-      <strong>update is just a <code>git&nbsp;pull</code></strong> &mdash; there is no re-install, ever.
+
+    <h3>What is this?</h3>
+    <p class="install-explain">
+      <strong>RavenClaude</strong> is a kit of AI agents (architect, coder, reviewer, and friends) you can use
+      inside coding tools. <strong>GitHub Copilot CLI</strong> is GitHub&rsquo;s command-line chatbot &mdash;
+      you type <code>copilot</code> in a terminal and it answers like a chat. This page shows how to plug
+      the RavenClaude kit into Copilot so the agents are there when you chat.
     </p>
 
-    <h3>Prerequisites</h3>
-    <ul class="install-prereqs">
-      <li>The <code>copilot</code> CLI on your <code>PATH</code> (Node.js&nbsp;22+): <code>npm install -g @github/copilot</code> &mdash; or Homebrew / WinGet. Check with <code>copilot --version</code>.</li>
-      <li>Signed in: launch <code>copilot</code> once and run <code>/login</code>.</li>
-      <li>A local checkout of this marketplace (the repo serving this dashboard).</li>
+    <h3>Before you start &mdash; what you need</h3>
+    <p>Run each of these three checks. They print a version number if you have the thing already.</p>
+    <div class="cmd-block">
+      <span class="cmd-label">a. Node.js 22 or higher</span>
+      <div class="cmd-row">
+        <code class="cmd-code" id="cmd-check-node">node --version</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-check-node">Copy</button>
+      </div>
+    </div>
+    <div class="cmd-block">
+      <span class="cmd-label">b. GitHub Copilot CLI</span>
+      <div class="cmd-row">
+        <code class="cmd-code" id="cmd-check-copilot">copilot --version</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-check-copilot">Copy</button>
+      </div>
+    </div>
+    <div class="cmd-block">
+      <span class="cmd-label">c. GitHub CLI (for cloning the RavenClaude repo)</span>
+      <div class="cmd-row">
+        <code class="cmd-code" id="cmd-check-gh">gh auth status</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-check-gh">Copy</button>
+      </div>
+    </div>
+    <p><strong>Missing the Copilot CLI?</strong> Install it:</p>
+    <div class="cmd-block">
+      <span class="cmd-label">Install GitHub Copilot CLI</span>
+      <div class="cmd-row">
+        <code class="cmd-code" id="cmd-install-copilot">npm install -g @github/copilot</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-install-copilot">Copy</button>
+      </div>
+    </div>
+    <p>
+      <strong>Not signed into Copilot?</strong> Run <code>copilot</code> once. When it opens, type
+      <code>/login</code> and follow the prompts &mdash; you sign in with your GitHub account.
+    </p>
+
+    <h3>Step 1: Get RavenClaude onto your machine</h3>
+    <p>
+      RavenClaude lives in a GitHub repo. You <em>clone</em> (download) it once, into your home folder.
+      <em>The squiggly line <code>~</code> means &ldquo;your home folder&rdquo; &mdash; on a Mac that&rsquo;s
+      <code>/Users/yourname</code>, on Linux it&rsquo;s <code>/home/yourname</code>, and in a Codespace
+      it&rsquo;s <code>/home/codespace</code>.</em>
+    </p>
+    <div class="cmd-block">
+      <span class="cmd-label">Clone the RavenClaude repo (one time only)</span>
+      <div class="cmd-row">
+        <code class="cmd-code" id="cmd-clone-rc">gh repo clone mcorbett51090/RavenClaude ~/RavenClaude</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-clone-rc">Copy</button>
+      </div>
+    </div>
+    <p>
+      <strong>After this:</strong> You have a folder at <code>~/RavenClaude</code> with all the agent kits.
+      Every command below points back to this folder.
+    </p>
+    <p>
+      <strong>If the clone fails with &ldquo;permission denied&rdquo;:</strong> the repo is private &mdash;
+      make sure you ran <code>gh auth login</code> first and signed in with your GitHub account, then try the
+      clone again.
+    </p>
+
+    <h3>Step 2: Pick how you&rsquo;re working</h3>
+    <p>Two situations. Pick the one that matches you. (Click to expand.)</p>
+
+    <details class="install-situation" open>
+      <summary><strong>Situation A:</strong> I&rsquo;m using a brand-new GitHub Codespace</summary>
+      <div class="install-situation-body">
+        <p>
+          A <strong>Codespace</strong> is a cloud computer GitHub gives you for a repo &mdash; it opens
+          in your browser and looks like VS Code. If that&rsquo;s you, follow these four steps to make
+          RavenClaude set itself up automatically every time the Codespace opens.
+        </p>
+        <ol class="install-steplist">
+          <li>
+            <strong>Inside your Codespace&rsquo;s terminal</strong>, run this once. It copies two
+            setup files into your project&rsquo;s <code>.devcontainer/</code> folder.
+            <div class="cmd-block">
+              <div class="cmd-row">
+                <code class="cmd-code" id="cmd-cs-init">bash ~/RavenClaude/scripts/ravenclaude init-codespace --project .</code>
+                <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-cs-init">Copy</button>
+              </div>
+            </div>
+          </li>
+          <li>
+            <strong>Wire up THIS session right now</strong> (so you don&rsquo;t have to rebuild to test).
+            Pick the plugins you want here &mdash; see <a href="#install-step-3">Step 3</a> for what each one does.
+            <div class="cmd-block">
+              <span class="cmd-label">Just the base kit (core only)</span>
+              <div class="cmd-row">
+                <code class="cmd-code" id="cmd-cs-setup-core">bash ~/RavenClaude/scripts/ravenclaude setup --project .</code>
+                <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-cs-setup-core">Copy</button>
+              </div>
+            </div>
+            <div class="cmd-block">
+              <span class="cmd-label">Core + power-platform (example: a Microsoft Power Platform project)</span>
+              <div class="cmd-row">
+                <code class="cmd-code" id="cmd-cs-setup-pp">bash ~/RavenClaude/scripts/ravenclaude setup --project . --with-plugin power-platform</code>
+                <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-cs-setup-pp">Copy</button>
+              </div>
+            </div>
+          </li>
+          <li>
+            <strong>Reload your shell</strong> so the new <code>rc</code> command works.
+            <div class="cmd-block">
+              <div class="cmd-row">
+                <code class="cmd-code" id="cmd-cs-source">source ~/.bashrc</code>
+                <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-cs-source">Copy</button>
+              </div>
+            </div>
+          </li>
+          <li>
+            <strong>Commit and push the <code>.devcontainer/</code> files</strong> so future
+            Codespace builds are fully automatic.
+            <div class="cmd-block">
+              <div class="cmd-row">
+                <code class="cmd-code" id="cmd-cs-commit">git add .devcontainer &amp;&amp; git commit -m "Add RavenClaude Codespace auto-setup" &amp;&amp; git push</code>
+                <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-cs-commit">Copy</button>
+              </div>
+            </div>
+          </li>
+        </ol>
+        <p class="install-after">
+          <strong>After this:</strong> Every time you (or anyone on your team) opens a Codespace for this
+          repo, RavenClaude sets itself up automatically. The dashboard URL opens by itself in a new
+          browser tab. You just type <code>rc</code> to launch Copilot.
+        </p>
+      </div>
+    </details>
+
+    <details class="install-situation">
+      <summary><strong>Situation B:</strong> I&rsquo;m on my own computer (no Codespace)</summary>
+      <div class="install-situation-body">
+        <p>Three steps. Pretty similar to Situation A, just without the Codespace auto-setup file.</p>
+        <ol class="install-steplist">
+          <li>
+            <strong>Go to your project folder</strong> in a terminal. Replace the path with your
+            actual folder.
+            <div class="cmd-block">
+              <div class="cmd-row">
+                <code class="cmd-code" id="cmd-local-cd">cd /path/to/your/project</code>
+                <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-local-cd">Copy</button>
+              </div>
+            </div>
+          </li>
+          <li>
+            <strong>Wire RavenClaude into this project.</strong> Pick the plugins you want &mdash; see
+            <a href="#install-step-3">Step 3</a> for what each one does.
+            <div class="cmd-block">
+              <span class="cmd-label">Just the base kit (core only)</span>
+              <div class="cmd-row">
+                <code class="cmd-code" id="cmd-local-setup-core">bash ~/RavenClaude/scripts/ravenclaude setup --project .</code>
+                <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-local-setup-core">Copy</button>
+              </div>
+            </div>
+            <div class="cmd-block">
+              <span class="cmd-label">Core + power-platform</span>
+              <div class="cmd-row">
+                <code class="cmd-code" id="cmd-local-setup-pp">bash ~/RavenClaude/scripts/ravenclaude setup --project . --with-plugin power-platform</code>
+                <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-local-setup-pp">Copy</button>
+              </div>
+            </div>
+          </li>
+          <li>
+            <strong>Reload your shell</strong> so the new <code>rc</code> command works.
+            <div class="cmd-block">
+              <span class="cmd-label">If you use bash</span>
+              <div class="cmd-row">
+                <code class="cmd-code" id="cmd-local-source-bash">source ~/.bashrc</code>
+                <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-local-source-bash">Copy</button>
+              </div>
+            </div>
+            <div class="cmd-block">
+              <span class="cmd-label">If you use zsh (most Macs)</span>
+              <div class="cmd-row">
+                <code class="cmd-code" id="cmd-local-source-zsh">source ~/.zshrc</code>
+                <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-local-source-zsh">Copy</button>
+              </div>
+            </div>
+          </li>
+        </ol>
+        <p class="install-after">
+          <strong>After this:</strong> RavenClaude is wired into THIS project on this computer.
+          You type <code>rc</code> in a terminal (from this project&rsquo;s folder) to launch Copilot.
+        </p>
+      </div>
+    </details>
+
+    <h3 id="install-step-3">Step 3: Pick your plugins</h3>
+    <p>
+      RavenClaude is split into <strong>plugins</strong> &mdash; separate kits for different jobs. Step 2
+      above showed how to pick them with the <code>--with-plugin</code> flag. Add the flag once per plugin
+      &mdash; for example: <code>--with-plugin power-platform --with-plugin finance</code>.
+    </p>
+    <p><strong>What&rsquo;s in each plugin?</strong></p>
+    <ul class="install-plugin-list">
+      <li><strong>ravenclaude-core</strong> &mdash; <em>Always on.</em> The base kit of generalist agents
+        (architect, coder, reviewer, etc.) and the team-lead dispatch pattern. You never have to ask
+        for this one.</li>
+      <li><strong>power-platform</strong> &mdash; Microsoft Power Platform specialists (Dataverse,
+        Power Automate, Power Apps). Use this for any Microsoft project.</li>
+      <li><strong>finance</strong> &mdash; Finance-domain specialists for accounting workflows.</li>
+      <li><strong>web-design</strong> &mdash; Web design specialists (UX, visual, accessibility,
+        performance).</li>
+      <li><strong>data-platform</strong> &mdash; Data engineering, ELT, dashboards, multi-tenant.</li>
+      <li><em>and 12 others</em> &mdash; see the <a href="#/learn">Learn tab</a> for the full list.</li>
     </ul>
+    <p>
+      <strong>Already installed and want to add a plugin later?</strong> Re-run the setup command with
+      the new plugin name. It&rsquo;s safe to run again &mdash; it just adds the new skills alongside
+      what&rsquo;s already there.
+    </p>
+    <div class="cmd-block">
+      <span class="cmd-label">Add power-platform to an already-installed project</span>
+      <div class="cmd-row">
+        <code class="cmd-code" id="cmd-add-plugin-later">bash ~/RavenClaude/scripts/ravenclaude setup --project . --with-plugin power-platform</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-add-plugin-later">Copy</button>
+      </div>
+    </div>
+    <p>Then, inside your running Copilot session:</p>
+    <div class="cmd-block">
+      <span class="cmd-label">Pick up the new skills without restarting Copilot</span>
+      <div class="cmd-row">
+        <code class="cmd-code" id="cmd-skills-reload-step3">/skills reload</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-skills-reload-step3">Copy</button>
+      </div>
+    </div>
 
-    <h3>1. Install &mdash; one-time wiring</h3>
+    <h3>Step 4: Launch Copilot with RavenClaude</h3>
+    <p>One word from any terminal:</p>
+    <div class="cmd-block">
+      <span class="cmd-label">Launch Copilot with all your wired-up agents</span>
+      <div class="cmd-row">
+        <code class="cmd-code" id="cmd-launch-rc">rc</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-launch-rc">Copy</button>
+      </div>
+    </div>
     <p>
-      Run <code>bash scripts/ravenclaude install</code> from your marketplace checkout (or
-      <code>setup</code> for the batteries-included one-shot). It is idempotent &mdash; safe to
-      re-run. It wires:
-    </p>
-    <ul class="install-wiring">
-      <li><strong>Skills</strong> &rarr; <code>.claude/skills</code> (Copilot reads these live; it also reads <code>.github/skills</code> / <code>.agents/skills</code>).</li>
-      <li><strong>Hooks</strong> &rarr; <code>.github/hooks/ravenclaude.json</code> via the Copilot hook adapter. Repo-level, not plugin-level &mdash; a workaround for <a href="https://github.com/github/copilot-cli/issues/2540">copilot-cli#2540</a> (plugin <code>preToolUse</code> hooks don&rsquo;t fire).</li>
-      <li><strong>MCP servers</strong> &rarr; <code>~/.copilot/mcp-config.json</code> (override the directory with <code>COPILOT_HOME</code>).</li>
-    </ul>
-
-    <h3>2. Launch</h3>
-    <p>
-      <code>copilot --plugin-dir plugins/ravenclaude-core/copilot</code> loads the agents
-      <em>live</em> from the directory &mdash; never installed or cached. To also load the
-      claim-grounding discipline (<code>AGENTS.md</code>), first run
-      <code>export COPILOT_CUSTOM_INSTRUCTIONS_DIRS=plugins/ravenclaude-core/copilot</code>.
+      <strong>What <code>rc</code> does:</strong> It pulls the latest RavenClaude (so you always have the
+      newest version), then launches Copilot with the agents and skills loaded. <em>(<code>rc</code> is
+      short for &ldquo;ravenclaude&rdquo; &mdash; <code>ravenclaude setup</code> added it to your shell&rsquo;s
+      <code>~/.bashrc</code> or <code>~/.zshrc</code>.)</em>
     </p>
 
-    <h3>3. Update &mdash; anytime</h3>
-    <p>Updating is copy-paste only &mdash; <strong>no re-install, ever.</strong> Run these from anywhere:</p>
-    <div class="cmd-block">
-      <span class="cmd-label">a. Update the marketplace clone</span>
-      <div class="cmd-row">
-        <code class="cmd-code" id="cmd-copilot-pull">git -C ~/RavenClaude pull</code>
-        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-copilot-pull">Copy</button>
-      </div>
-    </div>
-    <div class="cmd-block">
-      <span class="cmd-label">b. Update the plugins (re-sync skills, hooks, MCP, and the Copilot package)</span>
-      <div class="cmd-row">
-        <code class="cmd-code" id="cmd-copilot-update">bash ~/RavenClaude/scripts/ravenclaude update</code>
-        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-copilot-update">Copy</button>
-      </div>
-    </div>
-    <div class="cmd-block">
-      <span class="cmd-label">c. Apply the new skills inside your running Copilot session</span>
-      <div class="cmd-row">
-        <code class="cmd-code" id="cmd-copilot-skills-reload">/skills reload</code>
-        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-copilot-skills-reload">Copy</button>
-      </div>
-    </div>
+    <h3>Updating later</h3>
     <p>
-      <code>/skills reload</code> picks up new or edited skills without restarting Copilot. <strong>Hooks and MCP servers do not hot-reload</strong> &mdash; if step&nbsp;(b) changed <code>.github/hooks/ravenclaude.json</code> or merged a new MCP server into <code>~/.copilot/mcp-config.json</code>, fully relaunch:
+      <code>rc</code> auto-updates every time you launch &mdash; so usually you don&rsquo;t do anything
+      extra. If you want to update <em>without</em> launching Copilot:
     </p>
     <div class="cmd-block">
-      <span class="cmd-label">d. Relaunch Copilot to pick up new hooks / MCP servers</span>
+      <span class="cmd-label">Update only (no launch)</span>
       <div class="cmd-row">
-        <code class="cmd-code" id="cmd-copilot-relaunch">copilot --plugin-dir plugins/ravenclaude-core/copilot</code>
-        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-copilot-relaunch">Copy</button>
+        <code class="cmd-code" id="cmd-update-only">bash ~/RavenClaude/scripts/ravenclaude update</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-update-only">Copy</button>
       </div>
     </div>
-    <p>
-      <em>Note: <code>ravenclaude update</code> already runs <code>git&nbsp;pull</code> on the clone
-      internally, so step&nbsp;(b) alone is enough; run step&nbsp;(a) too if you keep your clone
-      somewhere other than <code>~/RavenClaude</code> or want to pull without re-syncing.</em>
-      The <code>rc</code> alias below does it all in one word.
-    </p>
+    <p>Then, inside your running Copilot session, pick up changed skills:</p>
+    <div class="cmd-block">
+      <span class="cmd-label">Inside Copilot</span>
+      <div class="cmd-row">
+        <code class="cmd-code" id="cmd-skills-reload-update">/skills reload</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-skills-reload-update">Copy</button>
+      </div>
+    </div>
     <p class="install-cross-tool">
       <strong>Using Claude Code on the same machine?</strong> <code>ravenclaude update</code> only refreshes
-      the Copilot-side wiring (live <code>--plugin-dir</code> + live <code>.claude/skills</code>) &mdash;
-      it does not touch Claude Code&rsquo;s plugin cache at <code>~/.claude/plugins/cache/</code>.
-      To update that side too, run <code>/plugin marketplace update ravenclaude</code> + <code>/reload-plugins</code>
-      <em>inside Claude Code</em>. See the <a href="#bifrost-verify-cache">Bifröst cache-verification steps</a>.
+      the Copilot side &mdash; it does not touch Claude Code&rsquo;s plugin cache at
+      <code>~/.claude/plugins/cache/</code>. To update that side too, run
+      <code>/plugin marketplace update ravenclaude</code> and <code>/reload-plugins</code> <em>inside Claude
+      Code</em>. See the <a href="#bifrost-verify-cache">Bifröst cache-verification steps</a>.
     </p>
 
-    <h3>Check what is wired</h3>
-    <p><code>bash scripts/ravenclaude status</code> reports the state of skills, hooks, MCP, and the generated package.</p>
-
-    <h3>Zero-command Codespace</h3>
+    <h3>When do I need to rebuild my Codespace?</h3>
     <p>
-      <code>bash scripts/ravenclaude init-codespace</code> stamps a devcontainer whose
-      <code>postCreateCommand</code> runs <code>ravenclaude setup</code> on build. Open the
-      Codespace, type <code>rc</code>, and Copilot launches fully wired &mdash; nothing else to type.
+      A <strong>rebuild</strong> tears down the Codespace and creates a new one. It&rsquo;s slow &mdash;
+      a few minutes. Most things <em>don&rsquo;t</em> need one.
     </p>
-    <p>
-      <strong>The dashboard auto-launches too.</strong> The same devcontainer pre-forwards port&nbsp;8000
-      (<code>forwardPorts: [8000]</code> &mdash; the &ldquo;RavenClaude dashboard&rdquo; row appears in the
-      <strong>Ports</strong> panel from the moment the Codespace is ready, even before the server binds), and a
-      <code>postStartCommand</code> runs <code>.ravenclaude/dashboard.sh</code> on every Codespace start
-      <em>and resume</em> &mdash; so the dashboard URL opens itself in a real browser tab without you having to
-      find it. (<code>postCreateCommand</code> only fires on first build; <code>postStartCommand</code> covers
-      the resume case.) The forwarded port stays <strong>Private</strong> by default &mdash; keep it that way:
-      <code>/__save</code> writes files and applies posture, so a public port&nbsp;8000 would be a remote-write
-      surface to your repo.
+    <table class="install-rebuild-table">
+      <thead>
+        <tr><th scope="col">What you did</th><th scope="col">Rebuild?</th><th scope="col">What instead</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Added or changed files in <code>.devcontainer/</code></td>
+          <td class="reb-yes"><strong>Yes</strong></td>
+          <td>The <code>.devcontainer/</code> files only take effect when the Codespace is built. Command Palette &rarr; &ldquo;Codespaces: Rebuild Container&rdquo;.</td>
+        </tr>
+        <tr>
+          <td>Ran <code>ravenclaude update</code> (or <code>rc</code>)</td>
+          <td class="reb-no"><strong>No</strong></td>
+          <td>Skills read live from disk. Inside Copilot, type <code>/skills reload</code>.</td>
+        </tr>
+        <tr>
+          <td>Added a new plugin with <code>--with-plugin</code></td>
+          <td class="reb-no"><strong>No</strong></td>
+          <td>Inside Copilot, type <code>/skills reload</code> (or quit and re-run <code>rc</code>).</td>
+        </tr>
+        <tr>
+          <td>Changed settings on the dashboard</td>
+          <td class="reb-no"><strong>No</strong></td>
+          <td>Dashboard&rsquo;s <em>Save &amp; apply</em> updates <code>.claude/settings.json</code> immediately. The engine reads it on each command.</td>
+        </tr>
+        <tr>
+          <td>Changed hooks or MCP servers</td>
+          <td class="reb-maybe"><strong>No, but relaunch</strong></td>
+          <td>Hooks and MCP servers load when Copilot starts. Press <code>Ctrl+C</code> twice to quit, then type <code>rc</code> again.</td>
+        </tr>
+        <tr>
+          <td>Just opened the Codespace after pausing it</td>
+          <td class="reb-no"><strong>No</strong></td>
+          <td>That&rsquo;s a <em>resume</em>, not a build. The dashboard auto-launch fires on resume too.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Common problems</h3>
+    <details class="install-trouble">
+      <summary><strong>&ldquo;rc: command not found&rdquo;</strong></summary>
+      <div class="install-trouble-body">
+        <p>Your shell hasn&rsquo;t loaded the new <code>rc</code> alias yet. Reload it:</p>
+        <div class="cmd-block">
+          <div class="cmd-row">
+            <code class="cmd-code" id="cmd-trouble-source">source ~/.bashrc</code>
+            <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-trouble-source">Copy</button>
+          </div>
+        </div>
+        <p>If you use zsh (most Macs), use <code>source ~/.zshrc</code> instead. Or just close and reopen your terminal.</p>
+      </div>
+    </details>
+    <details class="install-trouble">
+      <summary><strong>&ldquo;gh: command not found&rdquo; during the clone step</strong></summary>
+      <div class="install-trouble-body">
+        <p>GitHub CLI isn&rsquo;t installed. In a Codespace, it&rsquo;s already there &mdash; if you see this,
+        you&rsquo;re probably on a local computer. Install it:</p>
+        <ul>
+          <li>Mac: <code>brew install gh</code></li>
+          <li>Ubuntu/Debian: see <a href="https://github.com/cli/cli#installation">github.com/cli/cli</a></li>
+          <li>Windows: <code>winget install --id GitHub.cli</code></li>
+        </ul>
+        <p>After installing: <code>gh auth login</code>.</p>
+      </div>
+    </details>
+    <details class="install-trouble">
+      <summary><strong>Copilot says it doesn&rsquo;t know about an agent</strong></summary>
+      <div class="install-trouble-body">
+        <p>Either Copilot was launched without <code>--plugin-dir</code> (the <code>rc</code> alias
+        handles this for you), or you need to reload skills. Inside Copilot, type
+        <code>/skills reload</code>. If that doesn&rsquo;t work, press <code>Ctrl+C</code> twice to quit
+        Copilot, then type <code>rc</code> again.</p>
+      </div>
+    </details>
+    <details class="install-trouble">
+      <summary><strong>Dashboard didn&rsquo;t open automatically in my Codespace</strong></summary>
+      <div class="install-trouble-body">
+        <p>Open the <strong>Ports</strong> panel in VS Code (View menu &rarr; Ports), find port 8000 labeled
+        &ldquo;RavenClaude dashboard&rdquo;, right-click &rarr; <strong>Open in Browser</strong>.
+        <strong>Don&rsquo;t</strong> use the VS Code Simple Browser &mdash; it blocks parts of the dashboard.</p>
+      </div>
+    </details>
+    <details class="install-trouble">
+      <summary><strong>I want to check what&rsquo;s wired in my project</strong></summary>
+      <div class="install-trouble-body">
+        <div class="cmd-block">
+          <div class="cmd-row">
+            <code class="cmd-code" id="cmd-status-check">bash ~/RavenClaude/scripts/ravenclaude status --project .</code>
+            <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-status-check">Copy</button>
+          </div>
+        </div>
+        <p>Prints what&rsquo;s in <code>.claude/skills</code>, <code>.github/hooks</code>, and
+        <code>~/.copilot/mcp-config.json</code>.</p>
+      </div>
+    </details>
+
+    <p class="install-pillar install-design-note">
+      <strong>Under the hood:</strong> RavenClaude reads everything <em>live from disk</em>. The plugin
+      loads via <code>--plugin-dir</code>, skills from <code>.claude/skills</code>, hooks from
+      <code>.github/hooks</code>, MCP from <code>~/.copilot/mcp-config.json</code>. So
+      <code>ravenclaude update</code> is just a <code>git pull</code> on the marketplace clone &mdash;
+      no re-install, ever. There&rsquo;s no plugin cache to invalidate, no version registry to update.
+      The hooks land at <em>repo</em> level (not plugin level) as a workaround for
+      <a href="https://github.com/github/copilot-cli/issues/2540">copilot-cli#2540</a> &mdash; plugin-level
+      <code>preToolUse</code> hooks don&rsquo;t fire in Copilot today.
     </p>
   </section>
 
