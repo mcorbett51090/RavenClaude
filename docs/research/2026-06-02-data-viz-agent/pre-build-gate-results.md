@@ -52,7 +52,8 @@ Ran the build plan's pre-build gates against `origin/main @ d3ef360` so the buil
 ## G-PRE-8 — `.repo-layout.json` allows new paths
 
 **Gate:** Run the AGENTS.md verification snippet against the proposed file list.
-**Result:** **DEFERRED** — would require committing the file list to a dry-run script. Lightweight enough to run as Phase 0 step 0.1 once Ultraplan or next-session starts the build.
+**Result:** **PASS ✓** — all **30 proposed paths** (1 agent + 4 SKILL.md + 1 lint.py + 4 knowledge files + 4 promoted best-practices + 16 fixtures) match existing recursive globs in `.repo-layout.json`. **No change to `.repo-layout.json` needed.**
+**Implication:** The build plan's Phase 0 step ".repo-layout.json update for `plugins/*/skills/*/*.py`, `plugins/*/knowledge/*.py`, `tests/fixtures/data-viz/**`" is **redundant** — existing `plugins/*/skills/**`, `plugins/*/knowledge/**`, and `tests/fixtures/**` recursive globs already cover those. Ultraplan / next session can skip this step entirely.
 
 ---
 
