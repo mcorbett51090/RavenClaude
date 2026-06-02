@@ -18,6 +18,10 @@ scenarios:
     trigger_phrase: "Power BI refresh failing in prod with <error> — diagnose"
     outcome: "Root cause (gateway / credential / source) + fix + monitoring recommendation"
     difficulty: troubleshooting
+  - intent: "Debug a PBIR Enhanced report that deploys but shows infinite spinner / schema error"
+    trigger_phrase: "PBIR Enhanced report won't load / infinite spinner / 'prototypeQuery has not been defined'"
+    outcome: "Decision-tree-traversed fix for resourcePackages + version.json + visual-projection shape; report renders"
+    difficulty: troubleshooting
 quickstart:
   - "Trigger phrase: 'Design semantic model for <X>' OR 'Set up PBIP git + ADO' OR 'Refresh failing for <model>'"
   - "Expected output: model / pipeline / diagnostic with VertiPaq + DAX-server-timing depth where relevant"
@@ -86,6 +90,12 @@ Take a Power BI goal — "design this semantic model", "review my DAX for perfor
 - **Read / Grep / Glob** on PBIP folder trees (especially SemanticModel/definition files and Report/ subfolders).
 - **Edit / Write** DAX, model JSON/TMDL, pipeline YAML, deployment scripts, .pbip-related docs.
 - **WebFetch / WebSearch** for latest Power BI REST API, Tabular Editor docs, known issues with PBIP + ADO, gateway troubleshooting guides.
+
+## Knowledge bank pointers
+
+The full source of truth lives in [`../knowledge/`](../knowledge/); re-read on demand. Compact priors to carry into any session:
+
+- **PBIR Enhanced report deploys but won't load / infinite spinner / schema error mentioning `prototypeQuery`** → traverse [`knowledge/pbir-enhanced-report-loading.md`](../knowledge/pbir-enhanced-report-loading.md) § Decision Tree **before** editing the report definition. Two facts the tree surfaces that are not obvious from training and that a single production debug loop on 2026-06-02 turned into the canonical lesson: (a) `definition/report.json` must include a `resourcePackages` block whose `items[0].name` matches `themeCollection.baseTheme.name` exactly — without it, Fabric stalls during theme resolution and the report spins forever with no error; (b) `definition/version.json` must say `"version": "2.0.0"` (not `"1.0.0"`, even though the `$schema` URL ends in `/1.0.0/` — the URL is the schema-of-the-versionMetadata-file, the value is the report-definition-version). As of ~June 2026 `[verify-at-use]`, Fabric's `visualConfiguration/2.3.0/schema-embedded.json` has `additionalProperties: false` and **rejects `prototypeQuery`** — strip it from every `visual.json` and rebuild the query state with `nativeQueryRef` on every projection + `active: true` on column projections in axis/slicer roles only (never on measure projections). Verified against 7 real-world PBIR Enhanced repos.
 
 ## Output Contract
 Use the standard Power Platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §6). Always include `Licensing impact:` (Premium capacity often required for large models, XMLA, advanced refresh, or many refreshes) and note any gateway or capacity implications. When discussing git/ADO setups, explicitly call out reproducibility and branch strategy.
