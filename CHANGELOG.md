@@ -2,6 +2,73 @@
 
 All notable changes to the RavenClaude marketplace and its plugins. Format loosely follows [Keep a Changelog](https://keepachangelog.com/). The marketplace version (`metadata.version` in `.claude-plugin/marketplace.json`) bumps when the catalog shape or cross-plugin contracts change; individual plugins have their own semver tracked in their `plugin.json`.
 
+## ravenclaude-core 0.103.0 — 2026-06-02 (Intercom polish: ⌘K palette + conversational posture editor + dark mode + onboarding)
+
+Premium SaaS refinement of the landing dashboard (`index.html`) with five new visible surfaces. Plan v4 — refined through a 4-seat panel review (architect + code-reviewer + designer + project-manager) before exit. Built on the v0.102.0 design-system foundation.
+
+**HIGH-severity loader fix (was silently dropping CSS):**
+
+- `_load_shared_tokens_root()` in all three generators (`generate-index-dashboard.py`, `generate-repo-guide.py`, `generate-dashboards.py`) previously extracted only the first `:root { ... }` block from `shared-tokens.css`. The new `[data-theme="dark"]` siblings AND the existing `.rc-card`/`.rc-pill` component classes never reached any surface. Rewritten to inline the WHOLE file verbatim. **Consumer-visible effect**: dashboard.html and repo-guide.html now correctly receive the full design system (component classes + dark-mode CSS), inert until `data-theme="dark"` is set (toggle wired only on `index.html` this release).
+
+**⌘K Command Palette (new):**
+
+- Centered modal (560px, backdrop blur, slide-up entrance) triggered by `Cmd+K` / `Ctrl+K` (or `/` when not in an input).
+- Categorized results: **Quick actions** (apply posture presets, copy install commands, toggle theme, show onboarding, open dashboard), **Plugins**, **Specialists**, **Skills**, **Hooks**. ~190 indexed items.
+- Keyboard nav (↑/↓/Enter/Esc), mouse hover, focus restoration on close.
+- Replaces the topbar search input with a `⌘K` opener button.
+
+**Conversational Posture Editor (Configuration view):**
+
+- New top-of-page **scenario picker** — 4 visual cards using `D.posture.presets[]`. Each card auto-generates a 3-line plain-English "what this means in practice" summary via sentence template — picks the 3 highest-stakes categories per preset (deny > ask > auto priority) and renders `"<category.title>: [always stops you / asks before acting / proceeds silently]"`.
+- Color-coded safety profile per scenario: gold (strict), teal (recommended balanced), neutral (exploratory), **deep amber `#b5630a`** (max autonomy — designer-panel correction: warm-red read "destructive/error", wrong message for the user's chosen scenario).
+- Click a scenario card → applies preset, updates segmented controls + YAML, toasts with a "Copy YAML" follow-up action.
+
+**Dark mode (toggle wired on index.html):**
+
+- Sun/moon button in topbar. Auto-detects `prefers-color-scheme: dark`; manual toggle persists to `localStorage.rc-theme` (`light` | `dark`).
+- Warm near-black bg `#14110d`, lifted-chroma gold `#c9a84c` and teal `#3aa391` (designer-panel values — light-mode values read muddy on dark surfaces). WCAG AA: text on bg ≥ 7:1, accent on bg ≥ 4.5:1.
+- CSS shipped to all three surfaces via the loader fix above, but `dashboard.html` and `repo-guide.html` keep their light aesthetic by never setting the `data-theme` attribute. Dashboard toggle wiring deferred to v0.104.0 after Norse-panel review.
+
+**First-time Onboarding Checklist (Home view):**
+
+- Dismissible card pinned above the hero. 5 steps: install ravenclaude-core, pick a scenario, read GETTING_STARTED.md, run first `/spawn-team`, open the deep dashboard. Each step has a tracked "Copy" / "Open" CTA; clicking marks the step done.
+- State in localStorage (`rc-onboarding-progress` bit-flag, `rc-onboarding-dismissed`).
+- Re-show via ⌘K → "Show onboarding checklist".
+- Auto-hides on completion with a "nice work" toast.
+
+**Generator data enhancements (`scripts/generate-index-dashboard.py`):**
+
+- New `_scan_skills(plugin_dir)` — globs `plugins/*/skills/*/SKILL.md`, parses YAML frontmatter for `name` + `description`. Sorted iter, explicit utf-8.
+- New `_scan_hooks(plugin_dir)` — reads `hooks/hooks.json`, indexes by `(event, name)`. Graceful fallback when missing.
+- `D.plugins[].skills_index[]` + `D.plugins[].hooks_index[]` — feed the palette's Skills + Hooks categories.
+- `D.posture.categories[]` extended passthrough — adds `controls`, `rec_individual`, `rec_team`, `examples` from `dashboard-schema.json` (was reading only `group`/`guidance`/`recommended`).
+
+**Micro-interactions + design system extensions (`shared-tokens.css`):**
+
+- 5-tier warm-tinted shadow scale (`--rc-shadow-xs` through `--rc-shadow-xl`) — proper Intercom-soft elevation on beige.
+- Refined typography scale (8 size tokens + 4 line-heights + 4 tracking values).
+- `.rc-shimmer` skeleton utility + `@keyframes rcShimmer` + `@keyframes rcShimmerOnce` + `@keyframes rcFadeUp`.
+- Stagger on view enter: first 5 cards at 50ms each, uniform 250ms tail (avoids cliff at item 9).
+- Hero `.accent` shines ONCE on first paint, not looping (designer-panel: looping signals "loading" anxiety).
+- Card hover lift `translateY(-1px)` + warm shadow growth, button active `scale(0.98)`, sidebar active-rule animation.
+- Toast: backward-compatible `(msgOrObj, action?)` overload. Existing string callers unchanged; new `{msg, action:{label,fn}}` shape gets a 5-second dismiss (WCAG 2.2.1 timing).
+
+**Spawn-feedback widget (placeholder shape):**
+
+- Home view renders a "Last team spawned" card if `localStorage.rc-spawn-log` exists `{playbook, agents[], ts}`. Inert by default — documents the shape for a future `/spawn-team` integration to write to.
+
+**Deferred to v0.104.0 (explicit, panel-blessed):**
+
+- Self-hosted Inter-subset.woff2 (designer-panel recommendation — couldn't fetch binary this session; system Inter fallback used).
+- YAML diff pane (per-row drift dot ships now; full before-after pane needs design — what is "before"? Last-saved? Scenario baseline?).
+- Dark mode toggle wiring on `dashboard.html` (CSS shipped; Norse-panel visual review needed before activation).
+- `PLUGIN_COLORS` 17-plugin retune for beige base (still 5 explicit + 12 fall-through to `DEFAULT_COLOR`).
+- Audience-chip + difficulty-chip + Mermaid theme hex retune in `generate-repo-guide.py`.
+- `serve-dashboards.py` twin parity (pre-existing ~7KB drift surfaced by panel; not introduced by this PR).
+- Meta-task template/skill (spec #5 second half).
+
+**Migration for consumers:** `/plugin marketplace update ravenclaude` + `/reload-plugins`. The dashboard.html receives the full design-system CSS (component classes + dark-mode pairs) but its visible behavior is unchanged in this release (light aesthetic, gold accent, Norse panels). The landing dashboard `index.html` is substantially refreshed — `⌘K` to try the new palette; Configuration view shows scenario cards; topbar sun/moon toggles light/dark.
+
 ## ravenclaude-core 0.102.0 — 2026-06-01 (UI design-system unification + doctor extensions + plugin-versioning surface)
 
 A single bundled PR landing two distinct workstreams: a visual unification across all three web surfaces (Intercom-inspired light beige + dual gold/teal accents) and small extensions on doctor/versioning surfacing that round out v0.101.0's work.

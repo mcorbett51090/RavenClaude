@@ -334,6 +334,180 @@ TEMPLATE = r"""<!doctype html>
       }
       @media (min-width: 821px) { .mobile-only { display: none; } }
       @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto; } }
+
+      /* ──────────────────────────────────────────────────────────────────
+         v0.103.0 — Intercom polish: ⌘K palette, dark mode wire, scenario
+         picker upgrades, refined hover/focus states, micro-interactions.
+         ────────────────────────────────────────────────────────────────── */
+
+      /* Refined card hover — soft lift + warm shadow growth */
+      .card { transition: transform 0.18s cubic-bezier(.4,0,.2,1), box-shadow 0.18s ease, border-color 0.18s ease; }
+      .card:hover { transform: translateY(-1px); box-shadow: var(--rc-shadow-md, var(--shadow)); }
+
+      /* Refined button states */
+      .btn { transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
+      .btn:active { transform: scale(0.98); }
+      .btn:focus-visible { box-shadow: var(--rc-focus-ring); outline: none; }
+
+      /* Sidebar active-state rule animation */
+      .nav a.nav-item.active::before { transition: width 0.18s ease, background 0.18s ease; }
+      .nav a.nav-item.active:hover::before { width: 4px; }
+
+      /* ── Theme toggle button (dark mode) ───────────────────────────── */
+      .theme-toggle {
+        width: 38px; height: 38px; display: grid; place-items: center;
+        border-radius: 10px; background: var(--surface); border: 1px solid var(--border);
+        color: var(--muted); cursor: pointer; transition: 0.15s;
+      }
+      .theme-toggle:hover { color: var(--text); border-color: var(--border-strong); background: var(--surface-2); }
+      .theme-toggle:focus-visible { box-shadow: var(--rc-focus-ring); outline: none; }
+      .theme-toggle svg { width: 18px; height: 18px; }
+      .theme-toggle .moon { display: none; }
+      [data-theme="dark"] .theme-toggle .sun { display: none; }
+      [data-theme="dark"] .theme-toggle .moon { display: block; }
+
+      /* ── ⌘K Command Palette ─────────────────────────────────────────── */
+      .palette-backdrop {
+        position: fixed; inset: 0; background: rgba(20, 17, 13, 0.55);
+        backdrop-filter: blur(8px); z-index: 90; opacity: 0; pointer-events: none;
+        transition: opacity 0.18s ease;
+      }
+      .palette-backdrop.open { opacity: 1; pointer-events: auto; }
+      .palette {
+        position: fixed; top: 15vh; left: 50%; transform: translateX(-50%) translateY(-12px);
+        width: min(560px, calc(100vw - 32px));
+        background: var(--surface); border: 1px solid var(--border-strong);
+        border-radius: 14px; box-shadow: var(--rc-shadow-xl, var(--shadow));
+        z-index: 91; opacity: 0; pointer-events: none;
+        transition: opacity 0.18s ease, transform 0.18s cubic-bezier(.4,0,.2,1);
+        display: flex; flex-direction: column; max-height: 70vh; overflow: hidden;
+      }
+      .palette.open { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+      .palette-input-row { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+      .palette-input-row svg { width: 18px; height: 18px; color: var(--faint); flex: 0 0 auto; }
+      .palette-input { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-family: inherit; font-size: 0.95rem; }
+      .palette-input::placeholder { color: var(--faint); }
+      .palette-input-row kbd { font-size: 0.68rem; color: var(--faint); border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; font-family: var(--font-mono); }
+      .palette-results { overflow-y: auto; padding: 8px 0; }
+      .palette-section { padding: 4px 8px; }
+      .palette-section-label { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--faint); padding: 8px 10px 6px; }
+      .palette-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 9px; cursor: pointer; color: var(--text); }
+      .palette-item:hover, .palette-item.cursor { background: var(--surface-2); }
+      .palette-item .pi-ico { width: 18px; height: 18px; flex: 0 0 auto; color: var(--muted); }
+      .palette-item .pi-label { font-size: 0.92rem; font-weight: 500; }
+      .palette-item .pi-meta { margin-left: auto; font-size: 0.74rem; color: var(--faint); }
+      .palette-item.cursor .pi-ico { color: var(--teal-2); }
+      .palette-empty { padding: 24px 16px; text-align: center; color: var(--faint); font-size: 0.88rem; }
+      .palette-empty .palette-hint { display: block; margin-top: 6px; font-size: 0.78rem; }
+      .palette-foot { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--border); font-size: 0.72rem; color: var(--faint); flex: 0 0 auto; }
+      .palette-foot kbd { font-size: 0.68rem; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-family: var(--font-mono); }
+      .palette-opener {
+        flex: 1; max-width: 520px; height: 40px;
+        display: flex; align-items: center; gap: 10px; padding: 0 12px;
+        border-radius: 10px; background: var(--surface); border: 1px solid var(--border);
+        color: var(--faint); cursor: pointer; transition: 0.15s;
+        font-family: inherit; font-size: 0.88rem;
+      }
+      .palette-opener:hover { color: var(--text); border-color: var(--border-strong); background: var(--surface-2); }
+      .palette-opener svg { width: 18px; height: 18px; flex: 0 0 auto; }
+      .palette-opener .label { flex: 1; text-align: left; }
+      .palette-opener kbd { font-size: 0.68rem; color: var(--faint); border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; font-family: var(--font-mono); }
+
+      /* ── Scenario picker (Configuration view) ──────────────────────── */
+      .scenario-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 24px; }
+      .scenario-card {
+        position: relative; padding: 18px;
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 14px; cursor: pointer;
+        transition: transform 0.18s cubic-bezier(.4,0,.2,1), box-shadow 0.18s ease, border-color 0.18s ease;
+        text-align: left;
+      }
+      .scenario-card:hover { transform: translateY(-2px); box-shadow: var(--rc-shadow-md, var(--shadow)); border-color: var(--border-strong); }
+      .scenario-card.active { box-shadow: var(--rc-shadow-md, var(--shadow)); }
+      .scenario-card[data-profile="strict"].active { border-color: var(--rc-gold, #b8923a); }
+      .scenario-card[data-profile="balanced"].active { border-color: var(--rc-teal, var(--teal)); }
+      .scenario-card[data-profile="exploratory"].active { border-color: var(--rc-border-strong, var(--border-strong)); }
+      .scenario-card[data-profile="autonomous"].active { border-color: #b5630a; }
+      .scenario-card .sc-tag {
+        position: absolute; top: 12px; right: 12px;
+        font-size: 0.66rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+        color: var(--teal-2); padding: 3px 8px; background: var(--teal-soft);
+        border: 1px solid var(--border-strong); border-radius: 999px;
+      }
+      .scenario-card .sc-name { font-weight: 700; font-size: 1.05rem; margin-bottom: 6px; letter-spacing: -0.01em; }
+      .scenario-card .sc-blurb { color: var(--muted); font-size: 0.84rem; line-height: 1.5; margin-bottom: 14px; }
+      .scenario-card .sc-means { display: flex; flex-direction: column; gap: 6px; font-size: 0.78rem; color: var(--muted); }
+      .scenario-card .sc-means .sm-line { display: flex; gap: 8px; align-items: baseline; }
+      .scenario-card .sc-means .sm-bullet { color: var(--faint); }
+
+      .pcat-row { display: flex; flex-direction: column; padding: 14px 0; border-bottom: 1px solid var(--border); }
+      .pcat-row-head { display: flex; align-items: center; gap: 14px; }
+      .pcat-row-head .pc-info { flex: 1; min-width: 0; }
+      .pcat-row-head .pc-info .t { font-weight: 600; font-size: 0.92rem; }
+      .pcat-row-head .pc-info .d { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+      .pcat-row-head .pc-drift { width: 8px; height: 8px; border-radius: 50%; background: var(--rc-gold, #b8923a); }
+      .pcat-why-btn { background: transparent; border: none; color: var(--faint); font-size: 0.78rem; cursor: pointer; padding: 6px 0 0 0; align-self: flex-start; }
+      .pcat-why-btn:hover { color: var(--text); }
+      .pcat-why { display: none; margin-top: 10px; padding: 10px 12px; background: var(--surface-2); border-radius: 8px; font-size: 0.82rem; color: var(--muted); line-height: 1.55; }
+      .pcat-why.open { display: block; }
+      .pcat-why .pw-label { font-weight: 600; color: var(--text); margin-bottom: 4px; font-size: 0.78rem; }
+      .pcat-why ul { margin: 6px 0 0; padding-left: 18px; }
+      .pcat-why code { font-family: var(--font-mono); font-size: 0.78rem; }
+
+      /* YAML preview syntax color */
+      .yaml-panel pre .yk { color: var(--teal-2); }
+      .yaml-panel pre .yv { color: var(--text); }
+      .yaml-panel pre .yc { color: var(--faint); font-style: italic; }
+
+      /* ── Onboarding checklist ──────────────────────────────────────── */
+      .onboarding-card {
+        background: linear-gradient(180deg, var(--surface), var(--surface-2));
+        border: 1px solid var(--border); border-radius: 14px;
+        padding: 20px 22px; margin-bottom: 22px;
+      }
+      .onboarding-head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+      .onboarding-head h2 { font-size: 1.1rem; letter-spacing: -0.01em; }
+      .onboarding-head .ob-progress { margin-left: auto; font-size: 0.72rem; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; font-family: var(--font-mono); }
+      .onboarding-head .ob-dismiss { background: transparent; border: none; color: var(--faint); cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+      .onboarding-head .ob-dismiss:hover { color: var(--text); background: var(--surface); }
+      .onboarding-steps { display: flex; flex-direction: column; gap: 6px; }
+      .onboarding-step { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 9px; cursor: pointer; transition: background 0.15s ease; }
+      .onboarding-step:hover { background: var(--surface); }
+      .onboarding-step .step-check { width: 22px; height: 22px; flex: 0 0 auto; border-radius: 50%; border: 1.5px solid var(--border-strong); display: grid; place-items: center; color: transparent; transition: 0.15s; }
+      .onboarding-step.done .step-check { background: var(--teal-2); border-color: var(--teal-2); color: var(--surface); }
+      .onboarding-step.done .step-check svg { width: 12px; height: 12px; }
+      .onboarding-step .step-body { flex: 1; }
+      .onboarding-step .step-title { font-size: 0.92rem; font-weight: 500; color: var(--text); }
+      .onboarding-step.done .step-title { text-decoration: line-through; color: var(--muted); }
+      .onboarding-step .step-action { font-size: 0.74rem; color: var(--faint); }
+      .onboarding-step .step-cta { margin-left: auto; padding: 6px 10px; border-radius: 6px; font-size: 0.78rem; background: transparent; border: 1px solid var(--border); color: var(--muted); cursor: pointer; }
+      .onboarding-step .step-cta:hover { color: var(--text); border-color: var(--border-strong); background: var(--surface); }
+
+      /* Spawn feedback widget */
+      .spawn-card { padding: 16px 18px; }
+      .spawn-card .sp-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 0.78rem; color: var(--faint); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+      .spawn-card .sp-team { font-weight: 600; font-size: 0.92rem; }
+      .spawn-card .sp-roster { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+      /* Toast action button */
+      .toast .toast-msg { flex: 1; }
+      .toast .toast-action { background: transparent; border: 1px solid var(--teal); color: var(--teal-2); padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; margin-left: 12px; }
+      .toast .toast-action:hover { background: var(--teal-soft); }
+      .toast { display: flex; align-items: center; min-width: 280px; }
+
+      /* Empty-state illustration */
+      .empty-illustration { width: 64px; height: 64px; margin: 0 auto 14px; color: var(--faint); opacity: 0.5; }
+
+      /* Hero shine — once on first paint, not looping */
+      .hero h1 .accent { background-size: 200% 100%; animation: rcShimmerOnce 1.6s cubic-bezier(.4,0,.2,1) 0.3s 1 backwards; }
+
+      /* Stagger entry — first 5 cards, then uniform 250ms tail */
+      .content > *:nth-child(1) { animation: rcFadeUp 0.4s ease backwards; animation-delay: 0ms; }
+      .content > *:nth-child(2) { animation: rcFadeUp 0.4s ease backwards; animation-delay: 50ms; }
+      .content > *:nth-child(3) { animation: rcFadeUp 0.4s ease backwards; animation-delay: 100ms; }
+      .content > *:nth-child(4) { animation: rcFadeUp 0.4s ease backwards; animation-delay: 150ms; }
+      .content > *:nth-child(5) { animation: rcFadeUp 0.4s ease backwards; animation-delay: 200ms; }
+      .content > *:nth-child(n+6) { animation: rcFadeUp 0.4s ease backwards; animation-delay: 250ms; }
     </style>
   </head>
   <body>
@@ -366,13 +540,16 @@ TEMPLATE = r"""<!doctype html>
           <button class="icon-btn desktop-collapse" id="collapse-toggle" aria-label="Collapse sidebar">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 4v16M4 7l-2 5 2 5" /><rect x="3" y="4" width="18" height="16" rx="2"/></svg>
           </button>
-          <div class="search" id="search">
-            <svg class="s-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-            <input type="search" id="search-input" placeholder="Search plugins, specialists, skills…" aria-label="Search" autocomplete="off" />
-            <kbd>/</kbd>
-            <div class="search-results" id="search-results" role="listbox"></div>
-          </div>
+          <button class="palette-opener" id="palette-opener" aria-label="Open command palette (Cmd+K)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <span class="label">Search plugins, agents, actions…</span>
+            <kbd>⌘K</kbd>
+          </button>
           <div class="actions">
+            <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" type="button">
+              <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+              <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
+            </button>
             <a class="btn ghost hide-sm" href="repo-guide.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Repo Guide</a>
             <a class="btn primary" href="#/marketplace"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v4H3z"/><path d="M5 7v12h14V7"/><path d="M9 11h6"/></svg>Browse Plugins</a>
           </div>
@@ -380,6 +557,23 @@ TEMPLATE = r"""<!doctype html>
         <main class="content" id="view" tabindex="-1"></main>
       </div>
     </div>
+
+    <!-- ⌘K Command Palette -->
+    <div class="palette-backdrop" id="palette-backdrop" aria-hidden="true"></div>
+    <div class="palette" id="palette" role="dialog" aria-modal="true" aria-labelledby="palette-input" tabindex="-1">
+      <div class="palette-input-row">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input class="palette-input" id="palette-input" type="text" placeholder="Search plugins, agents, actions…" autocomplete="off" aria-label="Command palette search" />
+        <kbd>esc</kbd>
+      </div>
+      <div class="palette-results" id="palette-results" role="listbox"></div>
+      <div class="palette-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+        <span><kbd>↵</kbd> select</span>
+        <span><kbd>esc</kbd> close</span>
+      </div>
+    </div>
+
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script>
@@ -436,14 +630,28 @@ TEMPLATE = r"""<!doctype html>
           NAV.map((n) => `<a class="nav-item${n.id === active ? " active" : ""}" href="#/${n.id}" data-nav="${n.id}"${n.id === active ? ' aria-current="page"' : ""}>${svg(n.icon)}<span class="label">${n.label}</span></a>`).join("");
       }
 
-      /* ---------------- Toast ---------------- */
+      /* ---------------- Toast ----------------
+         Backward-compatible overload: existing callers pass a string and
+         get the same banner. New callers can pass {msg, action:{label,fn}}
+         to attach a follow-up action button; dismiss timer extends to 5s
+         when an action is present (WCAG 2.2.1 timing). */
       let toastT;
-      function toast(msg) {
+      function toast(msgOrObj) {
         const t = $("#toast");
-        t.textContent = msg;
+        const opts = (typeof msgOrObj === "string") ? { msg: msgOrObj } : (msgOrObj || {});
+        const dismissMs = opts.action ? 5000 : 2400;
+        t.innerHTML = `<span class="toast-msg"></span>`;
+        t.querySelector(".toast-msg").textContent = opts.msg || "";
+        if (opts.action && typeof opts.action.fn === "function") {
+          const btn = document.createElement("button");
+          btn.className = "toast-action";
+          btn.textContent = opts.action.label || "Action";
+          btn.addEventListener("click", () => { opts.action.fn(); t.classList.remove("show"); });
+          t.appendChild(btn);
+        }
         t.classList.add("show");
         clearTimeout(toastT);
-        toastT = setTimeout(() => t.classList.remove("show"), 2400);
+        toastT = setTimeout(() => t.classList.remove("show"), dismissMs);
       }
       function copyText(text, label) {
         navigator.clipboard?.writeText(text).then(
@@ -452,6 +660,64 @@ TEMPLATE = r"""<!doctype html>
         );
       }
       window.__copy = copyText;
+
+      /* ---------------- Onboarding ----------------
+         Dismissible 5-step checklist on Home. State in localStorage
+         (rc-onboarding-progress = bit-flag int, rc-onboarding-dismissed
+         = "1"). Re-show via ⌘K → "Show onboarding checklist". */
+      const ONBOARDING_STEPS = [
+        { id: 0, title: "Install ravenclaude-core", desc: "Copy the install command", cta: "Copy", action: "copyCmd", cmd: "/plugin install ravenclaude-core@ravenclaude" },
+        { id: 1, title: "Pick a posture scenario", desc: "Recommended: Client Delivery", cta: "Open", action: "route", route: "#/configuration" },
+        { id: 2, title: "Read GETTING_STARTED.md", desc: "10-minute canonical walkthrough", cta: "Open", action: "href", href: "GETTING_STARTED.md" },
+        { id: 3, title: "Run your first /spawn-team", desc: "Copy an example prompt", cta: "Copy", action: "copyCmd", cmd: "/spawn-team architect → coder → tester for: <describe your change>" },
+        { id: 4, title: "Open the deep posture dashboard", desc: "Save & apply writes .ravenclaude/comfort-posture.yaml", cta: "Copy", action: "copyCmd", cmd: "bash scripts/open-dashboard.sh" },
+      ];
+      function onboardingProgress() {
+        return parseInt(localStorage.getItem("rc-onboarding-progress") || "0", 10);
+      }
+      function onboardingMark(id) {
+        const cur = onboardingProgress();
+        const next = cur | (1 << id);
+        localStorage.setItem("rc-onboarding-progress", String(next));
+      }
+      function onboardingDone(id) { return (onboardingProgress() & (1 << id)) !== 0; }
+      function onboardingDismissed() { return localStorage.getItem("rc-onboarding-dismissed") === "1"; }
+      function onboardingComplete() {
+        return ONBOARDING_STEPS.every((s) => onboardingDone(s.id));
+      }
+      function onboardingHtml() {
+        if (onboardingDismissed() || onboardingComplete()) return "";
+        const doneCount = ONBOARDING_STEPS.filter((s) => onboardingDone(s.id)).length;
+        const stepsHtml = ONBOARDING_STEPS.map((s) => {
+          const done = onboardingDone(s.id);
+          const checkSvg = done ? svg("check") : "";
+          return `<div class="onboarding-step${done ? " done" : ""}" data-step="${s.id}" data-action="${esc(s.action)}" data-cmd="${esc(s.cmd || "")}" data-href="${esc(s.href || "")}" data-route="${esc(s.route || "")}">
+            <span class="step-check">${checkSvg}</span>
+            <div class="step-body"><div class="step-title">${esc(s.title)}</div><div class="step-action">${esc(s.desc)}</div></div>
+            <button class="step-cta" type="button">${esc(s.cta)}</button>
+          </div>`;
+        }).join("");
+        return `<div class="onboarding-card" id="onboarding-card">
+          <div class="onboarding-head">
+            ${svg("rocket")}
+            <h2>Welcome — get started in 10 minutes</h2>
+            <span class="ob-progress">${doneCount} of ${ONBOARDING_STEPS.length}</span>
+            <button class="ob-dismiss" id="ob-dismiss" type="button" aria-label="Dismiss onboarding">×</button>
+          </div>
+          <div class="onboarding-steps">${stepsHtml}</div>
+        </div>`;
+      }
+      function spawnLogHtml() {
+        let entry = null;
+        try { entry = JSON.parse(localStorage.getItem("rc-spawn-log") || "null"); } catch (e) { entry = null; }
+        if (!entry || !entry.playbook) return "";
+        const roster = (entry.agents || []).map((a) => `<span class="chip teal">${esc(a)}</span>`).join("");
+        return `<div class="card spawn-card">
+          <div class="sp-head">${svg("team")}<span>Last team spawned</span></div>
+          <div class="sp-team">${esc(entry.playbook)} playbook</div>
+          <div class="sp-roster">${roster}</div>
+        </div>`;
+      }
 
       /* ---------------- HOME ---------------- */
       function viewHome() {
@@ -484,6 +750,8 @@ TEMPLATE = r"""<!doctype html>
         ].map((a) => `<div class="activity-item"><span class="dot"></span><span>${esc(a.t)}</span><span class="when">${esc(a.w)}</span></div>`).join("");
 
         $("#view").innerHTML = `
+          ${onboardingHtml()}
+          ${spawnLogHtml()}
           <section class="hero">
             <span class="pill">${svg("spark")} Private Claude Code marketplace · v${esc(D.marketplace_version)}</span>
             <h1>The <span class="accent">AI Engineering Team</span> Platform</h1>
@@ -511,6 +779,35 @@ TEMPLATE = r"""<!doctype html>
           <div class="section-title"><h2>Recent activity</h2><span class="hint">generated snapshot</span></div>
           <div class="card">${activity}<p style="color:var(--faint);font-size:.8rem;margin:14px 0 0">Live activity (PR events, posture changes) streams here once wired to the session feed.</p></div>
         `;
+        // Wire onboarding step buttons
+        const ob = $("#onboarding-card");
+        if (ob) {
+          $("#ob-dismiss").addEventListener("click", () => { localStorage.setItem("rc-onboarding-dismissed", "1"); ob.remove(); toast({ msg: "Onboarding hidden. Reopen via ⌘K → Show onboarding checklist" }); });
+          $$(".onboarding-step").forEach((step) => {
+            const id = parseInt(step.dataset.step, 10);
+            const act = step.dataset.action;
+            const cmd = step.dataset.cmd;
+            const href = step.dataset.href;
+            const rt = step.dataset.route;
+            const trigger = () => {
+              if (act === "copyCmd" && cmd) window.__copy(cmd, "Command");
+              else if (act === "href" && href) window.open(href, "_blank", "noopener");
+              else if (act === "route" && rt) location.hash = rt;
+              onboardingMark(id);
+              step.classList.add("done");
+              const check = step.querySelector(".step-check");
+              if (check && !check.innerHTML.trim()) check.innerHTML = svg("check");
+              // Update progress count
+              const pg = $(".onboarding-card .ob-progress");
+              if (pg) pg.textContent = `${ONBOARDING_STEPS.filter((s) => onboardingDone(s.id)).length} of ${ONBOARDING_STEPS.length}`;
+              // Auto-hide when complete
+              if (onboardingComplete()) {
+                setTimeout(() => { ob.remove(); toast({ msg: "Onboarding complete — nice work!" }); }, 800);
+              }
+            };
+            step.querySelector(".step-cta").addEventListener("click", (e) => { e.stopPropagation(); trigger(); });
+          });
+        }
       }
 
       /* ---------------- TEAM ---------------- */
@@ -665,8 +962,40 @@ TEMPLATE = r"""<!doctype html>
       }
       function viewConfiguration() {
         if (!Object.keys(posture.levels).length) applyPreset(posture.activePreset);
+        // ⌘K palette can pre-stage a preset; apply if pending
+        if (window.__pendingPreset) {
+          const pid = window.__pendingPreset;
+          window.__pendingPreset = null;
+          if (D.posture.presets.some((p) => p.id === pid)) {
+            applyPreset(pid);
+            setTimeout(() => toast({ msg: `Applied "${(D.posture.presets.find((p) => p.id === pid) || {}).label || pid}"`, action: { label: "Save YAML", fn: () => copyText(postureYaml(), "comfort-posture.yaml") } }), 100);
+          }
+        }
         const groups = {};
         D.posture.categories.forEach((c) => { (groups[c.group] = groups[c.group] || []).push(c); });
+        // Scenario picker — visual cards with auto-generated "what this means" prose
+        const PROFILE_MAP = { strict_production: "strict", client_delivery: "balanced", exploratory: "exploratory", maximum_autonomy: "autonomous" };
+        const LEVEL_PHRASE = { deny: "always stops you", ask: "asks before acting", allow: "proceeds silently" };
+        function meansFor(preset) {
+          // Pick 3 highest-stakes categories (deny > ask > auto) and render via template
+          const ranks = { deny: 3, ask: 2, allow: 1 };
+          const entries = D.posture.categories
+            .map((c) => ({ c, lv: (preset.levels && preset.levels[c.id]) || preset.global_default || "ask" }))
+            .sort((a, b) => (ranks[b.lv] || 0) - (ranks[a.lv] || 0));
+          return entries.slice(0, 3).map((e) => `${e.c.title}: ${LEVEL_PHRASE[e.lv] || e.lv}`);
+        }
+        const scenarioGrid = D.posture.presets.map((p) => {
+          const profile = PROFILE_MAP[p.id] || "balanced";
+          const tag = p.id === "client_delivery" ? `<span class="sc-tag">Recommended</span>` : "";
+          const means = meansFor(p);
+          const lines = means.map((m) => `<div class="sm-line"><span class="sm-bullet">•</span><span>${esc(m)}</span></div>`).join("");
+          return `<button type="button" class="scenario-card${p.id === posture.activePreset ? " active" : ""}" data-preset="${esc(p.id)}" data-profile="${profile}" aria-pressed="${p.id === posture.activePreset}">
+            ${tag}
+            <div class="sc-name">${esc(p.label)}</div>
+            <div class="sc-blurb">${esc(p.blurb)}</div>
+            <div class="sc-means">${lines}</div>
+          </button>`;
+        }).join("");
         const presetRow = D.posture.presets.map((p) => `<button class="preset-btn${p.id === posture.activePreset ? " active" : ""}" data-preset="${p.id}"><span>${esc(p.label)}</span><small>${esc(p.blurb)}</small></button>`).join("");
         const groupHtml = Object.entries(groups).map(([g, cats]) => `
           <div class="pcat-group"><h4>${esc(g)}</h4>${cats.map((c) => `
@@ -681,7 +1010,10 @@ TEMPLATE = r"""<!doctype html>
 
           <div class="callout" style="margin-bottom:20px">${svg("info")}<span>This editor produces the <b>project-layer</b> baseline. For the full per-layer (user / local / project) editor with live writes to <code>.claude/settings.json</code>, open the deep dashboard via <code>/dashboard</code> or <a href="plugins/ravenclaude-core/dashboard.html">dashboard.html</a>.</span></div>
 
-          <div class="section-title"><h2>Preset profiles</h2><span class="hint">a starting point — tune below</span></div>
+          <div class="section-title"><h2>Pick a scenario</h2><span class="hint">visual presets — fine-tune below if needed</span></div>
+          <div class="scenario-grid" id="scenario-grid">${scenarioGrid}</div>
+
+          <div class="section-title"><h2>Or browse all presets</h2><span class="hint">same content, compact form</span></div>
           <div class="preset-row" id="preset-row">${presetRow}</div>
 
           <div class="config-grid">
@@ -716,7 +1048,8 @@ TEMPLATE = r"""<!doctype html>
           $("#design-checkins").checked = posture.design_checkins;
           yamlOut.textContent = postureYaml();
         }
-        $("#preset-row").addEventListener("click", (e) => { const b = e.target.closest(".preset-btn"); if (!b) return; applyPreset(b.dataset.preset); refresh(); toast(`Applied “${b.querySelector("span").textContent}” profile`); });
+        $("#preset-row").addEventListener("click", (e) => { const b = e.target.closest(".preset-btn"); if (!b) return; applyPreset(b.dataset.preset); refresh(); toast({ msg: `Applied "${b.querySelector("span").textContent}" profile`, action: { label: "Copy YAML", fn: () => copyText(postureYaml(), "comfort-posture.yaml") } }); });
+        $("#scenario-grid").addEventListener("click", (e) => { const b = e.target.closest(".scenario-card"); if (!b) return; const pid = b.dataset.preset; const preset = D.posture.presets.find((p) => p.id === pid); applyPreset(pid); refresh(); $$(".scenario-card").forEach((c) => c.classList.toggle("active", c.dataset.preset === pid)); toast({ msg: `Applied "${preset.label}"`, action: { label: "Copy YAML", fn: () => copyText(postureYaml(), "comfort-posture.yaml") } }); });
         $$(".pcat .seg button").forEach((b) => b.addEventListener("click", () => { posture.levels[b.dataset.cat] = b.dataset.level; posture.activePreset = "custom"; refresh(); }));
         $$("#global-default button").forEach((b) => b.addEventListener("click", () => { posture.global_default = b.dataset.level; refresh(); }));
         $("#design-checkins").addEventListener("change", (e) => { posture.design_checkins = e.target.checked; refresh(); });
@@ -766,33 +1099,124 @@ TEMPLATE = r"""<!doctype html>
           <div class="callout">${svg("download")}<span>Regenerate this dashboard and the full guide from source: <code>python3 scripts/generate-index-dashboard.py</code> and <code>python3 scripts/generate-repo-guide.py</code>. Both read the live catalog so the docs never drift.</span></div>`;
       }
 
-      /* ---------------- Global search ---------------- */
-      function buildSearchIndex() {
+      /* ---------------- ⌘K Command Palette ----------------
+         Categorized search across plugins, specialists, skills, hooks,
+         and a set of "Quick action" commands. Built once at init from D.
+         Keyboard nav: arrows + enter, esc closes, tab cycles within modal. */
+      function buildPaletteIndex() {
         const idx = [];
+        // Quick actions — top-priority category, always present
+        const QA = [
+          { kind: "action", label: "Apply Strict Production posture", meta: "Configuration", hay: "apply strict production posture", route: "#/configuration", preset: "strict_production" },
+          { kind: "action", label: "Apply Client Delivery posture (recommended)", meta: "Configuration", hay: "apply client delivery posture recommended", route: "#/configuration", preset: "client_delivery" },
+          { kind: "action", label: "Apply Exploratory posture", meta: "Configuration", hay: "apply exploratory posture", route: "#/configuration", preset: "exploratory" },
+          { kind: "action", label: "Apply Maximum Autonomy posture", meta: "Configuration", hay: "apply maximum autonomy posture", route: "#/configuration", preset: "maximum_autonomy" },
+          { kind: "action", label: "Open posture editor", meta: "Configuration", hay: "open posture editor configuration", route: "#/configuration" },
+          { kind: "action", label: "Open deep dashboard", meta: "External", hay: "open deep dashboard server", action: "copyCmd", cmd: "bash scripts/open-dashboard.sh" },
+          { kind: "action", label: "Toggle dark mode", meta: "Theme", hay: "toggle dark mode theme", action: "toggleTheme" },
+          { kind: "action", label: "Show onboarding checklist", meta: "Onboarding", hay: "show onboarding checklist setup", action: "showOnboarding" },
+          { kind: "action", label: "Open repo guide", meta: "External", hay: "open repo guide reference", href: "repo-guide.html" },
+        ];
+        QA.forEach((q) => idx.push(q));
+        // Plugins
         D.plugins.forEach((p) => {
           idx.push({ kind: "plugin", label: p.label, meta: p.category_label, hay: (p.label + " " + p.description + " " + p.keywords.join(" ")).toLowerCase(), route: "#/marketplace/" + p.category, open: p.name });
-          p.agents.forEach((a) => idx.push({ kind: "agent", label: a.label, meta: p.label, hay: (a.label + " " + a.description).toLowerCase(), route: "#/team" }));
+          // Copy-install action per plugin
+          idx.push({ kind: "action", label: `Copy install command for ${p.label}`, meta: "Install", hay: `copy install ${p.name} ${p.label}`.toLowerCase(), action: "copyCmd", cmd: `/plugin install ${p.name}@ravenclaude` });
         });
+        // Specialists
+        D.plugins.forEach((p) => p.agents.forEach((a) => idx.push({ kind: "specialist", label: a.label, meta: p.label, hay: (a.label + " " + (a.description || "") + " " + p.label).toLowerCase(), route: "#/team" })));
+        // Skills (new — from §G scanner)
+        D.plugins.forEach((p) => (p.skills_index || []).forEach((s) => idx.push({ kind: "skill", label: s.label, meta: p.label, hay: (s.label + " " + (s.description || "") + " " + p.label).toLowerCase(), route: "#/marketplace/" + p.category, open: p.name })));
+        // Hooks (new — from §G scanner)
+        D.plugins.forEach((p) => (p.hooks_index || []).forEach((h) => idx.push({ kind: "hook", label: h.name, meta: p.label + " · " + h.event, hay: (h.name + " " + (h.description || "") + " " + p.label).toLowerCase(), route: "#/marketplace/" + p.category, open: p.name })));
         return idx;
       }
-      const SEARCH_IDX = buildSearchIndex();
-      let searchCursor = -1, searchMatches = [];
-      function runSearch(q) {
-        const box = $("#search-results");
-        q = q.toLowerCase().trim();
-        if (!q) { box.classList.remove("open"); return; }
-        searchMatches = SEARCH_IDX.filter((x) => x.hay.includes(q)).slice(0, 12);
-        searchCursor = -1;
-        box.innerHTML = searchMatches.length ? searchMatches.map((m, i) => `<div class="res" data-i="${i}" role="option"><span class="kind">${m.kind}</span><span>${esc(m.label)}</span><span class="meta">${esc(m.meta)}</span></div>`).join("") : `<div class="empty">No matches for “${esc(q)}”</div>`;
-        box.classList.add("open");
-        $$("#search-results .res").forEach((el) => el.addEventListener("click", () => gotoSearch(searchMatches[+el.dataset.i])));
+      const PALETTE_IDX = buildPaletteIndex();
+      const PALETTE_SECTIONS = [
+        { key: "action", label: "Quick actions" },
+        { key: "plugin", label: "Plugins" },
+        { key: "specialist", label: "Specialists" },
+        { key: "skill", label: "Skills" },
+        { key: "hook", label: "Hooks" },
+      ];
+      const PALETTE_ICONS = { action: "rocket", plugin: "market", specialist: "team", skill: "spark", hook: "shield" };
+      let paletteCursor = -1, paletteFlat = [];
+
+      function renderPalette(q) {
+        const box = $("#palette-results");
+        q = (q || "").toLowerCase().trim();
+        const matches = q ? PALETTE_IDX.filter((x) => x.hay.includes(q)) : PALETTE_IDX.filter((x) => x.kind === "action").slice(0, 6);
+        paletteFlat = [];
+        paletteCursor = -1;
+        if (!matches.length) {
+          box.innerHTML = `<div class="palette-empty">No matches.<span class="palette-hint">Try <code>/dashboard</code>, <code>power-platform</code>, or <code>strict posture</code>.</span></div>`;
+          return;
+        }
+        let html = "";
+        PALETTE_SECTIONS.forEach((sec) => {
+          const inSec = matches.filter((m) => m.kind === sec.key).slice(0, 5);
+          if (!inSec.length) return;
+          html += `<div class="palette-section"><div class="palette-section-label">${sec.label}</div>`;
+          inSec.forEach((m) => {
+            const i = paletteFlat.length;
+            paletteFlat.push(m);
+            const ico = svg(PALETTE_ICONS[sec.key] || "sparkle");
+            html += `<div class="palette-item" data-i="${i}" role="option"><span class="pi-ico">${ico}</span><span class="pi-label">${esc(m.label)}</span><span class="pi-meta">${esc(m.meta || "")}</span></div>`;
+          });
+          html += `</div>`;
+        });
+        box.innerHTML = html;
+        $$("#palette-results .palette-item").forEach((el) => {
+          el.addEventListener("click", () => paletteAction(paletteFlat[+el.dataset.i]));
+          el.addEventListener("mouseenter", () => { paletteCursor = +el.dataset.i; updatePaletteCursor(); });
+        });
       }
-      function gotoSearch(m) {
-        $("#search-results").classList.remove("open");
-        $("#search-input").value = "";
-        if (m.open) { location.hash = m.route; setTimeout(() => window.__openPlugin(m.open), 30); }
-        else location.hash = m.route;
+      function updatePaletteCursor() {
+        $$("#palette-results .palette-item").forEach((el, i) => el.classList.toggle("cursor", i === paletteCursor));
+        const cur = $$("#palette-results .palette-item")[paletteCursor];
+        if (cur) cur.scrollIntoView({ block: "nearest" });
       }
+      function paletteAction(m) {
+        if (!m) return;
+        closePalette();
+        if (m.preset) {
+          // Apply preset action — navigate to configuration; the view applies the preset on render
+          window.__pendingPreset = m.preset;
+          location.hash = m.route;
+        } else if (m.action === "copyCmd" && m.cmd) {
+          window.__copy(m.cmd, `Command ${m.cmd}`);
+        } else if (m.action === "toggleTheme") {
+          toggleTheme();
+        } else if (m.action === "showOnboarding") {
+          localStorage.removeItem("rc-onboarding-dismissed");
+          if (location.hash !== "#/home" && location.hash !== "") location.hash = "#/home";
+          else route();
+        } else if (m.href) {
+          window.location.href = m.href;
+        } else if (m.open) {
+          location.hash = m.route;
+          setTimeout(() => window.__openPlugin(m.open), 30);
+        } else {
+          location.hash = m.route;
+        }
+      }
+      function openPalette() {
+        $("#palette").classList.add("open");
+        $("#palette-backdrop").classList.add("open");
+        const inp = $("#palette-input");
+        inp.value = "";
+        renderPalette("");
+        setTimeout(() => inp.focus(), 30);
+      }
+      function closePalette() {
+        $("#palette").classList.remove("open");
+        $("#palette-backdrop").classList.remove("open");
+        $("#palette-opener").focus();
+      }
+      // Backward compatibility: existing code (gotoSearch) may be referenced elsewhere
+      const SEARCH_IDX = PALETTE_IDX;
+      function gotoSearch(m) { paletteAction(m); }
 
       /* ---------------- Router ---------------- */
       function route() {
@@ -823,23 +1247,47 @@ TEMPLATE = r"""<!doctype html>
       // Mobile nav
       $("#mobile-toggle").addEventListener("click", () => document.body.classList.toggle("mobile-nav-open"));
       $("#scrim").addEventListener("click", () => document.body.classList.remove("mobile-nav-open"));
-      // Search
-      const si = $("#search-input");
-      si.addEventListener("input", (e) => runSearch(e.target.value));
-      si.addEventListener("keydown", (e) => {
-        const box = $("#search-results");
-        if (e.key === "Escape") { si.value = ""; box.classList.remove("open"); si.blur(); }
+
+      // ⌘K Palette wiring
+      $("#palette-opener").addEventListener("click", openPalette);
+      $("#palette-backdrop").addEventListener("click", closePalette);
+      $("#palette-input").addEventListener("input", (e) => renderPalette(e.target.value));
+      $("#palette-input").addEventListener("keydown", (e) => {
+        if (e.key === "Escape") { closePalette(); }
         else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
           e.preventDefault();
-          searchCursor = Math.max(0, Math.min(searchMatches.length - 1, searchCursor + (e.key === "ArrowDown" ? 1 : -1)));
-          $$("#search-results .res").forEach((el, i) => el.classList.toggle("cursor", i === searchCursor));
-        } else if (e.key === "Enter" && searchMatches.length) {
-          gotoSearch(searchMatches[Math.max(0, searchCursor)]);
+          paletteCursor = Math.max(0, Math.min(paletteFlat.length - 1, paletteCursor + (e.key === "ArrowDown" ? 1 : -1)));
+          updatePaletteCursor();
+        } else if (e.key === "Enter" && paletteFlat.length) {
+          paletteAction(paletteFlat[Math.max(0, paletteCursor)]);
         }
       });
-      document.addEventListener("click", (e) => { if (!e.target.closest("#search")) $("#search-results").classList.remove("open"); });
+
+      // Theme toggle controller (auto-detect + manual override, persisted)
+      function applyTheme(theme) {
+        if (theme === "system") document.documentElement.removeAttribute("data-theme");
+        else document.documentElement.setAttribute("data-theme", theme);
+      }
+      function currentTheme() {
+        const saved = localStorage.getItem("rc-theme");
+        if (saved === "dark" || saved === "light") return saved;
+        return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+      function toggleTheme() {
+        const next = currentTheme() === "dark" ? "light" : "dark";
+        localStorage.setItem("rc-theme", next);
+        applyTheme(next);
+        toast({ msg: `Theme: ${next}` });
+      }
+      // Initial theme application
+      applyTheme(localStorage.getItem("rc-theme") || (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+      $("#theme-toggle").addEventListener("click", toggleTheme);
+
+      // Global key bindings: ⌘K / Ctrl+K opens palette; / opens palette too (when not typing)
       document.addEventListener("keydown", (e) => {
-        if (e.key === "/" && document.activeElement !== si && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) { e.preventDefault(); si.focus(); }
+        const inField = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); openPalette(); }
+        else if (e.key === "/" && !inField) { e.preventDefault(); openPalette(); }
       });
 
       route();
