@@ -190,19 +190,47 @@
 
 /* ── Shared component classes (prefixed .rc-* to avoid collision) ──── */
 
+/* Intercom-style card/tile surface — a discrete white tile on the tinted
+   canvas: hairline border + very soft shadow + generous radius, lifting
+   gently on hover. This is the marketplace's primary content container.
+   Accent color is applied only as a thin rule (see --accent modifiers) —
+   the resting card is monochrome by design. */
 .rc-card {
   background: var(--rc-surface);
   border: 1px solid var(--rc-border);
-  border-radius: var(--rc-radius);
+  border-radius: var(--rc-radius-lg);
   padding: var(--rc-space-5);
   box-shadow: var(--rc-shadow-sm);
   transition:
-    box-shadow 0.15s ease,
-    border-color 0.15s ease;
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
 }
 .rc-card:hover {
-  box-shadow: var(--rc-shadow);
+  box-shadow: var(--rc-shadow-md);
   border-color: var(--rc-border-strong);
+  transform: translateY(-2px);
+}
+/* Minimal-accent modifiers — a single thin rule, never a fill. Use sparingly
+   to flag a primary/active tile (Intercom keeps accent to a hairline). */
+.rc-card--accent {
+  border-left: 3px solid var(--rc-teal);
+}
+.rc-card--accent-gold {
+  border-left: 3px solid var(--rc-gold);
+}
+
+/* Hairline accent rule — the horizontal/vertical accent line used to divide
+   sections or top-edge a panel. Teal by default; gold variant for the
+   dashboard. Gradient-faded ends so the rule reads as a whisper, not a bar. */
+.rc-rule {
+  height: 1px;
+  border: 0;
+  background: linear-gradient(90deg, transparent, var(--rc-teal) 50%, transparent);
+  opacity: 0.5;
+}
+.rc-rule--gold {
+  background: linear-gradient(90deg, transparent, var(--rc-gold) 50%, transparent);
 }
 
 .rc-pill {

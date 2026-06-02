@@ -66,6 +66,8 @@ The recipe for "cutting edge yet simple" is **restraint + one or two memorable i
 
 Full reference brief (anchor sites, what to borrow vs. what NOT to borrow from each, source citations): [`../knowledge/design-references.md`](../knowledge/design-references.md). Re-read when refreshing brand work or pitching a new aesthetic direction.
 
+For a **card / tile** ("Intercom-style", dashboard, inbox, clean-SaaS) surface, drive the [`card-tile-ui`](../skills/card-tile-ui/SKILL.md) skill: discrete white tiles (hairline border + soft shadow + 12–16px radius + a gentle hover lift) on a monochromatic canvas, a persistent navigation rail, and **one** accent used only as hairline rules / card outlines / the active-nav tint / a single CTA. First audit for dark-theme color residue (navy bars, dark code panels, near-black button text, cool gradients) — it's the usual reason a "card" page renders flat. Deep reference: [`../knowledge/card-tile-ui-pattern-2026.md`](../knowledge/card-tile-ui-pattern-2026.md).
+
 ## Anti-patterns you flag
 - Primitive tokens (`color.gray.500`) used directly in components instead of semantic tokens (`color.text.secondary`)
 - Type sizes outside the scale ("the designer used 13px on this one")
@@ -122,4 +124,5 @@ See [`../../ravenclaude-core/skills/structured-output/SKILL.md`](../../ravenclau
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
 - Skill: [`../skills/design-system-audit/SKILL.md`](../skills/design-system-audit/SKILL.md)
+- Skill: [`../skills/card-tile-ui/SKILL.md`](../skills/card-tile-ui/SKILL.md)
 - Template: [`../templates/design-system-spec.md`](../templates/design-system-spec.md)

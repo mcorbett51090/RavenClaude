@@ -3645,9 +3645,14 @@ footer.page-footer a:hover { text-decoration: underline; }
 .cat-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  margin: 0 0 8px;
+  border-radius: var(--rc-radius-lg);
+  margin: 0 0 10px;
   overflow: hidden;
+  box-shadow: var(--rc-shadow-sm);
+  transition: box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.cat-card:hover {
+  box-shadow: var(--rc-shadow-md);
 }
 .cat-card[open] {
   border-color: var(--accent);
@@ -4110,11 +4115,18 @@ footer.page-footer a:hover { text-decoration: underline; }
 .cmd-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
+  border-radius: var(--rc-radius-lg);
+  padding: 18px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  box-shadow: var(--rc-shadow-sm);
+  transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+.cmd-card:hover {
+  box-shadow: var(--rc-shadow-md);
+  border-color: var(--border-strong, var(--border));
+  transform: translateY(-2px);
 }
 .cmd-card-head {
   display: flex;
@@ -4231,12 +4243,13 @@ footer.page-footer a:hover { text-decoration: underline; }
   text-decoration: none;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
+  border-radius: var(--rc-radius-lg);
+  padding: 18px;
   color: var(--text);
-  transition: border-color 0.12s, transform 0.12s;
+  box-shadow: var(--rc-shadow-sm);
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
-.ov-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+.ov-card:hover { border-color: var(--border-strong, var(--border)); transform: translateY(-2px); box-shadow: var(--rc-shadow-md); }
 .ov-card h4 { margin: 0; font-size: 14px; color: var(--accent); }
 .ov-card p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
 .ov-card-cta { margin-top: auto; font-size: 12px; font-weight: 600; color: var(--accent); }
@@ -4565,8 +4578,11 @@ footer.page-footer a:hover { text-decoration: underline; }
 
 .concept-card {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 16px 18px; scroll-margin-top: 16px;
+  border-radius: var(--rc-radius-lg); padding: 18px 20px; scroll-margin-top: 16px;
+  box-shadow: var(--rc-shadow-sm);
+  transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
 }
+.concept-card:hover { box-shadow: var(--rc-shadow-md); transform: translateY(-2px); }
 .concept-card[hidden] { display: none; }
 .concept-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .concept-eyebrow {
@@ -4861,7 +4877,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 .bifrost-paste-label { display: block; margin: 10px 0 2px; font-size: 12px; font-weight: 600; color: var(--text); }
 .bifrost-paste-hint { margin: 0 0 4px; font-size: 11.5px; color: var(--muted); }
 .bifrost-paste { width: 100%; box-sizing: border-box; font-family: var(--font-mono); font-size: 12px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-2); color: var(--text); resize: vertical; }
-.bifrost-verify { margin-top: 8px; font: inherit; font-size: 12px; font-weight: 600; padding: 5px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: #04201c; cursor: pointer; }
+.bifrost-verify { margin-top: 8px; font: inherit; font-size: 12px; font-weight: 600; padding: 5px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--rc-text); cursor: pointer; }
 .bifrost-faults { margin: 0 20px 20px; }
 .bifrost-faults > h3 { font-size: 13px; color: var(--text); margin: 0 0 8px; }
 .bifrost-fault { border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; overflow: hidden; }
@@ -4887,7 +4903,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   font: inherit; font-size: 11.5px; padding: 3px 11px; border-radius: 999px;
   border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer;
 }
-.vidarr-chip--active { background: var(--accent); color: #04201c; border-color: var(--accent); font-weight: 600; }
+.vidarr-chip--active { background: var(--accent); color: var(--rc-text); border-color: var(--accent); font-weight: 600; }
 #vidarr-content { padding: 0 20px 20px; }
 .vidarr-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .vidarr-table th {
