@@ -90,26 +90,17 @@ TEMPLATE = r"""<!doctype html>
       button { font-family: inherit; cursor: pointer; }
 
       /* ---------- Layout shell ---------- */
-      .app { display: grid; grid-template-columns: 64px var(--sidebar-w) 1fr; min-height: 100vh; transition: grid-template-columns 0.25s ease; }
-      body.sidebar-collapsed .app { grid-template-columns: 64px var(--sidebar-collapsed) 1fr; }
+      .app { display: grid; grid-template-columns: var(--sidebar-w) 1fr; min-height: 100vh; transition: grid-template-columns 0.25s ease; }
+      body.sidebar-collapsed .app { grid-template-columns: var(--sidebar-collapsed) 1fr; }
 
-      /* ---------- Icon rail (Intercom two-level nav: rail = sections) ---------- */
-      .rail {
-        position: sticky; top: 0; height: 100vh; width: 64px;
-        background: var(--surface); border-right: 1px solid var(--border);
-        display: flex; flex-direction: column; align-items: center; gap: 4px;
-        padding: 12px 0; z-index: 41;
-      }
-      .rail-mark { width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center;
-        border-radius: 10px; background: var(--teal-soft); border: 1px solid var(--border-strong); color: var(--teal-2); }
-      .rail-mark svg { width: 20px; height: 20px; }
-      .rail-nav { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 14px; width: 100%; }
-      .rail-item { position: relative; width: 40px; height: 40px; display: grid; place-items: center;
-        border-radius: 10px; color: var(--muted); transition: background 0.15s, color 0.15s; }
-      .rail-item svg { width: 20px; height: 20px; }
-      .rail-item:hover { background: var(--surface-2); color: var(--text); }
-      .rail-item.active { background: var(--teal-soft); color: var(--teal-2); }
-      .rail-item.active::before { content: ""; position: absolute; left: -12px; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0; background: var(--teal); }
+      /* Sidebar nav subcategories — model-driven accordion under the active item */
+      .nav-sub { display: flex; flex-direction: column; gap: 2px; margin: 2px 0 6px; }
+      .nav-subitem { display: flex; align-items: center; gap: 8px; padding: 7px 12px 7px 42px; border-radius: var(--radius-sm);
+        color: var(--muted); font-size: 0.84rem; white-space: nowrap; transition: background 0.15s, color 0.15s; }
+      .nav-subitem:hover { background: var(--surface); color: var(--text); }
+      .nav-subitem.active { color: var(--teal-2); font-weight: 600; }
+      .nav-subitem .count { margin-left: auto; font-size: 0.72rem; color: var(--faint); }
+      body.sidebar-collapsed .nav-sub { display: none; }
 
       /* ---------- Sidebar ---------- */
       .sidebar {
@@ -341,8 +332,8 @@ TEMPLATE = r"""<!doctype html>
         .mkt-nav { position: static; flex-direction: row; flex-wrap: wrap; }
       }
       @media (max-width: 820px) {
-        .app { grid-template-columns: 64px 1fr !important; }
-        .sidebar { position: fixed; left: 64px; top: 0; width: var(--sidebar-w); transform: translateX(-100%); transition: transform 0.25s ease; box-shadow: var(--shadow); }
+        .app { grid-template-columns: 1fr !important; }
+        .sidebar { position: fixed; left: 0; top: 0; width: var(--sidebar-w); transform: translateX(-100%); transition: transform 0.25s ease; box-shadow: var(--shadow); }
         body.mobile-nav-open .sidebar { transform: translateX(0); }
         body.sidebar-collapsed .nav a.nav-item .label,
         body.sidebar-collapsed .brand .meta { display: revert; }
@@ -531,13 +522,6 @@ TEMPLATE = r"""<!doctype html>
   <body>
     <div class="scrim" id="scrim" aria-hidden="true"></div>
     <div class="app">
-      <!-- ======================= ICON RAIL ======================= -->
-      <aside class="rail" aria-label="Sections">
-        <a class="rail-mark" href="#/home" aria-label="RavenClaude home">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11l9-7 9 7v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 21v-7h6v7" stroke="currentColor"/></svg>
-        </a>
-        <nav class="rail-nav" id="rail-nav" aria-label="Primary sections"></nav>
-      </aside>
       <!-- ======================= SIDEBAR ======================= -->
       <aside class="sidebar" id="sidebar">
         <div class="brand">
@@ -649,14 +633,30 @@ TEMPLATE = r"""<!doctype html>
         { id: "configuration", label: "Configuration", icon: "config" },
         { id: "resources", label: "Resources", icon: "resources" },
       ];
+      // Subcategories live under the one section the repo actually has a
+      // hierarchy for: Marketplace → plugin categories (existing #/marketplace/<cat>
+      // routes). The accordion only renders under the ACTIVE top item, and only
+      // when the sidebar is expanded (CSS hides .nav-sub when collapsed).
+      function navChildren(id) {
+        if (id === "marketplace" && D.categories) {
+          const counts = {};
+          D.plugins.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
+          const cur = (location.hash.split("/")[2] || "all");
+          return [{ id: "all", label: "All plugins", count: D.plugins.length }]
+            .concat(D.categories.map((c) => ({ id: c.id, label: c.label, count: counts[c.id] || 0 })))
+            .map((c) => `<a class="nav-subitem${c.id === cur ? " active" : ""}" href="#/marketplace/${c.id === "all" ? "" : c.id}">${esc(c.label)}<span class="count">${c.count}</span></a>`)
+            .join("");
+        }
+        return "";
+      }
       function renderNav(active) {
         $("#primary-nav").innerHTML =
           '<div class="group-label">Platform</div>' +
-          NAV.map((n) => `<a class="nav-item${n.id === active ? " active" : ""}" href="#/${n.id}" data-nav="${n.id}"${n.id === active ? ' aria-current="page"' : ""}>${svg(n.icon)}<span class="label">${n.label}</span></a>`).join("");
-        const rail = $("#rail-nav");
-        if (rail) {
-          rail.innerHTML = NAV.map((n) => `<a class="rail-item${n.id === active ? " active" : ""}" href="#/${n.id}" title="${n.label}" aria-label="${n.label}"${n.id === active ? ' aria-current="page"' : ""}>${svg(n.icon)}</a>`).join("");
-        }
+          NAV.map((n) => {
+            const item = `<a class="nav-item${n.id === active ? " active" : ""}" href="#/${n.id}" data-nav="${n.id}"${n.id === active ? ' aria-current="page"' : ""}>${svg(n.icon)}<span class="label">${n.label}</span></a>`;
+            const subs = n.id === active ? navChildren(n.id) : "";
+            return subs ? `${item}<div class="nav-sub">${subs}</div>` : item;
+          }).join("");
       }
 
       /* ---------------- Toast ----------------
