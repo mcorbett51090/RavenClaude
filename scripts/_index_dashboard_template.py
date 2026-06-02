@@ -475,6 +475,8 @@ TEMPLATE = r"""<!doctype html>
         padding: 20px 22px; margin-bottom: 22px;
       }
       .onboarding-head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+      .onboarding-head .ob-raven { display: inline-flex; flex: 0 0 auto; color: var(--rc-text); }
+      .onboarding-head .ob-raven svg { width: 38px; height: 38px; display: block; }
       .onboarding-head h2 { font-size: 1.1rem; letter-spacing: -0.01em; }
       .onboarding-head .ob-progress { margin-left: auto; font-size: 0.72rem; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; font-family: var(--font-mono); }
       .onboarding-head .ob-dismiss { background: transparent; border: none; color: var(--faint); cursor: pointer; padding: 4px 8px; border-radius: 6px; }
@@ -728,7 +730,7 @@ TEMPLATE = r"""<!doctype html>
         }).join("");
         return `<div class="onboarding-card" id="onboarding-card">
           <div class="onboarding-head">
-            ${svg("rocket")}
+            <span class="ob-raven" aria-hidden="true">__RAVEN_LOGO_SVG__</span>
             <h2>Welcome — get started in 10 minutes</h2>
             <span class="ob-progress">${doneCount} of ${ONBOARDING_STEPS.length}</span>
             <button class="ob-dismiss" id="ob-dismiss" type="button" aria-label="Dismiss onboarding">×</button>

@@ -547,6 +547,20 @@ _SHARED_TOKENS_PATH = (
     / "plugins" / "ravenclaude-core" / "dashboard-assets" / "shared-tokens.css"
 )
 
+# Brand mark — inlined at generate-time. Drop the real artwork at this path
+# (same filename) and it's picked up automatically on the next build.
+_RAVEN_LOGO_PATH = (
+    Path(__file__).resolve().parent.parent
+    / "plugins" / "ravenclaude-core" / "dashboard-assets" / "brand" / "raven-logo.svg"
+)
+
+
+def _load_raven_logo() -> str:
+    try:
+        return _RAVEN_LOGO_PATH.read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
+
 
 def _load_shared_tokens_root() -> str:
     """Inline the WHOLE shared-tokens.css file at generate-time.
@@ -575,6 +589,7 @@ def render_html(data: dict) -> str:
     html = html.replace("/*__RC_DATA__*/", payload)
     html = html.replace("__GENERATED__", data["generated"])
     html = html.replace("__MKT_VERSION__", data["marketplace_version"])
+    html = html.replace("__RAVEN_LOGO_SVG__", _load_raven_logo())
     return html
 
 
