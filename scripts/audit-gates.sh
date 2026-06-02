@@ -2499,6 +2499,18 @@ gate "lineup-citations (no opt-in marker → skip)" must_pass "$rc"
 rc=0; python3 scripts/check-lineup-citations.py >/dev/null 2>&1 || rc=$?
 gate "lineup-citations (real tree)" must_pass "$rc"
 
+echo "── Gate 46: BI report freshness (generate-bi-report.py --check) ───────────"
+# must_fail: a stale committed report.html (data changed but generator not re-run)
+# must be detected. Mutate the committed output so it no longer matches the emit.
+backup plugins/edtech-partner-success/report.html
+printf '\n<!-- AUDIT FIXTURE — should diff against regenerated output -->\n' >> plugins/edtech-partner-success/report.html
+rc=0; python3 scripts/generate-bi-report.py --check >/dev/null 2>&1 || rc=$?
+gate "bi-report freshness (stale committed report.html)" must_fail "$rc"
+cp -p "$TMP/plugins_edtech-partner-success_report.html.bak" plugins/edtech-partner-success/report.html
+# must_pass: pristine tree, the check should pass.
+rc=0; python3 scripts/generate-bi-report.py --check >/dev/null 2>&1 || rc=$?
+gate "bi-report freshness (clean tree)" must_pass "$rc"
+
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"

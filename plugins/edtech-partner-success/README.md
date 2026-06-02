@@ -35,7 +35,8 @@ Requires `ravenclaude-core@>=0.7.0` (for the alternate-methods Capability Ground
 ## What's inside
 
 - **6 agents** (above)
-- **4 skills:** partner-health-scoring, success-plan-authoring, qbr-composition, rostering-data-quality
+- **13 skills:** partner-health-scoring, health-report-dashboard (a self-contained Power-BI/Tableau-style portfolio report — demo data + a generator that rebuilds it from real data), success-plan-authoring, qbr-composition, rostering-data-quality, advocacy-program-design, adoption-sequencing-k12, implementation-90-day-arc, partner-training-program-design, renewal-play-design, expansion-play-design, recovery-play-design, executive-sponsor-mapping
+- **BI report:** open [`report.html`](report.html) for the demo (synthetic data); rebuild from real data with `python3 scripts/generate-bi-report.py` after editing [`bi-report/data.json`](bi-report/data.json)
 - **8 templates:** success plan, partner profile, QBR deck outline, touchpoint log, escalation memo, health-score dashboard spec, onboarding checklist, annual partner review
 - **1 advisory hook:** `flag-psm-anti-patterns.sh` — flags unverified numeric claims, generic boilerplate, missing dates in action items, multi-partner names in `To:` lines, health-score status without named signals
 - **Knowledge bank:** empty at v0.1.0; will accumulate production lessons as the plugin gets used

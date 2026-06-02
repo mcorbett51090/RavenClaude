@@ -39,6 +39,13 @@ plugins/*/dashboard.html
 # Same rationale as repo-guide.html above.
 index.html
 
+# Generated artifact — the self-contained Power-BI/Tableau-style plugin report
+# produced by scripts/generate-bi-report.py from plugins/<plugin>/bi-report/data.json.
+# Byte-deterministic, guarded by its own --check freshness gate; prettier's HTML
+# printer would rewrite the inline SVG / CSS / JS in ways that don't match the
+# generator's emit style. Same rationale as the generated dashboards above.
+plugins/*/report.html
+
 # Generated artifacts — the Learn-tab concept registry (scripts/concepts.py) and
 # the pre-rendered, theme-normalized concept diagrams + render manifest
 # (scripts/render-concepts.py). Both emit canonical, byte-deterministic output

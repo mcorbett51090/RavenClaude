@@ -1,0 +1,366 @@
+{
+  "report": {
+    "title": "Partner Health — Portfolio Report",
+    "subtitle": "How every partner is doing, in one place. Green means healthy, yellow means watch, red means act now.",
+    "refreshed": "2026-06-02",
+    "synthetic": true,
+    "owner": "learning-analytics-analyst + PSM team"
+  },
+  "_README": "SAMPLE / SYNTHETIC data only — no real partner or student information. This file is the data shape the BI report reads. Replace the values with a real export (same shape) and re-run scripts/generate-bi-report.py to rebuild report.html. See skills/health-report-dashboard/SKILL.md. Scores are 0-100; bands: green 70-100, yellow 50-69, red <50. spark = last 12 weeks of the composite score.",
+  "bands": { "green": [70, 100], "yellow": [50, 69], "red": [0, 49] },
+  "components": [
+    {
+      "key": "adoption",
+      "name": "Adoption depth",
+      "weight": 25,
+      "half_life_days": 90,
+      "plain": "How deeply they actually use the product."
+    },
+    {
+      "key": "touchpoint",
+      "name": "Touchpoint recency",
+      "weight": 20,
+      "half_life_days": 14,
+      "plain": "How recently we talked with them."
+    },
+    {
+      "key": "outcome",
+      "name": "Business outcome",
+      "weight": 20,
+      "half_life_days": 90,
+      "plain": "Are they getting the results they bought it for?"
+    },
+    {
+      "key": "sentiment",
+      "name": "Sentiment",
+      "weight": 15,
+      "half_life_days": 60,
+      "plain": "Do they sound happy in surveys and calls?"
+    },
+    {
+      "key": "champion",
+      "name": "Champion strength",
+      "weight": 10,
+      "half_life_days": 60,
+      "plain": "Is our main supporter still strong and still here?"
+    },
+    {
+      "key": "usage",
+      "name": "Usage breadth",
+      "weight": 10,
+      "half_life_days": 30,
+      "plain": "How many of the features they use."
+    }
+  ],
+  "kpis": [
+    {
+      "key": "nrr",
+      "label": "Net revenue kept + grown",
+      "short": "NRR",
+      "value": 108,
+      "unit": "%",
+      "delta": 2.0,
+      "good": "up",
+      "plain": "Of the money we had last year from these partners, how much we still have plus growth. Over 100% means the group grew."
+    },
+    {
+      "key": "grr",
+      "label": "Net revenue kept",
+      "short": "GRR",
+      "value": 94,
+      "unit": "%",
+      "delta": -1.0,
+      "good": "up",
+      "plain": "How much of last year's money we kept, not counting any growth. Closer to 100% is better."
+    },
+    {
+      "key": "avg_health",
+      "label": "Average health score",
+      "short": "Avg health",
+      "value": 68,
+      "unit": "",
+      "delta": 1.5,
+      "good": "up",
+      "plain": "The average of every partner's health score (0 to 100)."
+    },
+    {
+      "key": "red_count",
+      "label": "Partners in the red",
+      "short": "Red",
+      "value": 2,
+      "unit": "",
+      "delta": 1,
+      "good": "down",
+      "plain": "How many partners scored under 50 and need action now."
+    },
+    {
+      "key": "renewal_risk",
+      "label": "Renewals at risk (90 days)",
+      "short": "Renewal risk",
+      "value": 3,
+      "unit": "",
+      "delta": 0,
+      "good": "down",
+      "plain": "Partners whose contract ends in the next 90 days who are not yet healthy or confirmed."
+    }
+  ],
+  "cohort": {
+    "label": "K-12 · Enterprise · Year 2+",
+    "median": 68,
+    "p25": 54,
+    "p75": 81,
+    "size": 11
+  },
+  "trend_weeks": ["12 wk ago", "11", "10", "9", "8", "7", "6", "5", "4", "3", "2", "This wk"],
+  "portfolio_trend": [62, 63, 63, 64, 65, 65, 66, 66, 67, 67, 67, 68],
+  "partners": [
+    {
+      "name": "Riverside Unified",
+      "segment": "k12",
+      "psm": "Dana L.",
+      "score": 81,
+      "delta": 3,
+      "band": "green",
+      "components": {
+        "adoption": 84,
+        "touchpoint": 88,
+        "outcome": 80,
+        "sentiment": 78,
+        "champion": 82,
+        "usage": 70
+      },
+      "spark": [72, 73, 74, 74, 75, 76, 77, 78, 79, 80, 78, 81],
+      "flags": [],
+      "play": "Maintain",
+      "last_touch": "2026-05-30",
+      "next_qbr": "2026-06-18",
+      "renewal": "2026-11-15"
+    },
+    {
+      "name": "Cedar Valley Schools",
+      "segment": "k12",
+      "psm": "Dana L.",
+      "score": 76,
+      "delta": 2,
+      "band": "green",
+      "components": {
+        "adoption": 78,
+        "touchpoint": 80,
+        "outcome": 74,
+        "sentiment": 76,
+        "champion": 70,
+        "usage": 68
+      },
+      "spark": [70, 71, 72, 72, 73, 73, 74, 74, 75, 75, 74, 76],
+      "flags": [],
+      "play": "Maintain",
+      "last_touch": "2026-05-28",
+      "next_qbr": "2026-07-02",
+      "renewal": "2027-01-31"
+    },
+    {
+      "name": "Northshore Academy",
+      "segment": "k12",
+      "psm": "Priya R.",
+      "score": 73,
+      "delta": 5,
+      "band": "green",
+      "components": {
+        "adoption": 70,
+        "touchpoint": 90,
+        "outcome": 72,
+        "sentiment": 80,
+        "champion": 64,
+        "usage": 62
+      },
+      "spark": [60, 61, 62, 63, 64, 65, 66, 68, 70, 71, 70, 73],
+      "flags": [],
+      "play": "Expand",
+      "last_touch": "2026-06-01",
+      "next_qbr": "2026-06-25",
+      "renewal": "2027-03-01"
+    },
+    {
+      "name": "Mesa Community College",
+      "segment": "higher-ed",
+      "psm": "Priya R.",
+      "score": 71,
+      "delta": 1,
+      "band": "green",
+      "components": {
+        "adoption": 72,
+        "touchpoint": 70,
+        "outcome": 74,
+        "sentiment": 70,
+        "champion": 68,
+        "usage": 66
+      },
+      "spark": [68, 68, 69, 69, 70, 70, 70, 71, 71, 70, 70, 71],
+      "flags": [],
+      "play": "Maintain",
+      "last_touch": "2026-05-22",
+      "next_qbr": "2026-07-15",
+      "renewal": "2026-12-01"
+    },
+    {
+      "name": "Brightpath Charter",
+      "segment": "k12",
+      "psm": "Dana L.",
+      "score": 66,
+      "delta": -2,
+      "band": "yellow",
+      "components": {
+        "adoption": 60,
+        "touchpoint": 72,
+        "outcome": 64,
+        "sentiment": 70,
+        "champion": 66,
+        "usage": 58
+      },
+      "spark": [70, 70, 69, 69, 68, 68, 67, 67, 66, 66, 67, 66],
+      "flags": [],
+      "play": "Maintain",
+      "last_touch": "2026-05-26",
+      "next_qbr": "2026-06-30",
+      "renewal": "2027-02-15"
+    },
+    {
+      "name": "Harbor District",
+      "segment": "k12",
+      "psm": "Marcus T.",
+      "score": 61,
+      "delta": -4,
+      "band": "yellow",
+      "components": {
+        "adoption": 55,
+        "touchpoint": 64,
+        "outcome": 60,
+        "sentiment": 62,
+        "champion": 70,
+        "usage": 54
+      },
+      "spark": [70, 69, 68, 67, 66, 65, 64, 63, 63, 62, 62, 61],
+      "flags": ["Active-user count dropped 32% week-over-week"],
+      "play": "Recovery",
+      "last_touch": "2026-05-20",
+      "next_qbr": "2026-06-12",
+      "renewal": "2026-08-30"
+    },
+    {
+      "name": "Summit Learning Co-op",
+      "segment": "corp-ld",
+      "psm": "Marcus T.",
+      "score": 58,
+      "delta": 2,
+      "band": "yellow",
+      "components": {
+        "adoption": 54,
+        "touchpoint": 66,
+        "outcome": 56,
+        "sentiment": 60,
+        "champion": 58,
+        "usage": 52
+      },
+      "spark": [54, 54, 55, 55, 56, 56, 57, 57, 57, 58, 57, 58],
+      "flags": [],
+      "play": "Adoption push",
+      "last_touch": "2026-05-29",
+      "next_qbr": "2026-07-09",
+      "renewal": "2027-04-01"
+    },
+    {
+      "name": "Lakeside Public Schools",
+      "segment": "k12",
+      "psm": "Priya R.",
+      "score": 54,
+      "delta": -3,
+      "band": "yellow",
+      "components": {
+        "adoption": 48,
+        "touchpoint": 58,
+        "outcome": 52,
+        "sentiment": 56,
+        "champion": 60,
+        "usage": 50
+      },
+      "spark": [62, 61, 60, 59, 58, 57, 57, 56, 55, 55, 55, 54],
+      "flags": ["Renewal within 90 days; decision-maker not yet confirmed in role"],
+      "play": "Recovery",
+      "last_touch": "2026-05-18",
+      "next_qbr": "2026-06-10",
+      "renewal": "2026-08-20"
+    },
+    {
+      "name": "Pinecrest ISD",
+      "segment": "k12",
+      "psm": "Marcus T.",
+      "score": 47,
+      "delta": -6,
+      "band": "red",
+      "components": {
+        "adoption": 40,
+        "touchpoint": 38,
+        "outcome": 50,
+        "sentiment": 52,
+        "champion": 44,
+        "usage": 46
+      },
+      "spark": [62, 60, 58, 57, 55, 54, 52, 51, 50, 49, 48, 47],
+      "flags": [
+        "Champion departure (named champion no longer in role)",
+        "21+ days of zero meaningful touchpoints"
+      ],
+      "play": "Recovery",
+      "last_touch": "2026-05-08",
+      "next_qbr": "2026-06-09",
+      "renewal": "2026-10-01"
+    },
+    {
+      "name": "Granite State University",
+      "segment": "higher-ed",
+      "psm": "Priya R.",
+      "score": 39,
+      "delta": -5,
+      "band": "red",
+      "components": {
+        "adoption": 34,
+        "touchpoint": 42,
+        "outcome": 36,
+        "sentiment": 40,
+        "champion": 38,
+        "usage": 44
+      },
+      "spark": [54, 52, 50, 49, 47, 46, 45, 43, 42, 41, 40, 39],
+      "flags": [
+        "Partner explicitly states \"we're evaluating alternatives\"",
+        "2+ consecutive support escalations to leadership tier"
+      ],
+      "play": "Recovery",
+      "last_touch": "2026-05-27",
+      "next_qbr": "2026-06-11",
+      "renewal": "2026-07-31"
+    },
+    {
+      "name": "Willowbrook Schools",
+      "segment": "k12",
+      "psm": "Dana L.",
+      "score": 70,
+      "delta": 0,
+      "band": "green",
+      "components": {
+        "adoption": 68,
+        "touchpoint": 74,
+        "outcome": 70,
+        "sentiment": 72,
+        "champion": 66,
+        "usage": 64
+      },
+      "spark": [68, 69, 69, 70, 70, 70, 71, 70, 70, 70, 70, 70],
+      "flags": ["Rostering sync has not run in 52 hours — data may be stale"],
+      "play": "Maintain",
+      "last_touch": "2026-05-31",
+      "next_qbr": "2026-07-20",
+      "renewal": "2027-05-15"
+    }
+  ]
+}

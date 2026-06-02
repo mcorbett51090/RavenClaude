@@ -112,8 +112,8 @@
     {
       "name": "edtech-partner-success",
       "source": "./plugins/edtech-partner-success",
-      "description": "EdTech-flavored Partner Success Manager team \u2014 6 specialist agents anchored on the PSM lane, with 12 skills, 15 templates, 1 advisory hook, and a 15-doc knowledge bank covering QBRs, success plans, health scoring, onboarding, adoption sequencing, 90-day implementation arcs, training programs, advocacy/reference pipelines, and renewal motions. Team expansion is expressed as skills + knowledge + templates rather than parallel agents (per the marketplace house rule). Primary-source citations carry retrieval dates and confidence notation. Vertical-explicit but segment-agnostic \u2014 fits K-12, higher-ed, corporate L&D, or mixed EdTech books. Inherits ravenclaude-core protocols; requires ravenclaude-core@>=0.7.0.",
-      "version": "0.8.0",
+      "description": "EdTech-flavored Partner Success Manager team \u2014 6 specialist agents anchored on the PSM lane, with 13 skills, 15 templates, 1 advisory hook, and a 15-doc knowledge bank covering QBRs, success plans, health scoring, a self-contained Power-BI-style partner-health report (demo + generator), onboarding, adoption sequencing, 90-day implementation arcs, training programs, advocacy/reference pipelines, and renewal motions. Team expansion is expressed as skills + knowledge + templates rather than parallel agents (per the marketplace house rule). Primary-source citations carry retrieval dates and confidence notation. Vertical-explicit but segment-agnostic \u2014 fits K-12, higher-ed, corporate L&D, or mixed EdTech books. Inherits ravenclaude-core protocols; requires ravenclaude-core@>=0.7.0.",
+      "version": "0.9.0",
       "author": {
         "name": "Matt Corbett"
       },
