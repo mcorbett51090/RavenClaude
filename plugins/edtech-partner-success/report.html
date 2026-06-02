@@ -19,8 +19,12 @@
  * tokens into the surface's <style> block. NO RUNTIME LOAD — every HTML
  * artifact stays self-contained.
  *
- * Aesthetic: Intercom-inspired calm monochromatic light beige with two
- * accents — gold (dashboard, Norse-thematic) and teal (index + repo-guide).
+ * Aesthetic: Intercom-inspired calm monochromatic COOL near-white grey
+ * canvas (#f5f6f8 — the Intercom app/Inbox canvas, not a warm cream) with
+ * two accents — gold (dashboard, Norse-thematic) and teal (index +
+ * repo-guide). Depth is hairline-led: white cards lift off the cool canvas
+ * + a 1px border; shadows stay a whisper. Contrast ratios below re-verified
+ * against the cool canvas (luminance ≈ the old beige, so ratios hold).
  *
  * a11y discipline:
  *   - --gold on --bg is ~3.6:1 (AA-LARGE only). Never use --gold as body
@@ -39,17 +43,23 @@
  */
 
 :root {
-  /* ── Neutrals — light beige base ─────────────────────────────────── */
-  --rc-bg: #faf7f0;
+  /* ── Neutrals — cool near-white grey (Intercom app canvas) ───────── */
+  --rc-bg: #f5f6f8;
   --rc-surface: #ffffff;
-  --rc-surface-2: #f4f0e8;
-  --rc-border: #e8e0d0;
-  --rc-border-strong: #d6cab2;
+  --rc-surface-2: #eef0f3;
+  --rc-border: #e3e6ea;
+  --rc-border-strong: #d2d7dd;
 
-  /* ── Text ────────────────────────────────────────────────────────── */
-  --rc-text: #1a1614;
-  --rc-muted: #6b6259;
-  --rc-faint: #a8a098;
+  /* ── Text — cool near-black ──────────────────────────────────────── */
+  --rc-text: #1c1f23;
+  --rc-muted: #5b6166;
+  --rc-faint: #8e959c;
+
+  /* ── Ink — charcoal primary-button fill (accent reserved; Intercom's
+     primary is charcoal, not the accent color). Inverts in dark mode. ── */
+  --rc-ink: #1c1f23;
+  --rc-ink-fg: #ffffff;
+  --rc-ink-soft: #34393f;
 
   /* ── Accent: gold (dashboard primary, Norse identity) ────────────── */
   /* CONTRAST NOTE: --rc-gold is ~3.6:1 on --rc-bg — AA-LARGE only.
@@ -104,20 +114,23 @@
   --rc-space-8: 64px;
 
   /* ── Radii ───────────────────────────────────────────────────────── */
-  --rc-radius-sm: 6px;
+  --rc-radius-xs: 4px;
+  --rc-radius-sm: 8px;
   --rc-radius: 10px;
-  --rc-radius-lg: 16px;
+  --rc-radius-lg: 12px;
   --rc-radius-pill: 999px;
 
-  /* ── Shadows — Intercom-soft, 5-tier scale, warm-tinted ─────────────
-     Warm tint (rgba(120, 90, 40, X)) reads as natural elevation on beige.
-     Cool/neutral shadows on warm bg look like dust. */
-  --rc-shadow-xs: 0 1px 2px rgba(120, 90, 40, 0.04);
-  --rc-shadow-sm: 0 1px 3px rgba(120, 90, 40, 0.06), 0 1px 2px rgba(120, 90, 40, 0.04);
-  --rc-shadow: 0 4px 12px rgba(120, 90, 40, 0.08), 0 1px 3px rgba(120, 90, 40, 0.05);
-  --rc-shadow-md: 0 8px 20px rgba(120, 90, 40, 0.1), 0 2px 4px rgba(120, 90, 40, 0.06);
-  --rc-shadow-lg: 0 16px 32px rgba(120, 90, 40, 0.12), 0 4px 8px rgba(120, 90, 40, 0.06);
-  --rc-shadow-xl: 0 24px 48px rgba(120, 90, 40, 0.14), 0 8px 16px rgba(120, 90, 40, 0.08);
+  /* ── Shadows — Intercom-soft, 5-tier scale, COOL-tinted ─────────────
+     Intercom carries depth mostly via white surfaces lifting off the cool
+     canvas + a 1px hairline; the shadow is a whisper. Cool tint
+     (rgba(20, 28, 40, X)) reads natural on the cool-grey canvas — a warm
+     brown tint would look muddy here. Keep peaks low. */
+  --rc-shadow-xs: 0 1px 2px rgba(20, 28, 40, 0.04);
+  --rc-shadow-sm: 0 1px 2px rgba(20, 28, 40, 0.04), 0 1px 3px rgba(20, 28, 40, 0.06);
+  --rc-shadow: 0 2px 8px rgba(20, 28, 40, 0.06), 0 1px 2px rgba(20, 28, 40, 0.04);
+  --rc-shadow-md: 0 6px 16px rgba(20, 28, 40, 0.08), 0 2px 4px rgba(20, 28, 40, 0.05);
+  --rc-shadow-lg: 0 12px 28px rgba(20, 28, 40, 0.1), 0 4px 8px rgba(20, 28, 40, 0.05);
+  --rc-shadow-xl: 0 20px 40px rgba(20, 28, 40, 0.12), 0 8px 16px rgba(20, 28, 40, 0.07);
 
   /* ── Refined typography scale (Intercom rhythm) ──────────────────────
      Inter throughout. Display-weight contrast via 700 weight + tight
@@ -160,6 +173,11 @@
   --rc-text: #faf7f0;
   --rc-muted: #b8aea0;
   --rc-faint: #7a7263;
+
+  /* Ink — inverts on dark: light fill, dark text (charcoal primary button) */
+  --rc-ink: #f0f2f5;
+  --rc-ink-fg: #14110d;
+  --rc-ink-soft: #d4d8de;
 
   /* Accents — chroma lift to compensate for dark bg */
   --rc-gold: #c9a84c;
@@ -207,14 +225,14 @@
   border: 1px solid var(--rc-border);
   border-radius: var(--rc-radius-lg);
   padding: var(--rc-space-5);
-  box-shadow: var(--rc-shadow-sm);
+  box-shadow: var(--rc-shadow-xs);
   transition:
     box-shadow 0.18s ease,
     border-color 0.18s ease,
     transform 0.18s ease;
 }
 .rc-card:hover {
-  box-shadow: var(--rc-shadow-md);
+  box-shadow: var(--rc-shadow-sm);
   border-color: var(--rc-border-strong);
   transform: translateY(-2px);
 }
@@ -258,7 +276,7 @@
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
-  border-radius: var(--rc-radius-sm);
+  border-radius: var(--rc-radius-xs);
   font-family: var(--rc-font-mono);
   font-size: 0.75rem;
   font-weight: 600;
@@ -337,13 +355,13 @@
   box-shadow: var(--rc-focus-ring);
 }
 .rc-button--primary {
-  background: var(--rc-teal);
-  color: var(--rc-surface);
-  border-color: var(--rc-teal);
+  background: var(--rc-ink);
+  color: var(--rc-ink-fg);
+  border-color: var(--rc-ink);
 }
 .rc-button--primary:hover {
-  background: var(--rc-teal-soft);
-  border-color: var(--rc-teal-soft);
+  background: var(--rc-ink-soft);
+  border-color: var(--rc-ink-soft);
 }
 .rc-button--gold {
   background: var(--rc-gold);
