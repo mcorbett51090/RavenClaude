@@ -2459,6 +2459,12 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   width: 28px;
   height: 28px;
   object-fit: contain;
+  /* The asset is raven-mark-dark.png — a WHITE raven made for dark
+     backgrounds. On the light theme, brightness(0) renders it black (alpha
+     preserved) so it reads correctly; dark mode keeps it white. */
+  filter: brightness(0) drop-shadow(0 0 6px var(--accent-glow));
+}
+[data-theme="dark"] .brand-mark {
   filter: drop-shadow(0 0 6px var(--accent-glow));
 }
 .page-header h1 {
