@@ -2,6 +2,47 @@
 
 All notable changes to the RavenClaude marketplace and its plugins. Format loosely follows [Keep a Changelog](https://keepachangelog.com/). The marketplace version (`metadata.version` in `.claude-plugin/marketplace.json`) bumps when the catalog shape or cross-plugin contracts change; individual plugins have their own semver tracked in their `plugin.json`.
 
+## ravenclaude-core 0.104.0 — 2026-06-02 (Ravenpower aesthetic + retrospective gap closure)
+
+Plan v5 — refined after a 4-seat panel RETROSPECTIVE across v0.101.0 + v0.102.0 + v0.103.0 + Matt's two decisions (Option B aesthetic scope, STRATEGY.md close as intentionally minimal).
+
+**Ravenpower aesthetic — Option B (consumer-visible):**
+
+- `index.html` and `plugins/ravenclaude-core/dashboard.html` now force `<html data-theme="dark">`. They render permanently dark + gold + with a constellation background. Restores the dashboard's original Norse-manuscript aesthetic (parchment-and-gilt → gold-on-dark-sky).
+- `repo-guide.html` unchanged — stays light beige + teal. It's a reference catalog; long-form scanning is best on light.
+- New `plugins/ravenclaude-core/dashboard-assets/constellation.js` — self-contained, deterministic-seeded (no `Math.random` — uses LCG seeded with `0xDEADBEEF`), 140 stars (scales with viewport area), 90% white + 10% gold-tinted `#f5e8c0` for "warm Norse sky". Static (no animation v1; drift/parallax deferred to v2 if asked). Respects `prefers-reduced-motion`. ~85 LOC, ~3 KB.
+- Hero `.accent` gradient flips from teal→teal-dim to **gold → gold-soft** (`var(--rc-gold) → var(--rc-gold-soft)`). Hero shimmer animation retired — the gold itself carries the moment.
+- Replaced the v0.103.0 sun/moon theme toggle with a small **raven sigil** SVG in the topbar (per designer-panel — single brand per surface, no user theme switching).
+- Dark-mode shadow chroma lifted to rgba(0,0,0,0.55-0.70) to maintain perceived card elevation above the textured constellation background (designer-panel recommendation).
+
+**Bug fixes (panel-discovered):**
+
+- **BUG #1 (MEDIUM)** — `paletteAction(m.preset)` now detects same-hash navigation and calls `route()` directly. Before: picking a preset from ⌘K while already on `#/configuration` set `__pendingPreset` but `hashchange` never fired → preset never applied AND stale preset surprised the user on next navigation.
+- **BUG #2 (LOW)** — initial `applyTheme(false)` path that could set `data-theme="false"` on `matchMedia`-less runtimes is fully removed (theme toggle deleted; `data-theme="dark"` forced in `<html>` tag).
+- **BUG #3 (LOW)** — `meansFor(preset)` now short-circuits to "All categories: proceeds silently" when all preset levels collapse (e.g., `maximum_autonomy`). Previously emitted three arbitrary "highest-stakes" rows.
+- Dead code removed: `SEARCH_IDX = PALETTE_IDX` alias + `function gotoSearch(m)` (zero callers verified).
+
+**Documentation cleanups:**
+
+- **`CLAUDE.md` §"Remote-environment PR mechanics"** rewritten. The prior "only MCP works" framing was stale — `gh` works at `/usr/bin/gh` authenticated via `GITHUB_TOKEN`, direct API returns 200. Now lists all three working paths (`gh` primary, MCP fallback, direct API as scriptable last resort) and reframes the actual lesson from the original incident.
+- **`STRATEGY.md`** closed as **"intentionally minimal"** per Matt's call. Removes the 3-PR deferral debt. RavenClaude is a private consulting-craft tool; no public-vs-private packaging decision needs to be surfaced. Reopening criteria documented.
+- **`plugins/ravenclaude-core/dashboard-assets/README.md`** gains a **"Surface aesthetic map"** table (per-surface aesthetic + theme attr + accent + constellation) and a **"localStorage namespace"** inventory (6 keys: `rc-sidebar`, `rc-theme`, `rc-onboarding-progress`, `rc-onboarding-dismissed`, `rc-palette-recent`, `rc-spawn-log`).
+
+**Quality features:**
+
+- **`rc-palette-recent` implemented** (was claimed in docs but unimplemented). Palette tracks the last 5 selected items in localStorage; surfaces them as a "Recent" section at the top of the palette when the input is empty.
+- Body weight 400 in dark mode for legibility (designer-panel guidance).
+
+**Deferred to v0.105.0 (explicit):**
+
+- Security hardening bundle (queue items #1-#4 — CSRF token + Codespace port-visibility check + posture-file size cap + Content-Length try/except) — all in `serve-dashboards.py`; deserves its own focused chore PR.
+- `serve-dashboards.py` twin parity freshness gate.
+- `scripts/_index_dashboard_template.py` split into modules (now 1,350+ LOC).
+- `PLUGIN_COLORS` 17-plugin retune for beige base.
+- Audience-chip + difficulty-chip + Mermaid theme hex retune in `generate-repo-guide.py`.
+
+**Migration for consumers:** `/plugin marketplace update ravenclaude` + `/reload-plugins`. The landing dashboard (`index.html`) and the deep dashboard (`/dashboard`) **look very different** on next launch — dark warm-near-black bg, gold accents, constellation backdrop. The sun/moon toggle is gone (was v0.103.0). `repo-guide.html` is unchanged. Any consumer who had set `localStorage["rc-theme"] = "light"` on the landing will find it ignored (key is read but no longer honored; kept for forward-compat).
+
 ## ravenclaude-core 0.103.0 — 2026-06-02 (Intercom polish: ⌘K palette + conversational posture editor + dark mode + onboarding)
 
 Premium SaaS refinement of the landing dashboard (`index.html`) with five new visible surfaces. Plan v4 — refined through a 4-seat panel review (architect + code-reviewer + designer + project-manager) before exit. Built on the v0.102.0 design-system foundation.
