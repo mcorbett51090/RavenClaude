@@ -45,8 +45,10 @@ from __future__ import annotations
 
 import argparse
 import errno
+import hmac
 import json
 import os
+import secrets
 import subprocess
 import sys
 import webbrowser
@@ -292,6 +294,14 @@ def _compute_saga_tiers(category: str, concerns_cited: list) -> tuple[str, str]:
 # sent by browsers on cross-origin POST) isn't ours, or whose Host isn't known.
 _ALLOWED_HOSTS: set[str] = set()
 _ALLOWED_ORIGINS: set[str] = set()
+
+# Per-process random CSRF token. Generated in main() once the server is bound.
+# Belt-and-suspenders on top of the Origin/Host check: a scripted HTTP client that
+# omits Origin (so the Origin guard passes) still has to present this token in the
+# X-CSRF-Token header on every state-changing POST. The token is exposed via the
+# GET /__csrf endpoint, which is itself behind the Origin/Host guard — so a
+# cross-origin page can't fetch the token, and the dashboard JS (same-origin) can.
+_CSRF_TOKEN: str = ""
 
 
 def _summarize_run(d: Path) -> dict:
@@ -852,8 +862,41 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return False
         return True
 
+    def _csrf_ok(self) -> bool:
+        """Belt-and-suspenders CSRF check on top of the Origin/Host guard.
+
+        State-changing POSTs must carry the X-CSRF-Token header with the
+        per-process token; constant-time compared so a scripted client can't
+        side-channel-leak the value. Fails CLOSED on an empty server token (a
+        startup race) — only the bootstrap GET /__csrf is allowed to run before
+        the token is populated.
+        """
+        if not _CSRF_TOKEN:
+            return False
+        presented = self.headers.get("X-CSRF-Token", "")
+        return hmac.compare_digest(presented, _CSRF_TOKEN)
+
+    def _parse_content_length(self, max_bytes: int) -> int | None:
+        """Parse Content-Length defensively; respond 400/413 on failure.
+
+        Returns the parsed length, or None if the handler already responded
+        with an error (the caller must return immediately). A non-numeric
+        Content-Length used to raise ValueError and surface as a 500 with a
+        traceback — replaced with a controlled 400.
+        """
+        raw = self.headers.get("Content-Length", "0")
+        try:
+            length = int(raw)
+        except (ValueError, TypeError):
+            self.send_error(400, "invalid Content-Length")
+            return None
+        if length <= 0 or length > max_bytes:
+            self.send_error(413, f"request body required, max {max_bytes} bytes")
+            return None
+        return length
+
     def do_HEAD(self):
-        if self.path in ("/__save", "/__run", "/__classify") or self.path.startswith("/__read") or self.path.startswith("/__saga") or self.path.startswith("/__heimdall") or self.path.startswith("/__vidarr") or self.path.startswith("/__norns") or self.path.startswith("/__nidhoggr") or self.path.startswith("/__sleipnir") or self.path.startswith("/__runs") or self.path.startswith("/__concern-stats"):
+        if self.path in ("/__save", "/__run", "/__classify", "/__csrf") or self.path.startswith("/__read") or self.path.startswith("/__saga") or self.path.startswith("/__heimdall") or self.path.startswith("/__vidarr") or self.path.startswith("/__norns") or self.path.startswith("/__nidhoggr") or self.path.startswith("/__sleipnir") or self.path.startswith("/__runs") or self.path.startswith("/__concern-stats"):
             self.send_response(200)
             self.send_header("Allow", "GET, POST, HEAD")
             self.send_header("Content-Length", "0")
@@ -902,7 +945,29 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if self.path.startswith("/__concern-stats"):
             self._handle_concern_stats()
             return
+        if self.path == "/__csrf":
+            self._handle_csrf()
+            return
         super().do_GET()
+
+    def _handle_csrf(self):
+        """GET /__csrf — return the per-process CSRF token to the same-origin
+        dashboard JS. Gated by the Origin/Host check, so a cross-origin page
+        cannot read the token (browser CORS would also block reading the JSON
+        response, but the explicit guard fails closed)."""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        if not _CSRF_TOKEN:
+            self.send_error(503, "csrf token not yet initialized")
+            return
+        body = json.dumps({"token": _CSRF_TOKEN}).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
 
     def _handle_read(self):
         """GET /__read?path=<allow-listed> — return a committed config file so the
@@ -1171,6 +1236,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if not self._local_request_ok():
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
+        if not self._csrf_ok():
+            self.send_error(403, "missing or invalid CSRF token")
+            return
         if self.path == "/__run":
             self._handle_run()
             return
@@ -1181,9 +1249,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(404, "endpoint not found")
             return
 
-        length = int(self.headers.get("Content-Length", "0"))
-        if length <= 0 or length > 5 * 1024 * 1024:
-            self.send_error(413, "request body required, max 5 MB")
+        length = self._parse_content_length(5 * 1024 * 1024)
+        if length is None:
             return
 
         body_raw = self.rfile.read(length)
@@ -1273,9 +1340,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         dashboard's one-click Install/Update buttons. No caller-supplied args or
         shell; the action name is validated against ALLOWED_ACTIONS, so this is not
         an arbitrary-command surface. Local-only server (see module docstring)."""
-        length = int(self.headers.get("Content-Length", "0"))
-        if length <= 0 or length > 64 * 1024:
-            self.send_error(413, "small JSON body required")
+        length = self._parse_content_length(64 * 1024)
+        if length is None:
             return
         try:
             body = json.loads(self.rfile.read(length).decode("utf-8"))
@@ -1307,9 +1373,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         """POST /__classify {command} — run the real thing-decision classifier on
         the string (no execution) so the 'Test a command' simulator matches the
         engine. Returns the decision JSON (category/tier/seats/concerns/gate)."""
-        length = int(self.headers.get("Content-Length", "0"))
-        if length <= 0 or length > 64 * 1024:
-            self.send_error(413, "small JSON body required")
+        length = self._parse_content_length(64 * 1024)
+        if length is None:
             return
         try:
             command = json.loads(self.rfile.read(length).decode("utf-8"))["command"]
@@ -1399,6 +1464,25 @@ def main() -> int:
     # guard below. Off-Codespace stay loopback-only. An explicit --bind always wins.
     bind = args.bind or ("0.0.0.0" if codespace else "127.0.0.1")
 
+    # Refuse 0.0.0.0 when the Codespace forwarded port is set to Public — the
+    # /__save and /__run surfaces would be reachable from the public internet on
+    # a path the server doesn't expect to be public. The env var name is the one
+    # specified by the dashboard-server security review (docs/security/
+    # 2026-06-dashboard-and-posture-apply-review.md, finding #3). GitHub
+    # Codespaces does NOT export GITHUB_CODESPACES_PORT_VISIBILITY today (verified
+    # 2026-06-02), so the check is a defensive no-op today and a real gate if/when
+    # the env var ships. Use `gh codespace ports list` for the authoritative state.
+    if bind == "0.0.0.0" and os.environ.get("GITHUB_CODESPACES_PORT_VISIBILITY", "").lower() == "public":
+        print(
+            "serve-dashboards: refusing to bind 0.0.0.0 with the Codespace port set to Public.\n"
+            "  /__save and /__run would be reachable from the public internet.\n"
+            "  Fix one of:\n"
+            "    gh codespace ports visibility <port>:private\n"
+            "    python3 scripts/serve-dashboards.py --bind 127.0.0.1",
+            file=sys.stderr,
+        )
+        return 2
+
     os.chdir(REPO_ROOT)
 
     # Stable port: try the requested port and up to 5 successive ones to find a
@@ -1421,8 +1505,11 @@ def main() -> int:
             f"(all in use). Free one of those ports and retry."
         )
 
-    # Build the Origin/Host allow-lists the CSRF/rebinding guard checks against.
-    global _ALLOWED_HOSTS, _ALLOWED_ORIGINS
+    # Generate the per-process CSRF token before the server can serve a single
+    # request. The Origin/Host guard is set up alongside it; together they form
+    # the two-layer defense for the state-changing POST surface.
+    global _ALLOWED_HOSTS, _ALLOWED_ORIGINS, _CSRF_TOKEN
+    _CSRF_TOKEN = secrets.token_urlsafe(32)
     _ALLOWED_HOSTS = {f"127.0.0.1:{actual_port}", f"localhost:{actual_port}", "127.0.0.1", "localhost"}
     _ALLOWED_ORIGINS = {f"http://127.0.0.1:{actual_port}", f"http://localhost:{actual_port}"}
     if codespace:
@@ -1464,7 +1551,8 @@ def main() -> int:
         print(f"  {phone_url}")
         security_note = (
             "  Security: keep this forwarded port PRIVATE (the default) and stay signed\n"
-            "  into GitHub on the phone — /__save writes files and runs the translator."
+            "  into GitHub on the phone — /__save writes files and runs the translator.\n"
+            f"  Verify with: gh codespace ports list -c {codespace}  (visibility column must read 'private')"
         )
     elif bind == "0.0.0.0":
         lan_ip = _lan_ip()
