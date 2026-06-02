@@ -546,6 +546,15 @@ _SHARED_TOKENS_PATH = (
     Path(__file__).resolve().parent.parent
     / "plugins" / "ravenclaude-core" / "dashboard-assets" / "shared-tokens.css"
 )
+_CONSTELLATION_PATH = (
+    Path(__file__).resolve().parent.parent
+    / "plugins" / "ravenclaude-core" / "dashboard-assets" / "constellation.js"
+)
+
+
+def _load_constellation_js() -> str:
+    """Read the constellation.js partial verbatim at generate-time."""
+    return _CONSTELLATION_PATH.read_text(encoding="utf-8")
 
 
 def _load_shared_tokens_root() -> str:
@@ -570,8 +579,10 @@ def _load_shared_tokens_root() -> str:
 def render_html(data: dict) -> str:
     template = _TEMPLATE
     shared_tokens = _load_shared_tokens_root()
+    constellation = _load_constellation_js()
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
     html = template.replace("/*__SHARED_TOKENS__*/", shared_tokens)
+    html = html.replace("/*__CONSTELLATION_JS__*/", constellation)
     html = html.replace("/*__RC_DATA__*/", payload)
     html = html.replace("__GENERATED__", data["generated"])
     html = html.replace("__MKT_VERSION__", data["marketplace_version"])

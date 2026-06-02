@@ -50,6 +50,14 @@ PLUGINS_DIR = REPO_ROOT / "plugins"
 _SHARED_TOKENS_PATH = (
     REPO_ROOT / "plugins" / "ravenclaude-core" / "dashboard-assets" / "shared-tokens.css"
 )
+_CONSTELLATION_PATH = (
+    REPO_ROOT / "plugins" / "ravenclaude-core" / "dashboard-assets" / "constellation.js"
+)
+
+
+def _load_constellation_js() -> str:
+    """Read the constellation.js partial verbatim at generate-time."""
+    return _CONSTELLATION_PATH.read_text(encoding="utf-8")
 
 
 def _load_shared_tokens_root() -> str:
@@ -181,7 +189,8 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         ),
         js=_JS,
     )
-    return result.replace("/*__SHARED_TOKENS__*/", _load_shared_tokens_root())
+    result = result.replace("/*__SHARED_TOKENS__*/", _load_shared_tokens_root())
+    return result.replace("/*__CONSTELLATION_JS__*/", _load_constellation_js())
 
 
 def _render_simulator_tab() -> str:
@@ -9802,11 +9811,13 @@ def _render_web_access_page() -> str:
 
 
 _PAGE_TEMPLATE = """<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#14110d">
 <!-- Raven Power brand fonts. Loads when online; falls back to system-ui offline (the
      --font-sans / --font-display stacks already degrade gracefully). -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -9817,6 +9828,9 @@ _PAGE_TEMPLATE = """<!doctype html>
 </style>
 </head>
 <body>
+<!-- Constellation background — populated at runtime by inline JS at end of body
+     (substituted from dashboard-assets/constellation.js via /*__CONSTELLATION_JS__*/). -->
+<svg id="rc-constellation" style="position:fixed;inset:0;z-index:0;pointer-events:none" aria-hidden="true"></svg>
 
 <header class="page-header">
   <div class="brand-row">
@@ -9984,6 +9998,11 @@ _PAGE_TEMPLATE = """<!doctype html>
 </script>
 <script>
 {js}
+</script>
+<!-- Constellation background renderer (read at generate-time from
+     dashboard-assets/constellation.js, inlined here via marker). -->
+<script>
+/*__CONSTELLATION_JS__*/
 </script>
 </body>
 </html>

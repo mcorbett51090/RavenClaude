@@ -175,13 +175,16 @@
   --rc-neutral-bg: #2a2620;
   --rc-neutral-fg: #c0b8a8;
 
-  /* Shadows — heavier opacity on dark to maintain elevation perception */
-  --rc-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
-  --rc-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
-  --rc-shadow: 0 4px 12px rgba(0, 0, 0, 0.36), 0 1px 3px rgba(0, 0, 0, 0.24);
-  --rc-shadow-md: 0 8px 20px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.28);
-  --rc-shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.45), 0 4px 8px rgba(0, 0, 0, 0.3);
-  --rc-shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.5), 0 8px 16px rgba(0, 0, 0, 0.36);
+  /* Shadows — chroma-lifted for elevation above the constellation-textured bg
+     (designer-panel v0.104.0: cards on the textured ravenpower bg need
+     rgba(0,0,0,0.55-0.70) to maintain perceived elevation; the lighter
+     v0.103.0 values blended into the noise of the constellation overlay). */
+  --rc-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --rc-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --rc-shadow: 0 4px 14px rgba(0, 0, 0, 0.55), 0 2px 4px rgba(0, 0, 0, 0.35);
+  --rc-shadow-md: 0 8px 22px rgba(0, 0, 0, 0.6), 0 3px 6px rgba(0, 0, 0, 0.4);
+  --rc-shadow-lg: 0 16px 34px rgba(0, 0, 0, 0.65), 0 5px 10px rgba(0, 0, 0, 0.45);
+  --rc-shadow-xl: 0 24px 50px rgba(0, 0, 0, 0.7), 0 8px 16px rgba(0, 0, 0, 0.5);
 
   /* Focus rings — brighter accent colors on dark */
   --rc-focus-ring: 0 0 0 3px rgba(58, 163, 145, 0.45);
