@@ -51,7 +51,7 @@
       "name": "finance",
       "source": "./plugins/finance",
       "description": "Corporate finance & FP&A specialist team \u2014 FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. 9 skills, 8 templates, 1 advisory hook (hardcoded rates, plaintext PII, missing Sources / Assumptions). Inherits ravenclaude-core protocols.",
-      "version": "0.9.0",
+      "version": "0.10.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -133,7 +133,7 @@
       "name": "data-platform",
       "source": "./plugins/data-platform",
       "description": "Data-platform team \u2014 4 specialist agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) that guide cloud-database setup, ELT pipelines (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4 / Shopify / HRIS, and interactive dashboards (Evidence.dev / Superset / Metabase / Cube + Tremor) embedded in marketing sites and client apps. 11 skills \u2014 three invoked by ravenclaude-core/security-reviewer, one by its architect \u2014 implementing the house rule 'domain plugins extend core via skills, not parallel agents'. 12 templates, 1 advisory hook, and a 13-doc knowledge bank (landscape, RLS, QuickBooks, Power BI Embedded, plus per-connector deep-dives). Opinionated against per-viewer-priced BI tools (Looker / Tableau / Sigma) for SMB consulting; requires ravenclaude-core@>=0.7.0.",
-      "version": "0.7.0",
+      "version": "0.8.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -251,7 +251,7 @@
       "name": "salesforce",
       "source": "./plugins/salesforce",
       "description": "Salesforce practitioner team \u2014 5 agents (apex-engineer, flow-automation-architect, agentforce-architect, salesforce-platform-architect, salesforce-reviewer) covering governor-safe bulkified Apex (triggers/async/services), declarative automation by density (Flow vs Apex), Agentforce agent design (topics/subagents, Agent Script determinism, RAG grounding, Trust Layer), org architecture (data model, OWD\u2192role\u2192sharing\u2192Apex security model, 2GP packaging/DevOps, LDV), and a forked review rubric (the 15 house opinions as pass/fail). 9-doc citation-grounded knowledge bank (9 Mermaid decision trees, dated 2026-05-30), 5 skills, 5 templates, 1 advisory hook (grep-able anti-patterns: SOQL/DML-in-loop, hard-coded IDs, SeeAllData=true, missing with-sharing). Seams: integration\u2192azure-cloud, analytics\u2192data-platform/microsoft-fabric, LWC styling\u2192web-design, methodology/DevOps/security-review\u2192ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.4.2",
+      "version": "0.5.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -380,7 +380,7 @@
       "name": "project-management",
       "source": "./plugins/project-management",
       "description": "Project & delivery management team \u2014 four specialists across the predictive (PMBOK/PMP) and agile (Scrum/Kanban) tracks and the hybrid between: delivery-lead (charter, schedule, scope/change control, earned value), scrum-master (backlog, sprints, ceremonies, velocity, impediments), risk-and-raid-analyst (scored qual+quant risk, RAID depth, mitigation/contingency, issue triage), and stakeholder-comms-lead (stakeholder register, comms plan, status/exec reporting, escalation memos, steering packs). Deepens \u2014 does NOT replace \u2014 ravenclaude-core's domain-neutral project-manager (the lightweight RAID/status-hygiene default every plugin routes to); this is the deep PM craft layer. Knowledge: a predictive-vs-agile-vs-hybrid decision tree + a best-practices library. Seams: prose polish \u2192 ravenclaude-core/documentarian; system design \u2192 architect. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },

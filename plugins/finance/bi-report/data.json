@@ -1,0 +1,275 @@
+{
+  "report": {
+    "title": "Finance — Portfolio Report",
+    "subtitle": "Money in, money out, and where it's going. Green is on budget, yellow is watch, red is over.",
+    "refreshed": "2026-06-02",
+    "synthetic": true,
+    "owner": "FP&A team"
+  },
+  "_README": "SAMPLE / SYNTHETIC data only. This is the data shape the BI report reads (section-driven schema). Replace with a real export (same shape) and re-run scripts/generate-bi-report.py to rebuild report.html. band: green=on budget, yellow=watch, red=over.",
+  "band_words": { "green": "On budget", "yellow": "Watch", "red": "Over budget" },
+  "kpis": [
+    {
+      "label": "Monthly recurring revenue",
+      "short": "MRR",
+      "value": "$1.42M",
+      "delta": 3.1,
+      "good": "up",
+      "plain": "The money we can count on every month from subscriptions."
+    },
+    {
+      "label": "Gross margin",
+      "short": "Gross %",
+      "value": 78,
+      "unit": "%",
+      "delta": 1.0,
+      "good": "up",
+      "plain": "Of each dollar we earn, how much is left after the direct cost of delivering it."
+    },
+    {
+      "label": "Net margin",
+      "short": "Net %",
+      "value": 12,
+      "unit": "%",
+      "delta": -2.0,
+      "good": "up",
+      "plain": "Of each dollar we earn, how much is left as actual profit after ALL costs."
+    },
+    {
+      "label": "Cash runway",
+      "short": "Runway",
+      "value": 18,
+      "unit": " mo",
+      "delta": -1.0,
+      "good": "up",
+      "plain": "How many months we can keep operating before the bank account runs out, at today's burn."
+    },
+    {
+      "label": "Over-budget cost centers",
+      "short": "Over",
+      "value": 2,
+      "unit": "",
+      "delta": 1,
+      "good": "down",
+      "plain": "How many teams spent more than their budget this period."
+    }
+  ],
+  "sections": [
+    {
+      "type": "row",
+      "cols": [
+        {
+          "type": "donut",
+          "title": "Spending by status",
+          "sub": "Every cost center, sorted by how it's tracking to budget.",
+          "centerSub": "centers",
+          "segments": [
+            { "label": "On budget", "value": 5, "color": "ok" },
+            { "label": "Watch", "value": 2, "color": "warn" },
+            { "label": "Over budget", "value": 2, "color": "danger" }
+          ]
+        },
+        {
+          "type": "line",
+          "title": "Revenue, last 12 months",
+          "sub": "Total revenue each month. Up and to the right is the goal.",
+          "labels": ["12 mo ago", "11", "10", "9", "8", "7", "6", "5", "4", "3", "2", "This mo"],
+          "values": [1.05, 1.08, 1.12, 1.15, 1.19, 1.22, 1.25, 1.29, 1.33, 1.36, 1.39, 1.42],
+          "min": 0,
+          "max": 1.6,
+          "color": "teal"
+        }
+      ]
+    },
+    {
+      "type": "bars",
+      "title": "Where the money goes",
+      "sub": "This period's spending by category (in thousands).",
+      "rows": [
+        {
+          "name": "Payroll",
+          "sub": "salaries + benefits",
+          "value": 720,
+          "max": 800,
+          "display": "$720k",
+          "color": "teal"
+        },
+        {
+          "name": "Cloud & infra",
+          "sub": "hosting, data, tools",
+          "value": 180,
+          "max": 800,
+          "display": "$180k",
+          "color": "teal"
+        },
+        {
+          "name": "Sales & marketing",
+          "sub": "ads, events, content",
+          "value": 240,
+          "max": 800,
+          "display": "$240k",
+          "color": "warn"
+        },
+        {
+          "name": "Software / SaaS",
+          "sub": "per-seat tools",
+          "value": 95,
+          "max": 800,
+          "display": "$95k",
+          "color": "teal"
+        },
+        {
+          "name": "Office & travel",
+          "sub": "facilities, trips",
+          "value": 60,
+          "max": 800,
+          "display": "$60k",
+          "color": "teal"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Cost centers",
+      "note": "Click a row to see what's driving its spend. Click a column header to sort. Variance is actual minus budget — red means over.",
+      "filters": {
+        "search": true,
+        "bands": [
+          { "label": "All", "value": "all" },
+          { "label": "On budget", "value": "green" },
+          { "label": "Watch", "value": "yellow" },
+          { "label": "Over budget", "value": "red" }
+        ]
+      },
+      "sort_default": { "key": "variance", "dir": "asc" },
+      "columns": [
+        { "key": "name", "label": "Cost center", "type": "title", "sub": "dept" },
+        { "key": "budget", "label": "Budget", "type": "num" },
+        { "key": "actual", "label": "Actual", "type": "num" },
+        { "key": "variance", "label": "Variance", "type": "badge" },
+        { "key": "status", "label": "Status", "type": "bandtag" },
+        { "key": "spark", "label": "6-mo trend", "type": "spark" },
+        { "key": "owner", "label": "Owner", "type": "text" }
+      ],
+      "rows": [
+        {
+          "name": "Engineering",
+          "dept": "Product",
+          "budget": "$640k",
+          "actual": "$631k",
+          "variance": "-1%",
+          "band": "green",
+          "status": "ok",
+          "spark": [600, 610, 615, 620, 628, 631],
+          "owner": "Wendy P."
+        },
+        {
+          "name": "Marketing",
+          "dept": "GTM",
+          "budget": "$210k",
+          "actual": "$248k",
+          "variance": "+18%",
+          "band": "red",
+          "status": "over",
+          "spark": [180, 195, 205, 220, 238, 248],
+          "owner": "Raj S.",
+          "drill": {
+            "bars": [
+              {
+                "name": "Paid ads",
+                "value": 120,
+                "max": 248,
+                "display": "$120k",
+                "color": "danger"
+              },
+              { "name": "Events", "value": 78, "max": 248, "display": "$78k", "color": "warn" },
+              { "name": "Content", "value": 50, "max": 248, "display": "$50k", "color": "teal" }
+            ],
+            "barsTitle": "What drove the overspend",
+            "alerts": ["Paid-ads spend ran 40% over plan after the spring campaign extension"],
+            "alertsTitle": "Why it's over",
+            "kv": [
+              ["Budget", "$210k"],
+              ["Actual", "$248k"],
+              ["Owner", "Raj S."],
+              ["Action", "Pause paid-ads top-up; review at month-end"]
+            ]
+          }
+        },
+        {
+          "name": "Sales",
+          "dept": "GTM",
+          "budget": "$320k",
+          "actual": "$312k",
+          "variance": "-3%",
+          "band": "green",
+          "status": "ok",
+          "spark": [300, 305, 308, 310, 311, 312],
+          "owner": "Dana K."
+        },
+        {
+          "name": "Cloud / infra",
+          "dept": "Platform",
+          "budget": "$160k",
+          "actual": "$181k",
+          "variance": "+13%",
+          "band": "red",
+          "status": "over",
+          "spark": [150, 156, 162, 170, 176, 181],
+          "owner": "Omar T.",
+          "drill": {
+            "bars": [
+              { "name": "Compute", "value": 96, "max": 181, "display": "$96k", "color": "danger" },
+              { "name": "Storage", "value": 52, "max": 181, "display": "$52k", "color": "warn" },
+              { "name": "Egress", "value": 33, "max": 181, "display": "$33k", "color": "teal" }
+            ],
+            "barsTitle": "What drove the overspend",
+            "alerts": [
+              "Compute up 22% after the new ML workload went live without a committed-use discount"
+            ],
+            "alertsTitle": "Why it's over",
+            "kv": [
+              ["Budget", "$160k"],
+              ["Actual", "$181k"],
+              ["Owner", "Omar T."],
+              ["Action", "Buy a 1-yr committed-use plan for steady-state compute"]
+            ]
+          }
+        },
+        {
+          "name": "Customer Success",
+          "dept": "GTM",
+          "budget": "$140k",
+          "actual": "$133k",
+          "variance": "-5%",
+          "band": "green",
+          "status": "ok",
+          "spark": [130, 131, 132, 132, 133, 133],
+          "owner": "Lena M."
+        },
+        {
+          "name": "G&A",
+          "dept": "Ops",
+          "budget": "$120k",
+          "actual": "$126k",
+          "variance": "+5%",
+          "band": "yellow",
+          "status": "watch",
+          "spark": [118, 120, 122, 123, 125, 126],
+          "owner": "Sam R."
+        },
+        {
+          "name": "R&D — new bets",
+          "dept": "Product",
+          "budget": "$90k",
+          "actual": "$96k",
+          "variance": "+7%",
+          "band": "yellow",
+          "status": "watch",
+          "spark": [80, 84, 88, 91, 94, 96],
+          "owner": "Wendy P."
+        }
+      ]
+    }
+  ]
+}

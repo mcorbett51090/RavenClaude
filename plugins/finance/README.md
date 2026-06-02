@@ -64,3 +64,13 @@ The hook is wired in via [`hooks/hooks.json`](hooks/hooks.json) — when the plu
 ## License
 
 MIT — same as the rest of the marketplace. See [`../../LICENSE`](../../LICENSE).
+
+## Portfolio report (BI)
+
+A self-contained, Power-BI/Tableau-style **P&L / spend / cash-runway portfolio report — cost-center variance table with drill-downs** ships with this plugin.
+
+> 📊 **[▶ View the report rendered in your browser](https://mcorbett51090.github.io/RavenClaude/plugins/finance/report.html)** — sortable, filterable, with row drill-downs. _(Published, read-only preview of the demo / synthetic data.)_
+>
+> _(Or [view the raw HTML source](report.html), or download and open locally — no server, no build step.)_
+
+Rebuild from real data by editing [`bi-report/data.json`](bi-report/data.json) and running `python3 scripts/generate-bi-report.py --plugin finance`. Charts are inline SVG (no CDN); the engine + data shape are documented in [`edtech-partner-success/skills/health-report-dashboard`](../edtech-partner-success/skills/health-report-dashboard/SKILL.md).

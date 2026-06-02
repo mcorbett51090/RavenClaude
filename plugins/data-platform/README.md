@@ -65,3 +65,13 @@ v0.1.0 — first ship. Scope sized at 4 agents / 7 skills / 7 knowledge files / 
 - `CLAUDE.md` — full team constitution (12 sections)
 - `plugins/ravenclaude-core/CLAUDE.md` — the domain-neutral team constitution inherited by every plugin
 - `../../CLAUDE.md` — the meta-repo developer guide (working *on* the marketplace, not consuming it)
+
+## Portfolio report (BI)
+
+A self-contained, Power-BI/Tableau-style **pipeline-health report — freshness donut, latency trend, per-pipeline table with failure drill-downs** ships with this plugin.
+
+> 📊 **[▶ View the report rendered in your browser](https://mcorbett51090.github.io/RavenClaude/plugins/data-platform/report.html)** — sortable, filterable, with row drill-downs. _(Published, read-only preview of the demo / synthetic data.)_
+>
+> _(Or [view the raw HTML source](report.html), or download and open locally — no server, no build step.)_
+
+Rebuild from real data by editing [`bi-report/data.json`](bi-report/data.json) and running `python3 scripts/generate-bi-report.py --plugin data-platform`. Charts are inline SVG (no CDN); the engine + data shape are documented in [`edtech-partner-success/skills/health-report-dashboard`](../edtech-partner-success/skills/health-report-dashboard/SKILL.md).

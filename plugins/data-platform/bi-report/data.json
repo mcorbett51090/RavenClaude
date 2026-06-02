@@ -1,0 +1,275 @@
+{
+  "report": {
+    "title": "Data Platform — Pipeline Health",
+    "subtitle": "Are the data pipelines fresh, fast, and passing their checks? Green is fresh, yellow is late, red is stale or failing.",
+    "refreshed": "2026-06-02",
+    "synthetic": true,
+    "owner": "Data Platform team"
+  },
+  "_README": "SAMPLE / SYNTHETIC data only. Section-driven schema for scripts/generate-bi-report.py. Replace with a real export (same shape) and re-run. band: green=fresh, yellow=late, red=stale/failed.",
+  "band_words": { "green": "Fresh", "yellow": "Late", "red": "Stale / failed" },
+  "kpis": [
+    {
+      "label": "Pipelines healthy",
+      "short": "Healthy",
+      "value": 86,
+      "unit": "%",
+      "delta": 2.0,
+      "good": "up",
+      "plain": "Of all data pipelines, how many ran on time and passed their checks today."
+    },
+    {
+      "label": "Freshness SLA met",
+      "short": "SLA",
+      "value": 94,
+      "unit": "%",
+      "delta": -1.0,
+      "good": "up",
+      "plain": "How often the data was ready by the promised time."
+    },
+    {
+      "label": "Failed runs (24h)",
+      "short": "Failures",
+      "value": 3,
+      "unit": "",
+      "delta": 1,
+      "good": "down",
+      "plain": "How many pipeline runs failed in the last day."
+    },
+    {
+      "label": "Avg latency",
+      "short": "Latency",
+      "value": 22,
+      "unit": " min",
+      "delta": -4.0,
+      "good": "down",
+      "plain": "How long a typical pipeline takes from start to data-ready. Shorter is better."
+    },
+    {
+      "label": "Datasets stale",
+      "short": "Stale",
+      "value": 2,
+      "unit": "",
+      "delta": 1,
+      "good": "down",
+      "plain": "How many datasets are past their freshness deadline right now."
+    }
+  ],
+  "sections": [
+    {
+      "type": "row",
+      "cols": [
+        {
+          "type": "donut",
+          "title": "Datasets by status",
+          "sub": "Every tracked dataset, sorted by freshness right now.",
+          "centerSub": "datasets",
+          "segments": [
+            { "label": "Fresh", "value": 7, "color": "ok" },
+            { "label": "Late", "value": 2, "color": "warn" },
+            { "label": "Stale / failed", "value": 2, "color": "danger" }
+          ]
+        },
+        {
+          "type": "line",
+          "title": "Average latency, last 12 runs",
+          "sub": "How long pipelines took to deliver data, run by run (minutes). Lower is better.",
+          "labels": ["12 ago", "11", "10", "9", "8", "7", "6", "5", "4", "3", "2", "Latest"],
+          "values": [34, 33, 31, 30, 28, 29, 27, 26, 25, 24, 23, 22],
+          "min": 0,
+          "max": 60,
+          "color": "teal"
+        }
+      ]
+    },
+    {
+      "type": "bars",
+      "title": "Rows processed per pipeline",
+      "sub": "Volume handled in the last run (in millions of rows).",
+      "rows": [
+        {
+          "name": "events_raw → events",
+          "sub": "streaming",
+          "value": 42,
+          "max": 50,
+          "display": "42M",
+          "color": "teal"
+        },
+        {
+          "name": "orders_cdc",
+          "sub": "change-data-capture",
+          "value": 18,
+          "max": 50,
+          "display": "18M",
+          "color": "teal"
+        },
+        {
+          "name": "users_dim",
+          "sub": "daily snapshot",
+          "value": 9,
+          "max": 50,
+          "display": "9M",
+          "color": "teal"
+        },
+        {
+          "name": "billing_reconcile",
+          "sub": "hourly",
+          "value": 6,
+          "max": 50,
+          "display": "6M",
+          "color": "warn"
+        },
+        {
+          "name": "ml_features",
+          "sub": "batch",
+          "value": 14,
+          "max": 50,
+          "display": "14M",
+          "color": "teal"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Pipelines",
+      "note": "Click a row to see the recent runs and what tripped a check. Click a column header to sort. 'Sync ran successfully' is not the same as 'data is correct' — watch the checks column.",
+      "filters": {
+        "search": true,
+        "bands": [
+          { "label": "All", "value": "all" },
+          { "label": "Fresh", "value": "green" },
+          { "label": "Late", "value": "yellow" },
+          { "label": "Stale / failed", "value": "red" }
+        ]
+      },
+      "sort_default": { "key": "latency", "dir": "desc" },
+      "columns": [
+        { "key": "name", "label": "Pipeline", "type": "title", "sub": "domain" },
+        { "key": "lastrun", "label": "Last run", "type": "date" },
+        { "key": "freshness", "label": "Freshness", "type": "badge" },
+        { "key": "status", "label": "Status", "type": "bandtag" },
+        { "key": "latency", "label": "Latency", "type": "num", "unit": "m" },
+        { "key": "spark", "label": "Latency trend", "type": "spark" },
+        { "key": "owner", "label": "Owner", "type": "text" }
+      ],
+      "rows": [
+        {
+          "name": "events_raw → events",
+          "domain": "Product analytics",
+          "lastrun": "2m ago",
+          "freshness": "on time",
+          "band": "green",
+          "status": "ok",
+          "latency": 8,
+          "spark": [12, 11, 10, 10, 9, 9, 8],
+          "owner": "Omar T."
+        },
+        {
+          "name": "orders_cdc",
+          "domain": "Commerce",
+          "lastrun": "6m ago",
+          "freshness": "on time",
+          "band": "green",
+          "status": "ok",
+          "latency": 14,
+          "spark": [20, 18, 17, 16, 15, 15, 14],
+          "owner": "Wendy P."
+        },
+        {
+          "name": "users_dim",
+          "domain": "Identity",
+          "lastrun": "3h ago",
+          "freshness": "on time",
+          "band": "green",
+          "status": "ok",
+          "latency": 11,
+          "spark": [13, 12, 12, 11, 11, 11, 11],
+          "owner": "Lena M."
+        },
+        {
+          "name": "billing_reconcile",
+          "domain": "Finance",
+          "lastrun": "70m ago",
+          "freshness": "late 10m",
+          "band": "yellow",
+          "status": "late",
+          "latency": 38,
+          "spark": [30, 31, 33, 34, 36, 37, 38],
+          "owner": "Sam R.",
+          "drill": {
+            "bars": [
+              { "name": "Extract", "value": 12, "max": 38, "display": "12m", "color": "teal" },
+              { "name": "Transform", "value": 20, "max": 38, "display": "20m", "color": "warn" },
+              { "name": "Load", "value": 6, "max": 38, "display": "6m", "color": "teal" }
+            ],
+            "barsTitle": "Time by stage",
+            "alerts": [
+              "Transform step slowed after the new currency-conversion join",
+              "Row-count check passed, but 0.3% of rows had null FX rates"
+            ],
+            "alertsTitle": "What's wrong",
+            "kv": [
+              ["Last run", "70m ago"],
+              ["SLA", "Every 60m"],
+              ["Owner", "Sam R."],
+              ["Action", "Add an index on the FX table; alert on null-rate > 0.1%"]
+            ]
+          }
+        },
+        {
+          "name": "ml_features",
+          "domain": "ML",
+          "lastrun": "30m ago",
+          "freshness": "on time",
+          "band": "green",
+          "status": "ok",
+          "latency": 26,
+          "spark": [32, 30, 29, 28, 27, 26, 26],
+          "owner": "Omar T."
+        },
+        {
+          "name": "attribution_rollup",
+          "domain": "Marketing",
+          "lastrun": "5h ago",
+          "freshness": "stale 4h",
+          "band": "red",
+          "status": "stale",
+          "latency": 52,
+          "spark": [40, 43, 46, 48, 50, 51, 52],
+          "owner": "Raj S.",
+          "drill": {
+            "bars": [
+              { "name": "Extract", "value": 10, "max": 52, "display": "10m", "color": "teal" },
+              { "name": "Transform", "value": 12, "max": 52, "display": "12m", "color": "teal" },
+              { "name": "Load", "value": 30, "max": 52, "display": "30m", "color": "danger" }
+            ],
+            "barsTitle": "Time by stage",
+            "alerts": [
+              "Load step failing on a deadlock against the warehouse",
+              "Downstream dashboards are showing yesterday's numbers",
+              "3 consecutive failed runs"
+            ],
+            "alertsTitle": "What's wrong",
+            "kv": [
+              ["Last good run", "5h ago"],
+              ["SLA", "Every 60m"],
+              ["Owner", "Raj S."],
+              ["Escalation", "Page on-call; retry with smaller batch + backoff"]
+            ]
+          }
+        },
+        {
+          "name": "support_tickets_sync",
+          "domain": "CX",
+          "lastrun": "12m ago",
+          "freshness": "on time",
+          "band": "green",
+          "status": "ok",
+          "latency": 16,
+          "spark": [22, 20, 19, 18, 17, 16, 16],
+          "owner": "Lena M."
+        }
+      ]
+    }
+  ]
+}
