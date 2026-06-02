@@ -66,3 +66,8 @@ plugins/ravenclaude-core/knowledge/tree-visuals/
 # though the prod-CI run is clean. Same rationale as the bundled-vendor and
 # generated-artifact exclusions above.
 .remember/
+
+# Brand logo assets (raven-logo.svg / .png). Hand-exported SVGs don't survive
+# prettier's printer cleanly, and they're not ours to reformat. README.md here
+# is already covered by the *.md rule above.
+plugins/*/dashboard-assets/brand/
