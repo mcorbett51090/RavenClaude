@@ -53,31 +53,16 @@ _SHARED_TOKENS_PATH = (
 
 
 def _load_shared_tokens_root() -> str:
-    """Extract the :root { ... } block from shared-tokens.css.
+    """Inline the WHOLE shared-tokens.css at generate-time.
 
-    Returns the full `:root { ... }` block (token declarations + inline
-    contrast-note comments), ready to inline into a surface's <style>
-    block at generate-time. The shared-tokens.css component-class section
-    is NOT injected here — each surface consumes the tokens and applies
-    its own structural CSS. Deterministic: explicit utf-8, source order.
+    See `generate-index-dashboard.py:_load_shared_tokens_root` for the
+    rationale — the previous extract-only-:root behavior silently dropped
+    dark-mode CSS, component classes, and keyframes. Function name kept for
+    template substitution marker compatibility (`/*__SHARED_TOKENS__*/`).
+
+    Deterministic: explicit utf-8; source order preserved.
     """
-    text = _SHARED_TOKENS_PATH.read_text(encoding="utf-8")
-    start = text.find(":root {")
-    if start < 0:
-        raise RuntimeError(f"shared-tokens.css missing :root block at {_SHARED_TOKENS_PATH}")
-    i = text.index("{", start)
-    body_start = i + 1
-    depth = 0
-    while i < len(text):
-        ch = text[i]
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                return ":root {\n" + text[body_start:i].strip("\n") + "\n}\n"
-        i += 1
-    raise RuntimeError(f"shared-tokens.css :root block is unbalanced at {_SHARED_TOKENS_PATH}")
+    return _SHARED_TOKENS_PATH.read_text(encoding="utf-8")
 
 
 def _load_emissions() -> dict[str, list[str]]:

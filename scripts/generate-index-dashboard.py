@@ -340,6 +340,65 @@ def _scan_agents(plugin_dir: Path) -> list[dict]:
     return agents
 
 
+def _scan_skills(plugin_dir: Path) -> list[dict]:
+    """Index a plugin's skills via SKILL.md frontmatter.
+
+    Returns [{name, label, description}]. Deterministic: sorted glob,
+    explicit utf-8. Graceful fallback when frontmatter missing.
+    """
+    skills_dir = plugin_dir / "skills"
+    if not skills_dir.exists():
+        return []
+    out = []
+    for sdir in sorted(p for p in skills_dir.iterdir() if p.is_dir()):
+        skill_md = sdir / "SKILL.md"
+        if not skill_md.exists():
+            continue
+        block = _split_frontmatter(skill_md.read_text(encoding="utf-8", errors="replace"))
+        fm = _parse_frontmatter(block) if block else {}
+        name = fm.get("name") or sdir.name
+        out.append({
+            "name": name,
+            "label": _humanize(name),
+            "description": _first_sentence(fm.get("description", ""), 200),
+        })
+    return out
+
+
+def _scan_hooks(plugin_dir: Path) -> list[dict]:
+    """Index a plugin's hooks via hooks.json descriptions.
+
+    Returns [{name, description, event}] from `hooks.json` entries.
+    Graceful fallback when hooks.json missing. Deterministic via
+    explicit sort on (event, name).
+    """
+    hooks_json = plugin_dir / "hooks" / "hooks.json"
+    if not hooks_json.exists():
+        return []
+    try:
+        data = json.loads(hooks_json.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    out = []
+    hooks_block = data.get("hooks", {})
+    for event_name, event_list in hooks_block.items():
+        if not isinstance(event_list, list):
+            continue
+        for entry in event_list:
+            for hook in entry.get("hooks", []) or []:
+                cmd = hook.get("command", "")
+                hook_name = Path(cmd).stem if cmd else ""
+                if not hook_name:
+                    continue
+                out.append({
+                    "name": hook_name,
+                    "description": hook.get("description", ""),
+                    "event": event_name,
+                })
+    out.sort(key=lambda h: (h["event"], h["name"]))
+    return out
+
+
 def _category_for(plugin_name: str) -> dict:
     for cat in CATEGORIES:
         if plugin_name in cat["plugins"]:
@@ -369,6 +428,8 @@ def scan_repo() -> dict:
                 manifest = {}
 
         agents = _scan_agents(pdir)
+        skills_idx = _scan_skills(pdir)
+        hooks_idx = _scan_hooks(pdir)
         skills = _count_dir(pdir / "skills", "dirs")
         hooks = _count_dir(pdir / "hooks", "sh")
         commands = _count_dir(pdir / "commands", "md")
@@ -391,6 +452,8 @@ def scan_repo() -> dict:
             "category_label": cat["label"],
             "requires": (manifest.get("requires", {}) or {}).get("plugins", []),
             "agents": agents,
+            "skills_index": skills_idx,
+            "hooks_index": hooks_idx,
             "counts": {
                 "agents": len(agents),
                 "skills": skills,
@@ -414,6 +477,10 @@ def scan_repo() -> dict:
                 "description": cdef.get("description", ""),
                 "guidance": cdef.get("x-guidance", ""),
                 "recommended": cdef.get("x-recommended", "ask"),
+                "controls": cdef.get("x-controls", ""),
+                "rec_individual": cdef.get("x-rec-individual", ""),
+                "rec_team": cdef.get("x-rec-team", ""),
+                "examples": cdef.get("x-examples", []),
             })
 
     featured = [
@@ -482,33 +549,22 @@ _SHARED_TOKENS_PATH = (
 
 
 def _load_shared_tokens_root() -> str:
-    """Read the :root { ... } block from shared-tokens.css and return only
-    its inner declarations + the contrast-note comment, ready to inline
-    into a surface's <style> block at generate-time. The component-class
-    section of shared-tokens.css is not injected here — each surface
-    consumes the tokens (CSS custom properties) and applies its own
-    structural CSS. Determinism: explicit utf-8, sorted-free (lines kept
-    in source order), single trailing newline."""
-    text = _SHARED_TOKENS_PATH.read_text(encoding="utf-8")
-    # Extract everything from `:root {` through its matching `}` (the first
-    # block — shared-tokens.css's authoritative root token declaration).
-    start = text.find(":root {")
-    if start < 0:
-        raise RuntimeError(f"shared-tokens.css missing :root block at {_SHARED_TOKENS_PATH}")
-    # Brace-match starting from the `{` after `:root `.
-    depth = 0
-    i = text.index("{", start)
-    body_start = i + 1
-    while i < len(text):
-        ch = text[i]
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                return text[body_start:i].strip("\n") + "\n"
-        i += 1
-    raise RuntimeError(f"shared-tokens.css :root block is unbalanced at {_SHARED_TOKENS_PATH}")
+    """Inline the WHOLE shared-tokens.css file at generate-time.
+
+    Returns the file content verbatim — the `:root { ... }` token block,
+    the `[data-theme="dark"]` override block, the component-class section
+    (.rc-card, .rc-pill, .rc-shimmer, etc.), and the @keyframes. Each
+    surface consumes the tokens directly and the components are available
+    where needed (e.g., .rc-shimmer for skeleton loaders).
+
+    Function name preserved for backward-compat with template substitution
+    markers (`/*__SHARED_TOKENS__*/`). The previous behavior — extracting
+    only the first `:root {}` block — silently dropped the dark-mode CSS
+    and component classes (architect+code-reviewer R1, plan v0.103.0).
+
+    Determinism: explicit utf-8; source-order preserved.
+    """
+    return _SHARED_TOKENS_PATH.read_text(encoding="utf-8")
 
 
 def render_html(data: dict) -> str:
