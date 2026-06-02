@@ -6972,6 +6972,27 @@ _JS = r"""
   });
 
   /* ── Save to repo via server-side /__save endpoint ──────────────── */
+  /* CSRF bootstrap. Belt-and-suspenders on top of the server's Origin/Host
+   * guard: the server emits a per-process random token; we fetch it once on
+   * load via GET /__csrf and attach it as X-CSRF-Token on every state-changing
+   * POST. On a static host (GitHub Pages, file://) /__csrf 404s — `csrfHeaders`
+   * resolves to `{}` and the downstream POSTs end up hitting a no-server path
+   * that already 404/405s with a friendly "no local server" surface. */
+  const _csrfPromise = (async () => {
+    try {
+      const res = await fetch("/__csrf", { headers: { "Accept": "application/json" } });
+      if (!res.ok) return null;
+      const j = await res.json();
+      return (j && typeof j.token === "string") ? j.token : null;
+    } catch (e) {
+      return null;
+    }
+  })();
+  async function csrfHeaders() {
+    const t = await _csrfPromise;
+    return t ? { "X-CSRF-Token": t } : {};
+  }
+
   /* The primary save target: writes directly into .ravenclaude/<file> in
    * the agent's project. Only available when the page is served by
    * scripts/serve-dashboards.py (which exposes POST /__save). When the
@@ -7011,7 +7032,7 @@ _JS = r"""
     try {
       const res = await fetch("/__save", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await csrfHeaders()) },
         body: JSON.stringify({ path: REPO_TARGET, content: emitYaml() })
       });
       // 404/405 = there is no /__save endpoint behind this page (the published
@@ -7456,7 +7477,7 @@ _JS = r"""
     try {
       const res = await fetch("/__run", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await csrfHeaders()) },
         body: JSON.stringify({ action: action })
       });
       if (!res.ok) {
@@ -7676,7 +7697,7 @@ _JS = r"""
     try {
       const res = await fetch("/__classify", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await csrfHeaders()) },
         body: JSON.stringify({ command: command })
       });
       if (!res.ok) {
@@ -7956,7 +7977,7 @@ _JS = r"""
       try {
         const res = await fetch("/__save", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...(await csrfHeaders()) },
           body: JSON.stringify({ path: target, content: yaml })
         });
         if (res.status === 404 || res.status === 405) {
@@ -8054,7 +8075,7 @@ _JS = r"""
       try {
         const res = await fetch("/__save", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...(await csrfHeaders()) },
           body: JSON.stringify({ path: panel.dataset.target, content: yaml })
         });
         if (res.status === 404 || res.status === 405) {
@@ -8168,7 +8189,7 @@ _JS = r"""
     try {
       const res = await fetch("/__save", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await csrfHeaders()) },
         body: JSON.stringify({ path: target, content: a.value }),
       });
       if (res.status === 404 || res.status === 405) { pipeFileStatus(target, "no server — cannot save from this page"); return; }

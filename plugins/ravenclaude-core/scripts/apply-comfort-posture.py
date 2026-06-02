@@ -303,11 +303,21 @@ def level_to_bucket(level: str) -> str:
     raise ValueError(f"Unknown level: {level!r}")
 
 
+_POSTURE_MAX_BYTES = 256 * 1024  # 256 KB cap — protects the no-PyYAML hand-rolled parser from OOM on a malicious posture.
+
+
 def parse_yaml(text: str) -> dict:
     """Parse the comfort-posture YAML.
 
     Falls back to a minimal hand-rolled parser if PyYAML isn't installed.
+    A 256 KB cap is applied before either path runs — the hand-rolled parser
+    has no native max-input bound, and a malicious posture file should fail
+    fast and loudly rather than blow up RAM on the dashboard server.
     """
+    if len(text) > _POSTURE_MAX_BYTES:
+        raise ValueError(
+            f"posture file too large: {len(text)} bytes (max {_POSTURE_MAX_BYTES})"
+        )
     try:
         import yaml as pyyaml  # type: ignore
         return pyyaml.safe_load(text)

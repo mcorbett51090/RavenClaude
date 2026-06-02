@@ -43,4 +43,10 @@ description: Veteran-level reference for Power BI — PBIP project structure + g
 - `resources/deployment-and-pipelines.md`
 - `resources/refresh-gateway-troubleshooting.md`
 
+## Knowledge bank pointers
+
+For production-incident lessons (real customer engagements, with a decision tree + the workaround that resolved it), consult the plugin's [`knowledge/`](../../knowledge/) directory in addition to the resources above. The full §8a table is in [`../../CLAUDE.md`](../../CLAUDE.md); the Power BI–specific entry to know about:
+
+- **[`knowledge/pbir-enhanced-report-loading.md`](../../knowledge/pbir-enhanced-report-loading.md)** — read before editing or building any **PBIR Enhanced** report's `definition/` JSON. Covers the `resourcePackages` + `version.json` "infinite spinner" trap, the ~June 2026 Fabric breaking change rejecting `prototypeQuery` on visuals, and the correct `nativeQueryRef` + `active` projection shape. Verified against 7 real Enhanced repos 2026-06-02.
+
 This skill directly supports the new `power-bi-engineer` and ties into the enhanced ALM coverage for git/ADO scenarios.
