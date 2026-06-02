@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="RavenClaude">
+  <!--
+    RavenClaude brand mark — a flying raven with a gold lightning bolt.
+    PLACEHOLDER recreation, hand-built from simple polygons. The raven uses
+    `currentColor` (dark on the light theme, light on dark); the bolt is the gold
+    brand accent. Replace this file with the real artwork at the same path
+    (raven-logo.svg) and every surface picks it up automatically — the generators
+    inline whatever is here.
+  -->
+  <!-- raven body: separate simple shapes, same fill, that union into the silhouette -->
+  <g fill="currentColor">
+    <!-- upper wing, swept up to the left -->
+    <polygon points="40,150 132,70 150,118 96,120" />
+    <!-- second wing layer / shoulder -->
+    <polygon points="70,150 138,96 152,140 110,150" />
+    <!-- body -->
+    <polygon points="120,104 150,98 158,150 120,150" />
+    <!-- head + beak (points right) -->
+    <polygon points="146,96 184,106 160,118 150,112" />
+    <!-- tail, trailing down-left -->
+    <polygon points="40,150 110,138 86,166" />
+    <!-- talons -->
+    <polygon points="128,150 150,150 146,176 138,160" />
+  </g>
+  <!-- eye: small negative notch in the head -->
+  <polygon points="156,104 168,107 158,111" fill="#ffffff" opacity="0.9" />
+  <!-- lightning bolt across the wing -->
+  <polygon points="58,140 104,114 86,128 110,120 64,156 80,140" fill="var(--rc-gold, #f2b517)" />
+</svg>

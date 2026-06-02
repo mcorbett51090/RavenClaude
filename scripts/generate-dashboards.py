@@ -51,6 +51,19 @@ _SHARED_TOKENS_PATH = (
     REPO_ROOT / "plugins" / "ravenclaude-core" / "dashboard-assets" / "shared-tokens.css"
 )
 
+_RAVEN_LOGO_PATH = (
+    REPO_ROOT / "plugins" / "ravenclaude-core" / "dashboard-assets" / "brand" / "raven-logo.svg"
+)
+
+
+def _load_raven_logo() -> str:
+    """Return brand-mark MARKUP: the inline SVG if raven-logo.svg exists (drop
+    the real artwork there to swap it), else an <img> of the bundled PNG."""
+    try:
+        return _RAVEN_LOGO_PATH.read_text(encoding="utf-8").strip()
+    except OSError:
+        return f'<img src="{_RAVEN_MARK_DATA_URI}" width="28" height="28" alt="" aria-hidden="true">'
+
 
 def _load_shared_tokens_root() -> str:
     """Inline the WHOLE shared-tokens.css at generate-time.
@@ -153,7 +166,7 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         plugin_name=html.escape(plugin_name),
         title=html.escape(title),
         description=html.escape(description),
-        raven_mark=_RAVEN_MARK_DATA_URI,
+        raven_mark=_load_raven_logo(),
         css=_CSS,
         overview_html=_render_overview_tab(),
         settings_html=_render_settings_tab(properties, presets),
@@ -2458,14 +2471,19 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   flex-shrink: 0;
   width: 28px;
   height: 28px;
-  object-fit: contain;
-  /* The asset is raven-mark-dark.png — a WHITE raven made for dark
-     backgrounds. On the light theme, brightness(0) renders it black (alpha
-     preserved) so it reads correctly; dark mode keeps it white. */
-  filter: brightness(0) drop-shadow(0 0 6px var(--accent-glow));
-}
-[data-theme="dark"] .brand-mark {
+  display: grid;
+  place-items: center;
+  /* Inline raven SVG: body uses currentColor (dark on light, light on dark),
+     bolt is the gold accent. A PNG fallback is sized the same. */
+  color: var(--text);
   filter: drop-shadow(0 0 6px var(--accent-glow));
+}
+.brand-mark svg,
+.brand-mark img {
+  width: 28px;
+  height: 28px;
+  display: block;
+  object-fit: contain;
 }
 .page-header h1 {
   margin: 0;
@@ -9966,7 +9984,7 @@ _PAGE_TEMPLATE = """<!doctype html>
 
 <header class="page-header">
   <div class="brand-row">
-    <img class="brand-mark" src="{raven_mark}" width="28" height="28" alt="" aria-hidden="true">
+    <span class="brand-mark" aria-hidden="true">{raven_mark}</span>
     <h1>{title}</h1>
   </div>
   <p class="page-desc">This is your control panel for Claude&nbsp;Code's safety rails. Use it to set what Claude is allowed to do, see what it's been doing, and add plugins. <a href="#/about" class="header-about-link">What is this?</a></p>

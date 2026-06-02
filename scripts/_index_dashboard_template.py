@@ -111,8 +111,8 @@ TEMPLATE = r"""<!doctype html>
         overflow: hidden; z-index: 40;
       }
       .brand { display: flex; align-items: center; gap: 12px; padding: 16px 18px; height: var(--topbar-h); border-bottom: 1px solid var(--border); white-space: nowrap; }
-      .brand .mark { flex: 0 0 auto; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: var(--teal-soft); border: 1px solid var(--border-strong); color: var(--teal-2); box-shadow: 0 0 18px -4px var(--teal-glow); }
-      .brand .mark svg { width: 20px; height: 20px; }
+      .brand .mark { flex: 0 0 auto; width: 36px; height: 36px; display: grid; place-items: center; color: var(--rc-text); }
+      .brand .mark svg { width: 32px; height: 32px; }
       .brand .name { font-weight: 700; font-size: 1.05rem; }
       .brand .name b { color: var(--teal-2); }
       .brand .tag { display: block; font-size: 0.66rem; color: var(--faint); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
@@ -144,6 +144,7 @@ TEMPLATE = r"""<!doctype html>
         background: rgba(255, 255, 255, 0.82); backdrop-filter: blur(12px);
         border-bottom: 1px solid var(--border);
       }
+      [data-theme="dark"] .topbar { background: rgba(20, 17, 13, 0.82); }
       .icon-btn { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); transition: 0.15s; }
       .icon-btn:hover { color: var(--text); border-color: var(--border-strong); background: var(--surface-2); }
       .icon-btn svg { width: 18px; height: 18px; }
@@ -475,6 +476,8 @@ TEMPLATE = r"""<!doctype html>
         padding: 20px 22px; margin-bottom: 22px;
       }
       .onboarding-head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+      .onboarding-head .ob-raven { display: inline-flex; flex: 0 0 auto; color: var(--rc-text); }
+      .onboarding-head .ob-raven svg { width: 38px; height: 38px; display: block; }
       .onboarding-head h2 { font-size: 1.1rem; letter-spacing: -0.01em; }
       .onboarding-head .ob-progress { margin-left: auto; font-size: 0.72rem; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; font-family: var(--font-mono); }
       .onboarding-head .ob-dismiss { background: transparent; border: none; color: var(--faint); cursor: pointer; padding: 4px 8px; border-radius: 6px; }
@@ -525,9 +528,7 @@ TEMPLATE = r"""<!doctype html>
       <!-- ======================= SIDEBAR ======================= -->
       <aside class="sidebar" id="sidebar">
         <div class="brand">
-          <span class="mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11l9-7 9 7v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 21v-7h6v7" stroke="currentColor"/></svg>
-          </span>
+          <span class="mark" aria-hidden="true">__RAVEN_LOGO_SVG__</span>
           <span class="meta">
             <span class="name">Raven<b>Claude</b></span>
             <span class="tag">Engineering Team Platform</span>
@@ -728,7 +729,7 @@ TEMPLATE = r"""<!doctype html>
         }).join("");
         return `<div class="onboarding-card" id="onboarding-card">
           <div class="onboarding-head">
-            ${svg("rocket")}
+            <span class="ob-raven" aria-hidden="true">__RAVEN_LOGO_SVG__</span>
             <h2>Welcome — get started in 10 minutes</h2>
             <span class="ob-progress">${doneCount} of ${ONBOARDING_STEPS.length}</span>
             <button class="ob-dismiss" id="ob-dismiss" type="button" aria-label="Dismiss onboarding">×</button>
