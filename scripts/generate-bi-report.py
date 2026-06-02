@@ -532,6 +532,366 @@ def render_report(data: dict, plugin: str, tokens: str) -> str:
     return page.replace("/*__SHARED_TOKENS__*/", tokens)
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# Generic, section-driven renderer — for plugins whose report shape differs from
+# partner-health (finance, project-management, salesforce, data-platform). The
+# data declares ordered `sections`; this renders them with the same SVG/table
+# primitives. The partner-health path above is a specialized, pre-existing case.
+# ════════════════════════════════════════════════════════════════════════════
+_COLOR = {
+    "ok": "var(--rc-ok)", "green": "var(--rc-ok)",
+    "warn": "var(--rc-warn)", "yellow": "var(--rc-warn)", "amber": "var(--rc-warn)",
+    "danger": "var(--rc-danger)", "red": "var(--rc-danger)",
+    "teal": "var(--rc-teal)", "accent": "var(--rc-teal)",
+    "gold": "var(--rc-gold)", "muted": "var(--rc-faint)", "neutral": "var(--rc-faint)",
+}
+
+
+def color_of(c: str) -> str:
+    return _COLOR.get(c, c or "var(--rc-teal)")
+
+
+def _render_kpis(kpis) -> str:
+    out = []
+    for k in kpis:
+        d = k.get("delta", 0)
+        good = k.get("good", "up")
+        unit = k.get("unit", "")
+        if d == 0:
+            cls, arrow = "flat", "→"
+        else:
+            rising = d > 0
+            is_good = (rising and good == "up") or (not rising and good == "down")
+            cls = "up" if is_good else "down"
+            arrow = "▲" if rising else "▼"
+        out.append(
+            f'<div class="kpi"><div class="k">{esc(k["label"])}'
+            f'<span class="info" tabindex="0" title="{esc(k.get("plain",""))}">?</span></div>'
+            f'<div class="v">{esc(k["value"])}{esc(unit)}</div>'
+            f'<div class="d {cls}">{arrow} {abs(d)}{esc(unit) if unit=="%" else ""} vs last period</div>'
+            f'<div class="full">{esc(k.get("short",""))}</div></div>'
+        )
+    return f'<div class="kpis">{"".join(out)}</div>'
+
+
+def svg_donut2(segments, center="", center_sub="") -> str:
+    total = sum(max(0, s.get("value", 0)) for s in segments) or 1
+    r, cx, cy, sw = 52, 70, 70, 22
+    circ = 2 * 3.141592653589793 * r
+    out = ['<svg viewBox="0 0 140 140" width="140" height="140" role="img" aria-label="Distribution">']
+    out.append(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="var(--rc-border)" stroke-width="{sw}"/>')
+    offset = 0.0
+    for s in segments:
+        v = max(0, s.get("value", 0))
+        if v <= 0:
+            continue
+        seg = circ * (v / total)
+        out.append(
+            f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{color_of(s.get("color","teal"))}" '
+            f'stroke-width="{sw}" stroke-dasharray="{seg:.2f} {circ-seg:.2f}" '
+            f'stroke-dashoffset="{-offset:.2f}" transform="rotate(-90 {cx} {cy})"/>'
+        )
+        offset += seg
+    big = center if center != "" else total
+    out.append(f'<text x="{cx}" y="{cy-2}" text-anchor="middle" font-size="26" font-weight="700" fill="var(--rc-text)">{esc(big)}</text>')
+    if center_sub:
+        out.append(f'<text x="{cx}" y="{cy+18}" text-anchor="middle" font-size="11" fill="var(--rc-muted)">{esc(center_sub)}</text>')
+    out.append("</svg>")
+    return "".join(out)
+
+
+def svg_line2(values, labels, vmin=0, vmax=100, color="teal") -> str:
+    if not values:
+        return ""
+    col = color_of(color)
+    w, h, pad_l, pad_r, pad_t, pad_b = 620, 180, 40, 14, 16, 26
+    iw, ih = w - pad_l - pad_r, h - pad_t - pad_b
+    rng = (vmax - vmin) or 1
+    n = len(values)
+    xs = [pad_l + (iw * i / (n - 1 if n > 1 else 1)) for i in range(n)]
+    ys = [pad_t + ih * (1 - (v - vmin) / rng) for v in values]
+    pts = " ".join(f"{x:.1f},{y:.1f}" for x, y in zip(xs, ys))
+    area = f"{pad_l},{pad_t+ih} " + pts + f" {xs[-1]:.1f},{pad_t+ih}"
+    out = [f'<svg viewBox="0 0 {w} {h}" width="100%" height="{h}" role="img" aria-label="Trend">']
+    for frac in (0, 0.5, 1):
+        gy = pad_t + ih * (1 - frac)
+        gval = vmin + rng * frac
+        out.append(f'<line x1="{pad_l}" y1="{gy:.1f}" x2="{w-pad_r}" y2="{gy:.1f}" stroke="var(--rc-border)" stroke-width="1"/>')
+        out.append(f'<text x="{pad_l-6}" y="{gy+4:.1f}" text-anchor="end" font-size="10" fill="var(--rc-faint)">{gval:g}</text>')
+    out.append(f'<polygon points="{area}" fill="{col}" opacity="0.10"/>')
+    out.append(f'<polyline points="{pts}" fill="none" stroke="{col}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>')
+    out.append(f'<circle cx="{xs[-1]:.1f}" cy="{ys[-1]:.1f}" r="4.5" fill="{col}"/>')
+    if labels:
+        out.append(f'<text x="{xs[0]:.1f}" y="{h-8}" text-anchor="start" font-size="10" fill="var(--rc-faint)">{esc(labels[0])}</text>')
+        out.append(f'<text x="{xs[-1]:.1f}" y="{h-8}" text-anchor="end" font-size="10" fill="var(--rc-faint)">{esc(labels[-1])}</text>')
+    out.append("</svg>")
+    return "".join(out)
+
+
+def svg_bars(rows) -> str:
+    rowh, gap, w, barx = 30, 8, 460, 170
+    barw = w - barx - 50
+    mx = max([r.get("max", 100) for r in rows] + [1])
+    out = [f'<svg viewBox="0 0 {w} {len(rows)*(rowh+gap)}" width="100%" role="img" aria-label="Breakdown">']
+    y = 4
+    for r in rows:
+        v = r.get("value", 0)
+        rmax = r.get("max", mx)
+        frac = max(0, min(1, v / (rmax or 1)))
+        out.append(f'<text x="0" y="{y+13}" font-size="12" fill="var(--rc-text)">{esc(r["name"])}</text>')
+        if r.get("sub"):
+            out.append(f'<text x="0" y="{y+27}" font-size="10" fill="var(--rc-faint)">{esc(r["sub"])}</text>')
+        out.append(f'<rect x="{barx}" y="{y+4}" width="{barw}" height="14" rx="7" fill="var(--rc-border)"/>')
+        out.append(f'<rect x="{barx}" y="{y+4}" width="{barw*frac:.1f}" height="14" rx="7" fill="{color_of(r.get("color","teal"))}"/>')
+        out.append(f'<text x="{barx+barw+6}" y="{y+15}" font-size="12" font-weight="600" fill="var(--rc-text)">{esc(r.get("display", v))}</text>')
+        y += rowh + gap
+    out.append("</svg>")
+    return "".join(out)
+
+
+def svg_range2(cfg) -> str:
+    w, h, pad = 620, 96, 14
+    iw = w - 2 * pad
+    vmin, vmax = cfg.get("min", 0), cfg.get("max", 100)
+    rng = (vmax - vmin) or 1
+    def x(v):
+        return pad + iw * (v - vmin) / rng
+    band = cfg.get("band", [vmin, vmax])
+    marker = cfg.get("marker", (band[0] + band[1]) / 2)
+    ty = 58
+    out = [f'<svg viewBox="0 0 {w} {h}" width="100%" height="{h}" role="img" aria-label="Versus benchmark">']
+    out.append(f'<rect x="{pad}" y="{ty-4}" width="{iw}" height="8" rx="4" fill="var(--rc-border)"/>')
+    out.append(f'<rect x="{x(band[0]):.1f}" y="{ty-9}" width="{x(band[1])-x(band[0]):.1f}" height="18" rx="6" fill="var(--rc-teal)" opacity="0.16"/>')
+    out.append(f'<line x1="{x(marker):.1f}" y1="{ty-14}" x2="{x(marker):.1f}" y2="{ty+14}" stroke="var(--rc-teal)" stroke-width="2"/>')
+    out.append(f'<text x="{x(marker):.1f}" y="{ty-18}" text-anchor="middle" font-size="10" fill="var(--rc-teal)">{esc(cfg.get("markerLabel","middle"))}</text>')
+    for p in cfg.get("points", []):
+        out.append(
+            f'<circle cx="{x(p["value"]):.1f}" cy="{ty}" r="5" fill="{color_of(p.get("color","teal"))}" '
+            f'stroke="var(--rc-surface)" stroke-width="1.5"><title>{esc(p.get("label",""))}: {esc(p["value"])}</title></circle>'
+        )
+    for gv in (vmin, (vmin + vmax) / 2, vmax):
+        out.append(f'<text x="{x(gv):.1f}" y="{h-6}" text-anchor="middle" font-size="10" fill="var(--rc-faint)">{gv:g}</text>')
+    out.append("</svg>")
+    return "".join(out)
+
+
+def _panel(inner, title="", sub="") -> str:
+    head = f"<h2>{esc(title)}</h2>" if title else ""
+    sub_h = f'<p class="sub">{esc(sub)}</p>' if sub else ""
+    return f'<div class="panel">{head}{sub_h}{inner}</div>'
+
+
+def _render_section(sec, band_words) -> str:
+    t = sec.get("type")
+    if t == "row":
+        return f'<div class="grid2">{"".join(_render_section(c, band_words) for c in sec.get("cols", []))}</div>'
+    if t == "donut":
+        legend = "".join(
+            f'<div class="li"><span class="sw" style="background:{color_of(s.get("color","teal"))}"></span>'
+            f'<b style="font-weight:700">{esc(s.get("value",""))}</b>&nbsp;{esc(s.get("label",""))}</div>'
+            for s in sec.get("segments", [])
+        )
+        inner = (f'<div class="donut-row">{svg_donut2(sec.get("segments",[]), sec.get("center",""), sec.get("centerSub",""))}'
+                 f'<div class="legend">{legend}</div></div>')
+        return _panel(inner, sec.get("title", ""), sec.get("sub", ""))
+    if t == "line":
+        return _panel(svg_line2(sec.get("values", []), sec.get("labels", []), sec.get("min", 0), sec.get("max", 100), sec.get("color", "teal")),
+                      sec.get("title", ""), sec.get("sub", ""))
+    if t == "bars":
+        return _panel(svg_bars(sec.get("rows", [])), sec.get("title", ""), sec.get("sub", ""))
+    if t == "range":
+        return _panel(svg_range2(sec), sec.get("title", ""), sec.get("sub", ""))
+    if t == "alerts":
+        items = sec.get("items", [])
+        if items:
+            lis = "".join(f'<li><b>{esc(i.get("name",""))}:</b> {esc(i.get("issue",""))}</li>' for i in items)
+        else:
+            lis = '<li class="none">Nothing flagged. All clear.</li>'
+        return _panel(f'<ul class="flaglist">{lis}</ul>', sec.get("title", ""), sec.get("sub", ""))
+    if t == "table":
+        return _render_table(sec, band_words)
+    return ""
+
+
+def _cell(col, row, band_words) -> str:
+    key = col.get("key", "")
+    typ = col.get("type", "text")
+    val = row.get(key, "")
+    band = row.get("band", "")
+    if typ == "title":
+        sub = row.get(col.get("sub", ""), "")
+        sub_h = f'<div style="color:var(--faint);font-size:0.78rem">{esc(sub)}</div>' if sub else ""
+        return f"<td><b>{esc(val)}</b>{sub_h}</td>"
+    if typ == "badge":
+        return f'<td><span class="scorebadge" style="background:{color_of(band or "teal")}">{esc(val)}</span></td>'
+    if typ == "bandtag":
+        word = band_words.get(band, band)
+        return f'<td><span class="bandtag"><span class="dot" style="background:{color_of(band or "muted")}"></span>{esc(word)}</span></td>'
+    if typ == "delta":
+        d = val if isinstance(val, (int, float)) else 0
+        cls = "flat" if d == 0 else ("up" if d > 0 else "down")
+        arr = "→" if d == 0 else ("▲" if d > 0 else "▼")
+        return f'<td><span class="dchip {cls}">{arr} {esc(abs(d))}</span></td>'
+    if typ == "spark":
+        return f"<td>{svg_spark(row.get(key, []))}</td>"
+    if typ == "num":
+        return f'<td style="font-variant-numeric:tabular-nums">{esc(val)}{esc(col.get("unit",""))}</td>'
+    if typ == "date":
+        return f'<td style="white-space:nowrap">{esc(val)}</td>'
+    return f"<td>{esc(val)}</td>"
+
+
+def _render_table(sec, band_words) -> str:
+    cols = sec.get("columns", [])
+    rows = sec.get("rows", [])
+    sortable = {c["key"] for c in cols if c.get("type") in ("num", "delta", "badge", "date", "title")}
+    sd = sec.get("sort_default", {})
+    thead = []
+    for c in cols:
+        if c.get("type") in ("num", "delta", "badge", "date", "title"):
+            arr = "▼" if c["key"] == sd.get("key") else ""
+            thead.append(f'<th data-key="{esc(c["key"])}">{esc(c["label"])} <span class="arr">{arr}</span></th>')
+        else:
+            thead.append(f"<th>{esc(c['label'])}</th>")
+    body = []
+    for r in rows:
+        searchable = " ".join(str(r.get(c["key"], "")) for c in cols if c.get("type") in ("title", "text")).lower()
+        data_attrs = [f'data-band="{esc(r.get("band",""))}"', f'data-search="{esc(searchable)}"']
+        for c in cols:
+            if c["key"] in sortable:
+                data_attrs.append(f'data-{esc(c["key"])}="{esc(r.get(c["key"], ""))}"')
+        cells = "".join(_cell(c, r, band_words) for c in cols)
+        body.append(f'<tr class="prow" {" ".join(data_attrs)}>{cells}</tr>')
+        drill = r.get("drill")
+        if drill:
+            blocks = []
+            if drill.get("bars"):
+                blocks.append(f'<div><h3>{esc(drill.get("barsTitle","Breakdown"))}</h3>{svg_bars(drill["bars"])}</div>')
+            right = ""
+            if drill.get("alerts") is not None:
+                al = drill["alerts"]
+                lis = "".join(f"<li>{esc(x)}</li>" for x in al) if al else '<li class="none">Nothing flagged.</li>'
+                right += f'<h3>{esc(drill.get("alertsTitle","Flags"))}</h3><ul class="flaglist">{lis}</ul>'
+            if drill.get("kv"):
+                kvs = "".join(f"<dt>{esc(k)}</dt><dd>{esc(v)}</dd>" for k, v in drill["kv"])
+                right += f'<dl class="kv" style="margin-top:12px">{kvs}</dl>'
+            if right:
+                blocks.append(f"<div>{right}</div>")
+            body.append(f'<tr class="drow hidden"><td colspan="{len(cols)}"><div class="drawer">{"".join(blocks)}</div></td></tr>')
+    filters = sec.get("filters", {})
+    toolbar = ""
+    if filters:
+        search_h = '<input id="psearch" type="search" placeholder="Search…" aria-label="Search">' if filters.get("search") else ""
+        seg = ""
+        if filters.get("bands"):
+            btns = "".join(
+                f'<button data-band="{esc(b["value"])}" aria-pressed="{"true" if i==0 else "false"}">{esc(b["label"])}</button>'
+                for i, b in enumerate(filters["bands"])
+            )
+            seg = f'<div class="seg" role="group" aria-label="Filter">{btns}</div>'
+        toolbar = f'<div class="toolbar">{search_h}{seg}</div>'
+    note = f'<p class="sub" style="margin-top:8px">{esc(sec["note"])}</p>' if sec.get("note") else ""
+    title = f"<h2>{esc(sec['title'])}</h2>" if sec.get("title") else ""
+    return (
+        f"{title}{toolbar}"
+        f'<div class="panel" style="padding:6px 8px"><table class="partners">'
+        f'<thead><tr>{"".join(thead)}</tr></thead><tbody id="pbody">{"".join(body)}</tbody></table></div>{note}'
+    )
+
+
+REPORT_JS_GENERIC = """
+(function(){
+  var tbody = document.getElementById('pbody');
+  if(!tbody) return;
+  var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr.prow'));
+  var search = document.getElementById('psearch');
+  var sortDir = {};
+  function applyFilter(){
+    var q = (search && search.value || '').toLowerCase();
+    var bbtn = document.querySelector('.seg button[aria-pressed="true"]');
+    var band = bbtn ? bbtn.getAttribute('data-band') : 'all';
+    rows.forEach(function(r){
+      var show = (q==='' || (r.getAttribute('data-search')||'').indexOf(q)>=0) && (band==='all' || r.getAttribute('data-band')===band);
+      r.classList.toggle('hidden', !show);
+      var d = r.nextElementSibling; if(d && d.classList.contains('drow')) d.classList.add('hidden');
+    });
+  }
+  function sortBy(key, th){
+    var dir = sortDir[key]==='asc' ? 'desc' : 'asc'; sortDir = {}; sortDir[key]=dir;
+    var m = dir==='asc'?1:-1;
+    rows.sort(function(a,b){
+      var av=a.getAttribute('data-'+key)||'', bv=b.getAttribute('data-'+key)||'';
+      var an=parseFloat(av), bn=parseFloat(bv);
+      if(!isNaN(an)&&!isNaN(bn)) return (an-bn)*m;
+      return av.localeCompare(bv)*m;
+    });
+    rows.forEach(function(r){ var d=r.nextElementSibling; tbody.appendChild(r); if(d&&d.classList.contains('drow')) tbody.appendChild(d); });
+    document.querySelectorAll('th[data-key] .arr').forEach(function(el){ el.textContent=''; });
+    var a=th.querySelector('.arr'); if(a) a.textContent = dir==='asc'?'▲':'▼';
+  }
+  if(search) search.addEventListener('input', applyFilter);
+  document.querySelectorAll('.seg button').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('.seg button').forEach(function(x){ x.setAttribute('aria-pressed','false'); });
+      b.setAttribute('aria-pressed','true'); applyFilter();
+    });
+  });
+  document.querySelectorAll('th[data-key]').forEach(function(th){
+    th.addEventListener('click', function(){ sortBy(th.getAttribute('data-key'), th); });
+  });
+  rows.forEach(function(r){
+    r.addEventListener('click', function(){ var d=r.nextElementSibling; if(d&&d.classList.contains('drow')) d.classList.toggle('hidden'); });
+  });
+})();
+"""
+
+
+def render_sections(data: dict, plugin: str, tokens: str) -> str:
+    rep = data.get("report", {})
+    band_words = data.get("band_words", {"green": "Healthy", "yellow": "Watch", "red": "Act now"})
+    title = esc(rep.get("title", "Report"))
+    subtitle = esc(rep.get("subtitle", ""))
+    refreshed = esc(rep.get("refreshed", ""))
+    synthetic = '<div class="synthetic">Sample data · not real</div>' if rep.get("synthetic") else ""
+    kpis_h = _render_kpis(data.get("kpis", [])) if data.get("kpis") else ""
+    sections_h = "".join(
+        f'<div style="margin-top:16px">{_render_section(s, band_words)}</div>' for s in data.get("sections", [])
+    )
+    page = f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>{title} — {esc(plugin)}</title>
+<style>
+/*__SHARED_TOKENS__*/
+{REPORT_CSS}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="rhead">
+    <div><h1>{title}</h1>{synthetic}</div>
+    <div class="stamp">Updated {refreshed}<br/>Owner: {esc(rep.get("owner",""))}</div>
+  </div>
+  <p class="lede">{subtitle}</p>
+  {kpis_h}
+  <hr class="rule"/>
+  {sections_h}
+  <p class="foot">
+    Self-contained report — no internet needed. Built by <code>scripts/generate-bi-report.py</code> from
+    <code>plugins/{esc(plugin)}/bi-report/data.json</code>. Replace that file with a real export (same shape) and re-run to rebuild.
+  </p>
+</div>
+<script>
+{REPORT_JS_GENERIC}
+</script>
+</body>
+</html>
+"""
+    return page.replace("/*__SHARED_TOKENS__*/", tokens)
+
+
 def discover_plugins(only: str | None):
     found = []
     for d in sorted(PLUGINS_DIR.iterdir()):
@@ -564,7 +924,7 @@ def main(argv=None) -> int:
         except (OSError, json.JSONDecodeError) as e:
             print(f"[error] {name}: cannot read {data_file}: {e}", file=sys.stderr)
             return 2
-        page = render_report(data, name, tokens)
+        page = render_sections(data, name, tokens) if data.get("sections") else render_report(data, name, tokens)
         if args.check:
             current = out.read_text(encoding="utf-8") if out.exists() else ""
             if current != page:
