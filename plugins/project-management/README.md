@@ -36,3 +36,7 @@ Requires `ravenclaude-core@>=0.7.0`.
 - `CLAUDE.md` — the team constitution (roster, routing, hybrid stance, the house-rule carve-out)
 
 See [`CLAUDE.md`](CLAUDE.md) for the full team constitution and the why-its-own-plugin rationale.
+
+## Portfolio report (BI)
+
+A self-contained, Power-BI/Tableau-style **project-portfolio report — status donut, burndown, velocity, RAID drill-downs** ships with this plugin. Open [`report.html`](report.html) for the demo (synthetic data); rebuild from real data by editing [`bi-report/data.json`](bi-report/data.json) and running `python3 scripts/generate-bi-report.py --plugin project-management`. Charts are inline SVG (no CDN); the engine + data shape are documented in [`edtech-partner-success/skills/health-report-dashboard`](../edtech-partner-success/skills/health-report-dashboard/SKILL.md).

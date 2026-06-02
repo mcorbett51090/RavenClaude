@@ -1,0 +1,301 @@
+{
+  "report": {
+    "title": "Projects — Portfolio Report",
+    "subtitle": "Every project in one place: is it on track, what's at risk, and when it's due. Green is on track, yellow is at risk, red is off track.",
+    "refreshed": "2026-06-02",
+    "synthetic": true,
+    "owner": "PMO"
+  },
+  "_README": "SAMPLE / SYNTHETIC data only. Section-driven schema for scripts/generate-bi-report.py. Replace with a real export (same shape) and re-run. band: green=on track, yellow=at risk, red=off track.",
+  "band_words": { "green": "On track", "yellow": "At risk", "red": "Off track" },
+  "kpis": [
+    {
+      "label": "Projects on track",
+      "short": "On track",
+      "value": 62,
+      "unit": "%",
+      "delta": 4.0,
+      "good": "up",
+      "plain": "Of all active projects, how many are healthy and expected to land on time."
+    },
+    {
+      "label": "Open risks",
+      "short": "Risks",
+      "value": 14,
+      "unit": "",
+      "delta": 2,
+      "good": "down",
+      "plain": "How many things could still go wrong that we're watching across all projects."
+    },
+    {
+      "label": "Average velocity",
+      "short": "Velocity",
+      "value": 38,
+      "unit": " pts",
+      "delta": 3.0,
+      "good": "up",
+      "plain": "How much work the teams finish in a typical 2-week sprint (in story points)."
+    },
+    {
+      "label": "On-time delivery",
+      "short": "On-time",
+      "value": 81,
+      "unit": "%",
+      "delta": -2.0,
+      "good": "up",
+      "plain": "Of milestones due recently, how many landed by their date."
+    },
+    {
+      "label": "Projects off track",
+      "short": "Off track",
+      "value": 2,
+      "unit": "",
+      "delta": 1,
+      "good": "down",
+      "plain": "How many projects are behind and need help now."
+    }
+  ],
+  "sections": [
+    {
+      "type": "row",
+      "cols": [
+        {
+          "type": "donut",
+          "title": "Projects by status",
+          "sub": "Every active project, sorted by health.",
+          "centerSub": "projects",
+          "segments": [
+            { "label": "On track", "value": 6, "color": "ok" },
+            { "label": "At risk", "value": 2, "color": "warn" },
+            { "label": "Off track", "value": 2, "color": "danger" }
+          ]
+        },
+        {
+          "type": "line",
+          "title": "Burndown — work left this quarter",
+          "sub": "Story points still to do, week by week. Down means we're finishing work. Lower is better.",
+          "labels": ["Wk 1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
+          "values": [480, 452, 430, 398, 372, 340, 305, 268, 232, 190, 150, 118],
+          "min": 0,
+          "max": 500,
+          "color": "teal"
+        }
+      ]
+    },
+    {
+      "type": "bars",
+      "title": "Velocity by team",
+      "sub": "Story points finished last sprint, per team.",
+      "rows": [
+        {
+          "name": "Platform",
+          "sub": "5 engineers",
+          "value": 46,
+          "max": 50,
+          "display": "46",
+          "color": "ok"
+        },
+        {
+          "name": "Payments",
+          "sub": "4 engineers",
+          "value": 41,
+          "max": 50,
+          "display": "41",
+          "color": "ok"
+        },
+        {
+          "name": "Mobile",
+          "sub": "4 engineers",
+          "value": 34,
+          "max": 50,
+          "display": "34",
+          "color": "teal"
+        },
+        {
+          "name": "Data",
+          "sub": "3 engineers",
+          "value": 28,
+          "max": 50,
+          "display": "28",
+          "color": "warn"
+        },
+        {
+          "name": "Growth",
+          "sub": "3 engineers",
+          "value": 22,
+          "max": 50,
+          "display": "22",
+          "color": "warn"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Projects",
+      "note": "Click a row for the open risks and what's driving the status. Click a column header to sort.",
+      "filters": {
+        "search": true,
+        "bands": [
+          { "label": "All", "value": "all" },
+          { "label": "On track", "value": "green" },
+          { "label": "At risk", "value": "yellow" },
+          { "label": "Off track", "value": "red" }
+        ]
+      },
+      "sort_default": { "key": "pct", "dir": "desc" },
+      "columns": [
+        { "key": "name", "label": "Project", "type": "title", "sub": "portfolio" },
+        { "key": "pct", "label": "% done", "type": "badge" },
+        { "key": "delta", "label": "Change", "type": "delta" },
+        { "key": "status", "label": "Status", "type": "bandtag" },
+        { "key": "risks", "label": "Open risks", "type": "num" },
+        { "key": "spark", "label": "Burnup", "type": "spark" },
+        { "key": "owner", "label": "Lead", "type": "text" },
+        { "key": "due", "label": "Due", "type": "date" }
+      ],
+      "rows": [
+        {
+          "name": "Checkout revamp",
+          "portfolio": "Payments",
+          "pct": "82",
+          "delta": 5,
+          "band": "green",
+          "status": "ok",
+          "risks": 1,
+          "spark": [40, 48, 55, 62, 70, 78, 82],
+          "owner": "Priya R.",
+          "due": "2026-07-15"
+        },
+        {
+          "name": "Mobile v3",
+          "portfolio": "Mobile",
+          "pct": "64",
+          "delta": 6,
+          "band": "green",
+          "status": "ok",
+          "risks": 2,
+          "spark": [30, 38, 44, 50, 56, 60, 64],
+          "owner": "Marcus T.",
+          "due": "2026-08-30"
+        },
+        {
+          "name": "Data warehouse migration",
+          "portfolio": "Data",
+          "pct": "48",
+          "delta": -3,
+          "band": "yellow",
+          "status": "watch",
+          "risks": 4,
+          "spark": [40, 43, 45, 46, 47, 48, 48],
+          "owner": "Omar T.",
+          "due": "2026-07-31",
+          "drill": {
+            "bars": [
+              {
+                "name": "Schema rebuild",
+                "value": 70,
+                "max": 100,
+                "display": "70%",
+                "color": "ok"
+              },
+              { "name": "Backfill", "value": 35, "max": 100, "display": "35%", "color": "warn" },
+              { "name": "Cutover", "value": 10, "max": 100, "display": "10%", "color": "danger" }
+            ],
+            "barsTitle": "Workstream progress",
+            "alerts": [
+              "Backfill is slower than planned — source data quality issues",
+              "Cutover window collides with quarter-end freeze"
+            ],
+            "alertsTitle": "Open red/amber risks",
+            "kv": [
+              ["Lead", "Omar T."],
+              ["Due", "2026-07-31"],
+              ["Sprint", "6 of 9"],
+              ["Decision needed", "Move cutover to after freeze?"]
+            ]
+          }
+        },
+        {
+          "name": "Billing rules engine",
+          "portfolio": "Payments",
+          "pct": "71",
+          "delta": 2,
+          "band": "green",
+          "status": "ok",
+          "risks": 1,
+          "spark": [50, 56, 60, 64, 67, 69, 71],
+          "owner": "Priya R.",
+          "due": "2026-09-10"
+        },
+        {
+          "name": "Growth experiments Q3",
+          "portfolio": "Growth",
+          "pct": "30",
+          "delta": 1,
+          "band": "yellow",
+          "status": "watch",
+          "risks": 2,
+          "spark": [18, 21, 24, 26, 28, 29, 30],
+          "owner": "Lena M.",
+          "due": "2026-09-30"
+        },
+        {
+          "name": "SSO / SCIM rollout",
+          "portfolio": "Platform",
+          "pct": "26",
+          "delta": -8,
+          "band": "red",
+          "status": "off",
+          "risks": 4,
+          "spark": [30, 29, 28, 27, 27, 26, 26],
+          "owner": "Wendy P.",
+          "due": "2026-07-05",
+          "drill": {
+            "bars": [
+              {
+                "name": "IdP integration",
+                "value": 40,
+                "max": 100,
+                "display": "40%",
+                "color": "warn"
+              },
+              {
+                "name": "Provisioning",
+                "value": 20,
+                "max": 100,
+                "display": "20%",
+                "color": "danger"
+              },
+              { "name": "Rollout", "value": 5, "max": 100, "display": "5%", "color": "danger" }
+            ],
+            "barsTitle": "Workstream progress",
+            "alerts": [
+              "Lead engineer out on leave — no backfill assigned",
+              "Customer-committed date is in 5 weeks; current pace misses it",
+              "Provisioning blocked on a vendor API bug"
+            ],
+            "alertsTitle": "Open red/amber risks",
+            "kv": [
+              ["Lead", "Wendy P. (on leave)"],
+              ["Due", "2026-07-05"],
+              ["Sprint", "3 of 8"],
+              ["Escalation", "Reassign lead + renegotiate date this week"]
+            ]
+          }
+        },
+        {
+          "name": "Reporting refresh",
+          "portfolio": "Data",
+          "pct": "58",
+          "delta": 3,
+          "band": "green",
+          "status": "ok",
+          "risks": 0,
+          "spark": [40, 45, 49, 52, 55, 57, 58],
+          "owner": "Omar T.",
+          "due": "2026-08-20"
+        }
+      ]
+    }
+  ]
+}
