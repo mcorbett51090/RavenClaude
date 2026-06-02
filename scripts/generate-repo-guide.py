@@ -1096,6 +1096,50 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
     .nav-btn .ver {{ font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); }}
     section.panel {{ display: none; }}
     section.panel.active {{ display: block; }}
+    /* ── Left-rail navigation layout (icon rail + labeled nav column) ── */
+    .rg-shell {{ display: grid; grid-template-columns: 64px 248px 1fr; min-height: 100vh; }}
+    .rg-rail {{ position: sticky; top: 0; height: 100vh; background: var(--surface);
+      border-right: 1px solid var(--border); display: flex; flex-direction: column;
+      align-items: center; gap: 6px; padding: 12px 0; z-index: 60; }}
+    .rg-rail .rg-mark {{ width: 36px; height: 36px; display: grid; place-items: center;
+      border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border);
+      font-size: 19px; margin-bottom: 6px; }}
+    .rg-rail .tab-btn {{ width: 42px; height: 42px; padding: 0; display: grid; place-items: center;
+      border-radius: 10px; font-size: 18px; background: transparent; border: 1px solid transparent; }}
+    .rg-rail .tab-btn[aria-selected="true"] {{ background: var(--surface-2); border-color: var(--border); color: var(--accent); }}
+    .rg-nav {{ position: sticky; top: 0; height: 100vh; overflow-y: auto; background: var(--surface);
+      border-right: 1px solid var(--border); padding: 16px 12px; }}
+    .rg-nav .rg-brand {{ font-weight: 700; font-size: 1.05rem; letter-spacing: -0.01em; padding: 4px 8px 6px; }}
+    .rg-nav .rg-sectionlabel {{ font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted); padding: 12px 8px 4px; }}
+    .rg-nav .tab-btn {{ display: flex; align-items: center; width: 100%; text-align: left;
+      padding: 9px 10px; margin: 2px 0; border-radius: 8px; border: 1px solid transparent; background: transparent;
+      font-size: 0.9rem; font-weight: 500; color: var(--text); letter-spacing: -0.005em; }}
+    .rg-nav .tab-btn[aria-selected="true"] {{ background: var(--surface-2); color: var(--accent); border-color: transparent; font-weight: 600; }}
+    /* Per-section type hierarchy (Intercom/Zoho rhythm): bold section heads,
+       medium nav, semibold card/list titles, regular muted body, small captions. */
+    .rg-content section.panel h2 {{ font-weight: 700; letter-spacing: -0.015em; }}
+    .plugin-title h2 {{ font-weight: 700; letter-spacing: -0.01em; }}
+    article.item h4 {{ font-weight: 600; }}
+    article.item p {{ font-weight: 400; }}
+    article.item .item-path {{ font-size: 0.74rem; }}
+    .rg-content {{ min-width: 0; }}
+    .rg-content main {{ max-width: 1180px; margin: 0; }}
+    @media (max-width: 900px) {{ .rg-shell {{ grid-template-columns: 64px 1fr; }} .rg-nav {{ display: none; }} }}
+    /* ── Far-right details pane (three-pane cascade: click an item → details) ── */
+    .rg-details {{ display: none; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      background: var(--surface); border-left: 1px solid var(--border); padding: 16px 16px 32px; }}
+    .rg-details-head {{ display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }}
+    .rg-details-title {{ font-weight: 700; font-size: 0.95rem; letter-spacing: -0.01em; }}
+    .rg-details-close {{ background: transparent; border: 0; color: var(--muted); cursor: pointer; font-size: 1rem; line-height: 1; padding: 2px 7px; border-radius: 6px; }}
+    .rg-details-close:hover {{ background: var(--surface-2); color: var(--text); }}
+    .rg-details-empty {{ color: var(--muted); font-size: 0.86rem; padding: 8px 2px; line-height: 1.5; }}
+    .rg-details.has-selection .rg-details-empty {{ display: none; }}
+    .rg-details-body {{ display: none; font-size: 0.9rem; }}
+    .rg-details.has-selection .rg-details-body {{ display: block; }}
+    .rg-details-body h4 {{ font-size: 1rem; margin: 0 0 6px; }}
+    article.item.selected {{ border-color: var(--accent); box-shadow: var(--rc-shadow-sm); }}
+    @media (min-width: 1200px) {{ .rg-shell {{ grid-template-columns: 64px 248px minmax(0, 1fr) 360px; }} .rg-details {{ display: block; }} }}
     .search-row {{ display: flex; gap: 0.5rem; margin-bottom: 1rem; }}
     .search-row input {{
       flex: 1; background: var(--surface); border: 1px solid var(--border);
@@ -1248,6 +1292,25 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
   </style>
 </head>
 <body>
+<div class="rg-shell">
+  <aside class="rg-rail" aria-label="Sections">
+    <span class="rg-mark" aria-hidden="true">🐦‍⬛</span>
+    <button class="tab-btn rail-item" data-tab="overview" aria-selected="true" title="Overview" aria-label="Overview">🏠</button>
+    <button class="tab-btn rail-item" data-tab="plugins" aria-selected="false" title="Plugins" aria-label="Plugins">🧩</button>
+    <button class="tab-btn rail-item" data-tab="decision-trees" aria-selected="false" title="Decision Trees" aria-label="Decision Trees">🌳</button>
+    <button class="tab-btn rail-item" data-tab="architecture" aria-selected="false" title="Architecture" aria-label="Architecture">🏛️</button>
+    <button class="tab-btn rail-item" data-tab="index" aria-selected="false" title="Index / Search" aria-label="Index / Search">🔍</button>
+  </aside>
+  <aside class="rg-nav" aria-label="Primary">
+    <div class="rg-brand">Raven<b style="color:var(--accent)">Claude</b></div>
+    <div class="rg-sectionlabel">Guide</div>
+    <button class="tab-btn" data-tab="overview" aria-selected="true">Overview</button>
+    <button class="tab-btn" data-tab="plugins" aria-selected="false">Plugins</button>
+    <button class="tab-btn" data-tab="decision-trees" aria-selected="false">Decision Trees</button>
+    <button class="tab-btn" data-tab="architecture" aria-selected="false">Architecture</button>
+    <button class="tab-btn" data-tab="index" aria-selected="false">Index / Search</button>
+  </aside>
+  <div class="rg-content">
 
 <header class="site">
   <div class="title-row">
@@ -1265,14 +1328,6 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
 </header>
 
 <main>
-  <nav class="tabs" role="tablist">
-    <button class="tab-btn" data-tab="overview" aria-selected="true">Overview</button>
-    <button class="tab-btn" data-tab="plugins" aria-selected="false">Plugins</button>
-    <button class="tab-btn" data-tab="decision-trees" aria-selected="false">Decision Trees</button>
-    <button class="tab-btn" data-tab="architecture" aria-selected="false">Architecture</button>
-    <button class="tab-btn" data-tab="index" aria-selected="false">Index / Search</button>
-  </nav>
-
   <section class="panel active" data-panel="overview">
     <div class="arch-doc">
       <h2>What this is</h2>
@@ -1345,6 +1400,13 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
     </table>
   </section>
 </main>
+  </div>
+  <aside class="rg-details" id="rg-details" aria-label="Details">
+    <div class="rg-details-head"><span class="rg-details-title">Details</span><button type="button" class="rg-details-close" aria-label="Clear selection">✕</button></div>
+    <div class="rg-details-empty">Click an agent, skill, hook, or template to see its full details here.</div>
+    <div class="rg-details-body"></div>
+  </aside>
+</div>
 
 <footer class="site">
   Regenerate with <code>python3 scripts/generate-repo-guide.py</code>. CI verifies freshness via <code>scripts/check-guide-fresh.sh</code>.
@@ -1370,7 +1432,7 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
   tabs.forEach(btn => {{
     btn.addEventListener('click', () => {{
       const target = btn.dataset.tab;
-      tabs.forEach(b => b.setAttribute('aria-selected', b === btn ? 'true' : 'false'));
+      tabs.forEach(b => b.setAttribute('aria-selected', b.dataset.tab === target ? 'true' : 'false'));
       panels.forEach(p => p.classList.toggle('active', p.dataset.panel === target));
       const activePanel = document.querySelector(`section.panel[data-panel="${{target}}"]`);
       if (activePanel) renderMermaidIn(activePanel);
@@ -1459,6 +1521,27 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
   }}
   renderIndex('');
   document.getElementById('index-search').addEventListener('input', e => renderIndex(e.target.value));
+
+  // Far-right details pane — click an item to see its full details (three-pane cascade)
+  const rgDetails = document.getElementById('rg-details');
+  if (rgDetails) {{
+    const dBody = rgDetails.querySelector('.rg-details-body');
+    const dTitle = rgDetails.querySelector('.rg-details-title');
+    const clearSel = () => document.querySelectorAll('article.item.selected').forEach(i => i.classList.remove('selected'));
+    document.querySelectorAll('article.item').forEach(item => {{
+      item.style.cursor = 'pointer';
+      item.addEventListener('click', () => {{
+        const h = item.querySelector('h4');
+        dTitle.textContent = h ? h.textContent : 'Details';
+        dBody.innerHTML = item.innerHTML;
+        rgDetails.classList.add('has-selection');
+        clearSel();
+        item.classList.add('selected');
+      }});
+    }});
+    const dClose = rgDetails.querySelector('.rg-details-close');
+    if (dClose) dClose.addEventListener('click', () => {{ rgDetails.classList.remove('has-selection'); clearSel(); }});
+  }}
 </script>
 
 <!-- Inlined Mermaid library (vendored at scripts/vendor/mermaid.min.js) -->
