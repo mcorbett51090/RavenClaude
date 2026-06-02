@@ -1,7 +1,7 @@
 {
   "name": "edtech-partner-success",
-  "version": "0.8.0",
-  "description": "EdTech-flavored Partner Success Manager team — 6 specialist agents anchored on the PSM lane, with 12 skills, 15 templates, 1 advisory hook, and a 15-doc knowledge bank. Covers QBRs, success plans, health scores, onboarding checklists, touchpoint logs, adoption sequencing, 90-day implementation arcs, train-the-trainer curricula, advocacy/reference pipelines, and renewal decision memos. Team growth ships as skills + knowledge + templates rather than parallel agents (marketplace house rule). Compact inline priors on the 6 agents; primary-source citations with retrieval dates. Vertical-explicit but segment-agnostic — fits K-12, higher-ed, corporate L&D, or mixed EdTech books. Inherits ravenclaude-core protocols including the alternate-methods Capability Grounding Protocol.",
+  "version": "0.9.0",
+  "description": "EdTech-flavored Partner Success Manager team — 6 specialist agents anchored on the PSM lane, with 13 skills, 15 templates, 1 advisory hook, and a 15-doc knowledge bank. Covers QBRs, success plans, health scores, a self-contained Power-BI-style partner-health report (demo data + generator), onboarding checklists, touchpoint logs, adoption sequencing, 90-day implementation arcs, train-the-trainer curricula, advocacy/reference pipelines, and renewal decision memos. Team growth ships as skills + knowledge + templates rather than parallel agents (marketplace house rule). Compact inline priors on the 6 agents; primary-source citations with retrieval dates. Vertical-explicit but segment-agnostic — fits K-12, higher-ed, corporate L&D, or mixed EdTech books. Inherits ravenclaude-core protocols including the alternate-methods Capability Grounding Protocol.",
   "author": {
     "name": "Matt Corbett"
   },

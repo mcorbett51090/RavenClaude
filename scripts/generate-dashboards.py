@@ -356,11 +356,28 @@ _PIPELINE_LANES = [
         "tip": "Right when the robot wakes up, it loads your settings and reminds itself what it's allowed to do.",
         "stages": [
             {"id": "reapply-posture", "title": "Re-apply settings", "badge": "always",
-             "tip": "Loads your saved safety settings so they're on from the very first step."},
+             "tip": "Loads your saved safety settings so they're on from the very first step.",
+             "detail": {
+                 "steps": ["Reads your saved settings file (.ravenclaude/comfort-posture.yaml).",
+                           "Turns each rule into a real Claude Code permission.",
+                           "Writes them into .claude/settings.json so they're active right away."],
+                 "trip": "If there's no settings file, it does nothing — no harm done.",
+                 "set": "Change these in the Settings tab; the Save button writes the file."}},
             {"id": "ensure-default-mode", "title": "Safe starting mode", "badge": "always",
-             "tip": "Picks a safe mode to start the session in."},
+             "tip": "Picks a safe mode to start the session in.",
+             "detail": {
+                 "steps": ["Checks what mode the session is starting in.",
+                           "If nothing was chosen, picks a safe default."],
+                 "trip": "Only steps in when no mode was set — otherwise it leaves your choice alone.",
+                 "set": "Built in — nothing to tune."}},
             {"id": "capability-orientation", "title": "Capability check", "badge": "always",
-             "tip": "Reminds the robot what tools and access it already has, so it doesn't say “I can't” by mistake."},
+             "tip": "Reminds the robot what tools and access it already has, so it doesn't say “I can't” by mistake.",
+             "detail": {
+                 "steps": ["Looks at what tools, logins, and permissions are available.",
+                           "Writes a short summary into the session so the robot knows what it can do.",
+                           "Adds a line about recent guardrail activity (how many things were blocked, when settings last changed)."],
+                 "trip": "Read-only — it never changes anything, it only informs.",
+                 "set": "Built in."}},
         ],
     },
     {
@@ -369,15 +386,46 @@ _PIPELINE_LANES = [
         "tip": "This is the busiest checkpoint. Every command and every file edit goes through these in order before it's allowed to happen.",
         "stages": [
             {"id": "guard-destructive", "title": "Danger guard", "badge": "always",
-             "tip": "Stops really dangerous commands (like deleting everything) before they can run."},
+             "tip": "Stops really dangerous commands (like deleting everything) before they can run.",
+             "detail": {
+                 "steps": ["Looks at the command about to run.",
+                           "Matches it against a list of never-allowed patterns (delete everything, force-push, wipe history).",
+                           "Blocks it before it can run if it matches."],
+                 "trip": "Blocks the command and writes a note in the alert log (Perimeter alerts tab).",
+                 "set": "Built-in safety floor — always on, can't be turned off."}},
             {"id": "thing", "title": "Command review (the Thing)", "badge": "dynamic", "controls": "thing",
-             "tip": "A panel of robot reviewers votes yes / no / fix on a command before it runs. You choose how strict it is."},
+             "tip": "A panel of robot reviewers votes yes / no / fix on a command before it runs. You choose how strict it is.",
+             "detail": {
+                 "steps": ["Runs quick free checks first, so the obvious-dangerous ones are caught with no waiting.",
+                           "If the command is risky enough, a panel of reviewers reads it.",
+                           "They vote: allow, fix (rewrite it to be safe), or block.",
+                           "Low-risk reads skip the panel completely — no waiting."],
+                 "trip": "A block stops the command; a fix rewrites it; anything safe just runs.",
+                 "set": "Turn it on (and on/off per command type) and tune the panel in Settings — quick toggles below."}},
             {"id": "runaway-brake", "title": "Runaway brake", "badge": "dynamic", "controls": "runaway",
-             "tip": "Counts the robot's steps. If it loops forever or takes way too many steps, it pauses so it can't run away."},
+             "tip": "Counts the robot's steps. If it loops forever or takes way too many steps, it pauses so it can't run away.",
+             "detail": {
+                 "steps": ["Counts every tool the robot uses this session.",
+                           "Watches for the same command repeated over and over.",
+                           "Pauses if it loops, or if it passes your step limit."],
+                 "trip": "Pauses the robot so it can't run away with your time or money.",
+                 "set": "Turn the brake off, or set the two limits, in the boxes below."}},
             {"id": "enforce-layout", "title": "Folder & task limits", "badge": "dynamic", "controls": "files",
-             "tip": "Makes sure new files go in the right folders, and that the robot only touches the files this task is allowed to."},
+             "tip": "Makes sure new files go in the right folders, and that the robot only touches the files this task is allowed to.",
+             "detail": {
+                 "steps": ["Checks where a new file is about to be written.",
+                           "Compares it to your allowed-folders list (.repo-layout.json).",
+                           "If a task-file list is set, checks the file is part of this task (.ravenclaude/task-scope.json)."],
+                 "trip": "Blocks the write and suggests the correct folder.",
+                 "set": "Edit the two file lists in the boxes below."}},
             {"id": "route-decision-review", "title": "Decision routing", "badge": "dynamic", "controls": "decision",
-             "tip": "When the robot would ask you a yes/no question, a panel answers the easy ones so you're not interrupted."},
+             "tip": "When the robot would ask you a yes/no question, a panel answers the easy ones so you're not interrupted.",
+             "detail": {
+                 "steps": ["Notices when the robot is about to ask you a yes/no question.",
+                           "Sends the simple, low-risk ones to a small panel.",
+                           "Big or risky questions always come to you."],
+                 "trip": "In binding mode the panel answers the easy ones; risky ones still reach you.",
+                 "set": "Pick off / advisory / binding in the box below."}},
         ],
     },
     {
@@ -386,11 +434,28 @@ _PIPELINE_LANES = [
         "tip": "After something happens, these tidy up and double-check the work.",
         "stages": [
             {"id": "format-on-write", "title": "Auto-tidy", "badge": "always",
-             "tip": "Tidies up a file's formatting right after it's saved."},
+             "tip": "Tidies up a file's formatting right after it's saved.",
+             "detail": {
+                 "steps": ["Runs right after a file is saved.",
+                           "Runs the formatter for that kind of file.",
+                           "Saves the tidied version."],
+                 "trip": "Skips files it doesn't have a formatter for — never blocks.",
+                 "set": "Built in."}},
             {"id": "guard-recursive-spawn", "title": "Copy guard", "badge": "always",
-             "tip": "Stops the robot from making endless copies of itself."},
+             "tip": "Stops the robot from making endless copies of itself.",
+             "detail": {
+                 "steps": ["Watches for the robot launching copies of itself.",
+                           "Warns if those copies nest too deep."],
+                 "trip": "Warns (it doesn't hard-block) so you can step in.",
+                 "set": "Built in."}},
             {"id": "claim-grounding-lint", "title": "Fact check", "badge": "advisory",
-             "tip": "Reminds the robot to say where a fact came from when it writes one into a document."},
+             "tip": "Reminds the robot to say where a fact came from when it writes one into a document.",
+             "detail": {
+                 "steps": ["Reads facts written into knowledge / docs files.",
+                           "Checks each big claim says where it came from.",
+                           "Nudges if a source is missing."],
+                 "trip": "Advisory only — it nudges, it never blocks.",
+                 "set": "Active once command review is turned on."}},
         ],
     },
     {
@@ -399,9 +464,20 @@ _PIPELINE_LANES = [
         "tip": "Before the robot is allowed to stop, it proves the work is really finished.",
         "stages": [
             {"id": "dod-gate", "title": "Done check", "badge": "dynamic", "controls": "dod",
-             "tip": "Before the robot says “done,” it runs your tests. If they fail, it keeps working."},
+             "tip": "Before the robot says “done,” it runs your tests. If they fail, it keeps working.",
+             "detail": {
+                 "steps": ["Fires when the robot tries to stop.",
+                           "Runs your test / build command.",
+                           "If it fails, the robot keeps working instead of stopping."],
+                 "trip": "Blocks the stop until tests pass (up to a retry limit, then it lets the robot stop with a warning).",
+                 "set": "Set your test command and the retry limit in the boxes below."}},
             {"id": "remind-tests", "title": "Test reminder", "badge": "advisory",
-             "tip": "A gentle nudge to run the tests when there's no done-check set up."},
+             "tip": "A gentle nudge to run the tests when there's no done-check set up.",
+             "detail": {
+                 "steps": ["Fires on stop when no done-check is set.",
+                           "Prints a friendly reminder to run the tests."],
+                 "trip": "Advisory only — just a nudge.",
+                 "set": "Becomes unnecessary once you set a done-check above."}},
         ],
     },
 ]
@@ -463,12 +539,22 @@ _PIPELINE_CONTROLS = {
 
 
 _PIPELINE_CSS = """<style>
-.pipeline-tab { max-width: 900px; }
-.pipe-note { margin: .5rem 0 1rem; padding: .6rem .8rem; border-radius: 6px;
-  background: var(--card, #1c1c22); border: 1px solid var(--border, #33333a);
-  color: var(--muted, #aaa); font-size: .9rem; }
-.pipe-lane { border: 1px solid var(--border, #33333a); border-radius: 8px;
-  padding: .75rem .9rem; margin: 0; background: var(--card, #1c1c22); }
+.pipeline-tab { max-width: 920px; }
+.pipe-note { margin: .5rem 0 1rem; padding: .6rem .8rem; border-radius: var(--rc-radius-sm);
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--muted); font-size: .9rem; }
+/* Flow strip — the at-a-glance order an agent moves through. */
+.pipe-flow { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .5rem;
+  margin: .6rem 0; padding: .7rem .8rem; border: 1px solid var(--border);
+  border-radius: var(--rc-radius-lg); background: var(--surface); box-shadow: var(--rc-shadow-sm); }
+.pipe-flow-step { font-size: .82rem; font-weight: 600; color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--rc-radius-pill);
+  padding: .2rem .7rem; white-space: nowrap; }
+.pipe-flow-step.pipe-flow-loop { border-color: var(--accent); }
+.pipe-flow-arr { color: var(--accent); font-weight: 700; }
+.pipe-readme { font-size: .86rem; }
+.pipe-lane { border: 1px solid var(--border); border-radius: var(--rc-radius-lg);
+  padding: .85rem 1rem; margin: 0; background: var(--surface); box-shadow: var(--rc-shadow-sm); }
 .pipe-lane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .pipe-lane-when { font-weight: 600; color: var(--text, #eee); }
 .pipe-lane-event { font-family: ui-monospace, monospace; font-size: .78rem;
@@ -476,8 +562,8 @@ _PIPELINE_CSS = """<style>
   border-radius: 4px; }
 .pipe-lane-tip { margin: .3rem 0 .7rem; color: var(--muted, #aaa); font-size: .88rem; }
 .pipe-row { display: flex; flex-wrap: wrap; gap: .6rem; }
-.pipe-stage { flex: 1 1 220px; min-width: 200px; border: 1px solid var(--border, #33333a);
-  border-radius: 6px; padding: .55rem .65rem; background: var(--bg, #141418); }
+.pipe-stage { flex: 1 1 240px; min-width: 210px; border: 1px solid var(--border);
+  border-radius: var(--rc-radius); padding: .6rem .7rem; background: var(--surface-2); }
 .pipe-stage-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
 .pipe-stage-title { font-weight: 600; font-size: .92rem; }
 .pipe-tip { margin: .35rem 0 0; font-size: .82rem; color: var(--muted, #aaa); line-height: 1.35; }
@@ -492,7 +578,18 @@ _PIPELINE_CSS = """<style>
 .pipe-ctl input[type=number] { width: 6rem; }
 .pipe-ctl input[type=text] { flex: 1 1 12rem; min-width: 10rem; }
 .pipe-hint { margin: .1rem 0 0; font-size: .78rem; color: var(--muted, #888); }
-.pipe-arrow { text-align: center; font-size: 1.2rem; color: var(--muted, #666); margin: .15rem 0; }
+/* Expandable "How it works" subprocess detail (native <details>, accessible). */
+.pipe-more { margin: .4rem 0 0; }
+.pipe-more > summary { cursor: pointer; font-size: .8rem; font-weight: 600; color: var(--accent);
+  list-style: none; display: inline-flex; align-items: center; gap: .3rem; user-select: none; }
+.pipe-more > summary::-webkit-details-marker { display: none; }
+.pipe-more > summary::before { content: "▸"; font-size: .7rem; transition: transform .15s ease; }
+.pipe-more[open] > summary::before { transform: rotate(90deg); }
+.pipe-steps { margin: .4rem 0 .3rem; padding-left: 1.15rem; font-size: .82rem; color: var(--muted);
+  line-height: 1.4; display: flex; flex-direction: column; gap: .2rem; }
+.pipe-more-line { margin: .25rem 0 0; font-size: .8rem; color: var(--muted); line-height: 1.4; }
+.pipe-more-lbl { font-weight: 700; color: var(--text); }
+.pipe-arrow { text-align: center; font-size: 1.2rem; color: var(--accent); margin: .15rem 0; }
 .pipe-file { margin-top: .5rem; }
 .pipe-file-head { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; font-size: .82rem; }
 .pipe-file-text { width: 100%; min-height: 6rem; font-family: ui-monospace, monospace;
@@ -540,12 +637,26 @@ def _render_pipeline_tab() -> str:
                 f'<div class="pipe-controls">{_PIPELINE_CONTROLS[controls]}</div>'
                 if controls else ""
             )
+            detail = st.get("detail")
+            detail_html = ""
+            if detail:
+                steps = "".join(f"<li>{html.escape(s)}</li>" for s in detail.get("steps", []))
+                detail_html = (
+                    '<details class="pipe-more"><summary>How it works, step by step</summary>'
+                    f'<ol class="pipe-steps">{steps}</ol>'
+                    f'<p class="pipe-more-line"><span class="pipe-more-lbl">If it trips:</span> '
+                    f'{html.escape(detail.get("trip", ""))}</p>'
+                    f'<p class="pipe-more-line"><span class="pipe-more-lbl">Where it’s set:</span> '
+                    f'{html.escape(detail.get("set", ""))}</p>'
+                    "</details>"
+                )
             cards.append(
                 f'<div class="pipe-stage" data-stage="{html.escape(st["id"])}">'
                 f'<div class="pipe-stage-head">'
                 f'<span class="pipe-stage-title">{html.escape(st["title"])}</span>'
                 f"{badge_html}</div>"
                 f'<p class="pipe-tip">{html.escape(st["tip"])}</p>'
+                f"{detail_html}"
                 f"{controls_html}</div>"
             )
         arrow = '<div class="pipe-arrow" aria-hidden="true">↓</div>'
@@ -562,7 +673,20 @@ def _render_pipeline_tab() -> str:
     return f"""{_PIPELINE_CSS}
 <div class="pipeline-tab">
   <h2>Guardrail pipeline</h2>
-  <p class="page-desc">Everything an AI agent passes through, top to bottom. Each box shows whether it's on right now, what it does (in plain words), and the knobs you can turn. Changes save to your <code>.ravenclaude/comfort-posture.yaml</code>.</p>
+  <p class="page-desc">Everything an AI agent passes through, top to bottom. Each box shows whether it's on right now, what it does (in plain words), the step-by-step of how it works, and the knobs you can turn. Changes save to your <code>.ravenclaude/comfort-posture.yaml</code>.</p>
+  <div class="pipe-flow" role="img" aria-label="Flow: session starts, then before-each-step and after-each-step checkpoints loop for every command, then a final check when it tries to stop.">
+    <span class="pipe-flow-step">Session starts</span>
+    <span class="pipe-flow-arr">→</span>
+    <span class="pipe-flow-step pipe-flow-loop">Before each step</span>
+    <span class="pipe-flow-arr">→</span>
+    <span class="pipe-flow-step">the tool runs</span>
+    <span class="pipe-flow-arr">→</span>
+    <span class="pipe-flow-step pipe-flow-loop">After each step</span>
+    <span class="pipe-flow-arr" title="repeats for every command or edit">↺</span>
+    <span class="pipe-flow-arr">→</span>
+    <span class="pipe-flow-step">When it tries to stop</span>
+  </div>
+  <p class="page-desc pipe-readme">The two middle checkpoints repeat for <em>every</em> command and file edit — that's the ↺ loop. Open <strong>“How it works, step by step”</strong> on any box to see exactly what it checks and what happens if it trips. Badges: <span class="pipe-badge pipe-badge-on">Always on</span> can't be turned off · <span class="pipe-badge pipe-badge-advisory">Advisory</span> only nudges, never blocks · <span class="pipe-badge pipe-badge-dynamic">On / Off</span> depends on your settings (filled in live below).</p>
   <div id="pipeline-server-note" class="pipe-note" hidden>This page has no server behind it, so the live state and editors are read-only. Launch the dashboard with <code>ravenclaude dashboard --project &lt;repo&gt;</code> to edit and apply.</div>
   {body}
   <div class="pipe-savebar">
@@ -9839,7 +9963,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <img class="brand-mark" src="{raven_mark}" width="28" height="28" alt="" aria-hidden="true">
     <h1>{title}</h1>
   </div>
-  <p class="page-desc">Your control panel for Claude&nbsp;Code guardrails — set what Claude may do, watch what it's doing, and add plugins. <a href="#/about" class="header-about-link">What is this?</a></p>
+  <p class="page-desc">This is your control panel for Claude&nbsp;Code's safety rails. Use it to set what Claude is allowed to do, see what it's been doing, and add plugins. <a href="#/about" class="header-about-link">What is this?</a></p>
   <nav class="cat-bar" aria-label="Dashboard categories">
     <button class="cat-btn" type="button" data-cat="setup" aria-pressed="true" title="Set up — Overview, permissions, the safety pipeline, and a review preview">Set up</button>
     <button class="cat-btn" type="button" data-cat="lookback" aria-pressed="false" title="Look back — review log, run feed, perimeter alerts, security log, lineage">Look back</button>

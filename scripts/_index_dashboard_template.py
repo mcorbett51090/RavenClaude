@@ -90,8 +90,26 @@ TEMPLATE = r"""<!doctype html>
       button { font-family: inherit; cursor: pointer; }
 
       /* ---------- Layout shell ---------- */
-      .app { display: grid; grid-template-columns: var(--sidebar-w) 1fr; min-height: 100vh; transition: grid-template-columns 0.25s ease; }
-      body.sidebar-collapsed .app { grid-template-columns: var(--sidebar-collapsed) 1fr; }
+      .app { display: grid; grid-template-columns: 64px var(--sidebar-w) 1fr; min-height: 100vh; transition: grid-template-columns 0.25s ease; }
+      body.sidebar-collapsed .app { grid-template-columns: 64px var(--sidebar-collapsed) 1fr; }
+
+      /* ---------- Icon rail (Intercom two-level nav: rail = sections) ---------- */
+      .rail {
+        position: sticky; top: 0; height: 100vh; width: 64px;
+        background: var(--surface); border-right: 1px solid var(--border);
+        display: flex; flex-direction: column; align-items: center; gap: 4px;
+        padding: 12px 0; z-index: 41;
+      }
+      .rail-mark { width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center;
+        border-radius: 10px; background: var(--teal-soft); border: 1px solid var(--border-strong); color: var(--teal-2); }
+      .rail-mark svg { width: 20px; height: 20px; }
+      .rail-nav { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 14px; width: 100%; }
+      .rail-item { position: relative; width: 40px; height: 40px; display: grid; place-items: center;
+        border-radius: 10px; color: var(--muted); transition: background 0.15s, color 0.15s; }
+      .rail-item svg { width: 20px; height: 20px; }
+      .rail-item:hover { background: var(--surface-2); color: var(--text); }
+      .rail-item.active { background: var(--teal-soft); color: var(--teal-2); }
+      .rail-item.active::before { content: ""; position: absolute; left: -12px; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0; background: var(--teal); }
 
       /* ---------- Sidebar ---------- */
       .sidebar {
@@ -323,8 +341,8 @@ TEMPLATE = r"""<!doctype html>
         .mkt-nav { position: static; flex-direction: row; flex-wrap: wrap; }
       }
       @media (max-width: 820px) {
-        .app { grid-template-columns: 1fr !important; }
-        .sidebar { position: fixed; left: 0; top: 0; width: var(--sidebar-w); transform: translateX(-100%); transition: transform 0.25s ease; box-shadow: var(--shadow); }
+        .app { grid-template-columns: 64px 1fr !important; }
+        .sidebar { position: fixed; left: 64px; top: 0; width: var(--sidebar-w); transform: translateX(-100%); transition: transform 0.25s ease; box-shadow: var(--shadow); }
         body.mobile-nav-open .sidebar { transform: translateX(0); }
         body.sidebar-collapsed .nav a.nav-item .label,
         body.sidebar-collapsed .brand .meta { display: revert; }
@@ -513,6 +531,13 @@ TEMPLATE = r"""<!doctype html>
   <body>
     <div class="scrim" id="scrim" aria-hidden="true"></div>
     <div class="app">
+      <!-- ======================= ICON RAIL ======================= -->
+      <aside class="rail" aria-label="Sections">
+        <a class="rail-mark" href="#/home" aria-label="RavenClaude home">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11l9-7 9 7v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 21v-7h6v7" stroke="currentColor"/></svg>
+        </a>
+        <nav class="rail-nav" id="rail-nav" aria-label="Primary sections"></nav>
+      </aside>
       <!-- ======================= SIDEBAR ======================= -->
       <aside class="sidebar" id="sidebar">
         <div class="brand">
@@ -628,6 +653,10 @@ TEMPLATE = r"""<!doctype html>
         $("#primary-nav").innerHTML =
           '<div class="group-label">Platform</div>' +
           NAV.map((n) => `<a class="nav-item${n.id === active ? " active" : ""}" href="#/${n.id}" data-nav="${n.id}"${n.id === active ? ' aria-current="page"' : ""}>${svg(n.icon)}<span class="label">${n.label}</span></a>`).join("");
+        const rail = $("#rail-nav");
+        if (rail) {
+          rail.innerHTML = NAV.map((n) => `<a class="rail-item${n.id === active ? " active" : ""}" href="#/${n.id}" title="${n.label}" aria-label="${n.label}"${n.id === active ? ' aria-current="page"' : ""}>${svg(n.icon)}</a>`).join("");
+        }
       }
 
       /* ---------------- Toast ----------------
@@ -755,7 +784,7 @@ TEMPLATE = r"""<!doctype html>
           <section class="hero">
             <span class="pill">${svg("spark")} Private Claude Code marketplace · v${esc(D.marketplace_version)}</span>
             <h1>The <span class="accent">AI Engineering Team</span> Platform</h1>
-            <p>A domain-neutral orchestration core plus ${s.plugins - 1} specialist teams — Microsoft, Salesforce, web, data, finance and compliance — wired into Claude Code with a point-and-click permission posture you control.</p>
+            <p>One main helper that runs the show, plus ${s.plugins - 1} expert teams — for Microsoft, Salesforce, web, data, finance, and safety-and-rules work. They plug into Claude Code, and <strong>you</strong> decide what they can do on their own using simple point-and-click settings.</p>
             <div class="hero-cta">
               <a class="btn primary" href="#/marketplace">${svg("market")} Explore the Marketplace</a>
               <a class="btn" href="#/configuration">${svg("sliders")} Tune Comfort Posture</a>
@@ -817,7 +846,7 @@ TEMPLATE = r"""<!doctype html>
         const domains = [...new Set(agents.map((a) => a.domain))].sort();
         $("#view").innerHTML = `
           <div class="page-head"><span class="eyebrow">The Team</span><h1>Specialist roster &amp; collaboration</h1>
-            <p class="lede">${agents.length} agents across ${D.plugins.length} plugins. The Team Lead dispatches; specialists execute. Filter the roster, browse the skills &amp; hooks library, and review the rules that govern hand-offs.</p></div>
+            <p class="lede">${agents.length} agents across ${D.plugins.length} plugins. One agent — the Team Lead — hands out the work, and the expert agents do it. Search the list below, look through the skills they can use and the safety checks that run, and read the rules for how they pass work to each other.</p></div>
 
           <div class="section-title"><h2>Agents roster</h2><span class="hint" id="roster-count"></span></div>
           <div class="roster-controls">
@@ -882,7 +911,7 @@ TEMPLATE = r"""<!doctype html>
 
         $("#view").innerHTML = `
           <div class="page-head"><span class="eyebrow">Marketplace</span><h1>Browse the plugin catalog</h1>
-            <p class="lede">${D.plugins.length} opinionated plugins, grouped by domain. Each ships specialist agents, skills, and a knowledge bank. Pick a category or search across everything.</p></div>
+            <p class="lede">${D.plugins.length} ready-made plugins, sorted by topic. Each one comes with expert agents, skills they can use, and a built-in pile of know-how. Pick a group, or search across all of them.</p></div>
           <div class="mkt-filters">
             <input type="search" id="mkt-q" placeholder="Search plugins by name, description or technology…" value="${esc(mktState.q)}" aria-label="Search plugins" />
           </div>
@@ -1006,7 +1035,7 @@ TEMPLATE = r"""<!doctype html>
 
         $("#view").innerHTML = `
           <div class="page-head"><span class="eyebrow">Configuration</span><h1>Comfort posture &amp; environment</h1>
-            <p class="lede">Set how much your agents do without asking — per category, on a deny / ask / allow scale. Start from a profile, fine-tune, then copy the generated <code>comfort-posture.yaml</code>. The always-on security floor can never be relaxed.</p></div>
+            <p class="lede">Decide how much your agents can do without stopping to ask you. For each kind of action, pick one of three levels: <b>deny</b> (never), <b>ask</b> (check with me first), or <b>allow</b> (go ahead). Start from a ready-made profile, change what you want, then copy the <code>comfort-posture.yaml</code> file it makes. A few always-on safety rules can never be turned off.</p></div>
 
           <div class="callout" style="margin-bottom:20px">${svg("info")}<span>This editor produces the <b>project-layer</b> baseline. For the full per-layer (user / local / project) editor with live writes to <code>.claude/settings.json</code>, open the deep dashboard via <code>/dashboard</code> or <a href="plugins/ravenclaude-core/dashboard.html">dashboard.html</a>.</span></div>
 
