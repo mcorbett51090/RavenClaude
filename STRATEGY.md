@@ -1,19 +1,36 @@
 # 🧭 RavenClaude — Strategy
 
-**Status:** Stub. The content of this document is pending Matt's direction.
+**Status:** Intentionally minimal — closed 2026-06-02.
 
-This file is reserved for RavenClaude's medium-term strategic direction: the boundary between the **public core** (the open marketplace of agents, skills, hooks, and templates that anyone can install) and any **private / internal extensions** (engagement-specific knowledge banks, partner-confidential templates, paid premium plugins, or productized consulting deliverables). It is also the home for packaging-and-distribution decisions — pricing model, free-vs-paid tiering, the Power Platform / Microsoft-stack consulting front-door, and the SaaS bet timeline.
+RavenClaude is built as a **private consulting-craft tool**, not a productized SaaS or a public marketplace play. There is no public-vs-private packaging decision the marketplace currently needs to surface, no pricing tier to design, and no SaaS bet to time. The repo is private; collaborators are named; engagements use the agents directly. Strategy lives in Matt's session memory and engagement notes — not in a versioned source file that risks rotting against shifting reality.
 
-The placeholder exists so the `.repo-layout.json` glob reservation is backed by a real file, the layout hook and CI don't drop a future write, and the link from [`GETTING_STARTED.md`](GETTING_STARTED.md) "Where to go next" table doesn't 404. Content arrives once direction is set.
+If that frame ever changes — public packaging, a paid tier, a partner program — this document gets rewritten with concrete direction at that point. Until then, **the absence of strategy prose is the strategy: ship craft, not a deck.**
 
-**Until then:**
+## What this document is NOT trying to be
 
-- The business direction (consulting-first; $25–50k per engagement; SaaS a long bet) is the load-bearing prior. Maintainer-private; lives in Matt's session memory, not in this repo.
-- Plugin-versioning and compatibility-direction prose lives in [`docs/best-practices/plugin-versioning.md`](docs/best-practices/plugin-versioning.md).
-- Public-vs-private posture for individual files is governed by the existing `.gitignore` + `.repo-layout.json` discipline plus the `email`-field-removal rule in [`AGENTS.md`](AGENTS.md) §PR conventions.
+- A product roadmap (that's `CHANGELOG.md` + the deferred-decisions queue in memory).
+- A pricing or licensing position (none exists publicly; engagements quote directly).
+- A community / open-source pitch (the marketplace is private; collaborator access is gated).
+- A competitive positioning piece (positioning happens at engagement time, not in a static doc).
 
-To author the content, open a follow-up PR titled `docs(strategy): author public-core/private-extension direction` and replace this file's body.
+## What governs strategic decisions today
+
+- **Business direction** (consulting-first, $25–50k per engagement, SaaS a long bet) — Matt's session memory, not in-repo.
+- **Plugin versioning + compatibility direction** — [`docs/best-practices/plugin-versioning.md`](docs/best-practices/plugin-versioning.md).
+- **Public-vs-private file posture** — `.gitignore` + `.repo-layout.json` + the email-field-removal rule in [`AGENTS.md`](AGENTS.md) §PR conventions.
+- **Aesthetic direction across surfaces** — [`plugins/ravenclaude-core/dashboard-assets/README.md`](plugins/ravenclaude-core/dashboard-assets/README.md) "Surface aesthetic map" section.
+
+## Reopening criteria
+
+Reopen this document only if one of these triggers fires:
+
+1. A real consumer asks for a paid tier or public listing.
+2. A potential partner asks "what's your roadmap for X" and the answer needs a written form.
+3. The repo moves from private to public.
+4. A capacity decision is needed (e.g., the marketplace adds a hard plugin limit).
+
+Until then, this file remains intentionally short.
 
 ---
 
-_Stub created 2026-06-01 as part of the P0–P2 gap-closure bundle (v0.101.0). See `docs/gap-closure-plan-2026-06-01.md` if present, or the PR body of the introducing commit for context._
+_Closed 2026-06-02 (v0.104.0) — after 3 PRs of deferral, the panel correctly identified this as queue debt rather than a real pending decision. Closing as "intentionally minimal" removes it from the decisions-deferred stack._

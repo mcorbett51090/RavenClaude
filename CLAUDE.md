@@ -6,27 +6,30 @@ This file is Claude Code's entry point. The `@AGENTS.md` import above pulls in t
 
 ---
 
-## Remote-environment PR mechanics (Claude Code on the web) — added 2026-05-31
+## Remote-environment PR mechanics (Claude Code on the web) — refreshed 2026-06-02
 
-**In the web/remote execution environment, creating a PR is *always* the GitHub MCP path — never `gh`, never the GitHub API.** A prior session wrongly reported it "couldn't create a PR" after a CLI/API dead-end; this records the one working recipe so that never recurs.
+**In the web/remote execution environment, two PR paths work today.** Verify which is loaded; don't infer absence from a single dead-end.
 
-The capability chain here has exactly one live path:
-
-| Path | Works? | Why |
+| Path | Works? | When to use |
 |---|---|---|
-| `gh` / `hub` CLI | ❌ | Not installed in the container (`command -v gh` → not found) |
-| Direct GitHub API (`curl api.github.com`) | ❌ | Network policy returns `403` |
-| `git push` | ✅ (push only) | Remote is a **local git proxy** (`http://local_proxy@127.0.0.1:.../git/...`), not github.com — moves commits, can't open PRs |
-| **GitHub MCP server** (`mcp__github__*`) | ✅ | The only sanctioned PR path |
+| **`gh pr create`** (the standard GitHub CLI) | ✅ — primary | When `command -v gh` returns a path AND `gh auth status` is green. Verified at `/usr/bin/gh` authenticated via `GITHUB_TOKEN` in this environment as of 2026-06-01 (PRs #207, #208, #209, ...). |
+| **GitHub MCP server** (`mcp__github__*`) | ✅ — fallback | When `gh` is absent OR MCP is what the session has loaded. Deferred + lazy-loaded — at session start the tools may be name-only; **run `ToolSearch` first** (it waits for connecting servers and loads the schema). Don't declare the capability absent unless ToolSearch itself returns nothing. |
+| Direct GitHub API (`curl api.github.com`) | ✅ — verified working | `HTTP 200` against `https://api.github.com/repos/mcorbett51090/RavenClaude` with `Authorization: Bearer $GITHUB_TOKEN`. The prior "403 from network policy" claim is stale. Useful as a last-resort scriptable path. |
+| `git push` | ✅ (push only) | Moves commits; doesn't open PRs. Always works. |
 
-**Working recipe:** `git push -u origin <branch>` → **ToolSearch** the deferred schema (`select:mcp__github__list_pull_requests,mcp__github__create_pull_request`) → `list_pull_requests` (dedupe) → `create_pull_request` with `draft:true`.
+**Standard recipe (now):**
 
-**Two traps that caused the false "can't create a PR":**
+```bash
+git push -u origin <branch>        # push first
+gh pr list --head <branch>          # dedupe
+gh pr create --base main --head <branch> --title "…" --body "…"
+```
 
-1. **`mcp__github__*` tools are deferred + lazy-loaded.** At session start the github MCP server may show as *"still connecting"* and its tools are name-only (no schema) — calling one directly fails with `InputValidationError`. **Run `ToolSearch` first** (it waits for connecting servers and loads the schema); only declare the capability absent if ToolSearch itself returns nothing. Never infer "tool doesn't exist" from a missing schema.
-2. **A `gh: not found` or API `403` is the *wrong path*, not a missing capability.** Don't generalize a CLI/API failure into "no PR capability." The session-start capability hook says it plainly: *consult it before claiming you "can't" do something.*
+**Fallback recipe (if `gh` is not in PATH):** ToolSearch the `mcp__github__create_pull_request` schema, then call it. Equivalent semantics.
 
-**Owner/repo casing:** the git remote reads `mcorbett51090/RavenClaude` (capital R); the MCP scope is `mcorbett51090/ravenclaude` (lowercase). GitHub is case-insensitive, so either works — don't hard-fail on the mismatch.
+**Why this section was rewritten.** A prior session in May 2026 reported "I can't create a PR" after `gh: not found` + API `403`, then later discovered the MCP path. That session's CLAUDE.md update documented "MCP only" as the eternal truth. The environment has since changed — `gh` is now installed, the token works against the direct API, and the MCP path is one of several. **The lesson the prior incident actually taught**: a single dead-end is not a missing capability — enumerate alternatives before claiming blocked. The recipe table above lists three working paths; check which is loaded rather than assuming.
+
+**Owner/repo casing:** the git remote reads `mcorbett51090/RavenClaude` (capital R); the MCP scope is `mcorbett51090/ravenclaude` (lowercase). GitHub is case-insensitive, so either works.
 
 ## Plan-mode default
 

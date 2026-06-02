@@ -78,3 +78,32 @@ Per-surface CSS (the structural layout, the surface-specific accent override) co
 - **Status contrast adjustment**: re-verify against `--rc-bg` using a contrast checker, update both the value and the inline `CONTRAST NOTE` comment.
 - **Adding a new shared component class**: add to `shared-tokens.css` with the `.rc-*` prefix, document in the table above, add a usage example to the surface(s) that will consume it.
 - **Adding a new surface**: read the shared tokens via the generator pattern above. Do not duplicate the token block.
+
+## Surface aesthetic map (current as of v0.104.0)
+
+The "two accents by design" framing from v0.102.0 + v0.103.0 was refined in v0.104.0 to **surface-purpose-driven**: each surface picks the aesthetic that matches what users do there, not a brand consistency rule.
+
+| Surface | Aesthetic | Theme attr | Accent | Constellation | Rationale |
+|---|---|---|---|---|---|
+| `index.html` (landing) | **Ravenpower** — dark + gold + constellation | `<html data-theme="dark">` always | `--rc-gold` (`#c9a84c` on dark) | yes | Brand surface; first impression; matches ravenpower.net |
+| `plugins/ravenclaude-core/dashboard.html` (posture editor) | **Ravenpower** — dark + gold + constellation | `<html data-theme="dark">` always | `--rc-gold` (`#c9a84c` on dark) | yes | Brand-adjacent tool; sustained interaction; Norse panels (Heimdall/Víðarr/Norns/Bifröst/Sleipnir/Níðhöggr) read as parchment-and-gilt on dark |
+| `repo-guide.html` (catalog) | **Intercom** — light beige + teal | (no theme attr) | `--rc-teal` (`#1f7f78` on light) | no | Reference catalog; long-form scanning; light bg is the right neutral; teal carries the link-color role |
+
+**No user-facing theme toggle.** v0.103.0 shipped a sun/moon toggle on index.html; v0.104.0 removed it — each surface picks the aesthetic that fits its purpose, not the user's mood. The dark-mode CSS in shared-tokens.css ships to all 3 surfaces (cost: ~3 KB; cheap) but is only ACTIVATED on the two that set `data-theme="dark"` in their template. The inert CSS on repo-guide.html is documented dead weight, kept for token coherence and possible v0.105.0+ activation.
+
+## localStorage namespace
+
+The dashboard surfaces reserve the `rc-*` prefix. Inventory:
+
+| Key | Type | Lifetime | Reset by |
+|---|---|---|---|
+| `rc-sidebar` | `"collapsed"` \| absent | persistent | Manual delete; sidebar toggle |
+| `rc-theme` | `"light"` \| `"dark"` \| absent (auto) | persistent | **Inert as of v0.104.0** — no UI to set it. The value is read on init but ignored since index.html now forces `data-theme="dark"`. Kept for forward-compat. |
+| `rc-onboarding-progress` | bit-flag int (each bit = step done) | persistent | Manual delete |
+| `rc-onboarding-dismissed` | `"1"` \| absent | persistent | ⌘K → "Show onboarding checklist" clears it |
+| `rc-palette-recent` | JSON array of palette-item labels (max 5) | persistent | Manual delete |
+| `rc-spawn-log` | JSON `{playbook, agents, ts}` | persistent | Set by future `/spawn-team` integration; not yet written by the dashboard itself |
+
+**To reset all dashboard state** (e.g., return to first-visit experience): open browser devtools, run `Object.keys(localStorage).filter(k=>k.startsWith("rc-")).forEach(k=>localStorage.removeItem(k))`. Refresh.
+
+**Plugins that author surfaces are reserved the `rc-` prefix.** Future plugin-specific localStorage keys should use their plugin name as a sub-namespace (e.g., `rc-power-platform-recent-flow`) to avoid collision.
