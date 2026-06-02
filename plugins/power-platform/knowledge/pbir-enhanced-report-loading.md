@@ -3,6 +3,8 @@
 > **Last reviewed:** 2026-06-02. Source: production lesson learned debugging the `BMA-CSP-Risk-Scoring` report (BTCSI DEV workspace) on 2026-06-02 — infinite-spinner-on-load resolved at commit `8868af0` after a multi-phase debug loop. Refresh when (a) Microsoft updates the Fabric report-definition schema versions, (b) `prototypeQuery` is re-allowed or its replacement contract changes, or (c) the `version.json` `"2.0.0"` value changes (it lagged the `$schema` URL last time — easy to miss).
 >
 > **Claim-grounding note.** This file documents a Microsoft platform contract that has *already* changed once between May and June 2026. Treat the specific schema versions, the `additionalProperties: false` enforcement, and the `version.json` value as `[verify-at-use]` — re-check against a current real-world Enhanced report before quoting them into customer code.
+>
+> **Companion files.** Read [`pbir-enhanced-reference.md`](pbir-enhanced-reference.md) when *building* a new visual / page / report JSON from scratch — that file is the full role catalog + `filterConfig` syntax + formatting-objects reference. This file is the *debug* runbook for when an existing Enhanced report won't render. Read [`sempy-fabric-reference.md`](sempy-fabric-reference.md) when the work is Python-from-a-Fabric-notebook (semantic-model interrogation, DAX execution, refresh orchestration, TOM editing) rather than file-shape authoring.
 
 ---
 
