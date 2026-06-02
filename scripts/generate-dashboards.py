@@ -5011,6 +5011,28 @@ footer.page-footer a:hover { text-decoration: underline; }
 .nid-clean { margin: 0; font-size: 12px; color: var(--accent); }
 .nid-list { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 3px; }
 .nid-list li { font-size: 11.5px; font-family: var(--font-mono); color: var(--text); word-break: break-word; }
+/* Idunn "Knowledge health" card (also a wide card inside Heimdall). */
+.heimdall-card--wide #heimdall-kh { display: flex; flex-direction: column; gap: 12px; }
+.kh-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.kh-tile { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; text-align: left; cursor: pointer; font: inherit; color: var(--text); transition: border-color 120ms ease, box-shadow 120ms ease; }
+.kh-tile:hover, .kh-tile:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; outline: none; }
+.kh-tile[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.kh-tile--stale[aria-pressed="true"] { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger) inset; }
+.kh-tile--soon[aria-pressed="true"]  { border-color: var(--warn); box-shadow: 0 0 0 1px var(--warn) inset; }
+.kh-tile-count { font-size: 22px; font-weight: 700; line-height: 1.05; color: var(--text); }
+.kh-tile--stale .kh-tile-count { color: var(--danger); }
+.kh-tile--soon  .kh-tile-count { color: var(--warn); }
+.kh-tile--fresh .kh-tile-count { color: var(--accent); }
+.kh-tile-label { display: block; margin-top: 4px; font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+.kh-meta { font-size: 11.5px; color: var(--muted); }
+.kh-drill { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+.kh-drill[hidden] { display: none; }
+.kh-drill-hdr { margin: 0 0 6px; font-size: 12px; font-weight: 700; color: var(--text); }
+.kh-drill-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; }
+.kh-drill-list li { font-size: 11.5px; font-family: var(--font-mono); color: var(--text); word-break: break-word; }
+.kh-drill-list li .kh-drill-age { color: var(--muted); margin-left: 6px; font-family: var(--font-sans, inherit); }
+.kh-clean { margin: 0; font-size: 12px; color: var(--accent); }
+.kh-error { margin: 0; font-size: 12px; color: var(--danger); }
 
 /* ── Bifröst tab — install-bridge wizard (§3.6) ── */
 .bifrost-layout { padding: 20px; }
@@ -5792,6 +5814,13 @@ _HEIMDALL_TAB_TEMPLATE = """
       <p class="heimdall-sub">Slow-rotting bits at the foundations &mdash; low-noise marketplace maintenance signals.</p>
       <div id="heimdall-debt">
         <div class="saga-empty" id="heimdall-debt-loading"><p>Loading debt signals&hellip;</p></div>
+      </div>
+    </section>
+    <section class="heimdall-card heimdall-card--wide" aria-labelledby="hm-kh-h">
+      <h3 id="hm-kh-h">Knowledge health (Idunn)</h3>
+      <p class="heimdall-sub">How current is the marketplace&rsquo;s knowledge layer? Click a bucket to drill into the files in it.</p>
+      <div id="heimdall-kh">
+        <div class="saga-empty" id="heimdall-kh-loading"><p>Loading knowledge health&hellip;</p></div>
       </div>
     </section>
   </div>
@@ -8966,6 +8995,7 @@ _JS = r"""
     renderVersionDrift(inline.versionDrift || []);
     fetchCiStatus();
     loadNidhoggr();
+    loadKnowledgeHealth();
     /* Hook events + Gjallarhorn need the served endpoint. */
     const hookHost = document.getElementById("heimdall-hooks");
     try {
@@ -9041,6 +9071,143 @@ _JS = r"""
           served
             ? hmEmpty("Could not reach /__nidhoggr. Is the server running?", "python3 scripts/serve-dashboards.py")
             : hmEmpty("Debt signals need the served dashboard — open it via", "rc dashboard")
+        );
+      }
+    }
+  }
+
+  /* Idunn "Knowledge health" — served-only (the script invocation needs file-
+   * system access GitHub Pages can't provide). Renders 4 click-to-drill bucket
+   * tiles (stale / due_soon / untracked / fresh) over plugins/* /knowledge/*.md.
+   * Click a tile → expands a sortable list of the files in that bucket. */
+  const KH_BUCKETS = [
+    { key: "stale",     label: "Stale",     cls: "kh-tile--stale" },
+    { key: "due_soon",  label: "Due soon",  cls: "kh-tile--soon" },
+    { key: "untracked", label: "Untracked", cls: "kh-tile--untracked" },
+    { key: "fresh",     label: "Fresh",     cls: "kh-tile--fresh" },
+  ];
+
+  function khEscape(s) { return String(s == null ? "" : s); }
+
+  function khDrillItems(data, bucket) {
+    if (bucket === "fresh") {
+      return (data.fresh_paths || []).map((p) => ({ path: p, age_days: null, plugin: null }));
+    }
+    return (data[bucket] || []).map((v) => ({
+      path: v.path, age_days: v.age_days, plugin: v.plugin, last_verified: v.last_verified,
+    }));
+  }
+
+  function renderKhDrill(data, bucket) {
+    const drill = document.getElementById("heimdall-kh-drill");
+    if (!drill) return;
+    if (!bucket) { drill.hidden = true; drill.replaceChildren(); return; }
+    const items = khDrillItems(data, bucket);
+    drill.hidden = false;
+    const h = document.createElement("h4");
+    h.className = "kh-drill-hdr";
+    const meta = KH_BUCKETS.find((b) => b.key === bucket);
+    h.textContent = (meta ? meta.label : bucket) + " — " + items.length + " file" + (items.length === 1 ? "" : "s");
+    drill.replaceChildren(h);
+    if (items.length === 0) {
+      const p = document.createElement("p");
+      p.className = "kh-clean";
+      p.textContent = bucket === "stale" || bucket === "due_soon" ? "nothing to re-verify" : "no files";
+      drill.appendChild(p);
+      return;
+    }
+    const ul = document.createElement("ul");
+    ul.className = "kh-drill-list";
+    /* Sort: stale + due_soon by oldest first; untracked + fresh alphabetically. */
+    if (bucket === "stale" || bucket === "due_soon") {
+      items.sort((a, b) => (b.age_days || 0) - (a.age_days || 0));
+    } else {
+      items.sort((a, b) => khEscape(a.path).localeCompare(khEscape(b.path)));
+    }
+    for (const it of items) {
+      const li = document.createElement("li");
+      li.textContent = khEscape(it.path);
+      if (it.age_days != null) {
+        const span = document.createElement("span");
+        span.className = "kh-drill-age";
+        span.textContent = "(" + it.age_days + "d, last verified " + (it.last_verified || "?") + ")";
+        li.appendChild(span);
+      }
+      ul.appendChild(li);
+    }
+    drill.appendChild(ul);
+  }
+
+  function renderKnowledgeHealth(data) {
+    const host = document.getElementById("heimdall-kh");
+    if (!host) return;
+    data = data || {};
+    if (data.error) {
+      const p = document.createElement("p");
+      p.className = "kh-error";
+      p.textContent = "Knowledge-health unavailable: " + khEscape(data.error);
+      host.replaceChildren(p);
+      return;
+    }
+    const counts = data.counts || {};
+    const total = counts.total || 0;
+    const frag = document.createDocumentFragment();
+    const meta = document.createElement("p");
+    meta.className = "kh-meta";
+    meta.textContent =
+      total + " file" + (total === 1 ? "" : "s") + " in plugins/*/knowledge/" +
+      (data.today ? " · checked " + data.today : "") +
+      (data.threshold_days ? " · stale threshold " + data.threshold_days + " days" : "");
+    frag.appendChild(meta);
+    const tiles = document.createElement("div");
+    tiles.className = "kh-tiles";
+    for (const b of KH_BUCKETS) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "kh-tile " + b.cls;
+      btn.setAttribute("aria-pressed", "false");
+      btn.setAttribute("data-bucket", b.key);
+      const n = document.createElement("span");
+      n.className = "kh-tile-count";
+      n.textContent = String(counts[b.key] || 0);
+      const lab = document.createElement("span");
+      lab.className = "kh-tile-label";
+      lab.textContent = b.label;
+      btn.append(n, lab);
+      btn.addEventListener("click", () => {
+        const already = btn.getAttribute("aria-pressed") === "true";
+        for (const sib of tiles.querySelectorAll(".kh-tile")) sib.setAttribute("aria-pressed", "false");
+        if (already) {
+          renderKhDrill(data, null);
+        } else {
+          btn.setAttribute("aria-pressed", "true");
+          renderKhDrill(data, b.key);
+        }
+      });
+      tiles.appendChild(btn);
+    }
+    frag.appendChild(tiles);
+    const drill = document.createElement("div");
+    drill.className = "kh-drill";
+    drill.id = "heimdall-kh-drill";
+    drill.hidden = true;
+    frag.appendChild(drill);
+    host.replaceChildren(frag);
+  }
+
+  async function loadKnowledgeHealth() {
+    const host = document.getElementById("heimdall-kh");
+    try {
+      const res = await fetchT("/__knowledge-health");
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      renderKnowledgeHealth(await res.json());
+    } catch (e) {
+      const served = await probeReadEndpoint();
+      if (host) {
+        host.replaceChildren(
+          served
+            ? hmEmpty("Could not reach /__knowledge-health. Is the server running?", "python3 scripts/serve-dashboards.py")
+            : hmEmpty("Knowledge-health needs the served dashboard — open it via", "rc dashboard")
         );
       }
     }

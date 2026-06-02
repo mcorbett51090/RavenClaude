@@ -96,6 +96,7 @@
     "power-platform--does-this-environment-need-managed-environments-turned-on": "8061ee66399c3815993ecbbe3e3a1ab76c6f0a50f7d5ff627ddda5e94bc8709b",
     "power-platform--environment-topology-single-multi-stage-or-per-project": "92e7e2c2682cca360d758b9d5530f33527867c0d84dd5cdfdb6eab9f1dfa3bb4",
     "power-platform--error-handling-which-resilience-pattern": "c21321154fbba886ea70d327865d67248eefb0f09af56e0792ab2487ec8c9b5e",
+    "power-platform--every-scoring-measure-returns-0-or-blank": "091fd4095f07db20327271e8101da963d3eb224f4ddab7a8ba0c40566722b041",
     "power-platform--logic-placement-business-rule-vs-power-fx-vs-flow-vs-plug-in": "219e28be52e7b24638cc5d46dbd0c4ad78cc826e1eb753b473fbc52bedf3f2a1",
     "power-platform--pa-flow-recovery-stuck-broken-off": "7dafbb86614d4ee184c715ed923b645e7cf11e4dd4dac82b1bda1a434482a69a",
     "power-platform--pbir-enhanced-report-deploys-but-won-t-load": "262a0270112a9f74fbc2ab1fe6762a6eaf325610bedba5342eccb6051f68acf6",

@@ -1,0 +1,11 @@
+{
+  "name": "good-fixture-plugin",
+  "description": "Known-good plugin manifest used by audit-gates to prove the validate-schemas CI gate passes on a structurally-valid plugin.json. Mirrors the shape of every real plugin in this marketplace: lowercase kebab-case name, a description >= 10 chars, and a valid semver version. Touching this file changes the gate's pass-on-good half — keep it canonical.",
+  "version": "0.1.0",
+  "author": {
+    "name": "RavenClaude"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": ["fixture", "audit-gates"]
+}

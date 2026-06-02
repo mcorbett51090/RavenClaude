@@ -80,6 +80,14 @@ APPLY_SCRIPT = (
     REPO_ROOT / "plugins" / "ravenclaude-core" / "scripts" / "apply-comfort-posture.py"
 )
 
+# The knowledge-health card under the Look back / Heimdall tab invokes this
+# script via subprocess and forwards its JSON. Single source of truth — the same
+# script is used by the /knowledge-health skill and the `ravenclaude doctor`
+# 7-check.
+KNOWLEDGE_HEALTH_SCRIPT = (
+    REPO_ROOT / "plugins" / "ravenclaude-core" / "scripts" / "knowledge-health.py"
+)
+
 # POST /__run lets the dashboard's one-click buttons run a FIXED, allow-listed
 # action (Codespace / local dev only — this server is never public). Security
 # envelope (non-negotiable): each action name maps to ONE fixed argv built from
@@ -781,6 +789,50 @@ def _read_nidhoggr(repo_root: Path) -> dict:
     return out
 
 
+def _read_knowledge_health(repo_root: Path) -> dict:
+    """Knowledge-health card — bucket-counts + drill-down for files under
+    plugins/*/knowledge/*.md, by last-verified age. Delegates to the canonical
+    knowledge-health.py script (single source of truth — same script also
+    backs the /knowledge-health skill + the doctor 7-check). Read-only.
+    Duplicated byte-identically in both server copies (parity gate guards
+    endpoint NAMES; this helper is duplicated, so edit both). A subprocess
+    failure / missing script yields an empty payload with `error`, never
+    raises."""
+    empty = {
+        "schema_version": 1,
+        "counts": {"stale": 0, "due_soon": 0, "untracked": 0, "fresh": 0, "total": 0},
+        "stale": [],
+        "due_soon": [],
+        "untracked": [],
+        "fresh_paths": [],
+        "today": "",
+        "threshold_days": 90,
+    }
+    if not KNOWLEDGE_HEALTH_SCRIPT.is_file():
+        empty["error"] = "knowledge-health.py not found"
+        return empty
+    try:
+        proc = subprocess.run(
+            [sys.executable, str(KNOWLEDGE_HEALTH_SCRIPT), "--json"],
+            cwd=str(repo_root),
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+    except (subprocess.SubprocessError, OSError) as e:
+        empty["error"] = f"subprocess failed: {e}"
+        return empty
+    if proc.returncode != 0:
+        empty["error"] = f"knowledge-health.py exit {proc.returncode}"
+        return empty
+    try:
+        return json.loads(proc.stdout)
+    except json.JSONDecodeError as e:
+        empty["error"] = f"invalid JSON: {e}"
+        return empty
+
+
 def _read_sleipnir(project_root: Path) -> dict:
     """Sleipnir's stables — the current git worktrees under .claude/worktrees/.
     Read-only directory listing (names + count), no git invocation. Reads only
@@ -896,7 +948,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         return length
 
     def do_HEAD(self):
-        if self.path in ("/__save", "/__run", "/__classify", "/__csrf") or self.path.startswith("/__read") or self.path.startswith("/__saga") or self.path.startswith("/__heimdall") or self.path.startswith("/__vidarr") or self.path.startswith("/__norns") or self.path.startswith("/__nidhoggr") or self.path.startswith("/__sleipnir") or self.path.startswith("/__runs") or self.path.startswith("/__concern-stats"):
+        if self.path in ("/__save", "/__run", "/__classify", "/__csrf") or self.path.startswith("/__read") or self.path.startswith("/__saga") or self.path.startswith("/__heimdall") or self.path.startswith("/__vidarr") or self.path.startswith("/__norns") or self.path.startswith("/__nidhoggr") or self.path.startswith("/__knowledge-health") or self.path.startswith("/__sleipnir") or self.path.startswith("/__runs") or self.path.startswith("/__concern-stats"):
             self.send_response(200)
             self.send_header("Allow", "GET, POST, HEAD")
             self.send_header("Content-Length", "0")
@@ -935,6 +987,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if self.path.startswith("/__nidhoggr"):
             self._handle_nidhoggr()
+            return
+        if self.path.startswith("/__knowledge-health"):
+            self._handle_knowledge_health()
             return
         if self.path.startswith("/__sleipnir"):
             self._handle_sleipnir()
@@ -1210,6 +1265,18 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
         self._json(200, _read_nidhoggr(REPO_ROOT))
+
+    def _handle_knowledge_health(self):
+        """GET /__knowledge-health — knowledge-health card under the Heimdall
+        tab. Delegates to knowledge-health.py via subprocess and forwards its
+        JSON (counts + bucketed lists). Read-only; same Origin/Host CSRF guard
+        as /__read. (Mirror of the bundled plugin server's /__knowledge-health
+        with REPO_ROOT → PROJECT_ROOT — kept in lockstep per the dashboard-
+        server-parity gate.)"""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        self._json(200, _read_knowledge_health(REPO_ROOT))
 
     def _handle_concern_stats(self):
         """GET /__concern-stats — per-concern false-positive signals computed
