@@ -1,0 +1,20 @@
+{
+  "name": "good-fixture-marketplace",
+  "owner": {
+    "name": "RavenClaude"
+  },
+  "metadata": {
+    "description": "Known-good marketplace manifest used by audit-gates to prove the validate-schemas CI gate passes on a structurally-valid marketplace.json. Mirrors the shape of the real marketplace catalog: top-level name, owner.name, and a non-empty plugins[] with each entry carrying name + source + version. Touching this file changes the gate's pass-on-good half."
+  },
+  "plugins": [
+    {
+      "name": "good-fixture-plugin",
+      "source": "./fixtures/good-plugin",
+      "description": "A known-good plugin entry used to prove the marketplace-schema gate validates correct shapes.",
+      "version": "0.1.0",
+      "author": {
+        "name": "RavenClaude"
+      }
+    }
+  ]
+}

@@ -2511,6 +2511,32 @@ cp -p "$TMP/plugins_edtech-partner-success_report.html.bak" plugins/edtech-partn
 rc=0; python3 scripts/generate-bi-report.py --check >/dev/null 2>&1 || rc=$?
 gate "bi-report freshness (clean tree)" must_pass "$rc"
 
+echo "── Gate 47: validate-schemas (plugin + marketplace JSON Schemas) ──────────"
+# CI workflow .github/workflows/validate-schemas.yml validates every plugin's
+# plugin.json against schemas/plugin.schema.json and the marketplace catalog
+# against schemas/marketplace.schema.json. Until this gate existed it ran but
+# had no audited known-good / known-bad fixtures — closes item 5 of the
+# v0.101.0 followups. The fixtures live at tests/fixtures/{good,bad}-plugin.json
+# and tests/fixtures/{good,bad}-marketplace.json. Keep them canonical.
+#
+# must_pass: a known-good plugin.json (kebab-case name, >=10-char description,
+# valid semver, optional author block) validates clean.
+rc=0; python3 -m jsonschema --instance tests/fixtures/good-plugin.json schemas/plugin.schema.json >/dev/null 2>&1 || rc=$?
+gate "validate-schemas plugin (good fixture)" must_pass "$rc"
+# must_fail: a known-bad plugin.json (PascalCase + underscore name "Bad_Plugin_Name"
+# violates ^[a-z][a-z0-9-]*$; description "short" violates minLength 10;
+# version "1.0" violates the semver pattern) is rejected.
+rc=0; python3 -m jsonschema --instance tests/fixtures/bad-plugin.json schemas/plugin.schema.json >/dev/null 2>&1 || rc=$?
+gate "validate-schemas plugin (bad fixture: violates name/desc/version)" must_fail "$rc"
+# must_pass: a known-good marketplace.json (top-level name + owner.name + one
+# plugin entry carrying name/source/version) validates clean.
+rc=0; python3 -m jsonschema --instance tests/fixtures/good-marketplace.json schemas/marketplace.schema.json >/dev/null 2>&1 || rc=$?
+gate "validate-schemas marketplace (good fixture)" must_pass "$rc"
+# must_fail: a known-bad marketplace.json (empty owner object missing required
+# owner.name; empty plugins[] violates minItems 1) is rejected.
+rc=0; python3 -m jsonschema --instance tests/fixtures/bad-marketplace.json schemas/marketplace.schema.json >/dev/null 2>&1 || rc=$?
+gate "validate-schemas marketplace (bad fixture: missing owner.name + empty plugins[])" must_fail "$rc"
+
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
