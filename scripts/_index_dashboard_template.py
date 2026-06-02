@@ -13,7 +13,7 @@
 # Keep this a RAW string (r"""...""") so the JS/CSS braces pass through verbatim.
 
 TEMPLATE = r"""<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -199,7 +199,7 @@ TEMPLATE = r"""<!doctype html>
         border: 1px solid var(--border); }
       .hero .pill { display: inline-flex; align-items: center; gap: 8px; font-size: 0.74rem; font-weight: 600; color: var(--teal-2); background: var(--teal-soft); border: 1px solid var(--border-strong); padding: 6px 12px; border-radius: 999px; }
       .hero h1 { margin: 18px 0 10px; }
-      .hero h1 .accent { background: linear-gradient(90deg, var(--teal-2), var(--teal-dim)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .hero h1 .accent { background: linear-gradient(90deg, var(--rc-gold, #c9a84c), var(--rc-gold-soft, #e0c478)); -webkit-background-clip: text; background-clip: text; color: transparent; }
       .hero p { color: var(--muted); max-width: 64ch; font-size: 1.05rem; }
       .hero .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
 
@@ -353,18 +353,13 @@ TEMPLATE = r"""<!doctype html>
       .nav a.nav-item.active::before { transition: width 0.18s ease, background 0.18s ease; }
       .nav a.nav-item.active:hover::before { width: 4px; }
 
-      /* ── Theme toggle button (dark mode) ───────────────────────────── */
-      .theme-toggle {
+      /* ── Raven sigil (replaces the v0.103.0 theme toggle in v0.104.0) ── */
+      .raven-sigil {
         width: 38px; height: 38px; display: grid; place-items: center;
-        border-radius: 10px; background: var(--surface); border: 1px solid var(--border);
-        color: var(--muted); cursor: pointer; transition: 0.15s;
+        color: var(--rc-gold, var(--accent));
+        flex: 0 0 auto;
       }
-      .theme-toggle:hover { color: var(--text); border-color: var(--border-strong); background: var(--surface-2); }
-      .theme-toggle:focus-visible { box-shadow: var(--rc-focus-ring); outline: none; }
-      .theme-toggle svg { width: 18px; height: 18px; }
-      .theme-toggle .moon { display: none; }
-      [data-theme="dark"] .theme-toggle .sun { display: none; }
-      [data-theme="dark"] .theme-toggle .moon { display: block; }
+      .raven-sigil svg { width: 22px; height: 22px; }
 
       /* ── ⌘K Command Palette ─────────────────────────────────────────── */
       .palette-backdrop {
@@ -499,7 +494,7 @@ TEMPLATE = r"""<!doctype html>
       .empty-illustration { width: 64px; height: 64px; margin: 0 auto 14px; color: var(--faint); opacity: 0.5; }
 
       /* Hero shine — once on first paint, not looping */
-      .hero h1 .accent { background-size: 200% 100%; animation: rcShimmerOnce 1.6s cubic-bezier(.4,0,.2,1) 0.3s 1 backwards; }
+      /* Hero shimmer removed in v0.104.0 — the gold-on-dark gradient carries the moment without an extra animation. */
 
       /* Stagger entry — first 5 cards, then uniform 250ms tail */
       .content > *:nth-child(1) { animation: rcFadeUp 0.4s ease backwards; animation-delay: 0ms; }
@@ -511,6 +506,9 @@ TEMPLATE = r"""<!doctype html>
     </style>
   </head>
   <body>
+    <!-- Constellation background — populated at runtime by inline JS at end of body
+         (substituted from dashboard-assets/constellation.js via /*__CONSTELLATION_JS__*/). -->
+    <svg id="rc-constellation" style="position:fixed;inset:0;z-index:0;pointer-events:none" aria-hidden="true"></svg>
     <div class="scrim" id="scrim" aria-hidden="true"></div>
     <div class="app">
       <!-- ======================= SIDEBAR ======================= -->
@@ -546,10 +544,9 @@ TEMPLATE = r"""<!doctype html>
             <kbd>⌘K</kbd>
           </button>
           <div class="actions">
-            <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" type="button">
-              <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-              <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
-            </button>
+            <span class="raven-sigil" aria-hidden="true" title="RavenClaude">
+              <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M3.5 13c0-3 2-6 5.5-7 .4 .8 .9 1.4 1.7 1.8 1.5-.5 3.1-.6 4.7-.2 1 .3 1.9 .9 2.5 1.8 .9 1.4 1.1 3 .5 4.6-.5 1.1-1.3 2-2.4 2.4l-.3.1c.4.6.8 1.3 1 2-1.2-.2-2.3-.5-3.3-1 .2.6.5 1.1.8 1.5-1-.2-2-.5-2.9-1l-.4.7c-2.6 0-5.2-.6-6.7-2.5-.3-.4-.5-.9-.5-1.5z"/><circle cx="14.5" cy="10.5" r=".7" fill="#14110d"/></svg>
+            </span>
             <a class="btn ghost hide-sm" href="repo-guide.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Repo Guide</a>
             <a class="btn primary" href="#/marketplace"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v4H3z"/><path d="M5 7v12h14V7"/><path d="M9 11h6"/></svg>Browse Plugins</a>
           </div>
@@ -977,11 +974,20 @@ TEMPLATE = r"""<!doctype html>
         const PROFILE_MAP = { strict_production: "strict", client_delivery: "balanced", exploratory: "exploratory", maximum_autonomy: "autonomous" };
         const LEVEL_PHRASE = { deny: "always stops you", ask: "asks before acting", allow: "proceeds silently" };
         function meansFor(preset) {
-          // Pick 3 highest-stakes categories (deny > ask > auto) and render via template
+          // Pick 3 highest-stakes categories (deny > ask > auto) and render via template.
+          // BUG #3 fix (v0.104.0): when all levels collapse to a single value
+          // (e.g., maximum_autonomy where everything inherits allow), the sort
+          // produces arbitrary first-three rather than meaningful ones —
+          // emit one summary line instead.
           const ranks = { deny: 3, ask: 2, allow: 1 };
           const entries = D.posture.categories
             .map((c) => ({ c, lv: (preset.levels && preset.levels[c.id]) || preset.global_default || "ask" }))
             .sort((a, b) => (ranks[b.lv] || 0) - (ranks[a.lv] || 0));
+          const uniqueLevels = new Set(entries.map((e) => e.lv));
+          if (uniqueLevels.size === 1 && entries.length > 0) {
+            const lv = entries[0].lv;
+            return [`All categories: ${LEVEL_PHRASE[lv] || lv}`];
+          }
           return entries.slice(0, 3).map((e) => `${e.c.title}: ${LEVEL_PHRASE[e.lv] || e.lv}`);
         }
         const scenarioGrid = D.posture.presets.map((p) => {
@@ -1113,7 +1119,6 @@ TEMPLATE = r"""<!doctype html>
           { kind: "action", label: "Apply Maximum Autonomy posture", meta: "Configuration", hay: "apply maximum autonomy posture", route: "#/configuration", preset: "maximum_autonomy" },
           { kind: "action", label: "Open posture editor", meta: "Configuration", hay: "open posture editor configuration", route: "#/configuration" },
           { kind: "action", label: "Open deep dashboard", meta: "External", hay: "open deep dashboard server", action: "copyCmd", cmd: "bash scripts/open-dashboard.sh" },
-          { kind: "action", label: "Toggle dark mode", meta: "Theme", hay: "toggle dark mode theme", action: "toggleTheme" },
           { kind: "action", label: "Show onboarding checklist", meta: "Onboarding", hay: "show onboarding checklist setup", action: "showOnboarding" },
           { kind: "action", label: "Open repo guide", meta: "External", hay: "open repo guide reference", href: "repo-guide.html" },
         ];
@@ -1154,6 +1159,22 @@ TEMPLATE = r"""<!doctype html>
           return;
         }
         let html = "";
+        // Render the "Recent" section first when input is empty
+        if (!q) {
+          let recent = [];
+          try { recent = JSON.parse(localStorage.getItem("rc-palette-recent") || "[]"); } catch (e) { recent = []; }
+          const recentItems = recent.map((label) => PALETTE_IDX.find((x) => x.label === label)).filter(Boolean).slice(0, 5);
+          if (recentItems.length) {
+            html += `<div class="palette-section"><div class="palette-section-label">Recent</div>`;
+            recentItems.forEach((m) => {
+              const i = paletteFlat.length;
+              paletteFlat.push(m);
+              const ico = svg(PALETTE_ICONS[m.kind] || "sparkle");
+              html += `<div class="palette-item" data-i="${i}" role="option"><span class="pi-ico">${ico}</span><span class="pi-label">${esc(m.label)}</span><span class="pi-meta">${esc(m.meta || "")}</span></div>`;
+            });
+            html += `</div>`;
+          }
+        }
         PALETTE_SECTIONS.forEach((sec) => {
           const inSec = matches.filter((m) => m.kind === sec.key).slice(0, 5);
           if (!inSec.length) return;
@@ -1180,14 +1201,25 @@ TEMPLATE = r"""<!doctype html>
       function paletteAction(m) {
         if (!m) return;
         closePalette();
+        // Remember this action for the palette "Recent" section
+        try {
+          const recent = JSON.parse(localStorage.getItem("rc-palette-recent") || "[]");
+          const newRecent = [m.label, ...recent.filter((x) => x !== m.label)].slice(0, 5);
+          localStorage.setItem("rc-palette-recent", JSON.stringify(newRecent));
+        } catch (e) { /* localStorage may be unavailable in sandboxed previews */ }
+
         if (m.preset) {
-          // Apply preset action — navigate to configuration; the view applies the preset on render
+          // Apply preset action — navigate to configuration; the view applies the preset on render.
+          // BUG #1 fix (v0.104.0): if already on the same hash, hashchange won't fire,
+          // so route() never re-runs and the preset never applies. Call route() directly.
           window.__pendingPreset = m.preset;
-          location.hash = m.route;
+          if (location.hash === m.route || (m.route === "#/configuration" && location.hash === "#/configuration/")) {
+            route();
+          } else {
+            location.hash = m.route;
+          }
         } else if (m.action === "copyCmd" && m.cmd) {
           window.__copy(m.cmd, `Command ${m.cmd}`);
-        } else if (m.action === "toggleTheme") {
-          toggleTheme();
         } else if (m.action === "showOnboarding") {
           localStorage.removeItem("rc-onboarding-dismissed");
           if (location.hash !== "#/home" && location.hash !== "") location.hash = "#/home";
@@ -1214,9 +1246,7 @@ TEMPLATE = r"""<!doctype html>
         $("#palette-backdrop").classList.remove("open");
         $("#palette-opener").focus();
       }
-      // Backward compatibility: existing code (gotoSearch) may be referenced elsewhere
-      const SEARCH_IDX = PALETTE_IDX;
-      function gotoSearch(m) { paletteAction(m); }
+      // (Dead SEARCH_IDX + gotoSearch aliases removed in v0.104.0 — no callers.)
 
       /* ---------------- Router ---------------- */
       function route() {
@@ -1263,25 +1293,9 @@ TEMPLATE = r"""<!doctype html>
         }
       });
 
-      // Theme toggle controller (auto-detect + manual override, persisted)
-      function applyTheme(theme) {
-        if (theme === "system") document.documentElement.removeAttribute("data-theme");
-        else document.documentElement.setAttribute("data-theme", theme);
-      }
-      function currentTheme() {
-        const saved = localStorage.getItem("rc-theme");
-        if (saved === "dark" || saved === "light") return saved;
-        return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-      }
-      function toggleTheme() {
-        const next = currentTheme() === "dark" ? "light" : "dark";
-        localStorage.setItem("rc-theme", next);
-        applyTheme(next);
-        toast({ msg: `Theme: ${next}` });
-      }
-      // Initial theme application
-      applyTheme(localStorage.getItem("rc-theme") || (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
-      $("#theme-toggle").addEventListener("click", toggleTheme);
+      // (Theme toggle removed in v0.104.0 — ravenpower aesthetic is the single
+      // brand for index.html; data-theme="dark" is forced in the <html> tag.
+      // rc-theme localStorage key kept for forward-compat but no UI to set it.)
 
       // Global key bindings: ⌘K / Ctrl+K opens palette; / opens palette too (when not typing)
       document.addEventListener("keydown", (e) => {
@@ -1291,6 +1305,12 @@ TEMPLATE = r"""<!doctype html>
       });
 
       route();
+    </script>
+
+    <!-- Constellation background renderer (read at generate-time from
+         dashboard-assets/constellation.js, inlined here via marker). -->
+    <script>
+      /*__CONSTELLATION_JS__*/
     </script>
   </body>
 </html>
