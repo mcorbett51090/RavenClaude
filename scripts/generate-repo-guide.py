@@ -1126,6 +1126,20 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
     .rg-content {{ min-width: 0; }}
     .rg-content main {{ max-width: 1180px; margin: 0; }}
     @media (max-width: 900px) {{ .rg-shell {{ grid-template-columns: 64px 1fr; }} .rg-nav {{ display: none; }} }}
+    /* ── Far-right details pane (three-pane cascade: click an item → details) ── */
+    .rg-details {{ display: none; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      background: var(--surface); border-left: 1px solid var(--border); padding: 16px 16px 32px; }}
+    .rg-details-head {{ display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }}
+    .rg-details-title {{ font-weight: 700; font-size: 0.95rem; letter-spacing: -0.01em; }}
+    .rg-details-close {{ background: transparent; border: 0; color: var(--muted); cursor: pointer; font-size: 1rem; line-height: 1; padding: 2px 7px; border-radius: 6px; }}
+    .rg-details-close:hover {{ background: var(--surface-2); color: var(--text); }}
+    .rg-details-empty {{ color: var(--muted); font-size: 0.86rem; padding: 8px 2px; line-height: 1.5; }}
+    .rg-details.has-selection .rg-details-empty {{ display: none; }}
+    .rg-details-body {{ display: none; font-size: 0.9rem; }}
+    .rg-details.has-selection .rg-details-body {{ display: block; }}
+    .rg-details-body h4 {{ font-size: 1rem; margin: 0 0 6px; }}
+    article.item.selected {{ border-color: var(--accent); box-shadow: var(--rc-shadow-sm); }}
+    @media (min-width: 1200px) {{ .rg-shell {{ grid-template-columns: 64px 248px minmax(0, 1fr) 360px; }} .rg-details {{ display: block; }} }}
     .search-row {{ display: flex; gap: 0.5rem; margin-bottom: 1rem; }}
     .search-row input {{
       flex: 1; background: var(--surface); border: 1px solid var(--border);
@@ -1387,6 +1401,11 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
   </section>
 </main>
   </div>
+  <aside class="rg-details" id="rg-details" aria-label="Details">
+    <div class="rg-details-head"><span class="rg-details-title">Details</span><button type="button" class="rg-details-close" aria-label="Clear selection">✕</button></div>
+    <div class="rg-details-empty">Click an agent, skill, hook, or template to see its full details here.</div>
+    <div class="rg-details-body"></div>
+  </aside>
 </div>
 
 <footer class="site">
@@ -1502,6 +1521,27 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
   }}
   renderIndex('');
   document.getElementById('index-search').addEventListener('input', e => renderIndex(e.target.value));
+
+  // Far-right details pane — click an item to see its full details (three-pane cascade)
+  const rgDetails = document.getElementById('rg-details');
+  if (rgDetails) {{
+    const dBody = rgDetails.querySelector('.rg-details-body');
+    const dTitle = rgDetails.querySelector('.rg-details-title');
+    const clearSel = () => document.querySelectorAll('article.item.selected').forEach(i => i.classList.remove('selected'));
+    document.querySelectorAll('article.item').forEach(item => {{
+      item.style.cursor = 'pointer';
+      item.addEventListener('click', () => {{
+        const h = item.querySelector('h4');
+        dTitle.textContent = h ? h.textContent : 'Details';
+        dBody.innerHTML = item.innerHTML;
+        rgDetails.classList.add('has-selection');
+        clearSel();
+        item.classList.add('selected');
+      }});
+    }});
+    const dClose = rgDetails.querySelector('.rg-details-close');
+    if (dClose) dClose.addEventListener('click', () => {{ rgDetails.classList.remove('has-selection'); clearSel(); }});
+  }}
 </script>
 
 <!-- Inlined Mermaid library (vendored at scripts/vendor/mermaid.min.js) -->
