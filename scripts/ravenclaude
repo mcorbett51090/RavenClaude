@@ -307,8 +307,26 @@ cmd_setup() {
   # 5. Repo-local comfort-posture dashboard launchers (scoped to this repo).
   wire_dashboard_launchers "$project"
 
-  ok "setup complete. Launch with:  rc    (or: copilot --plugin-dir $COPILOT_PKG)"
-  note "Edit this repo's posture anytime: bash .ravenclaude/dashboard.sh  (or the VS Code task 'RavenClaude: Comfort-posture dashboard')"
+  ok "setup complete."
+  note ""
+  note "Launch Copilot (in a NEW terminal so ~/.bashrc is loaded):"
+  note "    rc"
+  note "  From a non-interactive shell (e.g. inside a Copilot session itself):"
+  note "    bash -i -c rc"
+  note "  Or skip the alias entirely:"
+  note "    copilot --plugin-dir $COPILOT_PKG"
+  note ""
+  note "Dashboard (comfort-posture editor):"
+  if [ -n "${CODESPACES:-}" ] || [ -n "${CODESPACE_NAME:-}" ]; then
+    note "    auto-launches on next Codespace start at the forwarded port 8000"
+    note "    (Ports panel → 'RavenClaude dashboard' → Open in Browser)"
+    note "  Run it now without restarting:"
+  else
+    note "    auto-launches on every Codespace start at http://127.0.0.1:8000"
+    note "  Or run it now:"
+  fi
+  note "    bash .ravenclaude/dashboard.sh"
+  note "    # (or the VS Code task: 'RavenClaude: Comfort-posture dashboard')"
 }
 
 cmd_init_codespace() {
@@ -324,10 +342,59 @@ cmd_init_codespace() {
   local tpl="$CORE/templates/codespace-copilot"
   [ -d "$tpl" ] || { warn "template missing: $tpl"; return 1; }
   mkdir -p "$project/.devcontainer"
-  if [ -f "$project/.devcontainer/devcontainer.json" ]; then
-    warn ".devcontainer/devcontainer.json exists — NOT overwritten. Merge the postCreateCommand from $tpl/devcontainer.json by hand."
+  local existing="$project/.devcontainer/devcontainer.json"
+  if [ -f "$existing" ]; then
+    warn ".devcontainer/devcontainer.json exists — NOT overwritten."
+    # Check which of the four merge-required keys are missing from the existing
+    # file, and list ONLY those (so a partial existing devcontainer doesn't get
+    # the same generic warning as a virgin one). Falls back to listing all four
+    # if python3/jq are unavailable.
+    local missing=()
+    if command -v python3 >/dev/null 2>&1; then
+      local report
+      report="$(python3 - "$existing" <<'PY' 2>/dev/null || true
+import json, re, sys
+try:
+    raw = open(sys.argv[1]).read()
+    # Strip // line comments so the devcontainer JSONC parses.
+    raw = re.sub(r"//[^\n]*", "", raw)
+    cfg = json.loads(raw)
+except Exception:
+    print("ALL")
+    raise SystemExit
+required = ["postCreateCommand", "postStartCommand", "forwardPorts", "portsAttributes"]
+missing = [k for k in required if k not in cfg]
+# postCreateCommand is "present" but still needs to invoke our post-create script.
+if "postCreateCommand" in cfg:
+    pc = cfg["postCreateCommand"]
+    if isinstance(pc, str) and "ravenclaude-post-create.sh" not in pc:
+        missing.insert(0, "postCreateCommand (must invoke ravenclaude-post-create.sh)")
+print("\n".join(missing) if missing else "NONE")
+PY
+)"
+      if [ "$report" = "NONE" ]; then
+        note "  all four merge keys already present — nothing to merge"
+      elif [ "$report" = "ALL" ] || [ -z "$report" ]; then
+        note "  merge these keys from $tpl/devcontainer.json:"
+        note "    - postCreateCommand   (must invoke .devcontainer/ravenclaude-post-create.sh)"
+        note "    - postStartCommand    (auto-launches the dashboard on every Codespace start/resume)"
+        note "    - forwardPorts        (pre-forwards port 8000 so the Ports panel shows it)"
+        note "    - portsAttributes     (labels port 8000 and opens it in the browser)"
+      else
+        note "  merge these missing keys from $tpl/devcontainer.json:"
+        while IFS= read -r k; do
+          [ -n "$k" ] && note "    - $k"
+        done <<<"$report"
+      fi
+    else
+      note "  merge these keys from $tpl/devcontainer.json:"
+      note "    - postCreateCommand   (must invoke .devcontainer/ravenclaude-post-create.sh)"
+      note "    - postStartCommand    (auto-launches the dashboard on every Codespace start/resume)"
+      note "    - forwardPorts        (pre-forwards port 8000)"
+      note "    - portsAttributes     (labels port 8000, opens in browser)"
+    fi
   else
-    cp "$tpl/devcontainer.json" "$project/.devcontainer/devcontainer.json"
+    cp "$tpl/devcontainer.json" "$existing"
     ok "wrote .devcontainer/devcontainer.json"
   fi
   cp "$tpl/ravenclaude-post-create.sh" "$project/.devcontainer/ravenclaude-post-create.sh"

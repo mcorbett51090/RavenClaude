@@ -18,11 +18,22 @@ This guide is written for a maker, not a developer. If you've never seen a `.yam
 
 ---
 
+## Which path are you on?
+
+RavenClaude installs into either host. The 10-minute path is the same shape — install → dashboard → init → dispatch → wrap — but step 1 differs by host.
+
+| If you use… | Step 1 below is… | Slash commands? |
+|---|---|---|
+| **Claude Code** (`claude`) | Path A — `/plugin marketplace add` + `/plugin install` | Yes — `/dashboard`, `/init-agent-ready`, `/wrap`, etc. |
+| **GitHub Copilot CLI** (`copilot`) | Path B — `bash ~/RavenClaude/scripts/ravenclaude setup` | No — use the shell equivalents shown inline below |
+
+The rest of the guide flags any step where the two paths diverge.
+
 ## The 10-minute path
 
 ### 1 · Install the marketplace and the core plugin (≈90 sec)
 
-In any Claude Code project:
+**Path A — Claude Code.** In any Claude Code project:
 
 ```shell
 /plugin marketplace add mcorbett51090/RavenClaude
@@ -39,15 +50,37 @@ If you also want Power Platform specialists:
 /reload-plugins
 ```
 
-### 2 · Open the dashboard (≈30 sec)
+**Path B — Copilot CLI.** From any project:
 
 ```shell
-/dashboard
+# Clone the marketplace once (~/RavenClaude is the convention; override with RAVENCLAUDE_DIR).
+git clone https://github.com/mcorbett51090/RavenClaude.git ~/RavenClaude
+
+# Wire THIS repo (skills + hooks + MCP + balanced posture + rc alias). Idempotent.
+bash ~/RavenClaude/scripts/ravenclaude setup --project .
+
+# Load the new rc alias in your current shell, then launch:
+source ~/.bashrc
+rc        # in a NEW terminal — or `bash -i -c rc` from a non-interactive shell
 ```
 
-This launches the local **comfort-posture dashboard** in your browser. It's the point-and-click editor for permissions, command review, web access, and a few other knobs. Every setting you'll touch lives here; you should not need to hand-edit YAML.
+To add Power Platform:
 
-> 📖 The dashboard is also published read-only at <https://mcorbett51090.github.io/RavenClaude/plugins/ravenclaude-core/dashboard.html> if you want to browse it before you install.
+```shell
+bash ~/RavenClaude/scripts/ravenclaude setup --project . --with-plugin power-platform
+```
+
+For a brand-new repo where you'd rather type **nothing**, run `bash ~/RavenClaude/scripts/ravenclaude init-codespace --project .`, commit the resulting `.devcontainer/` files, and rebuild the Codespace — the post-create script does the rest (installs Node 22+, git-lfs, Copilot CLI, runs `setup`, auto-launches the dashboard on the forwarded port).
+
+### 2 · Open the dashboard (≈30 sec)
+
+**Path A — Claude Code:** `/dashboard`
+
+**Path B — Copilot CLI:** the dashboard auto-launches on every Codespace start at the forwarded port 8000 (Ports panel → "RavenClaude dashboard" → Open in Browser). To launch it now without restarting: `bash .ravenclaude/dashboard.sh` or `ravenclaude dashboard`.
+
+Either way you land in the local **comfort-posture dashboard** in your browser — the point-and-click editor for permissions, command review, web access, and a few other knobs. Every setting you'll touch lives here; you should not need to hand-edit YAML.
+
+> 📖 The dashboard is also published read-only at <https://mcorbett51090.github.io/RavenClaude/plugins/ravenclaude-core/dashboard.html> if you want to browse it before you install. **Save & apply does nothing on the published version** — it's a static preview with no server. Use the local one above to actually change posture.
 
 ### 3 · Choose a posture (≈2 min)
 
@@ -62,11 +95,11 @@ Click **Save & apply**. Your `.ravenclaude/comfort-posture.yaml` and `.claude/se
 
 ### 4 · Seed the project's agent boundaries (≈1 min)
 
-```shell
-/init-agent-ready
-```
+**Path A — Claude Code:** `/init-agent-ready`
 
-This creates `AGENTS.md`, `CLAUDE.md`, `.repo-layout.json`, and an optional CI workflow tailored to your repo type (application / library / monorepo / docs / data / IaC). It's idempotent — safe to re-run later.
+**Path B — Copilot CLI:** in your Copilot session, ask "use the init-agent-ready skill" (the skill is already wired into `.claude/skills` by `ravenclaude setup`).
+
+Either way this creates `AGENTS.md`, `CLAUDE.md`, `.repo-layout.json`, and an optional CI workflow tailored to your repo type (application / library / monorepo / docs / data / IaC). It's idempotent — safe to re-run later.
 
 ### 5 · Run your first governed dispatch (≈4 min)
 
@@ -81,13 +114,13 @@ Behind the scenes, the Team Lead:
 3. Each agent writes its deliverable into `.ravenclaude/runs/<run-id>/` as a structured artifact (`01-design.md`, `02-impl.json`, `03-review.json`, `summary.md`).
 4. Reads the artifacts and synthesizes a final response back to you.
 
-When you've reviewed and accepted the diff, run:
+When you've reviewed and accepted the diff:
 
-```shell
-/wrap
-```
+**Path A — Claude Code:** `/wrap`
 
-This captures what was done in `MEMORY.md` so the next session opens with the work already remembered.
+**Path B — Copilot CLI:** ask "use the wrap skill" in your Copilot session.
+
+Either way captures what was done in `MEMORY.md` so the next session opens with the work already remembered.
 
 **You're done.** That's the 10-minute path.
 

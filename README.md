@@ -38,32 +38,52 @@ Today this marketplace ships **17 plugins**:
 
 ---
 
-## Install (recommended)
+## Install
 
-In any Claude Code project where you want the agents:
+There are **two install paths**, depending on which agent host you use. Pick one and follow that column — the surfaces don't overlap (the `/plugin` slash commands exist only in Claude Code; the `ravenclaude` script exists only on the Copilot side).
 
-```shell
-/plugin marketplace add mcorbett51090/RavenClaude
-/plugin install ravenclaude-core@ravenclaude
-# Optional — add only if you're working on Power Platform:
-/plugin install power-platform@ravenclaude
-/reload-plugins
-```
+|  | **Path A — Claude Code** (recommended if you have it) | **Path B — GitHub Copilot CLI / Codespace** |
+|---|---|---|
+| **Audience** | You run `claude` and want the marketplace's agents/skills/hooks inside it. | You run `copilot` (or want the dashboard + governance in a Codespace without Claude Code). |
+| **Install** | `/plugin marketplace add mcorbett51090/RavenClaude` <br> `/plugin install ravenclaude-core@ravenclaude` <br> `/reload-plugins` | `git clone https://github.com/mcorbett51090/RavenClaude.git ~/RavenClaude` <br> `bash ~/RavenClaude/scripts/ravenclaude setup --project .` <br> `source ~/.bashrc` |
+| **Add a plugin** | `/plugin install power-platform@ravenclaude` <br> `/reload-plugins` | `bash ~/RavenClaude/scripts/ravenclaude setup --project . --with-plugin power-platform` |
+| **Update later** | `/plugin marketplace update ravenclaude` <br> `/reload-plugins` | `rc` (the alias = `ravenclaude update && copilot --plugin-dir …`) |
+| **Pin a SHA** | `/plugin marketplace add mcorbett51090/RavenClaude#<sha>` | `git -C ~/RavenClaude checkout <sha>` |
+| **Launch** | (nothing — Claude Code loads the plugin automatically) | `rc` in a NEW terminal (or `bash -i -c rc` from a non-interactive shell) |
 
 That's it. The `ravenclaude-core` specialist agents become available to the Team Lead via the `spawn-team` skill, the dispatch skills (`spawn-team`, `new-worktree`, `cleanup-worktrees`, `create-pr`, `run-full-test-suite`) are loaded, and the format/lint/test hooks fire automatically. Installing `power-platform` adds its 11 specialists alongside.
 
-To pin a specific version (recommended for client engagements where you don't want surprise updates):
+### Path B — zero-touch Codespace auto-setup
+
+For a **brand-new repo** you can skip even those commands. Stamp the Codespace template into the repo once:
 
 ```shell
-/plugin marketplace add mcorbett51090/RavenClaude#<git-sha>
+bash ~/RavenClaude/scripts/ravenclaude init-codespace --project /path/to/repo
 ```
 
-To update later:
+It drops `.devcontainer/devcontainer.json` + `.devcontainer/ravenclaude-post-create.sh` into the repo (or, if a `devcontainer.json` already exists, names the keys to merge — `postCreateCommand`, `postStartCommand`, `forwardPorts`, `portsAttributes`). Commit those, rebuild the Codespace, and on every start the post-create script installs prerequisites (Node 22+, git-lfs, Copilot CLI), wires the repo, applies the balanced posture, and adds the `rc` alias. The dashboard auto-launches on the forwarded port — no command to remember.
 
-```shell
-/plugin marketplace update ravenclaude
-/reload-plugins
-```
+### Path B prerequisites (most images already have them)
+
+The post-create script auto-installs these on Debian-family images, but if you're on an image without `apt-get` you need them present yourself:
+
+- **Node 22+** (Copilot CLI requires it). The template image `mcr.microsoft.com/devcontainers/universal:2-linux` already has Node; the `python:3.12` family does not.
+- **git-lfs** (for any repo with LFS-tracked assets).
+- **GitHub CLI** (`gh`) — used to clone a private marketplace fork via your Codespace's auth.
+
+---
+
+## The three dashboards (don't confuse them)
+
+RavenClaude ships three dashboard surfaces with similar URLs but different scopes. Most install confusion comes from clicking the wrong one.
+
+| Surface | URL / launch | What it edits | When to use |
+|---|---|---|---|
+| **Published preview** (read-only) | <https://mcorbett51090.github.io/RavenClaude/plugins/ravenclaude-core/dashboard.html> | Nothing — Save & apply is a no-op (no server) | Browse the UI before installing. **Do not** try to set a real posture here. |
+| **Marketplace local dashboard** | `bash scripts/open-dashboard.sh` (from a marketplace clone) | This marketplace repo's own `.ravenclaude/comfort-posture.yaml` | Only when **developing the marketplace itself** (you're inside `RavenClaude/`). |
+| **Per-repo consumer dashboard** | `bash .ravenclaude/dashboard.sh` or `ravenclaude dashboard` (auto-launches on Codespace start if `init-codespace` ran) | **Your repo's** `.ravenclaude/comfort-posture.yaml` + `.claude/settings.json` | Every other case. This is the one consumers should use. |
+
+If Save & apply seems to do nothing, you're almost certainly on the first row. Switch to the second or third.
 
 ---
 
