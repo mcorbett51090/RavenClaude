@@ -1109,12 +1109,20 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
     .rg-rail .tab-btn[aria-selected="true"] {{ background: var(--surface-2); border-color: var(--border); color: var(--accent); }}
     .rg-nav {{ position: sticky; top: 0; height: 100vh; overflow-y: auto; background: var(--surface);
       border-right: 1px solid var(--border); padding: 16px 12px; }}
-    .rg-nav .rg-brand {{ font-weight: 700; font-size: 1.05rem; padding: 4px 8px 6px; }}
-    .rg-nav .rg-sectionlabel {{ font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em;
+    .rg-nav .rg-brand {{ font-weight: 700; font-size: 1.05rem; letter-spacing: -0.01em; padding: 4px 8px 6px; }}
+    .rg-nav .rg-sectionlabel {{ font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
       color: var(--muted); padding: 12px 8px 4px; }}
     .rg-nav .tab-btn {{ display: flex; align-items: center; width: 100%; text-align: left;
-      padding: 9px 10px; margin: 2px 0; border-radius: 8px; border: 1px solid transparent; background: transparent; }}
+      padding: 9px 10px; margin: 2px 0; border-radius: 8px; border: 1px solid transparent; background: transparent;
+      font-size: 0.9rem; font-weight: 500; color: var(--text); letter-spacing: -0.005em; }}
     .rg-nav .tab-btn[aria-selected="true"] {{ background: var(--surface-2); color: var(--accent); border-color: transparent; font-weight: 600; }}
+    /* Per-section type hierarchy (Intercom/Zoho rhythm): bold section heads,
+       medium nav, semibold card/list titles, regular muted body, small captions. */
+    .rg-content section.panel h2 {{ font-weight: 700; letter-spacing: -0.015em; }}
+    .plugin-title h2 {{ font-weight: 700; letter-spacing: -0.01em; }}
+    article.item h4 {{ font-weight: 600; }}
+    article.item p {{ font-weight: 400; }}
+    article.item .item-path {{ font-size: 0.74rem; }}
     .rg-content {{ min-width: 0; }}
     .rg-content main {{ max-width: 1180px; margin: 0; }}
     @media (max-width: 900px) {{ .rg-shell {{ grid-template-columns: 64px 1fr; }} .rg-nav {{ display: none; }} }}
