@@ -37,6 +37,7 @@ import argparse
 import html
 import importlib.util
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -58,11 +59,20 @@ _RAVEN_LOGO_PATH = (
 
 def _load_raven_logo() -> str:
     """Return brand-mark MARKUP: the inline SVG if raven-logo.svg exists (drop
-    the real artwork there to swap it), else an <img> of the bundled PNG."""
+    the real artwork there to swap it), else an <img> of the bundled PNG.
+
+    SVG `<!-- ... -->` comments are stripped before inlining. Here the asset
+    lands in static HTML, but the sibling generate-index-dashboard.py also
+    inlines it inside a JS template literal (the onboarding-card render fn) —
+    a backtick or ${...} in an SVG comment would close that literal early and
+    kill the entire script block. Comments never render visually; stripping
+    them insulates both generators from whatever artwork lands here.
+    """
     try:
-        return _RAVEN_LOGO_PATH.read_text(encoding="utf-8").strip()
+        raw = _RAVEN_LOGO_PATH.read_text(encoding="utf-8")
     except OSError:
         return f'<img src="{_RAVEN_MARK_DATA_URI}" width="28" height="28" alt="" aria-hidden="true">'
+    return re.sub(r"<!--.*?-->", "", raw, flags=re.DOTALL).strip()
 
 
 def _load_shared_tokens_root() -> str:

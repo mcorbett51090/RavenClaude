@@ -556,10 +556,17 @@ _RAVEN_LOGO_PATH = (
 
 
 def _load_raven_logo() -> str:
+    # SVG comments (<!-- ... -->) are stripped before inlining: this asset is
+    # inlined into BOTH static HTML (the brand-mark span) AND a JS template
+    # literal (the onboarding-card render fn) — so any backtick or ${...} in
+    # an SVG comment would close the template literal early and kill the entire
+    # script block. The comments never render visually; dropping them costs
+    # nothing and makes the loader safe regardless of what artwork lands here.
     try:
-        return _RAVEN_LOGO_PATH.read_text(encoding="utf-8").strip()
+        raw = _RAVEN_LOGO_PATH.read_text(encoding="utf-8")
     except OSError:
         return ""
+    return re.sub(r"<!--.*?-->", "", raw, flags=re.DOTALL).strip()
 
 
 def _load_shared_tokens_root() -> str:
