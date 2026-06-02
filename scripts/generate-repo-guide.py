@@ -834,7 +834,7 @@ def render_use_case_table(plugins: list[Plugin]) -> str:
     )
     return f"""
       <h2>I want to…</h2>
-      <p class="usecase-help">Use this lookup to navigate from <em>what you're trying to do</em> to <em>which agent + plugin handles it</em>. Sorted starter-first then alphabetically. Filter by plugin below or search via the Index / Search tab.</p>
+      <p class="usecase-help">Start with <em>what you're trying to do</em>, and this table shows <em>which agent and plugin do it</em>. The easiest jobs are listed first, then A–Z. Narrow it down by plugin below, or use the Index / Search tab.</p>
       <div class="usecase-filter">{"".join(filter_buttons)}</div>
       <table class="usecase-table" id="usecase-table">
         <thead>
@@ -1312,7 +1312,7 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
   <section class="panel" data-panel="architecture">
     <div class="arch-doc">
       <h2>The marketplace model</h2>
-      <p>RavenClaude is a single private Claude Code plugin marketplace. The "product" of this repo is the contents of <code>plugins/</code>. Consumers run <code>/plugin install &lt;name&gt;@ravenclaude</code> from any Claude Code project to pull a plugin into their session.</p>
+      <p>RavenClaude is a private "app store" for Claude Code. The thing it ships is the set of plugins in the <code>plugins/</code> folder. To use one, run <code>/plugin install &lt;name&gt;@ravenclaude</code> inside any Claude Code project, and that plugin joins your session.</p>
       <h2>Hierarchical dispatch (Team Lead → specialists)</h2>
       <ul>
         <li>The top-level Claude session is the <strong>Team Lead</strong>.</li>

@@ -755,7 +755,7 @@ TEMPLATE = r"""<!doctype html>
           <section class="hero">
             <span class="pill">${svg("spark")} Private Claude Code marketplace · v${esc(D.marketplace_version)}</span>
             <h1>The <span class="accent">AI Engineering Team</span> Platform</h1>
-            <p>A domain-neutral orchestration core plus ${s.plugins - 1} specialist teams — Microsoft, Salesforce, web, data, finance and compliance — wired into Claude Code with a point-and-click permission posture you control.</p>
+            <p>One main helper that runs the show, plus ${s.plugins - 1} expert teams — for Microsoft, Salesforce, web, data, finance, and safety-and-rules work. They plug into Claude Code, and <strong>you</strong> decide what they can do on their own using simple point-and-click settings.</p>
             <div class="hero-cta">
               <a class="btn primary" href="#/marketplace">${svg("market")} Explore the Marketplace</a>
               <a class="btn" href="#/configuration">${svg("sliders")} Tune Comfort Posture</a>
@@ -817,7 +817,7 @@ TEMPLATE = r"""<!doctype html>
         const domains = [...new Set(agents.map((a) => a.domain))].sort();
         $("#view").innerHTML = `
           <div class="page-head"><span class="eyebrow">The Team</span><h1>Specialist roster &amp; collaboration</h1>
-            <p class="lede">${agents.length} agents across ${D.plugins.length} plugins. The Team Lead dispatches; specialists execute. Filter the roster, browse the skills &amp; hooks library, and review the rules that govern hand-offs.</p></div>
+            <p class="lede">${agents.length} agents across ${D.plugins.length} plugins. One agent — the Team Lead — hands out the work, and the expert agents do it. Search the list below, look through the skills they can use and the safety checks that run, and read the rules for how they pass work to each other.</p></div>
 
           <div class="section-title"><h2>Agents roster</h2><span class="hint" id="roster-count"></span></div>
           <div class="roster-controls">
@@ -882,7 +882,7 @@ TEMPLATE = r"""<!doctype html>
 
         $("#view").innerHTML = `
           <div class="page-head"><span class="eyebrow">Marketplace</span><h1>Browse the plugin catalog</h1>
-            <p class="lede">${D.plugins.length} opinionated plugins, grouped by domain. Each ships specialist agents, skills, and a knowledge bank. Pick a category or search across everything.</p></div>
+            <p class="lede">${D.plugins.length} ready-made plugins, sorted by topic. Each one comes with expert agents, skills they can use, and a built-in pile of know-how. Pick a group, or search across all of them.</p></div>
           <div class="mkt-filters">
             <input type="search" id="mkt-q" placeholder="Search plugins by name, description or technology…" value="${esc(mktState.q)}" aria-label="Search plugins" />
           </div>
@@ -1006,7 +1006,7 @@ TEMPLATE = r"""<!doctype html>
 
         $("#view").innerHTML = `
           <div class="page-head"><span class="eyebrow">Configuration</span><h1>Comfort posture &amp; environment</h1>
-            <p class="lede">Set how much your agents do without asking — per category, on a deny / ask / allow scale. Start from a profile, fine-tune, then copy the generated <code>comfort-posture.yaml</code>. The always-on security floor can never be relaxed.</p></div>
+            <p class="lede">Decide how much your agents can do without stopping to ask you. For each kind of action, pick one of three levels: <b>deny</b> (never), <b>ask</b> (check with me first), or <b>allow</b> (go ahead). Start from a ready-made profile, change what you want, then copy the <code>comfort-posture.yaml</code> file it makes. A few always-on safety rules can never be turned off.</p></div>
 
           <div class="callout" style="margin-bottom:20px">${svg("info")}<span>This editor produces the <b>project-layer</b> baseline. For the full per-layer (user / local / project) editor with live writes to <code>.claude/settings.json</code>, open the deep dashboard via <code>/dashboard</code> or <a href="plugins/ravenclaude-core/dashboard.html">dashboard.html</a>.</span></div>
 

@@ -9963,7 +9963,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <img class="brand-mark" src="{raven_mark}" width="28" height="28" alt="" aria-hidden="true">
     <h1>{title}</h1>
   </div>
-  <p class="page-desc">Your control panel for Claude&nbsp;Code guardrails — set what Claude may do, watch what it's doing, and add plugins. <a href="#/about" class="header-about-link">What is this?</a></p>
+  <p class="page-desc">This is your control panel for Claude&nbsp;Code's safety rails. Use it to set what Claude is allowed to do, see what it's been doing, and add plugins. <a href="#/about" class="header-about-link">What is this?</a></p>
   <nav class="cat-bar" aria-label="Dashboard categories">
     <button class="cat-btn" type="button" data-cat="setup" aria-pressed="true" title="Set up — Overview, permissions, the safety pipeline, and a review preview">Set up</button>
     <button class="cat-btn" type="button" data-cat="lookback" aria-pressed="false" title="Look back — review log, run feed, perimeter alerts, security log, lineage">Look back</button>
