@@ -33,6 +33,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -50,6 +51,46 @@ def _load_shared_tokens() -> str:
 
 def esc(s) -> str:
     return html.escape(str(s), quote=True)
+
+
+# ── Consumer theme override ─────────────────────────────────────────────────
+# A `theme` block in data.json lets a plugin's users recolour the whole report
+# without touching code or the shared design tokens. Keys map to the --rc-*
+# custom properties; the override is injected as a :root block AFTER the inlined
+# shared tokens, so it wins. Values are validated to a safe colour grammar so a
+# data file can never inject arbitrary CSS.
+_THEME_MAP = {
+    "accent": "--rc-teal", "accentSoft": "--rc-teal-soft",
+    "bg": "--rc-bg", "surface": "--rc-surface", "surface2": "--rc-surface-2",
+    "border": "--rc-border", "borderStrong": "--rc-border-strong",
+    "text": "--rc-text", "muted": "--rc-muted", "faint": "--rc-faint",
+    "ok": "--rc-ok", "warn": "--rc-warn", "danger": "--rc-danger",
+    "ink": "--rc-ink", "inkFg": "--rc-ink-fg",
+}
+_COLOR_RE = re.compile(
+    r"^(#[0-9a-fA-F]{3,8}"
+    r"|[a-zA-Z]{3,20}"  # named colour (e.g. cornflowerblue)
+    r"|(rgb|rgba|hsl|hsla)\([0-9.,%\sdeg/]+\))$"
+)
+
+
+def _safe_color(v) -> str | None:
+    v = str(v).strip()
+    return v if _COLOR_RE.match(v) else None
+
+
+def _theme_css(theme) -> str:
+    if not isinstance(theme, dict):
+        return ""
+    decls = []
+    for key, var in _THEME_MAP.items():
+        if key in theme:
+            c = _safe_color(theme[key])
+            if c:
+                decls.append(f"  {var}: {c};")
+    if not decls:
+        return ""
+    return "/* consumer theme override (from data.json `theme`) */\n:root {\n" + "\n".join(decls) + "\n}\n"
 
 
 # ── band helpers ──────────────────────────────────────────────────────────
@@ -327,6 +368,7 @@ REPORT_JS = """
 
 def render_report(data: dict, plugin: str, tokens: str) -> str:
     rep = data.get("report", {})
+    theme_css = _theme_css(data.get("theme"))
     bands = data.get("bands", {"green": [70, 100], "yellow": [50, 69], "red": [0, 49]})
     components = data.get("components", [])
     partners = data.get("partners", [])
@@ -445,7 +487,7 @@ def render_report(data: dict, plugin: str, tokens: str) -> str:
 <style>
 /*__SHARED_TOKENS__*/
 {REPORT_CSS}
-</style>
+{theme_css}</style>
 </head>
 <body>
 <div class="wrap">
@@ -848,6 +890,7 @@ REPORT_JS_GENERIC = """
 
 def render_sections(data: dict, plugin: str, tokens: str) -> str:
     rep = data.get("report", {})
+    theme_css = _theme_css(data.get("theme"))
     band_words = data.get("band_words", {"green": "Healthy", "yellow": "Watch", "red": "Act now"})
     title = esc(rep.get("title", "Report"))
     subtitle = esc(rep.get("subtitle", ""))
@@ -866,7 +909,7 @@ def render_sections(data: dict, plugin: str, tokens: str) -> str:
 <style>
 /*__SHARED_TOKENS__*/
 {REPORT_CSS}
-</style>
+{theme_css}</style>
 </head>
 <body>
 <div class="wrap">

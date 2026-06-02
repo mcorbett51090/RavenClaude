@@ -41,4 +41,10 @@ MIT © Matt Corbett
 
 ## Portfolio report (BI)
 
-A self-contained, Power-BI/Tableau-style **pipeline report — stage donut, bookings trend, funnel, per-rep table with slipping-deal drill-downs** ships with this plugin. Open [`report.html`](report.html) for the demo (synthetic data); rebuild from real data by editing [`bi-report/data.json`](bi-report/data.json) and running `python3 scripts/generate-bi-report.py --plugin salesforce`. Charts are inline SVG (no CDN); the engine + data shape are documented in [`edtech-partner-success/skills/health-report-dashboard`](../edtech-partner-success/skills/health-report-dashboard/SKILL.md).
+A self-contained, Power-BI/Tableau-style **pipeline report — stage donut, bookings trend, funnel, per-rep table with slipping-deal drill-downs** ships with this plugin.
+
+> 📊 **[▶ View the report rendered in your browser](https://mcorbett51090.github.io/RavenClaude/plugins/salesforce/report.html)** — sortable, filterable, with row drill-downs. _(Published, read-only preview of the demo / synthetic data.)_
+>
+> _(Or [view the raw HTML source](report.html), or download and open locally — no server, no build step.)_
+
+Rebuild from real data by editing [`bi-report/data.json`](bi-report/data.json) and running `python3 scripts/generate-bi-report.py --plugin salesforce`. Charts are inline SVG (no CDN); the engine + data shape are documented in [`edtech-partner-success/skills/health-report-dashboard`](../edtech-partner-success/skills/health-report-dashboard/SKILL.md).

@@ -95,6 +95,36 @@ The component keys/weights/half-lives mirror
 red-flag sentences mirror that spec's six triggers; the metric vocabulary mirrors
 [`psm-metrics-glossary.md`](../../knowledge/psm-metrics-glossary.md).
 
+## Recolouring the report (theme override)
+
+Two levels of colour control, both from `data.json` — no code:
+
+1. **Per-element** — every chart element takes a `color`: a token name (`teal`,
+   `gold`, `ok`, `warn`, `danger`, `muted`) **or a raw value** (`"#1f8ded"`).
+   Status bands map to `ok`/`warn`/`danger`.
+2. **Whole-report theme** — an optional top-level `theme` block re-skins the
+   entire report (canvas, cards, accent, status colours) by overriding the
+   shared `--rc-*` tokens. Absent ⇒ the marketplace defaults (Intercom cool-grey
+   + teal). It's injected as a `:root` block **after** the inlined tokens, so it
+   wins; values are validated to a safe colour grammar (hex / `rgb()` / `hsl()` /
+   named) so a data file can never inject arbitrary CSS.
+
+```jsonc
+"theme": {
+  "accent":  "#1f8ded",   // links, trend line, the chosen-accent chart colour
+  "bg":      "#f5f6f8",   // page canvas
+  "surface": "#ffffff",   // cards
+  "border":  "#e3e6ea",
+  "text":    "#1c1f23",   "muted": "#5b6166",   "faint": "#8e959c",
+  "ok": "#1a7f4b", "warn": "#b7791f", "danger": "#d14343",
+  "ink": "#1c1f23"        // charcoal primary-button fill
+}
+```
+
+Keys are all optional (set only what you want to change). **A11y:** if you pick a
+new `accent`, verify it still passes WCAG AA on your `bg` before shipping — the
+accent carries links and text, not just decoration.
+
 ## FERPA / privacy (load-bearing)
 
 - **Synthetic identifiers only in anything that ships or is shared.** The demo
