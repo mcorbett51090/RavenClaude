@@ -12,7 +12,9 @@ Each generator reads [`shared-tokens.css`](shared-tokens.css) at generate-time a
 
 ## Aesthetic
 
-Intercom-inspired. Light beige monochromatic base (`#faf7f0`), warm near-black text (`#1a1614`), generous whitespace (16-24-32 padding rhythm), Inter typography with tight letter-spacing, very soft shadows.
+Intercom-style **card / tile UI**. Light beige monochromatic canvas (`#faf7f0`), discrete **white tiles** (`.rc-card` — hairline border + very soft warm shadow + 16px radius + a gentle `translateY(-2px)` hover lift), warm near-black text (`#1a1614`), generous whitespace (16-24-32 padding rhythm), Inter typography with tight letter-spacing. The page reads as separated content cards floating on the canvas, not one flat sheet.
+
+**Accent is minimal — a whisper, not a fill.** The accent appears only as: a thin hairline rule (`.rc-rule`), a 3px card outline to flag a primary/active tile (`.rc-card--accent` / `--accent-gold`), the active nav-item tint, the occasional link/heading, and a single primary CTA. Everything else is monochrome. Never gradient-fill a card or wrap it in an accent glow — a flat fill + a real elevation shadow is what reads as "tile." For the full design rationale + the dark-theme-residue audit (the usual reason a card page renders flat), see the [`web-design/card-tile-ui`](../../web-design/skills/card-tile-ui/SKILL.md) skill and [`web-design/knowledge/card-tile-ui-pattern-2026.md`](../../web-design/knowledge/card-tile-ui-pattern-2026.md).
 
 **Two accents — by design.** Gold (`#a8882e`) is the dashboard's accent and preserves its Norse identity (Heimdall, Víðarr, Norns, Bifröst, Sleipnir, Níðhöggr — gold on light beige reads as parchment-and-gilt, Lindisfarne-Gospels-thematic). Teal (`#1f7f78`) is the consumer-facing accent for landing + catalog. A consumer who lands on `index.html` and clicks into the dashboard will see the accent shift; the shift is intentional and consistent — every surface has ONE accent, what it is differs by surface.
 
@@ -48,6 +50,7 @@ Every shared component class is prefixed `.rc-*` (e.g. `.rc-card`, `.rc-pill`, `
 
 Do:
 - Use `.rc-card`, `.rc-pill`, etc. for any pattern that should look identical across surfaces.
+- Reach for the minimal-accent utilities — `.rc-card--accent` / `.rc-card--accent-gold` (a 3px accent edge to flag a primary/active tile) and `.rc-rule` / `.rc-rule--gold` (a faded-end hairline accent line) — instead of accent-tinting whole surfaces.
 - Extend with surface-specific modifier classes when needed (e.g., `.rc-tab--gold` for the dashboard's gold variant).
 
 Don't:

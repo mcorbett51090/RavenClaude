@@ -75,10 +75,7 @@ TEMPLATE = r"""<!doctype html>
         margin: 0;
         font-family: var(--font-sans);
         color: var(--text);
-        background:
-          radial-gradient(1100px 700px at 100% -10%, rgba(45, 212, 191, 0.10), transparent 60%),
-          radial-gradient(900px 600px at -10% 10%, rgba(56, 189, 248, 0.08), transparent 55%),
-          var(--bg);
+        background: var(--bg);
         -webkit-font-smoothing: antialiased;
         text-rendering: optimizeLegibility;
         min-height: 100vh;
@@ -88,7 +85,7 @@ TEMPLATE = r"""<!doctype html>
       h1, h2, h3, h4 { letter-spacing: -0.02em; line-height: 1.15; margin: 0; }
       h1 { font-size: clamp(1.9rem, 4vw, 2.8rem); }
       p { line-height: 1.6; }
-      ::selection { background: var(--teal); color: #04121a; }
+      ::selection { background: var(--teal); color: #fff; }
       :focus-visible { outline: none; box-shadow: var(--ring); border-radius: 8px; }
       button { font-family: inherit; cursor: pointer; }
 
@@ -135,7 +132,7 @@ TEMPLATE = r"""<!doctype html>
       .topbar {
         position: sticky; top: 0; z-index: 30; height: var(--topbar-h);
         display: flex; align-items: center; gap: 14px; padding: 0 20px;
-        background: rgba(11, 17, 32, 0.82); backdrop-filter: blur(12px);
+        background: rgba(255, 255, 255, 0.82); backdrop-filter: blur(12px);
         border-bottom: 1px solid var(--border);
       }
       .icon-btn { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); transition: 0.15s; }
@@ -174,8 +171,8 @@ TEMPLATE = r"""<!doctype html>
       }
       .btn svg { width: 16px; height: 16px; }
       .btn:hover { border-color: var(--border-strong); background: var(--surface-2); }
-      .btn.primary { background: linear-gradient(180deg, var(--teal), var(--teal-dim)); color: #04121a; border-color: transparent; box-shadow: 0 8px 22px -10px var(--teal-glow); }
-      .btn.primary:hover { filter: brightness(1.06); }
+      .btn.primary { background: var(--teal); color: #fff; border-color: var(--teal); box-shadow: var(--rc-shadow-sm); }
+      .btn.primary:hover { background: var(--teal-dim); border-color: var(--teal-dim); }
       .btn.ghost { background: transparent; }
       .hide-sm { }
 
@@ -186,17 +183,20 @@ TEMPLATE = r"""<!doctype html>
       .page-head .eyebrow { color: var(--teal-2); font-size: 0.74rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
       .page-head p.lede { color: var(--muted); margin-top: 8px; max-width: 70ch; }
 
-      .card { background: linear-gradient(180deg, var(--surface), var(--bg-2)); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; transition: 0.18s; }
-      .card:hover { border-color: var(--border-strong); transform: translateY(-2px); box-shadow: var(--shadow); }
+      .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--rc-shadow-sm); transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.18s ease; }
+      .card:hover { border-color: var(--border-strong); transform: translateY(-2px); box-shadow: var(--rc-shadow-md); }
       .grid { display: grid; gap: 16px; }
       .cols-2 { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
       .cols-3 { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
       .cols-4 { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
 
       /* Hero */
-      .hero { position: relative; overflow: hidden; border-radius: 20px; padding: clamp(28px, 5vw, 52px); margin-bottom: 28px;
-        background: radial-gradient(700px 360px at 88% -20%, rgba(45,212,191,0.18), transparent 60%), linear-gradient(180deg, var(--surface), var(--bg-2));
-        border: 1px solid var(--border); }
+      .hero { position: relative; overflow: hidden; border-radius: var(--radius); padding: clamp(28px, 5vw, 52px); margin-bottom: 28px;
+        background: var(--surface);
+        border: 1px solid var(--border); box-shadow: var(--rc-shadow-sm); }
+      /* Signature thin teal hairline across the hero top edge (minimal accent). */
+      .hero::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+        background: linear-gradient(90deg, transparent, var(--teal) 50%, transparent); opacity: 0.55; }
       .hero .pill { display: inline-flex; align-items: center; gap: 8px; font-size: 0.74rem; font-weight: 600; color: var(--teal-2); background: var(--teal-soft); border: 1px solid var(--border-strong); padding: 6px 12px; border-radius: 999px; }
       .hero h1 { margin: 18px 0 10px; }
       .hero h1 .accent { background: linear-gradient(90deg, var(--teal-2), var(--teal-dim)); -webkit-background-clip: text; background-clip: text; color: transparent; }
@@ -288,7 +288,7 @@ TEMPLATE = r"""<!doctype html>
       .seg button[data-level="allow"].on { background: rgba(52,211,153,0.18); color: var(--allow); }
 
       .yaml-panel { position: sticky; top: calc(var(--topbar-h) + 20px); }
-      .yaml-panel pre { background: #060c16; border: 1px solid var(--border); border-radius: 12px; padding: 14px; overflow: auto; max-height: 460px; font-family: var(--font-mono); font-size: 0.76rem; color: #cfe7e2; line-height: 1.5; }
+      .yaml-panel pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; overflow: auto; max-height: 460px; font-family: var(--font-mono); font-size: 0.76rem; color: var(--text); line-height: 1.5; }
       .yaml-panel .yp-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
       .toggle-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
       .switch { position: relative; width: 46px; height: 26px; flex: 0 0 auto; }
@@ -461,8 +461,8 @@ TEMPLATE = r"""<!doctype html>
 
       /* ── Onboarding checklist ──────────────────────────────────────── */
       .onboarding-card {
-        background: linear-gradient(180deg, var(--surface), var(--surface-2));
-        border: 1px solid var(--border); border-radius: 14px;
+        background: var(--surface);
+        border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--rc-shadow-sm);
         padding: 20px 22px; margin-bottom: 22px;
       }
       .onboarding-head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }

@@ -41,6 +41,7 @@ Take a frontend implementation goal — "build this page from the wireframe + to
 - **HTML semantics**: heading hierarchy, landmark roles (`<main>`, `<nav>`, `<header>`, `<footer>`, `<aside>`), form structure (`<label>` + `<input>` association), list semantics
 - **CSS**: layout (flexbox, grid), responsive (mobile-first media queries, container queries when supported), CSS custom properties for tokens, cascade hygiene
 - **JavaScript / TypeScript**: vanilla DOM patterns, React (functional + hooks), Astro (component islands), Next (App Router / RSC), state management when warranted
+- **Card / tile surfaces**: implementing the Intercom-style card UI — a `.card` (flat `var(--surface)` fill + 1px hairline border + soft `box-shadow` + 12–16px radius + a `translateY(-2px)` hover lift, motion gated by `prefers-reduced-motion`), a persistent navigation rail, and accent applied only as a hairline rule / 3px card outline / active-nav tint / single CTA. Drive the [`card-tile-ui`](../skills/card-tile-ui/SKILL.md) skill; **audit first for dark-theme color residue** (navy bars, `#0b1120`/`#060c16` panels, near-black button text, cool `rgba(45,212,191,…)` gradients) — token-route those literals rather than leaving them to clash on the light canvas.
 - **Component libraries**: building reusable components from design-system tokens, Storybook setup, prop API design, composability over configuration. **Fluent UI v9** (`@fluentui/react-components`, Griffel, FluentProvider, BrandVariants → `createLightTheme`/`createDarkTheme`, Next App Router SSR) is a first-class capability — drive the [`fluent-react-implementation`](../skills/fluent-react-implementation/SKILL.md) skill + [`../knowledge/fluent-react-for-web-2026.md`](../knowledge/fluent-react-for-web-2026.md) for Fluent/React builds; choose Fluent vs headless via [`../knowledge/design-systems-and-component-architecture-2026.md`](../knowledge/design-systems-and-component-architecture-2026.md)
 - **Accessibility implementation**: focus management, keyboard handling, ARIA usage, live regions, focus traps for modals
 - **Responsive patterns**: fluid type, fluid spacing, container queries, breakpoint discipline
@@ -130,4 +131,5 @@ See [`../../ravenclaude-core/skills/structured-output/SKILL.md`](../../ravenclau
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
 - Skill: [`../skills/design-system-audit/SKILL.md`](../skills/design-system-audit/SKILL.md)
+- Skill: [`../skills/card-tile-ui/SKILL.md`](../skills/card-tile-ui/SKILL.md)
 - Skill: [`../skills/accessibility-review/SKILL.md`](../skills/accessibility-review/SKILL.md)

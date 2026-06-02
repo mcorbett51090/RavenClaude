@@ -13,7 +13,7 @@
       "name": "ravenclaude-core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: a Team Lead that dispatches 14 specialist agents (architect, coders, reviewers, tester-QA, data-engineer, project-manager, documentarian, designer, prompt-engineer, partner-success), 23 skills, format/lint/test gates, hooks, rules, and templates. Ships the Capability Grounding Protocol (pre-action environment + decision-tree checks, alternate-methods enumeration, honest blocked-reporting), the Structured Output Protocol for agent handoffs, a Researcher meta-skill for knowledge freshness, and a point-and-click comfort-posture dashboard that writes Claude Code permission rules \u2014 per layer (user/local/project) and per individual permission, on a 3-level deny/ask/allow scale, plus an opt-in command-review tribunal (the Thing): a tiered panel voting allow/edit/deny, with a human-gate. Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /doctor. Domain plugins extend core via skills + knowledge rather than parallel agents.",
-      "version": "0.103.0",
+      "version": "0.104.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -91,8 +91,8 @@
     {
       "name": "web-design",
       "source": "./plugins/web-design",
-      "description": "Web design & build specialist team \u2014 web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens), frontend implementer (HTML/CSS/JS, React, Astro, Next), content strategist (copy, microcopy, SEO content), accessibility auditor (WCAG 2.2 AA/AAA), and performance engineer (Core Web Vitals, image/font optimization). 10 skills (design-system audit, accessibility review, Core Web Vitals tuning, technical SEO audit, information architecture, conversion design, content audit, design-tokens scaffolding, third-party-script hygiene, Fluent UI v9 + React implementation), 8 templates, 1 advisory hook, and a knowledge bank seeded with a curated 2026 reference set of \"cutting edge yet simple\" marketing-site donors (Linear, Vercel, Raycast, Resend, Cursor, v0, Tldraw, Cal.com) \u2014 visual-designer / ux-designer / frontend-implementer / web-architect all carry compact inline priors plus a pointer to the full brief. Inherits ravenclaude-core protocols.",
-      "version": "0.10.0",
+      "description": "Web design & build specialist team \u2014 web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens), frontend implementer (HTML/CSS/JS, React, Astro, Next), content strategist (copy, microcopy, SEO content), accessibility auditor (WCAG 2.2 AA/AAA), and performance engineer (Core Web Vitals, image/font optimization). 11 skills (design-system audit, card/tile UI, accessibility review, Core Web Vitals tuning, technical SEO audit, information architecture, conversion design, content audit, design-tokens scaffolding, third-party hygiene, Fluent UI v9 + React implementation), 8 templates, 1 advisory hook, and a knowledge bank seeded with a curated 2026 reference set of \"cutting edge yet simple\" marketing-site donors (Linear, Vercel, Raycast, Resend, Cursor, v0, Tldraw, Cal.com) \u2014 visual-designer / ux-designer / frontend-implementer / web-architect all carry compact inline priors plus a pointer to the full brief. Inherits ravenclaude-core protocols.",
+      "version": "0.11.0",
       "author": {
         "name": "Matt Corbett"
       },

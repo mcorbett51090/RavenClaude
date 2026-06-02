@@ -1070,7 +1070,7 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
     code {{ font-family: var(--font-mono); background: var(--surface-2); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; }}
     header.site {{
       position: sticky; top: 0; z-index: 50;
-      background: rgba(11,17,32,0.92); backdrop-filter: blur(8px);
+      background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(8px);
       border-bottom: 1px solid var(--border);
       padding: 1rem 1.5rem;
     }}
@@ -1117,11 +1117,14 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
     .plugin-card {{
       background: var(--surface);
       border: 1px solid var(--border);
-      border-left: 4px solid var(--accent);
-      border-radius: 8px;
-      padding: 1.25rem 1.5rem;
+      border-left: 3px solid var(--accent);
+      border-radius: var(--rc-radius-lg);
+      padding: 1.5rem 1.75rem;
       margin-bottom: 1.5rem;
+      box-shadow: var(--rc-shadow-sm);
+      transition: box-shadow 0.18s ease, transform 0.18s ease;
     }}
+    .plugin-card:hover {{ box-shadow: var(--rc-shadow-md); transform: translateY(-2px); }}
     .plugin-target {{ scroll-margin-top: 8rem; }}
     .plugin-title {{ display: flex; align-items: baseline; gap: 0.75rem; }}
     .plugin-title h2 {{ margin: 0; color: var(--accent); }}
@@ -1142,17 +1145,18 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
     .plugin-section h3 .count {{ color: var(--muted); font-weight: 400; font-size: 0.88rem; }}
     .item-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 0.75rem; }}
     article.item {{
-      background: var(--surface-2);
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 0.85rem 1rem;
-      transition: border-color 0.15s;
+      border-radius: var(--rc-radius);
+      padding: 0.95rem 1.1rem;
+      box-shadow: var(--rc-shadow-xs);
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
     }}
-    article.item:hover {{ border-color: var(--accent); }}
+    article.item:hover {{ border-color: var(--border-strong, var(--border)); box-shadow: var(--rc-shadow-sm); transform: translateY(-2px); }}
     article.item header {{ display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.4rem; }}
     article.item h4 {{ margin: 0; font-size: 0.96rem; color: var(--text); font-family: var(--font-mono); }}
     article.item p {{ margin: 0; color: var(--muted); font-size: 0.88rem; }}
-    article.item .item-path {{ margin-top: 0.5rem; font-family: var(--font-mono); font-size: 0.74rem; color: #475569; }}
+    article.item .item-path {{ margin-top: 0.5rem; font-family: var(--font-mono); font-size: 0.74rem; color: var(--rc-faint); }}
     .extra-pill {{ background: var(--surface); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.72rem; color: var(--muted); font-family: var(--font-mono); }}
     article.item.hidden {{ display: none; }}
     .index-table {{ width: 100%; border-collapse: collapse; font-size: 0.88rem; }}
@@ -1167,13 +1171,10 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
     /* Agent enrichment — scenarios, quickstart, works-with, audience */
     .audience {{ display: flex; gap: 0.35rem; flex-wrap: wrap; margin: 0.35rem 0 0.5rem 0; }}
     .aud-chip {{ background: var(--surface); border: 1px solid var(--border); padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.72rem; color: var(--muted); }}
-    .aud-chip[data-audience="consultant"] {{ border-color: #14b8a6; color: #5eead4; }}
-    .aud-chip[data-audience="psm"] {{ border-color: #f59e0b; color: #fbbf24; }}
-    .aud-chip[data-audience="dev"] {{ border-color: #3b82f6; color: #93c5fd; }}
-    .aud-chip[data-audience="power-platform-maker"] {{ border-color: #8b5cf6; color: #c4b5fd; }}
-    .aud-chip[data-audience="data-engineer"] {{ border-color: #06b6d4; color: #67e8f9; }}
-    .aud-chip[data-audience="analyst"] {{ border-color: #f59e0b; color: #fcd34d; }}
-    .aud-chip[data-audience="compliance"] {{ border-color: #ef4444; color: #fca5a5; }}
+    /* Audience chips stay monochrome (neutral border + muted text) per the
+       minimal-accent direction — the prior per-audience rainbow used light
+       hues calibrated for a dark theme and read near-invisible on the white
+       card surface. The base .aud-chip rule above supplies the neutral look. */
     .scenarios, .quickstart, .works-with {{ margin: 0.65rem 0 0.35rem 0; padding-top: 0.5rem; border-top: 1px dashed var(--border); }}
     .scenarios h5, .quickstart h5, .works-with h5 {{ font-size: 0.78rem; color: var(--muted); margin: 0 0 0.35rem 0; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }}
     .scenarios h5 .count {{ font-weight: 400; text-transform: none; letter-spacing: 0; }}
