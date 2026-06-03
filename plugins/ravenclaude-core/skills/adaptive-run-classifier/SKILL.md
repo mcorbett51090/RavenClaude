@@ -1,6 +1,6 @@
 ---
 name: adaptive-run-classifier
-description: Substrate-neutral pre-execution classifier contract. A single Haiku call emits a `run_config` JSON envelope that right-sizes cardinality knobs + per-phase model tier + reasoning level for multi-phase agentic workflows (the deep-research loop is the first consumer). Workflows read the envelope; substrate adapters (Claude / Codex / Copilot) map tier labels to SKUs. Carved out behind `.ravenclaude/run-config.json` `enabled: false` so adoption is opt-in and rollback is one line.
+description: "Substrate-neutral pre-execution classifier contract. A single Haiku call emits a `run_config` JSON envelope that right-sizes cardinality knobs + per-phase model tier + reasoning level for multi-phase agentic workflows (the deep-research loop is the first consumer). Workflows read the envelope; substrate adapters (Claude / Codex / Copilot) map tier labels to SKUs. Carved out behind `.ravenclaude/run-config.json` `enabled: false` so adoption is opt-in and rollback is one line."
 last_reviewed: 2026-06-03
 confidence: high
 ---
@@ -58,15 +58,17 @@ Every field below ships in every run_config. The schema is versioned (RM5 — wo
 }
 ```
 
+See the full schema definition in [`templates/run-config.schema.json`](templates/run-config.schema.json). Field semantics and the substrate tier table follow.
+
 **Field semantics (one-liners):**
 
 - `schema_version` — string; `"1"` today. Adapter logs a warning on mismatch and falls back to defaults (RM5).
 - `enabled` — wire-level mirror of the feature flag. The workflow's `loadRunConfig()` snapshots this once per run.
 - `task_class` — one of `research_loop_vendor_docs` / `research_loop_contested` / `research_loop_general` (extensible; the classifier picks).
-- `knobs` — the four cardinalities that used to be hardcoded. `verify_policy[sourceQuality]` is the upfront per-claim vote count (gap-delta C4: B's deterministic lookup is the default path; A's escalation-on-`confidence:low` runs on top).
+- `knobs` — the four cardinalities that used to be hardcoded. `verify_policy[sourceQuality]` is the upfront per-claim vote count (B's deterministic lookup is the default path; A's escalation-on-`confidence:low` runs on top).
 - `tiers.<phase>` — `fast` / `balanced` / `top`. The substrate adapter maps the label to a SKU.
 - `reasoning.<phase>` — `low` / `medium` / `high`. Conditionally emitted by the adapter ONLY for `balanced`/`top` tiers (RM6 — see §Constraints).
-- `batch_verify` — boolean. **Defaults `false` in MVP** (gap-delta C2). The schema field exists today; the workflow gate (`batch_verify && verifier_count>=10`) ships in Phase 3 but the default config does not flip it. Phase-7+ follow-up.
+- `batch_verify` — boolean. **Defaults `false` in MVP**. The schema field exists today; the workflow gate (`batch_verify && verifier_count>=10`) ships in Phase 3 but the default config does not flip it. Phase-7+ follow-up.
 - `use_specialized_mcp` + `primary_source_host` — when both set, the workflow's fetch prompt prefers the matching MCP server (e.g. `microsoft_docs_fetch` for `learn.microsoft.com`). Prompt-string change only.
 - `rationale` — load-bearing. A human-readable one-sentence justification. This is the auditable trace the rest of the pipeline points back at; the field is **mandatory** and the classifier prompt enforces it.
 
@@ -100,7 +102,7 @@ Empirical baseline (2026-06-03 PP-description run): 22 of 25 verify votes were u
 
 ## The classifier prompt
 
-**One forced-tool Messages API call. No agent loop.** Per gap-delta C8: skill = the artifact + prompt; implementation = single Messages API call.
+**One forced-tool Messages API call. No agent loop.** Skill = the artifact + prompt; implementation = single Messages API call.
 
 **Layout** (per [`prompt-caching-playbook.md`](../../../claude-app-engineering/knowledge/prompt-caching-playbook.md) — stable above, volatile below):
 
@@ -114,58 +116,9 @@ tools (stable — VERDICT_SCHEMA + classify_run tool def)
 
 **Model:** `fast` tier (Haiku 4.5 on Claude). Routing-ladder bottom rung.
 
-**Tool definition (the run_config shape lives here, single source of truth):**
+**Tool definition** — the run_config shape; the full JSON schema lives in [`templates/run-config.schema.json`](templates/run-config.schema.json) (single source of truth).
 
-```json
-{
-  "name": "classify_run",
-  "description": "Classify a multi-phase workflow task and emit a run_config envelope right-sizing per-phase model tier, reasoning level, and cardinality knobs. The `rationale` field is mandatory and is the auditable trace of the choice.",
-  "input_schema": {
-    "type": "object",
-    "required": ["schema_version", "task_class", "knobs", "tiers", "reasoning", "rationale"],
-    "properties": {
-      "schema_version": { "type": "string", "enum": ["1"] },
-      "task_class": {
-        "type": "string",
-        "enum": ["research_loop_vendor_docs", "research_loop_contested", "research_loop_general"]
-      },
-      "knobs": {
-        "type": "object",
-        "required": ["angle_count", "max_fetch", "max_verify_claims", "verify_policy"],
-        "properties": {
-          "angle_count": { "type": "integer", "minimum": 1, "maximum": 8 },
-          "max_fetch": { "type": "integer", "minimum": 1, "maximum": 30 },
-          "max_verify_claims": { "type": "integer", "minimum": 1, "maximum": 60 },
-          "verify_policy": {
-            "type": "object",
-            "required": ["primary_recent", "primary_old", "secondary", "judgment"],
-            "properties": {
-              "primary_recent": { "type": "integer", "minimum": 1, "maximum": 5 },
-              "primary_old": { "type": "integer", "minimum": 1, "maximum": 5 },
-              "secondary": { "type": "integer", "minimum": 1, "maximum": 5 },
-              "judgment": { "type": "integer", "minimum": 1, "maximum": 5 }
-            }
-          }
-        }
-      },
-      "tiers": {
-        "type": "object",
-        "additionalProperties": { "type": "string", "enum": ["fast", "balanced", "top"] }
-      },
-      "reasoning": {
-        "type": "object",
-        "additionalProperties": { "type": "string", "enum": ["low", "medium", "high"] }
-      },
-      "batch_verify": { "type": "boolean" },
-      "use_specialized_mcp": { "type": "boolean" },
-      "primary_source_host": { "type": "string" },
-      "rationale": { "type": "string", "minLength": 20, "maxLength": 512 }
-    }
-  }
-}
-```
-
-**System block (the rubric — keep stable across runs to preserve any cache):**
+**System block** (the rubric — keep stable across runs to preserve any cache):
 
 > You classify multi-phase workflow tasks for an agentic system. Emit one `run_config` envelope by calling the `classify_run` tool. Choose `task_class` from the enum; pick `tiers.<phase>` and `reasoning.<phase>` to **right-size**, not to be safe — the cost of `top`/`high` is paid on every call, the advantage shows up only on the hard tail. Use the per-phase defaults unless the task demands otherwise. For verify cardinality: vendor-docs / primary-recent claims usually need **1 vote**; contested / judgment claims need **3**. `batch_verify` stays `false` in MVP. The `rationale` field is mandatory — one sentence naming the load-bearing choice and why; this is the auditable trace the rest of the pipeline points back at.
 
@@ -179,7 +132,7 @@ The classifier prompt is intentionally **small**. Per [`prompt-caching-playbook.
 - **Do NOT set `cache_control` on the classifier prompt today.** The tools+system block is well below 4,096 tokens (~600-800). Setting `cache_control` writes a cache the next call can't read → pure 1.25× write penalty for nothing.
 - **The threshold:** if the system rubric grows past **4,096 tokens** AND a workflow re-invokes the classifier for the same task within 5 minutes (e.g. a forge-pipeline that retries scoping), then `cache_control:{type:"ephemeral"}` on the last tool def + the system block is worth it. Document the threshold in the adapter comment, not the prompt.
 
-**The verify-system-block discipline (gap-delta C1, RM1)** — this is the *consumer* workflow's caching concern, not the classifier's, but it's the load-bearing cache decision in the pipeline so it lives in this skill's adapter contract:
+**The verify-system-block discipline (RM1)** — this is the *consumer* workflow's caching concern, not the classifier's, but it's the load-bearing cache decision in the pipeline so it lives in this skill's adapter contract:
 
 - Verify-phase system block: layout `tools (VERDICT_SCHEMA) → system [BREAKPOINT] → user (claim+vote)`.
 - **`ttl: "1h"`** when expected workflow duration ≥ ~3 minutes (the deep-research baseline was 36 min; 5-min TTL expires mid-run and every post-expiry call pays the 1.25× write tax again). Eat the 2× write penalty on call #1 to keep the cache warm.
@@ -215,91 +168,25 @@ Three task classes, three concrete run_configs, three one-line rationales.
 
 **Task:** "How does Power Platform solution-export handle managed vs unmanaged for a customer-column polymorphism case?"
 
-```json
-{
-  "schema_version": "1",
-  "enabled": true,
-  "task_class": "research_loop_vendor_docs",
-  "knobs": {
-    "angle_count": 3,
-    "max_fetch": 10,
-    "max_verify_claims": 15,
-    "verify_policy": { "primary_recent": 1, "primary_old": 2, "secondary": 3, "judgment": 3 }
-  },
-  "tiers": { "scope": "balanced", "search": "fast", "fetch": "fast", "verify_default": "fast", "verify_judgment": "balanced", "synthesize": "balanced", "synthesize_contested": "top" },
-  "reasoning": { "scope": "medium", "search": "low", "fetch": "low", "verify_default": "low", "verify_judgment": "high", "synthesize": "high", "synthesize_contested": "high" },
-  "batch_verify": false,
-  "use_specialized_mcp": true,
-  "primary_source_host": "learn.microsoft.com",
-  "rationale": "Vendor-docs question: ≥80% of claims will be unanimous primary-recent → 1 vote; prefer Microsoft Docs MCP over open-web fetch."
-}
-```
+Use `verify_policy: {primary_recent: 1, primary_old: 2, secondary: 3, judgment: 3}`, `tiers.verify_default: fast`, `use_specialized_mcp: true`, `primary_source_host: learn.microsoft.com`. **Rationale:** "Vendor-docs question: ≥80% of claims will be unanimous primary-recent → 1 vote; prefer Microsoft Docs MCP over open-web fetch."
 
 ### Example 2 — `research_loop_contested`
 
 **Task:** "Cube vs Metabase for a 5-tenant SaaS — cost, RLS, embed story."
 
-```json
-{
-  "schema_version": "1",
-  "enabled": true,
-  "task_class": "research_loop_contested",
-  "knobs": {
-    "angle_count": 5,
-    "max_fetch": 18,
-    "max_verify_claims": 25,
-    "verify_policy": { "primary_recent": 2, "primary_old": 3, "secondary": 3, "judgment": 3 }
-  },
-  "tiers": { "scope": "balanced", "search": "fast", "fetch": "fast", "verify_default": "balanced", "verify_judgment": "balanced", "synthesize": "top", "synthesize_contested": "top" },
-  "reasoning": { "scope": "medium", "search": "low", "fetch": "low", "verify_default": "medium", "verify_judgment": "high", "synthesize": "high", "synthesize_contested": "high" },
-  "batch_verify": false,
-  "use_specialized_mcp": false,
-  "rationale": "Contested comparison: vendor docs disagree with practitioner blogs; pay for Sonnet on verify-default and Opus on synthesis to reconcile sources."
-}
-```
+Use `verify_policy: {primary_recent: 2, primary_old: 3, secondary: 3, judgment: 3}`, `tiers.verify_default: balanced`, `tiers.synthesize: top`. **Rationale:** "Contested comparison: vendor docs disagree with practitioner blogs; pay for Sonnet on verify-default and Opus on synthesis to reconcile sources."
 
 ### Example 3 — `research_loop_general`
 
 **Task:** "What are the failure modes of the 2026 EU AI Act for downstream OSS deployers?"
 
-```json
-{
-  "schema_version": "1",
-  "enabled": true,
-  "task_class": "research_loop_general",
-  "knobs": {
-    "angle_count": 4,
-    "max_fetch": 15,
-    "max_verify_claims": 22,
-    "verify_policy": { "primary_recent": 2, "primary_old": 3, "secondary": 3, "judgment": 3 }
-  },
-  "tiers": { "scope": "balanced", "search": "fast", "fetch": "fast", "verify_default": "fast", "verify_judgment": "balanced", "synthesize": "balanced", "synthesize_contested": "top" },
-  "reasoning": { "scope": "medium", "search": "low", "fetch": "low", "verify_default": "low", "verify_judgment": "high", "synthesize": "high", "synthesize_contested": "high" },
-  "batch_verify": false,
-  "use_specialized_mcp": false,
-  "rationale": "Open-web regulated topic: regulation text + a few authoritative analyses, but no specialized MCP; keep verify-default cheap, escalate contested synthesis to Opus."
-}
-```
+Use `verify_policy: {primary_recent: 2, primary_old: 3, secondary: 3, judgment: 3}`, `tiers.verify_default: fast`, `tiers.synthesize_contested: top`. **Rationale:** "Open-web regulated topic: regulation text + a few authoritative analyses, but no specialized MCP; keep verify-default cheap, escalate contested synthesis to Opus."
 
 ## Audit substrate
 
-Every classifier verdict is logged to `.ravenclaude/runs/run-classifier/<UTC-timestamp>.json` (parallel to `.ravenclaude/runs/thing/decisions/`). One file per verdict. `rationale` is mandatory and is the human-readable trace. Sample shape:
+Every classifier verdict is logged to `.ravenclaude/runs/run-classifier/<UTC-timestamp>.json` (parallel to `.ravenclaude/runs/thing/decisions/`). One file per verdict. `rationale` is mandatory and is the human-readable trace.
 
-```json
-{
-  "ts": "2026-06-03T18:42:11Z",
-  "session_id": "<sid>",
-  "workflow": "deep-research",
-  "flag_snapshot": { "enabled": true, "schema_version_observed": "1" },
-  "task_summary": "<first 240 chars of the task>",
-  "model_used": "claude-haiku-4-5-20251001",
-  "usage": { "input_tokens": 612, "output_tokens": 188 },
-  "run_config": { "<...the emitted envelope...>": null },
-  "rationale": "<echoed from run_config.rationale>"
-}
-```
-
-Plus a per-claim audit (Phase 3 of the workflow port, gap-delta C4 / RM4): `.ravenclaude/runs/<workflow-run-id>/claim_tier_audit.jsonl`, one line per verify claim: `{claim_idx, initial_tier, votes_fired, escalated_to?, final_verdict}`.
+Plus a per-claim audit (Phase 3 of the workflow port, RM4): `.ravenclaude/runs/<workflow-run-id>/claim_tier_audit.jsonl`, one line per verify claim: `{claim_idx, initial_tier, votes_fired, escalated_to?, final_verdict}`.
 
 ## Constraints + invariants (the protective design)
 
@@ -323,37 +210,21 @@ These are the rails. Violating any of them is a regression — every one is tied
 
    Unit test: `adapter.opts("fast", "low")` returns `{ model }` only — **no `thinking` key**. This test ships with the adapter.
 
-3. **Cache TTL `"1h"` on the verify system block when expected workflow duration ≥ ~3 min (gap-delta C1).** The deep-research baseline runs 36 minutes — the 5-min default TTL expires mid-run and every post-expiry call eats the 1.25× write again. Switch to `"ttl": "1h"` (2× write on call #1, then 0.1× reads for the rest of the hour). For workflows known to finish in under 3 minutes, the 5-min default is correct.
+3. **Cache TTL `"1h"` on the verify system block when expected workflow duration ≥ ~3 min.** The deep-research baseline runs 36 minutes — the 5-min default TTL expires mid-run and every post-expiry call eats the 1.25× write again. Switch to `"ttl": "1h"` (2× write on call #1, then 0.1× reads for the rest of the hour). For workflows known to finish in under 3 minutes, the 5-min default is correct.
 
-4. **`batch_verify: false` in MVP default — flag in schema but not flipped (gap-delta C2).** The field exists for forward compatibility. Phase 3 wires the threshold gate (`batch_verify && verifier_count>=10`) but the template config does NOT enable batch. Flipping it on requires either a polling loop or splitting the workflow into two invocations (synthesize consumes verify synchronously today); both are out of MVP scope and become a Phase-7+ follow-up after the synchronous path's savings are measured.
+4. **`batch_verify: false` in MVP default — flag in schema but not flipped.** The field exists for forward compatibility. Phase 3 wires the threshold gate (`batch_verify && verifier_count>=10`) but the template config does NOT enable batch. Flipping it on requires either a polling loop or splitting the workflow into two invocations (synthesize consumes verify synchronously today); both are out of MVP scope and become a Phase-7+ follow-up after the synchronous path's savings are measured.
 
 5. **Schema version field on every envelope (RM5).** `schema_version: "1"` is required. Adapter logs a warning and falls back to defaults on mismatch. Classifier emits the current version. Cheap insurance against workflow evolution silently running on stale classifier output.
 
 ## Copilot informational-only clarification
 
-The Copilot wiring (Phase 4 of the plan) is **informational-only in MVP** — gap-delta C7 + Panel-A R3. The existing `plugins/ravenclaude-core/hooks/capability-orientation.sh` SessionStart hook is edited to append a compact one-liner to its `additionalContext` payload WHEN `.ravenclaude/run-config.json` exists and `enabled: true`:
-
-> `adaptive-run-classifier: enabled · task_class=<x> · tiers={scope:<t>,verify:<t>,synthesize:<t>} · rationale=<scrubbed via _scrub_reason, ≤512 chars>`
+The Copilot wiring (Phase 4 of the plan) is **informational-only in MVP**. The existing `plugins/ravenclaude-core/hooks/capability-orientation.sh` SessionStart hook is edited to append a compact one-liner to its `additionalContext` payload WHEN `.ravenclaude/run-config.json` exists and `enabled: true`. The compact one-liner includes the task_class, the chosen tiers, and the scrubbed rationale (≤512 chars).
 
 The Copilot adapter's existing dual-emit ([`copilot-hook-adapter.sh`](../../hooks/copilot-hook-adapter.sh) sessionstart path lines 137-146) carries the appended text without adapter changes. **No new hook file. No per-call Copilot model routing.** The rationale is surfaced so the user (and any Copilot session reading the banner) can see what the classifier chose; the workflow's actual per-phase SKU selection still happens in the Claude adapter. Per-call Copilot model routing is verified-unsupported today and parked.
 
 ## Output Contract
 
-This skill emits no runtime artifact of its own — it is a *contract*, consumed by workflows. When the prompt-engineer or an architect critiques an instance of this contract (e.g. a workflow's `run_config` in a PR), the response ends with the cross-plugin Structured Output JSON block per [`structured-output/SKILL.md`](../structured-output/SKILL.md):
-
-```
----RESULT_START---
-{
-  "status": "complete" | "partial" | "blocked",
-  "summary": "one-sentence outcome",
-  "deliverables": ["..."],
-  "handoff_recommendation": { "to_specialist": "<role or null>", "reason": "..." },
-  "confidence": 0.0,
-  "risks_or_open_questions": ["..."],
-  "next_actions": ["..."]
-}
----RESULT_END---
-```
+This skill emits no runtime artifact of its own — it is a *contract*, consumed by workflows. When the prompt-engineer or an architect critiques an instance of this contract (e.g. a workflow's `run_config` in a PR), the response ends with the cross-plugin Structured Output JSON block per [`structured-output/SKILL.md`](../structured-output/SKILL.md).
 
 ## References
 
