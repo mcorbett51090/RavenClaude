@@ -1,0 +1,19 @@
+{
+  "schema_version": "1",
+  "enabled": false,
+  "mode": "shadow",
+  "subagent_type_allowlist": ["Explore", "statusline-setup", "claude"],
+  "downgrade_blocked_types": [],
+  "quality_sampler": {
+    "rate": 0.2,
+    "judge_model": "claude-haiku-4-5",
+    "use_batch_api": true
+  },
+  "latency_circuit_breaker": {
+    "median_ms_threshold": 1500,
+    "window_size": 20
+  },
+  "tribunal_seat_mode": "shadow",
+  "async_mode": false,
+  "rationale": "default baseline — disabled"
+}
