@@ -30,7 +30,7 @@
       "name": "power-platform",
       "source": "./plugins/power-platform",
       "description": "Microsoft Power Platform specialist team — 11 agents (canvas/Power Fx, Power Automate, Dataverse, model-driven, pac CLI/ALM, governance/DLP, PCF, Copilot Studio, Power Pages, power-bi-engineer, power-platform-tester) + 18 skills (solution-check, DAX, ALM, BI, PCF, maintainability); a house-opinions hook flags 8 §3/§4 violations; the knowledge bank carries production decision trees (PA-flow recovery, Dataverse token-acquisition, PBIR Enhanced report-loading debug + full build reference, DAX silent-zero scoring debug via the `Domain` calc-column pattern, sempy.fabric Python-from-a-Fabric-notebook reference). Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval (requires `pip install pbix-mcp`).",
-      "version": "0.21.0",
+      "version": "0.22.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -258,7 +258,7 @@
       "name": "microsoft-fabric",
       "source": "./plugins/microsoft-fabric",
       "description": "Microsoft Fabric specialist team — 7 agents (fabric-architect, lakehouse-engineer, warehouse-engineer, data-factory-engineer, realtime-intelligence-engineer, fabric-semantic-model-engineer, fabric-admin) covering OneLake, Lakehouse (Spark/Delta/medallion/materialized lake views), Warehouse (T-SQL/ACID), Data Factory (mirroring/copy-job/dataflow-gen2/pipelines), Real-Time Intelligence (Eventstream/Eventhouse/KQL/Activator), Direct Lake semantic models, and platform admin (capacity FinOps, OneLake security, domains, Purview, ALM). 9-doc citation-grounded knowledge bank (two Mermaid decision trees + a dated 2026 capability map), 6 templates, 1 advisory hook (14 house opinions). Seams: enterprise Microsoft/Fabric here vs non-Microsoft/SMB embedded to data-platform; Fabric storage + Direct Lake here vs standalone Power BI/.pbix to power-platform/power-bi-engineer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "author": {
         "name": "Matt Corbett"
       },

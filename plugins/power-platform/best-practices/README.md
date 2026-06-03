@@ -8,7 +8,7 @@ For the cross-tool rule format and the marketplace-wide index, see [`docs/best-p
 
 ## Index
 
-_60 rules. Each file is one named, citable rule; read and apply it whole._
+_62 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -52,6 +52,7 @@ _60 rules. Each file is one named, citable rule; read and apply it whole._
 | [`dataverse-rollup-vs-calculated-vs-plugin.md`](./dataverse-rollup-vs-calculated-vs-plugin.md) | Pattern — strong default; climb the tiers only when the lower one can't express the requirement. | "Store a derived value" has four very different implementations with very different costs, and choosing by habit produces either fragile chains or needless code… |
 | [`dataverse-security-least-privilege-roles.md`](./dataverse-security-least-privilege-roles.md) | Absolute rule — a role model where everyone is an admin is the absence of a security model. | Dataverse security is **cumulative and additive**: a user's effective access is the union of every role assigned to them (directly or via team), at the *highest… |
 | [`dataverse-where-to-enforce-logic.md`](./dataverse-where-to-enforce-logic.md) | Pattern — the platform-wide §3 #7 rule applied to "where does this logic live." | The same validation or defaulting can be implemented as a business rule, a Power Fx formula/canvas guard, a Power Automate flow, or a Dataverse plug-in — and te… |
+| [`enforce-measure-metadata.md`](./enforce-measure-metadata.md) | Pattern/Absolute — every Power BI measure ships with a DisplayFolder, a Description, and a FormatString; checked deterministically by the `validate-tmdl-measure-metadata.sh` hook. | Authoring or reviewing a semantic model's measures — the minimum metadata bar for a production-quality, discoverable, AI-ready model. |
 | [`flow-child-flows-and-reuse.md`](./flow-child-flows-and-reuse.md) | Pattern — strong default; a parent flow that inlines the same 5-action sequence three times is a refactor target, not a finished build. (House rule §3 "lowest-tier mechanism" + `flow-engineer` opinion "child flows for any logic used 2+ times.") | Inlined-and-copied logic drifts: you fix the bug in two of the three copies and the third silently keeps misbehaving. |
 | [`flow-compose-and-null-safe-expressions.md`](./flow-compose-and-null-safe-expressions.md) | Pattern — strong default. A flow built from deeply nested one-line expressions with no `Compose` steps is unreviewable and fails intermittently on null paths. | Two readability/robustness failures recur in flows. |
 | [`flow-concurrency-and-pagination.md`](./flow-concurrency-and-pagination.md) | Pattern — strong default. A loop running at the silent default of 20, with pagination off, over a source that returns more than its default page, is three latent bugs in one action. | Three defaults bite at scale and all three are invisible in the designer until the run is slow or wrong: 1. |
@@ -72,6 +73,7 @@ _60 rules. Each file is one named, citable rule; read and apply it whole._
 | [`test-as-real-security-context-not-admin.md`](./test-as-real-security-context-not-admin.md) | Absolute rule — validating access only as a system admin / author is a non-test that ships security defects. | Across every Power Platform surface, the **author/admin sees more than the user does** — and that gap is exactly where security defects hide. |
 | [`test-data-isolation-and-teardown.md`](./test-data-isolation-and-teardown.md) | Absolute rule — a test that mutates shared or production data and leaves it behind is a defect in the test. | Power Platform tests touch *live* services — a Test Studio run patches Dataverse rows, a `Test → Manually` flow run creates records and fires downstream trigger… |
 | [`test-dax-correctness-as-code.md`](./test-dax-correctness-as-code.md) | Pattern — strong default for any non-trivial measure; the cheapest correctness evidence Power BI offers. | A DAX measure that "looks right" in a visual is not tested — the visual hides which filter context it evaluated under, and a measure can be correct on the maker… |
+| [`tmdl-pbip-source-control-hygiene.md`](./tmdl-pbip-source-control-hygiene.md) | Absolute — commit the unpacked PBIP text (TMDL + PBIR), never the binary `.pbix`; mind the Windows long-path (MAX_PATH 260) gotcha. | Putting a Power BI project under git/ADO — the diff-able, merge-able source-of-truth discipline (the PBI parallel to source-controlling the unpacked solution). |
 
 ---
 
