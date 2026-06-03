@@ -612,6 +612,16 @@ Three follow-ups from the four-panel review of the v0.110.0–v0.112.0 trilogy l
 
 Proven by **Gates 20 + 50 + 60** (no fixtures dropped — Gate 50.3 fixture updated to match the tighter JWT pattern; the other tests pass unchanged). **Migration:** none — the consumer-facing emit shape, deny reason envelope, and config surface are unchanged. The pattern tightenings reduce false positives (fewer benign things look like secrets); the pattern additions catch more real secrets that would previously have leaked into the audit log.
 
+## `ravenclaude status` detects + self-heals missing dashboard launcher (added 2026-06-03, v0.113.2)
+
+Closes the PM panel's "`dashboard_launcher_present` check on `ravenclaude status`" recommendation from the 2026-06-03 Copilot adapter triage. Pre-v0.44.0 `ravenclaude setup` installs predate the per-repo dashboard launcher template — they wire skills + hooks + MCP + the `rc` alias, but never get `.ravenclaude/dashboard.sh`, `.ravenclaude/README.md`, or `.vscode/tasks.json`. Without these the consumer can't open the comfort-posture editor scoped to their repo (the dashboard server itself runs from the marketplace clone, but the per-repo launcher / VS Code task / README link are how a consumer discovers it). BTCSI was the worked case.
+
+[`scripts/ravenclaude`](../../scripts/ravenclaude) `cmd_status` now checks all three files and prints `launcher: MISSING — run 'ravenclaude status --fix --project <repo>' to install` when any are absent (with per-file bullets so the consumer can see exactly what's missing). The new `--fix` flag calls the existing `wire_dashboard_launchers()` (the same function `setup` uses) so the self-heal is identical to a fresh install. The detection is read-only (no side effects without `--fix`).
+
+Proven by **Gate 80** (`hooks/tests/test-gate80-status-launcher-check.sh`) — 4 subtests + 1 must-fail half: status reports MISSING + prints the remediation hint, `--fix` installs all three files (dashboard.sh executable, README.md + tasks.json present), status after `--fix` reports the present line, and a must-fail half that patches the launcher-check block out and asserts status no longer reports MISSING (proving the gate has teeth). Registered in `scripts/audit-gates.sh` with `--check 80` per-gate runner.
+
+**Migration:** none — consumers see the new launcher line on the next `ravenclaude status` invocation; the existing check rows are unchanged. The `--fix` is opt-in.
+
 ## Layout (plugin internal directories)
 
 `ravenclaude-core` uses the standard component directories:
