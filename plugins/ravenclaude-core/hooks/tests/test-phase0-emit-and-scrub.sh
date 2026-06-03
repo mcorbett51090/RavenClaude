@@ -183,11 +183,12 @@ if [[ ! -f "$SCRUB_SH" ]]; then
 else
   # The JWT pattern from _secret_patterns: eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{6,}
   # Realistic JWT shape — all three segments meet the minimum length the pattern
-  # requires (10/10/6). A toy JWT with a 4-char middle ("fake") does NOT match
-  # the pattern (real JWT bodies are 100+ chars of base64), and the fixture
-  # must reflect a shape that hits the pattern or it tests nothing.
-  INPUT_SECRET="curl -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.fakesignature'"
-  LITERAL_JWT="eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.fakesignature"
+  # requires (10/10/20 after v0.112.1 — third segment tightened from 6 to 20 to
+  # match real HMAC-SHA256 signatures which are 43 chars). A toy JWT with a
+  # short signature does NOT match the pattern and the fixture must reflect a
+  # realistic shape or it tests nothing.
+  INPUT_SECRET="curl -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.fake-signature-32-base64url-chars-here'"
+  LITERAL_JWT="eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.fake-signature-32-base64url-chars-here"
 
   scrubbed="$(
     # shellcheck source=/dev/null
