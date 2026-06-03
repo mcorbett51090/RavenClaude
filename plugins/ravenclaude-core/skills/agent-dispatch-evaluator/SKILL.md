@@ -284,6 +284,60 @@ Workflow `agent()` call, no `run_config` active → binding upgrade to Opus 4.7.
 
 `caller_context: "tribunal_seat"` → verdict logged to `evaluator_shadow` field on the seat's Sága entry; `cfg["panel"]["forseti"]["model"]` UNCHANGED (shadow forever for MVP, RM2).
 
+## Workflow integration
+
+### The copy-paste pattern
+
+Workflow scripts in the Claude Agent SDK run in a single-file evaluation context with no module resolution (`import` / `require` are unavailable). The only re-use mechanism is **copy-paste**: a workflow author copies the contents of [`reference/evaluate-dispatch.js`](reference/evaluate-dispatch.js) to the top of their script, then calls `evaluatedAgent(...)` wherever they previously called `agent(...)`.
+
+The reference file at `reference/evaluate-dispatch.js` is the **single source of truth**. Workflow scripts re-copy it on each adoption cycle. Drift between copies is accepted and intentional — each workflow run uses its own snapshot, and the spec is the reference file. When the evaluator logic changes (latency threshold, precedence rules, `TIER_MODEL` SKUs), update `reference/evaluate-dispatch.js` and re-copy into each consuming workflow.
+
+### RM7 caveat — the classifier MUST run as a subprocess
+
+The classifier MUST fire as a `claude -p --bare` subprocess, invoked by an `agent()` call that asks Claude to shell out. It MUST NOT be dispatched as a direct `agent()` call.
+
+If the classifier were a direct `agent()` dispatch it would enter the agent's tool-call stream, count against `runaway-brake.sh`'s `max_total` / `max_consecutive` counters, and potentially trip the runaway brake on a long workflow. The structural exemption (a subprocess spawned by a hook-level shell invocation never enters the tool-call stream) is what makes the evaluator safe on the critical path of every dispatch.
+
+See §"The runaway-brake structural exemption" above and the plan's RM7 row for the full verification record.
+
+### Worked example — adopting the wrapper in a workflow
+
+Below is a representative 15-line excerpt. The full three-function block is copied from [`reference/evaluate-dispatch.js`](reference/evaluate-dispatch.js) and placed before the workflow's own logic.
+
+```js
+// ── Copy from reference/evaluate-dispatch.js (top of script) ──
+// const TIER_MODEL = { ... };
+// const DISPATCH_EVAL_LOG_DIR = ...;
+// const _latency = { window: [], tripped: false };
+// async function loadDispatchConfig() { ... }
+// async function evaluateDispatch(...) { ... }
+// async function evaluatedAgent(prompt, opts, dispatchCfg) { ... }
+// ── End copy ──
+
+// ── Workflow start: load config ONCE ──
+const dispatchCfg = await loadDispatchConfig();
+
+// ── Replace agent() calls with evaluatedAgent() ──
+const scopeResult = await evaluatedAgent(
+  scopePrompt,
+  { label: "scope", agentType: "ravenclaude-core:architect", schema: SCOPE_SCHEMA },
+  dispatchCfg,
+);
+
+// Workflows that already use an adaptive-run-classifier run_config pass the
+// _run_config_phase marker so the evaluator applies the run_config precedence
+// rule (downgrade binding; upgrade advisory only):
+const fetchResult = await evaluatedAgent(
+  fetchPrompt,
+  { label: "fetch", agentType: "ravenclaude-core:deep-researcher",
+    model: TIER_MODEL[runConfig.tiers.fetch],
+    _run_config_phase: "fetch" },
+  dispatchCfg,
+);
+```
+
+The three carve-outs (regression floor, per-call skip, allowlist) are handled inside `evaluatedAgent` — the calling code does not need to check them.
+
 ## Output Contract
 
 This skill emits no runtime artifact of its own — it is a **contract**, consumed by the workflow wrapper (Phase 2), the SubagentStart hook (Phase 3), and `thing-decide.py` (Phase 4). When the prompt-engineer or an architect critiques an instance of this contract (e.g. a workflow's evaluator integration in a PR), the response ends with the cross-plugin Structured Output JSON block per [`structured-output/SKILL.md`](../structured-output/SKILL.md):
