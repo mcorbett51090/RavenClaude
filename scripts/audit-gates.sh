@@ -395,7 +395,7 @@ cp -p "$TMP/README.md.bak" README.md
 # (the catalog prose describing core) must be detected — previously ungated, it
 # silently drifted to "20 skills" while core had 22 (caught by the v0.74.0 panel).
 backup .claude-plugin/marketplace.json
-python3 -c "p='.claude-plugin/marketplace.json';s=open(p).read();open(p,'w').write(s.replace('23 skills','20 skills',1))"
+python3 -c "p='.claude-plugin/marketplace.json';s=open(p).read();open(p,'w').write(s.replace('24 skills','20 skills',1))"
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (wrong metadata.description skill count)" must_fail "$rc"
 cp -p "$TMP/.claude-plugin_marketplace.json.bak" .claude-plugin/marketplace.json
@@ -2536,6 +2536,40 @@ gate "validate-schemas marketplace (good fixture)" must_pass "$rc"
 # owner.name; empty plugins[] violates minItems 1) is rejected.
 rc=0; python3 -m jsonschema --instance tests/fixtures/bad-marketplace.json schemas/marketplace.schema.json >/dev/null 2>&1 || rc=$?
 gate "validate-schemas marketplace (bad fixture: missing owner.name + empty plugins[])" must_fail "$rc"
+
+echo "── Gate 48: WebFetch return-envelope sanitizer (deterministic floor) ──────"
+# plugins/ravenclaude-core/scripts/sanitize-webfetch-body.py strips injection-
+# shaped blocks (e.g. <system-reminder>, <system-instruction>, bare SYSTEM:
+# prefixes, ```system fenced blocks) from WebFetch response bodies before any
+# agent treats them as content. Threat first observed in this marketplace on
+# 2026-06-02 (ibcs.com/standards + FT chart-doctor visual-vocabulary GitHub
+# tree). See plugins/ravenclaude-core/skills/webfetch-hardening/SKILL.md.
+#
+# Note: uses `rc=0; cmd || rc=$?` pattern (existing gates' convention) so the
+# set -e harness doesn't kill the script on intentional non-zero exits, AND
+# uses temp files (not $()) so trailing newlines survive the diff comparison.
+CLEAN_OUT="$TMP/sanitize-clean.txt"
+POISONED_OUT="$TMP/sanitize-poisoned.txt"
+
+# must_pass: a clean body sanitizes byte-identically (zero strips, diff empty).
+rc=0; python3 plugins/ravenclaude-core/scripts/sanitize-webfetch-body.py --quiet tests/fixtures/webfetch/clean-body.txt > "$CLEAN_OUT" 2>/dev/null || rc=$?
+rc=0; diff "$CLEAN_OUT" tests/fixtures/webfetch/clean-body.txt >/dev/null 2>&1 || rc=$?
+gate "sanitize-webfetch-body (clean fixture byte-identical)" must_pass "$rc"
+
+# must_fail: a poisoned body must NOT round-trip — sanitizer strips it, diff != 0.
+rc=0; python3 plugins/ravenclaude-core/scripts/sanitize-webfetch-body.py --quiet tests/fixtures/webfetch/poisoned-body.txt > "$POISONED_OUT" 2>/dev/null || rc=$?
+rc=0; diff "$POISONED_OUT" tests/fixtures/webfetch/poisoned-body.txt >/dev/null 2>&1 || rc=$?
+gate "sanitize-webfetch-body (poisoned fixture stripped, NOT round-trip)" must_fail "$rc"
+
+# must_fail: poisoned sanitization removes every injection marker — grep MUST
+# fail to find any (grep exit 1 == not found == this gate passes via must_fail).
+rc=0; grep -qE '<system-reminder|<system-instruction|^SYSTEM:|```system' "$POISONED_OUT" || rc=$?
+gate "sanitize-webfetch-body (no injection markers survive in sanitized output)" must_fail "$rc"
+
+# must_pass: poisoned sanitization preserves the canonical content sandwiching
+# the injections (the IBCS line must survive).
+rc=0; grep -q "IBCS SUCCESS rules" "$POISONED_OUT" || rc=$?
+gate "sanitize-webfetch-body (canonical content preserved across strips)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
