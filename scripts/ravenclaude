@@ -247,9 +247,11 @@ PY
 
 cmd_status() {
   local project="$PWD"
+  local fix=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --project) project="$2"; shift 2 ;;
+      --fix) fix=1; shift ;;
       *) project="$1"; shift ;;
     esac
   done
@@ -259,6 +261,32 @@ cmd_status() {
   [ -f "$project/.github/hooks/ravenclaude.json" ] && note "hooks:   .github/hooks/ravenclaude.json present" || note "hooks:   not wired"
   [ -f "${COPILOT_HOME:-$HOME/.copilot}/mcp-config.json" ] && note "mcp:     ~/.copilot/mcp-config.json present" || note "mcp:     not configured"
   [ -d "$COPILOT_PKG" ] && note "package: $COPILOT_PKG" || note "package: MISSING — run 'ravenclaude update' to generate it"
+
+  # Dashboard launcher check (v0.113.2): added because pre-v0.44.0 `ravenclaude
+  # setup` installs predate the launcher template and never got the per-repo
+  # dashboard.sh / README.md / .vscode/tasks.json. Without these, the consumer
+  # can't open the comfort-posture editor scoped to their repo — they have to
+  # remember the command.
+  local launcher="$project/.ravenclaude/dashboard.sh"
+  local readme="$project/.ravenclaude/README.md"
+  local vstask="$project/.vscode/tasks.json"
+  local launcher_missing=0
+  [ -f "$launcher" ] || launcher_missing=1
+  [ -f "$readme" ] || launcher_missing=1
+  [ -f "$vstask" ] || launcher_missing=1
+  if [ "$launcher_missing" -eq 0 ]; then
+    note "launcher: .ravenclaude/dashboard.sh + README.md + VS Code task present"
+  else
+    if [ "$fix" -eq 1 ]; then
+      note "launcher: MISSING — installing now"
+      wire_dashboard_launchers "$project"
+    else
+      note "launcher: MISSING — run 'ravenclaude status --fix --project $project' to install"
+      [ ! -f "$launcher" ] && note "          ↳ .ravenclaude/dashboard.sh absent"
+      [ ! -f "$readme" ]   && note "          ↳ .ravenclaude/README.md absent"
+      [ ! -f "$vstask" ]   && note "          ↳ .vscode/tasks.json absent"
+    fi
+  fi
 }
 
 cmd_setup() {
