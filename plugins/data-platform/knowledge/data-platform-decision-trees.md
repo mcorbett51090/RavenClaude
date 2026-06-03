@@ -115,7 +115,7 @@ flowchart TD
 ```
 
 **Rationale per leaf:**
-- *CASE_D* — the dashboard build is out of scope; stay in the data-pipes lane (don't sell a dashboard the client doesn't need).
+- *CASE_D* — the dashboard build is out of scope; stay in the data-pipes lane (don't sell a dashboard the client doesn't need). **Sub-case — the client already owns Sigma-on-Snowflake and wants the analytics there:** that is not a framework _choice_ but a leverage-the-sunk-investment call — Sigma is then the right primary surface (Snowflake-native, pushes compute down, governed-metrics/semantic layer, RLS via Snowflake roles). The per-viewer-pricing caution below governs greenfield _selection_, not leveraging an already-owned tool; do **not** add Tableau alongside it (a second semantic layer = metric drift). See [`sigma-when-already-owned.md`](sigma-when-already-owned.md).
 - *EVIDENCE* — single-tenant + version-controlled + public means no embed-auth complexity; OSS Evidence handles SQL-fenced-block authoring at $0 (Evidence *Cloud* has no free tier and Embedded is Enterprise-only — stay on OSS).
 - *CUBE* — a multi-tenant product needs a semantic layer to avoid shipping raw SQL to the browser; Cube owns the query plan, caching, and `securityContext` isolation.
 - *PBI* — M365 alignment makes Entra-ID/DAX-role RLS the path of least resistance; F2 is flat-capacity (no per-viewer). Coordinate with `power-platform/power-bi-engineer`.
@@ -212,6 +212,51 @@ flowchart TD
 | Azure AD via MSAL | AAD access token | AAD-managed | server Key Vault | Power BI Embedded (App-Owns-Data) |
 
 **Forbidden in every branch:** shipping the signing/service key to the browser (any `NEXT_PUBLIC_*` secret, inline `.tsx` secret, or long-lived web-component attribute), or deriving `tenant_id` from a URL/query param. Any embed-auth change is **security-sensitive → escalate to `ravenclaude-core/security-reviewer`**.
+
+---
+
+## Decision Tree: Cross-system identity resolution — which match method?
+
+**When this applies:** the build stitches the same real-world entity — usually a customer account — across two or more source systems into one conformed spine (e.g., Salesforce Account → Planhat company → Intercom company → Slack channel). This is the #1 silent-correctness risk in any multi-source analytics build: every metric sits on top of a join, and a wrong join is wrong invisibly.
+
+**Last verified:** 2026-06-03 against [`../best-practices/resolve-identity-deterministic-keys-before-fuzzy.md`](../best-practices/resolve-identity-deterministic-keys-before-fuzzy.md) and [`../skills/cross-system-identity-resolution/SKILL.md`](../skills/cross-system-identity-resolution/SKILL.md).
+
+```text
+Same entity across 2+ systems
+│
+├─ Deterministic cross-reference key? (externalId / synced source-ID)
+│       │
+│       ├─ YES → Exact join on the key — highest confidence — STOP here (DET)
+│       │           └─ → bridge_account_xref
+│       │                 (source, source_id, account_key, match_method, confidence)
+│       │                   └─ → resolution_audit: alert if >5% unresolved;
+│       │                         top-N-by-revenue manual review before launch
+│       │
+│       └─ NO → Reliable shared email domain?
+│                   │
+│                   ├─ YES → Domain match — strong, with multi-domain caveats (DOMAIN)
+│                   │           └─ → bridge_account_xref (same as above)
+│                   │                   └─ → resolution_audit (same as above)
+│                   │
+│                   └─ NO → Names available?
+│                               │
+│                               ├─ YES → Normalized-name match — LAST RESORT,
+│                               │         human-reviewed, never auto-publish (NAME)
+│                               │           └─ → bridge_account_xref (same as above)
+│                               │                   └─ → resolution_audit (same as above)
+│                               │
+│                               └─ NO → Quarantine — null FK, surface in
+│                                         stewardship view (QUAR)
+```
+
+**Rationale per leaf:**
+
+- _DET_ — exhausting deterministic options costs minutes of investigation; a wrong fuzzy match costs weeks to undo after it propagates through a mart. Look for a synced external ID first (Planhat `externalId`, Intercom `company_id` carrying the Salesforce Account ID).
+- _DOMAIN_ — strong second choice, but multi-domain customers and shared/consumer domains (gmail.com) make it imperfect; never the sole key for a high-stakes account.
+- _NAME_ — "Acme Corp" vs "Acme Corporation" is a coin-flip; acceptable only as a human-reviewed candidate, never an auto-published join.
+- _QUAR_ — unresolved is an explicit state (null FK), never a silent drop; the stewardship surface is where a human confirms low-confidence matches.
+
+**Failure modes to avoid:** reaching for a name join first because it's easy to code; auto-publishing a name-only match to a dashboard; dropping unresolved rows silently instead of quarantining them; shipping without the `resolution_audit` alert or the top-N manual review. Full procedure: [`../skills/cross-system-identity-resolution/SKILL.md`](../skills/cross-system-identity-resolution/SKILL.md).
 
 ---
 

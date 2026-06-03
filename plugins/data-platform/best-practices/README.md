@@ -6,7 +6,7 @@ Named, citable rules for the `data-platform` plugin's four-layer dashboard engag
 
 ## Index
 
-_20 rules. Each file is one named, citable rule; read and apply it whole._
+_21 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -27,6 +27,7 @@ _20 rules. Each file is one named, citable rule; read and apply it whole._
 | [`ingest-idempotent-and-replayable.md`](./ingest-idempotent-and-replayable.md) | Absolute rule — a pipeline you cannot safely re-run is a pipeline you cannot operate. Every load path is keyed and replay-safe. | Pipelines fail mid-run: a connector OOMs at row 4M of 10M, a rate limit trips, a network blip drops a checkpoint. |
 | [`issue-short-lived-jwts-for-embeds.md`](./issue-short-lived-jwts-for-embeds.md) | Absolute rule — embed tokens are 5-15 min, server-issued, and carry a signed `tenant_id` the viewer cannot influence. | A JWT is the carrier of the tenant boundary into the embed, so its issuance discipline is what makes the closeness-to-data invariant trustworthy. |
 | [`model-semantic-layer-single-source-of-truth.md`](./model-semantic-layer-single-source-of-truth.md) | Pattern — strong default for Case C (productized SaaS) and any multi-dashboard engagement; deviate only when there is exactly one dashboard reading one mart and no reuse in sight. | When "active customer" or "recognized revenue" is defined as ad-hoc SQL inside each dashboard widget, the definitions drift: one chart counts trials a… |
+| [`resolve-identity-deterministic-keys-before-fuzzy.md`](./resolve-identity-deterministic-keys-before-fuzzy.md) | Absolute rule — every metric built on a wrong join is wrong, silently; identity resolution must be explicit, auditable, and lowest-confidence-last. | Stitching the same real-world entity (typically a customer account) across two or more source systems — Salesforce Account → Planhat company → Interco… |
 | [`rls-author-using-and-with-check-force-on.md`](./rls-author-using-and-with-check-force-on.md) | Absolute rule — these four mechanics are the difference between RLS that isolates tenants and RLS that looks enabled but leaks. Security-sensitive: any change here escalates to `ravenclaude-core/security-reviewer`. | "RLS is on" is not the same as "RLS isolates." The parent rule (`enforce-tenant-isolation-closest-to-data.md`) says *which layer* enforces; this rule … |
 | [`warehouse-partition-and-cluster-for-cost.md`](./warehouse-partition-and-cluster-for-cost.md) | Primary diagnostic — when a warehouse bill or a dashboard query is too expensive, check the partition/cluster keys against the actual filter columns first. | On scan-priced warehouses (BigQuery `$/TiB` scanned, Snowflake credits, Redshift Serverless RPU-hours), an unpartitioned fact table means **every dash… |
 | [`warehouse-select-by-workload-not-brand.md`](./warehouse-select-by-workload-not-brand.md) | Pattern — strong default for every engagement-start database decision; deviate only with a written reason tied to a specific client constraint. | The most expensive mistake in a dashboard engagement is reaching for an analytical lakehouse (Snowflake, Databricks, Redshift Serverless) when the wor… |
