@@ -237,23 +237,45 @@ def _have(binname: str) -> bool:
     return which(binname) is not None
 
 
-def _sanitize_reasoning(raw: str, qtext: str) -> str:
+# All line-separator-shaped characters we strip from `reasoning`. ASCII CR/LF
+# plus Unicode separators (U+2028 LINE SEPARATOR, U+2029 PARAGRAPH SEPARATOR)
+# plus VT (U+000B) and FF (U+000C). Downstream models may treat any of these
+# as a line break; stripping CR/LF alone is incomplete.
+_LINE_BREAK_CHARS = "\n\r  "
+
+
+def _sanitize_reasoning(raw: str, untrusted_inputs) -> str:
     """Sanitize panel reasoning for safe surface in deny reasons (JudgeDeceiver hardener).
 
-    - Collapses newlines to a single line (prevents multi-line injection).
-    - Refuses to echo qtext substrings verbatim (untrusted user content).
+    - Strips line-separator-shaped chars (ASCII CR/LF + Unicode U+2028/U+2029/
+      U+000B/U+000C) to prevent multi-line injection.
+    - Refuses to echo any user-controlled field substring verbatim (untrusted
+      user content). `untrusted_inputs` may be a str (legacy qtext-only API)
+      or an iterable of strs (qtext + options + header + description).
     - Caps at 256 chars.
     - Prefixes with an untrusted-data marker so downstream agents treat it as data.
 
-    This mirrors the untrusted-data / AlignmentCheck framing used by thing-seat.sh.
+    This mirrors the untrusted-data / AlignmentCheck framing used by thing-seat.sh
+    AND the shell mirror in route-decision-review.sh §4a. The two layers MUST
+    stay in sync — they are gated by Gate 20's drift check.
     """
     if not raw:
         return raw
-    # Collapse newlines — a seat output carrying "\\nPanel verdict: YES (binding)" is defused.
-    sanitized = raw.replace("\n", " ").replace("\r", " ")
-    # Refuse to interpolate if the reasoning contains the raw question text (injection signal).
-    if qtext and len(qtext) >= 10 and qtext[:40] in sanitized:
-        sanitized = "[untrusted panel reasoning withheld — contained question text]"
+    # Strip ALL line-separator-shaped chars (ASCII + Unicode).
+    sanitized = raw.translate(str.maketrans(_LINE_BREAK_CHARS, " " * len(_LINE_BREAK_CHARS)))
+    # Normalize to iterable of strings — accept either legacy str or iterable.
+    if isinstance(untrusted_inputs, str):
+        candidates = [untrusted_inputs]
+    elif untrusted_inputs:
+        candidates = [s for s in untrusted_inputs if isinstance(s, str) and s]
+    else:
+        candidates = []
+    # Refuse to interpolate if reasoning contains ANY user-controlled field
+    # (>=10 chars to skip trivially-short matches that would over-block).
+    for u in candidates:
+        if len(u) >= 10 and u[:40] in sanitized:
+            sanitized = "[untrusted panel reasoning withheld — echoed user-controlled input]"
+            break
     # Cap length.
     if len(sanitized) > 256:
         sanitized = sanitized[:253] + "..."

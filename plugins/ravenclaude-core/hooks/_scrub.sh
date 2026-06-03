@@ -25,19 +25,51 @@
 
 # Canonical secret patterns (ERE). Mirror of thing-seat.sh _secret_patterns
 # and concerns-catalog.md xc.secret-in-command triggers.
+#
+# Pattern shapes (1-2 per category):
+#   - Cloud provider API keys (AWS, Anthropic, GitHub, GitLab, Slack, Google,
+#     Stripe, npm, HuggingFace, Azure)
+#   - JWTs (`eyJ`-prefixed three-segment base64url)
+#   - PEM private keys
+#   - CLI secret flags (`--password=`, `--token=`, short `-p`)
+#   - Embedded credentials in URLs (basic-auth `user:pass@host`,
+#     Postgres/MySQL connection strings)
+#
+# Pattern tightness rationale:
+#   - JWT third segment is `{20,}` not `{6,}` (real signatures are 32+ base64
+#     chars; 6 invited prose false positives).
+#   - Short `-p` flag is `{16,}` not `{6,}`, and refuses pure-digit values, so
+#     `mysql -phunter2secretpw` redacts but `ssh -p 22222`, `docker run -p
+#     8080:8080`, and `kubectl -p prod-cluster` (single short tokens like
+#     cluster names or port maps) don't. Real DB passwords are longer.
 _secret_patterns=(
+  # Cloud API key prefixes
   'AKIA[0-9A-Z]{12,}'
   'sk-(ant-)?[A-Za-z0-9-]{20,}'
+  'sk_live_[A-Za-z0-9]{24,}'
+  'rk_live_[A-Za-z0-9]{24,}'
   'ghp_[A-Za-z0-9]{30,}'
   'github_pat_[A-Za-z0-9_]{20,}'
   'glpat-[A-Za-z0-9_-]{15,}'
   'xox[baprs]-[A-Za-z0-9-]{10,}'
   'AIza[0-9A-Za-z_-]{30,}'
-  'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{6,}'
+  'npm_[A-Za-z0-9]{30,}'
+  'hf_[A-Za-z0-9]{30,}'
+  'AccountKey=[A-Za-z0-9+/=]{20,}'
+  # JWTs (third segment tightened to {20,} from {6,})
+  'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}'
+  # PEM private keys
   '-----BEGIN [A-Z ]*PRIVATE KEY-----'
+  # CLI secret flags
   '--password[=[:space:]][^[:space:]]+'
   '--token[=[:space:]][^[:space:]]+'
-  '(^|[[:space:]])-p[^[:space:]]{6,}'
+  # Short `-p` flag: tightened to {16,} and refuses pure-digit values so
+  # `ssh -p 222222` and port maps like `docker run -p 8080:8080-host` don't trip.
+  '(^|[[:space:]])-p[^[:space:][:digit:]][^[:space:]]{15,}'
+  # Embedded credentials in URLs: basic-auth `user:pass@host`, conn strings.
+  # The `{4,}` floor on user keeps `http://localhost:8080` etc. from matching
+  # (no `@`), while a real `https://user:tok@host` is matched.
+  '(https?|postgres(ql)?|mysql|mongodb|redis|amqp|smtp)s?://[A-Za-z0-9._-]{2,}:[A-Za-z0-9._%+-]{4,}@'
 )
 
 # Scrub a reason string: replace secret-shaped tokens with [REDACTED].
@@ -65,7 +97,12 @@ _scrub_reason() {
       done
       printf '%s' "$result"
     else
-      # No sed: fall back to grep-detect + wholesale redact on match.
+      # No sed: fall back to grep-detect + WHOLESALE redact on match. This is
+      # INTENTIONAL — fail-safety over context preservation. When sed is absent
+      # (a minimal container, BusyBox, etc.) we can detect a secret but cannot
+      # do per-pattern substitution in pure bash without re-implementing ERE.
+      # Wholesale redaction is the conservative choice: we never leak, even if
+      # we lose the structural context around the secret.
       local p
       for p in "${_secret_patterns[@]}"; do
         if printf '%s' "$s" | grep -Eiq -e "$p" 2>/dev/null; then
