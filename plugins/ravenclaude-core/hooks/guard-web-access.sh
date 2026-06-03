@@ -97,8 +97,61 @@ if match_host "$host" "${deny_list[@]:-}"; then
   exit 2
 fi
 
-# Whitelist (persistent or this-session) -> auto-allow, no prompt.
-if match_host "$host" "${allow_list[@]:-}" || match_host "$host" "${sess_list[@]:-}"; then
+# sess_list (this-session-only choice from the four-option prompt) is the user's
+# explicit per-session consent — silent allow, no further prompts.
+if match_host "$host" "${sess_list[@]:-}"; then
+  printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}'
+  exit 0
+fi
+
+# Persistent allow_list (from .ravenclaude/web-access.yaml `allow:`) -> first-use
+# trust check (closes Codex desktop trust review Finding 5). On first WebFetch
+# per domain per session, emit permissionDecision: ask so a hostile YAML edit
+# can't silently auto-allow exfiltration. After the user confirms once, the
+# per-session seen-file means no further prompts for that domain this session.
+# Set `web_access.trusted: true` in posture YAML to skip the ask (you've reviewed
+# the whitelist and accept silent allow for persistent entries).
+if match_host "$host" "${allow_list[@]:-}"; then
+  posture="$proj/.ravenclaude/comfort-posture.yaml"
+  web_trusted="false"
+  if [ -f "$posture" ]; then
+    web_trusted="$(python3 - "$posture" <<'PY' 2>/dev/null || echo "false"
+import sys
+try:
+    import yaml
+    d = yaml.safe_load(open(sys.argv[1], encoding="utf-8")) or {}
+except Exception:
+    d = {}
+wa = d.get("web_access") or {}
+print("true" if (isinstance(wa, dict) and wa.get("trusted") is True) else "false")
+PY
+)"
+  fi
+
+  if [ "$web_trusted" = "true" ]; then
+    printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}'
+    exit 0
+  fi
+
+  # First-use check — seen-file path is per-session, per-domain.
+  dom_slug="$(printf '%s' "$host" | tr -dc 'A-Za-z0-9.-' | cut -c1-80)"
+  seen_dir="$proj/.ravenclaude/runs/$sess/web-first-seen"
+  seen_file="$seen_dir/$dom_slug"
+
+  if [ ! -f "$seen_file" ]; then
+    mkdir -p "$seen_dir" 2>/dev/null || true
+    touch "$seen_file" 2>/dev/null || true
+    reason="First access this session to YAML-whitelisted domain '$host'. The domain is in .ravenclaude/web-access.yaml 'allow:' — allow this fetch (and any subsequent ones to $host this session)?"
+    if command -v jq >/dev/null 2>&1; then
+      jq -cn --arg r "$reason" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$r}}'
+    else
+      printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"ask\",\"permissionDecisionReason\":\"${reason//\"/\\\"}\"}}"
+    fi
+    _emit_hook_event "guard-web-access.sh" "warn" "WebFetch" "$host" "web-whitelist-first-use" 0
+    exit 0
+  fi
+
+  # Subsequent fetches to the same domain this session -> silent allow.
   printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}'
   exit 0
 fi

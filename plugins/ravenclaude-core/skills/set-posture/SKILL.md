@@ -121,6 +121,19 @@ Mechanics:
 - Remove patterns only if you have a specific reason — these are the marketplace's recommended security baseline.
 - The patterns survive every preset (Recommended, Deny, Ask, Allow) because they live outside `categories:`.
 
+## Hook trust flags (read directly by hooks, NOT translated to settings.json)
+
+Two top-level posture keys carry **trust flags** that hooks read at runtime — they do not become Claude Code permission rules. They control whether the corresponding hook surfaces a first-run / first-use confirmation prompt, or skips straight to its trusting behavior. Both default to `false` (confirm) so an untrusted repo can't auto-execute or auto-allow on the first touch.
+
+| Key | Read by | When `false` (default) | When `true` |
+|---|---|---|---|
+| `definition_of_done.trusted` | `dod-gate.sh` | First run per session per cmd-hash: deny + stderr `touch <confirm-path>` to authorize | Skip first-run confirm; `bash -c $cmd` runs as before |
+| `web_access.trusted` | `guard-web-access.sh` | First WebFetch per domain per session to a YAML-whitelisted host: `permissionDecision: ask` | Skip first-use ask; whitelisted hosts auto-allow as before |
+
+These flags address Codex desktop trust review Findings 1 + 5 (an untrusted YAML edit auto-executing on `Stop` / auto-allowing on `WebFetch`). They are tool-layer trust signals — `security_deny` is still the layer-independent floor.
+
+**Authoring:** in the dashboard, both flags will surface as a single "Trust this repo's YAML for…" toggle per trust surface (UI TBD). For now, hand-edit `comfort-posture.yaml` or copy the documented examples from `templates/comfort-posture-balanced.yaml`.
+
 ## Per-pattern overrides (v0.17.0+)
 
 Each `categories.<name>` value can be either a plain string (level applied to every pattern in the category) or an object with per-pattern overrides:

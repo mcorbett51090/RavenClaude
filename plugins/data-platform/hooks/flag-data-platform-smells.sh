@@ -15,8 +15,12 @@
 #
 # Advisory by default: prints warnings to stderr so Claude and the user both see
 # them, but exits 0 so the edit is not blocked. To make this hook BLOCK on
-# violation, change the final `exit 0` to `exit 1` (or set
+# violation, change the final `exit 0` to `exit 2` (or set
 # DATA_PLATFORM_STRICT=1 in the environment).
+#
+# Claude Code PreToolUse: exit 2 = BLOCK the tool call with stderr surfaced to
+# the agent. exit 1 = non-blocking error (silently swallowed). STRICT=1 below
+# uses exit 2 — the only blocking code.
 
 set -euo pipefail
 
@@ -113,8 +117,9 @@ echo "  These are advisory by default. Set DATA_PLATFORM_STRICT=1 to make them b
 echo "  See plugins/data-platform/CLAUDE.md §3, §4 for the rules." >&2
 echo "" >&2
 
-# Exit 0 for advisory; exit 1 if strict mode is set
+# Exit 0 for advisory; exit 2 = BLOCK if strict mode is set (Claude Code
+# PreToolUse blocking code; exit 1 is non-blocking and would silently allow).
 if [[ "${DATA_PLATFORM_STRICT:-0}" == "1" ]]; then
-  exit 1
+  exit 2
 fi
 exit 0
