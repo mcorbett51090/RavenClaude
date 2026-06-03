@@ -316,6 +316,74 @@ def summarize_runtime_activity(root: Path) -> dict | None:
     }
 
 
+# ── Adaptive run classifier — informational mirror (Phase 4) ────────────────
+# Surfaces .ravenclaude/run-config.json status to the agent via the banner.
+# Per the file's no-subprocess design constraint we cannot source _scrub.sh,
+# so we mirror its highest-risk patterns inline. Drift between these and
+# _scrub.sh's full set is acceptable for THIS surface because (a) the
+# rationale is classifier-emitted under a forced JSON-schema (bounded ≤512
+# chars), (b) this banner is informational only, (c) the substrate-wide
+# _scrub.sh still applies wherever rationale flows into hook-events.jsonl.
+_RUN_CONFIG_SECRET_PATTERNS = [
+    re.compile(r"AKIA[0-9A-Z]{12,}"),
+    re.compile(r"sk-(?:ant-)?[A-Za-z0-9-]{20,}"),
+    re.compile(r"sk_live_[A-Za-z0-9]{24,}"),
+    re.compile(r"ghp_[A-Za-z0-9]{30,}"),
+    re.compile(r"github_pat_[A-Za-z0-9_]{20,}"),
+    re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}"),
+    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
+]
+
+
+def _scrub_run_config_rationale(text: str) -> str:
+    """Replace high-confidence secret-shaped tokens with [REDACTED]. Fail-safe."""
+    if not text:
+        return text
+    try:
+        out = text
+        for pat in _RUN_CONFIG_SECRET_PATTERNS:
+            out = pat.sub("[REDACTED]", out)
+        return out
+    except Exception:
+        return text
+
+
+def summarize_run_config(root: Path) -> dict | None:
+    """Read .ravenclaude/run-config.json and return a summary dict when enabled.
+
+    Honors the Phase 4 fail-safe contract: returns None when the file is
+    absent, JSON is malformed, the parsed value isn't a dict, or enabled is
+    not literally true. Rationale is scrubbed then truncated to ≤512 chars
+    per the plan.
+    """
+    try:
+        cfg_path = root / ".ravenclaude" / "run-config.json"
+        if not cfg_path.is_file():
+            return None
+        with cfg_path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError, ValueError):
+        return None
+    if not isinstance(data, dict) or data.get("enabled") is not True:
+        return None
+
+    task_class = str(data.get("task_class") or "unknown")
+    tiers_obj = data.get("tiers") if isinstance(data.get("tiers"), dict) else {}
+    rationale_raw = str(data.get("rationale") or "")
+    rationale = _scrub_run_config_rationale(rationale_raw)[:512]
+    # Compact tiers summary: the three load-bearing phases per the plan.
+    tiers_summary = {
+        "scope": str(tiers_obj.get("scope") or "?"),
+        "verify": str(tiers_obj.get("verify_default") or "?"),
+        "synthesize": str(tiers_obj.get("synthesize") or "?"),
+    }
+    return {
+        "task_class": task_class,
+        "tiers": tiers_summary,
+        "rationale": rationale,
+    }
+
+
 def build_banner(root: Path) -> str:
     surface = detect_surface(root)
     env_auth = detect_env_auth()
@@ -323,9 +391,10 @@ def build_banner(root: Path) -> str:
     perms = summarize_permissions(root)
     envctx = summarize_env_context(root)
     runtime = summarize_runtime_activity(root)
+    run_cfg = summarize_run_config(root)
 
     # If we have nothing useful at all, emit nothing (don't inject an empty box).
-    if not (surface or env_auth or cli_auth or perms or (envctx and envctx.get("present")) or runtime):
+    if not (surface or env_auth or cli_auth or perms or (envctx and envctx.get("present")) or runtime or run_cfg):
         return ""
 
     lines: list[str] = []
@@ -373,6 +442,23 @@ def build_banner(root: Path) -> str:
     else:
         lines.append("  not present. Run the environment-discovery skill to map which environments")
         lines.append("  your detected credentials can reach and what they're authorized to do.")
+
+    if run_cfg:
+        lines.append("")
+        lines.append("ADAPTIVE RUN CLASSIFIER (.ravenclaude/run-config.json):")
+        lines.append(
+            f"  enabled · task_class={run_cfg['task_class']} · "
+            f"tiers={{scope:{run_cfg['tiers']['scope']},"
+            f"verify:{run_cfg['tiers']['verify']},"
+            f"synthesize:{run_cfg['tiers']['synthesize']}}}"
+        )
+        if run_cfg["rationale"]:
+            lines.append(f"  rationale: {run_cfg['rationale']}")
+        lines.append(
+            "  This workflow is using right-sized models per phase. Tier label → SKU "
+            "lives in plugins/ravenclaude-core/skills/adaptive-run-classifier/SKILL.md; "
+            "rollback = flip enabled:false in .ravenclaude/run-config.json."
+        )
 
     if runtime:
         lines.append("")
