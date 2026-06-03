@@ -14,18 +14,39 @@
 
 **Last verified:** 2026-06-03 against the managed/OSS landscape in [`auth-provider-landscape-2026.md`](auth-provider-landscape-2026.md) `[verify-at-build — per-MAU pricing volatile]`.
 
-```mermaid
-flowchart TD
-    START[Need end-user authentication] --> Q1{Hard constraint forcing self-host? — data-residency, air-gap, strict no-third-party}
-    Q1 -->|YES| Q2{Need a full IdP — OIDC + SAML + federation + admin console?}
-    Q1 -->|NO — a hosted service is acceptable| Q3{Is enterprise B2B SSO — SAML/SCIM, few large tenants — the core requirement?}
-    Q2 -->|YES| LEAF_E[Self-host Keycloak or Authentik — you own the ops + security surface]
-    Q2 -->|NO — just auth inside a JS/TS app| LEAF_F[Auth.js / Better Auth library — you own session store + DB]
-    Q3 -->|YES| LEAF_D[WorkOS or Auth0 — per-connection SSO pricing, not per-MAU]
-    Q3 -->|NO — consumer/SMB, Google SSO primary| Q4{Is the data layer Postgres/Supabase and will it use RLS?}
-    Q4 -->|YES — the house case| LEAF_A[Supabase Auth — JWT to auth.uid to RLS synergy, lowest per-MAU overage]
-    Q4 -->|NO — but want best-in-class DX / pre-built UI| LEAF_B[Clerk — drop-in components, orgs, strong DX]
-    Q4 -->|NO — already all-in on Firebase/AWS| LEAF_C[Firebase Auth / Cognito — in-ecosystem; watch Cognito 2026 pricing]
+```text
+Need end-user authentication
+│
+├─ Hard constraint forcing self-host? (data-residency / air-gap / strict no-third-party)
+│       │
+│       ├─ YES → Need a full IdP? (OIDC + SAML + federation + admin console)
+│       │           ├─ YES → Self-host Keycloak or Authentik
+│       │           │         — you own the ops + security surface
+│       │           └─ NO (just auth inside a JS/TS app)
+│       │               → Auth.js / Better Auth library
+│       │                 — you own session store + DB
+│       │
+│       └─ NO (a hosted service is acceptable)
+│               → Is enterprise B2B SSO (SAML/SCIM, few large tenants) the core requirement?
+│                       │
+│                       ├─ YES → WorkOS or Auth0
+│                       │         — per-connection SSO pricing, not per-MAU
+│                       │
+│                       └─ NO (consumer/SMB, Google SSO primary)
+│                               → Is the data layer Postgres/Supabase and will it use RLS?
+│                                       │
+│                                       ├─ YES (the house case)
+│                                       │   → Supabase Auth
+│                                       │     — JWT to auth.uid to RLS synergy,
+│                                       │       lowest per-MAU overage
+│                                       │
+│                                       ├─ NO (want best-in-class DX / pre-built UI)
+│                                       │   → Clerk
+│                                       │     — drop-in components, orgs, strong DX
+│                                       │
+│                                       └─ NO (already all-in on Firebase/AWS)
+│                                           → Firebase Auth / Cognito
+│                                             — in-ecosystem; watch Cognito 2026 pricing
 ```
 
 **Rationale per leaf:**
@@ -55,25 +76,39 @@ flowchart TD
 
 **Last verified:** 2026-06-03 against [`social-and-passwordless-providers-2026.md`](social-and-passwordless-providers-2026.md). With a managed provider, adding a method is config, not architecture — so bias to **2–4 well-chosen methods**, led by what the audience already has.
 
-```mermaid
-flowchart TD
-    START[Which login methods to offer?] --> G[Always: Google<br/>broadest reach, lowest friction]
-    G --> Q1{Shipping a native iOS app<br/>with third-party login?}
-    Q1 -->|YES| APPLE[Add Apple — App Store policy requires it;<br/>budget for its secret-JWT rotation +<br/>first-login name capture]
-    Q1 -->|NO| Q1b{Privacy-focused / consumer audience?}
-    Q1b -->|YES| APPLE
-    Q1b -->|NO| Q2
-    APPLE --> Q2{Any users on Microsoft 365 / Entra?<br/>(B2B common)}
-    Q2 -->|YES| MS[Add Microsoft — deep Entra →<br/>azure-cloud/entra-identity-engineer]
-    Q2 -->|NO| Q3
-    MS --> Q3{Developer audience?}
-    Q3 -->|YES| GH[Add GitHub — request user:email scope]
-    Q3 -->|NO| Q4
-    GH --> Q4{Need a no-third-party-account fallback?}
-    Q4 -->|YES| PWLESS[Add magic link AND/OR passkeys<br/>— never FORCE a social account]
-    Q4 -->|"Passwords explicitly required"| PW[Email+password — provider owns hashing/<br/>breach-check/rate-limit; never hand-roll]
-    PWLESS --> STOP[Stop at 2–4 methods.<br/>Every extra button is a 'which did I use?' tax.]
-    PW --> STOP
+```text
+Which login methods to offer?
+│
+└─ Always: Google — broadest reach, lowest friction
+        │
+        ├─ Shipping a native iOS app with third-party login?
+        │       ├─ YES → Add Apple
+        │       │         — App Store policy requires it; budget for
+        │       │           secret-JWT rotation + first-login name capture
+        │       └─ NO → Privacy-focused / consumer audience?
+        │                   ├─ YES → Add Apple (same as above)
+        │                   └─ NO → (skip Apple)
+        │
+        ├─ Any users on Microsoft 365 / Entra? (B2B common)
+        │       ├─ YES → Add Microsoft
+        │       │         — deep Entra → azure-cloud/entra-identity-engineer
+        │       └─ NO → (skip Microsoft)
+        │
+        ├─ Developer audience?
+        │       ├─ YES → Add GitHub — request user:email scope
+        │       └─ NO → (skip GitHub)
+        │
+        ├─ Need a no-third-party-account fallback?
+        │       └─ YES → Add magic link AND/OR passkeys
+        │                 — never FORCE a social account
+        │
+        ├─ Passwords explicitly required?
+        │       └─ YES → Email+password
+        │                 — provider owns hashing/breach-check/rate-limit;
+        │                   never hand-roll
+        │
+        └─ STOP at 2–4 methods.
+           Every extra button is a "which did I use?" tax.
 ```
 
 **Rationale per leaf:**
@@ -97,15 +132,24 @@ flowchart TD
 
 **Last verified:** 2026-06-03 against OAuth 2.1 draft (Implicit removed, PKCE mandatory) + the flows in [`oauth-oidc-and-google-sso.md`](oauth-oidc-and-google-sso.md) `[verify-at-build]`.
 
-```mermaid
-flowchart TD
-    START[Pick the OAuth/OIDC flow] --> Q1{Is there a human user logging in, or is this machine-to-machine?}
-    Q1 -->|Machine-to-machine, no user| LEAF_D[Client Credentials — server holds the secret]
-    Q1 -->|Human user| Q2{Can the client keep a secret confidential? — i.e. is it server-side code?}
-    Q2 -->|NO — browser SPA or native/mobile (public client)| Q3{Is the device input-constrained? — TV, CLI, no browser/keyboard}
-    Q2 -->|YES — server-side web app/backend| LEAF_B[Authorization Code (confidential) + PKCE]
-    Q3 -->|YES| LEAF_C[Device Authorization (device code) flow]
-    Q3 -->|NO — normal SPA / mobile| LEAF_A[Authorization Code + PKCE]
+```text
+Pick the OAuth/OIDC flow
+│
+├─ Machine-to-machine, no user
+│   → Client Credentials — server holds the secret
+│
+└─ Human user
+        │
+        ├─ Can the client keep a secret confidential? (server-side code)
+        │       └─ YES (server-side web app/backend)
+        │           → Authorization Code (confidential) + PKCE
+        │
+        └─ NO (browser SPA or native/mobile — public client)
+                │
+                ├─ Device input-constrained? (TV, CLI, no browser/keyboard)
+                │       ├─ YES → Device Authorization (device code) flow
+                │       └─ NO (normal SPA / mobile)
+                │           → Authorization Code + PKCE
 ```
 
 **Rationale per leaf:**
@@ -133,17 +177,32 @@ flowchart TD
 
 **Last verified:** 2026-06-03 against OWASP Session-Management + CSRF cheat sheets `[verify-at-build]`.
 
-```mermaid
-flowchart TD
-    START[Persist the authenticated session] --> Q1{Is there a browser involved — a web app or dashboard the user loads?}
-    Q1 -->|NO — pure server-to-server / mobile-native API client| LEAF_D[Bearer token in the native secure store; verify signature/iss/aud/exp server-side]
-    Q1 -->|YES — browser| Q2{Does a server render/handle the app — SSR, BFF, or a server callback route?}
-    Q2 -->|YES — server in the loop| LEAF_A[Server-set session: access token in memory + refresh token in HttpOnly+Secure+SameSite cookie + CSRF defense]
-    Q2 -->|NO — pure static SPA, no server| LEAF_B[Access token in memory only; refresh via provider SDK; NEVER localStorage]
-    LEAF_A --> NOTE1{Storing any token in localStorage/sessionStorage?}
-    LEAF_B --> NOTE1
-    NOTE1 -->|YES| LEAF_C[STOP — one XSS steals every token. Move to memory + HttpOnly cookie.]
-    NOTE1 -->|NO| OK[Proceed]
+```text
+Persist the authenticated session
+│
+├─ NO browser (pure server-to-server / mobile-native API client)
+│   → Bearer token in the native secure store;
+│     verify signature/iss/aud/exp server-side
+│
+└─ YES — browser involved
+        │
+        ├─ Server in the loop? (SSR, BFF, or server callback route)
+        │       └─ YES
+        │           → Server-set session: access token in memory +
+        │             refresh token in HttpOnly+Secure+SameSite cookie
+        │             + CSRF defense
+        │
+        └─ NO (pure static SPA, no server)
+            → Access token in memory only;
+              refresh via provider SDK;
+              NEVER localStorage
+│
+[Both server-session and SPA-memory paths check:]
+│
+└─ Storing any token in localStorage/sessionStorage?
+        ├─ YES → STOP — one XSS steals every token.
+        │         Move to memory + HttpOnly cookie.
+        └─ NO  → Proceed
 ```
 
 **Rationale per leaf:**
@@ -169,14 +228,28 @@ flowchart TD
 
 **Last verified:** 2026-06-03 against the static-host / reverse-proxy / app-shell gate patterns `[verify-at-build]`.
 
-```mermaid
-flowchart TD
-    START[Put the dashboard behind login] --> Q1{Does the dashboard contain per-viewer/per-tenant DATA, or is it the same view for every authenticated user?}
-    Q1 -->|Same view for all authenticated users| Q2{Is the dashboard a static asset on a host that can enforce auth itself? — Vercel/Cloudflare Access, Netlify}
-    Q1 -->|Per-tenant rows differ| LEAF_C[App-shell + embed-JWT — auth gate here, ROW SCOPE seams to data-platform RLS/embed-JWT]
-    Q2 -->|YES — host can gate| LEAF_A[Static-host access control — platform auth (e.g. Cloudflare/Vercel Access) in front of the static dashboard]
-    Q2 -->|NO — self-hosted / needs a uniform gate across apps| LEAF_B[Reverse-proxy gate — oauth2-proxy / Authentik outpost in front]
-    LEAF_C --> SEAM[SEAM: identity (auth.uid) handed to data-platform; it issues the short-lived embed-JWT with tenant scope and owns CSP/iframe-sandboxing]
+```text
+Put the dashboard behind login
+│
+├─ Per-tenant rows differ (viewers see different data)
+│   → App-shell + embed-JWT
+│     — auth gate here; ROW SCOPE seams to data-platform RLS/embed-JWT
+│         └─ SEAM: identity (auth.uid) handed to data-platform;
+│                  it issues the short-lived embed-JWT with tenant scope
+│                  and owns CSP/iframe-sandboxing
+│
+└─ Same view for all authenticated users
+        │
+        ├─ Dashboard is a static asset on a host that can enforce auth?
+        │   (Vercel/Cloudflare Access, Netlify)
+        │       ├─ YES (host can gate)
+        │       │   → Static-host access control
+        │       │     — platform auth (e.g. Cloudflare/Vercel Access)
+        │       │       in front of the static dashboard
+        │       │
+        │       └─ NO (self-hosted / needs a uniform gate across apps)
+        │           → Reverse-proxy gate
+        │             — oauth2-proxy / Authentik outpost in front
 ```
 
 **Rationale per leaf:**
