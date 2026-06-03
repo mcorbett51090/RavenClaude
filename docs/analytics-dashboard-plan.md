@@ -294,6 +294,90 @@ Ranked by how much the answer changes the plan.
 
 ---
 
+## 8. Repo scaffolding & agent-tooling setup (Codex-first, Claude + Copilot wired in)
+
+This build is driven primarily through **OpenAI Codex**, but the repo is set up so **Claude
+Code** and **GitHub Copilot** are first-class too — no rework if a second tool joins. The trick
+is a **single canonical instruction file** (`AGENTS.md`) that all three read, plus thin per-tool
+config that points back at it. Don't maintain three drifting copies of the rules.
+
+### 8.1 One source of truth, three readers
+
+| Tool | What it reads | Setup |
+|------|---------------|-------|
+| **Codex** (primary) | **`AGENTS.md`** natively (repo root; also nested `AGENTS.md` per directory — closest file wins) | Make `AGENTS.md` the canonical rulebook. Codex picks it up with zero extra config. |
+| **Claude Code** | **`CLAUDE.md`**, which does `@AGENTS.md` to import the canonical file, then adds Claude-only notes (plan mode, hooks) | One-line import — no duplication. |
+| **GitHub Copilot** | **`.github/copilot-instructions.md`** (repo-wide) + optional **`.github/instructions/*.instructions.md`** with `applyTo:` globs for path-scoped rules | Keep `copilot-instructions.md` short and have it say "the canonical engineering rules live in `/AGENTS.md` — follow them"; use path-scoped instruction files for the loader contract. |
+
+> This is exactly the pattern the marketplace repo this plan lives in uses (`CLAUDE.md` →
+> `@AGENTS.md`), so it's a proven setup, not a guess.
+
+### 8.2 Recommended repo layout (tailored for Codex's working style)
+
+Codex works best with **small, well-bounded directories** and a `_lib/` of shared primitives it
+can reuse instead of re-deriving (which is where the watermark/idempotency footgun creeps in).
+
+```
+cs-analytics/
+├── AGENTS.md                         # CANONICAL cross-tool rules (Codex + Copilot read natively)
+├── CLAUDE.md                         # @AGENTS.md import + Claude-Code-only notes
+├── README.md
+├── .env.example                      # secret NAMES only, never values
+├── .github/
+│   ├── copilot-instructions.md       # short; points at /AGENTS.md
+│   ├── instructions/
+│   │   ├── ingestion.instructions.md # applyTo: "ingestion/**" — THE loader contract (§8.4)
+│   │   └── transforms.instructions.md# applyTo: "transforms/**" — dbt test/style rules
+│   └── workflows/
+│       ├── dbt-ci.yml                # dbt build + tests on every PR
+│       └── pipelines.yml             # cron: run the Codex-built loaders (no Airflow)
+├── .claude/
+│   └── settings.json                 # Claude-only hooks: PreToolUse secret-scan, etc.
+├── ingestion/
+│   ├── _lib/                         # SHARED primitives — Codex reuses, never re-derives:
+│   │   ├── watermark.py              #   read/advance last_loaded_at control table
+│   │   ├── upsert.py                 #   MERGE-on-primary-key helper
+│   │   └── backoff.py                #   exponential backoff + dead-letter logging
+│   ├── planhat/                      # Codex-built loader (watermark + MERGE, raw-JSON land)
+│   └── slack/                        # derived-signal extractor (NO raw messages)
+├── transforms/                       # dbt project (staging → marts + tests)
+│   ├── models/staging/
+│   ├── models/marts/
+│   └── tests/
+├── sigma/                            # dashboard definitions / export-as-code if used
+├── infra/                            # Snowflake DDL: databases, roles, RLS, resource monitor
+└── tests/
+    └── fixtures/                     # recorded API responses → loader unit tests (§6 risk #3)
+```
+
+### 8.3 Driving Codex phase-by-phase
+- **Feed it one phase at a time** from §5, not the whole plan. Each Codex task = one bounded deliverable (e.g. "build the Planhat loader per `ingestion.instructions.md`").
+- **Point every ingestion task at `_lib/`** — "use `watermark.read()` / `upsert.merge()` from `ingestion/_lib`, do not write your own." This is the single most effective guard against the duplicate-rows footgun, because Codex's default is a naive fetch-all-and-INSERT.
+- **Sandbox/network:** Codex runs in a sandbox — give it a setup script that installs deps and document which outbound hosts (Snowflake, the six APIs) the task needs, so a run isn't silently blocked.
+- **Never let Codex inline a credential.** Secrets come from env vars named in `.env.example`; review every diff that touches auth.
+
+### 8.4 The cross-tool "loader contract" (put this in `AGENTS.md` + `ingestion.instructions.md`)
+Because all three tools read these files, encoding the §6 hard-won rules here means **every
+agent inherits them** — you don't re-explain per task or per tool:
+
+1. Every loader reads a `last_loaded_at` watermark, pulls only `updated_at > watermark`, writes via **MERGE on the source primary key**, and advances the watermark **only after a successful commit**.
+2. Land **raw JSON** for niche APIs (Planhat); parse in dbt — API shape changes must not break loads.
+3. **Slack lands derived signals only — never raw message bodies.**
+4. Failed records go to a **dead-letter log**, never silently dropped.
+5. Every loader ships with **pytest unit tests against recorded fixtures** in `tests/fixtures/`; every staging model ships with `unique`/`not_null`/`relationships` dbt tests. No loader merges without both.
+6. A documented `--full-refresh` path exists to force a clean re-pull (backfill / schema change).
+
+### 8.5 Per-tool division of labor (play to each tool's strengths)
+- **Codex** — the workhorse for generating loaders, dbt models, and the (conditional) React app. Bounded, well-specified, fixture-tested tasks.
+- **Claude Code** — best for the **cross-cutting / plan-mode work**: identity-resolution design, the dbt mart architecture, multi-file refactors, and reviewing Codex's auth/watermark diffs. Use its hooks (`.claude/settings.json`) for a `PreToolUse` secret-scan so a credential can't be written even by accident.
+- **GitHub Copilot** — inline autocomplete during hand-editing, and **Copilot code review on PRs** as a cheap second pass over Codex-generated diffs (it's good at spotting the null-handling / pagination / timezone bugs flagged in §6 risk #3).
+
+> **Net:** one `AGENTS.md` rulebook, three tools pointed at it, and the loader contract encoded
+> once so the watermark/idempotency/testing discipline is enforced no matter which agent writes
+> the code. Codex drives; Claude architects and guards; Copilot reviews.
+
+---
+
 ## Appendix — provenance & verification notes
 
 - **Panel A** (Opus) and **Panel B** (Sonnet) ran independently from an identical brief; **tie-breaker** was a third independent senior architect on a fresh model.
