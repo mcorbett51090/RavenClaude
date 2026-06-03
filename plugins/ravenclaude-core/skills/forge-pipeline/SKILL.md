@@ -117,6 +117,31 @@ prettier/audit-gates per `AGENTS.md`). Then the single exit:
 - `reject` (G5 left an unmitigated blocker, or G0 scope is incoherent) → report the blocker, no exit.
 - Land `plan.md` per the G7 `landing` verdict (main, or open the draft PR).
 
+**Per-phase regen discipline (lesson from 2026-06-03 hotfix chain, PRs #244-#247).** Whenever a
+phase adds/removes a **skill**, **agent**, or other artifact whose count is encoded in marketplace
+prose, plan.md must explicitly list these acceptance criteria in that phase's DoD — otherwise CI
+breaks on merge and a 3-PR hotfix chain follows. The discipline:
+
+1. **Quote `description:` in any SKILL.md / agent .md YAML frontmatter** that contains `:` / `{` /
+   `}` (the strict-YAML check via `scripts/check-frontmatter.py` parses unquoted scalars). The
+   common trip: a backtick-wrapped `enabled: false` etc. in the description.
+2. **Bump skill/agent count strings** in `.claude-plugin/marketplace.json` (top metadata.description
+   + the plugin's entry description) AND `plugins/<plugin>/.claude-plugin/plugin.json` description.
+   Gate 12 (`marketplace-claims`) compares these to the actual filesystem count.
+3. **Regenerate `dashboard.html`** via `python3 scripts/generate-dashboards.py` (Gate 13).
+4. **Regenerate `repo-guide.html`** via `python3 scripts/generate-repo-guide.py` (Gate 11).
+5. **Regenerate the Copilot package** via `python3 scripts/generate-copilot-plugin.py` (Gate "copilot
+   package freshness").
+6. **Update `scripts/audit-gates.sh`** fixture literals that hardcode the old skill count (look for
+   `s.replace('<N> skills', '20 skills', 1)` — the must_fail fixture mutates this literal; it must
+   point at the current real count or it becomes a no-op and the gate's bad-input test silently
+   passes where it should fail).
+7. **Strip session-bound mutations** (`.ravenclaude/comfort-posture.yaml` posture changes a hook
+   wrote while the session ran) before committing — only commit the substantive edits.
+
+`plugin-release-checklist` covers most of this for full releases; FORGE's per-phase plans MUST
+restate the relevant subset inline so the Phase-1 build agent doesn't repeat the hotfix chain.
+
 ## 3. Resume / checkpoint (deep depth only — tiebreak F6)
 At **deep** depth, each gate writes its artifact **atomically** (`<artifact>.tmp` → rename on success),
 so a half-written file is never a valid skip signal. `/forge --resume <slug>` skips any gate whose

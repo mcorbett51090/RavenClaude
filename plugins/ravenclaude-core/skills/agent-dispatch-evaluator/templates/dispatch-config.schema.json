@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ravenclaude/schemas/dispatch-config.json",
+  "title": "agent-dispatch-evaluator dispatch_config envelope",
+  "description": "Substrate-neutral pre-dispatch evaluator config. Governs the universal model right-sizer that fires at every Agent dispatch / Workflow agent() call / thing-decide.py seat dispatch. The minimal default (rollback target) requires only schema_version, enabled, mode, and rationale; the full envelope additionally carries allowlist, sampler config, latency circuit-breaker, and async mode.",
+  "type": "object",
+  "required": ["schema_version", "enabled", "mode", "rationale"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": ["1"],
+      "description": "Envelope schema version. Adapter logs a warning on mismatch and falls back to defaults."
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Feature flag. When false, the evaluator hook short-circuits with a single grep (zero cost for non-adopters). When true, the classifier fires on each non-allowlisted, non-skip-marked dispatch."
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["shadow", "binding"],
+      "description": "shadow = log verdicts, never mutate opts.model. binding = apply verdicts per the precedence rules (tribunal seats are still shadow forever per tribunal_seat_mode)."
+    },
+    "subagent_type_allowlist": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Subagent types that bypass the evaluator entirely (zero-cost short-circuit). Defaults: Explore, statusline-setup, claude (catch-all)."
+    },
+    "downgrade_blocked_types": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Subagent types where downgrades are blocked (auto-revert list populated by the quality-regression sampler when a type accumulates >=3 consecutive failed samples). Upgrades still allowed; only downgrade verdicts are suppressed for listed types."
+    },
+    "quality_sampler": {
+      "type": "object",
+      "required": ["rate", "judge_model", "use_batch_api"],
+      "properties": {
+        "rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Fraction of downgraded dispatches sampled for post-hoc quality scoring. 0.20 during MVP shadow soak, 0.05 post-flip."
+        },
+        "judge_model": {
+          "type": "string",
+          "description": "Model used by the post-hoc judge. Haiku 4.5 default — runs via Batch API for ~50% cost reduction (verify-at-use on anthropic.com/pricing)."
+        },
+        "use_batch_api": {
+          "type": "boolean",
+          "description": "When true, judge runs via Batch API (cheaper, async). When false, judge runs synchronously (faster, more expensive)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "latency_circuit_breaker": {
+      "type": "object",
+      "required": ["median_ms_threshold", "window_size"],
+      "properties": {
+        "median_ms_threshold": {
+          "type": "integer",
+          "minimum": 100,
+          "description": "Rolling-window median latency threshold (ms). When exceeded, the rest of the session flips to pass-through mode and writes a Heimdall amber event."
+        },
+        "window_size": {
+          "type": "integer",
+          "minimum": 5,
+          "description": "Number of recent dispatches considered for the rolling median."
+        }
+      },
+      "additionalProperties": false
+    },
+    "tribunal_seat_mode": {
+      "type": "string",
+      "enum": ["shadow"],
+      "description": "Tribunal seat enforcement mode. Forever-shadow for MVP — protects the v0.32.0 backbone-diversity invariant. Re-evaluate after 4-6 weeks of shadow data."
+    },
+    "async_mode": {
+      "type": "boolean",
+      "description": "When true, classifier verdict applies to the NEXT dispatch of same subagent_type within the session (in-memory cache). Default OFF. Phase 5 latency measurement decides Phase 6 default."
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "Mandatory human-readable one-sentence justification for the current configuration. Audit-trail field."
+    }
+  },
+  "additionalProperties": false
+}
