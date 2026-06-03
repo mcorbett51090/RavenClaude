@@ -16,7 +16,10 @@
 #
 # Advisory by default: prints warnings to stderr (so Claude and the user both see
 # them) but exits 0 so the edit is not blocked. Set APPLIED_STATS_STRICT=1 to
-# make violations blocking (exit 1).
+# make violations blocking (exit 2).
+#
+# Claude Code PreToolUse: exit 2 = BLOCK the tool call with stderr surfaced to
+# the agent. exit 1 = non-blocking error (silently swallowed).
 
 set -euo pipefail
 
@@ -102,6 +105,8 @@ echo "  See plugins/applied-statistics/knowledge/statistical-pitfalls.md for the
 echo "" >&2
 
 if [[ "${APPLIED_STATS_STRICT:-0}" == "1" ]]; then
-  exit 1
+  # exit 2 = BLOCK (Claude Code PreToolUse blocking code); exit 1 is non-blocking
+  # and would silently allow the edit despite the warning.
+  exit 2
 fi
 exit 0
