@@ -5545,8 +5545,19 @@ _INSTALL_TAB_TEMPLATE = """
     <h3>Updating later</h3>
     <p>
       <code>rc</code> auto-updates every time you launch &mdash; so usually you don&rsquo;t do anything
-      extra. If you want to update <em>without</em> launching Copilot:
+      extra. A few common variants:
     </p>
+
+    <p><strong>1. Update and relaunch in one step</strong> &mdash; the everyday move:</p>
+    <div class="cmd-block">
+      <span class="cmd-label">Update + launch (the rc alias)</span>
+      <div class="cmd-row">
+        <code class="cmd-code" id="cmd-update-rc">rc</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-update-rc">Copy</button>
+      </div>
+    </div>
+
+    <p><strong>2. Update <em>without</em> launching Copilot</strong> &mdash; e.g. from a scratch shell or a script:</p>
     <div class="cmd-block">
       <span class="cmd-label">Update only (no launch)</span>
       <div class="cmd-row">
@@ -5560,6 +5571,24 @@ _INSTALL_TAB_TEMPLATE = """
       <div class="cmd-row">
         <code class="cmd-code" id="cmd-skills-reload-update">/skills reload</code>
         <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-skills-reload-update">Copy</button>
+      </div>
+    </div>
+
+    <p><strong>3. Verify what&rsquo;s wired in this project</strong> &mdash; lists the version, the wired skills, the hook adapter, and the MCP entry:</p>
+    <div class="cmd-block">
+      <span class="cmd-label">Status check</span>
+      <div class="cmd-row">
+        <code class="cmd-code" id="cmd-status-check-update">bash ~/RavenClaude/scripts/ravenclaude status --project .</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-status-check-update">Copy</button>
+      </div>
+    </div>
+
+    <p><strong>4. Relaunch from a running Copilot session</strong> &mdash; needed when you changed a hook or an MCP server (skills alone don&rsquo;t need this; <code>/skills reload</code> is enough). Press <kbd>Ctrl</kbd>+<kbd>C</kbd> twice to quit, then:</p>
+    <div class="cmd-block">
+      <span class="cmd-label">Quit + relaunch</span>
+      <div class="cmd-row">
+        <code class="cmd-code" id="cmd-quit-relaunch">rc</code>
+        <button type="button" class="btn secondary cmd-copy" data-copy-for="cmd-quit-relaunch">Copy</button>
       </div>
     </div>
     <p class="install-cross-tool">
