@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "description": "Eval fixtures for the adaptive-run-classifier (Phase 5 of docs/plans/2026-06-03-adaptive-run-classifier/plan.md). Each fixture exercises one of the three task_class branches: vendor-docs, contested-comparison, open-web-general. Baseline+adaptive pairs are run per fixture; the harness compares metrics + LLM-judge-rated synthesis quality.",
+  "judge_model": "claude-haiku-4-5-20251001",
+  "judge_pricing_marker": "[verify-at-use — anthropic.com/pricing — Batch API ~50% off, retrieved 2026-06-03]",
+  "fixtures": [
+    {
+      "id": "research_loop_vendor_docs",
+      "task_class": "research_loop_vendor_docs",
+      "question": "How does Power Platform solution-export handle managed vs unmanaged for a customer-column polymorphism case where the column was upgraded from a lookup to a customer field after the dependent flow was authored? Walk the export-import asymmetry and what survives a re-import of the unmanaged form.",
+      "baseline_token_budget": 4900000,
+      "baseline_agent_count": 103,
+      "baseline_duration_ms_estimate": 2160000,
+      "expected_primary_source_host": "learn.microsoft.com",
+      "specialized_mcp": "microsoft_docs_fetch",
+      "settles_claim_11": true,
+      "notes": "The originating PP-description run; baseline cost is the empirical anchor that motivated the whole plan. Phase 5 target: subagent_tokens ≤ 2.4M. Settles claim #11 (MCP vs WebFetch token ratio) via per-fetch token counts."
+    },
+    {
+      "id": "research_loop_contested",
+      "task_class": "research_loop_contested",
+      "question": "Cube vs Metabase for a 5-tenant SaaS analytics embed — compare cost, row-level security model, embed/iframe story, customer-facing customization, and operational burden at 5 tenants growing toward 50. Lean on practitioner reports + vendor docs; flag where they disagree.",
+      "baseline_token_budget": null,
+      "baseline_agent_count": null,
+      "baseline_duration_ms_estimate": null,
+      "expected_primary_source_host": null,
+      "specialized_mcp": null,
+      "settles_claim_11": false,
+      "notes": "Contested comparison: vendor docs disagree with practitioner blogs; adaptive should pick balanced verify_default + top synthesize. Programmatic target: subagent_tokens adaptive ≤ baseline × 0.6 (lighter than vendor-docs target — contested costs more verify cardinality)."
+    },
+    {
+      "id": "research_loop_general",
+      "task_class": "research_loop_general",
+      "question": "What are the practical failure modes of the 2026 EU AI Act for downstream open-source AI deployers (e.g. small ISVs deploying a fine-tuned Llama)? Surface 5–8 concrete failure modes, each with the article/recital it derives from and an authoritative analysis cite.",
+      "baseline_token_budget": null,
+      "baseline_agent_count": null,
+      "baseline_duration_ms_estimate": null,
+      "expected_primary_source_host": null,
+      "specialized_mcp": null,
+      "settles_claim_11": false,
+      "notes": "Open-web regulated topic — regulation text + a few authoritative analyses, no specialized MCP. Adaptive should keep verify_default cheap (fast), escalate synthesize_contested to top. Programmatic target: subagent_tokens adaptive ≤ baseline × 0.5."
+    }
+  ]
+}
