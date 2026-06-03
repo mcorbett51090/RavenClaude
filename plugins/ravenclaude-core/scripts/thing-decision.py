@@ -778,6 +778,23 @@ def resolve_panel_config(root: Path, posture: dict | None) -> tuple[dict, str | 
         if isinstance(cr.get("confidence_threshold"), (int, float)):
             cfg["confidence_threshold"] = float(cr["confidence_threshold"])
 
+    # Phase 2 (v0.112.0): Copilot-aware seat soft cap. Under Copilot CLI, the
+    # adapter (PR A) exports THING_HOST=copilot before invoking the real hook.
+    # `claude -p` cold-starts ~24-29s per seat under Copilot; the 45s default
+    # gave only ~1.5 seats of margin and abstained on modest machines. 90s gives
+    # ~3 seats of margin. Removes the abstain at its source — never lowers the
+    # security floor (an abstaining panel still fails closed per timeout_posture).
+    # Only applies if the user hasn't already overridden seat_timeout_seconds —
+    # an explicit override always wins. The cap stays under panel_deadline_seconds
+    # if the user raises BOTH; otherwise we also bump the panel deadline so the
+    # seat cap doesn't get clipped by the panel deadline before it can fire.
+    if os.environ.get("THING_HOST") == "copilot":
+        if cfg["seat_timeout_seconds"] == _DEFAULT_SEAT_TIMEOUT:
+            cfg["seat_timeout_seconds"] = 90
+            # Ensure panel_deadline > seat_timeout so the seat cap isn't clipped.
+            if cfg["panel_deadline_seconds"] == _DEFAULT_PANEL_DEADLINE:
+                cfg["panel_deadline_seconds"] = 105
+
     return cfg, error
 
 
