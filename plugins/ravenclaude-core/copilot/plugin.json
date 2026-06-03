@@ -1,7 +1,7 @@
 {
   "name": "ravenclaude-core",
   "description": "Domain-neutral Team Lead + specialist-agents pattern for Claude Code: 14 specialists, 25 skills, a dispatch playbook, format/lint/test gates, hooks, rules, and templates. Includes the Capability Grounding Protocol (environment + decision-tree priors, alternate-methods enumeration, honest blocked-reporting), the Structured Output Protocol for handoffs, a Researcher meta-skill, a comfort-posture dashboard that writes Claude Code permission rules per layer, an opt-in command-review tribunal (the Thing), a WebFetch return-envelope sanitizer (webfetch-hardening + sanitize-webfetch-body.py) that strips injection-shaped blocks from fetched bodies, and a sanctioned escape hatch (branch-archive skill + archive-branch.sh) for retiring stale branches without losing work: tag-then-delete preserves the work forever and writes an audit log. Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard.",
-  "version": "0.108.2",
+  "version": "0.108.3",
   "author": {
     "name": "Matt Corbett"
   },
