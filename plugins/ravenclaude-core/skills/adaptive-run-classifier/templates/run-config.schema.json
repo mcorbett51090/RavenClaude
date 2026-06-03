@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ravenclaude/schemas/run-config.json",
+  "title": "adaptive-run-classifier run_config envelope",
+  "description": "Substrate-neutral pre-execution classifier envelope. Defines per-phase model tier, reasoning level, and cardinality knobs for multi-phase agentic workflows. The minimal default (rollback target) requires only schema_version, enabled, and rationale; a classifier-emitted envelope additionally carries task_class, knobs, tiers, and reasoning.",
+  "type": "object",
+  "required": ["schema_version", "enabled", "rationale"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": ["1"],
+      "description": "Envelope schema version. Adapter logs a warning on mismatch and falls back to defaults."
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Feature flag mirror. When false, the workflow uses hardcoded baseline behavior (byte-identical to pre-port). When true, the classifier is invoked at workflow start."
+    },
+    "task_class": {
+      "type": "string",
+      "enum": ["research_loop_vendor_docs", "research_loop_contested", "research_loop_general"],
+      "description": "Classifier-emitted task class. Extensible; future task classes added by updating both the skill enum and this schema in lockstep."
+    },
+    "knobs": {
+      "type": "object",
+      "required": ["angle_count", "max_fetch", "max_verify_claims", "verify_policy"],
+      "properties": {
+        "angle_count": { "type": "integer", "minimum": 1, "maximum": 8 },
+        "max_fetch": { "type": "integer", "minimum": 1, "maximum": 30 },
+        "max_verify_claims": { "type": "integer", "minimum": 1, "maximum": 60 },
+        "verify_policy": {
+          "type": "object",
+          "required": ["primary_recent", "primary_old", "secondary", "judgment"],
+          "description": "Per-claim vote counts keyed by source quality. Upfront lookup is the default path; escalation on confidence:low layers on top.",
+          "properties": {
+            "primary_recent": { "type": "integer", "minimum": 1, "maximum": 5 },
+            "primary_old": { "type": "integer", "minimum": 1, "maximum": 5 },
+            "secondary": { "type": "integer", "minimum": 1, "maximum": 5 },
+            "judgment": { "type": "integer", "minimum": 1, "maximum": 5 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "tiers": {
+      "type": "object",
+      "description": "Per-phase model tier label. Substrate adapter maps the label to a concrete SKU per the tier table in SKILL.md.",
+      "additionalProperties": { "type": "string", "enum": ["fast", "balanced", "top"] }
+    },
+    "reasoning": {
+      "type": "object",
+      "description": "Per-phase reasoning level. Adapter conditionally emits thinking param only for balanced/top tiers (Haiku has no extended thinking).",
+      "additionalProperties": { "type": "string", "enum": ["low", "medium", "high"] }
+    },
+    "batch_verify": {
+      "type": "boolean",
+      "description": "Batch API on verify-phase. Schema field exists for forward compatibility; MVP default is false (Phase-7+ follow-up after synthesize-coupling design lands)."
+    },
+    "use_specialized_mcp": {
+      "type": "boolean",
+      "description": "When true with primary_source_host set, the workflow's fetch prompt prefers the matching MCP server over generic WebFetch."
+    },
+    "primary_source_host": {
+      "type": "string",
+      "description": "e.g. learn.microsoft.com — pairs with use_specialized_mcp to route fetches through specialized MCP tools."
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "Mandatory human-readable one-sentence justification. The auditable trace the rest of the pipeline points back at. Min length is 1 to allow the default-baseline shape; classifier-emitted rationales are enforced to >=20 chars at the tool layer."
+    }
+  },
+  "additionalProperties": false
+}
