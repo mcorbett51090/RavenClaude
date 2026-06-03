@@ -32,6 +32,11 @@ cd "$(git rev-parse --show-toplevel)"
 # Other gates can be added here as they acquire a standalone runner script.
 if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
   case "${2}" in
+    20)
+      echo "── Gate 20: adapter diagnostics (per-gate run) ───────────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate20-adapter-diagnostics.sh
+      exit $?
+      ;;
     50)
       echo "── Gate 50: Phase 0 emit & scrub (per-gate run) ──────────────────────────"
       bash plugins/ravenclaude-core/hooks/tests/test-phase0-emit-and-scrub.sh
@@ -39,7 +44,7 @@ if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 50. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -938,6 +943,22 @@ gate "copilot: subsequent allow on call B is NOT sticky-denied (lockout regressi
 g20g3="$(printf '%s' "$G20_IN_ECHO" | bash "$ADAPTER" bash-pretool "$G20_BLK" 2>/dev/null)"
 rc=0; printf '%s' "$g20g3" | jq -e '.permissionDecision=="deny"' >/dev/null 2>&1 || rc=1
 gate "copilot: must-fail control — a hard-deny stub would lock out call B" must_pass "$rc"
+# ── Gate 20 Phase-A extension: adapter diagnostics (G20.A–G20.G) ─────────────
+# Delegates all 7 subtest assertions to the standalone fixture runner.
+# Each subtest is: golden-path + must-fail-half where applicable.
+#   G20.A — stderr from real hook's exit-2 preserved in reason (not generic)
+#   G20.B — secret in stderr scrubbed; must-fail half confirms scrub is load-bearing
+#   G20.C — deny reason capped at 512 bytes and ends with '...'
+#   G20.D — CLAUDE_SESSION_ID exported from payload .sessionId before hook runs
+#   G20.E — hook-events.jsonl pointer appended to deny reason
+#   G20.F — THING_HOST=copilot env signal exported before hook invocation
+#   G20.G — verdict-injection string in qtext NOT echoed verbatim; must-fail half confirms
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate20-adapter-diagnostics.sh >/dev/null 2>&1 || rc=$?
+gate "adapter-diagnostics fixture test (G20.A-G)" must_pass "$rc"
+# Bidirectional: if the fixture itself is removed/empty the gate must fail.
+rc=0
+if [ ! -f plugins/ravenclaude-core/hooks/tests/test-gate20-adapter-diagnostics.sh ]; then rc=1; fi
+gate "adapter-diagnostics fixture file exists" must_pass "$rc"
 
 echo
 echo "── Gate 21: tribunal trigger corpus (FP/FN + pre-deny + live-category triggers) ──"

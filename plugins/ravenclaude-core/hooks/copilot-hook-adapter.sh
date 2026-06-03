@@ -35,6 +35,15 @@
 
 set -uo pipefail
 
+# Source the shared scrub helper (fail-safe: if absent, define a no-op passthrough).
+# Mirror the sourcing pattern used by _emit-event.sh:45-51.
+_adapter_scrub_helper="$(dirname "${BASH_SOURCE[0]:-$0}")/_scrub.sh"
+if [ -f "$_adapter_scrub_helper" ]; then
+  # shellcheck source=/dev/null
+  . "$_adapter_scrub_helper" 2>/dev/null || true
+fi
+command -v _scrub_reason >/dev/null 2>&1 || _scrub_reason() { printf '%s' "${1:-}"; }
+
 mode="${1:-}"; real="${2:-}"
 shift 2 2>/dev/null || true
 [ -z "$mode" ] || [ -z "$real" ] && exit 0          # misconfigured -> no-op (fail open)
@@ -47,6 +56,8 @@ payload=""
 cw="$(printf '%s' "$payload" | jq -r '.cwd // .workspaceRoot // empty' 2>/dev/null)"
 [ -z "$cw" ] && cw="$PWD"
 sid="$(printf '%s' "$payload" | jq -r '.sessionId // .session_id // empty' 2>/dev/null)"
+# (b) Export so _emit_hook_event in spawned hooks writes to runs/<real-sid>/ not runs/unknown/.
+[ -n "$sid" ] && export CLAUDE_SESSION_ID="$sid"
 
 case "$mode" in
   bash-pretool)
@@ -56,9 +67,46 @@ case "$mode" in
         tool_input: ((.toolArgs // "{}") | (try fromjson catch {command: .})),
         cwd: (.cwd // .workspaceRoot // "."),
         session_id: (.sessionId // .session_id // "")}' 2>/dev/null)"
-    out="$(printf '%s' "$claude_stdin" | THING_SEAT_ACTIVE="${THING_SEAT_ACTIVE:-}" bash "$real" "$@" 2>/dev/null)"; rc=$?
+    # (e) Signal to downstream hooks (PR B: per-seat cap raise) that we are running under Copilot.
+    export THING_HOST=copilot
+    # (a) Capture stderr separately so the real hook's deny reason is not swallowed.
+    err_file="$(mktemp 2>/dev/null || echo "/tmp/rc-adapter-err.$$")"
+    out="$(printf '%s' "$claude_stdin" | THING_SEAT_ACTIVE="${THING_SEAT_ACTIVE:-}" bash "$real" "$@" 2>"$err_file")"; rc=$?
+    hook_stderr="$(cat "$err_file" 2>/dev/null)"
+    rm -f "$err_file" 2>/dev/null
     if [ "$rc" -eq 2 ]; then
-      jq -cn '{permissionDecision:"deny",permissionDecisionReason:"Blocked by RavenClaude guard (translated from a Claude exit-2 block)."}'
+      # Scrub secrets first, then assemble the reason. The 512-byte cap is applied
+      # to the FINAL reason (body + JSONL pointer) so the emitted field is always
+      # bounded — capping just the body would let the pointer push it over.
+      scrubbed_reason="$(_scrub_reason "${hook_stderr:-}")"
+      reason="${scrubbed_reason:-Blocked by RavenClaude guard.}"
+      # (c) Append a JSONL pointer so the user knows where to find the structured deny record.
+      if [ -n "$sid" ]; then
+        reason="${reason} (see .ravenclaude/runs/${sid}/hook-events.jsonl)"
+      else
+        reason="${reason} (see .ravenclaude/runs/*/hook-events.jsonl)"
+      fi
+      # Cap the FINAL reason at 512 bytes.
+      if [ "${#reason}" -gt 512 ]; then
+        reason="${reason:0:509}..."
+      fi
+      # (f) Optional diagnostic trace when RAVENCLAUDE_DIAGNOSE=1.
+      if [ "${RAVENCLAUDE_DIAGNOSE:-0}" = "1" ]; then
+        _diag_dir="${CLAUDE_PROJECT_DIR:-.}/.ravenclaude/runs/${sid:-unknown}"
+        mkdir -p "$_diag_dir" 2>/dev/null || true
+        _diag_ts="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || true)"
+        jq -cn \
+          --arg ts "$_diag_ts" \
+          --arg tool "${mode}" \
+          --argjson payload "$(printf '%s' "$payload" | jq -c '.' 2>/dev/null || echo 'null')" \
+          --argjson stdin "$(printf '%s' "$claude_stdin" | jq -c '.' 2>/dev/null || echo 'null')" \
+          --argjson rc "$rc" \
+          --arg stderr_first256 "${hook_stderr:0:256}" \
+          --arg emitted_reason "$reason" \
+          '{ts:$ts,tool:$tool,inbound_copilot_payload:$payload,translated_claude_stdin:$stdin,hook_exit_code:$rc,hook_stderr_first_256_bytes:$stderr_first256,emitted_reason:$emitted_reason}' \
+          >> "$_diag_dir/adapter-trace.jsonl" 2>/dev/null || true
+      fi
+      jq -cn --arg r "$reason" '{permissionDecision:"deny",permissionDecisionReason:$r}'
       exit 0
     fi
     # Claude verdict JSON -> Copilot top-level shape.
