@@ -12,33 +12,19 @@ These trees implement house opinions #2 (DMAIC backbone), #3 (Lean + Six Sigma c
 
 **Last verified:** 2026-06-03 against the DMAIC/DMADV/PDCA comparison in [`dmaic-and-lean-toolkit.md`](dmaic-and-lean-toolkit.md) §2 (sources cited there).
 
-```text
-Improvement goal stated
-│
-├─ Does a process already exist?
-│       │
-│       ├─ No — designing something new
-│       │   → DMADV / DFSS (Define-Measure-Analyze-Design-Verify)
-│       │
-│       └─ Yes — improving existing
-│               │
-│               ├─ Is the root cause already known AND the fix obvious?
-│               │       │
-│               │       ├─ Yes — small, understood, low-risk
-│               │       │       │
-│               │       │       ├─ Trivial / reversible?
-│               │       │       │       ├─ Yes — minutes to do, easily undone
-│               │       │       │       │   → Just-do-it (implement + a quick check)
-│               │       │       │       └─ No — worth a structured loop
-│               │       │       │           → Kaizen / PDCA (fast iterative loop)
-│               │       │
-│               │       └─ No — cause unknown OR fix non-obvious
-│               │               │
-│               │               ├─ Is the process important enough to justify the rigor?
-│               │               │       ├─ Yes — measurable gap, matters to the business
-│               │               │       │   → DMAIC (Define-Measure-Analyze-Improve-Control)
-│               │               │       └─ Marginal — small but recurring
-│               │               │           → Kaizen / PDCA (fast iterative loop)
+```mermaid
+flowchart TD
+    START[Improvement goal stated] --> Q1{Does a process already exist?}
+    Q1 -->|"No — designing something new"| DMADV[DMADV / DFSS<br/>Define-Measure-Analyze-Design-Verify]
+    Q1 -->|"Yes — improving existing"| Q2{Is the root cause already known<br/>AND the fix obvious?}
+
+    Q2 -->|"Yes — small, understood, low-risk"| Q3{Trivial / reversible?}
+    Q3 -->|"Yes — minutes to do, easily undone"| JDI[Just-do-it<br/>implement + a quick check]
+    Q3 -->|"No — worth a structured loop"| KAIZEN[Kaizen / PDCA<br/>fast iterative loop]
+
+    Q2 -->|"No — cause unknown OR fix non-obvious"| Q4{Is the process important enough<br/>to justify the rigor?}
+    Q4 -->|"Yes — measurable gap, matters to the business"| DMAIC[DMAIC<br/>Define-Measure-Analyze-Improve-Control]
+    Q4 -->|"Marginal — small but recurring"| KAIZEN
 ```
 
 **Rationale per leaf:**
@@ -64,29 +50,22 @@ Improvement goal stated
 
 **Last verified:** 2026-06-03 against the control-chart selection guidance in [`six-sigma-statistics-and-spc.md`](six-sigma-statistics-and-spc.md) §3 (SPC for Excel; Six Sigma Study Guide; Minitab).
 
-```text
-Metric to chart over time
-│
-├─ Variable — continuous measurement (time, cost, length)
-│       │
-│       └─ Subgroup size?
-│               ├─ 1 — individual readings → I-MR chart
-│               ├─ 2 to ~9              → Xbar-R chart
-│               └─ ~9+ (10 or more)    → Xbar-S chart
-│
-└─ Attribute — counted
-        │
-        ├─ Counting defectIVES (a unit is good or bad)
-        │       │
-        │       └─ Subgroup size constant?
-        │               ├─ Constant → np chart
-        │               └─ Variable → p chart
-        │
-        └─ Counting defectS (several possible per unit)
-                │
-                └─ Opportunity / area constant?
-                        ├─ Constant → c chart
-                        └─ Variable → u chart
+```mermaid
+flowchart TD
+    START[Metric to chart over time] --> Q1{Variable measured value<br/>or counted attribute?}
+
+    Q1 -->|"Variable — continuous measurement<br/>(time, cost, length)"| V1{Subgroup size?}
+    V1 -->|"1 — individual readings"| IMR[I-MR chart]
+    V1 -->|"2 to ~9"| XBARR[Xbar-R chart]
+    V1 -->|"~9+ (10 or more)"| XBARS[Xbar-S chart]
+
+    Q1 -->|"Attribute — counted"| A1{Counting defectIVES<br/>or defectS?}
+    A1 -->|"Defectives — a unit is good or bad"| A2{Subgroup size constant?}
+    A2 -->|"Constant"| NP[np chart]
+    A2 -->|"Variable"| P[p chart]
+    A1 -->|"Defects — several possible per unit"| A3{Opportunity / area constant?}
+    A3 -->|"Constant"| C[c chart]
+    A3 -->|"Variable"| U[u chart]
 ```
 
 **Rationale per leaf:**
@@ -106,34 +85,19 @@ Metric to chart over time
 
 **Last verified:** 2026-06-03 against [`dmaic-and-lean-toolkit.md`](dmaic-and-lean-toolkit.md) §1 (Analyze). The fishbone→5-Whys→Pareto→hypothesis-test sequence is long-established Lean Six Sigma practice; the confirmatory-test handoff is the CLAUDE.md #4 seam.
 
-```text
-Problem to diagnose
-│
-├─ Many possible causes — need to brainstorm broadly
-│   → Fishbone / Ishikawa (group by 6M: Method / Machine / Material /
-│                           Measurement / Environment / People)
-│       │
-│       └─ (continues below)
-│
-└─ One suspected chain — drill the why
-    → 5 Whys (drill to the systemic root)
-        │
-        └─ (continues below)
+```mermaid
+flowchart TD
+    START[Problem to diagnose] --> Q1{Many possible causes,<br/>or one suspected chain?}
+    Q1 -->|"Many — need to brainstorm broadly"| FISH[Fishbone / Ishikawa<br/>group by 6M:<br/>Method/Machine/Material/<br/>Measurement/Environment/People]
+    Q1 -->|"One suspected chain — drill the why"| FIVE[5 Whys<br/>drill to the systemic root]
 
-[Both Fishbone and 5 Whys feed here:]
-│
-└─ Several candidate causes survive — which matter most?
-        │
-        └─ Need to rank by frequency / impact → Pareto (find the vital few)
-                │
-                └─ Is the candidate cause PROVEN, or just plausible?
-                        │
-                        ├─ Plausible — not yet proven with data
-                        │   → Route confirmatory test to applied-statistics
-                        │     (hypothesis test / regression / DOE)
-                        │
-                        └─ Proven — data confirms it
-                            → Root cause verified — proceed to Improve
+    FISH --> Q2{Several candidate causes survive —<br/>which matter most?}
+    FIVE --> Q2
+    Q2 -->|"Need to rank by frequency / impact"| PARETO[Pareto<br/>find the vital few]
+
+    PARETO --> Q3{Is the candidate cause PROVEN,<br/>or just plausible?}
+    Q3 -->|"Plausible — not yet proven with data"| SEAM[Route confirmatory test to<br/>applied-statistics<br/>hypothesis test / regression / DOE]
+    Q3 -->|"Proven — data confirms it"| READY[Root cause verified —<br/>proceed to Improve]
 ```
 
 **Rationale per leaf:**
@@ -152,38 +116,19 @@ Problem to diagnose
 
 **Last verified:** 2026-06-03 against [`six-sigma-statistics-and-spc.md`](six-sigma-statistics-and-spc.md) §2-4. Thresholds (Cpk ≥ 1.33 capable) cited there.
 
-```text
-Process data + a spec/target
-│
-└─ Is the process in statistical CONTROL? (no WE/Nelson signals on the chart)
-        │
-        ├─ No — special-cause signals present
-        │   → Process is UNSTABLE. Capability is meaningless here.
-        │     Find + remove the special cause first.
-        │
-        └─ Yes — only common-cause variation
-                │
-                └─ Compute Cpk / Ppk vs spec. Where does it land?
-                        │
-                        ├─ Cpk < 1.0
-                        │   → NOT capable — spread exceeds spec.
-                        │     Reduce variation and/or recenter.
-                        │
-                        ├─ 1.0 to 1.33
-                        │   → Marginal — capable only if centered + stable;
-                        │     little margin. Improve.
-                        │
-                        ├─ 1.33 to 1.67
-                        │   → Capable — meets the common baseline.
-                        │     Hold with a control plan.
-                        │       └─ → Control phase: control plan + SPC +
-                        │              standard work + owner
-                        │
-                        └─ 1.67+
-                            → Highly capable — critical-characteristic grade.
-                              Hold with a control plan.
-                                └─ → Control phase: control plan + SPC +
-                                       standard work + owner
+```mermaid
+flowchart TD
+    START[Process data + a spec/target] --> Q1{"Is the process in statistical CONTROL?<br/>(no WE/Nelson signals on the chart)"}
+    Q1 -->|"No — special-cause signals present"| UNSTABLE[Process is UNSTABLE.<br/>Capability is meaningless here.<br/>Find + remove the special cause first.]
+    Q1 -->|"Yes — only common-cause variation"| Q2{Compute Cpk / Ppk vs spec.<br/>Where does it land?}
+
+    Q2 -->|"Cpk < 1.0"| NOTCAP[NOT capable —<br/>spread exceeds spec.<br/>Reduce variation and/or recenter.]
+    Q2 -->|"1.0 to 1.33"| MARGINAL[Marginal —<br/>capable only if centered + stable;<br/>little margin. Improve.]
+    Q2 -->|"1.33 to 1.67"| CAP[Capable —<br/>meets the common baseline.<br/>Hold with a control plan.]
+    Q2 -->|"1.67+"| HIGH[Highly capable —<br/>critical-characteristic grade.<br/>Hold with a control plan.]
+
+    CAP --> CTRL[Control phase:<br/>control plan + SPC + standard work + owner]
+    HIGH --> CTRL
 ```
 
 **Rationale per leaf:**
@@ -201,34 +146,17 @@ Process data + a spec/target
 
 **Last verified:** 2026-06-03 against the 8-wastes (DOWNTIME) overlay in [`dmaic-and-lean-toolkit.md`](dmaic-and-lean-toolkit.md) §3 (Lean Enterprise Institute; MoreSteam). The countermeasure families are long-established Lean practice.
 
-```text
-Dominant waste identified
-│
-└─ Which of the 8 wastes (DOWNTIME)?
-        │
-        ├─ Defects
-        │   → Poka-yoke mistake-proofing + standard work + root-cause the defect
-        │
-        ├─ Overproduction
-        │   → Pull / just-in-time — produce to takt, not to capacity
-        │
-        ├─ Waiting
-        │   → Balance the line to takt; attack the bottleneck / constraint
-        │
-        ├─ Non-utilized talent
-        │   → Push decisions + skills down; kaizen participation
-        │
-        ├─ Transportation
-        │   → Re-layout / co-locate; shorten the physical / handoff path
-        │
-        ├─ Inventory
-        │   → Cut batch size; pull; cap WIP
-        │
-        ├─ Motion
-        │   → 5S the workplace; tools + info at the point of use
-        │
-        └─ Extra-processing
-            → Remove non-value-add steps; match precision to the CTQ, don't gold-plate
+```mermaid
+flowchart TD
+    START[Dominant waste identified] --> W{Which of the 8 wastes?}
+    W -->|Defects| D[Poka-yoke mistake-proofing<br/>+ standard work + root-cause the defect]
+    W -->|Overproduction| O[Pull / just-in-time —<br/>produce to takt, not to capacity]
+    W -->|Waiting| WA[Balance the line to takt;<br/>attack the bottleneck / constraint]
+    W -->|"Non-utilized talent"| N[Push decisions + skills down;<br/>kaizen participation]
+    W -->|Transportation| T[Re-layout / co-locate;<br/>shorten the physical / handoff path]
+    W -->|Inventory| I[Cut batch size; pull; cap WIP]
+    W -->|Motion| M[5S the workplace;<br/>tools + info at the point of use]
+    W -->|"Extra-processing"| E[Remove non-value-add steps;<br/>match precision to the CTQ, don't gold-plate]
 ```
 
 **Rationale per leaf:** each waste has a *characteristic* countermeasure family — but confirm the waste is genuinely the constraint first (a countermeasure on a non-bottleneck waste doesn't speed the whole process; see the best-practice on optimizing the constraint). Defects route back through the root-cause tree before mistake-proofing.
@@ -243,36 +171,17 @@ Dominant waste identified
 
 **Last verified:** 2026-06-03 against the MSA / Gage R&R section in [`six-sigma-statistics-and-spc.md`](six-sigma-statistics-and-spc.md) §5. The %R&R acceptance bands are the standard AIAG convention `[unverified — training knowledge; confirm before quoting a client]`; the inference itself routes to `applied-statistics`.
 
-```text
-About to baseline on measured data
-│
-└─ Is the metric operationally DEFINED?
-   (same input → same recorded value, any person)
-        │
-        ├─ No — ambiguous
-        │   → STOP. Write the operational definition first.
-        │     An ambiguous metric makes every later number noise.
-        │
-        └─ Yes
-                │
-                └─ Variable measurement or attribute / judgment?
-                        │
-                        ├─ Variable — a measured value
-                        │   → Gage R&R study — route the %R&R inference to applied-statistics
-                        │           │
-                        │           └─ %R&R band?
-                        │                   ├─ < 10% — acceptable
-                        │                   │   → Measurement trustworthy — baseline on it
-                        │                   ├─ 10–30% — marginal
-                        │                   │   → Conditionally usable;
-                        │                   │     improve if it gates a key decision
-                        │                   └─ > 30% — unacceptable
-                        │                       → Fix the measurement system
-                        │                         BEFORE collecting more data
-                        │
-                        └─ Attribute — pass/fail judgment
-                            → Attribute agreement analysis —
-                              do appraisers agree with the standard + each other?
+```mermaid
+flowchart TD
+    START[About to baseline on measured data] --> Q1{Is the metric operationally DEFINED?<br/>same input → same recorded value, any person}
+    Q1 -->|"No — ambiguous"| DEF[STOP. Write the operational definition first.<br/>An ambiguous metric makes every later number noise.]
+    Q1 -->|"Yes"| Q2{Variable measurement<br/>or attribute / judgment?}
+    Q2 -->|"Variable — a measured value"| GRR[Gage R&R study —<br/>route the %R&R inference to applied-statistics]
+    Q2 -->|"Attribute — pass/fail judgment"| ATT[Attribute agreement analysis —<br/>do appraisers agree with the standard + each other?]
+    GRR --> Q3{%R&R band?}
+    Q3 -->|"< 10% — acceptable"| OK[Measurement trustworthy — baseline on it]
+    Q3 -->|"10–30% — marginal"| MARG[Conditionally usable;<br/>improve if it gates a key decision]
+    Q3 -->|"> 30% — unacceptable"| BAD[Fix the measurement system<br/>BEFORE collecting more data]
 ```
 
 **Rationale per leaf:**

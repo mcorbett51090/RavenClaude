@@ -221,32 +221,19 @@ flowchart TD
 
 **Last verified:** 2026-06-03 against [`../best-practices/resolve-identity-deterministic-keys-before-fuzzy.md`](../best-practices/resolve-identity-deterministic-keys-before-fuzzy.md) and [`../skills/cross-system-identity-resolution/SKILL.md`](../skills/cross-system-identity-resolution/SKILL.md).
 
-```text
-Same entity across 2+ systems
-│
-├─ Deterministic cross-reference key? (externalId / synced source-ID)
-│       │
-│       ├─ YES → Exact join on the key — highest confidence — STOP here (DET)
-│       │           └─ → bridge_account_xref
-│       │                 (source, source_id, account_key, match_method, confidence)
-│       │                   └─ → resolution_audit: alert if >5% unresolved;
-│       │                         top-N-by-revenue manual review before launch
-│       │
-│       └─ NO → Reliable shared email domain?
-│                   │
-│                   ├─ YES → Domain match — strong, with multi-domain caveats (DOMAIN)
-│                   │           └─ → bridge_account_xref (same as above)
-│                   │                   └─ → resolution_audit (same as above)
-│                   │
-│                   └─ NO → Names available?
-│                               │
-│                               ├─ YES → Normalized-name match — LAST RESORT,
-│                               │         human-reviewed, never auto-publish (NAME)
-│                               │           └─ → bridge_account_xref (same as above)
-│                               │                   └─ → resolution_audit (same as above)
-│                               │
-│                               └─ NO → Quarantine — null FK, surface in
-│                                         stewardship view (QUAR)
+```mermaid
+flowchart TD
+    START[Same entity across 2+ systems] --> Q1{Deterministic cross-reference key?<br/>externalId / synced source-ID}
+    Q1 -->|YES| DET[Exact join on the key<br/>highest confidence — STOP here]
+    Q1 -->|NO| Q2{Reliable shared email domain?}
+    Q2 -->|YES| DOMAIN[Domain match<br/>strong, with multi-domain caveats]
+    Q2 -->|NO| Q3{Names available?}
+    Q3 -->|YES| NAME[Normalized-name match<br/>LAST RESORT — human-reviewed, never auto-publish]
+    Q3 -->|NO| QUAR[Quarantine — null FK, surface in stewardship view]
+    DET --> XREF[bridge_account_xref<br/>source, source_id, account_key, match_method, confidence]
+    DOMAIN --> XREF
+    NAME --> XREF
+    XREF --> AUDIT[resolution_audit: alert if >5% unresolved<br/>top-N-by-revenue manual review before launch]
 ```
 
 **Rationale per leaf:**
