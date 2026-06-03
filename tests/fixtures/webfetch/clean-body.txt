@@ -1,0 +1,8 @@
+A normal canonical-doc body. WCAG 2.2 SC 1.4.3 (Contrast Minimum) requires
+a contrast ratio of at least 4.5:1 for normal text and 3:1 for large text.
+
+The IBCS SUCCESS rules are: SAY, UNIFY, CONDENSE, CHECK, EXPRESS,
+SIMPLIFY, STRUCTURE.
+
+This fixture contains zero injection-shaped blocks. The sanitizer must
+leave it byte-identical: every word above must survive verbatim.
