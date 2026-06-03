@@ -26,6 +26,16 @@
 
 set -euo pipefail
 
+# ── Structured hook-event substrate (Phase 0). Source the emit helper so the
+#    binding-verdict deny path below is recorded in hook-events.jsonl. Fail-safe:
+#    absent helper -> no-op stub (the deny verdict is unaffected).
+_emit_event_helper="$(dirname "${BASH_SOURCE[0]}")/_emit-event.sh"
+if [ -f "$_emit_event_helper" ]; then
+  # shellcheck source=/dev/null
+  . "$_emit_event_helper" 2>/dev/null || true
+fi
+command -v _emit_hook_event >/dev/null 2>&1 || _emit_hook_event() { :; }
+
 payload="$(cat 2>/dev/null || true)"
 
 # --- helpers: always fail safe to ALLOW (let the human answer) ---
@@ -89,6 +99,7 @@ saga="$(printf '%s' "$out" | jq -r '.saga_log // "n/a"' 2>/dev/null || echo 'n/a
 if { [ "$verdict" = "yes" ] || [ "$verdict" = "no" ]; } && [ "$binding" = "true" ]; then
   if [ "$verdict" = "yes" ]; then pick="$opt0"; else pick="$opt1"; fi
   reason="Decision-review tribunal ($mode) auto-resolved this yes/no prompt so the user was NOT interrupted. Verdict: ${verdict^^} -> choose the \"$pick\" option and proceed; do NOT call AskUserQuestion again for this. Panel reasoning: ${reasoning}. (Sága: ${saga}.) If you believe this is wrong or a genuine preference, state so and proceed with the user's likely intent rather than re-prompting."
+  _emit_hook_event "route-decision-review.sh" "deny" "AskUserQuestion" "$qtext" "binding-verdict-${verdict}" 2
   jq -nc --arg r "$reason" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
   exit 0
 fi

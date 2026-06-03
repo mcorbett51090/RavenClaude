@@ -36,6 +36,19 @@
 #     parallel hook invocations interleave at line granularity, never mid-line.
 #   * SCHEMA-VERSIONED — every line carries "schema_version": 1 so readers can
 #     evolve. See plugins/ravenclaude-core/CLAUDE.md → "Hook event log".
+#   * SECRET-SCRUBBED — the `rule` (reason) argument is scrubbed via
+#     _scrub_reason() before writing, so secret-shaped tokens never appear in
+#     the JSONL substrate. Scrubbing is provided by _scrub.sh (sourced once,
+#     fail-safe: absent helper -> no-op scrub).
+
+# Source the shared scrub helper (fail-safe: if absent, define a no-op).
+_ee_scrub_helper="$(dirname "${BASH_SOURCE[0]:-$0}")/_scrub.sh"
+if [ -f "$_ee_scrub_helper" ]; then
+  # shellcheck source=/dev/null
+  . "$_ee_scrub_helper" 2>/dev/null || true
+fi
+# If _scrub.sh was not sourced successfully, define a safe passthrough.
+command -v _scrub_reason >/dev/null 2>&1 || _scrub_reason() { printf '%s' "${1:-}"; }
 
 # Append one structured hook event. Never fails the caller.
 _emit_hook_event() {
@@ -47,6 +60,12 @@ _emit_hook_event() {
     local path="${4:-}"
     local rule="${5:-}"
     local exit_code="${6:-}"
+
+    # Substrate-wide invariant (Phase 0): scrub secret-shaped tokens from the
+    # reason/rule field before it is written to the JSONL log. This is done
+    # here — inside _emit_hook_event — so EVERY caller gets safe-by-construction
+    # output without any per-call scrub responsibility.
+    rule="$(_scrub_reason "$rule" 2>/dev/null || printf '%s' "$rule")"
 
     local project_dir="${CLAUDE_PROJECT_DIR:-}"
     # No project dir → nowhere canonical to write. Stay silent (fail-safe).

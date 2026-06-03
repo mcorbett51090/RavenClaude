@@ -565,6 +565,16 @@ The flag is a **behavioral commitment, not a machine-enforced lock** — Claude 
 
 This closes the failure mode where a user relaxes permissions to move faster and unintentionally also silences design check-ins. The two are now explicitly decoupled.
 
+## Tribunal denies now emit to the event substrate + substrate-wide secret scrub (added 2026-06-03, v0.110.0)
+
+**Phase 0 of the Copilot adapter diagnostic remediation.** Closes the dark-substrate failure mode that surfaced in a BTCSI Copilot session on 2026-06-03: a wall of generic "Blocked by RavenClaude guard" messages with **zero diagnostic signal** because the Thing tribunal's deny branches and `route-decision-review.sh`'s binding-verdict deny never called `_emit_hook_event` — the consumer's `.ravenclaude/runs/*/hook-events.jsonl` was empty for the most consequential deny class. Two halves:
+
+1. **`_emit_hook_event` wired into every Thing + decision-review deny path.** [`hooks/thing-orchestrator.sh`](hooks/thing-orchestrator.sh) deny branches (self-disable, pre-LLM hard-rule, panel-deny, abstain fail-closed, injection, EDIT-coerced) and [`hooks/route-decision-review.sh`](hooks/route-decision-review.sh)'s binding-verdict deny all emit a structured JSONL line naming the rule that fired (e.g. `pre-llm-hard-rule`, `self-disable`, `binding-verdict-yes`). This is the diagnostic substrate the next session uses to root-cause "why was `echo hello` blocked?" — without it, future debugging is blind. **Migration:** none — the substrate is additive; consumers see the same denials with one extra JSONL line per deny.
+
+2. **Shared `_scrub_reason()` helper as a substrate-wide invariant.** New [`hooks/_scrub.sh`](hooks/_scrub.sh) is the single source of truth for the `_secret_patterns` array (previously duplicated in `scripts/thing-seat.sh:81-94` — duplication footgun called out by the four-panel code-review). [`hooks/_emit-event.sh`](hooks/_emit-event.sh) sources it and calls `_scrub_reason()` on the `rule` argument **before** writing the JSONL line, so `--password=hunter2` / `Bearer eyJ…` / `ghp_…` literals are redacted to `[REDACTED]` at the substrate, not at each call site. `scripts/thing-seat.sh` now sources `_scrub.sh` for its `_secret_patterns` (with an inline fallback retained for fail-safety). Proven by **Gate 50** (`hooks/tests/test-phase0-emit-and-scrub.sh`) — 5 subtests: thing-orchestrator deny → JSONL, route-decision-review binding deny → JSONL, `_scrub_reason()` redacts JWT/preserves context, scrub fires before write (`hunter2` never reaches the JSONL log), and a must-fail-half that patches `_emit_hook_event` to skip scrubbing and asserts the secret leaks (proving the gate has teeth). Registered in `scripts/audit-gates.sh` with `--check 50` per-gate runner support.
+
+Sets up the diagnostic substrate that Phase 1 (PR A — the Copilot adapter stderr preservation + `CLAUDE_SESSION_ID` export + JSONL pointer) and Phase 2 (PR B — `THING_HOST=copilot` per-seat soft-cap raise) build on. Full diagnostic in [`docs/research/2026-06-03-copilot-adapter-diagnostic/synthesis.md`](../../docs/research/2026-06-03-copilot-adapter-diagnostic/synthesis.md).
+
 ## Layout (plugin internal directories)
 
 `ravenclaude-core` uses the standard component directories:
