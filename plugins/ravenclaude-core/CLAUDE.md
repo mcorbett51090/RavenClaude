@@ -590,6 +590,16 @@ Proven by **Gate 20** (`hooks/tests/test-gate20-adapter-diagnostics.sh`) — 7 s
 
 **Migration:** consumer-visible behavior change — denial messages under Copilot CLI are now the real underlying hook's stderr (scrubbed) instead of the generic "Blocked by RavenClaude guard". Anyone screen-scraping the deny reason string would notice; otherwise no impact. The `permissionDecisionReason` field shape and emit path are unchanged.
 
+## Copilot-aware tribunal seat soft cap (added 2026-06-03, v0.112.0)
+
+**Phase 2 of the Copilot adapter diagnostic remediation — completes the trilogy.** Phase 0 wired the emit + scrub substrate (v0.110.0), Phase 1 surfaced the real deny reason through the adapter (v0.111.0), and Phase 2 closes the loop by **removing the abstain-lockout at its source** rather than softening the deny.
+
+**The mechanism in one paragraph.** [`scripts/thing-decision.py`](scripts/thing-decision.py)'s `resolve_panel_config()` checks `os.environ.get("THING_HOST") == "copilot"` (the env signal Phase 1's adapter exports before invoking the real hook). When set AND the consumer hasn't already overridden the seat timeout via `thing.yaml`, the per-seat soft cap raises from 45s to 90s and the panel hard deadline raises from 75s to 105s in lockstep (so the seat cap isn't clipped by the panel deadline before it can fire). An explicit `seat_timeout_seconds` override in `thing.yaml` always wins — the bump only fires when the loaded value equals the default. **This is the design the four-panel review picked over the rejected `latency_downgrade_on_abstain` posture flag**: instead of relaxing the fail-closed deny on abstain, it removes the abstain at its source by giving `claude -p` cold-starts (~24-29s per seat under Copilot, ~3 seats of margin at 90s) the runway they need. The security floor is untouched — a genuine panel-deny still fires; only the latency-artifact abstain is closed.
+
+Proven by **Gate 60** (`hooks/tests/test-gate60-copilot-seat-cap.sh`) — 5 subtests: default unset → 45s/75s, `THING_HOST=copilot` → 90s/105s, `THING_HOST=claude-code` → unchanged, user `thing.yaml` override → preserved (60s wins over the bump), and a must-fail half that patches the bump block out and asserts the loader keeps the default (proves the gate has teeth). Registered in `scripts/audit-gates.sh` with `--check 60` per-gate runner.
+
+**Migration:** none required — opt-in via env signal set by Phase 1's adapter; consumers not running under Copilot CLI see no behavior change. Consumers with an explicit `thing.yaml` `seat_timeout_seconds` value see no change. With this PR, the **Copilot adapter diagnostic remediation is complete** — Phase 0 made denies legible in the audit log, Phase 1 made them legible to the agent at deny time, and Phase 2 prevents the latency-artifact false positives that the 2026-06-03 BTCSI triage surfaced. Full diagnostic in [`docs/research/2026-06-03-copilot-adapter-diagnostic/synthesis.md`](../../docs/research/2026-06-03-copilot-adapter-diagnostic/synthesis.md).
+
 ## Layout (plugin internal directories)
 
 `ravenclaude-core` uses the standard component directories:

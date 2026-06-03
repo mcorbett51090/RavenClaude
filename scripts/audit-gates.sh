@@ -42,9 +42,14 @@ if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
       bash plugins/ravenclaude-core/hooks/tests/test-phase0-emit-and-scrub.sh
       exit $?
       ;;
+    60)
+      echo "── Gate 60: Copilot-aware seat cap (per-gate run) ────────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate60-copilot-seat-cap.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 60. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
