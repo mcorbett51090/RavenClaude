@@ -11,7 +11,7 @@ confidence: high
 
 The **surfacing contract** between Claude Code's on-disk session state (under `~/.claude/` + `<project>/.claude/`) and the dashboard's Mímir tab (`#/mimir`, "Session" / "Mímir's well"). It names what is reachable, what isn't, how to read it without leaking user-prompt content, and which honest empty state to render for the in-process-only fields. **Invoke it before editing `_read_mimir` in either `serve-dashboards.py` copy, the `/__mimir` endpoint, the generator tab, or Gate 49.** One reader contract. No mocks. No inlined dynamic bytes.
 
-Plan reference: [`docs/plans/2026-06-03-mimir-session-tab/plan.md`](../../../../docs/plans/2026-06-03-mimir-session-tab/plan.md) §"Phase 0 — Reachability research" + §"Phases" + §"Risk matrix". Per-conflict resolution: [`/workspaces/RavenClaude/.ravenclaude/runs/forge/mimir-session-tab/gap-delta.md`](../../../../.ravenclaude/runs/forge/mimir-session-tab/gap-delta.md) C1-C8. Norse precedents (same glob-and-inline read shape): Heimdall (`/__heimdall`), Víðarr (`/__vidarr`), Norns (`/__norns`), Níðhöggr (`/__nidhoggr`).
+Plan reference: [`docs/plans/2026-06-03-mimir-session-tab/plan.md`](../../../../docs/plans/2026-06-03-mimir-session-tab/plan.md) §"Phase 0 — Reachability research" + §"Phases" + §"Risk matrix". Per-conflict resolution: `.ravenclaude/runs/forge/mimir-session-tab/gap-delta.md` (gitignored local run-dir artifact) C1-C8. Norse precedents (same glob-and-inline read shape): Heimdall (`/__heimdall`), Víðarr (`/__vidarr`), Norns (`/__norns`), Níðhöggr (`/__nidhoggr`).
 
 ## Reachability map
 
@@ -180,8 +180,8 @@ This skill emits no runtime artifact of its own — it is a *contract*, consumed
 ## References
 
 - Plan + risk matrix: [`docs/plans/2026-06-03-mimir-session-tab/plan.md`](../../../../docs/plans/2026-06-03-mimir-session-tab/plan.md).
-- Per-conflict resolution: [`.ravenclaude/runs/forge/mimir-session-tab/gap-delta.md`](../../../../.ravenclaude/runs/forge/mimir-session-tab/gap-delta.md) C1-C8.
-- Panel-B reachability findings (the empirical probe): [`.ravenclaude/runs/forge/mimir-session-tab/plan-B.md`](../../../../.ravenclaude/runs/forge/mimir-session-tab/plan-B.md) §"Phase 0".
+- Per-conflict resolution: `.ravenclaude/runs/forge/mimir-session-tab/gap-delta.md` (gitignored local run-dir artifact) C1-C8.
+- Panel-B reachability findings (the empirical probe): `.ravenclaude/runs/forge/mimir-session-tab/plan-B.md` (gitignored local run-dir artifact) §"Phase 0".
 - Substrate-wide scrub helper: [`plugins/ravenclaude-core/hooks/_scrub.sh`](../../hooks/_scrub.sh) (v0.110.0 — the single source of truth for `_scrub_reason()`).
 - Norse precedents (same glob-and-inline read shape):
   - **Heimdall** (perimeter-alarm tab — `_read_hook_events`, `/__heimdall`): plugin CLAUDE.md "Heimdall — perimeter-alarm dashboard tab".

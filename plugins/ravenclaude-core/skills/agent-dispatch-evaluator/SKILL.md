@@ -11,7 +11,7 @@ confidence: high
 
 The **wire contract** between every agent dispatch surface and the cheap Haiku call that tells it which model tier to use. Where the [`adaptive-run-classifier`](../adaptive-run-classifier/SKILL.md) right-sizes **multi-phase workflow runs**, this skill right-sizes **individual dispatches** — Workflow `agent()` calls, top-level Agent tool dispatches from conversation, and tribunal seats in [`scripts/thing-decide.py`](../../scripts/thing-decide.py). One forced-tool Haiku call per dispatch. No agent loop. No retries to parse.
 
-Plan reference: [`docs/plans/2026-06-03-agent-dispatch-evaluator/plan.md`](../../../../docs/plans/2026-06-03-agent-dispatch-evaluator/plan.md). Phase 0 verification: [`phase-0-verification.md`](../../../../.ravenclaude/runs/forge/agent-dispatch-evaluator/phase-0-verification.md). Cross-panel resolutions: [`gap-delta.md`](../../../../.ravenclaude/runs/forge/agent-dispatch-evaluator/gap-delta.md).
+Plan reference: [`docs/plans/2026-06-03-agent-dispatch-evaluator/plan.md`](../../../../docs/plans/2026-06-03-agent-dispatch-evaluator/plan.md). Phase 0 verification: `.ravenclaude/runs/forge/agent-dispatch-evaluator/phase-0-verification.md` (gitignored). Cross-panel resolutions: `.ravenclaude/runs/forge/agent-dispatch-evaluator/gap-delta.md` (gitignored).
 
 ## The `dispatch_config` JSON schema
 
@@ -100,7 +100,7 @@ The adapter (workflow wrapper or SubagentStart hook) holds the ONE mapping table
 
 ## The three intercept points + their authority
 
-The gap-delta C1 / RM1 architectural pivot: there is **no `Agent` matcher** in PreToolUse `hooks.json` (verified in-session — see [`phase-0-verification.md`](../../../../.ravenclaude/runs/forge/agent-dispatch-evaluator/phase-0-verification.md) §P0.1). Binding-mutation is therefore distributed across three surfaces, each with different authority:
+The gap-delta C1 / RM1 architectural pivot: there is **no `Agent` matcher** in PreToolUse `hooks.json` (verified in-session — see `.ravenclaude/runs/forge/agent-dispatch-evaluator/phase-0-verification.md` (gitignored) §P0.1). Binding-mutation is therefore distributed across three surfaces, each with different authority:
 
 | Surface | Mechanism | Authority |
 |---|---|---|
@@ -305,8 +305,8 @@ This skill emits no runtime artifact of its own — it is a **contract**, consum
 ## References
 
 - Plan + risk matrix: [`docs/plans/2026-06-03-agent-dispatch-evaluator/plan.md`](../../../../docs/plans/2026-06-03-agent-dispatch-evaluator/plan.md) (Phase 1 work-list, RM1-RM8, intercept-shape contract).
-- Phase 0 verification: [`.ravenclaude/runs/forge/agent-dispatch-evaluator/phase-0-verification.md`](../../../../.ravenclaude/runs/forge/agent-dispatch-evaluator/phase-0-verification.md) (the three load-bearing flips: no-Agent-matcher, subprocess-exemption, no-cache).
-- Cross-panel resolutions: [`.ravenclaude/runs/forge/agent-dispatch-evaluator/gap-delta.md`](../../../../.ravenclaude/runs/forge/agent-dispatch-evaluator/gap-delta.md) (C1-C10).
+- Phase 0 verification: `.ravenclaude/runs/forge/agent-dispatch-evaluator/phase-0-verification.md` (gitignored local run-dir artifact) (the three load-bearing flips: no-Agent-matcher, subprocess-exemption, no-cache).
+- Cross-panel resolutions: `.ravenclaude/runs/forge/agent-dispatch-evaluator/gap-delta.md` (gitignored local run-dir artifact) (C1-C10).
 - **Tier table source of truth:** [`plugins/ravenclaude-core/skills/adaptive-run-classifier/SKILL.md`](../adaptive-run-classifier/SKILL.md) §"Substrate tier table".
 - Cache discipline (minimum tokens, TTL, breakpoints): [`plugins/claude-app-engineering/knowledge/prompt-caching-playbook.md`](../../../claude-app-engineering/knowledge/prompt-caching-playbook.md).
 - Forced-tool structured output (the `tool_choice` pattern): [`plugins/claude-app-engineering/knowledge/tool-use-and-structured-output.md`](../../../claude-app-engineering/knowledge/tool-use-and-structured-output.md).
