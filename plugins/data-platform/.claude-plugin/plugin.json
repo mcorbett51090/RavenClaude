@@ -1,6 +1,6 @@
 {
   "name": "data-platform",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Data-platform team — 4 agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) for cloud-database setup, ELT pipelines (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4 / Shopify / HRIS plus Planhat / Intercom / Slack-as-a-data-source deep-dives, and embedded dashboards (Evidence.dev / Superset / Metabase / Cube + Tremor). 12 skills (incl. cross-system-identity-resolution — the account spine stitching a Salesforce account to a Planhat / Intercom / Slack identity), 12 templates, a 17-doc knowledge bank (+ Sigma-when-already-owned), and 21 best-practices. Opinionated against per-viewer-priced BI (Looker / Tableau / Sigma) for greenfield SMB selection — but leverages Sigma when the client already owns it. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"
