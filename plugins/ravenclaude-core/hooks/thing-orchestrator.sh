@@ -31,6 +31,16 @@
 
 set -euo pipefail
 
+# ── Structured hook-event substrate (Phase 0). Source the emit helper so every
+#    deny path below can call _emit_hook_event. Fail-safe: a missing helper
+#    becomes a no-op stub so the emit calls can never throw or block the verdict.
+_emit_event_helper="$(dirname "${BASH_SOURCE[0]}")/_emit-event.sh"
+if [ -f "$_emit_event_helper" ]; then
+  # shellcheck source=/dev/null
+  . "$_emit_event_helper" 2>/dev/null || true
+fi
+command -v _emit_hook_event >/dev/null 2>&1 || _emit_hook_event() { :; }
+
 # ── Recursion guard: a seat runs `claude -p` (which we mark THING_SEAT_ACTIVE);
 #    belt-and-suspenders so a tribunal call can never reconvene the tribunal. ──
 [ -n "${THING_SEAT_ACTIVE:-}" ] && exit 0
@@ -61,6 +71,7 @@ emit_edit() {  # emit_edit <revised-command> <reason>
 # parse stdin — detect-and-deny rather than fail open (design E14).
 if ! command -v jq >/dev/null 2>&1; then
   echo "[Command review] jq not available; blocking to fail closed." >&2
+  _emit_hook_event "thing-orchestrator.sh" "deny" "Bash" "" "jq-missing-fail-closed" 2
   exit 2
 fi
 
@@ -93,7 +104,10 @@ fi
 # ── Routing + config. Fail CLOSED (deny), not ask: past the short-circuit a
 # category is toggled on — the user opted into gating; a missing/silent engine
 # can't distinguish a high-stakes mutation from a read, so deny (assessment #7).
-[ -f "$DECISION" ] || emit deny "Command review is enabled but its decision helper is missing (broken install). Failing closed. Fix the plugin install, or turn command review off in the comfort-posture dashboard."
+if [ ! -f "$DECISION" ]; then
+  _emit_hook_event "thing-orchestrator.sh" "deny" "$tool_name" "" "decision-helper-missing" 2
+  emit deny "Command review is enabled but its decision helper is missing (broken install). Failing closed. Fix the plugin install, or turn command review off in the comfort-posture dashboard."
+fi
 
 # Bash classifies via the command string (UNCHANGED path); every other shape
 # classifies the whole tool-call payload via classify-payload (JSON on stdin).
@@ -107,7 +121,10 @@ else
   decision="$(printf '%s' "$payload" | THING_SEAT_ACTIVE= python3 "$DECISION" --root "$cwd" classify-payload 2>/dev/null || true)"
   payload_shape="$(printf '%s' "$decision" | jq -r '.payload_shape // "command"')"
 fi
-[ -z "$decision" ] && emit deny "Command review could not classify the tool call (decision helper failed). Failing closed. Re-run, fix the install, or turn command review off in the dashboard."
+if [ -z "$decision" ]; then
+  _emit_hook_event "thing-orchestrator.sh" "deny" "$tool_name" "$cmd" "classification-failed" 2
+  emit deny "Command review could not classify the tool call (decision helper failed). Failing closed. Re-run, fix the install, or turn command review off in the dashboard."
+fi
 
 enabled="$(printf '%s' "$decision" | jq -r '.thing_enabled // false')"
 category="$(printf '%s' "$decision" | jq -r '.category // "unknown"')"
@@ -129,6 +146,7 @@ fi
 # the short-circuit, so the Thing is active; an unmappable matched shape is a
 # config/code error, not a free pass.
 if [ "$tool_name" != "Bash" ] && { [ -z "$category" ] || [ "$category" = "null" ] || [ "$category" = "unknown" ]; }; then
+  _emit_hook_event "thing-orchestrator.sh" "deny" "$tool_name" "" "unmapped-shape" 2
   emit deny "Command review: DENIED — could not classify this ${tool_name} tool call (unmapped shape). Failing closed."
 fi
 
@@ -153,6 +171,7 @@ if [ "$self_disable" = "true" ]; then
         updated_input:null,duration_ms:0}' \
       > "${sd_audit}/${sd_run_id}.json" 2>/dev/null || true
   fi
+  _emit_hook_event "thing-orchestrator.sh" "deny" "$tool_name" "$cmd" "self-disable" 2
   emit deny "Command review (the Thing): DENIED — this command would disable or tamper with the Thing itself (${sd_concern}). Refused unilaterally (§B.9.5); turn the Thing off in the comfort-posture dashboard instead. Sága log: .ravenclaude/runs/thing/${sd_run_id}.json"
 fi
 
@@ -203,6 +222,7 @@ if [ "$hard_rule" = "true" ]; then
         updated_input:null,duration_ms:0}' \
       > "${hr_audit}/${hr_run_id}.json" 2>/dev/null || true
   fi
+  _emit_hook_event "thing-orchestrator.sh" "deny" "$tool_name" "$cmd" "hard-rule-deny" 2
   emit deny "Command review (the Thing): DENIED — this command matches an unarguable hard rule (${hr_concern}) and is refused pre-LLM, regardless of which category routed it (§B.9.3). Sága log: .ravenclaude/runs/thing/${hr_run_id}.json"
 fi
 
@@ -210,6 +230,7 @@ fi
 
 # §Payload caps: a reviewed payload too large to screen in full fails CLOSED.
 if [ "$(printf '%s' "$decision" | jq -r '.payload_too_large // false')" = "true" ]; then
+  _emit_hook_event "thing-orchestrator.sh" "deny" "$tool_name" "$cmd" "payload-too-large" 2
   emit deny "Command review (the Thing): DENIED — the ${payload_shape} payload exceeds the screening size limit and cannot be fully reviewed. Failing closed."
 fi
 
@@ -628,4 +649,13 @@ fi
 if [ "$verdict" = "edit" ]; then
   emit_edit "$revised" "$reason Sága log: ${audit_dir_rel}/${run_id}.json"
 fi
+
+# Emit a hook-event for every deny verdict so the substrate is never dark for
+# the most consequential deny class. The phase tag distinguishes which deny path
+# fired (pre-llm-hard-rule, panel-deny, abstain-fail-closed, injection-deny,
+# edit-coerced, critical-concern-veto, audit-write-fail, etc.).
+if [ "$verdict" = "deny" ]; then
+  _emit_hook_event "thing-orchestrator.sh" "deny" "$tool_name" "${cmd:-${reviewed:-}}" "$phase" 2
+fi
+
 emit "$verdict" "$reason Sága log: ${audit_dir_rel}/${run_id}.json"
