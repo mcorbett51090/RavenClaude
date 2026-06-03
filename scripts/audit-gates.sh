@@ -395,7 +395,7 @@ cp -p "$TMP/README.md.bak" README.md
 # (the catalog prose describing core) must be detected — previously ungated, it
 # silently drifted to "20 skills" while core had 22 (caught by the v0.74.0 panel).
 backup .claude-plugin/marketplace.json
-python3 -c "p='.claude-plugin/marketplace.json';s=open(p).read();open(p,'w').write(s.replace('25 skills','20 skills',1))"
+python3 -c "p='.claude-plugin/marketplace.json';s=open(p).read();open(p,'w').write(s.replace('26 skills','20 skills',1))"
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (wrong metadata.description skill count)" must_fail "$rc"
 cp -p "$TMP/.claude-plugin_marketplace.json.bak" .claude-plugin/marketplace.json
@@ -1876,7 +1876,7 @@ echo "── Gate 30: domain anti-pattern hooks (one fire + no-fire fixture each
 # output AND exit 0. Hooks take the target file path as $1 (the hooks.json wiring
 # passes the tool's file_path through).
 DH="$TMP/domain-hooks"
-mkdir -p "$DH/models" "$DH/src"
+mkdir -p "$DH/models" "$DH/src" "$DH/workflows"
 
 _hook_run() { # $1=hook $2=file -> sets HOOK_OUT, HOOK_RC
   HOOK_RC=0
@@ -1901,6 +1901,18 @@ printf '<ImportExportXml><CustomizationPrefix>new</CustomizationPrefix></ImportE
 printf '<ImportExportXml><CustomizationPrefix>rvn</CustomizationPrefix></ImportExportXml>\n' > "$DH/good-customizations.xml"
 assert_hook_fires  "pp house-opinions"  plugins/power-platform/hooks/check-house-opinions.sh "$DH/bad-customizations.xml"
 assert_hook_silent "pp house-opinions"  plugins/power-platform/hooks/check-house-opinions.sh "$DH/good-customizations.xml"
+
+# 1b. power-platform — TMDL measure missing metadata (description / formatString / displayFolder).
+printf 'table Sales\n\tmeasure Total = SUM(Sales[Amount])\n' > "$DH/bad-measure.tmdl"
+printf 'table Sales\n\t/// Total sales.\n\tmeasure Total = SUM(Sales[Amount])\n\t\tformatString: "0"\n\t\tdisplayFolder: Financials\n' > "$DH/good-measure.tmdl"
+assert_hook_fires  "pp tmdl-measure-metadata"  plugins/power-platform/hooks/validate-tmdl-measure-metadata.sh "$DH/bad-measure.tmdl"
+assert_hook_silent "pp tmdl-measure-metadata"  plugins/power-platform/hooks/validate-tmdl-measure-metadata.sh "$DH/good-measure.tmdl"
+
+# 1c. power-platform — Power Automate flow with auto-generated default action names.
+printf '%s\n' '{"properties":{"definition":{"actions":{"Compose_2":{"type":"Compose"},"Apply_to_each":{"type":"Foreach","actions":{"Condition_3":{"type":"If"}}}}}}}' > "$DH/workflows/bad-flow.json"
+printf '%s\n' '{"properties":{"definition":{"actions":{"Build_payload":{"type":"Compose"},"Loop_invoices":{"type":"Foreach","actions":{"Check_paid":{"type":"If"}}}}}}}' > "$DH/workflows/good-flow.json"
+assert_hook_fires  "pp flow-action-names"  plugins/power-platform/hooks/validate-flow-action-names.sh "$DH/workflows/bad-flow.json"
+assert_hook_silent "pp flow-action-names"  plugins/power-platform/hooks/validate-flow-action-names.sh "$DH/workflows/good-flow.json"
 
 # 2. finance — hardcoded discount/growth rate in a model doc.
 printf 'rev = base * 0.45\n' > "$DH/models/bad.md"
