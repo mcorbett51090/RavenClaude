@@ -16,7 +16,7 @@
 
 > 🚀 **[▶ First Workflow in 10 Minutes](GETTING_STARTED.md)** — install → dashboard → one governed multi-agent dispatch → `/wrap`. The canonical onboarding walkthrough. Start here if you've never used RavenClaude before.
 
-Today this marketplace ships **18 plugins**:
+Today this marketplace ships **19 plugins**:
 
 - **[`ravenclaude-core`](plugins/ravenclaude-core/)** — domain-neutral Team Lead + 14 specialists (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, data-engineer, etc.), plus dispatch playbooks (with a Cross-plugin dispatch section), gates, 23 skills, 13 hooks, templates, and the **cross-project contribution-staging loop**.
 - **[`power-platform`](plugins/power-platform/)** — 11 Microsoft Power Platform specialists (Power Fx, flows, Power BI, Dataverse, model-driven, PCF, Copilot Studio, Power Pages, admin, ALM, tester), 18 skills, an advisory house-opinions hook covering 8 checks, and the bundled `pbix-mcp` MCP server.
@@ -36,6 +36,7 @@ Today this marketplace ships **18 plugins**:
 - **[`ai-coding-model-guidance`](plugins/ai-coding-model-guidance/)** — 3 strategist agents (copilot-model-strategist, codex-model-strategist, grok-model-strategist) for choosing a model in the **non-Claude** AI-coding ecosystems (GitHub Copilot's picker, OpenAI Codex CLI/cloud, xAI Grok) over a single dated, citation-grounded lineup with a vendor-neutral decision tree, right-sizing discipline, and a closed-world anti-hallucination rule. Seams to claude-app-engineering for Claude models.
 - **[`project-management`](plugins/project-management/)** — 4 project & delivery specialists (delivery-lead, scrum-master, risk-and-raid-analyst, stakeholder-comms-lead) across the predictive (PMBOK/PMP) and agile (Scrum/Kanban) tracks plus hybrid — baselines + earned value, sprint facilitation, scored qual+quant risk registers, stakeholder/PMO governance — with a predictive-vs-agile-vs-hybrid decision tree and a best-practices library. **Deepens, not replaces,** `ravenclaude-core`'s lightweight `project-manager` (hygiene → core, running the project → here).
 - **[`customer-success-analytics`](plugins/customer-success-analytics/)** — 2 domain-neutral Customer-Success-analytics specialists (cs-analytics-architect, churn-signal-analyst) that own the metrics/signals/workflow layer on top of `data-platform`: the conformed account/health-snapshot/renewal model, churn-leading indicators, and a transparent rule-based Green/Yellow/Red risk tier (every Red shows why — no black-box ML in phase one). 2 skills (health-tier-design, renewal-workflow-design), a 2-doc knowledge bank, and a cs-health-data-model template.
+- **[`process-improvement`](plugins/process-improvement/)** — 2 Lean Six Sigma specialists (lean-six-sigma-blackbelt, process-analyst) that analyze and improve any operational process with Black-Belt rigor: DMAIC, Lean waste removal (DOWNTIME), data-proven root-cause analysis, SPC, and control plans. 6 skills, 5 templates (charter/SIPOC/fishbone+5-Whys/FMEA/control-plan), 7 best-practices, and a 3-doc knowledge bank with 6 web-verified Mermaid decision trees (sigma/DPMO, Cp/Cpk, control-chart selection, Nelson rules). Seams to `applied-statistics` for the inferential math and `project-management` for DMAIC delivery.
 
 ---
 
@@ -122,7 +123,7 @@ You lose auto-update and version pinning. To update, `git pull` and re-copy. Oth
 
 ## Updating and version pinning
 
-The marketplace ships **semver-versioned** plugins (`plugin.json` `version` + matching `marketplace.json` entry, CI-gated for drift). 17 of the 18 plugins declare `requires.ravenclaude-core` — a minimum `ravenclaude-core` version they expect, surfaced in the per-plugin card of [`repo-guide.html`](repo-guide.html).
+The marketplace ships **semver-versioned** plugins (`plugin.json` `version` + matching `marketplace.json` entry, CI-gated for drift). 18 of the 19 plugins declare `requires.ravenclaude-core` — a minimum `ravenclaude-core` version they expect, surfaced in the per-plugin card of [`repo-guide.html`](repo-guide.html).
 
 **To update everything to the marketplace's latest:**
 

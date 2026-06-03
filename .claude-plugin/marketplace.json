@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. A domain-neutral core (Team Lead + 14 specialist agents, 25 skills, hooks, the Capability Grounding Protocol, the Structured Output Protocol, and a comfort-posture permission dashboard) plus domain plugins that extend it via skills and knowledge. Every agent ships example-scenario frontmatter; the repo-guide surfaces an 'I want to…' use-case lookup across all plugins. Plugins: ravenclaude-core, power-platform (+ bundled pbix-mcp), finance, regulatory-compliance, web-design (WCAG/CWV/SEO), edtech-partner-success (PSM lane), data-platform, applied-statistics, microsoft-fabric (OneLake / Lakehouse / Direct Lake), claude-app-engineering (Claude API / Agent SDK / MCP / evals), azure-cloud (landing zones / Bicep / Entra / networking / compute), salesforce (Apex / Flow / Agentforce / sharing model / 2GP DevOps), microsoft-365-copilot (declarative/custom-engine agents / Graph connectors / Purview), customer-success-analytics (CS-health / churn).",
-    "version": "0.42.0"
+    "version": "0.43.0"
   },
   "plugins": [
     {
@@ -199,6 +199,32 @@
         "scipy",
         "statsmodels",
         "pingouin"
+      ]
+    },
+    {
+      "name": "process-improvement",
+      "source": "./plugins/process-improvement",
+      "description": "Lean Six Sigma process-improvement team — 2 specialist agents (lean-six-sigma-blackbelt, process-analyst) that analyze a team's operational processes and improve them with Black-Belt rigor: DMAIC, Lean waste removal (the 8 wastes / DOWNTIME), data-proven root-cause analysis, statistical process control, and control plans that make the gain stick. Domain-neutral (support, onboarding, billing, deployment, hiring — any process). 6 skills (dmaic-project-charter, process-mapping, root-cause-analysis, process-capability-and-spc, lean-waste-analysis, control-plan-and-sustain), 5 templates (charter, SIPOC, fishbone+5-Whys, FMEA, control-plan), 7 best-practices, and a 3-doc knowledge bank with 6 web-verified Mermaid decision trees (sigma/DPMO, Cp/Cpk, control-chart selection, Western-Electric/Nelson rules). The inferential statistics seam (hypothesis tests, DOE, regression, Gage R&R) routes to applied-statistics; DMAIC project delivery routes to project-management. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "process-improvement",
+        "lean",
+        "six-sigma",
+        "lean-six-sigma",
+        "dmaic",
+        "black-belt",
+        "spc",
+        "control-chart",
+        "process-capability",
+        "cpk",
+        "root-cause-analysis",
+        "kaizen",
+        "value-stream-mapping",
+        "fmea",
+        "continuous-improvement"
       ]
     },
     {
