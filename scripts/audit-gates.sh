@@ -22,6 +22,31 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
+# ── Optional per-gate filter: --check <gate_number> ──────────────────────────
+# Usage: bash scripts/audit-gates.sh --check 50
+# Runs only the named gate's fixture test directly and exits, bypassing the full
+# suite. This enables fast targeted re-runs after a regression fix without the
+# cost of the full 48-gate matrix. The full suite is the default (no --check arg).
+#
+# Currently supported per-gate values: 50 (Phase 0 emit & scrub).
+# Other gates can be added here as they acquire a standalone runner script.
+if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
+  case "${2}" in
+    50)
+      echo "── Gate 50: Phase 0 emit & scrub (per-gate run) ──────────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-phase0-emit-and-scrub.sh
+      exit $?
+      ;;
+    *)
+      echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
+      echo "Supported: 50. Run without --check to execute the full suite." >&2
+      exit 1
+      ;;
+  esac
+fi
+# _gate_active: no-op compatibility shim so Gate 50's if-block below still compiles.
+_gate_active() { return 0; }
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Bookkeeping
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2582,6 +2607,27 @@ gate "sanitize-webfetch-body (no injection markers survive in sanitized output)"
 # the injections (the IBCS line must survive).
 rc=0; grep -q "IBCS SUCCESS rules" "$POISONED_OUT" || rc=$?
 gate "sanitize-webfetch-body (canonical content preserved across strips)" must_pass "$rc"
+
+if _gate_active 50; then
+echo
+echo "── Gate 50: Phase 0 emit & scrub ─────────────────────────────────────────"
+# Proves the Phase 0 wiring: (A) thing-orchestrator.sh deny emits a JSONL line,
+# (B) route-decision-review.sh binding deny emits a JSONL line, (C) _scrub_reason()
+# redacts secret-shaped substrings, (D) scrub fires before the JSONL write so a
+# secret-shaped reason never reaches the log, and (E) the must-fail half confirms
+# the gate has teeth — a patched (no-scrub) emit leaks the secret.
+# CI-safe: G50.1 uses the deterministic pre-LLM hard-rule deny (no live claude call);
+# G50.2 uses THING_DECIDE_MOCK_VERDICT (same mock hook as Gate 17, no live claude call).
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-phase0-emit-and-scrub.sh >/dev/null 2>&1 || rc=$?
+gate "phase0-emit-scrub fixture test (all 5 subtests)" must_pass "$rc"
+# must_fail: a JSONL line containing a raw secret token is flagged as a leak.
+# This is the bidirectional check that proves the gate's G50.4 detection has teeth:
+# if a secret appears in the JSONL, grep returns 0 (found) — that's the BAD state.
+printf '%s\n' '{"schema_version":1,"ts":"2026-06-03T00:00:00Z","hook":"thing-orchestrator.sh","verdict":"deny","tool":"Bash","path":"","rule":"pre-llm-hard-rule: --password=hunter2 in command","session_id":"audit","exit_code":2}' \
+  > "$TMP/g50-secret-leak.jsonl"
+rc=0; grep -Fq "hunter2" "$TMP/g50-secret-leak.jsonl" || rc=1
+gate "phase0-emit-scrub: secret-containing JSONL is detectable (gate has teeth)" must_pass "$rc"
+fi
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
