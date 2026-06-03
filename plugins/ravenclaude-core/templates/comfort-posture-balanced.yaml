@@ -28,9 +28,30 @@ design_checkins: true
 # set it to your real check. MIGRATION: shipping it uncommented in a consumer's
 # posture would start blocking their Stop on /plugin marketplace update — leave it
 # commented in the seed; consumers opt in per-repo via the dashboard.
+#
+# First-run trust check (added 2026-06-03 — closes Codex desktop trust review
+# Finding 1): when `cmd` is set, dod-gate.sh refuses to execute it on first run
+# until the agent runs `touch <confirm-path>` to authorize. The cmd hash is the
+# sentinel — rotating the cmd value re-triggers the confirm. Set `trusted: true`
+# to skip the first-run confirm for this repo (you've reviewed the YAML and
+# accept silent execution). Blast radius: trusted=true means any future YAML
+# edit to `cmd` runs silently on the next Stop.
 # definition_of_done:
 #   cmd: "npm test && npm run lint"   # your repo's real test/build/lint command
 #   max_blocks: 8                     # consecutive Stop-blocks before force-allow
+#   trusted: false                    # default — first run requires `touch <path>` confirm
+
+# Web-access first-use trust (added 2026-06-03 — closes Codex desktop trust
+# review Finding 5): when a domain in `.ravenclaude/web-access.yaml` `allow:` is
+# hit for the first time this session, guard-web-access.sh emits
+# permissionDecision: ask (instead of silently allowing) so a hostile YAML edit
+# can't silently exfiltrate. Subsequent hits to the same domain auto-allow as
+# before. Set `trusted: true` to skip the first-use ask for this repo (you've
+# reviewed `web-access.yaml` and accept silent allow). Blast radius: trusted=true
+# means any future allowlist edit takes effect on the next WebFetch with no
+# confirmation. Defaults to false — first-use ask is the new default.
+web_access:
+  trusted: false
 
 # Always-on deny rules — layer-independent floor. Category levels never relax these.
 security_deny:
