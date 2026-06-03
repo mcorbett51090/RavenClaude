@@ -1876,7 +1876,7 @@ echo "── Gate 30: domain anti-pattern hooks (one fire + no-fire fixture each
 # output AND exit 0. Hooks take the target file path as $1 (the hooks.json wiring
 # passes the tool's file_path through).
 DH="$TMP/domain-hooks"
-mkdir -p "$DH/models" "$DH/src"
+mkdir -p "$DH/models" "$DH/src" "$DH/workflows"
 
 _hook_run() { # $1=hook $2=file -> sets HOOK_OUT, HOOK_RC
   HOOK_RC=0
@@ -1907,6 +1907,12 @@ printf 'table Sales\n\tmeasure Total = SUM(Sales[Amount])\n' > "$DH/bad-measure.
 printf 'table Sales\n\t/// Total sales.\n\tmeasure Total = SUM(Sales[Amount])\n\t\tformatString: "0"\n\t\tdisplayFolder: Financials\n' > "$DH/good-measure.tmdl"
 assert_hook_fires  "pp tmdl-measure-metadata"  plugins/power-platform/hooks/validate-tmdl-measure-metadata.sh "$DH/bad-measure.tmdl"
 assert_hook_silent "pp tmdl-measure-metadata"  plugins/power-platform/hooks/validate-tmdl-measure-metadata.sh "$DH/good-measure.tmdl"
+
+# 1c. power-platform — Power Automate flow with auto-generated default action names.
+printf '%s\n' '{"properties":{"definition":{"actions":{"Compose_2":{"type":"Compose"},"Apply_to_each":{"type":"Foreach","actions":{"Condition_3":{"type":"If"}}}}}}}' > "$DH/workflows/bad-flow.json"
+printf '%s\n' '{"properties":{"definition":{"actions":{"Build_payload":{"type":"Compose"},"Loop_invoices":{"type":"Foreach","actions":{"Check_paid":{"type":"If"}}}}}}}' > "$DH/workflows/good-flow.json"
+assert_hook_fires  "pp flow-action-names"  plugins/power-platform/hooks/validate-flow-action-names.sh "$DH/workflows/bad-flow.json"
+assert_hook_silent "pp flow-action-names"  plugins/power-platform/hooks/validate-flow-action-names.sh "$DH/workflows/good-flow.json"
 
 # 2. finance — hardcoded discount/growth rate in a model doc.
 printf 'rev = base * 0.45\n' > "$DH/models/bad.md"

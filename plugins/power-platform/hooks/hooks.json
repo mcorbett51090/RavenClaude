@@ -15,6 +15,11 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/validate-tmdl-measure-metadata.sh \"$CLAUDE_TOOL_FILE_PATH\"",
             "comment": "Advisory: on a *.tmdl edit, flags any Power BI measure missing a /// description, a formatString, or a displayFolder (the measure-metadata discipline; see best-practices/enforce-measure-metadata.md). Deterministic single-file structural check; advisory by default (flip the script's final exit 0 to exit 1 to enforce). Pattern credit: Data Goblins power-bi-agentic-development."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/validate-flow-action-names.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: on a Power Automate flow JSON edit (workflows/*.json), flags actions left with auto-generated default names (Compose_2, Apply_to_each_3, Condition, …) that should be renamed descriptively (see best-practices/name-flow-actions-descriptively.md). Deterministic; advisory by default (flip the script's final exit 0 to exit 1 to enforce). Pattern credit: Flow Studio power-automate-mcp-skills + Flow-Checker/BPA guidance."
           }
         ]
       }
