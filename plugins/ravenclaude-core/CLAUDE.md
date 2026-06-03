@@ -600,7 +600,7 @@ Proven by **Gate 60** (`hooks/tests/test-gate60-copilot-seat-cap.sh`) — 5 subt
 
 **Migration:** none required — opt-in via env signal set by Phase 1's adapter; consumers not running under Copilot CLI see no behavior change. Consumers with an explicit `thing.yaml` `seat_timeout_seconds` value see no change. With this PR, the **Copilot adapter diagnostic remediation is complete** — Phase 0 made denies legible in the audit log, Phase 1 made them legible to the agent at deny time, and Phase 2 prevents the latency-artifact false positives that the 2026-06-03 BTCSI triage surfaced. Full diagnostic in [`docs/research/2026-06-03-copilot-adapter-diagnostic/synthesis.md`](../../docs/research/2026-06-03-copilot-adapter-diagnostic/synthesis.md).
 
-## Hardener follow-ups: scrub pattern coverage + multi-field injection + Unicode separators (added 2026-06-03, v0.112.1)
+## Hardener follow-ups: scrub pattern coverage + multi-field injection + Unicode separators (added 2026-06-03, v0.113.1)
 
 Three follow-ups from the four-panel review of the v0.110.0–v0.112.0 trilogy land together as a patch. None changes any consumer-facing schema; all are additive defenses to the substrate.
 

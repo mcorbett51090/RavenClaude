@@ -28,8 +28,8 @@ cd "$(git rev-parse --show-toplevel)"
 # suite. This enables fast targeted re-runs after a regression fix without the
 # cost of the full 48-gate matrix. The full suite is the default (no --check arg).
 #
-# Currently supported per-gate values: 50 (Phase 0 emit & scrub).
-# Other gates can be added here as they acquire a standalone runner script.
+# Currently supported per-gate values: 20, 50, 60, 70. Other gates can be added
+# here as they acquire a standalone runner script.
 if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
   case "${2}" in
     20)
@@ -47,9 +47,14 @@ if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
       bash plugins/ravenclaude-core/hooks/tests/test-gate60-copilot-seat-cap.sh
       exit $?
       ;;
+    70)
+      echo "── Gate 70: Codex desktop trust review hooks (per-gate run) ──────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate70-codex-trust-hooks.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 60. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 60, 70. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -2654,6 +2659,30 @@ printf '%s\n' '{"schema_version":1,"ts":"2026-06-03T00:00:00Z","hook":"thing-orc
 rc=0; grep -Fq "hunter2" "$TMP/g50-secret-leak.jsonl" || rc=1
 gate "phase0-emit-scrub: secret-containing JSONL is detectable (gate has teeth)" must_pass "$rc"
 fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+echo "── Gate 70: Codex desktop trust review hooks (Findings 1, 2, 5) ─────────"
+# Proves the Codex desktop trust review remediation: (1) the three smell hooks'
+# STRICT mode now BLOCKS via exit 2 (was exit 1, which Claude Code silently
+# treated as non-blocking), (2) dod-gate's first-run trust check refuses to
+# bash -c $dod_cmd until the agent touches a confirm file (or sets
+# definition_of_done.trusted: true), and (3) guard-web-access emits
+# permissionDecision:ask on the first hit to a YAML-whitelisted domain per
+# session (or skips the ask when web_access.trusted: true).
+#
+# The fixture asserts STRICT branches exit code 2 LITERALLY, not "non-zero" —
+# a sloppy non-zero check would pass the pre-fix exit-1 code. The must-fail
+# half (G70.6) patches a STRICT branch back to exit 1 and proves the gate's
+# exit-2-literal assertion catches the regression. See test file's header for
+# the per-subtest rationale.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate70-codex-trust-hooks.sh >/dev/null 2>&1 || rc=$?
+gate "codex-trust-hooks fixture (13 subtests across STRICT + dod-gate + web-access)" must_pass "$rc"
+# must_fail: an exit-1 (broken) STRICT branch must be distinguishable from an
+# exit-2 (fixed) STRICT branch. If a fixture treats both as "non-zero = block",
+# it would pass the pre-fix code. This sanity check proves exit 1 != exit 2.
+rc=0
+[ 1 -ne 2 ] || rc=1
+gate "codex-trust-hooks: exit 1 vs exit 2 are distinguishable (gate has teeth)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

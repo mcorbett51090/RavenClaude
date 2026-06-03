@@ -18,8 +18,12 @@
 #
 # Advisory by default: prints warnings to stderr so Claude and the user both see
 # them, but exits 0 so the edit is not blocked. To make this hook BLOCK on
-# violation, change the final `exit 0` to `exit 1` (or set
+# violation, change the final `exit 0` to `exit 2` (or set
 # EDTECH_PS_STRICT=1 in the environment).
+#
+# Claude Code PreToolUse: exit 2 = BLOCK the tool call with stderr surfaced to
+# the agent. exit 1 = non-blocking error (silently swallowed). STRICT=1 below
+# uses exit 2 — the only blocking code.
 
 set -euo pipefail
 
@@ -152,12 +156,15 @@ EOF
   pushback.
 
   This hook is advisory — the edit was not blocked. To enforce, set
-  EDTECH_PS_STRICT=1 in your env or change \`exit 0\` to \`exit 1\` at
-  the bottom of this script.
+  EDTECH_PS_STRICT=1 in your env or change \`exit 0\` to \`exit 2\` at
+  the bottom of this script (exit 2 = BLOCK; exit 1 is non-blocking
+  and would silently allow the edit).
 ────────────────────────────────────────────────────────────────────
 
 EOF
-  if [[ "${EDTECH_PS_STRICT:-0}" == "1" ]]; then exit 1; fi
+  # exit 2 = BLOCK (Claude Code PreToolUse blocking code); exit 1 is
+  # non-blocking and would silently allow the edit despite the warning.
+  if [[ "${EDTECH_PS_STRICT:-0}" == "1" ]]; then exit 2; fi
 fi
 
 exit 0

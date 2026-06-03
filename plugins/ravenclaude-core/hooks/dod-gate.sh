@@ -22,6 +22,15 @@
 
 set -uo pipefail
 
+# Structured hook-event substrate (P0.2). Sourced fail-safe — a missing helper
+# becomes a no-op so the emit calls below can never throw or block the verdict.
+_emit_event_helper="$(dirname "$0")/_emit-event.sh"
+if [ -f "$_emit_event_helper" ]; then
+  # shellcheck source=/dev/null
+  . "$_emit_event_helper" 2>/dev/null || true
+fi
+command -v _emit_hook_event >/dev/null 2>&1 || _emit_hook_event() { :; }
+
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
 
 payload=""
@@ -76,6 +85,55 @@ bf="${bdir}/${safe_sid}"
 blocks=0
 [ -r "$bf" ] && blocks="$(cat "$bf" 2>/dev/null || echo 0)"
 case "$blocks" in (*[!0-9]*|"") blocks=0;; esac
+
+# ── First-run trust gate (closes Codex desktop trust review Finding 1) ──────
+# $dod_cmd is shell-executed via `bash -c` below, but it came from a YAML field
+# (definition_of_done.cmd) that a malicious PR could edit. Before the very first
+# run per session per cmd value, refuse to execute and surface the literal cmd
+# plus the `touch <path>` authorization step. After the user/agent touches the
+# confirm file, this gate is silent for the rest of the session for this cmd.
+# Rotating the YAML cmd re-triggers (hash mismatch); a new session re-triggers
+# (safe_sid in path). Set `definition_of_done.trusted: true` in posture YAML
+# to skip the gate entirely (you've reviewed the YAML and accept silent exec).
+dod_trusted="$(python3 - "$posture" <<'PY' 2>/dev/null || echo "false"
+import sys
+try:
+    import yaml
+    d = yaml.safe_load(open(sys.argv[1], encoding="utf-8")) or {}
+except Exception:
+    d = {}
+dod = d.get("definition_of_done") or {}
+print("true" if (isinstance(dod, dict) and dod.get("trusted") is True) else "false")
+PY
+)"
+
+if [ "$dod_trusted" != "true" ]; then
+  cmd_hash="$(printf '%s' "$dod_cmd" | sha256sum 2>/dev/null | cut -c1-16)"
+  [ -z "$cmd_hash" ] && cmd_hash="nohash"
+  confirm_dir="${cwd}/.ravenclaude/runs/dod-gate/${safe_sid}"
+  confirm_file="${confirm_dir}/confirmed-${cmd_hash}"
+  if [ ! -f "$confirm_file" ]; then
+    mkdir -p "$confirm_dir" 2>/dev/null || true
+    cat >&2 <<EOF
+
+[dod-gate] FIRST-RUN TRUST CHECK — refusing to execute until authorized.
+
+definition_of_done.cmd from .ravenclaude/comfort-posture.yaml:
+  $dod_cmd
+
+To authorize for this session (one-time, this cmd value):
+  touch "$confirm_file"
+
+To trust definition_of_done permanently for this repo (no further prompts):
+  set 'definition_of_done.trusted: true' in .ravenclaude/comfort-posture.yaml
+
+If you did NOT set this cmd, remove it from the YAML before doing anything else.
+
+EOF
+    _emit_hook_event "dod-gate.sh" "deny" "Stop" "$cmd_hash" "dod-first-run-untrusted" 2
+    exit 2
+  fi
+fi
 
 # Run the definition-of-done command.
 out="$(cd "$cwd" && bash -c "$dod_cmd" 2>&1)"; rc=$?
