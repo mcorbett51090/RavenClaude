@@ -48,7 +48,57 @@ fi
 # --- Normalization ---------------------------------------------------------
 # Canonicalize so flag-order / quoting / brace-expansion variants converge on
 # one form before matching. We match against the NORMALIZED string.
+#
+# Step 0 (added 2026-06-03): strip TEXT-CONTENT regions that don't represent
+# command intent. Two classes:
+#   (a) `-m "..."` / `-m '...'` message bodies (the `git commit -m` case
+#       and any other tool that takes a `-m` message arg) — these are
+#       documentation text the user writes; if they describe a destructive
+#       command (e.g. quoting `git branch -D` in the changelog), the LITERAL
+#       command is not being executed and must not trigger the guard.
+#   (b) Heredoc bodies — `<<TAG ... TAG` blocks delivered as multi-line text
+#       (e.g. `cat <<EOF > file ... EOF`). The body is data written to a file,
+#       not commands executed. Same false-positive surface as (a).
+# Both regressions were observed 2026-06-03: a `git commit -m` and a heredoc
+# body each contained the literal string `git branch -D` describing the
+# escape-hatch script, and the guard incorrectly fired.
+#
+# Known unresolved limitation: a bare `echo "..."` or other quoted-string
+# argument that contains a destructive pattern STILL triggers the guard,
+# because the wholesale quote-stripping below (anti-obfuscation) is intentional
+# — `rm -rf "/"` must continue to match `rm -rf /`. Extending the exemption
+# from `-m` to `echo`/`printf` would open a new bypass surface (the very
+# mechanism that makes those safe — quoted text output — is the same one that
+# attackers use to smuggle destructive payloads through `echo "rm -rf /" |
+# bash`). Workaround: write the documentation via the Write tool or via
+# `git commit -F file`, not via a quoted shell argument.
+#
+# This step happens BEFORE the existing wholesale quote-stripping (which is
+# doing real anti-obfuscation work — `rm -rf "/"` must still match `rm -rf /`).
 norm="$cmd"
+if command -v python3 >/dev/null 2>&1; then
+  # Pass the raw command via env var to avoid the script's own heredoc EOF
+  # marker interfering with heredocs INSIDE the command-under-inspection.
+  __preproc="$(__GUARD_RAW_CMD="$norm" python3 - <<'PY' 2>/dev/null
+import re, sys, os
+s = os.environ.get("__GUARD_RAW_CMD", "")
+# (a) Strip -m "..." and -m '...' argument bodies. Only the FIRST quoted
+# region after -m; refuses to merge across newlines.
+s = re.sub(r'''(-m\s+)"[^"\n]*"''', r"\1MSG", s)
+s = re.sub(r"""(-m\s+)'[^'\n]*'""", r"\1MSG", s)
+# (b) Strip heredoc bodies. Recognize <<TAG / <<-TAG / <<'TAG' / <<"TAG",
+# then remove everything up to and including the closing TAG line.
+s = re.sub(
+    r"""<<-?\s*['"]?(\w+)['"]?[^\n]*\n[\s\S]*?\n\s*\1\s*(?=\n|$)""",
+    r"<<HEREDOC",
+    s,
+)
+sys.stdout.write(s)
+PY
+)"
+  # Only apply the preprocessed form if Python succeeded and produced output.
+  [ -n "$__preproc" ] && norm="$__preproc"
+fi
 norm="${norm//\"/}"                 # drop double quotes:  rm -rf "/"  -> rm -rf /
 norm="${norm//\'/}"                 # drop single quotes
 norm="${norm//\$\{HOME\}/\$HOME}"   # ${HOME} -> $HOME  (one form to match)
