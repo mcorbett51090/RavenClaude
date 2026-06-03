@@ -160,6 +160,7 @@ CI runs the same checks plus the gate-audit meta-test.
 2. Plugin agents reference *plugin-internal* files only. They never hard-code paths inside a consumer's repo unless those paths are conventional (e.g. `docs/pm/raid-log.md`).
 3. Before merging any plugin change, simulate: "what happens when a consumer runs `/plugin marketplace update`?" If the answer is "their project breaks," add a migration note.
 4. Don't restate things the lint / CI / hook already enforces. They are the source of truth.
+5. **Force-deleting a branch (`git branch -D`) is blocked by `guard-destructive.sh` — the sanctioned escape hatch is `scripts/archive-branch.sh`.** It tags the branch tip as `archive/<branch>-<timestamp>`, pushes the tag to origin (recoverable forever), writes an audit log under `.ravenclaude/runs/branch-archive/`, then deletes the local branch via the lower-level `git update-ref -d` primitive that the guard doesn't pattern-match. Requires `--reason` (one-line why) and accepts `--evidence` (PR number / decision doc / commit SHA). Full contract: [`plugins/ravenclaude-core/skills/branch-archive/SKILL.md`](plugins/ravenclaude-core/skills/branch-archive/SKILL.md). Do NOT bypass the guard with `git update-ref -d` outside this script — the script's preconditions are what make its use of that primitive sound.
 
 ## Accuracy discipline (cross-tool pointer)
 
