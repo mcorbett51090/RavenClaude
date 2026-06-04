@@ -12,6 +12,7 @@ For the companion log of dated, story-shaped findings (incidents we tried-failed
 |---|---|---|
 | [`authoring-plugin-slash-commands.md`](./authoring-plugin-slash-commands.md) | Pattern | Writing a `plugins/<plugin>/commands/*.md` slash command — frontmatter, the namespaced `/<plugin>:<command>` invocation, multi-step body shape, and why the dashboard is copy-to-run (not press-to-run) |
 | [`ci-gate-audit.md`](./ci-gate-audit.md) | Absolute rule | Adding or changing any CI step that claims to enforce a property — every gate must fail on a known-bad input AND pass on a known-good input |
+| [`cross-plugin-references.md`](./cross-plugin-references.md) | Absolute rule | One plugin references another plugin's agents/skills/knowledge — keep it soft (self-contained first, conditioned on presence, no hard `requires`) so it degrades gracefully when the sister plugin isn't installed |
 | [`diagrams-in-docs.md`](./diagrams-in-docs.md) | Pattern | Adding any conceptual / flow diagram to a markdown doc — reach for mermaid, not ASCII box-art |
 | [`hook-authoring.md`](./hook-authoring.md) | Pattern | Writing a new PreToolUse / PostToolUse / Stop hook for a plugin |
 | [`lessons-vs-best-practices.md`](./lessons-vs-best-practices.md) | Pattern | Capturing a finding — deciding whether it's a lesson (story), a best-practice (rule), or both |
