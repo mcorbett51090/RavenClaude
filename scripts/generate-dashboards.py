@@ -9584,7 +9584,7 @@ _JS = r"""
       const dt = document.createElement("dt");
       dt.textContent = k;
       const dd = document.createElement("dd");
-      if (v instanceof Node) dd.appendChild(v);
+      if (v && typeof v === "object" && typeof v.appendChild === "function") dd.appendChild(v);
       else dd.textContent = mimirDash(v);
       dl.append(dt, dd);
     }
