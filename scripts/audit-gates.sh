@@ -417,9 +417,14 @@ python3 -c "import json;p='.claude-plugin/marketplace.json';d=json.load(open(p))
 rc=0; scripts/check-guide-fresh.sh >/dev/null 2>&1 || rc=$?
 gate "repo-guide freshness (mutated marketplace.json)" must_fail "$rc"
 cp -p "$TMP/.claude-plugin_marketplace.json.bak" .claude-plugin/marketplace.json
-# must_pass: pristine tree, the check should pass.
-rc=0; scripts/check-guide-fresh.sh >/dev/null 2>&1 || rc=$?
-gate "repo-guide freshness (clean tree)" must_pass "$rc"
+# NOTE: the matching "clean tree must_pass" assertion was intentionally removed.
+# repo-guide.html is no longer freshness-GATED on PRs — it is regenerated and
+# committed post-merge by .github/workflows/regenerate-artifacts.yml, so a PR
+# branch carrying a not-yet-regenerated guide must NOT fail here (that cross-PR
+# contagion is the failure this change fixes). The must_pass moved into that
+# workflow's verify step; the must_fail above still proves the detector that the
+# workflow relies on has teeth. See docs/best-practices/ci-gate-audit.md
+# § "Self-healing artifacts (freshness enforced post-merge, not on PRs)".
 
 echo
 echo "── Gate 12: marketplace-claims (required files + skill counts) ────────────"
@@ -468,9 +473,24 @@ python3 -c "p='.claude-plugin/marketplace.json';s=open(p).read();open(p,'w').wri
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (wrong metadata.description skill count)" must_fail "$rc"
 cp -p "$TMP/.claude-plugin_marketplace.json.bak" .claude-plugin/marketplace.json
-# must_pass: clean tree.
+# must_pass: clean tree — STRUCTURAL checks only. The derivable counts are no
+# longer enforced on PRs (they self-heal post-merge via --fix), so the clean-tree
+# assertion mirrors what the PR gate actually runs (--structural-only). The count
+# must_fail fixtures above stay in DEFAULT mode and keep the count detector honest,
+# which is what --fix relies on. See docs/best-practices/ci-gate-audit.md
+# § "Self-healing artifacts (freshness enforced post-merge, not on PRs)".
+rc=0; python3 scripts/check-marketplace-claims.py --structural-only >/dev/null 2>&1 || rc=$?
+gate "marketplace-claims (clean tree, structural-only)" must_pass "$rc"
+# --fix repairs a derivable count drift (the post-merge self-heal mechanism). This
+# is the relocated must_pass for the count half: mutate a count, run --fix, assert
+# it exits 0 AND default-mode is clean afterward (the repair actually landed).
+backup plugins/data-platform/.claude-plugin/plugin.json
+python3 -c "p='plugins/data-platform/.claude-plugin/plugin.json';s=open(p).read();open(p,'w').write(s.replace('13 skills','99 skills',1))"
+rc=0; python3 scripts/check-marketplace-claims.py --fix >/dev/null 2>&1 || rc=$?
+gate "marketplace-claims --fix repairs count drift" must_pass "$rc"
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
-gate "marketplace-claims (clean tree)" must_pass "$rc"
+gate "marketplace-claims clean after --fix" must_pass "$rc"
+cp -p "$TMP/plugins_data-platform_.claude-plugin_plugin.json.bak" plugins/data-platform/.claude-plugin/plugin.json
 
 echo
 echo "── Gate 13: dashboard.html freshness ──────────────────────────────────────"
@@ -482,9 +502,16 @@ printf '\n<!-- AUDIT FIXTURE — should diff against regenerated output -->\n' >
 rc=0; python3 scripts/generate-dashboards.py --check >/dev/null 2>&1 || rc=$?
 gate "dashboard freshness (stale committed dashboard.html)" must_fail "$rc"
 cp -p "$TMP/plugins_ravenclaude-core_dashboard.html.bak" plugins/ravenclaude-core/dashboard.html
-# must_pass: pristine tree, the check should pass.
-rc=0; python3 scripts/generate-dashboards.py --check >/dev/null 2>&1 || rc=$?
-gate "dashboard freshness (clean tree)" must_pass "$rc"
+# Relocated must_pass + generate-then-test prep. dashboard.html freshness is no
+# longer gated on PRs (it self-heals post-merge via regenerate-artifacts.yml), so
+# instead of asserting "committed == regenerated" (which a not-yet-regenerated PR
+# branch would fail), we (a) assert the generator RUNS CLEAN and (b) regenerate
+# dashboard.html IN PLACE so the render-test gates below (Heimdall/Víðarr/Norns/
+# Mímir/Bifröst/Níðhöggr/roundtrip) test the CURRENT generator's output, never a
+# stale committed file. The generator inlines existing committed SVGs (no mermaid-
+# cli needed here). See docs/best-practices/ci-gate-audit.md § "Self-healing artifacts".
+rc=0; python3 scripts/generate-dashboards.py >/dev/null 2>&1 || rc=$?
+gate "dashboard generator runs clean (regenerates in place for render gates)" must_pass "$rc"
 
 echo
 echo "── Gate 14: command-review tribunal (the Thing) ──────────────────────────"
@@ -1467,8 +1494,13 @@ PY
 rc=0; python3 scripts/render-concepts.py --check >/dev/null 2>&1 || rc=$?
 gate "render-concepts SVG sync (mutated manifest)" must_fail "$rc"
 cp -p "$TMP/plugins_ravenclaude-core_knowledge_concepts_visuals_.render-manifest.json.bak" "$MAN"
-rc=0; python3 scripts/render-concepts.py --check >/dev/null 2>&1 || rc=$?
-gate "render-concepts SVG sync (clean tree)" must_pass "$rc"
+# NOTE: the "clean tree must_pass" was intentionally removed. Concept SVGs are no
+# longer sync-gated on PRs — they are inlined into dashboard.html and rendering
+# them needs mermaid-cli + Chromium, so they self-heal post-merge via
+# regenerate-artifacts.yml. A PR that edits a concept diagram without rendering its
+# SVG must NOT fail here. The must_fail detector above stays (it proves the sync
+# check the post-merge workflow relies on has teeth). See
+# docs/best-practices/ci-gate-audit.md § "Self-healing artifacts".
 
 # render-trees.py: a committed decision-tree SVG out of sync with its diagram
 # source (simulated by mutating a hash in the tree render manifest). CI-safe:
@@ -1486,8 +1518,9 @@ PY
 rc=0; python3 scripts/render-trees.py --check >/dev/null 2>&1 || rc=$?
 gate "render-trees SVG sync (mutated manifest)" must_fail "$rc"
 cp -p "$TMP/plugins_ravenclaude-core_knowledge_tree-visuals_.render-manifest.json.bak" "$TMAN"
-rc=0; python3 scripts/render-trees.py --check >/dev/null 2>&1 || rc=$?
-gate "render-trees SVG sync (clean tree)" must_pass "$rc"
+# NOTE: "clean tree must_pass" removed for the same reason as render-concepts above
+# — decision-tree SVGs self-heal post-merge (mermaid-cli render). The must_fail
+# detector above stays. See docs/best-practices/ci-gate-audit.md § "Self-healing artifacts".
 
 # generate-concepts-doc.py: a stale committed docs/concepts.md.
 backup docs/concepts.md

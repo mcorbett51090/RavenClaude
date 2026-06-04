@@ -30,7 +30,7 @@
       "name": "power-platform",
       "source": "./plugins/power-platform",
       "description": "Microsoft Power Platform specialist team — 11 agents (canvas/Power Fx, Power Automate, Dataverse, model-driven, pac CLI/ALM, governance/DLP, PCF, Copilot Studio, Power Pages, power-bi-engineer, power-platform-tester) + 18 skills (solution-check, DAX, ALM, BI, PCF, maintainability); a house-opinions hook flags 8 §3/§4 violations; the knowledge bank carries production decision trees (PA-flow recovery, Dataverse token-acquisition, PBIR Enhanced report-loading debug + full build reference, DAX silent-zero scoring debug via the `Domain` calc-column pattern, PBIR / Fabric / Dataverse REST-first debugging, PBIR DAX + M Query silent-blank-visual pitfalls, sempy.fabric Python-from-a-Fabric-notebook reference) plus a Power BI Copilot report-readiness pack (Prep-data-for-AI grounding best-practice + decision tree + AI-instructions authoring template). Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval (requires `pip install pbix-mcp`).",
-      "version": "0.25.0",
+      "version": "0.26.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -51,7 +51,7 @@
       "name": "finance",
       "source": "./plugins/finance",
       "description": "Corporate finance & FP&A specialist team — FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. 9 skills, 8 templates, 10 knowledge-bank docs (ASC 805 / 718 / 740, accrual-cutoff, WACC, cost accounting, FP&A operating model + decision support), 1 advisory hook (hardcoded rates, plaintext PII, missing Sources / Assumptions). Inherits ravenclaude-core protocols.",
-      "version": "0.12.0",
+      "version": "0.13.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -70,8 +70,8 @@
     {
       "name": "regulatory-compliance",
       "source": "./plugins/regulatory-compliance",
-      "description": "Financial-regulatory & compliance specialist team — AML/KYC analyst (sanctions, EDD, SAR/STR), regulatory-reporting analyst (FATCA/CRS, supervisory returns, Solvency II, BMA EBS), risk-and-controls specialist (three lines of defense, KRIs), policy & procedure writer, examination-prep specialist, and Bermuda-insurance specialist. 9 skills, 8 templates, 1 defensive PreToolUse hook (PII scrub — SSN/IBAN/credit-card/Bermuda TIN/wire instructions). Positioning reflects field experience inside a Tier-1 financial regulator (BMA). Inherits ravenclaude-core protocols.",
-      "version": "0.8.0",
+      "description": "Financial-regulatory & compliance specialist team — 6 function agents (AML/KYC, regulatory-reporting, risk-and-controls, policy & procedure, examination-prep, Bermuda-insurance) PLUS 6 jurisdiction/regulator specialists: BMA financial-institutions (banking, trust, corporate-services, fund-admin, investment-business, money-service, digital-assets — the primary build-out, with deep AML/ATF + supervision/fees + licensing-classification trees), CIMA (Cayman), Bahamas, Channel Islands (Jersey JFSC + Guernsey GFSC), UK PRA, and US federal+state. 19 primary-source-cited regulator knowledge files, 27 best-practice rules, 10 skills, 11 templates, 1 defensive PreToolUse hook (PII scrub — SSN/IBAN/credit-card/Bermuda TIN/wire instructions). Positioning reflects field experience inside a Tier-1 financial regulator (BMA). Inherits ravenclaude-core protocols.",
+      "version": "0.11.1",
       "author": {
         "name": "Matt Corbett"
       },

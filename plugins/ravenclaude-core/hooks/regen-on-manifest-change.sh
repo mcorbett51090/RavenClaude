@@ -82,12 +82,26 @@ if [ -f "$MARKET/scripts/generate-copilot-plugin.py" ] && [ -d "$MARKET/plugins/
 fi
 
 # 2. dashboard.html (plugin version is shown in the UI and embedded in generated HTML).
-if [ -f "$MARKET/scripts/generate-dashboards.py" ]; then
+#    Skipped, like repo-guide below, when this repo self-heals it post-merge (the
+#    regenerate-artifacts.yml workflow is the signal) — so plugin PRs don't carry a
+#    regenerated dashboard.html that collides with siblings, and the SVGs inlined
+#    into it (which need mermaid-cli to render) are rendered once on main instead of
+#    requiring every author to have mermaid-cli locally. Consumer-invisible (a
+#    consumer repo has no such workflow → in-session regeneration is unchanged).
+if [ -f "$MARKET/scripts/generate-dashboards.py" ] \
+  && [ ! -f "$MARKET/.github/workflows/regenerate-artifacts.yml" ]; then
   run "dashboard.html" python3 scripts/generate-dashboards.py
 fi
 
 # 3. repo-guide.html (plugin version is shown in nav + cards).
-if [ -f "$MARKET/scripts/generate-repo-guide.py" ]; then
+#    Skip when this repo self-heals the guide post-merge — the presence of
+#    .github/workflows/regenerate-artifacts.yml is that signal. Without this skip,
+#    every plugin PR would regenerate the large guide into its own branch and
+#    collide with sibling PRs; with it, the guide is owned by `main` and
+#    regenerated once after each merge. Consumers (who have no such workflow) get
+#    the in-session regeneration unchanged, so this is consumer-invisible.
+if [ -f "$MARKET/scripts/generate-repo-guide.py" ] \
+  && [ ! -f "$MARKET/.github/workflows/regenerate-artifacts.yml" ]; then
   run "repo-guide.html" python3 scripts/generate-repo-guide.py
 fi
 
