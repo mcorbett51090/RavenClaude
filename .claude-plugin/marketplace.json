@@ -5,8 +5,8 @@
     "name": "Matt Corbett"
   },
   "metadata": {
-    "description": "RavenClaude \u2014 a private marketplace of opinionated Claude Code plugins. A domain-neutral core (Team Lead + 14 specialist agents, 34 skills, hooks, the Capability Grounding Protocol, the Structured Output Protocol, and a comfort-posture permission dashboard) plus domain plugins that extend it via skills and knowledge. Every agent ships example-scenario frontmatter; the repo-guide surfaces an 'I want to\u2026' use-case lookup across all plugins. Plugins: ravenclaude-core, power-platform, finance, regulatory-compliance, web-design, edtech-partner-success, data-platform, applied-statistics, microsoft-fabric, claude-app-engineering, azure-cloud, salesforce, microsoft-365-copilot, customer-success-analytics, auth-identity, process-improvement, microsoft-graph, tableau, ai-coding-model-guidance, project-management, api-engineering.",
-    "version": "0.45.0"
+    "description": "RavenClaude \u2014 a private marketplace of opinionated Claude Code plugins. A domain-neutral core (Team Lead + 14 specialist agents, 34 skills, hooks, the Capability Grounding Protocol, the Structured Output Protocol, and a comfort-posture permission dashboard) plus domain plugins that extend it via skills and knowledge. Every agent ships example-scenario frontmatter; the repo-guide surfaces an 'I want to\u2026' use-case lookup across all plugins. Plugins: ravenclaude-core, power-platform, finance, regulatory-compliance, web-design, edtech-partner-success, data-platform, applied-statistics, microsoft-fabric, claude-app-engineering, azure-cloud, salesforce, microsoft-365-copilot, customer-success-analytics, auth-identity, process-improvement, microsoft-graph, tableau, ai-coding-model-guidance, project-management, api-engineering, team-portfolio.",
+    "version": "0.46.0"
   },
   "plugins": [
     {
@@ -29,8 +29,8 @@
     {
       "name": "power-platform",
       "source": "./plugins/power-platform",
-      "description": "Microsoft Power Platform specialist team \u2014 11 agents (canvas/Power Fx, Power Automate, Dataverse, model-driven, pac CLI/ALM, governance/DLP, PCF, Copilot Studio, Power Pages, power-bi-engineer, power-platform-tester) + 18 skills (solution-check, DAX, ALM, BI, PCF, maintainability); a house-opinions hook flags 8 \u00a73/\u00a74 violations; the knowledge bank carries production decision trees (PA-flow recovery, Dataverse token-acquisition, PBIR Enhanced report-loading debug + full build reference, DAX silent-zero scoring debug via the `Domain` calc-column pattern, PBIR / Fabric / Dataverse REST-first debugging, PBIR DAX + M Query silent-blank-visual pitfalls, sempy.fabric Python-from-a-Fabric-notebook reference). Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval (requires `pip install pbix-mcp`).",
-      "version": "0.24.0",
+      "description": "Microsoft Power Platform specialist team \u2014 11 agents (canvas/Power Fx, Power Automate, Dataverse, model-driven, pac CLI/ALM, governance/DLP, PCF, Copilot Studio, Power Pages, power-bi-engineer, power-platform-tester) + 18 skills (solution-check, DAX, ALM, BI, PCF, maintainability); a house-opinions hook flags 8 \u00a73/\u00a74 violations; the knowledge bank carries production decision trees (PA-flow recovery, Dataverse token-acquisition, PBIR Enhanced report-loading debug + full build reference, DAX silent-zero scoring debug via the `Domain` calc-column pattern, PBIR / Fabric / Dataverse REST-first debugging, PBIR DAX + M Query silent-blank-visual pitfalls, sempy.fabric Python-from-a-Fabric-notebook reference) plus a Power BI Copilot report-readiness pack (Prep-data-for-AI grounding best-practice + decision tree + AI-instructions authoring template). Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval (requires `pip install pbix-mcp`).",
+      "version": "0.25.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -476,6 +476,28 @@
         "delivery",
         "pmo",
         "change-control"
+      ]
+    },
+    {
+      "name": "team-portfolio",
+      "source": "./plugins/team-portfolio",
+      "description": "Centralized multi-repo, multi-person activity & project tracking. Aggregates commits, pull requests, and issues across many GitHub repositories from the GitHub API and rolls them up by person, by repo, and by cross-repo project \u2014 so a team working in sibling repos has one place to see who did what, and a supervisor gets a manage-the-team view no single-repo activity log can provide. Ships a stdlib-only collector (GitHub REST API \u2192 normalized activity JSON), a markdown report generator (weekly tracker + rolling activity roll-up + per-project status), a self-contained HTML dashboard generator, a copy-in GitHub Action template for scheduled refresh, an on-demand /portfolio-refresh command, an optional hand-maintained narrative layer, and 2 skills (portfolio-setup, cross-repo-project-tracking). Secrets stay in env/secrets, never in config. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "activity-tracking",
+        "multi-repo",
+        "team-tracking",
+        "project-tracking",
+        "github-api",
+        "weekly-tracker",
+        "activity-log",
+        "portfolio",
+        "supervisor-dashboard",
+        "cross-repo",
+        "status-reporting"
       ]
     },
     {
