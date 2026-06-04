@@ -41,6 +41,10 @@ import re
 import sys
 from pathlib import Path
 
+# Sibling helper (scripts/ is on sys.path whether run directly or imported by
+# generate-index-dashboard.py). Provides the CSS scoper used by render_fragment.
+from _html_merge import iife_wrap, scope_css
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PLUGINS_DIR = REPO_ROOT / "plugins"
 
@@ -157,8 +161,10 @@ def load_schema(plugin_dir: Path) -> dict:
     return json.loads(schema_path.read_text(encoding="utf-8"))
 
 
-def render_dashboard(plugin_dir: Path, schema: dict) -> str:
-    """Compose the full dashboard.html string for one plugin."""
+def _page_kwargs(plugin_dir: Path, schema: dict) -> dict:
+    """Build the substitution dict shared by render_dashboard (full page) and
+    render_fragment (the native-merge body for index.html). Single source of
+    truth so the standalone page and the folded-in section can never drift."""
     global PATTERN_EXPLANATIONS
     PATTERN_EXPLANATIONS = _load_pattern_explanations(plugin_dir)
 
@@ -170,42 +176,83 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
 
     plugins_tabs, plugins_panels = _render_plugins_category(_all_plugin_dirs())
 
-    result = _PAGE_TEMPLATE.format(
-        plugins_tabs=plugins_tabs,
-        plugins_panels=plugins_panels,
-        plugin_name=html.escape(plugin_name),
-        title=html.escape(title),
-        description=html.escape(description),
-        raven_mark=_load_raven_logo(),
-        css=_CSS,
-        overview_html=_render_overview_tab(),
-        settings_html=_render_settings_tab(properties, presets),
-        install_html=_render_install_tab(),
-        simulator_html=_render_simulator_tab(),
-        web_access_html=_render_web_access_page(),
-        learn_html=_render_learn_tab(plugin_dir),
-        saga_html=_render_saga_tab(),
-        commands_html=_render_commands_tab(),
-        trees_html=_render_trees_tab(),
-        activity_html=_render_activity_tab(),
-        heimdall_html=_render_heimdall_tab(),
-        vidarr_html=_render_vidarr_tab(),
-        norns_html=_render_norns_tab(),
-        mimir_html=_render_mimir_tab(),
-        bifrost_html=_render_bifrost_tab(),
-        about_html=_render_about_tab(description, plugin_name),
-        pipeline_html=_render_pipeline_tab(),
-        schema_json=json.dumps(schema, indent=2),
-        heimdall_json=json.dumps(
+    return {
+        "plugins_tabs": plugins_tabs,
+        "plugins_panels": plugins_panels,
+        "plugin_name": html.escape(plugin_name),
+        "title": html.escape(title),
+        "description": html.escape(description),
+        "raven_mark": _load_raven_logo(),
+        "css": _CSS,
+        "overview_html": _render_overview_tab(),
+        "settings_html": _render_settings_tab(properties, presets),
+        "install_html": _render_install_tab(),
+        "simulator_html": _render_simulator_tab(),
+        "web_access_html": _render_web_access_page(),
+        "learn_html": _render_learn_tab(plugin_dir),
+        "saga_html": _render_saga_tab(),
+        "commands_html": _render_commands_tab(),
+        "trees_html": _render_trees_tab(),
+        "activity_html": _render_activity_tab(),
+        "heimdall_html": _render_heimdall_tab(),
+        "vidarr_html": _render_vidarr_tab(),
+        "norns_html": _render_norns_tab(),
+        "mimir_html": _render_mimir_tab(),
+        "bifrost_html": _render_bifrost_tab(),
+        "about_html": _render_about_tab(description, plugin_name),
+        "pipeline_html": _render_pipeline_tab(),
+        "schema_json": json.dumps(schema, indent=2),
+        "heimdall_json": json.dumps(
             {"versionDrift": _compute_version_drift()}, indent=2, sort_keys=True
         ),
-        concepts_json=_concepts_json(plugin_dir),
-        pattern_explanations_json=json.dumps(
+        "concepts_json": _concepts_json(plugin_dir),
+        "pattern_explanations_json": json.dumps(
             PATTERN_EXPLANATIONS, indent=2, sort_keys=True
         ),
-        js=_JS,
-    )
+        "js": _JS,
+    }
+
+
+def render_dashboard(plugin_dir: Path, schema: dict) -> str:
+    """Compose the full dashboard.html string for one plugin."""
+    result = _PAGE_TEMPLATE.format(**_page_kwargs(plugin_dir, schema))
     return result.replace("/*__SHARED_TOKENS__*/", _load_shared_tokens_root())
+
+
+# Markers that bound the native-merge body slice inside _PAGE_TEMPLATE: the
+# fragment is everything between <body> and the main <script>{js}</script>
+# (i.e. header + tab-bar + panels + modals + footer + JSON data scripts), with
+# the <head>/<style> wrapper and the page-owning <script> stripped.
+_FRAG_BODY_START = "<body>"
+_FRAG_BODY_END = "<script>\n{js}\n</script>"
+
+
+def render_fragment(plugin_dir: Path, schema: dict) -> dict:
+    """Return {css, body, js} for folding the dashboard natively into index.html.
+
+    - css: the dashboard stylesheet scoped under `#dash-root` (shared-tokens
+      stripped — the shell already inlines them once) so its bare `body`/`main`/
+      `*` rules cannot bleed across the merged page.
+    - body: the tab-bar + panels + modals + footer + JSON data scripts, to be
+      mounted inside a hidden `<div id="dash-root">` in the shell.
+    - js: the dashboard script with its `hashchange` listener removed (the shell
+      router owns the URL) and an `window.__dashApp.show()` entry point exposed,
+      ready to be IIFE-wrapped by the shell so its globals can't collide.
+    """
+    kw = _page_kwargs(plugin_dir, schema)
+    start = _PAGE_TEMPLATE.index(_FRAG_BODY_START) + len(_FRAG_BODY_START)
+    end = _PAGE_TEMPLATE.index(_FRAG_BODY_END)
+    body = _PAGE_TEMPLATE[start:end].format(**kw)
+    css = scope_css(_CSS.replace("/*__SHARED_TOKENS__*/", ""), "#dash-root")
+    js = _JS.replace(
+        'window.addEventListener("hashchange", applyHash);',
+        "/* hashchange owned by the index shell router (native-merge) */",
+    )
+    js = iife_wrap(
+        js,
+        expose="window.__dashApp = { show: function (tab, sub) { try { activate(tab, sub); } catch (e) {} } };",
+    )
+    return {"css": css, "body": body, "js": js}
 
 
 def _render_simulator_tab() -> str:
@@ -10789,6 +10836,13 @@ def main() -> int:
         print("No plugins with dashboard-schema.json found. Nothing to do.")
         return 0
 
+    # NOTE: plugins/<name>/dashboard.html stays a FULL standalone page — it is a
+    # SHIPPED plugin artifact served to consumers by the bundled
+    # plugins/ravenclaude-core/scripts/serve-dashboards.py when they run
+    # /dashboard. The same content is ALSO folded natively into the marketplace's
+    # index.html via render_fragment() (one portal), so the two never drift —
+    # they render from this module's _PAGE_TEMPLATE/_CSS/_JS. Only the
+    # marketplace-only repo-guide.html is retired to a redirect stub.
     exit_code = 0
     for plugin_dir in plugins:
         schema = load_schema(plugin_dir)

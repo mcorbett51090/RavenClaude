@@ -21,9 +21,11 @@ name: Regenerate generated artifacts (post-merge self-heal)
 # The render-test gates that consume dashboard.html stay honest because audit-gates.sh
 # regenerates dashboard.html in place before running them (generate-then-test).
 #
-# Scope: repo-guide.html, marketplace-claims counts, concept + decision-tree SVGs,
-# and dashboard.html. Each step is staleness-gated, so a merge that changed none of
-# them is a fast no-op (and never even loads mermaid-cli).
+# Scope: marketplace-claims counts, concept + decision-tree SVGs, dashboard.html
+# (full plugin artifact), repo-guide.html (redirect stub), and index.html (the
+# unified portal — folds the dashboard + catalog in natively). Each step is
+# staleness-gated, so a merge that changed none of them is a fast no-op (and
+# never even loads mermaid-cli).
 
 on:
   push:
@@ -34,6 +36,9 @@ on:
       - "README.md"
       - "scripts/generate-repo-guide.py"
       - "scripts/generate-dashboards.py"
+      - "scripts/generate-index-dashboard.py"
+      - "scripts/_index_dashboard_template.py"
+      - "scripts/_html_merge.py"
       - "scripts/render-concepts.py"
       - "scripts/render-trees.py"
       - "scripts/check-marketplace-claims.py"
@@ -117,17 +122,27 @@ jobs:
             python3 scripts/generate-dashboards.py --check
           fi
 
-          # 4. repo-guide.html. check-guide-fresh.sh strips the volatile "Generated …"
-          #    + per-plugin "Last updated" lines before diffing, so a pure-timestamp
-          #    delta reports FRESH and we regenerate nothing. Run AFTER the count fix
-          #    so the guide reflects any rewritten descriptions.
+          # 4. repo-guide.html — now a thin REDIRECT STUB → index.html#/repo-guide
+          #    (its real content was folded natively into index.html). The
+          #    generator emits the stub; check-guide-fresh just verifies it.
           if ! scripts/check-guide-fresh.sh; then
-            echo "repo-guide.html is stale — regenerating."
+            echo "repo-guide.html stub is stale — regenerating."
             python3 scripts/generate-repo-guide.py
             scripts/check-guide-fresh.sh
           fi
 
-          # 5. Commit only if something actually changed.
+          # 5. index.html — the unified portal. It folds in the dashboard +
+          #    catalog sub-apps natively (via render_fragment), so it must be
+          #    regenerated AFTER the SVGs + dashboard + repo-guide above. --check
+          #    strips the volatile generated-timestamp surfaces, so a pure
+          #    timestamp delta reports fresh and we regenerate nothing.
+          if ! python3 scripts/generate-index-dashboard.py --check >/dev/null 2>&1; then
+            echo "index.html stale — regenerating the unified portal."
+            python3 scripts/generate-index-dashboard.py
+            python3 scripts/generate-index-dashboard.py --check
+          fi
+
+          # 6. Commit only if something actually changed.
           if [[ -z "$(git status --porcelain)" ]]; then
             echo "Artifacts already in sync — nothing to commit."
             exit 0
@@ -135,7 +150,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "chore(artifacts): self-heal counts + SVGs + dashboard + repo-guide after merge [skip ci]"
+          git commit -m "chore(artifacts): self-heal counts + SVGs + dashboard + repo-guide stub + index portal after merge [skip ci]"
 
           # A merge may have landed since checkout; rebase our artifact-only commit
           # before pushing. Branches no longer touch these files, so a rebase

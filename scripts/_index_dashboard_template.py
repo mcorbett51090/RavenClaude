@@ -531,6 +531,18 @@ TEMPLATE = r"""<!doctype html>
       .content > *:nth-child(4) { animation: rcFadeUp 0.4s ease backwards; animation-delay: 150ms; }
       .content > *:nth-child(5) { animation: rcFadeUp 0.4s ease backwards; animation-delay: 200ms; }
       .content > *:nth-child(n+6) { animation: rcFadeUp 0.4s ease backwards; animation-delay: 250ms; }
+
+      /* Native-merge hosts: the dashboard + catalog sub-apps mount into these
+         hidden full-width regions; the router toggles [hidden]. The !important
+         keeps [hidden] authoritative over the sub-apps' own display rules. */
+      [hidden] { display: none !important; }
+      .payload-host { min-width: 0; }
+
+      /* ── Folded-in dashboard sub-app (scoped under #dash-root) ── */
+      /*__DASH_CSS__*/
+
+      /* ── Folded-in catalog sub-app (scoped under #catalog-root) ── */
+      /*__CATALOG_CSS__*/
     </style>
   </head>
   <body>
@@ -571,11 +583,17 @@ TEMPLATE = r"""<!doctype html>
               <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
               <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
             </button>
-            <a class="btn ghost hide-sm" href="repo-guide.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Repo Guide</a>
+            <a class="btn ghost hide-sm" href="#/repo-guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Repo Guide</a>
             <a class="btn primary" href="#/marketplace"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v4H3z"/><path d="M5 7v12h14V7"/><path d="M9 11h6"/></svg>Browse Plugins</a>
           </div>
         </header>
         <main class="content" id="view" tabindex="-1"></main>
+        <!-- Native-merged sub-apps. Mounted once, hidden until routed to.
+             INVARIANT: these are trusted, same-org generated artifacts folded
+             into this document (not iframes) — their live /__* fetches run at
+             this page's origin when served by serve-dashboards.py. -->
+        <div class="content payload-host" id="dash-root" hidden><!--__DASH_BODY__--></div>
+        <div class="content payload-host" id="catalog-root" hidden><!--__CATALOG_BODY__--></div>
       </div>
     </div>
 
@@ -596,6 +614,16 @@ TEMPLATE = r"""<!doctype html>
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <!-- Folded-in sub-apps. Loaded BEFORE the shell router so window.__dashApp /
+         __catalogApp exist when route() first runs. Each is IIFE-wrapped so its
+         globals (svg/toast/esc…) can't collide with the shell's. -->
+    <script>
+      /*__DASH_JS__*/
+    </script>
+    <script>
+      /*__CATALOG_JS__*/
+    </script>
 
     <script>
       window.__RC_DATA__ = /*__RC_DATA__*/;
@@ -648,36 +676,42 @@ TEMPLATE = r"""<!doctype html>
         { id: "resources", label: "Resources", icon: "resources" },
       ];
 
-      // INVARIANT: payloads must be trusted, same-org artifacts. The shell will
-      // NEVER sandbox these iframes — sandboxing would break the dashboard's
-      // same-origin /__save CSRF flow. If a third-party payload is ever loaded
-      // here, redesign the trust boundary first.
-      const PAYLOAD_ROUTES = {
-        // dashboard.html owns these top-level routes (kept top-level for
-        // back-compat with every committed bookmark + gjallarhorn-link href +
-        // SessionStart capability-banner pointers + doc references).
-        heimdall: "plugins/ravenclaude-core/dashboard.html",
-        vidarr: "plugins/ravenclaude-core/dashboard.html",
-        norns: "plugins/ravenclaude-core/dashboard.html",
-        nidhoggr: "plugins/ravenclaude-core/dashboard.html",
-        bifrost: "plugins/ravenclaude-core/dashboard.html",
-        mimir: "plugins/ravenclaude-core/dashboard.html",
-        sleipnir: "plugins/ravenclaude-core/dashboard.html",
-        saga: "plugins/ravenclaude-core/dashboard.html",
-        activity: "plugins/ravenclaude-core/dashboard.html",
-        learn: "plugins/ravenclaude-core/dashboard.html",
-        "web-access": "plugins/ravenclaude-core/dashboard.html",
-        pipeline: "plugins/ravenclaude-core/dashboard.html",
-        "comfort-posture": "plugins/ravenclaude-core/dashboard.html",
-        dashboard: "plugins/ravenclaude-core/dashboard.html",
-        // repo-guide owns its own top-level route.
-        "repo-guide": "repo-guide.html",
-      };
-      // Plugin-detail routes (#/plugin-<name>) also belong to the dashboard.
-      function payloadFor(section) {
-        if (PAYLOAD_ROUTES[section]) return PAYLOAD_ROUTES[section];
-        if (section && section.startsWith("plugin-")) return PAYLOAD_ROUTES.dashboard;
+      // ── Native-merged sub-app routing ──
+      // The dashboard + catalog content is folded into THIS document (no
+      // iframes): mounted in #dash-root / #catalog-root, shown by toggling
+      // [hidden]. Each route below maps to a tab inside its sub-app, driven via
+      // window.__dashApp.show() / __catalogApp.show(). Top-level route names are
+      // kept (heimdall, bifrost, repo-guide, plugin-*, …) so every committed
+      // bookmark + capability-banner pointer + doc reference still resolves.
+      // INVARIANT: these payloads are trusted, same-org generated artifacts —
+      // their live /__* fetches run at this page's origin when served by
+      // serve-dashboards.py.
+      const DASH_SECTIONS = new Set([
+        "heimdall", "vidarr", "norns", "nidhoggr", "bifrost", "mimir",
+        "sleipnir", "saga", "activity", "learn", "web-access", "pipeline",
+        "comfort-posture", "dashboard", "settings", "overview", "install",
+        "simulator", "commands", "trees", "about",
+      ]);
+      // Route name → dashboard tab id where they differ.
+      const DASH_TAB_ALIAS = { dashboard: "overview", "comfort-posture": "settings" };
+      function payloadKind(section) {
+        if (section === "repo-guide" || section === "catalog") return "catalog";
+        if (DASH_SECTIONS.has(section) || (section && section.startsWith("plugin-"))) return "dashboard";
         return null;
+      }
+      function showHost(which) {
+        // which ∈ {"view","dash","catalog"} — exactly one host is visible.
+        $("#view").hidden = which !== "view";
+        const dr = $("#dash-root"); if (dr) dr.hidden = which !== "dash";
+        const cr = $("#catalog-root"); if (cr) cr.hidden = which !== "catalog";
+      }
+      function viewDashboard(section, sub) {
+        showHost("dash");
+        if (window.__dashApp) window.__dashApp.show(DASH_TAB_ALIAS[section] || section, sub);
+      }
+      function viewCatalog(sub) {
+        showHost("catalog");
+        if (window.__catalogApp) window.__catalogApp.show(sub);
       }
       // Subcategories live under the one section the repo actually has a
       // hierarchy for: Marketplace → plugin categories (existing #/marketplace/<cat>
@@ -834,7 +868,7 @@ TEMPLATE = r"""<!doctype html>
             <div class="hero-cta">
               <a class="btn primary" href="#/marketplace">${svg("market")} Explore the Marketplace</a>
               <a class="btn" href="#/configuration">${svg("sliders")} Tune Comfort Posture</a>
-              <a class="btn ghost" href="repo-guide.html">${svg("book")} Full Repo Guide</a>
+              <a class="btn ghost" href="#/repo-guide">${svg("book")} Full Repo Guide</a>
             </div>
           </section>
 
@@ -1092,7 +1126,7 @@ TEMPLATE = r"""<!doctype html>
           <div class="page-head"><span class="eyebrow">Configuration</span><h1>Comfort posture &amp; environment</h1>
             <p class="lede">Decide how much your agents can do without stopping to ask you. For each kind of action, pick one of three levels: <b>deny</b> (never), <b>ask</b> (check with me first), or <b>allow</b> (go ahead). Start from a ready-made profile, change what you want, then copy the <code>comfort-posture.yaml</code> file it makes. A few always-on safety rules can never be turned off.</p></div>
 
-          <div class="callout" style="margin-bottom:20px">${svg("info")}<span>This editor produces the <b>project-layer</b> baseline. For the full per-layer (user / local / project) editor with live writes to <code>.claude/settings.json</code>, open the deep dashboard via <code>/dashboard</code> or <a href="plugins/ravenclaude-core/dashboard.html">dashboard.html</a>.</span></div>
+          <div class="callout" style="margin-bottom:20px">${svg("info")}<span>This editor produces the <b>project-layer</b> baseline. For the full per-layer (user / local / project) editor with live writes to <code>.claude/settings.json</code>, open the live <a href="#/settings">Settings tab</a> (served by <code>/dashboard</code>).</span></div>
 
           <div class="section-title"><h2>Pick a scenario</h2><span class="hint">visual presets — fine-tune below if needed</span></div>
           <div class="scenario-grid" id="scenario-grid">${scenarioGrid}</div>
@@ -1161,9 +1195,9 @@ TEMPLATE = r"""<!doctype html>
             <p class="lede">${totalTemplates} templates and ${totalKnowledge} knowledge docs ship across the marketplace. Export the full documentation or jump into a plugin's knowledge bank.</p></div>
 
           <div class="grid cols-4" style="margin-bottom:8px">
-            <a class="card" href="repo-guide.html" style="display:block"><div class="action-tile"><span class="ico">${svg("book")}</span><span><span class="t">Full Repo Guide</span><span class="d">Per-agent reference &amp; “I want to…” lookup</span></span></div></a>
+            <a class="card" href="#/repo-guide" style="display:block"><div class="action-tile"><span class="ico">${svg("book")}</span><span><span class="t">Full Repo Guide</span><span class="d">Per-agent reference &amp; “I want to…” lookup</span></span></div></a>
             <a class="card" href="README.md" style="display:block"><div class="action-tile"><span class="ico">${svg("info")}</span><span><span class="t">README</span><span class="d">Marketplace overview &amp; setup</span></span></div></a>
-            <a class="card" href="plugins/ravenclaude-core/dashboard.html" style="display:block"><div class="action-tile"><span class="ico">${svg("sliders")}</span><span><span class="t">Deep Dashboard</span><span class="d">Full posture &amp; tribunal controls</span></span></div></a>
+            <a class="card" href="#/dashboard" style="display:block"><div class="action-tile"><span class="ico">${svg("sliders")}</span><span><span class="t">Deep Dashboard</span><span class="d">Full posture &amp; tribunal controls</span></span></div></a>
             <a class="card" href="CHANGELOG.md" style="display:block"><div class="action-tile"><span class="ico">${svg("git")}</span><span><span class="t">Changelog</span><span class="d">Version history</span></span></div></a>
           </div>
 
@@ -1183,133 +1217,11 @@ TEMPLATE = r"""<!doctype html>
           <div class="callout">${svg("download")}<span>Regenerate this dashboard and the full guide from source: <code>python3 scripts/generate-index-dashboard.py</code> and <code>python3 scripts/generate-repo-guide.py</code>. Both read the live catalog so the docs never drift.</span></div>`;
       }
 
-      /* ---------------- Served-mode probe ----------------
-         One-shot HEAD probe to /__csrf (the lightest endpoint the dashboard
-         server already exposes — see scripts/check-dashboard-server-parity.py
-         which asserts /__csrf is in the endpoint set; if that ever moves,
-         the parity check breaks first).
-
-         Result is cached per session as a tri-state:
-           true   → Live (served from 127.0.0.1)
-           false  → Static (no banner-worthy server reachable)
-           null   → unknown (probe in flight) → render no banner (silence is
-                    correct on the live path; only declare "Static" when
-                    sure).
-
-         CRITICAL INVARIANT: the probe FAILS via cross-origin reject on a
-         static host — that's the signal we want. DO NOT add
-         Access-Control-Allow-Origin headers to serve-dashboards.py to "help"
-         this probe. The reject IS the signal; adding ACAO shatters
-         _local_request_ok's DNS-rebinding defense. */
-      let _servedMode = null;
-      let _servedModePromise = null;
-      function probeServedMode() {
-        if (_servedModePromise) return _servedModePromise;
-        _servedModePromise = new Promise((resolve) => {
-          const ctl = (typeof AbortController === "function") ? new AbortController() : null;
-          const timeout = setTimeout(() => { try { ctl && ctl.abort(); } catch (_) {} }, 500);
-          fetch("/__csrf", { method: "HEAD", signal: ctl ? ctl.signal : undefined })
-            .then((r) => {
-              clearTimeout(timeout);
-              _servedMode = r && r.ok;
-              resolve(_servedMode);
-            })
-            .catch(() => {
-              clearTimeout(timeout);
-              _servedMode = false;
-              resolve(false);
-            });
-        });
-        return _servedModePromise;
-      }
-
-      /* ---------------- Payload-iframe loader ----------------
-         Lazy-loads dashboard.html or repo-guide.html into a sized iframe.
-         iframe.src is set only on first activation for that payload, then
-         memoized — subsequent navigations show/hide without re-fetch (cache
-         + JS state preserved). Sub-routes inside the iframe are
-         iframe-private: clicking a tab inside the iframe does NOT update
-         the shell URL. (See plan.md A4 / RM2 for the rationale; postMessage
-         bidirectional sync is parked for V2.)
-
-         When the served-mode probe resolves to Static, an above-iframe
-         banner renders with the one-click command to enable the served
-         dashboard. The banner only renders on the static path; silence is
-         correct on Live. */
-      const PAYLOAD_TITLES = {
-        "plugins/ravenclaude-core/dashboard.html": "RavenClaude deep dashboard",
-        "repo-guide.html": "RavenClaude repo guide",
-      };
-      const SERVED_CMD = "python3 plugins/ravenclaude-core/scripts/serve-dashboards.py";
-      function bannerHTML() {
-        return `
-          <div class="payload-banner" role="status" aria-live="polite">
-            <span class="ico">${svg("info")}</span>
-            <span class="msg">Live data tabs require the served dashboard. Run <code>${esc(SERVED_CMD)}</code> to enable them.</span>
-            <button type="button" class="banner-copy" data-cmd="${esc(SERVED_CMD)}">Copy</button>
-          </div>`;
-      }
-      function injectBannerIfStatic(view) {
-        // Only insert if probe has resolved Static AND no banner is
-        // already mounted in this view container.
-        if (_servedMode !== false) return;
-        if (view.querySelector(".payload-banner")) return;
-        view.insertAdjacentHTML("afterbegin", bannerHTML());
-        const btn = view.querySelector(".payload-banner .banner-copy");
-        if (btn) {
-          btn.addEventListener("click", () => copyText(btn.dataset.cmd || SERVED_CMD, "Command"));
-        }
-      }
-      const _payloadLoaded = new Set();
-      function viewPayload(section, sub) {
-        const target = payloadFor(section);
-        if (!target) { viewHome(); return; }
-        // Reuse a single iframe per payload, keyed by target.
-        const slug = target.replace(/[^a-z0-9]+/gi, "-");
-        const id = `payload-frame-${slug}`;
-        const innerHash = sub ? `#/${section}/${sub}` : `#/${section}`;
-        const desiredSrc = target + innerHash;
-        const view = $("#view");
-        let frame = view.querySelector("#" + id);
-        if (!frame) {
-          // Replace #view contents with the iframe shell on first activation
-          // for THIS payload. We don't preserve other payloads' iframes when
-          // switching between Dashboard and Catalog at MVP — each first-load
-          // is a fetch; subsequent activations of the same payload reuse the
-          // memoized iframe (we mount it again into a fresh #view).
-          view.innerHTML = `<iframe id="${id}" title="${esc(PAYLOAD_TITLES[target] || target)}" loading="lazy" style="border:0;display:block;width:100%;height:calc(100vh - 0px);background:var(--bg)"></iframe>`;
-          frame = view.querySelector("#" + id);
-          frame.src = desiredSrc;
-          _payloadLoaded.add(target);
-        } else {
-          // Same payload already loaded — only update src if the entry-point
-          // route actually changed (avoids unnecessary reload when the user
-          // re-clicks the same nav item).
-          try {
-            const cur = new URL(frame.src, location.href);
-            const want = new URL(desiredSrc, location.href);
-            if (cur.pathname !== want.pathname || cur.hash !== want.hash) {
-              frame.src = desiredSrc;
-            }
-          } catch (_) {
-            frame.src = desiredSrc;
-          }
-        }
-        // Mode banner: render immediately if probe already resolved Static;
-        // otherwise schedule a deferred inject when the probe completes (the
-        // user is on a payload view so the banner is contextually correct).
-        injectBannerIfStatic(view);
-        if (_servedMode === null) {
-          probeServedMode().then(() => {
-            // Only inject if the user is still on a payload route — avoid
-            // injecting into a home/team/etc. view that mounted in the
-            // meantime.
-            if (payloadFor((location.hash.replace(/^#\/?/, "").split("/")[0]) || "home")) {
-              injectBannerIfStatic($("#view"));
-            }
-          });
-        }
-      }
+      /* ---------------- Served-mode (native merge) ----------------
+         The dashboard sub-app is folded into THIS document and carries its
+         own served-vs-static detection (its /__* per-card fetches fall back
+         to empty states when the local server isn't running). The shell no
+         longer probes or renders an iframe banner — there is no iframe. */
 
       /* ---------------- ⌘K Command Palette ----------------
          Categorized search across plugins, specialists, skills, hooks,
@@ -1327,7 +1239,7 @@ TEMPLATE = r"""<!doctype html>
           { kind: "action", label: "Open deep dashboard", meta: "External", hay: "open deep dashboard server", action: "copyCmd", cmd: "bash scripts/open-dashboard.sh" },
           { kind: "action", label: "Toggle dark mode", meta: "Theme", hay: "toggle dark mode theme", action: "toggleTheme" },
           { kind: "action", label: "Show onboarding checklist", meta: "Onboarding", hay: "show onboarding checklist setup", action: "showOnboarding" },
-          { kind: "action", label: "Open repo guide", meta: "External", hay: "open repo guide reference", href: "repo-guide.html" },
+          { kind: "action", label: "Open catalog", meta: "Navigate", hay: "open catalog repo guide reference", route: "#/repo-guide" },
         ];
         QA.forEach((q) => idx.push(q));
         // Plugins
@@ -1458,13 +1370,14 @@ TEMPLATE = r"""<!doctype html>
       // (Dead SEARCH_IDX + gotoSearch aliases removed — no callers.)
 
       /* ---------------- Router ---------------- */
-      // Payload-owned routes (dashboard.html / repo-guide.html) light up the
-      // matching nav item even though their sub-routes are iframe-private.
+      // Native-merged routes (dashboard + catalog) light up the matching nav
+      // item; their sub-routes are owned by the sub-app shown in #dash-root /
+      // #catalog-root.
       function resolveNavActive(section) {
         if (NAV.some((n) => n.id === section)) return section;
-        const target = payloadFor(section);
-        if (target === "repo-guide.html") return "repo-guide";
-        if (target) return "dashboard";
+        const kind = payloadKind(section);
+        if (kind === "catalog") return "repo-guide";
+        if (kind === "dashboard") return "dashboard";
         return "home";
       }
       function route() {
@@ -1472,18 +1385,23 @@ TEMPLATE = r"""<!doctype html>
         const [section, sub] = hash.split("/");
         renderNav(resolveNavActive(section));
         document.body.classList.remove("mobile-nav-open");
-        switch (section) {
-          case "team": viewTeam(); break;
-          case "marketplace": viewMarketplace(sub); break;
-          case "configuration": viewConfiguration(); break;
-          case "resources": viewResources(); break;
-          case "home": viewHome(); break;
-          default:
-            if (payloadFor(section)) { viewPayload(section, sub); }
-            else { viewHome(); }
-            break;
+        const kind = payloadKind(section);
+        if (kind === "dashboard") {
+          viewDashboard(section, sub);
+        } else if (kind === "catalog") {
+          viewCatalog(sub);
+        } else {
+          showHost("view");
+          switch (section) {
+            case "team": viewTeam(); break;
+            case "marketplace": viewMarketplace(sub); break;
+            case "configuration": viewConfiguration(); break;
+            case "resources": viewResources(); break;
+            case "home": viewHome(); break;
+            default: viewHome(); break;
+          }
+          $("#view").focus({ preventScroll: true });
         }
-        $("#view").focus({ preventScroll: true });
         window.scrollTo({ top: 0 });
       }
       window.addEventListener("hashchange", route);
@@ -1541,10 +1459,6 @@ TEMPLATE = r"""<!doctype html>
         else if (e.key === "/" && !inField) { e.preventDefault(); openPalette(); }
       });
 
-      // Kick off the served-mode probe once, eagerly — so by the time the
-      // user navigates to a payload route, _servedMode is usually resolved
-      // and the banner (if needed) shows without a flicker.
-      probeServedMode();
       route();
     </script>
   </body>

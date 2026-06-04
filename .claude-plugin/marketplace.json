@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + 14 specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 43 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to…' use-case lookup.",
-    "version": "0.71.0"
+    "version": "0.72.0"
   },
   "plugins": [
     {
       "name": "ravenclaude-core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: a Team Lead that dispatches 14 specialist agents (architect, coders, reviewers, tester-QA, data-engineer, project-manager, documentarian, designer, prompt-engineer, partner-success), 35 skills, format/lint/test gates, hooks, rules, and templates. Ships the Capability Grounding Protocol (decision-tree + alternate-methods enumeration + honest blocked-reporting), the Structured Output Protocol for handoffs, a Researcher meta-skill, a point-and-click comfort-posture dashboard that writes Claude Code permission rules per layer and per permission on a 3-level deny/ask/allow scale, an opt-in command-review tribunal (the Thing), a WebFetch return-envelope sanitizer (webfetch-hardening + sanitize-webfetch-body.py), a sanctioned escape hatch (branch-archive + archive-branch.sh) for retiring stale branches, and brand-extraction (homepage → brand kit: logos + a design-token schema for on-brand reports). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /doctor.",
-      "version": "0.122.0",
+      "version": "0.123.0",
       "author": {
         "name": "Matt Corbett"
       },

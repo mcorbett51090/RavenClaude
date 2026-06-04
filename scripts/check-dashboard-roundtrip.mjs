@@ -20,7 +20,9 @@ const html = readFileSync(htmlPath, "utf8");
 
 // The app JS is the largest <script> block.
 const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
-const app = scripts.reduce((a, b) => (b.length > a.length ? b : a), "");
+const app =
+  scripts.find((s) => s.includes("function activate(")) ||
+  scripts.reduce((a, b) => (b.length > a.length ? b : a), "");
 
 /* Extract a brace-balanced top-level declaration by name. Works for both
  * `function NAME(...) { ... }` and `const NAME = ... ;` (object/array literal). */

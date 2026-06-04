@@ -16,7 +16,9 @@ set -euo pipefail
 
 PORT="${1:-8000}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SERVER="$ROOT/plugins/ravenclaude-core/scripts/serve-dashboards.py"
+# Root dev server serves the repo root, so /index.html (the unified portal
+# with the dashboard + catalog folded in) is reachable with live /__* endpoints.
+SERVER="$ROOT/scripts/serve-dashboards.py"
 LOG="/tmp/rc-dashboard-$PORT.log"
 
 [ -f "$SERVER" ] || { echo "dashboard server not found: $SERVER" >&2; exit 1; }
@@ -31,12 +33,12 @@ disown 2>/dev/null || true
 
 # 3. Wait until it actually answers (up to ~10s), then resolve the URL.
 if [ -n "${CODESPACE_NAME:-}" ]; then
-  URL="https://${CODESPACE_NAME}-${PORT}.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}/dashboard.html"
+  URL="https://${CODESPACE_NAME}-${PORT}.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}/index.html"
 else
-  URL="http://127.0.0.1:${PORT}/dashboard.html"
+  URL="http://127.0.0.1:${PORT}/index.html"
 fi
 for _ in $(seq 1 10); do
-  if curl -fsS -o /dev/null "http://127.0.0.1:${PORT}/dashboard.html" 2>/dev/null; then break; fi
+  if curl -fsS -o /dev/null "http://127.0.0.1:${PORT}/index.html" 2>/dev/null; then break; fi
   sleep 1
 done
 
