@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins. A domain-neutral core (Team Lead + 14 specialist agents, 34 skills, hooks, the Capability Grounding Protocol, the Structured Output Protocol, and a comfort-posture permission dashboard) plus domain plugins that extend it via skills and knowledge. Every agent ships example-scenario frontmatter; the repo-guide surfaces an 'I want to…' use-case lookup across all plugins. Plugins: ravenclaude-core, power-platform, finance, regulatory-compliance, web-design, edtech-partner-success, data-platform, applied-statistics, microsoft-fabric, claude-app-engineering, azure-cloud, salesforce, microsoft-365-copilot, customer-success-analytics, auth-identity, process-improvement, microsoft-graph, tableau, ai-coding-model-guidance, project-management, api-engineering, team-portfolio; staffing-operations (healthcare + education staffing ops/analytics).",
-    "version": "0.47.0"
+    "version": "0.48.0"
   },
   "plugins": [
     {
@@ -50,8 +50,8 @@
     {
       "name": "finance",
       "source": "./plugins/finance",
-      "description": "Corporate finance & FP&A specialist team — FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. 9 skills, 8 templates, 1 advisory hook (hardcoded rates, plaintext PII, missing Sources / Assumptions). Inherits ravenclaude-core protocols.",
-      "version": "0.10.0",
+      "description": "Corporate finance & FP&A specialist team \u2014 FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. 9 skills, 8 templates, 10 knowledge-bank docs (ASC 805 / 718 / 740, accrual-cutoff, WACC, cost accounting, FP&A operating model + decision support), 1 advisory hook (hardcoded rates, plaintext PII, missing Sources / Assumptions). Inherits ravenclaude-core protocols.",
+      "version": "0.12.0",
       "author": {
         "name": "Matt Corbett"
       },
