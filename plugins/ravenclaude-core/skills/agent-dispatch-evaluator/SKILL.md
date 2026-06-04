@@ -126,7 +126,7 @@ Verdict application is conditional on caller_context + existing config + verdict
 Two unconditional skip paths that suppress the evaluator entirely:
 
 1. **Built-in `subagent_type` allowlist:** `Explore`, `statusline-setup`, `claude` catch-all. Pass-through with zero classifier cost (single grep on the allowlist before the subprocess fires).
-2. **Per-call `{_predispatch: 'skip'}` marker** — workflows that run their own classifier (e.g. the deep-research workflow consuming an `adaptive-run-classifier` `run_config`) pass `_predispatch: 'skip'` in `opts`. Pass-through, no double-evaluation.
+2. **Per-call `{_predispatch: 'skip'}` marker** — workflows that run their own classifier (e.g. the rc-deep-research workflow consuming an `adaptive-run-classifier` `run_config`) pass `_predispatch: 'skip'` in `opts`. Pass-through, no double-evaluation.
 
 The allowlist is extensible in `dispatch-config.json`; the `_predispatch` marker is hard-coded in the wrapper logic (not user-tunable — it's an integration contract).
 

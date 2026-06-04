@@ -8,7 +8,7 @@ Eval discipline: plugins/claude-app-engineering/knowledge/evals-and-quality.md
 Three-phase, human-in-the-loop harness:
 
   setup  → write per-fixture .ravenclaude/run-config.json + print paste-friendly
-           Workflow({name:'deep-research', args:{...}}) invocations for the human
+           Workflow({name:'rc-deep-research', args:{...}}) invocations for the human
            to run inside Claude Code (the Workflow tool has no shell/CLI surface
            verified this session — claude -p does not drive workflows).
 
@@ -215,7 +215,7 @@ def print_invocation(fixture: dict, arm: str) -> None:
           f"--write-run-config {fixture['id']} {arm}")
     print("     2. In Claude Code, run:")
     q_escaped = fixture["question"].replace('"', '\\"')
-    print(f"        Workflow({{ name: 'deep-research', args: {{ "
+    print(f"        Workflow({{ name: 'rc-deep-research', args: {{ "
           f'question: "{q_escaped}", '
           f"runId: '{run_id}' }} }})")
     print()

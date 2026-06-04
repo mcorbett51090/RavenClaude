@@ -12,12 +12,17 @@ description: "The FORGE gated-planning pipeline that /forge runs: depth-scaled g
 
 ## 0. Provenance & the two influences
 
-- **Claude Code Ultraplan (deep variant)** — community-reported pipeline: parallel explore agents
-  → synthesize → **single same-model critic** → revise → emit; plus cloud-vs-local routing and the
-  `ExitPlanMode`/cloud handoff. `[unverified — community reverse-engineering; Ultraplan is a research
-  preview, behavior changes]`. FORGE reproduces this shape and **improves it**: cross-model two-panel
-  divergence (research shows cross-model debate > self-critique), a fact-verification gate Ultraplan
-  doesn't expose, and a binding tribunal instead of an opaque merge.
+- **Claude Code dynamic workflows / `ultracode`** — the community-named "Ultraplan deep-plan" shape
+  (parallel explore agents → synthesize → **single same-model critic** → revise → emit; plus
+  cloud-vs-local routing and the `ExitPlanMode`/cloud handoff) is now the **officially-documented**
+  dynamic-workflows feature — Claude writes a JS harness that orchestrates subagents. `[verified —
+  official docs https://code.claude.com/docs/en/workflows, retrieved 2026-06-04; the trigger keyword
+  is `ultracode` as of v2.1.160, was `workflow` before]`. The exact internal critic/revise loop of any
+  bundled workflow is still `[unverified — not enumerated in the docs]`. FORGE is a **static** harness
+  (hand-authored, run by the Team Lead — see [`../../knowledge/dynamic-workflows.md`](../../knowledge/dynamic-workflows.md))
+  that reproduces this shape and **improves it**: cross-model two-panel divergence (research shows
+  cross-model debate > self-critique), a fact-verification gate the bundled workflows don't expose, and
+  a binding tribunal instead of an opaque merge.
 - **OpenAI Codex** — its gate is a *graduated-trust ladder* (read-only → workspace-auto → full-access)
   + explicit-only subagents. FORGE borrows the ladder (it maps onto routing/exit + comfort-posture)
   and the explicit-spawn discipline (already enforced by `guard-recursive-spawn.sh`).

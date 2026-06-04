@@ -1,3 +1,11 @@
+// ─── Dynamic workflow (Claude Code official feature — research preview) ──────────
+// Docs: https://code.claude.com/docs/en/workflows · authoritative guidance:
+//   plugins/ravenclaude-core/knowledge/dynamic-workflows.md
+// Saved under .claude/workflows/ → invoked as `/two-panel-plan-review` (or via the
+// `ultracode` keyword); reads the global `args` (see the Args contract below).
+// Patterns: fan-out-and-synthesize + adversarial verification (two independent panels).
+// Runtime caps: ≤16 concurrent agents, 1,000 total/run, no mid-run user input, no
+// direct fs/shell from the script (agents do the IO), resumable in-session.
 export const meta = {
   name: "two-panel-plan-review",
   description:
