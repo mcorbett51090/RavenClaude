@@ -1,73 +1,50 @@
-/* =============================================================================
- * PSM Command Center — dashboard-styles.css
- * Tier 1 rendering layer: tokens + utility classes. Loaded by Evidence
- * (static/styles/dashboard-styles.css) and mirrored by the SiS panel.
- *
- * Every rule cites the research source that justifies it.
- *   - dashboard-ux.md §4 (color discipline + alarm-fatigue)
- *   - operational-console-design.md §2 (≥2 channels, WCAG 1.4.1)
- *   - dashboard-ux.md §7 (freshness; Smashing 2025)
- *   - dashboard-ux.md §6 (honest empty states)
- *   - dashboard-ux.md §5 (drill-down side-panel default)
- *   - dashboard-ux.md §10 (sparklines + Few's bandline)
- *
- * Never use raw hex in component code — reach for a CSS custom property
- * so a CVD-tuning change propagates atomically.
- * ============================================================================= */
+/* PSM Command Center — dashboard-styles.css. Tier 1 rendering tokens + utility
+ * classes; loaded by Evidence and the SiS panel. Sources (every WCAG/UX comment
+ * below traces back here): dashboard-ux.md §§4-7,10; operational-console-
+ * design.md §§2-3,6-7. Never use raw hex in component code — reach for a token
+ * so a CVD-tuning change propagates atomically. */
 
-/* ---- 1. Color tokens (light scheme) ----------------------------------------
- * Hues survive deuteranopia + protanopia simulation (~8% of men, the most
- * common CVDs). Pure red/green pairs fail; these are shifted toward
- * blue-green and orange-red so silhouettes diverge under CVD.
- * WCAG: 1.4.1 Use of Color (Level A) — color never load-bearing alone;
- *       tokens always pair with a .status-icon shape channel.
- * --------------------------------------------------------------------------- */
+/* 1. Color tokens (light scheme). Hues survive deuteranopia + protanopia (~8%
+ * of men). Pure red/green fails — shifted toward blue-green and orange-red so
+ * silhouettes diverge under CVD. WCAG: 1.4.1 — tokens always pair with a
+ * .status-icon shape channel; color is never load-bearing alone. */
 :root {
-  --rc-ok-fg: #0a6e3a; /* WCAG: blue-shifted green; AAA on white text */
+  --rc-ok-fg: #0a6e3a; /* WCAG: blue-shifted green; AAA on white */
   --rc-ok-bg: #e8f5ed; /* WCAG: ≥7:1 with --rc-ok-fg */
   --rc-ok-border: #0a6e3a;
-  --rc-warn-fg: #8a5a00; /* WCAG: amber-not-yellow; readable under tritanopia */
+  --rc-warn-fg: #8a5a00; /* WCAG: amber-not-yellow; tritanopia-readable */
   --rc-warn-bg: #fff6e0; /* WCAG: ≥7:1 with --rc-warn-fg */
   --rc-warn-border: #8a5a00;
   --rc-danger-fg: #b00020; /* WCAG: orange-shifted red; AAA on white */
   --rc-danger-bg: #fde8eb; /* WCAG: ≥7:1 with --rc-danger-fg */
   --rc-danger-border: #b00020;
-
-  /* Neutral — the default tile rest state.
-   * UX: dashboard-ux.md §4 — "Default to neutral, escalate by exception." */
+  /* Neutral rest state. UX §4: "Default to neutral, escalate by exception." */
   --rc-neutral-fg: #1f2937;
   --rc-neutral-bg: #f5f7fa;
   --rc-neutral-border: #d6dbe2;
   --rc-muted-fg: #5a6473; /* WCAG: ≥4.5:1 on --rc-neutral-bg */
-
-  /* Freshness chip — Live / Stale / Paused.
-   * UX: dashboard-ux.md §7 — three-state staleness (Smashing 2025). */
+  /* Freshness — UX §7 three-state Live/Stale/Paused (Smashing 2025). */
   --rc-live-fg: #0a6e3a;
   --rc-live-bg: #e8f5ed;
   --rc-stale-fg: #8a5a00;
   --rc-stale-bg: #fff6e0;
   --rc-paused-fg: #5a6473;
   --rc-paused-bg: #eef1f5;
-
-  /* Bandline (Few's Tufte extension).
-   * UX: dashboard-ux.md §10 — shade typical range so excursions pop. */
+  /* Bandline — UX §10: shade typical range so excursions pop (Few's Tufte). */
   --rc-band-fill: rgba(31, 41, 55, 0.06);
   --rc-band-stroke: #1f2937;
   --rc-band-endpoint: #0a6e3a;
   --rc-band-extrema: #b00020;
-
-  /* Surfaces — card / drawer / scrim. */
+  /* Surfaces. */
   --rc-surface-bg: #ffffff;
   --rc-surface-border: #e1e5eb;
   --rc-surface-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   --rc-drawer-bg: #ffffff;
   --rc-drawer-shadow: -8px 0 24px rgba(15, 23, 42, 0.12);
   --rc-scrim: rgba(15, 23, 42, 0.32);
-
   /* WCAG: 2.4.7 Focus Visible + 1.4.11 Non-text Contrast (≥3:1). */
   --rc-focus-ring: #2563eb;
-
-  /* Type scale — sized for the 5-second test. */
+  /* Type — sized for the 5-second test. */
   --rc-font-stack:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --rc-fs-heading: 1.25rem;
@@ -75,12 +52,10 @@
   --rc-fs-caption: 0.8rem;
 }
 
-/* ---- 2. Status badge — ≥2-channel indicator --------------------------------
- * Color + shape (icon) + (where space allows) text label.
- * WCAG: 1.4.1 — color alone forbidden; each badge composes
- *       .status-badge + a .status-icon class.
- * UX:   operational-console-design.md §2.3 "Severity tiering with shape"
- * --------------------------------------------------------------------------- */
+/* 2. Status badge — ≥2-channel indicator (color + shape + optional text).
+ * WCAG 1.4.1: color alone forbidden; every badge composes .status-badge with
+ * a .status-icon child. UX: operational-console-design.md §2.3 "Severity
+ * tiering with shape" — filled circle / hollow triangle / filled square. */
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -94,28 +69,26 @@
   background: var(--rc-neutral-bg);
   color: var(--rc-neutral-fg);
 }
+/* WCAG: --ok pairs with .status-icon--circle (filled circle),
+ *       --warn with .status-icon--triangle (hollow triangle),
+ *       --danger with .status-icon--square (filled square). */
 .status-badge--ok {
-  /* WCAG: paired with .status-icon--circle (filled circle). */
   color: var(--rc-ok-fg);
   background: var(--rc-ok-bg);
   border-color: var(--rc-ok-border);
 }
 .status-badge--warn {
-  /* WCAG: paired with .status-icon--triangle (hollow triangle). */
   color: var(--rc-warn-fg);
   background: var(--rc-warn-bg);
   border-color: var(--rc-warn-border);
 }
 .status-badge--danger {
-  /* WCAG: paired with .status-icon--square (filled square). */
   color: var(--rc-danger-fg);
   background: var(--rc-danger-bg);
   border-color: var(--rc-danger-border);
 }
-
-/* Status icons — the SECOND channel mandated by WCAG 1.4.1.
- * Silhouettes diverge under CVD even with color collapsed.
- * UX: dashboard-ux.md §4 mitigation pattern #3. */
+/* Status icons — the SECOND channel mandated by WCAG 1.4.1. Silhouettes
+ * diverge under CVD even with color collapsed. UX: §4 mitigation pattern #3. */
 .status-icon {
   display: inline-block;
   width: 0.7rem;
@@ -129,7 +102,7 @@
 }
 .status-icon--triangle {
   /* WCAG: hollow triangle = WARN. Outline-only so square (danger) and
-   * circle (ok) remain visually distinct under CVD. */
+   * circle (ok) stay distinct under CVD. */
   width: 0;
   height: 0;
   background: transparent;
@@ -138,11 +111,10 @@
   border-bottom: 0.6rem solid currentColor;
 }
 .status-icon--square {
-  /* WCAG: filled square = DANGER. Hard right-angles diverge from circle. */
+  /* WCAG: filled square = DANGER. Hard angles diverge from circle. */
   background: currentColor;
   border-radius: 1px;
 }
-
 /* WCAG: every badge MUST include a .sr-only label naming the state. */
 .status-badge .sr-only {
   position: absolute;
@@ -156,9 +128,8 @@
   border: 0;
 }
 
-/* ---- 3. Freshness chip — Live / Stale / Paused -----------------------------
- * UX: dashboard-ux.md §7 + operational-console-design.md §6.
- * --------------------------------------------------------------------------- */
+/* 3. Freshness chip — Live / Stale / Paused. UX: §7 + operational-console
+ * §6 — "Always show data freshness" + three-state staleness (Smashing 2025). */
 .freshness-chip {
   display: inline-flex;
   align-items: center;
@@ -169,21 +140,19 @@
   font-variant-numeric: tabular-nums;
   border: 1px solid transparent;
 }
+/* UX §7 — Live = "Updated N min ago" + dot pulse (motion-permitted);
+ * Stale = 5-min < age < 5-day; Paused = user pause OR "data paused — last HH:MM". */
 .freshness-chip--live {
-  /* UX: "Updated N min ago" — paired with .freshness-dot (animated pulse
-   *     when prefers-reduced-motion is "no-preference"). */
   color: var(--rc-live-fg);
   background: var(--rc-live-bg);
   border-color: var(--rc-live-fg);
 }
 .freshness-chip--stale {
-  /* UX: 5-min < age < 5-day per §7 — distinguish from "service degraded". */
   color: var(--rc-stale-fg);
   background: var(--rc-stale-bg);
   border-color: var(--rc-stale-fg);
 }
 .freshness-chip--paused {
-  /* UX: user pause OR degradation transparency ("data paused — last HH:MM"). */
   color: var(--rc-paused-fg);
   background: var(--rc-paused-bg);
   border-color: var(--rc-paused-fg);
@@ -195,9 +164,7 @@
   border-radius: 50%;
   background: currentColor;
 }
-
-/* Refresh-now button — paired with every freshness chip.
- * UX: dashboard-ux.md §7 rule 3 "Manual refresh button." */
+/* Refresh-now button — UX §7 rule 3 "Manual refresh button." */
 .freshness-refresh {
   appearance: none;
   background: transparent;
@@ -218,11 +185,9 @@
   outline-offset: 2px;
 }
 
-/* ---- 4. Empty-state surface ------------------------------------------------
- * UX: dashboard-ux.md §6 + operational-console-design.md §7.
- *     Diagnostic headline + supporting copy + ONE CTA + subtle visual.
- *     Three categories: first-run, filter-emptied, healthy-empty.
- * --------------------------------------------------------------------------- */
+/* 4. Empty-state surface. UX: §6 + operational-console §7 — diagnostic
+ * headline + supporting copy + ONE CTA + subtle visual. Three categories:
+ * first-run, filter-emptied, healthy-empty. */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -236,21 +201,20 @@
   color: var(--rc-neutral-fg);
   gap: 0.5rem;
 }
+/* UX §6 — headline diagnoses ("No active risks" not "No data"); copy names
+ * what would cause data to appear; CTA is the ONE action that resolves it. */
 .empty-state__headline {
-  /* UX: Diagnostic — names *why* it's empty. "No active risks" not "No data". */
   font-size: var(--rc-fs-heading);
   font-weight: 600;
   margin: 0;
 }
 .empty-state__copy {
-  /* UX: One-line supporting copy — what would cause data to appear. */
   font-size: var(--rc-fs-body);
   color: var(--rc-muted-fg);
   max-width: 32rem;
   margin: 0;
 }
 .empty-state__cta {
-  /* UX: Primary CTA — the ONE action that resolves the empty state. */
   display: inline-block;
   margin-top: 0.5rem;
   padding: 0.4rem 0.9rem;
@@ -262,7 +226,7 @@
   text-decoration: none;
 }
 .empty-state__cta:focus-visible {
-  /* WCAG: 2.4.7 Focus Visible — explicit ring on the primary affordance. */
+  /* WCAG: 2.4.7 Focus Visible — explicit ring on primary affordance. */
   outline: 2px solid var(--rc-neutral-fg);
   outline-offset: 2px;
 }
@@ -281,10 +245,8 @@
   background: var(--rc-neutral-fg);
 }
 
-/* ---- 5. Drawer panel — the default drill-down pattern ----------------------
- * UX: dashboard-ux.md §5 + operational-console-design.md §3.
- *     "Side panel is the default for 'show me more about this row.'"
- * --------------------------------------------------------------------------- */
+/* 5. Drawer panel — default drill-down pattern. UX: §5 + operational-console
+ * §3 — "Side panel is the default; preserves the user's spatial map." */
 .drawer {
   position: fixed;
   top: 0;
@@ -297,7 +259,7 @@
   z-index: 50;
   display: flex;
   flex-direction: column;
-  /* UX: §5 — never force-close on click-outside; explicit close only. */
+  /* UX: never force-close on click-outside; explicit close only. */
   transform: translateX(100%);
   transition: transform 0.2s ease-out;
 }
@@ -345,10 +307,10 @@
   z-index: 40;
 }
 
-/* ---- 6. Bandline (sparkline backgrounds) -----------------------------------
- * UX: dashboard-ux.md §10 — shade typical range; current value is the
- *     labeled endpoint dot, never read off the line itself.
- * --------------------------------------------------------------------------- */
+/* 6. Bandline (sparkline backgrounds). UX §10 — shade typical range so
+ * excursions pop; current value is the labeled endpoint dot, never read off
+ * the line; extrema get a second contrasting dot if relevant; number is
+ * always adjacent (data-intense, design-simple, word-sized). */
 .bandline {
   display: inline-block;
   vertical-align: middle;
@@ -356,43 +318,35 @@
   height: 1.4rem;
 }
 .bandline__band {
-  /* UX: faint band — out-of-band excursions visually pop. */
   fill: var(--rc-band-fill);
   stroke: none;
 }
 .bandline__line {
-  /* UX: §10 "data-intense, design-simple, word-sized graphics." */
   fill: none;
   stroke: var(--rc-band-stroke);
   stroke-width: 1;
 }
 .bandline__endpoint {
-  /* UX: §10 — anchor with the current value as a labeled endpoint dot. */
   fill: var(--rc-band-endpoint);
 }
 .bandline__extrema {
-  /* UX: §10 — mark extrema with a second contrasting dot if relevant. */
   fill: var(--rc-band-extrema);
 }
 .bandline__value {
-  /* UX: §10 — always show current value adjacent. Number first, line second. */
   font-variant-numeric: tabular-nums;
   font-size: var(--rc-fs-body);
   margin-left: 0.4rem;
 }
 
-/* ---- 7. Reduced-motion preference ------------------------------------------
- * WCAG: 2.3.3 Animation from Interactions (Level AAA) — pulse + drawer
- *       transitions animate ONLY when motion is permitted.
- * --------------------------------------------------------------------------- */
+/* 7. Reduced-motion preference. WCAG 2.3.3 (AAA) — pulse + drawer
+ * transitions animate ONLY when motion is permitted; subtle live pulse
+ * confirms "fresh" without being exhausting. */
 @media (prefers-reduced-motion: no-preference) {
   .freshness-chip--live .freshness-dot {
-    /* UX: subtle pulse confirms "live" without being exhausting. */
     animation: rc-pulse 2s ease-in-out infinite;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  /* WCAG: 2.3.3 — disable transform + pulse; surfaces appear instantly. */
   .drawer {
     transition: none;
   }
@@ -410,20 +364,18 @@
   }
 }
 
-/* ---- 8. Dark-scheme overrides ----------------------------------------------
- * WCAG: 1.4.3 Contrast (Minimum, Level AA) — dark-scheme tokens hit ≥4.5:1
- *       for body text and ≥3:1 for large text / borders. Status hues are
- *       LIGHTENED (not just inverted) so CVD survival is preserved.
- * --------------------------------------------------------------------------- */
+/* 8. Dark-scheme overrides. WCAG: 1.4.3 (AA) — dark tokens hit ≥4.5:1 body /
+ * ≥3:1 large text. Status hues LIGHTENED (not inverted) so CVD survives. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --rc-ok-fg: #4ade80; /* WCAG: ≥4.5:1 on dark bg; CVD hue preserved */
+    /* WCAG: each fg below verified ≥4.5:1 on its bg; CVD hue preserved. */
+    --rc-ok-fg: #4ade80;
     --rc-ok-bg: #0f2a1c;
     --rc-ok-border: #4ade80;
-    --rc-warn-fg: #fbbf24; /* WCAG: ≥4.5:1; amber preserved across CVD */
+    --rc-warn-fg: #fbbf24;
     --rc-warn-bg: #2a1f08;
     --rc-warn-border: #fbbf24;
-    --rc-danger-fg: #f87171; /* WCAG: ≥4.5:1; orange-red hue maintained */
+    --rc-danger-fg: #f87171;
     --rc-danger-bg: #2a0f14;
     --rc-danger-border: #f87171;
     --rc-neutral-fg: #e5e7eb;

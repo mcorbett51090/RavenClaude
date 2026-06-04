@@ -45,9 +45,6 @@ UUIDV4_RE = re.compile(
 SCHEMA_VERSION = 1
 
 
-# --------------------------------------------------------------------
-# CLI
-# --------------------------------------------------------------------
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(prog="export-psm-dashboard")
     p.add_argument("--out", required=True, type=Path, help="Output data.json path.")
@@ -77,12 +74,9 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
-# --------------------------------------------------------------------
-# Snowflake connection — key-pair auth ONLY.
-# --------------------------------------------------------------------
 @contextmanager
 def snowflake_conn() -> Iterable[snowflake.connector.SnowflakeConnection]:
-    """Open via env vars. Key-pair auth — no password support."""
+    """Key-pair auth via env vars — no password support."""
     required = [
         "SNOWFLAKE_ACCOUNT", "SNOWFLAKE_USER", "SNOWFLAKE_PRIVATE_KEY_PATH",
         "SNOWFLAKE_WAREHOUSE", "SNOWFLAKE_DATABASE", "SNOWFLAKE_ROLE",
@@ -171,16 +165,12 @@ def fetch_priority_weights(conn) -> dict[str, int]:
     return {r["weight_key"]: int(r["weight_value"]) for r in rows}
 
 
-# --------------------------------------------------------------------
-# Per-source degradation — when a source is `failed`, emit empty block
-# with the last-success timestamp. Renderer's three-state badge handles it.
-# --------------------------------------------------------------------
 def maybe_skip_source(
     rows: list[dict[str, Any]],
     source_name: str,
     connector_rows: list[dict[str, Any]],
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """Return (rows, status). If source is `failed`, rows = [] and status carries last_succeeded_at."""
+    """Failed-source degradation. Returns (rows, status); empty rows on failure."""
     status_row = next((c for c in connector_rows if c.get("source") == source_name), None)
     if status_row and status_row.get("status") == "failed":
         return [], {
@@ -191,12 +181,9 @@ def maybe_skip_source(
     return rows, {"source": source_name, "status": "ok"}
 
 
-# --------------------------------------------------------------------
-# Atomic write — temp file + fsync + rename. Never partial.
-# --------------------------------------------------------------------
 def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
+    """Atomic write: temp + fsync + rename. Never partial."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    # NamedTemporaryFile in same dir → rename is atomic on POSIX.
     fd, tmpname = tempfile.mkstemp(prefix=".data.json.", dir=path.parent)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
@@ -212,27 +199,18 @@ def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
         raise
 
 
-# --------------------------------------------------------------------
-# Optional schema validation.
-# --------------------------------------------------------------------
 def validate_against_schema(payload: dict[str, Any], schema_path: Path) -> None:
+    """Gated import — jsonschema only required on --validate."""
     try:
-        import jsonschema  # noqa: F401  — gated import (only on --validate)
+        import jsonschema as js
     except ImportError:
-        sys.stderr.write(
-            "ERROR: --validate requires `jsonschema`. Install with `pip install jsonschema`.\n"
-        )
+        sys.stderr.write("ERROR: --validate requires `jsonschema`.\n")
         sys.exit(2)
-    import jsonschema as js
-
     with open(schema_path, "r", encoding="utf-8") as f:
         schema = json.load(f)
     js.validate(instance=payload, schema=schema)
 
 
-# --------------------------------------------------------------------
-# Main.
-# --------------------------------------------------------------------
 def main() -> int:
     args = parse_args()
     sys.stderr.write(f"export: as-of={args.as_of} org-uid={args.org_uid}\n")
@@ -240,32 +218,30 @@ def main() -> int:
     with snowflake_conn() as conn:
         connector_rows = fetch_connector_health(conn, args.org_uid)
         weights = fetch_priority_weights(conn)
-
-        partners = fetch_partners(conn, args.org_uid)
-        partners, st_p = maybe_skip_source(partners, "salesforce", connector_rows)
-
-        contacts = fetch_block(conn, "dim_contact", args.org_uid, "contact_uid")
-        contacts, st_c = maybe_skip_source(contacts, "salesforce", connector_rows)
-
+        partners, _ = maybe_skip_source(
+            fetch_partners(conn, args.org_uid), "salesforce", connector_rows)
+        contacts, _ = maybe_skip_source(
+            fetch_block(conn, "dim_contact", args.org_uid, "contact_uid"),
+            "salesforce", connector_rows)
         timeline_events = fetch_block(conn, "timeline_events", args.org_uid, "ts")
-        usage_daily = fetch_block(conn, "usage_daily", args.org_uid, "account_uid, usage_date")
-        usage_daily, _ = maybe_skip_source(usage_daily, "snowflake_share", connector_rows)
-        usage_daily_school = fetch_block(conn, "usage_daily_school", args.org_uid, "account_uid, usage_date")
-
-        success_plans = fetch_block(conn, "success_plans", args.org_uid, "plan_uid")
-        success_plans, _ = maybe_skip_source(success_plans, "planhat", connector_rows)
-
+        usage_daily, _ = maybe_skip_source(
+            fetch_block(conn, "usage_daily", args.org_uid, "account_uid, usage_date"),
+            "snowflake_share", connector_rows)
+        usage_daily_school = fetch_block(
+            conn, "usage_daily_school", args.org_uid, "account_uid, usage_date")
+        success_plans, _ = maybe_skip_source(
+            fetch_block(conn, "success_plans", args.org_uid, "plan_uid"),
+            "planhat", connector_rows)
         contracts = fetch_block(conn, "fct_contracts", args.org_uid, "contract_uid")
         tickets = fetch_block(conn, "fct_support_ticket", args.org_uid, "ticket_uid")
-
-        calendar_events = fetch_block(conn, "fct_calendar_event", args.org_uid, "event_uid")
-        calendar_events, _ = maybe_skip_source(calendar_events, "google_calendar", connector_rows)
-
+        calendar_events, _ = maybe_skip_source(
+            fetch_block(conn, "fct_calendar_event", args.org_uid, "event_uid"),
+            "google_calendar", connector_rows)
         bridge = fetch_block(conn, "bridge_account_xref", args.org_uid, "salesforce_id")
         if not args.allow_real_ids:
             sys.stderr.write(
-                "WARN: --allow-real-ids not set; export will be rejected by audit Gate 53 "
-                "unless every bridge ID starts `synthetic-`.\n"
+                "WARN: --allow-real-ids not set; Gate 53 will reject bridge IDs "
+                "without `synthetic-` prefix.\n"
             )
 
     sys.stderr.write(
