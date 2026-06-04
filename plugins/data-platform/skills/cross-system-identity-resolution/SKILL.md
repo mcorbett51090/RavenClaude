@@ -1,6 +1,8 @@
 ---
 name: cross-system-identity-resolution
-description: "Use when stitching the same real-world entity — a customer account — across multiple source systems into one conformed spine; e.g. Salesforce + Planhat + Intercom + Slack. Operationalizes the deterministic-keys-before-fuzzy best practice: inventory candidate keys, build the precedence ladder, construct bridge_account_xref with confidence + match_method, quarantine unresolved records, run resolution_audit, and gate on stewardship review for low-confidence matches."
+description: "Use when stitching the same real-world entity — a customer account — across multiple source systems into one conformed spine; e.g. Salesforce + Planhat + Intercom + Slack. Operationalizes the deterministic-keys-before-fuzzy best practice: inventory candidate keys, build the precedence ladder, construct bridge_account_xref with confidence + match_method, quarantine unresolved records, run resolution_audit, and gate on stewardship review for low-confidence matches. K-12 LEAID confidence-tier ladder + district-name normalization rules added 2026-06-04."
+last_reviewed: 2026-06-04
+confidence: high
 ---
 
 # Skill: cross-system-identity-resolution
@@ -260,12 +262,322 @@ where b.match_method = 'name_fuzzy'
 - Treating a rising unresolved percentage as "normal" and not investigating — it means source records exist that are invisible to every CS health metric
 - Skipping the Phase 0 candidate-key inventory and jumping straight to fuzzy matching — the highest-value 30-minute investment in the whole build
 
+---
+
+## K-12 LEAID matching (added 2026-06-04)
+
+The base ladder (Steps 1–3) is domain-neutral. For K-12 EdTech engagements there is a higher-confidence deterministic anchor than email-domain: **LEAID** (Local Education Agency ID), the NCES-issued 7-digit identifier for every public school district in the United States. This section is **additive** — apply it inside Steps 1–3 when the engagement is K-12.
+
+### LEAID structure `[verify-at-use — 2026-06-04]`
+
+- **7 digits total. First 2 = State FIPS code.** A Texas district always starts with `48`, Wisconsin with `55`, California with `06`, New York with `36`, etc.
+- Issued by the National Center for Education Statistics (NCES) via the Common Core of Data (CCD) survey.
+- Updated annually. Changes on district consolidation/split (see § "District consolidation/split" below).
+- **NCES School ID** = LEAID + SCHNO (12 digits total) — school-grain identifier.
+- Public lookup: [`nces.ed.gov/ccd/districtsearch/`](https://nces.ed.gov/ccd/districtsearch/). Programmatic flat-file: [`nces.ed.gov/ccd/ccddata.asp`](https://nces.ed.gov/ccd/ccddata.asp).
+
+### LEAID confidence-tier ladder
+
+Layered on top of the base ladder in Step 2. T0–T2 are auto-resolve; T3 is human-review; T4 is reject.
+
+| Tier | Match logic | Confidence | Auto-resolve? | `match_method` value |
+|---|---|---|---|---|
+| **T0 — Exact LEAID** | SFDC `Account.NCES_LEAID__c` populated AND matches `dim_lea.leaid` | 100% | Yes | `'leaid_exact'` |
+| **T1 — Deterministic compound** | `(state_fips, normalized_district_name, city)` exact match against `dim_lea` | ~95% `[verify-at-use — 2026-06-04]` | Yes (with audit log) | `'leaid_compound'` |
+| **T2 — Fuzzy district name** | Levenshtein/Jaro on normalized name within state; threshold ≥ 0.92 | 85–95% `[verify-at-use — 2026-06-04]` | Yes (flag for review at first sync) | `'leaid_fuzzy_high'` |
+| **T3 — Probabilistic** | Multi-signal: name + city + zip + enrollment-band agreement | 70–85% | **No — human review** | `'leaid_probabilistic'` |
+| **T4 — Below threshold** | <70% confidence on any signal combination | — | No — reject | `'unresolved'` |
+
+**Threshold rationale:** industry-standard threshold for the deterministic-vs-probabilistic boundary is **85–95%** `[verify-at-use — 2026-06-04]`. For B2B district matching the cost of a wrong match is higher than consumer identity resolution (a wrong district = wrong cohort = wrong health score), so tighten thresholds at the high end of the industry range: 0.92 for the T2 fuzzy threshold instead of the consumer-standard 0.85.
+
+**Why tighter than consumer identity:** the entity universe is smaller (~13,500 US public school districts), so the prior probability of two real districts having very similar names is higher than in consumer matching where names are drawn from a much larger distribution. False positives are more likely without tighter thresholds.
+
+### District-name normalization rules
+
+Before any fuzzy match, normalize the district name. Apply in order:
+
+1. **Lowercase + collapse whitespace.** `"  Chicago   Public Schools  "` → `"chicago public schools"`.
+2. **Drop common district-type suffixes** (idempotent — strip any that appear):
+   - `"school district"` → ``
+   - `"public schools"` → ``
+   - `"public school district"` → ``
+   - `"independent school district"` → ``
+   - `"unified school district"` → ``
+   - `"consolidated school district"` → ``
+   - `"city school district"` → ``
+   - `"central school district"` → ``
+   - `"community school district"` → ``
+   - `"regional school district"` → ``
+   - `"isd"` (with word boundary) → `` (Texas-heavy convention — "Plano ISD" → "plano")
+   - `"csd"` (with word boundary) → ``
+   - `"usd"` (with word boundary) → ``
+3. **Normalize "Saint" variants:** `"st."` → `"saint"`, `"st "` → `"saint "` (word boundary). `"st. louis"` and `"saint louis"` collapse to one form.
+4. **Normalize ampersands and "and":** `"&"` → `"and"`.
+5. **Strip punctuation** (after the above replacements): apostrophes, periods, commas. Hyphens stay (they're often semantically meaningful — `"winston-salem"`).
+6. **Collapse multiple spaces to one.**
+7. **Strip leading/trailing whitespace.**
+
+```sql
+-- A reference implementation as a Snowflake UDF
+create or replace function normalize_district_name(name string)
+returns string
+language sql
+as $$
+    trim(
+        regexp_replace(
+            regexp_replace(
+                regexp_replace(
+                    regexp_replace(
+                        regexp_replace(
+                            regexp_replace(
+                                regexp_replace(
+                                    regexp_replace(
+                                        regexp_replace(
+                                            regexp_replace(
+                                                regexp_replace(
+                                                    regexp_replace(
+                                                        regexp_replace(
+                                                            lower(name),
+                                                            '\\bindependent school district\\b', ''
+                                                        ),
+                                                        '\\bunified school district\\b', ''
+                                                    ),
+                                                    '\\bconsolidated school district\\b', ''
+                                                ),
+                                                '\\bcity school district\\b', ''
+                                            ),
+                                            '\\bcentral school district\\b', ''
+                                        ),
+                                        '\\bcommunity school district\\b', ''
+                                    ),
+                                    '\\bregional school district\\b', ''
+                                ),
+                                '\\bpublic school district\\b', ''
+                            ),
+                            '\\bschool district\\b|\\bpublic schools\\b|\\bisd\\b|\\bcsd\\b|\\busd\\b', ''
+                        ),
+                        '\\bst\\.\\s|\\bst\\s', 'saint '
+                    ),
+                    '&', 'and'
+                ),
+                '[\\.,'']', ''
+            ),
+            '\\s+', ' '
+        )
+    )
+$$;
+```
+
+### State-ID systems by state
+
+LEAID is the federal identifier; states often issue their own. The state ID is sometimes the more useful key in single-state engagements because it's the one districts know.
+
+| State | State agency | State district ID name | LEAID prefix (FIPS) | Notes |
+|---|---|---|---|---|
+| California | CDE (Cal. Dept. of Education) | CDS code (14-digit county-district-school) | 06 | First 7 digits = district; full 14 = school. |
+| Texas | TEA (Texas Education Agency) | CDN (County-District Number, 6-digit) | 48 | Maps deterministically to LEAID. |
+| New York | NYSED (NY State Education Dept.) | BEDS code (12-digit) | 36 | First 6 = district; 12 = school. |
+| Florida | FLDOE | District number (2-digit) | 12 | Often used standalone in FL contracts. |
+| Illinois | ISBE (Ill. State Bd. of Education) | RCDTS (Region-County-District-Type-School, 15-digit) | 17 | |
+| Pennsylvania | PDE | AUN (Administrative Unit Number, 9-digit) | 42 | |
+| Ohio | ODE | IRN (Information Retrieval Number) | 39 | |
+| Michigan | MDE | District code (5-digit) | 26 | |
+| Georgia | GaDOE | District ID (3-digit) | 13 | |
+| North Carolina | NCDPI | LEA Code (3-digit) | 37 | |
+| Massachusetts | DESE | District Code (4-digit) | 25 | Often called "ORG code." |
+| Washington | OSPI | District Code (5-digit) | 53 | |
+| Virginia | VDOE | Division Number (3-digit) | 51 | "Division" not "district" in VA. |
+| Wisconsin | DPI | District Number (4-digit) | 55 | |
+| Indiana | IDOE | Corporation Number (4-digit) | 18 | "Corporation" not "district." |
+| Tennessee | TDOE | System Number (3-digit) | 47 | |
+| Missouri | DESE-MO | District Code (6-digit) | 29 | |
+| Maryland | MSDE | LEA Code (2-digit) | 24 | Only 24 districts (county-based). |
+| Arizona | ADE | District Entity ID (4-digit) | 04 | |
+| Colorado | CDE-CO | District Code (4-digit) | 08 | |
+
+`[verify-at-use — 2026-06-04]` — confirm per state. Each state agency publishes its own crosswalk to LEAID; ingest the crosswalk into a `dim_state_district_id` table when the engagement scope includes that state.
+
+### Implementation pattern — `dim_lea` materialization
+
+- **Seed source:** `seed_nces_districts.csv` from NCES CCD flat-file ([`nces.ed.gov/ccd/ccddata.asp`](https://nces.ed.gov/ccd/ccddata.asp)) — refreshed annually.
+- **Alternative source:** an NCES Snowflake share if available, or an S3 pull from `nces.ed.gov`.
+- **Materialize monthly** — district data changes annually but the refresh cadence is conservative.
+- **dbt model:** `dim_lea.sql` materializes the typed dimension; `int_district_match__sfdc_to_lea.sql` is a stage-of-stages with one CTE per tier.
+
+```sql
+-- models/marts/dim_lea.sql
+{{ config(materialized='table') }}
+select
+    leaid,                                                  -- 7-digit LEAID
+    substring(leaid, 1, 2) as state_fips,
+    state_abbreviation,
+    district_name as district_name_official,
+    normalize_district_name(district_name) as district_name_normalized,
+    city,
+    state,
+    zip_code,
+    enrollment_total,
+    enrollment_band,
+    effective_from,                                         -- SCD2
+    effective_to,
+    is_current
+from {{ ref('seed_nces_districts') }}
+```
+
+```sql
+-- models/intermediate/int_district_match__sfdc_to_lea.sql
+with t0_exact as (
+    select a.account_key, l.leaid,
+           'leaid_exact' as match_method, 'high' as confidence, 1.00 as similarity_score
+    from {{ ref('stg_salesforce__account') }} a
+    join {{ ref('dim_lea') }} l on a.nces_leaid_c = l.leaid
+    where a.nces_leaid_c is not null and l.is_current
+),
+unresolved_after_t0 as (
+    select a.* from {{ ref('stg_salesforce__account') }} a
+    where a.account_key not in (select account_key from t0_exact)
+),
+t1_compound as (
+    select a.account_key, l.leaid,
+           'leaid_compound' as match_method, 'high' as confidence, 0.95 as similarity_score
+    from unresolved_after_t0 a
+    join {{ ref('dim_lea') }} l
+        on l.state_fips = substring(a.state_fips_code, 1, 2)
+       and normalize_district_name(a.account_name) = l.district_name_normalized
+       and lower(a.billing_city) = lower(l.city)
+    where l.is_current
+),
+unresolved_after_t1 as (
+    select a.* from unresolved_after_t0 a
+    where a.account_key not in (select account_key from t1_compound)
+),
+t2_fuzzy as (
+    select a.account_key, l.leaid,
+           'leaid_fuzzy_high' as match_method, 'medium' as confidence,
+           jarowinkler_similarity(normalize_district_name(a.account_name), l.district_name_normalized) as similarity_score
+    from unresolved_after_t1 a
+    join {{ ref('dim_lea') }} l on l.state_fips = substring(a.state_fips_code, 1, 2)
+    where l.is_current
+      and jarowinkler_similarity(normalize_district_name(a.account_name), l.district_name_normalized) >= 0.92
+)
+select * from t0_exact
+union all select * from t1_compound
+union all select * from t2_fuzzy
+```
+
+Surface `match_method` + `similarity_score` on the final mart row so dashboards can render the confidence to PSMs ("matched by name — 0.94 confidence").
+
+### District consolidation/split — the SCD2 gotcha
+
+**LEAIDs change on consolidation.** When two districts merge, both old LEAIDs are retired and a new one issued; the historical fact data must still resolve to the new partner key.
+
+**Pattern:**
+- Keep `dim_lea` as **SCD Type 2** (`effective_from` / `effective_to` / `is_current`).
+- Don't embed LEAID directly in fact tables — fact tables hold `partner_key`.
+- Join chain: `fact → dim_partner → dim_partner_lea_link → dim_lea`.
+- `dim_partner_lea_link` is many-to-many (one partner may span multiple LEAIDs through history) and SCD2.
+- The fact survives consolidation because `partner_key` is stable; the LEAID join walks through the link table to find the LEAID effective at the fact's date.
+
+```sql
+create table dim_partner_lea_link (
+    partner_key      varchar not null,
+    leaid            varchar not null,
+    effective_from   date not null,
+    effective_to     date,
+    is_current       boolean,
+    link_source      varchar,         -- 'sfdc_field' | 'manual_review' | 'nces_consolidation_event'
+    primary key (partner_key, leaid, effective_from)
+);
+```
+
+### LEAID-specific anti-patterns
+
+- **Joining `Account.account_name` directly against `dim_lea.district_name`** without normalization → false negatives on every "ISD" suffix.
+- **Embedding LEAID in fact tables** → consolidation breaks historical joins. Use `partner_key` + the link table.
+- **Using LEAID without state FIPS** → cross-state collisions are unlikely but possible. Always carry state FIPS in the join.
+- **Trusting a single LEAID per partner forever** → multi-LEAID partners exist (charter networks, regional consortia, post-merger districts). Use the link table.
+- **Skipping the SCD2 on `dim_lea`** → a consolidation event silently rewrites historical answers ("which district owned this contract in 2023?" gives the 2026 LEAID).
+
+### LEAID-specific dbt tests
+
+```yaml
+models:
+  - name: dim_lea
+    columns:
+      - name: leaid
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "length(leaid) = 7"
+      - name: state_fips
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "length(state_fips) = 2"
+  - name: dim_partner_lea_link
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [partner_key, leaid, effective_from]
+      - dbt_utils.expression_is_true:
+          expression: "(is_current = true and effective_to is null) or (is_current = false and effective_to is not null)"
+```
+
+## Decision Tree: K-12 District Identity Resolution
+
+**When this applies:** You are matching an SFDC Account (or Planhat Company) to a public-school-district identity for a K-12 EdTech engagement. The choice of tier controls whether the resolution is auto-published or human-reviewed.
+
+**Last verified:** 2026-06-04 against NCES CCD docs, Cometly identity-resolution 2026 thresholds guidance, CustomerLabs deterministic-vs-probabilistic guide.
+
+```mermaid
+flowchart TD
+    START[K-12 district match needed] --> Q1{SFDC Account.NCES_LEAID__c populated and matches dim_lea?}
+    Q1 -->|YES| LEAF_A[T0 — Exact LEAID auto-resolve]
+    Q1 -->|NO| Q2{State FIPS plus normalized district name plus city exact match?}
+    Q2 -->|YES| LEAF_B[T1 — Deterministic compound auto-resolve with audit log]
+    Q2 -->|NO| Q3{State-bounded Jaro-Winkler on normalized name greater-equal 0.92?}
+    Q3 -->|YES| LEAF_C[T2 — Fuzzy high auto-resolve flag for first-sync review]
+    Q3 -->|NO| Q4{Multi-signal — name plus city plus zip plus enrollment-band — combined greater-equal 0.70?}
+    Q4 -->|YES| LEAF_D[T3 — Probabilistic stewardship review required no auto-resolve]
+    Q4 -->|NO| LEAF_E[T4 — Reject mark unresolved surface in resolution_audit]
+```
+
+**Rationale per leaf:**
+- *Leaf A — T0 Exact LEAID* — the strongest deterministic key. **Requires:** SFDC custom field `NCES_LEAID__c` populated and synced to the warehouse.
+- *Leaf B — T1 Deterministic compound* — strong enough to auto-resolve when LEAID isn't populated. The compound key is hard to collide accidentally.
+- *Leaf C — T2 Fuzzy high* — the 0.92 threshold is tighter than the consumer-identity standard because the K-12 entity universe is small enough that 0.85 produces too many false positives.
+- *Leaf D — T3 Probabilistic* — multi-signal but never auto-resolve. Always stewardship review.
+- *Leaf E — T4 Reject* — below threshold. Quarantine, alert, hand to ops team.
+
+**Tradeoffs summary table:**
+
+| Tier | Auto-resolve? | Confidence | Use when |
+|---|---|---|---|
+| T0 Exact LEAID (A) | Yes | 100% | LEAID field populated. |
+| T1 Compound (B) | Yes (with audit) | ~95% | LEAID missing; name + city + state available. |
+| T2 Fuzzy high (C) | Yes (first-sync review) | 85–95% | Name match only; tight similarity. |
+| T3 Probabilistic (D) | No | 70–85% | Multi-signal but ambiguous; needs human. |
+| T4 Reject (E) | No | <70% | Unresolved; route to ops. |
+
 ## See also
 
 - Best practice: [`../../best-practices/resolve-identity-deterministic-keys-before-fuzzy.md`](../../best-practices/resolve-identity-deterministic-keys-before-fuzzy.md) — the named rule this skill operationalizes
 - Skill: [`../data-quality-tests/SKILL.md`](../data-quality-tests/SKILL.md) — the `resolution_audit` model is a cross-source reconciliation test in disguise; wire it to the same alert infrastructure
 - Skill: [`../dbt-project-scaffolding/SKILL.md`](../dbt-project-scaffolding/SKILL.md) — the dbt project layer that hosts the bridge model and resolution audit
-- Knowledge: [`../../knowledge/planhat-integration.md`](../../knowledge/planhat-integration.md) — Planhat `externalId` as the single most important deterministic key for the CS-health build
+- Knowledge: [`../../knowledge/planhat-integration.md`](../../knowledge/planhat-integration.md) — Planhat `externalId` / `sourceId` keys; the SFDC bridge anchor
 - Knowledge: [`../../knowledge/intercom-integration.md`](../../knowledge/intercom-integration.md) — Intercom `company_id` as the Salesforce ID hook
-- Knowledge: [`../../knowledge/slack-as-data-source.md`](../../knowledge/slack-as-data-source.md) — the `slack_channel_account_map` seed-table pattern; the Slack → account mechanism that supplements the three-step ladder
-- Knowledge: [`../../knowledge/salesforce-integration.md`](../../knowledge/salesforce-integration.md) — the Salesforce Account ID is the master key; all resolution ladders converge on it
+- Knowledge: [`../../knowledge/slack-as-data-source.md`](../../knowledge/slack-as-data-source.md) — the `slack_channel_account_map` seed-table pattern
+- Knowledge: [`../../knowledge/salesforce-integration.md`](../../knowledge/salesforce-integration.md) — the Salesforce Account ID is the master key
+- Knowledge: [`../../knowledge/salesforce-cpq-integration.md`](../../knowledge/salesforce-cpq-integration.md) — CPQ field mapping for ARR/TCV/renewal-date (the contract grain joined via account_key)
+
+## References
+
+All URLs accessed 2026-06-04.
+
+- https://nces.ed.gov/ccd/aadd.asp — NCES Common Core of Data district address file.
+- https://nces.ed.gov/ccd/ccddata.asp — NCES CCD flat-file download.
+- https://nces.ed.gov/ccd/districtsearch/ — NCES district search.
+- https://nces.ed.gov/programs/edge/docs/EDGE_GEOCODE_PUBLIC_FILEDOC.pdf — NCES EDGE geocode file doc (LEAID + SCHNO structure).
+- https://www.cometly.com/post/identity-resolution-marketing — Identity resolution 2026 (85–95% threshold guidance).
+- https://www.customerlabs.com/blog/deterministic-vs-probabilistic-identity-resolution-guide/ — Deterministic vs probabilistic match guide.
+- https://towardsdatascience.com/fuzzywuzzy-basica-and-merging-datasets-on-names-with-different-transcriptions-e2bb6e179fbf/ — FuzzyWuzzy / Levenshtein for name matching.
+- https://xebia.com/blog/a-practical-guide-to-creating-slowly-changing-dimensions-type-2-in-dbt-part-1/ — SCD2 in dbt (the consolidation/split pattern).
