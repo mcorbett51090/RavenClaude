@@ -57,9 +57,19 @@ if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
       bash plugins/ravenclaude-core/hooks/tests/test-gate80-status-launcher-check.sh
       exit $?
       ;;
+    90)
+      echo "── Gate 90: agent-dispatch-evaluator audit-only hook (per-gate run) ──────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate90-dispatch-evaluator-audit-only.sh
+      exit $?
+      ;;
+    91)
+      echo "── Gate 91: agent-dispatch-evaluator tribunal-seat shadow (per-gate run) ──"
+      python3 plugins/ravenclaude-core/hooks/tests/test-gate91-tribunal-shadow.py
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 60, 70, 80. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 60, 70, 80, 90, 91. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -2778,6 +2788,20 @@ gate "codex-trust-hooks fixture (13 subtests across STRICT + dod-gate + web-acce
 rc=0
 [ 1 -ne 2 ] || rc=1
 gate "codex-trust-hooks: exit 1 vs exit 2 are distinguishable (gate has teeth)" must_pass "$rc"
+
+echo "── Gate 90: agent-dispatch-evaluator SubagentStart hook — audit-only ──────"
+# The hook's full fixture (6 subtests incl. the deny-on-downgrade must-fail half) runs as one
+# unit; it self-asserts the audit-only invariant (downgrade verdict → exit 0, no deny) AND its
+# own teeth (a mutant that denies is caught). A nonzero exit means an assertion regressed.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate90-dispatch-evaluator-audit-only.sh >/dev/null 2>&1 || rc=$?
+gate "dispatch-evaluator audit-only fixture (6 subtests incl. deny-on-downgrade must-fail)" must_pass "$rc"
+
+echo "── Gate 91: agent-dispatch-evaluator tribunal-seat shadow (Phase 4) ───────"
+# Shadow integration in thing-decide.py: disabled → no evaluator_shadow (byte-identical to
+# pre-P4); enabled → every seat record carries evaluator_shadow AND the verdict/binding is
+# unchanged from the disabled run (RM2 — shadow is observational, never mutates seat models).
+rc=0; python3 plugins/ravenclaude-core/hooks/tests/test-gate91-tribunal-shadow.py >/dev/null 2>&1 || rc=$?
+gate "tribunal-seat shadow fixture (disabled no-op + enabled-shadows + verdict-unchanged)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
