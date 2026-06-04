@@ -82,7 +82,14 @@ if [ -f "$MARKET/scripts/generate-copilot-plugin.py" ] && [ -d "$MARKET/plugins/
 fi
 
 # 2. dashboard.html (plugin version is shown in the UI and embedded in generated HTML).
-if [ -f "$MARKET/scripts/generate-dashboards.py" ]; then
+#    Skipped, like repo-guide below, when this repo self-heals it post-merge (the
+#    regenerate-artifacts.yml workflow is the signal) — so plugin PRs don't carry a
+#    regenerated dashboard.html that collides with siblings, and the SVGs inlined
+#    into it (which need mermaid-cli to render) are rendered once on main instead of
+#    requiring every author to have mermaid-cli locally. Consumer-invisible (a
+#    consumer repo has no such workflow → in-session regeneration is unchanged).
+if [ -f "$MARKET/scripts/generate-dashboards.py" ] \
+  && [ ! -f "$MARKET/.github/workflows/regenerate-artifacts.yml" ]; then
   run "dashboard.html" python3 scripts/generate-dashboards.py
 fi
 

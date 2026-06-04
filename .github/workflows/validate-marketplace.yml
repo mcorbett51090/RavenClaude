@@ -325,18 +325,18 @@ jobs:
       # (check-guide-fresh.sh) is still audited for teeth in audit-gates.sh
       # Gate 11. See docs/best-practices/ci-gate-audit.md § "Self-healing artifacts".
 
-      - name: Verify dashboard.html is fresh
-        # If a contributor changed dashboard-schema.json, pattern-explanations.json,
-        # apply-comfort-posture.py, or generate-dashboards.py without re-running
-        # `python3 scripts/generate-dashboards.py`, the committed dashboard.html
-        # diverges from regenerated content. GitHub Pages serves main directly,
-        # so a stale committed dashboard.html is a stale PUBLISHED dashboard.
-        # The generator embeds no timestamps, so --check is a clean exact match.
-        run: |
-          if ! python3 scripts/generate-dashboards.py --check; then
-            echo "::error::dashboard.html is stale. Run: python3 scripts/generate-dashboards.py and commit the result." >&2
-            exit 1
-          fi
+      # NOTE: dashboard.html freshness is no longer gated here. Like repo-guide.html,
+      # dashboard.html (and the concept/decision-tree SVGs inlined into it) is a
+      # repo-wide generated artifact that every PR would otherwise regenerate into
+      # its branch — and rendering the SVGs needs mermaid-cli + Chromium, which most
+      # authors don't have locally. It is now OWNED by `main` and regenerated
+      # post-merge by .github/workflows/regenerate-artifacts.yml. The render-test
+      # gates that consume dashboard.html (Heimdall/Víðarr/Norns/etc.) are made
+      # honest a different way — audit-gates.sh regenerates dashboard.html in place
+      # before running them, so they always test the CURRENT generator's output
+      # (generate-then-test), not a possibly-stale committed file. The dashboard
+      # staleness *detector* is still audited for teeth in audit-gates.sh Gate 13.
+      # See docs/best-practices/ci-gate-audit.md § "Self-healing artifacts".
 
       - name: Verify dashboard server endpoint parity (root vs bundled plugin)
         # The bundled plugin serve-dashboards.py is a hand-maintained copy of the root
@@ -346,18 +346,19 @@ jobs:
         # /__run omission) also exists in the plugin server. See check-dashboard-server-parity.py.
         run: python3 scripts/check-dashboard-server-parity.py
 
-      - name: Verify Learn-tab concept artifacts are fresh
-        # The dashboard's Learn tab and docs/concepts.md are generated from
-        # plugins/ravenclaude-core/knowledge/concepts/. If a concept (or its
-        # diagram) changed without re-running the generators, the committed
-        # concepts.json / SVGs / docs/concepts.md diverge. The schema gate also
-        # fails platform-fact concepts whose last_verified is > 90 days old. The
-        # SVG gate checks a source-hash manifest, so CI needs no headless browser.
+      - name: Verify Learn-tab concept artifacts are fresh (non-SVG)
+        # concepts.json + docs/concepts.md are pure-Python artifacts AND concepts.py
+        # carries the 90-day platform-fact STALENESS content gate — both stay on PRs
+        # (cheap to regenerate locally, no browser needed). The two SVG renderers
+        # (render-concepts / render-trees) are deliberately NOT checked here: the
+        # SVGs are inlined into dashboard.html and rendering them needs mermaid-cli +
+        # Chromium, so they self-heal post-merge alongside dashboard.html via
+        # .github/workflows/regenerate-artifacts.yml. Their sync *detector* is still
+        # audited for teeth in audit-gates.sh Gate 23. See
+        # docs/best-practices/ci-gate-audit.md § "Self-healing artifacts".
         run: |
           set -e
           python3 scripts/concepts.py --check
-          python3 scripts/render-concepts.py --check
-          python3 scripts/render-trees.py --check
           python3 scripts/generate-concepts-doc.py --check
 
       - name: Marketplace self-description — STRUCTURAL checks (required files, caps, rosters)
