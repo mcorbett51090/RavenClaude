@@ -78,8 +78,21 @@ The single most useful page when authoring a visual is "which roles does this vi
 
 | `visualType` | Display name | Query roles | Notes |
 |---|---|---|---|
-| `tableEx` | Table | `Values` (1+ — any order) | Array order = column order. **Never use `table`.** |
-| `pivotTable` | Matrix | `Rows` (1+), `Columns` (opt), `Values` (1+ measures) | `active: true` on Rows projection enables drill |
+| `tableEx` | Table | `Values` (1+ — any order, **column-only OR measure-only, NOT mixed**) | Array order = column order. **Never use `table`.** **See "tableEx vs pivotTable" callout below — mixing column projections (`active:true`) with measure projections silently blanks the visual in Fabric.** |
+| `pivotTable` | Matrix | `Rows` (1+), `Columns` (opt), `Values` (1+ measures) | `active: true` on Rows projection enables drill. **Default to `pivotTable` (matrix) the moment a table needs more than one measure with different formatters — see callout below.** |
+
+> ### Callout — `tableEx` vs `pivotTable` for mixed dimension+measure content (BMA-CSP Lesson 5, 2026-06-04)
+>
+> `tableEx.Values` does **NOT** support mixing **column projections** (carrying `active: true`) and **measure projections** (no `active`) in the same `Values` array. The renderer silently shows **blank** — no error toast, no broken indicator, no warning in the deploy logs. All five SummaryTable / QuestionDetailTable / QuestionTable_LW / RankTable / Domain Performance visuals in the BMA-CSP report failed this way; the DAX measures all returned valid data when queried via REST, but every visual was blank.
+>
+> **The rule:**
+> - **Column-only table** (filing links, reference data, diagnostics) → `tableEx` is fine.
+> - **Measure-only summary table** → `tableEx` is fine.
+> - **Mixed (a dimension column + one or more measures)** → use `pivotTable` (matrix) from the start: `Rows = [{column, active:true}]` + `Values = [measures]`. Mirrors the proven `EntityRiskMatrix` pattern.
+>
+> **Why `active: true` belongs only on `axis` / `slicer` roles, not `tableEx.Values`:** the `active` flag drives drill / cross-filter participation, which `tableEx.Values` does not support for a mixed-projection set. The renderer can't reconcile the column drill semantics with the measure projection semantics in one array, and it fails closed to "render nothing".
+>
+> **Diagnosis when you suspect this:** [`pbir-fabric-rest-debugging.md`](pbir-fabric-rest-debugging.md) — query the measures via `executeQueries` to confirm they return data, then visually compare the broken visual's `tableEx.Values` JSON to a working `pivotTable`'s `Rows` / `Values` split.
 
 ### Slicers
 
@@ -1931,6 +1944,94 @@ For the canonical, debug-tested `report.json` template, see [`pbir-enhanced-repo
 | `transparency` in `dropShadow` | `"80D"` | `"80L"` (uses `L` suffix) |
 | `prototypeQuery` on visual | tolerated (pre-June 2026) | **rejected** (`additionalProperties: false`) — strip it |
 | `tabOrder` always present | required everywhere | optional — real files omit it on some visuals |
+| Textbox `fontSize` type (added 2026-06-04, BMA-CSP Lesson 1) | integer like `10` (treated as **px** — most text invisible at normal screen sizes) | string with `"pt"` suffix like `"10pt"` — see §14a below |
+| `tableEx.Values` with column projections + measure projections (added 2026-06-04, BMA-CSP Lesson 5) | mixed — `active:true` columns alongside measures (silently blanks visual) | use `pivotTable` (Matrix): `Rows = [{column, active:true}]` + `Values = [measures]` — see §1 callout |
+| Stacked-bar series field type (added 2026-06-04, BMA-CSP Lesson 9) | raw free-text response column (`Responses[Value]`) — null dominates the legend | compute a normalized rate (`DIVIDE(Score, MaxScore)`) and use a horizontal bar chart per question |
+| Per-data-point measure-driven coloring (added 2026-06-04, BMA-CSP Lesson 10) | no `selector` → single solid color for the whole series | `selector: {"data": [{"dataViewWildcard": {"matchingOption": 1}}]}` with an empty placeholder `{"properties": {}}` first — see §14b below |
+
+---
+
+## 14a. Textbox `fontSize` MUST be a string with `"pt"` suffix (BMA-CSP Lesson 1, 2026-06-04)
+
+**Symptom:** subtitles and body text invisible after deploy; cover titles (using larger font sizes) appear; intermediate sizes are barely readable.
+
+**Why:** in PBIR Enhanced, the textbox `fontSize` field accepts a **string with an explicit unit suffix**. A bare integer like `10` is interpreted as **pixels**, not points. 10px text is invisible at normal screen / projector sizes; 22px is barely readable. A pt-suffixed string like `"10pt"` renders as expected.
+
+```json
+// WRONG — integer is treated as px; invisible at normal sizes
+"objects": {
+  "general": {
+    "properties": {
+      "paragraphs": [{
+        "textRuns": [{
+          "value": "This is body copy",
+          "textStyle": { "fontSize": 10 }
+        }]
+      }]
+    }
+  }
+}
+
+// RIGHT — string with "pt" suffix renders at the expected point size
+"objects": {
+  "general": {
+    "properties": {
+      "paragraphs": [{
+        "textRuns": [{
+          "value": "This is body copy",
+          "textStyle": { "fontSize": "10pt" }
+        }]
+      }]
+    }
+  }
+}
+```
+
+**The rule:** always pass `fontSize` as a **string with the `"pt"` suffix** for textbox content. If you have a helper that emits paragraphs / text runs from a Python or shell generator, add a `_pt()` normalizer at the helper's entry point that coerces `int | str → "Npt"` so the bug cannot recur. The BMA-CSP session spent several deploy cycles assuming wrong colors / z-ordering before catching this; a normalizer at the helper entry-point prevents the entire failure class.
+
+---
+
+## 14b. Per-bar / per-slice measure-driven coloring needs `dataViewWildcard.matchingOption: 1` (BMA-CSP Lesson 10, 2026-06-04)
+
+**Symptom:** applying a color measure to a bar chart without a `selector` gives a single solid color for the entire series, not per-bar coloring. `In` expression selectors for per-category static colors are not confirmed valid in the PBIR schema.
+
+**The correct pattern:**
+
+```json
+"objects": {
+  "dataPoint": [
+    { "properties": {} },
+    {
+      "properties": {
+        "fill": {
+          "solid": {
+            "color": {
+              "expr": {
+                "Measure": {
+                  "Property": "Risk Color",
+                  "Expression": { "SourceRef": { "Entity": "Measures" } }
+                }
+              }
+            }
+          }
+        }
+      },
+      "selector": {
+        "data": [{ "dataViewWildcard": { "matchingOption": 1 } }]
+      }
+    }
+  ]
+}
+```
+
+**The two rules:**
+
+1. **`matchingOption: 0` = single color for the whole series; `matchingOption: 1` = per-instance (per bar / per slice / per data point).** Always use `matchingOption: 1` for per-data-point measure-driven coloring.
+2. **The empty first `{"properties": {}}` entry is required as a placeholder.** It defines the default "no selector" state; the second entry overrides it with the per-data-point measure-driven coloring.
+
+**Companion measure pattern** — see [`pbir-dax-pitfalls.md`](pbir-dax-pitfalls.md) §4: color measures must be declared with `formatString: '@'` in TMDL (text type) or Power BI will attempt numeric aggregation on the hex string and fail. The two rules compose — the visual JSON pattern above only works if the measure it references is text-typed.
+
+Encapsulate this as a `measure_color(measure_name)` helper in any Python / shell generator emitting PBIR visual JSON — same pattern as the `_pt()` normalizer above.
 
 ---
 
