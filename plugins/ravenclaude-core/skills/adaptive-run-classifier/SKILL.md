@@ -1,6 +1,6 @@
 ---
 name: adaptive-run-classifier
-description: "Substrate-neutral pre-execution classifier contract. A single Haiku call emits a `run_config` JSON envelope that right-sizes cardinality knobs + per-phase model tier + reasoning level for multi-phase agentic workflows (the deep-research loop is the first consumer). Workflows read the envelope; substrate adapters (Claude / Codex / Copilot) map tier labels to SKUs. Carved out behind `.ravenclaude/run-config.json` `enabled: false` so adoption is opt-in and rollback is one line."
+description: "Substrate-neutral pre-execution classifier contract. A single Haiku call emits a `run_config` JSON envelope that right-sizes cardinality knobs + per-phase model tier + reasoning level for multi-phase agentic workflows (the rc-deep-research loop is the first consumer). Workflows read the envelope; substrate adapters (Claude / Codex / Copilot) map tier labels to SKUs. Carved out behind `.ravenclaude/run-config.json` `enabled: false` so adoption is opt-in and rollback is one line."
 last_reviewed: 2026-06-03
 confidence: high
 ---
@@ -9,7 +9,7 @@ confidence: high
 
 ## What this is
 
-The **wire contract** between an agentic workflow and the cheap classifier call that tells it how big and how careful to be. The classifier emits one JSON `run_config` per workflow run; the workflow reads it; substrate adapters map the tier labels to SKUs. **Invoke it before any multi-phase loop with cardinality knobs** (deep-research is the first port; FORGE is the obvious second). One forced-tool Haiku call. No agent loop. No retries to parse.
+The **wire contract** between an agentic workflow and the cheap classifier call that tells it how big and how careful to be. The classifier emits one JSON `run_config` per workflow run; the workflow reads it; substrate adapters map the tier labels to SKUs. **Invoke it before any multi-phase loop with cardinality knobs** (rc-deep-research is the first port; FORGE is the obvious second). One forced-tool Haiku call. No agent loop. No retries to parse.
 
 Plan reference: [`docs/plans/2026-06-03-adaptive-run-classifier/plan.md`](../../../../docs/plans/2026-06-03-adaptive-run-classifier/plan.md) §"Substrate-neutral run_config" + Phase 1 + Risk matrix. The skill is the **artifact** that contract; the workflow's adapter is the **consumer**.
 
@@ -135,7 +135,7 @@ The classifier prompt is intentionally **small**. Per [`prompt-caching-playbook.
 **The verify-system-block discipline (RM1)** — this is the *consumer* workflow's caching concern, not the classifier's, but it's the load-bearing cache decision in the pipeline so it lives in this skill's adapter contract:
 
 - Verify-phase system block: layout `tools (VERDICT_SCHEMA) → system [BREAKPOINT] → user (claim+vote)`.
-- **`ttl: "1h"`** when expected workflow duration ≥ ~3 minutes (the deep-research baseline was 36 min; 5-min TTL expires mid-run and every post-expiry call pays the 1.25× write tax again). Eat the 2× write penalty on call #1 to keep the cache warm.
+- **`ttl: "1h"`** when expected workflow duration ≥ ~3 minutes (the rc-deep-research baseline was 36 min; 5-min TTL expires mid-run and every post-expiry call pays the 1.25× write tax again). Eat the 2× write penalty on call #1 to keep the cache warm.
 - If the verify system block is below the model's minimum, the cache silently doesn't fire — RM1 in the plan. Phase-5 eval reports `cache_read / (cache_read + input)` per phase; if verify-phase hit rate < 0.5, escalate the verify-default tier from `fast` (Haiku 4.5, min 4,096) to `balanced` (Sonnet 4.6, min 1,024).
 
 ## The feature flag
@@ -210,7 +210,7 @@ These are the rails. Violating any of them is a regression — every one is tied
 
    Unit test: `adapter.opts("fast", "low")` returns `{ model }` only — **no `thinking` key**. This test ships with the adapter.
 
-3. **Cache TTL `"1h"` on the verify system block when expected workflow duration ≥ ~3 min.** The deep-research baseline runs 36 minutes — the 5-min default TTL expires mid-run and every post-expiry call eats the 1.25× write again. Switch to `"ttl": "1h"` (2× write on call #1, then 0.1× reads for the rest of the hour). For workflows known to finish in under 3 minutes, the 5-min default is correct.
+3. **Cache TTL `"1h"` on the verify system block when expected workflow duration ≥ ~3 min.** The rc-deep-research baseline runs 36 minutes — the 5-min default TTL expires mid-run and every post-expiry call eats the 1.25× write again. Switch to `"ttl": "1h"` (2× write on call #1, then 0.1× reads for the rest of the hour). For workflows known to finish in under 3 minutes, the 5-min default is correct.
 
 4. **`batch_verify: false` in MVP default — flag in schema but not flipped.** The field exists for forward compatibility. Phase 3 wires the threshold gate (`batch_verify && verifier_count>=10`) but the template config does NOT enable batch. Flipping it on requires either a polling loop or splitting the workflow into two invocations (synthesize consumes verify synchronously today); both are out of MVP scope and become a Phase-7+ follow-up after the synchronous path's savings are measured.
 
