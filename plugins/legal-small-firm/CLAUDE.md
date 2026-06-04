@@ -65,7 +65,7 @@ The research-grounded reference the agents point to. Read the relevant file in f
 |---|---|
 | [`knowledge/legal-practice-kpi-glossary.md`](knowledge/legal-practice-kpi-glossary.md) | Small-firm practice KPI glossary |
 | [`knowledge/legal-practice-economics.md`](knowledge/legal-practice-economics.md) | Small-firm practice economics |
-| [`knowledge/legal-practice-context.md`](knowledge/legal-practice-context.md) | Small-firm practice context |
+| [`knowledge/legal-practice-context.md`](knowledge/legal-practice-context.md) | Small-firm practice benchmarks & context (2025) |
 | [`knowledge/legal-practice-decision-trees.md`](knowledge/legal-practice-decision-trees.md) | Small-firm practice decision trees |
 
 ---

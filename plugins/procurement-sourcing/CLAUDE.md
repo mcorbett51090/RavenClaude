@@ -65,7 +65,7 @@ The research-grounded reference the agents point to. Read the relevant file in f
 |---|---|
 | [`knowledge/procurement-kpi-glossary.md`](knowledge/procurement-kpi-glossary.md) | Procurement KPI glossary |
 | [`knowledge/sourcing-economics.md`](knowledge/sourcing-economics.md) | Strategic sourcing economics |
-| [`knowledge/procurement-benchmarks.md`](knowledge/procurement-benchmarks.md) | Procurement methods & benchmarks |
+| [`knowledge/procurement-benchmarks.md`](knowledge/procurement-benchmarks.md) | Procurement methods & benchmarks (2025) |
 | [`knowledge/procurement-decision-trees.md`](knowledge/procurement-decision-trees.md) | Procurement decision trees |
 
 ---

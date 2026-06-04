@@ -65,7 +65,7 @@ The research-grounded reference the agents point to. Read the relevant file in f
 |---|---|
 | [`knowledge/ag-kpi-glossary.md`](knowledge/ag-kpi-glossary.md) | Precision-ag KPI glossary |
 | [`knowledge/ag-economics.md`](knowledge/ag-economics.md) | Farm operations economics |
-| [`knowledge/ag-market-context.md`](knowledge/ag-market-context.md) | Agriculture market context |
+| [`knowledge/ag-market-context.md`](knowledge/ag-market-context.md) | Agriculture economics & precision-tech context (2025) |
 | [`knowledge/ag-decision-trees.md`](knowledge/ag-decision-trees.md) | Precision-ag decision trees |
 
 ---

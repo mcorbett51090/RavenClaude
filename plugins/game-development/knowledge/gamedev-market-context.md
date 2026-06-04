@@ -1,19 +1,21 @@
-# Game market context
+# Game retention benchmarks & market context (2025)
 
-Genre, platform, and business-model context for a game project. All figures here are domain knowledge — mark or date any number used in a deliverable.
+Dated mobile retention/monetization benchmarks for a game project. Figures carry a source + date; business-model framing is marked where it's training knowledge.
 
-## Business models
+## Retention benchmarks (mobile, 2025)
 
-Premium, free-to-play, and live-service allocate risk and revenue differently; F2P depends on retention-then-monetization, premium on launch sell-through. [unverified — training knowledge] — validate genre/platform benchmarks before quoting.
+Top-quartile D1 retention runs ~26–28% (iOS ~31–33%, Android ~25–27%); median D7 across projects is ~3.4–3.9% with top-quartile ~7–8%; ~75% of projects see D28/D30 under ~3%. With UA costs rising, a D1 of ~50%+ is the new bar for hits. D30 is the strongest LTV predictor in F2P — retention before monetization (§3 #4).
 
-## Benchmarks vary by genre
+## Monetization
 
-Retention and ARPDAU benchmarks differ hugely by genre and platform; a single number is meaningless without the genre. [ESTIMATE] — confirm with current platform data (§3 #8).
+ARPDAU is genre- and platform-dependent; rewarded-ad implementations have lifted ARPDAU ~+30–66% in reported projects. A single retention/ARPDAU number is meaningless without the genre — gate monetization on a retaining loop (§3 #4).
 
-## Discoverability
+## Business models & discoverability
 
-Storefront discoverability and user-acquisition cost shape the launch economics, especially for indie and mobile. [unverified — training knowledge] — date and source before asserting.
+Premium, free-to-play, and live-service allocate risk and revenue differently; F2P depends on retention-then-monetization, premium on launch sell-through, and storefront discoverability + UA cost shape launch economics for indie/mobile. [unverified — training knowledge] — validate genre/platform specifics before quoting (§3 #8).
 
-## Sourcing note
+## Sources
 
-Figures in this file are from the author's domain knowledge and are marked `[unverified — training knowledge]` or `[ESTIMATE]` at point of use. Validate against a primary source before putting any figure in a client deliverable (§3 cite-or-mark rule).
+- [GameAnalytics — 2025 Mobile Gaming Benchmarks](https://www.gameanalytics.com/reports/2025-mobile-gaming-benchmarks) — retrieved 2026-06-04
+- [MAF — Mobile Game Retention Benchmarks](https://maf.ad/en/blog/mobile-game-retention-benchmarks/) — retrieved 2026-06-04
+- [Solsten — The True Drivers of D1, D7, and D30 Retention in Gaming](https://solsten.io/blog/d1-d7-d30-retention-in-gaming) — retrieved 2026-06-04
