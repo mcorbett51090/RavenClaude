@@ -1,0 +1,4 @@
+# Workspace clone of the RavenClaude marketplace, created by the scheduled
+# Action so it can run the team-portfolio scripts. Local on-demand runs do
+# the same. Never committed.
+_ravenclaude/

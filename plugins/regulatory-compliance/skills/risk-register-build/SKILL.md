@@ -20,7 +20,7 @@ description: Build / refresh an enterprise risk register that survives audit com
 
 - **COSO ERM 2017** — *Enterprise Risk Management — Integrating with Strategy and Performance*. The most-cited ERM framework; supports the appetite-statement-first discipline.
 - **ISO 31000:2018** — *Risk management — Guidelines*. Process-oriented; useful where COSO feels US-centric.
-- **Basel III / Pillar 2** — for banks. ICAAP and ILAAP risk identification feed the register.
+- **Basel III / Pillar 2** — for banks. ICAAP and ILAAP risk identification feed the register. The Pillar-2 risks Pillar 1 under-captures (IRRBB, concentration, model, pension, strategic) are the register's banking spine — see [`../../knowledge/basel-framework.md`](../../knowledge/basel-framework.md) §6 for the ICAAP/ILAAP/SREP stack and the P2R-vs-P2G distinction.
 - **Solvency II (Pillar 2 — ORSA)** — for EU/UK insurers. The ORSA process and the risk register feed each other.
 - **BMA — Insurance Code of Conduct + Group Supervision Rules** — for Bermuda insurers; the Code-mandated risk-management framework is the register's regulatory anchor.
 

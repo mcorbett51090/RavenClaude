@@ -1,0 +1,77 @@
+# Team-portfolio scheduled refresh.
+#
+# Copy this file into your HUB repo at .github/workflows/portfolio-tracker.yml
+# (the repo that holds team-portfolio.json + the reports/ + portfolio.html).
+#
+# What it does on a schedule (and on demand): checks out the hub repo, pulls the
+# RavenClaude marketplace to get the portfolio scripts, collects cross-repo GitHub
+# activity, regenerates the markdown reports + the HTML dashboard, and commits them
+# back. The supervisor just reads reports/weekly-tracker.md (and the diff is the
+# week-over-week record).
+#
+# Token: for PUBLIC repos the built-in GITHUB_TOKEN is enough. To track PRIVATE
+# repos or repos in another account/org, add a fine-grained PAT with read access
+# to those repos as the secret PORTFOLIO_TOKEN.
+name: Team portfolio refresh
+
+on:
+  schedule:
+    - cron: "0 13 * * 1" # Mondays 13:00 UTC — the weekly tracker
+    - cron: "0 6 * * *" # nightly 06:00 UTC — keep the rolling feed current
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Lookback window in days (overrides window_days)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout hub repo
+        uses: actions/checkout@v4
+
+      - name: Checkout RavenClaude marketplace (for the scripts)
+        uses: actions/checkout@v4
+        with:
+          repository: mcorbett51090/RavenClaude
+          ref: main
+          path: _ravenclaude
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Collect activity
+        env:
+          PORTFOLIO_TOKEN: ${{ secrets.PORTFOLIO_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SCRIPTS=_ravenclaude/plugins/team-portfolio/scripts
+          DAYS_ARG=""
+          if [ -n "${{ github.event.inputs.days }}" ]; then DAYS_ARG="--days ${{ github.event.inputs.days }}"; fi
+          python3 "$SCRIPTS/portfolio-collect.py" --config team-portfolio.json --out portfolio-activity.json $DAYS_ARG
+
+      - name: Render reports + dashboard
+        run: |
+          SCRIPTS=_ravenclaude/plugins/team-portfolio/scripts
+          python3 "$SCRIPTS/portfolio-report.py" --activity portfolio-activity.json --out-dir reports --config team-portfolio.json
+          python3 "$SCRIPTS/portfolio-dashboard.py" --activity portfolio-activity.json --out portfolio.html
+
+      - name: Commit refreshed roll-ups
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          rm -rf _ravenclaude
+          git add reports portfolio.html portfolio-activity.json
+          if git diff --cached --quiet; then
+            echo "No activity changes to commit."
+          else
+            git commit -m "chore(portfolio): refresh activity roll-up"
+            git push
+          fi

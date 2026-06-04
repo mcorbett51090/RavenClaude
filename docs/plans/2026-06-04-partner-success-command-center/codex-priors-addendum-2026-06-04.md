@@ -41,6 +41,25 @@ These are **reference-only** (not auto-executed; not part of any plugin install)
 
 ---
 
+## 1a. Tier 1 dashboard reference implementations (NEW — landed PR #274)
+
+**Location:** `plugins/edtech-partner-success/templates/dashboard-evidence-reference/`
+
+Reference-only support files for the Tier 1 daily-operating-system render layer. Codex consumes these when implementing Tier 1.
+
+| File | What it provides |
+|---|---|
+| `README.md` | Top-level orientation for the Tier 1 render layer |
+| `dashboard-styles.css` | CSS-variable color tokens (deuteranopia/protanopia-safe), secondary-channel utility classes (`.status-icon--circle/--triangle/--square` per WCAG 1.4.1), `.freshness-chip--live/--stale/--paused`, `.empty-state` surface, `.drawer` panel, `.bandline` sparkline, `prefers-reduced-motion` overrides, dark-scheme block — every selector carries an inline `WCAG:` / `UX:` provenance comment |
+| `dashboard-deployment-notes.md` | Three-tier hosting guide: (T1) Evidence.dev → Cloudflare Pages with hourly-cron GHA workflow; (T2) Streamlit-in-Snowflake with stage + warehouse + STREAMLIT SQL + **owner-rights-vs-caller-rights governance warning**; (T5) React + Tremor + Cube on Vercel with JWT-`tenant_id` + Cube `securityContext` + `queryRewrite` pattern. Side-by-side cost/complexity/governance comparison |
+| `dashboard-acceptance-tests.md` | Eight binary acceptance tests for the PSM SME: 5-second test, 8-spec-questions ≤2 clicks, three-flavor honest empty states, drill-down URL+back+breadcrumbs, WCAG (deuteranopia + protanopia + axe-core), freshness + manual-refresh, 5-day ≤5% false-positive alarm-fatigue, timezone-clarity |
+| `dashboard-feature-flag-tier-1.md` | Per-widget feature-flag pattern. T1: `evidence.config.yaml` `features:` block; T2: matching `feature_flags.toml` for Streamlit (same flag names = one source of truth). Evidence Markdown `{#if features.x}` guards and Streamlit `if flags.get("x", False)` guards both demonstrated. Rollback procedure per tier + four-wave staged rollout mapping the ~20 spec sections to flags |
+| `pages/` | Subdirectory for Evidence.dev page-level reference |
+
+**Codex usage rule:** when implementing Tier 1, adapt this CSS + the deployment notes + the acceptance test surface. The owner-rights-vs-caller-rights warning in `dashboard-deployment-notes.md` is load-bearing for partner-facing multi-tenant — do NOT ignore.
+
+---
+
 ## 2. 2026 H1 knowledge refresh — FERPA + state privacy law
 
 **Location:** `plugins/edtech-partner-success/knowledge/`

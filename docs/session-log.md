@@ -6,7 +6,17 @@ A rolling log to **pick up where you left off**, newest first. **Retention rule 
 
 ---
 
-## 0 — 2026-06-04T09:00Z · PSM Command Center Tier 0.5 + 2026 H1 knowledge refresh (PR #274 open)
+## 0 — 2026-06-04T14:25Z · team-portfolio hub bootstrap kit staged (branch `claude/team-activity-tracking-setup-rw3kL`)
+
+**Prompt(s):** "create a plan for me to set up a repo to be a central repository of activity, weekly tracking for a team of developers." → clarified: dedicated new hub repo (recommended) + TODO-placeholder config. → after `mcp__github__create_repository` returned `403 Resource not accessible by integration` and the documented fallbacks (`gh`, direct curl) were cut off by the web-environment system prompt: "It's in another account, so I'm leaning toward staging".
+
+**Response.** Recognized the request already maps to the existing `team-portfolio` plugin (no new tracking code needed — just stand up a hub). Plan landed at `/root/.claude/plans/system-reminder-you-re-running-in-groovy-iverson.md`. Verified renderers locally against `plugins/team-portfolio/templates/sample-activity.json` — all four artifacts (`weekly-tracker.md`, `activity-rollup.md`, `project-status.md`, `portfolio.html`) emitted clean. Repo creation **blocked at the MCP integration's token scope** (`POST /user/repos` → 403; `gh` and direct API explicitly unavailable per the remote-env system prompt; `mcp__claude-code-remote__add_repo` not loadable in this session). Pivoted to **option 2 — copy-ready staging in this repo**: five files under `docs/team-portfolio-hub-bootstrap/` (`BOOTSTRAP.md` instructions, `team-portfolio.json` with TODO placeholders + cleanup-key convention, `README.md` for the new hub repo, `.gitignore` for `_ravenclaude/` workspace dir, `portfolio-tracker.yml` verbatim from `plugins/team-portfolio/templates/`). `python3 -m json.tool` + `prettier --check` + the AGENTS.md layout-allow-list snippet all clean. Cross-account gotcha called out in BOOTSTRAP.md: a hub in a different account needs `token: ${{ secrets.PORTFOLIO_TOKEN }}` on the marketplace-checkout step since RavenClaude is private.
+
+**Current state / next step.** Branch `claude/team-activity-tracking-setup-rw3kL` carries the five staged files only — no plugin, layout, or version changes elsewhere. **Next:** push + open a draft PR documenting the kit and the 6-step setup. Then user creates the new hub repo (in the other account), copies the five files in, fills the TODO arrays, sets the token, and triggers the first workflow run.
+
+---
+
+## 1 — 2026-06-04T09:00Z · PSM Command Center Tier 0.5 + 2026 H1 knowledge refresh (PR #274 open)
 
 **Prompt(s):** "2026-06-04-overnight-work-plan get going on all items, run in parallel" → "Before wave 2 can we prioritize building the plan for the partner success dashboard?" → "After the build plan is done. Call a panel of agents to review the build plan, create a gap analysis, identify P0 and P1 issues and fill the gaps. Do that repeatedly until there are no more issues." → "I have so many tokens. I need to spend them all in less than 3 hours. Run as much as you can in parallel as fast as you can." → "Keep going and iterating as much as you can in parallel. analyze the build plan and ensure the ravenclaude repo has everything it needs to accomplish the task. Scour the web... to enhance RavenClaude so that when we go to set this command center up with codex it has no issues building the command center to the highest standard." → "Merge when green. Keep going".
 

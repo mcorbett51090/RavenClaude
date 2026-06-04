@@ -6,6 +6,8 @@
 
 **Version note:** v1 had 17 P0 issues found by a 4-panel cold review. v2 closed most v1 P0s but introduced ~10 NEW P0s (a rewrite-introduces-regressions trap). v3 closes the v1 + v2 P0s together. The cumulative changelog below is what you, Codex, need to know — do NOT look for v1 or v2; this file IS the spec.
 
+**Priors addendum (added 2026-06-04):** After this build plan was finalized 2026-06-04 morning, **Tier 0.5 reference implementations + Tier 1 dashboard reference + 2026 H1 knowledge refresh** landed via PR #274 + PR #276. Read [`codex-priors-addendum-2026-06-04.md`](./codex-priors-addendum-2026-06-04.md) **before** opening any plugin file — it indexes the reference SQL, reference dbt models, FERPA enforcement-precedents, K-12 2026 signals, Codex onboarding skill, and rendering-layer 2026 patterns. Nothing in this v3 plan changes; the addendum only adds pre-existing priors so Codex doesn't have to invent what's already there.
+
 ---
 
 ## 0. What v3 closes (cumulative since v1)

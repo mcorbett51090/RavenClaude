@@ -18,6 +18,7 @@ node_modules/
 # Local Claude Code runtime state
 .claude/scheduled_tasks.lock
 .claude/__pycache__/
+.claude/.comfort-posture-applied.local.json
 
 # Python cache
 *.pyc
