@@ -2,25 +2,28 @@ name: Regenerate generated artifacts (post-merge self-heal)
 
 # Why this exists
 # ---------------
-# repo-guide.html is a large, repo-wide *generated* artifact: every plugin add or
-# version bump changes its roster/counts. When several plugin PRs are open at once,
-# each one regenerating the guide into its own branch guarantees (a) merge conflicts
-# on the big file and (b) a "freshness gate" failure on whichever branch goes stale
-# as siblings merge — the exact cross-PR contagion that turned "working on multiple
-# things at once" into "tons of CI failing".
+# Several repo-wide *generated* artifacts change on almost every plugin add/bump:
+# repo-guide.html (roster/counts), the marketplace-claims derivable counts, the
+# concept/decision-tree SVGs, and dashboard.html (which inlines those SVGs). When
+# multiple plugin PRs are open at once, each one regenerating these into its own
+# branch guarantees (a) merge conflicts on the big files and (b) "freshness gate"
+# failures on whichever branch goes stale as siblings merge — the cross-PR
+# contagion that turned "working on multiple things at once" into "tons of CI
+# failing". Rendering the SVGs additionally needs mermaid-cli + Chromium, which
+# most authors don't have locally (the "author forgot to render" failure class).
 #
-# The fix: take repo-guide.html OFF the PR critical path. PR branches no longer
-# regenerate it (the regen-on-manifest-change.sh hook skips it when this workflow is
-# present), and the PR freshness gate is removed. Instead `main` OWNS the guide:
-# after each merge, this workflow regenerates it once, in serial, and commits the
-# result back. The guide is therefore always fresh on `main` (which is what GitHub
-# Pages serves) within ~a minute of a merge, and is never a source of PR conflicts.
+# The fix: take all of these OFF the PR critical path and let `main` OWN them.
+# PR branches no longer regenerate them (the regen-on-manifest-change.sh hook skips
+# dashboard + repo-guide when this workflow is present; the SVG/dashboard/count PR
+# gates are removed), and after each merge this workflow regenerates everything once
+# and commits the result back. So `main` (what GitHub Pages serves) is always fresh
+# within ~a minute of a merge, and none of these is ever a source of PR conflicts.
+# The render-test gates that consume dashboard.html stay honest because audit-gates.sh
+# regenerates dashboard.html in place before running them (generate-then-test).
 #
-# Scope note: this self-heals repo-guide.html and the marketplace-claims DERIVABLE
-# counts (per-plugin "<N> skills/agents" prose + README "ships **N plugins**").
-# dashboard.html and the concept/decision-tree SVGs are deliberately NOT included —
-# several render-test gates extract functions from the committed dashboard.html and
-# the SVGs are inlined into it, so decoupling those needs more care (a later phase).
+# Scope: repo-guide.html, marketplace-claims counts, concept + decision-tree SVGs,
+# and dashboard.html. Each step is staleness-gated, so a merge that changed none of
+# them is a fast no-op (and never even loads mermaid-cli).
 
 on:
   push:
@@ -30,11 +33,14 @@ on:
       - "plugins/**"
       - "README.md"
       - "scripts/generate-repo-guide.py"
+      - "scripts/generate-dashboards.py"
+      - "scripts/render-concepts.py"
+      - "scripts/render-trees.py"
       - "scripts/check-marketplace-claims.py"
       - ".github/workflows/regenerate-artifacts.yml"
   workflow_dispatch:
 
-# The job pushes the regenerated guide back to main.
+# The job pushes the regenerated artifacts back to main.
 permissions:
   contents: write
 
@@ -45,7 +51,7 @@ concurrency:
 
 jobs:
   regenerate:
-    name: Regenerate repo-guide.html on main
+    name: Regenerate generated artifacts on main
     runs-on: ubuntu-latest
     steps:
       - name: Checkout (full history for accurate per-plugin "Last updated" dates)
@@ -58,7 +64,12 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Self-heal generated artifacts (marketplace counts + repo-guide), commit if changed
+      - name: Set up Node.js (mermaid-cli is fetched on demand by npx when an SVG is stale)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Self-heal generated artifacts (counts, SVGs, dashboard, repo-guide), commit if changed
         run: |
           set -euo pipefail
 
@@ -70,18 +81,44 @@ jobs:
           #    failure here is a loud signal, not silent drift.
           python3 scripts/check-marketplace-claims.py --fix
 
-          # 2. repo-guide.html. check-guide-fresh.sh strips the volatile "Generated …"
+          # 2. Concept + decision-tree SVGs. --check reads a source-hash manifest
+          #    (no browser), so it is cheap; only when it reports STALE do we render,
+          #    which DOES need mermaid-cli + Chromium (fetched on demand by npx via
+          #    the render scripts). Staleness-gating means a merge that touched no
+          #    diagram never loads mermaid at all. A render failure aborts the job
+          #    loudly (set -e) rather than committing half-rendered SVGs.
+          if ! python3 scripts/render-concepts.py --check >/dev/null 2>&1; then
+            echo "concept SVGs stale — rendering with mermaid-cli."
+            python3 scripts/render-concepts.py
+            python3 scripts/render-concepts.py --check
+          fi
+          if ! python3 scripts/render-trees.py --check >/dev/null 2>&1; then
+            echo "decision-tree SVGs stale — rendering with mermaid-cli."
+            python3 scripts/render-trees.py
+            python3 scripts/render-trees.py --check
+          fi
+
+          # 3. dashboard.html — inlines the (now fresh) committed SVGs; pure Python,
+          #    no mermaid needed here. Exact-byte freshness (the generator embeds no
+          #    timestamps), so --check is an exact match. This is the dashboard
+          #    "clean tree must_pass" relocated off PRs (audit-gates Gate 13).
+          if ! python3 scripts/generate-dashboards.py --check >/dev/null 2>&1; then
+            echo "dashboard.html stale — regenerating."
+            python3 scripts/generate-dashboards.py
+            python3 scripts/generate-dashboards.py --check
+          fi
+
+          # 4. repo-guide.html. check-guide-fresh.sh strips the volatile "Generated …"
           #    + per-plugin "Last updated" lines before diffing, so a pure-timestamp
           #    delta reports FRESH and we regenerate nothing. Run AFTER the count fix
-          #    so the guide reflects any rewritten descriptions. The post-regen check
-          #    is the "clean tree must_pass" relocated off PRs (audit-gates Gate 11).
+          #    so the guide reflects any rewritten descriptions.
           if ! scripts/check-guide-fresh.sh; then
             echo "repo-guide.html is stale — regenerating."
             python3 scripts/generate-repo-guide.py
             scripts/check-guide-fresh.sh
           fi
 
-          # 3. Commit only if something actually changed.
+          # 5. Commit only if something actually changed.
           if [[ -z "$(git status --porcelain)" ]]; then
             echo "Artifacts already in sync — nothing to commit."
             exit 0
@@ -89,7 +126,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "chore(artifacts): self-heal marketplace counts + repo-guide after merge [skip ci]"
+          git commit -m "chore(artifacts): self-heal counts + SVGs + dashboard + repo-guide after merge [skip ci]"
 
           # A merge may have landed since checkout; rebase our artifact-only commit
           # before pushing. Branches no longer touch these files, so a rebase
