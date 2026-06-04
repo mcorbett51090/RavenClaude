@@ -28,7 +28,7 @@ cd "$(git rev-parse --show-toplevel)"
 # suite. This enables fast targeted re-runs after a regression fix without the
 # cost of the full 48-gate matrix. The full suite is the default (no --check arg).
 #
-# Currently supported per-gate values: 20, 50, 60, 70, 80, 90, 91, 92, 93. Other
+# Currently supported per-gate values: 20, 50, 52, 60, 70, 80, 90, 91, 92, 93. Other
 # gates can be added here as they acquire a standalone runner script.
 if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
   case "${2}" in
@@ -40,6 +40,11 @@ if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
     50)
       echo "── Gate 50: Phase 0 emit & scrub (per-gate run) ──────────────────────────"
       bash plugins/ravenclaude-core/hooks/tests/test-phase0-emit-and-scrub.sh
+      exit $?
+      ;;
+    52)
+      echo "── Gate 52: dispatch-evaluator disabled-floor (per-gate run) ─────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate52-dispatch-evaluator-floor.sh
       exit $?
       ;;
     60)
@@ -86,9 +91,14 @@ if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
       node scripts/check-stepper-render.mjs plugins/ravenclaude-core/dashboard.html
       exit $?
       ;;
+    97)
+      echo "── Gate 97: index.html freshness — template round-trip (per-gate run) ────"
+      python3 scripts/generate-index-dashboard.py --check
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 60, 70, 80, 90, 91, 92, 93. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 60, 70, 80, 90, 91, 92, 93, 97. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -2838,6 +2848,21 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
+echo "── Gate 52: agent-dispatch-evaluator disabled-floor (byte-identical opts) ─"
+# Phase 2 of the agent-dispatch-evaluator: the rc-deep-research workflow wraps its
+# phase agent() calls in evaluatedAgent(). The HARD INVARIANT is that with
+# dispatch-config absent/disabled (the default), every dispatch is byte-identical
+# to the unwrapped baseline. check-dispatch-evaluator-floor.mjs extracts the REAL
+# copied wrapper block from .claude/workflows/rc-deep-research.js, runs
+# evaluatedAgent under a recording stub agent(), and asserts the disabled path
+# forwards opts BY REFERENCE (no clone, no model mutation) — plus an inline
+# must-fail half (a mutant that rewrites opts.model on the disabled path is
+# caught). The fixture test below ALSO drives a known-good + known-bad fixture so
+# the gate's teeth are proven independent of the live workflow file's state.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate52-dispatch-evaluator-floor.sh >/dev/null 2>&1 || rc=$?
+gate "dispatch-evaluator disabled-floor fixture (good→pass, bad→fail, real-workflow floor)" must_pass "$rc"
+
+# ─────────────────────────────────────────────────────────────────────────────
 echo "── Gate 93: Learn-tab step-by-step diagram (stepper) render ──────────────"
 # Structural test for the Learn-tab "stepper" (markup _render_concept_stepper,
 # behavior initConceptSteppers). Text-based (no eval), like the shell-router gate.
@@ -2857,6 +2882,27 @@ if command -v node >/dev/null 2>&1; then
 else
   _skip_or_fail "Gate 93 stepper render" node
 fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+echo "── Gate 97: index.html freshness (template round-trip, check-only) ───────"
+# The unified-shell drift lesson (forge/index-generator-drift, 2026-06-04):
+# index.html was hand-edited (PR #259/#302) and its generator template never
+# updated — regenerating silently destroyed the shell, invisibly to CI. This
+# gate proves the committed index.html matches what the template emits, modulo
+# the three volatile timestamp surfaces _strip_ts neutralizes. CHECK-ONLY by
+# design (Matt's G0 verdict): it fails loudly; it does not auto-regenerate.
+# Auto-heal promotion (regenerate-artifacts.yml) is a follow-up after one
+# clean week. NOTE: gates 94-96 are reserved by the in-flight data-viz run.
+# must_fail: a hand-edit to index.html that the template doesn't have (the
+# exact historical failure mode) must be detected.
+IDX_BAK="$(mktemp)"; cp index.html "$IDX_BAK"
+printf '\n<!-- AUDIT FIXTURE — hand-edit the template does not have -->\n' >> index.html
+rc=0; python3 scripts/generate-index-dashboard.py --check >/dev/null 2>&1 || rc=$?
+gate "index freshness (hand-edited index.html is detected)" must_fail "$rc"
+cp "$IDX_BAK" index.html; rm -f "$IDX_BAK"
+# must_pass: a clean tree round-trips.
+rc=0; python3 scripts/generate-index-dashboard.py --check >/dev/null 2>&1 || rc=$?
+gate "index freshness (clean tree round-trips)" must_pass "$rc"
 
 # ─────────────────────────────────────────────────────────────────────────────
 echo "── Gate 70: Codex desktop trust review hooks (Findings 1, 2, 5) ─────────"

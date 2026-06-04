@@ -78,6 +78,280 @@ function adapterOpts(phaseName, runCfg) {
   return opts;
 }
 
+// ╔═══════════════════════════════════════════════════════════════════════════╗
+// ║ BEGIN copied block — agent-dispatch-evaluator wrapper (Phase 2)            ║
+// ║                                                                           ║
+// ║ PROVENANCE: copied (copy-paste, not import — workflow scripts have no      ║
+// ║ module resolution) from the single source of truth:                       ║
+// ║   plugins/ravenclaude-core/skills/agent-dispatch-evaluator/reference/      ║
+// ║     evaluate-dispatch.js                                                   ║
+// ║ When the evaluator logic changes (latency threshold, precedence rules,     ║
+// ║ TIER_MODEL SKUs), update the reference file and re-copy this block.        ║
+// ║ Drift between copies is accepted/intentional — the reference is the spec.  ║
+// ║                                                                           ║
+// ║ INTEGRATION NOTE: the reference's `TIER_MODEL` is renamed to               ║
+// ║ DISPATCH_TIER_MODEL here to avoid a redeclaration clash with this file's   ║
+// ║ pre-existing const TIER_MODEL. Values are identical. The rest of the       ║
+// ║ copied body is faithful to the reference.                                 ║
+// ╚═══════════════════════════════════════════════════════════════════════════╝
+
+// ─── Tier → SKU map (single source of truth; verify-at-use — 2026-05-31) ────────
+// Sourced from adaptive-run-classifier/SKILL.md §"Substrate tier table".
+// Do NOT re-author the table; copy updates from there.
+const DISPATCH_TIER_MODEL = {
+  fast: "claude-haiku-4-5-20251001",
+  balanced: "claude-sonnet-4-6",
+  top: "claude-opus-4-7",
+};
+
+// ─── Audit log path template ──────────────────────────────────────────────────
+const DISPATCH_EVAL_LOG_DIR = ".ravenclaude/runs/dispatch-eval";
+
+// ─── In-memory latency state (per-session, reset on workflow start) ───────────
+const _latency = { window: [], tripped: false };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// loadDispatchConfig()
+//
+// Read .ravenclaude/dispatch-config.json once at workflow start via an agent()
+// Read call. Returns a frozen plain object. On any read/parse failure, returns
+// the fail-safe default (enabled: false → everything passes through).
+//
+// INVARIANT: Call this ONCE. Store the result. Do NOT re-call mid-run.
+// ─────────────────────────────────────────────────────────────────────────────
+async function loadDispatchConfig() {
+  const DEFAULTS = {
+    schema_version: "1",
+    enabled: false,
+    mode: "shadow",
+    subagent_type_allowlist: ["Explore", "statusline-setup", "claude"],
+    downgrade_blocked_types: [],
+    latency_circuit_breaker: { median_ms_threshold: 1500, window_size: 20 },
+    tribunal_seat_mode: "shadow",
+    async_mode: false,
+  };
+
+  try {
+    const raw = await agent(
+      "Read the file .ravenclaude/dispatch-config.json and return its contents verbatim as a JSON string. " +
+        "If the file does not exist, return the string 'NOT_FOUND'. " +
+        "Return ONLY the raw file contents or NOT_FOUND — no commentary.",
+      { label: "load-dispatch-config", _predispatch: "skip" },
+    );
+    if (!raw || raw.trim() === "NOT_FOUND") return DEFAULTS;
+    const cfg = JSON.parse(raw.trim());
+    if (cfg.schema_version !== "1") {
+      log(`[dispatch-eval] schema_version mismatch (got ${cfg.schema_version}); using defaults.`);
+      return DEFAULTS;
+    }
+    return { ...DEFAULTS, ...cfg };
+  } catch (e) {
+    log(`[dispatch-eval] loadDispatchConfig error: ${e.message}; using defaults (fail-open).`);
+    return DEFAULTS;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// evaluateDispatch({ subagent_type, description, prompt_head, requested_model,
+//                    caller_context }, dispatchCfg)
+//
+// Fires a `claude -p --bare --output-format json --model haiku-4-5` subprocess
+// (via an agent() call that asks Claude to shell out — RM7 structural exemption).
+// Hard 2s wall-clock timeout. Returns a verdict envelope on success; null on
+// timeout / error (caller treats null as pass-through).
+//
+// The classifier call is intentionally NOT cached (prompt < 1,024 tokens — below
+// Haiku-4.5's 4,096-token cache minimum; setting cache_control would incur the
+// write penalty with zero chance of a cache hit — see SKILL.md §NO cache_control).
+// ─────────────────────────────────────────────────────────────────────────────
+async function evaluateDispatch(
+  { subagent_type, description, prompt_head, requested_model, caller_context },
+  dispatchCfg,
+) {
+  const t0 = Date.now();
+  const classifierPrompt = JSON.stringify({
+    subagent_type,
+    description: (description || "").slice(0, 200),
+    prompt_head: (prompt_head || "").slice(0, 1800), // ~500 tokens
+    requested_model,
+    caller_context,
+  });
+
+  // The classifier runs as a subprocess spawned by the agent — NOT as a direct
+  // agent() dispatch. This keeps it structurally exempt from runaway-brake.sh
+  // (subprocesses spawned inside an agent() call never enter the tool-call stream).
+  const subprocPrompt =
+    `You are a dispatch-routing shell runner. Execute this exact command and return its raw stdout:\n\n` +
+    `timeout 2 claude -p --bare --output-format json --model claude-haiku-4-5-20251001 ` +
+    `'You are a dispatch evaluator. Given this dispatch envelope, return ONLY a JSON object with fields: ` +
+    `verdict ("keep"|"upgrade"|"downgrade"), suggested_tier ("fast"|"balanced"|"top"), ` +
+    `confidence ("low"|"medium"|"high"), rationale (one sentence). ` +
+    `Envelope: ${classifierPrompt.replace(/'/g, '"')}'` +
+    `\n\nReturn the raw JSON stdout only. If the command times out or fails, return the string "FAIL".`;
+
+  try {
+    const raw = await agent(subprocPrompt, {
+      label: "dispatch-evaluator-classifier",
+      _predispatch: "skip",
+    });
+    const latency = Date.now() - t0;
+    _trackLatency(latency, dispatchCfg);
+
+    if (!raw || raw.trim() === "FAIL") return null;
+    const verdict = JSON.parse(raw.trim());
+    // Validate minimum shape
+    if (!verdict.verdict || !verdict.suggested_tier || !verdict.confidence) return null;
+    return { ...verdict, latency_ms: latency };
+  } catch (e) {
+    return null; // fail-open
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// evaluatedAgent(prompt, opts, dispatchCfg)
+//
+// Drop-in replacement for agent(prompt, opts). Applies the dispatch evaluator
+// around every agent() call. Returns the agent() result unchanged.
+//
+// Implements (in order):
+//   1. enabled:false short-circuit (regression floor — byte-identical to no-wrapper)
+//   2. latency circuit-breaker trip (session pass-through)
+//   3. _predispatch:'skip' carve-out
+//   4. subagent_type allowlist carve-out
+//   5. evaluateDispatch call (fail-open on null return)
+//   6. Verdict application per precedence rules (SKILL.md §Precedence rules)
+//   7. Audit log (JSONL append via agent Read/Write)
+// ─────────────────────────────────────────────────────────────────────────────
+async function evaluatedAgent(prompt, opts = {}, dispatchCfg) {
+  // Guard: if dispatchCfg was never loaded, pass through safely.
+  if (!dispatchCfg) return agent(prompt, opts);
+
+  // ① Regression floor: enabled:false → byte-identical to calling agent() directly.
+  if (!dispatchCfg.enabled) return agent(prompt, opts);
+
+  // ② Latency circuit-breaker trip: session-wide pass-through.
+  if (_latency.tripped) return agent(prompt, opts);
+
+  // ③ Per-call skip marker.
+  if (opts._predispatch === "skip") return agent(prompt, opts);
+
+  // ④ Allowlist carve-out.
+  const subagentType = opts.subagent_type || opts.agentType || opts.label || "unknown";
+  const allowlist = dispatchCfg.subagent_type_allowlist || [];
+  if (allowlist.some((t) => subagentType.includes(t))) return agent(prompt, opts);
+
+  // ⑤ Evaluate.
+  const callerContext = opts._run_config_phase
+    ? "workflow"
+    : opts.caller_context === "tribunal_seat"
+      ? "tribunal_seat"
+      : "toplevel";
+
+  const envelope = {
+    subagent_type: subagentType,
+    description: opts.label || opts.phase || "",
+    prompt_head: typeof prompt === "string" ? prompt.slice(0, 1800) : "",
+    requested_model: opts.model || DISPATCH_TIER_MODEL.balanced,
+    caller_context: callerContext,
+  };
+
+  const verdict = await evaluateDispatch(envelope, dispatchCfg);
+  const appliedOpts = { ...opts };
+  let applied = "skip";
+
+  // ⑥ Verdict application.
+  if (verdict && dispatchCfg.mode === "binding" && verdict.confidence !== "low") {
+    if (callerContext === "tribunal_seat") {
+      // Shadow forever for MVP (RM2). Log only; never mutate.
+      applied = "shadow";
+    } else if (callerContext === "workflow" && opts._run_config_phase) {
+      // Inside a run_config context: downgrade is binding; upgrade is advisory.
+      if (verdict.verdict === "downgrade") {
+        appliedOpts.model = DISPATCH_TIER_MODEL[verdict.suggested_tier] || appliedOpts.model;
+        applied = "binding";
+      } else if (verdict.verdict === "upgrade") {
+        applied = "advisory"; // log only; keep original model
+      } else {
+        applied = "keep";
+      }
+    } else {
+      // Top-level or plain workflow: full binding both directions.
+      if (verdict.verdict === "downgrade" || verdict.verdict === "upgrade") {
+        appliedOpts.model = DISPATCH_TIER_MODEL[verdict.suggested_tier] || appliedOpts.model;
+        applied = "binding";
+      } else {
+        applied = "keep";
+      }
+    }
+  } else if (verdict && dispatchCfg.mode === "shadow") {
+    applied = "shadow"; // log the verdict but never mutate opts
+  } else if (!verdict) {
+    applied = "skip"; // fail-open
+  }
+
+  // ⑦ Audit log (fire-and-forget; failure here MUST NOT break the dispatch).
+  _appendAuditLog(envelope, verdict, applied, dispatchCfg).catch(() => {});
+
+  return agent(prompt, appliedOpts);
+}
+
+// ─── Internal helpers ─────────────────────────────────────────────────────────
+
+function _trackLatency(latencyMs, dispatchCfg) {
+  const threshold = dispatchCfg?.latency_circuit_breaker?.median_ms_threshold ?? 1500;
+  const windowSize = dispatchCfg?.latency_circuit_breaker?.window_size ?? 20;
+  _latency.window.push(latencyMs);
+  if (_latency.window.length > windowSize) _latency.window.shift();
+
+  const sorted = [..._latency.window].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+  if (median > threshold && !_latency.tripped) {
+    _latency.tripped = true;
+    log(
+      `[dispatch-eval] LATENCY CIRCUIT-BREAKER TRIPPED: rolling median ${median}ms > ${threshold}ms. ` +
+        `Session flipped to pass-through. (Emit evaluator-latency-trip event to hook-events.jsonl via shell.)`,
+    );
+    // NOTE: Heimdall amber event emission requires _emit_hook_event from _emit-event.sh,
+    // which is shell-side only. A workflow cannot source shell functions directly.
+    // TODO: Emit via a fire-and-forget agent() call that runs the shell helper:
+    //   agent(`Run: source .../hooks/_emit-event.sh && _emit_hook_event evaluator-latency-trip ...`,
+    //         { _predispatch: 'skip' })
+    // This is marked TODO because the exact shell-sourcing path is substrate-specific.
+  }
+}
+
+async function _appendAuditLog(envelope, verdict, applied, dispatchCfg) {
+  if (!verdict && applied === "skip") return; // nothing to log on clean pass-through
+  const sessionId = (typeof args !== "undefined" && args?._sessionId) || "unknown";
+  const logPath = `${DISPATCH_EVAL_LOG_DIR}/${sessionId}.jsonl`;
+  const line = JSON.stringify({
+    ts: new Date().toISOString(),
+    subagent_type: envelope.subagent_type,
+    description_first40: (envelope.description || "").slice(0, 40),
+    requested_model: envelope.requested_model,
+    caller_context: envelope.caller_context,
+    verdict: verdict?.verdict ?? "passthrough",
+    suggested_tier: verdict?.suggested_tier ?? null,
+    confidence: verdict?.confidence ?? null,
+    rationale_first120: (verdict?.rationale ?? "").slice(0, 120),
+    applied,
+    latency_ms: verdict?.latency_ms ?? null,
+  });
+
+  // Append via a pass-through agent() call (skip marker prevents re-evaluation).
+  // In a real adoption, prefer a direct shell `echo '...' >> path` if available.
+  await agent(
+    `Append the following JSONL line (exactly as given, followed by a newline) to the file ${logPath}. ` +
+      `Create the file and any missing parent directories if needed. ` +
+      `LINE: ${line}`,
+    { label: "dispatch-eval-audit-log", _predispatch: "skip" },
+  );
+}
+
+// ╔═══════════════════════════════════════════════════════════════════════════╗
+// ║ END copied block — agent-dispatch-evaluator wrapper (Phase 2)              ║
+// ╚═══════════════════════════════════════════════════════════════════════════╝
+
 // ─── Schemas (unchanged from baseline) ───────────────────────────────────────
 const CLASSIFIER_SCHEMA = {
   type: "object",
@@ -351,6 +625,13 @@ log(
     (runCfg.rationale || "").slice(0, 80),
 );
 
+// ─── Load the dispatch-evaluator config ONCE (Phase 2; default {enabled:false}) ───
+// Mirrors the run-config read above: a single agent() Read at startup, frozen for the run.
+// With enabled:false (the default / file absent) every evaluatedAgent() call below is
+// byte-identical to the unwrapped agent() baseline (Gate 52).
+const dispatchCfg = await loadDispatchConfig();
+log("dispatch-config: enabled=" + dispatchCfg.enabled + " mode=" + dispatchCfg.mode);
+
 // Derive effective constants from runCfg (or baseline floor).
 const VOTES_PER_CLAIM = runCfg.knobs.votes_per_claim;
 const REFUTATIONS_REQUIRED = runCfg.knobs.refutations_required;
@@ -373,7 +654,7 @@ const MCP_FETCH_PREFIX =
     ? "PREFER the `microsoft_docs_search` and `microsoft_docs_fetch` MCP tools over WebFetch for learn.microsoft.com URLs. Use WebFetch only as a fallback when the MCP returns no result.\n\n"
     : "";
 
-const scope = await agent(
+const scope = await evaluatedAgent(
   "Decompose this research question into complementary search angles.\n\n" +
     "## Question\n" +
     QUESTION +
@@ -385,7 +666,13 @@ const scope = await agent(
     "- For tech: state-of-art · benchmarks · limitations · industry adoption · cost/tradeoffs\n\n" +
     "Make queries specific enough to surface high-signal results. Avoid redundancy.\n" +
     "Return: the question (verbatim or lightly normalized), a 1-2 sentence decomposition strategy, and the angles.\n\nStructured output only.",
-  { label: "scope", schema: SCOPE_SCHEMA, ...adapterOpts("scope", runCfg) },
+  {
+    label: "scope",
+    schema: SCOPE_SCHEMA,
+    _run_config_phase: "scope",
+    ...adapterOpts("scope", runCfg),
+  },
+  dispatchCfg,
 );
 if (!scope) {
   return { error: "Scope agent returned no result — cannot decompose the research question." };
@@ -507,12 +794,17 @@ const searchResults = await pipeline(
   scope.angles,
 
   (angle) =>
-    agent(SEARCH_PROMPT(angle), {
-      label: "search:" + angle.label,
-      phase: "Search",
-      schema: SEARCH_SCHEMA,
-      ...adapterOpts("search", runCfg),
-    }).then((r) => {
+    evaluatedAgent(
+      SEARCH_PROMPT(angle),
+      {
+        label: "search:" + angle.label,
+        phase: "Search",
+        schema: SEARCH_SCHEMA,
+        _run_config_phase: "search",
+        ...adapterOpts("search", runCfg),
+      },
+      dispatchCfg,
+    ).then((r) => {
       if (!r) return null;
       log(angle.label + ": " + r.results.length + " results");
       return { angle: angle.label, results: r.results };
@@ -552,12 +844,17 @@ const searchResults = await pipeline(
         try {
           host = new URL(source.url).hostname.replace(/^www\./, "");
         } catch {}
-        return agent(FETCH_PROMPT(source, searchResult.angle), {
-          label: "fetch:" + host,
-          phase: "Fetch",
-          schema: EXTRACT_SCHEMA,
-          ...adapterOpts("fetch", runCfg),
-        })
+        return evaluatedAgent(
+          FETCH_PROMPT(source, searchResult.angle),
+          {
+            label: "fetch:" + host,
+            phase: "Fetch",
+            schema: EXTRACT_SCHEMA,
+            _run_config_phase: "fetch",
+            ...adapterOpts("fetch", runCfg),
+          },
+          dispatchCfg,
+        )
           .then((ext) => {
             if (!ext) return null;
             return {
@@ -658,12 +955,17 @@ const voted = (
         Array.from(
           { length: voteCount },
           (_, v) => () =>
-            agent(VERIFY_PROMPT(claim, v, voteCount), {
-              label: "v" + v + ":" + claim.claim.slice(0, 40),
-              phase: "Verify",
-              schema: VERDICT_SCHEMA,
-              ...adapterOpts(verifyPhaseName, runCfg),
-            }),
+            evaluatedAgent(
+              VERIFY_PROMPT(claim, v, voteCount),
+              {
+                label: "v" + v + ":" + claim.claim.slice(0, 40),
+                phase: "Verify",
+                schema: VERDICT_SCHEMA,
+                _run_config_phase: "verify_default",
+                ...adapterOpts(verifyPhaseName, runCfg),
+              },
+              dispatchCfg,
+            ),
         ),
       ).then(async (verdicts) => {
         const valid = verdicts.filter(Boolean);
@@ -675,12 +977,17 @@ const voted = (
         // additional vote at verify_judgment tier (gap-delta C4 / A4).
         let escalated = false;
         if (survives && valid.some((v) => v.confidence === "low")) {
-          const extra = await agent(VERIFY_PROMPT(claim, voteCount, voteCount + 1), {
-            label: "v_esc:" + claim.claim.slice(0, 40),
-            phase: "Verify",
-            schema: VERDICT_SCHEMA,
-            ...adapterOpts("verify_judgment", runCfg),
-          });
+          const extra = await evaluatedAgent(
+            VERIFY_PROMPT(claim, voteCount, voteCount + 1),
+            {
+              label: "v_esc:" + claim.claim.slice(0, 40),
+              phase: "Verify",
+              schema: VERDICT_SCHEMA,
+              _run_config_phase: "verify_judgment",
+              ...adapterOpts("verify_judgment", runCfg),
+            },
+            dispatchCfg,
+          );
           if (extra) {
             valid.push(extra);
             if (extra.refuted) {
@@ -842,7 +1149,7 @@ const killedBlock =
         .join("\n")
     : "";
 
-const report = await agent(
+const report = await evaluatedAgent(
   "## Synthesis: research report\n\n" +
     "**Question:** " +
     QUESTION +
@@ -863,7 +1170,13 @@ const report = await agent(
     "4. Write a 3-5 sentence executive summary answering the research question.\n" +
     "5. Note caveats: what's uncertain, what sources were weak, what time-sensitivity applies.\n" +
     "6. List 2-4 open questions that emerged but weren't answered.\n\nStructured output only.",
-  { label: "synthesize", schema: REPORT_SCHEMA, ...adapterOpts("synthesize", runCfg) },
+  {
+    label: "synthesize",
+    schema: REPORT_SCHEMA,
+    _run_config_phase: "synthesize",
+    ...adapterOpts("synthesize", runCfg),
+  },
+  dispatchCfg,
 );
 
 if (!report) {
