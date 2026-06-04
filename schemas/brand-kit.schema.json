@@ -1,0 +1,162 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/mcorbett51090/RavenClaude/schemas/brand-kit.schema.json",
+  "title": "Brand kit",
+  "description": "The brand 'schema' emitted by the brand-extraction skill: every logo variant found on a website home page plus the design tokens (colors, typography, radii) needed to make generated HTML reports match the brand.",
+  "type": "object",
+  "required": ["source", "colors", "typography", "logos"],
+  "additionalProperties": true,
+  "properties": {
+    "$schema": { "type": "string" },
+    "source": {
+      "type": "object",
+      "required": ["url", "fetched_at"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string", "description": "The home page the kit was extracted from." },
+        "fetched_at": { "type": "string", "description": "UTC ISO-8601 timestamp of extraction." },
+        "title": { "type": ["string", "null"], "description": "Page <title> text." },
+        "site_name": { "type": ["string", "null"], "description": "og:site_name if present." }
+      }
+    },
+    "colors": {
+      "type": "object",
+      "required": ["palette"],
+      "additionalProperties": false,
+      "properties": {
+        "theme_color": {
+          "type": ["string", "null"],
+          "description": "The <meta name=theme-color> value, normalized."
+        },
+        "palette": {
+          "type": "array",
+          "description": "Ranked color candidates. Roles are heuristic best-guesses — review before shipping.",
+          "items": {
+            "type": "object",
+            "required": ["value", "role", "source"],
+            "additionalProperties": true,
+            "properties": {
+              "value": {
+                "type": "string",
+                "description": "Color literal (#rrggbb / rgb() / hsl())."
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "primary",
+                  "secondary",
+                  "accent",
+                  "background",
+                  "text",
+                  "neutral",
+                  "unknown"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "enum": ["css-custom-property", "theme-color-meta", "frequency"],
+                "description": "How this color was discovered (custom-property is the most reliable)."
+              },
+              "name": { "type": "string", "description": "Source CSS variable name, if any." },
+              "count": {
+                "type": "integer",
+                "description": "Frequency in the stylesheet, if source=frequency."
+              }
+            }
+          }
+        },
+        "custom_properties": {
+          "type": "object",
+          "description": "Every CSS custom property whose value is a color, verbatim — the highest-fidelity brand tokens.",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "typography": {
+      "type": "object",
+      "required": ["font_families"],
+      "additionalProperties": false,
+      "properties": {
+        "font_families": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["family"],
+            "additionalProperties": true,
+            "properties": {
+              "family": { "type": "string" },
+              "source": { "type": "string", "enum": ["font-family", "google-fonts"] },
+              "count": { "type": "integer" },
+              "role": { "type": "string", "enum": ["heading", "body", "unknown"] }
+            }
+          }
+        },
+        "google_fonts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Families referenced via Google Fonts / Typekit links."
+        },
+        "font_links": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Raw font stylesheet hrefs (Google Fonts / Typekit)."
+        }
+      }
+    },
+    "logos": {
+      "type": "array",
+      "description": "Every logo variant discovered, with its source context so a human can pick.",
+      "items": {
+        "type": "object",
+        "required": ["role"],
+        "additionalProperties": true,
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "favicon",
+              "apple-touch-icon",
+              "mask-icon",
+              "og-image",
+              "twitter-image",
+              "header-logo",
+              "footer-logo",
+              "body-logo",
+              "inline-svg",
+              "picture-source"
+            ]
+          },
+          "src": {
+            "type": ["string", "null"],
+            "description": "Resolved absolute URL (null for inline SVG)."
+          },
+          "local_path": {
+            "type": "string",
+            "description": "Path to the downloaded asset, relative to the kit root."
+          },
+          "format": { "type": "string", "description": "File extension of the downloaded asset." },
+          "theme": { "type": "string", "enum": ["light", "dark", "any"] },
+          "context": { "type": "string", "description": "Where/how the logo was found." },
+          "downloaded": { "type": "boolean" },
+          "width": { "type": "string" },
+          "height": { "type": "string" },
+          "declared_color": {
+            "type": "string",
+            "description": "mask-icon color attribute, if any."
+          },
+          "error": { "type": "string", "description": "Download error, if the fetch failed." }
+        }
+      }
+    },
+    "radii": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Most common border-radius values — the brand's corner-rounding scale."
+    },
+    "confidence_notes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Caveats about what was/wasn't reliably detected — read before trusting the tokens."
+    }
+  }
+}
