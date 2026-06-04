@@ -64,6 +64,15 @@ jobs:
         with:
           python-version: "3.x"
 
+      # setup-python installs a clean hostedtoolcache Python WITHOUT PyYAML
+      # (unlike the runner's system python3, which ships with it — which is why
+      # validate-marketplace.yml never hit this). scripts/concepts.py imports
+      # yaml since the Learn-tab concepts work; without this install the
+      # self-heal crashed on ModuleNotFoundError (4 consecutive runs, first
+      # seen 2026-06-04).
+      - name: Install Python deps for the generators
+        run: python3 -m pip install --quiet pyyaml
+
       - name: Set up Node.js (mermaid-cli is fetched on demand by npx when an SVG is stale)
         uses: actions/setup-node@v4
         with:
