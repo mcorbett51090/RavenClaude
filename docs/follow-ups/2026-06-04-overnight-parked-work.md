@@ -48,6 +48,8 @@ forgotten task.** This file gives each one its trigger.
 
 **Trigger to unpark (revised):** a session that can (a) run the Phase 5 eval harness to green AND (b) re-confirm the (now-updated) tier framing the day before merge. Both gates must clear before the `enabled:true` flip.
 
+**THIRD blocker found 2026-06-04 evening (recon before attempting the eval):** the harness↔workflow integration contract was **never wired into `rc-deep-research.js`**. Five concrete mismatches (verified against the working tree): (1) harness passes `args` as `{question, runId}` object, workflow only accepts a plain string and has no `runId`; (2) workflow never persists `structured-output.json`/`synthesis.md` to `.ravenclaude/runs/eval-*/`, so the grader reads nothing; (3) `stats` field names disagree (`subagent_tokens`/`per_phase` vs `agentCalls`/`confirmed`/no per-phase map); (4) `adaptive_run_config_for()` omits `votes_per_claim` + `refutations_required`, which the workflow dereferences unconditionally → adaptive arm corrupts; (5) live judge needs the `anthropic` SDK + `ANTHROPIC_API_KEY`, absent here (`--dry-run` works). Grader/fixtures/thresholds/self-test are sound. **The eval cannot run until a wiring PR teaches the workflow the contract** — and that PR touches the same file as dispatch-evaluator P2, so sequence them, don't parallelize.
+
 **Re-check by:** 2026-06-18 (two weeks). If still unverified by then, leave the classifier disabled in `main` and document why in a follow-up commit.
 
 ---
@@ -62,9 +64,9 @@ forgotten task.** This file gives each one its trigger.
 
 | Phase | Scope | Re-check by |
 |---|---|---|
-| **P2 integration** | Copy the wrapper into `deep-research.js`, wrap each `agent()` call site, add Gate 52 (byte-identical-when-disabled regression floor). | When the user explicitly OKs the two-classifier composition design. |
+| **P2 integration** | Copy the wrapper into `rc-deep-research.js` (renamed from `deep-research.js` 2026-06-04), wrap the 6 phase `agent()` call sites (`_run_config_phase` marker), mark the 4 infrastructure calls `_predispatch:'skip'`, add Gate 52 (byte-identical-when-disabled regression floor — Gate 52 verified free 2026-06-04). | **UNPARKED 2026-06-04 evening — Matt approved the composition design** with three resolutions: (1) Phase 5 dashboard must surface a suppressed-upgrade counter ("N upgrades wanted but blocked by run-config tier"); (2) downgrade-binding asymmetry kept as planned; (3) plan's Gates 70/71 collide (70 taken by Codex trust-review) — reassign, and **coordinate with the in-flight data-viz Ultraplan run which was told to claim 94–96**; next free after that run lands is 97+. |
 | ~~**P3 SubagentStart hook**~~ | ✅ **SHIPPED audit-only in #271** (`hooks/agent-dispatch-evaluator.sh` + dev-mirror + Gate 90). Ships audit-only because deny-is-pre-commit couldn't be verified live (the RM1 fail-disposition). **Remaining (parked):** verify on a live armed dispatch whether a `SubagentStart` DENY is pre-commit; only then promote to binding (see `agent-dispatch-evaluator/SKILL.md` §Phase 3 promotion path). | A session that can run a live armed dispatch + measure whether deny prevents the spawn. |
-| ~~**P4 tribunal-seat shadow**~~ | ✅ **SHIPPED shadow-forever in #271** (`scripts/thing-decide.py` `_evaluator_shadow` + Gate 91). Logs `evaluator_shadow` per seat; **never mutates** `cfg["panel"][seat]["model"]`. **Remaining (parked):** after ~4–6 weeks of shadow data, decide whether seat right-sizing is ever safe to make binding. | 4–6 weeks of accumulated shadow data + user OK. |
+| ~~**P4 tribunal-seat shadow**~~ | ✅ **SHIPPED shadow-forever in #271** (`scripts/thing-decide.py` `_evaluator_shadow` + Gate 91). Logs `evaluator_shadow` per seat; **never mutates** `cfg["panel"][seat]["model"]`. **Remaining (parked):** after ~4–6 weeks of shadow data, decide whether seat right-sizing is ever safe to make binding. | **2026-07-16** (Matt's resolved call, 2026-06-04: concrete re-check date, not open-ended). |
 | **P5 sampler + dashboard tab** | `scripts/eval-dispatch-quality.py` + `/__evaluator` endpoint + dashboard `#/evaluator` tab + auto-revert circuit. | After P2 + P4 land. |
 | **P6 binding flip** | Flip `dispatch-config.json` `enabled: true` + `mode: 'binding'`. | Blocked on a **2-week dev-repo shadow soak** — earliest 2026-06-18 *if* P5 shipped immediately, which it didn't. Realistic earliest: 2026-07-02. |
 
@@ -108,23 +110,6 @@ forgotten task.** This file gives each one its trigger.
 **Action when unparked:** re-probe the available CLI surface in a fresh session, update `_read_mimir` to prefer the JSON output if present, falling back to the current on-disk shape. Update Gate 49's fixtures to exercise both paths.
 
 **Re-check by:** 2026-06-18 (two weeks — Researcher cadence). If nothing surfaced, re-park with a 2026-07-04 re-check.
-
----
-
-## 5. ⭐ REMINDER (Matt's ask, 2026-06-04) — send data-viz-designer Phases 2–7 to **Ultraplan**
-
-**This is the active to-do Matt asked to be reminded of.** The `data-viz-designer` build is *not* done — only its testable foundation shipped.
-
-**Shipped (PR #271):** Phase 0+1 — the `pbir-layout-engine` linter + 12 fixtures + Gate 92 (ravenclaude-core v0.116.0). Foundation merged to `main`.
-
-**What still needs building (Phases 2–7, ~13h, citation-heavy):** the `data-viz-designer` agent + the chart-from-intent / wcag-viz-contrast / ibcs-variance-reports skills + 3 knowledge files + 4 best-practice promotions + cross-links + the version cascade. The plan's own routing verdict is **`lean_ultraplan`** — this is the cloud run's job, not a depleted-local-session job (rushing it manufactures the "Power BI Slop" the agent exists to prevent).
-
-**Action when unparked — kick off an Ultraplan run pointed at BOTH:**
-- [`docs/research/2026-06-02-data-viz-agent/build-plan.md`](../research/2026-06-02-data-viz-agent/build-plan.md) (authoritative spec), **and**
-- [`docs/research/2026-06-02-data-viz-agent/phases-2-7-ultraplan-delta.md`](../research/2026-06-02-data-viz-agent/phases-2-7-ultraplan-delta.md) (the 2026-06-04 reconciliation: start at Phase 3, gates → 93–95, stale tableau filenames, re-verify all C1–C25 citations, open questions §8 Q2/Q3/Q5).
-
-**Trigger to unpark:** Matt is ready to start the Ultraplan run (he asked to be reminded — surface this at the next session start).
-**Re-check by:** whenever Matt next opens this repo. Delete this item once the Ultraplan run is kicked off.
 
 ---
 
