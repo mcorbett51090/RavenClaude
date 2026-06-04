@@ -54,9 +54,10 @@ untouched. This repo now ships one:
   Per-docs mechanism; if a build doesn't honor the env var, the reliable
   per-session fallback is `/effort xhigh` (or `ultrathink` in a single prompt).
 
-> The shared `settings.json` pins `claude-opus-4-7` for the team. Bumping the
-> team default to 4.8 is a separate, team-wide call — left as a suggestion, not
-> changed here.
+> The shared `settings.json` now pins `claude-opus-4-8` for the team (bumped in
+> this PR, up from 4.7). 1M context stays **opt-in per person** via the `[1m]`
+> suffix above — the team default deliberately omits it so it doesn't change
+> cache/cost behavior for anyone not on a plan that includes it.
 
 ---
 
