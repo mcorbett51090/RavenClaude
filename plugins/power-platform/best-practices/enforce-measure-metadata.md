@@ -187,7 +187,7 @@ table Licences
         formatString: '#,##0'
 ```
 
-**The rule:** never `//` at the top level of a TMDL file; use `///` descriptions for metadata, and reserve `//` for inside-measure-body comments only. The TMDL parser gives no helpful error message, so prevention is cheaper than diagnosis. (Source: production session 2026-06-04 on `mcorbettbma/BTCSIReporting`; the verbatim lesson is in [`../../../.ravenclaude/runs/forge/bma-csp-lessons/source.md`](../../../.ravenclaude/runs/forge/bma-csp-lessons/source.md) but that path is gitignored — the lesson is encoded here.)
+**The rule:** never `//` at the top level of a TMDL file; use `///` descriptions for metadata, and reserve `//` for inside-measure-body comments only. The TMDL parser gives no helpful error message, so prevention is cheaper than diagnosis. (Source: production session 2026-06-04 on `mcorbettbma/BTCSIReporting`; verbatim lesson archive lives at `.ravenclaude/runs/forge/bma-csp-lessons/source.md` — gitignored per the FORGE convention, so this section encodes the lesson directly.)
 
 ---
 
