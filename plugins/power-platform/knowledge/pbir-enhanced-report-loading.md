@@ -237,8 +237,31 @@ Lessons:
 - [ ] All column projections in axis/slicer roles have `queryRef` + `nativeQueryRef` + `active: true`.
 - [ ] **No `prototypeQuery`** anywhere in any `visual.json`.
 - [ ] Semantic model is refreshed at least once before testing report render (the report can render against an empty model, but visual-level errors will mask schema bugs).
+- [ ] **Deploy command carries `--workspace-folder <Folder>`** if the workspace uses a folder structure (BMA-CSP Lesson 12 — see Deployment gotchas below).
 
 If a generator script writes any of these files, the checklist must be encoded in the generator — not just enforced by hand. The same person who forgets to add `resourcePackages` to one report will forget on the next one.
+
+---
+
+## Deployment-stage gotchas (added 2026-06-04, BMA-CSP Lesson 12)
+
+### `--workspace-folder` is required when the target workspace uses folders
+
+**Symptom:** items deploy successfully but land at the workspace **root** instead of a named folder (e.g. `Onsite/`), requiring manual cleanup in the Fabric portal after every deploy.
+
+**Why:** `deploy_to_fabric.py` (and most Fabric deploy scripts) default to **workspace root** when the destination folder isn't specified. If your target workspace has a folder structure (e.g. `Onsite/`, `Production/`, `Sandbox/`), every deploy without `--workspace-folder` creates a root-level duplicate.
+
+**Fix:** add `--workspace-folder <FolderName>` to every deploy command for the report, and codify this in the project's deploy documentation + CI pipeline from day one:
+
+```bash
+# WRONG — lands at workspace root, requires manual cleanup
+python deploy_to_fabric.py --workspace-id "$WORKSPACE_ID" --report-path ./report
+
+# RIGHT — lands in the Onsite/ subfolder
+python deploy_to_fabric.py --workspace-id "$WORKSPACE_ID" --workspace-folder Onsite --report-path ./report
+```
+
+**Anti-pattern guard:** if your project uses a workspace folder structure, **make `--workspace-folder` a REQUIRED argument** of the deploy script wrapper (not optional) so it cannot be forgotten. The Fabric portal does not warn or block on root-level deploys; the only signal of the mistake is manual cleanup work after the fact.
 
 ---
 
