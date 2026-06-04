@@ -417,9 +417,14 @@ python3 -c "import json;p='.claude-plugin/marketplace.json';d=json.load(open(p))
 rc=0; scripts/check-guide-fresh.sh >/dev/null 2>&1 || rc=$?
 gate "repo-guide freshness (mutated marketplace.json)" must_fail "$rc"
 cp -p "$TMP/.claude-plugin_marketplace.json.bak" .claude-plugin/marketplace.json
-# must_pass: pristine tree, the check should pass.
-rc=0; scripts/check-guide-fresh.sh >/dev/null 2>&1 || rc=$?
-gate "repo-guide freshness (clean tree)" must_pass "$rc"
+# NOTE: the matching "clean tree must_pass" assertion was intentionally removed.
+# repo-guide.html is no longer freshness-GATED on PRs — it is regenerated and
+# committed post-merge by .github/workflows/regenerate-artifacts.yml, so a PR
+# branch carrying a not-yet-regenerated guide must NOT fail here (that cross-PR
+# contagion is the failure this change fixes). The must_pass moved into that
+# workflow's verify step; the must_fail above still proves the detector that the
+# workflow relies on has teeth. See docs/best-practices/ci-gate-audit.md
+# § "Self-healing artifacts (freshness enforced post-merge, not on PRs)".
 
 echo
 echo "── Gate 12: marketplace-claims (required files + skill counts) ────────────"
@@ -468,9 +473,24 @@ python3 -c "p='.claude-plugin/marketplace.json';s=open(p).read();open(p,'w').wri
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (wrong metadata.description skill count)" must_fail "$rc"
 cp -p "$TMP/.claude-plugin_marketplace.json.bak" .claude-plugin/marketplace.json
-# must_pass: clean tree.
+# must_pass: clean tree — STRUCTURAL checks only. The derivable counts are no
+# longer enforced on PRs (they self-heal post-merge via --fix), so the clean-tree
+# assertion mirrors what the PR gate actually runs (--structural-only). The count
+# must_fail fixtures above stay in DEFAULT mode and keep the count detector honest,
+# which is what --fix relies on. See docs/best-practices/ci-gate-audit.md
+# § "Self-healing artifacts (freshness enforced post-merge, not on PRs)".
+rc=0; python3 scripts/check-marketplace-claims.py --structural-only >/dev/null 2>&1 || rc=$?
+gate "marketplace-claims (clean tree, structural-only)" must_pass "$rc"
+# --fix repairs a derivable count drift (the post-merge self-heal mechanism). This
+# is the relocated must_pass for the count half: mutate a count, run --fix, assert
+# it exits 0 AND default-mode is clean afterward (the repair actually landed).
+backup plugins/data-platform/.claude-plugin/plugin.json
+python3 -c "p='plugins/data-platform/.claude-plugin/plugin.json';s=open(p).read();open(p,'w').write(s.replace('13 skills','99 skills',1))"
+rc=0; python3 scripts/check-marketplace-claims.py --fix >/dev/null 2>&1 || rc=$?
+gate "marketplace-claims --fix repairs count drift" must_pass "$rc"
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
-gate "marketplace-claims (clean tree)" must_pass "$rc"
+gate "marketplace-claims clean after --fix" must_pass "$rc"
+cp -p "$TMP/plugins_data-platform_.claude-plugin_plugin.json.bak" plugins/data-platform/.claude-plugin/plugin.json
 
 echo
 echo "── Gate 13: dashboard.html freshness ──────────────────────────────────────"

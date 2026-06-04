@@ -316,12 +316,14 @@ jobs:
         # scripts/audit-gates.sh for per-gate fixtures.
         run: scripts/audit-gates.sh
 
-      - name: Verify repo-guide.html is fresh
-        # If a contributor changed a manifest, agent, skill, hook, rule, or
-        # template without re-running `python3 scripts/generate-repo-guide.py`,
-        # the committed guide will diverge from regenerated content and this
-        # step fails. See scripts/check-guide-fresh.sh for the diff logic.
-        run: scripts/check-guide-fresh.sh
+      # NOTE: repo-guide.html freshness is no longer gated here. The guide is a
+      # repo-wide generated artifact that every plugin PR would otherwise
+      # regenerate into its own branch, causing cross-PR merge conflicts and
+      # stale-on-the-loser freshness failures when siblings merge. It is now
+      # OWNED by `main` and regenerated post-merge by
+      # .github/workflows/regenerate-artifacts.yml. The staleness *detector*
+      # (check-guide-fresh.sh) is still audited for teeth in audit-gates.sh
+      # Gate 11. See docs/best-practices/ci-gate-audit.md § "Self-healing artifacts".
 
       - name: Verify dashboard.html is fresh
         # If a contributor changed dashboard-schema.json, pattern-explanations.json,
@@ -358,11 +360,17 @@ jobs:
           python3 scripts/render-trees.py --check
           python3 scripts/generate-concepts-doc.py --check
 
-      - name: Marketplace self-description (required files, skill counts, doc rosters)
-        # Required files present, "<N> skills" prose matches skills/, descriptions
-        # under the char cap, AND the narrative rosters stay complete (architecture.md
-        # Status table lists every plugin; README's "ships **N plugins**" count is right).
-        run: python3 scripts/check-marketplace-claims.py
+      - name: Marketplace self-description — STRUCTURAL checks (required files, caps, rosters)
+        # Enforces only the NON-derivable structural claims on PRs: required files
+        # present, descriptions under the char cap, and every plugin present in the
+        # architecture.md Status table. The DERIVABLE counts ("<N> skills/agents",
+        # README "ships **N plugins**") are deliberately NOT checked here — they are
+        # a repo-wide moving target that made concurrent plugin PRs collide/go stale,
+        # so they self-heal post-merge via check-marketplace-claims.py --fix in
+        # .github/workflows/regenerate-artifacts.yml. The count *detector* is still
+        # audited for teeth in audit-gates.sh Gate 12 (default mode). See
+        # docs/best-practices/ci-gate-audit.md § "Self-healing artifacts".
+        run: python3 scripts/check-marketplace-claims.py --structural-only
 
       - name: Verify volatile model-lineup numbers are cited
         # The ai-coding-model-guidance plugin ships deliberately-volatile third-party
