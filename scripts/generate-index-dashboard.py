@@ -616,9 +616,18 @@ def main(argv: list[str] | None = None) -> int:
             print(f"[stale] {args.output} does not exist", file=sys.stderr)
             return 1
         current = args.output.read_text(encoding="utf-8")
-        # Compare everything except the volatile generated-timestamp line.
+        # Compare everything except the volatile generated-timestamp surfaces.
+        # THREE surfaces are volatile (forge/index-generator-drift, 2026-06-04):
+        #   1. the JSON "generated" field inside window.__RC_DATA__
+        #   2. the JSON "generated_date" field (day precision — drifts daily)
+        #   3. the footer "Updated <ts> UTC" line (minute precision — without
+        #      stripping it, --check false-fails one minute after generation,
+        #      turning the freshness gate into a paper tiger)
         def _strip_ts(s: str) -> str:
-            return re.sub(r'"generated":"[^"]*"', '"generated":""', s)
+            s = re.sub(r'"generated":"[^"]*"', '"generated":""', s)
+            s = re.sub(r'"generated_date":"[^"]*"', '"generated_date":""', s)
+            s = re.sub(r"Updated \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC", "Updated", s)
+            return s
         if _strip_ts(current) != _strip_ts(html):
             print(f"[stale] {args.output} is out of date — re-run the generator",
                   file=sys.stderr)
