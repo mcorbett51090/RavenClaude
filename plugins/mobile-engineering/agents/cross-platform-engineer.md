@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "set up push notifications and deep links"
     outcome: "A shared implementation of push (with platform permission flows) and deep/universal links, handled once across both platforms"
     difficulty: "advanced"
+  - intent: "Add offline sync once"
+    trigger_phrase: "make this RN app work offline across both platforms"
+    outcome: "A shared local-DB source of truth (WatermelonDB/SQLite), an offline write queue, and a conflict policy — implemented once, secrets still in the secure store"
+    difficulty: "advanced"
+  - intent: "Cut battery and data drain"
+    trigger_phrase: "our app polls constantly and drains battery"
+    outcome: "Polling replaced with push, network calls batched, and non-urgent work deferred to charging/Wi-Fi — implemented in the shared layer"
+    difficulty: "starter"
 quickstart: "Tell the agent the cross-platform feature or perf issue. It returns a shared-codebase implementation that respects each platform, manages the native boundary, handles push/deep-links/offline once, and uses the secure store."
 ---
 

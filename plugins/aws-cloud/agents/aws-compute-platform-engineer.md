@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "autoscale this Fargate service properly"
     outcome: "Autoscaling on a load-tracking signal (queue depth/concurrency) with sane min/max, not bare CPU"
     difficulty: "starter"
+  - intent: "Select a data service for the workload"
+    trigger_phrase: "should this service store data in RDS or DynamoDB?"
+    outcome: "A data-service selection by access pattern and scale (relational vs key-value), traced through the database tree, with deep schema modeling routed to database-engineering"
+    difficulty: "advanced"
+  - intent: "Fix Lambda cold starts"
+    trigger_phrase: "our Lambda has bad p99 from cold starts"
+    outcome: "A cold-start diagnosis (package size, runtime, VPC ENI) with provisioned concurrency or a move to Fargate weighed against the cost, the trade named"
+    difficulty: "troubleshooting"
 quickstart: "Tell the agent the workload shape and load. It returns the compute choice with its trade, an event-driven integration design with idempotency + DLQs, and right-sized autoscaling."
 ---
 
