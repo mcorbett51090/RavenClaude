@@ -1,0 +1,24 @@
+{
+  "name": "game-development",
+  "version": "0.1.0",
+  "description": "Game Development specialist team — 4 agents (gamedev-producer, game-designer, gameplay-engineer, live-ops-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A production-and-design team for a game studio or indie team — it scopes to a vertical slice before a full build, designs core loops and economies that retain, runs production on milestones and risk burn-down, and reads live-ops on retention and monetization the way a team that ships and then operates a game must. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "game-development",
+    "game-design",
+    "production",
+    "vertical-slice",
+    "core-loop",
+    "game-economy",
+    "live-ops",
+    "retention",
+    "monetization"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
