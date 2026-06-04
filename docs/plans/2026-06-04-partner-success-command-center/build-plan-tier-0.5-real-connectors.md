@@ -172,10 +172,10 @@ If a step below references "Q1 vendor", read "SFDC Service Cloud". If it referen
 
 ### 3.6 Documented-but-not-implemented (forward-references)
 
-- **Outlook (Microsoft Graph) calendar fallback** — documented in `calendar-integration-google-outlook.md`. If the wife later confirms she's on Outlook not Google, Tier 0.5 v2 swaps `stg_google_calendar__event.sql` for `stg_microsoft__calendar_view.sql` per the existing knowledge file. **No code shipped in v1.**
-- **Ironclad / DocuSign CLM** — `dim_contract.sql` schema is vendor-agnostic per `clm-integration-ironclad-docusign.md` so a future CLM swap is additive. **No CLM loader shipped in v1.**
-- **Zendesk fallback** — `fct_support_ticket.sql` is vendor-agnostic so swapping `stg_salesforce__case.sql` for `stg_zendesk__ticket.sql` is additive. **No Zendesk loader shipped in v1.**
-- **Multi-PSM row-access policies** — documented in `snowflake-operational-dashboard-patterns.md` § "Row-access policies for multi-PSM scoping". **Single-tenant in v1; `org_uid` constant; no RLS.**
+- **Outlook (Microsoft Graph) calendar fallback** — if the wife later confirms Outlook, v2 swaps `stg_google_calendar__event.sql` for `stg_microsoft__calendar_view.sql` per the existing knowledge file.
+- **Ironclad / DocuSign CLM** — `dim_contract.sql` is vendor-agnostic per `clm-integration-ironclad-docusign.md` so a future CLM swap is additive.
+- **Zendesk fallback** — `fct_support_ticket.sql` is vendor-agnostic so swapping `stg_salesforce__case.sql` for `stg_zendesk__ticket.sql` is additive.
+- **Multi-PSM row-access policies** — documented in `snowflake-operational-dashboard-patterns.md`. **Single-tenant in v1; no RLS.**
 
 ---
 
@@ -451,62 +451,23 @@ semantic_models:
 
 ### Step 13 — `export-psm-dashboard.py`
 
-Build `plugins/data-platform/scripts/export-psm-dashboard.py`. Contract:
+Build `plugins/data-platform/scripts/export-psm-dashboard.py`. Stdlib + `snowflake-connector-python` + `jsonschema` only.
 
-```python
-#!/usr/bin/env python3
-"""export-psm-dashboard.py — drop-in replacement for the synthetic fixture.
+**CLI:** `python3 export-psm-dashboard.py --out <path> --as-of <ISO date> --org-uid <UUIDv4> [--validate]`
 
-Python stdlib + snowflake-connector-python + jsonschema only.
+**Contract:**
+- Reads from `psm_conformed.marts.*`. Writes JSON validating against `data.export.schema.json`.
+- Drops in as byte-shape replacement for the synthetic fixture.
+- Emits `null` for `partners[].priority_score` and `priority_breakdown` (`derived_at_render`).
+- Emits `null` for `partners[].engagement_score` (`synthetic_only`).
+- Per Tier 0's `--export-mode`, skips: `synthetic_only`, `derived_at_render`, the `Demo:` prefix, the `synthetic-` ID prefix (real names + real IDs land here).
+- Idempotent: same warehouse state + same `--as-of` ⇒ byte-identical output.
 
-USAGE
-  python3 plugins/data-platform/scripts/export-psm-dashboard.py \
-      --out plugins/edtech-partner-success/bi-report/data.json \
-      --as-of 2026-06-04 \
-      --org-uid 11111111-2222-4333-8444-555555555555 \
-      [--validate]
+**Determinism:** all queries `ORDER BY` uid; `json.dumps(..., indent=2, sort_keys=False, ensure_ascii=False)`; floats rounded at construction; dates as `YYYY-MM-DD` strings.
 
-CONTRACT
-  - Reads from psm_conformed.marts.*
-  - Writes JSON that validates against data.export.schema.json
-  - Drops in as a byte-shape replacement for the synthetic fixture
-  - Emits NULL for partners[].priority_score and priority_breakdown
-    (derived_at_render per Tier 0's field-classifications.json)
-  - Emits NULL for partners[].engagement_score (synthetic_only)
-  - Per Tier 0's --export-mode integrity check posture, skips:
-    * synthetic_only fields → null
-    * derived_at_render fields → null
-    * Demo: prefix on names (real names land here)
-    * synthetic- ID prefix (real Snowflake-keyed IDs land here)
-  - Idempotent: same warehouse state + same --as-of = byte-identical output
+**Connector-failure handling:** if a source is `failed` in `mart_connector_health`, that block is emitted **empty with `last_succeeded_at`** (NOT a crash) — the renderer's three-state badge renders Paused.
 
-DETERMINISM
-  - All queries use deterministic ORDER BY (typically by uid).
-  - JSON output via json.dumps(..., indent=2, sort_keys=False, ensure_ascii=False).
-  - Floats rounded to 2 decimals at construction.
-  - Dates emitted as YYYY-MM-DD strings.
-
-CONNECTOR FAILURE HANDLING
-  - If one source's connector is in 'failed' state per mart_connector_health,
-    that source's data block is emitted EMPTY with a last_succeeded_at marker
-    (NOT a crash). The dashboard's three-state badge renders the Paused state.
-"""
-
-# §13.1 — Connection (key-pair only, no password)
-# §13.2 — Top-level metadata (schema_version=1, org_uid, as_of, report{})
-# §13.3 — partners[] from dim_partner + fct_partner_health
-# §13.4 — contacts[] from stg_salesforce__contact
-# §13.5 — timeline_events[] from a UNION across sources
-# §13.6 — usage_daily[] and usage_daily_school[]
-# §13.7 — success_plans[] from Planhat
-# §13.8 — contracts[] from dim_contract (current + history)
-# §13.9 — tickets[] from fct_support_ticket (Case-backed)
-# §13.10 — calendar_events[] from fct_calendar_event
-# §13.11 — bridge_account_xref[] from marts.bridge_account_xref
-# §13.12 — priority_weights{} — copy verbatim from Tier 0 fixture (the wife tunes these)
-# §13.13 — Validate against data.export.schema.json if --validate
-# §13.14 — Write atomically (temp file + rename) — never partial-write
-```
+**Output blocks:** top-level metadata (`schema_version=1`, `org_uid`, `as_of`, `report{}`), then `partners[]`, `contacts[]`, `timeline_events[]` (UNION across sources), `usage_daily[]`, `usage_daily_school[]`, `success_plans[]` (Planhat), `contracts[]` (current + history), `tickets[]` (Case-backed), `calendar_events[]`, `bridge_account_xref[]`, `priority_weights{}` (copy verbatim from Tier 0 fixture — the wife tunes these). Validate if `--validate`. Write atomically (temp file + rename — never partial-write).
 
 **Concrete acceptance:**
 - `python3 export-psm-dashboard.py --out /tmp/data.json --validate` exits 0.
