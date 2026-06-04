@@ -191,6 +191,7 @@ def render_dashboard(plugin_dir: Path, schema: dict) -> str:
         heimdall_html=_render_heimdall_tab(),
         vidarr_html=_render_vidarr_tab(),
         norns_html=_render_norns_tab(),
+        mimir_html=_render_mimir_tab(),
         bifrost_html=_render_bifrost_tab(),
         about_html=_render_about_tab(description, plugin_name),
         pipeline_html=_render_pipeline_tab(),
@@ -307,6 +308,27 @@ def _render_heimdall_tab() -> str:
     logic lives in _JS; this returns a static skeleton the JS hydrates on open.
     """
     return _HEIMDALL_TAB_TEMPLATE
+
+
+def _render_mimir_tab() -> str:
+    """Render the 'Session' (Mímir's well) tab — a read-only surface that
+    answers "what does Claude Code know about *this* session?" by surfacing
+    the on-disk state under ~/.claude/ + <project>/.claude/.
+
+    Five card hosts hydrated by JS from /__mimir on open: settings (theme +
+    configured/last-used model + permission mode), live session (matched by
+    cwd + status=busy), activity (stats-cache.json with mandatory `as of`
+    pill), recent project sessions (top 5 mtime-desc), and the honest
+    unreachable-fields list. Served-only — on a static host the cards show
+    an "open the served dashboard" empty state; in-process-only fields
+    (/effort, /status) render with an explanatory pill, never a dash.
+
+    See plugins/ravenclaude-core/skills/mimir/SKILL.md for the reachability
+    contract; the JS fetch + render live in _JS (loadMimir / renderMimir*).
+    The static skeleton is intentionally bytes-free of any dynamic content
+    so the dashboard.html freshness gate (Gate 13) stays exact-match.
+    """
+    return _MIMIR_TAB_TEMPLATE
 
 
 def _render_vidarr_tab() -> str:
@@ -5126,6 +5148,40 @@ footer.page-footer a:hover { text-decoration: underline; }
 .norns-dl dd { margin: 0; font-size: 12px; font-family: var(--font-mono); color: var(--text); }
 .norns-nextver { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--accent); }
 
+/* ── Mímir's well: Claude Code session-state surface ── */
+.mimir-layout { padding: 20px; }
+.mimir-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px; padding: 0 20px 20px;
+}
+.mimir-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px;
+}
+.mimir-card--full { grid-column: 1 / -1; }
+.mimir-card h3 { margin: 0 0 12px; font-size: 15px; color: var(--text); }
+.mimir-pill {
+  display: inline-block; padding: 2px 8px; border-radius: 10px;
+  font-size: 11.5px; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--muted);
+}
+.mimir-pill--inproc { font-style: italic; }
+.mimir-pill--asof { margin-bottom: 8px; }
+.mimir-days {
+  margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 3px;
+}
+.mimir-days li { font-size: 12px; font-family: var(--font-mono); color: var(--text); }
+.mimir-recent-list {
+  margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 4px;
+}
+.mimir-recent-list li {
+  font-size: 12px; font-family: var(--font-mono); color: var(--text); word-break: break-word;
+}
+.mimir-unreach-list {
+  margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 3px;
+}
+.mimir-unreach-list li { font-size: 12.5px; color: var(--muted); }
+
 /* ── Review log: plain-language reason + expandable decision panel ── */
 .saga-reason {
   font-size: 12px; color: var(--text); line-height: 1.45;
@@ -5908,6 +5964,39 @@ _NORNS_TAB_TEMPLATE = """
   </div>
 </div>
 """.strip()
+
+_MIMIR_TAB_TEMPLATE = """
+<div class="mimir-layout">
+  <div class="saga-hdr">
+    <h2><span aria-hidden="true">&#127769;</span> Session</h2>
+    <button type="button" class="saga-refresh" id="mimir-refresh-btn">Refresh</button>
+  </div>
+  <p class="activity-intro">Claude Code session state for this project <em>(M&iacute;mir&rsquo;s well)</em> &mdash; drawn live from <code>~/.claude/</code> and <code>.claude/settings.json</code>. Read-only; in-process-only fields render with an explainer, never a dash.</p>
+  <div class="mimir-grid">
+    <section class="mimir-card" aria-labelledby="mimir-settings-h">
+      <h3 id="mimir-settings-h">Settings</h3>
+      <div id="mimir-settings"><div class="saga-empty"><p>Loading&hellip;</p></div></div>
+    </section>
+    <section class="mimir-card" aria-labelledby="mimir-session-h">
+      <h3 id="mimir-session-h">Current session</h3>
+      <div id="mimir-session"><div class="saga-empty"><p>Loading&hellip;</p></div></div>
+    </section>
+    <section class="mimir-card" aria-labelledby="mimir-activity-h">
+      <h3 id="mimir-activity-h">Activity summary</h3>
+      <div id="mimir-activity"><div class="saga-empty"><p>Loading&hellip;</p></div></div>
+    </section>
+    <section class="mimir-card" aria-labelledby="mimir-recent-h">
+      <h3 id="mimir-recent-h">Recent project sessions</h3>
+      <div id="mimir-recent"><div class="saga-empty"><p>Loading&hellip;</p></div></div>
+    </section>
+    <section class="mimir-card mimir-card--full" aria-labelledby="mimir-unreach-h">
+      <h3 id="mimir-unreach-h">In-process only</h3>
+      <div id="mimir-unreach"><div class="saga-empty"><p>Loading&hellip;</p></div></div>
+    </section>
+  </div>
+</div>
+""".strip()
+
 
 # Bifröst — the install-bridge wizard (§3.6). A guided 4-step copy-paste flow for
 # installing a marketplace plugin into a Claude Code project. The wizard NEVER
@@ -7836,6 +7925,7 @@ _JS = r"""
   let heimdallLoaded = false;
   let vidarrLoaded = false;
   let nornsLoaded = false;
+  let mimirLoaded = false;
   let vidarrEvents = [];
   let vidarrKindFilter = "all";
   let activityRecords = [];
@@ -7888,6 +7978,7 @@ _JS = r"""
     if (tab === "heimdall" && !heimdallLoaded) loadHeimdall();
     if (tab === "vidarr" && !vidarrLoaded) loadVidarr();
     if (tab === "norns" && !nornsLoaded) loadNorns();
+    if (tab === "mimir" && !mimirLoaded) loadMimir();
     if (tab === "pipeline") syncPipelineTab();
     if (tab.indexOf("plugin-") === 0) hydratePluginPage(tab.slice(7));
     if (tab === "web-access") hydrateWebAccess();
@@ -9470,6 +9561,170 @@ _JS = r"""
   const nornsRefBtn = document.getElementById("norns-refresh-btn");
   if (nornsRefBtn) nornsRefBtn.addEventListener("click", () => { nornsLoaded = false; loadNorns(); });
 
+  /* ── Mímir's well — Claude Code session-state surface ────────────────────
+   * Fetches /__mimir (served-only). The five card hosts mirror the
+   * _read_mimir payload (settings / session / activity / recent_sessions /
+   * unreachable). In-process-only fields ("effort_dial", "plan_tier",
+   * "status_live_cache") render with an explainer pill, never a dash —
+   * the honest empty state is the contract (per the mimir skill). */
+  function mimirDash(v) {
+    return v == null || v === "" ? "—" : String(v);
+  }
+  function mimirInProcessPill(label) {
+    const pill = document.createElement("span");
+    pill.className = "mimir-pill mimir-pill--inproc";
+    pill.textContent = label;
+    pill.title = "In-process only — run /status in Claude Code to see this live";
+    return pill;
+  }
+  function mimirDl(rows) {
+    const dl = document.createElement("dl");
+    dl.className = "norns-dl";
+    for (const [k, v] of rows) {
+      const dt = document.createElement("dt");
+      dt.textContent = k;
+      const dd = document.createElement("dd");
+      if (v instanceof Node) dd.appendChild(v);
+      else dd.textContent = mimirDash(v);
+      dl.append(dt, dd);
+    }
+    return dl;
+  }
+  function renderMimirSettings(s) {
+    const host = document.getElementById("mimir-settings");
+    if (!host) return;
+    s = s || {};
+    const m = s.model || {};
+    host.replaceChildren(mimirDl([
+      ["Theme", s.theme],
+      ["Configured model", m.configured],
+      ["Last-used model", m.last_used],
+      ["Permission mode", s.permission_mode],
+      ["Reasoning effort", mimirInProcessPill("in-process — /effort")],
+    ]));
+  }
+  function renderMimirSession(sess) {
+    const host = document.getElementById("mimir-session");
+    if (!host) return;
+    sess = sess || {};
+    if (!sess.found) {
+      host.replaceChildren(hmEmpty("No live Claude Code session found for this project."));
+      return;
+    }
+    host.replaceChildren(mimirDl([
+      ["Session ID", sess.session_id],
+      ["PID", sess.pid != null ? String(sess.pid) : null],
+      ["Started", sess.started_at],
+      ["Version", sess.version],
+      ["Status", mimirInProcessPill("/status — in-process only")],
+    ]));
+  }
+  function renderMimirActivity(a) {
+    const host = document.getElementById("mimir-activity");
+    if (!host) return;
+    a = a || {};
+    const frag = document.createDocumentFragment();
+    if (a.as_of) {
+      const pill = document.createElement("span");
+      pill.className = "mimir-pill mimir-pill--asof";
+      pill.textContent = "as of " + a.as_of;
+      pill.title = "stats-cache.json is pre-computed; up to 24h stale";
+      frag.appendChild(pill);
+    }
+    frag.appendChild(mimirDl([
+      ["Total sessions", a.total_sessions != null ? String(a.total_sessions) : null],
+      ["Total messages", a.total_messages != null ? String(a.total_messages) : null],
+    ]));
+    const days = Array.isArray(a.daily_activity_7d) ? a.daily_activity_7d : [];
+    if (days.length) {
+      const h = document.createElement("h4");
+      h.className = "norns-grouphdr";
+      h.textContent = "Last 7 days";
+      frag.appendChild(h);
+      const ul = document.createElement("ul");
+      ul.className = "mimir-days";
+      for (const d of days) {
+        const li = document.createElement("li");
+        const date = (d && d.date) || "?";
+        const msgs = (d && (d.messageCount != null ? d.messageCount : "—"));
+        const sess = (d && (d.sessionCount != null ? d.sessionCount : "—"));
+        li.textContent = date + " — " + msgs + " msg, " + sess + " sess";
+        ul.appendChild(li);
+      }
+      frag.appendChild(ul);
+    }
+    host.replaceChildren(frag);
+  }
+  function renderMimirRecent(items) {
+    const host = document.getElementById("mimir-recent");
+    if (!host) return;
+    const list = Array.isArray(items) ? items : [];
+    if (!list.length) {
+      host.replaceChildren(hmEmpty("No recent JSONL sessions for this project."));
+      return;
+    }
+    const ul = document.createElement("ul");
+    ul.className = "mimir-recent-list";
+    for (const it of list) {
+      const li = document.createElement("li");
+      const sid = (it && it.session_id) || "—";
+      const ts  = (it && it.last_active) || "—";
+      const ec  = (it && it.event_count != null) ? it.event_count : "—";
+      const ot  = (it && it.output_tokens != null) ? it.output_tokens : "—";
+      const br  = (it && it.git_branch) || "—";
+      li.textContent = sid + " · " + ts + " · " + ec + " events · " + ot + " output toks · " + br;
+      ul.appendChild(li);
+    }
+    host.replaceChildren(ul);
+  }
+  function renderMimirUnreachable(items) {
+    const host = document.getElementById("mimir-unreach");
+    if (!host) return;
+    const list = Array.isArray(items) ? items : [];
+    const ul = document.createElement("ul");
+    ul.className = "mimir-unreach-list";
+    const labels = {
+      "effort_dial": "Reasoning effort (/effort dial) — runtime only",
+      "plan_tier": "Plan tier (Pro / Max / Team) — not stored on disk",
+      "status_live_cache": "/status live cache — in-process only",
+    };
+    for (const k of list) {
+      const li = document.createElement("li");
+      li.textContent = labels[k] || k;
+      ul.appendChild(li);
+    }
+    if (!ul.children.length) {
+      host.replaceChildren(hmEmpty("Nothing currently unreachable."));
+      return;
+    }
+    host.replaceChildren(ul);
+  }
+  async function loadMimir() {
+    mimirLoaded = true;
+    try {
+      const res = await fetchT("/__mimir");
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      renderMimirSettings(data.settings);
+      renderMimirSession(data.session);
+      renderMimirActivity(data.activity);
+      renderMimirRecent(data.recent_sessions);
+      renderMimirUnreachable(data.unreachable);
+    } catch (e) {
+      mimirLoaded = false; /* allow retry on next visit */
+      const served = await probeReadEndpoint();
+      const msg = served
+        ? ["Could not reach /__mimir. Is the server running?", "python3 scripts/serve-dashboards.py"]
+        : ["Session state needs the served dashboard — open it via", "rc dashboard"];
+      for (const id of ["mimir-settings", "mimir-session", "mimir-activity", "mimir-recent", "mimir-unreach"]) {
+        const host = document.getElementById(id);
+        if (host) host.replaceChildren(hmEmpty(msg[0], msg[1]));
+      }
+    }
+  }
+  const mimirRefBtn = document.getElementById("mimir-refresh-btn");
+  if (mimirRefBtn) mimirRefBtn.addEventListener("click", () => { mimirLoaded = false; loadMimir(); });
+
   /* ── Bifröst — install-bridge wizard (§3.6) ─────────────────────────────
    * Pure client-side copy-paste flow. The wizard NEVER runs a slash command —
    * the user runs each in their session and pastes the output; we parse it with
@@ -10233,6 +10488,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <button class="tab-btn" id="tab-heimdall" data-tab="heimdall" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-heimdall" title="Perimeter alerts — what your guardrails caught at the edge (Heimdall)">Perimeter alerts</button>
     <button class="tab-btn" id="tab-vidarr" data-tab="vidarr" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-vidarr" title="Security log — a record of your permission changes (Víðarr)">Security log</button>
     <button class="tab-btn" id="tab-norns" data-tab="norns" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-norns" title="Lineage — how your plugins connect and depend on each other (Norns)">Lineage</button>
+    <button class="tab-btn" id="tab-mimir" data-tab="mimir" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-mimir" title="Session — what Claude Code knows about this session (M&iacute;mir's well)">Session</button>
     <button class="tab-btn" id="tab-learn" data-tab="learn" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-learn" title="Learn — plain-English explainers for each concept">Learn</button>
     <button class="tab-btn" id="tab-commands" data-tab="commands" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-commands" title="Commands — ready-to-run slash-command playbooks">Commands</button>
     <button class="tab-btn" id="tab-trees" data-tab="trees" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-trees" title="Guidance — decision trees and best practices">Guidance</button>
@@ -10285,6 +10541,9 @@ _PAGE_TEMPLATE = """<!doctype html>
   </section>
   <section class="tab-panel" id="panel-norns" data-tab="norns" role="tabpanel" aria-label="Plugin lineage">
 {norns_html}
+  </section>
+  <section class="tab-panel" id="panel-mimir" data-tab="mimir" role="tabpanel" aria-label="Session state">
+{mimir_html}
   </section>
   <section class="tab-panel" id="panel-bifrost" data-tab="bifrost" role="tabpanel" aria-label="Add plugin">
 {bifrost_html}
