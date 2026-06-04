@@ -762,6 +762,17 @@
       .callout { border: 1px solid var(--border-strong); border-radius: 12px; padding: 14px 16px; background: var(--teal-soft); color: var(--text); font-size: 0.86rem; display: flex; gap: 12px; }
       .callout svg { width: 20px; height: 20px; color: var(--teal-2); flex: 0 0 auto; margin-top: 2px; }
 
+      /* Payload mode banner — only shown above an iframe when the
+         served-mode probe resolves Static. Sits above the iframe, in flow,
+         so it doesn't add persistent chrome on the Live path. */
+      .payload-banner { display: flex; gap: 12px; align-items: center; padding: 10px 14px; background: var(--surface); border-bottom: 1px solid var(--border-strong); color: var(--muted); font-size: 0.82rem; }
+      .payload-banner .ico { display: inline-flex; }
+      .payload-banner .ico svg { width: 16px; height: 16px; color: var(--teal-2); }
+      .payload-banner code { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text); background: var(--surface-2, var(--bg)); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; }
+      .payload-banner .msg { flex: 1; }
+      .payload-banner .banner-copy { background: var(--teal); color: white; border: 0; padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; }
+      .payload-banner .banner-copy:hover { filter: brightness(1.05); }
+
       .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface-3); border: 1px solid var(--teal); color: var(--text); padding: 12px 18px; border-radius: 10px; font-size: 0.86rem; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: 0.25s; z-index: 90; }
       .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -1081,9 +1092,43 @@
         { id: "home", label: "Home", icon: "home" },
         { id: "team", label: "Team", icon: "team" },
         { id: "marketplace", label: "Marketplace", icon: "market" },
+        { id: "dashboard", label: "Dashboard", icon: "sliders" },
+        { id: "repo-guide", label: "Catalog", icon: "book" },
         { id: "configuration", label: "Configuration", icon: "config" },
         { id: "resources", label: "Resources", icon: "resources" },
       ];
+
+      // INVARIANT: payloads must be trusted, same-org artifacts. The shell will
+      // NEVER sandbox these iframes — sandboxing would break the dashboard's
+      // same-origin /__save CSRF flow. If a third-party payload is ever loaded
+      // here, redesign the trust boundary first.
+      const PAYLOAD_ROUTES = {
+        // dashboard.html owns these top-level routes (kept top-level for
+        // back-compat with every committed bookmark + gjallarhorn-link href +
+        // SessionStart capability-banner pointers + doc references).
+        heimdall: "plugins/ravenclaude-core/dashboard.html",
+        vidarr: "plugins/ravenclaude-core/dashboard.html",
+        norns: "plugins/ravenclaude-core/dashboard.html",
+        nidhoggr: "plugins/ravenclaude-core/dashboard.html",
+        bifrost: "plugins/ravenclaude-core/dashboard.html",
+        mimir: "plugins/ravenclaude-core/dashboard.html",
+        sleipnir: "plugins/ravenclaude-core/dashboard.html",
+        saga: "plugins/ravenclaude-core/dashboard.html",
+        activity: "plugins/ravenclaude-core/dashboard.html",
+        learn: "plugins/ravenclaude-core/dashboard.html",
+        "web-access": "plugins/ravenclaude-core/dashboard.html",
+        pipeline: "plugins/ravenclaude-core/dashboard.html",
+        "comfort-posture": "plugins/ravenclaude-core/dashboard.html",
+        dashboard: "plugins/ravenclaude-core/dashboard.html",
+        // repo-guide owns its own top-level route.
+        "repo-guide": "repo-guide.html",
+      };
+      // Plugin-detail routes (#/plugin-<name>) also belong to the dashboard.
+      function payloadFor(section) {
+        if (PAYLOAD_ROUTES[section]) return PAYLOAD_ROUTES[section];
+        if (section && section.startsWith("plugin-")) return PAYLOAD_ROUTES.dashboard;
+        return null;
+      }
       // Subcategories live under the one section the repo actually has a
       // hierarchy for: Marketplace → plugin categories (existing #/marketplace/<cat>
       // routes). The accordion only renders under the ACTIVE top item, and only
@@ -1581,6 +1626,134 @@
           <div class="callout">${svg("download")}<span>Regenerate this dashboard and the full guide from source: <code>python3 scripts/generate-index-dashboard.py</code> and <code>python3 scripts/generate-repo-guide.py</code>. Both read the live catalog so the docs never drift.</span></div>`;
       }
 
+      /* ---------------- Served-mode probe ----------------
+         One-shot HEAD probe to /__csrf (the lightest endpoint the dashboard
+         server already exposes — see scripts/check-dashboard-server-parity.py
+         which asserts /__csrf is in the endpoint set; if that ever moves,
+         the parity check breaks first).
+
+         Result is cached per session as a tri-state:
+           true   → Live (served from 127.0.0.1)
+           false  → Static (no banner-worthy server reachable)
+           null   → unknown (probe in flight) → render no banner (silence is
+                    correct on the live path; only declare "Static" when
+                    sure).
+
+         CRITICAL INVARIANT: the probe FAILS via cross-origin reject on a
+         static host — that's the signal we want. DO NOT add
+         Access-Control-Allow-Origin headers to serve-dashboards.py to "help"
+         this probe. The reject IS the signal; adding ACAO shatters
+         _local_request_ok's DNS-rebinding defense. */
+      let _servedMode = null;
+      let _servedModePromise = null;
+      function probeServedMode() {
+        if (_servedModePromise) return _servedModePromise;
+        _servedModePromise = new Promise((resolve) => {
+          const ctl = (typeof AbortController === "function") ? new AbortController() : null;
+          const timeout = setTimeout(() => { try { ctl && ctl.abort(); } catch (_) {} }, 500);
+          fetch("/__csrf", { method: "HEAD", signal: ctl ? ctl.signal : undefined })
+            .then((r) => {
+              clearTimeout(timeout);
+              _servedMode = r && r.ok;
+              resolve(_servedMode);
+            })
+            .catch(() => {
+              clearTimeout(timeout);
+              _servedMode = false;
+              resolve(false);
+            });
+        });
+        return _servedModePromise;
+      }
+
+      /* ---------------- Payload-iframe loader ----------------
+         Lazy-loads dashboard.html or repo-guide.html into a sized iframe.
+         iframe.src is set only on first activation for that payload, then
+         memoized — subsequent navigations show/hide without re-fetch (cache
+         + JS state preserved). Sub-routes inside the iframe are
+         iframe-private: clicking a tab inside the iframe does NOT update
+         the shell URL. (See plan.md A4 / RM2 for the rationale; postMessage
+         bidirectional sync is parked for V2.)
+
+         When the served-mode probe resolves to Static, an above-iframe
+         banner renders with the one-click command to enable the served
+         dashboard. The banner only renders on the static path; silence is
+         correct on Live. */
+      const PAYLOAD_TITLES = {
+        "plugins/ravenclaude-core/dashboard.html": "RavenClaude deep dashboard",
+        "repo-guide.html": "RavenClaude repo guide",
+      };
+      const SERVED_CMD = "python3 plugins/ravenclaude-core/scripts/serve-dashboards.py";
+      function bannerHTML() {
+        return `
+          <div class="payload-banner" role="status" aria-live="polite">
+            <span class="ico">${svg("info")}</span>
+            <span class="msg">Live data tabs require the served dashboard. Run <code>${esc(SERVED_CMD)}</code> to enable them.</span>
+            <button type="button" class="banner-copy" data-cmd="${esc(SERVED_CMD)}">Copy</button>
+          </div>`;
+      }
+      function injectBannerIfStatic(view) {
+        // Only insert if probe has resolved Static AND no banner is
+        // already mounted in this view container.
+        if (_servedMode !== false) return;
+        if (view.querySelector(".payload-banner")) return;
+        view.insertAdjacentHTML("afterbegin", bannerHTML());
+        const btn = view.querySelector(".payload-banner .banner-copy");
+        if (btn) {
+          btn.addEventListener("click", () => copyText(btn.dataset.cmd || SERVED_CMD, "Command"));
+        }
+      }
+      const _payloadLoaded = new Set();
+      function viewPayload(section, sub) {
+        const target = payloadFor(section);
+        if (!target) { viewHome(); return; }
+        // Reuse a single iframe per payload, keyed by target.
+        const slug = target.replace(/[^a-z0-9]+/gi, "-");
+        const id = `payload-frame-${slug}`;
+        const innerHash = sub ? `#/${section}/${sub}` : `#/${section}`;
+        const desiredSrc = target + innerHash;
+        const view = $("#view");
+        let frame = view.querySelector("#" + id);
+        if (!frame) {
+          // Replace #view contents with the iframe shell on first activation
+          // for THIS payload. We don't preserve other payloads' iframes when
+          // switching between Dashboard and Catalog at MVP — each first-load
+          // is a fetch; subsequent activations of the same payload reuse the
+          // memoized iframe (we mount it again into a fresh #view).
+          view.innerHTML = `<iframe id="${id}" title="${esc(PAYLOAD_TITLES[target] || target)}" loading="lazy" style="border:0;display:block;width:100%;height:calc(100vh - 0px);background:var(--bg)"></iframe>`;
+          frame = view.querySelector("#" + id);
+          frame.src = desiredSrc;
+          _payloadLoaded.add(target);
+        } else {
+          // Same payload already loaded — only update src if the entry-point
+          // route actually changed (avoids unnecessary reload when the user
+          // re-clicks the same nav item).
+          try {
+            const cur = new URL(frame.src, location.href);
+            const want = new URL(desiredSrc, location.href);
+            if (cur.pathname !== want.pathname || cur.hash !== want.hash) {
+              frame.src = desiredSrc;
+            }
+          } catch (_) {
+            frame.src = desiredSrc;
+          }
+        }
+        // Mode banner: render immediately if probe already resolved Static;
+        // otherwise schedule a deferred inject when the probe completes (the
+        // user is on a payload view so the banner is contextually correct).
+        injectBannerIfStatic(view);
+        if (_servedMode === null) {
+          probeServedMode().then(() => {
+            // Only inject if the user is still on a payload route — avoid
+            // injecting into a home/team/etc. view that mounted in the
+            // meantime.
+            if (payloadFor((location.hash.replace(/^#\/?/, "").split("/")[0]) || "home")) {
+              injectBannerIfStatic($("#view"));
+            }
+          });
+        }
+      }
+
       /* ---------------- ⌘K Command Palette ----------------
          Categorized search across plugins, specialists, skills, hooks,
          and a set of "Quick action" commands. Built once at init from D.
@@ -1701,18 +1874,30 @@
       function gotoSearch(m) { paletteAction(m); }
 
       /* ---------------- Router ---------------- */
+      // Payload-owned routes (dashboard.html / repo-guide.html) light up the
+      // matching nav item even though their sub-routes are iframe-private.
+      function resolveNavActive(section) {
+        if (NAV.some((n) => n.id === section)) return section;
+        const target = payloadFor(section);
+        if (target === "repo-guide.html") return "repo-guide";
+        if (target) return "dashboard";
+        return "home";
+      }
       function route() {
         const hash = location.hash.replace(/^#\/?/, "") || "home";
         const [section, sub] = hash.split("/");
-        renderNav(NAV.some((n) => n.id === section) ? section : "home");
+        renderNav(resolveNavActive(section));
         document.body.classList.remove("mobile-nav-open");
         switch (section) {
           case "team": viewTeam(); break;
           case "marketplace": viewMarketplace(sub); break;
           case "configuration": viewConfiguration(); break;
           case "resources": viewResources(); break;
-          case "home":
-          default: viewHome(); break;
+          case "home": viewHome(); break;
+          default:
+            if (payloadFor(section)) { viewPayload(section, sub); }
+            else { viewHome(); }
+            break;
         }
         $("#view").focus({ preventScroll: true });
         window.scrollTo({ top: 0 });
@@ -1772,6 +1957,10 @@
         else if (e.key === "/" && !inField) { e.preventDefault(); openPalette(); }
       });
 
+      // Kick off the served-mode probe once, eagerly — so by the time the
+      // user navigates to a payload route, _servedMode is usually resolved
+      // and the banner (if needed) shows without a flicker.
+      probeServedMode();
       route();
     </script>
   </body>

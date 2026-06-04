@@ -1284,7 +1284,18 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         )
 
     def _local_request_ok(self) -> bool:
-        """Refuse cross-origin / DNS-rebinding requests to the dashboard endpoints."""
+        """Refuse cross-origin / DNS-rebinding requests to the dashboard endpoints.
+
+        CRITICAL INVARIANT (unified dashboard shell, v0.114.0):
+        DO NOT add `Access-Control-Allow-Origin` headers to this server to
+        "help" the shell's served-mode probe in index.html. The shell HEAD-
+        probes `/__csrf` from `index.html` and treats the cross-origin reject
+        as the static-host signal — the FAILURE IS THE SIGNAL the banner
+        renders on. Adding ACAO headers would shatter that signal AND the
+        DNS-rebinding defense below. If a future contributor wants the
+        banner to behave differently on a public host, change the SHELL's
+        probe (in index.html near `probeServedMode`), never relax this guard.
+        """
         sfs = self.headers.get("Sec-Fetch-Site")
         if sfs is not None and sfs not in ("same-origin", "none"):
             return False

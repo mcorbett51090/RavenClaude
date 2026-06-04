@@ -213,7 +213,7 @@ def print_invocation(fixture: dict, arm: str) -> None:
     print(f"  ── Fixture {fixture['id']} · arm {arm} ──")
     print(f"     1. python3 scripts/eval-adaptive-classifier.py "
           f"--write-run-config {fixture['id']} {arm}")
-    print(f"     2. In Claude Code, run:")
+    print("     2. In Claude Code, run:")
     q_escaped = fixture["question"].replace('"', '\\"')
     print(f"        Workflow({{ name: 'deep-research', args: {{ "
           f'question: "{q_escaped}", '
@@ -492,8 +492,8 @@ def emit_report(grades: list[FixtureGrade], fixtures: dict) -> Path:
     lines: list[str] = []
     lines.append(f"# Adaptive Run Classifier — Eval Report {today}\n")
     lines.append(f"**Overall verdict:** **{overall}**\n")
-    lines.append(f"**Plan:** [`docs/plans/2026-06-03-adaptive-run-classifier/plan.md`]"
-                 f"(../../../docs/plans/2026-06-03-adaptive-run-classifier/plan.md) §Phase 5\n")
+    lines.append("**Plan:** [`docs/plans/2026-06-03-adaptive-run-classifier/plan.md`]"
+                 "(../../../docs/plans/2026-06-03-adaptive-run-classifier/plan.md) §Phase 5\n")
     lines.append(f"**Judge:** Haiku 4.5 via Batch API "
                  f"{fixtures['judge_pricing_marker']}\n")
     lines.append(f"**Grader thresholds:** vendor_docs ≤ ×{THRESH_VENDOR_DOCS_TOKEN_RATIO}; "
@@ -618,9 +618,9 @@ def self_test() -> int:
         fixture_id=fixture["id"], arm="baseline", run_id="syn-b",
         subagent_tokens=4_900_000, agent_count=103, duration_ms=2_160_000,
         confirmed_claim_count=22,
-        cache_read_input_tokens={p: 0 for p in PHASES_TO_REPORT},
-        input_tokens={p: 100_000 for p in PHASES_TO_REPORT},
-        cache_creation_input_tokens={p: 0 for p in PHASES_TO_REPORT},
+        cache_read_input_tokens=dict.fromkeys(PHASES_TO_REPORT, 0),
+        input_tokens=dict.fromkeys(PHASES_TO_REPORT, 100000),
+        cache_creation_input_tokens=dict.fromkeys(PHASES_TO_REPORT, 0),
         synthesis_text="A coherent baseline synthesis discussing solution-export.",
     )
     # Adaptive REGRESSES: tokens dropped only 10%, claim count fell by 5, verify
@@ -629,9 +629,9 @@ def self_test() -> int:
         fixture_id=fixture["id"], arm="adaptive", run_id="syn-a",
         subagent_tokens=4_400_000, agent_count=98, duration_ms=2_000_000,
         confirmed_claim_count=17,    # delta = 5, fails THRESH_CLAIM_DELTA_MAX=1
-        cache_read_input_tokens={p: 20_000 for p in PHASES_TO_REPORT},
-        input_tokens={p: 100_000 for p in PHASES_TO_REPORT},
-        cache_creation_input_tokens={p: 5_000 for p in PHASES_TO_REPORT},
+        cache_read_input_tokens=dict.fromkeys(PHASES_TO_REPORT, 20000),
+        input_tokens=dict.fromkeys(PHASES_TO_REPORT, 100000),
+        cache_creation_input_tokens=dict.fromkeys(PHASES_TO_REPORT, 5000),
         synthesis_text="Garbage.",
     )
     judge_scores = {

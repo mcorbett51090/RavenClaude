@@ -73,6 +73,20 @@ def main() -> int:
     expected = root - INTENTIONALLY_EXCLUDED
     missing = expected - plugin
 
+    # The unified-dashboard shell in index.html HEAD-probes /__csrf to detect
+    # served-vs-static mode. If that endpoint is ever renamed or dropped, the
+    # banner silently falls to Static even on a live host. Fail the gate
+    # loudly here so the rename surfaces immediately.
+    if "/__csrf" not in plugin:
+        print(
+            "DRIFT: the bundled plugin dashboard server no longer exposes /__csrf — "
+            "index.html's served-mode probe depends on this endpoint. If the endpoint "
+            "was intentionally renamed, update both serve-dashboards.py copies AND the "
+            "probe in index.html (search for `/__csrf` and `probeServedMode`).",
+            file=sys.stderr,
+        )
+        return 1
+
     if missing:
         print(
             "DRIFT: the bundled plugin dashboard server is missing endpoint(s) the root "
