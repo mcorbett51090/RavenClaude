@@ -44,7 +44,7 @@ For a district on a **July 1 fiscal year** (the dominant K-12 pattern; NY mandat
 | Days out | Calendar | Action | Owner | Output |
 |---|---|---|---|---|
 | **180** | **early January** | First renewal-prep internal review. Refresh champion map (assume superintendent turnover until verified — 23% YoY in top-500 districts `[high — EdWeek/AASA]`); pull YTD usage + outcome data; identify expansion candidates; confirm fiscal-year posture and any in-flight RFP risk. | PSM + RM | Renewal opportunity created in CRM; internal go/no-go on expansion; champion map refreshed |
-| **120** | **early March** | **Year-end impact deck drafting.** Districts on July fiscal year are entering spring budget-finalization. The deck must speak SETDA's 5 Quality Indicators vocabulary (Safe / Evidence-Based / Inclusive / Usable / Interoperable — see [`setda-quality-indicators-procurement-language.md`](setda-quality-indicators-procurement-language.md)). | PSM | Outcome story aligned to district's stated success criteria + SETDA-aligned evidence pack |
+| **120** | **early March** | **Year-end impact deck drafting.** Districts on July fiscal year are entering spring budget-finalization. The deck must speak SETDA's 5 Quality Indicators vocabulary (Safe / Evidence-Based / Inclusive / Usable / Interoperable — see ``setda-quality-indicators-procurement-language.md`` (deferred)). | PSM | Outcome story aligned to district's stated success criteria + SETDA-aligned evidence pack |
 | **90** | **early April** | **EBR / spring strategy meeting** with executive sponsor. This is the value-realization conversation. ChurnZero / Matik / Realm all converge on 60-90 days pre-renewal as the decisive QBR `[high — multiple]`. Lexia calls this the "Success Metrics Strategy Meeting" `[high]`. | PSM + Exec Sponsor | Verbal commit; expansion scoped |
 | **60** | **early May** | Proposal delivered. **Procurement starts in parallel** — K-12 procurement averages 6-11 months for 37% of districts, 12-17 months for another 22% `[high — NationGraph]`. Anything net-new from this point is a *next-year* conversation, not this renewal. | RM | Quote / order form into district procurement |
 | **30** | **early June** | Commercial execution only. POs flowing through district procurement; PSM in support mode for the RM. | RM | Signed renewal |
@@ -73,13 +73,13 @@ The 180-day checkpoint is **PSM-internal**. The partner is not in this meeting. 
 The deck the PSM is drafting at 120 days is the one the executive sponsor will see at the 90-day EBR. It must:
 
 - Tie measured outcomes to the **district's stated success criteria** (not the vendor's preferred metrics).
-- Use SETDA's 5 Quality Indicators vocabulary (Safe / Evidence-Based / Inclusive / Usable / Interoperable) — the language the academic-side champion will translate to the board. See [`setda-quality-indicators-procurement-language.md`](setda-quality-indicators-procurement-language.md).
+- Use SETDA's 5 Quality Indicators vocabulary (Safe / Evidence-Based / Inclusive / Usable / Interoperable) — the language the academic-side champion will translate to the board. See ``setda-quality-indicators-procurement-language.md`` (deferred).
 - Include comparative data — "47 of 52 schools hit ≥X minutes/student/week" — the cohort framing the superintendent uses to defend a line item.
 - Surface the LearnPlatform 43%-unused finding without being smug — the district is *not* asking the PSM to be told they wasted money; they are asking for evidence they didn't. See [`k12-spend-utilization-43pct.md`](k12-spend-utilization-43pct.md).
 
 ### 90-day checkpoint (early April) — the decisive EBR
 
-Use the EBR template at [`../templates/k12-ebr-template.md`](../templates/k12-ebr-template.md). The objective is *verbal commit* — Planhat's wording:
+Use the EBR template at ``../templates/k12-ebr-template.md`` (deferred). The objective is *verbal commit* — Planhat's wording:
 
 > "The Day 60 Quarterly Business Review (QBR) should be focused entirely on business outcomes, realized ROI, and future strategic goals. The objective here is to secure a verbal 'yes' to the renewal by proving undeniable value." `[high — Planhat]`
 
@@ -105,7 +105,7 @@ Renewal closes; the year-2 success plan must already be drafted (deliver it befo
 
 - The `partner-success-manager` agent, when asked "draft the renewal motion for partner X," must surface the **calendar dates** (not just day-counts) and identify which dead zones the motion bumps into. A 90-day EBR landing on a state-testing window is a re-schedule, not a meeting.
 - The `success-playbook-designer` agent, when refreshing the renewal play, anchors against the 90/60/30 segment Planhat owns and adds the K-12-specific 180/120 leading edges.
-- The `qbr-composer` agent, when composing the 90-day EBR, must align the deck structure to SETDA's 5 indicators and the district's stated success criteria — see [`../templates/k12-ebr-template.md`](../templates/k12-ebr-template.md).
+- The `qbr-composer` agent, when composing the 90-day EBR, must align the deck structure to SETDA's 5 indicators and the district's stated success criteria — see ``../templates/k12-ebr-template.md`` (deferred).
 - The `partner-profile-curator` agent must carry the renewal date *and the four checkpoint dates derived from it* in the partner profile.
 
 ---
@@ -116,7 +116,7 @@ Renewal closes; the year-2 success plan must already be drafted (deliver it befo
 - [`k12-renewal-calendar-jan-may.md`](k12-renewal-calendar-jan-may.md) — the Jan-May renewal calendar overlay + two dead zones
 - [`k12-superintendent-turnover-as-renewal-event.md`](k12-superintendent-turnover-as-renewal-event.md) — the position-mapping discipline
 - [`k12-spend-utilization-43pct.md`](k12-spend-utilization-43pct.md) — why the year-end impact report is a renewal-defense document
-- [`setda-quality-indicators-procurement-language.md`](setda-quality-indicators-procurement-language.md) — the procurement vocabulary the C&I audience uses
-- [`../templates/k12-ebr-template.md`](../templates/k12-ebr-template.md) — the 90-day EBR template
-- [`../templates/k12-renewal-conversation-script-180-day.md`](../templates/k12-renewal-conversation-script-180-day.md) — opener script
-- [`../templates/k12-renewal-conversation-script-90-day.md`](../templates/k12-renewal-conversation-script-90-day.md) — proposal-conversation script
+- ``setda-quality-indicators-procurement-language.md`` (deferred) — the procurement vocabulary the C&I audience uses
+- ``../templates/k12-ebr-template.md`` (deferred) — the 90-day EBR template
+- ``../templates/k12-renewal-conversation-script-180-day.md`` (deferred) — opener script
+- ``../templates/k12-renewal-conversation-script-90-day.md`` (deferred) — proposal-conversation script

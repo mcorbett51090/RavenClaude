@@ -27,7 +27,7 @@ GitHub issue [anthropics/claude-code#19739](https://github.com/anthropics/claude
 The two interventions that **broke** the loop in [13]:
 
 1. **Re-read spec before each step (not from memory)** — this skill.
-2. **Step-by-step verification with grep/diff required** — see [`outcome-evidence/SKILL.md`](../outcome-evidence/SKILL.md).
+2. **Step-by-step verification with grep/diff required** — see ``outcome-evidence/SKILL.md`` (deferred).
 
 Source: research §3c + §5 M-11.
 

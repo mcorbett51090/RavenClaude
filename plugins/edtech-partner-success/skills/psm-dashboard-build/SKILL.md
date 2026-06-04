@@ -7,7 +7,7 @@ confidence: high
 
 # Skill: psm-dashboard-build — the Codex onboarding roadmap
 
-**This is the first file you read when asked to "build the Partner Success Command Center" or any tier of the PSM dashboard.** Stop. Do not edit, write, or run a build until you have walked the four gates below in order. Skipping this file is the single highest-leverage anti-pattern documented in [`/tmp/research-codex-failure-modes.md`](/tmp/research-codex-failure-modes.md) §4 (T-3 silently-dropped requirements, T-7 lost-in-context, T-9 verification theater).
+**This is the first file you read when asked to "build the Partner Success Command Center" or any tier of the PSM dashboard.** Stop. Do not edit, write, or run a build until you have walked the four gates below in order. Skipping this file is the single highest-leverage anti-pattern documented in ``/tmp/research-codex-failure-modes.md`` (deferred) §4 (T-3 silently-dropped requirements, T-7 lost-in-context, T-9 verification theater).
 
 The PSM Command Center is a **multi-tier, multi-PR build**. Tiers ship sequentially. A Tier N PR that pulls Tier N+1 work in is rejected on sight — the boundary is what makes the build reviewable.
 
@@ -53,7 +53,7 @@ test -d plugins/edtech-partner-success/bi-report/lenses/motion && echo "T4 ✓" 
 
 ## Gate 2 — The mandatory read-list
 
-Read these in order. Quote, do not paraphrase. The "Quote, don't summarize" rule is the [`/tmp/research-codex-failure-modes.md`](/tmp/research-codex-failure-modes.md) §8 #5 mitigation against T-3 / T-7 / T-12.
+Read these in order. Quote, do not paraphrase. The "Quote, don't summarize" rule is the ``/tmp/research-codex-failure-modes.md`` (deferred) §8 #5 mitigation against T-3 / T-7 / T-12.
 
 1. **Strategic plan** — `docs/plans/2026-06-04-partner-success-command-center/plan.md` — the "why" and the success criteria. Quote §"Acceptance criteria" into your work log verbatim before writing a line of code.
 2. **Current tier's build plan** — the file named in Gate 1's table. Quote the §"Deliverables" list and the §"MUST-NOT" list verbatim.
@@ -71,7 +71,7 @@ Read these in order. Quote, do not paraphrase. The "Quote, don't summarize" rule
 
 ## Gate 3 — The anti-pattern catalog (DO NOT do these)
 
-Drawn from [`/tmp/research-codex-failure-modes.md`](/tmp/research-codex-failure-modes.md) §4 (the 12-row cross-tool taxonomy) and §8 (the 20 hardening additions). Each row maps to a `T-#` failure mode you will be reviewed against.
+Drawn from ``/tmp/research-codex-failure-modes.md`` (deferred) §4 (the 12-row cross-tool taxonomy) and §8 (the 20 hardening additions). Each row maps to a `T-#` failure mode you will be reviewed against.
 
 | # | Anti-pattern (DO NOT) | Maps to | The right move |
 |---|---|---|---|
@@ -94,7 +94,7 @@ A single hit against rows 1, 7, 8, 11, or 12 is a P0 review block. Rows 2–6 an
 
 ## Gate 4 — Wall-handling ladder
 
-When you hit a wall — a TypeScript error you can't fix, a test that fails after 3 attempts, a fixture mismatch, a missing field — do not "push forward." From [`/tmp/research-codex-failure-modes.md`](/tmp/research-codex-failure-modes.md) §8 #11.
+When you hit a wall — a TypeScript error you can't fix, a test that fails after 3 attempts, a fixture mismatch, a missing field — do not "push forward." From ``/tmp/research-codex-failure-modes.md`` (deferred) §8 #11.
 
 ```
 WHEN YOU HIT A WALL:
@@ -269,7 +269,7 @@ In those cases, this skill's gates do not bind — but Gate 3 (anti-pattern cata
 
 ## See also
 
-- [`/tmp/research-codex-failure-modes.md`](/tmp/research-codex-failure-modes.md) — the 12-row failure taxonomy + 20 hardening additions this skill encodes.
+- ``/tmp/research-codex-failure-modes.md`` (deferred) — the 12-row failure taxonomy + 20 hardening additions this skill encodes.
 - [`../../../ravenclaude-core/CLAUDE.md`](../../../ravenclaude-core/CLAUDE.md) §Capability Grounding Protocol + §Last-Mile Completion Protocol + §Claim Grounding & Source Honesty.
 - [`../../../ravenclaude-core/skills/agent-quality-rubric/SKILL.md`](../../../ravenclaude-core/skills/agent-quality-rubric/SKILL.md) — the rubric the PR is reviewed against on agent-touching changes.
 - [`../health-report-dashboard/SKILL.md`](../health-report-dashboard/SKILL.md) — the precedent self-contained-HTML pattern (stdlib + hand-rolled SVG + vanilla JS).

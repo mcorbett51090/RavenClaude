@@ -2,7 +2,7 @@
 
 > Reference skeleton for the Tier 1 (single-PSM) rendering layer. Codex copies this tree, customizes per the spec in `docs/research/2026-06-04-partner-success-dashboard-requirements/spec.md`, and ships a Cloudflare-Pages-hostable static site.
 >
-> Source: [/tmp/research-rendering-layer.md §1.1 + §6](Evidence is the v0 recommendation: SQL+Markdown, 2–4h to first dashboard, $0 infra, lowest lock-in.)
+> Source: `/tmp/research-rendering-layer.md §1.1 + §6` (deferred)
 
 ## Directory tree
 

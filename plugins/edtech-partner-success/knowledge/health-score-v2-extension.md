@@ -38,7 +38,7 @@ The v1 schema is well-established and corroborated against [`partner-health-scor
 
 ## 2. The gap (why extend)
 
-Cross-vendor synthesis (research §3.1, [`/tmp/research-psm-dashboards-k12.md`](/tmp/research-psm-dashboards-k12.md) — accessed 2026-06-04) shows two components are present in every major CSP rubric but absent from the v1 schema:
+Cross-vendor synthesis (research §3.1, ``/tmp/research-psm-dashboards-k12.md`` (deferred) — accessed 2026-06-04) shows two components are present in every major CSP rubric but absent from the v1 schema:
 
 - **Support load** — Gainsight (10%), Planhat, Totango (Support & Operations: tickets, SLA), ChurnZero, Vitally (25%). Practitioner consensus: support-ticket-velocity + unresolved-P1-count is one of the highest-correlation leading indicators of churn ([SupportLogic — Support Health Score](https://www.supportlogic.com/resources/blog/support-health-score-unifying-customer-support-success/); [Vitally — 4 Metrics](https://www.vitally.io/post/how-to-create-a-customer-health-score-with-four-metrics), both accessed 2026-06-04).
 - **Financial / payment health** — partial coverage at Gainsight, Planhat, ChurnZero, Vitally. Captures renewal posture, contract amendments, payment status, ESSER-funding-source flag.

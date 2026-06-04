@@ -7,9 +7,9 @@ confidence: high
 
 # K-12 EdTech spend utilization — the 43%-unused finding
 
-> **Last reviewed:** 2026-06-04. Sources: LearnPlatform / Instructure — *EdTech Top 40 report* (primary, `[high]`); Instructure press release — *Districts more selective amid budget crisis* (`[high]`); Evelyn Learning — *The hidden cost of EdTech sprawl* citing the LearnPlatform data (`[high — secondary]`). Refresh when: (a) the next LearnPlatform / Instructure EdTech Top 40 report ships (annual cadence — typically Q1 release with prior-year data), (b) the underlying methodology changes (LearnPlatform Chrome-extension panel is the data source — methodology shifts would update [`enhancement-k12-signal-taxonomy.md`](enhancement-k12-signal-taxonomy.md) too), or (c) the ESSER-cliff effect on district spending posture normalizes.
+> **Last reviewed:** 2026-06-04. Sources: LearnPlatform / Instructure — *EdTech Top 40 report* (primary, `[high]`); Instructure press release — *Districts more selective amid budget crisis* (`[high]`); Evelyn Learning — *The hidden cost of EdTech sprawl* citing the LearnPlatform data (`[high — secondary]`). Refresh when: (a) the next LearnPlatform / Instructure EdTech Top 40 report ships (annual cadence — typically Q1 release with prior-year data), (b) the underlying methodology changes (LearnPlatform Chrome-extension panel is the data source — methodology shifts would update ``enhancement-k12-signal-taxonomy.md`` (deferred) too), or (c) the ESSER-cliff effect on district spending posture normalizes.
 >
-> **Scope.** Why year-end impact reporting is a *renewal-defense* artifact, not a courtesy artifact. The renewal-motion sequence itself lives in [`k12-renewal-motion-90-60-30.md`](k12-renewal-motion-90-60-30.md); the year-end impact report template lives at [`../templates/k12-year-end-impact-report.md`](../templates/k12-year-end-impact-report.md).
+> **Scope.** Why year-end impact reporting is a *renewal-defense* artifact, not a courtesy artifact. The renewal-motion sequence itself lives in [`k12-renewal-motion-90-60-30.md`](k12-renewal-motion-90-60-30.md); the year-end impact report template lives at ``../templates/k12-year-end-impact-report.md`` (deferred).
 
 ---
 
@@ -55,7 +55,7 @@ The report needs to do three things — none of them optional:
 
 1. **Tie measured outcomes to the district's stated success criteria** (the ones established in onboarding; refreshed at the 180-day checkpoint). Not the vendor's preferred metrics.
 2. **Provide comparative framing** — within-district (47 of 52 schools), within-cohort (vs. peer districts), within-history (vs. last year's baseline). One of these three at minimum; ideally all three.
-3. **Speak SETDA's 5 Quality Indicators language** (Safe / Evidence-Based / Inclusive / Usable / Interoperable — see [`setda-quality-indicators-procurement-language.md`](setda-quality-indicators-procurement-language.md)) so the academic-side champion can translate the report directly to the board narrative.
+3. **Speak SETDA's 5 Quality Indicators language** (Safe / Evidence-Based / Inclusive / Usable / Interoperable — see ``setda-quality-indicators-procurement-language.md`` (deferred)) so the academic-side champion can translate the report directly to the board narrative.
 
 A report that does the first two without the third is functional. A report that does the third without the first two is marketing. A report that does all three is renewal-defense.
 
@@ -97,8 +97,8 @@ A report delivered July 15 is a report no one reads.
 
 - [`k12-renewal-motion-90-60-30.md`](k12-renewal-motion-90-60-30.md) — the 120-day deck-drafting checkpoint
 - [`k12-renewal-calendar-jan-may.md`](k12-renewal-calendar-jan-may.md) — the delivery deadline + the two dead zones
-- [`setda-quality-indicators-procurement-language.md`](setda-quality-indicators-procurement-language.md) — the procurement vocabulary the report must use
+- ``setda-quality-indicators-procurement-language.md`` (deferred) — the procurement vocabulary the report must use
 - [`psm-metrics-glossary.md`](psm-metrics-glossary.md) — license-utilization definition + EdTech overlay
 - [`partner-health-decline-which-play.md`](partner-health-decline-which-play.md) — when the impact report is the wrong artifact (bottom-quartile / recovery path)
-- [`../templates/k12-year-end-impact-report.md`](../templates/k12-year-end-impact-report.md) — the template implementing this discipline
-- [`../templates/k12-ebr-template.md`](../templates/k12-ebr-template.md) — the 90-day EBR that previews the report's evidence stack
+- ``../templates/k12-year-end-impact-report.md`` (deferred) — the template implementing this discipline
+- ``../templates/k12-ebr-template.md`` (deferred) — the 90-day EBR that previews the report's evidence stack

@@ -14,7 +14,7 @@ refresh_triggers:
 
 # Where do CS metrics live? — the "one number, one place" rule
 
-> **Last reviewed:** 2026-06-04. Research-distilled from `/tmp/research-dbt-semantic-layer.md` (54 sources, dbt + Cube + Hightouch + Tobiko + community commentary). Refresh triggers above. Pair with [`cube-vs-dbt-semantic-layer-decision-tree.md`](../templates/cube-vs-dbt-semantic-layer-decision-tree.md) for the embedded-vs-internal-only call.
+> **Last reviewed:** 2026-06-04. Research-distilled from `/tmp/research-dbt-semantic-layer.md` (54 sources, dbt + Cube + Hightouch + Tobiko + community commentary). Refresh triggers above. Pair with ``cube-vs-dbt-semantic-layer-decision-tree.md`` (deferred) for the embedded-vs-internal-only call.
 
 ## The rule
 
@@ -94,7 +94,7 @@ What it does *not* do:
 - **Not an embedded-analytics layer.** The JDBC/GraphQL surface is for BI tools and notebooks, not for serving an external customer-facing app at scale.
 - **No first-class pre-aggregation engine.** Performance depends on the underlying warehouse + caching tier; there is no Cube-Store-equivalent rollup store.
 
-For when to promote to Cube, see [`cube-vs-dbt-semantic-layer-decision-tree.md`](../templates/cube-vs-dbt-semantic-layer-decision-tree.md).
+For when to promote to Cube, see ``cube-vs-dbt-semantic-layer-decision-tree.md`` (deferred).
 
 ---
 
@@ -170,7 +170,7 @@ From the research source-honesty notes:
 
 ## See also
 
-- [`cube-vs-dbt-semantic-layer-decision-tree.md`](../templates/cube-vs-dbt-semantic-layer-decision-tree.md) — when to promote to Cube
+- ``cube-vs-dbt-semantic-layer-decision-tree.md`` (deferred) — when to promote to Cube
 - [`../skills/dbt-project-scaffolding/SKILL.md`](../skills/dbt-project-scaffolding/SKILL.md) — staging/intermediate/marts/metrics layer discipline
 - [`../skills/cube-schema-scaffolding/SKILL.md`](../skills/cube-schema-scaffolding/SKILL.md) — when Cube is justified
 - [`../../edtech-partner-success/knowledge/partner-health-score-drift.md`](../../edtech-partner-success/knowledge/partner-health-score-drift.md) — what happens when the score lives in the wrong place and drifts silently

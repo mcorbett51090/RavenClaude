@@ -9,7 +9,7 @@ confidence: high
 
 > **Last reviewed:** 2026-06-04. Sources: EdWeek — *Superintendent Turnover Is Up* (`[high]`); K-12 Dive citing AASA on 5.4-year median tenure (`[high]`); Council of the Great City Schools on 2.7-year urban tenure (`[high]`); District Administration on 2024-25 record-high turnover (`[high]`); Pedagogue — *EdTech persevering through superintendent turnover* on position-mapping discipline (`[high]`). Refresh when: (a) the next AASA / EdWeek annual turnover report ships, (b) a district-consolidation wave changes the top-500 cohort, or (c) urban-district tenure normalizes back toward pre-pandemic 4+ year baseline.
 >
-> **Scope.** *Why* superintendent turnover is a renewal event, and *how* the PSM operationalizes against it. The renewal-motion sequence itself lives in [`k12-renewal-motion-90-60-30.md`](k12-renewal-motion-90-60-30.md); the champion map four-role taxonomy lives in [`k12-champion-triangle.md`](k12-champion-triangle.md) (planned). This file is the *durability* discipline.
+> **Scope.** *Why* superintendent turnover is a renewal event, and *how* the PSM operationalizes against it. The renewal-motion sequence itself lives in [`k12-renewal-motion-90-60-30.md`](k12-renewal-motion-90-60-30.md); the champion map four-role taxonomy lives in ``k12-champion-triangle.md`` (deferred) (planned). This file is the *durability* discipline.
 
 ---
 
@@ -34,7 +34,7 @@ Pedagogue's framing (paraphrased from `[high — Pedagogue]`):
 
 > Beyond the superintendent, key positions include directors of finance, human resources, and curriculum & instruction. These key leaders can help you stay the course during superintendent turnover.
 
-**The detection asymmetry.** When a superintendent (or CTO, or curriculum director) is on the way out — *internally* announced, but not yet publicly — the diagnostic pattern is: **admin engagement drops while teacher usage continues flat or up.** The seat-holder has mentally checked out; the building-level users haven't been told yet. See [`enhancement-k12-signal-taxonomy.md`](enhancement-k12-signal-taxonomy.md) §4 `admin_disengagement_with_teacher_usage_holding` for the alert flag.
+**The detection asymmetry.** When a superintendent (or CTO, or curriculum director) is on the way out — *internally* announced, but not yet publicly — the diagnostic pattern is: **admin engagement drops while teacher usage continues flat or up.** The seat-holder has mentally checked out; the building-level users haven't been told yet. See ``enhancement-k12-signal-taxonomy.md`` (deferred) §4 `admin_disengagement_with_teacher_usage_holding` for the alert flag.
 
 **Why this matters at renewal.** The incoming superintendent arrives with their own vendor relationships. The contract that was championed by the predecessor may be:
 
@@ -92,7 +92,7 @@ The handoff-notes flag is a mandatory line in [`../templates/partner-profile.md`
 
 A diagnostic worth pinning to the analyst's dashboard:
 
-> **When admin/decision-maker engagement drops while teacher usage continues flat or up** — this is the signature of a leadership transition that hasn't yet been announced. Source: [User Intuition — Education Churn Playbook](https://www.userintuition.ai/posts/the-education-churn-playbook-what-edtech-gets-wrong/) (referenced in [`enhancement-k12-signal-taxonomy.md`](enhancement-k12-signal-taxonomy.md) §4).
+> **When admin/decision-maker engagement drops while teacher usage continues flat or up** — this is the signature of a leadership transition that hasn't yet been announced. Source: [User Intuition — Education Churn Playbook](https://www.userintuition.ai/posts/the-education-churn-playbook-what-edtech-gets-wrong/) (referenced in ``enhancement-k12-signal-taxonomy.md`` (deferred) §4).
 
 The `learning-analytics-analyst` should surface this divergence as a leading-indicator alert; the `partner-success-manager` triages by checking BoardDocs / state press / EdSurge for transition signals; the `partner-profile-curator` updates the cabinet-map and re-runs the position-mapping discipline against the (possibly soon-to-be-vacant) seat.
 
@@ -103,6 +103,6 @@ The `learning-analytics-analyst` should surface this divergence as a leading-ind
 - [`k12-renewal-motion-90-60-30.md`](k12-renewal-motion-90-60-30.md) — the 180-day checkpoint where the cabinet-map refresh fires
 - [`renewal-pricing-conversations-edtech.md`](renewal-pricing-conversations-edtech.md) — confirm named decision-maker every quarter (23% turnover citation appears here too)
 - [`partner-health-score-drift.md`](partner-health-score-drift.md) §"Champion change not captured" — the score-component that operationalizes champion alive-in-role
-- [`enhancement-k12-signal-taxonomy.md`](enhancement-k12-signal-taxonomy.md) §4 — the leadership-turnover signal class with the diagnostic alert flag
+- ``enhancement-k12-signal-taxonomy.md`` (deferred) §4 — the leadership-turnover signal class with the diagnostic alert flag
 - [`../templates/partner-profile.md`](../templates/partner-profile.md) — the durable record carrying the cabinet map + STABLE/WATCH/ACTIVE flag
 - [`../templates/renewal-decision-memo.md`](../templates/renewal-decision-memo.md) — the 180-day memo where the flag is restated
