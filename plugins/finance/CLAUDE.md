@@ -245,3 +245,10 @@ When in doubt, the finance team **declines and asks the Team Lead** rather than 
   - **`regulatory-compliance`** — the **audit / controls / SOC seam**, reciprocal to that plugin's note. Finance work for a regulated entity routinely surfaces compliance concerns (sanctions, AML, regulatory capital, supervisory-return inputs); and the controls muscle is shared — finance's `audit-prep-specialist` runs the *external-audit* PBC/walkthrough/SOC playbook while regulatory's `examination-prep-specialist` runs the *regulator-exam* one, and regulatory's `risk-and-controls-specialist` maps the same controls to *regulatory citations*. When a finance control narrative needs the regulatory citation behind it, or a capital-adequacy figure needs the Basel standard, route to that plugin (its [`basel-framework.md`](../regulatory-compliance/knowledge/basel-framework.md) owns the capital ratios; `risk-and-controls-specialist` owns control-to-citation mapping). **If `regulatory-compliance` is NOT installed**, finance still owns the close/controls/audit-readiness work — but flag any regulatory determination (a licence rule, a capital-ratio minimum, an AML threshold, a finding's regulatory severity) as needing a regulatory SME, and don't infer it from the finance side.
   - See [`../../docs/plugin-roadmap-analysis.md`](../../docs/plugin-roadmap-analysis.md) for the marketplace plan.
 - Marketplace-wide developer guide: [`../../CLAUDE.md`](../../CLAUDE.md)
+
+
+## Adjacent plugins (added 2026-06-04)
+
+Reciprocal seam to the adjacent-plugins build-out:
+
+- Payment & billing *systems* engineering (PSP integration, subscriptions/usage billing, money-safe ledgers, PCI scope) → `fintech-payments-engineering`; it emits clean money/revenue events that this plugin turns into recognition (ASC 606) and GL.

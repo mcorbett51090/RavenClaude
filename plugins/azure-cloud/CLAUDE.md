@@ -163,3 +163,10 @@ No bundled MCP. The agents recommend and emit code against the **Azure CLI** (`a
 - Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md)
 - The Logic-Apps↔Power-Automate seam: [`../power-platform/CLAUDE.md`](../power-platform/CLAUDE.md)
 - Build provenance: [`../../docs/azure-cloud-plugin-analysis.md`](../../docs/azure-cloud-plugin-analysis.md)
+
+
+## Adjacent plugins (added 2026-06-04)
+
+Reciprocal seam to the adjacent-plugins build-out:
+
+- Multi-cloud peers and IaC: AWS specifics → `aws-cloud`, GCP specifics → `gcp-cloud`; cloud-agnostic IaC (Terraform/OpenTofu, modules, state, policy-as-code) → `terraform-iac`; running workloads on AKS/containers → `cloud-native-kubernetes`.

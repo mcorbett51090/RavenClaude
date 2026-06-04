@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for technical-writing-docs. Auto-merged with the consumer's session hooks on install. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-technical-writing-docs-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags 3 mechanically-detectable technical-writing-docs anti-patterns. Set DOCS_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}
