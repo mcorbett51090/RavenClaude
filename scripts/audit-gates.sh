@@ -425,7 +425,7 @@ echo
 echo "── Gate 12: marketplace-claims (required files + skill counts) ────────────"
 # must_fail (a): a wrong skill count in a plugin.json must be detected.
 backup plugins/data-platform/.claude-plugin/plugin.json
-python3 -c "p='plugins/data-platform/.claude-plugin/plugin.json';s=open(p).read();open(p,'w').write(s.replace('12 skills','99 skills',1))"
+python3 -c "p='plugins/data-platform/.claude-plugin/plugin.json';s=open(p).read();open(p,'w').write(s.replace('13 skills','99 skills',1))"
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (wrong skill count)" must_fail "$rc"
 cp -p "$TMP/plugins_data-platform_.claude-plugin_plugin.json.bak" plugins/data-platform/.claude-plugin/plugin.json
@@ -464,7 +464,7 @@ cp -p "$TMP/README.md.bak" README.md
 # (the catalog prose describing core) must be detected — previously ungated, it
 # silently drifted to "20 skills" while core had 22 (caught by the v0.74.0 panel).
 backup .claude-plugin/marketplace.json
-python3 -c "p='.claude-plugin/marketplace.json';s=open(p).read();open(p,'w').write(s.replace('33 skills','20 skills',1))"
+python3 -c "p='.claude-plugin/marketplace.json';s=open(p).read();open(p,'w').write(s.replace('34 skills','20 skills',1))"
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (wrong metadata.description skill count)" must_fail "$rc"
 cp -p "$TMP/.claude-plugin_marketplace.json.bak" .claude-plugin/marketplace.json

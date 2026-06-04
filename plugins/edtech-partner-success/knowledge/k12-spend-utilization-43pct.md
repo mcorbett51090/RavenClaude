@@ -93,6 +93,35 @@ A report delivered July 15 is a report no one reads.
 
 ---
 
+## 6a. 2026 refresh — disambiguating utilization metrics + procurement maturity (added 2026-06-04)
+
+The 43% figure is correctly anchored to LearnPlatform / Instructure research, but two distinct numbers get conflated:
+
+| Metric | Value | Denominator | What it measures |
+|---|---|---|---|
+| **EdTech utilization waste** | **43%** | Total EdTech *investment* (licenses + features + access + adjacent costs) | Share of dollars spent that produces no measurable usage |
+| **Unused licenses** | **27%** | *Issued licenses* (LearnPlatform's narrower figure) | Share of seats never activated |
+
+Both are real; they measure different things. Quote with the denominator explicit.
+
+### Dollar translation
+
+Mid-sized district loss estimate: **$200K-$400K/year** to unused licenses + hidden costs (per LearnPlatform / Instructure analysis). `[verify-at-use — 2026-06-04]`
+
+### 2026 procurement-maturity context — why the waste persists despite better processes
+
+- **86% of districts vet free tools before classroom use** (CoSN 2026, up sharply from prior years).
+- **65% require IT review.**
+- **61% maintain approved-app lists.**
+
+The 43% waste figure is materializing **despite** this maturity — districts have processes but lack enforcement bandwidth. This shifts the PSM motion:
+- **Before 2026:** "you bought it, please use it" was a valid PSM frame.
+- **2026 forward:** "your procurement is mature; let's hit the activation/usage gap together" is the credible frame.
+
+The **71% of K-12 buyers citing cost as primary keep/cut driver** (EdWeek Market Brief 2026) is the corollary. PSMs need to lead with utilization-evidence and cost-justification at every renewal, not occasionally.
+
+---
+
 ## 7. References
 
 - [`k12-renewal-motion-90-60-30.md`](k12-renewal-motion-90-60-30.md) — the 120-day deck-drafting checkpoint
