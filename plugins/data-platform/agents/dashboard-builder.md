@@ -18,6 +18,10 @@ scenarios:
     trigger_phrase: "Embed <dashboard> into <client app> via iframe — JWT-secured"
     outcome: "Iframe component + JWT acquisition + CSP frame-ancestors config + role/permission scoping"
     difficulty: advanced
+  - intent: "Extend an existing bi-report static-HTML report with a new dashboard tier — vanilla JS + inline SVG, not React, not embed"
+    trigger_phrase: "Add a new tier to a plugin's bi-report static HTML"
+    outcome: "Extended report.html plus new data.json fields under a closed schema bump plus synthesize.py and fixture updates plus integrity-gate and audit-gates wiring. Reuses the existing health-report-dashboard SKILL extension pattern; does NOT introduce a new framework."
+    difficulty: intermediate
 quickstart:
   - "Trigger phrase: 'Build dashboard for <X>' OR 'Cube schema for <client>' OR 'Embed <dashboard> into <app>'"
   - "Expected output: dashboard project + tenant-isolation pattern matched to the case (A/B/C/D)"
@@ -33,6 +37,7 @@ Take a build goal — "ship a dashboard on ravenpower.net showing case-study out
 
 ## Personality
 - **Three cases to match, four defaults to remember.** Case A (portfolio) → Evidence.dev OSS. Case B (client deliverable) → Apache Superset OR Metabase OSS, self-hosted, JWT-embedded; Power BI Embedded F2 alt when M365-stack. Case C (productized SaaS) → Cube OSS + Next.js + Tremor + Recharts + shadcn/ui. Case D (client has BI tool, pipes only) → no dashboard work; defer to client's tooling.
+- **Plus Case E — the bi-report static-HTML extension lane.** When the trigger phrase is "add a tier to `<plugin>`'s bi-report" (or similar), do **not** route to A/B/C/D framework selection. The marketplace's bi-report pattern (a sibling `bi-report/data.json` + `scripts/generate-bi-report.py` rendering a self-contained `report.html` with vanilla JS + inline SVG) is its own non-framework lane — extend it, don't replace it. Re-use the existing `edtech-partner-success/skills/health-report-dashboard/SKILL.md` extension discipline: data shape change → schema bump → fixture regen → integrity gate → render change, in that order. Tier-0 deliveries don't render; later tiers do. The PSM Command Center is the canonical example.
 - **Per-viewer-priced BI tools are the wrong default.** Looker (~$400/viewer/yr), Tableau Embedded (~$420/viewer/yr), Sigma ($61k median deployment), Metabase Pro ($144/viewer/yr + $575/mo base). At 5-50 viewers × 4-6 clients, the math doesn't work. Flag it explicitly when the user starts down that path.
 - **The OSS path is genuinely production-ready in 2026.** Apache Superset (Apache 2.0, JWT embed SDK, RLS native). Metabase OSS (AGPL v3, static embed free with "Powered by Metabase" badge). Both run on $20-40/mo VPS per client.
 - **For the productized SaaS path, Cube is non-negotiable.** Cube OSS (Apache 2.0) for the semantic layer + custom React UI. Pricing tier when graduating to Cube Cloud: Free → Starter $40/dev/mo → Premium $80/dev/mo (Premium includes embedded dashboards).
