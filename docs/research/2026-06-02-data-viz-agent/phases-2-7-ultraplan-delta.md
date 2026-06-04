@@ -71,8 +71,9 @@ Resolved by reality: Q1 (sequencing — linter shipped first ✓), Q4 (gate numb
 >
 > No action required either way.
 
+**Q3 resolved 2026-06-04 (Matt's call): `finance_context` ONLY.** The PR introduces the YAML frontmatter block with the single `finance_context: ibcs|none` key (default `none`) and a template comment marking the block as the extension point. Do NOT add `default_stack` / `wcag_level` / `brand_kit` or any other key in this PR — those land later, the first time a real engagement needs one. (`environment-discovery` skill exists — G-PRE-1 ✓ — so the IBCS auto-trigger path is viable.)
+
 **Still open for the run / Matt:**
-- **Q3** — `environment-context.md` schema: this PR adds `finance_context: ibcs|none` (Phase 3.4); decide whether other keys join in the same PR or that bloats scope. (`environment-discovery` skill exists — G-PRE-1 ✓ — so the IBCS auto-trigger path is viable.)
 - **Q5** — deadline for the cross-marketplace WebFetch-hardening follow-up so the floor doesn't live only here.
 - Plus the design choices the build-plan TODO markers defer (IBCS auto-trigger vs explicit-only; the `stack` enum surface as a YAML preamble).
 
