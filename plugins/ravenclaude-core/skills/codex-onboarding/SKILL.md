@@ -87,5 +87,5 @@ A codex-onboarding invocation succeeds when:
 - [`../wall-handling/SKILL.md`](../wall-handling/SKILL.md) — memory-wall recovery.
 - [`../spec-reread-ritual/SKILL.md`](../spec-reread-ritual/SKILL.md) — anti-drift mechanic.
 - [`../../CLAUDE.md`](../../CLAUDE.md) — the team constitution this skill mirrors.
-- [`../../../AGENTS.md`](../../../AGENTS.md) — canonical cross-tool guidance (read this first).
+- `AGENTS.md` (at the repo root) — canonical cross-tool guidance (read this first).
 - [`docs/best-practices/2026-q1-q2-failure-modes.md`](../../../../docs/best-practices/2026-q1-q2-failure-modes.md) — the H1 2026 failure-mode catalog.

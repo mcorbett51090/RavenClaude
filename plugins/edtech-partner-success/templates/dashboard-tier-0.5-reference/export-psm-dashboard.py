@@ -32,10 +32,11 @@ import os
 import re
 import sys
 import tempfile
+from collections.abc import Iterable
 from contextlib import contextmanager
 from datetime import date
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 import snowflake.connector  # type: ignore[import-untyped]
 
@@ -206,7 +207,7 @@ def validate_against_schema(payload: dict[str, Any], schema_path: Path) -> None:
     except ImportError:
         sys.stderr.write("ERROR: --validate requires `jsonschema`.\n")
         sys.exit(2)
-    with open(schema_path, "r", encoding="utf-8") as f:
+    with open(schema_path, encoding="utf-8") as f:
         schema = json.load(f)
     js.validate(instance=payload, schema=schema)
 
