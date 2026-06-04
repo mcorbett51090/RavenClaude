@@ -1,0 +1,3 @@
+# Span Availability Zones by default; go multi-region by requirement
+
+A single-AZ deployment takes a routine AZ disruption as a full outage, and AZs are AWS's cheapest, simplest resilience boundary — spread subnets, run at least two replicas across them, and let managed services (RDS Multi-AZ, ELB, ASG) handle the failover. This buys high availability for little more than the data-transfer cost. Resist the urge to jump straight to multi-region: it multiplies cost, doubles the operational surface, and forces hard choices about data replication and consistency. Reserve multi-region for a stated RTO/RPO or latency requirement that AZ-level redundancy genuinely can't meet. Multi-AZ is the default; multi-region is a justified, designed-for posture, never a reflex.

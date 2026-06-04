@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "our migration locked the table in prod"
     outcome: "A diagnosis of the locking DDL and a safe re-do (concurrent index / nullable add / batched backfill), plus the rollback"
     difficulty: "troubleshooting"
+  - intent: "Backfill a huge table safely"
+    trigger_phrase: "backfill this new column across 200M rows without melting the DB"
+    outcome: "A throttled, batched, resumable backfill plan that respects replication lag and locks, kept idempotent so a restart is safe"
+    difficulty: "advanced"
+  - intent: "Order migrations with a deploy"
+    trigger_phrase: "how do I sequence this migration with the code deploy?"
+    outcome: "An expand/contract step-to-deploy mapping (additive-before-code, contract-after-switch) coordinated with release-engineer, each step reversible"
+    difficulty: "starter"
 quickstart: "Describe the schema change and the table's traffic. The agent returns an expand/contract, lock-aware, batched, reversible migration sequence mapped to deploys — coordinated with devops-cicd."
 ---
 

@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "is this architecture well-architected?"
     outcome: "A pillar-by-pillar review naming the trade-offs and the highest-leverage improvements, with build handed to terraform-iac"
     difficulty: "troubleshooting"
+  - intent: "Choose a database service"
+    trigger_phrase: "RDS, Aurora, or DynamoDB for this workload?"
+    outcome: "A data-service recommendation traced through the tree (relational vs key-value, scale, HA need) with the trade named, deep schema modeling routed to database-engineering"
+    difficulty: "advanced"
+  - intent: "Set a resilience posture"
+    trigger_phrase: "what's our DR posture — multi-AZ or multi-region?"
+    outcome: "A stated RTO/RPO with a multi-AZ-by-default design, multi-region only where the requirement justifies the cost, and a tested backup/restore plan"
+    difficulty: "advanced"
 quickstart: "Describe the workload and org. The agent returns the account topology, Well-Architected service choices with named trades, AZ/region + resilience posture, and the build hand-off to terraform-iac."
 ---
 

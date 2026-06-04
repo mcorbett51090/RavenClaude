@@ -1,0 +1,3 @@
+# Optimize images and fonts — they dominate the page weight
+
+On most pages images and fonts outweigh the JavaScript, and they're the cheapest wins. Serve responsive, modern-format images (AVIF/WebP) sized to their display box, set explicit `width`/`height` (or `aspect-ratio`) to reserve space and stop CLS, lazy-load below-the-fold media, and eagerly prioritise the LCP image — use the framework's image component, which does most of this for you. For fonts: subset to the glyphs you use, self-host or preconnect, use `font-display: swap` to avoid invisible text, and preload the one face that renders above the fold. An un-budgeted hero image or a render-blocking web font wrecks LCP and CLS no amount of code-splitting will recover.

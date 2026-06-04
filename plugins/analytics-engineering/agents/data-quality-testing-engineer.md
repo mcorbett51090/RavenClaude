@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "enforce a stable contract on our key marts"
     outcome: "dbt model contracts (column names/types/constraints) on the consumer-facing models so upstream changes can't silently break them"
     difficulty: "advanced"
+  - intent: "Gate on source freshness"
+    trigger_phrase: "stop us from building marts when the source didn't load"
+    outcome: "Source-freshness assertions with SLAs that fail the build on stale/partial loads, traced through the freshness tree, so stale data isn't served as current"
+    difficulty: "advanced"
+  - intent: "Decide blocking vs alerting tests"
+    trigger_phrase: "a flaky test keeps failing our whole dbt build"
+    outcome: "A test-severity triage: which tests block the build vs warn-and-alert, with critical invariants kept blocking and noisy non-critical checks moved to alerting"
+    difficulty: "troubleshooting"
 quickstart: "Tell the agent the models and where bad data has slipped through. It returns dbt tests on the key columns, source freshness gating, model contracts at boundaries, business-invariant tests, and anomaly detection."
 ---
 

@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "package this app with Helm for multiple environments"
     outcome: "A Helm chart (or Kustomize base+overlays) with versioned values per environment and no forked manifests"
     difficulty: "starter"
+  - intent: "Fix flapping probes"
+    trigger_phrase: "our pods keep restarting and traffic hits dead pods"
+    outcome: "Corrected liveness/readiness/startup probes with the right thresholds and a startup probe protecting a slow boot, fixing both the restart loop and the bad routing"
+    difficulty: "troubleshooting"
+  - intent: "Supply a secret to a workload"
+    trigger_phrase: "how should this pod get its database password?"
+    outcome: "A secret-source decision traced through the tree (workload identity vs CSI driver vs External Secrets), mounted as a file not an env var, with the manifest never holding the value"
+    difficulty: "advanced"
 quickstart: "Tell the agent what the app is and how it behaves (stateful? bursty? scheduled?). It returns the workload kind, probes, requests/limits with QoS, autoscaling, a PDB, and a declarative package."
 ---
 

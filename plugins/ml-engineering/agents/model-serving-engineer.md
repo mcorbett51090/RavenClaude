@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "deploy a new model version without risk"
     outcome: "A shadow -> canary -> full rollout from the registry, with the promotion metric and rollback, comparison significance routed to applied-statistics"
     difficulty: "advanced"
+  - intent: "Set a promotion gate"
+    trigger_phrase: "what should our model promotion criteria be?"
+    outcome: "A pre-committed promotion gate (metric, threshold, population) enforced at the registry boundary, with lift-vs-noise routed to applied-statistics"
+    difficulty: "advanced"
+  - intent: "Fix a model deployed off-registry"
+    trigger_phrase: "nobody knows which model version is actually in production"
+    outcome: "A registry-as-source-of-truth fix: serving pulls a registered version with known lineage, promotion goes through the gate, and rollback is a version switch"
+    difficulty: "troubleshooting"
 quickstart: "Tell the agent the model and use case. It returns the online-vs-batch choice, a versioned serving setup from the registry, latency optimization to a budget, and a shadow/canary rollout."
 ---
 

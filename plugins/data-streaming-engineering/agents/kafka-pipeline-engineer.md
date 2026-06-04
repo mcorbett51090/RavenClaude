@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "stream changes from our Postgres into Kafka"
     outcome: "A Debezium CDC pipeline (with the outbox coordinated via backend-engineering) that avoids dual-writes and preserves order per key"
     difficulty: "advanced"
+  - intent: "Choose a compatibility mode"
+    trigger_phrase: "what schema compatibility mode should we set?"
+    outcome: "A compatibility-mode choice traced through the tree (upgrade order, breaking-vs-additive) registered and enforced, with a new-topic migration path for genuinely breaking changes"
+    difficulty: "advanced"
+  - intent: "Stop duplicate processing"
+    trigger_phrase: "our consumer is processing some messages twice"
+    outcome: "A redelivery diagnosis (offset-commit timing, rebalance) with idempotency keys/upserts on the consumer and a dead-letter queue for poison messages"
+    difficulty: "troubleshooting"
 quickstart: "Tell the agent the data and ordering/throughput needs. It returns topic/partition design keyed for ordering, schema-registry governance, correct producer/consumer config, and CDC pipelines that avoid dual-writes."
 ---
 

@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "our stream processor keeps falling behind"
     outcome: "A backpressure + scaling diagnosis (bottleneck operator, state size), the fix, and consumer-lag monitoring wired to observability-sre"
     difficulty: "troubleshooting"
+  - intent: "Pick a window type"
+    trigger_phrase: "tumbling, sliding, or session window for this?"
+    outcome: "A window-type choice traced through the tree (the analytical question), event-time with watermark, bounded state, and an explicit late-data policy"
+    difficulty: "advanced"
+  - intent: "Recover state after a crash"
+    trigger_phrase: "our processor lost its window state on restart"
+    outcome: "A checkpointing fix: coordinated state + offset checkpoints at a tuned interval so a restart resumes consistently instead of double-counting or losing the in-flight window"
+    difficulty: "troubleshooting"
 quickstart: "Tell the agent the processing logic and symptom. It returns event-time windowing with watermarks, explicit late-data handling, checkpointed/bounded state, correct joins, and backpressure handling."
 ---
 

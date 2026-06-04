@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "reduce churn from failed subscription payments"
     outcome: "A dunning strategy (smart retries for soft declines, comms, grace period, cancel path) coordinated with payments-integration-engineer"
     difficulty: "troubleshooting"
+  - intent: "Get proration right"
+    trigger_phrase: "handle mid-cycle upgrades and downgrades correctly"
+    outcome: "Proration math on plan changes in integer minor units (credit unused time, charge the new rate), with the resulting revenue events emitted cleanly for finance"
+    difficulty: "advanced"
+  - intent: "Reduce involuntary churn"
+    trigger_phrase: "dunning is churning customers who wanted to stay"
+    outcome: "A dunning flow that recovers involuntary failures (retry soft declines on a smart schedule, stop on hard, grace period, clear fix-it comms) without dunning satisfied customers"
+    difficulty: "troubleshooting"
 quickstart: "Describe the pricing model. The agent returns plans + correct proration, idempotent usage metering, a reliable billing cycle, dunning, and clean revenue events — accounting handed to finance."
 ---
 

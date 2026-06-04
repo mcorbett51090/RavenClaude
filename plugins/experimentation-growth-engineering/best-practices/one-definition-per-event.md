@@ -1,0 +1,3 @@
+# One definition per event and metric, owned and documented
+
+When 'active user' or 'purchase' means one thing in the funnel chart and another in the experiment readout, every cross-analysis quietly lies and the org wastes weeks arguing about whose dashboard is right. Each event and each metric gets exactly one canonical definition — what triggers it, what it includes and excludes, what its properties mean — with a named owner and a place that definition lives. Fire the event from one instrumented spot, not re-derived in three clients with three subtly different conditions. The cost of a duplicated or ambiguous definition isn't a wrong number once; it's the slow erosion of trust in all the numbers, after which people stop using the data and go back to opinions.

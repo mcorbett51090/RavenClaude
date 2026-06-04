@@ -1,0 +1,3 @@
+# Quarantine with an owner and a deadline, never a graveyard
+
+Quarantining a flaky test out of the required gate restores the suite's signal — but a quarantine lane with no exit becomes a graveyard of forgotten tests that quietly stop protecting anything. Make the policy explicit: every quarantined test gets a named owner and a deadline, still runs (so its history accrues) but doesn't block merges, and is visible on a dashboard the team actually looks at. At the deadline it gets fixed, or it gets *deleted* with a reason — a test nobody will fix is protecting nothing and lying about it. Cap the quarantine size, too: if the lane keeps growing, the flakiness is systemic (shared state, a racy environment) and needs an infrastructure fix, not more individual quarantines.

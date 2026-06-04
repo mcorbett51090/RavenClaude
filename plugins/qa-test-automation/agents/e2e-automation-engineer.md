@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "set up Playwright for this app"
     outcome: "A Playwright setup with fixtures, resilient-selector conventions, the critical-journey list, and CI integration notes for devops-cicd"
     difficulty: "starter"
+  - intent: "Choose the right test double for a flow"
+    trigger_phrase: "should this E2E hit the real payment API or a mock"
+    outcome: "A double-selection call traced through the mock/stub/fake/real tree — real or virtualized where the dependency is the point, a fake/stub at boundaries you don't own — so the test verifies behavior without over-mocking or hitting flaky externals"
+    difficulty: "advanced"
+  - intent: "Add accessibility checks to E2E"
+    trigger_phrase: "can our Playwright tests also catch accessibility regressions"
+    outcome: "An axe-style a11y scan wired into the critical-journey runs that gates the mechanical WCAG failures, framed as a floor that complements (not replaces) real assistive-tech testing"
+    difficulty: "starter"
 quickstart: "Tell the agent the app and the journeys that must not break. It returns deterministic Playwright/Cypress tests with resilient selectors, condition-based waits, isolated data, and a maintainable structure."
 ---
 

@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "add coverage and mutation reporting to CI"
     outcome: "Coverage (as a floor) + mutation testing on critical modules wired into CI with thresholds and a report"
     difficulty: "starter"
+  - intent: "Shard a slow suite for fast feedback"
+    trigger_phrase: "our test run takes 40 minutes and blocks every merge"
+    outcome: "A sharding plan that splits the suite across runners by historical timing, runs independent levels concurrently, and targets wall-clock — keeping the valuable tests while cutting the wait, before deleting anything"
+    difficulty: "advanced"
+  - intent: "Stand up service virtualization"
+    trigger_phrase: "our tests fail because a third-party sandbox is flaky"
+    outcome: "A service-virtualization setup (WireMock/recorded contracts) that replaces the flaky external boundary with a deterministic stub, so tests stop depending on someone else's uptime"
+    difficulty: "advanced"
 quickstart: "Describe your test data, environments, and flake pain. The agent returns isolated test-data factories, ephemeral environments, automated flake quarantine, parallelization, and coverage+mutation reporting."
 ---
 

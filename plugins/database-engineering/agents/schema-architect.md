@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "are these the right constraints and types?"
     outcome: "A constraint/type review that makes illegal states unrepresentable (NOT NULL, FK, CHECK) and fixes loose types"
     difficulty: "starter"
+  - intent: "Model for the access pattern"
+    trigger_phrase: "this schema is clean but the main query needs a six-table join"
+    outcome: "A remodel driven by the actual reads (keys, relationship shape, a covering index or materialized view) that keeps integrity while serving the hot path"
+    difficulty: "advanced"
+  - intent: "Fix loose nullability"
+    trigger_phrase: "half our columns are nullable and aggregates are coming out wrong"
+    outcome: "A nullability review tightening columns to NOT NULL with sensible defaults, NULL reserved for genuinely-unknown, and the three-valued-logic traps named"
+    difficulty: "starter"
 quickstart: "Describe the domain and access patterns. The agent returns a normalized schema with full constraints and precise types, denormalizing only where measured and naming the cost — tuning handed to query-performance-engineer."
 ---
 

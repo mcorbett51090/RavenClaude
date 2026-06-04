@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "how do we upgrade our cluster without breaking things"
     outcome: "An upgrade plan: deprecated-API audit, non-prod test, PDB-respecting drain, version-skew adherence, and rollback posture"
     difficulty: "troubleshooting"
+  - intent: "Enforce policy at admission"
+    trigger_phrase: "block privileged pods and latest tags clusterwide"
+    outcome: "Kyverno/Gatekeeper policies plus a Pod Security Admission profile, rolled out audit-then-enforce so existing violations surface before the gate hard-fails"
+    difficulty: "advanced"
+  - intent: "Stop a noisy-neighbor namespace"
+    trigger_phrase: "one team's pods keep starving the cluster"
+    outcome: "A ResourceQuota capping the namespace's total CPU/memory/objects plus a LimitRange supplying default and max per-container requests/limits, so unset pods get sane values"
+    difficulty: "troubleshooting"
 quickstart: "Tell the agent the cluster's tenants and constraints. It returns namespaces + scoped RBAC, default-deny NetworkPolicies, quotas, admission policy, and a tested upgrade plan."
 ---
 

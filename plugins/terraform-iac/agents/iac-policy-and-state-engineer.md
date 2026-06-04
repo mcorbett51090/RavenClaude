@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "safely bring existing infra under Terraform"
     outcome: "An import plan with state snapshot first, the import + config reconciliation, and a clean plan verifying parity"
     difficulty: "troubleshooting"
+  - intent: "Set up drift detection"
+    trigger_phrase: "alert us when prod drifts from Terraform"
+    outcome: "A scheduled plan-only drift check that alerts on divergence, plus the codify-vs-import-vs-revert policy so apply never silently reverts a hand-fix"
+    difficulty: "advanced"
+  - intent: "Scope the CI runner identity"
+    trigger_phrase: "our Terraform pipeline runs as admin"
+    outcome: "A least-privilege, OIDC-federated runner role scoped to what the state manages, plan/apply split where supported, isolated per blast-radius — no standing admin or long-lived keys"
+    difficulty: "advanced"
 quickstart: "Tell the agent your backend and compliance needs. It returns a safe remote-state design (locked/encrypted/isolated), drift detection, policy-as-code guardrails on the plan, and careful import/state-surgery steps."
 ---
 

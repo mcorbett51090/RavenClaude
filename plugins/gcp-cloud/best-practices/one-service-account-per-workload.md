@@ -1,0 +1,3 @@
+# One purpose-built service account per workload
+
+Don't run everything as the default Compute Engine service account — it starts over-privileged (Editor on the project in legacy setups) and shares one identity across unrelated workloads, so a single compromise has the access of all of them and the audit log can't tell them apart. Create a dedicated, narrowly-scoped service account per workload, grant it only the predefined roles its job needs, and attach it via Workload Identity (GKE) or the instance/service identity rather than a downloaded key. Disable the default SA or strip its roles. A per-workload identity makes least privilege actually achievable, gives you per-workload audit trails, and bounds the blast radius of any one compromise to that workload alone.

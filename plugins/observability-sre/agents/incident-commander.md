@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "we have no incident process, set one up"
     outcome: "A severity matrix, the IC/comms/ops role definitions, the comms template, and the postmortem + action-item-tracking workflow"
     difficulty: "starter"
+  - intent: "Run a clean incident handoff"
+    trigger_phrase: "I've been on this incident for six hours and need to hand it off"
+    outcome: "A structured handoff: current state, what's been tried, the active hypothesis, open action items, and the comms cadence — so context survives the role change instead of dying in a Slack scroll"
+    difficulty: "advanced"
+  - intent: "Coordinate a suspected security incident"
+    trigger_phrase: "this outage looks like it might be an attack, not a bug"
+    outcome: "The reliability-vs-security fork handled: preserve evidence, loop security-engineering/security-reviewer for the verdict, and run comms with the tighter disclosure discipline a security incident demands"
+    difficulty: "troubleshooting"
 quickstart: "In a live incident, give the agent the symptom and impact — it returns severity, roles, comms cadence, and a mitigate-first plan. After, it writes the blameless postmortem with owned action items."
 ---
 

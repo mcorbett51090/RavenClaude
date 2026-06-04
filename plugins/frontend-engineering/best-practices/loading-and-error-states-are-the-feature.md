@@ -1,0 +1,3 @@
+# Loading and error states are part of the feature
+
+Every async boundary has three states, not one — pending, error, and success — and shipping only the happy path means the app shows a blank screen on a slow network and a white crash on a failed fetch. Design the loading state (skeletons that match the final layout to avoid layout shift, not a centred spinner that jumps) and the error state (a message plus a retry, not a thrown exception) before the success state. Wrap subtrees in error boundaries so one component's render failure degrades a region instead of blanking the page, and use Suspense or your data layer's status flags to declare loading where it belongs. An interface with no error UI is an interface that works only in the demo.

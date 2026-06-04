@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "we can't tell which downstream call is slow"
     outcome: "A distributed-tracing setup with the critical path instrumented and an exemplar-linked latency dashboard pointing at the slow span"
     difficulty: "advanced"
+  - intent: "Design a trace sampling strategy"
+    trigger_phrase: "we can't afford to trace everything but keep missing the slow requests"
+    outcome: "A tail-based sampling design in the collector that keeps errored and slow traces while downsampling the fast-success majority, with consistent sampling across services so traces aren't half-captured"
+    difficulty: "advanced"
+  - intent: "Fix a dashboard nobody uses"
+    trigger_phrase: "we have 40 panels and still can't tell if the service is healthy"
+    outcome: "A rebuild around the question each panel answers, led by the four golden signals, with the noise pruned so the dashboard supports a decision instead of decorating a wall"
+    difficulty: "starter"
 quickstart: "Tell the agent the service, the stack, and what you can't currently see. It returns an OpenTelemetry instrumentation plan with sampling, cardinality control, and pillar correlation, plus a question-driven dashboard."
 ---
 

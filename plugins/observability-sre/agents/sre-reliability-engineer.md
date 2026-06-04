@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "should we keep shipping features or stabilize"
     outcome: "An error-budget readout and the policy-driven decision (budget remaining -> ship; exhausted -> freeze + reliability work)"
     difficulty: "starter"
+  - intent: "Reduce toil eating the team"
+    trigger_phrase: "we spend all our time on manual ops and never do engineering"
+    outcome: "A toil measurement that categorizes and quantifies the operational load, a ceiling to hold it under, and a ranked plan to automate the measured high-toil tasks (or delete the ones that shouldn't exist)"
+    difficulty: "advanced"
+  - intent: "Make on-call sustainable"
+    trigger_phrase: "our on-call rotation is burning people out"
+    outcome: "A humane-rotation design with a pages-per-shift cap treated as a config defect when breached, a real handoff ritual, and follow-the-sun scheduling where the team's geography allows"
+    difficulty: "starter"
 quickstart: "Give the agent the service and its user expectations. It returns user-centric SLIs, SLO targets with an error-budget policy, and multi-window burn-rate alerts that page only on real, actionable pain."
 ---
 

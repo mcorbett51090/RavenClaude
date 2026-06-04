@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "ensure we never lose an event when the write fails"
     outcome: "An outbox-table-in-the-same-transaction design with a relay publisher, eliminating the dual-write loss/phantom"
     difficulty: "advanced"
+  - intent: "Place a transaction boundary"
+    trigger_phrase: "where should the transaction begin and commit here?"
+    outcome: "A short transaction scoped in the data layer (never across HTTP or an external call), with the read-modify-write race and lock-hold cost addressed"
+    difficulty: "advanced"
+  - intent: "Fix pool exhaustion"
+    trigger_phrase: "we keep hitting connection-acquisition timeouts under load"
+    outcome: "A diagnosis (connections held across slow calls / pool undersized) and the fix — acquire late, release early, never hold a connection across external I/O, pool sized to the DB"
+    difficulty: "troubleshooting"
 quickstart: "Describe the data-access pain (N+1, caching, transactions, events). The agent returns a repository layer with explicit transaction boundaries, N+1 fixes, cache-aside with invalidation + stampede protection, and the outbox pattern."
 ---
 

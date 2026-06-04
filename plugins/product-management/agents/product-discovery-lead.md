@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "run customer discovery for this problem space"
     outcome: "A continuous-discovery plan (JTBD interview guide, cadence, opportunity-solution tree) to validate the problem before solutioning"
     difficulty: "starter"
+  - intent: "Build an opportunity-solution tree"
+    trigger_phrase: "map opportunities and solutions for this outcome"
+    outcome: "An opportunity-solution tree rooted in one outcome, branched into customer opportunities then candidate solutions and tests, making which opportunity we're betting on explicit and arguable"
+    difficulty: "advanced"
+  - intent: "Design a riskiest-assumption test"
+    trigger_phrase: "what's the cheapest way to test if this will work?"
+    outcome: "The assumption stack ranked by harm-if-wrong x uncertainty, and the cheapest experiment (fake door / concierge / prototype) to falsify the top one before any build"
+    difficulty: "troubleshooting"
 quickstart: "Describe the idea or problem space. The agent returns an assumption map with the riskiest assumption and a cheap test, an opportunity-solution tree, and PRDs framed as problems + outcomes."
 ---
 

@@ -40,6 +40,63 @@ graph TD
 ```
 
 
+## Decision Tree: Server component or client component?
+
+Default to a server component; reach for `"use client"` only where the browser is genuinely needed.
+
+```mermaid
+graph TD
+  A[A component in the tree] --> B{Needs state, effects, event handlers, or browser APIs?}
+  B -- No --> C[Server component - default; no JS shipped]
+  B -- Yes --> D{Can the interactive part be a small leaf?}
+  D -- Yes --> E[Push 'use client' down to that leaf only]
+  D -- No, whole subtree is interactive --> F{Does it need server-only data/secrets?}
+  F -- Yes --> G[Fetch on the server; pass data down as props to the client island]
+  F -- No --> H[Client component is fine here]
+  E --> I[Keep server parents passing serializable props in]
+  G --> I
+```
+
+_Marking a high node `"use client"` forces its whole subtree to the client and ships their JS — keep the boundary as low and as small as the interactivity actually requires._
+
+## Decision Tree: Client-side or server-side data fetching?
+
+Fetch on the server by default; fetch on the client only when the data depends on the client.
+
+```mermaid
+graph TD
+  A[Data a view needs] --> B{Known at request time, same per request shape?}
+  B -- Yes --> C{Needs SEO or fast first paint?}
+  C -- Yes --> D[Server fetch - RSC/loader; render with data present]
+  C -- No, behind login app shell --> E{Refetch/realtime/optimistic interactions?}
+  E -- Yes --> F[Client server-cache lib - TanStack Query/SWR]
+  E -- No --> D
+  B -- No, depends on client state/interaction --> F
+  F --> G[Parallelize independent fetches - avoid waterfalls]
+  D --> G
+```
+
+_Effect-based fetching deep in a leaf is the waterfall trap: the child can't start until the parent renders. Hoist and parallelize, or fetch on the server._
+
+## Decision Tree: Optimistic update or wait for the server?
+
+Show instant feedback when the write almost always succeeds and a rollback is cheap.
+
+```mermaid
+graph TD
+  A[A mutation from the UI] --> B{Does the user need instant feedback?}
+  B -- No --> C[Pending state + spinner; commit on server confirm]
+  B -- Yes --> D{High success rate and a clear final state?}
+  D -- No, often fails / multi-step --> C
+  D -- Yes --> E{Can you cleanly roll back on failure?}
+  E -- No --> C
+  E -- Yes --> F[Optimistic update: apply locally, then reconcile]
+  F --> G[On error: roll back + surface a retry]
+  F --> H[On success: invalidate/refetch to reconcile server truth]
+```
+
+_Optimistic UI is a bet that the write succeeds; only take it when the rollback is clean and the failure rate low, or you'll flicker the user's data on every error._
+
 ## Capability map (dated — verify at build)
 
 | Capability | 2026 state `[verify-at-build]` | Notes |

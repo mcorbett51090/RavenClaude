@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "our feature flags are a mess and never get removed"
     outcome: "A flag-debt audit (owners, removal dates, stale flags), a removal plan, and a lifecycle policy to prevent recurrence"
     difficulty: "troubleshooting"
+  - intent: "Separate deploy from release"
+    trigger_phrase: "we want to deploy code without turning it on yet"
+    outcome: "A deploy-dark / release / launch separation via flags, so code ships inert, releases to a slice, and launches by a flip — each independently reversible"
+    difficulty: "advanced"
+  - intent: "Pick the right control mechanism"
+    trigger_phrase: "should this be a feature flag, config, or an experiment?"
+    outcome: "A mechanism choice (experiment flag / ops kill switch / permission flag / release flag / plain config) matched to intent, not a flag for everything"
+    difficulty: "starter"
 quickstart: "Tell the agent the rollout or flag-debt situation. It returns flags typed by purpose, targeted progressive rollout with kill switches, and a lifecycle policy that prevents flag debt."
 ---
 

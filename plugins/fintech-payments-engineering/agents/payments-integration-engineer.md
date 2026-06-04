@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "handle our payment webhooks correctly"
     outcome: "Signature verification + event-id dedupe + idempotent handlers driving the state machine, tolerant of out-of-order at-least-once delivery"
     difficulty: "advanced"
+  - intent: "Handle declines correctly"
+    trigger_phrase: "our decline handling retries everything blindly"
+    outcome: "Decline handling that branches on the issuer reason code — smart retry for soft declines, stop + ask for a new method on hard — with actionable customer messaging to recover conversions"
+    difficulty: "troubleshooting"
+  - intent: "Model the charge state machine"
+    trigger_phrase: "our payment status is a mess of boolean flags"
+    outcome: "An explicit charge state machine (created/requires_action/authorized/captured/refunded/disputed) with idempotent transitions driven by verified webhooks, surviving out-of-order at-least-once delivery"
+    difficulty: "advanced"
 quickstart: "Tell the agent the PSP and the integration need. It returns idempotent payment operations, verified + idempotent webhook handling, 3DS/SCA, and an explicit charge state machine — posting to the architect's ledger."
 ---
 

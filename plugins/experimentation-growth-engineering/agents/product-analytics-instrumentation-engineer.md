@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "tie anonymous and logged-in user activity together"
     outcome: "An identity-stitching design (anonymous id -> user id on identify) so funnels/attribution survive the login boundary"
     difficulty: "advanced"
+  - intent: "Resolve conflicting metric definitions"
+    trigger_phrase: "active user means something different in every chart"
+    outcome: "One canonical definition per event/metric with a named owner, fired from a single place, so cross-analysis stops lying and trust in the data returns"
+    difficulty: "troubleshooting"
+  - intent: "Validate events as code"
+    trigger_phrase: "stop bad events from polluting our analytics"
+    outcome: "Schema validation of events against the tracking plan in CI/runtime, rejecting off-convention or mistyped events before they reach the warehouse"
+    difficulty: "starter"
 quickstart: "Tell the agent the analytics need or data mess. It returns a tracking plan with a consistent typed event schema, identity stitching, CDP routing, and event-quality guards — feeding clean data to the warehouse."
 ---
 

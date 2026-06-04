@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "how should we get database changes into the stream?"
     outcome: "A CDC design (Debezium / transactional outbox) that avoids dual-writes, coordinated with backend-engineering"
     difficulty: "advanced"
+  - intent: "Plan a replay strategy"
+    trigger_phrase: "how do we reprocess history if we ship a bug?"
+    outcome: "A replay/recovery design traced through the tree (retention window, compacted changelog vs source-of-record backfill, idempotent consumers, offset-reset plan) built in before it's needed"
+    difficulty: "advanced"
+  - intent: "Scope an exactly-once claim"
+    trigger_phrase: "can we guarantee exactly-once end to end?"
+    outcome: "A hop-by-hop guarantee trace naming where exactly-once actually holds, with idempotent sinks at non-transactional boundaries and the throughput cost of EOS named"
+    difficulty: "advanced"
 quickstart: "Describe the latency need and sources. The agent returns an honest streaming-vs-batch decision, and if streaming, the topology, platform choice, delivery semantics, and CDC approach."
 ---
 

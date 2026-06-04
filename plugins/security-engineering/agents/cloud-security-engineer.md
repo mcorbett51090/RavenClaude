@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "stop people from creating public buckets"
     outcome: "Policy-as-code guardrails (OPA / cloud policy) that deny the misconfiguration at deploy time, wired via terraform-iac"
     difficulty: "advanced"
+  - intent: "Set secure-by-default account baselines"
+    trigger_phrase: "new accounts start wide open and we harden them later"
+    outcome: "A secure-default baseline (encryption on, public access blocked, logging enabled, least-privilege roles) shipped as the account/landing-zone default, with the insecure option a deliberate, logged opt-out"
+    difficulty: "advanced"
+  - intent: "Shrink lateral-movement blast radius"
+    trigger_phrase: "if one of our instances is compromised, can the attacker reach everything"
+    outcome: "An assume-breach segmentation review: network boundaries that bound lateral movement, service-to-service authN/Z, and a per-credential blast-radius map with the worst over-grants closed — verdicts routed to security-reviewer"
+    difficulty: "advanced"
 quickstart: "Tell the agent the cloud and the scope. It returns a blast-radius-ranked misconfiguration audit, a least-privilege IAM rewrite, exposure closures, and preventive policy-as-code guardrails — verdicts routed to security-reviewer."
 ---
 
