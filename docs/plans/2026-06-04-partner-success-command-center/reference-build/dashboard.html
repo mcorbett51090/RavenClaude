@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Partner Success Command Center</title>
+    <meta name="color-scheme" content="light" />
+    <style>
+      :root {
+        --bg: #f5f6f8;
+        --surface: #ffffff;
+        --surface-2: #eef0f3;
+        --border: #e3e6ea;
+        --border-strong: #d2d7dd;
+        --text: #1c1f23;
+        --muted: #5b6166;
+        --faint: #8e959c;
+        --teal: #1f7f78;
+        --ok: #1f7a3f;
+        --ok-bg: #e6f3ea;
+        --warn: #9a7010;
+        --warn-bg: #f6ecd6;
+        --danger: #b03f3f;
+        --danger-bg: #fbe5e5;
+        --font-sans:
+          "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+          sans-serif;
+        --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        --shadow-xs: 0 1px 2px rgba(20, 28, 40, 0.04);
+        --shadow-sm: 0 1px 2px rgba(20, 28, 40, 0.04), 0 1px 3px rgba(20, 28, 40, 0.06);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: var(--font-sans);
+        color: var(--text);
+        background: var(--bg);
+        -webkit-font-smoothing: antialiased;
+        line-height: 1.5;
+      }
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(245, 246, 248, 0.9);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border);
+        padding: 14px 28px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .topbar h1 {
+        font-size: 1.15rem;
+        margin: 0;
+        letter-spacing: -0.02em;
+      }
+      .topbar .meta {
+        font-size: 0.78rem;
+        color: var(--faint);
+      }
+      .legend {
+        margin-left: auto;
+        display: flex;
+        gap: 12px;
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .sw {
+        width: 11px;
+        height: 11px;
+        border-radius: 3px;
+        display: inline-block;
+      }
+      main {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 24px 28px 64px;
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--shadow-xs);
+        padding: 22px 24px;
+        margin-bottom: 20px;
+      }
+      .card h2 {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        margin: 0 0 16px;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+        gap: 12px;
+      }
+      .stat {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 16px;
+        background: var(--surface);
+      }
+      .stat .num {
+        font-size: 1.7rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .stat .lbl {
+        font-size: 0.74rem;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .snap {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 18px;
+      }
+      .snap .big {
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .snap .lbl {
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.88rem;
+      }
+      th {
+        text-align: left;
+        padding: 8px 10px;
+        border-bottom: 2px solid var(--border-strong);
+        color: var(--muted);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      td {
+        padding: 9px 10px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+      tr.top5 td {
+        background: rgba(31, 127, 120, 0.04);
+      }
+      tr:hover td {
+        background: var(--surface-2);
+      }
+      .chip {
+        display: inline-block;
+        min-width: 30px;
+        text-align: center;
+        padding: 2px 9px;
+        border-radius: 999px;
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        font-weight: 600;
+      }
+      .pname {
+        font-weight: 600;
+        color: var(--teal);
+        cursor: default;
+      }
+      .why .sig {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        color: var(--muted);
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 1px 5px;
+        margin-left: 4px;
+      }
+      .cal {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .cal li {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .cal li:last-child {
+        border-bottom: 0;
+      }
+      .cal .days {
+        font-family: var(--font-mono);
+        font-weight: 600;
+        min-width: 58px;
+      }
+      .cal .what {
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+      .note {
+        font-size: 0.76rem;
+        color: var(--faint);
+        margin-top: 12px;
+      }
+      .g {
+        color: var(--ok);
+      }
+      .y {
+        color: var(--warn);
+      }
+      .r {
+        color: var(--danger);
+      }
+      .chip.g {
+        background: var(--ok-bg);
+        color: var(--ok);
+      }
+      .chip.y {
+        background: var(--warn-bg);
+        color: var(--warn);
+      }
+      .chip.r {
+        background: var(--danger-bg);
+        color: var(--danger);
+      }
+      #error {
+        display: none;
+        max-width: 640px;
+        margin: 80px auto;
+        text-align: center;
+      }
+      #error code {
+        font-family: var(--font-mono);
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 2px 8px;
+        display: inline-block;
+        margin-top: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>Partner Success Command Center</h1>
+      <span class="meta" id="generated"></span>
+      <div class="legend">
+        <span><span class="sw" style="background: var(--ok)"></span>green ≥ <b id="lg-g"></b></span>
+        <span
+          ><span class="sw" style="background: var(--warn)"></span>yellow <b id="lg-y"></b
+        ></span>
+        <span
+          ><span class="sw" style="background: var(--danger)"></span>red &lt; <b id="lg-r"></b
+        ></span>
+      </div>
+    </header>
+
+    <main id="app"></main>
+
+    <div id="error">
+      <h2>Couldn't load <code>./data/data.json</code></h2>
+      <p class="note" style="font-size: 0.92rem">
+        Most browsers block <code>fetch()</code> of a local file opened via <code>file://</code>.
+        Serve the folder instead — from this directory run:
+      </p>
+      <code>python3 -m http.server 8000</code>
+      <p class="note" style="font-size: 0.92rem">
+        then open <code>http://localhost:8000/dashboard.html</code>.
+      </p>
+    </div>
+
+    <script>
+      const fmtDate = (s) =>
+        s
+          ? new Date(s).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })
+          : "—";
+      const daysUntil = (s) => Math.round((new Date(s) - new Date(D.generated_at)) / 86400000);
+      let D = null;
+
+      function bandClass(score, bands) {
+        if (score == null) return "";
+        if (score >= bands.green_min) return "g";
+        if (score >= bands.yellow_min) return "y";
+        return "r";
+      }
+      function avg(arr) {
+        return arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+      }
+
+      function render() {
+        const P = D.partners,
+          bands = D.bands,
+          W = D.priority_weights;
+        document.getElementById("generated").textContent =
+          "Data refreshed " + fmtDate(D.generated_at);
+        document.getElementById("lg-g").textContent = bands.green_min;
+        document.getElementById("lg-y").textContent =
+          bands.yellow_min + "–" + (bands.green_min - 1);
+        document.getElementById("lg-r").textContent = bands.yellow_min;
+
+        // ── Usage decline: compare first vs last week of usage_daily per partner ──
+        const declining = new Set();
+        const byAcct = {};
+        D.usage_daily.forEach((u) => (byAcct[u.account_uid] ||= []).push(u));
+        Object.entries(byAcct).forEach(([uid, rows]) => {
+          rows.sort((a, b) => a.date.localeCompare(b.date));
+          const first = rows.slice(0, 7),
+            last = rows.slice(-7);
+          if (
+            first.length &&
+            last.length &&
+            avg(last.map((r) => r.active_users)) < avg(first.map((r) => r.active_users)) * 0.95
+          )
+            declining.add(uid);
+        });
+
+        const inRenewal = (p) => daysUntil(p.renewal_date) <= 120;
+        const noTouch90 = (p) => daysUntil(p.last_touchpoint_at) <= -90;
+
+        // ── 1. Portfolio Summary ──
+        const summary = [
+          ["Total", P.length],
+          [
+            "Active",
+            P.filter((p) => p.lifecycle_stage !== "Renewal" || daysUntil(p.renewal_date) > 0)
+              .length,
+          ],
+          ["Top 15", P.filter((p) => p.top15_status).length],
+          ["In Renewal Window", P.filter(inRenewal).length],
+          ["At Risk", P.filter((p) => p.health_score < bands.yellow_min).length],
+          ["Open Escalations", P.reduce((a, p) => a + (p.open_escalations || 0), 0)],
+          ["Need Outreach", P.filter(noTouch90).length],
+        ];
+
+        // ── 2. Health Snapshot ──
+        const snap = [
+          ["Avg Health", avg(P.map((p) => p.health_score)), true],
+          ["Avg Sentiment", avg(P.map((p) => p.sentiment_score)), true],
+          ["Avg Engagement", avg(P.map((p) => p.engagement_score)), true],
+          ["Declining Usage", declining.size, false],
+          ["No Touchpoint 90+ d", P.filter(noTouch90).length, false],
+        ];
+
+        // ── 3. Daily Action Center ──
+        const sorted = [...P].sort((a, b) => b.priority_score - a.priority_score);
+        const topSignal = (p) => {
+          let best = null,
+            bestV = -1;
+          for (const k in W) {
+            const v = (p.priority_breakdown[k] || 0) * W[k];
+            if (v > bestV) {
+              bestV = v;
+              best = k;
+            }
+          }
+          const total = Object.keys(W).reduce(
+            (a, k) => a + (p.priority_breakdown[k] || 0) * W[k],
+            0,
+          );
+          const pct = total
+            ? Math.round(((p.priority_breakdown[best] * W[best]) / total) * 100)
+            : 0;
+          return best + " " + pct + "%";
+        };
+
+        // ── 4. Calendar / Upcoming Touchpoints ──
+        const cal = [];
+        P.forEach((p) => {
+          const rd = daysUntil(p.renewal_date);
+          if (rd >= 0) cal.push([rd, p.name + " — " + rd + " days until renewal"]);
+          const td = daysUntil(p.next_required_touchpoint_at);
+          if (td >= 0) cal.push([td, p.name + " — " + td + " days until next touchpoint"]);
+        });
+        cal.sort((a, b) => a[0] - b[0]);
+
+        document.getElementById("app").innerHTML = `
+          <section class="card">
+            <h2>Portfolio Summary</h2>
+            <div class="stats">
+              ${summary.map(([l, n]) => `<div class="stat"><div class="num">${n}</div><div class="lbl">${l}</div></div>`).join("")}
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>Portfolio Health Snapshot</h2>
+            <div class="snap">
+              ${snap
+                .map(
+                  ([l, n, banded]) =>
+                    `<div><div class="big ${banded ? bandClass(n, bands) : ""}">${n}</div><div class="lbl">${l}</div></div>`,
+                )
+                .join("")}
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>Daily Action Center — who to call today</h2>
+            <table>
+              <thead><tr><th>Partner</th><th>Priority</th><th>Why</th><th>Recommended action</th><th>Due</th></tr></thead>
+              <tbody>
+                ${sorted
+                  .map(
+                    (p, i) => `<tr class="${i < 5 ? "top5" : ""}">
+                      <td><span class="pname">${p.name}</span></td>
+                      <td><span class="chip ${bandClass(p.priority_score, { green_min: 67, yellow_min: 45 })}">${p.priority_score}</span></td>
+                      <td class="why">${p.action_reason || "—"}<span class="sig">${topSignal(p)}</span></td>
+                      <td>${p.recommended_action || "—"}</td>
+                      <td>${fmtDate(p.next_required_touchpoint_at)}</td>
+                    </tr>`,
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </section>
+
+          <section class="card">
+            <h2>Upcoming Touchpoints</h2>
+            <ul class="cal">
+              ${cal
+                .slice(0, 15)
+                .map(
+                  ([d, what]) =>
+                    `<li><span class="days">${d} d</span><span class="what">${what}</span></li>`,
+                )
+                .join("")}
+            </ul>
+            <p class="note">Countdowns are derived from contract dates + cadence rules — not synced calendar invites.</p>
+          </section>
+        `;
+      }
+
+      fetch("./data/data.json")
+        .then((r) => {
+          if (!r.ok) throw new Error(r.status);
+          return r.json();
+        })
+        .then((data) => {
+          D = data;
+          render();
+        })
+        .catch(() => {
+          document.getElementById("app").style.display = "none";
+          document.getElementById("error").style.display = "block";
+        });
+    </script>
+  </body>
+</html>

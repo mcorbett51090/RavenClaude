@@ -23,6 +23,15 @@ Codex charges roughly per turn and per token it reads/writes. Five rules cut the
 
 **Recommended minimum to be useful every morning: Prompt 1 + Prompt 2.** That's two turns.
 
+### Driving Codex desktop (the habits that save the most credits)
+
+- **Paste the whole prompt, accept all the files it produces in one go.** Don't chat back mid-turn to refine — re-prompt cleanly if something's off. Each back-and-forth is another billable turn.
+- **`git commit` after every successful prompt.** Then a bad turn is one `git checkout .` away instead of lost work — you never re-pay to rebuild something that already worked.
+- **If a turn goes sideways, revert and re-paste** rather than negotiating with it. A fresh clean turn is cheaper than three correction turns.
+- **There's a zero-credit safety net:** a verified reference build of Prompts 1 + 2 lives in [`reference-build/`](./reference-build/) (`synthesize.py` + `data.json` + `dashboard.html`). If Codex struggles with the foundation, copy those two files in and skip straight to Prompt 3.
+
+> **One gotcha, already solved in the reference build:** browsers block `fetch()` of a local file opened via `file://`, so a dashboard that fetches `data.json` won't load by double-clicking. Either serve the folder (`python3 -m http.server 8000` → open `http://localhost:8000/dashboard.html`) or ask Codex to inline the data as a `data.js` `window.__DATA__ = {…}` script. Prompt 2 below tells Codex to show that exact tip in its error state.
+
 ---
 
 ## The build, at a glance
@@ -161,8 +170,10 @@ do not leave it as a stub. Produce both files in one response, then stop.
 Build dashboard.html — a self-contained, single-page "Partner Success Command Center"
 that fetches ./data/data.json and renders the daily operating system for a K-12 edtech PSM.
 Plain HTML + CSS + vanilla JS in ONE file. No framework, no CDN except the system font stack.
-It must open directly in a browser (use fetch on ./data/data.json; degrade with a friendly
-message if the file can't load).
+Load the data with fetch on ./data/data.json. IMPORTANT: browsers block fetch of a local
+file under file://, so if the fetch fails, render a friendly message telling the user to run
+`python3 -m http.server 8000` from this folder and open http://localhost:8000/dashboard.html
+(do NOT silently show a blank page).
 
 Visual style: calm, professional, Intercom-like. Cool near-white canvas (#f5f6f8), white
 cards with a 1px hairline border and very soft shadow, teal accent (#1f7f78), Inter/system
