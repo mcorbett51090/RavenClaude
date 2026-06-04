@@ -42,6 +42,15 @@ echo '{"question":"<yes/no question>","context":"<why, options, the rule/fact th
 
 Off-by-default means no one is auto-decided into without opting in. The seats run via `claude -p`, so live verdicts need the CLI available; absent it (or on any seat error/timeout), the panel abstains and the verdict fails safe to `defer`.
 
+## Reasoning depth — where extended thinking belongs (and where it deliberately doesn't)
+
+A natural question (gap **B1** of the [2026-06-04 features gap analysis](../../../../docs/research/2026-06-04-claude-features-gap-analysis/gap-analysis.md)): should the tribunal **seats** engage extended thinking for high-stakes calls? The deliberate answer is **no — not in the seat engine**, for two grounded reasons:
+
+1. **The seats are narrow JSON adjudications, not open reasoning.** Each seat gets a small, bounded `(question, context)` and must return a strict verdict JSON. That shape benefits little from a large thinking budget, and the seats already run under a tight soft cap (cold-start `claude -p` latency is the binding constraint — see `CLAUDE.md` → "Copilot-aware tribunal seat soft cap"). Adding `ultrathink` to seat prompts would push more seats into the **abstain-on-timeout** path, which fails *closed* — i.e. it would make the panel *less* decisive, not more.
+2. **`thing-decide.py` is guarded by byte-identical invariants + gates.** The engine carries explicit "byte-identical" / shadow-evaluator invariants (Gate 91, `thing-golden-eval.py`); mutating the seat prompt is exactly the kind of change those gates exist to catch. The right lever stays **opt-in and default-off**.
+
+**Where the reasoning depth *does* belong:** the **caller**. When *you* (the agent, or the post-PR review pass #2 above) are weighing a genuinely high-stakes decision **before** routing it, reason with extended thinking on your side — frame the question, surface the rule/fact that bears on it, enumerate options — then hand the tribunal a crisp yes/no. The depth lives in how the question is *prepared*, not in the seat subprocess. For the **planning** analog (forge's critic / red-team, which *are* open-ended reasoning), the `ultrathink`-in-the-brief convention is documented in [`forge-pipeline/SKILL.md`](../forge-pipeline/SKILL.md) → "Thinking budget for the reasoning gates."
+
 ## Guardrails (enforced in `thing-decide.py`)
 
 - **Only the tribunal-eligible get decided.** Genuine preference questions surface as `defer` (Mímir votes low-confidence → escalate → Thor → defer).

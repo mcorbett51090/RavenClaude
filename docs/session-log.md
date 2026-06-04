@@ -6,7 +6,17 @@ A rolling log to **pick up where you left off**, newest first. **Retention rule 
 
 ---
 
-## 0 — 2026-06-04T16:00Z · Gap analysis vs. Kopadze "17 Claude features" article (branch `claude/gap-analysis-article-1i6jJ`)
+## 0 — 2026-06-04T17:40Z · Act on the gap-analysis gaps B1–B4 (branch `feat/ravenclaude-core-gap-followups`)
+
+**Prompt(s):** (after PR #295 merged) "Work on the gaps after merge" → AskUserQuestion (which gaps, given B3 shrank / B1 risky) → "B2 overnight-run doc, B4 decide Cowork, B3 doc correction, B1 thinking budgets" (all four).
+
+**Response.** Grounded each gap in code first, which materially changed two of them. **B3 (withdrawn):** the seats shell out to the `claude -p` CLI (`thing-decide.py:194`) which auto-caches server-side — there's no API `cache_control` to set at that layer, so the original "dogfood caching" gap was overstated; corrected in-place in the merged gap-analysis doc with a verified correction box + recommendation-table strikethrough. **B1 (thinking budgets):** `claude --help` exposes NO thinking flag (only `--max-budget-usd`); the sanctioned lever is the in-prompt `ultrathink` keyword (`docs/token-budget-playbook.md`). Implemented on the **low-risk surface** — added a "Thinking budget for the reasoning gates" subsection to `forge-pipeline/SKILL.md` (G2/G3 panels + G4a critic + G5 red-team engage `ultrathink`; shallow gates don't) and a "where extended thinking belongs (and where it deliberately doesn't)" section to `decision-review/SKILL.md` explaining why the **guarded** tribunal engine (byte-identical invariants, Gate 91/golden-eval) is NOT mutated — the depth lives in the caller, not the seat subprocess. **B2:** new `docs/best-practices/scheduled-and-overnight-runs.md` — composes the harness primitives (`loop`/`send_later`/`subscribe_pr_activity`/`Monitor`) inside the repo's own guard layer (`runaway-brake`/`dod-gate`/`security_deny`). **B4:** new proposal `docs/proposals/2026-06-04-cowork-as-second-install-surface.md` — recommends Option A (keep Claude-Code-only) pending a cheap hook-lifecycle verification; decision left to Matt. Bumped ravenclaude-core 0.118.0 → **0.119.0** (SKILL edits are user-visible) in plugin.json + marketplace.json; regenerated dashboard.html / repo-guide.html / copilot package. Verified: JSON valid, frontmatter OK, dashboard+guide+copilot fresh, layout clean, prettier rc=0, skill/agent counts unchanged (35/14).
+
+**Current state / next step.** All four changes on `feat/ravenclaude-core-gap-followups` (new branch off main; #295's branch was merged). **Next:** push `-u` + open a draft PR bundling the version bump (B1) with the docs (B2/B3/B4). Subscribe for CI.
+
+---
+
+## 1 — 2026-06-04T16:00Z · Gap analysis vs. Kopadze "17 Claude features" article (branch `claude/gap-analysis-article-1i6jJ`)
 
 **Prompt(s):** "Analyze the article, do a gap analysis between what we currently do and what is possible according to the article: https://x.com/anatolikopadze/status/2057813254617858078" → (plan asked how to fetch, blocked by network) "Try a different way. I had another ultraplan successfully pull it."
 
