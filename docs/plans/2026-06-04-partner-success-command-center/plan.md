@@ -45,6 +45,8 @@ Each tier ships independently. Tier 0 is foundational and MUST precede every oth
 
 **The contract every later tier reads against:** `plugins/edtech-partner-success/bi-report/data.json` extended with a **partner-spine** + **per-source raw blocks** + **derived computed blocks**. Synthetic v0 data → real Snowflake-backed data in v1.
 
+> **⚠️ Read [`build-plan-for-codex.md`](./build-plan-for-codex.md) for the authoritative field enumeration.** v2 of that brief revised several P0 issues a 4-panel cold review surfaced: `partners[]` is a **strict superset of the existing fixture's 11-field shape** (NOT a replacement); the priority-score math is `breakdown × weights / 100` with `breakdown` = raw signal values; an opaque internal URI scheme replaces free-text `https://` URLs (FERPA leak vector); the FERPA grep is hardened in a real CI gate (`scripts/check-psm-data-integrity.py`); `schema_version` is required; `lifecycle_phase` × `lifecycle_substage` are split per the spec's 2-level hierarchy. The high-level enumeration below is intentionally less detailed than v2 of the build plan — when they disagree, **the build plan wins**.
+
 **Work:**
 
 - **Define the JSON schema** (one source of truth, every later tier consumes it) — extend the existing `data.json` shape with:
