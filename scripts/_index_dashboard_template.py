@@ -1007,11 +1007,20 @@ TEMPLATE = r"""<!doctype html>
         const PROFILE_MAP = { strict_production: "strict", client_delivery: "balanced", exploratory: "exploratory", maximum_autonomy: "autonomous" };
         const LEVEL_PHRASE = { deny: "always stops you", ask: "asks before acting", allow: "proceeds silently" };
         function meansFor(preset) {
-          // Pick 3 highest-stakes categories (deny > ask > auto) and render via template
+          // Pick 3 highest-stakes categories (deny > ask > auto) and render via template.
+          // BUG #3 fix: when all levels collapse to a single value
+          // (e.g., maximum_autonomy where everything inherits allow), the sort
+          // produces arbitrary first-three rather than meaningful ones —
+          // emit one summary line instead.
           const ranks = { deny: 3, ask: 2, allow: 1 };
           const entries = D.posture.categories
             .map((c) => ({ c, lv: (preset.levels && preset.levels[c.id]) || preset.global_default || "ask" }))
             .sort((a, b) => (ranks[b.lv] || 0) - (ranks[a.lv] || 0));
+          const uniqueLevels = new Set(entries.map((e) => e.lv));
+          if (uniqueLevels.size === 1 && entries.length > 0) {
+            const lv = entries[0].lv;
+            return [`All categories: ${LEVEL_PHRASE[lv] || lv}`];
+          }
           return entries.slice(0, 3).map((e) => `${e.c.title}: ${LEVEL_PHRASE[e.lv] || e.lv}`);
         }
         const scenarioGrid = D.posture.presets.map((p) => {
@@ -1184,6 +1193,22 @@ TEMPLATE = r"""<!doctype html>
           return;
         }
         let html = "";
+        // Render the "Recent" section first when input is empty
+        if (!q) {
+          let recent = [];
+          try { recent = JSON.parse(localStorage.getItem("rc-palette-recent") || "[]"); } catch (e) { recent = []; }
+          const recentItems = recent.map((label) => PALETTE_IDX.find((x) => x.label === label)).filter(Boolean).slice(0, 5);
+          if (recentItems.length) {
+            html += `<div class="palette-section"><div class="palette-section-label">Recent</div>`;
+            recentItems.forEach((m) => {
+              const i = paletteFlat.length;
+              paletteFlat.push(m);
+              const ico = svg(PALETTE_ICONS[m.kind] || "sparkle");
+              html += `<div class="palette-item" data-i="${i}" role="option"><span class="pi-ico">${ico}</span><span class="pi-label">${esc(m.label)}</span><span class="pi-meta">${esc(m.meta || "")}</span></div>`;
+            });
+            html += `</div>`;
+          }
+        }
         PALETTE_SECTIONS.forEach((sec) => {
           const inSec = matches.filter((m) => m.kind === sec.key).slice(0, 5);
           if (!inSec.length) return;
@@ -1210,10 +1235,23 @@ TEMPLATE = r"""<!doctype html>
       function paletteAction(m) {
         if (!m) return;
         closePalette();
+        // Remember this action for the palette "Recent" section
+        try {
+          const recent = JSON.parse(localStorage.getItem("rc-palette-recent") || "[]");
+          const newRecent = [m.label, ...recent.filter((x) => x !== m.label)].slice(0, 5);
+          localStorage.setItem("rc-palette-recent", JSON.stringify(newRecent));
+        } catch (e) { /* localStorage may be unavailable in sandboxed previews */ }
+
         if (m.preset) {
-          // Apply preset action — navigate to configuration; the view applies the preset on render
+          // Apply preset action — navigate to configuration; the view applies the preset on render.
+          // BUG #1 fix: if already on the same hash, hashchange won't fire,
+          // so route() never re-runs and the preset never applies. Call route() directly.
           window.__pendingPreset = m.preset;
-          location.hash = m.route;
+          if (location.hash === m.route || (m.route === "#/configuration" && location.hash === "#/configuration/")) {
+            route();
+          } else {
+            location.hash = m.route;
+          }
         } else if (m.action === "copyCmd" && m.cmd) {
           window.__copy(m.cmd, `Command ${m.cmd}`);
         } else if (m.action === "toggleTheme") {
@@ -1244,9 +1282,7 @@ TEMPLATE = r"""<!doctype html>
         $("#palette-backdrop").classList.remove("open");
         $("#palette-opener").focus();
       }
-      // Backward compatibility: existing code (gotoSearch) may be referenced elsewhere
-      const SEARCH_IDX = PALETTE_IDX;
-      function gotoSearch(m) { paletteAction(m); }
+      // (Dead SEARCH_IDX + gotoSearch aliases removed — no callers.)
 
       /* ---------------- Router ---------------- */
       function route() {
