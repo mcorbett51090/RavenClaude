@@ -2077,6 +2077,20 @@ DSP_BAD="$TMP/serve-dashboards-drifted.py"
 grep -v '/__saga' plugins/ravenclaude-core/scripts/serve-dashboards.py > "$DSP_BAD"
 rc=0; python3 "$DSP" --plugin-server "$DSP_BAD" >/dev/null 2>&1 || rc=$?
 gate "dashboard-server-parity (drifted: /__saga stripped)" must_fail "$rc"
+# Body-diff stage (Mímir RM6 follow-up): the name-set check above caught the
+# /__saga class of drift, but not per-card behavioural drift inside a "byte-
+# identical in both copies" reader helper. The body-diff stage extracts every
+# top-level `_read_<card>` + `_mimir_*` from both copies, normalizes the one
+# documented REPO_ROOT ↔ PROJECT_ROOT variance, and asserts byte-identity.
+# Must-fail: a plugin server whose `_read_mimir` body has been silently mutated
+# (a comment substitution simulates a real-world asymmetric edit) must be
+# caught by the body-diff stage. The same script flag (--plugin-server) drives
+# the muting.
+DSP_BODY_BAD="$TMP/serve-dashboards-body-drifted.py"
+sed 's/def _read_mimir(project_root, claude_home)/def _read_mimir(project_root, claude_home) # ASYMMETRIC EDIT/' \
+  plugins/ravenclaude-core/scripts/serve-dashboards.py > "$DSP_BODY_BAD"
+rc=0; python3 "$DSP" --plugin-server "$DSP_BODY_BAD" >/dev/null 2>&1 || rc=$?
+gate "dashboard-server-parity body-diff (drifted: _read_mimir body mutated)" must_fail "$rc"
 
 echo
 echo "── Gate 33: command-review golden set (deterministic regression lane) ─────"
