@@ -45,10 +45,74 @@ INTENTIONALLY_EXCLUDED = {"/__run"}
 
 _ENDPOINT_RE = re.compile(r"/__\w+")
 
+# Names that legitimately differ between the two copies — the root server uses
+# REPO_ROOT (the marketplace clone), the plugin server uses PROJECT_ROOT (the
+# consumer repo). Every Mímir-style "byte-identical helper" docstring in
+# serve-dashboards.py cites this as the one allowed variance. The body-diff
+# check normalizes these out before comparing.
+_ALLOWED_VARIANCE = [("REPO_ROOT", "PROJECT_ROOT")]
+
+# Functions whose bodies the SKILL contracts mark as "duplicated byte-identically
+# in both server copies." The body-diff check enforces that contract directly,
+# not just the endpoint-name surface (Gate 32 historically caught a renamed
+# endpoint but not a per-card behaviour drift inside a helper). Pattern: every
+# `_read_<card>` and the cross-card `_mimir_*` helpers (the universal scrubber +
+# encoded-path resolver — the contract surfaces them as load-bearing).
+_BODY_DIFF_PREFIXES = ("_read_", "_mimir_")
+
+_DEF_RE = re.compile(r"^def\s+(\w+)\s*\(", re.MULTILINE)
+# Module-level boundaries: `def NAME(` OR `class NAME(`. The body-extractor uses
+# this to stop at the NEXT top-level boundary (not just the next def), so a
+# `_read_*` helper followed by `class DashboardHandler` slices correctly instead
+# of swallowing the entire class block (which would conflate every method drift
+# into one false-positive on the preceding reader helper).
+_BOUNDARY_RE = re.compile(r"^(?:def\s+\w+\s*\(|class\s+\w+\b)", re.MULTILINE)
+
 
 def endpoints(path: Path) -> set[str]:
     """Every distinct /__<name> token that appears anywhere in the file."""
     return set(_ENDPOINT_RE.findall(path.read_text(encoding="utf-8")))
+
+
+def _normalize(body: str) -> str:
+    """Apply the documented variance whitelist so the byte-diff doesn't lie
+    about the one allowed difference (REPO_ROOT vs PROJECT_ROOT)."""
+    out = body
+    for root_name, plugin_name in _ALLOWED_VARIANCE:
+        # Normalize both directions to a single token so the diff is symmetric.
+        out = out.replace(root_name, "__VAR_ROOT__").replace(plugin_name, "__VAR_ROOT__")
+    return out
+
+
+def extract_functions(src: str, prefixes: tuple[str, ...]) -> dict[str, str]:
+    """Return {name: body_text} for every top-level `def NAME(...)` whose name
+    starts with one of the given prefixes. The body is the slice from the `def`
+    line up to (but not including) the next top-level `def` / `class` line, or
+    end-of-file. Returns the literal source, including the `def` signature line
+    — enough for a meaningful byte-diff.
+
+    Top-level here means "starts at column 0", which excludes method `def`s
+    inside the handler class (they're indented). That's correct for this use
+    case: the contract surface is the module-level reader helpers, not the
+    HTTP-handler methods (those are separately covered by the endpoint-name
+    check above + Gate 49's both-copies-present assertion).
+    """
+    out: dict[str, str] = {}
+    boundaries = [m.start() for m in _BOUNDARY_RE.finditer(src)]
+    for m in _DEF_RE.finditer(src):
+        name = m.group(1)
+        if not any(name.startswith(p) for p in prefixes):
+            continue
+        start = m.start()
+        # Find the next module-level boundary STRICTLY after this def's start
+        # (defs OR class definitions — a `_read_*` followed by `class Handler`
+        # must slice at the class, not at the next module def far below).
+        end = next((b for b in boundaries if b > start), len(src))
+        # Trim trailing blank lines so cosmetic whitespace drift doesn't false-
+        # positive.
+        body = src[start:end].rstrip() + "\n"
+        out[name] = body
+    return out
 
 
 def main() -> int:
@@ -104,9 +168,69 @@ def main() -> int:
         )
         return 1
 
+    # ── Body-diff (Mímir SKILL RM6 follow-up) ────────────────────────────────
+    # The endpoint-name check above catches the /__saga class of drift — an
+    # endpoint that's entirely missing from the consumer build. It does NOT
+    # catch per-card behavioural drift inside a "byte-identical in both copies"
+    # helper. The Mímir SKILL § "SERVER-PARITY DISCIPLINE" explicitly flags
+    # this as a failure mode: an asymmetric edit silently passes the name-set
+    # check while the readers diverge, and the consumer's dashboard renders
+    # different bytes than the dev server. Same pattern as Norns / Heimdall /
+    # Víðarr — every Norse reader-helper docstring contracts byte-identity.
+    #
+    # This stage extracts every top-level _read_<card> + _mimir_* function
+    # body from both files, normalizes the documented REPO_ROOT vs PROJECT_ROOT
+    # variance, and asserts byte-identity. Functions that exist in only ONE
+    # copy are flagged as drift (a new helper authored in one file but not
+    # mirrored is exactly the contract violation the gate is for).
+    root_src = root_path.read_text(encoding="utf-8")
+    plugin_src = plugin_path.read_text(encoding="utf-8")
+    root_fns = extract_functions(root_src, _BODY_DIFF_PREFIXES)
+    plugin_fns = extract_functions(plugin_src, _BODY_DIFF_PREFIXES)
+
+    body_drift: list[str] = []
+    only_in_root = sorted(set(root_fns) - set(plugin_fns))
+    only_in_plugin = sorted(set(plugin_fns) - set(root_fns))
+    if only_in_root:
+        body_drift.append(
+            f"functions present in root ONLY (not mirrored to plugin copy): {only_in_root}"
+        )
+    if only_in_plugin:
+        body_drift.append(
+            f"functions present in plugin ONLY (not in root dev server): {only_in_plugin}"
+        )
+    for name in sorted(set(root_fns) & set(plugin_fns)):
+        if _normalize(root_fns[name]) != _normalize(plugin_fns[name]):
+            body_drift.append(
+                f"body of `{name}` differs between root and plugin copies (after "
+                f"normalizing REPO_ROOT vs PROJECT_ROOT). Re-sync them — the SKILL "
+                f"contracts these helpers as byte-identical."
+            )
+
+    if body_drift:
+        print(
+            "BODY DRIFT: the bundled plugin server's reader helpers have drifted "
+            "from the root dev server's. The SKILL contracts mark these helpers as "
+            "byte-identical (modulo the documented REPO_ROOT → PROJECT_ROOT rename), "
+            "so an asymmetric edit silently ships different bytes to consumers.",
+            file=sys.stderr,
+        )
+        for line in body_drift:
+            print(f"  - {line}", file=sys.stderr)
+        print(
+            "  Fix: re-sync each named helper across both serve-dashboards.py copies "
+            "and re-run this gate. If a divergence is intentional, document the new "
+            "variance in scripts/check-dashboard-server-parity.py _ALLOWED_VARIANCE "
+            "and update the SKILL contract.",
+            file=sys.stderr,
+        )
+        return 1
+
+    body_diff_count = len(set(root_fns) & set(plugin_fns))
     print(
         f"OK: plugin server exposes all {len(expected)} non-excluded root endpoint(s) "
-        f"{sorted(expected)}; intentional omissions: {sorted(INTENTIONALLY_EXCLUDED)}."
+        f"{sorted(expected)}; intentional omissions: {sorted(INTENTIONALLY_EXCLUDED)}; "
+        f"{body_diff_count} reader-helper(s) body-identical."
     )
     return 0
 
