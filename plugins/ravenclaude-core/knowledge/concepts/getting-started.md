@@ -35,6 +35,48 @@ flowchart TD
   class A,B,C,D,E,F built
 ```
 
+<!-- step: Add the marketplace: /plugin marketplace add mcorbett51090/RavenClaude. -->
+```mermaid-step
+flowchart LR
+  N1[Add] --> N2[Install] --> N3[Reload] --> N4[Dashboard] --> N5[Posture] --> N6[Work]
+  class N1 built
+```
+
+<!-- step: Install the core plugin: /plugin install ravenclaude-core@ravenclaude (needs jq + python3). -->
+```mermaid-step
+flowchart LR
+  N1[Add] --> N2[Install] --> N3[Reload] --> N4[Dashboard] --> N5[Posture] --> N6[Work]
+  class N2 built
+```
+
+<!-- step: Reload plugins so the agents, skills, and hooks register. -->
+```mermaid-step
+flowchart LR
+  N1[Add] --> N2[Install] --> N3[Reload] --> N4[Dashboard] --> N5[Posture] --> N6[Work]
+  class N3 built
+```
+
+<!-- step: Run /dashboard to open the point-and-click comfort-posture editor. -->
+```mermaid-step
+flowchart LR
+  N1[Add] --> N2[Install] --> N3[Reload] --> N4[Dashboard] --> N5[Posture] --> N6[Work]
+  class N4 built
+```
+
+<!-- step: Set your deny/ask/allow posture and opt into command review. -->
+```mermaid-step
+flowchart LR
+  N1[Add] --> N2[Install] --> N3[Reload] --> N4[Dashboard] --> N5[Posture] --> N6[Work]
+  class N5 built
+```
+
+<!-- step: Start working — the capability banner orients every session. -->
+```mermaid-step
+flowchart LR
+  N1[Add] --> N2[Install] --> N3[Reload] --> N4[Dashboard] --> N5[Posture] --> N6[Work]
+  class N6 built
+```
+
 <!-- mini -->
 ```mermaid-mini
 flowchart LR

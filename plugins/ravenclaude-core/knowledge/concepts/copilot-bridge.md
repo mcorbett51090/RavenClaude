@@ -31,6 +31,41 @@ flowchart TD
   class CO fact
 ```
 
+<!-- step: Copilot CLI is a plugin host with the same hook events, skills, AGENTS.md, and MCP. -->
+```mermaid-step
+flowchart LR
+  N1[Copilot host] --> N2[Generate package] --> N3[Hook adapter] --> N4[Repo level hooks] --> N5[Update is git pull]
+  class N1 built
+```
+
+<!-- step: generate-copilot-plugin.py projects the canonical plugin into copilot/ (generated, gated). -->
+```mermaid-step
+flowchart LR
+  N1[Copilot host] --> N2[Generate package] --> N3[Hook adapter] --> N4[Repo level hooks] --> N5[Update is git pull]
+  class N2 built
+```
+
+<!-- step: A hook adapter maps the I/O envelopes so the unmodified hooks run under Copilot. -->
+```mermaid-step
+flowchart LR
+  N1[Copilot host] --> N2[Generate package] --> N3[Hook adapter] --> N4[Repo level hooks] --> N5[Update is git pull]
+  class N3 built
+```
+
+<!-- step: Enforcement hooks ship repo-level in .github/hooks/ (a Copilot plugin-hook bug). -->
+```mermaid-step
+flowchart LR
+  N1[Copilot host] --> N2[Generate package] --> N3[Hook adapter] --> N4[Repo level hooks] --> N5[Update is git pull]
+  class N4 built
+```
+
+<!-- step: Updates are frictionless: it loads live, so an update is just git pull. -->
+```mermaid-step
+flowchart LR
+  N1[Copilot host] --> N2[Generate package] --> N3[Hook adapter] --> N4[Repo level hooks] --> N5[Update is git pull]
+  class N5 built
+```
+
 <!-- mini -->
 ```mermaid-mini
 flowchart LR

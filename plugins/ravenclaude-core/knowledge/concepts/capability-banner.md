@@ -35,6 +35,41 @@ flowchart TD
   class G fact
 ```
 
+<!-- step: A session starts; the capability-orientation.sh SessionStart hook runs. -->
+```mermaid-step
+flowchart LR
+  N1[Session start] --> N2[Detect surface] --> N3[Auth names only] --> N4[Effective perms] --> N5[Banner orients]
+  class N1 built
+```
+
+<!-- step: Detect the project's external surface. -->
+```mermaid-step
+flowchart LR
+  N1[Session start] --> N2[Detect surface] --> N3[Auth names only] --> N4[Effective perms] --> N5[Banner orients]
+  class N2 built
+```
+
+<!-- step: Read auth env-var NAMES only — never values, no network calls. -->
+```mermaid-step
+flowchart LR
+  N1[Session start] --> N2[Detect surface] --> N3[Auth names only] --> N4[Effective perms] --> N5[Banner orients]
+  class N3 built
+```
+
+<!-- step: Read the effective settings.json permissions and environment-context staleness. -->
+```mermaid-step
+flowchart LR
+  N1[Session start] --> N2[Detect surface] --> N3[Auth names only] --> N4[Effective perms] --> N5[Banner orients]
+  class N4 built
+```
+
+<!-- step: Inject the banner via additionalContext — orientation, NOT enforcement. -->
+```mermaid-step
+flowchart LR
+  N1[Session start] --> N2[Detect surface] --> N3[Auth names only] --> N4[Effective perms] --> N5[Banner orients]
+  class N5 built
+```
+
 <!-- mini -->
 ```mermaid-mini
 flowchart LR

@@ -35,6 +35,41 @@ flowchart TD
   class DEFER,ASK,PANEL,V,ACT built
 ```
 
+<!-- step: A yes/no decision the agent would otherwise interrupt you with. -->
+```mermaid-step
+flowchart LR
+  N1[Yes or no] --> N2[High blast defers] --> N3[Mode gate] --> N4[Panel votes] --> N5[Act or defer]
+  class N1 built
+```
+
+<!-- step: High-blast or irreversible? It always defers to you (force-push, deletes, prod). -->
+```mermaid-step
+flowchart LR
+  N1[Yes or no] --> N2[High blast defers] --> N3[Mode gate] --> N4[Panel votes] --> N5[Act or defer]
+  class N2 built
+```
+
+<!-- step: Mode off (default) asks you; mode binding convenes the seats (thing-decide.py). -->
+```mermaid-step
+flowchart LR
+  N1[Yes or no] --> N2[High blast defers] --> N3[Mode gate] --> N4[Panel votes] --> N5[Act or defer]
+  class N3 built
+```
+
+<!-- step: The panel returns yes / no / defer. -->
+```mermaid-step
+flowchart LR
+  N1[Yes or no] --> N2[High blast defers] --> N3[Mode gate] --> N4[Panel votes] --> N5[Act or defer]
+  class N4 built
+```
+
+<!-- step: yes/no acts without pausing you; defer asks you. -->
+```mermaid-step
+flowchart LR
+  N1[Yes or no] --> N2[High blast defers] --> N3[Mode gate] --> N4[Panel votes] --> N5[Act or defer]
+  class N5 built
+```
+
 <!-- mini -->
 ```mermaid-mini
 flowchart LR

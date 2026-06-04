@@ -32,6 +32,41 @@ flowchart TD
   class ADD,CAP built
 ```
 
+<!-- step: A session starts; SessionStart hooks run in parallel. -->
+```mermaid-step
+flowchart LR
+  N1[Session starts] --> N2[Hooks parallel] --> N3[Exit 0 only] --> N4[Context added] --> N5[10k cap]
+  class N1 built
+```
+
+<!-- step: They can't gate anything — output is read only on exit 0. -->
+```mermaid-step
+flowchart LR
+  N1[Session starts] --> N2[Hooks parallel] --> N3[Exit 0 only] --> N4[Context added] --> N5[10k cap]
+  class N2 built
+```
+
+<!-- step: A non-zero exit is a non-blocking error; the session starts anyway. -->
+```mermaid-step
+flowchart LR
+  N1[Session starts] --> N2[Hooks parallel] --> N3[Exit 0 only] --> N4[Context added] --> N5[10k cap]
+  class N3 built
+```
+
+<!-- step: Each hook's additionalContext is concatenated into the session context. -->
+```mermaid-step
+flowchart LR
+  N1[Session starts] --> N2[Hooks parallel] --> N3[Exit 0 only] --> N4[Context added] --> N5[10k cap]
+  class N4 built
+```
+
+<!-- step: Capped near 10k chars (injected every session); fails open on timeout. -->
+```mermaid-step
+flowchart LR
+  N1[Session starts] --> N2[Hooks parallel] --> N3[Exit 0 only] --> N4[Context added] --> N5[10k cap]
+  class N5 built
+```
+
 <!-- mini -->
 ```mermaid-mini
 flowchart LR

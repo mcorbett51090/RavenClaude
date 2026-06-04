@@ -33,6 +33,41 @@ flowchart TD
   class TRUST built
 ```
 
+<!-- step: For each CI gate... -->
+```mermaid-step
+flowchart LR
+  N1[Each gate] --> N2[Known bad] --> N3[Must fail] --> N4[Known good] --> N5[Trusted]
+  class N1 built
+```
+
+<!-- step: Run it on a known-BAD fixture. -->
+```mermaid-step
+flowchart LR
+  N1[Each gate] --> N2[Known bad] --> N3[Must fail] --> N4[Known good] --> N5[Trusted]
+  class N2 built
+```
+
+<!-- step: Does it FAIL? If not, the gate is broken and the audit fails. -->
+```mermaid-step
+flowchart LR
+  N1[Each gate] --> N2[Known bad] --> N3[Must fail] --> N4[Known good] --> N5[Trusted]
+  class N3 built
+```
+
+<!-- step: Run it on a known-GOOD fixture — does it PASS? -->
+```mermaid-step
+flowchart LR
+  N1[Each gate] --> N2[Known bad] --> N3[Must fail] --> N4[Known good] --> N5[Trusted]
+  class N4 built
+```
+
+<!-- step: Both hold and the gate is trusted. And a skip is NOT a pass (it skips loudly). -->
+```mermaid-step
+flowchart LR
+  N1[Each gate] --> N2[Known bad] --> N3[Must fail] --> N4[Known good] --> N5[Trusted]
+  class N5 built
+```
+
 <!-- mini -->
 ```mermaid-mini
 flowchart LR

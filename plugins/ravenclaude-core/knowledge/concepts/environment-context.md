@@ -31,6 +31,41 @@ flowchart TD
   class ALT,RUN,STOP built
 ```
 
+<!-- step: The agent is about to act. -->
+```mermaid-step
+flowchart LR
+  N1[About to act] --> N2[File present] --> N3[Pre authorized] --> N4[Forbidden stop] --> N5[Silent fallthrough]
+  class N1 built
+```
+
+<!-- step: Is environment-context.md present? If absent, fall through to alternate-methods. -->
+```mermaid-step
+flowchart LR
+  N1[About to act] --> N2[File present] --> N3[Pre authorized] --> N4[Forbidden stop] --> N5[Silent fallthrough]
+  class N2 built
+```
+
+<!-- step: Action pre-authorized for the current environment? Execute, no prompt. -->
+```mermaid-step
+flowchart LR
+  N1[About to act] --> N2[File present] --> N3[Pre authorized] --> N4[Forbidden stop] --> N5[Silent fallthrough]
+  class N3 built
+```
+
+<!-- step: Action forbidden? Stop for explicit confirmation, regardless of role. -->
+```mermaid-step
+flowchart LR
+  N1[About to act] --> N2[File present] --> N3[Pre authorized] --> N4[Forbidden stop] --> N5[Silent fallthrough]
+  class N4 built
+```
+
+<!-- step: File silent on it? Fall through to alternate-methods. Discovery can draft the file, read-only. -->
+```mermaid-step
+flowchart LR
+  N1[About to act] --> N2[File present] --> N3[Pre authorized] --> N4[Forbidden stop] --> N5[Silent fallthrough]
+  class N5 built
+```
+
 <!-- mini -->
 ```mermaid-mini
 flowchart LR

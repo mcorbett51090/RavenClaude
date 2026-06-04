@@ -37,6 +37,41 @@ flowchart TD
   class DC fact
 ```
 
+<!-- step: You set deny/ask/allow per category and per layer in the dashboard. -->
+```mermaid-step
+flowchart LR
+  N1[Set per category] --> N2[Posture yaml] --> N3[Translate] --> N4[Permission rules] --> N5[Design checkins]
+  class N1 built
+```
+
+<!-- step: It serializes to .ravenclaude/comfort-posture.yaml. -->
+```mermaid-step
+flowchart LR
+  N1[Set per category] --> N2[Posture yaml] --> N3[Translate] --> N4[Permission rules] --> N5[Design checkins]
+  class N2 built
+```
+
+<!-- step: apply-comfort-posture.py translates it into real Claude Code permission rules. -->
+```mermaid-step
+flowchart LR
+  N1[Set per category] --> N2[Posture yaml] --> N3[Translate] --> N4[Permission rules] --> N5[Design checkins]
+  class N3 built
+```
+
+<!-- step: Layer-precedence still governs what finally wins. -->
+```mermaid-step
+flowchart LR
+  N1[Set per category] --> N2[Posture yaml] --> N3[Translate] --> N4[Permission rules] --> N5[Design checkins]
+  class N4 built
+```
+
+<!-- step: design_checkins is separate: 'allow' never silences design check-ins (on by default). -->
+```mermaid-step
+flowchart LR
+  N1[Set per category] --> N2[Posture yaml] --> N3[Translate] --> N4[Permission rules] --> N5[Design checkins]
+  class N5 built
+```
+
 <!-- mini -->
 ```mermaid-mini
 flowchart LR

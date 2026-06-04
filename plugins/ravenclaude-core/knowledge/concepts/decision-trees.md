@@ -30,6 +30,41 @@ flowchart TD
   class SIT,TRAV,RES,LEAF,TRY,ESC,DONE built
 ```
 
+<!-- step: A situation matches a knowledge file's Decision Tree section. -->
+```mermaid-step
+flowchart LR
+  N1[Situation] --> N2[Traverse top down] --> N3[Resolve context] --> N4[Smaller blast leaf] --> N5[Escalate on fail]
+  class N1 built
+```
+
+<!-- step: Traverse the Mermaid graph top-to-bottom BEFORE picking a method. -->
+```mermaid-step
+flowchart LR
+  N1[Situation] --> N2[Traverse top down] --> N3[Resolve context] --> N4[Smaller blast leaf] --> N5[Escalate on fail]
+  class N2 built
+```
+
+<!-- step: Resolve each node against the user's real context — not keyword-matching. -->
+```mermaid-step
+flowchart LR
+  N1[Situation] --> N2[Traverse top down] --> N3[Resolve context] --> N4[Smaller blast leaf] --> N5[Escalate on fail]
+  class N3 built
+```
+
+<!-- step: Default to the leaf with the smaller blast radius, and try it. -->
+```mermaid-step
+flowchart LR
+  N1[Situation] --> N2[Traverse top down] --> N3[Resolve context] --> N4[Smaller blast leaf] --> N5[Escalate on fail]
+  class N4 built
+```
+
+<!-- step: Works and done. Fails and you escalate to a higher-blast leaf. Every tree carries a last-verified date. -->
+```mermaid-step
+flowchart LR
+  N1[Situation] --> N2[Traverse top down] --> N3[Resolve context] --> N4[Smaller blast leaf] --> N5[Escalate on fail]
+  class N5 built
+```
+
 <!-- mini -->
 ```mermaid-mini
 flowchart LR

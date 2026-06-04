@@ -41,6 +41,41 @@ flowchart TD
   class D,A,AL fact
 ```
 
+<!-- step: Rules live in four settings files under permissions.allow / ask / deny. -->
+```mermaid-step
+flowchart LR
+  N1[Rules in 4 files] --> N2[Merge layers] --> N3[Deny wins] --> N4[No override down] --> N5[Bare vs scoped]
+  class N1 built
+```
+
+<!-- step: Across files the layers MERGE rather than override. -->
+```mermaid-step
+flowchart LR
+  N1[Rules in 4 files] --> N2[Merge layers] --> N3[Deny wins] --> N4[No override down] --> N5[Bare vs scoped]
+  class N2 built
+```
+
+<!-- step: A deny in ANY layer wins — and you can't override it down from a later layer. -->
+```mermaid-step
+flowchart LR
+  N1[Rules in 4 files] --> N2[Merge layers] --> N3[Deny wins] --> N4[No override down] --> N5[Bare vs scoped]
+  class N3 built
+```
+
+<!-- step: Within one file the order is deny then ask then allow; first match wins. -->
+```mermaid-step
+flowchart LR
+  N1[Rules in 4 files] --> N2[Merge layers] --> N3[Deny wins] --> N4[No override down] --> N5[Bare vs scoped]
+  class N4 built
+```
+
+<!-- step: A bare-tool deny hides the tool entirely; a scoped deny blocks only matching calls. -->
+```mermaid-step
+flowchart LR
+  N1[Rules in 4 files] --> N2[Merge layers] --> N3[Deny wins] --> N4[No override down] --> N5[Bare vs scoped]
+  class N5 built
+```
+
 <!-- mini -->
 ```mermaid-mini
 flowchart LR
