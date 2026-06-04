@@ -21,6 +21,7 @@ node_modules/
 
 # Python cache
 *.pyc
+**/__pycache__/
 .claude/settings.local.json
 
 # Evals — consumer-run artifacts and private fixtures must never be committed

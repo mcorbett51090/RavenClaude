@@ -203,6 +203,24 @@ LearnPlatform's Chrome-extension methodology is **panel-based, not census** — 
 
 ---
 
+## 11a. 2026 refresh (added 2026-06-04)
+
+Six new signal classes surfaced through deep-research in 2025-2026 that the canonical catalog should pick up. They don't replace any existing signals — they extend the rubric for the post-ESSER, tool-rationalization, PE-consolidation environment.
+
+| New signal | Default modifier | When to elevate |
+|---|---|---|
+| **District AI-guidelines maturity** | None / In-progress / Established | Districts *without* guidelines treat AI features as risk; districts *with* treat them as value. Adjust expansion-play eligibility. |
+| **Vendor ESSA evidence tier** (Strong / Moderate / Promising / None) | Strong = renewal-defense card; None = credibility wall | See [`essa-evidence-tier-as-renewal-asset.md`](./essa-evidence-tier-as-renewal-asset.md). |
+| **Vendor PE-ownership status** (PE-owned / strategic / independent) | PE-owned = tighter discount latitude, higher NRR target | See [`pe-ownership-effect-on-renewal-posture.md`](./pe-ownership-effect-on-renewal-posture.md). |
+| **NY CBT readiness** (March-cadence checkpoint, spring) | Red item = elevated incident risk April-May | See [`cbt-readiness-checkpoint-spring.md`](./cbt-readiness-checkpoint-spring.md). |
+| **Common Sense Privacy badge** (Pass / Warning / Fail / none) | Pass = baseline; Warning/Fail = security-reviewer route | Note: Common Sense *learning* reviews paused Feb 2026 — absence of learning review post-Feb 2026 is **not** a red flag. |
+| **AI teammate adoption (PSM-org-internal)** | None / Piloting / Standardized / Differentiated / Outcome-architect | See [`ai-teammate-adoption-psm-self.md`](./ai-teammate-adoption-psm-self.md). |
+| **Internal-vs-external superintendent hire** | Internal = 30-60d grace; External = 90-180d portfolio review | Replaces the flat "new sup = renewal risk" trigger. See [`k12-superintendent-turnover-as-renewal-event.md`](./k12-superintendent-turnover-as-renewal-event.md). |
+
+`[verify-at-use — 2026-06-04 — SETDA + CoSN 2026 reports; ChurnZero ZERO-IN 2026]`
+
+---
+
 ## 12. References (existing plugin artifacts)
 
 - [`psm-dashboard-canon-2026.md`](psm-dashboard-canon-2026.md) — the canonical PSM dashboard layout these signals populate.

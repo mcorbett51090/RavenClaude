@@ -204,6 +204,110 @@ def _run_seat(role: str, model: str, question: str, context: str,
     return _parse_seat(proc.stdout)
 
 
+# ── Phase 4 — agent-dispatch-evaluator tribunal-seat SHADOW integration ──────────
+# docs/plans/2026-06-03-agent-dispatch-evaluator/plan.md §Phase 4.
+#
+# SHADOW FOREVER FOR MVP (RM2 / gap-delta C3 — Panel A's conservative position): the
+# dispatch evaluator records what model it WOULD have right-sized each tribunal seat to,
+# but NEVER mutates cfg["panel"][role]["model"]. This protects the v0.32.0
+# >=2-distinct-backbones invariant — a per-seat downgrade could collapse the panel onto
+# one backbone. The shadow data accumulates so a future call can decide whether seat
+# right-sizing is ever safe to make binding (re-evaluate after 4-6 weeks of data).
+#
+# DESIGN DISCIPLINE — total isolation from the verdict path:
+#   - Reads .ravenclaude/dispatch-config.json. enabled:false (the default everywhere) ->
+#     returns {} with ZERO subprocess cost, so the tribunal is byte-identical to pre-P4.
+#   - Every classifier call is wrapped in try/except; ANY failure -> the shadow is simply
+#     absent. A shadow-logging failure can NEVER change a verdict, a seat model, or binding.
+#   - The result rides ONLY in the Sága audit entry (per-seat `evaluator_shadow`). It is
+#     never read back into the decision logic.
+def _load_dispatch_cfg(root: Path) -> dict:
+    """Return the dispatch-config IFF it exists AND enabled:true; else {} (no shadow).
+    Resolution: project .ravenclaude/ first, then the plugin template as a read-only
+    fallback. Fail-safe: any read/parse error -> {} (shadow disabled)."""
+    candidates = [
+        root / ".ravenclaude" / "dispatch-config.json",
+        _HERE.parent / "skills" / "agent-dispatch-evaluator" / "templates" / "dispatch-config.json",
+    ]
+    for path in candidates:
+        try:
+            if not path.is_file():
+                continue
+            cfg = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(cfg, dict) and cfg.get("enabled") is True:
+                return cfg
+            # First existing config wins; a present-but-disabled config means "off".
+            return {}
+        except Exception:
+            return {}
+    return {}
+
+
+def _evaluator_shadow(role: str, model: str, question: str, context: str,
+                      dispatch_cfg: dict, timeout_s: int) -> dict | None:
+    """Compute the dispatch evaluator's SHADOW verdict for one tribunal seat.
+    Returns {verdict, suggested_tier, would_have_changed_model_to, confidence, rationale}
+    or None on any failure / when disabled. NEVER mutates anything; observational only."""
+    if not dispatch_cfg:
+        return None
+
+    # TEST HOOK: THING_DECIDE_MOCK_EVAL short-circuits the real claude call so the gate
+    # can exercise the shadow-attach path offline. Values: keep|upgrade|downgrade.
+    mock = os.environ.get("THING_DECIDE_MOCK_EVAL", "")
+    tier_model = {"fast": "claude-haiku-4-5-20251001", "balanced": "claude-sonnet-4-6", "top": "claude-opus-4-8"}
+    if mock in {"keep", "upgrade", "downgrade"}:
+        tier = {"keep": "balanced", "upgrade": "top", "downgrade": "fast"}[mock]
+        changed = None if mock == "keep" else tier_model[tier]
+        return {"verdict": mock, "suggested_tier": tier,
+                "would_have_changed_model_to": changed, "confidence": "high",
+                "rationale": f"mock shadow {mock} for seat {role}"}
+
+    if not _have("claude"):
+        return None
+    envelope = json.dumps({
+        "subagent_type": f"tribunal_seat:{role}",
+        "description": "decision-review tribunal seat",
+        "prompt_head": (f"QUESTION: {question}\nCONTEXT: {context}")[:1800],
+        "requested_model": model,
+        "caller_context": "tribunal_seat",
+    })
+    instr = ("You are a dispatch evaluator. Given this dispatch envelope, return ONLY a JSON "
+             "object with fields: verdict (\"keep\"|\"upgrade\"|\"downgrade\"), suggested_tier "
+             "(\"fast\"|\"balanced\"|\"top\"), confidence (\"low\"|\"medium\"|\"high\"), rationale "
+             "(one sentence). Envelope: ")
+    try:
+        bare = ["--bare"] if (os.environ.get("THING_SEAT_BARE") == "1" or os.environ.get("ANTHROPIC_API_KEY")) else []
+        with tempfile.TemporaryDirectory() as scratch:
+            proc = subprocess.run(
+                ["claude", "-p", *bare, "--output-format", "json",
+                 "--model", "claude-haiku-4-5-20251001", instr + envelope],
+                cwd=scratch, capture_output=True, text=True,
+                timeout=min(timeout_s, 5),
+            )
+        if proc.returncode != 0:
+            return None
+        raw = proc.stdout
+        try:
+            env = json.loads(raw)
+            text = env.get("result", raw) if isinstance(env, dict) else raw
+        except Exception:
+            text = raw
+        m = re.search(r"\{.*\}", text, re.DOTALL)
+        if not m:
+            return None
+        v = json.loads(m.group(0))
+        if v.get("verdict") not in {"keep", "upgrade", "downgrade"}:
+            return None
+        tier = v.get("suggested_tier")
+        changed = None if v.get("verdict") == "keep" else tier_model.get(tier)
+        return {"verdict": v["verdict"], "suggested_tier": tier,
+                "would_have_changed_model_to": changed,
+                "confidence": v.get("confidence", "low"),
+                "rationale": str(v.get("rationale", ""))[:200]}
+    except Exception:
+        return None
+
+
 def _parse_seat(raw: str) -> dict:
     try:
         env = json.loads(raw)
@@ -361,6 +465,23 @@ def decide(root: Path, question: str, context: str, high_blast: bool) -> dict:
     seat_results = {role: _run_seat(role, cfg["panel"][role]["model"], question, context, timeout_s)
                     for role in _SEATS}
     verdict, reasoning, records = _tally(seat_results, threshold, cfg, question, context, timeout_s)
+
+    # Phase 4 — agent-dispatch-evaluator SHADOW (RM2: never mutates seat models; rides
+    # only in the Sága entry). No-op + zero cost unless dispatch-config has enabled:true.
+    # Wrapped so a shadow failure can never affect the verdict that was already computed.
+    try:
+        dispatch_cfg = _load_dispatch_cfg(root)
+        if dispatch_cfg:
+            for rec in records:
+                seat_role = rec.get("name")
+                if not seat_role:
+                    continue
+                seat_model = cfg.get("panel", {}).get(seat_role, {}).get("model", "")
+                shadow = _evaluator_shadow(seat_role, seat_model, question, context, dispatch_cfg, timeout_s)
+                if shadow is not None:
+                    rec["evaluator_shadow"] = shadow
+    except Exception:
+        pass  # shadow is observational only — never break the decision path
 
     # Safety envelope: high-blast/irreversible decisions never auto-resolve, even
     # if the panel reached a confident yes/no. The panel's view is preserved as a

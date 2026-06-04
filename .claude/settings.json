@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "model": "claude-opus-4-7",
+  "model": "claude-opus-4-8",
   "permissions": {
     "allow": [],
     "deny": [
@@ -126,6 +126,18 @@
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/remind-tests.sh",
             "comment": "Remind the Team Lead to run the full test suite when source files changed. Advisory fallback when no definition_of_done.cmd is configured."
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/agent-dispatch-evaluator.sh",
+            "timeout": 10,
+            "comment": "Marketplace-dev hook (dev-mirror). Agent-dispatch evaluator, Phase 3 — AUDIT-ONLY. No-ops (single grep) unless .ravenclaude/dispatch-config.json has enabled:true (this repo has none, so it no-ops). When opted in, shadow-logs a model-right-sizing verdict for the about-to-start subagent; it NEVER denies or redispatches (RM1 — SubagentStart fires post-spawn, deny-is-pre-commit unverified). The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because the hook is fail-open and inert when dispatch-config is absent or disabled."
           }
         ]
       }

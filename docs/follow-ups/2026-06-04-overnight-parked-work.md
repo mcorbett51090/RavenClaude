@@ -39,7 +39,16 @@ forgotten task.** This file gives each one its trigger.
 
 **Action:** re-read the two cited sources, confirm the numbers haven't drifted, then ship Phase 6 per the plan. If either has drifted, **defer the flip** and ship a docs-only PR noting the drift instead (per the plan's settling step).
 
-**Re-check by:** 2026-06-18 (two weeks). If unverified by then, leave the classifier disabled in `main` and document why in a follow-up commit.
+**STILL PARKED — verify-at-use ran 2026-06-04; one claim drifted + the eval gate is unrun.** A web-verification pass against primary Anthropic sources (`platform.claude.com/docs/.../pricing`, `.../batch-processing`, `.../models/overview`, all fetched 2026-06-04) found:
+
+- **Claim #8 (Batch API ~50% off) — CONFIRMED.** Exact language: *"a 50% discount on both input and output tokens."* The batch pricing table is arithmetically half of standard in every row (Opus 4.8 $5→$2.50 in / $25→$12.50 out; Sonnet 4.6 $3→$1.50 / $15→$7.50; Haiku 4.5 $1→$0.50 / $5→$2.50).
+- **Claim #9 (substrate tier SKUs) — DRIFTED (framing, not broken SKUs).** All three model-ID strings still resolve and are non-deprecated (`claude-haiku-4-5-20251001`, `claude-sonnet-4-6`, both `claude-opus-4-7` and `claude-opus-4-8` are live). **What moved:** Opus 4.7 has been demoted from "Latest models" to the **Legacy** section ("still available… consider migrating"); **Opus 4.8 is now the sole current top-tier model.** The `top` tier's "Opus 4.7/4.8 co-equal" framing is now stale → should read "Opus 4.8 (current); Opus 4.7 (legacy-but-available)."
+
+**Net:** per the plan's settling step, the SKU drift means **defer the flip and ship a docs-only drift note** (this entry + the tier-table marker refresh in [`adaptive-run-classifier/SKILL.md`](../../plugins/ravenclaude-core/skills/adaptive-run-classifier/SKILL.md)) — done. **A second, independent blocker also holds:** Phase 6's pre-build gate is *"Phase 5 eval gate green"* (`plan.md:133` + DoD `plan.md:208`: ≥2× token reduction, no confirmed-claim regression, cache-hit ≥0.5), and `.ravenclaude/runs/eval/` does not exist — **the eval has never been run.** It requires executing 6 live deep-research Workflows in Claude Code + grading (PR #253's harness), which can't be done headlessly. So `templates/run-config.json` stays `enabled: false`.
+
+**Trigger to unpark (revised):** a session that can (a) run the Phase 5 eval harness to green AND (b) re-confirm the (now-updated) tier framing the day before merge. Both gates must clear before the `enabled:true` flip.
+
+**Re-check by:** 2026-06-18 (two weeks). If still unverified by then, leave the classifier disabled in `main` and document why in a follow-up commit.
 
 ---
 
@@ -54,8 +63,8 @@ forgotten task.** This file gives each one its trigger.
 | Phase | Scope | Re-check by |
 |---|---|---|
 | **P2 integration** | Copy the wrapper into `deep-research.js`, wrap each `agent()` call site, add Gate 52 (byte-identical-when-disabled regression floor). | When the user explicitly OKs the two-classifier composition design. |
-| **P3 SubagentStart hook** | New `plugins/ravenclaude-core/hooks/agent-dispatch-evaluator.sh` + dev-mirror. **CRITICAL caveat:** Panel B R1 calls out that `SubagentStart` fires post-spawn; deny may be a late-stage cancel. Phase 3 acceptance MUST verify deny actually prevents dispatch. Until that's verified live, the hook should ship as **audit-only**. | When a session can run a live Claude Code dispatch with the hook armed and measure whether deny is pre-commit. |
-| **P4 tribunal-seat shadow** | `scripts/thing-decide.py` calls `evaluateDispatch(caller_context='tribunal_seat', ...)` and logs `evaluator_shadow` to the seat Sága record. **Never mutates** `cfg["panel"][seat]["model"]`. | Same as P2 — needs user OK on the two-classifier interaction. |
+| ~~**P3 SubagentStart hook**~~ | ✅ **SHIPPED audit-only in #271** (`hooks/agent-dispatch-evaluator.sh` + dev-mirror + Gate 90). Ships audit-only because deny-is-pre-commit couldn't be verified live (the RM1 fail-disposition). **Remaining (parked):** verify on a live armed dispatch whether a `SubagentStart` DENY is pre-commit; only then promote to binding (see `agent-dispatch-evaluator/SKILL.md` §Phase 3 promotion path). | A session that can run a live armed dispatch + measure whether deny prevents the spawn. |
+| ~~**P4 tribunal-seat shadow**~~ | ✅ **SHIPPED shadow-forever in #271** (`scripts/thing-decide.py` `_evaluator_shadow` + Gate 91). Logs `evaluator_shadow` per seat; **never mutates** `cfg["panel"][seat]["model"]`. **Remaining (parked):** after ~4–6 weeks of shadow data, decide whether seat right-sizing is ever safe to make binding. | 4–6 weeks of accumulated shadow data + user OK. |
 | **P5 sampler + dashboard tab** | `scripts/eval-dispatch-quality.py` + `/__evaluator` endpoint + dashboard `#/evaluator` tab + auto-revert circuit. | After P2 + P4 land. |
 | **P6 binding flip** | Flip `dispatch-config.json` `enabled: true` + `mode: 'binding'`. | Blocked on a **2-week dev-repo shadow soak** — earliest 2026-06-18 *if* P5 shipped immediately, which it didn't. Realistic earliest: 2026-07-02. |
 
@@ -97,6 +106,23 @@ forgotten task.** This file gives each one its trigger.
 **Action when unparked:** re-probe the available CLI surface in a fresh session, update `_read_mimir` to prefer the JSON output if present, falling back to the current on-disk shape. Update Gate 49's fixtures to exercise both paths.
 
 **Re-check by:** 2026-06-18 (two weeks — Researcher cadence). If nothing surfaced, re-park with a 2026-07-04 re-check.
+
+---
+
+## 5. ⭐ REMINDER (Matt's ask, 2026-06-04) — send data-viz-designer Phases 2–7 to **Ultraplan**
+
+**This is the active to-do Matt asked to be reminded of.** The `data-viz-designer` build is *not* done — only its testable foundation shipped.
+
+**Shipped (PR #271):** Phase 0+1 — the `pbir-layout-engine` linter + 12 fixtures + Gate 92 (ravenclaude-core v0.116.0). Foundation merged to `main`.
+
+**What still needs building (Phases 2–7, ~13h, citation-heavy):** the `data-viz-designer` agent + the chart-from-intent / wcag-viz-contrast / ibcs-variance-reports skills + 3 knowledge files + 4 best-practice promotions + cross-links + the version cascade. The plan's own routing verdict is **`lean_ultraplan`** — this is the cloud run's job, not a depleted-local-session job (rushing it manufactures the "Power BI Slop" the agent exists to prevent).
+
+**Action when unparked — kick off an Ultraplan run pointed at BOTH:**
+- [`docs/research/2026-06-02-data-viz-agent/build-plan.md`](../research/2026-06-02-data-viz-agent/build-plan.md) (authoritative spec), **and**
+- [`docs/research/2026-06-02-data-viz-agent/phases-2-7-ultraplan-delta.md`](../research/2026-06-02-data-viz-agent/phases-2-7-ultraplan-delta.md) (the 2026-06-04 reconciliation: start at Phase 3, gates → 93–95, stale tableau filenames, re-verify all C1–C25 citations, open questions §8 Q2/Q3/Q5).
+
+**Trigger to unpark:** Matt is ready to start the Ultraplan run (he asked to be reminded — surface this at the next session start).
+**Re-check by:** whenever Matt next opens this repo. Delete this item once the Ultraplan run is kicked off.
 
 ---
 

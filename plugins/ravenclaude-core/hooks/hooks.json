@@ -99,6 +99,18 @@
         ]
       }
     ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/agent-dispatch-evaluator.sh",
+            "timeout": 10,
+            "comment": "Agent-dispatch evaluator (Phase 3 — AUDIT-ONLY). No-ops (single grep) unless .ravenclaude/dispatch-config.json has `enabled: true` (default false). When opted in, fires a Haiku classifier on the about-to-start subagent and SHADOW-LOGS a model-right-sizing verdict to hook-events.jsonl + .ravenclaude/runs/dispatch-eval/ — it NEVER denies or redispatches. Ships audit-only because SubagentStart fires post-spawn (RM1): a DENY may be a late cancel, not a pre-dispatch intercept, and this session could not verify deny-is-pre-commit live. The Phase-2 workflow wrapper (evaluate-dispatch.js) is the sole binding path. Fail-open on missing jq/claude/timeout."
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "hooks": [

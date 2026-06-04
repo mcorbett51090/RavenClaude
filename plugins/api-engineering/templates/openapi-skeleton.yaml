@@ -1,0 +1,160 @@
+# Contract-first OpenAPI 3.1 skeleton — copy and adapt.
+# Bakes in the house conventions: RFC 9457 Problem Details errors, cursor pagination,
+# a security scheme on every operation, examples, and RateLimit-aware responses.
+# Lint it with the Spectral ruleset (templates/spectral-ruleset.yaml) before building.
+openapi: 3.1.0
+info:
+  title: Example Orders API
+  version: 1.0.0
+  description: |
+    Contract-first example. Errors use application/problem+json (RFC 9457);
+    collections use cursor pagination; every operation requires an OAuth2 scope.
+  contact:
+    name: API Platform Team
+servers:
+  - url: https://api.example.com/v1
+    description: Production (URI-versioned — see design-version-only-for-breaking-changes)
+
+security:
+  - oauth2: [] # default: every operation is authenticated unless explicitly overridden
+
+paths:
+  /orders:
+    get:
+      operationId: listOrders
+      summary: List orders (cursor-paginated)
+      security:
+        - oauth2: [orders:read]
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, default: 20, maximum: 100 } }
+        - {
+            name: cursor,
+            in: query,
+            schema: { type: string },
+            description: Opaque next-page cursor,
+          }
+      responses:
+        "200":
+          description: A page of orders
+          headers:
+            RateLimit:
+              {
+                schema: { type: string },
+                description: "IETF draft RateLimit field [verify-at-build]",
+              }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrderPage" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        default: { $ref: "#/components/responses/Problem" }
+    post:
+      operationId: createOrder
+      summary: Create an order (idempotent via Idempotency-Key)
+      security:
+        - oauth2: [orders:write]
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string }
+          description: "Client-generated key; a retry with the same key replays the original result [verify-at-build]"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OrderCreate" }
+      responses:
+        "201":
+          description: Created
+          headers:
+            Location: { schema: { type: string } }
+            ETag: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+        "409": { $ref: "#/components/responses/Problem" } # idempotency in-flight / conflict
+        "422": { $ref: "#/components/responses/Problem" } # validation
+        default: { $ref: "#/components/responses/Problem" }
+  /orders/{orderId}:
+    get:
+      operationId: getOrder
+      summary: Get one order
+      security:
+        - oauth2: [orders:read]
+      parameters:
+        - { name: orderId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The order
+          headers:
+            ETag: { schema: { type: string }, description: Use with If-Match on update }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+        "404": { $ref: "#/components/responses/Problem" } # also used to hide existence from unauthorized callers (BOLA)
+        default: { $ref: "#/components/responses/Problem" }
+
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        authorizationCode: # user-present clients: Authorization Code + PKCE
+          authorizationUrl: https://auth.example.com/authorize
+          tokenUrl: https://auth.example.com/token
+          scopes:
+            orders:read: Read orders
+            orders:write: Create and modify orders
+        clientCredentials: # service-to-service (daemon)
+          tokenUrl: https://auth.example.com/token
+          scopes:
+            orders:read: Read orders
+            orders:write: Create and modify orders
+  responses:
+    Problem:
+      description: An error (RFC 9457 Problem Details)
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    RateLimited:
+      description: Too Many Requests
+      headers:
+        Retry-After: { schema: { type: integer } }
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+  schemas:
+    Problem: # RFC 9457
+      type: object
+      properties:
+        type: { type: string, format: uri, default: "about:blank" }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+      required: [title, status]
+    OrderPage:
+      type: object
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/Order" } }
+        next:
+          {
+            type: ["string", "null"],
+            description: Opaque cursor for the next page; null when exhausted,
+          }
+      required: [data]
+    Order:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [pending, paid, shipped, cancelled] }
+        total: { type: integer, description: Minor units }
+        currency: { type: string }
+      required: [id, status]
+    OrderCreate:
+      type: object
+      additionalProperties: false # allow-list input properties (BOPLA)
+      properties:
+        items: { type: array, minItems: 1, items: { type: object } }
+        currency: { type: string }
+      required: [items, currency]
