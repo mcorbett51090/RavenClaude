@@ -5,8 +5,8 @@
     "name": "Matt Corbett"
   },
   "metadata": {
-    "description": "RavenClaude \u2014 a private marketplace of opinionated Claude Code plugins. A domain-neutral core (Team Lead + 14 specialist agents, 32 skills, hooks, the Capability Grounding Protocol, the Structured Output Protocol, and a comfort-posture permission dashboard) plus domain plugins that extend it via skills and knowledge. Every agent ships example-scenario frontmatter; the repo-guide surfaces an 'I want to\u2026' use-case lookup across all plugins. Plugins: ravenclaude-core, power-platform (+ bundled pbix-mcp), finance, regulatory-compliance, web-design (WCAG/CWV/SEO), edtech-partner-success (PSM lane), data-platform, applied-statistics, microsoft-fabric (OneLake / Lakehouse / Direct Lake), claude-app-engineering (Claude API / Agent SDK / MCP / evals), azure-cloud (landing zones / Bicep / Entra / networking / compute), salesforce (Apex / Flow / Agentforce / sharing model / 2GP DevOps), microsoft-365-copilot (declarative/custom-engine agents / Graph connectors / Purview), customer-success-analytics (CS-health / churn).",
-    "version": "0.44.0"
+    "description": "RavenClaude \u2014 a private marketplace of opinionated Claude Code plugins. A domain-neutral core (Team Lead + 14 specialist agents, 32 skills, hooks, the Capability Grounding Protocol, the Structured Output Protocol, and a comfort-posture permission dashboard) plus domain plugins that extend it via skills and knowledge. Every agent ships example-scenario frontmatter; the repo-guide surfaces an 'I want to\u2026' use-case lookup across all plugins. Plugins: ravenclaude-core, power-platform (+ bundled pbix-mcp), finance, regulatory-compliance, web-design (WCAG/CWV/SEO), edtech-partner-success (PSM lane), data-platform, applied-statistics, microsoft-fabric (OneLake / Lakehouse / Direct Lake), claude-app-engineering (Claude API / Agent SDK / MCP / evals), azure-cloud (landing zones / Bicep / Entra / networking / compute), salesforce (Apex / Flow / Agentforce / sharing model / 2GP DevOps), microsoft-365-copilot (declarative/custom-engine agents / Graph connectors / Purview), customer-success-analytics (CS-health / churn), freight-forwarding-sales (international freight sales — quoting / RFQ-tender / QBR / pipeline / prospecting).",
+    "version": "0.45.0"
   },
   "plugins": [
     {
@@ -476,6 +476,33 @@
         "delivery",
         "pmo",
         "change-control"
+      ]
+    },
+    {
+      "name": "freight-forwarding-sales",
+      "source": "./plugins/freight-forwarding-sales",
+      "description": "International freight-forwarding sales team — 6 specialist agents (freight-rate-quoter, rfq-tender-strategist, key-account-manager, pipeline-forecast-coach, prospecting-outreach-strategist, trade-lane-compliance-advisor) for a global-forwarding sales / business-development manager: building all-in ocean + air quotes (chargeable weight, BAF/CAF/THC/LSS surcharge stack, margin, validity), responding to RFQs/RFPs/tenders (qualify-or-decline scorecard + lane rate matrix + bid narrative), running QBRs and account plans, keeping the CRM pipeline + forecast honest (coverage, velocity, weighted/commit), prospecting shippers multi-channel, and getting Incoterms 2020 + customs basics right. 6 skills, 6 slash commands (/build-freight-quote, /respond-to-rfq, /prep-qbr, /pipeline-review, /draft-prospect-outreach, /account-plan), a 2-doc knowledge bank with 4 Mermaid decision trees (mode selection, quote-vs-qualify, Incoterms selection, spot-vs-contract), and a runnable zero-dependency chargeable-weight / quote-margin calculator (scripts/freight_calc.py). Domain-explicit but carrier-neutral — fits any forwarder or 3PL, not only DHL; encodes public industry-standard practice, no confidential method. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "freight-forwarding",
+        "logistics-sales",
+        "international-sales",
+        "ocean-freight",
+        "air-freight",
+        "incoterms",
+        "rfq",
+        "tender",
+        "rate-quote",
+        "chargeable-weight",
+        "qbr",
+        "account-management",
+        "sales-pipeline",
+        "prospecting",
+        "3pl",
+        "supply-chain"
       ]
     }
   ]
