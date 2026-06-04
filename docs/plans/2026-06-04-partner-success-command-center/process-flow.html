@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Partner Success Command Center — Process Flow</title>
+    <meta
+      name="description"
+      content="How the Partner Success Command Center dashboard works end-to-end: the PSM's morning loop, data flow, priority scoring, drill-downs, and tier dependencies — as Mermaid diagrams."
+    />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#f5f6f8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ── RavenClaude shared design tokens (mirrors index.html) ───────── */
+      :root {
+        --rc-bg: #f5f6f8;
+        --rc-surface: #ffffff;
+        --rc-surface-2: #eef0f3;
+        --rc-border: #e3e6ea;
+        --rc-border-strong: #d2d7dd;
+        --rc-text: #1c1f23;
+        --rc-muted: #5b6166;
+        --rc-faint: #8e959c;
+        --rc-ink: #1c1f23;
+        --rc-ink-fg: #ffffff;
+        --rc-gold: #a8882e;
+        --rc-gold-soft: #c9aa55;
+        --rc-teal: #1f7f78;
+        --rc-teal-soft: #4a9590;
+        --rc-ok: #1f7a3f;
+        --rc-warn: #9a7010;
+        --rc-danger: #b03f3f;
+        --rc-ok-bg: #e6f3ea;
+        --rc-ok-fg: #14532d;
+        --rc-warn-bg: #f6ecd6;
+        --rc-warn-fg: #6b4c0a;
+        --rc-danger-bg: #fbe5e5;
+        --rc-danger-fg: #6b1414;
+        --rc-neutral-bg: #ece8e0;
+        --rc-neutral-fg: #4a4640;
+        --rc-font-sans:
+          "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+          sans-serif;
+        --rc-font-mono:
+          "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        --rc-space-3: 12px;
+        --rc-space-4: 16px;
+        --rc-space-5: 24px;
+        --rc-space-6: 32px;
+        --rc-space-7: 48px;
+        --rc-space-8: 64px;
+        --rc-radius-xs: 4px;
+        --rc-radius-sm: 8px;
+        --rc-radius: 10px;
+        --rc-radius-lg: 12px;
+        --rc-radius-pill: 999px;
+        --rc-shadow-xs: 0 1px 2px rgba(20, 28, 40, 0.04);
+        --rc-shadow-sm: 0 1px 2px rgba(20, 28, 40, 0.04), 0 1px 3px rgba(20, 28, 40, 0.06);
+        --rc-focus-ring: 0 0 0 3px rgba(31, 127, 120, 0.32);
+        --sidebar-w: 268px;
+        --topbar-h: 64px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        font-family: var(--rc-font-sans);
+        color: var(--rc-text);
+        background: var(--rc-bg);
+        -webkit-font-smoothing: antialiased;
+        min-height: 100vh;
+        line-height: 1.5;
+      }
+      a {
+        color: var(--rc-teal);
+        text-decoration: none;
+      }
+      a:hover {
+        color: var(--rc-teal-soft);
+        text-decoration: underline;
+      }
+      h1,
+      h2,
+      h3,
+      h4 {
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+        margin: 0;
+      }
+      h1 {
+        font-size: clamp(1.7rem, 3.5vw, 2.4rem);
+      }
+      h2 {
+        font-size: 1.35rem;
+        margin-bottom: 6px;
+      }
+      ::selection {
+        background: var(--rc-teal);
+        color: #fff;
+      }
+      :focus-visible {
+        outline: none;
+        box-shadow: var(--rc-focus-ring);
+        border-radius: 8px;
+      }
+      button {
+        font-family: inherit;
+        cursor: pointer;
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: var(--sidebar-w) 1fr;
+        min-height: 100vh;
+      }
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        background: linear-gradient(180deg, var(--rc-surface-2), var(--rc-bg));
+        border-right: 1px solid var(--rc-border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        z-index: 40;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 18px;
+        height: var(--topbar-h);
+        border-bottom: 1px solid var(--rc-border);
+      }
+      .brand .mark {
+        width: 38px;
+        height: 38px;
+        display: grid;
+        place-items: center;
+        border-radius: 10px;
+        background: var(--rc-gold);
+        color: #fff;
+        font-weight: 700;
+        font-size: 1.1rem;
+      }
+      .brand .name {
+        font-weight: 700;
+        font-size: 0.98rem;
+        line-height: 1.2;
+      }
+      .brand .tag {
+        display: block;
+        font-size: 0.62rem;
+        color: var(--rc-faint);
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-top: 2px;
+      }
+      .nav {
+        padding: 14px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        overflow-y: auto;
+        flex: 1;
+      }
+      .nav .group-label {
+        font-size: 0.64rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--rc-faint);
+        padding: 14px 12px 6px;
+        font-weight: 600;
+      }
+      .nav a.nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 12px;
+        border-radius: var(--rc-radius-sm);
+        color: var(--rc-muted);
+        font-weight: 500;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        transition: 0.15s;
+        position: relative;
+      }
+      .nav a.nav-item:hover {
+        background: var(--rc-surface);
+        color: var(--rc-text);
+      }
+      .nav a.nav-item.active {
+        background: rgba(168, 136, 46, 0.12);
+        color: var(--rc-gold);
+        font-weight: 600;
+      }
+      .nav a.nav-item.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 8px;
+        bottom: 8px;
+        width: 3px;
+        border-radius: 3px;
+        background: var(--rc-gold);
+      }
+      .nav a.nav-item .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--rc-border-strong);
+        flex: 0 0 auto;
+      }
+      .nav a.nav-item.active .dot {
+        background: var(--rc-gold);
+      }
+      .sidebar-foot {
+        padding: 14px;
+        border-top: 1px solid var(--rc-border);
+        font-size: 0.72rem;
+        color: var(--rc-faint);
+      }
+
+      .main {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        height: var(--topbar-h);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 0 28px;
+        background: rgba(245, 246, 248, 0.85);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--rc-border);
+      }
+      .topbar .crumb {
+        font-size: 0.82rem;
+        color: var(--rc-muted);
+        font-weight: 500;
+      }
+      .topbar .crumb b {
+        color: var(--rc-text);
+      }
+      .topbar .links {
+        margin-left: auto;
+        display: flex;
+        gap: 8px;
+      }
+      .content {
+        padding: var(--rc-space-7) 28px var(--rc-space-8);
+        max-width: 1040px;
+        margin: 0 auto;
+        width: 100%;
+      }
+      section {
+        scroll-margin-top: 84px;
+        margin-bottom: var(--rc-space-8);
+      }
+      section > .lead {
+        color: var(--rc-muted);
+        font-size: 1rem;
+        max-width: 72ch;
+        margin-top: 4px;
+      }
+
+      .rc-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 14px;
+        border: 1px solid var(--rc-border-strong);
+        border-radius: var(--rc-radius-sm);
+        background: var(--rc-surface);
+        color: var(--rc-text);
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: 0.15s;
+      }
+      .rc-button:hover {
+        background: var(--rc-surface-2);
+        border-color: var(--rc-muted);
+        text-decoration: none;
+      }
+      .rc-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        border-radius: var(--rc-radius-xs);
+        font-family: var(--rc-font-mono);
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .rc-badge--gold {
+        background: rgba(168, 136, 46, 0.14);
+        color: var(--rc-gold);
+      }
+      .rc-rule {
+        height: 1px;
+        border: 0;
+        background: linear-gradient(90deg, transparent, var(--rc-gold) 50%, transparent);
+        opacity: 0.5;
+        margin: var(--rc-space-6) 0;
+      }
+
+      /* Diagram card + mermaid surface */
+      .diagram {
+        background: var(--rc-surface);
+        border: 1px solid var(--rc-border);
+        border-radius: var(--rc-radius-lg);
+        box-shadow: var(--rc-shadow-xs);
+        padding: var(--rc-space-5);
+        margin: var(--rc-space-4) 0;
+      }
+      pre.mermaid {
+        margin: 0;
+        background: var(--rc-surface);
+        border-radius: var(--rc-radius);
+        padding: var(--rc-space-4);
+        overflow-x: auto;
+        text-align: center;
+        min-height: 60px;
+      }
+      pre.mermaid:not([data-processed="true"]) {
+        font-family: var(--rc-font-mono);
+        font-size: 0.78rem;
+        color: var(--rc-faint);
+        white-space: pre-wrap;
+        text-align: left;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-top: var(--rc-space-4);
+        font-size: 0.82rem;
+        color: var(--rc-muted);
+      }
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .swatch {
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        display: inline-block;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+      }
+
+      .callout {
+        border-radius: var(--rc-radius-lg);
+        padding: var(--rc-space-4) var(--rc-space-5);
+        margin: var(--rc-space-4) 0;
+        border: 1px solid var(--rc-border);
+        background: var(--rc-surface);
+      }
+      .callout--gold {
+        border-left: 4px solid var(--rc-gold);
+        background: rgba(168, 136, 46, 0.06);
+      }
+      .callout--teal {
+        border-left: 4px solid var(--rc-teal);
+        background: rgba(31, 127, 120, 0.05);
+      }
+      .callout h4 {
+        margin-bottom: 6px;
+        font-size: 0.95rem;
+      }
+      .callout p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: var(--rc-muted);
+      }
+      code.inline {
+        font-family: var(--rc-font-mono);
+        background: var(--rc-surface-2);
+        border: 1px solid var(--rc-border);
+        border-radius: 5px;
+        padding: 1px 6px;
+        font-size: 0.84em;
+      }
+      .muted {
+        color: var(--rc-muted);
+      }
+
+      @media (max-width: 880px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          display: none;
+        }
+        .content {
+          padding: var(--rc-space-5) 18px var(--rc-space-7);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="mark">PS</div>
+          <div>
+            <div class="name">Command Center</div>
+            <span class="tag">Process Flow</span>
+          </div>
+        </div>
+        <nav class="nav" id="nav">
+          <div class="group-label">How it works</div>
+          <a class="nav-item" href="#intro"><span class="dot"></span><span>Overview</span></a>
+          <a class="nav-item" href="#morning"
+            ><span class="dot"></span><span>The morning loop</span></a
+          >
+          <a class="nav-item" href="#dataflow"><span class="dot"></span><span>Data flow</span></a>
+          <a class="nav-item" href="#priority"
+            ><span class="dot"></span><span>Priority scoring</span></a
+          >
+          <a class="nav-item" href="#drilldown"
+            ><span class="dot"></span><span>Drill-down navigation</span></a
+          >
+          <a class="nav-item" href="#tiers"
+            ><span class="dot"></span><span>Tier dependencies</span></a
+          >
+          <a class="nav-item" href="#refresh"
+            ><span class="dot"></span><span>Refresh lifecycle</span></a
+          >
+        </nav>
+        <div class="sidebar-foot">
+          Partner Success Command Center<br />
+          Process flow · Mermaid · 2026-06-04
+        </div>
+      </aside>
+
+      <div class="main">
+        <header class="topbar">
+          <div class="crumb">docs / plans / <b>partner-success-command-center</b></div>
+          <div class="links">
+            <a class="rc-button" href="./build-plan.html" target="_blank" rel="noopener"
+              >📋 Build plan ↗</a
+            >
+            <a class="rc-button" href="./plan.md" target="_blank" rel="noopener">📄 plan.md ↗</a>
+          </div>
+        </header>
+
+        <main class="content">
+          <section id="intro">
+            <span class="rc-badge rc-badge--gold">Process Flow</span>
+            <h1 style="margin-top: 12px">How the Command Center works</h1>
+            <p class="lead">
+              The dashboard turns six scattered systems into one morning loop. These diagrams trace
+              the flow end-to-end — what the PSM does, where the numbers come from, how the priority
+              score is computed, and how the pieces depend on each other. Pair this with the
+              <a href="./build-plan.html" target="_blank" rel="noopener">Build Plan ↗</a>.
+            </p>
+            <div class="callout callout--gold">
+              <h4>One sentence</h4>
+              <p>
+                Data from every system lands in a single <code class="inline">data.json</code> keyed
+                by <code class="inline">account_uid</code>; the dashboard reads that file, scores
+                every partner, and shows the PSM exactly who to call, why, and when — newest answer
+                every morning.
+              </p>
+            </div>
+          </section>
+
+          <hr class="rc-rule" />
+
+          <section id="morning">
+            <h2>1 · The morning operating loop</h2>
+            <p class="lead">
+              What the PSM actually does. The dashboard collapses "check eight systems" into "do the
+              top thing, then the next thing."
+            </p>
+            <div class="diagram">
+              <pre class="mermaid">
+flowchart TD
+  A([☀️ PSM opens dashboard]) --> B[Portfolio Summary<br/>totals · at-risk · renewals · escalations]
+  B --> C[Daily Action Center<br/>every partner sorted by priority score]
+  C --> D{Top partner —<br/>act now?}
+  D -- Yes --> E[Open Partner 360<br/>contacts · timeline · lifecycle · renewal]
+  E --> F[Do the recommended action<br/>call · email · schedule QBR]
+  F --> G[Log the touchpoint]
+  G --> C
+  D -- No --> H{More partners<br/>flagged today?}
+  H -- Yes --> C
+  H -- No --> I[Check Upcoming Touchpoints<br/>countdowns to renewals & check-ins]
+  I --> J([✅ Morning triage done<br/>&lt; 15 min])
+
+  classDef start fill:#1f7f78,stroke:#1f7f78,color:#fff;
+  classDef act fill:#f6ecd6,stroke:#9a7010,color:#6b4c0a;
+  classDef done fill:#e6f3ea,stroke:#1f7a3f,color:#14532d;
+  class A,J start;
+  class E,F,G act;
+  class I done;
+              </pre>
+            </div>
+            <div class="legend">
+              <span><span class="swatch" style="background: #1f7f78"></span> Start / end</span>
+              <span><span class="swatch" style="background: #f6ecd6"></span> Act on a partner</span>
+              <span><span class="swatch" style="background: #e6f3ea"></span> Look-ahead</span>
+            </div>
+          </section>
+
+          <hr class="rc-rule" />
+
+          <section id="dataflow">
+            <h2>2 · Data flow — six systems into one file</h2>
+            <p class="lead">
+              Every source joins on a single canonical key (<code class="inline">account_uid</code>)
+              and lands in <code class="inline">data.json</code>. The dashboard only ever reads that
+              file — it never talks to the source systems directly.
+            </p>
+            <div class="diagram">
+              <pre class="mermaid">
+flowchart LR
+  subgraph SRC [Source systems]
+    SF[Salesforce<br/>accounts · contracts]
+    PH[Planhat<br/>health · sentiment · plans]
+    SN[Snowflake<br/>usage · family engagement]
+    SUP[Support tool<br/>tickets · escalations]
+    CON[Contracts<br/>CPQ / CLM]
+    CAL[Calendar<br/>QBRs · check-ins]
+  end
+
+  subgraph SPINE [Identity spine]
+    XREF{{bridge on<br/>account_uid}}
+  end
+
+  SF --> XREF
+  PH --> XREF
+  SN --> XREF
+  SUP --> XREF
+  CON --> XREF
+  CAL --> XREF
+
+  XREF --> DJ[(data.json<br/>partners · contacts · timeline ·<br/>usage · contracts · tickets · calendar)]
+  DJ --> DASH[dashboard.html<br/>reads via fetch]
+
+  SYN[synthesize.py<br/>seeded · FERPA-safe] -. v0 fills the same file .-> DJ
+
+  classDef src fill:#eef0f3,stroke:#d2d7dd,color:#1c1f23;
+  classDef spine fill:#f6ecd6,stroke:#9a7010,color:#6b4c0a;
+  classDef file fill:#1f7f78,stroke:#1f7f78,color:#fff;
+  classDef syn fill:#fbe5e5,stroke:#b03f3f,color:#6b1414;
+  class SF,PH,SN,SUP,CON,CAL src;
+  class XREF spine;
+  class DJ,DASH file;
+  class SYN syn;
+              </pre>
+            </div>
+            <div class="callout callout--teal">
+              <h4>Why this matters for the build</h4>
+              <p>
+                Because the dashboard reads only <code class="inline">data.json</code>, you build it
+                against <b>synthetic data first</b> (the red path) and swap in
+                <b>real data later</b> (the source path) without changing a line of
+                <code class="inline">dashboard.html</code>.
+              </p>
+            </div>
+          </section>
+
+          <hr class="rc-rule" />
+
+          <section id="priority">
+            <h2>3 · How the priority score decides who to call</h2>
+            <p class="lead">
+              Nine signals, each weighted, combine into one 0–100 score. The score is never shown
+              without the signal that drove it.
+            </p>
+            <div class="diagram">
+              <pre class="mermaid">
+flowchart TD
+  subgraph SIG [Nine signals · raw 0-100]
+    S1[renewal timing]
+    S2[health decline]
+    S3[sentiment decline]
+    S4[days since touchpoint]
+    S5[open escalations]
+    S6[ticket volume]
+    S7[ARR]
+    S8[top 15 bonus]
+    S9[usage decline]
+  end
+
+  S1 -- ×25 --> W((weighted<br/>sum ÷ 100))
+  S2 -- ×20 --> W
+  S3 -- ×15 --> W
+  S4 -- ×12 --> W
+  S5 -- ×10 --> W
+  S6 -- ×5 --> W
+  S7 -- ×5 --> W
+  S8 -- ×5 --> W
+  S9 -- ×3 --> W
+
+  W --> PS[priority_score<br/>0-100]
+  PS --> ROW[Action Center row<br/>score · top signal · reason]
+  ROW --> ACT[recommended_action<br/>from the play catalog]
+
+  classDef sig fill:#eef0f3,stroke:#d2d7dd,color:#1c1f23;
+  classDef calc fill:#a8882e,stroke:#a8882e,color:#fff;
+  classDef out fill:#1f7f78,stroke:#1f7f78,color:#fff;
+  class S1,S2,S3,S4,S5,S6,S7,S8,S9 sig;
+  class W,PS calc;
+  class ROW,ACT out;
+              </pre>
+            </div>
+            <div class="callout callout--gold">
+              <h4>Tunable, not hardcoded</h4>
+              <p>
+                The weights live in <code class="inline">priority_weights</code> in
+                <code class="inline">data.json</code>. Re-tune them after a couple weeks of use — no
+                code change. Every row carries its top contributing signal (e.g.
+                <code class="inline">renewal_timing 38%</code>) so the score is explainable, not a
+                black box.
+              </p>
+            </div>
+          </section>
+
+          <hr class="rc-rule" />
+
+          <section id="drilldown">
+            <h2>4 · Drill-down navigation</h2>
+            <p class="lead">
+              One Partner 360 panel, reachable from everywhere. Click any partner name in any view
+              and the same drill-down opens.
+            </p>
+            <div class="diagram">
+              <pre class="mermaid">
+flowchart TD
+  HOME[Home · Daily Operating System]
+  T15[Top 15 lens]
+  HL[Health lens]
+  SENT[Sentiment lens]
+  SUP[Support lens]
+  REN[Renewal Command Center]
+
+  HOME -- click partner --> P360
+  T15 -- click partner --> P360
+  HL -- click partner --> P360
+  SENT -- click partner --> P360
+  SUP -- click partner --> P360
+  REN -- click partner --> P360
+
+  subgraph P360 [Partner 360 · one shared panel]
+    direction LR
+    H[Header<br/>scores · lifecycle]
+    CO[Contacts]
+    TL[Timeline]
+    LC[Lifecycle]
+    RN[Renewal]
+    TK[Tickets]
+  end
+
+  P360 -- Esc / backdrop --> BACK([back to where you were])
+
+  classDef view fill:#eef0f3,stroke:#d2d7dd,color:#1c1f23;
+  classDef panel fill:#f6ecd6,stroke:#9a7010,color:#6b4c0a;
+  class HOME,T15,HL,SENT,SUP,REN view;
+  class H,CO,TL,LC,RN,TK panel;
+              </pre>
+            </div>
+            <p class="muted">
+              Single drill-down implementation — built once in Prompt 3, reused by every lens added
+              in Prompts 4–5.
+            </p>
+          </section>
+
+          <hr class="rc-rule" />
+
+          <section id="tiers">
+            <h2>5 · Tier dependencies (build order)</h2>
+            <p class="lead">
+              What must exist before what. Tier 0 first; the dashboard is useful the moment Tier 1
+              lands; real data swaps in whenever it's ready.
+            </p>
+            <div class="diagram">
+              <pre class="mermaid">
+flowchart TD
+  T0[Tier 0 · Data layer<br/>schema + synthetic data<br/>Prompt 1]
+  T1[Tier 1 · Daily Operating System<br/>4 widgets · Prompt 2]
+  T2[Tier 2 · Partner 360 + Timeline<br/>+ Lifecycle + Renewal · Prompt 3]
+  T3[Tier 3 · Segment lenses<br/>Prompt 4]
+  T4[Tier 4 · Motion lenses<br/>Prompt 5]
+  T05[Tier 0.5 · Real connectors<br/>→ replaces data.json · later]
+  T5[Tier 5 · AI features<br/>deferred]
+
+  T0 --> T1
+  T1 --> T2
+  T2 --> T3
+  T2 --> T4
+  T0 --> T05
+  T05 -. real-data swap .-> T1
+  T05 -. real-data swap .-> T2
+  T3 --> T5
+  T4 --> T5
+
+  classDef essential fill:#1f7f78,stroke:#1f7f78,color:#fff;
+  classDef bonus fill:#eef0f3,stroke:#d2d7dd,color:#1c1f23;
+  classDef future fill:#ece8e0,stroke:#8e959c,color:#4a4640;
+  class T0,T1 essential;
+  class T2,T3,T4 bonus;
+  class T05,T5 future;
+              </pre>
+            </div>
+            <div class="legend">
+              <span
+                ><span class="swatch" style="background: #1f7f78"></span> Essential (Prompts
+                1–2)</span
+              >
+              <span
+                ><span class="swatch" style="background: #eef0f3"></span> Bonus depth (Prompts
+                3–5)</span
+              >
+              <span
+                ><span class="swatch" style="background: #ece8e0"></span> Future / deferred</span
+              >
+            </div>
+            <p class="muted" style="margin-top: 16px">
+              <b>Critical path to "used every morning":</b> Tier 0 → Tier 1 = two Codex prompts.
+            </p>
+          </section>
+
+          <hr class="rc-rule" />
+
+          <section id="refresh">
+            <h2>6 · The refresh lifecycle</h2>
+            <p class="lead">
+              How a fresh answer reaches the dashboard each day — synthetic now, real later, same
+              shape.
+            </p>
+            <div class="diagram">
+              <pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant PSM as PSM
+  participant Gen as synthesize.py / export
+  participant DJ as data.json
+  participant Dash as dashboard.html
+  PSM->>Gen: run generator (or real-data export)
+  Gen->>DJ: write fresh data.json (seeded · FERPA-safe)
+  PSM->>Dash: open in browser
+  Dash->>DJ: fetch ./data/data.json
+  DJ-->>Dash: partners · scores · events
+  Dash->>Dash: sort by priority · color by band
+  Dash-->>PSM: "call these, here's why, here's when"
+              </pre>
+            </div>
+            <div class="callout callout--teal">
+              <h4>Same loop, two data sources</h4>
+              <p>
+                <b>Today:</b> <code class="inline">python3 data/synthesize.py</code> → open
+                <code class="inline">dashboard.html</code>. <b>Later:</b> export real partner data
+                into the same <code class="inline">data/data.json</code> → open
+                <code class="inline">dashboard.html</code>. The dashboard can't tell the difference,
+                and neither does the morning routine.
+              </p>
+            </div>
+            <p class="muted" style="margin-top: 24px">
+              See the
+              <a href="./build-plan.html" target="_blank" rel="noopener">Build Plan ↗</a> for the
+              copy-paste Codex prompts, and
+              <a href="./plan.md" target="_blank" rel="noopener">plan.md</a> for the full strategy,
+              risks, and data contract.
+            </p>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "base",
+        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        themeVariables: {
+          primaryColor: "#ffffff",
+          primaryTextColor: "#1c1f23",
+          primaryBorderColor: "#d2d7dd",
+          lineColor: "#8e959c",
+          secondaryColor: "#eef0f3",
+          tertiaryColor: "#f5f6f8",
+          fontSize: "14px",
+        },
+      });
+    </script>
+
+    <script>
+      // Scroll-spy nav highlight
+      var navLinks = Array.from(document.querySelectorAll(".nav-item"));
+      var sections = navLinks
+        .map(function (a) {
+          return document.querySelector(a.getAttribute("href"));
+        })
+        .filter(Boolean);
+      var spy = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (e) {
+            if (e.isIntersecting) {
+              var id = "#" + e.target.id;
+              navLinks.forEach(function (a) {
+                a.classList.toggle("active", a.getAttribute("href") === id);
+              });
+            }
+          });
+        },
+        { rootMargin: "-45% 0px -50% 0px" },
+      );
+      sections.forEach(function (s) {
+        spy.observe(s);
+      });
+    </script>
+  </body>
+</html>
