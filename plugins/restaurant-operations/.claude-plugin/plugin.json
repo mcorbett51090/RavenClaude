@@ -1,0 +1,24 @@
+{
+  "name": "restaurant-operations",
+  "version": "0.1.0",
+  "description": "Restaurant Operations specialist team — 4 agents (restaurant-engagement-lead, menu-cost-engineer, foh-boh-operations-specialist, restaurant-finance-analyst), 5 skills, 3 templates, 3 commands, 1 advisory hook, 4 best-practice rules, and a 4-file research-grounded knowledge bank. An operations-and-unit-economics team for an independent or multi-unit restaurant operator — it manages prime cost (food + labor), engineers the menu by contribution margin and popularity, controls food cost against theoretical, and reads the P&L the way a GM who lives the four-wall margin does. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "restaurant-operations",
+    "prime-cost",
+    "food-cost",
+    "menu-engineering",
+    "labor-cost",
+    "four-wall-margin",
+    "unit-economics",
+    "qsr",
+    "multi-unit"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

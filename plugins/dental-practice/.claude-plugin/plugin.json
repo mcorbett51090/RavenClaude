@@ -1,0 +1,24 @@
+{
+  "name": "dental-practice",
+  "version": "0.1.0",
+  "description": "Dental Practice specialist team — 4 agents (dental-practice-lead, clinical-treatment-planner, dental-rcm-specialist, dental-operations-analyst), 5 skills, 3 templates, 3 commands, 1 advisory hook, 4 best-practice rules, and a 4-file research-grounded knowledge bank. A treatment-planning-and-revenue-cycle team for a dental practice owner — it controls overhead against the ~62% median, holds collections above 98%, builds case acceptance on the treatment plan rather than the discount, and reads doctor/hygiene production per hour the way a practice that runs on the schedule does. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "dental-practice",
+    "treatment-planning",
+    "case-acceptance",
+    "overhead",
+    "collection-ratio",
+    "production-per-hour",
+    "revenue-cycle",
+    "dso",
+    "hygiene"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "nonprofit-fundraising",
+  "version": "0.1.0",
+  "description": "Nonprofit Fundraising specialist team — 4 agents (development-lead, grant-writer, major-gifts-strategist, nonprofit-finance-analyst), 5 skills, 3 templates, 3 commands, 1 advisory hook, 4 best-practice rules, and a 4-file research-grounded knowledge bank. A development team for a nonprofit fundraiser or executive director — it protects donor retention (the cheapest dollar a nonprofit has, at ~$0.20 to keep vs ~$1.50 to acquire), builds the grant pipeline on fit before effort, segments the donor base by value and recency, and reads cost-to-raise-a-dollar honestly across channels. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "nonprofit",
+    "fundraising",
+    "donor-retention",
+    "grant-writing",
+    "major-gifts",
+    "development",
+    "cost-to-raise-a-dollar",
+    "donor-segmentation",
+    "annual-fund"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

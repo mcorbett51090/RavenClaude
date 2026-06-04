@@ -1,0 +1,24 @@
+{
+  "name": "commercial-real-estate",
+  "version": "0.1.0",
+  "description": "Commercial Real Estate specialist team — 4 agents (cre-engagement-lead, acquisitions-underwriter, asset-property-manager, cre-market-analyst), 5 skills, 4 templates, 3 commands, 1 advisory hook, 4 best-practice rules, and a 4-file research-grounded knowledge bank. An acquisitions-and-asset-management team for a CRE owner, operator, or advisor — it underwrites a deal to in-place NOI, prices the cap-rate-vs-Treasury spread, reads the bifurcated vacancy, decomposes net effective rent, and stress-tests the debt and refinance wall before a board sees the IC memo. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "commercial-real-estate",
+    "cre",
+    "underwriting",
+    "cap-rate",
+    "noi",
+    "asset-management",
+    "net-effective-rent",
+    "dscr",
+    "investment-committee"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

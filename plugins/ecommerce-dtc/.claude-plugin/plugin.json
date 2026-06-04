@@ -1,0 +1,24 @@
+{
+  "name": "ecommerce-dtc",
+  "version": "0.1.0",
+  "description": "E-commerce & DTC specialist team — 4 agents (ecommerce-lead, merchandising-specialist, performance-marketing-strategist, retention-analytics-analyst), 5 skills, 3 templates, 3 commands, 1 advisory hook, 4 best-practice rules, and a 4-file research-grounded knowledge bank. A growth-and-unit-economics team for a DTC brand operator — it protects the LTV:CAC ratio (the 3:1 line below which a brand bleeds), reads conversion against the 1.4–1.8% average, attacks the retention gap (the average brand keeps just ~28% for a second purchase), and reads contribution margin after the real cost of acquisition and returns. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "ecommerce",
+    "dtc",
+    "ltv-cac",
+    "conversion-rate",
+    "customer-acquisition-cost",
+    "retention",
+    "contribution-margin",
+    "aov",
+    "performance-marketing"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

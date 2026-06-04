@@ -1,0 +1,17 @@
+# Realization, not billed hours, is the practice's truth
+
+**Status:** Absolute rule. **Constitution:** §3, §4.
+
+## Use when
+Any small-firm legal practice deliverable where this question is in play.
+
+## The rule
+Billed hours that aren't collected are fiction; realization (collected ÷ standard value) and the billed-vs-collected gap are the master practice numbers. [unverified — training knowledge]
+
+## Why
+This is house opinion §3 #1. Getting it wrong is the most common way a small-firm legal practice analysis misleads the operator who acts on it.
+
+## How to apply
+- Apply it before reaching for a method.
+- Make the relevant number carry a definition, window, and baseline (§3 #1).
+- Cite the source + date for any external figure, or mark it `[unverified — training knowledge]`.

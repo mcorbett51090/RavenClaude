@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for film-video-production. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-film-video-production-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: review this film & video production deliverable against the §3 house opinions (baseline on every metric, source+date on every external figure, no client PII). Set FILM_VIDEO_PRODUCTION_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}
