@@ -57,9 +57,33 @@ if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
       bash plugins/ravenclaude-core/hooks/tests/test-gate80-status-launcher-check.sh
       exit $?
       ;;
+    90)
+      echo "── Gate 90: agent-dispatch-evaluator audit-only hook (per-gate run) ──────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate90-dispatch-evaluator-audit-only.sh
+      exit $?
+      ;;
+    91)
+      echo "── Gate 91: agent-dispatch-evaluator tribunal-seat shadow (per-gate run) ──"
+      python3 plugins/ravenclaude-core/hooks/tests/test-gate91-tribunal-shadow.py
+      exit $?
+      ;;
+    92)
+      echo "── Gate 92: pbir-layout-engine linter bidirectional (per-gate run) ───────"
+      _LINT="python3 plugins/ravenclaude-core/skills/pbir-layout-engine/lint.py"
+      _rc92=0
+      # smoke: the linter runs at all
+      $_LINT --list-checks >/dev/null 2>&1 || { echo "  ✗ linter --list-checks failed (gate did not run)"; exit 1; }
+      # bad fixture must fail (check-1 overlap is error-severity → exit 1)
+      rc=0; $_LINT tests/fixtures/data-viz/bad-page-overlap.json >/dev/null 2>&1 || rc=$?
+      if [[ "$rc" -eq 0 ]]; then echo "  ✗ bad-page-overlap should have exited nonzero, got 0"; _rc92=1; else echo "  ✓ bad-page-overlap exits nonzero ($rc)"; fi
+      # good fixture must pass
+      rc=0; $_LINT tests/fixtures/data-viz/good-page.json >/dev/null 2>&1 || rc=$?
+      if [[ "$rc" -ne 0 ]]; then echo "  ✗ good-page should have exited zero, got $rc"; _rc92=1; else echo "  ✓ good-page exits zero"; fi
+      exit "$_rc92"
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 60, 70, 80. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 60, 70, 80, 90, 91, 92. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -393,9 +417,14 @@ python3 -c "import json;p='.claude-plugin/marketplace.json';d=json.load(open(p))
 rc=0; scripts/check-guide-fresh.sh >/dev/null 2>&1 || rc=$?
 gate "repo-guide freshness (mutated marketplace.json)" must_fail "$rc"
 cp -p "$TMP/.claude-plugin_marketplace.json.bak" .claude-plugin/marketplace.json
-# must_pass: pristine tree, the check should pass.
-rc=0; scripts/check-guide-fresh.sh >/dev/null 2>&1 || rc=$?
-gate "repo-guide freshness (clean tree)" must_pass "$rc"
+# NOTE: the matching "clean tree must_pass" assertion was intentionally removed.
+# repo-guide.html is no longer freshness-GATED on PRs — it is regenerated and
+# committed post-merge by .github/workflows/regenerate-artifacts.yml, so a PR
+# branch carrying a not-yet-regenerated guide must NOT fail here (that cross-PR
+# contagion is the failure this change fixes). The must_pass moved into that
+# workflow's verify step; the must_fail above still proves the detector that the
+# workflow relies on has teeth. See docs/best-practices/ci-gate-audit.md
+# § "Self-healing artifacts (freshness enforced post-merge, not on PRs)".
 
 echo
 echo "── Gate 12: marketplace-claims (required files + skill counts) ────────────"
@@ -440,13 +469,28 @@ cp -p "$TMP/README.md.bak" README.md
 # (the catalog prose describing core) must be detected — previously ungated, it
 # silently drifted to "20 skills" while core had 22 (caught by the v0.74.0 panel).
 backup .claude-plugin/marketplace.json
-python3 -c "p='.claude-plugin/marketplace.json';s=open(p).read();open(p,'w').write(s.replace('32 skills','20 skills',1))"
+python3 -c "p='.claude-plugin/marketplace.json';s=open(p).read();open(p,'w').write(s.replace('34 skills','20 skills',1))"
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (wrong metadata.description skill count)" must_fail "$rc"
 cp -p "$TMP/.claude-plugin_marketplace.json.bak" .claude-plugin/marketplace.json
-# must_pass: clean tree.
+# must_pass: clean tree — STRUCTURAL checks only. The derivable counts are no
+# longer enforced on PRs (they self-heal post-merge via --fix), so the clean-tree
+# assertion mirrors what the PR gate actually runs (--structural-only). The count
+# must_fail fixtures above stay in DEFAULT mode and keep the count detector honest,
+# which is what --fix relies on. See docs/best-practices/ci-gate-audit.md
+# § "Self-healing artifacts (freshness enforced post-merge, not on PRs)".
+rc=0; python3 scripts/check-marketplace-claims.py --structural-only >/dev/null 2>&1 || rc=$?
+gate "marketplace-claims (clean tree, structural-only)" must_pass "$rc"
+# --fix repairs a derivable count drift (the post-merge self-heal mechanism). This
+# is the relocated must_pass for the count half: mutate a count, run --fix, assert
+# it exits 0 AND default-mode is clean afterward (the repair actually landed).
+backup plugins/data-platform/.claude-plugin/plugin.json
+python3 -c "p='plugins/data-platform/.claude-plugin/plugin.json';s=open(p).read();open(p,'w').write(s.replace('13 skills','99 skills',1))"
+rc=0; python3 scripts/check-marketplace-claims.py --fix >/dev/null 2>&1 || rc=$?
+gate "marketplace-claims --fix repairs count drift" must_pass "$rc"
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
-gate "marketplace-claims (clean tree)" must_pass "$rc"
+gate "marketplace-claims clean after --fix" must_pass "$rc"
+cp -p "$TMP/plugins_data-platform_.claude-plugin_plugin.json.bak" plugins/data-platform/.claude-plugin/plugin.json
 
 echo
 echo "── Gate 13: dashboard.html freshness ──────────────────────────────────────"
@@ -2778,6 +2822,34 @@ gate "codex-trust-hooks fixture (13 subtests across STRICT + dod-gate + web-acce
 rc=0
 [ 1 -ne 2 ] || rc=1
 gate "codex-trust-hooks: exit 1 vs exit 2 are distinguishable (gate has teeth)" must_pass "$rc"
+
+echo "── Gate 90: agent-dispatch-evaluator SubagentStart hook — audit-only ──────"
+# The hook's full fixture (6 subtests incl. the deny-on-downgrade must-fail half) runs as one
+# unit; it self-asserts the audit-only invariant (downgrade verdict → exit 0, no deny) AND its
+# own teeth (a mutant that denies is caught). A nonzero exit means an assertion regressed.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate90-dispatch-evaluator-audit-only.sh >/dev/null 2>&1 || rc=$?
+gate "dispatch-evaluator audit-only fixture (6 subtests incl. deny-on-downgrade must-fail)" must_pass "$rc"
+
+echo "── Gate 91: agent-dispatch-evaluator tribunal-seat shadow (Phase 4) ───────"
+# Shadow integration in thing-decide.py: disabled → no evaluator_shadow (byte-identical to
+# pre-P4); enabled → every seat record carries evaluator_shadow AND the verdict/binding is
+# unchanged from the disabled run (RM2 — shadow is observational, never mutates seat models).
+rc=0; python3 plugins/ravenclaude-core/hooks/tests/test-gate91-tribunal-shadow.py >/dev/null 2>&1 || rc=$?
+gate "tribunal-seat shadow fixture (disabled no-op + enabled-shadows + verdict-unchanged)" must_pass "$rc"
+
+echo
+echo "── Gate 92: pbir-layout-engine layout linter — bidirectional ─────────────"
+# The data-viz-designer's load-bearing artifact: lint.py must FAIL on a fixture
+# that violates a check (bad-page-overlap → check-1 error → exit 1) and PASS on
+# the all-clean good-page.json. Plus a smoke assertion that the linter ran at all
+# (--list-checks exits 0) — a gate that can't even start is not a pass.
+LINT_PY="python3 plugins/ravenclaude-core/skills/pbir-layout-engine/lint.py"
+rc=0; $LINT_PY --list-checks >/dev/null 2>&1 || rc=$?
+gate "layout-linter smoke (--list-checks runs)" must_pass "$rc"
+rc=0; $LINT_PY tests/fixtures/data-viz/bad-page-overlap.json >/dev/null 2>&1 || rc=$?
+gate "layout-linter (bad fixture: overlapping visuals)" must_fail "$rc"
+rc=0; $LINT_PY tests/fixtures/data-viz/good-page.json >/dev/null 2>&1 || rc=$?
+gate "layout-linter (good fixture: clean grid)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

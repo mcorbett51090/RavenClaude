@@ -1,0 +1,32 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.1.0/schema.json",
+  "page": "ThemeOverrideExplosion",
+  "width": 1280,
+  "height": 720,
+  "displayOption": "FitToPage",
+  "visuals": [
+    {
+      "id": "over-styled",
+      "visualType": "clusteredBarChart",
+      "position": { "x": 24, "y": 80, "width": 296, "height": 300 },
+      "queryState": { "Category": { "projections": [{ "field": "Region" }] } },
+      "objects": {
+        "dataPoint": [{ "fill": "#0C3549" }],
+        "labels": [{ "show": true }],
+        "categoryAxis": [{ "show": true }],
+        "valueAxis": [{ "show": true }],
+        "legend": [{ "show": true }],
+        "plotArea": [{ "transparency": 0 }],
+        "general": [{ "responsive": true }]
+      },
+      "visualContainerObjects": {
+        "title": [{ "text": "Overstyled" }],
+        "border": [{ "show": true }],
+        "background": [{ "color": "#FFFFFF" }],
+        "dropShadow": [{ "show": true }],
+        "visualHeader": [{ "show": false }],
+        "subTitle": [{ "text": "too many overrides" }]
+      }
+    }
+  ]
+}

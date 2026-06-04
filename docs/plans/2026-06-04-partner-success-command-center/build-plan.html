@@ -1,0 +1,1297 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Partner Success Command Center — Build Plan</title>
+    <meta
+      name="description"
+      content="Interactive build plan for the Partner Success Command Center dashboard: tiers, decisions, and the copy-paste Codex prompts that build it."
+    />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#f5f6f8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ── RavenClaude shared design tokens (mirrors index.html) ───────── */
+      :root {
+        --rc-bg: #f5f6f8;
+        --rc-surface: #ffffff;
+        --rc-surface-2: #eef0f3;
+        --rc-border: #e3e6ea;
+        --rc-border-strong: #d2d7dd;
+        --rc-text: #1c1f23;
+        --rc-muted: #5b6166;
+        --rc-faint: #8e959c;
+        --rc-ink: #1c1f23;
+        --rc-ink-fg: #ffffff;
+        --rc-ink-soft: #34393f;
+        --rc-gold: #a8882e;
+        --rc-gold-soft: #c9aa55;
+        --rc-teal: #1f7f78;
+        --rc-teal-soft: #4a9590;
+        --rc-ok: #1f7a3f;
+        --rc-warn: #9a7010;
+        --rc-danger: #b03f3f;
+        --rc-ok-bg: #e6f3ea;
+        --rc-ok-fg: #14532d;
+        --rc-warn-bg: #f6ecd6;
+        --rc-warn-fg: #6b4c0a;
+        --rc-danger-bg: #fbe5e5;
+        --rc-danger-fg: #6b1414;
+        --rc-neutral-bg: #ece8e0;
+        --rc-neutral-fg: #4a4640;
+        --rc-font-sans:
+          "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+          sans-serif;
+        --rc-font-mono:
+          "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        --rc-space-1: 4px;
+        --rc-space-2: 8px;
+        --rc-space-3: 12px;
+        --rc-space-4: 16px;
+        --rc-space-5: 24px;
+        --rc-space-6: 32px;
+        --rc-space-7: 48px;
+        --rc-space-8: 64px;
+        --rc-radius-xs: 4px;
+        --rc-radius-sm: 8px;
+        --rc-radius: 10px;
+        --rc-radius-lg: 12px;
+        --rc-radius-pill: 999px;
+        --rc-shadow-xs: 0 1px 2px rgba(20, 28, 40, 0.04);
+        --rc-shadow-sm: 0 1px 2px rgba(20, 28, 40, 0.04), 0 1px 3px rgba(20, 28, 40, 0.06);
+        --rc-shadow: 0 2px 8px rgba(20, 28, 40, 0.06), 0 1px 2px rgba(20, 28, 40, 0.04);
+        --rc-shadow-lg: 0 12px 28px rgba(20, 28, 40, 0.1), 0 4px 8px rgba(20, 28, 40, 0.05);
+        --rc-focus-ring: 0 0 0 3px rgba(31, 127, 120, 0.32);
+        --sidebar-w: 268px;
+        --topbar-h: 64px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        font-family: var(--rc-font-sans);
+        color: var(--rc-text);
+        background: var(--rc-bg);
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+        min-height: 100vh;
+        line-height: 1.5;
+      }
+      a {
+        color: var(--rc-teal);
+        text-decoration: none;
+      }
+      a:hover {
+        color: var(--rc-teal-soft);
+        text-decoration: underline;
+      }
+      h1,
+      h2,
+      h3,
+      h4 {
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+        margin: 0;
+      }
+      h1 {
+        font-size: clamp(1.7rem, 3.5vw, 2.4rem);
+      }
+      h2 {
+        font-size: 1.4rem;
+        margin-bottom: var(--rc-space-3);
+      }
+      h3 {
+        font-size: 1.05rem;
+        margin-bottom: var(--rc-space-2);
+      }
+      p {
+        line-height: 1.6;
+      }
+      ::selection {
+        background: var(--rc-teal);
+        color: #fff;
+      }
+      :focus-visible {
+        outline: none;
+        box-shadow: var(--rc-focus-ring);
+        border-radius: 8px;
+      }
+      button {
+        font-family: inherit;
+        cursor: pointer;
+      }
+
+      /* ── Layout shell ── */
+      .app {
+        display: grid;
+        grid-template-columns: var(--sidebar-w) 1fr;
+        min-height: 100vh;
+      }
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        background: linear-gradient(180deg, var(--rc-surface-2), var(--rc-bg));
+        border-right: 1px solid var(--rc-border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        z-index: 40;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 18px;
+        height: var(--topbar-h);
+        border-bottom: 1px solid var(--rc-border);
+      }
+      .brand .mark {
+        flex: 0 0 auto;
+        width: 38px;
+        height: 38px;
+        display: grid;
+        place-items: center;
+        border-radius: 10px;
+        background: var(--rc-teal);
+        color: #fff;
+        font-weight: 700;
+        font-size: 1.1rem;
+      }
+      .brand .name {
+        font-weight: 700;
+        font-size: 0.98rem;
+        line-height: 1.2;
+      }
+      .brand .tag {
+        display: block;
+        font-size: 0.62rem;
+        color: var(--rc-faint);
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-top: 2px;
+      }
+      .nav {
+        padding: 14px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        overflow-y: auto;
+        flex: 1;
+      }
+      .nav .group-label {
+        font-size: 0.64rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--rc-faint);
+        padding: 14px 12px 6px;
+        font-weight: 600;
+      }
+      .nav a.nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 12px;
+        border-radius: var(--rc-radius-sm);
+        color: var(--rc-muted);
+        font-weight: 500;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        transition:
+          background 0.15s,
+          color 0.15s;
+        position: relative;
+      }
+      .nav a.nav-item:hover {
+        background: var(--rc-surface);
+        color: var(--rc-text);
+      }
+      .nav a.nav-item.active {
+        background: rgba(31, 127, 120, 0.1);
+        color: var(--rc-teal);
+        font-weight: 600;
+      }
+      .nav a.nav-item.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 8px;
+        bottom: 8px;
+        width: 3px;
+        border-radius: 3px;
+        background: var(--rc-teal);
+      }
+      .nav a.nav-item .dot {
+        flex: 0 0 auto;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--rc-border-strong);
+      }
+      .nav a.nav-item.active .dot {
+        background: var(--rc-teal);
+      }
+      .sidebar-foot {
+        padding: 14px;
+        border-top: 1px solid var(--rc-border);
+        font-size: 0.72rem;
+        color: var(--rc-faint);
+      }
+
+      /* ── Main ── */
+      .main {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        height: var(--topbar-h);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 0 28px;
+        background: rgba(245, 246, 248, 0.85);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--rc-border);
+      }
+      .topbar .crumb {
+        font-size: 0.82rem;
+        color: var(--rc-muted);
+        font-weight: 500;
+      }
+      .topbar .crumb b {
+        color: var(--rc-text);
+      }
+      .topbar .links {
+        margin-left: auto;
+        display: flex;
+        gap: 8px;
+      }
+      .content {
+        padding: var(--rc-space-7) 28px var(--rc-space-8);
+        max-width: 980px;
+        margin: 0 auto;
+        width: 100%;
+      }
+      section {
+        scroll-margin-top: 84px;
+        margin-bottom: var(--rc-space-8);
+      }
+      section > .lead {
+        color: var(--rc-muted);
+        font-size: 1.02rem;
+        max-width: 70ch;
+      }
+
+      /* ── Components ── */
+      .rc-card {
+        background: var(--rc-surface);
+        border: 1px solid var(--rc-border);
+        border-radius: var(--rc-radius-lg);
+        padding: var(--rc-space-5);
+        box-shadow: var(--rc-shadow-xs);
+        margin-bottom: var(--rc-space-4);
+        transition:
+          box-shadow 0.18s ease,
+          border-color 0.18s ease;
+      }
+      .rc-card:hover {
+        box-shadow: var(--rc-shadow-sm);
+        border-color: var(--rc-border-strong);
+      }
+      .rc-card--accent {
+        border-left: 3px solid var(--rc-teal);
+      }
+      .rc-card--gold {
+        border-left: 3px solid var(--rc-gold);
+      }
+      .rc-rule {
+        height: 1px;
+        border: 0;
+        background: linear-gradient(90deg, transparent, var(--rc-teal) 50%, transparent);
+        opacity: 0.5;
+        margin: var(--rc-space-6) 0;
+      }
+      .rc-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 11px;
+        border: 1px solid var(--rc-border);
+        border-radius: var(--rc-radius-pill);
+        background: var(--rc-surface);
+        color: var(--rc-muted);
+        font-size: 0.78rem;
+        font-weight: 500;
+      }
+      .rc-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        border-radius: var(--rc-radius-xs);
+        font-family: var(--rc-font-mono);
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .rc-badge--ok {
+        background: var(--rc-ok-bg);
+        color: var(--rc-ok-fg);
+      }
+      .rc-badge--warn {
+        background: var(--rc-warn-bg);
+        color: var(--rc-warn-fg);
+      }
+      .rc-badge--danger {
+        background: var(--rc-danger-bg);
+        color: var(--rc-danger-fg);
+      }
+      .rc-badge--neutral {
+        background: var(--rc-neutral-bg);
+        color: var(--rc-neutral-fg);
+      }
+      .rc-badge--teal {
+        background: rgba(31, 127, 120, 0.12);
+        color: var(--rc-teal);
+      }
+      .rc-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 14px;
+        border: 1px solid var(--rc-border-strong);
+        border-radius: var(--rc-radius-sm);
+        background: var(--rc-surface);
+        color: var(--rc-text);
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: 0.15s;
+      }
+      .rc-button:hover {
+        background: var(--rc-surface-2);
+        border-color: var(--rc-muted);
+        text-decoration: none;
+      }
+      .rc-button--teal {
+        background: var(--rc-teal);
+        color: #fff;
+        border-color: var(--rc-teal);
+      }
+      .rc-button--teal:hover {
+        background: var(--rc-teal-soft);
+        border-color: var(--rc-teal-soft);
+        color: #fff;
+      }
+
+      /* ── Stat tiles ── */
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: var(--rc-space-3);
+        margin: var(--rc-space-4) 0;
+      }
+      .stat {
+        background: var(--rc-surface);
+        border: 1px solid var(--rc-border);
+        border-radius: var(--rc-radius);
+        padding: var(--rc-space-4);
+      }
+      .stat .num {
+        font-size: 1.7rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .stat .lbl {
+        font-size: 0.78rem;
+        color: var(--rc-muted);
+        margin-top: 2px;
+      }
+      .stat .sub {
+        font-size: 0.72rem;
+        color: var(--rc-faint);
+        margin-top: 4px;
+      }
+
+      /* ── Tables ── */
+      table.rc-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.88rem;
+        margin: var(--rc-space-3) 0;
+      }
+      table.rc-table th {
+        text-align: left;
+        padding: 9px 12px;
+        border-bottom: 2px solid var(--rc-border-strong);
+        color: var(--rc-muted);
+        font-weight: 600;
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      table.rc-table td {
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--rc-border);
+        vertical-align: top;
+      }
+      table.rc-table tr:last-child td {
+        border-bottom: 0;
+      }
+      table.rc-table tr:hover td {
+        background: var(--rc-surface-2);
+      }
+
+      /* ── Prompt blocks ── */
+      .prompt {
+        border: 1px solid var(--rc-border-strong);
+        border-radius: var(--rc-radius-lg);
+        overflow: hidden;
+        margin: var(--rc-space-3) 0 var(--rc-space-5);
+        background: var(--rc-surface);
+        box-shadow: var(--rc-shadow-xs);
+      }
+      .prompt-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        background: var(--rc-surface-2);
+        border-bottom: 1px solid var(--rc-border);
+      }
+      .prompt-head .ptitle {
+        font-weight: 600;
+        font-size: 0.92rem;
+      }
+      .prompt-head .pmeta {
+        margin-left: auto;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .copy-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border: 1px solid var(--rc-border-strong);
+        border-radius: var(--rc-radius-sm);
+        background: var(--rc-surface);
+        color: var(--rc-text);
+        font-size: 0.8rem;
+        font-weight: 600;
+        transition: 0.15s;
+      }
+      .copy-btn:hover {
+        background: var(--rc-teal);
+        color: #fff;
+        border-color: var(--rc-teal);
+      }
+      .copy-btn.copied {
+        background: var(--rc-ok);
+        color: #fff;
+        border-color: var(--rc-ok);
+      }
+      pre.prompt-body {
+        margin: 0;
+        padding: 16px;
+        font-family: var(--rc-font-mono);
+        font-size: 0.8rem;
+        line-height: 1.6;
+        color: var(--rc-text);
+        background: var(--rc-surface);
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 420px;
+        overflow-y: auto;
+      }
+      .prompt-note {
+        padding: 10px 16px;
+        font-size: 0.82rem;
+        color: var(--rc-muted);
+        border-top: 1px solid var(--rc-border);
+        background: var(--rc-surface-2);
+      }
+      .prompt-note b {
+        color: var(--rc-text);
+      }
+
+      code.inline {
+        font-family: var(--rc-font-mono);
+        background: var(--rc-surface-2);
+        border: 1px solid var(--rc-border);
+        border-radius: 5px;
+        padding: 1px 6px;
+        font-size: 0.84em;
+      }
+
+      /* ── Callouts ── */
+      .callout {
+        border-radius: var(--rc-radius-lg);
+        padding: var(--rc-space-4) var(--rc-space-5);
+        margin: var(--rc-space-4) 0;
+        border: 1px solid var(--rc-border);
+        background: var(--rc-surface);
+      }
+      .callout--teal {
+        border-left: 4px solid var(--rc-teal);
+        background: rgba(31, 127, 120, 0.05);
+      }
+      .callout--gold {
+        border-left: 4px solid var(--rc-gold);
+        background: rgba(168, 136, 46, 0.06);
+      }
+      .callout--warn {
+        border-left: 4px solid var(--rc-warn);
+        background: var(--rc-warn-bg);
+      }
+      .callout h4 {
+        margin-bottom: 6px;
+        font-size: 0.95rem;
+      }
+      .callout p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: var(--rc-muted);
+      }
+
+      ul.clean {
+        padding-left: 1.2em;
+      }
+      ul.clean li {
+        margin: 6px 0;
+      }
+      .muted {
+        color: var(--rc-muted);
+      }
+      .step-num {
+        display: inline-grid;
+        place-items: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--rc-teal);
+        color: #fff;
+        font-weight: 700;
+        font-size: 0.82rem;
+        flex: 0 0 auto;
+      }
+
+      @media (max-width: 880px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          display: none;
+        }
+        .content {
+          padding: var(--rc-space-5) 18px var(--rc-space-7);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <!-- ── Sidebar ── -->
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="mark">PS</div>
+          <div>
+            <div class="name">Command Center</div>
+            <span class="tag">Build Plan</span>
+          </div>
+        </div>
+        <nav class="nav" id="nav">
+          <div class="group-label">Orientation</div>
+          <a class="nav-item" href="#overview"><span class="dot"></span><span>Overview</span></a>
+          <a class="nav-item" href="#credits"
+            ><span class="dot"></span><span>Saving credits</span></a
+          >
+          <a class="nav-item" href="#decisions"
+            ><span class="dot"></span><span>3 key decisions</span></a
+          >
+          <div class="group-label">The tiers</div>
+          <a class="nav-item" href="#tiers"><span class="dot"></span><span>Tier map</span></a>
+          <div class="group-label">Codex prompts</div>
+          <a class="nav-item" href="#p0"><span class="dot"></span><span>0 · Setup</span></a>
+          <a class="nav-item" href="#p1"
+            ><span class="dot"></span><span>1 · Data foundation</span></a
+          >
+          <a class="nav-item" href="#p2"
+            ><span class="dot"></span><span>2 · Daily dashboard</span></a
+          >
+          <a class="nav-item" href="#p3"><span class="dot"></span><span>3 · Partner 360</span></a>
+          <a class="nav-item" href="#p4"
+            ><span class="dot"></span><span>4 · Segment lenses</span></a
+          >
+          <a class="nav-item" href="#p5"><span class="dot"></span><span>5 · Motion lenses</span></a>
+          <a class="nav-item" href="#p6"><span class="dot"></span><span>6 · Polish</span></a>
+          <div class="group-label">After the build</div>
+          <a class="nav-item" href="#realdata"
+            ><span class="dot"></span><span>Wiring real data</span></a
+          >
+        </nav>
+        <div class="sidebar-foot">
+          Partner Success Command Center<br />
+          Synthetic-first · static site · 2026-06-04
+        </div>
+      </aside>
+
+      <!-- ── Main ── -->
+      <div class="main">
+        <header class="topbar">
+          <div class="crumb">docs / plans / <b>partner-success-command-center</b></div>
+          <div class="links">
+            <a class="rc-button" href="./process-flow.html" target="_blank" rel="noopener"
+              >🔀 Process flow ↗</a
+            >
+            <a class="rc-button" href="./codex-build-prompts.md" target="_blank" rel="noopener"
+              >📄 Prompts .md ↗</a
+            >
+          </div>
+        </header>
+
+        <main class="content">
+          <!-- Overview -->
+          <section id="overview">
+            <span class="rc-badge rc-badge--teal">Build Plan</span>
+            <h1 style="margin-top: 12px">Partner Success Command Center</h1>
+            <p class="lead" style="margin-top: 12px">
+              One operating surface for a K-12 edtech Partner Success Manager — so the morning
+              becomes "open the dashboard, do the top thing, then the next thing" instead of
+              swivel-chairing Salesforce + Planhat + Snowflake + Support + Contracts + Calendar to
+              answer the same eight questions every day.
+            </p>
+            <div class="callout callout--teal">
+              <h4>How to use this page</h4>
+              <p>
+                This is the visual companion to the build. Every Codex prompt below has a
+                <b>Copy</b> button — paste it straight into Codex desktop. Build in order; you only
+                need Prompts&nbsp;1&nbsp;and&nbsp;2 to have something useful every morning. The
+                <a href="./process-flow.html" target="_blank" rel="noopener">Process Flow ↗</a>
+                document shows how the finished dashboard works.
+              </p>
+            </div>
+            <div class="stats">
+              <div class="stat">
+                <div class="num" style="color: var(--rc-teal)">2</div>
+                <div class="lbl">prompts to "useful"</div>
+                <div class="sub">Prompt 1 + Prompt 2</div>
+              </div>
+              <div class="stat">
+                <div class="num">6</div>
+                <div class="lbl">prompts to full depth</div>
+                <div class="sub">all tiers</div>
+              </div>
+              <div class="stat">
+                <div class="num">0</div>
+                <div class="lbl">servers / build steps</div>
+                <div class="sub">static HTML + JSON</div>
+              </div>
+              <div class="stat">
+                <div class="num">25</div>
+                <div class="lbl">synthetic districts</div>
+                <div class="sub">FERPA-safe, seeded</div>
+              </div>
+            </div>
+          </section>
+
+          <hr class="rc-rule" />
+
+          <!-- Credits -->
+          <section id="credits">
+            <h2>Spending the fewest credits</h2>
+            <p class="lead">
+              Codex bills roughly per turn and per token. Five habits cut the bill hard.
+            </p>
+            <div class="rc-card">
+              <table class="rc-table">
+                <tbody>
+                  <tr>
+                    <td><b>1 · One prompt = one deliverable</b></td>
+                    <td>
+                      Each prompt is self-contained — full file list, schema, and acceptance
+                      criteria. Paste it, let Codex produce everything in one response. Don't
+                      trickle requirements in.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><b>2 · Don't let it explore</b></td>
+                    <td>
+                      Every prompt ends with a <i>Constraints</i> line: don't ask questions, don't
+                      run the app, don't install anything, produce the files directly. Exploration
+                      is where credits evaporate.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><b>3 · Stop when it's enough</b></td>
+                    <td>
+                      Prompts 1 → 2 give you a dashboard you use every morning. Prompts 3–6 are
+                      bonus depth. You don't need all six.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><b>4 · Paste the schema, don't re-derive it</b></td>
+                    <td>
+                      Prompt 1 prints the data contract. Later prompts say "read field names from
+                      the data.json already in the repo" so Codex reads one file instead of
+                      reasoning it out again.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><b>5 · Synthetic data first</b></td>
+                    <td>
+                      The dashboard is fully usable on fake data. Wiring real systems is a separate,
+                      much larger effort — do it only once the layout is proven.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="callout callout--gold">
+              <h4>Minimum viable morning</h4>
+              <p>
+                <b>Prompt 1 + Prompt 2 = two turns.</b> That is a real, daily-usable dashboard on
+                synthetic data.
+              </p>
+            </div>
+          </section>
+
+          <hr class="rc-rule" />
+
+          <!-- Decisions -->
+          <section id="decisions">
+            <h2>Three load-bearing decisions</h2>
+            <p class="lead">
+              The choices that shape everything else — already made, so Codex doesn't have to.
+            </p>
+            <div class="rc-card rc-card--accent">
+              <h3>S1 · It's a static site</h3>
+              <p class="muted">
+                Plain HTML + a <code class="inline">data.json</code> + a Python generator. No
+                framework, no bundler, no server. Opens in a browser. This is the fastest, cheapest
+                thing to build and the easiest to hand to someone else.
+              </p>
+            </div>
+            <div class="rc-card rc-card--accent">
+              <h3>S2 · One identity spine</h3>
+              <p class="muted">
+                Every partner has one <code class="inline">account_uid</code>; every record
+                (contacts, tickets, usage, contracts) joins to it. When real data lands, all five
+                systems map onto this one key. For the synthetic build it's just a clean primary
+                key.
+              </p>
+            </div>
+            <div class="rc-card rc-card--accent">
+              <h3>S3 · A tunable priority score</h3>
+              <p class="muted">
+                A 9-signal weighted score (0–100) decides who to call first. The weights live in
+                <code class="inline">priority_weights</code> in the data file so you can re-tune
+                without touching code — and every row shows <b>which signal drove the score</b>, so
+                it's never a black box.
+              </p>
+            </div>
+          </section>
+
+          <hr class="rc-rule" />
+
+          <!-- Tiers -->
+          <section id="tiers">
+            <h2>The tier map</h2>
+            <p class="lead">
+              Each tier ships standalone value. Tier 0 first; then the order below is by
+              morning-value-density.
+            </p>
+            <div class="rc-card">
+              <table class="rc-table">
+                <thead>
+                  <tr>
+                    <th>Tier</th>
+                    <th>Builds</th>
+                    <th>Prompt</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><b>0</b></td>
+                    <td>Data layer — schema + synthetic 25-district sample</td>
+                    <td>1</td>
+                    <td><span class="rc-badge rc-badge--danger">Essential</span></td>
+                  </tr>
+                  <tr>
+                    <td><b>1</b></td>
+                    <td>
+                      Daily Operating System — 4 widgets (Portfolio, Health, Action Center,
+                      Calendar)
+                    </td>
+                    <td>2</td>
+                    <td><span class="rc-badge rc-badge--danger">Essential</span></td>
+                  </tr>
+                  <tr>
+                    <td><b>2</b></td>
+                    <td>Partner 360 drill-down + Timeline + Lifecycle + Renewal</td>
+                    <td>3</td>
+                    <td><span class="rc-badge rc-badge--neutral">Bonus</span></td>
+                  </tr>
+                  <tr>
+                    <td><b>3</b></td>
+                    <td>
+                      Segment lenses — Top 15 / Health / Sentiment / Family / School / Support
+                    </td>
+                    <td>4</td>
+                    <td><span class="rc-badge rc-badge--neutral">Bonus</span></td>
+                  </tr>
+                  <tr>
+                    <td><b>4</b></td>
+                    <td>
+                      Motion lenses — Success Plan / Expansion / PD / Contract / Relationships
+                    </td>
+                    <td>5</td>
+                    <td><span class="rc-badge rc-badge--neutral">Bonus</span></td>
+                  </tr>
+                  <tr>
+                    <td><b>—</b></td>
+                    <td>Provenance &amp; color-discipline polish</td>
+                    <td>6</td>
+                    <td><span class="rc-badge rc-badge--warn">Optional</span></td>
+                  </tr>
+                  <tr>
+                    <td><b>0.5</b></td>
+                    <td>Real connectors (Salesforce/Planhat/Snowflake/…) → replaces data.json</td>
+                    <td>later</td>
+                    <td><span class="rc-badge rc-badge--neutral">Future</span></td>
+                  </tr>
+                  <tr>
+                    <td><b>5</b></td>
+                    <td>AI features</td>
+                    <td>—</td>
+                    <td><span class="rc-badge rc-badge--neutral">Deferred</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <hr class="rc-rule" />
+
+          <!-- Prompts -->
+          <section id="prompts">
+            <h2>The Codex prompts</h2>
+            <p class="lead">
+              Copy each into Codex desktop in order. Each is one turn that produces a working
+              increment.
+            </p>
+          </section>
+
+          <section id="p0">
+            <h3>
+              <span class="step-num">0</span> &nbsp;Project setup
+              <span class="rc-badge rc-badge--warn" style="vertical-align: middle">Optional</span>
+            </h3>
+            <p class="muted">
+              Send first if you want Codex to keep the repo tidy. Skip it to save a turn — Prompt 1
+              also creates the folders it needs.
+            </p>
+            <div class="prompt">
+              <div class="prompt-head">
+                <span class="ptitle">Prompt 0 · Setup</span
+                ><span class="pmeta"
+                  ><span class="rc-pill">tiny</span
+                  ><button class="copy-btn" data-target="prompt-0">Copy</button></span
+                >
+              </div>
+              <pre
+                class="prompt-body"
+                id="prompt-0"
+              >You are setting up a fresh repo for a single-tenant "Partner Success Command Center" dashboard for a K-12 edtech Partner Success Manager. It is a STATIC site: plain HTML + a data.json + a Python generator. No framework, no bundler, no server.
+
+Create this skeleton and nothing else:
+
+  /data/data.json            # (empty placeholder {} for now)
+  /data/synthesize.py        # (empty placeholder, just a top comment)
+  /dashboard.html            # (empty placeholder <!doctype html>)
+  /README.md                 # how to regenerate data and open the dashboard
+  /.gitignore                # python + os cruft
+
+README.md must say, in 6 lines or fewer:
+  - run `python3 data/synthesize.py` to (re)generate data/data.json
+  - open dashboard.html directly in a browser (no server needed)
+  - dashboard.html reads data/data.json via fetch
+  - all partner data is SYNTHETIC — never commit real student or partner data
+
+Constraints: Do not ask clarifying questions. Do not run anything. Do not install anything. Produce all five files in one response, then stop.</pre>
+            </div>
+          </section>
+
+          <section id="p1">
+            <h3>
+              <span class="step-num">1</span> &nbsp;Data foundation
+              <span class="rc-badge rc-badge--danger" style="vertical-align: middle"
+                >Essential</span
+              >
+            </h3>
+            <p class="muted">
+              The contract every later prompt reads against. Prints the schema once so nothing
+              downstream re-derives it.
+            </p>
+            <div class="prompt">
+              <div class="prompt-head">
+                <span class="ptitle">Prompt 1 · Schema + synthetic data</span
+                ><span class="pmeta"
+                  ><span class="rc-pill">medium</span
+                  ><button class="copy-btn" data-target="prompt-1">Copy</button></span
+                >
+              </div>
+              <pre class="prompt-body" id="prompt-1">
+Build the data foundation for a single-tenant K-12 edtech Partner Success dashboard. Produce TWO files in one response: data/synthesize.py and a freshly generated data/data.json.
+
+data/synthesize.py generates a realistic, fully SYNTHETIC, FERPA-safe sample of 25 partner districts. Requirements:
+  - Reproducible: seed the RNG with 42 so output is byte-identical across runs.
+  - No real names. Use generated district names like "Maple Grove USD", "Riverbend School District".
+  - Only aggregate counts — NEVER any student-level or personal data.
+  - Spread the sample so it exercises the dashboard:
+      * &gt;=3 partners in each health band: green (&gt;=70), yellow (50-69), red (&lt;50)
+      * &gt;=2 partners in each renewal bucket: 180 / 120 / 90 / 60 / 30 days to renewal
+      * a mix of segments and a handful flagged top15_status = true
+  - Write the result to data/data.json (pretty-printed, 2-space indent).
+
+The JSON shape (this is the contract — emit EXACTLY these blocks and field names):
+
+{
+  "schema_version": "1.0",
+  "generated_at": "&lt;ISO8601&gt;",
+  "bands": { "green_min": 70, "yellow_min": 50 },
+  "priority_weights": {
+    "renewal_timing": 25, "health_decline": 20, "sentiment_decline": 15,
+    "days_since_touchpoint": 12, "open_escalations": 10, "ticket_volume": 5,
+    "arr": 5, "top15_bonus": 5, "usage_decline": 3
+  },
+  "partners": [{
+    "account_uid": "acct_0001", "name": "...", "segment": "Enterprise|Mid|SMB",
+    "state": "TX", "arr": 120000, "contract_start": "2024-08-01",
+    "contract_end": "2026-07-31", "renewal_date": "2026-07-31",
+    "funding_source": "Title I|ESSER|General Fund|Grant", "owner_psm": "...",
+    "top15_status": true, "lifecycle_stage": "Deployment|BOI|MOI|Renewal",
+    "lifecycle_substage": "...", "stage_entered_at": "ISO", "last_touchpoint_at": "ISO",
+    "next_required_touchpoint_at": "ISO",
+    "health_components": { "adoption": 0-100, "touchpoint": 0-100, "outcome": 0-100, "sentiment": 0-100 },
+    "health_score": 0-100, "sentiment_score": 0-100, "engagement_score": 0-100,
+    "priority_score": 0-100,
+    "priority_breakdown": { "&lt;weight_key&gt;": &lt;0-100 contribution before weighting&gt;, ... },
+    "open_escalations": 0, "open_tickets": 0, "ticket_aging_days": 0,
+    "recommended_action": "short imperative string", "action_reason": "which signal drove it"
+  }],
+  "contacts": [{ "contact_uid": "...", "account_uid": "...", "name": "...",
+    "title": "...", "role": "champion|exec_sponsor|superintendent|tech_lead|family_engagement|stakeholder",
+    "influence_level": "high|med|low", "sentiment": "green|yellow|red", "last_interaction_at": "ISO" }],
+  "timeline_events": [{ "event_uid": "...", "account_uid": "...",
+    "type": "closed_won|kickoff|go_live|training|qbr|checkin|success_plan_review|escalation|sentiment_change|renewal_conversation|expansion_conversation",
+    "ts": "ISO", "source": "salesforce|planhat|support|snowflake|calendar|manual", "summary": "..." }],
+  "usage_daily": [{ "account_uid": "...", "date": "ISO", "active_users": 0,
+    "active_teachers": 0, "active_admins": 0, "family_invited": 0, "family_activated": 0,
+    "family_engagement_rate": 0.0 }],
+  "success_plans": [{ "plan_uid": "...", "account_uid": "...", "goal": "...",
+    "owner": "...", "due_date": "ISO", "progress_pct": 0, "status": "on_track|at_risk|complete|overdue" }],
+  "contracts": [{ "contract_uid": "...", "account_uid": "...", "start": "ISO", "end": "ISO",
+    "arr": 0, "multi_year": true, "schools_included": 0, "licensed_users": 0,
+    "products_purchased": ["..."], "pd_purchased_sessions": 0, "pd_completed_sessions": 0 }],
+  "tickets": [{ "ticket_uid": "...", "account_uid": "...", "opened_at": "ISO",
+    "status": "open|pending|closed", "severity": "low|med|high", "theme": "...",
+    "age_days": 0, "is_escalation": false }],
+  "calendar_events": [{ "event_uid": "...", "account_uid": "...",
+    "type": "qbr|checkin|renewal_meeting|strategic|pd_session|success_plan_review|health_check",
+    "scheduled_at": "ISO", "duration_min": 30, "status": "scheduled|completed|missed" }]
+}
+
+priority_score math: priority_score = sum(priority_breakdown[k] * priority_weights[k]) / 100, rounded to an integer, clamped 0-100. priority_breakdown[k] is the raw 0-100 strength of each signal (e.g. a 30-day renewal scores ~95 on renewal_timing). Keep it deterministic.
+
+Generate 2-6 contacts, 4-10 timeline_events, ~30 days of usage_daily, 1-3 success_plans, 1 contract, 0-4 tickets, and 2-5 calendar_events per partner.
+
+Constraints: Do not ask clarifying questions. Do not install packages (standard library only: json, random, datetime). Run synthesize.py mentally and emit a real, valid data/data.json — do not leave it as a stub. Produce both files in one response, then stop.</pre
+              >
+              <div class="prompt-note">
+                <b>You get:</b> <code class="inline">data/synthesize.py</code> + a populated
+                <code class="inline">data/data.json</code>. Open the JSON to sanity-check ~25
+                districts. This is now the single source of truth.
+              </div>
+            </div>
+          </section>
+
+          <section id="p2">
+            <h3>
+              <span class="step-num">2</span> &nbsp;Daily Operating System
+              <span class="rc-badge rc-badge--danger" style="vertical-align: middle"
+                >Essential</span
+              >
+            </h3>
+            <p class="muted">
+              The dashboard you open every morning. Answers "who do I call today and why" in under
+              15 seconds.
+            </p>
+            <div class="prompt">
+              <div class="prompt-head">
+                <span class="ptitle">Prompt 2 · dashboard.html (4 widgets)</span
+                ><span class="pmeta"
+                  ><span class="rc-pill">large</span
+                  ><button class="copy-btn" data-target="prompt-2">Copy</button></span
+                >
+              </div>
+              <pre class="prompt-body" id="prompt-2">
+Build dashboard.html — a self-contained, single-page "Partner Success Command Center" that fetches ./data/data.json and renders the daily operating system for a K-12 edtech PSM. Plain HTML + CSS + vanilla JS in ONE file. No framework, no CDN except the system font stack. It must open directly in a browser (use fetch on ./data/data.json; degrade with a friendly message if the file can't load).
+
+Visual style: calm, professional, Intercom-like. Cool near-white canvas (#f5f6f8), white cards with a 1px hairline border and very soft shadow, teal accent (#1f7f78), Inter/system sans. Health colors: green &gt;=70 (#1f7a3f), yellow 50-69 (#9a7010), red &lt;50 (#b03f3f) — read the thresholds from data.bands, never hardcode them.
+
+Render these FOUR widgets, top to bottom, each in its own card:
+
+1. PORTFOLIO SUMMARY — a row of stat tiles, each a count derived from partners[]:
+   Total · Active · Top 15 · In Renewal Window (renewal_date within 120 days) · At Risk (health_score &lt; 50) · Open Escalations (sum) · Need Outreach (last_touchpoint_at older than 90 days).
+
+2. PORTFOLIO HEALTH SNAPSHOT — average health_score, average sentiment_score, average engagement_score (big numbers, colored by band), plus "X partners with declining usage" and "X partners with no touchpoint in 90+ days".
+
+3. DAILY ACTION CENTER — the heart of it. A table of ALL partners sorted by priority_score descending. Columns: Partner · Priority (the score as a colored chip) · Why (action_reason plus the TOP contributing signal from priority_breakdown shown as "renewal_timing 38%") · Recommended Action (recommended_action) · Due (next_required_touchpoint_at as a date). The top 5 rows are visually emphasized. Every "Why" cell must name the signal that drove the score — never show a score without its reason.
+
+4. CALENDAR / UPCOMING TOUCHPOINTS — a countdown list derived from each partner's renewal_date and next_required_touchpoint_at: e.g. "Maple Grove USD — 30 days until renewal outreach", "Riverbend SD — 14 days until next check-in". Sort soonest-first, show the next ~15. Add a small note that these countdowns are derived from contract dates and cadence rules, not synced calendar invites.
+
+Also include a compact top bar with the title "Partner Success Command Center", the data.generated_at timestamp, and a one-line legend for the green/yellow/red bands.
+
+Make it responsive (stat tiles wrap on narrow screens) and keep all numbers honest — if a value is missing in the data, show "—", not a guess.
+
+Constraints: Do not ask clarifying questions. Do not run a server or install anything. Read field names from the data/data.json already in the repo. Produce the single dashboard.html file in one response, then stop.</pre
+              >
+              <div class="prompt-note">
+                <b>You get:</b> a working <code class="inline">dashboard.html</code>. Double-click
+                it. With <code class="inline">data/data.json</code> present, the four widgets light
+                up. <b>This is the minimum viable deliverable — you can stop here.</b>
+              </div>
+            </div>
+          </section>
+
+          <section id="p3">
+            <h3>
+              <span class="step-num">3</span> &nbsp;Partner 360 drill-down
+              <span class="rc-badge rc-badge--neutral" style="vertical-align: middle">Bonus</span>
+            </h3>
+            <p class="muted">
+              Send when the at-a-glance view is solid and you want to click into a single partner.
+            </p>
+            <div class="prompt">
+              <div class="prompt-head">
+                <span class="ptitle">Prompt 3 · Drill-down</span
+                ><span class="pmeta"
+                  ><span class="rc-pill">large</span
+                  ><button class="copy-btn" data-target="prompt-3">Copy</button></span
+                >
+              </div>
+              <pre class="prompt-body" id="prompt-3">
+Extend dashboard.html (the existing single-file static dashboard that reads ./data/data.json). Add a Partner 360 drill-down. Do NOT rebuild the four existing widgets — keep them and add to them.
+
+When the user clicks any partner name anywhere (Daily Action Center row, calendar item, etc.), open a slide-over / modal panel showing that one partner, built from the existing data blocks joined on account_uid:
+
+  - Header: name, segment, state, ARR, lifecycle_stage + lifecycle_substage badge, health/sentiment/engagement scores as colored chips.
+  - CONTACTS: from contacts[] for this account — name, title, role, influence, sentiment, last interaction. Highlight the champion and exec sponsor.
+  - ACCOUNT TIMELINE: from timeline_events[] for this account, newest first, with a small source label (salesforce/planhat/support/...) and the event type as a colored dot. Let the user filter by source and by type.
+  - LIFECYCLE: current stage badge, date entered stage, days in stage, and next required activity (from next_required_touchpoint_at). Color the badge yellow if days-in-stage looks stale for the stage (e.g. &gt; 90 days in MOI).
+  - RENEWAL: renewal_date, days remaining, ARR, health, sentiment, and a simple renewal-risk read (red if health &lt; 50 or sentiment red within 120 days of renewal).
+  - OPEN ESCALATIONS / TICKETS: from tickets[] (open ones), with age and theme.
+
+One drill-down implementation, reused for every partner. Esc closes it; clicking the backdrop closes it.
+
+Constraints: Do not ask clarifying questions. Do not run or install anything. Reuse the existing styles and the data already loaded in the page. Produce the updated dashboard.html in one response, then stop.</pre
+              >
+            </div>
+          </section>
+
+          <section id="p4">
+            <h3>
+              <span class="step-num">4</span> &nbsp;Segment lenses
+              <span class="rc-badge rc-badge--neutral" style="vertical-align: middle">Bonus</span>
+            </h3>
+            <div class="prompt">
+              <div class="prompt-head">
+                <span class="ptitle">Prompt 4 · Segment lenses</span
+                ><span class="pmeta"
+                  ><span class="rc-pill">large</span
+                  ><button class="copy-btn" data-target="prompt-4">Copy</button></span
+                >
+              </div>
+              <pre class="prompt-body" id="prompt-4">
+Extend dashboard.html with a left-hand nav that switches between "lens" views. Keep the existing Daily Operating System as the default "Home" view and the Partner 360 drill-down. Add these segment lenses, each a filtered/columned view over the same data/data.json:
+
+  - TOP 15: partners where top15_status = true — health, sentiment, renewal countdown, last touchpoint, next touchpoint, open risks, success-plan status. Color-coded.
+  - HEALTH: every partner's health_components (adoption/touchpoint/outcome/sentiment), health_score, plus declining-usage and escalation flags. Sortable by score.
+  - SENTIMENT: sentiment_score + the latest timeline_events.type = "sentiment_change" summary as the reason/notes, sorted worst-first.
+  - FAMILY ENGAGEMENT: from usage_daily aggregated per partner — family_invited, family_activated, activation %, family_engagement_rate. Flag low activation.
+  - SCHOOL LEVEL: for partners with multiple schools, per-school active_users and a usage level (if the data has school detail; otherwise show a graceful "single-school" note).
+  - SUPPORT &amp; ESCALATIONS: open tickets, escalations, aging, themes. Highlight partners with multiple open tickets or any is_escalation = true.
+
+Cross-view consistency matters: a partner's health_score must read identically on the Home view, the Health lens, and the Top 15 lens. Don't recompute — read the same field.
+
+Constraints: Do not ask clarifying questions. Do not run or install anything. Reuse existing styles and loaded data. Produce the updated dashboard.html in one response, then stop.</pre
+              >
+            </div>
+          </section>
+
+          <section id="p5">
+            <h3>
+              <span class="step-num">5</span> &nbsp;Motion lenses
+              <span class="rc-badge rc-badge--neutral" style="vertical-align: middle">Bonus</span>
+            </h3>
+            <div class="prompt">
+              <div class="prompt-head">
+                <span class="ptitle">Prompt 5 · Motion lenses</span
+                ><span class="pmeta"
+                  ><span class="rc-pill">large</span
+                  ><button class="copy-btn" data-target="prompt-5">Copy</button></span
+                >
+              </div>
+              <pre class="prompt-body" id="prompt-5">
+Extend dashboard.html with these business-motion lenses in the same left-hand nav. All deterministic (no AI) — read straight from data/data.json:
+
+  - SUCCESS PLANS: from success_plans[] — goal, owner, due_date, progress_pct, status. Group by status; surface at_risk and overdue first.
+  - EXPANSION OPPORTUNITIES: auto-flag partners with high adoption AND high usage AND high sentiment AND strong engagement. Show why flagged and a rough opportunity note. Pure rule, no model.
+  - PROFESSIONAL DEVELOPMENT: from contracts[] — pd_purchased_sessions vs pd_completed_sessions, remaining, and a flag for underutilized PD (e.g. &lt; 50% used with renewal approaching).
+  - CONTRACT CENTER: from contracts[] — start/end, ARR, multi_year, schools_included, licensed_users, products_purchased, plus a renewal alert bucket (180/120/90/60/30 days).
+  - RELATIONSHIP MAPPING: from contacts[] — a stakeholder grid per partner (name/title/role/influence/sentiment/last interaction), so gaps (e.g. no exec sponsor) are obvious.
+
+Constraints: Do not ask clarifying questions. Do not run or install anything. Reuse existing styles and loaded data. Produce the updated dashboard.html in one response, then stop.</pre
+              >
+            </div>
+          </section>
+
+          <section id="p6">
+            <h3>
+              <span class="step-num">6</span> &nbsp;Provenance &amp; polish
+              <span class="rc-badge rc-badge--warn" style="vertical-align: middle">Optional</span>
+            </h3>
+            <div class="prompt">
+              <div class="prompt-head">
+                <span class="ptitle">Prompt 6 · Polish pass</span
+                ><span class="pmeta"
+                  ><span class="rc-pill">small</span
+                  ><button class="copy-btn" data-target="prompt-6">Copy</button></span
+                >
+              </div>
+              <pre class="prompt-body" id="prompt-6">
+Polish dashboard.html without changing what it shows. Three things only:
+
+  1. PROVENANCE TOOLTIPS: every number gets a hover title naming its source field and the data.generated_at refresh time (e.g. "from partners[].health_score · data refreshed 2026-06-04"). The dashboard should never show a number with no stated origin.
+  2. COLOR DISCIPLINE: confirm every green/yellow/red decision reads thresholds from data.bands, and that red is reserved for genuine "act now" states (never decorative).
+  3. EMPTY/ERROR STATES: a clean message if data/data.json is missing or a block is empty, and "—" for any missing field instead of blanks or zeros that imply real data.
+
+Constraints: Do not ask clarifying questions. Do not run or install anything. Do not add new widgets or change the layout. Produce the updated dashboard.html in one response, then stop.</pre
+              >
+            </div>
+          </section>
+
+          <hr class="rc-rule" />
+
+          <!-- Real data -->
+          <section id="realdata">
+            <h2>After the build — wiring real data</h2>
+            <p class="lead">
+              The dashboard renders on <code class="inline">data/data.json</code>. Going from
+              synthetic to real data means replacing that one file —
+              <code class="inline">dashboard.html</code> never changes.
+            </p>
+            <div class="callout callout--warn">
+              <h4>Six questions to answer before real-data work</h4>
+              <p>
+                Which <b>support tool</b> (Zendesk/Freshdesk/Intercom/SFDC Service Cloud)? Which
+                <b>contract system</b> (Salesforce CPQ/Ironclad/DocuSign)? Which
+                <b>calendar</b> (Google/Outlook)? Where does the <b>Top 15 list</b> live today? Is
+                scoping <b>just you or your team</b>? Is <b>sentiment</b> Planhat-native or PSM-set?
+                Five minutes of answers decides the connector scope.
+              </p>
+            </div>
+            <div class="rc-card">
+              <p style="margin-top: 0"><b>The daily loop, two ways:</b></p>
+              <ul class="clean muted">
+                <li>
+                  <b>Synthetic (now):</b> <code class="inline">python3 data/synthesize.py</code> →
+                  open <code class="inline">dashboard.html</code>.
+                </li>
+                <li>
+                  <b>Real (later):</b> export real data →
+                  <code class="inline">data/data.json</code> → open
+                  <code class="inline">dashboard.html</code>. Same file, same dashboard.
+                </li>
+              </ul>
+            </div>
+            <p class="muted" style="margin-top: 24px">
+              Full strategic context, the risk matrix, and the complete data contract live in
+              <a href="./plan.md" target="_blank" rel="noopener">plan.md</a> and the
+              <code class="inline">build-plan-*.md</code> files in this folder. See also the
+              <a href="./process-flow.html" target="_blank" rel="noopener">Process Flow ↗</a> for
+              how the finished dashboard works end-to-end.
+            </p>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script>
+      // Copy-to-clipboard for every prompt block
+      document.querySelectorAll(".copy-btn").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var el = document.getElementById(btn.dataset.target);
+          if (!el) return;
+          var text = el.innerText;
+          navigator.clipboard.writeText(text).then(
+            function () {
+              var prev = btn.textContent;
+              btn.textContent = "✓ Copied";
+              btn.classList.add("copied");
+              setTimeout(function () {
+                btn.textContent = prev;
+                btn.classList.remove("copied");
+              }, 1600);
+            },
+            function () {
+              btn.textContent = "Press ⌘/Ctrl+C";
+            },
+          );
+        });
+      });
+
+      // Scroll-spy: highlight the nav item for the section in view
+      var navLinks = Array.from(document.querySelectorAll(".nav-item"));
+      var sections = navLinks
+        .map(function (a) {
+          return document.querySelector(a.getAttribute("href"));
+        })
+        .filter(Boolean);
+      var spy = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (e) {
+            if (e.isIntersecting) {
+              var id = "#" + e.target.id;
+              navLinks.forEach(function (a) {
+                a.classList.toggle("active", a.getAttribute("href") === id);
+              });
+            }
+          });
+        },
+        { rootMargin: "-50% 0px -45% 0px" },
+      );
+      sections.forEach(function (s) {
+        spy.observe(s);
+      });
+    </script>
+  </body>
+</html>

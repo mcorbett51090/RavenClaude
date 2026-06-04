@@ -2,7 +2,7 @@
 
 > Corporate finance & FP&A specialist team for the RavenClaude marketplace.
 
-Ships seven specialist agents (FP&A analyst, financial modeler, controller, treasury analyst, valuation analyst, audit-prep specialist, board-pack composer), four playbook skills (month-end close, variance commentary, model review, board-pack composition), eight working templates, and one advisory hook that flags common finance anti-patterns on edits.
+Ships seven specialist agents (FP&A analyst, financial modeler, controller, treasury analyst, valuation analyst, audit-prep specialist, board-pack composer), nine playbook skills (month-end close, variance commentary, model review, board-pack composition, driver-based forecasting, DCF valuation, 13-week cash forecast, SOC control walkthrough, KPI definition), eight working templates, a ten-doc knowledge bank (variance triage, decision trees, ASC 805 / 718 / 740, accrual-cutoff, WACC sourcing, cost accounting, and two FP&A docs — operating model & planning, decision support & unit economics), and one advisory hook that flags common finance anti-patterns on edits.
 
 ## Install
 
@@ -20,7 +20,8 @@ The plugin requires `ravenclaude-core@>=0.5.0` for the cross-plugin protocols (G
 | Component | Count | Where |
 |-----------|-------|-------|
 | Specialist agents | 7 | [`agents/`](agents/) |
-| Skills | 4 | [`skills/`](skills/) |
+| Skills | 9 | [`skills/`](skills/) |
+| Knowledge bank | 10 | [`knowledge/`](knowledge/) |
 | Hooks | 1 (advisory) | [`hooks/`](hooks/) |
 | Templates | 8 | [`templates/`](templates/) |
 

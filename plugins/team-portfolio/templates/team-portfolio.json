@@ -1,0 +1,32 @@
+{
+  "$schema_note": "Central config for the team-portfolio plugin. Copy to the ROOT of your hub repo (the repo that holds the reports + dashboard) and edit. Secrets are NEVER stored here — the token is read from the environment (PORTFOLIO_TOKEN / GITHUB_TOKEN / GH_TOKEN).",
+  "window_days": 7,
+  "repos": [
+    "mcorbett51090/RavenClaude",
+    "mcorbett51090/RavenPower-Website",
+    "mcorbett51090/corbett-claims"
+  ],
+  "team": [
+    { "login": "mcorbett51090", "name": "Matt Corbett", "role": "lead" },
+    { "login": "ZackCorbett", "name": "Zack Corbett", "role": "contributor" }
+  ],
+  "supervisor": { "login": "mcorbett51090", "name": "Matt Corbett" },
+  "projects": [
+    {
+      "name": "Raven Power Website",
+      "match": {
+        "repos": ["mcorbett51090/RavenPower-Website", "mcorbett51090/RavenPowerWebsite"],
+        "labels": ["website"],
+        "title_prefixes": ["[web]"]
+      }
+    },
+    {
+      "name": "Corbett Claims",
+      "match": { "repos": ["mcorbett51090/corbett-claims"] }
+    }
+  ],
+  "narrative": {
+    "enabled": false,
+    "dir": "portfolio/narrative"
+  }
+}

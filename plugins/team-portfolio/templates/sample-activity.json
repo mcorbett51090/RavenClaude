@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-04T12:00:00Z",
+  "window": { "since": "2026-05-28T12:00:00Z", "until": "2026-06-04T12:00:00Z", "days": 7 },
+  "repos": ["mcorbett51090/RavenPower-Website", "mcorbett51090/corbett-claims"],
+  "team": [
+    { "login": "mcorbett51090", "name": "Matt Corbett", "role": "lead" },
+    { "login": "ZackCorbett", "name": "Zack Corbett", "role": "contributor" }
+  ],
+  "supervisor": { "login": "mcorbett51090", "name": "Matt Corbett" },
+  "projects": ["Raven Power Website", "Corbett Claims"],
+  "events": [
+    {
+      "type": "pr",
+      "repo": "mcorbett51090/RavenPower-Website",
+      "actor": "ZackCorbett",
+      "title": "Add services landing page",
+      "url": "https://github.com/mcorbett51090/RavenPower-Website/pull/12",
+      "state": "open",
+      "merged": false,
+      "created_at": "2026-06-03T09:00:00Z",
+      "updated_at": "2026-06-04T10:00:00Z",
+      "closed_at": null,
+      "labels": ["website"],
+      "project": "Raven Power Website"
+    },
+    {
+      "type": "commit",
+      "repo": "mcorbett51090/corbett-claims",
+      "actor": "mcorbett51090",
+      "title": "Fix contact form validation",
+      "url": "https://github.com/mcorbett51090/corbett-claims/commit/abc123",
+      "state": "committed",
+      "created_at": "2026-06-02T14:30:00Z",
+      "updated_at": "2026-06-02T14:30:00Z",
+      "closed_at": null,
+      "labels": [],
+      "project": "Corbett Claims"
+    },
+    {
+      "type": "issue",
+      "repo": "mcorbett51090/corbett-claims",
+      "actor": "ZackCorbett",
+      "title": "Mobile nav overlaps hero on small screens",
+      "url": "https://github.com/mcorbett51090/corbett-claims/issues/7",
+      "state": "open",
+      "merged": null,
+      "created_at": "2026-06-01T08:00:00Z",
+      "updated_at": "2026-06-01T08:00:00Z",
+      "closed_at": null,
+      "labels": ["bug"],
+      "project": "Corbett Claims"
+    }
+  ],
+  "errors": [],
+  "authenticated": true
+}
