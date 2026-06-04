@@ -43,6 +43,10 @@ description: Veteran-level reference for Power BI — PBIP project structure + g
 - `resources/deployment-and-pipelines.md`
 - `resources/refresh-gateway-troubleshooting.md`
 
+## Copilot-readiness (why reports come back generic)
+
+Power BI Copilot output quality is a function of how well the **semantic model is grounded for AI**, not of the report visuals — an under-grounded model yields thin, generic narratives because Copilot has to guess the goal and the preferred metric. When the work is "make Copilot produce meaningful reports," the lever is Microsoft's **Prep data for AI** feature — author in Microsoft's recommended order: AI data schema → verified answers → AI instructions → descriptions, then mark the model **Approved for Copilot**. The single highest-leverage goal channel is **AI instructions** (model-level, ≤ 10,000 chars): it states the model's purpose, maps user vocabulary → model fields, and defines business terms Copilot can't infer. The fill-in-the-blanks authoring artifact lives at [`../../templates/power-bi-copilot-ai-instructions.md`](../../templates/power-bi-copilot-ai-instructions.md) — drop a copy next to the model, replace the placeholders, paste each block into the surface it names. The field-level grounding floor (description/format/folder + synonyms) is [`../../best-practices/enforce-measure-metadata.md`](../../best-practices/enforce-measure-metadata.md).
+
 ## Knowledge bank pointers
 
 For production-incident lessons (real customer engagements, with a decision tree + the workaround that resolved it), consult the plugin's [`knowledge/`](../../knowledge/) directory in addition to the resources above. The full §8a table is in [`../../CLAUDE.md`](../../CLAUDE.md); the Power BI–specific entry to know about:
