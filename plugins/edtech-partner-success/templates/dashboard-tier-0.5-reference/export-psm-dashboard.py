@@ -1,37 +1,27 @@
 #!/usr/bin/env python3
 """export-psm-dashboard.py — Snowflake → data.json exporter.
 
-Drop-in replacement for the Tier 0 synthetic fixture. Reads the conformed
-PSM_CONFORMED.MARTS.* tables, assembles a JSON document that validates against
-Tier 0's `data.export.schema.json`, writes atomically (temp + rename).
+Drop-in replacement for the Tier 0 synthetic fixture. Reads PSM_CONFORMED.MARTS.*,
+assembles JSON validating against Tier 0's `data.export.schema.json`, writes
+atomically.
 
 USAGE
-  python3 export-psm-dashboard.py \\
-      --out /path/to/data.json \\
-      --as-of 2026-06-04 \\
-      --org-uid 11111111-2222-4333-8444-555555555555 \\
-      [--allow-real-ids] \\
-      [--validate]
+  python3 export-psm-dashboard.py --out PATH --as-of YYYY-MM-DD --org-uid UUID
+      [--allow-real-ids] [--validate]
 
-DEPENDENCIES
-  - Python 3.12+ stdlib
-  - snowflake-connector-python  (the one allowed non-stdlib dep)
-  - jsonschema                  (only when --validate is passed)
+DEPS: Python 3.12 stdlib + snowflake-connector-python + jsonschema (--validate).
 
 DISCIPLINE
-  - All randomness is forbidden — this is a deterministic ETL step.
-  - All datetimes derived from --as-of (NEVER datetime.now()).
-  - json.dumps(..., indent=2, sort_keys=False, ensure_ascii=False).
-  - Atomic write: write to .tmp, fsync, rename. Never partial write.
-  - Connector-failure handling: a `failed`-status source emits an empty
-    block with `last_succeeded_at` — never crashes the export.
-  - FERPA / Tier 0 classification: priority_score, priority_breakdown,
-    engagement_score are emitted as `null` (derived_at_render).
+  - Deterministic: all datetimes derived from --as-of (NEVER datetime.now()).
+  - Atomic write: temp + fsync + rename. Never partial.
+  - Connector-failure handling: `failed` source → empty block with
+    last_succeeded_at; never crashes.
+  - Tier 0 classification: priority_score, priority_breakdown,
+    engagement_score emitted as `null` (derived_at_render).
   - No row contents printed to stderr/stdout — only counts.
 
-Lineage:
-  - build-plan-tier-0.5-real-connectors.md § Step 13.
-  - build-plan-for-codex.md § 3 Step 3 field-classifications.json.
+Lineage: build-plan-tier-0.5-real-connectors.md § Step 13;
+         build-plan-for-codex.md § 3 Step 3 field-classifications.json.
 """
 
 from __future__ import annotations
@@ -43,11 +33,10 @@ import re
 import sys
 import tempfile
 from contextlib import contextmanager
-from datetime import date, datetime, timezone
+from datetime import date
 from pathlib import Path
 from typing import Any, Iterable
 
-# Third-party (the two allowed):
 import snowflake.connector  # type: ignore[import-untyped]
 
 UUIDV4_RE = re.compile(
@@ -132,9 +121,7 @@ def fetch_all_dicts(conn, sql: str) -> list[dict[str, Any]]:
 
 
 # --------------------------------------------------------------------
-# Per-source extraction.
-# Every extractor returns (block_rows, source_status_dict) so connector
-# failures can degrade gracefully (build-plan §3.13 connector-failure handling).
+# Per-source extraction. Connector failures degrade gracefully.
 # --------------------------------------------------------------------
 def fetch_connector_health(conn, org_uid: str) -> list[dict[str, Any]]:
     sql = f"""
@@ -156,14 +143,11 @@ def fetch_connector_health(conn, org_uid: str) -> list[dict[str, Any]]:
 
 def fetch_partners(conn, org_uid: str) -> list[dict[str, Any]]:
     # ORDER BY account_uid for deterministic output.
-    sql = f"""
-        select * from dim_partner
-        where org_uid = '{org_uid}'
-        order by account_uid
-    """
-    rows = fetch_all_dicts(conn, sql)
-    # Tier 0 classification: priority_score, priority_breakdown,
-    # engagement_score are derived_at_render — null them out.
+    rows = fetch_all_dicts(
+        conn,
+        f"select * from dim_partner where org_uid = '{org_uid}' order by account_uid",
+    )
+    # Tier 0 classification: these three are derived_at_render — null them.
     for r in rows:
         r["priority_score"] = None
         r["priority_breakdown"] = None
@@ -172,22 +156,19 @@ def fetch_partners(conn, org_uid: str) -> list[dict[str, Any]]:
 
 
 def fetch_block(conn, table: str, org_uid: str, order_col: str) -> list[dict[str, Any]]:
-    sql = f"""
-        select * from {table}
-        where org_uid = '{org_uid}'
-        order by {order_col}
-    """
-    return fetch_all_dicts(conn, sql)
+    return fetch_all_dicts(
+        conn,
+        f"select * from {table} where org_uid = '{org_uid}' order by {order_col}",
+    )
 
 
 def fetch_priority_weights(conn) -> dict[str, int]:
-    sql = """
-        select weight_key, weight_value
-        from psm_conformed.config.priority_weights
-        where is_current = true
-        order by weight_key
-    """
-    return {r["weight_key"]: int(r["weight_value"]) for r in fetch_all_dicts(conn, sql)}
+    rows = fetch_all_dicts(
+        conn,
+        "select weight_key, weight_value from psm_conformed.config.priority_weights "
+        "where is_current = true order by weight_key",
+    )
+    return {r["weight_key"]: int(r["weight_value"]) for r in rows}
 
 
 # --------------------------------------------------------------------
