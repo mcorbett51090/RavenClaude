@@ -2,7 +2,7 @@
 
 > Financial-regulatory & compliance specialist team for the RavenClaude marketplace.
 
-Ships **twelve specialist agents** — six function agents (AML/KYC analyst, regulatory-reporting analyst, risk-and-controls specialist, policy & procedure writer, examination-prep specialist, Bermuda-insurance specialist) and **six jurisdiction/regulator specialists** (BMA financial-institutions — banking/trust/corporate-services/fund-admin/investment-business, the primary build-out; CIMA/Cayman; Bahamas; Channel Islands — Jersey JFSC + Guernsey GFSC; UK PRA; US federal+state) — backed by **eighteen primary-source-cited regulator knowledge files**, ten playbook skills, eleven working templates, twenty-seven best-practice rules, and one **defensive PreToolUse** hook that scans pending writes for PII (SSN, IBAN, credit-card, Bermuda TIN, wire instructions) before they land on disk.
+Ships **twelve specialist agents** — six function agents (AML/KYC analyst, regulatory-reporting analyst, risk-and-controls specialist, policy & procedure writer, examination-prep specialist, Bermuda-insurance specialist) and **six jurisdiction/regulator specialists** (BMA financial-institutions — banking/trust/corporate-services/fund-admin/investment-business, the primary build-out; CIMA/Cayman; Bahamas; Channel Islands — Jersey JFSC + Guernsey GFSC; UK PRA; US federal+state) — backed by **nineteen primary-source-cited regulator knowledge files**, ten playbook skills, eleven working templates, twenty-seven best-practice rules, and one **defensive PreToolUse** hook that scans pending writes for PII (SSN, IBAN, credit-card, Bermuda TIN, wire instructions) before they land on disk.
 
 The plugin's positioning reflects field experience inside a Tier-1 financial regulator (Bermuda Monetary Authority). It produces analysis and documentation; **it does not give legal advice** — legal opinions stay with counsel.
 
@@ -22,7 +22,7 @@ Requires `ravenclaude-core@>=0.5.0`.
 | Component | Count | Where |
 |-----------|-------|-------|
 | Specialist agents | 12 (6 function + 6 jurisdiction) | [`agents/`](agents/) |
-| Regulator knowledge files | 18 (12 BMA + 6 jurisdiction/directory) | [`knowledge/bma/`](knowledge/bma/), [`knowledge/jurisdictions/`](knowledge/jurisdictions/) |
+| Regulator knowledge files | 19 (13 BMA + 6 jurisdiction/directory) | [`knowledge/bma/`](knowledge/bma/), [`knowledge/jurisdictions/`](knowledge/jurisdictions/) |
 | Best-practice rules | 27 | [`best-practices/`](best-practices/) |
 | Skills | 10 | [`skills/`](skills/) |
 | Hooks | 1 (PreToolUse, defensive) | [`hooks/`](hooks/) |
@@ -49,7 +49,7 @@ See [`CLAUDE.md`](CLAUDE.md) for the full team constitution.
 
 ## Regulator knowledge base
 
-The jurisdiction specialists read **18 primary-source-cited knowledge files** before answering — **twelve BMA files** under [`knowledge/bma/`](knowledge/bma/) (banking, trust, corporate-services, fund-administration, investment-business, overview, **msb-and-digital-assets**, **aml-atf**, **supervision-and-filings**, a **decision-trees** classification file, a **filing-calendar**, and an **economic-substance-and-tax** edge file) and six under [`knowledge/jurisdictions/`](knowledge/jurisdictions/) (CIMA/Cayman, Bahamas, Jersey-Guernsey, UK PRA, US federal+state, and a global standard-setter directory). Each cites the actual Act + section and Code + date; values that could not be pinned to the primary text (many regulator sites 403 automated fetch) carry an explicit `[unverified]` marker — the instruction to confirm against the primary PDF before relying.
+The jurisdiction specialists read **19 primary-source-cited knowledge files** before answering — **thirteen BMA files** under [`knowledge/bma/`](knowledge/bma/) (banking, trust, corporate-services, fund-administration, investment-business, overview, **msb-and-digital-assets**, **aml-atf**, **supervision-and-filings**, a **decision-trees** classification file, a **filing-calendar**, an **economic-substance-and-tax** edge file, and an **edge-cases** catalogue) and six under [`knowledge/jurisdictions/`](knowledge/jurisdictions/) (CIMA/Cayman, Bahamas, Jersey-Guernsey, UK PRA, US federal+state, and a global standard-setter directory). Each cites the actual Act + section and Code + date; values that could not be pinned to the primary text (many regulator sites 403 automated fetch) carry an explicit `[unverified]` marker — the instruction to confirm against the primary PDF before relying.
 
 ## House opinions (short list)
 

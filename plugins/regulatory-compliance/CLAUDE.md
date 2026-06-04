@@ -1,6 +1,6 @@
 # Regulatory Compliance Plugin — Team Constitution
 
-> Team constitution for the `regulatory-compliance` Claude Code plugin. Bundles **12** specialist agents: **6 function agents** (AML/KYC; regulatory reporting — FATCA/CRS, supervisory returns, Solvency II, BMA EBS; enterprise risk and controls; policy & procedure authoring; examination preparation; Bermuda-specific insurance regulation) **+ 6 jurisdiction/regulator specialists** (BMA financial-institutions — banking, trust, corporate-services, fund-admin, investment-business; CIMA/Cayman; Bahamas; Channel Islands — Jersey JFSC + Guernsey GFSC; UK PRA; US federal+state). The jurisdiction agents are backed by **18 primary-source-cited knowledge files** under [`knowledge/bma/`](knowledge/bma/) and [`knowledge/jurisdictions/`](knowledge/jurisdictions/).
+> Team constitution for the `regulatory-compliance` Claude Code plugin. Bundles **12** specialist agents: **6 function agents** (AML/KYC; regulatory reporting — FATCA/CRS, supervisory returns, Solvency II, BMA EBS; enterprise risk and controls; policy & procedure authoring; examination preparation; Bermuda-specific insurance regulation) **+ 6 jurisdiction/regulator specialists** (BMA financial-institutions — banking, trust, corporate-services, fund-admin, investment-business; CIMA/Cayman; Bahamas; Channel Islands — Jersey JFSC + Guernsey GFSC; UK PRA; US federal+state). The jurisdiction agents are backed by **19 primary-source-cited knowledge files** under [`knowledge/bma/`](knowledge/bma/) and [`knowledge/jurisdictions/`](knowledge/jurisdictions/).
 >
 > Designed for practitioners on the licensee side AND the supervisor side. The team's positioning reflects field experience in a Tier-1 financial regulator (Bermuda Monetary Authority). Assumes the user understands the basics; gives real opinions, not regulator-summary tutorials.
 >
@@ -211,7 +211,7 @@ The hook is **advisory by default** (prints to stderr, doesn't block). For sensi
 
 ## 8a. Jurisdiction & regulator knowledge base
 
-The jurisdiction specialists are backed by **18 primary-source-cited knowledge files** (12 BMA + 6 jurisdiction/directory). Each agent reads its file(s) *before* answering and resolves any `[unverified]` / `[verify-at-build]` marker against the regulator's primary source before that value gates live advice (accuracy discipline, AGENTS.md).
+The jurisdiction specialists are backed by **19 primary-source-cited knowledge files** (13 BMA + 6 jurisdiction/directory). Each agent reads its file(s) *before* answering and resolves any `[unverified]` / `[verify-at-build]` marker against the regulator's primary source before that value gates live advice (accuracy discipline, AGENTS.md).
 
 | File | Owner agent | Covers |
 |---|---|---|
@@ -227,6 +227,7 @@ The jurisdiction specialists are backed by **18 primary-source-cited knowledge f
 | [`knowledge/bma/decision-trees.md`](knowledge/bma/decision-trees.md) | `bma-financial-institutions-specialist` | Sector/licence classification tree + AML-regulated determination tree |
 | [`knowledge/bma/filing-calendar.md`](knowledge/bma/filing-calendar.md) | `bma-financial-institutions-specialist` (+ `examination-prep-specialist`) | Consolidated cross-sector filing/fee/deadline quick-reference |
 | [`knowledge/bma/economic-substance-and-tax.md`](knowledge/bma/economic-substance-and-tax.md) | `bma-financial-institutions-specialist` (+ `regulatory-reporting-analyst`) | **Edge:** economic substance (RoC), CRS/FATCA/CbCR (OTC), corporate income tax (CIT Agency) — non-BMA-administered |
+| [`knowledge/bma/edge-cases.md`](knowledge/bma/edge-cases.md) | `bma-financial-institutions-specialist` | Curated catalogue of non-obvious BMA determinations (scope boundaries, exemption-≠-AML, threshold collisions, `[unverified]`-figure pitfalls) |
 | [`knowledge/jurisdictions/cima-cayman.md`](knowledge/jurisdictions/cima-cayman.md) | `cima-cayman-specialist` | CIMA across all sectors; AML/BO/economic-substance |
 | [`knowledge/jurisdictions/bahamas.md`](knowledge/jurisdictions/bahamas.md) | `bahamas-financial-services-specialist` | CBOB/SCB/ICB/Compliance Commission/FIU |
 | [`knowledge/jurisdictions/jersey-guernsey.md`](knowledge/jurisdictions/jersey-guernsey.md) | `channel-islands-specialist` | JFSC + GFSC; JPF/PIF; MONEYVAL |
