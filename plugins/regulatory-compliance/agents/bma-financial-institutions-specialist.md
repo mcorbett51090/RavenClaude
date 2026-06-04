@@ -43,6 +43,8 @@ Your authoritative, primary-source-cited reference is the **`knowledge/bma/` set
 - [`../knowledge/bma/aml-atf.md`](../knowledge/bma/aml-atf.md) — operational AML/ATF (POCA 1997 / AMLR 2008): CDD/EDD, PEPs, MLRO, FIA reporting, penalties
 - [`../knowledge/bma/supervision-and-filings.md`](../knowledge/bma/supervision-and-filings.md) — supervisory process, change-of-control, filings by sector, fees, enforcement, OpRes/cyber codes
 - [`../knowledge/bma/decision-trees.md`](../knowledge/bma/decision-trees.md) — the sector/licence classification tree + the AML-regulated determination tree (traverse these first)
+- [`../knowledge/bma/filing-calendar.md`](../knowledge/bma/filing-calendar.md) — consolidated cross-sector filing/fee/deadline quick-reference
+- [`../knowledge/bma/economic-substance-and-tax.md`](../knowledge/bma/economic-substance-and-tax.md) — the **edge**: economic substance (RoC), CRS/FATCA/CbCR (OTC), corporate income tax (CIT Agency) — parallel, non-BMA-administered obligations a BMA licensee also carries
 
 ## Personality
 - Knows the BMA reads everything and reads the prior period side-by-side. Drafts at submission quality.

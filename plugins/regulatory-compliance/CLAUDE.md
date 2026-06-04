@@ -1,6 +1,6 @@
 # Regulatory Compliance Plugin — Team Constitution
 
-> Team constitution for the `regulatory-compliance` Claude Code plugin. Bundles **12** specialist agents: **6 function agents** (AML/KYC; regulatory reporting — FATCA/CRS, supervisory returns, Solvency II, BMA EBS; enterprise risk and controls; policy & procedure authoring; examination preparation; Bermuda-specific insurance regulation) **+ 6 jurisdiction/regulator specialists** (BMA financial-institutions — banking, trust, corporate-services, fund-admin, investment-business; CIMA/Cayman; Bahamas; Channel Islands — Jersey JFSC + Guernsey GFSC; UK PRA; US federal+state). The jurisdiction agents are backed by **16 primary-source-cited knowledge files** under [`knowledge/bma/`](knowledge/bma/) and [`knowledge/jurisdictions/`](knowledge/jurisdictions/).
+> Team constitution for the `regulatory-compliance` Claude Code plugin. Bundles **12** specialist agents: **6 function agents** (AML/KYC; regulatory reporting — FATCA/CRS, supervisory returns, Solvency II, BMA EBS; enterprise risk and controls; policy & procedure authoring; examination preparation; Bermuda-specific insurance regulation) **+ 6 jurisdiction/regulator specialists** (BMA financial-institutions — banking, trust, corporate-services, fund-admin, investment-business; CIMA/Cayman; Bahamas; Channel Islands — Jersey JFSC + Guernsey GFSC; UK PRA; US federal+state). The jurisdiction agents are backed by **18 primary-source-cited knowledge files** under [`knowledge/bma/`](knowledge/bma/) and [`knowledge/jurisdictions/`](knowledge/jurisdictions/).
 >
 > Designed for practitioners on the licensee side AND the supervisor side. The team's positioning reflects field experience in a Tier-1 financial regulator (Bermuda Monetary Authority). Assumes the user understands the basics; gives real opinions, not regulator-summary tutorials.
 >
@@ -211,7 +211,7 @@ The hook is **advisory by default** (prints to stderr, doesn't block). For sensi
 
 ## 8a. Jurisdiction & regulator knowledge base
 
-The jurisdiction specialists are backed by **16 primary-source-cited knowledge files** (10 BMA + 6 jurisdiction/directory). Each agent reads its file(s) *before* answering and resolves any `[unverified]` / `[verify-at-build]` marker against the regulator's primary source before that value gates live advice (accuracy discipline, AGENTS.md).
+The jurisdiction specialists are backed by **18 primary-source-cited knowledge files** (12 BMA + 6 jurisdiction/directory). Each agent reads its file(s) *before* answering and resolves any `[unverified]` / `[verify-at-build]` marker against the regulator's primary source before that value gates live advice (accuracy discipline, AGENTS.md).
 
 | File | Owner agent | Covers |
 |---|---|---|
@@ -225,6 +225,8 @@ The jurisdiction specialists are backed by **16 primary-source-cited knowledge f
 | [`knowledge/bma/aml-atf.md`](knowledge/bma/aml-atf.md) | `bma-financial-institutions-specialist` (+ `aml-kyc-analyst`) | Operational AML/ATF: POCA/AMLR 2008, CDD/EDD, PEPs, MLRO, FIA reporting, penalties |
 | [`knowledge/bma/supervision-and-filings.md`](knowledge/bma/supervision-and-filings.md) | `bma-financial-institutions-specialist` (+ `examination-prep-specialist`) | Supervisory process, change-of-control, filings by sector, fees, enforcement, OpRes/cyber codes |
 | [`knowledge/bma/decision-trees.md`](knowledge/bma/decision-trees.md) | `bma-financial-institutions-specialist` | Sector/licence classification tree + AML-regulated determination tree |
+| [`knowledge/bma/filing-calendar.md`](knowledge/bma/filing-calendar.md) | `bma-financial-institutions-specialist` (+ `examination-prep-specialist`) | Consolidated cross-sector filing/fee/deadline quick-reference |
+| [`knowledge/bma/economic-substance-and-tax.md`](knowledge/bma/economic-substance-and-tax.md) | `bma-financial-institutions-specialist` (+ `regulatory-reporting-analyst`) | **Edge:** economic substance (RoC), CRS/FATCA/CbCR (OTC), corporate income tax (CIT Agency) — non-BMA-administered |
 | [`knowledge/jurisdictions/cima-cayman.md`](knowledge/jurisdictions/cima-cayman.md) | `cima-cayman-specialist` | CIMA across all sectors; AML/BO/economic-substance |
 | [`knowledge/jurisdictions/bahamas.md`](knowledge/jurisdictions/bahamas.md) | `bahamas-financial-services-specialist` | CBOB/SCB/ICB/Compliance Commission/FIU |
 | [`knowledge/jurisdictions/jersey-guernsey.md`](knowledge/jurisdictions/jersey-guernsey.md) | `channel-islands-specialist` | JFSC + GFSC; JPF/PIF; MONEYVAL |
@@ -260,6 +262,7 @@ To enable when a scenario surfaces:
 | [`templates/kyc-edd-workpaper.md`](templates/kyc-edd-workpaper.md) | KYC / EDD workpaper with risk-rating logic and source-doc citations |
 | [`templates/bma-licensing-classification-workpaper.md`](templates/bma-licensing-classification-workpaper.md) | BMA sector + licence-class + AML/ATF determination workpaper (non-insurance) |
 | [`templates/bma-change-of-control-notification.md`](templates/bma-change-of-control-notification.md) | BMA change-of-control / shareholder-controller notification workpaper (10/20/33/50% bands) |
+| [`templates/bma-aml-risk-assessment.md`](templates/bma-aml-risk-assessment.md) | BMA AML/ATF business-wide + customer-level risk-assessment workpaper (AMLR 2008) |
 
 ---
 
