@@ -1,0 +1,16 @@
+{
+  "$schema_note": "Central config for the team-portfolio plugin. Lives at the ROOT of your hub repo (the repo that holds the reports + dashboard). Secrets are NEVER stored here — the token is read from the environment (PORTFOLIO_TOKEN / GITHUB_TOKEN / GH_TOKEN). Schema reference: plugins/team-portfolio/knowledge/multi-repo-tracking-model.md in the RavenClaude marketplace.",
+  "_TODO_repos": "Replace the empty repos[] with every owner/name to track. Example: \"mcorbett51090/RavenClaude\". Public OR private (private needs PORTFOLIO_TOKEN with read access).",
+  "_TODO_team": "Replace the empty team[] with one entry per person: {\"login\": \"github-username\", \"name\": \"Full Name\", \"role\": \"lead|contributor|...\"}. Role is free-form.",
+  "_TODO_supervisor": "Optional. Add a top-level \"supervisor\": {\"login\": \"...\", \"name\": \"...\"} to frame the weekly tracker as a manage-the-team view.",
+  "_TODO_projects": "Optional. Replace the empty projects[] with cross-repo project definitions. Each: {\"name\": \"Project\", \"match\": {\"repos\": [...], \"labels\": [...], \"title_prefixes\": [...]}}. Any one match field is enough.",
+  "_TODO_cleanup": "Delete every \"_TODO_*\" key once you've filled the real arrays. The collector ignores them, but they're noise.",
+  "window_days": 7,
+  "repos": [],
+  "team": [],
+  "projects": [],
+  "narrative": {
+    "enabled": false,
+    "dir": "portfolio/narrative"
+  }
+}
