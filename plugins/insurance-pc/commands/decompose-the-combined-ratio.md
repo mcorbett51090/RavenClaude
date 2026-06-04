@@ -1,6 +1,6 @@
 ---
 description: "Split the combined ratio into loss and expense, then attritional and catastrophe, so a deteriorating result is diagnosed correctly. Reach for this on any result question."
-argument-hint: "[the situation, e.g. the metric/segment in question]"
+argument-hint: "[the situation, e.g. the metric / segment / matter in question]"
 ---
 
 # Decompose the combined ratio
@@ -14,8 +14,9 @@ You are running `/insurance-pc:decompose-the-combined-ratio` for `$ARGUMENTS`. R
 4. Locate the driver — Name whether the move is expense, attritional loss, cat, or mix before prescribing.
 
 ## Output
-A loss/expense, attritional/cat, by-line decomposition with the driver located. See [`../skills/decompose-the-combined-ratio/SKILL.md`](../skills/decompose-the-combined-ratio/SKILL.md).
+A loss/expense, attritional/cat, by-line decomposition with the driver located. See [`../skills/decompose-the-combined-ratio/SKILL.md`](../skills/decompose-the-combined-ratio/SKILL.md). Traverse the matching tree in [`../knowledge/pc-decision-trees.md`](../knowledge/pc-decision-trees.md).
 
 ## Guardrails
-- Apply the §3 house opinions before any method.
-- No client PII; cite or mark every external figure.
+- Apply the §3 house opinions before any method; resist a single-cause story.
+- No client PII in the output; cite a source + date for every external figure (or mark it).
+- End with owner / date / expected movement on each recommendation.

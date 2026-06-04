@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Is this encounter documented to support the level?"
     outcome: "A documentation-to-code read as coder decision-support, flagging gaps without up-coding"
     difficulty: advanced
+  - intent: "Turn coding accuracy findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the coding accuracy work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'My coding denial rate jumped — why?' OR 'Is this encounter documented to support the level?'"
   - "Expected output: A coding-denial root-cause read tracing to documentation, code selection, or modifier use, with the fix"

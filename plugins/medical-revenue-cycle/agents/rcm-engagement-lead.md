@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Is my billing company underperforming?"
     outcome: "An evaluation frame comparing clean-claim, denial, and A/R metrics to benchmark, with the accountability gaps named"
     difficulty: advanced
+  - intent: "Turn the engagement findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the engagement work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Collections are down — where do I look?' OR 'Is my billing company underperforming?'"
   - "Expected output: A scoped review: net collection rate and days-in-A/R first, then denial/coding routing, with the two biggest leaks named"

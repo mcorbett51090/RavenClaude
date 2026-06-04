@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "What should my board see each quarter?"
     outcome: "A retention-led scorecard with cost-per-dollar, pipeline, and the restricted/unrestricted mix, each baselined"
     difficulty: starter
+  - intent: "Turn the numbers findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the numbers work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Which of my fundraising channels actually pays?' OR 'What should my board see each quarter?'"
   - "Expected output: A channel cost-ratio read separating events, mail, grants, major gifts, and digital"

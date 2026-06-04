@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "How do I get my average order value up?"
     outcome: "An AOV-lever plan (bundles, thresholds, cross-sell) with the contribution-margin impact"
     difficulty: advanced
+  - intent: "Turn product and conversion findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the product and conversion work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'My conversion rate is 1.2% — what's wrong?' OR 'How do I get my average order value up?'"
   - "Expected output: A funnel read locating the traffic-quality, product-page, or checkout leak, with the fix"

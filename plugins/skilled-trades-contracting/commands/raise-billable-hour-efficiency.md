@@ -1,6 +1,6 @@
 ---
 description: "Read the billable-hour ratio and cut non-billable drive, restock, and rework time, since billable efficiency is the field's master number. Reach for this on a productivity question."
-argument-hint: "[the situation, e.g. the metric/segment in question]"
+argument-hint: "[the situation, e.g. the metric / segment / matter in question]"
 ---
 
 # Raise billable-hour efficiency
@@ -14,8 +14,9 @@ You are running `/skilled-trades-contracting:raise-billable-hour-efficiency` for
 4. Re-measure — Track the billable ratio after the change.
 
 ## Output
-A billable-ratio read, the non-billable buckets, the dispatch/stocking fix, and the before/after. See [`../skills/raise-billable-efficiency/SKILL.md`](../skills/raise-billable-efficiency/SKILL.md).
+A billable-ratio read, the non-billable buckets, the dispatch/stocking fix, and the before/after. See [`../skills/raise-billable-efficiency/SKILL.md`](../skills/raise-billable-efficiency/SKILL.md). Traverse the matching tree in [`../knowledge/trades-decision-trees.md`](../knowledge/trades-decision-trees.md).
 
 ## Guardrails
-- Apply the §3 house opinions before any method.
-- No client PII; cite or mark every external figure.
+- Apply the §3 house opinions before any method; resist a single-cause story.
+- No client PII in the output; cite a source + date for every external figure (or mark it).
+- End with owner / date / expected movement on each recommendation.

@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Where is our recruitment leaking?"
     outcome: "A funnel read (screened → enrolled → retained) locating the referral, eligibility, or consent leak with cost per stage"
     difficulty: advanced
+  - intent: "Turn execution findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the execution work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Our sites are taking forever to open — why?' OR 'Where is our recruitment leaking?'"
   - "Expected output: A site-activation read on selection, contracting, and start-up bottlenecks, with the schedule-recovery plan"

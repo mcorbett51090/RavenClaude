@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Who should I spend my cultivation hours on?"
     outcome: "An RFM-style segmentation prioritizing cultivation by value, recency, and engagement"
     difficulty: starter
+  - intent: "Turn major gifts and donors findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the major gifts and donors work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'How do I move this $5k donor toward a major gift?' OR 'Who should I spend my cultivation hours on?'"
   - "Expected output: A moves-management plan through qualification, cultivation, and solicitation with the timeline"

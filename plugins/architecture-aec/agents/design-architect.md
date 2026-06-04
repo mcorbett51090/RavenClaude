@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "The client keeps redesigning — what do I do?"
     outcome: "A scope-control read distinguishing in-scope iteration from additional services, with the authorization path"
     difficulty: troubleshooting
+  - intent: "Turn design phases findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the design phases work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'How do we run this through design development?' OR 'The client keeps redesigning — what do I do?'"
   - "Expected output: A phase plan with deliverables, the gate, and the effort budget, as architect decision-support"

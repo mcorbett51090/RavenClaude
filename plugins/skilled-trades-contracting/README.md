@@ -31,6 +31,8 @@ Builds estimates on loaded labor and real material cost, prices service on a def
 - **`/skilled-trades-contracting:build-the-loaded-labor-rate`** — Build the loaded labor rate
 - **`/skilled-trades-contracting:build-the-flat-rate-book`** — Build the flat-rate book
 - **`/skilled-trades-contracting:raise-billable-hour-efficiency`** — Raise billable-hour efficiency
+- **`/skilled-trades-contracting:cut-the-callback-rate`** — Cut the callback rate
+- **`/skilled-trades-contracting:read-the-sales-levers`** — Read the sales levers
 
 ## Knowledge bank
 

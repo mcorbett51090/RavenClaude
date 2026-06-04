@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Are we overpaying claims?"
     outcome: "A leakage read across reserving, settlement, and recovery, with the controllable gap quantified"
     difficulty: advanced
+  - intent: "Turn claims operations findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the claims operations work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Our claim severity jumped — why?' OR 'Are we overpaying claims?'"
   - "Expected output: A severity decomposition separating social inflation, mix, and reserve strengthening, with the driver named"

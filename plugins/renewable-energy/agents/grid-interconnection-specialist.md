@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Could grid upgrades kill this deal?"
     outcome: "An upgrade-cost read framing the network allocation against the project economics"
     difficulty: troubleshooting
+  - intent: "Turn the grid findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the grid work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'How long until we can connect?' OR 'Could grid upgrades kill this deal?'"
   - "Expected output: An interconnection-queue read with the study sequence, likely upgrade allocation, and schedule risk"

@@ -31,6 +31,8 @@ Manages projects through the AIA phases against a phase-loaded fee, controls sco
 - **`/architecture-aec:phase-load-the-fee`** — Phase-load the fee
 - **`/architecture-aec:control-scope-creep`** — Control scope creep
 - **`/architecture-aec:coordinate-the-drawing-set`** — Coordinate the drawing set
+- **`/architecture-aec:read-the-rfi-change-pattern`** — Read the RFI/change pattern
+- **`/architecture-aec:read-firm-economics`** — Read firm economics
 
 ## Knowledge bank
 

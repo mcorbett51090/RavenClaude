@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "How do I stop taking bad matters?"
     outcome: "A conflict-checked intake/fit screen reducing the matters that destroy realization"
     difficulty: starter
+  - intent: "Turn the numbers findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the numbers work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Is my realization actually good?' OR 'How do I stop taking bad matters?'"
   - "Expected output: A realization and billed-vs-collected read with the leakage (write-downs, write-offs, A/R) located"

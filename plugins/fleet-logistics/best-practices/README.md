@@ -6,14 +6,18 @@ Named, citable rules for the `fleet-logistics` plugin's 4 specialist agents and 
 
 ## Index
 
-_4 rules. Each file is one named, citable rule._
+_8 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
-| [`cost-per-mile-is-the-master-number-build-it-bottom-up.md`](./cost-per-mile-is-the-master-number-build-it-bottom-up.md) | Absolute rule | Any fleet & logistics deliverable where this question is in play. |
-| [`the-operating-ratio-is-the-survival-metric.md`](./the-operating-ratio-is-the-survival-metric.md) | Absolute rule | Any fleet & logistics deliverable where this question is in play. |
-| [`deadhead-and-utilization-are-the-revenue-leaks.md`](./deadhead-and-utilization-are-the-revenue-leaks.md) | Pattern | Any fleet & logistics deliverable where this question is in play. |
-| [`driver-turnover-is-a-unit-economics-problem-not-hr-overhead.md`](./driver-turnover-is-a-unit-economics-problem-not-hr-overhead.md) | Pattern | Any fleet & logistics deliverable where this question is in play. |
+| [`cost-per-mile-is-the-master-number-build-it-bottom-up.md`](./cost-per-mile-is-the-master-number-build-it-bottom-up.md) | Absolute rule | Any fleet & logistics deliverable where this question is in play — read, applied, and cited whole. |
+| [`the-operating-ratio-is-the-survival-metric.md`](./the-operating-ratio-is-the-survival-metric.md) | Absolute rule | Any fleet & logistics deliverable where this question is in play — read, applied, and cited whole. |
+| [`deadhead-and-utilization-are-the-revenue-leaks.md`](./deadhead-and-utilization-are-the-revenue-leaks.md) | Absolute rule | Any fleet & logistics deliverable where this question is in play — read, applied, and cited whole. |
+| [`driver-turnover-is-a-unit-economics-problem-not-hr-overhead.md`](./driver-turnover-is-a-unit-economics-problem-not-hr-overhead.md) | Pattern | Any fleet & logistics deliverable where this question is in play — read, applied, and cited whole. |
+| [`preventive-maintenance-is-cheaper-than-the-breakdown.md`](./preventive-maintenance-is-cheaper-than-the-breakdown.md) | Pattern | Any fleet & logistics deliverable where this question is in play — read, applied, and cited whole. |
+| [`rate-per-mile-is-meaningless-without-the-cost-and-the-lane.md`](./rate-per-mile-is-meaningless-without-the-cost-and-the-lane.md) | Pattern | Any fleet & logistics deliverable where this question is in play — read, applied, and cited whole. |
+| [`fuel-is-the-swing-variable-manage-it-dont-just-absorb-it.md`](./fuel-is-the-swing-variable-manage-it-dont-just-absorb-it.md) | Pattern | Any fleet & logistics deliverable where this question is in play — read, applied, and cited whole. |
+| [`cite-the-source-and-date-for-every-benchmark.md`](./cite-the-source-and-date-for-every-benchmark.md) | Absolute rule | Any fleet & logistics deliverable where this question is in play — read, applied, and cited whole. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

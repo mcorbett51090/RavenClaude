@@ -31,6 +31,8 @@ Builds spend visibility and category segmentation, runs sourcing on TCO and shou
 - **`/procurement-sourcing:segment-the-spend-kraljic`** — Segment the spend (Kraljic)
 - **`/procurement-sourcing:source-on-total-cost-of-ownership`** — Source on total cost of ownership
 - **`/procurement-sourcing:manage-supplier-risk-as-a-portfolio`** — Manage supplier risk as a portfolio
+- **`/procurement-sourcing:build-the-spend-cube`** — Build the spend cube
+- **`/procurement-sourcing:validate-realized-savings`** — Validate realized savings
 
 ## Knowledge bank
 

@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "How do I get budtenders to grow the basket?"
     outcome: "A basket/UPT plan across assortment, cross-sell, and budtender productivity with the margin impact"
     difficulty: starter
+  - intent: "Turn the store findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the store work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'My margins are thin even with good traffic — why?' OR 'How do I get budtenders to grow the basket?'"
   - "Expected output: A category-margin and basket read separating mix, discounting, and turns, with the levers to lift margin"

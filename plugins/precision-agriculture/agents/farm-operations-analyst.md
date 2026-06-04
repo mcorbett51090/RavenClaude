@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Is my fertility spend paying off?"
     outcome: "An input-ROI read at economic optimum, by zone, with the over/under-application cost"
     difficulty: starter
+  - intent: "Turn the numbers findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the numbers work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Which of my fields actually make money?' OR 'Is my fertility spend paying off?'"
   - "Expected output: A per-acre cost-and-margin read by field, separating the profitable acres from the losers"

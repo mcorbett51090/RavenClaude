@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "How do we keep dropout under control?"
     outcome: "A retention-by-design read on visit burden, schedule, and engagement to lower the ~30% dropout"
     difficulty: troubleshooting
+  - intent: "Turn feasibility findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the feasibility work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Are our inclusion/exclusion criteria too restrictive?' OR 'How do we keep dropout under control?'"
   - "Expected output: An eligibility-vs-population read flagging the criteria that shrink the enrollable pool, as decision-support"

@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "How do I price my common service jobs?"
     outcome: "A flat-rate book built from loaded labor and real material cost, with good/better/best options"
     difficulty: advanced
+  - intent: "Turn estimates and pricing findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the estimates and pricing work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Why did this 'profitable' job lose money?' OR 'How do I price my common service jobs?'"
   - "Expected output: An estimate audit checking the loaded rate, material cost with waste, and the labor-hour assumption"

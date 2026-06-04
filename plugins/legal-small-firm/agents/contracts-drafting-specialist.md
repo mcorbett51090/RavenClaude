@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "What should I watch in this contract?"
     outcome: "An issue-spotting redline surfacing risks and missing terms, as attorney work product"
     difficulty: starter
+  - intent: "Turn transactional drafting findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the transactional drafting work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Draft a first cut of this services agreement' OR 'What should I watch in this contract?'"
   - "Expected output: A drafted first version from a clause library with issue flags, for attorney review and adoption"

@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "How do we finance this post-2025?"
     outcome: "A structure frame across the live 48E/PPA pathway and ownership models, with the dated incentive basis"
     difficulty: advanced
+  - intent: "Turn the engagement findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the engagement work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Should we develop this site?' OR 'How do we finance this post-2025?'"
   - "Expected output: A scoped read: LCOE/IRR and interconnection first, then incentive/structure routing, with the two biggest risks named"

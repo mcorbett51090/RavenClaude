@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Which of my lanes actually make money?"
     outcome: "A lane-by-lane frame pricing rate against CPM and deadhead, with the keep/drop calls"
     difficulty: advanced
+  - intent: "Turn the engagement findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the engagement work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Our trucks are losing money — where?' OR 'Which of my lanes actually make money?'"
   - "Expected output: A scoped review: CPM and OR first, then dispatch/maintenance/retention routing, with the two biggest leaks named"

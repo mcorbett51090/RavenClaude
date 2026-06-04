@@ -1,7 +1,7 @@
 {
   "name": "clinical-trials",
   "version": "0.1.0",
-  "description": "Clinical Trials specialist team — 4 agents (trials-engagement-lead, protocol-design-specialist, clinical-operations-manager, regulatory-submissions-specialist), 5 skills, 3 templates, 3 commands, 1 advisory hook, 4 best-practice rules, and a 4-file research-grounded knowledge bank. A clinical-operations team for a sponsor, CRO, or site network — it designs feasible protocols (because eligibility criteria drive the enrollment failure that hits two-thirds of sites), plans patient recruitment against a ~$6,533 per-patient cost (and ~$19,533 to replace), manages site activation and the ~30% dropout, and frames the regulatory submission the way a study where 80% run late demands. Inherits ravenclaude-core protocols.",
+  "description": "Clinical Trials specialist team — 4 agents (trials-engagement-lead, protocol-design-specialist, clinical-operations-manager, regulatory-submissions-specialist), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A clinical-operations team for a sponsor, CRO, or site network — it designs feasible protocols (because eligibility criteria drive the enrollment failure that hits two-thirds of sites), plans patient recruitment against a ~$6,533 per-patient cost (and ~$19,533 to replace), manages site activation and the ~30% dropout, and frames the regulatory submission the way a study where 80% run late demands. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"
   },

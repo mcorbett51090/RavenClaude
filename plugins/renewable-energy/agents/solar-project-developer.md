@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "How do we keep this eligible after the 25D sunset?"
     outcome: "An ownership/structure recommendation on the live 48E/PPA pathway, dated, with the trade-offs"
     difficulty: advanced
+  - intent: "Turn development findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the development work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'What stands between us and construction?' OR 'How do we keep this eligible after the 25D sunset?'"
   - "Expected output: A development-milestone map (site, permitting, interconnection, financing) with the critical path"

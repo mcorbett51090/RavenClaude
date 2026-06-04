@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Do I have enough techs per doctor?"
     outcome: "A doctor-to-support ratio read tied to production capacity and retention, with the staffing recommendation"
     difficulty: starter
+  - intent: "Turn capacity and the floor findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the capacity and the floor work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'We're booked solid but revenue is flat — why?' OR 'Do I have enough techs per doctor?'"
   - "Expected output: A capacity read finding the doctor bottleneck and the appointment-template fix that adds throughput"

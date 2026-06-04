@@ -1,6 +1,6 @@
 ---
 description: "Read net collection rate, first-pass resolution, and days-in-A/R together, against benchmark, so a cash problem is diagnosed correctly. Reach for this on any collections question."
-argument-hint: "[the situation, e.g. the metric/segment in question]"
+argument-hint: "[the situation, e.g. the metric / segment / matter in question]"
 ---
 
 # Read the cash cycle
@@ -14,8 +14,9 @@ You are running `/medical-revenue-cycle:read-the-cash-cycle` for `$ARGUMENTS`. R
 4. Locate the problem — Attribute the cash gap to one of the three before prescribing.
 
 ## Output
-A three-metric cash-cycle read, benchmarked, with the problem located. See [`../skills/read-the-cash-cycle/SKILL.md`](../skills/read-the-cash-cycle/SKILL.md).
+A three-metric cash-cycle read, benchmarked, with the problem located. See [`../skills/read-the-cash-cycle/SKILL.md`](../skills/read-the-cash-cycle/SKILL.md). Traverse the matching tree in [`../knowledge/rcm-decision-trees.md`](../knowledge/rcm-decision-trees.md).
 
 ## Guardrails
-- Apply the §3 house opinions before any method.
-- No client PII; cite or mark every external figure.
+- Apply the §3 house opinions before any method; resist a single-cause story.
+- No client PII in the output; cite a source + date for every external figure (or mark it).
+- End with owner / date / expected movement on each recommendation.

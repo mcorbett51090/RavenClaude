@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Should we grow or shrink commercial auto?"
     outcome: "A mix frame comparing each line's NCR and trend, with the portfolio-result implication"
     difficulty: advanced
+  - intent: "Turn the engagement findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the engagement work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Our combined ratio crossed 100 — where?' OR 'Should we grow or shrink commercial auto?'"
   - "Expected output: A scoped review: loss vs expense, then frequency/severity and cat routing, with the two biggest drivers named"

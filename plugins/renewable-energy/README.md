@@ -31,6 +31,8 @@ Models LCOE, project IRR, and the financing structure, sequences interconnection
 - **`/renewable-energy:model-lcoe-and-project-irr`** — Model LCOE and project IRR
 - **`/renewable-energy:model-the-interconnection-queue`** — Model the interconnection queue
 - **`/renewable-energy:structure-to-the-live-incentive`** — Structure to the live incentive
+- **`/renewable-energy:read-asset-performance-over-life`** — Read asset performance over life
+- **`/renewable-energy:value-storage-by-dispatch`** — Value storage by dispatch
 
 ## Knowledge bank
 

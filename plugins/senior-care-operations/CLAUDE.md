@@ -65,7 +65,7 @@ The research-grounded reference the agents point to. Read the relevant file in f
 |---|---|
 | [`knowledge/senior-care-kpi-glossary.md`](knowledge/senior-care-kpi-glossary.md) | Senior-care KPI glossary |
 | [`knowledge/senior-care-economics.md`](knowledge/senior-care-economics.md) | Senior-care operations economics |
-| [`knowledge/senior-care-context.md`](knowledge/senior-care-context.md) | Senior-care market & regulatory context |
+| [`knowledge/senior-care-context.md`](knowledge/senior-care-context.md) | Senior-care benchmarks & regulatory context (2025–2026) |
 | [`knowledge/senior-care-decision-trees.md`](knowledge/senior-care-decision-trees.md) | Senior-care decision trees |
 
 ---
@@ -108,4 +108,4 @@ The lead is [`senior-care-lead`](agents/senior-care-lead.md) — first contact f
 
 ## 8. Milestones
 
-- **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 3 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 4 best-practice rules.
+- **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 5 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 8 best-practice rules.

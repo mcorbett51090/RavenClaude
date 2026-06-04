@@ -1,19 +1,25 @@
-# Trade-contracting market context
+# Trade-contracting benchmarks & market context (2025–2026)
 
-Demand and labor context for a contracting engagement. All figures here are domain knowledge — mark or date any number used in a deliverable.
+Dated field-service benchmarks for a contracting engagement. Rates and labor vary by trade and region — every figure carries a source and a retrieval date; demand/consolidation context is marked where it's training knowledge.
 
-## Labor & demand
+## Billable-hour efficiency
 
-Skilled-trade labor shortages and an aging workforce are structural demand drivers for service contractors; residential-service demand is relatively recession-resilient versus new-construction. [unverified — training knowledge] — validate against current BLS/industry data before quoting.
+Industry benchmarks put residential service-tech billable utilization at ~55–70% of paid hours (top performers above ~75%); a tech is productively billable only ~1,000–1,500 hours/year after drive, admin, callbacks, and weather. Below ~30% efficiency a tech does ~2.4 billable hours/day — the silent margin killer (§3 #3).
 
-## Pricing pressure
+## First-time-fix / callbacks
 
-Material costs and wages have risen materially since 2020, pressuring fixed-bid and new-construction margins more than flat-rate service. [ESTIMATE] — confirm with current supplier and wage data.
+ACCA contractor surveys report average residential HVAC callback rates of ~3–8% (top performers under ~2%) — i.e. a first-time-fix rate of ~92–97% average, ~98%+ best-in-class. A callback is a free truck roll that doubles the job's labor cost (§3 #4).
 
-## Consolidation
+## Pricing & margin
 
-Private-equity roll-ups of HVAC/plumbing/electrical service businesses are active, raising local competition and labor costs. [unverified — training knowledge] — date and source before asserting in a deliverable (§3 #8).
+HVAC/electrical service typically bills ~$150–$300 per billable hour depending on market/positioning, with a ~$70–$200 diagnostic/service-call fee; a $28/hr tech at ~50% burden costs ~$42/hr before overhead. Healthy net margin targets ~20–25% (§3 #1, #2).
 
-## Sourcing note
+## Demand & consolidation
 
-Figures in this file are from the author's domain knowledge and are marked `[unverified — training knowledge]` or `[ESTIMATE]` at point of use. Validate against a primary source before putting any figure in a client deliverable (§3 cite-or-mark rule).
+Skilled-trade labor shortages, an aging workforce, and active private-equity roll-ups of HVAC/plumbing/electrical service businesses shape local competition and labor cost; residential service is relatively recession-resilient vs new-construction. [unverified — training knowledge] — date and source before asserting (§3 #8).
+
+## Sources
+
+- [ServiceTitan — Calculate Billable Hours / Labor Rate](https://www.servicetitan.com/field-service-management/billable-hours) — retrieved 2026-06-04
+- [Housecall Pro — How to Price HVAC Services (2026)](https://www.housecallpro.com/resources/how-to-price-hvac-services/) — retrieved 2026-06-04
+- [LokalHQ — HVAC Key Performance Indicators to Track](https://lokalhq.com/blog/hvac-key-performance-indicators/) — retrieved 2026-06-04

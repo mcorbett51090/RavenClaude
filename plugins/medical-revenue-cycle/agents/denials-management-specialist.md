@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "I have a pile of 90+ day A/R — where do I start?"
     outcome: "An A/R work-down by aging bucket and payer, prioritized by recoverable dollars and timely-filing risk"
     difficulty: troubleshooting
+  - intent: "Turn denial prevention and a/r findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the denial prevention and a/r work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'How do I get denials under 5%?' OR 'I have a pile of 90+ day A/R — where do I start?'"
   - "Expected output: A root-cause categorized plan pushing eligibility/auth fixes to the front end, with the prevented-denial impact"

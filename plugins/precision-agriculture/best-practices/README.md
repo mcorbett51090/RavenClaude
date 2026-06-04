@@ -6,14 +6,18 @@ Named, citable rules for the `precision-agriculture` plugin's 4 specialist agent
 
 ## Index
 
-_4 rules. Each file is one named, citable rule._
+_8 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
-| [`manage-to-economic-optimum-not-maximum-yield.md`](./manage-to-economic-optimum-not-maximum-yield.md) | Absolute rule | Any precision agriculture deliverable where this question is in play. |
-| [`read-yield-by-management-zone-not-field-average.md`](./read-yield-by-management-zone-not-field-average.md) | Absolute rule | Any precision agriculture deliverable where this question is in play. |
-| [`time-operations-to-the-agronomic-and-weather-window.md`](./time-operations-to-the-agronomic-and-weather-window.md) | Pattern | Any precision agriculture deliverable where this question is in play. |
-| [`cost-and-margin-are-per-acre-by-field-never-whole-farm-only.md`](./cost-and-margin-are-per-acre-by-field-never-whole-farm-only.md) | Pattern | Any precision agriculture deliverable where this question is in play. |
+| [`manage-to-economic-optimum-not-maximum-yield.md`](./manage-to-economic-optimum-not-maximum-yield.md) | Absolute rule | Any precision agriculture deliverable where this question is in play — read, applied, and cited whole. |
+| [`read-yield-by-management-zone-not-field-average.md`](./read-yield-by-management-zone-not-field-average.md) | Absolute rule | Any precision agriculture deliverable where this question is in play — read, applied, and cited whole. |
+| [`time-operations-to-the-agronomic-and-weather-window.md`](./time-operations-to-the-agronomic-and-weather-window.md) | Absolute rule | Any precision agriculture deliverable where this question is in play — read, applied, and cited whole. |
+| [`cost-and-margin-are-per-acre-by-field-never-whole-farm-only.md`](./cost-and-margin-are-per-acre-by-field-never-whole-farm-only.md) | Pattern | Any precision agriculture deliverable where this question is in play — read, applied, and cited whole. |
+| [`soil-test-and-tissue-data-drive-fertility-not-the-rear-view.md`](./soil-test-and-tissue-data-drive-fertility-not-the-rear-view.md) | Pattern | Any precision agriculture deliverable where this question is in play — read, applied, and cited whole. |
+| [`crop-protection-is-threshold-and-resistance-management-not-c.md`](./crop-protection-is-threshold-and-resistance-management-not-c.md) | Pattern | Any precision agriculture deliverable where this question is in play — read, applied, and cited whole. |
+| [`weather-and-price-are-the-risk-hedge-the-controllable-plan-t.md`](./weather-and-price-are-the-risk-hedge-the-controllable-plan-t.md) | Pattern | Any precision agriculture deliverable where this question is in play — read, applied, and cited whole. |
+| [`date-and-source-any-price-rate-or-benchmark-figure.md`](./date-and-source-any-price-rate-or-benchmark-figure.md) | Absolute rule | Any precision agriculture deliverable where this question is in play — read, applied, and cited whole. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

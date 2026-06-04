@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Are my input costs going to keep rising?"
     outcome: "An input-cost-trend read with the planning implication, figures dated/marked"
     difficulty: starter
+  - intent: "Turn the outside view findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the outside view work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Should I sell now or store?' OR 'Are my input costs going to keep rising?'"
   - "Expected output: A marketing frame weighing price, basis, storage cost, and risk tolerance, dated"

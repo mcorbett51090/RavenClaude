@@ -28,9 +28,11 @@ Diagnoses whether a deal pencils on real income (not pro-forma), separates the g
 
 ## Slash commands
 
-- **`/commercial-real-estate:underwrite-deal`** — Underwrite a CRE deal
-- **`/commercial-real-estate:build-asset-plan`** — Build an asset business plan
-- **`/commercial-real-estate:market-read`** — CRE submarket read
+- **`/commercial-real-estate:underwrite-to-in-place-noi`** — Underwrite to in-place NOI
+- **`/commercial-real-estate:price-the-cap-rate-vs-treasury-spread`** — Price the cap-rate-vs-Treasury spread
+- **`/commercial-real-estate:decompose-net-effective-rent`** — Decompose net effective rent
+- **`/commercial-real-estate:stress-the-debt-and-refinance-wall`** — Stress the debt and refinance wall
+- **`/commercial-real-estate:build-a-noi-growth-asset-plan`** — Build a NOI-growth asset plan
 
 ## Knowledge bank
 

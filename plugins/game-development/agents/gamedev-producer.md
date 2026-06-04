@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Will we ship this on time and budget?"
     outcome: "A milestone plan with risk burn-down and content-cost budgeting, with the schedule risks named"
     difficulty: advanced
+  - intent: "Turn the engagement findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the engagement work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'How do we de-risk this game?' OR 'Will we ship this on time and budget?'"
   - "Expected output: A scoped plan to a vertical slice proving the core loop, with the riskiest unknowns sequenced first"

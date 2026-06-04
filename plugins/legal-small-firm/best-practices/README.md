@@ -6,14 +6,18 @@ Named, citable rules for the `legal-small-firm` plugin's 4 specialist agents and
 
 ## Index
 
-_4 rules. Each file is one named, citable rule._
+_8 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
-| [`realization-not-billed-hours-is-the-practices-truth.md`](./realization-not-billed-hours-is-the-practices-truth.md) | Absolute rule | Any small-firm legal practice deliverable where this question is in play. |
-| [`intake-is-risk-management-conflict-and-fit-before-the-engage.md`](./intake-is-risk-management-conflict-and-fit-before-the-engage.md) | Absolute rule | Any small-firm legal practice deliverable where this question is in play. |
-| [`work-product-is-attorney-decision-support-never-legal-advice.md`](./work-product-is-attorney-decision-support-never-legal-advice.md) | Pattern | Any small-firm legal practice deliverable where this question is in play. |
-| [`scope-the-matter-and-the-fee-structure-deliberately.md`](./scope-the-matter-and-the-fee-structure-deliberately.md) | Pattern | Any small-firm legal practice deliverable where this question is in play. |
+| [`realization-not-billed-hours-is-the-practices-truth.md`](./realization-not-billed-hours-is-the-practices-truth.md) | Absolute rule | Any small-firm legal practice deliverable where this question is in play — read, applied, and cited whole. |
+| [`intake-is-risk-management-conflict-and-fit-before-the-engage.md`](./intake-is-risk-management-conflict-and-fit-before-the-engage.md) | Absolute rule | Any small-firm legal practice deliverable where this question is in play — read, applied, and cited whole. |
+| [`work-product-is-attorney-decision-support-never-legal-advice.md`](./work-product-is-attorney-decision-support-never-legal-advice.md) | Absolute rule | Any small-firm legal practice deliverable where this question is in play — read, applied, and cited whole. |
+| [`scope-the-matter-and-the-fee-structure-deliberately.md`](./scope-the-matter-and-the-fee-structure-deliberately.md) | Pattern | Any small-firm legal practice deliverable where this question is in play — read, applied, and cited whole. |
+| [`utilization-and-the-non-billable-load-are-a-capacity-story.md`](./utilization-and-the-non-billable-load-are-a-capacity-story.md) | Pattern | Any small-firm legal practice deliverable where this question is in play — read, applied, and cited whole. |
+| [`trust-accounting-and-ethics-rules-are-non-negotiable-guardra.md`](./trust-accounting-and-ethics-rules-are-non-negotiable-guardra.md) | Pattern | Any small-firm legal practice deliverable where this question is in play — read, applied, and cited whole. |
+| [`collections-and-a-r-are-part-of-the-matter-not-after-it.md`](./collections-and-a-r-are-part-of-the-matter-not-after-it.md) | Pattern | Any small-firm legal practice deliverable where this question is in play — read, applied, and cited whole. |
+| [`date-and-source-any-rate-benchmark-or-law-reference.md`](./date-and-source-any-rate-benchmark-or-law-reference.md) | Absolute rule | Any small-firm legal practice deliverable where this question is in play — read, applied, and cited whole. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

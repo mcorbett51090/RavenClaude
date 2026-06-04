@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "How should we organize the submission?"
     outcome: "An eCTD structure plan assembled from trial documentation, as regulatory decision-support"
     difficulty: starter
+  - intent: "Turn submissions findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the submissions work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Are we ready to file?' OR 'How should we organize the submission?'"
   - "Expected output: A submission-readiness read across documentation completeness, data quality, and eCTD structure, with the gaps"

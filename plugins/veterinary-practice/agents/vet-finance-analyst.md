@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Are my fees too low?"
     outcome: "A cost-stack-anchored repricing separating margin recovery from market positioning"
     difficulty: advanced
+  - intent: "Turn the economics findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the economics work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'What should I see on my monthly practice scorecard?' OR 'Are my fees too low?'"
   - "Expected output: A production/ACT-led scorecard with definitions, windows, and baselines on every line"

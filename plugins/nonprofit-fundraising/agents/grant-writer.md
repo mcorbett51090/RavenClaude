@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Draft the case for this program grant"
     outcome: "A proposal structured on need, logic model, outcomes, and budget, aligned to the funder's priorities"
     difficulty: advanced
+  - intent: "Turn grants findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the grants work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Is this foundation worth applying to?' OR 'Draft the case for this program grant'"
   - "Expected output: A funder-fit score across mission, geography, size, and history, with a go/no-go and the effort estimate"

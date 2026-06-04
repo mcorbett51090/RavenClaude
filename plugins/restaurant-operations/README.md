@@ -31,6 +31,8 @@ Holds prime cost as the master number, engineers the menu on the margin-vs-popul
 - **`/restaurant-operations:read-prime-cost`** — Read prime cost
 - **`/restaurant-operations:engineer-the-menu`** — Engineer the menu
 - **`/restaurant-operations:close-the-food-cost-gap`** — Close the food-cost gap
+- **`/restaurant-operations:schedule-labor-to-demand`** — Schedule labor to demand
+- **`/restaurant-operations:rank-multi-unit-variance`** — Rank multi-unit variance
 
 ## Knowledge bank
 

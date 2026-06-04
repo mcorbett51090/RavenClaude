@@ -31,6 +31,8 @@ Holds LTV:CAC as the master ratio, reads the conversion funnel and AOV, builds r
 - **`/ecommerce-dtc:read-ltvcac-and-contribution-margin`** — Read LTV:CAC and contribution margin
 - **`/ecommerce-dtc:diagnose-the-conversion-funnel`** — Diagnose the conversion funnel
 - **`/ecommerce-dtc:build-the-retention-engine`** — Build the retention engine
+- **`/ecommerce-dtc:manage-cac-by-channel`** — Manage CAC by channel
+- **`/ecommerce-dtc:cost-the-returns`** — Cost the returns
 
 ## Knowledge bank
 

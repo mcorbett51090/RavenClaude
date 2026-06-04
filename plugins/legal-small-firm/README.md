@@ -31,6 +31,8 @@ Manages matters on realization/utilization, supports drafting and document revie
 - **`/legal-small-firm:read-realization`** — Read realization
 - **`/legal-small-firm:run-conflict-checked-intake`** — Run conflict-checked intake
 - **`/legal-small-firm:support-drafting-as-work-product`** — Support drafting as work product
+- **`/legal-small-firm:scope-the-matter-and-fee`** — Scope the matter and fee
+- **`/legal-small-firm:build-a-practice-scorecard`** — Build a practice scorecard
 
 ## Knowledge bank
 

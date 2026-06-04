@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Our falls are up — what's going on?"
     outcome: "An incident-pattern read on falls by time/location/resident-factor, with the operational response, as decision-support"
     difficulty: troubleshooting
+  - intent: "Turn quality and compliance findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the quality and compliance work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Are we ready for a state survey?' OR 'Our falls are up — what's going on?'"
   - "Expected output: A survey-readiness read across documentation, incidents, and quality measures, as decision-support"

@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Are our reported savings actually real?"
     outcome: "A realized-vs-negotiated savings read against a finance baseline, with the leakage located"
     difficulty: advanced
+  - intent: "Turn the numbers findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the numbers work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'I can't see our spend — help' OR 'Are our reported savings actually real?'"
   - "Expected output: A classified spend cube by category, supplier, and business unit, with tail spend surfaced"

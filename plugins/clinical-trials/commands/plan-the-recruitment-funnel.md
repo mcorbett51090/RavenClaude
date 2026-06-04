@@ -1,6 +1,6 @@
 ---
 description: "Plan recruitment as a costed funnel with a cost per stage, against the per-patient economics, instead of a hope. Reach for this on any enrollment plan."
-argument-hint: "[the situation, e.g. the metric/segment in question]"
+argument-hint: "[the situation, e.g. the metric / segment / matter in question]"
 ---
 
 # Plan the recruitment funnel
@@ -14,8 +14,9 @@ You are running `/clinical-trials:plan-the-recruitment-funnel` for `$ARGUMENTS`.
 4. Build in retention — Plan retention to avoid ~$19,533 replacements (§3 #3).
 
 ## Output
-A costed recruitment funnel, channel sizing, and a retention plan. See [`../skills/plan-recruitment-funnel/SKILL.md`](../skills/plan-recruitment-funnel/SKILL.md).
+A costed recruitment funnel, channel sizing, and a retention plan. See [`../skills/plan-recruitment-funnel/SKILL.md`](../skills/plan-recruitment-funnel/SKILL.md). Traverse the matching tree in [`../knowledge/trials-decision-trees.md`](../knowledge/trials-decision-trees.md).
 
 ## Guardrails
-- Apply the §3 house opinions before any method.
-- No client PII; cite or mark every external figure.
+- Apply the §3 house opinions before any method; resist a single-cause story.
+- No client PII in the output; cite a source + date for every external figure (or mark it).
+- End with owner / date / expected movement on each recommendation.

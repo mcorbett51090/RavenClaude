@@ -1,6 +1,6 @@
 ---
 description: "Lead any four-wall read with prime cost (food + labor) before decomposing either half, so the master number frames the diagnosis. Reach for this on any margin problem."
-argument-hint: "[the situation, e.g. the metric/segment in question]"
+argument-hint: "[the situation, e.g. the metric / segment / matter in question]"
 ---
 
 # Read prime cost
@@ -14,8 +14,9 @@ You are running `/restaurant-operations:read-prime-cost` for `$ARGUMENTS`. Run i
 4. Name the leak — Attribute the gap to food (theoretical variance) or labor (daypart ratio) before prescribing.
 
 ## Output
-A prime-cost headline, a food/labor split, a format-matched benchmark, and the named leak. See [`../skills/read-prime-cost/SKILL.md`](../skills/read-prime-cost/SKILL.md).
+A prime-cost headline, a food/labor split, a format-matched benchmark, and the named leak. See [`../skills/read-prime-cost/SKILL.md`](../skills/read-prime-cost/SKILL.md). Traverse the matching tree in [`../knowledge/restaurant-decision-trees.md`](../knowledge/restaurant-decision-trees.md).
 
 ## Guardrails
-- Apply the §3 house opinions before any method.
-- No client PII; cite or mark every external figure.
+- Apply the §3 house opinions before any method; resist a single-cause story.
+- No client PII in the output; cite a source + date for every external figure (or mark it).
+- End with owner / date / expected movement on each recommendation.

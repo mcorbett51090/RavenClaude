@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Should I spray for this pest?"
     outcome: "A scout-and-threshold spray recommendation weighing pressure, threshold, and resistance, as decision-support"
     difficulty: troubleshooting
+  - intent: "Turn agronomy findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the agronomy work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'What should my fertility program be this year?' OR 'Should I spray for this pest?'"
   - "Expected output: A soil/tissue-data-driven fertility plan to economic optimum by zone, as agronomic decision-support"

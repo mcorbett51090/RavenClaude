@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Is my 'collection rate' actually good?"
     outcome: "A net-collection-rate read against allowed (not gross) with the payer-mix breakdown"
     difficulty: advanced
+  - intent: "Turn the metrics findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the metrics work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'What should I see on my monthly RCM scorecard?' OR 'Is my 'collection rate' actually good?'"
   - "Expected output: A net-collection-led scorecard with first-pass, denial-by-category, and days-in-A/R, each defined and baselined"

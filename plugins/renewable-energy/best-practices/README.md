@@ -6,14 +6,18 @@ Named, citable rules for the `renewable-energy` plugin's 4 specialist agents and
 
 ## Index
 
-_4 rules. Each file is one named, citable rule._
+_8 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
-| [`lcoe-and-project-irr-are-different-questions-show-both.md`](./lcoe-and-project-irr-are-different-questions-show-both.md) | Absolute rule | Any renewable energy deliverable where this question is in play. |
-| [`interconnection-is-the-schedule-and-the-schedule-is-the-risk.md`](./interconnection-is-the-schedule-and-the-schedule-is-the-risk.md) | Absolute rule | Any renewable energy deliverable where this question is in play. |
-| [`the-incentive-structure-changed-in-2025-design-to-the-live-p.md`](./the-incentive-structure-changed-in-2025-design-to-the-live-p.md) | Pattern | Any renewable energy deliverable where this question is in play. |
-| [`net-cost-after-incentives-is-the-real-cost-model-it-explicit.md`](./net-cost-after-incentives-is-the-real-cost-model-it-explicit.md) | Pattern | Any renewable energy deliverable where this question is in play. |
+| [`lcoe-and-project-irr-are-different-questions-show-both.md`](./lcoe-and-project-irr-are-different-questions-show-both.md) | Absolute rule | Any renewable energy deliverable where this question is in play — read, applied, and cited whole. |
+| [`interconnection-is-the-schedule-and-the-schedule-is-the-risk.md`](./interconnection-is-the-schedule-and-the-schedule-is-the-risk.md) | Absolute rule | Any renewable energy deliverable where this question is in play — read, applied, and cited whole. |
+| [`the-incentive-structure-changed-in-2025-design-to-the-live-p.md`](./the-incentive-structure-changed-in-2025-design-to-the-live-p.md) | Absolute rule | Any renewable energy deliverable where this question is in play — read, applied, and cited whole. |
+| [`net-cost-after-incentives-is-the-real-cost-model-it-explicit.md`](./net-cost-after-incentives-is-the-real-cost-model-it-explicit.md) | Pattern | Any renewable energy deliverable where this question is in play — read, applied, and cited whole. |
+| [`a-solar-asset-is-a-25-year-machine-degradation-and-om-are-fi.md`](./a-solar-asset-is-a-25-year-machine-degradation-and-om-are-fi.md) | Pattern | Any renewable energy deliverable where this question is in play — read, applied, and cited whole. |
+| [`production-estimates-are-p50-p90-not-a-single-number.md`](./production-estimates-are-p50-p90-not-a-single-number.md) | Pattern | Any renewable energy deliverable where this question is in play — read, applied, and cited whole. |
+| [`storage-changes-the-economics-value-the-dispatch-not-just-th.md`](./storage-changes-the-economics-value-the-dispatch-not-just-th.md) | Pattern | Any renewable energy deliverable where this question is in play — read, applied, and cited whole. |
+| [`cite-the-source-and-date-for-every-cost-and-policy-number.md`](./cite-the-source-and-date-for-every-cost-and-policy-number.md) | Absolute rule | Any renewable energy deliverable where this question is in play — read, applied, and cited whole. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

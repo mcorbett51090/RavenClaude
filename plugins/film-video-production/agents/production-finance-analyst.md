@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Are we going to go over?"
     outcome: "An overage-risk read on the remaining schedule, weather, and reshoot exposure vs contingency"
     difficulty: troubleshooting
+  - intent: "Turn the numbers findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the numbers work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Where are we against budget?' OR 'Are we going to go over?'"
   - "Expected output: A cost-vs-bid report by category with the variance and the contingency burn"

@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "What is driver turnover actually costing me?"
     outcome: "A turnover-cost read across recruiting, training, and unseated-truck revenue loss"
     difficulty: starter
+  - intent: "Turn the numbers findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the numbers work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'What does it really cost me per mile?' OR 'What is driver turnover actually costing me?'"
   - "Expected output: A bottom-up CPM split into fixed and variable, with fuel and the non-fuel marginal isolated"

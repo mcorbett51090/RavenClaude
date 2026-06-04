@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Build my input and management plan for next season"
     outcome: "A field-by-field plan to economic-optimum inputs, zone management, and operation timing"
     difficulty: advanced
+  - intent: "Turn the engagement findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the engagement work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'My margins are tightening — where do I look?' OR 'Build my input and management plan for next season'"
   - "Expected output: A scoped review: input economics and zone yield first, then timing/marketing routing, with the two biggest levers named"

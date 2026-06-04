@@ -31,6 +31,8 @@ Builds cost-per-mile bottom-up, manages the operating ratio, optimizes routing/d
 - **`/fleet-logistics:build-cost-per-mile-bottom-up`** — Build cost-per-mile bottom-up
 - **`/fleet-logistics:manage-the-operating-ratio`** — Manage the operating ratio
 - **`/fleet-logistics:reduce-deadhead-and-raise-utilization`** — Reduce deadhead and raise utilization
+- **`/fleet-logistics:run-preventive-maintenance-to-cpm`** — Run preventive maintenance to CPM
+- **`/fleet-logistics:quantify-driver-retention-cost`** — Quantify driver retention cost
 
 ## Knowledge bank
 

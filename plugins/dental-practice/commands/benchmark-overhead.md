@@ -1,6 +1,6 @@
 ---
 description: "Read overhead as a % of collections against the ~62% median before cutting any single cost, so the diagnosis targets the real driver. Reach for this on a margin problem."
-argument-hint: "[the situation, e.g. the metric/segment in question]"
+argument-hint: "[the situation, e.g. the metric / segment / matter in question]"
 ---
 
 # Benchmark overhead
@@ -14,8 +14,9 @@ You are running `/dental-practice:benchmark-overhead` for `$ARGUMENTS`. Run it t
 4. Target the driver — Prescribe to the largest reducible component, not 'overhead is high'.
 
 ## Output
-An overhead %, a benchmark comparison, a component decomposition, and a targeted fix. See [`../skills/benchmark-overhead/SKILL.md`](../skills/benchmark-overhead/SKILL.md).
+An overhead %, a benchmark comparison, a component decomposition, and a targeted fix. See [`../skills/benchmark-overhead/SKILL.md`](../skills/benchmark-overhead/SKILL.md). Traverse the matching tree in [`../knowledge/dental-decision-trees.md`](../knowledge/dental-decision-trees.md).
 
 ## Guardrails
-- Apply the §3 house opinions before any method.
-- No client PII; cite or mark every external figure.
+- Apply the §3 house opinions before any method; resist a single-cause story.
+- No client PII in the output; cite a source + date for every external figure (or mark it).
+- End with owner / date / expected movement on each recommendation.

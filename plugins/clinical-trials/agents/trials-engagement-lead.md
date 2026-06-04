@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Is this protocol enrollable as written?"
     outcome: "A feasibility frame stress-testing eligibility criteria against the addressable population and site capacity"
     difficulty: advanced
+  - intent: "Turn the engagement findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the engagement work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'We're behind on enrollment — where?' OR 'Is this protocol enrollable as written?'"
   - "Expected output: A scoped review: the enrollment funnel and feasibility first, then site/recruitment routing, with the two biggest leaks "

@@ -1,6 +1,6 @@
 ---
 description: "Read census as a flow of move-ins, move-outs, and length of stay, not a point number, so the right lever is pulled. Reach for this on any occupancy question."
-argument-hint: "[the situation, e.g. the metric/segment in question]"
+argument-hint: "[the situation, e.g. the metric / segment / matter in question]"
 ---
 
 # Manage census flow
@@ -14,8 +14,9 @@ You are running `/senior-care-operations:manage-census-flow` for `$ARGUMENTS`. R
 4. Act on the lever — Map the fix to the flow component.
 
 ## Output
-A census-flow decomposition, the problem located, a funnel read, and the matched lever. See [`../skills/manage-census-flow/SKILL.md`](../skills/manage-census-flow/SKILL.md).
+A census-flow decomposition, the problem located, a funnel read, and the matched lever. See [`../skills/manage-census-flow/SKILL.md`](../skills/manage-census-flow/SKILL.md). Traverse the matching tree in [`../knowledge/senior-care-decision-trees.md`](../knowledge/senior-care-decision-trees.md).
 
 ## Guardrails
-- Apply the §3 house opinions before any method.
-- No client PII; cite or mark every external figure.
+- Apply the §3 house opinions before any method; resist a single-cause story.
+- No client PII in the output; cite a source + date for every external figure (or mark it).
+- End with owner / date / expected movement on each recommendation.

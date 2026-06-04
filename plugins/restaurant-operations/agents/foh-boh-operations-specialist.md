@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Comps are creeping up — is that a problem?"
     outcome: "A comp/void/waste control read with rates, authorizers, and the cash impact"
     difficulty: starter
+  - intent: "Turn service and labor findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the service and labor work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Cut my labor 3 points — where's safe?' OR 'Comps are creeping up — is that a problem?'"
   - "Expected output: A daypart-by-daypart labor plan that protects the service line and flags where cuts hurt turnover"

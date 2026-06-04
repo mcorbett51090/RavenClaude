@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Is adding a battery worth it?"
     outcome: "A storage dispatch-value model (arbitrage, demand charges, capacity), not a flat $/kWh"
     difficulty: advanced
+  - intent: "Turn the numbers findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the numbers work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'What return does this project actually make?' OR 'Is adding a battery worth it?'"
   - "Expected output: A pro-forma with LCOE, levered/unlevered IRR, net cost after incentives, and the 25-year O&M/degradation profile"

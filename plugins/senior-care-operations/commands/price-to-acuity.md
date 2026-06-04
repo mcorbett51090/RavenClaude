@@ -1,6 +1,6 @@
 ---
 description: "Build acuity-based pricing that captures the care cost by level, instead of a flat rate, to protect margin. Reach for this on a pricing question."
-argument-hint: "[the situation, e.g. the metric/segment in question]"
+argument-hint: "[the situation, e.g. the metric / segment / matter in question]"
 ---
 
 # Price to acuity
@@ -14,8 +14,9 @@ You are running `/senior-care-operations:price-to-acuity` for `$ARGUMENTS`. Run 
 4. Find the under-priced — Surface where current flat pricing loses money.
 
 ## Output
-An acuity-level definition, the care cost by level, level-based rates, and the under-priced gap. See [`../skills/price-to-acuity/SKILL.md`](../skills/price-to-acuity/SKILL.md).
+An acuity-level definition, the care cost by level, level-based rates, and the under-priced gap. See [`../skills/price-to-acuity/SKILL.md`](../skills/price-to-acuity/SKILL.md). Traverse the matching tree in [`../knowledge/senior-care-decision-trees.md`](../knowledge/senior-care-decision-trees.md).
 
 ## Guardrails
-- Apply the §3 house opinions before any method.
-- No client PII; cite or mark every external figure.
+- Apply the §3 house opinions before any method; resist a single-cause story.
+- No client PII in the output; cite a source + date for every external figure (or mark it).
+- End with owner / date / expected movement on each recommendation.

@@ -6,14 +6,18 @@ Named, citable rules for the `restaurant-operations` plugin's 4 specialist agent
 
 ## Index
 
-_4 rules. Each file is one named, citable rule._
+_8 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
-| [`prime-cost-is-the-master-number.md`](./prime-cost-is-the-master-number.md) | Absolute rule | Any restaurant operations deliverable where this question is in play. |
-| [`food-cost-is-judged-against-theoretical-not-last-month.md`](./food-cost-is-judged-against-theoretical-not-last-month.md) | Absolute rule | Any restaurant operations deliverable where this question is in play. |
-| [`engineer-the-menu-on-margin-and-popularity-never-price.md`](./engineer-the-menu-on-margin-and-popularity-never-price.md) | Pattern | Any restaurant operations deliverable where this question is in play. |
-| [`labor-is-a-ratio-to-sales-with-a-floor.md`](./labor-is-a-ratio-to-sales-with-a-floor.md) | Pattern | Any restaurant operations deliverable where this question is in play. |
+| [`prime-cost-is-the-master-number.md`](./prime-cost-is-the-master-number.md) | Absolute rule | Any restaurant operations deliverable where this question is in play — read, applied, and cited whole. |
+| [`food-cost-is-judged-against-theoretical-not-last-month.md`](./food-cost-is-judged-against-theoretical-not-last-month.md) | Absolute rule | Any restaurant operations deliverable where this question is in play — read, applied, and cited whole. |
+| [`engineer-the-menu-on-margin-and-popularity-never-price.md`](./engineer-the-menu-on-margin-and-popularity-never-price.md) | Absolute rule | Any restaurant operations deliverable where this question is in play — read, applied, and cited whole. |
+| [`labor-is-a-ratio-to-sales-with-a-floor.md`](./labor-is-a-ratio-to-sales-with-a-floor.md) | Pattern | Any restaurant operations deliverable where this question is in play — read, applied, and cited whole. |
+| [`contribution-margin-per-item-beats-food-cost.md`](./contribution-margin-per-item-beats-food-cost.md) | Pattern | Any restaurant operations deliverable where this question is in play — read, applied, and cited whole. |
+| [`comps-voids-and-waste-are-a-control-system-not-noise.md`](./comps-voids-and-waste-are-a-control-system-not-noise.md) | Pattern | Any restaurant operations deliverable where this question is in play — read, applied, and cited whole. |
+| [`multi-unit-variance-is-the-signal-rank-stores-against-themse.md`](./multi-unit-variance-is-the-signal-rank-stores-against-themse.md) | Pattern | Any restaurant operations deliverable where this question is in play — read, applied, and cited whole. |
+| [`cite-the-source-and-date-for-every-benchmark.md`](./cite-the-source-and-date-for-every-benchmark.md) | Absolute rule | Any restaurant operations deliverable where this question is in play — read, applied, and cited whole. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

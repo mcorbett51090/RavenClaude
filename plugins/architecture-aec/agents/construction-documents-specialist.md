@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Why are we getting so many RFIs?"
     outcome: "An RFI-pattern read tracing the cause to coordination gaps, with the next-set improvement"
     difficulty: troubleshooting
+  - intent: "Turn documents findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the documents work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Help me coordinate this CD set' OR 'Why are we getting so many RFIs?'"
   - "Expected output: A coordination read across disciplines flagging conflicts and constructability issues, as decision-support"

@@ -31,6 +31,8 @@ Decomposes the combined ratio into loss and expense, underwrites to the loss rat
 - **`/insurance-pc:decompose-the-combined-ratio`** — Decompose the combined ratio
 - **`/insurance-pc:price-to-rate-adequacy`** — Price to rate adequacy
 - **`/insurance-pc:separate-frequency-from-severity`** — Separate frequency from severity
+- **`/insurance-pc:review-claims-leakage`** — Review claims leakage
+- **`/insurance-pc:read-the-portfolio-result`** — Read the portfolio result
 
 ## Knowledge bank
 

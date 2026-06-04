@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Are we charging enough for high-acuity residents?"
     outcome: "An acuity-based pricing read showing the under-priced care levels and the margin recovery"
     difficulty: starter
+  - intent: "Turn the numbers findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the numbers work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'How should I staff to my residents' needs?' OR 'Are we charging enough for high-acuity residents?'"
   - "Expected output: An acuity-based hours-per-resident-day staffing model matching labor to need with the cost"

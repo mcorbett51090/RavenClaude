@@ -30,7 +30,9 @@ Raises first-pass clean-claim and resolution rates, runs denial prevention by ro
 
 - **`/medical-revenue-cycle:prevent-denials-at-the-root`** — Prevent denials at the root
 - **`/medical-revenue-cycle:read-the-cash-cycle`** — Read the cash cycle
-- **`/medical-revenue-cycle:work-down-aged-ar`** — Work down aged A/R
+- **`/medical-revenue-cycle:work-down-aged-a-r`** — Work down aged A/R
+- **`/medical-revenue-cycle:read-coding-driven-denials`** — Read coding-driven denials
+- **`/medical-revenue-cycle:build-an-rcm-scorecard`** — Build an RCM scorecard
 
 ## Knowledge bank
 

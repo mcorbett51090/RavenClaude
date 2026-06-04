@@ -31,6 +31,8 @@ Scopes via vertical slice and risk burn-down, designs core loops and game econom
 - **`/game-development:scope-to-a-vertical-slice`** — Scope to a vertical slice
 - **`/game-development:design-the-core-loop`** — Design the core loop
 - **`/game-development:balance-the-game-economy`** — Balance the game economy
+- **`/game-development:burn-down-production-risk`** — Burn down production risk
+- **`/game-development:read-live-ops-vital-signs`** — Read live-ops vital signs
 
 ## Knowledge bank
 

@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Are my techs productive?"
     outcome: "A field-productivity frame on billable-hour ratio and first-time-fix, separating capacity from execution"
     difficulty: advanced
+  - intent: "Turn the engagement findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the engagement work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'My jobs look busy but profit is thin — where?' OR 'Are my techs productive?'"
   - "Expected output: A scoped review: loaded rate and flat-rate pricing first, then field-efficiency routing, with the two biggest leaks name"

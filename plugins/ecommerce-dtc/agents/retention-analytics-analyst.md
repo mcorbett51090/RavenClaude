@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "What should I watch each week?"
     outcome: "An LTV:CAC-led scorecard with repeat rate, cohort retention, and contribution margin, each baselined"
     difficulty: starter
+  - intent: "Turn the numbers findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the numbers work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Is my LTV:CAC actually healthy?' OR 'What should I watch each week?'"
   - "Expected output: An LTV and contribution-margin read after CAC, shipping, and returns, by cohort"

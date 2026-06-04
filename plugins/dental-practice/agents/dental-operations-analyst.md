@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Is my hygiene department pulling its weight?"
     outcome: "A hygiene analytics read — production/hr, reappointment, perio acceptance — with the margin left on the table"
     difficulty: advanced
+  - intent: "Turn the economics findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the economics work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Is my 68% overhead a problem?' OR 'Is my hygiene department pulling its weight?'"
   - "Expected output: An overhead read against the ~62% median with the largest reducible components named"

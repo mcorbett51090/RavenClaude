@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Build a strategy for this spend category"
     outcome: "A category strategy placing the spend on the Kraljic matrix with the matched play and the savings thesis"
     difficulty: advanced
+  - intent: "Turn the engagement findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the engagement work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Where can we actually save money?' OR 'Build a strategy for this spend category'"
   - "Expected output: A scoped review: spend visibility and segmentation first, then sourcing/demand/risk routing, with the two biggest opport"

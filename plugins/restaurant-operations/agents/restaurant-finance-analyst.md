@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Which of my stores is actually underperforming?"
     outcome: "A normalized store ranking separating format/daypart from genuine operational gaps"
     difficulty: advanced
+  - intent: "Turn the four-wall p&l findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the four-wall p&l work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'What should I see on my weekly store scorecard?' OR 'Which of my stores is actually underperforming?'"
   - "Expected output: A prime-cost-led scorecard with definitions, windows, and baselines on every line"

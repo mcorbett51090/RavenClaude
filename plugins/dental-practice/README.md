@@ -31,6 +31,8 @@ Holds overhead to benchmark, protects the collection ratio, raises case acceptan
 - **`/dental-practice:benchmark-overhead`** — Benchmark overhead
 - **`/dental-practice:protect-the-collection-ratio`** — Protect the collection ratio
 - **`/dental-practice:lift-case-acceptance`** — Lift case acceptance
+- **`/dental-practice:read-production-per-hour`** — Read production per hour
+- **`/dental-practice:manage-the-ppo-payer-mix`** — Manage the PPO payer mix
 
 ## Knowledge bank
 

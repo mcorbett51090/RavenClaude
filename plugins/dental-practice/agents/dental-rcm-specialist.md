@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Are my insurance write-offs eating my margin?"
     outcome: "A payer-mix and write-off read showing the effective fee by plan and the mix decision"
     difficulty: advanced
+  - intent: "Turn the revenue cycle findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the revenue cycle work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'My collection % fell to 93% — what's it costing me?' OR 'Are my insurance write-offs eating my margin?'"
   - "Expected output: A collection-ratio read quantifying the banked-dollar gap and the A/R and claims fixes"

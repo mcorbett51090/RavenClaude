@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "We have too many callbacks — what's it costing me?"
     outcome: "A first-time-fix read quantifying the callback labor cost and the truck-stocking/diagnosis fixes"
     difficulty: troubleshooting
+  - intent: "Turn the field findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the field work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'My techs are busy but billing 40% of their time — why?' OR 'We have too many callbacks — what's it costing me?'"
   - "Expected output: A billable-ratio read locating drive, restock, and rework time, with the dispatch and stocking fixes"

@@ -6,14 +6,18 @@ Named, citable rules for the `cannabis-operations` plugin's 4 specialist agents 
 
 ## Index
 
-_4 rules. Each file is one named, citable rule._
+_8 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
-| [`seed-to-sale-traceability-is-the-license-reconcile-it-daily.md`](./seed-to-sale-traceability-is-the-license-reconcile-it-daily.md) | Absolute rule | Any cannabis operations deliverable where this question is in play. |
-| [`280e-makes-cogs-allocation-existential-not-academic.md`](./280e-makes-cogs-allocation-existential-not-academic.md) | Absolute rule | Any cannabis operations deliverable where this question is in play. |
-| [`the-rules-change-at-the-state-line-never-generalize-a-state.md`](./the-rules-change-at-the-state-line-never-generalize-a-state.md) | Pattern | Any cannabis operations deliverable where this question is in play. |
-| [`dispensary-retail-runs-on-margin-and-basket-not-just-traffic.md`](./dispensary-retail-runs-on-margin-and-basket-not-just-traffic.md) | Pattern | Any cannabis operations deliverable where this question is in play. |
+| [`seed-to-sale-traceability-is-the-license-reconcile-it-daily.md`](./seed-to-sale-traceability-is-the-license-reconcile-it-daily.md) | Absolute rule | Any cannabis operations deliverable where this question is in play — read, applied, and cited whole. |
+| [`280e-makes-cogs-allocation-existential-not-academic.md`](./280e-makes-cogs-allocation-existential-not-academic.md) | Absolute rule | Any cannabis operations deliverable where this question is in play — read, applied, and cited whole. |
+| [`the-rules-change-at-the-state-line-never-generalize-a-state.md`](./the-rules-change-at-the-state-line-never-generalize-a-state.md) | Absolute rule | Any cannabis operations deliverable where this question is in play — read, applied, and cited whole. |
+| [`dispensary-retail-runs-on-margin-and-basket-not-just-traffic.md`](./dispensary-retail-runs-on-margin-and-basket-not-just-traffic.md) | Pattern | Any cannabis operations deliverable where this question is in play — read, applied, and cited whole. |
+| [`inventory-turns-are-a-compliance-and-a-cash-metric.md`](./inventory-turns-are-a-compliance-and-a-cash-metric.md) | Pattern | Any cannabis operations deliverable where this question is in play — read, applied, and cited whole. |
+| [`testing-and-remediation-are-a-yield-and-cost-reality.md`](./testing-and-remediation-are-a-yield-and-cost-reality.md) | Pattern | Any cannabis operations deliverable where this question is in play — read, applied, and cited whole. |
+| [`cash-and-banking-constraints-shape-operations.md`](./cash-and-banking-constraints-shape-operations.md) | Pattern | Any cannabis operations deliverable where this question is in play — read, applied, and cited whole. |
+| [`cite-the-source-and-date-for-every-market-and-rule.md`](./cite-the-source-and-date-for-every-market-and-rule.md) | Absolute rule | Any cannabis operations deliverable where this question is in play — read, applied, and cited whole. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

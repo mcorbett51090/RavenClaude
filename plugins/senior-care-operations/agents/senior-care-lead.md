@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "This building is underperforming — what's the plan?"
     outcome: "A turnaround frame across census, acuity-based labor, and quality, with the operational levers sequenced"
     difficulty: advanced
+  - intent: "Turn the engagement findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the engagement work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Our community's margin is down — where?' OR 'This building is underperforming — what's the plan?'"
   - "Expected output: A scoped review: census flow and acuity pricing/staffing first, then quality routing, with the two biggest levers named"

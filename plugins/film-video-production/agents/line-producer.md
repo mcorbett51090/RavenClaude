@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "How many days and how do we group them?"
     outcome: "A shoot schedule grouped by location and cast availability with company moves and turnaround"
     difficulty: advanced
+  - intent: "Turn the day findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the day work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'What does this project really cost?' OR 'How many days and how do we group them?'"
   - "Expected output: A top-sheet budget (above/below-the-line, post, contingency) built bottom-up against the spec"

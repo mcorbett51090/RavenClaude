@@ -585,7 +585,7 @@
     {
       "name": "commercial-real-estate",
       "source": "./plugins/commercial-real-estate",
-      "description": "Commercial Real Estate specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 4 templates, 3 commands, 4 best-practice rules, 1 advisory hook. An acquisitions-and-asset-management team for a CRE owner, operator, or advisor — it underwrites a deal to in-place NOI, prices the cap-rate-vs-Treasury spread, reads the bifurcated vacancy, decomposes net effective rent, and stress-tests the debt and refinance wall before a board sees the IC memo. Inherits ravenclaude-core protocols.",
+      "description": "Commercial Real Estate specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 4 templates, 5 commands, 8 best-practice rules, 1 advisory hook. An acquisitions-and-asset-management team for a CRE owner, operator, or advisor — it underwrites a deal to in-place NOI, prices the cap-rate-vs-Treasury spread, reads the bifurcated vacancy, decomposes net effective rent, and stress-tests the debt and refinance wall before a board sees the IC memo. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -604,7 +604,7 @@
     {
       "name": "restaurant-operations",
       "source": "./plugins/restaurant-operations",
-      "description": "Restaurant Operations specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 3 commands, 4 best-practice rules, 1 advisory hook. An operations-and-unit-economics team for an independent or multi-unit restaurant operator — it manages prime cost (food + labor), engineers the menu by contribution margin and popularity, controls food cost against theoretical, and reads the P&L the way a GM who lives the four-wall margin does. Inherits ravenclaude-core protocols.",
+      "description": "Restaurant Operations specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. An operations-and-unit-economics team for an independent or multi-unit restaurant operator — it manages prime cost (food + labor), engineers the menu by contribution margin and popularity, controls food cost against theoretical, and reads the P&L the way a GM who lives the four-wall margin does. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -623,7 +623,7 @@
     {
       "name": "veterinary-practice",
       "source": "./plugins/veterinary-practice",
-      "description": "Veterinary Practice specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 3 commands, 4 best-practice rules, 1 advisory hook. A clinical-and-practice-management team for a veterinary hospital owner or medical director — it builds standardized care protocols, runs the practice on production and ACT (average client transaction), manages the appointment-and-doctor capacity that gates revenue, and frames the independent-vs-corporate position in a fast-consolidating market. Inherits ravenclaude-core protocols.",
+      "description": "Veterinary Practice specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A clinical-and-practice-management team for a veterinary hospital owner or medical director — it builds standardized care protocols, runs the practice on production and ACT (average client transaction), manages the appointment-and-doctor capacity that gates revenue, and frames the independent-vs-corporate position in a fast-consolidating market. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -642,7 +642,7 @@
     {
       "name": "dental-practice",
       "source": "./plugins/dental-practice",
-      "description": "Dental Practice specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 3 commands, 4 best-practice rules, 1 advisory hook. A treatment-planning-and-revenue-cycle team for a dental practice owner — it controls overhead against the ~62% median, holds collections above 98%, builds case acceptance on the treatment plan rather than the discount, and reads doctor/hygiene production per hour the way a practice that runs on the schedule does. Inherits ravenclaude-core protocols.",
+      "description": "Dental Practice specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A treatment-planning-and-revenue-cycle team for a dental practice owner — it controls overhead against the ~62% median, holds collections above 98%, builds case acceptance on the treatment plan rather than the discount, and reads doctor/hygiene production per hour the way a practice that runs on the schedule does. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -661,7 +661,7 @@
     {
       "name": "medical-revenue-cycle",
       "source": "./plugins/medical-revenue-cycle",
-      "description": "Medical Revenue Cycle specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 3 commands, 4 best-practice rules, 1 advisory hook. A revenue-cycle team for a healthcare provider or RCM operator — it drives the clean-claim rate toward 98%, attacks denials before they happen (initial denials hit ~11.8% in 2024 and trend 12–15%), works the A/R by aging bucket, and reads net collection rate the way a CFO who lives the cash cycle does. Inherits ravenclaude-core protocols.",
+      "description": "Medical Revenue Cycle specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A revenue-cycle team for a healthcare provider or RCM operator — it drives the clean-claim rate toward 98%, attacks denials before they happen (initial denials hit ~11.8% in 2024 and trend 12–15%), works the A/R by aging bucket, and reads net collection rate the way a CFO who lives the cash cycle does. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -680,7 +680,7 @@
     {
       "name": "insurance-pc",
       "source": "./plugins/insurance-pc",
-      "description": "P&C Insurance specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 3 commands, 4 best-practice rules, 1 advisory hook. An underwriting-and-claims team for a P&C carrier, MGA, or agency analyst — it reads the combined ratio as loss plus expense, prices risk to the loss ratio rather than the competitor, manages the claims severity-and-frequency story, and reads catastrophe load the way an underwriting result that hit a decade-best ~92 combined in 2025 demands. Inherits ravenclaude-core protocols.",
+      "description": "P&C Insurance specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. An underwriting-and-claims team for a P&C carrier, MGA, or agency analyst — it reads the combined ratio as loss plus expense, prices risk to the loss ratio rather than the competitor, manages the claims severity-and-frequency story, and reads catastrophe load the way an underwriting result that hit a decade-best ~92 combined in 2025 demands. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -699,7 +699,7 @@
     {
       "name": "nonprofit-fundraising",
       "source": "./plugins/nonprofit-fundraising",
-      "description": "Nonprofit Fundraising specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 3 commands, 4 best-practice rules, 1 advisory hook. A development team for a nonprofit fundraiser or executive director — it protects donor retention (the cheapest dollar a nonprofit has, at ~$0.20 to keep vs ~$1.50 to acquire), builds the grant pipeline on fit before effort, segments the donor base by value and recency, and reads cost-to-raise-a-dollar honestly across channels. Inherits ravenclaude-core protocols.",
+      "description": "Nonprofit Fundraising specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A development team for a nonprofit fundraiser or executive director — it protects donor retention (the cheapest dollar a nonprofit has, at ~$0.20 to keep vs ~$1.50 to acquire), builds the grant pipeline on fit before effort, segments the donor base by value and recency, and reads cost-to-raise-a-dollar honestly across channels. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -718,7 +718,7 @@
     {
       "name": "fleet-logistics",
       "source": "./plugins/fleet-logistics",
-      "description": "Fleet & Logistics specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 3 commands, 4 best-practice rules, 1 advisory hook. A fleet-operations team for a carrier, private fleet, or last-mile operator — it reads cost-per-mile against the ~$2.26 industry all-in (and the ~$1.78 non-fuel marginal), manages the operating ratio in a market that turned negative-margin in 2024, routes and dispatches to deadhead and utilization, and treats driver turnover (often 90%+ at large truckload carriers) as a unit-economics problem. Inherits ravenclaude-core protocols.",
+      "description": "Fleet & Logistics specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A fleet-operations team for a carrier, private fleet, or last-mile operator — it reads cost-per-mile against the ~$2.26 industry all-in (and the ~$1.78 non-fuel marginal), manages the operating ratio in a market that turned negative-margin in 2024, routes and dispatches to deadhead and utilization, and treats driver turnover (often 90%+ at large truckload carriers) as a unit-economics problem. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -737,7 +737,7 @@
     {
       "name": "renewable-energy",
       "source": "./plugins/renewable-energy",
-      "description": "Renewable Energy specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 3 commands, 4 best-practice rules, 1 advisory hook. A project-development team for a solar/storage developer, EPC, or asset owner — it models LCOE and project IRR against a cost-per-watt that ran ~$2.56 in 2025, navigates the interconnection queue that gates most projects, structures around the post-2025 ITC shift (residential 25D ended; 48E/PPA pathways remain), and reads O&M and degradation the way a 25-year asset demands. Inherits ravenclaude-core protocols.",
+      "description": "Renewable Energy specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A project-development team for a solar/storage developer, EPC, or asset owner — it models LCOE and project IRR against a cost-per-watt that ran ~$2.56 in 2025, navigates the interconnection queue that gates most projects, structures around the post-2025 ITC shift (residential 25D ended; 48E/PPA pathways remain), and reads O&M and degradation the way a 25-year asset demands. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -756,7 +756,7 @@
     {
       "name": "clinical-trials",
       "source": "./plugins/clinical-trials",
-      "description": "Clinical Trials specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 3 commands, 4 best-practice rules, 1 advisory hook. A clinical-operations team for a sponsor, CRO, or site network — it designs feasible protocols (because eligibility criteria drive the enrollment failure that hits two-thirds of sites), plans patient recruitment against a ~$6,533 per-patient cost (and ~$19,533 to replace), manages site activation and the ~30% dropout, and frames the regulatory submission the way a study where 80% run late demands. Inherits ravenclaude-core protocols.",
+      "description": "Clinical Trials specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A clinical-operations team for a sponsor, CRO, or site network — it designs feasible protocols (because eligibility criteria drive the enrollment failure that hits two-thirds of sites), plans patient recruitment against a ~$6,533 per-patient cost (and ~$19,533 to replace), manages site activation and the ~30% dropout, and frames the regulatory submission the way a study where 80% run late demands. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -775,7 +775,7 @@
     {
       "name": "ecommerce-dtc",
       "source": "./plugins/ecommerce-dtc",
-      "description": "E-commerce & DTC specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 3 commands, 4 best-practice rules, 1 advisory hook. A growth-and-unit-economics team for a DTC brand operator — it protects the LTV:CAC ratio (the 3:1 line below which a brand bleeds), reads conversion against the 1.4–1.8% average, attacks the retention gap (the average brand keeps just ~28% for a second purchase), and reads contribution margin after the real cost of acquisition and returns. Inherits ravenclaude-core protocols.",
+      "description": "E-commerce & DTC specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A growth-and-unit-economics team for a DTC brand operator — it protects the LTV:CAC ratio (the 3:1 line below which a brand bleeds), reads conversion against the 1.4–1.8% average, attacks the retention gap (the average brand keeps just ~28% for a second purchase), and reads contribution margin after the real cost of acquisition and returns. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -794,7 +794,7 @@
     {
       "name": "cannabis-operations",
       "source": "./plugins/cannabis-operations",
-      "description": "Cannabis Operations specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 3 commands, 4 best-practice rules, 1 advisory hook. A compliance-and-retail-operations team for a licensed cannabis operator — it runs seed-to-sale traceability against the state track-and-trace system (Metrc/BioTrack/LeafData), manages the 280E tax burden that makes COGS allocation existential, runs dispensary retail on margin and basket, and reads a ~$45B U.S. market where the rules change at the state line. Inherits ravenclaude-core protocols.",
+      "description": "Cannabis Operations specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A compliance-and-retail-operations team for a licensed cannabis operator — it runs seed-to-sale traceability against the state track-and-trace system (Metrc/BioTrack/LeafData), manages the 280E tax burden that makes COGS allocation existential, runs dispensary retail on margin and basket, and reads a ~$45B U.S. market where the rules change at the state line. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -813,7 +813,7 @@
     {
       "name": "procurement-sourcing",
       "source": "./plugins/procurement-sourcing",
-      "description": "Procurement & Sourcing specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 3 commands, 4 best-practice rules, 1 advisory hook. A strategic-sourcing team for a procurement or category lead — it segments spend before it sources (the Kraljic should-cost lens), runs the sourcing event on total cost of ownership rather than unit price, manages supplier risk as a portfolio, and reads the spend cube the way a category manager who owns savings does. Inherits ravenclaude-core protocols.",
+      "description": "Procurement & Sourcing specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A strategic-sourcing team for a procurement or category lead — it segments spend before it sources (the Kraljic should-cost lens), runs the sourcing event on total cost of ownership rather than unit price, manages supplier risk as a portfolio, and reads the spend cube the way a category manager who owns savings does. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -832,7 +832,7 @@
     {
       "name": "skilled-trades-contracting",
       "source": "./plugins/skilled-trades-contracting",
-      "description": "Skilled Trades Contracting specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 3 commands, 4 best-practice rules, 1 advisory hook. An estimating-and-field-operations team for an HVAC, electrical, or plumbing contractor — it estimates to a loaded labor rate and true material cost, prices on a flat-rate book rather than guessing hours, runs the field on billable-hour efficiency and callback rate, and reads the trade P&L the way an owner who's also the best technician needs to. Inherits ravenclaude-core protocols.",
+      "description": "Skilled Trades Contracting specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. An estimating-and-field-operations team for an HVAC, electrical, or plumbing contractor — it estimates to a loaded labor rate and true material cost, prices on a flat-rate book rather than guessing hours, runs the field on billable-hour efficiency and callback rate, and reads the trade P&L the way an owner who's also the best technician needs to. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -851,7 +851,7 @@
     {
       "name": "precision-agriculture",
       "source": "./plugins/precision-agriculture",
-      "description": "Precision Agriculture specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 3 commands, 4 best-practice rules, 1 advisory hook. An agronomy-and-farm-operations team for a grower, farm manager, or ag retailer — it manages inputs to agronomic and economic return (not maximum yield), reads yield by management zone rather than field average, times operations to the agronomic and weather window, and reads the farm P&L per acre the way an operator who lives the margin does. Inherits ravenclaude-core protocols.",
+      "description": "Precision Agriculture specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. An agronomy-and-farm-operations team for a grower, farm manager, or ag retailer — it manages inputs to agronomic and economic return (not maximum yield), reads yield by management zone rather than field average, times operations to the agronomic and weather window, and reads the farm P&L per acre the way an operator who lives the margin does. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -870,7 +870,7 @@
     {
       "name": "legal-small-firm",
       "source": "./plugins/legal-small-firm",
-      "description": "Small-Firm Legal Practice specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 3 commands, 4 best-practice rules, 1 advisory hook. A practice-operations team for a solo or small-firm attorney — it manages matters on realization and the billable-vs-collected gap, drafts and reviews documents as attorney decision-support, runs intake on conflict and fit before the engagement, and reads the practice P&L the way a lawyer who is also the rainmaker and the COO must. Inherits ravenclaude-core protocols.",
+      "description": "Small-Firm Legal Practice specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A practice-operations team for a solo or small-firm attorney — it manages matters on realization and the billable-vs-collected gap, drafts and reviews documents as attorney decision-support, runs intake on conflict and fit before the engagement, and reads the practice P&L the way a lawyer who is also the rainmaker and the COO must. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -889,7 +889,7 @@
     {
       "name": "game-development",
       "source": "./plugins/game-development",
-      "description": "Game Development specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 3 commands, 4 best-practice rules, 1 advisory hook. A production-and-design team for a game studio or indie team — it scopes to a vertical slice before a full build, designs core loops and economies that retain, runs production on milestones and risk burn-down, and reads live-ops on retention and monetization the way a team that ships and then operates a game must. Inherits ravenclaude-core protocols.",
+      "description": "Game Development specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A production-and-design team for a game studio or indie team — it scopes to a vertical slice before a full build, designs core loops and economies that retain, runs production on milestones and risk burn-down, and reads live-ops on retention and monetization the way a team that ships and then operates a game must. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -908,7 +908,7 @@
     {
       "name": "film-video-production",
       "source": "./plugins/film-video-production",
-      "description": "Film & Video Production specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 3 commands, 4 best-practice rules, 1 advisory hook. A production-management team for a producer, production company, or post house — it budgets to a defensible top-sheet, schedules to the shoot day rather than the calendar, runs the post pipeline as a dependency chain, and reads production economics the way a line producer who answers for every dollar on the day must. Inherits ravenclaude-core protocols.",
+      "description": "Film & Video Production specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A production-management team for a producer, production company, or post house — it budgets to a defensible top-sheet, schedules to the shoot day rather than the calendar, runs the post pipeline as a dependency chain, and reads production economics the way a line producer who answers for every dollar on the day must. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -927,7 +927,7 @@
     {
       "name": "architecture-aec",
       "source": "./plugins/architecture-aec",
-      "description": "Architecture & AEC specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 3 commands, 4 best-practice rules, 1 advisory hook. A practice-and-project team for an architect or small AEC firm — it manages the project through the design phases on a fee that matches the effort, controls scope and the change/RFI load that erodes margin, reads construction documents for coordination and constructability, and reads the firm P&L on utilization and net multiplier the way a principal who bills time must. Inherits ravenclaude-core protocols.",
+      "description": "Architecture & AEC specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A practice-and-project team for an architect or small AEC firm — it manages the project through the design phases on a fee that matches the effort, controls scope and the change/RFI load that erodes margin, reads construction documents for coordination and constructability, and reads the firm P&L on utilization and net multiplier the way a principal who bills time must. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -946,7 +946,7 @@
     {
       "name": "senior-care-operations",
       "source": "./plugins/senior-care-operations",
-      "description": "Senior Care Operations specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 3 commands, 4 best-practice rules, 1 advisory hook. An operations team for an assisted-living, memory-care, or home-care operator — it manages census and occupancy as the revenue engine, prices to acuity rather than a flat rate, staffs to acuity-based hours-per-resident-day, and reads quality and compliance as the license-and-reputation risk that a community runs on. Inherits ravenclaude-core protocols.",
+      "description": "Senior Care Operations specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. An operations team for an assisted-living, memory-care, or home-care operator — it manages census and occupancy as the revenue engine, prices to acuity rather than a flat rate, staffs to acuity-based hours-per-resident-day, and reads quality and compliance as the license-and-reputation risk that a community runs on. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"

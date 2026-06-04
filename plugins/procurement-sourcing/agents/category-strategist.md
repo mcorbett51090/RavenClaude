@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "How do I get leverage on this single-source part?"
     outcome: "A should-cost build (materials, labor, overhead, margin) giving a negotiating floor"
     difficulty: advanced
+  - intent: "Turn sourcing findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the sourcing work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Should I auction this or partner?' OR 'How do I get leverage on this single-source part?'"
   - "Expected output: A Kraljic-based play recommendation matching the category's risk/spend to leverage, partner, secure, or simplify"

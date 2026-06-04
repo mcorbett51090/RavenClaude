@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Should I spend more on marketing?"
     outcome: "A close-rate and average-ticket read showing the revenue available without more lead spend"
     difficulty: starter
+  - intent: "Turn the numbers findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the numbers work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Which of my jobs actually make money?' OR 'Should I spend more on marketing?'"
   - "Expected output: A job-cost read decomposing margin into loaded labor, material, and overhead, by job type"

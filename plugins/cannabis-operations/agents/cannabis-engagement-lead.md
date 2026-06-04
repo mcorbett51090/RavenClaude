@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Are we ready for a state inspection?"
     outcome: "An audit-readiness frame across traceability reconciliation, SOPs, and the state's specific requirements, dated"
     difficulty: advanced
+  - intent: "Turn the engagement findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the engagement work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'We're licensed but losing money — where?' OR 'Are we ready for a state inspection?'"
   - "Expected output: A scoped review: 280E COGS and retail margin first, then traceability/inventory routing, with the two biggest issues nam"

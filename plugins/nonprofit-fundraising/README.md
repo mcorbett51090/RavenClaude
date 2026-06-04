@@ -31,6 +31,8 @@ Holds donor retention as the master efficiency number, qualifies grants on funde
 - **`/nonprofit-fundraising:protect-donor-retention`** — Protect donor retention
 - **`/nonprofit-fundraising:qualify-the-funder`** — Qualify the funder
 - **`/nonprofit-fundraising:run-the-cultivation-cycle`** — Run the cultivation cycle
+- **`/nonprofit-fundraising:segment-the-donor-base`** — Segment the donor base
+- **`/nonprofit-fundraising:read-cost-per-dollar-by-channel`** — Read cost-per-dollar by channel
 
 ## Knowledge bank
 

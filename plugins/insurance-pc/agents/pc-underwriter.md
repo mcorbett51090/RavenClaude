@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Should we write this commercial risk?"
     outcome: "An account decision grounded in risk selection and the loss-ratio impact, with the guideline basis"
     difficulty: starter
+  - intent: "Turn risk selection and pricing findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the risk selection and pricing work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Is our rate keeping up with loss trend?' OR 'Should we write this commercial risk?'"
   - "Expected output: A rate-adequacy read pricing to expected loss + expense + profit, with the indicated vs filed gap"

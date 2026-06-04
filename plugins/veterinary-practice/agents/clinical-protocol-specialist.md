@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Our dental acceptance is 25% — why?"
     outcome: "A compliance read framing acceptance as communication and estimate presentation, with the levers to raise it"
     difficulty: troubleshooting
+  - intent: "Turn standardized care findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the standardized care work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'How should every DVM work up a vomiting dog?' OR 'Our dental acceptance is 25% — why?'"
   - "Expected output: An evidence-aligned protocol pack as DVM decision-support, with the diagnostics/treatment decision points"

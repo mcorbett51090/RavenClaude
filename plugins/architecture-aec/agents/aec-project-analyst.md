@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Is my firm utilizing its people well?"
     outcome: "A utilization and net-multiplier read separating busy from profitable, with the lever"
     difficulty: starter
+  - intent: "Turn the numbers findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the numbers work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'How should I fee this project?' OR 'Is my firm utilizing its people well?'"
   - "Expected output: A phase-loaded fee proposal matching effort to the design phases, with the assumptions"

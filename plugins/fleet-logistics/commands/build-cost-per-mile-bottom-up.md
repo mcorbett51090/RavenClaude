@@ -1,6 +1,6 @@
 ---
 description: "Build CPM from fixed and variable components, isolating fuel and the non-fuel marginal, so the cost is visible where it lives. Reach for this on any margin question."
-argument-hint: "[the situation, e.g. the metric/segment in question]"
+argument-hint: "[the situation, e.g. the metric / segment / matter in question]"
 ---
 
 # Build cost-per-mile bottom-up
@@ -14,8 +14,9 @@ You are running `/fleet-logistics:build-cost-per-mile-bottom-up` for `$ARGUMENTS
 4. Locate the cost — Name the largest reducible component before prescribing.
 
 ## Output
-A bottom-up CPM, fuel isolated, a dated benchmark, and the cost located. See [`../skills/build-cost-per-mile/SKILL.md`](../skills/build-cost-per-mile/SKILL.md).
+A bottom-up CPM, fuel isolated, a dated benchmark, and the cost located. See [`../skills/build-cost-per-mile/SKILL.md`](../skills/build-cost-per-mile/SKILL.md). Traverse the matching tree in [`../knowledge/fleet-decision-trees.md`](../knowledge/fleet-decision-trees.md).
 
 ## Guardrails
-- Apply the §3 house opinions before any method.
-- No client PII; cite or mark every external figure.
+- Apply the §3 house opinions before any method; resist a single-cause story.
+- No client PII in the output; cite a source + date for every external figure (or mark it).
+- End with owner / date / expected movement on each recommendation.

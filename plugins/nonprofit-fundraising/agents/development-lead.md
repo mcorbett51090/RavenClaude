@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Build me next year's fundraising plan"
     outcome: "A channel-by-channel plan anchored on retention, with cost-per-dollar targets and the restricted/unrestricted mix"
     difficulty: advanced
+  - intent: "Turn the engagement findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the engagement work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Our fundraising plateaued — where do I look?' OR 'Build me next year's fundraising plan'"
   - "Expected output: A scoped review: retention and channel cost first, then grant/major-gift routing, with the two biggest levers named"

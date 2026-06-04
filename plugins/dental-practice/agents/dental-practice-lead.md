@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Should I join a DSO or stay solo?"
     outcome: "A position frame comparing the practice's economics to the group-margin reality, with trade-offs named"
     difficulty: advanced
+  - intent: "Turn the engagement findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the engagement work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'My take-home dropped — where do I look?' OR 'Should I join a DSO or stay solo?'"
   - "Expected output: A scoped review: overhead and collections first, then case acceptance/production routing, with the two biggest levers na"

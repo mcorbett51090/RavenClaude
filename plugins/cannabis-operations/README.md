@@ -31,6 +31,8 @@ Builds seed-to-sale compliance against the state's mandated system, allocates CO
 - **`/cannabis-operations:reconcile-seed-to-sale`** — Reconcile seed-to-sale
 - **`/cannabis-operations:frame-280e-cogs-allocation`** — Frame 280E COGS allocation
 - **`/cannabis-operations:run-dispensary-retail-on-margin`** — Run dispensary retail on margin
+- **`/cannabis-operations:manage-the-state-patchwork`** — Manage the state patchwork
+- **`/cannabis-operations:read-inventory-turns`** — Read inventory turns
 
 ## Knowledge bank
 

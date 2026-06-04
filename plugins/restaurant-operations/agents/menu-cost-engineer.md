@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "My margins are thin — should I raise prices?"
     outcome: "A star/plow-horse/puzzle/dog map with mix moves that raise margin without across-the-board price hikes"
     difficulty: advanced
+  - intent: "Turn the menu and food cost findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the menu and food cost work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Food cost jumped 4 points — where?' OR 'My margins are thin — should I raise prices?'"
   - "Expected output: An actual-vs-theoretical decomposition isolating waste, portioning, price, and theft"

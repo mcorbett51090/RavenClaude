@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Our referrals aren't converting — what do we do?"
     outcome: "An inquiry-to-move-in funnel read locating the conversion leak and the time-to-move-in fix"
     difficulty: advanced
+  - intent: "Turn census findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the census work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Our census is sliding — why?' OR 'Our referrals aren't converting — what do we do?'"
   - "Expected output: A census-flow read separating move-out attrition from a move-in/conversion shortfall, with the lever"

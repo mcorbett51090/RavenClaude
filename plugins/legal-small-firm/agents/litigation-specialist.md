@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Help me get this document production under control"
     outcome: "A discovery-organization framework (review structure, privilege flags) for the attorney to direct"
     difficulty: troubleshooting
+  - intent: "Turn litigation matters findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the litigation matters work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Help me plan this case' OR 'Help me get this document production under control'"
   - "Expected output: A matter plan with phases, deadlines, and a budget, as attorney-reviewed work product"

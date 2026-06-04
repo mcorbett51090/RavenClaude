@@ -1,7 +1,7 @@
 {
   "name": "senior-care-operations",
   "version": "0.1.0",
-  "description": "Senior Care Operations specialist team — 4 agents (senior-care-lead, clinical-care-compliance-specialist, census-occupancy-strategist, senior-care-finance-analyst), 5 skills, 3 templates, 3 commands, 1 advisory hook, 4 best-practice rules, and a 4-file research-grounded knowledge bank. An operations team for an assisted-living, memory-care, or home-care operator — it manages census and occupancy as the revenue engine, prices to acuity rather than a flat rate, staffs to acuity-based hours-per-resident-day, and reads quality and compliance as the license-and-reputation risk that a community runs on. Inherits ravenclaude-core protocols.",
+  "description": "Senior Care Operations specialist team — 4 agents (senior-care-lead, clinical-care-compliance-specialist, census-occupancy-strategist, senior-care-finance-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An operations team for an assisted-living, memory-care, or home-care operator — it manages census and occupancy as the revenue engine, prices to acuity rather than a flat rate, staffs to acuity-based hours-per-resident-day, and reads quality and compliance as the license-and-reputation risk that a community runs on. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"
   },

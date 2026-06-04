@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Should I sell to a consolidator or stay independent?"
     outcome: "A position frame comparing the practice's economics and value to the consolidation market, with the trade-offs named"
     difficulty: advanced
+  - intent: "Turn the engagement findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the engagement work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'My practice profit slipped — where do I look?' OR 'Should I sell to a consolidator or stay independent?'"
   - "Expected output: A scoped review: production/ACT and capacity first, then protocol/compliance routing, with the two biggest levers named"

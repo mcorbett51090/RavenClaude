@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Is this truck worth keeping?"
     outcome: "A lifecycle-cost replacement read comparing rising maintenance CPM to the cost of new iron"
     difficulty: advanced
+  - intent: "Turn the iron findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the iron work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'My maintenance costs jumped — why?' OR 'Is this truck worth keeping?'"
   - "Expected output: A maintenance-CPM and downtime read separating PM, wear, and deferred-maintenance failures"

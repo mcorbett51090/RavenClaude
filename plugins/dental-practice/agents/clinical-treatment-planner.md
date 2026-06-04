@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "How should I phase this full-mouth plan?"
     outcome: "A phased treatment-plan sequence as dentist decision-support, with the acceptance-friendly presentation order"
     difficulty: advanced
+  - intent: "Turn case acceptance findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the case acceptance work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Patients say yes to cleanings but no to the big plans — why?' OR 'How should I phase this full-mouth plan?'"
   - "Expected output: An acceptance read framing presentation, sequencing, and financial options, with the levers to raise it"

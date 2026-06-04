@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "What SOPs do we need for our state?"
     outcome: "A state-specific SOP set covering traceability, packaging, testing, and recordkeeping, dated"
     difficulty: advanced
+  - intent: "Turn traceability findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the traceability work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Our physical count doesn't match Metrc — what now?' OR 'What SOPs do we need for our state?'"
   - "Expected output: A reconciliation read locating the discrepancy source and the corrective + reporting steps, state-specific"

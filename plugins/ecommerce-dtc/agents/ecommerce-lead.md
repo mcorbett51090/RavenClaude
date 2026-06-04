@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Build me a profitable growth plan"
     outcome: "A plan balancing acquisition, retention, and AOV against the LTV:CAC and contribution-margin targets"
     difficulty: advanced
+  - intent: "Turn the engagement findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the engagement work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'We're scaling but losing money — where?' OR 'Build me a profitable growth plan'"
   - "Expected output: A scoped review: LTV:CAC and contribution margin first, then channel/retention routing, with the two biggest leaks named"

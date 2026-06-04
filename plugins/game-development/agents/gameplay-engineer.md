@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Will our content pipeline scale?"
     outcome: "A content-pipeline read on cost-per-hour and the production-budget implication"
     difficulty: troubleshooting
+  - intent: "Turn build feasibility findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the build feasibility work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Can we actually build this mechanic?' OR 'Will our content pipeline scale?'"
   - "Expected output: A feasibility read on the technical risk with a prototype plan to prove it, as engineering decision-support"

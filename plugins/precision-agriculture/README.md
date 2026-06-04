@@ -31,6 +31,8 @@ Manages fertility and crop protection to economic optimum, reads yield by manage
 - **`/precision-agriculture:optimize-input-economics`** — Optimize input economics
 - **`/precision-agriculture:manage-by-zone`** — Manage by zone
 - **`/precision-agriculture:time-the-operations`** — Time the operations
+- **`/precision-agriculture:build-fertility-from-data`** — Build fertility from data
+- **`/precision-agriculture:build-per-acre-economics`** — Build per-acre economics
 
 ## Knowledge bank
 

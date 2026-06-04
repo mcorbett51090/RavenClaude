@@ -31,6 +31,8 @@ Standardizes clinical protocols to reduce variation, instruments production per 
 - **`/veterinary-practice:instrument-production-and-act`** — Instrument production and ACT
 - **`/veterinary-practice:design-a-care-protocol`** — Design a care protocol
 - **`/veterinary-practice:unlock-schedule-capacity`** — Unlock schedule capacity
+- **`/veterinary-practice:lift-recommended-care-compliance`** — Lift recommended-care compliance
+- **`/veterinary-practice:reprice-the-fee-schedule`** — Reprice the fee schedule
 
 ## Knowledge bank
 

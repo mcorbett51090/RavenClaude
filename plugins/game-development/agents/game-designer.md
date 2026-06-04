@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "My game economy feels broken — why?"
     outcome: "An economy read of sources, sinks, and progression pacing with the inflation/starvation fix"
     difficulty: troubleshooting
+  - intent: "Turn design findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the design work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'What's the core loop for this game?' OR 'My game economy feels broken — why?'"
   - "Expected output: A core-loop design (second-to-second and session-to-session) with the retention hooks"

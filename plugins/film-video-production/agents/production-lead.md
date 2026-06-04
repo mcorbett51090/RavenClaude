@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Build the plan to deliver this project"
     outcome: "A production plan tying budget, schedule, and post pipeline to the delivery date and spec"
     difficulty: advanced
+  - intent: "Turn the engagement findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the engagement work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Can we make this for what the client has?' OR 'Build the plan to deliver this project'"
   - "Expected output: A scoped read: top-sheet budget and shoot-day schedule against the spec, with the two biggest risks named"

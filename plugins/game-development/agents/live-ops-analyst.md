@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Is our monetization healthy?"
     outcome: "A monetization read on ARPDAU, conversion, and the economy, gated on whether the game retains"
     difficulty: advanced
+  - intent: "Turn the numbers findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the numbers work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Our D7 retention is falling — why?' OR 'Is our monetization healthy?'"
   - "Expected output: A retention read locating the drop-off (onboarding, loop fatigue, difficulty) with the fix"

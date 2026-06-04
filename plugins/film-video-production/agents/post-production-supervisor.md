@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "What exactly do we owe the client?"
     outcome: "A delivery-spec definition (formats, masters, captions, QC) driving the finishing plan"
     difficulty: starter
+  - intent: "Turn post findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the post work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'How do we get from wrap to delivery?' OR 'What exactly do we owe the client?'"
   - "Expected output: A post-pipeline plan (editorial → VFX → color → sound → conform → deliver) with the critical path and dates"

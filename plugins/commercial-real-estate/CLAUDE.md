@@ -108,4 +108,4 @@ The lead is [`cre-engagement-lead`](agents/cre-engagement-lead.md) — first con
 
 ## 8. Milestones
 
-- **v0.1.0** — initial release: 4 agents, 5 skills, 4 templates, 3 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 4 best-practice rules.
+- **v0.1.0** — initial release: 4 agents, 5 skills, 4 templates, 5 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 8 best-practice rules.

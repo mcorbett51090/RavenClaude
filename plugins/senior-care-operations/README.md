@@ -31,6 +31,8 @@ Manages census/occupancy and move-in/move-out flow, prices to acuity, staffs to 
 - **`/senior-care-operations:manage-census-flow`** — Manage census flow
 - **`/senior-care-operations:price-to-acuity`** — Price to acuity
 - **`/senior-care-operations:staff-to-acuity-based-ppd`** — Staff to acuity-based PPD
+- **`/senior-care-operations:read-quality-and-compliance`** — Read quality and compliance
+- **`/senior-care-operations:quantify-labor-and-turnover`** — Quantify labor and turnover
 
 ## Knowledge bank
 

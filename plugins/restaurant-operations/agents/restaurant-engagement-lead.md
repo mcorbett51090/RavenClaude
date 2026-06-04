@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Rank my 12 stores and tell me where the money is"
     outcome: "A normalized store ranking with the best-vs-worst spread and the operational story behind the gap"
     difficulty: advanced
+  - intent: "Turn the engagement findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the engagement work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'This location's margin collapsed — where do I start?' OR 'Rank my 12 stores and tell me where the money is'"
   - "Expected output: A scoped turnaround: prime-cost read first, then menu/labor/food-cost routing, with the two biggest leaks named"

@@ -65,7 +65,7 @@ The research-grounded reference the agents point to. Read the relevant file in f
 |---|---|
 | [`knowledge/trades-kpi-glossary.md`](knowledge/trades-kpi-glossary.md) | Trade-contracting KPI glossary |
 | [`knowledge/trades-economics.md`](knowledge/trades-economics.md) | Trade-contracting economics |
-| [`knowledge/trades-market-context.md`](knowledge/trades-market-context.md) | Trade-contracting market context |
+| [`knowledge/trades-market-context.md`](knowledge/trades-market-context.md) | Trade-contracting benchmarks & market context (2025–2026) |
 | [`knowledge/trades-decision-trees.md`](knowledge/trades-decision-trees.md) | Trade-contracting decision trees |
 
 ---
@@ -108,4 +108,4 @@ The lead is [`trades-engagement-lead`](agents/trades-engagement-lead.md) — fir
 
 ## 8. Milestones
 
-- **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 3 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 4 best-practice rules.
+- **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 5 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 8 best-practice rules.

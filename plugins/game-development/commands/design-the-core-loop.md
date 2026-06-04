@@ -1,6 +1,6 @@
 ---
 description: "Design the second-to-second and session-to-session core loop before features, since retention lives there. Reach for this at the start of design."
-argument-hint: "[the situation, e.g. the metric/segment in question]"
+argument-hint: "[the situation, e.g. the metric / segment / matter in question]"
 ---
 
 # Design the core loop
@@ -14,8 +14,9 @@ You are running `/game-development:design-the-core-loop` for `$ARGUMENTS`. Run i
 4. Test for retention — Validate the loop holds attention before scaling.
 
 ## Output
-A core-loop and session-loop design with the retention hooks and a meta layer. See [`../skills/design-the-core-loop/SKILL.md`](../skills/design-the-core-loop/SKILL.md).
+A core-loop and session-loop design with the retention hooks and a meta layer. See [`../skills/design-the-core-loop/SKILL.md`](../skills/design-the-core-loop/SKILL.md). Traverse the matching tree in [`../knowledge/gamedev-decision-trees.md`](../knowledge/gamedev-decision-trees.md).
 
 ## Guardrails
-- Apply the §3 house opinions before any method.
-- No client PII; cite or mark every external figure.
+- Apply the §3 house opinions before any method; resist a single-cause story.
+- No client PII in the output; cite a source + date for every external figure (or mark it).
+- End with owner / date / expected movement on each recommendation.

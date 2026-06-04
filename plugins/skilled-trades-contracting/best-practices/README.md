@@ -6,14 +6,18 @@ Named, citable rules for the `skilled-trades-contracting` plugin's 4 specialist 
 
 ## Index
 
-_4 rules. Each file is one named, citable rule._
+_8 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
-| [`estimate-to-a-fully-loaded-labor-rate-not-a-wage.md`](./estimate-to-a-fully-loaded-labor-rate-not-a-wage.md) | Absolute rule | Any skilled trades contracting deliverable where this question is in play. |
-| [`price-service-on-a-flat-rate-book-not-guessed-hours.md`](./price-service-on-a-flat-rate-book-not-guessed-hours.md) | Absolute rule | Any skilled trades contracting deliverable where this question is in play. |
-| [`billable-hour-efficiency-is-the-fields-master-number.md`](./billable-hour-efficiency-is-the-fields-master-number.md) | Pattern | Any skilled trades contracting deliverable where this question is in play. |
-| [`first-time-fix-and-callback-rate-are-margin-not-just-quality.md`](./first-time-fix-and-callback-rate-are-margin-not-just-quality.md) | Pattern | Any skilled trades contracting deliverable where this question is in play. |
+| [`estimate-to-a-fully-loaded-labor-rate-not-a-wage.md`](./estimate-to-a-fully-loaded-labor-rate-not-a-wage.md) | Absolute rule | Any skilled trades contracting deliverable where this question is in play — read, applied, and cited whole. |
+| [`price-service-on-a-flat-rate-book-not-guessed-hours.md`](./price-service-on-a-flat-rate-book-not-guessed-hours.md) | Absolute rule | Any skilled trades contracting deliverable where this question is in play — read, applied, and cited whole. |
+| [`billable-hour-efficiency-is-the-fields-master-number.md`](./billable-hour-efficiency-is-the-fields-master-number.md) | Absolute rule | Any skilled trades contracting deliverable where this question is in play — read, applied, and cited whole. |
+| [`first-time-fix-and-callback-rate-are-margin-not-just-quality.md`](./first-time-fix-and-callback-rate-are-margin-not-just-quality.md) | Pattern | Any skilled trades contracting deliverable where this question is in play — read, applied, and cited whole. |
+| [`material-cost-is-the-real-cost-plus-waste-plus-markup-name-a.md`](./material-cost-is-the-real-cost-plus-waste-plus-markup-name-a.md) | Pattern | Any skilled trades contracting deliverable where this question is in play — read, applied, and cited whole. |
+| [`the-truck-is-a-profit-center-with-a-utilization-number.md`](./the-truck-is-a-profit-center-with-a-utilization-number.md) | Pattern | Any skilled trades contracting deliverable where this question is in play — read, applied, and cited whole. |
+| [`quote-close-rate-and-average-ticket-are-the-sales-levers.md`](./quote-close-rate-and-average-ticket-are-the-sales-levers.md) | Pattern | Any skilled trades contracting deliverable where this question is in play — read, applied, and cited whole. |
+| [`date-and-source-any-wage-material-or-market-figure.md`](./date-and-source-any-wage-material-or-market-figure.md) | Absolute rule | Any skilled trades contracting deliverable where this question is in play — read, applied, and cited whole. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

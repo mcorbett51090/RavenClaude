@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Is my practice financially healthy?"
     outcome: "A practice-economics frame on realization, utilization, and collected revenue, with the operational levers"
     difficulty: advanced
+  - intent: "Turn the engagement findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the engagement work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'I'm working constantly but not making money — where?' OR 'Is my practice financially healthy?'"
   - "Expected output: A scoped review: realization and intake first, then scoping/capacity routing, with the two biggest leaks named"

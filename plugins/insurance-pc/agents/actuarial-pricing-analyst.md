@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Are our prior-year reserves holding?"
     outcome: "A development read flagging adverse/favorable movement and the reserve-risk implication"
     difficulty: advanced
+  - intent: "Turn the numbers findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the the numbers work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'What's actually driving our 98 combined?' OR 'Are our prior-year reserves holding?'"
   - "Expected output: A loss-vs-expense, attritional-vs-cat decomposition with the line-of-business contributors"

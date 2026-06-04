@@ -31,6 +31,8 @@ Builds budgets to a top-sheet with contingency, schedules to shoot days and loca
 - **`/film-video-production:build-the-top-sheet-budget`** — Build the top-sheet budget
 - **`/film-video-production:schedule-the-shoot`** — Schedule the shoot
 - **`/film-video-production:sequence-the-post-pipeline`** — Sequence the post pipeline
+- **`/film-video-production:define-the-deliverables`** — Define the deliverables
+- **`/film-video-production:track-cost-vs-bid`** — Track cost vs bid
 
 ## Knowledge bank
 

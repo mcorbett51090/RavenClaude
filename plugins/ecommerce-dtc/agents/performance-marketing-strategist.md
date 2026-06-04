@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "Which channel should I put more budget into?"
     outcome: "A channel-efficiency read ranking channels by CAC against cohort LTV, with the scale recommendation"
     difficulty: advanced
+  - intent: "Turn acquisition findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the acquisition work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'My CAC jumped 30% — what do I do?' OR 'Which channel should I put more budget into?'"
   - "Expected output: A by-channel CAC read separating the channel mix, creative fatigue, and auction pressure, with the reallocation"

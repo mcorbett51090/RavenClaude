@@ -65,7 +65,7 @@ The research-grounded reference the agents point to. Read the relevant file in f
 |---|---|
 | [`knowledge/aec-kpi-glossary.md`](knowledge/aec-kpi-glossary.md) | Architecture/AEC KPI glossary |
 | [`knowledge/aec-practice-economics.md`](knowledge/aec-practice-economics.md) | Architecture practice economics |
-| [`knowledge/aec-practice-context.md`](knowledge/aec-practice-context.md) | Architecture practice context |
+| [`knowledge/aec-practice-context.md`](knowledge/aec-practice-context.md) | Architecture practice benchmarks & context (2025–2026) |
 | [`knowledge/aec-decision-trees.md`](knowledge/aec-decision-trees.md) | Architecture/AEC decision trees |
 
 ---
@@ -108,4 +108,4 @@ The lead is [`aec-engagement-lead`](agents/aec-engagement-lead.md) — first con
 
 ## 8. Milestones
 
-- **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 3 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 4 best-practice rules.
+- **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 5 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 8 best-practice rules.

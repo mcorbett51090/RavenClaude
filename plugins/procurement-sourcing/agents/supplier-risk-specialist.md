@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "We depend on one supplier for a key part — what do we do?"
     outcome: "A mitigation plan (dual-source, buffer, qualification) sized to the disruption exposure"
     difficulty: troubleshooting
+  - intent: "Turn risk findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the risk work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'Where are we exposed in our supply base?' OR 'We depend on one supplier for a key part — what do we do?'"
   - "Expected output: A supplier-risk portfolio read across financial, operational, geographic, and concentration risk"

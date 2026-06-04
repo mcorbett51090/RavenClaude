@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "My trucks sit too much — how do I fix it?"
     outcome: "A utilization read (revenue-per-truck-per-day) with the dispatch and lane changes to lift it"
     difficulty: advanced
+  - intent: "Turn movement findings into a board-ready readout"
+    trigger_phrase: "Package this into something I can hand to leadership"
+    outcome: "A decision-ready synthesis of the movement work — headline, the metrics with baselines, the two things that would change the answer, and next actions with owners and dates"
+    difficulty: advanced
 quickstart:
   - "Trigger phrase: 'My empty-mile percentage is killing me — where?' OR 'My trucks sit too much — how do I fix it?'"
   - "Expected output: A deadhead read by lane and a routing/backhaul plan to raise the loaded-mile ratio"

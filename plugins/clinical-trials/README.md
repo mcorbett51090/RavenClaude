@@ -31,6 +31,8 @@ Stress-tests protocol feasibility against enrollment risk, plans recruitment and
 - **`/clinical-trials:stress-test-protocol-feasibility`** — Stress-test protocol feasibility
 - **`/clinical-trials:plan-the-recruitment-funnel`** — Plan the recruitment funnel
 - **`/clinical-trials:accelerate-site-activation`** — Accelerate site activation
+- **`/clinical-trials:design-for-retention`** — Design for retention
+- **`/clinical-trials:read-submission-readiness`** — Read submission readiness
 
 ## Knowledge bank
 
