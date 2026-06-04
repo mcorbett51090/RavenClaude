@@ -28,7 +28,7 @@ cd "$(git rev-parse --show-toplevel)"
 # suite. This enables fast targeted re-runs after a regression fix without the
 # cost of the full 48-gate matrix. The full suite is the default (no --check arg).
 #
-# Currently supported per-gate values: 20, 50, 60, 70, 80, 90, 91, 92, 93. Other
+# Currently supported per-gate values: 20, 50, 52, 60, 70, 80, 90, 91, 92, 93. Other
 # gates can be added here as they acquire a standalone runner script.
 if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
   case "${2}" in
@@ -40,6 +40,11 @@ if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
     50)
       echo "── Gate 50: Phase 0 emit & scrub (per-gate run) ──────────────────────────"
       bash plugins/ravenclaude-core/hooks/tests/test-phase0-emit-and-scrub.sh
+      exit $?
+      ;;
+    52)
+      echo "── Gate 52: dispatch-evaluator disabled-floor (per-gate run) ─────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate52-dispatch-evaluator-floor.sh
       exit $?
       ;;
     60)
@@ -88,7 +93,7 @@ if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 60, 70, 80, 90, 91, 92, 93. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 60, 70, 80, 90, 91, 92, 93. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -2836,6 +2841,21 @@ PY
 else
   _skip_or_fail "Gate 51 shell-router" node
 fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+echo "── Gate 52: agent-dispatch-evaluator disabled-floor (byte-identical opts) ─"
+# Phase 2 of the agent-dispatch-evaluator: the rc-deep-research workflow wraps its
+# phase agent() calls in evaluatedAgent(). The HARD INVARIANT is that with
+# dispatch-config absent/disabled (the default), every dispatch is byte-identical
+# to the unwrapped baseline. check-dispatch-evaluator-floor.mjs extracts the REAL
+# copied wrapper block from .claude/workflows/rc-deep-research.js, runs
+# evaluatedAgent under a recording stub agent(), and asserts the disabled path
+# forwards opts BY REFERENCE (no clone, no model mutation) — plus an inline
+# must-fail half (a mutant that rewrites opts.model on the disabled path is
+# caught). The fixture test below ALSO drives a known-good + known-bad fixture so
+# the gate's teeth are proven independent of the live workflow file's state.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate52-dispatch-evaluator-floor.sh >/dev/null 2>&1 || rc=$?
+gate "dispatch-evaluator disabled-floor fixture (good→pass, bad→fail, real-workflow floor)" must_pass "$rc"
 
 # ─────────────────────────────────────────────────────────────────────────────
 echo "── Gate 93: Learn-tab step-by-step diagram (stepper) render ──────────────"
