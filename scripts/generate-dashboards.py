@@ -869,6 +869,7 @@ def _render_concept_stepper(plugin_dir: Path, c: dict) -> str:
     first_caption = html.escape(steps[0]["caption"]) if steps else ""
     return (
         f'<div class="concept-stepper" role="group" aria-label="{title} — step-by-step">'
+        '<div class="cs-head">Step through it</div>'
         f'<div class="cs-frames">{"".join(frames)}</div>'
         f'<p class="cs-caption" aria-live="polite">{first_caption}</p>'
         '<div class="cs-controls" hidden>'
@@ -896,16 +897,18 @@ def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> s
     badge_label, badge_icon = _CONCEPT_ICONS.get(kind, ("", ""))
     badge_cls = "fact" if kind == "platform-fact" else "built"
 
-    if c.get("steps"):
-        well = _render_concept_stepper(plugin_dir, c)
-    else:
-        svg = _inline_concept_svg(plugin_dir, c.get("svg"))
-        well = (
-            f'<div class="concept-diagram-well" role="img" '
-            f'aria-label="{html.escape(c["title"])} diagram">{svg}</div>'
-            if svg
-            else ""
-        )
+    # The overview diagram (well) is ALWAYS rendered when present — keeping it
+    # preserves node_links (the deep-link JS targets `.concept-diagram-well svg`)
+    # and the full branching map. A stepper, when the concept declares steps, is
+    # ADDITIVE: a guided walkthrough below the overview, not a replacement.
+    svg = _inline_concept_svg(plugin_dir, c.get("svg"))
+    well = (
+        f'<div class="concept-diagram-well" role="img" '
+        f'aria-label="{html.escape(c["title"])} diagram">{svg}</div>'
+        if svg
+        else ""
+    )
+    stepper = _render_concept_stepper(plugin_dir, c) if c.get("steps") else ""
 
     see_also = "".join(
         f'<a class="concept-chip" href="#/learn/{html.escape(ref)}">'
@@ -937,7 +940,7 @@ def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> s
         f'<span class="concept-badge {badge_cls}">{badge_icon}{html.escape(badge_label)}</span>'
         f"</div>"
         f'<p class="concept-deck">{html.escape(c["summary"])}</p>'
-        f"{well}"
+        f"{well}{stepper}"
         f'<div class="concept-body">{_md_to_html(c["body_md"])}</div>'
         f'{_CONCEPT_WIDGETS.get(c.get("widget") or "", "")}'
         f'{_try_it_html(c.get("try_it"))}'
@@ -4830,6 +4833,8 @@ footer.page-footer a:hover { text-decoration: underline; }
   background: var(--surface-2); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 12px; margin-bottom: 12px;
 }
+.cs-head { font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
 .cs-frames { text-align: center; overflow: auto; }
 .cs-frame { display: none; }
 .cs-frame.active { display: block; }

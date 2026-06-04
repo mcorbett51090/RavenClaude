@@ -49,6 +49,48 @@ flowchart TD
   class GATE fact
 ```
 
+<!-- step: A Bash call hits PreToolUse; if its category is toggled on, the Thing convenes. -->
+```mermaid-step
+flowchart LR
+  N1[Bash call] --> N2[Classify tier] --> N3[Panel seats] --> N4[Aggregate] --> N5[Gate floor] --> N6[Saga log]
+  class N1 built
+```
+
+<!-- step: Classify the command: category then tier (low/medium/high/extreme) then routing. -->
+```mermaid-step
+flowchart LR
+  N1[Bash call] --> N2[Classify tier] --> N3[Panel seats] --> N4[Aggregate] --> N5[Gate floor] --> N6[Saga log]
+  class N2 built
+```
+
+<!-- step: tier at least medium convenes up to 3 seats in parallel (Forseti, Mimir, Heimdall); Thor on a split. -->
+```mermaid-step
+flowchart LR
+  N1[Bash call] --> N2[Classify tier] --> N3[Panel seats] --> N4[Aggregate] --> N5[Gate floor] --> N6[Saga log]
+  class N3 built
+```
+
+<!-- step: Aggregate the votes: deny blocks, edit rewrites, allow continues. -->
+```mermaid-step
+flowchart LR
+  N1[Bash call] --> N2[Classify tier] --> N3[Panel seats] --> N4[Aggregate] --> N5[Gate floor] --> N6[Saga log]
+  class N4 built
+```
+
+<!-- step: gate_floor (default high): a confident ALLOW at or above it is surfaced to you as an ask. -->
+```mermaid-step
+flowchart LR
+  N1[Bash call] --> N2[Classify tier] --> N3[Panel seats] --> N4[Aggregate] --> N5[Gate floor] --> N6[Saga log]
+  class N5 built
+```
+
+<!-- step: Every verdict writes one entry to the Saga audit log. -->
+```mermaid-step
+flowchart LR
+  N1[Bash call] --> N2[Classify tier] --> N3[Panel seats] --> N4[Aggregate] --> N5[Gate floor] --> N6[Saga log]
+  class N6 built
+```
+
 <!-- mini -->
 ```mermaid-mini
 flowchart LR

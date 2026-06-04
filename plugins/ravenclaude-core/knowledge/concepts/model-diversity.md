@@ -30,6 +30,41 @@ flowchart TD
   class ONE,OK,RE built
 ```
 
+<!-- step: Whenever two or more seats convene... -->
+```mermaid-step
+flowchart LR
+  N1[Two plus seats] --> N2[Two plus models] --> N3[Run configured] --> N4[Reassign one] --> N5[No monoculture]
+  class N1 built
+```
+
+<!-- step: Are two or more distinct model backbones running? -->
+```mermaid-step
+flowchart LR
+  N1[Two plus seats] --> N2[Two plus models] --> N3[Run configured] --> N4[Reassign one] --> N5[No monoculture]
+  class N2 built
+```
+
+<!-- step: Yes and the panel runs as configured. -->
+```mermaid-step
+flowchart LR
+  N1[Two plus seats] --> N2[Two plus models] --> N3[Run configured] --> N4[Reassign one] --> N5[No monoculture]
+  class N3 built
+```
+
+<!-- step: No (a config collapsed them) and one seat is auto-reassigned to a different, stronger model. -->
+```mermaid-step
+flowchart LR
+  N1[Two plus seats] --> N2[Two plus models] --> N3[Run configured] --> N4[Reassign one] --> N5[No monoculture]
+  class N4 built
+```
+
+<!-- step: So one model's blind spot can't pass the whole panel. Proven by Gate 22. -->
+```mermaid-step
+flowchart LR
+  N1[Two plus seats] --> N2[Two plus models] --> N3[Run configured] --> N4[Reassign one] --> N5[No monoculture]
+  class N5 built
+```
+
 <!-- mini -->
 ```mermaid-mini
 flowchart LR

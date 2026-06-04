@@ -26,6 +26,41 @@ flowchart TD
   class V,E,F,D,U built
 ```
 
+<!-- step: The tribunal renders a verdict: allow / edit / deny / ask. -->
+```mermaid-step
+flowchart LR
+  N1[Verdict] --> N2[One JSON entry] --> N3[Records fields] --> N4[Gitignored] --> N5[Audit and tune]
+  class N1 built
+```
+
+<!-- step: It writes exactly one JSON entry under .ravenclaude/runs/thing/. -->
+```mermaid-step
+flowchart LR
+  N1[Verdict] --> N2[One JSON entry] --> N3[Records fields] --> N4[Gitignored] --> N5[Audit and tune]
+  class N2 built
+```
+
+<!-- step: The entry records command, category, tier, per-seat votes, concerns, verdict, duration. -->
+```mermaid-step
+flowchart LR
+  N1[Verdict] --> N2[One JSON entry] --> N3[Records fields] --> N4[Gitignored] --> N5[Audit and tune]
+  class N3 built
+```
+
+<!-- step: Gitignored by default — local operational data, not committed. -->
+```mermaid-step
+flowchart LR
+  N1[Verdict] --> N2[One JSON entry] --> N3[Records fields] --> N4[Gitignored] --> N5[Audit and tune]
+  class N4 built
+```
+
+<!-- step: It's the audit trail you read to tune the panel, gate_floor, or bypass patterns. -->
+```mermaid-step
+flowchart LR
+  N1[Verdict] --> N2[One JSON entry] --> N3[Records fields] --> N4[Gitignored] --> N5[Audit and tune]
+  class N5 built
+```
+
 <!-- mini -->
 ```mermaid-mini
 flowchart LR

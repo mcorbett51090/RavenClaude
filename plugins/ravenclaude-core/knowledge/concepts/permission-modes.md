@@ -32,6 +32,41 @@ flowchart TD
   class STOP built
 ```
 
+<!-- step: The mode sets the baseline posture on top of your allow/ask/deny rules. -->
+```mermaid-step
+flowchart LR
+  N1[Mode baseline] --> N2[Default modes] --> N3[Auto drops allows] --> N4[DontAsk] --> N5[Bypass still blocks]
+  class N1 built
+```
+
+<!-- step: default prompts on uncertain; acceptEdits auto-approves cwd file ops; plan is read-only. -->
+```mermaid-step
+flowchart LR
+  N1[Mode baseline] --> N2[Default modes] --> N3[Auto drops allows] --> N4[DontAsk] --> N5[Bypass still blocks]
+  class N2 built
+```
+
+<!-- step: auto is classifier autonomy — but it silently DROPS broad allow rules like Bash star. -->
+```mermaid-step
+flowchart LR
+  N1[Mode baseline] --> N2[Default modes] --> N3[Auto drops allows] --> N4[DontAsk] --> N5[Bypass still blocks]
+  class N3 built
+```
+
+<!-- step: dontAsk auto-denies anything not explicitly allowed (handy for CI). -->
+```mermaid-step
+flowchart LR
+  N1[Mode baseline] --> N2[Default modes] --> N3[Auto drops allows] --> N4[DontAsk] --> N5[Bypass still blocks]
+  class N4 built
+```
+
+<!-- step: bypassPermissions skips most checks — but rm -rf / still prompts and a hook deny still blocks. -->
+```mermaid-step
+flowchart LR
+  N1[Mode baseline] --> N2[Default modes] --> N3[Auto drops allows] --> N4[DontAsk] --> N5[Bypass still blocks]
+  class N5 built
+```
+
 <!-- mini -->
 ```mermaid-mini
 flowchart LR

@@ -34,6 +34,41 @@ flowchart TD
   class BLOCK,DEN built
 ```
 
+<!-- step: A PreToolUse hook reads the pending tool call as JSON on stdin. -->
+```mermaid-step
+flowchart LR
+  N1[Read stdin] --> N2[Exit 2 blocks] --> N3[Exit 1 runs] --> N4[Exit 0 verdict] --> N5[Tighten only]
+  class N1 built
+```
+
+<!-- step: Exit 2 blocks the call — and the hook's stderr is fed back to the model. -->
+```mermaid-step
+flowchart LR
+  N1[Read stdin] --> N2[Exit 2 blocks] --> N3[Exit 1 runs] --> N4[Exit 0 verdict] --> N5[Tighten only]
+  class N2 built
+```
+
+<!-- step: Exit 1 (or any other code) is a non-blocking error: the tool still RUNS. The trap. -->
+```mermaid-step
+flowchart LR
+  N1[Read stdin] --> N2[Exit 2 blocks] --> N3[Exit 1 runs] --> N4[Exit 0 verdict] --> N5[Tighten only]
+  class N3 built
+```
+
+<!-- step: Exit 0 with a permissionDecision JSON: allow / deny / ask (priority deny > defer > ask > allow). -->
+```mermaid-step
+flowchart LR
+  N1[Read stdin] --> N2[Exit 2 blocks] --> N3[Exit 1 runs] --> N4[Exit 0 verdict] --> N5[Tighten only]
+  class N4 built
+```
+
+<!-- step: Hooks only tighten: a deny beats bypass mode, but an allow can't override a settings deny. -->
+```mermaid-step
+flowchart LR
+  N1[Read stdin] --> N2[Exit 2 blocks] --> N3[Exit 1 runs] --> N4[Exit 0 verdict] --> N5[Tighten only]
+  class N5 built
+```
+
 <!-- mini -->
 ```mermaid-mini
 flowchart LR

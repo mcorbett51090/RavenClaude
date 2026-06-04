@@ -33,6 +33,41 @@ flowchart TD
   class OK,DENY,CI,CIM,FAIL,PASS built
 ```
 
+<!-- step: A Write / Edit / MultiEdit fires enforce-layout.sh at PreToolUse. -->
+```mermaid-step
+flowchart LR
+  N1[Write or edit] --> N2[Match globs] --> N3[Deny and suggest] --> N4[CI backstop] --> N5[Read cannot block]
+  class N1 built
+```
+
+<!-- step: It matches the path against allowed_globs in .repo-layout.json. -->
+```mermaid-step
+flowchart LR
+  N1[Write or edit] --> N2[Match globs] --> N3[Deny and suggest] --> N4[CI backstop] --> N5[Read cannot block]
+  class N2 built
+```
+
+<!-- step: No match? Deny the write and suggest the correct location. -->
+```mermaid-step
+flowchart LR
+  N1[Write or edit] --> N2[Match globs] --> N3[Deny and suggest] --> N4[CI backstop] --> N5[Read cannot block]
+  class N3 built
+```
+
+<!-- step: validate-layout.yml is the CI backstop for any commit, any tool. -->
+```mermaid-step
+flowchart LR
+  N1[Write or edit] --> N2[Match globs] --> N3[Deny and suggest] --> N4[CI backstop] --> N5[Read cannot block]
+  class N4 built
+```
+
+<!-- step: Why both: path-scoped rule files load on Read, not Write — they can't block creation. -->
+```mermaid-step
+flowchart LR
+  N1[Write or edit] --> N2[Match globs] --> N3[Deny and suggest] --> N4[CI backstop] --> N5[Read cannot block]
+  class N5 built
+```
+
 <!-- mini -->
 ```mermaid-mini
 flowchart LR

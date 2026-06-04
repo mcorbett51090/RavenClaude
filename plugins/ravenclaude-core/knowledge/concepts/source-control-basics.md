@@ -63,6 +63,48 @@ flowchart TD
   class BLOCK,GH built
 ```
 
+<!-- step: Edit your working files — your changes in progress. -->
+```mermaid-step
+flowchart LR
+  N1[Edit] --> N2[Commit] --> N3[Branch] --> N4[Push] --> N5[PR] --> N6[Merge]
+  class N1 built
+```
+
+<!-- step: git commit: save a labeled snapshot with a short 'why' message. -->
+```mermaid-step
+flowchart LR
+  N1[Edit] --> N2[Commit] --> N3[Branch] --> N4[Push] --> N5[PR] --> N6[Merge]
+  class N2 built
+```
+
+<!-- step: Branch: keep work in progress on its own timeline, separate from main. -->
+```mermaid-step
+flowchart LR
+  N1[Edit] --> N2[Commit] --> N3[Branch] --> N4[Push] --> N5[PR] --> N6[Merge]
+  class N3 built
+```
+
+<!-- step: git push: upload the branch's commits to GitHub. -->
+```mermaid-step
+flowchart LR
+  N1[Edit] --> N2[Commit] --> N3[Branch] --> N4[Push] --> N5[PR] --> N6[Merge]
+  class N4 built
+```
+
+<!-- step: Open a PR: propose merging the branch; reviewed by people, CI, sometimes Claude. -->
+```mermaid-step
+flowchart LR
+  N1[Edit] --> N2[Commit] --> N3[Branch] --> N4[Push] --> N5[PR] --> N6[Merge]
+  class N5 built
+```
+
+<!-- step: Merge into main once approved. RavenClaude does most of this for you. -->
+```mermaid-step
+flowchart LR
+  N1[Edit] --> N2[Commit] --> N3[Branch] --> N4[Push] --> N5[PR] --> N6[Merge]
+  class N6 built
+```
+
 <!-- mini -->
 
 ```mermaid-mini
