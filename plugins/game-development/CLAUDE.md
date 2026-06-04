@@ -65,7 +65,7 @@ The research-grounded reference the agents point to. Read the relevant file in f
 |---|---|
 | [`knowledge/gamedev-kpi-glossary.md`](knowledge/gamedev-kpi-glossary.md) | Game-development KPI glossary |
 | [`knowledge/gamedev-production-economics.md`](knowledge/gamedev-production-economics.md) | Game production economics |
-| [`knowledge/gamedev-market-context.md`](knowledge/gamedev-market-context.md) | Game market context |
+| [`knowledge/gamedev-market-context.md`](knowledge/gamedev-market-context.md) | Game retention benchmarks & market context (2025) |
 | [`knowledge/gamedev-decision-trees.md`](knowledge/gamedev-decision-trees.md) | Game-development decision trees |
 
 ---

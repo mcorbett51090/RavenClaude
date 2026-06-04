@@ -65,7 +65,7 @@ The research-grounded reference the agents point to. Read the relevant file in f
 |---|---|
 | [`knowledge/production-kpi-glossary.md`](knowledge/production-kpi-glossary.md) | Production KPI glossary |
 | [`knowledge/production-economics.md`](knowledge/production-economics.md) | Production economics |
-| [`knowledge/production-market-context.md`](knowledge/production-market-context.md) | Production market context |
+| [`knowledge/production-market-context.md`](knowledge/production-market-context.md) | Production budget benchmarks & context (2025) |
 | [`knowledge/production-decision-trees.md`](knowledge/production-decision-trees.md) | Production decision trees |
 
 ---
