@@ -1,0 +1,3 @@
+# Use node pools, taints, and affinity deliberately
+
+Don't let the scheduler scatter every workload across one undifferentiated node pool. Separate pools by hardware and trust: GPU nodes, spot/preemptible nodes for fault-tolerant batch, on-demand for stateful or latency-critical services, and a system pool for cluster add-ons. Taint specialized pools so only workloads that tolerate them land there, and use node affinity/anti-affinity plus topology-spread to keep replicas off the same node and AZ. The default of 'any pod, any node' wastes expensive hardware on trivial pods, co-locates replicas that should survive a node loss, and lets a spot reclaim take out a stateful workload that should never have been there.

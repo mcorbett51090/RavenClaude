@@ -1,0 +1,3 @@
+# Partition large tables only when size genuinely demands it
+
+Partitioning is for tables so large that maintenance (vacuum, index rebuild, bulk delete) or a time-windowed access pattern hurts — not a default for "big." Partition by the dimension the queries actually filter on (usually a time range or tenant) so the planner can prune to one partition; partition on a column the hot queries don't constrain and you've added complexity that buys nothing and breaks unique constraints that don't include the partition key. The real wins are cheap retention (drop a partition instead of a giant `DELETE`) and pruned scans. Below tens of millions of rows, a correct index almost always beats partitioning, so reach for it last and prove the need first.

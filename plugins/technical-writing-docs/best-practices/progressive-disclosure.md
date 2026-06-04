@@ -1,0 +1,3 @@
+# Disclose progressively — common path first, depth on demand
+
+Lead every page with the 80% case a reader actually needs and push the edge cases, advanced configuration, and rationale behind it, not in front of it. A quickstart that opens with the full options table or every auth mode buries the one path most readers want under things they don't yet care about. Layer it: the minimal working call first, then a 'going further' section, then reference links for the long tail. Progressive disclosure is not dumbing down — it respects that the reader has a task, and that a wall of completeness shown all at once teaches nothing because the reader can't tell what matters.

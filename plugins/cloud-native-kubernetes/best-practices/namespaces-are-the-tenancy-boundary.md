@@ -1,0 +1,3 @@
+# Namespaces are the tenancy boundary, not a folder
+
+Treat a namespace as the unit of tenancy: it scopes RBAC, NetworkPolicy, ResourceQuota, and LimitRange, and it's where a team's blast radius ends. Group by tenant or environment-within-cluster, never by arbitrary tidiness. A namespace alone is not a hard security boundary — a shared kernel and node mean a true adversarial tenant needs node-pool isolation or separate clusters — so decide upfront whether you need soft multi-tenancy (cheaper, trusted teams) or hard isolation (separate clusters/nodes), and don't pretend a namespace gives you the latter.

@@ -1,0 +1,3 @@
+# Optimize the quickstart for time-to-first-success
+
+The single metric that predicts whether a developer adopts your product is how fast they get one thing working, so design the quickstart backward from a copy-pasteable first success and ruthlessly cut everything between the reader and it. Defer account-wide configuration, conceptual background, and the full option set; get them to a green checkmark — a request that returns 200, a row that appears — in the fewest steps, then point onward. Every prerequisite you can remove or move later, every decision you can make for them with a sane default, shortens that path. A quickstart that front-loads concepts and choices measures the author's thoroughness, not the reader's success, and the reader leaves before the payoff.

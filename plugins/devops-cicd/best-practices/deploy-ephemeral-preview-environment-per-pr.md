@@ -1,0 +1,3 @@
+# Give every PR an ephemeral preview environment
+
+Reviewing a UI or API change by reading a diff is guessing; reviewing it on a running, isolated deployment is verifying. Spin up a per-PR preview environment from the same build artifact and the same IaC the real environments use, seed it with disposable data, post its URL on the PR, and tear it down on merge or close. The two non-negotiables: it must be cheap and automatic (a preview a human has to provision won't get used), and it must be destroyed deterministically (orphaned previews are both a cost leak and an unmaintained attack surface). Namespace-per-PR on a shared cluster or per-PR app slots are the usual cheap shapes.

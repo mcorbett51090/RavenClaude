@@ -1,0 +1,3 @@
+# Give each metric an explicit cardinality budget
+
+"Don't put high-cardinality on labels" is the rule; a *budget* is what makes it enforceable. For each metric, decide the maximum number of time series it may produce (the product of every label's distinct values) and assert it — most TSDBs and collectors can cap or alert on series-per-metric. The dangerous labels are the ones whose value space is attacker- or user-controlled: a raw URL with embedded ids, a customer id, an error message string. Bound them by templating the path (`/users/{id}`), bucketing the value, or moving it to a trace attribute. A metric that can grow unbounded will eventually take down the monitoring system during the very incident you needed it for.

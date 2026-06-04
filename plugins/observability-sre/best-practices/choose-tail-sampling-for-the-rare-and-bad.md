@@ -1,0 +1,3 @@
+# Sample for the traces you'll actually need
+
+Tracing every request is unaffordable at scale and tracing randomly throws away exactly the traces you want — the slow and the failed ones are rare, so head-based random sampling keeps mostly boring traces. Prefer tail-based sampling in the collector: buffer the whole trace, then keep it based on outcome (errored, over a latency threshold, touched a flagged route) and downsample the successful fast majority. The cost is collector memory and a hold-the-trace window; the payoff is that the traces you keep are the ones an on-call needs at 3am. Use head sampling only when collector-side buffering isn't viable — and then make the rate consistent across services so a trace isn't half-sampled.

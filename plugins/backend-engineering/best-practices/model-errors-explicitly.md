@@ -1,0 +1,3 @@
+# Model errors explicitly; separate expected from bug
+
+Distinguish expected, domain-level failures (insufficient funds, not found, validation rejected) from genuine bugs (null deref, broken invariant). Expected failures are part of the contract — return them as typed results or named errors the caller must handle, and map them to deliberate HTTP statuses at the edge; bugs should crash loudly, get logged with context, and surface as a generic 500, never get swallowed. A blanket `try/catch` that logs and returns 200 hides outages and corrupts data quietly; catching `Exception` to "be safe" turns a programming error into wrong-but-successful behaviour. The error model is part of the API design, not an afterthought sprinkled in when something throws.

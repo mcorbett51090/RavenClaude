@@ -1,0 +1,3 @@
+# Source secrets from a store, never from the manifest
+
+A Kubernetes Secret is base64, not encryption — it sits in etcd readable by anyone with `get secret` and leaks into git the moment it's committed. Pull secrets at runtime from an external manager (Vault, cloud KMS-backed secret store) via the Secrets Store CSI driver or External Secrets Operator, so the source of truth is the manager and rotation happens there. Enable encryption-at-rest for etcd as a backstop, and mount secrets as files over env vars where you can — env vars leak into crash dumps, `/proc`, and child processes. A secret in a Deployment YAML is a secret already compromised.

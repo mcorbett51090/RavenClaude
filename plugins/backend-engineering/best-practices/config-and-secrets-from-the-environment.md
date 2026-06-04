@@ -1,0 +1,3 @@
+# Keep config in the environment and secrets out of the image
+
+Following 12-factor, everything that varies between environments — connection strings, feature flags, endpoints, credentials — comes from the environment or a secrets manager at runtime, never hardcoded or baked into the build. One immutable artifact promotes unchanged from dev to prod; only the injected config differs, which makes a deploy reproducible and a rollback exact. Secrets in particular never belong in the image, the repo, or environment-variable dumps in logs — pull them from a vault/secrets manager with rotation and least-privilege access. A config value compiled into the binary forces a rebuild to change a URL and guarantees that someday a real secret ships in a layer that's cached forever.

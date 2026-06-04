@@ -1,0 +1,3 @@
+# Scope monorepo pipelines to what changed
+
+A monorepo that rebuilds and retests everything on every commit collapses under its own success — the PR gate slows linearly with the repo and developers learn to dread it. The discipline is change-detection plus a dependency graph: compute the affected projects from the diff (Nx/Turborepo/Bazel target graphs, or path filters at minimum) and run only their build/test, plus anything downstream of them. Polyrepo gets change-scoping for free (one repo, one pipeline) at the cost of cross-cutting changes spanning many PRs. Pick monorepo for atomic cross-project changes and shared tooling; pick polyrepo when teams need independent release cadences — but a monorepo without affected-only execution is the worst of both.

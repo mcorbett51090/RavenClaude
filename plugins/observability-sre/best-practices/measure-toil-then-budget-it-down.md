@@ -1,0 +1,3 @@
+# Measure toil before you promise to automate it away
+
+Toil — manual, repetitive, automatable operational work that scales with the service — feels obvious but is rarely measured, so it silently consumes the time meant for engineering. Make it visible first: categorize on-call and operational time, and put a number on it. Then cap it (the SRE convention is ~50% of a team's time as a ceiling) and treat a breach as a signal to invest in automation or push work back to the owning team. The discipline is to automate the *measured* high-toil tasks, not the ones that merely feel annoying — and to resist automating a process that should be deleted instead. Unmeasured toil grows until the team does nothing but firefight and has no time left to remove the fires' causes.

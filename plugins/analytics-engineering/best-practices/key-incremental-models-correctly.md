@@ -1,0 +1,3 @@
+# Key incremental models on a real unique grain
+
+An incremental model is only safe with a genuinely unique key at the model's grain and an `is_incremental()` predicate that captures the exact window of changed rows — including late-arriving and updated records, not just rows newer than the last run. A key that isn't actually unique makes `merge` duplicate or clobber rows; a predicate that only filters `event_time > max(loaded)` silently drops events that arrived late or whose source row was updated in place. The failure is invisible until someone reconciles a total against the full-refresh number. When in doubt, prefer a periodic full rebuild over an incremental you can't prove is correct.
