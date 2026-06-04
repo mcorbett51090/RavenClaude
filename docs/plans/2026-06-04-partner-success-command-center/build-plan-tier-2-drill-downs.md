@@ -4,7 +4,7 @@
 
 **Scope:** Tier 2 of [`plan.md`](./plan.md) — the **single canonical drill-down implementation** (Partner 360 panel) consumed by Tiers 1, 3, and 4; plus the four widgets the spec calls out for this tier: Account Timeline, Lifecycle Tracking, Renewal Command Center. **One drill-down, used everywhere.** Tiers 3 and 4 MUST reuse this implementation rather than re-author it.
 
-**Pre-build gate:** Tier 1 ([`build-plan-tier-1-daily-os.md`](./build-plan-tier-1-daily-os.md)) merged. The four Tier 1 widgets render against `data.json`. This tier hangs drill-downs off those widgets without changing them.
+**Pre-build gate:** Tier 1 ([`build-plan-tier-1-daily-os.md`](./build-plan-tier-1-daily-operating-system.md)) merged. The four Tier 1 widgets render against `data.json`. This tier hangs drill-downs off those widgets without changing them.
 
 ---
 
