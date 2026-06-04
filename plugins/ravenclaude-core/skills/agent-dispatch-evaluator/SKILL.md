@@ -106,9 +106,9 @@ The gap-delta C1 / RM1 architectural pivot: there is **no `Agent` matcher** in P
 |---|---|---|
 | **Workflow `agent()` wrapper** | In-process JS mutation of `opts.model` | **Always binding** (primary path). |
 | **`thing-decide.py` seat-dispatch** | In-process Python mutation of `cfg["panel"][seat]["model"]` | **Shadow forever for MVP** (RM2 — protects v0.32.0 ≥2-distinct-backbones invariant). |
-| **`SubagentStart` hook** | DENY+redispatch advisory at the top-level Agent surface | DENY-only — cannot mutate `model` in-flight. |
+| **`SubagentStart` hook** | Shadow-logs a right-sizing verdict at the top-level Agent surface | **Audit-only as shipped** (RM1 — see below). Emits no DENY; the workflow wrapper is the sole binding path. |
 
-**Caveat (RM1):** if Phase 3 acceptance reveals `SubagentStart` fires **after** subagent process initiation (post-spawn cancel rather than pre-commit intercept), the hook is **demoted to audit-only** and the workflow wrapper becomes the sole binding path for top-level dispatches. The skill MUST document this if/when demotion happens.
+**Caveat (RM1) — RESOLVED to audit-only (Phase 3 shipped):** Panel B R1 flagged that `SubagentStart` fires **after** subagent process initiation, so a DENY may be a late-stage cancel (wasting the spawn) rather than a pre-commit intercept. Phase 3 acceptance required verifying that a DENY actually prevents the original dispatch from completing (no work done, no tokens spent). **That verification needs a live armed dispatch, which the Phase-3 build session could not run** — so per the plan's own fail-disposition the hook ships **audit-only** ([`hooks/agent-dispatch-evaluator.sh`](../../hooks/agent-dispatch-evaluator.sh)): it computes the right-sizing verdict and shadow-logs it, but **never emits a DENY**, regardless of `mode`. See the dedicated section below for the shipped behavior and the exact promotion path.
 
 ## Precedence rules
 
@@ -338,6 +338,29 @@ const fetchResult = await evaluatedAgent(
 
 The three carve-outs (regression floor, per-call skip, allowlist) are handled inside `evaluatedAgent` — the calling code does not need to check them.
 
+## Phase 3 — `SubagentStart` hook (audit-only)
+
+[`hooks/agent-dispatch-evaluator.sh`](../../hooks/agent-dispatch-evaluator.sh) is the top-level-dispatch surface. It is registered on `SubagentStart` in both wiring paths (`hooks/hooks.json` via `${CLAUDE_PLUGIN_ROOT}` for consumers; `.claude/settings.json` via `${CLAUDE_PROJECT_DIR}` for marketplace dev). **It ships audit-only and never denies a dispatch** — the RM1 resolution above.
+
+**What it does when a subagent is about to start:**
+
+1. **Off-by-default short-circuit** — a single `grep` for `"enabled": true` on the resolved `dispatch-config.json` (project `.ravenclaude/` first, then the plugin template as a read-only fallback). `enabled:false` (the shipped default) → exit 0, zero cost.
+2. **Carve-outs** — `_predispatch:"skip"` anywhere in the input, or a `subagent_type` matching the allowlist → exit 0 before any classifier call.
+3. **Tribunal-seat detection** — `THING_SEAT_ACTIVE=1` in the environment marks the spawn as a tribunal seat (also handled by Phase 4 inside `thing-decide.py`); recorded with `caller_context: "tribunal_seat"` and allowed.
+4. **Classifier** — fires the same `claude -p --bare --model claude-haiku-4-5-20251001` subprocess the wrapper uses (RM7 structural exemption from the runaway brake), with a 3 s `timeout`. `claude` absent on PATH / timeout / unparseable JSON → exit 0 (fail-open).
+5. **Shadow-log** — the verdict is written to **two sinks**: `hook-events.jsonl` via `_emit_hook_event` (verdict `"warn"` → Heimdall's grey/advisory tier, never a security signal) and `.ravenclaude/runs/dispatch-eval/<session>.jsonl` (the JSONL the Phase-5 quality sampler reads), with `applied: "shadow"`.
+6. **Always allows** — exit 0 with no `permissionDecision`, regardless of verdict (`keep`/`upgrade`/`downgrade`) or `mode`. **This is the audit-only invariant.**
+
+**Proven by Gate 90** ([`hooks/tests/test-gate90-dispatch-evaluator-audit-only.sh`](../../hooks/tests/test-gate90-dispatch-evaluator-audit-only.sh)): disabled-by-absence → allow; a stubbed `downgrade` verdict → allow with **no deny** (the audit-only teeth); allowlist + `_predispatch:skip` carve-outs → allow; and a **must-fail half** — a mutated hook that emits a deny on `downgrade` is caught by the audit-only assertion, proving the gate has teeth.
+
+**Promotion path (audit-only → binding), if ever warranted:** in a session that can run a live armed dispatch, verify whether a `SubagentStart` DENY actually prevents the original dispatch from completing (no work done, no tokens spent) — e.g. dispatch a subagent with the hook emitting a deny and confirm via the transcript / token accounting that the spawn did no work. **Only if deny is confirmed pre-commit:** replace the final audit-only `emit_allow` (§9 of the hook) with the DENY+redispatch envelope the plan specifies (`permissionDecision: "deny"`, `permissionDecisionReason` carrying the suggested model + the `_predispatch:'skip'` bypass note — the same shape `route-decision-review.sh` uses), gate it on `mode == "binding"` and `confidence != "low"`, and update Gate 90's audit-only assertions to the new contract. Until then, the workflow wrapper (Phase 2) is the sole binding path for top-level dispatches.
+
+## Phase 4 — `thing-decide.py` tribunal-seat shadow (implemented, shadow forever)
+
+[`scripts/thing-decide.py`](../../scripts/thing-decide.py) (the decision-review tribunal) computes a dispatch-evaluator **shadow** verdict for each convened seat and records it in the decision's Sága entry as a per-seat `evaluator_shadow: {verdict, suggested_tier, would_have_changed_model_to, confidence, rationale}`. Per RM2 / gap-delta C3 (Panel A's conservative position), **seats are shadow forever for MVP** — the integration **never mutates `cfg["panel"][role]["model"]`**, so the v0.32.0 ≥2-distinct-backbones invariant is untouched. The shadow data accumulates so a future call can decide whether seat right-sizing is ever safe to make binding (re-evaluate after 4–6 weeks).
+
+Design discipline (total isolation from the verdict path): the shadow reads `dispatch-config.json` and is a **zero-cost no-op when `enabled` is not `true`** (the default everywhere — byte-identical to pre-P4); every classifier call is wrapped so any failure simply omits the shadow; and the result rides **only** in the audit entry — it is never read back into the decision logic. **Proven by Gate 91** ([`hooks/tests/test-gate91-tribunal-shadow.py`](../../hooks/tests/test-gate91-tribunal-shadow.py)): disabled → no `evaluator_shadow` (no-op); enabled → every seat shadowed; and the verdict/binding is **identical** between the enabled and disabled runs (the teeth: the shadow records a downgrade target without ever moving the verdict).
+
 ## Output Contract
 
 This skill emits no runtime artifact of its own — it is a **contract**, consumed by the workflow wrapper (Phase 2), the SubagentStart hook (Phase 3), and `thing-decide.py` (Phase 4). When the prompt-engineer or an architect critiques an instance of this contract (e.g. a workflow's evaluator integration in a PR), the response ends with the cross-plugin Structured Output JSON block per [`structured-output/SKILL.md`](../structured-output/SKILL.md):
@@ -359,6 +382,8 @@ This skill emits no runtime artifact of its own — it is a **contract**, consum
 ## References
 
 - Plan + risk matrix: [`docs/plans/2026-06-03-agent-dispatch-evaluator/plan.md`](../../../../docs/plans/2026-06-03-agent-dispatch-evaluator/plan.md) (Phase 1 work-list, RM1-RM8, intercept-shape contract).
+- **Phase 3 hook (audit-only):** [`hooks/agent-dispatch-evaluator.sh`](../../hooks/agent-dispatch-evaluator.sh) + Gate 90 [`hooks/tests/test-gate90-dispatch-evaluator-audit-only.sh`](../../hooks/tests/test-gate90-dispatch-evaluator-audit-only.sh).
+- **Phase 4 tribunal-seat shadow:** [`scripts/thing-decide.py`](../../scripts/thing-decide.py) (`_load_dispatch_cfg` / `_evaluator_shadow`) + Gate 91 [`hooks/tests/test-gate91-tribunal-shadow.py`](../../hooks/tests/test-gate91-tribunal-shadow.py).
 - Phase 0 verification: `.ravenclaude/runs/forge/agent-dispatch-evaluator/phase-0-verification.md` (gitignored local run-dir artifact) (the three load-bearing flips: no-Agent-matcher, subprocess-exemption, no-cache).
 - Cross-panel resolutions: `.ravenclaude/runs/forge/agent-dispatch-evaluator/gap-delta.md` (gitignored local run-dir artifact) (C1-C10).
 - **Tier table source of truth:** [`plugins/ravenclaude-core/skills/adaptive-run-classifier/SKILL.md`](../adaptive-run-classifier/SKILL.md) §"Substrate tier table".

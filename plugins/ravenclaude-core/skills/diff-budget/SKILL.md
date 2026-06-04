@@ -113,6 +113,29 @@ exempt_paths:
 
 `exempt_paths` allows generated artifacts (snapshot tests, dashboard generated HTML, CHANGELOG bumps) without inflating the LoC count.
 
+## 2026 Q1-Q2 fill-% gating (added 2026-06-04)
+
+The H1 2026 cross-source consensus (digitalapplied.com 100-deployment retro; Chroma 2025 context-rot study; Anthropic context-editing study showing 29% perf gain / 39% with memory tool / 84% token-consumption reduction in 100-turn web-search eval) — **budget by context fill %, not token count**. The file-count + LoC budget above is the *output-side* discipline; the fill-% budget is the *input-side* discipline. Both apply.
+
+| Fill % | Posture |
+|---|---|
+| **0-40%** | Normal operation |
+| **40-60%** | Emit "compaction candidate" markers in plan output; identify low-value context to evict |
+| **60-80%** | **Proactively `/compact`** — summarize the run log into a single delta block; preserve open decisions, open errors, open file diffs |
+| **80%+** | **HALT and write plan to disk** before any further edits. Resume from the saved plan in a fresh window if possible. |
+
+**Why fill-% beats token count:** advertised context windows degrade well before the announced ceiling. A 200K model becomes unreliable around ~130K; a 1M model degrades around 600-700K (Chroma 2025). Budgeting by fill-% gives the same discipline regardless of which model the agent runs on.
+
+**Mutating-tool-call hygiene (H1 2026 mechanical mitigation).** Every mutating tool call MUST have:
+1. **Per-call timeout** — bounded clock-wall budget.
+2. **Idempotency key** — same args + same key = same outcome, no double-effect on retry.
+3. **Bounded retries** — max 3, no infinite-retry loops.
+4. **Structured error response** — error shape parseable by the agent, not "Error: something went wrong."
+
+This is the H1 2026 mechanical fix for "tool-call chaos" — one of three dominant failure clusters per the 100-deployment retro. See [`../../../../docs/best-practices/2026-q1-q2-failure-modes.md`](../../../../docs/best-practices/2026-q1-q2-failure-modes.md) for the full taxonomy.
+
+---
+
 ## What "done" looks like
 
 The skill succeeds when:
