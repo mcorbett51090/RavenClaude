@@ -2666,6 +2666,40 @@ gate "phase0-emit-scrub: secret-containing JSONL is detectable (gate has teeth)"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
+echo "── Gate 51: Unified-dashboard shell router (index.html) ──────────────────"
+# Proves the unified-dashboard shell in index.html still carries the contract
+# the Phase 1+2 plan committed: NAV has the Dashboard + Catalog entries,
+# PAYLOAD_ROUTES maps every dashboard-owned top-level route to the right
+# payload, payloadFor()/resolveNavActive() preserve the dynamic-prefix + back-
+# compat fallbacks. Bidirectional: must-fail half feeds an index.html fixture
+# with PAYLOAD_ROUTES stripped → check-shell-router.mjs exits nonzero, proving
+# the gate has teeth. Must-pass runs against the real index.html.
+if command -v node >/dev/null 2>&1; then
+  # must_fail: a stripped PAYLOAD_ROUTES must be detected (gate has teeth).
+  SHELL_BAD="$TMP/index-broken-shell.html"
+  python3 - <<'PY' > "$SHELL_BAD"
+import re, sys
+with open("index.html", "r", encoding="utf-8") as f:
+    src = f.read()
+# Replace the PAYLOAD_ROUTES object literal with an empty one. The exact
+# anchor (`const PAYLOAD_ROUTES = {`) is what the gate looks up.
+out = re.sub(
+    r"const PAYLOAD_ROUTES = \{[\s\S]*?\n      \};",
+    "const PAYLOAD_ROUTES = {};",
+    src, count=1,
+)
+sys.stdout.write(out)
+PY
+  rc=0; node scripts/check-shell-router.mjs "$SHELL_BAD" >/dev/null 2>&1 || rc=$?
+  gate "shell-router (stripped PAYLOAD_ROUTES is detected)" must_fail "$rc"
+  # must_pass: real index.html satisfies the contract.
+  rc=0; node scripts/check-shell-router.mjs index.html >/dev/null 2>&1 || rc=$?
+  gate "shell-router (real index.html satisfies the contract)" must_pass "$rc"
+else
+  _skip_or_fail "Gate 51 shell-router" node
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
 echo "── Gate 70: Codex desktop trust review hooks (Findings 1, 2, 5) ─────────"
 # Proves the Codex desktop trust review remediation: (1) the three smell hooks'
 # STRICT mode now BLOCKS via exit 2 (was exit 1, which Claude Code silently
