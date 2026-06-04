@@ -1,0 +1,139 @@
+# =====================================================================
+# dbt-project.yml — PSM dashboard Tier 0.5
+# ---------------------------------------------------------------------
+# Lineage: build-plan-tier-0.5-real-connectors.md § 3.2 dbt project.
+# Lineage: plugins/data-platform/skills/dbt-project-scaffolding/SKILL.md
+#          (3-layer: staging → intermediate → marts; MetricFlow on top).
+# Lineage: plugins/data-platform/knowledge/snowflake-operational-dashboard-patterns.md
+#          § "dbt + Dynamic Tables" (target_lag='15 minutes' on marts).
+#
+# Materialization strategy (per the substrate decision tree):
+#   - staging     → view       (cheap, always-fresh, no storage cost)
+#   - intermediate→ ephemeral  (inlined into downstream marts; no table cost)
+#   - marts       → dynamic_table TARGET_LAG='15 minutes' on WH_DBT_TRANSFORM
+#   - snapshots   → table      (SCD2 history)
+#
+# MUST NOT:
+#   - Lower target_lag below 15 min (cost spike per snowflake patterns § TL;DR).
+#   - Compute priority_score in any marts model (Tier 0 field-classifications.json
+#     says derived_at_render — the renderer fills it).
+#   - Introduce third-party dbt packages beyond dbt-utils (consumer-env debt).
+# =====================================================================
+
+name: 'psm_dashboard'
+version: '0.1.0'
+config-version: 2
+
+profile: 'psm_dashboard'
+
+# ---------------------------------------------------------------------
+# Path config — 3-layer + snapshots + seeds.
+# ---------------------------------------------------------------------
+model-paths:   ["models"]
+analysis-paths: ["analyses"]
+test-paths:    ["tests"]
+seed-paths:    ["seeds"]
+macro-paths:   ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# ---------------------------------------------------------------------
+# Variables — read by models. FERPA toggle defaults to strict (filter
+# type=user from timeline events). Splink thresholds reference the
+# config table seeded in snowflake-database-ddl.sql.
+# ---------------------------------------------------------------------
+vars:
+  # FERPA discipline. When true (default), timeline_events excludes type='user'
+  # to prevent any chance of inadvertent student-side surfacing.
+  # Lineage: build-plan-for-codex.md § "FERPA grep" hardened list.
+  ferpa_strip_user_content: true
+
+  # Splink T2/T3 thresholds — must match the seeded RUBRIC_THRESHOLDS rows.
+  # Source: cross-system-identity-resolution/SKILL.md § "LEAID confidence-tier ladder".
+  splink_t2_jarowinkler_min: 0.92
+  splink_t3_probabilistic_min: 0.70
+
+  # Tier 0 single-tenant org_uid (UUIDv4). Codex overrides per-engagement.
+  org_uid: '11111111-2222-4333-8444-555555555555'
+
+# ---------------------------------------------------------------------
+# Per-model defaults. Materialization is set HERE (project-level) so a
+# move from staging → marts inherits the right shape automatically.
+# ---------------------------------------------------------------------
+models:
+  psm_dashboard:
+    +persist_docs:
+      relation: true
+      columns: true
+
+    staging:
+      +materialized: view
+      +schema: staging
+      +tags: ['staging', 'layer:staging']
+
+    intermediate:
+      +materialized: ephemeral
+      +schema: intermediate
+      +tags: ['intermediate', 'layer:intermediate']
+
+    marts:
+      +materialized: dynamic_table
+      +target_lag: "15 minutes"   # cost/freshness sweet spot per § TL;DR
+      +snowflake_warehouse: WH_DBT_TRANSFORM
+      +on_configuration_change: apply
+      +schema: marts
+      +tags: ['marts', 'layer:marts']
+
+    semantic:
+      # MetricFlow semantic-layer specs are YAML, not SQL — no materialization.
+      +schema: semantic
+      +tags: ['semantic', 'layer:semantic']
+
+# ---------------------------------------------------------------------
+# Snapshots — SCD2 on Salesforce Contract (amendment chain).
+# Lineage: salesforce-cpq-integration.md § amendment chain (SBQQ__AmendedContract__c).
+# ---------------------------------------------------------------------
+snapshots:
+  psm_dashboard:
+    +target_schema: snapshots
+    +strategy: timestamp
+    +updated_at: last_modified_date
+    +invalidate_hard_deletes: true
+
+# ---------------------------------------------------------------------
+# Seeds — pruned NCES district subset for dim_lea.
+# Lineage: cross-system-identity-resolution/SKILL.md § "Implementation pattern — dim_lea".
+# ---------------------------------------------------------------------
+seeds:
+  psm_dashboard:
+    +schema: seeds
+    +quote_columns: true
+    nces_districts_top2000:
+      +column_types:
+        leaid: varchar(7)
+        state_fips: varchar(2)
+        district_name: varchar(255)
+        city: varchar(128)
+        state_abbreviation: varchar(2)
+        zip_code: varchar(10)
+        enrollment_total: integer
+        enrollment_band: varchar(32)
+
+# ---------------------------------------------------------------------
+# MetricFlow / semantic layer — measures only, NO priority_score.
+# Lineage: build-plan-tier-0.5-real-connectors.md § Step 12.
+# (The semantic config files live under models/semantic/*.yml.)
+# ---------------------------------------------------------------------
+semantic-models-paths: ["models/semantic"]
+
+# ---------------------------------------------------------------------
+# Tests defaults — soft for source freshness (warn), hard for mart integrity.
+# ---------------------------------------------------------------------
+tests:
+  psm_dashboard:
+    +severity: error
+    +store_failures: true     # debuggability — failed-test rows land in a table
+    +schema: dbt_test__audit
