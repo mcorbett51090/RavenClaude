@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for nonprofit-fundraising. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-nonprofit-fundraising-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: review this nonprofit fundraising deliverable against the §3 house opinions (baseline on every metric, source+date on every external figure, no client PII). Set NONPROFIT_FUNDRAISING_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}

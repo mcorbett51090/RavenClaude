@@ -1,0 +1,24 @@
+{
+  "name": "architecture-aec",
+  "version": "0.1.0",
+  "description": "Architecture & AEC specialist team — 4 agents (aec-engagement-lead, design-architect, construction-documents-specialist, aec-project-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A practice-and-project team for an architect or small AEC firm — it manages the project through the design phases on a fee that matches the effort, controls scope and the change/RFI load that erodes margin, reads construction documents for coordination and constructability, and reads the firm P&L on utilization and net multiplier the way a principal who bills time must. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "architecture",
+    "aec",
+    "design-phases",
+    "construction-documents",
+    "scope-management",
+    "net-multiplier",
+    "utilization",
+    "rfi",
+    "fee-proposal"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

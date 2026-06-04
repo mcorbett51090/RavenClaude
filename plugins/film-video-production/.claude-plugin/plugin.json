@@ -1,0 +1,24 @@
+{
+  "name": "film-video-production",
+  "version": "0.1.0",
+  "description": "Film & Video Production specialist team — 4 agents (production-lead, line-producer, post-production-supervisor, production-finance-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A production-management team for a producer, production company, or post house — it budgets to a defensible top-sheet, schedules to the shoot day rather than the calendar, runs the post pipeline as a dependency chain, and reads production economics the way a line producer who answers for every dollar on the day must. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "film-production",
+    "video-production",
+    "line-producing",
+    "budgeting",
+    "scheduling",
+    "post-production",
+    "production-management",
+    "post-pipeline",
+    "delivery"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "precision-agriculture",
+  "version": "0.1.0",
+  "description": "Precision Agriculture specialist team — 4 agents (agronomy-engagement-lead, crop-agronomist, farm-operations-analyst, ag-market-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An agronomy-and-farm-operations team for a grower, farm manager, or ag retailer — it manages inputs to agronomic and economic return (not maximum yield), reads yield by management zone rather than field average, times operations to the agronomic and weather window, and reads the farm P&L per acre the way an operator who lives the margin does. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "precision-agriculture",
+    "agronomy",
+    "farm-management",
+    "yield",
+    "input-economics",
+    "management-zones",
+    "variable-rate",
+    "per-acre-margin",
+    "crop-protection"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
