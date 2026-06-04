@@ -100,17 +100,18 @@ def _normalize(svg: str, svg_id: str) -> str:
 
 def _source_hash(concept: dict) -> str:
     h = hashlib.sha256()
-    payload = json.dumps(
-        {
-            "diagram": concept["diagram"],
-            "diagram_mini": concept["diagram_mini"],
-            "mmdc": MMDC_VERSION,
-            "normalizer": NORMALIZER_VERSION,
-        },
-        sort_keys=True,
-        ensure_ascii=False,
-    )
-    h.update(payload.encode("utf-8"))
+    payload = {
+        "diagram": concept["diagram"],
+        "diagram_mini": concept["diagram_mini"],
+        "mmdc": MMDC_VERSION,
+        "normalizer": NORMALIZER_VERSION,
+    }
+    # Add steps to the hash ONLY when a concept has them, so the 18 step-less
+    # concepts keep byte-identical hashes (their committed SVGs stay valid; no
+    # NORMALIZER_VERSION bump needed).
+    if concept.get("steps"):
+        payload["steps"] = [s["diagram"] for s in concept["steps"]]
+    h.update(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8"))
     return h.hexdigest()
 
 
@@ -151,6 +152,9 @@ def _check(root: Path, concepts: list[dict]) -> int:
             problems.append(f"  ✗ {cid}: {cid}.svg missing")
         if c["diagram_mini"] and not (vis / f"{cid}.mini.svg").exists():
             problems.append(f"  ✗ {cid}: {cid}.mini.svg missing")
+        for idx in range(1, len(c.get("steps", [])) + 1):
+            if not (vis / f"{cid}.step-{idx}.svg").exists():
+                problems.append(f"  ✗ {cid}: {cid}.step-{idx}.svg missing")
     stale = set(recorded) - {c["id"] for c in concepts}
     for cid in sorted(stale):
         problems.append(f"  ✗ {cid}: orphaned in manifest (concept removed) — re-run scripts/render-concepts.py")
@@ -190,8 +194,17 @@ def main() -> int:
                 (vis / f"{cid}.mini.svg").write_text(
                     _render_one(c["diagram_mini"], f"c-{cid}-mini", tmp), encoding="utf-8"
                 )
+            for idx, st in enumerate(c.get("steps", []), start=1):
+                (vis / f"{cid}.step-{idx}.svg").write_text(
+                    _render_one(st["diagram"], f"c-{cid}-step{idx}", tmp), encoding="utf-8"
+                )
             manifest["concepts"][cid] = _source_hash(c)
-            print(f"  rendered {cid}" + ("  (+mini)" if c["diagram_mini"] else ""))
+            extras = []
+            if c["diagram_mini"]:
+                extras.append("+mini")
+            if c.get("steps"):
+                extras.append(f"+{len(c['steps'])} steps")
+            print(f"  rendered {cid}" + (f"  ({', '.join(extras)})" if extras else ""))
     (vis / MANIFEST_NAME).write_text(
         json.dumps(manifest, indent=2, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8"
     )

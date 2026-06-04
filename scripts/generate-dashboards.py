@@ -849,6 +849,39 @@ _CONCEPT_WIDGETS = {
 }
 
 
+def _render_concept_stepper(plugin_dir: Path, c: dict) -> str:
+    """A step-by-step diagram: all frames inlined (first visible), with controls
+    revealed by JS (initConceptSteppers). Progressive enhancement — with no JS,
+    only the first frame shows and the first caption stands as the explanation."""
+    steps = c.get("steps") or []
+    title = html.escape(c["title"])
+    n = len(steps)
+    frames, dots = [], []
+    for i, st in enumerate(steps):
+        svg = _inline_concept_svg(plugin_dir, st.get("svg"))
+        active = " active" if i == 0 else ""
+        cap = html.escape(st.get("caption", ""), quote=True)
+        frames.append(f'<div class="cs-frame{active}" data-step="{i}" data-caption="{cap}">{svg}</div>')
+        dots.append(
+            f'<button type="button" class="cs-dot{active}" data-step="{i}" '
+            f'aria-label="Go to step {i + 1} of {n}"></button>'
+        )
+    first_caption = html.escape(steps[0]["caption"]) if steps else ""
+    return (
+        f'<div class="concept-stepper" role="group" aria-label="{title} — step-by-step">'
+        f'<div class="cs-frames">{"".join(frames)}</div>'
+        f'<p class="cs-caption" aria-live="polite">{first_caption}</p>'
+        '<div class="cs-controls" hidden>'
+        '<button type="button" class="cs-btn cs-prev" aria-label="Previous step">&lsaquo; Prev</button>'
+        '<button type="button" class="cs-btn cs-play" aria-pressed="false">&#9654; Play</button>'
+        '<button type="button" class="cs-btn cs-next" aria-label="Next step">Next &rsaquo;</button>'
+        f'<span class="cs-progress">Step 1 of {n}</span>'
+        f'<span class="cs-dots">{"".join(dots)}</span>'
+        "</div>"
+        "</div>"
+    )
+
+
 def _try_it_html(try_it: dict | None) -> str:
     if not try_it:
         return ""
@@ -863,13 +896,16 @@ def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> s
     badge_label, badge_icon = _CONCEPT_ICONS.get(kind, ("", ""))
     badge_cls = "fact" if kind == "platform-fact" else "built"
 
-    svg = _inline_concept_svg(plugin_dir, c.get("svg"))
-    well = (
-        f'<div class="concept-diagram-well" role="img" '
-        f'aria-label="{html.escape(c["title"])} diagram">{svg}</div>'
-        if svg
-        else ""
-    )
+    if c.get("steps"):
+        well = _render_concept_stepper(plugin_dir, c)
+    else:
+        svg = _inline_concept_svg(plugin_dir, c.get("svg"))
+        well = (
+            f'<div class="concept-diagram-well" role="img" '
+            f'aria-label="{html.escape(c["title"])} diagram">{svg}</div>'
+            if svg
+            else ""
+        )
 
     see_also = "".join(
         f'<a class="concept-chip" href="#/learn/{html.escape(ref)}">'
@@ -4786,6 +4822,41 @@ footer.page-footer a:hover { text-decoration: underline; }
   overflow: auto; text-align: center;
 }
 .rc-concept-diagram { max-width: 100%; height: auto; }
+
+/* step-by-step concept diagram ("stepper" — markup in _render_concept_stepper,
+   behavior in initConceptSteppers). Progressive enhancement: with no JS the
+   .cs-controls stays [hidden] and only the first .cs-frame.active shows. */
+.concept-stepper {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px; margin-bottom: 12px;
+}
+.cs-frames { text-align: center; overflow: auto; }
+.cs-frame { display: none; }
+.cs-frame.active { display: block; }
+.cs-caption {
+  font-size: 13px; line-height: 1.5; color: var(--text);
+  margin: 10px 2px 0; min-height: 2.4em; text-align: center;
+}
+.cs-controls {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+}
+.cs-btn {
+  font-size: 12.5px; color: var(--text); background: var(--bg);
+  border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px;
+  cursor: pointer;
+}
+.cs-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cs-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.cs-play[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+.cs-progress { font-size: 12px; color: var(--muted); margin-left: auto; }
+.cs-dots { display: inline-flex; gap: 6px; align-items: center; }
+.cs-dot {
+  width: 9px; height: 9px; padding: 0; border-radius: 50%;
+  border: 1px solid var(--border); background: transparent; cursor: pointer;
+}
+.cs-dot.active { background: var(--accent); border-color: var(--accent); }
+.cs-dot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .concept-body { font-size: 14px; line-height: 1.6; color: var(--text); }
 .concept-body p { margin: 0 0 10px; }
 .concept-body p:last-child { margin-bottom: 0; }
@@ -10092,6 +10163,60 @@ _JS = r"""
       setLayer("project", "deny");
       selects.forEach(s => s.addEventListener("change", compute));
       compute();
+    });
+  })();
+
+  /* ── Learn tab: step-by-step concept diagrams (stepper) ────────────── */
+  (function initConceptSteppers() {
+    const reduce = !!(window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    document.querySelectorAll(".concept-stepper").forEach(stepper => {
+      const frames = Array.from(stepper.querySelectorAll(".cs-frame"));
+      const dots = Array.from(stepper.querySelectorAll(".cs-dot"));
+      const caption = stepper.querySelector(".cs-caption");
+      const progress = stepper.querySelector(".cs-progress");
+      const controls = stepper.querySelector(".cs-controls");
+      const prev = stepper.querySelector(".cs-prev");
+      const next = stepper.querySelector(".cs-next");
+      const play = stepper.querySelector(".cs-play");
+      if (frames.length < 2 || !controls) return;
+      controls.removeAttribute("hidden");
+      let i = 0, timer = null;
+      function stop() {
+        if (timer) { clearInterval(timer); timer = null; }
+        if (play) { play.setAttribute("aria-pressed", "false"); play.innerHTML = "▶ Play"; }
+      }
+      function show(n) {
+        i = Math.max(0, Math.min(frames.length - 1, n));
+        frames.forEach((f, k) => f.classList.toggle("active", k === i));
+        dots.forEach((d, k) => d.classList.toggle("active", k === i));
+        if (caption) caption.textContent = frames[i].getAttribute("data-caption") || "";
+        if (progress) progress.textContent = "Step " + (i + 1) + " of " + frames.length;
+        if (prev) prev.disabled = i === 0;
+        if (next) next.disabled = i === frames.length - 1;
+      }
+      if (prev) prev.addEventListener("click", () => { stop(); show(i - 1); });
+      if (next) next.addEventListener("click", () => { stop(); show(i + 1); });
+      dots.forEach(d => d.addEventListener("click", () => { stop(); show(parseInt(d.dataset.step, 10)); }));
+      stepper.addEventListener("keydown", e => {
+        if (e.key === "ArrowLeft") { stop(); show(i - 1); e.preventDefault(); }
+        else if (e.key === "ArrowRight") { stop(); show(i + 1); e.preventDefault(); }
+      });
+      if (reduce) {
+        if (play) play.remove();  // honor reduced-motion: no auto-advance
+      } else if (play) {
+        play.addEventListener("click", () => {
+          if (timer) { stop(); return; }
+          if (i >= frames.length - 1) show(0);
+          play.setAttribute("aria-pressed", "true");
+          play.innerHTML = "❚❚ Pause";
+          timer = setInterval(() => {
+            if (i >= frames.length - 1) { stop(); return; }
+            show(i + 1);
+          }, 2200);
+        });
+      }
+      show(0);
     });
   })();
 

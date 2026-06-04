@@ -1,5 +1,6 @@
 {
   "concepts": {
+    "agent-harness-loop": "6f60b2a10f1f603f34c83d4f527540660d9cd0d01085e9f54e41b4c835ddc209",
     "audit-gates": "c63691397c8f75c686b460de6ba844dc092130af90e2f37ae701a78272815b3d",
     "capability-banner": "23f9e5449861493f9362166961b55715643851b9ca77c233531e63b1ef8c6e34",
     "comfort-posture": "5186ddae8f063925b9b847d95f31d67bc61e7aba3bdbc7c63cdf9103350383ee",
