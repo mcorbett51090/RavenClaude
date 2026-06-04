@@ -164,3 +164,10 @@ Not yet enabled. Per the marketplace pattern, enable the scenarios bank when the
 - Domain-neutral team constitution: [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md)
 - Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md)
 - The data-platform seam: [`../data-platform/CLAUDE.md`](../data-platform/CLAUDE.md) + [`../data-platform/skills/data-quality-tests/SKILL.md`](../data-platform/skills/data-quality-tests/SKILL.md)
+
+
+## Adjacent plugins (added 2026-06-04)
+
+Reciprocal seam to the adjacent-plugins build-out:
+
+- Adjacent: production model lifecycle (training pipelines, serving, drift) → `ml-engineering`; experiment apparatus (assignment, exposure logging, feature flags, instrumentation) → `experimentation-growth-engineering` — both route the significance verdict back here.

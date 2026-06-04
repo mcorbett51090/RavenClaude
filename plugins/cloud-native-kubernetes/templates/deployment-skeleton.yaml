@@ -1,0 +1,27 @@
+# Deployment skeleton — probes, resources, security context
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: <app> }
+spec:
+  replicas: 3
+  template:
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 65532 }
+      containers:
+        - name: <app>
+          image: <registry>/<app>@sha256:<PIN> # digest, not :latest
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          readinessProbe: { httpGet: { path: /healthz, port: 8080 }, periodSeconds: 5 }
+          livenessProbe: { httpGet: { path: /livez, port: 8080 }, periodSeconds: 10 }
+          startupProbe: { httpGet: { path: /healthz, port: 8080 }, failureThreshold: 30 }
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: { name: <app> }
+spec: { minAvailable: 2, selector: { matchLabels: { app: <app> } } }

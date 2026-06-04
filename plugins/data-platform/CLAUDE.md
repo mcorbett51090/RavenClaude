@@ -264,3 +264,10 @@ Data-platform agents stay within the four-layer scope (DB / ELT / dashboard / em
 - Capability Grounding Protocol (upstream + alternate-methods rule): [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md) (`Capability Grounding Protocol` section)
 - Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md)
 - House rule on domain-plugins-extend-core: [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md) — implemented in this plugin per the B2 + B4 expert verdicts of 2026-05-21
+
+
+## Adjacent plugins (added 2026-06-04)
+
+Reciprocal seam to the adjacent-plugins build-out:
+
+- Adjacent data plugins: the dbt transformation/semantic layer → `analytics-engineering`; real-time/streaming + CDC → `data-streaming-engineering`; data catalog, lineage, classification & privacy mechanics (GDPR/CCPA/DSR) → `data-governance-privacy`.

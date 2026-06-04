@@ -1,0 +1,11 @@
+# Namespace-scoped RBAC (no cluster-admin for workloads)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: { namespace: <ns>, name: app-operator }
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "update"]
+---
+kind: RoleBinding
+# bind the Role to the team's ServiceAccount, scoped to <ns>

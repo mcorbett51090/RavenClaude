@@ -1,0 +1,8 @@
+# Default-deny baseline (apply per namespace), then add allow rules
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: default-deny-all, namespace: <ns> }
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+# --- then an explicit allow, e.g. from the same namespace + DNS egress ---

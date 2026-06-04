@@ -1,0 +1,31 @@
+{
+  "name": "aws-cloud",
+  "version": "0.1.0",
+  "description": "AWS cloud infrastructure & platform team \u2014 5 agents (aws-architect, aws-iam-identity-engineer, aws-network-engineer, aws-compute-platform-engineer, aws-ops-finops-engineer) for the AWS layer of a stack: multi-account landing zones (Organizations, Control Tower, SCPs), least-privilege IAM (roles over keys, IRSA, permission boundaries, Identity Center), VPC networking (subnets, security groups, PrivateLink/endpoints, Transit Gateway), compute selection (Lambda / ECS / EKS / Fargate / App Runner), event-driven integration (SQS/SNS/EventBridge/Step Functions), and observability + FinOps + Well-Architected governance. 4 skills, a decision-tree knowledge bank (compute-selection + account-strategy trees + a dated 2026 capability map), 6 best-practices, 5 templates, 4 commands, 1 advisory hook. Multi-cloud seam to azure-cloud/gcp-cloud; IaC -> terraform-iac; containers -> cloud-native-kubernetes; security verdicts -> ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "aws",
+    "amazon-web-services",
+    "iam",
+    "vpc",
+    "lambda",
+    "ecs",
+    "eks",
+    "fargate",
+    "eventbridge",
+    "step-functions",
+    "organizations",
+    "control-tower",
+    "well-architected",
+    "privatelink",
+    "finops",
+    "landing-zone"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
