@@ -25,6 +25,12 @@ Concept document: [v6 (post-panel)](research/2026-06-04-future-niche/08-concept-
 | B2 | **Second delivery person** — a builder (never a signer) does mapping + script-build under Matt's review; attacks the real ceiling (delivery weeks) without touching the liability posture | 🟡 gated (Year 2) | ≥4 full-price closes delivered AND measured build-hour reduction AND 6-month cash buffer |
 | B3 | **Productize the governance IP** ("the Leash" — tribunal/posture/audit) for the developer/compliance buyer; the funding line if outside money ever comes in | 🟡 gated (Year 2+, hardest gate) | ≥3 recurring finance-judgment categories route cleanly through the tribunal AND a design partner's reviewer confirms the verdict-bearing lineage card is decision-useful AND multi-tenant isolation + tamper-evident logging shipped & pen-tested |
 
+## Shipped from the parallel cloud track (Ultraplan, 2026-06-04)
+
+| Idea | One-liner | Status | Next step |
+|---|---|---|---|
+| **20 underserved-market plugins** | Broaden marketplace coverage into underserved domains (terraform-iac, fintech-payments, ml-engineering, security-engineering, observability-sre, …), each with agents + best-practices + decision trees + scenario schemas | 🟢 shipped — #305 (built), #307 (web-cited), #308 (deepened to 12 best-practices / 5 trees / 5 scenarios per agent, all 20 at v0.2.0) | Let usage decide depth: deepen further only when a real engagement exercises a plugin (same rule as the parked competitor-analysis plugin). Relationship to Closebook: breadth = proof-of-craft surface area; Closebook = the focused commercial wedge — they compound, they don't compete |
+
 ## The other 2026-06-04 candidates — dispositions (recorded, not drifted)
 
 | Idea | One-liner | Status | Where it lives now |
