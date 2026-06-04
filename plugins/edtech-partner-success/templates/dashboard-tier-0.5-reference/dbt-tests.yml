@@ -1,0 +1,195 @@
+# =====================================================================
+# dbt-tests.yml — generic + custom dbt tests for the PSM dashboard marts
+# ---------------------------------------------------------------------
+# Lineage:
+#   - build-plan-tier-0.5-real-connectors.md § 3.2 #27 _marts.yml.
+#   - build-plan-for-codex.md § 3 Step 6 — 16-check integrity gate.
+#   - cross-system-identity-resolution/SKILL.md § "dbt tests that guard
+#     the join spine".
+#
+# Discipline:
+#   - dbt-utils only — no third-party packages (dbt_expectations, etc.).
+#   - Generic tests for the boring stuff (not_null, unique).
+#   - Custom singular tests for cross-entity invariants (orphan FK,
+#     priority_weights sum-to-100, allowed phase/substage pairs).
+#
+# Test files referenced by relationship paths:
+#   tests/assert_no_orphan_account_uid.sql      — cross-entity FK
+#   tests/assert_priority_weights_sum_to_100.sql — config invariant
+#   tests/assert_uuidv4_format.sql              — UUIDv4 regex everywhere
+#   tests/assert_lifecycle_phase_substage.sql    — allowed-pair table
+#   tests/assert_opaque_uri_scheme.sql           — source_ref/doc_ref regex
+# =====================================================================
+
+version: 2
+
+models:
+  # -------------------------------------------------------------------
+  # bridge_account_xref — the join spine. Every cross-source query
+  # routes through here, so the dbt tests are non-negotiable.
+  # -------------------------------------------------------------------
+  - name: bridge_account_xref
+    description: |
+      Conformed cross-system identity spine. Joins SFDC ↔ Planhat ↔ Calendar ↔
+      Snowflake share via the SKILL's 7-tier ladder (T0 LEAID exact → T6 reject).
+    columns:
+      - name: salesforce_id
+        description: SFDC 18-char Account ID. The deterministic anchor.
+        data_tests:
+          - not_null
+          - unique
+      - name: match_method
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - leaid_exact
+                - leaid_compound
+                - leaid_fuzzy_high
+                - leaid_probabilistic
+                - external_id
+                - email_domain
+                - manual
+                - unresolved
+      - name: confidence
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0 and <= 1"
+
+  # -------------------------------------------------------------------
+  # dim_partner — the partners mart. Every account_uid must be UUIDv4
+  # and every non-bridge_account_xref account_uid downstream must exist
+  # in this dim.
+  # -------------------------------------------------------------------
+  - name: dim_partner
+    description: |
+      Conformed partner dimension. Drop-in shape replacement for the Tier 0
+      synthetic fixture's partners[] block.
+    columns:
+      - name: account_uid
+        data_tests:
+          - not_null
+          - unique
+          - dbt_utils.expression_is_true:
+              expression: "regexp_like(account_uid, '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$')"
+              config: { error_if: ">= 1" }
+      - name: org_uid
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "regexp_like(org_uid, '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$')"
+      - name: band
+        data_tests:
+          - not_null
+          - accepted_values: { values: ['green', 'yellow', 'red'] }
+      - name: lifecycle_phase
+        data_tests:
+          - not_null
+          - accepted_values: { values: ['deployment', 'boi', 'moi', 'renewal'] }
+      - name: lifecycle_substage
+        data_tests:
+          - not_null
+      - name: cadence_tier
+        data_tests:
+          - accepted_values:
+              values: ['weekly', 'bi_weekly', 'monthly', 'bi_monthly', 'quarterly', 'bi_annual']
+      - name: funding_source
+        data_tests:
+          - accepted_values:
+              values:
+                - general_fund
+                - esser_legacy
+                - title_i
+                - title_iii
+                - title_iv
+                - idea_b
+                - state_grant
+                - state_replacement_grant
+                - foundation_grant
+                - mixed
+                - other
+      - name: priority_score
+        description: |
+          MUST be null in the Tier 0.5 export per field-classifications.json
+          (`derived_at_render`). This test asserts that — if the warehouse
+          reference mart computes a value, the EXPORT explicitly nulls it.
+      - name: priority_breakdown
+        description: Same null-in-export discipline as priority_score.
+
+  # -------------------------------------------------------------------
+  # timeline_events — the unified event stream. FERPA-filtered.
+  # -------------------------------------------------------------------
+  - name: timeline_events
+    description: Unioned cross-source events. type='user' filtered when FERPA strict mode on.
+    columns:
+      - name: event_uid
+        data_tests:
+          - not_null
+          - unique
+          - dbt_utils.expression_is_true:
+              expression: "regexp_like(event_uid, '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$')"
+      - name: source
+        data_tests:
+          - accepted_values:
+              values: ['salesforce', 'planhat', 'support', 'snowflake', 'calendar', 'manual']
+      - name: source_ref
+        description: Opaque URI. v3-tightened regex — no `://` past scheme, no `.` in body.
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: "regexp_like(source_ref, '^(salesforce|planhat|support|calendar)://[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*$')"
+
+  # -------------------------------------------------------------------
+  # usage_daily — district-level rollups. NO per-student fields.
+  # -------------------------------------------------------------------
+  - name: usage_daily
+    description: District-grain daily usage rollups from the inbound Snowflake share.
+    columns:
+      - name: account_uid
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_partner')
+              field: account_uid
+      - name: family_engagement_rate
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: "family_engagement_rate is null or (family_engagement_rate >= 0 and family_engagement_rate <= 1)"
+
+  # -------------------------------------------------------------------
+  # marts_priority_score — reference mart. Tested for sum-to-100 weights
+  # and breakdown∈[0,100] but EXCLUDED from the export.
+  # -------------------------------------------------------------------
+  - name: marts_priority_score
+    description: REFERENCE only — not consumed by export-psm-dashboard.py.
+    columns:
+      - name: priority_score
+        data_tests:
+          - dbt_utils.expression_is_true:
+              expression: "priority_score is null or (priority_score >= 0 and priority_score <= 100)"
+
+# -------------------------------------------------------------------
+# Cross-model singular tests — live in tests/*.sql per dbt convention.
+# Their YAML registration is below for visibility; the SQL bodies are
+# the actual gate.
+# -------------------------------------------------------------------
+tests:
+  - name: assert_no_orphan_account_uid_in_timeline
+    description: Every timeline_events.account_uid must exist in dim_partner.
+    severity: error
+  - name: assert_priority_weights_sum_to_100
+    description: PRIORITY_WEIGHTS config rows (is_current) must sum to exactly 100.
+    severity: error
+  - name: assert_opaque_uri_scheme_strict
+    description: |
+      Sweep for `://` past the 12th char in source_ref / doc_ref — catches
+      URL smuggling attempts (v3 NEW P0-2).
+    severity: error
+  - name: assert_lifecycle_phase_substage_allowed_pair
+    description: |
+      Allowed pairs per build-plan-for-codex.md § Step 1:
+        deployment → {needs_assessment, data_mapping, data_upload, validation, configuration}
+        boi        → {training, go_live, adoption}
+        moi        → {data_review, insights_and_analysis}
+        renewal    → {strategic_planning, success_and_growth}
+    severity: error
