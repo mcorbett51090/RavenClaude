@@ -167,6 +167,22 @@ from scratch (a restart there costs only a few calls — not worth the partial-s
 - **Fail-fast:** G1 BLOCK and a G7 `reject` short-circuit the expensive G2–G6 core when an idea is
   under-specified or non-viable.
 
+### Thinking budget for the reasoning gates (cost ↔ depth lever)
+The gates that do **adversarial reasoning over a whole plan** — the **G2/G3 divergent panels**, the
+**G4a critic** (correlated-error hunt), and the **G5 red-team** (failure-mode hunt) — are exactly the
+"complex decision / strategic analysis" case that benefits most from **extended thinking**. When you
+dispatch those subagents, **instruct them to engage maximum reasoning** — append the `ultrathink`
+keyword to the brief (Claude Code's documented one-prompt escalation; see
+[`docs/token-budget-playbook.md`](../../../../docs/token-budget-playbook.md)). Reserve it for *those*
+gates: G0 scope, G1 fact-lookup, G4b tiebreaks, and G7 routing are shallow/deterministic and do **not**
+warrant the extra tokens. This is a deliberate **cost ↔ depth** trade — scale it down with depth
+(`--depth quick` can skip the escalation; `standard`/`deep` should keep it on the critic + red-team,
+where a missed correlated error is the most expensive failure FORGE exists to catch).
+
+> **Why a brief instruction and not a CLI flag:** `claude -p` exposes **no** thinking-budget flag
+> (verified: `claude --help` shows only `--max-budget-usd`). The sanctioned lever on this surface is the
+> in-prompt `ultrathink` keyword — which is why this lives in the seat **briefs**, not in engine config.
+
 ## 5. Shared rubric (tiebreak F7 — don't re-author)
 The two-panel lens definitions, the P0/P1 severity rubric, and the routing-signal schema are the **same**
 ones `.claude/workflows/two-panel-plan-review.js` uses. FORGE shares those constants (one source of

@@ -77,9 +77,10 @@ flowchart TB
 The pieces exist — the `loop` skill, the `send_later` self-check-in tool, and `subscribe_pr_activity` PR-babysitting — but there is no single documented **scheduled / overnight-run** pattern that ties them into the article's "Scheduled Tasks" idea, nor a comfort-posture that sanctions a scoped unattended run.
 **Gap:** a knowledge note + a posture for sanctioned unattended/scheduled runs, sitting inside the existing guardrails (`guard-destructive.sh`, `comfort-posture.yaml`).
 
-### B3 · Caching is taught but not dogfooded *(cheapest, highest-ROI)*
+### B3 · Caching is taught but not dogfooded *(originally flagged cheapest/highest-ROI)*
 The repo fires many `claude -p` subprocesses (forge seats, tribunal decisions) whose prompts repeat large stable context — `CLAUDE.md`, gate prompts, rubrics — i.e. prime `cache_control` candidates. Yet `prompt-caching-playbook.md` aims at *consumers*, not the repo's own machinery.
-**Gap:** apply the existing playbook internally to the seat/tribunal call sites to cut their cost. The knowledge already exists; only the application is missing.
+
+> **Correction (2026-06-04, verified post-merge — supersedes the gap above).** Grounding this in the actual call sites ([`thing-decide.py:194`](../../../plugins/ravenclaude-core/scripts/thing-decide.py)) shows the seats shell out to the **`claude -p` CLI**, which manages prompt caching **server-side automatically** — there is no `cache_control` breakpoint to set when you invoke the CLI (that is an **API**-level control, which is what `prompt-caching-playbook.md` correctly documents for app-builders). The role-brief system prompts passed via `--append-system-prompt` are already constant strings, so automatic cache reuse already applies within the 5-minute TTL. **Net: there is essentially no correct code change here** — the original B3 overstated the gap. The only residual lever is keeping seat-prompt prefixes stable/ordered to maximize automatic hits, which the code already does. This box is the honest record of that correction.
 
 ### B4 · Single install surface *(strategic, not code)*
 Article item 13 shows Skills installing into **Cowork** ("Browse plugins → install"), and items 11 (Cowork) and 12 (Scheduled Tasks) are themselves plugin/skill consumers. RavenClaude positions exclusively as a *Claude Code* marketplace.
@@ -101,20 +102,22 @@ These are listed so the reader can see they were weighed, not missed.
 
 RavenClaude already operationalizes the **developer-grade version of ~10 of the 17** capabilities, and treats three of them (Skills, Claude Code, CLAUDE.md) as its core product. The real gaps are narrow and all about **dogfooding and reach**, not missing knowledge:
 
-1. **B3 — dogfood prompt caching** in the repo's own `claude -p` seats. Cheapest, highest ROI; the playbook already exists.
-2. **B1 — thinking-budget convention** for forge/tribunal reasoning calls.
-3. **B2 — formalize the overnight/scheduled-run pattern** from the loop / `send_later` / PR-babysitting pieces.
-4. **B4 — decide whether Cowork is a second audience** (strategic question for Matt).
+1. **B1 — thinking-budget convention** for forge/tribunal reasoning calls.
+2. **B2 — formalize the overnight/scheduled-run pattern** from the loop / `send_later` / PR-babysitting pieces.
+3. **B4 — decide whether Cowork is a second audience** (strategic question for Matt).
+4. **B3 — ~~dogfood prompt caching~~** — *withdrawn; see the correction box under B3.* The `claude -p` CLI auto-caches server-side, so there is no `cache_control` change to make at the seat layer.
 
 The consumer/personal items (Bucket C) are correctly out of scope.
+
+> **Follow-up status (2026-06-04):** B1, B2, and B4 were acted on in PR-followup — B1 as a forge/decision-review prompt-convention change, B2 as `docs/best-practices/scheduled-and-overnight-runs.md`, B4 as the proposal `docs/proposals/2026-06-04-cowork-as-second-install-surface.md`. B3 was withdrawn per the correction above.
 
 ## Recommendations (prioritized — proposals, not committed work)
 
 | Priority | Action | Why first / notes |
 |---|---|---|
-| **P1** | Dogfood `cache_control` on the forge-seat and tribunal `claude -p` call sites, per the existing `prompt-caching-playbook.md`. | Highest ROI, lowest risk; knowledge already in-repo. Measure seat-call token cost before/after. |
-| **P1** | Add a thinking-budget convention to `forge-pipeline` and `decision-review` (when seats/critic/red-team engage extended thinking). | Directly improves the repo's highest-stakes reasoning; small, localized doc + prompt change. |
-| **P2** | Write an overnight/scheduled-run pattern note tying `loop` + `send_later` + `subscribe_pr_activity` together, gated by a new comfort-posture. | Must respect the existing destructive/high-blast guards; design before building. |
-| **P2 (decision)** | Resolve B4 — Cowork as a second install surface — with Matt before any packaging change. | Genuine-preference call; route through the tribunal / `AskUserQuestion` per repo convention. |
+| **P1 ✅ done** | Add a thinking-budget convention to `forge-pipeline` and `decision-review` (when the G4a critic / G5 red-team / divergent panels engage extended reasoning). | Directly improves the repo's highest-stakes reasoning; prose-only (no guarded-engine mutation — see the convention's "why not the engine" note). |
+| **P2 ✅ done** | Write an overnight/scheduled-run pattern note tying the `loop` + `send_later` + `subscribe_pr_activity` pieces together, inside the existing destructive/high-blast guards. | Shipped as `docs/best-practices/scheduled-and-overnight-runs.md`. |
+| **P2 (decision) ✅ teed up** | Resolve B4 — Cowork as a second install surface — with Matt before any packaging change. | Recommendation shipped as a proposal doc; the go/no-go is Matt's. |
+| ~~**P1**~~ withdrawn | ~~Dogfood `cache_control` on the seat call sites~~ | The `claude -p` CLI auto-caches; no API breakpoint to set. See the B3 correction box. |
 
-Each recommendation is a separate effort; this document does not implement any of them.
+The three actioned items above were carried out as low-risk prose/doc changes; B3 was withdrawn after verification.
