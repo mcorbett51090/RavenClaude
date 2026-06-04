@@ -1,66 +1,77 @@
-# Build plan for Codex — Partner Success Command Center, Tier 0 (v2)
+# Build plan for Codex — Partner Success Command Center, Tier 0 (v3)
 
 **Audience:** a fresh **Codex (GPT-5.5) session running in GitHub Copilot CLI**, in a Codespace with RavenClaude installed. Codex is the engineer; this file is the engineer's brief. **Self-contained — do not ask Matt to clarify what's already in here.**
 
-**Scope:** Tier 0 of [`plan.md`](./plan.md) — JSON schema + synthetic fixture + seeded generator + cross-entity integrity gate + two knowledge files. **Zero render changes, zero version bump, zero new agent, zero CLAUDE.md milestone.** Tier 1 ships those.
+**Scope:** Tier 0 of [`plan.md`](./plan.md) — JSON schema + field-classifications + synthetic fixture + seeded generator + cross-entity integrity gate + three knowledge files. **Zero render changes, zero version bump, zero new agent, zero CLAUDE.md milestone.** Tier 1 ships those.
 
-**Version note (v2 vs v1):** v1 of this brief had **17 P0 issues** found by a 4-panel cold review (security/FERPA, PSM-operational, data-engineering, architect). v2 is the rewrite that closes them. Highlights of what changed from v1 to v2 are inline in §"What v2 fixes" — do NOT search for v1; this file IS the spec.
-
----
-
-## 0. What v2 fixes (so you know which v1 assumptions to drop)
-
-- **Partner-shape collision:** v1 said "extend, never replace" but then redefined `partners[]` with `additionalProperties: false` AND a 4-key `health_components` that omitted the existing fixture's `champion` + `usage`. v2 merges (superset) — every existing key stays; the existing 6-key component taxonomy is preserved; new fields are **added alongside**.
-- **Priority-score math:** v1's `priority_breakdown` was simultaneously "per-signal contribution percent summing to 100" AND "the score is the weighted sum" — unsatisfiable. v2: `priority_breakdown[k]` = raw 0–100 signal value; `priority_score` = `sum(weights[k] * breakdown[k]) / 100`; the "per-signal contribution percent" is **derived at render time**, never stored.
-- **FERPA grep:** v1's grep had `\|` (literal pipe in ERE, not alternation) and `; echo "exit=$?"` (always exit 0 — no gate). v2 ships a hardened denylist as a real CI gate, exit-coded.
-- **`account_uid` format:** v1 allowed UUID-or-SFDC-shape — unenforceable. v2: strict UUIDv4 only; real SFDC ID lives in `bridge_account_xref.salesforce_id`.
-- **Prettier byte-equality clash:** v1 ran `prettier --write .` before `diff` against `synthesize.py` output → silent drift. v2 adds `plugins/edtech-partner-success/bi-report/data.json` to `.prettierignore` so `synthesize.py` is the canonical formatter.
-- **Cross-entity integrity:** v1 only asserted at generation time. v2 ships `scripts/check-psm-data-integrity.py` and registers it as a CI gate so hand-edits are caught.
-- **`priority_weights` sum-to-100:** v1 mandated it in prose; JSON Schema can't express sum constraints. v2 enforces in the integrity check script.
-- **Schema versioning:** v1 had `$id` but no `schema_version`. v2 adds `schema_version: 1` as required.
-- **Tier 0.5 drop-in contract:** v1's "transparently swaps to real data" had no test. v2 ships `data.export.schema.json` profile (looser; Tier 0.5 production-required minimum).
-- **Lifecycle stage:** v1 collapsed the spec's 2-level (phase × 12 substates) into a 4-value flat enum. v2 splits into `lifecycle_phase` + `lifecycle_substage`.
-- **Renewal-timing formula:** v1 linear (`max(0, 100 - days)`) mis-ranks. v2 uses the spec's bucket model (≤30→100, ≤60→85, ≤90→65, ≤120→40, ≤180→20, else 0).
-- **`days_since_touchpoint` cadence-aware:** v1 ignored the cadence file. v2 uses `days_overdue_vs_cadence`, with `cadence_tier` on `partners[]` + dead-zone suppression.
-- **ARR signal:** v1 hardcoded `arr / 5000`. v2 uses portfolio-percentile rank.
-- **Top 15:** v1 was a bare bool. v2 is `top15: {is_member, reason, owner, designated_at} | null`.
-- **PII leak via URL fields:** v1 left `doc_url` and `source_ref_url` as free-text URIs. v2 uses an opaque internal scheme (`salesforce://<account_uid>/event/<event_uid>`) until Tier 0.5, with a schema regex blocking `https://` querystrings.
-- **`additionalProperties: false` discipline:** v2 makes it explicit on every nested object subschema, with the integrity script asserting closed-object structure across the whole compiled schema.
-- **`org_uid` everywhere:** v2 carries `org_uid` on every entity record (not just top level), so multi-tenant doesn't require a backfill.
-- **MUST-NOT list extended:** v2 adds the Codex traps the review panels surfaced.
+**Version note:** v1 had 17 P0 issues found by a 4-panel cold review. v2 closed most v1 P0s but introduced ~10 NEW P0s (a rewrite-introduces-regressions trap). v3 closes the v1 + v2 P0s together. The cumulative changelog below is what you, Codex, need to know — do NOT look for v1 or v2; this file IS the spec.
 
 ---
 
-## 1. Pre-flight (5 min)
+## 0. What v3 closes (cumulative since v1)
 
-Before touching files, Codex MUST do all of these. They take seconds and avoid the failure modes that ate the overnight 2026-06-04 session (file-state drift, draft CI quirks, layout misses, regen side effects).
+### From the v1 round (closed in v2, verified in v3):
+
+- Partner-shape collision: `partners[]` is now a strict superset of the existing fixture's 11-field shape. The existing 6-key `components` block is preserved verbatim; new fields are added alongside under new names.
+- Priority math: `priority_breakdown[k]` = raw 0–100 signal value (clamped); `priority_score` = `sum(weights[k] * breakdown[k]) / 100`; per-signal contribution percent is derived at render time, never stored.
+- FERPA grep: hardened denylist as an exit-coded CI gate.
+- `account_uid` format: strict UUIDv4 only; real SFDC ID lives in `bridge_account_xref.salesforce_id`.
+- Prettier byte-equality clash: `data.json` added to `.prettierignore`.
+- Cross-entity integrity: `scripts/check-psm-data-integrity.py` registered as a CI gate.
+- `priority_weights` sum-to-100 enforced in the integrity script.
+- `schema_version` required field + evolution policy.
+- `lifecycle_phase` × `lifecycle_substage` split per spec's 12 substates.
+- `top15` structured object.
+- URL fields use opaque scheme.
+
+### NEW v3 closures (issues v2 left or introduced):
+
+- **band enum:** v2 said `"g"/"y"/"r"` in §Step 3 — that was a typo. v3 forces `"green"/"yellow"/"red"` everywhere (matches existing fixture).
+- **`priority_breakdown.days_overdue_vs_cadence` was unbounded** (could exceed 100 → schema collision). v3 uses a bucket model parallel to `renewal_timing`, capped at 100.
+- **`usage_decline` was directionally wrong + unbounded** (growth scored as high decline; declining partners scored >100). v3 uses a corrected formula with explicit cap.
+- **Gate 52 must-fail was audit theater** (invalid UUIDv4 made jsonschema check fail first, not orphan check). v3 uses a valid-but-orphan UUIDv4.
+- **Opaque URI regex allowed `:` and `/` → URL smuggling possible.** v3 tightens to forbid `:` after the scheme separator and forbid `//` anywhere in the body.
+- **Exception traceback leaked failing PII row to CI logs.** v3 wraps `assert_no_pii` in try/except + scrubs to field path only + sets `sys.tracebacklimit = 0` before the check.
+- **`bridge_account_xref.salesforce_id` had no synthetic-only constraint** (Tier 0.5 could ship real production IDs). v3 mandates `synthetic-` prefix in Tier 0; integrity check rejects committed rows missing the prefix.
+- **Dead-zone dates were "state-variable" with no concrete data.** v3 ships a `dashboard-dead-zones.md` table keyed on US state.
+- **`next_touchpoints[]` didn't guarantee one `cadence_projection` per type per partner** → some partners would show empty countdown lists. v3 requires per-partner coverage.
+- **`funding_source` enum:** `iii_eia` was a typo + `esser` is past liquidation. v3 uses the correct 2026 enum.
+- **Existing 11 partner names include real US collisions** (Riverside Unified, Mesa Community College, Granite State University, Cedar Valley Schools, Northshore Academy). v3 audits + renames as part of Tier 0.
+- **`enrollment` was scope creep** (not in spec, plus a quasi-identifier risk at Tier 0.5). v3 drops it.
+- **`cadence_tier` leaks PSM judgment.** v3 marks it `synthetic_only` in `field-classifications.json`; Tier 1 recomputes from ARR + segment + lifecycle.
+- **Legacy block subschemas not enumerated.** v3 mandates Codex enumerates the inner shape of `report{}`, `bands{}`, `components[]`, `kpis[]`, `cohort{}`, `trend_weeks[]`, `portfolio_trend[]`, `_README` from the existing fixture so `additionalProperties: false` doesn't reject them at a level deeper than top-level.
+- **Integrity script missed contract-cardinality + role-coverage checks.** v3 adds checks #11 (exactly one `kind: current` per partner) and #12 (exactly one champion + one exec_sponsor per partner).
+- **jsonschema silent-skip on dev box could mask a stale gate-audit.** v3 makes check #1 LOUD-skip with explicit "THIS IS NOT A PASS" when `${CI:-}` is empty.
+- **Synth/prod boundary lived only in comments.** v3 ships `bi-report/field-classifications.json` as a third artifact; integrity script enforces it.
+
+---
+
+## 1. Pre-flight
 
 | # | Action | Command | Confirm |
 |---|---|---|---|
-| 1 | Sync main | `git fetch origin main && git checkout origin/main` | tip is the latest main commit |
+| 1 | Sync main | `git fetch origin main && git checkout origin/main` | tip is latest main |
 | 2 | New branch | `git checkout -b feat/psm-dashboard-tier-0-foundation` | switched |
-| 3 | Read this brief in full | `cat docs/plans/2026-06-04-partner-success-command-center/build-plan-for-codex.md` | every section, not just headers |
+| 3 | Read this brief in full | (open the file) | every section |
 | 4 | Read the strategic plan | `cat docs/plans/2026-06-04-partner-success-command-center/plan.md` | full file |
 | 5 | Read the SME spec | `cat docs/research/2026-06-04-partner-success-dashboard-requirements/spec.md` | full file |
-| 6 | Read the **existing** fixture | `cat plugins/edtech-partner-success/bi-report/data.json \| head -200` | identify EXISTING `partners[]` shape — v2 merges, never replaces (§2 below) |
+| 6 | Read the EXISTING fixture | `cat plugins/edtech-partner-success/bi-report/data.json \| head -200` | confirm top-level keys + 11 partners + band enum is `"green"/"yellow"/"red"` |
 
-**Read also (priors that constrain design — internalize before writing code):**
+**Read also (priors that constrain design):**
 
-- `plugins/edtech-partner-success/CLAUDE.md` — house rules 1 (partner profile = SoT), 4 (cite the signal), 8 (rostering = silent killer), 12 (provenance on every claim).
-- `plugins/edtech-partner-success/knowledge/partner-health-score-drift.md` — health-score decay model.
-- `plugins/edtech-partner-success/knowledge/k12-psm-operating-cadence.md` — cadence tiers + dead zones (load-bearing for the `days_overdue_vs_cadence` signal).
-- `plugins/edtech-partner-success/knowledge/partner-health-decline-which-play.md` — recommended_action source.
-- `plugins/data-platform/skills/cross-system-identity-resolution/SKILL.md` — identity-spine pattern. Tier 0 references; doesn't re-author.
+- `plugins/edtech-partner-success/CLAUDE.md` — house rules 1, 4, 8, 12.
+- `plugins/edtech-partner-success/knowledge/partner-health-score-drift.md`.
+- `plugins/edtech-partner-success/knowledge/k12-psm-operating-cadence.md`.
+- `plugins/edtech-partner-success/knowledge/partner-health-decline-which-play.md`.
+- `plugins/data-platform/skills/cross-system-identity-resolution/SKILL.md`.
 
 ---
 
-## 2. The existing fixture — what v2 inherits and MUST preserve
+## 2. The existing fixture — preserve as superset, but RENAME real-collision partners
 
-The existing `bi-report/data.json` has these top-level keys (read it to confirm):
+Existing `bi-report/data.json` top-level keys: `report{}`, `_README`, `bands{}`, `components[]`, `kpis[]`, `cohort{}`, `trend_weeks[]`, `portfolio_trend[]`, `partners[]`.
 
-- `report{}`, `_README`, `bands{}`, `components[]`, `kpis[]`, `cohort{}`, `trend_weeks[]`, `portfolio_trend[]`, `partners[]`.
-
-**Existing `partners[]` shape (11 partners today):**
+Existing `partners[]` shape (preserved verbatim except for names — see below):
 
 ```
 {name, segment, psm, score, delta, band,
@@ -68,9 +79,27 @@ The existing `bi-report/data.json` has these top-level keys (read it to confirm)
  spark[], flags[], play, last_touch, next_qbr, renewal}
 ```
 
-**v2 superset rule:** every existing per-partner key STAYS. New Tier 0 fields are ADDED ALONGSIDE. `health_components` in v1 was a 4-key subset — **v2 drops `health_components` entirely** and uses the existing `components` block (already 6 keys). New name fields use new names, not name-collisions with old ones.
+**band enum is `"green" | "yellow" | "red"` — full words, never abbreviated.**
 
-**Existing top-level blocks STAY.** v2 schema enumerates ALL of them as known top-level properties so the compiled `additionalProperties: false` doesn't reject the existing fixture.
+### Existing 11 names — RENAME these 5 (real-collision risks):
+
+| Existing name | Real-world collision | v3 replacement |
+|---|---|---|
+| `Riverside Unified` | Riverside USD CA (41k students) | `Quokka Valley Schools` |
+| `Mesa Community College` | Mesa Community College AZ | `Marmotview Unified` |
+| `Granite State University` | Granite State College NH | `Glassmere ISD` |
+| `Cedar Valley Schools` | Cedar Valley Community SD IA | `Stonebridge Unified` |
+| `Northshore Academy` | Northshore SD WA | `Norrwhisper Schools` |
+
+Keep these 6 (acceptably generic / no real-collision): `Brightpath Charter`, `Harbor District`, `Summit Learning Co-op`, `Lakeside Public Schools`, `Pinecrest ISD`, `Willowbrook Schools`.
+
+**Discipline:** when you rename, ALSO update the `kpis[]` block + any other inline references to the old names so the fixture stays internally consistent. Run `grep -E 'Riverside Unified|Mesa Community College|Granite State University|Cedar Valley Schools|Northshore Academy' plugins/edtech-partner-success/` after the rename — exit 1 (no match) is success.
+
+### All 14 NEW partners use the v3 fictional name list:
+
+`Wendelhart Public Schools`, `Pellington County Schools`, `Brindleford School District`, `Tussocksprings ISD`, `Kelpforest Public Schools`, `Beigewood Unified`, `Cobblefern School District`, `Murmuring Pines ISD`, `Thistlebrook Unified`, `Quillgarden Schools`, `Saltmarsh Unified`, `Ferncast ISD`, `Heronwood Public Schools`, `Briarholm Unified`.
+
+(v2's list dropped 5 names; v3 replaces them so the curated list stays 14 + the 5 renames = 19 deliberately-fictional names alongside the 6 acceptably-generic ones from the existing fixture.)
 
 ---
 
@@ -78,79 +107,99 @@ The existing `bi-report/data.json` has these top-level keys (read it to confirm)
 
 | # | File | Action | Purpose |
 |---|---|---|---|
-| 1 | `plugins/edtech-partner-success/bi-report/data.schema.json` | **CREATE** | Authoritative JSON Schema. |
-| 2 | `plugins/edtech-partner-success/bi-report/data.export.schema.json` | **CREATE** | Looser export profile for Tier 0.5 real-data drop-in (closes architect P0-4). |
-| 3 | `plugins/edtech-partner-success/bi-report/data.json` | **EDIT** (superset, do not replace) | Extend with the new Tier 0 blocks. Every existing key stays. |
-| 4 | `plugins/edtech-partner-success/bi-report/synthesize.py` | **CREATE** | Seeded generator; reproducible; FERPA self-check at end. |
-| 5 | `scripts/check-psm-data-integrity.py` | **CREATE** | Cross-entity refs + sum-to-100 + FERPA + closed-object gate. |
-| 6 | `plugins/edtech-partner-success/knowledge/dashboard-identity-spine.md` | **CREATE** | bridge_account_xref shape; references the SKILL. |
-| 7 | `plugins/edtech-partner-success/knowledge/dashboard-priority-score-rubric.md` | **CREATE** | The rubric: signal formulas + weights + sum-to-100 invariant + Tier 0.5 export contract. |
-| 8 | `plugins/edtech-partner-success/knowledge/dashboard-schema-evolution.md` | **CREATE** | `schema_version` evolution policy. |
-| 9 | `.prettierignore` | **EDIT** (append) | Add `plugins/edtech-partner-success/bi-report/data.json` so synthesize.py is the canonical formatter (closes data-eng P0-4). |
-| 10 | `scripts/audit-gates.sh` | **EDIT** (append) | Wire `check-psm-data-integrity.py` as a gate with a must-fail half. |
-| 11 | `.repo-layout.json` | **VERIFY ONLY** | Both `bi-report/**` and `knowledge/**` already covered. Confirm via the snippet in §6. |
+| 1 | `plugins/edtech-partner-success/bi-report/data.schema.json` | CREATE | Authoritative JSON Schema. |
+| 2 | `plugins/edtech-partner-success/bi-report/data.export.schema.json` | CREATE | Tier 0.5 production-required profile (subset). |
+| 3 | `plugins/edtech-partner-success/bi-report/field-classifications.json` | CREATE | Per-field tagging: `synthetic_only` / `production_required` / `derived_at_render` / `internal_only`. Read by Tier 1 renderer. |
+| 4 | `plugins/edtech-partner-success/bi-report/data.json` | EDIT (superset + rename collisions) | Extend with new blocks. Rename 5 partners (§2). Preserve every existing key on the other 6. |
+| 5 | `plugins/edtech-partner-success/bi-report/synthesize.py` | CREATE | Seeded generator. PII self-check wrapped in scrubbed try/except. |
+| 6 | `scripts/check-psm-data-integrity.py` | CREATE | 12 checks (incl. contract-cardinality + role-coverage; LOUD-skip jsonschema outside CI). |
+| 7 | `plugins/edtech-partner-success/knowledge/dashboard-identity-spine.md` | CREATE | bridge_account_xref shape + match_method aligned with the SKILL. |
+| 8 | `plugins/edtech-partner-success/knowledge/dashboard-priority-score-rubric.md` | CREATE | 9 signal formulas (with caps), default weights, contribution-percent derivation. |
+| 9 | `plugins/edtech-partner-success/knowledge/dashboard-schema-evolution.md` | CREATE | `schema_version` policy. |
+| 10 | `plugins/edtech-partner-success/knowledge/dashboard-dead-zones.md` | CREATE | State-keyed dead-zone table (concretizes `k12-psm-operating-cadence.md` deferrals). |
+| 11 | `.prettierignore` | EDIT (append) | Add `plugins/edtech-partner-success/bi-report/data.json`. |
+| 12 | `scripts/audit-gates.sh` | EDIT (append) | Wire Gate 52 with VALID-UUIDv4 orphan must-fail. |
+| 13 | `.repo-layout.json` | VERIFY ONLY | Already covered. |
 
-**Nothing else.** No `report.html`, no agent, no version bump, no CLAUDE.md milestone.
+**Nothing else.**
 
 ---
 
 ## 4. Step-by-step build order
 
-### Step 1 — `data.schema.json` (the contract)
+### Step 1 — `data.schema.json`
 
 JSON Schema draft 2020-12.
 
-**Top-level required fields** (this is the union of existing + new — failure to include the legacy keys = closed-schema rejection of the existing fixture):
+**Top-level required:** `schema_version`, `$id`, `org_uid`, `as_of`, `report`, `_README`, `bands`, `components`, `kpis`, `cohort`, `trend_weeks`, `portfolio_trend`, `priority_weights`, `partners`, `contacts`, `timeline_events`, `usage_daily`, `usage_daily_school`, `success_plans`, `contracts`, `tickets`, `calendar_events`, `bridge_account_xref`.
 
-```
-schema_version, $id, report, _README, bands, components, kpis, cohort,
-trend_weeks, portfolio_trend, org_uid, as_of, priority_weights,
-partners, contacts, timeline_events, usage_daily, success_plans,
-contracts, tickets, calendar_events, bridge_account_xref
-```
+**`additionalProperties: false` on the top-level AND on every nested object schema** — the brief mandates this; the integrity script asserts recursive closed-object structure (check #3).
 
-Top-level `additionalProperties: false`. Every nested object schema (one level deep, two levels deep, …) ALSO carries `additionalProperties: false` — the integrity script (§Step 5) asserts this recursively.
+**LEGACY-BLOCK SUBSCHEMAS — enumerate them from the existing fixture:**
 
-**`$id`:** `"urn:ravenclaude:psm-dashboard-data"` (opaque URN — avoid the `https://ravenpower.net/...` v1 trap; no resolver expectation).
+You MUST inspect the existing `data.json` and ship subschemas for these blocks (closed objects + correct types):
 
-**`schema_version`:** integer, `const: 1`. Renderers refuse to render an unrecognized version. Evolution policy lives in `dashboard-schema-evolution.md` (§Step 8).
+- `report` → `{title: string, subtitle: string, refreshed: date, synthetic: bool, owner: string}`.
+- `_README` → string (top-level, type: `["string"]`).
+- `bands` → `{green: [integer, integer], yellow: [integer, integer], red: [integer, integer]}` (each is a 2-element tuple).
+- `components` (array) → element schema: `{key: string, name: string, weight: integer, half_life_days: integer, plain: string}`. The 6 keys are: `adoption | touchpoint | outcome | sentiment | champion | usage`.
+- `kpis` (array) → element schema: inspect existing fixture; capture every key.
+- `cohort` → inspect.
+- `trend_weeks` (array) → element schema: string (week labels) — inspect.
+- `portfolio_trend` (array) → element schema: number — inspect.
 
-**`org_uid`:** strict UUIDv4 — `pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"`. Meaningful-string `org_uid` fails CI.
+(If the existing fixture has additional properties you didn't enumerate, the integrity script's recursive closed-object check fires and you fix in the same PR.)
 
-**`as_of`:** date-time (UTC). Note: every datetime field in the schema is UTC; date-only fields (`renewal_date`, `contract_start`, `contract_end`) are calendar dates with no time component but interpreted as 00:00 UTC for math.
+**`$id`:** `"urn:ravenclaude:psm-dashboard-data"`.
 
-**Per-entity schemas — REQUIRED fields:**
+**`schema_version`:** integer, `const: 1`.
 
-#### `partners[]` (superset of existing + new)
+**`org_uid`:** strict UUIDv4 regex `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`.
 
-Existing keys (preserve exactly):
-- `name` · `segment` · `psm` · `score` · `delta` · `band` · `components{adoption, touchpoint, outcome, sentiment, champion, usage}` · `spark[]` · `flags[]` · `play` · `last_touch` · `next_qbr` · `renewal`
+**`as_of`:** date-time (UTC).
 
-New v2 keys:
+**Per-entity required fields:**
+
+#### `partners[]` (superset of existing 13 keys + new v3 keys)
+
+Existing 13 keys PRESERVED EXACTLY: `name`, `segment`, `psm`, `score`, `delta`, `band` (enum `["green","yellow","red"]`), `components` (6-key object), `spark` (array of numbers), `flags` (array of strings), `play`, `last_touch`, `next_qbr`, `renewal`.
+
+New v3 keys ADDED:
+
 - `account_uid` (strict UUIDv4)
-- `org_uid` (UUIDv4 — every entity record carries it; closes security P1-4, data-eng P1-4)
-- `state` (US-state 2-char enum: `["AL","AK","AZ", ... "WY"]`)
+- `org_uid` (UUIDv4 — every entity record)
+- `state` (US-state 2-char enum: 50 states + DC)
 - `arr` (number ≥ 0)
-- `enrollment` (integer | null — public-record district enrollment; closes PSM P2-5)
 - `contract_start`, `contract_end`, `renewal_date` (dates)
-- `funding_source` (enum: `general_fund | esser | title_i | title_iv | iii_eia | state_grant | foundation_grant | mixed | other` — PSM P1-8)
+- `funding_source` (enum — see corrected list below)
 - `owner_psm`, `sfdc_owner` (string)
-- `top15` (object `{is_member: bool, reason: enum(community_size|strategic_logo|expansion_potential|reference_account|other), owner: string, designated_at: date} | null` — PSM P0-5)
+- `top15` (`{is_member: bool, reason: enum, owner: string, designated_at: date}` OR `null` — `oneOf` in schema)
 - `lifecycle_phase` (enum: `deployment | boi | moi | renewal`)
-- `lifecycle_substage` (enum, allowed values depend on phase per the table below — PSM P0-1)
+- `lifecycle_substage` (enum, paired per allowed table below)
 - `stage_entered_at` (date-time)
 - `last_touchpoint_at` (date-time | null)
-- `cadence_tier` (enum: `weekly | monthly | quarterly` — PSM P0-3)
-- `next_touchpoints` (array of `{type: enum(checkin|qbr|renewal_meeting|strategic|pd_session|success_plan_review|sentiment_update|health_check), due_at: date-time, derived_from: enum(calendar_event|cadence_projection)}` — PSM P1-7; replaces v1's single `next_required_touchpoint_at`)
+- `cadence_tier` (enum: `weekly | bi_weekly | monthly | bi_monthly | quarterly | bi_annual` — extended per PSM P1-4)
+- `next_touchpoints` (array of `{type, due_at, derived_from}` — see Step 3 for cardinality)
 - `sentiment_score` (number 0–100)
-- `engagement_score` (number 0–100 — defined as `100 * percentile_rank(messages_sent_30d_per_active_user, all_partners)`, computed in synthesize.py and documented in rubric file)
-- `usage_trend_30d_pct` (number — precomputed in synthesize.py; rubric depends on it; closes data-eng P1-8)
+- `engagement_score` (number 0–100 — labeled `synthetic_only` in field-classifications, percentile-rank derivation)
+- `usage_trend_30d_pct` (number — SIGNED percent; positive = growth, negative = decline)
 - `priority_score` (number 0–100)
-- `priority_breakdown` (object: required keys = exactly the 9 signal names; values 0–100 raw signal values; `additionalProperties: false`)
+- `priority_breakdown` (object with 9 required keys, values 0–100, `additionalProperties: false`)
 - `open_escalations` (integer ≥ 0)
 - `open_tickets` (integer ≥ 0)
 
-**Allowed `lifecycle_phase` × `lifecycle_substage` pairs** (closes PSM P0-1; the schema does this with `if/then/else` per phase, OR — easier — the integrity script asserts the allowed-pairs table):
+**v3 NOTE:** `enrollment` is REMOVED from v2's spec — it's scope creep beyond what the spec asked for and a quasi-identifier at Tier 0.5.
+
+**v3 CORRECTED `funding_source` enum:**
+
+```
+general_fund | esser_legacy | title_i | title_iii | title_iv | idea_b |
+state_grant | state_replacement_grant | foundation_grant | mixed | other
+```
+
+(v2's `iii_eia` was a typo; ARP-ESSER liquidation deadline was Jan 2025 with some Mar 2026 extensions, so `esser` is renamed `esser_legacy`; `state_replacement_grant` reflects NY Smart Schools / CA LCFF supplemental.)
+
+**Allowed `lifecycle_phase × lifecycle_substage` pairs** (per spec, integrity-script enforced):
 
 | phase | allowed substages |
 |---|---|
@@ -161,287 +210,332 @@ New v2 keys:
 
 #### `contacts[]`
 
-`contact_uid` · `account_uid` · `org_uid` · `name` · `title` · `role` (enum: `champion | exec_sponsor | superintendent | tech_lead | family_engagement | stakeholder`) · `influence_level` (enum: `high | medium | low`) · `sentiment` (enum: `green | yellow | red`) · `last_interaction_at` (date-time | null).
-
-**Required role coverage** (synthesize.py asserts): every partner has exactly one `champion` and one `exec_sponsor`.
+`contact_uid` · `account_uid` · `org_uid` · `name` (MUST start `Demo:` — integrity check enforces) · `title` · `role` (enum: `champion | exec_sponsor | superintendent | tech_lead | family_engagement | stakeholder`) · `influence_level` (enum: `high | medium | low`) · `sentiment` (enum: `green | yellow | red`) · `last_interaction_at` (date-time | null).
 
 #### `timeline_events[]`
 
-`event_uid` · `account_uid` · `org_uid` · `type` (enum of 13 values: `closed_won | kickoff | data_mapping | go_live | training | qbr | checkin | success_plan_review | escalation | sentiment_change | renewal_conversation | expansion_conversation | success_plan_milestone`) · `ts` (date-time) · `source` (enum: `salesforce | planhat | support | snowflake | calendar | manual`) · `summary` (string ≤ 1000 chars — data-eng P2-3) · `source_ref` (string matching `^(salesforce|planhat|support|calendar)://[A-Za-z0-9._:/-]+$` — opaque internal scheme, NO `https://`; closes security P0-1 + P0-2) · `payload` (object, type-dependent — for `sentiment_change`: `{prior_score, new_score, reason, notes, action_plan}`; for `escalation`: `{severity, opened_at, owner}`; PSM P1-6).
+`event_uid` · `account_uid` · `org_uid` · `type` (enum: 13 values per v2 + `success_plan_milestone`) · `ts` (date-time) · `source` (enum: `salesforce | planhat | support | snowflake | calendar | manual`) · `summary` (string ≤ 1000 chars) · `source_ref` (string matching **v3 TIGHTENED regex** below) · `payload` (object — `oneOf` per type; for `sentiment_change`: `{prior_score, new_score, reason, notes, action_plan}`; closed-object per variant).
 
-#### `usage_daily[]`
+**v3 TIGHTENED `source_ref` regex** (closes security NEW P0-2 URL smuggling):
 
-District-level only (v2 — security P1-2 + data-eng P1-3 split): `{account_uid, org_uid, date, active_users, active_teachers, active_admins, messages_sent, messages_received, family_invited, family_activated, family_engagement_rate}`.
+```
+^(salesforce|planhat|support|calendar)://[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*$
+```
 
-#### `usage_daily_school[]` (NEW v2 — split from v1)
+(No `:` in path body. No `//` past the scheme separator. No `.` in path body — pathological dotted-names are blocked.)
 
-`{account_uid, org_uid, school_uid, school_name, date, active_users, usage_level}`. School-level rows live here; the district fact stays clean.
+#### `usage_daily[]` (district-level)
+
+`{account_uid, org_uid, date, active_users, active_teachers, active_admins, messages_sent, messages_received, family_invited, family_activated, family_engagement_rate}`.
+
+#### `usage_daily_school[]`
+
+`{account_uid, org_uid, school_uid, school_name (MUST start "Demo School:"), date, active_users, usage_level}`.
 
 #### `success_plans[]`
 
-`{plan_uid, account_uid, org_uid, name, owner, status (enum: on_track | at_risk | complete | overdue), goals: [{goal_uid, description, owner, due_date, progress_pct (0–100), status (same enum)}]}` — closes data-eng P1-2 (plan-level rolls up from goals).
+`{plan_uid, account_uid, org_uid, name, owner, status (enum), goals: [{goal_uid, description, owner, due_date, progress_pct, status}]}`.
 
-#### `contracts[]` (1-to-many — closes data-eng P1-1)
+#### `contracts[]` (1-to-many)
 
-`{contract_uid, account_uid, org_uid, kind (enum: current | previous | amendment | renewal_quote | order_form), doc_ref (string matching the opaque scheme regex above; NOT a public URL), start, end, arr, multi_year (bool), schools_included (int), licensed_users (int), products_purchased (string[]), pd_purchased_sessions (int), pd_completed_sessions (int), pd_expiration_date (date | null) — PSM P1-5}`.
+`{contract_uid, account_uid, org_uid, kind (enum: current | previous | amendment | renewal_quote | order_form), doc_ref (TIGHTENED regex above), start, end, arr, multi_year, schools_included, licensed_users, products_purchased, pd_purchased_sessions, pd_completed_sessions, pd_expiration_date}`.
 
-Synthesize.py asserts: exactly one `kind: "current"` per partner; can have 0 or more of every other kind.
+Integrity check #11: exactly one `kind: "current"` per `account_uid`.
 
 #### `tickets[]`
 
-`{ticket_uid, account_uid, org_uid, opened_at, status (enum: open | in_progress | resolved | closed), severity (enum: p1 | p2 | p3 | p4), theme (enum: adoption | data_quality | permissions | rostering | outage | feature_request | integration | training — PSM P2-1), age_days, is_escalation (bool)}`.
+`{ticket_uid, account_uid, org_uid, opened_at, status (enum), severity (enum), theme (enum: adoption | data_quality | permissions | rostering | outage | feature_request | integration | training | pricing | contract_question), age_days, is_escalation}`.
 
 #### `calendar_events[]`
 
-`{event_uid, account_uid, org_uid, type (enum: qbr | checkin | renewal_meeting | strategic | pd_session | success_plan_review | sentiment_update | health_check), scheduled_at, duration_min, status (enum: scheduled | completed | missed | cancelled | rescheduled — PSM P2-3)}`.
+`{event_uid, account_uid, org_uid, type (enum 8 values), scheduled_at, duration_min, status (enum: scheduled | completed | missed | cancelled | rescheduled | pending_confirmation)}`.
 
-#### `bridge_account_xref[]` (NEW v2 — closes data-eng P1-6)
+#### `bridge_account_xref[]`
 
-Modeled in `data.json`, not just docs: `{account_uid, salesforce_id, planhat_id, support_tool_id, snowflake_partner_key, match_method (enum from the SKILL: external_id | email_domain | name_fuzzy | manual | unresolved — closes data-eng P1-7), confidence (number 0–1), manual_override_reason (string | null), overridden_by (string | null), last_verified_at (date-time)}`.
+`{account_uid, salesforce_id, planhat_id, support_tool_id, snowflake_partner_key, match_method (SKILL enum: external_id | email_domain | name_fuzzy | manual | unresolved), confidence (number 0–1), manual_override_reason (string ≤ 200 chars | null), overridden_by (string | null), last_verified_at}`.
 
-In the synthetic fixture every row has `match_method: "external_id"`, `confidence: 1.0` (single-org single-source-of-truth posture). Real Tier 0.5 connectors populate the other methods.
+**v3 SYNTHETIC ID DISCIPLINE:** in the committed fixture, `salesforce_id`, `planhat_id`, `support_tool_id`, `snowflake_partner_key` MUST start with `synthetic-`. Integrity check #13 enforces this for `Tier 0` mode. Tier 0.5 runtime exports use a `--allow-real-ids` flag the integrity check honors.
 
 #### `priority_weights{}`
 
 ```json
 {
-  "renewal_timing": 20,
+  "renewal_timing": 18,
   "health_decline": 18,
-  "sentiment_decline": 12,
-  "days_overdue_vs_cadence": 12,
-  "open_escalations": 15,
+  "sentiment_decline": 10,
+  "days_overdue_vs_cadence": 10,
+  "open_escalations": 20,
   "ticket_volume": 5,
   "arr_percentile": 5,
   "top15_bonus": 5,
-  "usage_decline": 8
+  "usage_decline": 9
 }
 ```
 
-**Sum: 100.** Closes PSM P1-4 (bumped escalations, reduced renewal_timing). Required keys exactly these 9; `additionalProperties: false`.
+(v3 PSM-tuned: escalations bumped to 20 per PSM NEW P1-1 — open escalations outrank a 60-day renewal. Sum: 18+18+10+10+20+5+5+5+9 = **100**.)
 
-Sum-to-100 is **not schema-enforceable**; integrity script (§Step 5) asserts it.
+### Step 2 — `data.export.schema.json`
 
-### Step 2 — `data.export.schema.json` (Tier 0.5 drop-in contract)
+A separate schema that defines what Tier 0.5 export MUST produce vs. MAY omit.
 
-A second, looser schema that defines what a real Tier 0.5 export MUST produce. Closes architect P0-4.
-
-- All fields synthesize.py would mark `synthetic_only` are OPTIONAL here (e.g., `priority_breakdown` — Tier 0.5 may not compute it; renderer computes from raw signals if absent).
+- All fields marked `synthetic_only` in `field-classifications.json` are OPTIONAL here.
+- All fields marked `production_required` are REQUIRED.
+- All fields marked `derived_at_render` are OPTIONAL (renderer computes).
 - `org_uid` strict UUIDv4 still required.
-- Cross-entity referential integrity still required (the integrity script also takes a `--export-mode` flag that runs against this schema).
+- Cross-entity referential integrity still required (integrity script `--export-mode`).
 
-Document explicitly in this file's comments which fields are `synthetic_only` (renderer-safe to default), which are `production_required` (Tier 0.5 MUST produce), and which are `derived_at_render` (Tier 1 computes from inputs).
+### Step 3 — `field-classifications.json` (v3 NEW — the synth/prod boundary as machine-readable artifact)
 
-### Step 3 — `data.json` (extend the existing fixture as superset)
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "comment": "Per-field tagging for the Tier 0 → Tier 0.5 → Tier 1 hand-off.",
+  "classifications": {
+    "synthetic_only": [
+      "partners[].priority_breakdown",
+      "partners[].priority_score",
+      "partners[].engagement_score",
+      "partners[].usage_trend_30d_pct",
+      "partners[].cadence_tier",
+      "contacts[].name"
+    ],
+    "production_required": [
+      "org_uid", "as_of",
+      "partners[].account_uid", "partners[].name", "partners[].arr",
+      "partners[].contract_end", "partners[].renewal_date",
+      "partners[].lifecycle_phase", "partners[].lifecycle_substage",
+      "partners[].open_escalations", "partners[].open_tickets",
+      "bridge_account_xref[].account_uid", "bridge_account_xref[].salesforce_id"
+    ],
+    "derived_at_render": [
+      "partners[].priority_breakdown",
+      "partners[].priority_score",
+      "partners[].engagement_score",
+      "next_touchpoints[].derived_from == 'cadence_projection'"
+    ],
+    "internal_only": [
+      "partners[].cadence_tier"
+    ]
+  }
+}
+```
 
-Read current `data.json` first. The existing top-level keys (`report`, `_README`, `bands`, `components`, `kpis`, `cohort`, `trend_weeks`, `portfolio_trend`, `partners`) STAY. The existing 11 partners get their NEW v2 fields added alongside their existing 13 fields.
+(A field can appear in multiple categories — `priority_breakdown` is `synthetic_only` in the Tier 0 fixture AND `derived_at_render` for Tier 1 production data.)
 
-**Then ADD top-level:** `schema_version: 1`, `$id: "urn:ravenclaude:psm-dashboard-data"`, `org_uid: "<a valid UUIDv4>"`, `as_of: "2026-06-04T00:00:00Z"`, `priority_weights: {...}`, then the new entity arrays.
+Tier 1 renderer reads this at load time and knows which fields to compute vs. trust. Integrity script check #14 asserts every field listed exists in `data.schema.json`.
 
-**Synthetic content shape (canonical source is synthesize.py — see Step 4):**
+### Step 4 — `data.json` (extend + rename)
 
-- **Partner count:** v2 grows from 11 (existing) to **25 total** — keep the 11 existing names + add 14 more. Distribution per PSM P1-3:
-  - **~14 green** (`band: "g"` for existing + `score ≥ 70` for new)
-  - **~7 yellow** (`band: "y"`, score 50–69)
-  - **~4 red** (`band: "r"`, score < 50)
-  - **~7 inside a renewal bucket**, weighted toward 120/180 days (NOT 30/60 — only 1 partner at 30-day is realistic for a healthy book)
-  - ≥ 1 partner with `last_touchpoint_at` set to today (test no-false-alarm path of cadence decay)
-- **Fictional name list — use ONLY these** (closes security P0-4 + data-eng P2-7):
-  - For new partners: `Quokka Valley Schools`, `Stonebridge Unified`, `Glassmere ISD`, `Wendelhart Public Schools`, `Pellington County Schools`, `Brindleford School District`, `Marmotview Unified`, `Tussocksprings ISD`, `Kelpforest Public Schools`, `Norrwhisper Schools`, `Beigewood Unified`, `Cobblefern School District`, `Murmuring Pines ISD`, `Thistlebrook Unified`. These are deliberately implausible (no real-district collision risk; verified by web-search spot-check).
-- **Synthetic contact names:** prefix with `Demo:` so a leaked screenshot reads as synthetic on sight (closes security P0-4): `Demo: Riley Carter`, `Demo: Morgan Singh`, etc. Generator MUST use these.
-- **Top 15 flag:** 8 of the 25 partners are top15 members. Each has `top15.reason` populated (mix of community_size / strategic_logo / expansion_potential / reference_account).
-- **`enrollment`:** synthesize from 800 (small) to 28,000 (large), log-distributed.
-- **`bridge_account_xref`:** 25 rows (1 per partner), all `match_method: "external_id"`, `confidence: 1.0`.
-- **`timeline_events`:** 8–20 per partner, mix of all 13 types, ≥ 3 sources represented per partner.
-- **`success_plans`:** 1–3 per partner, each with 2–5 nested goals.
-- **`contracts`:** ≥ 1 `kind: "current"` per partner; 30% of partners also have 1 `previous` contract.
-- **`tickets`:** 0–5 per partner; 70% closed, 20% open, 10% in_progress; severity p2 dominant.
-- **`calendar_events`:** 2–6 per partner.
-- **`usage_daily`:** 90 days × 25 partners (district level).
-- **`usage_daily_school`:** for the 8 multi-school partners, school-level rows.
+Read current `data.json`. Existing top-level blocks STAY. Existing 11 partners — rename 5 per §2; preserve all 13 keys on each. ADD new v3 keys to each existing partner. ADD 14 new partners using the v3 name list.
 
-### Step 4 — `synthesize.py` (the reproducible generator)
+**Synthetic content distribution targets** (PSM-realistic per PSM P1-3):
+
+- 14 green / 7 yellow / 4 red (totals: 14+7+4 = 25 partners) — exact, not approximate.
+- 7 partners inside a renewal bucket, distributed: 1 at ≤30d (rare-fire-drill), 1 at 60d, 2 at 90d, 1 at 120d, 2 at 180d.
+- ≥ 1 partner with `last_touchpoint_at = today` (no-false-alarm test).
+- 8 partners flagged `top15.is_member = true`; the other 17 have `top15: null`.
+- Demo: prefix on every `contacts[].name`.
+- 8 of 25 partners are multi-school (3–7 schools each) → `usage_daily_school` populated.
+
+**`next_touchpoints[]` cardinality (closes PSM NEW P0-2):**
+
+For EVERY partner, synthesize.py MUST produce AT LEAST ONE entry per `type` ∈ {`checkin`, `qbr`, `renewal_meeting`}, with `derived_from = 'cadence_projection'` if no `calendar_event` covers it. Integrity check #15 enforces this. (Other types: `pd_session`, `success_plan_review`, `sentiment_update`, `health_check` are optional.)
+
+**`bridge_account_xref[]`:** 25 rows (1 per partner) with `match_method: "external_id"`, `confidence: 1.0`. ALL synthetic IDs prefixed `synthetic-` per §Step 1 discipline.
+
+### Step 5 — `synthesize.py`
 
 ```python
 #!/usr/bin/env python3
 """synthesize.py — reproducible synthetic-data generator for the PSM dashboard.
 
-Tested on Python 3.12.x. Stdlib only — NO third-party deps (faker, pydantic, etc).
+Tested on Python 3.12.x. Stdlib only.
 
 USAGE
   python3 plugins/edtech-partner-success/bi-report/synthesize.py \
-      [--seed 42] [--partners 25] [--as-of 2026-06-04] \
-      [--out plugins/edtech-partner-success/bi-report/data.json] [--check]
+      [--seed 42] [--as-of 2026-06-04] \
+      [--out plugins/edtech-partner-success/bi-report/data.json]
 
-CANONICAL INVOCATION (closes architect P2-4):
-  python3 plugins/edtech-partner-success/bi-report/synthesize.py --seed=42 \
+CANONICAL INVOCATION:
+  PYTHONHASHSEED=0 python3 ... --seed=42 \
       --out plugins/edtech-partner-success/bi-report/data.json
 
-DETERMINISM DISCIPLINE (closes architect P1-1):
-  - All randomness via `rng = random.Random(seed)`, NEVER module-level `random`.
+DETERMINISM DISCIPLINE:
+  - All randomness via `rng = random.Random(seed)`, NEVER module-level random.
   - No `set()` over user-visible values; iterate sorted lists.
-  - Verify step must `export PYTHONHASHSEED=0` for defense in depth.
-  - All datetimes derived from `--as-of`, never `datetime.now()`.
-  - UUIDs via `uuid.UUID(int=rng.getrandbits(128))`, NEVER `uuid.uuid4()`.
-  - `json.dumps(..., indent=2, sort_keys=False, ensure_ascii=False)` — match existing data.json style.
-  - Floats rounded to 2 decimals at construction.
+  - No `dict()` over hash-randomized iteration sources. Use dict literals
+    or `dict(sorted(...))` explicitly.
+  - All datetimes derived from `--as-of`. Never `datetime.now()`.
+  - UUIDs via `uuid.UUID(int=rng.getrandbits(128))`, NEVER uuid.uuid4().
+  - `json.dumps(..., indent=2, sort_keys=False, ensure_ascii=False)`.
+  - Floats rounded to 2 decimals AT CONSTRUCTION (not at output time).
 
-FERPA SELF-CHECK (closes security P1-3):
-  - End-of-generation: `assert_no_pii(generated_dict)` runs the same denylist as the CI
-    integrity script against every string VALUE in the structure.
-  - Exits 1 on hit.
+FERPA SELF-CHECK (scrubbed traceback discipline — v3):
+  - sys.tracebacklimit = 0 BEFORE running assert_no_pii().
+  - assert_no_pii wrapped in try/except. On hit:
+      - Print to stderr: "FERPA leak in field <field_path>: pattern <pattern_name>"
+      - NEVER print the value.
+      - sys.exit(1).
+  - This prevents the value from re-leaking into CI logs as an
+    AssertionError traceback.
 
-OUTPUT DISCIPLINE (closes security P1-6):
-  - No per-entity prints to stderr/stdout. Only summary counts.
+OUTPUT DISCIPLINE:
+  - No per-entity prints. Summary counts only.
+  - No `print(json.dumps(failed_row))` debug paths — that's a leak vector.
 """
 ```
 
-**Cross-entity assertions (synthesize.py runs these before writing):**
+**Cross-entity assertions (synthesize.py runs before writing):**
 
 - Every non-`partners` `account_uid` exists in `partners[].account_uid`.
-- Every `account_uid` is a strict UUIDv4.
-- Every contract has exactly one `kind: "current"` per partner.
-- Every partner has exactly one champion + one exec_sponsor in `contacts[]`.
-- `priority_weights` keys are exactly the 9 names AND values sum to 100.
-- For each partner: `lifecycle_substage` ∈ allowed set for `lifecycle_phase`.
-- For each partner: `priority_score == round(sum(weights[k] * breakdown[k]) / 100, 2)`.
+- Every `account_uid` is strict UUIDv4.
+- Every contract: exactly one `kind: "current"` per partner.
+- Every partner: exactly one champion + one exec_sponsor in `contacts[]`.
+- `priority_weights` keys are the 9 names; values sum to 100.
+- `lifecycle_substage ∈ allowed[lifecycle_phase]`.
+- `priority_score == round(sum(weights[k] * breakdown[k]) / 100, 2)`.
+- Every partner has ≥1 `cadence_projection` `next_touchpoints` entry per of {`checkin`, `qbr`, `renewal_meeting`}.
+- Every `bridge_account_xref[]` ID field starts `synthetic-`.
 
-Exit 1 on any failure with the row that violated.
+Exit 1 on any failure (via scrubbed try/except).
 
-**Reproducibility verify (canonical):**
+### Step 6 — `scripts/check-psm-data-integrity.py` (12 checks total, v3)
 
-```sh
-PYTHONHASHSEED=0 python3 plugins/edtech-partner-success/bi-report/synthesize.py --seed=42 > /tmp/run1.json
-PYTHONHASHSEED=0 python3 plugins/edtech-partner-success/bi-report/synthesize.py --seed=42 > /tmp/run2.json
-diff /tmp/run1.json /tmp/run2.json   # exit 0; no diff
-PYTHONHASHSEED=0 python3 plugins/edtech-partner-success/bi-report/synthesize.py --seed=42 > /tmp/canon.json
-diff /tmp/canon.json plugins/edtech-partner-success/bi-report/data.json   # exit 0
+Standalone CI validator. Runs against committed `data.json`.
+
+1. **JSON Schema validation.** `python3 -m jsonschema -i data.json data.schema.json`. **v3 CI-marker discipline:** if `os.environ.get('CI')` is set → hard-fail if jsonschema not installed. Otherwise → LOUD-skip: print `"SKIPPED (jsonschema not installed) — THIS IS NOT A PASS. Install jsonschema before declaring victory."` and exit with `2` (not 0), so callers can distinguish skip from pass.
+2. Cross-entity refs: every non-partners `account_uid` ∈ partners.
+3. Closed-object recursive: walk schema; fail any object subschema with implicit `additionalProperties: true` (and emit a warning for the constrained-additionalProperties `{type:...}` form).
+4. Sum-to-100 on `priority_weights`.
+5. Phase × substage allowed-pair table.
+6. Priority math: `priority_score == round(sum(weights[k] * breakdown[k]) / 100, 2)` for every partner. Use the SAME float rounding as synthesize.py: round each breakdown[k] to 2 decimals first, then weight-sum, then round to 2 again.
+7. **FERPA grep (hardened, v3-tightened):** `(?i)(\bssn\b|social\.security|student[_ ]?name|student[_ ]?id|pupil|learner[_ ]?id|child[_ ]?name|parent[_ ]?name|parent[_ ]?email|guardian|iep[_ ]?details|504[_ ]?plan|race[_ ]?code|ethnicity[_ ]?code|\bdob\b|birth[_ ]?date|\bfrpl\b|free[_ ]?and[_ ]?reduced)` + email regex `[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.(com|org|edu|net|gov|us|k12\.[a-z]{2}\.us)\b` + phone regex `(\+?1[-. ]?)?\(?\d{3}\)?[-. ]?\d{3}[-. ]?\d{4}`. Word boundaries on `frpl`, `dob`, `ssn` (prevents false positive on `frplease`/`dobermann`).
+8. **URL discipline:** every `doc_ref` and `source_ref` matches the v3-tightened regex (`^(salesforce|planhat|support|calendar)://[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*$`). Explicit additional sweep: any value matching `://` past the 12th character → fail (catches smuggle attempt).
+9. **Real-district guard:** v3 uses **whole-token matching** (not substring). Token = name-words joined with single space, both sides lowercased. Embedded denylist: top-100 US districts by enrollment (LAUSD, NYCDOE, Chicago PS, Houston ISD, Dade County PS, Clark County SD, Broward County PS, Hillsborough County PS, Cobb County SD, Fairfax County PS, Gwinnett County PS, Wake County PS, Montgomery County PS MD, Prince George's County PS, Orange County PS FL, Palm Beach County PS, Duval County PS, Philadelphia SD, San Diego USD, San Francisco USD, Long Beach USD, Fresno USD, Albuquerque PS, DC PS, Atlanta PS, Jefferson County PS CO, Jefferson County PS KY, Mesa PS AZ, Tucson USD, Riverside USD, Anchorage SD, Boston PS, Detroit PS Community District, Charlotte-Mecklenburg SD, Cleveland Metro SD, Cincinnati PS, Granite SD UT, Davis SD UT, Salt Lake City SD, Cherry Creek SD, Denver PS, Baltimore County PS, Baltimore City SD, Anne Arundel County PS, Howard County PS, Loudoun County PS, Henrico County PS, Chesterfield County PS, Virginia Beach City PS, Norfolk PS, Newport News PS) + the top 10 community colleges (Mesa CC, Miami Dade College, Houston CC, etc.) + the top 5 state university systems (USNH including Granite State College, CSU system, SUNY, etc.). Run NCES top-100 list during PR review.
+10. `org_uid` strict UUIDv4 on every entity record AND all values identical to top-level `org_uid` (per security NEW P2-5).
+11. **Contract cardinality (v3):** exactly one `kind: "current"` per partner.
+12. **Role coverage (v3):** exactly one champion + one exec_sponsor in `contacts[]` per partner.
+13. **bridge_account_xref synthetic ID (v3):** every ID field starts `synthetic-` in Tier 0 mode.
+14. **field-classifications validity (v3):** every field in `field-classifications.json` exists in `data.schema.json`.
+15. **`next_touchpoints` coverage (v3):** every partner has ≥1 cadence_projection entry per `{checkin, qbr, renewal_meeting}`.
+16. **Demo: prefix:** every `contacts[].name` starts `Demo:`; every `usage_daily_school[].school_name` starts `Demo School:` (skip in `--export-mode`).
+
+Each check supports `--check N` for per-check debug.
+
+### Step 7 — `dashboard-identity-spine.md`
+
+Documents `bridge_account_xref` shape, references `cross-system-identity-resolution/SKILL.md`. Uses the SKILL's match_method enum VERBATIM. Documents the synthetic-ID-prefix rule for the Tier 0 fixture.
+
+### Step 8 — `dashboard-priority-score-rubric.md`
+
+**v3 signal formulas — every signal capped at 100:**
+
+| Signal | Formula | Cap |
+|---|---|---|
+| `renewal_timing` | `100 if d ≤ 30 else 85 if d ≤ 60 else 65 if d ≤ 90 else 40 if d ≤ 120 else 20 if d ≤ 180 else 10 if d ≤ 270 else 0` | natural |
+| `health_decline` | `max(0, 100 - health_score)` | natural |
+| `sentiment_decline` | `max(0, 100 - sentiment_score)` | natural |
+| `days_overdue_vs_cadence` | **v3 BUCKET MODEL** (closes data-eng NEW P0-1): let `o = max(0, days_since_touchpoint - expected_cadence_days[cadence_tier])`. Then signal = `100 if o ≥ 60 else 80 if o ≥ 30 else 60 if o ≥ 14 else 30 if o ≥ 7 else 0`. Suppressed (→ 0) during dead zones from `dashboard-dead-zones.md` (state-keyed). | 100 by construction |
+| `open_escalations` | `min(100, open_escalations * 25)` | explicit min |
+| `ticket_volume` | `min(100, open_tickets * 10)` | explicit min |
+| `arr_percentile` | `100 * percentile_rank(arr, all_partner_arrs)` | natural |
+| `top15_bonus` | `100 if top15.is_member else 0` | natural |
+| `usage_decline` | **v3 CORRECTED** (closes data-eng NEW P0-2): `0 if usage_trend_30d_pct ≥ 0 else min(100, abs(usage_trend_30d_pct) * 2)`. (Growth → 0 contribution; -50% decline → 100 capped.) | explicit min |
+
+**Composition:** `priority_score = round(sum(weights[k] * breakdown[k]) / 100, 2)`. Always 0–100 by construction now.
+
+**Default weights:** copy §Step 1 `priority_weights`.
+
+**Per-signal contribution percent (rendered at render time, never stored):**
+
+```
+contribution[k]% = (weights[k] * breakdown[k]) / (priority_score * 100) * 100
 ```
 
-### Step 5 — `scripts/check-psm-data-integrity.py` (the CI gate)
+### Step 9 — `dashboard-schema-evolution.md`
 
-Standalone Python validator that runs against the COMMITTED `data.json` — catches hand-edits the seeded-diff loop misses (closes data-eng P0-5, P0-6, P0-7 + architect P1-2, P1-7 + security P1-1).
+`schema_version` evolution policy (unchanged from v2).
 
-**Checks (each exits 1 with the violating row on failure):**
+### Step 10 — `dashboard-dead-zones.md` (v3 NEW — closes PSM NEW P0-1)
 
-1. **JSON Schema validation** — `python3 -m jsonschema -i data.json data.schema.json`. (Subprocess; if the module isn't installed locally, emit a clear `[skip — install jsonschema]` and exit 0 with a warning — but ALWAYS hard-fail in CI where the module is installed.)
-2. **Cross-entity refs** — every non-`partners` `account_uid` ∈ `partners[].account_uid`.
-3. **Closed-object recursive** — walk every object subschema, fail if any has implicit `additionalProperties: true`.
-4. **Sum-to-100** — `priority_weights` values sum to exactly 100.
-5. **Phase × substage** — every `lifecycle_substage` ∈ allowed set for `lifecycle_phase`.
-6. **Priority math** — every `priority_score == round(sum(weights[k] * breakdown[k]) / 100, 2)`.
-7. **FERPA grep — HARDENED** (closes data-eng P0-7, P1-5 + security P0-3):
-   - **Pattern (file-content scan):** matches any of `ssn`, `social.security`, `student[_ ]?name`, `student[_ ]?id`, `pupil`, `learner[_ ]?id`, `child[_ ]?name`, `parent[_ ]?name`, `parent[_ ]?email`, `guardian`, `iep[_ ]?details`, `504[_ ]?plan`, `race[_ ]?code`, `ethnicity[_ ]?code`, `dob`, `birth[_ ]?date`, `frpl`, `free[_ ]?and[_ ]?reduced`, or any email-shape (`@.*\.(com|org|edu|net|gov)`), or any phone-shape (`\d{3}-\d{3}-\d{4}`).
-   - Match → exit 1.
-8. **URL discipline** — every `doc_ref` and `source_ref` matches the opaque scheme regex; explicit fail on any `https://` or `http://` in those fields (closes security P0-1, P0-2).
-9. **Real-district-name guard** — load a small embedded denylist of well-known real US districts (LAUSD, NYCDOE, CPS Chicago, Houston ISD, Dade County Schools, Clark County School District, Broward, Hillsborough, Cobb County, Cedar Falls, etc.) — fail if any synthetic partner name fuzzy-matches (case-insensitive substring) any of them. Closes security P0-4.
-10. **`org_uid` UUIDv4** — every entity record's `org_uid` matches the strict UUIDv4 pattern.
+**State-keyed dead-zone table.** During these date ranges (computed against `as_of` year), `days_overdue_vs_cadence` signal returns 0 regardless of actual days.
 
-Each check has a `--check N` runner for per-check debug, mirroring `audit-gates.sh` Gate 50/60/70 convention.
+Universal (all states):
+- **Late August onboarding period:** Aug 15 – Sep 7 (first-week-of-school is sacred).
+- **Thanksgiving week:** Wed before Thanksgiving – Mon after.
+- **Winter break:** Dec 22 – Jan 5.
+- **Spring break — universal core week:** Mar 28 – Apr 4 (the most-common single overlap week).
+- **End-of-year wrap:** Jun 15 – Jun 30.
 
-### Step 6 — `dashboard-identity-spine.md`
+State testing windows (per-state, populated from publicly documented assessment calendars — Codex synthesizes a reasonable table):
+- TX (STAAR): Dec 5–18 (EOC fall), Apr 7–May 23 (spring).
+- CA (CAASPP): Mar 1 – Jun 7.
+- NY (Regents + State Tests): Jan 22–28, Apr 21 – May 3, Jun 12–25, Aug 11–14.
+- FL (FAST): Sep 9–27, Jan 13–31, May 5–23.
+- IL (IAR): Mar 17 – Apr 25.
+- IL/MI/OH/PA/IN (default Spring window if state-specific unknown): Mar 15 – Apr 30.
+- Default (state not enumerated): Mar 15 – Apr 30 (covers most spring state-testing windows).
 
-Documents `bridge_account_xref` shape, references `cross-system-identity-resolution/SKILL.md`. **Uses the SKILL's `match_method` enum verbatim** (closes data-eng P1-7). Includes the manual_override audit-trail requirement (closes security P2-3).
+(Codex MUST cite the NCES state-assessment-calendar reference URL where each window is sourced.)
 
-Sections: §1 what this is, §2 `account_uid` choice (strict UUIDv4 internal), §3 `bridge_account_xref` shape with full per-column doc, §4 match_method tiers + < 0.9 dashboard banner rule, §5 anti-patterns, §6 references.
+### Step 11 — `.prettierignore` append
 
-### Step 7 — `dashboard-priority-score-rubric.md`
-
-Documents the 9-signal rubric.
-
-**Signal formulas (v2 — all addressed P0/P1 fixes):**
-
-| Signal | Formula |
-|---|---|
-| `renewal_timing` | `100 if d ≤ 30 else 85 if d ≤ 60 else 65 if d ≤ 90 else 40 if d ≤ 120 else 20 if d ≤ 180 else 0` where `d = days_to_renewal` (PSM P0-2 bucket model) |
-| `health_decline` | `max(0, 100 - health_score)` |
-| `sentiment_decline` | `max(0, 100 - sentiment_score)` |
-| `days_overdue_vs_cadence` | `max(0, days_since_touchpoint - expected_cadence_days[cadence_tier])`, suppressed (→0) during dead zones from `k12-psm-operating-cadence.md` (PSM P0-3) |
-| `open_escalations` | `min(100, open_escalations * 25)` |
-| `ticket_volume` | `min(100, open_tickets * 10)` |
-| `arr_percentile` | `100 * percentile_rank(arr, all_partner_arrs)` (PSM P0-4 portfolio-relative, not absolute cap) |
-| `top15_bonus` | `100 if top15.is_member else 0` |
-| `usage_decline` | `max(0, 100 - usage_trend_30d_pct)` where `usage_trend_30d_pct` is the precomputed 30-day percent change in `active_users` (data-eng P1-8 — precomputed in synthesize.py, read at render time) |
-
-**Default weights** (sum to 100): copy from §Step 1 `priority_weights` block.
-
-**Composition (closes architect P0-3):**
-
-- `priority_breakdown[k]` = raw 0–100 signal value (output of the formula above).
-- `priority_score` = `round(sum(weights[k] * breakdown[k]) / 100, 2)`.
-- "Per-signal contribution percent" rendered at Tier 1 = `(weights[k] * breakdown[k]) / priority_score / 100`. **Derived, never stored.**
-
-**Cadence dead-zone suppression (PSM P0-3):** during dates in the `k12-psm-operating-cadence.md` dead-zone list (late August, Thanksgiving week, Winter Break, Spring Break, state testing windows), `days_overdue_vs_cadence` returns 0 regardless of actual days. The rubric file lists the exact date ranges keyed off `as_of`'s year.
-
-**Tier 0.5 export contract** — the export schema marks `priority_breakdown` and `priority_score` as `synthetic_only` (Tier 0.5 may not produce them; Tier 1 renderer computes from raw signals when absent).
-
-### Step 8 — `dashboard-schema-evolution.md` (closes architect P0-2)
-
-Short knowledge file documenting:
-
-- `schema_version` is required + `const: 1` today.
-- Backward-incompatible bump = MAJOR version (v1 → v2): renderer refuses to load.
-- Backward-compatible extension = patch version stays at 1 (add new optional top-level keys; nothing existing changes).
-- Tier 0.5 may NOT bump `schema_version` independently — it must match the canonical schema.
-- Pattern: any schema bump ships in a single PR with both the schema AND a synthesize.py regen.
-
-### Step 9 — `.prettierignore` (append)
-
-Add the line:
+Append:
 
 ```
 plugins/edtech-partner-success/bi-report/data.json
 ```
 
-Closes data-eng P0-4 — synthesize.py's `json.dumps(indent=2, sort_keys=False, ensure_ascii=False)` becomes the canonical formatter; prettier no longer touches the fixture.
-
-### Step 10 — `scripts/audit-gates.sh` (append a new gate)
-
-After Gate 47/48 (the validate-schemas / sanitizer area), add:
+### Step 12 — `scripts/audit-gates.sh` (Gate 52, v3 — must-fail uses VALID UUIDv4)
 
 ```bash
 echo "── Gate 52: PSM dashboard data integrity ─────────────────────────────"
-# must-pass: real tree
 rc=0; python3 scripts/check-psm-data-integrity.py >/dev/null 2>&1 || rc=$?
 gate "psm-data-integrity (real tree)" must_pass "$rc"
-# must-fail: a fixture with an orphan account_uid in contacts[]
+
+# v3 must-fail: append a contact with a STRICTLY-VALID UUIDv4 that's NOT in
+# partners[] — so check #1 (schema) passes, then check #2 (orphan refs) fires.
+# v2's must-fail used "00000000-0000-0000-0000-deadbeefcafe" which fails check #1
+# (4th group needs to start with 4 per UUIDv4) — audit theater. v3 picks a real
+# UUIDv4 that isn't in the synthetic fixture.
 DI_BAD="$TMP/data-orphan.json"
-python3 - <<PY > "$DI_BAD"
+python3 - <<'PY' > "$DI_BAD"
 import json
 d = json.load(open("plugins/edtech-partner-success/bi-report/data.json"))
-d["contacts"].append({**d["contacts"][0], "contact_uid": "test-orphan",
-                     "account_uid": "00000000-0000-0000-0000-deadbeefcafe"})
-print(json.dumps(d))
+c = dict(d["contacts"][0])
+c["contact_uid"] = "11111111-2222-4333-8444-555555555555"  # valid UUIDv4
+c["account_uid"] = "deadbeef-cafe-4dad-8bad-baadc0debaad"  # valid UUIDv4, ORPHAN
+d["contacts"].append(c)
+print(json.dumps(d, indent=2))
 PY
 rc=0; python3 scripts/check-psm-data-integrity.py --data "$DI_BAD" >/dev/null 2>&1 || rc=$?
-gate "psm-data-integrity (orphan account_uid detected)" must_fail "$rc"
+gate "psm-data-integrity (orphan account_uid detected via check #2)" must_fail "$rc"
 ```
 
-### Step 11 — `.repo-layout.json` (verify only)
+### Step 13 — `.repo-layout.json` (verify only)
 
-Run §6 below. Expected: "Layout OK". If violations, extend `allowed_globs` with the missing pattern (NOT per-file).
+Run §6 below. Expected: "Layout OK".
 
 ---
 
-## 5. Verification — exactly what Codex runs before pushing
-
-In order. Run independent steps in parallel via `&` + `wait`. ALL must pass before `git push`.
+## 5. Verification
 
 | # | Command | Expected |
 |---|---|---|
-| 1 | `npx --yes prettier --write . --log-level warn` then `npx --yes prettier --check . --log-level warn` | exit 0 |
-| 2 | `python3 -m json.tool plugins/edtech-partner-success/bi-report/data.json > /dev/null` | exit 0 |
-| 3 | `python3 -m json.tool plugins/edtech-partner-success/bi-report/data.schema.json > /dev/null` | exit 0 |
-| 4 | `python3 -m json.tool plugins/edtech-partner-success/bi-report/data.export.schema.json > /dev/null` | exit 0 |
-| 5 | `python3 -m jsonschema -i data.json data.schema.json` | exit 0 |
-| 6 | `PYTHONHASHSEED=0 python3 plugins/edtech-partner-success/bi-report/synthesize.py --seed=42 > /tmp/gen.json && diff /tmp/gen.json plugins/edtech-partner-success/bi-report/data.json` | exit 0 |
-| 7 | `python3 scripts/check-psm-data-integrity.py` | exit 0 (all 10 checks pass) |
-| 8 | `python3 scripts/check-frontmatter.py plugins/edtech-partner-success/knowledge/` | exit 0 |
-| 9 | `bash scripts/audit-gates.sh` | clean (modulo local-env jsonschema gap; CI has the module) |
-| 10 | Layout snippet from §6 below | "Layout OK" |
+| 1 | `npx prettier --write . && npx prettier --check .` | exit 0 |
+| 2 | `python3 -m json.tool` on each new JSON file | exit 0 |
+| 3 | `python3 -m jsonschema -i data.json data.schema.json` | exit 0 |
+| 4 | `python3 -m jsonschema -i data.json data.export.schema.json` | exit 0 (data.json validates against BOTH schemas) |
+| 5 | `PYTHONHASHSEED=0 python3 synthesize.py --seed=42 > /tmp/gen.json && diff /tmp/gen.json data.json` | exit 0 |
+| 6 | `python3 scripts/check-psm-data-integrity.py` | exit 0 (all 16 checks pass) |
+| 7 | `python3 scripts/check-frontmatter.py plugins/edtech-partner-success/knowledge/` | exit 0 |
+| 8 | `grep -E 'Riverside Unified\|Mesa Community College\|Granite State University\|Cedar Valley Schools\|Northshore Academy' plugins/edtech-partner-success/` | exit 1 (no match — renames complete) |
+| 9 | `bash scripts/audit-gates.sh` | clean |
+| 10 | Layout snippet from §6 | "Layout OK" |
 
 ---
 
-## 6. Layout snippet (verify)
+## 6. Layout snippet
 
 ```sh
 python3 - <<'PY'
@@ -452,71 +546,72 @@ new = subprocess.run(
     capture_output=True, text=True,
 ).stdout.splitlines()
 violations = [f for f in new if not any(fnmatch.fnmatchcase(f, g) for g in allowed)]
-if violations:
-    print("VIOLATIONS — extend .repo-layout.json:")
-    for v in violations: print(" ", v)
-else:
-    print("Layout OK")
+print("VIOLATIONS:" if violations else "Layout OK")
+for v in violations: print(" ", v)
 PY
 ```
 
-Expected: "Layout OK" (the new `data.export.schema.json` + the new `dashboard-schema-evolution.md` are covered by existing globs). New `scripts/check-psm-data-integrity.py` is covered by `scripts/**`.
-
 ---
 
-## 7. PR shape — exact format
+## 7. PR shape
 
 ```sh
 git add plugins/edtech-partner-success/bi-report/data.schema.json \
         plugins/edtech-partner-success/bi-report/data.export.schema.json \
+        plugins/edtech-partner-success/bi-report/field-classifications.json \
         plugins/edtech-partner-success/bi-report/data.json \
         plugins/edtech-partner-success/bi-report/synthesize.py \
         plugins/edtech-partner-success/knowledge/dashboard-identity-spine.md \
         plugins/edtech-partner-success/knowledge/dashboard-priority-score-rubric.md \
         plugins/edtech-partner-success/knowledge/dashboard-schema-evolution.md \
+        plugins/edtech-partner-success/knowledge/dashboard-dead-zones.md \
         scripts/check-psm-data-integrity.py \
         scripts/audit-gates.sh \
         .prettierignore
 
-git commit -m "feat(edtech-partner-success): PSM dashboard Tier 0 — schema + synthetic fixture + integrity gate"
+git commit -m "feat(edtech-partner-success): PSM dashboard Tier 0 — schema + synthetic fixture + 16-check integrity gate"
 git push -u origin feat/psm-dashboard-tier-0-foundation
 ```
 
-Open as a draft PR via `mcp__github__create_pull_request` with `draft: true`. PR body summary mirrors the commit subject + a bulleted "what ships" + "deliberately does NOT do" + test plan.
+Open as draft PR with `draft: true`.
 
 ---
 
-## 8. Wall-handling (if Codex gets stuck)
+## 8. Wall-handling
 
-The wall pattern Codex MUST follow:
-
-1. **Re-read the relevant prior** in §1 — the constraint is almost always already documented.
-2. **If silent but a default exists per the strategic plan's Alternatives**, take it; note as inline code comment (`# Default per plan.md A4: config-driven priority_weights`).
-3. **If silent AND no default**, stop and `AskUserQuestion` Matt.
-4. **Walls where step 3 is mandatory** (Q1–Q6 from the strategic plan affect Tier 0.5, NOT Tier 0 — Tier 0 is synthetic + contract + knowledge):
-   - Tier 0 should NOT hit any of Q1–Q6 if it follows this brief literally.
+1. Re-read priors in §1.
+2. If silent, take the documented default per `plan.md` Alternatives with inline comment.
+3. If silent AND no default, `AskUserQuestion`. Tier 0 should NOT hit Q1–Q6.
 
 ---
 
-## 9. What Codex MUST NOT do (extended in v2)
+## 9. What Codex MUST NOT do
 
-- **Do not** add Tier 1 / 2 / 3 / 4 / 5 work to this PR.
-- **Do not** version-bump `plugin.json` or `marketplace.json`. Wait for Tier 1.
-- **Do not** add a CLAUDE.md milestone. Wait for Tier 1.
-- **Do not** edit `report.html`. Wait for Tier 1.
-- **Do not** re-author content that already lives in the four "do not re-author" priors from §1.
-- **Do not** introduce a per-student field, ever. FERPA hard rule.
-- **Do not** use any of the real US district names from the embedded denylist in the integrity script.
-- **Do not** force-push, amend, or rewrite history on a pushed branch. New commits only.
-- **Do not** mark the PR ready-for-review without Matt's say-so. Draft only.
-- **(v2 ADDITION)** **Do not** change the existing `data.json` top-level blocks (`report`, `_README`, `bands`, `components`, `kpis`, `cohort`, `trend_weeks`, `portfolio_trend`). v2 is strictly additive.
-- **(v2 ADDITION)** **Do not** drop any existing `partners[]` per-row key from the existing 11 partners (`name`, `segment`, `psm`, `score`, `delta`, `band`, `components{6 keys}`, `spark`, `flags`, `play`, `last_touch`, `next_qbr`, `renewal`). v2 adds alongside.
-- **(v2 ADDITION)** **Do not** introduce a new health-component key beyond the existing 6 (`adoption`, `touchpoint`, `outcome`, `sentiment`, `champion`, `usage`). v1's mistake was dropping `champion` + `usage`.
-- **(v2 ADDITION)** **Do not** use module-level `random`. Only `rng = random.Random(seed)`.
-- **(v2 ADDITION)** **Do not** move `synthesize.py` to `plugins/data-platform/`. The dashboard's canonical contract is owned by `edtech-partner-success`.
-- **(v2 ADDITION)** **Do not** introduce third-party Python dependencies (faker, pydantic, polars, etc.). Stdlib only.
-- **(v2 ADDITION)** **Do not** use `https://` or `http://` in `doc_ref` or `source_ref` values. Opaque scheme only until Tier 0.5.
-- **(v2 ADDITION)** **Do not** use any of the v1 brief's example synthetic names ("Cedar Falls Public Schools" is a REAL Iowa district). Use only the v2 list in §3 Step 3.
-- **(v2 ADDITION)** **Do not** add prints to stderr/stdout in `synthesize.py` that include per-entity values. Summary counts only.
+- Add Tier 1+ work to this PR.
+- Version-bump `plugin.json` / `marketplace.json`.
+- Add CLAUDE.md milestone.
+- Edit `report.html`.
+- Re-author the four "do not re-author" priors from §1.
+- Introduce a per-student field, ever.
+- Use any real US district name from the integrity script's denylist (v3 whole-token matching enforced).
+- Force-push, amend, or rewrite history.
+- Mark PR ready-for-review without Matt's say-so.
+- Change existing `data.json` top-level blocks (additive only).
+- Drop any existing partner per-row key.
+- Introduce a new health-component key beyond the existing 6.
+- Use module-level `random`.
+- Move `synthesize.py` to `data-platform/`.
+- Introduce third-party Python deps.
+- Use `https://`/`http://` or `:` or `//` past scheme in `doc_ref`/`source_ref`.
+- Use v1/v2 example names (Cedar Falls Public Schools is REAL).
+- Add `print(json.dumps(failing_row))` debug paths anywhere.
+- Add per-entity prints to stderr/stdout in synthesize.py.
+- **(v3 new)** Use `"g"/"y"/"r"` band shorthand — band stays `"green"/"yellow"/"red"` everywhere.
+- **(v3 new)** Use `iii_eia` in funding_source (v2 typo); use `title_iii` + `idea_b`.
+- **(v3 new)** Use v2's literal `enrollment` field; it's removed.
+- **(v3 new)** Use substring matching in the real-district guard — use whole-token matching.
+- **(v3 new)** Output raw values in PII-check assertion tracebacks; scrub to field path.
+- **(v3 new)** Ship `bridge_account_xref` IDs without `synthetic-` prefix.
+- **(v3 new)** Synthesize state-testing dead zones without citing the source.
 
-End of v2 brief.
+End of v3 brief.
