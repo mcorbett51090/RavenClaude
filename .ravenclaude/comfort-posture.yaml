@@ -1,25 +1,121 @@
-# RavenClaude dev-repo posture — pre-arms the maintainer-substrate exemption so a
-# fresh checkout / Codespace rebuild of THIS repo never re-hits the command-review
-# lockout. See plugins/ravenclaude-core/CLAUDE.md → "Dev-repo lockout fix —
-# abstain-downgrade in the maintainer context (v0.60.0, fix A1)".
+# Comfort-posture for Claude Code agents (v5 — per-layer).
+# Save to .ravenclaude/comfort-posture.yaml in your project root.
+# The /set-posture skill translates this into user/local/project settings files.
 #
-# The ONLY load-bearing line is command_review.dev_repo_exempt: true. It is inert
-# everywhere the 3-signal AND-gate fails — it activates ONLY when the gh-authenticated
-# repo owner is mcorbett51090/RavenClaude AND .claude-plugin/marketplace.json parses
-# with name "ravenclaude". So this file is safe in any fork/clone: the exemption
-# simply stays off there.
-#
-# It only has an effect once command review is turned on (per-category `thing: on`,
-# set point-and-click in /dashboard). With the Thing off this is a no-op; with it on,
-# an abstaining/inconclusive panel here defers to you (ASK) instead of failing closed
-# (DENY) — a panel abstain in this repo is a `claude -p` cold-start latency artifact,
-# not a security signal. The hard-rule floor (force-push, curl|sh), the self-disable
-# guard, the injection DENY, and the secret-egress backstop are all untouched.
-#
-# This intentionally seeds ONLY the exemption flag, not a permission baseline — this
-# repo's permission rules live in .claude/settings.json. Toggle command review and
-# tune anything else point-and-click in /dashboard (personal relaxations go in the
-# local layer, not here).
+# Dev-repo note: `command_review.dev_repo_exempt: true` below is fork-safe — it
+# only activates when 3 signals AND-match (gh-authenticated repo owner is
+# mcorbett51090/RavenClaude AND .claude-plugin/marketplace.json parses with
+# name "ravenclaude"), and is inert with `command_review.enabled: false`. Full
+# contract: plugins/ravenclaude-core/CLAUDE.md → "Dev-repo lockout fix".
 schema_version: 5
+
+# Pause for design / architectural decisions? Behavioral flag, separate from permissions.
+design_checkins: true
+
+# Command-review tribunal panel (the Thing). Overrides .ravenclaude/thing.yaml.
 command_review:
+  enabled: false
+  panel:
+    forseti:
+      model: claude-opus-4-7
+    mimir:
+      model: claude-haiku-4-5
+    heimdall:
+      model: claude-haiku-4-5
+    thor:
+      model: claude-opus-4-7
+  confidence_threshold: 0.6
+  gate_floor: high
   dev_repo_exempt: true
+  tiers:
+    medium:
+      seats: [mimir, heimdall]
+      mandatory_seats: [heimdall]
+      confidence_threshold: 0.6
+    high:
+      seats: [forseti, mimir, heimdall]
+      mandatory_seats: [heimdall]
+      confidence_threshold: 0.7
+    extreme:
+      seats: [forseti, mimir, heimdall]
+      mandatory_seats: [forseti, heimdall]
+      confidence_threshold: 0.8
+
+# Runaway brake — disabled for this repo.
+runaway: off
+
+# Yes/no decision routing through the tribunal (off | advisory | binding).
+decision_review: binding
+
+# Always-on deny rules — layer-independent floor.
+security_deny:
+  - "Bash(rm -rf:*)"
+  - "Bash(git push --force:*)"
+  - "Bash(git push -f:*)"
+  - "Bash(git reset --hard:*)"
+  - "Bash(git clean -fd:*)"
+  - "Bash(npm publish:*)"
+  - "Bash(pnpm publish:*)"
+  - "Bash(yarn publish:*)"
+  - "Bash(cargo publish:*)"
+  - "Bash(curl * | sh)"
+  - "Bash(curl * | bash)"
+  - "Bash(wget * | sh)"
+  - "Bash(wget * | bash)"
+  - "Bash(sudo:*)"
+  - "Read(.env)"
+  - "Read(.env.*)"
+  - "Read(**/*.pem)"
+  - "Read(**/*.key)"
+  - "Read(**/credentials*)"
+  - "Read(**/secrets*)"
+
+categories:
+  file_edit_global:
+    user: allow
+    local: allow
+    project: inherit
+  file_edit_project:
+    user: allow
+    local: allow
+    project: inherit
+  file_read_global:
+    user: allow
+    local: allow
+    project: inherit
+  file_read_project:
+    user: allow
+    local: allow
+    project: inherit
+  mcp_tools:
+    user: allow
+    local: allow
+    project: inherit
+  network_read:
+    user: allow
+    local: allow
+    project: inherit
+  network_write:
+    user: allow
+    local: allow
+    project: inherit
+  shell_code_exec:
+    user: allow
+    local: allow
+    project: inherit
+  shell_local_mutate:
+    user: allow
+    local: allow
+    project: inherit
+  shell_package_install:
+    user: allow
+    local: allow
+    project: inherit
+  shell_readonly:
+    user: allow
+    local: allow
+    project: inherit
+  shell_remote_mutate:
+    user: allow
+    local: allow
+    project: inherit
