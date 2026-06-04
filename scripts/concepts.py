@@ -38,10 +38,18 @@ SCHEMA_VERSION = 1
 STALE_DAYS = 90  # platform-fact concepts older than this fail --check
 
 VALID_KINDS = ("platform-fact", "ravenclaude-built")
+STEP_CAPTION_MAX = 120  # a step caption is a one-liner, not a paragraph
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _FM_RE = re.compile(r"^---\n(.*?)\n---\n?(.*)$", re.DOTALL)
-_MERMAID_RE = re.compile(r"```(mermaid(?:-mini)?)[^\n]*\n(.*?)```", re.DOTALL)
+# The (?![\w-]) after the tag keeps this from also matching ```mermaid-step
+# fences (which are collected separately, in document order, below).
+_MERMAID_RE = re.compile(r"```(mermaid(?:-mini)?)(?![\w-])[^\n]*\n(.*?)```", re.DOTALL)
 _MINI_MARKER_RE = re.compile(r"<!--\s*mini\s*-->\s*", re.IGNORECASE)
+# Step diagrams (optional, ordered): each ```mermaid-step block is one frame of a
+# step-by-step "stepper" in the Learn tab; an optional <!-- step: caption --> just
+# before a block sets that frame's caption (default "Step N").
+_STEP_FENCE_RE = re.compile(r"```mermaid-step[^\n]*\n(.*?)```", re.DOTALL)
+_STEP_MARKER_RE = re.compile(r"<!--\s*step:\s*(.*?)\s*-->", re.IGNORECASE | re.DOTALL)
 
 
 class ConceptError(Exception):
@@ -158,7 +166,36 @@ def _parse_one(path: Path) -> dict:
     if not diagrams["mermaid"]:
         raise ConceptError(f"{rel}: missing the required ```mermaid full diagram block")
 
+    # Ordered step frames: walk markers + fences by document position so each
+    # block picks up the caption immediately preceding it.
+    steps: list[dict] = []
+    events: list[tuple[int, str, str]] = []
+    for mm in _STEP_MARKER_RE.finditer(rest):
+        events.append((mm.start(), "marker", mm.group(1).strip()))
+    for mm in _STEP_FENCE_RE.finditer(rest):
+        events.append((mm.start(), "block", mm.group(1).strip()))
+    events.sort(key=lambda e: e[0])
+    pending: str | None = None
+    for _, ev_kind, val in events:
+        if ev_kind == "marker":
+            pending = val
+            continue
+        n = len(steps) + 1
+        if not val:
+            raise ConceptError(f"{rel}: empty ```mermaid-step block (step #{n})")
+        caption = pending or f"Step {n}"
+        if len(caption) > STEP_CAPTION_MAX:
+            raise ConceptError(
+                f"{rel}: step #{n} caption is {len(caption)} chars (max {STEP_CAPTION_MAX})"
+            )
+        steps.append(
+            {"caption": caption, "diagram": val, "svg": f"{SVG_REL_PREFIX}/{cid}.step-{n}.svg"}
+        )
+        pending = None
+
     body_md = _MERMAID_RE.sub("", rest)
+    body_md = _STEP_FENCE_RE.sub("", body_md)
+    body_md = _STEP_MARKER_RE.sub("", body_md)
     body_md = _MINI_MARKER_RE.sub("", body_md).strip()
     if not body_md:
         raise ConceptError(f"{rel}: empty body (need an explanation, not just a diagram)")
@@ -181,6 +218,7 @@ def _parse_one(path: Path) -> dict:
         "body_md": body_md,
         "diagram": diagrams["mermaid"],
         "diagram_mini": diagrams["mermaid-mini"],
+        "steps": steps,
         "svg": f"{SVG_REL_PREFIX}/{cid}.svg",
         "svg_mini": f"{SVG_REL_PREFIX}/{cid}.mini.svg" if has_mini else None,
     }

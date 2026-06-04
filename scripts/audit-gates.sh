@@ -28,8 +28,8 @@ cd "$(git rev-parse --show-toplevel)"
 # suite. This enables fast targeted re-runs after a regression fix without the
 # cost of the full 48-gate matrix. The full suite is the default (no --check arg).
 #
-# Currently supported per-gate values: 20, 50, 60, 70. Other gates can be added
-# here as they acquire a standalone runner script.
+# Currently supported per-gate values: 20, 50, 60, 70, 80, 90, 91, 92, 93. Other
+# gates can be added here as they acquire a standalone runner script.
 if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
   case "${2}" in
     20)
@@ -81,9 +81,14 @@ if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
       if [[ "$rc" -ne 0 ]]; then echo "  ✗ good-page should have exited zero, got $rc"; _rc92=1; else echo "  ✓ good-page exits zero"; fi
       exit "$_rc92"
       ;;
+    93)
+      echo "── Gate 93: Learn-tab stepper render (per-gate run) ──────────────────────"
+      node scripts/check-stepper-render.mjs plugins/ravenclaude-core/dashboard.html
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 60, 70, 80, 90, 91, 92. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 60, 70, 80, 90, 91, 92, 93. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -1502,6 +1507,26 @@ cp -p "$TMP/plugins_ravenclaude-core_knowledge_concepts_visuals_.render-manifest
 # check the post-merge workflow relies on has teeth). See
 # docs/best-practices/ci-gate-audit.md § "Self-healing artifacts".
 
+# step diagrams: a concept that declares ```mermaid-step frames must record them
+# in concepts.json AND ship one committed <id>.step-N.svg per frame (CI-safe:
+# JSON read + file existence, no Chromium). Guards the stepper's build contract.
+rc=0; python3 - <<'PY' || rc=1
+import json, os, sys
+reg = json.load(open("plugins/ravenclaude-core/concepts.json"))
+vis = "plugins/ravenclaude-core/knowledge/concepts/visuals"
+stepped = [c for c in reg["concepts"] if c.get("steps")]
+if not stepped:
+    sys.exit("no concept declares steps — expected at least the agent-harness-loop demonstrator")
+for c in stepped:
+    for i, s in enumerate(c["steps"], start=1):
+        want = f"{vis}/{c['id']}.step-{i}.svg"
+        if s["svg"] != f"knowledge/concepts/visuals/{c['id']}.step-{i}.svg":
+            sys.exit(f"{c['id']}: steps[{i-1}].svg path wrong: {s['svg']}")
+        if not os.path.isfile(want):
+            sys.exit(f"{c['id']}: missing committed step SVG {want}")
+PY
+gate "stepper SVGs (each declared step has a committed .step-N.svg)" must_pass "$rc"
+
 # render-trees.py: a committed decision-tree SVG out of sync with its diagram
 # source (simulated by mutating a hash in the tree render manifest). CI-safe:
 # --check reads the source-hash manifest, never launches Chromium.
@@ -2810,6 +2835,27 @@ PY
   gate "shell-router (real index.html satisfies the contract)" must_pass "$rc"
 else
   _skip_or_fail "Gate 51 shell-router" node
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+echo "── Gate 93: Learn-tab step-by-step diagram (stepper) render ──────────────"
+# Structural test for the Learn-tab "stepper" (markup _render_concept_stepper,
+# behavior initConceptSteppers). Text-based (no eval), like the shell-router gate.
+# must_pass: the real dashboard.html satisfies the stepper contract (exactly one
+# active frame/dot per stepper, frames==dots==captions, controls ship [hidden],
+# the JS reveals them + honors prefers-reduced-motion). The script ALSO runs an
+# inline must-fail half (proves its own teeth).
+if command -v node >/dev/null 2>&1; then
+  rc=0; node scripts/check-stepper-render.mjs plugins/ravenclaude-core/dashboard.html >/dev/null 2>&1 || rc=$?
+  gate "stepper render (real dashboard.html)" must_pass "$rc"
+  # must_fail: a dashboard with the stepper markup stripped must be detected.
+  ST_BAD="$(mktemp)"; sed 's/class="concept-stepper"/class="concept-NOPE"/g' \
+    plugins/ravenclaude-core/dashboard.html > "$ST_BAD"
+  rc=0; node scripts/check-stepper-render.mjs "$ST_BAD" >/dev/null 2>&1 || rc=$?
+  gate "stepper render (stripped stepper markup is detected)" must_fail "$rc"
+  rm -f "$ST_BAD"
+else
+  _skip_or_fail "Gate 93 stepper render" node
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
