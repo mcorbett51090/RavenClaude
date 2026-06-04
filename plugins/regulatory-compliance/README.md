@@ -22,7 +22,8 @@ Requires `ravenclaude-core@>=0.5.0`.
 | Component | Count | Where |
 |-----------|-------|-------|
 | Specialist agents | 12 (6 function + 6 jurisdiction) | [`agents/`](agents/) |
-| Regulator knowledge files | 12 (6 BMA sector + 6 jurisdiction/directory) | [`knowledge/bma/`](knowledge/bma/), [`knowledge/jurisdictions/`](knowledge/jurisdictions/) |
+| Regulator knowledge files | 16 (10 BMA + 6 jurisdiction/directory) | [`knowledge/bma/`](knowledge/bma/), [`knowledge/jurisdictions/`](knowledge/jurisdictions/) |
+| Best-practice rules | 27 | [`best-practices/`](best-practices/) |
 | Skills | 9 | [`skills/`](skills/) |
 | Hooks | 1 (PreToolUse, defensive) | [`hooks/`](hooks/) |
 | Templates | 8 | [`templates/`](templates/) |
@@ -48,7 +49,7 @@ See [`CLAUDE.md`](CLAUDE.md) for the full team constitution.
 
 ## Regulator knowledge base
 
-The jurisdiction specialists read **12 primary-source-cited knowledge files** before answering — six BMA sector files under [`knowledge/bma/`](knowledge/bma/) (banking, trust, corporate-services, fund-administration, investment-business, overview) and six under [`knowledge/jurisdictions/`](knowledge/jurisdictions/) (CIMA/Cayman, Bahamas, Jersey-Guernsey, UK PRA, US federal+state, and a global standard-setter directory). Each cites the actual Act + section and Code + date; values that could not be pinned to the primary text (many regulator sites 403 automated fetch) carry an explicit `[unverified]` marker — the instruction to confirm against the primary PDF before relying.
+The jurisdiction specialists read **16 primary-source-cited knowledge files** before answering — **ten BMA files** under [`knowledge/bma/`](knowledge/bma/) (banking, trust, corporate-services, fund-administration, investment-business, overview, **msb-and-digital-assets**, **aml-atf**, **supervision-and-filings**, and a **decision-trees** classification file) and six under [`knowledge/jurisdictions/`](knowledge/jurisdictions/) (CIMA/Cayman, Bahamas, Jersey-Guernsey, UK PRA, US federal+state, and a global standard-setter directory). Each cites the actual Act + section and Code + date; values that could not be pinned to the primary text (many regulator sites 403 automated fetch) carry an explicit `[unverified]` marker — the instruction to confirm against the primary PDF before relying.
 
 ## House opinions (short list)
 

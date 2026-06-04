@@ -10,7 +10,7 @@ These complement, and do not restate, the cross-cutting house opinions in the te
 
 ## Index
 
-_24 rules. Each file is one named, citable rule; read and apply it whole._
+_27 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -21,6 +21,9 @@ _24 rules. Each file is one named, citable rule; read and apply it whole._
 | [`aml-sar-narrative-answers-why.md`](./aml-sar-narrative-answers-why.md) | Absolute rule | A SAR/STR narrative that names the customer and recites the transaction — "Customer wired $X to Y on date Z" — tells the financial-intelligence unit *… |
 | [`aml-tune-transaction-monitoring-with-data.md`](./aml-tune-transaction-monitoring-with-data.md) | Absolute rule | Transaction-monitoring rules drift out of calibration the moment they ship and are rarely re-tuned. |
 | [`bermuda-state-the-capital-regime-before-you-model.md`](./bermuda-state-the-capital-regime-before-you-model.md) | Absolute rule — modeling a Bermuda (re)insurer's capital before fixing its class and regime computes against the wrong yardstick. | The registration class drives the BMA capital framework (BSCR/ECR/MMS, EBS); it's the first decision, not a discovered input. |
+| [`bma-a-licensing-exemption-is-not-an-aml-exemption.md`](./bma-a-licensing-exemption-is-not-an-aml-exemption.md) | Absolute rule | A carve-out from a BMA licence requirement (e.g. an exempt private trust company) does NOT remove the entity's AML/ATF obligations. |
+| [`bma-classify-the-sector-and-licence-before-you-advise.md`](./bma-classify-the-sector-and-licence-before-you-advise.md) | Absolute rule | Every BMA non-insurance answer is computed against a sector + licence class; the licensable activity (not the entity's label) selects the Act. |
+| [`bma-keep-the-10-and-25-percent-bo-thresholds-distinct.md`](./bma-keep-the-10-and-25-percent-bo-thresholds-distinct.md) | Absolute rule | Bermuda runs two beneficial-ownership thresholds — 10% (CSP gatekeeper fitness) vs 25% (statutory register definition); don't collapse them. |
 | [`classify-severity-before-you-respond.md`](./classify-severity-before-you-respond.md) | Primary diagnostic | When a regulator delivers a finding, the most expensive mistake is misreading **severity** before deciding how to respond. |
 | [`controls-classify-the-control-type-before-you-rate-it.md`](./controls-classify-the-control-type-before-you-rate-it.md) | Primary diagnostic | The kind of control you have determines what evidence proves it works, how its failure shows up, and how much residual risk it actually removes — yet … |
 | [`controls-inherent-residual-target-are-three-ratings.md`](./controls-inherent-residual-target-are-three-ratings.md) | Absolute rule | A risk register exists to answer one question: is the firm over- or under-controlled against its appetite? |
