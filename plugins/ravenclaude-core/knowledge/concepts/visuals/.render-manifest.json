@@ -15,7 +15,8 @@
     "permission-layers": "5d740e1ba8a065adc333dc918e302f69aced5d35b06e00bc540e908593cd5713",
     "permission-modes": "c2a96ff985928caabc206ba28aaca23685c76c9109420a9bef123b29d1cfe4d1",
     "saga-log": "6f260caa0071efe53d8f0d3ada620f085c7d876e0d9b50c7f59c15b899481d6a",
-    "session-start-context": "a9fd1336a708e17dbff97245e18705ba4854f00693924496c0658d8398429e7b"
+    "session-start-context": "a9fd1336a708e17dbff97245e18705ba4854f00693924496c0658d8398429e7b",
+    "source-control-basics": "532ddad1644f5d5378cdcb94bd771d3187b71f385ea3c2c170f6087a9a77e640"
   },
   "mmdc_version": "11.15.0",
   "normalizer_version": 4
