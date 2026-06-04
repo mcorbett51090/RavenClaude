@@ -770,6 +770,61 @@
                 synthetic data.
               </p>
             </div>
+            <div class="rc-card" style="margin-top: 16px">
+              <h3>Driving Codex desktop</h3>
+              <table class="rc-table">
+                <tbody>
+                  <tr>
+                    <td><b>Paste whole, accept once</b></td>
+                    <td>
+                      Paste the full prompt and accept all files in one go. Don't chat back to
+                      refine mid-turn — re-prompt cleanly. Each back-and-forth is another billable
+                      turn.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <b><code class="inline">git commit</code> after each prompt</b>
+                    </td>
+                    <td>
+                      A bad turn is then one <code class="inline">git checkout .</code> away instead
+                      of lost work — you never re-pay to rebuild something that already worked.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><b>Revert, don't negotiate</b></td>
+                    <td>
+                      If a turn goes sideways, revert and re-paste. One fresh turn is cheaper than
+                      three correction turns.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><b>Zero-credit safety net</b></td>
+                    <td>
+                      A verified reference build of Prompts 1 + 2 lives in
+                      <a href="./reference-build/" target="_blank" rel="noopener"
+                        ><code class="inline">reference-build/</code></a
+                      >. If Codex struggles with the foundation, copy
+                      <code class="inline">synthesize.py</code> +
+                      <code class="inline">dashboard.html</code> in and skip to Prompt 3.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="callout callout--warn">
+              <h4>One gotcha — already solved in the reference build</h4>
+              <p>
+                Browsers block <code class="inline">fetch()</code> of a local file under
+                <code class="inline">file://</code>, so a dashboard that fetches
+                <code class="inline">data.json</code> won't load by double-clicking. Serve the
+                folder (<code class="inline">python3 -m http.server 8000</code> →
+                <code class="inline">http://localhost:8000/dashboard.html</code>), or ask Codex to
+                inline the data as a <code class="inline">data.js</code>
+                <code class="inline">window.__DATA__</code> script. Prompt 2 tells Codex to show
+                that exact tip in its error state.
+              </p>
+            </div>
           </section>
 
           <hr class="rc-rule" />
@@ -1053,7 +1108,7 @@ Constraints: Do not ask clarifying questions. Do not install packages (standard 
                 >
               </div>
               <pre class="prompt-body" id="prompt-2">
-Build dashboard.html — a self-contained, single-page "Partner Success Command Center" that fetches ./data/data.json and renders the daily operating system for a K-12 edtech PSM. Plain HTML + CSS + vanilla JS in ONE file. No framework, no CDN except the system font stack. It must open directly in a browser (use fetch on ./data/data.json; degrade with a friendly message if the file can't load).
+Build dashboard.html — a self-contained, single-page "Partner Success Command Center" that fetches ./data/data.json and renders the daily operating system for a K-12 edtech PSM. Plain HTML + CSS + vanilla JS in ONE file. No framework, no CDN except the system font stack. Load the data with fetch on ./data/data.json. IMPORTANT: browsers block fetch of a local file under file://, so if the fetch fails, render a friendly message telling the user to run `python3 -m http.server 8000` from this folder and open http://localhost:8000/dashboard.html (do NOT silently show a blank page).
 
 Visual style: calm, professional, Intercom-like. Cool near-white canvas (#f5f6f8), white cards with a 1px hairline border and very soft shadow, teal accent (#1f7f78), Inter/system sans. Health colors: green &gt;=70 (#1f7a3f), yellow 50-69 (#9a7010), red &lt;50 (#b03f3f) — read the thresholds from data.bands, never hardcode them.
 

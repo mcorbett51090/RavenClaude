@@ -11,6 +11,8 @@
 - [`codex-build-prompts.md`](./codex-build-prompts.md) — the copy-paste Codex prompt sequence (Prompt 0–6), ordered so Prompts 1+2 alone yield a daily-usable dashboard, with per-prompt credit-saving constraints.
 - <a href="./build-plan.html" target="_blank" rel="noopener">build-plan.html</a> — interactive build plan (tiers + every prompt with copy buttons), in the `index.html` visual format. _Opens in a new tab._
 - <a href="./process-flow.html" target="_blank" rel="noopener">process-flow.html</a> — Mermaid process-flow walkthrough of how the finished dashboard works (morning loop, data flow, priority scoring, drill-downs, tier DAG). _Opens in a new tab._
+- [`reference-build/`](./reference-build/) — a **verified, zero-credit** implementation of Prompts 1+2 (`synthesize.py` + `data.json` + `dashboard.html`). Proves the prompts line up and serves as a fallback if Codex stumbles on the foundation.
+- [`setup-answers.md`](./setup-answers.md) — 5-minute fill-in stub for the six data questions + the hosting choice; answering them scopes the real-data (Tier 0.5) work.
 
 ---
 
