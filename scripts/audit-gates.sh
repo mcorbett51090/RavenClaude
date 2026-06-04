@@ -417,9 +417,14 @@ python3 -c "import json;p='.claude-plugin/marketplace.json';d=json.load(open(p))
 rc=0; scripts/check-guide-fresh.sh >/dev/null 2>&1 || rc=$?
 gate "repo-guide freshness (mutated marketplace.json)" must_fail "$rc"
 cp -p "$TMP/.claude-plugin_marketplace.json.bak" .claude-plugin/marketplace.json
-# must_pass: pristine tree, the check should pass.
-rc=0; scripts/check-guide-fresh.sh >/dev/null 2>&1 || rc=$?
-gate "repo-guide freshness (clean tree)" must_pass "$rc"
+# NOTE: the matching "clean tree must_pass" assertion was intentionally removed.
+# repo-guide.html is no longer freshness-GATED on PRs — it is regenerated and
+# committed post-merge by .github/workflows/regenerate-artifacts.yml, so a PR
+# branch carrying a not-yet-regenerated guide must NOT fail here (that cross-PR
+# contagion is the failure this change fixes). The must_pass moved into that
+# workflow's verify step; the must_fail above still proves the detector that the
+# workflow relies on has teeth. See docs/best-practices/ci-gate-audit.md
+# § "Self-healing artifacts (freshness enforced post-merge, not on PRs)".
 
 echo
 echo "── Gate 12: marketplace-claims (required files + skill counts) ────────────"

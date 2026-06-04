@@ -58,6 +58,19 @@ The same script runs in [`.github/workflows/validate-marketplace.yml`](../../.gi
 - **Steps that gate on the workflow's *presence*** (e.g., "this workflow must run at all") rather than on a property of the code. The audit-by-fixture pattern doesn't apply because there's no input variable to mutate.
 - **Tests inside the gate itself** — the rule applies to the gate's *enforcement* layer, not to every assertion inside a unit test suite. A test suite IS the audit fixture for the code it tests.
 
+### Self-healing artifacts (freshness enforced post-merge, not on PRs)
+
+Some gates enforce that a **committed generated artifact** matches what its generator would produce (a "freshness gate"). For a *repo-wide* artifact that every PR regenerates — e.g. `repo-guide.html`, whose roster/counts change on every plugin add — a PR-time freshness gate becomes a **cross-PR contagion**: concurrent plugin PRs each regenerate the file into their own branch, so they merge-conflict on it, and whichever branch goes stale as a sibling merges fails the gate through no fault of its own diff. The gate punishes parallelism instead of catching a real defect.
+
+The fix is to move freshness from **blocking on PRs** to **self-healing on `main`**: a `push: main` workflow regenerates the artifact and commits it back (`[skip ci]`), PR branches stop touching it, and the PR-time freshness gate is removed. `repo-guide.html` works this way as of 2026-06 — owned by `.github/workflows/regenerate-artifacts.yml`.
+
+When you do this, **the audit-by-fixture rule still applies — the must_pass half just relocates:**
+
+- **Keep the `must_fail` half** in `audit-gates.sh` (mutate the source, assert the detector flags it). The post-merge workflow relies on that same detector both to decide whether to regenerate and to verify it succeeded, so the detector must still be proven to have teeth.
+- **Move the `must_pass` (clean-tree) half** into the post-merge workflow's verify step — run the detector after regenerating; a fresh tree must pass. That is the legitimate place to assert "the committed artifact is fresh," because that is the one tree the workflow guarantees is fresh.
+
+Document the relocation with a header comment at the (now-removed) PR gate and at the surviving `must_fail` fixture, so the missing clean-tree assertion reads as *intentional*, not as a gate that quietly lost its teeth. **Not every generated artifact qualifies** — one that other gates structurally depend on (e.g. `dashboard.html`, whose render-test gates extract functions from the committed file) should stay PR-gated, because its freshness gate is also what keeps it in lockstep with generator/schema changes.
+
 ## See also
 
 - [`../memory-bank/lessons-learned.md`](../memory-bank/lessons-learned.md) — the 2026-05-21 entry "A step that runs is not necessarily a step that gates" carries the origin trace and the actionlint-specific repro.

@@ -1,0 +1,90 @@
+name: Regenerate generated artifacts (post-merge self-heal)
+
+# Why this exists
+# ---------------
+# repo-guide.html is a large, repo-wide *generated* artifact: every plugin add or
+# version bump changes its roster/counts. When several plugin PRs are open at once,
+# each one regenerating the guide into its own branch guarantees (a) merge conflicts
+# on the big file and (b) a "freshness gate" failure on whichever branch goes stale
+# as siblings merge — the exact cross-PR contagion that turned "working on multiple
+# things at once" into "tons of CI failing".
+#
+# The fix: take repo-guide.html OFF the PR critical path. PR branches no longer
+# regenerate it (the regen-on-manifest-change.sh hook skips it when this workflow is
+# present), and the PR freshness gate is removed. Instead `main` OWNS the guide:
+# after each merge, this workflow regenerates it once, in serial, and commits the
+# result back. The guide is therefore always fresh on `main` (which is what GitHub
+# Pages serves) within ~a minute of a merge, and is never a source of PR conflicts.
+#
+# Scope note: this currently self-heals repo-guide.html ONLY. dashboard.html is
+# deliberately NOT included — several render-test gates extract functions from the
+# committed dashboard.html and its freshness gate keeps it in lockstep with
+# generator/schema changes, so decoupling it needs more care (a later phase).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".claude-plugin/marketplace.json"
+      - "plugins/**"
+      - "scripts/generate-repo-guide.py"
+      - ".github/workflows/regenerate-artifacts.yml"
+  workflow_dispatch:
+
+# The job pushes the regenerated guide back to main.
+permissions:
+  contents: write
+
+# Serialize runs so two quick merges can't race on the push.
+concurrency:
+  group: regenerate-artifacts
+  cancel-in-progress: false
+
+jobs:
+  regenerate:
+    name: Regenerate repo-guide.html on main
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history for accurate per-plugin "Last updated" dates)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Regenerate and commit only if the guide is stale
+        run: |
+          set -euo pipefail
+
+          # check-guide-fresh.sh strips the volatile "Generated …" + per-plugin
+          # "Last updated" lines before diffing, so a pure-timestamp delta reports
+          # FRESH and we commit nothing (no churn). Only a substantive source
+          # change makes it report stale and triggers a regenerate.
+          if scripts/check-guide-fresh.sh; then
+            echo "repo-guide.html already fresh — nothing to do."
+            exit 0
+          fi
+
+          echo "repo-guide.html is stale — regenerating."
+          python3 scripts/generate-repo-guide.py
+
+          # Verify the regeneration actually achieved freshness. This is the
+          # "clean tree must_pass" assertion that used to run on PRs (audit-gates.sh
+          # Gate 11) — it now lives here, on the tree that is supposed to be fresh.
+          # See docs/best-practices/ci-gate-audit.md § "Self-healing artifacts".
+          scripts/check-guide-fresh.sh
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add repo-guide.html
+          git commit -m "chore(repo-guide): regenerate after merge [skip ci]"
+
+          # A merge may have landed since checkout; rebase our single guide-only
+          # commit before pushing. Branches no longer touch repo-guide.html, so a
+          # rebase conflict here is not expected (and would fail loudly if it
+          # happened). [skip ci] keeps this push from re-triggering the workflow.
+          git pull --rebase origin main
+          git push origin HEAD:main

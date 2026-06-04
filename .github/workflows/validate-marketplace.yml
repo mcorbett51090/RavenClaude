@@ -316,12 +316,14 @@ jobs:
         # scripts/audit-gates.sh for per-gate fixtures.
         run: scripts/audit-gates.sh
 
-      - name: Verify repo-guide.html is fresh
-        # If a contributor changed a manifest, agent, skill, hook, rule, or
-        # template without re-running `python3 scripts/generate-repo-guide.py`,
-        # the committed guide will diverge from regenerated content and this
-        # step fails. See scripts/check-guide-fresh.sh for the diff logic.
-        run: scripts/check-guide-fresh.sh
+      # NOTE: repo-guide.html freshness is no longer gated here. The guide is a
+      # repo-wide generated artifact that every plugin PR would otherwise
+      # regenerate into its own branch, causing cross-PR merge conflicts and
+      # stale-on-the-loser freshness failures when siblings merge. It is now
+      # OWNED by `main` and regenerated post-merge by
+      # .github/workflows/regenerate-artifacts.yml. The staleness *detector*
+      # (check-guide-fresh.sh) is still audited for teeth in audit-gates.sh
+      # Gate 11. See docs/best-practices/ci-gate-audit.md § "Self-healing artifacts".
 
       - name: Verify dashboard.html is fresh
         # If a contributor changed dashboard-schema.json, pattern-explanations.json,
