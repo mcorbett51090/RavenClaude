@@ -16,10 +16,11 @@ name: Regenerate generated artifacts (post-merge self-heal)
 # result back. The guide is therefore always fresh on `main` (which is what GitHub
 # Pages serves) within ~a minute of a merge, and is never a source of PR conflicts.
 #
-# Scope note: this currently self-heals repo-guide.html ONLY. dashboard.html is
-# deliberately NOT included — several render-test gates extract functions from the
-# committed dashboard.html and its freshness gate keeps it in lockstep with
-# generator/schema changes, so decoupling it needs more care (a later phase).
+# Scope note: this self-heals repo-guide.html and the marketplace-claims DERIVABLE
+# counts (per-plugin "<N> skills/agents" prose + README "ships **N plugins**").
+# dashboard.html and the concept/decision-tree SVGs are deliberately NOT included —
+# several render-test gates extract functions from the committed dashboard.html and
+# the SVGs are inlined into it, so decoupling those needs more care (a later phase).
 
 on:
   push:
@@ -27,7 +28,9 @@ on:
     paths:
       - ".claude-plugin/marketplace.json"
       - "plugins/**"
+      - "README.md"
       - "scripts/generate-repo-guide.py"
+      - "scripts/check-marketplace-claims.py"
       - ".github/workflows/regenerate-artifacts.yml"
   workflow_dispatch:
 
@@ -55,36 +58,42 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Regenerate and commit only if the guide is stale
+      - name: Self-heal generated artifacts (marketplace counts + repo-guide), commit if changed
         run: |
           set -euo pipefail
 
-          # check-guide-fresh.sh strips the volatile "Generated …" + per-plugin
-          # "Last updated" lines before diffing, so a pure-timestamp delta reports
-          # FRESH and we commit nothing (no churn). Only a substantive source
-          # change makes it report stale and triggers a regenerate.
-          if scripts/check-guide-fresh.sh; then
-            echo "repo-guide.html already fresh — nothing to do."
-            exit 0
+          # 1. Marketplace-claims DERIVABLE counts (per-plugin "<N> skills/agents"
+          #    prose + README "ships **N plugins**"). --fix rewrites only the
+          #    derivable digits in place (formatting-preserving, so prettier stays
+          #    happy). It exits nonzero only if a STRUCTURAL problem remains — which
+          #    the PR gate (--structural-only) should already have blocked, so a
+          #    failure here is a loud signal, not silent drift.
+          python3 scripts/check-marketplace-claims.py --fix
+
+          # 2. repo-guide.html. check-guide-fresh.sh strips the volatile "Generated …"
+          #    + per-plugin "Last updated" lines before diffing, so a pure-timestamp
+          #    delta reports FRESH and we regenerate nothing. Run AFTER the count fix
+          #    so the guide reflects any rewritten descriptions. The post-regen check
+          #    is the "clean tree must_pass" relocated off PRs (audit-gates Gate 11).
+          if ! scripts/check-guide-fresh.sh; then
+            echo "repo-guide.html is stale — regenerating."
+            python3 scripts/generate-repo-guide.py
+            scripts/check-guide-fresh.sh
           fi
 
-          echo "repo-guide.html is stale — regenerating."
-          python3 scripts/generate-repo-guide.py
-
-          # Verify the regeneration actually achieved freshness. This is the
-          # "clean tree must_pass" assertion that used to run on PRs (audit-gates.sh
-          # Gate 11) — it now lives here, on the tree that is supposed to be fresh.
-          # See docs/best-practices/ci-gate-audit.md § "Self-healing artifacts".
-          scripts/check-guide-fresh.sh
-
+          # 3. Commit only if something actually changed.
+          if [[ -z "$(git status --porcelain)" ]]; then
+            echo "Artifacts already in sync — nothing to commit."
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add repo-guide.html
-          git commit -m "chore(repo-guide): regenerate after merge [skip ci]"
+          git add -A
+          git commit -m "chore(artifacts): self-heal marketplace counts + repo-guide after merge [skip ci]"
 
-          # A merge may have landed since checkout; rebase our single guide-only
-          # commit before pushing. Branches no longer touch repo-guide.html, so a
-          # rebase conflict here is not expected (and would fail loudly if it
-          # happened). [skip ci] keeps this push from re-triggering the workflow.
+          # A merge may have landed since checkout; rebase our artifact-only commit
+          # before pushing. Branches no longer touch these files, so a rebase
+          # conflict is not expected (and would fail loudly). [skip ci] keeps this
+          # push from re-triggering the workflow.
           git pull --rebase origin main
           git push origin HEAD:main
