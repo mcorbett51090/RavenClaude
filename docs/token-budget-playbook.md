@@ -177,6 +177,26 @@ aggressively instead of one-shotting:
   good, but not a way to "use more."
 - **Maxing effort on trivial tasks** — overthinking. Match effort to difficulty.
 
+## Troubleshooting
+
+The three failure modes you'll actually hit when running a swarm:
+
+- **`claude --bg` isn't available** (some remote/web sessions, or the CLI flag
+  isn't present) — the parallelism still works, it's just driven from _inside_
+  the session instead of as detached OS processes. Use the Agent tool's built-in
+  `isolation: "worktree"` for fire-and-forget parallel sub-agents, or dispatch
+  sub-agents in-session via the Agent/Task tool. `scripts/worktree-swarm.sh`
+  still usefully pre-creates the isolated trees regardless.
+- **A worktree won't delete (`worktree-clean.sh` refuses)** — the tree has
+  uncommitted changes. Run `worktree-swarm.sh --status` (or
+  `worktree-clean.sh --status`) to see which trees are dirty first, then either
+  commit/stash the work in that tree, or pass `--force` to discard it.
+- **An `agent/<slug>` branch lingers after cleanup** — `worktree-clean.sh` only
+  auto-deletes the branch when it's fully merged; an unmerged branch is left
+  intentionally so work isn't lost. Merge or archive it, then remove the branch.
+  This repo blocks `git branch -D` — the sanctioned escape hatch is
+  `scripts/archive-branch.sh`.
+
 ## Sources
 
 - [What is the Max plan? — Claude Help Center](https://support.claude.com/en/articles/11049741-what-is-the-max-plan)
