@@ -1,6 +1,6 @@
 # Regulatory Compliance Plugin — Team Constitution
 
-> Team constitution for the `regulatory-compliance` Claude Code plugin. Bundles **12** specialist agents: **6 function agents** (AML/KYC; regulatory reporting — FATCA/CRS, supervisory returns, Solvency II, BMA EBS; enterprise risk and controls; policy & procedure authoring; examination preparation; Bermuda-specific insurance regulation) **+ 6 jurisdiction/regulator specialists** (BMA financial-institutions — banking, trust, corporate-services, fund-admin, investment-business; CIMA/Cayman; Bahamas; Channel Islands — Jersey JFSC + Guernsey GFSC; UK PRA; US federal+state). The jurisdiction agents are backed by **19 primary-source-cited knowledge files** under [`knowledge/bma/`](knowledge/bma/) and [`knowledge/jurisdictions/`](knowledge/jurisdictions/).
+> Team constitution for the `regulatory-compliance` Claude Code plugin. Bundles **12** specialist agents: **6 function agents** (AML/KYC; regulatory reporting — FATCA/CRS, supervisory returns, Solvency II, BMA EBS; enterprise risk and controls; policy & procedure authoring; examination preparation; Bermuda-specific insurance regulation) **+ 6 jurisdiction/regulator specialists** (BMA financial-institutions — banking, trust, corporate-services, fund-admin, investment-business; CIMA/Cayman; Bahamas; Channel Islands — Jersey JFSC + Guernsey GFSC; UK PRA; US federal+state). The jurisdiction agents are backed by **20 primary-source-cited knowledge files** under [`knowledge/bma/`](knowledge/bma/), [`knowledge/jurisdictions/`](knowledge/jurisdictions/), and the cross-jurisdictional [`knowledge/basel-framework.md`](knowledge/basel-framework.md).
 >
 > Designed for practitioners on the licensee side AND the supervisor side. The team's positioning reflects field experience in a Tier-1 financial regulator (Bermuda Monetary Authority). Assumes the user understands the basics; gives real opinions, not regulator-summary tutorials.
 >
@@ -211,7 +211,7 @@ The hook is **advisory by default** (prints to stderr, doesn't block). For sensi
 
 ## 8a. Jurisdiction & regulator knowledge base
 
-The jurisdiction specialists are backed by **19 primary-source-cited knowledge files** (13 BMA + 6 jurisdiction/directory). Each agent reads its file(s) *before* answering and resolves any `[unverified]` / `[verify-at-build]` marker against the regulator's primary source before that value gates live advice (accuracy discipline, AGENTS.md).
+The jurisdiction specialists are backed by **20 primary-source-cited knowledge files** (13 BMA + 6 jurisdiction/directory + 1 cross-jurisdictional Basel reference). Each agent reads its file(s) *before* answering and resolves any `[unverified]` / `[verify-at-build]` marker against the regulator's primary source before that value gates live advice (accuracy discipline, AGENTS.md).
 
 | File | Owner agent | Covers |
 |---|---|---|
@@ -234,6 +234,7 @@ The jurisdiction specialists are backed by **19 primary-source-cited knowledge f
 | [`knowledge/jurisdictions/uk-pra.md`](knowledge/jurisdictions/uk-pra.md) | `uk-pra-specialist` | PRA + FCA twin-peaks; Basel 3.1; Solvency UK |
 | [`knowledge/jurisdictions/us-federal-state.md`](knowledge/jurisdictions/us-federal-state.md) | `us-financial-regulation-specialist` | Federal+state alphabet soup; BSA/AML; CTA/BOI |
 | [`knowledge/jurisdictions/global-regulator-directory.md`](knowledge/jurisdictions/global-regulator-directory.md) | all jurisdiction agents | FATF/CFATF/MONEYVAL, Basel/IAIS/IOSCO, OECD CRS/Pillar Two, EU AMLA — the supranational layer |
+| [`knowledge/basel-framework.md`](knowledge/basel-framework.md) | all banking-touching agents (BMA / CIMA / UK-PRA / Bahamas / US) + `risk-and-controls-specialist`, `regulatory-reporting-analyst` | **The canonical Basel reference** — three Pillars, the capital stack (CET1/AT1/T2), Pillar-1 minimums + buffer stack + MDA, RWA/output-floor, leverage + LCR/NSFR, Pillar-2 ICAAP/ILAAP/SREP, Basel 3.1 implementation by jurisdiction. The jurisdiction files state how each regulator *implements* Basel; this is the standard itself, so they stop re-deriving it. |
 
 **Sourcing honesty:** the BMA/CIMA/Bahamas/JFSC primary sites HTTP-403'd the automated fetch backend during the build sweep, so many exact statutory section numbers carry an `[unverified]` marker grounded in search-engine extraction + multiple independent law-firm compendiums. This is deliberate, not sloppiness — the marker IS the instruction to confirm against the primary PDF before the cite gates a live filing.
 
