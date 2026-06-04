@@ -1,0 +1,15 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.1.0/schema.json",
+  "page": "UnknownVisualType",
+  "width": 1280,
+  "height": 720,
+  "displayOption": "FitToPage",
+  "visuals": [
+    {
+      "id": "mystery-viz",
+      "visualType": "hologramChart",
+      "position": { "x": 24, "y": 80, "width": 296, "height": 300 },
+      "queryState": { "Category": { "projections": [{ "field": "Region" }] } }
+    }
+  ]
+}

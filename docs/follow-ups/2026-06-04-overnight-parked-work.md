@@ -39,7 +39,16 @@ forgotten task.** This file gives each one its trigger.
 
 **Action:** re-read the two cited sources, confirm the numbers haven't drifted, then ship Phase 6 per the plan. If either has drifted, **defer the flip** and ship a docs-only PR noting the drift instead (per the plan's settling step).
 
-**Re-check by:** 2026-06-18 (two weeks). If unverified by then, leave the classifier disabled in `main` and document why in a follow-up commit.
+**STILL PARKED — verify-at-use ran 2026-06-04; one claim drifted + the eval gate is unrun.** A web-verification pass against primary Anthropic sources (`platform.claude.com/docs/.../pricing`, `.../batch-processing`, `.../models/overview`, all fetched 2026-06-04) found:
+
+- **Claim #8 (Batch API ~50% off) — CONFIRMED.** Exact language: *"a 50% discount on both input and output tokens."* The batch pricing table is arithmetically half of standard in every row (Opus 4.8 $5→$2.50 in / $25→$12.50 out; Sonnet 4.6 $3→$1.50 / $15→$7.50; Haiku 4.5 $1→$0.50 / $5→$2.50).
+- **Claim #9 (substrate tier SKUs) — DRIFTED (framing, not broken SKUs).** All three model-ID strings still resolve and are non-deprecated (`claude-haiku-4-5-20251001`, `claude-sonnet-4-6`, both `claude-opus-4-7` and `claude-opus-4-8` are live). **What moved:** Opus 4.7 has been demoted from "Latest models" to the **Legacy** section ("still available… consider migrating"); **Opus 4.8 is now the sole current top-tier model.** The `top` tier's "Opus 4.7/4.8 co-equal" framing is now stale → should read "Opus 4.8 (current); Opus 4.7 (legacy-but-available)."
+
+**Net:** per the plan's settling step, the SKU drift means **defer the flip and ship a docs-only drift note** (this entry + the tier-table marker refresh in [`adaptive-run-classifier/SKILL.md`](../../plugins/ravenclaude-core/skills/adaptive-run-classifier/SKILL.md)) — done. **A second, independent blocker also holds:** Phase 6's pre-build gate is *"Phase 5 eval gate green"* (`plan.md:133` + DoD `plan.md:208`: ≥2× token reduction, no confirmed-claim regression, cache-hit ≥0.5), and `.ravenclaude/runs/eval/` does not exist — **the eval has never been run.** It requires executing 6 live deep-research Workflows in Claude Code + grading (PR #253's harness), which can't be done headlessly. So `templates/run-config.json` stays `enabled: false`.
+
+**Trigger to unpark (revised):** a session that can (a) run the Phase 5 eval harness to green AND (b) re-confirm the (now-updated) tier framing the day before merge. Both gates must clear before the `enabled:true` flip.
+
+**Re-check by:** 2026-06-18 (two weeks). If still unverified by then, leave the classifier disabled in `main` and document why in a follow-up commit.
 
 ---
 

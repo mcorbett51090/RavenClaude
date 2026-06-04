@@ -127,6 +127,36 @@ Before any DPA touching AI signs:
 
 ---
 
+## 7. Biometric-identifier overlay (post-COPPA amendment) — added 2026-06-04
+
+The Apr 22 2025 final COPPA Rule (full-compliance deadline **Apr 22, 2026 — now passed**) added **biometric identifiers (face / fingerprint / voice) and government-issued identifiers** to the PI definition for under-13. This materially changes the AI-training prohibition calculus:
+
+- **Face / fingerprint / voice from under-13 = COPPA-PI.** Training an AI model on K-5 voice-assessment audio, face-recognition login images, or fingerprint biometrics requires direct VPC (verifiable parental consent) — school authorization is **insufficient**.
+- **Edmodo and IXL precedents extend here** — the school-authorization line is maximally narrow for biometric collection. The FTC's two IXL amicus briefs (Aug 13, 2024 + post-interlocutory-appeal) reaffirm that schools cannot bind parents to vendor TOS arbitration for non-educational uses.
+
+**PSM checklist for K-5 AI features:**
+- [ ] Any AI feature using face / fingerprint / voice from K-5 → STOP-needs-counsel.
+- [ ] Any AI feature using government-ID (SSN-suffix, immigration linkage, Medicaid binding) from K-5 → STOP-needs-counsel.
+- [ ] Vendor DPA explicitly excludes biometric audio/image/text from training corpus.
+- [ ] Vendor written cybersecurity program present (now a Rule requirement, not best-practice).
+- [ ] Retention is purpose-limited (no indefinite retention) per amended Rule.
+
+See [`coppa-2025-amendment-edtech-implications.md`](./coppa-2025-amendment-edtech-implications.md) for the full operational checklist.
+
+---
+
+## 8. Federal AI EO + COPPA Apr 2026 enforcement window — added 2026-06-04
+
+The convergence of the **federal AI Executive Order (Dec 2025)** with the **COPPA Apr 22 2026 full-compliance deadline** creates an enforcement-risk peak in **2026-Q2-Q4**. Practitioner consensus 2026:
+
+- **AI-feature subprocessor disclosure is the most common 2026 audit finding.** Any AI feature added since Apr 22, 2026 needs a fresh DPA addendum + subprocessor flow-down review.
+- **NDPA v2.2 (Nov 19, 2025) is the current contract substrate** — there is no v2.3 / v3.0 yet as of 2026-06-04. AI-training restrictions are now first-class clauses, not optional addenda.
+- **The bright-line trip wire**: *EdTech vendor uses an AI sub-processor that retains data for training* → triggers no-improvement-carveout + NDPA v2.2 Exhibit H subprocessor flow-down + (in NY/IL/CA) non-educational profiling prohibition simultaneously.
+
+`[verify-at-use — 2026-06-04 — federal AI EO citations + NDPA v2.2 publication]`
+
+---
+
 ## Sources
 
 [35] SDPC *NDPA v2.2* announcement (Nov 19, 2025) — https://privacy.a4l.org/national-dpa/

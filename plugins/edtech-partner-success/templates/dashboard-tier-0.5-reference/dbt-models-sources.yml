@@ -1,0 +1,216 @@
+# =====================================================================
+# dbt-models-sources.yml — source declarations + freshness expectations
+# ---------------------------------------------------------------------
+# Lineage: build-plan-tier-0.5-real-connectors.md § 3.2 #8 sources.
+# Lineage: plugins/data-platform/knowledge/elt-freshness-sla-patterns.md
+#          § "Tier-1 SLAs" (T1=1h warn/2h err; T2=4h/12h; T3=24h/48h).
+# Lineage: plugins/data-platform/knowledge/planhat-integration.md § "Configuration steps".
+# Lineage: plugins/data-platform/knowledge/salesforce-cpq-integration.md § "Field-set management".
+# Lineage: plugins/data-platform/knowledge/calendar-integration-google-outlook.md.
+#
+# Per-source freshness tier:
+#   - Salesforce  → T1 (1h warn / 2h err)  — escalation-grade signals
+#   - Planhat     → T2 (4h warn / 12h err) — health-score grade
+#   - Calendar    → T2 (4h warn / 12h err) — touchpoint-grade
+#   - Snowflake share → T3 (24h warn / 48h err) — usage rollups
+#   - Support     → rides Salesforce (Q1 = SFDC Service Cloud, same connector)
+#   - Contracts   → rides Salesforce (Q2 = SFDC CPQ, same connector)
+# =====================================================================
+
+version: 2
+
+sources:
+  # ---------------------------------------------------------------
+  # SALESFORCE — Fivetran connector. Covers Account, Contact, Opp,
+  # Contract, Case (support), and SBQQ__* (CPQ subscription + line items).
+  # ---------------------------------------------------------------
+  - name: salesforce
+    database: PSM_RAW
+    schema: SALESFORCE
+    loader: Fivetran
+    description: |
+      Salesforce production org via Fivetran. Q1 (support) = Case object on this
+      same connector. Q2 (contracts) = SBQQ__* on this same connector. No
+      separate vendor contract.
+    freshness:
+      warn_after: { count: 1, period: hour }
+      error_after: { count: 2, period: hour }
+    loaded_at_field: _fivetran_synced
+
+    tables:
+      - name: account
+        identifier: account
+        description: SFDC Account — the partner identity anchor.
+        loaded_at_field: _fivetran_synced
+        columns:
+          - name: id
+            description: 18-char SFDC Account ID. Joins to bridge_account_xref.salesforce_id.
+            data_tests: [not_null, unique]
+          - name: _fivetran_deleted
+            description: Fivetran soft-delete column — staging models filter `= FALSE`.
+
+      - name: contact
+        identifier: contact
+        description: SFDC Contact — for champion/exec_sponsor derivation.
+        loaded_at_field: _fivetran_synced
+        columns:
+          - name: id
+            data_tests: [not_null, unique]
+          - name: email
+            description: |
+              FERPA: contact email may be teacher / district staff. Stage masks to
+              domain-only (e.g. "@districtname.org") unless --allow-real-ids set.
+
+      - name: opportunity
+        identifier: opportunity
+        loaded_at_field: _fivetran_synced
+        columns:
+          - name: id
+            data_tests: [not_null, unique]
+
+      - name: contract
+        identifier: contract
+        description: |
+          SFDC Contract. EndDate is the renewal anchor (NOT RenewalDate — that field
+          is the auto-renewal target and is often null). See salesforce-cpq-integration.md.
+        loaded_at_field: _fivetran_synced
+        columns:
+          - name: id
+            data_tests: [not_null, unique]
+          - name: enddate
+            description: Renewal anchor for fct_renewal_pipeline.
+
+      - name: case
+        identifier: case
+        description: |
+          SFDC Service Cloud Case. Q1 settling-step answer — support tickets ride
+          this object on the existing SFDC Fivetran connector. No separate Zendesk
+          or other tool.
+        loaded_at_field: _fivetran_synced
+        columns:
+          - name: id
+            data_tests: [not_null, unique]
+          - name: priority
+          - name: status
+          - name: type
+            description: For escalation derivation — `is_escalation = (Priority='High' OR Type='Escalation' OR Status='Escalated')`.
+
+      - name: sbqq__subscription__c
+        identifier: sbqq__subscription__c
+        description: SFDC CPQ subscription. Q2 settling-step answer.
+        loaded_at_field: _fivetran_synced
+      - name: sbqq__quote__c
+        identifier: sbqq__quote__c
+        loaded_at_field: _fivetran_synced
+      - name: sbqq__quoteline__c
+        identifier: sbqq__quoteline__c
+        loaded_at_field: _fivetran_synced
+
+  # ---------------------------------------------------------------
+  # PLANHAT — native bidirectional Snowflake sync (BUY per refreshed
+  # planhat-integration.md). NOT a Fivetran connector. Tables land
+  # directly via Planhat's native integration.
+  # ---------------------------------------------------------------
+  - name: planhat
+    database: PSM_RAW
+    schema: PLANHAT
+    loader: Planhat-native
+    description: |
+      Planhat ↔ Snowflake native bidirectional integration. Company / EndUser /
+      License flow IN (Receive from Provider); Metrics (warehouse-owned usage)
+      flow OUT (Send to Provider). externalId = sfdc_account_id (warehouse hook).
+      sourceId = sfdc_account_id (SFDC bridge anchor).
+    freshness:
+      warn_after: { count: 4, period: hour }
+      error_after: { count: 12, period: hour }
+    loaded_at_field: _synced_at
+
+    tables:
+      - name: company
+        identifier: company
+        columns:
+          - name: id
+            data_tests: [not_null, unique]
+          - name: sourceid
+            description: SFDC Account ID bridge anchor. Joins via bridge_account_xref.
+          - name: externalid
+            description: Warehouse identity hook.
+
+      - name: enduser
+        identifier: enduser
+        description: |
+          FERPA: end-user is typically the educator (teacher/admin), NOT a student.
+          Staging mask applies to email regardless.
+
+      - name: nps
+        identifier: nps
+        description: |
+          FERPA: NPS verbatim is PII-bearing — masked to score-only at staging.
+          Lineage: planhat-integration.md § "Deletion handling" + PII discipline.
+
+      - name: health_score
+        identifier: health_score
+      - name: license
+        identifier: license
+      - name: metric
+        identifier: metric
+
+  # ---------------------------------------------------------------
+  # GOOGLE CALENDAR — BUILD ingest (Q3 settling-step). Service-account
+  # OAuth with domain-wide delegation; events.list + syncToken;
+  # singleEvents=true (NEVER mix modes — produces double-counts).
+  # ---------------------------------------------------------------
+  - name: google_calendar
+    database: PSM_RAW
+    schema: GOOGLE_CALENDAR
+    loader: ingest-google-calendar.py
+    description: |
+      Google Calendar via service-account JWT + events.list. Read-only first
+      (no write-back in Tier 0.5 v1). UTC-only storage; IANA timezone on dim_partner.
+    freshness:
+      warn_after: { count: 4, period: hour }
+      error_after: { count: 12, period: hour }
+    loaded_at_field: _loaded_at
+
+    tables:
+      - name: events
+        identifier: events
+        description: |
+          One row per (calendar_id, event_id). singleEvents=true expansion of
+          recurring events. attendees_json carries the attendee list as VARIANT.
+        columns:
+          - name: event_id
+            data_tests: [not_null]
+          - name: i_cal_uid
+            data_tests: [not_null]
+          - name: summary
+            description: |
+              FERPA: event title may carry student names in legacy "Parent Conf for
+              {student}" patterns — masked to "[redacted]" in staging unless
+              --allow-real-ids is set.
+
+  # ---------------------------------------------------------------
+  # USAGE_SHARE — Zero-copy Snowflake share from the product analytics
+  # account. Read-only; no PII transit.
+  # Lineage: planhat-integration.md § "Don't reinvent the warehouse"
+  #          (data sharing > new ELT pipeline).
+  # ---------------------------------------------------------------
+  - name: usage_share
+    database: PSM_RAW
+    schema: USAGE_SHARE
+    loader: Snowflake-share
+    description: |
+      Inbound zero-copy share from product analytics. District-grain usage rollups
+      land here without copying data — pure metadata pointer.
+    freshness:
+      warn_after: { count: 24, period: hour }
+      error_after: { count: 48, period: hour }
+    loaded_at_field: _share_refreshed_at
+
+    tables:
+      - name: usage_daily_district
+        identifier: usage_daily_district
+        description: District-level daily roll-up — active users, messages, family activation.
+      - name: usage_daily_school
+        identifier: usage_daily_school
+        description: School-level daily roll-up; nullable when partner is not multi-school.
