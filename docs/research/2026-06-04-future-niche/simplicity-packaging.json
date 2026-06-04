@@ -1,0 +1,84 @@
+{
+  "summary": "probe full findings plus full opp threats",
+  "findings": [
+    {
+      "claim": "Winners absorb complexity behind a simple surface. Stripe seven lines of code hid fraud engines, bank relationships, compliance.",
+      "evidence": "klubzero.com/post/stripe-case-study-business-model-growth; grahammann.net",
+      "confidence": "verified"
+    },
+    {
+      "claim": "A one-line promise (Accept payments in seven lines of code) is the manifesto and positioning, not just a tagline.",
+      "evidence": "klubzero.com/post/stripe-case-study",
+      "confidence": "verified"
+    },
+    {
+      "claim": "A step-by-step interview makes a huge domain doable. TurboTax encodes 70000+ pages of tax law plus 45 states.",
+      "evidence": "snowdesign.com/turbotax_build_system.html; appcues.com; uxmatters.com",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Ease of setup beats feature breadth. Shopify won SMBs over Magento on launch-in-hours-no-code.",
+      "evidence": "litextension.com/blog/magento-vs-shopify; atwix.com/magento-vs-shopify",
+      "confidence": "verified"
+    },
+    {
+      "claim": "A recombinable block plus one uniform UI lets non-developers build tools. Notion LEGO-block model is its moat.",
+      "evidence": "medium.com sherrysun; designerfounders.substack.com/p/ivan-zhao-notion",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Winning AI-agent packaging is the hire-an-AI-employee frame: a role-based worker hired in 5 minutes.",
+      "evidence": "sintra.ai; sistava.com; salesmate.io/blog/future-of-ai-agents",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Visual builders package agent complexity; an agent now takes 15-60 minutes and domain experts build them.",
+      "evidence": "salesmate.io; relevanceai.com/workforce; bvp.com",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Per-seat pricing breaks in the agent era; outcome models align price to value.",
+      "evidence": "mindstudio.ai; getmonetizely.com; nxcode.io",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Three tiers with an anchored middle is most legible; more than 3-4 tiers causes paralysis.",
+      "evidence": "revenera.com; newsletter.pricingsaas.com",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Adoption hinges on a real aha moment in the first session. Cutting time-to-value 30% lifts trial-to-paid 15-25%.",
+      "evidence": "chameleon.io; blog.cerebralops.in",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Onboarding should be short: tours over four steps have below-average completion.",
+      "evidence": "appcues.com/blog/aha-moment-guide",
+      "confidence": "likely"
+    },
+    {
+      "claim": "Word-of-mouth compounds when the simple surface delights one dense community first.",
+      "evidence": "klubzero.com/post/stripe-case-study",
+      "confidence": "verified"
+    }
+  ],
+  "opportunities": [
+    "Lead with ONE legible promise; keep tribunal/FORGE/posture machinery invisible.",
+    "Frame as a hired AI employee/team with named roles (your AI financial analyst, your AI Power Platform engineer).",
+    "Make the machinery VISIBLE as trust signals: posture dashboard, tribunal verdict log, audit dashboards in the first 5 minutes.",
+    "Engineer a first-run aha: produce ONE real artifact (dashboard, FORGE plan, posture applied), not a tutorial.",
+    "Ship opinionated defaults (strict/balanced/exploratory) so non-developers never author a rule by hand.",
+    "Present plugins/agents as recombinable LEGO-style blocks behind one uniform dashboard.",
+    "Price as three tiers with an anchored middle (fits 25-50k engagements); consider outcome-framed items over per-seat.",
+    "Seed one dense community first (Power Platform / financial-analyst circles).",
+    "Keep guided setup to four or fewer steps."
+  ],
+  "threats": [
+    "A slash-command-first/CLI-ritual surface is the trap; dashboards-over-slash-commands must be enforced product-wide.",
+    "Exposing the sophistication as the PITCH scares non-developers and reads as developer-tooling.",
+    "A setup/tutorial first session drives week-one churn.",
+    "Per-seat pricing mirroring under-the-hood complexity is illegible; loses to outcome/tier pricing.",
+    "All-in-one breadth (26 plugins) reads as overwhelming unless wrapped in one surface and one promise.",
+    "Incumbents (Lindy, Relevance AI) own the simple non-developer surface; RavenClaude audit edge must be legible to non-developers."
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "summary": "The Claude Code / AI coding-agent tooling ecosystem in mid-2026 is a large, mostly-commoditized plugin economy with a distinct scarcity at the agent-governance layer where RavenClaude sits. COMMODITIZED: Anthropic ships an official curated marketplace (claude-plugins-official, ~55 plus plugins; ~9,650 MCP servers in the official registry, 15,900 plus across all registries). obra/superpowers (~93k stars, a ~14-skill TDD/debugging/brainstorming framework, now in the official marketplace) is the dominant agent-methodology-in-a-box. Agent-team templates, orchestration frameworks (LangGraph, CrewAI, Mastra), and deterministic Workflows are all available. Code review is well-served (Anthropic confidence-scored code-review plugin; coderabbit, 40 plus analyzers). Planning is covered by Plan Mode and Ultraplan (cloud Opus, 30-min deep plan, parallel risk/architecture sub-agents). Observability of token/tool usage exists (dash0, datadog). SCARCE (RavenClaude lane): No product found that puts a BINDING multi-agent review tribunal inside the agent own permission/decision loop. LLM juries exist only as offline EVALUATION (research, quotient judges, Hermes council); they score outputs, they do not gate a live commit/command with ALLOW/EDIT/DENY. Agent governance platforms (Credo AI, Microsoft Agent Governance Toolkit) are DEVELOPER-targeted runtime policy engines using deterministic YAML/Rego/Cedar rules plus middleware, not deliberation, not visual/non-developer-facing. Claude Code native permissions are config-file (settings.json allow/ask/deny), with NO visual posture dashboard; the documented failure mode is dangerously-skip-permissions (YOLO mode) and rm -rf horror stories on r/ClaudeAI. PAIN POINTS confirmed: orchestrator context burn, agents stepping on each other files, token waste without results, session-resumption limits, plus a broad trust crisis. These map directly to RavenClaude tribunal, posture dashboard, event substrate, and Capability Grounding Protocol.",
+  "findings": [
+    {
+      "claim": "Anthropic operates an official curated Claude Code plugin marketplace (claude-plugins-official) auto-available at startup, ~55 plus curated plugins, with a much larger third-party ecosystem on top.",
+      "evidence": "https://github.com/anthropics/claude-plugins-official and https://code.claude.com/docs/en/discover-plugins describe the Anthropic-managed directory; fetched marketplace.json enumerated 70 plus plugins (42crunch, coderabbit, code-review, dash0, datadog, atomic-agents).",
+      "confidence": "verified"
+    },
+    {
+      "claim": "obra/superpowers is the dominant community plugin suite, a free ~14-skill agentic methodology framework, ~93k GitHub stars, accepted into Anthropic official marketplace Jan 2026, cross-platform because skills are plain SKILL.md markdown.",
+      "evidence": "https://github.com/obra/superpowers ; https://claude.com/plugins/superpowers ; https://www.mindstudio.ai/blog/what-is-superpowers-plugin-claude-code (stars, skill count, cross-tool compatibility).",
+      "confidence": "likely"
+    },
+    {
+      "claim": "The MCP server ecosystem is large/commoditized: ~9,650 servers in the official registry (May 2026), 15,900 plus across all registries (PulseMCP, Smithery, Composio). Enterprise MCP auth/governance moved from research to commodity.",
+      "evidence": "https://www.qcode.cc/mcp-servers-ecosystem-2026 ; https://www.digitalapplied.com/blog/mcp-ecosystem-h1-2026-retrospective-adoption-data-points ; https://bloomberry.com/blog/we-analyzed-1400-mcp-servers-heres-what-we-learned/",
+      "confidence": "likely"
+    },
+    {
+      "claim": "AI code review is well-served/commoditized: Anthropic own code-review plugin uses specialized agents with confidence scoring; coderabbit offers external review with 40 plus analyzers and CLAUDE.md integration.",
+      "evidence": "marketplace.json fetch: code-review (specialized agents plus confidence scoring) and coderabbit (40 plus analyzers, AST parsing, CLAUDE.md integration).",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Anthropic offers deep planning via Plan Mode (local read-only) and Ultraplan (cloud Opus, up to 30 min, parallel sub-agents for risk/architecture review, inline-comment iteration). Overlaps conceptually with FORGE.",
+      "evidence": "https://code.claude.com/docs/en/ultraplan ; https://www.geeky-gadgets.com/ultra-plan-cloud-interface/ ; https://amitkoth.com/claude-code-ultraplan-planning/",
+      "confidence": "verified"
+    },
+    {
+      "claim": "LLM juries / agent-as-judge exist ONLY as an offline EVALUATION pattern (multiple judges score an output, aggregate via voting), in research and eval libraries, not as a binding pre-action gate in a coding agent permission loop.",
+      "evidence": "https://arxiv.org/html/2508.02994v1 (Agent-as-a-Judge) ; https://github.com/quotient-ai/judges ; https://orq.ai/blog/llm-juries-in-practice ; https://www.comet.com/site/blog/llm-juries-for-evaluation/ , all evaluation/scoring, not gating.",
+      "confidence": "verified"
+    },
+    {
+      "claim": "AI agent governance platforms in 2026 (Credo AI, Microsoft Agent Governance Toolkit, Future AGI surveyed tools) are DEVELOPER-targeted runtime policy engines using deterministic YAML/OPA Rego/Cedar rules plus framework middleware, NOT multi-agent deliberation, NOT a visual non-developer surface.",
+      "evidence": "https://opensource.microsoft.com/blog/2026/04/02/introducing-the-agent-governance-toolkit-open-source-runtime-security-for-ai-agents/ (stateless policy engine, YAML/Rego/Cedar, pip install, LangChain/CrewAI middleware) ; https://futureagi.com/blog/best-ai-agent-governance-tools-2026/ (Credo AI).",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Claude Code native permission system is config-file based (settings.json allow/ask/deny, deny then ask then allow). No official visual posture dashboard. The escape hatch is dangerously-skip-permissions (YOLO mode), tied to real destruction incidents (rm -rf from root, Oct 2025; r/ClaudeAI horror stories).",
+      "evidence": "https://code.claude.com/docs/en/permissions ; https://www.anthropic.com/engineering/claude-code-auto-mode ; https://claudelog.com/mechanics/dangerous-skip-permissions/ ; https://blog.promptlayer.com/claude-dangerously-skip-permissions/",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Documented multi-agent pain points: orchestrators helicopter over subagents and burn context/tokens without results; teammates step on each other files; session-resumption/coordination/shutdown limits. Anthropic answer is deterministic Workflows plus schema-forced structured output.",
+      "evidence": "https://news.ycombinator.com/item?id=46990733 ; https://alexop.dev/posts/claude-code-workflows-deterministic-orchestration/ ; https://claudefa.st/blog/guide/agents/agent-teams-best-practices ; https://code.claude.com/docs/en/agent-teams",
+      "confidence": "likely"
+    },
+    {
+      "claim": "A trust/reliability crisis underpins governance demand: models reported ~34 percent more confident when wrong; 1-in-3 to 1-in-2 confident answers had substantive issues (Apr 2026 peer-model check); 47 percent of enterprise users made a major decision on potentially inaccurate AI content; 28 percent of leadership will not move AI out of sandbox.",
+      "evidence": "https://analyticsweek.com/truth-layer-crisis-ai-governance-intelligence-2026/ ; https://suprmind.ai/hub/insights/ai-hallucination-statistics-research-report-2026/ , secondary aggregators; percentages are directional, not primary-sourced.",
+      "confidence": "unverified"
+    },
+    {
+      "claim": "No product found offering a deterministic CI-gate auditing meta-test (each gate must fail on a known-bad fixture AND pass on a known-good one) as a packaged capability. General quality-gate tooling exists; this self-auditing-gate discipline appears RavenClaude-specific.",
+      "evidence": "Search for meta-test CI gate verify gate actually fails known-bad fixture returned only generic CI/CD quality-gate content (helpmetest.com, browserstack, testrigor), no matching product. Absence-of-evidence, stated as such.",
+      "confidence": "likely"
+    }
+  ],
+  "opportunities": [
+    "Binding in-loop tribunal is a genuine white space. Everyone else does offline LLM-jury EVALUATION or deterministic single-engine policy gates. Nobody combines multi-agent deliberation returning a BINDING ALLOW/EDIT/DENY verdict on a live command or yes/no decision, injection-hardened and audit-logged. RavenClaude Tribunal can claim this category by name.",
+    "Visual permission/posture dashboard fills a concrete, painful gap: Claude Code permissions are config-file-only and the documented alternative is destructive YOLO mode. Strict/balanced/exploratory presets are exactly the dashboards-over-CLI, plain-language-for-non-developers wedge, with no official or community equivalent found.",
+    "Position against governance platforms (Credo AI, MS Agent Governance Toolkit) on two axes they cede: non-developer usability (all require pip install plus rule languages) and deliberative-vs-deterministic gating (they are rules-only; RavenClaude blends a deterministic gate AUDIT with multi-agent judgment).",
+    "FORGE differentiates from Ultraplan by adding what Ultraplan lacks publicly: cross-MODEL divergence (not just multiple Opus sub-agents), an explicit fact-verification gate, a correlated-error critic, and a tiebreak tribunal. Frame FORGE as Ultraplan plus adversarial verification, not a plan-mode competitor.",
+    "The Capability Grounding Protocol maps onto the documented overconfidence/trust crisis. Sell it as the anti-confident-wrong discipline for non-developers who cannot themselves catch a confidently-wrong agent, a differentiator no plugin suite (including superpowers) currently markets.",
+    "Event substrate (JSONL denial/posture/decision logs surfaced in audit dashboards) answers the will-not-leave-the-sandbox trust gap and the multi-agent untracked-JSON-files complaint with a packaged, inspectable audit lineage, a consulting-grade assurance artifact.",
+    "Cross-platform (Claude Code plus Copilot CLI bridge) rides the proven trend that skills/markdown are portable (superpowers works across 8 tools). Lean into your governance layer is not locked to one vendor agent."
+  ],
+  "threats": [
+    "Anthropic owns the planning and code-review primitives (Plan Mode, Ultraplan, official code-review plugin) and ships deterministic Workflows plus schema-forced structured output. They could add a native review-gate or permission UI and commoditize parts of RavenClaude stack; the moat must be the integrated non-developer-facing assurance EXPERIENCE, not any single mechanism.",
+    "superpowers (~93k stars, in the official marketplace, cross-tool) is the default mental model for a serious Claude Code setup. RavenClaude risks being seen as another agent framework unless the tribunal/posture/audit governance angle is sharply differentiated from methodology-in-a-box.",
+    "Well-funded enterprise governance vendors (Credo AI, Microsoft, Future AGI field) are entering agent governance from the compliance/runtime-security direction. If they add usability and multi-agent judgment they could approach RavenClaude lane from above (enterprise) while RavenClaude is solo/consulting-scale.",
+    "The category sits on top of Claude Code / MCP, which evolve fast. Permission-model, hook-API, and plugin-format changes impose continuous maintenance load on a solo builder; a breaking upstream change could strand consumers mid-engagement.",
+    "LLM-jury evaluation tooling (quotient judges, Comet, Hermes council) is one product decision away from being repackaged as an in-loop gate by an eval vendor with distribution. The binding-verdict white space is real today but not durably defensible without the surrounding non-developer UX and audit substrate.",
+    "Several supporting statistics (34-percent-more-confident-when-wrong, 47-percent major-decision, 28-percent sandbox) come from secondary aggregator blogs, not primary research. Using them in marketing without primary-source verification risks a credibility hit with analytically-minded buyers."
+  ]
+}

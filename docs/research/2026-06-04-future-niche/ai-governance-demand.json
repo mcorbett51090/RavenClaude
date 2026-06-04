@@ -1,0 +1,88 @@
+{
+  "summary": "Demand for AI-agent governance, assurance, and audit is real and accelerating in mid-2026, but the regulatory \"hard deadline\" pressure has SOFTENED while the commercial/insurance pressure has HARDENED \u2014 an important nuance for positioning.\n\nRegulatory: The EU AI Act's headline high-risk obligations, originally due 2 Aug 2026, were DELAYED by the Digital Omnibus (political agreement 7 May 2026) to 2 Dec 2027 (standalone) / 2 Aug 2028 (embedded). So the EU stick is now ~18 months out, not imminent. US state law fragmented and weakened too: Colorado's AI Act was repealed/replaced and pushed to 1 Jan 2027 with duty-of-care and risk-program duties stripped; Texas TRAIGA (effective 1 Jan 2026) is narrow/intent-based with a NIST-AI-RMF safe harbor. Net: regulation is a tailwind, not a 2026 emergency.\n\nThe real near-term buying pressure is COMMERCIAL and INSURANCE-driven. CISOs in 2026 are treating agent governance like SOC 2 three years ago \u2014 weak agent governance now blocks deals; security questionnaires ask how agents are identified, scoped, and audited; the procurement litmus test is \"show me an immutable audit trail behind a control change with evidence, approver, timestamp.\" Insurers made it concrete: ISO filed three GenAI exclusions effective Jan 2026; Chubb/Travelers/CNA added AI exclusions to Tech E&O; underwriters now ask \"Do you use AI? Do you police it? Protocols?\" at renewal; affirmative cover conditions on documented governance + tested controls with evidence. NAIC AI Model Bulletin adopted in 23 states + DC.\n\nVendors (Credo AI ~$30\u2013150K+/yr, Holistic AI, Vanta/Modulos, gateway players like Straiker/Prefactor) target enterprise. ISO 42001 is the emerging assurance standard, in its first growth wave. SMBs (82% using AI tools, ~$18K/yr spend) increasingly face governance as a CONTRACTUAL demand from larger partners, not a regulatory one \u2014 and are underserved by $100K platforms. Fractional CAIO/governance advisory is a recognized model ($1K/hr, ~$100K floors).\n\nFit for a solo consultant with working tooling: strong \u2014 see opportunities.",
+  "findings": [
+    {
+      "claim": "The EU AI Act's high-risk obligations, originally due 2 Aug 2026, were delayed by the Digital Omnibus to 2 Dec 2027 (standalone high-risk) and 2 Aug 2028 (embedded in products); political agreement reached 7 May 2026, pending formal adoption.",
+      "evidence": "Council/Parliament press release (consilium.europa.eu, 2026-05-07) reported across pinsentmasons.com, hoganlovells.com, gibsondunn.com, traverssmith.com \u2014 all cite new fixed dates 2 Dec 2027 / 2 Aug 2028; reason given is harmonised standards not yet ready. hklaw.com framed Aug 2026 as 'possible' deadline.",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Transparency obligations (Art. 50) and the AI Office's enforcement structures/powers still align to the 2 Aug 2026 window even with high-risk delayed; fines up to 3% (general) and \u20ac35M/7% turnover (top tier) apply.",
+      "evidence": "ai-act-service-desk.ec.europa.eu timeline; medium.com/@Indext_Data_Lab cites \u20ac35M/7%; digital-strategy.ec.europa.eu.",
+      "confidence": "likely"
+    },
+    {
+      "claim": "US state AI law is fragmented and was weakened in 2026: Colorado AI Act (SB24-205) repealed/replaced via SB 189 (signed 14 May 2026), effective date pushed June 30 2026 -> Jan 1 2027, with duty-of-care, risk-management-program, and impact-assessment duties eliminated.",
+      "evidence": "hunton.com 'Colorado AI Act Amended and Effective Date Delayed'; troutmanprivacy.com (2026-05) 'Repeal and Replace'; leg.colorado.gov SB24-205.",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Texas TRAIGA is effective 1 Jan 2026, intent-based/narrow, and offers a safe harbor for substantial compliance with the NIST AI Risk Management Framework.",
+      "evidence": "aicompliant.ai, swept.ai, kslaw.com (New State AI Laws Effective Jan 1 2026).",
+      "confidence": "verified"
+    },
+    {
+      "claim": "In 2026, weak AI-agent governance blocks enterprise deals the way missing SOC 2 reports did three years ago; security questionnaires now ask how agents are identified, scoped, and audited, favoring vendors with per-agent identity, JIT credentials, and OWASP-aligned controls.",
+      "evidence": "prefactor.tech/solutions/ciso; secureflo.net 'AI Agent Identity Management: 2026 CISO Playbook'; idc.com European CISO priorities 2026.",
+      "confidence": "likely"
+    },
+    {
+      "claim": "The dominant CISO procurement test for governance tooling in 2026 is an immutable audit trail tying a control-status change to evidence item + approver + timestamp.",
+      "evidence": "modulos.ai '2026 enterprise buyer's guide'; straiker.ai/solution/ai-compliance-governance (visibility, audit trails, runtime controls).",
+      "confidence": "likely"
+    },
+    {
+      "claim": "Insurers have operationalized AI-control requirements: ISO filed three GenAI exclusions for commercial general liability effective Jan 2026; Chubb, Travelers, CNA added AI exclusions to standard Tech E&O; underwriters now ask about AI usage/policing/protocols at renewal; affirmative cover conditions on documented, tested governance with evidence.",
+      "evidence": "adversa.ai 'AI risk management insurance \u2014 new exclusions'; insuriam.com/guides/ai-liability-2026; traverselegal.com 'AI Insurance Requirements'.",
+      "confidence": "verified"
+    },
+    {
+      "claim": "The NAIC AI Model Bulletin had been adopted by 23 states plus DC as of ~April 1, 2026, setting governance/accountability expectations shaping underwriting.",
+      "evidence": "Stated in WebSearch synthesis of AI liability insurance results (adversa.ai / insuriam.com cluster).",
+      "confidence": "likely"
+    },
+    {
+      "claim": "Enterprise AI governance platforms target large budgets: Credo AI runs ~$30K\u2013$150K+/yr (first-year $40K\u2013$200K+ with implementation); broad category budgets $25K\u2013$200K+/yr. Holistic AI, Modulos, Vanta also compete.",
+      "evidence": "co-aims.com 'Credo AI Review 2026 $30K-$150K/yr'; openlayer.com Credo pricing/alternatives; cloudzero.com 'Best AI Governance Tools 2026'; walseth.ai '$100K/year' critique.",
+      "confidence": "likely"
+    },
+    {
+      "claim": "ISO/IEC 42001 (AI management system) is the emerging assurance benchmark, in its first real growth wave in 2026; certification typically 9-15 months; increasingly requested in vendor selection for regulated industries.",
+      "evidence": "iso.org 42001 explained; vanta.com/collection/iso-42001/who-needs-iso-42001; schellman.com AI governance & ISO 42001 FAQs; perforce.com press release on certification as customer requirement; protechtgroup.com.",
+      "confidence": "verified"
+    },
+    {
+      "claim": "SMBs care about governance mainly as a contractual/commercial demand from partners, not regulation; 82% of small-business employers use AI tools, avg ~$18K/yr AI spend, inference costs down ~90% over 3 years; mid-market governance checklists are emerging.",
+      "evidence": "sbecouncil.org 2026 survey (82%); medhacloud.com AI adoption stats 2026 ($18K, inference -90%); automationalley.com 'AI Governance Checklist for Mid-market 2026'; markaaz.com SMB AI revolution.",
+      "confidence": "likely"
+    },
+    {
+      "claim": "Fractional AI-governance leadership (part-time Chief AI Officer) is a recognized 2026 model; example pricing $1,000/hr, 100-hour minimum, ~$100K project floor, positioned below Big Four engagements.",
+      "evidence": "tredence.com 'AI Consultant Jobs 2026' (fractional CAIO, outcome-based pricing); WebSearch synthesis citing $1,000/hr / 100-hr min / $100K floor; pwc.com 2026 AI predictions; ey.com agentic-AI audit launch (2026-04).",
+      "confidence": "likely"
+    },
+    {
+      "claim": "Audit-trail/governance for autonomous agents is becoming a native procurement requirement in regulated verticals (financial services, healthcare, insurance, legal), with SOC 2 Type II + ISO 27001 + emerging ISO 42001 attestations weighted heavily and immutable multi-year (e.g., 7-yr) logging expected.",
+      "evidence": "goteleport.com 'AI Agents SOC 2'; policylayer.com 'SOC2 Compliance for AI Agents'; usefini.com compliance procurement guide; feeds.trussed.ai 'Platforms with Audit Trails for Autonomous Agents'.",
+      "confidence": "likely"
+    }
+  ],
+  "opportunities": [
+    "Position RavenClaude's Tribunal + event substrate + comfort-posture as a turnkey 'evidence-of-AI-agent-controls' package for the INSURANCE/renewal conversation, not the EU-deadline one. Underwriters now ask 'do you use AI, do you police it, do you have protocols?' \u2014 RavenClaude already produces the immutable JSONL decision lineage, posture history, and binding ALLOW/EDIT/DENY verdicts that answer exactly that. This is the most concrete, time-sensitive buyer (renewals happen annually NOW).",
+    "Sell to the SMB/mid-market gap that $30K-$150K platforms (Credo AI, Holistic AI) ignore. Matt's $25-50K engagement + dashboards-over-CLI + non-developer-friendly constraint maps directly onto mid-market firms facing governance as a CONTRACTUAL demand from larger partners. Offer 'agent-governance-in-a-weekend' productized engagements that stand up the audit trail, posture dashboard, and a control-evidence export.",
+    "Anchor the offering to the CISO procurement litmus test verbatim \u2014 'an immutable audit trail behind a control-status change, with the evidence item, the approver, and the timestamp.' RavenClaude's decision-review tribunal + Saga-logged decisions under .ravenclaude/runs/thing/decisions/ already satisfy this; package a one-page 'show-me' demo around it.",
+    "Ride ISO 42001 as the assurance wrapper. Offer to map RavenClaude's controls (gated planning/FORGE, capability-grounding anti-hallucination discipline, audited denials) to ISO 42001 AIMS clauses and to the NIST AI RMF safe harbor that Texas TRAIGA rewards \u2014 a concrete, demonstrable compliance artifact rather than a policy PDF.",
+    "Fractional AI-governance advisor productized service: the market validates $1K/hr / ~$100K Big-Four-alternative engagements. A solo consultant with WORKING, inspectable tooling (the repo builds itself with its own patterns) can undercut on price and out-demonstrate on substance \u2014 'here is a live system enforcing these controls,' not slideware.",
+    "Lean into the 'controls evidence for agentic AI specifically' niche. Generic AI governance is crowded (Vanta, Credo, Modulos), but agent-level oversight \u2014 per-agent identity, runtime denial logging, decision provenance for AUTONOMOUS actions \u2014 is newer and where RavenClaude is genuinely differentiated (the Tribunal gating risky agent commands is rare).",
+    "Target regulated verticals where Matt already has domain depth (FINANCE, plus the existing finance/healthcare/edtech plugins). 7-year immutable logging + SOC2/ISO expectations are sharpest in financial services \u2014 overlay RavenClaude governance on the Power Platform / finance work he already does."
+  ],
+  "threats": [
+    "The EU AI Act high-risk delay to Dec 2027/Aug 2028 removes the near-term regulatory urgency many governance pitches rely on. Selling 'comply before Aug 2026' is now largely inaccurate for high-risk obligations \u2014 leading with it risks a credibility hit. The honest near-term hook is insurance/procurement, not the EU stick.",
+    "US regulatory retrenchment (Colorado repealed/scaled back, a federal executive-order push toward preemption signaled) means the state-law driver is weakening, not strengthening \u2014 a governance business over-indexed on 'regulation will force this' faces a softer-than-expected mandate in 2026-2027.",
+    "Crowded, well-funded incumbents: Credo AI, Holistic AI, Vanta, Modulos, plus gateway vendors (Straiker, Prefactor) and the Big Four (PwC, EY launched agentic-AI audit offerings). A solo consultant competes on focus/price/demonstrability, not breadth or trust-brand.",
+    "Enterprise buyers may distrust a solo provider for a governance/assurance function precisely because assurance implies institutional credibility (SOC 2 of the assuror, E&O insurance, references). The mid-market/SMB tier mitigates this but caps deal size.",
+    "'Governance theater' fatigue: critiques already circulate that $100K platforms 'still don't work.' If RavenClaude's tooling is perceived as another dashboard rather than enforced controls, it gets lumped in. The differentiator (binding runtime enforcement + immutable logs) must be demonstrated live, not claimed.",
+    "ISO 42001 / formal certification is something a solo consultant can help PREPARE for but cannot ISSUE \u2014 the lucrative attestation revenue accrues to accredited certification bodies (Schellman, A-LIGN, BSI). Risk of doing the unglamorous prep work while certifiers capture the premium.",
+    "Buyer confusion between 'AI governance' (policy/model risk, the crowded category) and 'AI-agent runtime oversight' (RavenClaude's actual edge). Without crisp messaging, the offering gets mis-slotted against tools solving a different problem."
+  ]
+}
