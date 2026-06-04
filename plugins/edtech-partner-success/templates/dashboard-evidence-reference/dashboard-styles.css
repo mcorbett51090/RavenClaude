@@ -1,8 +1,7 @@
-/* PSM Command Center — dashboard-styles.css. Tier 1 rendering tokens + utility
- * classes; loaded by Evidence and the SiS panel. Sources (every WCAG/UX comment
- * below traces back here): dashboard-ux.md §§4-7,10; operational-console-
- * design.md §§2-3,6-7. Never use raw hex in component code — reach for a token
- * so a CVD-tuning change propagates atomically. */
+/* PSM Command Center — dashboard-styles.css. Tier 1 tokens + utility classes;
+ * loaded by Evidence + the SiS panel. Sources for every WCAG/UX comment:
+ * dashboard-ux.md §§4-7,10; operational-console-design.md §§2-3,6-7. Never
+ * use raw hex in component code — reach for a token so CVD-tuning propagates. */
 
 /* 1. Color tokens (light scheme). Hues survive deuteranopia + protanopia (~8%
  * of men). Pure red/green fails — shifted toward blue-green and orange-red so
@@ -35,16 +34,14 @@
   --rc-band-stroke: #1f2937;
   --rc-band-endpoint: #0a6e3a;
   --rc-band-extrema: #b00020;
-  /* Surfaces. */
+  /* Surfaces + focus ring (WCAG 2.4.7 + 1.4.11 ≥3:1) + type scale (5s test). */
   --rc-surface-bg: #ffffff;
   --rc-surface-border: #e1e5eb;
   --rc-surface-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   --rc-drawer-bg: #ffffff;
   --rc-drawer-shadow: -8px 0 24px rgba(15, 23, 42, 0.12);
   --rc-scrim: rgba(15, 23, 42, 0.32);
-  /* WCAG: 2.4.7 Focus Visible + 1.4.11 Non-text Contrast (≥3:1). */
   --rc-focus-ring: #2563eb;
-  /* Type — sized for the 5-second test. */
   --rc-font-stack:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --rc-fs-heading: 1.25rem;
