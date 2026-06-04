@@ -789,6 +789,391 @@ def _read_nidhoggr(repo_root: Path) -> dict:
     return out
 
 
+# ── Mímir scrub patterns ─────────────────────────────────────────────────────
+# Python mirror of plugins/ravenclaude-core/hooks/_scrub.sh _secret_patterns.
+# Source of truth is _scrub.sh — KEEP IN SYNC. Same shape priorities:
+#   - cloud-provider API key prefixes (AWS / Anthropic / Stripe / GitHub /
+#     GitLab / Slack / Google / npm / HuggingFace / Azure)
+#   - JWTs (third segment {20,} not {6,} — real HMAC-SHA256 sigs are 43 chars;
+#     a shorter floor invites prose false positives)
+#   - PEM private keys
+#   - CLI secret flags (--password=, --token=, short -p with {16,} tail and
+#     refuses pure-digit values so `ssh -p 22222` / port maps don't trip)
+#   - embedded credentials in URLs (basic-auth user:pass@host, conn strings)
+# Applied UNIVERSALLY to every string value in /__mimir's response at the
+# JSON-encoding boundary (RM7 / gap-delta C7+C8). Failure is fail-safe:
+# any regex error falls through to returning the original string unchanged.
+_MIMIR_SECRET_PATTERNS = [
+    # Cloud API key prefixes
+    r"AKIA[0-9A-Z]{12,}",
+    r"sk-(?:ant-)?[A-Za-z0-9-]{20,}",
+    r"sk_live_[A-Za-z0-9]{24,}",
+    r"rk_live_[A-Za-z0-9]{24,}",
+    r"ghp_[A-Za-z0-9]{30,}",
+    r"github_pat_[A-Za-z0-9_]{20,}",
+    r"glpat-[A-Za-z0-9_-]{15,}",
+    r"xox[baprs]-[A-Za-z0-9-]{10,}",
+    r"AIza[0-9A-Za-z_-]{30,}",
+    r"npm_[A-Za-z0-9]{30,}",
+    r"hf_[A-Za-z0-9]{30,}",
+    r"AccountKey=[A-Za-z0-9+/=]{20,}",
+    # JWTs (third segment tightened to {20,})
+    r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}",
+    # PEM private keys
+    r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
+    # CLI secret flags
+    r"--password[=\s]\S+",
+    r"--token[=\s]\S+",
+    # Short -p: tightened to {16,} and refuses pure-digit values.
+    r"(?:^|\s)-p[^\s\d]\S{15,}",
+    # Embedded credentials in URLs (basic-auth + connection strings).
+    r"(?:https?|postgres(?:ql)?|mysql|mongodb|redis|amqp|smtp)s?://[A-Za-z0-9._-]{2,}:[A-Za-z0-9._%+-]{4,}@",
+]
+
+# Pre-compile once (lazy — populated on first scrub call).
+_MIMIR_SECRET_RES: list = []
+
+
+def _mimir_scrub_string(s):
+    """Mirror of _scrub.sh _scrub_reason() in Python. Replace secret-shaped
+    tokens with [REDACTED]. Fail-safe: any error returns the original string.
+    Non-strings pass through unchanged so it is safe to call at the
+    JSON-encoding boundary on every value."""
+    if not isinstance(s, str) or not s:
+        return s
+    try:
+        import re as _re
+        global _MIMIR_SECRET_RES
+        if not _MIMIR_SECRET_RES:
+            _MIMIR_SECRET_RES = [_re.compile(p) for p in _MIMIR_SECRET_PATTERNS]
+        out = s
+        for pat in _MIMIR_SECRET_RES:
+            try:
+                out = pat.sub("[REDACTED]", out)
+            except Exception:
+                continue  # one bad pattern must not wipe accumulated scrubs
+        return out
+    except Exception:
+        return s
+
+
+def _mimir_scrub_tree(obj):
+    """Walk a dict/list/scalar tree and scrub every string value (and every
+    string key). Applied once at the JSON-encoding boundary so individual
+    field readers don't have to remember to scrub — RM7 universal-scrub."""
+    if isinstance(obj, dict):
+        return {
+            (_mimir_scrub_string(k) if isinstance(k, str) else k):
+                _mimir_scrub_tree(v)
+            for k, v in obj.items()
+        }
+    if isinstance(obj, list):
+        return [_mimir_scrub_tree(v) for v in obj]
+    if isinstance(obj, str):
+        return _mimir_scrub_string(obj)
+    return obj
+
+
+# Per-JSONL bounded read cap — never load more than this many bytes from any
+# single per-project session JSONL file (RM2 / Panel-A R2). The mtime+5
+# newest files are tail-scanned only for cheap per-session counts.
+_MIMIR_JSONL_READ_CAP = 50 * 1024  # 50 KiB
+
+
+def _mimir_encode_key(project_root) -> str:
+    """Stage 1 of the encoded-path algorithm (skill §"The encoded-path
+    algorithm + fallback"). Strip leading "/" and replace every "/" with "-".
+    Worktree-aware: feed $CLAUDE_PROJECT_DIR verbatim — never normalized."""
+    s = str(project_root)
+    return s.lstrip("/").replace("/", "-")
+
+
+def _mimir_resolve_project_dir(claude_home, project_root):
+    """Two-stage resolve per the skill: compute the documented key; on miss,
+    glob ~/.claude/projects/* and reverse-decode each candidate. Returns the
+    resolved Path or None. Defense against Anthropic ABI drift (RM1)."""
+    from pathlib import Path as _Path
+    claude_home = _Path(claude_home)
+    projects = claude_home / "projects"
+    if not projects.is_dir():
+        return None
+    computed = projects / _mimir_encode_key(project_root)
+    try:
+        computed_resolved = computed.resolve()
+        projects_resolved = projects.resolve()
+        # Path-traversal defense in depth (RM8): resolved candidate MUST sit
+        # under claude_home/projects/. Reject anything that escapes.
+        computed_resolved.relative_to(projects_resolved)
+        if computed.is_dir():
+            return computed
+    except (ValueError, OSError):
+        pass
+    # Fallback: reverse-decode candidates.
+    target = str(project_root)
+    try:
+        for candidate in projects.glob("*"):
+            if not candidate.is_dir():
+                continue
+            decoded = "/" + candidate.name.replace("-", "/")
+            if decoded == target:
+                import sys as _sys
+                print(
+                    f"[mimir] encoded-path fallback resolved {candidate.name!r}"
+                    f" -> {target!r}",
+                    file=_sys.stderr,
+                )
+                return candidate
+    except OSError:
+        pass
+    return None
+
+
+def _mimir_iter_jsonl_bounded(path, cap_bytes: int = _MIMIR_JSONL_READ_CAP):
+    """Yield dicts from a JSONL file, capping the read at `cap_bytes`. Per-line
+    json.loads is try/except wrapped so a torn final line silently drops
+    (RM2 / gap-delta C4). Never raises — OSError yields nothing."""
+    try:
+        with path.open("rb") as fh:
+            chunk = fh.read(cap_bytes)
+        text = chunk.decode("utf-8", errors="replace")
+    except OSError:
+        return
+    # If we hit the cap mid-line, drop the truncated tail to avoid feeding
+    # a partial line to json.loads (which would just be torn-write equivalent).
+    if len(chunk) >= cap_bytes:
+        nl = text.rfind("\n")
+        if nl >= 0:
+            text = text[:nl]
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            ev = json.loads(line)
+        except (json.JSONDecodeError, ValueError):
+            continue
+        if isinstance(ev, dict):
+            yield ev
+
+
+def _read_mimir(project_root, claude_home) -> dict:
+    """Build the Mímir session-state payload from on-disk Claude Code sources.
+
+    Five cards: settings (theme + configured/last-used model + permission_mode),
+    session (live-session probe via ~/.claude/sessions/<pid>.json), activity
+    (~/.claude/stats-cache.json with `as_of` staleness disclosure), recent
+    sessions (top 5 per-project JSONLs by mtime, bounded read), and the
+    unreachable-fields list for the honest empty state. See the `mimir` skill
+    for the full reachability map + scrubbing contract + worktree rule.
+
+    Empty-state contract (Panel-A): if ~/.claude/projects/<encoded>/ does not
+    exist (first-time host) → {"exists": False, ...} with empties; never 500.
+
+    Universal scrub (RM7 / gap-delta C7+C8): all string values pass through
+    _mimir_scrub_tree at the JSON-encoding boundary in _handle_mimir.
+
+    SERVER-PARITY DISCIPLINE (RM6 / Panel-B R3): this function is duplicated
+    BYTE-IDENTICALLY in both serve-dashboards.py copies. Gate 32 checks
+    endpoint NAMES, not body bytes — an asymmetric edit silently passes Gate
+    32 while the copies diverge. EDIT BOTH or surface a follow-up.
+
+    NEVER reads `type=user` content (gap-delta C8): only metadata
+    (timestamp / gitBranch / entrypoint) from user events; `type=assistant`
+    events are used for token sums + last-used model.
+    """
+    from pathlib import Path as _Path
+
+    project_root = _Path(project_root)
+    claude_home = _Path(claude_home)
+
+    base = {
+        "exists": False,
+        "settings": {
+            "theme": None,
+            "model": {"configured": None, "last_used": None},
+            "permission_mode": None,
+        },
+        "session": {
+            "session_id": None,
+            "version": None,
+            "started_at": None,
+            "pid": None,
+            "found": False,
+        },
+        "activity": {
+            "as_of": None,
+            "total_sessions": None,
+            "total_messages": None,
+            "daily_activity_7d": [],
+            "model_usage": None,
+        },
+        "recent_sessions": [],
+        "unreachable": ["effort_dial", "plan_tier", "status_live_cache"],
+    }
+
+    # ── settings.theme (user-level) ──────────────────────────────────────────
+    user_settings_path = claude_home / "settings.json"
+    if user_settings_path.is_file():
+        try:
+            us = json.loads(user_settings_path.read_text(encoding="utf-8"))
+            if isinstance(us, dict):
+                t = us.get("theme")
+                if isinstance(t, str):
+                    base["settings"]["theme"] = t
+        except (OSError, json.JSONDecodeError, ValueError):
+            pass
+
+    # ── settings.model.configured (project-level) ───────────────────────────
+    proj_settings_path = project_root / ".claude" / "settings.json"
+    if proj_settings_path.is_file():
+        try:
+            ps = json.loads(proj_settings_path.read_text(encoding="utf-8"))
+            if isinstance(ps, dict):
+                m = ps.get("model")
+                if isinstance(m, str):
+                    base["settings"]["model"]["configured"] = m
+        except (OSError, json.JSONDecodeError, ValueError):
+            pass
+
+    # ── resolve per-project JSONL directory ─────────────────────────────────
+    proj_dir = _mimir_resolve_project_dir(claude_home, project_root)
+    if proj_dir is None:
+        # Honest empty-state (Panel-A): first-time host or missing dir.
+        return base
+    base["exists"] = True
+
+    # ── newest JSONLs (mtime-desc), bounded; drive last-used model,
+    #    permission-mode, recent-sessions card ──────────────────────────────
+    try:
+        jsonls = sorted(
+            (p for p in proj_dir.glob("*.jsonl") if p.is_file()),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+    except OSError:
+        jsonls = []
+
+    # last-used model: newest JSONL's most-recent assistant event.
+    if jsonls:
+        try:
+            newest_events = list(_mimir_iter_jsonl_bounded(jsonls[0]))
+        except Exception:
+            newest_events = []
+        last_model = None
+        first_perm_mode = None
+        for ev in newest_events:
+            if ev.get("type") == "assistant":
+                m = ev.get("model")
+                if isinstance(m, str):
+                    last_model = m  # overwrite — keep newest seen in scanned slice
+            if first_perm_mode is None and ev.get("type") == "permission-mode":
+                pm = ev.get("permissionMode")
+                if isinstance(pm, str):
+                    first_perm_mode = pm
+        if last_model:
+            base["settings"]["model"]["last_used"] = last_model
+        if first_perm_mode:
+            base["settings"]["permission_mode"] = first_perm_mode
+
+    # recent_sessions card (top 5 per the skill source-map).
+    for jf in jsonls[:5]:
+        try:
+            mtime = jf.stat().st_mtime
+        except OSError:
+            continue
+        import datetime as _dt
+        try:
+            last_active = _dt.datetime.fromtimestamp(
+                mtime, tz=_dt.timezone.utc
+            ).strftime("%Y-%m-%dT%H:%M:%SZ")
+        except (OSError, ValueError, OverflowError):
+            last_active = ""
+
+        event_count = 0
+        output_tokens = 0
+        git_branch = None
+        # NEVER reads type=user content — only metadata from user events
+        # (gitBranch), and assistant events for token/count.
+        for ev in _mimir_iter_jsonl_bounded(jf):
+            t = ev.get("type")
+            if t == "assistant":
+                event_count += 1
+                usage = ev.get("usage")
+                if isinstance(usage, dict):
+                    ot = usage.get("output_tokens")
+                    if isinstance(ot, int):
+                        output_tokens += ot
+            if git_branch is None:
+                gb = ev.get("gitBranch")
+                if isinstance(gb, str) and gb:
+                    git_branch = gb
+
+        sid = jf.stem  # filename is the session UUID; truncate to 8 for display.
+        base["recent_sessions"].append({
+            "session_id": sid[:8] if isinstance(sid, str) else "",
+            "last_active": last_active,
+            "event_count": event_count,
+            "output_tokens": output_tokens,
+            "git_branch": git_branch,
+        })
+
+    # ── activity card (~/.claude/stats-cache.json) ──────────────────────────
+    stats_path = claude_home / "stats-cache.json"
+    if stats_path.is_file():
+        try:
+            stats = json.loads(stats_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, ValueError):
+            stats = None
+        if isinstance(stats, dict):
+            # as_of pill MUST always be set when stats-cache exists (RM4).
+            aof = stats.get("lastComputedDate")
+            base["activity"]["as_of"] = aof if isinstance(aof, str) else None
+            ts = stats.get("totalSessions")
+            if isinstance(ts, int):
+                base["activity"]["total_sessions"] = ts
+            tm = stats.get("totalMessages")
+            if isinstance(tm, int):
+                base["activity"]["total_messages"] = tm
+            da = stats.get("dailyActivity")
+            if isinstance(da, list):
+                base["activity"]["daily_activity_7d"] = da[-7:]
+            mu = stats.get("modelUsage")
+            if isinstance(mu, dict):
+                base["activity"]["model_usage"] = mu
+
+    # ── live-session probe (~/.claude/sessions/<pid>.json) ──────────────────
+    sessions_dir = claude_home / "sessions"
+    if sessions_dir.is_dir():
+        target_cwd = str(project_root)
+        try:
+            session_files = list(sessions_dir.glob("*.json"))
+        except OSError:
+            session_files = []
+        for sf in session_files:
+            try:
+                sd = json.loads(sf.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError, ValueError):
+                continue
+            if not isinstance(sd, dict):
+                continue
+            if sd.get("cwd") != target_cwd or sd.get("status") != "busy":
+                continue
+            sid = sd.get("sessionId")
+            base["session"]["session_id"] = (
+                sid[:8] if isinstance(sid, str) else None
+            )
+            ver = sd.get("version")
+            base["session"]["version"] = ver if isinstance(ver, str) else None
+            st = sd.get("startedAt")
+            base["session"]["started_at"] = st if isinstance(st, str) else None
+            pid = sd.get("pid")
+            base["session"]["pid"] = pid if isinstance(pid, int) else None
+            base["session"]["found"] = True
+            break
+
+    return base
+
+
 def _read_knowledge_health(repo_root: Path) -> dict:
     """Knowledge-health card — bucket-counts + drill-down for files under
     plugins/*/knowledge/*.md, by last-verified age. Delegates to the canonical
@@ -948,7 +1333,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         return length
 
     def do_HEAD(self):
-        if self.path in ("/__save", "/__run", "/__classify", "/__csrf") or self.path.startswith("/__read") or self.path.startswith("/__saga") or self.path.startswith("/__heimdall") or self.path.startswith("/__vidarr") or self.path.startswith("/__norns") or self.path.startswith("/__nidhoggr") or self.path.startswith("/__knowledge-health") or self.path.startswith("/__sleipnir") or self.path.startswith("/__runs") or self.path.startswith("/__concern-stats"):
+        if self.path in ("/__save", "/__run", "/__classify", "/__csrf") or self.path.startswith("/__read") or self.path.startswith("/__saga") or self.path.startswith("/__heimdall") or self.path.startswith("/__vidarr") or self.path.startswith("/__norns") or self.path.startswith("/__nidhoggr") or self.path.startswith("/__mimir") or self.path.startswith("/__knowledge-health") or self.path.startswith("/__sleipnir") or self.path.startswith("/__runs") or self.path.startswith("/__concern-stats"):
             self.send_response(200)
             self.send_header("Allow", "GET, POST, HEAD")
             self.send_header("Content-Length", "0")
@@ -987,6 +1372,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if self.path.startswith("/__nidhoggr"):
             self._handle_nidhoggr()
+            return
+        if self.path.startswith("/__mimir"):
+            self._handle_mimir()
             return
         if self.path.startswith("/__knowledge-health"):
             self._handle_knowledge_health()
@@ -1265,6 +1653,28 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
         self._json(200, _read_nidhoggr(REPO_ROOT))
+
+    def _handle_mimir(self):
+        """GET /__mimir — the Mímir Session tab payload (settings / live
+        session / activity / recent sessions). NO QUERY PARAMS ACCEPTED:
+        claude_home + project_root are fixed at server start per the
+        path-traversal defense (RM8). Universal-scrubbed at the JSON-encoding
+        boundary (RM7). Empty state {"exists": False, ...} when the
+        per-project dir is missing — never 500.
+
+        Read-only; same Origin/Host CSRF guard as /__read. The only
+        legitimate variance between this method's two copies is the
+        repo-root constant (REPO_ROOT here, PROJECT_ROOT in the bundled
+        plugin server) — kept in lockstep per the dashboard-server-parity
+        gate. Reminder: Gate 32 checks endpoint NAMES, not body bytes;
+        edit BOTH copies when this method or _read_mimir changes."""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        from pathlib import Path as _Path
+        claude_home = _Path(os.path.expanduser("~/.claude"))
+        payload = _read_mimir(REPO_ROOT, claude_home)
+        self._json(200, _mimir_scrub_tree(payload))
 
     def _handle_knowledge_health(self):
         """GET /__knowledge-health — knowledge-health card under the Heimdall
