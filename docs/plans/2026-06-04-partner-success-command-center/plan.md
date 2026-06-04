@@ -6,6 +6,12 @@
 
 **Substrate inventory:** mapped in [`docs/research/2026-06-04-partner-success-dashboard-requirements/cross-references.md`](../../research/2026-06-04-partner-success-dashboard-requirements/cross-references.md). Home plugin: `plugins/edtech-partner-success/`. Connector layer: `plugins/data-platform/`. Design-layer consultee (when shipped): `data-viz-designer` (in flight per `project_data_viz_designer_in_flight` memory).
 
+**Companion build artifacts (for a credit-budget Codex desktop build):**
+
+- [`codex-build-prompts.md`](./codex-build-prompts.md) — the copy-paste Codex prompt sequence (Prompt 0–6), ordered so Prompts 1+2 alone yield a daily-usable dashboard, with per-prompt credit-saving constraints.
+- <a href="./build-plan.html" target="_blank" rel="noopener">build-plan.html</a> — interactive build plan (tiers + every prompt with copy buttons), in the `index.html` visual format. _Opens in a new tab._
+- <a href="./process-flow.html" target="_blank" rel="noopener">process-flow.html</a> — Mermaid process-flow walkthrough of how the finished dashboard works (morning loop, data flow, priority scoring, drill-downs, tier DAG). _Opens in a new tab._
+
 ---
 
 ## Why we're doing this

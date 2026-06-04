@@ -1,0 +1,7 @@
+{
+  "_comment": "Fixture for audit-gates Gate 51 (schema-enum drift), NOT for lint.py's normal exit-code contract. Encodes a synthetic divergence between the visualType enum as parsed from pbir-enhanced-reference.md § 1 and a stale copy. Gate 51 asserts that drift between the reference file and lint.py's runtime parse is detected. Not a page definition.",
+  "reference_source": "plugins/power-platform/knowledge/pbir-enhanced-reference.md#section-1",
+  "scenario": "A visualType present in the reference enum is removed from a stale snapshot, OR a fabricated type is added to the snapshot; the drift detector must flag the set difference.",
+  "stale_snapshot": ["kpi", "clusteredBarChart", "fabricatedTypeNotInReference"],
+  "expected_drift_detected": true
+}

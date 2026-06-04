@@ -1,0 +1,39 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.1.0/schema.json",
+  "page": "ContosoOverview",
+  "width": 1280,
+  "height": 720,
+  "displayOption": "FitToPage",
+  "_lintConfig": {
+    "tolerance": {
+      "equal_gap_px": 4,
+      "column_align_px": 999
+    }
+  },
+  "visuals": [
+    {
+      "id": "kpi-revenue",
+      "visualType": "cardVisual",
+      "position": { "x": 24, "y": 80, "width": 296, "height": 280 },
+      "queryState": { "Data": { "projections": [{ "field": "Revenue" }] } }
+    },
+    {
+      "id": "kpi-margin",
+      "visualType": "cardVisual",
+      "position": { "x": 336, "y": 80, "width": 296, "height": 280 },
+      "queryState": { "Data": { "projections": [{ "field": "Margin" }] } }
+    },
+    {
+      "id": "kpi-units",
+      "visualType": "cardVisual",
+      "position": { "x": 24, "y": 400, "width": 296, "height": 280 },
+      "queryState": { "Data": { "projections": [{ "field": "Units" }] } }
+    },
+    {
+      "id": "kpi-orders",
+      "visualType": "cardVisual",
+      "position": { "x": 340, "y": 400, "width": 296, "height": 280 },
+      "queryState": { "Data": { "projections": [{ "field": "Orders" }] } }
+    }
+  ]
+}
