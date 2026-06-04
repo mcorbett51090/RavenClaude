@@ -2658,6 +2658,48 @@ gate "sanitize-webfetch-body (no injection markers survive in sanitized output)"
 rc=0; grep -q "IBCS SUCCESS rules" "$POISONED_OUT" || rc=$?
 gate "sanitize-webfetch-body (canonical content preserved across strips)" must_pass "$rc"
 
+echo "── Gate 49: Mímir session-state tab (render + both-copies parity) ─────────"
+# Behavioral render test for the Mímir "Session" tab (the Claude-Code session-
+# state surface added per docs/plans/2026-06-03-mimir-session-tab/plan.md).
+# Drives the REAL render functions from the generated dashboard.html across the
+# plan's four fixtures (populated / empty-projects-dir / unreachable-fields /
+# worktree-path) and confirms the both-copies-present invariant: _read_mimir
+# is defined in BOTH serve-dashboards.py copies (Gate 32 checks endpoint NAMES;
+# this gate confirms the reader itself exists in both).
+#
+# Bidirectional: must_fail half drifts the dashboard.html so the in-process
+# reasoning-effort pill (the honest-empty-state contract per the mimir SKILL —
+# /effort renders as a pill, NEVER as a dash) silently degrades to a dash.
+# A render gate that misses that drift would lie to the user about what
+# Claude Code actually exposes; the must_fail half proves it doesn't.
+if command -v node >/dev/null 2>&1; then
+  rc=0; node scripts/check-mimir-render.mjs >/dev/null 2>&1 || rc=$?
+  gate "mimir render (real dashboard.html)" must_pass "$rc"
+  # must_fail: drift the dashboard so mimirInProcessPill returns a plain dash
+  # instead of a pill — the populated-fixture assertion "reasoning effort uses
+  # in-process pill (not a dash)" must catch this. The substitution rewrites
+  # the helper's body to return a text node instead of a `mimir-pill--inproc`
+  # span; the render still proceeds (no crash), but the pill-class assertion
+  # fails — exactly what the gate must catch.
+  MM_BAD="$TMP/dashboard-mimir-drift.html"
+  python3 - <<'PY' > "$MM_BAD"
+import re, sys
+src = open("plugins/ravenclaude-core/dashboard.html", "r", encoding="utf-8").read()
+# Rewrite mimirInProcessPill body to return a plain text node with no pill class.
+patched = re.sub(
+    r"function mimirInProcessPill\(label\) \{[\s\S]*?return pill;\s*\}",
+    "function mimirInProcessPill(label) { const t = document.createElement('span'); t.textContent = '—'; return t; }",
+    src,
+    count=1,
+)
+sys.stdout.write(patched)
+PY
+  rc=0; node scripts/check-mimir-render.mjs "$MM_BAD" >/dev/null 2>&1 || rc=$?
+  gate "mimir render (drifted: in-process pill silently degraded to dash)" must_fail "$rc"
+else
+  _skip_or_fail "Gate 49 (Mímir render)" node
+fi
+
 if _gate_active 50; then
 echo
 echo "── Gate 50: Phase 0 emit & scrub ─────────────────────────────────────────"
