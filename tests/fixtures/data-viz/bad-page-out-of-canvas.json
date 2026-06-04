@@ -1,0 +1,11 @@
+{
+  "page": "OutOfCanvas",
+  "width": 1280,
+  "height": 720,
+  "visuals": [
+    {
+      "id": "wide-viz",
+      "position": { "x": 1000, "y": 80, "width": 400, "height": 300 }
+    }
+  ]
+}

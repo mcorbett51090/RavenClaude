@@ -74,13 +74,13 @@ See the full schema definition in [`templates/run-config.schema.json`](templates
 
 ## Substrate tier table
 
-The single source of truth for `tier label → SKU` mapping. **Mark every SKU `[verify-at-use — 2026-05-31]`** — the underlying lineup re-dates monthly (Claude) / weekly (Codex, Copilot, Grok). Source: [`plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md`](../../../ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md) (Tier-4 freshness anchor) + [`plugins/claude-app-engineering/knowledge/model-selection-and-2026-capability-map.md`](../../../claude-app-engineering/knowledge/model-selection-and-2026-capability-map.md).
+The single source of truth for `tier label → SKU` mapping. **Mark every SKU `[verify-at-use]`** — the underlying lineup re-dates monthly (Claude) / weekly (Codex, Copilot, Grok). Source: [`plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md`](../../../ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md) (Tier-4 freshness anchor) + [`plugins/claude-app-engineering/knowledge/model-selection-and-2026-capability-map.md`](../../../claude-app-engineering/knowledge/model-selection-and-2026-capability-map.md). **Claude column re-verified 2026-06-04** against `platform.claude.com/docs/.../models/overview` (see [`docs/follow-ups/2026-06-04-overnight-parked-work.md`](../../../../docs/follow-ups/2026-06-04-overnight-parked-work.md) §1): all three Claude model-IDs are live + non-deprecated; the `top`-tier framing was updated — **Opus 4.8 is now the sole current top-tier; Opus 4.7 has moved to Anthropic's Legacy list (still available).**
 
-| Tier       | Claude `[verify-at-use — 2026-05-31]`                | Codex `[verify-at-use — 2026-05-31]`        | Copilot `[verify-at-use — 2026-05-31]`         |
-| ---------- | ---------------------------------------------------- | ------------------------------------------- | ---------------------------------------------- |
-| `fast`     | Haiku 4.5 (`claude-haiku-4-5-20251001`)              | GPT-5.5 reasoning=low                       | Haiku 4.5 (cloud-agent fast tier) / GPT-5.4-mini |
-| `balanced` | Sonnet 4.6 (`claude-sonnet-4-6`) — adaptive thinking | GPT-5.5 reasoning=medium/high               | `Auto` or Sonnet 4.6                            |
-| `top`      | Opus 4.7 (`claude-opus-4-7`) — escalate sparingly    | GPT-5.5-Pro                                 | Opus 4.6                                        |
+| Tier       | Claude `[verify-at-use — Claude col re-verified 2026-06-04]`           | Codex `[verify-at-use — 2026-05-31]`        | Copilot `[verify-at-use — 2026-05-31]`         |
+| ---------- | --------------------------------------------------------------------- | ------------------------------------------- | ---------------------------------------------- |
+| `fast`     | Haiku 4.5 (`claude-haiku-4-5-20251001`)                               | GPT-5.5 reasoning=low                       | Haiku 4.5 (cloud-agent fast tier) / GPT-5.4-mini |
+| `balanced` | Sonnet 4.6 (`claude-sonnet-4-6`) — adaptive thinking                  | GPT-5.5 reasoning=medium/high               | `Auto` or Sonnet 4.6                            |
+| `top`      | Opus 4.8 (`claude-opus-4-8`), current; Opus 4.7 (`claude-opus-4-7`) legacy-but-available — escalate sparingly | GPT-5.5-Pro                                 | Opus 4.6                                        |
 
 **Adapter discipline:** the adapter holds the ONE mapping table. Workflow code never names a SKU directly. SKU rotation happens here; everything downstream stays substrate-neutral.
 

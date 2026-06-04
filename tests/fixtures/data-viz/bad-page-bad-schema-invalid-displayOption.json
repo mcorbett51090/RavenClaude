@@ -1,0 +1,15 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.1.0/schema.json",
+  "page": "InvalidDisplayOption",
+  "width": 1280,
+  "height": 720,
+  "displayOption": "StretchToFit",
+  "visuals": [
+    {
+      "id": "ok-kpi",
+      "visualType": "kpi",
+      "position": { "x": 24, "y": 80, "width": 296, "height": 300 },
+      "queryState": { "Indicator": { "projections": [{ "field": "Revenue" }] } }
+    }
+  ]
+}

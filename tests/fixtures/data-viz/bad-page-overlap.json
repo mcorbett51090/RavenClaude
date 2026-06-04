@@ -1,0 +1,15 @@
+{
+  "page": "Overlap",
+  "width": 1280,
+  "height": 720,
+  "visuals": [
+    {
+      "id": "viz-a",
+      "position": { "x": 24, "y": 80, "width": 400, "height": 300 }
+    },
+    {
+      "id": "viz-b",
+      "position": { "x": 300, "y": 80, "width": 400, "height": 300 }
+    }
+  ]
+}
