@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for staffing-operations. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-staffing-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags common staffing-analysis anti-patterns in scorecards/readouts/analyses (fill rate without time-to-fill, margin/% without bill-pay-burden, an external market number with no source URL, candidate/client PII shapes). Set STAFFING_OPS_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}

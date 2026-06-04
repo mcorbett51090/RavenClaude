@@ -1,0 +1,26 @@
+{
+  "name": "staffing-operations",
+  "version": "0.1.0",
+  "description": "Healthcare + education staffing operations & analytics consulting team — 6 specialist agents (engagement lead, staffing-operations analyst, recruiting-funnel strategist, healthcare-staffing specialist, education/school-based specialist, workforce-market analyst) with 10 skills, 10 templates, 5 commands, 1 advisory hook, and an 8-file research-grounded knowledge bank covering the staffing KPI glossary (funnel + financial + quality metrics with formulas and benchmarks), healthcare-staffing economics (travel nurse / locum / allied, bill-rate spread, credentialing), K-12 school-based staffing (IDEA/IEP service compliance, academic-calendar seasonality, teletherapy), 2023-2026 market trends (travel-rate normalization, ESSER cliff, MSP/VMS consolidation, gig platforms), a competitor landscape map, and a Soliant Health employer profile so a consultant can walk into the engagement grounded. Vertical-explicit (staffing) but segment-flexible (travel / per-diem / locum / permanent / school-based). Compact inline priors on every agent; primary-source citations with retrieval dates. Inherits ravenclaude-core protocols including the alternate-methods Capability Grounding Protocol and the Structured Output Protocol.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "staffing",
+    "recruiting",
+    "healthcare-staffing",
+    "education-staffing",
+    "travel-nursing",
+    "locum-tenens",
+    "school-based-services",
+    "kpi",
+    "fill-rate",
+    "workforce-analytics",
+    "soliant"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
