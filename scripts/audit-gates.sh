@@ -67,9 +67,23 @@ if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
       python3 plugins/ravenclaude-core/hooks/tests/test-gate91-tribunal-shadow.py
       exit $?
       ;;
+    92)
+      echo "── Gate 92: pbir-layout-engine linter bidirectional (per-gate run) ───────"
+      _LINT="python3 plugins/ravenclaude-core/skills/pbir-layout-engine/lint.py"
+      _rc92=0
+      # smoke: the linter runs at all
+      $_LINT --list-checks >/dev/null 2>&1 || { echo "  ✗ linter --list-checks failed (gate did not run)"; exit 1; }
+      # bad fixture must fail (check-1 overlap is error-severity → exit 1)
+      rc=0; $_LINT tests/fixtures/data-viz/bad-page-overlap.json >/dev/null 2>&1 || rc=$?
+      if [[ "$rc" -eq 0 ]]; then echo "  ✗ bad-page-overlap should have exited nonzero, got 0"; _rc92=1; else echo "  ✓ bad-page-overlap exits nonzero ($rc)"; fi
+      # good fixture must pass
+      rc=0; $_LINT tests/fixtures/data-viz/good-page.json >/dev/null 2>&1 || rc=$?
+      if [[ "$rc" -ne 0 ]]; then echo "  ✗ good-page should have exited zero, got $rc"; _rc92=1; else echo "  ✓ good-page exits zero"; fi
+      exit "$_rc92"
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 60, 70, 80, 90, 91. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 60, 70, 80, 90, 91, 92. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -450,7 +464,7 @@ cp -p "$TMP/README.md.bak" README.md
 # (the catalog prose describing core) must be detected — previously ungated, it
 # silently drifted to "20 skills" while core had 22 (caught by the v0.74.0 panel).
 backup .claude-plugin/marketplace.json
-python3 -c "p='.claude-plugin/marketplace.json';s=open(p).read();open(p,'w').write(s.replace('32 skills','20 skills',1))"
+python3 -c "p='.claude-plugin/marketplace.json';s=open(p).read();open(p,'w').write(s.replace('33 skills','20 skills',1))"
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (wrong metadata.description skill count)" must_fail "$rc"
 cp -p "$TMP/.claude-plugin_marketplace.json.bak" .claude-plugin/marketplace.json
@@ -2802,6 +2816,20 @@ echo "── Gate 91: agent-dispatch-evaluator tribunal-seat shadow (Phase 4) �
 # unchanged from the disabled run (RM2 — shadow is observational, never mutates seat models).
 rc=0; python3 plugins/ravenclaude-core/hooks/tests/test-gate91-tribunal-shadow.py >/dev/null 2>&1 || rc=$?
 gate "tribunal-seat shadow fixture (disabled no-op + enabled-shadows + verdict-unchanged)" must_pass "$rc"
+
+echo
+echo "── Gate 92: pbir-layout-engine layout linter — bidirectional ─────────────"
+# The data-viz-designer's load-bearing artifact: lint.py must FAIL on a fixture
+# that violates a check (bad-page-overlap → check-1 error → exit 1) and PASS on
+# the all-clean good-page.json. Plus a smoke assertion that the linter ran at all
+# (--list-checks exits 0) — a gate that can't even start is not a pass.
+LINT_PY="python3 plugins/ravenclaude-core/skills/pbir-layout-engine/lint.py"
+rc=0; $LINT_PY --list-checks >/dev/null 2>&1 || rc=$?
+gate "layout-linter smoke (--list-checks runs)" must_pass "$rc"
+rc=0; $LINT_PY tests/fixtures/data-viz/bad-page-overlap.json >/dev/null 2>&1 || rc=$?
+gate "layout-linter (bad fixture: overlapping visuals)" must_fail "$rc"
+rc=0; $LINT_PY tests/fixtures/data-viz/good-page.json >/dev/null 2>&1 || rc=$?
+gate "layout-linter (good fixture: clean grid)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

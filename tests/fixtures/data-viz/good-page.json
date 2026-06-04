@@ -1,0 +1,64 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.1.0/schema.json",
+  "page": "Overview",
+  "width": 1280,
+  "height": 720,
+  "displayOption": "FitToPage",
+  "_lintConfig": {
+    "tolerance": {
+      "equal_gap_px": 4,
+      "column_align_px": 0
+    }
+  },
+  "visuals": [
+    {
+      "id": "kpi-1",
+      "visualType": "kpi",
+      "position": { "x": 24, "y": 80, "width": 296, "height": 300 },
+      "queryState": { "Indicator": { "projections": [{ "field": "Revenue" }] } },
+      "visualContainerObjects": { "title": [{ "text": "Revenue" }] }
+    },
+    {
+      "id": "kpi-2",
+      "visualType": "kpi",
+      "position": { "x": 336, "y": 80, "width": 296, "height": 300 },
+      "queryState": { "Indicator": { "projections": [{ "field": "Margin" }] } }
+    },
+    {
+      "id": "kpi-3",
+      "visualType": "kpi",
+      "position": { "x": 648, "y": 80, "width": 296, "height": 300 },
+      "queryState": { "Indicator": { "projections": [{ "field": "Units" }] } }
+    },
+    {
+      "id": "kpi-4",
+      "visualType": "kpi",
+      "position": { "x": 960, "y": 80, "width": 296, "height": 300 },
+      "queryState": { "Indicator": { "projections": [{ "field": "Orders" }] } }
+    },
+    {
+      "id": "bar-1",
+      "visualType": "clusteredBarChart",
+      "position": { "x": 24, "y": 400, "width": 296, "height": 296 },
+      "queryState": { "Category": { "projections": [{ "field": "Region" }] } }
+    },
+    {
+      "id": "bar-2",
+      "visualType": "clusteredColumnChart",
+      "position": { "x": 336, "y": 400, "width": 296, "height": 296 },
+      "queryState": { "Category": { "projections": [{ "field": "Product" }] } }
+    },
+    {
+      "id": "bar-3",
+      "visualType": "lineChart",
+      "position": { "x": 648, "y": 400, "width": 296, "height": 296 },
+      "queryState": { "Category": { "projections": [{ "field": "Month" }] } }
+    },
+    {
+      "id": "bar-4",
+      "visualType": "pieChart",
+      "position": { "x": 960, "y": 400, "width": 296, "height": 296 },
+      "queryState": { "Category": { "projections": [{ "field": "Channel" }] } }
+    }
+  ]
+}
