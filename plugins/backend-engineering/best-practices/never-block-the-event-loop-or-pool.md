@@ -1,0 +1,3 @@
+# Never block the event loop or exhaust the pool
+
+In an async runtime (Node, asyncio, Go), a synchronous CPU burn or a blocking I/O call stalls every concurrent request sharing that loop or worker — one slow handler and the whole process stops answering. Offload CPU-heavy work to a worker pool or separate process, never call blocking APIs from async paths, and treat the database connection pool as a fixed, scarce resource: a request that holds a connection while awaiting a slow external call starves the pool and turns a downstream hiccup into a connection-acquisition timeout for everyone. Acquire late, release early, never hold a pooled connection across an external HTTP call, and size the pool to the database's real concurrency limit — not optimistically high.

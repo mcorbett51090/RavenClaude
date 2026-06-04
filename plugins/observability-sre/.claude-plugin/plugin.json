@@ -1,7 +1,7 @@
 {
   "name": "observability-sre",
-  "version": "0.1.0",
-  "description": "Observability & SRE team \u2014 3 agents (observability-engineer, sre-reliability-engineer, incident-commander) for making a system observable and keeping it reliable: instrumentation on OpenTelemetry (metrics/logs/traces, semantic conventions, sampling, cardinality control), SLI/SLO and error-budget design, symptom-based alerting (multi-window burn-rate, alert on user pain not causes), and incident response (severity, roles, comms, blameless postmortems, action-item follow-through). 3 skills, a decision-tree knowledge bank (alert-design + SLO-target trees + a dated 2026 tooling map), 6 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: deploy health-gates -> devops-cicd, cluster telemetry -> cloud-native-kubernetes, API SLOs -> api-engineering, cloud-native monitors -> azure/aws/gcp-cloud. Requires ravenclaude-core@>=0.7.0.",
+  "version": "0.2.0",
+  "description": "Observability & SRE team \u2014 3 agents (observability-engineer, sre-reliability-engineer, incident-commander) for making a system observable and keeping it reliable: instrumentation on OpenTelemetry (metrics/logs/traces, semantic conventions, sampling, cardinality control), SLI/SLO and error-budget design, symptom-based alerting (multi-window burn-rate, alert on user pain not causes), and incident response (severity, roles, comms, blameless postmortems, action-item follow-through). 3 skills, a decision-tree knowledge bank (alert-design + SLO-target trees + a dated 2026 tooling map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: deploy health-gates -> devops-cicd, cluster telemetry -> cloud-native-kubernetes, API SLOs -> api-engineering, cloud-native monitors -> azure/aws/gcp-cloud. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"
   },

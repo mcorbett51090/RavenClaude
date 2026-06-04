@@ -1,0 +1,3 @@
+# Make every transform idempotent and rerunnable
+
+Running a model twice on the same inputs must produce the same output — no appended duplicates, no dependence on wall-clock time or a one-shot side effect. Idempotence is what makes a failed run safe to retry, a backfill safe to repeat, and an incremental model safe to full-refresh; its absence turns every retry into a data-integrity gamble. Avoid non-deterministic constructs that quietly break it: `current_timestamp` baked into stored rows, `insert`-only patterns without a dedup or merge key, and ordering that isn't fully specified. If you can't rerun a model and trust the result, you don't have a pipeline — you have a sequence of irreversible events.

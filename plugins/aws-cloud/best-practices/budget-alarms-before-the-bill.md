@@ -1,0 +1,3 @@
+# Wire budget alarms before the workload, not after the invoice
+
+Stand up AWS Budgets with threshold alerts (actual and forecasted) and Cost Anomaly Detection before a workload scales, so a runaway resource, a recursive Lambda, or a forgotten dev cluster pages someone in hours instead of surfacing on next month's invoice as weeks of sunk spend. Set budgets per account and per cost-allocation tag so the alert points at an owner, not just a total. Route the alerts to a channel a human actually watches, and pair the forecast alarm with the actual alarm — the forecast catches the runaway early, the actual catches the surprise the forecast missed. The cheapest cost control is the one that fires before the money is already spent.

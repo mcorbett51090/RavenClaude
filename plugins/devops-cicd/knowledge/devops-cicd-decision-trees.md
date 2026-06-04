@@ -40,6 +40,59 @@ graph TD
 ```
 
 
+## Decision Tree: Trunk-based vs branch strategy
+
+Choose by integration frequency and the real need to support multiple versions — not by habit.
+
+```mermaid
+graph TD
+  A[Picking a branching model] --> B{Must you support multiple released versions at once?}
+  B -- Yes, regulated/multi-version --> C[Release branches + cherry-pick hotfixes; accept the overhead]
+  B -- No --> D{Can incomplete work hide behind a feature flag?}
+  D -- No --> E[Fix testability/flags first; long branches are a symptom]
+  D -- Yes --> F{Team merges to trunk at least daily?}
+  F -- Yes --> G[Trunk-based: short-lived branches, flags for unfinished work]
+  F -- No --> H[Move toward trunk-based; shrink branch lifetime before adding process]
+```
+
+_GitFlow's develop/release/hotfix lattice is overhead most teams pay without the multi-version need that justifies it._
+
+## Decision Tree: Monorepo vs polyrepo pipeline shape
+
+The repo layout is a choice; the pipeline shape it forces is the real cost — decide with eyes open.
+
+```mermaid
+graph TD
+  A[Repo + pipeline shape] --> B{Do changes routinely span multiple projects atomically?}
+  B -- Yes --> C{Willing to invest in affected-only execution?}
+  C -- No --> D[Polyrepo: each repo its own pipeline, independent cadence]
+  C -- Yes --> E[Monorepo + change-detection: build/test only the affected graph]
+  B -- No --> F{Teams need independent release cadences?}
+  F -- Yes --> D
+  F -- No --> G{Shared tooling/standards a priority?}
+  G -- Yes --> E
+  G -- No --> D
+```
+
+_A monorepo that rebuilds everything on every commit is the worst of both worlds — affected-only execution is the price of admission._
+
+## Decision Tree: Secrets — where does this credential live?
+
+Before pasting any credential into a pipeline, route it to the least-exposed home that still works.
+
+```mermaid
+graph TD
+  A[A credential the pipeline needs] --> B{Authenticating to a cloud/provider that supports OIDC?}
+  B -- Yes --> C[OIDC federation: no stored secret; scope trust to repo+branch+env]
+  B -- No --> D{Is it consumed by the running app, not the build?}
+  D -- Yes --> E[Secrets manager / external-secrets; app reads at runtime]
+  D -- No --> F{Truly needed at build/deploy time?}
+  F -- Yes --> G[Secrets manager-backed CI secret, short TTL, scoped, rotated by expiry]
+  F -- No --> H[It doesn't belong in the pipeline — remove it]
+```
+
+_A static key pasted into a CI variable is the last resort, never the default — and it has an owner and an expiry date the moment it exists._
+
 ## Capability map (dated — verify at build)
 
 | Capability | 2026 state `[verify-at-build]` | Notes |

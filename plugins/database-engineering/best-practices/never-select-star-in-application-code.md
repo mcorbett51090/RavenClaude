@@ -1,0 +1,3 @@
+# Never SELECT * from application code
+
+Name the columns you actually use. `SELECT *` couples the app to physical table layout, defeats covering/index-only scans (the planner must visit the heap for columns it didn't need to fetch), drags wide TEXT/JSONB/BYTEA columns over the wire that the caller discards, and silently breaks when someone adds or reorders a column. An explicit column list is self-documenting, lets the index satisfy the query without a heap fetch, and turns a schema change into a compile-time or review-time signal instead of a runtime surprise. Reserve `*` for ad-hoc psql exploration, never the codebase.

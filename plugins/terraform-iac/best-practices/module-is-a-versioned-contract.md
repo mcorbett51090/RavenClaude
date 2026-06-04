@@ -1,0 +1,3 @@
+# A module is a versioned contract, not a copy-paste
+
+A shared module's inputs, outputs, and behavior are an API that callers depend on. Treat it that way: typed and validated variables, documented outputs, a README with an example, and semantic version tags so consumers pin a known-good version and upgrade deliberately. Breaking an input's meaning or removing an output is a major-version change, not a quiet edit to `main`. The anti-pattern is the unversioned module sourced from a git branch — every `init` silently pulls whatever HEAD happens to be, so an unrelated commit can change every consumer's plan. Publish the contract, version it, and let callers opt in to changes.

@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "is this query builder injectable?"
     outcome: "An injection analysis at the trust boundary, the parameterized-query fix, a lint rule to prevent recurrence, and the residual-risk note for security-reviewer"
     difficulty: "starter"
+  - intent: "Triage an auth-vs-authz bug"
+    trigger_phrase: "a user reported they could see another customer's data"
+    outcome: "A triage that separates the authentication question from the authorization one, identifies the cross-tenant broken-object-level-authz hole as critical, and routes the stop-and-fix verdict to security-reviewer"
+    difficulty: "troubleshooting"
+  - intent: "Build a security paved road"
+    trigger_phrase: "teams keep routing around our security gate"
+    outcome: "A paved-road plan — hardened templates, pre-approved libraries, PR-commenting scanners that propose fixes — with the hard gate reserved for the high-risk-and-irreversible, so the secure path is the easy path"
+    difficulty: "advanced"
 quickstart: "Give the agent the codebase/stack and any scanner output. It returns tuned CI security gates, exploitability-ranked triage, and class-level fixes — and routes every ship/no-ship verdict to security-reviewer."
 ---
 

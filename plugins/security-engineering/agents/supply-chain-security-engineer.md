@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "verify the provenance of our critical artifacts"
     outcome: "An SLSA provenance verification step on the consume side and a typosquat/dependency-confusion defense for the registry"
     difficulty: "advanced"
+  - intent: "Pin and bound third-party CI actions"
+    trigger_phrase: "our CI uses third-party actions pinned to floating tags"
+    outcome: "Every third-party action and base image pinned to an immutable digest/SHA, provenance verified where available, and egress/permission bounded so a compromised dependency can't reach secrets — the pin-verify-bound trio"
+    difficulty: "advanced"
+  - intent: "Respond to a malicious-package alert"
+    trigger_phrase: "one of our npm dependencies was just flagged as compromised"
+    outcome: "A reachability-and-blast-radius assessment of the compromised package (did it run in our build/runtime, what could it have touched), the removal/rollback path, secret rotation if exposed, and the verdict routed to security-reviewer"
+    difficulty: "troubleshooting"
 quickstart: "Give the agent your SBOM/dependency manifest and any CVE. It returns a reachability-based triage, a pinning/update policy, provenance verification, and malicious-package defenses — verdicts routed to security-reviewer."
 ---
 

@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "let GitHub Actions deploy to AWS without static keys"
     outcome: "An OIDC trust + assumable deploy role with conditions scoping it to the repo/branch — no long-lived keys"
     difficulty: "advanced"
+  - intent: "Author SCP guardrails"
+    trigger_phrase: "set org-wide guardrails our accounts can't override"
+    outcome: "SCPs applied at the OU level that deny the invariants (leave-org, disable-CloudTrail, unapproved regions, root actions) as a ceiling IAM can't exceed, with the allow logic left to IAM"
+    difficulty: "advanced"
+  - intent: "Set up human SSO"
+    trigger_phrase: "give our team SSO access instead of IAM users"
+    outcome: "An IAM Identity Center design with permission sets mapped to groups and accounts, replacing IAM users so humans get short-lived federated credentials"
+    difficulty: "starter"
 quickstart: "Tell the agent the principal and exactly what it must do. It returns a least-privilege role policy with a permission boundary, prefers federation/SSO over keys, and routes sensitive grants to security-engineering."
 ---
 

@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "stop broken links and examples from shipping"
     outcome: "Link-checking + example-testing in CI that fail the build on broken links/snippets, with previews on PRs"
     difficulty: "starter"
+  - intent: "Fix poor docs search"
+    trigger_phrase: "our docs search returns garbage / never finds the right page"
+    outcome: "A search implementation tuned for the docs (indexing, ranking, fallback), so readers find the task page they're after instead of bouncing"
+    difficulty: "troubleshooting"
+  - intent: "Migrate docs tooling"
+    trigger_phrase: "move our docs off the current tool onto something maintainable"
+    outcome: "A tooling migration plan chosen by maintenance/versioning/design-control needs, with content ported, redirects preserved, and CI build/preview/deploy rewired"
+    difficulty: "advanced"
 quickstart: "Tell the agent the docs needs and scale. It returns a tooling choice, the site scaffold with search/IA/versioning, CI build/preview/deploy, and automated link/example checking."
 ---
 

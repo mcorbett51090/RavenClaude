@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "hydration is slow on every page load"
     outcome: "An RSC/islands approach shipping server components and hydrating only interactive leaves"
     difficulty: "advanced"
+  - intent: "Optimize images and fonts"
+    trigger_phrase: "images and fonts are tanking our LCP and shifting layout"
+    outcome: "Modern-format responsive images sized to box with reserved dimensions, an eager-loaded LCP image, and subset/swap/preloaded fonts — fixing LCP and CLS"
+    difficulty: "advanced"
+  - intent: "Eliminate a request waterfall"
+    trigger_phrase: "the page makes a chain of sequential fetches before it renders"
+    outcome: "A waterfall diagnosis and fix — hoist/parallelize independent requests, fetch on the server, preload critical data — measured against the network timeline"
+    difficulty: "troubleshooting"
 quickstart: "Tell the agent the perf symptom (bundle size, CWV, hydration). It returns a measured analysis, code-splitting/lazy-loading, media/font optimization, hydration reduction, and a CI perf budget."
 ---
 

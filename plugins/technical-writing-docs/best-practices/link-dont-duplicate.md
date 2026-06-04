@@ -1,0 +1,3 @@
+# Link across the Diataxis kinds; don't inline the other kind
+
+When a how-to guide needs a concept, link to the explanation; when a tutorial uses a parameter, link to the reference — don't paste the other kind inline. Inlining is how a clean how-to slowly bloats into the blended page Diataxis warns against, and it duplicates content that now has two homes to maintain. The discipline is structural: each page stays in its single kind and reaches the others by reference. This also keeps the reader's path coherent — they follow the link only if they need the depth, instead of wading through a concept lecture in the middle of a task they're trying to finish.

@@ -42,6 +42,62 @@ graph TD
 ```
 
 
+## Decision Tree: Logs, metrics, or traces — which pillar for this question?
+
+Each pillar answers a different shape of question; reach for the one built for yours instead of forcing the wrong tool.
+
+```mermaid
+graph TD
+  A[A question about the system] --> B{Asking 'how often / how much' over time?}
+  B -- Yes --> C[Metric: cheap, aggregatable, dashboards + alerts]
+  B -- No --> D{Asking 'where in the request path / which hop is slow'?}
+  D -- Yes --> E[Trace: per-request, spans across services]
+  D -- No --> F{Asking 'why did THIS specific event happen'?}
+  F -- Yes --> G[Log: high-cardinality detail for one event]
+  F -- No --> H{Need to pivot spike -> example -> detail?}
+  H -- Yes --> I[Use all three, correlated by trace context]
+```
+
+_If you're tempted to put a per-request id on a metric label, you actually wanted a trace or a log._
+
+## Decision Tree: On-call — page, ticket, or dashboard?
+
+Route a condition to the response it deserves; paging on the non-urgent is how real pages get ignored.
+
+```mermaid
+graph TD
+  A[A condition you detected] --> B{Needs human action within minutes?}
+  B -- No --> C{Needs action eventually?}
+  C -- Yes --> D[Ticket: tracked, async, owned]
+  C -- No --> E[Dashboard/log only: context, not a notification]
+  B -- Yes --> F{Is there a runbook + a clear action?}
+  F -- No --> G[Write the runbook first; if you can't, it isn't pageable]
+  F -- Yes --> H{User-visible symptom or SLO burn?}
+  H -- Yes --> I[Page now]
+  H -- No --> D
+```
+
+_Page = act now; ticket = act soon; dashboard = look when investigating. Most conditions are not pages._
+
+## Decision Tree: Cardinality — label or attribute?
+
+A new dimension is either a bounded metric label or unbounded telemetry detail; choosing wrong is how the TSDB falls over.
+
+```mermaid
+graph TD
+  A[A new dimension to record] --> B{Is its value set bounded and small?}
+  B -- No --> C{Is the value user- or attacker-controlled?}
+  C -- Yes --> D[Never a label. Trace attribute / log field; or template/bucket it]
+  C -- No --> E{Can you safely bucket/template it?}
+  E -- Yes --> F[Bucket it, then use as a bounded label]
+  E -- No --> D
+  B -- Yes --> G{Will you filter/aggregate metrics by it?}
+  G -- Yes --> H[OK as a metric label - within the cardinality budget]
+  G -- No --> D
+```
+
+_Series count = product of every label's distinct values. If you can't name the upper bound, it isn't a label._
+
 ## Capability map (dated — verify at build)
 
 | Capability | 2026 state `[verify-at-build]` | Notes |

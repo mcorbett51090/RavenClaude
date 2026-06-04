@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "build our product roadmap"
     outcome: "An outcome-oriented roadmap of bets with confidence levels (not dated features), tied to strategy; delivery dates routed to project-management"
     difficulty: "starter"
+  - intent: "Decide what to say no to"
+    trigger_phrase: "we're saying yes to everything — what should we cut?"
+    outcome: "An explicit not-doing list and a kill/sunset call on features not earning their keep, defended on strategy and the cost of focus rather than who championed them"
+    difficulty: "advanced"
+  - intent: "Escape the build trap"
+    trigger_phrase: "we ship constantly but the business metrics are flat"
+    outcome: "A diagnosis of the build-trap pattern and the structural fix — funding and review tied to outcomes, every initiative naming the metric it must move — not just a pep talk"
+    difficulty: "troubleshooting"
 quickstart: "Describe the product, market, and goals. The agent returns a coherent strategy stack with positioning, opportunity sizing, and an outcome-oriented roadmap of bets — delivery scheduling routed to project-management."
 ---
 

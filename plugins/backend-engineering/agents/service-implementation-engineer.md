@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "our error handling is a mess of try/catch"
     outcome: "An explicit error model (expected vs bug) mapped to statuses at the edge, replacing swallowed catch-alls"
     difficulty: "troubleshooting"
+  - intent: "Validate at the boundary"
+    trigger_phrase: "validate this request input properly"
+    outcome: "Schema validation at the edge parsing raw input into trusted domain types, so the core never handles unvalidated data and the error maps to a 4xx"
+    difficulty: "starter"
+  - intent: "Fix a transaction spanning a network call"
+    trigger_phrase: "we hold a DB transaction open while calling a third-party API"
+    outcome: "A restructure that does the external work outside a short transaction (outbox where a commit must trigger it), closing the lock-holding and lost-update risk"
+    difficulty: "troubleshooting"
 quickstart: "Tell the agent the logic to implement and its failure cases. It returns a clean use-case layering with the framework at the edges, explicit error modeling, boundary validation, and idempotency for retried operations."
 ---
 

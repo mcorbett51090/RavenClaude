@@ -1,0 +1,3 @@
+# Bound every namespace with a ResourceQuota and LimitRange
+
+A ResourceQuota caps a namespace's total CPU/memory/object count so one tenant can't starve the cluster; a LimitRange sets default and maximum per-container requests/limits so a pod that forgot to declare resources still gets sane values instead of scheduling chaos. Without the quota, a runaway Deployment exhausts the cluster for everyone; without the LimitRange, unset requests produce BestEffort pods that are first to be evicted and impossible to schedule predictably. Set both at namespace creation — they are the guardrails that make multi-tenancy survivable, not an afterthought added after the first noisy-neighbor incident.

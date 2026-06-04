@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "our model's accuracy is falling, why?"
     outcome: "A data-vs-concept-drift diagnosis with the appropriate response, and the significance of the drop routed to applied-statistics"
     difficulty: "troubleshooting"
+  - intent: "Monitor without labels yet"
+    trigger_phrase: "our labels arrive weeks late, what do we watch meanwhile?"
+    outcome: "An input-drift + prediction-drift monitoring plan as the early-warning proxy until ground truth arrives, with thresholds and the data-vs-concept distinction"
+    difficulty: "advanced"
+  - intent: "Close the retraining loop"
+    trigger_phrase: "our drift alerts fire but nothing happens"
+    outcome: "A wired loop: a drift/decay alert triggers a documented response into the training pipeline (training-pipeline-engineer), not a dashboard nobody acts on"
+    difficulty: "troubleshooting"
 quickstart: "Tell the agent the deployed model and labels availability. It returns a drift + decay monitoring plan with thresholds, a retraining trigger, and the loop back to training — significance routed to applied-statistics."
 ---
 

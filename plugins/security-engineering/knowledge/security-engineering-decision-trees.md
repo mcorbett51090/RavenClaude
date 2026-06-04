@@ -42,6 +42,64 @@ graph TD
 ```
 
 
+## Decision Tree: Where does this security control belong (shift-left placement)?
+
+Place the control at the earliest, cheapest stage that can actually catch the class — earlier is cheaper, but the verdict still routes.
+
+```mermaid
+graph TD
+  A[A control to add] --> B{Is it an architectural / trust-boundary risk?}
+  B -- Yes --> C[Design time: threat model; change the design, not bolt on]
+  B -- No --> D{Detectable by static analysis of the diff?}
+  D -- Yes --> E[CI gate: SAST/SCA/secret-scan on the PR, comment a fix]
+  D -- No --> F{Detectable only at runtime / against a deployment?}
+  F -- Yes --> G[DAST / runtime guardrail / policy-as-code at deploy]
+  F -- No --> H[Last resort: pre-launch pen-test - expensive + late]
+  C --> I[Route any ship/no-ship verdict to security-reviewer]
+  E --> I
+  G --> I
+```
+
+_Shift the detection left; never shift the verdict. The earlier you catch it, the cheaper the fix._
+
+## Decision Tree: Auth-vs-authz failure triage
+
+"Access denied" and "access wrongly granted" are different bugs with different blast radii — separate them before you fix.
+
+```mermaid
+graph TD
+  A[An access-control failure] --> B{Did the system establish WHO the caller is?}
+  B -- No, identity unproven --> C[Authentication failure]
+  C --> D{Failing OPEN - unauthenticated reaches protected resource?}
+  D -- Yes --> E[Critical: stop-and-fix, route to security-reviewer]
+  D -- No, failing closed --> F[Fix the auth flow; lower urgency]
+  B -- Yes, identity known --> G[Authorization failure]
+  G --> H{Can a user reach data/actions of ANOTHER tenant/user?}
+  H -- Yes --> I[Critical: broken object/function-level authz - escalate]
+  H -- No, over-broad within own scope --> J[Tighten to least privilege]
+```
+
+_Authn = are you who you claim? Authz = are you allowed? A failing-open authn check and a cross-tenant authz hole are both critical; route the verdict._
+
+## Decision Tree: Patch now vs schedule (exploitability gate)
+
+Reachability and exposure decide urgency, not the CVSS number on the advisory.
+
+```mermaid
+graph TD
+  A[A new CVE in a dependency] --> B{Is the vulnerable code reachable in our usage?}
+  B -- No --> C[Schedule on normal cadence; record the why]
+  B -- Yes --> D{Exposed to untrusted/internet input?}
+  D -- No, internal only --> E{Known exploited in the wild / public PoC?}
+  E -- Yes --> F[Patch this sprint]
+  E -- No --> E2[Normal cycle, prioritized]
+  D -- Yes --> G{Unauthenticated to trigger?}
+  G -- Yes --> H[Patch now / emergency change; route verdict]
+  G -- No --> F
+```
+
+_A 9.8 in an unreachable path waits; a 6.5 unauthenticated and exploited-in-the-wild does not. Verdict to security-reviewer._
+
 ## Capability map (dated — verify at build)
 
 | Capability | 2026 state `[verify-at-build]` | Notes |

@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "access this Cloud SQL/service privately"
     outcome: "A Private Service Connect / private-IP design so traffic never traverses the public internet"
     difficulty: "starter"
+  - intent: "Draw a data-exfiltration perimeter"
+    trigger_phrase: "stop a leaked key from exfiltrating our BigQuery data"
+    outcome: "A VPC Service Controls perimeter around the projects, rolled out dry-run-then-enforce so legitimate cross-boundary flows surface first, with PSC for in-perimeter access"
+    difficulty: "advanced"
+  - intent: "Connect projects' networks"
+    trigger_phrase: "connect two projects' VPCs without Shared VPC"
+    outcome: "A connectivity recommendation traced through the tree (peering vs NCC vs PSC) with non-transitivity and CIDR-overlap caveats named"
+    difficulty: "advanced"
 quickstart: "Describe the connectivity and what must stay private. The agent returns a Shared VPC layout, tight tag/SA-targeted firewall rules, private service access, and Cloud NAT egress."
 ---
 

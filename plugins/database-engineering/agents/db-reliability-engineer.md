@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "is our backup and restore actually solid?"
     outcome: "A backup strategy with a TESTED restore + PITR if RPO demands, and the gaps in the current approach"
     difficulty: "troubleshooting"
+  - intent: "Add read replicas"
+    trigger_phrase: "the primary is overloaded, can we add read replicas?"
+    outcome: "A read-replica routing plan with the replication-lag/eventual-consistency trade named, and which reads are safe to route off the primary"
+    difficulty: "advanced"
+  - intent: "Diagnose bloat and vacuum"
+    trigger_phrase: "the table keeps growing and queries are slowing down"
+    outcome: "A bloat/dead-tuple diagnosis with an autovacuum tuning plan, plus the long-running/idle-in-transaction offenders named"
+    difficulty: "troubleshooting"
 quickstart: "Tell the agent the reliability concern (connections, isolation, replicas, backups). It returns pooling sized to load, a deliberate isolation choice with its anomalies, tested backup/restore, and DB observability."
 ---
 

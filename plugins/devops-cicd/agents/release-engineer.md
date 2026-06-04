@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "generate release notes from our commit history"
     outcome: "A conventional-commits → changelog pipeline with SemVer bump rules and a human-curated highlights section"
     difficulty: "starter"
+  - intent: "Ship a risky DB-coupled change safely"
+    trigger_phrase: "this release needs a schema change and a code change together"
+    outcome: "An expand/contract sequence (migrate first, deploy backward-compatible code, then contract) with the rollout strategy and abort condition, coordinating the migration seam with database-engineering"
+    difficulty: "advanced"
+  - intent: "Set up a deploy freeze window"
+    trigger_phrase: "we need to block deploys during our peak sales week"
+    outcome: "A change-freeze enforced as a required check keyed to a calendar, paired with a documented low-friction break-glass path for genuine emergencies"
+    difficulty: "starter"
 quickstart: "Tell the agent the service's risk profile (traffic, statefulness, rollback-ability) and the current release process. It returns the rollout strategy with the abort condition, the rollback automation, and the version/changelog flow."
 ---
 

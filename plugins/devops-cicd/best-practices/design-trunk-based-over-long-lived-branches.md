@@ -1,0 +1,3 @@
+# Default to trunk-based development
+
+Long-lived feature branches are merge debt that compounds: the longer a branch lives, the more the trunk drifts, the scarier the merge, and the weaker continuous integration becomes — you aren't *integrating* continuously if you integrate once a month. Default to short-lived branches merged to trunk daily, with incomplete work hidden behind feature flags rather than parked on a branch. Reserve long-lived branches for genuine release trains (regulated, multi-version-support products) where the cost is understood and the divergence is managed deliberately. GitFlow's release/develop/hotfix lattice is overhead most teams pay without the multi-version need that justifies it.

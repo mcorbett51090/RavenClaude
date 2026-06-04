@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "make this mutation feel instant"
     outcome: "An optimistic-update with rollback on failure and the correct cache invalidation"
     difficulty: "starter"
+  - intent: "Eliminate duplicated state"
+    trigger_phrase: "this useEffect copies a prop into state and they keep desyncing"
+    outcome: "A refactor that derives the value in render instead of storing it, removing the sync effect and the staleness bug"
+    difficulty: "troubleshooting"
+  - intent: "Choose client vs server fetching"
+    trigger_phrase: "should this data be fetched on the server or the client?"
+    outcome: "A fetch-location decision traced through the tree (request-time + SEO -> server; client-dependent/realtime -> server-cache lib), with waterfalls avoided"
+    difficulty: "advanced"
 quickstart: "Describe the data and interactions. The agent returns a state architecture separating server-cache from client state, a server-data layer with invalidation, and client state placed at the right scope."
 ---
 

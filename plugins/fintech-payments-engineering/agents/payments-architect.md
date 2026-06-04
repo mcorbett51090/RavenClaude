@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "Stripe, Adyen, or Braintree for us?"
     outcome: "A PSP recommendation by geography/methods/pricing/PCI-burden with the trade named"
     difficulty: "starter"
+  - intent: "Design continuous reconciliation"
+    trigger_phrase: "how do we reconcile our ledger to the processor?"
+    outcome: "A continuous reconciliation design (pull settlement reports, match every line, alert + triage on any non-zero diff) that turns discrepancies into caught bugs/fraud instead of mystery money"
+    difficulty: "advanced"
+  - intent: "Support multi-currency money"
+    trigger_phrase: "we need to handle multiple currencies safely"
+    outcome: "A money model storing integer minor units with an explicit currency code (no float, no implicit conversion), with FX and rounding handled at defined boundaries and posted to the ledger"
+    difficulty: "advanced"
 quickstart: "Describe the payment use case and geography. The agent returns the PSP choice, integer-money representation, a double-entry ledger as source of truth, a money-event model, and reconciliation — accounting routed to finance."
 ---
 

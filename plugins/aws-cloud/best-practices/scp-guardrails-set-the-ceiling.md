@@ -1,0 +1,3 @@
+# Use SCPs to set the ceiling, not to grant access
+
+Service Control Policies are org-wide guardrails: they cap what any principal in an account *can* do, regardless of generous IAM policies below them. Use them for invariants that must hold everywhere — deny leaving the org, deny disabling CloudTrail/GuardDuty, deny regions you don't operate in, deny root-user actions, deny deleting log archives. An SCP never grants permission; it only constrains, so it's the one control a mistaken or compromised admin in a member account cannot override. Apply them at the OU level so a whole environment class inherits the same floor, and keep them coarse — fine-grained allow logic belongs in IAM, the immovable boundaries belong in SCPs.

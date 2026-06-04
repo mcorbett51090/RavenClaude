@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "our 500M-row table is slow"
     outcome: "A diagnosis (plan + stats), targeted indexing, and a partitioning plan if size truly demands it — with the maintenance cost named"
     difficulty: "advanced"
+  - intent: "Make a query index-only"
+    trigger_phrase: "this query still hits the heap even with an index"
+    outcome: "A covering INCLUDE index plus an explicit column list (no SELECT *) so the read is satisfied index-only, verified in the plan"
+    difficulty: "advanced"
+  - intent: "Fix a bad row estimate"
+    trigger_phrase: "the planner picks a terrible plan and misestimates rows"
+    outcome: "A stats diagnosis (stale/ndistinct/skew) with ANALYZE, extended statistics, or a rewrite so the planner estimates correctly"
+    difficulty: "troubleshooting"
 quickstart: "Give the agent the slow query and its EXPLAIN plan (or the schema). It returns a plan reading, the minimal right index or a sargable rewrite, and partitioning only when size demands — N+1 flagged to backend-engineering."
 ---
 

@@ -1,0 +1,3 @@
+# Model for the query, not just the entities
+
+A clean entity-relationship diagram that no real query can serve efficiently is a pretty failure. Enumerate the actual access patterns — the reads that must be fast, the filters and sorts the app issues, the join cardinalities — and let them shape the keys, the index plan, and where (if anywhere) you denormalize. Normalization keeps writes correct; the query patterns decide whether that shape survives contact with production. Design both at once: a schema that's textbook-normal but forces a six-table join on the hot path is a tuning emergency you scheduled at design time.

@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "our registry is full of old images with no policy"
     outcome: "A retention/GC policy, immutable release tags, and a cache-key strategy that doesn't grow unbounded"
     difficulty: "starter"
+  - intent: "Make the build reproducible"
+    trigger_phrase: "two builds of the same commit produce different image digests"
+    outcome: "The nondeterminism sources isolated (timestamps, ordering, network fetches, unpinned bases) and removed, so identical inputs yield identical bytes — verified by a double-build digest check"
+    difficulty: "troubleshooting"
+  - intent: "Fix a poisoned build cache"
+    trigger_phrase: "a cache hit is serving a stale layer and shipping wrong artifacts"
+    outcome: "A cache-key audit that finds the missing input, a content-addressed key encoding every build input, and a restore-then-save flow so a changed input can never return a stale artifact"
+    difficulty: "troubleshooting"
 quickstart: "Show the agent your Dockerfile / build and where artifacts go. It returns a reproducible, minimal, non-root build with SemVer + digests, an SBOM, provenance/signing, and a registry hygiene policy."
 ---
 

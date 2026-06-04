@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "we added a new integration, is our threat model still valid"
     outcome: "A delta analysis of the new boundary/data class, the new threats it introduces, and the model update"
     difficulty: "troubleshooting"
+  - intent: "Build an attack tree for a critical asset"
+    trigger_phrase: "what are all the ways an attacker could reach our payment data"
+    outcome: "An attack tree rooted at the critical asset enumerating the paths to it, the cheapest/most-likely branches highlighted, and a mitigation mapped to the branches that matter most"
+    difficulty: "advanced"
+  - intent: "Cut a threat model down to what's actionable"
+    trigger_phrase: "our threat model is 200 rows and nobody reads it"
+    outcome: "A re-prioritization to the small set of high-likelihood×impact threats, each with a concrete mitigation or an explicitly-accepted-and-routed risk, and the rest dropped — a model people actually use"
+    difficulty: "troubleshooting"
 quickstart: "Describe the feature/architecture and its data. The agent returns a DFD with trust boundaries, a STRIDE analysis, ranked threats, and a mitigation (or routed acceptance) for each."
 ---
 

@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "connect our prod and shared-services VPCs"
     outcome: "A Transit Gateway hub-and-spoke design (not a peering mesh) with route tables and centralized egress"
     difficulty: "advanced"
+  - intent: "Cut the NAT bill"
+    trigger_phrase: "our NAT gateway data charges are huge"
+    outcome: "Gateway and interface VPC endpoints for the AWS services the workload calls, keeping that traffic off the NAT path, with the per-endpoint cost trade named"
+    difficulty: "troubleshooting"
+  - intent: "Expose a service privately"
+    trigger_phrase: "let another account reach our service without peering"
+    outcome: "A PrivateLink endpoint-service design exposing the single service across the account boundary without merging networks or opening public access"
+    difficulty: "advanced"
 quickstart: "Describe the connectivity and what must stay private. The agent returns a VPC/subnet layout, tight referential security groups, private endpoints, and Transit-Gateway connectivity."
 ---
 

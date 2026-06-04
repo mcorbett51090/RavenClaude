@@ -1,0 +1,3 @@
+# Start every service with the four golden signals
+
+Before bespoke dashboards, instrument latency, traffic, errors, and saturation for every user-facing service — these four answer "is it healthy and can it take more?" and cover the majority of incidents. Measure latency split by success and failure (a fast error is still an error, and slow successes hide in an averaged-together number — use percentiles, never the mean). Errors include the silent ones: a 200 with a wrong body is an error your status-code panel won't show. Saturation is the leading indicator — the resource closest to its limit predicts the next outage. Bespoke business metrics come *after* these four are solid, not instead of them.

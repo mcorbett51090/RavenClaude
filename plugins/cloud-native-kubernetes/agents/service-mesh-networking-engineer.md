@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "traffic-split 5% to the new version"
     outcome: "A weighted traffic-split config for the canary, the promotion signal routed to observability-sre, and the rollout orchestration to devops-cicd"
     difficulty: "advanced"
+  - intent: "Enforce mTLS everywhere"
+    trigger_phrase: "require mutual TLS for all east-west traffic"
+    outcome: "A strict-mTLS PeerAuthentication plus AuthorizationPolicies, rolled out permissive-then-strict so existing plaintext flows are found before the strict gate breaks them"
+    difficulty: "advanced"
+  - intent: "Diagnose mesh latency"
+    trigger_phrase: "our p99 jumped after we added the mesh"
+    outcome: "A sidecar-overhead and config diagnosis (resource limits, retries amplifying load, connection pooling) with the fix, and the option of ambient mode weighed against sidecars"
+    difficulty: "troubleshooting"
 quickstart: "Describe your traffic needs (north-south, east-west, canary, mTLS). The agent returns the ingress/gateway design, a justified mesh decision, mTLS + traffic-splitting + resilience config, and the telemetry seam."
 ---
 

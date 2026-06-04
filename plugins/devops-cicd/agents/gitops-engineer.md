@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "prod doesn't match what's in our Git repo"
     outcome: "A drift diagnosis (what changed out-of-band), the reconciler's posture fix (auto-heal vs alert), and the revert-the-commit rollback path"
     difficulty: "troubleshooting"
+  - intent: "Promote an image across environments by PR"
+    trigger_phrase: "how do we move a tested image from staging to prod in GitOps"
+    outcome: "A promotion-by-PR flow where a merge bumps the image digest in the next environment's overlay, so the same artifact advances and the promotion is an auditable, revertable commit"
+    difficulty: "advanced"
+  - intent: "Add per-PR preview environments via GitOps"
+    trigger_phrase: "can each PR get its own throwaway environment from our manifests"
+    outcome: "An ApplicationSet/templated app that spins an isolated namespace-per-PR from the PR's manifests, seeded with disposable data and torn down on merge/close"
+    difficulty: "advanced"
 quickstart: "Describe your cluster, repos, and environments. The agent returns the GitOps repo structure, the Argo CD/Flux applications, the Git-driven promotion flow, the secrets approach, and the drift posture."
 ---
 

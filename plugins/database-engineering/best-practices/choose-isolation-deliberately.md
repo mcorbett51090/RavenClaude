@@ -1,0 +1,3 @@
+# Choose the isolation level deliberately
+
+The default isolation level is a choice you didn't make. Know what anomalies your level permits — Read Committed allows non-repeatable reads and lost updates across statements; Repeatable Read/snapshot stops those but throws serialization errors you must retry; Serializable is correct-by-construction but costs throughput and aborts. Pick per transaction by what would actually corrupt: a balance check-then-debit needs `SELECT ... FOR UPDATE` or Serializable, while a dashboard read tolerates Read Committed happily. Don't reason about concurrency in your head and hope; name the anomaly you're preventing, choose the level (or explicit lock) that prevents it, and handle the retry the stronger levels demand.

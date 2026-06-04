@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "make this module reject bad inputs early"
     outcome: "Typed variables with validation blocks and sensible defaults, failing fast at plan time with clear messages"
     difficulty: "starter"
+  - intent: "Make a module reusable across accounts"
+    trigger_phrase: "this module hard-codes a region and provider so we can't reuse it"
+    outcome: "A refactor lifting the configured provider block to the root, keeping only required_providers in the module, so the same versioned module runs across accounts and regions"
+    difficulty: "advanced"
+  - intent: "Add tests to a module"
+    trigger_phrase: "write tests for our Terraform module"
+    outcome: "A terraform test suite asserting plan/apply behavior on representative inputs, plus an example that doubles as the smoke test, so a breaking change is caught before release"
+    difficulty: "advanced"
 quickstart: "Tell the agent what to modularize and its inputs. It returns a single-responsibility module with typed/validated variables, documented outputs, for_each, pinned providers, an example, and tests."
 ---
 

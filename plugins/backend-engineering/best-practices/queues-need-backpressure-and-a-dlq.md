@@ -1,0 +1,3 @@
+# Queues need backpressure, bounds, and a dead-letter path
+
+An unbounded queue is a memory leak with a latency graph: producers outrun consumers, the buffer grows, and the system fails late and catastrophically instead of early and gracefully. Bound every queue and decide what happens when it's full — shed load, block the producer, or reject with a clear signal — so backpressure propagates to the source rather than hiding until OOM. Consumers must be idempotent (redelivery is guaranteed), retries bounded with backoff, and a poison message that fails repeatedly must route to a dead-letter queue rather than blocking the partition behind it forever. A queue without bounds, a DLQ, and idempotent consumers is a deferred outage, not a decoupling.

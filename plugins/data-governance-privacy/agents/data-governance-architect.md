@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "who should own and steward our data domains?"
     outcome: "An ownership/stewardship model with RACI and a lightweight council for decisions/exceptions"
     difficulty: "starter"
+  - intent: "Map classification to controls"
+    trigger_phrase: "our classification labels don't actually do anything"
+    outcome: "A mapping from each classification level to enforceable controls (encryption, access rules, masking, retention) so tagging an asset provisions its protection, routed to the owning system"
+    difficulty: "advanced"
+  - intent: "Prioritize a governance rollout"
+    trigger_phrase: "we can't govern everything at once — where do we focus?"
+    outcome: "A risk-prioritized maturity roadmap (inventory -> classify -> control -> monitor) starting with restricted/special-category PII, so the highest-risk data is protected first"
+    difficulty: "advanced"
 quickstart: "Describe the org and its data risk. The agent returns a workable governance operating model: ownership/stewardship, a simple classification scheme, policy-to-control mapping, and a staged maturity roadmap."
 ---
 

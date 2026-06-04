@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "how should offline and sync work?"
     outcome: "A local-source-of-truth + write-queue + conflict-resolution design traced through the offline-sync tree"
     difficulty: "advanced"
+  - intent: "Choose a conflict-resolution policy"
+    trigger_phrase: "two devices edited the same record offline, how do we merge?"
+    outcome: "A conflict policy traced through the tree (CRDT/field-merge vs last-write-wins vs user-resolve) by how costly a wrong merge is, with version/vector-clock detection"
+    difficulty: "advanced"
+  - intent: "Tolerate multiple live versions"
+    trigger_phrase: "a backend change broke old app versions still in the wild"
+    outcome: "A versioning strategy for the app+API (additive/backward-compatible changes, staged rollout, forced-update floor) so old clients don't break"
+    difficulty: "advanced"
 quickstart: "Describe the app, the team, and the performance/UX needs. The agent returns the native-vs-cross-platform decision with its trade, the architecture, the offline/sync strategy, and the module structure."
 ---
 

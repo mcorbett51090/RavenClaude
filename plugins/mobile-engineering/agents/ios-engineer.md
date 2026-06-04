@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "store the auth token securely on iOS"
     outcome: "A Keychain storage implementation with the right data-protection class, replacing UserDefaults"
     difficulty: "starter"
+  - intent: "Run background work correctly"
+    trigger_phrase: "run a deferred sync when the app is backgrounded on iOS"
+    outcome: "A BGTaskScheduler (processing/refresh) implementation with scene-lifecycle handling and scene restoration, designed for the OS to run it late or not at all"
+    difficulty: "advanced"
+  - intent: "Fix a main-thread hang"
+    trigger_phrase: "the UI freezes during this work on iOS"
+    outcome: "Work moved off @MainActor onto an async task/actor with results published back on the main actor, plus a retain-cycle/data-race check"
+    difficulty: "troubleshooting"
 quickstart: "Tell the agent the iOS feature or bug. It returns state-driven SwiftUI with correct ownership, Swift Concurrency done right, Keychain secure storage, and lifecycle/HIG-aligned behavior."
 ---
 

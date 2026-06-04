@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "add a circuit breaker around this integration"
     outcome: "A circuit-breaker + bulkhead config that fails fast on a failing dependency and isolates its resource pool"
     difficulty: "starter"
+  - intent: "Add backpressure to a queue"
+    trigger_phrase: "our queue grows unbounded until the workers OOM"
+    outcome: "A bounded-queue + backpressure design (shed/block/reject on full) that propagates pressure to producers instead of failing late, with a DLQ for poison messages"
+    difficulty: "advanced"
+  - intent: "Define a degraded mode"
+    trigger_phrase: "when this dependency is down the whole feature breaks"
+    outcome: "A graceful-degradation plan: a defined fallback/cached/reduced response per dependency so its outage degrades one feature instead of cascading"
+    difficulty: "advanced"
 quickstart: "Tell the agent the dependency or async workload and its failure modes. It returns timeouts, bounded backoff+jitter retries (idempotent only), circuit breakers/bulkheads, a degraded mode, and idempotent workers with DLQs."
 ---
 

@@ -1,0 +1,3 @@
+# A backup you haven't restored is a hope, not a recovery plan
+
+Automated snapshots and AWS Backup plans are necessary but not sufficient: an untested backup routinely fails to restore — wrong retention, a missed resource, an un-replicated KMS key, a snapshot in a region you've lost. Define RTO/RPO explicitly, then prove them by performing an actual restore into an isolated account on a schedule and timing it against the RTO. Cross-region/cross-account copies protect against the region or account itself being the failure, and immutable/locked backups (Vault Lock) protect against ransomware and a malicious delete. The recovery posture is only real once you've watched a restore complete; until then 'we have backups' is an assumption, not an architecture.

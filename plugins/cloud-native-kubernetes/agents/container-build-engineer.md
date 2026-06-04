@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "set up private registry pulls for our cluster"
     outcome: "An imagePullSecrets / workload-identity-based pull configuration with the trade named (secret vs federated identity)"
     difficulty: "starter"
+  - intent: "Speed up an image build"
+    trigger_phrase: "our docker build is slow and the cache never hits"
+    outcome: "A layer-ordered, cache-friendly multi-stage build (deps before source, BuildKit cache mounts) that cuts rebuild time, with the trade between cache reuse and image freshness named"
+    difficulty: "advanced"
+  - intent: "Keep build secrets out of layers"
+    trigger_phrase: "we pass a token as a build ARG to fetch private deps"
+    outcome: "A BuildKit secret-mount approach so the credential never lands in an image layer or history, replacing the leaking ARG"
+    difficulty: "troubleshooting"
 quickstart: "Show the agent your image/Dockerfile and how it runs. It returns a multi-stage, distroless, non-root, digest-pinned build with dropped capabilities and read-only root FS, plus registry-pull config."
 ---
 

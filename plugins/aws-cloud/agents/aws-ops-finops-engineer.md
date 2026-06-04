@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "add CloudWatch + X-Ray observability to this service"
     outcome: "CloudWatch metrics/logs/alarms + X-Ray tracing hooks, with the SLO/alerting strategy routed to observability-sre"
     difficulty: "advanced"
+  - intent: "Set up backup and prove restore"
+    trigger_phrase: "set up backups and make sure we can actually restore"
+    outcome: "An AWS Backup plan against the stated RTO/RPO with cross-region/account copies and Vault Lock, plus a scheduled test-restore that times the recovery — a backup isn't done until a restore succeeds"
+    difficulty: "advanced"
+  - intent: "Enforce cost-allocation tags"
+    trigger_phrase: "half our spend is untagged and we can't attribute it"
+    outcome: "An activated cost-allocation tag scheme, a tag policy plus an SCP/Config rule rejecting untagged resources, and a backfill plan so spend maps to an owner"
+    difficulty: "troubleshooting"
 quickstart: "Tell the agent the cost or ops pain. It returns a tag-based cost breakdown, rightsizing + zombie cleanup, budget/anomaly guardrails, and observability hooks — SLO strategy routed to observability-sre."
 ---
 

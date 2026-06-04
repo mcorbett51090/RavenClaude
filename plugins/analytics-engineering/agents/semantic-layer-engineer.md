@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "what should 'active user' mean for us?"
     outcome: "A precise, governed definition with grain and filters, documented and versioned so it's used consistently"
     difficulty: "starter"
+  - intent: "Stop a fan-out double-count"
+    trigger_phrase: "joining in a dimension inflates our metric totals"
+    outcome: "An entity/dimension model with the joins and grains declared in the semantic layer so consumers can't fan-out or double-count when slicing the metric"
+    difficulty: "troubleshooting"
+  - intent: "Migrate BI calcs into the layer"
+    trigger_phrase: "our metric definitions are scattered across Tableau calcs"
+    outcome: "A migration of hidden BI-tool calculations into governed metrics-as-code with explicit grain/filters, exposed as the single contract every tool consumes"
+    difficulty: "advanced"
 quickstart: "Tell the agent which metrics are drifting or undefined. It returns governed metrics-as-code definitions (with explicit grain and filters) on top of the marts, exposed as one contract every BI tool consumes."
 ---
 

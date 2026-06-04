@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "write a strong README and a SemVer changelog"
     outcome: "A README answering what/why/how/where, scannable, and a SemVer-respecting changelog (what changed/breaks/migrate)"
     difficulty: "starter"
+  - intent: "Document errors and limits"
+    trigger_phrase: "document the unhappy path for our API"
+    outcome: "Reference for the real error shapes, status codes, rate limits, auth/scopes, and pagination — so the reader is helped at the moment something fails, not abandoned"
+    difficulty: "advanced"
+  - intent: "Cut quickstart to first success"
+    trigger_phrase: "our quickstart is too long, nobody finishes it"
+    outcome: "A quickstart redesigned backward from one copy-pasteable first success, with prerequisites deferred and concepts linked rather than front-loaded"
+    difficulty: "troubleshooting"
 quickstart: "Give the agent the API/spec or library. It returns spec-driven reference, a fast quickstart, documented errors/limits/auth, runnable examples, and READMEs/changelogs that respect the reader."
 ---
 

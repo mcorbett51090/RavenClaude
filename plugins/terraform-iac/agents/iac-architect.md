@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "workspaces vs directories vs Terragrunt for our environments"
     outcome: "A recommendation traced through the promotion tree with the trade named, plus the repo structure it implies"
     difficulty: "starter"
+  - intent: "Choose a state backend"
+    trigger_phrase: "which remote state backend should we use?"
+    outcome: "A backend recommendation traced through the tree (managed platform vs cloud-native object store) with locking, versioning, encryption, and access control accounted for"
+    difficulty: "starter"
+  - intent: "Terraform or OpenTofu"
+    trigger_phrase: "should we move to OpenTofu?"
+    outcome: "A decision weighing the BSL-vs-MPL licensing fit, provider/module parity, and migration cost, with the trade named for this estate"
+    difficulty: "advanced"
 quickstart: "Describe your environments, change cadence, and current pain. The agent returns the module decomposition, state isolation by blast radius, a chosen promotion model with its trade, and the repo layout."
 ---
 

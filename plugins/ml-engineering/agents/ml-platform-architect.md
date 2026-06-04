@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "we have models in notebooks but nothing in production reliably"
     outcome: "A maturity-path plan from notebook prototypes to a reproducible train->serve->monitor loop, prioritized"
     difficulty: "troubleshooting"
+  - intent: "Design governance + lineage"
+    trigger_phrase: "we need model lineage and approval gates for audit"
+    outcome: "A governance design: model cards, who-trained-what-on-which-data lineage, and approval gates at the registry — looping data-governance-privacy/security where decisions affect people"
+    difficulty: "advanced"
+  - intent: "Make models reproducible"
+    trigger_phrase: "we can't rebuild the model that's in production"
+    outcome: "A structural reproducibility strategy (versioned data/code/config/environment + a model registry as source of truth) built into the pipeline, not bolted on"
+    difficulty: "advanced"
 quickstart: "Describe the team's ML maturity and goals. The agent returns the lifecycle architecture, a build-vs-buy stack choice matched to maturity, and a reproducibility/governance strategy — significance routed to applied-statistics."
 ---
 

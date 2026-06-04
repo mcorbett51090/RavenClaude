@@ -1,0 +1,3 @@
+# Keep one source of truth, link the rest
+
+The same fact documented in two places is one place that will silently go wrong, because nobody updates both. Pick the single authoritative home for each fact — the reference page for the endpoint, the one tutorial for onboarding — and have everything else link to it rather than restate it. Generated reference from the spec is the canonical case: the OpenAPI document is the truth and the docs render it, so they cannot drift. When you catch the same paragraph copied across pages, that is not thoroughness, it is a future contradiction; consolidate it to one owner and replace the copies with a link.

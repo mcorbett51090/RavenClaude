@@ -1,0 +1,3 @@
+# A cache key that omits an input is a correctness bug
+
+Caching is the fastest way to speed a pipeline and the fastest way to ship a stale or poisoned artifact. The rule is absolute: the cache key must be a hash of *every* input that can change the output — lockfile, toolchain version, build flags, base-image digest, and the source of any code that runs during the build. Restore-then-save, never overwrite blindly, and prefer immutable content-addressed keys over mutable named caches. A cache that's never invalidated when an input changes is not a performance win; it's a silent miscompile waiting to reach production. When in doubt, scope the key tighter and accept a colder cache — correctness first, speed second.

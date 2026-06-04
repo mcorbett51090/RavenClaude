@@ -1,0 +1,3 @@
+# Configure providers in the root, not inside reusable modules
+
+A reusable module should declare its provider *requirements* (`required_providers` with version constraints) but never instantiate a configured `provider` block with credentials, regions, or aliases baked in. Provider configuration belongs in the root module that composes everything, passed down explicitly when a module needs a specific alias. A module that hard-codes `region = "us-east-1"` or its own credentials can't be reused across accounts or regions and pins every caller to one deployment. Keep the module a pure function of its inputs — the root decides where and as whom it runs — so the same versioned module serves prod, staging, and three regions without a fork.

@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "flaky e2e tests keep blocking PRs, people just re-run"
     outcome: "A quarantine lane with ownership + tracking, the flaky checks made non-required until fixed, and a re-order so a flaky slow suite never gates a fast PR"
     difficulty: "advanced"
+  - intent: "Shape a monorepo pipeline"
+    trigger_phrase: "our monorepo rebuilds everything on every commit and CI takes forever"
+    outcome: "An affected-only pipeline using change-detection against the dependency graph, so a PR builds and tests just the touched projects plus their downstream, with a single aggregating required check"
+    difficulty: "advanced"
+  - intent: "Reuse pipeline logic across repos"
+    trigger_phrase: "every repo has a copy-pasted CI file that drifts"
+    outcome: "The duplicated steps factored into reusable composite actions / workflow templates pinned by SHA, so the pipeline definition is DRY and changes propagate from one source"
+    difficulty: "starter"
 quickstart: "Describe the repo (language, mono/poly), what the pipeline does today, and the pain (slow / flaky / untrusted). The agent returns a re-ordered, cached pipeline-as-code definition with the required-check contract and the CI/CD boundary drawn."
 ---
 

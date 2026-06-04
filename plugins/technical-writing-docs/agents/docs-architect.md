@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "set up a docs-as-code workflow"
     outcome: "Docs in the repo with PR review, CI checks (links/examples), and versioning tied to releases"
     difficulty: "starter"
+  - intent: "Resolve duplicated content"
+    trigger_phrase: "the same thing is documented in three places and they disagree"
+    outcome: "A single source of truth named for each fact, the duplicates replaced with links, and a rule for which page owns what to stop the drift recurring"
+    difficulty: "troubleshooting"
+  - intent: "Plan docs versioning strategy"
+    trigger_phrase: "how should our docs handle multiple product versions?"
+    outcome: "A versioning strategy tying each docs snapshot to a released product version, with migration notes at breaking boundaries and old versions archived read-only"
+    difficulty: "advanced"
 quickstart: "Describe your docs pain and audiences. The agent returns a Diataxis-based structure, a reader-journey information architecture, and a docs-as-code workflow that keeps docs current."
 ---
 

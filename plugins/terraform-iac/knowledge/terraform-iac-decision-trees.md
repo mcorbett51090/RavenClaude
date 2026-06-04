@@ -39,6 +39,60 @@ graph TD
   F -- No --> H[Inline it - premature module = indirection tax]
 ```
 
+## Decision Tree: Which remote state backend?
+
+Locking is non-negotiable; pick the backend that's native to where you already operate.
+
+```mermaid
+graph TD
+  A[Need remote state] --> B{Want a managed run/state platform with policy + RBAC?}
+  B -- Yes --> C[Terraform/Tofu Cloud or Spacelift/Scalr]
+  B -- No, self-managed --> D{Primary cloud?}
+  D -- AWS --> E[S3 with native lockfile or DynamoDB lock]
+  D -- GCP --> F[GCS - built-in locking]
+  D -- Azure --> G[azurerm - blob lease lock]
+  D -- Multi/none --> H[Pick one cloud's object store as the home + its lock]
+  E --> I[Enable versioning + encryption + restrict access]
+  F --> I
+  G --> I
+```
+
+_Whatever the backend, it must give locking, versioning, encryption, and access control — or it isn't a backend, it's a liability._
+
+## Decision Tree: How to model environments (promotion)
+
+DRY versus explicit. Pick by blast-radius risk and how much config diverges per environment.
+
+```mermaid
+graph TD
+  A[Multiple environments] --> B{Environments nearly identical, tiny estate?}
+  B -- Yes --> C{Accept one workspace = shared backend + risk of wrong-env apply?}
+  C -- Yes --> D[Workspaces - lightest, but easy to apply to the wrong env]
+  C -- No --> E[Separate directories per env - explicit, isolated state]
+  B -- No, config diverges / strong isolation needed --> E
+  E --> F{Lots of repeated backend/provider boilerplate across dirs?}
+  F -- Yes --> G[Terragrunt - DRY the wiring, keep dirs isolated]
+  F -- No --> H[Plain directories]
+```
+
+_Workspaces share a backend and a module — fine for ephemeral copies, risky as the prod/dev boundary. Directories are the safer default._
+
+## Decision Tree: Drift found — codify, import, or revert?
+
+When a plan shows divergence, decide deliberately; never let `apply` silently revert a hand-fix.
+
+```mermaid
+graph TD
+  A[Plan shows unexpected diff] --> B{Was the real-world change intentional and correct?}
+  B -- Yes --> C{Is the resource managed by this state?}
+  C -- Yes --> D[Update config to match - codify the intent]
+  C -- No, created out-of-band --> E[terraform import + write matching config]
+  B -- No, accidental/unauthorized --> F{Safe to apply the revert now?}
+  F -- Yes --> G[Apply - config is the source of truth]
+  F -- No, prod-risky --> H[Investigate + schedule reverting apply with review]
+```
+
+_The wrong move is a reflexive `apply` that reverts an emergency console fix and re-breaks prod._
 
 ## Capability map (dated — verify at build)
 

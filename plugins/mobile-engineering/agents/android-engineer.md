@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "store secrets and run background sync correctly"
     outcome: "Keystore/EncryptedSharedPreferences for secrets and a WorkManager job respecting Doze for sync"
     difficulty: "advanced"
+  - intent: "Survive process death"
+    trigger_phrase: "the app loses its state when Android kills it in the background"
+    outcome: "SavedStateHandle/rememberSaveable state persistence and a restore path, verified with 'Don't keep activities'"
+    difficulty: "troubleshooting"
+  - intent: "Fix main-thread jank/ANR"
+    trigger_phrase: "the UI freezes and we get ANRs"
+    outcome: "A profiled diagnosis of main-thread work (I/O, decode, heavy compute) moved to a coroutine dispatcher, hopping back only to publish state"
+    difficulty: "troubleshooting"
 quickstart: "Tell the agent the Android feature or bug. It returns state-driven Compose with hoisted state, lifecycle-scoped coroutines/Flow, Keystore storage, WorkManager background, and Material-aligned behavior."
 ---
 

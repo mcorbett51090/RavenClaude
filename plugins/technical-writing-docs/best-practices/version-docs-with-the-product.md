@@ -1,0 +1,3 @@
+# Version the docs with the product they describe
+
+A reader on v2 who lands on v3 docs gets confidently-wrong instructions, so each released product version needs its docs frozen and addressable at that version. Version the docs from the same release that cuts the code — snapshot the docs into a versioned set, keep the current version as the default, and archive prior ones read-only rather than deleting them. The hardest part is breaking changes: call them out at the version boundary with a migration note that says what changed, what breaks, and how to move. Unversioned docs for a versioned product are a support-ticket generator; the version selector is not optional once you ship more than one supported release.

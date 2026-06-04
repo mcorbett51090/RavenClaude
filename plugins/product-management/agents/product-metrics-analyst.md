@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "did this feature actually work?"
     outcome: "An outcome judgment against the target metric + baseline/control (significance routed to applied-statistics) — honest if it moved nothing"
     difficulty: "troubleshooting"
+  - intent: "Choose a prioritization method"
+    trigger_phrase: "should we use RICE, cost-of-delay, or Kano here?"
+    outcome: "A method recommendation matched to the decision (cost-of-delay for time-sensitivity, Kano for satisfaction, RICE for value-for-effort) with the trade-off it surfaces named"
+    difficulty: "advanced"
+  - intent: "Set guardrail metrics"
+    trigger_phrase: "what guardrails should this goal have?"
+    outcome: "A goal metric paired with guardrails so the team can't win the target by wrecking something else, with the harm each guardrail protects against named"
+    difficulty: "starter"
 quickstart: "Tell the agent the product and decision. It returns a North Star + input metrics, a transparent prioritization, funnel/retention framing, and an honest outcome judgment — significance routed to applied-statistics."
 ---
 

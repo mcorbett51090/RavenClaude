@@ -46,6 +46,60 @@ graph TD
 
 _Legal interpretation of basis/retention obligations routes to legal / regulatory-compliance._
 
+## Decision Tree: Is this anonymized or pseudonymized?
+
+Most 'anonymized' data isn't; the distinction decides whether privacy law still applies.
+
+```mermaid
+graph TD
+  A[A dataset claimed de-identified] --> B{Is there any key/mapping that can re-link to individuals?}
+  B -- Yes, held anywhere --> C[Pseudonymized: STILL personal data - full privacy scope]
+  B -- No mapping exists --> D{Could individuals be re-identified by combining with other available data?}
+  D -- Yes, singling-out/linkage/inference possible --> C
+  D -- No, re-identification not reasonably possible --> E{Verified e.g. k-anonymity/differential-privacy, not just columns dropped?}
+  E -- Yes --> F[Anonymized: out of privacy-law scope]
+  E -- No, just removed obvious identifiers --> C
+  C --> G[Apply lawful basis, DSR scope, retention - it's personal data]
+```
+
+_Dropping the name column is not anonymization. Re-identifiability via linkage/inference keeps it personal data; legal interpretation routes to legal._
+
+## Decision Tree: What's the lawful basis for this use?
+
+Every personal-data use needs a recorded basis before it happens; 'we already had it' is not one.
+
+```mermaid
+graph TD
+  A[A new use of personal data] --> B{Is this use covered by an existing recorded lawful basis?}
+  B -- Yes --> C{Is the basis consent?}
+  C -- Yes --> D{Consent granular, current, and not revoked for this use?}
+  D -- Yes --> E[Proceed; honor revocation propagation]
+  D -- No --> F[Re-obtain consent or stop - do NOT proceed]
+  C -- No, contract/legal-obligation/legitimate-interest --> G[Proceed within that basis's scope only]
+  B -- No, new purpose --> H{Compatible with the original collection purpose?}
+  H -- Yes --> I[Document the basis -> legal confirms interpretation]
+  H -- No --> F
+```
+
+_Processing beyond the basis it was collected under is a violation. Engineer the basis/consent store; the legal interpretation routes to legal/regulatory-compliance._
+
+## Decision Tree: Can this data be deleted now?
+
+Retention is per-category and automated; a legal hold or retention obligation overrides deletion.
+
+```mermaid
+graph TD
+  A[Retention/deletion decision for a record] --> B{Active legal hold or litigation hold?}
+  B -- Yes --> C[Retain; do NOT delete - document the hold]
+  B -- No --> D{A specific legal obligation to retain e.g. financial/tax record?}
+  D -- Yes --> E[Retain the required minimum for the required period; isolate + restrict]
+  D -- No --> F{Still within the purpose/lawful-basis lifespan?}
+  F -- Yes --> G[Retain until the defined period ends]
+  F -- No --> H[Delete via automated job; log + verify; propagate across copies]
+  E --> I[When the obligation expires -> route back to H]
+```
+
+_Indefinite retention is unbounded risk. Carve out only what's legally required, isolate it, and let the automated job delete the rest — verified, not hoped._
 
 ## Capability map (dated — verify at build)
 

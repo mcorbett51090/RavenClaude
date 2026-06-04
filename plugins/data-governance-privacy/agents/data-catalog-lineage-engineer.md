@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "trace where this data came from and flows to"
     outcome: "An end-to-end lineage trace (source -> transforms -> consumers) enabling impact analysis and DSR execution"
     difficulty: "starter"
+  - intent: "Surface over-broad access"
+    trigger_phrase: "who can read our sensitive data?"
+    outcome: "A surfaced access view per classified asset that exposes over-broad/standing grants for the steward to act on, with enforcement routed to data-platform/security-engineering"
+    difficulty: "advanced"
+  - intent: "Fix a stale catalog"
+    trigger_phrase: "our catalog is out of date and nobody trusts it"
+    outcome: "A continuous-discovery setup: scheduled re-scans + pipeline-wired tagging so metadata stays current as schemas/data move, rather than a one-time inventory that rots"
+    difficulty: "troubleshooting"
 quickstart: "Tell the agent the data estate and the discovery/lineage need. It returns a catalog with automated PII discovery + tagging, end-to-end lineage, a business glossary, and surfaced access — feeding governance and privacy."
 ---
 

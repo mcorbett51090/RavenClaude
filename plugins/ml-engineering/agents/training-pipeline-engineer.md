@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "set up consistent features for train and serve"
     outcome: "A feature-store / shared-transformation design ensuring identical features in training and serving, with point-in-time correctness"
     difficulty: "advanced"
+  - intent: "Choose a validation split"
+    trigger_phrase: "how should we split this temporal data for validation?"
+    outcome: "A split strategy traced through the tree (time-based vs grouped vs k-fold) that prevents leakage, with the test set reserved for a single final evaluation"
+    difficulty: "advanced"
+  - intent: "Audit a suspicious offline score"
+    trigger_phrase: "this model's offline accuracy looks too good to be true"
+    outcome: "A leakage audit (target leakage, future information, entity bleed across folds) identifying the inflated signal before it becomes a production disappointment"
+    difficulty: "troubleshooting"
 quickstart: "Describe the model and data. The agent returns a reproducible training pipeline with experiment tracking, a leakage-free validation strategy, and train/serve feature consistency — significance routed to applied-statistics."
 ---
 

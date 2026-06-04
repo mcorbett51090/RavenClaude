@@ -1,0 +1,3 @@
+# Enforce policy at admission, not in code review
+
+Encode 'no privileged pods, no `latest` tags, required labels, resource limits present, signed images only' as Kyverno or Gatekeeper admission policies plus Pod Security Admission profiles. A policy that lives in a wiki or a reviewer's memory is enforced inconsistently and fails open the day everyone's busy; an admission webhook rejects the bad manifest at the API server every time, including the one applied by an automated pipeline at 2am. Run policies in audit mode first to find existing violations, then flip to enforce — preventive control beats a quarterly cluster scan.

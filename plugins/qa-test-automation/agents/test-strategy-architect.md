@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "what coverage should we require"
     outcome: "A coverage-as-floor policy with mutation testing on critical modules, and the rationale for not chasing 100%"
     difficulty: "starter"
+  - intent: "Place tests at a service seam"
+    trigger_phrase: "two of our services keep breaking each other on deploy"
+    outcome: "A seam strategy that puts a consumer-driven contract test at the boundary (verified in the provider's CI) instead of slow full-stack integration, routing the contract mechanics to api-engineering"
+    difficulty: "advanced"
+  - intent: "Decide what not to test"
+    trigger_phrase: "we're trying to test everything and the suite is unmaintainable"
+    outcome: "A risk-based not-to-test list — heavy coverage on high-blast-radius paths, deliberate skipping of the trivial and low-stakes — written down with rationale so the gaps are chosen, not accidental"
+    difficulty: "advanced"
 quickstart: "Describe the app and where defects actually escape. The agent returns a pyramid-shaped strategy mapping defect classes to test levels, a risk-based priority, and a coverage/mutation philosophy."
 ---
 

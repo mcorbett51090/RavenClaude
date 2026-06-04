@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "Next.js or a plain React SPA for this?"
     outcome: "A framework choice by need (SSR/routing/data vs lighter SPA) with the trade named, not a reflexive heavy default"
     difficulty: "starter"
+  - intent: "Decide the RSC/client split"
+    trigger_phrase: "what should be a server component vs a client component?"
+    outcome: "A server-default boundary that pushes 'use client' down to the smallest interactive leaves, with server data passed in as props — minimizing shipped JS"
+    difficulty: "advanced"
+  - intent: "Set a bundle budget"
+    trigger_phrase: "how do we stop the bundle from bloating over time?"
+    outcome: "A build shape with route-based code-splitting and a CI bundle/Lighthouse budget that fails the PR on regression, handed to devops-cicd to gate"
+    difficulty: "starter"
 quickstart: "Describe the app (SEO needs, personalization, interactivity). The agent returns a per-route rendering strategy, the project structure with component boundaries, and the strict-TypeScript posture."
 ---
 

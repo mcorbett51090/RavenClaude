@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "make this modal accessible"
     outcome: "Semantic markup, focus trap + return, ARIA where needed, and keyboard/escape handling — verified against the web-design audit"
     difficulty: "starter"
+  - intent: "Build a controlled form"
+    trigger_phrase: "build this form with validation"
+    outcome: "A controlled form (form library + Zod schema) with per-field accessible errors, dirty/submit state, and the schema shared with the typed API boundary"
+    difficulty: "advanced"
+  - intent: "Add loading and error states"
+    trigger_phrase: "this component shows a blank screen while loading and crashes on error"
+    outcome: "A layout-matched loading skeleton, an error boundary with a retry, and the three async states handled — no white-screen on failure"
+    difficulty: "starter"
 quickstart: "Tell the agent the component and its behavior. It returns a composable, typed, accessible implementation with hooks used correctly, controlled forms, and testable markup."
 ---
 

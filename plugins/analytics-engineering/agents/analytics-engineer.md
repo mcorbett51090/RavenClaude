@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "should this fact table be incremental?"
     outcome: "A materialization decision traced through the tree, and if incremental, the correct unique key + is_incremental filter + late-data strategy"
     difficulty: "advanced"
+  - intent: "Star schema vs one-big-table"
+    trigger_phrase: "should this mart be a star schema or one wide table?"
+    outcome: "A mart-shape decision traced through the tree (consumer, shared dimensions, query-engine cost) with the trade named and conformed dimensions if star"
+    difficulty: "advanced"
+  - intent: "Fix double-counted totals"
+    trigger_phrase: "our revenue total is double-counting somewhere"
+    outcome: "A grain diagnosis (unannounced grain or fan-out join) with the model's grain stated, a uniqueness test on the grain key, and the offending join corrected"
+    difficulty: "troubleshooting"
 quickstart: "Describe the domain and sources (already in the warehouse). The agent returns layered dbt models (staging/intermediate/marts) with the right materializations, correct incremental logic, refs/sources, and docs."
 ---
 

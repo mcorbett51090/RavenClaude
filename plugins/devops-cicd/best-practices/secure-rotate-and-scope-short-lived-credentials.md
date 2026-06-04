@@ -1,0 +1,3 @@
+# Short-lived, narrowly-scoped, rotated credentials
+
+OIDC federation removes the long-lived key, but the federated trust itself is a credential you must scope and rotate-by-design. Constrain the cloud role's trust policy to the specific repo, branch/environment, and workflow that may assume it — an unconstrained `repo:*` subject lets any fork or branch mint your production token. Issue the shortest token TTL the job can finish within, scope the assumed role to exactly the actions that one job needs (a deploy job is not an admin), and treat any remaining static secret as a thing with an expiry date and an owner, not a permanent fixture. Rotation you have to remember to do won't happen; bake the expiry into the issuing system.

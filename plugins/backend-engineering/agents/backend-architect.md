@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "should this be a direct call or an event?"
     outcome: "A sync-vs-async decision by coupling/latency/eventual-consistency tolerance, with idempotency where async"
     difficulty: "starter"
+  - intent: "Untangle a shared database"
+    trigger_phrase: "our services all read each other's tables directly"
+    outcome: "A data-ownership cut making each bounded context the sole writer of its tables, with cross-context access moved to its API/events — exposing the distributed monolith"
+    difficulty: "advanced"
+  - intent: "Decide extract now or later"
+    trigger_phrase: "should we pull this module out into its own service yet?"
+    outcome: "An extract-now-vs-later call traced through the boundary tree (clean seam + concrete force vs premature), with the data-ownership precondition checked first"
+    difficulty: "advanced"
 quickstart: "Describe the system, its scale, and team shape. The agent returns the architecture (usually a modular monolith with clear seams), domain-driven boundaries where splitting is justified, and the sync-vs-async communication model."
 ---
 

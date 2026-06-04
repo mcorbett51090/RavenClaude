@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "design the async flow with Pub/Sub"
     outcome: "A Pub/Sub topology with idempotent consumers, dead-letter topics, and retry/ack discipline — no hand-rolled queue"
     difficulty: "advanced"
+  - intent: "Tune Cloud Run scaling"
+    trigger_phrase: "configure scaling and concurrency for this Cloud Run service"
+    outcome: "Concurrency, min/max instances, and CPU-allocation settings tuned to the load shape, with the scale-to-zero cold-start trade named"
+    difficulty: "starter"
+  - intent: "Control BigQuery query cost"
+    trigger_phrase: "our BigQuery bill is unpredictable"
+    outcome: "An on-demand-vs-slot-reservation decision, partitioning/clustering and query-pruning guidance to cut bytes scanned, with analytics modeling routed to data-platform"
+    difficulty: "troubleshooting"
 quickstart: "Tell the agent the workload shape and data needs. It returns the compute choice with its trade, a Pub/Sub integration design with idempotency + DLTs, and a data-store selection by access pattern."
 ---
 

@@ -1,0 +1,3 @@
+# Put each fact in its right home — reference, guide, or explanation
+
+Before writing, decide where a piece of content belongs, because the same information serves differently depending on the kind: an endpoint's parameters belong in reference (looked up, not read), the steps to accomplish a task belong in a how-to guide, and the why-it-works-this-way belongs in explanation. Misplaced content is the quiet cause of most 'I couldn't find it' complaints — the reader looked in reference for a task or in the tutorial for a fact and it wasn't there. The test is the reader's posture: are they looking something up, doing something, learning something, or trying to understand something? That posture names the home. Place it there and link the adjacent kinds.

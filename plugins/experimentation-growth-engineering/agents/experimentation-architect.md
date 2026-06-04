@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "should we build or buy an experimentation platform?"
     outcome: "A build-vs-buy recommendation by test velocity/scale, with the trade named — flag-tool+warehouse vs dedicated platform"
     difficulty: "advanced"
+  - intent: "Choose fixed-horizon vs sequential"
+    trigger_phrase: "can we stop the test early when it looks good?"
+    outcome: "A fixed-horizon-vs-sequential decision made with applied-statistics, and the apparatus built to enforce it — readout hidden till the horizon, or only a valid stopping boundary exposed"
+    difficulty: "advanced"
+  - intent: "Design guardrail metrics"
+    trigger_phrase: "what guardrails should this experiment have?"
+    outcome: "A guardrail set (latency, errors, revenue, core engagement) wired into the readout and auto-halt, so a primary win that breaks something more important isn't shipped"
+    difficulty: "starter"
 quickstart: "Describe your experimentation needs and scale. The agent returns the apparatus (assignment, exposure logging, SRM checks, guardrails) and a pre-registration with applied-statistics — significance left to them."
 ---
 

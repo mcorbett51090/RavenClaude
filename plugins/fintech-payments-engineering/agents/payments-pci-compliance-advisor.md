@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "are we touching card data anywhere we shouldn't?"
     outcome: "A card-data-flow review identifying any raw-PAN exposure and the tokenization fix to remove it from scope; verdict routed to security-reviewer"
     difficulty: "troubleshooting"
+  - intent: "Determine the right SAQ"
+    trigger_phrase: "which SAQ applies to our setup?"
+    outcome: "An SAQ determination from the actual card-data flow (SAQ-A for client-side tokenization, SAQ-A-EP for your page + PSP iframe, SAQ-D if you touch the PAN) with the re-architecture to shrink it; formal attestation routed to regulatory-compliance"
+    difficulty: "advanced"
+  - intent: "Stop a PAN leak in logs"
+    trigger_phrase: "we think card numbers are leaking into our logs"
+    outcome: "A redaction-at-the-boundary fix plus tests asserting card-shaped data can't reach any log/trace/analytics sink, with the verbose-logging hazard around payment calls closed"
+    difficulty: "troubleshooting"
 quickstart: "Describe your payment data flows. The agent returns a scope-minimizing tokenization posture (SAQ-A), audit logging that never captures card data, and a hardened posture — the verdict routed to security-reviewer, regulation to regulatory-compliance."
 ---
 
