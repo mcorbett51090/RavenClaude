@@ -15,10 +15,10 @@
 ```mermaid
 flowchart TD
     START[New API surface to expose] --> Q1{Is the interaction request/response, or event/notification?}
-    Q1 -->|Event: "tell me when X happens"| Q2{Do you push to the consumer, or do they subscribe to a broker?}
+    Q1 -->|Event - tell me when X happens| Q2{Do you push to the consumer or subscribe to a broker?}
     Q2 -->|Push HTTP callback to a registered URL| WEBHOOK[Webhooks - document with AsyncAPI 3.0]
     Q2 -->|Pub/sub over a broker - Kafka/AMQP/MQTT/WebSocket| ASYNC[Event-driven - describe with AsyncAPI 3.0]
-    Q1 -->|Request/response| Q3{Primary consumer & network?}
+    Q1 -->|Request/response| Q3{Primary consumer and network?}
     Q3 -->|Internal service-to-service, low latency, polyglot| Q4{Need browser/public reach or human-readable debugging?}
     Q4 -->|NO - internal mesh| GRPC[gRPC + Protobuf - typed, streaming, fast]
     Q4 -->|YES| REST1[REST/JSON - or gRPC + a REST/JSON transcoding gateway]
@@ -58,7 +58,7 @@ flowchart TD
     Q1 -->|NO - adding an optional field, a new endpoint, a new enum value clients ignore| ADD[Additive - NO version bump. Ship it; document it.]
     Q1 -->|YES - it can break a conforming client| Q2{Can you support old + new behavior simultaneously for a transition window?}
     Q2 -->|NO| BREAK[New major version; deprecate the old with Deprecation+Sunset]
-    Q2 -->|YES| Q3{Is the consumer base public/partner, or internal & coordinated?}
+    Q2 -->|YES| Q3{Is the consumer base public/partner, or internal/coordinated?}
     Q3 -->|Public/partner - cannot coordinate a flag day| URIV[Version in the URI path - /v2 - most visible, cache-friendly]
     Q3 -->|Internal/coordinated| HDRV[Version via media type or a version header - cleaner URLs, needs discipline]
 ```
@@ -82,7 +82,7 @@ flowchart TD
     START[Returning a collection] --> Q1{Can the result set be large or grow, and is it ordered by a stable key?}
     Q1 -->|Large/growing, stable sort key available| CURSOR[Cursor/keyset pagination - opaque next cursor over the sort key]
     Q1 -->|Small, bounded, rarely changing| Q2{Do clients need random access to an arbitrary page number?}
-    Q2 -->|YES - jump to page N, total count needed| OFFSET[Offset/limit - accept drift & deep-page cost; bound the max offset]
+    Q2 -->|YES - jump to page N, total count needed| OFFSET[Offset/limit - accept drift and deep-page cost; bound the max offset]
     Q2 -->|NO| CURSOR
 ```
 
