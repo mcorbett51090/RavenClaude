@@ -132,8 +132,8 @@
     {
       "name": "data-platform",
       "source": "./plugins/data-platform",
-      "description": "Data-platform team \u2014 4 agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) for cloud-database setup, ELT pipelines (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4 / Shopify / HRIS plus Planhat / Intercom / Slack-as-a-data-source deep-dives, and embedded dashboards (Evidence.dev / Superset / Metabase / Cube + Tremor). 12 skills (incl. cross-system-identity-resolution \u2014 the account spine stitching a Salesforce account to a Planhat / Intercom / Slack identity), 12 templates, a 17-doc knowledge bank (+ Sigma-when-already-owned), and 21 best-practices. Opinionated against per-viewer-priced BI (Looker / Tableau / Sigma) for greenfield SMB selection \u2014 but leverages Sigma when the client already owns it. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.10.0",
+      "description": "Data-platform team \u2014 4 agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) for cloud DBs, ELT (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4 / Shopify / HRIS / Planhat / Intercom / Slack-as-source plus 8-vendor support-tool integration coverage (Zendesk, Freshdesk, Intercom Conv+Tkt, SFDC Service Cloud, JSM, HubSpot Service, Help Scout, Front + 2026 Fivetran connector-MAR build-vs-buy math), and embedded dashboards (Evidence.dev / Superset / Metabase / Cube + Tremor). 13 skills (incl. support-ticket-normalization \u2014 conformed fct_ticket / fct_conversation_event over 8 vendors; cross-system-identity-resolution \u2014 the Salesforce\u2194Planhat\u2194Intercom\u2194Slack account spine), 12 templates, a 24-doc knowledge bank, 21 best-practices. Opinionated against per-viewer-priced BI for greenfield SMB. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.11.0",
       "author": {
         "name": "Matt Corbett"
       },
