@@ -199,15 +199,26 @@ P4: SHA drift without delta re-review.
 
 ## Decisions reserved for Matt — RESOLVED 2026-06-04
 
-1. **Branch protection (RT-04): APPROVED — require 1 approving review on `main`.**
-   Status: PENDING APPLY — every available token route (Codespace integration token via
-   `gh`, PAT via `gh`, direct API protection endpoint, rulesets API) returned 403
-   "Resource not accessible by integration"; the write needs a token carrying the
-   Administration permission grant. Matt applies in the UI: Settings → Branches → Add
-   branch protection rule → branch `main` → "Require a pull request before merging" +
-   "Require approvals: 1" (leave "Do not allow bypassing the above settings" UNCHECKED so
-   admin pushes — docs-to-main, Ultraplan reconciles — keep working). The gate posts its
-   verdict as a PR comment; Matt's approval confirms it ran.
+1. **Branch protection (RT-04): APPROVED + APPLIED 2026-06-04** — branch RULESET on
+   `main` (ruleset id 17278731, verified via API read-back): require 1 PR approval +
+   deletion block + force-push block. Bypass list: Repository admin role + 4 app
+   integrations (Claude 1236702, Copilot SWE Agent 1143301, 946600, 2875373). Admin
+   bypass keeps docs-to-main / Ultraplan-reconcile pushes working. RT-04 residual CLOSED
+   for UI merges. Residual note: the Claude app on the bypass list means a cloud session
+   could technically merge without review — accepted (Ultraplan lands PRs, never merges).
+
+   **Sub-decision — self-heal workflow push (`regenerate-artifacts.yml:136` pushes to
+   main as `github-actions[bot]`): ACCEPT-AND-MONITOR WAIVER (Matt, 2026-06-04).**
+   `github-actions[bot]` is a non-bypassable system identity by GitHub design (community
+   discussions #25305, #175332; researched 2026-06-04 — brief in
+   `docs/research/2026-06-04-actions-ruleset-bypass/`). The self-heal push will be
+   REJECTED by the ruleset when it has something to push. Accepted because: (a) this
+   gate hard-blocks stale artifacts in every gated PR, making the self-heal a no-op on
+   the gated path; (b) a failure is loud (red Actions run + Heimdall); (c) every working
+   alternative (GitHub App / deploy key / PAT) loses GITHUB_TOKEN's no-retrigger
+   exemption and needs a recursion guard — real CI engineering for a near-no-op.
+   **Re-open trigger: the second self-heal push failure → implement the deploy-key
+   route (bypass list already offers "Deploy keys") with a paths-ignore recursion guard.**
 2. **`.prettierignore` housekeeping (E6): APPROVED + APPLIED in this PR** —
    `.ravenclaude/runs/` and `.ravenclaude/posture-events.jsonl` added, matching the
    `.remember/` precedent.
