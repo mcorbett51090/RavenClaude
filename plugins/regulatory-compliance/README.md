@@ -24,9 +24,9 @@ Requires `ravenclaude-core@>=0.5.0`.
 | Specialist agents | 12 (6 function + 6 jurisdiction) | [`agents/`](agents/) |
 | Regulator knowledge files | 16 (10 BMA + 6 jurisdiction/directory) | [`knowledge/bma/`](knowledge/bma/), [`knowledge/jurisdictions/`](knowledge/jurisdictions/) |
 | Best-practice rules | 27 | [`best-practices/`](best-practices/) |
-| Skills | 9 | [`skills/`](skills/) |
+| Skills | 10 | [`skills/`](skills/) |
 | Hooks | 1 (PreToolUse, defensive) | [`hooks/`](hooks/) |
-| Templates | 8 | [`templates/`](templates/) |
+| Templates | 10 | [`templates/`](templates/) |
 
 See [`CLAUDE.md`](CLAUDE.md) for the full team constitution.
 

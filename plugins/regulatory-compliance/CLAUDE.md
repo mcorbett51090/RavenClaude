@@ -203,6 +203,7 @@ The hook is **advisory by default** (prints to stderr, doesn't block). For sensi
 | [`skills/risk-register-build/SKILL.md`](skills/risk-register-build/SKILL.md) | `risk-and-controls-specialist`, `policy-and-procedure-writer` | Build / refresh an enterprise risk register: cause-event-consequence statements, inherent + residual math, KRIs, three-lines ownership |
 | [`skills/supervisory-return-prep/SKILL.md`](skills/supervisory-return-prep/SKILL.md) | `regulatory-reporting-analyst` | Period-end supervisory / regulatory return prep: filing calendar, data lineage, maker-checker, common return families (FATCA, CRS, EBS, Solvency II, RBC) |
 | [`skills/control-testing/SKILL.md`](skills/control-testing/SKILL.md) | `risk-and-controls-specialist`, `aml-kyc-analyst` | Second-line compliance control testing rubric: design vs operating effectiveness, risk-based sampling, finding vs observation, MRA response |
+| [`skills/bma-licensing-classification/SKILL.md`](skills/bma-licensing-classification/SKILL.md) | `bma-financial-institutions-specialist` | Classify a Bermuda non-insurance entity → BMA sector + licence class + AML/ATF position + filing obligations; traverses the BMA decision trees then the sector files |
 
 **How an agent uses a skill**: read the skill file first for the entry-point playbook, then consult the relevant templates in `templates/` for the artifact shape.
 
@@ -257,6 +258,8 @@ To enable when a scenario surfaces:
 | [`templates/supervisory-return-checklist.md`](templates/supervisory-return-checklist.md) | Pre-submission checklist for any periodic supervisory return |
 | [`templates/sar-narrative-template.md`](templates/sar-narrative-template.md) | Canonical SAR / STR narrative skeleton |
 | [`templates/kyc-edd-workpaper.md`](templates/kyc-edd-workpaper.md) | KYC / EDD workpaper with risk-rating logic and source-doc citations |
+| [`templates/bma-licensing-classification-workpaper.md`](templates/bma-licensing-classification-workpaper.md) | BMA sector + licence-class + AML/ATF determination workpaper (non-insurance) |
+| [`templates/bma-change-of-control-notification.md`](templates/bma-change-of-control-notification.md) | BMA change-of-control / shareholder-controller notification workpaper (10/20/33/50% bands) |
 
 ---
 
