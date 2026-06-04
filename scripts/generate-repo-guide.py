@@ -31,6 +31,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_OUTPUT = REPO_ROOT / "repo-guide.html"
 
+# Sibling helper (scripts/ is on sys.path whether run directly or imported by
+# generate-index-dashboard.py). Provides the CSS scoper + IIFE wrapper used by
+# render_fragment to fold the catalog natively into index.html.
+from _html_merge import iife_wrap, redirect_stub, scope_css  # noqa: E402
+
 # Map plugin name → accent color (for visual differentiation).
 PLUGIN_COLORS = {
     "ravenclaude-core": "#14b8a6",
@@ -1586,14 +1591,78 @@ def render(marketplace: dict, plugins: list[Plugin]) -> str:
     return result.replace("/*__SHARED_TOKENS__*/", _load_shared_tokens_root())
 
 
+# Native-merge: fold the catalog (Overview / Plugins / Architecture / Index)
+# into index.html as a section instead of a standalone page / iframe. We slice
+# the pieces out of the standalone render() output (which stays the source of
+# truth) and post-process: strip shared-tokens (the shell inlines them once),
+# scope CSS under #catalog-root, rename the colliding `.tab-btn`/`.nav-btn`
+# classes (the dashboard owns `.tab-btn`), container-scope the JS, and drop the
+# Decision-Trees panel + the vendored Mermaid library (the dashboard's Guidance
+# tab is the canonical, SVG-based home for decision trees — redundancy cut).
+def _rg_rename(s: str) -> str:
+    return s.replace("tab-btn", "rg-tab").replace("nav-btn", "rg-navbtn")
+
+
+def render_fragment(marketplace: dict, plugins: list[Plugin]) -> dict:
+    full = render(marketplace, plugins)
+    shared = _load_shared_tokens_root()
+
+    # ── CSS ──
+    css = full[full.index("<style>") + len("<style>"): full.index("</style>")]
+    css = css.replace(shared, "")  # the shell already inlines shared-tokens once
+    css = scope_css(_rg_rename(css), "#catalog-root")
+
+    # ── BODY (the .rg-shell three-pane), minus the standalone page footer ──
+    body = full[full.index("<body>") + len("<body>"): full.index('<footer class="site">')]
+    # Drop the standalone "Generated <timestamp> by …" line — redundant inside
+    # the unified portal (index.html has its own footer timestamp), and its
+    # per-minute timestamp would otherwise make the index freshness gate flake.
+    body = re.sub(r'<div class="generated">.*?</div>', "", body, flags=re.DOTALL)
+    # Drop the Decision-Trees panel + its rail/nav buttons (redundancy cut).
+    body = re.sub(
+        r'<section class="panel" data-panel="decision-trees">.*?</section>',
+        "", body, flags=re.DOTALL,
+    )
+    body = re.sub(
+        r'<button class="tab-btn[^"]*"[^>]*data-tab="decision-trees"[^>]*>.*?</button>',
+        "", body, flags=re.DOTALL,
+    )
+    body = _rg_rename(body)
+
+    # ── JS (first <script> block: tabs + filters + index search + details) ──
+    js_start = full.index("<script>", full.index('<footer class="site">'))
+    js = full[full.index("\n", js_start) + 1: full.index("</script>", js_start)]
+    js = _rg_rename(js)
+    # Container-scope every DOM query so the catalog JS only ever touches its own
+    # nodes (the dashboard + shell share the document). getElementById has no
+    # element equivalent, so map it to a scoped querySelector by id.
+    js = re.sub(r"document\.getElementById\((['\"])([\w-]+)\1\)",
+                r'__rg.querySelector("#\2")', js)
+    js = js.replace("document.querySelectorAll(", "__rg.querySelectorAll(")
+    js = js.replace("document.querySelector(", "__rg.querySelector(")
+    js = "const __rg = document.getElementById('catalog-root');\n" + js
+    js = iife_wrap(
+        js,
+        expose=(
+            'window.__catalogApp = { show: function (tab) { '
+            'var b = __rg.querySelector(\'.rg-tab[data-tab="\' + (tab || "overview") + \'"]\'); '
+            "if (b) b.click(); } };"
+        ),
+    )
+    return {"css": css, "body": body, "js": js}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     ap.add_argument("--check", action="store_true", help="Print HTML to stdout, don't write file.")
     args = ap.parse_args()
 
-    marketplace, plugins = load_marketplace()
-    output = render(marketplace, plugins)
+    # repo-guide.html is now a REDIRECT STUB → the unified portal
+    # (index.html#/repo-guide). Its real content (Overview / Plugins /
+    # Architecture / Index) is folded natively into index.html by
+    # generate-index-dashboard.py (which imports render_fragment from here).
+    output = redirect_stub("index.html#/repo-guide", "RavenClaude catalog")
 
     if args.check:
         # Force UTF-8 on stdout — Windows' default cp1252 console encoding
@@ -1608,7 +1677,7 @@ def main() -> int:
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(output, encoding="utf-8")
-    print(f"wrote {args.output.relative_to(REPO_ROOT)} ({len(output):,} bytes, {len(plugins)} plugins)")
+    print(f"wrote stub {args.output.relative_to(REPO_ROOT)} → index.html#/repo-guide")
     return 0
 
 

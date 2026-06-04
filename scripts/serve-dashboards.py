@@ -1361,7 +1361,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             # onAutoForward: openBrowser lands on the dashboard, not a directory
             # listing.  The target path is injected by main() after it resolves
             # the actual dash_path.
-            target = getattr(self.server, "_dash_path", "/plugins/ravenclaude-core/dashboard.html")
+            target = getattr(self.server, "_dash_path", "/index.html")
             self.send_response(302)
             self.send_header("Location", target)
             self.end_headers()
@@ -2010,7 +2010,11 @@ def main() -> int:
             _ALLOWED_HOSTS.add(f"{_ip}:{actual_port}")
             _ALLOWED_ORIGINS.add(f"http://{_ip}:{actual_port}")
 
-    dash_path = "/plugins/ravenclaude-core/dashboard.html"
+    # The marketplace dev portal is now the unified index.html (the dashboard +
+    # catalog are folded in natively). serve REPO_ROOT (unchanged) and point the
+    # landing path + root redirect at index.html so its live /__* fetches run at
+    # this same origin.
+    dash_path = "/index.html"
     # Attach dash_path to the server so do_GET's root redirect can read it
     # without a global variable.
     server._dash_path = dash_path  # type: ignore[attr-defined]

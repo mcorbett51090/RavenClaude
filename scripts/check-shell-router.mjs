@@ -1,32 +1,32 @@
 #!/usr/bin/env node
-/* check-shell-router.mjs — structural test for the unified-dashboard shell
- * in index.html (Phase 1+2 of the unified-dashboard-shell plan,
- * docs/plans/2026-06-04-unified-dashboard-shell/plan.md).
+/* check-shell-router.mjs — structural test for the unified single-document
+ * portal in index.html. The dashboard + catalog sub-apps are folded NATIVELY
+ * into index.html (no iframes): mounted in #dash-root / #catalog-root, shown by
+ * the shell router toggling [hidden] and driven via window.__dashApp.show() /
+ * window.__catalogApp.show().
  *
- * Pure text-based assertions — NO `new Function()` / NO `eval` / NO `vm`.
- * The sibling render-tests (check-heimdall-render.mjs etc.) DO extract
- * source from generated dashboard.html and eval it; the security-guidance
- * hook flagged that pattern as a code-injection footgun (a future
- * contributor copying the pattern to a less-trusted input source would
- * have an ACE sink in CI). We avoid it here by asserting against the
- * source text directly with regexes — weaker than running the code, but
- * safer and sufficient for the regressions we actually care about
- * (someone editing or deleting the lookup table, renaming the helpers,
- * or dropping a NAV item).
+ * Pure text-based assertions — NO `new Function()` / NO `eval` / NO `vm`. The
+ * sibling render-tests (check-heimdall-render.mjs etc.) DO extract source and
+ * eval it; we avoid that here (a future contributor copying the pattern to a
+ * less-trusted input would have an ACE sink in CI) and assert against the
+ * source text directly — weaker than running the code, but safe and sufficient
+ * for the regressions we care about (deleting the route set, renaming the
+ * helpers, dropping a NAV item, removing a mount host or entry point).
  *
  * What this guards (Gate 70):
- *   - NAV still contains the Dashboard + Catalog (repo-guide) items the
- *     unified shell added in Phase 1
- *   - PAYLOAD_ROUTES contains every dashboard-owned top-level route that
+ *   - NAV still contains the Dashboard + Catalog (repo-guide) items + the five
+ *     back-compat shell-native items.
+ *   - DASH_SECTIONS contains every dashboard-owned top-level route that
  *     committed bookmarks + the gjallarhorn-link + SessionStart capability
- *     banners point at. Renaming or removing one of these silently breaks
- *     deep-links.
- *   - PAYLOAD_ROUTES['repo-guide'] maps to repo-guide.html
- *   - payloadFor() preserves the dynamic 'plugin-*' prefix mapping
- *   - resolveNavActive() handles back-compat fallbacks
- *   - Must-fail half: an emptied PAYLOAD_ROUTES (the structural mistake to
- *     guard against) is detected by the same assertions — proves the
- *     regexes actually probe the right thing.
+ *     banners point at. Removing one silently breaks deep-links.
+ *   - payloadKind() preserves the dynamic 'plugin-*' prefix mapping + the
+ *     catalog/repo-guide mapping.
+ *   - resolveNavActive() / route() drive the native hosts (viewDashboard /
+ *     viewCatalog), not iframes.
+ *   - The mount hosts (#dash-root, #catalog-root) and the sub-app entry points
+ *     (window.__dashApp, window.__catalogApp) are present in the merged page.
+ *   - Must-fail half: an emptied DASH_SECTIONS is detected by the same
+ *     assertions — proves the regexes probe the right thing.
  *
  * Usage: node scripts/check-shell-router.mjs [path/to/index.html]
  */
@@ -35,10 +35,8 @@ import { readFileSync } from "node:fs";
 const htmlPath = process.argv[2] || "index.html";
 const html = readFileSync(htmlPath, "utf8");
 
-/* Find the <script> body that hosts the shell application (the one that
- * declares NAV) — NOT the data blob script that defines __RC_DATA__ (which
- * is much larger and gets matched if we sort by length). `indexOf` + slice,
- * no eval anywhere. */
+/* Find the <script> body hosting the shell application (the one declaring NAV)
+ * — NOT the data blob (__RC_DATA__) nor the folded-in sub-app IIFEs. */
 function appScript(src) {
   const matches = [...src.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
   const app = matches.find((s) => /\bconst NAV\b/.test(s));
@@ -73,16 +71,16 @@ function sliceFunction(src, header) {
 
 const app = appScript(html);
 
-/* ── Positive contract ───────────────────────────────────────────────── */
 const failures = [];
 function assert(cond, msg) {
   if (!cond) failures.push(msg);
 }
 
 const NAV_TEXT = sliceBetween(app, "const NAV = ", "[");
-const ROUTES_TEXT = sliceBetween(app, "const PAYLOAD_ROUTES = ", "{");
-const PAYLOAD_FOR_TEXT = sliceFunction(app, "function payloadFor(");
+const DASH_SECTIONS_TEXT = sliceBetween(app, "const DASH_SECTIONS = ", "[");
+const PAYLOAD_KIND_TEXT = sliceFunction(app, "function payloadKind(");
 const RESOLVE_NAV_TEXT = sliceFunction(app, "function resolveNavActive(");
+const ROUTE_TEXT = sliceFunction(app, "function route(");
 
 /* NAV — must list Dashboard + Catalog + the five back-compat items */
 for (const id of [
@@ -98,9 +96,8 @@ for (const id of [
   assert(re.test(NAV_TEXT), `NAV regression: missing item with id "${id}"`);
 }
 
-/* PAYLOAD_ROUTES — every top-level dashboard tab maps to dashboard.html */
-const DASHBOARD_PATH = "plugins/ravenclaude-core/dashboard.html";
-const REPO_GUIDE_PATH = "repo-guide.html";
+/* DASH_SECTIONS — every top-level dashboard route the committed-bookmark
+ * contract depends on must be present. */
 const expectedDashboardRoutes = [
   "heimdall",
   "vidarr",
@@ -117,82 +114,74 @@ const expectedDashboardRoutes = [
   "dashboard",
 ];
 for (const r of expectedDashboardRoutes) {
-  // Key may be unquoted (heimdall:) or quoted ("comfort-posture":). Match either.
-  const keyPattern = /^[A-Za-z_$][\w$]*$/.test(r) ? `(?:${r}|"${r}")` : `"${r}"`;
-  const re = new RegExp(
-    `${keyPattern}\\s*:\\s*"${DASHBOARD_PATH.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`,
-  );
+  const re = new RegExp(`"${r}"`);
   assert(
-    re.test(ROUTES_TEXT),
-    `PAYLOAD_ROUTES["${r}"] must map to ${DASHBOARD_PATH} (committed-bookmark contract)`,
+    re.test(DASH_SECTIONS_TEXT),
+    `DASH_SECTIONS missing "${r}" (committed-bookmark deep-link contract)`,
   );
 }
-const repoGuideRe = new RegExp(
-  `"repo-guide"\\s*:\\s*"${REPO_GUIDE_PATH.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`,
+
+/* payloadKind() — preserves dynamic plugin-* prefix + catalog mapping + null */
+assert(
+  /DASH_SECTIONS\.has\(section\)/.test(PAYLOAD_KIND_TEXT),
+  "payloadKind() must consult DASH_SECTIONS",
 );
 assert(
-  repoGuideRe.test(ROUTES_TEXT),
-  `PAYLOAD_ROUTES["repo-guide"] must map to ${REPO_GUIDE_PATH}`,
+  /startsWith\(["']plugin-["']\)/.test(PAYLOAD_KIND_TEXT),
+  "payloadKind() must map plugin-* dynamic routes to the dashboard",
+);
+assert(
+  /"catalog"/.test(PAYLOAD_KIND_TEXT) && /repo-guide/.test(PAYLOAD_KIND_TEXT),
+  "payloadKind() must map repo-guide/catalog routes to the catalog sub-app",
+);
+assert(
+  /return null/.test(PAYLOAD_KIND_TEXT),
+  "payloadKind() must return null for unknown sections (router falls to home)",
 );
 
-/* payloadFor() — preserves dynamic prefix + lookup-table fallback */
-assert(
-  /PAYLOAD_ROUTES\[section\]/.test(PAYLOAD_FOR_TEXT),
-  "payloadFor() must look up PAYLOAD_ROUTES[section]",
-);
-assert(
-  /startsWith\(["']plugin-["']\)/.test(PAYLOAD_FOR_TEXT),
-  "payloadFor() must map plugin-* dynamic routes to the dashboard",
-);
-assert(
-  /return null/.test(PAYLOAD_FOR_TEXT),
-  "payloadFor() must return null for unknown sections (router falls to home)",
-);
-
-/* resolveNavActive() — back-compat fallbacks for shell-native + payload-owned */
+/* resolveNavActive() — back-compat fallbacks via payloadKind() */
 assert(
   /NAV\.some/.test(RESOLVE_NAV_TEXT),
   "resolveNavActive() must recognize shell-native NAV ids first",
 );
 assert(
-  /payloadFor\(section\)/.test(RESOLVE_NAV_TEXT),
-  "resolveNavActive() must delegate to payloadFor() for payload-owned routes",
+  /payloadKind\(section\)/.test(RESOLVE_NAV_TEXT),
+  "resolveNavActive() must delegate to payloadKind() for folded-in routes",
 );
+for (const id of ['"repo-guide"', '"dashboard"', '"home"']) {
+  assert(RESOLVE_NAV_TEXT.includes(id), `resolveNavActive() must be able to return ${id}`);
+}
+
+/* route() — drives the NATIVE hosts, not iframes */
 assert(
-  /"repo-guide"/.test(RESOLVE_NAV_TEXT),
-  "resolveNavActive() must light up the 'repo-guide' nav for repo-guide payloads",
+  /viewDashboard\(/.test(ROUTE_TEXT),
+  "route() must call viewDashboard() for dashboard routes",
 );
+assert(/viewCatalog\(/.test(ROUTE_TEXT), "route() must call viewCatalog() for catalog routes");
 assert(
-  /"dashboard"/.test(RESOLVE_NAV_TEXT),
-  "resolveNavActive() must light up the 'dashboard' nav for dashboard payloads",
-);
-assert(
-  /"home"/.test(RESOLVE_NAV_TEXT),
-  "resolveNavActive() must fall back to 'home' for unrecognized sections",
+  !/viewPayload\(|<iframe/.test(ROUTE_TEXT),
+  "route() must NOT use the retired iframe payload loader",
 );
 
-/* ── Must-fail half: an emptied PAYLOAD_ROUTES is caught by the SAME
- * regexes above. We don't re-eval the helpers; we verify that the
- * positive-contract regex would have flagged the structural mistake.
- * Asserts the gate has teeth — if the lookup table were stripped, this
- * file's expectations would fail (and the developer would see exactly
- * which routes regressed). */
+/* Mount hosts + sub-app entry points present in the merged document */
+assert(/id="dash-root"/.test(html), "missing native mount host #dash-root");
+assert(/id="catalog-root"/.test(html), "missing native mount host #catalog-root");
+assert(/window\.__dashApp\b/.test(html), "dashboard sub-app entry point window.__dashApp missing");
+assert(
+  /window\.__catalogApp\b/.test(html),
+  "catalog sub-app entry point window.__catalogApp missing",
+);
+/* No iframe should remain anywhere in the merged portal. */
+assert(!/<iframe/i.test(html), "merged portal must contain no <iframe> (native merge)");
+
+/* ── Must-fail half: an emptied DASH_SECTIONS is caught by the SAME route
+ * checks above. Proves the gate has teeth. */
 {
-  const emptyRoutesText = "const PAYLOAD_ROUTES = {};";
-  const wouldStillPass = expectedDashboardRoutes.every((r) => {
-    const keyPattern = /^[A-Za-z_$][\w$]*$/.test(r) ? `(?:${r}|"${r}")` : `"${r}"`;
-    const re = new RegExp(
-      `${keyPattern}\\s*:\\s*"${DASHBOARD_PATH.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`,
-    );
-    return re.test(emptyRoutesText);
-  });
+  const emptySet = "const DASH_SECTIONS = new Set([]);";
+  const wouldStillPass = expectedDashboardRoutes.every((r) => new RegExp(`"${r}"`).test(emptySet));
   assert(
     !wouldStillPass,
-    "must-fail half: empty PAYLOAD_ROUTES should fail the route-mapping assertions",
-  );
-  assert(
-    !repoGuideRe.test(emptyRoutesText),
-    "must-fail half: empty PAYLOAD_ROUTES should fail the repo-guide assertion",
+    "must-fail half: empty DASH_SECTIONS should fail the route-membership assertions",
   );
 }
 
@@ -202,5 +191,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  "OK: shell router contract holds (NAV + PAYLOAD_ROUTES + payloadFor + resolveNavActive); must-fail half also detected.",
+  "OK: native portal router contract holds (NAV + DASH_SECTIONS + payloadKind + resolveNavActive + route + hosts + entry points); must-fail half also detected.",
 );

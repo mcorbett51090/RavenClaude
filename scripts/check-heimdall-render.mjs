@@ -25,7 +25,9 @@ const htmlPath = process.argv[2] || "plugins/ravenclaude-core/dashboard.html";
 const html = readFileSync(htmlPath, "utf8");
 
 const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
-const app = scripts.reduce((a, b) => (b.length > a.length ? b : a), "");
+const app =
+  scripts.find((s) => s.includes("function activate(")) ||
+  scripts.reduce((a, b) => (b.length > a.length ? b : a), "");
 
 /* Extract a brace-balanced top-level `function NAME(...) {...}` or
  * `const NAME = ...;` declaration by header. (Same idiom as the round-trip test.) */

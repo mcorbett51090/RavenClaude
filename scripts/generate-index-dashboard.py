@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as _dt
+import importlib.util
 import json
 import re
 import sys
@@ -40,6 +41,19 @@ from pathlib import Path
 # Sibling module holding the self-contained HTML/CSS/JS shell. Importable because
 # Python puts this script's directory (scripts/) on sys.path[0] at launch.
 from _index_dashboard_template import TEMPLATE as _TEMPLATE
+
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+
+
+def _load_sibling(filename: str, module_name: str):
+    """Import a hyphenated sibling generator (e.g. generate-dashboards.py) as a
+    module so we can reuse its render_fragment() to fold its content natively
+    into index.html — no iframes, one document."""
+    spec = importlib.util.spec_from_file_location(module_name, _SCRIPTS_DIR / filename)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = mod  # register so dataclasses resolve their module
+    spec.loader.exec_module(mod)
+    return mod
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PLUGINS_DIR = REPO_ROOT / "plugins"
@@ -529,9 +543,9 @@ def scan_repo() -> dict:
             {"id": "posture", "label": "Comfort Posture Editor",
              "desc": "Tune per-category deny / ask / allow permissions",
              "icon": "sliders", "route": "#/configuration"},
-            {"id": "repo-guide", "label": "Generate Repo Guide",
-             "desc": "Open the full per-agent reference & use-case lookup",
-             "icon": "book", "href": "repo-guide.html"},
+            {"id": "repo-guide", "label": "Open Catalog",
+             "desc": "Full per-agent reference & 'I want to…' use-case lookup",
+             "icon": "book", "route": "#/repo-guide"},
             {"id": "staging", "label": "Contribution Staging Loop",
              "desc": "Stage a finding into the marketplace via /wrap",
              "icon": "git", "command": "/wrap"},
@@ -588,6 +602,30 @@ def _load_shared_tokens_root() -> str:
     return _SHARED_TOKENS_PATH.read_text(encoding="utf-8")
 
 
+def _load_fragments() -> dict:
+    """Render the dashboard + catalog sub-apps as native fragments to fold into
+    the single index.html document (one portal — no iframes). Each fragment is
+    {css, body, js}: CSS scoped under its container, body mounted in a hidden
+    host div, JS IIFE-wrapped with a window.__dashApp / __catalogApp entry point
+    the shell router drives. See scripts/_html_merge.py for the mechanics."""
+    gd = _load_sibling("generate-dashboards.py", "generate_dashboards")
+    rg = _load_sibling("generate-repo-guide.py", "generate_repo_guide")
+
+    # Dashboard fragment — built from the ravenclaude-core schema (the canonical
+    # comfort-posture surface; the standalone page was per-plugin but only core
+    # ships a schema today).
+    dash_dir = PLUGINS_DIR / "ravenclaude-core"
+    dash_schema = json.loads((dash_dir / "dashboard-schema.json").read_text(encoding="utf-8"))
+    dash = gd.render_fragment(dash_dir, dash_schema)
+
+    # Catalog fragment — the repo-guide content (Overview / Plugins / Architecture
+    # / Index), trees + mermaid dropped (the dashboard Guidance tab owns those).
+    marketplace, plugins = rg.load_marketplace()
+    catalog = rg.render_fragment(marketplace, plugins)
+
+    return {"dash": dash, "catalog": catalog}
+
+
 def render_html(data: dict) -> str:
     template = _TEMPLATE
     shared_tokens = _load_shared_tokens_root()
@@ -597,6 +635,15 @@ def render_html(data: dict) -> str:
     html = html.replace("__GENERATED__", data["generated"])
     html = html.replace("__MKT_VERSION__", data["marketplace_version"])
     html = html.replace("__RAVEN_LOGO_SVG__", _load_raven_logo())
+    # Fold the dashboard + catalog sub-apps in natively. Done LAST so the simple
+    # __MARKER__ substitutions above never touch the (large) fragment payloads.
+    frag = _load_fragments()
+    html = html.replace("/*__DASH_CSS__*/", frag["dash"]["css"])
+    html = html.replace("/*__CATALOG_CSS__*/", frag["catalog"]["css"])
+    html = html.replace("<!--__DASH_BODY__-->", frag["dash"]["body"])
+    html = html.replace("<!--__CATALOG_BODY__-->", frag["catalog"]["body"])
+    html = html.replace("/*__DASH_JS__*/", frag["dash"]["js"])
+    html = html.replace("/*__CATALOG_JS__*/", frag["catalog"]["js"])
     return html
 
 
@@ -623,10 +670,15 @@ def main(argv: list[str] | None = None) -> int:
         #   3. the footer "Updated <ts> UTC" line (minute precision — without
         #      stripping it, --check false-fails one minute after generation,
         #      turning the freshness gate into a paper tiger)
+        #   4. the folded-in catalog's per-plugin "Last updated <git-date>" — a
+        #      git-log date that varies between a full clone and CI's shallow
+        #      checkout (same variance check-guide-fresh.sh strips). Without this
+        #      the gate false-fails on a shallow-checkout CI run.
         def _strip_ts(s: str) -> str:
             s = re.sub(r'"generated":"[^"]*"', '"generated":""', s)
             s = re.sub(r'"generated_date":"[^"]*"', '"generated_date":""', s)
             s = re.sub(r"Updated \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC", "Updated", s)
+            s = re.sub(r"(Last updated</span> <code>)[^<]*(</code>)", r"\1\2", s)
             return s
         if _strip_ts(current) != _strip_ts(html):
             print(f"[stale] {args.output} is out of date — re-run the generator",
