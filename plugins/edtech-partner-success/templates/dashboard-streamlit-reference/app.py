@@ -41,14 +41,12 @@ Required Snowflake packages (declare in environment.yml or the SiS UI):
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import datetime, timezone
 
 import pandas as pd
 import streamlit as st
-from snowflake.snowpark.context import get_active_session
 from snowflake.snowpark import Session
-
+from snowflake.snowpark.context import get_active_session
 
 # ---------------------------------------------------------------------------
 # Page setup — has to come before any other Streamlit call.
@@ -318,7 +316,7 @@ with header_right:
         st.rerun()
 
     cache_age_min = 0  # populated below by the fragment
-    st.caption(f"Cache TTL: KPIs 5 min · Action center 1 min")
+    st.caption("Cache TTL: KPIs 5 min · Action center 1 min")
 
 
 # ---------------------------------------------------------------------------
