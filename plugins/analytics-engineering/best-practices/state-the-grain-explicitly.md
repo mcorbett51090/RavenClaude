@@ -1,0 +1,3 @@
+# State every model's grain explicitly
+
+Declare what one row of each model represents — one order, one order-line, one customer-day — in the model's documentation and enforce it with a uniqueness test on the grain key. Grain is the single most consequential and most often unstated fact about a table: a consumer who assumes one-row-per-order on a one-row-per-line table double-counts revenue, and a join between two models at mismatched grains fans out rows and inflates every downstream sum. Most "the numbers are wrong" incidents are an unannounced grain met by a wrong assumption. Name the grain, test it, and a whole class of silent aggregation bugs disappears.

@@ -1,0 +1,3 @@
+# Reach AWS services through VPC endpoints, not the NAT gateway
+
+Traffic from a private subnet to S3, DynamoDB, ECR, Secrets Manager, or any AWS API does not need to leave the VPC. Use gateway endpoints (S3, DynamoDB — free) and interface endpoints (PrivateLink, per-hour + per-GB) so the traffic stays on the AWS network instead of hairpinning out through a NAT gateway to the public endpoint. This cuts the per-GB NAT data-processing bill that quietly dominates many AWS invoices, removes a public egress path for sensitive calls, and lets you keep subnets with no internet route at all. NAT is for the genuine internet egress that remains; routing AWS-internal calls through it is paying a toll to leave a building you never had to exit.

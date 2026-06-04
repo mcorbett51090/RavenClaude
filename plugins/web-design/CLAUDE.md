@@ -252,3 +252,10 @@ When in doubt, the web-design team **declines and asks the Team Lead** rather th
 - Cited-Adjudicator Escalation: [`../ravenclaude-core/rules/agent-collaboration.md`](../ravenclaude-core/rules/agent-collaboration.md)
 - Sister plugins (when installed alongside): `finance` and `regulatory-compliance` — web content that surfaces finance or regulatory disclosures routes through their teams. See [`../../docs/plugin-roadmap-analysis.md`](../../docs/plugin-roadmap-analysis.md) for the marketplace plan.
 - Marketplace-wide developer guide: [`../../CLAUDE.md`](../../CLAUDE.md)
+
+
+## Adjacent plugins (added 2026-06-04)
+
+Reciprocal seam to the adjacent-plugins build-out:
+
+- App-grade frontend engineering (React/Next, TypeScript, rendering strategy, state/server-cache, bundle/CWV) → `frontend-engineering`; native iOS/Android & React-Native/Flutter → `mobile-engineering`. This plugin owns brand/UX/marketing-site + the WCAG audit; they engineer the app.

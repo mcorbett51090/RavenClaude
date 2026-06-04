@@ -1,0 +1,3 @@
+# Pair every rolling update with a PodDisruptionBudget
+
+A rolling update controls disruption you cause; a PodDisruptionBudget protects against disruption the cluster causes — node drains, autoscaler scale-down, upgrades. Without a PDB, a single `kubectl drain` during maintenance can evict every replica of a service at once and take it down even though the Deployment is 'healthy'. Set `minAvailable` (or `maxUnavailable`) to the floor the service can serve at, tune `maxSurge`/`maxUnavailable` on the rollout for deploy-time control, and remember a PDB of `minAvailable: 100%` with one replica blocks node drains entirely — so the PDB and the replica count have to be designed together.

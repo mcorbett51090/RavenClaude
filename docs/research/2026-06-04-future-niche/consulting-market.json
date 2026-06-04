@@ -1,0 +1,40 @@
+{
+  "summary": "SMB AI consulting shifted from docs to shipped agents.",
+  "findings": [
+    {
+      "claim": "2026 SMB brackets: discovery 5-20k, pilot 10-25k, full build 25-60k, retainers 2-8k/mo. Raven 25-50k maps to full-build.",
+      "evidence": "noseberry.com; seidrlab.com; aidolsgroup.com; firstmovers.ai.",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Dominant failure mode is pilot purgatory; root cause organizational, not technical.",
+      "evidence": "pertamapartners.com (MIT NANDA 95% no ROI, BCG 60% no value); aismartventures.com; uctoday.com.",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Winning model is implementation-gap hybrid: business workflow plus shipping production agent in 30-60 days. ~88% of pilots never reach production.",
+      "evidence": "flywheelconsultancy.com ai-implementation-gap-consultants-vs-builders.",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Boutiques beat Big 4 on speed (2-12 wks vs 6-18 mo), cost (40-95% lower), access, ownership transfer.",
+      "evidence": "bushe.co; vstorm.co; bosio.digital; affixed.ai.",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Productized scales: micro 750-3k, audits 1.5-3k, AI ops 15-60k, above-platform 15-30k/mo, 80% standard, 40-80 clients/yr.",
+      "evidence": "justinmckelvey.com; manyrequests.com; buildtothrive.co.",
+      "confidence": "verified"
+    }
+  ],
+  "opportunities": [
+    "Position as the implementation-gap hybrid for SMB finance/ops.",
+    "Productize 25-50k packages plus a run-the-agent retainer.",
+    "Sell the RavenClaude substrate as a governance premium."
+  ],
+  "threats": [
+    "Commoditization by Claude Code agencies and no-code tools.",
+    "Pilot purgatory is reputation-contagious.",
+    "Big firms move down-market; solo capacity caps upside."
+  ]
+}

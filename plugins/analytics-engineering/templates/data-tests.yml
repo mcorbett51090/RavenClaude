@@ -1,0 +1,16 @@
+# dbt tests + contract + freshness (pattern)
+models:
+  - name: fct_orders
+    config: { contract: { enforced: true } } # model contract
+    columns:
+      - name: order_id
+        data_type: varchar
+        tests: [unique, not_null]
+      - name: customer_id
+        tests:
+          - relationships: { to: ref('dim_customers'), field: customer_id }
+      - name: status
+        tests: [{ accepted_values: { values: ["pending", "paid", "shipped"] } }]
+sources:
+  - name: raw
+    freshness: { warn_after: { count: 12, period: hour }, error_after: { count: 24, period: hour } }

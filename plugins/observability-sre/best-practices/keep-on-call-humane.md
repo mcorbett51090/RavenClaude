@@ -1,0 +1,3 @@
+# Protect the on-call human deliberately
+
+The reliability of your system is bounded by the sustainability of the people who keep it up. Cap pages-per-shift to a humane number (a few, not dozens) and treat a breach of that cap as an incident against the alerting config, not the person. Run a real handoff — an explicit summary of open issues, recent changes, and watch-items — because the silent shift change is where context dies and a smouldering issue reignites. Compensate or time-shift on-call load, follow-the-sun across time zones where you can so nobody is paged at 3am twice a week, and give people the authority to fix the noisy alert that woke them. Burned-out responders miss the real page; humane rotation is a reliability control, not an HR nicety.

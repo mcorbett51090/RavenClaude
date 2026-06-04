@@ -1,0 +1,3 @@
+# Derive state; don't duplicate it
+
+Anything computable from existing state or props is not state — it's a calculation, so compute it in render (memoised only if profiling proves it's expensive). Copying a prop into `useState`, storing a filtered list alongside the source list, or mirroring server data into a local field creates two sources of truth that drift the moment one updates and the other doesn't — the bug reproduces "sometimes," which is the worst kind. The rule: store the smallest set of independent values and derive the rest. A `useEffect` that exists only to keep one piece of state in sync with another is almost always a duplicated-state smell that should be a derivation instead.

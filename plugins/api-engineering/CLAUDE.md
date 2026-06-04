@@ -141,3 +141,10 @@ Plus the cross-plugin **Structured Output Protocol** JSON block ([`../ravenclaud
 - **`auth-identity`** — the end-user login experience (social SSO, magic link, passkeys).
 - **`data-platform/connector-developer`** — building an ELT connector against a SaaS API.
 - **`ravenclaude-core/documentarian`** / **`project-manager`** — deliverables / engagement RAID.
+
+
+## Adjacent plugins (added 2026-06-04)
+
+Reciprocal seam to the adjacent-plugins build-out:
+
+- The service/application craft *behind* the contract (domain logic, caching, queues, idempotency/outbox, resilience) → `backend-engineering`; this plugin owns the contract, that one owns the implementation behind it.

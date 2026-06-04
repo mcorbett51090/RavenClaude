@@ -1,0 +1,158 @@
+[
+  {
+    "scores": [
+      {
+        "idea_name": "Verdict \u2014 the AI Decision Log for regulated teams",
+        "value": 8,
+        "demand_evidence": 6,
+        "asset_fit": 9,
+        "simplicity": 6,
+        "defensibility": 7,
+        "total": 6.9
+      },
+      {
+        "idea_name": "Aegis \u2014 The AI Governance Binder",
+        "value": 7,
+        "demand_evidence": 7,
+        "asset_fit": 8,
+        "simplicity": 7,
+        "defensibility": 6,
+        "total": 7
+      },
+      {
+        "idea_name": "Closebook \u2014 AI financial-close & cash-visibility analyst",
+        "value": 9,
+        "demand_evidence": 8,
+        "asset_fit": 9,
+        "simplicity": 8,
+        "defensibility": 7,
+        "total": 8.1
+      },
+      {
+        "idea_name": "The Compounding Engagement: RavenClaude Forge",
+        "value": 7,
+        "demand_evidence": 6,
+        "asset_fit": 8,
+        "simplicity": 5,
+        "defensibility": 6,
+        "total": 6.2
+      },
+      {
+        "idea_name": "Leash \u2014 the safety inspection for the AI you let touch your business",
+        "value": 8,
+        "demand_evidence": 7,
+        "asset_fit": 9,
+        "simplicity": 9,
+        "defensibility": 7,
+        "total": 7.9
+      }
+    ],
+    "top_pick": "Closebook \u2014 the AI financial-close & cash-visibility analyst that hands you an audit trail with every number",
+    "rationale": "Judging strictly as a skeptical operations manager who is not a developer and demands proof before paying: the question I ask of every pitch is \"do I feel this pain today, and do I instantly understand what I get?\" On that test the two governance plays (Verdict, Leash) and the meta-play (Forge) fail the gut check, while the two concrete-deliverable plays (Closebook, and to a lesser degree Aegis) win.\n\nClosebook is my top pick. As an ops/finance buyer I feel month-end close pain and lender/board cash-forecast pain VISCERALLY and on a calendar \u2014 I don't have to be educated into caring, which is the single hardest thing for a solo operator to overcome. The asset_fit is real and verified: I confirmed 7 finance agents (controller, treasury-analyst, fpa-analyst, financial-modeler, valuation-analyst, board-pack-composer, audit-prep-specialist) and 9 finance skills (month-end-close, thirteen-week-cash-forecast, dcf-valuation, variance-commentary, soc-control-walkthrough, etc.) plus the data-platform embedded-dashboard surface \u2014 this is assembly, not a greenfield bet. The first-5-minutes experience is the strongest of all five: connect QuickBooks, see MY actual variance summary with a \"Why this number?\" link under each figure. That is a legible artifact, not a tutorial. Critically, it resolves the deepest tension in the whole set: the verified tribunal/S\u00e1ga decision-log asset (I confirmed real timestamped multi-seat verdicts with per-seat confidence and injection flags on disk) does NOT have to be SOLD as abstract \"AI governance\" \u2014 it shows up where finance buyers already want trust: as lineage under each number. Founder credibility is decisive: Matt IS a financial analyst in a Microsoft shop. demand_evidence scores 8 because the synthesis's own S4 validated this exact $25-50k SMB wallet and 2-8k/mo retainer band, and it's the wallet these buyers already open.\n\nLeash is a strong #2 and the simplicity champion (9): \"watch your AI try to delete everything and see it get STOPPED, then download a receipt for your insurer\" is the clearest, most demonstrable aha in the set, and it sits on the most verified-defensible asset (the binding in-loop tribunal). It loses to Closebook only on demand_evidence \u2014 the insurance/procurement trigger is real but newer and more dependent on an external forcing function softening, whereas finance pain is structural and permanent.\n\nAegis (#3) shares Leash's trigger but is heavier and its honest risk is fatal for my trust: if it can only log RavenClaude's own agents, the binder documents the vendor's framework, not MY behavior \u2014 as a buyer I'd smell that.\n\nVerdict (#4 by total) has the best asset_fit but the worst non-developer comprehension: \"decision gateway your AI tools call before acting\" is dev-speak; as an ops manager I don't know what a \"yes/no decision my AI makes\" even looks like, so the pitch doesn't land in 5 minutes. The \"who watches the watchers (the panel is itself AI)\" objection is one I'd raise immediately and it undermines trust.\n\nForge (#5) is the weakest BUYER pitch even though it's the truest description of Matt's actual flywheel: \"productized AI-ops consulting with a compounding methodology library\" is a category I don't search for and can't evaluate. simplicity scores 5 because the value to ME is abstract \u2014 I'm buying a delivered outcome, and Forge buries the outcome behind the meta-story of how it's built.\n\nScoring weights simplicity and demand_evidence double, which is why the two plays anchored on a pain I already feel AND a deliverable I instantly grasp (Closebook 8.1, Leash 7.9) beat the asset-rich-but-abstract governance/meta plays.",
+    "merge_suggestion": "Yes \u2014 a Closebook + Leash merge beats either alone, and it's the natural sequence rather than a forced bundle. Sell Closebook as the lead deliverable (the pain a finance/ops buyer already feels and pays for: close package + 13-week cash + board PDF), and ship Leash's \"Leash Certificate / receipt\" as the trust layer THAT THE FINANCE PRODUCT ALREADY NEEDS \u2014 every Closebook number carries lineage, so the same S\u00e1ga decision-log substrate that powers \"Why this number?\" also powers a downloadable \"every figure is defensible + every AI judgment call was gated and logged\" certificate the buyer hands to an auditor or lender. This merge does three things no single idea does: (1) it gives the verified tribunal/decision-log asset a concrete home (under finance numbers) instead of an abstract governance pitch buyers don't intuitively want; (2) it lets the high-stakes finance sale (\"numbers-are-wrong liability\") lean on the visible audit trail as a feature, turning Closebook's biggest risk into Leash's selling point; (3) it stages cleanly \u2014 land the finance engagement first (felt pain, opens the wallet), then the governance/evidence layer becomes the retention and upsell hook (the audit/lender cadence recurs annually, exactly like Leash's insurance-renewal trigger). The standalone horizontal-governance framing of Verdict/Aegis/Leash should be deferred: the synthesis's own #1 finding (the agent-governance window) is best PROVEN on real client financials first, which battle-tests the substrate before betting the company on selling governance to buyers who don't yet feel that pain."
+  },
+  {
+    "scores": [
+      {
+        "idea_name": "Verdict \u2014 the AI Decision Log for regulated teams",
+        "value": 8,
+        "demand_evidence": 6,
+        "asset_fit": 9,
+        "simplicity": 7,
+        "defensibility": 5,
+        "total": 53
+      },
+      {
+        "idea_name": "Aegis \u2014 The AI Governance Binder",
+        "value": 7,
+        "demand_evidence": 7,
+        "asset_fit": 8,
+        "simplicity": 7,
+        "defensibility": 5,
+        "total": 53
+      },
+      {
+        "idea_name": "Closebook \u2014 AI financial-close and cash-visibility analyst",
+        "value": 8,
+        "demand_evidence": 8,
+        "asset_fit": 8,
+        "simplicity": 8,
+        "defensibility": 7,
+        "total": 63
+      },
+      {
+        "idea_name": "The Compounding Engagement: RavenClaude Forge",
+        "value": 6,
+        "demand_evidence": 6,
+        "asset_fit": 7,
+        "simplicity": 6,
+        "defensibility": 5,
+        "total": 48
+      },
+      {
+        "idea_name": "Leash \u2014 the safety inspection for the AI you let touch your business",
+        "value": 8,
+        "demand_evidence": 8,
+        "asset_fit": 9,
+        "simplicity": 9,
+        "defensibility": 6,
+        "total": 65
+      }
+    ],
+    "top_pick": "Leash \u2014 the safety inspection for the AI you let touch your business",
+    "rationale": "Scoring (simplicity and demand_evidence double-weighted): total = value + 2*demand + asset_fit + 2*simplicity + defensibility. Leash 65, Closebook 63, Verdict/Aegis 53, Forge 48.\n\nVERIFICATION: I confirmed every load-bearing asset against the repo before scoring. thing-decide.py is real (550 lines), Saga decision records exist (.ravenclaude/runs/thing/decisions/decide-2026-06-04*.json), 19 guard hooks ship (guard-destructive, route-decision-review, guard-web-access, guard-recursive-spawn), comfort-posture.yaml exists, the finance plugin has 7 agents + 9 skills (thirteen-week-cash-forecast, month-end-close, dcf-valuation, soc-control-walkthrough all present), data-platform has 4 agents, 24 plugins total, and the wrap/forge/contribute flywheel is real. No idea rests on a phantom asset \u2014 the factual floor is sound across all five.\n\nTOP PICK \u2014 Leash. It wins because it best satisfies the two double-weighted constraints. SIMPLICITY (9): the surface reduces to a green/yellow/red light, a 3-option dropdown, a 'the AI tried X, I stopped it' message, a downloadable receipt, and a kill switch \u2014 the cleanest pass of the non-developer 5-minute test, with a first-run aha (watch your AI get stopped) that produces a real artifact, not a tutorial. DEMAND EVIDENCE (8): Leash is the ONLY idea that explicitly quarantines the synthesis's unverified headline stats (the 34% / 47% / 22% figures, flagged as secondary-aggregator) and re-anchors urgency on a verifiable, dated forcing function \u2014 ISO's filed GenAI E&O exclusions (Jan 2026) plus vendor security questionnaires asking 'do you police your AI, show the audit trail.' That is a calendar-driven, dollar-consequence trigger, which is exactly the demand quality a VC underwrites. ASSET FIT (9): it maps the four governance primitives 1:1 onto verified on-disk machinery (posture=permission, the Thing=binding approval, Saga=audit trail, ragnarok=kill switch) \u2014 the highest-leverage reuse of the single asset almost no competitor has (a BINDING in-loop multi-seat verdict on a live action, not offline scoring).\n\nWhere it loses points and where Closebook beats it: DEFENSIBILITY (6 vs Closebook's 7). Every governance play sits in a 12\u201318mo window where Anthropic or Microsoft shipping a native guardrail panel commoditizes the category; the 'hardened tribunal took a year (T0\u2013T4)' moat is real but thinning. The honest catch Leash itself names \u2014 the Leash Certificate is NOT an accredited compliance artifact (revenue accrues to Schellman/BSI, not the prep tool) \u2014 caps its enterprise ceiling. Closebook's moat is more durable: it competes as governed *delivery* to companies too small to staff FP&A, where Microsoft's Finance-Agent-in-Excel is irrelevant, and it rides Matt's strongest unfair advantage \u2014 he IS a financial analyst in a Microsoft shop, so the finance wedge is his native habitat, not a market he must learn. Closebook also has the most viscerally-felt, pre-existing pain (month-end close burning 5\u201310 days) versus Leash's pain, which depends on an external party asking the question.\n\nThe two governance-binder ideas (Verdict, Aegis) tie at 53: same substrate, but Verdict's pre-action gateway adds latency/cost to every action with weaker buyer urgency, and Aegis's binder has a genuine coverage hole (rich logs for RavenClaude's own agents, thin-to-none for a customer's Copilot/ChatGPT) that undercuts its core visible promise to a sharp auditor. Forge (48) is the weakest as a *fundable single bet* \u2014 it's excellent consulting with a compounding tooling library, but the compounding thesis is asserted not measured, market education cost is high ('productized AI-ops consulting' isn't a search term), and value stays abstract to the buyer.\n\nEXECUTION-FIT for a solo founder + AI agents: Leash's $7.5k inspection on-ramp is solo-deliverable in days and funds a low-touch self-serve subscription, the only structure here that doesn't cap revenue at Matt's hours. Closebook's retainer model also fits 4\u20136 engagements/year but is higher-touch and slower to make unattended (the close engine running without a human is unproven). Both honestly flag the same binding constraint: solo capacity. The per-decision token/latency cost of an always-on multi-seat panel (Leash/Verdict) is a genuine unit-economics risk that needs a deterministic fast-path before promising a $99/mo price.",
+    "merge_suggestion": "Yes \u2014 a merge beats either single idea. Lead with CLOSEBOOK as the wedge and embed LEASH as its trust layer, sold as one product: an AI financial-close analyst where every number carries a 'show your work' lineage card AND the whole system runs on a visible, certifiable governance leash. This resolves the synthesis's central tension ('invisible machinery, visible evidence') better than either alone: the finance deliverable is the viscerally-felt reason-to-buy (month-end close pain, Matt's native-habitat credibility, the most durable moat), while the governance substrate \u2014 which is the genuinely rare, hard-to-copy asset \u2014 shows up exactly where a finance buyer wants it (under each figure as lineage; as a defensible audit trail for the SOC/lender/board). Crucially, the SAME verified substrate (Saga log + tribunal + posture) powers both, so it is one build, not two. Sequencing: Closebook earns the engagement and the cash (the demand is concrete and dated by fundraise/covenant/audit cycles), the embedded Leash layer battle-tests the governance IP on real, high-stakes financial data, and once 3+ engagements prove which decision categories recur, the governance layer can spin out as the standalone Leash/Verdict product \u2014 funded by consulting, exactly the documented consulting-first strategy. The merge hedges the 12\u201318mo governance-window risk (finance demand converts even if the standalone governance window closes) while still building toward the highest-asset-leverage product. Do NOT merge in Forge or Aegis \u2014 Forge's compounding belongs as the internal delivery method under any of these, not a sellable product, and Aegis's binder is just Leash's receipt feature without the live-stop that makes it credible."
+  },
+  {
+    "scores": [
+      {
+        "idea_name": "Verdict \u2014 the AI Decision Log for regulated teams",
+        "value": 8,
+        "demand_evidence": 6,
+        "asset_fit": 9,
+        "simplicity": 6,
+        "defensibility": 6,
+        "total": 6.9
+      },
+      {
+        "idea_name": "Aegis \u2014 The AI Governance Binder",
+        "value": 7,
+        "demand_evidence": 7,
+        "asset_fit": 7,
+        "simplicity": 7,
+        "defensibility": 5,
+        "total": 6.7
+      },
+      {
+        "idea_name": "Closebook \u2014 AI financial-close & cash-visibility analyst",
+        "value": 8,
+        "demand_evidence": 8,
+        "asset_fit": 8,
+        "simplicity": 7,
+        "defensibility": 6,
+        "total": 7.5
+      },
+      {
+        "idea_name": "The Compounding Engagement: RavenClaude Forge",
+        "value": 7,
+        "demand_evidence": 6,
+        "asset_fit": 9,
+        "simplicity": 6,
+        "defensibility": 7,
+        "total": 6.8
+      },
+      {
+        "idea_name": "Leash \u2014 the safety inspection for AI you let touch your business",
+        "value": 8,
+        "demand_evidence": 7,
+        "asset_fit": 9,
+        "simplicity": 8,
+        "defensibility": 6,
+        "total": 7.7
+      }
+    ],
+    "top_pick": "Leash \u2014 the safety inspection for the AI you let touch your business",
+    "rationale": "As the delivery realist who just verified the disk: the assets all five ideas lean on are real (thing-decide.py is a live 25KB engine dated today; decision records carry question/context/high_blast/mode/per-seat verdict+confidence+injection_detected/timestamp; guard-destructive/web/recursive hooks exist; comfort-posture.yaml present; finance = 7 agents + 9 skills + 10 knowledge files; data-platform connector exists as a SKILL not a working integration). That last fact is the whole game.\\n\\nShortest verified-asset-to-revenue path: Leash and Verdict are nearly the same engine wearing different jackets, but Leash wins on the two double-weighted dimensions. Simplicity: Leash's surface (green/yellow/red light, 3-preset dropdown, a visible STOP, a one-page certificate, a red kill button) is the cleanest non-developer mapping of the tribunal+posture+log+ragnarok primitives \u2014 and crucially its first-run aha (ask the AI to delete your project, watch it get blocked) produces a real artifact in 5 minutes with zero ingestion. Verdict needs the customer's AI tools to call a gateway API, which is dev work the buyer can't do alone. Demand evidence: Leash anchors on a dated, nameable forcing function (insurer AI exclusions + vendor security questionnaires) rather than a vaguer 'governance policy' ask \u2014 though it correctly self-flags that the certificate is NOT an accredited artifact and that two synthesis stats are unverified, which is exactly the honesty bar this buyer (and Matt) demand.\\n\\nWhere the hidden build cost lives \u2014 and what breaks at the second customer:\\n- Verdict/Leash: the binding tribunal runs via claude -p seats. That means live model calls, per-decision latency and token cost on EVERY gated action. At a $99/mo tier the unit economics can invert. What breaks at customer #2 is the same thing that breaks at #1 scaled: an always-on multi-seat panel is too slow/expensive for a real action stream. Both need a deterministic fast-path (cheap rules for low-stakes, panel reserved for genuinely risky/irreversible actions) before any per-decision price is promised. The dispatch-evaluator/adaptive-classifier right-sizers partly exist but this is real cost modeling, not a weekend.\\n- Verdict/Aegis/Leash all inherit the SAME structural ceiling: the engine is single-tenant, file-on-disk, dogfooded on ONE repo. 'It works for us' is not 'it survives someone else's data.' True tamper-evidence (not just append-only files), multi-tenant isolation, and SSO are the real second-customer wall \u2014 and the data-platform RLS/JWT skills are guidance, not a shipped isolation layer.\\n- Closebook: the hidden cost is brutal and the synthesis under-prices it \u2014 the connector is a SKILL.md, not a QuickBooks/Xero integration. Chart-of-accounts mapping and messy SMB books eat more time than all the modeling combined. And a finance deliverable that mis-states a covenant calc is existential liability that no lineage card removes. Highest demand_evidence (the $25\u201350k finance wallet is the most viscerally validated buyer and Matt's native habitat), but the longest asset-to-first-dollar path because the ingestion layer doesn't exist yet.\\n- Aegis: thinnest moat (Vanta-class GRC adds an 'AI module' and the category commoditizes) and the binder risks documenting RavenClaude's framework rather than the customer's real agent behavior \u2014 the M365 Copilot log connector is the make-or-break and isn't built.\\n- Forge: best asset_fit (the /wrap \u2192 contribute-finding \u2192 FORGE flywheel is genuinely built and verified) but it's normal consulting unless the compounding is MEASURED, and the IP/confidentiality scrub from client work into reusable plugins is a behavioral norm, not an enforced gate \u2014 a real contractual hazard.\\n\\nLeash scores highest because it has the only 5-minute, zero-ingestion aha that exercises assets confirmed on disk today, the cleanest non-developer surface, and a dated forcing function \u2014 while being honest that the certificate isn't accredited and the per-decision economics need a fast-path.",
+    "merge_suggestion": "Yes \u2014 a merge beats any single idea. Verdict, Aegis, and Leash are three views of one product: a pre-action human-in-the-loop tribunal (the engine), the live status surface + kill switch (Leash's non-developer skin), and the exportable evidence binder mapped to insurer/vendor-questionnaire/NIST-AI-RMF language (Aegis's monetizable artifact). Ship as ONE thing: LAND with Leash's $7,500 fixed-scope 'Leash Inspection' (solo-deliverable in days, funded by the insurer/procurement trigger, exercises only verified-today assets and needs no customer-side dev work), where the deliverable IS Aegis's certificate/binder; EXPAND to the $99/$499 recurring subscription for the live status light + ongoing certificate regeneration (the renewal recurs annually). Keep Verdict's gateway-API integration as the PHASE-2 enterprise tier only after the file-on-disk engine has earned multi-tenant hardening from real revenue \u2014 do NOT lead with it, it's the dev-dependent path. Hold Closebook and Forge OUT of this merge: they target different wallets and would split a solo operator's bandwidth. The single highest-leverage build sequence is Leash-surface + Aegis-certificate on the Verdict-engine, with a deterministic fast-path added before any per-decision price is quoted."
+  }
+]

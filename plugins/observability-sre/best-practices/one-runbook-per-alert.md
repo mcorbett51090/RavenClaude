@@ -1,0 +1,3 @@
+# Every alert links to a runbook, or it isn't ready to fire
+
+An alert without a runbook hands the responder a problem and no procedure — diagnosis starts from zero at the worst possible time. The contract: each alert carries a link to a runbook that states the user impact, the first diagnostic step, the known mitigations, and the escalation path. Writing the runbook is also a design check — if you can't write down what a responder should *do*, the alert probably isn't actionable and shouldn't page (see: every page must be actionable). Keep runbooks beside the alert definition so they version together, and prune the step a responder always skips. A runbook that's stale is a trap; treat its accuracy as part of the alert's definition of done.

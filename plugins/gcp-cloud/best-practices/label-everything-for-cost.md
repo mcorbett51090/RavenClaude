@@ -1,0 +1,3 @@
+# Label everything for cost attribution from day one
+
+Apply consistent labels (owner, env, team, cost-center, app) to every billable resource and enforce required labels via org policy, so billing export to BigQuery can attribute spend to a team and a workload instead of a single unexplained total. Unlabeled spend is unattributable and therefore unmanageable — you can't ask an owner to fix a cost they can't be shown they own. Pair labels with budget alerts scoped by label and a billing-export dashboard, and stand it up before the estate grows, because retro-labeling hundreds of existing resources is the painful version of a habit that costs nothing if started early. FinOps in GCP begins with a labeling convention, not a quarterly invoice autopsy.

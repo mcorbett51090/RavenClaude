@@ -1,0 +1,3 @@
+# Put contracts on the models consumers depend on
+
+Enforce column names, types, and constraints with a model contract on every mart a dashboard, reverse-ETL sync, or downstream team consumes, so an upstream refactor fails the build instead of silently breaking a consumer. Without a contract, renaming a column or widening a type is a change you make freely and a breakage someone else discovers in production. Contracts cost you the discipline of declaring the public interface and treating a change to it as a versioned, communicated event — which is exactly the discipline a shared boundary deserves. Don't contract internal staging/intermediate models; reserve the ceremony for the surface others build on.

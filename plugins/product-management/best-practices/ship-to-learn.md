@@ -1,0 +1,3 @@
+# Ship the smallest thing that produces a learning
+
+Treat the first release of a bet as an experiment whose job is to generate evidence, not as the finished feature, so scope it down to the smallest slice that can move the target metric or falsify the hypothesis. A six-month build that reveals the assumption was wrong is six months of learning you could have bought in two weeks. Define the learning you're after and the metric that signals it before you ship, then ship narrow, instrument it, read the outcome, and decide to iterate, double down, or kill. This is not an excuse for shoddy work — the slice must be real enough to produce a trustworthy signal — but a build that can't tell you whether it worked is a bet placed with the lights off.

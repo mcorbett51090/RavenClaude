@@ -1,0 +1,3 @@
+# Be explicit about NULL semantics
+
+NULL is "unknown," not "empty" or "zero," and three-valued logic surprises people who forget it. `WHERE col = NULL` never matches (use `IS NULL`); `col NOT IN (subquery)` returns nothing if the subquery yields a single NULL; `COUNT(col)` skips NULLs while `COUNT(*)` doesn't; and a UNIQUE constraint treats multiple NULLs as distinct unless you say otherwise. Decide deliberately whether each column may be NULL and what it would mean — then default to `NOT NULL` with a sensible default, reserving NULL for genuinely-unknown values. Loose nullability spreads `COALESCE` and defensive checks through every query and turns aggregates into quiet wrong answers.

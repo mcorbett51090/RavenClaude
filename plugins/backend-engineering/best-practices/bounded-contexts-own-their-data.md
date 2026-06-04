@@ -1,0 +1,3 @@
+# A bounded context owns its data; no one reaches across
+
+Each module or service owns its tables and is the only thing that writes them; everyone else asks via its API or consumes its events — never by querying its database directly or sharing a write path. A shared database across "services" is a distributed monolith: you've paid for the network hop and partial failure while keeping the tight schema coupling that splitting was supposed to remove. The boundary that matters is data ownership, not the deployment unit — get that right inside a monolith first and a later extraction is a refactor, not a rescue. Cross-context reads that need another context's data go through its published interface, even when both live in the same process.

@@ -1,0 +1,3 @@
+# Detect drift on a cadence, before it surprises an apply
+
+Infrastructure drifts: someone fixes an incident in the console, an autoscaler changes a count, a sibling tool mutates a tag. Run a scheduled `terraform plan` (drift-detection mode in TFC, or a CI cron) so divergence between state and reality is surfaced as an alert, not discovered mid-emergency when the next real change `apply` proposes to revert a hand-fix and breaks prod. Decide the policy explicitly: codify the drift back into config, or import the out-of-band change — but never let a 'clean' plan be the first time you learn someone edited prod by hand. Frequent detection turns drift from a latent landmine into a small reconciliation chore.

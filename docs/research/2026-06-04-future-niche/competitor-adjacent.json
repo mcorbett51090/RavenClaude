@@ -1,0 +1,75 @@
+{
+  "summary": "Competitive map across RavenClaude's four candidate positions as of mid-2026.\n\n(a) \"Agent team in a box\" / multi-agent orchestration template \u2014 CROWDED and well-capitalized. Frameworks (LangGraph, CrewAI, AutoGen/AG2) plus no-code agent platforms (Relevance AI, Lindy, n8n, Beam AI, Dust) plus managed clouds (CrewAI AMP, LangGraph Platform). CrewAI claims 60% of Fortune 500 and 450M workflows/month; Cognition raised $1B at $26B. Low whitespace; RavenClaude's marketplace is not a runtime and can't out-build these.\n\n(b) AI-agent governance & guardrails \u2014 HOT and fragmenting, but bifurcated. The enterprise/runtime layer is filling fast (Galileo Agent Control, Maxim AI, Microsoft Agent Governance Toolkit, Okta/Strata/Astrix agent identity, Databricks Unity AI Gateway, Lasso). BUT the developer-agent-governance niche (governing Claude Code / Cursor / Copilot CLI in a small shop, non-developer-friendly) is thin: agentic-os (KbWen, OSS), Aperion Shield, MCP Governance \u2014 mostly nascent dev-centric OSS, no dashboards-for-non-devs. This is where RavenClaude's tribunal + comfort-posture + event substrate + Capability Grounding map almost 1:1. Best whitespace+fit combination.\n\n(c) Vertical AI copilots for finance/Power-Platform \u2014 CROWDED by incumbents Microsoft will own at the platform layer (Microsoft Finance Agent, Copilot Studio, Vena Copilot, Cube, Tellius). RavenClaude can't win the product, but its finance/Power-Platform plugins are credible delivery accelerators (feeds option d), not standalone products.\n\n(d) AI-readiness / agent-enablement consulting accelerator \u2014 MODERATELY crowded but fragmented; boutiques charge $15k\u2013$100k/project (Big Four $50k\u2013$500k+). Matches Matt's $25\u201350k model directly and his consulting-first direction. RavenClaude is a differentiated proof-of-craft accelerator here.\n\nRANKING \u2014 whitespace: (b dev-niche) > (d) > (c) > (a). Fit with verified assets: (b) \u2248 (d) > (c) > (a). Recommended posture: lead with (d) commercially (consulting front-door, RavenClaude as the accelerator/proof), and productize the (b) developer-governance niche as the differentiated IP that the consulting sells.",
+  "findings": [
+    {
+      "claim": "Multi-agent orchestration framework space is crowded and well-funded: LangGraph (free OSS + paid LangGraph Platform/LangSmith), CrewAI (MIT OSS + AMP enterprise, claims 60% of Fortune 500 and 450M workflows/month), AutoGen/AG2 (Microsoft, no subscription, run on Azure consumption).",
+      "evidence": "gurusup.com/blog/best-multi-agent-frameworks-2026 and dev.to LangGraph-vs-CrewAI-vs-AutoGen-2026: LangGraph graph-based with checkpointing; CrewAI MIT free + CrewAI+ Enterprise. aicloudbase.com/tool/crewai and toolworthy.ai/tool/crewai: 'trusted by 60% of the Fortune 500, processes over 450 million agentic workflows per month,' AMP Basic 50 execs/mo, Pro 100 execs/mo, Enterprise custom.",
+      "confidence": "verified"
+    },
+    {
+      "claim": "No-code 'agent team' platforms are the closest 'agent team in a box' analog and are commoditized on price: Relevance AI Pro $19/mo, Team $234/mo, Enterprise on request; Lindy Plus $49.99, Pro $99.99, Max $199.99/mo. Both pitch 'AI teammates' / 'digital assembly line'.",
+      "evidence": "relevanceai.com/pricing + costbench.com/software/ai-agent-platforms/relevance-ai (Free-$234/user). lindy.ai/pricing + cloudtalk.io/blog/lindy-ai-pricing (Plus/Pro/Max $49.99/$99.99/$199.99). Relevance positioned as multi-agent 'digital assembly line' per multimodal.dev and relevanceai.com.",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Cognition raised $1B at a $26B valuation in May 2026 (Devin coding agent ~$492M revenue) \u2014 signal of how much capital is chasing the autonomous-agent runtime space.",
+      "evidence": "techcrunch.com/2026/05/29 (Scott Wu) + winbuzzer.com/2026/05/30 'Cognition Raises $1B as Devin Revenue Nears $492M' + techtimes.com article 317354 '$26B Raise'.",
+      "confidence": "verified"
+    },
+    {
+      "claim": "AI-agent governance/guardrails is a fast-growing 2026 category structured around Permission, Approval, Audit Trail, Kill Switch \u2014 which maps almost exactly to RavenClaude's comfort-posture (permission), tribunal (approval/review gate), and event substrate (audit trail).",
+      "evidence": "querypie.com white-paper '...four core elements: Permission, Approval, Audit Trail, and Kill Switch'; atlan.com/know/ai-agent-risks-guardrails; getmaxim.ai 'best AI guardrails platforms 2026'; galileo.ai/blog/best-ai-agent-guardrails-solutions.",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Enterprise guardrails/observability layer is filling fast with funded players: Galileo Agent Control (open-source control plane, sub-200ms intervention, SOC2, VPC/on-prem/air-gapped), Maxim AI (Professional $29/seat/mo, open-source Bifrost gateway), Microsoft Agent Governance Toolkit (OSS, covers OWASP Agentic Top 10), Databricks Unity AI Gateway.",
+      "evidence": "thenewstack.io/galileo-agent-control-open-source + finance.yahoo.com 'Galileo Releases Open Source AI Agent Control Plane'; getmaxim.ai pricing (Pro $29/seat/mo) + Bifrost gateway; opensource.microsoft.com/blog/2026/04/02 + github.com/microsoft/agent-governance-toolkit ('Covers 10/10 OWASP Agentic Top 10'); databricks.com/blog/ai-gateway-governance-layer-agentic-ai.",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Agent IDENTITY is becoming its own enterprise sub-category (Okta for AI Agents, Strata Maverics, Astrix Security reportedly pursued by Cisco $250M+); only 18% of security leaders confident their identity systems handle agents. Adjacent to but distinct from RavenClaude's in-loop review/permission approach.",
+      "evidence": "okta.com/newsroom AI Agents at Work 2026; strata.io/blog agentic-identity; siliconangle.com/2026/03/27 RSAC26 agent identity priority; search result noting Astrix Security '$250M+' Cisco pursuit (single-source).",
+      "confidence": "likely"
+    },
+    {
+      "claim": "The DEVELOPER-agent-governance niche (governing Claude Code / Cursor / Copilot CLI specifically) is thin and mostly nascent OSS: agentic-os (KbWen \u2014 'governance-first OS for AI coding agents,' delivery gates + guardrails + 14 skills for Claude Code/Cursor/Copilot/Codex), Aperion Shield (wraps MCP transport, tested on 13,000 Cursor commands), MCP Governance (rules enforced in Cursor/Claude Code). None lead with a non-developer dashboard.",
+      "evidence": "github.com/KbWen/agentic-os (description verbatim); dev.to/jagmarques '5 open source tools for AI agent governance in 2026'; Zapier/SDTimes coverage of Aperion Shield ('98.4% of 13,000 Cursor commands pass straight through') and MCP Governance.",
+      "confidence": "likely"
+    },
+    {
+      "claim": "Vertical finance copilots are dominated by platform incumbents: Microsoft Finance Agent (surfaces in Excel/Outlook/M365 Copilot, reconciliation), Vena Copilot (FP&A on CubeFLEX, acquired Acterys Feb 2026, 60% budget-cycle reduction in Planning Agent beta), Cube, Tellius. M365 Copilot $21-30/user/mo; vertical SKUs ~$50/user.",
+      "evidence": "learn.microsoft.com/copilot/finance/welcome (Finance Agent in Excel/Outlook); tellius.com '14 Best AI Tools for Finance Teams 2026' + cubesoftware.com 'best FP&A AI agents' (Vena/Acterys); microsoft.com/microsoft-365-copilot/pricing + eesel.ai/blog/copilot-pricing ($18-30, vertical $50).",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Boutique agentic-AI consultancies charge $15k-$100k per project; Big Four AI engagements $50k-$500k+. They differentiate on speed (PoC in ~2 weeks), industry accelerators, and reference architectures \u2014 exactly Matt's $25-50k / 4-6-engagements-a-year model.",
+      "evidence": "neurons-lab.com/article/ai-agent-development-services + neurons-lab.com/articles/top-ai-consulting-firms ('Deeper Insights or LeewayHertz typically charge $15,000 to $100,000 per project'; Big Four '$50,000 to $500,000+'; PoC 'in as little as two weeks').",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Microsoft is actively funding partner-led AI enablement (Copilot + Power Accelerate engagements, App Accelerate, Frontier Engineer Badge) \u2014 a tailwind for a Power-Platform-credible consulting accelerator, but also means Microsoft partners are the competitive field for option (d) in the Power Platform vertical.",
+      "evidence": "learn.microsoft.com/partner-center/announcements/2026-april; blogs.microsoft.com/blog/2026/04/21 'Accelerating Frontier Transformation with Microsoft partners'; rcpmag.com/2026/04/22 partner-program shift to AI at scale.",
+      "confidence": "verified"
+    },
+    {
+      "claim": "Only ~47% of organizations actively monitor AI agents and only ~22% treat agents as distinct monitored entities (2026 Gravitee report) \u2014 demand for governance exists but adoption/tooling maturity is low, i.e. real whitespace below the enterprise tier.",
+      "evidence": "Search synthesis of getmaxim.ai/futureagi.com/galileo.ai guardrails articles citing '2026 Gravitee.io report' (47.1% monitor, 21.9% treat agents as distinct entities). Underlying report not directly fetched.",
+      "confidence": "unverified"
+    }
+  ],
+  "opportunities": [
+    "Own the 'governance & guardrails for the AI coding agents non-developers actually run (Claude Code, Copilot CLI)' niche \u2014 RavenClaude's tribunal (review gates), comfort-posture (permission management via dashboard), event substrate (JSONL audit + perimeter alarms), and Capability Grounding map 1:1 onto the Permission/Approval/Audit-Trail/Kill-Switch governance taxonomy; the existing competitors there (agentic-os, Aperion Shield, MCP Governance) are dev-centric OSS with no non-developer dashboard, so RavenClaude's 'dashboards over CLI, plain language' constraint is a differentiator, not a limitation.",
+    "Lead commercially with option (d): position RavenClaude as a proof-of-craft consulting accelerator at $25-50k/engagement, undercutting Big Four ($50k-$500k+) and matching boutique pricing, with the verified self-building repo as the demo no slide-deck consultancy can match.",
+    "Bundle the finance/Power-Platform plugins as vertical delivery accelerators INSIDE consulting engagements (feeding d) rather than as standalone copilots that would lose to Microsoft Finance Agent / Vena.",
+    "Borrow the enterprise category's own language \u2014 map RavenClaude features to OWASP Agentic Top 10 and the Permission/Approval/Audit/Kill-Switch frame \u2014 to make the governance story legible to buyers already being sold by Galileo/Microsoft, while pricing and packaging for the underserved small-shop / non-developer segment those vendors ignore.",
+    "Exploit the cross-platform asset (works under Claude Code AND Copilot CLI) \u2014 Aperion Shield / MCP-governance tout 'governs any MCP agent'; RavenClaude can claim governance + enablement that follows the user across the two agent CLIs a small shop is most likely to adopt."
+  ],
+  "threats": [
+    "Microsoft Agent Governance Toolkit is free OSS and covers 10/10 OWASP Agentic Top 10 \u2014 a non-developer Microsoft shop may accept 'the Microsoft answer' by default, commoditizing the governance story and squeezing a Power-Platform-adjacent positioning.",
+    "Galileo Agent Control and Maxim ship open-source guardrails/control-plane tiers \u2014 free-OSS competition at the runtime layer can anchor buyer expectations to $0 for the enforcement primitive, leaving RavenClaude to monetize only the consulting/dashboard wrapper.",
+    "Option (a) is a capital arms race (Cognition $1B/$26B; CrewAI Fortune-500 scale) RavenClaude cannot and should not enter as a runtime \u2014 risk is being miscategorized as 'another agent platform' and dismissed.",
+    "Vertical finance copilots are being absorbed into the Microsoft/Vena platform layer (Finance Agent in Excel, Vena+Acterys) \u2014 a standalone finance copilot from RavenClaude would be a feature, not a product.",
+    "The developer-governance niche, while thin today, is exactly where well-funded identity (Okta/Strata/Astrix) and observability (Galileo) players are expanding downward; the whitespace window for a solo builder may be 12-18 months before consolidation.",
+    "Solo-founder capacity (4-6 engagements/year) caps the consulting-led model; any productized governance offering must be low-touch/self-serve to scale beyond Matt's hours \u2014 a build-vs-deliver tension to manage."
+  ]
+}

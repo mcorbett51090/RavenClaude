@@ -1,0 +1,3 @@
+# Put guardrail metrics on every experiment
+
+A primary metric measures whether the change won; guardrail metrics catch whether it won by breaking something you care about more. Every experiment ships with a small set of guardrails — latency, error rate, crash-free sessions, revenue, unsubscribe rate, core-engagement — that must not regress, and a primary win that trips a guardrail is not a win, it's a trade the business has to decide on consciously. Wire the guardrails into the readout so they're impossible to ignore, and let some of them halt a rollout automatically. Without guardrails an experiment optimizes its one number in a vacuum and you discover the collateral damage in the incident channel, not the experiment report.

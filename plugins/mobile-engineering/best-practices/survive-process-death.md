@@ -1,0 +1,3 @@
+# Survive process death, not just backgrounding
+
+The OS can kill your backgrounded process at any moment and later restore the user to the exact screen they left — to them the app never closed. So transient in-memory state is not enough: persist the navigation stack and essential UI state (the in-progress form, the scroll position, the selected item) to saved-instance-state / scene restoration, and rebuild from it on relaunch. Test this deliberately — Android's "Don't keep activities" and iOS's terminate-and-relaunch — because it almost never reproduces in a debugger where the process stays alive. An app that loses a half-filled form or dumps the user on the home screen after a background memory reclaim feels broken even though no code crashed.

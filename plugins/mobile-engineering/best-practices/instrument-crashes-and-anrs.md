@@ -1,0 +1,3 @@
+# Instrument crashes and ANRs from day one
+
+You cannot see your users' devices, OS versions, or network conditions, so without crash and ANR reporting you are blind to the failures that matter most — and field crashes rarely reproduce on the developer's pristine flagship. Wire a crash reporter (Crashlytics, Sentry, or the platform's own) before launch, upload symbolication/dSYM files so stack traces are readable, and watch crash-free-session rate as a release gate. Capture ANRs/hangs and OOM terminations too, not just exceptions, and attach enough breadcrumbs (screen, last action) to make a trace actionable without PII. Shipping without crash reporting means your only signal that a release is broken is a wave of one-star reviews days later.

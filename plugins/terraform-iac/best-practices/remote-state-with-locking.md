@@ -1,0 +1,3 @@
+# Remote state with locking is non-negotiable
+
+Local state on a laptop is a single point of failure and a guaranteed conflict the moment a second person or a pipeline runs `apply`. Use a remote backend (S3+DynamoDB lock, GCS, azurerm, or Terraform/Tofu Cloud) that gives you state locking, versioning, and access control from day one. Locking serializes concurrent applies so two runs can't corrupt the state or race the same resource; versioning lets you roll back a botched state mutation. Never disable the lock to 'unblock' a run — a stuck lock means investigate, not `force-unlock` reflexively. State is the source of truth for what exists; treat it with the same care as the infrastructure it describes.

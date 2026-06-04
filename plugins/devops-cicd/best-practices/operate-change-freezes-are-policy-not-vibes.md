@@ -1,0 +1,3 @@
+# Make change windows explicit policy, with a named exception path
+
+A deploy freeze that lives in someone's head produces both unsafe shipping (people forget) and unsafe heroics (people override it under pressure). Encode the freeze as policy the pipeline enforces — a required check that fails during the window, keyed to a calendar of known high-risk periods (peak traffic events, on-call gaps, regulatory blackouts). Critically, pair every freeze with a documented, low-friction exception path for genuine emergencies: a freeze with no break-glass procedure guarantees someone bypasses the whole control the first time prod is on fire. The goal is to make the safe default automatic and the override deliberate, attributable, and rare — not to make shipping impossible.

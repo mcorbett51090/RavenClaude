@@ -1,0 +1,29 @@
+{
+  "name": "backend-engineering",
+  "version": "0.2.0",
+  "description": "Backend-engineering team \u2014 4 agents (backend-architect, service-implementation-engineer, backend-data-access-engineer, backend-reliability-engineer) for the application/service layer behind an API: domain modeling and service boundaries (monolith vs services, where to split), business-logic implementation and error handling, the data-access layer (repository pattern, ORM use, transaction boundaries, killing N+1), caching strategy (cache-aside, invalidation, stampede), background jobs and async messaging (idempotent workers, outbox, DLQs), and backend reliability (timeouts, retries with backoff + jitter, circuit breakers, graceful degradation). Language-agnostic (examples in Node/Python/Go). 4 skills, a decision-tree knowledge bank (service-boundary + cache trees + a dated map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: the contract -> api-engineering, the schema/index -> database-engineering, deploy -> devops-cicd. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "backend",
+    "services",
+    "domain-modeling",
+    "microservices",
+    "caching",
+    "background-jobs",
+    "message-queue",
+    "outbox",
+    "idempotency",
+    "retries",
+    "circuit-breaker",
+    "repository-pattern",
+    "n-plus-1",
+    "resilience"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

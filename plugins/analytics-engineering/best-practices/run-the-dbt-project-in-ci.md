@@ -1,0 +1,3 @@
+# Run the whole dbt project in CI on every PR
+
+Every pull request should build and test the changed models (and their downstream dependents) against a CI warehouse using slim/state-deferred runs, so a broken `ref`, a failing test, or a contract violation blocks the merge instead of reaching production. A dbt project that only runs on the production schedule treats production as its test environment, and the first signal of a regression is a failed nightly run or a wrong dashboard. CI on the project — compile, build the modified subgraph, run tests, check contracts — is the same gate application code gets, and it is the difference between catching a mistake in review and explaining it in a postmortem.

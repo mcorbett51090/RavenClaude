@@ -1,0 +1,3 @@
+# Gate the build on source freshness
+
+Assert how recently each source loaded and stop the build when a source is stale, rather than silently transforming yesterday's extract into today's marts. A pipeline that runs on schedule regardless of whether ingestion succeeded will cheerfully serve a partial or stale snapshot as if it were complete, and the gap surfaces as a stakeholder noticing flat numbers days later. Freshness is the boundary check between the lane you don't own (ingestion) and the one you do: if upstream hasn't delivered, fail loudly with a freshness error instead of producing a confidently wrong result downstream.

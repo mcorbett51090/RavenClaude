@@ -1,0 +1,3 @@
+# Keep work off the main thread
+
+The main/UI thread renders frames every ~16ms (at 60Hz, less on 120Hz displays) and processes touch; anything that blocks it — JSON parsing, disk or database I/O, image decode, a synchronous network call, heavy layout — drops frames as jank and, past a few seconds, triggers an ANR or a watchdog kill. Do all I/O and computation on background queues/coroutines/isolates and hop back to the main thread only to publish results into UI state. Decode and resize images off-thread, page large lists, and never touch the network or disk synchronously from a tap handler. A "fast" app is one that never makes the main thread wait — measure with the platform profiler, because the jank that ships is the work you assumed was cheap.

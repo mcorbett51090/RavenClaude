@@ -1,0 +1,3 @@
+# Give the Terraform runner least privilege, not admin
+
+The identity that runs `apply` in CI is one of the most powerful credentials you own — it can create and destroy anything in its scope. Don't hand it standing admin. Use short-lived, federated credentials (OIDC to the cloud, no long-lived keys), scope the role to exactly the services that state manages, and isolate runner identities per state/blast-radius so a compromised app pipeline can't touch the network or data layer. Separate plan (read-only) from apply (write) where the platform allows, so a pull-request plan can't mutate anything. The blast radius of a leaked CI credential equals the runner's permissions — make that set as small as the infrastructure requires and no larger.

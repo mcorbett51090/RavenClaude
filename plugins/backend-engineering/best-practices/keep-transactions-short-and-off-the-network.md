@@ -1,0 +1,3 @@
+# Keep transactions short and never span the network
+
+A database transaction holds locks and a connection for its entire lifetime, so it must do the minimum and commit fast. Never open a transaction and then call an external API, enqueue to a broker, or await user input inside it — a slow third party now holds your locks, bloats the database, and exhausts the pool while every contending writer waits. Do the external work before or after the transaction, and use the outbox pattern when a commit must reliably trigger a downstream effect. Read-modify-write that spans an HTTP round trip is the classic foot-gun: pull the data, do the remote work, then open a short transaction to persist — or accept the lost-update race you just created.

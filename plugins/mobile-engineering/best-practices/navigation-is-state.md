@@ -1,0 +1,3 @@
+# Treat navigation as state, not imperative pushes
+
+Where the user is should be derivable data — a typed route/back-stack the UI renders — not the side effect of scattered imperative `push`/`present` calls. State-driven navigation makes deep links, restore-after-process-death, and conditional flows (auth gate, onboarding) fall out naturally: you reconstruct the stack from the route, you don't replay a sequence of pushes. Imperative navigation leaks across screens, produces inconsistent back-stacks, and makes "open the app directly on this detail page" a special case instead of just setting the route. Model the navigation graph explicitly, drive it from state, and let deep links and restoration be the same code path that ordinary navigation already uses.

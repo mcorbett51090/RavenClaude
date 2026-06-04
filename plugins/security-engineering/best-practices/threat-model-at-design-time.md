@@ -1,0 +1,3 @@
+# Threat-model while the design is still cheap to change
+
+The cheapest mitigation is one drawn on the whiteboard before code exists, because the response can be "change the architecture" instead of "bolt on a control." Threat-model at design time: draw the data flows, mark the trust boundaries, and walk each boundary crossing for what could go wrong (STRIDE per element is a fine checklist). The output is a small set of high-impact threats each mapped to a mitigation *or* an explicitly accepted-and-signed-off risk — not a 200-line list nobody reads. Re-model on material change (a new integration, a new data class, a new trust boundary), not on a calendar. A threat model that's done once at launch and never revisited describes a system that no longer exists.

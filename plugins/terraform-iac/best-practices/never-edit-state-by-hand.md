@@ -1,0 +1,3 @@
+# Never hand-edit state; use the state subcommands with a backup
+
+When state and reality diverge, the fix is `terraform import`, `state mv`, `state rm`, or `terraform plan -replace` — never opening the JSON and editing it. A hand-edit silently corrupts the dependency graph, breaks resource addressing, and leaves a state that plans cleanly today and detonates next week. Before any state surgery, snapshot the state (the versioned backend gives you this) so you can roll back, run the operation, then prove parity with a clean `plan`. State mutation is the most dangerous operation in Terraform precisely because it's invisible to the plan/apply review — treat every `state` subcommand as a reviewed change with a restore path, not a quick local fixup.

@@ -1,0 +1,29 @@
+{
+  "name": "data-governance-privacy",
+  "version": "0.2.0",
+  "description": "Data governance & privacy team \u2014 3 agents (data-governance-architect, privacy-compliance-engineer, data-catalog-lineage-engineer) for making data discoverable, trustworthy, and lawfully used: the governance operating model (ownership/stewardship, policies, classification scheme), privacy mechanics (GDPR/CCPA/-style data-subject rights \u2014 access/erasure/portability, consent + lawful basis, data minimization, retention, pseudonymization vs anonymization), and a data catalog with lineage + sensitive-data/PII discovery + access governance/DLP. The ENGINEERING of governance, not legal advice. 3 skills, a decision-tree knowledge bank (classification + DSR-handling trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: financial-regulatory -> regulatory-compliance, warehouse RLS -> data-platform, Purview-in-Fabric -> microsoft-fabric, security verdicts -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "data-governance",
+    "data-privacy",
+    "gdpr",
+    "ccpa",
+    "pii",
+    "data-catalog",
+    "data-lineage",
+    "data-classification",
+    "consent",
+    "data-minimization",
+    "retention",
+    "dlp",
+    "data-subject-rights",
+    "stewardship"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
