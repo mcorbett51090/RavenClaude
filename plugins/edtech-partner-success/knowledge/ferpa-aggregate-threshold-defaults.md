@@ -6,6 +6,8 @@ refresh_triggers:
   - A state passes/amends a small-cell threshold rule that supersedes the LEA default
   - A new enforcement action (FTC, NYSED, IL AG) reshapes the aggregate-vs-PII line
   - A partner reports an actual small-cell incident — capture as a worked example
+  - Naviance final settlement hearing Jun 10 2026 — re-read if class-period extends or new tools added to named-product list
+  - DOE FERPA rulemaking publication
 audience: [psm, analyst, dashboard-builder, security-reviewer]
 status: field guidance — NOT legal advice
 sources:
@@ -236,6 +238,18 @@ grep -rniE 'improve (the|our) (service|product|model|platform)' plugins/edtech-p
 ```
 
 Each pattern pairs with a `tests/fixtures/gate-60/bad-*` and `tests/fixtures/gate-60/good-*` per the existing audit-gates discipline.
+
+---
+
+## 7a. 2026 enforcement context note (added 2026-06-04)
+
+The defaults above remain correct as published; nothing in the PTAC stance has changed, and the NCHS / CDC WONDER cross-walk is still authoritative. What *has* changed is the **enforcement environment around them**:
+
+- The **Illuminate Education $5.1M multistate settlement (Nov 12, 2025)** is the first enforcement under **CA KOPIPA** and **CT student-data law**, plus a second enforcement under **NY § 2-d**. The lesson for aggregation-threshold work: small-cell incidents *do* now reach state AGs in NY+CA+CT, even where no FERPA DOE complaint has been filed.
+- The **CDE FERPA finding (Jan 28, 2026)** is the first written notice of findings progressed to that stage in the FERPA enforcement process. FERPA enforcement is back on; defaults that quietly relied on "FERPA never enforces" need a posture refresh.
+- The **PowerSchool Naviance $17.25M class settlement (Feb 2026 preliminary; Jun 10, 2026 final hearing)** is a *wiretapping / unauthorized-disclosure* matter, not a breach matter — proving the "no breach = no FERPA exposure" assumption false. A widget that surfaces what students wrote to staff (even at aggregate) without DPA-disclosed expectation-of-monitoring trips this surface.
+
+**The threshold *what* hasn't changed; the threshold *who-enforces* has.** Cross-reference [`edtech-enforcement-precedents-2025-2026.md`](./edtech-enforcement-precedents-2025-2026.md) for the six-theory map and PSM playbook.
 
 ---
 

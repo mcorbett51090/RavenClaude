@@ -110,6 +110,31 @@ Renewal closes; the year-2 success plan must already be drafted (deliver it befo
 
 ---
 
+## 5a. 2026 refresh — tool-rationalization overlay (added 2026-06-04)
+
+Three 2026 environmental shifts change what to lead with in the 90/60/30 windows:
+
+**90-day window (renewal motion start) — tool-rationalization framing:**
+- Districts are operating under cost-first cut-keep decisions (71% per EdWeek Market Brief 2026). `[verify-at-use]`
+- **Lead with ESSA evidence + cost-of-cutover (switching cost) + ease-of-use evidence**, not feature roadmap.
+- See [`essa-evidence-tier-as-renewal-asset.md`](./essa-evidence-tier-as-renewal-asset.md) for the ESSA framing.
+
+**60-day window — Garland HS pattern:**
+- If usage data trails the cohort for >1 semester, the 60-day window is the **last credible window to surface a recoverable-vs-not signal.** After 60 days, the district has typically already decided.
+- Garland HS canonical case: district switched off Nearpod after a year of low usage onto Pear Deck — the 2026-era "tool consolidation by displacement" pattern.
+
+**30-day window — CBT-readiness checkpoint for NY districts:**
+- Spring 2026 NY mandatory CBT for grades 3-8 sharpens the 30-day flag for assessment / rostering / LMS / SSO vendors.
+- See [`cbt-readiness-checkpoint-spring.md`](./cbt-readiness-checkpoint-spring.md) for the per-week pre-window cadence.
+
+**Cross-cutting — PE-owned vendor caveat:**
+- PowerSchool (Bain), Instructure (KKR), Renaissance (H&F), Imagine Learning (active roll-up) are all PE-owned by 2026. The renewal motion should **not promise pricing flexibility the deal desk won't honor.**
+- See [`pe-ownership-effect-on-renewal-posture.md`](./pe-ownership-effect-on-renewal-posture.md).
+
+`[verify-at-use — 2026-06-04 — EdWeek Market Brief 2026 + CoSN 2026 + SETDA 2026]`
+
+---
+
 ## 6. References
 
 - [`renewal-pricing-conversations-edtech.md`](renewal-pricing-conversations-edtech.md) — the 120-180-day K-12 clock + multi-year + state-law-re-trigger

@@ -228,6 +228,43 @@ The plugin's Capability Grounding Protocol convention ([`../CLAUDE.md`](../CLAUD
 
 ---
 
+## 11a. Naviance-pattern silent-monitoring anti-pattern (added 2026-06-04)
+
+The **PowerSchool / Naviance class settlement** ($17.25M preliminary-approved Feb 27, 2026; final hearing Jun 10, 2026) introduces a litigation surface that is **distinct from breach**: alleged secret recording of student↔counselor communications and transmission to third-party analytics. No data exfiltration. No credential compromise. The product simply did what its DPA didn't disclose.
+
+**For dashboard design, this is a hard-stop anti-pattern:**
+
+> A widget that surfaces *what students wrote to counselors or teachers* — even at aggregate level — without an explicit DPA-disclosed expectation-of-monitoring and a parent opt-in trips the wiretapping theory underlying the $17.25M class settlement.
+
+**The dashboard's STOP-needs-counsel leaf must not assume "no breach = no FERPA exposure."** Specific widget patterns to flag for legal review:
+
+- Sentiment summary of student-staff conversations (even k≥10 aggregates).
+- Topic clusters mined from counselor session notes.
+- Browser-session recording surfaced as PSM-side telemetry.
+- Voice-to-text transcripts from student-facing tutoring features.
+- Any "what are students worried about" aggregation drawn from in-product chat / messaging surfaces.
+
+**Co-defendant exposure:** the Naviance case names *both* the vendor and the district (CPS). DPA indemnification clauses that read "we'll hold the district harmless on breach" don't cover wiretapping theory. The DPA must explicitly disclose monitoring surface and bind the LEA to a parent-notification framework.
+
+Cross-reference [`edtech-enforcement-precedents-2025-2026.md`](./edtech-enforcement-precedents-2025-2026.md) Theory 3 for the full playbook.
+
+---
+
+## 11b. 2026 enforcement context — updated 2026-06-04
+
+Replace prior 2024-2025 enforcement context. The current canonical reference set:
+
+| Precedent | Theory | Why dashboard-relevant |
+|---|---|---|
+| **Illuminate $5.1M (Nov 12, 2025)** | Multistate AG breach (CA KOPIPA + CT student-data + NY § 2-d) | Small-cell incidents reach AGs in NY+CA+CT cluster. Dashboard breach posture must assume multistate exposure. |
+| **PowerSchool Dec 2024 breach** (Track One MTD denied Mar 18, 2026) | Credential-compromise breach | Single point of failure (no MFA on support portal) + 4-month attacker dwell. Dashboard subprocessor audit must include MFA + dwell-time disclosure. |
+| **PowerSchool Naviance $17.25M class settlement** (Feb 27, 2026 preliminary) | Wiretapping / silent monitoring | **No breach** — product captured expected-private communications. Dashboard surfaces that touch student-staff content must DPA-disclose and parent-opt-in. |
+| **CDE FERPA finding (Jan 28, 2026)** | First written notice of findings in FERPA enforcement | DOE direct enforcement is back on. Dashboard defaults that quietly rely on "FERPA never enforces" need a posture refresh. |
+
+`[verify-at-use — 2026-06-04 — source dates and amounts]`
+
+---
+
 ## 12. References (existing plugin artifacts)
 
 - [`parent-comms-jurisdictional-bear-traps.md`](parent-comms-jurisdictional-bear-traps.md) — the FERPA three-bucket model + state-by-state typology (CA, IL, NY, CT, CO, TX, VA, WA, UT, FL); the natural parent of this dashboard-specific gate.
@@ -237,4 +274,6 @@ The plugin's Capability Grounding Protocol convention ([`../CLAUDE.md`](../CLAUD
 - [`../CLAUDE.md`](../CLAUDE.md) §2 routing rule "Anything touching student-level PII, IEP / 504 data, or FERPA records → mandatory `ravenclaude-core` `security-reviewer`."
 - [`../agents/ferpa-comms-translator.md`](../agents/ferpa-comms-translator.md) — the existing FERPA-aware comms agent; this document complements its remit on the dashboard surface.
 - [`edtech-segment-fundamentals.md`](edtech-segment-fundamentals.md) — segment-level regulation context (HECVAT, COPPA, state laws).
+- [`edtech-enforcement-precedents-2025-2026.md`](edtech-enforcement-precedents-2025-2026.md) — six-theory map (Illuminate, PowerSchool, Naviance, CDE, Edmodo/IXL, CAADCA) with PSM playbook.
+- [`coppa-2025-amendment-edtech-implications.md`](coppa-2025-amendment-edtech-implications.md) — Apr 22 2026 full-compliance deadline implications for K-5 vendor evaluation.
 - [`../../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md) — the convention §7's Mermaid tree follows.

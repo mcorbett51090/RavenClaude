@@ -1,0 +1,15 @@
+{
+  "page": "ColumnMisaligned",
+  "width": 1280,
+  "height": 720,
+  "visuals": [
+    {
+      "id": "top",
+      "position": { "x": 24, "y": 80, "width": 296, "height": 280 }
+    },
+    {
+      "id": "bottom",
+      "position": { "x": 80, "y": 400, "width": 296, "height": 280 }
+    }
+  ]
+}
