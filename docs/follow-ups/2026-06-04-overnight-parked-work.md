@@ -76,7 +76,7 @@ forgotten task.** This file gives each one its trigger.
 
 ---
 
-## 3. Unified-dashboard-shell Phase 3 — visual-regression DoD
+## 3. ~~Unified-dashboard-shell Phase 3 — visual-regression DoD~~ — DONE 2026-06-04
 
 **Plan:** [`docs/plans/2026-06-04-unified-dashboard-shell/plan.md`](../plans/2026-06-04-unified-dashboard-shell/plan.md) §Phase 3.
 
@@ -89,6 +89,8 @@ forgotten task.** This file gives each one its trigger.
 **Action:** open each surface, eyeball-compare against the standalone, fix any visual drift in `index.html` or the iframe sizing rules. Document the result in a 5-line `docs/best-practices/dashboard-visual-regression.md` so the next person doesn't have to re-derive the comparison set.
 
 **Re-check by:** **no urgency.** If no one notices a visual problem in a month of use, the manual VR was de facto fine.
+
+**Resolved 2026-06-04:** all 4 surfaces PASS — run with headless Chrome (puppeteer-core + the Codespace's cached Chrome 148), not a human eyeball. Save & apply verified visible in-shell via DOM check. One noted nit (65px outer scroll on mobile, within tolerance). Comparison set + re-run recipe captured in [`docs/best-practices/dashboard-visual-regression.md`](../best-practices/dashboard-visual-regression.md).
 
 ---
 
