@@ -135,7 +135,7 @@ Deselect:
 
 ## Worked example (filled — delete before shipping)
 
-> AI-instructions block for a fictional partner-revenue model, to show the altitude:
+> For a **complete, all-four-layers-filled** instance (AI instructions + descriptions + verified answers + schema deselect + validation prompts) for one representative model, see the companion [`power-bi-copilot-readiness-worked-example.md`](power-bi-copilot-readiness-worked-example.md). The condensed AI-instructions-only block below shows the altitude for a fictional partner-revenue model:
 
 ```text
 PURPOSE
