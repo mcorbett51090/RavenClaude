@@ -82,18 +82,18 @@ models:
       - name: band
         data_tests:
           - not_null
-          - accepted_values: { values: ['green', 'yellow', 'red'] }
+          - accepted_values: { values: ["green", "yellow", "red"] }
       - name: lifecycle_phase
         data_tests:
           - not_null
-          - accepted_values: { values: ['deployment', 'boi', 'moi', 'renewal'] }
+          - accepted_values: { values: ["deployment", "boi", "moi", "renewal"] }
       - name: lifecycle_substage
         data_tests:
           - not_null
       - name: cadence_tier
         data_tests:
           - accepted_values:
-              values: ['weekly', 'bi_weekly', 'monthly', 'bi_monthly', 'quarterly', 'bi_annual']
+              values: ["weekly", "bi_weekly", "monthly", "bi_monthly", "quarterly", "bi_annual"]
       - name: funding_source
         data_tests:
           - accepted_values:
@@ -132,7 +132,7 @@ models:
       - name: source
         data_tests:
           - accepted_values:
-              values: ['salesforce', 'planhat', 'support', 'snowflake', 'calendar', 'manual']
+              values: ["salesforce", "planhat", "support", "snowflake", "calendar", "manual"]
       - name: source_ref
         description: Opaque URI. v3-tightened regex — no `://` past scheme, no `.` in body.
         data_tests:

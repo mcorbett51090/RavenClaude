@@ -20,20 +20,20 @@
 #   - Introduce third-party dbt packages beyond dbt-utils (consumer-env debt).
 # =====================================================================
 
-name: 'psm_dashboard'
-version: '0.1.0'
+name: "psm_dashboard"
+version: "0.1.0"
 config-version: 2
 
-profile: 'psm_dashboard'
+profile: "psm_dashboard"
 
 # ---------------------------------------------------------------------
 # Path config — 3-layer + snapshots + seeds.
 # ---------------------------------------------------------------------
-model-paths:   ["models"]
+model-paths: ["models"]
 analysis-paths: ["analyses"]
-test-paths:    ["tests"]
-seed-paths:    ["seeds"]
-macro-paths:   ["macros"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
 
 clean-targets:
@@ -57,7 +57,7 @@ vars:
   splink_t3_probabilistic_min: 0.70
 
   # Tier 0 single-tenant org_uid (UUIDv4). Codex overrides per-engagement.
-  org_uid: '11111111-2222-4333-8444-555555555555'
+  org_uid: "11111111-2222-4333-8444-555555555555"
 
 # ---------------------------------------------------------------------
 # Per-model defaults. Materialization is set HERE (project-level) so a
@@ -72,25 +72,25 @@ models:
     staging:
       +materialized: view
       +schema: staging
-      +tags: ['staging', 'layer:staging']
+      +tags: ["staging", "layer:staging"]
 
     intermediate:
       +materialized: ephemeral
       +schema: intermediate
-      +tags: ['intermediate', 'layer:intermediate']
+      +tags: ["intermediate", "layer:intermediate"]
 
     marts:
       +materialized: dynamic_table
-      +target_lag: "15 minutes"   # cost/freshness sweet spot per § TL;DR
+      +target_lag: "15 minutes" # cost/freshness sweet spot per § TL;DR
       +snowflake_warehouse: WH_DBT_TRANSFORM
       +on_configuration_change: apply
       +schema: marts
-      +tags: ['marts', 'layer:marts']
+      +tags: ["marts", "layer:marts"]
 
     semantic:
       # MetricFlow semantic-layer specs are YAML, not SQL — no materialization.
       +schema: semantic
-      +tags: ['semantic', 'layer:semantic']
+      +tags: ["semantic", "layer:semantic"]
 
 # ---------------------------------------------------------------------
 # Snapshots — SCD2 on Salesforce Contract (amendment chain).
@@ -135,5 +135,5 @@ semantic-models-paths: ["models/semantic"]
 tests:
   psm_dashboard:
     +severity: error
-    +store_failures: true     # debuggability — failed-test rows land in a table
+    +store_failures: true # debuggability — failed-test rows land in a table
     +schema: dbt_test__audit
