@@ -1,151 +1,147 @@
-# BMA Banking & Deposit-Taking — Banks and Deposit Companies Act 1999
+# BMA Banking & Deposit-Taking — Deep Reference (Banks and Deposit Companies Act 1999)
 
-> **Last reviewed:** 2026-06-04. Primary-source map of the Bermuda Monetary Authority's (BMA) **banking / deposit-taking** regime for the `bma-financial-institutions-specialist`. **Refresh when** (a) the BMA revises the Basel III Final Rule, Guidance Notes, or a capital/liquidity ratio; (b) a new Code of Conduct or Operational Resilience requirement takes effect; (c) the Act or its fees schedule is amended; (d) any `[verify-at-build]` / `[unverified]` marker below is resolved against the primary source.
+> **Last reviewed:** 2026-06-04. **Deep reference** for the `bma-financial-institutions-specialist` on the **Banks and Deposit Companies Act 1999 (BDCA, 1999:40)**, the BMA's prudential/conduct rule-set, and the 2022–2025 amendment layer. **Time-sensitive:** the Operational Resilience & Outsourcing Code (banks comply **1 Jan 2027**) and recovery-planning. **Refresh when** the Basel III Final Rule/Guidance Notes, a ratio/buffer, the Large Exposure Framework, the Code of Conduct, or the annual Fees schedule changes; or a `[unverified]` pin resolves.
 >
-> **Sourcing caveat (important):** the BMA serves its Acts, Codes and Guidance Notes as PDFs on `cdn.bma.bm` / `bma.bm`. During the build sweep these were reachable via search-engine extraction but **HTTP-403 to direct fetch**, so several **exact section / sub-paragraph numbers could not be pinned to the statutory text** and are marked `[unverified]`. Open the Act PDF in a browser and confirm the section number before any `[unverified]` cite gates a live filing or advice. Capital/liquidity ratios, the bank population, Code dates, and fee figures are well-corroborated.
-
-This is one of five BMA sector files (`banking`, `trust`, `corporate-services`, `fund-administration`, `investment-business`) plus the cross-sectoral [`overview.md`](overview.md). House opinion #1 (cite the regulation) and #11 (primary source, not a summary) govern every line here.
+> **Sourcing caveat:** bma.bm/cdn.bma.bm/gov.bm/law-firm pages were **HTTP 403** to automated fetch; substance is triangulated from WebSearch snippets quoting the primary documents + law-firm commentary (Kennedys GLI 2025, Walkers, Harneys, Appleby, Carey Olsen). Exact section numbers marked `[unverified]` need a browser PDF pull. Capital ratios, the fee tiers, the four-bank population, and dates are well-corroborated.
 
 ---
 
-## Governing instruments
+## 1. BDCA 1999 — structure & operative sections
 
-| Instrument | Year | Role | Primary URL |
-|---|---|---|---|
-| **Banks and Deposit Companies Act 1999** (1999 : 40) | 1999 | Primary licensing + supervision statute ("BDCA 1999") | https://cdn.bma.bm/documents/2023-11-09-16-41-10-Banks-and-Deposit-Companies-Act-1999.pdf |
-| **Banks and Deposit Companies Amendment Act 2022** | 2022 | Adds express **Code-of-Conduct power** + banking-fee regulation power (Royal Assent 2 Aug 2022) | https://www.gov.bm/articles/banks-and-deposit-companies-amendment-act-2022 |
-| **Bermuda Monetary Authority Act 1969** (1969 : 57) | 1969 | Constitutes the BMA; fee-setting power | https://www.bermudalaws.bm |
-| **Banks and Deposit Companies Code of Conduct** | publ. **31 Aug 2022** | Conduct-of-business + consumer protection | https://www.bma.bm/document-centre/policy-and-guidance-banking |
-| **Basel III for Bermuda Banks – Final Rule** | eff. 1 Jan 2015 (upd. Nov 2017) | Three-pillar capital framework | https://www.bma.bm/banking-basel-iii |
-| **Basel III for Bermuda Banks – Guidance Notes** | Feb 2024 rev. | Implementation detail | https://cdn.bma.bm/documents/2024-02-15-12-13-23-Basel-III-for-Bermuda-Banks---Guidance-Notes.pdf |
-| **Revised Framework for Regulatory Capital Assessment** | 2008 | Basel II framework, partially extant where not superseded | https://cdn.bma.bm/documents/2019-01-01-09-16-02-Revised-Framework-for-Regulatory-Capital-Assessment.pdf |
-| **Corporate Governance Policy — BDCA 1999** | — | Board fitness, four-eyes, risk oversight | https://www.bma.bm/document-centre/policy-and-guidance-banking |
-| **The Management of Operational Risk** | May 2007 | Operational-risk expectations (partly superseded) | https://cdn.bma.bm/documents/2018-12-29-03-52-40-The-Management-of-Operational-Risk.pdf |
-| **Operational Resilience and Outsourcing – Guidance Notes** | 2025 | Compliance by **1 Jan 2027** | https://www.bma.bm/document-centre/policy-and-guidance-banking |
-| **Large Exposure Framework for Bermuda Banks and Deposit Companies** | 2024 `[unverified date]` | Single-counterparty concentration | https://www.bma.bm/banking-supervision-regulation |
-| **AML/ATF stack** | — | POCA 1997; POC (AML/ATF) Regs 2008; POC (AML/ATF Supervision and Enforcement) Act 2008; Anti-Terrorism (Financial and Other Measures) Act 2004; Financial Intelligence Agency Act 2007 | see [`overview.md`](overview.md) |
-| **International Sanctions Act 2003** + **International Sanctions Regulations 2013** | 2003 / 2013 | UN/UK sanctions implementation | https://www.gov.bm/international-sanctions-measures |
-| **2025 Bermuda Monetary Authority Fees** | annual | Fee schedule (BMA Act 1969 + BDCA (Fees) Act 1975) | https://cdn.bma.bm/documents/2025-01-13-09-37-05-2025-Bermuda-Monetary-Authority-Fees.pdf |
+The Act runs in Parts under a consolidated table of contents.
+
+- **Preliminary:** short title/commencement; **Interpretation**; **meaning of "deposit"**; **meaning of "deposit-taking business"**; power to amend those definitions; "related company"; "director"/"controller"/"senior executive"/"associate"; **Functions of the BMA**; **Code of conduct**; Authority's statement of principles; Minister's power to direct the Authority.
+- **Licensing Part:** restriction on carrying on deposit-taking business; exempted persons; applications; **grant/refusal of licences (s.14)**; form/display/registration; supervision fee; **restriction of licence**; **revocation**; winding-up on the Authority's petition.
+- **Later Parts:** **supervision (s.8 — the power "of supervising all institutions it has licensed")**, information-gathering, appointment of inspectors, directions, transfers/controllers, offences.
+
+**Core prohibition + offence:** "No person shall carry on a deposit-taking business in or from within Bermuda unless that person is a company incorporated in Bermuda and is for the time being licensed by the Authority." Contravention — **summary: $100,000 / 2 years; indictment: $250,000 / 5 years.** [verified — snippet quoting the Act]
+
+**s.8** is the omnibus supervision power; **s.14** is the licence-grant gateway — the BMA must be satisfied the Second Schedule criteria "are capable of being fulfilled by the applicant on an ongoing basis," and must Gazette every grant.
 
 ---
 
-## Licensing
+## 2. Second Schedule — minimum criteria for licensing (item by item)
 
-- The BDCA 1999 licenses any person engaging (or wishing to engage) in **deposit-taking business in or from within Bermuda**; only a BMA-licensed institution may conduct banking / deposit-taking business.
-- **"Deposit-taking business"** (interpretation provision `[unverified — exact s.#]`): a business that lends money received by way of deposit, or finances any other activity wholly or materially out of the capital of / interest on money received by way of deposit. **"Deposit"**: a sum paid on terms that it will be repaid (with or without interest/premium), on demand or at an agreed time, subject to exclusions.
-- **Three licence types (s.14):** (1) **banking licence**, (2) **deposit company licence**, (3) **restricted banking licence**. [verified via statutory-text search snippet 2026-06-04: "Pursuant to section 14 of the Act, the Authority may grant … a banking licence, a deposit company licence or a restricted banking licence."]
-- **Minimum public services (s.14(5))** for institutions conducting banking activities: BD$ current accounts; cheque/draft/order payment; BD$ savings/deposit accounts; BD$ overdrafts and loans; BD$ mortgages on Bermuda real property; FX services; credit/debit card facilities ("high street" services). [verified via statutory-text search snippet 2026-06-04]
-- **Bank vs deposit company vs restricted bank:** a full **bank** carries the "high-street" minimum-services obligation; a **deposit company** takes deposits but is not subject to the full bank service set; the **restricted banking licence** has no high-street requirement (used for niche / institutional models).
-- **Second Schedule — "minimum criteria for licensing"** (continuing obligations): directors/controllers/managers **fit and proper**; business conducted in a **prudent manner** (adequate capital, liquidity, provisions, records, internal controls); **at least two persons** direct the business (four-eyes); adequate accounting records and systems; integrity, skill and experience of management; minimum net-asset/capital floors. *(Sub-paragraph numbering `[unverified]` — confirm against the Second Schedule.)*
+Must be satisfied **on an ongoing basis**:
 
----
+1. **Fit and proper controllers/officers** — every director/controller/senior executive judged by **suitability, experience, probity and competence**.
+2. **At least two individuals directing** (four-eyes) — "effectively directed by at least two individuals."
+3. **Prudent conduct of business** — expressly including: **minimum net assets**, **adequate liquidity**, **adequate provisions** for bad/doubtful debts, **adequate accounting and other records**, **adequate systems of control**, and **adequate insurance**.
+4. **Integrity and skill** — "appropriate to the nature and scale of its activities."
+5. **Consolidated-supervision consideration** — group position/links must not "obstruct the conduct of effective consolidated supervision."
+6. **Minimum net assets** — **BD$10 million at the time it is licensed** (full bank); reduced floor for restricted licences (§3).
 
-## Supervisory powers
-
-- **s.8** confers on the Authority the function of **supervising all institutions it has licensed** — off-site monitoring + on-site compliance visits of risk controls.
-- Powers (section numbers beyond s.8 are `[unverified]`): obtain information and require **reports/returns**; impose conditions on, **restrict or revoke** a licence; **give directions**; **appoint inspectors/investigators**; require information on a Code and its implementation and on safeguarding clients' interests. Failure to comply with a Code can lead to sanctions up to **licence revocation**.
+The **2022 amendment** widened the criteria to embed **compliance with codes of conduct**.
 
 ---
 
-## Conduct of business — Code of Conduct (31 Aug 2022)
+## 3. Licence types (s.14)
 
-- Issued under the express power inserted by the **2022 Amendment Act**; ~6-month transition (compliance ~early 2023).
-- Sets **customer-protection provisions** (mandatory consumer disclosures), **extends BMA supervisory jurisdiction to conduct-of-business**, and requires **internal controls for fair customer outcomes**.
-- Explicitly **based on the standards of the BIS, the OECD, and the G20 High-Level Principles on Financial Consumer Protection.**
-- The 2022 Amendment also gave the **Minister a power (new s.60(2)(ab) `[unverified]`)** to make regulations on commercial/operational fees, charges or penalties imposed on a deposit-taking institution's clients — the **banking-fee regulation** hook (overdraft/limit-fee regulations, 2025).
+The BMA may grant a **banking licence**, a **deposit company licence**, or a **restricted banking licence**.
 
----
-
-## Prudential / capital framework (Basel III for Bermuda Banks)
-
-The **Final Rule** (eff. 1 Jan 2015; upd. Nov 2017) implements all **three Basel pillars** — Pillar 1 minimum capital, Pillar 2 supervisory review, Pillar 3 market discipline.
-
-| Requirement | Minimum | Source confidence |
-|---|---|---|
-| CET1 | ≥ **4.5%** of RWAs | [verified — Quarterly Banking Digest / banking-basel-iii] |
-| Tier 1 | ≥ **6.0%** of RWAs | [verified] |
-| Total capital | ≥ **8.0%** of RWAs | [verified] |
-| Capital Conservation Buffer | **2.5%** CET1 (→ CET1 incl. buffer **7.0%**) | [verified] |
-| D-SIB buffer | **0.5%–3.0%** additional CET1 | [verified — banking-supervision-regulation] |
-| Leverage ratio | **5.0%** (Tier 1 / exposure) | `[unverified — single secondary source; confirm vs Final Rule]` |
-| LCR | ≥ **100%** | [verified] |
-| NSFR | ≥ **100%** | [verified] |
-
-- **Pillar 2 / ICAAP equivalent:** the BMA's **Capital Assessment and Risk Profile (CARP)** process. Pillar 2 lets the BMA prescribe capital **above** the Pillar 1 minimums per a bank's risk profile.
-- Elements of the **2008 Revised Framework for Regulatory Capital Assessment** (Basel II) remain in force where not superseded.
+- **Banking (full) licence** — full deposit-taking + the **s.14(5) minimum "high-street" services**: BD$ **current accounts**; payment of **cheques/drafts/orders**; BD$ **savings/deposit accounts**; BD$ **overdrafts & loans**; **BD$ mortgages** on Bermuda real property; **FX services**; **credit/debit card** facilities. **Initial minimum net assets US$10m.**
+- **Deposit company licence** — deposit-taking **without** the full s.14(5) retail suite.
+- **Restricted banking licence** — narrower client base; the **2024 Banks Act amendment order** extended permitted clients to **casinos licensed under the Casino Gaming Act 2014** and persons **"not ordinarily resident, incorporated, registered or formed in Bermuda."** **Initial minimum net assets US$5m.**
 
 ---
 
-## Operational risk, governance, outsourcing, large exposures
+## 4. Basel III for Bermuda Banks — Final Rule + Feb 2024 Guidance Notes
 
-- **Operational risk:** "The Management of Operational Risk" (May 2007), partly superseded by the Basel III operational-risk standard and the forthcoming **Operational Resilience** requirements (**compliance 1 Jan 2027**).
-- **Corporate governance:** Corporate Governance Policy under the BDCA 1999 — board fitness, four-eyes, risk oversight — anchored in the Second Schedule.
-- **Outsourcing:** 2019 outsourcing guidance (eff. May 2020), now folded into the **Operational Resilience and Outsourcing Guidance Notes (2025)**.
-- **Large exposures:** Large Exposure Framework (2024 `[unverified date]`) governs single-counterparty concentration.
+Final Rule effective **1 Jan 2015**, updated Nov 2017; **Guidance Notes refreshed 15 Feb 2024**.
 
----
-
-## Reporting / returns
-
-- Prudential reporting was **revised in 2017 for Basel III**; banks file **periodic prudential returns** (capital adequacy, RWAs, leverage, LCR/NSFR, balance-sheet/P&L). Forms: https://www.bma.bm/document-centre/reporting-forms-and-guidelines-banking.
-- The BMA publishes a **Quarterly Banking Digest** aggregating sector capital/liquidity/performance — implying a **quarterly** prudential cadence; banks also publish certain statements **semi-annually** plus **Pillar 3 disclosures**. *(Exact return names/cadence `[unverified]` — page not directly fetchable this session.)*
-
----
-
-## AML / ATF + sanctions (banking-specific; see [`overview.md`](overview.md) for the full stack)
-
-- The **BMA is the AML/ATF supervisor** for banks under the **Proceeds of Crime (AML/ATF Supervision and Enforcement) Act 2008**, applying **POCA 1997** and the **Proceeds of Crime (AML/ATF) Regulations 2008** (in force 1 Jan 2009) — risk-based monitoring with penalty powers; sector AML/ATF Guidance Notes apply.
-- **Sanctions:** the **International Sanctions Act 2003** (+ **Regulations 2013**) implements UN/UK measures. Banks must screen, **freeze relevant assets**, and report to the **Financial Sanctions Implementation Unit (FSIU)**.
+**Pillar 1 capital ratios (RWA basis):** CET1 ≥ **4.5%**, Tier 1 ≥ **6%**, Total ≥ **8%**.
+**Buffers:** Capital Conservation Buffer **2.5% CET1**; Countercyclical Buffer **0–2.5% CET1** (none activated to date); **D-SIB buffer up to 3.0% CET1** (the 0.5% lower bound is `[unverified]`).
+**Leverage ratio:** minimum **5.0%** (Tier 1 incl. AT1 / Total Exposure) — *above* the Basel 3% baseline.
+**RWA approaches:** **revised standardised approach for operational risk effective 1 Jan 2023**; credit risk standardised; market risk per Basel (Bermuda banks aren't large trading houses).
+**Liquidity:** **LCR ≥ 100%** (fully phased by 1 Jan 2019); **NSFR ≥ 100%**, with an expected internal buffer above the floor.
+**Large Exposure Framework** — Guidance Notes issued **23 Dec 2024, effective 1 Jan 2025**: a **large exposure** = exposure to one counterparty / connected group **≥ 10% of the Large Exposure Capital Base (LECB)** (monitoring trigger); **hard limit 25%** of capital resources, aggregated across banking + trading books; **prior BMA approval** to exceed 25% (granted only where loss risk is "extremely small"); immediate breach notification.
+**Pillar 2 — CARP (Capital Assessment and Risk Profile):** Bermuda's ICAAP-equivalent; the BMA has **Pillar 2 authority to prescribe capital above the Pillar 1 minimums** per a bank's assessed risk profile; stress testing is integrated (Stress-Testing-in-CARP guidelines).
+**Pillar 3:** public disclosure required (banks publish detailed Pillar 3 disclosures).
 
 ---
 
-## Current bank population (4 licensed banks)
+## 5. Governance, operational risk, resilience & outsourcing
 
-1. **The Bank of N.T. Butterfield & Son Limited**
-2. **HSBC Bank Bermuda Limited**
-3. **Clarien Bank Limited**
-4. **Bermuda Commercial Bank Limited (BCB)**
-
-All four hold full banking licences under the BDCA 1999. *(A small, concentrated banking sector is itself supervisorily material — the BMA's D-SIB framework bites here.)* [verified via GLI Banking Laws 2025 — Bermuda]
+- **Corporate Governance Policy (BDCA 1999)** — board oversight of senior management + key functions (internal audit, compliance, risk); four-eyes; delegation to **audit and risk committees** under board oversight.
+- **Management of Operational Risk** (May 2007) — standalone op-risk paper.
+- **Operational Resilience & Outsourcing Code** (+ Guidance Notes, Sep 2025) — **banks/deposit companies comply by 1 Jan 2027**; other registrants by 31 Mar 2028; board ultimately responsible; Part VIII governs outsourcing.
+- **Recovery planning** — BMA Recovery Planning Guidance Note consultation (Apr 2025); expectation of viable recovery options under stress.
 
 ---
 
-## Fees (BMA Act 1969, via the annual Fees schedule)
+## 6. Reporting
 
-- Bank **annual fees scale by consolidated gross assets**; top tier (banks > US$10bn) **US$1,987,330**; **deposit company** annual fee **US$20,000** (2025 schedule); annual fees due **on/before 31 March**. Underpinned by the BMA Act 1969 and the Banks and Deposit Companies (Fees) Act 1975. [verified via 2025 BMA Fees PDF]
+- **Quarterly Prudential Information Return (QPIR)** — quarterly balance-sheet, P&L, capital, liquidity (LCR/NSFR), large-exposure and RWA data.
+- **Auditor / reporting-accountant relationship** — "The BMA's Relationship with Auditors and Reporting Accountants of Banks and Deposit Companies": **Annex D** sets reporting-accountant assurance over prudential returns — report to the Board **within 3 months** of period-end; the institution then has **1 month** to file with the BMA. Audited annual financials also required.
+- **Quarterly Banking Digest** — the BMA's published sector statistics.
+
+---
+
+## 7. Conduct of Business — Banks Code of Conduct (31 Aug 2022)
+
+The **2022 Amendment Act** gave the BMA express conduct-code power; the **Code took effect 31 Aug 2022**. Requirements: act with **due care, skill and diligence**; consider the impact of communications on the customer; address the **fair treatment of customers throughout the product life cycle**; outsourced activities comply with conduct rules under senior-management oversight + board reporting. Basis: BIS / OECD / G20 High-Level Principles on Financial Consumer Protection.
+
+**Banking-fee regulation power:** the 2022 amendment to **s.60(2)** (sub-paragraph "(ab)" drafting `[unverified]`) lets the Minister (via the BMA) regulate commercial/operational fees, charges or penalties banks apply to customers — exercised in the **Banks and Deposit Companies (Over-the-Limit Fees and Unauthorised Overdraft Fees) Regulations 2025.**
 
 ---
 
-## Key thresholds & numbers (with confidence)
+## 8. Fees — 2025 schedule (annual, by consolidated gross assets)
 
-- CET1 ≥ 4.5%; Tier 1 ≥ 6.0%; Total ≥ 8.0% of RWAs; CCB 2.5% (CET1-incl.-buffer 7.0%) — [verified]
-- D-SIB buffer 0.5%–3.0% CET1 — [verified]
-- Leverage ratio 5.0% — `[unverified — confirm vs Final Rule PDF]`
-- LCR ≥ 100%; NSFR ≥ 100% — [verified]
-- Restricted-bank initial net assets US$5m vs US$10m full bank — [verified via two independent search snippets 2026-06-04; confirm exact figure vs Act on a material decision]
-- Top-tier bank annual fee US$1,987,330; deposit company US$20,000; due 31 March — [verified, 2025 Fees PDF]
-- s.14 three licence types; s.14(5) minimum services — [verified via statutory-text search snippet 2026-06-04]
-- Restricted banking licensees may also serve Casino Gaming Act 2014 casinos + persons "not ordinarily resident… in Bermuda" (Banks Act Amendment Order) — [verified via search snippet 2026-06-04]
-- 4 licensed banks — [verified]
-- Code of Conduct published 31 Aug 2022, BIS/OECD/G20 basis — [verified]
-- 2022 Amendment Royal Assent 2 Aug 2022 — [verified]
+| Bank consolidated gross assets | 2025 annual fee |
+|---|---|
+| ≤ $1bn | **$400,570** |
+| > $1bn ≤ $2bn | **$503,130** |
+| > $2bn ≤ $5bn | **$757,920** |
+| > $5bn ≤ $10bn | **$1,772,680** |
+| > $10bn | **$1,987,330** |
+| **Deposit company (flat)** | **$20,000** |
+
+*Due date:* the 2025-schedule snippet gave **31 January**; the general practice cited elsewhere is **31 March** — **`[unverified]` — reconcile against the Fees PDF.** Restricted-licence-specific fee lines were not isolated.
 
 ---
+
+## 9. The banks + deposit-company population
+
+**Four licensed banks:** **Bank of N.T. Butterfield & Son**, **HSBC Bank Bermuda**, **Clarien Bank** (ex-Capital G), **Bermuda Commercial Bank (BCB)**. Butterfield and HSBC hold full licences and dominate retail; deposit companies are a separate licence class at the $20k flat fee.
+
+**Sector size (Q3-2025 Quarterly Banking Digest):** total assets **$24.8bn** (+1.2%); **CET1 ratio 28.4%**, total capital ratio **28.5%**; **leverage ratio 7.6%** (vs 5% minimum); loan-to-deposit **35.3%** (heavy excess liquidity); net after-tax profit **$128.8m**. *(The sector runs far above minima — the macroprudential note is buffers "edging lower" while remaining ample.)*
+
+---
+
+## 10. Common supervisory findings / themes
+
+No formal banking enforcement actions surfaced in primary text. Supervisory emphasis: **conduct/consumer-fairness** (the 2022 Code; overdraft/over-the-limit-fee regulation); **operational resilience & outsourcing** readiness for 1 Jan 2027; **recovery planning** and **expanded stress-testing**; and **large-exposure/concentration** control under the 2025 framework.
+
+---
+
+## Key numbers (confidence)
+
+- CET1 4.5% / Tier 1 6% / Total 8%; CCB 2.5%; CCyB 0–2.5% (none active); D-SIB up to 3.0% — [verified; D-SIB 0.5% floor `[unverified]`]
+- Leverage ≥ 5.0%; LCR ≥ 100%; NSFR ≥ 100% — [verified]
+- Large exposure: report ≥10% LECB; hard limit 25%; prior approval to exceed; effective 1 Jan 2025 — [verified]
+- Net-asset floors: full **US$10m** / restricted **US$5m**; Second-Schedule licensing-time **BD$10m** — [verified]
+- Unlicensed-business offence: summary **$100k / 2 yr**; indictment **$250k / 5 yr** — [verified]
+- 2025 bank annual fees **$400,570 → $1,987,330**; deposit co **$20,000** — [verified]; due date **31 Jan (snippet) vs 31 Mar (general)** `[unverified]`
+- Sector Q3-2025: $24.8bn assets, CET1 28.4%, total 28.5%, leverage 7.6% — [verified]
+- OpRes Code bank deadline **1 Jan 2027**; Code of Conduct **31 Aug 2022**; Basel III Guidance Notes **15 Feb 2024** — [verified]
+- Four banks: Butterfield, HSBC, Clarien, BCB — [verified]
+- s.14 / s.60(2)(ab) / inspector / offence exact section numbers; op-risk SA detail — `[unverified]`
 
 ## How the agent uses this file
 
-`bma-financial-institutions-specialist` reads this file before any banking-sector answer. **Class/licence-type drives obligation** (a restricted bank ≠ a full bank ≠ a deposit company). Never quote a Bermuda capital figure or a section number marked `[unverified]` as settled — resolve it against the Act/Final-Rule PDF first (accuracy discipline). For the cross-sectoral AML/ATF, sanctions, beneficial-ownership and enforcement framework that wraps all five sectors, see [`overview.md`](overview.md).
+Read this for any Bermuda banking/deposit-taking question. **Licence type drives obligation** (full bank's s.14(5) high-street suite ≠ deposit company ≠ restricted bank). **Pillar 2 (CARP) can require capital above the Pillar 1 minimums** — meeting Pillar 1 isn't the whole answer (see [`edge-cases.md`](edge-cases.md) D1). The Large Exposure Framework (10% report / 25% hard limit) is live from 1 Jan 2025. Never quote an `[unverified]` section number or the fee due-date as settled. Cross-sector supervision/fees: [`supervision-and-filings.md`](supervision-and-filings.md); AML: [`aml-atf.md`](aml-atf.md).
 
 ## Primary-source URL list
 
-- https://cdn.bma.bm/documents/2023-11-09-16-41-10-Banks-and-Deposit-Companies-Act-1999.pdf
-- http://www.commonlii.org/bm/legis/consol_reg/badcodadbo1999689.pdf
-- https://www.gov.bm/articles/banks-and-deposit-companies-amendment-act-2022
-- https://www.bma.bm/banking-basel-iii
-- https://cdn.bma.bm/documents/2024-02-15-12-13-23-Basel-III-for-Bermuda-Banks---Guidance-Notes.pdf
-- https://cdn.bma.bm/documents/2019-01-01-09-16-02-Revised-Framework-for-Regulatory-Capital-Assessment.pdf
-- https://www.bma.bm/document-centre/policy-and-guidance-banking
-- https://www.bma.bm/document-centre/reporting-forms-and-guidelines-banking
-- https://www.bma.bm/banking-supervision-regulation
-- https://www.gov.bm/international-sanctions-measures
-- https://cdn.bma.bm/documents/2025-01-13-09-37-05-2025-Bermuda-Monetary-Authority-Fees.pdf
+- BDCA 1999: https://cdn.bma.bm/documents/2023-11-09-16-41-10-Banks-and-Deposit-Companies-Act-1999.pdf · http://www.commonlii.org/bm/legis/consol_reg/badcodadbo1999689.pdf
+- Basel III page: https://www.bma.bm/banking-basel-iii · Guidance Notes (Feb 2024): https://cdn.bma.bm/documents/2024-02-15-12-13-23-Basel-III-for-Bermuda-Banks---Guidance-Notes.pdf
+- Large Exposure Framework (Dec 2024): https://cdn.bma.bm/documents/2024-12-23-12-47-19-Guidance-Notes---Large-Exposure-Framework-for-Bermuda-Banks-and-Deposit-Companies.pdf
+- Corporate Governance Policy: https://www.bma.bm/viewPDF/documents/2018-12-29-02-42-00-Corporate-Governance-Policy---Banks-and-Deposit-Companies-Act-1999.pdf
+- Operational Resilience & Outsourcing Code: https://www.bma.bm/viewPDF/documents/2025-09-15-16-10-28-Operational-Resilience-and-Outsourcing---Code.pdf
+- Auditors/Reporting Accountants relationship: https://cdn.bma.bm/documents/2018-12-29-03-49-33-The-Bermuda-Monetary-Authoritys-Relationship-with-Auditors-and-Reporting-Accounts-of-Banks-and-Deposit-Companies.pdf
+- 2025 Fees: https://cdn.bma.bm/documents/2025-01-13-09-37-05-2025-Bermuda-Monetary-Authority-Fees.pdf
+- Q3-2025 Quarterly Banking Digest: https://www.bma.bm/viewPDF/documents/2026-02-05-16-41-04-Q3-2025-Quarterly-Banking-Digest.pdf
+- Recovery Planning consultation: https://cdn.bma.bm/documents/2025-04-10-14-56-18-Consultation-Paper---Recovery-Planning-Guidance-Note.pdf
+- Stress-testing-in-CARP guidelines: https://www.bma.bm/viewPDF/documents/2018-12-29-02-51-00-Guidelines-on-the-Enhancement-of-Stress-Testing-in-the-CARP-for-Bermudas-Banking-Sector.pdf
+- Kennedys GLI 2025 (Bermuda): https://www.kennedyslaw.com/en/thought-leadership/article/2025/gli-banking-laws-and-regulations-2025-bermuda/
+- Over-the-Limit/Overdraft Fees Regs 2025: https://www.gov.bm/articles/banks-and-deposit-companies-over-limit-fees-and-unauthorised-overdraft-fees-regulations
