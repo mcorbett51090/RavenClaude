@@ -1,0 +1,34 @@
+# CI pipeline skeleton (GitHub Actions shape — adapt to your CI)
+# Cheapest gates first; cache on the lockfile; one aggregating required check.
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  fast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@<PINNED_SHA>
+      - name: cache deps
+        uses: actions/cache@<PINNED_SHA>
+        with:
+          path: ~/.cache
+          key: deps-${{ hashFiles('**/lockfile') }}
+      - run: make format lint typecheck # seconds
+      - run: make unit # minutes
+  integration:
+    needs: fast
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: { shard: [1, 2, 3, 4] }
+    steps:
+      - uses: actions/checkout@<PINNED_SHA>
+      - run: make integration SHARD=${{ matrix.shard }}
+  required: # the single required check for branch protection
+    needs: [fast, integration]
+    runs-on: ubuntu-latest
+    steps: [{ run: "echo all gates green" }]

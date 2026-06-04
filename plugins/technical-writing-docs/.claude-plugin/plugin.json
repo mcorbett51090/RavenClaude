@@ -1,0 +1,28 @@
+{
+  "name": "technical-writing-docs",
+  "version": "0.1.0",
+  "description": "Technical-writing & docs team \u2014 3 agents (docs-architect, api-reference-writer, docs-site-engineer) for developer and product documentation that people actually use: the Diataxis framework (tutorial / how-to / reference / explanation \u2014 and not mixing them), docs-as-code (docs in the repo, reviewed and CI-checked, versioned with the product), accurate API/SDK reference (spec-driven, examples that run, errors documented), and a maintainable docs site (Docusaurus/Mintlify/MkDocs, IA, search, versioning). Deepens ravenclaude-core/documentarian. 3 skills, a decision-tree knowledge bank (doc-type + docs-tooling trees + a dated 2026 map), 6 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: dev portal/SDK reference -> api-engineering, marketing copy/site design -> web-design, prose polish/ADRs -> ravenclaude-core/documentarian. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "technical-writing",
+    "documentation",
+    "diataxis",
+    "docs-as-code",
+    "api-reference",
+    "developer-docs",
+    "docusaurus",
+    "mintlify",
+    "mkdocs",
+    "tutorials",
+    "how-to-guides",
+    "readme",
+    "changelog"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

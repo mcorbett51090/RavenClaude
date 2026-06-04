@@ -296,3 +296,10 @@ When in doubt, the compliance team **declines and asks the Team Lead** rather th
   - **`power-platform`** — when a compliance solution is *built on* Power Platform; its [`regtech-compliance-solutions.md`](../power-platform/knowledge/regtech-compliance-solutions.md) owns the build, this plugin owns the regulatory substance (§6 of that file).
   - See [`../../docs/plugin-roadmap-analysis.md`](../../docs/plugin-roadmap-analysis.md) for the marketplace plan.
 - Marketplace-wide developer guide: [`../../CLAUDE.md`](../../CLAUDE.md)
+
+
+## Adjacent plugins (added 2026-06-04)
+
+Reciprocal seam to the adjacent-plugins build-out:
+
+- General data-privacy *engineering* (catalog, classification, GDPR/CCPA data-subject-rights pipelines, consent, retention, DLP) → `data-governance-privacy`; this plugin owns financial-services regulation, that one owns the privacy-engineering mechanics.

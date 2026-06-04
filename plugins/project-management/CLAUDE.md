@@ -138,3 +138,10 @@ When in doubt, the team **declines and asks the Team Lead** rather than guessing
 - Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md)
 - Decision-tree format: [`../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../docs/best-practices/decision-trees-in-knowledge-files.md)
 - Marketplace-wide developer guide: [`../../CLAUDE.md`](../../CLAUDE.md)
+
+
+## Adjacent plugins (added 2026-06-04)
+
+Reciprocal seam to the adjacent-plugins build-out:
+
+- Product discovery and the what/why (strategy, PRDs, prioritization, product metrics) → `product-management`. The litmus: 'what should we build and why' → product-management; 'how do we deliver it on time' → here.
