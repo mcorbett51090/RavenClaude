@@ -502,9 +502,16 @@ printf '\n<!-- AUDIT FIXTURE — should diff against regenerated output -->\n' >
 rc=0; python3 scripts/generate-dashboards.py --check >/dev/null 2>&1 || rc=$?
 gate "dashboard freshness (stale committed dashboard.html)" must_fail "$rc"
 cp -p "$TMP/plugins_ravenclaude-core_dashboard.html.bak" plugins/ravenclaude-core/dashboard.html
-# must_pass: pristine tree, the check should pass.
-rc=0; python3 scripts/generate-dashboards.py --check >/dev/null 2>&1 || rc=$?
-gate "dashboard freshness (clean tree)" must_pass "$rc"
+# Relocated must_pass + generate-then-test prep. dashboard.html freshness is no
+# longer gated on PRs (it self-heals post-merge via regenerate-artifacts.yml), so
+# instead of asserting "committed == regenerated" (which a not-yet-regenerated PR
+# branch would fail), we (a) assert the generator RUNS CLEAN and (b) regenerate
+# dashboard.html IN PLACE so the render-test gates below (Heimdall/Víðarr/Norns/
+# Mímir/Bifröst/Níðhöggr/roundtrip) test the CURRENT generator's output, never a
+# stale committed file. The generator inlines existing committed SVGs (no mermaid-
+# cli needed here). See docs/best-practices/ci-gate-audit.md § "Self-healing artifacts".
+rc=0; python3 scripts/generate-dashboards.py >/dev/null 2>&1 || rc=$?
+gate "dashboard generator runs clean (regenerates in place for render gates)" must_pass "$rc"
 
 echo
 echo "── Gate 14: command-review tribunal (the Thing) ──────────────────────────"
@@ -1487,8 +1494,13 @@ PY
 rc=0; python3 scripts/render-concepts.py --check >/dev/null 2>&1 || rc=$?
 gate "render-concepts SVG sync (mutated manifest)" must_fail "$rc"
 cp -p "$TMP/plugins_ravenclaude-core_knowledge_concepts_visuals_.render-manifest.json.bak" "$MAN"
-rc=0; python3 scripts/render-concepts.py --check >/dev/null 2>&1 || rc=$?
-gate "render-concepts SVG sync (clean tree)" must_pass "$rc"
+# NOTE: the "clean tree must_pass" was intentionally removed. Concept SVGs are no
+# longer sync-gated on PRs — they are inlined into dashboard.html and rendering
+# them needs mermaid-cli + Chromium, so they self-heal post-merge via
+# regenerate-artifacts.yml. A PR that edits a concept diagram without rendering its
+# SVG must NOT fail here. The must_fail detector above stays (it proves the sync
+# check the post-merge workflow relies on has teeth). See
+# docs/best-practices/ci-gate-audit.md § "Self-healing artifacts".
 
 # render-trees.py: a committed decision-tree SVG out of sync with its diagram
 # source (simulated by mutating a hash in the tree render manifest). CI-safe:
@@ -1506,8 +1518,9 @@ PY
 rc=0; python3 scripts/render-trees.py --check >/dev/null 2>&1 || rc=$?
 gate "render-trees SVG sync (mutated manifest)" must_fail "$rc"
 cp -p "$TMP/plugins_ravenclaude-core_knowledge_tree-visuals_.render-manifest.json.bak" "$TMAN"
-rc=0; python3 scripts/render-trees.py --check >/dev/null 2>&1 || rc=$?
-gate "render-trees SVG sync (clean tree)" must_pass "$rc"
+# NOTE: "clean tree must_pass" removed for the same reason as render-concepts above
+# — decision-tree SVGs self-heal post-merge (mermaid-cli render). The must_fail
+# detector above stays. See docs/best-practices/ci-gate-audit.md § "Self-healing artifacts".
 
 # generate-concepts-doc.py: a stale committed docs/concepts.md.
 backup docs/concepts.md
