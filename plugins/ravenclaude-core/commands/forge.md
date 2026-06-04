@@ -13,9 +13,12 @@ in **`skills/forge-pipeline/SKILL.md`** — load that skill and follow it exactl
 FORGE is the formalization of the pattern this marketplace's maintainer runs by hand:
 **clarify → research+verify → two divergent panels on different models → critic → gap-analysis
 → per-conflict expert tiebreak → red-team → synthesize → route (Ultraplan vs local) → exit.**
-It mimics Claude Code Ultraplan's deep-plan pipeline (parallel-research → synthesize → critic →
-revise) and improves it with **cross-model** divergence, a **fact-verification** gate, and a
-**binding tribunal** for conflicts.
+It mimics the deep-plan shape now shipped as Claude Code's official **dynamic workflows / `ultracode`**
+feature (parallel-research → synthesize → critic → revise — docs:
+<https://code.claude.com/docs/en/workflows>, retrieved 2026-06-04) and improves it with **cross-model**
+divergence, a **fact-verification** gate, and a **binding tribunal** for conflicts. FORGE is a *static*
+harness (hand-authored, Team-Lead-run); see [`../knowledge/dynamic-workflows.md`](../knowledge/dynamic-workflows.md)
+for when to reach for a dynamic workflow instead.
 
 ## Defaults & flags (tiebreak rulings baked in)
 

@@ -25,6 +25,8 @@ If you can't write these in three minutes, the request is unclear — ask the us
 
 ## Step 2 — Pick the playbook
 
+**Before you fan out, pick the orchestration *shape*.** A multi-agent request is not automatically a turn-by-turn subagent dispatch. Traverse the table in [`../../knowledge/dynamic-workflows.md`](../../knowledge/dynamic-workflows.md) `## Choosing an orchestration shape` first: if the work is massively-parallel or adversarial, you'll rerun it, or you're coordinating more agents than this conversation can track, it's a **dynamic workflow** (`ultracode`) — not a hand-orchestrated dispatch. If the deliverable is a reviewed *plan* from a raw idea, it's `/forge`. Otherwise the playbooks below (you, the Team Lead, dispatching specialists turn by turn) are the right shape. Say which shape you chose in your summary.
+
 These are the standard dispatch patterns. Pick the one that matches the request, adapt as needed, and *say which playbook you're running* in your final summary.
 
 ### Software change (feature, bugfix, refactor)
