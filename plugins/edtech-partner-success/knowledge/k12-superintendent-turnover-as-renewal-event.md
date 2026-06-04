@@ -98,6 +98,33 @@ The `learning-analytics-analyst` should surface this divergence as a leading-ind
 
 ---
 
+## 6a. 2026 refresh — internal-vs-external hire as a two-mode trigger (added 2026-06-04)
+
+The 2024-25 ILO Group data refined the picture in a way the flat "new sup = renewal risk" rubric missed:
+
+- **23% turnover** in the nation's 500 largest districts (up from 20% prior year; pre-pandemic 14-16%). `[verify-at-use — 2026-06-04]`
+- **58% of new superintendents were internal promotions; 42% external.**
+- **39% of all new hires** had served as **interim superintendent first.**
+
+### The two-mode trigger
+
+**Internal promotion** (58% of cases):
+- Inherits existing vendor relationships.
+- Grace window for renewal motion: **30-60 days.**
+- Renewal-risk delta: small. The new sup knows the contracts; the question is whether they want to renegotiate.
+- PSM play: confirm relationship continuity in the first 30 days; re-pitch only if new sup is actively reorganizing.
+
+**External hire** (42% of cases):
+- 90-180 day portfolio-review window. "Every contract is under the new sup's microscope."
+- Renewal-risk delta: meaningful. The new sup is incentivized to identify tools to cut.
+- PSM play: **pre-emptively schedule a new-sup briefing within the first 60 days.** Lead with ESSA evidence + cost-of-cutover + named-district-leadership endorsements.
+
+### Council of Great City Schools January 2026 program
+
+The Council of Great City Schools launched a January 2026 program to prepare urban-district senior leaders for the top role. Over time this should **increase the internal-hire share further**, lowering the renewal-event severity per turnover. `[verify-at-use — 2026-06-04]`
+
+---
+
 ## 7. References
 
 - [`k12-renewal-motion-90-60-30.md`](k12-renewal-motion-90-60-30.md) — the 180-day checkpoint where the cabinet-map refresh fires
