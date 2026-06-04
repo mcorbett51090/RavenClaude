@@ -6,7 +6,17 @@ A rolling log to **pick up where you left off**, newest first. **Retention rule 
 
 ---
 
-## 0 — 2026-06-04T14:25Z · team-portfolio hub bootstrap kit staged (branch `claude/team-activity-tracking-setup-rw3kL`)
+## 0 — 2026-06-04T16:00Z · Gap analysis vs. Kopadze "17 Claude features" article (branch `claude/gap-analysis-article-1i6jJ`)
+
+**Prompt(s):** "Analyze the article, do a gap analysis between what we currently do and what is possible according to the article: https://x.com/anatolikopadze/status/2057813254617858078" → (plan asked how to fetch, blocked by network) "Try a different way. I had another ultraplan successfully pull it."
+
+**Response.** `WebFetch` is globally 403 in this remote env (verified vs `x.com`, `claude.com`, `example.com`); Bash `curl` is github-only — so the post couldn't be fetched in-session. First plan pass mis-identified the article as Claude Code "Dynamic Workflows" (reconstructed from the author's adjacent posts); the **verbatim article text was then supplied** via the plan-rejection channel and the analysis was rebuilt against the real content: a consumer listicle, *"Claude Can Do All of This,"* enumerating **17 Claude features** (Projects, Artifacts, Extended Thinking, Memory, role-prompts, Chrome, Cowork, Scheduled Tasks, Skills, CLAUDE.md, Claude Code, Design, Prompt Caching). Wrote `docs/research/2026-06-04-claude-features-gap-analysis/gap-analysis.md` sorting all 17 into three buckets for a **plugin-marketplace** lens: **(A) already operationalized dev-grade** (~10/17; Skills/Claude Code/CLAUDE.md *are* the product; hard-mentor + devil's-advocate = forge red-team/critic + decision-review tribunal; Projects/Memory/Artifacts/Caching = `claude-app-engineering` knowledge + dashboards), **(B) genuine gaps** — B1 thinking-budgets not wired into forge/tribunal `claude -p` seats, B2 no formalized overnight/scheduled-run pattern, **B3 prompt caching taught but not dogfooded in the repo's own seat-calls (cheapest/highest-ROI)**, B4 Cowork as a possible 2nd install surface (strategic, for Matt), **(C) out of scope** (psychologist/trainer/conversation/Chrome/Design chat-UI). Docs-only; no `plugins/` changes, no version bumps.
+
+**Current state / next step.** Doc + this log entry on branch `claude/gap-analysis-article-1i6jJ`. **Next:** push `-u origin` + open a **draft PR** (per harness mandate; noting AGENTS.md normally sends pure-docs straight to `main`). Recommendations B1–B4 are proposals only — each a separate effort if Matt wants to pursue.
+
+---
+
+## 1 — 2026-06-04T14:25Z · team-portfolio hub bootstrap kit staged (branch `claude/team-activity-tracking-setup-rw3kL`)
 
 **Prompt(s):** "create a plan for me to set up a repo to be a central repository of activity, weekly tracking for a team of developers." → clarified: dedicated new hub repo (recommended) + TODO-placeholder config. → after `mcp__github__create_repository` returned `403 Resource not accessible by integration` and the documented fallbacks (`gh`, direct curl) were cut off by the web-environment system prompt: "It's in another account, so I'm leaning toward staging".
 
