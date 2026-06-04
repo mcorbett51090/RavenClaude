@@ -29,12 +29,12 @@ One of five BMA sector files; see [`overview.md`](overview.md) for the cross-sec
 ### Licence types
 
 - **Unlimited trust licence** — authorises carrying on trust business and soliciting from the public generally. Public trust companies hold this.
-- **Limited trust licence** — holder **may not act as sole trustee** and is restricted to holding trust assets **not exceeding US$30 million** unless the Authority agrees a higher aggregate (the more complex the responsibilities, the more restrictive the BMA's stance on raising the cap).
+- **Limited trust licence** — authorises holding trust assets to an aggregate value of **thirty million dollars** (or such higher value as permitted by **subsections (2) and (3)**) and **does not authorise the licensee to act as sole trustee** to any trust it administers. [verified via statutory-text search snippet 2026-06-04]
 
 ### Minimum licensing criteria (First Schedule)
 
 - Controllers and officers **fit and proper**; business **directed by at least two individuals** unless the BMA approves otherwise; appropriate board composition; **prudent conduct**; adequate insurance, records, systems and controls.
-- **Minimum net assets: US$250,000 (corporate trustee) / US$25,000 (any other case)** [verified via Conyers excerpt — literal Schedule text `[unverified]`].
+- **Minimum net assets: US$250,000 (corporate trustee) / US$25,000 (any other case)** [verified via statutory-text search snippet 2026-06-04 quoting the Act directly — "minimum net assets of $250,000 in the case of a corporate trustee or $25,000 in any other case"].
 
 ---
 
@@ -62,7 +62,7 @@ One of five BMA sector files; see [`overview.md`](overview.md) for the cross-sec
 ## Key thresholds & numbers (confidence)
 
 - Limited licence asset cap **US$30,000,000** (higher only with BMA agreement); limited licensee **cannot be sole trustee** — [verified via bma.bm/trust-licensing]
-- Minimum net assets **US$250,000 corporate trustee / US$25,000 otherwise** — [verified via Conyers excerpt; literal Schedule `[unverified]`]
+- Minimum net assets **US$250,000 corporate trustee / US$25,000 otherwise** — [verified via statutory-text search snippet 2026-06-04]
 - Business directed by **≥2 individuals**; all-individual board (no corporate directors) — [verified via 2019 Code excerpt]
 - Act in force **25 Jan 2002**; Amendment operative **31 Dec 2019**; Code publ. **18 Dec 2019**; Exemption Order in force **9 Aug 2002** — [verified]
 - Licences issued under **s.11**; Code under **s.7**; Statement of Principles under **s.6** — [verified via excerpts]

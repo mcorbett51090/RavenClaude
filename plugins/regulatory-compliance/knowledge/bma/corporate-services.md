@@ -25,14 +25,13 @@ One of five BMA sector files; see [`overview.md`](overview.md) for the cross-sec
 
 ## Definition of CSP business (s.2(2))
 
-"Corporate service provider business" = the provision, **for profit**, of any of these corporate services:
-- acting as a **company formation agent** (or agent for establishment of a partnership);
-- providing **nominee services** (incl. acting as / providing **nominee shareholders**);
-- providing **administrative and secretarial services** to companies or partnerships;
-- performing functions as **resident representative** under the Companies Act 1981, Exempted Partnerships Act 1992 and Overseas Partnerships Act 1995;
-- plus any additional corporate/administrative services specified in regulations.
+"Corporate service provider business" = "the provision of any of the following corporate services **for profit**" [verified via statutory-text search snippet 2026-06-04 quoting s.2(2)]:
+- acting as a **company formation agent**, or agent for the establishment of a partnership;
+- providing **nominee services**, including (without limitation) acting as or providing **nominee shareholders**;
+- performing functions in the capacity of **resident representative** under the Companies Act 1981, Exempted Partnerships Act 1992 and the Overseas Partnerships Act 1995;
+- providing **any additional corporate or administrative services as may be specified in regulations**.
 
-*(Registered-office and director/secretary provision sit within the administrative-services / listed-functions categories — `[unverified]` as discrete enumerated heads.)*
+*(Note: the four heads above are the statutory s.2(2) list verbatim. "Administrative/secretarial services" and registered-office / director-and-secretary provision are **not** separately enumerated heads — they reach CSP scope via the fourth "additional … as specified in regulations" catch-all. Do not cite them as standalone statutory heads.)*
 
 ---
 

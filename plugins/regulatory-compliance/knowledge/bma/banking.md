@@ -33,8 +33,8 @@ This is one of five BMA sector files (`banking`, `trust`, `corporate-services`, 
 
 - The BDCA 1999 licenses any person engaging (or wishing to engage) in **deposit-taking business in or from within Bermuda**; only a BMA-licensed institution may conduct banking / deposit-taking business.
 - **"Deposit-taking business"** (interpretation provision `[unverified — exact s.#]`): a business that lends money received by way of deposit, or finances any other activity wholly or materially out of the capital of / interest on money received by way of deposit. **"Deposit"**: a sum paid on terms that it will be repaid (with or without interest/premium), on demand or at an agreed time, subject to exclusions.
-- **Three licence types (s.14 `[unverified sub-§]`):** (1) **banking licence**, (2) **deposit company licence**, (3) **restricted banking licence**.
-- **Minimum public services (s.14(5) `[unverified sub-§]`)** for institutions conducting banking activities: BD$ current accounts; cheque/draft/order payment; BD$ savings/deposit accounts; BD$ overdrafts and loans; BD$ mortgages on Bermuda real property; FX services; credit/debit card facilities.
+- **Three licence types (s.14):** (1) **banking licence**, (2) **deposit company licence**, (3) **restricted banking licence**. [verified via statutory-text search snippet 2026-06-04: "Pursuant to section 14 of the Act, the Authority may grant … a banking licence, a deposit company licence or a restricted banking licence."]
+- **Minimum public services (s.14(5))** for institutions conducting banking activities: BD$ current accounts; cheque/draft/order payment; BD$ savings/deposit accounts; BD$ overdrafts and loans; BD$ mortgages on Bermuda real property; FX services; credit/debit card facilities ("high street" services). [verified via statutory-text search snippet 2026-06-04]
 - **Bank vs deposit company vs restricted bank:** a full **bank** carries the "high-street" minimum-services obligation; a **deposit company** takes deposits but is not subject to the full bank service set; the **restricted banking licence** has no high-street requirement (used for niche / institutional models).
 - **Second Schedule — "minimum criteria for licensing"** (continuing obligations): directors/controllers/managers **fit and proper**; business conducted in a **prudent manner** (adequate capital, liquidity, provisions, records, internal controls); **at least two persons** direct the business (four-eyes); adequate accounting records and systems; integrity, skill and experience of management; minimum net-asset/capital floors. *(Sub-paragraph numbering `[unverified]` — confirm against the Second Schedule.)*
 
@@ -122,9 +122,10 @@ All four hold full banking licences under the BDCA 1999. *(A small, concentrated
 - D-SIB buffer 0.5%–3.0% CET1 — [verified]
 - Leverage ratio 5.0% — `[unverified — confirm vs Final Rule PDF]`
 - LCR ≥ 100%; NSFR ≥ 100% — [verified]
-- Restricted-bank initial net assets US$5m vs US$10m full bank — `[unverified — confirm vs Act/policy]`
+- Restricted-bank initial net assets US$5m vs US$10m full bank — [verified via two independent search snippets 2026-06-04; confirm exact figure vs Act on a material decision]
 - Top-tier bank annual fee US$1,987,330; deposit company US$20,000; due 31 March — [verified, 2025 Fees PDF]
-- s.14 three licence types; s.14(5) minimum services — `[verified via search reads; exact sub-§ text not fetched]`
+- s.14 three licence types; s.14(5) minimum services — [verified via statutory-text search snippet 2026-06-04]
+- Restricted banking licensees may also serve Casino Gaming Act 2014 casinos + persons "not ordinarily resident… in Bermuda" (Banks Act Amendment Order) — [verified via search snippet 2026-06-04]
 - 4 licensed banks — [verified]
 - Code of Conduct published 31 Aug 2022, BIS/OECD/G20 basis — [verified]
 - 2022 Amendment Royal Assent 2 Aug 2022 — [verified]

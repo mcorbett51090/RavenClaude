@@ -47,7 +47,7 @@ A **12-month transition** ran from the 27 Jul 2022 effective date for existing b
 
 Before granting a licence/registration the BMA must be satisfied the **Second Schedule** criteria are met on a continuing basis — **fit and proper** controllers/officers, adequate **capital / net-asset** resources, sound business conduct, and **client-asset segregation**.
 
-- Net-asset figures cited in search results: **US$250,000 (principal activities) / US$100,000 (agent activities)** [verified via excerpt — **confirm against the current Second Schedule as amended 2022**].
+- Net assets: **US$250,000 when carrying on investment activities as principal / US$100,000 as agent** [verified via statutory-derived search snippet 2026-06-04, corroborated by the Jan 2025 Conyers IBA Compendium (post the 2022 amendment)].
 
 ---
 
@@ -71,7 +71,7 @@ Risk-based supervision; the BMA can impose conditions, require reporting/returns
 
 - IBA six activities: deal / arrange / manage / advise / safeguard-administer / promote — [verified via First Schedule excerpt]
 - Licence categories (since 27 Jul 2022): **Licensed / Class A Registered / Class B Registered / Non-Registrable** — [verified]
-- Net-asset criteria cited: **US$250,000 principal / US$100,000 agent** — [verified via excerpt; `confirm vs amended Second Schedule`]
+- Net-asset criteria: **US$250,000 principal / US$100,000 agent** — [verified via statutory-derived snippet + Jan 2025 Conyers compendium 2026-06-04]
 - Code issued under **s.10 IBA**; current code Dec 2022 — [verified]
 - Class A Registered Person = no Bermuda place of business + recognised foreign regulator + Senior Representative — [verified]
 
