@@ -27,11 +27,11 @@ The plan reserved Gates **48–52**. **All are now occupied** (48 = WebFetch san
 |---|---|---|
 | Gate 48 (linter) | layout-arithmetic | **DONE — shipped as Gate 92.** |
 | Gate 49 (WebFetch poisoned-body) | injection neutered | **Reconcile, don't duplicate.** A deterministic WebFetch return-envelope sanitizer **already exists as the real Gate 48** (`sanitize-webfetch-body.py`). The data-viz agent should consume that existing floor; only add a *new* gate if the agent introduces a distinct sanitization surface. |
-| Gate 50 (tableau anti-drift) | thin-pointer >30-line overlap | **→ Gate 93** |
-| Gate 51 (schema-enum drift) | `visualType` enum vs `lint.py` | **→ Gate 94** |
-| Gate 52 (stack-enum drift) | `stack` enum across files | **→ Gate 95** |
+| Gate 50 (tableau anti-drift) | thin-pointer >30-line overlap | **→ Gate 94** |
+| Gate 51 (schema-enum drift) | `visualType` enum vs `lint.py` | **→ Gate 95** |
+| Gate 52 (stack-enum drift) | `stack` enum across files | **→ Gate 96** |
 
-Update every build-plan reference to 49/50/51/52 accordingly. Next free numbers after 92 are 93–95 (also free: 39, 52–59, 61–69, 71–79, 81–89 — but the recent convention uses the 90s band).
+Update every build-plan reference to 49/50/51/52 accordingly. **Refreshed 2026-06-04 (evening): Gate 93 is now occupied too** (Learn-tab stepper render, `scripts/check-stepper-render.mjs`) — next free numbers are **94–96** (also free: 39, 52–59, 61–69, 71–79, 81–89 — but the recent convention uses the 90s band). **Re-verify the next-free-gate number against `scripts/audit-gates.sh` at run start (G-PRE-2 re-run) — it has drifted twice in one day.**
 
 ## 3. Phase 5 tableau promotion — source filenames are STALE
 
@@ -41,10 +41,10 @@ The plan (Phase 5.1–5.4) promotes `chart-type-follows-the-question.md`, `axis-
 
 ## 4. Count / version / regen discipline (per added skill)
 
-Core skill count is now **34** (`32` original + main's worktree-swarm helper + the linter). Each new skill the run adds (chart-from-intent, wcag-viz-contrast, ibcs-variance-reports) bumps:
+Core skill count is now **35** (refreshed 2026-06-04 evening; was 34 when this brief was first written — **re-count `ls plugins/ravenclaude-core/skills/ | wc -l` at run start**, it moves). Each new skill the run adds (chart-from-intent, wcag-viz-contrast, ibcs-variance-reports) bumps:
 - the `"N skills"` string in `plugins/ravenclaude-core/.claude-plugin/plugin.json` **and** `.claude-plugin/marketplace.json` (×2: metadata.description + the core plugin entry),
-- the **must-fail fixture literal** in `scripts/audit-gates.sh` (currently `s.replace('34 skills','20 skills',1)`) — keep it matching the real count or the marketplace-claims meta-test loses its teeth (the PR #247 lesson),
-- ravenclaude-core `version` (minor) + regen `dashboard.html` / `repo-guide.html` / `copilot/` (Gates 11/13 + copilot freshness).
+- the **must-fail fixture literal** in `scripts/audit-gates.sh` (currently `s.replace('35 skills','20 skills',1)` at `audit-gates.sh:477`) — keep it matching the real count or the marketplace-claims meta-test loses its teeth (the PR #247 lesson),
+- ravenclaude-core `version` (minor, from **v0.120.0** as of this refresh — read the current value at run start) + regen `dashboard.html` / `repo-guide.html` / `copilot/` (Gates 11/13 + copilot freshness).
 
 Per the plan, batch the version bump + regen at **Phase 6** (one cascade), not per-skill.
 
