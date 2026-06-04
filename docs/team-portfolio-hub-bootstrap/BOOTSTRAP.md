@@ -14,14 +14,14 @@ A fresh GitHub session can't create the new repo from inside this Codespace (the
 | --- | --- | --- |
 | `team-portfolio.json` | repo root | The hub config. Placeholders for `repos`, `team`, `projects` — fill in once. Secrets never live here. |
 | `portfolio-tracker.yml` | `.github/workflows/portfolio-tracker.yml` | Scheduled Action: weekly + nightly collect → render → commit-back. Verbatim copy of `plugins/team-portfolio/templates/portfolio-tracker.yml`. |
-| `README.md` | repo root (overwrite the auto-init one) | One-screen orientation for anyone who lands in the hub: what it is, where the reports are, how to trigger a refresh. |
+| `_README.md` | repo root, **rename to `README.md`** (overwriting the auto-init one) | One-screen orientation for anyone who lands in the hub: what it is, where the reports are, how to trigger a refresh. The leading `_` here is so `scripts/check-md-links.py` skips it as a template — its relative links point at `reports/` + `portfolio.html` which only exist in the destination hub repo, not here. |
 | `.gitignore` | repo root | Ignores `_ravenclaude/` (the Action's workspace clone of the marketplace). |
 
 ## Setup — 6 steps
 
 1. **Create the empty hub repo.** GitHub UI → New repository → name `team-portfolio` (or any name you like) → Private → "Add a README" → Create. ~30 seconds.
 
-2. **Copy these four files in.** Either clone the new repo locally and drop them in, or use the GitHub UI's "Add file → Upload files". Overwrite the auto-init `README.md`. The workflow file goes at `.github/workflows/portfolio-tracker.yml`.
+2. **Copy these four files in.** Either clone the new repo locally and drop them in, or use the GitHub UI's "Add file → Upload files". **Rename `_README.md` → `README.md`** as you copy it (overwriting the auto-init one). The workflow file goes at `.github/workflows/portfolio-tracker.yml`.
 
 3. **Fill in `team-portfolio.json`.** Replace the empty `repos: []` and `team: []` arrays with your real values. Set `supervisor` if you want the manage-the-team framing. Add `projects[]` entries for any cross-repo project worth a roll-up. The schema is documented in `plugins/team-portfolio/knowledge/multi-repo-tracking-model.md` of this marketplace. Delete the `_TODO` keys once you've filled them in (the collector ignores them, but they're noise).
 
