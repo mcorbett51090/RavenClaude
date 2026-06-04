@@ -178,6 +178,12 @@ Reference docs with a `Last reviewed:` date + confidence notation. Inline priors
 | File | Read when |
 |---|---|
 | [`knowledge/variance-root-cause-triage.md`](knowledge/variance-root-cause-triage.md) | Diagnosing a budget/forecast variance before writing commentary — the price/volume/mix/timing/FX decomposition, the materiality threshold, and the "reconcile before you narrate" discipline. Owned by `fpa-analyst` (+ `controller`). |
+| [`knowledge/finance-decision-trees.md`](knowledge/finance-decision-trees.md) | Picking the right method on the first pass — forecast-method selection, valuation primary-method selection, financing/capital decisions. Owned by `financial-modeler` / `valuation-analyst` / `fpa-analyst` / `treasury-analyst`. |
+| [`knowledge/m-and-a-purchase-accounting-asc805.md`](knowledge/m-and-a-purchase-accounting-asc805.md) | Booking a deal under ASC 805 — the business-combination-vs-asset-acquisition screen test, contingent-consideration classification, PPA/intangibles, the deferred-tax step-up, goodwill subsequent accounting. Owned by `financial-modeler` / `valuation-analyst` (+ `controller`). |
+| [`knowledge/equity-compensation-asc718.md`](knowledge/equity-compensation-asc718.md) | Stock-comp expense under ASC 718 — the condition taxonomy (market vs. performance/service), attribution, the forfeiture election, modification accounting, deferred-tax/ETR volatility, ESPP, diluted EPS, 409A linkage. Owned by `financial-modeler` / `valuation-analyst`. |
+| [`knowledge/tax-provision-asc740.md`](knowledge/tax-provision-asc740.md) | Building the income-tax provision — the deferred roll-forward, the rate reconciliation, valuation allowances, uncertain tax positions, interim AETR, and three-statement integration. Owned by `financial-modeler` / `controller`. |
+| [`knowledge/accrual-and-cutoff-discipline.md`](knowledge/accrual-and-cutoff-discipline.md) | Close cutoff and the accrual/provision/reserve distinction — proper accruals, cutoff testing, ASC 450 thresholds, the GR/IR accrual, and how cutoff ties to reconciliation discipline. Owned by `controller` (+ `audit-prep-specialist`). |
+| [`knowledge/wacc-cost-of-capital-sourcing.md`](knowledge/wacc-cost-of-capital-sourcing.md) | Sourcing WACC inputs defensibly — risk-free tenor, the ERP-school choice (Damodaran/Kroll/historical), bottom-up beta, the size-premium debate, cost of debt, capital-structure weights, country-risk premium. Owned by `valuation-analyst` / `financial-modeler`. |
 
 ---
 
