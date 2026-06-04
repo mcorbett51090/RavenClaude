@@ -33,11 +33,18 @@ The plan reserved Gates **48–52**. **All are now occupied** (48 = WebFetch san
 
 Update every build-plan reference to 49/50/51/52 accordingly. **Refreshed 2026-06-04 (evening): Gate 93 is now occupied too** (Learn-tab stepper render, `scripts/check-stepper-render.mjs`) — next free numbers are **94–96** (also free: 39, 52–59, 61–69, 71–79, 81–89 — but the recent convention uses the 90s band). **Re-verify the next-free-gate number against `scripts/audit-gates.sh` at run start (G-PRE-2 re-run) — it has drifted twice in one day.**
 
-## 3. Phase 5 tableau promotion — source filenames are STALE
+## 3. Phase 5 tableau promotion — plan filenames lack the `viz-` prefix (CORRECTED 2026-06-04 evening)
 
-The plan (Phase 5.1–5.4) promotes `chart-type-follows-the-question.md`, `axis-integrity.md`, `color-and-accessibility.md`, `interactivity-intent-taxonomy.md` from `plugins/tableau/best-practices/`. **Those files do not exist under those names.** The actual files are `calc-*` / `data-*` / `embed-*` (e.g. `calc-aggregate-vs-row-level.md`, `data-relationships-before-joins.md`, `embed-connected-apps-jwt-not-trusted-tickets.md`) + `plugins/tableau/knowledge/viz-calc-decision-trees.md`.
+> **Correction:** this section originally claimed the source files "do not exist" and listed `calc-*` / `data-*` / `embed-*` as the actual contents. That was wrong — the `viz-*` family has existed since tableau v0.1.0 (PR #134, verified via `git log` 2026-06-04). The plan's filenames are merely missing the `viz-` prefix. The corrected 1:1 mapping:
 
-**Action:** before Phase 5, re-derive which tableau best-practices actually carry **domain-neutral viz canon** worth promoting to `ravenclaude-core/best-practices/` (chart-type / axis-integrity / color-accessibility / interactivity may live inside differently-named files, or may not exist yet and need authoring). Do not promote files that aren't there. Tableau is at **v0.2.1** (G-PRE-3 satisfied — no version scaffold needed; patch-bump on the promotion). Phase 5 is **cut-list item #1** (strategic-plan §7) — defer it if budget overruns; the agent's v0.1.0 promise doesn't depend on it.
+| Build-plan filename (stale) | Actual file in `plugins/tableau/best-practices/` |
+|---|---|
+| `chart-type-follows-the-question.md` | `viz-chart-type-follows-the-question.md` |
+| `axis-integrity.md` | `viz-axis-and-dual-axis-integrity.md` |
+| `color-and-accessibility.md` | `viz-formatting-and-accessibility.md` |
+| `interactivity-intent-taxonomy.md` | `viz-actions-and-interactivity.md` |
+
+**Action:** promote from the actual filenames above (verify each carries domain-neutral viz canon before promoting; the name mapping is close but confirm content fit, especially `viz-formatting-and-accessibility` vs the plan's color-accessibility intent). Tableau is at **v0.2.1** (G-PRE-3 satisfied — no version scaffold needed; patch-bump on the promotion). Phase 5 is **cut-list item #1** (strategic-plan §7) — defer it if budget overruns; the agent's v0.1.0 promise doesn't depend on it.
 
 ## 4. Count / version / regen discipline (per added skill)
 
@@ -54,8 +61,17 @@ The citation table is dated **2026-06-02**; one entry has **already drifted** by
 
 ## 6. Open questions still needing Matt (strategic-plan §8)
 
-Resolved by reality: Q1 (sequencing — linter shipped first ✓), Q4 (gate numbering — see §2), Q6 (routing — Ultraplan ✓). **Still open for the run / Matt:**
-- **Q2** — exact tableau consumer-facing migration-note wording (only if Phase 5 is in scope).
+Resolved by reality: Q1 (sequencing — linter shipped first ✓), Q4 (gate numbering — see §2), Q6 (routing — Ultraplan ✓). **Q2 resolved 2026-06-04 (Matt asked for the wording to be finalized in case Phase 5 survives the budget) — use this verbatim as the Migration section of the tableau release notes / PR body:**
+
+> **Migration note — tableau patch release (Phase 5 promotion):**
+> Four `viz-*` best-practice files (`viz-chart-type-follows-the-question`, `viz-axis-and-dual-axis-integrity`, `viz-formatting-and-accessibility`, `viz-actions-and-interactivity`) are now **thin pointers**: the domain-neutral visualization canon (chart choice, axis integrity, color & accessibility, interactivity) moved to `ravenclaude-core/best-practices/`, and the tableau files keep the Tableau-specific deltas plus a one-line pointer to the core file.
+>
+> - **If you have both plugins installed** (the normal setup): nothing changes — agents follow the pointer automatically.
+> - **If you installed `tableau` without `ravenclaude-core`:** the pointer references a file you don't have. Nothing breaks — the Tableau-specific guidance still works standalone — but installing `ravenclaude-core` gets you the fuller canon. Cross-references are advisory, never load-bearing.
+>
+> No action required either way.
+
+**Still open for the run / Matt:**
 - **Q3** — `environment-context.md` schema: this PR adds `finance_context: ibcs|none` (Phase 3.4); decide whether other keys join in the same PR or that bloats scope. (`environment-discovery` skill exists — G-PRE-1 ✓ — so the IBCS auto-trigger path is viable.)
 - **Q5** — deadline for the cross-marketplace WebFetch-hardening follow-up so the floor doesn't live only here.
 - Plus the design choices the build-plan TODO markers defer (IBCS auto-trigger vs explicit-only; the `stack` enum surface as a YAML preamble).
