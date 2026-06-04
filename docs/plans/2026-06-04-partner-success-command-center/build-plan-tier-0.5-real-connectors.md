@@ -393,56 +393,12 @@ Build `mart_connector_health.sql` per `elt-freshness-sla-patterns.md` § "Connec
 
 ### Step 12 — MetricFlow semantic layer
 
-Build `models/semantic/psm_semantic.yml` per `dbt-project-scaffolding/SKILL.md`. Measures:
-
-```yaml
-semantic_models:
-  - name: partner_signals
-    model: ref('fct_partner_health')
-    entities:
-      - name: partner
-        type: primary
-        expr: account_uid
-    measures:
-      - name: health_score
-        agg: average
-        expr: health_score
-      - name: sentiment_score
-        agg: average
-        expr: sentiment_score
-      - name: engagement_score
-        agg: average
-        expr: engagement_score
-      - name: open_escalations
-        agg: sum
-        expr: open_escalations
-      - name: open_tickets
-        agg: sum
-        expr: open_tickets
-      - name: arr
-        agg: sum
-        expr: arr
-      - name: days_since_touchpoint
-        agg: average
-        expr: days_since_touchpoint
-    dimensions:
-      - name: snapshot_date
-        type: time
-        type_params: {time_granularity: day}
-      - name: lifecycle_phase
-        type: categorical
-      - name: lifecycle_substage
-        type: categorical
-      - name: segment
-        type: categorical
-      - name: state
-        type: categorical
-```
+Build `models/semantic/psm_semantic.yml`. One semantic model `partner_signals` over `ref('fct_partner_health')`, entity `partner` (primary, `expr: account_uid`). Measures (all from raw signals): `health_score` (avg), `sentiment_score` (avg), `engagement_score` (avg), `open_escalations` (sum), `open_tickets` (sum), `arr` (sum), `days_since_touchpoint` (avg). Dimensions: `snapshot_date` (time, day grain), `lifecycle_phase`, `lifecycle_substage`, `segment`, `state` (all categorical).
 
 **Concrete acceptance:**
-- `dbt parse` exits 0 (parses the semantic models).
-- `mf list metrics` (MetricFlow CLI) lists the seven measures.
-- `mf query --metrics health_score --group-by partner__account_uid` returns row-per-partner with averaged health.
+- `dbt parse` exits 0.
+- `mf list metrics` lists the seven measures.
+- `mf query --metrics health_score --group-by partner__account_uid` returns row-per-partner.
 
 **MUST NOT counterpart:**
 - Do NOT define a `priority_score` measure here. Per Tier 0's `field-classifications.json` it's `derived_at_render` — the renderer computes it from raw signals.
