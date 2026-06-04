@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "let our CI deploy to GCP without a key file"
     outcome: "A Workload Identity Federation trust to the CI OIDC provider with a scoped service account — no JSON key"
     difficulty: "advanced"
+  - intent: "Split a shared service account"
+    trigger_phrase: "everything runs as the default compute service account"
+    outcome: "A dedicated, narrowly-scoped service account per workload attached via Workload Identity, the default SA stripped/disabled, so a compromise is bounded to one workload"
+    difficulty: "advanced"
+  - intent: "Scope a grant with conditions"
+    trigger_phrase: "limit this role to one bucket / a time window"
+    outcome: "An IAM Condition narrowing the binding by resource, request attribute, or expiry, so the predefined role applies only where intended"
+    difficulty: "starter"
 quickstart: "Tell the agent the principal and what it must do. It returns scoped predefined/custom role bindings at the right level, replaces SA key files with federation, and routes sensitive grants to security-engineering."
 ---
 

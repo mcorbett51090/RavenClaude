@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "what org policies should we enforce?"
     outcome: "A set of org-policy constraints (regions, SA-key disable, no external IP, OS Login) placed in the hierarchy for inheritance"
     difficulty: "starter"
+  - intent: "Choose a datastore"
+    trigger_phrase: "Cloud SQL, Spanner, Firestore, or BigQuery for this?"
+    outcome: "A data-store recommendation traced through the tree (relational, global-scale, document, analytics) with the trade named and deep modeling routed to data-platform/database-engineering"
+    difficulty: "advanced"
+  - intent: "Set a resilience posture"
+    trigger_phrase: "what's our availability posture on GCP?"
+    outcome: "A stated availability target with a regional-by-default design, multi-region only where the requirement justifies the cost, and the failure-isolation boundaries named"
+    difficulty: "advanced"
 quickstart: "Describe the workload and org. The agent returns the org/folder/project hierarchy, org-policy guardrails, region/zone + resilience posture, and the build hand-off to terraform-iac."
 ---
 

@@ -24,6 +24,14 @@ scenarios:
     trigger_phrase: "is this data anonymized or pseudonymized?"
     outcome: "A correct determination (re-identifiability assessment) and the implications — pseudonymized is still personal data; route legal interpretation out"
     difficulty: "starter"
+  - intent: "Automate retention + deletion"
+    trigger_phrase: "we keep personal data forever, automate retention"
+    outcome: "Per-category retention periods tied to lawful basis with an automated, logged, verified deletion job — legal/litigation holds and required-retention records carved out and isolated"
+    difficulty: "advanced"
+  - intent: "Stop a repurposing violation"
+    trigger_phrase: "can we use this data we already have for a new purpose?"
+    outcome: "A lawful-basis check traced through the tree (existing basis, purpose compatibility, consent state) that blocks processing beyond the collected basis, with legal interpretation routed out"
+    difficulty: "troubleshooting"
 quickstart: "Tell the agent the privacy capability needed (DSR, consent, retention, anonymization). It returns an engineered mechanism — a DSR pipeline, consent store, retention automation — with the legal interpretation routed out."
 ---
 
