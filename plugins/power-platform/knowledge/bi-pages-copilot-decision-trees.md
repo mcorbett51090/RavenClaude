@@ -127,6 +127,52 @@ See: [`../best-practices/bi-measures-not-calculated-columns.md`](../best-practic
 
 ---
 
+## Decision Tree: Power BI — Copilot returns generic / wrong reports (which grounding layer to apply)
+
+**When this applies:** Power BI **Copilot** (report narratives, "answer a question about the data", page generation) produces output that is generic, thin, or confidently wrong — and the model itself is functionally correct (visuals render, DAX is right). The fix is **grounding the semantic model for AI**, not redesigning visuals. Observable triggers: "the narrative just restates the numbers", "Copilot picked the wrong measure", "it doesn't understand our terminology", "answers are inconsistent run-to-run". Traverse top-to-bottom and apply the **first** layer whose condition matches — but note these are **additive layers**, not exclusive leaves: a fully-grounded model applies all of them, in this order.
+
+**Last verified:** 2026-06-04 against [Prepare your data for AI](https://learn.microsoft.com/power-bi/create-reports/copilot-prepare-data-ai), its [AI instructions](https://learn.microsoft.com/power-bi/create-reports/copilot-prepare-data-ai-instructions) / [verified answers](https://learn.microsoft.com/power-bi/create-reports/copilot-prepare-data-ai-verified-answers) / [FAQ](https://learn.microsoft.com/power-bi/create-reports/copilot-prepare-data-ai-faq) pages, and [Copilot requirements](https://learn.microsoft.com/power-bi/create-reports/copilot-introduction). Authoring artifact: [`../templates/power-bi-copilot-ai-instructions.md`](../templates/power-bi-copilot-ai-instructions.md).
+
+```mermaid
+flowchart TD
+    START[Copilot output is generic / wrong] --> CAP{Capacity is paid Fabric F2+ or Premium P1+, admin Copilot setting on, supported region?}
+    CAP -->|No| GATE[Not a grounding problem — Copilot is unavailable/limited. Fix the capacity/admin/region gate first.]
+    CAP -->|Yes| Q1{Is Copilot reaching for the WRONG field/measure, or reasoning over noise IDs/duplicates?}
+    Q1 -->|Yes| SCHEMA[AI data schema — DESELECT irrelevant fields + the shadow measures so Copilot focuses on the house metric]
+    Q1 -->|No| Q2{Is there a SPECIFIC recurring question that must always return the SAME trusted visual?}
+    Q2 -->|Yes| VA[Verified answer — pin the curated visual to trigger phrases<br/>NOT on DirectQuery / local Composite; Direct Lake web-only]
+    Q2 -->|No| Q3{Does Copilot miss BUSINESS CONTEXT — terms/goals/priorities not present anywhere in the schema?}
+    Q3 -->|Yes| AII[AI instructions — model-level free text: purpose, term to field map, the one right measure per ambiguous word]
+    Q3 -->|No| Q4{Can consumers + Copilot not tell similar fields apart by name alone?}
+    Q4 -->|Yes| DESC[Descriptions + synonyms + human-readable unique names on every surviving table/column/measure]
+    Q4 -->|No - all four layers done and tested| APPROVE[Mark model Approved for Copilot to remove the friction treatment]
+```
+
+**Rationale per leaf** (this is **Microsoft's recommended implementation order** — schema → verified answers → instructions → descriptions; each layer narrows what the next must fix):
+
+- *GATE* — Copilot needs paid **Fabric F2+ / Premium P1+**, the tenant admin *Users can use Copilot…* setting on, and a supported region; trial/free SKUs and sovereign clouds are unsupported. If the gate fails, no amount of grounding helps — fix the gate first. `[volatile — Microsoft capacity/region rules ship monthly; re-verify]`
+- *SCHEMA* — **deselect, don't add.** Removing surrogate keys, sort-helper columns, audit columns, and duplicate/shadow measures (e.g. a `Total GPM` that gets returned when the team means `Net Revenue`) stops Copilot returning a legitimate-but-wrong interpretation. The highest-precision first move when the symptom is "wrong field".
+- *VA* — a **verified answer** pins a human-approved visual to up to 15 trigger phrases (semantic match: synonyms / reordered words / added filters match; swapping the measure or a dimension does **not**). Limits: 250/model, 500 chars/trigger. **Not** supported on DirectQuery or local Composite; **web-only** for Direct Lake. The lever for "this exact question must always be right".
+- *AII* — **AI instructions** (≤10,000 chars, saved at the *semantic-model* level, so every report on the model inherits them) are the goal channel: state the model's purpose, map user vocabulary → model fields, and **define named terms Copilot can't infer** ("busy season = June–August"). Spend the budget on disambiguation, not prose.
+- *DESC* — descriptions + synonyms + consistent human-readable naming are the grounding **floor** (Copilot grounds on DAX, field properties, and synonyms); this is the [measure-metadata triad](../best-practices/enforce-measure-metadata.md) extended to tables/columns. Lets Copilot resolve `Revenue` vs `Revenue YTD` vs `Revenue LY`.
+- *APPROVE* — once the four layers test clean in the Copilot pane, mark the model **Approved for Copilot** (formerly "prepped for AI") to remove the standalone-Copilot friction treatment. Propagation can take up to ~1 hour (24 h with many attached reports).
+
+**Tradeoffs summary table:**
+
+| Layer | Fixes | Saved at | Hard limit / gate |
+|---|---|---|---|
+| AI data schema | Wrong-field / noise interpretation | Semantic model | Deselect only |
+| Verified answers | A specific question answered inconsistently | Semantic model | 250/model · 500-char triggers · no DirectQuery/local Composite |
+| AI instructions | Missing goal / terminology / priority | Semantic model | 10,000 chars; model-level only |
+| Descriptions + synonyms | Can't disambiguate similar fields | Model objects | — |
+| Approved for Copilot | Friction treatment on answers | Model setting | Author after the above test clean |
+
+> **Nondeterminism caveat:** Copilot is nondeterministic — the same prompt + grounding can vary. These layers raise the floor and tighten the distribution; they don't pin one exact answer. Test the awkward phrasings and the known-wrong-interpretation prompts, not just one happy path.
+
+See: [`../best-practices/bi-copilot-report-readiness.md`](../best-practices/bi-copilot-report-readiness.md), [`../templates/power-bi-copilot-ai-instructions.md`](../templates/power-bi-copilot-ai-instructions.md), [`../best-practices/enforce-measure-metadata.md`](../best-practices/enforce-measure-metadata.md). Distinct from the **Copilot Studio** trees below (those are conversational bots, not Power BI report Copilot).
+
+---
+
 ## Decision Tree: Power Pages — Granting a portal user access to a row
 
 **When this applies:** A portal user (anonymous or authenticated) needs to see/create/edit a Dataverse row in Power Pages, or a row is unexpectedly visible/invisible in Pages while behaving differently in the model-driven app. Observable triggers: "the list is blank", "they can submit but not see their submission", "this row shows in MDA but not Pages".

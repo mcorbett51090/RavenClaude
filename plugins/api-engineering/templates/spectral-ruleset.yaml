@@ -1,0 +1,61 @@
+# Spectral ruleset — the house API style guide with teeth. Copy to .spectral.yaml at the
+# repo root and run `spectral lint openapi.yaml --fail-severity=error` in CI.
+# Start strict rules at `warn` for an existing spec and ratchet to `error` as the team adopts.
+# Verify Spectral's built-in ruleset names against current docs before relying on them [verify-at-build].
+extends: ["spectral:oas"]
+
+rules:
+  # --- baseline hygiene (built-ins, raised to error) ---
+  operation-operationId: error
+  operation-operationId-unique: error
+  operation-tag-defined: error
+  oas3-valid-media-example: warn
+  no-$ref-siblings: error
+
+  # --- house rule: every operation is authenticated unless explicitly public ---
+  api-security-on-every-operation:
+    description: "Every operation must declare security (BFLA/BOLA — no accidentally-public endpoint)."
+    severity: error
+    given: $.paths[*][get,put,post,delete,patch]
+    then:
+      field: security
+      function: truthy
+
+  # --- house rule: errors use RFC 9457 Problem Details ---
+  api-errors-use-problem-details:
+    description: "4xx/5xx responses must offer application/problem+json (RFC 9457), not a bespoke shape."
+    severity: warn
+    given: $.paths[*][*].responses[?(@property.match(/^(4|5)/))].content
+    then:
+      field: application/problem+json
+      function: truthy
+
+  # --- house rule: collections are cursor-paginated, not offset ---
+  api-no-offset-pagination:
+    description: "Prefer cursor pagination; flag offset/page query params (see the design tree)."
+    severity: warn
+    given: $.paths[*][get].parameters[?(@.in=='query')].name
+    then:
+      function: pattern
+      functionOptions:
+        notMatch: "^(offset|page)$"
+
+  # --- house rule: no API key in the query string (leaks in logs) ---
+  api-no-apikey-in-query:
+    description: "An apiKey security scheme must not use in:query (it leaks into logs/history/Referer)."
+    severity: error
+    given: $.components.securitySchemes[?(@.type=='apiKey')].in
+    then:
+      function: pattern
+      functionOptions:
+        notMatch: "^query$"
+
+  # --- house rule: prefer OpenAPI 3.1+ ---
+  api-prefer-openapi-31:
+    description: "Prefer OpenAPI 3.1+ (JSON-Schema-aligned). Flag 3.0.x / swagger 2.0."
+    severity: warn
+    given: $.openapi
+    then:
+      function: pattern
+      functionOptions:
+        match: "^3\\.[12]"

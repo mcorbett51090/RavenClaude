@@ -1,0 +1,48 @@
+# Contract-first AsyncAPI 3.0 skeleton for an event-driven / webhook API — copy and adapt.
+# AsyncAPI 3.0 splits operations out of channels (vs 2.x). Use for "tell me when X happens"
+# (webhooks) or decoupled pub/sub over a broker. See design-pick-the-paradigm-by-interaction-shape.
+asyncapi: 3.0.0
+info:
+  title: Example Orders Events
+  version: 1.0.0
+  description: Events emitted when orders change state. Consumers validate the sender and handshake.
+
+servers:
+  broker:
+    host: broker.example.com:9092
+    protocol: kafka
+    description: Production event broker
+
+channels:
+  orderEvents:
+    address: orders.events
+    description: Stream of order lifecycle events
+    messages:
+      orderShipped:
+        $ref: "#/components/messages/OrderShipped"
+
+operations:
+  receiveOrderShipped:
+    action: receive # AsyncAPI 3.0: the application receives this message
+    channel:
+      $ref: "#/channels/orderEvents"
+    messages:
+      - $ref: "#/channels/orderEvents/messages/orderShipped"
+
+components:
+  messages:
+    OrderShipped:
+      name: OrderShipped
+      title: Order shipped
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          eventId: { type: string, description: Unique event id (for idempotent consumption) }
+          orderId: { type: string }
+          shippedAt: { type: string, format: date-time }
+          carrier: { type: string }
+        required: [eventId, orderId, shippedAt]
+# Webhook note: if delivering over HTTP push instead of a broker, the consumer MUST
+# validate the subscription handshake and verify the sender (signature/HMAC) — an open
+# POST endpoint is an injection surface. Bound and time out the delivery; retry with backoff.
