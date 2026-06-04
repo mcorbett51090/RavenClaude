@@ -197,16 +197,25 @@ P2B: >5 unverified provenance rows · unverified rows shipped as fact · no stal
 P3: color-only signaling · Lighthouse AA fail ·
 P4: SHA drift without delta re-review.
 
-## Decisions reserved for Matt (not auto-resolvable)
+## Decisions reserved for Matt — RESOLVED 2026-06-04
 
-1. **Branch protection (RT-04):** today this gate is purely advisory — you can merge from
-   the GitHub UI before it runs. Recommended: require 1 approving review on `main`
-   (one-time setting); the gate posts its verdict as a PR comment, your approval confirms
-   it ran. Alternative: accept the risk explicitly and we record the waiver.
-2. **`.prettierignore` housekeeping (E6):** add `.ravenclaude/runs/` +
-   `.ravenclaude/posture-events.jsonl` — one line, kills a false-fail class permanently.
-3. **>2 disabled+TODO toggles** if it arises (RT-03 escalation).
-4. Any boundary-file or out-of-scope change found at P0.
+1. **Branch protection (RT-04): APPROVED — require 1 approving review on `main`.**
+   Status: PENDING APPLY — every available token route (Codespace integration token via
+   `gh`, PAT via `gh`, direct API protection endpoint, rulesets API) returned 403
+   "Resource not accessible by integration"; the write needs a token carrying the
+   Administration permission grant. Matt applies in the UI: Settings → Branches → Add
+   branch protection rule → branch `main` → "Require a pull request before merging" +
+   "Require approvals: 1" (leave "Do not allow bypassing the above settings" UNCHECKED so
+   admin pushes — docs-to-main, Ultraplan reconciles — keep working). The gate posts its
+   verdict as a PR comment; Matt's approval confirms it ran.
+2. **`.prettierignore` housekeeping (E6): APPROVED + APPLIED in this PR** —
+   `.ravenclaude/runs/` and `.ravenclaude/posture-events.jsonl` added, matching the
+   `.remember/` precedent.
+3. **RT-03 escalation: APPROVED** — the cap stands: max 2 disabled+TODO toggles per PR;
+   a third means the orphan toggles are scoped out of the diff, or Matt rules.
+4. **P0 boundary-file / out-of-scope hard block: APPROVED** — any diff touching
+   `AGENTS.md` / `CLAUDE.md` / `.repo-layout.json` / `.github/` or another plugin blocks
+   pending Matt's explicit in-scope ruling.
 
 ## Alternatives considered (recorded; losing options)
 

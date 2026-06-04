@@ -74,6 +74,15 @@ plugins/ravenclaude-core/knowledge/tree-visuals/
 # generated-artifact exclusions above.
 .remember/
 
+# Local-only run substrate: Sága/tribunal decision JSON, FORGE gate artifacts,
+# posture-event audit lines. Git-ignored and never reaches CI, but — same as
+# `.remember/` above — a local `prettier --check .` scans the working tree
+# regardless, and scratch `.json` files under runs/ ARE prettier-parsed, so a
+# torn or differently-printed run artifact would trip the gate locally on a
+# clean PR (FORGE red-team finding E6, 2026-06-04).
+.ravenclaude/runs/
+.ravenclaude/posture-events.jsonl
+
 # Brand logo assets (raven-logo.svg / .png). Hand-exported SVGs don't survive
 # prettier's printer cleanly, and they're not ours to reformat. README.md here
 # is already covered by the *.md rule above.
