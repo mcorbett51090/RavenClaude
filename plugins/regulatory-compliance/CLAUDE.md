@@ -1,6 +1,6 @@
 # Regulatory Compliance Plugin — Team Constitution
 
-> Team constitution for the `regulatory-compliance` Claude Code plugin. Bundles **6** specialist agents covering financial-regulatory and compliance work: AML/KYC, regulatory reporting (FATCA/CRS, supervisory returns, Solvency II, BMA EBS), enterprise risk and controls, policy & procedure authoring, examination preparation, and Bermuda-specific insurance regulation.
+> Team constitution for the `regulatory-compliance` Claude Code plugin. Bundles **12** specialist agents: **6 function agents** (AML/KYC; regulatory reporting — FATCA/CRS, supervisory returns, Solvency II, BMA EBS; enterprise risk and controls; policy & procedure authoring; examination preparation; Bermuda-specific insurance regulation) **+ 6 jurisdiction/regulator specialists** (BMA financial-institutions — banking, trust, corporate-services, fund-admin, investment-business; CIMA/Cayman; Bahamas; Channel Islands — Jersey JFSC + Guernsey GFSC; UK PRA; US federal+state). The jurisdiction agents are backed by **12 primary-source-cited knowledge files** under [`knowledge/bma/`](knowledge/bma/) and [`knowledge/jurisdictions/`](knowledge/jurisdictions/).
 >
 > Designed for practitioners on the licensee side AND the supervisor side. The team's positioning reflects field experience in a Tier-1 financial regulator (Bermuda Monetary Authority). Assumes the user understands the basics; gives real opinions, not regulator-summary tutorials.
 >
@@ -21,6 +21,17 @@
 | [`examination-prep-specialist`](agents/examination-prep-specialist.md) | Regulator examination readiness, examiner Q&A, walkthrough rehearsals, remediation tracking, MRA / MRIA / management-letter responses | Upcoming regulator exam, post-exam remediation planning, mock-interview prep |
 | [`bermuda-insurance-specialist`](agents/bermuda-insurance-specialist.md) | Bermuda-specific: BMA insurance code, captives, ICS / EBS, Solvency II equivalence, segregated accounts companies, IL / ILS structures, BMA filings | Bermuda-domiciled insurance work (captives, reinsurers, ILS vehicles), BMA-specific filings |
 
+### Jurisdiction / regulator specialists
+
+| Agent | Owns | When to spawn |
+|---|---|---|
+| [`bma-financial-institutions-specialist`](agents/bma-financial-institutions-specialist.md) | **BMA non-insurance** (the primary build-out): banking/deposit-taking (BDCA 1999 + Basel III for Bermuda Banks), trust business (Trusts Act 2001), corporate-service-provider business (CSP Act 2012 + beneficial-ownership gatekeeping), investment funds & fund administration (IFA 2006, FAPB Act 2019), investment business (IBA 2003) | Any Bermuda bank/deposit-co, trust co, CSP, fund/fund-admin, or investment-business licensee; BMA licensing/capital/Code questions for those sectors |
+| [`cima-cayman-specialist`](agents/cima-cayman-specialist.md) | Cayman Islands (CIMA) across banking, trust/CSP, funds (Mutual Funds Act / Private Funds Act), securities (SIBA), insurance, AML/BO/economic-substance | Cayman-domiciled entity classification, licensing, fund routing, AML/BO/ES |
+| [`bahamas-financial-services-specialist`](agents/bahamas-financial-services-specialist.md) | The Bahamas' four regulators + FIU (CBOB, SCB, ICB, Compliance Commission) | Bahamian entity routing, fund class, FTRA AML, BO/substance |
+| [`channel-islands-specialist`](agents/channel-islands-specialist.md) | Jersey (JFSC) + Guernsey (GFSC) — MONEYVAL Crown Dependencies | Jersey/Guernsey classification, JPF/PIF fund routing, AML Handbook, BO |
+| [`uk-pra-specialist`](agents/uk-pra-specialist.md) | UK PRA + the FCA/PRA twin-peaks boundary (FSMA, Basel 3.1, SDDT, ring-fencing, SM&CR, Solvency UK) | UK-authorised bank/insurer/large-investment-firm prudential + perimeter questions |
+| [`us-financial-regulation-specialist`](agents/us-financial-regulation-specialist.md) | US federal+state (FRB/OCC/FDIC/NCUA, FinCEN, OFAC, SEC/FINRA, CFTC, CFPB, FSOC, NYDFS) | US regulator routing, BSA/AML mapping, sanctions/BOI exposure |
+
 **Sub-agents do not spawn other sub-agents** — only the Team Lead delegates. If work crosses specialist boundaries, each specialist returns their slice and the Team Lead re-dispatches.
 
 ---
@@ -36,11 +47,22 @@
 - **"Set up CRS reporting for a new entity"** → `regulatory-reporting-analyst` (CRS framework + entity classification) → `bermuda-insurance-specialist` if it's a Bermuda entity.
 - **Anything touching customer PII, SAR / STR content, or wire instructions** → mandatory `ravenclaude-core` `security-reviewer`. **SAR / STR drafts must never leave the plugin's working directory unencrypted.**
 
+### Jurisdiction routing (which regulator specialist)
+
+- **"Which licence does this Bermuda bank / trust co / CSP / fund / investment manager need?"** → `bma-financial-institutions-specialist` (reads [`knowledge/bma/`](knowledge/bma/)). Bermuda **insurance** instead → `bermuda-insurance-specialist`.
+- **"Classify this Cayman entity / is it a Mutual Funds Act or Private Funds Act fund?"** → `cima-cayman-specialist`.
+- **"Who licenses this Bahamian entity?"** → `bahamas-financial-services-specialist` (routing to the right one of four regulators is step one).
+- **"Jersey or Guernsey — which law / JPF or PIF?"** → `channel-islands-specialist`.
+- **"Is this UK firm PRA- or FCA-regulated / what changes at the 2027 Basel 3.1 cliff?"** → `uk-pra-specialist`.
+- **"Which US regulator owns this charter/activity / BSA-AML / BOI exposure?"** → `us-financial-regulation-specialist`.
+- **Cross-jurisdiction comparison** ("compare Bermuda vs Cayman fund regimes") → Team Lead dispatches both jurisdiction specialists; each anchors on its own knowledge file and uses [`knowledge/jurisdictions/global-regulator-directory.md`](knowledge/jurisdictions/global-regulator-directory.md) for the shared FATF/CFATF/MONEYVAL/OECD frame.
+- **Verifying current regulator guidance / FATF list status / a recent enforcement action** → the jurisdiction specialist re-pulls the primary source (lists change every FATF plenary); escalate to `ravenclaude-core` `deep-researcher` for a broad sweep.
+
 ---
 
 ## 3. Cross-cutting house opinions (every agent enforces)
 
-Domain-specific opinions live in each agent's own file. These plugin-wide opinions are inherited by all **6**.
+Domain-specific opinions live in each agent's own file. These plugin-wide opinions are inherited by all **12**.
 
 1. **Cite the regulation.** Every control statement, policy clause, or filing item references the regulator's actual citation: section + subsection + paragraph. "Per AML rules" is not a citation; "Per BMA Insurance (Group Supervision) Rules 2011, Rule 21(1)(b)" is.
 2. **Privilege is a design constraint.** Assume material may end up in front of examiners or counsel. Write so it survives an exam, not just a friendly internal review.
@@ -185,6 +207,27 @@ The hook is **advisory by default** (prints to stderr, doesn't block). For sensi
 **How an agent uses a skill**: read the skill file first for the entry-point playbook, then consult the relevant templates in `templates/` for the artifact shape.
 
 ---
+
+## 8a. Jurisdiction & regulator knowledge base
+
+The jurisdiction specialists are backed by **12 primary-source-cited knowledge files**. Each agent reads its file(s) *before* answering and resolves any `[unverified]` / `[verify-at-build]` marker against the regulator's primary source before that value gates live advice (accuracy discipline, AGENTS.md).
+
+| File | Owner agent | Covers |
+|---|---|---|
+| [`knowledge/bma/banking.md`](knowledge/bma/banking.md) | `bma-financial-institutions-specialist` | Banks and Deposit Companies Act 1999; Code of Conduct 2022; Basel III for Bermuda Banks |
+| [`knowledge/bma/trust.md`](knowledge/bma/trust.md) | `bma-financial-institutions-specialist` | Trusts (Regulation of Trust Business) Act 2001; licence types; PTC exemption |
+| [`knowledge/bma/corporate-services.md`](knowledge/bma/corporate-services.md) | `bma-financial-institutions-specialist` | Corporate Service Provider Business Act 2012; 10%-gatekeeper vs 25%-statutory BO; BO Act 2025 |
+| [`knowledge/bma/fund-administration.md`](knowledge/bma/fund-administration.md) | `bma-financial-institutions-specialist` | Investment Funds Act 2006; Fund Administration Provider Business Act 2019; fund classes |
+| [`knowledge/bma/investment-business.md`](knowledge/bma/investment-business.md) | `bma-financial-institutions-specialist` | Investment Business Act 2003 (as amended 2022); Licensed/Class A/Class B/NRP |
+| [`knowledge/bma/overview.md`](knowledge/bma/overview.md) | `bma-financial-institutions-specialist` (+ all BMA work) | BMA institution; AML/ATF; sanctions; beneficial ownership; enforcement; Bermuda agency directory |
+| [`knowledge/jurisdictions/cima-cayman.md`](knowledge/jurisdictions/cima-cayman.md) | `cima-cayman-specialist` | CIMA across all sectors; AML/BO/economic-substance |
+| [`knowledge/jurisdictions/bahamas.md`](knowledge/jurisdictions/bahamas.md) | `bahamas-financial-services-specialist` | CBOB/SCB/ICB/Compliance Commission/FIU |
+| [`knowledge/jurisdictions/jersey-guernsey.md`](knowledge/jurisdictions/jersey-guernsey.md) | `channel-islands-specialist` | JFSC + GFSC; JPF/PIF; MONEYVAL |
+| [`knowledge/jurisdictions/uk-pra.md`](knowledge/jurisdictions/uk-pra.md) | `uk-pra-specialist` | PRA + FCA twin-peaks; Basel 3.1; Solvency UK |
+| [`knowledge/jurisdictions/us-federal-state.md`](knowledge/jurisdictions/us-federal-state.md) | `us-financial-regulation-specialist` | Federal+state alphabet soup; BSA/AML; CTA/BOI |
+| [`knowledge/jurisdictions/global-regulator-directory.md`](knowledge/jurisdictions/global-regulator-directory.md) | all jurisdiction agents | FATF/CFATF/MONEYVAL, Basel/IAIS/IOSCO, OECD CRS/Pillar Two, EU AMLA — the supranational layer |
+
+**Sourcing honesty:** the BMA/CIMA/Bahamas/JFSC primary sites HTTP-403'd the automated fetch backend during the build sweep, so many exact statutory section numbers carry an `[unverified]` marker grounded in search-engine extraction + multiple independent law-firm compendiums. This is deliberate, not sloppiness — the marker IS the instruction to confirm against the primary PDF before the cite gates a live filing.
 
 ## 8b. Scenarios bank — TODO (planned)
 

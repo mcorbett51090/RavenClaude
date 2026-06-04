@@ -2,7 +2,7 @@
 
 > Financial-regulatory & compliance specialist team for the RavenClaude marketplace.
 
-Ships six specialist agents (AML/KYC analyst, regulatory-reporting analyst, risk-and-controls specialist, policy & procedure writer, examination-prep specialist, Bermuda-insurance specialist), four playbook skills (AML program review, regulatory mapping, SAR narrative drafting, examination readiness), eight working templates, and one **defensive PreToolUse** hook that scans pending writes for PII (SSN, IBAN, credit-card, Bermuda TIN, wire instructions) before they land on disk.
+Ships **twelve specialist agents** — six function agents (AML/KYC analyst, regulatory-reporting analyst, risk-and-controls specialist, policy & procedure writer, examination-prep specialist, Bermuda-insurance specialist) and **six jurisdiction/regulator specialists** (BMA financial-institutions — banking/trust/corporate-services/fund-admin/investment-business, the primary build-out; CIMA/Cayman; Bahamas; Channel Islands — Jersey JFSC + Guernsey GFSC; UK PRA; US federal+state) — backed by **twelve primary-source-cited regulator knowledge files**, nine playbook skills, eight working templates, and one **defensive PreToolUse** hook that scans pending writes for PII (SSN, IBAN, credit-card, Bermuda TIN, wire instructions) before they land on disk.
 
 The plugin's positioning reflects field experience inside a Tier-1 financial regulator (Bermuda Monetary Authority). It produces analysis and documentation; **it does not give legal advice** — legal opinions stay with counsel.
 
@@ -21,8 +21,9 @@ Requires `ravenclaude-core@>=0.5.0`.
 
 | Component | Count | Where |
 |-----------|-------|-------|
-| Specialist agents | 6 | [`agents/`](agents/) |
-| Skills | 4 | [`skills/`](skills/) |
+| Specialist agents | 12 (6 function + 6 jurisdiction) | [`agents/`](agents/) |
+| Regulator knowledge files | 12 (6 BMA sector + 6 jurisdiction/directory) | [`knowledge/bma/`](knowledge/bma/), [`knowledge/jurisdictions/`](knowledge/jurisdictions/) |
+| Skills | 9 | [`skills/`](skills/) |
 | Hooks | 1 (PreToolUse, defensive) | [`hooks/`](hooks/) |
 | Templates | 8 | [`templates/`](templates/) |
 
@@ -37,7 +38,17 @@ See [`CLAUDE.md`](CLAUDE.md) for the full team constitution.
 "Draft an AML policy refresh"              → policy-and-procedure-writer
 "BMA exam scheduled for Q3"                → examination-prep-specialist
 "BMA-domiciled captive — capital math"     → bermuda-insurance-specialist
+"Classify this Bermuda bank/trust/CSP/fund" → bma-financial-institutions-specialist
+"Mutual Funds Act or Private Funds Act?"   → cima-cayman-specialist
+"Who licenses this Bahamian entity?"       → bahamas-financial-services-specialist
+"Jersey JPF or Guernsey PIF?"              → channel-islands-specialist
+"Is this firm PRA- or FCA-regulated?"      → uk-pra-specialist
+"Which US regulator / BSA-AML / BOI?"      → us-financial-regulation-specialist
 ```
+
+## Regulator knowledge base
+
+The jurisdiction specialists read **12 primary-source-cited knowledge files** before answering — six BMA sector files under [`knowledge/bma/`](knowledge/bma/) (banking, trust, corporate-services, fund-administration, investment-business, overview) and six under [`knowledge/jurisdictions/`](knowledge/jurisdictions/) (CIMA/Cayman, Bahamas, Jersey-Guernsey, UK PRA, US federal+state, and a global standard-setter directory). Each cites the actual Act + section and Code + date; values that could not be pinned to the primary text (many regulator sites 403 automated fetch) carry an explicit `[unverified]` marker — the instruction to confirm against the primary PDF before relying.
 
 ## House opinions (short list)
 
