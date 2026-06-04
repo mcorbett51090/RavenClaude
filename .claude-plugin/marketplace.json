@@ -5,8 +5,8 @@
     "name": "Matt Corbett"
   },
   "metadata": {
-    "description": "RavenClaude \u2014 a private marketplace of opinionated Claude Code plugins. A domain-neutral core (Team Lead + 14 specialist agents, 34 skills, hooks, the Capability Grounding Protocol, the Structured Output Protocol, and a comfort-posture permission dashboard) plus domain plugins that extend it via skills and knowledge. Every agent ships example-scenario frontmatter; the repo-guide surfaces an 'I want to\u2026' use-case lookup across all plugins. Plugins: ravenclaude-core, power-platform (+ bundled pbix-mcp), finance, regulatory-compliance, web-design (WCAG/CWV/SEO), edtech-partner-success (PSM lane), data-platform, applied-statistics, microsoft-fabric (OneLake / Lakehouse / Direct Lake), claude-app-engineering (Claude API / Agent SDK / MCP / evals), azure-cloud (landing zones / Bicep / Entra / networking / compute), salesforce (Apex / Flow / Agentforce / sharing model / 2GP DevOps), microsoft-365-copilot (declarative/custom-engine agents / Graph connectors / Purview), customer-success-analytics (CS-health / churn).",
-    "version": "0.45.0"
+    "description": "RavenClaude \u2014 a private marketplace of opinionated Claude Code plugins. A domain-neutral core (Team Lead + 14 specialist agents, 34 skills, hooks, the Capability Grounding Protocol, the Structured Output Protocol, and a comfort-posture permission dashboard) plus domain plugins that extend it via skills and knowledge. Every agent ships example-scenario frontmatter; the repo-guide surfaces an 'I want to\u2026' use-case lookup across all plugins. Plugins: ravenclaude-core, power-platform, finance, regulatory-compliance, web-design, edtech-partner-success, data-platform, applied-statistics, microsoft-fabric, claude-app-engineering, azure-cloud, salesforce, microsoft-365-copilot, customer-success-analytics, auth-identity, process-improvement, microsoft-graph, tableau, ai-coding-model-guidance, project-management, api-engineering, team-portfolio.",
+    "version": "0.46.0"
   },
   "plugins": [
     {
@@ -481,7 +481,7 @@
     {
       "name": "team-portfolio",
       "source": "./plugins/team-portfolio",
-      "description": "Centralized multi-repo, multi-person activity & project tracking. Aggregates commits, pull requests, and issues across many GitHub repositories from the GitHub API and rolls them up by person, by repo, and by cross-repo project — so a team working in sibling repos has one place to see who did what, and a supervisor gets a manage-the-team view no single-repo activity log can provide. Ships a stdlib-only collector (GitHub REST API → normalized activity JSON), a markdown report generator (weekly tracker + rolling activity roll-up + per-project status), a self-contained HTML dashboard generator, a copy-in GitHub Action template for scheduled refresh, an on-demand /portfolio-refresh command, an optional hand-maintained narrative layer, and 2 skills (portfolio-setup, cross-repo-project-tracking). Secrets stay in env/secrets, never in config. Requires ravenclaude-core@>=0.7.0.",
+      "description": "Centralized multi-repo, multi-person activity & project tracking. Aggregates commits, pull requests, and issues across many GitHub repositories from the GitHub API and rolls them up by person, by repo, and by cross-repo project \u2014 so a team working in sibling repos has one place to see who did what, and a supervisor gets a manage-the-team view no single-repo activity log can provide. Ships a stdlib-only collector (GitHub REST API \u2192 normalized activity JSON), a markdown report generator (weekly tracker + rolling activity roll-up + per-project status), a self-contained HTML dashboard generator, a copy-in GitHub Action template for scheduled refresh, an on-demand /portfolio-refresh command, an optional hand-maintained narrative layer, and 2 skills (portfolio-setup, cross-repo-project-tracking). Secrets stay in env/secrets, never in config. Requires ravenclaude-core@>=0.7.0.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -498,6 +498,39 @@
         "supervisor-dashboard",
         "cross-repo",
         "status-reporting"
+      ]
+    },
+    {
+      "name": "api-engineering",
+      "source": "./plugins/api-engineering",
+      "description": "API engineering specialist team \u2014 5 agents (api-design-architect, api-implementation-engineer, api-security-engineer, api-testing-engineer, api-platform-engineer) for the full lifecycle of an API you produce: paradigm choice (REST/GraphQL/gRPC/webhooks/AsyncAPI), contract-first design (OpenAPI 3.1/3.2, AsyncAPI 3.0, Arazzo), versioning & deprecation; the build craft (RFC 9457 Problem Details, cursor pagination, Idempotency-Key, ETag concurrency, HTTP semantics, 202+polling, RateLimit headers); security (OWASP API Security Top 10 2023 \u2014 BOLA/BOPLA/BFLA, token/scope validation, consumption limits, SSRF); and testing & operations (contract tests, Spectral lint in CI, Prism/Postman mocks, k6 load, gateway design, dev portal + SDK codegen, sunset rollout). Knowledge bank with 10 Mermaid decision trees + a dated 2026 capability map, 22 best-practices, 6 templates, 6 commands, 1 advisory hook. Security verdicts escalate to ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "api",
+        "api-design",
+        "rest",
+        "graphql",
+        "grpc",
+        "openapi",
+        "asyncapi",
+        "contract-first",
+        "rfc9457",
+        "problem-details",
+        "pagination",
+        "idempotency",
+        "versioning",
+        "api-security",
+        "owasp-api-top-10",
+        "bola",
+        "rate-limiting",
+        "webhooks",
+        "spectral",
+        "contract-testing",
+        "api-gateway",
+        "sdk-generation"
       ]
     }
   ]
