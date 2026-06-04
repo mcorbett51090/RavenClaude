@@ -150,7 +150,44 @@ The two mechanisms together form the enforcement pair: the hook fires in-session
 - [`bi-measures-not-calculated-columns.md`](./bi-measures-not-calculated-columns.md) — the companion rule on measure-vs-calculated-column selection
 - [`tmdl-pbip-source-control-hygiene.md`](./tmdl-pbip-source-control-hygiene.md) — how TMDL is committed to source control
 - [`../knowledge/dax-category-name-mismatch-zero-scores.md`](../knowledge/dax-category-name-mismatch-zero-scores.md) — a production lesson on why well-described measures reduce authoring errors
+- [`../knowledge/pbir-dax-pitfalls.md`](../knowledge/pbir-dax-pitfalls.md) — companion file on the DAX measure-evaluation pitfalls (REMOVEFILTERS arity, format-string scale, `formatString: @` for text measures) that silently blank visuals
 - Tabular Editor BPA docs: https://docs.tabulareditor.com/te2/Best-Practice-Analyzer.html
+
+---
+
+## Appendix — TMDL comment syntax (BMA-CSP Lesson 7, 2026-06-04)
+
+**TL;DR:** `//` comments are valid **inside** DAX measure expressions (indented, within `VAR` / `RETURN`). They are **NOT** valid at the **top level** of a TMDL document. Deploying a TMDL file with a top-level `//` comment fails with `Parsing error type - InvalidLineType` and a near-useless error location.
+
+```tmdl
+// WRONG — top-level // comment fails with InvalidLineType on deploy
+table Licences
+    column 'Licence Number'
+        dataType: string
+        sourceColumn: cr_licence_number
+
+    measure 'Total Licences' =
+        // CORRECT — // is valid INSIDE a measure expression (indented under the measure body)
+        VAR _all = COUNTROWS(Licences)
+        RETURN _all
+        formatString: '#,##0'
+```
+
+For documentation that needs to live at the TMDL top level, use a **`///` triple-slash description** on the object instead — those are valid metadata, get picked up by the BPA discipline this best-practice file enforces, and survive serialization:
+
+```tmdl
+table Licences
+    /// Issued CSP licences. Source: cr_licences table in Dataverse, refreshed nightly.
+    column 'Licence Number'
+        dataType: string
+
+    /// Count of issued licences, used as the denominator on portfolio-level cards.
+    measure 'Total Licences' =
+        COUNTROWS(Licences)
+        formatString: '#,##0'
+```
+
+**The rule:** never `//` at the top level of a TMDL file; use `///` descriptions for metadata, and reserve `//` for inside-measure-body comments only. The TMDL parser gives no helpful error message, so prevention is cheaper than diagnosis. (Source: production session 2026-06-04 on `mcorbettbma/BTCSIReporting`; verbatim lesson archive lives at `.ravenclaude/runs/forge/bma-csp-lessons/source.md` — gitignored per the FORGE convention, so this section encodes the lesson directly.)
 
 ---
 
@@ -160,4 +197,4 @@ Codifies house opinion §3 #6 and §4 (model quality) from [`../CLAUDE.md`](../C
 
 ---
 
-_Last reviewed: 2026-06-03 by `claude`_
+_Last reviewed: 2026-06-04 by `claude` (BMA-CSP Lesson 7 — TMDL comment syntax appendix)._

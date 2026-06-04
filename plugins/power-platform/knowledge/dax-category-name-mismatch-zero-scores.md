@@ -1,6 +1,6 @@
 # DAX measure filters with hardcoded category names — silent zero-score bug
 
-> **Last reviewed:** 2026-06-02. Source: production incident on the **BMA CSP Thematic Review** engagement (BTCSI DEV workspace, June 2026). All scoring measures in a deployed PBIR Enhanced report returned `0` / `BLANK()` for 59 entities that had actual response data. Refresh when (a) a downstream consumer migrates the lesson to a richer test discipline (live-query smoke test in the deploy step), (b) Power BI / Fabric surfaces a "no rows matched filter" warning in measures (it does not today, which is why this lesson exists), or (c) calculation-group surfaces evolve in a way that makes the `Domain` calculated-column pattern obsolete.
+> **Last reviewed:** 2026-06-04. **Refreshed 2026-06-04** with the §Question-number variant section (Lessons 3 + 4 from the BMA-CSP-Risk-Scoring session — same silent-zero shape, same `EVALUATE SUMMARIZE` diagnosis pattern, applied to question numbers rather than category names) and a cross-link to the new [`pbir-fabric-rest-debugging.md`](pbir-fabric-rest-debugging.md) reference. Source: production incident on the **BMA CSP Thematic Review** engagement (BTCSI DEV workspace, June 2026). All scoring measures in a deployed PBIR Enhanced report returned `0` / `BLANK()` for 59 entities that had actual response data. Refresh when (a) a downstream consumer migrates the lesson to a richer test discipline (live-query smoke test in the deploy step), (b) Power BI / Fabric surfaces a "no rows matched filter" warning in measures (it does not today, which is why this lesson exists), or (c) calculation-group surfaces evolve in a way that makes the `Domain` calculated-column pattern obsolete.
 >
 > **Claim-grounding note.** The bug shape (silent zero from a no-match string filter), the diagnosis DAX, and the two fix patterns are taken from a real customer-engagement debug session at the date above. The specific category strings and score-scale numbers are from that engagement; treat them as illustrative — re-derive the analogous strings for your model.
 
@@ -172,6 +172,44 @@ Two fixes — pick one and apply it consistently:
 > Run the § Diagnose `SUMMARIZE` against the live semantic model and confirm the filter string is one of the returned `Category` values. Do this as part of build/deploy verification, **not** after noticing all scores are zero.
 
 This pairs naturally with the `power-platform-tester` agent's coverage (a "string-filter-against-live-model" smoke test in the DAX-Studio/server-timings layer) and with the `solution-alm-engineer` agent's deploy checklist. **Make the verification a deploy-step, not a vigilance discipline** — the lesson learned here is *that vigilance fails silently when there's no surfaced error*.
+
+## Variant — question-number string mismatch (BMA-CSP Lessons 3 + 4, 2026-06-04)
+
+The same silent-zero shape applies to **question numbers** in a scorer DAX, not just category names. From the BMA-CSP-Risk-Scoring session (`mcorbettbma/BTCSIReporting`, 2026-06-04):
+
+- Gateway-applicability measures filtered `Questions[Question_Number] = <N>` where `<N>` had been read from the project's design doc, not from the live data. Three of the four gateway measures pointed at the wrong question (e.g. `Client Money Applicable` checked Q1 — "Acting as company formation agent" — when it should have checked Q14 — "Does your company hold or receive money on behalf of clients?"). Result: every entity scored Low Risk; nothing flagged Medium / High / Very High.
+- The downstream `Question Raw Score` had **SWITCH routing bugs**: Yes/No questions (Q8, Q9, Q15, Q17–Q20, Q23) were mapped to A/B/C/D custom scorers and always returned BLANK; multi-choice questions (Q16, Q21, Q29, Q32, Q33, Q34, Q36, Q37) were not in the SWITCH at all and also returned BLANK; one inner reference looked at `Question_Number = 19` (a Yes/No question) when it should have been `= 16`; one mapping was missing the `E=5` entry. All silent.
+
+**The diagnosis pattern is identical to the §Diagnose pattern above** — `EVALUATE SUMMARIZE(...)` against the live model via REST. The query that closed the gateway diagnosis in <5 minutes (after 2 hours of in-portal iteration):
+
+```dax
+EVALUATE
+    SUMMARIZECOLUMNS(
+        Questions[Question_Number],
+        Questions[Question_Text],
+        "Sample_Answer", FIRSTNONBLANK(Responses[Value], 1)
+    )
+```
+
+And the query that closed the SWITCH routing bugs by enumerating every distinct (Question_Number, Value) combination:
+
+```dax
+EVALUATE SUMMARIZE(Responses, Responses[Question_Number], Responses[Value])
+```
+
+Run it via the Fabric REST `executeQueries` endpoint — full pattern + auth chain in [`pbir-fabric-rest-debugging.md`](pbir-fabric-rest-debugging.md). The general rule from the BMA-CSP session: **before writing any string-literal or integer-literal filter in a scorer DAX, run a SUMMARIZE against the live model and confirm the actual values match the assumption.** 5 minutes of REST query saves 2 hours of in-portal iteration; the failure mode is identical to the Category case above (silent zero, no warning, plausible-looking dashboard).
+
+### Prevention rule for SWITCH-based scorers (Lesson 4 follow-on)
+
+When authoring a `Question Raw Score` (or any `SWITCH`-on-question-number scorer):
+
+1. **First** enumerate every distinct (Question_Number, Value) combination via REST `executeQueries` (`EVALUATE SUMMARIZE(Responses, [Question_Number], [Value])`).
+2. **Then** classify each question by answer-shape: Yes/No, A/B/C/D, multi-choice with custom weights, free-text.
+3. **Then** write the `SWITCH` — one branch per question-shape, with the right scorer function per branch.
+
+Skipping step 1 = silent zeros for every misrouted question. The author has no signal until a stakeholder asks "why is every entity Low Risk?" — by which point the model has been deployed and consumed downstream.
+
+---
 
 ## Why a generated test, not a code-review-only fix
 
