@@ -1,7 +1,7 @@
 {
   "name": "legal-small-firm",
-  "version": "0.1.2",
-  "description": "Small-Firm Legal Practice specialist team \u2014 4 agents (legal-engagement-lead, litigation-specialist, contracts-drafting-specialist, legal-operations-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A practice-operations team for a solo or small-firm attorney \u2014 it manages matters on realization and the billable-vs-collected gap, drafts and reviews documents as attorney decision-support, runs intake on conflict and fit before the engagement, and reads the practice P&L the way a lawyer who is also the rainmaker and the COO must. Inherits ravenclaude-core protocols.",
+  "version": "0.2.0",
+  "description": "Small-Firm Legal Practice specialist team — 4 agents (legal-engagement-lead, litigation-specialist, contracts-drafting-specialist, legal-operations-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A practice-operations team for a solo or small-firm attorney — it manages matters on realization and the billable-vs-collected gap, drafts and reviews documents as attorney decision-support, runs intake on conflict and fit before the engagement, and reads the practice P&L the way a lawyer who is also the rainmaker and the COO must. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"
   },

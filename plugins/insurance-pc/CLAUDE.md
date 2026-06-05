@@ -66,7 +66,10 @@ The research-grounded reference the agents point to. Read the relevant file in f
 | [`knowledge/pc-kpi-glossary.md`](knowledge/pc-kpi-glossary.md) | P&C insurance KPI glossary |
 | [`knowledge/pc-underwriting-economics.md`](knowledge/pc-underwriting-economics.md) | P&C underwriting economics |
 | [`knowledge/pc-market-results-2026.md`](knowledge/pc-market-results-2026.md) | P&C industry results (2025–2026) |
-| [`knowledge/pc-decision-trees.md`](knowledge/pc-decision-trees.md) | P&C decision trees |
+| [`knowledge/pc-decision-trees.md`](knowledge/pc-decision-trees.md) | P&C decision trees (consolidated — combined-ratio, rate adequacy, lines, large-loss triage, which-loss-ratio, write/decline) |
+| [`knowledge/pc-kpi-glossary.md`](knowledge/pc-kpi-glossary.md) | P&C KPI glossary — **cited/dated benchmark tables** (combined ratios by line, cat load, LAE/DCC/AO, PLR & rate-indication formulas, retention) + US/NAIC regulatory context |
+| [`knowledge/pc-reserving-method-decision-tree.md`](knowledge/pc-reserving-method-decision-tree.md) | **Mermaid** — which loss-reserving method per cohort (chain ladder vs Bornhuetter-Ferguson vs ELR; maturity/a-priori/process-change gates; case/IBNR/ultimate components) |
+| [`knowledge/pc-claims-leakage-and-lae-decision-tree.md`](knowledge/pc-claims-leakage-and-lae-decision-tree.md) | **Mermaid** — controlling leakage, LAE (DCC vs AO), and cycle time without squeezing valid indemnity (frequency-vs-severity gate; controllable-metric set) |
 
 ---
 
@@ -106,6 +109,32 @@ The lead is [`underwriting-lead`](agents/underwriting-lead.md) — first contact
 
 ---
 
-## 8. Milestones
+## 8. Scenarios bank & runnable tooling (added v0.2.0)
 
-- **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 5 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 8 best-practice rules.
+- **Scenarios bank** — [`scenarios/`](scenarios/) holds dated, scope-tagged, unverified engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank or a credentialed actuary's judgment (§2). Scenarios carry no policyholder/claimant PII (§2). The most-likely-to-benefit specialists — `pc-underwriter`, `claims-specialist`, `actuarial-pricing-analyst` — should check the bank when a situation matches.
+- **Runnable calculator** — [`scripts/pc_calc.py`](scripts/pc_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from four recurring decisions: `combined-ratio` (loss/expense + attritional/cat split + underwriting margin), `rate-indication` (loss-ratio-method indicated change, optional credibility weighting), `loss-ratio` (frequency-vs-severity decomposition of a loss-ratio move), `reserve-runoff` (prior-year adverse/favorable development). It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support, not actuarial/legal/filed-rate advice (§2). Owned primarily by `actuarial-pricing-analyst`; `claims-specialist` uses `loss-ratio`, `pc-underwriter` uses `rate-indication`.
+
+## 9. Value-add completeness (build-out 2026-06-05)
+
+Every value-add menu item is dispositioned honestly below. As with the `veterinary-practice` pilot, several runtime-tier items are genuinely **N-A** for a **pure non-code vertical** (underwriting/claims advisory) — there is no code artifact, runtime, or repo to operate on, and forcing them would add noise, not value.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README + 4 dated engagement scenarios (combined-ratio diagnosis, underwriting-mix correction, claims cycle-time/LAE, retention/renewal). |
+| Decision-tree (Mermaid) knowledge | **BUILT** | 2 **new** files (reserving-method selection; claims leakage/LAE/cycle-time) that COMPLEMENT — not duplicate — PR #315's consolidated `pc-decision-trees.md` (those cover combined-ratio, rate adequacy, lines, large-loss triage, which-loss-ratio, write/decline). |
+| Glossary / KPI reference | **BUILT (enriched existing)** | `pc-kpi-glossary.md` replaced the thin stub with cited, dated benchmark tables + a US/NAIC regulatory-context section, rather than a redundant new file. |
+| Runnable script (`scripts/`) | **BUILT** | `pc_calc.py` — combined-ratio / rate-indication / loss-ratio / reserve-runoff. `ruff`-clean, `py_compile`-clean, executable, stdlib-only. The one runtime item with real non-code value. |
+| Code-aware MCP server (bundled) | **N-A** | No published MCP for a policy-admin / rating / claims system verified to exist; those systems are per-tenant/authenticated/PII-bearing — bundling is out of scope and the plugin is deliberately system-neutral (§2). If a live-data need surfaces, it would be *recommend, evaluate-first*, never bundled (per `docs/best-practices/bundled-mcp-servers.md`). |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in an underwriting-advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/pc_calc.py`; no compiled/installed binary is warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. |
+| output-styles / themes | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown reports governed by the §6 Output Contract. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 5 skills, 1 advisory antipattern hook, 5 commands, 4 templates already cover the surface; no obvious high-value gap this round. The new decision trees + script extend reach without a new agent (team-growth-as-knowledge house rule). |
+| CHANGELOG.md | **BUILT** | Added with a top `0.2.0` entry. |
+| NOTICE.md | **N-A** | No third-party content is bundled (the script is original, stdlib-only; all sources are cited inline, not vendored). |
+
+## 10. Milestones
+
+- **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 5 commands, 1 advisory hook, research-grounded knowledge bank, 8 best-practice rules.
+- **v0.2.0** — non-code-vertical value-add build-out: scenarios bank (4 scenarios), 2 new Mermaid decision-tree knowledge files (reserving-method; claims leakage/LAE) complementing the consolidated `pc-decision-trees.md`, `scripts/pc_calc.py` (4 modes), cited-benchmark KPI-glossary enrichment, CHANGELOG. Code-runtime tier dispositioned N-A with reasons (§9).

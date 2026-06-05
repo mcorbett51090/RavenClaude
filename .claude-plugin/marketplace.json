@@ -1122,7 +1122,7 @@
       "name": "medical-revenue-cycle",
       "source": "./plugins/medical-revenue-cycle",
       "description": "Medical Revenue Cycle specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A revenue-cycle team for a healthcare provider or RCM operator — it drives the clean-claim rate toward 98%, attacks denials before they happen (initial denials hit ~11.8% in 2024 and trend 12–15%), works the A/R by aging bucket, and reads net collection rate the way a CFO who lives the cash cycle does. Inherits ravenclaude-core protocols.",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1141,7 +1141,7 @@
       "name": "insurance-pc",
       "source": "./plugins/insurance-pc",
       "description": "P&C Insurance specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. An underwriting-and-claims team for a P&C carrier, MGA, or agency analyst — it reads the combined ratio as loss plus expense, prices risk to the loss ratio rather than the competitor, manages the claims severity-and-frequency story, and reads catastrophe load the way an underwriting result that hit a decade-best ~92 combined in 2025 demands. Inherits ravenclaude-core protocols.",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1331,7 +1331,7 @@
       "name": "legal-small-firm",
       "source": "./plugins/legal-small-firm",
       "description": "Small-Firm Legal Practice specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A practice-operations team for a solo or small-firm attorney — it manages matters on realization and the billable-vs-collected gap, drafts and reviews documents as attorney decision-support, runs intake on conflict and fit before the engagement, and reads the practice P&L the way a lawyer who is also the rainmaker and the COO must. Inherits ravenclaude-core protocols.",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
