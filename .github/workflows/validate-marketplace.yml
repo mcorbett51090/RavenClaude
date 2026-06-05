@@ -388,6 +388,15 @@ jobs:
         # and the generated copilot/ tree). See scripts/check-md-links.py.
         run: python3 scripts/check-md-links.py
 
+      - name: Verify bundled MCP servers are attributed
+        # Any plugin.json that declares an `mcpServers` block must carry a top-level
+        # `x-mcpAttribution` map naming each server; third-party servers also need
+        # source + license + a NOTICE.md that mentions the server. Makes the
+        # bundled-mcp-servers best-practice rule enforceable instead of review-only.
+        # Teeth audited in audit-gates.sh Gate 98. See
+        # docs/best-practices/bundled-mcp-servers.md.
+        run: python3 scripts/check-mcp-attribution.py
+
       - name: Cross-check version pins (marketplace.json vs plugin.json)
         run: |
           set -euo pipefail

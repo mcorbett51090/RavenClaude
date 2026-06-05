@@ -39,3 +39,55 @@
 ## 4. Inheritance
 
 This plugin **inherits `ravenclaude-core` protocols**: the Capability Grounding Protocol (decision-tree-first + alternate-methods enumeration + honest blocked-reporting), the Structured Output Protocol for handoffs, and the security/review escalations. Domain-specific rules live in each agent file and in `best-practices/`; the knowledge bank carries the decision trees and the dated capability map.
+
+## 5. Knowledge & scenario banks
+
+Two banks back the agents (the dual-bank model — see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)):
+
+- **Canonical / knowledge** (high trust, follow without disclaimer): [`knowledge/backend-engineering-decision-trees.md`](knowledge/backend-engineering-decision-trees.md) (monolith-vs-service, caching, sync-vs-async, extract-now-vs-later) and [`knowledge/data-store-and-api-paradigm-decision-trees.md`](knowledge/data-store-and-api-paradigm-decision-trees.md) (SQL-vs-NoSQL store selection, REST-vs-GraphQL-vs-gRPC). **Traverse the relevant Mermaid tree top-to-bottom before choosing** — the proactive complement to the Capability Grounding Protocol.
+- **Scenarios** (low/medium trust, surface with the mandatory unverified preamble): [`scenarios/`](scenarios/) — field notes (idempotent payments, N+1 + pool exhaustion, zero-downtime migration, poison-message queues). Secondary source; never replaces the knowledge bank.
+
+## 6. Technical-runtime tier — LSP code intelligence (bundled config, binary installed separately)
+
+Backend engineering is a **code** domain, so the plugin ships an [`.lsp.json`](.lsp.json) (referenced from `plugin.json` `lspServers`) giving agents real-time code intelligence — go-to-definition, find-references, diagnostics — instead of grep-and-guess. Verified against the [Claude Code plugins reference](https://code.claude.com/docs/en/plugins-reference) (LSP servers section, 2026-06-05); LSP support landed in Claude Code 2.0.74 `[verify-at-use]`.
+
+It configures three language servers covering this plugin's example languages (Node/Python/Go):
+
+| Language | Server | `command` | Install (consumer, separate) |
+|---|---|---|---|
+| Python | Pyright | `pyright-langserver --stdio` | `pip install pyright` **or** `npm install -g pyright` |
+| TypeScript/JS | typescript-language-server | `typescript-language-server --stdio` | `npm install -g typescript-language-server typescript` |
+| Go | gopls | `gopls serve` | `go install golang.org/x/tools/gopls@latest` `[verify-at-use]` |
+
+**The plugin ships the *config*, not the *binary*.** Per the plugins reference: "LSP plugins configure how Claude Code connects to a language server, but they don't include the server itself." If a server's binary isn't on `PATH`, it shows `Executable not found in $PATH` in the `/plugin` Errors tab and that one language degrades — Claude Code and all other tools keep working (the same **loud-but-non-fatal** posture as a missing MCP prerequisite). LSP servers start only after the workspace is trusted, and `/reload-plugins` is needed to pick up a config change mid-session.
+
+> Package names and the `--stdio` / `serve` invocations are verified against the official LSP-plugin table in the plugins reference (`pyright-lsp`, `typescript-lsp`) and the `gopls` example in the same doc (2026-06-05). Re-confirm the `gopls` install path and the 2.0.74 LSP-support version at use — both are version-volatile.
+
+## 7. Recommended (not bundled) MCP servers — code/git/db context
+
+This plugin **bundles no MCP server**, on purpose. Per [`docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md), a bundled server must be **zero-config and read-only by default**; a write-capable or per-consumer-configured server is **recommend-not-bundle**. Every backend-useful server fails the zero-config-read-only bar — so we document the recommended `claude mcp add …` paths instead of shipping an `mcpServers` entry.
+
+| Server | Why recommend-not-bundle | Recommended setup `[verify-at-use]` |
+|---|---|---|
+| **Filesystem** ([`@modelcontextprotocol/server-filesystem`](https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem), MIT, first-party reference) | Needs a **consumer-specific allowed-directory path** (can't hardcode), and is **write-capable** (it can create/move/delete files) → both disqualify bundling. | `claude mcp add fs -- npx -y @modelcontextprotocol/server-filesystem /path/to/allowed/dir` — pass **only** the dirs the agent may touch; the path arg is the access boundary. |
+| **Git** ([`mcp-server-git`](https://github.com/modelcontextprotocol/servers/tree/main/src/git), MIT, first-party reference) | Needs a **consumer-specific repo path**, and exposes **write** verbs (commit, etc.) → recommend-not-bundle; prefer the read/search subset. | `claude mcp add git -- uvx mcp-server-git --repository /path/to/repo` |
+| **PostgreSQL (read-only)** | A backend engineer wants live schema/row context, but it is **per-tenant + authenticated** (a DB connection string = a secret) → never bundle; secrets stay a **reference**, never a literal. The Anthropic reference `@modelcontextprotocol/server-postgres` is **archived/deprecated** (May 2025; SQL-injection fix never shipped) — **do not recommend it.** Point consumers at a maintained read-only community fork (vet license/activity at adoption) or Google's MCP Toolbox for Databases, gated through `ravenclaude-core/security-reviewer`. | Consumer-configured, secret as a reference (env-var name / vault URI), **read-only transaction mode**, `security-reviewer` sign-off before adoption. |
+
+**Why none are bundled (the load-bearing reasoning):** the filesystem and git reference servers are MIT and first-party, but both need a consumer-specific path *and* carry write verbs — the rule's decision table sends "per-consumer config OR write-capable" to **recommend, don't bundle**. The Postgres path additionally handles a secret (a connection string), which is an Absolute-rule "reference-not-literal" + `security-reviewer` situation. If a genuinely zero-config, read-only, broadly-useful backend server appears, revisit this with the doctrine block in [`docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md) Step 4.
+
+> Verified 2026-06-05: official MCP reference-server set (filesystem, git, fetch, memory, sequential-thinking, time) and the archival of the postgres/sqlite/redis reference servers per the [modelcontextprotocol/servers](https://github.com/modelcontextprotocol/servers) repo; the `@modelcontextprotocol/server-postgres` deprecation per its npm/Docker listings. Package names, archival status, and the MCP Toolbox version are volatile — re-confirm at use.
+
+## Value-add completeness (pilot build-out 2026-06-05)
+
+Disposition of every value-add menu item (built vs. recorded N-A with reason):
+
+| # | Item | Disposition |
+|---|---|---|
+| 1 | **scenarios/ bank** | **BUILT** — 4 scenarios (idempotent payments, N+1 + pool exhaustion, zero-downtime migration, poison-message queue) matching the existing `scenarios/README.md` index + 9-field schema. |
+| 2 | **Decision-tree knowledge** | **BUILT** — `knowledge/data-store-and-api-paradigm-decision-trees.md`: SQL-vs-NoSQL store selection + REST-vs-GraphQL-vs-gRPC. Chosen because the existing tree file already covers monolith/cache/sync-async/extract — these two were the gaps. |
+| 3 | **Bundled MCP server** | **N-A (recommend-not-bundle)** — §7. No server clears the zero-config + read-only bar (filesystem/git need a path + are write-capable; Postgres is per-tenant + secret-handling; the Anthropic postgres reference is deprecated). Documented the recommended `claude mcp add` paths instead. No invented servers. |
+| 4 | **LSP server** | **BUILT** — `.lsp.json` (pyright / typescript-language-server / gopls), wired via `plugin.json` `lspServers`. Genuinely useful for a code domain; binaries install separately (§6). |
+| 5 | **bin/ executables** | **N-A** — no `rc-*` script clears the rule's "namespace + prefer Bash-tool skills" bar better than the existing advisory hook (`hooks/check-backend-engineering-anti-patterns.sh`) + skills already do. A contract/migration linter would duplicate `api-engineering` / `database-engineering` lanes. |
+| 6 | **userConfig / output-styles / monitors / settings defaults / themes** | **N-A** — no groundable, broadly-valuable instance. An API-review output-style would overlap the agents' Output Contract; the plugin is config-light by design. |
+| 7 | **skills/hooks/commands/templates** | **Coverage sufficient** — 4 skills, 4 commands, 4 templates, 1 advisory hook already cover boundary design, implementation, data-access/caching, and resilience. Idempotency is covered across a template + best-practice + the `backend-implementation` skill; a 5th skill would gold-plate. |
+| 8 | **CHANGELOG.md** | **BUILT** — added with a top entry for this build-out. No `NOTICE.md` (nothing third-party is bundled). |

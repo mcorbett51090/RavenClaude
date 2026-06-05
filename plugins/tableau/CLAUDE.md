@@ -80,8 +80,66 @@ Plus the cross-plugin **Structured Output Protocol** JSON block ([`../ravenclaud
 
 ## 7. Knowledge bank & best practices
 
-- [`knowledge/`](knowledge/) — reference docs with `Last verified:` dates + Mermaid **decision trees** (chart selection, relationship vs join vs blend, extract vs live, LOD vs table calc, RLS mechanism, embedding auth, content promotion). The agents traverse these before choosing a method.
+- [`knowledge/`](knowledge/) — reference docs with `Last verified:` dates + Mermaid **decision trees** (chart selection, relationship vs join vs blend, extract vs live, LOD vs table calc, RLS mechanism, embedding auth, content promotion, **data-freshness pipeline** — Bridge vs Cloud-native, full vs incremental, stale-dashboard diagnosis). The agents traverse these before choosing a method.
 - [`best-practices/`](best-practices/) — named, citable rules (one per file), grounded in the knowledge bank and surfaced in the marketplace repo-guide + dashboard Guidance tab.
+- [`skills/`](skills/) — step-by-step procedures: [`workbook-performance-audit`](skills/workbook-performance-audit/SKILL.md) (evidence-first Performance Recorder ladder) and [`embedding-connected-apps-jwt`](skills/embedding-connected-apps-jwt/SKILL.md) (Connected App / Direct Trust JWT + Embedding API v3; security-gated).
+- [`scenarios/`](scenarios/) — unverified, dated field-note bank consulted as a **secondary** source (mandatory unverified preamble); see the [scenario-retrieval skill](../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
+- [`hooks/`](hooks/) — `flag-tableau-anti-patterns.sh`, an **advisory** (never-blocking) `PreToolUse(Write|Edit)` hook flagging the §4 anti-patterns it can grep in `.twb`/`.tds` XML.
+- [`templates/`](templates/) — fill-in templates for performance audits, governance/RLS plans, embedding design specs, and dashboard design specs.
+
+---
+
+## Value-add completeness (pilot build-out 2026-06-05)
+
+This plugin was completed against the marketplace value-add menu. Every item was considered;
+each is either **built** or carries a one-line disposition for an auditable "every item examined."
+
+| # | Item | Disposition | Notes |
+|---|---|---|---|
+| 1 | `scenarios/` bank | **BUILT** | 4 dated scenarios (LOD order-of-ops, embedding JWT+RLS, Server→Cloud refresh, perf-recorder) + README, mirroring the power-platform schema. |
+| 2 | Decision-tree knowledge | **BUILT** | [`knowledge/data-freshness-pipeline-decision-trees.md`](knowledge/data-freshness-pipeline-decision-trees.md) — 3 trees (Bridge vs Cloud-native, full vs incremental, stale-dashboard diagnosis), grounded + cited + dated. |
+| 3 | `skills/` | **BUILT** | [`skills/workbook-performance-audit/`](skills/workbook-performance-audit/SKILL.md) + [`skills/embedding-connected-apps-jwt/`](skills/embedding-connected-apps-jwt/SKILL.md). |
+| 4 | `hooks/` advisory | **BUILT** | [`hooks/flag-tableau-anti-patterns.sh`](hooks/flag-tableau-anti-patterns.sh) — 6 anti-patterns on `.twb`/`.tds`, advisory (exit 0), `PreToolUse(Write\|Edit)`, registered in `hooks/hooks.json`. |
+| 5 | `templates/` | **BUILT** | workbook-performance-audit, governance-rls-plan, embedding-design-spec, dashboard-design-spec. |
+| 6 | Bundled MCP server | **RECOMMEND, not bundle** | The **official `tableau/tableau-mcp`** (Apache-2.0, `npx @tableau/mcp-server` `[verify-at-use]`) exists and is read-oriented — but it is **per-tenant + authenticated** (`SERVER`/`SITE_NAME`/`PAT_NAME`/`PAT_VALUE` — a PAT secret), so per [`../../docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md) it is the **RECOMMEND** row (can't hardcode a consumer-specific URL/secret), like power-platform's Dataverse MCP. See the recommend block below. No third-party content vendored → **no `NOTICE.md`** needed. |
+| 7 | LSP server | **N/A** | Tableau has no general code LSP surface (workbooks are XML/UI artifacts, calcs are an embedded DSL, not a language served by an LSP). Nothing real to ship. |
+| 8 | Monitors / `bin/` / output-styles / settings.json defaults / themes | **N/A** | No long-running monitor target (refresh monitoring lives in Tableau itself); no CLI binary to wrap (`tabcmd`/REST are documented in agents/knowledge, not re-implemented); an output-style for "viz review" is already served by the team **Output Contract** (§6) — a separate output-style would duplicate it; no settings/theme defaults are domain-meaningful here. |
+| 9 | `CHANGELOG.md` / `NOTICE.md` | **CHANGELOG BUILT; NOTICE N/A** | [`CHANGELOG.md`](CHANGELOG.md) added (top entry = this build-out). No third-party content bundled → no `NOTICE.md`. |
+| 10 | Quickstart / cross-plugin seams / output contracts | **PRESENT (no gap)** | All 3 agents carry `quickstart` + `scenarios` frontmatter + `works_with` seams; the team **Output Contract** (§6) + Structured Output Protocol are in place; seams to `data-platform`/`salesforce`/`power-platform`/`security-reviewer` are documented (§2, §8). |
+
+### Recommended (not bundled) MCP — the official Tableau MCP server
+
+> **Verified 2026-06-05** against the official repo [`github.com/tableau/tableau-mcp`](https://github.com/tableau/tableau-mcp) (Apache-2.0). The package name, auth env vars, and tool surface are version-current — **`[verify-at-use]`** the exact published npm name and read/write verbs before relying on them (the claim-grounding discipline applies).
+
+Tableau's **first-party** MCP server connects an agent to Tableau Cloud/Server to query published
+data sources, explore content/workbook metadata, and retrieve view images. It is **NOT bundled** —
+it is per-tenant + authenticated (a site URL + a Personal Access Token), so a hardcoded
+`mcpServers` entry can't carry a consumer-specific URL/secret. It is **recommended + consumer-configured**:
+
+```jsonc
+// consumer's MCP config — PAT is a per-tenant secret; store a reference, never a literal
+{
+  "mcpServers": {
+    "tableau": {
+      "command": "npx",
+      "args": ["-y", "@tableau/mcp-server@latest"],   // pin the tested version [verify-at-use]
+      "env": {
+        "SERVER": "https://<your-tableau-cloud-or-server>",
+        "SITE_NAME": "<your_site>",
+        "PAT_NAME": "<pat-name>",
+        "PAT_VALUE": "<reference-to-secret>"
+      }
+    }
+  }
+}
+```
+
+**Owned by** `tableau-admin` (tenant connection) + `tableau-data-architect` (data queries).
+**Trigger:** when the user asks an agent to *query live Tableau data / inspect a published data
+source or workbook on the site*, point them at this server rather than describing the REST API.
+**Boundary:** it is for **live site queries + metadata**, NOT for `.twb`/`.tds` file authoring and
+NOT a replacement for the REST API / `tabcmd` in a promotion pipeline. **Any PAT/secret-handling
+or write-capable use escalates the auth decision to `ravenclaude-core/security-reviewer`.**
 
 ---
 
