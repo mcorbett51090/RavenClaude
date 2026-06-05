@@ -1,7 +1,7 @@
 {
   "name": "technical-writing-docs",
-  "version": "0.2.2",
-  "description": "Technical-writing & docs team \u2014 3 agents (docs-architect, api-reference-writer, docs-site-engineer) for developer and product documentation that people actually use: the Diataxis framework (tutorial / how-to / reference / explanation \u2014 and not mixing them), docs-as-code (docs in the repo, reviewed and CI-checked, versioned with the product), accurate API/SDK reference (spec-driven, examples that run, errors documented), and a maintainable docs site (Docusaurus/Mintlify/MkDocs, IA, search, versioning). Deepens ravenclaude-core/documentarian. 7 skills, a decision-tree knowledge bank (doc-type + docs-tooling trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: dev portal/SDK reference -> api-engineering, marketing copy/site design -> web-design, prose polish/ADRs -> ravenclaude-core/documentarian. Requires ravenclaude-core@>=0.7.0.",
+  "version": "0.3.0",
+  "description": "Technical-writing & docs team — 3 agents (docs-architect, api-reference-writer, docs-site-engineer) for developer and product documentation that people actually use: the Diataxis framework (tutorial / how-to / reference / explanation — and not mixing them), docs-as-code (docs in the repo, reviewed and CI-checked, versioned with the product), accurate API/SDK reference (spec-driven, examples that run, errors documented), and a maintainable docs site (Docusaurus/Mintlify/MkDocs, IA, search, versioning). Deepens ravenclaude-core/documentarian. 5 skills, a decision-tree knowledge bank (doc-type, docs-tooling, Diataxis content-type, lint-in-CI-vs-manual + a dated 2026 map), a 4-scenario bank, 12 best-practices, 4 templates, 4 commands, 1 advisory hook, a prose-linter LSP tier (Vale-LS + Marksman) and a stdlib readability/prose checker. Seams: dev portal/SDK -> api-engineering, site design -> web-design, prose polish -> ravenclaude-core/documentarian. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"
   },
@@ -20,9 +20,13 @@
     "tutorials",
     "how-to-guides",
     "readme",
-    "changelog"
+    "changelog",
+    "vale",
+    "readability",
+    "lsp"
   ],
   "requires": {
     "plugins": ["ravenclaude-core@>=0.7.0"]
-  }
+  },
+  "lspServers": "./.lsp.json"
 }

@@ -75,6 +75,11 @@ skills couldn't produce.
 - `scripts/portfolio-report.py` — activity JSON → `weekly-tracker.md` + `activity-rollup.md` +
   `project-status.md`.
 - `scripts/portfolio-dashboard.py` — activity JSON → self-contained `portfolio.html`.
+- `scripts/portfolio-config-check.py` — **offline** linter for `team-portfolio.json` (no network):
+  flags a token committed into the config, duplicate/malformed `owner/name` repos, a project with
+  no match rules (can never match), a `match.repos` entry not in `repos[]` (dead rule), a team entry
+  missing a `login`, and `narrative.enabled` without a `dir`. Exit `0`/`1`/`2`; `--strict` fails on
+  warnings. Run it in the Action before `portfolio-collect.py` to catch config drift before a run.
 - `templates/team-portfolio.json` — the config schema (copy to the hub repo).
 - `templates/portfolio-tracker.yml` — the scheduled GitHub Action (copy to the hub repo).
 - `templates/activity-narrative.md` — optional hand-maintained note template.
@@ -94,3 +99,36 @@ skills couldn't produce.
 ## 9. Requires
 
 `ravenclaude-core@>=0.7.0`.
+
+## 10. Value-add completeness (build-out 2026-06-05)
+
+This is a **tooling** plugin — the deliverable is deterministic scripts (collector + renderers + a
+scheduled Action), not advisory agents. Several runtime-tier menu items therefore disposition
+differently than they would for a content/advisory vertical: the plugin *already is* the code tier,
+so "add a runnable script" means "fill a genuine gap," not "introduce the first one." Every item is
+dispositioned honestly below.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README index + 4 dated, scope-tagged scenarios (repo silently dropped / collector rate-limit + token-scope `403`s / stale dashboard from an auto-disabled scheduled Action / project status mis-attributed across repos). Schema mirrors the existing scenario; surfaced only behind the unverified-scenario preamble (`scenario-retrieval`). |
+| Decision-tree (Mermaid) knowledge | **BUILT (extended existing)** | Added 2 new trees to `knowledge/team-portfolio-decision-trees.md` (already had 7): **auth scope at scale — fine-grained PAT vs GitHub App** (the fork *after* the existing built-in-token-vs-PAT tree), and **what to track — per-repo vs per-project vs per-person rollup axis**. Volatile rate-limit numbers marked `[verify-at-use]`. |
+| Runnable script (`scripts/`) | **BUILT** | `scripts/portfolio-config-check.py` — the one real runtime gap. Collect/report/dashboard existed; nothing validated the config first. Offline, stdlib-only, ruff-clean; catches the exact drift classes 3 of the 4 scenarios end on (drifted/duplicate repo, token-in-config, dead project rule). |
+| Bundled MCP server | **N-A (recommend-not-bundle)** | The official GitHub MCP server is real, but it is **per-tenant / authenticated** (PAT or OAuth) — the "RECOMMEND, don't bundle" row of [`../../docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md), never BUNDLE (can't hardcode a consumer's credential). And it is **redundant here**: this plugin's whole point is a *deterministic, diffable, zero-dependency* stdlib collector reading the REST API directly (CLAUDE.md §4 #4) — routing collection through an MCP subprocess would defeat determinism and portability. No MCP entry added. |
+| LSP integration | **N-A** | LSP is a code-editing protocol for a source language; the scripts are the operated artifact, not edited via LSP in this plugin's flow. |
+| `bin/` executables | **N-A** | The `scripts/*.py` are the executables (stdlib, `python3 script.py`); no compiled/installed binary warranted. |
+| Monitors / background jobs | **N-A (by design)** | The scheduled GitHub Action **is** the background job, and it is per-consumer (their hub repo, their cron, their token) — a marketplace-shipped monitor can't be per-tenant. The freshness concern (a stale dashboard from a stopped Action) is handled operationally + documented in the stale-dashboard scenario, not as a bundled monitor. |
+| output-styles / themes | **N-A** | Output is governed by the deterministic renderers (markdown + a self-contained HTML dashboard); §4 #6 determinism is the contract, not a swappable style. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this plugin beyond `ravenclaude-core`. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 5 skills, `/portfolio-refresh` command, 4 templates already cover the surface. The new config-check script + 2 decision trees extend reach without a new skill or hook; no high-value gap this round (and **no agents — by design**, §2). |
+| CHANGELOG.md | **BUILT** | Added with a top `0.2.0` entry. |
+| NOTICE.md | **N-A** | No third-party content bundled — the scripts are original and stdlib-only; no vendored source, no bundled MCP. |
+
+## 11. Milestones
+
+- **v0.1.x** — initial tooling plugin: stdlib collector + markdown/HTML renderers + scheduled Action
+  template + `/portfolio-refresh`, 5 skills, knowledge bank (tracking model + 7 decision trees),
+  best-practice rules. No agents by design (§2).
+- **v0.2.0** — value-add build-out: scenarios bank (4 scenarios + README index), 2 new Mermaid
+  decision trees (PAT-vs-App auth scope; rollup-axis selection), `scripts/portfolio-config-check.py`
+  (offline config linter), CHANGELOG. Runtime-tier items (bundled MCP, monitors, LSP, themes)
+  dispositioned N-A with reasons (§10).

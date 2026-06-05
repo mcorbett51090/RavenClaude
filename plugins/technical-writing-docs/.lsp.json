@@ -1,0 +1,22 @@
+{
+  "vale": {
+    "command": "vale-ls",
+    "args": [],
+    "extensionToLanguage": {
+      ".md": "markdown",
+      ".mdx": "markdown",
+      ".markdown": "markdown",
+      ".rst": "restructuredtext",
+      ".adoc": "asciidoc",
+      ".txt": "plaintext"
+    }
+  },
+  "marksman": {
+    "command": "marksman",
+    "args": ["server"],
+    "extensionToLanguage": {
+      ".md": "markdown",
+      ".markdown": "markdown"
+    }
+  }
+}
