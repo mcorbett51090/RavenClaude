@@ -375,6 +375,113 @@ See [`modern-css-2026.md`](modern-css-2026.md) and [`../best-practices/a11y-resp
 
 ---
 
+## Decision Tree: Dark mode — which implementation path?
+
+**When this applies:** Adding or auditing dark mode on a site or component. Observable trigger: a design spec includes dark-mode colors, or a user preference query is being considered for theming.
+
+**Last verified:** 2026-06-05 against `dark-mode-via-prefers-color-scheme` best-practice + `modern-css-2026.md`.
+
+```mermaid
+flowchart TD
+    START[Add dark mode support] --> Q1{Is the design system using a component library that manages theming?}
+    Q1 -->|YES and Fluent v9| FLUENT[Use FluentProvider webDarkTheme via createDarkTheme; gate on prefers-color-scheme in the provider]
+    Q1 -->|YES and other CSS-in-JS| CSSJS[Use the library theme mechanism; expose a user-override hook]
+    Q1 -->|NO, plain CSS or Tailwind| Q2{Are design tokens already defined as CSS custom properties in root?}
+    Q2 -->|YES| MEDIA[Override semantic tokens in prefers-color-scheme: dark; add data-theme attribute for user toggle]
+    Q2 -->|NO — hardcoded values or Tailwind utilities| Q3{Is the project using Tailwind?}
+    Q3 -->|YES| TW[Enable darkMode: class in tailwind.config; add prefers-color-scheme listener to set the class on html]
+    Q3 -->|NO| TOKENS[First: extract colors to CSS custom properties in root; then apply the MEDIA path]
+```
+
+**Rationale per leaf:**
+- *Fluent v9* — use the library's own theme mechanism; fighting it with raw CSS media queries creates specificity conflicts.
+- *CSS-in-JS* — same principle: expose theming through the library's intent, not around it.
+- *MEDIA (CSS custom properties)* — the standard path: redefine semantic tokens in the media query; add a `data-theme` override for user choice; `<meta name="color-scheme">` for native chrome.
+- *Tailwind dark class* — Tailwind's `darkMode: 'class'` is the documented path; wire a `prefers-color-scheme` listener to set the initial class before first paint.
+- *Extract first* — if values are hardcoded, the media query would require duplicating every component; extract to tokens first.
+
+**Tradeoffs summary:**
+
+| Path | Requires | Complexity | User toggle? |
+|---|---|---|---|
+| Fluent v9 createDarkTheme | React + Fluent v9 | Low | Via FluentProvider |
+| CSS custom properties | Any CSS-capable framework | Low | data-theme attribute |
+| Tailwind darkMode class | Tailwind | Low | JS class toggle |
+| CSS-in-JS library | Specific library | Medium | Library hook |
+
+---
+
+## Decision Tree: Form accessibility — which label pattern to use?
+
+**When this applies:** Building a form field and choosing how to provide an accessible label. Observable trigger: writing an `<input>`, `<select>`, or `<textarea>` and deciding whether a visible `<label>` or an ARIA attribute is correct.
+
+**Last verified:** 2026-06-05 against `form-labels-are-not-placeholders` best-practice + WCAG 2.2 SC 1.3.1 and 2.4.6.
+
+```mermaid
+flowchart TD
+    START[Add an accessible label to a form field] --> Q1{Is a visible text label feasible in the design?}
+    Q1 -->|YES| Q2{Is the label visually adjacent to the field?}
+    Q2 -->|YES, label above or beside| LABEL[Use explicit label element with for matching the input id]
+    Q2 -->|YES but visually inside the field e.g. floating label| FLOAT[Use label element positioned with CSS — placeholder is supplementary hint only]
+    Q1 -->|NO — icon-only search or a visually labelless field in a table| Q3{Is there a surrounding visible heading or caption that labels the field?}
+    Q3 -->|YES — a table column header or visible nearby text| LABELLEDBY[Use aria-labelledby pointing to the heading or caption id]
+    Q3 -->|NO — no visible label context| ARIALABEL[Use aria-label with a meaningful description string]
+    LABEL --> NOPLAC[Never use placeholder as the only label — it disappears and has contrast issues]
+    FLOAT --> NOPLAC
+```
+
+**Rationale per leaf:**
+- *Explicit label* — the most accessible pattern; programmatically linked by `for`/`id`; click target enlarges to the label.
+- *Floating label* — acceptable when designed correctly (label still exists in the DOM, placeholder is supplementary); do not remove the label element, only position it with CSS.
+- *aria-labelledby* — correct for table-cell inputs where the column header is the label; avoids redundant hidden text.
+- *aria-label* — the escape hatch for icon-only or single-purpose fields (site search bar, quantity spinner in a cart row); use descriptive text.
+- *No placeholder-as-label* — enforces the anti-pattern rule; placeholder disappears, has contrast issues, and has unreliable screen-reader announcement.
+
+**Tradeoffs summary:**
+
+| Pattern | Visible to all? | Screen reader | Click target | Use when |
+|---|---|---|---|---|
+| Explicit label | YES | Best | Enlarged | Default for all form fields |
+| Floating label | YES (styled) | Good | Normal | Space-constrained forms |
+| aria-labelledby | Depends on ref | Good | Normal | Table cell or nearby heading |
+| aria-label | NO | Good | Normal | Icon-only or single-purpose field |
+
+---
+
+## Decision Tree: Content SEO — classic search vs AI answer engine optimization
+
+**When this applies:** Deciding whether to optimize a piece of content for classic search ranking, for AI answer engine citations (AEO/GEO), or for both. Observable trigger: a content strategy question about whether headings/schema/structure choices should prioritize SERP position or AI Overview / Perplexity / ChatGPT citation.
+
+**Last verified:** 2026-06-05 against `answer-engine-optimization-2026.md` and `seo-semantic-structure-and-metadata` best-practice.
+
+```mermaid
+flowchart TD
+    START[Optimize content for discoverability] --> Q1{Is the primary goal classic search rank, AI citation, or both?}
+    Q1 -->|Classic search rank only| SEO[Classic SEO: keyword in title, H1, meta description, clean URL, canonical, internal links, page speed]
+    Q1 -->|AI citation only| AEO[AEO: FAQ schema, answer-ready headings as questions, E-E-A-T signals, entity markup, direct answer in first paragraph]
+    Q1 -->|Both - which is more important| BOTH{Is the query type informational e.g. how-to or what-is, or transactional e.g. buy or download?}
+    BOTH -->|Informational — AI Overviews and answer engines most likely| AIHEAVIER[Prioritize AEO structure: direct answer first, FAQ schema, question headings; classic SEO fundamentals still apply]
+    BOTH -->|Transactional — users in buy or do mode| SEOHEAVIER[Prioritize classic SEO: conversion page structure, fast LCP, schema for product/event/review; AEO signals are secondary]
+```
+
+**Rationale per leaf:**
+- *Classic SEO* — keyword-targeting, technical SEO (canonical, speed, schema), and link authority still dominate SERP rank for most queries and are not optional for any searchable site.
+- *AEO* — informational queries are the primary surface for AI Overviews, Perplexity, and ChatGPT; direct answers in the first 1–2 paragraphs plus FAQ and entity schema signal answer-readiness to LLM-based engines.
+- *AIHEAVIER* — for informational content (how-to, definitions, comparisons), the structure that earns AI citations (question headings, direct answers, FAQ schema) also improves SERP featured-snippet capture; prioritize it.
+- *SEOHEAVIER* — transactional pages (product, pricing, contact) are less frequently cited by AI engines and more dependent on classic conversion signals and page quality for SERP rank; classic SEO fundamentals dominate.
+
+**Tradeoffs summary:**
+
+| Query type | Primary tactic | Secondary | Key schema |
+|---|---|---|---|
+| Informational | AEO: answer-first, FAQ schema, E-E-A-T | Classic SEO fundamentals | FAQ, HowTo, Article |
+| Transactional | Classic SEO: conversion + speed + links | AEO entity signals | Product, Offer, Review |
+| Navigational | Classic SEO: brand + structured data | SiteLinksSearchBox | Organization, WebSite |
+
+See [`answer-engine-optimization-2026.md`](answer-engine-optimization-2026.md) for the full AEO/GEO strategy.
+
+---
+
 ## See also
 
 - [`../best-practices/`](../best-practices/) — the named rules these trees terminate in (`perf-*`, `a11y-*`, `visual-*`, `frontend-*`, `content-*`, `seo-*`)

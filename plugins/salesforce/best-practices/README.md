@@ -8,7 +8,7 @@ For the full reference material (limits tables, decision trees, sources) see [`.
 
 ## Index
 
-_50 rules. Each file is one named, citable rule; read and apply it whole._
+_60 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -62,6 +62,16 @@ _50 rules. Each file is one named, citable rule; read and apply it whole._
 | [`platform-declarative-before-code.md`](./platform-declarative-before-code.md) | Pattern — strong default for any new automation or customization; deviate only with a written reason. | Every line of Apex you write is a line you own forever: it needs a test class, a bulk assertion, a deploy gate, a code review, and a developer to change it next… |
 | [`platform-org-strategy-and-environments.md`](./platform-org-strategy-and-environments.md) | Pattern — strong default; a multi-org split is a deliberate, expensive, written decision. | "How many production orgs?" is one of the most expensive decisions in Salesforce, and it is nearly irreversible — merging two orgs later is a multi-year migrati… |
 | [`security-guest-user-and-experience-cloud-sharing.md`](./security-guest-user-and-experience-cloud-sharing.md) | Absolute rule — a misconfigured guest user is the highest-blast-radius public-exposure mistake; the verdict escalates to `ravenclaude-core/security-reviewer`. | Experience Cloud guest users follow a stricter model (no role, no hierarchy, guest sharing rules only) that internal-sharing intuition gets wrong. |
+| [`apex-assert-outcomes-not-coverage.md`](./apex-assert-outcomes-not-coverage.md) | Pattern — strong default; a test that only exists to raise line coverage is not a test. | Salesforce requires 75% Apex code coverage as a deploy gate, and teams routinely write tests that execute code without asserting anything. |
+| [`apex-stub-and-mock-with-interfaces.md`](./apex-stub-and-mock-with-interfaces.md) | Pattern — strong default; a test that couples to live callouts or undeclared org data is brittle by design. | Apex tests that reach outside their own transaction via live web services or undeclared org data break intermittently and in unexpected environments. |
+| [`apex-sosl-for-cross-object-text-search.md`](./apex-sosl-for-cross-object-text-search.md) | Pattern — strong default; `SOQL LIKE '%term%'` is a full-table scan on any large object. | `SOQL` with `LIKE '%search term%'` performs a full-table scan — the most non-selective query possible. |
+| [`data-record-type-metadata-not-formula.md`](./data-record-type-metadata-not-formula.md) | Absolute rule — a hard-coded Record Type ID is a constant cross-org failure. | A Record Type ID differs between every org — production, every sandbox, and every scratch org. |
+| [`flow-screen-flow-ux-and-navigation.md`](./flow-screen-flow-ux-and-navigation.md) | Pattern — strong default; a 15-field single-screen flow is a form, not a guided process. | Screen Flows are the primary declarative UX mechanism for guided multi-step processes; progressive disclosure produces higher completion rates and fewer errors. |
+| [`integration-outbound-email-and-deliverability.md`](./integration-outbound-email-and-deliverability.md) | Pattern — strong default; automated process email must never appear to come from a personal user address. | Salesforce sends email from the current user's address by default when Apex triggers `Messaging.sendEmail()` without specifying a sender. |
+| [`lwc-lazy-load-data-on-user-action.md`](./lwc-lazy-load-data-on-user-action.md) | Pattern — strong default for secondary or conditional data; load on-demand, not on connected callback. | LWC components that fetch all data in `connectedCallback` — or via multiple eager `@wire` adapters — issue every Apex call in parallel on every component render. |
+| [`platform-custom-metadata-over-custom-settings.md`](./platform-custom-metadata-over-custom-settings.md) | Pattern — strong default for environment-varying configuration; Custom Settings are data, Custom Metadata Types are metadata. | Custom Settings store configuration as org **data** — they travel with data exports, not with deploys. |
+| [`platform-experience-cloud-auth-model-selection.md`](./platform-experience-cloud-auth-model-selection.md) | Primary diagnostic — choosing the wrong auth model at the start requires rearchitecting sharing, profiles, and OWD after data is in the org. | Experience Cloud sites support guest user, self-registration, and SSO — each with a fundamentally different record-visibility footprint. |
+| [`security-object-crud-before-field-fls.md`](./security-object-crud-before-field-fls.md) | Primary diagnostic — checking field-level security without first confirming object-level access is an incomplete security posture. | Salesforce security is layered: object-level CRUD is evaluated before field-level security; the ordering matters. |
 
 ---
 

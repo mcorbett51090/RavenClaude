@@ -108,3 +108,105 @@ _Series count = product of every label's distinct values. If you can't name the 
 | Multi-window burn-rate alerts | standard practice (Google SRE) | Fast + slow window AND-ed |
 | Exemplars (metric->trace links) | supported in Prometheus/OTel | Jump from a spike to a trace |
 | Managed backends | CloudWatch / Azure Monitor / Cloud Monitoring | OTel keeps app code portable across them |
+
+## Decision Tree: SLO target — tighten, loosen, or hold?
+
+**When this applies:** quarterly SLO review or after an incident. The team has budget consumption data and wants to decide whether to adjust the SLO target.
+
+**Last verified:** 2026-06-05 against Google SRE Workbook Chapter 2 and standard SLO review practice.
+
+```mermaid
+flowchart TD
+    START[SLO review decision point] --> Q1{Was error budget exhausted in the last window?}
+    Q1 -->|yes, repeatedly| Q2{Was the team able to act on the policy - freeze and fix?}
+    Q2 -->|yes, but still exhausted| TIGHTEN_INFRA[Invest in reliability - do not loosen target yet]
+    Q2 -->|no, policy was overridden| POLICY_REVIEW[Fix the policy first - then reassess target]
+    Q1 -->|no, budget mostly unused| Q3{Has the system shipped risky changes freely without impact?}
+    Q3 -->|yes, budget is slack| LOOSEN[Consider loosening target - invest budget in velocity]
+    Q3 -->|no, team was cautious by choice| HOLD[Hold target - the caution is deliberate]
+    Q1 -->|yes, one-time event| Q4{Was the event a known outlier - incident, planned migration?}
+    Q4 -->|yes| HOLD
+    Q4 -->|no, structural| TIGHTEN_INFRA
+```
+
+**Rationale per leaf:**
+- *Invest in reliability* — repeated exhaustion means the system can't meet its target; fix the reliability gap before raising the bar.
+- *Fix the policy first* — a policy that gets overridden isn't a policy; the target adjustment is premature until the policy works.
+- *Consider loosening* — consistently unspent budget is over-engineering; loosen to spend more on features.
+- *Hold target* — the team deliberately chose caution; the target reflects capability, not over-engineering.
+
+**Tradeoffs summary:**
+
+| Method | Cost / time | Blast radius | Approval gate? | Use when |
+|---|---|---|---|---|
+| Tighten target | High reliability investment | Low | EM sign-off | Structural repeated exhaustion |
+| Loosen target | Frees velocity budget | Low | Team + SRE | Chronic surplus with healthy system |
+| Fix the policy | Behavioral change | Low | EM sign-off | Policy is consistently overridden |
+| Hold | No change | None | Team review | One-off event or deliberate caution |
+
+## Decision Tree: Which logging level for this event?
+
+**When this applies:** an engineer is adding a log statement and needs to choose the severity level. Wrong level choices pollute query results, inflate costs, and suppress real signal.
+
+**Last verified:** 2026-06-05 against OTel log severity spec and syslog RFC 5424 level semantics.
+
+```mermaid
+flowchart TD
+    START[A log statement to add] --> Q1{Does the event require human attention or action?}
+    Q1 -->|yes| Q2{Does it indicate data loss or service unavailability?}
+    Q2 -->|yes| ERROR[ERROR - requires immediate attention]
+    Q2 -->|no, degraded but recoverable| WARN[WARN - attention recommended, system continues]
+    Q1 -->|no, informational only| Q3{Is it useful during incident investigation?}
+    Q3 -->|yes, normal business event| INFO[INFO - key lifecycle events only]
+    Q3 -->|yes, only when debugging a problem| DEBUG[DEBUG - disable in production by default]
+    Q3 -->|no, verbose tracing| TRACE[TRACE - dev only, never production]
+```
+
+**Rationale per leaf:**
+- *ERROR* — the system cannot complete an operation; a human or automated alert response is expected.
+- *WARN* — the system completed but with a degraded path or a recoverable error; worth investigating before it escalates.
+- *INFO* — major lifecycle transitions (service start, connection established, job completed) that paint the activity timeline in an investigation.
+- *DEBUG* — detailed diagnostic information useful only when actively debugging; too verbose for normal production volume.
+- *TRACE* — raw execution path; production cost is prohibitive; development use only.
+
+**Tradeoffs summary:**
+
+| Method | Cost / time | Blast radius | Approval gate? | Use when |
+|---|---|---|---|---|
+| ERROR | High cost if frequent | Triggers alerts | Alert routing | Unrecoverable failures |
+| WARN | Medium cost | No alert, visible | None | Recoverable degradations |
+| INFO | Low cost at cadence | None | None | Key lifecycle events |
+| DEBUG | Disable in prod | None (when off) | None | Debugging a specific problem |
+
+## Decision Tree: Postmortem action item — fix, mitigate, or accept?
+
+**When this applies:** the blameless postmortem has produced a list of contributing factors and the team must decide how to respond to each one.
+
+**Last verified:** 2026-06-05 against Google SRE Workbook Chapter 10 and PagerDuty incident management practice.
+
+```mermaid
+flowchart TD
+    START[A contributing factor from a postmortem] --> Q1{Would recurrence cause SEV-1 or data loss?}
+    Q1 -->|yes| FIX[Fix or eliminate - schedule this sprint]
+    Q1 -->|no| Q2{Can the blast radius be reduced with a mitigation control?}
+    Q2 -->|yes, low effort| MITIGATE[Mitigate - add the control, schedule within 30 days]
+    Q2 -->|yes, high effort| Q3{Is the probability of recurrence high?}
+    Q3 -->|yes| MITIGATE
+    Q3 -->|no, rare event| ACCEPT[Accept - document the risk and the decision]
+    Q2 -->|no, structural limit| Q4{Is this a known platform limitation?}
+    Q4 -->|yes| ACCEPT
+    Q4 -->|no| FIX
+```
+
+**Rationale per leaf:**
+- *Fix or eliminate* — high-severity, high-probability contributing factors get a real fix with an owner and sprint commitment.
+- *Mitigate* — reducing the blast radius of a factor that can't be eliminated is the next-best outcome; assign an owner.
+- *Accept* — documented risk acceptance with a named decision-maker is valid; undocumented inaction is not.
+
+**Tradeoffs summary:**
+
+| Method | Cost / time | Blast radius | Approval gate? | Use when |
+|---|---|---|---|---|
+| Fix / eliminate | High effort | Reduces future severity | Sprint planning | SEV-1 risk or recurring factor |
+| Mitigate | Medium effort | Reduces blast radius | 30-day ticket | High-probability, controllable |
+| Accept | Low effort | Unchanged risk | Named decision-maker | Rare, low-blast, or structural limit |

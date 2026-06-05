@@ -158,3 +158,123 @@ flowchart TD
 | Index/floating | Medium | Shared via clause | Volatile recurring lanes |
 | Spot | Low | Minimal | One-off/irregular |
 | Held spot | Short-term | Bounded by validity | One-off with a price ask |
+
+---
+
+## Decision Tree: Rate Objection — Hold, Adjust, or Give-Get
+
+**When this applies:** a customer has responded to a quote or renewal with a price objection — they say the rate is too high, they have a lower offer from a competitor, or they ask for a better rate. The seller must decide whether to hold price, adjust, or offer a conditional give-get. The decision gates a discount.
+
+**Last verified:** 2026-06-05 against standard freight-forwarding commercial practice.
+
+```mermaid
+flowchart TD
+    START[Customer rate objection received] --> Q1{Is the competitor offer verified - same scope and Incoterm?}
+    Q1 -->|NO - scope or Incoterm unclear| CLARIFY[Clarify the comparison first - apples-to-apples check]
+    Q1 -->|YES - comparable scope and terms| Q2{Is the competitor offer at or below our minimum margin floor?}
+    Q2 -->|YES - below our floor| HOLD_OR_WALK[Hold price - explain value or decline the lane]
+    Q2 -->|NO - above our floor| Q3{Is this a strategic account or a material lane?}
+    Q3 -->|NO - small or one-off| HOLD[Hold price - value pitch; one-off lane not worth discounting]
+    Q3 -->|YES - strategic or high-volume| Q4{Can we structure a give-get?}
+    Q4 -->|YES - volume commit or term extension available| GIVGET[Offer conditional reduction - volume or term give-get]
+    Q4 -->|NO - customer refuses give-get| Q5{Is losing this lane acceptable?}
+    Q5 -->|YES - margin or fit not worth it| WALK[Decline to match - preserve margin discipline]
+    Q5 -->|NO - must retain| ADJUST[Partial adjustment - document impact, flag to manager]
+```
+
+**Rationale per leaf:**
+- *Clarify the comparison* — a competitor quote at "lower price" often includes a different Incoterm scope, a different routing, or excludes surcharges the customer will discover at invoice; clarify before any concession.
+- *Hold price / decline the lane* — below the margin floor is a hard stop; accepting below-margin freight to retain volume is a margin-erosion decision, not a relationship decision.
+- *Hold with value pitch* — small or one-off lanes don't justify training the customer that asking always produces a discount; hold and present value.
+- *Give-get* — the right structure for strategic accounts: a rate concession tied to a volume commitment or term extension recovers the margin over time.
+- *Walk* — a lane the forwarder can't competitively serve at acceptable margin is better declined; the capacity goes to margin-positive freight.
+- *Partial adjustment* — only when losing the lane is genuinely unacceptable; must be documented and flagged, not silently absorbed.
+
+**Tradeoffs summary:**
+
+| Method | Margin impact | Relationship | Use when |
+|---|---|---|---|
+| Clarify comparison | Neutral | Constructive | Scope or Incoterm unclear |
+| Hold price + value pitch | Preserved | Moderate risk | Non-strategic; competitor scope unclear |
+| Give-get reduction | Recovered over time | Strong | Strategic account, real volume commitment |
+| Walk from lane | Margin protected | One-time friction | Below floor or poor-fit lane |
+| Partial adjustment | Degraded | Preserved | Must-retain account, no give-get path |
+
+---
+
+## Decision Tree: Account Risk Classification — Healthy, Watch, or At-Risk
+
+**When this applies:** the account manager is reviewing the customer portfolio and must classify each account's retention risk before the next QBR cycle. The observable entry: volume or shipment frequency has changed, a service failure occurred, the customer has gone quiet, or a competitor has been in contact.
+
+**Last verified:** 2026-06-05 against standard key account management practice in logistics.
+
+```mermaid
+flowchart TD
+    START[Account under review] --> Q1{Has shipment volume declined more than 20% quarter-over-quarter?}
+    Q1 -->|YES| Q2{Is the decline explained by seasonal or market factors - not us?}
+    Q2 -->|YES - external factor| WATCH[Watch - confirm with customer; no action yet]
+    Q2 -->|NO or UNCLEAR - may be diverting to competitor| ATRISK[At-risk - immediate outreach and account review]
+    Q1 -->|NO - volume stable or growing| Q3{Is there an unresolved service failure or open complaint?}
+    Q3 -->|YES| Q4{Has it been acknowledged and a recovery plan communicated?}
+    Q4 -->|NO| ATRISK
+    Q4 -->|YES and customer acknowledged| WATCH
+    Q3 -->|NO| Q5{Is the primary contact still reachable and engaged?}
+    Q5 -->|NO - contact gone dark or departed| ATRISK
+    Q5 -->|YES| Q6{Is the account multi-threaded - multiple contacts at decision level?}
+    Q6 -->|NO - single-threaded| WATCH[Watch - build second contact before the first leaves]
+    Q6 -->|YES| HEALTHY[Healthy - maintain standard QBR cadence]
+```
+
+**Rationale per leaf:**
+- *Watch* — accounts with an external volume decline or a single-contact risk are not immediately at risk but need attention before they become so; schedule a check-in.
+- *At-risk* — volume diversion to a competitor, an unacknowledged service failure, or a dark primary contact are early churn signals; escalate immediately.
+- *Healthy* — stable volume, no open issues, and multi-threaded relationship: maintain the QBR cadence and look for whitespace.
+- *Single-threaded watch* — the single most preventable account loss in freight sales is when the one contact the seller knows leaves; build the second contact now.
+
+**Tradeoffs summary:**
+
+| Classification | Action required | Cadence | Key risk |
+|---|---|---|---|
+| Healthy | Standard QBR + whitespace | Quarterly | Complacency |
+| Watch | Check-in within 2 weeks | Monthly | External becomes internal driver |
+| At-risk | Immediate outreach + recovery plan | Weekly until resolved | Churn if not acted on fast |
+
+---
+
+## Decision Tree: New Business Pursuit — Prioritize or Deprioritize
+
+**When this applies:** the seller has a list of prospective accounts to develop and limited prospecting hours. The question is how to allocate pursuit effort across the list. Observable entry: a target list exists, a territory plan is being built, or a pipeline review shows an under-populated early stage.
+
+**Last verified:** 2026-06-05 against standard freight-forwarding ICP and territory-planning practice.
+
+```mermaid
+flowchart TD
+    START[Prospect on target list] --> Q1{Does the prospect's trade-lane profile match our network strengths?}
+    Q1 -->|NO - lanes outside our network| DEPRIO[Deprioritize - add to long-list for future network expansion]
+    Q1 -->|YES| Q2{Is there a known trigger event in the last 90 days?}
+    Q2 -->|YES - trigger found| HIGHPRIO[High priority - lead with trigger event in outreach]
+    Q2 -->|NO - no trigger| Q3{Is the estimated annual freight spend material - above threshold?}
+    Q3 -->|NO - small spend| LOW[Low priority - include in automated nurture sequence]
+    Q3 -->|YES - material spend| Q4{Do we have a warm intro or an existing contact?}
+    Q4 -->|YES| HIGHPRIO
+    Q4 -->|NO - cold outreach required| Q5{Can we find a lane-specific hook from available intel?}
+    Q5 -->|YES| MED[Medium priority - build hook and sequence; outreach within 2 weeks]
+    Q5 -->|NO - no lane intel available| LOW[Low priority - research first before outreach]
+```
+
+**Rationale per leaf:**
+- *Deprioritize (network mismatch)* — time spent pursuing lanes you cannot competitively serve is time not spent on winnable business; defer until network coverage improves.
+- *High priority with trigger* — a trigger event (new sourcing country, carrier service cut, trade lane disruption) is the best opening for outreach; act within 5 days of the trigger.
+- *High priority with warm intro* — a warm introduction converts cold outreach into a warm conversation; prioritize regardless of trigger event status.
+- *Medium priority* — material spend with a lane hook is winnable business; build the sequence and move quickly.
+- *Low priority / research first* — cold outreach without a hook is spam; invest 30 minutes in research before moving to outreach or move the prospect down the list.
+- *Automated nurture* — small-spend prospects are not worth direct outreach time but should remain in a light-touch sequence in case their volume grows.
+
+**Tradeoffs summary:**
+
+| Priority | Action | Time investment | Win probability |
+|---|---|---|---|
+| High (trigger/warm) | Direct outreach within 5 days | High | High |
+| Medium (material + hook) | Sequence within 2 weeks | Medium | Medium |
+| Low (no hook available) | Research, then sequence | Low upfront | Low until hook found |
+| Deprioritize | Long-list, no active outreach | Near-zero | Low until network match |

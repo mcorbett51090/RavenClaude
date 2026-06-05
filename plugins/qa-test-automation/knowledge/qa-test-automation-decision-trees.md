@@ -106,3 +106,109 @@ _Quarantine restores signal; it is not a verdict. At the deadline a test gets fi
 | Service virtualization / WireMock | mature | Stub third-party boundaries for determinism |
 | Testcontainers | GA | Ephemeral containerized deps; local==CI |
 | Coverage gating in CI | standard | Use as a floor; pair with mutation on critical paths |
+
+## Decision Tree: Should this test be in the blocking merge gate?
+
+**When this applies:** adding a new test type (visual, performance, accessibility, load) or a new test suite and deciding whether it should block the PR merge or run as a non-blocking informational job.
+
+**Last verified:** 2026-06-05 against CI/CD best practices and Playwright/GitHub Actions documentation.
+
+```mermaid
+flowchart TD
+    START[A new test or suite to add to CI] --> Q1{Does a failure mean the code is unshippable?}
+    Q1 -->|yes, always| BLOCK[Blocking required check]
+    Q1 -->|sometimes| Q2{Is the false-positive rate controlled and low?}
+    Q2 -->|yes, stable signal| BLOCK
+    Q2 -->|no, frequent false positives| Q3{Can we fix the flakiness before adding it?}
+    Q3 -->|yes, fixable now| BLOCK
+    Q3 -->|no, structural flakiness| NON_BLOCK[Non-blocking informational job - must pass before deploy]
+    Q1 -->|no, informational only| NON_BLOCK
+    NON_BLOCK --> REVIEW[Flag failures for human review - not auto-approved]
+```
+
+**Rationale per leaf:**
+- *Blocking required check* — tests that reliably signal unshippable code belong in the gate; false positives destroy trust.
+- *Non-blocking informational* — tests that often false-positive (visual diffs, performance on shared runners) should inform, not block; they are reviewed, not ignored.
+
+**Tradeoffs summary:**
+
+| Method | Cost / time | Blast radius | Approval gate? | Use when |
+|---|---|---|---|---|
+| Blocking | High if flaky | Blocks all PRs | Auto - CI | Functional, stable, critical |
+| Non-blocking | No PR block | Reviewed per PR | Human review | Visual, perf, or structurally flaky |
+
+## Decision Tree: Test double selection — mock, stub, spy, or real dependency?
+
+**When this applies:** writing a unit or integration test that has a dependency on an external system, database, time, or another module. Choosing the wrong test double produces brittle tests or false passes.
+
+**Last verified:** 2026-06-05 against Gerard Meszaros "xUnit Test Patterns" and Playwright/Jest test double patterns.
+
+```mermaid
+flowchart TD
+    START[A dependency in a test] --> Q1{Is the dependency the subject under test?}
+    Q1 -->|yes, testing the integration| REAL[Use the real dep or a high-fidelity container via Testcontainers]
+    Q1 -->|no, it is infrastructure| Q2{Do you need to verify HOW it was called?}
+    Q2 -->|yes, assert call arguments or order| MOCK[Mock - verify the interaction]
+    Q2 -->|no| Q3{Does the test need realistic behavior or stateful responses?}
+    Q3 -->|yes, e.g. in-memory DB or queue| FAKE[Fake - working implementation without I/O]
+    Q3 -->|no, just a canned return value| Q4{Are you checking branching on the return value?}
+    Q4 -->|yes| STUB[Stub - fixed canned response]
+    Q4 -->|no| SPY[Spy - real call but observed]
+```
+
+**Rationale per leaf:**
+- *Real / Testcontainers* — when the integration itself is the point; a mock of the DB is not a test of the DB interaction.
+- *Mock* — when you need to assert the dependency was called correctly (e.g., the right API method was called with the right args).
+- *Fake* — when you need stateful behavior (insert, query, delete working together) without I/O cost.
+- *Stub* — when you just need a predictable return value to exercise a branch.
+- *Spy* — when you want to observe calls on a real implementation without replacing it.
+
+**Tradeoffs summary:**
+
+| Method | Cost / time | Blast radius | Approval gate? | Use when |
+|---|---|---|---|---|
+| Real dep / Testcontainers | Slow startup | High - tests real integration | None | Integration point is the subject |
+| Fake | Fast, stateful | Low - in-process | None | Need stateful behavior without I/O |
+| Mock | Fast | Low | None | Must verify interaction contract |
+| Stub | Fastest | Lowest | None | Just need a canned return value |
+
+## Decision Tree: E2E test failure — fix, quarantine, or delete?
+
+**When this applies:** an E2E test is failing in CI and the team must decide the immediate response.
+
+**Last verified:** 2026-06-05 against qa-test-automation plugin house opinions and general flaky-test management practice.
+
+```mermaid
+flowchart TD
+    START[An E2E test is failing] --> Q1{Does it fail consistently - not flaky?}
+    Q1 -->|yes, consistent failure| Q2{Does it catch a real product defect?}
+    Q2 -->|yes| FIX_PRODUCT[Fix the product defect - the test did its job]
+    Q2 -->|no, test is wrong| FIX_TEST[Fix the test - false failure]
+    Q1 -->|no, intermittent| Q3{Is it on the critical-journey list?}
+    Q3 -->|yes| Q4{Root cause identifiable and fixable within 1 sprint?}
+    Q4 -->|yes| FIX_DETERMINISM[Fix determinism - condition wait, isolation, fake clock]
+    Q4 -->|no| QUARANTINE[Quarantine with owner and deadline - max 2 sprints]
+    Q3 -->|no, not critical| Q5{Is anyone willing to own the fix?}
+    Q5 -->|yes| QUARANTINE
+    Q5 -->|no| DELETE[Delete - an unmaintained test protects nothing]
+    QUARANTINE --> DEADLINE{Deadline reached?}
+    DEADLINE -->|fixed| RESTORE[Restore to suite]
+    DEADLINE -->|still flaky| DELETE
+```
+
+**Rationale per leaf:**
+- *Fix the product defect* — the test passed its purpose; celebrate and fix the product.
+- *Fix the test* — false failures erode suite trust; fix immediately.
+- *Fix determinism* — a fixable flaky critical test gets a real fix, not a quarantine.
+- *Quarantine with owner* — a flaky critical test that can't be immediately fixed stays visible and owned, not silently ignored.
+- *Delete* — an unowned, non-critical flaky test is better gone than ignored; it trains engineers to dismiss red CI.
+
+**Tradeoffs summary:**
+
+| Method | Cost / time | Blast radius | Approval gate? | Use when |
+|---|---|---|---|---|
+| Fix product | Product work | Removes real defect | Yes - code review | Consistent failure on correct test |
+| Fix test | Test work | Restores signal | Test review | False failure |
+| Fix determinism | Sprint capacity | Restores critical signal | Test review | Flaky critical journey |
+| Quarantine | Low - tracked | Reduces noise | Owner + deadline | Flaky, owner assigned |
+| Delete | Minimal | Removes dead signal | PR review | No owner, non-critical |

@@ -56,3 +56,114 @@ Before picking any method, check whether one of the standing biases (§3) alread
 ## Sourcing note
 
 Figures in this file are from the author's domain knowledge and are marked `[unverified — training knowledge]` or `[ESTIMATE]` at point of use. Validate against a primary source before putting any figure in a client deliverable (§3 cite-or-mark rule).
+
+## Decision Tree: Budget Overage — Classify Before Cutting
+
+**When this applies:** The cost report shows a projected overage against the bid. The line producer and production finance analyst need to identify the overage class before deciding whether to cut the schedule, access contingency, or request additional funding.
+
+**Last verified:** 2026-06-05 against production finance and cost-reporting practice.
+
+```mermaid
+flowchart TD
+    START[Projected overage identified on cost report] --> Q1{Is the overage in above-the-line or below-the-line accounts?}
+    Q1 -->|above-the-line - talent / rights / producer fees| LEAF_A[Route to EP - ATL overages require deal renegotiation or EP approval - not a BTL cut decision]
+    Q1 -->|below-the-line| Q2{Is the BTL overage in a locked cost - agreed rate or signed contract?}
+    Q2 -->|yes - rate or contract locked| Q3{Does contingency cover the locked overage?}
+    Q3 -->|yes - contingency covers it| LEAF_B[Access contingency - document the cause - update the cost report - no schedule change needed]
+    Q3 -->|no - contingency insufficient| LEAF_C[Escalate to EP and financier - options are schedule compression, reduced scope, or additional funding - produce a trade-off memo]
+    Q2 -->|no - cost is still variable| Q4{Is the overage from schedule slippage or from rate creep?}
+    Q4 -->|schedule slippage - more shoot days| LEAF_D[Schedule review - tighten the one-liner - look for location grouping and company-move savings before cutting scenes]
+    Q4 -->|rate creep - actual rates above budget| LEAF_E[Rate audit - compare deal memos to budget - flag any rates approved above budget and re-forecast]
+```
+
+**Rationale per leaf:**
+- *ATL route to EP* — ATL costs are set by negotiated deals; a line producer cutting BTL to offset ATL overage is spending from the wrong budget and creating a false picture.
+- *Access contingency* — a locked-cost overage with contingency coverage is the system working as designed; document and move on.
+- *Escalate to EP* — when contingency is exhausted, the decision is strategic and belongs above the line producer's authority.
+- *Schedule review* — schedule-driven overages are often recoverable by re-sequencing; cutting scenes is the last resort, not the first.
+- *Rate audit* — rates above budget are a paperwork problem first; confirm the deal memos before assuming the overage is real.
+
+**Tradeoffs summary:**
+
+| Method | Cost / time | Blast radius | Approval gate? | Use when |
+|---|---|---|---|---|
+| Contingency draw | Immediate | Reduces future buffer | Line producer | Locked cost exceeds budget - contingency sufficient |
+| Schedule compression | 1-2 days re-scheduling | Crew fatigue risk | UPM + director | Overage is from schedule slip - scenes can be tightened |
+| Scope reduction | Creative impact | Deliverable affected | EP + director | Contingency exhausted - schedule cannot compress further |
+| Additional funding request | Weeks - financier approval | Investor / studio relationship | EP + financier | All internal options exhausted |
+
+## Decision Tree: Post Pipeline — What Can Start Before Picture Lock
+
+**When this applies:** The post-production supervisor is planning the post schedule and needs to determine which work streams can begin in parallel before picture lock, and which must wait for it.
+
+**Last verified:** 2026-06-05 against standard post-production dependency-chain practice.
+
+```mermaid
+flowchart TD
+    START[Post phase begins - picture not yet locked] --> Q1{Is the work stream dependent on final picture timing and cut?}
+    Q1 -->|yes - final timing required| Q2{Is the work stream on the critical path to delivery?}
+    Q2 -->|yes - critical path| LEAF_A[Must wait for picture lock - schedule after lock - protect the lock date above all else]
+    Q2 -->|no - not critical path| LEAF_B[Wait for lock anyway - starting on an unlocked cut creates rework that costs more than the parallel-start saves]
+    Q1 -->|no - not dependent on final timing| Q3{What type of work is it?}
+    Q3 -->|music composition or score| LEAF_C[Can begin from script and spotting session - score to picture at temp cut then conform to locked cut]
+    Q3 -->|sound design and effects library| LEAF_D[Can begin from offline cut - design and build library - conform to locked cut before final mix]
+    Q3 -->|VFX - non-editorial elements| LEAF_E[Can begin from approved shot list and on-set reference - VFX vendor pipeline starts early - editorial VFX conform happens after lock]
+    Q3 -->|deliverables prep - metadata - captions| LEAF_F[Can begin from the approved delivery spec - prepare templates and workflows - apply to locked master]
+```
+
+**Rationale per leaf:**
+- *Critical path waits for lock* — color, conform, and final sound mix all key off picture lock; starting before lock produces rework that costs more than the saved lead time.
+- *Non-critical also waits* — starting online editorial on an unlocked cut is a common mistake; the rework is expensive and the time savings are illusory.
+- *Music from script* — composers can begin thematic development and score to a temp cut; they conform to the locked cut in the final scoring pass.
+- *Sound design early* — sound effects and design work is largely timing-independent and can be built to the scene; only the final mix requires the locked picture.
+- *VFX pipeline early* — 3D build, simulation setup, and asset development happen independently of editorial timing; shot-specific VFX only conforms at lock.
+- *Deliverables prep early* — metadata templates, caption workflows, and QC checklists are format-dependent, not cut-dependent; prepare the pipeline, apply it to the locked master.
+
+**Tradeoffs summary:**
+
+| Work stream | Can start before lock? | Risk if started early | Recover how? |
+|---|---|---|---|
+| Online conform and color | No | High rework - full re-conform | Wait for lock |
+| Final sound mix | No | High rework - full re-mix | Wait for lock |
+| Music composition | Yes - from script/temp | Minor - conform pass needed | Scoring session on locked cut |
+| Sound design library | Yes - from offline cut | Minor - re-sync at lock | SFX conform pass |
+| VFX pipeline setup | Yes - from shot list | Minimal if no cut changes | Shot-level conform |
+| Delivery metadata and captions | Yes - from delivery spec | None - reapply to master | Apply templates to locked file |
+
+## Decision Tree: Delivery Problem — Diagnose Before Panicking
+
+**When this applies:** The production is approaching a delivery deadline and a problem has been identified — a deliverable is not ready, a spec is not met, or the distributor has flagged a QC issue. The post supervisor needs to triage the problem before deciding whether to push the deadline, fix the deliverable, or escalate.
+
+**Last verified:** 2026-06-05 against post-production delivery and QC practice.
+
+```mermaid
+flowchart TD
+    START[Delivery problem identified] --> Q1{Is the problem in the video master or the audio master?}
+    Q1 -->|video master - color / format / codec| Q2{Is the picture locked and color graded?}
+    Q2 -->|yes - graded and locked| LEAF_A[Technical re-format - reprocess from the graded master to spec - no creative rework]
+    Q2 -->|no - not graded or not locked| LEAF_B[Creative and technical problem - assess days required - escalate to EP immediately]
+    Q1 -->|audio master - levels / specs / stems| Q3{Is the final mix approved?}
+    Q3 -->|yes - mix approved| LEAF_C[Technical re-spec - re-export stems and master to spec from the approved session]
+    Q3 -->|no - mix not approved| LEAF_D[Mix problem - schedule a final mix session - assess impact on delivery date]
+    Q1 -->|clearance - music or rights| LEAF_E[Clearance problem - contact music supervisor immediately - assess whether an alternative cue can be cut in or the license can be rushed]
+    Q1 -->|metadata or caption file| LEAF_F[Format or content error - fix and re-submit - lowest severity - typically same-day resolution]
+```
+
+**Rationale per leaf:**
+- *Technical re-format* — a format or codec mismatch on an approved master is a pipeline problem, not a creative one; re-processing is usually same-day.
+- *Creative and technical* — an unlocked picture with a delivery problem is the worst-case scenario; the line producer needs to know immediately to assess whether the deadline is achievable.
+- *Technical re-spec for audio* — an approved mix that misses delivery specs (loudness, format) is re-exported from the session, not re-mixed; usually same-day.
+- *Mix problem* — an unapproved mix before delivery means the mix was not on the critical-path schedule; find and fix the schedule failure.
+- *Clearance problem* — music that cannot be cleared blocks delivery; the music supervisor needs immediate authority to find an alternative and cut it in before the delivery date.
+- *Metadata/caption error* — format errors in metadata or caption files are the most fixable delivery problem; address them first to confirm the residual problem.
+
+**Tradeoffs summary:**
+
+| Problem type | Resolution time | Decision authority | Escalate? |
+|---|---|---|---|
+| Format/codec mismatch on graded master | Same day | Post supervisor | No - handle and notify |
+| Unlocked or ungraded video | Days to weeks | EP + director | Yes - immediately |
+| Audio re-spec from approved mix | Same day | Post supervisor | No |
+| Unapproved final mix | Days | Post supervisor + EP | Yes |
+| Unclearable music cue | 1-3 days with alternatives | Music supervisor + director | Yes - immediately |
+| Metadata/caption error | Hours | Post supervisor | No |

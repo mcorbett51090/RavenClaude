@@ -105,3 +105,85 @@ _A copy-paste snippet that errors destroys trust faster than a missing one._
 | MkDocs Material | GA | Simple, Python, fast |
 | OpenAPI -> reference (e.g. Redocly) | GA | Spec-driven, no drift |
 | Link-check / doc-test in CI | mature | Gate broken links + examples |
+
+---
+
+## Decision Tree: Should this be a new page or an update to an existing page?
+
+**When this applies:** A writer or contributor wants to document something and is deciding whether to create a new doc, add a section to an existing page, or just add a link. Observable trigger: a PR description says "adding new docs page for X" or a Jira ticket says "document feature Y."
+
+**Last verified:** 2026-06-05 against the `one-source-of-truth` and `right-home-for-the-content` best-practices.
+
+```mermaid
+graph TD
+  A[Something new to document] --> B{Does a canonical page for this topic already exist?}
+  B -- Yes --> C{Is the new content a deeper treatment of the same topic?}
+  C -- Yes, same topic, more depth --> D[Add a section to the existing page and link from related pages]
+  C -- No, related but distinct task or concept --> E[Create a new page and link from the canonical page]
+  B -- No --> F{Is this a fact that belongs in an existing reference page e.g. a new parameter?}
+  F -- Yes --> G[Add to the reference page - one authoritative page per fact]
+  F -- No, genuinely new topic --> H{Which Diataxis kind?}
+  H -- Tutorial --> I[New tutorial page - scope to one success]
+  H -- How-to --> J[New how-to page - steps to accomplish one task]
+  H -- Reference --> K[New reference page or section in the existing reference]
+  H -- Explanation --> L[New explanation page - concepts or trade-offs]
+```
+
+**Rationale per leaf:**
+- *Add a section* — same topic with more depth stays on the canonical page so there is one place to maintain and one place to link to.
+- *New page, link from canonical* — a related but distinct task or concept warrants its own page to keep Diataxis kinds separate; the canonical page cross-links.
+- *Add to reference* — facts like parameters, error codes, and config options belong in the single authoritative reference page, not scattered across prose guides.
+- *New Diataxis-typed page* — a genuinely new topic starts a properly-typed page so the site doesn't accumulate unfiled blobs.
+
+---
+
+## Decision Tree: How to handle a doc that is out of date?
+
+**When this applies:** A doc is discovered to be inaccurate, outdated, or no longer matches the current product behavior. Observable trigger: a reader reports an error, a developer notices a stale example, or a content audit flags a page with a last-verified date older than the threshold.
+
+**Last verified:** 2026-06-05 against the `stale-docs-are-worse-than-none` and `annotate-volatile-content-with-dates` best-practices.
+
+```mermaid
+graph TD
+  A[Out-of-date doc identified] --> B{Is the content still partially correct or entirely wrong?}
+  B -- Entirely wrong or misleading --> C{Is there a correct replacement?}
+  C -- Yes, a canonical page exists --> D[Delete the stale page and add a redirect to the canonical one]
+  C -- No replacement exists yet --> E[Add a visible dated warning callout and open a fix ticket - do not leave it silently wrong]
+  B -- Partially correct, volatile section --> F{Can the correct value be verified now?}
+  F -- Yes --> G[Update the content and refresh the last-verified annotation]
+  F -- No, cannot verify right now --> H[Add a dated warning callout with a link to the authoritative source and schedule a re-verify]
+```
+
+**Rationale per leaf:**
+- *Delete + redirect* — an entirely wrong page with a replacement is a liability; removing and redirecting is better than letting readers find the wrong one.
+- *Warning callout + ticket* — if the correct answer isn't known yet, warn the reader immediately and open a tracked fix; do not leave silence where a wrong answer sits.
+- *Update + refresh annotation* — the lowest-cost path when the correct value is known; updating is faster than deleting and preserves the page's search ranking.
+- *Warning + link + schedule* — when verification requires a live system check or a vendor lookup that can't happen right now; the callout is the interim protection.
+
+---
+
+## Decision Tree: API docs structure — should this information go in the quickstart, the reference, or a guide?
+
+**When this applies:** You have a piece of API information to document and must decide which section owns it. Observable trigger: writing API docs and a fact could plausibly live in multiple places.
+
+**Last verified:** 2026-06-05 against Diataxis (tutorial/how-to/reference/explanation) and the `api-auth-docs-before-feature-docs` best-practice.
+
+```mermaid
+graph TD
+  A[A piece of API information to document] --> B{Is it a fact a developer will look up when they already know what they want?}
+  B -- Yes - a parameter, type, error code, response shape --> C[API Reference page - spec-driven if possible]
+  B -- No, it is instructional --> D{Is the reader learning the API for the first time?}
+  D -- Yes, first contact, needs a working call fast --> E[Quickstart - authenticated first call in under 5 minutes]
+  D -- No, knows the API, has a specific task --> F{Is this a sequence of steps to accomplish a task?}
+  F -- Yes --> G[How-to guide - steps with a runnable example]
+  F -- No, conceptual or background --> H[Explanation section - concepts, architecture, trade-offs]
+  C --> I[Always put auth before endpoints - link auth from every reference page]
+  E --> I
+```
+
+**Rationale per leaf:**
+- *Reference* — look-up information (parameters, types, errors) belongs in spec-driven reference; it must be complete, accurate, and findable by name.
+- *Quickstart* — the first-contact path must optimize for time-to-first-working-call; everything else is a distraction here.
+- *How-to guide* — a specific task sequence (upload a file, handle pagination, implement a webhook) belongs in a how-to, not in reference or the quickstart.
+- *Explanation* — concepts (how rate limiting works, the token refresh model) belong in explanation so they don't clutter the procedural guides; readers who want the why find them here.
+- *Auth first* — enforces `api-auth-docs-before-feature-docs`: authentication information links into every surface.

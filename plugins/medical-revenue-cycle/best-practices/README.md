@@ -6,7 +6,7 @@ Named, citable rules for the `medical-revenue-cycle` plugin's 4 specialist agent
 
 ## Index
 
-_8 rules. Each file is one named, citable rule._
+_18 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -18,6 +18,16 @@ _8 rules. Each file is one named, citable rule._
 | [`front-end-errors-are-back-end-denials-fix-them-upstream.md`](./front-end-errors-are-back-end-denials-fix-them-upstream.md) | Pattern | Any medical revenue cycle deliverable where this question is in play — read, applied, and cited whole. |
 | [`coding-accuracy-is-decision-support-not-autopilot.md`](./coding-accuracy-is-decision-support-not-autopilot.md) | Pattern | Any medical revenue cycle deliverable where this question is in play — read, applied, and cited whole. |
 | [`cite-the-source-and-date-for-every-benchmark.md`](./cite-the-source-and-date-for-every-benchmark.md) | Absolute rule | Any medical revenue cycle deliverable where this question is in play — read, applied, and cited whole. |
+| [`prior-authorization-is-a-front-end-revenue-protection-task.md`](./prior-authorization-is-a-front-end-revenue-protection-task.md) | Absolute rule | PA-required services — initiate authorization at scheduling, not after service. |
+| [`charge-capture-lag-is-a-hidden-revenue-leak.md`](./charge-capture-lag-is-a-hidden-revenue-leak.md) | Primary diagnostic | Revenue is below expectation — check charge capture lag before investigating denials. |
+| [`payer-contract-terms-set-the-allowed-amount-ceiling.md`](./payer-contract-terms-set-the-allowed-amount-ceiling.md) | Absolute rule | Annual RCM review — review payer contracts before optimizing collections. |
+| [`modifier-usage-is-a-compliance-and-accuracy-test-not-a-revenue-optimization-lever.md`](./modifier-usage-is-a-compliance-and-accuracy-test-not-a-revenue-optimization-lever.md) | Absolute rule | Any coding decision involving modifiers — documentation must support the modifier. |
+| [`patient-balance-collections-start-before-the-date-of-service.md`](./patient-balance-collections-start-before-the-date-of-service.md) | Absolute rule | All scheduled appointments — collect co-pays and deposits before service is delivered. |
+| [`coder-productivity-and-accuracy-are-both-required-metrics.md`](./coder-productivity-and-accuracy-are-both-required-metrics.md) | Pattern | Coding workforce management — measure both charts per day and error rate together. |
+| [`hcc-capture-is-a-documentation-and-revenue-integrity-obligation.md`](./hcc-capture-is-a-documentation-and-revenue-integrity-obligation.md) | Pattern | Practices with Medicare Advantage patients — integrate HCC review into annual visit workflow. |
+| [`timely-filing-deadlines-are-hard-stops-not-soft-targets.md`](./timely-filing-deadlines-are-hard-stops-not-soft-targets.md) | Absolute rule | All claims — monitor age vs. payer deadline; file before the window closes. |
+| [`provider-credentialing-gaps-produce-claims-that-cannot-be-paid.md`](./provider-credentialing-gaps-produce-claims-that-cannot-be-paid.md) | Absolute rule | New provider onboarding — begin credentialing 90+ days before start date. |
+| [`write-off-discipline-separates-contractual-adjustments-from-bad-debt.md`](./write-off-discipline-separates-contractual-adjustments-from-bad-debt.md) | Pattern | Monthly RCM review — categorize and authorize write-offs to keep NCR calculation clean. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

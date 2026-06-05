@@ -8,7 +8,7 @@ These complement, and do not restate, the cross-cutting house opinions in the te
 
 ## Index
 
-_22 rules. Each file is one named, citable rule; read and apply it whole._
+_32 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -34,6 +34,16 @@ _22 rules. Each file is one named, citable rule; read and apply it whole._
 | [`valuation-build-wacc-from-sourced-components.md`](./valuation-build-wacc-from-sourced-components.md) | Absolute rule | The discount rate is the single most powerful lever in a DCF — a 100 bps move in WACC can swing enterprise value by double digits, because it compound… |
 | [`valuation-discipline-the-terminal-value.md`](./valuation-discipline-the-terminal-value.md) | Absolute rule | In most DCFs the **majority of present value lives in the terminal value** — the period beyond the explicit forecast — so a small over-reach in termin… |
 | [`valuation-triangulate-three-methods.md`](./valuation-triangulate-three-methods.md) | Absolute rule | A valuation built on a single method is fragile: a DCF is only as good as its forecast and discount rate, comparables are only as good as the comp set… |
+| [`audit-pbc-item-is-complete-only-when-evidence-is-attached.md`](./audit-pbc-item-is-complete-only-when-evidence-is-attached.md) | Absolute rule | A PBC item marked "complete" must contain the actual evidence the auditor needs, not an assertion or a pointer to a folder. |
+| [`board-one-page-executive-summary-with-a-recommendation.md`](./board-one-page-executive-summary-with-a-recommendation.md) | Pattern | Every board pack opens with a one-page summary that states the key conclusion and the decision requested — before any tables or supporting slides. |
+| [`controller-accruals-are-estimates-not-plugs.md`](./controller-accruals-are-estimates-not-plugs.md) | Absolute rule | An accrual must be supported by a documented calculation — not a round-number chosen to hit a target or match a prior period. |
+| [`controller-intercompany-eliminate-before-you-consolidate.md`](./controller-intercompany-eliminate-before-you-consolidate.md) | Absolute rule | Intercompany transactions must be eliminated as a documented pre-consolidation step; consolidating first and cleaning up after creates audit risk. |
+| [`fpa-document-the-planning-calendar-raci-and-lock-dates.md`](./fpa-document-the-planning-calendar-raci-and-lock-dates.md) | Absolute rule | Every budget or forecast cycle requires a published calendar with explicit lock dates and a RACI before any template is distributed. |
+| [`fpa-saas-arr-bridge-shows-the-four-movements.md`](./fpa-saas-arr-bridge-shows-the-four-movements.md) | Absolute rule | SaaS ARR must be reported as a bridge with four movements — new, expansion, contraction, and churn — not collapsed to a net change. |
+| [`model-label-every-unit-and-currency.md`](./model-label-every-unit-and-currency.md) | Absolute rule | Every input and output in a financial model carries an explicit unit label and currency designation to prevent silent unit-mismatch errors. |
+| [`model-version-and-archive-every-release.md`](./model-version-and-archive-every-release.md) | Absolute rule | Every externally-shared or decision-bearing model release is version-stamped and archived before further edits begin. |
+| [`treasury-fx-exposure-name-it-before-you-hedge-it.md`](./treasury-fx-exposure-name-it-before-you-hedge-it.md) | Absolute rule | Build an explicit FX exposure inventory — sign, size, tenor, certainty — before selecting any hedge instrument. |
+| [`valuation-control-premium-is-not-free.md`](./valuation-control-premium-is-not-free.md) | Absolute rule | A control premium must be sourced from a current, period-specific, sector-matched precedent study and presented as a range, not a round memorized number. |
 
 ---
 

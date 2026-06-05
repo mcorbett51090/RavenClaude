@@ -187,3 +187,101 @@ flowchart TD
 - [`../best-practices/prep-incremental-and-idempotent-flows.md`](../best-practices/prep-incremental-and-idempotent-flows.md)
 - [`../agents/tableau-data-architect.md`](../agents/tableau-data-architect.md) — the agent that traverses these trees
 - [`../../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md) — the format spec
+
+---
+
+## Decision Tree: Extract refresh strategy — full, incremental, or Hyper API?
+
+**When this applies:** An extract needs a refresh schedule and you must choose the refresh method. Observable triggers: "our extract takes 4 hours to refresh"; "we only need yesterday's new rows"; "can we refresh programmatically?"
+
+**Last verified:** 2026-06-05 against Tableau extract refresh and Hyper API documentation `[verify-at-build]`.
+
+```mermaid
+flowchart TD
+    START[Extract needs a refresh] --> Q1{Does the source support incremental refresh - a timestamp or id column on new rows?}
+    Q1 -->|No - source does not support it| FULL[Full refresh via scheduler - simplest; acceptable if fast enough]
+    Q1 -->|Yes| Q2{Is the full refresh time acceptable - under 30 minutes?}
+    Q2 -->|Yes| FULL
+    Q2 -->|No - refresh takes too long| Q3{Does the pipeline need pre-processing or programmatic control - transformations, inserts, deletes?}
+    Q3 -->|No - append-only new rows only| INCR[Incremental refresh - built-in scheduler append mode]
+    Q3 -->|Yes - custom logic needed| HYPER[Hyper API - programmatic build and publish]
+```
+
+**Rationale per leaf:**
+- *Full refresh* — simplest; correct for small extracts, sources without an incremental key, or when full refresh is fast.
+- *Incremental refresh* — built-in scheduler can append only new rows using a date/id column; no code required; covers the common case.
+- *Hyper API* — when the pipeline needs pre-processing, transformation, bulk deletes, or programmatic control not available in the scheduler.
+
+**Tradeoffs summary:**
+
+| Method | Code required | Source requirement | Use when |
+|---|---|---|---|
+| Full refresh | None | Any | Small/medium extract; fast refresh |
+| Incremental append | None | Timestamp or id column | Large extract; append-only; source supports it |
+| Hyper API | Python/Java | Any | Custom pre-processing; deletes; programmatic pipelines |
+
+---
+
+## Decision Tree: Which Tableau Prep output — published data source, extract file, or database write?
+
+**When this applies:** A Tableau Prep flow is complete and you must choose the output type. Observable triggers: "should the flow publish a data source or write to the database?"; "multiple workbooks use the same Prep output — how should we share it?"
+
+**Last verified:** 2026-06-05 against Tableau Prep flow output documentation `[verify-at-build]`.
+
+```mermaid
+flowchart TD
+    START[Prep flow needs an output] --> Q1{Will multiple workbooks or authors consume this cleaned data?}
+    Q1 -->|Yes - shared data| Q2{Is the data large enough that a shared extract is preferred over a database write?}
+    Q2 -->|Yes - extract is preferred| PUBDS[Published data source - certified, shared extract on Server or Cloud]
+    Q2 -->|No - database is the canonical store| DBWRITE[Write to database table - downstream workbooks connect live or extract from that table]
+    Q1 -->|No - single workbook only| Q3{Is the output a one-off analysis or a recurring pipeline?}
+    Q3 -->|One-off or personal| LOCALFILE[Local Hyper file - single workbook embed]
+    Q3 -->|Recurring scheduled flow| PUBDS
+```
+
+**Rationale per leaf:**
+- *Published data source* — the standard for shared, governed, scheduled outputs; multiple workbooks can connect; the extract is refreshed centrally.
+- *Write to database* — when the downstream system of record is the database and the Prep flow is an ETL pipeline, not just a Tableau-internal extract.
+- *Local Hyper file* — for one-off or personal analyses that do not need to be shared or scheduled.
+
+**Tradeoffs summary:**
+
+| Output type | Sharing | Governance | Best for |
+|---|---|---|---|
+| Published data source | All users on the site | High - certifiable, permissioned | Shared governed data for multiple workbooks |
+| Database write | Depends on DB permissions | External to Tableau | ETL pipelines; database as the system of record |
+| Local Hyper file | Single workbook | None | Personal/one-off analysis |
+
+---
+
+## Decision Tree: RLS mechanism — user filter, FIXED LOD mapping, or data policy?
+
+**When this applies:** A workbook or data source needs row-level security and you must choose the enforcement mechanism. Observable triggers: "how do we show each user only their own data?"; "should we use user filters, an LOD calculation, or a data policy?"
+
+**Last verified:** 2026-06-05 against Tableau RLS documentation `[verify-at-build]`. Security verdict always escalates to `ravenclaude-core/security-reviewer`.
+
+```mermaid
+flowchart TD
+    START[Row-level security needed] --> Q1{Is Tableau Server or Cloud the platform - not Desktop only?}
+    Q1 -->|No - Desktop only or personal| USERFILT[User filter in the workbook - only for personal/non-sensitive use]
+    Q1 -->|Yes - Server or Cloud| Q2{Does the platform version and data source support data policies - enforced server-side?}
+    Q2 -->|Yes - data policies available| DATAPOL[Data policy - server-enforced; not bypassable by workbook edit]
+    Q2 -->|No - not available or not supported| Q3{Is the user-to-domain mapping static - small, rarely changes?}
+    Q3 -->|Yes| UAFSTATIC[USERNAME lookup via static user-domain table in the data source]
+    Q3 -->|No - dynamic or large mapping| UAFDYN[USERNAME lookup via dynamic entitlement table joined in the data model]
+```
+
+**Rationale per leaf:**
+- *User filter in workbook* — simplest but least secure; bypassable by downloading the workbook; acceptable only for convenience filtering, not access control.
+- *Data policy (server-enforced)* — strongest enforcement; the server applies the filter before data reaches the workbook; use when available `[verify-at-build]`.
+- *USERNAME lookup - static table* — practical for small, stable user-domain mappings; enforced in the data model; scalable.
+- *USERNAME lookup - dynamic table* — for large or frequently-changing entitlement tables; the JOIN is the enforcement layer.
+
+**Tradeoffs summary:**
+
+| Mechanism | Enforcement point | Bypassable by workbook download | Use when |
+|---|---|---|---|
+| Workbook user filter | Workbook | Yes - not a security control | Convenience filtering only |
+| Data policy | Server | No | Server/Cloud; policy-supported sources |
+| USERNAME + static table | Data model | Only if data model bypassed | Small stable user-domain map |
+| USERNAME + dynamic table | Data model | Only if data model bypassed | Large or frequently-changing entitlements |

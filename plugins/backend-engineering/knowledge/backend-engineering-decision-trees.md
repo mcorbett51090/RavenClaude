@@ -111,3 +111,115 @@ _A clean module boundary is reversible and free to leave in place; a premature e
 | Circuit breakers / bulkheads | mature (libs per language) | Fail fast, isolate |
 | Backoff + jitter | standard | Avoid synchronized retry storms |
 | Redis / cache-aside | mature | Invalidation is the hard part |
+
+## Decision Tree: Rate limiting — where and at what granularity?
+
+**When this applies:** You are adding rate limiting to a backend service or endpoint and need to decide where the limit lives and how fine-grained it should be. Typically triggered when traffic spikes cause cascading failures, costs spike, or an abuse vector is identified.
+
+**Last verified:** 2026-06-05 against standard backend resilience patterns and OWASP API4.
+
+```mermaid
+flowchart TD
+    START[Adding a rate limit] --> Q1{Is there a gateway or reverse proxy in front?}
+    Q1 -->|Yes| Q2{Is the limit purely IP/token-level coarse protection?}
+    Q2 -->|Yes - global protection| GATEWAY[Enforce at the gateway - no app code needed]
+    Q2 -->|No - per-tenant or per-resource granularity| BOTH[Gateway coarse limit + app-layer fine-grained limit]
+    Q1 -->|No gateway| Q3{Is this a public-facing endpoint?}
+    Q3 -->|Yes| APPRATE[App-layer token bucket per caller - Redis atomic counter]
+    Q3 -->|No - internal service| Q4{Can one caller saturate the downstream?}
+    Q4 -->|Yes| APPRATE
+    Q4 -->|No - low-traffic internal| NONE[Bulkhead concurrency limit is sufficient]
+    BOTH --> RETURN[Return 429 with Retry-After + RateLimit headers]
+    APPRATE --> RETURN
+    GATEWAY --> RETURN
+```
+
+**Rationale per leaf:**
+- *Gateway only* — coarse IP/token rate limiting at the reverse proxy keeps attack traffic out before it hits the app; zero app-code cost.
+- *Gateway + app layer* — the gateway absorbs burst; the app layer enforces per-tenant/resource fairness the gateway can't reason about.
+- *App-layer token bucket* — Redis `INCR` + `EXPIRE` gives atomic per-caller counts; use when no gateway exists or when the limit requires business context.
+- *Bulkhead only* — low-traffic internal services do not need a per-request counter; a concurrency bulkhead prevents pool saturation.
+
+**Tradeoffs summary:**
+
+| Method | Cost / time | Blast radius | Approval gate? | Use when |
+|---|---|---|---|---|
+| Gateway only | Low | Coarse - all callers share | Gateway team approval | Coarse abuse protection, no per-tenant need |
+| App-layer bucket | Medium | Per caller | None | Per-tenant fairness, no gateway |
+| Gateway + app layer | High | Fine-grained | Gateway team approval | Public API with per-tenant SLAs |
+| Bulkhead only | Low | Per dependency | None | Internal service, low traffic |
+
+## Decision Tree: Background job failure — retry, DLQ, or compensate?
+
+**When this applies:** A background job or async worker has failed after processing a message. You need to decide whether to retry the message, move it to a dead-letter queue, or issue a compensating action. Triggered by an exception, a downstream timeout, or a constraint violation in the worker.
+
+**Last verified:** 2026-06-05 against standard queue-reliability patterns (SQS, RabbitMQ, Kafka).
+
+```mermaid
+flowchart TD
+    START[Job failed] --> Q1{Is the failure transient - network blip/timeout/temporary unavailability?}
+    Q1 -->|Yes| Q2{Has the job exceeded max retries?}
+    Q2 -->|No| RETRY[Retry with exponential backoff and jitter]
+    Q2 -->|Yes| DLQ[Move to DLQ - alert on delivery]
+    Q1 -->|No - deterministic failure - bad data/constraint/bug| Q3{Was any partial state written?}
+    Q3 -->|No| DLQ
+    Q3 -->|Yes - partial side effects exist| Q4{Are the side effects reversible?}
+    Q4 -->|Yes| COMPENSATE[Issue compensating action - then DLQ for audit]
+    Q4 -->|No - irreversible| ALERT[DLQ + page on-call - manual remediation needed]
+    RETRY --> Q5{Is the operation idempotent?}
+    Q5 -->|No| STOP[STOP - make it idempotent before retrying]
+    Q5 -->|Yes| PROCEED[Retry is safe - proceed]
+```
+
+**Rationale per leaf:**
+- *Retry with backoff* — transient failures are expected; backoff + jitter avoids synchronized retry storms.
+- *DLQ* — after max retries or a deterministic failure, the message needs human inspection; a DLQ preserves it.
+- *Compensating action* — if partial state was written, issue a semantic undo before parking the message.
+- *Alert + manual* — irreversible partial side effects cannot be auto-compensated; escalate immediately.
+
+**Tradeoffs summary:**
+
+| Method | Cost / time | Blast radius | Approval gate? | Use when |
+|---|---|---|---|---|
+| Retry | Low | None if idempotent | None | Transient failure, idempotent job |
+| DLQ | Low | Deferred - human reviews | None | Max retries exceeded or bad data |
+| Compensate + DLQ | Medium | Undo the partial write | None | Partial side effects, reversible |
+| Alert + manual | High | Immediate escalation | On-call | Irreversible partial side effects |
+
+## Decision Tree: Should this state be stored in a cache or in the database?
+
+**When this applies:** You have a piece of application state and must decide whether it belongs in a cache (Redis/in-process) or in the primary database. Triggered when adding a new data concept or when performance profiling shows repeated expensive reads.
+
+**Last verified:** 2026-06-05 against cache-aside and data-access best practices.
+
+```mermaid
+flowchart TD
+    START[A piece of state to store] --> Q1{Is this the source of truth - does losing it break correctness?}
+    Q1 -->|Yes - system of record| DB[Store in the database - cache is optional acceleration]
+    Q1 -->|No - computed/derived/session| Q2{Can it be cheaply recomputed or re-fetched on cache miss?}
+    Q2 -->|No - expensive to recompute| DB
+    Q2 -->|Yes| Q3{Is it read far more often than it is written?}
+    Q3 -->|No - write-heavy| DB
+    Q3 -->|Yes - read-heavy| Q4{Do you have a clear invalidation trigger?}
+    Q4 -->|No| TTLONLY[Cache with short TTL only - no explicit invalidation]
+    Q4 -->|Yes| CACHEASIDE[Cache-aside with explicit invalidation on write]
+    DB --> OPTCACHE[Optionally layer a cache on top for hot reads]
+    CACHEASIDE --> STAMPEDE{Hot key risk?}
+    STAMPEDE -->|Yes| SINGLEFLIGHT[Add single-flight lock - stampede protection]
+    STAMPEDE -->|No| DONE[Cache-aside is sufficient]
+```
+
+**Rationale per leaf:**
+- *Database (source of truth)* — correctness and durability requirements always win; the database is the last line of defense.
+- *Short-TTL-only cache* — without a clear invalidation trigger, a TTL is the safety net; accept bounded staleness.
+- *Cache-aside with invalidation* — the standard pattern: write invalidates the cache; reads populate it on miss.
+- *Single-flight lock* — a hot key with many concurrent misses needs stampede protection to avoid a thundering-herd DB hit.
+
+**Tradeoffs summary:**
+
+| Method | Cost / time | Blast radius | Approval gate? | Use when |
+|---|---|---|---|---|
+| Database only | Low | None | None | Source of truth, write-heavy |
+| TTL-only cache | Low | Bounded staleness | None | No clear invalidation trigger |
+| Cache-aside + invalidation | Medium | Stale on miss | None | Read-heavy, clear write trigger |
+| Single-flight + cache-aside | Medium-high | None | None | Hot key, concurrent misses |

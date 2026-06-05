@@ -136,6 +136,114 @@ flowchart TD
 
 ---
 
+## Decision Tree: Graph identity — managed identity vs service principal with certificate vs client secret
+
+**When this applies:** You are designing authentication for a server-side or daemon workload that calls Microsoft Graph and must pick the credential type — observable at the point of designing the Entra app registration or the Azure resource identity.
+
+**Last verified:** 2026-06-05 against Microsoft Graph managed identity documentation and MSAL best practices.
+
+```mermaid
+flowchart TD
+    START[Server-side workload calling Graph] --> Q1{Is the workload hosted on Azure?}
+    Q1 -->|Yes: App Service, Functions, Container Apps, AKS, Logic Apps| Q2{Is a single-identity sufficient<br/>or do multiple Azure resources share the identity?}
+    Q2 -->|Single resource one identity| SMI[System-assigned managed identity<br/>zero credentials to manage]
+    Q2 -->|Shared across multiple resources| UMI[User-assigned managed identity<br/>one identity many resources]
+    Q1 -->|No: on-prem, GitHub Actions, non-Azure CI/CD| Q3{Can a certificate be stored securely?}
+    Q3 -->|Yes: Key Vault, CI secret store| CERT[Service principal with certificate<br/>store private key in Key Vault]
+    Q3 -->|No, only plaintext secrets available| SECRET[Service principal with client secret<br/>document rotation plan + escalate to security-reviewer]
+```
+
+**Rationale per leaf:**
+- *System-assigned managed identity* — the Azure runtime manages credentials; no rotation, no storage, no leakage risk.
+- *User-assigned managed identity* — same benefit, shareable across resources; the right choice when many resources call the same Graph APIs.
+- *Certificate* — for non-Azure hosts where managed identity is unavailable; certificate theft is harder than secret theft; rotate on a documented schedule.
+- *Client secret* — the weakest option; acceptable only when the host cannot store a certificate; requires documented rotation and mandatory security-reviewer escalation.
+
+**Tradeoffs summary:**
+
+| Credential | Rotation | Leakage risk | Host requirement | Use when |
+|---|---|---|---|---|
+| System-assigned MI | automatic | none | Azure-hosted | single Azure resource |
+| User-assigned MI | automatic | none | Azure-hosted | shared across Azure resources |
+| Certificate | manual (yearly) | low (private key in KV) | any | non-Azure host with secure store |
+| Client secret | manual (scheduled) | high | any | last resort, no certificate support |
+
+---
+
+## Decision Tree: Graph notifications — which subscription lifecycle event to handle
+
+**When this applies:** You are implementing a Graph change-notification subscription and must decide which lifecycle events your endpoint needs to handle — observable when writing the notification endpoint handler.
+
+**Last verified:** 2026-06-05 against Microsoft Graph change-notification lifecycle events documentation.
+
+```mermaid
+flowchart TD
+    START[Building a Graph notification endpoint] --> Q1{Does the subscription resource<br/>support lifecycle notifications?}
+    Q1 -->|Yes: users, groups, messages, calendar events| Q2{Can the subscription expire<br/>during normal operation?}
+    Q2 -->|Yes, always - all subscriptions expire| RENEW[Handle reauthorizationRequired<br/>renew before expiry]
+    RENEW --> Q3{Rich notifications with includeResourceData?}
+    Q3 -->|Yes| KEY[Handle keyWillExpire<br/>rotate encryption key before expiry]
+    Q3 -->|No| Q4
+    KEY --> Q4{High-volume resource or long-running?}
+    Q4 -->|Yes| MISS[Handle missed lifecycle event<br/>re-sync from delta query on missed signal]
+    Q4 -->|No| DONE[Basic subscription endpoint complete]
+    Q1 -->|No: resource does not support lifecycle| BASIC[Basic subscription, no lifecycle events<br/>schedule external renewal job]
+```
+
+**Rationale per leaf:**
+- *Renew on reauthorizationRequired* — all subscriptions expire; the `reauthorizationRequired` lifecycle event fires before expiry and is the trigger to renew. Ignoring it = silent notification gaps.
+- *Handle keyWillExpire* — rich subscriptions use an encryption key; the `keyWillExpire` event fires before the key expires. Missing it = decryption failures for all notifications after key expiry.
+- *Handle missed* — the `missed` lifecycle event fires when Graph could not deliver a notification (endpoint down, throttled). Trigger a delta query to re-sync what was missed.
+- *External renewal job* — for resources without lifecycle-notification support, schedule a background job to renew the subscription on a cadence shorter than its max lifetime.
+
+**Tradeoffs summary:**
+
+| Event | Consequence if missed | Priority |
+|---|---|---|
+| reauthorizationRequired | subscription silently stops | must handle |
+| keyWillExpire (rich only) | all notifications undecryptable | must handle if rich |
+| missed | data gap without re-sync | handle for high-volume |
+
+---
+
+## Decision Tree: Graph workloads — Teams vs SharePoint vs Mail/Calendar API for a given document/content scenario
+
+**When this applies:** A new Graph integration involves documents, files, or content and you must pick the correct API surface — observable when the use case mentions "files," "documents," "meeting content," or "shared content" without specifying Teams vs SharePoint vs Exchange.
+
+**Last verified:** 2026-06-05 against Microsoft Graph v1.0 Teams, SharePoint, and Mail API documentation.
+
+```mermaid
+flowchart TD
+    START[Working with files or content via Graph] --> Q1{Content is a file or document<br/>not an email or calendar item?}
+    Q1 -->|Email or calendar item| MAIL[Mail/Calendar API<br/>/me/messages or /me/events]
+    Q1 -->|File or document| Q2{Where does the file live?}
+    Q2 -->|SharePoint site / document library| SP[SharePoint Files API<br/>/sites/{id}/drives/{id}/items]
+    Q2 -->|User OneDrive personal| OD[OneDrive Files API<br/>/me/drive/items or /drives/{id}/items]
+    Q2 -->|Teams channel files tab| TEAMS[Teams channel SharePoint drive<br/>/teams/{id}/channels/{id}/filesFolder then /drives/{id}/items]
+    Q2 -->|Unknown - could be either| Q3{Is the context a user's working files?}
+    Q3 -->|Yes| SEARCH[Graph Search API<br/>POST /search/query entityType=driveItem]
+    Q3 -->|No, org-wide| SP
+```
+
+**Rationale per leaf:**
+- *Mail/Calendar API* — Exchange content lives on its own API surface; use `/me/messages` for mail and `/me/events` or `/calendarView` for calendar.
+- *SharePoint Files API* — files in document libraries are drives under a site; use the drive-item model.
+- *OneDrive* — personal files are the user's own drive; accessible via `/me/drive`.
+- *Teams channel files* — Teams channel files live in a SharePoint site associated with the team; get the `filesFolder` drive item and then use the drives API.
+- *Graph Search* — when the location is unknown, `POST /search/query` with `entityType: driveItem` searches across OneDrive + SharePoint + Teams files with one call.
+
+**Tradeoffs summary:**
+
+| Surface | API family | Permission scope | Use when |
+|---|---|---|---|
+| SharePoint document library | Sites / Drives | Sites.Read.All or Sites.ReadWrite.All | Org content in document libraries |
+| OneDrive personal | Drives | Files.ReadWrite | User's own files |
+| Teams channel files | Teams + Drives | Files.ReadWrite.All + Group.Read.All | Files attached to a Teams channel |
+| Mail attachment | Mail | Mail.Read | Files embedded in email |
+| Cross-surface search | Search | Files.Read.All | Location unknown |
+
+---
+
 ## See also
 
 - [`../../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md) — the format these trees follow

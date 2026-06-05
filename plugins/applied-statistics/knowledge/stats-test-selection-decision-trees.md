@@ -241,6 +241,134 @@ flowchart TD
 
 ---
 
+## Decision Tree: A/B test analysis — complete the experiment correctly
+
+**When this applies:** an A/B test has finished collecting data (or has reached its pre-specified stopping rule) and the results are being analyzed. Observable inputs: whether the primary metric is pre-registered, whether peeking has occurred, whether guardrail metrics moved, and whether multiple segments were analyzed.
+
+**Last verified:** 2026-06-05 against `skills/experiment-analysis/SKILL.md` and `knowledge/experiment-design-and-ab-testing.md`.
+
+```mermaid
+flowchart TD
+    START[A/B test data ready to analyze] --> Q1{Was the primary metric pre-registered?}
+    Q1 -->|NO| PREREG[Label as exploratory - pre-register the metric before the next experiment]
+    Q1 -->|YES| Q2{Did peeking occur - was significance checked before the stopping rule?}
+    Q2 -->|YES - peeked and stopped early| PEEK[Result is biased - report as directional only - rerun with sequential test or CUPED]
+    Q2 -->|NO - ran to the stopping rule| Q3{Does the primary metric pass the significance threshold?}
+    Q3 -->|YES significant| Q4{Did any guardrail metric move significantly?}
+    Q4 -->|YES guardrail breached| GUARD[Do NOT ship - guardrail breach blocks the win]
+    Q4 -->|NO guardrails clean| Q5{Was segment analysis run?}
+    Q5 -->|YES without correction| SEGCORR[Apply BH-FDR correction to segment p-values before reporting]
+    Q5 -->|YES with correction or NO| REPORT[Report: effect size + CI + guardrail status + segments if any]
+    Q3 -->|NO not significant| NULL[Report null result with power + MDE - not no effect]
+    PREREG --> REPORT_EXP[Report as exploratory - no confirmatory claim]
+```
+
+**Rationale per leaf:**
+- *PREREG* — an unregistered primary is an exploratory result by definition; report it as such and pre-register for the next experiment.
+- *PEEK* — peeking inflates Type I error; a result from an early-stopped fixed-horizon test should be reported as directional, not confirmatory. The fix for future tests is sequential testing (sequential p-values, always-valid p, or CUPED).
+- *GUARD* — a guardrail breach means the treatment harms another metric; the "win" on the primary is a net negative. Do not ship.
+- *SEGCORR* — multiple segment comparisons require FDR correction; uncorrected segment p-values are hypothesis-generating, not confirmatory.
+- *REPORT* — a clean, pre-registered, peeking-free, guardrail-passing result is a confirmatory win; report effect size + CI as the headline.
+- *NULL* — a null result is informative only if the power and MDE are reported; a null from an underpowered study is uninformative.
+
+**Tradeoffs summary:**
+
+| Situation | Result status | Action |
+|---|---|---|
+| Pre-registered, no peeking, guardrails clean | Confirmatory | Ship if practical significance met |
+| Peeked and stopped early | Directional only | Do not claim; rerun with sequential design |
+| Guardrail breached | Blocked win | Investigate the guardrail harm |
+| No pre-registration | Exploratory | Pre-register before next experiment |
+| Null result | Inconclusive | Report power + MDE; expand n if effect is meaningful |
+
+---
+
+## Decision Tree: Sample size calculator — which formula applies?
+
+**When this applies:** a new study (A/B test, survey, observational analysis) needs a sample size estimate before data collection begins. Observable inputs: the test type (means, proportions, regression), the effect metric (absolute or relative lift, Cohen's d/h/f), the desired power, and whether the study is one-sided or two-sided.
+
+**Last verified:** 2026-06-05 against `skills/power-and-sample-size/SKILL.md` and statsmodels docs.
+
+```mermaid
+flowchart TD
+    START[Need a sample size estimate] --> Q1{What type of outcome?}
+    Q1 -->|Continuous mean - t-test| MEANS[TTestIndPower or TTestPower - effect size is Cohens d]
+    Q1 -->|Proportion - conversion rate| PROPS[NormalIndPower or zt_ind_solve_power - effect size is Cohens h]
+    Q1 -->|Count - rate or Poisson| RATES[Poisson power - or normal approximation if rate is large]
+    Q1 -->|Regression R-squared or f2| REG[FTestAnovaPower - effect size is f-squared]
+    MEANS --> SIDED{One-sided or two-sided?}
+    PROPS --> SIDED
+    RATES --> SIDED
+    REG --> INPUTS[Set alpha=0.05 power=0.80 unless overridden - document the override reason]
+    SIDED -->|Two-sided default| COMPUTE[Compute n per group - multiply by number of groups]
+    SIDED -->|One-sided with justification| COMPUTE
+    COMPUTE --> FEASIBLE{Is the required n feasible in the time window?}
+    FEASIBLE -->|NO - n too large| TRADEOFF[Increase MDE or accept lower power - document the decision]
+    FEASIBLE -->|YES| PREREGISTER[Record in design doc before any data is collected]
+```
+
+**Rationale per leaf:**
+- *MEANS* — `TTestIndPower` from statsmodels is the standard for comparing two independent group means; effect size is Cohen's d (mean difference / pooled SD).
+- *PROPS* — conversion rates and proportions use `zt_ind_solve_power` or `NormalIndPower`; effect size is Cohen's h (arcsine transformation of the rate difference).
+- *RATES* — count/rate outcomes (events per user) use a Poisson power approximation; at large rates, the normal approximation is acceptable.
+- *REG* — for regression, effect size is f-squared = R-squared / (1 - R-squared); use `FTestAnovaPower`.
+- *TWO-SIDED* — the default; one-sided tests require a pre-registered directional hypothesis and a written justification — they are not a way to reduce sample size without cause.
+- *FEASIBLE* — if the required n exceeds what is available in the time window, the tradeoff is transparent: increase the MDE (detect only larger effects) or accept reduced power. Document the decision; do not silently run an underpowered study.
+- *PREREGISTER* — the sample size is fixed before data collection; computing it post-hoc to justify a result is circular.
+
+**Tradeoffs summary:**
+
+| Outcome type | statsmodels function | Effect size metric | Default settings |
+|---|---|---|---|
+| Continuous means | `TTestIndPower` | Cohen's d | alpha=0.05, power=0.80, two-sided |
+| Proportions | `zt_ind_solve_power` | Cohen's h | alpha=0.05, power=0.80, two-sided |
+| Count/rate | `zt_ind_solve_power` (approx) | Relative rate change | alpha=0.05, power=0.80 |
+| Regression F-test | `FTestAnovaPower` | f-squared = R2/(1-R2) | alpha=0.05, power=0.80 |
+
+---
+
+## Decision Tree: Missing data — which imputation or exclusion strategy?
+
+**When this applies:** a dataset has missing values and you must decide whether to exclude, impute, or use a model-based approach. Observable inputs: the missingness mechanism (MCAR, MAR, or MNAR), the percentage of missing values, and whether the analysis is predictive or inferential.
+
+**Last verified:** 2026-06-05 against `best-practices/data-handle-missingness-by-its-mechanism.md` and `knowledge/statistical-pitfalls.md`.
+
+```mermaid
+flowchart TD
+    START[Missing values in the dataset] --> Q1{What is the missingness mechanism?}
+    Q1 -->|MCAR - completely random - test with Little MCAR| MCAR_N{What percent missing?}
+    Q1 -->|MAR - depends on observed data| MAR_N{What percent missing?}
+    Q1 -->|MNAR - depends on unobserved - the hard case| MNAR[Sensitivity analysis required - no clean fix exists]
+    MCAR_N -->|Under 5 percent| LISTWISE[Listwise deletion OK - small bias risk]
+    MCAR_N -->|5 to 20 percent| SINGLE[Single imputation mean/median acceptable with SE correction]
+    MCAR_N -->|Over 20 percent| MICE[Multiple imputation by chained equations MICE]
+    MAR_N -->|Under 5 percent| LISTWISE
+    MAR_N -->|Over 5 percent| MICE
+    MNAR --> MNAR_PATHS[Model the missingness OR bound the estimate OR collect the missing data]
+    MICE --> POOL[Pool results across M=5-20 imputed datasets - Rubins rules]
+    LISTWISE --> VERIFY[Verify: compare missers vs non-missers on key covariates]
+    SINGLE --> VERIFY
+```
+
+**Rationale per leaf:**
+- *LISTWISE* — for MCAR with under 5% missing, listwise deletion introduces negligible bias and is the simplest option; still verify that missers and non-missers look similar on key variables.
+- *SINGLE IMPUTATION* — mean/median imputation underestimates variance and correlations; acceptable only for small MCAR gaps with a standard-error correction in the model.
+- *MICE* — the standard method for MAR data and for moderate-to-large MCAR gaps; creates M complete datasets, runs the analysis on each, and pools with Rubin's rules; preserves the uncertainty from imputation.
+- *MNAR* — no imputation method fixes MNAR; the options are to model the missingness process explicitly, to bound the estimate (worst-case / best-case sensitivity), or to go back and collect the missing data. Report the sensitivity analysis.
+- *POOL* — MICE results must be pooled (Rubin's rules) across imputed datasets to get correct standard errors; using a single imputed dataset throws away the MICE uncertainty estimate.
+
+**Tradeoffs summary:**
+
+| Method | Mechanism it handles | Bias | SE correct | Use when |
+|---|---|---|---|---|
+| Listwise deletion | MCAR only | Low (MCAR small) | Yes | MCAR + under 5% missing |
+| Single imputation | MCAR only | Underestimates variance | No (SE too small) | MCAR + small gap + correction applied |
+| MICE | MCAR / MAR | Low | Yes (pooled) | MAR or MCAR + over 5% missing |
+| Model missingness | MNAR | Depends on model | Depends | MNAR - no clean alternative |
+| Sensitivity bounds | MNAR | Bounds the bias | n/a | MNAR when modelling is infeasible |
+
+---
+
 ## Provenance
 
 - **Hypothesis-test tree + parametric/nonparametric tree** — topology and pairings from Statology, "Choosing the Right Statistical Test: A Decision Tree Approach" (retrieved 2026-05-26); BioData Mining/Springer, "A simple guide to ... t-test, Mann-Whitney U, Chi-squared, and Kruskal-Wallis" (2025); assumption gate + fallbacks from Sheffield APS 240 "Non-parametric tests" — consolidated in [`test-selection-decision-tree.md`](test-selection-decision-tree.md) (Tier 1 / consensus).

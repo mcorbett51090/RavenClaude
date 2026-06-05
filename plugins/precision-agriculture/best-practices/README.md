@@ -6,7 +6,7 @@ Named, citable rules for the `precision-agriculture` plugin's 4 specialist agent
 
 ## Index
 
-_8 rules. Each file is one named, citable rule._
+_18 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -18,6 +18,16 @@ _8 rules. Each file is one named, citable rule._
 | [`crop-protection-is-threshold-and-resistance-management-not-c.md`](./crop-protection-is-threshold-and-resistance-management-not-c.md) | Pattern | Any precision agriculture deliverable where this question is in play — read, applied, and cited whole. |
 | [`weather-and-price-are-the-risk-hedge-the-controllable-plan-t.md`](./weather-and-price-are-the-risk-hedge-the-controllable-plan-t.md) | Pattern | Any precision agriculture deliverable where this question is in play — read, applied, and cited whole. |
 | [`date-and-source-any-price-rate-or-benchmark-figure.md`](./date-and-source-any-price-rate-or-benchmark-figure.md) | Absolute rule | Any precision agriculture deliverable where this question is in play — read, applied, and cited whole. |
+| [`variable-rate-application-requires-zone-map-validation-before-planting.md`](./variable-rate-application-requires-zone-map-validation-before-planting.md) | Absolute rule | Any VRA prescription development; pre-season precision-ag setup. |
+| [`scouting-replaces-calendar-application-in-crop-protection.md`](./scouting-replaces-calendar-application-in-crop-protection.md) | Absolute rule | Any in-season crop protection recommendation; IPM program development. |
+| [`harvest-loss-is-a-recoverable-yield-gap-not-equipment-noise.md`](./harvest-loss-is-a-recoverable-yield-gap-not-equipment-noise.md) | Pattern | Pre-harvest setup; diagnosing a yield shortfall post-harvest. |
+| [`planting-population-is-an-economic-decision-not-a-seed-company-recommendation.md`](./planting-population-is-an-economic-decision-not-a-seed-company-recommendation.md) | Pattern | Seed ordering; VR population prescription development. |
+| [`basis-is-the-local-price-gap-that-the-grower-controls.md`](./basis-is-the-local-price-gap-that-the-grower-controls.md) | Pattern | Grain marketing decisions; storage vs. sell analysis. |
+| [`cover-crops-are-an-input-with-a-measurable-roi-not-just-a-soil-health-narrative.md`](./cover-crops-are-an-input-with-a-measurable-roi-not-just-a-soil-health-narrative.md) | Pattern | Cover crop adoption decision; EQIP enrollment review. |
+| [`hybrid-variety-selection-is-a-field-specific-risk-decision-not-a-catalog-ranking.md`](./hybrid-variety-selection-is-a-field-specific-risk-decision-not-a-catalog-ranking.md) | Pattern | Pre-season seed selection; post-harvest hybrid performance review. |
+| [`cash-rent-per-acre-must-be-tested-against-expected-margin-not-just-competition.md`](./cash-rent-per-acre-must-be-tested-against-expected-margin-not-just-competition.md) | Absolute rule | Any land tenancy decision; lease renewal; farm expansion analysis. |
+| [`tile-drainage-roi-is-field-specific-and-quantifiable-before-installation.md`](./tile-drainage-roi-is-field-specific-and-quantifiable-before-installation.md) | Pattern | Drainage investment decision; capital expenditure prioritization. |
+| [`crop-insurance-selection-requires-aph-accuracy-before-coverage-selection.md`](./crop-insurance-selection-requires-aph-accuracy-before-coverage-selection.md) | Absolute rule | Annual crop insurance renewal; APH review; risk management planning. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

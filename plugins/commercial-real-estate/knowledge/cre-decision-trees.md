@@ -56,3 +56,118 @@ Before picking any method, check whether one of the standing biases (§3) alread
 ## Sourcing note
 
 Figures in this file are from the author's domain knowledge and are marked `[unverified — training knowledge]` or `[ESTIMATE]` at point of use. Validate against a primary source before putting any figure in a client deliverable (§3 cite-or-mark rule).
+
+---
+
+## Decision Tree: Lease Rollover — Renew, Backfill, or Reconfigure
+
+**When this applies:** a tenant's lease is expiring within 12–18 months and the asset manager must recommend a leasing strategy. The tenant has not yet committed to renewing. The decision affects the hold-period NOI projection and the exit timing.
+
+**Last verified:** 2026-06-05 against standard CRE asset management practice.
+
+```mermaid
+flowchart TD
+    START[Lease expiring within 18 months] --> Q1{Is the tenant paying at or above current market NER?}
+    Q1 -->|YES, above market| Q2{Is the tenant creditworthy and likely to renew?}
+    Q2 -->|YES| RENEW_BELOW[Renew at market NER - accept step-down if needed to retain]
+    Q2 -->|NO, credit risk| BACKFILL[Begin backfill marketing now - do not count on renewal]
+    Q1 -->|NO, at or below market| Q3{Is the space functional for current market demand?}
+    Q3 -->|YES, re-leaseable as-is| Q4{Does tenant want to stay?}
+    Q4 -->|YES, at market| RENEW[Renew at market NER with standard concession package]
+    Q4 -->|NO or NO response| BACKFILL[Market space for backfill tenant]
+    Q3 -->|NO, needs reconfiguration| RECONFIG[Evaluate reconfiguration CapEx vs. re-leasing downtime cost]
+    RECONFIG --> Q5{Does yield-on-cost of reconfig exceed market cap rate?}
+    Q5 -->|YES| INVEST[Invest in reconfiguration - then market at repositioned rent]
+    Q5 -->|NO| BACKFILL
+```
+
+**Rationale per leaf:**
+- *Renew at market NER* — a below-market tenant willing to pay market is the best outcome; retain with a standard concession package rather than letting the space go dark.
+- *Renew below market to retain* — an above-market tenant renewing at a step-down to market is still a win; retain a creditworthy tenant with positive NOI rather than risk vacancy.
+- *Begin backfill marketing* — a credit-impaired tenant near expiration requires a parallel marketing track; do not rely on renewal probability that the tenant's financial health doesn't support.
+- *Reconfiguration* — if the space is functionally obsolete, the decision is a yield-on-cost test: the CapEx investment at market re-leasing rent must exceed the cost of capital.
+
+**Tradeoffs summary:**
+
+| Method | NOI continuity | CapEx required | Best for |
+|---|---|---|---|
+| Renew at market NER | High | Concession only | Creditworthy tenant, functional space |
+| Renew at step-down | Medium | Concession only | Above-market tenant, need to retain |
+| Backfill - as-is | Interrupted | Concession for new tenant | Space functional, tenant not renewing |
+| Reconfiguration + re-lease | Interrupted | Medium-high | Space functionally obsolete |
+
+---
+
+## Decision Tree: Acquisition Decision — Pursue, Retrade, or Walk
+
+**When this applies:** the deal is under LOI or PSA and due diligence findings have revealed information that was not available at the time of pricing. The buyer must decide whether to proceed on the original terms, seek a price adjustment, or exercise the contract termination right.
+
+**Last verified:** 2026-06-05 against standard CRE acquisition due diligence practice.
+
+```mermaid
+flowchart TD
+    START[DD finding differs from underwriting assumption] --> Q1{Is the finding quantifiable?}
+    Q1 -->|YES| Q2{Does it reduce NOI or increase required CapEx?}
+    Q2 -->|NO, neutral or upside| PROCEED[Proceed on original terms]
+    Q2 -->|YES| Q3{Is the NOI/CapEx impact material to the return?}
+    Q3 -->|NO, less than 5% IRR impact| PROCEED
+    Q3 -->|YES, 5%+ IRR impact| Q4{Is the issue curable by the seller?}
+    Q4 -->|YES, curable| RETRADE[Negotiate price reduction or seller cure - quantify the ask]
+    Q4 -->|NO, not curable| Q5{Does the return still clear the hurdle at adjusted underwriting?}
+    Q5 -->|YES| RETRADE
+    Q5 -->|NO, return below hurdle even at adjusted price| WALK[Exercise termination right - return deposit if in contingency period]
+    Q1 -->|NO, unquantifiable - environmental / legal/ title| LEGAL[Pause - legal and environmental review before any decision]
+```
+
+**Rationale per leaf:**
+- *Proceed* — findings that are neutral or below the materiality threshold do not justify a retrade; retrades on immaterial issues damage relationships and reputation.
+- *Retrade* — a quantified, material, documented impact on return is the basis for a price reduction request; lead with the math, not the complaint.
+- *Walk* — when adjusted underwriting does not clear the hurdle even at a negotiated price, the contract termination right is the rational exit; sunk due-diligence cost is not a reason to proceed.
+- *Legal pause* — unquantified environmental, title, or legal findings require counsel before any decision; do not retrade or walk before the exposure is sized.
+
+**Tradeoffs summary:**
+
+| Method | Relationship impact | Capital at risk | Use when |
+|---|---|---|---|
+| Proceed | None | Full | Findings immaterial |
+| Retrade | Medium | Reduced if accepted | Material, curable, quantified |
+| Walk | High (one-time) | Deposit / DD cost only | Below hurdle even at retrade price |
+| Legal pause | Low | Bounded | Unquantifiable finding |
+
+---
+
+## Decision Tree: Asset Plan Prioritization — Where to Deploy Capital First
+
+**When this applies:** an owned asset has multiple competing capital-deployment options — lease-up, renovation, re-leasing, deferred maintenance, value-add conversion — and the asset manager must prioritize the hold-period business plan. Budget is limited.
+
+**Last verified:** 2026-06-05 against standard CRE value-creation priority framework.
+
+```mermaid
+flowchart TD
+    START[Multiple capital deployment options] --> Q1{Is there a lender DSCR covenant at risk?}
+    Q1 -->|YES| DSCR_FIX[NOI stabilization is first priority - retain tenants or fill vacancy]
+    Q1 -->|NO| Q2{Is deferred maintenance threatening tenant retention or building safety?}
+    Q2 -->|YES| DEFER[Address deferred maintenance first - tenant retention protects NOI]
+    Q2 -->|NO| Q3{Is vacancy concentrated in one functional area that blocks leasing?}
+    Q3 -->|YES| RECONFIG[Reconfiguration CapEx unlocks leasing - evaluate yield on cost]
+    Q3 -->|NO| Q4{Do value-add improvements yield above the market cap rate?}
+    Q4 -->|YES| VALUEADD[Invest in value-add CapEx with positive spread to cap rate]
+    Q4 -->|NO| LEASING[Focus operating budget on leasing concessions and retention - defer CapEx]
+```
+
+**Rationale per leaf:**
+- *NOI stabilization first* — a DSCR covenant breach triggers lender action; stabilizing income is the asset's survival priority before any value-add investment.
+- *Address deferred maintenance* — deferred maintenance that is visible to tenants drives non-renewals; retaining existing tenants is cheaper than re-leasing.
+- *Reconfiguration to unlock leasing* — functional obsolescence blocks leasing; a targeted reconfiguration that creates leasable space generates a compounding NOI benefit.
+- *Value-add CapEx* — invest only when the incremental NOI yield exceeds the market cap rate; below-cap-rate improvements destroy value.
+- *Focus on leasing* — when no CapEx option clears the yield test, the best return is concession budget applied to tenant retention and lease-up rather than capital improvements.
+
+**Tradeoffs summary:**
+
+| Method | Urgency | Capital required | NOI impact | Use when |
+|---|---|---|---|---|
+| NOI stabilization | Immediate | Low-medium | Protects existing | DSCR at risk |
+| Deferred maintenance | Near-term | Low-medium | Retains tenants | Visible deterioration |
+| Reconfiguration | Medium | Medium-high | Unlocks leasing | Functional obsolescence blocking fills |
+| Value-add CapEx | Planned | Medium-high | Grows NOI | Yield exceeds cap rate |
+| Leasing focus | Ongoing | Low (concessions) | Fills vacancy | No CapEx option clears yield test |

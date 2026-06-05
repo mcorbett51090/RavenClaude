@@ -292,6 +292,134 @@ flowchart TD
 
 ---
 
+## Decision Tree: Connector gap — build, buy, or workaround?
+
+**When this applies:** the source system has no first-class managed connector in Fivetran or Airbyte Cloud, OR the available connector has a known critical limitation (missing endpoint, broken incremental). Observable inputs: source category (LMS / HRIS / niche SaaS), whether a Merge.dev or Unified API covers it, and the engagement's ops-handoff requirement.
+
+**Last verified:** 2026-06-05 against `knowledge/edtech-lms-connector-gap.md` and `knowledge/hris-integration.md`.
+
+```mermaid
+flowchart TD
+    START[No native connector or critical gap found] --> Q1{Does Merge.dev unified API cover this source?}
+    Q1 -->|YES HRIS most SaaS| MERGE[Merge.dev unified API - BUY managed abstraction]
+    Q1 -->|NO LMS / niche| Q2{Does the source have a documented REST API?}
+    Q2 -->|NO or REST too thin| MANUAL[Manual export or file-drop - document limitation]
+    Q2 -->|YES| Q3{Is the connector gap EdTech LMS - Canvas/Moodle/Schoology/D2L?}
+    Q3 -->|YES| LMS[Custom Airbyte CDK connector - connector-developer agent]
+    Q3 -->|NO other niche SaaS| Q4{Engagement is short - under 3 months?}
+    Q4 -->|YES| SCRIPT[Lightweight REST script - watermark + MERGE loader pattern]
+    Q4 -->|NO long-term| CDK[Custom Airbyte CDK connector - invest in reuse]
+    MERGE --> HANDOFF[Document ops handoff - Merge.dev account transfer]
+    LMS --> HANDOFF
+    SCRIPT --> DOC[Document the script as tech debt - schedule CDK upgrade]
+    CDK --> HANDOFF
+```
+
+**Rationale per leaf:**
+- *MERGE* — for HRIS (Workday, BambooHR, ADP, Rippling, Gusto) and many CRM/productivity sources, Merge.dev's unified API is a BUY decision; it eliminates per-vendor auth+schema work and transfers maintenance to Merge.
+- *LMS* — the EdTech LMS gap (Canvas/Moodle/Schoology) is the plugin's highest-leverage proprietary claim; no managed option exists; route to `connector-developer`.
+- *SCRIPT* — a short engagement doesn't justify a full CDK connector; a watermark-keyed REST script with a MERGE-pattern upsert is correct-enough and documented as tech debt.
+- *CDK* — long-running or multi-engagement sources justify the CDK investment for reuse and Airbyte catalog compatibility.
+- *MANUAL* — when no API exists, file-drop is the only path; document it as a data-quality risk (no automated freshness checks).
+
+**Tradeoffs summary:**
+
+| Path | Build cost | Ops burden | Handoff ease | Use when |
+|---|---|---|---|---|
+| Merge.dev unified API | Low | None (managed) | Easy | HRIS / most SaaS with Merge coverage |
+| Custom Airbyte CDK | High | Medium | Runbook required | EdTech LMS / no native + long engagement |
+| REST script | Medium | Medium | Runbook required | Short engagement / single niche source |
+| Manual export | None | Manual | Fragile | No API available |
+
+---
+
+## Decision Tree: dbt materialization for a support-ticket mart
+
+**When this applies:** building a `fct_ticket` or `fct_conversation_event` mart over a conformed support source (Zendesk, Freshdesk, Intercom, SFDC Service Cloud, JSM, HubSpot Service, Help Scout, Front) and choosing the materialization strategy. Observable inputs: ticket volume per day, whether SLA breach and first-response-time fields require near-real-time freshness, and the dashboard refresh SLA agreed with the client.
+
+**Last verified:** 2026-06-05 against `skills/support-ticket-normalization/SKILL.md` and `skills/dbt-project-scaffolding/SKILL.md`.
+
+```mermaid
+flowchart TD
+    START[Building a support-ticket mart] --> Q1{Daily new or updated tickets above 10k?}
+    Q1 -->|YES high volume| Q2{Reliable updated-at watermark on the source?}
+    Q2 -->|YES| INC[Incremental - unique_key on ticket-id+vendor+updated-at]
+    Q2 -->|NO Freshdesk silent-skip risk| INC_SAFE[Incremental with day-range backfill window - 7-day overlap]
+    Q1 -->|NO small tenant| Q3{Dashboard refresh SLA under 1 hour?}
+    Q3 -->|YES near real-time| TABLE_FAST[Table - full rebuild on schedule - small enough]
+    Q3 -->|NO daily is fine| VIEW_OR_TABLE[View if mart logic is light - Table if multiple dashboards join it]
+    INC --> UKEY[unique_key: ticket_id + vendor - or surrogate]
+    INC_SAFE --> UKEY
+    TABLE_FAST --> TEST[dbt tests: not_null + unique on ticket_id per vendor]
+    VIEW_OR_TABLE --> TEST
+    UKEY --> TEST
+```
+
+**Rationale per leaf:**
+- *INC* — above 10k daily tickets, a full rebuild scans the entire staging table on every run; incremental with a reliable `updated_at` watermark is the correct trade.
+- *INC_SAFE* — Freshdesk's `updated_since` filter has a known silent-skip behavior (per `knowledge/freshdesk-integration.md`); a 7-day overlap window catches rows that slip through the watermark.
+- *TABLE_FAST* — at small volume, a full rebuild is cheaper than incremental bookkeeping and avoids the `updated_at` reliability question.
+- *VIEW_OR_TABLE* — a view defers compute to query time (correct for rarely-used mart variants); a table is better when multiple dashboards join it and scan cost matters.
+
+**Tradeoffs summary:**
+
+| Strategy | Full-rebuild cost | Freshness risk | Watermark reliability required | Use when |
+|---|---|---|---|---|
+| Incremental + watermark | Low | Low | High | High volume + reliable updated_at |
+| Incremental + day-range overlap | Low-medium | Low | Medium | Freshdesk or sources with silent-skip |
+| Table full-rebuild | High | None | Not required | Small tenant, hourly refresh OK |
+| View | None | Deferred to query | Not required | Rarely queried, light logic |
+
+---
+
+## Decision Tree: Dashboard performance problem — where is the bottleneck?
+
+**When this applies:** a dashboard widget is slow to load (KPI >200ms, chart >800ms, table >1.5s per the plugin's budget targets), or the warehouse bill has spiked after a dashboard launch. Observable inputs: whether the widget uses a pre-aggregation, the query plan from Cube Dev Tools, and the warehouse scan size.
+
+**Last verified:** 2026-06-05 against `skills/dashboard-performance-tuning/SKILL.md`.
+
+```mermaid
+flowchart TD
+    START[Widget is slow or warehouse bill is high] --> Q1{Is there a Cube pre-aggregation configured for this widget?}
+    Q1 -->|NO| FIX_PREAG[Add pre-aggregation - highest ROI fix]
+    Q1 -->|YES| Q2{Is the pre-aggregation being hit - check Cube Dev Tools?}
+    Q2 -->|NO miss| Q3{Why is it missing - dimension mismatch or stale?}
+    Q3 -->|Dimension not in rollup| ROLLUP[Add the missing dimension to the rollup definition]
+    Q3 -->|Pre-agg stale - rebuild lag| REFRESH[Shorten refreshKey interval or trigger manual rebuild]
+    Q2 -->|YES hit - still slow| Q4{Is the bottleneck in Cube query time or network?}
+    Q4 -->|Cube query time| Q5{Warehouse scan too wide - missing partition or cluster key?}
+    Q5 -->|YES| PART[Add partition or cluster key to the base table - warehouse-partition-and-cluster BP]
+    Q5 -->|NO scan OK| CACHE[Check Redis cache hit rate - add Cube Redis tier]
+    Q4 -->|Network - TTFB is the issue| CDN[Move static assets to CDN - check TanStack Query stale-while-revalidate config]
+    FIX_PREAG --> VERIFY[Re-measure against budget targets - KPI 200ms / chart 800ms / table 1.5s]
+    ROLLUP --> VERIFY
+    REFRESH --> VERIFY
+    PART --> VERIFY
+    CACHE --> VERIFY
+    CDN --> VERIFY
+```
+
+**Rationale per leaf:**
+- *FIX_PREAG* — a widget with no pre-aggregation pays full warehouse scan on every load; this is the single highest-ROI fix in almost all slow-dashboard diagnoses.
+- *ROLLUP* — a pre-aggregation miss due to an unlisted dimension means the rollup definition is incomplete; the fix is schema, not infra.
+- *REFRESH* — a stale pre-aggregation serves yesterday's data; shortening `refreshKey` is a trade between freshness and compute cost.
+- *PART* — a Cube query hitting a Postgres/Snowflake table without a partition key on the time dimension scans the whole table; partition/cluster keys are the lowest-layer fix.
+- *CACHE* — Redis caches Cube query results across viewers; a low cache hit rate on a frequently-queried widget is a missed configuration, not a query problem.
+- *CDN* — if the pre-aggregation hits but the page still feels slow, TTFB/asset delivery is the bottleneck; TanStack Query's `stale-while-revalidate` eliminates loading spinners on re-visits.
+
+**Tradeoffs summary:**
+
+| Fix | Cost to implement | Blast radius | Freshness impact | Use when |
+|---|---|---|---|---|
+| Add pre-aggregation | Low-medium | None | Controlled by refreshKey | No pre-agg configured |
+| Fix rollup definition | Low | None | None | Pre-agg missing on dimension |
+| Shorten refreshKey | Low | Compute cost | Better freshness | Pre-agg too stale |
+| Add partition key | Medium | Schema migration | None | Warehouse scan too wide |
+| Add Redis cache | Medium | None | None | Cube cache hit rate low |
+| CDN + stale-while-revalidate | Low | None | None | Network TTFB is bottleneck |
+
+---
+
 ## See also
 
 - [`../skills/stack-selection/SKILL.md`](../skills/stack-selection/SKILL.md) — the Case A/B/C/D tree these layer-trees sit under

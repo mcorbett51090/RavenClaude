@@ -104,3 +104,111 @@ _The wrong move is a reflexive `apply` that reverts an emergency console fix and
 | Terragrunt | mature | DRY + explicit; extra tool |
 | OPA/Conftest, Sentinel | mature | Evaluate plan JSON; preventive guardrails |
 | terraform test | GA | Native module testing |
+
+---
+
+## Decision Tree: Should this be a module or inline config?
+
+**When this applies:** An engineer is writing Terraform configuration and faces the choice between extracting a block of resources into a separate module or keeping them inline in the root configuration. Observable inputs: is this resource block reused across environments or repos, does it have a coherent single responsibility, and how many resources does it group?
+
+**Last verified:** 2026-06-05 against Terraform module documentation and the module-boundary best practice.
+
+```mermaid
+flowchart TD
+    START[A block of Terraform config] --> REUSE{Is it reused in 2 or more places - root modules or repos?}
+    REUSE -->|Yes| MODULE[Extract a versioned module<br/>typed I/O + README + tests]
+    REUSE -->|No| RESP{Single coherent responsibility worth a typed contract?}
+    RESP -->|Yes - e.g. a VPC with all its parts| MODULE
+    RESP -->|No - just a few resources| COMPLEX{Is the block 20+ resources with internal complexity?}
+    COMPLEX -->|Yes| LOCAL[Local module - no version, no registry<br/>just clean boundaries]
+    COMPLEX -->|No| INLINE[Keep inline - premature module is indirection tax]
+    MODULE --> REGISTRY{Will other teams consume it?}
+    REGISTRY -->|Yes| PUB[Publish to private module registry<br/>semver + changelog]
+    REGISTRY -->|No, same team only| VER[Version in VCS - tag or branch ref]
+```
+
+**Rationale per leaf:**
+- *Versioned module* — reuse across ≥2 places means drift prevention justifies the module overhead; version it so callers control when they upgrade.
+- *Local module* — same-repo grouping for readability and boundary clarity; no versioning needed since it moves with the root.
+- *Inline* — grouping for its own sake adds indirection; < 20 resources with no reuse is better inline.
+- *Private registry* — when other teams consume the module, registry publication gives semantic versioning, documentation, and a controlled upgrade path.
+
+**Tradeoffs summary:**
+
+| Method | Reuse | Discoverability | Versioning overhead | Use when |
+|---|---|---|---|---|
+| Inline | No | Low | None | Single-use, few resources |
+| Local module | No | Medium | None | Large complex block, same repo |
+| VCS-versioned module | Same-team only | Low-medium | Tag/branch | Team-internal reuse |
+| Registry module | Cross-team | High | Semver + changelog | Shared org-wide infrastructure pattern |
+
+---
+
+## Decision Tree: Terraform or OpenTofu?
+
+**When this applies:** A team is starting a new IaC project or migrating an existing one and must choose between Terraform (BSL license) and OpenTofu (MPL, Linux Foundation fork). The observable inputs are: the organization's license policy, the required provider/module ecosystem, and the team's existing toolchain.
+
+**Last verified:** 2026-06-05 against Terraform BSL terms and OpenTofu 1.8 release notes.
+
+```mermaid
+flowchart TD
+    START[Choose IaC tool] --> LIC{Does org policy prohibit BSL - business-source licensed software?}
+    LIC -->|Yes - legal requires OSS| OTF[OpenTofu - MPL-2.0, Linux Foundation]
+    LIC -->|No restriction| TFCLOUD{Using Terraform Cloud or HCP Terraform for state + runs?}
+    TFCLOUD -->|Yes| TF[Terraform - tighter HCP integration]
+    TFCLOUD -->|No, self-managed or TFC-equivalent| PROV{Need a provider or module that is Terraform-only - no OpenTofu port?}
+    PROV -->|Yes - verify first| TF
+    PROV -->|No - most providers work with both| TEAM{Team already invested in Terraform CLI and tooling?}
+    TEAM -->|Yes, muscle memory + scripts| TF
+    TEAM -->|No, greenfield| OTF
+```
+
+**Rationale per leaf:**
+- *OpenTofu (license)* — MPL-2.0 is permissive; organizations with software licensing policies that prohibit BSL must use OpenTofu.
+- *Terraform (HCP)* — HCP Terraform's state, runs, SSO, and policy enforcement are native to Terraform; OpenTofu can use Terraform Cloud API but with less official support.
+- *Terraform (provider)* — most providers (AWS, Azure, GCP) are dual-compatible; a few niche providers have Terraform-only registries — verify before assuming incompatibility.
+- *OpenTofu (greenfield)* — for new projects with no existing toolchain investment and no licensing concern, OpenTofu is a viable default with community support growing.
+
+**Tradeoffs summary:**
+
+| Tool | License | HCP Terraform | Provider ecosystem | Use when |
+|---|---|---|---|---|
+| Terraform | BSL 1.1 - no competing service | Full native | Widest | No license concern, using HCP |
+| OpenTofu | MPL-2.0 - fully open | API-compatible | Nearly equal | License policy requires OSS |
+
+---
+
+## Decision Tree: How should this IaC change be promoted across environments?
+
+**When this applies:** A Terraform change is ready for production and must be promoted through dev, staging, and prod. The observable inputs are: the structure of the codebase (workspaces vs directories), whether the change is config-only or includes new resources, and whether a human approval gate is required before prod.
+
+**Last verified:** 2026-06-05 against Terraform CI/CD pipeline patterns and the environment-promotion decision tree.
+
+```mermaid
+flowchart TD
+    START[IaC change ready to promote] --> PR{Is there a reviewed plan for each target environment?}
+    PR -->|No| PLAN[Run terraform plan for each env<br/>post plan output to PR for review]
+    PR -->|Yes| GATE{Does prod require a human approval gate?}
+    GATE -->|Yes| APPROVE[Pause pipeline at prod stage<br/>require approval from infra-owner]
+    GATE -->|No, trusted change| AUTO[Auto-promote after staging apply succeeds]
+    PLAN --> GATE
+    APPROVE --> APPLY[Apply to prod<br/>monitor for drift immediately after]
+    AUTO --> APPLY
+    APPLY --> DRIFT{Does post-apply plan show 0 diff?}
+    DRIFT -->|Yes| DONE[Promotion complete - lock state]
+    DRIFT -->|No| INVESTIGATE[Investigate drift before next change]
+```
+
+**Rationale per leaf:**
+- *Plan for each env* — each environment's state is different; a plan for dev is not a preview of what happens in prod; always plan per-env.
+- *Human approval gate* — prod applies should have a human gate in regulated environments or for high-blast-radius changes (network, IAM); fast-moving teams with staged automated testing may skip it for low-risk changes.
+- *Auto-promote after staging* — when staging is a faithful mirror of prod and the change is low-blast-radius (a Lambda version bump, a tag change), auto-promotion is safe and reduces toil.
+- *Post-apply drift check* — run `plan` immediately after `apply`; a non-zero diff means the apply did not converge or something else changed the resource out-of-band.
+
+**Tradeoffs summary:**
+
+| Method | Approval | Speed | Blast radius guard | Use when |
+|---|---|---|---|---|
+| Human approval at prod | Manual - minutes to hours | Slow | High | Regulated / high-blast changes |
+| Auto-promote after staging | None | Fast | Medium | Trusted staging mirror + low-blast change |
+| Manual apply only | Manual per env | Slowest | Highest | Emergency or one-off infra surgery |
