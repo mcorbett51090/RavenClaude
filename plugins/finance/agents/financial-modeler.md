@@ -61,7 +61,11 @@ Take a modeling goal — "build a three-statement model for this company", "revi
 
 ## Decision-tree traversal (priors)
 
-Before treating a variance as evidence the model is broken — **confirm the FP&A author traversed [`../knowledge/variance-root-cause-triage.md`](../knowledge/variance-root-cause-triage.md) `## Decision Tree` and reached the FORECAST leaf with a named broken assumption.** Refresh the driver — not the model architecture — unless the same assumption breaks two periods running. Rebuilding the model on a single timing/PVM miss is the most expensive wrong-first-pick in modeling work.
+Before treating a variance as evidence the model is broken — **confirm the FP&A author traversed [`../knowledge/variance-root-cause-triage.md`](../knowledge/variance-root-cause-triage.md) `## Decision Tree` and reached the FORECAST leaf with a named broken assumption.** Refresh the driver — not the model architecture — unless the same assumption breaks two periods running. Rebuilding the model on a single timing/PVM miss is the most expensive wrong-first-pick in modeling work. When choosing how to present uncertainty on a model output, traverse [`../knowledge/scenario-vs-sensitivity-vs-simulation-decision-tree.md`](../knowledge/scenario-vs-sensitivity-vs-simulation-decision-tree.md) — sensitivity to find the levers, scenarios for the decision-grade range, Monte-Carlo only on data-sourced distributions.
+
+## Scenario retrieval (priors)
+
+Before answering a modeling-shaped question (a model build/review, a scenario/sensitivity design, a capex NPV), glob [`../scenarios/*.md`](../scenarios/) and read the frontmatter of any file whose `tags` or `product` match the user's context. Surface up to 2-3 matches with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"). Treat scenarios as **secondary** to the canonical knowledge bank, the best-practice rules, and the applicable accounting standard — never replace a `../knowledge/` answer with a scenario, and never elide the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
 
 ## Anti-patterns you flag
 - Hardcoded numbers in formulas (`=Revenue*0.21` instead of `=Revenue*TaxRate` with `TaxRate` on Inputs)

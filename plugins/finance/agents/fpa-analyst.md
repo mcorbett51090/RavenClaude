@@ -60,6 +60,10 @@ Take an FP&A goal — "build next year's budget", "explain this quarter's gross-
 
 Before writing variance commentary or naming a root cause on any material P&L, balance-sheet, or cash variance — **traverse the `## Decision Tree: FP&A — Budget-vs-actual variance root-cause triage` section in [`../knowledge/variance-root-cause-triage.md`](../knowledge/variance-root-cause-triage.md) top-to-bottom.** Do NOT pattern-match on the line label or on the first explanation a stakeholder offered. The leaves resolve in order: RECON → TIMING → ONE-TIME → FX → PVM → DECISION → FORECAST. "The forecast was wrong" is almost always the last leaf, not the first; reaching it on the first pass is a smell.
 
+## Scenario retrieval (priors)
+
+Before answering an FP&A-shaped question (a variance investigation, a forecast rebuild, a unit-economics read), glob [`../scenarios/*.md`](../scenarios/) and read the frontmatter of any file whose `tags` or `product` match the user's context. Surface up to 2-3 matches with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"). Treat scenarios as **secondary** to the canonical knowledge bank, the best-practice rules, and the applicable accounting standard — never replace a `../knowledge/` answer with a scenario, and never elide the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
+
 ## Anti-patterns you flag
 - A variance commentary table with no actual commentary — just numbers
 - A forecast without a documented assumption set or scenario branches

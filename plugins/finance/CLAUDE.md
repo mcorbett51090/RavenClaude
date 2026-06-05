@@ -187,18 +187,15 @@ Reference docs with a `Last reviewed:` date + confidence notation. Inline priors
 | [`knowledge/cost-accounting.md`](knowledge/cost-accounting.md) | Managerial + inventory costing — product-costing methods (job/process/ABC), absorption vs. variable, the standard-cost variance set + disposition, overhead/capacity and the ASC 330 normal-capacity rule, CVP, the COGM/inventory close link. Owned by `controller` / `financial-modeler` (+ `fpa-analyst`). |
 | [`knowledge/fpa-operating-model-and-planning.md`](knowledge/fpa-operating-model-and-planning.md) | FP&A process architecture — the four planning instruments (LRP / AOP / rolling forecast / close-BvA-reforecast) and their cadence, budgeting-approach selection, Beyond Budgeting, the planning calendar + RACI + hub-and-spoke, and headcount/capacity planning. Owned by `fpa-analyst` (+ `financial-modeler`). |
 | [`knowledge/fpa-decision-support-and-unit-economics.md`](knowledge/fpa-decision-support-and-unit-economics.md) | The analytical playbooks on top of the KPIs — unit economics (CAC/LTV/payback done right), SaaS growth analytics (ARR bridge, NRR/GRR, magic number, burn multiple, Rule of 40), capital-budgeting method selection (NPV/IRR/payback), pricing/discount math, scenario framing, business partnering. Owned by `fpa-analyst` (+ `board-pack-composer`). |
+| [`knowledge/scenario-vs-sensitivity-vs-simulation-decision-tree.md`](knowledge/scenario-vs-sensitivity-vs-simulation-decision-tree.md) | **Mermaid** — how to model uncertainty on a base case: sensitivity/tornado (find the levers) → scenario analysis (coherent best/base/worst, one switch) → Monte-Carlo (only on data-sourced distributions, else fall back to scenarios). Owned by `financial-modeler` / `fpa-analyst`. |
+| [`knowledge/reforecast-vs-hold-the-budget-decision-tree.md`](knowledge/reforecast-vs-hold-the-budget-decision-tree.md) | **Mermaid** — whether to revise the plan when actuals diverge: reconcile/triage first → hold (one-time) / update rolling forecast only (late-year) / reforecast-budget-held / formal re-plan with governance. Keeps the budget as the yardstick. Owned by `fpa-analyst` (+ `board-pack-composer`). |
 
 ---
 
-## 8b. Scenarios bank — TODO (planned)
+## 8b. Scenarios bank & runnable tooling (enabled v0.14.0)
 
-**Status:** not yet enabled in this plugin. The marketplace-wide scenarios bank ([`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md), shipped v0.1.0 of the feedback loop on 2026-05-21) is currently live in `power-platform` only. Other plugins enable their bank **when the first real engagement scenario surfaces** via `/wrap`.
-
-To enable when a scenario surfaces:
-
-1. Create `plugins/finance/scenarios/` with a `README.md` (copy the structure from `plugins/power-platform/scenarios/README.md`)
-2. Add the **Scenario retrieval (priors)** inline-prior block to this plugin's most-likely-to-benefit agents (see the pattern in [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md) §"Inline-prior pattern for agents")
-3. Remove this §8b TODO block
+- **Scenarios bank** — [`scenarios/`](scenarios/) holds dated, scope-tagged, unverified engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank, a best-practice rule, or the applicable accounting standard (GAAP/IFRS). Scenarios carry no company/customer/employee PII (§3 #10). The most-likely-to-benefit specialists — `fpa-analyst`, `treasury-analyst`, `financial-modeler` — carry the inline scenario-retrieval prior and should check the bank when a situation matches. The four seed scenarios: budget-vs-actual variance investigation, 13-week cash crunch, driver-based forecast rebuild, unit-economics / contribution-margin teardown.
+- **Runnable calculator** — [`scripts/finance_calc.py`](scripts/finance_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from four recurring decisions: `npv-irr` (DCF NPV + bisection-solved IRR for capex / build-vs-buy / lease-vs-buy), `variance-bridge` (price/volume/mix decomposition that sums exactly to the total), `runway` (direct-method weekly cash trough + run-out + min-buffer breach), `unit-economics` (gross-margin LTV + CAC payback + LTV:CAC on defensible definitions). It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support, not accounting/audit/tax/investment advice (§3). Owned primarily by `fpa-analyst` / `financial-modeler` / `treasury-analyst`; pairs with the decision trees in `knowledge/`.
 
 ---
 
@@ -252,3 +249,30 @@ When in doubt, the finance team **declines and asks the Team Lead** rather than 
 Reciprocal seam to the adjacent-plugins build-out:
 
 - Payment & billing *systems* engineering (PSP integration, subscriptions/usage billing, money-safe ledgers, PCI scope) → `fintech-payments-engineering`; it emits clean money/revenue events that this plugin turns into recognition (ASC 606) and GL.
+
+---
+
+## Value-add completeness (build-out 2026-06-05)
+
+`finance` is a **non-code vertical** (corporate finance & FP&A). Every value-add menu item is dispositioned honestly below — several runtime-tier items are genuinely **N-A** because there is no code artifact, runtime, or repo to operate on, and forcing them would add noise, not value.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT (this round)** | README + 4 dated engagement scenarios (budget-vs-actual variance investigation, 13-week cash crunch, driver-based forecast rebuild, unit-economics/contribution-margin teardown). §8b TODO retired; inline scenario-retrieval prior added to `fpa-analyst` / `treasury-analyst` / `financial-modeler`. |
+| Decision-tree (Mermaid) knowledge | **BUILT (this round)** | 2 NEW files complementing PR #315's consolidated trees: `scenario-vs-sensitivity-vs-simulation-decision-tree.md` and `reforecast-vs-hold-the-budget-decision-tree.md`. The forecast-method and capex/build-vs-buy-NPV trees the brief suggested **already exist** in `finance-decision-trees.md` (#315) — these two were chosen as genuinely net-new, not duplicates. |
+| Runnable script (`scripts/`) | **BUILT (this round)** | `finance_calc.py` — `npv-irr` / `variance-bridge` / `runway` / `unit-economics`. stdlib-only, ruff-clean, runs Python 3.8+. The one runtime item with real non-code value. |
+| Glossary / KPI reference | **SUFFICIENT (pre-existing)** | The knowledge bank already carries `variance-root-cause-triage`, `fpa-decision-support-and-unit-economics`, `wacc-cost-of-capital-sourcing`, and the ASC-standard files (#315 + prior). No redundant new glossary added. |
+| Best-practices/ | **SUFFICIENT (pre-existing, #315)** | 41 cited best-practice rules already cover the FP&A / controller / treasury / valuation / audit / board surface. The new scenarios + trees reference them; no gap this round. |
+| Bundled code-aware MCP server | **N-A** | No published MCP for a corporate-finance / FP&A advisory function verified to exist; ERPs / FP&A platforms (NetSuite, Workday Adaptive, Anaplan, Pigment) are per-tenant / authenticated / PII- and revenue-bearing — bundling is out of scope and the plugin is deliberately platform-neutral. If a live-data need surfaces it would be *recommend, evaluate-first*, never bundled (per [`../../docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md)). |
+| LSP integration / `.lsp.json` | **N-A** | LSP is a code-editing protocol; there is no source language in a finance advisory vertical — deliverables are models, memos, and workpapers, not compiled code. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/finance_calc.py`; no compiled/installed binary is warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process specific to this vertical. |
+| output-styles / themes | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown reports + the §6 Output Contract. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides; PII/wire/payroll routing already escalates to `security-reviewer` (§2). |
+| skills / hooks / commands / templates | **SUFFICIENT (pre-existing)** | 9 skills, 1 advisory anti-pattern hook, 5 commands, 8 templates already cover the surface; no obvious high-value gap this round. The new scenarios + trees + calculator extend reach without a new agent (team-growth-as-knowledge house rule). |
+| CHANGELOG.md | **BUILT (this round)** | Added with a top `0.14.0` entry. |
+| NOTICE.md | **N-A** | No third-party content is bundled (the script is original, stdlib-only; all benchmark sources are cited inline in the scenarios, not vendored). |
+
+## Milestones
+
+- **v0.14.0** (2026-06-05) — non-code-vertical value-add build-out: scenarios bank (4 scenarios + README), 2 new Mermaid decision-tree knowledge files (scenario-vs-sensitivity-vs-simulation; reforecast-vs-hold-the-budget), `scripts/finance_calc.py` (4 modes, ruff-clean), inline scenario-retrieval priors on the 3 benefiting agents, CHANGELOG. Code-runtime tier dispositioned N-A with reasons (above).

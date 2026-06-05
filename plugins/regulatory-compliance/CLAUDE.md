@@ -236,17 +236,29 @@ The jurisdiction specialists are backed by **20 primary-source-cited knowledge f
 | [`knowledge/jurisdictions/global-regulator-directory.md`](knowledge/jurisdictions/global-regulator-directory.md) | all jurisdiction agents | FATF/CFATF/MONEYVAL, Basel/IAIS/IOSCO, OECD CRS/Pillar Two, EU AMLA — the supranational layer |
 | [`knowledge/basel-framework.md`](knowledge/basel-framework.md) | all banking-touching agents (BMA / CIMA / UK-PRA / Bahamas / US) + `risk-and-controls-specialist`, `regulatory-reporting-analyst` | **The canonical Basel reference** — three Pillars, the capital stack (CET1/AT1/T2), Pillar-1 minimums + buffer stack + MDA, RWA/output-floor, leverage + LCR/NSFR, Pillar-2 ICAAP/ILAAP/SREP, Basel 3.1 implementation by jurisdiction. The jurisdiction files state how each regulator *implements* Basel; this is the standard itself, so they stop re-deriving it. |
 
+**Procedural decision trees (companions to the jurisdiction knowledge):** beyond the regulator files, the plugin ships Mermaid decision trees that encode *method* priors the agents traverse before selecting an approach. [`knowledge/compliance-decision-trees.md`](knowledge/compliance-decision-trees.md) (CDD-depth / reportability / document-layer / control-type / which-regime / which-return / Bermuda-class) and [`knowledge/regulator-finding-severity-triage.md`](knowledge/regulator-finding-severity-triage.md) (MRA / MRIA / consent-order / SII) were consolidated in PR #315. The v0.12.0 build-out adds two complementary trees:
+
+| File | Owner agent | Routes |
+|---|---|---|
+| [`knowledge/risk-rating-and-escalation-decision-tree.md`](knowledge/risk-rating-and-escalation-decision-tree.md) | `risk-and-controls-specialist` (+ `policy-and-procedure-writer`) | A **firm-identified** risk/issue: score inherent → residual → test against board-approved appetite → route to authority tier (board / senior-mgmt / line / accept-and-monitor). AML/sanctions/fair-lending escalate by default. (Distinct from the *regulator-issued*-finding triage tree.) |
+| [`knowledge/third-party-risk-tiering-decision-tree.md`](knowledge/third-party-risk-tiering-decision-tree.md) | `risk-and-controls-specialist` (+ `policy-and-procedure-writer`) | A **third party**: tier by criticality → scale due diligence + contract terms + ongoing monitoring across the relationship life cycle → flag concentration. Anchored on the US June-2023 interagency third-party guidance with explicit non-US/non-banking carve-outs (DORA, EBA). |
+
+**Runnable tooling:** [`scripts/compliance_calc.py`](scripts/compliance_calc.py) (stdlib only, Python 3.8+, ruff-clean) removes arithmetic error from three computations: `risk-score` (inherent + residual on likelihood×impact + within/outside-appetite verdict), `customer-risk` (weighted factor score + firm-defined bands), `sample-size` (control-testing coverage + a firm-supplied frequency→count lookup). It is a **calculator, not a data source and not a rulebook** — it bakes in **no** regulatory threshold and **no** legal advice; every scale, weight, band, and threshold is the *firm's own* and `[verify-at-use]`. Owned primarily by `risk-and-controls-specialist`; `aml-kyc-analyst` uses `customer-risk`'s weighting (the depth decision still belongs to the regime + the CDD/EDD tree, never the calculator).
+
 **Sourcing honesty:** the BMA/CIMA/Bahamas/JFSC primary sites HTTP-403'd the automated fetch backend during the build sweep, so many exact statutory section numbers carry an `[unverified]` marker grounded in search-engine extraction + multiple independent law-firm compendiums. This is deliberate, not sloppiness — the marker IS the instruction to confirm against the primary PDF before the cite gates a live filing.
 
-## 8b. Scenarios bank — TODO (planned)
+## 8b. Scenarios bank (enabled v0.12.0)
 
-**Status:** not yet enabled in this plugin. The marketplace-wide scenarios bank ([`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md), shipped v0.1.0 of the feedback loop on 2026-05-21) is currently live in `power-platform` only. Other plugins enable their bank **when the first real engagement scenario surfaces** via `/wrap`.
+The scenarios bank is **live**. [`scenarios/`](scenarios/) holds dated, scope-tagged, **unverified** engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)) — schema-validated but not maintainer-reviewed, consulted as a **secondary** source only. The bank's [`scenarios/README.md`](scenarios/README.md) is the index + schema. Current contents (4):
 
-To enable when a scenario surfaces:
+| Scenario | Product | Tags |
+|---|---|---|
+| [`2026-06-05-aml-alert-backlog-no-file-decision.md`](scenarios/2026-06-05-aml-alert-backlog-no-file-decision.md) | aml-kyc | aml, alert-backlog, sar, no-file, structuring, fincen |
+| [`2026-06-05-regulatory-change-impact-assessment.md`](scenarios/2026-06-05-regulatory-change-impact-assessment.md) | regulatory-change | regulatory-change, horizon-scanning, gap-analysis, applicability, policy |
+| [`2026-06-05-control-testing-design-gap.md`](scenarios/2026-06-05-control-testing-design-gap.md) | control-testing | control-testing, design-effectiveness, detective, remediation, three-lines |
+| [`2026-06-05-third-party-vendor-risk-retiering.md`](scenarios/2026-06-05-third-party-vendor-risk-retiering.md) | third-party-risk | third-party-risk, vendor, due-diligence, ongoing-monitoring, concentration |
 
-1. Create `plugins/regulatory-compliance/scenarios/` with a `README.md` (copy the structure from `plugins/power-platform/scenarios/README.md`)
-2. Add the **Scenario retrieval (priors)** inline-prior block to this plugin's most-likely-to-benefit agents (see the pattern in [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md) §"Inline-prior pattern for agents")
-3. Remove this §8b TODO block
+**How agents use it:** the four most-likely-to-benefit agents — `aml-kyc-analyst`, `risk-and-controls-specialist`, `policy-and-procedure-writer`, `examination-prep-specialist` — carry an inline **Scenario retrieval (priors)** block. Surface a matching scenario only behind the **mandatory unverified-scenario preamble**, never overriding the cited knowledge bank, a primary-source regulatory citation, or the legal-advice gate (§3 #10). **Every regulatory value in a scenario remains `[verify-at-use]`** — a scenario is a narrative, never a citation. Scenarios carry no customer/UBO PII, no SAR/STR content, no wire details, no real firm names (§3 #9, §4, and the `scrub-confidential-pre-write.sh` hook).
 
 ---
 
@@ -303,3 +315,29 @@ When in doubt, the compliance team **declines and asks the Team Lead** rather th
 Reciprocal seam to the adjacent-plugins build-out:
 
 - General data-privacy *engineering* (catalog, classification, GDPR/CCPA data-subject-rights pipelines, consent, retention, DLP) → `data-governance-privacy`; this plugin owns financial-services regulation, that one owns the privacy-engineering mechanics.
+
+---
+
+## Value-add completeness (build-out 2026-06-05)
+
+Every value-add menu item is dispositioned honestly below. This is a **NON-CODE governance vertical** — several runtime-tier items are genuinely **N-A** because there is no code artifact, runtime, repo, or source language to operate on; forcing them would add noise, not value. The build-out layers the net-new gaps on top of PR #315's consolidated decision-trees / best-practices / templates.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README index (PR #315) now backed by 4 dated engagement scenarios (AML alert-backlog/no-file; regulatory-change impact-assessment; control-testing design gap; third-party/vendor re-tiering). §8b. |
+| Decision-tree (Mermaid) knowledge | **BUILT** | 2 new trees complementing #315: `risk-rating-and-escalation` (firm-identified risk → appetite → authority tier) + `third-party-risk-tiering` (criticality → diligence depth + concentration). §8a. |
+| Runnable script (`scripts/`) | **BUILT** | `compliance_calc.py` — `risk-score` / `customer-risk` / `sample-size`. Stdlib-only, ruff-clean, no baked-in threshold or legal advice; every input is the firm's own. The one runtime item with real non-code value. §8a. |
+| Bundled/recommended MCP server | **N-A** | A governance/advisory vertical operates on documents + analysis, not a live data plane. No first-party MCP exists and a community RegTech/GRC server would be per-tenant, authenticated, and PII/SAR-bearing — out of scope and against the plugin's deliberate vendor-neutrality (§2). Per [`../../docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md), if a live-data need ever surfaced it would be *recommend / evaluate-first* behind a `security-reviewer` gate, never bundled. Not fabricated. |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in a regulatory advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/compliance_calc.py`; no compiled/installed binary warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. |
+| output-styles / themes | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown governed by the §6 Output Contract. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides. The PII-scrub hook (§7) is the one vertical-specific guard and already ships. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 10 skills, 5 commands, 11 templates, 1 defensive PII hook already cover the surface; no obvious high-value gap this round. The new trees + script + scenarios extend reach without a new agent (team-growth-as-knowledge house rule). |
+| CHANGELOG.md | **BUILT** | Added with a top `0.12.0` entry. |
+| NOTICE.md | **N-A** | No third-party content bundled — the script is original + stdlib-only; all regulatory sources are cited inline, not vendored. |
+
+## Milestones
+
+- **through v0.11.3** — 12 specialist agents (6 function + 6 jurisdiction/regulator), 10 skills, 11 templates, 5 commands, 27 best-practice rules, a defensive PII-scrubbing hook, and a 19-file primary-source-cited regulator knowledge bank. PR #315 consolidated the knowledge decision-trees, `best-practices/`, `templates/`, and the `scenarios/README.md` index.
+- **v0.12.0** — non-code-vertical value-add build-out: scenarios bank enabled (4 scenarios + agent inline priors), 2 complementary Mermaid decision-tree knowledge files (risk-rating/escalation; third-party-risk tiering), `scripts/compliance_calc.py` (3 modes, ruff-clean), §8b TODO resolved, value-add completeness table + milestones. Code-runtime tier dispositioned N-A with reasons.
