@@ -206,6 +206,7 @@ Inline priors live on the affected agents; the files in `knowledge/` are the sou
 | **2026-06-04** [`knowledge/pe-ownership-effect-on-renewal-posture.md`](knowledge/pe-ownership-effect-on-renewal-posture.md) | PowerSchool (Bain $5.6B), Instructure (KKR $4.8B), Renaissance (H&F ~$1.1B), Imagine Learning (active roll-up) all PE-owned by 2026. PE underwriting model (NRR > 110%, tighter discount latitude, multi-year preference). 6-12 month integration window for acquired products. How to position renewal *with* vs *against* the acquirer's CS stack. |
 | **2026-06-04** [`knowledge/cbt-readiness-checkpoint-spring.md`](knowledge/cbt-readiness-checkpoint-spring.md) | **NY mandates CBT for grades 3-8 ELA + Math + Science spring 2026** — first full window April-May. March-cadence checkpoint (device + bandwidth + rostering + SSO + vendor-side readiness); per-week pre-window cadence; incident-response framing if a CBT-window failure happens. |
 | **2026-06-04** [`knowledge/ai-teammate-adoption-psm-self.md`](knowledge/ai-teammate-adoption-psm-self.md) | ChurnZero AI Marketplace + Gainsight AI agents context. What AI teammates DO (signal triage, recap drafts, follow-up, churn-risk scoring) vs DO NOT do (replace the customer relationship, send unreviewed customer-facing comms, decide on escalation, touch FERPA-restricted data). How to talk about AI-teammate adoption with an AI-cautious K-12 district. Adoption maturity curve (None → Piloting → Standardized → Differentiated → Outcome-architect). |
+| **v0.12.0** [`knowledge/adoption-and-expansion-decision-trees.md`](knowledge/adoption-and-expansion-decision-trees.md) | **Mermaid** — the two net-new trees that sit *one level deeper* than the canonical routers: **adoption-intervention selection** (given a low seat/license-utilization read, which adoption lever — suppress / rostering pre-flight / sequence / re-cascade / rescope / diagnose — before any commercial motion) and **expand-vs-stabilize** (operationalizing the 3-gate expansion model with the don't-sell discipline; "stabilize" is the honest default). Deliberately does **not** duplicate the renewal / recovery / triage / cadence trees in `partner-success-decision-trees.md`; hands off to the play router and the renewal-risk tree. Anchors on the 57%/43% utilization framing. |
 | **v0.5.0** [`knowledge/cs-stack-integration-planhat-sfdc-snowflake.md`](knowledge/cs-stack-integration-planhat-sfdc-snowflake.md) | Standing up or diagnosing a centralized CS dashboard on a Planhat + Salesforce + Snowflake + Zapier (+ Granola) stack. Operational complement to the [`cs-platform-integration`](skills/cs-platform-integration/SKILL.md) skill: which system owns what (with the dual-ownership anti-pattern), the SFDC-Account-ID identity spine + validation pattern, sync-cadence recommendations with rationale, dead-zone overlay on freshness alerts (don't cry wolf over a quiet Saturday), failure-mode catalog (Zapier silent zap failure; SFDC ID mismatch on rename; Snowflake nightly-job-against-stale-source; Planhat dedupe collision; Granola unrouted attendee). Granola flow ships as a documented placeholder with the five open questions to resolve before wiring. |
 
 The `learning-analytics-analyst`, `partner-success-manager`, `ferpa-comms-translator`, `success-playbook-designer`, `partner-profile-curator`, and `qbr-composer` agents carry compact inline priors summarizing relevant files. v0.4.0: `partner-success-manager` (both new files), `success-playbook-designer` (renewal-pricing primary, AI-feature plays secondary), `partner-profile-curator` (AI posture in profile). v0.4.1: `partner-success-manager` (operating-cadence touchpoint discipline) + `success-playbook-designer` (play-trigger suppression overlay). v0.4.2: `partner-success-manager` (5-bundle capability extension consolidated section), `success-playbook-designer` (adoption + advocacy play design), `learning-analytics-analyst` (K-12 adoption arc + SIS/SSO patterns), `ferpa-comms-translator` (advocacy-content state-law + consent overlay).
@@ -214,15 +215,18 @@ New knowledge entries follow the pattern: a stable reference doc named after the
 
 ---
 
-## 8b. Scenarios bank — TODO (planned)
+## 8b. Scenarios bank (enabled v0.12.0)
 
-**Status:** not yet enabled in this plugin. The marketplace-wide scenarios bank ([`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md), shipped v0.1.0 of the feedback loop on 2026-05-21) is currently live in `power-platform` only. Other plugins enable their bank **when the first real engagement scenario surfaces** via `/wrap`.
+[`scenarios/`](scenarios/) holds dated, scope-tagged, **unverified** engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank, the canonical decision trees, or a FERPA / privacy judgment (§2). Scenarios carry **no** partner-identifying info and no student/family PII; any hypothetical student-touching example uses synthetic identifiers only (the `parent-comms-jurisdictional-bear-traps.md` three-bucket model). The four most-likely-to-benefit agents — `partner-success-manager`, `learning-analytics-analyst`, `success-playbook-designer`, `partner-profile-curator` — carry the **Scenario retrieval (priors)** inline-prior block and check the bank when a situation matches.
 
-To enable when a scenario surfaces:
+The bank ships with **4** scenarios (mirrors the marketplace 9-field schema, `product_version: "n/a"` for a non-code vertical):
 
-1. Create `plugins/edtech-partner-success/scenarios/` with a `README.md` (copy the structure from `plugins/power-platform/scenarios/README.md`)
-2. Add the **Scenario retrieval (priors)** inline-prior block to this plugin's most-likely-to-benefit agents (see the pattern in [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md) §"Inline-prior pattern for agents")
-3. Remove this §8b TODO block
+| File | Covers |
+|---|---|
+| [`scenarios/2026-06-05-low-seat-utilization-renewal-risk.md`](scenarios/2026-06-05-low-seat-utilization-renewal-risk.md) | A green CRM band hiding low seat utilization; pull the leading indicator + rostering pre-flight before renewal |
+| [`scenarios/2026-06-05-implementation-slipping-past-time-to-value.md`](scenarios/2026-06-05-implementation-slipping-past-time-to-value.md) | A 90-day implementation slipping past first-value; calendar-dead-zone go-live check is the highest-leverage pre-flight |
+| [`scenarios/2026-06-05-efficacy-data-gap-at-renewal.md`](scenarios/2026-06-05-efficacy-data-gap-at-renewal.md) | No outcomes story at T-90; build a defensible proxy-evidence stack (within-district / within-history / ESSA tier), baseline next time |
+| [`scenarios/2026-06-05-expansion-blocked-by-champion-churn.md`](scenarios/2026-06-05-expansion-blocked-by-champion-churn.md) | Expansion candidate's champion departs; treat champion churn as sponsor-mapping, not expansion-timing |
 
 ---
 
@@ -248,6 +252,33 @@ To enable when a scenario surfaces:
 | **v0.5.0** [`templates/partner-pickup-brief.md`](templates/partner-pickup-brief.md) | 5-minute-read markdown brief for a PSM picking up an account cold — vacation backfill, owner handoff, leadership ask, pre-call refresh. Six sections (where we are right now / what's promised / what's next / don't say & don't push / who's who / multi-year context). **Mirrors the centralized dashboard's per-partner pickup-brief drill-down 1:1** so the dashboard view and the exportable doc are the same shape; each field carries a `→ data.json: ...` pointer so an agent generating the brief pulls from the canonical paths. Output contract appended. |
 
 ---
+
+## 9a. Runnable calculator (added v0.12.0)
+
+[`scripts/psm_calc.py`](scripts/psm_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from three recurring PSM decisions. It is a **calculator, not a data source** — the user supplies every input; it does the arithmetic and shows the formula. **FERPA boundary:** it takes only aggregate, partner-level counts — never student-level rows or PII (§2). Outputs are decision-support, not contractual/legal/financial advice.
+
+| Mode | What it computes | Pairs with |
+|---|---|---|
+| `utilization` | Seat/license activation rate, dead-seat count, optional annualized waste-proxy (dead-fraction × contract). The leading renewal-risk indicator — "which side of the 57/43 line is this partner on?" | [`knowledge/k12-spend-utilization-43pct.md`](knowledge/k12-spend-utilization-43pct.md) + the adoption-intervention tree |
+| `renewal-forecast` | Book-level projected GRR / NRR + renewed+expanded ARR from per-band partner counts, ARR, assumed gross-retention and expansion, with an optional segment benchmark band (NRR enterprise ~118% / mid-market ~108% / SMB ~97%; GRR ~88-95% — SaaS Capital 2025, `[verify-at-use]`) | [`knowledge/psm-metrics-glossary.md`](knowledge/psm-metrics-glossary.md) + the renewal-risk tree |
+| `ttv` | Whether a projected first-value date (go-live + value-lag) lands inside a configured calendar dead-zone window, plus days-to-value vs. the generic B2B ~7-day best-in-class first-value benchmark (K-12 is calendar-bound — advisory only) | [`skills/implementation-90-day-arc/SKILL.md`](skills/implementation-90-day-arc/SKILL.md) + [`knowledge/k12-adoption-arc-fall-spring-summer.md`](knowledge/k12-adoption-arc-fall-spring-summer.md) |
+
+Owned primarily by `learning-analytics-analyst` (`utilization` / `renewal-forecast`); `partner-success-manager` uses `ttv` for the implementation-arc go-live check. Every benchmark printed is public-context only (`[verify-at-use]`) — never a substitute for the partner's own data (§3 #12).
+
+## 9b. Value-add completeness (build-out 2026-06-05)
+
+This build-out closes the remaining net-new gaps relative to the merged `veterinary-practice` recipe, on top of the already-rich v0.11.1 surface (6 agents, 16 skills, 18-doc knowledge bank, 16 templates, 8 decision trees from PR #315). Every value-add menu item is dispositioned honestly below.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README + 4 dated engagement scenarios (low-seat-utilization renewal risk, implementation slipping past time-to-value, efficacy-data gap at renewal, expansion blocked by champion churn). The §8b TODO block is removed; 4 agents now carry the Scenario-retrieval inline prior. |
+| Decision-tree (Mermaid) knowledge | **BUILT** | 1 new file, 2 trees ([`adoption-and-expansion-decision-trees.md`](knowledge/adoption-and-expansion-decision-trees.md)) — adoption-intervention selection + expand-vs-stabilize. Sit *deeper* than PR #315's 8 trees; checked carefully against `partner-success-decision-trees.md` + `partner-health-decline-which-play.md` to avoid duplicating the existing renewal/recovery/triage/cadence/escalation/AI/handoff/FERPA trees. |
+| Runnable script (`scripts/`) | **BUILT** | [`psm_calc.py`](scripts/psm_calc.py) — `utilization` / `renewal-forecast` / `ttv`. The one runtime item with real non-code value; the plugin previously had **no** `scripts/` calculator. ruff-clean, stdlib-only. |
+| Bundled MCP / LSP | **N-A** | No published MCP for an EdTech CS platform is verified to exist; CS platforms (Planhat / Gainsight / ChurnZero) + SIS / rostering brokers are **per-tenant / authenticated / PII-bearing** — bundling is out of scope per [`../../docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md) (the per-tenant/authenticated row → *recommend, evaluate-first*, never bundle). The plugin is deliberately platform-neutral; the CS-stack contract lives as documentation in [`knowledge/cs-stack-integration-planhat-sfdc-snowflake.md`](knowledge/cs-stack-integration-planhat-sfdc-snowflake.md) + the `cs-platform-integration` skill, not a bundled server. LSP is a code-editing protocol — there is no source language in a PSM advisory vertical. **No server fabricated.** |
+| `bin/` / monitors / output-styles / themes / `settings.json` | **N-A** | No compiled/installed binary beyond the single stdlib calculator; nothing to watch (no build/repo/long-running process); deliverables are Markdown reports governed by the §6 Output Contract; no tool-permission surface beyond what `ravenclaude-core` provides. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 16 skills, 1 advisory anti-pattern hook, 5 commands, 16 templates already cover the surface (incl. adoption-diagnostic worksheet, 90-day plan, renewal decision memo). The new trees + calculator extend reach without a new agent (team-growth-as-knowledge house rule §1). No clear high-value gap this round. |
+| CHANGELOG.md | **BUILT** | Added with a top `0.12.0` entry. |
+| NOTICE.md | **N-A** | No third-party content bundled — the calculator is original, stdlib-only; all sources are cited inline, not vendored. |
 
 ## 10. Escalating out of the edtech-partner-success team
 

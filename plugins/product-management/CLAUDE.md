@@ -38,3 +38,41 @@
 ## 4. Inheritance
 
 This plugin **inherits `ravenclaude-core` protocols**: the Capability Grounding Protocol (decision-tree-first + alternate-methods enumeration + honest blocked-reporting), the Structured Output Protocol for handoffs, and the security/review escalations. Domain-specific rules live in each agent file and in `best-practices/`; the knowledge bank carries the decision trees and the dated capability map.
+
+## 5. Knowledge bank
+
+The research-grounded reference the agents traverse **before** scoring a backlog or framing a capability call. Read the relevant file in full when the situation matches; every framework figure carries a cited source + `[verify-at-use]` on its application to a specific backlog (the cross-plugin claim-grounding rule).
+
+| File | Covers |
+|---|---|
+| [`knowledge/product-management-decision-trees.md`](knowledge/product-management-decision-trees.md) | Consolidated trees (PR #315): should-we-build, metric-worth-tracking, which-prioritization-method, ship/iterate/kill, product-vs-project routing, discovery signal-vs-noise, opportunity-worth-pursuing, metric-on-dashboard, + a dated 2026 capability map |
+| [`knowledge/prioritization-method-selection-decision-tree.md`](knowledge/prioritization-method-selection-decision-tree.md) | **Mermaid (new 2026-06-05)** — RICE vs. WSJF vs. Kano vs. argue-the-bet, with the split-mixed-types rule, a method comparison table, and the published formulas/scales (Intercom/SAFe/Kano-cited) |
+| [`knowledge/build-vs-buy-vs-partner-decision-tree.md`](knowledge/build-vs-buy-vs-partner-decision-tree.md) | **Mermaid (new 2026-06-05)** — own vs. rent vs. share a capability via the differentiation test + core/context/commodity filter; pre-PMF carve-out; opportunity-cost sizing |
+
+## 6. Scenarios bank & runnable tooling (added v0.3.0)
+
+- **Scenarios bank** — [`scenarios/`](scenarios/) holds dated, scope-tagged, unverified engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank or a canonical best-practice (§2). Scenarios carry no client-identifying info, customer PII, or named-org figures (illustrative ranges marked `[ESTIMATE]` or public-benchmark-cited). The most-likely-to-benefit specialists — `product-strategist`, `product-discovery-lead`, `product-metrics-analyst` — should check the bank when a situation matches. Four scenarios: roadmap-thrash (no prioritization rigor), feature-shipped-without-success-metric, discovery-skipped → low-adoption, build-vs-buy-vs-partner.
+- **Runnable calculator** — [`scripts/pm_calc.py`](scripts/pm_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from three recurring prioritization decisions: `rice` (Reach × Impact × Confidence / Effort, single item or a ranked table, Intercom impact/confidence scales), `wsjf` (SAFe Cost-of-Delay ÷ Job Size with the three CoD inputs), `opportunity` (bottoms-up size + an honest low/expected/high band). It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support, and the score's value is making the inputs explicit and arguable, **not** the decimal (§2 #3). Owned primarily by `product-metrics-analyst`; `product-strategist` uses `opportunity` for sizing a one-big-bet leaf.
+
+## 7. Value-add completeness (build-out 2026-06-05)
+
+This plugin is a **non-code (product-management) discipline vertical**. Every value-add menu item is dispositioned honestly below — several runtime-tier items are genuinely **N-A** because there is no code artifact, runtime, or repo to operate on, and forcing them would add noise, not value.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README + 4 dated engagement scenarios (roadmap-thrash, no-success-metric, discovery-skipped, build-vs-buy-vs-partner). The README already indexed all four; this build-out adds the three that were missing. |
+| Decision-tree (Mermaid) knowledge | **BUILT** | 2 new standalone Mermaid trees (prioritization-method selection; build-vs-buy-vs-partner) complementing the consolidated #315 trees — the two cross-referenced by the roadmap-thrash scenario and the build-buy-partner best practice but not yet existing. |
+| Runnable script (`scripts/`) | **BUILT** | `pm_calc.py` — `rice` / `wsjf` / `opportunity`. Removes arithmetic error from the exact decisions the scenarios reference; ruff-clean, stdlib only. The one runtime item with real non-code value. |
+| Bundled / code-aware MCP server | **N-A** | This is a discipline vertical; PM tooling (Jira, Productboard, Amplitude, Linear) is per-tenant / authenticated / billed, so it is **recommend-not-bundle** at most, never bundled (per [`docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md)). No first-party zero-config PM MCP exists to bundle; fabricating one would be dishonest. |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in a product-strategy/discovery advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/pm_calc.py`; no compiled/installed binary is warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. |
+| output-styles / themes / settings.json | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown reports + the Structured Output Protocol JSON block. No tool-permission surface specific to this vertical beyond `ravenclaude-core`. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 5 skills, 1 advisory antipattern hook, 4 commands, 4 templates already cover the surface (incl. a `rice-prioritization` skill + template that now pair with `pm_calc.py rice`). The 2 new trees + the calculator extend reach without a new agent (team-growth-as-knowledge house rule). No clear gap this round. |
+| CHANGELOG.md | **BUILT** | Added with a top `0.3.0` entry; the version field + git log remain the source of truth (AGENTS.md CHANGELOG convention). |
+| NOTICE.md | **N-A** | No third-party content is bundled (the script is original, stdlib-only; all framework sources are cited inline, not vendored). |
+
+## 8. Milestones
+
+- **v0.1.0–v0.2.x** — initial release + incremental: 3 specialist agents, 5 skills, 4 templates, 4 commands, 1 advisory hook, a consolidated decision-tree knowledge bank (#315) + best-practices/ (12 rules).
+- **v0.3.0** — non-code-vertical value-add build-out: scenarios bank completed (3 new scenarios → 4 total), 2 new standalone Mermaid decision-tree knowledge files (prioritization-method selection; build-vs-buy-vs-partner), `scripts/pm_calc.py` (rice / wsjf / opportunity, ruff-clean). Code-runtime tier dispositioned N-A with reasons (§7). Real web research grounds every framework figure (Intercom/SAFe/Kano/build-buy-partner sources, retrieved 2026-06-05).

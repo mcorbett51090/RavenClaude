@@ -1,7 +1,7 @@
 {
   "name": "renewable-energy",
-  "version": "0.1.2",
-  "description": "Renewable Energy specialist team \u2014 4 agents (renewables-engagement-lead, solar-project-developer, grid-interconnection-specialist, energy-finance-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A project-development team for a solar/storage developer, EPC, or asset owner \u2014 it models LCOE and project IRR against a cost-per-watt that ran ~$2.56 in 2025, navigates the interconnection queue that gates most projects, structures around the post-2025 ITC shift (residential 25D ended; 48E/PPA pathways remain), and reads O&M and degradation the way a 25-year asset demands. Inherits ravenclaude-core protocols.",
+  "version": "0.2.0",
+  "description": "Renewable Energy specialist team — 4 agents (renewables-engagement-lead, solar-project-developer, grid-interconnection-specialist, energy-finance-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A project-development team for a solar/storage developer, EPC, or asset owner — it models LCOE and project IRR against a cost-per-watt that ran ~$2.56 in 2025, navigates the interconnection queue that gates most projects, structures around the post-2025 ITC shift (residential 25D ended; 48E/PPA pathways remain), and reads O&M and degradation the way a 25-year asset demands. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"
   },

@@ -66,7 +66,9 @@ The research-grounded reference the agents point to. Read the relevant file in f
 | [`knowledge/ag-kpi-glossary.md`](knowledge/ag-kpi-glossary.md) | Precision-ag KPI glossary |
 | [`knowledge/ag-economics.md`](knowledge/ag-economics.md) | Farm operations economics |
 | [`knowledge/ag-market-context.md`](knowledge/ag-market-context.md) | Agriculture economics & precision-tech context (2025) |
-| [`knowledge/ag-decision-trees.md`](knowledge/ag-decision-trees.md) | Precision-ag decision trees |
+| [`knowledge/ag-decision-trees.md`](knowledge/ag-decision-trees.md) | Precision-ag decision trees (skill/specialist router + input-rate / yield-shortfall / market-now-vs-store) |
+| [`knowledge/ag-adopt-precision-tech-roi-decision-tree.md`](knowledge/ag-adopt-precision-tech-roi-decision-tree.md) | **Mermaid** — adopt a precision-tech tool vs. defer (prove-the-problem-and-cheap-levers-first ROI gate, measured-not-assumed) |
+| [`knowledge/ag-vrt-vs-uniform-seeding-decision-tree.md`](knowledge/ag-vrt-vs-uniform-seeding-decision-tree.md) | **Mermaid** — variable-rate vs. uniform seeding rate as a field-variability + return-to-seed trade (RTS arithmetic, uniform check strip) |
 
 ---
 
@@ -106,6 +108,32 @@ The lead is [`agronomy-engagement-lead`](agents/agronomy-engagement-lead.md) —
 
 ---
 
-## 8. Milestones
+## 8. Scenarios bank & runnable tooling (added v0.2.0)
+
+- **Scenarios bank** — [`scenarios/`](scenarios/) holds dated, scope-tagged, unverified engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank or a licensed agronomist's / certified crop adviser's judgment (§2). Scenarios carry no grower PII (§2). The most-likely-to-benefit specialists — `farm-operations-analyst`, `crop-agronomist`, `ag-market-analyst` — should check the bank when a situation matches.
+- **Runnable calculator** — [`scripts/ag_calc.py`](scripts/ag_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from three recurring economics decisions: `breakeven` (per-field breakeven price + breakeven yield + margin, with an underwater flag), `vrt-roi` (variable-rate-vs-uniform return-to-seed delta net of prescription cost + the breakeven yield lift VR must clear), `input-cost` (per-acre input-cost stack with shares + an economic-optimum check on the last input unit). It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support, not agronomic/legal/financial advice and it sets no application rates (§2). Owned primarily by `farm-operations-analyst`; `crop-agronomist` uses `vrt-roi` and `input-cost` for the economic-optimum framing.
+
+## 9. Value-add completeness (build-out 2026-06-05)
+
+This plugin is a **pure non-code vertical** (precision ag / farm operations & agronomy analytics). Every value-add menu item is dispositioned honestly below — several runtime-tier items are genuinely **N-A** because there is no code artifact, runtime, or repo to operate on, and forcing them would add noise, not value.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README (from PR #315) now backed by **5** dated engagement scenarios: breakeven-vs-input-cost-spike (#315) + 4 new (VRT/seeding-rate ROI, nutrient-budget overspend, irrigation water cost, imagery/scouting false alarm). Each carries an "Action for the next consultant" lesson + cited public benchmarks. |
+| Decision-tree (Mermaid) knowledge | **BUILT (extended #315)** | PR #315 added 3 trees inside `ag-decision-trees.md` (input-rate, yield-shortfall, market-now-vs-store). This build adds **2 new standalone Mermaid trees**: adopt-precision-tech-ROI and VRT-vs-uniform-seeding — the capital-purchase and seeding-rate decisions #315 didn't cover. |
+| Glossary / KPI reference | **SUFFICIENT (from #315)** | `ag-kpi-glossary.md` + `ag-economics.md` + `ag-market-context.md` already cover the KPI/benchmark surface; no redundant new file warranted this round. |
+| Runnable script (`scripts/`) | **BUILT** | `ag_calc.py` — `breakeven` / `vrt-roi` / `input-cost`, ruff-clean, stdlib-only. The one runtime item with real non-code value. The #315 breakeven + VRT scenarios already referenced `scripts/ag_calc.py`; this build supplies it. |
+| Code-aware MCP server (bundled) | **N-A** | No published, zero-config, PII-free MCP for farm-management/FMS/telematics verified to exist; FMS/telematics (John Deere Ops Center, Climate FieldView, agX, …) are **per-tenant / authenticated / billed**, so per `docs/best-practices/bundled-mcp-servers.md` they would be *recommend / evaluate-first*, **never bundled**. The plugin is deliberately FMS-neutral (§2). No fabricated server. |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in a farm-operations advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/ag_calc.py`; no compiled/installed binary warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. |
+| output-styles / themes | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown reports governed by the §6 Output Contract. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 5 skills, 1 advisory antipattern hook, 5 commands, 5 templates already cover the surface; no obvious high-value gap this round. The new decision trees + script extend reach without a new agent (team-growth-as-knowledge house rule). |
+| CHANGELOG.md | **BUILT** | Added with a top `0.2.0` entry. |
+| NOTICE.md | **N-A** | No third-party content is bundled (the script is original, stdlib-only; all sources are cited inline, not vendored). |
+
+## 10. Milestones
 
 - **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 5 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 8 best-practice rules.
+- **v0.2.0** — non-code-vertical value-add build-out: scenarios bank completed (5 scenarios), 2 new standalone Mermaid decision-tree knowledge files (adopt-precision-tech-ROI; VRT-vs-uniform-seeding), `scripts/ag_calc.py` (3 modes: breakeven / vrt-roi / input-cost, ruff-clean), CHANGELOG. Code-runtime tier dispositioned N-A with reasons (§9).

@@ -66,7 +66,8 @@ The research-grounded reference the agents point to. Read the relevant file in f
 | [`knowledge/production-kpi-glossary.md`](knowledge/production-kpi-glossary.md) | Production KPI glossary |
 | [`knowledge/production-economics.md`](knowledge/production-economics.md) | Production economics |
 | [`knowledge/production-market-context.md`](knowledge/production-market-context.md) | Production budget benchmarks & context (2025) |
-| [`knowledge/production-decision-trees.md`](knowledge/production-decision-trees.md) | Production decision trees |
+| [`knowledge/production-decision-trees.md`](knowledge/production-decision-trees.md) | Production decision trees (budget-overage classify; pre-lock post parallelization; delivery-problem triage) |
+| [`knowledge/production-in-house-vs-vendor-decision-tree.md`](knowledge/production-in-house-vs-vendor-decision-tree.md) | **Mermaid** — in-house staff/owned-gear vs. rent/freelance vs. buy as a utilization + cash + risk trade (usually rent-per-project / hybrid), with the breakeven arithmetic |
 
 ---
 
@@ -106,6 +107,31 @@ The lead is [`production-lead`](agents/production-lead.md) — first contact for
 
 ---
 
-## 8. Milestones
+## 8. Scenarios bank & runnable tooling (added v0.2.0)
 
-- **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 5 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 8 best-practice rules.
+- **Scenarios bank** — [`scenarios/`](scenarios/) holds dated, scope-tagged, unverified engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank or a producer's / union representative's authority (section 2). Scenarios carry no cast/crew PII (section 2). The most-likely-to-benefit specialists — `line-producer`, `post-production-supervisor`, `production-finance-analyst` — should check the bank when a situation matches.
+- **Runnable calculator** — [`scripts/production_calc.py`](scripts/production_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from three recurring production-economics decisions: `shoot-day-cost` (the loaded day — straight-time + overtime 1.5x/2x + fringe load + flat per-day costs), `contingency` (top-sheet reserve at a % of the BTL+post base + a drawn/burn-rate projection that flags exhaustion-before-wrap), `overtime-burden` (the true marginal cost of one held hour at ST / 1.5x / 2x, fringe-loaded). It is a **calculator, not a data source** — the user supplies every input (no union minimums, fringe rates, or day rates are fetched); outputs are decision-support, not union/legal/financial advice (section 2). Owned primarily by `line-producer` and `production-finance-analyst`.
+
+## 9. Value-add completeness (build-out 2026-06-05)
+
+Every value-add menu item is dispositioned honestly below. This is a **pure non-code vertical** (production-management advisory), so several runtime-tier items are genuinely **N-A** — there is no code artifact, runtime, or repo to operate on, and forcing them would add noise, not value.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README + 4 dated engagement scenarios: shoot-day overtime spiral, fixed-bid scope-vs-budget, post-pipeline delivery slip, contingency burn before wrap. Each carries an "Action for the next producer/analyst" lesson + cited rate/convention framing. |
+| Decision-tree (Mermaid) knowledge | **BUILT (net-new, complements #315)** | PR #315 shipped 3 Mermaid trees (budget-overage classify, pre-lock post parallelization, delivery-problem triage). This adds 1 net-new standalone Mermaid tree — `production-in-house-vs-vendor-decision-tree.md` (staff/own vs rent/freelance vs buy, a utilization+cash+risk trade) — the rent-vs-buy / in-house-vs-vendor lever the #315 set did not cover. |
+| Runnable script (`scripts/`) | **BUILT** | `production_calc.py` — `shoot-day-cost` / `contingency` / `overtime-burden`, ruff-clean, stdlib only. The one runtime item with real non-code value. |
+| Bundled MCP / code-aware MCP server | **N-A** | No published, zero-config, non-authenticated MCP for production budgeting/scheduling verified to exist; the relevant systems (Movie Magic, Showbiz, Wrapbook, StudioBinder) are per-tenant/authenticated/PII-bearing, so bundling is out of scope and the plugin is deliberately platform-neutral (section 2). Per [`../../docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md), any genuine live-data need would be *recommend, evaluate-first*, never bundled. |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in a production-management advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/production_calc.py`; no compiled/installed binary is warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. |
+| output-styles / themes | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown reports governed by the section 6 Output Contract. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 5 skills, 1 advisory antipattern hook, 5 commands, 5 templates already cover the surface; no obvious high-value gap this round. The new decision tree + calculator extend reach without a new agent (team-growth-as-knowledge house rule). |
+| CHANGELOG.md | **BUILT** | Added with a top `0.2.0` entry. |
+| NOTICE.md | **N-A** | No third-party content is bundled (the script is original, stdlib-only; all sources are cited inline, not vendored). |
+
+## 10. Milestones
+
+- **v0.1.0** — initial release: 4 agents, 5 skills, 5 templates, 5 commands, 1 advisory hook, research-grounded knowledge bank, 8 best-practice rules.
+- **v0.2.0** — non-code-vertical value-add build-out: scenarios bank (4 scenarios), 1 net-new Mermaid decision-tree knowledge file (in-house-vs-vendor / rent-vs-buy, complementing the #315 trees), `scripts/production_calc.py` (3 modes — shoot-day-cost / contingency / overtime-burden), CHANGELOG. Code-runtime tier dispositioned N-A with reasons (section 9).
