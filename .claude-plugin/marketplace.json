@@ -1160,7 +1160,7 @@
       "name": "nonprofit-fundraising",
       "source": "./plugins/nonprofit-fundraising",
       "description": "Nonprofit Fundraising specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A development team for a nonprofit fundraiser or executive director — it protects donor retention (the cheapest dollar a nonprofit has, at ~$0.20 to keep vs ~$1.50 to acquire), builds the grant pipeline on fit before effort, segments the donor base by value and recency, and reads cost-to-raise-a-dollar honestly across channels. Inherits ravenclaude-core protocols.",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1293,7 +1293,7 @@
       "name": "skilled-trades-contracting",
       "source": "./plugins/skilled-trades-contracting",
       "description": "Skilled Trades Contracting specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. An estimating-and-field-operations team for an HVAC, electrical, or plumbing contractor — it estimates to a loaded labor rate and true material cost, prices on a flat-rate book rather than guessing hours, runs the field on billable-hour efficiency and callback rate, and reads the trade P&L the way an owner who's also the best technician needs to. Inherits ravenclaude-core protocols.",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1407,7 +1407,7 @@
       "name": "senior-care-operations",
       "source": "./plugins/senior-care-operations",
       "description": "Senior Care Operations specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. An operations team for an assisted-living, memory-care, or home-care operator — it manages census and occupancy as the revenue engine, prices to acuity rather than a flat rate, staffs to acuity-based hours-per-resident-day, and reads quality and compliance as the license-and-reputation risk that a community runs on. Inherits ravenclaude-core protocols.",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },

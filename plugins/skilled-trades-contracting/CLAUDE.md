@@ -66,7 +66,9 @@ The research-grounded reference the agents point to. Read the relevant file in f
 | [`knowledge/trades-kpi-glossary.md`](knowledge/trades-kpi-glossary.md) | Trade-contracting KPI glossary |
 | [`knowledge/trades-economics.md`](knowledge/trades-economics.md) | Trade-contracting economics |
 | [`knowledge/trades-market-context.md`](knowledge/trades-market-context.md) | Trade-contracting benchmarks & market context (2025–2026) |
-| [`knowledge/trades-decision-trees.md`](knowledge/trades-decision-trees.md) | Trade-contracting decision trees |
+| [`knowledge/trades-decision-trees.md`](knowledge/trades-decision-trees.md) | Trade-contracting decision trees (skill/specialist router + post-completion, hiring, price-objection trees) |
+| [`knowledge/trades-bid-no-bid-decision-tree.md`](knowledge/trades-bid-no-bid-decision-tree.md) | **Mermaid** — bid / no-bid go/no-go gate (client-solvency + capacity + win-probability + scope), with the bid-hit-ratio targets |
+| [`knowledge/trades-markup-vs-margin-decision-tree.md`](knowledge/trades-markup-vs-margin-decision-tree.md) | **Mermaid** — markup-vs-margin pricing (the markup≠margin trap, overhead-before-profit, price = cost ÷ (1 − margin)), with trade gross-margin ranges |
 
 ---
 
@@ -106,6 +108,33 @@ The lead is [`trades-engagement-lead`](agents/trades-engagement-lead.md) — fir
 
 ---
 
-## 8. Milestones
+## 8. Scenarios bank & runnable tooling (added build-out 2026-06-05)
+
+- **Scenarios bank** — [`scenarios/`](scenarios/) holds dated, scope-tagged, unverified engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank or the contractor's own judgment (§2). Scenarios carry no customer/jobsite PII (§2). The most-likely-to-benefit specialists — `estimating-specialist`, `field-operations-specialist`, `trade-business-analyst` — should check the bank when a situation matches.
+- **Runnable calculator** — [`scripts/trades_calc.py`](scripts/trades_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from four recurring contracting-economics decisions: `job-margin` (actual-vs-estimated gross margin + the uncaptured-change-order leak), `markup` (target-margin ⇄ applied-markup conversion — the markup≠margin trap), `loaded-rate` (wage + burden + overhead ÷ sellable hours, with billable-hour efficiency), `overhead-rate` (overhead recovery markup + revenue ratio). It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support, not licensed financial/accounting advice (§2). Owned primarily by `estimating-specialist` and `trade-business-analyst`; `field-operations-specialist` uses `loaded-rate`'s efficiency input.
+
+## 9. Value-add completeness (build-out 2026-06-05)
+
+Mirrors the `veterinary-practice` non-code-vertical pilot recipe. Every value-add menu item is dispositioned honestly below — several runtime-tier items are genuinely **N-A** because there is no code artifact, runtime, or repo to operate on, and forcing them would add noise, not value.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README + 4 dated engagement scenarios (job-margin erosion via change orders, markup-vs-margin pricing correction, dispatch/utilization improvement, overhead-recovery pricing gap). Each carries an "Action for the next consultant" lesson + cited public benchmarks. |
+| Decision-tree (Mermaid) knowledge | **BUILT** | 2 NEW topic-specific files that COMPLEMENT PR #315's `trades-decision-trees.md` (which holds the skill/specialist router + post-completion / hiring / price-objection trees): `trades-bid-no-bid-decision-tree.md` and `trades-markup-vs-margin-decision-tree.md`. No duplication of the existing trees. |
+| Glossary / KPI reference | **BUILT (enriched existing)** | `trades-kpi-glossary.md` gained cited, dated benchmark tables (margin/profitability, pricing mechanics, change-orders & bidding) rather than a redundant new file. |
+| Runnable script (`scripts/`) | **BUILT** | `trades_calc.py` — job-margin / markup / loaded-rate / overhead-rate. Stdlib-only, `ruff`-clean, executable, py_compile-clean. The one runtime item with real non-code value. |
+| Code-aware MCP server (bundled) | **N-A** | No published MCP for field-service/estimating platforms (ServiceTitan, Housecall Pro, Jobber, …) verified to exist; they are per-tenant/authenticated/PII-bearing — bundling is out of scope and the plugin is deliberately platform-neutral (§2). A genuine live-data need would be *recommend, evaluate-first*, never bundled (per `docs/best-practices/bundled-mcp-servers.md`). |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in an estimating/field-ops advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/trades_calc.py`; no compiled/installed binary warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. |
+| output-styles / themes | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown reports governed by the §6 Output Contract. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 5 skills, 1 advisory antipattern hook, 5 commands, 4 templates already cover the surface; no obvious high-value gap this round. The new decision trees + script extend reach without a new agent (team-growth-as-knowledge house rule). |
+| CHANGELOG.md | **BUILT** | Added with a top entry for this build-out. |
+| NOTICE.md | **N-A** | No third-party content is bundled (the script is original, stdlib-only; all sources are cited inline, not vendored). |
+
+## 10. Milestones
 
 - **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 5 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 8 best-practice rules.
+- **v0.1.x** (PR #315) — consolidated `knowledge/trades-decision-trees.md` (mermaid trees) + `best-practices/` rule set + `templates/`.
+- **build-out 2026-06-05** — non-code-vertical value-add build-out (mirrors the `veterinary-practice` pilot): scenarios bank (4 scenarios), 2 NEW complementary Mermaid decision-tree knowledge files (bid/no-bid; markup-vs-margin), `scripts/trades_calc.py` (4 modes, ruff-clean), cited-benchmark KPI glossary enrichment, CHANGELOG. Code-runtime tier dispositioned N-A with reasons (§9).
