@@ -541,8 +541,28 @@ TEMPLATE = r"""<!doctype html>
       /* ── Folded-in dashboard sub-app (scoped under #dash-root) ── */
       /*__DASH_CSS__*/
 
-      /* ── Folded-in catalog sub-app (scoped under #catalog-root) ── */
-      /*__CATALOG_CSS__*/
+      /* ── Use-case lookup table (Marketplace) + rich plugin-detail cards ── */
+      .uc-wrap { margin: 0 0 26px; }
+      .uc-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+      .uc-table th { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--border); color: var(--muted); font-weight: 600; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.04em; }
+      .uc-table td { padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--surface-2); vertical-align: top; }
+      .uc-table tr:hover { background: var(--surface); }
+      .uc-table .uc-intent { max-width: 40ch; color: var(--text); }
+      .uc-table a { color: var(--teal-2); }
+      .uc-table tr.uc-hidden { display: none; }
+      .uc-diff { display: inline-block; padding: 0.05rem 0.45rem; border-radius: 999px; font-size: 0.7rem; border: 1px solid var(--border); color: var(--muted); }
+      .uc-diff.d-starter { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, var(--border)); }
+      .uc-diff.d-advanced { color: var(--teal-2); }
+      .uc-diff.d-troubleshooting { color: var(--danger); }
+      .scn { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 8px 0; background: var(--surface); }
+      .scn .scn-i { font-size: 0.86rem; margin-bottom: 4px; }
+      .scn .scn-t { font-size: 0.8rem; color: var(--muted); margin-bottom: 3px; }
+      .scn .scn-o { font-size: 0.8rem; color: var(--muted); }
+      .qs { margin: 6px 0 0; padding-left: 1.1rem; }
+      .qs li { font-size: 0.82rem; color: var(--muted); margin-bottom: 2px; }
+      .ref-item { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+      .ref-item .ri-n { font-family: var(--font-mono); font-size: 0.86rem; }
+      .ref-item .ri-d { color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
     </style>
   </head>
   <body>
@@ -583,7 +603,7 @@ TEMPLATE = r"""<!doctype html>
               <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
               <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
             </button>
-            <a class="btn ghost hide-sm" href="#/repo-guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Repo Guide</a>
+            <a class="btn ghost hide-sm" href="#/marketplace"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Use cases</a>
             <a class="btn primary" href="#/marketplace"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v4H3z"/><path d="M5 7v12h14V7"/><path d="M9 11h6"/></svg>Browse Plugins</a>
           </div>
         </header>
@@ -593,7 +613,6 @@ TEMPLATE = r"""<!doctype html>
              into this document (not iframes) — their live /__* fetches run at
              this page's origin when served by serve-dashboards.py. -->
         <div class="content payload-host" id="dash-root" hidden><!--__DASH_BODY__--></div>
-        <div class="content payload-host" id="catalog-root" hidden><!--__CATALOG_BODY__--></div>
       </div>
     </div>
 
@@ -615,14 +634,11 @@ TEMPLATE = r"""<!doctype html>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <!-- Folded-in sub-apps. Loaded BEFORE the shell router so window.__dashApp /
-         __catalogApp exist when route() first runs. Each is IIFE-wrapped so its
+    <!-- Folded-in dashboard sub-app. Loaded BEFORE the shell router so
+         window.__dashApp exists when route() first runs. IIFE-wrapped so its
          globals (svg/toast/esc…) can't collide with the shell's. -->
     <script>
       /*__DASH_JS__*/
-    </script>
-    <script>
-      /*__CATALOG_JS__*/
     </script>
 
     <script>
@@ -671,20 +687,20 @@ TEMPLATE = r"""<!doctype html>
         { id: "team", label: "Team", icon: "team" },
         { id: "marketplace", label: "Marketplace", icon: "market" },
         { id: "dashboard", label: "Dashboard", icon: "sliders" },
-        { id: "repo-guide", label: "Catalog", icon: "book" },
         { id: "configuration", label: "Configuration", icon: "config" },
         { id: "resources", label: "Resources", icon: "resources" },
       ];
 
-      // ── Native-merged sub-app routing ──
-      // The dashboard + catalog content is folded into THIS document (no
-      // iframes): mounted in #dash-root / #catalog-root, shown by toggling
-      // [hidden]. Each route below maps to a tab inside its sub-app, driven via
-      // window.__dashApp.show() / __catalogApp.show(). Top-level route names are
-      // kept (heimdall, bifrost, repo-guide, plugin-*, …) so every committed
-      // bookmark + capability-banner pointer + doc reference still resolves.
-      // INVARIANT: these payloads are trusted, same-org generated artifacts —
-      // their live /__* fetches run at this page's origin when served by
+      // ── Native-merged dashboard routing ──
+      // The dashboard content is folded into THIS document (no iframes): mounted
+      // in #dash-root, shown by toggling [hidden]. Each route below maps to a tab
+      // inside the dashboard sub-app, driven via window.__dashApp.show().
+      // Top-level route names are kept (heimdall, bifrost, plugin-*, …) so every
+      // committed bookmark + capability-banner pointer + doc reference still
+      // resolves. (The former repo-guide/catalog routes are gone — its content
+      // moved into the shell's Marketplace + Resources sections.)
+      // INVARIANT: this payload is a trusted, same-org generated artifact — its
+      // live /__* fetches run at this page's origin when served by
       // serve-dashboards.py.
       const DASH_SECTIONS = new Set([
         "heimdall", "vidarr", "norns", "nidhoggr", "bifrost", "mimir",
@@ -695,23 +711,17 @@ TEMPLATE = r"""<!doctype html>
       // Route name → dashboard tab id where they differ.
       const DASH_TAB_ALIAS = { dashboard: "overview", "comfort-posture": "settings" };
       function payloadKind(section) {
-        if (section === "repo-guide" || section === "catalog") return "catalog";
         if (DASH_SECTIONS.has(section) || (section && section.startsWith("plugin-"))) return "dashboard";
         return null;
       }
       function showHost(which) {
-        // which ∈ {"view","dash","catalog"} — exactly one host is visible.
+        // which ∈ {"view","dash"} — exactly one host is visible.
         $("#view").hidden = which !== "view";
         const dr = $("#dash-root"); if (dr) dr.hidden = which !== "dash";
-        const cr = $("#catalog-root"); if (cr) cr.hidden = which !== "catalog";
       }
       function viewDashboard(section, sub) {
         showHost("dash");
         if (window.__dashApp) window.__dashApp.show(DASH_TAB_ALIAS[section] || section, sub);
-      }
-      function viewCatalog(sub) {
-        showHost("catalog");
-        if (window.__catalogApp) window.__catalogApp.show(sub);
       }
       // Subcategories live under the one section the repo actually has a
       // hierarchy for: Marketplace → plugin categories (existing #/marketplace/<cat>
@@ -868,7 +878,7 @@ TEMPLATE = r"""<!doctype html>
             <div class="hero-cta">
               <a class="btn primary" href="#/marketplace">${svg("market")} Explore the Marketplace</a>
               <a class="btn" href="#/configuration">${svg("sliders")} Tune Comfort Posture</a>
-              <a class="btn ghost" href="#/repo-guide">${svg("book")} Full Repo Guide</a>
+              <a class="btn ghost" href="#/marketplace">${svg("book")} Browse by use case</a>
             </div>
           </section>
 
@@ -991,7 +1001,14 @@ TEMPLATE = r"""<!doctype html>
 
         $("#view").innerHTML = `
           <div class="page-head"><span class="eyebrow">Marketplace</span><h1>Browse the plugin catalog</h1>
-            <p class="lede">${D.plugins.length} ready-made plugins, sorted by topic. Each one comes with expert agents, skills they can use, and a built-in pile of know-how. Pick a group, or search across all of them.</p></div>
+            <p class="lede">${D.plugins.length} ready-made plugins, sorted by topic. Each one comes with expert agents, skills they can use, and a built-in pile of know-how. Start from <em>what you want to do</em>, or pick a group below.</p></div>
+          <details class="uc-wrap card" style="padding:14px 16px" open>
+            <summary style="cursor:pointer;font-weight:600">I want to… <span class="count">${D.use_cases.length}</span> <span style="color:var(--muted);font-weight:400;font-size:.85rem">— go from a task to the agent + plugin that does it</span></summary>
+            <input type="search" id="uc-q" placeholder="What do you want to do? e.g. “forecast cash”, “review Apex”, “set up auth”…" aria-label="Search use cases" style="width:100%;margin-top:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.55rem .8rem;border-radius:8px" />
+            <div style="max-height:360px;overflow:auto;margin-top:10px">
+              <table class="uc-table"><thead><tr><th>I want to…</th><th>Agent</th><th>Plugin</th><th>Level</th></tr></thead><tbody id="uc-body"></tbody></table>
+            </div>
+          </details>
           <div class="mkt-filters">
             <input type="search" id="mkt-q" placeholder="Search plugins by name, description or technology…" value="${esc(mktState.q)}" aria-label="Search plugins" />
           </div>
@@ -999,6 +1016,19 @@ TEMPLATE = r"""<!doctype html>
             <nav class="mkt-nav" id="mkt-nav" aria-label="Plugin categories">${navBtns}</nav>
             <div id="mkt-grid"></div>
           </div>`;
+
+        function renderUC(q) {
+          q = (q || "").toLowerCase().trim();
+          const rows = (D.use_cases || []).filter((u) => !q || (u.intent + " " + u.agent + " " + u.plugin_label + " " + u.audience).toLowerCase().includes(q)).slice(0, 400);
+          $("#uc-body").innerHTML = rows.map((u) => `<tr>
+            <td class="uc-intent">${esc(u.intent)}</td>
+            <td><code>${esc(u.agent)}</code></td>
+            <td><a href="#/marketplace" onclick="window.__openPlugin('${esc(u.plugin)}');return false">${esc(u.plugin_label)}</a></td>
+            <td><span class="uc-diff d-${esc(u.difficulty)}">${esc(u.difficulty)}</span></td>
+          </tr>`).join("") || `<tr><td colspan="4" style="color:var(--muted);padding:12px">No use case matches “${esc(q)}”.</td></tr>`;
+        }
+        renderUC("");
+        $("#uc-q").addEventListener("input", (e) => renderUC(e.target.value));
 
         function pluginCard(p) {
           const reqs = (p.requires || []).length ? `<span class="chip">requires core</span>` : "";
@@ -1028,22 +1058,55 @@ TEMPLATE = r"""<!doctype html>
         $("#mkt-q").addEventListener("input", (e) => { mktState.q = e.target.value; renderGrid(); });
         renderGrid();
       }
+      // Rich per-plugin REFERENCE (the former repo-guide card, folded in): agents
+      // with example scenarios / quickstart / audience / works-with, plus
+      // skills / hooks / rules / templates / best-practices. The CONFIGURE half
+      // of the hybrid (editable variables → /__save) lives in the dashboard
+      // sub-app, reached via the "Configure variables" deep-link to #/plugin-*.
       window.__openPlugin = function (name) {
         const p = byName(name); if (!p) return;
+        showHost("view");
         const cats = D.categories;
-        const agents = p.agents.map((a) => `<div class="card agent-card" style="padding:14px"><div class="ac-head"><span class="nm">${esc(a.label)}</span></div><div class="desc">${esc(a.description || "")}</div>${a.triggers && a.triggers[0] ? `<div class="trig">Try: <code>${esc(a.triggers[0])}</code></div>` : ""}</div>`).join("");
+        const catLabel = (cats.find((c) => c.id === p.category) || {}).label || "Marketplace";
+        const diffCls = (d) => "d-" + (d || "starter");
+        const scn = (a) => {
+          if (!a.scenarios || !a.scenarios.length) return "";
+          const first = a.scenarios.find((x) => x.difficulty === "starter") || a.scenarios[0];
+          const rest = a.scenarios.filter((x) => x !== first);
+          const one = (x) => `<div class="scn"><div class="scn-i"><b>Intent:</b> ${esc(x.intent)}</div>${x.trigger_phrase ? `<div class="scn-t">You type: <code>${esc(x.trigger_phrase)}</code></div>` : ""}${x.outcome ? `<div class="scn-o">You get: ${esc(x.outcome)}</div>` : ""}<span class="uc-diff ${diffCls(x.difficulty)}" style="margin-top:6px">${esc(x.difficulty)}</span></div>`;
+          return `<div style="margin-top:8px"><div class="ri-d" style="text-transform:uppercase;letter-spacing:.04em;font-size:.7rem">Example scenario${a.scenarios.length > 1 ? "s" : ""}</div>${one(first)}${rest.length ? `<details><summary style="cursor:pointer;font-size:.8rem;color:var(--muted)">+ ${rest.length} more</summary>${rest.map(one).join("")}</details>` : ""}</div>`;
+        };
+        const qs = (a) => (a.quickstart && a.quickstart.length) ? `<div style="margin-top:8px"><div class="ri-d" style="text-transform:uppercase;letter-spacing:.04em;font-size:.7rem">Quickstart</div><ol class="qs">${a.quickstart.map((q) => `<li>${esc(q)}</li>`).join("")}</ol></div>` : "";
+        const aud = (a) => (a.audience && a.audience.length) ? `<div class="tags" style="margin:6px 0">${a.audience.map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</div>` : "";
+        const ww = (a) => (a.works_with && a.works_with.length) ? `<div style="margin-top:8px;font-size:.8rem;color:var(--muted)">Works well with: ${a.works_with.map((x) => `<span class="chip">${esc(x)}</span>`).join(" ")}</div>` : "";
+        const agents = p.agents.map((a) => `<div class="card" style="padding:14px">
+          <div style="display:flex;align-items:baseline;gap:8px"><span class="nm" style="font-weight:600">${esc(a.label)}</span>${a.model ? `<span class="chip">${esc(a.model)}</span>` : ""}</div>
+          ${aud(a)}<div class="desc" style="color:var(--muted);font-size:.85rem">${esc(a.description || "")}</div>${scn(a)}${qs(a)}${ww(a)}
+        </div>`).join("");
+        const named = (i) => `<div class="ref-item"><div class="ri-n">${esc(i.name)}</div>${i.description ? `<div class="ri-d">${esc(i.description)}</div>` : ""}</div>`;
+        const hookItem = (i) => `<div class="ref-item"><div class="ri-n">${esc(i.name)} ${i.event ? `<span class="chip">${esc(i.event)}</span>` : ""}</div>${i.description ? `<div class="ri-d">${esc(i.description)}</div>` : ""}</div>`;
+        const refGrid = (title, items, fmt) => (items && items.length) ? `<div class="section-title"><h2>${title} <span class="hint">${items.length}</span></h2></div><div class="grid cols-2">${items.map(fmt).join("")}</div>` : "";
         $("#view").innerHTML = `
-          <a class="btn ghost" href="#/marketplace/${p.category}" style="margin-bottom:18px">← Back to ${esc((cats.find((c) => c.id === p.category) || {}).label || "Marketplace")}</a>
+          <a class="btn ghost" href="#/marketplace/${p.category}" style="margin-bottom:18px">← Back to ${esc(catLabel)}</a>
           <div class="page-head"><span class="eyebrow">${esc(p.category_label)}</span><h1>${esc(p.label)} <span style="font-family:var(--font-mono);font-size:1rem;color:var(--faint)">v${esc(p.version)}</span></h1>
             <p class="lede">${esc(p.description)}</p>
-            <div class="hero-cta" style="margin-top:16px"><button class="btn primary" type="button" onclick="window.__copy('/plugin install ${esc(p.name)}@ravenclaude','Install command')">${svg("plus")} Copy install command</button></div></div>
+            <div class="hero-cta" style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn primary" type="button" onclick="window.__copy('/plugin install ${esc(p.name)}@ravenclaude','Install command')">${svg("plus")} Copy install command</button>
+              <a class="btn" href="#/plugin-${esc(p.name)}">${svg("sliders")} Configure variables</a>
+            </div></div>
           <div class="stats">
             <div class="card stat"><span class="v">${p.counts.agents}</span><span class="k">Specialists</span></div>
             <div class="card stat"><span class="v">${p.counts.skills}</span><span class="k">Skills</span></div>
+            <div class="card stat"><span class="v">${p.counts.hooks}</span><span class="k">Hooks</span></div>
             <div class="card stat"><span class="v">${p.counts.templates}</span><span class="k">Templates</span></div>
-            <div class="card stat"><span class="v">${p.counts.knowledge}</span><span class="k">Knowledge docs</span></div>
           </div>
-          ${agents ? `<div class="section-title"><h2>Specialists</h2></div><div class="grid cols-3">${agents}</div>` : ""}
+          ${p.requires && p.requires.length ? `<div class="callout" style="margin-top:14px">${svg("info")}<span>Requires ${p.requires.map((r) => `<code>${esc(r)}</code>`).join(", ")}</span></div>` : ""}
+          ${agents ? `<div class="section-title"><h2>Specialists <span class="hint">${p.agents.length}</span></h2></div><div class="grid cols-2">${agents}</div>` : ""}
+          ${refGrid("Skills", p.skills_index, named)}
+          ${refGrid("Hooks", p.hooks_index, hookItem)}
+          ${refGrid("Rules", p.rules_index, named)}
+          ${refGrid("Templates", p.templates_index, named)}
+          ${refGrid("Best practices", p.best_practices_index, named)}
           <div class="tags" style="margin-top:20px">${p.keywords.map((k) => `<span class="chip">${esc(k)}</span>`).join("")}</div>`;
         $("#view").focus();
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1194,11 +1257,18 @@ TEMPLATE = r"""<!doctype html>
           <div class="page-head"><span class="eyebrow">Resources</span><h1>Templates, decision trees &amp; knowledge</h1>
             <p class="lede">${totalTemplates} templates and ${totalKnowledge} knowledge docs ship across the marketplace. Export the full documentation or jump into a plugin's knowledge bank.</p></div>
 
-          <div class="grid cols-4" style="margin-bottom:8px">
-            <a class="card" href="#/repo-guide" style="display:block"><div class="action-tile"><span class="ico">${svg("book")}</span><span><span class="t">Full Repo Guide</span><span class="d">Per-agent reference &amp; “I want to…” lookup</span></span></div></a>
+          <div class="grid cols-3" style="margin-bottom:8px">
             <a class="card" href="README.md" style="display:block"><div class="action-tile"><span class="ico">${svg("info")}</span><span><span class="t">README</span><span class="d">Marketplace overview &amp; setup</span></span></div></a>
             <a class="card" href="#/dashboard" style="display:block"><div class="action-tile"><span class="ico">${svg("sliders")}</span><span><span class="t">Deep Dashboard</span><span class="d">Full posture &amp; tribunal controls</span></span></div></a>
             <a class="card" href="CHANGELOG.md" style="display:block"><div class="action-tile"><span class="ico">${svg("git")}</span><span><span class="t">Changelog</span><span class="d">Version history</span></span></div></a>
+          </div>
+
+          <div class="section-title"><h2>How the marketplace works</h2><span class="hint">architecture</span></div>
+          <div class="grid cols-2">
+            <div class="card"><b>The marketplace model</b><p style="color:var(--muted);font-size:.85rem;margin:8px 0 0">A private "app store" for Claude Code. The product is the set of plugins in <code>plugins/</code>. To use one, run <code>/plugin install &lt;name&gt;@ravenclaude</code> inside any project and that plugin joins your session — its <code>CLAUDE.md</code> auto-loads when active.</p></div>
+            <div class="card"><b>Hierarchical dispatch</b><p style="color:var(--muted);font-size:.85rem;margin:8px 0 0">The top-level session is the <b>Team Lead</b>; it dispatches specialists (specialists never spawn specialists — enforced by <code>guard-recursive-spawn</code>). Every specialist ends its report with a <code>---RESULT_START---…---RESULT_END---</code> JSON block (Structured Output Protocol) the Team Lead parses to route.</p></div>
+            <div class="card"><b>Plugin separation</b><p style="color:var(--muted);font-size:.85rem;margin:8px 0 0"><code>ravenclaude-core</code> stays domain-neutral — generic agents, dispatch playbook, gates, hooks. Domain plugins extend core via skills + knowledge, not parallel agents.</p></div>
+            <div class="card"><b>Layout &amp; CI gates</b><p style="color:var(--muted);font-size:.85rem;margin:8px 0 0">Every new file's path must match a glob in <code>.repo-layout.json</code> (the <code>enforce-layout</code> hook + <code>validate-layout</code> CI). Each CI gate proves bidirectionally that it fails on a known-bad input and passes on a known-good one (<code>scripts/audit-gates.sh</code>).</p></div>
           </div>
 
           <div class="section-title"><h2>Templates gallery</h2><span class="hint">${totalTemplates} starter artifacts</span></div>
@@ -1214,7 +1284,7 @@ TEMPLATE = r"""<!doctype html>
           </div>
 
           <div class="section-title"><h2>Export documentation</h2></div>
-          <div class="callout">${svg("download")}<span>Regenerate this dashboard and the full guide from source: <code>python3 scripts/generate-index-dashboard.py</code> and <code>python3 scripts/generate-repo-guide.py</code>. Both read the live catalog so the docs never drift.</span></div>`;
+          <div class="callout">${svg("download")}<span>Regenerate this portal from source: <code>python3 scripts/generate-index-dashboard.py</code>. It reads the live catalog so the docs never drift.</span></div>`;
       }
 
       /* ---------------- Served-mode (native merge) ----------------
@@ -1239,7 +1309,7 @@ TEMPLATE = r"""<!doctype html>
           { kind: "action", label: "Open deep dashboard", meta: "External", hay: "open deep dashboard server", action: "copyCmd", cmd: "bash scripts/open-dashboard.sh" },
           { kind: "action", label: "Toggle dark mode", meta: "Theme", hay: "toggle dark mode theme", action: "toggleTheme" },
           { kind: "action", label: "Show onboarding checklist", meta: "Onboarding", hay: "show onboarding checklist setup", action: "showOnboarding" },
-          { kind: "action", label: "Open catalog", meta: "Navigate", hay: "open catalog repo guide reference", route: "#/repo-guide" },
+          { kind: "action", label: "Browse by use case", meta: "Marketplace", hay: "browse use case i want to intent lookup", route: "#/marketplace" },
         ];
         QA.forEach((q) => idx.push(q));
         // Plugins
@@ -1375,9 +1445,7 @@ TEMPLATE = r"""<!doctype html>
       // #catalog-root.
       function resolveNavActive(section) {
         if (NAV.some((n) => n.id === section)) return section;
-        const kind = payloadKind(section);
-        if (kind === "catalog") return "repo-guide";
-        if (kind === "dashboard") return "dashboard";
+        if (payloadKind(section) === "dashboard") return "dashboard";
         return "home";
       }
       function route() {
@@ -1385,11 +1453,8 @@ TEMPLATE = r"""<!doctype html>
         const [section, sub] = hash.split("/");
         renderNav(resolveNavActive(section));
         document.body.classList.remove("mobile-nav-open");
-        const kind = payloadKind(section);
-        if (kind === "dashboard") {
+        if (payloadKind(section) === "dashboard") {
           viewDashboard(section, sub);
-        } else if (kind === "catalog") {
-          viewCatalog(sub);
         } else {
           showHost("view");
           switch (section) {

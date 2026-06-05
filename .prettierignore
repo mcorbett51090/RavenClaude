@@ -27,15 +27,9 @@ plugins/power-platform/skills/record-screen/extension/
 plugins/power-platform/skills/record-screen/scripts/
 scripts/vendor/
 
-# Generated artifact — produced by scripts/generate-repo-guide.py from the
-# marketplace + plugin manifests. Re-running the generator already produces
-# canonical output; formatting it again with prettier would just create
-# pointless churn (and prettier's HTML printer would rewrite the inline CSS
-# / JS blocks in ways that don't match the script's emit style).
-repo-guide.html
 
 # Generated artifacts — produced by scripts/generate-dashboards.py from each
-# plugin's dashboard-schema.json. Same rationale as repo-guide.html above.
+# plugin's dashboard-schema.json. Same rationale as the other generated artifacts.
 plugins/*/dashboard.html
 
 # Generated artifact — the redesigned landing dashboard produced by
@@ -43,7 +37,7 @@ plugins/*/dashboard.html
 # + the comfort-posture schema. Re-running the generator produces canonical
 # output guarded by its own --check freshness gate; prettier's HTML printer
 # would rewrite the inline CSS / JS in ways that don't match the emit style.
-# Same rationale as repo-guide.html above.
+# Same rationale as the other generated artifacts.
 index.html
 
 # Generated artifact — the self-contained Power-BI/Tableau-style plugin report

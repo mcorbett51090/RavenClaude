@@ -2,7 +2,7 @@
 """
 generate-copilot-plugin.py — emit the GitHub Copilot CLI package of ravenclaude-core.
 
-Sibling to generate-repo-guide.py / generate-dashboards.py. The canonical
+Sibling to generate-dashboards.py. The canonical
 ravenclaude-core Claude Code plugin is the single source of truth; this script
 projects its agents into a GitHub Copilot CLI plugin directory at
 plugins/ravenclaude-core/copilot/ so the SAME agents load via

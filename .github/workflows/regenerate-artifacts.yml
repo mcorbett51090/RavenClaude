@@ -3,7 +3,7 @@ name: Regenerate generated artifacts (post-merge self-heal)
 # Why this exists
 # ---------------
 # Several repo-wide *generated* artifacts change on almost every plugin add/bump:
-# repo-guide.html (roster/counts), the marketplace-claims derivable counts, the
+# the marketplace-claims derivable counts, the
 # concept/decision-tree SVGs, and dashboard.html (which inlines those SVGs). When
 # multiple plugin PRs are open at once, each one regenerating these into its own
 # branch guarantees (a) merge conflicts on the big files and (b) "freshness gate"
@@ -14,7 +14,7 @@ name: Regenerate generated artifacts (post-merge self-heal)
 #
 # The fix: take all of these OFF the PR critical path and let `main` OWN them.
 # PR branches no longer regenerate them (the regen-on-manifest-change.sh hook skips
-# dashboard + repo-guide when this workflow is present; the SVG/dashboard/count PR
+# dashboard when this workflow is present; the SVG/dashboard/count PR
 # gates are removed), and after each merge this workflow regenerates everything once
 # and commits the result back. So `main` (what GitHub Pages serves) is always fresh
 # within ~a minute of a merge, and none of these is ever a source of PR conflicts.
@@ -22,7 +22,7 @@ name: Regenerate generated artifacts (post-merge self-heal)
 # regenerates dashboard.html in place before running them (generate-then-test).
 #
 # Scope: marketplace-claims counts, concept + decision-tree SVGs, dashboard.html
-# (full plugin artifact), repo-guide.html (redirect stub), and index.html (the
+# (full plugin artifact) and index.html (the
 # unified portal — folds the dashboard + catalog in natively). Each step is
 # staleness-gated, so a merge that changed none of them is a fast no-op (and
 # never even loads mermaid-cli).
@@ -34,7 +34,6 @@ on:
       - ".claude-plugin/marketplace.json"
       - "plugins/**"
       - "README.md"
-      - "scripts/generate-repo-guide.py"
       - "scripts/generate-dashboards.py"
       - "scripts/generate-index-dashboard.py"
       - "scripts/_index_dashboard_template.py"
@@ -83,7 +82,7 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Self-heal generated artifacts (counts, SVGs, dashboard, repo-guide), commit if changed
+      - name: Self-heal generated artifacts (counts, SVGs, dashboard, index portal), commit if changed
         run: |
           set -euo pipefail
 
@@ -122,18 +121,10 @@ jobs:
             python3 scripts/generate-dashboards.py --check
           fi
 
-          # 4. repo-guide.html — now a thin REDIRECT STUB → index.html#/repo-guide
-          #    (its real content was folded natively into index.html). The
-          #    generator emits the stub; check-guide-fresh just verifies it.
-          if ! scripts/check-guide-fresh.sh; then
-            echo "repo-guide.html stub is stale — regenerating."
-            python3 scripts/generate-repo-guide.py
-            scripts/check-guide-fresh.sh
-          fi
-
-          # 5. index.html — the unified portal. It folds in the dashboard +
-          #    catalog sub-apps natively (via render_fragment), so it must be
-          #    regenerated AFTER the SVGs + dashboard + repo-guide above. --check
+          # 4. index.html — the unified portal. It folds in the dashboard
+          #    sub-app natively (via render_fragment) and inlines the per-plugin
+          #    catalog data, so it must be regenerated AFTER the SVGs + dashboard
+          #    above. --check
           #    strips the volatile generated-timestamp surfaces, so a pure
           #    timestamp delta reports fresh and we regenerate nothing.
           if ! python3 scripts/generate-index-dashboard.py --check >/dev/null 2>&1; then
@@ -142,7 +133,7 @@ jobs:
             python3 scripts/generate-index-dashboard.py --check
           fi
 
-          # 6. Commit only if something actually changed.
+          # 5. Commit only if something actually changed.
           if [[ -z "$(git status --porcelain)" ]]; then
             echo "Artifacts already in sync — nothing to commit."
             exit 0
@@ -150,7 +141,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "chore(artifacts): self-heal counts + SVGs + dashboard + repo-guide stub + index portal after merge [skip ci]"
+          git commit -m "chore(artifacts): self-heal counts + SVGs + dashboard + index portal after merge [skip ci]"
 
           # A merge may have landed since checkout; rebase our artifact-only commit
           # before pushing. Branches no longer touch these files, so a rebase

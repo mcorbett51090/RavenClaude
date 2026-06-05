@@ -424,16 +424,9 @@ else
 fi
 
 echo
-echo "── Gate 11: repo-guide.html redirect-stub freshness ──────────────────────"
-# repo-guide.html is now a thin REDIRECT STUB → index.html#/repo-guide (its real
-# content was folded natively into index.html — Gate 97 covers that content).
-# This gate just proves the stub generator still detects drift in the committed
-# stub. must_fail: append to the committed stub; check-guide-fresh must catch it.
-backup repo-guide.html
-printf '\n<!-- AUDIT FIXTURE — stub drift -->\n' >> repo-guide.html
-rc=0; scripts/check-guide-fresh.sh >/dev/null 2>&1 || rc=$?
-gate "repo-guide stub freshness (drifted committed stub)" must_fail "$rc"
-cp -p "$TMP/repo-guide.html.bak" repo-guide.html
+# (Gate 11 retired: repo-guide.html was fully removed — its content is folded
+# natively into index.html's Marketplace + Resources sections + the use-case
+# table, covered by Gate 97 freshness + Gate 51 shell-router.)
 
 echo
 echo "── Gate 12: marketplace-claims (required files + skill counts) ────────────"

@@ -1,6 +1,6 @@
 # Agent scenario authoring
 
-> **Status:** rule. **Why it exists:** the `repo-guide.html` is the user-facing surface for the marketplace — but until now, agent files only had a generic `description:` field. Users couldn't see *what an agent actually does in a session* without reading the full agent file. Per the deep-researcher's 2026-05-21 brief, every mature plugin/agent catalog ships per-item example scenarios + a use-case index. **How to apply:** when adding or updating an agent file, fill in `audience`, `works_with`, `scenarios`, and `quickstart` in the YAML frontmatter (see schema below). The repo-guide generator picks them up automatically.
+> **Status:** rule. **Why it exists:** the portal’s **Marketplace** section is the user-facing surface for the marketplace — but until now, agent files only had a generic `description:` field. Users couldn't see *what an agent actually does in a session* without reading the full agent file. Per the deep-researcher's 2026-05-21 brief, every mature plugin/agent catalog ships per-item example scenarios + a use-case index. **How to apply:** when adding or updating an agent file, fill in `audience`, `works_with`, `scenarios`, and `quickstart` in the YAML frontmatter (see schema below). The portal generator picks them up automatically.
 
 This rule was extracted from Matt's earlier ask + deep-researcher 2026-05-21 brief during the repo-guide-scenarios work.
 
@@ -154,5 +154,5 @@ The `scripts/generate-repo-guide.py` script reads the YAML frontmatter and produ
 
 - [`../proposals/`](../proposals/) — Matt's proposals folder where the original ask lived
 - `scripts/generate-repo-guide.py` — the generator that consumes this schema
-- [`repo-guide.html`](../../repo-guide.html) — the artifact (always re-generated, never edited by hand). [▶ View rendered](https://mcorbett51090.github.io/RavenClaude/repo-guide.html)
+- [`index.html`](../../index.html) — the portal artifact (always re-generated, never edited by hand); scenarios surface in **Marketplace**. [▶ Open on Pages](https://mcorbett51090.github.io/RavenClaude/)
 - The deep-researcher's 2026-05-21 brief is the source for the format + audience taxonomy + use-case-table pattern

@@ -266,7 +266,7 @@ The pattern is documented end-to-end in [`docs/best-practices/self-referential-i
 | If you want to… | Go to |
 |---|---|
 | Understand the permission layers | [`docs/concepts.md`](docs/concepts.md) §Permission layers |
-| See what's in each plugin | [`README.md`](README.md) §What's in each plugin, or [`repo-guide.html`](repo-guide.html) |
+| See what's in each plugin | [`README.md`](README.md) §What's in each plugin, or the portal ([`index.html`](index.html)) → **Marketplace** |
 | Edit posture without the dashboard | [`docs/concepts.md`](docs/concepts.md) §Comfort-posture dashboard |
 | Tune the tribunal | The dashboard's **Command review** tab, or [`plugins/ravenclaude-core/skills/thing/SKILL.md`](plugins/ravenclaude-core/skills/thing/SKILL.md) |
 | Reset a broken plugin cache | `/ravenclaude-core:ragnarok` (`/reset-plugin-cache`) — read the [command doc](plugins/ravenclaude-core/commands/reset-plugin-cache.md) first |
