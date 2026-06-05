@@ -95,8 +95,26 @@ Plus the cross-plugin **Structured Output Protocol** JSON block ([`../ravenclaud
 
 ## 7. Knowledge bank & best practices
 
-- [`knowledge/`](knowledge/) — reference docs with `Last verified:` dates + Mermaid **decision trees** (permission type, auth flow, query vs delta vs subscription, paging/batching, throttling response, large-file upload). The agents traverse these before choosing a method.
+- [`knowledge/`](knowledge/) — reference docs with `Last verified:` dates + Mermaid **decision trees** (permission type, auth flow, query vs delta vs subscription, paging/batching, throttling response, large-file upload, **and runtime error-disposition** — which HTTP status → which non-interchangeable fix). The agents traverse these before choosing a method.
 - [`best-practices/`](best-practices/) — named, citable rules (one per file), grounded in the knowledge bank and surfaced in the marketplace repo-guide + dashboard Guidance tab.
+- [`scenarios/`](scenarios/) — dated, scope-tagged, **unverified** engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank. Scenarios carry no secrets, tenant IDs, app/client IDs, or credentials (§3 #8).
+- [`scripts/graph_scope_analyzer.py`](scripts/graph_scope_analyzer.py) — a stdlib-only (no network, no tenant contact) **scope analyzer/linter**: feed it a permission list or a JWT access token (claims-only, no signature verification) and it flags the over-privilege anti-patterns from §3 #1 / §4 and suggests narrower alternatives, exiting `1` when a scope must escalate to `security-reviewer` (so it's pipeline-usable). It is **decision-support, not a security sign-off**; owned by `graph-identity-engineer`.
+
+## 7a. Bundled MCP server — `microsoft-learn` (Microsoft Learn MCP)
+
+The plugin declares one MCP server in `plugin.json`: **`microsoft-learn`**, the Microsoft Learn MCP Server — a remote HTTP endpoint at `https://learn.microsoft.com/api/mcp` (open-source tooling repo [`MicrosoftDocs/mcp`](https://github.com/MicrosoftDocs/mcp), MIT). It exposes **three read-only tools**: `microsoft_docs_search`, `microsoft_code_sample_search`, and `microsoft_docs_fetch`. **Read-only:** it searches/fetches *public* Microsoft documentation only — it does **not** touch the consumer's tenant, mailboxes, files, directory, code, or any user data, and it writes nothing.
+
+**Why it's the right bundle for *this* plugin.** A Microsoft Graph plugin's #1 accuracy risk is a **volatile fact recalled from training** — a permission name, a v1.0-vs-beta endpoint, a throttle limit, a subscription max-expiry. The Learn MCP lets every agent **verify a volatile fact against current first-party docs** rather than asserting it from memory — the tool form of the §3 #9 / §5 `[verify-at-build]` discipline. It clears the zero-config-read-only bundling bar in [`docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md): zero per-consumer state (fixed public endpoint), no auth (no secret to bundle/leak), read-only, first-party documentation. (Same server, same shape as `microsoft-365-copilot` §11 — each plugin declares its own.)
+
+**Consumer prerequisite — none.** Remote HTTP, no auth, nothing to install. If the network can't reach `learn.microsoft.com`, the server shows `failed` in `/mcp` and the error surfaces in the `/plugin` Errors tab; Claude Code and every other tool still work (**loud-but-non-fatal**). **If the Learn tools aren't responding, check `/mcp` and the `/plugin` Errors tab first** — the usual cause is no network egress, not a broken server. No local subprocess, so no PATH/`python -m` fallback.
+
+**Which agent owns it?** **All three** call it situationally — a shared grounding tool, not one specialist's. **Trigger:** when about to state a version-, endpoint-, permission-, or limit-volatile Graph fact, **search/fetch Learn first** instead of recalling it.
+
+**Boundary** — `microsoft-learn` is for **public Microsoft documentation only**. It is **NOT** a connection to the consumer's tenant or the Microsoft Graph; it cannot read tenant data, send mail, or create a subscription.
+
+**NOT bundled — credentialed Graph MCPs (recommend, evaluate-first).** A tenant-acting Graph MCP (e.g. **Lokka**, `@merill/lokka`, MIT, `0.1.7` `[verify-at-use]`) is **per-tenant + Entra-authenticated + write-capable** (`POST`/`PUT`/`PATCH`/`DELETE`), so it is "recommend, don't bundle," and any write scope is an **Absolute-rule `security-reviewer` gate** before it ships (Gate 25 `mcp.allowed_servers`). Setup + the secret-as-a-reference rule are documented in [`NOTICE.md`](NOTICE.md); never bundle a per-tenant credentialed server.
+
+See [`NOTICE.md`](NOTICE.md) for attribution + the consumer-side `claude mcp add` override.
 
 ---
 
@@ -107,3 +125,25 @@ Plus the cross-plugin **Structured Output Protocol** JSON block ([`../ravenclaud
 - **`azure-cloud/entra-identity`** — Entra tenant identity governance (Conditional Access, PIM, B2B/B2C).
 - **`power-platform`** — Dataverse data when the source/target is Power Platform.
 - **`ravenclaude-core/documentarian`** / **`project-manager`** — deliverables / engagement RAID.
+
+---
+
+## Value-add completeness (build-out 2026-06-05)
+
+PR #315 added the consolidated knowledge decision-trees, `best-practices/`, the skills, and the templates (and the `scenarios/README.md` index). This build-out fills the net-new gaps. Every menu item is dispositioned honestly below.
+
+| # | Item | Disposition |
+|---|---|---|
+| 1 | **scenarios/ bank** | **BUILT** — the 4 scenarios the `scenarios/README.md` index already referenced but that were never created: [`throttling-429-retry-after-cascade`](scenarios/2026-06-05-throttling-429-retry-after-cascade.md), [`app-only-consent-failure`](scenarios/2026-06-05-app-only-consent-failure.md), [`delta-query-410-resync`](scenarios/2026-06-05-delta-query-410-resync.md), [`subscription-silent-expiry`](scenarios/2026-06-05-subscription-silent-expiry.md). 9-field schema, Learn-cited, dated, no secrets/tenant IDs. |
+| 2 | **knowledge/ decision-trees** | **BUILT (complementing #315)** — [`knowledge/api-error-disposition-decision-trees.md`](knowledge/api-error-disposition-decision-trees.md): two new **runtime-tier dispositioning** trees (HTTP-status → non-interchangeable fix; silent-vs-hard failure / "is green actually healthy?"). #315's trees are all *design-time* (choose the call); these are the *recovery-time* complement and directly disposition all 4 new scenarios. The brief's other suggestions (delegated-vs-application, delta-vs-poll-vs-webhook) were **already covered** by #315 — adding them would duplicate. |
+| 3 | **skill / template (the flagged gap)** | **BUILT (template)** — [`templates/graph-permission-matrix.md`](templates/graph-permission-matrix.md): a fillable capability→permission decision matrix (type/consent/narrower-alternative/runtime-disposition) that feeds the existing app-registration worksheet. Distinct from the `permission-least-privilege-review` *skill* (an audit playbook) and the `graph-app-registration` *template* (a registration record) — it's the *decision artifact* between them, and it wires in the new error-disposition tree. (The brief noted "missing skills/ and templates/" — that was pre-#315; both dirs now exist with strong coverage, so a 5th skill would gold-plate.) |
+| 4 | **Bundled MCP** | **BUILT (one read-only server) + recommend-not-bundle (credentialed)** — bundled **`microsoft-learn`** (remote HTTP, no auth, read-only, MIT; verified real 2026-06-05) with `x-mcpAttribution` + [`NOTICE.md`](NOTICE.md), mirroring the `microsoft-365-copilot` precedent. **Lokka** (`@merill/lokka`, MIT, write-capable, per-tenant Entra auth) is documented **recommend-not-bundle** + `security-reviewer` gate. No invented servers. |
+| 5 | **LSP server** | **N-A** — this plugin's value is Graph *design/API* guidance, not editing a single source language; agents emit snippets across .NET/JS/Python/PowerShell/HTTP, so no one language server fits. (Contrast `backend-engineering`, which ships `.lsp.json` because it *is* a code-authoring domain.) |
+| 6 | **Runnable script (`scripts/`)** | **BUILT** — [`scripts/graph_scope_analyzer.py`](scripts/graph_scope_analyzer.py): stdlib-only scope/JWT-claims analyzer flagging over-privilege + suggesting narrower alternatives, exit `1` on mandatory escalation (CI-usable). Ruff-clean. Real value: turns the §4 anti-pattern list into a deterministic check. |
+| 7 | **bin/ · monitors · output-styles · settings · themes** | **N-A** — no groundable broadly-valuable instance. `bin/` would duplicate the advisory hook + the new script; there's nothing to monitor (no build/long-running process); output-styles/themes overlap the §6 Output Contract; no tool-permission surface beyond `ravenclaude-core`'s. |
+| 8 | **CHANGELOG.md / NOTICE.md** | **BUILT** — `CHANGELOG.md` added with a top entry; `NOTICE.md` added because a third-party MCP server is now bundled (required by the attribution gate). |
+
+## Milestones
+
+- **v0.3.2** — pre-build-out: 3 agents, 5 skills, 4 templates, 5 commands, 1 advisory hook, 3-file decision-tree knowledge bank, best-practices library, scenarios README + index (#315).
+- **v0.4.0** — value-add build-out: 4 scenarios (filling the #315 index), the runtime error-disposition decision-tree knowledge file (2 trees), the permission-matrix template, the stdlib scope-analyzer script, the bundled `microsoft-learn` read-only MCP (+ NOTICE.md + recommend-not-bundle doctrine for Lokka), and CHANGELOG.

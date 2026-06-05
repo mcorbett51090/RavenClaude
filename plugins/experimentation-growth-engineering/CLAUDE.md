@@ -38,3 +38,28 @@
 ## 4. Inheritance
 
 This plugin **inherits `ravenclaude-core` protocols**: the Capability Grounding Protocol (decision-tree-first + alternate-methods enumeration + honest blocked-reporting), the Structured Output Protocol for handoffs, and the security/review escalations. Domain-specific rules live in each agent file and in `best-practices/`; the knowledge bank carries the decision trees and the dated capability map.
+
+## 5. Scenarios bank & runnable tooling (added v0.3.0)
+
+- **Scenarios bank** — [`scenarios/`](scenarios/) holds dated, scope-tagged, **unverified** engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the **mandatory unverified-scenario preamble**, never overriding the cited knowledge bank and never standing in for the significance verdict that belongs to `applied-statistics` (§3 #1). All three agents — `experimentation-architect`, `feature-flag-engineer`, `product-analytics-instrumentation-engineer` — should check the bank when a situation matches (peeking/early-stop, underpowered/MDE, SRM, guardrail regression). Scenarios carry no client-identifying info or PII.
+- **Runnable calculator** — [`scripts/experiment_calc.py`](scripts/experiment_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from A/B-test **design**: `sample-size` (per-arm N + duration for a target MDE), `mde` (smallest detectable effect at a fixed sample — the underpowered check), `power` (achieved power of a planned/run test), and `srm` (the chi-square sample-ratio-mismatch trustworthiness gate). It is a **calculator, not a data source** (the user supplies every input) and is **design-time only**: it sizes the apparatus and runs the SRM gate, but it deliberately does **not** compute a significance verdict / confidence interval / sequential boundary on your primary metric — that rigorous inferential-statistics work is `applied-statistics`' (§3 #1). Owned primarily by `experimentation-architect`; the agents reach for it instead of hand-waving an N or eyeballing a split.
+- **New decision tree** — [`knowledge/ship-iterate-kill-guardrail-decision-tree.md`](knowledge/ship-iterate-kill-guardrail-decision-tree.md) expands the **guardrail-breach trade** node of the high-level ship/iterate/kill tree (reliability gates are non-tradeable; business guardrails trade only as an explicit logged business call). It complements, not duplicates, [`knowledge/experimentation-growth-engineering-decision-trees.md`](knowledge/experimentation-growth-engineering-decision-trees.md).
+
+## 6. Value-add completeness (build-out 2026-06-05)
+
+Net-new this round on top of PR #315 (consolidated decision-trees + `best-practices/` + `templates/`). Every value-add menu item is dispositioned honestly — several runtime-tier items are genuinely **N-A** because this is a methodology/apparatus advisory vertical with no single source language or per-tenant tool to bundle, and forcing them would add noise, not value.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README + 4 dated engagement scenarios (peeking/early-stop FP, underpowered/MDE miss, SRM from redirect+bot-filter, guardrail regression). 9-field marketplace schema. |
+| Decision-tree (Mermaid) knowledge | **BUILT (1 new, complementing #315)** | `ship-iterate-kill-guardrail-decision-tree.md` drills into the guardrail-breach trade. #315 already shipped the trust/fixed-vs-sequential/ship-iterate-kill/concurrency/rollout/event-triage trees; this fills the trade-decision gap without duplicating them. Standalone `#`/`## When this applies` convention → no SVG-render burden. |
+| Runnable script (`scripts/`) | **BUILT** | `experiment_calc.py` — `sample-size` / `mde` / `power` / `srm`. Stdlib-only, `ruff`-clean, numerically verified. Deep inferential stats deferred to `applied-statistics`. |
+| Bundled MCP server | **N-A (recommend-not-bundle / evaluate-first)** | Flag/experiment/analytics MCP servers exist (LaunchDarkly, GrowthBook, Unleash, Flagsmith) but all are per-tenant + authenticated + write-capable (org API key = secret; flag flips = write verbs) → fail the zero-config + read-only bundling bar (`docs/best-practices/bundled-mcp-servers.md`). Gate any adoption through `ravenclaude-core/security-reviewer`. No `mcpServers` entry; no invented server. |
+| LSP integration | **N-A** | No single source language to index — this is a methodology vertical, not a code domain (contrast `backend-engineering`'s `.lsp.json`). |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/experiment_calc.py`; no installed binary warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process owned by this plugin. |
+| output-styles / themes | **N-A** | Deliverables are Markdown reports governed by the agents' Output Contract; styling is a code/UX concern. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 5 skills, 1 advisory antipattern hook, 4 commands, 4 templates already cover the surface; the new scenarios + calculator + tree extend reach without a new agent (team-growth-as-knowledge house rule). |
+| CHANGELOG.md | **BUILT** | Added with a top `0.3.0` entry. |
+| NOTICE.md | **N-A** | Nothing third-party is bundled (the script is original + stdlib-only; sources cited inline, not vendored). |

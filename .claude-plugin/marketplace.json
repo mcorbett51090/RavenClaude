@@ -258,7 +258,7 @@
       "name": "microsoft-fabric",
       "source": "./plugins/microsoft-fabric",
       "description": "Microsoft Fabric specialist team — 7 agents (fabric-architect, lakehouse-engineer, warehouse-engineer, data-factory-engineer, realtime-intelligence-engineer, fabric-semantic-model-engineer, fabric-admin) covering OneLake, Lakehouse (Spark/Delta/medallion/materialized lake views), Warehouse (T-SQL/ACID), Data Factory (mirroring/copy-job/dataflow-gen2/pipelines), Real-Time Intelligence (Eventstream/Eventhouse/KQL/Activator), Direct Lake semantic models, and platform admin (capacity FinOps, OneLake security, domains, Purview, ALM). 9-doc citation-grounded knowledge bank (two Mermaid decision trees + a dated 2026 capability map), 6 templates, 1 advisory hook (14 house opinions). Seams: enterprise Microsoft/Fabric here vs non-Microsoft/SMB embedded to data-platform; Fabric storage + Direct Lake here vs standalone Power BI/.pbix to power-platform/power-bi-engineer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.6.2",
+      "version": "0.7.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -353,7 +353,7 @@
       "name": "microsoft-365-copilot",
       "source": "./plugins/microsoft-365-copilot",
       "description": "Microsoft 365 Copilot extensibility & administration team — 6 agents (copilot-extensibility-architect, declarative-agent-engineer, graph-connector-engineer, api-plugin-engineer, agents-sdk-engineer, copilot-admin-governance) covering declarative agents (pinned manifest schema + the 50/25/4096/45s hard-limit wall), custom-engine agents on the M365 Agents SDK/Toolkit, Copilot (Graph) connectors (synced vs federated/MCP, semantic labels, ACL trimming), API plugins (OpenAPI + Entra/OAuth2), the app-package publish lifecycle, and M365 Agent Registry + Purview DLP-for-Copilot governance. 9-doc citation-grounded knowledge bank (two Mermaid decision trees), 5 skills, 5 templates, 1 advisory hook (15 house opinions). Disjoint from power-platform's Copilot Studio low-code coverage (cross-linked). Seams: Copilot Studio → power-platform; CEA engine → claude-app-engineering; Entra/hosting → azure-cloud; security → ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.4.1",
+      "version": "0.5.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -406,7 +406,7 @@
       "name": "microsoft-graph",
       "source": "./plugins/microsoft-graph",
       "description": "Microsoft Graph developer team — specialist agents for the Graph API surface: querying (OData $select/$filter/$expand/$search, paging, $batch, change tracking via delta), throttling/429 + retry discipline, the Graph SDKs; identity & authorization on Entra (app registration, delegated vs application permissions, scopes/consent, least-privilege, auth-code/client-credentials/OBO flows, certificate creds); and the workloads (users/groups, mail/calendar, Teams, SharePoint/OneDrive files, change notifications/subscriptions + lifecycle, Graph connectors). Citation-grounded knowledge bank with Mermaid decision trees + a best-practices library. Seams: Copilot Graph connectors → microsoft-365-copilot; Entra tenant/identity infrastructure → azure-cloud; Power Platform Dataverse → power-platform; methodology/security-review → ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.2",
+      "version": "0.4.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -770,7 +770,7 @@
       "name": "experimentation-growth-engineering",
       "source": "./plugins/experimentation-growth-engineering",
       "description": "Experimentation & growth-engineering team — 3 agents (experimentation-architect, feature-flag-engineer, product-analytics-instrumentation-engineer) for the APPARATUS that lets a team learn fast and ship safely: feature flags + progressive delivery (kill switches, targeting, flag lifecycle/debt), A/B-test plumbing (assignment, exposure logging, SRM checks, sequential-peeking guards, the results read), and trustworthy event instrumentation (a tracking plan, a consistent event schema, identity stitching, a CDP). The engineering of experimentation — statistical VALIDITY (power/MDE, significance) is applied-statistics'. 3 skills, a decision-tree knowledge bank (flag-vs-config + ship-decision trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: significance -> applied-statistics, hypothesis/outcome -> product-management, rollout -> devops-cicd, pipelines -> data-platform. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.2",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -793,7 +793,7 @@
       "name": "fintech-payments-engineering",
       "source": "./plugins/fintech-payments-engineering",
       "description": "Fintech & payments-engineering team — 4 agents (payments-architect, payments-integration-engineer, billing-subscriptions-engineer, payments-pci-compliance-advisor) for building payment + billing systems that don't lose or duplicate money: payment-flow architecture (PSP choice, money-as-integer, the double-entry ledger, reconciliation), payment integration (Stripe-style intents, idempotency keys, webhook verification + idempotent handling, 3DS/SCA, retries/dunning), subscription & usage billing (plans, proration, metering, invoicing, revenue events), and PCI-DSS scope minimization (tokenization, never touch raw PAN, SAQ-A posture). The ENGINEERING — accounting/GL routes to finance, financial regulation to regulatory-compliance, security verdicts to ravenclaude-core. 4 skills, a decision-tree knowledge bank (charge-flow + PCI-scope trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.2",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -816,7 +816,7 @@
       "name": "analytics-engineering",
       "source": "./plugins/analytics-engineering",
       "description": "Analytics-engineering team — 3 agents (analytics-engineer, semantic-layer-engineer, data-quality-testing-engineer) for the TRANSFORMATION layer in the modern data stack: dbt modeling (staging -> intermediate -> marts, the medallion/Kimball split, incremental models, materializations), a governed semantic/metrics layer (one definition of revenue/active-user, metrics-as-code) so every tool agrees, and data quality (dbt tests, freshness, model contracts, anomaly checks) that gates the warehouse. Warehouse-neutral (Snowflake/BigQuery/Redshift/Databricks). 3 skills, a decision-tree knowledge bank (materialization + model-layer trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Distinct from data-platform (ingestion/warehouse/BI) and database-engineering (OLTP). Seams: ELT/warehouse provisioning -> data-platform, OLTP -> database-engineering, BI -> tableau/data-platform, enterprise lakehouse -> microsoft-fabric. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.2",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -885,7 +885,7 @@
       "name": "data-governance-privacy",
       "source": "./plugins/data-governance-privacy",
       "description": "Data governance & privacy team — 3 agents (data-governance-architect, privacy-compliance-engineer, data-catalog-lineage-engineer) for making data discoverable, trustworthy, and lawfully used: the governance operating model (ownership/stewardship, policies, classification scheme), privacy mechanics (GDPR/CCPA/-style data-subject rights — access/erasure/portability, consent + lawful basis, data minimization, retention, pseudonymization vs anonymization), and a data catalog with lineage + sensitive-data/PII discovery + access governance/DLP. The ENGINEERING of governance, not legal advice. 3 skills, a decision-tree knowledge bank (classification + DSR-handling trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: financial-regulatory -> regulatory-compliance, warehouse RLS -> data-platform, Purview-in-Fabric -> microsoft-fabric, security verdicts -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.2",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
