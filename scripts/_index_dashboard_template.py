@@ -1610,7 +1610,10 @@ TEMPLATE = r"""<!doctype html>
         const raw = location.hash.replace(/^#\/?/, "") || "home";
         let [section, sub] = raw.split("/");
         renderNav(resolveNavActive(section));
-        document.body.classList.remove("mobile-nav-open");
+        // NB: the mobile nav pane is intentionally NOT closed here. Clicking a
+        // top-level category should expand its subcategories in-place (pane stays
+        // open); closing is handled by the sidebar click handler (a subcategory
+        // leaf / a childless section / brand-footer link) and the scrim.
 
         // Legacy own-view routes (e.g. #/team → roster, highlighted under Discover).
         if (LEGACY_VIEW[section] === "viewTeam") {
@@ -1658,6 +1661,16 @@ TEMPLATE = r"""<!doctype html>
       // Mobile nav
       $("#mobile-toggle").addEventListener("click", () => document.body.classList.toggle("mobile-nav-open"));
       $("#scrim").addEventListener("click", () => document.body.classList.remove("mobile-nav-open"));
+      // Mobile drill-down: a top-level category with subcategories expands
+      // in-place (pane stays open); a subcategory leaf — or a childless section /
+      // brand-footer link — closes the pane.
+      $("#sidebar").addEventListener("click", (e) => {
+        if (!document.body.classList.contains("mobile-nav-open")) return;
+        const link = e.target.closest("a");
+        if (!link) return;
+        if (link.classList.contains("nav-item") && navChildren(link.getAttribute("data-nav"))) return;
+        document.body.classList.remove("mobile-nav-open");
+      });
 
       // ⌘K Palette wiring
       $("#palette-opener").addEventListener("click", openPalette);
