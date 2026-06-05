@@ -253,6 +253,13 @@ TEMPLATE = r"""<!doctype html>
       .mkt-nav button:hover { background: var(--surface); color: var(--text); }
       .mkt-nav button.active { background: var(--teal-soft); color: var(--teal-2); border-color: var(--border-strong); }
       .mkt-nav button .count { margin-left: auto; font-size: 0.72rem; color: var(--faint); }
+      /* Plugin-detail filter bar: same chips as .mkt-nav, but a horizontal,
+         non-sticky row that doubles as the detail page's KPI cards (icon + name
+         + count + selected highlight). Clicking one filters the sections below. */
+      .pd-filters { position: static; flex-direction: row; flex-wrap: wrap; gap: 8px; margin: 18px 0 6px; }
+      .pd-filters button { border-color: var(--border); background: var(--surface); }
+      .pd-filters button .count { margin-left: 4px; }
+      .pd-filters button.active .count { color: var(--teal-2); }
       .mkt-filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; align-items: center; }
       .mkt-filters input { flex: 1; min-width: 200px; height: 40px; padding: 0 14px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: inherit; }
       .mkt-filters input:focus { border-color: var(--teal-dim); }
@@ -1225,11 +1232,11 @@ TEMPLATE = r"""<!doctype html>
         const toolItem = (i) => `<div class="ref-item"><div class="ri-n"><code>${esc(i.name)}</code>${(i.modes || []).map((m) => `<span class="chip">${esc(m)}</span>`).join(" ")}</div>${i.purpose ? `<div class="ri-d">${esc(i.purpose)}</div>` : ""}</div>`;
         // Decision trees for THIS plugin: pulled from the hidden #dt-store, each
         // rendered as a collapsible dropdown with its pre-rendered Mermaid SVG.
-        const treesHtml = (() => {
+        const trees = (() => {
           const store = document.getElementById("dt-store");
-          if (!store) return "";
+          if (!store) return { count: 0, html: "" };
           const mine = Array.from(store.querySelectorAll('.dt-item[data-plugin="' + (window.CSS && CSS.escape ? CSS.escape(name) : name) + '"]'));
-          if (!mine.length) return "";
+          if (!mine.length) return { count: 0, html: "" };
           const one = (el) => {
             const title = el.getAttribute("data-title") || "Decision tree";
             const when = el.getAttribute("data-when") || "";
@@ -1239,8 +1246,26 @@ TEMPLATE = r"""<!doctype html>
             const img = src ? `<img loading="lazy" decoding="async" src="${esc(src)}" alt="${esc(title)} decision tree" class="dt-tree-img">` : "";
             return `<details class="dt-tree"><summary class="dt-tree-summary"><span class="dt-tree-title">${esc(title)}</span>${when ? `<span class="dt-tree-when">${esc(when)}</span>` : ""}</summary><div class="dt-tree-svg">${img}</div></details>`;
           };
-          return `<div class="section-title"><h2>Decision trees <span class="hint">${mine.length}</span></h2></div><p class="dt-tree-intro">When-this-applies guidance these agents follow. Click to expand each flow.</p><div class="dt-tree-list">${mine.map(one).join("")}</div>`;
+          return { count: mine.length, html: `<div class="section-title"><h2>Decision trees <span class="hint">${mine.length}</span></h2></div><p class="dt-tree-intro">When-this-applies guidance these agents follow. Click to expand each flow.</p><div class="dt-tree-list">${mine.map(one).join("")}</div>` };
         })();
+        // Each content area is a filterable section: build a def list (icon +
+        // label + count + body), render the KPI/filter chips from it, and wrap
+        // each body in a [data-pdsec] container the chip click handler toggles.
+        const specialistsBody = agents ? `<div class="section-title"><h2>Specialists <span class="hint">${p.agents.length}</span></h2></div><div class="grid cols-2">${agents}</div>` : "";
+        const sectionDefs = [
+          { id: "agents", icon: "team", label: "Specialists", count: p.agents.length, body: specialistsBody },
+          { id: "skills", icon: "spark", label: "Skills", count: (p.skills_index || []).length, body: refGrid("Skills", p.skills_index, named) },
+          { id: "tools", icon: "sliders", label: "Tools", count: (p.scripts_index || []).length, body: refGrid("Runnable tools", p.scripts_index, toolItem) },
+          { id: "scenarios", icon: "book", label: "Scenarios", count: (p.scenarios_index || []).length, body: refGrid("Scenario field notes", p.scenarios_index, scnItem) },
+          { id: "hooks", icon: "shield", label: "Hooks", count: (p.hooks_index || []).length, body: refGrid("Hooks", p.hooks_index, hookItem) },
+          { id: "rules", icon: "check", label: "Rules", count: (p.rules_index || []).length, body: refGrid("Rules", p.rules_index, named) },
+          { id: "templates", icon: "copy", label: "Templates", count: (p.templates_index || []).length, body: refGrid("Templates", p.templates_index, named) },
+          { id: "practices", icon: "sparkle", label: "Best practices", count: (p.best_practices_index || []).length, body: refGrid("Best practices", p.best_practices_index, named) },
+          { id: "trees", icon: "tree", label: "Decision trees", count: trees.count, body: trees.html },
+        ].filter((s) => s.body);
+        const pdNav = `<button data-sec="all" class="active">${svg("market")} All <span class="count">${sectionDefs.reduce((n, s) => n + s.count, 0)}</span></button>` +
+          sectionDefs.map((s) => `<button data-sec="${s.id}">${svg(s.icon)} ${esc(s.label)} <span class="count">${s.count}</span></button>`).join("");
+        const pdBody = sectionDefs.map((s) => `<div data-pdsec="${s.id}">${s.body}</div>`).join("");
         $("#view").innerHTML = `
           <a class="btn ghost" href="#/discover/${p.category}" style="margin-bottom:18px">← Back to ${esc(catLabel)}</a>
           <div class="page-head"><span class="eyebrow">${esc(p.category_label)}</span><h1>${esc(p.label)} <span style="font-family:var(--font-mono);font-size:1rem;color:var(--faint)">v${esc(p.version)}</span></h1>
@@ -1249,25 +1274,19 @@ TEMPLATE = r"""<!doctype html>
               <button class="btn primary" type="button" onclick="window.__copy('/plugin install ${esc(p.name)}@ravenclaude','Install command')">${svg("plus")} Copy install command</button>
               <a class="btn" href="#/configure">${svg("sliders")} Configure agents</a>
             </div></div>
-          <div class="stats">
-            <div class="card stat"><span class="v">${p.counts.agents}</span><span class="k">Specialists</span></div>
-            <div class="card stat"><span class="v">${p.counts.skills}</span><span class="k">Skills</span></div>
-            <div class="card stat"><span class="v">${p.counts.hooks}</span><span class="k">Hooks</span></div>
-            <div class="card stat"><span class="v">${p.counts.templates}</span><span class="k">Templates</span></div>
-            ${p.counts.scenarios ? `<div class="card stat"><span class="v">${p.counts.scenarios}</span><span class="k">Scenarios</span></div>` : ""}
-            ${p.counts.tools ? `<div class="card stat"><span class="v">${p.counts.tools}</span><span class="k">Tools</span></div>` : ""}
-          </div>
+          <nav class="mkt-nav pd-filters" id="pd-filters" aria-label="Filter this plugin's contents">${pdNav}</nav>
           ${p.requires && p.requires.length ? `<div class="callout" style="margin-top:14px">${svg("info")}<span>Requires ${p.requires.map((r) => `<code>${esc(r)}</code>`).join(", ")}</span></div>` : ""}
-          ${agents ? `<div class="section-title"><h2>Specialists <span class="hint">${p.agents.length}</span></h2></div><div class="grid cols-2">${agents}</div>` : ""}
-          ${refGrid("Skills", p.skills_index, named)}
-          ${refGrid("Runnable tools", p.scripts_index, toolItem)}
-          ${refGrid("Scenario field notes", p.scenarios_index, scnItem)}
-          ${refGrid("Hooks", p.hooks_index, hookItem)}
-          ${refGrid("Rules", p.rules_index, named)}
-          ${refGrid("Templates", p.templates_index, named)}
-          ${refGrid("Best practices", p.best_practices_index, named)}
-          ${treesHtml}
+          ${pdBody}
           <div class="tags" style="margin-top:20px">${p.keywords.map((k) => `<span class="chip">${esc(k)}</span>`).join("")}</div>`;
+        // Wire the KPI/filter chips: clicking one shows only its section
+        // ("All" restores everything); the active chip carries the highlight.
+        const pdf = $("#pd-filters");
+        if (pdf) pdf.addEventListener("click", (e) => {
+          const b = e.target.closest("button"); if (!b) return;
+          const sel = b.dataset.sec;
+          $$("#pd-filters button").forEach((x) => x.classList.toggle("active", x === b));
+          $$("[data-pdsec]").forEach((el) => { el.style.display = (sel === "all" || el.dataset.pdsec === sel) ? "" : "none"; });
+        });
         $("#view").focus();
         window.scrollTo({ top: 0, behavior: "smooth" });
       };
