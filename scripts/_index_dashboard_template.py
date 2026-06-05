@@ -352,6 +352,11 @@ TEMPLATE = r"""<!doctype html>
         .desktop-collapse { display: none; }
         .hide-sm { display: none; }
         .search kbd { display: none; }
+        /* Collapse the search trigger to an icon-only button on narrow screens
+           so its label can't wrap/overflow the topbar (the ⌘K palette is the
+           real search surface; the opener just launches it). */
+        .palette-opener { flex: 0 0 auto; width: 38px; max-width: 38px; padding: 0; gap: 0; justify-content: center; }
+        .palette-opener .label, .palette-opener kbd { display: none; }
       }
       @media (min-width: 821px) { .mobile-only { display: none; } }
       @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto; } }
@@ -431,7 +436,7 @@ TEMPLATE = r"""<!doctype html>
       }
       .palette-opener:hover { color: var(--text); border-color: var(--border-strong); background: var(--surface-2); }
       .palette-opener svg { width: 18px; height: 18px; flex: 0 0 auto; }
-      .palette-opener .label { flex: 1; text-align: left; }
+      .palette-opener .label { flex: 1; min-width: 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .palette-opener kbd { font-size: 0.68rem; color: var(--faint); border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; font-family: var(--font-mono); }
 
       /* ── Scenario picker (Configuration view) ──────────────────────── */
@@ -566,7 +571,7 @@ TEMPLATE = r"""<!doctype html>
       .scn .scn-o { font-size: 0.8rem; color: var(--muted); }
       .qs { margin: 6px 0 0; padding-left: 1.1rem; }
       .qs li { font-size: 0.82rem; color: var(--muted); margin-bottom: 2px; }
-      .ref-item { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+      .ref-item { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; box-shadow: var(--rc-shadow-sm); }
       .ref-item .ri-n { font-family: var(--font-mono); font-size: 0.86rem; }
       .ref-item .ri-d { color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
       /* Decision-tree dropdowns on a plugin detail page (moved off the dashboard
@@ -1609,7 +1614,10 @@ TEMPLATE = r"""<!doctype html>
         const raw = location.hash.replace(/^#\/?/, "") || "home";
         let [section, sub] = raw.split("/");
         renderNav(resolveNavActive(section));
-        document.body.classList.remove("mobile-nav-open");
+        // NB: the mobile nav pane is intentionally NOT closed here. Clicking a
+        // top-level category should expand its subcategories in-place (pane stays
+        // open); closing is handled by the sidebar click handler (a subcategory
+        // leaf / a childless section / brand-footer link) and the scrim.
 
         // Legacy own-view routes (e.g. #/team → roster, highlighted under Discover).
         if (LEGACY_VIEW[section] === "viewTeam") {
@@ -1657,6 +1665,16 @@ TEMPLATE = r"""<!doctype html>
       // Mobile nav
       $("#mobile-toggle").addEventListener("click", () => document.body.classList.toggle("mobile-nav-open"));
       $("#scrim").addEventListener("click", () => document.body.classList.remove("mobile-nav-open"));
+      // Mobile drill-down: a top-level category with subcategories expands
+      // in-place (pane stays open); a subcategory leaf — or a childless section /
+      // brand-footer link — closes the pane.
+      $("#sidebar").addEventListener("click", (e) => {
+        if (!document.body.classList.contains("mobile-nav-open")) return;
+        const link = e.target.closest("a");
+        if (!link) return;
+        if (link.classList.contains("nav-item") && navChildren(link.getAttribute("data-nav"))) return;
+        document.body.classList.remove("mobile-nav-open");
+      });
 
       // ⌘K Palette wiring
       $("#palette-opener").addEventListener("click", openPalette);
