@@ -1,0 +1,10 @@
+{
+  "csharp": {
+    "command": "csharp-language-server",
+    "args": ["--stdio"],
+    "extensionToLanguage": {
+      ".cs": "csharp",
+      ".csx": "csharp"
+    }
+  }
+}

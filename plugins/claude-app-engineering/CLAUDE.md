@@ -120,6 +120,7 @@ Reference docs with `Last reviewed:` dates + confidence + source URLs. Inline pr
 | [`knowledge/claude-build-surface-decision-tree.md`](knowledge/claude-build-surface-decision-tree.md) | Choosing how to build — Messages API / Agent SDK / Managed Agents / Workbench + deployment target |
 | [`knowledge/model-selection-and-2026-capability-map.md`](knowledge/model-selection-and-2026-capability-map.md) | "Which model?" / "is this GA or beta?" — the dated lineup + capability map (the freshness anchor) |
 | [`knowledge/prompt-caching-playbook.md`](knowledge/prompt-caching-playbook.md) | Designing/debugging caching — breakpoints, TTL, pricing, minimums, invalidation churn, pre-warming, hit-rate |
+| [`knowledge/cost-and-caching-decision-trees.md`](knowledge/cost-and-caching-decision-trees.md) | **Mermaid** — (1) cache-hit-rate-collapse debug tree ("caching configured but bill not dropping"); (2) the cost-lever ladder ("bill too high — which lever, in what order"). Complements the existing decision-tree file. Owned by `prompt-and-context-engineer` + `claude-app-ops-engineer` |
 | [`knowledge/tool-use-and-structured-output.md`](knowledge/tool-use-and-structured-output.md) | Designing tools / the Messages-API loop / structured output |
 | [`knowledge/mcp-server-authoring.md`](knowledge/mcp-server-authoring.md) | Building an MCP server / MCP-vs-tool decision |
 | [`knowledge/server-side-tools-and-files.md`](knowledge/server-side-tools-and-files.md) | Computer use / code execution / web search-fetch / Files API / memory tool |
@@ -133,9 +134,17 @@ Reference docs with `Last reviewed:` dates + confidence + source URLs. Inline pr
 
 ---
 
-## 8a. Scenarios bank — TODO (planned)
+## 8a. Scenarios bank (enabled — build-out 2026-06-05)
 
-Not yet enabled. Per the marketplace pattern, enable when the first real engagement scenario surfaces via `/wrap`: create `plugins/claude-app-engineering/scenarios/` with a `README.md` (copy from `plugins/power-platform/scenarios/README.md`), add the scenario-retrieval inline-prior block to the relevant agents, and remove this block.
+Now live. [`scenarios/`](scenarios/) holds dated, scope-tagged, **unverified** Claude-app build narratives (the marketplace dual-bank pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"), never overriding the cited knowledge bank (§8). Any dated platform fact inside a scenario (model id, price, GA status, window size) carries `[verify-at-use]` and defers to the capability map. The most-likely-to-benefit specialists — `prompt-and-context-engineer`, `claude-app-ops-engineer`, `eval-engineer`, `mcp-and-server-tools-engineer` — should check the bank when a situation matches.
+
+| File | Scope | Tags |
+|---|---|---|
+| [`prompt-cache-hit-rate-collapse`](scenarios/2026-06-05-prompt-cache-hit-rate-collapse.md) | likely-general | prompt-caching, cache-hit-rate, cost-blowout, prefix-invalidation |
+| [`tool-use-runaway-loop`](scenarios/2026-06-05-tool-use-runaway-loop.md) | likely-general | tool-use, agentic-loop, runaway, idempotency, stop-reason |
+| [`rag-retrieval-miss-under-200k`](scenarios/2026-06-05-rag-retrieval-miss-under-200k.md) | likely-general | rag, retrieval, long-context, reranking, eval-the-retriever |
+| [`streaming-timeout-on-long-output`](scenarios/2026-06-05-streaming-timeout-on-long-output.md) | likely-general | streaming, timeout, max-tokens, backoff, 429 |
+| [`eval-regression-shipped-silently`](scenarios/2026-06-05-eval-regression-shipped-silently.md) | likely-general | evals, regression, golden-set, llm-judge, model-migration |
 
 ---
 
@@ -168,13 +177,63 @@ Not yet enabled. Per the marketplace pattern, enable when the first real engagem
 
 ---
 
-## 11. The SDK prerequisite (no bundled MCP at v0.1.0)
+## 11. Technical-runtime tier — SDK prerequisite, recommended-not-bundled MCP, LSP, and the cost estimator
 
-No bundled MCP server. The agents recommend and emit code against the **Anthropic SDK** (`pip install anthropic` / `npm i @anthropic-ai/sdk`) and the **Claude Agent SDK** (`pip install claude-agent-sdk` / `npm i @anthropic-ai/claude-agent-sdk`), run by the developer with their own `ANTHROPIC_API_KEY` (or Bedrock/Vertex/Foundry creds). See [`knowledge/agent-sdk-and-managed-agents.md`](knowledge/agent-sdk-and-managed-agents.md). If a stable community Claude/Anthropic MCP emerges, evaluate bundling it later.
+This is a **code/AI** domain, so the plugin carries a runtime tier. Each item below is dispositioned against [`../../docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md) and the marketplace value-add menu; the summary table is §12.
+
+### 11.1 The SDK prerequisite
+
+The agents recommend and emit code against the **Anthropic SDK** (`pip install anthropic` / `npm i @anthropic-ai/sdk`) and the **Claude Agent SDK** (`pip install claude-agent-sdk` / `npm i @anthropic-ai/claude-agent-sdk`), run by the developer with their own `ANTHROPIC_API_KEY` (or Bedrock/Vertex/Foundry creds). See [`knowledge/agent-sdk-and-managed-agents.md`](knowledge/agent-sdk-and-managed-agents.md). Default model `claude-opus-4-8`; adaptive thinking; pin the id; always set `max_tokens` (§3 #11). Model ids/prices/GA status live in the dated capability map, not baked into personas.
+
+### 11.2 Recommended (not bundled) MCP servers — verified, no invented servers
+
+This plugin **bundles no MCP server**, on purpose. Per [`../../docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md), a bundled server must be **zero-config and read-only by default**. Real research (2026-06-05) confirms nothing in the Claude/AI domain clears that bar:
+
+| Candidate | Disposition | Why `[verify-at-use]` |
+|---|---|---|
+| **An Anthropic-hosted "Claude docs" MCP server** | **Does not exist (do not invent).** | The Claude API *Remote MCP servers* page states the listed servers are third-party, *"not owned, operated, or endorsed by Anthropic."* No first-party zero-auth docs MCP is published. Community ones (e.g. an `anthropic-docs-mcp` on directories) are unverified third-party — not bundleable, not recommended without a `security-reviewer` pass. |
+| **`fetch` reference server** ([modelcontextprotocol/servers](https://github.com/modelcontextprotocol/servers), MIT, first-party, no-auth, read-only) | **Recommend-not-bundle.** | It's the closest fit (no auth, read-only web→markdown) but it fetches **arbitrary URLs** — a broad capability, not a narrow Claude-docs server — so it's a consumer **`claude mcp add`** choice gated through `security-reviewer` (untrusted-content / SSRF surface), not a default bundle. Package/runner is version-volatile (historically the Python `uvx mcp-server-fetch`; a web check 2026-06-05 reported an `npx @modelcontextprotocol/server-fetch` form) — confirm the exact package + runner before quoting. |
+| **Postgres / DB / filesystem / git reference servers** | **Recommend-not-bundle** (same as backend-engineering). | Per-consumer path *and/or* write-capable *and/or* secret-handling (a DB connection string is a secret → reference, never literal). The Anthropic `@modelcontextprotocol/server-postgres` reference is **archived/deprecated** — do not recommend it. |
+
+**Why none are bundled (load-bearing):** the doctrine's decision table routes "per-consumer config OR write-capable OR secret-handling OR arbitrary-fetch breadth" to **recommend, don't bundle**. If a genuinely zero-config, read-only, narrowly-scoped Claude-docs MCP appears, revisit with Step 4 of the doctrine. **No invented packages or model/version claims** appear here; every status is dated and re-verifiable.
+
+> Verified 2026-06-05 against the [Claude API Remote-MCP-servers page](https://platform.claude.com/docs/en/agents-and-tools/remote-mcp-servers) (third-party disclaimer) and the [modelcontextprotocol/servers](https://github.com/modelcontextprotocol/servers) repo (reference-server set incl. `fetch`; the archived set incl. postgres). Package names, runner (`uvx`/`npx`), and archival status are volatile — re-confirm at use.
+
+### 11.3 LSP code intelligence — bundled config, binary installed separately
+
+This is a code domain, so the plugin ships an [`.lsp.json`](.lsp.json) (referenced from `plugin.json` `lspServers`) giving agents real code intelligence over the example languages they emit (Python / TypeScript-JS — the two Anthropic-SDK languages most used in this plugin's snippets):
+
+| Language | Server | `command` | Install (consumer, separate) |
+|---|---|---|---|
+| Python | Pyright | `pyright-langserver --stdio` | `pip install pyright` **or** `npm install -g pyright` |
+| TypeScript/JS | typescript-language-server | `typescript-language-server --stdio` | `npm install -g typescript-language-server typescript` |
+
+**The plugin ships the *config*, not the *binary*.** A missing server shows `Executable not found in $PATH` in the `/plugin` Errors tab and that one language degrades — everything else keeps working (loud-but-non-fatal). Go/Rust are omitted (this plugin's snippets are Python/TS); add them if a consumer's Claude integration is in another language. Package names + the `--stdio` invocation verified against the Claude Code plugins reference LSP table (2026-06-05); LSP support landed in Claude Code 2.0.74 `[verify-at-use]`.
+
+### 11.4 Runnable script — the cost / context-budget estimator
+
+[`scripts/claude_cost_estimator.py`](scripts/claude_cost_estimator.py) (stdlib-only, ruff-clean) removes arithmetic error from three recurring decisions, mirroring the §12 cost/caching trees: `cache` (prompt-cache break-even + cost over N requests), `budget` (does prefix + history + per-turn growth fit the context window, and for how many turns), `batch` (interactive vs Batch-API cost). It is a **calculator, not a data source** — the user supplies every token count and price; the dated default multipliers/discount are `[verify-at-use]` snapshots, not authoritative. Owned by `claude-app-ops-engineer` (FinOps) + `prompt-and-context-engineer` (caching/context-budget).
 
 ---
 
-## 12. References
+## 12. Value-add completeness (build-out 2026-06-05)
+
+Disposition of every value-add menu item (built vs. recorded N-A with reason), mirroring the merged `backend-engineering`/`veterinary-practice` pattern. Pre-existing surfaces (6 agents, 7 skills, 5 commands, 13-doc knowledge bank, 30 best-practices, 6 templates, 1 advisory hook) came from PR #315 and earlier; this build-out adds the net-new gap.
+
+| # | Item | Disposition |
+|---|---|---|
+| 1 | **scenarios/ bank** | **BUILT** — 5 scenarios (prompt-cache hit-rate collapse, tool-use runaway loop, RAG retrieval miss under 200K, streaming/timeout on long output, eval regression shipped silently) + `README.md` index on the marketplace 9-field schema. Replaces the §8a TODO; the four most-relevant agents check the bank via the scenario-retrieval skill. |
+| 2 | **Decision-tree (Mermaid) knowledge** | **BUILT** — `knowledge/cost-and-caching-decision-trees.md`: (1) cache-hit-rate-collapse debug tree, (2) the cost-lever ladder. Chosen because the existing tree file already covers model-selection, retrieval-strategy (RAG-vs-long-context), capability-home, eval-gate, orchestration-shape (agent-vs-workflow), async-delivery, injection, and document-format — these two cost/caching diagnostics were the genuine gaps (not duplicates). |
+| 3 | **Bundled MCP server** | **N-A (recommend-not-bundle)** — §11.2. Real web research (2026-06-05): no first-party Anthropic Claude-docs MCP exists (the Remote-MCP page disclaims the listed servers as third-party); the MIT `fetch` reference server is the closest but fetches arbitrary URLs (breadth → `security-reviewer`-gated `claude mcp add`, not a bundle); DB/filesystem/git are per-tenant/write/secret. No invented servers. |
+| 4 | **LSP server** | **BUILT** — `.lsp.json` (Pyright + typescript-language-server), wired via `plugin.json` `lspServers`. Useful for a code domain; the two Anthropic-SDK languages this plugin's snippets use. Binaries install separately (§11.3). |
+| 5 | **Runnable script** | **BUILT** — `scripts/claude_cost_estimator.py` (`cache` / `budget` / `batch`), stdlib-only, ruff-clean, calculator-not-data-source. Real value: it's the arithmetic behind the cost-lever + cache-hit-rate trees. |
+| 6 | **bin/ · monitors · output-styles · settings defaults · themes** | **N-A** — no groundable, broadly-valuable instance. The advisory hook (`check-claude-app-anti-patterns.sh`) + the skills already cover the in-loop surface; a `bin/` linter would duplicate the hook; the plugin is config-light by design and its deliverables are advisory snippets, not styled output. |
+| 7 | **skills / hooks / commands / templates** | **Coverage sufficient** — 7 skills, 5 commands, 6 templates, 1 advisory hook already cover caching, routing, tool-schema design, eval golden-set building, context-budget planning, MCP authoring, and Agent-SDK hook design. No gap this round; the scenarios + 2 trees + script extend reach without a new agent (team-growth-as-knowledge house rule). |
+| 8 | **CHANGELOG.md** | **BUILT** — top entry added for this build-out. No `NOTICE.md` (nothing third-party is bundled; the script is original stdlib-only, all sources cited inline). |
+
+---
+
+## 13. References
 
 - Domain-neutral team constitution: [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md)
 - Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md)

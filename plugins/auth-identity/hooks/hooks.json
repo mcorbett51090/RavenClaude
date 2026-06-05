@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for auth-identity. Auto-merged with the consumer's session hooks on install. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-auth-identity-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags 6 mechanically-detectable end-user-auth/identity anti-patterns (token-in-localStorage, Implicit flow, wildcard redirect_uri, unverified JWT decode, hardcoded secret, cookie without HttpOnly). Heuristic, not a security review. Set AUTH_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}
