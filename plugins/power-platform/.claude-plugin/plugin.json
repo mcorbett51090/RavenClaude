@@ -1,6 +1,6 @@
 {
   "name": "power-platform",
-  "version": "0.26.0",
+  "version": "0.26.1",
   "description": "Power Platform specialist team — 11 agents (incl. power-platform-tester, power-bi-engineer) and 18 skills, with strong ALM/git coverage for solutions, flows, and PBIP. A house-opinions hook flags 8 §3/§4 violations; the knowledge bank carries production decision trees (PA-flow recovery, Dataverse token-acquisition, PCF React surface, PBI deploy/refresh, custom-connector build-path, PBIR Enhanced infinite-spinner debug + full build reference, DAX silent-zero scoring debug via the `Domain` calc-column pattern, sempy.fabric Python-from-a-Fabric-notebook reference, Power BI Copilot report-readiness — Prep-data-for-AI grounding best-practice + decision tree + AI-instructions authoring template) plus a real-engagement scenarios bank. Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for Power BI .pbix/.pbit read/write/DAX-eval (requires `pip install pbix-mcp`); documents (does not bundle) the official Microsoft Dataverse MCP (CLAUDE.md §9a). Extends ravenclaude-core.",
   "author": {
     "name": "Matt Corbett"

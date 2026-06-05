@@ -11,6 +11,7 @@ For the companion log of dated, story-shaped findings (incidents we tried-failed
 | Doc | Status | Use when |
 |---|---|---|
 | [`authoring-plugin-slash-commands.md`](./authoring-plugin-slash-commands.md) | Pattern | Writing a `plugins/<plugin>/commands/*.md` slash command — frontmatter, the namespaced `/<plugin>:<command>` invocation, multi-step body shape, and why the dashboard is copy-to-run (not press-to-run) |
+| [`bundled-mcp-servers.md`](./bundled-mcp-servers.md) | Pattern (+2 absolute rules) | Giving a plugin's agents a real tool via MCP — the bundle / recommend / evaluate-first decision, pinning, the auto-start reality, the CLAUDE.md doctrine block that makes agents actually reach for the tool, and the never-ship-literal-secrets / gate-write-capable-servers absolutes |
 | [`ci-gate-audit.md`](./ci-gate-audit.md) | Absolute rule | Adding or changing any CI step that claims to enforce a property — every gate must fail on a known-bad input AND pass on a known-good input |
 | [`ci-on-github-token-pushes.md`](./ci-on-github-token-pushes.md) | Primary diagnostic | A PR head shows zero checks after a session pushed it — `GITHUB_TOKEN` pushes don't trigger `pull_request` CI; trigger each workflow with `workflow_dispatch` and poll `get_check_runs` |
 | [`cross-plugin-references.md`](./cross-plugin-references.md) | Absolute rule | One plugin references another plugin's agents/skills/knowledge — keep it soft (self-contained first, conditioned on presence, no hard `requires`) so it degrades gracefully when the sister plugin isn't installed |
