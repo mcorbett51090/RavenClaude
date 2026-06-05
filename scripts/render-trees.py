@@ -40,7 +40,7 @@ import importlib.util as _ilu
 # Pin the renderer so committed SVGs stay reproducible across machines/time.
 MMDC_VERSION = "11.15.0"
 # Bump when the normalizer logic below changes (invalidates every committed SVG).
-NORMALIZER_VERSION = 1
+NORMALIZER_VERSION = 2
 
 VISUALS_DIR = "plugins/ravenclaude-core/knowledge/tree-visuals"
 MANIFEST_NAME = ".render-manifest.json"
@@ -64,24 +64,32 @@ def _load_inventory(root: Path) -> list[dict]:
 def _theme_style(svg_id: str) -> str:
     """Override <style> remapping raw-Mermaid colors onto dashboard tokens (same
     approach as render-concepts.py). `!important` + id prefix beat Mermaid's own
-    per-id rules; CSS vars let the dashboard's light-mode block flip the SVG."""
+    per-id rules; CSS vars let the dashboard's light-mode block flip the SVG.
+
+    Each var() carries a concrete LIGHT fallback so the SVG also renders correctly
+    when loaded as an external `<img>`/`<object>` (the lazy-load path on the plugin
+    detail pages + the Guidance tab) — where the page's CSS custom properties do
+    NOT cascade in. Inline use is unchanged: the page defines the vars, so the
+    fallback is ignored and the diagram stays fully theme-reactive (incl. the dark
+    toggle). The fallback palette gives nodes a bordered light fill + dark text, so
+    an img-loaded tree stays legible on either a light or dark page background."""
     s = f"#{svg_id}"
     return (
         "<style>"
         f"{s} .nodeLabel,{s} .edgeLabel,{s} text,{s} span,{s} p,{s} div"
-        "{fill:var(--text)!important;color:var(--text)!important;background:transparent!important}"
+        "{fill:var(--text,#1f2937)!important;color:var(--text,#1f2937)!important;background:transparent!important}"
         f"{s} .node rect,{s} .node polygon,{s} .node circle,{s} .node path,{s} .label-container"
-        "{fill:var(--surface-2)!important;stroke:var(--border)!important;stroke-width:1.5px!important}"
-        f"{s} .cluster rect{{fill:var(--surface)!important;stroke:var(--border)!important}}"
+        "{fill:var(--surface-2,#eef2f7)!important;stroke:var(--border,#94a3b8)!important;stroke-width:1.5px!important}"
+        f"{s} .cluster rect{{fill:var(--surface,#f1f5f9)!important;stroke:var(--border,#94a3b8)!important}}"
         f"{s} .edgePath .path,{s} .edgePath path,{s} path.flowchart-link,{s} .flowchart-link"
-        "{stroke:var(--muted)!important;stroke-width:1.5px!important;fill:none!important}"
+        "{stroke:var(--muted,#64748b)!important;stroke-width:1.5px!important;fill:none!important}"
         f"{s} marker path,{s} .arrowMarkerPath,{s} #arrowhead path"
-        "{fill:var(--muted)!important;stroke:none!important}"
+        "{fill:var(--muted,#64748b)!important;stroke:none!important}"
         f"{s} .edgeLabel rect,{s} .edgeLabel .labelBkg,{s} .label-container.edgeLabel"
-        "{fill:var(--bg)!important;opacity:1!important}"
-        f"{s} .edgeLabel text,{s} .edgeLabel span{{fill:var(--muted)!important;color:var(--muted)!important}}"
+        "{fill:var(--bg,#ffffff)!important;opacity:1!important}"
+        f"{s} .edgeLabel text,{s} .edgeLabel span{{fill:var(--muted,#64748b)!important;color:var(--muted,#64748b)!important}}"
         f"{s} .node:hover rect,{s} .node:hover polygon,{s} .node:hover circle,{s} .node:hover path"
-        "{stroke:var(--accent)!important;stroke-width:2.5px!important;cursor:default}"
+        "{stroke:var(--accent,#0d9488)!important;stroke-width:2.5px!important;cursor:default}"
         "</style>"
     )
 

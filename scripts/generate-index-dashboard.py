@@ -777,27 +777,31 @@ def _load_fragments() -> dict:
 
 
 def _render_dt_store(gd) -> str:
-    """Hidden store of every plugin's decision-tree diagrams, inlined once. The
-    plugin detail view (window.__openPlugin) pulls a plugin's own trees out of
-    this store and renders them as collapsible dropdowns. This is the trees' only
-    home in the portal — they were MOVED here from the dashboard Guidance tab so
-    each tree sits next to the plugin it guides. Each item carries owner/title/
-    when/path as data-attrs plus the pre-rendered themed SVG (render-trees.py)."""
+    """Hidden index of every plugin's decision trees. The plugin detail view
+    (window.__openPlugin) pulls a plugin's own trees out of this store and renders
+    them as collapsible dropdowns — the trees' home in the portal (moved here from
+    the dashboard Guidance tab so each sits next to the plugin it guides).
+
+    Each item carries owner/title/when + the SVG's ROOT-RELATIVE PATH (data-svg).
+    The SVG is NOT inlined — __openPlugin lazy-loads it as an <img> when the tree's
+    <details> is opened. Inlining all 600+ trees doubled index.html (~14MB→27MB);
+    referencing the committed file keeps the portal light and only fetches a
+    diagram on demand. The SVGs self-theme via the render-trees fallback palette
+    (page CSS vars don't reach an <img>)."""
     import html as _h
 
     parts: list[str] = []
     for t in gd._decision_trees_inventory():
-        svg = gd._load_tree_svg(t["id"])
-        if not svg:
+        if not (gd.TREE_VISUALS_DIR / f"{t['id']}.svg").is_file():
             continue
+        rel = f"plugins/ravenclaude-core/knowledge/tree-visuals/{t['id']}.svg"
         parts.append(
             '<div class="dt-item" data-plugin="{owner}" data-title="{title}" '
-            'data-when="{when}" data-path="{path}">{svg}</div>'.format(
+            'data-when="{when}" data-svg="{svg}"></div>'.format(
                 owner=_h.escape(t["owner"], quote=True),
                 title=_h.escape(t["title"], quote=True),
                 when=_h.escape(t["when"], quote=True),
-                path=_h.escape(t["path"], quote=True),
-                svg=svg,
+                svg=_h.escape(rel, quote=True),
             )
         )
     return "".join(parts)

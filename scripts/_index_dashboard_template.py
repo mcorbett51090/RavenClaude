@@ -581,7 +581,7 @@ TEMPLATE = r"""<!doctype html>
       .dt-tree-title { font-weight: 600; font-size: 0.9rem; }
       .dt-tree-when { color: var(--muted); font-size: 0.8rem; }
       .dt-tree-svg { padding: 8px 14px 16px; overflow-x: auto; border-top: 1px solid var(--border); }
-      .dt-tree-svg svg { max-width: 100%; height: auto; }
+      .dt-tree-svg svg, .dt-tree-img { max-width: 100%; height: auto; display: block; }
     </style>
   </head>
   <body>
@@ -1226,7 +1226,11 @@ TEMPLATE = r"""<!doctype html>
           const one = (el) => {
             const title = el.getAttribute("data-title") || "Decision tree";
             const when = el.getAttribute("data-when") || "";
-            return `<details class="dt-tree"><summary class="dt-tree-summary"><span class="dt-tree-title">${esc(title)}</span>${when ? `<span class="dt-tree-when">${esc(when)}</span>` : ""}</summary><div class="dt-tree-svg">${el.innerHTML}</div></details>`;
+            const src = el.getAttribute("data-svg") || "";
+            // Lazy <img> — the browser fetches the SVG only when this <details> is
+            // opened/scrolled near, so the portal never ships 600+ inlined diagrams.
+            const img = src ? `<img loading="lazy" decoding="async" src="${esc(src)}" alt="${esc(title)} decision tree" class="dt-tree-img">` : "";
+            return `<details class="dt-tree"><summary class="dt-tree-summary"><span class="dt-tree-title">${esc(title)}</span>${when ? `<span class="dt-tree-when">${esc(when)}</span>` : ""}</summary><div class="dt-tree-svg">${img}</div></details>`;
           };
           return `<div class="section-title"><h2>Decision trees <span class="hint">${mine.length}</span></h2></div><p class="dt-tree-intro">When-this-applies guidance these agents follow. Click to expand each flow.</p><div class="dt-tree-list">${mine.map(one).join("")}</div>`;
         })();
