@@ -3,6 +3,7 @@ id: context-window
 title: "The context window"
 category: "Foundations"
 kind: platform-fact
+difficulty: basic
 order: 3
 summary: "Everything the model 'knows' this turn is the text in its context window — system prompt, tools, history, files. It's finite, it fills up, and when it's full the harness compacts."
 see_also: [agent-harness-loop, tool-use, session-start-context]

@@ -3,6 +3,7 @@ id: command-review-tribunal
 title: "Command-review tribunal (the Thing)"
 category: "Security"
 kind: ravenclaude-built
+difficulty: expert
 order: 30
 summary: "An opt-in panel of reviewer seats that votes ALLOW/EDIT/DENY on shell commands instead of interrupting you."
 see_also: [comfort-posture, permission-layers, hook-lifecycle]

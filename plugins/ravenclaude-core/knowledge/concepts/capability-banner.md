@@ -3,6 +3,7 @@ id: capability-banner
 title: "Capability-orientation banner"
 category: "Orientation & capability"
 kind: ravenclaude-built
+difficulty: intermediate
 order: 40
 summary: "A SessionStart hook injects what the project touches, the auth it holds (names only), and the effective permissions — so the agent never acts as if it has no access."
 see_also: [session-start-context, comfort-posture]

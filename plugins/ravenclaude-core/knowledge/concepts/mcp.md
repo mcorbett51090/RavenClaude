@@ -3,6 +3,7 @@ id: mcp
 title: "MCP: tools & data over a protocol"
 category: "Foundations"
 kind: platform-fact
+difficulty: intermediate
 order: 5
 summary: "The Model Context Protocol is a standard way to plug external tools and data into any agent. Write a server once; every MCP-aware client can use it — no per-app glue."
 see_also: [tool-use, agent-harness-loop]

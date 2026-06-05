@@ -3,6 +3,7 @@ id: model-diversity
 title: "Model diversity on the panel"
 category: "Security"
 kind: ravenclaude-built
+difficulty: intermediate
 order: 34
 summary: "When ≥2 reviewer seats convene, the tribunal guarantees ≥2 distinct model backbones run — so one model's blind spot can't pass the whole panel."
 see_also: [command-review-tribunal]

@@ -3,6 +3,7 @@ id: audit-gates
 title: "The gate-audit meta-test"
 category: "Marketplace engineering"
 kind: ravenclaude-built
+difficulty: expert
 order: 52
 summary: "Every CI gate is itself tested: audit-gates.sh proves each gate FAILS on a known-bad fixture and PASSES on a known-good one — so a gate can't silently rot into a no-op."
 see_also: [layout-hook]

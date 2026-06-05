@@ -3,6 +3,7 @@ id: permission-modes
 title: "Permission modes"
 category: "Platform model"
 kind: platform-fact
+difficulty: basic
 order: 15
 summary: "Six modes from default to bypassPermissions — but bypass still prompts on rm -rf /, and auto silently drops broad allow rules."
 see_also: [permission-layers, hook-lifecycle]

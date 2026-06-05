@@ -3,6 +3,7 @@ id: copilot-bridge
 title: "GitHub Copilot CLI bridge"
 category: "Marketplace engineering"
 kind: ravenclaude-built
+difficulty: intermediate
 order: 54
 summary: "RavenClaude runs under GitHub Copilot CLI too — via a generated package + a hook adapter — and updating is just `git pull`, never a re-install."
 see_also: [layout-hook, hook-lifecycle]

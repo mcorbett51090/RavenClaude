@@ -3,6 +3,7 @@ id: hook-lifecycle
 title: "Hooks: verdicts & exit codes"
 category: "Platform model"
 kind: platform-fact
+difficulty: expert
 order: 20
 summary: "Only exit 2 blocks a tool call; a hook deny beats bypass mode, but a hook allow can't override a settings deny."
 see_also: [permission-layers, command-review-tribunal]

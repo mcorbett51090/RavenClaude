@@ -3,6 +3,7 @@ id: permission-layers
 title: "Permission layers & precedence"
 category: "Platform model"
 kind: platform-fact
+difficulty: intermediate
 order: 10
 summary: "Four settings files merge — a deny in ANY layer wins, and you can't override it down from a later layer."
 see_also: [hook-lifecycle, command-review-tribunal]

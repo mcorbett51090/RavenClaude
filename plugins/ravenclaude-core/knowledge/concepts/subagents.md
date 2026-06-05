@@ -3,6 +3,7 @@ id: subagents
 title: "Subagents & orchestration"
 category: "Foundations"
 kind: platform-fact
+difficulty: intermediate
 order: 4
 summary: "A lead agent can spawn focused subagents, each with its own clean context window, and get back a short summary — not the raw work. It's how big tasks stay inside finite context."
 see_also: [context-window, agent-harness-loop, tool-use]

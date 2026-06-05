@@ -34,10 +34,12 @@ CONCEPTS_GLOB = "plugins/ravenclaude-core/knowledge/concepts/*.md"
 REGISTRY_PATH = "plugins/ravenclaude-core/concepts.json"
 VISUALS_DIR = "plugins/ravenclaude-core/knowledge/concepts/visuals"
 SVG_REL_PREFIX = "knowledge/concepts/visuals"
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 STALE_DAYS = 90  # platform-fact concepts older than this fail --check
 
 VALID_KINDS = ("platform-fact", "ravenclaude-built")
+# Reader-facing difficulty flag, surfaced as a badge in the Learn tab.
+VALID_DIFFICULTIES = ("basic", "intermediate", "expert")
 STEP_CAPTION_MAX = 120  # a step caption is a one-liner, not a paragraph
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _FM_RE = re.compile(r"^---\n(.*?)\n---\n?(.*)$", re.DOTALL)
@@ -95,6 +97,11 @@ def _parse_one(path: Path) -> dict:
     kind = req("kind", str)
     if kind not in VALID_KINDS:
         raise ConceptError(f"{rel}: kind '{kind}' must be one of {VALID_KINDS}")
+    difficulty = req("difficulty", str)
+    if difficulty not in VALID_DIFFICULTIES:
+        raise ConceptError(
+            f"{rel}: difficulty '{difficulty}' must be one of {VALID_DIFFICULTIES}"
+        )
     order = req("order", int)
     summary = req("summary", str)
     if len(summary) > 200:
@@ -206,6 +213,7 @@ def _parse_one(path: Path) -> dict:
         "title": title,
         "category": category,
         "kind": kind,
+        "difficulty": difficulty,
         "order": order,
         "summary": summary,
         "see_also": list(see_also),

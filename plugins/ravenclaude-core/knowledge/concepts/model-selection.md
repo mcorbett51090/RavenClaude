@@ -3,6 +3,7 @@ id: model-selection
 title: "Choosing a model"
 category: "Foundations"
 kind: platform-fact
+difficulty: basic
 order: 6
 summary: "Bigger isn't always better. Match the model to the job — a fast, cheap model for routine steps, a frontier model for hard reasoning — and use the strong one to supervise the cheap ones."
 see_also: [agent-harness-loop, subagents]

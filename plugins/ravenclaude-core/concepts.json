@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "categories": [
     {
       "name": "Foundations",
@@ -32,6 +32,7 @@
       "title": "The agent loop: one turn",
       "category": "Foundations",
       "kind": "platform-fact",
+      "difficulty": "intermediate",
       "order": 1,
       "summary": "Every agent turn runs the same loop: assemble prompt → call model → run tools → feed results back → repeat until done. The 'harness' is the software wrapping the model that drives it.",
       "see_also": [
@@ -102,6 +103,7 @@
       "title": "Tool use (function calling)",
       "category": "Foundations",
       "kind": "platform-fact",
+      "difficulty": "basic",
       "order": 2,
       "summary": "A model can't act on its own — it asks for a tool by name, the harness runs it, and the result comes back as the next message. That request/result loop is every agent action.",
       "see_also": [
@@ -135,6 +137,7 @@
       "title": "The context window",
       "category": "Foundations",
       "kind": "platform-fact",
+      "difficulty": "basic",
       "order": 3,
       "summary": "Everything the model 'knows' this turn is the text in its context window — system prompt, tools, history, files. It's finite, it fills up, and when it's full the harness compacts.",
       "see_also": [
@@ -169,6 +172,7 @@
       "title": "Subagents & orchestration",
       "category": "Foundations",
       "kind": "platform-fact",
+      "difficulty": "intermediate",
       "order": 4,
       "summary": "A lead agent can spawn focused subagents, each with its own clean context window, and get back a short summary — not the raw work. It's how big tasks stay inside finite context.",
       "see_also": [
@@ -203,6 +207,7 @@
       "title": "MCP: tools & data over a protocol",
       "category": "Foundations",
       "kind": "platform-fact",
+      "difficulty": "intermediate",
       "order": 5,
       "summary": "The Model Context Protocol is a standard way to plug external tools and data into any agent. Write a server once; every MCP-aware client can use it — no per-app glue.",
       "see_also": [
@@ -236,6 +241,7 @@
       "title": "Choosing a model",
       "category": "Foundations",
       "kind": "platform-fact",
+      "difficulty": "basic",
       "order": 6,
       "summary": "Bigger isn't always better. Match the model to the job — a fast, cheap model for routine steps, a frontier model for hard reasoning — and use the strong one to supervise the cheap ones.",
       "see_also": [
@@ -269,11 +275,15 @@
       "title": "Source control basics",
       "category": "Foundations",
       "kind": "platform-fact",
+      "difficulty": "basic",
       "order": 7,
       "summary": "Git is a time-machine for your files. RavenClaude does most of the git work for you — this page is the vocabulary so you can follow along.",
       "see_also": [
         "getting-started",
-        "layout-hook"
+        "layout-hook",
+        "git-worktrees",
+        "git-projects",
+        "git-merging"
       ],
       "widget": null,
       "try_it": null,
@@ -298,7 +308,7 @@
           "url": "https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control"
         }
       ],
-      "body_md": "**Source control** (the tool is called **git**, the website is **GitHub**) is a time-machine for every file in a project: every change is saved as a labeled snapshot, and many people can work on the same project in parallel without overwriting each other. The load-bearing fact for you: **RavenClaude does almost all of the git work for you** — this page is the vocabulary so you understand what Claude Code is doing on your behalf, and can step in when something goes sideways.\n\n**Four ideas cover almost everything you'll see:**\n\n- **Commit** — one saved snapshot of your work, with a short message explaining _why_ (not what — the diff already shows what).\n- **Branch** — a parallel timeline for a piece of work-in-progress, kept separate from the project's official timeline (the **main** branch).\n- **Pull request (PR)** — a proposal that the work on a branch be merged back into main; it gets reviewed (by a person, by CI checks, sometimes by Claude) before anything moves.\n- **Merge** — combining a branch's commits into main once the PR is approved.\n\n**The minimum vocabulary** you'll see in commands and logs:\n\n- `git status` — what's changed since the last snapshot\n- `git add <file>` — stage a file for the next snapshot\n- `git commit -m \"why\"` — take the snapshot\n- `git push` — upload local commits to GitHub\n- `git pull` — download new commits from GitHub\n- `git log` — read the history\n\n**Two patterns you'll actually encounter in this repo:**\n\n1. **Docs commit straight to main, no PR.** Pure documentation under `docs/` (plans, designs, research notes, the rolling session log) commits direct to main because it can't break a consumer's `/plugin marketplace update`. Faster planning loop.\n2. **Code, hooks, manifests, and CI go through a PR.** Claude Code creates the branch, makes the commits, opens the PR, and tells you the URL. You review in GitHub and click **Merge**.\n\n**The safety nets** mean you can experiment without breaking things:\n\n- The `guard-destructive.sh` hook blocks the truly destructive commands — **force-push to main**, `git reset --hard`, `git clean -f`, and `git branch -D` on a protected branch. It denies them before they run.\n- The sanctioned way to retire a finished branch is `scripts/archive-branch.sh` — it **tags the branch tip** (so the work is recoverable forever on the tag), pushes the tag to GitHub, writes an audit log, then deletes the local branch. Work is never actually lost.\n\nYou will rarely type any of these commands yourself. The reason to learn the vocabulary is so that when Claude says _\"I opened PR #238 on branch `feat/rc-hardener-followups`\"_ or _\"the guard denied a force-push\"_, you know exactly what happened and what your next click is.",
+      "body_md": "**Source control** (the tool is called **git**, the website is **GitHub**) is a time-machine for every file in a project: every change is saved as a labeled snapshot, and many people can work on the same project in parallel without overwriting each other. The load-bearing fact for you: **RavenClaude does almost all of the git work for you** — this page is the vocabulary so you understand what Claude Code is doing on your behalf, and can step in when something goes sideways.\n\n**Four ideas cover almost everything you'll see:**\n\n- **Commit** — one saved snapshot of your work, with a short message explaining _why_ (not what — the diff already shows what).\n- **Branch** — a parallel timeline for a piece of work-in-progress, kept separate from the project's official timeline (the **main** branch).\n- **Pull request (PR)** — a proposal that the work on a branch be merged back into main; it gets reviewed (by a person, by CI checks, sometimes by Claude) before anything moves.\n- **Merge** — combining a branch's commits into main once the PR is approved.\n\n**The minimum vocabulary** you'll see in commands and logs:\n\n- `git status` — what's changed since the last snapshot\n- `git add <file>` — stage a file for the next snapshot\n- `git commit -m \"why\"` — take the snapshot\n- `git push` — upload local commits to GitHub\n- `git pull` — download new commits from GitHub\n- `git log` — read the history\n\n**Two patterns you'll actually encounter in this repo:**\n\n1. **Docs commit straight to main, no PR.** Pure documentation under `docs/` (plans, designs, research notes, the rolling session log) commits direct to main because it can't break a consumer's `/plugin marketplace update`. Faster planning loop.\n2. **Code, hooks, manifests, and CI go through a PR.** Claude Code creates the branch, makes the commits, opens the PR, and tells you the URL. You review in GitHub and click **Merge**.\n\n**The safety nets** mean you can experiment without breaking things:\n\n- The `guard-destructive.sh` hook blocks the truly destructive commands — **force-push to main**, `git reset --hard`, `git clean -f`, and `git branch -D` on a protected branch. It denies them before they run.\n- The sanctioned way to retire a finished branch is `scripts/archive-branch.sh` — it **tags the branch tip** (so the work is recoverable forever on the tag), pushes the tag to GitHub, writes an audit log, then deletes the local branch. Work is never actually lost.\n\nYou will rarely type any of these commands yourself. The reason to learn the vocabulary is so that when Claude says _\"I opened PR #238 on branch `feat/rc-hardener-followups`\"_ or _\"the guard denied a force-push\"_, you know exactly what happened and what your next click is.\n\nOnce this vocabulary clicks, three companion concepts go deeper: **git worktrees** (several branches checked out at once), **repos & project organization** (monorepo vs multi-repo, submodules vs subtrees), and **merging** (merge vs squash vs rebase — and why this repo squash-merges PRs).",
       "diagram": "flowchart TD\n  W[Your working files] -->|git add| S[Staging area]\n  S -->|git commit| C[Commit on a branch]\n  C -->|git push| GH[(GitHub: branch)]\n  GH -->|open PR| PR[Pull request · reviewed]\n  PR -->|merge| MAIN[(main branch · official timeline)]\n  D[Docs change under docs/] -->|commit + push| MAIN\n  X[git push --force to main<br/>git reset --hard<br/>rm -rf the repo] -.->|guard-destructive.sh| BLOCK[Blocked — safety net]\n  R[Retire a finished branch] -->|archive-branch.sh| TAG[Tag pushed · branch deleted · recoverable forever]\n  class C,PR,MAIN,TAG fact\n  class BLOCK,GH built",
       "diagram_mini": "flowchart LR\n  E[edit] --> C[commit] --> B[branch] --> P[PR] --> M[main]\n  class C,P,M fact",
       "steps": [
@@ -337,10 +347,121 @@
       "svg_mini": "knowledge/concepts/visuals/source-control-basics.mini.svg"
     },
     {
+      "id": "git-worktrees",
+      "title": "Git worktrees",
+      "category": "Foundations",
+      "kind": "platform-fact",
+      "difficulty": "intermediate",
+      "order": 8,
+      "summary": "A worktree is a second checked-out working directory backed by the same repo, so you can have several branches open at once — no stashing, no re-cloning.",
+      "see_also": [
+        "source-control-basics",
+        "git-projects",
+        "git-merging",
+        "subagents"
+      ],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-06-05",
+      "refresh_when": "Git changes the `git worktree` command surface or its same-branch-in-two-worktrees rule, or the marketplace changes its `.claude/worktrees/` fan-out convention.",
+      "sources": [
+        {
+          "label": "git-worktree — official man page",
+          "url": "https://git-scm.com/docs/git-worktree"
+        },
+        {
+          "label": "new-worktree skill (RavenClaude)",
+          "url": "plugins/ravenclaude-core/skills/new-worktree/SKILL.md"
+        }
+      ],
+      "body_md": "A normal clone has **one** working directory: one set of files on disk, one branch checked out at a time. To switch branches you either commit or **stash** your in-progress changes, swap, and swap back later. That serializes you — you can only look at one branch's files at once.\n\nA **worktree** removes that limit. It is a **second (or third, or Nth) checked-out working directory backed by the same underlying repository** — the same commit history, the same object store, the same remotes — but with a *different* branch checked out in each directory. You get multiple branches live on disk simultaneously, with no stashing and no second clone (a clone would duplicate the whole history; a worktree shares it).\n\nThe core command is:\n\n```\ngit worktree add ../wt-foo branch-name\n```\n\nThat creates a new directory `../wt-foo` with `branch-name` checked out, leaving your current directory exactly as it was. `git worktree list` shows every worktree the repo has; `git worktree remove ../wt-foo` tears one down when you're done.\n\n**When worktrees earn their keep:**\n\n- **Parallel work** — a long build or test run is churning in one branch's directory while you keep coding in another's.\n- **Reviewing a PR without losing your place** — check out the PR branch in a fresh worktree, run and read it, then `remove` it — your own feature branch's directory never moved.\n- **Agent fan-out** — this marketplace uses `.claude/worktrees/` to give parallel agents their own isolated working directories so they don't collide on the same files. The project's name for this worktree traversal is **Sleipnir** (Odin's eight-legged horse — the one mount that crosses realm boundaries safely); in dispatch prose you'll see \"I'll send Sleipnir to that branch\" rather than the raw `git worktree` call.\n\n**The gotcha to remember:** the **same branch cannot be checked out in two worktrees at once.** Git refuses, because two directories editing one branch would race each other's commits. Each worktree needs its own distinct branch (or a detached HEAD). When you're finished, `git worktree remove` cleans up the directory and de-registers it — don't just `rm -rf` the folder, or the repo keeps a stale registration (recoverable with `git worktree prune`).",
+      "diagram": "flowchart TD\n  R[(Shared repo · one history + object store)] --> WT1[Worktree A · feature branch]\n  R --> WT2[Worktree B · PR under review]\n  R --> WT3[Worktree C · agent fan-out · .claude/worktrees/]\n  WT1 -->|git worktree add ../wt branch| ADD[New dir · its own branch]\n  WT3 -->|git worktree remove| GONE[Dir removed · de-registered]\n  X[Same branch in two worktrees] -.->|git refuses| BLOCK[Not allowed]\n  class WT1,WT2,WT3,ADD fact\n  class GONE,BLOCK built",
+      "diagram_mini": "flowchart LR\n  R[(one repo)] --> A[worktree A]\n  R --> B[worktree B]\n  A --> P[branches open in parallel]\n  class R,A,B fact\n  class P built",
+      "steps": [],
+      "svg": "knowledge/concepts/visuals/git-worktrees.svg",
+      "svg_mini": "knowledge/concepts/visuals/git-worktrees.mini.svg"
+    },
+    {
+      "id": "git-projects",
+      "title": "Repos & project organization",
+      "category": "Foundations",
+      "kind": "platform-fact",
+      "difficulty": "basic",
+      "order": 9,
+      "summary": "A 'project' in source control is one repository — one shared history. This is the vocabulary for how repos hold code: working dir vs repo, monorepo vs multi-repo, submodules vs subtrees.",
+      "see_also": [
+        "source-control-basics",
+        "git-worktrees",
+        "git-merging"
+      ],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-06-05",
+      "refresh_when": "Git changes its submodule/subtree model, or the common monorepo-vs-multi-repo guidance shifts materially.",
+      "sources": [
+        {
+          "label": "Pro Git (the book)",
+          "url": "https://git-scm.com/book/en/v2"
+        },
+        {
+          "label": "git-submodule — official man page",
+          "url": "https://git-scm.com/docs/git-submodule"
+        }
+      ],
+      "body_md": "In source control, a **project** maps to a **repository (repo)**: one repo is one self-contained history of one body of work. Everything that belongs together — its code, its commits, its branches, its tags — lives in that one repo, and the repo is the unit you clone, push, and open a pull request against.\n\n**The working directory vs the repo** is the first distinction to keep straight. The **working directory** is the set of files you see and edit on disk right now. The **repo** is the full history *behind* those files — every past snapshot, every branch, stored in a hidden `.git/` folder. The working directory is one point in time; the repo is the time-machine that can move it to any other point. (A worktree, in the companion concept, is a *second* working directory backed by the *same* repo.)\n\n**Monorepo vs multi-repo** is the big organizational choice once you have more than one thing to manage:\n\n- A **monorepo** is **one repository holding many packages / apps / libraries** side by side. One clone gets you everything; a single commit can change two packages atomically; refactoring across boundaries is easy. The cost is a larger repo and tooling that has to understand \"which part changed.\" This very marketplace is a monorepo — many plugins under one `plugins/` tree, one history.\n- **Multi-repo** is **one repository per package**, each with its own history and release cadence. Each piece stays small and independently versioned, but a change that spans two repos now needs two commits, two PRs, and a coordination step. You reach for multi-repo when the pieces have genuinely independent lifecycles and owners.\n\n**Submodules vs subtrees** are the two ways to **nest one repo inside another** — to pull an external repo in as a sub-directory of yours:\n\n- A **submodule** records a *pointer* to a specific commit of the other repo. Your repo stores only \"use repo X at commit Y\"; the actual files are fetched separately (`git submodule update`). It keeps the two histories cleanly separate and the parent repo small, at the price of an extra step everyone cloning must remember. Fits when the nested repo is a genuinely external dependency you only consume.\n- A **subtree** *copies* the other repo's files (and optionally its history) directly into your repo. There's nothing extra to fetch — a plain clone has everything — but your repo carries the contents, and pushing changes back upstream is more involved. Fits when you want a vendored copy that \"just works\" for everyone who clones, with no submodule ceremony.",
+      "diagram": "flowchart TD\n  P[Project] --> REPO[(Repository · one history)]\n  REPO --> WD[Working directory · files on disk now]\n  REPO --> ORG{How to organize many pieces?}\n  ORG -->|one repo, many packages| MONO[Monorepo]\n  ORG -->|one repo per package| MULTI[Multi-repo]\n  REPO --> NEST{Nest another repo inside?}\n  NEST -->|pointer to a commit| SUB[Submodule]\n  NEST -->|copy files in| TREE[Subtree]\n  class REPO,WD,MONO,MULTI fact\n  class SUB,TREE built",
+      "diagram_mini": "flowchart LR\n  P[project] --> R[(one repo)]\n  R --> M[mono or multi]\n  R --> N[submodule or subtree]\n  class R fact\n  class M,N built",
+      "steps": [],
+      "svg": "knowledge/concepts/visuals/git-projects.svg",
+      "svg_mini": "knowledge/concepts/visuals/git-projects.mini.svg"
+    },
+    {
+      "id": "git-merging",
+      "title": "Merging: merge, squash & rebase",
+      "category": "Foundations",
+      "kind": "platform-fact",
+      "difficulty": "intermediate",
+      "order": 10,
+      "summary": "Three ways a branch's work lands on main — a merge commit, a squash merge, or a rebase — plus fast-forward and conflict resolution. The marketplace squash-merges PRs.",
+      "see_also": [
+        "source-control-basics",
+        "git-worktrees",
+        "git-projects"
+      ],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-06-05",
+      "refresh_when": "Git changes its merge/rebase command surface, or the marketplace changes its PR-merge strategy (currently squash) in AGENTS.md.",
+      "sources": [
+        {
+          "label": "git-merge — official man page",
+          "url": "https://git-scm.com/docs/git-merge"
+        },
+        {
+          "label": "git-rebase — official man page",
+          "url": "https://git-scm.com/docs/git-rebase"
+        },
+        {
+          "label": "AGENTS.md — PR conventions",
+          "url": "AGENTS.md"
+        }
+      ],
+      "body_md": "Once work on a branch is done, it has to **land on `main`**. There are three ways to do that, and they differ in what history they leave behind.\n\n**1. A merge commit** — `git merge`. Git creates a brand-new **merge commit** with *two* parents (the tip of main and the tip of your branch), tying the two timelines together. Every original commit on your branch is preserved exactly as it was, and the merge node records that a branch happened here. This keeps **true history** — you can see precisely what was developed in parallel — at the cost of a busier, non-linear graph.\n\n**2. A squash merge** — all the commits on your branch are **collapsed into a single new commit** on main. The branch's intermediate commits do *not* come across; main gets one clean commit representing the whole feature. This gives a **clean, linear history** (one commit per feature/PR, easy to read and to revert as a unit) and loses the step-by-step intermediate commits. **This is the marketplace's default for PRs** (see AGENTS.md PR conventions) — main reads as one tidy commit per merged PR.\n\n**3. A rebase** — `git rebase`. Instead of merging, git **replays your branch's commits one at a time onto a new base** (usually the current tip of main), rewriting them as if you'd started from there. The result is a **linear history** with your individual commits preserved but no merge node. The **golden rule of rebasing: never rebase shared/pushed history.** Rebasing rewrites commit identities, so rebasing commits that others have already pulled forces everyone else into a painful divergence — rebase only your own local, un-shared work.\n\n**Fast-forward vs no-ff.** When main hasn't moved since you branched, a merge can simply **fast-forward** — slide main's pointer up to your branch's tip, creating *no* merge commit (the history is already linear). `--no-ff` forces a merge commit even when a fast-forward was possible, so the merge is explicitly recorded as a distinct event. Squash and rebase both produce linear results by construction.\n\n**Conflict resolution (vocabulary level).** A **conflict** happens when two branches changed the *same* lines of the *same* file in incompatible ways — git can't decide which wins, so it stops and marks the spot with `<<<<<<<` / `=======` / `>>>>>>>` markers. You edit the file to the correct combined result, remove the markers, `git add` it to mark it resolved, and continue the merge or rebase. Conflicts are normal, not errors; they're git asking a human to make the call it can't.",
+      "diagram": "flowchart TD\n  B[Branch work · several commits] --> HOW{How should it land on main?}\n  HOW -->|preserve true history| MERGE[Merge commit · 2 parents · merge node]\n  HOW -->|one clean commit · marketplace default| SQUASH[Squash merge · branch collapsed]\n  HOW -->|replay onto new base · linear| REBASE[Rebase · golden rule: never on shared history]\n  MERGE --> FF{main unmoved?}\n  FF -->|yes| FWD[Fast-forward · no merge commit]\n  FF -->|no / --no-ff| NODE[Merge commit recorded]\n  ANY[Same lines changed both sides] -.->|conflict markers| RESOLVE[Human edits · git add · continue]\n  class MERGE,SQUASH,REBASE,FWD fact\n  class NODE,RESOLVE built",
+      "diagram_mini": "flowchart LR\n  B[branch] --> M{land on main}\n  M --> A[merge]\n  M --> S[squash]\n  M --> R[rebase]\n  class B fact\n  class A,S,R built",
+      "steps": [],
+      "svg": "knowledge/concepts/visuals/git-merging.svg",
+      "svg_mini": "knowledge/concepts/visuals/git-merging.mini.svg"
+    },
+    {
       "id": "getting-started",
       "title": "Getting started",
       "category": "Getting started",
       "kind": "ravenclaude-built",
+      "difficulty": "basic",
       "order": 5,
       "summary": "Add the marketplace, install ravenclaude-core, run /dashboard. Needs jq + python3; under Copilot CLI it's `ravenclaude install`.",
       "see_also": [
@@ -405,6 +526,7 @@
       "title": "Permission layers & precedence",
       "category": "Platform model",
       "kind": "platform-fact",
+      "difficulty": "intermediate",
       "order": 10,
       "summary": "Four settings files merge — a deny in ANY layer wins, and you can't override it down from a later layer.",
       "see_also": [
@@ -467,6 +589,7 @@
       "title": "Permission modes",
       "category": "Platform model",
       "kind": "platform-fact",
+      "difficulty": "basic",
       "order": 15,
       "summary": "Six modes from default to bypassPermissions — but bypass still prompts on rm -rf /, and auto silently drops broad allow rules.",
       "see_also": [
@@ -526,6 +649,7 @@
       "title": "Hooks: verdicts & exit codes",
       "category": "Platform model",
       "kind": "platform-fact",
+      "difficulty": "expert",
       "order": 20,
       "summary": "Only exit 2 blocks a tool call; a hook deny beats bypass mode, but a hook allow can't override a settings deny.",
       "see_also": [
@@ -585,6 +709,7 @@
       "title": "SessionStart context injection",
       "category": "Platform model",
       "kind": "platform-fact",
+      "difficulty": "intermediate",
       "order": 22,
       "summary": "SessionStart hooks inject additionalContext into every session — additive only; they can't block or delay startup and are capped near 10k chars.",
       "see_also": [
@@ -642,6 +767,7 @@
       "title": "Comfort-posture dashboard",
       "category": "Security",
       "kind": "ravenclaude-built",
+      "difficulty": "intermediate",
       "order": 25,
       "summary": "A point-and-click editor that writes Claude Code permission rules per category and layer — and keeps design check-ins independent of permission level.",
       "see_also": [
@@ -706,6 +832,7 @@
       "title": "Command-review tribunal (the Thing)",
       "category": "Security",
       "kind": "ravenclaude-built",
+      "difficulty": "expert",
       "order": 30,
       "summary": "An opt-in panel of reviewer seats that votes ALLOW/EDIT/DENY on shell commands instead of interrupting you.",
       "see_also": [
@@ -778,6 +905,7 @@
       "title": "The Sága audit log",
       "category": "Security",
       "kind": "ravenclaude-built",
+      "difficulty": "intermediate",
       "order": 32,
       "summary": "Every command-review verdict writes one JSON entry — command, category, tier, per-seat votes, concerns, final verdict — under .ravenclaude/runs/thing/.",
       "see_also": [
@@ -833,6 +961,7 @@
       "title": "Model diversity on the panel",
       "category": "Security",
       "kind": "ravenclaude-built",
+      "difficulty": "intermediate",
       "order": 34,
       "summary": "When ≥2 reviewer seats convene, the tribunal guarantees ≥2 distinct model backbones run — so one model's blind spot can't pass the whole panel.",
       "see_also": [
@@ -891,6 +1020,7 @@
       "title": "Decision-review tribunal",
       "category": "Security",
       "kind": "ravenclaude-built",
+      "difficulty": "expert",
       "order": 36,
       "summary": "A sibling tribunal votes yes/no/defer on yes-or-no DECISIONS before they reach you — binding only if you opt in, and high-blast calls always defer.",
       "see_also": [
@@ -952,6 +1082,7 @@
       "title": "Capability-orientation banner",
       "category": "Orientation & capability",
       "kind": "ravenclaude-built",
+      "difficulty": "intermediate",
       "order": 40,
       "summary": "A SessionStart hook injects what the project touches, the auth it holds (names only), and the effective permissions — so the agent never acts as if it has no access.",
       "see_also": [
@@ -1013,6 +1144,7 @@
       "title": "Environment context & discovery",
       "category": "Orientation & capability",
       "kind": "ravenclaude-built",
+      "difficulty": "intermediate",
       "order": 42,
       "summary": "An optional file maps which environments your creds reach and what's pre-authorized — so the agent acts without asking where allowed, and stops on forbidden actions.",
       "see_also": [
@@ -1072,6 +1204,7 @@
       "title": "Decision trees in knowledge files",
       "category": "Orientation & capability",
       "kind": "ravenclaude-built",
+      "difficulty": "intermediate",
       "order": 44,
       "summary": "Knowledge files carry Mermaid decision trees the agent traverses BEFORE picking a method — preventing wrong-branch-from-the-start, with a mandatory staleness date.",
       "see_also": [
@@ -1130,6 +1263,7 @@
       "title": "Layout enforcement",
       "category": "Marketplace engineering",
       "kind": "ravenclaude-built",
+      "difficulty": "intermediate",
       "order": 50,
       "summary": "A PreToolUse hook plus a CI backstop block off-pattern file creation against .repo-layout.json — because path-scoped rule files load on Read, not Write.",
       "see_also": [
@@ -1185,10 +1319,46 @@
       "svg_mini": "knowledge/concepts/visuals/layout-hook.mini.svg"
     },
     {
+      "id": "marketplace-model",
+      "title": "The marketplace model",
+      "category": "Marketplace engineering",
+      "kind": "ravenclaude-built",
+      "difficulty": "basic",
+      "order": 51,
+      "summary": "RavenClaude is a private 'app store' for Claude Code — the product is the plugins under plugins/. Install one with /plugin install <name>@ravenclaude and it joins your session.",
+      "see_also": [
+        "getting-started",
+        "layout-hook",
+        "subagents"
+      ],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": null,
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "AGENTS.md — What this repo is",
+          "url": "AGENTS.md"
+        },
+        {
+          "label": "ravenclaude-core CLAUDE.md — core-vs-domain house rule",
+          "url": "plugins/ravenclaude-core/CLAUDE.md"
+        }
+      ],
+      "body_md": "**RavenClaude is a private \"app store\" for Claude Code.** It is not an application you run — it is a **plugin marketplace**, and its product is the set of **plugins** that live under the `plugins/` directory. Each plugin is a self-contained bundle of capability — agents, skills, hooks, rules, knowledge, slash commands — that a Claude Code (or GitHub Copilot CLI) session can pull in.\n\nTo use one, you **install it into whatever project you're working in**:\n\n```\n/plugin install <name>@ravenclaude\n```\n\nThat joins the plugin to your session. From then on, the plugin's `CLAUDE.md` — its operating constitution — **auto-loads whenever the plugin is active**, so its agents, conventions, and guardrails are in force without you having to paste anything. Updating is just `/plugin marketplace update ravenclaude`; the marketplace stays the single source of truth and your projects pull from it.\n\n**Plugin separation — the core-vs-domain split.** The marketplace is deliberately layered so capability composes cleanly:\n\n- **`ravenclaude-core` stays domain-neutral.** It carries the generalist machinery every project needs regardless of subject matter: the Team Lead and the generalist specialist agents (Architect, Coder, Reviewer, …), the dispatch playbook, the quality gates, the lifecycle hooks, and the cross-cutting protocols. Nothing in core is specific to finance, Power Platform, education, or any one vertical.\n- **Domain plugins extend core; they don't fork it.** A domain plugin (e.g. `power-platform`) adds its expertise as **skills and knowledge files that core agents invoke** — *not* as a parallel set of agents that duplicate core's roles. The house rule (see `plugins/ravenclaude-core/CLAUDE.md`) is explicit: a domain plugin forks a core agent **only** when the domain's review rubric is genuinely incompatible with core's; otherwise it ships a skill plus a knowledge file and lets the core agent do the work. This keeps review behavior consistent across plugin boundaries and stops every vertical from re-inventing an architect and a security reviewer.\n\nThe net effect: install core once for the generalist team, layer on whichever domain plugins your project needs, and the domains *teach* core's agents rather than competing with them.",
+      "diagram": "flowchart TD\n  MP[(RavenClaude marketplace · private app store)] --> CORE[ravenclaude-core · domain-neutral]\n  MP --> DOM[Domain plugins · power-platform, ...]\n  CORE --> AG[Generalist agents + gates + hooks + protocols]\n  DOM -->|skills + knowledge, not parallel agents| CORE\n  USER[Your project] -->|/plugin install name@ravenclaude| JOIN[Plugin joins session]\n  JOIN --> LOAD[Its CLAUDE.md auto-loads when active]\n  class MP,CORE,AG fact\n  class DOM,JOIN,LOAD built",
+      "diagram_mini": "flowchart LR\n  MP[(marketplace)] --> C[core]\n  MP --> D[domain plugins]\n  D -->|extend, not fork| C\n  class MP,C fact\n  class D built",
+      "steps": [],
+      "svg": "knowledge/concepts/visuals/marketplace-model.svg",
+      "svg_mini": "knowledge/concepts/visuals/marketplace-model.mini.svg"
+    },
+    {
       "id": "audit-gates",
       "title": "The gate-audit meta-test",
       "category": "Marketplace engineering",
       "kind": "ravenclaude-built",
+      "difficulty": "expert",
       "order": 52,
       "summary": "Every CI gate is itself tested: audit-gates.sh proves each gate FAILS on a known-bad fixture and PASSES on a known-good one — so a gate can't silently rot into a no-op.",
       "see_also": [
@@ -1247,6 +1417,7 @@
       "title": "GitHub Copilot CLI bridge",
       "category": "Marketplace engineering",
       "kind": "ravenclaude-built",
+      "difficulty": "intermediate",
       "order": 54,
       "summary": "RavenClaude runs under GitHub Copilot CLI too — via a generated package + a hook adapter — and updating is just `git pull`, never a re-install.",
       "see_also": [

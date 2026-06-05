@@ -3,6 +3,7 @@ id: session-start-context
 title: "SessionStart context injection"
 category: "Platform model"
 kind: platform-fact
+difficulty: intermediate
 order: 22
 summary: "SessionStart hooks inject additionalContext into every session — additive only; they can't block or delay startup and are capped near 10k chars."
 see_also: [hook-lifecycle, capability-banner]

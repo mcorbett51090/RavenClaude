@@ -3,6 +3,7 @@ id: environment-context
 title: "Environment context & discovery"
 category: "Orientation & capability"
 kind: ravenclaude-built
+difficulty: intermediate
 order: 42
 summary: "An optional file maps which environments your creds reach and what's pre-authorized — so the agent acts without asking where allowed, and stops on forbidden actions."
 see_also: [capability-banner, decision-trees]

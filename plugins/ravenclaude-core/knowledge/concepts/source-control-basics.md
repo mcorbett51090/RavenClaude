@@ -3,9 +3,10 @@ id: source-control-basics
 title: "Source control basics"
 category: "Foundations"
 kind: platform-fact
+difficulty: basic
 order: 7
 summary: "Git is a time-machine for your files. RavenClaude does most of the git work for you — this page is the vocabulary so you can follow along."
-see_also: [getting-started, layout-hook]
+see_also: [getting-started, layout-hook, git-worktrees, git-projects, git-merging]
 last_verified: 2026-06-04
 refresh_when: "Git or GitHub change a load-bearing default (branch name, PR flow), or the marketplace's PR conventions or branch-archive contract change."
 sources:
@@ -48,6 +49,8 @@ sources:
 - The sanctioned way to retire a finished branch is `scripts/archive-branch.sh` — it **tags the branch tip** (so the work is recoverable forever on the tag), pushes the tag to GitHub, writes an audit log, then deletes the local branch. Work is never actually lost.
 
 You will rarely type any of these commands yourself. The reason to learn the vocabulary is so that when Claude says _"I opened PR #238 on branch `feat/rc-hardener-followups`"_ or _"the guard denied a force-push"_, you know exactly what happened and what your next click is.
+
+Once this vocabulary clicks, three companion concepts go deeper: **git worktrees** (several branches checked out at once), **repos & project organization** (monorepo vs multi-repo, submodules vs subtrees), and **merging** (merge vs squash vs rebase — and why this repo squash-merges PRs).
 
 ```mermaid
 flowchart TD

@@ -3,6 +3,7 @@ id: tool-use
 title: "Tool use (function calling)"
 category: "Foundations"
 kind: platform-fact
+difficulty: basic
 order: 2
 summary: "A model can't act on its own — it asks for a tool by name, the harness runs it, and the result comes back as the next message. That request/result loop is every agent action."
 see_also: [agent-harness-loop, permission-layers]

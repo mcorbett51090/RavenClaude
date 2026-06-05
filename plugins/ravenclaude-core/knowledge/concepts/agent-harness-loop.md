@@ -3,6 +3,7 @@ id: agent-harness-loop
 title: "The agent loop: one turn"
 category: "Foundations"
 kind: platform-fact
+difficulty: intermediate
 order: 1
 summary: "Every agent turn runs the same loop: assemble prompt → call model → run tools → feed results back → repeat until done. The 'harness' is the software wrapping the model that drives it."
 see_also: [tool-use, context-window, subagents]

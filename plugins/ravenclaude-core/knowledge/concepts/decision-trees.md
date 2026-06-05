@@ -3,6 +3,7 @@ id: decision-trees
 title: "Decision trees in knowledge files"
 category: "Orientation & capability"
 kind: ravenclaude-built
+difficulty: intermediate
 order: 44
 summary: "Knowledge files carry Mermaid decision trees the agent traverses BEFORE picking a method — preventing wrong-branch-from-the-start, with a mandatory staleness date."
 see_also: [environment-context]

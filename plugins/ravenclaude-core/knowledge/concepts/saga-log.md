@@ -3,6 +3,7 @@ id: saga-log
 title: "The Sága audit log"
 category: "Security"
 kind: ravenclaude-built
+difficulty: intermediate
 order: 32
 summary: "Every command-review verdict writes one JSON entry — command, category, tier, per-seat votes, concerns, final verdict — under .ravenclaude/runs/thing/."
 see_also: [command-review-tribunal, model-diversity]

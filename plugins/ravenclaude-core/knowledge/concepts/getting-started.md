@@ -3,6 +3,7 @@ id: getting-started
 title: "Getting started"
 category: "Getting started"
 kind: ravenclaude-built
+difficulty: basic
 order: 5
 summary: "Add the marketplace, install ravenclaude-core, run /dashboard. Needs jq + python3; under Copilot CLI it's `ravenclaude install`."
 see_also: [comfort-posture, capability-banner]

@@ -3,6 +3,7 @@ id: comfort-posture
 title: "Comfort-posture dashboard"
 category: "Security"
 kind: ravenclaude-built
+difficulty: intermediate
 order: 25
 summary: "A point-and-click editor that writes Claude Code permission rules per category and layer — and keeps design check-ins independent of permission level."
 see_also: [permission-layers, command-review-tribunal]

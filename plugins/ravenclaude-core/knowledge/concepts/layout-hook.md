@@ -3,6 +3,7 @@ id: layout-hook
 title: "Layout enforcement"
 category: "Marketplace engineering"
 kind: ravenclaude-built
+difficulty: intermediate
 order: 50
 summary: "A PreToolUse hook plus a CI backstop block off-pattern file creation against .repo-layout.json — because path-scoped rule files load on Read, not Write."
 see_also: [audit-gates, hook-lifecycle]
