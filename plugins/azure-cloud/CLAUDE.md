@@ -108,6 +108,7 @@ Reference docs with `Last reviewed:` dates + source URLs. Dated/numeric claims c
 | [`knowledge/azure-landing-zones-and-governance.md`](knowledge/azure-landing-zones-and-governance.md) | Designing the foundation — MG hierarchy, subscription vending, archetypes, policy/RBAC/tag/naming |
 | [`knowledge/azure-iac-decision-and-bicep.md`](knowledge/azure-iac-decision-and-bicep.md) | Bicep vs Terraform, AVM, Deployment Stacks, state, what-if/plan |
 | [`knowledge/azure-compute-decision-tree.md`](knowledge/azure-compute-decision-tree.md) | "Where does this run?" — App Service / Container Apps / Functions / Static Web Apps / AKS + the data tier |
+| [`knowledge/azure-data-store-decision-tree.md`](knowledge/azure-data-store-decision-tree.md) | "Which managed database?" — Azure SQL / SQL MI / PostgreSQL Flexible Server / Cosmos DB / Storage (Mermaid; the data-tier sibling of the compute tree; analytics → `microsoft-fabric`) |
 | [`knowledge/entra-identity-and-access.md`](knowledge/entra-identity-and-access.md) | Identity — managed identity / WIF / RBAC / PIM / External ID / Agent ID |
 | [`knowledge/azure-networking-and-connectivity.md`](knowledge/azure-networking-and-connectivity.md) | Networking — Private Endpoints, hub-spoke/vWAN, Front Door/App Gateway/WAF, firewall/egress |
 | [`knowledge/azure-integration-decision.md`](knowledge/azure-integration-decision.md) | Integration — Logic Apps / Service Bus / Event Grid / APIM + the Power Automate seam |
@@ -118,8 +119,15 @@ Reference docs with `Last reviewed:` dates + source URLs. Dated/numeric claims c
 
 ---
 
-## 8a. Scenarios bank — TODO (planned)
-Not yet enabled. Per the marketplace pattern, enable when the first real engagement scenario surfaces via `/wrap` (copy `plugins/power-platform/scenarios/README.md`).
+## 8a. Scenarios bank (enabled)
+[`scenarios/`](scenarios/) holds dated, scope-tagged, **unverified** engagement narratives (the marketplace dual-bank pattern — see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a **secondary** source, behind the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment before applying"), never overriding the cited knowledge bank (§8) or the decision trees. Every volatile capability/SKU/limit in a scenario is dated and `[verify-at-use]`; identity/network-security findings still route to `ravenclaude-core/security-reviewer`, and no scenario carries client tenant secrets. The most-likely-to-benefit specialists — `entra-identity-engineer`, `network-engineer`, `azure-ops-engineer`, `azure-architect` — check the bank when a situation matches.
+
+| Scenario | Scope | Owner specialist |
+|---|---|---|
+| [`2026-06-05-entra-over-privileged-owner-assignment.md`](scenarios/2026-06-05-entra-over-privileged-owner-assignment.md) | likely-general | `entra-identity-engineer` |
+| [`2026-06-05-cost-spike-log-analytics-and-orphans.md`](scenarios/2026-06-05-cost-spike-log-analytics-and-orphans.md) | likely-general | `azure-ops-engineer` |
+| [`2026-06-05-private-endpoint-dns-resolution-failure.md`](scenarios/2026-06-05-private-endpoint-dns-resolution-failure.md) | likely-general | `network-engineer` |
+| [`2026-06-05-workloads-before-landing-zone-retrofit.md`](scenarios/2026-06-05-workloads-before-landing-zone-retrofit.md) | likely-general | `azure-architect` |
 
 ---
 
@@ -153,8 +161,51 @@ Not yet enabled. Per the marketplace pattern, enable when the first real engagem
 
 ---
 
-## 11. The `az` CLI / Bicep / Terraform prerequisite (no bundled MCP at v0.1.0)
-No bundled MCP. The agents recommend and emit code against the **Azure CLI** (`az`), **Bicep** (`az bicep`), and **Terraform** (azurerm provider), run by the engineer with their own Azure credentials (or workload identity federation in CI/CD). See [`knowledge/azure-deployment-cicd.md`](knowledge/azure-deployment-cicd.md). If a stable community Azure MCP server emerges, evaluate bundling it later.
+## 11. The `az` CLI / Bicep / Terraform prerequisite + the Azure MCP Server (recommend, don't bundle)
+The agents recommend and emit code against the **Azure CLI** (`az`), **Bicep** (`az bicep`), and **Terraform** (azurerm provider), run by the engineer with their own Azure credentials (or workload identity federation in CI/CD). See [`knowledge/azure-deployment-cicd.md`](knowledge/azure-deployment-cicd.md).
+
+### 11a. Recommended (not bundled) MCP server — the official Azure MCP Server
+This plugin **bundles no MCP server, on purpose** — the official Azure MCP Server is **per-tenant, credentialed, and write-capable**, which the marketplace bundling rule sends straight to **recommend, don't bundle** ([`../../docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md) Step 1, row 2 + 3). We document the `claude mcp add …` path instead of shipping an `mcpServers` entry (you can't hardcode a consumer's tenant/subscription or credentials).
+
+| Field | Value (verified against Microsoft Learn, retrieved 2026-06-05) |
+|---|---|
+| Server | **Azure MCP Server** (first-party, Microsoft) — repo `github.com/microsoft/mcp` (`servers/Azure.Mcp.Server`), also mirrored at `github.com/Azure/azure-mcp` |
+| Package | npm **`@azure/mcp`** (`npx -y @azure/mcp@latest server start`); also NuGet `Azure.Mcp`, PyPI `msmcp-azure`. Latest npm tag `3.0.0-beta.16` `[verify-at-use]` |
+| Auth | **Credentialed — Microsoft Entra ID** via the Azure Identity credential chain (`az login` / `DefaultAzureCredential`: env vars, VS/VS Code, Azure CLI/PowerShell/Developer CLI, interactive broker). No secret in the plugin; the credential is the consumer's own. |
+| Verbs | **Write-capable by default.** `--read-only` is an *optional* flag (default `false`); `--mode` (`namespace`/`consolidated`/`all`/`single`) and `--namespace` scope which Azure services are exposed. There is a `--disable-user-confirmation` flag that removes the elicitation guard before high-risk reads (e.g. returning Key Vault secrets) — **never set it.** |
+
+**Recommended setup (consumer-run, `[verify-at-use]` the version + flags):**
+```bash
+claude mcp add azure -- npx -y @azure/mcp@latest server start --read-only
+#   --read-only  -> no write operations (start here; relax deliberately per engagement)
+#   add --namespace storage --namespace keyvault ... to scope the surface
+#   authenticate first with `az login`; the server uses your own Entra credentials
+```
+
+**Doctrine (why recommend-not-bundle, and the gates):**
+- **Owning agent** — `azure-ops-engineer` (live read of cost/Monitor/resource state) and `azure-architect` (estate inventory) are the primary callers; any specialist may use the read subset for live context.
+- **Default read-only.** Recommend `--read-only` for first adoption and scope with `--namespace`; a **write-capable** Azure MCP server adopted in a consumer estate is a mandatory **`ravenclaude-core/security-reviewer`** gate before any mutating verb is enabled, and it interacts with the consumer's `mcp.allowed_servers` allowlist (core's command-review Gate 25) — a write verb from a non-allowlisted server is a pre-LLM deny.
+- **Secrets stay a reference, never a literal** — the server dereferences the consumer's existing Entra credentials at runtime; nothing credential-bearing is ever written into the plugin or a config file.
+- **Boundary** — the Azure MCP Server is for **live interaction with an existing Azure tenant's resources**. It is **NOT** an IaC authoring tool and **NOT** a substitute for `what-if`/`plan` before a deploy (house opinion #2). For provisioning, the agents still emit Bicep/Terraform/`az` the engineer runs through the pipeline.
+
+If/when a need for live tenant interaction is confirmed for an engagement, add it per the above; do not bundle it. No `NOTICE.md` is shipped because nothing third-party is vendored into the tree (the server is first-party and referenced, not vendored).
+
+---
+
+## Value-add completeness (build-out 2026-06-05)
+
+This is a **CLOUD/infra** domain, so the technical-runtime tier genuinely applies (unlike the pure-advisory verticals). Every value-add menu item is dispositioned honestly below. PR #315 had already consolidated the knowledge decision-trees + `best-practices/` + `templates/`; this build-out closes the net-new gaps (scenarios bank + runtime-tier dispositioning) and adds one complementary decision tree.
+
+| # | Item | Disposition |
+|---|---|---|
+| 1 | **scenarios/ bank** | **BUILT** — `scenarios/README.md` + 4 dated, scope-tagged engagement narratives (Entra over-privileged `Owner` + break-glass; cost spike → Log Analytics/orphans/right-size-then-commit; Private Endpoint DNS resolution failure in hub-spoke; workloads-before-landing-zone retrofit). 9-field schema, each volatile fact dated + `[verify-at-use]`. Enabled in CLAUDE.md §8a; routed to the most-likely specialist. |
+| 2 | **Decision-tree (Mermaid) knowledge** | **BUILT (1 new, complementing #315)** — `knowledge/azure-data-store-decision-tree.md`: which managed database (Azure SQL / SQL MI / PostgreSQL Flexible Server / Cosmos DB / Storage). Chosen because #315's consolidated trees + the compute tree already cover compute/identity/network-topology/IaC/region/secret-store/private-endpoint/FinOps — data-store selection had a best-practice but **no traversable diagram**. Authored as an H1-titled standalone topic file (the established marketplace pattern for a topic tree) so it ships its Mermaid without depending on the dashboard's pre-rendered-SVG pipeline (which lives under `ravenclaude-core/` and is out of this plugin's write scope). |
+| 3 | **Bundled MCP server** | **N-A (recommend-not-bundle)** — §11a. The **official Azure MCP Server** (`@azure/mcp`, first-party `microsoft/mcp`) is per-tenant, **credentialed** (Entra/`DefaultAzureCredential`), and **write-capable by default** → the bundling rule sends it to *recommend, don't bundle*. Documented the `claude mcp add … --read-only` path with reference creds + `--namespace` scoping + a mandatory `security-reviewer` gate before any write verb. Real package + flags verified against Microsoft Learn (2026-06-05); nothing invented. |
+| 4 | **LSP server** | **N-A** — Azure infra is authored in Bicep/Terraform/`az`, not a host source language with a clean on-`PATH` LSP. Bicep *does* have a language server, but it ships **inside the VS Code extension as `Bicep.LangServer.dll`** with **no official standalone on-`PATH` binary** (Azure/bicep issue #1141 was closed without publishing one; users extract the DLL from the extension) — so an `.lsp.json` `command` couldn't reference a stable, installable binary the way backend-engineering's pyright/tsserver/gopls can. Shipping a config pointing at a per-install DLL path would be a broken promise. Disposition: honest N-A; revisit if Microsoft publishes a standalone Bicep LS binary `[verify-at-use]`. |
+| 5 | **Runnable script (`scripts/`)** | **N-A** — the high-value cost/right-sizing logic is **live tenant data** (Cost Management queries, Advisor, P95 metrics), which is exactly what the recommended Azure MCP Server + the `azure-cost-rightsizing` skill's `az` snippets cover. A standalone calculator would have to bake in prices/SKUs (volatile, and the repo forbids baked-in prices) or re-query the tenant (the MCP/CLI path). No groundable price-free script clears the value bar. |
+| 6 | **bin/ executables / monitors / output-styles / settings / themes** | **N-A** — no compiled/installed binary warranted (the advisory hook + skills cover the surface); nothing to *watch* (the plugin is advisory, not a running process); output is Markdown deliverables governed by the §6 Output Contract; no Azure-specific tool-permission surface beyond `ravenclaude-core`'s. |
+| 7 | **skills / hooks / commands / templates** | **SUFFICIENT** — 5 skills, 1 advisory anti-pattern hook (`check-azure-anti-patterns.sh`, 6 checks), 5 commands, 6 templates already cover landing-zone / IaC / identity / network / cost-observability. The new scenarios bank + data-store tree extend reach without a new agent (team-growth-as-knowledge house rule). No clear gap this round. |
+| 8 | **CHANGELOG.md / NOTICE.md** | **CHANGELOG UPDATED** — new top entry for this build-out (the existing file stopped at `0.1.0`; brought current). **No `NOTICE.md`** — nothing third-party is vendored (the Azure MCP Server is first-party and *referenced*, not bundled; the data-store tree is original with cited, non-vendored sources). |
 
 ---
 
@@ -162,6 +213,7 @@ No bundled MCP. The agents recommend and emit code against the **Azure CLI** (`a
 - Domain-neutral team constitution: [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md)
 - Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md)
 - The Logic-Apps↔Power-Automate seam: [`../power-platform/CLAUDE.md`](../power-platform/CLAUDE.md)
+- Bundled-MCP doctrine: [`../../docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md)
 - Build provenance: [`../../docs/azure-cloud-plugin-analysis.md`](../../docs/azure-cloud-plugin-analysis.md)
 
 

@@ -46,6 +46,8 @@ Keep the Azure estate observable, cost-controlled, and governed: instrument with
 ## Capability Grounding Protocol
 Inherits the CGP from `ravenclaude-core`. Before declaring blocked: consult the ops knowledge; try the next-easiest lever (sampling → Basic Logs → commitment tier → retention); report with what was tried + ruled out + next step.
 
+**Scenario retrieval (priors).** Before answering a cost/FinOps/observability-shaped question, glob [`../scenarios/*.md`](../scenarios/) and read the frontmatter of any whose `tags`/`product` match (e.g. `finops`, `cost-management`, `log-analytics`, `rightsizing`). Surface up to 2–3 with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment before applying"). Scenarios are **secondary** to the cited knowledge bank + the FinOps tree, and never elide the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
+
 ## Output Contract
 ```
 Area: <observability | FinOps | governance>
