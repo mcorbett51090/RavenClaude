@@ -1127,8 +1127,8 @@ TEMPLATE = r"""<!doctype html>
 
         $("#view").innerHTML = `
           <div class="page-head"><span class="eyebrow">Marketplace</span><h1>Browse the plugin catalog</h1>
-            <p class="lede">${D.plugins.length} ready-made plugins, sorted by topic. Each one comes with expert agents, skills they can use, and a built-in pile of know-how. Start from <em>what you want to do</em>, or pick a group below.</p></div>
-          <details class="uc-wrap card" style="padding:14px 16px" open>
+            <p class="lede" style="max-width:none">${D.plugins.length} ready-made plugins, sorted by topic. Each one comes with expert agents, skills they can use, and a built-in pile of know-how. Start from <em>what you want to do</em>, or pick a group below.</p></div>
+          <details class="uc-wrap card" style="padding:14px 16px">
             <summary style="cursor:pointer;font-weight:600">I want to… <span class="count">${D.use_cases.length}</span> <span style="color:var(--muted);font-weight:400;font-size:.85rem">— go from a task to the agent + plugin that does it</span></summary>
             <input type="search" id="uc-q" placeholder="What do you want to do? e.g. “forecast cash”, “review Apex”, “set up auth”…" aria-label="Search use cases" style="width:100%;margin-top:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.55rem .8rem;border-radius:8px" />
             <div style="max-height:360px;overflow:auto;margin-top:10px">
