@@ -131,6 +131,9 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 |---|---|
 | [`knowledge/cs-health-metrics-and-churn-indicators.md`](knowledge/cs-health-metrics-and-churn-indicators.md) | Selecting which signals compose a health view; deciding leading vs lagging; setting up the transparent weighted tier + explainability requirement; arguing against black-box ML in phase 1. The ~10-12 domain-neutral CS-health signals with the churn-leading ones marked. |
 | [`knowledge/renewal-and-account-lifecycle.md`](knowledge/renewal-and-account-lifecycle.md) | Designing the renewal workflow (proximity × engagement = risk); QBR cadence; expansion vs churn signals; the *who-do-I-call-today?* actionability bar; touch-cadence by tier. |
+| [`knowledge/cs-retention-metrics.md`](knowledge/cs-retention-metrics.md) | A retention number is going on a slide/board deck. NRR/GRR/CAC-payback definitions + cited 2025 benchmarks; **why NRR alone masks logo churn** (GRR is the honest floor); **2 Mermaid trees** — retention-metric-choice + renewal-forecast-confidence. Source of truth for `cs_calc.py retention`. |
+| [`knowledge/customer-success-decision-trees.md`](knowledge/customer-success-decision-trees.md) | Consolidated **Mermaid** trees (PR #315): signal selection (leading/lagging), retune-vs-rebuild, renewal call-list, expansion readiness, new-signal proposal, metric-discrepancy, tier-confidence, PII classification. |
+| [`knowledge/cs-risk-tier-escalation-decision-tree.md`](knowledge/cs-risk-tier-escalation-decision-tree.md) | An account is Red or a fast-trigger fired and you must decide **which save motion fires** (the action complement to the classification trees). **Mermaid** — freshness-before-alarm + DM-confirmation gates, fast-trigger override, ACV/proximity escalation. |
 
 ---
 
@@ -139,6 +142,16 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 | Template | Use for |
 |---|---|
 | [`templates/cs-health-data-model.md`](templates/cs-health-data-model.md) | The conformed reference data model: `dim_account` spine + `fct_account_health_snapshot` + renewal/opportunity + support/nps/collaboration-signal facts, with the identity-resolution note pointing at data-platform's best practice. Code-fenced schema sketches. |
+| [`templates/health-tier-design-worksheet.md`](templates/health-tier-design-worksheet.md) | The fillable output of the `health-tier-design` skill: signal selection (5–7, leading/lagging), the tier rule expression, the weighting/contribution check (drives `cs_calc.py health-score`), the per-Red explainability contract, validation gates, and the data-platform handoff table. |
+| [`templates/cs-metric-audit-report.md`](templates/cs-metric-audit-report.md), [`templates/churn-signal-backtest-report.md`](templates/churn-signal-backtest-report.md), [`templates/expansion-signal-design-brief.md`](templates/expansion-signal-design-brief.md) | Audit / back-test / expansion deliverable templates (paired with the `cs-metric-audit`, `churn-signal-backtest`, `account-expansion-signal-design` skills). |
+
+---
+
+## 10a. Runnable calculator
+
+| Script | What's inside |
+|---|---|
+| [`scripts/cs_calc.py`](scripts/cs_calc.py) | Stdlib-only (Python 3.8+) decision calculator — `retention` (NRR/GRR + the expansion-gap masking check), `health-score` (transparent weighted composite + per-signal contribution + lagging-share flag + tier), `renewal-risk` (proximity × engagement). A **calculator, not a data source** — the user supplies every input; outputs are decision-support, and a weight/threshold is a hypothesis until back-tested. Owned by `cs-analytics-architect` + `churn-signal-analyst`. |
 
 ---
 
@@ -166,3 +179,42 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 - Vertical CS-motion exemplar: [`../edtech-partner-success/CLAUDE.md`](../edtech-partner-success/CLAUDE.md)
 - Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md)
 - Marketplace-wide developer guide: [`../../CLAUDE.md`](../../CLAUDE.md)
+
+---
+
+## 14. Scenarios bank (enabled 2026-06-05)
+
+[`scenarios/`](scenarios/) holds dated, scope-tagged, **unverified** CS-analytics engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a **secondary** source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank, a `best-practices/` rule, or the §4 house opinions. Scenarios carry **no account/contact PII and no client-identifying revenue figures** (§4 #7, #11). Both agents — `cs-analytics-architect`, `churn-signal-analyst` — should check the bank when a situation matches.
+
+Current bank (5 field notes, schema in [`scenarios/README.md`](scenarios/README.md)):
+
+| File | Tags | Corroborates |
+|---|---|---|
+| [`2026-06-05-health-score-not-predicting-churn.md`](scenarios/2026-06-05-health-score-not-predicting-churn.md) | health-score, lagging-signal, back-test | `validate-leading-signals-against-actual-churn-outcomes`, `back-test-signals-before-adding-to-tier-rule` |
+| [`2026-06-05-nrr-masking-logo-churn.md`](scenarios/2026-06-05-nrr-masking-logo-churn.md) | nrr, grr, logo-churn | the new `cs-retention-metrics.md` NRR-vs-GRR tree |
+| [`2026-06-05-renewal-forecast-miss-single-thread.md`](scenarios/2026-06-05-renewal-forecast-miss-single-thread.md) | renewal-forecast, single-thread, champion-silence | `champion-silence-is-a-first-class-churn-signal`, the renewal-forecast-confidence tree |
+| [`2026-06-05-false-positive-risk-tier-segment.md`](scenarios/2026-06-05-false-positive-risk-tier-segment.md) | false-positive, segment-override | `segment-overrides-before-global-threshold-changes`, `retune-the-tier-after-every-renewal-cycle` |
+| [`2026-06-05-usage-data-identity-gap-data-platform-seam.md`](scenarios/2026-06-05-usage-data-identity-gap-data-platform-seam.md) | identity-resolution, data-platform-seam, null-not-zero | `identity-resolution-is-upstream-never-reimplement-it`, `nulls-are-explicit-missing-signal-is-never-silently-zero` |
+
+---
+
+## 15. Value-add completeness (build-out 2026-06-05)
+
+PR #315 already added the consolidated `customer-success-decision-trees.md` + `best-practices/` (20 rules) on top of the agents/skills/knowledge/templates surface. This build-out closes the remaining net-new gaps (scenarios bank, runnable calculator, 3 new Mermaid trees, a tier-design template). Every value-add menu item is dispositioned below.
+
+| # | Item | Disposition |
+|---|---|---|
+| 1 | **scenarios/ bank** | **BUILT** — README + 5 dated field notes (health-score-not-predicting-churn, nrr-masking-logo-churn, renewal-forecast-miss-single-thread, false-positive-risk-tier-segment, usage-data-identity-gap → the data-platform seam), matching the 9-field schema + scenario-retrieval preamble. |
+| 2 | **Decision-tree (Mermaid) knowledge** | **BUILT** — 3 NEW trees complementing #315's consolidated set: **retention-metric-choice (NRR vs GRR vs both)** + **renewal-forecast-confidence** (in `cs-retention-metrics.md`), and **risk-tier-escalation / save-play-trigger** (in `cs-risk-tier-escalation-decision-tree.md`). Chosen because #315 covered *classification* (which tier) but not *retention-metric choice* or *which save motion fires* (the action layer). Grounded + cited + dated; corroborated by the new scenarios. |
+| 3 | **Runnable calculator (`scripts/`)** | **BUILT** — `cs_calc.py` (stdlib-only, ruff-clean): `retention` (NRR/GRR + masking check), `health-score` (weighted composite + contribution + lagging-share + tier), `renewal-risk` (proximity × engagement). The one runtime item with real, durable, non-volatile value (pure arithmetic over user-supplied inputs; no baked-in benchmark). |
+| 4 | **Bundled MCP / LSP server** | **N-A (recommend-not-bundle)** — this is the **analytical domain layer**; it routes all data plumbing to `data-platform`. CS platforms (Planhat, Gainsight, ChurnZero, Catalyst, Vitally) are **per-tenant, authenticated, PII-bearing** — a connection/OAuth is a secret → fails the zero-config + read-only bundle bar (`docs/best-practices/bundled-mcp-servers.md`). If a live-data need surfaces it is **recommend, evaluate-first, security-reviewer-gated**, never bundled. There is no source language here, so LSP is **N-A** (no `.lsp.json`). No server invented, no `mcpServers` entry. |
+| 5 | **bin/ / monitors / output-styles / settings / themes** | **N-A** — no code artifact, runtime, or repo to operate on. A `bin/` would duplicate the single stdlib `cs_calc.py`; nothing to monitor (no long-running process); deliverables are Markdown reports governed by the §7 Output Contract, not an output-style; no tool-permission surface beyond `ravenclaude-core`. |
+| 6 | **skills / hooks / commands / templates** | **SUFFICIENT + 1 clear-gap template added** — 5 skills + 4 prior templates already cover audit / back-test / expansion / data-model. Added the clear gap: [`templates/health-tier-design-worksheet.md`](templates/health-tier-design-worksheet.md) (the fillable output of the `health-tier-design` skill — there was a skill but no worksheet that materializes its output and drives `cs_calc.py`). No new agent (team-growth-as-knowledge house rule); no hook/command gap this round. |
+| 7 | **CHANGELOG.md** | **BUILT** — added with a top `0.2.0` entry. No `NOTICE.md` (nothing third-party is bundled; the calculator is original stdlib-only, all sources cited inline not vendored). |
+
+---
+
+## 16. Milestones
+
+- **v0.1.x** — initial release + PR #315: 2 agents, 5 skills, 20 best-practice rules, consolidated `customer-success-decision-trees.md`, a knowledge bank, 4 templates.
+- **v0.2.0** — value-add build-out (2026-06-05): scenarios bank (5 field notes), `cs-retention-metrics.md` (NRR/GRR/CAC + 2 Mermaid trees), `cs-risk-tier-escalation-decision-tree.md` (1 Mermaid tree), `scripts/cs_calc.py` (3 modes, ruff-clean), `health-tier-design-worksheet.md` template, CHANGELOG. Runtime-tier items (bundled MCP/LSP, bin/monitors/styles/settings) dispositioned N-A with reasons (§15).

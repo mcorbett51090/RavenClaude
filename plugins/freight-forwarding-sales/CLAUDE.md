@@ -124,7 +124,7 @@ The `knowledge/` directory holds reference docs that capture the decisions a sel
 
 | File | Read when |
 |---|---|
-| [`knowledge/freight-sales-decision-trees.md`](knowledge/freight-sales-decision-trees.md) | About to make a recurring routing/strategy call. 4 Mermaid decision trees, each with an observable entry condition, a `Last verified` date, per-leaf rationale, and a tradeoffs table where ≥3 leaves: **mode selection** (express / air / LCL / FCL / breakbulk), **quote-vs-qualify** (chase or decline an RFQ), **Incoterms selection** (which term to propose), **spot-vs-contract** (how to price against rate volatility). |
+| [`knowledge/freight-sales-decision-trees.md`](knowledge/freight-sales-decision-trees.md) | About to make a recurring routing/strategy call. **10** Mermaid decision trees, each with an observable entry condition, a `Last verified` date, per-leaf rationale, and a tradeoffs table where ≥3 leaves: **mode selection** (express / air / LCL / FCL / breakbulk), **quote-vs-qualify** (chase or decline an RFQ), **Incoterms selection**, **spot-vs-contract**, **rate-objection** (hold / adjust / give-get), **account-risk** (healthy / watch / at-risk), **new-business-pursuit** (prioritize / deprioritize), **quote-delivery method**, **LCL-vs-FCL** (ocean volume/cost crossover — v0.2.0), **deadline mode-shift** (air / sea-air / air-bridge split — v0.2.0). |
 | [`knowledge/freight-sales-glossary.md`](knowledge/freight-sales-glossary.md) | Writing a quote, email, or QBR and you want the term exactly right. The working vocabulary: Incoterms, surcharge codes, the document set (B/L, AWB, commercial invoice, packing list, CO, etc.), charge points (THC, demurrage vs detention), units (TEU, CBM, chargeable weight), and the parties (shipper, consignee, NVOCC, carrier). |
 
 **Decision-tree traversal (priors).** When the user's situation matches an entry condition in `freight-sales-decision-trees.md`, traverse the relevant Mermaid graph top-to-bottom **before** picking a mode, a bid/no-bid, an Incoterm, or a rate strategy — do not pattern-match on keywords. `freight-rate-quoter` carries the mode-selection + spot-vs-contract priors; `rfq-tender-strategist` carries quote-vs-qualify; `trade-lane-compliance-advisor` carries Incoterms selection. The full file is the source of truth and is re-read on demand.
@@ -158,3 +158,47 @@ Freight-sales agents stay within the sales motion. When a question crosses out, 
 - `finance` plugin — when the question becomes corporate finance (DSO on freight receivables, customer profitability modeling beyond per-shipment margin, credit terms).
 
 When in doubt, the team **declines and asks the Team Lead** rather than guessing — especially on anything that could be a customer's confidential commercial term.
+
+---
+
+## 11. Scenarios bank (added v0.2.0)
+
+[`scenarios/`](scenarios/) holds dated, scope-tagged, **unverified** engagement narratives — the marketplace scenarios pattern (see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). They are commercial sales war stories ("the seller faced situation X, tried A/B/C, D moved the number"), schema-validated against the 9-field scenario schema but **not** maintainer-reviewed.
+
+| File | Scope | Tags |
+|---|---|---|
+| [`scenarios/2026-06-05-quote-margin-erosion-surcharge-volatility.md`](scenarios/2026-06-05-quote-margin-erosion-surcharge-volatility.md) | likely-general | quoting, surcharge, baf, gri, margin, validity |
+| [`scenarios/2026-06-05-rfq-tender-qualify-or-decline.md`](scenarios/2026-06-05-rfq-tender-qualify-or-decline.md) | likely-general | rfq, tender, qualify, win-rate, bid-no-bid |
+| [`scenarios/2026-06-05-mode-shift-air-vs-ocean-deadline.md`](scenarios/2026-06-05-mode-shift-air-vs-ocean-deadline.md) | likely-general | mode-selection, air, ocean, sea-air, deadline |
+| [`scenarios/2026-06-05-key-account-qbr-retention.md`](scenarios/2026-06-05-key-account-qbr-retention.md) | likely-general | qbr, account-management, retention, whitespace |
+
+**How agents use it:** surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited `knowledge/` bank, the `best-practices/` rules, or a live tariff/carrier schedule. Scenarios carry **no** customer-identifying info or confidential commercial terms (§3 #8). The most-likely-to-benefit specialists — `freight-rate-quoter`, `rfq-tender-strategist`, `key-account-manager`, `trade-lane-compliance-advisor` — should check the bank when a situation matches. See [`scenarios/README.md`](scenarios/README.md) for the schema and promotion path.
+
+---
+
+## 12. Value-add completeness (build-out 2026-06-05)
+
+This plugin is a **non-code vertical** (international freight-forwarding sales / BD). Every value-add menu item is dispositioned honestly below — the code-runtime tier is genuinely **N-A** because there is no code artifact, runtime, or repo to operate on for a sales-advisory plugin, and forcing those items would add noise, not value. The plugin already shipped a rich surface (per PR #315); this round materialized the scenarios bank and added two complementary trees.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README index existed; the 4 dated, web-researched scenario files did not — added all 4 (§11). Marketplace 9-field schema, `product_version: "n/a"`. |
+| Decision-tree (Mermaid) knowledge | **BUILT (extended)** | Added 2 NEW trees to `knowledge/freight-sales-decision-trees.md` (8 → 10), both *complementing* the urgency-first Mode-selection tree without duplicating it: **LCL-vs-FCL** (ocean volume/cost crossover) and **Deadline mode-shift** (stock-out-cost-vs-air-premium total-landed-cost trade). Existing trees (mode, quote-vs-qualify, Incoterms, spot-vs-contract, rate-objection, account-risk, new-business-pursuit, quote-delivery) already covered the PR #315 set — not duplicated. |
+| Glossary / KPI reference | **SUFFICIENT (existing)** | `knowledge/freight-sales-glossary.md` already covers Incoterms, surcharge codes, the document set, charge points, and units. No redundant new file. |
+| Runnable script (`scripts/`) | **SUFFICIENT (existing) — new script N-A** | `scripts/freight_calc.py` (`air` chargeable weight / `ocean` W/M basis / `quote` all-in + margin) already covers the recurring arithmetic; the 2 new trees *reuse* it (LCL-vs-FCL breakeven → `ocean`; deadline air premium → `air`). No clear new gap warranting a second script. |
+| Code-aware MCP server (bundled) | **N-A** | No published MCP for forwarder TMS/rate-management (CargoWise, Magaya, rate APIs) verified to exist + safe to bundle; these are per-tenant/authenticated/commercially-sensitive. The plugin is deliberately carrier- and system-neutral. A genuine live-rate need would be *recommend, evaluate-first*, never bundled (per [`../../docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md)). |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in a sales-advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/freight_calc.py`; no compiled/installed binary warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. (Live freight-index monitoring is a *recommend deep-researcher* path per §10, not a bundled monitor.) |
+| output-styles / themes | **N-A** | Deliverables are Markdown reports governed by the §6 Output Contract; output styling is a code/UX concern. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 6 skills, 6 commands, 6 templates, and 22 best-practices already cover the surface (per PR #315); no obvious high-value gap this round. The 2 new trees + materialized scenarios extend reach without a new agent (team-growth-as-knowledge house rule). No antipattern hook added — the 10 §3 house opinions + §4 anti-patterns are already enforced in every agent constitution; a shell hook would duplicate, not add. |
+| CHANGELOG.md | **BUILT** | Added with a top `0.2.0` entry. |
+| NOTICE.md | **N-A** | No third-party content bundled — `freight_calc.py` is original/stdlib-only; all sources cited inline, not vendored. |
+
+---
+
+## 13. Milestones
+
+- **v0.1.x** — initial releases through 0.1.2: 6 agents, 6 skills, 6 commands, 22 best-practices, a 2-doc knowledge bank (glossary + 8 Mermaid decision trees), templates, and `scripts/freight_calc.py`. Built per PR #315 (consolidated knowledge decision-trees, best-practices, templates).
+- **v0.2.0** — non-code-vertical value-add build-out: materialized the scenarios bank (4 web-researched, dated, scope-tagged scenarios), added 2 complementary Mermaid decision trees (LCL-vs-FCL; deadline mode-shift), a CHANGELOG, and the § "Value-add completeness" disposition table. Code-runtime tier dispositioned N-A with reasons (§12).

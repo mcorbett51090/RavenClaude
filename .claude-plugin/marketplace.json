@@ -158,7 +158,7 @@
       "name": "customer-success-analytics",
       "source": "./plugins/customer-success-analytics",
       "description": "Customer-Success analytics team — 2 specialist agents (cs-analytics-architect, churn-signal-analyst) that own the DOMAIN layer of a CS-health analytics build: the conformed account / health-snapshot / renewal data model, which signals compose the health view, and the transparent rule-based Green/Yellow/Red risk tier (every Red shows why) — no black-box ML in phase one. Domain-neutral: it sits on top of data-platform's pipeline/warehouse/connector layer (which it routes all plumbing to) rather than duplicating it. 2 skills (health-tier-design, renewal-workflow-design — generalized from the EdTech PSM lane into vertical-neutral form), a 2-doc knowledge bank (CS-health metrics + churn-leading indicators, renewal & account lifecycle), and a code-fenced cs-health-data-model template whose identity-resolution spine points at data-platform. Pairs with data-platform; seams to salesforce / tableau / edtech-partner-success. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -208,7 +208,7 @@
       "name": "applied-statistics",
       "source": "./plugins/applied-statistics",
       "description": "Applied-statistics team — 1 specialist agent (applied-statistician) that answers 'is this difference/trend statistically REAL?' for SMB consulting: which test to use (decision-tree-driven), A/B-test and experiment design (power/MDE, primary + guardrail metrics, pre-registered analysis plans), regression and time-series forecasting review, a causal-inference primer, and statistical QA of dashboard metrics. 5 skills, a 5-doc knowledge bank (a Mermaid test-selection decision tree, a 9-item pitfalls guardrail, experiment-design best practice, 2026 tooling tiers, a causal-inference primer), 4 templates, and 1 advisory anti-pattern hook. Python-first (scipy.stats / statsmodels / pingouin Tier 1; PyMC / bambi / linearmodels Tier 2). Seams cleanly with data-platform: data-platform answers 'is this number correct?'; this plugin answers 'is it real?'. Method-before-library; always report effect size + CI. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.5.2",
+      "version": "0.6.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -537,7 +537,7 @@
       "name": "staffing-operations",
       "source": "./plugins/staffing-operations",
       "description": "Healthcare + education staffing operations & analytics consulting team — 6 specialist agents (engagement-lead, operations-analyst, recruiting-funnel-strategist, healthcare-staffing-specialist, education/school-based-specialist, workforce-market-analyst), 10 skills, 10 templates, 5 commands, 1 advisory hook, 7 best-practice rules, and an 8-file research-grounded knowledge bank: a staffing KPI glossary (funnel/financial/quality metrics with formulas + benchmarks), healthcare-staffing economics (travel/locum/allied/per-diem, bill-pay-burden, rate cycle), credentialing & IDEA/IEP compliance, K-12 school-based fundamentals (academic-calendar seasonality, teletherapy, ESSER cliff), 2023-2026 market trends + SIA-anchored sizing, a competitor landscape map, and a Soliant Health employer profile. Every external figure carries a source + date; advisory numbers marked [ESTIMATE]. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -559,7 +559,7 @@
       "name": "freight-forwarding-sales",
       "source": "./plugins/freight-forwarding-sales",
       "description": "International freight-forwarding sales team — 6 agents (freight-rate-quoter, rfq-tender-strategist, key-account-manager, pipeline-forecast-coach, prospecting-outreach-strategist, trade-lane-compliance-advisor) for a global-forwarding sales / business-development manager: all-in ocean + air quotes (chargeable weight, BAF/CAF/THC/LSS surcharge stack, margin, validity), RFQ/RFP/tender response (qualify-or-decline + lane rate matrix + bid narrative), QBRs + account plans, pipeline + forecast hygiene (coverage, velocity, weighted/commit), multi-channel prospecting, and Incoterms 2020 + customs basics. 6 skills, 6 commands, a 2-doc knowledge bank with 4 Mermaid decision trees, and a runnable chargeable-weight / quote-margin calculator (scripts/freight_calc.py). Carrier-neutral; public industry-standard practice, no confidential method. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1179,7 +1179,7 @@
       "name": "fleet-logistics",
       "source": "./plugins/fleet-logistics",
       "description": "Fleet & Logistics specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A fleet-operations team for a carrier, private fleet, or last-mile operator — it reads cost-per-mile against the ~$2.26 industry all-in (and the ~$1.78 non-fuel marginal), manages the operating ratio in a market that turned negative-margin in 2024, routes and dispatches to deadhead and utilization, and treats driver turnover (often 90%+ at large truckload carriers) as a unit-economics problem. Inherits ravenclaude-core protocols.",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1236,7 +1236,7 @@
       "name": "ecommerce-dtc",
       "source": "./plugins/ecommerce-dtc",
       "description": "E-commerce & DTC specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A growth-and-unit-economics team for a DTC brand operator — it protects the LTV:CAC ratio (the 3:1 line below which a brand bleeds), reads conversion against the 1.4–1.8% average, attacks the retention gap (the average brand keeps just ~28% for a second purchase), and reads contribution margin after the real cost of acquisition and returns. Inherits ravenclaude-core protocols.",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1274,7 +1274,7 @@
       "name": "procurement-sourcing",
       "source": "./plugins/procurement-sourcing",
       "description": "Procurement & Sourcing specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A strategic-sourcing team for a procurement or category lead — it segments spend before it sources (the Kraljic should-cost lens), runs the sourcing event on total cost of ownership rather than unit price, manages supplier risk as a portfolio, and reads the spend cube the way a category manager who owns savings does. Inherits ravenclaude-core protocols.",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
