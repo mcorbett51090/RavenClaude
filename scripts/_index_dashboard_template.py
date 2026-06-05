@@ -603,8 +603,8 @@ TEMPLATE = r"""<!doctype html>
               <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
               <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
             </button>
-            <a class="btn ghost hide-sm" href="#/marketplace"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Use cases</a>
-            <a class="btn primary" href="#/marketplace"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v4H3z"/><path d="M5 7v12h14V7"/><path d="M9 11h6"/></svg>Browse Plugins</a>
+            <a class="btn ghost hide-sm" href="#/discover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Use cases</a>
+            <a class="btn primary" href="#/discover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v4H3z"/><path d="M5 7v12h14V7"/><path d="M9 11h6"/></svg>Browse Plugins</a>
           </div>
         </header>
         <main class="content" id="view" tabindex="-1"></main>
@@ -684,34 +684,56 @@ TEMPLATE = r"""<!doctype html>
       /* ---------------- Sidebar nav ---------------- */
       const NAV = [
         { id: "home", label: "Home", icon: "home" },
-        { id: "team", label: "Team", icon: "team" },
-        { id: "marketplace", label: "Marketplace", icon: "market" },
-        { id: "dashboard", label: "Dashboard", icon: "sliders" },
-        { id: "configuration", label: "Configuration", icon: "config" },
-        { id: "resources", label: "Resources", icon: "resources" },
+        { id: "discover", label: "Discover", icon: "market" },
+        { id: "configure", label: "Configure", icon: "sliders" },
+        { id: "observe", label: "Observe", icon: "chart" },
+        { id: "learn", label: "Learn", icon: "book" },
       ];
 
-      // ── Native-merged dashboard routing ──
-      // The dashboard content is folded into THIS document (no iframes): mounted
-      // in #dash-root, shown by toggling [hidden]. Each route below maps to a tab
-      // inside the dashboard sub-app, driven via window.__dashApp.show().
-      // Top-level route names are kept (heimdall, bifrost, plugin-*, …) so every
-      // committed bookmark + capability-banner pointer + doc reference still
-      // resolves. (The former repo-guide/catalog routes are gone — its content
-      // moved into the shell's Marketplace + Resources sections.)
+      // ── 5-section task IA + native-merged dashboard routing (Slice A) ──
+      // Sidebar = Home · Discover · Configure · Observe · Learn. The dashboard
+      // content is folded into THIS document (no iframes): mounted in #dash-root,
+      // shown by toggling [hidden], driven via window.__dashApp.show(). Every
+      // legacy route still resolves via SECTION_ALIAS (old shell top-level) +
+      // DASH_OWNER (dashboard tab → owning section). (Slice A keeps the dashboard's
+      // own cat-bar/tab-bar visible; Slice B hides it + adds a shell sub-nav.)
       // INVARIANT: this payload is a trusted, same-org generated artifact — its
-      // live /__* fetches run at this page's origin when served by
-      // serve-dashboards.py.
+      // live /__* fetches run at this page's origin when served by serve-dashboards.py.
       const DASH_SECTIONS = new Set([
         "heimdall", "vidarr", "norns", "nidhoggr", "bifrost", "mimir",
         "sleipnir", "saga", "activity", "learn", "web-access", "pipeline",
         "comfort-posture", "dashboard", "settings", "overview", "install",
         "simulator", "commands", "trees", "about",
       ]);
-      // Route name → dashboard tab id where they differ.
-      const DASH_TAB_ALIAS = { dashboard: "overview", "comfort-posture": "settings" };
+      // Route name → real dashboard tab id where they differ (incl. the two
+      // phantom routes: nidhoggr is a card in heimdall, sleipnir a banner in activity).
+      const DASH_TAB_ALIAS = {
+        dashboard: "overview", "comfort-posture": "settings",
+        nidhoggr: "heimdall", sleipnir: "activity",
+      };
+      // Legacy top-level shell route → canonical NAV section (back-compat for
+      // committed bookmarks, ⌘K quick-actions, and internal hrefs).
+      const SECTION_ALIAS = {
+        marketplace: "discover", team: "discover", "repo-guide": "discover",
+        configuration: "configure", resources: "learn", dashboard: "observe",
+      };
+      // Legacy routes that keep their OWN shell view but light up a NAV section
+      // (Slice A: Team's roster + collab rules survive under Discover until Slice
+      // B merges them in; #/team bookmarks + ⌘K specialist links still resolve).
+      const LEGACY_VIEW = { team: "viewTeam" };
+      // Dashboard tab route → the NAV section that owns it (for highlight + dispatch).
+      const DASH_OWNER = {
+        heimdall: "observe", vidarr: "observe", norns: "observe", mimir: "observe",
+        saga: "observe", activity: "observe", nidhoggr: "observe", sleipnir: "observe",
+        settings: "configure", "comfort-posture": "configure", "web-access": "configure", simulator: "configure",
+        commands: "learn", trees: "learn", pipeline: "learn", bifrost: "learn",
+        install: "learn", about: "learn", overview: "learn",
+      };
       function payloadKind(section) {
-        if (DASH_SECTIONS.has(section) || (section && section.startsWith("plugin-"))) return "dashboard";
+        // A dashboard-owned tab route (drives the #dash-root host). Bare "learn"
+        // is intercepted by the NAV check in route() before this, so the Learn
+        // section wins #/learn; the concepts tab is reached inside the Learn area.
+        if (DASH_OWNER[section]) return "dashboard";
         return null;
       }
       function showHost(which) {
@@ -724,17 +746,17 @@ TEMPLATE = r"""<!doctype html>
         if (window.__dashApp) window.__dashApp.show(DASH_TAB_ALIAS[section] || section, sub);
       }
       // Subcategories live under the one section the repo actually has a
-      // hierarchy for: Marketplace → plugin categories (existing #/marketplace/<cat>
+      // hierarchy for: Marketplace → plugin categories (existing #/discover/<cat>
       // routes). The accordion only renders under the ACTIVE top item, and only
       // when the sidebar is expanded (CSS hides .nav-sub when collapsed).
       function navChildren(id) {
-        if (id === "marketplace" && D.categories) {
+        if (id === "discover" && D.categories) {
           const counts = {};
           D.plugins.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
           const cur = (location.hash.split("/")[2] || "all");
           return [{ id: "all", label: "All plugins", count: D.plugins.length }]
             .concat(D.categories.map((c) => ({ id: c.id, label: c.label, count: counts[c.id] || 0 })))
-            .map((c) => `<a class="nav-subitem${c.id === cur ? " active" : ""}" href="#/marketplace/${c.id === "all" ? "" : c.id}">${esc(c.label)}<span class="count">${c.count}</span></a>`)
+            .map((c) => `<a class="nav-subitem${c.id === cur ? " active" : ""}" href="#/discover/${c.id === "all" ? "" : c.id}">${esc(c.label)}<span class="count">${c.count}</span></a>`)
             .join("");
         }
         return "";
@@ -786,7 +808,7 @@ TEMPLATE = r"""<!doctype html>
          = "1"). Re-show via ⌘K → "Show onboarding checklist". */
       const ONBOARDING_STEPS = [
         { id: 0, title: "Install ravenclaude-core", desc: "Copy the install command", cta: "Copy", action: "copyCmd", cmd: "/plugin install ravenclaude-core@ravenclaude" },
-        { id: 1, title: "Pick a posture scenario", desc: "Recommended: Client Delivery", cta: "Open", action: "route", route: "#/configuration" },
+        { id: 1, title: "Pick a posture scenario", desc: "Recommended: Client Delivery", cta: "Open", action: "route", route: "#/configure" },
         { id: 2, title: "Read GETTING_STARTED.md", desc: "10-minute canonical walkthrough", cta: "Open", action: "href", href: "GETTING_STARTED.md" },
         { id: 3, title: "Run your first /spawn-team", desc: "Copy an example prompt", cta: "Copy", action: "copyCmd", cmd: "/spawn-team architect → coder → tester for: <describe your change>" },
         { id: 4, title: "Open the deep posture dashboard", desc: "Save & apply writes .ravenclaude/comfort-posture.yaml", cta: "Copy", action: "copyCmd", cmd: "bash scripts/open-dashboard.sh" },
@@ -859,7 +881,7 @@ TEMPLATE = r"""<!doctype html>
             <p class="desc" style="color:var(--muted);font-size:.86rem;margin:8px 0 0">${esc(f.blurb)}</p>
             <div class="tags">${tags}</div>
             <div class="metrics" style="margin-top:12px;font-size:.76rem;color:var(--faint)"><span><b style="color:var(--teal-2)">${total}</b> specialists combined</span></div>
-            <div class="pc-foot" style="margin-top:14px"><a class="btn" href="#/marketplace">View in marketplace</a></div></div>`;
+            <div class="pc-foot" style="margin-top:14px"><a class="btn" href="#/discover">View in marketplace</a></div></div>`;
         }).join("");
 
         const activity = [
@@ -876,9 +898,9 @@ TEMPLATE = r"""<!doctype html>
             <h1>The <span class="accent">AI Engineering Team</span> Platform</h1>
             <p>One main helper that runs the show, plus ${s.plugins - 1} expert teams — for Microsoft, Salesforce, web, data, finance, and safety-and-rules work. They plug into Claude Code, and <strong>you</strong> decide what they can do on their own using simple point-and-click settings.</p>
             <div class="hero-cta">
-              <a class="btn primary" href="#/marketplace">${svg("market")} Explore the Marketplace</a>
-              <a class="btn" href="#/configuration">${svg("sliders")} Tune Comfort Posture</a>
-              <a class="btn ghost" href="#/marketplace">${svg("book")} Browse by use case</a>
+              <a class="btn primary" href="#/discover">${svg("market")} Explore the Marketplace</a>
+              <a class="btn" href="#/configure">${svg("sliders")} Tune Comfort Posture</a>
+              <a class="btn ghost" href="#/discover">${svg("book")} Browse by use case</a>
             </div>
           </section>
 
@@ -1023,7 +1045,7 @@ TEMPLATE = r"""<!doctype html>
           $("#uc-body").innerHTML = rows.map((u) => `<tr>
             <td class="uc-intent">${esc(u.intent)}</td>
             <td><code>${esc(u.agent)}</code></td>
-            <td><a href="#/marketplace" onclick="window.__openPlugin('${esc(u.plugin)}');return false">${esc(u.plugin_label)}</a></td>
+            <td><a href="#/discover" onclick="window.__openPlugin('${esc(u.plugin)}');return false">${esc(u.plugin_label)}</a></td>
             <td><span class="uc-diff d-${esc(u.difficulty)}">${esc(u.difficulty)}</span></td>
           </tr>`).join("") || `<tr><td colspan="4" style="color:var(--muted);padding:12px">No use case matches “${esc(q)}”.</td></tr>`;
         }
@@ -1052,7 +1074,7 @@ TEMPLATE = r"""<!doctype html>
           const b = e.target.closest("button"); if (!b) return;
           mktState.cat = b.dataset.cat;
           $$("#mkt-nav button").forEach((x) => x.classList.toggle("active", x === b));
-          if (mktState.cat === "all") { history.replaceState(null, "", "#/marketplace"); } else { history.replaceState(null, "", "#/marketplace/" + mktState.cat); }
+          if (mktState.cat === "all") { history.replaceState(null, "", "#/discover"); } else { history.replaceState(null, "", "#/discover/" + mktState.cat); }
           renderGrid();
         });
         $("#mkt-q").addEventListener("input", (e) => { mktState.q = e.target.value; renderGrid(); });
@@ -1087,7 +1109,7 @@ TEMPLATE = r"""<!doctype html>
         const hookItem = (i) => `<div class="ref-item"><div class="ri-n">${esc(i.name)} ${i.event ? `<span class="chip">${esc(i.event)}</span>` : ""}</div>${i.description ? `<div class="ri-d">${esc(i.description)}</div>` : ""}</div>`;
         const refGrid = (title, items, fmt) => (items && items.length) ? `<div class="section-title"><h2>${title} <span class="hint">${items.length}</span></h2></div><div class="grid cols-2">${items.map(fmt).join("")}</div>` : "";
         $("#view").innerHTML = `
-          <a class="btn ghost" href="#/marketplace/${p.category}" style="margin-bottom:18px">← Back to ${esc(catLabel)}</a>
+          <a class="btn ghost" href="#/discover/${p.category}" style="margin-bottom:18px">← Back to ${esc(catLabel)}</a>
           <div class="page-head"><span class="eyebrow">${esc(p.category_label)}</span><h1>${esc(p.label)} <span style="font-family:var(--font-mono);font-size:1rem;color:var(--faint)">v${esc(p.version)}</span></h1>
             <p class="lede">${esc(p.description)}</p>
             <div class="hero-cta" style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
@@ -1259,7 +1281,7 @@ TEMPLATE = r"""<!doctype html>
 
           <div class="grid cols-3" style="margin-bottom:8px">
             <a class="card" href="README.md" style="display:block"><div class="action-tile"><span class="ico">${svg("info")}</span><span><span class="t">README</span><span class="d">Marketplace overview &amp; setup</span></span></div></a>
-            <a class="card" href="#/dashboard" style="display:block"><div class="action-tile"><span class="ico">${svg("sliders")}</span><span><span class="t">Deep Dashboard</span><span class="d">Full posture &amp; tribunal controls</span></span></div></a>
+            <a class="card" href="#/observe" style="display:block"><div class="action-tile"><span class="ico">${svg("sliders")}</span><span><span class="t">Deep Dashboard</span><span class="d">Full posture &amp; tribunal controls</span></span></div></a>
             <a class="card" href="CHANGELOG.md" style="display:block"><div class="action-tile"><span class="ico">${svg("git")}</span><span><span class="t">Changelog</span><span class="d">Version history</span></span></div></a>
           </div>
 
@@ -1301,29 +1323,29 @@ TEMPLATE = r"""<!doctype html>
         const idx = [];
         // Quick actions — top-priority category, always present
         const QA = [
-          { kind: "action", label: "Apply Strict Production posture", meta: "Configuration", hay: "apply strict production posture", route: "#/configuration", preset: "strict_production" },
-          { kind: "action", label: "Apply Client Delivery posture (recommended)", meta: "Configuration", hay: "apply client delivery posture recommended", route: "#/configuration", preset: "client_delivery" },
-          { kind: "action", label: "Apply Exploratory posture", meta: "Configuration", hay: "apply exploratory posture", route: "#/configuration", preset: "exploratory" },
-          { kind: "action", label: "Apply Maximum Autonomy posture", meta: "Configuration", hay: "apply maximum autonomy posture", route: "#/configuration", preset: "maximum_autonomy" },
-          { kind: "action", label: "Open posture editor", meta: "Configuration", hay: "open posture editor configuration", route: "#/configuration" },
+          { kind: "action", label: "Apply Strict Production posture", meta: "Configuration", hay: "apply strict production posture", route: "#/configure", preset: "strict_production" },
+          { kind: "action", label: "Apply Client Delivery posture (recommended)", meta: "Configuration", hay: "apply client delivery posture recommended", route: "#/configure", preset: "client_delivery" },
+          { kind: "action", label: "Apply Exploratory posture", meta: "Configuration", hay: "apply exploratory posture", route: "#/configure", preset: "exploratory" },
+          { kind: "action", label: "Apply Maximum Autonomy posture", meta: "Configuration", hay: "apply maximum autonomy posture", route: "#/configure", preset: "maximum_autonomy" },
+          { kind: "action", label: "Open posture editor", meta: "Configuration", hay: "open posture editor configuration", route: "#/configure" },
           { kind: "action", label: "Open deep dashboard", meta: "External", hay: "open deep dashboard server", action: "copyCmd", cmd: "bash scripts/open-dashboard.sh" },
           { kind: "action", label: "Toggle dark mode", meta: "Theme", hay: "toggle dark mode theme", action: "toggleTheme" },
           { kind: "action", label: "Show onboarding checklist", meta: "Onboarding", hay: "show onboarding checklist setup", action: "showOnboarding" },
-          { kind: "action", label: "Browse by use case", meta: "Marketplace", hay: "browse use case i want to intent lookup", route: "#/marketplace" },
+          { kind: "action", label: "Browse by use case", meta: "Marketplace", hay: "browse use case i want to intent lookup", route: "#/discover" },
         ];
         QA.forEach((q) => idx.push(q));
         // Plugins
         D.plugins.forEach((p) => {
-          idx.push({ kind: "plugin", label: p.label, meta: p.category_label, hay: (p.label + " " + p.description + " " + p.keywords.join(" ")).toLowerCase(), route: "#/marketplace/" + p.category, open: p.name });
+          idx.push({ kind: "plugin", label: p.label, meta: p.category_label, hay: (p.label + " " + p.description + " " + p.keywords.join(" ")).toLowerCase(), route: "#/discover/" + p.category, open: p.name });
           // Copy-install action per plugin
           idx.push({ kind: "action", label: `Copy install command for ${p.label}`, meta: "Install", hay: `copy install ${p.name} ${p.label}`.toLowerCase(), action: "copyCmd", cmd: `/plugin install ${p.name}@ravenclaude` });
         });
         // Specialists
         D.plugins.forEach((p) => p.agents.forEach((a) => idx.push({ kind: "specialist", label: a.label, meta: p.label, hay: (a.label + " " + (a.description || "") + " " + p.label).toLowerCase(), route: "#/team" })));
         // Skills (new — from §G scanner)
-        D.plugins.forEach((p) => (p.skills_index || []).forEach((s) => idx.push({ kind: "skill", label: s.label, meta: p.label, hay: (s.label + " " + (s.description || "") + " " + p.label).toLowerCase(), route: "#/marketplace/" + p.category, open: p.name })));
+        D.plugins.forEach((p) => (p.skills_index || []).forEach((s) => idx.push({ kind: "skill", label: s.label, meta: p.label, hay: (s.label + " " + (s.description || "") + " " + p.label).toLowerCase(), route: "#/discover/" + p.category, open: p.name })));
         // Hooks (new — from §G scanner)
-        D.plugins.forEach((p) => (p.hooks_index || []).forEach((h) => idx.push({ kind: "hook", label: h.name, meta: p.label + " · " + h.event, hay: (h.name + " " + (h.description || "") + " " + p.label).toLowerCase(), route: "#/marketplace/" + p.category, open: p.name })));
+        D.plugins.forEach((p) => (p.hooks_index || []).forEach((h) => idx.push({ kind: "hook", label: h.name, meta: p.label + " · " + h.event, hay: (h.name + " " + (h.description || "") + " " + p.label).toLowerCase(), route: "#/discover/" + p.category, open: p.name })));
         return idx;
       }
       const PALETTE_IDX = buildPaletteIndex();
@@ -1402,7 +1424,7 @@ TEMPLATE = r"""<!doctype html>
           // BUG #1 fix: if already on the same hash, hashchange won't fire,
           // so route() never re-runs and the preset never applies. Call route() directly.
           window.__pendingPreset = m.preset;
-          if (location.hash === m.route || (m.route === "#/configuration" && location.hash === "#/configuration/")) {
+          if (location.hash === m.route || (m.route === "#/configure" && location.hash === "#/configure/")) {
             route();
           } else {
             location.hash = m.route;
@@ -1443,25 +1465,48 @@ TEMPLATE = r"""<!doctype html>
       // Native-merged routes (dashboard + catalog) light up the matching nav
       // item; their sub-routes are owned by the sub-app shown in #dash-root /
       // #catalog-root.
+      // Map any route (canonical, legacy alias, dashboard tab, or plugin-*) to the
+      // NAV section that should light up.
       function resolveNavActive(section) {
+        if (SECTION_ALIAS[section]) section = SECTION_ALIAS[section];
         if (NAV.some((n) => n.id === section)) return section;
-        if (payloadKind(section) === "dashboard") return "dashboard";
+        if (DASH_OWNER[section]) return DASH_OWNER[section];
+        if (section && section.startsWith("plugin-")) return "discover";
         return "home";
       }
       function route() {
-        const hash = location.hash.replace(/^#\/?/, "") || "home";
-        const [section, sub] = hash.split("/");
+        const raw = location.hash.replace(/^#\/?/, "") || "home";
+        let [section, sub] = raw.split("/");
         renderNav(resolveNavActive(section));
         document.body.classList.remove("mobile-nav-open");
-        if (payloadKind(section) === "dashboard") {
+
+        // Legacy own-view routes (e.g. #/team → roster, highlighted under Discover).
+        if (LEGACY_VIEW[section] === "viewTeam") {
+          showHost("view"); viewTeam(); $("#view").focus({ preventScroll: true });
+          window.scrollTo({ top: 0 }); return;
+        }
+        // Legacy top-level alias → canonical section (marketplace→discover, etc.).
+        if (SECTION_ALIAS[section]) section = SECTION_ALIAS[section];
+
+        if (section && section.startsWith("plugin-")) {
+          // Rich per-plugin REFERENCE lives in the shell (Discover). The CONFIGURE
+          // half (editable variables) stays on the dashboard host — Slice B
+          // reconciles the deep-link; for now Marketplace "Details" drives this.
+          showHost("view");
+          window.__openPlugin(section.slice(7));
+          $("#view").focus({ preventScroll: true });
+        } else if (section === "observe") {
+          // Observe = the live control panel. Default to the run feed; a dashboard
+          // sub-route (e.g. #/heimdall) is handled by the DASH_OWNER branch below.
+          viewDashboard("activity");
+        } else if (DASH_OWNER[section]) {
           viewDashboard(section, sub);
         } else {
           showHost("view");
           switch (section) {
-            case "team": viewTeam(); break;
-            case "marketplace": viewMarketplace(sub); break;
-            case "configuration": viewConfiguration(); break;
-            case "resources": viewResources(); break;
+            case "discover": viewMarketplace(sub); break;
+            case "configure": viewConfiguration(); break;
+            case "learn": viewResources(); break;
             case "home": viewHome(); break;
             default: viewHome(); break;
           }
