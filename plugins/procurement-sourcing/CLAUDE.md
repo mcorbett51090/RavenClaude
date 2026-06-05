@@ -66,7 +66,9 @@ The research-grounded reference the agents point to. Read the relevant file in f
 | [`knowledge/procurement-kpi-glossary.md`](knowledge/procurement-kpi-glossary.md) | Procurement KPI glossary |
 | [`knowledge/sourcing-economics.md`](knowledge/sourcing-economics.md) | Strategic sourcing economics |
 | [`knowledge/procurement-benchmarks.md`](knowledge/procurement-benchmarks.md) | Procurement methods & benchmarks (2025) |
-| [`knowledge/procurement-decision-trees.md`](knowledge/procurement-decision-trees.md) | Procurement decision trees |
+| [`knowledge/procurement-decision-trees.md`](knowledge/procurement-decision-trees.md) | Procurement decision trees (skill/specialist router + sourcing-play / savings-validation / supplier-distress Mermaid trees) |
+| [`knowledge/procurement-kraljic-positioning-decision-tree.md`](knowledge/procurement-kraljic-positioning-decision-tree.md) | **Mermaid** — how to *place* a category on the Kraljic supply-risk × profit-impact matrix (the precondition before the "which sourcing play" tree) |
+| [`knowledge/procurement-make-vs-buy-decision-tree.md`](knowledge/procurement-make-vs-buy-decision-tree.md) | **Mermaid** — make-in-house vs buy-from-market (core-competency → control → market → full-cost/TCO, hybrid base/swing outcome) |
 
 ---
 
@@ -106,6 +108,32 @@ The lead is [`sourcing-lead`](agents/sourcing-lead.md) — first contact for any
 
 ---
 
-## 8. Milestones
+## 8. Scenarios bank & runnable tooling (added v0.2.0)
 
-- **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 5 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 8 best-practice rules.
+- **Scenarios bank** — [`scenarios/`](scenarios/) holds dated, scope-tagged, unverified engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank or the Finance-agreed baseline (§2, §3 #3). Scenarios carry no client/supplier PII or contract values (§2). The most-likely-to-benefit specialists — `spend-analytics-analyst`, `category-strategist`, `supplier-risk-specialist` — should check the bank when a situation matches.
+- **Runnable calculator** — [`scripts/sourcing_calc.py`](scripts/sourcing_calc.py) (stdlib only, Python 3.8+, `ruff`-clean) removes arithmetic error from three recurring sourcing decisions: `tco` (compare bids on total cost of ownership — landed + quality + carry + switching + recurring — and flag the bid whose low unit price loses on TCO), `savings` (walk negotiated → realized → incremental: realized-volume × on-contract-compliance, strip the in-budget offset, print the leakage gap + realization rate), `terms` (payment-terms working-capital benefit of a Net-30→Net-60 change + the implied annualized rate an early-pay discount must beat). It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support, not legal/audit/financial advice (§2). Owned primarily by `spend-analytics-analyst`; `category-strategist` uses `tco` in the should-cost/TCO play.
+
+## 9. Value-add completeness (build-out 2026-06-05)
+
+Mirrors the merged `veterinary-practice` pilot recipe for a **pure non-code vertical**. Every value-add menu item is dispositioned honestly below — several runtime-tier items are genuinely **N-A** because there is no code artifact, runtime, or repo to operate on, and forcing them would add noise, not value. Net-new on top of PR #315 (which added the consolidated knowledge decision-trees + best-practices/ + templates/).
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README + 4 dated engagement scenarios (negotiated-vs-realized savings leakage, single-source supply-risk / dual-source, maverick-spend / non-compliance, should-cost / TCO teardown). |
+| Decision-tree (Mermaid) knowledge | **BUILT** | 2 new files (Kraljic category positioning; make-vs-buy) complementing the #315 trees (which placed/played/validated). The new trees sit one level *up* — positioning *before* the play, make-vs-buy *before* a sourcing event. |
+| Glossary / KPI reference | **SUFFICIENT (pre-existing)** | `procurement-kpi-glossary.md` + `procurement-benchmarks.md` already cover savings/sourcing/risk metrics and 2025 benchmarks; no redundant new file added this round. |
+| Runnable script (`scripts/`) | **BUILT** | `sourcing_calc.py` — `tco` / `savings` / `terms`. The one runtime item with real non-code value. `ruff`-clean. |
+| Code-aware MCP server (bundled) | **N-A** | No published, verified MCP for a generic P2P/ERP procurement suite to bundle; P2P/ERP systems (Coupa, SAP Ariba, Oracle, Ivalua, …) are per-tenant / authenticated / PII-and-contract-bearing — bundling is out of scope and the plugin is deliberately P2P/ERP-neutral (§2). If a genuine live-data need ever surfaces, it would be *recommend, evaluate-first*, never bundled (per `docs/best-practices/bundled-mcp-servers.md`). |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in a sourcing advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/sourcing_calc.py`; no compiled/installed binary is warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. |
+| output-styles / themes | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown reports governed by the §6 Output Contract. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 5 skills, 1 advisory antipattern hook, 5 commands, 4 templates already cover the surface; no obvious high-value gap this round. The new decision trees + script extend reach without a new agent (team-growth-as-knowledge house rule). |
+| CHANGELOG.md | **BUILT** | Added with a top `0.2.0` entry. |
+| NOTICE.md | **N-A** | No third-party content is bundled (the script is original, stdlib-only; all sources are cited inline, not vendored). |
+
+## 10. Milestones
+
+- **v0.1.x** — initial release + PR #315 knowledge consolidation: 4 agents, 5 skills, 4 templates, 5 commands, 1 advisory hook, an 8-rule best-practices set, and a research-grounded knowledge bank (KPI glossary, sourcing economics, benchmarks, consolidated decision-trees).
+- **v0.2.0** — non-code-vertical value-add build-out: scenarios bank (4 scenarios), 2 complementary Mermaid decision-tree knowledge files (Kraljic positioning, make-vs-buy), `scripts/sourcing_calc.py` (3 modes — tco / savings / terms). Code-runtime tier dispositioned N-A with reasons (§9).

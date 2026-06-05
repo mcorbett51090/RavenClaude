@@ -66,7 +66,9 @@ The research-grounded reference the agents point to. Read the relevant file in f
 | [`knowledge/ecommerce-kpi-glossary.md`](knowledge/ecommerce-kpi-glossary.md) | E-commerce/DTC KPI glossary |
 | [`knowledge/ecommerce-unit-economics.md`](knowledge/ecommerce-unit-economics.md) | DTC unit economics |
 | [`knowledge/ecommerce-benchmarks-2026.md`](knowledge/ecommerce-benchmarks-2026.md) | DTC benchmarks (2025–2026) |
-| [`knowledge/ecommerce-decision-trees.md`](knowledge/ecommerce-decision-trees.md) | DTC decision trees |
+| [`knowledge/ecommerce-decision-trees.md`](knowledge/ecommerce-decision-trees.md) | DTC decision trees (router + 3 Mermaid trees: CAC root-cause, subscription, new-channel) |
+| [`knowledge/ecommerce-channel-mix-reallocation-decision-tree.md`](knowledge/ecommerce-channel-mix-reallocation-decision-tree.md) | **Mermaid** — channel-mix reallocation, MER-gated (breakeven = 1 ÷ contribution-margin%), holdout-before-major-shift |
+| [`knowledge/ecommerce-platform-vs-headless-decision-tree.md`](knowledge/ecommerce-platform-vs-headless-decision-tree.md) | **Mermaid** — themed Shopify vs. headless/build as a capability-need + capacity + 3yr-payback trade (default: stay on a theme) |
 
 ---
 
@@ -106,6 +108,32 @@ The lead is [`ecommerce-lead`](agents/ecommerce-lead.md) — first contact for a
 
 ---
 
-## 8. Milestones
+## 8. Scenarios bank & runnable tooling (added v0.2.0)
+
+- **Scenarios bank** — [`scenarios/`](scenarios/) holds dated, scope-tagged, unverified engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank or a brand's own data (§2). Scenarios carry no customer PII / no order-level data / no named-brand figures (§2). The most-likely-to-benefit specialists — `performance-marketing-strategist`, `merchandising-specialist`, `retention-analytics-analyst` — should check the bank when a situation matches.
+- **Runnable calculator** — [`scripts/dtc_calc.py`](scripts/dtc_calc.py) (stdlib only, Python 3.8+, `ruff`-clean) removes arithmetic error from three recurring unit-economics decisions: `contribution-margin` (per-order margin **net of returns** — flags a high-conversion category that loses money once returns load in, §3 #2/#6), `ltv-cac` (the master ratio + payback-in-orders, with optional monthly-churn→lifetime, against the 3:1 / 2:1 lines, §3 #1), `breakeven-roas` (the MER/blended-ROAS floor = `1 ÷ contribution-margin%` + per-order CAC headroom at a target ROAS, §3 #5). It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support, not financial/accounting advice (§2). Owned primarily by `retention-analytics-analyst`; `performance-marketing-strategist` uses `breakeven-roas`, `merchandising-specialist` uses `contribution-margin`.
+
+## 9. Value-add completeness (build-out 2026-06-05)
+
+Every value-add menu item is dispositioned honestly below. This is a **non-code, growth-and-unit-economics advisory** vertical (like the veterinary-practice pilot), so several runtime-tier items are genuinely **N-A** — there is no code artifact, runtime, or repo to operate on, and forcing them would add noise, not value.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README (pre-existing, indexed) + **4** dated engagement scenarios now created to match the index: CAC-rising blended-vs-incremental, contribution-margin-negative-after-returns, checkout-conversion-drop, subscription-churn-vs-acquisition. Each carries an "Action for the next consultant" lesson + cited, dated public benchmarks. |
+| Decision-tree (Mermaid) knowledge | **BUILT** | **2 new** files complementing PR #315's 3 in-file trees (CAC root-cause, subscription, new-channel): channel-mix reallocation (MER-gated) and platform-vs-headless (Shopify vs build). |
+| Glossary / KPI / benchmarks reference | **SUFFICIENT (existing)** | `ecommerce-kpi-glossary.md`, `ecommerce-unit-economics.md`, `ecommerce-benchmarks-2026.md` already ship cited/dated figures; the new trees + scenarios add fresh 2025–2026 sources (returns, MER, cart-abandonment, churn) rather than a redundant file. |
+| Runnable script (`scripts/`) | **BUILT** | `dtc_calc.py` — contribution-margin / ltv-cac / breakeven-roas. The one runtime item with real non-code value; `ruff`-clean. |
+| Bundled MCP server | **N-A (recommend-not-bundle)** | Shopify's official commerce/Admin MCP is **per-tenant, OAuth-authenticated, and PII-bearing** → per [`../../docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md) Step 1 it is *recommend, don't bundle* (you can't hardcode a consumer store URL/secret). The read-only Shopify **dev-docs** MCP could in principle bundle (zero-auth), but I did **not** confirm a stable published artifact + license this session, so per the no-invent rule it is **`[unverified]` — not bundled.** Either path would need `x-mcpAttribution` + `NOTICE.md`; neither shipped. The plugin is deliberately platform-neutral (§2 — not a storefront/CMS/ad-account). |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in a growth/ops advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/dtc_calc.py`; no compiled/installed binary warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. |
+| output-styles / themes | **N-A** | Deliverables are Markdown reports governed by the §6 Output Contract; styling is a code/UX concern. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 5 skills, 1 advisory antipattern hook, 5 commands, 5 templates already cover the surface; the new trees + script extend reach without a new agent (team-growth-as-knowledge house rule). No high-value gap this round. |
+| CHANGELOG.md | **BUILT** | Added with a top `0.2.0` entry. |
+| NOTICE.md | **N-A** | No third-party content bundled (the script is original, stdlib-only; all sources cited inline, not vendored). |
+
+## 10. Milestones
 
 - **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 5 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 8 best-practice rules.
+- **v0.2.0** — value-add build-out: scenarios bank (4 dated scenarios matching the existing README index), 2 new Mermaid decision-tree knowledge files (channel-mix reallocation; platform-vs-headless), `scripts/dtc_calc.py` (3 modes, `ruff`-clean), CHANGELOG. Code-runtime tier + bundled-MCP dispositioned N-A / recommend-not-bundle with reasons (§9).

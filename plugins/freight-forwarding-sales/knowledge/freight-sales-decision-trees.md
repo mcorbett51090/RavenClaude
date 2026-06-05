@@ -314,3 +314,81 @@ flowchart TD
 | Email with follow-up call | Medium — asynchronous but personal | Medium | High-value when meeting is unavailable |
 | Portal submission | Compliant — required for formal tenders | Variable | Any formal tender with specified method |
 | Clean email only | Lowest | Low | Transactional and spot accounts |
+
+---
+
+## Decision Tree: LCL vs FCL — consolidate or take a full box (build-out 2026-06-05)
+
+**When this applies:** ocean cargo is sub-container or near a container-fill, and you must decide whether to quote **LCL** (priced per W/M revenue ton) or **FCL** (priced per box). The observable entry: a CBM + weight figure exists for the shipment and the per-unit cost flips somewhere in the ~13–15 CBM band. This **complements** the urgency-first Mode-selection tree above by doing the *ocean-only volume/cost crossover* that tree only points at.
+
+**Last verified:** 2026-06-05 against standard LCL/FCL forwarding economics (the LCL→FCL breakeven is a heuristic band — **calibrate to your lane's LCL per-W/M rate and FCL box rate**).
+
+```mermaid
+flowchart TD
+    START[Ocean cargo to price] --> Q1{Volume clearly fills a 20'/40' box - roughly 15+ CBM?}
+    Q1 -->|YES| FCL[Quote FCL - cheaper per unit + faster + lower co-load risk]
+    Q1 -->|NO| Q2{Volume clearly small - well under ~10 CBM?}
+    Q2 -->|YES| Q3{Cargo fragile, hazardous, or high-theft - co-load risk material?}
+    Q3 -->|YES| FCL_PROTECT[Consider FCL anyway - control + security beat per-unit cost]
+    Q3 -->|NO| LCL[Quote LCL - priced per W/M; avoid paying for empty box space]
+    Q2 -->|NO, in the ~10-15 CBM grey band| Q4{Run the breakeven: LCL W/M cost vs one FCL box rate}
+    Q4 -->|LCL still cheaper at this volume| Q5{Transit + CFS delay acceptable to the customer?}
+    Q5 -->|YES| LCL
+    Q5 -->|NO - time-sensitive| FCL
+    Q4 -->|FCL at/below LCL cost| FCL
+```
+
+**Rationale per leaf:**
+- **FCL (clear volume)** — once volume approaches a full box, FCL almost always beats LCL per unit, ships faster, and avoids consolidation/deconsolidation (CFS) handling and co-load risk. Watch demurrage/detention if the box is held.
+- **LCL (clear small volume)** — part-loads that don't justify a full box; priced per **W/M** (the greater of 1,000 kg or 1 CBM per revenue ton). Carries CFS charges and longer transit, but you don't pay for empty container space.
+- **FCL for protection** — even at low volume, fragile / hazardous / high-theft cargo can justify a full box for control and security over the lowest per-unit cost.
+- **Grey-band breakeven** — in the ~10–15 CBM band the answer is **arithmetic, not instinct**: compare the LCL W/M charge at this volume against one FCL box rate (use `scripts/freight_calc.py ocean` to settle the W/M basis first), then let transit-sensitivity break the tie. The crossover point moves with the LCL per-W/M rate and the box rate on the day — recompute per lane.
+
+**Tradeoffs summary:**
+
+| Leaf | Cost basis | Speed | Best for | Watch-out |
+|---|---|---|---|---|
+| FCL (clear volume) | Per box | Faster | ~15+ CBM, container-fill | Demurrage/detention if box held |
+| LCL (clear small) | Per W/M ton | Slower | Part-loads well under breakeven | CFS handling + consolidation delay |
+| FCL for protection | Per box | Faster | Fragile/hazardous/high-theft | Pays more per unit for control |
+| Grey-band → breakeven | Computed | Tie-broken by transit | ~10–15 CBM | Crossover moves with lane rates — recompute |
+
+---
+
+## Decision Tree: Deadline mode-shift — air, sea-air, or air-bridge split (build-out 2026-06-05)
+
+**When this applies:** a shipment has a **hard deadline** (a stock-out, a launch, a contractual delivery date) and the reflex answer "put it all on air" needs a total-landed-cost check before it burns the customer's money. The observable entry: a delivery date, a stock-out/line-down cost, and a chargeable weight exist. This **complements** the urgency-first Mode-selection tree by doing the *cost-vs-deadline crossover* — judging the air premium against the stock-out cost, not against the ocean rate.
+
+**Last verified:** 2026-06-05 against standard air/ocean mode economics (air ≈ 4–10× ocean per kg; ocean FCL door-to-door ≈ 25–42 days; sea-air hybrid trades transit for cost on the right lanes — all **lane- and date-volatile; confirm against live rates/schedules**).
+
+```mermaid
+flowchart TD
+    START[Hard-deadline shipment] --> Q1{Is the stock-out / line-down / penalty cost quantified?}
+    Q1 -->|NO| QUANT[Quantify it first - that is the benchmark the air premium is judged against, NOT the ocean rate]
+    Q1 -->|YES| Q2{Does full ocean FCL/LCL still beat the deadline?}
+    Q2 -->|YES - deadline is comfortable| OCEAN[Quote ocean - no premium needed; deadline is not the constraint]
+    Q2 -->|NO - ocean misses it| Q3{Is the deadline immediate - days, not 2-3 weeks?}
+    Q3 -->|YES - very tight| Q4{Is the air premium less than the stock-out cost?}
+    Q4 -->|YES| AIR[Air the volume needed - premium is cheap vs the line going down]
+    Q4 -->|NO - premium exceeds the loss| RENEG[Re-examine: partial air-bridge, or accept a controlled short-stock]
+    Q3 -->|NO - tight but ~2-3 weeks of slack| Q5{Does a sea-air hybrid lane exist via a transshipment hub?}
+    Q5 -->|YES| SEAAIR[Sea-air hybrid - hits the window at well below full-air cost]
+    Q5 -->|NO| SPLIT[Air-bridge split - air the minimum to cover the gap, ocean the balance]
+```
+
+**Rationale per leaf:**
+- **Quantify first** — the decision is a **total-landed-cost** trade. The air premium is judged against the **stock-out / line-down / penalty cost**, never against the ocean rate. Skipping this is how "all air" becomes a reflex instead of a decision.
+- **Ocean** — if ocean still beats the deadline, there is no premium to pay; the deadline was never the binding constraint.
+- **Air (full)** — when the deadline is immediate **and** the air premium is smaller than the stock-out cost, full air is correct and rational, not extravagant. Settle **chargeable weight** (volumetric vs actual, `freight_calc.py air`) before quoting so the premium is real.
+- **Sea-air hybrid** — for tight-but-not-immediate windows on lanes with a viable transshipment hub: trades some transit for large savings vs pure air. Check lane availability.
+- **Air-bridge split** — air only the minimum needed to bridge the gap (e.g., cover a stock-out), ocean the balance; usually the lowest total-landed-cost option that still protects the deadline.
+- **Re-examine** — if the air premium genuinely exceeds the loss it prevents, that's a signal to revisit a partial air-bridge or a controlled, managed short-stock rather than overspend on freight.
+
+**Tradeoffs summary:**
+
+| Leaf | Speed | Relative cost | Best for | Watch-out |
+|---|---|---|---|---|
+| Ocean | Slowest | Lowest | Deadline has comfortable slack | Confirm it actually beats the date |
+| Air (full) | Fastest | Highest (≈4–10× ocean/kg) | Immediate deadline, premium < stock-out cost | Chargeable weight inflates bulky cargo |
+| Sea-air hybrid | Medium | Medium | ~2–3 weeks of slack, hub lane exists | Lane/hub availability, transshipment |
+| Air-bridge split | Mixed | Lower total than full air | Bridge a stock-out, ocean the rest | Coordinating two modes / two ETAs |

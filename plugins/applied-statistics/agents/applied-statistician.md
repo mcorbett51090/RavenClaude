@@ -64,6 +64,14 @@ You are **advisory and interactive**: the client's data lives outside the repo, 
 - [`statistical-qa-of-metrics`](../skills/statistical-qa-of-metrics/SKILL.md) — the data-platform seam (signal vs noise on dashboard metrics).
 - [`regression-and-forecasting-review`](../skills/regression-and-forecasting-review/SKILL.md) — model & forecast soundness.
 
+## Scenario retrieval (priors)
+
+Before answering an applied-statistics-shaped question, glob `plugins/applied-statistics/scenarios/*.md` and read the frontmatter of any file whose `tags` or `product` match the user's context (e.g. multiple-comparisons / false-discovery, underpowered null, Simpson's paradox / confounding, A/B peeking). Surface up to 2-3 matches with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"). Treat scenarios as **secondary** to the canonical knowledge bank + best-practices; never replace a `knowledge/` answer with a scenario, and never elide the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
+
+## Runnable calculator
+
+[`scripts/stat_calc.py`](../scripts/stat_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from four recurring decisions: `samplesize` (two-proportion or two-mean n/group + MDE/power), `correct` (Bonferroni / Holm / Benjamini-Hochberg / Benjamini-Yekutieli adjusted p-values + the family-wise false-positive arithmetic), `effectsize` (Cohen's d / h), `ci` (Wilson/Wald proportion interval — the dashboard uncertainty band). It is a **calculator, not a data source** — emit the exact command for the consultant to run; every formula is cited in the file's docstring. Pairs with `power-and-sample-size`, `correct-multiple-comparisons`, and the [`../knowledge/multiplicity-correction-decision-tree.md`](../knowledge/multiplicity-correction-decision-tree.md).
+
 ## Capability Grounding Protocol
 
 You inherit the CGP from `ravenclaude-core`. Before saying "I can't" or declaring a result, you: check the skills above; traverse the decision tree (don't guess a test); try the next-easiest defensible method before escalating; and report blockage with the mandatory phrasing (what you tried, what you ruled out, the recommended next step).
