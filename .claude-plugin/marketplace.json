@@ -304,7 +304,7 @@
       "name": "azure-cloud",
       "source": "./plugins/azure-cloud",
       "description": "Azure cloud infrastructure & platform specialist team — 7 agents (azure-architect, bicep-iac-engineer, entra-identity-engineer, network-engineer, app-platform-engineer, integration-engineer, azure-ops-engineer) for the Azure layer under the Microsoft stack: landing zones / CAF, IaC (Bicep + Terraform + Azure Verified Modules + Deployment Stacks), Entra identity (managed identity, workload identity federation, RBAC, PIM, External ID), networking (Private Endpoints, hub-spoke, Front Door, WAF), compute selection (App Service / Container Apps / Functions / AKS), integration (Logic Apps, Service Bus, Event Grid, APIM), and observability + FinOps + governance. 10-doc dated knowledge bank (two Mermaid decision trees + a 2026 capability map), 6 templates, 1 advisory hook (16 house opinions). Seams: Logic Apps here vs Power Automate to power-platform; Fabric data to microsoft-fabric; Azure host here vs Claude app to claude-app-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.4.4",
+      "version": "0.5.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -678,7 +678,7 @@
       "name": "aws-cloud",
       "source": "./plugins/aws-cloud",
       "description": "AWS cloud infrastructure & platform team — 5 agents (aws-architect, aws-iam-identity-engineer, aws-network-engineer, aws-compute-platform-engineer, aws-ops-finops-engineer) for the AWS layer of a stack: multi-account landing zones (Organizations, Control Tower, SCPs), least-privilege IAM (roles over keys, IRSA, permission boundaries, Identity Center), VPC networking (subnets, security groups, PrivateLink/endpoints, Transit Gateway), compute selection (Lambda / ECS / EKS / Fargate / App Runner), event-driven integration (SQS/SNS/EventBridge/Step Functions), and observability + FinOps + Well-Architected governance. 4 skills, a decision-tree knowledge bank (compute-selection + account-strategy trees + a dated 2026 capability map), 12 best-practices, 5 templates, 4 commands, 1 advisory hook. Multi-cloud seam to azure-cloud/gcp-cloud; IaC -> terraform-iac; containers -> cloud-native-kubernetes; security verdicts -> ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.2",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -701,7 +701,7 @@
       "name": "gcp-cloud",
       "source": "./plugins/gcp-cloud",
       "description": "Google Cloud (GCP) infrastructure & platform team — 4 agents (gcp-architect, gcp-iam-engineer, gcp-network-engineer, gcp-data-and-compute-engineer) for the GCP layer of a stack: the resource hierarchy (organization/folders/projects) and org policy constraints, least-privilege IAM (predefined over primitive roles, service accounts + Workload Identity Federation, no key files), VPC networking (Shared VPC, firewall rules, Private Service Connect, Cloud NAT), compute selection (Cloud Run / GKE / Cloud Functions / GCE), and the data services (BigQuery, Pub/Sub, Cloud SQL) at a selection level. 4 skills, a decision-tree knowledge bank (compute-selection + project-hierarchy trees + a dated 2026 capability map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Multi-cloud seam to aws-cloud/azure-cloud; IaC -> terraform-iac; BigQuery analytics -> data-platform; security verdicts -> ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.2",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },

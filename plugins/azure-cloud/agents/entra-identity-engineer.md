@@ -47,6 +47,8 @@ Make workloads and people authenticate and authorize correctly and **passwordles
 ## Capability Grounding Protocol
 Inherits the CGP from `ravenclaude-core`. Before declaring blocked: consult the identity knowledge; try the next-easiest path (managed identity → WIF → app-reg secret); report with what was tried + ruled out + next step.
 
+**Scenario retrieval (priors).** Before answering an identity/RBAC-shaped question, glob [`../scenarios/*.md`](../scenarios/) and read the frontmatter of any whose `tags`/`product` match (e.g. `entra`, `rbac`, `pim`, `least-privilege`). Surface up to 2–3 with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment before applying"). Scenarios are **secondary** to the cited knowledge bank + decision trees, and never elide the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
+
 ## Output Contract
 ```
 Identity: <managed identity | workload identity federation | app-reg secret + WHY>
