@@ -228,11 +228,11 @@ def cmd_price_change(args: argparse.Namespace) -> int:
     print()
     if args.price_delta > 0:
         print(f"  → a price INCREASE can afford to LOSE up to {abs(vol_change)*100:.1f}% of unit volume")
-        print(f"    before total contribution dollars fall below today's.")
+        print("    before total contribution dollars fall below today's.")
         print("    (lose less than that and you're ahead; this is usually the safer lever.)")
     elif args.price_delta < 0:
         print(f"  → a price CUT must GAIN at least {vol_change*100:.1f}% more unit volume")
-        print(f"    just to hold today's contribution dollars — and more to actually help.")
+        print("    just to hold today's contribution dollars — and more to actually help.")
         print("    (this is why a cut is rarely the first lever — §3 #3.)")
     else:
         print("  → no price change; no volume effect to break even on.")
