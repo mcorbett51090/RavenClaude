@@ -186,6 +186,18 @@ assert(
 /* Mount host + sub-app entry point present; no iframe anywhere. */
 assert(/id="dash-root"/.test(html), "missing native mount host #dash-root");
 assert(/window\.__dashApp\b/.test(html), "dashboard sub-app entry point window.__dashApp missing");
+/* The dashboard JS self-wraps in its own IIFE (`(() => { … activate … })();`),
+ * so `activate` is scoped to that inner closure. The __dashApp.show() entry point
+ * MUST be exposed INSIDE that IIFE — if it's appended AFTER the inner `})();`
+ * close, `activate` is out of scope, every show() throws a swallowed ReferenceError,
+ * and every shell nav click silently falls back to the Overview tab (the regression
+ * this guards). The bug fingerprint is a `})();` immediately followed by the
+ * exposure; the correct fold has the exposure BEFORE the close. */
+assert(
+  !/\}\)\(\);\s*window\.__dashApp\s*=/.test(html),
+  "window.__dashApp must be exposed INSIDE the dashboard IIFE (before its `})();` close), " +
+    "not stranded after it — otherwise activate() is out of scope and shell nav dead-ends on Overview",
+);
 assert(!/<iframe/i.test(html), "merged portal must contain no <iframe> (native merge)");
 
 /* ── Slice B — single chrome + shell section sub-nav ──────────────────────────

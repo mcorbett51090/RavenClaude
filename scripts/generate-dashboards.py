@@ -252,10 +252,22 @@ def render_fragment(plugin_dir: Path, schema: dict) -> dict:
         'window.addEventListener("hashchange", applyHash);',
         "/* hashchange owned by the index shell router (native-merge) */",
     )
-    js = iife_wrap(
-        js,
-        expose="window.__dashApp = { show: function (tab, sub) { try { activate(tab, sub); } catch (e) {} } };",
+    # Expose the shell's entry point INSIDE the dashboard's own IIFE. _JS already
+    # self-wraps as `(() => { … activate … })();`, so `activate` is scoped to that
+    # inner closure. Appending the exposure via iife_wrap's outer tail would put it
+    # AFTER the inner `})();` — where `activate` is undefined, so __dashApp.show()
+    # throws a (swallowed) ReferenceError and every shell nav click silently falls
+    # back to the Overview tab. Inject it before the inner IIFE's final close so
+    # `activate` is in scope; the outer iife_wrap then only adds global isolation.
+    _EXPOSE = (
+        "\n  window.__dashApp = { show: function (tab, sub) { "
+        "try { activate(tab, sub); } catch (e) {} } };\n"
     )
+    _close = js.rfind("})();")
+    if _close == -1:  # defensive: _JS shape changed — fail loud rather than ship a dead nav
+        raise RuntimeError("render_fragment: could not find the dashboard IIFE close `})();` to inject __dashApp")
+    js = js[:_close] + _EXPOSE + js[_close:]
+    js = iife_wrap(js)
     return {"css": css, "body": body, "js": js}
 
 
