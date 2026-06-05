@@ -586,7 +586,7 @@
       "name": "database-engineering",
       "source": "./plugins/database-engineering",
       "description": "Database-engineering team — 4 agents (schema-architect, query-performance-engineer, migration-engineer, db-reliability-engineer) for the OPERATIONAL/transactional data layer (OLTP): relational schema design and normalization (and when to denormalize), indexing strategy and query/EXPLAIN-plan tuning, safe zero-downtime schema migrations (expand/contract), and connection-pooling, transactions/isolation, replication, and backup/restore reliability. Postgres-leaning, principles portable to MySQL/SQL Server; NoSQL access-pattern guidance where it fits. 4 skills, a decision-tree knowledge bank (index-choice + migration-safety trees + a dated 2026 capability map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Distinct from data-platform (analytics/ELT/warehouse) and analytics-engineering (dbt). Seams: ELT/warehouse -> data-platform, ORM/app data-access -> backend-engineering, managed DB infra -> cloud plugins. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.2",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -632,7 +632,7 @@
       "name": "frontend-engineering",
       "source": "./plugins/frontend-engineering",
       "description": "Frontend-engineering team — 4 agents (frontend-architect, react-implementation-engineer, frontend-state-and-data-engineer, frontend-performance-engineer) for building app-grade frontends (React/Next, TypeScript): component architecture and composition, the rendering-strategy choice (CSR/SSR/SSG/ISR/React Server Components), client state vs server-cache (TanStack Query/RSC) and form/validation, bundle/performance discipline (code-splitting, Core Web Vitals, hydration cost), and accessibility-in-code (semantic HTML, ARIA, keyboard, focus). TypeScript-first. 4 skills, a decision-tree knowledge bank (rendering-strategy + state-location trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Distinct from web-design (brand/UX/marketing sites). Seams: design/brand/WCAG-audit -> web-design, auth UX -> auth-identity, API consumption -> api-engineering, native -> mobile-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.2",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -655,7 +655,7 @@
       "name": "mobile-engineering",
       "source": "./plugins/mobile-engineering",
       "description": "Mobile-engineering team — 4 agents (mobile-architect, ios-engineer, android-engineer, cross-platform-engineer) for native and cross-platform mobile apps: the native-vs-React-Native-vs-Flutter decision, iOS craft (Swift/SwiftUI, the app lifecycle, concurrency), Android craft (Kotlin/Jetpack Compose, lifecycle, coroutines), and the cross-cutting mobile concerns (offline-first + sync, secure on-device storage, push notifications/deep links, battery/network constraints, and the App Store / Play Store release pipeline + review). 4 skills, a decision-tree knowledge bank (platform-choice + offline-sync trees + a dated 2026 capability map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: shared web patterns -> frontend-engineering, the backend API -> api-engineering/backend-engineering, auth -> auth-identity, CI/CD signing -> devops-cicd. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.2",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
