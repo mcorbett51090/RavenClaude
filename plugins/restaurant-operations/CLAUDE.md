@@ -63,10 +63,12 @@ The research-grounded reference the agents point to. Read the relevant file in f
 
 | File | Covers |
 |---|---|
-| [`knowledge/restaurant-kpi-glossary.md`](knowledge/restaurant-kpi-glossary.md) | Restaurant KPI glossary |
+| [`knowledge/restaurant-kpi-glossary.md`](knowledge/restaurant-kpi-glossary.md) | Restaurant KPI glossary — cited, dated benchmark bands (prime/food/labor), throughput (SPLH, table turns, RevPASH), menu-mix popularity threshold |
 | [`knowledge/restaurant-unit-economics.md`](knowledge/restaurant-unit-economics.md) | Restaurant unit economics |
 | [`knowledge/restaurant-market-trends-2026.md`](knowledge/restaurant-market-trends-2026.md) | Restaurant market & benchmarks (2025–2026) |
-| [`knowledge/restaurant-decision-trees.md`](knowledge/restaurant-decision-trees.md) | Restaurant decision trees |
+| [`knowledge/restaurant-decision-trees.md`](knowledge/restaurant-decision-trees.md) | Restaurant decision trees (skill/specialist router) |
+| [`knowledge/restaurant-menu-action-decision-tree.md`](knowledge/restaurant-menu-action-decision-tree.md) | **Mermaid** — raise price vs. re-engineer the mix vs. cut the item (matrix-first, resist-the-cut, with the CM + 70%×1/N arithmetic) |
+| [`knowledge/restaurant-make-vs-buy-decision-tree.md`](knowledge/restaurant-make-vs-buy-decision-tree.md) | **Mermaid** — make from scratch vs. buy prepped as a fully-loaded cost + capacity + consistency + brand trade (the omitted-labor breakeven) |
 
 ---
 
@@ -106,6 +108,32 @@ The lead is [`restaurant-engagement-lead`](agents/restaurant-engagement-lead.md)
 
 ---
 
-## 8. Milestones
+## 8. Scenarios bank & runnable tooling (added v0.2.0)
+
+- **Scenarios bank** — [`scenarios/`](scenarios/) holds dated, scope-tagged, unverified engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank or the operator's own read of their actual P&L (§2). Scenarios carry no guest/employee PII and no named-unit revenue (§2). The most-likely-to-benefit specialists — `menu-cost-engineer`, `foh-boh-operations-specialist`, `restaurant-finance-analyst` — should check the bank when a situation matches.
+- **Runnable calculator** — [`scripts/restaurant_calc.py`](scripts/restaurant_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from four recurring four-wall decisions: `prime-cost` (food/labor/prime % vs segment benchmark bands + which-half-is-the-driver read), `menu-item` (the engineering-matrix quadrant from CM dollars + the 70%×1/N popularity threshold), `make-vs-buy` (fully-loaded scratch cost *including the prep-labor term operators omit* vs prepped price), and `price-change` (the contribution-dollar breakeven that shows why a price cut is rarely the first lever). It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support, not financial/legal/tax advice (§2). Owned primarily by `menu-cost-engineer` (`menu-item`, `make-vs-buy`, `price-change`) and `restaurant-finance-analyst` (`prime-cost`); `foh-boh-operations-specialist` uses `make-vs-buy`'s BOH-capacity note.
+
+## 9. Value-add completeness (build-out 2026-06-05)
+
+This plugin mirrors the `veterinary-practice` non-code-vertical build-out. Every value-add menu item is dispositioned honestly below — several runtime-tier items are genuinely **N-A** because there is no code artifact, runtime, or repo to operate on, and forcing them would add noise, not value.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README (pre-staged) + 4 dated engagement scenarios (prime-cost blowout, menu mis-priced on percentage, labor flat against demand, inventory/waste shrink). Each carries an "Action for the next consultant" lesson and cited public benchmarks. |
+| Decision-tree (Mermaid) knowledge | **BUILT** | 2 new files (`restaurant-menu-action-decision-tree.md`; `restaurant-make-vs-buy-decision-tree.md`). Plugin previously had zero Mermaid trees (the existing `restaurant-decision-trees.md` is a prose skill/specialist router, not a Mermaid graph). |
+| Glossary / KPI reference | **BUILT (enriched existing)** | `restaurant-kpi-glossary.md` rewritten with cited, dated benchmark bands (prime/food/labor by segment), throughput formulas (SPLH, table turns, RevPASH with a worked example), the Kasavana-Smith popularity threshold, and contribution-margin profit metrics — rather than a redundant new file. |
+| Runnable script (`scripts/`) | **BUILT** | `restaurant_calc.py` — `prime-cost` / `menu-item` / `make-vs-buy` / `price-change`. The one runtime item with real non-code value. |
+| Code-aware MCP server (bundled) | **N-A** | No published MCP for a restaurant POS/back-office (Toast, Square, 7shifts, …) verified to exist; these are per-tenant/authenticated/PII-bearing — bundling is out of scope and the plugin is deliberately POS-neutral (§2). If a genuine live-data need ever surfaces it would be *recommend, evaluate-first*, never bundled (per [`../../docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md)). |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in a restaurant-ops advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/restaurant_calc.py`; no compiled/installed binary is warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. |
+| output-styles / themes | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown reports governed by the §6 Output Contract. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 5 skills, 1 advisory antipattern hook, 5 commands, 3 templates already cover the surface; no obvious high-value gap this round. The new decision trees + script extend reach without a new agent (team-growth-as-knowledge house rule). |
+| CHANGELOG.md | **BUILT** | Added with a top `0.2.0` entry. |
+| NOTICE.md | **N-A** | No third-party content is bundled (the script is original, stdlib-only; all sources are cited inline, not vendored). |
+
+## 10. Milestones
 
 - **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 5 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 8 best-practice rules.
+- **v0.2.0** — non-code-vertical value-add build-out: scenarios bank (4 scenarios), 2 Mermaid decision-tree knowledge files, `scripts/restaurant_calc.py` (4 modes), cited-benchmark KPI glossary enrichment, CHANGELOG. Code-runtime tier dispositioned N-A with reasons (§9).

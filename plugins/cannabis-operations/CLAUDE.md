@@ -66,7 +66,9 @@ The research-grounded reference the agents point to. Read the relevant file in f
 | [`knowledge/cannabis-kpi-glossary.md`](knowledge/cannabis-kpi-glossary.md) | Cannabis operations KPI glossary |
 | [`knowledge/cannabis-compliance-economics.md`](knowledge/cannabis-compliance-economics.md) | Cannabis compliance & economics |
 | [`knowledge/cannabis-market-trends-2026.md`](knowledge/cannabis-market-trends-2026.md) | Cannabis market & rules (2025–2026) |
-| [`knowledge/cannabis-decision-trees.md`](knowledge/cannabis-decision-trees.md) | Cannabis operations decision trees |
+| [`knowledge/cannabis-decision-trees.md`](knowledge/cannabis-decision-trees.md) | Cannabis operations decision trees (skill/specialist router) |
+| [`knowledge/cannabis-track-and-trace-discrepancy-decision-tree.md`](knowledge/cannabis-track-and-trace-discrepancy-decision-tree.md) | **Mermaid** — physical-vs-system (Metrc/BioTrack) discrepancy triage: posting-lag vs diversion vs surplus, direction-of-gap logic, daily-cadence fix |
+| [`knowledge/cannabis-testing-remediation-decision-tree.md`](knowledge/cannabis-testing-remediation-decision-tree.md) | **Mermaid** — failed compliance test: remediate vs. destroy (microbial-remediable vs pesticide-destroy asymmetry) + saleable-yield economics |
 
 ---
 
@@ -106,6 +108,32 @@ The lead is [`cannabis-engagement-lead`](agents/cannabis-engagement-lead.md) —
 
 ---
 
-## 8. Milestones
+## 8. Scenarios bank & runnable tooling (added v0.2.0)
+
+- **Scenarios bank** — [`scenarios/`](scenarios/) holds dated, scope-tagged, unverified engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank, the operator's qualified cannabis counsel/CPA, or a state regulator's actual rule (§2, §3 #3). Scenarios carry no client PII or license numbers (§2). A `state-specific` scenario must **not** be generalized across the state line (§3 #3). The most-likely-to-benefit specialists — `seed-to-sale-compliance-specialist`, `dispensary-retail-operations-specialist`, `cannabis-finance-analyst` — should check the bank when a situation matches.
+- **Runnable calculator** — [`scripts/cannabis_calc.py`](scripts/cannabis_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from three recurring decisions: `effective-280e` (effective federal rate vs defensible-COGS share + the §471 cost-study tax delta), `inventory-turns` (turns + days-on-hand + cash trapped vs a target), `saleable-yield` (harvest→saleable yield via a cause-tagged fail rate + the microbial remediate-vs-destroy test). It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support, not tax/legal/financial advice (§2). The `effective-280e` mode encodes the **April-2026 partial-rescheduling caveat** (still applies to adult-use). Owned primarily by `cannabis-finance-analyst`; `seed-to-sale-compliance-specialist` uses `saleable-yield`'s remediate-vs-destroy step.
+
+## 9. Value-add completeness (build-out 2026-06-05)
+
+This plugin is a **pure non-code regulated vertical** (seed-to-sale, track-and-trace, compliance, retail/cultivation ops). Every value-add menu item is dispositioned honestly below — several runtime-tier items are genuinely **N-A** because there is no code artifact, runtime, or repo to operate on, and forcing them would add noise, not value.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README (pre-existing) + 4 dated engagement scenarios now authored: Metrc reconciliation break, 280E COGS-allocation gap, dispensary margin discount spiral, failed-lab-test yield hit. |
+| Decision-tree (Mermaid) knowledge | **BUILT** | 2 new files (track-and-trace discrepancy triage; testing remediate-vs-destroy + saleable yield). Plugin previously had **zero** Mermaid trees. |
+| Glossary / KPI reference | **BUILT (enriched existing)** | `cannabis-kpi-glossary.md` rewritten from a stub into cited, dated benchmark tables (compliance / retail / financial) + a volatile **rescheduling-context** section + market context — rather than a redundant new file. |
+| Runnable script (`scripts/`) | **BUILT** | `cannabis_calc.py` — effective-280e / inventory-turns / saleable-yield. The one runtime item with real non-code value. |
+| Code-aware MCP server (bundled) | **N-A (recommend-only if ever)** | No published, zero-config, non-PII MCP for Metrc/BioTrack/LeafData verified to exist; state track-and-trace APIs are **per-license/authenticated/regulated-data-bearing** and a third-party Metrc MCP would be a write-capable, secret-handling supply-chain dependency. Per [`docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md) that is **EVALUATE-FIRST, never bundle** — gated behind `ravenclaude-core` `security-reviewer`. The plugin is deliberately track-and-trace-platform-neutral (§2). Not fabricated; none recommended this round. |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in a compliance/retail-ops advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/cannabis_calc.py`; no compiled/installed binary warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. (A live track-and-trace reconciliation monitor would require the per-license authenticated API ruled out above.) |
+| output-styles / themes | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown reports governed by the §6 Output Contract. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 5 skills, 1 advisory antipattern hook, 5 commands, 3 templates already cover the surface; no obvious high-value gap this round. The new decision trees + script + scenarios extend reach without a new agent (team-growth-as-knowledge house rule). |
+| CHANGELOG.md | **BUILT** | Added with a top `0.2.0` entry. |
+| NOTICE.md | **N-A** | No third-party content is bundled (the script is original, stdlib-only; all sources are cited inline, not vendored). |
+
+## 10. Milestones
 
 - **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 5 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 8 best-practice rules.
+- **v0.2.0** — non-code-vertical value-add build-out: scenarios bank (4 scenarios), 2 Mermaid decision-tree knowledge files (track-and-trace discrepancy; testing remediate-vs-destroy), `scripts/cannabis_calc.py` (3 modes), cited-benchmark KPI glossary rewrite (incl. the April-2026 partial-rescheduling caveat), CHANGELOG. Code-runtime tier dispositioned N-A with reasons (§9).

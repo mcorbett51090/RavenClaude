@@ -1,7 +1,7 @@
 {
   "name": "restaurant-operations",
-  "version": "0.1.2",
-  "description": "Restaurant Operations specialist team \u2014 4 agents (restaurant-engagement-lead, menu-cost-engineer, foh-boh-operations-specialist, restaurant-finance-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An operations-and-unit-economics team for an independent or multi-unit restaurant operator \u2014 it manages prime cost (food + labor), engineers the menu by contribution margin and popularity, controls food cost against theoretical, and reads the P&L the way a GM who lives the four-wall margin does. Inherits ravenclaude-core protocols.",
+  "version": "0.3.0",
+  "description": "Restaurant Operations specialist team — 4 agents (restaurant-engagement-lead, menu-cost-engineer, foh-boh-operations-specialist, restaurant-finance-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An operations-and-unit-economics team for an independent or multi-unit restaurant operator — it manages prime cost (food + labor), engineers the menu by contribution margin and popularity, controls food cost against theoretical, and reads the P&L the way a GM who lives the four-wall margin does. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"
   },
