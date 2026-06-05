@@ -3,8 +3,7 @@
 
 This is the NEW top-level experience: a single self-contained page with a
 collapsible sidebar, a top bar (logo / search / quick actions), and five
-client-side-routed sections — Home, Team, Marketplace, Configuration,
-Resources. It is generated from the live repo so it never drifts from the
+client-side-routed sections — Home, Discover, Configure, Observe, Learn. It is generated from the live repo so it never drifts from the
 catalog:
 
   - .claude-plugin/marketplace.json          → plugin catalog + versions
@@ -630,10 +629,10 @@ def scan_repo() -> dict:
              "icon": "rocket", "command": "/init-agent-ready"},
             {"id": "posture", "label": "Comfort Posture Editor",
              "desc": "Tune per-category deny / ask / allow permissions",
-             "icon": "sliders", "route": "#/configuration"},
+             "icon": "sliders", "route": "#/configure"},
             {"id": "use-cases", "label": "Browse by use case",
              "desc": "The 'I want to…' lookup — intent → which agent & plugin",
-             "icon": "book", "route": "#/marketplace"},
+             "icon": "book", "route": "#/discover"},
             {"id": "staging", "label": "Contribution Staging Loop",
              "desc": "Stage a finding into the marketplace via /wrap",
              "icon": "git", "command": "/wrap"},
