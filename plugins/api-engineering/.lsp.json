@@ -1,0 +1,11 @@
+{
+  "vacuum": {
+    "command": "vacuum",
+    "args": ["language-server"],
+    "extensionToLanguage": {
+      ".yaml": "yaml",
+      ".yml": "yaml",
+      ".json": "json"
+    }
+  }
+}
