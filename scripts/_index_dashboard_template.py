@@ -571,7 +571,7 @@ TEMPLATE = r"""<!doctype html>
       .scn .scn-o { font-size: 0.8rem; color: var(--muted); }
       .qs { margin: 6px 0 0; padding-left: 1.1rem; }
       .qs li { font-size: 0.82rem; color: var(--muted); margin-bottom: 2px; }
-      .ref-item { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+      .ref-item { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; box-shadow: var(--rc-shadow-sm); }
       .ref-item .ri-n { font-family: var(--font-mono); font-size: 0.86rem; }
       .ref-item .ri-d { color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
       /* Decision-tree dropdowns on a plugin detail page (moved off the dashboard
