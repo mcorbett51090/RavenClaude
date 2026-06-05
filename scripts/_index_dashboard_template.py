@@ -1242,10 +1242,10 @@ TEMPLATE = r"""<!doctype html>
         $("#view").innerHTML = `
           <a class="btn ghost" href="#/discover/${p.category}" style="margin-bottom:18px">← Back to ${esc(catLabel)}</a>
           <div class="page-head"><span class="eyebrow">${esc(p.category_label)}</span><h1>${esc(p.label)} <span style="font-family:var(--font-mono);font-size:1rem;color:var(--faint)">v${esc(p.version)}</span></h1>
-            <p class="lede">${esc(p.description)}</p>
+            <p class="lede" style="max-width:none">${esc(p.description)}</p>
             <div class="hero-cta" style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
               <button class="btn primary" type="button" onclick="window.__copy('/plugin install ${esc(p.name)}@ravenclaude','Install command')">${svg("plus")} Copy install command</button>
-              <a class="btn" href="#/plugin-${esc(p.name)}">${svg("sliders")} Configure variables</a>
+              <a class="btn" href="#/configure">${svg("sliders")} Configure agents</a>
             </div></div>
           <div class="stats">
             <div class="card stat"><span class="v">${p.counts.agents}</span><span class="k">Specialists</span></div>
