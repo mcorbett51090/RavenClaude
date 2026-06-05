@@ -2,7 +2,7 @@
 """
 generate-dashboards.py — emit per-plugin interactive HTML dashboards.
 
-Sibling to generate-repo-guide.py. Per plugin with a dashboard-schema.json
+Per plugin with a dashboard-schema.json
 present, emits plugins/<plugin>/dashboard.html — a self-contained static
 page (no CDN, no external assets) with:
 
@@ -20,7 +20,7 @@ The Settings tab implements the architect's recommendations from the
   - Preset bar at top with preview-diff confirmation before applying
   - Live YAML preview pane on the right
   - Copy YAML / Download .ravenclaude/comfort-posture.yaml actions
-  - Theme matches scripts/generate-repo-guide.py: dark-navy base
+  - Theme: dark-navy base
     (#0b1120) with teal accent (#14b8a6), prefers-color-scheme honored
 
 No external dependencies. Generates pure HTML5+CSS+vanilla-JS.
@@ -141,7 +141,7 @@ EMISSIONS = _load_emissions()
 # Pattern explanations are loaded per-plugin in render_dashboard().
 PATTERN_EXPLANATIONS: dict[str, dict[str, str]] = {}
 
-# ── Generated-output discipline (matches generate-repo-guide.py) ─────
+# ── Generated-output discipline ──────────────────────────────────────
 # - byte-identical across OSes: no os.path.sep usage, no os.linesep, only \n
 # - no timestamps in committed output (use sentinel "GENERATED" marker only)
 # - sorted iteration: every dict iteration over plugin contents is sorted
@@ -1315,8 +1315,8 @@ def _render_overview_tab() -> str:
         "<p>RavenClaude is your private Claude Code <strong>plugin marketplace</strong>. "
         "This dashboard is where you <strong>tune how autonomous your agents are</strong>, "
         "watch the guardrails every action passes through, and wire the plugin into your tools. "
-        "(Looking for the public catalog of every agent &amp; skill? That's "
-        "<code>repo-guide.html</code> &mdash; this dashboard is the <em>controls</em>, not the catalog.)</p>"
+        "(Looking for the catalog of every agent &amp; skill? That's the portal's "
+        "<strong>Marketplace</strong> section &mdash; this dashboard is the <em>controls</em>, not the catalog.)</p>"
         '<div id="ov-mode-banner" class="ov-banner ov-banner-static">'
         "<strong>Preview</strong> &mdash; this is a read-only view. Run the served dashboard "
         "(<code>rc dashboard</code> or <code>python3 scripts/serve-dashboards.py</code>) to save changes to your repo."
@@ -2512,8 +2512,8 @@ def _label_for(value: str) -> str:
 
 
 # ── HTML, CSS, JS templates ──────────────────────────────────────────────
-# Theme variables mirror repo-guide.html so the read-only catalog and the
-# editable dashboard look like the same product family.
+# Theme variables are the shared design tokens so the editable dashboard and
+# the rest of the portal look like the same product family.
 
 _CSS = """
 /*__SHARED_TOKENS__*/
@@ -10514,25 +10514,10 @@ def _render_plugin_page(plugin_dir: Path) -> str:
         '<p class="pv-help">No curated knobs for this plugin yet — use the free-form section below.</p>'
     )
 
-    bps = _gather_plugin_best_practices(plugin_dir)
-    trees = _gather_plugin_trees(plugin_dir)
-    agents = _gather_plugin_dir_names(plugin_dir, "agents")
-    skills = _gather_plugin_dir_names(plugin_dir, "skills", dirs=True)
-
-    def _li_list(items: list[str], empty: str) -> str:
-        if not items:
-            return f'<p class="pp-empty">{empty}</p>'
-        return '<ul class="pp-list">' + "".join(f"<li>{html.escape(i)}</li>" for i in items) + "</ul>"
-
-    bp_html = _li_list(bps, "No best-practice docs in this plugin.")
-    tree_html = _li_list(trees, "No decision trees in this plugin.")
-    agents_html = _li_list(agents, "No agents in this plugin.")
-    skills_html = _li_list(skills, "No skills in this plugin.")
-
     return f"""
     <div class="plugin-page" data-plugin="{esc}" data-target="{html.escape(target)}">
       <h2 class="pp-title">{esc}</h2>
-      <p class="pp-sub">Variables for <code>{esc}</code> save to <code>{html.escape(target)}</code> via the dashboard server. On the static/published copy, edits stay in your browser — use <strong>Download</strong>.</p>
+      <p class="pp-sub">Configure <code>{esc}</code>'s variables here — they save to <code>{html.escape(target)}</code> via the dashboard server (on the static copy, edits stay in your browser — use <strong>Download</strong>). For the full reference — agents, scenarios, skills, hooks, templates, best-practices — see this plugin in the portal's <strong>Marketplace</strong> section.</p>
 
       <section class="pp-section">
         <h3>Variables</h3>
@@ -10548,19 +10533,6 @@ def _render_plugin_page(plugin_dir: Path) -> str:
           <span class="pp-status" data-plugin="{esc}" role="status"></span>
         </div>
         <p class="pp-noserver" data-plugin="{esc}" hidden>No local dashboard server behind this page, so <strong>Save to repo</strong> is off. Run <code>ravenclaude dashboard</code> (or <code>bash .ravenclaude/dashboard.sh</code>) and reopen, or use <strong>Download</strong> and drop the file into <code>{html.escape(target)}</code>.</p>
-      </section>
-
-      <section class="pp-section">
-        <h3>Best practices <span class="pp-count">{len(bps)}</span></h3>
-        {bp_html}
-      </section>
-      <section class="pp-section">
-        <h3>Decision trees <span class="pp-count">{len(trees)}</span></h3>
-        {tree_html}
-      </section>
-      <section class="pp-section pp-cols">
-        <div><h3>Agents <span class="pp-count">{len(agents)}</span></h3>{agents_html}</div>
-        <div><h3>Skills <span class="pp-count">{len(skills)}</span></h3>{skills_html}</div>
       </section>
     </div>
     """
@@ -10841,8 +10813,10 @@ def main() -> int:
     # plugins/ravenclaude-core/scripts/serve-dashboards.py when they run
     # /dashboard. The same content is ALSO folded natively into the marketplace's
     # index.html via render_fragment() (one portal), so the two never drift —
-    # they render from this module's _PAGE_TEMPLATE/_CSS/_JS. Only the
-    # marketplace-only repo-guide.html is retired to a redirect stub.
+    # they render from this module's _PAGE_TEMPLATE/_CSS/_JS. (The repo-guide
+    # was removed entirely — its catalog content is folded into the portal's
+    # Marketplace section; the per-plugin REFERENCE lives there, this page is
+    # the CONFIGURE half of the hybrid.)
     exit_code = 0
     for plugin_dir in plugins:
         schema = load_schema(plugin_dir)

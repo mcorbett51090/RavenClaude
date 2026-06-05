@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /* check-shell-router.mjs — structural test for the unified single-document
- * portal in index.html. The dashboard + catalog sub-apps are folded NATIVELY
- * into index.html (no iframes): mounted in #dash-root / #catalog-root, shown by
- * the shell router toggling [hidden] and driven via window.__dashApp.show() /
- * window.__catalogApp.show().
+ * portal in index.html. The dashboard sub-app is folded NATIVELY into index.html
+ * (no iframes): mounted in #dash-root, shown by the shell router toggling
+ * [hidden] and driven via window.__dashApp.show(). (The repo-guide/catalog
+ * sub-app was retired — its content is rendered natively by the shell from JSON
+ * in the Marketplace + Resources sections, so there's no second host/entry point.)
  *
  * Pure text-based assertions — NO `new Function()` / NO `eval` / NO `vm`. The
  * sibling render-tests (check-heimdall-render.mjs etc.) DO extract source and
@@ -11,20 +12,19 @@
  * less-trusted input would have an ACE sink in CI) and assert against the
  * source text directly — weaker than running the code, but safe and sufficient
  * for the regressions we care about (deleting the route set, renaming the
- * helpers, dropping a NAV item, removing a mount host or entry point).
+ * helpers, dropping a NAV item, removing the mount host or entry point).
  *
  * What this guards (Gate 70):
- *   - NAV still contains the Dashboard + Catalog (repo-guide) items + the five
- *     back-compat shell-native items.
+ *   - NAV still contains the Dashboard item + the five back-compat shell-native
+ *     items (home/team/marketplace/configuration/resources).
  *   - DASH_SECTIONS contains every dashboard-owned top-level route that
  *     committed bookmarks + the gjallarhorn-link + SessionStart capability
  *     banners point at. Removing one silently breaks deep-links.
- *   - payloadKind() preserves the dynamic 'plugin-*' prefix mapping + the
- *     catalog/repo-guide mapping.
- *   - resolveNavActive() / route() drive the native hosts (viewDashboard /
- *     viewCatalog), not iframes.
- *   - The mount hosts (#dash-root, #catalog-root) and the sub-app entry points
- *     (window.__dashApp, window.__catalogApp) are present in the merged page.
+ *   - payloadKind() preserves the dynamic 'plugin-*' prefix mapping + null.
+ *   - resolveNavActive() / route() drive the native dashboard host
+ *     (viewDashboard), not iframes.
+ *   - The mount host (#dash-root) and the sub-app entry point (window.__dashApp)
+ *     are present, and NO <iframe> remains anywhere in the merged page.
  *   - Must-fail half: an emptied DASH_SECTIONS is detected by the same
  *     assertions — proves the regexes probe the right thing.
  *
@@ -83,15 +83,7 @@ const RESOLVE_NAV_TEXT = sliceFunction(app, "function resolveNavActive(");
 const ROUTE_TEXT = sliceFunction(app, "function route(");
 
 /* NAV — must list Dashboard + Catalog + the five back-compat items */
-for (const id of [
-  "home",
-  "team",
-  "marketplace",
-  "dashboard",
-  "repo-guide",
-  "configuration",
-  "resources",
-]) {
+for (const id of ["home", "team", "marketplace", "dashboard", "configuration", "resources"]) {
   const re = new RegExp(`id:\\s*"${id.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}"`);
   assert(re.test(NAV_TEXT), `NAV regression: missing item with id "${id}"`);
 }
@@ -131,10 +123,6 @@ assert(
   "payloadKind() must map plugin-* dynamic routes to the dashboard",
 );
 assert(
-  /"catalog"/.test(PAYLOAD_KIND_TEXT) && /repo-guide/.test(PAYLOAD_KIND_TEXT),
-  "payloadKind() must map repo-guide/catalog routes to the catalog sub-app",
-);
-assert(
   /return null/.test(PAYLOAD_KIND_TEXT),
   "payloadKind() must return null for unknown sections (router falls to home)",
 );
@@ -148,29 +136,23 @@ assert(
   /payloadKind\(section\)/.test(RESOLVE_NAV_TEXT),
   "resolveNavActive() must delegate to payloadKind() for folded-in routes",
 );
-for (const id of ['"repo-guide"', '"dashboard"', '"home"']) {
+for (const id of ['"dashboard"', '"home"']) {
   assert(RESOLVE_NAV_TEXT.includes(id), `resolveNavActive() must be able to return ${id}`);
 }
 
-/* route() — drives the NATIVE hosts, not iframes */
+/* route() — drives the NATIVE dashboard host, not iframes */
 assert(
   /viewDashboard\(/.test(ROUTE_TEXT),
   "route() must call viewDashboard() for dashboard routes",
 );
-assert(/viewCatalog\(/.test(ROUTE_TEXT), "route() must call viewCatalog() for catalog routes");
 assert(
   !/viewPayload\(|<iframe/.test(ROUTE_TEXT),
   "route() must NOT use the retired iframe payload loader",
 );
 
-/* Mount hosts + sub-app entry points present in the merged document */
+/* Mount host + sub-app entry point present in the merged document */
 assert(/id="dash-root"/.test(html), "missing native mount host #dash-root");
-assert(/id="catalog-root"/.test(html), "missing native mount host #catalog-root");
 assert(/window\.__dashApp\b/.test(html), "dashboard sub-app entry point window.__dashApp missing");
-assert(
-  /window\.__catalogApp\b/.test(html),
-  "catalog sub-app entry point window.__catalogApp missing",
-);
 /* No iframe should remain anywhere in the merged portal. */
 assert(!/<iframe/i.test(html), "merged portal must contain no <iframe> (native merge)");
 

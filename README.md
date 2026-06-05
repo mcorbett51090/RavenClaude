@@ -10,9 +10,9 @@
 
 > 🖥 **Working on this repo?** Launch the **functional local dashboard** (where **Save & apply** actually writes this repo's config) with one command: `bash scripts/open-dashboard.sh`. It kills any running dashboard server, starts a fresh one, and opens it in your browser automatically. _(VS Code users: a `.vscode/tasks.json` wired as the default build task — Ctrl/Cmd+Shift+B — runs the same script; `.vscode/` is gitignored, so add it locally if you want the keybinding.)_
 
-> 📖 **[▶ View `repo-guide.html` rendered in your browser](https://mcorbett51090.github.io/RavenClaude/repo-guide.html)** — a self-contained single-page guide to every plugin, agent, skill, hook, rule, and template, with a searchable cross-plugin index. Regenerated from the manifests on every release.
+> 📖 **[▶ Open the RavenClaude portal](https://mcorbett51090.github.io/RavenClaude/)** — one self-contained page: browse every plugin, agent, skill, hook, rule, and template in the **Marketplace** section (with an “I want to…” use-case lookup), tune the comfort-posture **Dashboard**, and more. Regenerated from the manifests on every release.
 >
-> _(Or [view the raw HTML source](repo-guide.html), or download and open locally — no server, no build step.)_
+> _(Or [view the raw HTML source](index.html), or download and open locally — no server, no build step.)_
 
 > 🚀 **[▶ First Workflow in 10 Minutes](GETTING_STARTED.md)** — install → dashboard → one governed multi-agent dispatch → `/wrap`. The canonical onboarding walkthrough. Start here if you've never used RavenClaude before.
 
@@ -168,7 +168,7 @@ You lose auto-update and version pinning. To update, `git pull` and re-copy. Oth
 
 ## Updating and version pinning
 
-The marketplace ships **semver-versioned** plugins (`plugin.json` `version` + matching `marketplace.json` entry, CI-gated for drift). 22 of the 23 plugins declare `requires.ravenclaude-core` — a minimum `ravenclaude-core` version they expect, surfaced in the per-plugin card of [`repo-guide.html`](repo-guide.html).
+The marketplace ships **semver-versioned** plugins (`plugin.json` `version` + matching `marketplace.json` entry, CI-gated for drift). 22 of the 23 plugins declare `requires.ravenclaude-core` — a minimum `ravenclaude-core` version they expect, surfaced in the per-plugin card of the portal’s **Marketplace** section ([`index.html`](index.html)).
 
 **To update everything to the marketplace's latest:**
 
@@ -189,7 +189,7 @@ That pulls the catalog head + reloads every installed plugin. Safe for day-to-da
 
 The pin survives `/plugin marketplace update` — the pinned SHA is the catalog's source of truth for that engagement until you re-add at a newer SHA.
 
-**To check compatibility** between a domain plugin and your installed `ravenclaude-core`: open [`repo-guide.html`](repo-guide.html), find the plugin's card, read the **Requires** row. If your installed core version is older, update core first (`/plugin install ravenclaude-core@ravenclaude` to latest, or pin to a SHA ≥ the requirement).
+**To check compatibility** between a domain plugin and your installed `ravenclaude-core`: open the portal ([`index.html`](index.html)) → **Marketplace**, find the plugin, read the **Requires** row. If your installed core version is older, update core first (`/plugin install ravenclaude-core@ravenclaude` to latest, or pin to a SHA ≥ the requirement).
 
 **When an upgrade prompts an `ask`** in the comfort-posture dashboard: that's expected — `shell_package_install` defaults to `ask` in the balanced seed (added v0.101.0). Click **Allow once** the first time; flip the category to `allow` from the dashboard's Set up tab if you'd rather not see the prompt.
 
@@ -357,7 +357,7 @@ For the dispatch playbook itself, see [`plugins/ravenclaude-core/skills/spawn-te
 
 ## Browsing the marketplace at a glance
 
-[`repo-guide.html`](repo-guide.html) at the repo root is an interactive single-page guide to every plugin, agent, skill, hook, rule, and template that ships from this marketplace. Open it in any browser (no server required) for a tabbed, searchable view of the current state — or click **[▶ View rendered on GitHub Pages](https://mcorbett51090.github.io/RavenClaude/repo-guide.html)** to render it inline from `main` without cloning. The page is regenerated from the manifests on every release via `python3 scripts/generate-repo-guide.py`; CI's `Verify repo-guide.html is fresh` step fails if it drifts.
+[`index.html`](index.html) at the repo root is the **portal** — an interactive single page covering every plugin, agent, skill, hook, rule, and template that ships from this marketplace (in the **Marketplace** section), plus the comfort-posture **Dashboard**. Open it in any browser (no server required) for a searchable view of the current state — or click **[▶ Open on GitHub Pages](https://mcorbett51090.github.io/RavenClaude/)** to render it from `main` without cloning. It is regenerated from the manifests on every release via `python3 scripts/generate-index-dashboard.py`; CI's freshness gate (Gate 97) fails if it drifts.
 
 ---
 

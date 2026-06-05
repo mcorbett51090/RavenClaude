@@ -13,11 +13,10 @@ catalog:
   - plugins/*/{skills,hooks,commands,...}      → asset tallies
   - plugins/ravenclaude-core/dashboard-schema.json → comfort-posture v5 model
 
-It deliberately does NOT replace the deep tools that already exist
-(repo-guide.html, the comfort-posture dashboard at plugins/ravenclaude-core/
-dashboard.html). The redesigned shell links through to them where the heavy,
-already-built functionality lives. This keeps all existing functionality intact
-while delivering the new information architecture.
+It is the single portal: the comfort-posture dashboard (plugins/ravenclaude-core/
+dashboard.html) is folded in natively, and the former repo-guide's catalog
+content (per-plugin reference + the 'I want to…' use-case table) is redistributed
+into the Marketplace + Resources sections. One document, no iframes.
 
 Usage:
     python3 scripts/generate-index-dashboard.py            # writes ./index.html
@@ -336,12 +335,24 @@ def _scan_agents(plugin_dir: Path) -> list[dict]:
         works = fm.get("works_with") or []
         if isinstance(works, str):
             works = [works]
-        scenarios = fm.get("scenarios") or []
+        scenarios_raw = fm.get("scenarios") or []
         triggers = []
-        if isinstance(scenarios, list):
-            for sc in scenarios:
-                if isinstance(sc, dict) and sc.get("trigger_phrase"):
+        scenarios = []
+        if isinstance(scenarios_raw, list):
+            for sc in scenarios_raw:
+                if not isinstance(sc, dict):
+                    continue
+                if sc.get("trigger_phrase"):
                     triggers.append(sc["trigger_phrase"])
+                if sc.get("intent") or sc.get("trigger_phrase"):
+                    scenarios.append({
+                        "intent": sc.get("intent", ""),
+                        "trigger_phrase": sc.get("trigger_phrase", ""),
+                        "outcome": sc.get("outcome", ""),
+                        "difficulty": sc.get("difficulty", "starter"),
+                    })
+        quickstart_raw = fm.get("quickstart") or []
+        quickstart = [q for q in quickstart_raw if isinstance(q, str)] if isinstance(quickstart_raw, list) else []
         agents.append({
             "name": name,
             "label": _humanize(name),
@@ -350,8 +361,57 @@ def _scan_agents(plugin_dir: Path) -> list[dict]:
             "audience": fm.get("audience", []),
             "works_with": works,
             "triggers": triggers[:3],
+            "scenarios": scenarios,
+            "quickstart": quickstart,
         })
     return agents
+
+
+def _heading_desc(path: Path) -> str:
+    """First markdown heading text, else first non-marker line — the one-liner the
+    catalog cards show for a rule / template / best-practice file."""
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+    for line in text.splitlines():
+        s = line.strip()
+        if s.startswith("#"):
+            return s.lstrip("# ").strip()
+    for line in text.splitlines():
+        s = line.strip()
+        if s and not s.startswith(("---", "```", "<!--", ">")):
+            return s[:200]
+    return ""
+
+
+def _scan_md_items(plugin_dir: Path, sub: str, exclude_readme: bool = False) -> list[dict]:
+    """[{name, description}] for *.md under plugin_dir/<sub> (rules, best-practices)."""
+    d = plugin_dir / sub
+    if not d.exists():
+        return []
+    out = []
+    for p in sorted(d.glob("*.md")):
+        if not p.is_file():
+            continue
+        if exclude_readme and p.name.lower() == "readme.md":
+            continue
+        out.append({"name": p.stem, "description": _heading_desc(p)})
+    return out
+
+
+def _scan_templates(plugin_dir: Path) -> list[dict]:
+    """[{name, description}] for templates/ entries (files + folders)."""
+    d = plugin_dir / "templates"
+    if not d.exists():
+        return []
+    out = []
+    for p in sorted(d.iterdir()):
+        if p.is_dir():
+            out.append({"name": p.name + "/", "description": "(template folder)"})
+        elif p.is_file():
+            out.append({"name": p.name, "description": _heading_desc(p) if p.suffix == ".md" else ""})
+    return out
 
 
 def _scan_skills(plugin_dir: Path) -> list[dict]:
@@ -444,6 +504,9 @@ def scan_repo() -> dict:
         agents = _scan_agents(pdir)
         skills_idx = _scan_skills(pdir)
         hooks_idx = _scan_hooks(pdir)
+        rules_idx = _scan_md_items(pdir, "rules")
+        templates_idx = _scan_templates(pdir)
+        best_practices_idx = _scan_md_items(pdir, "best-practices", exclude_readme=True)
         skills = _count_dir(pdir / "skills", "dirs")
         hooks = _count_dir(pdir / "hooks", "sh")
         commands = _count_dir(pdir / "commands", "md")
@@ -468,6 +531,9 @@ def scan_repo() -> dict:
             "agents": agents,
             "skills_index": skills_idx,
             "hooks_index": hooks_idx,
+            "rules_index": rules_idx,
+            "templates_index": templates_idx,
+            "best_practices_index": best_practices_idx,
             "counts": {
                 "agents": len(agents),
                 "skills": skills,
@@ -477,6 +543,27 @@ def scan_repo() -> dict:
                 "knowledge": knowledge,
             },
         })
+
+    # "I want to…" use-case rows — every agent scenario's intent, mapped to the
+    # agent + plugin that serves it. Surfaced as a browse-by-intent lookup at the
+    # top of the Marketplace section (replaces the retired repo-guide table).
+    # Starters first, then alphabetical by intent.
+    use_cases: list[dict] = []
+    for p in plugins:
+        for a in p["agents"]:
+            for sc in a.get("scenarios", []):
+                intent = (sc.get("intent") or "").strip()
+                if not intent:
+                    continue
+                use_cases.append({
+                    "intent": intent,
+                    "agent": a["name"],
+                    "plugin": p["name"],
+                    "plugin_label": p["label"],
+                    "difficulty": sc.get("difficulty", "starter"),
+                    "audience": ", ".join(a.get("audience", []) or []),
+                })
+    use_cases.sort(key=lambda r: (r["difficulty"] != "starter", r["intent"].lower()))
 
     # Load comfort-posture category metadata from the live v5 schema.
     posture_categories: list[dict] = []
@@ -528,6 +615,7 @@ def scan_repo() -> dict:
         },
         "categories": CATEGORIES,
         "plugins": plugins,
+        "use_cases": use_cases,
         "featured": featured,
         "posture": {
             "presets": POSTURE_PRESETS,
@@ -543,9 +631,9 @@ def scan_repo() -> dict:
             {"id": "posture", "label": "Comfort Posture Editor",
              "desc": "Tune per-category deny / ask / allow permissions",
              "icon": "sliders", "route": "#/configuration"},
-            {"id": "repo-guide", "label": "Open Catalog",
-             "desc": "Full per-agent reference & 'I want to…' use-case lookup",
-             "icon": "book", "route": "#/repo-guide"},
+            {"id": "use-cases", "label": "Browse by use case",
+             "desc": "The 'I want to…' lookup — intent → which agent & plugin",
+             "icon": "book", "route": "#/marketplace"},
             {"id": "staging", "label": "Contribution Staging Loop",
              "desc": "Stage a finding into the marketplace via /wrap",
              "icon": "git", "command": "/wrap"},
@@ -603,13 +691,15 @@ def _load_shared_tokens_root() -> str:
 
 
 def _load_fragments() -> dict:
-    """Render the dashboard + catalog sub-apps as native fragments to fold into
-    the single index.html document (one portal — no iframes). Each fragment is
-    {css, body, js}: CSS scoped under its container, body mounted in a hidden
-    host div, JS IIFE-wrapped with a window.__dashApp / __catalogApp entry point
-    the shell router drives. See scripts/_html_merge.py for the mechanics."""
+    """Render the dashboard sub-app as a native fragment folded into the single
+    index.html document (one portal — no iframes): {css, body, js} with CSS
+    scoped under #dash-root, body mounted in a hidden host, JS IIFE-wrapped with
+    a window.__dashApp entry point the shell router drives. See
+    scripts/_html_merge.py for the mechanics. (The repo-guide/catalog sub-app was
+    retired — its content was redistributed natively into the shell's Marketplace
+    + Resources sections + the use-case table; see scan_repo's use_cases and the
+    rich __openPlugin view.)"""
     gd = _load_sibling("generate-dashboards.py", "generate_dashboards")
-    rg = _load_sibling("generate-repo-guide.py", "generate_repo_guide")
 
     # Dashboard fragment — built from the ravenclaude-core schema (the canonical
     # comfort-posture surface; the standalone page was per-plugin but only core
@@ -618,12 +708,7 @@ def _load_fragments() -> dict:
     dash_schema = json.loads((dash_dir / "dashboard-schema.json").read_text(encoding="utf-8"))
     dash = gd.render_fragment(dash_dir, dash_schema)
 
-    # Catalog fragment — the repo-guide content (Overview / Plugins / Architecture
-    # / Index), trees + mermaid dropped (the dashboard Guidance tab owns those).
-    marketplace, plugins = rg.load_marketplace()
-    catalog = rg.render_fragment(marketplace, plugins)
-
-    return {"dash": dash, "catalog": catalog}
+    return {"dash": dash}
 
 
 def render_html(data: dict) -> str:
@@ -635,15 +720,12 @@ def render_html(data: dict) -> str:
     html = html.replace("__GENERATED__", data["generated"])
     html = html.replace("__MKT_VERSION__", data["marketplace_version"])
     html = html.replace("__RAVEN_LOGO_SVG__", _load_raven_logo())
-    # Fold the dashboard + catalog sub-apps in natively. Done LAST so the simple
-    # __MARKER__ substitutions above never touch the (large) fragment payloads.
+    # Fold the dashboard sub-app in natively. Done LAST so the simple __MARKER__
+    # substitutions above never touch the (large) fragment payload.
     frag = _load_fragments()
     html = html.replace("/*__DASH_CSS__*/", frag["dash"]["css"])
-    html = html.replace("/*__CATALOG_CSS__*/", frag["catalog"]["css"])
     html = html.replace("<!--__DASH_BODY__-->", frag["dash"]["body"])
-    html = html.replace("<!--__CATALOG_BODY__-->", frag["catalog"]["body"])
     html = html.replace("/*__DASH_JS__*/", frag["dash"]["js"])
-    html = html.replace("/*__CATALOG_JS__*/", frag["catalog"]["js"])
     return html
 
 

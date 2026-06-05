@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Helpers for folding the dashboard + repo-guide sub-apps natively into index.html.
+"""Helpers for folding the dashboard sub-app natively into index.html.
 
-The two payload surfaces (`plugins/ravenclaude-core/dashboard.html` via
-`generate-dashboards.py`, and `repo-guide.html` via `generate-repo-guide.py`)
-were each authored as *whole-document* apps: their CSS uses bare element
-selectors (`body`, `html`, `main`, `*`, `a`, `code`) and their JS queries the
-DOM globally. To mount them as native sections inside the single `index.html`
-shell — instead of in iframes — each sub-app's CSS must be **scoped** under a
-container element so its rules can't bleed across the page.
+The dashboard (`plugins/ravenclaude-core/dashboard.html` via
+`generate-dashboards.py`) was authored as a *whole-document* app: its CSS uses
+bare element selectors (`body`, `html`, `main`, `*`, `a`, `code`) and its JS
+queries the DOM globally. To mount it as a native section inside the single
+`index.html` shell — instead of in an iframe — its CSS must be **scoped** under
+a container element so its rules can't bleed across the page. (The repo-guide
+sub-app was retired; its catalog content is now rendered natively by the shell
+from JSON, so it no longer needs scoping.)
 
 `scope_css(css, prefix)` rewrites a stylesheet so every rule only applies
 within `prefix` (e.g. `#dash-root`). It is comment-aware, handles nested
@@ -143,30 +144,6 @@ def scope_css(css: str, prefix: str) -> str:
             out.append(scoped_sel + " {" + body + "}\n")
         i = k + 1
     return "".join(out)
-
-
-def redirect_stub(href: str, label: str) -> str:
-    """A tiny standalone HTML page that redirects to `href`. Used to retire the
-    standalone dashboard.html / repo-guide.html — their content now lives in
-    index.html — while keeping committed bookmarks + inbound links resolving.
-    Deterministic (no timestamp) so the freshness `--check` is an exact match."""
-    return (
-        "<!doctype html>\n"
-        '<html lang="en">\n'
-        "  <head>\n"
-        '    <meta charset="utf-8" />\n'
-        '    <meta name="viewport" content="width=device-width, initial-scale=1" />\n'
-        f'    <meta http-equiv="refresh" content="0; url={href}" />\n'
-        f'    <link rel="canonical" href="{href}" />\n'
-        f"    <title>{label} — moved</title>\n"
-        f'    <script>location.replace({href!r});</script>\n'
-        "  </head>\n"
-        "  <body>\n"
-        f'    <p>{label} now lives in the unified portal. '
-        f'Redirecting to <a href="{href}">{href}</a>…</p>\n'
-        "  </body>\n"
-        "</html>\n"
-    )
 
 
 def iife_wrap(js: str, expose: str = "") -> str:

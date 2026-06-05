@@ -16,7 +16,7 @@ Design discipline (matches the rest of the marketplace)
   embedded copy of the data. Works by double-clicking the file.
 - **Shared design tokens.** Inlines plugins/ravenclaude-core/dashboard-assets/
   shared-tokens.css at generate-time (teal accent — a consumer-facing surface),
-  so the report matches index.html / repo-guide.html.
+  so the report matches index.html.
 - **Static-first.** Every chart and the table render server-side (in Python) so
   the report is readable with JS disabled; JS only enhances sort/filter/drill.
 - **Plain language (≈5th-grade).** Labels lead with the everyday phrase; the
