@@ -6,7 +6,7 @@ Named, citable rules for the `commercial-real-estate` plugin's 4 specialist agen
 
 ## Index
 
-_8 rules. Each file is one named, citable rule._
+_20 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -18,6 +18,18 @@ _8 rules. Each file is one named, citable rule._
 | [`debt-is-the-swing-factor-not-the-cap-rate.md`](./debt-is-the-swing-factor-not-the-cap-rate.md) | Pattern | Any commercial real estate deliverable where this question is in play — read, applied, and cited whole. |
 | [`operating-expenses-are-an-underwriting-input-not-a-plug.md`](./operating-expenses-are-an-underwriting-input-not-a-plug.md) | Pattern | Any commercial real estate deliverable where this question is in play — read, applied, and cited whole. |
 | [`cite-the-source-and-date-for-every-market-number.md`](./cite-the-source-and-date-for-every-market-number.md) | Absolute rule | Any commercial real estate deliverable where this question is in play — read, applied, and cited whole. |
+| [`lease-expiration-schedule-is-a-hold-period-risk-map.md`](./lease-expiration-schedule-is-a-hold-period-risk-map.md) | Absolute rule | Every acquisition underwriting and hold-period asset plan. |
+| [`exit-cap-rate-must-be-sensitized-not-assumed-flat.md`](./exit-cap-rate-must-be-sensitized-not-assumed-flat.md) | Absolute rule | Every leveraged IRR model — required before IC presentation. |
+| [`model-tenant-improvements-and-leasing-commissions-bottom-up.md`](./model-tenant-improvements-and-leasing-commissions-bottom-up.md) | Absolute rule | Any acquisition or asset plan with lease rollover in the hold period. |
+| [`dscr-must-be-modeled-through-the-hold-not-just-at-close.md`](./dscr-must-be-modeled-through-the-hold-not-just-at-close.md) | Absolute rule | Every leveraged acquisition with a fixed or floating loan. |
+| [`submarket-fundamentals-must-precede-property-underwriting.md`](./submarket-fundamentals-must-precede-property-underwriting.md) | Pattern | Any acquisition — run before the first pass of the property model. |
+| [`capex-reserve-is-not-optional-in-the-asset-plan.md`](./capex-reserve-is-not-optional-in-the-asset-plan.md) | Absolute rule | Every hold-period asset plan and NOI projection. |
+| [`recovery-ratio-analysis-precedes-opex-benchmarking.md`](./recovery-ratio-analysis-precedes-opex-benchmarking.md) | Primary diagnostic | OpEx looks high or low vs. benchmarks — run before re-underwriting. |
+| [`ic-memo-must-lead-with-the-deal-thesis-not-the-property-description.md`](./ic-memo-must-lead-with-the-deal-thesis-not-the-property-description.md) | Pattern | Drafting any IC memo or investment recommendation. |
+| [`rent-comps-must-include-concession-packages-not-just-face-rent.md`](./rent-comps-must-include-concession-packages-not-just-face-rent.md) | Absolute rule | Any rent-comp collection for office, retail, or mixed-use underwriting. |
+| [`tenant-credit-analysis-is-part-of-the-underwriting-not-the-dd-checklist.md`](./tenant-credit-analysis-is-part-of-the-underwriting-not-the-dd-checklist.md) | Pattern | Any acquisition where a tenant represents 10%+ of GLA or rent. |
+| [`refinance-wall-analysis-is-required-before-any-hold-period-extension.md`](./refinance-wall-analysis-is-required-before-any-hold-period-extension.md) | Absolute rule | Any hold-period extension decision; annual asset review; acquisition underwriting. |
+| [`noi-growth-assumptions-must-be-segmented-by-lease-structure-not-applied-uniformly.md`](./noi-growth-assumptions-must-be-segmented-by-lease-structure-not-applied-uniformly.md) | Absolute rule | Any multi-tenant property underwriting; hold-period NOI projection; IC memo preparation. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

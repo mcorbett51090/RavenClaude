@@ -8,7 +8,7 @@ For the cross-tool rule format and the marketplace-wide index, see [`docs/best-p
 
 ## Index
 
-_21 rules. Each file is one named, citable rule; read and apply it whole._
+_31 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -33,6 +33,16 @@ _21 rules. Each file is one named, citable rule; read and apply it whole._
 | [`workloads-calendar-recurrence-and-timezone.md`](./workloads-calendar-recurrence-and-timezone.md) | Primary diagnostic — wrong/missing event times or only one occurrence of a recurring series → check the read shape (`calendarView` vs `/events`) and the time-zone header first. | `GET /events` returns the series master, not its occurrences; default times are UTC. |
 | [`workloads-mail-and-attachments-at-scale.md`](./workloads-mail-and-attachments-at-scale.md) | Pattern — inline attachment under the size ceiling, upload session above it; `$select` + `$batch` for reads, never `$expand=attachments` on a list. | Mail is simple until a large attachment, a big mailbox, or an over-fetching list loop hits. |
 | [`workloads-use-immutable-ids-for-stored-references.md`](./workloads-use-immutable-ids-for-stored-references.md) | Absolute rule — persisting a default Outlook item ID is a latent bug; default IDs change on folder move. Store `Prefer: IdType="ImmutableId"` IDs. | A stored mail/event ID 404s "later" once the item moves folders. |
+| [`api-conditional-access-and-cae.md`](./api-conditional-access-and-cae.md) | Primary diagnostic — a 401 with a `WWW-Authenticate claims=` header is a CAE challenge, not a simple credential error; pass the claims back to MSAL before retrying. | A Graph call returns 401 despite a seemingly valid cached token. |
+| [`api-metered-apis-and-payg-awareness.md`](./api-metered-apis-and-payg-awareness.md) | Absolute rule — state the billing model and retrieval date before recommending any metered Graph API; never let PAYG charges surprise the consumer. | Recommending Teams Export, Graph connectors capacity, or any other metered API. |
+| [`api-odata-expand-depth-limit.md`](./api-odata-expand-depth-limit.md) | Primary diagnostic — `$expand` without `$select` on the expanded entity is a silent performance hazard; two-level expand throws 400 on most resources. | A query with `$expand` returns a large payload or a 400 error. |
+| [`api-odata-filter-server-side-not-client-filter.md`](./api-odata-filter-server-side-not-client-filter.md) | Absolute rule — always use `$filter` server-side; never page the full collection to filter client-side. | Any Graph collection read where only a subset of records is needed. |
+| [`identity-managed-identity-over-service-principal.md`](./identity-managed-identity-over-service-principal.md) | Pattern — prefer managed identity for Azure-hosted workloads; use service principal with certificate for non-Azure; client secret is last resort. | Choosing the credential type for a server-side or daemon workload that calls Graph. |
+| [`identity-service-principal-app-role-vs-scope.md`](./identity-service-principal-app-role-vs-scope.md) | Primary diagnostic — a 403 after "correct" permission assignment usually means an app role was declared but not assigned, or a delegated scope was used where an app role is required. | A Graph call returns 403 despite the permission appearing in the API permissions list. |
+| [`notify-rich-notifications-vs-basic.md`](./notify-rich-notifications-vs-basic.md) | Pattern — default to basic notifications; choose rich only for high-volume high-payload scenarios and route the key-management design to security review. | Designing a change-notification subscription for a resource with large payloads or high event volume. |
+| [`workloads-sharepoint-driveitem-large-file.md`](./workloads-sharepoint-driveitem-large-file.md) | Absolute rule — files above 4 MB must use an upload session; single PUT above the limit returns 413. | Uploading user-generated or application-generated files to SharePoint or OneDrive via Graph. |
+| [`workloads-teams-channel-vs-chat-message.md`](./workloads-teams-channel-vs-chat-message.md) | Primary diagnostic — channel message, chat message, and reply are separate resource paths with separate permissions; conflating them produces silent 403s or posts to the wrong surface. | Sending or reading a Teams message via Graph. |
+| [`workloads-user-group-membership-transitive.md`](./workloads-user-group-membership-transitive.md) | Primary diagnostic — use transitive membership APIs for authorization checks; direct membership silently excludes users in nested groups. | Checking whether a user is a member of a group for access-control purposes. |
 
 ---
 

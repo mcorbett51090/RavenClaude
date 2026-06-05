@@ -56,3 +56,119 @@ Before picking any method, check whether one of the standing biases (§3) alread
 ## Sourcing note
 
 Figures in this file are from the author's domain knowledge and are marked `[unverified — training knowledge]` or `[ESTIMATE]` at point of use. Validate against a primary source before putting any figure in a client deliverable (§3 cite-or-mark rule).
+
+---
+
+## Decision Tree: Sourcing — Which sourcing play for this category
+
+**When this applies:** A category is ready to be sourced and the analyst must choose between a competitive RFx, a sole-source negotiation, a negotiated renewal, or a market-test. The decision depends on the Kraljic position, the supply-market structure, and the switching-cost profile.
+
+**Last verified:** 2026-06-05 against Kraljic matrix methodology and standard strategic sourcing practice.
+
+```mermaid
+flowchart TD
+    START[Category ready to source] --> Q1{Category Kraljic position}
+    Q1 -->|Strategic - high risk high spend| Q2{Incumbent performing - scorecard pass}
+    Q2 -->|Yes| PARTNER[Negotiate renewal with incumbent - joint value-creation agenda]
+    Q2 -->|No - below SLA| RFPRISK[Competitive RFP - include incumbent - weight quality and risk heavily]
+    Q1 -->|Leverage - low risk high spend| Q3{Multiple qualified suppliers available}
+    Q3 -->|Yes - 3 or more| AUCTION[Competitive RFQ or e-auction - price-weighted evaluation]
+    Q3 -->|No - 1 to 2 only| NEGPRICE[Negotiate on should-cost - use BATNA - market test at next cycle]
+    Q1 -->|Bottleneck - high risk low spend| SECURE[Dual-qualify a backup - negotiate continuity terms - minimize auction play]
+    Q1 -->|Acquisition - low risk low spend| SIMPLIFY[Consolidate or catalog - minimize transaction cost - no RFP required]
+```
+
+**Rationale per leaf:**
+- *Partner - negotiate renewal* — strategic suppliers provide unique value; a competitive event risks disrupting the relationship without a better outcome; negotiation with joint value creation retains the partnership while extracting gains.
+- *Competitive RFP with risk weight* — when a strategic supplier is underperforming, a competitive event is justified but must be weighted for quality and risk, not purely price.
+- *Competitive RFQ/e-auction* — leverage categories are the natural home for competitive events; multiple capable suppliers exist and price is the primary differentiator.
+- *Negotiate on should-cost* — when leverage is limited to 1–2 suppliers, a should-cost-anchored negotiation extracts more value than an auction that both suppliers know is not credible.
+- *Secure / dual-qualify* — bottleneck categories are supply-risk problems, not price problems; the play is continuity assurance, not cost reduction.
+- *Simplify / catalog* — acquisition categories should not consume strategic sourcing effort; the TCO gain comes from reducing transaction cost and administrative overhead.
+
+**Tradeoffs summary:**
+
+| Sourcing play | Best for | Risk | Time investment |
+|---|---|---|---|
+| Competitive RFx | Leverage categories - multiple suppliers | Relationship damage if misapplied to strategic | Medium-high |
+| Negotiate renewal | Strategic - performing incumbent | Foregoes market test | Low-medium |
+| Should-cost negotiation | Any - limited competition | Requires credible internal data | Medium |
+| Dual-qualify | Bottleneck | Investment in qualification | High upfront |
+| Consolidate/catalog | Acquisition/tail | Stakeholder adoption risk | Medium |
+
+---
+
+## Decision Tree: Savings measurement — Is this a valid realized saving
+
+**When this applies:** A procurement team has completed a sourcing event and is calculating the savings to report to finance and to the CPO scorecard. The question is whether the saving is real, recognized, and attributable to procurement action — or whether it is an inflation of the true benefit.
+
+**Last verified:** 2026-06-05 against standard procurement savings-classification methodology.
+
+```mermaid
+flowchart TD
+    START[Potential savings to claim] --> Q1{Is there an agreed baseline with Finance}
+    Q1 -->|No| BASELINE[Stop - agree the baseline with Finance first before claiming]
+    Q1 -->|Yes| Q2{Is the saving a price reduction vs the agreed baseline}
+    Q2 -->|No - volume reduction only| DEMAND[Classify as demand-management saving - track separately from sourcing saving]
+    Q2 -->|Yes - price reduction| Q3{Has the saving hit the P-and-L - orders placed under new terms}
+    Q3 -->|No - contract signed but not yet ordering| PIPELINE[Classify as pipeline - not realized - move to realized when first PO placed]
+    Q3 -->|Yes - orders placed at new rate| Q4{Is the saving already in the budget - AOP}
+    Q4 -->|Yes - fully in budget| BUDGET_OFFSET[Zero incremental saving vs budget - document; report as cost avoidance only]
+    Q4 -->|Partially in budget| PARTIAL[Report only the above-budget portion as realized saving]
+    Q4 -->|Not in budget| REALIZED[Realized saving - report vs agreed baseline - document volume + rate + period]
+```
+
+**Rationale per leaf:**
+- *Agree baseline first* — without an agreed baseline, the saving is a claim, not a measurement; finance will not recognize it.
+- *Demand management* — volume-driven savings are real but have different ownership (the business unit reduced demand) and should not inflate the procurement team's sourcing-savings number.
+- *Pipeline* — a negotiated rate not yet used in orders has not changed cash flows; classify as pipeline to avoid double-counting in the same period it is later realized.
+- *Budget offset* — if the budget already assumed the new rate, claiming it again as a saving is double-counting; only the above-budget portion is incremental.
+- *Realized saving* — all conditions met; document the baseline, rate, volume, and period; report to the procurement scorecard.
+
+**Tradeoffs summary:**
+
+| Saving type | Recognized by Finance | Report as | Owner |
+|---|---|---|---|
+| Price reduction - not in budget | Yes | Realized sourcing saving | Procurement |
+| Price reduction - in budget | No - already planned | Cost avoidance | Procurement |
+| Demand reduction | Yes - but separate | Demand-management saving | Business unit + Procurement |
+| Pipeline - not yet ordered | Not yet | Pipeline / committed | Procurement |
+
+---
+
+## Decision Tree: Supplier risk — How to respond to a supplier financial distress signal
+
+**When this applies:** The supplier-risk-specialist or sourcing-lead has identified a signal of financial distress in a key supplier — a credit-rating downgrade, a news report of restructuring, a late invoice pattern, a missed delivery, or a direct conversation suggesting cash-flow strain. The team must decide how urgently to respond and what actions to take.
+
+**Last verified:** 2026-06-05 against standard supplier-risk and supply-continuity management practice.
+
+```mermaid
+flowchart TD
+    START[Supplier distress signal identified] --> Q1{Is this supplier single-source for a critical component}
+    Q1 -->|Yes - critical single source| CRITICAL[Immediate response - invoke business-continuity protocol]
+    Q1 -->|No - alternative exists| Q2{How soon could an alternative supplier be qualified}
+    Q2 -->|Days to weeks - already qualified| WATCH[Monitor closely - activate alternative if signal deteriorates]
+    Q2 -->|Months to qualify| Q3{Is there sufficient lead time before distress becomes failure}
+    Q3 -->|Yes - 6 plus months| QUALIFY_NOW[Begin alternative qualification immediately - do not wait for failure]
+    Q3 -->|No - insufficient lead time| TRIAGE[Dual track - support incumbent stabilization AND emergency qualification]
+    CRITICAL --> Q4{Can the supplier be stabilized - extended payment terms - volume guarantee}
+    Q4 -->|Yes - firm has leverage and appetite| SUPPORT[Negotiate stabilization terms - document - monitor weekly]
+    Q4 -->|No - distress too advanced| EMERGENCY[Emergency sourcing - sole-source justification waived - escalate to CPO and COO]
+```
+
+**Rationale per leaf:**
+- *Immediate response* — a critical single-source supplier in distress is an existential supply-continuity risk; the response must be immediate and escalated beyond procurement.
+- *Monitor / activate alternative* — when an alternative is already qualified, the risk is managed; maintain a higher monitoring cadence and define the activation trigger explicitly.
+- *Qualify now* — 6+ months of lead time is exactly the window needed to qualify an alternative; waiting costs lead time and increases the probability of an inventory-depleting gap.
+- *Dual track* — when lead time is insufficient, support the incumbent while simultaneously running an emergency qualification; choosing only one track is too risky.
+- *Stabilization terms* — extended payment terms, volume guarantees, or prepayment can bridge a temporary cash-flow strain; document the terms and add them to the contract.
+- *Emergency sourcing* — when distress is advanced and stabilization is not feasible, speed beats normal governance; document the emergency justification and escalate.
+
+**Tradeoffs summary:**
+
+| Scenario | Response | Lead time needed | Escalation level |
+|---|---|---|---|
+| Critical single-source - early signal | Immediate dual track | 3 to 12 months | CPO + COO |
+| Non-critical - alternative qualified | Monitor and watch | Days to weeks | Category manager |
+| Non-critical - qualification needed | Begin qualification | 1 to 6 months | Sourcing lead |
+| Advanced distress - critical | Emergency sourcing | As short as possible | CPO + COO + CEO |

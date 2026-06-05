@@ -105,3 +105,116 @@ _Owner/Editor 'to make it work' is the most common over-grant; reach for predefi
 | Shared VPC | GA | Multi-project networking |
 | BigQuery | GA | Service here; analytics -> data-platform |
 | Spanner | GA | Global relational; cost-justify |
+
+---
+
+## Decision Tree: GCP secret management — how should a workload access a secret?
+
+**When this applies:** A GCP workload (Cloud Run, GKE pod, Cloud Function, GCE VM) needs to access a credential, API key, or other secret at runtime. The observable inputs are: where the workload runs, whether it is a GCP-native workload, and whether the secret is a cloud identity credential or an application secret.
+
+**Last verified:** 2026-06-05 against GCP Secret Manager and Workload Identity documentation.
+
+```mermaid
+flowchart TD
+    START[Workload needs a secret] --> CLOUD{Is the secret a GCP API credential - SA key?}
+    CLOUD -->|Yes| WIF{Is the caller on GCP compute?}
+    WIF -->|Yes| MI[Attach a service account to the compute resource<br/>no key file needed]
+    WIF -->|No, external CI runner| WIDF[Workload Identity Federation<br/>OIDC token exchange]
+    CLOUD -->|No, app secret - DB password, API key| SM[Store in Secret Manager<br/>grant secretmanager.secretAccessor to SA]
+    SM --> MOUNT{How to surface in the workload?}
+    MOUNT -->|Cloud Run| ENV[Secret Manager env var reference in service config]
+    MOUNT -->|GKE| CSI[Secrets Store CSI Driver<br/>mount as file]
+    MOUNT -->|Cloud Function| CODE[Secret Manager API call at startup<br/>cache in memory]
+    MOUNT -->|GCE VM| CODE
+```
+
+**Rationale per leaf:**
+- *Attach SA* — GCP-native compute resources (Cloud Run, GKE nodes, GCE) can impersonate a service account without any key file; the metadata server provides rotating credentials.
+- *Workload Identity Federation* — external callers (GitHub Actions, GitLab, on-prem) exchange an OIDC token for short-lived GCP credentials; no key to store.
+- *Secret Manager env var reference* — Cloud Run reads the secret at deploy time and surfaces it as an environment variable at runtime; the secret value never appears in the service spec.
+- *Secrets Store CSI Driver* — GKE pods mount Secret Manager secrets as files; the Kubernetes Secret object remains base64 plaintext, so CSI bypasses it.
+- *API call at startup* — Cloud Functions and GCE can call the Secret Manager API directly using the attached SA; cache the result in memory to avoid per-request latency.
+
+**Tradeoffs summary:**
+
+| Method | Requires SA key? | Auditable access? | Use when |
+|---|---|---|---|
+| Attached SA | No | Yes via Audit Logs | GCP-native compute |
+| WIF | No | Yes via Audit Logs | External CI/CD callers |
+| Secret Manager env ref | No | Yes per-version | Cloud Run secrets |
+| CSI Driver | No | Yes | GKE pod secrets |
+| SM API call in code | No | Yes per call | Cloud Functions/GCE |
+
+---
+
+## Decision Tree: GCP network isolation — firewall rules vs VPC Service Controls
+
+**When this applies:** A team needs to control access to GCP resources: either restricting which VMs/pods can talk to each other (network-layer), or restricting which identities/networks can call GCP APIs (API-layer). These are two different controls that are often confused.
+
+**Last verified:** 2026-06-05 against GCP VPC firewall and VPC Service Controls documentation.
+
+```mermaid
+flowchart TD
+    START[Need to restrict access to GCP resource] --> TYPE{What kind of resource?}
+    TYPE -->|VM-to-VM or pod-to-pod traffic within VPC| FW[VPC Firewall Rules<br/>source tags or SA + protocol/port]
+    TYPE -->|GCP managed API - Storage, BigQuery, Secret Manager| API{Who should be allowed?}
+    API -->|Only from specific VPC or on-prem - data exfil prevention| VSC[VPC Service Controls perimeter<br/>restrict API calls by identity + network context]
+    API -->|Any authenticated caller but restrict to least-privilege| IAM[IAM roles + conditions<br/>no VPC SC needed]
+    TYPE -->|Traffic from internet to a service| LB[Cloud Load Balancing + Cloud Armor<br/>WAF + geo/IP rules at edge]
+    FW --> TAG{Prefer tags or service accounts as source?}
+    TAG -->|Tags - easier to apply| FTAG[Firewall rule: target tag + source tag]
+    TAG -->|Service accounts - stronger identity| FSA[Firewall rule: target SA + source SA]
+```
+
+**Rationale per leaf:**
+- *VPC Firewall Rules* — layer 4 controls (IP/port/protocol) for VM and pod traffic within the VPC; tag-based rules are convenient but service account-based rules are more precise identities.
+- *VPC Service Controls perimeter* — prevents data exfiltration by restricting GCP API calls to specific VPCs and identities; the right control when you need to prevent a compromised VM from calling `gsutil` and copying data out.
+- *IAM roles* — sufficient when the concern is least-privilege, not network perimeter; a storage.objectViewer binding on a bucket is a data-access control, not a network control.
+- *Cloud Load Balancing + Cloud Armor* — for internet-origin traffic, the LB is the entry point and Cloud Armor is the WAF.
+
+**Tradeoffs summary:**
+
+| Control | Layer | What it restricts | Use when |
+|---|---|---|---|
+| VPC Firewall Rules | L4 | VM/pod to VM/pod traffic | East-west network isolation |
+| VPC Service Controls | API | API calls by identity and network | Data exfil prevention for GCP APIs |
+| IAM roles | Identity | API access by permission | Least-privilege access to any GCP resource |
+| Cloud Armor | L7 | HTTP from internet | Public-facing services |
+
+---
+
+## Decision Tree: GCP billing — project, folder, or org budget?
+
+**When this applies:** A team needs to set cost controls on GCP spend. The observable inputs are: the scope of spend to control (one project, one team across multiple projects, the whole org), and whether the team wants to alert or also block resource creation when the budget is hit.
+
+**Last verified:** 2026-06-05 against GCP Cloud Billing budget documentation.
+
+```mermaid
+flowchart TD
+    START[Need a cost control] --> SCOPE{What is the scope?}
+    SCOPE -->|Single project| PB[Project-scoped budget alert<br/>thresholds at 50-90-100-120pct]
+    SCOPE -->|Team across multiple projects - same label| LB[Label-filtered budget<br/>filter by cost-allocation label]
+    SCOPE -->|All projects in a folder - one team| FB[Folder-scoped budget]
+    SCOPE -->|Entire billing account| OB[Billing account budget<br/>org-level backstop]
+    PB --> ACTION{Should budget also trigger automated action?}
+    ACTION -->|Yes - stop resources at limit| PS[Budget + Pub/Sub + Cloud Function<br/>to disable billing or stop compute]
+    ACTION -->|No - alert only| ALERT[Budget with email or Pub/Sub notification only]
+    FB --> ACTION
+    OB --> ALERT
+```
+
+**Rationale per leaf:**
+- *Project-scoped budget* — the most specific; identifies the project generating the spend; the primary control for individual workload cost.
+- *Label-filtered budget* — when one team owns resources across multiple projects, a label filter (e.g., `team=payments`) gives a single budget view across project boundaries.
+- *Folder-scoped budget* — when a folder represents a business unit or team and all spend there has a shared limit.
+- *Billing account budget* — the org-level backstop; fires last but catches everything; useful as a high-water-mark alarm.
+- *Pub/Sub + Cloud Function* — only use automated budget responses (disabling billing/stopping VMs) in dev/test; never in prod without extensive testing and runbook.
+
+**Tradeoffs summary:**
+
+| Budget scope | Granularity | Cost attribution clarity | Use when |
+|---|---|---|---|
+| Project | Finest | Per workload | Single workload or project team |
+| Label filter | Medium | Per label dimension | Team spanning multiple projects |
+| Folder | Team/BU level | Per org unit | Folder = cost center |
+| Billing account | Coarsest | Entire org | High-water-mark backstop |

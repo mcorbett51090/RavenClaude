@@ -8,7 +8,7 @@ These docs codify the cross-cutting **house opinions** in [`../CLAUDE.md`](../CL
 
 ## Index
 
-_22 rules. Each file is one named, citable rule; read and apply it whole._
+_32 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -34,6 +34,16 @@ _22 rules. Each file is one named, citable rule; read and apply it whole._
 | [`tools-actionable-error-messages.md`](./tools-actionable-error-messages.md) | Pattern — strong default; returning a raw stack trace or a bare `500` as a tool result wastes the model's chance to self-correct. | In the Messages-API loop a failed tool call comes back to Claude as a `tool_result` — and Claude reads it exactly like any other context. |
 | [`tools-design-as-a-contract.md`](./tools-design-as-a-contract.md) | Absolute rule — a thin tool description plus "the system prompt will fix it" is the named anti-pattern. | A tool is `{name, description, input_schema}`, and Claude decides *when* and *how* to call it almost entirely from those three fields — not from a sys… |
 | [`untrusted-content-stays-untrusted.md`](./untrusted-content-stays-untrusted.md) | Absolute rule — letting a tool result or retrieved doc escalate tool access or auto-approve a destructive action is the named anti-pattern (#7); the security *verdict* is mandatory-escalated to core. | Anything that enters the context window from outside your prompt — a `tool_result`, a retrieved RAG chunk, fetched web content, a Files-API document, … |
+| [`tools-parallel-calls.md`](./tools-parallel-calls.md) | Pattern — fan out independent tool calls from a single assistant turn; sequential execution of parallel tasks is a preventable latency tax. | The moment the model emits multiple `tool_use` blocks in one response, fan them out concurrently. |
+| [`context-compact-before-the-cliff.md`](./context-compact-before-the-cliff.md) | Pattern — compact context when the token count crosses ~72% of the window limit; reacting to the cliff is too late. | Running a session-based Claude app where context grows turn-by-turn. |
+| [`multi-tenant-context-isolation.md`](./multi-tenant-context-isolation.md) | Absolute rule — enforce tenant isolation structurally (session scoping, file-id filtering, tool allow-list resolution), not instructionally. | Building a Claude app that serves multiple customers from the same deployment. |
+| [`cache-prewarm-on-deploy.md`](./cache-prewarm-on-deploy.md) | Pattern — issue a synthetic warm request after each deploy so real users don't pay the cold-cache latency. | Any interactive Claude app where first-request latency is customer-visible. |
+| [`files-api-lifecycle.md`](./files-api-lifecycle.md) | Pattern — deduplicate uploads by content hash and delete files on a retention schedule; the Files API is a transient acceleration layer, not permanent storage. | Using the Files API to avoid re-uploading documents per request. |
+| [`thinking-budget-as-a-dial.md`](./thinking-budget-as-a-dial.md) | Pattern — set thinking budget per task-difficulty tier; a large fixed budget for all requests over-spends on easy tasks. | Any app using extended or adaptive thinking on Claude. |
+| [`grounding-cite-the-source.md`](./grounding-cite-the-source.md) | Pattern — force citations via a structured tool call; ungrounded confident answers are unverifiable. | RAG apps where factual accuracy is customer-visible. |
+| [`pin-the-model-id.md`](./pin-the-model-id.md) | Absolute rule — use the exact versioned model id; a floating alias silently upgrades on Anthropic's schedule. | Every production Claude app. |
+| [`webhook-event-driven-delivery.md`](./webhook-event-driven-delivery.md) | Pattern — drive Batch API and async results through verified, idempotent event handlers, not polling loops. | Any app using the Batch API or long-running async Claude tasks. |
+| [`eval-golden-set-maintenance.md`](./eval-golden-set-maintenance.md) | Pattern — add regression cases on every incident; prune stale cases when the set outgrows the CI budget. | Any project running an eval suite longer than one sprint. |
 
 ---
 

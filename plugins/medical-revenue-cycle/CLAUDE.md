@@ -66,7 +66,9 @@ The research-grounded reference the agents point to. Read the relevant file in f
 | [`knowledge/rcm-kpi-glossary.md`](knowledge/rcm-kpi-glossary.md) | RCM KPI glossary |
 | [`knowledge/rcm-economics.md`](knowledge/rcm-economics.md) | Revenue-cycle economics |
 | [`knowledge/rcm-benchmarks-2026.md`](knowledge/rcm-benchmarks-2026.md) | RCM benchmarks (2025–2026) |
-| [`knowledge/rcm-decision-trees.md`](knowledge/rcm-decision-trees.md) | RCM decision trees |
+| [`knowledge/rcm-decision-trees.md`](knowledge/rcm-decision-trees.md) | RCM decision trees (consolidated: queue-prioritization, NCR coding-vs-payer, scorecard) |
+| [`knowledge/rcm-write-off-vs-appeal-decision-tree.md`](knowledge/rcm-write-off-vs-appeal-decision-tree.md) | **Mermaid** — per-claim disposition: write off / appeal / corrected-claim / rebill / underpayment-escalation (CARC-routed) |
+| [`knowledge/rcm-front-end-denial-prevention-decision-tree.md`](knowledge/rcm-front-end-denial-prevention-decision-tree.md) | **Mermaid** — where to *prevent* a denial upstream (eligibility / prior-auth / scrubber / credentialing), §3 #6 |
 
 ---
 
@@ -106,6 +108,33 @@ The lead is [`rcm-engagement-lead`](agents/rcm-engagement-lead.md) — first con
 
 ---
 
-## 8. Milestones
+## 8. Scenarios bank & runnable tooling (added v0.2.0)
+
+- **Scenarios bank** — [`scenarios/`](scenarios/) holds dated, scope-tagged, unverified engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank or a credentialed coder's judgment (§2). Scenarios carry **no PHI** (§2). The most-likely-to-benefit specialists — `denials-management-specialist`, `rcm-analytics-analyst`, `medical-coding-specialist` — should check the bank when a situation matches.
+- **Runnable calculator** — [`scripts/rcm_calc.py`](scripts/rcm_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from four recurring RCM reads: `ar-days` (days-in-A/R + over-90 bucket flag), `net-collection` (NCR against allowed, with the gross-collection gap exposed), `clean-claim` (the rework cost of every point below the first-pass target), `denial-recovery` (recoverable cash in an unworked queue). It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support, not coding/billing/legal advice (§2). Owned primarily by `rcm-analytics-analyst`; `denials-management-specialist` uses `denial-recovery` and `clean-claim`.
+
+## 9. Value-add completeness (build-out 2026-06-05)
+
+Every value-add menu item is dispositioned honestly below. Several runtime-tier items are genuinely **N-A** for a pure non-code RCM advisory vertical — there is no code artifact, runtime, or repo to operate on, and forcing them would add noise, not value. Prior PR #315 already shipped the consolidated decision-trees + best-practices + templates; this build-out adds the net-new scenarios bank, a calculator, two complementary topic-specific trees, and the cited KPI enrichment.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README + 4 dated engagement scenarios (denial-rate root-cause/CAPA, A/R-days reduction, clean-claim-rate improvement, payer-contract underpayment). Each carries an "Action for the next consultant" lesson + cited public benchmarks; no PHI. |
+| Decision-tree (Mermaid) knowledge | **BUILT (complementary)** | 2 new topic-specific trees that complement #315's consolidated file (not duplicate): per-claim write-off-vs-appeal disposition (CARC-routed) and front-end denial-prevention. CARC/CMS/HFMA-cited + dated. |
+| Glossary / KPI reference | **BUILT (enriched existing)** | `rcm-kpi-glossary.md` rewritten with cited, dated benchmark tables (clean-claim, denial, cost-to-collect, NCR, days-in-A/R, A/R>90, overturn/recovery) + a CARC/RARC quick-reference table. `rcm-benchmarks-2026.md` gained a recovery-economics section. |
+| Runnable script (`scripts/`) | **BUILT** | `rcm_calc.py` — 4 modes (ar-days / net-collection / clean-claim / denial-recovery). Ruff-clean, py_compile-clean, executable, stdlib-only. The one runtime item with real non-code value. |
+| Code-aware MCP server (bundled) | **N-A** | No published MCP for a clearinghouse / PM/EHR verified to exist; these are per-tenant, authenticated, and **PHI-bearing** — bundling is out of scope and the plugin is deliberately system-neutral (§2). A genuine live-data need would be *recommend, evaluate-first*, never bundled (per `docs/best-practices/bundled-mcp-servers.md`), and write-capable/PHI access would gate through `security-reviewer`. |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in an RCM advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/rcm_calc.py`; no compiled/installed binary warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. |
+| output-styles / themes | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown reports governed by the §6 Output Contract. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides; the PHI boundary is handled by §2 + `security-reviewer` escalation, not a per-plugin settings file. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 5 skills, 1 advisory antipattern hook, 5 commands, 4 templates already cover the surface; no high-value gap this round. The new trees + scenarios + calculator extend reach without a new agent (team-growth-as-knowledge house rule). |
+| CHANGELOG.md | **BUILT** | Added with a top `0.2.0` entry. |
+| NOTICE.md | **N-A** | No third-party content bundled (the script is original, stdlib-only; all sources cited inline, not vendored). |
+
+## 10. Milestones
 
 - **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 5 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 8 best-practice rules.
+- **(PR #315)** — consolidated `knowledge/rcm-decision-trees.md` (3 Mermaid trees), best-practices set, and templates.
+- **v0.2.0** — value-add build-out: scenarios bank (4 scenarios), 2 complementary Mermaid decision-tree knowledge files (write-off-vs-appeal; front-end denial-prevention), `scripts/rcm_calc.py` (4 modes), cited-benchmark KPI glossary + benchmarks enrichment, CHANGELOG. Code-runtime tier dispositioned N-A with reasons (§9).

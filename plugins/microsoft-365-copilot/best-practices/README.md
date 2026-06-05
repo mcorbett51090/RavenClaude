@@ -8,7 +8,7 @@ For the full reference material (limits tables, decision trees, Microsoft Learn 
 
 ## Index
 
-_19 rules. Each file is one named, citable rule; read and apply it whole._
+_29 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -31,6 +31,16 @@ _19 rules. Each file is one named, citable rule; read and apply it whole._
 | [`label-and-acl-trim-every-connector-property.md`](./label-and-acl-trim-every-connector-property.md) | Absolute rule — an unlabeled property degrades ranking; an "everyone" ACL is an oversharing incident. | A Copilot (Graph) connector indexes a line-of-business source into Microsoft Graph so Copilot can rank and cite it. |
 | [`publish-ship-a-validated-app-package-through-the-admin-gate.md`](./publish-ship-a-validated-app-package-through-the-admin-gate.md) | Absolute rule — an agent is an M365 app; it ships only as a package, and RAI + store validation run on sideload and publish, not as an afterthought. | Declarative agents, custom-engine agents, and the connectors/plugins they carry are all distributed as **M365 app packages** — manifest + icons + (opt… |
 | [`remediate-oversharing-before-enabling-copilot.md`](./remediate-oversharing-before-enabling-copilot.md) | Absolute rule — the sequence is non-negotiable; enabling Copilot first turns latent oversharing into active discovery. | Microsoft 365 Copilot surfaces **everything a user can already technically reach**. |
+| [`apiplugin-adaptive-card-for-structured-responses.md`](./apiplugin-adaptive-card-for-structured-responses.md) | Pattern — return structured adaptive card responses for complex data; prose summaries lose structure and can misrepresent numbers. | An API plugin returns a list, table, or multi-field structured result that Copilot would otherwise summarize in prose. |
+| [`apiplugin-openapi-for-copilot-constraints.md`](./apiplugin-openapi-for-copilot-constraints.md) | Absolute rule — a valid OpenAPI spec may still be rejected by Copilot's plugin validator; conform to the Copilot subset before sideloading. | Preparing an OpenAPI spec for use as a Copilot API plugin, especially when adapting an existing production spec. |
+| [`cea-channels-and-turn-state.md`](./cea-channels-and-turn-state.md) | Pattern — design channel-aware turn state in custom-engine agents; not all channels deliver the same activity payload. | Building a multi-channel custom-engine agent that must render rich content on Teams but fall back gracefully on SMS or email. |
+| [`connector-incremental-crawl-not-full-recrawl.md`](./connector-incremental-crawl-not-full-recrawl.md) | Pattern — schedule incremental crawls for ongoing freshness; reserve full recrawls for schema or ACL changes only. | Configuring the crawl schedule for a synced Copilot connector. |
+| [`connector-prebuilt-before-custom.md`](./connector-prebuilt-before-custom.md) | Pattern — check the connector gallery for a prebuilt connector before building a custom one; prebuilts save 2-4 weeks of engineering. | Grounding a Copilot agent on a line-of-business system (ServiceNow, Salesforce, Confluence, GitHub, etc.). |
+| [`da-conversation-starters-drive-discovery.md`](./da-conversation-starters-drive-discovery.md) | Pattern — write conversation starters that demonstrate domain value with specific, actionable, grounded prompts; generic starters add no value. | Authoring or reviewing a declarative agent manifest's `conversationStarters` field. |
+| [`da-golden-prompt-regression-set.md`](./da-golden-prompt-regression-set.md) | Absolute rule — build a golden-prompt regression set before declaring a declarative agent done; schema validity is not behavioral correctness. | Completing a declarative agent build and preparing for publication. |
+| [`gov-data-residency-before-deployment.md`](./gov-data-residency-before-deployment.md) | Absolute rule — verify data residency and EU Data Boundary posture before deploying Copilot to any regulated tenant. | Planning a Copilot deployment for an EU, financial-services, or otherwise regulated organization. |
+| [`gov-mcp-tool-approval-separate-from-agent-approval.md`](./gov-mcp-tool-approval-separate-from-agent-approval.md) | Absolute rule — MCP tools must be approved in the Agent Registry Tools tab independently of the agent; agent approval does not imply tool approval. | Deploying any agent that uses MCP tools to the org catalog. |
+| [`gov-restricted-sharepoint-search-is-not-a-security-boundary.md`](./gov-restricted-sharepoint-search-is-not-a-security-boundary.md) | Absolute rule — RSS and RCD reduce Copilot's proactive reach; they do not prevent access and are never security boundaries. | Any conversation about "securing Copilot" that proposes RSS or RCD as the primary control. |
 
 ---
 

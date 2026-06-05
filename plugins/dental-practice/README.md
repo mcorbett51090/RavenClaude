@@ -36,7 +36,12 @@ Holds overhead to benchmark, protects the collection ratio, raises case acceptan
 
 ## Knowledge bank
 
-4 research-grounded reference docs under [`knowledge/`](knowledge/) — figures carry a source + date, advisory numbers are marked `[ESTIMATE]`, and anything from training knowledge is marked `[unverified — training knowledge]`.
+6 research-grounded reference docs under [`knowledge/`](knowledge/) — including 2 **Mermaid decision trees** (PPO keep/re-negotiate/drop; hygiene capacity fill-before-expand) and an enriched, cited KPI glossary. Figures carry a source + date, advisory numbers are marked `[ESTIMATE]`, and anything from training knowledge is marked `[unverified — training knowledge]`.
+
+## Scenarios & tooling
+
+- **Scenarios bank** — [`scenarios/`](scenarios/): 4 dated, scope-tagged engagement narratives (hygiene-recall reactivation, case-acceptance presentation fix, PPO-vs-FFS payer mix, production-per-hour schedule read). Unverified, consulted as a *secondary* source behind the scenario-retrieval preamble.
+- **Runnable calculator** — [`scripts/dental_calc.py`](scripts/dental_calc.py) (stdlib only, Python 3.8+): `ppo-mix` (effective fee + write-off + negotiation lift), `hygiene-capacity` (recoverable schedule fill), `collection-lift` (collection-ratio dollar recovery). Decision-support, not advice.
 
 ## Install
 

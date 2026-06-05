@@ -8,7 +8,7 @@ For the cross-tool rule format and the marketplace-wide index, see [`docs/best-p
 
 ## Index
 
-_22 rules across the lifecycle (design → build → secure → test → operate). Each file is one named, citable rule; read and apply it whole._
+_32 rules across the lifecycle (design → build → secure → test → operate). Each file is one named, citable rule; read and apply it whole._
 
 ### Design
 
@@ -19,6 +19,9 @@ _22 rules across the lifecycle (design → build → secure → test → operate
 | [`design-model-resources-not-rpc-verbs.md`](./design-model-resources-not-rpc-verbs.md) | Absolute rule | The HTTP method is the verb; the path is a noun (REST). |
 | [`design-version-only-for-breaking-changes.md`](./design-version-only-for-breaking-changes.md) | Absolute rule | Additive changes don't bump the version; breaking ones must, with a sunset plan. |
 | [`design-lint-the-spec-as-governance.md`](./design-lint-the-spec-as-governance.md) | Pattern | A Spectral ruleset in CI is the style guide with teeth. |
+| [`design-use-tolerant-reader-on-additive-changes.md`](./design-use-tolerant-reader-on-additive-changes.md) | Absolute rule | Consumers must ignore unknown fields so additive changes stay non-breaking. |
+| [`design-asyncapi-for-event-driven-contracts.md`](./design-asyncapi-for-event-driven-contracts.md) | Absolute rule | Webhooks and broker-based APIs need an AsyncAPI 3.0 contract just as REST needs OpenAPI. |
+| [`design-stable-type-uris-for-problem-details.md`](./design-stable-type-uris-for-problem-details.md) | Absolute rule | Problem Details type URIs must be stable, dereferenceable, and domain-namespaced. |
 
 ### Build
 
@@ -30,6 +33,8 @@ _22 rules across the lifecycle (design → build → secure → test → operate
 | [`build-optimistic-concurrency-with-etags.md`](./build-optimistic-concurrency-with-etags.md) | Pattern | `ETag` + `If-Match` prevents the lost-update race; last-write-wins is data loss. |
 | [`build-use-http-status-codes-and-methods-correctly.md`](./build-use-http-status-codes-and-methods-correctly.md) | Absolute rule | The status line is the contract — a 200 with an error inside lies to clients. |
 | [`build-long-running-ops-with-202-and-polling.md`](./build-long-running-ops-with-202-and-polling.md) | Pattern | Accept long jobs with `202` + an operation resource to poll, not a held-open request. |
+| [`build-content-negotiation-for-accept-header.md`](./build-content-negotiation-for-accept-header.md) | Pattern | Serve multiple representations (JSON, CSV) via the Accept header, not URL suffixes. |
+| [`build-webhook-delivery-with-retries-and-signatures.md`](./build-webhook-delivery-with-retries-and-signatures.md) | Pattern | Webhooks need HMAC signatures, retries with backoff, and a replay endpoint. |
 
 ### Secure (every verdict escalates to `ravenclaude-core/security-reviewer`)
 
@@ -40,6 +45,8 @@ _22 rules across the lifecycle (design → build → secure → test → operate
 | [`secure-validate-tokens-and-scopes-server-side.md`](./secure-validate-tokens-and-scopes-server-side.md) | Absolute rule | OWASP API2 — verify the JWT (signature/iss/aud/exp; reject `alg:none`) before trusting any claim. |
 | [`secure-limit-resource-consumption.md`](./secure-limit-resource-consumption.md) | Absolute rule | OWASP API4 — bound page size, payload, query depth, rate, and quota; every unbounded input is a DoS. |
 | [`secure-never-trust-upstream-apis.md`](./secure-never-trust-upstream-apis.md) | Absolute rule | OWASP API10 — validate, bound, and time out responses from APIs you call. |
+| [`secure-no-api-keys-in-query-strings.md`](./secure-no-api-keys-in-query-strings.md) | Absolute rule | API keys in query strings leak into logs and history; use the Authorization header. |
+| [`secure-validate-cors-origins-explicitly.md`](./secure-validate-cors-origins-explicitly.md) | Absolute rule | Maintain a CORS origin allowlist; never combine wildcard with credentials. |
 
 ### Test & govern
 
@@ -48,6 +55,7 @@ _22 rules across the lifecycle (design → build → secure → test → operate
 | [`test-consumer-driven-contract-tests.md`](./test-consumer-driven-contract-tests.md) | Pattern | The consumer's expectations gate the provider's CI — proves you didn't break an integrator. |
 | [`test-mock-from-the-contract.md`](./test-mock-from-the-contract.md) | Pattern | Generate the mock from the spec (Prism/Postman) so it can't drift; a hand stub is a lie. |
 | [`test-load-test-to-an-slo.md`](./test-load-test-to-an-slo.md) | Pattern | Load-test (k6) against a stated p95/rps objective, not a vanity throughput number. |
+| [`test-fuzz-and-negative-test-every-input.md`](./test-fuzz-and-negative-test-every-input.md) | Pattern | Every public input deserves negative tests and property-based fuzzing — 500s on bad input are bugs. |
 
 ### Operate
 
@@ -56,6 +64,8 @@ _22 rules across the lifecycle (design → build → secure → test → operate
 | [`operate-deprecate-with-sunset-headers.md`](./operate-deprecate-with-sunset-headers.md) | Absolute rule | Retire a version with `Deprecation`/`Sunset` headers, a dated timeline, and drain monitoring. |
 | [`operate-rate-limit-and-advertise-it.md`](./operate-rate-limit-and-advertise-it.md) | Pattern | Enforce a rate limit and advertise it with the `RateLimit` headers so clients self-throttle. |
 | [`operate-ship-a-developer-portal-and-sdks.md`](./operate-ship-a-developer-portal-and-sdks.md) | Pattern | Generate docs + SDKs from the spec so they can't drift from the contract. |
+| [`operate-observe-apis-with-logs-traces-metrics.md`](./operate-observe-apis-with-logs-traces-metrics.md) | Absolute rule | Every API needs structured logs, distributed traces, and p99 latency + error rate metrics. |
+| [`operate-track-api-inventory.md`](./operate-track-api-inventory.md) | Primary diagnostic | Maintain a complete inventory of every version, environment, and auth status — shadow APIs are exploited. |
 
 ---
 

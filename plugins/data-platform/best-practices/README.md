@@ -6,7 +6,7 @@ Named, citable rules for the `data-platform` plugin's four-layer dashboard engag
 
 ## Index
 
-_21 rules. Each file is one named, citable rule; read and apply it whole._
+_31 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -31,6 +31,16 @@ _21 rules. Each file is one named, citable rule; read and apply it whole._
 | [`rls-author-using-and-with-check-force-on.md`](./rls-author-using-and-with-check-force-on.md) | Absolute rule — these four mechanics are the difference between RLS that isolates tenants and RLS that looks enabled but leaks. Security-sensitive: any change here escalates to `ravenclaude-core/security-reviewer`. | "RLS is on" is not the same as "RLS isolates." The parent rule (`enforce-tenant-isolation-closest-to-data.md`) says *which layer* enforces; this rule … |
 | [`warehouse-partition-and-cluster-for-cost.md`](./warehouse-partition-and-cluster-for-cost.md) | Primary diagnostic — when a warehouse bill or a dashboard query is too expensive, check the partition/cluster keys against the actual filter columns first. | On scan-priced warehouses (BigQuery `$/TiB` scanned, Snowflake credits, Redshift Serverless RPU-hours), an unpartitioned fact table means **every dash… |
 | [`warehouse-select-by-workload-not-brand.md`](./warehouse-select-by-workload-not-brand.md) | Pattern — strong default for every engagement-start database decision; deviate only with a written reason tied to a specific client constraint. | The most expensive mistake in a dashboard engagement is reaching for an analytical lakehouse (Snowflake, Databricks, Redshift Serverless) when the wor… |
+| [`cube-preaggregate-before-viewer.md`](./cube-preaggregate-before-viewer.md) | Absolute rule | Ship at least one pre-aggregation per customer-facing Cube before go-live; viewer queries must not scan the warehouse at load time. |
+| [`connector-qbo-oauth-100-day-refresh.md`](./connector-qbo-oauth-100-day-refresh.md) | Absolute rule | Pre-emptively refresh the QBO OAuth token at 85 days — never let it lapse to the 100-day hard expiry or the pipeline goes dark silently. |
+| [`single-tenant-document-the-assumption.md`](./single-tenant-document-the-assumption.md) | Absolute rule | Every single-tenant engagement records an explicit tenancy assumption + multi-tenant pivot checklist so a future pivot doesn't inherit a silently-missing control. |
+| [`dashboard-provenance-on-every-widget.md`](./dashboard-provenance-on-every-widget.md) | Absolute rule | Every dashboard widget that makes a comparison, trend, or KPI claim must expose source query, date range, and comparison baseline. |
+| [`pricing-claims-carry-retrieval-dates.md`](./pricing-claims-carry-retrieval-dates.md) | Absolute rule | Every pricing figure in any deliverable or knowledge file carries an inline retrieval date and is re-verified before client presentation. |
+| [`engagement-pick-stack-before-dashboard.md`](./engagement-pick-stack-before-dashboard.md) | Absolute rule | Choose the database before the dashboard framework; the DB's tenant model and connection capabilities constrain the correct BI tool choice. |
+| [`dbt-build-role-separate-from-query-role.md`](./dbt-build-role-separate-from-query-role.md) | Absolute rule | The dbt build role (CREATE) and the dashboard query role (SELECT only) must be separate DB principals; never use a single user for both. |
+| [`edtech-lms-connector-gap-flag.md`](./edtech-lms-connector-gap-flag.md) | Pattern — strong default whenever EdTech LMS signals appear in scope; deviate only after verifying a managed connector now exists. | Raise the EdTech LMS connector-gap flag at engagement start when Canvas/Moodle/Schoology/D2L is a source; no first-class managed connector exists. |
+| [`semantic-layer-no-raw-sql-to-viewer.md`](./semantic-layer-no-raw-sql-to-viewer.md) | Absolute rule | No viewer-facing read path bypasses the semantic layer with raw SQL; all dashboard queries route through a named Cube cube or equivalent. |
+| [`escape-hatch-managed-handoff-plan.md`](./escape-hatch-managed-handoff-plan.md) | Pattern — strong default when client will operate the stack post-engagement; deviate only with client sign-off on the self-hosted ops burden. | Recommend a managed SaaS handoff path when the client lacks a data/DevOps engineer; self-hosted is cheapest only while the consultant operates it. |
 
 ---
 

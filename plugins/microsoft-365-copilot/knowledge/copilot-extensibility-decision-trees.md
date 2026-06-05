@@ -220,6 +220,116 @@ flowchart TD
 
 ---
 
+## Decision Tree: Connector crawl strategy — full vs incremental vs federated (no crawl)
+
+**When this applies:** A synced Copilot connector is set up and you must configure its crawl schedule — observable when registering a new connector or reviewing an existing one that is returning stale results or consuming excessive connector quota.
+
+**Last verified:** 2026-06-05 against Microsoft Learn Copilot connectors crawl schedule documentation.
+
+```mermaid
+flowchart TD
+    START[Configure connector crawl] --> Q1{How frequently does the source change?}
+    Q1 -->|Changes by the second or minute| FED[Switch to federated - MCP - no crawl needed]
+    Q1 -->|Changes daily or less| Q2{Does the source expose a delta - change-tracking - endpoint?}
+    Q2 -->|Yes| INCR[Incremental crawl every 15-60 min for freshness<br/>Full crawl monthly or on schema change]
+    Q2 -->|No| Q3{Is total item count under 10000?}
+    Q3 -->|Yes| FULL[Full crawl on schedule - daily or weekly<br/>document item count ceiling]
+    Q3 -->|No, large source without delta| AUDIT[Investigate delta API support<br/>avoid daily full crawls at scale]
+    INCR --> GATE[Set full crawl triggers: schema change - ACL overhaul - first index]
+    FULL --> GATE
+```
+
+**Rationale per leaf:**
+- *Federated (FED)* — if the source changes by the second, indexed freshness is structural impossible; federated/MCP is the correct surface.
+- *Incremental crawl (INCR)* — for sources with a delta/change-tracking endpoint, incremental crawls keep the index fresh at low quota cost.
+- *Full crawl (FULL)* — acceptable for small or slow-changing sources without delta support; monitor item count and revisit as the source grows.
+- *Audit (AUDIT)* — daily full recrawls on a large source exhaust connector quota rapidly; investigate whether the source exposes a delta endpoint before accepting this path.
+
+**Tradeoffs summary:**
+
+| Strategy | Freshness | Connector quota cost | When |
+|---|---|---|---|
+| Federated | real-time | none | sub-minute change rate |
+| Incremental + monthly full | minutes to hours | low | delta endpoint available |
+| Full recrawl only | crawl cadence | high | no delta, small source |
+
+---
+
+## Decision Tree: Declarative agent — does the instruction set need a redesign?
+
+**When this applies:** A declarative agent's instructions are at or near the 8,000-character budget, the agent is giving inconsistent or off-scope answers, or a new capability is being added that requires modifying the instructions.
+
+**Last verified:** 2026-06-05 against the declarative-agent manifest v1.7 instructions field character limit and the `declarative-agent-manifest-authoring` skill.
+
+```mermaid
+flowchart TD
+    START[Instructions need review] --> Q1{Are instructions at or above 7000 chars<br/>or above 66 percent of the 8000-char budget?}
+    Q1 -->|Yes| Q2{Can any instruction be moved to a<br/>conversation starter instead of the instruction block?}
+    Q2 -->|Yes| CONV[Move scenario-specific guidance to conversation starters<br/>keep only persona and scope in instructions]
+    Q2 -->|No| Q3{Are instructions duplicating knowledge source content<br/>instead of governing behavior?}
+    Q3 -->|Yes| TRIM[Remove content instructions<br/>leave only behavior - persona - scope - guardrails]
+    Q3 -->|No| SPLIT[Consider splitting into two narrower scoped agents<br/>each under 66 percent of the budget]
+    Q1 -->|No, well under budget| Q4{Is the agent giving off-scope answers?}
+    Q4 -->|Yes| SCOPE[Add explicit out-of-scope guardrail sentence<br/>test with adversarial prompts]
+    Q4 -->|No| OK[Instructions are healthy - no redesign needed]
+```
+
+**Rationale per leaf:**
+- *Conversation starters (CONV)* — scenario-specific prompt guidance belongs in starters (which users execute), not instructions (which the model always reads).
+- *Trim content (TRIM)* — knowledge source content duplicated in instructions wastes budget that should go to behavioral governance (persona, scope, guardrails, tone).
+- *Split agents (SPLIT)* — when an agent tries to do too much for one instruction block, splitting into two narrower-scoped agents each under 66% is better than cramming into one.
+- *Add scope guardrail (SCOPE)* — a single explicit "Do not answer questions about X; redirect to Y" sentence often resolves off-scope behavior.
+- *OK* — no action; the agent is within budget and behaving correctly.
+
+**Tradeoffs summary:**
+
+| Action | Budget impact | Behavioral risk | When |
+|---|---|---|---|
+| Move to starters | saves 50-200 chars | none | scenario prompts in instructions |
+| Trim content | saves 100-500 chars | none | knowledge dup in instructions |
+| Split agent | eliminates pressure | new approval + publish needed | scope too broad |
+| Add guardrail | adds 20-60 chars | reduces off-scope | off-topic answers |
+
+---
+
+## Decision Tree: Copilot extensibility — which admin gate does this change require?
+
+**When this applies:** A Copilot extensibility artifact (agent, connector, MCP tool, API plugin) is ready to deploy or update and you must identify which admin-center gates are required before the change reaches users.
+
+**Last verified:** 2026-06-05 against Microsoft Learn Agent Registry lifecycle and app-publication documentation.
+
+```mermaid
+flowchart TD
+    START[Extensibility artifact ready to deploy] --> Q1{What is being changed?}
+    Q1 -->|New or updated app package - manifest or icons| Q2{Target deployment scope?}
+    Q1 -->|Connector schema or ACL change| CONNGATE[Full recrawl required<br/>admin re-approves connector in admin center]
+    Q1 -->|MCP tool added or updated| TOOLGATE[MCP tools tab approval in Agent Registry<br/>separate from agent approval]
+    Q1 -->|API plugin only - no app package change| PLUUGATE[Plugin manifest update does not require new package submission<br/>but operationId changes do - test in Playground]
+    Q2 -->|Sideload only - developer testing| SIDE[No admin gate - sideload to personal Teams app]
+    Q2 -->|Org catalog - all users| ORGGATE[AI-Admin or Global Admin approves in Agent Registry<br/>Agents tab status must be Active before rollout]
+    Q2 -->|AppSource public marketplace| APPGATE[App source validation + Microsoft review<br/>plus org-catalog gate for consumption]
+```
+
+**Rationale per leaf:**
+- *Sideload* — no admin gate; developer tests in their own Teams context.
+- *Org catalog (ORGGATE)* — the AI-Admin or Global Admin must approve the agent in the Agent Registry before it is available to any user; approval propagation takes minutes to hours.
+- *AppSource (APPGATE)* — a two-stage gate: Microsoft store validation + org-admin approval in the consuming tenant's Agent Registry.
+- *Connector schema change (CONNGATE)* — any schema or ACL change triggers a full recrawl and the admin may need to re-approve the connector.
+- *MCP tool change (TOOLGATE)* — MCP tools are approved independently; a new tool added to an existing agent requires a separate Tools-tab approval.
+- *Plugin-only update (PLUUGATE)* — minor plugin manifest updates (descriptions, response changes) without app-package changes do not require re-submission; `operationId` changes do.
+
+**Tradeoffs summary:**
+
+| Gate | Who approves | Delay | Triggered by |
+|---|---|---|---|
+| Sideload | none | none | developer testing |
+| Org catalog | AI-Admin or Global Admin | hours | all org-facing deploys |
+| AppSource | Microsoft + org admin | days | public marketplace listing |
+| Connector recrawl | admin center | hours | schema or ACL change |
+| MCP tool | AI-Admin in Tools tab | hours | new or changed tool |
+
+---
+
 ## The seams (where these trees route out)
 
 - **Copilot Studio low-code / Dataverse** → `power-platform/copilot-studio-engineer`.

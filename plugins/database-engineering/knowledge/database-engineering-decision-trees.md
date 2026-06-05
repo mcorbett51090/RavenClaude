@@ -112,3 +112,106 @@ _A replica adds eventual-consistency lag, a cache adds an invalidation problem, 
 | PgBouncer / built-in pooling | mature | Size to workload |
 | Logical + physical replication | GA | Read replicas eventually consistent |
 | PITR | GA (managed + self) | Test the restore |
+
+## Decision Tree: Which transaction isolation level?
+
+**When this applies:** You are opening a transaction and need to decide which isolation level to use. Typically triggered when a race condition, lost update, or phantom-read anomaly is suspected or needs to be prevented by design.
+
+**Last verified:** 2026-06-05 against PostgreSQL documentation on transaction isolation.
+
+```mermaid
+flowchart TD
+    START[A transaction that reads and writes] --> Q1{Does the transaction make decisions based on data it reads?}
+    Q1 -->|No - blind write only| RC[READ COMMITTED is sufficient]
+    Q1 -->|Yes - reads affect the write| Q2{Are phantom rows from concurrent inserts a problem?}
+    Q2 -->|No - only updating rows known at start| Q3{Do you need to prevent lost updates?}
+    Q3 -->|Yes - optimistic: detect and retry| RR[REPEATABLE READ - snapshot, retry on conflict]
+    Q3 -->|Yes - pessimistic: lock immediately| SEL4UP[SELECT FOR UPDATE in READ COMMITTED]
+    Q3 -->|No - last write wins is fine| RC
+    Q2 -->|Yes - phantom inserts could corrupt the result| SERIAL[SERIALIZABLE - full snapshot isolation]
+    SERIAL --> Q4{High contention expected?}
+    Q4 -->|Yes| RETRY[Design for serialization failure retry]
+    Q4 -->|No| DONE[SERIALIZABLE is correct here]
+```
+
+**Rationale per leaf:**
+- *READ COMMITTED* — the PostgreSQL default; sees the latest committed version of each row; correct for most blind writes and simple reads.
+- *REPEATABLE READ* — the transaction sees a snapshot from its start time; concurrent writes to the same rows fail with a serialization error you retry; good for optimistic patterns.
+- *SELECT FOR UPDATE* — pessimistic lock; prevents concurrent updates without raising the isolation level; correct for "read-then-update" in READ COMMITTED.
+- *SERIALIZABLE* — full snapshot isolation; prevents phantoms and write skew; the highest blast radius (retry on conflict); required when correctness depends on the total view of the dataset.
+
+**Tradeoffs summary:**
+
+| Method | Cost / time | Blast radius | Approval gate? | Use when |
+|---|---|---|---|---|
+| READ COMMITTED | Minimal | None | None | Default; blind writes or simple reads |
+| SELECT FOR UPDATE | Low | Locks rows | None | Pessimistic read-then-update |
+| REPEATABLE READ | Low-medium | Retry on conflict | None | Optimistic concurrent update |
+| SERIALIZABLE | Medium | Retry on conflict | None | Phantom prevention or write skew |
+
+## Decision Tree: When to add a partial index?
+
+**When this applies:** You are adding an index to speed up a query and the query always includes a filter that selects a small subset of rows.
+
+**Last verified:** 2026-06-05 against PostgreSQL documentation on partial indexes.
+
+```mermaid
+flowchart TD
+    START[A slow query with a WHERE clause] --> Q1{Does the WHERE clause always include a selective filter on a stable value?}
+    Q1 -->|No - filter varies across callers| STANDARD[Standard B-tree on the filtered column]
+    Q1 -->|Yes - e.g. status = open, deleted_at IS NULL| Q2{What fraction of the table matches the filter?}
+    Q2 -->|Small fraction - under 20 percent| PARTIAL[Partial index - include the WHERE clause in the index definition]
+    Q2 -->|Large fraction - most rows match| STANDARD
+    PARTIAL --> Q3{Are the indexed columns also in the SELECT list?}
+    Q3 -->|Yes| COVERING[Partial covering index - add INCLUDE columns to avoid heap fetch]
+    Q3 -->|No| DONE[Partial index is sufficient]
+    STANDARD --> Q4{Does the planner choose the index?}
+    Q4 -->|No| ANALYZE[Run ANALYZE then re-check - may be a stats issue]
+    Q4 -->|Yes| DONE
+```
+
+**Rationale per leaf:**
+- *Partial index* — an index with a `WHERE` clause that matches the query's filter; smaller, faster to build, and cheaper to maintain than a full-table index on the same column.
+- *Partial covering index* — adds `INCLUDE` columns so the query can be answered entirely from the index without a heap fetch; maximum read speed, slightly higher write and storage cost.
+- *Standard B-tree* — when the filter is not selective enough to justify a partial index, a full index is the correct choice.
+
+**Tradeoffs summary:**
+
+| Method | Cost / time | Blast radius | Approval gate? | Use when |
+|---|---|---|---|---|
+| Standard B-tree | Low | Full index maintained | None | Filter varies or covers most rows |
+| Partial index | Low-medium | Smaller, targeted | None | Selective stable filter, small subset |
+| Partial covering | Medium | Wider index entry | Schema review | Read-heavy, avoid heap fetch |
+
+## Decision Tree: Add a NOT NULL column to a live table — how?
+
+**When this applies:** You need to add a column with a NOT NULL constraint to a table that is receiving concurrent writes. A naive ALTER TABLE will take a long lock and potentially block reads and writes for minutes on a large table.
+
+**Last verified:** 2026-06-05 against PostgreSQL documentation on ALTER TABLE and lock behavior.
+
+```mermaid
+flowchart TD
+    START[Add NOT NULL column to a live table] --> Q1{Does the column need a non-trivial default value that must be backfilled?}
+    Q1 -->|No - NULL is the initial value and app will always write it| Q2{Is PostgreSQL 11 or later?}
+    Q2 -->|Yes| IMMDEFAULT[ALTER TABLE ADD COLUMN ... NOT NULL DEFAULT literal - instant in PG11+]
+    Q2 -->|No - older PG| EXPAND[Add as nullable first, then backfill, then set NOT NULL]
+    Q1 -->|Yes - computed default or FK-derived value| EXPAND
+    EXPAND --> STEP1[Step 1 - ALTER TABLE ADD COLUMN new_col TYPE NULL]
+    STEP1 --> STEP2[Step 2 - backfill in batches - see backfill rule]
+    STEP2 --> STEP3[Step 3 - ALTER TABLE ADD CONSTRAINT NOT NULL NOT VALID]
+    STEP3 --> STEP4[Step 4 - VALIDATE CONSTRAINT - lightweight lock]
+    IMMDEFAULT --> DONE[Deploy in one migration]
+    STEP4 --> DONE
+```
+
+**Rationale per leaf:**
+- *PG11+ instant default* — PostgreSQL 11 rewrote how constant defaults are stored; `ADD COLUMN ... DEFAULT constant NOT NULL` no longer rewrites the table; it is instant and safe.
+- *Expand/contract for computed defaults* — when the default requires a backfill (a function, a JOIN-derived value), the expand/contract sequence spreads the change across safe, non-locking steps.
+- *NOT VALID then VALIDATE* — `ADD CONSTRAINT NOT VALID` adds the constraint for new rows immediately without checking existing rows; `VALIDATE CONSTRAINT` checks existing rows under a ShareUpdateExclusiveLock (the lightest write-compatible lock) rather than an AccessExclusiveLock.
+
+**Tradeoffs summary:**
+
+| Method | Cost / time | Blast radius | Approval gate? | Use when |
+|---|---|---|---|---|
+| PG11+ instant default | Minimal | None | None | Constant default, PG11+ |
+| Expand/contract | High - multi-deploy | Non-locking | Release coordination | Computed default or pre-PG11 |

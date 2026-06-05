@@ -1,7 +1,7 @@
 {
   "name": "qa-test-automation",
-  "version": "0.2.0",
-  "description": "QA & test-automation team \u2014 3 agents (test-strategy-architect, e2e-automation-engineer, test-infrastructure-engineer) for a test suite that catches real defects without becoming a tax: the test pyramid (many fast unit, fewer integration, few E2E), deterministic end-to-end automation (Playwright/Cypress, resilient selectors, no fixed sleeps), test data and ephemeral environments, meaningful coverage (mutation over line %), and flaky-test quarantine. Deepens ravenclaude-core/tester-qa. 3 skills, a decision-tree knowledge bank (test-level + flake-triage trees + a dated 2026 tooling map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: contract tests -> api-engineering, CI gating -> devops-cicd, UI under test -> frontend-engineering. Requires ravenclaude-core@>=0.7.0.",
+  "version": "0.2.2",
+  "description": "QA & test-automation team \u2014 3 agents (test-strategy-architect, e2e-automation-engineer, test-infrastructure-engineer) for a test suite that catches real defects without becoming a tax: the test pyramid (many fast unit, fewer integration, few E2E), deterministic end-to-end automation (Playwright/Cypress, resilient selectors, no fixed sleeps), test data and ephemeral environments, meaningful coverage (mutation over line %), and flaky-test quarantine. Deepens ravenclaude-core/tester-qa. 6 skills, a decision-tree knowledge bank (test-level + flake-triage trees + a dated 2026 tooling map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: contract tests -> api-engineering, CI gating -> devops-cicd, UI under test -> frontend-engineering. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"
   },

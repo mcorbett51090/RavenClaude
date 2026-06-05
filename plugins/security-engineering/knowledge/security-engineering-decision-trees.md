@@ -110,3 +110,98 @@ _A 9.8 in an unreachable path waits; a 6.5 unauthenticated and exploited-in-the-
 | SLSA | v1.0 | Build levels; verify provenance on consume |
 | CSPM | mature across clouds | Misconfig is #1 breach cause |
 | Policy-as-code (OPA/Conftest, cloud policy) | GA | Preventive > detective; wire via terraform-iac |
+
+## Decision Tree: Should a dependency update be emergency or scheduled?
+
+**When this applies:** a new CVE advisory arrives for a dependency in use. The team must decide whether to drop everything and patch now, or schedule the update in the normal flow.
+
+**Last verified:** 2026-06-05 against CISA KEV catalog guidance and supply-chain-security-engineer mandate.
+
+```mermaid
+flowchart TD
+    START[A CVE in a dependency we use] --> Q1{Is the vulnerable code path reachable in our app?}
+    Q1 -->|no, not reachable| SCHEDULE[Schedule on normal cadence - document reachability analysis]
+    Q1 -->|yes or unknown| Q2{Is the vulnerability in the CISA KEV catalog or has a public working exploit?}
+    Q2 -->|yes| EMERGENCY[Emergency patch - within 24h - route verdict to security-reviewer]
+    Q2 -->|no| Q3{Is the service exposed to untrusted internet input?}
+    Q3 -->|yes| Q4{CVSS >= 7 or High/Critical?}
+    Q4 -->|yes| SPRINT[Patch this sprint - 7 day SLA]
+    Q4 -->|no| SCHEDULE
+    Q3 -->|no, internal only| SCHEDULE
+```
+
+**Rationale per leaf:**
+- *Emergency patch* — exploited in the wild or public PoC means the attacker already has a recipe; exposure window must be zero.
+- *Patch this sprint* — internet-exposed high/critical means a motivated attacker could develop an exploit; prioritize.
+- *Schedule on cadence* — unreachable or low-impact can wait for the normal dependency update flow without meaningful risk increase.
+
+**Tradeoffs summary:**
+
+| Method | Cost / time | Blast radius | Approval gate? | Use when |
+|---|---|---|---|---|
+| Emergency patch | Interrupts current sprint | Release risk if rushed | Security-reviewer | KEV / public exploit |
+| Sprint priority | Normal sprint overhead | Low | Sprint planning | Internet-exposed High/Critical |
+| Scheduled update | Lowest effort | Lowest | PR review | Unreachable or low severity |
+
+## Decision Tree: Discovered a secret in a repo — immediate response?
+
+**When this applies:** a secret (API key, password, certificate private key, OAuth client secret) is found in a repository — in history, in a PR, or in a running config file. The response sequence matters.
+
+**Last verified:** 2026-06-05 against GitHub secret scanning documentation and incident response best practices.
+
+```mermaid
+flowchart TD
+    START[A secret found in a repo] --> Q1{Is it in git history or a public/shared clone?}
+    Q1 -->|yes| COMPROMISED[Treat as COMPROMISED - rotate NOW before anything else]
+    Q1 -->|no, working tree only, not pushed| Q2{Was the working tree shared - pair programming, screen share, exported?}
+    Q2 -->|yes| COMPROMISED
+    Q2 -->|no, isolated local only| SAFE_REMOVE[Remove + vault + add to scanner rule - not compromised]
+    COMPROMISED --> ROTATE[1 - Rotate and revoke the old credential immediately]
+    ROTATE --> VAULT[2 - Store the new credential in secrets manager]
+    VAULT --> AUDIT[3 - Audit access logs for the old credential during exposure window]
+    AUDIT --> SCANNER[4 - Add the pattern to secret scanner so it cannot recur]
+    SCANNER --> VERDICT[5 - Route incident verdict to security-reviewer]
+    SAFE_REMOVE --> SCANNER
+```
+
+**Rationale per leaf:**
+- *Compromised path* — git history is permanent and cloned; rotation is the only remediation; deleting the commit does not help (clones exist).
+- *Safe remove* — a working-tree-only, never-pushed secret can be cleaned without incident, but the scanner rule must still be added.
+
+**Tradeoffs summary:**
+
+| Method | Cost / time | Blast radius | Approval gate? | Use when |
+|---|---|---|---|---|
+| Rotate immediately | High - interrupt ops | Rotation may require deploy | Security-reviewer verdict | In history or shared |
+| Remove and vault | Low - no rotation | None | PR review | Working tree, never shared |
+
+## Decision Tree: Cloud misconfiguration found — preventive control or reactive fix?
+
+**When this applies:** a CSPM scan or access audit surfaces a cloud misconfiguration (open security group, public bucket, overly broad IAM role). The team decides whether to fix it reactively and/or add a preventive policy control.
+
+**Last verified:** 2026-06-05 against cloud-security-engineer mandate and OPA/Conftest practice.
+
+```mermaid
+flowchart TD
+    START[A cloud misconfiguration found] --> Q1{Is the resource actively exposed to untrusted traffic or data?}
+    Q1 -->|yes| FIX_NOW[Fix immediately - then add the preventive control]
+    Q1 -->|no, internal or low-blast| Q2{Is this misconfiguration class common in our estate?}
+    Q2 -->|yes, seen before| POLICY[Add a policy-as-code rule to prevent recurrence - then fix on cadence]
+    Q2 -->|no, first occurrence| Q3{Is the fix captured in IaC - Terraform, CDK?}
+    Q3 -->|yes, IaC controls it| FIX_IaC[Fix in IaC PR - lower urgency]
+    Q3 -->|no, manual / out-of-band| POLICY
+    FIX_NOW --> POLICY
+```
+
+**Rationale per leaf:**
+- *Fix immediately + add preventive control* — active exposure needs instant remediation; a preventive control prevents the same class from recurring.
+- *Add policy + fix on cadence* — common misconfiguration classes are higher ROI for preventive policy than one-off reactive fixes.
+- *Fix in IaC* — if IaC already controls the resource, fix it there; the IaC review is the gate.
+
+**Tradeoffs summary:**
+
+| Method | Cost / time | Blast radius | Approval gate? | Use when |
+|---|---|---|---|---|
+| Immediate fix + policy | High effort | Closes exposure | Security-reviewer | Actively exposed resource |
+| Policy first, then fix | Medium - policy authoring | Prevents recurrence | PR review + policy review | Common class, low blast |
+| Fix in IaC | Low - PR only | Lowest | PR review | IaC-controlled, not exposed |

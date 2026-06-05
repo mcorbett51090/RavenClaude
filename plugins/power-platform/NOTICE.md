@@ -64,26 +64,25 @@ This plugin's `plugin.json` declares the following Model Context Protocol (MCP) 
 **License:** MIT
 **What it does:** Read, write, and DAX-evaluate Power BI `.pbix` and `.pbit` files without requiring Power BI Desktop. Exposes ~101 tools covering multi-table creation with relationships, CSV/SQL/Excel/JSON sources, DirectQuery, DAX measure evaluation (~156 functions), RLS, custom visuals, and themes.
 
-**Consumer prerequisite — must run once on the machine:**
+**Consumer prerequisite — must run once on the machine.** Pin the version (an unpinned install lets a breaking/compromised upstream release reach you silently):
 
 ```bash
-pip install pbix-mcp
+pip install 'pbix-mcp==<tested-version>'   # [verify-at-use] — record the tested version
 ```
 
-The plugin only declares the MCP wiring; the underlying Python binary (`pbix-mcp-server`) must exist on the consumer's PATH. If the binary isn't on PATH but Python is, the alternative invocation is:
+The plugin only declares the MCP wiring; the underlying Python binary (`pbix-mcp-server`) must exist on the consumer's PATH. If the binary isn't on PATH but Python is, override the declaration in your own `.claude/settings.json` with the console script by absolute path (the entry point that definitely exists), or with the `python -m` module form — **confirm the exact module path with `pip show -f pbix-mcp`** (it varies by package version; don't assume `pbix_mcp.cli` vs `pbix_mcp.server`):
 
 ```json
 {
   "mcpServers": {
     "powerbi-editor": {
-      "command": "python",
-      "args": ["-m", "pbix_mcp.cli"]
+      "command": "/absolute/path/to/pbix-mcp-server"
     }
   }
 }
 ```
 
-Consumers who hit PATH issues can override the declaration above in their own `.claude/settings.json` without modifying this plugin.
+Consumers who hit PATH issues can apply this override in their own `.claude/settings.json` without modifying this plugin. Keep this fallback identical to the one in [`CLAUDE.md`](CLAUDE.md) §9.
 
 **MIT License attribution for pbix-mcp** — full text per the upstream LICENSE file at [`d0nk3yhm/pbix-mcp`](https://github.com/d0nk3yhm/pbix-mcp). Reproduced summary:
 

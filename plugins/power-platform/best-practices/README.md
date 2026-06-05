@@ -8,7 +8,7 @@ For the cross-tool rule format and the marketplace-wide index, see [`docs/best-p
 
 ## Index
 
-_64 rules. Each file is one named, citable rule; read and apply it whole._
+_74 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -76,6 +76,16 @@ _64 rules. Each file is one named, citable rule; read and apply it whole._
 | [`test-data-isolation-and-teardown.md`](./test-data-isolation-and-teardown.md) | Absolute rule — a test that mutates shared or production data and leaves it behind is a defect in the test. | Power Platform tests touch *live* services — a Test Studio run patches Dataverse rows, a `Test → Manually` flow run creates records and fires downstream trigger… |
 | [`test-dax-correctness-as-code.md`](./test-dax-correctness-as-code.md) | Pattern — strong default for any non-trivial measure; the cheapest correctness evidence Power BI offers. | A DAX measure that "looks right" in a visual is not tested — the visual hides which filter context it evaluated under, and a measure can be correct on the maker… |
 | [`tmdl-pbip-source-control-hygiene.md`](./tmdl-pbip-source-control-hygiene.md) | Absolute — commit the unpacked PBIP text (TMDL + PBIR), never the binary `.pbix`; mind the Windows long-path (MAX_PATH 260) gotcha. | Putting a Power BI project under git/ADO — the diff-able, merge-able source-of-truth discipline (the PBI parallel to source-controlling the unpacked solution). |
+| [`alm-solution-segmentation-by-domain.md`](./alm-solution-segmentation-by-domain.md) | Pattern — segment solutions by functional domain, not component type; base + domain + app + governance is the canonical layering. | Standing up a new project or diagnosing circular-dependency import failures. |
+| [`bi-composite-model-and-aggregations.md`](./bi-composite-model-and-aggregations.md) | Pattern — use composite models and user-defined aggregation tables to blend Import speed with DirectQuery freshness. | A semantic model has both stable dimensions and fast-changing facts, or you need Import-speed on common aggregations without full refresh. |
+| [`copilot-studio-slot-filling-and-confirmation.md`](./copilot-studio-slot-filling-and-confirmation.md) | Absolute rule — every slot-filled action with side effects must have an explicit confirmation node before the action fires. | Authoring a Copilot Studio topic that calls a Power Automate action that creates, updates, or deletes data. |
+| [`dataverse-calculated-column-limits.md`](./dataverse-calculated-column-limits.md) | Pattern — cap calculated/formula/rollup columns on high-volume tables; compute in the app layer when possible. | Adding a server-side derived column to a table with > 50,000 rows or that already has multiple computed columns. |
+| [`dataverse-polymorphic-lookup-design.md`](./dataverse-polymorphic-lookup-design.md) | Pattern — use polymorphic lookups only where the fan-out is unavoidable; prefer typed lookups or a common base entity. | Considering a Customer-type or multi-table Regarding column on a new or existing entity. |
+| [`flow-approval-escalation-and-delegation.md`](./flow-approval-escalation-and-delegation.md) | Pattern — approval flows must include timeout, escalation, delegation, and a Dataverse audit row — not just the happy path. | Adding an approval action to any production cloud flow. |
+| [`flow-http-action-authentication-and-retry.md`](./flow-http-action-authentication-and-retry.md) | Pattern — use the HTTP action's built-in auth picker and native retry policy; do not hand-roll bearer tokens or manual retry loops. | Adding an HTTP action to a cloud flow that calls an Entra-protected API or third-party endpoint. |
+| [`gov-app-quarantine-and-inactive-resource-cleanup.md`](./gov-app-quarantine-and-inactive-resource-cleanup.md) | Pattern — disable and notify before deletion; never silently remove production resources; use a quarantine window with Dataverse audit trail. | Governing unused apps and flows in a production or shared environment. |
+| [`pages-progressive-disclosure-and-server-side-pagination.md`](./pages-progressive-disclosure-and-server-side-pagination.md) | Absolute rule — paginate Power Pages list results server-side; never load all rows into the browser. | Any Power Pages list component that reads rows from a Dataverse table on a public or semi-public site. |
+| [`test-canvas-app-monitor-trace.md`](./test-canvas-app-monitor-trace.md) | Primary diagnostic — run a Monitor trace before declaring a canvas app performant or correct; it is the only window into delegation, connector calls, and silent errors. | Reviewing or testing a canvas app before promotion or release. |
 
 ---
 

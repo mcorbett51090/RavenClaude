@@ -66,7 +66,8 @@ The research-grounded reference the agents point to. Read the relevant file in f
 | [`knowledge/senior-care-kpi-glossary.md`](knowledge/senior-care-kpi-glossary.md) | Senior-care KPI glossary |
 | [`knowledge/senior-care-economics.md`](knowledge/senior-care-economics.md) | Senior-care operations economics |
 | [`knowledge/senior-care-context.md`](knowledge/senior-care-context.md) | Senior-care benchmarks & regulatory context (2025–2026) |
-| [`knowledge/senior-care-decision-trees.md`](knowledge/senior-care-decision-trees.md) | Senior-care decision trees |
+| [`knowledge/senior-care-decision-trees.md`](knowledge/senior-care-decision-trees.md) | Senior-care decision trees (occupancy decline · survey deficiency · high-acuity admit) |
+| [`knowledge/senior-care-acuity-staffing-ppd-decision-tree.md`](knowledge/senior-care-acuity-staffing-ppd-decision-tree.md) | **Mermaid** — staff to acuity-based PPD vs. a fixed ratio (reallocate-before-hire, agency-as-bridge-only, with the rescinded-federal-rule / state-ABST regulatory frame) |
 
 ---
 
@@ -106,6 +107,33 @@ The lead is [`senior-care-lead`](agents/senior-care-lead.md) — first contact f
 
 ---
 
-## 8. Milestones
+## 8. Scenarios bank & runnable tooling (added build-out 2026-06-05)
+
+- **Scenarios bank** — [`scenarios/`](scenarios/) holds dated, scope-tagged, unverified engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank or a clinician's / state surveyor's authority (§2). Scenarios carry no resident PHI/PII (§2). The most-likely-to-benefit specialists — `census-occupancy-strategist`, `senior-care-finance-analyst`, `clinical-care-compliance-specialist` — should check the bank when a situation matches. Four scenarios ship: occupancy-slide segment recovery, staffing-PPD-to-acuity alignment, move-in-funnel conversion leak, payer-mix margin rebalance.
+- **Runnable calculator** — [`scripts/senior_calc.py`](scripts/senior_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from four recurring operations decisions: `ppd-staffing` (acuity-weighted hours-per-resident-day → required care-hours/FTEs + the gap vs current), `occupancy-rev` (occupancy as a flow → end census, % , monthly/annual revenue gap to target), `move-in-funnel` (two-stage conversion → projected tours/move-ins, the leaking stage vs benchmark, implied spend), `payer-mix` (per-payer revenue/margin + the margin delta of a mix shift). It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support, not clinical/legal/regulatory/financial advice (§2). Owned primarily by `senior-care-finance-analyst`; `census-occupancy-strategist` uses `occupancy-rev`/`move-in-funnel`, and acuity inputs to `ppd-staffing` route through `clinical-care-compliance-specialist`.
+
+## 9. Value-add completeness (build-out 2026-06-05)
+
+This plugin is a **pure non-code vertical** (senior living / assisted living / memory care / SNF / home care operations). Every value-add menu item is dispositioned honestly below — several runtime-tier items are genuinely **N-A** because there is no code artifact, runtime, or repo to operate on, and forcing them would add noise, not value.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README + 4 dated engagement scenarios (occupancy-slide recovery, staffing-PPD-to-acuity, move-in-funnel leak, payer-mix rebalance), each with an "Action for the next consultant" lesson and cited public benchmarks. |
+| Decision-tree (Mermaid) knowledge | **BUILT** | 1 new file (`senior-care-acuity-staffing-ppd-decision-tree.md`) that **complements** PR #315's consolidated `senior-care-decision-trees.md` (occupancy/survey/admit) — it is the staffing/labor companion (acuity-PPD vs fixed ratio, reallocate-before-hire, agency-as-bridge), grounded in the rescinded-CMS-rule + state-ABST research. No duplication of #315's three trees. |
+| Glossary / KPI reference | **BUILT (enriched existing)** | `senior-care-kpi-glossary.md` gained cited, dated benchmark tables (census/conversion, acquisition-cost/CPMI, labor/turnover/agency, payer-mix/SNF-rate) + a regulatory-status note (federal SNF rule rescinded; AL state-regulated), rather than a redundant new file. |
+| Runnable script (`scripts/`) | **BUILT** | `senior_calc.py` — ppd-staffing / occupancy-rev / move-in-funnel / payer-mix. The one runtime item with real non-code value. Stdlib-only, ruff-clean, py_compile-clean, executable. |
+| Code-aware MCP server (bundled) | **N-A** | No published MCP for a senior-care EHR/CRM (PointClickCare, Yardi/EHR, MatrixCare, Aline/Sherpa CRM) verified to exist as a zero-config, no-auth artifact; these are per-tenant/authenticated/PHI-bearing — bundling is out of scope and the plugin is deliberately EHR/CRM-neutral (§2). If a genuine live-data need ever surfaces, it would be *recommend, evaluate-first*, never bundled (per [`../../docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md)). |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in an operations-advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/senior_calc.py`; no compiled/installed binary is warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. |
+| output-styles / themes | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown reports governed by the §6 Output Contract. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 5 skills, 1 advisory antipattern hook, 5 commands, 4 templates already cover the surface; no obvious high-value gap this round. The new decision tree + script extend reach without a new agent (team-growth-as-knowledge house rule). |
+| CHANGELOG.md | **BUILT** | Added with a top entry for this build-out. |
+| NOTICE.md | **N-A** | No third-party content is bundled (the script is original, stdlib-only; all sources are cited inline, not vendored). |
+
+## 10. Milestones
 
 - **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 5 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 8 best-practice rules.
+- **v0.1.x** — PR #315: consolidated `senior-care-decision-trees.md` (occupancy / survey / high-acuity-admit Mermaid trees), best-practices/ set, additional templates.
+- **next** — non-code-vertical value-add build-out: scenarios bank (4 scenarios), 1 complementary Mermaid decision-tree (acuity-PPD staffing), `scripts/senior_calc.py` (4 modes), cited-benchmark KPI glossary enrichment, CHANGELOG. Code-runtime tier dispositioned N-A with reasons (§9).

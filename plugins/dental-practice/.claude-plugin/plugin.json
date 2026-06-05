@@ -1,6 +1,6 @@
 {
   "name": "dental-practice",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Dental Practice specialist team — 4 agents (dental-practice-lead, clinical-treatment-planner, dental-rcm-specialist, dental-operations-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A treatment-planning-and-revenue-cycle team for a dental practice owner — it controls overhead against the ~62% median, holds collections above 98%, builds case acceptance on the treatment plan rather than the discount, and reads doctor/hygiene production per hour the way a practice that runs on the schedule does. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"

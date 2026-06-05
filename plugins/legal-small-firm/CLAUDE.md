@@ -66,7 +66,8 @@ The research-grounded reference the agents point to. Read the relevant file in f
 | [`knowledge/legal-practice-kpi-glossary.md`](knowledge/legal-practice-kpi-glossary.md) | Small-firm practice KPI glossary |
 | [`knowledge/legal-practice-economics.md`](knowledge/legal-practice-economics.md) | Small-firm practice economics |
 | [`knowledge/legal-practice-context.md`](knowledge/legal-practice-context.md) | Small-firm practice benchmarks & context (2025) |
-| [`knowledge/legal-practice-decision-trees.md`](knowledge/legal-practice-decision-trees.md) | Small-firm practice decision trees |
+| [`knowledge/legal-practice-decision-trees.md`](knowledge/legal-practice-decision-trees.md) | Small-firm practice decision trees (fee structure / A/R collection / billing-rate review) + skill & specialist routers |
+| [`knowledge/legal-intake-and-trust-decision-trees.md`](knowledge/legal-intake-and-trust-decision-trees.md) | **Mermaid** — conflict-checked intake (take/decline/escalate) + IOLTA three-way reconciliation (compliant-handling check). Complements the consolidated trees; sits upstream of them. ABA Model Rule 1.15/1.7/1.9 + Clio-cited. |
 
 ---
 
@@ -106,6 +107,33 @@ The lead is [`legal-engagement-lead`](agents/legal-engagement-lead.md) — first
 
 ---
 
-## 8. Milestones
+## 8. Scenarios bank & runnable tooling (added v0.2.0)
+
+- **Scenarios bank** — [`scenarios/`](scenarios/) holds dated, scope-tagged, unverified engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank, the applicable rules of professional conduct, or the responsible attorney's judgment (§2, §3 #6). Scenarios carry no client confidences (§2) and are never legal advice. The most-likely-to-benefit specialists — `legal-operations-analyst`, `litigation-specialist`, `contracts-drafting-specialist` — should check the bank when a situation matches.
+- **Runnable calculator** — [`scripts/legal_calc.py`](scripts/legal_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from four recurring practice decisions: `realization` (the cascade — utilization/realization/collection + effective hourly rate), `matter-profit` (matter/attorney profitability vs the Rule of Thirds 3×-cost threshold), `utilization` (billable ratio + delegable-vs-attorney-only non-billable split), `trust-recon` (the three-way IOLTA reconciliation check — bank = book = sum of client ledgers). It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support, **not** legal/ethics/financial advice (§2). A `trust-recon` FAIL is an arithmetic flag to route to the responsible attorney + the state bar rules, **never** a finding of misconduct (§3 #6). Owned primarily by `legal-operations-analyst`.
+
+## 9. Value-add completeness (build-out 2026-06-05)
+
+This is a **pure non-code vertical** (small-firm practice management). Every value-add menu item is dispositioned honestly below — several runtime-tier items are genuinely **N-A** because there is no code artifact, runtime, or repo to operate on, and forcing them would add noise, not value.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README + 4 dated engagement scenarios (realization-rate recovery, intake conflict/fit miss, IOLTA three-way reconciliation gap, utilization/capacity squeeze). |
+| Decision-tree (Mermaid) knowledge | **BUILT (net-new, complementary)** | 1 new file with **2** Mermaid trees (conflict-checked intake; IOLTA three-way reconciliation) that **complement** PR #315's consolidated `legal-practice-decision-trees.md` (fee structure / A/R collection / billing-rate review) — they sit upstream of it and do not duplicate or contradict it. |
+| Glossary / KPI reference | **BUILT (enriched existing)** | `legal-practice-kpi-glossary.md` gained cited, dated benchmark tables (realization cascade, lockup days, revenue/lawyer, Rule of Thirds, trust-accounting controls) rather than a redundant new file. |
+| Runnable script (`scripts/`) | **BUILT** | `legal_calc.py` — realization / matter-profit / utilization / trust-recon. The one runtime item with real non-code value. Ruff-clean, stdlib-only, py_compile-clean. |
+| Code-aware MCP server (bundled) | **N-A** | No published MCP for small-firm practice-management systems (Clio, MyCase, PracticePanther, …) verified to exist; those systems are per-tenant/authenticated/PII- and trust-funds-bearing — bundling is out of scope and the plugin is deliberately PMS-neutral (§2). If a live-data need ever surfaced it would be *recommend, evaluate-first*, never bundled (per `docs/best-practices/bundled-mcp-servers.md`), and a write-capable / trust-touching server would be an Absolute `security-reviewer` gate. |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in a practice-ops advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/legal_calc.py`; no compiled/installed binary is warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. |
+| output-styles / themes | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown reports governed by the §6 Output Contract. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 5 skills, 1 advisory antipattern hook, 5 commands, 4 templates already cover the surface; no obvious high-value gap this round. The new decision trees + script extend reach without a new agent (team-growth-as-knowledge house rule). |
+| CHANGELOG.md | **BUILT** | Added with a top `0.2.0` entry. |
+| NOTICE.md | **N-A** | No third-party content is bundled (the script is original, stdlib-only; all sources are cited inline, not vendored). |
+
+## 10. Milestones
 
 - **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 5 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 8 best-practice rules.
+- **v0.1.x** — PR #315: consolidated `legal-practice-decision-trees.md` (Mermaid: fee structure / A/R collection / billing-rate review), best-practices/ expansion, and templates.
+- **v0.2.0** — non-code-vertical value-add build-out: scenarios bank (4 scenarios), a net-new 2-tree Mermaid decision-tree knowledge file (conflict-checked intake + IOLTA three-way reconciliation), `scripts/legal_calc.py` (4 modes), cited-benchmark KPI glossary enrichment, CHANGELOG. Code-runtime tier dispositioned N-A with reasons (§9).

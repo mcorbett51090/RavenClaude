@@ -229,3 +229,106 @@ Prove the added complexity with an **eval delta** before shipping it (house opin
 ## Sources
 
 Every leaf above is grounded in this plugin's own knowledge bank (all retrieved 2026-05-28, re-confirmed for these trees 2026-05-30): [`model-selection-and-2026-capability-map.md`](model-selection-and-2026-capability-map.md), [`retrieval-and-rag-2026.md`](retrieval-and-rag-2026.md), [`mcp-server-authoring.md`](mcp-server-authoring.md), [`tool-use-and-structured-output.md`](tool-use-and-structured-output.md), [`evals-and-quality.md`](evals-and-quality.md), [`agent-orchestration-patterns.md`](agent-orchestration-patterns.md), and the canonical build-surface tree in [`claude-build-surface-decision-tree.md`](claude-build-surface-decision-tree.md). The platform ships monthly — re-verify every dated model id / GA status / threshold on the Researcher sweep and re-date the `Last verified:` lines.
+
+---
+
+## Decision Tree: Async delivery — polling vs streaming vs webhook
+
+**When this applies:** A Claude task is expected to run longer than a synchronous HTTP timeout, or uses the Batch API, or involves a multi-step agentic job. Observable triggers: client timeout errors on long jobs; high polling costs; "how do I deliver results to the user for a job that takes minutes?"
+
+**Last verified:** 2026-06-05 against Batch API and streaming documentation.
+
+```mermaid
+flowchart TD
+    START[Claude task result needed] --> Q1{Is the user waiting in real time for incremental tokens?}
+    Q1 -->|Yes| STREAM[Streaming SSE - server-sent events to the client]
+    Q1 -->|No| Q2{Expected completion time vs client timeout}
+    Q2 -->|Under 30 seconds and latency-sensitive| SYNC[Synchronous await - block and return]
+    Q2 -->|Over 30 seconds or batch job| Q3{Can the client accept a callback or is it polling?}
+    Q3 -->|Callback available| WEBHOOK[Webhook event handler - verified and idempotent]
+    Q3 -->|Polling only| POLL[Exponential backoff poll - max 1 per 30s; store result in DB]
+```
+
+**Rationale per leaf:**
+- *Streaming SSE* — token-by-token delivery for interactive UX; user sees progress immediately; client holds the connection.
+- *Synchronous await* — short jobs where blocking is fine; simplest path; fails above load-balancer timeout.
+- *Webhook event handler* — the preferred async path: producer posts a completion event; consumer handles idempotently; decoupled and restartable.
+- *Exponential backoff poll* — last resort when the consumer cannot receive callbacks; cap poll frequency to avoid thundering-herd on status endpoints.
+
+**Tradeoffs summary:**
+
+| Method | Latency to user | Infra complexity | Blast radius on failure | Use when |
+|---|---|---|---|---|
+| Streaming SSE | Immediate incremental | Low | Client drop = lost stream | User waits; interactive |
+| Sync await | Full job duration | None | Timeout kills the result | Short jobs only |
+| Webhook + idempotent handler | Job duration + delivery | Medium | At-least-once = need dedupe | Long jobs; Batch API |
+| Backoff poll | Job duration + poll lag | Low | Poll quota exhaustion | No callback infrastructure |
+
+---
+
+## Decision Tree: Injection risk — should this content touch tool permissions?
+
+**When this applies:** A `tool_result`, retrieved document, fetched webpage, Files-API file, or user-supplied string is about to be inserted into the context window, and one or more tools in scope can perform destructive or privileged actions. Observable triggers: "can I pass this webhook payload to the model?"; "the user uploaded a PDF and I'm feeding it directly to an agent with write tools."
+
+**Last verified:** 2026-06-05 against the AI-app security section of `claude-app-finops-reliability-and-security.md` (2026-05-28).
+
+```mermaid
+flowchart TD
+    START[External content entering context] --> Q1{Does the content come from a fully trusted internal system with no user-controlled bytes?}
+    Q1 -->|Yes| Q2{Do the in-scope tools have destructive or privileged effects?}
+    Q1 -->|No - user input / third-party API / retrieved doc / web fetch| UNTRUSTED[Treat as untrusted]
+    Q2 -->|No - read-only tools only| SAFE[Proceed - low injection risk]
+    Q2 -->|Yes - write / delete / send / escalate| ESCALATE[Escalate design to security-reviewer before shipping]
+    UNTRUSTED --> Q3{Do any in-scope tools auto-approve a destructive action?}
+    Q3 -->|No - requires explicit human approval or read-only| SANDBOX[Sandbox the untrusted content - no auto-escalation]
+    Q3 -->|Yes| BLOCK[STOP - restructure tool permissions; add human-in-the-loop gate]
+```
+
+**Rationale per leaf:**
+- *Proceed (low risk)* — trusted internal content + read-only tools: injection cannot cause destructive effects.
+- *Escalate to security-reviewer* — trusted source but destructive tool scope: even clean content deserves a review when the blast radius is high.
+- *Sandbox the untrusted content* — untrusted content is allowed in context when no tool can auto-approve a destructive action; still follow the isolation rule.
+- *STOP / restructure* — untrusted content with an auto-approving destructive tool is the canonical injection failure shape; restructure before shipping.
+
+**Tradeoffs summary:**
+
+| Content source | Tool scope | Required action | Owner |
+|---|---|---|---|
+| Internal trusted | Read-only | Proceed | `prompt-and-context-engineer` |
+| Internal trusted | Destructive | Escalate to security-reviewer | `claude-app-ops-engineer` + core |
+| External / user / retrieved | Read-only | Sandbox; no auto-approve | `prompt-and-context-engineer` |
+| External / user / retrieved | Destructive | STOP; restructure; human gate | `core/security-reviewer` mandatory |
+
+---
+
+## Decision Tree: Context format — native document vs pre-extracted text vs Files API
+
+**When this applies:** A document (PDF, image, long HTML page) must be fed to Claude and you must choose the input format. Observable triggers: "should I extract text before sending?"; "the PDF has charts I need Claude to read"; "I'm sending the same report to 50 requests today."
+
+**Last verified:** 2026-06-05 against `knowledge/server-side-tools-and-files.md` and the multimodal best-practice (2026-05-28).
+
+```mermaid
+flowchart TD
+    START[Document needs to enter context] --> Q1{Same document sent to multiple requests today - more than ~5?}
+    Q1 -->|Yes| FILES[Files API - upload once reuse by file ID]
+    Q1 -->|No| Q2{Document has layout-dependent content - charts, tables, mixed text-image?}
+    Q2 -->|Yes| NATIVE[Native document input - PDF or image bytes in the message]
+    Q2 -->|No - prose only and extractable cleanly| Q3{Extracted text fits within token budget without padding?}
+    Q3 -->|Yes| TEXT[Pre-extracted text - cheapest; no vision tokens]
+    Q3 -->|No - too long even pre-extracted| NATIVE2[Native + long-context model or chunk and retrieve]
+```
+
+**Rationale per leaf:**
+- *Files API* — amortizes upload cost over many requests; mandatory for high-frequency same-document patterns (shared reference docs, nightly report, etc.).
+- *Native document input* — layout matters (charts, tables, mixed content): native PDF/image input preserves spatial relationships; uses vision tokens.
+- *Pre-extracted text* — prose-only documents where a clean extraction exists; cheapest (no vision tokens); loses layout.
+- *Native + long-context / chunk* — document too long even as text; either use the 1M-context model directly or chunk and retrieve.
+
+**Tradeoffs summary:**
+
+| Format | Cost | Layout fidelity | Re-use | Use when |
+|---|---|---|---|---|
+| Files API | Upload once + cheap ref | As-native | High — many requests | Same doc, many requests |
+| Native input | Vision token cost per request | Full | Low | Charts, tables, images |
+| Pre-extracted text | Cheapest | None | N/A | Prose; clean extraction exists |
+| Long-context / chunked | Model-tier cost | Full (long-context) | N/A | Doc too long for any single approach |
