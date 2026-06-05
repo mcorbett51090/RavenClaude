@@ -75,9 +75,15 @@ Discover per-plugin page: add "Plugin lineage →" href #/norns
 
 Isolating Slice 2 means Slice 1 ships ~80% of the clarity with near-zero gate risk, and a Slice-2 regression can't strand the rest.
 
-## Open decision points for you (before build)
-1. **Sága placement:** honor "in Configure below the tribunal" (re-own, as decided) — or the rule-consistent **deep-link** alternative (keep in Observe, link from the tribunal)?
-2. **Marketplace-health visibility:** **dev-gate** it (hidden on consumer installs, recommended) — or ship it to all consumers (empty quadrant)?
+## Open decision points — RESOLVED (2026-06-05)
+1. **Sága placement → DEEP-LINK.** Sága stays an Observe tab (`DASH_OWNER.saga` unchanged); the command-review tribunal block in Configure gets a `View verdict log →` link to `#/saga`. *Eliminates the `DASH_OWNER.saga` move + the Observe↔Configure rule violation + that Gate-51 edit.*
+2. **Repo health → SHIP TO ALL + EMPTY-STATE,** relabeled **"Repo health"**, placed **last** in the Observe sub-nav. *Eliminates the dev-gate mechanism problem (P0-2) — no new gating code, no new gate; consumers see one clearly-labeled empty tab with the "about the marketplace, not your project" copy.*
+
+### Finalized Observe sub-nav (5 tabs)
+`Run feed · Guardrails & security · Review log · Session · Repo health`
+- **Guardrails & security** = Slice 1 relabel of Heimdall (alarm card); Slice 2 folds Víðarr in under the segmented control.
+- **Repo health** = the split-out maintainer cards (drift/debt/hook-coverage/CI/knowledge-health), shown to all with the empty-state.
+- **Review log** (Sága) stays; **Plugin lineage** (Norns) is *not* in the sub-nav — reachable via the Discover per-plugin link + `#/norns` (tab kept for the render gate + deep-link).
 
 ---
 
