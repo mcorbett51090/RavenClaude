@@ -63,10 +63,12 @@ The research-grounded reference the agents point to. Read the relevant file in f
 
 | File | Covers |
 |---|---|
-| [`knowledge/fundraising-kpi-glossary.md`](knowledge/fundraising-kpi-glossary.md) | Fundraising KPI glossary |
+| [`knowledge/fundraising-kpi-glossary.md`](knowledge/fundraising-kpi-glossary.md) | Fundraising KPI glossary (cited benchmark tables: retention, LYBUNT/SYBUNT, LTV, CRD-by-channel, gift pyramid, portfolio size, CRM landscape) |
 | [`knowledge/fundraising-economics.md`](knowledge/fundraising-economics.md) | Fundraising economics |
 | [`knowledge/fundraising-benchmarks-2026.md`](knowledge/fundraising-benchmarks-2026.md) | Fundraising benchmarks (2025–2026) |
-| [`knowledge/fundraising-decision-trees.md`](knowledge/fundraising-decision-trees.md) | Fundraising decision trees |
+| [`knowledge/fundraising-decision-trees.md`](knowledge/fundraising-decision-trees.md) | Fundraising decision trees (which analysis for which symptom; major-gift go/cultivate, retention diagnosis, grant pipeline — **Mermaid**) |
+| [`knowledge/nonprofit-campaign-readiness-decision-tree.md`](knowledge/nonprofit-campaign-readiness-decision-tree.md) | **Mermaid** — campaign go-public vs stay-silent vs not-yet (gift range chart → prospect pool → case → lead gift → silent-phase threshold). Complements the above. |
+| [`knowledge/nonprofit-channel-investment-decision-tree.md`](knowledge/nonprofit-channel-investment-decision-tree.md) | **Mermaid** — where the next fundraising dollar goes (CRD-by-channel-first → retention-first → acquisition-judged-on-LTV). Complements the above. |
 
 ---
 
@@ -106,6 +108,33 @@ The lead is [`development-lead`](agents/development-lead.md) — first contact f
 
 ---
 
-## 8. Milestones
+## 8. Scenarios bank & runnable tooling (added v0.2.0)
+
+- **Scenarios bank** — [`scenarios/`](scenarios/) holds dated, scope-tagged, unverified engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank or a development director's documented judgment (§2). Scenarios carry no donor PII (§2). The most-likely-to-benefit specialists — `major-gifts-strategist`, `nonprofit-finance-analyst`, `development-lead` — should check the bank when a situation matches.
+- **Runnable calculator** — [`scripts/fundraising_calc.py`](scripts/fundraising_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from three recurring development decisions: `gift-pyramid` (the gift range chart — tiered gifts-needed + prospects-needed + cumulative coverage vs goal), `cost-per-dollar` (cost-to-raise-a-dollar **by channel**, never blended — per-channel CRD/ROI + the blended figure + the subsidy flag, §3 #4), `donor-ltv` (lifetime value = avg gift × frequency × lifespan, with lifespan derivable from a retention rate, plus the retain-vs-acquire payback, §3 #1). It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support, not tax/legal/gift-acceptance/financial advice (§2). Owned primarily by `nonprofit-finance-analyst`; `major-gifts-strategist` uses `gift-pyramid` for campaign feasibility.
+
+## 9. Value-add completeness (build-out 2026-06-05)
+
+This plugin is a **pure non-code vertical** (development/fundraising advisory). Every value-add menu item is dispositioned honestly below — several runtime-tier items are genuinely **N-A** because there is no code artifact, runtime, or repo to operate on, and forcing them would add noise, not value. (Mirrors the `veterinary-practice` pilot build-out.)
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README + 4 dated engagement scenarios (retention turnaround — added in #315; major-gift pipeline build, annual-fund renewal lift, campaign feasibility/gift-pyramid — added this round). |
+| Decision-tree (Mermaid) knowledge | **BUILT (complement, not duplicate)** | 2 NEW topic-specific Mermaid trees added this round (campaign-readiness; channel-investment) that **complement** #315's consolidated `fundraising-decision-trees.md` (major-gift go/cultivate, retention diagnosis, grant pipeline) rather than re-covering it. |
+| Glossary / KPI reference | **BUILT (enriched existing)** | `fundraising-kpi-glossary.md` rewritten from a thin stub into cited, dated benchmark tables (retention, LYBUNT/SYBUNT, donor LTV formula, CRD-by-channel, gift pyramid, officer portfolio size) + a CRM-landscape context section. |
+| Runnable script (`scripts/`) | **BUILT** | `fundraising_calc.py` — gift-pyramid / cost-per-dollar / donor-ltv. Ruff-clean, py_compile-clean, executable, stdlib-only. The one runtime item with real non-code value. |
+| Code-aware MCP server (bundled) | **N-A** | No published MCP for nonprofit CRMs (Raiser's Edge, Bloomerang, DonorPerfect, Salesforce NPSP, …) verified to exist; CRMs are per-tenant/authenticated/PII-bearing — bundling is out of scope and the plugin is deliberately CRM-neutral (§2). If a genuine live-data need ever surfaces it would be *recommend, evaluate-first*, never bundled (per `docs/best-practices/bundled-mcp-servers.md`). |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in a fundraising advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/fundraising_calc.py`; no compiled/installed binary is warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. |
+| output-styles / themes | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown reports governed by the §6 Output Contract. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 5 skills, 1 advisory antipattern hook, 5 commands, 4 templates already cover the surface; no obvious high-value gap this round. The new decision trees + calculator extend reach without a new agent (team-growth-as-knowledge house rule). |
+| CHANGELOG.md | **BUILT** | Added this round with a top `0.2.0` entry (the plugin had none — older plugins legitimately omit it per AGENTS.md; added here alongside the build-out). |
+| NOTICE.md | **N-A** | No third-party content is bundled (the script is original, stdlib-only; all sources are cited inline, not vendored). |
+
+## 10. Milestones
 
 - **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 5 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 8 best-practice rules.
+- **v0.1.1 / v0.1.2** — PR #315: consolidated `fundraising-decision-trees.md` (Mermaid go/cultivate + retention + grant-pipeline trees), best-practices/ rule set, templates/, and the first scenario (donor-retention-turnaround).
+- **v0.2.0** — non-code-vertical value-add build-out: scenarios bank rounded to 4 (major-gift pipeline, annual-fund renewal, campaign feasibility), 2 NEW complementary Mermaid decision-tree files (campaign-readiness, channel-investment), `scripts/fundraising_calc.py` (3 modes), cited-benchmark KPI glossary enrichment, CHANGELOG. Code-runtime tier dispositioned N-A with reasons (§9).
