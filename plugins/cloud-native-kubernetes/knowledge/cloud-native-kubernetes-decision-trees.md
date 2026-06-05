@@ -103,3 +103,116 @@ _A namespace shares a kernel and nodes; it is not a security boundary against a 
 | OPA Gatekeeper / Kyverno | mature | policy-as-code admission |
 | Istio / Linkerd | GA | mTLS, traffic-split; weigh sidecar cost (ambient mode emerging) |
 | Distroless / minimal base images | mature | non-root, no shell; quiets CVE scans |
+
+---
+
+## Decision Tree: Container image base — distroless, alpine, or debian-slim?
+
+**When this applies:** An engineer is writing or reviewing a Dockerfile and must choose a base image for the runtime stage. The observable inputs are: the application runtime, whether a shell is needed at runtime, whether glibc is needed, and what the CVE scan tolerance is.
+
+**Last verified:** 2026-06-05 against Google distroless documentation and Docker Hub official images.
+
+```mermaid
+flowchart TD
+    START[Choose a base image for runtime stage] --> SHELL{Does the container need a shell at runtime?}
+    SHELL -->|Yes - init scripts, entrypoint.sh| ALPINE[alpine - smallest with shell + musl]
+    SHELL -->|No - binary entrypoint only| RUNTIME{What is the runtime?}
+    RUNTIME -->|Go static binary - CGO disabled| STATIC[gcr.io/distroless/static-debian12:nonroot]
+    RUNTIME -->|Go with glibc or C libs| BASE[gcr.io/distroless/base-debian12:nonroot]
+    RUNTIME -->|Python| PYTHON[gcr.io/distroless/python3-debian12:nonroot]
+    RUNTIME -->|Java| JAVA[gcr.io/distroless/java21-debian12:nonroot]
+    RUNTIME -->|Node.js| NODE[gcr.io/distroless/nodejs20-debian12:nonroot]
+    RUNTIME -->|Custom or needs apt-managed deps| SLIM[debian:bookworm-slim or ubuntu:24.04-minimal<br/>as last resort]
+    ALPINE --> NONROOT[Set USER nonroot in Dockerfile]
+    STATIC --> DONE[Nonroot already set in image tag]
+```
+
+**Rationale per leaf:**
+- *distroless/static* — zero OS packages beyond the bare syscall layer; smallest possible attack surface for statically linked binaries.
+- *distroless/base* — includes glibc and libssl; required for Go/Rust binaries that link against C.
+- *alpine* — smallest Linux distro with a shell; use when init scripts or debugging access is genuinely needed at runtime; musl libc occasionally causes unexpected behavior.
+- *debian:slim / ubuntu:minimal* — last resort when apt-managed dependencies are truly unavoidable at runtime; scan actively.
+
+**Tradeoffs summary:**
+
+| Base | Shell | CVE count | glibc | Use when |
+|---|---|---|---|---|
+| distroless/static | No | Lowest | No | Go static binaries |
+| distroless/base | No | Very low | Yes | C-linked runtimes |
+| distroless/python3 | No | Low | Yes | Python apps |
+| alpine | Yes | Low | No - musl | Shell needed at runtime |
+| debian:slim | Yes | Medium | Yes | apt-managed deps unavoidable |
+
+---
+
+## Decision Tree: HPA, VPA, or KEDA for autoscaling?
+
+**When this applies:** A Kubernetes workload needs to scale based on load. The observable inputs are: the scaling signal (CPU, memory, request rate, queue depth), whether scale-to-zero is needed, and whether the team wants vertical or horizontal scaling.
+
+**Last verified:** 2026-06-05 against Kubernetes HPA v2, VPA documentation, and KEDA v2 release notes.
+
+```mermaid
+flowchart TD
+    START[Workload needs to scale] --> ZERO{Need scale-to-zero - 0 replicas when idle?}
+    ZERO -->|Yes| KEDA[KEDA - event-driven scale-to-zero<br/>queue depth, cron, custom metrics]
+    ZERO -->|No| SIG{What is the scaling signal?}
+    SIG -->|CPU or memory utilization| HPA[HPA v2 - horizontal scale on resource metrics]
+    SIG -->|Request rate or custom app metric| HPA
+    SIG -->|Pod is consistently OOMKilled or underutilizes memory| VPA[VPA - vertical right-sizing recommendations]
+    SIG -->|External queue - SQS, Kafka, Service Bus, Pub/Sub| KEDA
+    HPA --> STABLE[Add stabilizationWindowSeconds for scale-down<br/>set stabilizationWindowSeconds 300]
+    VPA --> MODE{VPA mode?}
+    MODE -->|Auto - VPA adjusts requests live| VPAOFF[Risk: pod restarts on resize - test before prod]
+    MODE -->|Off or Initial - recommendations only| VPASAFE[Safe to run alongside HPA for right-sizing insights]
+```
+
+**Rationale per leaf:**
+- *HPA* — the default for horizontal scaling on CPU/memory or custom metrics; simple, native, broadly supported.
+- *VPA* — right-sizing tool that adjusts container resource requests; run in Off/Initial mode for recommendations without live pod restarts; do not run VPA Auto + HPA on the same pod (conflicting signals).
+- *KEDA* — the standard for event-driven autoscaling and scale-to-zero; supports 50+ scalers (queues, crons, Prometheus metrics, Datadog metrics).
+
+**Tradeoffs summary:**
+
+| Tool | Scale-to-zero | Scaling signal | Pod restart on scale | Use when |
+|---|---|---|---|---|
+| HPA | No - min 1 | CPU/memory/custom metric | No - adds replicas | Standard horizontal scaling |
+| VPA | No | CPU/memory over-request | Yes on Auto mode | Right-sizing container requests |
+| KEDA | Yes | Any event source | No | Queue-driven or scale-to-zero |
+
+---
+
+## Decision Tree: When is a cluster upgrade blocking vs. optional?
+
+**When this applies:** A Kubernetes cluster is running an older minor version and the team must decide whether to upgrade now or defer. The observable inputs are: the current version's end-of-support date, whether removed APIs are in active use, and the criticality of the cluster.
+
+**Last verified:** 2026-06-05 against Kubernetes version support policy (12 months after GA).
+
+```mermaid
+flowchart TD
+    START[Cluster version evaluation] --> EOL{Is the current minor version past its end-of-support date?}
+    EOL -->|Yes| URGENT[Upgrade is blocking<br/>no more security patches from upstream]
+    EOL -->|No| API{Does the next version remove any APIs currently in use?}
+    API -->|Yes| MIGRATE[Migrate manifests to new API versions first<br/>then upgrade]
+    API -->|No| DELTA{How many minor versions behind latest?}
+    DELTA -->|1 version behind| OPT[Optional - upgrade in next maintenance window]
+    DELTA -->|2 versions behind| PLAN[Plan upgrade within 60 days]
+    DELTA -->|3 or more versions behind| URGENT
+    MIGRATE --> OPT
+    URGENT --> INCR[Upgrade one minor version at a time<br/>do not skip versions]
+```
+
+**Rationale per leaf:**
+- *Past end-of-support* — upstream stops shipping CVE patches; the cluster is a known vulnerability.
+- *API migration required* — must be done before the upgrade, not after; a deploy failure after upgrade is a worse situation than a planned migration.
+- *1 version behind* — acceptable lag; upgrade in a scheduled window.
+- *2 versions behind* — end-of-support is approaching; plan within 60 days.
+- *3+ versions behind* — the cluster is very likely past support or approaching it; urgent.
+
+**Tradeoffs summary:**
+
+| Urgency level | Condition | Recommended action |
+|---|---|---|
+| Blocking | Past EOL or 3+ versions behind | Upgrade immediately - start with staging |
+| High | 2 versions behind | Upgrade within 60 days |
+| Routine | 1 version behind | Next maintenance window |
+| Preparatory | API deprecation in target version | Migrate manifests first |

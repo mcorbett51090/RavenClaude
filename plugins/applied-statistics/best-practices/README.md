@@ -8,7 +8,7 @@ These complement, and do not restate, the cross-cutting house opinions in the te
 
 ## Index
 
-_16 rules. Each file is one named, citable rule; read and apply it whole._
+_26 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -28,6 +28,16 @@ _16 rules. Each file is one named, citable rule; read and apply it whole._
 | [`test-match-the-test-to-the-data-type.md`](./test-match-the-test-to-the-data-type.md) | Absolute rule | The wrong test on the right data is as broken as the right test on the wrong data. |
 | [`test-use-the-nonparametric-fallback-when-the-gate-fails.md`](./test-use-the-nonparametric-fallback-when-the-gate-fails.md) | Pattern (strong default; deviate only with a written reason) | Every parametric test has a distribution-free counterpart, and the whole point of the assumption gate is that the fallback is chosen *before* a result… |
 | [`timeseries-test-stationarity-and-autocorrelation.md`](./timeseries-test-stationarity-and-autocorrelation.md) | Absolute rule | Time-ordered data violates the independence assumption that almost every standard test and regression rests on, and the violation is invisible in the … |
+| [`design-choose-primary-metric-before-launch.md`](./design-choose-primary-metric-before-launch.md) | Absolute rule | An experiment is being designed — declare exactly one primary metric in the design doc before any data is collected. |
+| [`report-prediction-intervals-not-just-point-forecasts.md`](./report-prediction-intervals-not-just-point-forecasts.md) | Absolute rule | A forecast is being delivered — always include prediction intervals; never a bare point line. |
+| [`bayesian-justify-the-reach.md`](./bayesian-justify-the-reach.md) | Pattern | PyMC or bambi is being considered — write a justification; frequentist is the default spine. |
+| [`use-temporal-validation-not-random-split.md`](./use-temporal-validation-not-random-split.md) | Absolute rule | Validating a time-series or forecasting model — use rolling-origin holdout, never a random split. |
+| [`interpret-null-with-power-and-mde.md`](./interpret-null-with-power-and-mde.md) | Absolute rule | A null result is being reported — always include the study's power and MDE so the null is interpretable. |
+| [`segment-analysis-requires-multiplicity-correction.md`](./segment-analysis-requires-multiplicity-correction.md) | Absolute rule | Analyzing multiple subgroups in an A/B test — apply BH-FDR correction or label all segment results exploratory. |
+| [`simpsons-paradox-check-aggregate-vs-subgroup.md`](./simpsons-paradox-check-aggregate-vs-subgroup.md) | Primary diagnostic | An aggregate metric and a subgroup metric appear to conflict — check for Simpson's paradox before reporting. |
+| [`two-point-trend-is-not-a-trend.md`](./two-point-trend-is-not-a-trend.md) | Absolute rule | A trend claim is being made — require at least 5 observations and a formal trend test before citing direction. |
+| [`volatile-tooling-claims-carry-retrieval-dates.md`](./volatile-tooling-claims-carry-retrieval-dates.md) | Absolute rule | A library version or vendor A/B methodology is being cited — attach a retrieval date. |
+| [`effect-size-practical-vs-statistical-significance.md`](./effect-size-practical-vs-statistical-significance.md) | Absolute rule | A statistically significant result is being reported — also assess and state whether the effect size is practically meaningful. |
 
 ---
 

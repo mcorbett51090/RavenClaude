@@ -1,7 +1,7 @@
 {
   "name": "fleet-logistics",
-  "version": "0.1.0",
-  "description": "Fleet & Logistics specialist team — 4 agents (fleet-engagement-lead, dispatch-routing-specialist, fleet-maintenance-specialist, logistics-cost-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A fleet-operations team for a carrier, private fleet, or last-mile operator — it reads cost-per-mile against the ~$2.26 industry all-in (and the ~$1.78 non-fuel marginal), manages the operating ratio in a market that turned negative-margin in 2024, routes and dispatches to deadhead and utilization, and treats driver turnover (often 90%+ at large truckload carriers) as a unit-economics problem. Inherits ravenclaude-core protocols.",
+  "version": "0.1.2",
+  "description": "Fleet & Logistics specialist team \u2014 4 agents (fleet-engagement-lead, dispatch-routing-specialist, fleet-maintenance-specialist, logistics-cost-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A fleet-operations team for a carrier, private fleet, or last-mile operator \u2014 it reads cost-per-mile against the ~$2.26 industry all-in (and the ~$1.78 non-fuel marginal), manages the operating ratio in a market that turned negative-margin in 2024, routes and dispatches to deadhead and utilization, and treats driver turnover (often 90%+ at large truckload carriers) as a unit-economics problem. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"
   },

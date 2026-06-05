@@ -234,3 +234,124 @@ Each tree is a **pre-action prior**: when the user's situation matches an entry 
 - [`rostering-data-quality-typology.md`](rostering-data-quality-typology.md) — the rostering pre-flight the triage tree branches into
 - [`../best-practices/`](../best-practices/) — the named one-rule docs these trees operationalize
 - [`../../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md) — the format this file follows
+
+---
+
+## Decision Tree: Recovery root-cause diagnosis — which hypothesis first
+
+**When this applies:** a partner has flipped to Red or the PSM has identified a declining health trend and must decide which recovery hypothesis to investigate first. Observable inputs: the specific complaint or signal that triggered the Red designation, recency of the score drop, and last-known decision-maker status.
+
+**Last verified:** 2026-06-05 against the `recovery-play-design` skill and the plugin's 4-hypothesis recovery diagnostic.
+
+```mermaid
+flowchart TD
+    START[Partner is Red or declining] --> Q1{"Decision-maker confirmed<br/>alive in role this quarter?"}
+    Q1 -->|NO| SPONSORSHIP["SPONSORSHIP HYPOTHESIS FIRST<br/>map new org chart before any other play"]
+    Q1 -->|YES| Q2{"Last successful rostering sync<br/>within 7 days AND row count stable?"}
+    Q2 -->|NO| IMPLEMENTATION["IMPLEMENTATION HYPOTHESIS<br/>rostering pre-flight before any product or relationship play"]
+    Q2 -->|YES| Q3{"Partner has expressed frustration<br/>with product capability or scope fit?"}
+    Q3 -->|YES| PRODUCT_FIT["PRODUCT FIT HYPOTHESIS<br/>pull usage by feature area, map to success plan"]
+    Q3 -->|NO| Q4{"External context: budget pressure,<br/>competing tool, leadership change?"}
+    Q4 -->|YES| EXTERNAL["EXTERNAL PRESSURE HYPOTHESIS<br/>adjust renewal posture - not a product intervention"]
+    Q4 -->|NO| ALL_FOUR["RUN ALL FOUR IN PARALLEL<br/>no single hypothesis is dominant - run full diagnostic"]
+```
+
+**Rationale per leaf:**
+- *Sponsorship First* — a recovery play executed without a live decision-maker is wasted; sponsor mapping is always the prerequisite when DM status is unknown.
+- *Implementation* — a stale or broken rostering sync can make a healthy partner appear declining; verify the data before treating the band as real.
+- *Product Fit* — explicit partner-expressed capability frustration points directly at product-fit; the recovery play is use-case rescoping, not more training.
+- *External Pressure* — budget or competitive context changes the recovery posture fundamentally; the product intervention won't fix an external constraint.
+- *All Four in Parallel* — when no single hypothesis is dominant, run all four in the first recovery conversation; they are not mutually exclusive.
+
+**Tradeoffs summary:**
+
+| Hypothesis | Recovery play | Time to signal | Blast radius | Use when |
+|---|---|---|---|---|
+| Sponsorship | Sponsor mapping | days-weeks | high if skipped | DM unconfirmed |
+| Implementation | Rostering pre-flight | hours-days | low | Sync stale or row-count cliff |
+| Product fit | Use-case rescoping | weeks | medium | Partner-expressed capability frustration |
+| External pressure | Renewal posture adjust | weeks-months | high | Budget or competitive signal |
+| All four parallel | Full diagnostic | days | medium | No dominant signal |
+
+---
+
+## Decision Tree: AI in EdTech — how to respond to a district partner asking about AI policy
+
+**When this applies:** a district administrator, curriculum director, or school board member asks about the vendor's AI features, data practices, or the district's own AI policy for student use. Observable inputs: whether the question is about the vendor's AI tools, the district's student-facing AI use, or FERPA / COPPA implications.
+
+**Last verified:** 2026-06-05 against `ai-in-edtech-2026.md` and `coppa-2025-amendment-edtech-implications.md`.
+
+```mermaid
+flowchart TD
+    START[District asks about AI] --> Q1{"Is the question about<br/>the VENDOR's AI features?"}
+    Q1 -->|YES| Q2{"Does the AI feature touch<br/>student data or student-facing pages?"}
+    Q2 -->|YES| Q3{"Has the COPPA 4-leaf screen<br/>been run for this product?"}
+    Q3 -->|NO| SCREEN["RUN COPPA SCREEN FIRST<br/>then answer — not before"]
+    Q3 -->|YES with clean result| VENDOR_AFFIRM["AFFIRM WITH EVIDENCE<br/>cite the DPA clause covering AI data flows<br/>offer the 1-pager"]
+    Q3 -->|YES with open leaf| COUNSEL_ROUTE["ROUTE TO COUNSEL<br/>do not represent compliance status with an open leaf"]
+    Q2 -->|NO admin only| VENDOR_SIMPLE["ANSWER SIMPLY<br/>AI is used for [internal purpose]; no student data involved"]
+    Q1 -->|NO - about district policy| Q4{"Is the district asking for<br/>guidance on their OWN AI policy?"}
+    Q4 -->|YES| FIELD_GUIDE["OFFER THE AI 1-PAGER<br/>do not advise on district-internal AI governance — that is outside PSM lane"]
+    Q4 -->|NO - general curiosity| CONTEXT["PROVIDE CONTEXT<br/>share the sector-level AI adoption stats and the prepared FAQ"]
+```
+
+**Rationale per leaf:**
+- *Run COPPA Screen First* — answering before knowing the COPPA screen result risks making a false compliance representation.
+- *Affirm with Evidence* — a clean COPPA screen + a DPA citation is the credible answer; vague reassurance is not.
+- *Route to Counsel* — an open COPPA leaf means the compliance question is not yet answered; route, don't represent.
+- *Answer Simply* — admin-only AI features with no student data have a much lower bar; simple and direct is appropriate.
+- *Offer the 1-Pager* — district AI policy guidance is the district's governance decision, not the PSM's; offering the prepared 1-pager on the AI landscape respects that boundary.
+- *Provide Context* — general-curiosity AI questions are handled with the sector-level FAQ; no compliance representation needed.
+
+**Tradeoffs summary:**
+
+| Response | Relationship cost | Compliance risk | Effort | Use when |
+|---|---|---|---|---|
+| Run COPPA screen first | neutral | reduces | hours | Student-data AI feature, screen not yet run |
+| Affirm with evidence | positive | low | low | Clean screen, DPA in hand |
+| Route to counsel | slight delay | avoids | low | Open COPPA leaf |
+| Answer simply | positive | very low | low | Admin-only AI feature |
+| Offer the 1-pager | positive | none | low | District asking about own AI policy |
+| Provide context | positive | none | low | General curiosity |
+
+---
+
+## Decision Tree: PSM handoff — how to transfer a partner relationship
+
+**When this applies:** a PSM is transitioning ownership of a partner account to a new owner (departure, vacation cover, book rebalancing). Observable inputs: how complete the partner profile is, the partner's current health band, and whether a renewal or critical event is imminent.
+
+**Last verified:** 2026-06-05 against the plugin's partner-profile discipline (§3 #9) and `partner-profile-curator` agent design.
+
+```mermaid
+flowchart TD
+    START[Partner handoff needed] --> Q1{"Is the partner profile<br/>complete and updated within 60 days?"}
+    Q1 -->|NO| UPDATE_PROFILE["UPDATE PROFILE FIRST<br/>do not transfer without a current profile"]
+    Q1 -->|YES| Q2{"Is the partner in Red<br/>or active recovery?"}
+    Q2 -->|YES| Q3{"Is the incoming PSM<br/>briefed on the recovery hypothesis?"}
+    Q3 -->|NO| BRIEF_RECOVERY["BRIEF INCOMING PSM ON RECOVERY DIAGNOSIS<br/>warm handoff required - not async"]
+    Q3 -->|YES| WARM_TRANSFER["WARM TRANSFER<br/>joint intro call with partner before full handoff"]
+    Q2 -->|NO| Q4{"Is a renewal within 90 days?"}
+    Q4 -->|YES| RENEWAL_BRIEF["RENEWAL BRIEF REQUIRED<br/>outgoing PSM documents renewal posture and decision-maker status"]
+    Q4 -->|NO| Q5{"Will the partner notice<br/>or be affected by the change?"}
+    Q5 -->|YES high-touch partner| WARM_TRANSFER
+    Q5 -->|NO lower-touch| ASYNC_TRANSFER["ASYNC TRANSFER ACCEPTABLE<br/>send the partner-pickup-brief + schedule intro call within 2 weeks"]
+```
+
+**Rationale per leaf:**
+- *Update Profile First* — a handoff without a current profile transfers the relationship without the context; the incoming PSM is set up to fail.
+- *Brief on Recovery Diagnosis* — a recovery play mid-execution requires the incoming PSM to understand the diagnosis, not just pick up where the calendar left off; async is insufficient.
+- *Warm Transfer* — active recovery or a sensitive high-touch partner requires a live joint introduction so the partner doesn't experience the handoff as abandonment.
+- *Renewal Brief* — a renewal within 90 days is a time-critical commercial motion; the outgoing PSM must document the posture and DM status so nothing falls through the gap.
+- *Async Transfer* — a lower-touch partner with no imminent event and a stable health band can accept an async handoff with a pickup brief and a near-term intro call.
+
+**Tradeoffs summary:**
+
+| Transfer mode | Relationship risk | PSM effort | Use when |
+|---|---|---|---|
+| Update profile first | n/a (prerequisite) | hours | Profile stale |
+| Brief on recovery | low | medium | Active recovery in progress |
+| Warm transfer | lowest | high | Red / active recovery / high-touch |
+| Renewal brief | low | medium | Renewal within 90 days |
+| Async with pickup brief | medium | low | Stable, lower-touch, no imminent event |
+
+Higher branch always wins: profile currency is a prerequisite; recovery context takes priority over cadence type; renewal brief is required regardless of handoff mode when inside the window.

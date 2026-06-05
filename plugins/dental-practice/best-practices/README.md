@@ -6,7 +6,7 @@ Named, citable rules for the `dental-practice` plugin's 4 specialist agents and 
 
 ## Index
 
-_8 rules. Each file is one named, citable rule._
+_20 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -18,6 +18,18 @@ _8 rules. Each file is one named, citable rule._
 | [`ppo-write-offs-are-a-strategy-decision-not-an-accident.md`](./ppo-write-offs-are-a-strategy-decision-not-an-accident.md) | Pattern | Any dental practice deliverable where this question is in play — read, applied, and cited whole. |
 | [`read-the-dso-vs-independent-position-honestly.md`](./read-the-dso-vs-independent-position-honestly.md) | Pattern | Any dental practice deliverable where this question is in play — read, applied, and cited whole. |
 | [`cite-the-source-and-date-for-every-benchmark.md`](./cite-the-source-and-date-for-every-benchmark.md) | Absolute rule | Any dental practice deliverable where this question is in play — read, applied, and cited whole. |
+| [`new-patient-flow-is-a-growth-metric-not-a-marketing-footnote.md`](./new-patient-flow-is-a-growth-metric-not-a-marketing-footnote.md) | Primary diagnostic | New-patient count appears low or active-patient base is declining. |
+| [`schedule-utilization-measures-whether-capacity-is-reaching-patients.md`](./schedule-utilization-measures-whether-capacity-is-reaching-patients.md) | Pattern | Production is flat despite a full appointment book — diagnose scheduling architecture. |
+| [`perio-protocol-compliance-is-a-clinical-and-revenue-lever.md`](./perio-protocol-compliance-is-a-clinical-and-revenue-lever.md) | Pattern | Hygiene revenue is below benchmark or perio diagnosis/acceptance rate appears low. |
+| [`treatment-plan-sequencing-is-the-hidden-case-acceptance-driver.md`](./treatment-plan-sequencing-is-the-hidden-case-acceptance-driver.md) | Pattern | Complex multi-procedure case acceptance is below 60% — sequence before presenting fees. |
+| [`accounts-receivable-over-90-days-is-unrecoverable-revenue.md`](./accounts-receivable-over-90-days-is-unrecoverable-revenue.md) | Primary diagnostic | Over-90-day A/R exceeds 10% of total A/R — requires immediate triage. |
+| [`fee-schedule-review-is-an-annual-margin-protection-event.md`](./fee-schedule-review-is-an-annual-margin-protection-event.md) | Pattern | Annual operations review or PPO contract renewal — review fees before renegotiating. |
+| [`staff-wages-as-a-percent-of-collections-is-the-overhead-dial.md`](./staff-wages-as-a-percent-of-collections-is-the-overhead-dial.md) | Absolute rule | Overhead exceeds 65% or staffing changes are under consideration. |
+| [`insurance-verification-before-appointment-prevents-the-most-common-collection-failure.md`](./insurance-verification-before-appointment-prevents-the-most-common-collection-failure.md) | Absolute rule | All insurance-accepting practices — verify before every appointment, not at checkout. |
+| [`unscheduled-treatment-in-the-patient-base-is-the-fastest-production-lever.md`](./unscheduled-treatment-in-the-patient-base-is-the-fastest-production-lever.md) | Pattern | Production growth needed — work the existing patient base before acquiring new patients. |
+| [`recall-reappointment-rate-is-the-hygiene-departments-retention-score.md`](./recall-reappointment-rate-is-the-hygiene-departments-retention-score.md) | Pattern | Hygiene schedule has open slots or active-patient count is declining. |
+| [`morning-huddle-is-the-days-production-pre-flight.md`](./morning-huddle-is-the-days-production-pre-flight.md) | Pattern | Every production morning — run a structured 15-minute pre-flight before patients arrive. |
+| [`broken-appointment-rate-is-the-schedule-efficiency-warning.md`](./broken-appointment-rate-is-the-schedule-efficiency-warning.md) | Primary diagnostic | Broken appointment rate exceeds 5% — diagnose confirmation workflow before over-booking. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

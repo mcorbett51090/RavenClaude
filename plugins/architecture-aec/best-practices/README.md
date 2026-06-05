@@ -6,7 +6,7 @@ Named, citable rules for the `architecture-aec` plugin's 4 specialist agents and
 
 ## Index
 
-_8 rules. Each file is one named, citable rule._
+_20 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -18,6 +18,18 @@ _8 rules. Each file is one named, citable rule._
 | [`the-phase-gate-protects-the-fee-dont-draw-ahead-of-approval.md`](./the-phase-gate-protects-the-fee-dont-draw-ahead-of-approval.md) | Pattern | Any architecture & aec deliverable where this question is in play — read, applied, and cited whole. |
 | [`code-and-life-safety-are-the-licensed-professionals-call-fla.md`](./code-and-life-safety-are-the-licensed-professionals-call-fla.md) | Pattern | Any architecture & aec deliverable where this question is in play — read, applied, and cited whole. |
 | [`date-and-source-any-rate-fee-or-benchmark-figure.md`](./date-and-source-any-rate-fee-or-benchmark-figure.md) | Absolute rule | Any architecture & aec deliverable where this question is in play — read, applied, and cited whole. |
+| [`owner-sign-off-must-be-written-at-every-phase-gate.md`](./owner-sign-off-must-be-written-at-every-phase-gate.md) | Absolute rule | Closing any design phase and advancing to the next. |
+| [`additional-services-authorization-before-work-not-after.md`](./additional-services-authorization-before-work-not-after.md) | Absolute rule | Any out-of-scope request received during any phase. |
+| [`project-fee-burn-must-be-tracked-weekly-not-at-billing.md`](./project-fee-burn-must-be-tracked-weekly-not-at-billing.md) | Pattern | Any active project phase with a fixed fee budget. |
+| [`issue-log-every-rfi-response-and-every-oc-in-one-place.md`](./issue-log-every-rfi-response-and-every-oc-in-one-place.md) | Pattern | Construction administration — starting at CA kickoff. |
+| [`discipline-coordination-review-at-50-and-95-percent-cds.md`](./discipline-coordination-review-at-50-and-95-percent-cds.md) | Absolute rule | Every project with multi-discipline documents in the CD phase. |
+| [`fee-proposal-must-state-exclusions-not-just-inclusions.md`](./fee-proposal-must-state-exclusions-not-just-inclusions.md) | Absolute rule | Every fee proposal before it is sent to the owner. |
+| [`staff-to-phase-match-hours-budget-not-just-availability.md`](./staff-to-phase-match-hours-budget-not-just-availability.md) | Pattern | Project kickoff — staffing assignment for any phase. |
+| [`design-options-are-additional-services-not-iteration.md`](./design-options-are-additional-services-not-iteration.md) | Pattern | Any design-phase request for an alternative concept or study. |
+| [`site-observation-reports-protect-the-architect-of-record.md`](./site-observation-reports-protect-the-architect-of-record.md) | Absolute rule | Every site visit during construction administration. |
+| [`spec-sections-must-match-drawing-notes-not-diverge.md`](./spec-sections-must-match-drawing-notes-not-diverge.md) | Absolute rule | Every CD coordination review — spec-to-drawing consistency. |
+| [`subconsultant-scope-gaps-are-the-architects-liability.md`](./subconsultant-scope-gaps-are-the-architects-liability.md) | Absolute rule | Any multi-discipline project — define and document sub-scope interfaces before CDs begin. |
+| [`bid-alternates-are-scope-control-not-value-engineering.md`](./bid-alternates-are-scope-control-not-value-engineering.md) | Pattern | Any design-bid-build project — establish the alternate strategy at SD, not at 95% CDs. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

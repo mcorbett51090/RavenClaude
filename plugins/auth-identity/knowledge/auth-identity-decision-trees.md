@@ -196,6 +196,113 @@ flowchart TD
 
 ---
 
+---
+
+## Decision Tree: Logout — what must be revoked?
+
+**When this applies:** Implementing or reviewing a logout flow. Observable trigger: a logout button, a session-expiry handler, a "sign out of all devices" feature, or a security-review finding about incomplete logout.
+
+**Last verified:** 2026-06-05 against the `revoke-tokens-on-logout` best-practice + OWASP Session Management Cheat Sheet.
+
+```mermaid
+flowchart TD
+    START[User initiates logout] --> Q1{Is there a refresh token stored server-side or in an HttpOnly cookie?}
+    Q1 -->|YES| REVOKE[Call the server-side revoke endpoint first — invalidate the refresh token in the token store]
+    Q1 -->|NO — memory-only access token, no refresh| CLEAR[Clear in-memory access token; skip server revocation — nothing to revoke]
+    REVOKE --> Q2{Is this a single-device logout or all-device logout?}
+    Q2 -->|Single device| SINGLE[Revoke this session only; other sessions remain active]
+    Q2 -->|All devices — user requested or security event| ALL[Revoke all token families for this user ID]
+    SINGLE --> COOKIE[Clear the session cookie server-side via Set-Cookie Max-Age=0]
+    ALL --> COOKIE
+    COOKIE --> REDIRECT[Redirect to login page; confirm logout was server-side]
+```
+
+**Rationale per leaf:**
+- *Revoke first* — clearing the cookie without revoking the refresh token leaves a live credential in the token store; client-only logout is not complete logout.
+- *Memory-only* — if there is no server-side session and no refresh token, clearing the in-memory access token is sufficient; nothing else to revoke.
+- *Single vs all-device* — most logout buttons are single-device; offer "sign out everywhere" as a separate high-intent action.
+- *Set-Cookie Max-Age=0* — the server-side cookie clear is the authoritative signal; do not rely only on client-side `document.cookie` manipulation.
+
+**Tradeoffs summary:**
+
+| Logout type | Revokes | User impact | Use when |
+|---|---|---|---|
+| Single-device | This session's refresh token | Stays logged in on other devices | Normal logout button |
+| All-device | All user's refresh tokens | Forces re-auth everywhere | Suspected compromise or user request |
+| Client-only (incomplete) | Nothing server-side | Re-auth possible with the refresh token | **Never use — this is the anti-pattern** |
+
+---
+
+## Decision Tree: Which session storage strategy for this app type?
+
+**When this applies:** Designing or reviewing how an authenticated session is stored and transported. Observable trigger: "where do I put the access token?", an SSR vs SPA architectural decision, or a security finding about token storage.
+
+**Last verified:** 2026-06-05 against `server-side-session-for-ssr-apps` + `never-store-tokens-in-localstorage` best-practices + OWASP.
+
+```mermaid
+flowchart TD
+    START[Decide session storage strategy] --> Q1{Does the app have a server component handling requests for authenticated users?}
+    Q1 -->|YES — SSR, SSR+RSC, BFF, or a server callback route| Q2{Is the auth provider Supabase?}
+    Q2 -->|YES| SUPA[Use supabase-ssr createServerClient in the OAuth callback route; tokens in HttpOnly cookies set by the server]
+    Q2 -->|NO — Auth0, Clerk, other| SSR_OTHER[Use the provider SSR SDK; exchange code server-side; set session cookie server-side]
+    Q1 -->|NO — pure static SPA, no server in the loop| Q3{Does the SPA use a managed provider SDK?}
+    Q3 -->|YES — Supabase JS, Auth0 SPA SDK| MEM[Provider SDK manages token in memory + silent refresh; never touch localStorage]
+    Q3 -->|NO — custom implementation| PKCE_MEM[Authorization Code + PKCE; access token in memory only; no localStorage]
+    SUPA --> CSRF[Add CSRF defense — SameSite=Lax + anti-CSRF token on writes]
+    SSR_OTHER --> CSRF
+    MEM --> NOTE[Note: access token lost on page reload; provider SDK handles silent re-auth via the HttpOnly cookie the provider sets]
+    PKCE_MEM --> NOTE
+```
+
+**Rationale per leaf:**
+- *Supabase SSR* — the `@supabase/ssr` `exchangeCodeForSession` in the callback route sets HttpOnly cookies server-side; the token never enters the browser JS context.
+- *Other SSR SDK* — same server-side exchange principle applies; the provider's SSR SDK is the implementation vehicle.
+- *Provider SDK (SPA)* — managed providers handle memory storage and silent refresh correctly; do not override or bypass their token management.
+- *Custom PKCE + memory* — if not using a managed provider, Authorization Code + PKCE stores the access token in memory only; accept the re-auth-on-reload trade-off or add an HttpOnly session cookie server-side.
+
+**Tradeoffs summary:**
+
+| Strategy | XSS exposure | CSRF risk | Requires server | Use when |
+|---|---|---|---|---|
+| Supabase SSR HttpOnly cookie | Low | Yes - add SameSite+CSRF token | YES | Next.js/SvelteKit/Nuxt with Supabase |
+| Other SSR SDK HttpOnly cookie | Low | Yes | YES | SSR app with other providers |
+| Provider SDK memory-only | Access token only, transient | Low | NO | Pure SPA |
+| Custom PKCE memory-only | Access token only, transient | Low | NO | Custom SPA without a managed provider |
+
+---
+
+## Decision Tree: Refresh token reuse detection — respond to a replayed token
+
+**When this applies:** An incoming refresh token request fails the reuse-detection check (the token was already used or has been seen before). Observable trigger: an `invalid_grant` from the provider due to a reused refresh token, or an internal flag that a token was already rotated.
+
+**Last verified:** 2026-06-05 against `rotate-refresh-tokens-on-use` best-practice + OAuth 2.0 Security BCP `[verify-at-build — RFC 9700]`.
+
+```mermaid
+flowchart TD
+    START[Refresh token presented for use] --> Q1{Has this refresh token been previously used or rotated?}
+    Q1 -->|NO — first use, valid| ROTATE[Rotate: issue new access + refresh token; mark old token as used]
+    Q1 -->|YES — reuse detected| Q2{Is the token within the race-condition grace window? — e.g. 10 seconds for concurrent requests}
+    Q2 -->|YES — within grace window| GRACE[Allow: likely a concurrent request race; return the already-issued new token]
+    Q2 -->|NO — outside grace window, genuine reuse signal| REVOKE_ALL[SECURITY EVENT — revoke the entire token family for this user; force re-authentication; log with timestamp + IP + user ID]
+    REVOKE_ALL --> NOTIFY[Alert the user — their session may have been compromised; provide a re-auth path]
+```
+
+**Rationale per leaf:**
+- *Rotate (first use)* — the happy path; issue new tokens, invalidate the old one.
+- *Grace window* — concurrent tab/request races can cause a valid token to be presented twice within milliseconds; a short grace window (Supabase default: 10 seconds) prevents false positives.
+- *Revoke all (reuse signal)* — a replay outside the grace window means either the token was stolen or there is a serious implementation bug; revoking the entire family is the safest response — it may inconvenience the legitimate user (who re-auths) but denies the attacker access.
+- *Notify the user* — the security event should surface to the user ("unusual activity detected; you have been signed out") so they can investigate and change their email password if their account was compromised.
+
+**Tradeoffs summary:**
+
+| Situation | Action | User impact | Security outcome |
+|---|---|---|---|
+| First use | Rotate | None | Token chain refreshed |
+| Grace-window race | Allow | None | Idempotent rotation |
+| Reuse outside grace window | Revoke all + re-auth | Must re-authenticate | Attacker locked out |
+
+---
+
 ## See also
 
 - [`../agents/auth-architect.md`](../agents/auth-architect.md) — the agent that traverses these trees
@@ -206,4 +313,4 @@ flowchart TD
 
 ---
 
-_Last reviewed: 2026-06-03 by `claude`. Provider pricing, OAuth 2.1 status, and Google/Supabase mechanics re-verify before quoting._
+_Last reviewed: 2026-06-05 by `claude`. Provider pricing, OAuth 2.1 status, and Google/Supabase mechanics re-verify before quoting._

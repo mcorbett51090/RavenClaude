@@ -291,3 +291,122 @@ Do NOT pattern-match on a keyword in the situation description. The first branch
 - [`./regulator-finding-severity-triage.md`](./regulator-finding-severity-triage.md) — the companion tree for *regulator-issued findings* (MRA/MRIA/consent order/SII).
 - [`../best-practices/`](../best-practices/) — each tree codifies one or more sibling best-practice docs (linked per tree above).
 - [`../../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md) — the format rule these trees follow.
+
+---
+
+## Decision Tree: AML / KYC — PEP or non-PEP CDD route
+
+**When this applies:** A new customer is being onboarded or an existing customer's status has changed, and the analyst must determine whether PEP-tier CDD and approval gates apply. The question is triggered by a name hit in a PEP screening database, a client disclosure of a government role, or an adverse-media hit linking the customer to public office.
+
+**Last verified:** 2026-06-05 against FATF Recommendation 12 and standard BMA/CIMA/FinCEN implementing guidance.
+
+```mermaid
+flowchart TD
+    START[Customer or UBO name flagged - PEP screen hit or self-disclosure] --> Q1{Does the individual currently hold or has held a prominent public function}
+    Q1 -->|No - false positive or unrelated public role| FALSEPOS[Document false-positive rationale - named reviewer - proceed standard CDD]
+    Q1 -->|Yes - current or former office| Q2{Foreign or domestic PEP}
+    Q2 -->|Foreign PEP| HIGH_RISK[EDD mandatory - senior management approval mandatory - enhanced ongoing monitoring]
+    Q2 -->|Domestic PEP| Q3{High-risk jurisdiction or product type}
+    Q3 -->|Yes| HIGH_RISK
+    Q3 -->|No| DOMESTIC_EDD[EDD mandatory - management approval - risk-based enhanced monitoring]
+    HIGH_RISK --> Q4{Has senior management approved in writing}
+    Q4 -->|No| BLOCK[Do not onboard or continue - block pending approval]
+    Q4 -->|Yes| PROCEED[Onboard - flag for annual review - enhanced TM]
+    DOMESTIC_EDD --> PROCEED
+```
+
+**Rationale per leaf:**
+- *False positive* — a positive rationale documented by a named reviewer protects the firm in examination; "not a match" is not enough.
+- *High risk / Foreign PEP* — foreign PEPs carry the highest ML risk; the FATF and most national frameworks require EDD and senior management approval without exception.
+- *Domestic PEP with risk factors* — jurisdiction risk, high-risk product, or known corruption environment elevates a domestic PEP to the foreign-PEP approval tier.
+- *Domestic EDD* — domestic PEPs without additional risk factors still require EDD and management (rather than senior management) approval in most regimes; verify the jurisdiction standard.
+- *Block pending approval* — proceeding without the approval gate is a program deficiency finding; the cost of the gate is lower than the cost of a finding or a regulatory enforcement action.
+
+**Tradeoffs summary:**
+
+| Route | Approval level | EDD depth | Monitoring | Use when |
+|---|---|---|---|---|
+| Standard CDD | Analyst | Standard | Standard | False positive confirmed |
+| Domestic PEP - EDD | Management | Source-of-wealth | Annual review | Domestic PEP - low risk context |
+| Foreign or high-risk PEP | Senior management | SoW plus SoF | Enhanced TM plus annual | Foreign PEP or elevated risk context |
+| Block | N/A | N/A | N/A | Approval gate not yet cleared |
+
+---
+
+## Decision Tree: Regulatory reporting — Which return for this entity and period
+
+**When this applies:** A regulated entity (or its advisor) must determine which supervisory or tax-transparency return(s) it owes for a given period. The entity type, jurisdiction, regulatory status, and product set all affect which return families apply. Triggered when a new entity is classified, when a product set changes, or at the start of each filing cycle.
+
+**Last verified:** 2026-06-05 against BMA, CIMA, JFSC, OECD CRS/FATCA, and Basel III filing requirements.
+
+```mermaid
+flowchart TD
+    START[Entity requires filing assessment] --> Q1{Is entity a financial institution under FATCA/CRS}
+    Q1 -->|No - active or passive NFE| NFE[FATCA/CRS NFE - no FI return - certify entity status to counterparties]
+    Q1 -->|Yes - FI| Q2{Which regulator licenses the entity}
+    Q2 -->|BMA - non-insurance| BMA_ROUTE[BMA supervisory returns - sector-specific - see bma-financial-institutions-specialist]
+    Q2 -->|BMA - insurance| BMA_INS[BMA EBS/BSCR/RBC returns - see bermuda-insurance-specialist]
+    Q2 -->|CIMA| CIMA_ROUTE[CIMA periodic returns - see cima-cayman-specialist]
+    Q2 -->|JFSC or GFSC| CI_ROUTE[JFSC/GFSC returns - see channel-islands-specialist]
+    Q2 -->|PRA / FCA| UK_ROUTE[FCA/PRA regulatory returns - see uk-pra-specialist]
+    Q2 -->|US federal or state| US_ROUTE[FinCEN BSA - SEC/FINRA - state returns - see us-financial-regulation-specialist]
+    BMA_ROUTE --> Q3{Is entity also CRS/FATCA-reportable}
+    Q3 -->|Yes| DUAL[File BMA sector return AND CRS/FATCA return to OTC - separate filings]
+    Q3 -->|No| SINGLE[File BMA sector return only]
+```
+
+**Rationale per leaf:**
+- *Active/Passive NFE* — entity classification as a Non-Financial Entity removes the FI return obligation; the entity still certifies its status to counterparties via self-certification forms.
+- *BMA non-insurance / insurance split* — the BMA administers insurance and non-insurance under different statutory frameworks; mixing them selects the wrong return family.
+- *Dual filing (BMA + OTC)* — Bermuda entities that are also Reporting FIs under CRS/FATCA file their sector return with the BMA AND their CRS/FATCA return with the Department for International Competitiveness / OECD Transmission Coordination (OTC); these are two separate filings with different deadlines.
+- *Jurisdiction specialist routing* — each jurisdiction specialist carries the complete return schedule for their regime; the correct pattern is to route to the specialist rather than derive the return list from first principles.
+
+**Tradeoffs summary:**
+
+| Entity type | Primary return family | Tax-transparency overlay | First escalation |
+|---|---|---|---|
+| BMA bank / investment | BMA supervisory + filing calendar | CRS/FATCA if Reporting FI | bma-financial-institutions-specialist |
+| BMA insurer | BMA EBS / BSCR | CRS/FATCA if applicable | bermuda-insurance-specialist |
+| CIMA fund / bank | CIMA periodic | FATCA/CRS/ES | cima-cayman-specialist |
+| JFSC/GFSC | JFSC/GFSC returns | FATCA/CRS | channel-islands-specialist |
+| Active/Passive NFE | None | Self-certification only | regulatory-reporting-analyst |
+
+---
+
+## Decision Tree: Risk register — Where does a new risk event go
+
+**When this applies:** A risk event occurs — a failed control test, an audit finding, a near-miss, an external regulatory action in the sector, or a new product launch creating a risk gap — and the risk-and-controls-specialist must determine how to process it in the risk register and governance framework.
+
+**Last verified:** 2026-06-05 against COSO 2013 ERM framework and IIA Three Lines Model (2020).
+
+```mermaid
+flowchart TD
+    START[Risk event identified] --> Q1{Does an existing risk register entry cover this risk}
+    Q1 -->|Yes - existing entry| Q2{Has the inherent or residual rating changed due to the event}
+    Q2 -->|No - within existing range| UPDATE_ONLY[Update event log on existing entry - no rating change - document date and source]
+    Q2 -->|Yes - rating increases| RE_RATE[Re-rate the existing entry - escalate if residual now above appetite - update action plan]
+    Q1 -->|No - new risk not previously identified| NEW_ENTRY[Create new risk register entry - cause-event-consequence statement - inherent + residual - KRI - owner]
+    NEW_ENTRY --> Q3{Is residual risk above appetite after controls are applied}
+    RE_RATE --> Q3
+    Q3 -->|No - within appetite| MONITOR[Add to standard monitoring cycle - set KRI threshold]
+    Q3 -->|Yes - above appetite| Q4{Is a new control feasible within 30 days}
+    Q4 -->|Yes| CONTROL_ACTION[Add action plan - named owner - 30-day target - interim flag]
+    Q4 -->|No - structural gap or resource constraint| ESCALATE[Escalate to board or audit committee with written risk-acceptance or remediation timeline]
+```
+
+**Rationale per leaf:**
+- *Update event log only* — not every event changes the risk rating; documenting the event on the existing entry maintains the log without inflating the register.
+- *Re-rate* — when an event demonstrates that the inherent or residual rating was understated, re-rating is mandatory; leaving a stale rating in place is a register integrity failure.
+- *New entry* — a risk event that has no existing register entry signals a gap in the initial risk-identification process; create the entry with the full cause-event-consequence structure, not just a label.
+- *Standard monitoring* — risks within appetite are monitored via KRI thresholds; the KRI is what makes the monitoring active rather than periodic.
+- *Action plan within 30 days* — a 30-day interim control (compensating measure) is the standard response for an above-appetite risk that can be addressed quickly.
+- *Escalate* — a structural gap above appetite that cannot be controlled within 30 days requires board visibility; the board must accept the risk or approve the resource to remediate it.
+
+**Tradeoffs summary:**
+
+| Risk event type | Register action | Governance action | Urgency |
+|---|---|---|---|
+| Event within existing entry - no rating change | Log update | None | Low |
+| Event causing rating increase | Re-rate + action plan | Escalate if above appetite | Medium-High |
+| New risk - within appetite | New entry + KRI | Standard monitoring | Medium |
+| New risk - above appetite | New entry + action plan | Board escalation or risk-acceptance | High |

@@ -117,6 +117,112 @@ flowchart TD
 
 ---
 
+## Decision Tree: Webhook or event broker — which push pattern?
+
+**When this applies:** You need to notify external consumers when a resource changes and must decide between HTTP webhooks (push to a caller-registered URL) and a broker-based event stream (Kafka, AMQP, MQTT).
+
+**Last verified:** 2026-06-05 against AsyncAPI 3.0 tooling and standard pub/sub patterns.
+
+```mermaid
+flowchart TD
+    START[Push notifications to consumers] --> Q1{Is the consumer external - a third party or partner?}
+    Q1 -->|Yes - external consumer registers an endpoint| WEBHOOK[HTTP Webhooks - HMAC-signed POST to registered URL]
+    Q1 -->|No - internal service-to-service| Q2{More than one consumer for the same event?}
+    Q2 -->|No - single consumer| QUEUE[Point-to-point queue - command to that consumer]
+    Q2 -->|Yes - multiple or future consumers| Q3{Need replay / consumer-controlled offset?}
+    Q3 -->|Yes - consumers need to replay from a position| KAFKA[Event broker - Kafka or similar - consumer manages offset]
+    Q3 -->|No - fire and forget with delivery guarantee| AMQP[Message broker - RabbitMQ/AMQP - broker manages delivery]
+    WEBHOOK --> SIGN[Sign payload - HMAC - plus retry with backoff]
+    KAFKA --> ASYNCAPI[Document with AsyncAPI 3.0]
+    AMQP --> ASYNCAPI
+    QUEUE --> ASYNCAPI
+```
+
+**Rationale per leaf:**
+- *Webhooks* — the right external push pattern; consumer controls the endpoint, you control the retry and signing. Document with AsyncAPI.
+- *Point-to-point queue* — a command to one known consumer; use when the downstream is internal and unique.
+- *Kafka / event log* — consumers replay from a committed offset; correct when consumers are varied, independent, or need replay.
+- *AMQP broker* — broker-acknowledged delivery without consumer-controlled replay; simpler ops than Kafka for moderate scale.
+
+**Tradeoffs summary:**
+
+| Method | Cost / time | Blast radius | Approval gate? | Use when |
+|---|---|---|---|---|
+| HTTP Webhook | Low | One endpoint failure | None | External partner consumption |
+| Point-to-point queue | Low | One consumer | None | Single internal consumer |
+| Kafka / log | High | Consumer-controlled | Broker team | Replay needed, multiple consumers |
+| AMQP broker | Medium | Broker-managed | Broker team | Internal pub/sub, no replay needed |
+
+## Decision Tree: GraphQL query complexity — rate limit or reject?
+
+**When this applies:** You are designing a GraphQL API and must decide how to prevent resource exhaustion from deeply nested or large queries. OWASP API4 applies.
+
+**Last verified:** 2026-06-05 against GraphQL specification and standard depth/complexity-limiting libraries.
+
+```mermaid
+flowchart TD
+    START[GraphQL API with public or partner access] --> Q1{Can the client construct arbitrarily deep nested queries?}
+    Q1 -->|No - schema is shallow, max 2-3 levels| Q2{Can the client request many fields in one query?}
+    Q2 -->|No - few selectable fields| RATELIMIT[Token-bucket rate limit per caller is sufficient]
+    Q2 -->|Yes - many fields| COMPLEXITY[Add query complexity analysis - reject above a threshold]
+    Q1 -->|Yes - deep nesting possible| DEPTH[Add depth limiting - reject queries deeper than N levels]
+    DEPTH --> COMPLEXITY
+    COMPLEXITY --> Q3{Do you need to allow some high-complexity queries for legitimate use?}
+    Q3 -->|Yes - power users| QUOTAPOOL[Separate complexity quota pool per caller tier]
+    Q3 -->|No - one limit fits all| REJECT[Hard reject - return 400 with complexity and limit in error]
+    RATELIMIT --> PERSIST[Persist complexity budget across requests within a time window]
+```
+
+**Rationale per leaf:**
+- *Rate limit only* — shallow schemas with few fields are low-risk; a token bucket is the right lever.
+- *Depth limiting* — the simplest protection against deeply nested N+1 attacks; implement as middleware.
+- *Complexity analysis* — each field/resolver is assigned a cost; a query's total cost is compared to a per-request budget. Most flexible.
+- *Quota pool per tier* — legitimate power-user clients (reporting tools, sync agents) need a higher complexity budget; tiering by caller scope is the right mechanism.
+
+**Tradeoffs summary:**
+
+| Method | Cost / time | Blast radius | Approval gate? | Use when |
+|---|---|---|---|---|
+| Rate limit only | Low | Blocks burst | None | Shallow schema, few fields |
+| Depth limit | Low-medium | Rejects deep queries | None | Deep nesting possible |
+| Complexity analysis | Medium | Blocks expensive queries | Schema design | Varied field costs, power users |
+| Tiered quota | High | Per-tier enforcement | Product agreement | Mixed access tiers |
+
+## Decision Tree: API key — rotate, revoke, or short-lived token?
+
+**When this applies:** A consumer needs to authenticate with the API and you must decide what credential type to issue. The choice affects rotation burden, revocation latency, and blast radius.
+
+**Last verified:** 2026-06-05 against OAuth 2.0 RFC 6749 and API key management practices.
+
+```mermaid
+flowchart TD
+    START[Consumer needs API credentials] --> Q1{Is the consumer a human end-user logging into an app?}
+    Q1 -->|Yes| OAUTH[OAuth2 authorization code + PKCE - short-lived access token + refresh]
+    Q1 -->|No - M2M service or automation| Q2{Does the consumer have a secure secrets store?}
+    Q2 -->|Yes - Vault, AWS Secrets Manager, managed identity| Q3{Does your platform support client credentials flow?}
+    Q3 -->|Yes| CLIENTCRED[OAuth2 client credentials - short-lived access token, rotate client secret periodically]
+    Q3 -->|No| APIKEY[Long-lived API key - scoped, stored in secrets manager, rotatable]
+    Q2 -->|No - third-party integration, no secrets infra| APIKEY
+    APIKEY --> SCOPE[Issue least-privilege scope per key - never a wildcard]
+    CLIENTCRED --> SCOPE
+    OAUTH --> SCOPE
+    SCOPE --> AUDIT[Log every issuance and revocation in the audit trail]
+```
+
+**Rationale per leaf:**
+- *OAuth2 authorization code + PKCE* — the correct pattern for human interactive auth; short-lived tokens limit blast radius.
+- *OAuth2 client credentials* — M2M short-lived tokens; the client secret is rotated, not the access token.
+- *API key* — valid for M2M integrations without OAuth2 infra, but requires a rotation policy and a revocation mechanism.
+- *Least-privilege scope on every leaf* — regardless of credential type, the scope is the blast-radius control.
+
+**Tradeoffs summary:**
+
+| Method | Cost / time | Blast radius | Approval gate? | Use when |
+|---|---|---|---|---|
+| OAuth2 code + PKCE | High setup | Minimal - short TTL | Auth team | Human user sessions |
+| Client credentials | Medium | Limited - short TTL | Auth team | M2M with OAuth2 infra |
+| API key | Low | Key lifetime (days-months) | None | M2M, no OAuth2 infra |
+
 ## See also
 
 - [`api-security-decision-trees.md`](./api-security-decision-trees.md) — OWASP control map, OAuth2 grant selection, object-vs-function authZ.
@@ -129,4 +235,4 @@ Synthesized 2026-06-04 from the OpenAPI Initiative (spec.openapis.org), AsyncAPI
 
 ---
 
-_Last reviewed: 2026-06-04 by `claude`_
+_Last reviewed: 2026-06-05 by `claude`_

@@ -10,7 +10,7 @@ These complement, and do not restate, the cross-cutting house opinions in the te
 
 ## Index
 
-_27 rules. Each file is one named, citable rule; read and apply it whole._
+_37 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -41,6 +41,16 @@ _27 rules. Each file is one named, citable rule; read and apply it whole._
 | [`records-retention-on-a-schedule-not-on-disposal-instinct.md`](./records-retention-on-a-schedule-not-on-disposal-instinct.md) | Absolute rule | Compliance evidence is only useful if it still exists when the regulator asks for it — and the firm can only prove it kept the right things for the ri… |
 | [`reporting-classify-the-entity-before-you-file.md`](./reporting-classify-the-entity-before-you-file.md) | Absolute rule — filing the wrong return, or the right return on a wrong entity classification, is a reportable error; classification is the upstream decision. | FATCA/CRS entity status (FI vs active/passive NFE) decides which return is owed; the filing-hygiene rules assume it's already right. |
 | [`scope-the-jurisdiction-before-you-map.md`](./scope-the-jurisdiction-before-you-map.md) | Absolute rule | The same word means different things across regulators, and the same control answers to different cites in different regimes. |
+| [`control-testing-design-before-operating-effectiveness.md`](./control-testing-design-before-operating-effectiveness.md) | Primary diagnostic | Test design effectiveness (ToD) before operating effectiveness (ToE) — a failed design makes the operating test meaningless. |
+| [`exam-prepare-a-mock-walkthrough-before-the-real-one.md`](./exam-prepare-a-mock-walkthrough-before-the-real-one.md) | Pattern | Run an internal mock walkthrough 4–6 weeks before a scheduled examination to surface gaps while there is still time to remediate them. |
+| [`filing-version-control-the-workbook-before-submission.md`](./filing-version-control-the-workbook-before-submission.md) | Absolute rule | Version-stamp and archive the filing workbook at three checkpoints — draft, final, and post-submission — so the submitted state is always reproducible. |
+| [`kyc-periodic-review-is-risk-rated-not-calendar-driven.md`](./kyc-periodic-review-is-risk-rated-not-calendar-driven.md) | Absolute rule | KYC periodic review frequency must reflect the customer's risk rating, with out-of-cycle triggers for adverse events — not a uniform calendar. |
+| [`pep-classification-triggers-the-approval-tier-not-optional-review.md`](./pep-classification-triggers-the-approval-tier-not-optional-review.md) | Absolute rule | PEP classification triggers a mandatory senior management approval gate, not merely an enhanced review — the approval must be documented before onboarding proceeds. |
+| [`policy-trigger-a-gap-analysis-on-every-regulatory-change.md`](./policy-trigger-a-gap-analysis-on-every-regulatory-change.md) | Absolute rule | Every material regulatory change triggers a structured gap analysis — identify delta obligations, map affected controls, and document the remediation plan before updating policy. |
+| [`risk-appetite-statement-gates-the-risk-register.md`](./risk-appetite-statement-gates-the-risk-register.md) | Absolute rule | The risk register's residual ratings only mean something when calibrated against a board-approved Risk Appetite Statement; build or refresh the RAS before the register. |
+| [`sanctions-clear-with-a-named-clearer-and-list-version.md`](./sanctions-clear-with-a-named-clearer-and-list-version.md) | Absolute rule | Every sanctions-alert clearance records the named individual who cleared it, the list version searched, and a specific differentiating rationale — not just a disposition code. |
+| [`three-lines-own-the-line-you-are-on.md`](./three-lines-own-the-line-you-are-on.md) | Absolute rule | For every control, confirm that the first, second, and third lines are independently staffed; a compliance team that operates and oversees the same control collapses the model. |
+| [`ubo-verification-requires-two-independent-sources.md`](./ubo-verification-requires-two-independent-sources.md) | Absolute rule | UBO verification requires at least two independent sources — the client's own declaration and one source pulled directly from an independent public or regulatory database. |
 
 ---
 
