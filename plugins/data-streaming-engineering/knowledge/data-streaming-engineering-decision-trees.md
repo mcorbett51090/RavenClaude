@@ -219,6 +219,93 @@ flowchart TD
 
 ---
 
+## Decision Tree: A processor is falling behind — backpressure vs. skew vs. under-provisioning?
+
+**When this applies:** a stream processor's lag is growing (or its source is buffering), throughput is below target, and you must decide whether the fix is backpressure handling, re-keying, scaling, or bounding state. Observable inputs: whether lag is on *one* partition/task or *all*, whether an external sink/call is in the hot path, and whether state size is growing unbounded.
+
+**Last verified:** 2026-06-05 against Apache Flink 1.19 (backpressure monitoring / network stack) and Kafka consumer-group documentation. Re-confirm tuning specifics at use.
+
+```mermaid
+flowchart TD
+    START[Processor lag growing or source buffering] --> Q1{Is lag concentrated on ONE partition/task, rest idle?}
+    Q1 -->|YES - one hot| SKEW[Hot key / partition skew - re-key at the real ordering granularity, do NOT add consumers - see partition-skew scenario]
+    Q1 -->|NO - all tasks busy and behind| Q2{Is a slow external call or sink in the processing hot path?}
+    Q2 -->|YES - sync DB/HTTP per record| OFFPATH[Get slow I/O off the critical path: batch, async, or a bounded worker pool - the call rate, not CPU, is the bottleneck]
+    Q2 -->|NO - CPU/throughput bound| Q3{Is downstream the bottleneck - sink/next stage slower than source?}
+    Q3 -->|YES - fast producer, slow consumer| BACKPRESSURE{Does the framework propagate backpressure end-to-end?}
+    BACKPRESSURE -->|YES - Flink credit-based / reactive| ABSORB[Let backpressure throttle the source; bound buffers; alarm on sustained backpressure - it signals a real capacity gap]
+    BACKPRESSURE -->|NO - manual pull loop / unbounded queue| BOUND[Bound the in-flight buffer + apply explicit backpressure: pause poll / block produce - never an unbounded queue - OOM risk]
+    Q3 -->|NO - genuinely under-provisioned| Q4{At or below the partition/parallelism ceiling?}
+    Q4 -->|Below ceiling| SCALE[Add parallelism up to the partition count - then add partitions if you need more, re-checking keying]
+    Q4 -->|At ceiling already| REPARTITION[Add partitions AND raise parallelism together - re-verify the key isn't hot first]
+    SKEW --> VERIFY[Re-measure per-partition lag after the change]
+    OFFPATH --> VERIFY
+    ABSORB --> VERIFY
+    BOUND --> VERIFY
+    SCALE --> VERIFY
+    REPARTITION --> VERIFY
+```
+
+**Rationale per leaf:**
+- *SKEW* — one hot task with the rest idle is a keying problem, not a capacity problem; scaling can't move work off a single-key partition (see the `partition-skew-hot-key` scenario).
+- *OFFPATH* — a multi-second synchronous downstream call per record caps throughput at the call rate and (in a poll loop) trips `max.poll.interval.ms` rebalances; batch/async it or hand to a bounded worker pool.
+- *ABSORB* — Flink's credit-based flow control propagates backpressure to the source automatically; sustained backpressure is a real signal to provision more, not something to hide. Alarm on it.
+- *BOUND* — a hand-rolled consumer with an unbounded internal queue turns a producer surge into an OOM; bound the buffer and apply explicit backpressure (pause the poll / block the produce). Never let the queue grow without limit.
+- *SCALE / REPARTITION* — only after ruling out skew and backpressure is the answer "more capacity," and parallelism is capped at the partition count, so the two move together.
+
+**Tradeoffs summary:**
+
+| Symptom | Root cause | Fix | What does NOT help |
+|---|---|---|---|
+| One task hot, rest idle | Hot key / skew | Re-key at real ordering granularity | Adding consumers/partitions |
+| All tasks behind, slow per-record I/O | Sync call in hot path | Batch / async / worker pool | More CPU/tasks |
+| Fast source, slow sink, buffers filling | Downstream bottleneck | Propagate/apply backpressure; bound buffers | Bigger unbounded queue |
+| All tasks at ceiling, no skew | Under-provisioned | Add partitions + parallelism together | Re-keying |
+
+---
+
+## Decision Tree: Stateful recovery — how do I size and restore operator state?
+
+**When this applies:** a stateful processor (windowed aggregation, join, dedup store) needs a recovery and state-sizing strategy — choosing checkpoint/state-store config, the state backend, and how state is restored after a crash or rescale. Observable inputs: state size relative to memory, whether keys live forever or expire, the tolerable recovery time, and whether you ever rescale parallelism.
+
+**Last verified:** 2026-06-05 against Apache Flink 1.19 (checkpoints/savepoints, RocksDB state backend, state TTL) and Kafka Streams 3.7 (changelog topics, standby replicas). Re-confirm backend/TTL specifics at use.
+
+```mermaid
+flowchart TD
+    START[Stateful operator needs a recovery plan] --> Q1{Does state grow without a natural bound - per-key, forever?}
+    Q1 -->|YES - unbounded keyspace| TTL[Set state TTL / retention so dead keys expire - unbounded state is a future OOM, NOT a recovery problem to solve later]
+    Q1 -->|NO - bounded or windowed| Q2{Does state fit comfortably in heap/memory?}
+    TTL --> Q2
+    Q2 -->|YES - small state| HEAP[In-memory / heap state backend - fast, simple; checkpoint to durable store]
+    Q2 -->|NO - large state, GBs+| ROCKS[Disk-spilling backend - Flink RocksDB / Kafka Streams RocksDB - state exceeds memory, incremental checkpoints]
+    HEAP --> Q3{What recovery-time objective?}
+    ROCKS --> Q3
+    Q3 -->|Fast failover needed| STANDBY[Standby replicas / local recovery - Flink local recovery, Kafka Streams num.standby.replicas - avoid full changelog replay]
+    Q3 -->|Minutes acceptable| RESTORE[Restore from latest checkpoint / replay changelog topic - simpler, cheaper, slower]
+    STANDBY --> Q4{Do you ever rescale parallelism?}
+    RESTORE --> Q4
+    Q4 -->|YES - change task/partition count| SAVEPOINT[Use savepoints + key-group/keyed state so state redistributes on rescale - a plain checkpoint may not rescale cleanly]
+    Q4 -->|NO - fixed parallelism| CHECKPOINT[Periodic checkpoints sized so a checkpoint completes well within the interval - tune interval vs. recovery cost]
+```
+
+**Rationale per leaf:**
+- *TTL* — the most common stateful-streaming outage is unbounded state (a dedup/aggregation keyed on an ever-growing keyspace) silently filling disk/heap. Set TTL/retention *first*; it's a sizing decision, not a recovery afterthought.
+- *HEAP vs ROCKS* — small, bounded state runs fastest in memory; large state (GBs) needs a disk-spilling backend (RocksDB) with incremental checkpoints so a checkpoint doesn't snapshot the whole state every time.
+- *STANDBY vs RESTORE* — standby replicas / local recovery cut failover from "replay the whole changelog" to "promote a warm copy," at the cost of extra resources; a generous RTO can just restore from the last checkpoint / replay the changelog.
+- *SAVEPOINT vs CHECKPOINT* — if you ever change parallelism, you need savepoints + properly key-grouped state so state redistributes across the new task count; a checkpoint tuned only for crash recovery may not rescale cleanly.
+
+**Tradeoffs summary:**
+
+| Choice | When | Cost | Recovery profile |
+|---|---|---|---|
+| State TTL / retention | Always, if keyspace is unbounded | A correctness decision (when can a key be forgotten) | Prevents OOM; not a recovery feature per se |
+| Heap state backend | Small bounded state | Limited by memory | Fast, full-snapshot checkpoints |
+| RocksDB state backend | Large state (GBs+) | Disk I/O, tuning | Incremental checkpoints, slower per-key access |
+| Standby replicas / local recovery | Tight RTO | Extra memory/disk for the replica | Fast failover, no full replay |
+| Savepoints | You rescale or upgrade | Manual trigger, larger artifact | Portable, rescale-safe |
+
+---
+
 ## Capability map (dated — verify at build)
 
 | Capability | 2026 state `[verify-at-build]` | Notes |
