@@ -504,7 +504,7 @@
       "name": "api-engineering",
       "source": "./plugins/api-engineering",
       "description": "API engineering specialist team — 5 agents (api-design-architect, api-implementation-engineer, api-security-engineer, api-testing-engineer, api-platform-engineer) for the full lifecycle of an API you produce: paradigm choice (REST/GraphQL/gRPC/webhooks/AsyncAPI), contract-first design (OpenAPI 3.1/3.2, AsyncAPI 3.0, Arazzo), versioning & deprecation; the build craft (RFC 9457 Problem Details, cursor pagination, Idempotency-Key, ETag concurrency, HTTP semantics, 202+polling, RateLimit headers); security (OWASP API Security Top 10 2023 — BOLA/BOPLA/BFLA, token/scope validation, consumption limits, SSRF); and testing & operations (contract tests, Spectral lint in CI, Prism/Postman mocks, k6 load, gateway design, dev portal + SDK codegen, sunset rollout). Knowledge bank with 10 Mermaid decision trees + a dated 2026 capability map, 22 best-practices, 6 templates, 6 commands, 1 advisory hook. Security verdicts escalate to ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.3",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -908,7 +908,7 @@
       "name": "observability-sre",
       "source": "./plugins/observability-sre",
       "description": "Observability & SRE team — 3 agents (observability-engineer, sre-reliability-engineer, incident-commander) for making a system observable and keeping it reliable: instrumentation on OpenTelemetry (metrics/logs/traces, semantic conventions, sampling, cardinality control), SLI/SLO and error-budget design, symptom-based alerting (multi-window burn-rate, alert on user pain not causes), and incident response (severity, roles, comms, blameless postmortems, action-item follow-through). 3 skills, a decision-tree knowledge bank (alert-design + SLO-target trees + a dated 2026 tooling map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: deploy health-gates -> devops-cicd, cluster telemetry -> cloud-native-kubernetes, API SLOs -> api-engineering, cloud-native monitors -> azure/aws/gcp-cloud. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.2",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -931,7 +931,7 @@
       "name": "security-engineering",
       "source": "./plugins/security-engineering",
       "description": "Security-engineering (AppSec) team — 4 agents (appsec-engineer, threat-modeler, supply-chain-security-engineer, cloud-security-engineer) for building security INTO software: threat modeling (STRIDE, data-flow diagrams, trust boundaries), application security testing (SAST/DAST/IAST/SCA in CI, OWASP Top 10 web), secrets management (detection, rotation, vaulting, no plaintext), software supply-chain integrity (SBOM consumption, dependency CVEs, SLSA verification, pinning), and cloud security posture (CSPM, IAM least-privilege, network exposure). 4 skills, a decision-tree knowledge bank (vuln-triage + secrets-handling trees + a dated 2026 tooling map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. **Proposes controls; every ship/no-ship security VERDICT escalates to ravenclaude-core/security-reviewer.** Seams: API OWASP -> api-engineering, identity -> auth-identity, data privacy -> data-governance-privacy. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.2",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
