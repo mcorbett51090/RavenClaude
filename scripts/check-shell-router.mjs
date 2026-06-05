@@ -14,7 +14,7 @@
  * for the regressions we care about (deleting the route set, renaming the
  * helpers, dropping a NAV item, removing the mount host or entry point).
  *
- * What this guards (Gate 51 — Slice A 5-section IA):
+ * What this guards (Gate 51 — 5-section IA, Slices A+B):
  *   - NAV = the five task sections (home/discover/configure/observe/learn).
  *   - DASH_SECTIONS still contains every dashboard-owned top-level route that
  *     committed bookmarks + the gjallarhorn-link + SessionStart capability
@@ -27,8 +27,10 @@
  *   - resolveNavActive() / route() drive the native dashboard host (viewDashboard)
  *     + the shell views + plugin-* via __openPlugin, never iframes.
  *   - Mount host (#dash-root) + entry point (window.__dashApp) present; no <iframe>.
- *   - Two must-fail halves: a renamed NAV id and an emptied SECTION_ALIAS each
- *     trip the gate — proves the regexes probe the right thing.
+ *   - Slice B: the #dash-root chrome-hide CSS + the SECTION_TABS section sub-nav
+ *     (plain labels) + the same-origin /__csrf served probe are present.
+ *   - Three must-fail checks (renamed NAV id, emptied SECTION_ALIAS, dropped
+ *     chrome-hide rule) each trip the gate — proves the regexes have teeth.
  *
  * Usage: node scripts/check-shell-router.mjs [path/to/index.html]
  */
@@ -186,9 +188,37 @@ assert(/id="dash-root"/.test(html), "missing native mount host #dash-root");
 assert(/window\.__dashApp\b/.test(html), "dashboard sub-app entry point window.__dashApp missing");
 assert(!/<iframe/i.test(html), "merged portal must contain no <iframe> (native merge)");
 
-/* ── Must-fail half: prove teeth on BOTH the NAV rename and the alias map.
- * (a) renaming an asserted NAV id must trip the NAV check;
- * (b) emptying SECTION_ALIAS must trip the alias check. */
+/* ── Slice B — single chrome + shell section sub-nav ──────────────────────────
+ * The folded dashboard's own cat-bar/tab-bar must be hidden (scoped to #dash-root
+ * so the shipped standalone keeps its nav), and the shell must render a section
+ * sub-nav (SECTION_TABS) so the dashboard tabs stay reachable + keyboard-navigable. */
+const CHROME_HIDE_RE = /#dash-root \.cat-bar,\s*#dash-root \.tab-bar\s*\{\s*display:\s*none/;
+assert(CHROME_HIDE_RE.test(html), "Slice B: the #dash-root chrome-hide CSS rule must be present");
+const SECTION_TABS_TEXT = sliceBetween(app, "const SECTION_TABS = ", "{");
+for (const sec of ["configure", "observe", "learn"]) {
+  assert(
+    new RegExp(`${sec}:\\s*\\[`).test(SECTION_TABS_TEXT),
+    `SECTION_TABS must define a sub-nav for "${sec}"`,
+  );
+}
+assert(
+  /"Run feed"/.test(SECTION_TABS_TEXT) && /"Perimeter alerts"/.test(SECTION_TABS_TEXT),
+  "Observe sub-nav must list its live tabs (plain labels, no Norse names)",
+);
+const NAV_CHILDREN_TEXT = sliceFunction(app, "function navChildren(");
+assert(
+  /SECTION_TABS\[id\]/.test(NAV_CHILDREN_TEXT),
+  "navChildren() must render SECTION_TABS for the active section",
+);
+/* Served-mode banner reuses the same-origin /__csrf signal — never a new
+ * cross-origin probe (DNS-rebinding defense). */
+assert(
+  /fetch\(["']\/__csrf["']/.test(app),
+  "served-mode probe must HEAD the same-origin /__csrf endpoint (no new cross-origin probe)",
+);
+
+/* ── Must-fail halves: NAV rename, emptied SECTION_ALIAS, and a dropped
+ * chrome-hide rule must each trip the gate. */
 {
   const navBad = NAV_TEXT.replace('id: "observe"', 'id: "observ"');
   const navWouldPass = NAV_IDS.every((id) => new RegExp(`id:\\s*"${id}"`).test(navBad));
@@ -198,6 +228,11 @@ assert(!/<iframe/i.test(html), "merged portal must contain no <iframe> (native m
     new RegExp(`["']?${l}["']?\\s*:\\s*"${t}"`).test(aliasBad),
   );
   assert(!aliasWouldPass, "must-fail: an emptied SECTION_ALIAS should fail the back-compat check");
+  const chromeBad = html.replace(CHROME_HIDE_RE, "/* removed */");
+  assert(
+    !CHROME_HIDE_RE.test(chromeBad),
+    "must-fail: a dropped chrome-hide rule should fail the single-chrome check",
+  );
 }
 
 if (failures.length) {
@@ -206,5 +241,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  "OK: 5-section router contract holds (NAV ids + DASH_SECTIONS + SECTION_ALIAS + DASH_OWNER + resolveNavActive + route + host/entry-point, no iframe); both must-fail halves detected.",
+  "OK: 5-section router contract holds (NAV + aliases + DASH_OWNER + route + single-chrome + section sub-nav + served probe, no iframe); all three must-fail checks detected.",
 );
