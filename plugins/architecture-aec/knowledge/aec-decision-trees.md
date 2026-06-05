@@ -56,3 +56,112 @@ Before picking any method, check whether one of the standing biases (§3) alread
 ## Sourcing note
 
 Figures in this file are from the author's domain knowledge and are marked `[unverified — training knowledge]` or `[ESTIMATE]` at point of use. Validate against a primary source before putting any figure in a client deliverable (§3 cite-or-mark rule).
+
+---
+
+## Decision Tree: Additional Services — In-Scope Iteration or Billable Additional Service
+
+**When this applies:** the owner or contractor has made a request that may or may not be covered by the basic services fee. The project team is uncertain whether to start work and bill later, ask for authorization first, or treat the request as in-scope. The request has arrived and the clock is running.
+
+**Last verified:** 2026-06-05 against standard AIA B101 additional services framework.
+
+```mermaid
+flowchart TD
+    START[Request received] --> Q1{Is the request within the agreed phase scope and program?}
+    Q1 -->|YES, refining the approved direction| INSCOPE[In-scope iteration - proceed, log hours to phase]
+    Q1 -->|NO or UNCLEAR| Q2{Is the request triggered by an owner-initiated change?}
+    Q2 -->|YES, owner changed program or direction| ASA[Issue ASA before proceeding]
+    Q2 -->|NO| Q3{Is the request triggered by unforeseen site or existing conditions?}
+    Q3 -->|YES| ASA
+    Q3 -->|NO| Q4{Is this an additional option or study - not a refinement?}
+    Q4 -->|YES| ASA
+    Q4 -->|NO, ambiguous| MEMO[Issue a brief scope memo clarifying treatment - get owner acknowledgment]
+    ASA[Issue Additional Services Authorization - get signed before work begins]
+```
+
+**Rationale per leaf:**
+- *In-scope iteration* — refining the selected design direction within the agreed scope is what the basic services fee covers; log and proceed.
+- *Issue ASA* — any owner-initiated change, unforeseen condition, or alternative option outside the agreed scope requires authorization before a single hour is logged; the ASA is the contractual protection.
+- *Scope memo* — when the boundary is genuinely ambiguous, a brief written memo clarifying the treatment and obtaining acknowledgment is more defensible than either assuming in-scope or generating a surprise invoice later.
+
+**Tradeoffs summary:**
+
+| Method | Speed | Protection | Relationship friction | Use when |
+|---|---|---|---|---|
+| Proceed in-scope | Fast | None needed | None | Clearly within phase scope |
+| Issue ASA | Slight delay | Full contractual | Low if proactive | Any out-of-scope trigger |
+| Scope memo | Slight delay | Partial | Very low | Ambiguous boundary only |
+
+---
+
+## Decision Tree: CA Deficiency — Observe, Flag, Stop Work, or Accept
+
+**When this applies:** during a site visit the architect observes work that may not conform to the contract documents. A decision is needed on what response is appropriate before the work progresses further.
+
+**Last verified:** 2026-06-05 against AIA A201 General Conditions and standard CA practice.
+
+```mermaid
+flowchart TD
+    START[Non-conformance observed on site] --> Q1{Is it a life-safety or code issue?}
+    Q1 -->|YES| STOP[Issue written stop-work notice immediately - notify owner]
+    Q1 -->|NO| Q2{Does the work deviate from the contract documents?}
+    Q2 -->|NO, minor field variation - acceptable| LOG[Document in SOR - note as acceptable variation]
+    Q2 -->|YES, clear deviation| Q3{Is the work still accessible for correction?}
+    Q3 -->|YES, work in place but correctable| REJECT[Issue formal non-conformance notice - contractor must remedy]
+    Q3 -->|NO, work is concealed or complete| Q4{Will a change order or substitution acceptance resolve it?}
+    Q4 -->|YES, owner agrees to accept as-built| CO[Process O/C with cost/schedule impact documented]
+    Q4 -->|NO, owner wants compliance| LEGAL[Document fully - notify owner in writing - consider dispute process]
+```
+
+**Rationale per leaf:**
+- *Stop-work* — life-safety and code issues require immediate cessation; the architect's professional obligation does not wait for the contractor's schedule preference.
+- *Document as acceptable variation* — minor field variations within the contractor's means-and-methods latitude and within specification tolerance are documented but not flagged as deficiencies.
+- *Non-conformance notice* — a clear deviation from contract documents that is correctable must be formally noticed to the contractor with a remediation deadline.
+- *Change order* — if the deviation is discovered after work is concealed or complete and the owner chooses to accept it, a change order memorializes the acceptance and any cost/schedule impact.
+- *Legal/dispute* — when the owner wants full compliance on completed/concealed work and the contractor disputes responsibility, the architect documents fully and the parties enter the contract's dispute-resolution process.
+
+**Tradeoffs summary:**
+
+| Method | Immediacy | Cost impact | Use when |
+|---|---|---|---|
+| Stop-work notice | Immediate | Contractor bears | Life-safety or code violation |
+| Document acceptable variation | Same visit | None | Minor, within tolerance |
+| Non-conformance notice | 24 hr | Contractor bears (correction) | Clear deviation, correctable |
+| Change order - accept | Days | Owner bears (cost delta) | Correctable work owner chooses to accept |
+| Document/dispute | Escalated | TBD via process | Owner demands compliance on concealed work |
+
+---
+
+## Decision Tree: Fee Recovery — Project Is Over on Hours
+
+**When this applies:** a phase burn report shows the project has consumed more than 90% of the phase fee at less than 80% phase completion, or the PM reports the team is over on hours mid-phase. A decision is needed: absorb the overrun, restructure the remaining work, pursue an ASA, or renegotiate the fee.
+
+**Last verified:** 2026-06-05 against standard AEC project financial management practice.
+
+```mermaid
+flowchart TD
+    START[Phase burn ratio over 1.2] --> Q1{What caused the overrun?}
+    Q1 -->|Scope change initiated by owner| ASA[Issue retroactive ASA for past hours plus prospective for remainder]
+    Q1 -->|Unforeseen conditions - site or existing documents| ASA
+    Q1 -->|Firm execution - no owner-initiated cause| Q2{Is the remaining fee enough to complete the phase?}
+    Q2 -->|YES, tight but completable| RESTRUCTURE[Restructure remaining work - reduce senior hours, protect margin on deliverables]
+    Q2 -->|NO, fee insufficient to complete| Q3{Is the original fee below market for the scope?}
+    Q3 -->|YES| RENEGOTIATE[Renegotiate fee with owner - frame as scope/market correction]
+    Q3 -->|NO, fee was fair| ABSORB[Absorb the loss - conduct project post-mortem, update estimating model]
+    ABSORB --> POSTMORTEM[Root-cause: fee estimate, staffing, execution? Update templates]
+```
+
+**Rationale per leaf:**
+- *Retroactive + prospective ASA* — when the overrun is owner-caused, a retroactive ASA for already-burned hours is appropriate and defensible if the change is documented; obtain prospective authorization before continuing.
+- *Restructure remaining work* — when the overrun is firm-caused but there is still fee remaining, restructure to reduce senior-hour involvement and focus the remaining budget on deliverables.
+- *Renegotiate* — if the original fee was below market for the scope and the project is genuinely underfunded, a transparent renegotiation framed as a scope/market correction is preferable to delivering a compromised product.
+- *Absorb and post-mortem* — a firm-caused loss on a fairly-priced project is an estimating or execution failure; absorb it, run the post-mortem, and update the fee model for the next proposal.
+
+**Tradeoffs summary:**
+
+| Method | Fee recovery | Relationship impact | Use when |
+|---|---|---|---|
+| ASA (owner-caused) | Full | Low if timely | Change or unforeseen conditions documented |
+| Restructure remaining work | Partial | None | Firm-caused, fee still present |
+| Renegotiate | Partial | Medium | Original fee genuinely below market |
+| Absorb and post-mortem | None | None | Firm-caused, fee was fair — recover in estimating |

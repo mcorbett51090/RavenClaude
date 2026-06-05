@@ -217,6 +217,126 @@ Full rule + feature table: [`../best-practices/gov-managed-environments-and-shar
 
 ---
 
+## Decision Tree: Approval flow — which timeout and escalation pattern?
+
+**When this applies:** You are designing a Power Automate cloud flow that includes at least one approval step and must decide how to handle timeout, escalation, and delegation — observable when an approval action is added to a flow in a solution.
+
+**Last verified:** 2026-06-05 against Power Automate approval connector documentation and the `flow-approval-escalation-and-delegation` best-practice.
+
+```mermaid
+flowchart TD
+    START[Approval step in a flow] --> Q1{Is the action irreversible<br/>or high-blast-radius?}
+    Q1 -->|Yes| CONF[Add typed-value second-confirmation<br/>e.g. type CONFIRM to proceed]
+    Q1 -->|No| Q2{Is the SLA known and under 72 hours?}
+    CONF --> Q2
+    Q2 -->|Yes| TOUT[Set timeout on the action;<br/>store value as env var]
+    Q2 -->|No, SLA unknown| TOUT
+    TOUT --> Q3{Does the approver pool change<br/>across environments?}
+    Q3 -->|Yes| ESCENV[Store escalation email in env var;<br/>route to manager via OBO / AAD lookup]
+    Q3 -->|No| ESC[Hard-code escalation recipient;<br/>add comment to env var definition]
+    ESCENV --> AUDIT[Write outcome to Dataverse<br/>approval entity row]
+    ESC --> AUDIT
+```
+
+**Rationale per leaf:**
+- *Typed-value second-confirmation* — for irreversible actions, a single "Are you sure?" yes/no is not sufficient; require the user to type a value that proves intentionality.
+- *Timeout as env var* — the timeout value differs between test (minutes) and prod (hours/days); storing it as an environment variable prevents hard-coding.
+- *Escalation via env var / AAD lookup* — escalation recipients change between environments and over time; never hard-code an email address.
+- *Audit row in Dataverse* — email replies are not a durable audit record; write the `outcome`, `approver`, and timestamp to a Dataverse table.
+
+**Tradeoffs summary:**
+
+| Pattern | Blast radius | Complexity | When |
+|---|---|---|---|
+| Single confirmation | standard | low | most write actions |
+| Typed-value second confirmation | high/irreversible | moderate | financial, bulk, delete |
+| Env-var escalation | any | moderate | multi-env tenant |
+| Dataverse audit row | any | low overhead | compliance / audit requirements |
+
+Full rule: [`../best-practices/flow-approval-escalation-and-delegation.md`](../best-practices/flow-approval-escalation-and-delegation.md).
+
+---
+
+## Decision Tree: Copilot Studio — authored topic vs generative answer vs Power Automate action
+
+**When this applies:** You are authoring a Copilot Studio agent topic and must decide whether an utterance should route to an authored topic, a generative answer from a knowledge source, or invoke a Power Automate action — observable when a user adds a new intent to an existing bot or when the agent gives an inconsistent or unhelpful answer.
+
+**Last verified:** 2026-06-05 against the `copilot-studio-bot-design` skill and `knowledge/copilot-agents-2026.md`.
+
+```mermaid
+flowchart TD
+    START[New user intent to handle] --> Q1{Is the response content deterministic<br/>and must always be exact?}
+    Q1 -->|Yes| TOPIC[Authored topic with slot-filling<br/>and explicit confirmation]
+    Q1 -->|No| Q2{Does the intent require reading or writing<br/>live data or calling an external system?}
+    Q2 -->|Yes| Q3{Is the action reversible?}
+    Q3 -->|No, irreversible| TOPICACTION[Authored topic + Power Automate action<br/>with confirmation node]
+    Q3 -->|Yes, reversible| ACTION[Power Automate action call<br/>from a topic or generative plugin]
+    Q2 -->|No, purely informational| Q4{Is the answer available in a<br/>structured knowledge source?}
+    Q4 -->|Yes| GEN[Generative answers from knowledge source<br/>with citation enabled]
+    Q4 -->|No| ESC[Escalation topic — transfer to human agent]
+```
+
+**Rationale per leaf:**
+- *Authored topic* — exact, deterministic answers (legal disclaimers, specific procedures, SLA text) must be authored; generative answers may paraphrase incorrectly.
+- *Authored topic + action with confirmation* — any action with side effects needs the authored confirmation node; the generative orchestrator cannot reliably inject a confirmation turn.
+- *Power Automate action call* — reversible data operations can be wired as a topic action or a generative plugin action; generative orchestration is acceptable only when the action is idempotent or reversible.
+- *Generative answers* — unstructured informational queries are the ideal case for generative answers; enable citations so the user can verify.
+- *Escalation* — when no answer exists and no action is appropriate, explicit escalation is safer than a hallucinated answer.
+
+**Tradeoffs summary:**
+
+| Leaf | Determinism | Data access | Confirmation | Use when |
+|---|---|---|---|---|
+| Authored topic | high | none | manual | exact scripted answers |
+| Topic + action + confirm | high | read/write | required | data mutations |
+| PA action (reversible) | moderate | read/write | optional | reversible data ops |
+| Generative answers | low | read-only knowledge | n/a | informational Q&A |
+| Escalation | n/a | none | n/a | no good answer exists |
+
+Full rule: [`../best-practices/copilot-topic-vs-generative-routing.md`](../best-practices/copilot-topic-vs-generative-routing.md) and [`../best-practices/copilot-studio-slot-filling-and-confirmation.md`](../best-practices/copilot-studio-slot-filling-and-confirmation.md).
+
+---
+
+## Decision Tree: Solution segmentation — how many solutions does this project need?
+
+**When this applies:** You are setting up a new Power Platform project or reviewing an existing one and must decide how to partition components across solutions — observable when a project starts, when import failures happen due to circular dependencies, or when a team cannot release one domain independently of another.
+
+**Last verified:** 2026-06-05 against `pac solution add-reference` reference and the `alm-solution-segmentation-by-domain` best-practice.
+
+```mermaid
+flowchart TD
+    START[New or restructured project] --> Q1{Fewer than 30 components,<br/>single team, single domain?}
+    Q1 -->|Yes| SINGLE[Single solution with clear naming<br/>document the threshold for splitting]
+    Q1 -->|No| Q2{Shared schema components used<br/>by multiple business domains?}
+    Q2 -->|Yes| BASE[Create base/shared solution<br/>for shared entities and option sets]
+    Q2 -->|No| DOMAIN
+    BASE --> DOMAIN[Per-domain solution<br/>owns domain tables + flows + apps]
+    DOMAIN --> Q3{Apps use components across<br/>multiple domain solutions?}
+    Q3 -->|Yes| APPSOL[Separate app solution<br/>depends on base + domain solutions]
+    Q3 -->|No| APPINDOM[App components live in the domain solution]
+    APPSOL --> GOV[Governance solution<br/>env vars + connection refs per domain]
+    APPINDOM --> GOV
+```
+
+**Rationale per leaf:**
+- *Single solution* — acceptable for small projects; the threshold (30 components) is the signal to revisit.
+- *Base/shared solution* — components shared across domains (Contact, Account, shared option sets) travel in a foundation that other solutions depend on and that changes slowly.
+- *Per-domain solution* — functional ownership; a Complaints domain can release without touching Billing.
+- *Separate app solution* — apps that compose across domains do not own any schema; they depend on domain solutions and can re-deploy without re-running domain migrations.
+- *Governance solution* — environment variables and connection references travel with the domain; they are rebound on import without touching the functional solution.
+
+**Tradeoffs summary:**
+
+| Segmentation | Dependency risk | Independent release | Admin overhead | Use when |
+|---|---|---|---|---|
+| Single solution | low (small project) | n/a | lowest | < 30 components, 1 team |
+| Base + domain | medium | yes (domain independent) | moderate | multi-domain, shared schema |
+| Base + domain + app | low | yes (app + domain independent) | higher | large projects, cross-domain apps |
+
+Full rule: [`../best-practices/alm-solution-segmentation-by-domain.md`](../best-practices/alm-solution-segmentation-by-domain.md).
+
+---
+
 ## Sources (retrieved 2026-05-30)
 
 - `pac solution` / `pac admin` reference — [Microsoft Learn pac CLI](https://learn.microsoft.com/power-platform/developer/cli/reference/) (verbs, flags, env types: Trial/Sandbox/Production/Developer/Teams/SubscriptionBasedTrial).

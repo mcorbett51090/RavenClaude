@@ -8,7 +8,7 @@ These docs codify the cross-cutting **house opinions** in [`../CLAUDE.md`](../CL
 
 ## Index
 
-_21 rules. Each file is one named, citable rule; read and apply it whole._
+_31 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -33,15 +33,21 @@ _21 rules. Each file is one named, citable rule; read and apply it whole._
 | [`passwordless-by-default.md`](./passwordless-by-default.md) | Absolute rule — a client secret or connection string in code or IaC is a leak, not a config choice. | Every secret literal you commit is a credential that must be rotated, scanned for, and eventually leaks. |
 | [`pick-compute-from-the-decision-tree.md`](./pick-compute-from-the-decision-tree.md) | Pattern — strong default; deviate only with a written reason tied to a tree leaf. | The recurring "where should this run?" question has a habitual wrong answer — reach for AKS (or for whatever the team ran last) regardless of fit — an… |
 | [`private-by-default-paas-data-planes.md`](./private-by-default-paas-data-planes.md) | Absolute rule — a public PaaS data plane is the single highest-blast-radius default mistake in an Azure estate. | Key Vault, Storage, Azure SQL, Cosmos, App Configuration, and Container Registry all ship with their data plane **reachable from the public internet**… |
+| [`apim-for-published-apis.md`](./apim-for-published-apis.md) | Pattern | Publishing any HTTP API to consumers outside the immediate service team |
+| [`bicep-for-azure-only-terraform-for-multi-cloud.md`](./bicep-for-azure-only-terraform-for-multi-cloud.md) | Pattern | Choosing an IaC tool for an Azure estate |
+| [`container-apps-as-the-default-for-containers.md`](./container-apps-as-the-default-for-containers.md) | Pattern | Deciding where to run a containerized workload — traverse the decision tree before choosing AKS |
+| [`defender-for-cloud-on-by-default.md`](./defender-for-cloud-on-by-default.md) | Pattern | Standing up any subscription — enable Defender for Cloud at the landing zone stage |
+| [`entra-external-id-not-b2c-for-ciam.md`](./entra-external-id-not-b2c-for-ciam.md) | Absolute rule | Starting a new consumer/customer identity (CIAM) project |
+| [`entra-wif-for-ci-cd-not-client-secrets.md`](./entra-wif-for-ci-cd-not-client-secrets.md) | Absolute rule | Configuring a CI/CD pipeline to deploy Azure resources — no client secrets |
+| [`front-door-before-app-gateway-for-global.md`](./front-door-before-app-gateway-for-global.md) | Pattern | Choosing an L7 entry point for a public-facing workload |
+| [`opentelemetry-for-app-insights.md`](./opentelemetry-for-app-insights.md) | Pattern | Instrumenting a new application with Azure Monitor / App Insights |
+| [`pim-no-standing-owner.md`](./pim-no-standing-owner.md) | Absolute rule | Granting privileged roles — convert standing Owner/Contributor to PIM eligible |
+| [`service-bus-for-commands-event-grid-for-events.md`](./service-bus-for-commands-event-grid-for-events.md) | Pattern | Designing async messaging between services — pick the right broker for the pattern |
 
 ---
-
-## See also` (link this plugin's own knowledge/agents) · `## Provenance` · the `_Last reviewed:_` line.
-3. Append a row to the index table above.
-4. Cross-link from the relevant knowledge file and agent.
 
 ## See also
 
 - [`../CLAUDE.md`](../CLAUDE.md) — the team constitution + the house opinions these docs codify
 - [`../knowledge/`](../knowledge/) — the dated, citation-grounded reference bank + decision trees
-- [`../../../docs/best-practices/_TEMPLATE.md`](../../../docs/best-practices/_TEMPLATE.md) — the marketplace-wide doc template
+- [`../../../docs/best-practices/README.md`](../../../docs/best-practices/README.md) — marketplace-wide best-practice docs

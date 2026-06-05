@@ -194,6 +194,104 @@ flowchart TD
 
 ---
 
+## Decision Tree: DMAIC phase gate — can we proceed to the next phase?
+
+**When this applies:** A DMAIC tollgate review is in progress and the team must decide whether to advance, return, or conditionally pass. Observable trigger: end of a DMAIC phase; a sponsor or project manager asking "are we ready to move on?"; a phase deliverable is claimed complete.
+
+**Last verified:** 2026-06-05 against the DMAIC phase-gate criteria in [`../best-practices/dmaic-phase-gates-are-not-optional.md`](../best-practices/dmaic-phase-gates-are-not-optional.md) and [`dmaic-and-lean-toolkit.md`](dmaic-and-lean-toolkit.md).
+
+```mermaid
+flowchart TD
+    START[Phase deliverable claimed complete] --> Q1{Are all required gate criteria met for this phase?}
+    Q1 -->|YES| Q2{Any open items that could invalidate the next phase deliverable if left unresolved?}
+    Q1 -->|NO — one or more criteria missing| RETURN[Return to phase. Document missing criteria + owner + due date.]
+    Q2 -->|NO — open items are minor or in a parking lot| ADVANCE[Advance to next phase. Document gate pass in charter.]
+    Q2 -->|YES — open items are material to next phase| COND[Conditional pass. Document open items, owner, resolution date. Re-review before mid-phase.]
+    RETURN --> FIX[Close the gap. Then re-run this gate.]
+    COND --> MONITOR[Monitor open items. Resolve before the next phase deliverable is finalized.]
+```
+
+**Rationale per leaf:**
+- *Advance* — all criteria met and no material open items; the evidence chain supports the next phase.
+- *Conditional pass* — the remaining open items are bounded, owned, and do not invalidate the work in progress; the phase can proceed with active monitoring.
+- *Return* — a missing gate criterion means the current phase cannot produce a reliable input for the next; returning now is cheaper than correcting a downstream deliverable built on sand.
+
+**Tradeoffs summary:**
+
+| Decision | Risk | Cost of error | Use when |
+|---|---|---|---|
+| Advance | Low | — | Gate fully met, no material open items |
+| Conditional pass | Medium | Extra re-review step | Minor open items, bounded and owned |
+| Return | Delay cost only | Avoids larger rework | Gate criterion missing |
+
+---
+
+## Decision Tree: Kaizen event or full DMAIC?
+
+**When this applies:** An improvement need has been identified and the team must decide the vehicle. Observable trigger: a complaint, a missed metric, or a manager saying "we need to fix this" — before any project work begins.
+
+**Last verified:** 2026-06-05 against [`../best-practices/kaizen-event-scope-to-what-the-team-can-own.md`](../best-practices/kaizen-event-scope-to-what-the-team-can-own.md) and the methodology-selection tree above.
+
+```mermaid
+flowchart TD
+    START[Improvement need identified] --> Q1{Is the root cause already known with confidence?}
+    Q1 -->|YES — cause is clear| Q2{Can the countermeasure be implemented and remeasured within 5 days by the in-room team?}
+    Q1 -->|NO — cause unknown or unproven| DMAIC[Full DMAIC — cause must be proven before any fix]
+    Q2 -->|YES — no IT system changes, no capital approval needed| KAIZEN[Kaizen event — scope confirmed, prepare current-state data before Day 1]
+    Q2 -->|NO — requires IT, capital, or cross-team authority| Q3{Is the scope bounded enough for a phased approach?}
+    Q3 -->|YES — a bounded sub-process can be Kaizened| HYBRID[Kaizen the in-scope sub-process now; log the larger change as a DMAIC backlog item]
+    Q3 -->|NO — scope is inherently cross-functional| DMAIC
+```
+
+**Rationale per leaf:**
+- *Full DMAIC* — cause is unknown or unproven; a Kaizen on an unproven cause is a guess with a team and a week.
+- *Kaizen event* — cause known, team authority is sufficient, change can be implemented and remeasured in the event window; the fast path is correct.
+- *Hybrid* — a bounded slice qualifies for Kaizen but the full problem is larger; implement the quick win and log the systemic issue for a proper DMAIC.
+
+**Tradeoffs summary:**
+
+| Vehicle | Best for | Fails when | Typical duration |
+|---|---|---|---|
+| Kaizen event | Known cause, in-room team authority, remeasurable in days | Cause unknown; IT or capital required | 3–5 days |
+| Hybrid | Mixed scope — bounded quick win + systemic backlog | Team conflates the Kaizen and the DMAIC | 3–5 days + follow-on project |
+| Full DMAIC | Unknown cause; cross-functional; high-blast improvement | Used on trivial or already-known problems | 4–6 months |
+
+---
+
+## Decision Tree: Which COPQ cost category does this cost belong to?
+
+**When this applies:** Building the COPQ (Cost of Poor Quality) case in the Define phase and categorizing each identified cost. Observable trigger: a list of cost items associated with a process problem, and the need to map each to the internal failure / external failure / appraisal / prevention framework.
+
+**Last verified:** 2026-06-05 against the COPQ framework in [`../best-practices/cost-of-poor-quality-quantifies-the-burning-platform.md`](../best-practices/cost-of-poor-quality-quantifies-the-burning-platform.md) and ASQ Cost of Quality model.
+
+```mermaid
+flowchart TD
+    START[A cost item to categorize] --> Q1{Does this cost exist BECAUSE of a defect or failure?}
+    Q1 -->|NO — it is an investment to improve quality going forward| PREV[Prevention cost — training, process design, mistake-proofing; not part of COPQ]
+    Q1 -->|YES — it exists because quality was not perfect| Q2{Did the defect reach the customer?}
+    Q2 -->|YES — customer experienced it| EXT[External failure — returns, warranty, credits, complaint handling, lost accounts]
+    Q2 -->|NO — caught internally before delivery| Q3{Was the cost incurred to FIND the defect, or to FIX it?}
+    Q3 -->|To FIND it — inspection, testing, audit| APP[Appraisal cost — part of COPQ; reducing defects at source eventually reduces appraisal too]
+    Q3 -->|To FIX it — rework, scrap, re-processing| INT[Internal failure cost — the primary COPQ driver to reduce]
+```
+
+**Rationale per leaf:**
+- *Prevention* — investment that reduces future defects; not a failure cost; excluded from COPQ total to avoid double-counting the cure.
+- *External failure* — the highest-unit-cost category; customer-experienced failures carry remediation cost plus reputation and retention impact.
+- *Appraisal* — real cost of inspection; declining it without first reducing defect rates causes escapes; falling appraisal spend as defects drop is a sign of genuine improvement.
+- *Internal failure* — rework and scrap are the most directly reducible COPQ; reducing the defect rate at source cuts both internal failure and eventually appraisal costs.
+
+**Tradeoffs summary:**
+
+| Category | In COPQ total? | Reduced by | Watch for |
+|---|---|---|---|
+| Internal failure | YES | Reduce defect rate at source | Hidden rework that isn't tracked |
+| External failure | YES | Reduce escapes + defect rate | Iceberg — visible complaints undercount true impact |
+| Appraisal | YES | Reduce defects (then reduce inspection) | Don't cut inspection before defects are under control |
+| Prevention | NO | — invest more | Mislabeling inspection as prevention |
+
+---
+
 ## Sources
 
-The reference facts behind these trees — DMAIC/DMADV/PDCA, the 8 wastes, control-chart selection, WE/Nelson rules, Cp/Cpk/Pp/Ppk thresholds — are cited with retrieval dates in [`dmaic-and-lean-toolkit.md`](dmaic-and-lean-toolkit.md) and [`six-sigma-statistics-and-spc.md`](six-sigma-statistics-and-spc.md). All retrieved 2026-06-03.
+The reference facts behind these trees — DMAIC/DMADV/PDCA, the 8 wastes, control-chart selection, WE/Nelson rules, Cp/Cpk/Pp/Ppk thresholds — are cited with retrieval dates in [`dmaic-and-lean-toolkit.md`](dmaic-and-lean-toolkit.md) and [`six-sigma-statistics-and-spc.md`](six-sigma-statistics-and-spc.md). All retrieved 2026-06-03. New trees added 2026-06-05.

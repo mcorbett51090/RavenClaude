@@ -333,3 +333,116 @@ These trees codify method-selection decisions already implicit in this plugin's 
 - Cash-shortfall-ladder tree — `treasury-analyst` (liquidity-first, cheapest-and-most-reversible-first) and the `thirteen-week-cash-forecast` skill. Added by the coverage campaign (2026-06-01).
 
 Method definitions are stated as standard framings; where a branch turns on a volatile market input or a current accounting standard, the input carries the accuracy-discipline caveat (verify before it gates an irreversible action).
+
+---
+
+## Decision Tree: Close / Controller — Which accrual approach is appropriate
+
+**When this applies:** The controller or FP&A analyst is deciding how to estimate a period-end accrual — bonus, warranty, rent, professional fees, contingency — where the exact invoice has not yet arrived. The question is whether to use a formula-driven estimate, a probability-weighted range, a run-rate extrapolation, or to wait for the invoice.
+
+**Last verified:** 2026-06-05 against ASC 420, ASC 450, ASC 460, and standard controller close practice.
+
+```mermaid
+flowchart TD
+    START[Period-end accrual needed] --> Q1{Is the obligation probable and estimable - ASC 450}
+    Q1 -->|No - remote or not estimable| DISCLOSE[Disclose in notes only - no accrual]
+    Q1 -->|Yes| Q2{Is there a contractual or plan-document basis for the amount}
+    Q2 -->|Yes - e.g. bonus plan, lease, SLA| CONTRACT[Formula estimate from contract or plan - most defensible]
+    Q2 -->|No - judgment estimate| Q3{Is there a reliable run rate from prior periods}
+    Q3 -->|Yes - recurring item| RUNRATE[Run-rate extrapolation - prior 3-period average - document variance from prior]
+    Q3 -->|No - new or lumpy item| Q4{Can a range be estimated - ASC 450 probable range}
+    Q4 -->|Yes| RANGE[Accrue minimum of range or best estimate within range - document basis]
+    Q4 -->|No reliable estimate| WAIT[Wait for invoice - flag as open in close tracker - no plug]
+```
+
+**Rationale per leaf:**
+- *Disclose only* — ASC 450 requires accrual only when probable + estimable; a remote or non-estimable contingency gets disclosure, not a reserve.
+- *Formula estimate* — a contractual basis (lease schedule, bonus plan payout table, warranty rate) is the most auditor-defensible source; compute from the document.
+- *Run-rate extrapolation* — for recurring accruals (recurring professional fees, rent under a verbal arrangement), a 3-period average is a reasonable estimate; always document the comparable and explain deviations.
+- *Minimum of range* — ASC 450-20-30: when a range of loss is given and no amount in the range is a better estimate than any other, accrue the minimum of the range.
+- *Wait for invoice* — when no estimate is defensible, flagging as open is preferable to a plug; a plug creates the audit exposure that a missing invoice does not.
+
+**Tradeoffs summary:**
+
+| Method | Audit defensibility | Timeliness | Use when |
+|---|---|---|---|
+| Contract / plan formula | Highest | Day 1 of close | Written contractual or plan basis exists |
+| Run-rate extrapolation | High | Day 1 | Recurring, stable item; prior 3+ periods of data |
+| Probability-weighted range | Medium | Day 2-3 | One-time item; range estimable from facts |
+| Wait for invoice | N/A - not an accrual | Depends on invoice timing | No defensible estimate available |
+
+---
+
+## Decision Tree: Treasury — Which covenant test to run first
+
+**When this applies:** The treasury analyst is preparing a covenant-compliance certificate or monitoring compliance status mid-period. The credit agreement contains multiple financial covenants (leverage, coverage, liquidity) and the analyst must determine which test is most binding given current financial position.
+
+**Last verified:** 2026-06-05 against standard US leveraged-finance covenant structures and the plugin's `treasury-analyst` skill.
+
+```mermaid
+flowchart TD
+    START[Covenant compliance review] --> Q1{Does the agreement contain a leverage ratio test - Debt to EBITDA}
+    Q1 -->|Yes| Q2{Current Debt-to-EBITDA vs covenant maximum}
+    Q2 -->|Within 15% of limit - approaching| LEVERAGE_WARN[Leverage covenant at risk - model headroom scenarios - escalate to CFO]
+    Q2 -->|Comfortable headroom| Q3{Does the agreement contain a coverage ratio test - EBITDA to Interest}
+    Q1 -->|No| Q3
+    Q3 -->|Yes| Q4{Current coverage ratio vs covenant minimum}
+    Q4 -->|Within 15% of limit - approaching| COVERAGE_WARN[Coverage covenant at risk - model cash-preservation options]
+    Q4 -->|Comfortable| Q5{Does the agreement contain a liquidity or minimum-cash test}
+    Q3 -->|No| Q5
+    Q5 -->|Yes| Q6{Current liquidity vs covenant minimum}
+    Q6 -->|Within 15% of limit| LIQUIDITY_WARN[Liquidity covenant at risk - 13-week forecast immediately]
+    Q6 -->|Comfortable| COMPLIANT[All tested covenants comfortable - document and certify]
+    Q5 -->|No| COMPLIANT
+```
+
+**Rationale per leaf:**
+- *Leverage covenant at risk* — leverage is typically the most common breach trigger; model the EBITDA and debt scenarios at which breach occurs, and alert the CFO so waiver discussions can start before the measurement date, not after.
+- *Coverage covenant at risk* — interest-coverage deterioration often precedes leverage deterioration; a falling EBITDA or rising interest cost signals the need for cash preservation before covenant breach.
+- *Liquidity covenant at risk* — a minimum-cash or availability test is an immediate operational problem; 13-week cash forecast must be run now to size the shortfall and identify levers.
+- *All compliant* — certify; document the headroom for each covenant in the compliance certificate and note the date of measurement and the credit-agreement definition used.
+
+**Tradeoffs summary:**
+
+| Covenant type | Primary driver | Typical measurement date | Early-warning action |
+|---|---|---|---|
+| Leverage - Debt/EBITDA | EBITDA decline or debt draw | Quarterly | Model downside EBITDA; start waiver dialogue 90 days before |
+| Coverage - EBITDA/Interest | EBITDA fall or rate rise | Quarterly | Model rate sensitivity; consider fixed-rate swap |
+| Liquidity - min cash/availability | Cash outflows | Monthly or continuous | 13-week direct-method forecast |
+
+---
+
+## Decision Tree: Valuation — Which terminal-value method to apply
+
+**When this applies:** A DCF model has reached the end of the explicit forecast period and requires a terminal value. The analyst must choose between the Gordon Growth Model (perpetuity growth) and an exit-multiple approach, and must decide whether to apply both as a cross-check or rely on one.
+
+**Last verified:** 2026-06-05 against standard DCF methodology and the plugin's `dcf-valuation` skill.
+
+```mermaid
+flowchart TD
+    START[Terminal value needed] --> Q1{Is the business expected to reach steady-state by end of explicit period}
+    Q1 -->|No - still high growth or pre-profitability| Q2{Can the explicit period be extended to reach steady-state}
+    Q2 -->|Yes - extend to 10 plus years| EXTEND[Extend explicit period - retest steady-state criteria before applying TV]
+    Q2 -->|No - structurally high-growth| MULTI_ONLY[Exit-multiple only - GGM inapplicable - use EV/EBITDA sector comps - disclose limitation]
+    Q1 -->|Yes| Q3{Are reliable sector trading multiples available for cross-check}
+    Q3 -->|Yes| BOTH[Apply both GGM and exit-multiple - reconcile - weight by reliability - present range]
+    Q3 -->|No - niche or private sector| GGM_ONLY[GGM primary - document g assumption - stress test plus or minus 50bps - disclose multiple unavailability]
+    BOTH --> Q4{Do GGM and exit-multiple imply the same implied growth rate within 100bps}
+    Q4 -->|Yes - consistent| TV_OK[Terminal value is internally consistent - document both]
+    Q4 -->|No - divergent| RECONCILE[Investigate divergence - check g vs sector growth - check multiple vs WACC - do not average without explanation]
+```
+
+**Rationale per leaf:**
+- *Extend explicit period* — applying a terminal value to a business that is not yet in steady state embeds growth-rate drift into the perpetuity; a longer explicit period is almost always the cleaner fix.
+- *Exit-multiple only* — for high-growth or pre-profitability businesses, a GGM terminal value requires a long-run EBITDA margin assumption that is highly speculative; a multiple on a near-term EBITDA (e.g., Year 5) anchored on sector comps is more defensible.
+- *Both, reconciled* — the GGM-implied multiple check (TV/EBITDA) and the multiple-implied growth rate check are the two most powerful consistency tests in a DCF; always perform both and disclose any divergence above 100 bps.
+- *GGM primary* — for businesses with no reliable public comp set, the perpetuity model is the only option; document the long-run growth assumption relative to GDP and the sector, and show a ±50 bps sensitivity.
+- *Reconcile divergence* — divergence between the two methods is a signal, not a mandate to average; the analyst must understand why (a comp set at unusual multiples, an implicit growth rate above GDP) before choosing the weight.
+
+**Tradeoffs summary:**
+
+| Method | Best when | Weakness | Cross-check |
+|---|---|---|---|
+| Gordon Growth Model | Steady-state, predictable cash flows | g sensitive - small change moves TV by double digits | Implied EV/EBITDA multiple vs sector |
+| Exit multiple | Comparable sector comps available | Inherits market mis-pricing at exit | Implied perpetuity growth rate vs GDP |
+| Both reconciled | Standard DCF | More work; requires honest reconciliation | Divergence investigation is the value |

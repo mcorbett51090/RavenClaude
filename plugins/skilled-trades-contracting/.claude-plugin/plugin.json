@@ -1,7 +1,7 @@
 {
   "name": "skilled-trades-contracting",
-  "version": "0.1.0",
-  "description": "Skilled Trades Contracting specialist team — 4 agents (trades-engagement-lead, estimating-specialist, field-operations-specialist, trade-business-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An estimating-and-field-operations team for an HVAC, electrical, or plumbing contractor — it estimates to a loaded labor rate and true material cost, prices on a flat-rate book rather than guessing hours, runs the field on billable-hour efficiency and callback rate, and reads the trade P&L the way an owner who's also the best technician needs to. Inherits ravenclaude-core protocols.",
+  "version": "0.1.2",
+  "description": "Skilled Trades Contracting specialist team \u2014 4 agents (trades-engagement-lead, estimating-specialist, field-operations-specialist, trade-business-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An estimating-and-field-operations team for an HVAC, electrical, or plumbing contractor \u2014 it estimates to a loaded labor rate and true material cost, prices on a flat-rate book rather than guessing hours, runs the field on billable-hour efficiency and callback rate, and reads the trade P&L the way an owner who's also the best technician needs to. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"
   },

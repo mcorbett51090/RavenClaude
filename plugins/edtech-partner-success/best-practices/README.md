@@ -6,7 +6,7 @@ Named, citable rules for the `edtech-partner-success` plugin's six specialist ag
 
 ## Index
 
-_19 rules. Each file is one named, citable rule; read and apply it whole._
+_29 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -29,6 +29,16 @@ _19 rules. Each file is one named, citable rule; read and apply it whole._
 | [`rostering-sync-succeeded-is-not-the-same-claim-as-data-is-correct.md`](./rostering-sync-succeeded-is-not-the-same-claim-as-data-is-correct.md) | Primary diagnostic | The most dangerous rostering failure is the silent one: the broker shows green, the cron exited 0, the integration "succeeded" — and the dataset is st… |
 | [`screen-parent-comms-for-the-cohort-residual.md`](./screen-parent-comms-for-the-cohort-residual.md) | Absolute rule | Parent / family / student comms carry a higher bar than a PSM-to-partner email: parents are not the partner's customers, the comms may surface in lega… |
 | [`sponsor-map-the-buying-committee-and-track-champion-redundancy.md`](./sponsor-map-the-buying-committee-and-track-champion-redundancy.md) | Pattern | A partner with one champion is one departure from churn — and single-threading is invisible until the champion leaves and the renewal arrives in a dea… |
+| [`essa-evidence-tier-is-now-a-renewal-asset-not-just-marketing.md`](./essa-evidence-tier-is-now-a-renewal-asset-not-just-marketing.md) | Pattern | K-12 renewal prep — verify ESSA evidence standing before the renewal conversation. |
+| [`pe-ownership-changes-the-renewal-posture-and-discount-math.md`](./pe-ownership-changes-the-renewal-posture-and-discount-math.md) | Pattern | Preparing a renewal for a PE-backed EdTech product — check discount latitude before the call. |
+| [`coppa-2026-adds-four-new-stop-needs-counsel-leaves-for-k5-products.md`](./coppa-2026-adds-four-new-stop-needs-counsel-leaves-for-k5-products.md) | Absolute rule | Any K-5 product data-privacy evaluation, renewal, or compliance conversation. |
+| [`ai-teammate-adoption-follows-a-maturity-curve-do-not-skip-stages.md`](./ai-teammate-adoption-follows-a-maturity-curve-do-not-skip-stages.md) | Pattern | PSM team is adopting AI-assisted workflows — stage progression must precede automation. |
+| [`cbt-readiness-is-a-march-checkpoint-not-an-april-scramble.md`](./cbt-readiness-is-a-march-checkpoint-not-an-april-scramble.md) | Pattern | K-12 partners in CBT-mandate states — run the March readiness checkpoint before the testing window. |
+| [`phase-two-adoption-is-depth-not-more-surfaces.md`](./phase-two-adoption-is-depth-not-more-surfaces.md) | Pattern | Partner in Stage 2 adoption — gate feature-breadth expansion on a core-use-case depth threshold. |
+| [`no-breach-does-not-mean-no-ferpa-exposure-after-naviance.md`](./no-breach-does-not-mean-no-ferpa-exposure-after-naviance.md) | Absolute rule | Any K-12 data-privacy representation — do not conflate no-breach with no-FERPA-exposure. |
+| [`partner-profile-is-the-source-of-truth-the-crm-is-a-sync-target.md`](./partner-profile-is-the-source-of-truth-the-crm-is-a-sync-target.md) | Absolute rule | Managing institutional memory — especially before PSM handoffs or partner renewals. |
+| [`provenance-on-every-qbr-claim-source-date-baseline.md`](./provenance-on-every-qbr-claim-source-date-baseline.md) | Absolute rule | QBR preparation — every quantitative claim needs a source, date range, and comparison baseline. |
+| [`recovery-starts-with-diagnosis-not-features.md`](./recovery-starts-with-diagnosis-not-features.md) | Primary diagnostic | Partner has flipped to Red — run the 4-hypothesis diagnostic before selecting a recovery play. |
 
 ---
 

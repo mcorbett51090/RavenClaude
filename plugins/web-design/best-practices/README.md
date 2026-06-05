@@ -6,7 +6,7 @@ Named, citable rules for the `web-design` plugin's specialist agents and any con
 
 ## Index
 
-_19 rules. Each file is one named, citable rule; read and apply it whole._
+_29 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -29,6 +29,15 @@ _19 rules. Each file is one named, citable rule; read and apply it whole._
 | [`ux-one-cta-and-state-coverage.md`](./ux-one-cta-and-state-coverage.md) | Pattern — at most one dominant call-to-action per screen (two max), and every screen ships its default, empty, loading, error, and success states. | Conversion design is choosing what to **remove**, not what to add (house opinion #8: one CTA per screen, two at most, one visually dominant). |
 | [`visual-color-contrast-is-a-constraint.md`](./visual-color-contrast-is-a-constraint.md) | Absolute rule — contrast ratios are checked at design time against the actual displayed background. A token that fails contrast is a bug, not a taste call. | Low contrast is the single most common automated-detectable WCAG failure, and it is decided at design time, not in review. |
 | [`visual-design-tokens-not-hardcoded-values.md`](./visual-design-tokens-not-hardcoded-values.md) | Absolute rule — color, type, spacing, radius, shadow, and motion all flow through named tokens. A hardcoded `#3b82f6` or `margin: 11px` in a component is a bug (house opinions #4, #12). | A design system stays coherent because every decision has **one source of truth** (house opinion #12) and components consume that source rather than r… |
+| [`third-party-scripts-need-a-loading-strategy.md`](./third-party-scripts-need-a-loading-strategy.md) | Absolute rule — every third-party script has an explicit loading strategy (defer/async/lazy/idle); no script in `<head>` without `async` or `defer`. | Adding or reviewing any analytics, chat, A/B, or tag-manager script. |
+| [`link-text-describes-the-destination.md`](./link-text-describes-the-destination.md) | Absolute rule — link text identifies the destination without surrounding context; "click here" and "read more" fail WCAG 2.4.4 and are useless in a screen-reader link list. | Writing or reviewing any link — in body copy, navigation, CTAs, or error messages. |
+| [`print-stylesheet-for-content-sites.md`](./print-stylesheet-for-content-sites.md) | Pattern — content-heavy pages (docs, blog, articles) ship a print stylesheet that hides navigation and produces a clean printed output. | Any content site page at or before launch review. |
+| [`ogp-metadata-every-shareable-page.md`](./ogp-metadata-every-shareable-page.md) | Absolute rule — every publicly-shareable page has OGP and Twitter Card meta tags with a compliant 1200×630 image so shared links render as cards, not raw URLs. | Pre-launch audit; any page intended to be shared on social or in messaging. |
+| [`heading-structure-is-a-navigation-aid.md`](./heading-structure-is-a-navigation-aid.md) | Absolute rule — one h1 per page, no level skips (h1→h3 with no h2 is a WCAG failure); headings are navigation aids, not visual styling. | Writing or reviewing any HTML page; CMS template design; component heading-level configuration. |
+| [`color-not-the-only-signifier.md`](./color-not-the-only-signifier.md) | Absolute rule — color must not be the only means of conveying information; every color-coded state has a secondary signifier (icon, label, pattern). WCAG 1.4.1. | Error states, status indicators, charts, required-field markers, selected states. |
+| [`css-custom-properties-bridge-tokens-to-components.md`](./css-custom-properties-bridge-tokens-to-components.md) | Pattern — CSS custom properties are the bridge between the token system and components; semantic tokens in `:root`, components consume semantic tokens, dark-mode overrides only the semantic layer. | Setting up or extending a design token system; implementing dark mode; theming a component. |
+| [`form-labels-are-not-placeholders.md`](./form-labels-are-not-placeholders.md) | Absolute rule — every form field has a persistent `<label>` (or `aria-label`/`aria-labelledby`); placeholder text is supplementary, never the label. WCAG 1.3.1. | Writing or reviewing any form — inputs, selects, textareas; CMS form components. |
+| [`dark-mode-via-prefers-color-scheme.md`](./dark-mode-via-prefers-color-scheme.md) | Pattern — dark mode is implemented via `prefers-color-scheme: dark` (system preference, no JS required) with a class-based toggle layer for user override; not toggle-only. | Implementing dark mode; auditing a site's theming; adding the color-scheme meta tag. |
 
 ---
 
