@@ -224,8 +224,8 @@ TEMPLATE = r"""<!doctype html>
       .action-tile { display: flex; gap: 14px; align-items: flex-start; text-align: left; width: 100%; }
       .action-tile .ico { width: 44px; height: 44px; flex: 0 0 auto; border-radius: 12px; display: grid; place-items: center; background: var(--teal-soft); color: var(--teal-2); border: 1px solid var(--border-strong); }
       .action-tile .ico svg { width: 22px; height: 22px; }
-      .action-tile .t { font-weight: 600; font-size: 1rem; }
-      .action-tile .d { color: var(--muted); font-size: 0.84rem; margin-top: 2px; }
+      .action-tile .t { display: block; font-weight: 600; font-size: 1rem; }
+      .action-tile .d { display: block; color: var(--muted); font-size: 0.84rem; margin-top: 2px; }
 
       .section-title { display: flex; align-items: baseline; gap: 12px; margin: 34px 0 14px; }
       .section-title h2 { font-size: 1.3rem; }
