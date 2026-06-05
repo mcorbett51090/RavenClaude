@@ -538,6 +538,12 @@ TEMPLATE = r"""<!doctype html>
       [hidden] { display: none !important; }
       .payload-host { min-width: 0; }
 
+      /* Slice B — single chrome: hide the folded dashboard's OWN category/tab
+         bars (the shell sidebar's section sub-nav drives the tabs instead). The
+         selector is scoped to #dash-root so the SHIPPED standalone dashboard
+         (whose CSS is NOT #dash-root-scoped) keeps its own nav for consumers. */
+      #dash-root .cat-bar, #dash-root .tab-bar { display: none !important; }
+
       /* ── Folded-in dashboard sub-app (scoped under #dash-root) ── */
       /*__DASH_CSS__*/
 
@@ -709,7 +715,7 @@ TEMPLATE = r"""<!doctype html>
       // phantom routes: nidhoggr is a card in heimdall, sleipnir a banner in activity).
       const DASH_TAB_ALIAS = {
         dashboard: "overview", "comfort-posture": "settings",
-        nidhoggr: "heimdall", sleipnir: "activity",
+        nidhoggr: "heimdall", sleipnir: "activity", concepts: "learn",
       };
       // Legacy top-level shell route → canonical NAV section (back-compat for
       // committed bookmarks, ⌘K quick-actions, and internal hrefs).
@@ -727,7 +733,36 @@ TEMPLATE = r"""<!doctype html>
         saga: "observe", activity: "observe", nidhoggr: "observe", sleipnir: "observe",
         settings: "configure", "comfort-posture": "configure", "web-access": "configure", simulator: "configure",
         commands: "learn", trees: "learn", pipeline: "learn", bifrost: "learn",
-        install: "learn", about: "learn", overview: "learn",
+        install: "learn", about: "learn", overview: "learn", concepts: "learn",
+      };
+      // Slice B section sub-nav (plain labels — no Norse names): each section's
+      // ordered tabs, rendered in the sidebar (replacing the dashboard's hidden
+      // cat-bar/tab-bar). Items point at canonical routes the router already
+      // resolves; Discover keeps its plugin-category sub-nav (navChildren).
+      const SECTION_TABS = {
+        configure: [
+          { label: "Quick setup", route: "#/configure" },
+          { label: "Posture", route: "#/settings" },
+          { label: "Web access", route: "#/web-access" },
+          { label: "Review simulator", route: "#/simulator" },
+        ],
+        observe: [
+          { label: "Run feed", route: "#/activity" },
+          { label: "Perimeter alerts", route: "#/heimdall" },
+          { label: "Security log", route: "#/vidarr" },
+          { label: "Plugin lineage", route: "#/norns" },
+          { label: "Session state", route: "#/mimir" },
+          { label: "Review log", route: "#/saga" },
+        ],
+        learn: [
+          { label: "Overview", route: "#/learn" },
+          { label: "Concepts", route: "#/concepts" },
+          { label: "Commands", route: "#/commands" },
+          { label: "Decision trees", route: "#/trees" },
+          { label: "Pipeline", route: "#/pipeline" },
+          { label: "Install", route: "#/bifrost" },
+          { label: "About", route: "#/about" },
+        ],
       };
       function payloadKind(section) {
         // A dashboard-owned tab route (drives the #dash-root host). Bare "learn"
@@ -741,9 +776,48 @@ TEMPLATE = r"""<!doctype html>
         $("#view").hidden = which !== "view";
         const dr = $("#dash-root"); if (dr) dr.hidden = which !== "dash";
       }
+      // Served-mode probe: one cached HEAD to /__csrf (the same same-origin signal
+      // the dashboard's own CSRF bootstrap uses — the parity gate guards that the
+      // endpoint exists). The cross-origin/404 reject on a static GitHub-Pages host
+      // IS the "static" signal; we never add Access-Control-Allow-Origin (that
+      // would break the DNS-rebinding defense). Tri-state: null=unknown,
+      // true=served (127.0.0.1), false=static.
+      let _served = null, _servedP = null;
+      function probeServed() {
+        if (_servedP) return _servedP;
+        _servedP = new Promise((resolve) => {
+          const ctl = (typeof AbortController === "function") ? new AbortController() : null;
+          const t = setTimeout(() => { try { ctl && ctl.abort(); } catch (_) {} }, 600);
+          fetch("/__csrf", { method: "HEAD", signal: ctl ? ctl.signal : undefined })
+            .then((r) => { clearTimeout(t); _served = !!(r && r.ok); resolve(_served); })
+            .catch(() => { clearTimeout(t); _served = false; resolve(false); });
+        });
+        return _servedP;
+      }
+      const SERVED_CMD = "rc dashboard";
+      function setServedBanner(live) {
+        const host = $("#dash-root"); if (!host) return;
+        const existing = host.querySelector(".payload-banner");
+        if (!live || _served !== false) { if (existing) existing.remove(); return; }
+        if (existing) return;
+        host.insertAdjacentHTML("afterbegin",
+          `<div class="payload-banner" role="status" aria-live="polite"><span class="ico">${svg("info")}</span><span class="msg">Live data needs the served dashboard — run <code>${esc(SERVED_CMD)}</code>.</span><button type="button" class="banner-copy" data-cmd="${esc(SERVED_CMD)}">Copy</button></div>`);
+        const b = host.querySelector(".payload-banner .banner-copy");
+        if (b) b.addEventListener("click", () => window.__copy(b.dataset.cmd || SERVED_CMD, "Command"));
+      }
       function viewDashboard(section, sub) {
         showHost("dash");
         if (window.__dashApp) window.__dashApp.show(DASH_TAB_ALIAS[section] || section, sub);
+        // Banner only on live-data sections (Observe + live Configure tabs); the
+        // Learn-area dashboard tabs work offline, so no banner there.
+        const owner = section === "observe" ? "observe" : (DASH_OWNER[section] || "observe");
+        const live = owner === "observe" || owner === "configure";
+        if (_served !== null) setServedBanner(live);
+        else probeServed().then(() => {
+          const cur = location.hash.replace(/^#\/?/, "").split("/")[0];
+          const stillDash = cur === "observe" || DASH_OWNER[cur] || SECTION_ALIAS[cur] === "observe";
+          if (stillDash) setServedBanner(live);
+        });
       }
       // Subcategories live under the one section the repo actually has a
       // hierarchy for: Marketplace → plugin categories (existing #/discover/<cat>
@@ -753,10 +827,21 @@ TEMPLATE = r"""<!doctype html>
         if (id === "discover" && D.categories) {
           const counts = {};
           D.plugins.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
+          const top = location.hash.replace(/^#\/?/, "").split("/")[0];
+          const onTeam = top === "team";
           const cur = (location.hash.split("/")[2] || "all");
-          return [{ id: "all", label: "All plugins", count: D.plugins.length }]
-            .concat(D.categories.map((c) => ({ id: c.id, label: c.label, count: counts[c.id] || 0 })))
-            .map((c) => `<a class="nav-subitem${c.id === cur ? " active" : ""}" href="#/discover/${c.id === "all" ? "" : c.id}">${esc(c.label)}<span class="count">${c.count}</span></a>`)
+          const items = [`<a class="nav-subitem${onTeam ? " active" : ""}" href="#/team">Specialists</a>`];
+          items.push(
+            ...[{ id: "all", label: "All plugins", count: D.plugins.length }]
+              .concat(D.categories.map((c) => ({ id: c.id, label: c.label, count: counts[c.id] || 0 })))
+              .map((c) => `<a class="nav-subitem${!onTeam && c.id === cur ? " active" : ""}" href="#/discover/${c.id === "all" ? "" : c.id}">${esc(c.label)}<span class="count">${c.count}</span></a>`),
+          );
+          return items.join("");
+        }
+        if (SECTION_TABS[id]) {
+          const cur = "#/" + (location.hash.replace(/^#\/?/, "").split("/")[0] || "home");
+          return SECTION_TABS[id]
+            .map((t) => `<a class="nav-subitem${t.route === cur ? " active" : ""}" href="${t.route}">${esc(t.label)}</a>`)
             .join("");
         }
         return "";
@@ -1569,6 +1654,7 @@ TEMPLATE = r"""<!doctype html>
         else if (e.key === "/" && !inField) { e.preventDefault(); openPalette(); }
       });
 
+      probeServed(); // resolve served/static early so the banner is flicker-free
       route();
     </script>
   </body>
