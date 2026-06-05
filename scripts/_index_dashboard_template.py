@@ -352,6 +352,11 @@ TEMPLATE = r"""<!doctype html>
         .desktop-collapse { display: none; }
         .hide-sm { display: none; }
         .search kbd { display: none; }
+        /* Collapse the search trigger to an icon-only button on narrow screens
+           so its label can't wrap/overflow the topbar (the ⌘K palette is the
+           real search surface; the opener just launches it). */
+        .palette-opener { flex: 0 0 auto; width: 38px; max-width: 38px; padding: 0; gap: 0; justify-content: center; }
+        .palette-opener .label, .palette-opener kbd { display: none; }
       }
       @media (min-width: 821px) { .mobile-only { display: none; } }
       @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto; } }
@@ -431,7 +436,7 @@ TEMPLATE = r"""<!doctype html>
       }
       .palette-opener:hover { color: var(--text); border-color: var(--border-strong); background: var(--surface-2); }
       .palette-opener svg { width: 18px; height: 18px; flex: 0 0 auto; }
-      .palette-opener .label { flex: 1; text-align: left; }
+      .palette-opener .label { flex: 1; min-width: 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .palette-opener kbd { font-size: 0.68rem; color: var(--faint); border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; font-family: var(--font-mono); }
 
       /* ── Scenario picker (Configuration view) ──────────────────────── */
