@@ -2944,6 +2944,44 @@ rc=0; $LINT_PY tests/fixtures/data-viz/good-page.json >/dev/null 2>&1 || rc=$?
 gate "layout-linter (good fixture: clean grid)" must_pass "$rc"
 
 echo
+echo "── Gate 98: bundled MCP servers are attributed (§bundled-mcp-servers) ──"
+# A plugin that declares mcpServers must carry a top-level x-mcpAttribution map
+# naming each server; third-party servers additionally need source+license and a
+# NOTICE that mentions the server. Fixtures are synthesized at runtime (never
+# committed — a committed malformed fixture would trip the whole-tree prettier gate).
+G98="$TMP/mcp-attr"
+# GOOD: third-party server, fully attributed, NOTICE mentions it
+mkdir -p "$G98/good/plugins/sample/.claude-plugin"
+cat > "$G98/good/plugins/sample/.claude-plugin/plugin.json" <<'JSON'
+{"name":"sample","version":"0.0.1","mcpServers":{"acme":{"command":"acme-srv"}},"x-mcpAttribution":{"acme":{"party":"third-party","source":"https://example.com/acme","license":"MIT","notice":"NOTICE.md"}}}
+JSON
+printf 'acme attribution\n' > "$G98/good/plugins/sample/NOTICE.md"
+rc=0; python3 scripts/check-mcp-attribution.py --root "$G98/good" >/dev/null 2>&1 || rc=$?
+gate "mcp-attribution: attributed third-party server passes" must_pass "$rc"
+# BAD-1: mcpServers but no x-mcpAttribution at all
+mkdir -p "$G98/bad1/plugins/sample/.claude-plugin"
+cat > "$G98/bad1/plugins/sample/.claude-plugin/plugin.json" <<'JSON'
+{"name":"sample","version":"0.0.1","mcpServers":{"acme":{"command":"acme-srv"}}}
+JSON
+rc=0; python3 scripts/check-mcp-attribution.py --root "$G98/bad1" >/dev/null 2>&1 || rc=$?
+gate "mcp-attribution: unattributed server fails" must_fail "$rc"
+# BAD-2: third-party attributed but NOTICE does not mention the server (notice-content teeth)
+mkdir -p "$G98/bad2/plugins/sample/.claude-plugin"
+cat > "$G98/bad2/plugins/sample/.claude-plugin/plugin.json" <<'JSON'
+{"name":"sample","version":"0.0.1","mcpServers":{"acme":{"command":"acme-srv"}},"x-mcpAttribution":{"acme":{"party":"third-party","source":"https://example.com/acme","license":"MIT","notice":"NOTICE.md"}}}
+JSON
+printf 'unrelated content\n' > "$G98/bad2/plugins/sample/NOTICE.md"
+rc=0; python3 scripts/check-mcp-attribution.py --root "$G98/bad2" >/dev/null 2>&1 || rc=$?
+gate "mcp-attribution: NOTICE missing server name fails" must_fail "$rc"
+# SANITY: a plugin with NO mcpServers needs no attribution -> passes
+mkdir -p "$G98/none/plugins/sample/.claude-plugin"
+cat > "$G98/none/plugins/sample/.claude-plugin/plugin.json" <<'JSON'
+{"name":"sample","version":"0.0.1"}
+JSON
+rc=0; python3 scripts/check-mcp-attribution.py --root "$G98/none" >/dev/null 2>&1 || rc=$?
+gate "mcp-attribution: plugin without mcpServers passes" must_pass "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 if [[ "$FAIL" -gt 0 ]]; then
