@@ -274,8 +274,8 @@ flowchart TD
     Q2 -->|YES| STUB[Test.createStub + StubProvider — inject stub into class under test]
     Q2 -->|NO| REFACTOR[Refactor: extract interface, inject via constructor or setter, then stub]
     Q1 -->|Org data the test doesn't create| Q3{Is SeeAllData being used to access it?}
-    Q3 -->|YES| FACTORY[BANNED — switch to TestDataFactory, create data in @testSetup]
-    Q3 -->|NO, own data created| SETUP[@testSetup method in TestDataFactory — no SeeAllData]
+    Q3 -->|YES| FACTORY["BANNED — switch to TestDataFactory, create data in @testSetup"]
+    Q3 -->|NO, own data created| SETUP["@testSetup method in TestDataFactory — no SeeAllData"]
     Q1 -->|Time-dependent behavior| TIME[Test.setCurrentPageReference or use a clock interface — inject test time]
     MOCK_HTTP --> ASSERT[Assert on the caller's outcome, not on mock internals]
     STUB --> ASSERT

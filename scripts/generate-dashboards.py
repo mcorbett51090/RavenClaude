@@ -1619,12 +1619,20 @@ def _render_trees_tab(include_trees: bool = True) -> str:
                 )
             )
             when = f'<p class="guide-when">{html.escape(t["when"])}</p>' if t["when"] else ""
-            svg = _load_tree_svg(t["id"])
-            if svg:
+            # Lazy-load the pre-rendered SVG as an EXTERNAL file (loading="lazy" +
+            # collapsed <details>) instead of inlining its ~20KB of markup. With
+            # 600+ trees, inlining doubled dashboard.html (~13MB→27MB); referencing
+            # the committed file keeps the page light and only fetches a diagram
+            # when its <details> is actually opened. The SVG self-themes via the
+            # render-trees fallback palette (page CSS vars don't reach an <img>).
+            # Path is relative to dashboard.html (plugins/ravenclaude-core/).
+            if (TREE_VISUALS_DIR / f"{t['id']}.svg").is_file():
+                rel = f"knowledge/tree-visuals/{html.escape(t['id'])}.svg"
                 diagram = (
                     '<details class="guide-tree-diagram">'
                     '<summary class="guide-tree-summary">Diagram</summary>'
-                    f'<div class="guide-tree-svg">{svg}</div>'
+                    f'<div class="guide-tree-svg"><img loading="lazy" decoding="async" '
+                    f'src="{rel}" alt="{html.escape(t["title"])} decision tree" class="guide-tree-img"></div>'
                     "</details>"
                 )
             else:
@@ -4449,7 +4457,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   border-radius: var(--radius);
   overflow-x: auto;
 }
-.guide-tree-svg svg { max-width: 100%; height: auto; }
+.guide-tree-svg svg, .guide-tree-img { max-width: 100%; height: auto; display: block; }
 .cmd-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
