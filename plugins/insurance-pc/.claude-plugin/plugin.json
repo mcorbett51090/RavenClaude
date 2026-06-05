@@ -1,7 +1,7 @@
 {
   "name": "insurance-pc",
-  "version": "0.1.2",
-  "description": "P&C Insurance specialist team \u2014 4 agents (underwriting-lead, pc-underwriter, claims-specialist, actuarial-pricing-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An underwriting-and-claims team for a P&C carrier, MGA, or agency analyst \u2014 it reads the combined ratio as loss plus expense, prices risk to the loss ratio rather than the competitor, manages the claims severity-and-frequency story, and reads catastrophe load the way an underwriting result that hit a decade-best ~92 combined in 2025 demands. Inherits ravenclaude-core protocols.",
+  "version": "0.2.0",
+  "description": "P&C Insurance specialist team — 4 agents (underwriting-lead, pc-underwriter, claims-specialist, actuarial-pricing-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An underwriting-and-claims team for a P&C carrier, MGA, or agency analyst — it reads the combined ratio as loss plus expense, prices risk to the loss ratio rather than the competitor, manages the claims severity-and-frequency story, and reads catastrophe load the way an underwriting result that hit a decade-best ~92 combined in 2025 demands. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"
   },

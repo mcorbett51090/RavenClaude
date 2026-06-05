@@ -36,7 +36,12 @@ Manages matters on realization/utilization, supports drafting and document revie
 
 ## Knowledge bank
 
-4 research-grounded reference docs under [`knowledge/`](knowledge/) — figures carry a source + date, advisory numbers are marked `[ESTIMATE]`, and anything from training knowledge is marked `[unverified — training knowledge]`.
+5 research-grounded reference docs under [`knowledge/`](knowledge/) — figures carry a source + date, advisory numbers are marked `[ESTIMATE]` / `[verify-at-use]`, and anything from training knowledge is marked `[unverified — training knowledge]`. Includes two **Mermaid** decision-tree files: the consolidated [`legal-practice-decision-trees.md`](knowledge/legal-practice-decision-trees.md) (fee structure / A/R collection / billing-rate review) and the net-new [`legal-intake-and-trust-decision-trees.md`](knowledge/legal-intake-and-trust-decision-trees.md) (conflict-checked intake / IOLTA three-way reconciliation).
+
+## Scenarios bank & calculator
+
+- **Scenarios** — [`scenarios/`](scenarios/) holds dated, scope-tagged, unverified engagement narratives (realization-rate recovery, intake conflict/fit miss, IOLTA three-way reconciliation gap, utilization/capacity squeeze). Surfaced only as a *secondary* source behind the mandatory unverified-scenario preamble (see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)); they carry no client confidences and are never legal advice.
+- **Calculator** — [`scripts/legal_calc.py`](scripts/legal_calc.py) (stdlib only, Python 3.8+): `realization` (the cascade + effective hourly rate), `matter-profit` (profitability vs the Rule of Thirds), `utilization` (billable ratio + non-billable split), `trust-recon` (three-way IOLTA reconciliation check). Decision-support, **not** legal/ethics/financial advice — a `trust-recon` FAIL is an arithmetic flag to route to the attorney, never a finding of misconduct.
 
 ## Install
 
