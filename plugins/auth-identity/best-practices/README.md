@@ -6,7 +6,7 @@ Named, citable rules for the `auth-identity` plugin covering Google SSO, OAuth/O
 
 ## Index
 
-_15 rules. Each file is one named, citable rule; read and apply it whole._
+_20 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -25,6 +25,11 @@ _15 rules. Each file is one named, citable rule; read and apply it whole._
 | [`passkeys-need-a-fallback.md`](./passkeys-need-a-fallback.md) | Absolute rule — passkey/WebAuthn login must offer at least one fallback (magic link, social SSO, or email+password); passkey-only locks out the majority of users in 2026. | Adding passkey authentication; designing the login method list. |
 | [`never-hardcode-client-secrets.md`](./never-hardcode-client-secrets.md) | Absolute rule — OAuth client secrets, service role keys, and JWT signing keys live only in environment variables or a secret manager; never in source control. | Any PR that touches auth configuration, provider wiring, or server-side token logic. |
 | [`magic-link-expiry-and-single-use.md`](./magic-link-expiry-and-single-use.md) | Absolute rule — magic links expire in ≤15 minutes and are invalidated on first use; long-lived or reusable links are reusable stolen credentials. | Adding or configuring magic-link / OTP passwordless authentication. |
+| [`rate-limit-auth-endpoints.md`](./rate-limit-auth-endpoints.md) | Absolute rule — login, OTP, and password-reset endpoints must be rate-limited by IP and user identifier; managed-provider internal limits protect the provider's API, not your own auth-adjacent routes. | Building or reviewing any auth-adjacent API endpoint, especially OTP or password-reset. |
+| [`prevent-session-fixation.md`](./prevent-session-fixation.md) | Absolute rule — issue a fresh session ID immediately after authentication succeeds; reusing the pre-auth session ID allows an attacker who planted the ID to inherit the authenticated session. | Implementing any custom session middleware; reviewing an OAuth login callback that carries pre-login session state forward. |
+| [`validate-redirect-uris-exactly.md`](./validate-redirect-uris-exactly.md) | Absolute rule — OAuth redirect URIs must be exact-match allowlisted; prefix, wildcard, or pattern matching allows code-redirect attacks that steal authorization codes. | Configuring an OAuth provider in the dashboard; implementing or reviewing an OAuth callback handler. |
+| [`bind-id-tokens-to-the-requesting-client.md`](./bind-id-tokens-to-the-requesting-client.md) | Absolute rule — validate `aud` and `iss` claims server-side on every ID token; skipping audience validation allows a token issued for a different app to be accepted by yours. | Any server-side code that accepts an OIDC ID token or JWT as proof of identity. |
+| [`step-up-auth-for-sensitive-actions.md`](./step-up-auth-for-sensitive-actions.md) | Pattern — require a fresh re-authentication challenge for sensitive operations (email change, payment add, admin access) regardless of session age; long-running sessions should not inherit elevated trust. | Designing or implementing email-change, payment, admin, or other high-value write operations. |
 
 ---
 

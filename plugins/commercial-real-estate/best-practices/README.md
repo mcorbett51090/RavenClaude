@@ -6,7 +6,7 @@ Named, citable rules for the `commercial-real-estate` plugin's 4 specialist agen
 
 ## Index
 
-_18 rules. Each file is one named, citable rule._
+_20 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -28,6 +28,8 @@ _18 rules. Each file is one named, citable rule._
 | [`ic-memo-must-lead-with-the-deal-thesis-not-the-property-description.md`](./ic-memo-must-lead-with-the-deal-thesis-not-the-property-description.md) | Pattern | Drafting any IC memo or investment recommendation. |
 | [`rent-comps-must-include-concession-packages-not-just-face-rent.md`](./rent-comps-must-include-concession-packages-not-just-face-rent.md) | Absolute rule | Any rent-comp collection for office, retail, or mixed-use underwriting. |
 | [`tenant-credit-analysis-is-part-of-the-underwriting-not-the-dd-checklist.md`](./tenant-credit-analysis-is-part-of-the-underwriting-not-the-dd-checklist.md) | Pattern | Any acquisition where a tenant represents 10%+ of GLA or rent. |
+| [`refinance-wall-analysis-is-required-before-any-hold-period-extension.md`](./refinance-wall-analysis-is-required-before-any-hold-period-extension.md) | Absolute rule | Any hold-period extension decision; annual asset review; acquisition underwriting. |
+| [`noi-growth-assumptions-must-be-segmented-by-lease-structure-not-applied-uniformly.md`](./noi-growth-assumptions-must-be-segmented-by-lease-structure-not-applied-uniformly.md) | Absolute rule | Any multi-tenant property underwriting; hold-period NOI projection; IC memo preparation. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

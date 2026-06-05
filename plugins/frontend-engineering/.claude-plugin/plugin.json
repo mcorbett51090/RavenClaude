@@ -1,6 +1,6 @@
 {
   "name": "frontend-engineering",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Frontend-engineering team \u2014 4 agents (frontend-architect, react-implementation-engineer, frontend-state-and-data-engineer, frontend-performance-engineer) for building app-grade frontends (React/Next, TypeScript): component architecture and composition, the rendering-strategy choice (CSR/SSR/SSG/ISR/React Server Components), client state vs server-cache (TanStack Query/RSC) and form/validation, bundle/performance discipline (code-splitting, Core Web Vitals, hydration cost), and accessibility-in-code (semantic HTML, ARIA, keyboard, focus). TypeScript-first. 4 skills, a decision-tree knowledge bank (rendering-strategy + state-location trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Distinct from web-design (brand/UX/marketing sites). Seams: design/brand/WCAG-audit -> web-design, auth UX -> auth-identity, API consumption -> api-engineering, native -> mobile-engineering. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"

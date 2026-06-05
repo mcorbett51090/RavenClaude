@@ -1,6 +1,6 @@
 {
   "name": "project-management",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Project & delivery management team \u2014 four specialists across the predictive (PMBOK/PMP) and agile (Scrum/Kanban) tracks and the hybrid between: delivery-lead (charter, schedule, scope/change control, earned value), scrum-master (backlog, sprints, ceremonies, velocity, impediments), risk-and-raid-analyst (scored qual+quant risk, RAID depth, mitigation/contingency, issue triage), and stakeholder-comms-lead (stakeholder register, comms plan, status/exec reporting, escalation memos, steering packs). Deepens \u2014 does NOT replace \u2014 ravenclaude-core's domain-neutral project-manager (the lightweight RAID/status-hygiene default every plugin routes to); this is the deep PM craft layer. Knowledge: a predictive-vs-agile-vs-hybrid decision tree + a best-practices library. Seams: prose polish \u2192 ravenclaude-core/documentarian; system design \u2192 architect. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"

@@ -6,7 +6,7 @@ Named, citable rules for the `insurance-pc` plugin's 4 specialist agents and any
 
 ## Index
 
-_18 rules. Each file is one named, citable rule._
+_20 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -28,6 +28,8 @@ _18 rules. Each file is one named, citable rule._
 | [`rate-adequacy-test-runs-on-loss-trend-not-historical-rate.md`](./rate-adequacy-test-runs-on-loss-trend-not-historical-rate.md) | Absolute rule | Rate adequacy is tested against a trended and developed loss ratio, not against last year's rate — rate change and rate adequacy answer different questions. |
 | [`reinsurance-net-positions-change-the-story.md`](./reinsurance-net-positions-change-the-story.md) | Absolute rule | Report combined ratio and loss ratio at gross, ceded, and net levels — gross shows inherent book risk; ceded shows reinsurance cost; net shows the economic result. |
 | [`underwriting-guideline-exceptions-need-a-reason-and-an-approver.md`](./underwriting-guideline-exceptions-need-a-reason-and-an-approver.md) | Absolute rule | Every risk written outside underwriting guidelines generates a documented exception record with the specific guideline violated, the underwriter's rationale, and a named approver. |
+| [`new-business-loss-ratio-is-not-the-same-as-renewal-loss-ratio.md`](./new-business-loss-ratio-is-not-the-same-as-renewal-loss-ratio.md) | Absolute rule | Any portfolio review — report new business and renewal loss ratios separately; never blend into one figure on a growing book. |
+| [`subrogation-recovery-is-a-claims-unit-revenue-line.md`](./subrogation-recovery-is-a-claims-unit-revenue-line.md) | Pattern | Any claims operations review — track subrogation identification rate and recovery rate as first-class metrics alongside paid losses. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

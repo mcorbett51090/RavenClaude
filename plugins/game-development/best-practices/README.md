@@ -6,7 +6,7 @@ Named, citable rules for the `game-development` plugin's 4 specialist agents and
 
 ## Index
 
-_18 rules. Each file is one named, citable rule._
+_20 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -28,6 +28,8 @@ _18 rules. Each file is one named, citable rule._
 | [`milestone-definitions-must-include-a-done-criteria-not-just-a-date.md`](./milestone-definitions-must-include-a-done-criteria-not-just-a-date.md) | Absolute rule | Creating or reviewing a production schedule — every milestone needs explicit, testable done criteria. |
 | [`player-feedback-during-development-tests-the-loop-not-the-features.md`](./player-feedback-during-development-tests-the-loop-not-the-features.md) | Pattern | Processing playtest feedback — classify as loop signal or feature signal before scheduling fixes. |
 | [`platform-certification-is-a-production-milestone-not-a-launch-detail.md`](./platform-certification-is-a-production-milestone-not-a-launch-detail.md) | Absolute rule | Console or platform launch planning — add a Certification Ready milestone 4–6 weeks pre-launch. |
+| [`store-page-conversion-rate-is-the-pre-install-funnel.md`](./store-page-conversion-rate-is-the-pre-install-funnel.md) | Primary diagnostic | Mobile store page conversion below 25% organic — run icon/screenshot A/B before other interventions. |
+| [`build-pipeline-reliability-is-a-production-metric-not-a-devops-footnote.md`](./build-pipeline-reliability-is-a-production-metric-not-a-devops-footnote.md) | Pattern | Any sprint review — track build success rate and MTTG alongside milestone burndown. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

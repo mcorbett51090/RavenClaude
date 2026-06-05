@@ -6,7 +6,7 @@ Named, citable rules for the `freight-forwarding-sales` plugin's 6 specialist ag
 
 ## Index
 
-_10 rules._
+_20 rules._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -20,6 +20,16 @@ _10 rules._
 | [`qbr-leads-with-customer-outcomes-not-forwarder-activity.md`](./qbr-leads-with-customer-outcomes-not-forwarder-activity.md) | Absolute rule | Every quarterly business review preparation and execution. |
 | [`prospecting-message-must-include-a-lane-specific-hook.md`](./prospecting-message-must-include-a-lane-specific-hook.md) | Absolute rule | Every cold or warm prospecting outreach email or LinkedIn message. |
 | [`service-failure-response-is-a-sales-event.md`](./service-failure-response-is-a-sales-event.md) | Pattern | Any operational exception — delay, damage, customs hold — on an active account. |
+| [`multi-thread-every-key-account.md`](./multi-thread-every-key-account.md) | Absolute rule | Account planning for any key account — before the single contact departs. |
+| [`tender-deadlines-are-hard-stops.md`](./tender-deadlines-are-hard-stops.md) | Absolute rule | Every RFQ / tender accepted for bidding — reverse-plan from the deadline immediately. |
+| [`always-name-the-validity-date.md`](./always-name-the-validity-date.md) | Absolute rule | Every quote — spot, contract, or proposal. No "until further notice." |
+| [`lcl-to-fcl-breakeven-must-be-calculated.md`](./lcl-to-fcl-breakeven-must-be-calculated.md) | Absolute rule | Any mode recommendation for an ocean shipment above 8 CBM. |
+| [`next-step-is-a-date-not-a-direction.md`](./next-step-is-a-date-not-a-direction.md) | Absolute rule | Every CRM opportunity update and pipeline review — next step must be a date + action + owner. |
+| [`ocean-surcharge-stack-is-not-optional-disclosure.md`](./ocean-surcharge-stack-is-not-optional-disclosure.md) | Absolute rule | Every ocean FCL/LCL quote — disclose the full named surcharge stack before the customer signs. |
+| [`whitespace-analysis-at-every-qbr.md`](./whitespace-analysis-at-every-qbr.md) | Absolute rule | Every quarterly business review — map what the customer moves vs what you handle. |
+| [`air-volumetric-divisor-must-match-the-carrier.md`](./air-volumetric-divisor-must-match-the-carrier.md) | Absolute rule | Every air freight quote — confirm the carrier-specific volumetric divisor before calculating chargeable weight. |
+| [`competitor-intel-is-a-systematic-discipline.md`](./competitor-intel-is-a-systematic-discipline.md) | Pattern | Ongoing pipeline and tender preparation — maintain competitor cards, not just post-loss analysis. |
+| [`demurrage-and-detention-must-be-quoted-not-assumed.md`](./demurrage-and-detention-must-be-quoted-not-assumed.md) | Absolute rule | Every ocean FCL quote — state free-time days and D&D rate reference explicitly. |
 
 ---
 

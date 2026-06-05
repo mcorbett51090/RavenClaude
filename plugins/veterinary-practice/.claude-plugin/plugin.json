@@ -1,6 +1,6 @@
 {
   "name": "veterinary-practice",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Veterinary Practice specialist team \u2014 4 agents (vet-practice-lead, clinical-protocol-specialist, practice-operations-manager, vet-finance-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A clinical-and-practice-management team for a veterinary hospital owner or medical director \u2014 it builds standardized care protocols, runs the practice on production and ACT (average client transaction), manages the appointment-and-doctor capacity that gates revenue, and frames the independent-vs-corporate position in a fast-consolidating market. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"

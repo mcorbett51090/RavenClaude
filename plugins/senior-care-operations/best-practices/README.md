@@ -6,7 +6,7 @@ Named, citable rules for the `senior-care-operations` plugin's 4 specialist agen
 
 ## Index
 
-_18 rules. Each file is one named, citable rule._
+_20 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -28,6 +28,8 @@ _18 rules. Each file is one named, citable rule._
 | [`elopement-risk-management-is-the-highest-consequence-safety-protocol.md`](./elopement-risk-management-is-the-highest-consequence-safety-protocol.md) | Absolute rule | All communities with cognitively impaired residents — layered prevention with no exceptions. |
 | [`occupancy-rate-masks-unit-mix-problems-segment-it.md`](./occupancy-rate-masks-unit-mix-problems-segment-it.md) | Pattern | Monthly census review — report occupancy by care level and unit type, not only aggregate. |
 | [`food-service-quality-drives-both-satisfaction-scores-and-census.md`](./food-service-quality-drives-both-satisfaction-scores-and-census.md) | Pattern | Satisfaction scores declining or move-outs citing dissatisfaction — audit dining quality first. |
+| [`payer-mix-determines-margin-profile-track-it-separately-from-census.md`](./payer-mix-determines-margin-profile-track-it-separately-from-census.md) | Pattern | Monthly operations review; any margin investigation with flat occupancy; pro-forma budgeting. |
+| [`move-in-readiness-reduces-lead-time-and-increases-conversion.md`](./move-in-readiness-reduces-lead-time-and-increases-conversion.md) | Pattern | Census growth strategy; deposits-lost investigation; new sales director onboarding. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

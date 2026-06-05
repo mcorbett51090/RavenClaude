@@ -6,7 +6,7 @@ Named, citable rules for the `procurement-sourcing` plugin's 4 specialist agents
 
 ## Index
 
-_18 rules. Each file is one named, citable rule._
+_20 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -28,6 +28,8 @@ _18 rules. Each file is one named, citable rule._
 | [`supplier-scorecard-before-renewal.md`](./supplier-scorecard-before-renewal.md) | Absolute rule | Issue and score a supplier scorecard at least 90 days before every contract renewal decision — performance data, financial health, and a renewal decision tied to the score. |
 | [`tail-spend-has-a-strategy-not-just-a-tolerance.md`](./tail-spend-has-a-strategy-not-just-a-tolerance.md) | Pattern | Define an explicit tail-spend strategy — consolidation, p-card, catalog, or do-nothing — with a named owner and a target metric rather than simply tolerating the tail. |
 | [`tco-model-includes-switching-cost.md`](./tco-model-includes-switching-cost.md) | Absolute rule | Every TCO model comparing an incumbent to a challenger includes the one-time switching cost amortized over the contract term. |
+| [`payment-terms-are-a-working-capital-lever-not-just-a-contract-clause.md`](./payment-terms-are-a-working-capital-lever-not-just-a-contract-clause.md) | Pattern | Any sourcing event with material spend; annual contract renewals; working capital improvement programs. |
+| [`specification-rationalization-before-the-sourcing-event.md`](./specification-rationalization-before-the-sourcing-event.md) | Absolute rule | Before publishing any RFx — review specifications with the internal customer before market engagement. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

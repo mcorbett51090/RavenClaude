@@ -1,6 +1,6 @@
 {
   "name": "mobile-engineering",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Mobile-engineering team \u2014 4 agents (mobile-architect, ios-engineer, android-engineer, cross-platform-engineer) for native and cross-platform mobile apps: the native-vs-React-Native-vs-Flutter decision, iOS craft (Swift/SwiftUI, the app lifecycle, concurrency), Android craft (Kotlin/Jetpack Compose, lifecycle, coroutines), and the cross-cutting mobile concerns (offline-first + sync, secure on-device storage, push notifications/deep links, battery/network constraints, and the App Store / Play Store release pipeline + review). 4 skills, a decision-tree knowledge bank (platform-choice + offline-sync trees + a dated 2026 capability map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: shared web patterns -> frontend-engineering, the backend API -> api-engineering/backend-engineering, auth -> auth-identity, CI/CD signing -> devops-cicd. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"

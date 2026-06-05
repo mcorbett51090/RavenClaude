@@ -6,7 +6,7 @@ Named, citable rules for the `architecture-aec` plugin's 4 specialist agents and
 
 ## Index
 
-_18 rules. Each file is one named, citable rule._
+_20 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -28,6 +28,8 @@ _18 rules. Each file is one named, citable rule._
 | [`design-options-are-additional-services-not-iteration.md`](./design-options-are-additional-services-not-iteration.md) | Pattern | Any design-phase request for an alternative concept or study. |
 | [`site-observation-reports-protect-the-architect-of-record.md`](./site-observation-reports-protect-the-architect-of-record.md) | Absolute rule | Every site visit during construction administration. |
 | [`spec-sections-must-match-drawing-notes-not-diverge.md`](./spec-sections-must-match-drawing-notes-not-diverge.md) | Absolute rule | Every CD coordination review — spec-to-drawing consistency. |
+| [`subconsultant-scope-gaps-are-the-architects-liability.md`](./subconsultant-scope-gaps-are-the-architects-liability.md) | Absolute rule | Any multi-discipline project — define and document sub-scope interfaces before CDs begin. |
+| [`bid-alternates-are-scope-control-not-value-engineering.md`](./bid-alternates-are-scope-control-not-value-engineering.md) | Pattern | Any design-bid-build project — establish the alternate strategy at SD, not at 95% CDs. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

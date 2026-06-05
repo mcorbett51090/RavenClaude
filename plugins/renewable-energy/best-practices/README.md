@@ -6,7 +6,7 @@ Named, citable rules for the `renewable-energy` plugin's 4 specialist agents and
 
 ## Index
 
-_18 rules. Each file is one named, citable rule._
+_20 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -28,6 +28,8 @@ _18 rules. Each file is one named, citable rule._
 | [`ppa-price-escalators-must-be-tested-against-long-run-wholesale-price-forecasts.md`](./ppa-price-escalators-must-be-tested-against-long-run-wholesale-price-forecasts.md) | Pattern | PPA structuring; offtake counterparty risk analysis. |
 | [`adder-stacking-under-ira-is-a-site-specific-calculation-not-a-generic-bonus.md`](./adder-stacking-under-ira-is-a-site-specific-calculation-not-a-generic-bonus.md) | Absolute rule | Any IRA-incentive-dependent pro-forma; development site screening. |
 | [`capacity-factor-and-availability-are-different-metrics-report-both.md`](./capacity-factor-and-availability-are-different-metrics-report-both.md) | Pattern | Asset performance reporting; O&M contract SLA review; investor reporting. |
+| [`energy-storage-dispatch-strategy-must-be-modeled-before-sizing.md`](./energy-storage-dispatch-strategy-must-be-modeled-before-sizing.md) | Absolute rule | Any project with battery storage — before equipment specification or pro-forma finalization. |
+| [`development-pipeline-is-a-portfolio-not-a-project.md`](./development-pipeline-is-a-portfolio-not-a-project.md) | Pattern | Development organizations with recurring project flow; quarterly pipeline review. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

@@ -6,7 +6,7 @@ Named, citable rules for the `skilled-trades-contracting` plugin's 4 specialist 
 
 ## Index
 
-_18 rules. Each file is one named, citable rule._
+_20 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -28,6 +28,8 @@ _18 rules. Each file is one named, citable rule._
 | [`warranty-call-tracking-is-a-quality-and-cost-control-system.md`](./warranty-call-tracking-is-a-quality-and-cost-control-system.md) | Pattern | Callback reduction program; technician quality review; job cost investigation. |
 | [`change-order-discipline-protects-margin-on-every-construction-job.md`](./change-order-discipline-protects-margin-on-every-construction-job.md) | Absolute rule | Any construction or new-install job; scope creep investigation. |
 | [`seasonal-demand-curves-shape-pricing-staffing-and-cash-flow-planning.md`](./seasonal-demand-curves-shape-pricing-staffing-and-cash-flow-planning.md) | Pattern | Annual business planning; staffing decisions; cash-flow forecasting. |
+| [`service-agreement-renewal-rate-is-a-leading-revenue-and-margin-indicator.md`](./service-agreement-renewal-rate-is-a-leading-revenue-and-margin-indicator.md) | Pattern | Monthly business review; recurring revenue strategy; customer retention analysis. |
+| [`parts-availability-at-the-truck-determines-first-time-fix-not-just-technician-skill.md`](./parts-availability-at-the-truck-determines-first-time-fix-not-just-technician-skill.md) | Pattern | First-time-fix rate below target; callback rate review; truck stock audit. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

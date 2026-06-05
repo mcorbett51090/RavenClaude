@@ -6,7 +6,7 @@ Named, citable rules for the `film-video-production` plugin's 4 specialist agent
 
 ## Index
 
-_18 rules. Each file is one named, citable rule._
+_20 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -28,6 +28,8 @@ _18 rules. Each file is one named, citable rule._
 | [`music-clearance-is-a-post-budget-line-not-a-hope.md`](./music-clearance-is-a-post-budget-line-not-a-hope.md) | Absolute rule | Any post budget build; any project using commercially recorded music. |
 | [`production-report-is-the-daily-legal-and-cost-record.md`](./production-report-is-the-daily-legal-and-cost-record.md) | Absolute rule | Any shoot-day review or cost-report engagement. |
 | [`turnaround-violations-compound-into-fatigue-and-liability.md`](./turnaround-violations-compound-into-fatigue-and-liability.md) | Absolute rule | Any schedule with consecutive shoot days; any turnaround-compliance review. |
+| [`second-unit-scope-must-be-locked-before-principal-photography-ends.md`](./second-unit-scope-must-be-locked-before-principal-photography-ends.md) | Absolute rule | Any project with planned second unit — define the shot list and budget before principal photography begins. |
+| [`payroll-tax-and-fringe-are-a-budget-line-not-a-rounding-error.md`](./payroll-tax-and-fringe-are-a-budget-line-not-a-rounding-error.md) | Absolute rule | Any below-the-line budget build — model payroll tax and fringe as a named percentage, not a final-line adjustment. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

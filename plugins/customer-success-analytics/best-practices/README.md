@@ -6,7 +6,7 @@ Named, citable rules for the `customer-success-analytics` plugin's specialists. 
 
 ## Index
 
-_11 rules._
+_20 rules._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -21,6 +21,15 @@ _11 rules._
 | [`no-raw-collaboration-message-bodies-in-the-warehouse.md`](./no-raw-collaboration-message-bodies-in-the-warehouse.md) | Absolute rule | Designing a collaboration-signal ingestion pattern — always derive, never land raw bodies. |
 | [`the-acceptance-test-is-a-sort-not-a-slide.md`](./the-acceptance-test-is-a-sort-not-a-slide.md) | Absolute rule | Accepting a health model as ready for production — the sort test is the operative criterion. |
 | [`identity-resolution-is-upstream-never-reimplement-it.md`](./identity-resolution-is-upstream-never-reimplement-it.md) | Absolute rule | Joining source systems in the mart layer — always consume the xref spine, never reimplement the matcher. |
+| [`back-test-signals-before-adding-to-tier-rule.md`](./back-test-signals-before-adding-to-tier-rule.md) | Absolute rule | A candidate signal is proposed for the health tier rule before any back-test has been run. |
+| [`expansion-tier-is-separate-from-churn-risk-tier.md`](./expansion-tier-is-separate-from-churn-risk-tier.md) | Absolute rule | Designing or reviewing a CS health mart that combines risk and opportunity in one composite. |
+| [`data-pipeline-freshness-before-alarm.md`](./data-pipeline-freshness-before-alarm.md) | Primary diagnostic | A health score drops suddenly — verify pipeline freshness before triggering a CS action. |
+| [`segment-overrides-before-global-threshold-changes.md`](./segment-overrides-before-global-threshold-changes.md) | Pattern | False-Red rate is high and the over-flagged accounts are concentrated in one segment. |
+| [`champion-silence-is-a-first-class-churn-signal.md`](./champion-silence-is-a-first-class-churn-signal.md) | Pattern | Designing the signal set for a CS health tier — champion presence is not optional enrichment. |
+| [`retune-the-tier-after-every-renewal-cycle.md`](./retune-the-tier-after-every-renewal-cycle.md) | Absolute rule | A full renewal cycle has completed — retune thresholds against the new outcome data. |
+| [`domain-layer-hands-contract-to-data-platform-does-not-build-it.md`](./domain-layer-hands-contract-to-data-platform-does-not-build-it.md) | Absolute rule | Any CS analytics work item — classify as domain or technical before assigning. |
+| [`pii-signals-require-security-reviewer-before-landing.md`](./pii-signals-require-security-reviewer-before-landing.md) | Absolute rule | Any signal source that may contain NPS verbatims, ticket bodies, or collaboration message content. |
+| [`minimum-five-signals-maximum-seven-for-a-phase-one-tier.md`](./minimum-five-signals-maximum-seven-for-a-phase-one-tier.md) | Pattern | Selecting signals for a phase-one health tier — enforce the 5-7 signal discipline. |
 
 ---
 

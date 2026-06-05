@@ -6,7 +6,7 @@ Named, citable rules for the `restaurant-operations` plugin's 4 specialist agent
 
 ## Index
 
-_18 rules. Each file is one named, citable rule._
+_20 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -28,6 +28,8 @@ _18 rules. Each file is one named, citable rule._
 | [`occupancy-cost-is-the-fixed-ceiling-that-frames-every-unit-decision.md`](./occupancy-cost-is-the-fixed-ceiling-that-frames-every-unit-decision.md) | Pattern | Any turnaround analysis; new-unit feasibility; lease renewal. |
 | [`delivery-channel-economics-must-be-modeled-separately-from-dine-in.md`](./delivery-channel-economics-must-be-modeled-separately-from-dine-in.md) | Absolute rule | Any unit with material third-party delivery volume. |
 | [`employee-turnover-cost-is-a-labor-line-item-not-an-hr-problem.md`](./employee-turnover-cost-is-a-labor-line-item-not-an-hr-problem.md) | Pattern | High turnover; evaluating retention investments; four-wall labor review. |
+| [`waste-tracking-closes-the-gap-between-actual-and-theoretical-food-cost.md`](./waste-tracking-closes-the-gap-between-actual-and-theoretical-food-cost.md) | Absolute rule | Any food-cost investigation; persistent actual-vs-theoretical gap; GM onboarding. |
+| [`daypart-mix-shift-changes-prime-cost-even-when-total-sales-are-flat.md`](./daypart-mix-shift-changes-prime-cost-even-when-total-sales-are-flat.md) | Primary diagnostic | Prime cost rising with flat sales; multi-unit variance analysis; period-over-period P&L review. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

@@ -6,7 +6,7 @@ Named, citable rules for the `dental-practice` plugin's 4 specialist agents and 
 
 ## Index
 
-_18 rules. Each file is one named, citable rule._
+_20 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -28,6 +28,8 @@ _18 rules. Each file is one named, citable rule._
 | [`insurance-verification-before-appointment-prevents-the-most-common-collection-failure.md`](./insurance-verification-before-appointment-prevents-the-most-common-collection-failure.md) | Absolute rule | All insurance-accepting practices — verify before every appointment, not at checkout. |
 | [`unscheduled-treatment-in-the-patient-base-is-the-fastest-production-lever.md`](./unscheduled-treatment-in-the-patient-base-is-the-fastest-production-lever.md) | Pattern | Production growth needed — work the existing patient base before acquiring new patients. |
 | [`recall-reappointment-rate-is-the-hygiene-departments-retention-score.md`](./recall-reappointment-rate-is-the-hygiene-departments-retention-score.md) | Pattern | Hygiene schedule has open slots or active-patient count is declining. |
+| [`morning-huddle-is-the-days-production-pre-flight.md`](./morning-huddle-is-the-days-production-pre-flight.md) | Pattern | Every production morning — run a structured 15-minute pre-flight before patients arrive. |
+| [`broken-appointment-rate-is-the-schedule-efficiency-warning.md`](./broken-appointment-rate-is-the-schedule-efficiency-warning.md) | Primary diagnostic | Broken appointment rate exceeds 5% — diagnose confirmation workflow before over-booking. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

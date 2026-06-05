@@ -6,7 +6,7 @@ Named, citable rules for the `precision-agriculture` plugin's 4 specialist agent
 
 ## Index
 
-_18 rules. Each file is one named, citable rule._
+_20 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -28,6 +28,8 @@ _18 rules. Each file is one named, citable rule._
 | [`cash-rent-per-acre-must-be-tested-against-expected-margin-not-just-competition.md`](./cash-rent-per-acre-must-be-tested-against-expected-margin-not-just-competition.md) | Absolute rule | Any land tenancy decision; lease renewal; farm expansion analysis. |
 | [`tile-drainage-roi-is-field-specific-and-quantifiable-before-installation.md`](./tile-drainage-roi-is-field-specific-and-quantifiable-before-installation.md) | Pattern | Drainage investment decision; capital expenditure prioritization. |
 | [`crop-insurance-selection-requires-aph-accuracy-before-coverage-selection.md`](./crop-insurance-selection-requires-aph-accuracy-before-coverage-selection.md) | Absolute rule | Annual crop insurance renewal; APH review; risk management planning. |
+| [`nutrient-removal-rate-anchors-the-fertility-budget-not-history.md`](./nutrient-removal-rate-anchors-the-fertility-budget-not-history.md) | Absolute rule | Any fertility budgeting or pre-season input planning; soil-test interpretation. |
+| [`yield-map-cleaning-precedes-zone-delineation.md`](./yield-map-cleaning-precedes-zone-delineation.md) | Absolute rule | Any management-zone delineation or VR prescription work using yield-monitor data. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

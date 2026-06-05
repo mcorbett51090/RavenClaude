@@ -278,3 +278,39 @@ flowchart TD
 | Medium (material + hook) | Sequence within 2 weeks | Medium | Medium |
 | Low (no hook available) | Research, then sequence | Low upfront | Low until hook found |
 | Deprioritize | Long-list, no active outreach | Near-zero | Low until network match |
+
+---
+
+## Decision Tree: Quote delivery method — email, portal, or in-person presentation?
+
+**When this applies:** A quote or tender response is ready to submit and the seller must choose the delivery method. Observable entry: a completed all-in quote sheet or RFQ response pack exists and the next question is how to put it in front of the customer to maximise conversion probability.
+
+**Last verified:** 2026-06-05 against standard freight-forwarding commercial practice and the `rfq-tender-strategist` agent constitution.
+
+```mermaid
+flowchart TD
+    START[Quote ready to deliver] --> Q1{Is this a formal tender with a specified submission method?}
+    Q1 -->|YES - portal, email, or physical specified by customer| COMPLY[Follow the tender instructions exactly - no deviation allowed]
+    Q1 -->|NO - informal quote or spot request| Q2{Is the annual contract value above your key-account threshold?}
+    Q2 -->|YES - strategic or high-value| Q3{Is the customer reachable for a short walkthrough call?}
+    Q3 -->|YES - call or meeting available| PRESENT[Deliver via call or meeting - walk the quote live; handle objections in real time]
+    Q3 -->|NO - customer is time-pressured or remote| EMAIL_FOLLOWUP[Send by email with a clear summary email - then call within 4 hours to confirm receipt and offer to walk through]
+    Q2 -->|NO - transactional or spot| Q4{Did the customer explicitly request a portal submission or a specific format?}
+    Q4 -->|YES - format specified| COMPLY
+    Q4 -->|NO - no format specified| EMAIL_CLEAN[Send by email - clear subject line, all-in summary in the body, full quote sheet attached]
+```
+
+**Rationale per leaf:**
+- *Follow tender instructions* — non-compliance with a submission method disqualifies the bid regardless of price or quality; this is a hard rule with no exceptions.
+- *Present live* — a strategic, high-value quote delivered in a walkthrough call allows the seller to explain the value narrative, address scope questions immediately, and handle the "your rate is higher" objection before it becomes a written rejection.
+- *Email with rapid follow-up* — when a live walk-through is not possible for a high-value account, an email alone is insufficient; a follow-up call within 4 hours confirms the customer has received it and opens the door to a verbal explanation.
+- *Clean email for transactional* — spot and transactional accounts expect a quick, clear email with the all-in rate prominent in the body and the full sheet attached; no meeting needed.
+
+**Tradeoffs summary:**
+
+| Method | Conversion advantage | Effort | Best for |
+|---|---|---|---|
+| Live walk-through (call or meeting) | Highest — real-time objection handling | High | Strategic accounts, high-value RFQs |
+| Email with follow-up call | Medium — asynchronous but personal | Medium | High-value when meeting is unavailable |
+| Portal submission | Compliant — required for formal tenders | Variable | Any formal tender with specified method |
+| Clean email only | Lowest | Low | Transactional and spot accounts |

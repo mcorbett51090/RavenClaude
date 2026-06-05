@@ -6,7 +6,7 @@ Named, citable rules for the `staffing-operations` plugin's six specialist agent
 
 ## Index
 
-_17 rules. Each file is one named, citable rule._
+_20 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -27,6 +27,9 @@ _17 rules. Each file is one named, citable rule._
 | [`competitive-positioning-requires-segment-level-not-portfolio-level-analysis.md`](./competitive-positioning-requires-segment-level-not-portfolio-level-analysis.md) | Absolute rule | Any competitive analysis, market brief, or positioning deliverable. |
 | [`idea-compliance-is-a-fill-rate-kpi-not-a-legal-department-issue.md`](./idea-compliance-is-a-fill-rate-kpi-not-a-legal-department-issue.md) | Pattern | Any school-based staffing operations review or scorecard. |
 | [`msp-vms-tier-performance-is-a-separate-analytics-track.md`](./msp-vms-tier-performance-is-a-separate-analytics-track.md) | Pattern | Any firm with MSP/VMS-channeled volume — separate from direct-client reporting. |
+| [`aged-req-is-a-demand-signal-not-a-recruiter-signal.md`](./aged-req-is-a-demand-signal-not-a-recruiter-signal.md) | Primary diagnostic | Any aged-req review or recruiter-performance conversation where unfilled orders are involved. |
+| [`travel-rate-normalization-is-a-planning-assumption-not-a-footnote.md`](./travel-rate-normalization-is-a-planning-assumption-not-a-footnote.md) | Pattern | Any travel-healthcare revenue forecast, spread analysis, or competitive pricing deliverable. |
+| [`gross-to-net-revenue-reconciliation-before-any-margin-call.md`](./gross-to-net-revenue-reconciliation-before-any-margin-call.md) | Primary diagnostic | Any margin analysis, cross-firm comparison, or recruiter-productivity calculation in a segment with passthroughs (travel, per-diem). |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

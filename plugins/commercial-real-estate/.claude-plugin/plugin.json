@@ -1,6 +1,6 @@
 {
   "name": "commercial-real-estate",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Commercial Real Estate specialist team \u2014 4 agents (cre-engagement-lead, acquisitions-underwriter, asset-property-manager, cre-market-analyst), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An acquisitions-and-asset-management team for a CRE owner, operator, or advisor \u2014 it underwrites a deal to in-place NOI, prices the cap-rate-vs-Treasury spread, reads the bifurcated vacancy, decomposes net effective rent, and stress-tests the debt and refinance wall before a board sees the IC memo. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"

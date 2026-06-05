@@ -6,7 +6,7 @@ Named, citable rules for the `medical-revenue-cycle` plugin's 4 specialist agent
 
 ## Index
 
-_18 rules. Each file is one named, citable rule._
+_20 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -28,6 +28,8 @@ _18 rules. Each file is one named, citable rule._
 | [`timely-filing-deadlines-are-hard-stops-not-soft-targets.md`](./timely-filing-deadlines-are-hard-stops-not-soft-targets.md) | Absolute rule | All claims — monitor age vs. payer deadline; file before the window closes. |
 | [`provider-credentialing-gaps-produce-claims-that-cannot-be-paid.md`](./provider-credentialing-gaps-produce-claims-that-cannot-be-paid.md) | Absolute rule | New provider onboarding — begin credentialing 90+ days before start date. |
 | [`write-off-discipline-separates-contractual-adjustments-from-bad-debt.md`](./write-off-discipline-separates-contractual-adjustments-from-bad-debt.md) | Pattern | Monthly RCM review — categorize and authorize write-offs to keep NCR calculation clean. |
+| [`payer-mix-shifts-change-the-effective-yield-before-volume-changes.md`](./payer-mix-shifts-change-the-effective-yield-before-volume-changes.md) | Primary diagnostic | Net collections declining without obvious billing failure — check payer mix shift first before diagnosing billing operations. |
+| [`credit-balance-resolution-is-a-compliance-obligation-not-a-cleanup-task.md`](./credit-balance-resolution-is-a-compliance-obligation-not-a-cleanup-task.md) | Absolute rule | Any Medicare/Medicaid overpayment identified — 60-day repayment deadline is an FCA obligation, not a performance target. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

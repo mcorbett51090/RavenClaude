@@ -6,7 +6,7 @@ Named, citable rules for the `veterinary-practice` plugin's 4 specialist agents 
 
 ## Index
 
-_18 rules. Each file is one named, citable rule._
+_20 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -28,6 +28,8 @@ _18 rules. Each file is one named, citable rule._
 | [`client-retention-rate-is-the-leading-indicator-of-practice-health.md`](./client-retention-rate-is-the-leading-indicator-of-practice-health.md) | Primary diagnostic | Revenue flat despite stable new-client flow — diagnose retention before adding marketing spend. |
 | [`inventory-shrink-and-controlled-waste-are-margin-line-items.md`](./inventory-shrink-and-controlled-waste-are-margin-line-items.md) | Pattern | Pharmacy cost percentage is high or unexplained — run monthly inventory reconciliation. |
 | [`associate-dvm-onboarding-sets-the-production-trajectory.md`](./associate-dvm-onboarding-sets-the-production-trajectory.md) | Pattern | New associate joining — structured 90-day onboarding before full schedule. |
+| [`fee-schedule-review-is-annual-not-when-costs-force-it.md`](./fee-schedule-review-is-annual-not-when-costs-force-it.md) | Absolute rule | Annual operations calendar; any margin investigation; prior fee increase > 18 months ago. |
+| [`new-client-acquisition-cost-must-be-tracked-against-lifetime-value.md`](./new-client-acquisition-cost-must-be-tracked-against-lifetime-value.md) | Pattern | Marketing budget review; new-client growth strategy; CAC:LTV analysis. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

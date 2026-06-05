@@ -6,7 +6,7 @@ Named, citable rules for the `project-management` plugin's specialists (delivery
 
 ## Index
 
-_13 rules. Each file is one named, citable rule; read and apply it whole._
+_20 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -23,6 +23,13 @@ _13 rules. Each file is one named, citable rule; read and apply it whole._
 | [`issue-triage-before-escalation.md`](./issue-triage-before-escalation.md) | Pattern | When an issue surfaces — triage impact, urgency, and authority before escalating; untriaged escalations are noise, un-escalated high-impact issues are blockers. |
 | [`velocity-is-descriptive-not-a-target.md`](./velocity-is-descriptive-not-a-target.md) | Pattern | Reviewing agile team metrics — velocity is a forecasting input, not a performance target; pressure to increase it inflates estimates and destroys the signal. |
 | [`hybrid-reconcile-every-cycle.md`](./hybrid-reconcile-every-cycle.md) | Absolute rule | End of every sprint on a hybrid project — reconcile the outer baseline against inner velocity; divergence without acknowledgment is the leading hybrid failure mode. |
+| [`pre-wire-before-the-steering-meeting.md`](./pre-wire-before-the-steering-meeting.md) | Absolute rule | Any steering meeting containing a decision, a Red RAG, or a change request — pre-wire with the sponsor at least 48 hours before. |
+| [`wbs-decomposes-to-work-packages-not-activities.md`](./wbs-decomposes-to-work-packages-not-activities.md) | Absolute rule | Building a predictive WBS — stop decomposition at single-owner, verifiable work packages; activities belong in the schedule. |
+| [`critical-path-is-the-schedule-not-the-wishlist.md`](./critical-path-is-the-schedule-not-the-wishlist.md) | Absolute rule | Predictive schedule management — identify, communicate, and protect the critical path; every task is not equally important to the end date. |
+| [`risks-need-quantification-not-just-color.md`](./risks-need-quantification-not-just-color.md) | Pattern | Risk register reviews and contingency reserve setting — calculate EMV for every high-scored risk; a colour is not a decision. |
+| [`definition-of-done-is-written-not-assumed.md`](./definition-of-done-is-written-not-assumed.md) | Absolute rule | Agile delivery — agree and write the DoD before the first sprint; shared understanding of "done" cannot be assumed. |
+| [`assumptions-must-be-logged-and-owned.md`](./assumptions-must-be-logged-and-owned.md) | Absolute rule | RAID management — every planning assumption must be logged with an owner and a validation date; an unlogged assumption is an unmanaged risk. |
+| [`close-the-project-formally.md`](./close-the-project-formally.md) | Pattern | Project end or phase gate — conduct a formal close-out: deliverable acceptance, RAID resolution, resource release, and lessons learned. |
 
 ---
 

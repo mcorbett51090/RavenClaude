@@ -116,3 +116,113 @@ flowchart TD
 | Default model / medium reasoning | 1x baseline | Lowest | Always first | Task is demonstrably hard tail |
 | Raise reasoning level | Moderate increase (verify-at-use) | Moderate increase | Quality gap on same model | Latency is the binding constraint |
 | Frontier model upgrade | Large increase (verify-at-use) | Higher | Hard tail; agentic runs | Task is scoped / prompt needs work |
+
+---
+
+## Decision Tree: Cross-ecosystem selection — Copilot vs Codex vs Grok
+
+**When this applies:** A developer has not committed to one AI coding ecosystem and needs help choosing between GitHub Copilot, OpenAI Codex, and xAI Grok for a specific task. Observable triggers: "which tool should I use?"; "is Copilot or Codex better for this?"; "I'm evaluating Grok for our team."
+
+**Last verified:** 2026-06-05 against `cross-tool-model-lineup-2026.md` (vendor-neutral methodology; surface coupling and availability facts carry `[verify-at-use]` markers).
+
+```mermaid
+flowchart TD
+    START[Developer needs to choose an AI coding ecosystem] --> Q1{Does the developer work primarily in an IDE with GitHub as the remote?}
+    Q1 -->|Yes - IDE plus GitHub workflow| Q2{Does the org need model policy controls or audit logs?}
+    Q2 -->|Yes - enterprise governance| COPILOT_ENT[GitHub Copilot Business or Enterprise - org model rules and audit log]
+    Q2 -->|No - individual or small team| COPILOT_PRO[GitHub Copilot Pro or Free - zero-friction IDE surface]
+    Q1 -->|No - terminal first or scripted CI runs| Q3{Does the task require an explicit reasoning-level dial?}
+    Q3 -->|Yes - quality-sensitive agentic run| CODEX[OpenAI Codex - reasoning-level dial is Codex-specific]
+    Q3 -->|No - API integration or custom pipeline| Q4{Is the developer building a custom integration or pipeline around an AI coding model?}
+    Q4 -->|Yes - API-first integration| GROK[xAI Grok API - evaluate current lineup verify-at-use]
+    Q4 -->|No - general terminal workflow| CODEX
+```
+
+**Rationale per leaf:**
+- *Copilot Enterprise/Business* — org-level model rules, audit logs, and GHEC integration are exclusive to these tiers; they are the right choice when governance is a requirement.
+- *Copilot Pro/Free* — the lowest-friction path for IDE-centric developers; zero configuration for VS Code + GitHub workflows.
+- *Codex with reasoning dial* — the explicit reasoning-level flag is Codex-specific; when task quality is the binding constraint and latency is not, Codex's reasoning dial is a meaningful differentiator.
+- *Grok API* — for developers building custom integrations, Grok's API is worth evaluating; verify the current lineup and surface availability before committing `[verify-at-use]`.
+
+**Tradeoffs summary:**
+
+| Option | Surface fit | Reasoning dial | Org governance | Use when |
+|---|---|---|---|---|
+| Copilot Enterprise/Business | IDE + GitHub | No | Yes | Enterprise with policy requirements |
+| Copilot Pro/Free | IDE + GitHub | No | No | Individual; IDE-centric workflow |
+| Codex | Terminal + API | Yes | Org settings | Quality-critical; agentic; CI scripting |
+| Grok API | API | No | API key only | Custom integrations; API-first pipeline |
+
+---
+
+## Decision Tree: Agentic run blast-radius — model tier and gate requirement
+
+**When this applies:** An autonomous AI coding agent run is being planned and the developer needs to determine the appropriate model tier and human-gate requirement based on the task's blast radius. Observable triggers: "I want to run Copilot agent on this"; "should I use the frontier model for this agentic task?"; "do I need approval before this runs?"
+
+**Last verified:** 2026-06-05 against `cross-tool-model-lineup-2026.md` and the coding-agent-task-scoping skill.
+
+```mermaid
+flowchart TD
+    START[Agentic run is being planned] --> Q1{Does the run involve DB writes - deploy triggers - secret rotation - or force-push?}
+    Q1 -->|Yes - any of these| HIGH_BLAST[HIGH BLAST - frontier tier mandatory - human gate required before run and at each irreversible step]
+    Q1 -->|No| Q2{Does the run open a PR or modify the test suite?}
+    Q2 -->|Yes - PR or test changes| Q3{Is the scope envelope explicitly defined - files allowed and excluded?}
+    Q3 -->|No - open-ended scope| SCOPE_FIRST[Define scope envelope first - return to this tree after scoping]
+    Q3 -->|Yes - scope is defined| MED_BLAST[MEDIUM BLAST - balanced default or raised reasoning - PR review is the gate]
+    Q2 -->|No - local files only reversible| Q4{Is the context demand High or Very High?}
+    Q4 -->|Yes - large codebase or long run| CHECK_CONTEXT[Check context-window-planning skill - chunk if feasible before upgrading tier]
+    Q4 -->|No - bounded local change| LOW_BLAST[LOW BLAST - balanced default tier - no gate required]
+```
+
+**Rationale per leaf:**
+- *High Blast* — irreversible production actions require the model with the highest reasoning quality and a human gate; cost is secondary to the risk of a wrong action.
+- *Define scope first* — a medium-blast run without a defined scope envelope is a high-blast run in disguise; scoping must precede model selection.
+- *Medium Blast* — PR-opened runs are recoverable (close the PR); the balanced default tier is sufficient for most; raise reasoning if the scope is complex.
+- *Check context demand* — a large-codebase run may need chunking before model-tier selection; chunking is cheaper than frontier and produces more debuggable output.
+- *Low Blast* — bounded, local, reversible runs: the balanced default tier is the right choice; no gate required.
+
+**Tradeoffs summary:**
+
+| Blast class | Model tier | Gate required | Scope requirement | Use when |
+|---|---|---|---|---|
+| High | Frontier | Yes — human before and during | Mandatory | DB writes, deploys, secrets, force-push |
+| Medium | Balanced or raised reasoning | PR review | Required | PR opened, test suite modified |
+| Low | Balanced default | None | Recommended | Local files only, reversible |
+
+---
+
+## Decision Tree: Org model policy conflict — Copilot model blocked or unavailable
+
+**When this applies:** A developer reports that a recommended Copilot model is not available in their picker, even though it appears in the verified lineup for their surface and plan. Observable triggers: "I'm on Enterprise but model X isn't in my picker"; "my org IT blocked this model"; "I can see the model on the docs but not in VS Code."
+
+**Last verified:** 2026-06-05 against `cross-tool-model-lineup-2026.md` Copilot org policy section `[verify-at-use]`.
+
+```mermaid
+flowchart TD
+    START[Model not appearing in Copilot picker] --> Q1{Is the model in the verified lineup for this plan and surface?}
+    Q1 -->|No - not in lineup| CLOSED_WORLD[Closed-world - model not verified for this plan or surface - offer to research]
+    Q1 -->|Yes - in verified lineup| Q2{Is the developer on Business or Enterprise plan?}
+    Q2 -->|No - Free or Pro| Q3{Is the Free-tier sub-list the issue?}
+    Q3 -->|Yes - Free sub-list gap| FREE_GATE[Model requires Pro or above - explain plan gate]
+    Q3 -->|No - Pro and model not showing| CACHE[Suggest IDE refresh or sign-out and sign-in - picker can lag after model additions]
+    Q2 -->|Yes - Business or Enterprise| Q4{Has the org admin applied a model rules policy?}
+    Q4 -->|Yes - deny list or allow list active| POLICY_BLOCK[Org model rules are blocking the model - escalate to org admin - security-reviewer if compliance concern]
+    Q4 -->|No policy or unknown| SUPPORT[Verify plan and surface in account settings - if confirmed correct contact GitHub Support]
+```
+
+**Rationale per leaf:**
+- *Closed-world* — if the model is not in the verified lineup for this surface and plan, the absence may be intentional; do not confirm availability.
+- *Free-tier sub-list* — the Free picker is narrower than the Pro picker; this is the most common source of "I can't find the model" on Free plans.
+- *Cache/refresh* — picker contents are fetched from GitHub servers; a model recently added may require a sign-out and sign-in to appear.
+- *Org model rules* — Business and Enterprise org admins can apply allow-lists or deny-lists; escalate to the org admin with specifics, and escalate to security-reviewer if the block appears compliance-related.
+- *Support* — if plan and surface are confirmed correct and no policy blocks are found, the issue is a GitHub Support case; document the exact model id and surface for the report.
+
+**Tradeoffs summary:**
+
+| Root cause | Fix effort | Who resolves | Escalation needed? |
+|---|---|---|---|
+| Not in lineup | Research | Agent + researcher | Optional |
+| Free-tier gate | Minutes — plan explanation | Agent | No |
+| Pro picker cache lag | Minutes — IDE refresh | Developer | No |
+| Org model rules deny | Hours — admin policy change | Org admin | Yes if compliance |
+| Unknown — support case | Days | GitHub Support | No |

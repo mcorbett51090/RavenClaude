@@ -1,6 +1,6 @@
 {
   "name": "customer-success-analytics",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Customer-Success analytics team \u2014 2 specialist agents (cs-analytics-architect, churn-signal-analyst) that own the DOMAIN layer of a CS-health analytics build: the conformed account / health-snapshot / renewal data model, which signals compose the health view, and the transparent rule-based Green/Yellow/Red risk tier (every Red shows why) \u2014 no black-box ML in phase one. Domain-neutral: it sits on top of data-platform's pipeline/warehouse/connector layer (which it routes all plumbing to) rather than duplicating it. 2 skills (health-tier-design, renewal-workflow-design \u2014 generalized from the EdTech PSM lane into vertical-neutral form), a 2-doc knowledge bank (CS-health metrics + churn-leading indicators, renewal & account lifecycle), and a code-fenced cs-health-data-model template whose identity-resolution spine points at data-platform. Pairs with data-platform; seams to salesforce / tableau / edtech-partner-success. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"

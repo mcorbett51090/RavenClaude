@@ -6,7 +6,7 @@ Named, citable rules for the `nonprofit-fundraising` plugin's 4 specialist agent
 
 ## Index
 
-_18 rules. Each file is one named, citable rule._
+_20 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -28,6 +28,8 @@ _18 rules. Each file is one named, citable rule._
 | [`moves-management-is-a-documented-record-not-a-mental-model.md`](./moves-management-is-a-documented-record-not-a-mental-model.md) | Pattern | Tracking major-gift prospect cultivation — especially when staff transitions are a risk. |
 | [`events-have-a-donor-conversion-goal-not-just-a-revenue-goal.md`](./events-have-a-donor-conversion-goal-not-just-a-revenue-goal.md) | Pattern | Evaluating a fundraising event's ROI and strategic value. |
 | [`mid-level-donors-are-the-underfunded-segment-in-most-shops.md`](./mid-level-donors-are-the-underfunded-segment-in-most-shops.md) | Pattern | Designing the donor cultivation program when the mid-level band lacks a distinct strategy. |
+| [`donor-acknowledgment-within-48-hours-is-the-retention-floor.md`](./donor-acknowledgment-within-48-hours-is-the-retention-floor.md) | Absolute rule | Every gift received — acknowledge within 48 hours; measure acknowledgment timeliness as a retention metric. |
+| [`grant-pipeline-is-a-12-month-calendar-not-a-list-of-applications.md`](./grant-pipeline-is-a-12-month-calendar-not-a-list-of-applications.md) | Pattern | Any grants-dependent development program — manage the pipeline as a probability-weighted 12-month calendar. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.
