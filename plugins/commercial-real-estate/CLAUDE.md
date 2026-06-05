@@ -66,7 +66,9 @@ The research-grounded reference the agents point to. Read the relevant file in f
 | [`knowledge/cre-kpi-glossary.md`](knowledge/cre-kpi-glossary.md) | CRE KPI & underwriting glossary |
 | [`knowledge/cre-underwriting-economics.md`](knowledge/cre-underwriting-economics.md) | CRE underwriting economics |
 | [`knowledge/cre-market-trends-2026.md`](knowledge/cre-market-trends-2026.md) | CRE market trends (2025–2026) |
-| [`knowledge/cre-decision-trees.md`](knowledge/cre-decision-trees.md) | CRE decision trees |
+| [`knowledge/cre-decision-trees.md`](knowledge/cre-decision-trees.md) | CRE decision trees (skill/specialist router + lease-rollover, acquisition-retrade, asset-plan-priority Mermaid trees) |
+| [`knowledge/cre-hold-sell-refi-decision-tree.md`](knowledge/cre-hold-sell-refi-decision-tree.md) | **Mermaid** — sell vs refinance-and-hold vs hold-unlevered at a cap-rate shift / loan maturity (exit-cap-sensitivity gate + refi-clearing binding-constraint test) |
+| [`knowledge/cre-lease-structure-nnn-vs-gross-decision-tree.md`](knowledge/cre-lease-structure-nnn-vs-gross-decision-tree.md) | **Mermaid** — NNN vs gross vs modified-gross expense-recovery structure (who bears opex growth + recovery-ratio recheck) |
 
 ---
 
@@ -106,6 +108,32 @@ The lead is [`cre-engagement-lead`](agents/cre-engagement-lead.md) — first con
 
 ---
 
-## 8. Milestones
+## 8. Scenarios bank & runnable tooling (added v0.2.0)
+
+- **Scenarios bank** — [`scenarios/`](scenarios/) holds dated, scope-tagged, unverified engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank or the house opinions (§3). Scenarios carry no client/tenant PII (§2). The most-likely-to-benefit specialists — `acquisitions-underwriter`, `asset-property-manager`, `cre-market-analyst` — should check the bank when a situation matches.
+- **Runnable calculator** — [`scripts/cre_calc.py`](scripts/cre_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from four recurring underwriting decisions: `noi-cap` (NOI build-up + going-in cap + price-at-target-cap + cap-rate-vs-Treasury spread), `debt-size` (loan sized by the *binding* of max-LTV / min-DSCR / min-debt-yield), `cash-on-cash` (levered first-year return on equity), `hold-vs-sell` (net sale proceeds + equity multiple + rough held return at an exit-cap shift). It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support, not investment/legal/tax advice (§2). Owned primarily by `acquisitions-underwriter`; `asset-property-manager` uses `noi-cap`/`hold-vs-sell` for the asset plan.
+
+## 9. Value-add completeness (build-out 2026-06-05)
+
+Every value-add menu item is dispositioned honestly below. CRE is a **pure non-code vertical** (investment / leasing / asset management) — several runtime-tier items are genuinely **N-A** because there is no code artifact, runtime, or repo to operate on, and forcing them would add noise, not value.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README index (added #315) now backed by 4 dated engagement scenarios: DSCR-breach-on-refi, NOI-erosion-opex-vs-vacancy, hold-vs-sell-at-cap-shift, lease-renewal-vs-retenant. |
+| Decision-tree (Mermaid) knowledge | **BUILT** | 2 new files (hold-sell-refi; lease-structure NNN-vs-gross) complementing the consolidated #315 trees (lease-rollover, acquisition-retrade, asset-plan-priority). |
+| Glossary / KPI reference | **SUFFICIENT (existing)** | `cre-kpi-glossary.md` + `cre-underwriting-economics.md` already cover the metric surface; no redundant new file this round. |
+| Runnable script (`scripts/`) | **BUILT** | `cre_calc.py` — `noi-cap` / `debt-size` / `cash-on-cash` / `hold-vs-sell`. `ruff check` clean. The one runtime item with real non-code value. |
+| Code-aware / bundled MCP server | **N-A** | No published, zero-config, PII-free CRE MCP server verified to exist; deal data lives in per-tenant, authenticated, PII-bearing systems (rent rolls, lease abstracts, lender portals) — bundling is out of scope per [`docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md). If a genuine live-data need ever surfaces it would be *recommend, evaluate-first*, never bundled. |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in an underwriting/asset-management advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/cre_calc.py`; no compiled/installed binary warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. |
+| output-styles / themes | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown IC memos / asset plans governed by the §6 Output Contract. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 5 skills, 1 advisory antipattern hook, 5 commands, 4 templates already cover the surface; no obvious high-value gap this round. The new trees + calculator extend reach without a new agent (team-growth-as-knowledge house rule). |
+| CHANGELOG.md | **BUILT** | Added with a top `0.2.0` entry. |
+| NOTICE.md | **N-A** | No third-party content is bundled (the calculator is original, stdlib-only; all sources are cited inline, not vendored). |
+
+## 10. Milestones
 
 - **v0.1.0** — initial release: 4 agents, 5 skills, 4 templates, 5 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 8 best-practice rules.
+- **v0.2.0** — non-code-vertical value-add build-out: scenarios bank (4 scenarios backing the #315 README index), 2 new Mermaid decision-tree knowledge files (hold-sell-refi; lease-structure NNN-vs-gross), `scripts/cre_calc.py` (4 modes), CHANGELOG. Code-runtime tier dispositioned N-A with reasons (§9).

@@ -97,7 +97,11 @@ The adoption-diagnostic-before-intervention discipline is in [`../templates/adop
 
 ## Decision-tree traversal (priors)
 
-When asked "the health score dropped — what should the PSM do?" — **your first answer is NOT a play.** Verify the score isn't drifting (see [`../knowledge/partner-health-score-drift.md`](../knowledge/partner-health-score-drift.md)); if the score is sound, point the PSM to the `## Decision Tree: Partner health decline — play selection` in [`../knowledge/partner-health-decline-which-play.md`](../knowledge/partner-health-decline-which-play.md) and confirm the signals it depends on are fresh in the dashboards you own. Do NOT suggest a remedy yourself.
+When asked "the health score dropped — what should the PSM do?" — **your first answer is NOT a play.** Verify the score isn't drifting (see [`../knowledge/partner-health-score-drift.md`](../knowledge/partner-health-score-drift.md)); if the score is sound, point the PSM to the `## Decision Tree: Partner health decline — play selection` in [`../knowledge/partner-health-decline-which-play.md`](../knowledge/partner-health-decline-which-play.md) and confirm the signals it depends on are fresh in the dashboards you own. Do NOT suggest a remedy yourself. When a **seat/license-utilization read comes back low**, traverse the `## Decision Tree: Adoption intervention — which lever for a low-utilization read` in [`../knowledge/adoption-and-expansion-decision-trees.md`](../knowledge/adoption-and-expansion-decision-trees.md) (rostering pre-flight before calling dead seats real); [`../scripts/psm_calc.py`](../scripts/psm_calc.py) `utilization` does the activation-rate + dead-seat + waste-proxy arithmetic.
+
+## Scenario retrieval (priors)
+
+Before answering an analytics-shaped question (a low-utilization read, a score that's drifting, an adoption signal that moved), glob [`../scenarios/*.md`](../scenarios/) and read the frontmatter of any file whose `tags` or `product` match. Surface up to 2-3 matches with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"). Scenarios are **secondary** to the cited knowledge bank and the canonical trees; never replace a `../knowledge/` answer or a FERPA judgment with one, and never elide the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
 
 ## Anti-patterns you flag
 - Health score with no defined decay (signal from a year ago counted the same as last week)
