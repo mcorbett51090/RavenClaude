@@ -86,6 +86,46 @@ Render gates / Gate 13 / Gate 97: **unchanged** — Phase 1 doesn't touch the fo
 | R7 | page weight grows | optional byte-budget gate (G-O6, P1) |
 | R8 | no-browser visual gap | local eyeball before merge; gates cover logic |
 
-## P0 / P1 recommendations (Panel 2 cold-review)
+## P0 / P1 recommendations (Panel 2 cold-review — tester-QA · PM · deep-researcher · UX)
 
-_(to be appended in Phase 5)_
+Panel 2 verified the plan's 7 load-bearing claims **all TRUE** (chrome-hide is folded-only and safe; render gates are CSS-engine-free so `display:none` can't break them; `__dashApp.show()`/`activate()` fallback, the phantom routes, the Gate-51 hardcoded ids, and `_strip_ts`'s 4 surfaces all confirmed at the cited lines). The gaps are in **completeness of the route contract, the served signal, and testability of the deferred-to-eyeball UI**. Consolidated, deduped:
+
+### P0 — must resolve before/within build
+
+- **P0-1 Alias the legacy *shell* top-level routes too, and repoint internal links.** The plan only aliased the *dashboard* sub-routes. But `#/marketplace #/configuration #/team #/resources` are emitted by **~15 in-shell `href=` call sites** (`_index_dashboard_template.py:606,607,789,862,879-881,1026,1090,1304-1312…`) **and** by `quick_actions[].route` in **`generate-index-dashboard.py:633,636`** (`#/configuration`, `#/marketplace`). Add aliases `marketplace→discover`, `configuration→configure`, `team→discover/specialists`, `resources→learn`, **and** repoint the call sites + quick-actions to the canonical new routes. (deep-researcher P0-1/P0-2)
+- **P0-2 Define the served-mode signal precisely — there is no shared one.** Served detection today is **three independent per-card HEAD probes inside the folded sub-app** (`generate-dashboards.py:7278/7725/7887`), none exposed on `window.__dashApp`; `location.hostname==="127.0.0.1"` *disagrees* with them (LAN IP served, or `python -m http.server` on localhost = static). Decision: **expose one served flag on `window.__dashApp`** (set from the sub-app's existing probe result) and have the shell banner read it — **no new shell probe, no CORS** (preserves the security invariant). (tester-QA P0-3, PM P0)
+- **P0-3 Specify the `resolveNavActive` return contract.** It must map a folded route → its owning **section id** (`heimdall→observe`), not the literal `"dashboard"` the rename deletes. Update Gate 51 `:139` accordingly. (tester-QA P0-1)
+- **P0-4 Decide `plugin-*` routing.** Today `payloadKind→"dashboard"→viewDashboard→hydratePluginPage` (`generate-dashboards.py:8106`); the plan moves plugin reference into the **shell** Discover (`__openPlugin`). Pick one and update `route()`: recommend **`#/plugin-<name>` becomes a shell route** → `__openPlugin` (rich reference), with "Configure variables →" still deep-linking to the dashboard editor. (tester-QA P0-2)
+- **P0-5 Gate the destination, not mere presence.** Gate 51's route check only asserts a route *string exists* in `DASH_SECTIONS_TEXT` (`check-shell-router.mjs:108`) — a route can be present yet resolve to the wrong section/sub-tab and stay green. Add a per-route **(section, sub-tab)** expectation table as the gated contract. (tester-QA P0-6)
+- **P0-6 Add structural coverage for the sub-nav + chrome-hide** (the parts deferred to "eyeball"). New `check-shell-subnav-render.mjs` (DOM-stub, house style, no new dep — mirrors the render gates) OR assertions in `check-shell-router.mjs`: assert a `role="tablist"` shell sub-nav with roving `tabindex` exists, and that `#dash-root .cat-bar, #dash-root .tab-bar { display:none }` is present. Without this, a keyboard-dead nav or a dropped chrome-hide ships green. (tester-QA P0-4)
+- **P0-7 Specify the must-fail mutations exactly.** NAV-rename must-fail must rename one of the **5 asserted** ids (a non-asserted-field mutation false-greens the meta-test). Phantom-route cross-check must regex-extract `data-tab="…"` from the `#dash-root` body and assert `DASH_SECTIONS − keys(DASH_TAB_ALIAS) ⊆ tabSet`. (tester-QA P0-5/A-G1)
+- **P0-8 `esc()` on every new Discover field** — `__openPlugin` already escapes (`_index_dashboard_template.py:1076-1110`); hold the line on any newly-surfaced field. Add a grep/regex check. (security G-S1, tester-QA P0-7)
+- **P0-9 Split into two PRs.** **Slice A** = NAV rename + full route-alias table (incl. P0-1) + Gate 51 update + must-fail — low-risk, reversible, gate-covered, *chromes stay visible*. **Slice B** = chrome-hide CSS + shell sub-nav + a11y roving + served banner + Discover merge. Clean revert boundary; A can land alone. (PM P0)
+- **P0-10 Deep-link active-state must be visible + asserted.** A legacy `#/heimdall` landing in Observe→Perimeter alerts must show the sub-nav item `aria-selected` + a `Observe › Perimeter alerts` breadcrumb; extend Gate/verification to assert the active-state, not just that content loads. (UX P0-3)
+- **P0-11 Banner command string + two labels.** Banner uses **`rc dashboard`** (fallback `python3 scripts/serve-dashboards.py`) — matches every existing empty-state; drop the plan's `bash scripts/open-dashboard.sh`. Sub-nav: **"Perimeter alerts"** (not "Perimeter"); **never ship bare "Posture"** (use tooltip or "Posture (autonomy)"). (UX P0-1/P0-2/P0-4)
+- **P0-12 DoD asserts ALL legacy routes round-trip** (the full `DASH_SECTIONS` set + shell aliases, not a sample of 8) and **update human-readable old-name references** (docs / SessionStart capability banner prose) in the same change — aliases fix URLs, not prose pointers. (PM P0)
+
+### P1 — should-fix
+
+- **Adopt the UX label/tooltip set** (UX): Discover=Plugins/Specialists/Use cases; Configure=Posture (autonomy)/Web access/**Review simulator**/Plugin variables; Observe=Run feed/**Perimeter alerts**/Security log/**Plugin lineage**/**Session state**/Review log; Learn=Concepts/Commands/**Decision trees**/Pipeline/Architecture/Install/About. Keep **no Norse name as a label** (parenthetical flavor only) — the plan's single biggest legibility win.
+- **Discover↔Learn rule** (UX): *Discover = "what can I get & which do I pick" (catalog/roster/per-agent reference you act on); Learn = "how it works & how to use it" (concepts/playbooks/install/architecture you read).* Per-plugin best-practices → Discover (attached to a plugin).
+- **Configure↔Observe rule** (UX): *Configure = change/try before it's real (write/simulate); Observe = read-only record of what happened.* Mirror the "Preview a review" / "Review log" tooltips ("now / dry-run / nothing saved" vs "saved / real / already happened").
+- **Distinguish two Observe empty-states** (UX): "needs served dashboard" (banner) vs "served but no data yet" (quiet) — the second must not read as broken.
+- Re-label chrome-hide+sub-nav+a11y as the **real bulk-of-work** (~1.5–2.5d, the no-browser-risk core), not a scaffold sub-bullet; add explicit **a11y acceptance criteria** (Tab-into-tablist-once, arrow roving, `aria-selected` tracks). (PM)
+- Resolve sub-tab **active-state** for `nidhoggr`/`sleipnir`/`settings`/`install`/`overview` (each legacy route needs one defined (section, sub-tab)); enumerate the exact `expectedDashboardRoutes`. (tester-QA, deep-researcher)
+- Discover git-dates must reuse the **identical** `Last updated</span> <code>…</code>` markup so `_strip_ts` (`generate-index-dashboard.py:763`) determinism holds; no `set`/`dict`-without-sort in new aggregations. (ops G-O4, tester-QA)
+- Fix the **stale "Gate 70" comment** inside `check-shell-router.mjs:17,21` during the Phase-2 edit. (deep-researcher P1-1)
+- Add **gjallarhorn-link** (`generate-dashboards.py:5987`, `href="#/heimdall"`) to the deep-link verification list. (deep-researcher P1-2)
+- Keep the **phantom-route cross-check mandatory** (not deprioritized next to the optional byte-budget gate). (deep-researcher P1-3)
+- Note that doc route-pointers (`check-runtime-state.md:23-25`, `CLAUDE.md:454`) are **preserved by the alias table** — no edit, don't flag as breaks. (deep-researcher P1-4)
+- Add to Verification: ⌘K/quick-actions/featured-combos route canonically; single-source "I want to…" table (rendered once, Home links); served-banner negative case (silent on localhost AND absent on Home/Discover/Learn); "regenerate index.html before running Gate 51 locally". (PM, tester-QA)
+- Confirm the **byte-budget gate (G-O6) is out of scope** here; disambiguate **which CLAUDE.md** (plugin) gets the milestone; confirm `.repo-layout.json` allows `index.html`. (PM, ops)
+
+### Net changes to the build plan (post-review)
+1. The route-alias table now covers **both** dashboard sub-routes **and** the 4 legacy shell top-level routes + the ~15 internal `href` sites + `quick_actions` (P0-1) — this was the plan's biggest blind spot.
+2. The served banner reads a **new `window.__dashApp` served flag** (P0-2), not `hostname` and not a new probe.
+3. `plugin-*` becomes a **shell** route → `__openPlugin` (P0-4).
+4. Gate work expands: destination-asserting route table, exact must-fail mutations, a sub-nav/chrome-hide structural gate, esc() check (P0-5/6/7/8).
+5. Ship as **two PRs** (rename+aliases, then chrome-collapse+sub-nav) (P0-9).
+6. Adopt the UX labels/tooltips/rules + `rc dashboard` banner copy (P0-11, P1s).
+
