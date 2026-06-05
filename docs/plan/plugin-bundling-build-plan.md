@@ -72,8 +72,13 @@
 
 ### WS3 — One referenced read-only MCP server — *gated, demand-pulled*
 
-- **T3.1 Demand gate.** Proceed only with a **logged consumer request** for executable
-  tools in the chosen plugin (not feature-FOMO). Record it in the PR description.
+- **T3.1 Demand gate.** ✅ **Resolved (maintainer decision, 2026-06-05): a maintainer-logged
+  request is sufficient** in this private single-maintainer marketplace. Proceed when the
+  maintainer records, in the WS3 ADR, a dated one-line rationale naming the *specific plugin +
+  the concrete agent task* the tools enable (e.g. "power-platform: let an agent evaluate DAX
+  against a .pbix live, not just describe the API"). This is intentionally self-attested — the
+  guard against feature-FOMO is the *named concrete task* (vanity if you can't name one), not an
+  external party. WS3/WS4 stay in scope. (Supersedes R-PM1's external-issue recommendation.)
 - **T3.2 Resolve Gate-25 interaction (ADR).** Decide: does a bundled server auto-add to
   `mcp.allowed_servers`, and if so does it bypass the write-deny? **Default stance:
   bundled servers are still subject to the allowlist; ship read-only verbs so the
@@ -178,11 +183,12 @@ The remaining must-fix items, in priority order:
   fixture **must be power-platform's real `plugin.json`** — if it can't pass on the precedent it
   claims to codify, it's testing the wrong thing.
 
-- **R-PM1 (project-manager) — The demand gate (T3.1) is self-attested hand-waving in a
-  single-maintainer market.** Make it falsifiable: require a linked GitHub issue **opened by a
-  non-maintainer account** (or a dated dashboard/usage signal) referenced *by number in the ADR*,
-  with a gate-checkable "author ≠ committer." If no such signal can exist yet, **cut WS3/WS4 to
-  "deferred until a second consumer exists"** rather than pretending a gate guards them.
+- **R-PM1 (project-manager) — The demand gate (T3.1) is self-attested.** ✅ **Resolved by
+  maintainer decision (2026-06-05): a maintainer-logged request is accepted as the signal**
+  (this is a private single-maintainer marketplace; an external-issue gate would never trigger).
+  WS3/WS4 stay in scope. The anti-FOMO discipline is preserved differently: the ADR must name
+  the **specific plugin + concrete agent task** the tools enable — if no concrete task can be
+  named, that *is* the FOMO signal to stop. (See updated T3.1.)
 
 - **R-PM2 (project-manager) — Add a hard stop-and-reassess off-ramp after WS2.** Declare
   **WS1 + WS2 the shippable v1**; WS3/WS4 are separately greenlit v2. Default after WS2 = STOP
