@@ -856,3 +856,23 @@ See `plugins/ravenclaude-core/rules/` and `hooks/` for current implementations. 
 - Integrated with existing strengths (hierarchical dispatch, Researcher, Grounding) for a more complete, production-grade system that consistently produces *ideal outputs*.
 
 These changes make RavenClaude agents even more reliable at creating high-quality, consistent, inspectable results while preserving the elegant multi-agent team structure.
+
+## Value-add completeness (build-out 2026-06-05)
+
+`ravenclaude-core` is the **load-bearing foundation plugin** — it already ships the Team Lead + 14 specialists, 35 skills, the hooks/scripts/rules/templates, the dashboard, the tribunal, and the three epistemic protocols. The one genuine value-add gap was that it shipped the `scenario-retrieval` **skill** but had **no scenarios bank of its own**. This build-out closes that gap with a small, domain-NEUTRAL orchestration bank and dispositions every other menu item honestly — most are **N-A** or **already-present** for a foundation plugin, and forcing them would add noise (a calculator, a bundled MCP, an output-style) that doesn't fit a domain-neutral orchestration layer.
+
+| Item | Disposition | Note |
+|---|---|---|
+| `scenarios/` bank | **BUILT** | 4 domain-neutral orchestration scenarios + [`scenarios/README.md`](scenarios/README.md): wrong-specialist routing (route-before-spawning), sub-agent recursion (orchestrator-worker guard), blocked-report-skipped-alternates (Capability Grounding), decision-routed-to-tribunal-not-human (decision-review envelope). Each teaches the plugin's **own** protocols, grounded in this constitution + best-practices; volatile/install-specific facts carry `[verify-at-use]`. |
+| `knowledge/` orchestration trees | **SUFFICIENT — none added** | [`knowledge/orchestration-decision-trees.md`](knowledge/orchestration-decision-trees.md) already carries 3 Mermaid trees (status-to-report, skill-vs-agent, session-start checks) and [`knowledge/agent-routing.md`](knowledge/agent-routing.md) carries the routing tree. The escalate-to-human-vs-tribunal and spawn-vs-escalate boundaries are covered by the constitution prose + the two new scenarios; adding a tree would duplicate, and a new `## Decision Tree:` section would trip the `render-trees.py` SVG gate. Disposition: don't add. |
+| Bundled MCP server | **N-A** | A domain-neutral orchestration layer has no code-aware data surface to bundle; MCP belongs to vertical plugins (and per `docs/best-practices/bundled-mcp-servers.md` would be recommend-and-evaluate, never bundled). The github MCP path is consumed, not shipped. |
+| LSP integration | **N-A** | No source language owned by an orchestration foundation. |
+| `bin/` executables | **N-A** | The plugin already ships `scripts/` (apply-comfort-posture, serve-dashboards, the tribunal engines); no compiled binary is warranted. |
+| Monitors / background jobs | **N-A** | The hook substrate (Heimdall/Víðarr/Norns readers, `hook-events.jsonl`) already covers observability; no long-running watcher to add. |
+| output-styles / themes | **N-A** | Output shape is governed by the Structured Output Protocol + the dashboard's themed SVGs; no per-style asset is warranted here. |
+| `settings.json` / permissions tuning | **ALREADY-PRESENT** | The comfort-posture system + `apply-comfort-posture.py` *is* the permission-tuning surface; nothing to add. |
+| Runnable calculator script | **N-A (deliberately not added)** | A calculator doesn't fit a domain-neutral foundation. The plugin's `scripts/` are orchestration engines, not arithmetic helpers — adding a calculator would be noise. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 35 skills, the full hook set (format/guard/tribunal/runaway/dod/route-decision-review/…), the shipped slash commands, and the template library already cover the surface; no high-value gap this round. |
+| CHANGELOG.md | **BUILT** | Added [`CHANGELOG.md`](CHANGELOG.md) with a top `0.126.0` entry (the plugin had none; `.repo-layout.json` already allows `plugins/*/CHANGELOG.md`). |
+
+**Scope discipline:** this build-out touched **nothing load-bearing** — no hook, script, skill (including `scenario-retrieval`), rule, agent, `concepts.json`, dashboard, or gate was modified. The only changes are additive files (`scenarios/`, `CHANGELOG.md`) plus this `CLAUDE.md` append and the `version` bump in both manifest mirrors. **Migration:** none — additive content, consumer-invisible until an agent globs the new bank.
