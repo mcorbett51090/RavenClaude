@@ -63,10 +63,12 @@ The research-grounded reference the agents point to. Read the relevant file in f
 
 | File | Covers |
 |---|---|
-| [`knowledge/trials-kpi-glossary.md`](knowledge/trials-kpi-glossary.md) | Clinical trial KPI glossary |
+| [`knowledge/trials-kpi-glossary.md`](knowledge/trials-kpi-glossary.md) | Clinical trial KPI glossary (cited, dated benchmark tables across enrollment / retention / schedule / quality / submission) |
 | [`knowledge/trials-operations-economics.md`](knowledge/trials-operations-economics.md) | Clinical trial operations economics |
 | [`knowledge/trials-benchmarks-2026.md`](knowledge/trials-benchmarks-2026.md) | Clinical trial benchmarks (2025–2026) |
-| [`knowledge/trials-decision-trees.md`](knowledge/trials-decision-trees.md) | Clinical trial decision trees |
+| [`knowledge/trials-decision-trees.md`](knowledge/trials-decision-trees.md) | Clinical trial decision trees (skill/specialist router) |
+| [`knowledge/trials-enrollment-shortfall-recovery-decision-tree.md`](knowledge/trials-enrollment-shortfall-recovery-decision-tree.md) | **Mermaid** — recover an enrollment shortfall: diagnose the funnel leak (eligibility vs referral vs activation vs retention) and exhaust cheap upstream levers before a site expansion (feasibility arithmetic) |
+| [`knowledge/trials-monitoring-intensity-decision-tree.md`](knowledge/trials-monitoring-intensity-decision-tree.md) | **Mermaid** — risk-based monitoring intensity under ICH E6(R3): risk-assessment-first, centralized backbone, targeted on-site SDV by data criticality (the cost read vs flat 100% SDV) |
 
 ---
 
@@ -106,6 +108,32 @@ The lead is [`trials-engagement-lead`](agents/trials-engagement-lead.md) — fir
 
 ---
 
-## 8. Milestones
+## 8. Scenarios bank & runnable tooling (added v0.2.0)
+
+- **Scenarios bank** — [`scenarios/`](scenarios/) holds dated, scope-tagged, unverified engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank or a sponsor's medical/regulatory authority (§2). Scenarios carry no sponsor/CRO identity and no patient PHI (§2). The most-likely-to-benefit specialists — `clinical-operations-manager`, `protocol-design-specialist`, `regulatory-submissions-specialist` — should check the bank when a situation matches.
+- **Runnable calculator** — [`scripts/trials_calc.py`](scripts/trials_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from three recurring clinical-ops decisions: `enrollment-feasibility` (sites × rate × months vs target, with the breakeven rate / added-sites to close the gap), `recruitment-funnel` (screens needed at a screen-fail rate + recruitment spend + the screen-to-enroll ratio), `retention-roi` (replace-the-lost vs retain-up-front breakeven dropout-reduction). It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support, **not** clinical/regulatory/statistical advice, and it is explicitly **NOT** a sample-size/power tool (§2). Owned primarily by `clinical-operations-manager`; `protocol-design-specialist` uses `enrollment-feasibility`'s rate-vs-sites read.
+
+## 9. Value-add completeness (build-out 2026-06-05)
+
+Every value-add menu item is dispositioned honestly below. Several runtime-tier items are genuinely **N-A** for a non-code regulated advisory vertical — there is no code artifact, runtime, or repo to operate on, and forcing them would add noise, not value.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README + 4 dated engagement scenarios (enrollment-shortfall recovery, protocol-deviation/CAPA, risk-based monitoring plan, IRB/IND submission gaps). Plugin previously had zero scenarios. |
+| Decision-tree (Mermaid) knowledge | **BUILT** | 2 new files (enrollment-shortfall-recovery; monitoring-intensity/RBM). Plugin previously had zero Mermaid trees (the existing `trials-decision-trees.md` is a prose skill/specialist router, not a Mermaid tree). |
+| Glossary / KPI reference | **BUILT (enriched existing)** | `trials-kpi-glossary.md` rewritten from a thin 4-section stub into cited, dated benchmark tables across enrollment / retention & cost / schedule / quality & monitoring / submission-readiness, rather than a redundant new file. |
+| Runnable script (`scripts/`) | **BUILT** | `trials_calc.py` — enrollment-feasibility / recruitment-funnel / retention-roi. The one runtime item with real non-code value. Explicitly NOT a sample-size/power tool (that needs a validated stats package + a biostatistician). |
+| Code-aware MCP server (bundled) | **N-A** | No published MCP for EDC/CTMS (Medidata Rave, Veeva, Oracle Clinical One) verified to exist as a zero-config, first-party-or-MIT, non-PHI artifact; these systems are per-sponsor/authenticated/PHI-bearing — bundling is out of scope and the plugin is deliberately EDC/CTMS-neutral (§2). If a genuine live-data need ever surfaces it would be *recommend, evaluate-first*, never bundled (per `docs/best-practices/bundled-mcp-servers.md`). A ClinicalTrials.gov read-only API could be a *future recommend-don't-bundle* candidate (public, read-only) — not built this round. |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in a clinical-operations advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/trials_calc.py`; no compiled/installed binary is warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. |
+| output-styles / themes | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown reports governed by the §6 Output Contract. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 5 skills, 1 advisory antipattern hook, 5 commands, 3 templates already cover the surface; no obvious high-value gap this round. The new decision trees + script + scenarios extend reach without a new agent (team-growth-as-knowledge house rule). |
+| CHANGELOG.md | **BUILT** | Added with a top `0.2.0` entry. |
+| NOTICE.md | **N-A** | No third-party content is bundled (the script is original, stdlib-only; all sources are cited inline, not vendored). |
+
+## 10. Milestones
 
 - **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 5 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 8 best-practice rules.
+- **v0.2.0** — non-code-vertical value-add build-out: scenarios bank (4 scenarios), 2 Mermaid decision-tree knowledge files (enrollment-shortfall recovery; risk-based monitoring intensity), `scripts/trials_calc.py` (3 modes), cited-benchmark KPI glossary enrichment, CHANGELOG. Code-runtime tier dispositioned N-A with reasons (§9).

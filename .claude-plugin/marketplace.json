@@ -1065,7 +1065,7 @@
       "name": "restaurant-operations",
       "source": "./plugins/restaurant-operations",
       "description": "Restaurant Operations specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. An operations-and-unit-economics team for an independent or multi-unit restaurant operator — it manages prime cost (food + labor), engineers the menu by contribution margin and popularity, controls food cost against theoretical, and reads the P&L the way a GM who lives the four-wall margin does. Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1103,7 +1103,7 @@
       "name": "dental-practice",
       "source": "./plugins/dental-practice",
       "description": "Dental Practice specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A treatment-planning-and-revenue-cycle team for a dental practice owner — it controls overhead against the ~62% median, holds collections above 98%, builds case acceptance on the treatment plan rather than the discount, and reads doctor/hygiene production per hour the way a practice that runs on the schedule does. Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1217,7 +1217,7 @@
       "name": "clinical-trials",
       "source": "./plugins/clinical-trials",
       "description": "Clinical Trials specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A clinical-operations team for a sponsor, CRO, or site network — it designs feasible protocols (because eligibility criteria drive the enrollment failure that hits two-thirds of sites), plans patient recruitment against a ~$6,533 per-patient cost (and ~$19,533 to replace), manages site activation and the ~30% dropout, and frames the regulatory submission the way a study where 80% run late demands. Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1255,7 +1255,7 @@
       "name": "cannabis-operations",
       "source": "./plugins/cannabis-operations",
       "description": "Cannabis Operations specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A compliance-and-retail-operations team for a licensed cannabis operator — it runs seed-to-sale traceability against the state track-and-trace system (Metrc/BioTrack/LeafData), manages the 280E tax burden that makes COGS allocation existential, runs dispensary retail on margin and basket, and reads a ~$45B U.S. market where the rules change at the state line. Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
