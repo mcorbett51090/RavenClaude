@@ -126,12 +126,15 @@ Reference docs with `Last reviewed:` dates + confidence notation + Microsoft Lea
 | [`knowledge/fabric-alm-cicd.md`](knowledge/fabric-alm-cicd.md) | CI-CD — Git integration + deployment pipelines + Fabric CLI / fabric-cicd / REST |
 | [`knowledge/fabric-2026-capability-map.md`](knowledge/fabric-2026-capability-map.md) | "Is this GA or preview?" — runtimes, NEE, stores, Direct Lake, RTI, AI, ALM (dated; the freshness anchor) |
 | [`knowledge/fabric-data-science-and-ai.md`](knowledge/fabric-data-science-and-ai.md) | AI over OneLake + the ML lifecycle — Fabric Data Agents (GA), Operations Agents, AI functions, AutoML, MLflow (cross-workspace), Semantic Link, Copilot, GraphQL + Foundry IQ. Owned by `lakehouse-engineer` (interim, until the v0.2.0 `fabric-data-ai-engineer`). Dated 2026-05-28. |
+| [`knowledge/direct-lake-fallback-triage-decision-tree.md`](knowledge/direct-lake-fallback-triage-decision-tree.md) | **Diagnosing** (not choosing) a misbehaving model — the mode-aware **Direct Lake fell-back / errored / empty** triage tree + the **semantic-model refresh/framing failure** triage tree. Complements the *selection* trees in `fabric-decision-trees.md`. Owned by `fabric-semantic-model-engineer` + `fabric-admin`. Dated 2026-06-05. |
 
 ---
 
-## 8a. Scenarios bank — TODO (planned)
+## 8a. Scenarios bank (enabled — build-out 2026-06-05)
 
-Not yet enabled. Per the marketplace pattern, enable the scenarios bank when the first real engagement scenario surfaces via `/wrap`: create `plugins/microsoft-fabric/scenarios/` with a `README.md` (copy from `plugins/power-platform/scenarios/README.md`), add the scenario-retrieval inline-prior block to the relevant agents, and remove this block.
+The scenarios bank is **live**: [`scenarios/`](scenarios/) holds dated, scope-tagged, *unverified* engagement narratives (the marketplace 9-field scenario schema; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a **secondary** source, always behind the mandatory unverified-scenario preamble ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"), never overriding the cited [`knowledge/`](knowledge/) bank or a `security-reviewer` verdict (§10). Scenarios carry no tenant-identifying info or named CU-cost figures (privacy note in [`scenarios/README.md`](scenarios/README.md)). Fabric ships monthly — every GA/preview-sensitive claim is dated + `[verify-at-use]` (house opinion #9).
+
+The most-likely-to-benefit specialists check the bank when a situation matches: `fabric-admin` (capacity / ALM / security), `fabric-semantic-model-engineer` (Direct Lake), `fabric-architect` (OneLake topology). Current bank: capacity-CU throttling (background-rejection collision), Direct Lake → DirectQuery fallback (RLS forced), OneLake shortcut medallion modeling, deployment-pipeline ALM autobind break. See [`scenarios/README.md`](scenarios/README.md) for the index + promotion path.
 
 ---
 
@@ -166,9 +169,58 @@ Not yet enabled. Per the marketplace pattern, enable the scenarios bank when the
 
 ---
 
-## 11. The `fab` CLI / REST prerequisite (no bundled MCP at v0.1.0)
+## 11. Bundled MCP — `microsoft-learn` (Microsoft Learn docs); operational Fabric MCP servers are recommend-not-bundle
 
-Unlike `power-platform` (which bundles pbix-mcp), this plugin **does not bundle an MCP server**. Fabric automation is via the **Fabric CLI (`fab`, `pip install ms-fabric-cli`)**, **fabric-cicd**, and the **Fabric REST APIs** (Entra-authenticated). Agents recommend and emit `fab`/REST snippets; the consultant runs them in their own environment with their own credentials. See [`knowledge/fabric-alm-cicd.md`](knowledge/fabric-alm-cicd.md). If a stable community Fabric MCP emerges, evaluate bundling it in a later version.
+This plugin **bundles exactly one** MCP server — the **Microsoft Learn MCP Server** — and **recommends (does not bundle)** the two operational Fabric MCP servers. The split is the [`../../docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md) decision table applied honestly: a server is bundled only if it's zero-config + read-only + first-party/well-maintained; a per-tenant / credentialed / write-capable server is recommend-not-bundle.
+
+### 11.0 Bundled — `microsoft-learn` (read-only docs, no auth, no cost)
+
+The plugin declares `microsoft-learn` in `plugin.json`, backed by the official [`microsoftdocs/mcp`](https://github.com/microsoftdocs/mcp) (MIT), reached at the **remote streamable-HTTP** endpoint `https://learn.microsoft.com/api/mcp`. It exposes **three read-only tools** — `microsoft_docs_search`, `microsoft_docs_fetch`, `microsoft_code_sample_search` — that ground answers in **official Microsoft Learn documentation**.
+
+**Why this one bundles (unusually for a Microsoft server):** it is **remote, no-auth, free, read-only** — no per-consumer URL, no credential, no install, no write verb, no metered cost — which is the only Microsoft-ecosystem server that clears the BUNDLE row of the doctrine. Verified 2026-06-05 against [Microsoft Learn MCP Server overview](https://learn.microsoft.com/training/support/mcp) ("no authentication required," "publicly available," "no charge," remote streamable HTTP). `[verify-at-use]` — re-confirm endpoint + tool surface at use; Fabric/Learn ship monthly.
+
+**Consumer prerequisite — none.** It's a remote HTTP endpoint; nothing to install. Claude Code connects when the plugin is enabled (`type: "http"`). **Loud-but-non-fatal:** if the endpoint is unreachable (no network, an egress proxy, or `web-access.yaml` denies `learn.microsoft.com`) the server shows `failed` in `/mcp` and the error surfaces in the `/plugin` Errors tab; Claude Code and all other tools keep working. **If the Learn tools aren't responding, check `/mcp` + the `/plugin` Errors tab and confirm `learn.microsoft.com` is reachable/allow-listed first.** No PATH fallback exists (no local binary — the endpoint *is* the server).
+
+**Which agent owns it?** **All** agents — this plugin's #1 discipline is "cite the capability's GA/preview status with a retrieval date" (house opinion #9), and the Learn MCP is the grounding tool that backs that. **Trigger:** when a Fabric capability's GA/preview status, an API field, a `fab`/KQL/T-SQL detail, or a decision-guide is load-bearing, **call `microsoft_docs_search`/`microsoft_docs_fetch` instead of asserting from memory** (the claim-grounding discipline made operational). `fabric-admin` + `fabric-architect` are the heaviest callers (capability map, decision guides).
+
+**Boundary** — `microsoft-learn` is for **reading official Microsoft documentation + code samples**. It is **NOT** a connection to a Fabric tenant, **NOT** a Fabric automation surface, and **NOT** a substitute for `fab`/REST. For acting against a tenant, use the `fab` CLI / REST path (§11.1) or the recommend-not-bundle operational servers (§11a). See [`NOTICE.md`](NOTICE.md) for attribution.
+
+### 11.1 The `fab` CLI / REST prerequisite (unchanged)
+
+Fabric **automation** is via the **Fabric CLI (`fab`, `pip install ms-fabric-cli`)**, **fabric-cicd**, and the **Fabric REST APIs** (Entra-authenticated). Agents recommend and emit `fab`/REST snippets; the consultant runs them in their own environment with their own credentials. See [`knowledge/fabric-alm-cicd.md`](knowledge/fabric-alm-cicd.md).
+
+### 11a. Recommend-not-bundle — the operational Fabric MCP servers
+
+Two **first-party Microsoft** Fabric MCP servers exist and are genuinely useful, but both are **credentialed and write-capable**, so the doctrine sends them to *recommend, don't bundle* (you can't hardcode a tenant/credential, and a bundled write-capable server interacts with core's command-review Gate 25 `mcp.allowed_servers` allowlist). Verified 2026-06-05; **nothing invented.**
+
+| Server | Disposition | Verified facts (`[verify-at-use]` — public preview, ships monthly) |
+|---|---|---|
+| **Fabric RTI MCP** ([`microsoft/fabric-rti-mcp`](https://github.com/microsoft/fabric-rti-mcp), MIT) | **recommend-not-bundle** | PyPI `microsoft-fabric-rti-mcp`; `uvx microsoft-fabric-rti-mcp`. **Credentialed** (Azure Identity `DefaultAzureCredential`) + **write-capable** (KQL query *and* ingest, Eventstream create/modify/delete, Activator triggers). **Public Preview.** Owner: `realtime-intelligence-engineer`. Any write verb → `ravenclaude-core/security-reviewer` + the consumer's `mcp.allowed_servers` allowlist. |
+| **Fabric MCP** ([`microsoft/mcp` → `servers/Fabric.Mcp.Server`](https://github.com/microsoft/mcp/tree/main/servers/Fabric.Mcp.Server), MIT) | **recommend-not-bundle** | .NET 9 (`fabmcp server start`, or `npx @microsoft/fabric-mcp@latest`). "Local-first" for API specs/schemas/best-practices, **but includes write tools** (`core_create-item`, `datafactory_create-pipeline`, OneLake file upload/delete) → credentialed for live ops. Owner: `fabric-architect` / `lakehouse-engineer`. Same `security-reviewer` + allowlist gate before any write verb. |
+
+**Recommended setup (consumer-run, `[verify-at-use]` the package + version):**
+```bash
+# Fabric RTI MCP — authenticate first (az login / DefaultAzureCredential); pin the version.
+claude mcp add fabric-rti -- uvx microsoft-fabric-rti-mcp   # public preview; verify version at use
+```
+Default posture: read-only first, secrets stay a **reference** (never a literal), `security-reviewer` sign-off before enabling any mutating verb. Prefer the lower-blast-radius `fab` CLI / REST path (§11.1) when an MCP isn't required (the grounding protocol's "next-easiest defensible path", §5).
+
+---
+
+## Value-add completeness (build-out 2026-06-05)
+
+This is a **Microsoft data-platform** domain, so the technical-runtime tier genuinely applies (unlike pure-advisory verticals). Every value-add menu item is dispositioned honestly below. PR #315 had already consolidated the knowledge decision-trees + `best-practices/` + `templates/` and stubbed the scenarios `README.md`; this build-out closes the net-new gaps (the scenario *files*, runtime-tier dispositioning, the bundled docs MCP) and adds one complementary **diagnostic** decision-tree file.
+
+| # | Item | Disposition |
+|---|---|---|
+| 1 | **scenarios/ bank** | **BUILT** — 4 dated, scope-tagged engagement narratives matching the pre-existing `scenarios/README.md` index exactly (the files were the net-new gap; #315 created the index + privacy note but not the files): capacity-CU throttling (background-rejection collision → isolate-before-scale), Direct Lake → DirectQuery fallback (Warehouse RLS forced it), OneLake shortcut medallion modeling (shortcut-first), deployment-pipeline ALM autobind break (missing data-source rule). 9-field schema; each volatile fact dated + `[verify-at-use]`; each maps to an existing best-practice rule. Enabled in CLAUDE.md §8a; routed to the most-likely specialist. |
+| 2 | **Decision-tree (Mermaid) knowledge** | **BUILT (1 new file, 2 trees, complementing #315)** — `knowledge/direct-lake-fallback-triage-decision-tree.md`: a **Direct Lake misbehaving (fell-back / errored / empty) mode-aware triage** tree + a **semantic-model refresh/framing failure** triage tree. Chosen because #315's consolidated trees are all *selection* trees (lakehouse-vs-warehouse-vs-KQL, Direct Lake vs Import vs DirectQuery, OneLake access, ingestion, capacity-throttle, security-plane, gold-shape) — there was **no diagnostic tree** for "the model is built and misbehaving," which is exactly what 2 of the 4 scenarios hit. Authored as a standalone topic file (the marketplace pattern for a topic tree) so it ships its Mermaid without the dashboard's pre-rendered-SVG pipeline (which lives under `ravenclaude-core/`, out of this plugin's write scope). |
+| 3 | **Bundled MCP server** | **BUILT (bundle) + recommend-not-bundle** — §11. **Bundled: the Microsoft Learn MCP Server** (`microsoftdocs/mcp`, remote streamable HTTP `https://learn.microsoft.com/api/mcp`) — the one Microsoft-ecosystem server that clears the zero-config + read-only bar (**no auth, free, read-only, no install**), and uniquely on-mission for a plugin whose #1 discipline is "cite GA/preview with a date." Declared with `mcpServers` + top-level `x-mcpAttribution` (third-party) + `NOTICE.md`. **Recommend-not-bundle:** Fabric RTI MCP (`microsoft-fabric-rti-mcp`) and Fabric MCP (`Fabric.Mcp.Server`) — both first-party Microsoft but **credentialed + write-capable** → documented `claude mcp add` paths + `security-reviewer` gate. All package names/endpoints/verbs verified against Microsoft Learn + the GitHub repos 2026-06-05; nothing invented. |
+| 4 | **LSP server** | **N-A** — Fabric work is authored in PySpark notebooks / T-SQL / KQL / TMDL / `fab` CLI, not a host source language with a clean, stable, installable on-`PATH` LSP binary this plugin could point an `.lsp.json` at (the way backend-engineering ships pyright/tsserver/gopls). The artifacts live in the consumer's Fabric tenant, not a local repo the agent edits with go-to-definition. Honest N-A; the bundled Learn MCP + the `fab`/REST snippets cover the code-intelligence need. |
+| 5 | **Runnable script (`scripts/`)** | **BUILT** — `scripts/fabric_capacity_calc.py` (stdlib only, Python 3.8+, ruff-clean): `sku-fit` (smallest F-SKU for an *average* CU draw + headroom + smoothing/burst note), `smoothing` (CU-seconds → smoothed per-window draw, so a "scary" peak's real fit is visible), `isolation` (shared vs isolate-the-noisy-workload by required CU — house opinion #5). **No prices baked in** (repo rule + Fabric pricing is region/time-volatile); CU ladder is a *capability* figure from Microsoft Learn, cost left to the Azure Pricing Calculator. A calculator, not a data source — every input is user-supplied. Backs the FinOps playbook + the capacity-throttling scenario. |
+| 6 | **bin/ executables / monitors / output-styles / settings / themes** | **N-A** — no compiled/installed binary warranted (the single stdlib script + advisory hook + skills cover the surface); nothing to *watch* (the plugin is advisory, not a running process); output is Markdown deliverables governed by the §6 Output Contract + the cross-plugin Structured Output Protocol; no Fabric-specific tool-permission surface beyond `ravenclaude-core`'s. |
+| 7 | **skills / hooks / commands / templates** | **SUFFICIENT** — 5 skills, 1 advisory anti-pattern hook (`check-fabric-anti-patterns.sh`, 4 grep-able house-opinion checks), 5 commands, 6 templates already cover topology / medallion / ingestion / Direct Lake / capacity-cost / ALM. The new scenarios bank + diagnostic tree + capacity script extend reach without a new agent (team-growth-as-knowledge house rule). No clear gap this round. |
+| 8 | **CHANGELOG.md / NOTICE.md** | **CHANGELOG UPDATED** (new top entry for this build-out; the existing file stopped at `0.1.0`, brought current). **NOTICE.md BUILT** — required now that a third-party (Microsoft Learn MCP) server is bundled; documents source/license/endpoint/read-only verbs + the no-prerequisite + loud-but-non-fatal failure path. |
 
 ---
 
@@ -178,4 +230,6 @@ Unlike `power-platform` (which bundles pbix-mcp), this plugin **does not bundle 
 - Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md)
 - The Power BI seam: [`../power-platform/CLAUDE.md`](../power-platform/CLAUDE.md) + its `power-bi-engineer` agent
 - The data-platform router: [`../data-platform/CLAUDE.md`](../data-platform/CLAUDE.md)
+- Bundled-MCP doctrine: [`../../docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md)
+- Scenario-retrieval pattern + 9-field schema: [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)
 - Build provenance: [`../../docs/microsoft-fabric-plugin-analysis.md`](../../docs/microsoft-fabric-plugin-analysis.md) + [`../../docs/microsoft-fabric-build-plan.md`](../../docs/microsoft-fabric-build-plan.md)

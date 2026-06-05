@@ -39,3 +39,48 @@
 ## 4. Inheritance
 
 This plugin **inherits `ravenclaude-core` protocols**: the Capability Grounding Protocol (decision-tree-first + alternate-methods enumeration + honest blocked-reporting), the Structured Output Protocol for handoffs, and the security/review escalations. Domain-specific rules live in each agent file and in `best-practices/`; the knowledge bank carries the decision trees and the dated capability map.
+
+
+## 5. Knowledge & scenario banks + runnable tooling
+
+Two banks back the agents (the dual-bank model — see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)):
+
+- **Canonical / knowledge** (high trust, follow without disclaimer):
+  - [`knowledge/fintech-payments-engineering-decision-trees.md`](knowledge/fintech-payments-engineering-decision-trees.md) — charge-flow correctness, PCI scope / SAQ, decline-retry, reconciliation triage, refund/dispute/chargeback, payment-method selection, dunning path, and a dated 2026 capability map (PR #315).
+  - [`knowledge/payment-ledger-and-psp-topology-decision-trees.md`](knowledge/payment-ledger-and-psp-topology-decision-trees.md) — **two NEW trees complementing the above**: the **ledger model** (table vs. mutable-balance anti-pattern vs. append-only double-entry) and **PSP topology + settlement timing** (single PSP vs. orchestration; fulfill-on-authorized vs. gate-on-settled; the ACH/SEPA delayed-settlement rule), with a dated ISO 20022 cross-border note.
+  - **Traverse the relevant Mermaid tree top-to-bottom before designing** — the proactive complement to the Capability Grounding Protocol.
+- **Scenarios** (low/medium trust, surface with the mandatory unverified-scenario preamble): [`scenarios/`](scenarios/) — field notes (idempotency-key double-charge, webhook replay + reconciliation, decline-retry storm + dunning, PCI scope-creep + tokenization). Secondary source; never replaces the knowledge bank, and never overrides a PCI/regulatory verdict (route those out per §3). The most-likely-to-benefit specialists — `payments-integration-engineer`, `payments-architect`, `payments-pci-compliance-advisor`, `billing-subscriptions-engineer` — should check the bank when a situation matches.
+
+**Runnable tooling** — [`scripts/recon_diff.py`](scripts/recon_diff.py) (stdlib only, Python 3.9+) mechanizes the Reconciliation-discrepancy-triage tree: diff your internal ledger against a PSP report (CSV in, triage report + JSON out), classifying every non-zero difference into PSP_ONLY / LEDGER_ONLY / AMOUNT_MISMATCH / CURRENCY_MISMATCH so each gets an owner. Money is integer minor units end-to-end (a float amount is rejected loudly — §2 #1); it exits non-zero on any discrepancy so a CI recon gate can use it. It is a **differ, not a money-mover** — it posts nothing, calls no PSP, and makes no network request; the accounting treatment of a delta routes to `finance`, a suspected-fraud delta to `ravenclaude-core/security-reviewer` (§3). Owned primarily by `payments-architect`; `payments-integration-engineer` uses it to confirm a webhook-handling fix closed a discrepancy.
+
+
+## 6. Value-add completeness (build-out 2026-06-05)
+
+Disposition of every value-add menu item (built or recorded N-A with reason). PR #315 already added the consolidated decision-tree knowledge, `best-practices/`, and `templates/`; this build-out closes the net-new gaps (scenarios bank + runtime-tier dispositioning) and adds two topic-specific trees complementing #315's.
+
+| # | Item | Disposition |
+|---|---|---|
+| 1 | **scenarios/ bank** | **BUILT** — 4 scenarios (idempotency-key double-charge, webhook replay + reconciliation, decline-retry storm + dunning, PCI scope-creep + tokenization) matching the existing `scenarios/README.md` index + 9-field schema. Surfaced behind the mandatory unverified-scenario preamble. |
+| 2 | **Decision-tree knowledge (NEW)** | **BUILT** — `knowledge/payment-ledger-and-psp-topology-decision-trees.md`: ledger-model tree + PSP-topology/settlement-timing tree. Chosen because #315's file already covers charge-flow / PCI / decline / reconciliation / method / dunning — the ledger-model and PSP-topology design decisions were the gaps. Grounded + cited + dated. |
+| 3 | **Bundled MCP server** | **N-A (RECOMMEND, don't bundle)** — the official **Stripe MCP** (`@stripe/mcp` local / `https://mcp.stripe.com` remote via OAuth) is **credentialed + write-capable** (scoped by a Restricted API Key — a secret) and per-consumer, so per `docs/best-practices/bundled-mcp-servers.md` it is recommend-not-bundle: documented with the secret as a **reference** (env-var name / RAK, never a literal) and a mandatory `ravenclaude-core/security-reviewer` gate (payments = high blast radius). No payments MCP clears the zero-config + read-only-by-default bar → no `mcpServers` entry, no `x-mcpAttribution`/`NOTICE.md`. No invented servers. (Recommended setup below.) |
+| 4 | **LSP server** | **N-A** — this plugin is payment-method/design guidance, not tied to one source language; the LSP config belongs to the code plugin editing the source (`backend-engineering` ships one). |
+| 5 | **Runnable script (`scripts/`)** | **BUILT** — `scripts/recon_diff.py` (ledger-vs-PSP reconciliation differ; the one runtime item with real, groundable value — see §5). `ruff check`-clean, stdlib only. |
+| 6 | **bin/ / monitors / output-styles / settings defaults / themes** | **N-A** — no groundable, broadly-valuable instance. The single runtime artifact (`recon_diff.py`) lives under `scripts/`; deliverables are governed by the agents' Output Contract, not a styling surface. |
+| 7 | **skills / hooks / commands / templates** | **SUFFICIENT** — 5 skills, 4 commands, 4 templates, 1 advisory hook already cover payment-flow architecture, integration, reconciliation, PCI-scope, and subscription billing. The scenarios + new topology trees + recon script extend reach without a new agent or skill. |
+| 8 | **CHANGELOG.md** | **BUILT** — added with a top `0.3.0` entry. **NOTICE.md N-A** — nothing third-party is bundled (the Stripe MCP is recommend-not-bundle; the script is original, stdlib-only). |
+
+### Recommended (not bundled) MCP server — Stripe MCP
+
+Per `docs/best-practices/bundled-mcp-servers.md`, a per-consumer / credentialed / write-capable server is **recommend, don't bundle**. The official Stripe MCP is exactly that.
+
+| Server | Why recommend-not-bundle | Recommended setup `[verify-at-use]` |
+|---|---|---|
+| **Stripe MCP** (official, `@stripe/mcp` / remote `https://mcp.stripe.com`) | **Credentialed** (tool permissions are scoped by a Stripe **Restricted API Key** — a secret) and **write-capable** (it can act on the Stripe account); per-consumer (each merchant's own account/keys). Payments = high blast radius. | Consumer-configured, **gated through `ravenclaude-core/security-reviewer` before adoption**; secret carried as a **reference** (env-var name / vault URI), never a literal; **human confirmation of tool calls** enabled (Stripe's own recommendation), and a **least-privilege Restricted API Key** scoped to only the needed verbs. Local: `npx -y @stripe/mcp --api-key=$STRIPE_SECRET_KEY` (key from a reference); remote: `https://mcp.stripe.com` via OAuth. `[verify-at-use — package name, endpoint, RAK scoping, and the prompt-injection caution against mixing MCP servers are all vendor-volatile]`. |
+
+> Verified 2026-06-05 against Stripe's MCP documentation: the local `@stripe/mcp` package + the remote `https://mcp.stripe.com` (OAuth) endpoint, tool permissions controlled by a Restricted API Key, and Stripe's recommendation to enable human confirmation of tool calls and exercise caution against prompt injection when combining MCP servers. Package/endpoint/RAK details are version-volatile — re-confirm at use. Source: https://docs.stripe.com/mcp
+
+
+## 7. Milestones
+
+- **v0.2.x** — 4-agent fintech-payments team; 6 skills, 4 templates, 4 commands, 1 advisory hook. PR #315 added the consolidated decision-tree knowledge bank, `best-practices/`, and `templates/`.
+- **v0.3.0** — value-add build-out: scenarios bank (4 scenarios), a NEW topic-specific decision-tree file (ledger-model + PSP-topology/settlement trees, complementing #315's), `scripts/recon_diff.py` (reconciliation differ), CHANGELOG, and the value-add completeness disposition (§6). Bundled-MCP / LSP / bin / monitors / styles / themes dispositioned N-A with reasons; Stripe MCP recorded as recommend-not-bundle with reference creds + a security-reviewer gate.

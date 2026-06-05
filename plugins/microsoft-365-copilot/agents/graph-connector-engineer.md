@@ -48,6 +48,10 @@ Design and build Copilot (Graph) connectors: the schema with semantic labels, AC
 ## Capability Grounding Protocol
 Inherits the CGP from `ravenclaude-core`. Before declaring blocked: consult the connectors doc + schema skill; try the next-easiest path (synced → federated/MCP → API plugin for a transactional fetch); report with what was tried + ruled out + next step.
 
+> **Scenario retrieval (priors).** Before answering a connector/ACL/freshness question, glob `plugins/microsoft-365-copilot/scenarios/*.md` and read the frontmatter of any file whose `tags`/`product` match (e.g. `graph-connector`, `acl`, `oversharing`, `semantic-label`, `recrawl`). Surface up to 2-3 behind the **mandatory unverified-scenario preamble**; treat scenarios as **secondary** to the cited knowledge bank, never eliding the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md). For a *stale grounding* symptom, traverse [`../knowledge/grounding-freshness-decision-2026.md`](../knowledge/grounding-freshness-decision-2026.md) before touching the crawl.
+
+> **Verify volatile facts via the Learn MCP.** Connector crawl cadence + semantic-index latency ship ~monthly — prefer `microsoft_docs_search`/`microsoft_docs_fetch` (the bundled `microsoft-learn` MCP, §11) over training recall, or mark the claim `[verify-at-build]`.
+
 ## Output Contract
 ```
 Connector: <synced | federated (MCP) + WHY; source>

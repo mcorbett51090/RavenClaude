@@ -120,6 +120,8 @@ Reference docs with `Last reviewed:` dates + confidence notation + Microsoft Lea
 | [`knowledge/agent-platform-decision-2026.md`](knowledge/agent-platform-decision-2026.md) | Choosing the build path — declarative vs custom-engine vs Copilot-Studio; the Mermaid platform decision tree + the explicit seams. Cross-links `power-platform/knowledge/copilot-agents-2026.md` |
 | [`knowledge/declarative-agent-manifest-2026.md`](knowledge/declarative-agent-manifest-2026.md) | Authoring/reviewing a DA — schema capability map (v1.7), the hard limits (50/25/4096/45s, sequential no-loop), instructions budget, version-pin discipline |
 | [`knowledge/grounding-source-decision-2026.md`](knowledge/grounding-source-decision-2026.md) | Choosing a grounding source — synced/federated connector vs SharePoint knowledge vs API plugin; the Mermaid grounding decision tree + semantic-index latency + license gating |
+| [`knowledge/grounding-freshness-decision-2026.md`](knowledge/grounding-freshness-decision-2026.md) | **Diagnosing stale grounding** — a grounded agent returns stale/missing/just-changed-but-not-reflected results; the Mermaid staleness tree (federated vs SharePoint-index-latency vs deletion-gap vs cadence-cap vs structural re-architect). Complements (doesn't replace) the connector-mode + crawl-strategy trees — those pick the source/mode, this routes the *fix* |
+| [`knowledge/copilot-extensibility-decision-trees.md`](knowledge/copilot-extensibility-decision-trees.md) | The consolidated deep-cut trees (build-path, grounding-source, connector-mode, plugin-auth scheme, oversharing-launch-gate, crawl strategy, instruction-redesign, admin-gate) — traverse before committing to a method |
 | [`knowledge/copilot-connectors-2026.md`](knowledge/copilot-connectors-2026.md) | Building a Copilot (Graph) connector — schema, semantic labels, ACL ingestion/trimming, connector SDK/Graph APIs, prebuilt gallery, synced vs federated/MCP |
 | [`knowledge/api-plugins-and-auth-2026.md`](knowledge/api-plugins-and-auth-2026.md) | Building an API plugin — four-file architecture, OpenAPI-for-Copilot constraints, `operationId` mapping, Entra/OAuth2/API-key auth, GCC-High caveat |
 | [`knowledge/agents-sdk-and-toolkit-2026.md`](knowledge/agents-sdk-and-toolkit-2026.md) | Building a custom-engine agent — M365 Agents SDK (Bot-Framework lineage + migration), Agents Toolkit/`atk`, Playground, DA→CEA conversion, channels |
@@ -129,9 +131,18 @@ Reference docs with `Last reviewed:` dates + confidence notation + Microsoft Lea
 
 ---
 
-## 8a. Scenarios bank — TODO (planned)
+## 8a. Scenarios bank (live)
 
-Not yet enabled. Per the marketplace pattern, enable the scenarios bank when the first real engagement scenario surfaces via `/wrap`: create `plugins/microsoft-365-copilot/scenarios/` with a `README.md` (copy from `plugins/power-platform/scenarios/README.md`), add the scenario-retrieval inline-prior block to the relevant agents, and remove this block.
+[`scenarios/`](scenarios/) holds dated, scope-tagged, **unverified** engagement narratives — the marketplace scenarios pattern (see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"), **never** overriding the cited knowledge bank (§8). Because the Copilot surface ships ~monthly, weigh each scenario's `product_version` + `contributed_at` heavily — an old connector/manifest detail may be stale (`[verify-at-build]`). Scenarios carry no tenant-identifying info, no secrets, no app/client IDs (§6 — the consumer's tenant lives outside the repo).
+
+| Scenario | Tags | Owning agent(s) |
+|---|---|---|
+| [`declarative-agent-scope-too-broad`](scenarios/2026-06-05-declarative-agent-scope-too-broad.md) | declarative-agent, instructions, scope, grounding, rai-validation | `declarative-agent-engineer` |
+| [`connector-everyone-acl-oversharing`](scenarios/2026-06-05-connector-everyone-acl-oversharing.md) | graph-connector, acl, oversharing, semantic-label, recrawl | `graph-connector-engineer` + `copilot-admin-governance` |
+| [`api-plugin-obo-auth-loop`](scenarios/2026-06-05-api-plugin-obo-auth-loop.md) | api-plugin, oauth, on-behalf-of, entra, operationid, consent | `api-plugin-engineer` |
+| [`agent-not-surfacing-in-copilot`](scenarios/2026-06-05-agent-not-surfacing-in-copilot.md) | agent-registry, publish, admin-gate, license, conversation-starters | `copilot-admin-governance` |
+
+The most-likely-to-benefit specialists (`declarative-agent-engineer`, `graph-connector-engineer`, `api-plugin-engineer`, `copilot-admin-governance`) should glob `scenarios/*.md` and read the frontmatter of any file whose `tags`/`product` match the engagement before answering — then surface the top 2-3 behind the preamble.
 
 ---
 
@@ -177,9 +188,26 @@ Not yet enabled. Per the marketplace pattern, enable the scenarios bank when the
 
 ---
 
-## 11. The `atk` / `m365` CLI / Graph prerequisite (no bundled MCP at v0.1.0)
+## 11. Bundled MCP server — `microsoft-learn` (Microsoft Learn MCP)
 
-No bundled MCP. The agents recommend and emit artifacts against the **Agents Toolkit** (`atk`, the Teams-Toolkit successor — VS Code / VS / CLI, with the Playground), the **CLI for Microsoft 365** (`m365`), and the **Microsoft Graph** connector/admin APIs (Entra-authenticated). The engineer runs them in their own tenant with their own credentials. If a stable community M365 Copilot MCP emerges, evaluate bundling it later.
+The plugin declares one MCP server in `plugin.json`: **`microsoft-learn`**, the first-party **Microsoft Learn MCP Server** — a remote HTTP endpoint at `https://learn.microsoft.com/api/mcp` (open-source tooling repo [`MicrosoftDocs/mcp`](https://github.com/MicrosoftDocs/mcp), MIT). It exposes **three read-only tools**: `microsoft_docs_search` (semantic search over Learn docs), `microsoft_code_sample_search` (official code samples), and `microsoft_docs_fetch` (fetch a full Learn page as markdown). **Read-only:** it searches/fetches *public* Microsoft documentation only — it does **not** touch the consumer's tenant, files, code, or any user data, and it writes nothing.
+
+**Why it's the right bundle for *this* plugin.** The #1 risk of the M365 Copilot extensibility surface is **monthly velocity** — the DA manifest schema, connector behavior, plugin-auth schemes, and Agent Registry lifecycle ship ~monthly, so a fact recalled from training may be stale. The Learn MCP lets every agent **verify a volatile fact against current first-party docs** rather than asserting it from memory — the tool form of this plugin's `[verify-at-build]` discipline (§5). It clears the zero-config-read-only bundling bar in [`docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md): zero per-consumer state (fixed public endpoint), no auth (no secret to bundle/leak), read-only, first-party documentation.
+
+**Consumer prerequisite — none.** It's a remote HTTP endpoint with no auth, so **there is nothing to install**. If the network can't reach `learn.microsoft.com`, the server shows `failed` in `/mcp` and the error surfaces in the `/plugin` Errors tab; Claude Code and every other tool still work (**loud-but-non-fatal**). **If the Learn tools aren't responding, check `/mcp` and the `/plugin` Errors tab first** — the usual cause is no network egress, not a broken server. There is no local subprocess, so there is no PATH/`python -m` fallback to configure (the contrast with a local stdio server).
+
+**Which agent owns it?** **All six** call it situationally — it's a shared grounding tool, not one specialist's. Trigger: when about to state a version-, schema-, cadence-, or capability-volatile Copilot fact (a manifest field, a connector crawl default, a plugin-auth scheme, an Agent Registry gate), **search/fetch Learn first** instead of recalling it. `deep-researcher` (the seam, §10) still owns *multi-source* release-note verification; the Learn MCP is the inline single-source check.
+
+**Boundary** — `microsoft-learn` is for **public Microsoft documentation only**. It is **NOT** a connection to the consumer's tenant, the Microsoft Graph, the Agents Toolkit, or the Agent Registry, and it cannot read tenant data, deploy an agent, or run a connector crawl. For live tenant data/admin operations the agents emit `atk` / `m365` CLI / Microsoft Graph snippets the engineer runs (§11a); for a per-tenant data MCP, see the recommend-not-bundle Enterprise/Graph MCP in §11a. See [`NOTICE.md`](NOTICE.md) for attribution + the consumer-side `claude mcp add` override.
+
+## 11a. The `atk` / `m365` CLI / Graph prerequisite + the per-tenant MCPs (recommend, don't bundle)
+
+The agents recommend and emit artifacts against the **Agents Toolkit** (`atk`, the Teams-Toolkit successor — VS Code / VS / CLI, with the Playground), the **CLI for Microsoft 365** (`m365`), and the **Microsoft Graph** connector/admin APIs (Entra-authenticated). The engineer runs them in their own tenant with their own credentials — they are **not** bundled (per-tenant, authenticated, credential-bearing).
+
+The same logic gates the per-tenant **MCP** servers, which are **recommend, don't bundle** (per [`docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md), the "per-tenant / authenticated" row):
+
+- **Microsoft MCP Server for Enterprise / Microsoft Graph MCP** — translates natural-language requests into read-only Microsoft Graph calls against the consumer's Entra tenant, honoring user roles + granted scopes. It is **per-tenant + Entra-authenticated + public preview** `[verify-at-use]` (requires registering the server in the tenant and an IT-admin granting MCP scopes; no extra license — existing Entra/Graph licenses apply). Because the tenant + scopes are consumer-specific, it **cannot** ship a hardcoded `mcpServers` entry. When an engagement needs an agent to query live tenant data, point the consumer at Microsoft's first-party server — registered in *their* tenant, with the scope/consent decision routed to `ravenclaude-core/security-reviewer` (mandatory, §10). Verified 2026-06-05 against the Microsoft Learn "Microsoft MCP Server for Enterprise" overview (public preview, updated 2026-05) — re-confirm GA/preview + scope model at use.
+- If a stable, **zero-config, read-only** community M365 Copilot MCP emerges, evaluate bundling it later per the doctrine block; until then the Learn MCP (§11) is the only bundled server, and it is deliberately read-only + tenant-blind.
 
 ---
 
@@ -190,3 +218,27 @@ No bundled MCP. The agents recommend and emit artifacts against the **Agents Too
 - The Copilot-Studio seam: [`../power-platform/CLAUDE.md`](../power-platform/CLAUDE.md) + [`../power-platform/knowledge/copilot-agents-2026.md`](../power-platform/knowledge/copilot-agents-2026.md)
 - The Entra + hosting seam: [`../azure-cloud/CLAUDE.md`](../azure-cloud/CLAUDE.md)
 - Build provenance: [`../../docs/microsoft-365-copilot-plugin-analysis.md`](../../docs/microsoft-365-copilot-plugin-analysis.md)
+
+---
+
+## Value-add completeness (build-out 2026-06-05)
+
+Built on **PR #315** (consolidated decision-trees knowledge + `best-practices/` + `templates/`). This build-out closes the net-new gaps (scenarios bank + runtime-tier dispositioning + a grounding tool) and dispositions **every** value-add menu item honestly — several runtime-tier items are genuinely **N-A** for an advisory, tenant-external extensibility-design plugin, and forcing them would add noise, not value.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README (9-field schema) + 4 dated engagement scenarios: DA scope-too-broad, connector everyone-ACL oversharing, API-plugin OBO auth loop, agent-not-surfacing. Wired into §8a + the relevant agents' scenario-retrieval scope. |
+| Decision-tree (Mermaid) knowledge | **BUILT (1 new, complementing #315)** | `knowledge/grounding-freshness-decision-2026.md` — a staleness-diagnosis tree (federated vs SharePoint-index-latency vs deletion-gap vs cadence-cap vs structural re-architect). #315 already shipped 7 deep-cut trees (build-path, grounding-source, connector-mode, plugin-auth, oversharing-gate, crawl-strategy, instruction-redesign, admin-gate) — this adds the *why-is-it-stale-and-how-do-I-fix-it* tree those don't cover; referenced by the connector + DA scenarios. |
+| Bundled MCP server | **BUILT** | `microsoft-learn` (Microsoft Learn MCP) — first-party, **zero-auth, read-only** remote HTTP at `https://learn.microsoft.com/api/mcp` (tooling `MicrosoftDocs/mcp`, MIT). Clears the zero-config-read-only bundling bar; `x-mcpAttribution` + `NOTICE.md` + doctrine block (§11). The fitting grounding tool for a monthly-velocity surface. **No invented server.** |
+| Recommend-not-bundle MCP | **DISPOSITIONED** | Microsoft MCP Server for Enterprise / Microsoft Graph MCP is **per-tenant + Entra-authenticated + preview** → recommend-not-bundle (§11a), `security-reviewer`-gated. Verified against Microsoft Learn 2026-06-05. |
+| LSP integration | **N-A** | LSP is a code-editing protocol; this is an advisory extensibility-design/governance plugin with no single source language to operate on. A consumer's own DA/plugin project (TS/JSON) carries its LSP in *their* repo, not here. |
+| Runnable script (`scripts/`) | **N-A** | Advisory + artifact-emitting (manifest JSON, OpenAPI, `atk`/`m365`/Graph snippets the engineer runs against their own tenant). No tenant-independent calculation with real value (contrast `veterinary-practice/vet_calc.py`); forcing one would be noise. |
+| `bin/` executables | **N-A** | No `rc-*` binary clears the "namespace + broadly-valuable + non-duplicative" bar; the advisory hook + skills already cover the surface. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process in an advisory plugin. |
+| output-styles / themes | **N-A** | Deliverables are Markdown reports + emitted artifacts governed by the §6 Output Contract. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond `ravenclaude-core` + the bundled read-only Learn MCP (which carries no write-verb / allowlist concern). |
+| skills / hooks / commands / templates | **SUFFICIENT** | 5 skills, 1 advisory anti-pattern hook (15 house opinions), 5 commands, 5 templates already cover the surface; the new scenarios + freshness tree + Learn MCP extend reach without a new agent (team-growth-as-knowledge house rule). |
+| CHANGELOG.md | **BUILT** | Added with a top `0.5.0` entry. |
+| NOTICE.md | **BUILT** | Required because a third-party MCP (`microsoft-learn`, `MicrosoftDocs/mcp` MIT) is now bundled — attribution + read-only/zero-auth posture + PATH-N/A note + consumer override. |
+
+**Recommended semver bump:** `0.4.1 → 0.5.0` (minor — adds a bundled MCP server, a scenarios bank, and a knowledge decision tree; all additive, no consumer break on `/plugin marketplace update` — the Learn MCP needs no install and degrades loud-but-non-fatal). Bump both mirrors (`plugin.json` + `marketplace.json`) per the version-mirror rule; **this build-out did not edit `version` per the task constraint** — the maintainer applies the bump.
