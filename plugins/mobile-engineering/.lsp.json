@@ -1,0 +1,36 @@
+{
+  "swift": {
+    "command": "sourcekit-lsp",
+    "args": [],
+    "extensionToLanguage": {
+      ".swift": "swift"
+    }
+  },
+  "kotlin": {
+    "command": "kotlin-language-server",
+    "args": [],
+    "extensionToLanguage": {
+      ".kt": "kotlin",
+      ".kts": "kotlin"
+    }
+  },
+  "dart": {
+    "command": "dart",
+    "args": ["language-server", "--client-id", "claude-code.mobile-engineering"],
+    "extensionToLanguage": {
+      ".dart": "dart"
+    }
+  },
+  "typescript": {
+    "command": "typescript-language-server",
+    "args": ["--stdio"],
+    "extensionToLanguage": {
+      ".ts": "typescript",
+      ".tsx": "typescriptreact",
+      ".js": "javascript",
+      ".jsx": "javascriptreact",
+      ".mts": "typescript",
+      ".cts": "typescript"
+    }
+  }
+}
