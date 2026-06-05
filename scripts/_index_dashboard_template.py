@@ -1193,9 +1193,11 @@ TEMPLATE = r"""<!doctype html>
       }
       // Rich per-plugin REFERENCE (the former repo-guide card, folded in): agents
       // with example scenarios / quickstart / audience / works-with, plus
-      // skills / hooks / rules / templates / best-practices. The CONFIGURE half
-      // of the hybrid (editable variables → /__save) lives in the dashboard
-      // sub-app, reached via the "Configure variables" deep-link to #/plugin-*.
+      // skills / runnable tools / scenarios / hooks / rules / templates /
+      // best-practices. There is no per-plugin variable editor in the portal, so
+      // the detail hero's "Configure agents" button points at the global
+      // comfort-posture editor (#/configure); the legacy #/plugin-* route still
+      // resolves here for bookmarked/back-forward deep-links.
       window.__openPlugin = function (name) {
         const p = byName(name); if (!p) return;
         showHost("view");
