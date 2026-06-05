@@ -711,6 +711,7 @@ TEMPLATE = r"""<!doctype html>
         { id: "home", label: "Home", icon: "home" },
         { id: "discover", label: "Discover", icon: "market" },
         { id: "configure", label: "Configure", icon: "sliders" },
+        { id: "act", label: "Act", icon: "rocket" },
         { id: "observe", label: "Observe", icon: "chart" },
         { id: "learn", label: "Learn", icon: "book" },
       ];
@@ -751,7 +752,8 @@ TEMPLATE = r"""<!doctype html>
         heimdall: "observe", vidarr: "observe", norns: "observe", mimir: "observe",
         saga: "observe", activity: "observe", nidhoggr: "observe", sleipnir: "observe",
         settings: "configure", "comfort-posture": "configure", "web-access": "configure", simulator: "configure",
-        commands: "learn", trees: "learn", pipeline: "learn", bifrost: "learn",
+        pipeline: "configure", commands: "act",
+        trees: "learn", bifrost: "learn",
         install: "learn", about: "learn", overview: "learn", concepts: "learn",
       };
       // Slice B section sub-nav (plain labels — no Norse names): each section's
@@ -762,8 +764,12 @@ TEMPLATE = r"""<!doctype html>
         configure: [
           { label: "Quick setup", route: "#/configure" },
           { label: "Posture", route: "#/settings" },
+          { label: "Pipeline", route: "#/pipeline" },
           { label: "Web access", route: "#/web-access" },
           { label: "Review simulator", route: "#/simulator" },
+        ],
+        act: [
+          { label: "Commands", route: "#/commands" },
         ],
         observe: [
           { label: "Run feed", route: "#/activity" },
@@ -774,11 +780,8 @@ TEMPLATE = r"""<!doctype html>
           { label: "Review log", route: "#/saga" },
         ],
         learn: [
-          { label: "Overview", route: "#/learn" },
           { label: "Concepts", route: "#/concepts" },
-          { label: "Commands", route: "#/commands" },
           { label: "Best practices", route: "#/trees" },
-          { label: "Pipeline", route: "#/pipeline" },
           { label: "Install", route: "#/bifrost" },
           { label: "About", route: "#/about" },
         ],
@@ -1385,49 +1388,6 @@ TEMPLATE = r"""<!doctype html>
         refresh();
       }
 
-      /* ---------------- RESOURCES ---------------- */
-      function viewResources() {
-        const totalTemplates = D.plugins.reduce((n, p) => n + p.counts.templates, 0);
-        const totalKnowledge = D.plugins.reduce((n, p) => n + p.counts.knowledge, 0);
-        const templateCards = D.plugins.filter((p) => p.counts.templates).sort((a, b) => b.counts.templates - a.counts.templates).map((p) => `
-          <div class="card"><div style="display:flex;align-items:center;gap:8px"><span style="color:var(--teal-2)">${svg("book")}</span><b>${esc(p.label)}</b><span class="ver" style="margin-left:auto;font-family:var(--font-mono);font-size:.72rem;color:var(--faint)">${p.counts.templates} templates</span></div><p style="color:var(--muted);font-size:.82rem;margin:8px 0 0">${esc(p.short)}</p></div>`).join("");
-        const treeCards = D.plugins.filter((p) => p.counts.knowledge).sort((a, b) => b.counts.knowledge - a.counts.knowledge).slice(0, 9).map((p) => `
-          <div class="card"><div style="display:flex;align-items:center;gap:8px"><span style="color:var(--teal-2)">${svg("tree")}</span><b>${esc(p.label)}</b><span class="ver" style="margin-left:auto;font-family:var(--font-mono);font-size:.72rem;color:var(--faint)">${p.counts.knowledge} docs</span></div><p style="color:var(--muted);font-size:.82rem;margin:8px 0 0">Citation-grounded knowledge bank with decision trees &amp; best-practice libraries.</p></div>`).join("");
-
-        $("#view").innerHTML = `
-          <div class="page-head"><span class="eyebrow">Resources</span><h1>Templates, decision trees &amp; knowledge</h1>
-            <p class="lede">${totalTemplates} templates and ${totalKnowledge} knowledge docs ship across the marketplace. Export the full documentation or jump into a plugin's knowledge bank.</p></div>
-
-          <div class="grid cols-3" style="margin-bottom:8px">
-            <a class="card" href="README.md" style="display:block"><div class="action-tile"><span class="ico">${svg("info")}</span><span><span class="t">README</span><span class="d">Marketplace overview &amp; setup</span></span></div></a>
-            <a class="card" href="#/observe" style="display:block"><div class="action-tile"><span class="ico">${svg("sliders")}</span><span><span class="t">Deep Dashboard</span><span class="d">Full posture &amp; tribunal controls</span></span></div></a>
-            <a class="card" href="CHANGELOG.md" style="display:block"><div class="action-tile"><span class="ico">${svg("git")}</span><span><span class="t">Changelog</span><span class="d">Version history</span></span></div></a>
-          </div>
-
-          <div class="section-title"><h2>How the marketplace works</h2><span class="hint">architecture</span></div>
-          <div class="grid cols-2">
-            <div class="card"><b>The marketplace model</b><p style="color:var(--muted);font-size:.85rem;margin:8px 0 0">A private "app store" for Claude Code. The product is the set of plugins in <code>plugins/</code>. To use one, run <code>/plugin install &lt;name&gt;@ravenclaude</code> inside any project and that plugin joins your session — its <code>CLAUDE.md</code> auto-loads when active.</p></div>
-            <div class="card"><b>Hierarchical dispatch</b><p style="color:var(--muted);font-size:.85rem;margin:8px 0 0">The top-level session is the <b>Team Lead</b>; it dispatches specialists (specialists never spawn specialists — enforced by <code>guard-recursive-spawn</code>). Every specialist ends its report with a <code>---RESULT_START---…---RESULT_END---</code> JSON block (Structured Output Protocol) the Team Lead parses to route.</p></div>
-            <div class="card"><b>Plugin separation</b><p style="color:var(--muted);font-size:.85rem;margin:8px 0 0"><code>ravenclaude-core</code> stays domain-neutral — generic agents, dispatch playbook, gates, hooks. Domain plugins extend core via skills + knowledge, not parallel agents.</p></div>
-            <div class="card"><b>Layout &amp; CI gates</b><p style="color:var(--muted);font-size:.85rem;margin:8px 0 0">Every new file's path must match a glob in <code>.repo-layout.json</code> (the <code>enforce-layout</code> hook + <code>validate-layout</code> CI). Each CI gate proves bidirectionally that it fails on a known-bad input and passes on a known-good one (<code>scripts/audit-gates.sh</code>).</p></div>
-          </div>
-
-          <div class="section-title"><h2>Templates gallery</h2><span class="hint">${totalTemplates} starter artifacts</span></div>
-          <div class="grid cols-3">${templateCards}</div>
-
-          <div class="section-title"><h2>Decision trees &amp; knowledge banks</h2><span class="hint">top knowledge banks</span></div>
-          <div class="grid cols-3">${treeCards}</div>
-
-          <div class="section-title"><h2>Best practices &amp; anti-patterns</h2></div>
-          <div class="grid cols-2">
-            <div class="card"><div style="display:flex;align-items:center;gap:8px"><span style="color:var(--allow)">${svg("check")}</span><b>House best practices</b></div><p style="color:var(--muted);font-size:.85rem;margin:8px 0 0">Method-before-library, effect-size + CI on every statistic, structured hand-offs, gates as the source of truth. Each plugin's advisory hook flags its own §3/§4 violations.</p></div>
-            <div class="card"><div style="display:flex;align-items:center;gap:8px"><span style="color:var(--danger)">${svg("info")}</span><b>Anti-patterns flagged</b></div><p style="color:var(--muted);font-size:.85rem;margin:8px 0 0">SOQL/DML-in-loop, hardcoded rates, plaintext PII, per-viewer-priced BI for SMB, p-hacking, missing Sources/Assumptions — caught by per-plugin hooks at author time.</p></div>
-          </div>
-
-          <div class="section-title"><h2>Export documentation</h2></div>
-          <div class="callout">${svg("download")}<span>Regenerate this portal from source: <code>python3 scripts/generate-index-dashboard.py</code>. It reads the live catalog so the docs never drift.</span></div>`;
-      }
-
       /* ---------------- Served-mode (native merge) ----------------
          The dashboard sub-app is folded into THIS document and carries its
          own served-vs-static detection (its /__* per-card fetches fall back
@@ -1607,6 +1567,14 @@ TEMPLATE = r"""<!doctype html>
         // Legacy top-level alias → canonical section (marketplace→discover, etc.).
         if (SECTION_ALIAS[section]) section = SECTION_ALIAS[section];
 
+        // Landing tabs for sections with no shell view of their own — both are
+        // dashboard-owned tabs. Learn's standalone "Overview" was retired (its
+        // unique content moved to the marketplace-model concept + Home doc
+        // tiles), so the bare Learn route lands on Concepts; the new Act section
+        // lands on its only tab, Commands.
+        if (section === "learn") { location.replace("#/concepts"); return; }
+        if (section === "act") { location.replace("#/commands"); return; }
+
         if (section && section.startsWith("plugin-")) {
           // Rich per-plugin REFERENCE lives in the shell (Discover). The CONFIGURE
           // half (editable variables) stays on the dashboard host — Slice B
@@ -1625,7 +1593,6 @@ TEMPLATE = r"""<!doctype html>
           switch (section) {
             case "discover": viewMarketplace(sub); break;
             case "configure": viewConfiguration(); break;
-            case "learn": viewResources(); break;
             case "home": viewHome(); break;
             default: viewHome(); break;
           }

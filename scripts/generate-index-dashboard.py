@@ -636,6 +636,12 @@ def scan_repo() -> dict:
             {"id": "staging", "label": "Contribution Staging Loop",
              "desc": "Stage a finding into the marketplace via /wrap",
              "icon": "git", "command": "/wrap"},
+            {"id": "readme", "label": "README",
+             "desc": "Marketplace overview & setup",
+             "icon": "info", "href": "README.md"},
+            {"id": "changelog", "label": "Changelog",
+             "desc": "Version history",
+             "icon": "git", "href": "CHANGELOG.md"},
         ],
     }
 

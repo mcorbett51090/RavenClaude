@@ -87,8 +87,8 @@ const DASH_OWNER_TEXT = sliceBetween(app, "const DASH_OWNER = ", "{");
 const RESOLVE_NAV_TEXT = sliceFunction(app, "function resolveNavActive(");
 const ROUTE_TEXT = sliceFunction(app, "function route(");
 
-/* NAV — the five task sections (Slice A IA). */
-const NAV_IDS = ["home", "discover", "configure", "observe", "learn"];
+/* NAV — the six task sections (Act split out between Configure and Observe). */
+const NAV_IDS = ["home", "discover", "configure", "act", "observe", "learn"];
 for (const id of NAV_IDS) {
   const re = new RegExp(`id:\\s*"${id}"`);
   assert(re.test(NAV_TEXT), `NAV regression: missing section id "${id}"`);
@@ -147,9 +147,9 @@ const expectedOwners = {
   settings: "configure",
   "web-access": "configure",
   simulator: "configure",
-  commands: "learn",
+  commands: "act",
   trees: "learn",
-  pipeline: "learn",
+  pipeline: "configure",
 };
 for (const [tab, owner] of Object.entries(expectedOwners)) {
   const re = new RegExp(`["']?${tab}["']?\\s*:\\s*"${owner}"`);
@@ -195,7 +195,7 @@ assert(!/<iframe/i.test(html), "merged portal must contain no <iframe> (native m
 const CHROME_HIDE_RE = /#dash-root \.cat-bar,\s*#dash-root \.tab-bar\s*\{\s*display:\s*none/;
 assert(CHROME_HIDE_RE.test(html), "Slice B: the #dash-root chrome-hide CSS rule must be present");
 const SECTION_TABS_TEXT = sliceBetween(app, "const SECTION_TABS = ", "{");
-for (const sec of ["configure", "observe", "learn"]) {
+for (const sec of ["configure", "act", "observe", "learn"]) {
   assert(
     new RegExp(`${sec}:\\s*\\[`).test(SECTION_TABS_TEXT),
     `SECTION_TABS must define a sub-nav for "${sec}"`,
