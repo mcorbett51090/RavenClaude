@@ -66,7 +66,9 @@ The research-grounded reference the agents point to. Read the relevant file in f
 | [`knowledge/fleet-kpi-glossary.md`](knowledge/fleet-kpi-glossary.md) | Fleet KPI glossary |
 | [`knowledge/fleet-economics.md`](knowledge/fleet-economics.md) | Fleet economics |
 | [`knowledge/fleet-benchmarks-2026.md`](knowledge/fleet-benchmarks-2026.md) | Fleet & trucking benchmarks (2024–2026) |
-| [`knowledge/fleet-decision-trees.md`](knowledge/fleet-decision-trees.md) | Fleet decision trees |
+| [`knowledge/fleet-decision-trees.md`](knowledge/fleet-decision-trees.md) | Fleet decision trees (skill/specialist router + **Mermaid** trees: lane-thin, replacement-timing, spot-vs-contract) |
+| [`knowledge/fleet-lease-vs-buy-vs-rent-decision-tree.md`](knowledge/fleet-lease-vs-buy-vs-rent-decision-tree.md) | **Mermaid** — acquire the next unit: lease vs. buy vs. rent (utilization + capital + duration + maintenance-appetite trade; TCO-not-monthly-payment arithmetic) |
+| [`knowledge/fleet-in-house-vs-3pl-decision-tree.md`](knowledge/fleet-in-house-vs-3pl-decision-tree.md) | **Mermaid** — source capacity: private fleet vs. dedicated vs. 3PL/for-hire (volume + lane-stability + service + capital-bandwidth trade) |
 
 ---
 
@@ -106,6 +108,32 @@ The lead is [`fleet-engagement-lead`](agents/fleet-engagement-lead.md) — first
 
 ---
 
-## 8. Milestones
+## 8. Scenarios bank & runnable tooling (added v0.2.0)
+
+- **Scenarios bank** — [`scenarios/`](scenarios/) holds dated, scope-tagged, unverified engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank or a fleet/safety/legal authority's judgment (§2). Scenarios carry no driver PII, no real carrier names, and no DOT/MC numbers (§2). The most-likely-to-benefit specialists — `dispatch-routing-specialist`, `fleet-maintenance-specialist`, `logistics-cost-analyst` — should check the bank when a situation matches. **HOS/ELD/DOT scenarios are decision-support only — the team is not a DOT/FMCSA authority and does not rule on hours-of-service.**
+- **Runnable calculator** — [`scripts/fleet_calc.py`](scripts/fleet_calc.py) (stdlib only, Python 3.8+, ruff-clean) removes arithmetic error from four recurring economics decisions: `cost-per-mile` (build all-in CPM bottom-up + margin vs. a rate), `deadhead` (empty-mile leak + backhaul prize), `replace-repair` (keep-vs-replace per-mile crossover incl. downtime), `turnover` (annual driver-turnover cost + retention prize). It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support, not legal/safety/financial advice (§2). Owned primarily by `logistics-cost-analyst`; `dispatch-routing-specialist` uses `deadhead` and `fleet-maintenance-specialist` uses `replace-repair`.
+
+## 9. Value-add completeness (build-out 2026-06-05)
+
+This non-code vertical's value-add menu is dispositioned honestly below. Several runtime-tier items are genuinely **N-A** because there is no code artifact, runtime, or repo to operate on, and forcing them would add noise, not value. This build-out is **net-new on top of PR #315** (which added the consolidated knowledge decision-trees, `best-practices/`, and `templates/`) — no duplication.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README + 4 dated engagement scenarios (cost-per-mile creep/deadhead, PM-deferral breakdown, driver-turnover bleed, HOS/ELD compliance gap). |
+| Decision-tree (Mermaid) knowledge | **BUILT** | 2 new files (lease-vs-buy-vs-rent; in-house-vs-dedicated-vs-3PL), complementing PR #315's three in-file trees (lane-thin, replacement-timing, spot-vs-contract). |
+| Glossary / KPI reference | **SUFFICIENT (existing)** | `fleet-kpi-glossary.md` + `fleet-benchmarks-2026.md` + `fleet-economics.md` already cover the KPI surface with cited, dated benchmarks (ATRI 2024/2025). New scenarios + trees add freshly-sourced figures inline; no redundant new glossary file. |
+| Runnable script (`scripts/`) | **BUILT** | `fleet_calc.py` — cost-per-mile / deadhead / replace-repair / turnover. The one runtime item with real non-code value. ruff-clean. |
+| Code-aware MCP server (bundled) | **N-A** | No published MCP for fleet TMS/ELD/telematics verified to exist; these systems are **per-tenant, authenticated, billed, and PII/safety-bearing** — bundling is out of scope and the plugin is deliberately TMS/ELD-neutral (§2). A genuine live-data need would be *recommend, evaluate-first*, never bundled (per [`../../docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md)). |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in a fleet-ops advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/fleet_calc.py`; no compiled/installed binary is warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. |
+| output-styles / themes | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown reports governed by the §6 Output Contract. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 5 skills, 1 advisory antipattern hook, 5 commands, 4 templates (incl. PR #315's `best-practices/`) already cover the surface; no obvious high-value gap this round. The 2 new trees + the calculator extend reach without a new agent (team-growth-as-knowledge house rule). |
+| CHANGELOG.md | **BUILT** | Added with a top `0.2.0` entry. |
+| NOTICE.md | **N-A** | No third-party content is bundled (the script is original, stdlib-only; all sources are cited inline, not vendored). |
+
+## 10. Milestones
 
 - **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 5 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 8 best-practice rules.
+- **v0.2.0** — non-code-vertical value-add build-out: scenarios bank (4 scenarios), 2 new Mermaid decision-tree knowledge files (lease-vs-buy-vs-rent, in-house-vs-3PL), `scripts/fleet_calc.py` (4 modes), CHANGELOG. Net-new on top of PR #315's consolidated trees/best-practices/templates; code-runtime tier dispositioned N-A with reasons (§9).

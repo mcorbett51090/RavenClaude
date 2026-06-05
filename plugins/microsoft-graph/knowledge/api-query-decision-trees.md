@@ -217,9 +217,9 @@ flowchart TD
     START[Working with files or content via Graph] --> Q1{Content is a file or document<br/>not an email or calendar item?}
     Q1 -->|Email or calendar item| MAIL[Mail/Calendar API<br/>/me/messages or /me/events]
     Q1 -->|File or document| Q2{Where does the file live?}
-    Q2 -->|SharePoint site / document library| SP[SharePoint Files API<br/>/sites/{id}/drives/{id}/items]
-    Q2 -->|User OneDrive personal| OD[OneDrive Files API<br/>/me/drive/items or /drives/{id}/items]
-    Q2 -->|Teams channel files tab| TEAMS[Teams channel SharePoint drive<br/>/teams/{id}/channels/{id}/filesFolder then /drives/{id}/items]
+    Q2 -->|SharePoint site / document library| SP["SharePoint Files API<br/>/sites/{id}/drives/{id}/items"]
+    Q2 -->|User OneDrive personal| OD["OneDrive Files API<br/>/me/drive/items or /drives/{id}/items"]
+    Q2 -->|Teams channel files tab| TEAMS["Teams channel SharePoint drive<br/>/teams/{id}/channels/{id}/filesFolder then /drives/{id}/items"]
     Q2 -->|Unknown - could be either| Q3{Is the context a user's working files?}
     Q3 -->|Yes| SEARCH[Graph Search API<br/>POST /search/query entityType=driveItem]
     Q3 -->|No, org-wide| SP

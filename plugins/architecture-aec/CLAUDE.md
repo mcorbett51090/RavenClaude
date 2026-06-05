@@ -66,7 +66,8 @@ The research-grounded reference the agents point to. Read the relevant file in f
 | [`knowledge/aec-kpi-glossary.md`](knowledge/aec-kpi-glossary.md) | Architecture/AEC KPI glossary |
 | [`knowledge/aec-practice-economics.md`](knowledge/aec-practice-economics.md) | Architecture practice economics |
 | [`knowledge/aec-practice-context.md`](knowledge/aec-practice-context.md) | Architecture practice benchmarks & context (2025–2026) |
-| [`knowledge/aec-decision-trees.md`](knowledge/aec-decision-trees.md) | Architecture/AEC decision trees |
+| [`knowledge/aec-decision-trees.md`](knowledge/aec-decision-trees.md) | Architecture/AEC decision trees (consolidated: additional-services, CA deficiency, fee recovery, skill/specialist router) |
+| [`knowledge/aec-delivery-and-estimate-decision-tree.md`](knowledge/aec-delivery-and-estimate-decision-tree.md) | **Mermaid** — project-delivery-method selection (DBB vs DB vs CMAR) + the AACE estimate-class / contingency gate on a budget number |
 
 ---
 
@@ -106,6 +107,32 @@ The lead is [`aec-engagement-lead`](agents/aec-engagement-lead.md) — first con
 
 ---
 
-## 8. Milestones
+## 8. Scenarios bank & runnable tooling (added v0.2.0)
 
-- **v0.1.0** — initial release: 4 agents, 5 skills, 3 templates, 5 commands, 1 advisory hook, 4-file research-grounded knowledge bank, 8 best-practice rules.
+- **Scenarios bank** — [`scenarios/`](scenarios/) holds dated, scope-tagged, unverified engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank or a licensed architect/engineer's judgment (§2, §3 #7). Scenarios carry no client/project PII (§2). The most-likely-to-benefit specialists — `construction-documents-specialist`, `aec-engagement-lead`, `aec-project-analyst` — should check the bank when a situation matches.
+- **Runnable calculator** — [`scripts/aec_calc.py`](scripts/aec_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from three recurring AEC decisions: `evm` (earned-value CPI/SPI/EAC project health + the cost/schedule quadrant + the CPI<0.90-by-20% fee-recovery trigger), `change-order` (CO as a % of contract against the ~5-15% bands + the margin erosion from absorbed/unbilled work), `chargeable-area` (gross↔usable efficiency / loss-factor translation for a fee or test-fit). It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support, not licensed architectural/engineering/financial advice, and code routes to the professional of record (§2, §3 #7). Owned primarily by `aec-project-analyst`; `construction-documents-specialist` uses `change-order`'s coordination-signal note.
+
+## 9. Value-add completeness (build-out 2026-06-05)
+
+Every value-add menu item is dispositioned honestly below. Several runtime-tier items are genuinely **N-A** for a practice-and-project advisory vertical — there is no code artifact, runtime, or repo to operate on, and forcing them would add noise, not value.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README + 4 dated engagement scenarios (RFI/submittal backlog, change-order creep, coordination clash/rework, delivery-method selection). |
+| Decision-tree (Mermaid) knowledge | **BUILT** | 1 new file (`aec-delivery-and-estimate-decision-tree.md`: delivery-method DBB/DB/CMAR + AACE estimate-class gate), complementing the consolidated trees PR #315 added to `aec-decision-trees.md`. |
+| Glossary / KPI reference | **SUFFICIENT (existing)** | `aec-kpi-glossary.md` + `aec-practice-context.md` (cited, dated benchmarks) already ground the metrics; the new scenarios + delivery tree add cited RFI/CO/delivery/EVM/AACE figures rather than a redundant new glossary. |
+| Runnable script (`scripts/`) | **BUILT** | `aec_calc.py` — `evm` / `change-order` / `chargeable-area`. The one runtime item with real non-code value; ruff-clean, stdlib-only. |
+| Code-aware MCP server (bundled) | **N-A** | No published MCP for AEC/BIM/PM platforms verified to exist; BIM/PM tools (Revit, Procore, Autodesk Construction Cloud, Newforma) are per-tenant/authenticated/PII-bearing — bundling is out of scope and the plugin is deliberately tool-neutral (§2). A genuine live-data need would be *recommend, evaluate-first*, never bundled (per `docs/best-practices/bundled-mcp-servers.md`). |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in a practice-and-project advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/aec_calc.py`; no compiled/installed binary is warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. |
+| output-styles / themes | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown reports governed by the §6 Output Contract. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 5 skills, 1 advisory antipattern hook, 5 commands, 5 templates already cover the surface; no obvious high-value gap this round. The new decision tree + calculator extend reach without a new agent (team-growth-as-knowledge house rule). |
+| CHANGELOG.md | **BUILT** | Added with a top `0.2.0` entry. |
+| NOTICE.md | **N-A** | No third-party content is bundled (the script is original, stdlib-only; all sources are cited inline, not vendored). |
+
+## 10. Milestones
+
+- **v0.1.0** — initial release: 4 agents, 5 skills, 3-5 templates, 5 commands, 1 advisory hook, a research-grounded knowledge bank, 8 best-practice rules.
+- **v0.2.0** — non-code-vertical value-add build-out: scenarios bank (4 scenarios), 1 new Mermaid decision-tree knowledge file (delivery-method + estimate-class), `scripts/aec_calc.py` (3 modes: EVM / change-order / chargeable-area), CHANGELOG. Code-runtime tier dispositioned N-A with reasons (§9).

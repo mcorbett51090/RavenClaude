@@ -420,6 +420,93 @@ flowchart TD
 
 ---
 
+## Decision Tree: Dimension history — Type-1 overwrite, Type-2 effective-dated, or snapshot?
+
+**When this applies:** modeling a dimension (`dim_customer`, `dim_product`, `dim_rep`, …) whose attributes can change over time, OR a client asks an "as-of a past date" question the current mart can't answer. Observable inputs: does the business slice metrics by an attribute that changes, will anyone ask for the value *as it was* at a past date, and does the source system keep its own change history. This tree is **complementary to** the dbt-materialization tree above — that one picks `incremental`/`table`/`view` for *load* cost; this one picks the dimension *type* (whether to keep history at all). Decide it **before** the first run: a Type-1 overwrite destroys history that, if the source keeps none, is unrecoverable.
+
+**Last verified:** 2026-06-05 against [`../best-practices/dbt-stage-then-mart-never-skip-the-layer.md`](../best-practices/dbt-stage-then-mart-never-skip-the-layer.md) and the dbt snapshots docs (`[verify-at-use]` — see Sources). Corroborated by the [`../scenarios/2026-06-05-scd-type-2-overwrite-lost-history.md`](../scenarios/2026-06-05-scd-type-2-overwrite-lost-history.md) field note.
+
+```mermaid
+flowchart TD
+    START[Dimension with attributes that can change] --> Q1{Will anyone ask for a metric as-of a past date,<br/>sliced by an attribute that changes?}
+    Q1 -->|NO — only ever the current value matters| T1[Type-1 — overwrite on change<br/>simplest; NO history kept]
+    Q1 -->|YES — as-of history is load-bearing| Q2{Does the source keep its own reliable change history?}
+    Q2 -->|YES — source has dated change log| Q3{Need full version history or only the prior value?}
+    Q2 -->|NO — source exposes only current state| SNAP["Type-2 via dbt snapshot NOW<br/>capture the change when YOU see it<br/>(missed change = gone forever)"]
+    Q3 -->|Full version history| T2[Type-2 — effective-dated rows<br/>valid_from / valid_to + surrogate key]
+    Q3 -->|Only current + previous| T3[Type-3 — add a prior_value column<br/>rare; only one step of history]
+    T2 --> ASOF[As-of join: fact.event_date<br/>BETWEEN dim.valid_from AND dim.valid_to]
+    SNAP --> ASOF
+    ASOF --> TEST["dbt tests: unique surrogate key,<br/>not_null valid_from,<br/>NO overlapping windows per natural key"]
+    T1 --> TESTC[dbt test: unique + not_null on natural key]
+    T3 --> TESTC
+```
+
+**Rationale per leaf:**
+- *T1* — overwrite is correct **only** when no as-of question will ever be asked; it is the cheapest model and the right default for genuinely current-state-only attributes. The trap is choosing it by reflex; choose it by answering the as-of question with "no."
+- *SNAP* — when the source keeps no history of its own, the change is only ever observable *the moment your pipeline sees it*. A `dbt snapshot` (`check` strategy over the volatile columns) captures it then; if you waited and overwrote, the prior value is unrecoverable. This is the highest-stakes branch — get it wrong before launch and the history is gone, not just delayed.
+- *T2* — effective-dated rows (`valid_from`/`valid_to` + a per-version surrogate key) are the standard full-history model; facts join *as-of* the event date so each fact resolves to the version current when it happened.
+- *T3* — a single prior-value column is occasionally enough (e.g. "previous plan tier") and avoids the version-table overhead; rare, and a one-step-only compromise.
+- *ASOF / TEST* — a Type-2 spine is only correct with an as-of join and a **no-overlapping-validity-windows** test; two "current" rows for one natural key is the classic SCD-2 bug that double-counts silently.
+
+**Tradeoffs summary:**
+
+| Type | History kept | Storage / complexity | As-of join required | Use when |
+|---|---|---|---|---|
+| Type-1 (overwrite) | None | Lowest | No | Only current value ever matters |
+| Type-2 (effective-dated) | Full | Medium-high | Yes | As-of questions; full attribute history |
+| Type-2 via snapshot | Full (from first capture) | Medium | Yes | As-of **and** source keeps no history of its own |
+| Type-3 (prior column) | One step | Low | No | Only current + immediately-previous needed |
+
+**Forbidden / failure modes:** defaulting to Type-1 without asking the as-of question; building Type-2 without the as-of `BETWEEN` join (every fact then snaps to today's attribute — silent history corruption); shipping Type-2 without the no-overlap test; assuming you can "backfill the history later" when the source keeps none — by then it's gone. Escalate a re-model of a live dimension's history to `etl-pipeline-engineer` (topology) and `ravenclaude-core/data-engineer` (modeling beyond multi-tenant patterns).
+
+---
+
+## Decision Tree: Warehouse cost control — where is the spend, and what's the cheapest lever?
+
+**When this applies:** a credit-/scan-billed warehouse (Snowflake, BigQuery, Databricks SQL) bill has spiked — typically after a customer-facing dashboard launch — OR you're launching a dashboard on such a warehouse and want to design the cost envelope up front. This tree is **complementary to** the dashboard-performance tree above: that one optimizes *latency* (is the widget slow?); this one optimizes *cost* (is the warehouse burning credits?). They share a root fix (pre-aggregation) but diverge on idle-burn and workload-isolation, which latency tuning never touches. Observable inputs: whether spend is dominated by *active query* compute vs. *idle* warm-warehouse time, whether viewer queries hit a pre-aggregation, and whether dashboard traffic shares a warehouse with ELT/transform jobs.
+
+**Last verified:** 2026-06-05 against [`cloud-database-landscape-2026.md`](cloud-database-landscape-2026.md), [`snowflake-warehouse-sizing-recipes.md`](snowflake-warehouse-sizing-recipes.md), and [`../best-practices/cube-preaggregate-before-viewer.md`](../best-practices/cube-preaggregate-before-viewer.md). Corroborated by the [`../scenarios/2026-06-05-warehouse-cost-blowout-dashboard-launch.md`](../scenarios/2026-06-05-warehouse-cost-blowout-dashboard-launch.md) field note. All `$`/credit figures are `[verify-at-use]` — re-confirm against the dated landscape file before quoting a client.
+
+```mermaid
+flowchart TD
+    START[Warehouse bill spiked or launching on credit-billed warehouse] --> Q1{Is the spend mostly ACTIVE query compute or IDLE warm time?}
+    Q1 -->|Active query compute| Q2{Do viewer queries hit a pre-aggregation / rollup?}
+    Q1 -->|Idle / warehouse rarely suspends| Q3{Does steady trickle traffic keep resetting auto-suspend?}
+    Q2 -->|NO — raw per-viewer scans| PREAG["Pre-aggregate in the semantic layer FIRST<br/>(Cube rollup / materialized view)<br/>— removes warehouse from the hot path"]
+    Q2 -->|YES — pre-agg hit, still costly| Q4{Are the hot fact tables partitioned/clustered on filter keys?}
+    Q4 -->|NO| PART["Partition/cluster on date + tenant<br/>(fewer micro-partitions scanned)"]
+    Q4 -->|YES| SIZE["Right-size the warehouse to the workload<br/>(down a tier if scans are now small)"]
+    Q3 -->|YES — dashboard shares a warehouse with ELT| ISO["Isolate dashboard compute on its own warehouse<br/>so it can suspend independently of ELT"]
+    Q3 -->|NO — just a long idle timer| SUSPEND["Lower auto-suspend (~60s)<br/>stop paying for idle warm time"]
+    PREAG --> VERIFY[Re-measure the daily credit burn vs. baseline]
+    PART --> VERIFY
+    SIZE --> VERIFY
+    ISO --> VERIFY
+    SUSPEND --> VERIFY
+```
+
+**Rationale per leaf:**
+- *PREAG* — per-viewer raw scans against large facts are the #1 cause of a dashboard-launch cost blowout; pre-aggregation removes the warehouse from the hot path for the common queries. This is the single biggest cost lever and the same root fix the latency tree starts from (house opinion #5, `cube-preaggregate-before-viewer`).
+- *PART* — once the pre-agg is in place, residual cache-miss queries still pay scan cost; partitioning/clustering on the dashboard's filter keys (date + tenant) cuts micro-partitions scanned (`warehouse-partition-and-cluster-for-cost`).
+- *SIZE* — sizing down is correct **after** the scans are small; sizing alone, *before* fixing scans, just trades speed for a still-too-high bill (the blunt-lever trap).
+- *ISO* — when dashboard traffic shares a warehouse with steady ELT, neither workload ever lets the warehouse suspend; isolating dashboard compute lets it suspend on the dashboard's own idle pattern.
+- *SUSPEND* — a high auto-suspend timer + trickle traffic means the warehouse almost never suspends and burns idle credits around the clock; ~60s suspend stops the idle burn that sizing never addresses.
+
+**Tradeoffs summary:**
+
+| Lever | Cost to implement | Latency impact | Tackles active or idle spend | Use when |
+|---|---|---|---|---|
+| Pre-aggregation | Low-medium | Faster | Active (biggest) | Raw per-viewer scans, no rollup |
+| Partition/cluster | Medium (schema) | Faster | Active | Pre-agg hit but scans still wide |
+| Right-size down | Low | Slower | Active | Scans already small |
+| Isolate dashboard warehouse | Low | None | Idle | Shares warehouse with ELT |
+| Lower auto-suspend | Low | None (cold-start on first query) | Idle | Long idle timer, trickle traffic |
+
+**Forbidden / failure modes:** reaching for "size the warehouse down" first (masks the symptom, leaves raw scans); shipping a customer-facing dashboard with no pre-agg and discovering the bill from the client's finance team; leaving dashboard and ELT on one always-warm warehouse. Escalate genuine large-scale-OLAP-cost re-architecture to `ravenclaude-core/architect`; a Microsoft-Fabric capacity-FinOps question hands off to `microsoft-fabric` (per CLAUDE.md §10).
+
+---
+
 ## See also
 
 - [`../skills/stack-selection/SKILL.md`](../skills/stack-selection/SKILL.md) — the Case A/B/C/D tree these layer-trees sit under

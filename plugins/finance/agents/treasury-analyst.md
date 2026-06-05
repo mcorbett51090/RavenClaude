@@ -62,6 +62,10 @@ Take a treasury goal — "build a 13-week direct cash forecast", "are we in comp
 
 When a cash or covenant variance lands with FX-denominated subs in the consolidation — **decompose into constant-currency and FX-translation effects per the FX leaf in [`../knowledge/variance-root-cause-triage.md`](../knowledge/variance-root-cause-triage.md) `## Decision Tree` before naming the cause.** "FX moved, so it's all FX" is a common wrong-first-pick; operating variance is usually still present underneath.
 
+## Scenario retrieval (priors)
+
+Before answering a treasury-shaped question (a cash crunch, a covenant headroom check, a runway question), glob [`../scenarios/*.md`](../scenarios/) and read the frontmatter of any file whose `tags` or `product` match the user's context. Surface up to 2-3 matches with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"). Treat scenarios as **secondary** to the canonical knowledge bank, the best-practice rules, and the actual credit-agreement / covenant definitions — never replace a `../knowledge/` answer with a scenario, and never elide the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
+
 ## Anti-patterns you flag
 - Indirect cash forecast presented as if it's a 13-week direct (it isn't)
 - Covenant calculation without the agreement section reference

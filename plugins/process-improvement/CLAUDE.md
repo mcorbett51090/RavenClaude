@@ -66,8 +66,8 @@ Two coherent personas: the **black belt** leads the DMAIC and owns the verdict; 
 
 Inherits the CGP from `ravenclaude-core`. Before any agent says "I can't" or declares a result, it must:
 
-1. **Check this plugin's skills + knowledge** — the six skills (`dmaic-project-charter`, `process-mapping`, `root-cause-analysis`, `process-capability-and-spc`, `lean-waste-analysis`, `control-plan-and-sustain`) and the three knowledge files (DMAIC/Lean toolkit, Six Sigma statistics & SPC, decision trees) — plus core skills.
-2. **Traverse the relevant decision tree** ([`knowledge/process-improvement-decision-trees.md`](knowledge/process-improvement-decision-trees.md)) before committing a methodology / control chart / root-cause tool — don't keyword-match "it's slow" to a fix.
+1. **Check this plugin's skills + knowledge + tooling** — the six skills (`dmaic-project-charter`, `process-mapping`, `root-cause-analysis`, `process-capability-and-spc`, `lean-waste-analysis`, `control-plan-and-sustain`), the four knowledge files (DMAIC/Lean toolkit, Six Sigma statistics & SPC, selection decision trees, SPC-response decision trees), the [`scripts/lss_calc.py`](scripts/lss_calc.py) calculator, the [`/process-improvement:triage-capability-and-control`](commands/triage-capability-and-control.md) command, the scenarios bank — plus core skills.
+2. **Traverse the relevant decision tree** ([`knowledge/process-improvement-decision-trees.md`](knowledge/process-improvement-decision-trees.md) for *selecting* a methodology / chart / tool; [`knowledge/spc-response-decision-trees.md`](knowledge/spc-response-decision-trees.md) for *reacting* to a chart/study) before committing — don't keyword-match "it's slow" to a fix, or "the number moved" to "investigate".
 3. **Try the next-easiest defensible path** before declaring blocked (e.g., the inferential math is out of scope here → route to `applied-statistics`, don't fake it; the data doesn't exist → route to `data-platform` to instrument it).
 4. **Escalate with the mandatory phrasing** — what was tried, what was ruled out, the recommended next path.
 
@@ -101,13 +101,20 @@ Reference docs with `Last verified:` dates + confidence notation. Inline priors 
 |---|---|
 | [`knowledge/dmaic-and-lean-toolkit.md`](knowledge/dmaic-and-lean-toolkit.md) | Running a DMAIC — the canonical tool at each phase (Define/Measure/Analyze/Improve/Control); DMAIC vs DMADV vs Kaizen/PDCA; the Lean overlay (8 wastes / DOWNTIME, value-add vs non-value-add). |
 | [`knowledge/six-sigma-statistics-and-spc.md`](knowledge/six-sigma-statistics-and-spc.md) | Baselining / measuring — the sigma↔DPMO↔yield table (with the 1.5σ shift), Cp/Cpk/Pp/Ppk + thresholds, control-chart selection (I-MR/Xbar-R/Xbar-S/p/np/c/u) + Western Electric / Nelson out-of-control rules, MSA/Gage R&R basics. **The seam doc** — marks explicitly which deeper inference routes to `applied-statistics`. |
-| [`knowledge/process-improvement-decision-trees.md`](knowledge/process-improvement-decision-trees.md) | Choosing a methodology / control chart / root-cause tool, or triaging capability & control. Traverse the relevant Mermaid tree before selecting. |
+| [`knowledge/process-improvement-decision-trees.md`](knowledge/process-improvement-decision-trees.md) | Choosing a methodology / control chart / root-cause tool, or triaging capability & control. Traverse the relevant **selection** Mermaid tree before selecting. |
+| [`knowledge/spc-response-decision-trees.md`](knowledge/spc-response-decision-trees.md) | **Reacting** to what a chart/study shows — common-cause vs special-cause response (the anti-tampering gate) and "capability came back low, what now?" (centering vs spread vs drift). Traverse before recommending a *reaction*. |
 
 ---
 
-## 7a. Scenarios bank — TODO (planned)
+## 7a. Scenarios bank (enabled v0.2.0)
 
-Not yet enabled. Per the marketplace pattern, enable when the first real engagement scenario surfaces via `/wrap`: create `plugins/process-improvement/scenarios/` with a `README.md` (copy from `../power-platform/scenarios/README.md`), add the scenario-retrieval inline-prior block to the agents, and remove this block.
+[`scenarios/`](scenarios/) holds dated, scope-tagged, **unverified** engagement narratives — the marketplace scenarios pattern (see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank or the statistics seam (§8). Scenarios carry no client/confidential process data. Both `lean-six-sigma-blackbelt` and `process-analyst` should check the bank when a situation matches. Current bank: capability-study-fails-threshold, control-chart-tampering, dmaic-stuck-at-analyze, control-plan-didn't-hold, vsm-wrong-constraint.
+
+---
+
+## 7b. Runnable calculator (added v0.2.0)
+
+[`scripts/lss_calc.py`](scripts/lss_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from four recurring computations: `capability` (Cp/Cpk/Pp/Ppk + bands + Cpk−Ppk drift gap), `sigma` (sigma level ↔ DPMO ↔ yield, printing **both** the long-term/1.5-shift and short-term conventions so neither is left ambiguous), `imr` (I-MR control-chart limits + a point-beyond-limit out-of-control scan), and `copq` (Cost-of-Poor-Quality roll-up + recoverable-at-target). It is a **calculator, not a data source and not a significance test** — the user supplies every input; a capability CI, Gage R&R, or "is the difference real?" routes to `applied-statistics` (§8). Formulas are cited inline in the file and in [`knowledge/six-sigma-statistics-and-spc.md`](knowledge/six-sigma-statistics-and-spc.md). Owned primarily by `lean-six-sigma-blackbelt`; `process-analyst` uses `imr`/`sigma` in Measure.
 
 ---
 
@@ -143,4 +150,39 @@ When in doubt, the team **declines and asks the Team Lead** rather than guessing
 - Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md)
 - Decision-tree format: [`../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../docs/best-practices/decision-trees-in-knowledge-files.md)
 - Requires `ravenclaude-core@>=0.7.0`.
-```
+
+---
+
+## 11. Components (layout)
+
+Beyond the required `agents/` + `skills/` + `knowledge/` + `templates/` + `best-practices/`, the plugin ships (added v0.2.0): `commands/` (the `/process-improvement:triage-capability-and-control` flagship command), `hooks/` (the advisory `flag-process-improvement-antipatterns.sh` PostToolUse hook + `hooks.json`), `scripts/` (the stdlib `lss_calc.py` calculator), and `scenarios/` (the unverified engagement bank). All are auto-discovered by Claude Code (`hooks/hooks.json`, `commands/*.md`) — no `plugin.json` component-path declaration is required, matching the marketplace convention.
+
+---
+
+## 12. Value-add completeness (build-out 2026-06-05)
+
+Every value-add menu item is dispositioned honestly below. Several runtime-tier items are genuinely **N-A** for a methodology vertical — there is no code artifact, runtime, or repo to operate on, and forcing them would add noise.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README + 5 dated, scope-tagged engagement scenarios (capability-fails-threshold, control-chart tampering, DMAIC stuck at Analyze, control-plan-didn't-hold, VSM wrong-constraint). Each carries an "Action for the next Black Belt" lesson + cited sources. |
+| Decision-tree (Mermaid) knowledge | **BUILT (net-new)** | New [`spc-response-decision-trees.md`](knowledge/spc-response-decision-trees.md) — 2 trees (common-vs-special-cause **response**/anti-tampering gate; capability-came-back-low → centering vs spread vs drift) **complementing** PR #315's 7 *selection* trees rather than duplicating them. |
+| Runnable calculator (`scripts/`) | **BUILT** | [`lss_calc.py`](scripts/lss_calc.py) — `capability` (Cp/Cpk/Pp/Ppk + bands + drift gap), `sigma` (sigma↔DPMO↔yield, both shift conventions), `imr` (I-MR limits + out-of-control scan), `copq` (COPQ roll-up). Stdlib only, ruff-clean, formulas cited; verified against canonical values (DPMO 3.4→6σ long-term). |
+| Bundled / recommended MCP server | **N-A** | Methodology vertical — there is no code-aware backend, PIMS, or per-tenant API for the team's craft (DMAIC/SPC/Lean) to call. Per [`../../docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md), the least-coupled option that works is *nothing*; never fabricate one. The one live data need — "instrument a process so it can be measured" — already routes to `data-platform` (§9). |
+| LSP integration | **N-A** | No source language in an advisory process-improvement vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/lss_calc.py`; no compiled/installed binary warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. |
+| output-styles / themes | **N-A** | Deliverables are Markdown reports governed by the §6 Output Contract. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond `ravenclaude-core`'s. |
+| skills / hooks / commands / templates | **GAP FILLED** | The plugin previously had **no** commands or hooks. Added the [`/triage-capability-and-control`](commands/triage-capability-and-control.md) command (control-then-capability triage) and the advisory [`flag-process-improvement-antipatterns.sh`](hooks/flag-process-improvement-antipatterns.sh) PostToolUse hook (flags capability-without-stability, sigma-without-shift, solution-jumping, fix-without-control-plan; `PROCESS_IMPROVEMENT_STRICT=1` makes it blocking). 6 skills + 5 templates already covered the rest. |
+| CHANGELOG.md | **BUILT** | Added with a top `0.2.0` entry. |
+| NOTICE.md | **N-A** | No third-party content bundled — the calculator is original stdlib-only; all sources are cited inline, not vendored. |
+
+The statistics seam is respected throughout: every artifact that touches inference (capability CIs, Gage R&R, hypothesis tests, DOE) **references** `applied-statistics` and does not re-derive rigorous stats (CLAUDE.md §8).
+
+---
+
+## 13. Milestones
+
+- **v0.1.x** — initial release: 2 agents, 6 skills, 5 templates, 21 best-practices, a 3-doc knowledge bank; PR #315 consolidated the decision-trees + best-practices + templates.
+- **v0.2.0** — value-add build-out: scenarios bank (5 scenarios), a new SPC-response decision-tree knowledge file (2 trees complementing #315's selection trees), `scripts/lss_calc.py` (4 modes), the `/triage-capability-and-control` command, and the advisory anti-pattern hook (the commands/hooks gap fill), CHANGELOG. Code-runtime tier dispositioned N-A with reasons (§12).

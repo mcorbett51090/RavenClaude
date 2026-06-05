@@ -1,7 +1,7 @@
 {
   "name": "game-development",
-  "version": "0.1.2",
-  "description": "Game Development specialist team \u2014 4 agents (gamedev-producer, game-designer, gameplay-engineer, live-ops-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A production-and-design team for a game studio or indie team \u2014 it scopes to a vertical slice before a full build, designs core loops and economies that retain, runs production on milestones and risk burn-down, and reads live-ops on retention and monetization the way a team that ships and then operates a game must. Inherits ravenclaude-core protocols.",
+  "version": "0.2.0",
+  "description": "Game Development specialist team — 4 agents (gamedev-producer, game-designer, gameplay-engineer, live-ops-analyst), 5 skills, templates, commands, 1 advisory hook, 20 best-practice rules, a research-grounded knowledge bank with Mermaid decision trees (production/design/live-ops + runtime-performance frame/GC/draw-call/memory budgets + engine-selection/ECS-vs-OOP/networking-model), a scenarios bank (frame-time GC hitch, draw-call batching, netcode rollback, save-system migration), a stdlib frame/CPU-GPU/memory budget calculator (scripts/gamedev_budget.py), and a bundled C# (Roslyn, stdio) LSP config. Scopes to a vertical slice, designs core loops and economies that retain, runs production on milestones and risk burn-down, reads live-ops on retention/monetization, and diagnoses frame-budget/draw-call/netcode/save-migration problems. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"
   },
@@ -16,9 +16,19 @@
     "game-economy",
     "live-ops",
     "retention",
-    "monetization"
+    "monetization",
+    "frame-budget",
+    "draw-calls",
+    "netcode",
+    "rollback",
+    "ecs",
+    "save-migration",
+    "unity",
+    "godot",
+    "unreal"
   ],
   "requires": {
     "plugins": ["ravenclaude-core@>=0.7.0"]
-  }
+  },
+  "lspServers": "./.lsp.json"
 }

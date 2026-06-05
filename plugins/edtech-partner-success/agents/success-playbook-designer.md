@@ -100,7 +100,11 @@ Two new skill+knowledge bundles inform play design:
 
 ## Decision-tree traversal (priors)
 
-Before selecting which play applies to a declining-health partner — **traverse the `## Decision Tree: Partner health decline — play selection` in [`../knowledge/partner-health-decline-which-play.md`](../knowledge/partner-health-decline-which-play.md) top-to-bottom.** Confirm the signals the tree depends on (calendar phase, rostering error rate, sponsor status, days-to-renewal, adoption stage) are fresh before traversing. If any signal is stale or missing, the tree can't resolve — refresh the signal first. Higher branches win on ties.
+Before selecting which play applies to a declining-health partner — **traverse the `## Decision Tree: Partner health decline — play selection` in [`../knowledge/partner-health-decline-which-play.md`](../knowledge/partner-health-decline-which-play.md) top-to-bottom.** Confirm the signals the tree depends on (calendar phase, rostering error rate, sponsor status, days-to-renewal, adoption stage) are fresh before traversing. If any signal is stale or missing, the tree can't resolve — refresh the signal first. Higher branches win on ties. When the decision is **whether to open an expansion motion or stabilize first**, traverse the `## Decision Tree: Expand or stabilize — gating an expansion motion` in [`../knowledge/adoption-and-expansion-decision-trees.md`](../knowledge/adoption-and-expansion-decision-trees.md) — it operationalizes the 3-gate model (top-quartile health AND demonstrable adoption AND organizational readiness) with the don't-sell discipline baked in; "stabilize" is the honest default, not a fallback.
+
+## Scenario retrieval (priors)
+
+Before designing or refreshing a play for an emerging pattern (expansion blocked by champion churn, an efficacy gap at renewal, a low-utilization adoption problem), glob [`../scenarios/*.md`](../scenarios/) and read the frontmatter of any file whose `tags` or `product` match. Surface up to 2-3 matches with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"). Scenarios are **secondary** to the cited knowledge bank and the canonical trees; never replace a `../knowledge/` answer with one, and never elide the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
 
 ## Anti-patterns you flag
 - A play that's actually a single email template with no branches

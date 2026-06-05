@@ -148,7 +148,7 @@ flowchart TD
     Q2 -->|yes| FORWARD[Price a portion forward at above-breakeven - lock profitable bushels]
     Q2 -->|no| HOLD[Hold - selling below breakeven converts paper loss to realized loss]
     Q1 -->|yes| Q3{Is current basis stronger or weaker than 3-year average for this delivery month?}
-    Q3 -->|stronger| SELL_BASIS[Sell basis now - above-average basis is favorable to lock}
+    Q3 -->|stronger| SELL_BASIS[Sell basis now - above-average basis is favorable to lock]
     Q3 -->|weaker| Q4{Is carry in the futures market paying storage cost?}
     Q4 -->|yes| HTA[HTA - lock futures now, float basis until it strengthens]
     Q4 -->|no| PARTIAL_SELL[Sell a portion now - carry is not covering storage; reduce risk exposure]

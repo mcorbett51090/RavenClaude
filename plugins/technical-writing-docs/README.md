@@ -8,6 +8,13 @@ The **technical-writing-docs** plugin — developer and product documentation do
 - **`api-reference-writer`** — Accurate developer reference: spec-driven API reference (from OpenAPI/AsyncAPI), runnable examples, documenting errors/limits/auth, SDK/quickstart guides, READMEs, and changelogs that respect SemVer
 - **`docs-site-engineer`** — The docs site as software: tooling choice (Docusaurus/Mintlify/MkDocs/Starlight), build + deploy in CI, search, versioning, navigation/IA implementation, link-checking and example-testing in CI, and previews
 
+## Knowledge, scenarios & tooling
+
+- **Decision-tree knowledge bank** — Diátaxis content-type selection (with the mixed-kind split), docs-tooling choice, content-home, examples-from-stale, stale-doc handling, API-docs structure, and **lint-in-CI-vs-manual-review**, plus a dated 2026 capability map.
+- **Scenarios bank** (`scenarios/`) — 4 unverified field notes (API-docs drift from code, no-IA findability, tutorial/reference confusion, docs-review bottleneck), surfaced behind the mandatory unverified-scenario preamble.
+- **Prose-linter LSP tier** (`.lsp.json`) — Vale-LS (prose/style) + Marksman (markdown structure). Ships the config; binaries install separately (loud-but-non-fatal if missing).
+- **Runnable checker** (`scripts/docs_check.py`) — stdlib-only Flesch readability + prose-hygiene triage; `python3 scripts/docs_check.py all path/to/doc.md`.
+
 ## Install
 
 ```shell

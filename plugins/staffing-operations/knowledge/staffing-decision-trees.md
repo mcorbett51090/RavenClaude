@@ -175,3 +175,85 @@ flowchart TD
 | Market/competitive | workforce-market-analyst | Market context section | Finding is internal operational |
 | Pipeline validation | recruiting-funnel-strategist | Sourcing recommendation check | Recommendation is pricing or compliance |
 | Synthesis + recommendation | staffing-engagement-lead | Always | Never delegate the recommendation itself |
+
+---
+
+## Decision Tree: Fill Strategy by Requisition Type — How to Work This Order
+
+**When this applies:** an order (or a class of orders) is open and the team must choose *how* to fill it — pull from bench/redeployment, source net-new, route to teletherapy/remote, or push it back to intake as un-workable. This is the per-req routing that sits **upstream** of the capacity question: deciding the right fill motion before deciding whether headcount is short. Observable entry signal: a recruiter or coordinator asks "how should I work this req?" or a batch of similar reqs is aging without a deliberate strategy.
+
+**Last verified:** 2026-06-05 against the plugin knowledge bank (redeployment as cheapest placement §C.16; credentialing clock §3 #7; education delivery-model levers).
+
+```mermaid
+flowchart TD
+    START[Open requisition to work] --> Q1{Is the order workable - competitive bill rate, real start date, deliverable scope?}
+    Q1 -->|NO| INTAKE[Push back to intake - fix bill rate or scope, or de-activate; do NOT burn sourcing capacity on it]
+    Q1 -->|YES| Q2{Can an existing contractor be redeployed or extended into it?}
+    Q2 -->|YES - skills and clearance match| REDEPLOY[Redeploy or extend - the cheapest placement, no re-source cost, fastest start]
+    Q2 -->|NO| Q3{Does the role require onsite presence, or can it be delivered remotely / via teletherapy?}
+    Q3 -->|Remote-deliverable - e.g. teletherapy, remote allied| REMOTE[Route to remote/teletherapy supply - launches in days where onsite takes months]
+    Q3 -->|Onsite-required| Q4{Is this a credential-heavy healthcare or school-based role?}
+    Q4 -->|YES| CRED[Source net-new AND start the credentialing/clearance clock in parallel - measure time-to-START, §3 #7]
+    Q4 -->|NO| Q5{Is qualified supply available at the current pay rate?}
+    Q5 -->|YES| SOURCE[Standard net-new sourcing - submit fast; speed wins the placement, §3 #2]
+    Q5 -->|NO - supply gap at this pay| PAY[Raise pay rate or widen the geography/channel - a supply problem, not a recruiter problem, §3 #6]
+```
+
+**Rationale per leaf:**
+- *Push back to intake* — working an un-workable order (uncompetitive bill, no real start, vague scope) wastes sourcing capacity and inflates req aging; fix the order or de-activate it before sourcing (intake discipline, §3 #1).
+- *Redeploy / extend* — a contractor already cleared and performing is the cheapest, fastest fill (§C.16); always check the bench before sourcing net-new.
+- *Remote / teletherapy* — when the role can be delivered remotely, it sidesteps the local-supply and relocation constraints and starts in days; the dominant lever for hard-to-fill school-based therapy.
+- *Source + parallel credentialing* — for credential-heavy roles, sourcing and the clearance clock must run **together**, and the metric is time-to-*start* not time-to-accept (§3 #7), or the placement looks fast and falls off.
+- *Standard sourcing* — workable, supply-available roles just need a fast qualified submittal; speed wins (§3 #2).
+- *Raise pay / widen channel* — a supply gap at the current pay is a demand/order-quality lever, not a recruiter-execution problem (§3 #6); fix supply economics, don't push the recruiter harder.
+
+**Tradeoffs summary:**
+
+| Fill motion | Cost | Speed | Best for |
+|---|---|---|---|
+| Push back to intake | None (saves capacity) | n/a | Un-workable orders |
+| Redeploy / extend | Lowest | Fastest | Cleared contractor, skill match |
+| Remote / teletherapy | Low–medium | Days | Remote-deliverable roles, thin local supply |
+| Source + parallel credentialing | Medium | Weeks (clock-bound) | Credential-heavy onsite roles |
+| Standard net-new sourcing | Medium | Days–weeks | Workable, supply available |
+| Raise pay / widen channel | Higher unit cost | Slower | Supply gap at current pay |
+
+---
+
+## Decision Tree: Placement Model — Contract vs. Contract-to-Hire vs. Direct (Perm)
+
+**When this applies:** the firm (or a client) is choosing the **commercial model** for filling a need — a temp/contract placement (markup on an hourly spread), a contract-to-hire (temp spread now, conversion fee later), or a direct/perm placement (one-time fee, % of salary). The question is which model fits the demand shape and the firm's margin/cash profile, not how to source the candidate. Observable entry signal: "should we place this contract or perm?", a client asking to convert a contractor, or a margin-mix decision about which models the desk should favor.
+
+**Last verified:** 2026-06-05 against the bill/pay/markup mechanics in knowledge/staffing-kpi-glossary.md §B (markup 20–75% temp; perm fee 10–20%) and healthcare-staffing-economics.md.
+
+```mermaid
+flowchart TD
+    START[Need to fill - choose the commercial model] --> Q1{Is the need temporary / project / census-driven, or a permanent role?}
+    Q1 -->|Temporary or variable-census| CONTRACT[Contract / temp - recurring hourly spread; the firm carries employment, burden, and bench risk]
+    Q1 -->|Permanent role| Q2{Does the client want to try-before-hire, or hire directly?}
+    Q2 -->|Try-before-hire| Q3{Is the candidate willing to start as a contractor?}
+    Q3 -->|YES| C2H[Contract-to-hire - hourly spread during the trial, conversion fee on perm; de-risks both sides]
+    Q3 -->|NO - candidate wants perm only| DIRECT_PERM[Direct-hire / perm - one-time placement fee, % of first-year salary]
+    Q2 -->|Hire directly| Q4{Does the firm have a fee-bearing perm desk for this segment?}
+    Q4 -->|YES| DIRECT[Direct-hire placement - 10-20% of salary, no ongoing burden, cash up front]
+    Q4 -->|NO - contract-only shop| REFER[Refer out or stand up a perm capability - don't force a contract model onto a perm need]
+    CONTRACT --> Q5{Is bench/idle risk high for this skill?}
+    Q5 -->|YES| REDEPLOY_PLAN[Plan redeployment up front - bench time destroys the spread, §C.16]
+    Q5 -->|NO| OK[Proceed - manage the burden stack to protect the spread, §3 #3]
+```
+
+**Rationale per leaf:**
+- *Contract / temp* — fits temporary, project, or variable-census demand; the firm earns a recurring spread but carries employment, burden, and bench risk, so the burden stack and redeployment discipline are what protect margin (§3 #3, §C.16).
+- *Contract-to-hire* — de-risks a perm decision for both client and candidate: the firm earns the hourly spread during the trial and a conversion fee at perm. Needs a candidate willing to contract first.
+- *Direct-hire / perm* — a one-time fee (typically 10–20% of first-year salary) with no ongoing burden or bench risk and cash up front; the right model for a true permanent role when the firm has the perm desk.
+- *Refer out / stand up capability* — a contract-only shop forcing a perm need into a contract model serves neither the client nor margin; refer it or build the perm capability deliberately.
+- *Plan redeployment up front* — for high-bench-risk skills, the spread only holds if the contractor redeploys after the assignment; design the redeployment path before the first placement, not after the bench gap appears.
+
+**Tradeoffs summary:**
+
+| Model | Revenue shape | Margin / risk | Best for |
+|---|---|---|---|
+| Contract / temp | Recurring hourly spread | Spread carries burden + bench risk | Temporary / variable-census demand |
+| Contract-to-hire | Spread during trial + conversion fee | Lower risk both sides; spread then one-time | Try-before-hire perm decision |
+| Direct-hire / perm | One-time fee (10–20% salary) | No ongoing burden, cash up front | True permanent role, perm desk exists |
+| Refer / build capability | None until capability exists | Avoids a forced-fit margin trap | Perm need at a contract-only shop |

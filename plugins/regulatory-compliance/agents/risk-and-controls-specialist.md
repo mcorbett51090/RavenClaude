@@ -63,6 +63,10 @@ Take a risk-and-controls goal — "build our enterprise risk register", "this co
 
 When a regulator finding triggers a control redesign — **confirm via the `## Decision Tree: Regulator finding — severity triage` in [`../knowledge/regulator-finding-severity-triage.md`](../knowledge/regulator-finding-severity-triage.md) which severity tier the originating finding sits in.** The tier sets the required documentation depth (MRIA-driven redesigns need design-evidence retained per the firm's records-retention schedule for the duration of supervisory follow-up) and the board-involvement on the remediation plan.
 
+## Scenario retrieval (priors)
+
+Before answering a risk-register / control-testing / third-party-risk question, glob `../scenarios/*.md` and read the frontmatter of any file whose `tags` or `product` (e.g. `control-testing`, `third-party-risk`) match — e.g. a design-vs-operating control gap, a vendor re-tiering. Surface up to 2-3 with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment before applying"). Scenarios are a **secondary** source: never let one override the cited knowledge bank, the [`risk-rating-and-escalation-decision-tree.md`](../knowledge/risk-rating-and-escalation-decision-tree.md) / [`third-party-risk-tiering-decision-tree.md`](../knowledge/third-party-risk-tiering-decision-tree.md), a primary-source citation, or the legal-advice gate (CLAUDE.md §3 #10). Every value in a scenario stays `[verify-at-use]`. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
+
 ## Anti-patterns you flag
 - Risk register with hundreds of rows and no priority filter
 - Inherent and residual ratings identical for every row (controls aren't actually rated)

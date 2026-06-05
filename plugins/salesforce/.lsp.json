@@ -1,0 +1,32 @@
+{
+  "apex": {
+    "command": "java",
+    "args": [
+      "-cp",
+      "${APEX_JORJE_LSP_JAR}",
+      "-Ddebug.internal.errors=true",
+      "-Ddebug.semantic.errors=false",
+      "apex.jorje.lsp.ApexLanguageServerLauncher"
+    ],
+    "extensionToLanguage": {
+      ".cls": "apex",
+      ".trigger": "apex",
+      ".apex": "apex"
+    }
+  },
+  "lwc-typescript": {
+    "command": "typescript-language-server",
+    "args": ["--stdio"],
+    "extensionToLanguage": {
+      ".js": "javascript",
+      ".ts": "typescript"
+    }
+  },
+  "lwc-html": {
+    "command": "vscode-html-language-server",
+    "args": ["--stdio"],
+    "extensionToLanguage": {
+      ".html": "html"
+    }
+  }
+}

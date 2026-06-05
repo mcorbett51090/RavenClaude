@@ -252,10 +252,22 @@ def render_fragment(plugin_dir: Path, schema: dict) -> dict:
         'window.addEventListener("hashchange", applyHash);',
         "/* hashchange owned by the index shell router (native-merge) */",
     )
-    js = iife_wrap(
-        js,
-        expose="window.__dashApp = { show: function (tab, sub) { try { activate(tab, sub); } catch (e) {} } };",
+    # Expose the shell's entry point INSIDE the dashboard's own IIFE. _JS already
+    # self-wraps as `(() => { … activate … })();`, so `activate` is scoped to that
+    # inner closure. Appending the exposure via iife_wrap's outer tail would put it
+    # AFTER the inner `})();` — where `activate` is undefined, so __dashApp.show()
+    # throws a (swallowed) ReferenceError and every shell nav click silently falls
+    # back to the Overview tab. Inject it before the inner IIFE's final close so
+    # `activate` is in scope; the outer iife_wrap then only adds global isolation.
+    _EXPOSE = (
+        "\n  window.__dashApp = { show: function (tab, sub) { "
+        "try { activate(tab, sub); } catch (e) {} } };\n"
     )
+    _close = js.rfind("})();")
+    if _close == -1:  # defensive: _JS shape changed — fail loud rather than ship a dead nav
+        raise RuntimeError("render_fragment: could not find the dashboard IIFE close `})();` to inject __dashApp")
+    js = js[:_close] + _EXPOSE + js[_close:]
+    js = iife_wrap(js)
     return {"css": css, "body": body, "js": js}
 
 
@@ -1607,12 +1619,20 @@ def _render_trees_tab(include_trees: bool = True) -> str:
                 )
             )
             when = f'<p class="guide-when">{html.escape(t["when"])}</p>' if t["when"] else ""
-            svg = _load_tree_svg(t["id"])
-            if svg:
+            # Lazy-load the pre-rendered SVG as an EXTERNAL file (loading="lazy" +
+            # collapsed <details>) instead of inlining its ~20KB of markup. With
+            # 600+ trees, inlining doubled dashboard.html (~13MB→27MB); referencing
+            # the committed file keeps the page light and only fetches a diagram
+            # when its <details> is actually opened. The SVG self-themes via the
+            # render-trees fallback palette (page CSS vars don't reach an <img>).
+            # Path is relative to dashboard.html (plugins/ravenclaude-core/).
+            if (TREE_VISUALS_DIR / f"{t['id']}.svg").is_file():
+                rel = f"knowledge/tree-visuals/{html.escape(t['id'])}.svg"
                 diagram = (
                     '<details class="guide-tree-diagram">'
                     '<summary class="guide-tree-summary">Diagram</summary>'
-                    f'<div class="guide-tree-svg">{svg}</div>'
+                    f'<div class="guide-tree-svg"><img loading="lazy" decoding="async" '
+                    f'src="{rel}" alt="{html.escape(t["title"])} decision tree" class="guide-tree-img"></div>'
                     "</details>"
                 )
             else:
@@ -4437,7 +4457,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   border-radius: var(--radius);
   overflow-x: auto;
 }
-.guide-tree-svg svg { max-width: 100%; height: auto; }
+.guide-tree-svg svg, .guide-tree-img { max-width: 100%; height: auto; display: block; }
 .cmd-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

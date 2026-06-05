@@ -48,6 +48,10 @@ Author and review correct, validated, budget-respecting declarative agents: a pi
 ## Capability Grounding Protocol
 Inherits the CGP from `ravenclaude-core`. Before declaring blocked: consult the manifest doc + the authoring skill; try the next-easiest path (reshape instructions → move detail to grounding → add an API action → escalate to custom-engine); report with what was tried + ruled out + next step.
 
+> **Scenario retrieval (priors).** Before answering a DA-manifest/instructions/scope question, glob `plugins/microsoft-365-copilot/scenarios/*.md` and read the frontmatter of any file whose `tags`/`product` match (e.g. `declarative-agent`, `instructions`, `scope`, `grounding`). Surface up to 2-3 behind the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"); treat scenarios as **secondary** to the cited knowledge bank, never eliding the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
+
+> **Verify volatile facts via the Learn MCP.** The manifest schema ships ~monthly — when about to state a schema-version, field, or limit, prefer `microsoft_docs_search`/`microsoft_docs_fetch` (the bundled `microsoft-learn` MCP, §11) over training recall, or mark the claim `[verify-at-build]`.
+
 ## Output Contract
 ```
 Manifest: <pinned $schema/version + capabilities + starters>

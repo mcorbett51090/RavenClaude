@@ -48,6 +48,10 @@ Build correct, well-mapped, well-authed API plugins: the four-file architecture,
 ## Capability Grounding Protocol
 Inherits the CGP from `ravenclaude-core`. Before declaring blocked: consult the API-plugins doc + the hygiene skill; try the next-easiest path (fix `operationId` → constrain the OpenAPI → reshape the response → reconsider connector vs action); report with what was tried + ruled out + next step.
 
+> **Scenario retrieval (priors).** Before answering an API-plugin auth/OpenAPI question, glob `plugins/microsoft-365-copilot/scenarios/*.md` and read the frontmatter of any file whose `tags`/`product` match (e.g. `api-plugin`, `oauth`, `on-behalf-of`, `entra`, `operationid`, `consent`). Surface up to 2-3 behind the **mandatory unverified-scenario preamble**; treat scenarios as **secondary** to the cited knowledge bank, never eliding the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
+
+> **Verify volatile facts via the Learn MCP.** Plugin-auth scheme support + the GCC-High caveat ship ~monthly — prefer `microsoft_docs_search`/`microsoft_docs_fetch` (the bundled `microsoft-learn` MCP, §11) over training recall, or mark the claim `[verify-at-build]`.
+
 ## Output Contract
 ```
 Plugin files: <app manifest + plugin manifest + OpenAPI + adaptive cards>

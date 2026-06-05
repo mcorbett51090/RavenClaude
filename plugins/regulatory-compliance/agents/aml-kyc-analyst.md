@@ -59,6 +59,10 @@ Take an AML / KYC goal — "review this onboarding file", "this transaction moni
 - **Negative news isn't a hit, but it isn't nothing.** Document the search terms, the sources, the rationale for the verdict.
 - **PEP doesn't automatically mean no.** It means enhanced controls + senior approval + ongoing monitoring.
 
+## Scenario retrieval (priors)
+
+Before answering an AML/KYC/sanctions/SAR question, glob `../scenarios/*.md` and read the frontmatter of any file whose `tags` or `product` (e.g. `aml-kyc`) match the situation — e.g. an alert backlog, a no-file decision, a structuring pattern. Surface up to 2-3 with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment before applying"). Scenarios are a **secondary** source: never let one override the cited knowledge bank, a primary-source regulatory citation (the FinCEN/regulator clock and rules), or the legal-advice gate (CLAUDE.md §3 #10). Every regulatory value in a scenario stays `[verify-at-use]`. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
+
 ## Anti-patterns you flag
 - KYC file with no beneficial-ownership documentation for a corporate customer
 - A sanctions hit cleared with one word ("OK", "FP", "Not him") — no rationale, no list version

@@ -190,15 +190,35 @@ Each file carries a `Last reviewed:` date and refresh triggers. Pricing claims h
 
 ---
 
-## 8b. Scenarios bank — TODO (planned)
+## 8b. Scenarios bank (enabled 2026-06-05)
 
-**Status:** not yet enabled in this plugin. The marketplace-wide scenarios bank ([`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md), shipped v0.1.0 of the feedback loop on 2026-05-21) is currently live in `power-platform` only. Other plugins enable their bank **when the first real engagement scenario surfaces** via `/wrap`.
+[`scenarios/`](scenarios/) holds dated, scope-tagged, **unverified** engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a **secondary** source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank, a `best-practices/` rule, or the §3 house opinions. Scenarios carry **no client/tenant PII and no credentials** (the same secrets-stay-a-reference rule the plugin's hook enforces on code). The most-likely-to-benefit agents — `etl-pipeline-engineer`, `dashboard-builder`, `database-setup-guide` — should check the bank when a situation matches.
 
-To enable when a scenario surfaces:
+Current bank (4 field notes, schema in [`scenarios/README.md`](scenarios/README.md)):
 
-1. Create `plugins/data-platform/scenarios/` with a `README.md` (copy the structure from `plugins/power-platform/scenarios/README.md`)
-2. Add the **Scenario retrieval (priors)** inline-prior block to this plugin's most-likely-to-benefit agents (see the pattern in [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md) §"Inline-prior pattern for agents")
-3. Remove this §8b TODO block
+| File | Tags | Corroborates |
+|---|---|---|
+| [`2026-06-05-elt-backfill-double-counted-rows.md`](scenarios/2026-06-05-elt-backfill-double-counted-rows.md) | elt, backfill, idempotency, merge, watermark | `ingest-idempotent-and-replayable`, `connector-incremental-with-backfill` |
+| [`2026-06-05-scd-type-2-overwrite-lost-history.md`](scenarios/2026-06-05-scd-type-2-overwrite-lost-history.md) | scd, dimension, dbt, snapshot, history | `dbt-stage-then-mart-never-skip-the-layer`, the new dimension-history tree |
+| [`2026-06-05-embedded-rls-leak-via-cube-securitycontext.md`](scenarios/2026-06-05-embedded-rls-leak-via-cube-securitycontext.md) | multi-tenant, cube, securitycontext, rls, embed | `enforce-tenant-isolation-closest-to-data`, `semantic-layer-no-raw-sql-to-viewer` |
+| [`2026-06-05-warehouse-cost-blowout-dashboard-launch.md`](scenarios/2026-06-05-warehouse-cost-blowout-dashboard-launch.md) | warehouse, cost, snowflake, pre-aggregation, finops | `cube-preaggregate-before-viewer`, `warehouse-partition-and-cluster-for-cost`, the new cost-control tree |
+
+---
+
+## 8c. Technical-runtime tier — LSP & MCP disposition
+
+Data-platform is a **mixed code domain** — SQL (dbt models, warehouse DDL), TypeScript/JS (embed components, the JWT issuer), Python (custom connector scripts), and YAML (Cube/dbt/Airbyte config). Both runtime-tier capabilities are dispositioned honestly below; neither is *bundled*, for grounded reasons.
+
+**LSP — recommend-with-config, not bundled.** The marketplace's blessed pattern is to ship an `.lsp.json` (config, not binary) for a code domain. We **do not** ship one for SQL because the only real SQL language server, [`sqls`](https://github.com/sqls-server/sqls) (Go, `go install github.com/sqls-server/sqls@latest`, **v0.2.45 / 2026-01-07** `[verify-at-use]`), states that *"the connection to the RDBMS is essential to take advantage of the functionality"* — i.e. its useful intelligence (completion, join-on-FK, schema hover) needs a **live, credentialed DB connection per consumer**, and it is still **pre-1.0 with no stable release** (destructive config changes expected). That fails the bundle bar (per-consumer secret + unstable). For the plugin's TS/Python/YAML surfaces, a consumer who wants LSP should add the standard servers themselves (typescript-language-server, Pyright) — that's a generic editor setup, not a data-platform-specific capability worth bundling here. **If `sqls` ships a stable release and a no-connection metadata mode, revisit.** (Contrast: `backend-engineering` *does* ship `.lsp.json` because its languages have zero-config standalone servers; SQL does not.)
+
+**MCP — recommend-not-bundle (every candidate is credentialed).** Per [`../../docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md), a bundled server must be **zero-config + read-only**. Every warehouse/DB MCP server is **per-tenant + authenticated** (a connection string / OAuth = a secret), so all are **recommend-not-bundle**, secret-as-a-reference, gated through `ravenclaude-core/security-reviewer`:
+
+| Server | Why recommend-not-bundle | Recommended setup `[verify-at-use]` |
+|---|---|---|
+| **Snowflake** ([`Snowflake-Labs/mcp`](https://github.com/Snowflake-Labs/mcp), first-party) | Per-account auth (key-pair/OAuth) + billed compute; tools can run SQL → write-reachable. Connection details are a secret. | Consumer-configured per the Snowflake-managed MCP docs; **read-only role**, secret as a reference (env-var name / vault URI), `security-reviewer` sign-off. |
+| **Postgres (read-only)** | Per-tenant connection string (a secret). **Do NOT recommend** Anthropic's `@modelcontextprotocol/server-postgres` — it is **archived/deprecated** (SQL-injection fix never shipped) yet still widely downloaded. Point at a maintained read-only fork or Google's MCP Toolbox for Databases, vetted at adoption. | Consumer-configured, **read-only transaction mode**, secret as a reference, `security-reviewer` sign-off before adoption. |
+
+No server is invented; no `mcpServers` entry ships; no `NOTICE.md` (nothing third-party is bundled). Re-confirm package names, the postgres-reference deprecation, and the Snowflake MCP shape at use — all volatile.
 
 ---
 
@@ -271,3 +291,20 @@ Data-platform agents stay within the four-layer scope (DB / ELT / dashboard / em
 Reciprocal seam to the adjacent-plugins build-out:
 
 - Adjacent data plugins: the dbt transformation/semantic layer → `analytics-engineering`; real-time/streaming + CDC → `data-streaming-engineering`; data catalog, lineage, classification & privacy mechanics (GDPR/CCPA/DSR) → `data-governance-privacy`.
+
+---
+
+## Value-add completeness (build-out 2026-06-05)
+
+PR #315 already added the consolidated knowledge decision-trees + `best-practices/` + `templates/`, on top of an already-rich knowledge bank. This build-out closes the remaining net-new gaps (scenarios bank + runtime-tier dispositioning) and adds two complementary trees. Every value-add menu item is dispositioned below (built vs. recorded N-A with reason):
+
+| # | Item | Disposition |
+|---|---|---|
+| 1 | **scenarios/ bank** | **BUILT** — enabled the bank (§8b): 3 net-new field notes (`scd-type-2-overwrite-lost-history`, `embedded-rls-leak-via-cube-securitycontext`, `warehouse-cost-blowout-dashboard-launch`) joining the pre-existing `elt-backfill-double-counted-rows` — 4 total, matching the `scenarios/README.md` index + 9-field schema. Replaced the §8b TODO block with the enabled-bank section. |
+| 2 | **Decision-tree knowledge** | **BUILT** — 2 NEW Mermaid trees appended to `knowledge/data-platform-decision-trees.md`: **dimension history (SCD Type-1/2/3)** and **warehouse cost control (FinOps)**. Chosen because the existing 10 trees cover DB/ELT/BI/RLS/embed-auth/identity/pipeline-failure/connector-gap/dbt-materialization/dashboard-*latency* — neither dimension-type nor warehouse *cost* (vs. latency) was covered. Each complements an existing tree (materialization tree → load cost; performance tree → latency) without duplicating it. Grounded + cited + dated; corroborated by two of the new scenarios. |
+| 3 | **Bundled MCP server** | **N-A (recommend-not-bundle)** — §8c. Every warehouse/DB MCP (Snowflake-Labs first-party, Postgres) is per-tenant + authenticated (a connection string = a secret) → fails the zero-config + read-only bar. Documented the recommended setup + `security-reviewer` gate; flagged the deprecated Anthropic postgres reference. No invented servers, no `mcpServers` entry. |
+| 4 | **LSP server** | **N-A (recommend-with-config)** — §8c. The only real SQL LSP (`sqls`, v0.2.45 `[verify-at-use]`) needs a **live credentialed DB connection** for its useful features and is **pre-1.0/no stable release** → fails the bundle bar (per-consumer secret + unstable). TS/Python/YAML servers are generic editor setup, not data-platform-specific. No `.lsp.json` shipped. Revisit if `sqls` ships a stable no-connection metadata mode. |
+| 5 | **Runnable script (`scripts/`)** | **N-A** — a warehouse-cost estimator would hard-code per-engine credit rates that are quarterly-volatile (the plugin's own §3 #9 discipline) and duplicate the dated `cloud-database-landscape-2026.md` + `snowflake-warehouse-sizing-recipes.md` + the new cost-control tree. Decision-support belongs in the dated knowledge bank, not a script that bakes in a stale rate. No real, durable value this round. |
+| 6 | **bin/ / monitors / output-styles / settings / themes** | **N-A** — no groundable, broadly-valuable instance. A `bin/` linter would duplicate the existing advisory hook (`flag-data-platform-smells.sh`); nothing to monitor (no long-running process); deliverables are governed by the §6 Output Contract, not an output-style; no plugin-specific tool-permission surface beyond `ravenclaude-core`. |
+| 7 | **skills/hooks/commands/templates** | **SUFFICIENT** — 13 skills, 5 commands, 12 templates, 1 advisory hook already cover DB/ELT/dashboard/embed end-to-end. The new scenarios + 2 trees extend reach without a new agent or a 14th skill (team-growth-as-knowledge house rule). No clear gap this round. |
+| 8 | **CHANGELOG.md** | **BUILT** — added with a top entry for this build-out. No `NOTICE.md` (nothing third-party is bundled). |

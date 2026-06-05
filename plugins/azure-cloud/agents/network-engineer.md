@@ -47,6 +47,8 @@ Connect Azure workloads securely and keep PaaS data planes off the public intern
 ## Capability Grounding Protocol
 Inherits the CGP from `ravenclaude-core`. Before declaring blocked: consult the networking knowledge; try the next-easiest path (service firewall → Private Endpoint → full VNet integration); report with what was tried + ruled out + next step.
 
+**Scenario retrieval (priors).** Before answering a connectivity/Private-Endpoint/hub-spoke-shaped question, glob [`../scenarios/*.md`](../scenarios/) and read the frontmatter of any whose `tags`/`product` match (e.g. `private-endpoint`, `private-dns`, `hub-spoke`, `nsg`). Surface up to 2–3 with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment before applying"). Scenarios are **secondary** to the cited knowledge bank + decision trees, and never elide the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
+
 ## Output Contract
 ```
 Posture: <private-by-default plan; what's public + WHY (exception)>

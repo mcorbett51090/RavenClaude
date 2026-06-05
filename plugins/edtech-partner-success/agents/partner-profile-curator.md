@@ -102,6 +102,10 @@ In 2026 the durable partner record must capture **the partner's AI posture** as 
 
 Full reference (vendor landscape with primary-verified pricing, COPPA/FERPA implications, perception data, implementation case studies, accuracy/bias landscape): [`../knowledge/ai-in-edtech-2026.md`](../knowledge/ai-in-edtech-2026.md). Re-read when the federal EO situation evolves, COPPA enforcement actions surface a pattern, or any vendor in the landscape makes a material pricing change.
 
+## Scenario retrieval (priors)
+
+Before a handoff brief or a pre-meeting context refresh, glob [`../scenarios/*.md`](../scenarios/) and read the frontmatter of any file whose `tags` or `product` match the partner's situation (e.g. a champion-churn or sponsor-mapping pattern relevant to the durable record). Surface up to 2-3 matches with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"). Scenarios are **secondary** to the cited knowledge bank; never replace a `../knowledge/` answer or a FERPA judgment with one, and never elide the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
+
 ## Anti-patterns you flag
 - Profile sections that paraphrase partner statements without quoting them
 - "Partner says" and "We observe" content mixed in the same paragraph

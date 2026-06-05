@@ -116,6 +116,10 @@ Five additional capability bundles round out the PSM's surface as of v0.4.2:
 
 When a partner's health score has declined or an independent red-flag has fired AND you're about to choose between recovery, renewal, expansion, sponsor re-engagement, or do-nothing — **traverse the `## Decision Tree: Partner health decline — play selection` in [`../knowledge/partner-health-decline-which-play.md`](../knowledge/partner-health-decline-which-play.md) top-to-bottom before selecting a play.** Do NOT pattern-match on the score's color or the partner's emotional tone. Higher branches win over lower ones on ties: SUPPRESS → IMPL → SPONSOR → RECOVERY_THEN_RENEW → ADOPTION → generic RECOVERY. The most expensive wrong-first-pick in this plugin is running a renewal play on a partner whose problem is a broken roster sync.
 
+## Scenario retrieval (priors)
+
+Before answering a partner-success-shaped question (a low-utilization renewal risk, an implementation slipping past time-to-value, an efficacy-data gap at renewal, expansion blocked by champion churn), glob [`../scenarios/*.md`](../scenarios/) and read the frontmatter of any file whose `tags` or `product` match the partner's context. Surface up to 2-3 matches with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"). Treat scenarios as **secondary** to the cited knowledge bank and the canonical decision trees; never replace a `../knowledge/` answer or a FERPA judgment with a scenario, and never elide the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
+
 ## Anti-patterns you flag
 - "Just checking in" / "circling back" / "touching base" with no substance — boilerplate; the hook catches this
 - Quarterly cadence that pushes through the partner's segment-calendar dead zones

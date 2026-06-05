@@ -2,6 +2,32 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.7.0] — 2026-06-05
+
+Value-add build-out — closing the net-new gap against the full value-add menu (the repeatable plugin-enrichment recipe, mirroring `backend-engineering` 0.3.0 and `veterinary-practice` 0.2.0). Every menu item is dispositioned (built or recorded N-A with reason); see [`CLAUDE.md`](CLAUDE.md) § "Value-add completeness (build-out 2026-06-05)".
+
+> Recommended version: **0.7.0** (minor — net-new user-visible surfaces, no breaking change). Bump `.claude-plugin/plugin.json` **and** the `marketplace.json` catalog entry in lockstep (CI fails on drift); this CHANGELOG entry is pre-staged for that bump.
+
+### Added
+
+- **scenarios/ bank (5 field notes) + README.** `prompt-cache-hit-rate-collapse` (zero `cache_read_input_tokens` = a silent prefix invalidator, not "caching broken"), `tool-use-runaway-loop` (a deterministic iteration cap + idempotent effects, not a prompt, are the termination guarantee), `rag-retrieval-miss-under-200k` (eval the retriever separately; under ~200K prefer long-context over a pipeline), `streaming-timeout-on-long-output` (stream long/high-`max_tokens` work; back off `429`s with jitter), `eval-regression-shipped-silently` (golden set + CI gate; split model migrations into their own eval event). Marketplace 9-field schema; retires the §8a TODO and wires the four most-relevant agents to the bank.
+- **Decision-tree knowledge.** `knowledge/cost-and-caching-decision-trees.md` — two Mermaid trees: (1) cache-hit-rate-collapse debug tree, (2) the cost-lever ladder (caching → routing → batch → right-size, in order). Fills the cost/caching-diagnostic gaps the existing tree file left.
+- **LSP code-intelligence config.** `.lsp.json` (referenced from `plugin.json` `lspServers`) configuring Pyright (Python) + typescript-language-server (TS/JS) — the two Anthropic-SDK languages this plugin's snippets use. Ships the config, not the binary (loud-but-non-fatal if missing).
+- **Runnable script.** `scripts/claude_cost_estimator.py` — stdlib-only, ruff-clean: `cache` (prompt-cache break-even), `budget` (context-window budget across multi-turn growth), `batch` (interactive vs Batch-API cost). A calculator, not a data source; dated default multipliers are `[verify-at-use]`.
+- **CLAUDE.md** §8a (scenarios bank live), §8 knowledge-table row for the new trees, §11 (runtime tier — SDK prerequisite + recommend-not-bundle MCP + LSP + the cost estimator), and the §12 value-add completeness disposition table.
+
+### Decisions (recorded, not built)
+
+- **No bundled MCP server.** Real web research (2026-06-05): no first-party Anthropic Claude-docs MCP exists (the Claude API Remote-MCP page disclaims the listed servers as third-party, *"not owned, operated, or endorsed by Anthropic"*); the MIT `fetch` reference server is the closest zero-auth/read-only fit but fetches **arbitrary URLs** (breadth → a `security-reviewer`-gated `claude mcp add`, not a bundle); DB/filesystem/git are per-tenant/write/secret-handling and the Anthropic postgres reference is archived. Documented the recommend-not-bundle disposition. **No invented servers/packages/versions.**
+- **No `bin/`, monitors, output-styles, settings defaults, or themes** — none cleared the "groundable + broadly valuable, doesn't duplicate the advisory hook or a neighbouring plugin" bar.
+- **Skills/commands/templates coverage held sufficient** — 7 skills, 5 commands, 6 templates, 1 advisory hook already cover the surface; the scenarios + 2 trees + script extend reach without a new agent (team-growth-as-knowledge house rule).
+
+### Verify-at-use
+
+- The `fetch` MCP package name + runner (`uvx` vs `npx`), the MCP reference-server set + the postgres-reference archival, and the absence of a first-party Claude-docs MCP — all dated 2026-06-05, re-confirm against the vendor.
+- LSP support landed in Claude Code 2.0.74; re-confirm the version + the `pyright`/`typescript-language-server` install paths.
+- The cost estimator's default cache write/read multipliers (~1.25×/2× write, ~0.1× read) + the ~50% Batch discount are dated snapshots in the script, not authoritative — confirm against current Anthropic pricing.
+
 ## [0.2.0] — 2026-05-28
 
 Knowledge-bank expansion (9 → 13 docs) — a wide-net gap scan surfaced four missing surfaces, each researched and fleshed out:

@@ -62,6 +62,10 @@ Take a policy-and-procedure goal — "draft an AML policy refresh for the new re
 
 When asked to draft a written response to a regulator finding (response letter, remediation plan, board paper) — **first traverse the `## Decision Tree: Regulator finding — severity triage` in [`../knowledge/regulator-finding-severity-triage.md`](../knowledge/regulator-finding-severity-triage.md) to confirm the severity tier.** The tier sets the tone, timeline commitments, and board-involvement language in the draft. Do NOT assume the prior author's classification was correct; the most common upstream error is treating an MRIA as an MRA.
 
+## Scenario retrieval (priors)
+
+Before answering a policy-drafting / gap-analysis / regulatory-change question, glob `../scenarios/*.md` and read the frontmatter of any file whose `tags` or `product` (e.g. `regulatory-change`, `policy`) match — e.g. a regulatory-change impact-assessment funnel. Surface up to 2-3 with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment before applying"). Scenarios are a **secondary** source: never let one override the cited knowledge bank, a primary-source citation, or the legal-advice gate (CLAUDE.md §3 #10). Applicability and impact of any actual regulatory change stays `[verify-at-use]` against the regulator's primary source. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
+
 ## Anti-patterns you flag
 - Policy with no regulator citations
 - "We comply with all applicable laws" as a substantive statement

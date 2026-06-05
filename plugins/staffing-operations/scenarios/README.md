@@ -1,0 +1,51 @@
+# Staffing-operations scenarios bank
+
+> Unverified, dated, scope-tagged narratives from real (or realistic) staffing-operations consulting engagements. Enabled as part of the value-add build-out (2026-06-05).
+
+This directory holds **scenarios** — engagement war stories of "the firm had problem X, here was the situation, these were the constraints, we tried A/B/C, D moved the number." Scenarios are:
+
+- **Schema-validated** but **not maintainer-reviewed**
+- **Visible to consumers** via `/plugin install`
+- **Consulted by agents** as a *secondary* source — always surfaced with a mandatory unverified-scenario preamble (see [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md))
+
+Unlike a code-vertical scenarios bank (a 403, a token error), these are **staffing-operations engagements**: a fill-rate decline, a margin-compression diagnosis, a credentialing bottleneck, an IEP-compliance fill problem. The "Resolution" is an analytical move plus a measured outcome, not a code fix.
+
+## The schema (mirrors the marketplace 9-field scenario schema)
+
+```yaml
+---
+scenario_id: <YYYY-MM-DD-short-slug>
+contributed_at: <YYYY-MM-DD>
+plugin: staffing-operations
+product: <operations-analytics | recruiting-funnel | healthcare-segment | education-segment | market-intel>
+product_version: "n/a"          # non-code vertical — no product version
+scope: firm-specific | segment-specific | likely-general
+tags: [list of 3-7 keywords]
+confidence: low | medium | high
+reviewed: false
+---
+
+## Problem
+## Context              (segment, division, constraints — the non-code analogue of "Permissions context")
+## Attempts
+## Resolution
+```
+
+> **Privacy (CLAUDE.md §3 #10):** scenarios carry **no** candidate or client PII — no names, license numbers, DOBs, or real client/competitor revenue attributable to a named firm. Roles and segments are used (`<a traveler>`, `<a 200-bed acute facility>`, `<a mid-size suburban district>`); numbers are illustrative ranges, marked `[ESTIMATE]`, or carry a public-benchmark source with a retrieval date (§3 #9). The team stores no candidate/client records (CLAUDE.md §2).
+
+## What's in this bank
+
+| File | Scope | Tags | Confidence |
+|---|---|---|---|
+| [`2026-06-05-fill-rate-up-time-to-fill-losing.md`](2026-06-05-fill-rate-up-time-to-fill-losing.md) | likely-general | fill-rate, time-to-fill, speed, order-quality, submittal | medium |
+| [`2026-06-05-travel-margin-compression-in-the-burden-stack.md`](2026-06-05-travel-margin-compression-in-the-burden-stack.md) | segment-specific | margin, spread, burden, travel-nursing, bill-rate | medium |
+| [`2026-06-05-credentialing-clock-hidden-in-time-to-fill.md`](2026-06-05-credentialing-clock-hidden-in-time-to-fill.md) | likely-general | credentialing, time-to-start, fall-off, healthcare, compliance | medium |
+| [`2026-06-05-iep-fill-gap-redeployment-and-teletherapy.md`](2026-06-05-iep-fill-gap-redeployment-and-teletherapy.md) | segment-specific | iep, idea-compliance, school-based, redeployment, teletherapy | medium |
+
+## Promotion path
+
+When ≥2 independent scenarios (different engagements / quarters) corroborate the same finding, an agent may propose promoting the lesson into [`../best-practices/`](../best-practices/) or a [`../knowledge/`](../knowledge/) decision tree. As of this bank's creation, promotion is manual — leave the scenario in place even after the rule is canonicalized (the narrative stays useful as context).
+
+## How agents use this bank
+
+Per [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md): surface a matching scenario only as a *secondary* source, always behind the mandatory unverified-scenario preamble, and never let a scenario override the cited knowledge bank (`../knowledge/`) or a best-practice rule (`../best-practices/`). The most-likely-to-benefit specialists — `staffing-operations-analyst`, `recruiting-funnel-strategist`, `healthcare-staffing-specialist`, `education-staffing-specialist` — should check the bank when a situation matches.

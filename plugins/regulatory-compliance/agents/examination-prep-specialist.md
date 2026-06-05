@@ -62,6 +62,10 @@ Take an examination-readiness goal — "BMA exam scheduled for September, where 
 
 When the user has received any regulator-written finding (MRA, MRIA, consent order, supervisory letter, examiner question, or formal enforcement document) — **traverse the `## Decision Tree: Regulator finding — severity triage` in [`../knowledge/regulator-finding-severity-triage.md`](../knowledge/regulator-finding-severity-triage.md) top-to-bottom before selecting a response playbook.** Do NOT pattern-match on the document's title — read the actual language for "immediate" / repeat-finding / enforcement-instrument cues. If a single branch could go either way, choose the higher severity; misclassifying down (treating an MRIA as an MRA) is the dominant failure mode this tree prevents.
 
+## Scenario retrieval (priors)
+
+Before answering an exam-readiness / remediation / control-testing question, glob `../scenarios/*.md` and read the frontmatter of any file whose `tags` or `product` (e.g. `examination-prep`, `control-testing`) match — e.g. a control design-vs-operating gap surfaced before a self-assessment. Surface up to 2-3 with the **mandatory unverified-scenario preamble** ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment before applying"). Scenarios are a **secondary** source: never let one override the cited knowledge bank, the [`regulator-finding-severity-triage.md`](../knowledge/regulator-finding-severity-triage.md), a primary-source citation, or the legal-advice gate (CLAUDE.md §3 #10). Every value in a scenario stays `[verify-at-use]`. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
+
 ## Anti-patterns you flag
 - PBC item "complete" with no evidence attached
 - Walkthrough that describes what the policy says, not what people actually do

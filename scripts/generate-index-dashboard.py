@@ -413,6 +413,60 @@ def _scan_templates(plugin_dir: Path) -> list[dict]:
     return out
 
 
+_DATE_PREFIX = re.compile(r"^\d{4}-\d{2}-\d{2}-")
+
+
+def _scan_scenarios(plugin_dir: Path) -> list[dict]:
+    """[{name, description}] for the scenarios/ bank — dated, unverified
+    engagement field-notes (the marketplace scenarios pattern). The title is
+    derived from the filename slug (date prefix stripped, humanized); the
+    description carries the scope tag when present. README is excluded."""
+    d = plugin_dir / "scenarios"
+    if not d.exists():
+        return []
+    out = []
+    for p in sorted(d.glob("*.md")):
+        if not p.is_file() or p.name.lower() == "readme.md":
+            continue
+        slug = _DATE_PREFIX.sub("", p.stem)
+        fm = {}
+        try:
+            block = _split_frontmatter(p.read_text(encoding="utf-8", errors="replace"))
+            fm = _parse_frontmatter(block) if block else {}
+        except OSError:
+            fm = {}
+        scope = fm.get("scope") or ""
+        out.append({"name": _humanize(slug), "description": str(scope).strip()})
+    return out
+
+
+def _scan_scripts(plugin_dir: Path) -> list[dict]:
+    """[{name, purpose, modes}] for the scripts/ runnable tools (calculators /
+    checkers). `purpose` is the first line of the module docstring; `modes` are
+    the argparse sub-commands (`add_parser("…")`) the tool exposes."""
+    d = plugin_dir / "scripts"
+    if not d.exists():
+        return []
+    out = []
+    for p in sorted(d.glob("*.py")):
+        if not p.is_file():
+            continue
+        try:
+            text = p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        purpose = ""
+        mdoc = re.search(r'^\s*(?:"""|\'\'\')(.*?)(?:"""|\'\'\')', text, re.DOTALL)
+        if mdoc:
+            for line in mdoc.group(1).strip().splitlines():
+                if line.strip():
+                    purpose = line.strip()
+                    break
+        modes = re.findall(r'add_parser\(\s*["\']([a-z0-9][a-z0-9_-]*)["\']', text)
+        out.append({"name": p.name, "purpose": purpose[:160], "modes": modes})
+    return out
+
+
 def _scan_skills(plugin_dir: Path) -> list[dict]:
     """Index a plugin's skills via SKILL.md frontmatter.
 
@@ -486,6 +540,8 @@ def scan_repo() -> dict:
     total_agents = 0
     total_skills = 0
     total_hooks = 0
+    total_scenarios = 0
+    total_tools = 0
 
     for entry in market.get("plugins", []):
         name = entry["name"]
@@ -506,6 +562,8 @@ def scan_repo() -> dict:
         rules_idx = _scan_md_items(pdir, "rules")
         templates_idx = _scan_templates(pdir)
         best_practices_idx = _scan_md_items(pdir, "best-practices", exclude_readme=True)
+        scenarios_idx = _scan_scenarios(pdir)
+        scripts_idx = _scan_scripts(pdir)
         skills = _count_dir(pdir / "skills", "dirs")
         hooks = _count_dir(pdir / "hooks", "sh")
         commands = _count_dir(pdir / "commands", "md")
@@ -515,6 +573,8 @@ def scan_repo() -> dict:
         total_agents += len(agents)
         total_skills += skills
         total_hooks += hooks
+        total_scenarios += len(scenarios_idx)
+        total_tools += len(scripts_idx)
 
         cat = _category_for(name)
         plugins.append({
@@ -533,6 +593,8 @@ def scan_repo() -> dict:
             "rules_index": rules_idx,
             "templates_index": templates_idx,
             "best_practices_index": best_practices_idx,
+            "scenarios_index": scenarios_idx,
+            "scripts_index": scripts_idx,
             "counts": {
                 "agents": len(agents),
                 "skills": skills,
@@ -540,6 +602,8 @@ def scan_repo() -> dict:
                 "commands": commands,
                 "templates": templates,
                 "knowledge": knowledge,
+                "scenarios": len(scenarios_idx),
+                "tools": len(scripts_idx),
             },
         })
 
@@ -611,6 +675,8 @@ def scan_repo() -> dict:
             "specialists": total_agents,
             "skills": total_skills,
             "hooks": total_hooks,
+            "scenarios": total_scenarios,
+            "tools": total_tools,
         },
         "categories": CATEGORIES,
         "plugins": plugins,
@@ -717,27 +783,31 @@ def _load_fragments() -> dict:
 
 
 def _render_dt_store(gd) -> str:
-    """Hidden store of every plugin's decision-tree diagrams, inlined once. The
-    plugin detail view (window.__openPlugin) pulls a plugin's own trees out of
-    this store and renders them as collapsible dropdowns. This is the trees' only
-    home in the portal — they were MOVED here from the dashboard Guidance tab so
-    each tree sits next to the plugin it guides. Each item carries owner/title/
-    when/path as data-attrs plus the pre-rendered themed SVG (render-trees.py)."""
+    """Hidden index of every plugin's decision trees. The plugin detail view
+    (window.__openPlugin) pulls a plugin's own trees out of this store and renders
+    them as collapsible dropdowns — the trees' home in the portal (moved here from
+    the dashboard Guidance tab so each sits next to the plugin it guides).
+
+    Each item carries owner/title/when + the SVG's ROOT-RELATIVE PATH (data-svg).
+    The SVG is NOT inlined — __openPlugin lazy-loads it as an <img> when the tree's
+    <details> is opened. Inlining all 600+ trees doubled index.html (~14MB→27MB);
+    referencing the committed file keeps the portal light and only fetches a
+    diagram on demand. The SVGs self-theme via the render-trees fallback palette
+    (page CSS vars don't reach an <img>)."""
     import html as _h
 
     parts: list[str] = []
     for t in gd._decision_trees_inventory():
-        svg = gd._load_tree_svg(t["id"])
-        if not svg:
+        if not (gd.TREE_VISUALS_DIR / f"{t['id']}.svg").is_file():
             continue
+        rel = f"plugins/ravenclaude-core/knowledge/tree-visuals/{t['id']}.svg"
         parts.append(
             '<div class="dt-item" data-plugin="{owner}" data-title="{title}" '
-            'data-when="{when}" data-path="{path}">{svg}</div>'.format(
+            'data-when="{when}" data-svg="{svg}"></div>'.format(
                 owner=_h.escape(t["owner"], quote=True),
                 title=_h.escape(t["title"], quote=True),
                 when=_h.escape(t["when"], quote=True),
-                path=_h.escape(t["path"], quote=True),
-                svg=svg,
+                svg=_h.escape(rel, quote=True),
             )
         )
     return "".join(parts)

@@ -38,3 +38,33 @@
 ## 4. Inheritance
 
 This plugin **inherits `ravenclaude-core` protocols**: the Capability Grounding Protocol (decision-tree-first + alternate-methods enumeration + honest blocked-reporting), the Structured Output Protocol for handoffs, and the security/review escalations. Domain-specific rules live in each agent file and in `best-practices/`; the knowledge bank carries the decision trees and the dated capability map.
+
+## 5. Knowledge & scenario banks
+
+Two banks back the agents (the dual-bank model — see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)):
+
+- **Canonical / knowledge** (high trust, follow without disclaimer) — [`knowledge/data-governance-privacy-decision-trees.md`](knowledge/data-governance-privacy-decision-trees.md) (classification / DSR-handling / anonymize-vs-pseudonymize / lawful-basis-on-record / deletion / access / governance-maturity / anonymization-technique trees + the dated 2026 capability map), plus two topic-specific trees that **complement** it: [`knowledge/dgp-lawful-basis-decision-tree.md`](knowledge/dgp-lawful-basis-decision-tree.md) (GDPR Art. 6 lawful-basis *selection*) and [`knowledge/dgp-transfer-mechanism-decision-tree.md`](knowledge/dgp-transfer-mechanism-decision-tree.md) (Chapter V transfer-mechanism choice, per leg). **Traverse the relevant Mermaid tree top-to-bottom before choosing.** Every regulatory fact is dated; adequacy/DPF status carries `[verify-at-use]` (privacy law varies by jurisdiction and is volatile — §2).
+- **Scenarios** (low/medium trust, surface with the mandatory unverified preamble) — [`scenarios/`](scenarios/): DSAR erasure at scale, PII discovery in the warehouse, cross-border transfer gap, consent/purpose-limitation drift. Secondary source; never replaces the knowledge bank. **Scenarios carry no real PII** (the plugin's privacy boundary — they describe the engineering pattern, never the data). The most-likely-to-benefit specialists check the bank when a situation matches.
+
+## 6. Runnable scoring helper (`scripts/pii_risk_score.py`)
+
+A stdlib-only (Python 3.8+) scoring helper that turns the signals a steward *observes* into a transparent, repeatable triage signal: `classify` (asset → sensitivity tier), `dpia-threshold` (GDPR Art. 35 high-risk-indicator screen → DPIA-likely-warranted signal), `reident` (re-identification-risk screen; a held key → pseudonymized → still personal data). It is a **scoring helper, not a data source and not legal advice** — the user supplies every signal; outputs are prioritization/triage signals, and **every legal determination routes to the DPO / legal / `regulatory-compliance`** (§2 #6). Owned primarily by `privacy-compliance-engineer` (`dpia-threshold`, `reident`) and `data-governance-architect` (`classify`); pairs with the classification / DPIA / anonymization trees.
+
+## 7. Value-add completeness (build-out 2026-06-05)
+
+Disposition of every value-add menu item (built vs. recorded N-A with reason). This build-out's net-new contribution on top of PR #315's consolidated knowledge/best-practices/templates tier:
+
+| # | Item | Disposition |
+|---|---|---|
+| 1 | **scenarios/ bank** | **BUILT** — 4 dated, scope-tagged engagement scenarios (DSAR erasure at scale, PII discovery in the warehouse, cross-border transfer gap, consent/purpose-limitation drift) populating the existing `scenarios/README.md` index + 9-field schema. No real PII (plugin privacy boundary). |
+| 2 | **Decision-tree knowledge** | **BUILT** — 2 new topic-specific Mermaid trees complementing #315's: `dgp-lawful-basis-decision-tree.md` (Art. 6 basis *selection* — distinct from #315's "basis already on record?") + `dgp-transfer-mechanism-decision-tree.md` (Chapter V choice, per leg incl. sub-processor chain). Grounded, cited, dated; volatile facts marked `[verify-at-use]`. |
+| 3 | **Runnable script (`scripts/`)** | **BUILT** — `pii_risk_score.py` (stdlib, ruff-clean): `classify` / `dpia-threshold` / `reident`. Real non-code value, like the vertical calculators; no legal advice baked in (every output routes the determination to legal). |
+| 4 | **Bundled / code-aware MCP server** | **N-A (recommend-not-bundle)** — no zero-config, read-only governance MCP server verified to exist; data catalogs (OpenMetadata/DataHub/Atlas) and DSR platforms are **per-tenant, authenticated, write-capable** and PII-bearing → both disqualify bundling per [`docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md). If a live-catalog need ever surfaces it is *recommend, evaluate-first* through `ravenclaude-core/security-reviewer`, never bundled. No invented servers. |
+| 5 | **LSP server** | **N-A** — LSP is a code-editing protocol; a privacy/governance *advisory* domain has no source language to index. (Contrast `backend-engineering`, a code domain that ships `.lsp.json`.) |
+| 6 | **bin/ executables** | **N-A** — the single stdlib `scripts/pii_risk_score.py` covers the runtime need; no compiled/installed binary warranted, and an `rc-*` namespace script would duplicate the advisory hook + skills. |
+| 7 | **Monitors / background jobs** | **N-A** — nothing to watch; no build, repo, or long-running process in an advisory domain. (Discovery *cadence* is an engineering recommendation in `best-practices/automate-discovery-and-keep-it-current.md`, not a marketplace monitor.) |
+| 8 | **output-styles / themes** | **N-A** — deliverables are Markdown governance reports governed by the agents' Output Contract; output styling is a code/UX concern. |
+| 9 | **settings.json / permissions tuning** | **N-A** — no tool-permission surface specific to this vertical beyond what `ravenclaude-core` (and the Thing's `file_read_global` secret-deny floor) already provide. |
+| 10 | **skills / hooks / commands / templates** | **SUFFICIENT** — 5 skills, 1 advisory anti-pattern hook, 4 commands, 4 templates already cover classification, catalog/lineage, privacy mechanics, retention/deletion, and access governance. The new scenarios + 2 trees + script extend reach without a new agent (team-growth-as-knowledge house rule). No clear gap this round. |
+| 11 | **CHANGELOG.md** | **BUILT** — added with a top `0.3.0` entry. |
+| 12 | **NOTICE.md** | **N-A** — nothing third-party is bundled; `pii_risk_score.py` is original + stdlib-only, and all sources are cited inline, not vendored. |

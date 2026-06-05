@@ -76,7 +76,9 @@ Each agent ends its report with its role-specific contract (see the agent file) 
 
 | File | Read when |
 |---|---|
-| [`knowledge/pm-decision-trees.md`](knowledge/pm-decision-trees.md) | Choosing how to run a project — the predictive-vs-agile-vs-hybrid delivery-approach tree (+ Scrum-vs-Kanban within agile). Traverse before recommending an approach. |
+| [`knowledge/pm-decision-trees.md`](knowledge/pm-decision-trees.md) | The consolidated tree bank: delivery-approach (predictive/agile/hybrid + Scrum-vs-Kanban), risk-response, status-RAG, sprint-injection, change-request, escalation-threshold, phase-gate. Traverse before recommending a method. |
+| [`knowledge/pm-estimate-confidence-decision-tree.md`](knowledge/pm-estimate-confidence-decision-tree.md) | **Mermaid** — before *committing* an estimate: cone-of-uncertainty / three-point (PERT) / contingency-from-the-spread. Sits one level earlier than the change-request tree (a committed estimate is what change control later measures against). |
+| [`knowledge/pm-recover-vs-escalate-slip-decision-tree.md`](knowledge/pm-recover-vs-escalate-slip-decision-tree.md) | **Mermaid** — a *measured* schedule/cost slip: absorb-into-float / recover-at-team / draw-contingency / escalate. The watermelon-prevention companion to the Status-RAG and Escalation-threshold trees (which it feeds). |
 
 Best-practice rules live in [`best-practices/`](best-practices/) (single-owner, baseline-before-change, narrative-first status).
 
@@ -105,11 +107,51 @@ Deeper-artifact templates the specialists produce (the lightweight `raid-log.md`
 | [`templates/risk-register.md`](templates/risk-register.md) | A decision-grade RAID register (scored risks + issues + assumptions + dependencies) |
 | [`templates/steering-pack-outline.md`](templates/steering-pack-outline.md) | A narrative-first steering / exec pack |
 
+## 7d. Runnable calculator (added v0.4.0)
+
+[`scripts/evm_calc.py`](scripts/evm_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from three recurring delivery decisions. It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support that *feed* the change-control / escalation / RAG decisions the specialists own, not the decisions themselves.
+
+| Mode | Computes | Primary agent |
+|---|---|---|
+| `evm` | CV/SV, CPI/SPI, the four EAC variants, ETC, VAC, TCPI + a RAG read keyed to the Status-RAG tree thresholds | `delivery-lead` |
+| `pert` | Three-point (PERT) mean `(O+4M+P)/6`, SD `(P−O)/6`, ±1σ/±2σ confidence bands → contingency sizing | `delivery-lead` (with `risk-and-raid-analyst`) |
+| `forecast` | Agile completion range from a throughput sample (mean ±1σ → optimistic/expected/conservative sprint counts) | `scrum-master` |
+
+The EVM and PERT formulas are standard PMBOK/PERT framings (web-verified 2026-06-05); the RAG and contingency *threshold numbers* are this plugin's conventions — calibrate to the engagement, not the tool.
+
 ---
 
-## 7a. Scenarios bank — TODO (planned)
+## 7a. Scenarios bank (enabled v0.4.0)
 
-Not yet enabled. Per the marketplace pattern, enable when the first real engagement scenario surfaces via `/wrap`: create `scenarios/` with a `README.md` (copy from `../power-platform/scenarios/README.md`), add the scenario-retrieval inline-prior to the relevant agents, and remove this block.
+[`scenarios/`](scenarios/) holds dated, scope-tagged, **unverified** delivery-engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble ("Based on N unverified scenarios from YYYY-MM tagged [scope] — verify in your environment"), never overriding the cited knowledge bank (the decision trees + best-practices) or the engagement's actual governance. Scenarios carry no client-identifying info or real budget/program names (see [`scenarios/README.md`](scenarios/README.md)).
+
+All four specialists check the bank when a situation matches:
+
+| Scenario | Pattern | Primary specialist |
+|---|---|---|
+| [`watermelon-status-green-on-red`](scenarios/2026-06-05-watermelon-status-green-on-red.md) | Green RAG hiding an amber-band SPI | `stakeholder-comms-lead` |
+| [`scope-creep-no-change-control`](scenarios/2026-06-05-scope-creep-no-change-control.md) | Silent scope absorption blamed as "delay" | `delivery-lead` |
+| [`evm-cpi-recovery-decision`](scenarios/2026-06-05-evm-cpi-recovery-decision.md) | CPI<1 + TCPI>1.1 → recover/escalate call | `delivery-lead` |
+| [`predictive-agile-method-mismatch`](scenarios/2026-06-05-predictive-agile-method-mismatch.md) | Approach chosen by habit, not by the work | `scrum-master` + `delivery-lead` |
+
+**Scenario retrieval (priors).** Before answering a delivery-management-shaped question, glob `scenarios/*.md` and read the frontmatter of any file whose `tags`/`product` match the user's context. Surface up to 2-3 matches with the mandatory preamble; treat scenarios as **secondary** to the knowledge bank; never elide the preamble. Full pattern: [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
+
+---
+
+## Value-add completeness (build-out 2026-06-05)
+
+Every value-add menu item is dispositioned honestly below. This plugin is a **discipline vertical** (delivery management as advisory craft): several runtime-tier items are genuinely **N-A** because there is no code artifact, runtime, or repo to operate on, and the project tooling (Jira/ADO/MS Project/Smartsheet) is **per-tenant**, authenticated, and not bundleable.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README + 4 dated engagement scenarios: watermelon status, scope-creep-no-change-control, EVM CPI<1 recovery, predictive-vs-agile method mismatch. Replaces the prior §7a TODO placeholder; scenario-retrieval priors wired into §7a. |
+| Decision-tree (Mermaid) knowledge | **BUILT** | 2 NEW trees complementing PR #315's consolidated bank: `pm-estimate-confidence-decision-tree` (cone-of-uncertainty / PERT / contingency-from-spread) and `pm-recover-vs-escalate-slip-decision-tree` (absorb/recover/draw-contingency/escalate). Both are net-new — neither duplicates the 7 trees already in `pm-decision-trees.md`; the slip tree explicitly *feeds* the existing Status-RAG + Escalation-threshold trees rather than restating them. |
+| Runnable script (`scripts/`) | **BUILT** | `evm_calc.py` — `evm` (CV/SV, CPI/SPI, 4 EAC variants, ETC/VAC/TCPI + RAG), `pert` (three-point mean/SD + confidence bands), `forecast` (agile throughput range). Stdlib only, `ruff check` clean. The one runtime item with real value here. |
+| Bundled MCP / LSP | **N-A** | Discipline vertical — no source language (LSP is a code-editing protocol) and no published, verified MCP for a PM tool that is safe to bundle. PM tools (Jira/ADO/Project/Smartsheet) are per-tenant, authenticated, and PII-bearing; per [`../../docs/best-practices/bundled-mcp-servers.md`](../../docs/best-practices/bundled-mcp-servers.md) any live-data need would be *recommend, evaluate-first*, never bundled. Not fabricated. |
+| `bin/` · monitors · output-styles · themes · settings/permissions | **N-A** | No compiled binary (the single stdlib script covers it); nothing to watch (no build/repo/long-running process); deliverables are Markdown reports under the §6 Output Contract; no PM-specific tool-permission surface beyond `ravenclaude-core`'s. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 4 skills, 5 templates, a consolidated tree bank, and a best-practices library already cover the surface; the 2 new trees + the calculator extend reach without a new agent (team-growth-as-knowledge house rule). No obvious high-value gap this round. |
+| CHANGELOG.md | **BUILT** | Added with a top `0.4.0` entry. |
+| NOTICE.md | **N-A** | No third-party content bundled — the script is original/stdlib-only; all PM-framework sources are cited inline, not vendored. |
 
 ---
 

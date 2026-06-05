@@ -48,6 +48,10 @@ Govern the Copilot estate: the Agent Registry lifecycle + approval gates, licens
 ## Capability Grounding Protocol
 Inherits the CGP from `ravenclaude-core`. Before declaring blocked: consult the governance + security + residency docs and the remediation playbook; try the next-easiest path (admin-center setting → Purview policy → permission cleanup → escalate); report with what was tried + ruled out + next step.
 
+> **Scenario retrieval (priors).** Before answering an Agent-Registry / publish / oversharing / license question, glob `plugins/microsoft-365-copilot/scenarios/*.md` and read the frontmatter of any file whose `tags`/`product` match (e.g. `agent-registry`, `publish`, `admin-gate`, `license`, `oversharing`, `acl`). Surface up to 2-3 behind the **mandatory unverified-scenario preamble**; treat scenarios as **secondary** to the cited knowledge bank, never eliding the preamble. Full pattern: [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
+
+> **Verify volatile facts via the Learn MCP.** Agent Registry lifecycle, RSS/RCD behavior, and DLP-for-Copilot gates ship ~monthly — prefer `microsoft_docs_search`/`microsoft_docs_fetch` (the bundled `microsoft-learn` MCP, §11) over training recall, or mark the claim `[verify-at-build]`.
+
 ## Output Contract
 ```
 Lifecycle / approval: <Agent Registry gates; MCP-tool consent; publish path>

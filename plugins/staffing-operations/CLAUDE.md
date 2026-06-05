@@ -75,7 +75,7 @@ The research-grounded reference the agents point to. Read the relevant file in f
 | [`knowledge/staffing-market-trends-2026.md`](knowledge/staffing-market-trends-2026.md) | 2023-2026 trend analysis — travel-rate normalization, MSP/VMS consolidation, gig platforms, locum growth, demand drivers, regulatory factors, sizing |
 | [`knowledge/competitor-landscape.md`](knowledge/competitor-landscape.md) | Healthcare- and education-staffing competitor map with a positioning table; SIA-anchored relative sizing |
 | [`knowledge/soliant-company-profile.md`](knowledge/soliant-company-profile.md) | Soliant Health employer profile — divisions, service model, ownership, footprint, reputation; the client-context anchor |
-| [`knowledge/staffing-decision-trees.md`](knowledge/staffing-decision-trees.md) | "Which diagnostic for which symptom" — fill-rate decline, margin compression, recruiter underperformance, aged-order pileup; traverse top-to-bottom before picking a method |
+| [`knowledge/staffing-decision-trees.md`](knowledge/staffing-decision-trees.md) | "Which diagnostic for which symptom" — fill-rate decline, margin compression, recruiter underperformance, aged-order pileup, capacity planning, rate-cycle, readout routing, plus (v0.2.0) **fill-strategy by req type** and **placement model — contract vs. contract-to-hire vs. direct**; traverse top-to-bottom before picking a method |
 
 ---
 
@@ -116,6 +116,32 @@ After the Markdown report, emit the cross-plugin Structured Output Protocol JSON
 
 ---
 
-## 8. Milestones
+## 8. Scenarios bank & runnable tooling (added v0.2.0)
+
+- **Scenarios bank** — [`scenarios/`](scenarios/) holds dated, scope-tagged, unverified engagement narratives (the marketplace scenarios pattern; see [`../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../ravenclaude-core/skills/scenario-retrieval/SKILL.md)). Surface a matching scenario only as a *secondary* source, behind the mandatory unverified-scenario preamble, never overriding the cited knowledge bank (`knowledge/`), a best-practice rule (`best-practices/`), or a regulatory/clinical/legal determination (§2). Scenarios carry no candidate/client PII (§3 #10). The most-likely-to-benefit specialists — `staffing-operations-analyst`, `recruiting-funnel-strategist`, `healthcare-staffing-specialist`, `education-staffing-specialist` — should check the bank when a situation matches.
+- **Runnable calculator** — [`scripts/staffing_calc.py`](scripts/staffing_calc.py) (stdlib only, Python 3.8+) removes arithmetic error from three recurring analytics decisions: `margin` (bill − pay − burden spread decomposition, naming the burden line driving the spread, §3 #3), `fill-rate` (the received-vs-workable denominator comparison that exposes a dead-order pileup, §3 #1/#6), and `funnel-leak` (the worst-converting stage across the recruiting funnel, incl. the accept→start credentialing stage, §3 #7). It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support, not legal/tax/medical-licensure/financial advice (§2), and no candidate/client PII goes in or out (§3 #10). It **complements** the static `bi-report/` scorecard (which *displays* these numbers) by *computing* the decomposition parametrically. Owned primarily by `staffing-operations-analyst`; `healthcare-staffing-specialist` uses `margin`'s burden itemization and `recruiting-funnel-strategist` uses `funnel-leak`.
+
+## 9. Value-add completeness (build-out 2026-06-05)
+
+Every value-add menu item is dispositioned honestly below. Several runtime-tier items are genuinely **N-A** because this is a **pure non-code advisory vertical** — there is no source language, runtime, or repo to operate on, and forcing them would add noise, not value.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT** | README (pre-existing index) + **4** dated engagement scenarios now authored to match it: fill-rate-up/time-to-fill-losing, travel margin compression in the burden stack, credentialing clock hidden in time-to-fill, IEP fill gap (redeployment + teletherapy). Each carries an "Action for the next consultant" lesson + cited sources. |
+| Decision-tree (Mermaid) knowledge | **BUILT (extended existing)** | 2 NEW Mermaid trees appended to `staffing-decision-trees.md` (which already had 3 from PR #315): **fill-strategy by req type** and **placement model — contract vs. contract-to-hire vs. direct**. Each with per-leaf rationale + a tradeoffs table. |
+| Glossary / KPI reference | **SUFFICIENT (PR #315)** | `staffing-kpi-glossary.md` (~30 cited, dated KPIs) + the 8-file knowledge bank already cover the reference surface; no redundant new file. |
+| Runnable script (`scripts/`) | **BUILT (new gap filled)** | `staffing_calc.py` — `margin` / `fill-rate` / `funnel-leak`. A genuine NEW gap: the existing `bi-report/` is a *static demo dashboard*, not a parametric calculator. ruff-clean, stdlib only. |
+| Code-aware MCP server (bundled) | **N-A** | No published MCP for an ATS/VMS verified to exist, and ATS/VMS (Bullhorn, etc.) are **per-tenant / authenticated / PII-&-PHI-bearing** — bundling is out of scope and the plugin is deliberately ATS/VMS-neutral (§2). If a live-data need ever surfaces it would be *recommend, evaluate-first*, never bundled (per `docs/best-practices/bundled-mcp-servers.md`). |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in a staffing-ops advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/staffing_calc.py`; no compiled/installed binary is warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, no repo, no long-running process. |
+| output-styles / themes | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown reports governed by the §6 Output Contract (the one HTML artifact, `report.html`, is a self-contained BI view, not a themed surface). |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 10 skills, 1 advisory antipattern hook, 5 commands, 10 templates already cover the surface; no obvious high-value gap this round. The new scenarios + trees + calculator extend reach without a seventh agent (team-growth-as-knowledge house rule). |
+| CHANGELOG.md | **BUILT** | Added with a top `0.2.0` entry. |
+| NOTICE.md | **N-A** | No third-party content is bundled (the script is original, stdlib-only; all sources are cited inline, not vendored). |
+
+## 10. Milestones
 
 - **v0.1.0** — initial release: 6 agents, 10 skills, 10 templates, 5 commands, 1 advisory hook, 8-file research-grounded knowledge bank, 7 best-practice rules, demo BI scorecard data. Built as a consulting kit for a healthcare + education staffing engagement (Soliant Health shape).
+- **v0.2.0** — non-code-vertical value-add build-out: scenarios bank (4 dated scenarios authored to the pre-existing README index), 2 new Mermaid decision-tree sections (fill-strategy by req type; placement model — contract/contract-to-hire/direct), and `scripts/staffing_calc.py` (margin / fill-rate / funnel-leak; ruff-clean, stdlib only) filling the parametric-calculator gap beyond the static BI scorecard. Code-runtime tier (MCP/LSP/bin/monitors/styles/settings) dispositioned N-A with reasons (§9). CHANGELOG added.
