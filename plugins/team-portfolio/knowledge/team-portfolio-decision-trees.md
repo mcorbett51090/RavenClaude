@@ -267,3 +267,70 @@ flowchart TD
 | Zero activity, unexplained | Check-in | Yes | Blockers or context? |
 | Silo concentration | Check-in | Yes | Sprint focus or dependency? |
 | High volume | Check-in | Yes | Capacity and sustainability? |
+
+## Decision Tree: Auth scope at scale — fine-grained PAT vs GitHub App
+
+**When this applies:** The "Token provisioning" tree above has already established that the collection needs *more* than the built-in `GITHUB_TOKEN` (private repos, or running outside Actions). This tree decides the next fork: a **fine-grained PAT** (tied to one person's account) versus a **GitHub App installation** (an org-owned identity). The wrong choice shows up later as a rotation fire-drill when the PAT owner leaves, or as a rate-limit ceiling the portfolio outgrows.
+
+**Last verified:** 2026-06-05 against GitHub Docs (fine-grained PAT limits; "Deciding when to build a GitHub App") and CLAUDE.md §4 #3 (least privilege). Rate-limit numbers are volatile — **[verify-at-use]** against current GitHub Docs before quoting them to a consumer.
+
+```mermaid
+flowchart TD
+    START[Need more than the built-in GITHUB_TOKEN] --> Q1{Is the token tied to ONE person's account, or should it be an org-owned identity?}
+    Q1 -->|small team, one operator owns the hub| Q2{How many repos and how busy is the collection per run?}
+    Q2 -->|few repos, comfortably under the authenticated hourly budget| PAT[Fine-grained PAT - read-only - scoped to the tracked repos - 90-day expiry - simplest setup]
+    Q2 -->|many repos or near the per-run rate-limit ceiling| Q3{Is the org likely to keep growing the tracked-repo list?}
+    Q3 -->|no, stable repo count| PAT
+    Q3 -->|yes, growing toward org-wide tracking| APP[GitHub App installation - rate limit scales with org size - org-owned, survives staff change]
+    Q1 -->|org-owned identity, should outlive any individual| Q4{Does the org already manage GitHub Apps, or is this the first?}
+    Q4 -->|already runs Apps - infra exists| APP
+    Q4 -->|no App infra - first one| Q5{Is the rotation/ownership risk of a personal PAT acceptable for now?}
+    Q5 -->|yes - small, low-risk, prefer speed| PAT_INTERIM[Fine-grained PAT now - document the App migration as a known follow-up when the team or repo list grows]
+    Q5 -->|no - departure risk is real - private repos in scope| APP
+```
+
+**Rationale per leaf:**
+- *Fine-grained PAT* — the least-effort least-privilege option; scope it read-only to exactly the repos in `team-portfolio.json`, set a 90-day expiry, and rotate on team-member departure ([`../best-practices/rotate-portfolio-token-on-team-member-departure.md`](../best-practices/rotate-portfolio-token-on-team-member-departure.md)). Its ceilings: it is tied to a person's account, GitHub caps the number of fine-grained PATs per account (50 [verify-at-use]), and its authenticated rate limit is fixed (~5,000 requests/hour [verify-at-use]).
+- *GitHub App installation* — an org-owned identity whose installation-token rate limit **scales with the org's size/repo count** (substantially higher than a PAT — e.g. ~15,000/hour per installation [verify-at-use]) and which does not evaporate when one person leaves. Higher setup cost (register the App, install it, mint installation tokens), so it earns its place only when scale or ownership-durability demands it.
+- *PAT interim* — the honest middle: start on a PAT for speed, but **write down the App migration as a follow-up** so it's a deliberate deferral, not a forgotten one.
+
+**Tradeoffs summary:**
+
+| Option | Rate-limit headroom | Survives owner departure | Setup cost | Use when |
+|---|---|---|---|---|
+| Fine-grained PAT | Fixed (~5k/hr [verify-at-use]) | No — tied to a person | Low | Small/stable repo set, one operator |
+| PAT (interim) | Same as PAT | No | Low | Need speed now, App later |
+| GitHub App | Scales with org size [verify-at-use] | Yes — org-owned | Higher | Many/growing repos, durable identity |
+
+## Decision Tree: What to track — per-repo activity vs per-project rollup vs per-person view
+
+**When this applies:** A supervisor is standing up the portfolio (or reviewing what it surfaces) and must decide which **rollup axis** answers their actual question. The same collected `portfolio-activity.json` can be sliced three ways; choosing the wrong primary view buries the signal the supervisor came for. Observable input: the question the supervisor is actually trying to answer at their standing meeting.
+
+**Last verified:** 2026-06-05 against the `portfolio-report.py` output surfaces (weekly-tracker / activity-rollup / project-status) and CLAUDE.md §1 (cross-repo, cross-person, cross-project as the three axes).
+
+```mermaid
+flowchart TD
+    START[Decide the primary rollup axis] --> Q1{What question is the supervisor answering at the standing meeting?}
+    Q1 -->|did a NAMED multi-repo effort move this week| Q2{Is there a clean filter for that effort - dedicated repo, label, or title prefix?}
+    Q2 -->|yes - filter exists| PROJECT[Per-project rollup - project-status.md - define the project filter - see Project Filter Design tree]
+    Q2 -->|no - effort is unstructured| ADOPT[Recommend a label/prefix convention FIRST - then per-project - do not hand-curate membership]
+    Q1 -->|who is doing what across all repos - manage-the-team view| PERSON[Per-person view - weekly-tracker.md - scope team in config - frame counts as activity not performance]
+    Q1 -->|where is the team's effort landing across repos - balance/coverage| REPO[Per-repo rollup - weekly-tracker per-repo section - shows concentration and gaps]
+    Q1 -->|I just need the newest-first feed - replace a single-repo activity log| FEED[activity-rollup.md - chronological cross-repo feed - no aggregation, raw events]
+```
+
+**Rationale per leaf:**
+- *Per-project rollup* — answers "did the website work move," and is the only view that requires a filter (the "Project Filter Design" tree picks the filter type). The cleanest filter is a dedicated repo; absent that, a label or title-prefix convention.
+- *Per-person view* — the supervisor's manage-the-team view, but it carries the standing risk this plugin keeps flagging: **activity counts are not performance metrics** ([`../best-practices/activity-counts-are-not-performance-metrics.md`](../best-practices/activity-counts-are-not-performance-metrics.md)). Frame it as signal-for-a-conversation, never a scoreboard.
+- *Per-repo rollup* — answers "where is effort landing," surfacing concentration (one repo soaking all the work) or a repo going quiet. Good for coverage/staffing balance.
+- *Newest-first feed* — the literal replacement for a single-repo activity log, but across every tracked repo at once; no aggregation, just the events.
+- *Adopt a convention first* — when the named effort has no clean filter, the honest move is to establish a label/prefix convention before tracking, not to hand-maintain a membership list (the plugin's filters-not-lists house rule).
+
+**Tradeoffs summary:**
+
+| Axis | Output surface | Answers | Risk to manage |
+|---|---|---|---|
+| Per-project | project-status.md | Did a named cross-repo effort move? | Filter over/under-match (dry-run it) |
+| Per-person | weekly-tracker.md | Who did what across repos? | Counts misread as performance |
+| Per-repo | weekly-tracker.md | Where is effort landing? | Volume ≠ value; context needed |
+| Newest-first feed | activity-rollup.md | What just happened anywhere? | No aggregation — high volume |

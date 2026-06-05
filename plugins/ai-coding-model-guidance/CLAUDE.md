@@ -85,3 +85,29 @@ Copilot, Codex, and Grok are three vendors but **one domain**: non-Claude AI-cod
 - **`ravenclaude-core/security-reviewer`** — org model rules, API-key handling, compliance posture.
 - **`ravenclaude-core/deep-researcher`** — fresh primary research when a fact is past the lineup's retrieval date.
 - **`ravenclaude-core/documentarian` / `project-manager`** — deliverables / engagement tracking.
+
+---
+
+## 10. Value-add completeness (build-out 2026-06-05)
+
+This is a **knowledge/advisory** vertical — there is no consumer codebase, runtime, or live model API the plugin operates on. Every value-add menu item is dispositioned honestly below; several runtime-tier items are genuinely **N-A** because forcing them would add noise, not value. The two new knowledge files and all scenario facts respect the citation gate (`scripts/check-lineup-citations.py`): every model price / context-window / id carries a citation, an ISO retrieval date, or a `[verify-at-use]` marker.
+
+| Item | Disposition | Note |
+|---|---|---|
+| scenarios/ bank | **BUILT (completed)** | README already indexed 4; added the 3 missing dated, scope-tagged scenarios — Codex reasoning-dial-before-upgrade, grok-code-fast-1 retirement silent-rebill, hallucinated-model closed-world catch. Bank now matches its README index. |
+| Decision-tree (Mermaid) knowledge | **BUILT** | 2 NEW files complementing the PR #315 trees: `ai-coding-right-size-cost-decision-tree.md` (cost-per-resolved-task right-sizing) and `ai-coding-mode-selection-decision-tree.md` (completion vs chat vs agent mode). Both opted into the citation gate. |
+| Runnable script (`scripts/`) | **BUILT** | `right_size_cost.py` — `per-task` (rank tiers by cost-per-resolved-task) + `mix` (single-pin vs right-sized spend). **No baked-in prices** — every number is user-supplied; stdlib-only; `ruff`-clean. The one runtime item with real advisory value. |
+| Bundled code-aware MCP server | **N-A** | Advisory knowledge plugin — no consumer codebase to index and no vendor model-picker MCP verified to exist. Per `docs/best-practices/bundled-mcp-servers.md`, bundling an unverified/authenticated server is out of scope; the agents stay advisory (they never call a vendor API on the consumer's behalf, §6). |
+| LSP integration | **N-A** | LSP is a code-editing protocol; there is no source language in a model-selection advisory vertical. |
+| `bin/` executables | **N-A** | Covered by the single stdlib `scripts/right_size_cost.py`; no compiled/installed binary warranted. |
+| Monitors / background jobs | **N-A** | Nothing to watch — no build, repo, or long-running process. (Lineup freshness is handled by the existing `lineup-freshness-sweep` skill + the weekly `researcher-reminder.yml`.) |
+| output-styles / themes | **N-A** | Output styling is a code/UX concern; deliverables here are Markdown advisories governed by the §6 Output Contract. |
+| `settings.json` / permissions tuning | **N-A** | No tool-permission surface specific to this vertical beyond what `ravenclaude-core` provides; the agents are advisory and call no vendor API. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 8 skills + 4 templates already cover the surface; the new trees + script extend reach without a new agent or a thin command. No obvious high-value gap this round. |
+| CHANGELOG.md | **BUILT** | Added with a top `0.3.0` entry; mirrors version bump flagged for the orchestrator (no marketplace.json edit per build-out constraint). |
+| NOTICE.md | **N-A** | No third-party content is bundled (the script is original, stdlib-only; all sources are cited inline, not vendored). |
+
+## 11. Milestones
+
+- **v0.2.x** — 3 strategist agents, 8 skills, 4 templates, 24-rule best-practices set, citation-grounded dated cross-tool lineup + consolidated decision trees (PR #315).
+- **v0.3.0** — value-add build-out: completed the scenarios bank (3 net-new scenarios), 2 new right-sizing/mode Mermaid decision-tree knowledge files (citation-gated), first runnable helper `scripts/right_size_cost.py` (cost-per-resolved-task, no baked-in prices, ruff-clean), CHANGELOG. Runtime/MCP/LSP tier dispositioned N-A with reasons (§10).

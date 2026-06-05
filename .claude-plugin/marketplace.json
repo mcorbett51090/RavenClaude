@@ -232,7 +232,7 @@
       "name": "process-improvement",
       "source": "./plugins/process-improvement",
       "description": "Lean Six Sigma process-improvement team — 2 specialist agents (lean-six-sigma-blackbelt, process-analyst) that analyze a team's operational processes and improve them with Black-Belt rigor: DMAIC, Lean waste removal (the 8 wastes / DOWNTIME), data-proven root-cause analysis, statistical process control, and control plans that make the gain stick. Domain-neutral (support, onboarding, billing, deployment, hiring — any process). 6 skills (dmaic-project-charter, process-mapping, root-cause-analysis, process-capability-and-spc, lean-waste-analysis, control-plan-and-sustain), 5 templates (charter, SIPOC, fishbone+5-Whys, FMEA, control-plan), 7 best-practices, and a 3-doc knowledge bank with 6 web-verified Mermaid decision trees (sigma/DPMO, Cp/Cpk, control-chart selection, Western-Electric/Nelson rules). The inferential statistics seam (hypothesis tests, DOE, regression, Gage R&R) routes to applied-statistics; DMAIC project delivery routes to project-management. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -433,7 +433,7 @@
       "name": "ai-coding-model-guidance",
       "source": "./plugins/ai-coding-model-guidance",
       "description": "Cross-tool AI-coding model guidance — three strategist agents that help you reason about model selection in the non-Claude coding ecosystems: GitHub Copilot's model picker (completions / chat / coding agent / cloud agent + org model rules), OpenAI Codex (CLI + cloud model lineup, reasoning levels, /model), and xAI Grok (Grok 4.x lineup + the coding-tool surface). Teaches the DURABLE reasoning — task-complexity → reasoning-level → cost-tier → surface — over a single citation-grounded, dated lineup that is the marketplace's freshness anchor for non-Claude model facts. Volatile specifics (prices, context windows, picker availability) carry retrieval dates + a re-verify-at-use rider, and the agents fetch live before quoting. Seam: when the answer is a CLAUDE model or a Claude-app build, escalate to claude-app-engineering/claude-solution-architect — this plugin owns the non-Claude tools. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.2",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -456,7 +456,7 @@
       "name": "project-management",
       "source": "./plugins/project-management",
       "description": "Project & delivery management team — four specialists across the predictive (PMBOK/PMP) and agile (Scrum/Kanban) tracks and the hybrid between: delivery-lead (charter, schedule, scope/change control, earned value), scrum-master (backlog, sprints, ceremonies, velocity, impediments), risk-and-raid-analyst (scored qual+quant risk, RAID depth, mitigation/contingency, issue triage), and stakeholder-comms-lead (stakeholder register, comms plan, status/exec reporting, escalation memos, steering packs). Deepens — does NOT replace — ravenclaude-core's domain-neutral project-manager (the lightweight RAID/status-hygiene default every plugin routes to); this is the deep PM craft layer. Knowledge: a predictive-vs-agile-vs-hybrid decision tree + a best-practices library. Seams: prose polish → ravenclaude-core/documentarian; system design → architect. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.3",
+      "version": "0.4.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -482,7 +482,7 @@
       "name": "team-portfolio",
       "source": "./plugins/team-portfolio",
       "description": "Centralized multi-repo, multi-person activity & project tracking. Aggregates commits, pull requests, and issues across many GitHub repositories from the GitHub API and rolls them up by person, by repo, and by cross-repo project — so a team working in sibling repos has one place to see who did what, and a supervisor gets a manage-the-team view no single-repo activity log can provide. Ships a stdlib-only collector (GitHub REST API → normalized activity JSON), a markdown report generator (weekly tracker + rolling activity roll-up + per-project status), a self-contained HTML dashboard generator, a copy-in GitHub Action template for scheduled refresh, an on-demand /portfolio-refresh command, an optional hand-maintained narrative layer, and 2 skills (portfolio-setup, cross-repo-project-tracking). Secrets stay in env/secrets, never in config. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -723,8 +723,8 @@
     {
       "name": "technical-writing-docs",
       "source": "./plugins/technical-writing-docs",
-      "description": "Technical-writing & docs team — 3 agents (docs-architect, api-reference-writer, docs-site-engineer) for developer and product documentation that people actually use: the Diataxis framework (tutorial / how-to / reference / explanation — and not mixing them), docs-as-code (docs in the repo, reviewed and CI-checked, versioned with the product), accurate API/SDK reference (spec-driven, examples that run, errors documented), and a maintainable docs site (Docusaurus/Mintlify/MkDocs, IA, search, versioning). Deepens ravenclaude-core/documentarian. 3 skills, a decision-tree knowledge bank (doc-type + docs-tooling trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: dev portal/SDK reference -> api-engineering, marketing copy/site design -> web-design, prose polish/ADRs -> ravenclaude-core/documentarian. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.2",
+      "description": "Technical-writing & docs team — 3 agents (docs-architect, api-reference-writer, docs-site-engineer) for developer and product documentation that people actually use: the Diataxis framework (tutorial / how-to / reference / explanation — and not mixing them), docs-as-code (docs in the repo, reviewed and CI-checked, versioned with the product), accurate API/SDK reference (spec-driven, examples that run, errors documented), and a maintainable docs site (Docusaurus/Mintlify/MkDocs, IA, search, versioning). Deepens ravenclaude-core/documentarian. 5 skills, a decision-tree knowledge bank (doc-type, docs-tooling, Diataxis content-type, lint-in-CI-vs-manual + a dated 2026 map), a 4-scenario bank, 12 best-practices, 4 templates, 4 commands, 1 advisory hook, a prose-linter LSP tier (Vale-LS + Marksman) and a stdlib readability/prose checker. Seams: dev portal/SDK -> api-engineering, site design -> web-design, prose polish -> ravenclaude-core/documentarian. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
