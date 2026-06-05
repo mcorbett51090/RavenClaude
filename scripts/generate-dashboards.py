@@ -161,10 +161,14 @@ def load_schema(plugin_dir: Path) -> dict:
     return json.loads(schema_path.read_text(encoding="utf-8"))
 
 
-def _page_kwargs(plugin_dir: Path, schema: dict) -> dict:
+def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> dict:
     """Build the substitution dict shared by render_dashboard (full page) and
     render_fragment (the native-merge body for index.html). Single source of
-    truth so the standalone page and the folded-in section can never drift."""
+    truth so the standalone page and the folded-in section can never drift.
+
+    `include_trees` controls the Guidance tab's decision-tree section: True for the
+    standalone dashboard.html (its only home), False for the portal fragment where
+    the trees moved onto plugin detail pages (see _render_trees_tab)."""
     global PATTERN_EXPLANATIONS
     PATTERN_EXPLANATIONS = _load_pattern_explanations(plugin_dir)
 
@@ -192,7 +196,7 @@ def _page_kwargs(plugin_dir: Path, schema: dict) -> dict:
         "learn_html": _render_learn_tab(plugin_dir),
         "saga_html": _render_saga_tab(),
         "commands_html": _render_commands_tab(),
-        "trees_html": _render_trees_tab(),
+        "trees_html": _render_trees_tab(include_trees=include_trees),
         "activity_html": _render_activity_tab(),
         "heimdall_html": _render_heimdall_tab(),
         "vidarr_html": _render_vidarr_tab(),
@@ -239,7 +243,7 @@ def render_fragment(plugin_dir: Path, schema: dict) -> dict:
       router owns the URL) and an `window.__dashApp.show()` entry point exposed,
       ready to be IIFE-wrapped by the shell so its globals can't collide.
     """
-    kw = _page_kwargs(plugin_dir, schema)
+    kw = _page_kwargs(plugin_dir, schema, include_trees=False)
     start = _PAGE_TEMPLATE.index(_FRAG_BODY_START) + len(_FRAG_BODY_START)
     end = _PAGE_TEMPLATE.index(_FRAG_BODY_END)
     body = _PAGE_TEMPLATE[start:end].format(**kw)
@@ -1007,23 +1011,61 @@ def _render_learn_tab(plugin_dir: Path) -> str:
         return _render_stub_tab("Learn", "next")
 
     titles = {c["id"]: c["title"] for c in concepts}
-    groups: dict[str, list[dict]] = {}
-    order: list[str] = []
-    for c in concepts:
-        if c["category"] not in groups:
-            groups[c["category"]] = []
-            order.append(c["category"])
-        groups[c["category"]].append(c)
 
-    cats_html = []
-    for cat in order:
-        cards = "".join(_render_concept_card(plugin_dir, c, titles) for c in groups[cat])
-        cats_html.append(
-            f'<details class="concept-cat" open>'
-            f'<summary class="concept-cat-head">'
-            f'<span class="concept-cat-name">{html.escape(cat)}</span>'
-            f'<span class="concept-cat-count">{len(groups[cat])}</span></summary>'
-            f'<div class="concept-grid">{cards}</div></details>'
+    # Two tiers, driven by each concept's `kind`. The Learn tab foregrounds the
+    # GENERIC "how agentic AI works by default" concepts (platform-fact) and keeps
+    # the RavenClaude-specific features (ravenclaude-built) as a clearly-labelled
+    # second tier. Categories are authored tier-pure, so grouping by category
+    # within a tier never straddles the divide.
+    tiers = [
+        (
+            "fact",
+            "How agentic AI works",
+            "The platform mechanics every agent runs on by default — not RavenClaude inventions.",
+            "platform-fact",
+        ),
+        (
+            "built",
+            "RavenClaude features",
+            "What this marketplace adds on top of the platform.",
+            "ravenclaude-built",
+        ),
+    ]
+
+    def _cat_groups(items: list[dict]) -> str:
+        groups: dict[str, list[dict]] = {}
+        order: list[str] = []
+        for c in items:
+            if c["category"] not in groups:
+                groups[c["category"]] = []
+                order.append(c["category"])
+            groups[c["category"]].append(c)
+        out = []
+        for cat in order:
+            cards = "".join(_render_concept_card(plugin_dir, c, titles) for c in groups[cat])
+            out.append(
+                f'<details class="concept-cat" open>'
+                f'<summary class="concept-cat-head">'
+                f'<span class="concept-cat-name">{html.escape(cat)}</span>'
+                f'<span class="concept-cat-count">{len(groups[cat])}</span></summary>'
+                f'<div class="concept-grid">{cards}</div></details>'
+            )
+        return "".join(out)
+
+    tiers_html = []
+    for cls, label, blurb, kind in tiers:
+        items = [c for c in concepts if c["kind"] == kind]
+        if not items:
+            continue
+        tiers_html.append(
+            f'<section class="learn-tier learn-tier-{cls}">'
+            f'<div class="learn-tier-head">'
+            f'<span class="learn-swatch {cls}" aria-hidden="true"></span>'
+            f'<h2 class="learn-tier-name">{html.escape(label)}</h2>'
+            f'<span class="learn-tier-count">{len(items)}</span></div>'
+            f'<p class="learn-tier-blurb">{html.escape(blurb)}</p>'
+            + _cat_groups(items)
+            + "</section>"
         )
 
     return (
@@ -1038,10 +1080,10 @@ def _render_learn_tab(plugin_dir: Path) -> str:
         '<button type="button" class="learn-linkbtn" id="learn-collapse">Collapse all</button>'
         "</div>"
         '<div class="learn-legend" aria-hidden="true">'
-        '<span class="learn-legend-item"><span class="learn-swatch fact"></span>Platform fact</span>'
-        '<span class="learn-legend-item"><span class="learn-swatch built"></span>RavenClaude-built</span>'
+        '<span class="learn-legend-item"><span class="learn-swatch fact"></span>How agentic AI works</span>'
+        '<span class="learn-legend-item"><span class="learn-swatch built"></span>RavenClaude feature</span>'
         "</div>"
-        + "".join(cats_html)
+        + "".join(tiers_html)
         + '<div class="stub learn-noresults" id="learn-noresults" hidden>'
         '<h2>No matching concepts</h2><p>Try a different search term.</p></div>'
         + "</div>"
@@ -1507,28 +1549,49 @@ def _load_tree_svg(tree_id: str) -> str:
     return svg
 
 
-def _render_trees_tab() -> str:
+def _render_trees_tab(include_trees: bool = True) -> str:
     """Marketplace-wide Guidance tab: every plugin's decision trees + best practices.
-    Static (build-time embed) — no server needed, works on any host. Each tree's
-    pre-rendered SVG (scripts/render-trees.py) is inlined inside a native <details>
-    so it expands without JS and stays collapsed (page-weight-friendly) by default."""
-    trees = _decision_trees_inventory()
+
+    Static (build-time embed) — no server needed, works on any host.
+
+    `include_trees` is the portal/standalone split. In the **standalone**
+    dashboard.html (consumers' `/dashboard`, which has no plugin-detail pages) the
+    trees stay here — this is their only home. In the **portal fragment** folded
+    into index.html, `include_trees=False`: the trees were MOVED onto each plugin's
+    detail page (index.html's __openPlugin pulls them from the hidden #dt-store),
+    so the folded Guidance tab shows best-practices only and points at the plugin
+    pages. Either way `_decision_trees_inventory` / `_load_tree_svg` stay the source
+    of truth."""
+    trees = _decision_trees_inventory() if include_trees else []
     practices = _best_practices_inventory()
     owners = sorted({t["owner"] for t in trees} | {p["owner"] for p in practices})
     if not owners:
         return _render_stub_tab("Guidance", "next")
 
-    intro = (
-        '<div class="cmd-intro">'
-        "<h2>Guidance — decision trees &amp; best practices</h2>"
-        f"<p>{len(trees)} decision tree{'s' if len(trees) != 1 else ''} and "
-        f"{len(practices)} best-practice doc{'s' if len(practices) != 1 else ''} "
-        f"across {len(owners)} marketplace plugin{'s' if len(owners) != 1 else ''}. "
-        "These are the decision trees (when-this-applies guidance) and named best-practice "
-        "rules each installed plugin gives your agents. Click a best-practice "
-        "<strong>preview</strong> to read its rationale inline, or the title to open its source file.</p>"
-        "</div>"
-    )
+    if include_trees:
+        intro = (
+            '<div class="cmd-intro">'
+            "<h2>Guidance — decision trees &amp; best practices</h2>"
+            f"<p>{len(trees)} decision tree{'s' if len(trees) != 1 else ''} and "
+            f"{len(practices)} best-practice doc{'s' if len(practices) != 1 else ''} "
+            f"across {len(owners)} marketplace plugin{'s' if len(owners) != 1 else ''}. "
+            "These are the decision trees (when-this-applies guidance) and named best-practice "
+            "rules each installed plugin gives your agents. Click a best-practice "
+            "<strong>preview</strong> to read its rationale inline, or the title to open its source file.</p>"
+            "</div>"
+        )
+    else:
+        intro = (
+            '<div class="cmd-intro">'
+            "<h2>Guidance — best practices</h2>"
+            f"<p>{len(practices)} best-practice doc{'s' if len(practices) != 1 else ''} "
+            f"across {len(owners)} marketplace plugin{'s' if len(owners) != 1 else ''}. "
+            "These are the named best-practice rules each installed plugin gives your agents. "
+            "Click a <strong>preview</strong> to read its rationale inline, or the title to open "
+            "its source file. <em>Decision trees now live on each plugin's detail page</em> — "
+            "open a plugin from Discover to see its when-this-applies flows.</p>"
+            "</div>"
+        )
 
     blocks = []
     for owner in owners:
@@ -1546,8 +1609,6 @@ def _render_trees_tab() -> str:
             when = f'<p class="guide-when">{html.escape(t["when"])}</p>' if t["when"] else ""
             svg = _load_tree_svg(t["id"])
             if svg:
-                # Native <details> — opens without JS, collapsed by default so the
-                # page stays light with 150+ inlined diagrams. SVG is pre-themed.
                 diagram = (
                     '<details class="guide-tree-diagram">'
                     '<summary class="guide-tree-summary">Diagram</summary>'
@@ -1593,10 +1654,14 @@ def _render_trees_tab() -> str:
             f"<ul class=\"guide-list\">{bp_items}</ul>"
             if op else ""
         )
+        if include_trees:
+            counts = f"{len(ot)} trees · {len(op)} practices"
+        else:
+            counts = f'{len(op)} practice{"s" if len(op) != 1 else ""}'
         blocks.append(
             '<details class="guide-plugin" open>'
             f'<summary class="guide-plugin-name">{html.escape(owner)}'
-            f'<span class="guide-plugin-counts">{len(ot)} trees · {len(op)} practices</span>'
+            f'<span class="guide-plugin-counts">{counts}</span>'
             "</summary>"
             f'<div class="guide-plugin-body">{tree_section}{bp_section}</div>'
             "</details>"
@@ -4814,6 +4879,19 @@ footer.page-footer a:hover { text-decoration: underline; }
   background: var(--accent);
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 }
+
+.learn-tier { margin: 8px 0 26px; }
+.learn-tier[hidden] { display: none; }
+.learn-tier-head { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
+.learn-tier-head .learn-swatch { width: 15px; height: 15px; }
+.learn-tier-name { margin: 0; font-size: 17px; font-weight: 650; letter-spacing: -0.01em; }
+.learn-tier-count {
+  font-size: 12px; color: var(--muted); background: var(--surface-2);
+  border-radius: 999px; padding: 1px 9px;
+}
+.learn-tier-blurb { margin: 0 0 14px 25px; font-size: 13px; color: var(--muted); max-width: 70ch; }
+.learn-tier-fact { border-left: 2px solid color-mix(in srgb, var(--muted) 45%, transparent); padding-left: 16px; }
+.learn-tier-built { border-left: 2px solid color-mix(in srgb, var(--accent) 55%, transparent); padding-left: 16px; }
 
 .concept-cat { margin-bottom: 14px; }
 .concept-cat[hidden] { display: none; }
@@ -10147,6 +10225,7 @@ _JS = r"""
     const noResults = panel.querySelector("#learn-noresults");
     const cards = Array.from(panel.querySelectorAll(".concept-card"));
     const cats = Array.from(panel.querySelectorAll(".concept-cat"));
+    const tiers = Array.from(panel.querySelectorAll(".learn-tier"));
     const total = cards.length;
 
     function applyFilter(raw) {
@@ -10161,6 +10240,11 @@ _JS = r"""
         const any = cat.querySelector(".concept-card:not([hidden])") !== null;
         cat.hidden = !any;
         if (q && any) cat.open = true;
+      });
+      // Hide a whole tier when its search yields nothing, so the tier header +
+      // blurb don't dangle over an empty section.
+      tiers.forEach(tier => {
+        tier.hidden = tier.querySelector(".concept-card:not([hidden])") === null;
       });
       if (count) count.textContent = q ? shown + " of " + total : total + " concepts";
       if (noResults) noResults.hidden = shown > 0;

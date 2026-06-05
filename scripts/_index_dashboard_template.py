@@ -569,6 +569,19 @@ TEMPLATE = r"""<!doctype html>
       .ref-item { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
       .ref-item .ri-n { font-family: var(--font-mono); font-size: 0.86rem; }
       .ref-item .ri-d { color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
+      /* Decision-tree dropdowns on a plugin detail page (moved off the dashboard
+         Guidance tab). Collapsed by default so the page stays light. */
+      .dt-tree-intro { color: var(--muted); font-size: 0.85rem; margin: 0 0 12px; }
+      .dt-tree-list { display: flex; flex-direction: column; gap: 8px; }
+      .dt-tree { border: 1px solid var(--border); border-radius: 8px; background: var(--surface); overflow: hidden; }
+      .dt-tree-summary { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; cursor: pointer; padding: 11px 14px; list-style: none; user-select: none; }
+      .dt-tree-summary::-webkit-details-marker { display: none; }
+      .dt-tree-summary::before { content: "\\25B8"; color: var(--accent); font-size: 0.7rem; line-height: 1.4; }
+      .dt-tree[open] > .dt-tree-summary::before { content: "\\25BE"; }
+      .dt-tree-title { font-weight: 600; font-size: 0.9rem; }
+      .dt-tree-when { color: var(--muted); font-size: 0.8rem; }
+      .dt-tree-svg { padding: 8px 14px 16px; overflow-x: auto; border-top: 1px solid var(--border); }
+      .dt-tree-svg svg { max-width: 100%; height: auto; }
     </style>
   </head>
   <body>
@@ -619,6 +632,12 @@ TEMPLATE = r"""<!doctype html>
              into this document (not iframes) — their live /__* fetches run at
              this page's origin when served by serve-dashboards.py. -->
         <div class="content payload-host" id="dash-root" hidden><!--__DASH_BODY__--></div>
+        <!-- Decision-tree store: every plugin's pre-rendered tree diagrams,
+             inlined once and hidden. The plugin detail view (__openPlugin) clones
+             the matching plugin's trees into collapsible dropdowns. This is the
+             trees' only home in the portal — they were moved off the dashboard
+             Guidance tab so each tree lives next to the plugin it guides. -->
+        <div id="dt-store" hidden><!--__DT_STORE__--></div>
       </div>
     </div>
 
@@ -758,7 +777,7 @@ TEMPLATE = r"""<!doctype html>
           { label: "Overview", route: "#/learn" },
           { label: "Concepts", route: "#/concepts" },
           { label: "Commands", route: "#/commands" },
-          { label: "Decision trees", route: "#/trees" },
+          { label: "Best practices", route: "#/trees" },
           { label: "Pipeline", route: "#/pipeline" },
           { label: "Install", route: "#/bifrost" },
           { label: "About", route: "#/about" },
@@ -1193,6 +1212,20 @@ TEMPLATE = r"""<!doctype html>
         const named = (i) => `<div class="ref-item"><div class="ri-n">${esc(i.name)}</div>${i.description ? `<div class="ri-d">${esc(i.description)}</div>` : ""}</div>`;
         const hookItem = (i) => `<div class="ref-item"><div class="ri-n">${esc(i.name)} ${i.event ? `<span class="chip">${esc(i.event)}</span>` : ""}</div>${i.description ? `<div class="ri-d">${esc(i.description)}</div>` : ""}</div>`;
         const refGrid = (title, items, fmt) => (items && items.length) ? `<div class="section-title"><h2>${title} <span class="hint">${items.length}</span></h2></div><div class="grid cols-2">${items.map(fmt).join("")}</div>` : "";
+        // Decision trees for THIS plugin: pulled from the hidden #dt-store, each
+        // rendered as a collapsible dropdown with its pre-rendered Mermaid SVG.
+        const treesHtml = (() => {
+          const store = document.getElementById("dt-store");
+          if (!store) return "";
+          const mine = Array.from(store.querySelectorAll('.dt-item[data-plugin="' + (window.CSS && CSS.escape ? CSS.escape(name) : name) + '"]'));
+          if (!mine.length) return "";
+          const one = (el) => {
+            const title = el.getAttribute("data-title") || "Decision tree";
+            const when = el.getAttribute("data-when") || "";
+            return `<details class="dt-tree"><summary class="dt-tree-summary"><span class="dt-tree-title">${esc(title)}</span>${when ? `<span class="dt-tree-when">${esc(when)}</span>` : ""}</summary><div class="dt-tree-svg">${el.innerHTML}</div></details>`;
+          };
+          return `<div class="section-title"><h2>Decision trees <span class="hint">${mine.length}</span></h2></div><p class="dt-tree-intro">When-this-applies guidance these agents follow. Click to expand each flow.</p><div class="dt-tree-list">${mine.map(one).join("")}</div>`;
+        })();
         $("#view").innerHTML = `
           <a class="btn ghost" href="#/discover/${p.category}" style="margin-bottom:18px">← Back to ${esc(catLabel)}</a>
           <div class="page-head"><span class="eyebrow">${esc(p.category_label)}</span><h1>${esc(p.label)} <span style="font-family:var(--font-mono);font-size:1rem;color:var(--faint)">v${esc(p.version)}</span></h1>
@@ -1214,6 +1247,7 @@ TEMPLATE = r"""<!doctype html>
           ${refGrid("Rules", p.rules_index, named)}
           ${refGrid("Templates", p.templates_index, named)}
           ${refGrid("Best practices", p.best_practices_index, named)}
+          ${treesHtml}
           <div class="tags" style="margin-top:20px">${p.keywords.map((k) => `<span class="chip">${esc(k)}</span>`).join("")}</div>`;
         $("#view").focus();
         window.scrollTo({ top: 0, behavior: "smooth" });

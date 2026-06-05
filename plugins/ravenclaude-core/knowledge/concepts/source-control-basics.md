@@ -1,7 +1,7 @@
 ---
 id: source-control-basics
 title: "Source control basics"
-category: "Getting started"
+category: "Foundations"
 kind: platform-fact
 order: 7
 summary: "Git is a time-machine for your files. RavenClaude does most of the git work for you — this page is the vocabulary so you can follow along."

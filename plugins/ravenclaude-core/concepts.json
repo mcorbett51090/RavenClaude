@@ -2,12 +2,16 @@
   "schema_version": 1,
   "categories": [
     {
+      "name": "Foundations",
+      "order": 1
+    },
+    {
       "name": "Getting started",
       "order": 5
     },
     {
       "name": "Platform model",
-      "order": 8
+      "order": 10
     },
     {
       "name": "Security",
@@ -24,73 +28,246 @@
   ],
   "concepts": [
     {
-      "id": "getting-started",
-      "title": "Getting started",
-      "category": "Getting started",
-      "kind": "ravenclaude-built",
-      "order": 5,
-      "summary": "Add the marketplace, install ravenclaude-core, run /dashboard. Needs jq + python3; under Copilot CLI it's `ravenclaude install`.",
+      "id": "agent-harness-loop",
+      "title": "The agent loop: one turn",
+      "category": "Foundations",
+      "kind": "platform-fact",
+      "order": 1,
+      "summary": "Every agent turn runs the same loop: assemble prompt → call model → run tools → feed results back → repeat until done. The 'harness' is the software wrapping the model that drives it.",
       "see_also": [
-        "comfort-posture",
-        "capability-banner"
+        "tool-use",
+        "context-window",
+        "subagents"
       ],
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-05-26",
-      "refresh_when": "The install steps, requirements, or slash-command surface change.",
+      "last_verified": "2026-06-05",
+      "refresh_when": "The fundamental agent-loop shape changes, or Claude Code/the Agent SDK restructures how a turn is driven.",
       "sources": [
         {
-          "label": "ravenclaude-core README",
-          "url": "plugins/ravenclaude-core/README.md"
+          "label": "Building agents with the Claude Agent SDK",
+          "url": "https://code.claude.com/docs/en/agent-sdk"
         },
         {
-          "label": "AGENTS.md — Setup commands",
-          "url": "AGENTS.md"
+          "label": "\"The Anatomy of an Agent Harness\" (Akshay Pachaar)",
+          "url": "https://x.com/_avichawla/status/2062082282878627946"
         }
       ],
-      "body_md": "RavenClaude is a Claude Code **plugin marketplace**. To use the core plugin: add the marketplace, install the plugin, reload. `jq` and `python3` are required for the CI workflows and the layout-enforcement hook (both ship in the devcontainer).\n\n```text\n/plugin marketplace add mcorbett51090/RavenClaude\n/plugin install ravenclaude-core@ravenclaude\n/reload-plugins\n```\n\nAfter install, run **`/dashboard`** to launch the comfort-posture editor (point-and-click permission rules + command-review toggles, with one-click Save & apply). Domain plugins (`power-platform`, `finance`, …) build on core, so install it first. Running under **GitHub Copilot CLI** instead? Use `bash scripts/ravenclaude install` — and from then on, updating is just `git pull`.",
-      "diagram": "flowchart TD\n  A[/plugin marketplace add …/] --> B[/plugin install ravenclaude-core/]\n  B --> C[/reload-plugins/]\n  C --> D[Run /dashboard]\n  D --> E[Set comfort posture · opt into command review]\n  E --> F[Start working — capability banner orients each session]\n  class A,B,C,D,E,F built",
-      "diagram_mini": "flowchart LR\n  I[install] --> D[\"/dashboard\"] --> P[set posture]\n  class I,D,P built",
+      "body_md": "A language model on its own is **stateless**: it forgets what it did three steps ago, a failed tool call would otherwise vanish silently, and its context window fills with noise. An **agent** is a model plus the software that fixes all that — the **harness**. As the saying goes, *\"if you're not the model, you're the harness.\"*\n\nThe harness drives one **turn** as a loop, and every agentic tool — Claude Code, the Agent SDK, your own script — runs some version of it:\n\n1. **Assemble the prompt** — system prompt + tool schemas + project memory (`CLAUDE.md` / `AGENTS.md`) + the conversation so far + your message.\n2. **Call the model.**\n3. **Classify the output** — did it ask to use a tool, or just answer? Plain text with no tool call ends the turn.\n4. **Execute the requested tools** — and this is where permission gates, hooks, or a review panel can deny, edit, or wave the call through.\n5. **Package the results** as the next message — crucially, an *error* comes back as a result the model can read and self-correct from, not a crash.\n6. **Update context** (compacting when it fills) and loop back to step 1.\n\nThe same loop scales up: a lead agent can **dispatch a subagent** for a slice of work and fold its short summary back in at step 5. A guiding principle the better harnesses inherit: **treat memory as a hint and verify against real state before acting** — which is why a careful agent doesn't stop at \"looks done,\" it stops when a verification step says it's done.\n\nRavenClaude is one such harness layer: it rides on Claude Code's loop and adds orchestration, a review tribunal at step 4, and verification gates at the end — but the loop itself is how *any* agent works by default.",
+      "diagram": "flowchart TD\n  U[Your goal] --> P[1 · Assemble prompt]\n  P --> L[2 · Call the model]\n  L --> C{3 · Tool calls?}\n  C -->|yes| T[4 · Execute tools]\n  T --> R[5 · Package results]\n  R --> X[6 · Update context]\n  X --> P\n  C -->|no| D[Done · verified by gates]\n  class P,L,C,T,R,X,D built",
+      "diagram_mini": "flowchart LR\n  P[prompt] --> M[model] --> T[tools] --> P\n  class P,M,T built",
       "steps": [
         {
-          "caption": "Add the marketplace: /plugin marketplace add mcorbett51090/RavenClaude.",
-          "diagram": "flowchart LR\n  N1[Add] --> N2[Install] --> N3[Reload] --> N4[Dashboard] --> N5[Posture] --> N6[Work]\n  class N1 built",
-          "svg": "knowledge/concepts/visuals/getting-started.step-1.svg"
+          "caption": "Assemble the prompt: system prompt + tool schemas + CLAUDE.md/AGENTS.md memory + history + your message.",
+          "diagram": "flowchart LR\n  A[Assemble prompt] --> B[Call model] --> C[Classify output] --> D[Execute tools] --> E[Package results] --> F[Update context] --> G[Loop / done]\n  class A built",
+          "svg": "knowledge/concepts/visuals/agent-harness-loop.step-1.svg"
         },
         {
-          "caption": "Install the core plugin: /plugin install ravenclaude-core@ravenclaude (needs jq + python3).",
-          "diagram": "flowchart LR\n  N1[Add] --> N2[Install] --> N3[Reload] --> N4[Dashboard] --> N5[Posture] --> N6[Work]\n  class N2 built",
-          "svg": "knowledge/concepts/visuals/getting-started.step-2.svg"
+          "caption": "Call the model. A lead agent may dispatch a focused subagent for this slice of work.",
+          "diagram": "flowchart LR\n  A[Assemble prompt] --> B[Call model] --> C[Classify output] --> D[Execute tools] --> E[Package results] --> F[Update context] --> G[Loop / done]\n  class B built",
+          "svg": "knowledge/concepts/visuals/agent-harness-loop.step-2.svg"
         },
         {
-          "caption": "Reload plugins so the agents, skills, and hooks register.",
-          "diagram": "flowchart LR\n  N1[Add] --> N2[Install] --> N3[Reload] --> N4[Dashboard] --> N5[Posture] --> N6[Work]\n  class N3 built",
-          "svg": "knowledge/concepts/visuals/getting-started.step-3.svg"
+          "caption": "Classify the output: tool calls → execute and loop; plain text with no tool call → the turn ends.",
+          "diagram": "flowchart LR\n  A[Assemble prompt] --> B[Call model] --> C[Classify output] --> D[Execute tools] --> E[Package results] --> F[Update context] --> G[Loop / done]\n  class C built",
+          "svg": "knowledge/concepts/visuals/agent-harness-loop.step-3.svg"
         },
         {
-          "caption": "Run /dashboard to open the point-and-click comfort-posture editor.",
-          "diagram": "flowchart LR\n  N1[Add] --> N2[Install] --> N3[Reload] --> N4[Dashboard] --> N5[Posture] --> N6[Work]\n  class N4 built",
-          "svg": "knowledge/concepts/visuals/getting-started.step-4.svg"
+          "caption": "Execute tools — a permission layer, hook, or review panel can ALLOW / EDIT / DENY each call before it runs.",
+          "diagram": "flowchart LR\n  A[Assemble prompt] --> B[Call model] --> C[Classify output] --> D[Execute tools] --> E[Package results] --> F[Update context] --> G[Loop / done]\n  class D built",
+          "svg": "knowledge/concepts/visuals/agent-harness-loop.step-4.svg"
         },
         {
-          "caption": "Set your deny/ask/allow posture and opt into command review.",
-          "diagram": "flowchart LR\n  N1[Add] --> N2[Install] --> N3[Reload] --> N4[Dashboard] --> N5[Posture] --> N6[Work]\n  class N5 built",
-          "svg": "knowledge/concepts/visuals/getting-started.step-5.svg"
+          "caption": "Package results as observations. Errors return as results so the model can self-correct, not crash.",
+          "diagram": "flowchart LR\n  A[Assemble prompt] --> B[Call model] --> C[Classify output] --> D[Execute tools] --> E[Package results] --> F[Update context] --> G[Loop / done]\n  class E built",
+          "svg": "knowledge/concepts/visuals/agent-harness-loop.step-5.svg"
         },
         {
-          "caption": "Start working — the capability banner orients every session.",
-          "diagram": "flowchart LR\n  N1[Add] --> N2[Install] --> N3[Reload] --> N4[Dashboard] --> N5[Posture] --> N6[Work]\n  class N6 built",
-          "svg": "knowledge/concepts/visuals/getting-started.step-6.svg"
+          "caption": "Update context; compact when it fills. A dispatched subagent returns a short summary, not its raw output.",
+          "diagram": "flowchart LR\n  A[Assemble prompt] --> B[Call model] --> C[Classify output] --> D[Execute tools] --> E[Package results] --> F[Update context] --> G[Loop / done]\n  class F built",
+          "svg": "knowledge/concepts/visuals/agent-harness-loop.step-6.svg"
+        },
+        {
+          "caption": "Loop until done — then a verification step confirms \"done\" really means done before the turn ends.",
+          "diagram": "flowchart LR\n  A[Assemble prompt] --> B[Call model] --> C[Classify output] --> D[Execute tools] --> E[Package results] --> F[Update context] --> G[Loop / done]\n  class G built",
+          "svg": "knowledge/concepts/visuals/agent-harness-loop.step-7.svg"
         }
       ],
-      "svg": "knowledge/concepts/visuals/getting-started.svg",
-      "svg_mini": "knowledge/concepts/visuals/getting-started.mini.svg"
+      "svg": "knowledge/concepts/visuals/agent-harness-loop.svg",
+      "svg_mini": "knowledge/concepts/visuals/agent-harness-loop.mini.svg"
+    },
+    {
+      "id": "tool-use",
+      "title": "Tool use (function calling)",
+      "category": "Foundations",
+      "kind": "platform-fact",
+      "order": 2,
+      "summary": "A model can't act on its own — it asks for a tool by name, the harness runs it, and the result comes back as the next message. That request/result loop is every agent action.",
+      "see_also": [
+        "agent-harness-loop",
+        "permission-layers"
+      ],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-06-05",
+      "refresh_when": "Anthropic changes the tool-use request/result message shape, the tool_choice options, or the parallel-tool-call behavior.",
+      "sources": [
+        {
+          "label": "Tool use (function calling) — Claude API",
+          "url": "https://docs.claude.com/en/docs/build-with-claude/tool-use"
+        },
+        {
+          "label": "Agent SDK — tools & permissions",
+          "url": "https://code.claude.com/docs/en/agent-sdk"
+        }
+      ],
+      "body_md": "A language model only produces **text**. It can't read a file, run a command, or call an API by itself. **Tool use** (also called *function calling*) is the bridge: you describe the available tools — each with a name, a description, and a JSON schema for its inputs — and the model, instead of answering in prose, emits a structured **tool-use request** naming one tool and the arguments to call it with.\n\nThe model never runs anything. The **harness** (Claude Code, the Agent SDK, your own loop) executes the requested tool, captures the output, and feeds it back as a **tool-result** message. The model reads that result on the next turn and decides what to do next — call another tool, or answer. Every single thing an agent *does* — edit a file, run a test, open a PR — is one trip around this request → execute → result cycle.\n\nThree details that bite:\n\n- **The model picks the tool, not the harness.** You can constrain it (`tool_choice` can force a specific tool, force *any* tool, or leave it `auto`), but in normal operation the model chooses. A vague tool description is the most common reason it picks the wrong one or fills arguments badly.\n- **Errors are data, not crashes.** A failed tool call should return its error *as a tool-result* so the model can read it and self-correct. Throwing away the loop on the first failure is the classic broken-agent bug.\n- **Results re-enter the context window.** Tool output isn't free — a command that dumps 10k lines lands all of it back in the prompt. This is why focused tools that return *conclusions* beat raw firehoses.\n\nA permission layer can sit between the request and the execution: the model may *ask* for a tool, but the harness (or a hook, or a tribunal) can still deny, edit, or gate the call before it runs.",
+      "diagram": "flowchart TD\n  G[Your goal] --> M[Model reads prompt + tool schemas]\n  M --> D{Answer or act?}\n  D -- answer --> OUT[Plain-text reply · turn ends]\n  D -- act --> REQ[Tool-use request<br/>name + JSON arguments]\n  REQ --> GATE{Permission / hook}\n  GATE -- deny --> BACK[Denied result fed back]\n  GATE -- allow --> RUN[Harness executes the tool]\n  RUN --> RES[Tool-result message<br/>output or error]\n  RES --> M\n  BACK --> M\n  class M,REQ,RUN,RES fact\n  class GATE built",
+      "diagram_mini": "flowchart LR\n  M[model] --> R[tool request] --> X[harness runs it] --> O[result] --> M\n  class M,R,X,O fact",
+      "steps": [],
+      "svg": "knowledge/concepts/visuals/tool-use.svg",
+      "svg_mini": "knowledge/concepts/visuals/tool-use.mini.svg"
+    },
+    {
+      "id": "context-window",
+      "title": "The context window",
+      "category": "Foundations",
+      "kind": "platform-fact",
+      "order": 3,
+      "summary": "Everything the model 'knows' this turn is the text in its context window — system prompt, tools, history, files. It's finite, it fills up, and when it's full the harness compacts.",
+      "see_also": [
+        "agent-harness-loop",
+        "tool-use",
+        "session-start-context"
+      ],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-06-05",
+      "refresh_when": "Frontier context-window sizes change materially, or Claude Code changes its compaction / auto-compact behavior.",
+      "sources": [
+        {
+          "label": "Context windows — Claude API",
+          "url": "https://docs.claude.com/en/docs/build-with-claude/context-windows"
+        },
+        {
+          "label": "Manage context — Claude Code",
+          "url": "https://code.claude.com/docs/en/costs"
+        }
+      ],
+      "body_md": "A model has **no memory between turns.** Everything it \"knows\" while answering is whatever text sits in its **context window** right now: the system prompt, the tool schemas, the project instructions (`CLAUDE.md` / `AGENTS.md`), the conversation so far, and the contents of any file or tool result that's been pulled in. Nothing outside that window exists to the model — if it isn't in context, the model can't see it, no matter how relevant.\n\nThe window is **finite** (measured in tokens — roughly ¾ of a word each). Two consequences follow:\n\n- **It fills up.** Long sessions, big files, and chatty tool output all consume the budget. As it fills, the *effective* room for reasoning shrinks, and far-back details get crowded out — the model can genuinely \"forget\" what happened early in a long session.\n- **When it's nearly full, the harness compacts.** Claude Code summarizes the older part of the conversation into a compact recap and continues with that plus the recent turns. The work isn't lost, but it's now a *summary* — which is why durable facts belong in `CLAUDE.md` or committed files, not just in chat.\n\nThe practical model: treat context like a **desk, not a filing cabinet.** Things on the desk are usable now; everything else has to be fetched back on (a tool call, a file read) before the model can use it — and fetching it costs space. Good agent design keeps the desk clear: focused tool results, subagents that return short summaries instead of raw dumps, and important state written somewhere persistent.\n\nThis is also why a **SessionStart** context injection (the orientation banner) is deliberately kept small — it rides in *every* session's window, so it's a recurring tax on the budget.",
+      "diagram": "flowchart TD\n  subgraph W[Context window · finite token budget]\n    S[System prompt + tool schemas]\n    P[Project memory · CLAUDE.md / AGENTS.md]\n    H[Conversation history]\n    F[Pulled-in files + tool results]\n  end\n  W --> M[Model reasons over ONLY what's in the window]\n  H --> FULL{Near the limit?}\n  FULL -- yes --> C[Harness compacts older turns to a summary]\n  C --> W\n  FULL -- no --> M\n  class S,P,H,F,M fact\n  class C built",
+      "diagram_mini": "flowchart LR\n  C[context window] --> L{full?}\n  L -- yes --> S[compact to summary]\n  L -- no --> R[model reasons]\n  class C,R fact",
+      "steps": [],
+      "svg": "knowledge/concepts/visuals/context-window.svg",
+      "svg_mini": "knowledge/concepts/visuals/context-window.mini.svg"
+    },
+    {
+      "id": "subagents",
+      "title": "Subagents & orchestration",
+      "category": "Foundations",
+      "kind": "platform-fact",
+      "order": 4,
+      "summary": "A lead agent can spawn focused subagents, each with its own clean context window, and get back a short summary — not the raw work. It's how big tasks stay inside finite context.",
+      "see_also": [
+        "context-window",
+        "agent-harness-loop",
+        "tool-use"
+      ],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-06-05",
+      "refresh_when": "Claude Code changes the subagent dispatch model, the Task/Agent tool shape, or how subagent results return to the parent.",
+      "sources": [
+        {
+          "label": "Subagents — Claude Code",
+          "url": "https://code.claude.com/docs/en/sub-agents"
+        },
+        {
+          "label": "Building agents with the Agent SDK",
+          "url": "https://code.claude.com/docs/en/agent-sdk"
+        }
+      ],
+      "body_md": "A single agent doing a sprawling task hits two walls: its **context window fills** with the noise of exploration, and a long linear chain has no parallelism. **Subagents** solve both. The lead agent (the *orchestrator*) hands a self-contained slice of work to a **subagent** — a fresh agent with its **own clean context window**, its own tools, and a focused brief. The subagent does the legwork and returns a **short summary** to the lead. The raw files it read and dead-ends it explored never touch the lead's context.\n\nThis is the **orchestrator–worker** pattern, and the load-bearing idea is *information hiding*: the lead pays only for the conclusion, not the investigation. A research subagent might read forty files and reply with a two-paragraph answer — forty files' worth of tokens spent in a context the lead never has to carry.\n\nWhat it's good at, and where it bites:\n\n- **Fan-out.** Independent slices run in parallel — three subagents searching three areas at once, returning three summaries. Big wall-clock win when the slices don't depend on each other.\n- **Focus.** A narrowly-scoped subagent with the right tools beats one giant agent juggling everything, the same way a specialist beats a generalist.\n- **The summary is the seam — and the risk.** The lead sees *only* what the subagent reports back. A subagent that summarizes badly, or drops a detail the lead needed, silently loses that information. Briefs should say what to return, not just what to do.\n- **Subagents don't share memory with each other.** Each is isolated by design, so coordination happens through the lead, not sideways between workers.\n\nRavenClaude's Team Lead is exactly this pattern with named specialists; the command-review tribunal's parallel reviewer seats are another instance — several focused agents, one aggregated verdict.",
+      "diagram": "flowchart TD\n  U[Your goal] --> L[Lead agent · orchestrator]\n  L --> A[Subagent A<br/>own context · own tools]\n  L --> B[Subagent B<br/>own context · own tools]\n  L --> C[Subagent C<br/>own context · own tools]\n  A --> SA[short summary]\n  B --> SB[short summary]\n  C --> SC[short summary]\n  SA --> L2[Lead integrates summaries]\n  SB --> L2\n  SC --> L2\n  L2 --> OUT[Result · lead never carried the raw work]\n  class L,L2,A,B,C fact\n  class OUT built",
+      "diagram_mini": "flowchart LR\n  L[lead] --> S[subagents<br/>clean context] --> R[short summaries] --> L\n  class L,S,R fact",
+      "steps": [],
+      "svg": "knowledge/concepts/visuals/subagents.svg",
+      "svg_mini": "knowledge/concepts/visuals/subagents.mini.svg"
+    },
+    {
+      "id": "mcp",
+      "title": "MCP: tools & data over a protocol",
+      "category": "Foundations",
+      "kind": "platform-fact",
+      "order": 5,
+      "summary": "The Model Context Protocol is a standard way to plug external tools and data into any agent. Write a server once; every MCP-aware client can use it — no per-app glue.",
+      "see_also": [
+        "tool-use",
+        "agent-harness-loop"
+      ],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-06-05",
+      "refresh_when": "The MCP spec changes its primitives (tools/resources/prompts), transport set, or Claude Code changes how MCP servers are configured.",
+      "sources": [
+        {
+          "label": "Model Context Protocol — specification",
+          "url": "https://modelcontextprotocol.io"
+        },
+        {
+          "label": "Connect to MCP servers — Claude Code",
+          "url": "https://code.claude.com/docs/en/mcp"
+        }
+      ],
+      "body_md": "Tool use lets a model call a tool — but who *supplies* the tools? If every integration (GitHub, a database, a ticketing system) had to be hand-wired into every agent, you'd rebuild the same connectors over and over. The **Model Context Protocol (MCP)** is the open standard that fixes this. It's often described as *\"a USB-C port for AI\"*: a single, uniform way for an agent to plug into outside tools and data.\n\nThe shape is **client ↔ server.** Your agent host (Claude Code, an IDE, a desktop app) is an **MCP client**. An **MCP server** is a small program that exposes capabilities over the protocol. Write the server once, and *any* MCP-aware client can use it — the glue is the protocol, not bespoke per-app code. Servers offer three kinds of primitive:\n\n- **Tools** — actions the model can call (the GitHub tools this very session uses are an MCP server).\n- **Resources** — data the agent can read (files, records, query results).\n- **Prompts** — reusable prompt templates the server provides.\n\nTwo things worth knowing:\n\n- **Servers run as separate processes** and connect over a transport (local stdio, or remote HTTP/SSE). A server may be on your machine or across the network — the client talks to both the same way.\n- **MCP tools are still just tool use.** Once connected, an MCP tool appears to the model exactly like any built-in tool: same request/result loop, same permission gating. MCP standardizes *where tools come from*, not *how the model calls them*. (In Claude Code a server can show as \"still connecting\" at startup — its tools are name-only until the schema loads, which is a connection state, not an absent capability.)",
+      "diagram": "flowchart TD\n  H[Agent host · MCP client<br/>Claude Code · IDE · app] -->|protocol| S1[MCP server: GitHub]\n  H -->|protocol| S2[MCP server: database]\n  H -->|protocol| S3[MCP server: your own]\n  S1 --> P[Tools · Resources · Prompts]\n  S2 --> P\n  S3 --> P\n  P --> M[Model calls them like any tool<br/>same request/result loop]\n  class H,M fact\n  class S1,S2,S3 built",
+      "diagram_mini": "flowchart LR\n  C[agent · client] -->|MCP| S[servers] --> T[tools · data]\n  class C,T fact",
+      "steps": [],
+      "svg": "knowledge/concepts/visuals/mcp.svg",
+      "svg_mini": "knowledge/concepts/visuals/mcp.mini.svg"
+    },
+    {
+      "id": "model-selection",
+      "title": "Choosing a model",
+      "category": "Foundations",
+      "kind": "platform-fact",
+      "order": 6,
+      "summary": "Bigger isn't always better. Match the model to the job — a fast, cheap model for routine steps, a frontier model for hard reasoning — and use the strong one to supervise the cheap ones.",
+      "see_also": [
+        "agent-harness-loop",
+        "subagents"
+      ],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-06-05",
+      "refresh_when": "The Claude model line-up (Opus / Sonnet / Haiku tiers) or the default-model guidance for agents changes.",
+      "sources": [
+        {
+          "label": "Models overview — Claude API",
+          "url": "https://docs.claude.com/en/docs/about-claude/models"
+        },
+        {
+          "label": "Choosing a model — Claude Code",
+          "url": "https://code.claude.com/docs/en/model-config"
+        }
+      ],
+      "body_md": "An agent isn't locked to one model, and the strongest model isn't always the right one. Picking a model is a **cost / latency / capability** trade, and the three tiers exist precisely so you can match the model to the work:\n\n- **Frontier (e.g. Opus)** — deepest reasoning, hardest planning, gnarliest debugging. Slower and most expensive per token. Reach for it when the task genuinely needs it.\n- **Balanced (e.g. Sonnet)** — the everyday workhorse: strong reasoning at much lower cost and latency. The sensible default for most agent work.\n- **Fast (e.g. Haiku)** — quick, cheap, great for classification, routing, summarizing, and high-volume routine steps where frontier-grade reasoning is overkill.\n\nTwo ideas make this practical:\n\n- **Mix models within one task.** A capable orchestrator can plan and supervise while dispatching the routine legwork to a faster, cheaper model — *strong model supervises, cheap models execute.* Subagents are the natural place to drop a tier: the lead reasons in Sonnet/Opus, the workers grind in Haiku.\n- **Diversity is a safety property, not just a cost one.** When multiple agents *review* the same thing, running them all on the **same** model means one model's blind spot can pass the whole panel — the \"anti-correlated hallucination\" failure. Deliberately running ≥2 *different* backbones on a review panel catches what a monoculture would miss. (RavenClaude's command-review tribunal enforces exactly this.)\n\nThe wrong instinct is \"always use the biggest model.\" The right instinct is \"use the smallest model that reliably clears this specific bar,\" and let a stronger model check the cheaper ones' work.",
+      "diagram": "flowchart TD\n  T[Task slice] --> Q{How hard?}\n  Q -- routine: classify / route / summarize --> FAST[Fast model · Haiku-class]\n  Q -- everyday reasoning + edits --> BAL[Balanced · Sonnet-class]\n  Q -- hardest reasoning + planning --> FRONT[Frontier · Opus-class]\n  FRONT --> SUP[Strong model supervises<br/>cheaper models execute]\n  REV[Review panel] --> DIV[Run ≥2 DIFFERENT models<br/>· avoid a blind-spot monoculture]\n  class FAST,BAL,FRONT,Q fact\n  class SUP,DIV built",
+      "diagram_mini": "flowchart LR\n  J{job} -- routine --> F[fast]\n  J -- everyday --> B[balanced]\n  J -- hardest --> O[frontier]\n  class J,F,B,O fact",
+      "steps": [],
+      "svg": "knowledge/concepts/visuals/model-selection.svg",
+      "svg_mini": "knowledge/concepts/visuals/model-selection.mini.svg"
     },
     {
       "id": "source-control-basics",
       "title": "Source control basics",
-      "category": "Getting started",
+      "category": "Foundations",
       "kind": "platform-fact",
       "order": 7,
       "summary": "Git is a time-machine for your files. RavenClaude does most of the git work for you — this page is the vocabulary so you can follow along.",
@@ -160,76 +337,68 @@
       "svg_mini": "knowledge/concepts/visuals/source-control-basics.mini.svg"
     },
     {
-      "id": "agent-harness-loop",
-      "title": "How the harness drives each turn",
-      "category": "Platform model",
+      "id": "getting-started",
+      "title": "Getting started",
+      "category": "Getting started",
       "kind": "ravenclaude-built",
-      "order": 8,
-      "summary": "Every agent turn runs a loop: assemble prompt → call model → run tools → feed results back → repeat until done. RavenClaude is the 'harness' layer wrapping that loop.",
+      "order": 5,
+      "summary": "Add the marketplace, install ravenclaude-core, run /dashboard. Needs jq + python3; under Copilot CLI it's `ravenclaude install`.",
       "see_also": [
-        "command-review-tribunal",
-        "capability-banner",
-        "audit-gates"
+        "comfort-posture",
+        "capability-banner"
       ],
       "widget": null,
       "try_it": null,
-      "node_links": {
-        "D": "command-review-tribunal"
-      },
-      "last_verified": null,
-      "refresh_when": null,
+      "node_links": {},
+      "last_verified": "2026-05-26",
+      "refresh_when": "The install steps, requirements, or slash-command surface change.",
       "sources": [
         {
-          "label": "RavenClaude orchestration model — ravenclaude-core/CLAUDE.md",
-          "url": "plugins/ravenclaude-core/CLAUDE.md"
+          "label": "ravenclaude-core README",
+          "url": "plugins/ravenclaude-core/README.md"
         },
         {
-          "label": "\"The Anatomy of an Agent Harness\" (Akshay Pachaar)",
-          "url": "https://x.com/_avichawla/status/2062082282878627946"
+          "label": "AGENTS.md — Setup commands",
+          "url": "AGENTS.md"
         }
       ],
-      "body_md": "An LLM on its own is stateless — it forgets what it did three steps ago, tool calls fail silently, and the context window fills with noise. The **harness** is the software wrapping the model that fixes this: the orchestration loop, tools, memory, context management, guardrails, and verification. As the saying goes, *\"if you're not the model, you're the harness.\"*\n\nRavenClaude **is** a harness layer. It rides on Claude Code's (and Copilot CLI's) loop and adds the machinery: orchestrator-worker dispatch (the **Team Lead**), the **Structured Output Protocol** for parseable handoffs, memory in `CLAUDE.md`/`AGENTS.md` + run artifacts, the **Thing** tribunal as the guardrail, and `audit-gates.sh` + the definition-of-done gate as verification. The step-by-step view below walks one turn through that loop — press **Play** to watch each stage, or step through with the arrows.\n\nA guiding principle the harness inherits: treat memory as a *hint* and verify against real state before acting. That's why a turn doesn't end at \"looks done\" — it ends when the verification gates say it's done.",
-      "diagram": "flowchart TD\n  U[Your goal] --> P[1 · Assemble prompt]\n  P --> L[2 · Call the model]\n  L --> C{3 · Tool calls?}\n  C -->|yes| T[4 · Execute tools]\n  T --> R[5 · Package results]\n  R --> X[6 · Update context]\n  X --> P\n  C -->|no| D[Done · verified by gates]\n  class P,L,C,T,R,X,D built",
-      "diagram_mini": "flowchart LR\n  P[prompt] --> M[model] --> T[tools] --> P\n  class P,M,T built",
+      "body_md": "RavenClaude is a Claude Code **plugin marketplace**. To use the core plugin: add the marketplace, install the plugin, reload. `jq` and `python3` are required for the CI workflows and the layout-enforcement hook (both ship in the devcontainer).\n\n```text\n/plugin marketplace add mcorbett51090/RavenClaude\n/plugin install ravenclaude-core@ravenclaude\n/reload-plugins\n```\n\nAfter install, run **`/dashboard`** to launch the comfort-posture editor (point-and-click permission rules + command-review toggles, with one-click Save & apply). Domain plugins (`power-platform`, `finance`, …) build on core, so install it first. Running under **GitHub Copilot CLI** instead? Use `bash scripts/ravenclaude install` — and from then on, updating is just `git pull`.",
+      "diagram": "flowchart TD\n  A[/plugin marketplace add …/] --> B[/plugin install ravenclaude-core/]\n  B --> C[/reload-plugins/]\n  C --> D[Run /dashboard]\n  D --> E[Set comfort posture · opt into command review]\n  E --> F[Start working — capability banner orients each session]\n  class A,B,C,D,E,F built",
+      "diagram_mini": "flowchart LR\n  I[install] --> D[\"/dashboard\"] --> P[set posture]\n  class I,D,P built",
       "steps": [
         {
-          "caption": "Assemble the prompt: system prompt + tool schemas + CLAUDE.md/AGENTS.md memory + history + your message.",
-          "diagram": "flowchart LR\n  A[Assemble prompt] --> B[Call model] --> C[Classify output] --> D[Execute tools] --> E[Package results] --> F[Update context] --> G[Loop / done]\n  class A built",
-          "svg": "knowledge/concepts/visuals/agent-harness-loop.step-1.svg"
+          "caption": "Add the marketplace: /plugin marketplace add mcorbett51090/RavenClaude.",
+          "diagram": "flowchart LR\n  N1[Add] --> N2[Install] --> N3[Reload] --> N4[Dashboard] --> N5[Posture] --> N6[Work]\n  class N1 built",
+          "svg": "knowledge/concepts/visuals/getting-started.step-1.svg"
         },
         {
-          "caption": "Call the model. RavenClaude's Team Lead may dispatch a focused specialist for this slice.",
-          "diagram": "flowchart LR\n  A[Assemble prompt] --> B[Call model] --> C[Classify output] --> D[Execute tools] --> E[Package results] --> F[Update context] --> G[Loop / done]\n  class B built",
-          "svg": "knowledge/concepts/visuals/agent-harness-loop.step-2.svg"
+          "caption": "Install the core plugin: /plugin install ravenclaude-core@ravenclaude (needs jq + python3).",
+          "diagram": "flowchart LR\n  N1[Add] --> N2[Install] --> N3[Reload] --> N4[Dashboard] --> N5[Posture] --> N6[Work]\n  class N2 built",
+          "svg": "knowledge/concepts/visuals/getting-started.step-2.svg"
         },
         {
-          "caption": "Classify the output: tool calls → execute and loop; plain text with no tool call → the turn ends.",
-          "diagram": "flowchart LR\n  A[Assemble prompt] --> B[Call model] --> C[Classify output] --> D[Execute tools] --> E[Package results] --> F[Update context] --> G[Loop / done]\n  class C built",
-          "svg": "knowledge/concepts/visuals/agent-harness-loop.step-3.svg"
+          "caption": "Reload plugins so the agents, skills, and hooks register.",
+          "diagram": "flowchart LR\n  N1[Add] --> N2[Install] --> N3[Reload] --> N4[Dashboard] --> N5[Posture] --> N6[Work]\n  class N3 built",
+          "svg": "knowledge/concepts/visuals/getting-started.step-3.svg"
         },
         {
-          "caption": "Execute tools — the Thing tribunal gates each risky call (ALLOW / EDIT / DENY) before it runs.",
-          "diagram": "flowchart LR\n  A[Assemble prompt] --> B[Call model] --> C[Classify output] --> D[Execute tools] --> E[Package results] --> F[Update context] --> G[Loop / done]\n  class D built",
-          "svg": "knowledge/concepts/visuals/agent-harness-loop.step-4.svg"
+          "caption": "Run /dashboard to open the point-and-click comfort-posture editor.",
+          "diagram": "flowchart LR\n  N1[Add] --> N2[Install] --> N3[Reload] --> N4[Dashboard] --> N5[Posture] --> N6[Work]\n  class N4 built",
+          "svg": "knowledge/concepts/visuals/getting-started.step-4.svg"
         },
         {
-          "caption": "Package results as observations. Errors return as results so the model can self-correct, not crash.",
-          "diagram": "flowchart LR\n  A[Assemble prompt] --> B[Call model] --> C[Classify output] --> D[Execute tools] --> E[Package results] --> F[Update context] --> G[Loop / done]\n  class E built",
-          "svg": "knowledge/concepts/visuals/agent-harness-loop.step-5.svg"
+          "caption": "Set your deny/ask/allow posture and opt into command review.",
+          "diagram": "flowchart LR\n  N1[Add] --> N2[Install] --> N3[Reload] --> N4[Dashboard] --> N5[Posture] --> N6[Work]\n  class N5 built",
+          "svg": "knowledge/concepts/visuals/getting-started.step-5.svg"
         },
         {
-          "caption": "Update context; compact when it fills. Dispatched specialists return ~1–2k-token summaries, not raw output.",
-          "diagram": "flowchart LR\n  A[Assemble prompt] --> B[Call model] --> C[Classify output] --> D[Execute tools] --> E[Package results] --> F[Update context] --> G[Loop / done]\n  class F built",
-          "svg": "knowledge/concepts/visuals/agent-harness-loop.step-6.svg"
-        },
-        {
-          "caption": "Loop until done — then verification gates (audit-gates.sh, the DoD gate) confirm \"done\" really means done.",
-          "diagram": "flowchart LR\n  A[Assemble prompt] --> B[Call model] --> C[Classify output] --> D[Execute tools] --> E[Package results] --> F[Update context] --> G[Loop / done]\n  class G built",
-          "svg": "knowledge/concepts/visuals/agent-harness-loop.step-7.svg"
+          "caption": "Start working — the capability banner orients every session.",
+          "diagram": "flowchart LR\n  N1[Add] --> N2[Install] --> N3[Reload] --> N4[Dashboard] --> N5[Posture] --> N6[Work]\n  class N6 built",
+          "svg": "knowledge/concepts/visuals/getting-started.step-6.svg"
         }
       ],
-      "svg": "knowledge/concepts/visuals/agent-harness-loop.svg",
-      "svg_mini": "knowledge/concepts/visuals/agent-harness-loop.mini.svg"
+      "svg": "knowledge/concepts/visuals/getting-started.svg",
+      "svg_mini": "knowledge/concepts/visuals/getting-started.mini.svg"
     },
     {
       "id": "permission-layers",
