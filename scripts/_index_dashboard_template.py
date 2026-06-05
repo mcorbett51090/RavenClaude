@@ -1013,6 +1013,8 @@ TEMPLATE = r"""<!doctype html>
             <div class="card stat"><span class="v">${s.specialists}</span><span class="k">Specialists</span><span class="sub">agents on the roster</span></div>
             <div class="card stat"><span class="v">${s.hooks}</span><span class="k">Active Hooks</span><span class="sub">gates & guardrails</span></div>
             <div class="card stat"><span class="v">${s.skills}</span><span class="k">Skills</span><span class="sub">invokable capabilities</span></div>
+            <div class="card stat"><span class="v">${s.scenarios || 0}</span><span class="k">Scenarios</span><span class="sub">real-engagement field notes</span></div>
+            <div class="card stat"><span class="v">${s.tools || 0}</span><span class="k">Runnable tools</span><span class="sub">stdlib calculators &amp; checkers</span></div>
           </div>
 
           <div class="section-title"><h2>Quick actions</h2><span class="hint">one click to the things you do most</span></div>
@@ -1161,7 +1163,7 @@ TEMPLATE = r"""<!doctype html>
           return `<div class="card plugin-card">
             <div class="pc-head"><span class="ico" style="width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--teal-soft);color:var(--teal-2);border:1px solid var(--border-strong)">${svg((cats.find((c) => c.id === p.category) || {}).icon || "sparkle")}</span><span class="nm">${esc(p.label)}</span><span class="ver">v${esc(p.version)}</span></div>
             <p class="desc">${esc(p.short)}</p>
-            <div class="metrics"><span><b>${p.counts.agents}</b> specialists</span><span><b>${p.counts.skills}</b> skills</span><span><b>${p.counts.knowledge}</b> knowledge docs</span></div>
+            <div class="metrics"><span><b>${p.counts.agents}</b> specialists</span><span><b>${p.counts.skills}</b> skills</span><span><b>${p.counts.knowledge}</b> knowledge docs</span>${p.counts.scenarios ? `<span><b>${p.counts.scenarios}</b> scenarios</span>` : ""}${p.counts.tools ? `<span><b>${p.counts.tools}</b> tools</span>` : ""}</div>
             <div class="tags">${p.keywords.slice(0, 5).map((k) => `<span class="chip">${esc(k)}</span>`).join("")} ${reqs}</div>
             <div class="pc-foot"><button class="btn primary" type="button" onclick="window.__copy('/plugin install ${esc(p.name)}@ravenclaude','Install command')">${svg("plus")} Add to Project</button><button class="btn" type="button" onclick="window.__openPlugin('${esc(p.name)}')">Details</button></div>
           </div>`;
@@ -1212,6 +1214,8 @@ TEMPLATE = r"""<!doctype html>
         const named = (i) => `<div class="ref-item"><div class="ri-n">${esc(i.name)}</div>${i.description ? `<div class="ri-d">${esc(i.description)}</div>` : ""}</div>`;
         const hookItem = (i) => `<div class="ref-item"><div class="ri-n">${esc(i.name)} ${i.event ? `<span class="chip">${esc(i.event)}</span>` : ""}</div>${i.description ? `<div class="ri-d">${esc(i.description)}</div>` : ""}</div>`;
         const refGrid = (title, items, fmt) => (items && items.length) ? `<div class="section-title"><h2>${title} <span class="hint">${items.length}</span></h2></div><div class="grid cols-2">${items.map(fmt).join("")}</div>` : "";
+        const scnItem = (i) => `<div class="ref-item"><div class="ri-n">${esc(i.name)}${i.description ? ` <span class="chip">${esc(i.description)}</span>` : ""}</div></div>`;
+        const toolItem = (i) => `<div class="ref-item"><div class="ri-n"><code>${esc(i.name)}</code>${(i.modes || []).map((m) => `<span class="chip">${esc(m)}</span>`).join(" ")}</div>${i.purpose ? `<div class="ri-d">${esc(i.purpose)}</div>` : ""}</div>`;
         // Decision trees for THIS plugin: pulled from the hidden #dt-store, each
         // rendered as a collapsible dropdown with its pre-rendered Mermaid SVG.
         const treesHtml = (() => {
@@ -1243,10 +1247,14 @@ TEMPLATE = r"""<!doctype html>
             <div class="card stat"><span class="v">${p.counts.skills}</span><span class="k">Skills</span></div>
             <div class="card stat"><span class="v">${p.counts.hooks}</span><span class="k">Hooks</span></div>
             <div class="card stat"><span class="v">${p.counts.templates}</span><span class="k">Templates</span></div>
+            ${p.counts.scenarios ? `<div class="card stat"><span class="v">${p.counts.scenarios}</span><span class="k">Scenarios</span></div>` : ""}
+            ${p.counts.tools ? `<div class="card stat"><span class="v">${p.counts.tools}</span><span class="k">Tools</span></div>` : ""}
           </div>
           ${p.requires && p.requires.length ? `<div class="callout" style="margin-top:14px">${svg("info")}<span>Requires ${p.requires.map((r) => `<code>${esc(r)}</code>`).join(", ")}</span></div>` : ""}
           ${agents ? `<div class="section-title"><h2>Specialists <span class="hint">${p.agents.length}</span></h2></div><div class="grid cols-2">${agents}</div>` : ""}
           ${refGrid("Skills", p.skills_index, named)}
+          ${refGrid("Runnable tools", p.scripts_index, toolItem)}
+          ${refGrid("Scenario field notes", p.scenarios_index, scnItem)}
           ${refGrid("Hooks", p.hooks_index, hookItem)}
           ${refGrid("Rules", p.rules_index, named)}
           ${refGrid("Templates", p.templates_index, named)}
