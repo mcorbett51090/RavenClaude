@@ -61,7 +61,7 @@ flowchart TD
 flowchart TD
     START[Integration looks healthy but is it?] --> Q1{What kind of operation?}
     Q1 -->|Change-notification subscription| Q2{Renewal + lifecycle handling present?}
-    Q1 -->|"$batch envelope returned 200"| BATCH[200 on the envelope is NOT 200 on sub-requests.<br/>Inspect each responses[] status: a sub-request can be 429/4xx.<br/>Retry only the failed sub-requests by their own Retry-After.]
+    Q1 -->|"$batch envelope returned 200"| BATCH["200 on the envelope is NOT 200 on sub-requests.<br/>Inspect each responses[] status: a sub-request can be 429/4xx.<br/>Retry only the failed sub-requests by their own Retry-After."]
     Q1 -->|Delta-based mirror| DELTA[A long pause can silently age out the token.<br/>Expect 410 on resume; have a resync branch. Build for replays + consistency lag.]
     Q1 -->|Webhook stream assumed complete| MISSED[Webhooks are best-effort: a notification can be dropped.<br/>Treat 'missed' as a resync-via-delta trigger, not an error.]
     Q2 -->|NO| SILENT[SILENT DEATH: subscription expires with no error.<br/>Green monitoring is NOT proof of life. Add renewal + lifecycleNotificationUrl + delta resync.]
