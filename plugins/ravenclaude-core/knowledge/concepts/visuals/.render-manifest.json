@@ -5,6 +5,7 @@
     "capability-banner": "384ae3f9f8f1f480b4f2820819ede35b772ce21715b3b38b07f32e32fe3fc915",
     "comfort-posture": "c693df0de04dae672c30366a1d5394aa8945df6cf3ceed3567dbe6776dccbabe",
     "command-review-tribunal": "0c93c677629c1e7571ad1fda03cb76005612d0e3e2abc80b8766cc203f93a59a",
+    "context-window": "4697595e9d9eaaff8d12d71e950325efefa12072b840746ea8a463e172cfd301",
     "copilot-bridge": "7490496a4d3704628686f0e780038ad20b1b982284f3c097be73701cc9b45b64",
     "decision-review": "22d2df06e2d04770220e22d2599c4d1e6225a71e41ff89afa6ae4462b6cfbc91",
     "decision-trees": "306a126c226c20348cbbfaf6efb9097e34f583dc60a414d210cca37e570f9263",
@@ -12,12 +13,16 @@
     "getting-started": "0721adf386d3e4c86d8d59006aaf31f9d1539a1d3fe704fd96c1bb21b6092c00",
     "hook-lifecycle": "ee0c84907d11c0feb02ebc7ba2957afc990af19485cb5b3763090ae5b75ca1e9",
     "layout-hook": "068ae519f49f7e1b9a5be14dc0bfde98bf3d9f8081d7c6bec3693757ef864523",
+    "mcp": "aeea156c8f5a700f867b3e0a5262a8bbbacfdc3f72afcdb99587fcc49af4c280",
     "model-diversity": "695261e035f6baebceeb8d2fe715d48cd66ca3f4c21844a5c06d94e9e5b9b4f3",
+    "model-selection": "3f3971efe8820c628fae0e4633190b6e0ca9ca02e1b6a3b383b44147d98243b1",
     "permission-layers": "f6b6dbbba0b6b700c1b350bfad8ddd460c7897837d518646b54fbd760a2a5632",
     "permission-modes": "6ee02b5154f2eae37e4baccacd260ab881abc45f93f0012914b0c6ddf2290eab",
     "saga-log": "daf909925954f40352dd3ac2225801605ae19291d220d22fdd3e59431a0adaef",
     "session-start-context": "8bd79efee36441337f26377fc2b7f18f9971d4d3a21a42ad020e549844ab3498",
-    "source-control-basics": "1024990ba121b05e64d04a5df29ab7dc99ed49fb7467057d86ef422689385dd7"
+    "source-control-basics": "1024990ba121b05e64d04a5df29ab7dc99ed49fb7467057d86ef422689385dd7",
+    "subagents": "3a24b868968f79e97d1912e51fdcbb3636d506ab582a15c2dcca27c1b66bad89",
+    "tool-use": "edf278e5cb687308276add93afef5f462ccc1cb444827b1d7bfe5838c0d2e2b5"
   },
   "mmdc_version": "11.15.0",
   "normalizer_version": 4

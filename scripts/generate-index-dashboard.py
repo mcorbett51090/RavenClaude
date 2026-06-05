@@ -710,6 +710,33 @@ def _load_fragments() -> dict:
     return {"dash": dash}
 
 
+def _render_dt_store(gd) -> str:
+    """Hidden store of every plugin's decision-tree diagrams, inlined once. The
+    plugin detail view (window.__openPlugin) pulls a plugin's own trees out of
+    this store and renders them as collapsible dropdowns. This is the trees' only
+    home in the portal — they were MOVED here from the dashboard Guidance tab so
+    each tree sits next to the plugin it guides. Each item carries owner/title/
+    when/path as data-attrs plus the pre-rendered themed SVG (render-trees.py)."""
+    import html as _h
+
+    parts: list[str] = []
+    for t in gd._decision_trees_inventory():
+        svg = gd._load_tree_svg(t["id"])
+        if not svg:
+            continue
+        parts.append(
+            '<div class="dt-item" data-plugin="{owner}" data-title="{title}" '
+            'data-when="{when}" data-path="{path}">{svg}</div>'.format(
+                owner=_h.escape(t["owner"], quote=True),
+                title=_h.escape(t["title"], quote=True),
+                when=_h.escape(t["when"], quote=True),
+                path=_h.escape(t["path"], quote=True),
+                svg=svg,
+            )
+        )
+    return "".join(parts)
+
+
 def render_html(data: dict) -> str:
     template = _TEMPLATE
     shared_tokens = _load_shared_tokens_root()
@@ -725,6 +752,9 @@ def render_html(data: dict) -> str:
     html = html.replace("/*__DASH_CSS__*/", frag["dash"]["css"])
     html = html.replace("<!--__DASH_BODY__-->", frag["dash"]["body"])
     html = html.replace("/*__DASH_JS__*/", frag["dash"]["js"])
+    # Decision-tree store (moved off the dashboard Guidance tab onto plugin pages).
+    gd = _load_sibling("generate-dashboards.py", "generate_dashboards")
+    html = html.replace("<!--__DT_STORE__-->", _render_dt_store(gd))
     return html
 
 
