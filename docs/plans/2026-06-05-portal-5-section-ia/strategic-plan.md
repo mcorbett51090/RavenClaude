@@ -43,6 +43,30 @@ Sidebar = exactly **five** sections, each owning one job:
 
 ---
 
-## Panel 1 gap-fill (filled after review)
+## Panel 1 gap-fill (architect · security · ops/gates · devil's-advocate)
 
-_(to be completed in Phase 2)_
+The 5 sections (Home/Discover/Configure/Observe/Learn) are **fixed by the product owner**; the panel's job was to close gaps *within* that decision. Verdicts:
+
+### Gaps found → resolutions adopted
+
+- **G-A1 Phantom routes (architect, high).** `nidhoggr` and `sleipnir` are **not tabs** — `sleipnir` is the "stables" banner inside the **Run feed (`activity`)** tab; `nidhoggr` ("debt watch") is a card inside the **Heimdall** tab. Both are in `DASH_SECTIONS`, so `#/nidhoggr`/`#/sleipnir` currently `activate()`-fall-back to **overview** (silent). **Resolution:** alias `#/nidhoggr → heimdall`, `#/sleipnir → activity` in `DASH_TAB_ALIAS` (do **not** invent fake tabs); add a gate cross-checking that every non-aliased `DASH_SECTIONS` id is a real `validTabs` tab.
+- **G-A2 Two-chromes is cheap, not Tier-2-risky (architect, decisive).** The dashboard CSS is already scoped under `#dash-root` and the **standalone** copy is *not* wrapped in `#dash-root`. So a single **shell-side** CSS rule `#dash-root .cat-bar, #dash-root .tab-bar { display:none }` hides the internal chrome in the **folded copy only** — **no `generate-dashboards.py` edit, no consumer-artifact risk.** This collapses the prior "Tier 2 = edit shipped generator" into a shell-only change. **Resolution:** adopt option (b) (scoped CSS hide) + drive tabs from a shell sub-nav calling `window.__dashApp.show()` (reuse the existing `navChildren()` accordion). Tier 2 effectively merges into Tier 1.
+- **G-A3 a11y regression (architect, medium).** Hiding `.tab-bar` drops the dashboard's WAI-ARIA roving-tabindex keyboard nav. **Resolution:** the shell sub-nav must implement `role=tablist` + arrow-key roving so the folded view keeps keyboard parity; standalone keeps its own bar (scoped CSS guarantees it).
+- **G-A4 Pipeline & Overview placement (architect, medium).** `pipeline` is one **interactive** tab (`syncPipelineTab()`), can't be split Configure/Learn. **Resolution:** keep `pipeline` as a single tab under **Learn**; Configure *links* to it (no copy). `overview` stays the dashboard landing + `DASH_TAB_ALIAS["dashboard"]="overview"` target; its content is **reachable** from Learn, not duplicated.
+- **G-S1 Escape new Discover fields (security, the one real XSS vector).** Discover's richer per-plugin reference renders via shell `innerHTML`. **Resolution:** every newly-surfaced field (scenarios/quickstart/audience/works-with/skills/hooks/rules/templates/best-practices) MUST go through `esc()`. Build-plan acceptance criterion.
+- **G-S2 Keep `__dashApp.show()` as the single drive seam (security + architect).** If the shell drives tabs by any other mechanism, the sub-app's per-card served-probe + empty-state loaders may not fire → hard error instead of graceful degradation on Pages. **Resolution:** `show()` stays the only entry.
+- **G-D1 Static-vs-served audience (devil's-advocate, high).** Observe + live Configure tabs are empty on GitHub Pages (need local `/__*`). Giving them top billing on the consumer's static surface is poor IA. **Resolution (within 5 sections):** Observe + the live half of Configure render a single **"run the served dashboard to see live data"** banner at the section top on static hosts (the dashboard tabs already degrade per-card); on `127.0.0.1` the banner is silent. Detected via the existing served signal — **no new shell probe, no CORS** (security invariant).
+- **G-D2 "I want to…" single component (devil's-advocate).** **Resolution:** the use-case table is rendered once in Discover; Home *links* to it (`#/discover`), never re-renders it.
+- **G-D3 Discover overload (devil's-advocate + architect).** Marketplace + Team + 295-agent reference + ~1000-row table in one section. **Resolution:** Discover gets an internal sub-nav (**Plugins · Specialists · Use cases**); the rich per-plugin reference stays behind a plugin click (`__openPlugin`), the use-case table keeps its existing `.slice(0,400)` + scroll cap.
+- **G-O1 Gate naming correction (ops).** The shell-router fixture is **Gate 51** in `audit-gates.sh` (`--check 70` / "Gate 70" is the unrelated Codex-trust-hooks gate). The build plan targets **Gate 51 / `check-shell-router.mjs`**.
+- **G-O2 Gate 51 hard-codes the old 6 NAV ids + `resolveNavActive`→"dashboard"** → will fail on rename. **Resolution:** update to the 5 new ids; add a **NAV-rename must-fail** fixture (the DASH_SECTIONS must-fail half doesn't cover a dropped section).
+- **G-O3 DASH_SECTIONS deep-link contract under-tested** (13 of 20 routes). **Resolution:** expand `expectedDashboardRoutes` to the full back-compat set + assert the new `DASH_TAB_ALIAS` entries — make the alias table the gated contract.
+- **G-O4 `_strip_ts` git-date strip is markup-shape-coupled.** Discover reference rendering git dates in any new markup → Gate 97 false-fails on shallow-clone CI. **Resolution:** reuse the exact existing `Last updated</span> <code>…</code>` markup, or extend `_strip_ts`; audit any new aggregation for `set`/`dict`-without-sort (determinism).
+- **G-O5 Render-gate `function activate(` sentinel + longest-script fallback** is a footgun if a future edit renames/moves `activate`. **Resolution:** keep `function activate(` as a stable anchor in the folded sub-app; the chrome-hide is CSS-only so it isn't threatened now.
+- **G-O6 No page-weight gate** (index.html all-inlined, grows with 64 plugins). **Resolution:** add an optional byte-budget gate (bidirectional fixture) — flagged P1, not blocking.
+
+### Dissent recorded (overridden by product-owner decision)
+- Devil's-advocate argued for **keeping the old names** (Marketplace/Team) and an **audience-segmented 3–4 section** IA, and for **not** promoting empty-on-static Observe. The 5 named sections are fixed; we honor the *spirit* of the critique via G-D1 (served banner) and G-D3 (Discover sub-nav) rather than changing the section set.
+
+**Net effect on phasing:** G-A2 collapses the feared "Tier 2 = edit the shipped generator" into a **shell-only CSS+sub-nav change**, so the whole reorg is now **one shell-layer effort** (no `generate-dashboards.py` edit, no consumer-artifact risk) — with the gate updates from G-O2/O3 and the escaping/served-banner closes. The tactical build plan ([`build-plan.md`](build-plan.md)) sequences it.
+
