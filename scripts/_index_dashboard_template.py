@@ -724,11 +724,12 @@ TEMPLATE = r"""<!doctype html>
         { id: "discover", label: "Discover", icon: "market" },
         { id: "configure", label: "Configure", icon: "sliders" },
         { id: "observe", label: "Observe", icon: "chart" },
+        { id: "act", label: "Act", icon: "rocket", route: "commands" },
         { id: "learn", label: "Learn", icon: "book" },
       ];
 
-      // ── 5-section task IA + native-merged dashboard routing (Slice A) ──
-      // Sidebar = Home · Discover · Configure · Observe · Learn. The dashboard
+      // ── 6-section task IA + native-merged dashboard routing (Slice A) ──
+      // Sidebar = Home · Discover · Configure · Observe · Act · Learn. The dashboard
       // content is folded into THIS document (no iframes): mounted in #dash-root,
       // shown by toggling [hidden], driven via window.__dashApp.show(). Every
       // legacy route still resolves via SECTION_ALIAS (old shell top-level) +
@@ -763,7 +764,7 @@ TEMPLATE = r"""<!doctype html>
         heimdall: "observe", vidarr: "observe", norns: "observe", mimir: "observe",
         saga: "observe", activity: "observe", nidhoggr: "observe", sleipnir: "observe",
         settings: "configure", "comfort-posture": "configure", "web-access": "configure", simulator: "configure",
-        commands: "learn", trees: "learn", pipeline: "learn", bifrost: "learn",
+        commands: "act", trees: "learn", pipeline: "learn", bifrost: "learn",
         install: "learn", about: "learn", overview: "learn", concepts: "learn",
       };
       // Slice B section sub-nav (plain labels — no Norse names): each section's
@@ -785,10 +786,12 @@ TEMPLATE = r"""<!doctype html>
           { label: "Session state", route: "#/mimir" },
           { label: "Review log", route: "#/saga" },
         ],
+        act: [
+          { label: "Commands", route: "#/commands" },
+        ],
         learn: [
           { label: "Overview", route: "#/learn" },
           { label: "Concepts", route: "#/concepts" },
-          { label: "Commands", route: "#/commands" },
           { label: "Best practices", route: "#/trees" },
           { label: "Pipeline", route: "#/pipeline" },
           { label: "Install", route: "#/bifrost" },
@@ -881,7 +884,7 @@ TEMPLATE = r"""<!doctype html>
         $("#primary-nav").innerHTML =
           '<div class="group-label">Platform</div>' +
           NAV.map((n) => {
-            const item = `<a class="nav-item${n.id === active ? " active" : ""}" href="#/${n.id}" data-nav="${n.id}"${n.id === active ? ' aria-current="page"' : ""}>${svg(n.icon)}<span class="label">${n.label}</span></a>`;
+            const item = `<a class="nav-item${n.id === active ? " active" : ""}" href="#/${n.route || n.id}" data-nav="${n.id}"${n.id === active ? ' aria-current="page"' : ""}>${svg(n.icon)}<span class="label">${n.label}</span></a>`;
             const subs = n.id === active ? navChildren(n.id) : "";
             return subs ? `${item}<div class="nav-sub">${subs}</div>` : item;
           }).join("");
@@ -1659,6 +1662,10 @@ TEMPLATE = r"""<!doctype html>
           // Observe = the live control panel. Default to the run feed; a dashboard
           // sub-route (e.g. #/heimdall) is handled by the DASH_OWNER branch below.
           viewDashboard("activity");
+        } else if (section === "act") {
+          // Act = run things. Its sole tab is Commands (the nav item links straight
+          // to #/commands, which DASH_OWNER routes); this resolves a bare #/act.
+          viewDashboard("commands");
         } else if (DASH_OWNER[section]) {
           viewDashboard(section, sub);
         } else {

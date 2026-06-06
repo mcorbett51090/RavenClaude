@@ -14,8 +14,8 @@
  * for the regressions we care about (deleting the route set, renaming the
  * helpers, dropping a NAV item, removing the mount host or entry point).
  *
- * What this guards (Gate 51 — 5-section IA, Slices A+B):
- *   - NAV = the five task sections (home/discover/configure/observe/learn).
+ * What this guards (Gate 51 — 6-section IA, Slices A+B):
+ *   - NAV = the six task sections (home/discover/configure/observe/act/learn).
  *   - DASH_SECTIONS still contains every dashboard-owned top-level route that
  *     committed bookmarks + the gjallarhorn-link + SessionStart capability
  *     banners point at. Removing one silently breaks deep-links.
@@ -87,8 +87,8 @@ const DASH_OWNER_TEXT = sliceBetween(app, "const DASH_OWNER = ", "{");
 const RESOLVE_NAV_TEXT = sliceFunction(app, "function resolveNavActive(");
 const ROUTE_TEXT = sliceFunction(app, "function route(");
 
-/* NAV — the five task sections (Slice A IA). */
-const NAV_IDS = ["home", "discover", "configure", "observe", "learn"];
+/* NAV — the six task sections (Slice A IA). */
+const NAV_IDS = ["home", "discover", "configure", "observe", "act", "learn"];
 for (const id of NAV_IDS) {
   const re = new RegExp(`id:\\s*"${id}"`);
   assert(re.test(NAV_TEXT), `NAV regression: missing section id "${id}"`);
@@ -147,7 +147,7 @@ const expectedOwners = {
   settings: "configure",
   "web-access": "configure",
   simulator: "configure",
-  commands: "learn",
+  commands: "act",
   trees: "learn",
   pipeline: "learn",
 };
@@ -207,7 +207,7 @@ assert(!/<iframe/i.test(html), "merged portal must contain no <iframe> (native m
 const CHROME_HIDE_RE = /#dash-root \.cat-bar,\s*#dash-root \.tab-bar\s*\{\s*display:\s*none/;
 assert(CHROME_HIDE_RE.test(html), "Slice B: the #dash-root chrome-hide CSS rule must be present");
 const SECTION_TABS_TEXT = sliceBetween(app, "const SECTION_TABS = ", "{");
-for (const sec of ["configure", "observe", "learn"]) {
+for (const sec of ["configure", "observe", "act", "learn"]) {
   assert(
     new RegExp(`${sec}:\\s*\\[`).test(SECTION_TABS_TEXT),
     `SECTION_TABS must define a sub-nav for "${sec}"`,
@@ -253,5 +253,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  "OK: 5-section router contract holds (NAV + aliases + DASH_OWNER + route + single-chrome + section sub-nav + served probe, no iframe); all three must-fail checks detected.",
+  "OK: 6-section router contract holds (NAV + aliases + DASH_OWNER + route + single-chrome + section sub-nav + served probe, no iframe); all three must-fail checks detected.",
 );
