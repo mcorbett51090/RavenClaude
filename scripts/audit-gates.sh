@@ -28,7 +28,7 @@ cd "$(git rev-parse --show-toplevel)"
 # suite. This enables fast targeted re-runs after a regression fix without the
 # cost of the full 48-gate matrix. The full suite is the default (no --check arg).
 #
-# Currently supported per-gate values: 20, 50, 52, 53, 60, 70, 80, 90, 91, 92, 93. Other
+# Currently supported per-gate values: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93. Other
 # gates can be added here as they acquire a standalone runner script.
 if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
   case "${2}" in
@@ -51,6 +51,31 @@ if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
       echo "── Gate 53: runaway read-only carve-out (per-gate run) ───────────────────"
       bash plugins/ravenclaude-core/hooks/tests/test-runaway-readonly-carveout.sh
       exit $?
+      ;;
+    54)
+      echo "── Gate 54: R-PRIV run-context bundler allowlist (per-gate run) ──────────"
+      _rc54=0
+      # must_pass: the script's contract self-test.
+      if python3 scripts/capture-run-context.py --check; then
+        echo "  ✓ capture-run-context --check passed"
+      else
+        echo "  ✗ capture-run-context --check failed"; _rc54=1
+      fi
+      # must_fail (teeth): a mutant allowlist with an env field must be caught.
+      _MUT="$(mktemp)"
+      python3 - "$_MUT" <<'PY'
+import re, sys
+src = open("scripts/capture-run-context.py", "r", encoding="utf-8").read()
+mutant = re.sub(r'SAFE_FIELDS = \(\n', 'SAFE_FIELDS = (\n    "active_env",\n', src, count=1)
+open(sys.argv[1], "w", encoding="utf-8").write(mutant)
+PY
+      if python3 "$_MUT" --check >/dev/null 2>&1; then
+        echo "  ✗ mutant allowlist (active_env) was NOT caught — gate has no teeth"; _rc54=1
+      else
+        echo "  ✓ mutant allowlist (active_env) is caught"
+      fi
+      rm -f "$_MUT"
+      exit "$_rc54"
       ;;
     60)
       echo "── Gate 60: Copilot-aware seat cap (per-gate run) ────────────────────────"
@@ -103,7 +128,7 @@ if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 60, 70, 80, 90, 91, 92, 93, 97. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -2746,6 +2771,58 @@ gate "sanitize-webfetch-body (no injection markers survive in sanitized output)"
 # the injections (the IBCS line must survive).
 rc=0; grep -q "IBCS SUCCESS rules" "$POISONED_OUT" || rc=$?
 gate "sanitize-webfetch-body (canonical content preserved across strips)" must_pass "$rc"
+
+echo "── Gate 54: R-PRIV run-context bundler allowlist (never-capture) ─────────"
+# The run-context bundler (scripts/capture-run-context.py) attaches a minimal,
+# safe bundle to a /wrap scenario. Scenario files SHIP to every installer, so an
+# environment NAME (active_env / role / tenant / auth_mechanism_name) is itself a
+# sensitive token — and regex-banning arbitrary slugs is unenforceable. The
+# enforced form of the privacy rule (R-PRIV) is NEVER-CAPTURE, not detect-and-ban:
+# the bundler is the ONLY writer, against a FIXED allowlist (SAFE_FIELDS), and this
+# gate asserts that allowlist contains ZERO env-context fields.
+#
+# Bidirectional:
+#   must_pass: the real script's --check self-test passes (allowlist clean +
+#              degraded/populated bundles well formed + no banned token rendered).
+#   must_fail: a MUTANT allowlist with an env field (active_env) added is caught —
+#              proving the gate has teeth (never-capture, not regex-detect).
+# must_pass: the script's own contract self-test (asserts the allowlist invariant).
+rc=0; python3 scripts/capture-run-context.py --check >/dev/null 2>&1 || rc=$?
+gate "capture-run-context --check (allowlist clean, bundle well-formed)" must_pass "$rc"
+
+# must_fail (the teeth): synthesize a MUTANT copy of the bundler whose SAFE_FIELDS
+# adds an env-context field, then run its --check. The self-test's
+# allowlist_has_no_env_field() assertion MUST flag it (nonzero). A regex-only
+# privacy approach would let this through; never-capture does not.
+RPRIV_BAD="$TMP/capture-run-context-mutant.py"
+python3 - <<'PY' > "$RPRIV_BAD"
+import re, sys
+src = open("scripts/capture-run-context.py", "r", encoding="utf-8").read()
+# Inject an env-context field into the FIXED allowlist tuple — the exact change
+# the gate exists to stop (it would ship tenant/SPN recon to every installer).
+mutant = re.sub(
+    r'SAFE_FIELDS = \(\n',
+    'SAFE_FIELDS = (\n    "active_env",\n',
+    src, count=1,
+)
+sys.stdout.write(mutant)
+PY
+rc=0; python3 "$RPRIV_BAD" --check >/dev/null 2>&1 || rc=$?
+gate "capture-run-context (mutant allowlist with active_env is caught)" must_fail "$rc"
+
+# Belt-and-suspenders: a live bundle emits ONLY the 4 safe field keys — no env/
+# role/tenant/auth field key appears in the rendered run_context block. (Grep is
+# on FIELD KEYS — `^  key:` / `^    key:` — not values, so a plugin NAMED
+# "auth-identity" in plugin_versions doesn't trip it.)
+RPRIV_KEYS="$TMP/rpriv-keys.txt"
+python3 scripts/capture-run-context.py --project-root . --model gate-fixture 2>/dev/null \
+  | grep -oE '^[[:space:]]*[a-z_]+:' \
+  | grep -vE '^[[:space:]]*(run_context|model|plugin_versions|posture_label|capture_method):' \
+  > "$RPRIV_KEYS" || true
+# Any remaining KEY lines are plugin sub-keys (under plugin_versions). Assert none
+# is a banned env-context field name.
+rc=0; grep -iE '^[[:space:]]*(active_env|role|tenant|auth_mechanism_name|env|spn|credential):' "$RPRIV_KEYS" >/dev/null 2>&1 && rc=1
+gate "capture-run-context (live bundle emits no env-context field key)" must_pass "$rc"
 
 echo "── Gate 49: Mímir session-state tab (render + both-copies parity) ─────────"
 # Behavioral render test for the Mímir "Session" tab (the Claude-Code session-
