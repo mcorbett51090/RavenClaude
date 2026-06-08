@@ -1,0 +1,31 @@
+{
+  "name": "platform-engineering-idp",
+  "version": "0.1.0",
+  "description": "Platform-engineering & internal-developer-platform team — 4 agents (platform-product-lead, idp-portal-engineer, golden-path-engineer, devex-metrics-engineer) for the 'platform-as-a-product' layer above CI/CD: treating the platform as a product with developers as customers, building an internal developer platform / portal (Backstage and alternatives, software catalog, scaffolder/software templates, TechDocs), authoring golden paths / paved roads and self-service infrastructure (Crossplane, Score, Terraform modules behind a portal), and measuring developer experience (DORA + the SPACE framework, time-to-first-PR, platform adoption). 5 skills, 4 commands, 4 templates, a Mermaid decision-tree knowledge bank (buy-vs-build IDP, golden-path scope, self-service boundary, platform-team topology) + a dated 2026 capability map, 12 best-practices, a scenarios bank, and 1 advisory hook. Seams: the pipeline -> devops-cicd, the cluster -> cloud-native-kubernetes, the deploy/SLO signal -> observability-sre, the docs craft -> technical-writing-docs, the IaC under self-service -> terraform-iac. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "platform-engineering",
+    "internal-developer-platform",
+    "idp",
+    "backstage",
+    "golden-path",
+    "paved-road",
+    "developer-experience",
+    "devex",
+    "software-catalog",
+    "self-service",
+    "platform-as-a-product",
+    "team-topologies",
+    "dora-metrics",
+    "space-framework",
+    "crossplane",
+    "scaffolder"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

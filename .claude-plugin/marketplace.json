@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + 14 specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 43 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to…' use-case lookup.",
-    "version": "0.73.0"
+    "version": "0.74.0"
   },
   "plugins": [
     {
@@ -1447,6 +1447,32 @@
         "admissions",
         "skilled-nursing",
         "physician-relations"
+      ]
+    },
+    {
+      "name": "platform-engineering-idp",
+      "source": "./plugins/platform-engineering-idp",
+      "description": "Platform-engineering & internal-developer-platform team — 4 agents (platform-product-lead, idp-portal-engineer, golden-path-engineer, devex-metrics-engineer) for the 'platform-as-a-product' layer above CI/CD: treating the platform as a product with developers as customers, building an IDP / developer portal (Backstage and alternatives — Port/Cortex/OpsLevel/Spotify Portal, the software catalog, scaffolder templates, TechDocs), authoring golden paths / paved roads and self-service infrastructure (Crossplane, Score, portal-fronted Terraform modules with policy guardrails), and measuring developer experience (DORA + SPACE + DevEx/DXI, adoption funnel, time-to-prod). 5 skills, 4 commands, 4 templates, a Mermaid decision-tree knowledge bank (start-a-platform, buy-vs-build IDP, golden-path scope, self-service boundary, DevEx framework, maturity ladder) + a dated 2026 capability map, 12 best-practices, a 4-note scenarios bank, and 1 advisory hook. Seams: pipeline -> devops-cicd, cluster -> cloud-native-kubernetes, deploy/SLO signal -> observability-sre, docs craft -> technical-writing-docs, IaC modules -> terraform-iac. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "platform-engineering",
+        "internal-developer-platform",
+        "idp",
+        "backstage",
+        "golden-path",
+        "paved-road",
+        "developer-experience",
+        "devex",
+        "software-catalog",
+        "self-service",
+        "platform-as-a-product",
+        "team-topologies",
+        "dora-metrics",
+        "space-framework",
+        "crossplane"
       ]
     }
   ]
