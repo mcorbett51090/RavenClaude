@@ -221,3 +221,47 @@ flowchart TD
 | Certified (public) | across other tenants | declared scheme + MS review | Microsoft + your DLP | highest (multi-week) | ISV distributing to other tenants |
 
 This tree operationalizes [`../best-practices/connector-custom-connector-auth-and-policy.md`](../best-practices/connector-custom-connector-auth-and-policy.md); DLP classification of any new connector runs through the [`alm-governance-decision-trees.md`](alm-governance-decision-trees.md) connector-classification tree, and any auth/secret verdict escalates to `ravenclaude-core/security-reviewer`.
+
+---
+
+## Decision Tree: Integration platform — Power Automate cloud flow vs Azure Logic Apps
+
+**When this applies:** the work clearly needs a *workflow/integration* (not a canvas-app `Patch`, not a Dataverse plug-in), and the question is **which platform** authors and runs it. Observable inputs: who will own and maintain it, how it's licensed (per-user O365 vs an Azure subscription), which governance plane controls it (DLP vs Azure Policy), how it deploys (Power Platform solution vs Bicep/ADO), and whether the workload is simple business automation or high-volume/B2B/VNet-bound enterprise integration. This is the **initial call `flow-engineer` makes per CLAUDE.md §11** — and the hand-off branch to `azure-cloud/integration-engineer`.
+
+**Last verified:** 2026-06-08 against Microsoft Learn *Integration and Automation Platform Options in Azure* (`functions-compare-logic-apps-ms-flow-webjobs`, first-party, `ms.date 2026-03-23`) and *Power Automate vs Logic Apps* (`microsoft-365/community/power-automate-vs-logic-apps`, community, `updated_at 2025-11-14`). Pricing/plan economics are volatile — `[verify-at-use]`. Research: [`../../../docs/research/2026-06-08-power-platform-best-practices/`](../../../docs/research/2026-06-08-power-platform-best-practices/).
+
+```mermaid
+flowchart TD
+    START[Work needs a workflow / integration] --> Q1{Owned & maintained by a citizen maker in O365,<br/>or by IT/dev in an Azure subscription?}
+    Q1 -->|Citizen maker in O365| Q2{Needs resource-level RBAC, audit trails,<br/>VNet, or B2B/EDI?}
+    Q2 -->|NO| FLOW["Power Automate cloud flow<br/>(per-user O365 license · DLP-governed · solution-aware ALM)"]
+    Q2 -->|YES — but only ONE leg| HYBRID["Cloud flow that CALLS a Logic App<br/>(keep maker ownership, delegate the enterprise leg)"]
+    Q2 -->|YES — pervasively| LOGIC1["Azure Logic Apps<br/>(re-platform — the requirement is enterprise-wide)"]
+    Q1 -->|IT/dev in an Azure subscription| Q3{High-volume / stateful enterprise orchestration,<br/>B2B/EDI, VNet, or Azure-Policy-governed?}
+    Q3 -->|YES| LOGIC2["Azure Logic Apps<br/>(Azure billing · Azure Policy + resource RBAC · Bicep/ADO ALM)"]
+    Q3 -->|NO — simple automation a maker could own| RECONSIDER["Reconsider a cloud flow<br/>— don't pay the Azure-subscription tax for simple automation"]
+```
+
+**Rationale per leaf:**
+
+- *Power Automate cloud flow (FLOW)* — a citizen maker owns it, it's licensed per-user in Office 365, governed by **DLP**, and ships via solution-aware ALM (connection refs + env vars + pipelines). The default for approvals, notifications, and simple first-party-connector automation. **requires:** the maker's per-user (or per-flow) Power Automate license + any premium-connector license.
+- *Cloud flow calls a Logic App (HYBRID)* — the workflow is maker-owned but **one** leg needs an enterprise capability (B2B/EDI, VNet, resource RBAC). "A Power Automate flow can call an Azure Logic Apps workflow" (first-party), so delegate that leg instead of re-platforming everything. **requires:** an Azure subscription for the Logic App.
+- *Azure Logic Apps (LOGIC1 / LOGIC2)* — it lives in an Azure subscription, is governed by **Azure Policy** with **resource-level RBAC** (survives the author leaving) + audit trails, deploys via Bicep/CLI/VS Code/Azure DevOps, and suits high-volume, stateful, B2B/EDI, or VNet-integrated enterprise integration. **Hand off to `azure-cloud/integration-engineer`** the moment this leaf is reached. **requires:** an Azure subscription + a platform team to own it.
+- *Reconsider a cloud flow (RECONSIDER)* — simple automation that happens to be requested by a platform team still doesn't need Azure-subscription billing/governance; don't over-engineer.
+
+**Tradeoffs summary:**
+
+| Platform | Owner | Licensing | Governance plane | RBAC | ALM | Use when |
+|---|---|---|---|---|---|---|
+| Power Automate cloud flow | Citizen maker (O365) | Per-user O365 | DLP | User-level | Solution + Power Platform pipelines | Simple business automation, maker-owned |
+| Cloud flow → calls Logic App | Maker + one Azure leg | O365 + Azure for the leg | DLP + Azure Policy (leg) | Mixed | Both | Maker-owned but one enterprise leg |
+| Azure Logic Apps | IT/dev (Azure sub) | Azure consumption/Standard | Azure Policy + resource RBAC | Resource-level | Bicep / Azure DevOps | High-volume, B2B/EDI, VNet, enterprise |
+
+First branch that resolves cleanly wins; ownership + governance plane outrank workload shape, because a wrong governance/ALM choice is the expensive one to unwind. Don't choose by connector availability — both reach ~1,400 connectors. The detailed capability rows live in Microsoft's [*Power Automate migration → Compare capability details*](https://learn.microsoft.com/en-us/azure/logic-apps/power-automate-migration#compare-capability-details) (`[rows verify-at-use]`).
+
+---
+
+## Citations / sources
+
+- Cloud-flow-vs-Logic-Apps tree: Microsoft Learn [*Integration and Automation Platform Options in Azure*](https://learn.microsoft.com/en-us/azure/azure-functions/functions-compare-logic-apps-ms-flow-webjobs) (first-party, `ms.date 2026-03-23`) + [*Power Automate vs Logic Apps*](https://learn.microsoft.com/en-us/microsoft-365/community/power-automate-vs-logic-apps) (community, `updated_at 2025-11-14`), both retrieved 2026-06-08; corroborated in [`../../../docs/research/2026-06-08-power-platform-best-practices/`](../../../docs/research/2026-06-08-power-platform-best-practices/). Adjacent rule: [`../best-practices/flow-cloud-flow-vs-logic-apps.md`](../best-practices/flow-cloud-flow-vs-logic-apps.md). Escalation seam: CLAUDE.md §11 → `azure-cloud/integration-engineer`.
+- The other trees in this file cite their own sources inline (trigger / surface / reuse / error / programmatic-create / external-API).
