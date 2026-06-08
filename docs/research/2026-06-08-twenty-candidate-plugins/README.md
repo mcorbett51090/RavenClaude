@@ -2,6 +2,16 @@
 
 _Authored 2026-06-08 by `claude`. Branch: `claude/gallant-tesla-hko33`._
 
+> **Reconciliation note (2026-06-08, post-#346).** A parallel session shipped PR **#346**, which
+> added its own 20-plugin roadmap to `main` — overlapping this one (6 exact-name duplicates + ~8
+> concept duplicates). To avoid duplicate/broken marketplace entries, this branch was reconciled onto
+> `main` and now contributes **only the 6 plugins with no equivalent on main**:
+> `construction-general-contractor`, `field-service-management`, `localization-i18n-engineering`,
+> `public-sector-govtech`, `retail-store-operations`, `supply-chain-planning`. The other 14 candidates
+> below are covered by #346 (some under different names, e.g. `revenue-operations`→`sales-revops`,
+> `hospitality-hotels`→`hotel-hospitality-operations`). The research/prioritization below is retained
+> as the original point-in-time analysis.
+
 ## Purpose
 
 Identify **20 new plugins not yet implemented** in the RavenClaude marketplace, with — for
