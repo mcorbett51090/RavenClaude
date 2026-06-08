@@ -113,7 +113,17 @@ VALID_CONFIDENCE = {"low", "medium", "high"}
 
 
 def _strip_injection(text: str) -> str:
-    out = text
+    # SECURITY (PR #366 review): this is best-effort NEUTERING, NOT a hard filter — regex
+    # strips are bypassable (zero-width chars, line-split phrasing). The REAL boundary is
+    # downstream and must NOT be relaxed on the assumption this strip is complete: (a) no LLM
+    # processes this content at intake (pure regex here); (b) the staged file carries an
+    # explicit untrusted-DATA banner and lands in a quarantine draft PR; (c) the maintainer
+    # `review-staged-contributions` gate reviews every staged file before promotion.
+    # NFKC-normalize + drop zero-width/format (Cf) chars first so `ig<ZWSP>nore` can't slip past.
+    import unicodedata
+
+    out = unicodedata.normalize("NFKC", text)
+    out = "".join(ch for ch in out if unicodedata.category(ch) != "Cf")
     for pat in INJECTION_PATTERNS:
         out = pat.sub("", out)
     return out
