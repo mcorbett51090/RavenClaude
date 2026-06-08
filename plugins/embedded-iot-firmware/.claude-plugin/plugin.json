@@ -1,0 +1,30 @@
+{
+  "name": "embedded-iot-firmware",
+  "version": "0.1.0",
+  "description": "Embedded systems & IoT firmware specialist team — 4 agents covering bare-metal vs RTOS architecture, peripheral driver engineering, RTOS task design, and device-to-cloud connectivity. Ships 3 skills (bare-metal-and-rtos, low-power-and-peripherals, iot-connectivity-and-ota), 3 commands, 2 templates, a knowledge bank with decision trees, 6 best-practice rules, and an advisory hook flagging ISR-blocking, heap-in-hot-path, missing OTA rollback, and hardcoded credentials. Targets Embedded C/C++/Rust, FreeRTOS/Zephyr/Embassy, STM32/ESP32/nRF MCUs, MQTT/CoAP, Mender/AWS IoT OTA, and secure boot. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "embedded",
+    "firmware",
+    "iot",
+    "rtos",
+    "freertos",
+    "zephyr",
+    "stm32",
+    "esp32",
+    "nrf",
+    "mqtt",
+    "ota",
+    "secure-boot",
+    "low-power",
+    "bare-metal",
+    "device-to-cloud"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

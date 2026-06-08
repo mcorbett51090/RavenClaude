@@ -1,0 +1,25 @@
+{
+  "name": "behavioral-mental-health-practice",
+  "version": "0.1.0",
+  "description": "Outpatient behavioral and mental-health clinic operations team — 5 agents covering practice operating model, intake and scheduling, clinical documentation, telehealth, and billing compliance. 3 skills (intake-and-access, clinical-documentation-and-treatment-planning, behavioral-billing-and-authorization). Helps the practice operate: access/capacity, waitlist, no-show reduction, treatment-plan structure, measurement-based care, telehealth workflow, state-licensure considerations, 42 CFR Part 2 vs HIPAA, authorization tracking, and CPT/units framing. NOT clinical advice. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "behavioral-health",
+    "mental-health",
+    "outpatient",
+    "telehealth",
+    "hipaa",
+    "42-cfr-part-2",
+    "measurement-based-care",
+    "intake",
+    "authorization",
+    "clinical-documentation"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
