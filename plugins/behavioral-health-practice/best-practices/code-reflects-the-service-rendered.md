@@ -1,3 +1,0 @@
-# The code reflects the service rendered — and the auth is verified first
-
-The CPT code is determined by what actually happened — the documented face-to-face time, the modality, who was present — never chosen to maximize reimbursement. Upcoding is fraud; it is flagged, never performed. If the documentation doesn't support the time or modality, the code drops and the documentation gap is routed — the code is not stretched to fit. And a prior authorization is confirmed in writing (auth number + unit count captured) before sessions are scheduled against it; an assumed auth is a denied claim. Quote behavioral CPT codes as `[verify-at-build]` against the current code set and the specific payer's policy before treating them as final.

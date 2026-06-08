@@ -1,3 +1,0 @@
-# Disclose and manage conflicts — never claim there are none
-
-A fiduciary doesn't eliminate every conflict; it discloses and manages them. Fee structures, proprietary products, revenue sharing, custodial relationships, soft dollars, and outside business activities are conflicts whether or not they change a given recommendation — "we have no conflicts" is almost always a disclosure failure, not a fact. Name each material conflict, describe how it's mitigated, and put it where the client actually sees it (Form ADV Part 2A, the engagement). The standard is full and fair disclosure so the client can give informed consent, not a claim of purity. Route the firm-specific determination to compliance counsel.

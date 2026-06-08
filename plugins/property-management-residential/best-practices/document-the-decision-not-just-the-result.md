@@ -1,3 +1,0 @@
-# Document the decision, not just the result
-
-A denial, a non-renewal, a deposit deduction, an emergency dispatch, a rent increase — record *why*, against *which written standard*, with the date. The contemporaneous record is both the audit trail and the defense: a result with no reason on file is indistinguishable from an arbitrary one, and arbitrariness is exactly what a fair-housing or wrongful-deduction claim feeds on. Write the reason at the moment of the decision, not reconstructed after a dispute — a reason authored after the complaint carries none of the weight of one dated to the decision. The standard makes the decision uniform; the record makes it defensible.

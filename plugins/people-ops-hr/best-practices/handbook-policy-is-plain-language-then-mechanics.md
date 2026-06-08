@@ -1,3 +1,0 @@
-# Handbook policy is plain language, then mechanics
-
-Author every handbook policy as: a plain-language statement of intent, the scope (who it applies to), the rule, the process to actually use it, and the edge cases — in that order. A policy a person can't understand isn't a policy, it's a liability; and a policy with no process for how to use it is a wish. Author the handbook as a consistent whole — a policy that contradicts an adjacent policy is worse than no policy. Where the entitlement or accrual mechanics are jurisdiction-specific (leave, overtime, final pay), flag them for counsel rather than stating them as settled fact.

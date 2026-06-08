@@ -1,3 +1,0 @@
-# "Translated" is not "correct"
-
-A perfectly translated string can still break the product: it overflows the button, wraps badly, sorts wrong, mis-parses the date as US format, or renders mojibake. "All strings translated" is not "localization done." QA the *running localized build* across every shipped locale — linguistic (in-context accuracy/terminology/tone), functional (date/number/sort/input per locale), layout (truncation/overflow from length expansion), and RTL/bidi — and back it with a regression suite so a refactor can't silently re-break the localized build while only English is watched.

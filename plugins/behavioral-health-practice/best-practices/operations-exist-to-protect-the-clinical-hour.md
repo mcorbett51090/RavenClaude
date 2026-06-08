@@ -1,3 +1,0 @@
-# Operations exist to protect the clinical hour
-
-Every operational change is justified by the clinician time and cognitive load it returns to care — fewer no-shows, smoother intake, less documentation toil, fewer billing call-backs — or it doesn't ship. Self-service the routine (standard scheduling, reminders, eligibility) and escalate the exception (crisis, complex auth, consent edge cases) to the right human, never into a buried queue. An operational metric (utilization, throughput) optimized while clinician burnout or clinical quality falls is a vanity win — pair every throughput change with its effect on the clinical hour.

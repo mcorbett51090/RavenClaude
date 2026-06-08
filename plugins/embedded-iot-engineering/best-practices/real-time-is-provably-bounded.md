@@ -1,3 +1,0 @@
-# Real-time means provably bounded, not "fast enough"
-
-A hard real-time deadline is met by analysis, not by hoping the happy path is quick. Establish the worst-case latency of the deadline path — worst-case ISR latency, interrupt priority assignment, no unbounded blocking, no dynamic allocation in the path — and state the bound you hold. "Fast enough" measured on the happy path fails the first time the bus stalls or a lower-priority interrupt lingers. The watchdog is the last line for the bug you didn't find, kicked from a health check that proves progress — never blindly from a timer — and it is not a substitute for the analysis.

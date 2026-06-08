@@ -1,3 +1,0 @@
-# Not clinical advice — route clinical calls to a licensed clinician
-
-This plugin supports practice operations and documentation only. It never diagnoses, recommends treatment, chooses a level of care on clinical grounds, makes a risk/safety judgment, or substitutes for a licensed clinician. Any output that brushes a clinical question stops, names the clinical decision, and routes it to a human — explicitly. Designing the intake *flow* is in scope; deciding whether a client is clinically appropriate or safe for that flow is not. When unsure whether something is operational or clinical, treat it as clinical and route it.

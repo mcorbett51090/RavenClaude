@@ -1,3 +1,0 @@
-# Measure the funnel, not the applicant count
-
-Applicant volume is a vanity metric — it tells you nothing about whether you can hire. Instrument the hiring funnel instead: stage conversion (applied -> screen -> onsite -> offer -> accept), time-in-stage, and source quality. The conversion and time-in-stage numbers tell you *where* candidates are lost — sourcing quality, screen rigor, candidate experience, or offer competitiveness — which is the only thing that lets you fix hiring. Pair every throughput number with a quality signal, and never add sourcing spend before you can say which stage is leaking.

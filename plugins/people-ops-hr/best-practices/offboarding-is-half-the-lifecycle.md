@@ -1,3 +1,0 @@
-# Offboarding is half the lifecycle
-
-The employee lifecycle is onboarding *and* offboarding, and offboarding is the half everyone forgets. An owned offboarding checklist covers access revocation, final pay handoff, equipment return, knowledge transfer, and the HRIS/data updates that keep the system of record clean after a departure. A missed access-revocation step is a security risk; a missed final-pay step is a compliance and trust risk. Treat offboarding as a first-class, owned, repeatable process — not an afterthought improvised the day someone leaves — and flag the final-pay timing and any separation-agreement points for counsel.

@@ -1,3 +1,0 @@
-# Route design intent to an RFI, not a field call
-
-When the field hits an ambiguity, a documents conflict, or a missing detail, the resolution is an RFI to the design team — not a superintendent's interpretation built into the work. Reinterpreting design intent in the field is how a defect gets locked under finishes and how the GC ends up owning a design decision it was never authorized to make. Stay on the field side of the seam: log the conflict, send the answerable RFI to `architecture-aec`, and hold the work at the affected location until the dated answer comes back. The field executes a design that exists; it does not author one.

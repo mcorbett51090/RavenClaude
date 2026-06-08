@@ -1,3 +1,0 @@
-# The RIA fiduciary duty and Reg BI are different standards — never conflate them
-
-A Registered Investment Adviser owes a fiduciary duty under the Investment Advisers Act — a duty of care and loyalty, the client's interest first, conflicts disclosed and managed. Reg BI is a *different* standard governing broker-dealer recommendations (a best-interest obligation). "Best interest" does not mean the same thing in both, and which applies depends on the firm's registration. Name the standard explicitly, disclose and manage conflicts rather than claiming none exist, and route the firm-specific determination to compliance counsel.

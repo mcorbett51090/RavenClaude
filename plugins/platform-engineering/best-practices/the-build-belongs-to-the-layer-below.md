@@ -1,3 +1,0 @@
-# The build belongs to the layer below
-
-This plugin designs the platform, the portal, the path, and the guardrail — it does not wire a specific pipeline, run a specific cluster, or author a raw Terraform module. Specify the contract (what the paved-road CI must include, what the provisioning primitive must expose, what SLO the surface needs) and hand the build to `devops-cicd` / `cloud-native-kubernetes` / `terraform-iac` / `observability-sre`. Blurring the seam makes the platform team a bottleneck that owns everything and a product owner of nothing; keep the handoff explicit so each layer owns its slice.

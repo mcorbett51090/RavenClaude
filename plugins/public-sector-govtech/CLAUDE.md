@@ -63,3 +63,7 @@ This plugin bundles no MCP server — per [`docs/best-practices/bundled-mcp-serv
 ## 7. Milestones
 
 - **v0.1.0** — initial build: 4 agents, 3 skills, 3 commands, 2 templates, a decision-tree knowledge bank + dated 2026 capability map, 6 best-practices, and 1 advisory hook. Created 2026-06-08.
+
+## 8. Runnable calculator (added v0.1.1)
+
+[`scripts/grants_calc.py`](scripts/grants_calc.py) — stdlib-only, ruff-clean. Subcommands: `indirect` (indirect cost from MTDC base × rate with excluded items), `match` (required cost-share / shortfall, `--of-federal` gross-up), `budget` (category roll-up + % of total + personnel FTE × salary × effort). A calculator over user-supplied inputs, not a data source. _Cherry-picked from a parallel grants build during the 2026-06-08 marketplace reconciliation._

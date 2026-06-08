@@ -1,3 +1,0 @@
-# Asset allocation dominates security selection
-
-The diversification decision — how the portfolio is split across equities, fixed income, cash, and other classes — is the big lever on long-run risk and return. Chasing the next winning fund or stock is not. Set the target allocation (and its ranges) to the client's risk capacity, horizon, and goals first; treat fund/security choice as implementation of that policy, not the policy itself. A portfolio that's a basket of "best ideas" with no allocation framework is selection masquerading as a plan. The allocation belongs in the IPS where it can be checked; the security list is downstream of it.

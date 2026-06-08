@@ -1,3 +1,0 @@
-# Distribution is half the work, not an afterthought
-
-A great asset nobody sees is a sunk cost — publish-and-forget wastes the expensive half of the work. Plan the reach *before* you brief the piece: which channels carry it (internal links from the cluster, social atomization, an email send, syndication), how one asset becomes ten (a pillar atomized into threads, a newsletter, a short video, a slide), and the inbox/feed placement that gets it in front of the job-holder. Distribution is designed up front, not bolted on after; an asset's distribution plan is part of its brief, and a piece with no reach plan isn't ready to ship.

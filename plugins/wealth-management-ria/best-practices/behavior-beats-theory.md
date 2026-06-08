@@ -1,3 +1,0 @@
-# Behavior beats theory — the plan the client can actually hold
-
-The right plan and portfolio is the one the client can stay in through a drawdown, not the one that optimizes on a spreadsheet. An "optimal" allocation the client bails out of at the bottom is a bad allocation: the realized return is the one they captured, not the one the model assumed. Size risk to capacity *and* tolerance, pre-agree the drawdown behavior (the guardrail rule, the cash buffer, the rebalancing band) while the client is calm, and write it down so the in-the-moment panic has a policy to point to. Behavioral durability is a design constraint, not an afterthought.

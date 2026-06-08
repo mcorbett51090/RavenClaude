@@ -1,3 +1,0 @@
-# Verify eligibility before the first session
-
-Active coverage and the behavioral-health benefit are confirmed *before* a client is scheduled into care — not discovered when the first claim denies. Capture the plan, the behavioral benefit, the copay / coinsurance / deductible status, any session limit, and whether the service needs prior auth, at intake. Coverage is not a one-time check: re-verify at the start of each benefit year and whenever the client reports a plan change. An unverified benefit scheduled into the calendar is an unbilled session and an awkward client conversation waiting to happen — verify first, schedule second. Quote any plan specifics as `[verify-at-build]` against the payer's current policy.

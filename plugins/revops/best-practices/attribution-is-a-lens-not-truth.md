@@ -1,3 +1,0 @@
-# Attribution is a chosen lens, never ground truth
-
-First-touch, last-touch, linear, W-shaped, and data-driven attribution each answer a different question and each lies in a known way — so name the model, name what it under- and over-credits, and never let one model silently drive budget. Last-touch quietly defunds everything that creates demand; first-touch ignores closing influence; data-driven is a black box that needs volume and clean data. If a single model must drive a budget decision, state explicitly what it's blind to; better, triangulate across models and treat divergence as a signal rather than picking one and calling it truth.

@@ -1,3 +1,0 @@
-# Compliance starts at the proposal, not the award
-
-Allowability, the indirect-cost rate, match/cost-share, the sub-recipient-vs-contractor structure, and the period-of-performance fit are decided when the budget is *built* — not retrofitted after the Notice of Award. A budget assembled without the 2 CFR 200 cost test baked in carries unallowable lines into the award, and unwinding them at audit time is how findings are born. Bring the compliance analyst into the budget stage: every line should already pass allowable/allocable/reasonable, the indirect rate should be the negotiated or de-minimis rate (cited, not assumed), and the match should be sourced and documented before submission, not scrambled for each quarter once the money is spent.

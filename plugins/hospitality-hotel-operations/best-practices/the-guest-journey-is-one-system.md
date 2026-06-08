@@ -1,3 +1,0 @@
-# The guest journey is one system, not a sequence of departments
-
-Booking, arrival, the stay, departure, and the post-stay loop are owned end-to-end, not as siloed handoffs between reservations, front desk, housekeeping, and marketing. A defect in one stage — a slow check-in, a room not ready, an unactioned maintenance ticket — surfaces two stages later as a review and a lost repeat stay, and no single department sees the whole failure. Map the journey as one flow, assign an owner to each seam between stages, and measure the stage-to-stage handoffs (room-status → front desk, complaint → recovery, stay → post-stay survey) as first-class defects, not as someone else's problem.

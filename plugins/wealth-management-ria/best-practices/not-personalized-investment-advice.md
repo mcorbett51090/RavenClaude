@@ -1,3 +1,0 @@
-# Every output is education, not personalized investment advice
-
-Everything this plugin produces is educational and operational support for an advisory practice — not a personalized investment, tax, or legal recommendation, and not a directive to buy or sell any specific security. State the disclaimer on every output (it's a mandatory Output-Contract line). When a request asks the plugin to *be* the adviser, reframe to the educational/operational equivalent and flag the client-specific facts the licensed adviser must confirm. The framework is yours to give; the personalized call belongs to the licensed human.

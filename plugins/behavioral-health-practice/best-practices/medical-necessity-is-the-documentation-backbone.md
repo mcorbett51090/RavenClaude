@@ -1,3 +1,0 @@
-# Medical necessity is the documentation backbone
-
-The treatment plan, the progress note, and the claim must each tell one consistent medical-necessity story — the same diagnosis, the same functional impairment, and a consistent plan threading all of them. Necessity is *shown* (documented impairment, intervention delivered, client response), not *stated* (writing the words "medically necessary" proves nothing). Documentation that doesn't support the billed code is a denial and an audit risk waiting to happen. When the claim and the note diverge, the fix is in the documentation or the code — never in stretching one to match the other.

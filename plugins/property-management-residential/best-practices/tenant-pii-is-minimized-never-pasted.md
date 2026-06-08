@@ -1,3 +1,0 @@
-# Tenant PII is minimized and never pasted into an output
-
-SSNs, screening and background reports, bank and pay data, and government IDs are sensitive personal data — they are collected only when a documented criterion needs them, retained no longer than the standard requires, and never pasted into a report, a work-order ticket, an owner statement, or a chat message. A balance or an aging bucket belongs in a rent roll; the screening report behind a denial does not. Reference the *decision and the criterion it rested on*, not the underlying PII. Handle every tenant-data question under the `ravenclaude-core/security-reviewer` data-handling guidance, and treat a screening provider's report as the regulated record it is.
