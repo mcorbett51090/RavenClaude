@@ -194,7 +194,8 @@ def _write_decision(action: str, file_path, slug, reason) -> None:
 def main() -> int:
     body = os.environ.get("ISSUE_BODY", "")
     issue_number = os.environ.get("ISSUE_NUMBER", "").strip()
-    issue_title = os.environ.get("ISSUE_TITLE", "")
+    # The scenario title is a typed field inside the form body (parsed below); the
+    # GitHub-issue title is redundant, so ISSUE_TITLE is intentionally not read here.
 
     if not issue_number.isdigit():
         print("process-scenario-submission: ISSUE_NUMBER missing or non-numeric", file=sys.stderr)
