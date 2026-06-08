@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for finops-cloud-cost. Auto-merged with the consumer's session hooks on install. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-finops-cloud-cost-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags FinOps anti-patterns (untagged resources, on-demand with no commitment note, hard-coded cost figures without a date, RI/SP purchase without break-even analysis). Set FINOPS_CLOUD_COST_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}

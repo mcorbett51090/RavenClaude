@@ -1,0 +1,32 @@
+{
+  "name": "finops-cloud-cost",
+  "version": "0.1.0",
+  "description": "FinOps & cloud-cost-engineering team — 4 agents (finops-practice-lead, cost-optimization-engineer, cost-allocation-engineer, ai-cost-governance-engineer) for cross-cloud cost governance. Covers the FinOps Framework (inform/optimize/operate), maturity crawl/walk/run, unit economics, showback/chargeback, tagging, FOCUS spec, rightsizing, commitment management (RIs/Savings Plans/CUDs), anomaly detection, and AI/GenAI token-cost governance. 3 skills, 3 commands, 2 templates, Mermaid decision-tree knowledge bank, 6 best-practices, 1 advisory hook, and finops_calc.py. Cross-cloud cost is its domain; provider-specific infra defers to aws/azure/gcp-cloud; token app cost seams to claude-app-engineering. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "finops",
+    "cloud-cost",
+    "cost-optimization",
+    "cost-allocation",
+    "showback",
+    "chargeback",
+    "unit-economics",
+    "rightsizing",
+    "reserved-instances",
+    "savings-plans",
+    "committed-use-discounts",
+    "tagging",
+    "focus-spec",
+    "cost-anomaly-detection",
+    "ai-cost-governance",
+    "token-cost",
+    "multi-cloud"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

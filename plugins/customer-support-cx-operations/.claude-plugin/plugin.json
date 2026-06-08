@@ -1,0 +1,27 @@
+{
+  "name": "customer-support-cx-operations",
+  "version": "0.1.0",
+  "description": "Customer-support and contact-center CX operations specialist team — 4 agents covering deflection and self-service strategy, support quality and CSAT/CES/NPS programs, knowledge base as product, and workforce/queue design (Erlang C staffing, SLA/abandonment, demand forecasting). Ships 3 skills (deflection-and-knowledge-strategy, support-quality-and-csat, workforce-and-queue-design), 3 commands, 2 templates, 6 best-practices, 1 advisory anti-pattern hook, and a stdlib calculator (Erlang C, deflection ROI, CSAT/CES, FTE shrinkage). Distinct from data-platform (ticket normalization), customer-success-analytics (account health), and claude-app-engineering (AI-agent build). Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "customer-support",
+    "contact-center",
+    "cx-operations",
+    "csat",
+    "ces",
+    "nps",
+    "deflection",
+    "knowledge-base",
+    "erlang-c",
+    "workforce-management",
+    "sla",
+    "qa-scorecard"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

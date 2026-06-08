@@ -1,0 +1,27 @@
+{
+  "name": "search-relevance-engineering",
+  "version": "0.1.0",
+  "description": "Search & retrieval engineering specialists — 4 agents (search-architect, relevance-engineer, vector-retrieval-engineer, search-eval-engineer) and 3 skills (lexical-vector-hybrid-retrieval, relevance-tuning, retrieval-evaluation) covering Elasticsearch/OpenSearch, vector and hybrid (BM25 + dense) search, embeddings, chunking, reranking, relevance tuning and evaluation (nDCG/MRR), and the RAG retrieval tier. Fills the gap that claude-app-engineering only touches at the app surface. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "search",
+    "elasticsearch",
+    "opensearch",
+    "vector-search",
+    "hybrid-search",
+    "embeddings",
+    "reranking",
+    "rag-retrieval",
+    "relevance-engineering",
+    "bm25",
+    "nDCG",
+    "information-retrieval"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

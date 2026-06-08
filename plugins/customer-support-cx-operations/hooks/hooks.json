@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for customer-support-cx-operations. Auto-merged with the consumer's session hooks on install. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-customer-support-cx-operations-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags CX operations anti-patterns (SLA without staffing basis, CSAT/CES conflation, macro PII or wall language, AI deflection with no handoff). Set CX_OPS_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}
