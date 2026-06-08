@@ -745,6 +745,18 @@ Proven by **Gate 80** (`hooks/tests/test-gate80-status-launcher-check.sh`) — 4
 
 **Migration:** none — consumers see the new launcher line on the next `ravenclaude status` invocation; the existing check rows are unchanged. The `--fix` is opt-in.
 
+## Reactive run-state monitor — the push complement to Heimdall/Víðarr (added 2026-06-08, v0.132.0, FORGE #7)
+
+A **new plugin component type — `monitors/`** — ships its first member: a reactive run-state watcher that streams guardrail/run-state signals to Claude Code as **native notifications**. Heimdall / Víðarr / Norns are **pull** surfaces (you open a tab and read what already happened); this is the **push** complement — the agent reacts to a deny/warn *as it lands* during a multi-agent run, without being asked to go look.
+
+- **Component:** [`monitors/monitors.json`](monitors/monitors.json) (a JSON array per the Claude Code monitors schema) declared via `experimental.monitors: "./monitors.json"` in `plugin.json` (the forward-compatible declaration the docs recommend; the bare top-level `monitors` key still works but `claude plugin validate` warns and a future release requires `experimental.*`). The single entry `run-state-monitor` runs [`monitors/watch-run-state.sh`](monitors/watch-run-state.sh).
+- **`when: on-skill-invoke:spawn-team` — NOT `when: always`.** The watcher starts only the first time `spawn-team` is dispatched (the multi-agent runs where guardrails matter most) and stays up for the session. This is the **cost bound** — ordinary single-agent sessions never start it.
+- **Read-only + derived-labels-only (the injection-safety invariant).** The watcher tails the newest `.ravenclaude/runs/*/hook-events.jsonl` and, for each new line, emits ONE notification line built only from the whitelisted fields `verdict`/`hook`/`tool`/`rule` (e.g. `⚠ guard-destructive.sh denied Bash (rule: destructive-pattern)`). It **never** echoes the `path` field (raw path/command), timestamp, or session id — every monitor stdout line becomes a Claude notification, so the emit surface is an injection surface; the fixed derived-label vocabulary is the defense, mirroring the capability-banner rule. Each field is CR/LF-stripped so one event is always one line.
+- **Fail-safe (the `tail -F` empty-glob fragility, handled).** No `runs/` dir / no jsonl yet / the log rotates → the watcher idle-polls and re-resolves the newest concrete log; it deliberately does NOT `tail -F <glob>` (a bare glob matching nothing makes `tail -F` exit, and the host would crash-loop restarting it). Bounded poll, no busy-spin, no restart storm.
+- **Claude-Code-only.** Plugin monitors are a Claude Code component (v2.1.105+); Copilot CLI has no equivalent, so the component simply does not load under Copilot — the read-only Heimdall/Víðarr tabs remain the pull surface there. Full reference: [`knowledge/run-state-monitor.md`](knowledge/run-state-monitor.md).
+
+This **supersedes** the "Monitors / background jobs — N-A" row of the Value-add completeness table below: that disposition was about *pull* observability (already covered by the readers); this is the *push* complement a dashboard tab structurally can't provide, kept safe and cheap by the `on-skill-invoke` scoping and the read-only / derived-labels-only invariants. **Migration:** none — a new opt-in component scoped to `spawn-team` and Claude-Code-only; nothing changes on `/plugin marketplace update` until a multi-agent run starts under Claude Code.
+
 ## Layout (plugin internal directories)
 
 `ravenclaude-core` uses the standard component directories:
@@ -757,6 +769,7 @@ Proven by **Gate 80** (`hooks/tests/test-gate80-status-launcher-check.sh`) — 4
 - `templates/` — memos, runbooks, design specs, RAID logs, partner-success, `agent-ready-repo/` templates used by `/init-agent-ready`, plus `thing.yaml` (command-review seat config)
 - `commands/` — slash commands shipped to consumers: `/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard` (launches the bundled `serve-dashboards.py` so the consumer gets the fully-functioning comfort-posture dashboard with one-click Save & apply), and `/reset-plugin-cache` (alias `/ragnarok`) — the high-blast-radius plugin-cache disaster-recovery command (see the callout below)
 - `knowledge/` — reference material the Researcher cross-checks (incl. `concerns-catalog.md`, the tribunal constitution)
+- `monitors/` — reactive run-state monitor (`monitors.json` + `watch-run-state.sh`); declared via `experimental.monitors` in `plugin.json`. The push complement to the read-only Heimdall/Víðarr tabs — see the milestone above and [`knowledge/run-state-monitor.md`](knowledge/run-state-monitor.md). Claude-Code-only; scoped `on-skill-invoke:spawn-team`.
 
 ### Command review (the Thing) — tribunal T5 (updated 2026-05-26, v0.28.0)
 
@@ -869,7 +882,7 @@ These changes make RavenClaude agents even more reliable at creating high-qualit
 | Bundled MCP server | **N-A** | A domain-neutral orchestration layer has no code-aware data surface to bundle; MCP belongs to vertical plugins (and per `docs/best-practices/bundled-mcp-servers.md` would be recommend-and-evaluate, never bundled). The github MCP path is consumed, not shipped. |
 | LSP integration | **N-A** | No source language owned by an orchestration foundation. |
 | `bin/` executables | **N-A** | The plugin already ships `scripts/` (apply-comfort-posture, serve-dashboards, the tribunal engines); no compiled binary is warranted. |
-| Monitors / background jobs | **N-A** | The hook substrate (Heimdall/Víðarr/Norns readers, `hook-events.jsonl`) already covers observability; no long-running watcher to add. |
+| Monitors / background jobs | **SUPERSEDED → BUILT (v0.132.0, FORGE #7)** | The original N-A call was about *pull* observability (the readers cover it). v0.132.0 adds the *push* complement a dashboard tab can't provide: a reactive run-state monitor (`monitors/`) scoped `on-skill-invoke:spawn-team`, read-only, derived-labels-only, Claude-Code-only. See the "Reactive run-state monitor" milestone above. |
 | output-styles / themes | **N-A** | Output shape is governed by the Structured Output Protocol + the dashboard's themed SVGs; no per-style asset is warranted here. |
 | `settings.json` / permissions tuning | **ALREADY-PRESENT** | The comfort-posture system + `apply-comfort-posture.py` *is* the permission-tuning surface; nothing to add. |
 | Runnable calculator script | **N-A (deliberately not added)** | A calculator doesn't fit a domain-neutral foundation. The plugin's `scripts/` are orchestration engines, not arithmetic helpers — adding a calculator would be noise. |
