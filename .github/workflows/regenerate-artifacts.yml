@@ -117,17 +117,27 @@ jobs:
           #    (no browser), so it is cheap; only when it reports STALE do we render,
           #    which DOES need mermaid-cli + Chromium (fetched on demand by npx via
           #    the render scripts). Staleness-gating means a merge that touched no
-          #    diagram never loads mermaid at all. A render failure aborts the job
-          #    loudly (set -e) rather than committing half-rendered SVGs.
+          #    diagram never loads mermaid at all.
+          #
+          #    A render failure is NON-FATAL (fixed 2026-06-08): one malformed diagram
+          #    (or a flaky Chromium evaluate) must NOT abort the whole self-heal. That
+          #    exact bug left main UN-HEALED across many merges — the job died here on
+          #    a render-trees mermaid error before it ever reached the commit below, so
+          #    concepts.json / report.html / dashboard / counts silently drifted and
+          #    every open PR failed its freshness gate. On a render failure we keep the
+          #    committed SVGs, emit a ::warning::, and CONTINUE the self-heal; a stale
+          #    diagram surfaces as a warning instead of blocking everything else.
           if ! python3 scripts/render-concepts.py --check >/dev/null 2>&1; then
             echo "concept SVGs stale — rendering with mermaid-cli."
-            python3 scripts/render-concepts.py
-            python3 scripts/render-concepts.py --check
+            if ! python3 scripts/render-concepts.py; then
+              echo "::warning::concept SVG render failed (mermaid) — keeping committed SVGs, continuing self-heal"
+            fi
           fi
           if ! python3 scripts/render-trees.py --check >/dev/null 2>&1; then
             echo "decision-tree SVGs stale — rendering with mermaid-cli."
-            python3 scripts/render-trees.py
-            python3 scripts/render-trees.py --check
+            if ! python3 scripts/render-trees.py; then
+              echo "::warning::decision-tree SVG render failed (mermaid) — keeping committed SVGs, continuing self-heal"
+            fi
           fi
 
           # 3. dashboard.html — inlines the (now fresh) committed SVGs; pure Python,
