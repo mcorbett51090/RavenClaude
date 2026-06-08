@@ -35,7 +35,7 @@ export const meta = {
 // Tier → Claude model mapping (verified 2026-05-31, [verify-at-use] before Phase 6):
 //   fast     → claude-haiku-4-5-20251001   (no extended thinking — RM6)
 //   balanced → claude-sonnet-4-6           (adaptive thinking available)
-//   top      → claude-opus-4-7             (escalate sparingly)
+//   top      → claude-opus-4-8             (escalate sparingly)
 //
 // cache_control: {type:"ephemeral", ttl:"1h"} ONLY on verify phases. The 36-min
 // baseline run vastly exceeds the 5-min default TTL; eat the 2× write penalty once
@@ -46,7 +46,7 @@ export const meta = {
 const TIER_MODEL = {
   fast: "claude-haiku-4-5-20251001",
   balanced: "claude-sonnet-4-6",
-  top: "claude-opus-4-7",
+  top: "claude-opus-4-8",
 };
 
 // Tiers that support extended/adaptive thinking (Haiku 4.5 does not — RM6).
@@ -101,7 +101,7 @@ function adapterOpts(phaseName, runCfg) {
 const DISPATCH_TIER_MODEL = {
   fast: "claude-haiku-4-5-20251001",
   balanced: "claude-sonnet-4-6",
-  top: "claude-opus-4-7",
+  top: "claude-opus-4-8",
 };
 
 // ─── Audit log path template ──────────────────────────────────────────────────
