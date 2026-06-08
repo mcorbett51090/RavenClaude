@@ -24,7 +24,7 @@
 const TIER_MODEL = {
   fast: "claude-haiku-4-5-20251001",
   balanced: "claude-sonnet-4-6",
-  top: "claude-opus-4-7",
+  top: "claude-opus-4-8",
 };
 
 // ─── Audit log path template ──────────────────────────────────────────────────

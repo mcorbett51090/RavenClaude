@@ -3,6 +3,10 @@ name: prompt-engineer
 description: Use this agent to author, critique, refine, or refactor agent definitions, skill files, and prompt patterns across RavenClaude and any Expert repo (PowerPlatformExpert, SalesforceExpert, etc.). Spawn when adding a new agent or skill, when an existing prompt produces inconsistent results, when reusable patterns need to be factored into a shared skill, when naming/voice/structure has drifted across repos, or when Anthropic ships new guidance worth absorbing. Owns the meta-layer of the AI library. Do NOT use for general research (deep-researcher), stakeholder prose (documentarian), or the PSM's team-shared workflow library (that's PSM-owned).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
+maxTurns: 60
+effort: high
+# memory MUST stay GENERIC / domain-neutral: prompt/agent-authoring patterns only; NO domain facts, vendor claims, or consumer-engagement specifics (house rule: ravenclaude-core stays domain-neutral).
+memory: project
 audience: [dev, consultant]
 works_with: [architect, code-reviewer, deep-researcher]
 scenarios:

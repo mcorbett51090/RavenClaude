@@ -481,7 +481,7 @@ else
                    --argjson cf "${SCONF[$role]}" --argjson ci "${SCITED[$role]}" --arg rs "${SREASON[$role]}" \
                    '{seat:$r,verdict:$v,confidence:$cf,concerns_cited:$ci,reasoning:$rs}'
                done | jq -cs '.')"
-      thor_model="$(printf '%s' "$decision" | jq -r '.panel.thor.model // "claude-opus-4-7"')"
+      thor_model="$(printf '%s' "$decision" | jq -r '.panel.thor.model // "claude-opus-4-8"')"
       seats_run+=("thor")
       run_seat "thor" "$thor_model" "$tmp" "$peers"
       parse_seat "thor" "$tmp"

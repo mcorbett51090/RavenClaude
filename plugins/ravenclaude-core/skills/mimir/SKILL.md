@@ -20,7 +20,7 @@ Empirically probed against `~/.claude` on this host (2026-06-03). Per-source: wh
 | Source                                          | Reachable                                                                                                                                                                                                                                                                       | Not reachable                                                              | Drives                                  |
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | --------------------------------------- |
 | `~/.claude/settings.json`                       | `theme`, `permissions`, `enabledPlugins`, `extraKnownMarketplaces`, `skipWorkflowUsageWarning`, `skipAutoPermissionPrompt`                                                                                                                                                      | **No `model` key. No `effort` key.** Plan tier (Pro/Max/Team).             | Settings card (theme).                  |
-| `<project>/.claude/settings.json`               | `"model": "claude-opus-4-7"` (the configured-model surface), `permissions`, `hooks`                                                                                                                                                                                             | Reasoning effort (in-process).                                             | Settings card (configured model).       |
+| `<project>/.claude/settings.json`               | `"model": "claude-opus-4-8"` (the configured-model surface), `permissions`, `hooks`                                                                                                                                                                                             | Reasoning effort (in-process).                                             | Settings card (configured model).       |
 | `~/.claude/projects/<encoded>/*.jsonl`          | Event stream. Per event: `sessionId`, `cwd`, `gitBranch`, `version`, `timestamp`. Types: `permission-mode`, `user`, `assistant`, `file-history-snapshot`, `ai-title`, `attachment`, `last-prompt`, `queue-operation`, `system`, `pr-link`                                       | **`type=user` event content (HARD DENY — see scrubbing).** `ai-title` content (rejected — titles can echo prompts). | Recent project sessions card; last-used model (newest `type=assistant`'s `model`). |
 | `~/.claude/stats-cache.json`                    | `version`, `lastComputedDate`, `dailyActivity[]` (`{date, messageCount, sessionCount, toolCallCount}`), `dailyModelTokens`, `modelUsage` per model (`{inputTokens, outputTokens, cacheReadInputTokens, cacheCreationInputTokens, webSearchRequests, costUSD, contextWindow}`), `totalSessions`, `totalMessages`, `longestSession`, `firstSessionDate`, `hourCounts`, `totalSpeculationTimeSavedMs` | Live current-turn counts. `costUSD: 0` on subscription (tier not stored).  | Activity-summary card.                  |
 | `~/.claude/sessions/<pid>.json`                 | `{pid, sessionId, cwd, startedAt, version, kind, entrypoint, status, updatedAt}`                                                                                                                                                                                                | In-process `/status` cache. `/effort` dial.                                | Current-session card (match by `cwd == project_root` AND `status == "busy"`). |
@@ -29,7 +29,7 @@ Empirically probed against `~/.claude` on this host (2026-06-03). Per-source: wh
 
 ```json
 {"type":"permission-mode","permissionMode":"default","sessionId":"...","cwd":"...","gitBranch":"...","timestamp":"..."}
-{"type":"assistant","model":"claude-opus-4-7","usage":{"input_tokens":1234,"cache_read_input_tokens":5678,"output_tokens":42,"service_tier":"standard","speed":"standard"},"sessionId":"...","timestamp":"..."}
+{"type":"assistant","model":"claude-opus-4-8","usage":{"input_tokens":1234,"cache_read_input_tokens":5678,"output_tokens":42,"service_tier":"standard","speed":"standard"},"sessionId":"...","timestamp":"..."}
 ```
 
 **stats-cache.json shape excerpt:**
@@ -41,7 +41,7 @@ Empirically probed against `~/.claude` on this host (2026-06-03). Per-source: wh
   "totalSessions": 1234,
   "totalMessages": 56789,
   "dailyActivity": [{"date":"2026-06-02","messageCount":123,"sessionCount":4,"toolCallCount":456}],
-  "modelUsage": {"claude-opus-4-7": {"inputTokens":..., "outputTokens":..., "cacheReadInputTokens":..., "costUSD":0}}
+  "modelUsage": {"claude-opus-4-8": {"inputTokens":..., "outputTokens":..., "cacheReadInputTokens":..., "costUSD":0}}
 }
 ```
 

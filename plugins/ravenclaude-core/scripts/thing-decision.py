@@ -674,14 +674,14 @@ def thing_enabled_for(posture: dict, category: str | None) -> bool:
 # agents — House Rule). Heterogeneous backbones break seat correlation: spend
 # the budget on the security + tie-break seats, run the fast seats on Haiku.
 _DEFAULT_PANEL = {
-    "forseti": {"agent": "security-reviewer", "model": "claude-opus-4-7"},
+    "forseti": {"agent": "security-reviewer", "model": "claude-opus-4-8"},
     "mimir": {"agent": "code-reviewer", "model": "claude-haiku-4-5"},
     # Heimdall is the injection seat — the assessment (must-fix #4) flagged that
     # running the adversarial-content reviewer on the weakest model is exactly
     # where you don't want to economize. Bumped to Sonnet (Mímir, the correctness
     # seat, stays on the fast/cheap Haiku).
     "heimdall": {"agent": "prompt-engineer", "model": "claude-sonnet-4-6"},
-    "thor": {"agent": "architect", "model": "claude-opus-4-7"},
+    "thor": {"agent": "architect", "model": "claude-opus-4-8"},
 }
 _DEFAULT_CONFIDENCE_THRESHOLD = 0.5
 _DEFAULT_SEAT_TIMEOUT = 45  # per-seat soft cap (s); parallel `claude -p` cold-starts
@@ -951,7 +951,7 @@ def resolve_tier_config(root: Path, posture: dict | None) -> tuple[dict, str | N
 # least two DISTINCT model backbones must run, so a single model's blind spot can't
 # pass the whole panel unseen. If a config collapsed the convened seats onto one
 # model, reassign one seat to a different (preferring equal-or-stronger) model.
-_DIVERSITY_PREF = ["claude-sonnet-4-6", "claude-opus-4-7", "claude-haiku-4-5"]
+_DIVERSITY_PREF = ["claude-sonnet-4-6", "claude-opus-4-8", "claude-haiku-4-5"]
 
 
 def _enforce_model_diversity(panel: dict, convened: list[str]) -> tuple[dict, bool]:
