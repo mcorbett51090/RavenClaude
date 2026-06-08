@@ -1488,6 +1488,86 @@
         "territory",
         "capacity-planning"
       ]
+    },
+    {
+      "name": "accounting-bookkeeping",
+      "source": "./plugins/accounting-bookkeeping",
+      "description": "Accounting & Bookkeeping Practice specialist team — 4 agents (accounting-practice-lead, close-cycle-analyst, ap-ar-cashflow-specialist, reconciliation-controls-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A practice-ops team for a bookkeeping/accounting practice owner or controller accountable for a timely, clean close — it closes on a cadence and tracks days-to-close, reconciles before reporting, reads AR/AP as working-capital levers, and enforces segregation of duties. Tax and audit opinions route to a licensed CPA. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "accounting",
+        "bookkeeping",
+        "month-end-close",
+        "reconciliation",
+        "accounts-payable",
+        "accounts-receivable",
+        "cash-conversion-cycle",
+        "internal-controls",
+        "chart-of-accounts"
+      ]
+    },
+    {
+      "name": "customer-support-cx-operations",
+      "source": "./plugins/customer-support-cx-operations",
+      "description": "Customer Support & CX Operations specialist team — 4 agents (support-ops-lead, ticket-deflection-analyst, queue-staffing-specialist, csat-quality-strategist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A support-ops team for a head of support, CX manager, or founder accountable for cost-to-serve and SLA attainment — it deflects before hiring, staffs to forecast and occupancy, reads CSAT segmented, and treats backlog as arrivals-against-capacity flow. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "customer-support",
+        "cx-operations",
+        "deflection",
+        "staffing",
+        "occupancy",
+        "sla-backlog",
+        "csat",
+        "first-contact-resolution",
+        "queue-management"
+      ]
+    },
+    {
+      "name": "marketing-operations",
+      "source": "./plugins/marketing-operations",
+      "description": "Marketing Operations specialist team — 4 agents (marketing-ops-lead, demand-gen-funnel-analyst, attribution-analytics-specialist, martech-campaign-architect), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A marketing-ops team for a CMO, demand-gen analyst, or founder accountable for pipeline contribution and CAC efficiency — it reads the MQL→SQL→opp→win funnel as a system, states the attribution model before any number, gates spend on LTV:CAC and payback, and reports revenue contribution over lead volume. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "marketing-operations",
+        "demand-generation",
+        "funnel",
+        "attribution",
+        "cac-ltv",
+        "lead-scoring",
+        "channel-mix",
+        "martech",
+        "pipeline-contribution"
+      ]
+    },
+    {
+      "name": "wealth-management-ria",
+      "source": "./plugins/wealth-management-ria",
+      "description": "Wealth Management (RIA Practice) specialist team — 4 agents (ria-practice-lead, aum-revenue-analyst, client-segmentation-specialist, compliance-cadence-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A practice-ops team for an RIA principal, COO, or ops lead accountable for organic growth and advisor capacity — it separates net-new flows from market appreciation, segments clients by profitability, sizes capacity by households, and treats the compliance cadence as non-negotiable. NOT investment advice; fiduciary/SEC determinations route to compliance counsel. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "wealth-management",
+        "ria",
+        "aum",
+        "net-new-flows",
+        "organic-growth",
+        "client-segmentation",
+        "advisor-capacity",
+        "client-retention",
+        "compliance-cadence"
+      ]
     }
   ]
 }

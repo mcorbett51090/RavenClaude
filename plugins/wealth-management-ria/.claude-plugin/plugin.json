@@ -1,0 +1,24 @@
+{
+  "name": "wealth-management-ria",
+  "version": "0.1.0",
+  "description": "Wealth Management (RIA Practice) specialist team — 4 agents (ria-practice-lead, aum-revenue-analyst, client-segmentation-specialist, compliance-cadence-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A practice-ops team for an RIA principal, COO, or ops lead accountable for organic growth and advisor capacity — it separates net-new flows from market appreciation, segments clients by profitability, sizes capacity by households, and treats the compliance cadence as non-negotiable. NOT investment advice; fiduciary/SEC determinations route to compliance counsel. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "wealth-management",
+    "ria",
+    "aum",
+    "net-new-flows",
+    "organic-growth",
+    "client-segmentation",
+    "advisor-capacity",
+    "client-retention",
+    "compliance-cadence"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

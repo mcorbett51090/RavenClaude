@@ -1,0 +1,24 @@
+{
+  "name": "marketing-operations",
+  "version": "0.1.0",
+  "description": "Marketing Operations specialist team — 4 agents (marketing-ops-lead, demand-gen-funnel-analyst, attribution-analytics-specialist, martech-campaign-architect), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A marketing-ops team for a CMO, demand-gen analyst, or founder accountable for pipeline contribution and CAC efficiency — it reads the MQL→SQL→opp→win funnel as a system, states the attribution model before any number, gates spend on LTV:CAC and payback, and reports revenue contribution over lead volume. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "marketing-operations",
+    "demand-generation",
+    "funnel",
+    "attribution",
+    "cac-ltv",
+    "lead-scoring",
+    "channel-mix",
+    "martech",
+    "pipeline-contribution"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
