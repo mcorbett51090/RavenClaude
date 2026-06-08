@@ -871,6 +871,19 @@ See `plugins/ravenclaude-core/rules/` and `hooks/` for current implementations. 
 
 These changes make RavenClaude agents even more reliable at creating high-quality, consistent, inspectable results while preserving the elegant multi-agent team structure.
 
+## Learn tab — every mechanism documented + collapse-by-default (added 2026-06-08, v0.136.0)
+
+The Learn tab now teaches **all of RavenClaude's own mechanisms**, not just a sampler: **25 new `ravenclaude-built` concept cards** join the existing set (**48 concepts total across 10 categories**, up from 23/6), each grounded in its CLAUDE.md milestone + source file, with a pre-rendered full + mini Mermaid diagram. The four new categories:
+
+- **Guardrails** — `runaway-brake`, `dod-gate`, `task-scope-gate`, `web-access-guardrail`, `containment-posture` (the depth/correctness/breadth/network/OS bounds the tribunal can't provide).
+- **Observability** — `event-substrate`, `heimdall`, `vidarr`, `norns`, `nidhoggr`, `mimir`, `run-state-monitor` (the JSONL substrate + the Norse pull-readers + the push monitor).
+- **Agent disciplines** — `capability-grounding-protocol`, `structured-output-protocol`, `last-mile-completion`, `claim-grounding` (the epistemic + handoff protocols every agent inherits).
+- **Planning & contribution** — `forge`, `wrap-and-scenarios`, `feedback-report`, `run-context-bundle`, `external-contribution-intake` (+ `bifrost`, `ragnarok`, `sleipnir`, `brand-extraction` under Marketplace engineering).
+
+**Collapse-by-default UI.** `_render_learn_tab` renders each **category** as a closed `<details>` (was `open`) **and** each **concept card** as its own closed `<details>` (summary = title + kind badge + one-line deck; body = diagram/stepper/prose/sources). The page opens fully collapsed; the single `#learn-collapse` toggle flips Expand-all/Collapse-all; **search auto-expands** matching categories + cards (and re-collapses on clear); the `#/learn/<id>` deep-links (+ `see_also` chips + diagram `node_links`) open the card's own `<details>` **and** its category. Steppers/node_links bind unchanged — native `<details>` keeps the body in the DOM while closed.
+
+**Engineering notes.** Concept SVGs render via `render-concepts.py` (mermaid-cli + Chromium, offline) and inline at generate time; `concepts.json` + the visuals + the dashboards regen together (Gates: concepts `--check`, render `--check`, shell-router, stepper, frontmatter, md-links). Fixed a latent shadowing bug exposed by the new content: `_MD_LINK_RE` was defined twice in `generate-dashboards.py` (a 2-group form for `_md_to_html`, a 1-group form for `_bp_preview`); the second shadowed the first at module scope, breaking `m.group(2)` on any concept body with an inline markdown link — the strip form is now `_MD_LINK_STRIP_RE`. Inline body cross-links use the `#/learn/<id>` route form (valid in-dashboard deep-link + skipped by the md-links gate). **Migration:** none — additive Learn content + a presentation default; nothing changes on `/plugin marketplace update` beyond a richer, collapsed-by-default Learn tab.
+
 ## Value-add completeness (build-out 2026-06-05)
 
 `ravenclaude-core` is the **load-bearing foundation plugin** — it already ships the Team Lead + 14 specialists, 35 skills, the hooks/scripts/rules/templates, the dashboard, the tribunal, and the three epistemic protocols. The one genuine value-add gap was that it shipped the `scenario-retrieval` **skill** but had **no scenarios bank of its own**. This build-out closes that gap with a small, domain-NEUTRAL orchestration bank and dispositions every other menu item honestly — most are **N-A** or **already-present** for a foundation plugin, and forcing them would add noise (a calculator, a bundled MCP, an output-style) that doesn't fit a domain-neutral orchestration layer.

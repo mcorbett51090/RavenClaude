@@ -994,22 +994,33 @@ def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> s
         f"{c['title']} {c['summary']} {c['body_md']}".lower(), quote=True
     )
 
+    # The card is a native <details> (collapsed by default). The <summary> carries
+    # the title + kind badge + one-line deck so the collapsed row is informative;
+    # everything else (diagram well, stepper, body, widget, try-it, see-also,
+    # sources) lives in the body and is present in the DOM even while closed — so
+    # initConceptSteppers() / node-link binding still find their targets. The
+    # `.concept-card` class + id + data-* are kept so every existing CSS selector
+    # and the search/deep-link JS continue to match.
     return (
-        f'<article class="concept-card" id="learn-{html.escape(c["id"])}" '
-        f'data-concept="{html.escape(c["id"])}" data-search="{search_blob}" tabindex="-1">'
+        f'<details class="concept-card" id="learn-{html.escape(c["id"])}" '
+        f'data-concept="{html.escape(c["id"])}" data-search="{search_blob}">'
+        f'<summary class="concept-card-summary">'
         f'<div class="concept-eyebrow">{html.escape(c["category"])}</div>'
         f'<div class="concept-head">'
         f'<h3 class="concept-title">{html.escape(c["title"])}</h3>'
         f'<span class="concept-badge {badge_cls}">{badge_icon}{html.escape(badge_label)}</span>'
         f"</div>"
         f'<p class="concept-deck">{html.escape(c["summary"])}</p>'
+        f"</summary>"
+        f'<div class="concept-card-body">'
         f"{well}{stepper}"
         f'<div class="concept-body">{_md_to_html(c["body_md"])}</div>'
         f'{_CONCEPT_WIDGETS.get(c.get("widget") or "", "")}'
         f'{_try_it_html(c.get("try_it"))}'
         f"{see_also_block}"
         f'<div class="concept-sources-row">{sources}{verified}</div>'
-        f"</article>"
+        f"</div>"
+        f"</details>"
     )
 
 
@@ -1056,7 +1067,7 @@ def _render_learn_tab(plugin_dir: Path) -> str:
         for cat in order:
             cards = "".join(_render_concept_card(plugin_dir, c, titles) for c in groups[cat])
             out.append(
-                f'<details class="concept-cat" open>'
+                f'<details class="concept-cat">'
                 f'<summary class="concept-cat-head">'
                 f'<span class="concept-cat-name">{html.escape(cat)}</span>'
                 f'<span class="concept-cat-count">{len(groups[cat])}</span></summary>'
@@ -1088,8 +1099,8 @@ def _render_learn_tab(plugin_dir: Path) -> str:
         'autocomplete="off" spellcheck="false">'
         f'<span class="learn-count" id="learn-count">{len(concepts)} concepts</span>'
         '<span class="learn-toolbar-spacer"></span>'
-        '<button type="button" class="learn-linkbtn" id="learn-expand">Expand all</button>'
-        '<button type="button" class="learn-linkbtn" id="learn-collapse">Collapse all</button>'
+        '<button type="button" class="learn-linkbtn" id="learn-collapse" '
+        'aria-pressed="false">Expand all</button>'
         "</div>"
         '<div class="learn-legend" aria-hidden="true">'
         '<span class="learn-legend-item"><span class="learn-swatch fact"></span>How agentic AI works</span>'
@@ -1487,7 +1498,11 @@ def _decision_trees_inventory() -> list[dict]:
     return out
 
 
-_MD_LINK_RE = _re.compile(r"\[([^\]]+)\]\([^)]*\)")
+# Link-STRIP regex (1 group) for flattening [text](url) -> text. Distinct name from
+# the 2-group _MD_LINK_RE (defined earlier, used by _md_to_html) — a shared name made
+# this shadow that one at module scope, breaking _md_to_html's m.group(2) on any concept
+# body containing an inline markdown link.
+_MD_LINK_STRIP_RE = _re.compile(r"\[([^\]]+)\]\([^)]*\)")
 
 
 def _bp_preview(text: str) -> str:
@@ -1507,7 +1522,7 @@ def _bp_preview(text: str) -> str:
                 continue
             body = s
             break
-    body = _MD_LINK_RE.sub(r"\1", " ".join(body.split()))
+    body = _MD_LINK_STRIP_RE.sub(r"\1", " ".join(body.split()))
     return body[:280] + ("…" if len(body) > 280 else "")
 
 
@@ -4942,13 +4957,31 @@ footer.page-footer a:hover { text-decoration: underline; }
 
 .concept-card {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--rc-radius-lg); padding: 18px 20px; scroll-margin-top: 16px;
+  border-radius: var(--rc-radius-lg); scroll-margin-top: 16px;
   box-shadow: var(--rc-shadow-sm);
-  transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  transition: box-shadow 0.18s ease, border-color 0.18s ease;
 }
-.concept-card:hover { box-shadow: var(--rc-shadow-md); transform: translateY(-2px); }
+.concept-card:hover { box-shadow: var(--rc-shadow-md); }
+.concept-card[open] { box-shadow: var(--rc-shadow-md); }
 .concept-card[hidden] { display: none; }
-.concept-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* The card itself is now a native <details>; the summary carries the
+   title + badge + one-line deck and is the click/keyboard target, the body
+   holds the diagram/stepper/prose and stays in the DOM while collapsed. */
+.concept-card-summary {
+  display: block; cursor: pointer; padding: 18px 20px; list-style: none;
+  position: relative; user-select: none; border-radius: var(--rc-radius-lg);
+}
+.concept-card-summary::-webkit-details-marker { display: none; }
+.concept-card-summary::after {
+  content: "\\25B8"; color: var(--accent); font-size: 12px;
+  position: absolute; top: 20px; right: 18px;
+  transition: transform 0.12s ease;
+}
+.concept-card[open] > .concept-card-summary::after { transform: rotate(90deg); }
+.concept-card-summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.concept-card-summary .concept-deck { margin-bottom: 0; padding-right: 18px; }
+.concept-card-summary .concept-head { padding-right: 18px; }
+.concept-card-body { padding: 0 20px 18px; }
 .concept-eyebrow {
   text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;
   color: var(--muted); margin-bottom: 4px;
@@ -5079,6 +5112,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 @media (prefers-reduced-motion: reduce) {
   .concept-card.rc-flash { animation: none; }
   .concept-cat-head::before { transition: none; }
+  .concept-card-summary::after { transition: none; }
 }
 
 /* ── Mobile touch-target fixes ─────────────────────────────── */
@@ -8113,7 +8147,9 @@ _JS = r"""
   function openConcept(id) {
     const card = document.getElementById("learn-" + id);
     if (!card) return;
-    let el = card.parentElement;
+    // The card is itself a <details> now — open it AND every <details> ancestor
+    // (its category) so the deep-linked concept is fully visible.
+    let el = card;
     while (el) {
       if (el.tagName === "DETAILS") el.open = true;
       el = el.parentElement;
@@ -10254,12 +10290,17 @@ _JS = r"""
       cards.forEach(card => {
         const hit = !q || (card.dataset.search || "").indexOf(q) !== -1;
         card.hidden = !hit;
+        // While searching, auto-expand the matching cards so the match body is
+        // visible; clearing the query re-collapses every card (the new default).
+        card.open = q ? hit : false;
         if (hit) shown++;
       });
       cats.forEach(cat => {
         const any = cat.querySelector(".concept-card:not([hidden])") !== null;
         cat.hidden = !any;
-        if (q && any) cat.open = true;
+        // Expand a category that contains a match while searching; collapse all
+        // categories again when the query is cleared.
+        cat.open = q ? any : false;
       });
       // Hide a whole tier when its search yields nothing, so the tier header +
       // blurb don't dangle over an empty section.
@@ -10271,11 +10312,31 @@ _JS = r"""
     }
 
     if (search) search.addEventListener("input", () => applyFilter(search.value));
-    const expand = panel.querySelector("#learn-expand");
-    const collapse = panel.querySelector("#learn-collapse");
-    if (expand) expand.addEventListener("click", () => cats.forEach(c => { c.open = true; }));
-    if (collapse) collapse.addEventListener("click", () => cats.forEach(c => { c.open = false; }));
+
+    // Single toggle button: "Expand all" (the all-collapsed default) opens every
+    // category + card; "Collapse all" closes them again. Keyboard-accessible
+    // because it's a native <button>; aria-pressed reflects the expanded state.
+    const toggle = panel.querySelector("#learn-collapse");
+    function syncToggle() {
+      if (!toggle) return;
+      const anyOpen = cats.some(c => c.open) || cards.some(c => c.open);
+      toggle.textContent = anyOpen ? "Collapse all" : "Expand all";
+      toggle.setAttribute("aria-pressed", anyOpen ? "true" : "false");
+    }
+    if (toggle) {
+      toggle.addEventListener("click", () => {
+        const expand = toggle.getAttribute("aria-pressed") !== "true";
+        cats.forEach(c => { c.open = expand; });
+        cards.forEach(c => { if (!c.hidden) c.open = expand; });
+        syncToggle();
+      });
+    }
+    // Keep the toggle label honest when a card/category is opened by hand, by
+    // search, or by a deep-link.
+    cats.concat(cards).forEach(d => d.addEventListener("toggle", syncToggle));
+
     applyFilter("");
+    syncToggle();
   })();
 
   /* ── Learn tab: interactive concept widgets ────────────────────────── */
