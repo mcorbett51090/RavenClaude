@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + 14 specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 43 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to…' use-case lookup.",
-    "version": "0.76.0"
+    "version": "0.77.0"
   },
   "plugins": [
     {
@@ -1637,6 +1637,49 @@
         "omnichannel",
         "store-kpis",
         "brick-and-mortar"
+      ]
+    },
+    {
+      "name": "wealth-management-advisory",
+      "source": "./plugins/wealth-management-advisory",
+      "description": "RIA / financial-advisor practice team — 5 agents covering the advisor's book (practice model, AUM growth, client segmentation), financial-planning process (goals, retirement, cash-flow, tax-aware), portfolio review and rebalancing narrative (asset allocation, IPS, fees), client relationship management (review-meeting prep, prospecting, referrals), and advisory compliance (Reg BI, suitability, fiduciary duty, disclosures). Ships 3 skills, 3 commands, 2 templates, Mermaid decision trees, 6 best-practices, and an advisory hook flagging compliance anti-patterns. Employer-neutral; US regulatory framing. NOT personalized investment advice — helps an advisor prepare their own work. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "wealth-management",
+        "ria",
+        "financial-advisor",
+        "financial-planning",
+        "portfolio-review",
+        "rebalancing",
+        "reg-bi",
+        "suitability",
+        "fiduciary",
+        "prospecting",
+        "aum-growth"
+      ]
+    },
+    {
+      "name": "people-operations-hr",
+      "source": "./plugins/people-operations-hr",
+      "description": "Internal HR & People Operations specialist team — 4 agents covering the full employee lifecycle: people-ops-lead (HRIS, policy, onboarding, lifecycle), talent-acquisition-strategist (structured hiring, interview loops, scorecards, sourcing, bias reduction), performance-and-comp-analyst (performance cycles, calibration, comp bands, leveling, pay equity, merit), people-analytics-engineer (attrition/retention, headcount, engagement, ethical people analytics). Ships 3 skills (structured-hiring, performance-and-calibration, comp-bands-and-leveling), 3 commands, 2 templates, decision-tree knowledge bank with 2026 capability map, 6 best-practices, and 1 advisory hook flagging biased JD language, plaintext PII, unanchored comp figures, and unscored interviews. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "hr",
+        "people-operations",
+        "talent-acquisition",
+        "hiring",
+        "onboarding",
+        "performance-management",
+        "compensation",
+        "leveling",
+        "hris",
+        "people-analytics"
       ]
     }
   ]
