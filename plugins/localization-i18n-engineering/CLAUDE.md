@@ -87,3 +87,7 @@ dated capability map.
   localization-qa-engineer), 3 skills, 3 commands, 2 templates, the i18n/l10n decision-tree
   knowledge bank + dated 2026 capability map, 6 best-practice rules, and 1 advisory hook flagging
   i18n anti-patterns. Created 2026-06-08.
+
+## 7. Runnable calculator (added v0.1.1)
+
+[`scripts/i18n_calc.py`](scripts/i18n_calc.py) — stdlib-only, ruff-clean. Subcommands: `pseudo` (pseudo-localize a string with expansion + placeholder preservation), `expansion` (estimate target-language length growth + truncation risk vs a UI width), `plural-coverage` (check an ICU plural set covers a locale's CLDR categories). A calculator over user-supplied inputs, not a data source. _Cherry-picked from a parallel localization build during the 2026-06-08 marketplace reconciliation._

@@ -34,11 +34,7 @@
       "kind": "platform-fact",
       "order": 1,
       "summary": "Every agent turn runs the same loop: assemble prompt → call model → run tools → feed results back → repeat until done. The 'harness' is the software wrapping the model that drives it.",
-      "see_also": [
-        "tool-use",
-        "context-window",
-        "subagents"
-      ],
+      "see_also": ["tool-use", "context-window", "subagents"],
       "widget": null,
       "try_it": null,
       "node_links": {},
@@ -104,10 +100,7 @@
       "kind": "platform-fact",
       "order": 2,
       "summary": "A model can't act on its own — it asks for a tool by name, the harness runs it, and the result comes back as the next message. That request/result loop is every agent action.",
-      "see_also": [
-        "agent-harness-loop",
-        "permission-layers"
-      ],
+      "see_also": ["agent-harness-loop", "permission-layers"],
       "widget": null,
       "try_it": null,
       "node_links": {},
@@ -137,11 +130,7 @@
       "kind": "platform-fact",
       "order": 3,
       "summary": "Everything the model 'knows' this turn is the text in its context window — system prompt, tools, history, files. It's finite, it fills up, and when it's full the harness compacts.",
-      "see_also": [
-        "agent-harness-loop",
-        "tool-use",
-        "session-start-context"
-      ],
+      "see_also": ["agent-harness-loop", "tool-use", "session-start-context"],
       "widget": null,
       "try_it": null,
       "node_links": {},
@@ -171,11 +160,7 @@
       "kind": "platform-fact",
       "order": 4,
       "summary": "A lead agent can spawn focused subagents, each with its own clean context window, and get back a short summary — not the raw work. It's how big tasks stay inside finite context.",
-      "see_also": [
-        "context-window",
-        "agent-harness-loop",
-        "tool-use"
-      ],
+      "see_also": ["context-window", "agent-harness-loop", "tool-use"],
       "widget": null,
       "try_it": null,
       "node_links": {},
@@ -205,10 +190,7 @@
       "kind": "platform-fact",
       "order": 5,
       "summary": "The Model Context Protocol is a standard way to plug external tools and data into any agent. Write a server once; every MCP-aware client can use it — no per-app glue.",
-      "see_also": [
-        "tool-use",
-        "agent-harness-loop"
-      ],
+      "see_also": ["tool-use", "agent-harness-loop"],
       "widget": null,
       "try_it": null,
       "node_links": {},
@@ -238,10 +220,7 @@
       "kind": "platform-fact",
       "order": 6,
       "summary": "Bigger isn't always better. Match the model to the job — a fast, cheap model for routine steps, a frontier model for hard reasoning — and use the strong one to supervise the cheap ones.",
-      "see_also": [
-        "agent-harness-loop",
-        "subagents"
-      ],
+      "see_also": ["agent-harness-loop", "subagents"],
       "widget": null,
       "try_it": null,
       "node_links": {},
@@ -271,10 +250,7 @@
       "kind": "platform-fact",
       "order": 7,
       "summary": "Git is a time-machine for your files. RavenClaude does most of the git work for you — this page is the vocabulary so you can follow along.",
-      "see_also": [
-        "getting-started",
-        "layout-hook"
-      ],
+      "see_also": ["getting-started", "layout-hook"],
       "widget": null,
       "try_it": null,
       "node_links": {},
@@ -343,10 +319,7 @@
       "kind": "ravenclaude-built",
       "order": 5,
       "summary": "Add the marketplace, install ravenclaude-core, run /dashboard. Needs jq + python3; under Copilot CLI it's `ravenclaude install`.",
-      "see_also": [
-        "comfort-posture",
-        "capability-banner"
-      ],
+      "see_also": ["comfort-posture", "capability-banner"],
       "widget": null,
       "try_it": null,
       "node_links": {},
@@ -407,10 +380,7 @@
       "kind": "platform-fact",
       "order": 10,
       "summary": "Four settings files merge — a deny in ANY layer wins, and you can't override it down from a later layer.",
-      "see_also": [
-        "hook-lifecycle",
-        "command-review-tribunal"
-      ],
+      "see_also": ["hook-lifecycle", "command-review-tribunal"],
       "widget": "permission-resolver",
       "try_it": {
         "label": "Set your own layers on the Settings tab",
@@ -469,10 +439,7 @@
       "kind": "platform-fact",
       "order": 15,
       "summary": "Six modes from default to bypassPermissions — but bypass still prompts on rm -rf /, and auto silently drops broad allow rules.",
-      "see_also": [
-        "permission-layers",
-        "hook-lifecycle"
-      ],
+      "see_also": ["permission-layers", "hook-lifecycle"],
       "widget": null,
       "try_it": null,
       "node_links": {},
@@ -528,10 +495,7 @@
       "kind": "platform-fact",
       "order": 20,
       "summary": "Only exit 2 blocks a tool call; a hook deny beats bypass mode, but a hook allow can't override a settings deny.",
-      "see_also": [
-        "permission-layers",
-        "command-review-tribunal"
-      ],
+      "see_also": ["permission-layers", "command-review-tribunal"],
       "widget": null,
       "try_it": null,
       "node_links": {},
@@ -587,10 +551,7 @@
       "kind": "platform-fact",
       "order": 22,
       "summary": "SessionStart hooks inject additionalContext into every session — additive only; they can't block or delay startup and are capped near 10k chars.",
-      "see_also": [
-        "hook-lifecycle",
-        "capability-banner"
-      ],
+      "see_also": ["hook-lifecycle", "capability-banner"],
       "widget": null,
       "try_it": null,
       "node_links": {
@@ -644,10 +605,7 @@
       "kind": "ravenclaude-built",
       "order": 25,
       "summary": "A point-and-click editor that writes Claude Code permission rules per category and layer — and keeps design check-ins independent of permission level.",
-      "see_also": [
-        "permission-layers",
-        "command-review-tribunal"
-      ],
+      "see_also": ["permission-layers", "command-review-tribunal"],
       "widget": "permission-resolver",
       "try_it": {
         "label": "Open the Settings tab",
@@ -708,11 +666,7 @@
       "kind": "ravenclaude-built",
       "order": 30,
       "summary": "An opt-in panel of reviewer seats that votes ALLOW/EDIT/DENY on shell commands instead of interrupting you.",
-      "see_also": [
-        "comfort-posture",
-        "permission-layers",
-        "hook-lifecycle"
-      ],
+      "see_also": ["comfort-posture", "permission-layers", "hook-lifecycle"],
       "widget": null,
       "try_it": {
         "label": "Run a command through it in Test a command",
@@ -780,10 +734,7 @@
       "kind": "ravenclaude-built",
       "order": 32,
       "summary": "Every command-review verdict writes one JSON entry — command, category, tier, per-seat votes, concerns, final verdict — under .ravenclaude/runs/thing/.",
-      "see_also": [
-        "command-review-tribunal",
-        "model-diversity"
-      ],
+      "see_also": ["command-review-tribunal", "model-diversity"],
       "widget": null,
       "try_it": null,
       "node_links": {},
@@ -835,9 +786,7 @@
       "kind": "ravenclaude-built",
       "order": 34,
       "summary": "When ≥2 reviewer seats convene, the tribunal guarantees ≥2 distinct model backbones run — so one model's blind spot can't pass the whole panel.",
-      "see_also": [
-        "command-review-tribunal"
-      ],
+      "see_also": ["command-review-tribunal"],
       "widget": null,
       "try_it": null,
       "node_links": {},
@@ -893,10 +842,7 @@
       "kind": "ravenclaude-built",
       "order": 36,
       "summary": "A sibling tribunal votes yes/no/defer on yes-or-no DECISIONS before they reach you — binding only if you opt in, and high-blast calls always defer.",
-      "see_also": [
-        "command-review-tribunal",
-        "model-diversity"
-      ],
+      "see_also": ["command-review-tribunal", "model-diversity"],
       "widget": null,
       "try_it": null,
       "node_links": {
@@ -954,10 +900,7 @@
       "kind": "ravenclaude-built",
       "order": 40,
       "summary": "A SessionStart hook injects what the project touches, the auth it holds (names only), and the effective permissions — so the agent never acts as if it has no access.",
-      "see_also": [
-        "session-start-context",
-        "comfort-posture"
-      ],
+      "see_also": ["session-start-context", "comfort-posture"],
       "widget": null,
       "try_it": null,
       "node_links": {
@@ -1015,10 +958,7 @@
       "kind": "ravenclaude-built",
       "order": 42,
       "summary": "An optional file maps which environments your creds reach and what's pre-authorized — so the agent acts without asking where allowed, and stops on forbidden actions.",
-      "see_also": [
-        "capability-banner",
-        "decision-trees"
-      ],
+      "see_also": ["capability-banner", "decision-trees"],
       "widget": null,
       "try_it": null,
       "node_links": {},
@@ -1074,9 +1014,7 @@
       "kind": "ravenclaude-built",
       "order": 44,
       "summary": "Knowledge files carry Mermaid decision trees the agent traverses BEFORE picking a method — preventing wrong-branch-from-the-start, with a mandatory staleness date.",
-      "see_also": [
-        "environment-context"
-      ],
+      "see_also": ["environment-context"],
       "widget": null,
       "try_it": null,
       "node_links": {},
@@ -1132,10 +1070,7 @@
       "kind": "ravenclaude-built",
       "order": 50,
       "summary": "A PreToolUse hook plus a CI backstop block off-pattern file creation against .repo-layout.json — because path-scoped rule files load on Read, not Write.",
-      "see_also": [
-        "audit-gates",
-        "hook-lifecycle"
-      ],
+      "see_also": ["audit-gates", "hook-lifecycle"],
       "widget": null,
       "try_it": null,
       "node_links": {},
@@ -1191,9 +1126,7 @@
       "kind": "ravenclaude-built",
       "order": 52,
       "summary": "Every CI gate is itself tested: audit-gates.sh proves each gate FAILS on a known-bad fixture and PASSES on a known-good one — so a gate can't silently rot into a no-op.",
-      "see_also": [
-        "layout-hook"
-      ],
+      "see_also": ["layout-hook"],
       "widget": null,
       "try_it": null,
       "node_links": {},
@@ -1249,10 +1182,7 @@
       "kind": "ravenclaude-built",
       "order": 54,
       "summary": "RavenClaude runs under GitHub Copilot CLI too — via a generated package + a hook adapter — and updating is just `git pull`, never a re-install.",
-      "see_also": [
-        "layout-hook",
-        "hook-lifecycle"
-      ],
+      "see_also": ["layout-hook", "hook-lifecycle"],
       "widget": null,
       "try_it": null,
       "node_links": {},

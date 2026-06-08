@@ -1,0 +1,3 @@
+# Test the edges, not just the steady state
+
+One load run is not a performance test. Load proves the target at expected traffic; **stress** ramps past it to find the knee (the saturation point where latency turns sharply non-linear); **soak** holds steady load for hours to surface what only time reveals — memory growth, connection-pool exhaustion, latency creep, log/disk fill; **spike** steps from baseline to peak to prove elasticity and measure recovery. Each answers a different question, and a system can pass load while failing every edge. Cover all four — or name explicitly which you skipped and why — before a performance sign-off. The first incident is usually at an edge you didn't test.

@@ -1,0 +1,3 @@
+# Compliance is a calendar, not a year-end scramble
+
+Eligibility is rules (classes, waiting periods, hours thresholds, dependent rules, QLE/special-enrollment windows) and compliance is a calendar (COBRA notices, ACA 1095-C/1094-C, ERISA Form 5500 + SAR, SPD/SBC distribution, the recurring annual notices). Write the eligibility rules down — ambiguity becomes a claim dispute — and keep a standing calendar with triggers, owners, and current-year deadlines instead of a year-end scramble. Verify filing dates and form numbers against the active-year source; they shift. A missed COBRA notice is real liability — fix the forward process and escalate any past exposure to counsel.

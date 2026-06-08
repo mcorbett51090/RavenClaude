@@ -1,0 +1,3 @@
+# Lot size trades setup against holding
+
+A lot size is a deliberate trade, never a habit. EOQ and its cousins balance setup/order cost against holding cost; lot-for-lot minimizes inventory but maximizes setups; fixed-period batches the demand in a bucket. The default failure is always-big-batch (or always-small-batch) set by reflex with no trade named. The trade also changes on a constraint: a setup at the bottleneck is throughput you never get back, so a lot that looks "efficient" on holding cost can be expensive in lost plant rate. State the lot rule and the cost basis behind it — setup cost, holding cost, and whether the resource is the constraint — or the number is a guess.

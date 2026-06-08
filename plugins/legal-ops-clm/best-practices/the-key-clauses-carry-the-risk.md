@@ -1,0 +1,3 @@
+# The key clauses carry the risk — review them first and hardest
+
+Money and exposure concentrate in a handful of clauses: limitation of liability, indemnity, IP ownership, term/termination, and confidentiality. Review those first and hardest; don't spend the review burning down boilerplate while skimming the clauses where the loss actually lands. A clean redline of the governing-law recital and the notices address means nothing if the liability cap got struck and nobody flagged it. Sequence the review by exposure, not by document order — the riskiest clauses get the most lawyer attention and the tightest standard/fallback/walk-away bounds. Not legal advice: a lawyer owns whether any given position is acceptable.

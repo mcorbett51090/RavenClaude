@@ -1,0 +1,3 @@
+# Evidence is a system, not a fire drill
+
+Continuous control monitoring with evidence collected automatically at the source beats a pre-audit scramble of humans screenshotting consoles the week before fieldwork. If proof of a control only exists because someone remembered to capture it, the control isn't reliably operating — and the evidence is fragile, inconsistent, and hard to trust. Wire evidence collection to the system of record (an API export, a log, a config snapshot), set a cadence matched to the control's frequency, and retain it. One artifact should serve every framework the control maps to.

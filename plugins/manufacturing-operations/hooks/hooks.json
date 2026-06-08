@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for manufacturing-operations. Auto-merged with the consumer's session hooks on install. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-manufacturing-operations-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags mechanically-detectable manufacturing anti-patterns (an OEE figure with no stated ideal cycle time / downtime basis; a CAPA/NCR with containment but no root-cause or preventive action; a master schedule asserted with no capacity/constraint reference). Set MFG_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}

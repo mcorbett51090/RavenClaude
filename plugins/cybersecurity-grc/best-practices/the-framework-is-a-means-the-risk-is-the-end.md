@@ -1,0 +1,3 @@
+# The framework is a means, the risk is the end
+
+A framework is a checklist of someone else's risks; your risk register is the list of yours. Don't cargo-cult a heavyweight catalogue — full NIST 800-53 onto a 20-person SaaS — because it looks rigorous. Right-size the framework to the org's size, risk, and customer demand: SOC 2 Type II for a B2B SaaS, ISO 27001 for global/enterprise, NIST CSF 2.0 as the org-wide language, full 800-53 only when a federal contract or the risk profile genuinely demands it. The framework gives you a shared vocabulary and an auditable shape; it never substitutes for reasoning about what would actually hurt this org. When the framework and the risk register disagree about where to spend effort, the risk register wins and the SoA records why.

@@ -1,0 +1,3 @@
+# Every Statement-of-Applicability exclusion needs a justification
+
+The Statement of Applicability is a reasoned document, not a checkbox exercise. Every control marked "not applicable" needs a justification that survives an auditor's challenge and traces to the risk register — "N/A" with no reason is a finding waiting to happen. Write each exclusion's rationale as if the auditor already has it in front of them: why the control doesn't apply to this scope, what risk (if any) the exclusion leaves, and why that residual is acceptable. An SoA full of unjustified exclusions undermines confidence in the whole program.
