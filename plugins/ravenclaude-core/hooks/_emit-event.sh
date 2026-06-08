@@ -5,7 +5,13 @@
 # Provides ONE function — `_emit_hook_event` — that appends a single machine-
 # readable JSON line to the current session's hook-event log:
 #
-#   ${CLAUDE_PROJECT_DIR}/.ravenclaude/runs/${CLAUDE_SESSION_ID:-unknown}/hook-events.jsonl
+#   ${CLAUDE_PROJECT_DIR}/.ravenclaude/runs/${SESSION}/hook-events.jsonl
+#
+# where ${SESSION} is resolved by _ee_resolve_session() (below) as
+# $CLAUDE_SESSION_ID → the caller's stdin payload's `.session_id` → "unknown".
+# Native Claude Code does NOT export CLAUDE_SESSION_ID to hooks but DOES carry
+# the id on the stdin payload, so the payload fallback is what keeps each native
+# session in its own runs/<id>/ dir instead of colliding into runs/unknown/.
 #
 # This is the read-side substrate for the Heimdall perimeter-alarm panel and any
 # other surface that wants to know "what hook fired, when, why, on what" AFTER
@@ -50,6 +56,55 @@ fi
 # If _scrub.sh was not sourced successfully, define a safe passthrough.
 command -v _scrub_reason >/dev/null 2>&1 || _scrub_reason() { printf '%s' "${1:-}"; }
 
+# Resolve the current session id for the run-dir path. SESSION-ISOLATION fix
+# (red-team FM1): native Claude Code does NOT export CLAUDE_SESSION_ID to hooks,
+# so relying on it alone collided EVERY native session into runs/unknown/. The
+# session id IS carried on the hook's stdin JSON payload as `.session_id` — and
+# every stdin-reading hook in this plugin already stores that payload in a shell
+# variable named `payload`. Because this helper is SOURCED (it shares the
+# caller's variable scope), it can read that `$payload` directly. Resolution
+# order — each step fail-safe, degrading to the next on any failure:
+#   1. $CLAUDE_SESSION_ID  — explicit export (the Copilot adapter exports it from
+#                            the Copilot payload's .sessionId; a future native
+#                            export would also land here first).
+#   2. caller's $payload   — the stdin JSON the hook already read; parse
+#                            .session_id from it (jq, else a minimal grep).
+#   3. "unknown"           — true fallback (arg-only hooks that never read stdin,
+#                            e.g. enforce-layout.sh / guard-recursive-spawn.sh,
+#                            have no $payload; they accept this — no regression).
+# Never throws.
+_ee_resolve_session() {
+  # 1. Explicit export wins.
+  if [ -n "${CLAUDE_SESSION_ID:-}" ]; then
+    printf '%s' "$CLAUDE_SESSION_ID"
+    return 0
+  fi
+  # 2. Derive from the caller's stdin payload, if it carries one. `payload` is
+  #    the caller's variable (we are sourced, so it is in scope); it is unset in
+  #    arg-only hooks, which is fine — we fall through to "unknown".
+  local _pl="${payload:-}"
+  if [ -n "$_pl" ]; then
+    local _sid=""
+    if command -v jq >/dev/null 2>&1; then
+      _sid="$(printf '%s' "$_pl" | jq -r '.session_id // empty' 2>/dev/null || true)"
+    fi
+    # jq absent or no match → a conservative grep for the common
+    # `"session_id":"<value>"` shape (keeps the fallback jq-free).
+    if [ -z "$_sid" ]; then
+      _sid="$(printf '%s' "$_pl" \
+        | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' 2>/dev/null \
+        | head -n1 \
+        | sed 's/.*:[[:space:]]*"\([^"]*\)".*/\1/' 2>/dev/null || true)"
+    fi
+    if [ -n "$_sid" ]; then
+      printf '%s' "$_sid"
+      return 0
+    fi
+  fi
+  # 3. True fallback.
+  printf '%s' "unknown"
+}
+
 # Append one structured hook event. Never fails the caller.
 _emit_hook_event() {
   # Wrap the whole body so a failure of any single step is contained.
@@ -72,7 +127,13 @@ _emit_hook_event() {
     [ -z "$project_dir" ] && return 0
     [ -d "$project_dir" ] || return 0
 
-    local session="${CLAUDE_SESSION_ID:-unknown}"
+    # Resolve the session id: $CLAUDE_SESSION_ID → caller's $payload .session_id
+    # → "unknown". Sanitize to a path-safe token (the value lands in a directory
+    # name) and fall back to "unknown" if sanitization empties it.
+    local session
+    session="$(_ee_resolve_session 2>/dev/null || printf 'unknown')"
+    session="$(printf '%s' "$session" | tr -dc 'A-Za-z0-9._-' | cut -c1-128)"
+    [ -z "$session" ] && session="unknown"
     local run_dir="$project_dir/.ravenclaude/runs/$session"
     local log="$run_dir/hook-events.jsonl"
 

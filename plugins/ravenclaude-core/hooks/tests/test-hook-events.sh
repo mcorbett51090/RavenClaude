@@ -99,6 +99,76 @@ CLAUDE_PROJECT_DIR="$T4" CLAUDE_SESSION_ID="t4clean" "$HOOKS_DIR/guard-recursive
 [[ ! -f "$T4/.ravenclaude/runs/t4clean/hook-events.jsonl" ]] && pass "guard-recursive-spawn emits no event on a clean agent file" || fail "guard-recursive-spawn emitted on a clean file"
 rm -rf "$T4"
 
+# ── 5. SESSION ISOLATION (red-team FM1) ──────────────────────────────────────
+# Native Claude Code does NOT export CLAUDE_SESSION_ID to hooks; the id is on the
+# stdin payload's .session_id. The helper must derive it from the caller's
+# $payload when CLAUDE_SESSION_ID is unset, so each session lands in its OWN
+# runs/<id>/ dir instead of all colliding into runs/unknown/. Bidirectional:
+#  (a) payload session_id, env UNSET  → runs/<that-id>/, NOT runs/unknown/
+#  (b) env CLAUDE_SESSION_ID set       → env wins over the payload value
+#  (c) no payload, no env              → runs/unknown/ (arg-only-hook fallback)
+#  (d) traversal-shaped session_id     → sanitized, cannot escape runs/
+T5="$(mktemp -d)"
+
+# (a) Drive guard-destructive via stdin with a session_id and NO env var.
+(
+  export CLAUDE_PROJECT_DIR="$T5/a"; mkdir -p "$CLAUDE_PROJECT_DIR"
+  unset CLAUDE_SESSION_ID
+  printf '{"session_id":"sess-iso-A","tool_input":{"command":"%s"}}' "$FORCED_PUSH" \
+    | "$HOOKS_DIR/guard-destructive.sh" >/dev/null 2>&1
+)
+LOG5A="$T5/a/.ravenclaude/runs/sess-iso-A/hook-events.jsonl"
+if [[ -f "$LOG5A" ]] && [[ ! -d "$T5/a/.ravenclaude/runs/unknown" ]] \
+   && [[ "$(jq -r .session_id "$LOG5A")" == "sess-iso-A" ]]; then
+  pass "native session id (from stdin payload) lands in runs/sess-iso-A/, not runs/unknown/"
+else
+  fail "session isolation: payload session_id did NOT route to runs/sess-iso-A/"
+fi
+
+# (b) An explicit CLAUDE_SESSION_ID export wins over the payload value.
+(
+  export CLAUDE_PROJECT_DIR="$T5/b"; mkdir -p "$CLAUDE_PROJECT_DIR"
+  export CLAUDE_SESSION_ID="env-sid-B"
+  printf '{"session_id":"payload-sid-B","tool_input":{"command":"%s"}}' "$FORCED_PUSH" \
+    | "$HOOKS_DIR/guard-destructive.sh" >/dev/null 2>&1
+)
+if [[ -f "$T5/b/.ravenclaude/runs/env-sid-B/hook-events.jsonl" ]] \
+   && [[ ! -d "$T5/b/.ravenclaude/runs/payload-sid-B" ]]; then
+  pass "explicit CLAUDE_SESSION_ID wins over payload .session_id"
+else
+  fail "session isolation: env CLAUDE_SESSION_ID did not win over payload"
+fi
+
+# (c) No payload and no env → the documented "unknown" fallback (no regression).
+(
+  export CLAUDE_PROJECT_DIR="$T5/c"; mkdir -p "$CLAUDE_PROJECT_DIR"
+  unset CLAUDE_SESSION_ID
+  # shellcheck source=/dev/null
+  source "$HOOKS_DIR/_emit-event.sh"
+  _emit_hook_event "demo.sh" "deny" "Bash" "p" "r" 2
+)
+if [[ -f "$T5/c/.ravenclaude/runs/unknown/hook-events.jsonl" ]]; then
+  pass "no payload + no env → runs/unknown/ (documented fallback, no regression)"
+else
+  fail "session isolation: missing-everything case did not fall back to unknown"
+fi
+
+# (d) A traversal-shaped payload session_id is sanitized — cannot escape runs/.
+(
+  export CLAUDE_PROJECT_DIR="$T5/d"; mkdir -p "$CLAUDE_PROJECT_DIR"
+  unset CLAUDE_SESSION_ID
+  payload='{"session_id":"../../escape"}'
+  # shellcheck source=/dev/null
+  source "$HOOKS_DIR/_emit-event.sh"
+  _emit_hook_event "demo.sh" "deny" "Bash" "p" "r" 2
+)
+if [[ ! -e "$T5/d/escape" ]] && [[ ! -e "$T5/escape" ]]; then
+  pass "traversal-shaped payload session_id is sanitized (no escape from runs/)"
+else
+  fail "session isolation: traversal session_id escaped the runs/ dir"
+fi
+rm -rf "$T5"
+
 echo
 if [[ "$FAILED" -eq 0 ]]; then
   echo "hook-event substrate: ALL ASSERTIONS PASS"
