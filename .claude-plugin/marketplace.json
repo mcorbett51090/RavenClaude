@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + 14 specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 43 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to…' use-case lookup.",
-    "version": "0.73.0"
+    "version": "0.74.0"
   },
   "plugins": [
     {
@@ -1447,6 +1447,32 @@
         "admissions",
         "skilled-nursing",
         "physician-relations"
+      ]
+    },
+    {
+      "name": "platform-engineering",
+      "source": "./plugins/platform-engineering",
+      "description": "Platform-engineering (internal developer platform) team — 3 agents (platform-architect, developer-portal-engineer, golden-paths-and-adoption-engineer) for the paved-road layer above CI/CD, Kubernetes, IaC, and observability: platform-as-product and Team Topologies (the thinnest viable platform, stream-aligned / platform / enabling teams), the developer portal and software catalog (Backstage / Port / Cortex / OpsLevel, catalog-info ownership, scaffolder templates, TechDocs, scorecards), self-service golden paths and guardrails-as-defaults (Terraform modules / Crossplane / Score / Kratix + policy-as-code), and platform adoption measured as a product (DORA + DevEx/SPACE, platform SLOs, paved-road coverage). A decision-tree knowledge bank (build-vs-buy IDP + paved-road-vs-guardrail + the platform-API surface + a dated 2026 capability map), 10 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: pipelines -> devops-cicd; clusters -> cloud-native-kubernetes; IaC modules -> terraform-iac; SLOs -> observability-sre; cloud primitives -> aws/azure/gcp-cloud. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "platform-engineering",
+        "internal-developer-platform",
+        "idp",
+        "backstage",
+        "developer-portal",
+        "software-catalog",
+        "golden-paths",
+        "paved-roads",
+        "team-topologies",
+        "platform-as-product",
+        "self-service",
+        "crossplane",
+        "score",
+        "dora",
+        "developer-experience"
       ]
     }
   ]
