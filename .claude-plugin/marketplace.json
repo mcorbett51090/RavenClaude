@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + 14 specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 43 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to…' use-case lookup.",
-    "version": "0.78.0"
+    "version": "0.79.0"
   },
   "plugins": [
     {
@@ -1727,6 +1727,69 @@
         "front-desk",
         "pms",
         "rms"
+      ]
+    },
+    {
+      "name": "property-management-residential",
+      "source": "./plugins/property-management-residential",
+      "description": "Residential property management specialist team — 4 agents covering the full leasing and tenant lifecycle (leasing-strategist), maintenance and work-order operations (maintenance-operations-analyst), rent collection and delinquency management (pm-ops-lead), and fair-housing / screening / habitability compliance (pm-compliance-advisor). Ships 3 skills (leasing-and-tenant-lifecycle, maintenance-and-work-orders, rent-collection-and-delinquency), 3 commands, 2 templates, a decision-tree knowledge bank, 6 best-practice rules, and an advisory hook flagging fair-housing language, tenant PII, inconsistent screening, and work orders lacking SLAs. Includes a stdlib calculator for occupancy, NOI, delinquency rate, turn cost, and rent-to-income ratio. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "property-management",
+        "residential",
+        "leasing",
+        "tenant-lifecycle",
+        "maintenance",
+        "work-orders",
+        "rent-collection",
+        "fair-housing",
+        "noi",
+        "occupancy"
+      ]
+    },
+    {
+      "name": "field-service-management",
+      "source": "./plugins/field-service-management",
+      "description": "Field-service management & dispatch operations specialist team — 4 agents covering the service operating model (SLAs, contracts, dispatch-to-cash), dispatch & scheduling (skill/SLA/geo optimization, emergency vs planned), technician productivity (utilization, first-time-fix, MTTR, callbacks), and parts & inventory (truck stock, service-level tradeoffs, returns). Ships 3 skills (dispatch-and-scheduling, technician-productivity-and-first-time-fix, truck-stock-and-parts), 3 commands, 2 templates, 6 best-practices, a decision-tree knowledge bank, and an advisory hook flagging FSM anti-patterns. Domain: HVAC, plumbing, elevator, medical-device service. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "field-service",
+        "dispatch",
+        "scheduling",
+        "technician",
+        "first-time-fix",
+        "truck-stock",
+        "sla",
+        "hvac",
+        "preventive-maintenance",
+        "mobile-workforce"
+      ]
+    },
+    {
+      "name": "localization-i18n-engineering",
+      "source": "./plugins/localization-i18n-engineering",
+      "description": "Internationalization (i18n) and localization (l10n) engineering specialists — 3 agents covering i18n architecture (string externalization, ICU MessageFormat, RTL/bidi, locale data), the l10n pipeline (extraction, TMS handoff, translation memory, continuous localization), and localization QA (pseudo-localization, l10n linting in CI, visual overflow QA, locale-coverage testing). Ships 3 skills, 3 commands, 2 templates, a decision-tree knowledge bank with a 2026 i18n/TMS capability map, 6 best-practice rules, and an advisory hook flagging i18n anti-patterns (hard-coded user-facing strings, string concatenation, if-count-1 plurals, hard-coded date/number formats). Inherits ravenclaude-core protocols (Grounding, Structured Output).",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "i18n",
+        "l10n",
+        "internationalization",
+        "localization",
+        "icu-messageformat",
+        "tms",
+        "rtl",
+        "pseudo-localization",
+        "string-extraction",
+        "translation-memory"
       ]
     }
   ]

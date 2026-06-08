@@ -1,0 +1,25 @@
+{
+  "name": "property-management-residential",
+  "version": "0.1.0",
+  "description": "Residential property management specialist team — 4 agents covering the full leasing and tenant lifecycle (leasing-strategist), maintenance and work-order operations (maintenance-operations-analyst), rent collection and delinquency management (pm-ops-lead), and fair-housing / screening / habitability compliance (pm-compliance-advisor). Ships 3 skills (leasing-and-tenant-lifecycle, maintenance-and-work-orders, rent-collection-and-delinquency), 3 commands, 2 templates, a decision-tree knowledge bank, 6 best-practice rules, and an advisory hook flagging fair-housing language, tenant PII, inconsistent screening, and work orders lacking SLAs. Includes a stdlib calculator for occupancy, NOI, delinquency rate, turn cost, and rent-to-income ratio. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "property-management",
+    "residential",
+    "leasing",
+    "tenant-lifecycle",
+    "maintenance",
+    "work-orders",
+    "rent-collection",
+    "fair-housing",
+    "noi",
+    "occupancy"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
