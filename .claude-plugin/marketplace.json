@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + 14 specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 43 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to…' use-case lookup.",
-    "version": "0.77.0"
+    "version": "0.78.0"
   },
   "plugins": [
     {
@@ -1680,6 +1680,53 @@
         "leveling",
         "hris",
         "people-analytics"
+      ]
+    },
+    {
+      "name": "accounting-firm-cpa",
+      "source": "./plugins/accounting-firm-cpa",
+      "description": "US public-accounting / CPA-firm operations team — 5 agents covering firm economics (realization, utilization, leverage, capacity, service-line mix), tax-season workflow (1040/1120/1065, extensions, review tiers, e-file), Client Accounting Services (monthly close-as-a-service, bookkeeping, controller-as-a-service, tech stack), attest engagements (planning, PBC lists, risk assessment, workpapers, independence), and advisory/CAS upsell (pricing, packaging, client advisory). Ships 3 skills (tax-season-workflow, client-accounting-services, engagement-and-workpaper-management), 3 commands, 2 templates, a decision-tree knowledge bank, 6 best-practices, an advisory anti-pattern hook, and a firm-economics calculator. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "accounting",
+        "cpa",
+        "public-accounting",
+        "tax",
+        "audit",
+        "cas",
+        "engagement-management",
+        "workpapers",
+        "firm-economics",
+        "advisory"
+      ]
+    },
+    {
+      "name": "hospitality-hotels",
+      "source": "./plugins/hospitality-hotels",
+      "description": "Hotel and lodging operations specialist team — 5 agents covering revenue management (RevPAR/ADR/occupancy optimization, forecasting, demand calendar, length-of-stay controls, overbooking), reservations and channel management (OTA vs direct, net-ADR, parity, GDS), guest experience and reputation (the guest journey, service recovery, review management), rooms and housekeeping (productivity, room-status flow, par levels, labor), and the property operating model (USALI P&L, GOPPAR, departmental structure). Ships 3 skills (revenue-management-and-pricing, channel-and-distribution, guest-experience-and-reputation), 3 commands, 2 templates, a decision-tree knowledge bank with a 2026 capability map, 6 best-practices, an advisory anti-pattern hook, and a stdlib calculator (RevPAR, ADR, occupancy, GOPPAR, net ADR, displacement). Inherits ravenclaude-core protocols. Seams: F&B to restaurant-operations; demand-gen to marketing-operations-demand-gen; analytics pipelines to data-platform.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "hospitality",
+        "hotels",
+        "lodging",
+        "revenue-management",
+        "revpar",
+        "adr",
+        "occupancy",
+        "goppar",
+        "channel-management",
+        "ota",
+        "guest-experience",
+        "housekeeping",
+        "front-desk",
+        "pms",
+        "rms"
       ]
     }
   ]

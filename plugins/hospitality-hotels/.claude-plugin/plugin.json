@@ -1,0 +1,30 @@
+{
+  "name": "hospitality-hotels",
+  "version": "0.1.0",
+  "description": "Hotel and lodging operations specialist team — 5 agents covering revenue management (RevPAR/ADR/occupancy optimization, forecasting, demand calendar, length-of-stay controls, overbooking), reservations and channel management (OTA vs direct, net-ADR, parity, GDS), guest experience and reputation (the guest journey, service recovery, review management), rooms and housekeeping (productivity, room-status flow, par levels, labor), and the property operating model (USALI P&L, GOPPAR, departmental structure). Ships 3 skills (revenue-management-and-pricing, channel-and-distribution, guest-experience-and-reputation), 3 commands, 2 templates, a decision-tree knowledge bank with a 2026 capability map, 6 best-practices, an advisory anti-pattern hook, and a stdlib calculator (RevPAR, ADR, occupancy, GOPPAR, net ADR, displacement). Inherits ravenclaude-core protocols. Seams: F&B to restaurant-operations; demand-gen to marketing-operations-demand-gen; analytics pipelines to data-platform.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "hospitality",
+    "hotels",
+    "lodging",
+    "revenue-management",
+    "revpar",
+    "adr",
+    "occupancy",
+    "goppar",
+    "channel-management",
+    "ota",
+    "guest-experience",
+    "housekeeping",
+    "front-desk",
+    "pms",
+    "rms"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

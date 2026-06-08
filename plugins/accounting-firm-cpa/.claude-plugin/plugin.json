@@ -1,0 +1,25 @@
+{
+  "name": "accounting-firm-cpa",
+  "version": "0.1.0",
+  "description": "US public-accounting / CPA-firm operations team — 5 agents covering firm economics (realization, utilization, leverage, capacity, service-line mix), tax-season workflow (1040/1120/1065, extensions, review tiers, e-file), Client Accounting Services (monthly close-as-a-service, bookkeeping, controller-as-a-service, tech stack), attest engagements (planning, PBC lists, risk assessment, workpapers, independence), and advisory/CAS upsell (pricing, packaging, client advisory). Ships 3 skills (tax-season-workflow, client-accounting-services, engagement-and-workpaper-management), 3 commands, 2 templates, a decision-tree knowledge bank, 6 best-practices, an advisory anti-pattern hook, and a firm-economics calculator. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "accounting",
+    "cpa",
+    "public-accounting",
+    "tax",
+    "audit",
+    "cas",
+    "engagement-management",
+    "workpapers",
+    "firm-economics",
+    "advisory"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
