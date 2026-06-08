@@ -1,26 +1,24 @@
-# finops-cloud-cost — best-practice docs
+# FinOps & Cloud Cost best-practice docs
 
-Named, citable rules for the `finops-cloud-cost` plugin's specialists. Each file is **one rule**.
+Named, citable rules for the `finops-cloud-cost` plugin's 4 specialist agents. Each file is one rule — read, applied, and cited whole. Grounded in this plugin's `knowledge/` bank and its agent constitutions.
 
 ---
 
 ## Index
 
-_6 rules._
+_8 rules. Each file is one named, citable rule — one per house opinion (§3)._
 
 | Doc | Status | Use when |
 |---|---|---|
-| [`tag-at-birth-or-you-cant-allocate.md`](./tag-at-birth-or-you-cant-allocate.md) | Absolute rule | Designing or reviewing a tagging strategy |
-| [`commit-only-to-your-steady-state-baseline.md`](./commit-only-to-your-steady-state-baseline.md) | Absolute rule | Evaluating any RI, Savings Plan, or CUD purchase |
-| [`rightsize-before-you-commit.md`](./rightsize-before-you-commit.md) | Pattern | Any cost optimization engagement touching commitments |
-| [`every-cost-has-an-owner-showback-changes-behavior.md`](./every-cost-has-an-owner-showback-changes-behavior.md) | Pattern | Designing showback, chargeback, or cost ownership |
-| [`ai-token-cost-is-a-first-class-budget-line.md`](./ai-token-cost-is-a-first-class-budget-line.md) | Pattern | Any engagement where AI/LLM inference is a cost line item |
-| [`anomaly-detection-beats-the-monthly-surprise.md`](./anomaly-detection-beats-the-monthly-surprise.md) | Pattern | Designing cost monitoring or alert strategies |
-
----
+| [`allocate-cost-before-you-optimize-it.md`](./allocate-cost-before-you-optimize-it.md) | Absolute rule | Any finops & cloud cost deliverable where this question is in play. |
+| [`unit-economics-beat-the-total-bill.md`](./unit-economics-beat-the-total-bill.md) | Absolute rule | Any finops & cloud cost deliverable where this question is in play. |
+| [`commitments-are-a-portfolio-decision-not-a-checkbox.md`](./commitments-are-a-portfolio-decision-not-a-checkbox.md) | Pattern | Any finops & cloud cost deliverable where this question is in play. |
+| [`rightsize-before-you-commit.md`](./rightsize-before-you-commit.md) | Pattern | Any finops & cloud cost deliverable where this question is in play. |
+| [`waste-is-the-first-win-kill-idle-orphaned-and-oversized.md`](./waste-is-the-first-win-kill-idle-orphaned-and-oversized.md) | Absolute rule | Any finops & cloud cost deliverable where this question is in play. |
+| [`showback-chargeback-creates-accountability.md`](./showback-chargeback-creates-accountability.md) | Pattern | Any finops & cloud cost deliverable where this question is in play. |
+| [`forecast-spend-and-alert-on-anomalies.md`](./forecast-spend-and-alert-on-anomalies.md) | Pattern | Any finops & cloud cost deliverable where this question is in play. |
+| [`date-and-source-any-pricing-or-benchmark-figure.md`](./date-and-source-any-pricing-or-benchmark-figure.md) | Absolute rule | Any finops & cloud cost deliverable where this question is in play. |
 
 ## See also
-
-- [`../CLAUDE.md`](../CLAUDE.md) — plugin team constitution.
-- [`../knowledge/finops-cloud-cost-decision-trees.md`](../knowledge/finops-cloud-cost-decision-trees.md) — the decision trees + 2026 capability map.
-- [`../../../docs/best-practices/README.md`](../../../docs/best-practices/README.md) — marketplace-wide best-practice docs.
+- [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.
+- [`../CLAUDE.md`](../CLAUDE.md) — the team constitution (house opinions §3, anti-patterns §4, output contract §6).

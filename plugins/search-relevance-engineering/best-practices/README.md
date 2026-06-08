@@ -1,26 +1,24 @@
-# search-relevance-engineering — best-practice docs
+# Search & Relevance Engineering best-practice docs
 
-Named, citable rules for the `search-relevance-engineering` plugin's specialists. Each file is **one rule**.
+Named, citable rules for the `search-relevance-engineering` plugin's 4 specialist agents. Each file is one rule — read, applied, and cited whole. Grounded in this plugin's `knowledge/` bank and its agent constitutions.
 
 ---
 
 ## Index
 
-_6 rules._
+_8 rules. Each file is one named, citable rule — one per house opinion (§3)._
 
 | Doc | Status | Use when |
 |---|---|---|
-| [`hybrid-beats-pure-vector-for-most-corpora.md`](./hybrid-beats-pure-vector-for-most-corpora.md) | Pattern | Choosing a retrieval strategy for any mixed corpus |
-| [`measure-relevance-with-judgments-not-vibes.md`](./measure-relevance-with-judgments-not-vibes.md) | Absolute rule | Before any tuning cycle, and before declaring a change "better" |
-| [`chunk-for-the-question-not-the-document.md`](./chunk-for-the-question-not-the-document.md) | Pattern | Designing or reviewing a chunking strategy for RAG or semantic search |
-| [`rerank-when-recall-is-cheap-and-precision-is-not.md`](./rerank-when-recall-is-cheap-and-precision-is-not.md) | Pattern | Deciding whether to add a cross-encoder reranker to a retrieval pipeline |
-| [`an-embedding-model-is-a-choice-not-a-default.md`](./an-embedding-model-is-a-choice-not-a-default.md) | Pattern | Selecting an embedding model for any search or RAG pipeline |
-| [`evaluate-retrieval-separately-from-generation.md`](./evaluate-retrieval-separately-from-generation.md) | Absolute rule | Debugging a RAG pipeline or attributing quality failures |
-
----
+| [`relevance-is-measured-not-vibed.md`](./relevance-is-measured-not-vibed.md) | Absolute rule | Any search & relevance engineering deliverable where this question is in play. |
+| [`analyzer-mapping-and-tokenization-decisions-are-relevance-decisions.md`](./analyzer-mapping-and-tokenization-decisions-are-relevance-decisions.md) | Absolute rule | Any search & relevance engineering deliverable where this question is in play. |
+| [`build-a-judgment-list-offline-eval-before-tuning.md`](./build-a-judgment-list-offline-eval-before-tuning.md) | Pattern | Any search & relevance engineering deliverable where this question is in play. |
+| [`latency-vs-relevance-is-a-real-tradeoff-set-a-budget.md`](./latency-vs-relevance-is-a-real-tradeoff-set-a-budget.md) | Pattern | Any search & relevance engineering deliverable where this question is in play. |
+| [`recall-before-precision-you-can-t-rank-what-you-didn-t-retrieve.md`](./recall-before-precision-you-can-t-rank-what-you-didn-t-retrieve.md) | Absolute rule | Any search & relevance engineering deliverable where this question is in play. |
+| [`validate-online-with-a-b-offline-gains-don-t-always-transfer.md`](./validate-online-with-a-b-offline-gains-don-t-always-transfer.md) | Pattern | Any search & relevance engineering deliverable where this question is in play. |
+| [`design-the-index-for-the-query-patterns.md`](./design-the-index-for-the-query-patterns.md) | Pattern | Any search & relevance engineering deliverable where this question is in play. |
+| [`date-and-source-any-benchmark-or-figure.md`](./date-and-source-any-benchmark-or-figure.md) | Absolute rule | Any search & relevance engineering deliverable where this question is in play. |
 
 ## See also
-
-- [`../CLAUDE.md`](../CLAUDE.md) — plugin team constitution.
-- [`../knowledge/search-retrieval-decision-trees.md`](../knowledge/search-retrieval-decision-trees.md) — decision trees + 2026 capability map.
-- [`../../../docs/best-practices/README.md`](../../../docs/best-practices/README.md) — marketplace-wide best-practice docs.
+- [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.
+- [`../CLAUDE.md`](../CLAUDE.md) — the team constitution (house opinions §3, anti-patterns §4, output contract §6).

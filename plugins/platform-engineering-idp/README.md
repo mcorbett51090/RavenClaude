@@ -1,53 +1,33 @@
 # platform-engineering-idp
 
-The **platform-as-a-product** layer that sits above CI/CD and the cluster. This plugin's team helps
-you decide whether to build a platform team, stand up an **internal developer platform (IDP)** and
-developer portal, author **golden paths / paved roads** with **self-service infrastructure**, and
-**measure developer experience** so the platform earns adoption instead of mandating it.
+A **Platform Engineering (IDP) specialist team** for a platform engineering lead, DevEx analyst, or eng manager accountable for developer productivity and platform adoption. It treats the platform as a product with developers as customers, paves golden paths instead of issuing mandates, measures DevEx with DORA and lead time rather than opinions, and runs the platform on SLOs and an error budget like any service.
 
-> **The one-line philosophy:** the platform is a product, developers are its customers, and the
-> platform team's KPI is _someone else's_ velocity. Pave the 80% path, keep an escape hatch, make it
-> self-service, and measure the friction you removed — not the features you shipped.
+> Inherits the [`ravenclaude-core`](../ravenclaude-core/) protocols (claim-grounding, structured output, decision review). Maturity-explicit, stack-flexible (greenfield platform | ticket-ops escape | scaling team | multi-tenant).
 
-## When to use this plugin (vs. its neighbours)
+## What you get
 
-| You're asking… | Use |
+| Surface | Contents |
 |---|---|
-| "Should we build a platform team / an IDP? What first?" | **platform-engineering-idp** (`platform-product-lead`) |
-| "Set up Backstage / model our software catalog / add a software template" | **platform-engineering-idp** (`idp-portal-engineer`) |
-| "Make spinning up a new service / new infra self-service" | **platform-engineering-idp** (`golden-path-engineer`) |
-| "Measure & improve developer experience / platform adoption" | **platform-engineering-idp** (`devex-metrics-engineer`) |
-| "Design the CI pipeline / rollout the golden path _runs_" | `devops-cicd` |
-| "Run the workload on Kubernetes / Argo / Helm" | `cloud-native-kubernetes` |
-| "Author the Terraform module behind the self-service button" | `terraform-iac` |
-| "Instrument the SLO / deploy-health signal" | `observability-sre` |
-| "Make the TechDocs content actually good" | `technical-writing-docs` |
+| **4 agents** | `platform-eng-lead`, `golden-path-architect`, `developer-experience-analyst`, `platform-reliability-specialist` |
+| **5 skills / commands** | `classify-dora` · `measure-adoption` · `design-golden-path` · `quantify-toil` · `set-platform-slos` |
+| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **4 templates** | scorecard · exec readout · golden-path-spec.md · platform-slo-sheet.md |
+| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, internal credentials/PII) in generated deliverables |
+| **`scripts/platform_engineering_idp_calc.py`** | stdlib calculator — `dora` · `adoption` · `toil` |
 
-## What's inside
+## Install
 
-- **4 agents** — `platform-product-lead`, `idp-portal-engineer`, `golden-path-engineer`,
-  `devex-metrics-engineer`.
-- **5 skills** — platform-as-product operating model, golden-path design, IDP/portal setup,
-  self-service infrastructure, DevEx measurement.
-- **4 commands** — `/platform-engineering-idp:assess-platform-maturity`,
-  `:design-golden-path`, `:scaffold-software-catalog`, `:measure-devex`.
-- **4 templates** — golden-path spec, Backstage `catalog-info.yaml`, paved-road RFC, platform
-  maturity scorecard.
-- **Knowledge bank** — `knowledge/platform-engineering-decision-trees.md`: Mermaid trees for
-  buy-vs-build IDP, golden-path scoping, the self-service boundary, platform-team topology, and
-  maturity staging, plus a dated 2026 capability map.
-- **12 best-practices**, a **scenarios** bank (4 field notes), and **1 advisory hook**
-  (flags mandate-language, ticket-driven "self-service", vanity metrics, no escape hatch).
+```shell
+/plugin marketplace add mcorbett51090/RavenClaude
+/plugin install platform-engineering-idp@ravenclaude
+```
 
-## House opinions (the short list)
+## Quickstart
 
-1. The platform is a product; adoption is earned, not mandated.
-2. Pave the 80% path; keep an escape hatch for the 20%.
-3. Self-service or it isn't a platform.
-4. Reduce cognitive load — that's the whole job.
-5. Measure outcomes (adoption, time-to-prod, friction), not output.
-6. Start with the thinnest viable platform; buy/adopt before you build.
+> "We built a platform but nobody's using it — why?"
 
-## Requires
+The `platform-eng-lead` scopes the problem, routes to `golden-path-architect` (or a sibling specialist), and synthesizes a ranked action plan with owners, dates, and expected metric movement.
 
-`ravenclaude-core@>=0.7.0`. See [`CLAUDE.md`](CLAUDE.md) for the full team constitution and seams.
+## What it is not
+
+a general SRE on-call rotation, a cloud-cost FinOps function, or a security-compliance authority. It does not run production incident command, set cloud budgets, or make security/compliance determinations — those route to the qualified authority.

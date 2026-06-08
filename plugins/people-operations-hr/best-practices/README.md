@@ -1,26 +1,24 @@
-# people-operations-hr — best-practice docs
+# People Operations / HR best-practice docs
 
-Named, citable rules for the `people-operations-hr` plugin's specialists. Each file is **one rule**.
+Named, citable rules for the `people-operations-hr` plugin's 4 specialist agents and any consultant running a People-Ops engagement. Each file is one rule — read, applied, and cited whole. Grounded in this plugin's `knowledge/` bank and its agent constitutions.
 
 ---
 
 ## Index
 
-_6 rules._
+_8 rules. Each file is one named, citable rule — one per house opinion (§3)._
 
 | Doc | Status | Use when |
-|-----|--------|----------|
-| [`structured-interviews-beat-gut-feel.md`](./structured-interviews-beat-gut-feel.md) | Absolute rule | Designing or reviewing any hiring process |
-| [`set-comp-bands-before-offers-not-after.md`](./set-comp-bands-before-offers-not-after.md) | Pattern | Making a comp offer or designing the offer process |
-| [`calibrate-to-fight-rater-bias.md`](./calibrate-to-fight-rater-bias.md) | Pattern | Running any performance review cycle |
-| [`comp-and-pii-are-need-to-know.md`](./comp-and-pii-are-need-to-know.md) | Absolute rule | Handling any comp figure or individual people data |
-| [`performance-is-continuous-feedback-not-an-annual-event.md`](./performance-is-continuous-feedback-not-an-annual-event.md) | Pattern | Designing or operating a performance system |
-| [`people-analytics-measures-the-system-never-punishes-the-individual.md`](./people-analytics-measures-the-system-never-punishes-the-individual.md) | Absolute rule | Designing or consuming any people analytics |
-
----
+|---|---|---|
+| [`attrition-has-a-cost-and-a-cause-quantify-both.md`](./attrition-has-a-cost-and-a-cause-quantify-both.md) | Absolute rule | Any People-Ops / HR deliverable where this question is in play — read, applied, and cited whole. |
+| [`pay-to-a-defensible-band-not-the-counteroffer.md`](./pay-to-a-defensible-band-not-the-counteroffer.md) | Absolute rule | Any People-Ops / HR deliverable where this question is in play — read, applied, and cited whole. |
+| [`time-to-fill-and-quality-of-hire-are-a-system.md`](./time-to-fill-and-quality-of-hire-are-a-system.md) | Absolute rule | Any People-Ops / HR deliverable where this question is in play — read, applied, and cited whole. |
+| [`engagement-is-a-leading-indicator-read-it-segmented.md`](./engagement-is-a-leading-indicator-read-it-segmented.md) | Pattern | Any People-Ops / HR deliverable where this question is in play — read, applied, and cited whole. |
+| [`pay-equity-control-for-legitimate-factors.md`](./pay-equity-control-for-legitimate-factors.md) | Absolute rule | Any People-Ops / HR deliverable where this question is in play — read, applied, and cited whole. |
+| [`headcount-is-the-budget-model-the-plan.md`](./headcount-is-the-budget-model-the-plan.md) | Pattern | Any People-Ops / HR deliverable where this question is in play — read, applied, and cited whole. |
+| [`manager-quality-is-the-largest-controllable-driver.md`](./manager-quality-is-the-largest-controllable-driver.md) | Pattern | Any People-Ops / HR deliverable where this question is in play — read, applied, and cited whole. |
+| [`date-and-source-any-benchmark-or-regulation-figure.md`](./date-and-source-any-benchmark-or-regulation-figure.md) | Absolute rule | Any People-Ops / HR deliverable where this question is in play — read, applied, and cited whole. |
 
 ## See also
-
-- [`../CLAUDE.md`](../CLAUDE.md) — plugin team constitution.
-- [`../knowledge/people-ops-decision-trees.md`](../knowledge/people-ops-decision-trees.md) — decision trees + 2026 capability map.
-- [`../../../docs/best-practices/README.md`](../../../docs/best-practices/README.md) — marketplace-wide best-practice docs.
+- [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.
+- [`../CLAUDE.md`](../CLAUDE.md) — the team constitution (house opinions §3, anti-patterns §4, output contract §6).

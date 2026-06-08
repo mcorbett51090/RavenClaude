@@ -1,23 +1,13 @@
 # Changelog — platform-engineering-idp
 
-All notable changes to this plugin are documented here. Versions follow semver and are kept in sync
-with `.claude-plugin/plugin.json` and the marketplace catalog.
+All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change (AGENTS.md).
 
-## 0.1.0 — 2026-06-08
+## [0.1.0] — 2026-06-08
 
-Initial release. Created as candidate **#1** of the 2026-06-08 twenty-candidate-plugins research
-(`docs/research/2026-06-08-twenty-candidate-plugins/`), prioritized first on demand (Gartner: 80% of
-large software-engineering orgs to have platform teams by 2026; Backstage ≈89% IDP-portal share),
-feasibility, and fit (sits directly above the existing devops-cicd + cloud-native-kubernetes +
-observability-sre + technical-writing-docs cluster).
+Initial release.
 
-- 4 agents: `platform-product-lead`, `idp-portal-engineer`, `golden-path-engineer`,
-  `devex-metrics-engineer` — each with the scenario-authoring frontmatter schema.
-- 5 skills: platform-as-product operating model, golden-path design, IDP/portal setup, self-service
-  infrastructure, DevEx measurement.
-- 4 commands: assess-platform-maturity, design-golden-path, scaffold-software-catalog, measure-devex.
-- 4 templates: golden-path spec, Backstage `catalog-info.yaml`, paved-road RFC, platform maturity
-  scorecard.
-- Knowledge bank: `platform-engineering-decision-trees.md` (5 Mermaid decision trees + a dated 2026
-  capability map of the IDP/portal landscape).
-- 12 best-practices, a 4-note scenarios bank, and 1 advisory PreToolUse hook.
+- **4 agents** — `platform-eng-lead`, `golden-path-architect`, `developer-experience-analyst`, `platform-reliability-specialist`, each carrying the full scenario-authoring schema.
+- **5 skills + 5 commands** — `classify-dora`, `measure-adoption`, `design-golden-path`, `quantify-toil`, `set-platform-slos`.
+- **4-file knowledge bank** — KPI glossary, unit economics, 2025–2026 context, and Mermaid decision trees.
+- **`scripts/platform_engineering_idp_calc.py`** — stdlib calculator: `dora`, `adoption`, `toil`. Decision-support only.
+- **4 templates · 8 best-practice rules · scenarios bank · 1 advisory hook**.

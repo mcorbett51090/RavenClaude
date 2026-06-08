@@ -1,53 +1,16 @@
-# Platform Engineering & IDP scenarios bank
+# Platform Engineering (IDP) scenarios bank
 
-> Unverified, dated, scope-tagged narratives from real platform-engineering engagements. War stories
-> of "we hit X problem, here was the situation, these were our constraints, we tried A/B/C, D worked."
+Dated, scope-tagged, **unverified** engagement narratives for the `platform-engineering-idp` plugin (the marketplace scenarios pattern; see [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md)).
 
-This directory holds **scenarios** — field notes from real platform work. Scenarios are:
+**How to use these:** a scenario is a *secondary* source. Surface a matching one only behind the mandatory unverified-scenario preamble, and never let it override the cited [`../knowledge/`](../knowledge/) bank or a qualified authority (§2). No internal credentials/PII (§2). Benchmark figures are `[unverified — training knowledge]` (§3 #8).
 
-- **Schema-validated** but **not maintainer-reviewed**
-- **Visible to consumers** via `/plugin install`
-- **Consulted by agents** as a _secondary_ source — always surfaced with the mandatory
-  unverified-scenario preamble
+## Index
 
-For the full architecture and the retrieval pattern, see
-[`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md).
-Canonical knowledge lives in [`../knowledge/`](../knowledge/) and `docs/best-practices/`; scenarios
-never replace it.
+| Scenario | Scope | Pattern |
+|---|---|---|
+| [`2026-06-08-platform-built-nobody-came.md`](./2026-06-08-platform-built-nobody-came.md) | likely-general | A feature-rich platform sat at 20% adoption because the paved path was harder than the workaround |
+| [`2026-06-08-devex-claim-was-sentiment.md`](./2026-06-08-devex-claim-was-sentiment.md) | likely-general | 'Developers are happier' couldn't be defended until it was a DORA classification |
+| [`2026-06-08-platform-had-no-slos.md`](./2026-06-08-platform-had-no-slos.md) | likely-general | A platform recommended as the golden path had no SLOs, so its flakiness silently capped adoption |
 
-## The 9-field schema
-
-```yaml
----
-scenario_id: <YYYY-MM-DD-short-slug>
-contributed_at: <YYYY-MM-DD>
-plugin: platform-engineering-idp
-product: <backstage | port | crossplane | argo-cd | generic | etc.>
-product_version: <"2026.04" | "unknown">
-scope: tenant-specific | version-specific | likely-general
-tags: [3-7 keywords]
-confidence: low | medium | high
-reviewed: false
----
-
-## Problem
-## Context
-## Attempts
-## Resolution
-```
-
-## What's in this bank
-
-| File | Scope | Tags | Confidence |
-|---|---|---|---|
-| [`2026-06-08-low-portal-adoption.md`](2026-06-08-low-portal-adoption.md) | likely-general | backstage, adoption, portal, catalog-freshness, devex | high |
-| [`2026-06-08-golden-path-became-a-cage.md`](2026-06-08-golden-path-became-a-cage.md) | likely-general | golden-path, escape-hatch, shadow-platform, paved-road | high |
-| [`2026-06-08-ticket-driven-self-service.md`](2026-06-08-ticket-driven-self-service.md) | likely-general | self-service, crossplane, guardrails, service-desk, infra | medium |
-| [`2026-06-08-vanity-platform-metrics.md`](2026-06-08-vanity-platform-metrics.md) | likely-general | devex, dora, space, vanity-metrics, adoption-funnel | high |
-
-## Promotion path
-
-When ≥2 independent scenarios (different `contributed_at` quarters, different engagements) corroborate
-the same finding, an agent proposes promotion to a `knowledge/` decision tree or `docs/best-practices/`.
-Promotion is manual and the scenarios stay in place after a rule is canonicalized — the narrative
-remains useful context.
+## See also
+- [`../knowledge/platform-engineering-idp-decision-trees.md`](../knowledge/platform-engineering-idp-decision-trees.md) — the trees these scenarios traverse.

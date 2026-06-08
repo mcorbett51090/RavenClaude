@@ -1,26 +1,24 @@
-# automotive-dealership — best-practice docs
+# Automotive Dealership Operations best-practice docs
 
-Named, citable rules for the `automotive-dealership` plugin's specialists. Each file is **one rule**.
+Named, citable rules for the `automotive-dealership` plugin's 4 specialist agents. Each file is one rule — read, applied, and cited whole. Grounded in this plugin's `knowledge/` bank and its agent constitutions.
 
 ---
 
 ## Index
 
-_6 rules._
+_8 rules. Each file is one named, citable rule — one per house opinion (§3)._
 
 | Doc | Status | Use when |
 |---|---|---|
-| [`fixed-ops-pays-the-bills-chase-absorption.md`](./fixed-ops-pays-the-bills-chase-absorption.md) | Pattern | Prioritizing dealership investment and improvement efforts |
-| [`days-supply-drives-floor-plan-cost.md`](./days-supply-drives-floor-plan-cost.md) | Pattern | Managing new/used inventory levels and sourcing decisions |
-| [`fni-must-clear-compliance-no-payment-packing.md`](./fni-must-clear-compliance-no-payment-packing.md) | Absolute rule | Any F&I process design, training, or improvement discussion |
-| [`desk-to-the-gross-not-just-to-the-deal.md`](./desk-to-the-gross-not-just-to-the-deal.md) | Pattern | Sales desking, deal structure, and front-end gross management |
-| [`recon-time-is-holding-cost.md`](./recon-time-is-holding-cost.md) | Pattern | Used-vehicle reconditioning process and SLA management |
-| [`protect-customer-npi-glba-safeguards.md`](./protect-customer-npi-glba-safeguards.md) | Absolute rule | Any handling, storage, or transmission of customer financial information |
-
----
+| [`fixed-ops-is-the-profit-engine-don-t-run-the-store-on-new-car-gross.md`](./fixed-ops-is-the-profit-engine-don-t-run-the-store-on-new-car-gross.md) | Absolute rule | Any automotive dealership operations deliverable where this question is in play. |
+| [`inventory-days-supply-and-floorplan-cost-are-carrying-cost-cash.md`](./inventory-days-supply-and-floorplan-cost-are-carrying-cost-cash.md) | Absolute rule | Any automotive dealership operations deliverable where this question is in play. |
+| [`total-gross-per-unit-is-front-plus-back-manage-both.md`](./total-gross-per-unit-is-front-plus-back-manage-both.md) | Pattern | Any automotive dealership operations deliverable where this question is in play. |
+| [`f-i-product-penetration-is-high-margin-revenue-measure-per-unit.md`](./f-i-product-penetration-is-high-margin-revenue-measure-per-unit.md) | Pattern | Any automotive dealership operations deliverable where this question is in play. |
+| [`service-absorption-rate-is-the-survival-metric.md`](./service-absorption-rate-is-the-survival-metric.md) | Absolute rule | Any automotive dealership operations deliverable where this question is in play. |
+| [`the-lead-to-sold-funnel-has-conversions-manage-ups-write-ups-and-close.md`](./the-lead-to-sold-funnel-has-conversions-manage-ups-write-ups-and-close.md) | Pattern | Any automotive dealership operations deliverable where this question is in play. |
+| [`csi-and-retention-drive-repeat-sales-and-the-service-annuity.md`](./csi-and-retention-drive-repeat-sales-and-the-service-annuity.md) | Pattern | Any automotive dealership operations deliverable where this question is in play. |
+| [`date-and-source-any-benchmark-or-figure-route-legal-professional-deter.md`](./date-and-source-any-benchmark-or-figure-route-legal-professional-deter.md) | Absolute rule | Any automotive dealership operations deliverable where this question is in play. |
 
 ## See also
-
-- [`../CLAUDE.md`](../CLAUDE.md) — plugin team constitution.
-- [`../knowledge/automotive-dealership-decision-trees.md`](../knowledge/automotive-dealership-decision-trees.md) — the decision trees + 2026 capability map.
-- [`../../../docs/best-practices/README.md`](../../../docs/best-practices/README.md) — marketplace-wide best-practice docs.
+- [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.
+- [`../CLAUDE.md`](../CLAUDE.md) — the team constitution (house opinions §3, anti-patterns §4, output contract §6).

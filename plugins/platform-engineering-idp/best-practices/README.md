@@ -1,32 +1,24 @@
-# platform-engineering-idp — best-practice docs
+# Platform Engineering (IDP) best-practice docs
 
-Named, citable rules for the `platform-engineering-idp` plugin's specialists. Each file is **one rule**.
+Named, citable rules for the `platform-engineering-idp` plugin's 4 specialist agents. Each file is one rule — read, applied, and cited whole. Grounded in this plugin's `knowledge/` bank and its agent constitutions.
 
 ---
 
 ## Index
 
-_12 rules._
+_8 rules. Each file is one named, citable rule — one per house opinion (§3)._
 
 | Doc | Status | Use when |
 |---|---|---|
-| [`platform-is-a-product-adoption-is-earned.md`](./platform-is-a-product-adoption-is-earned.md) | Absolute rule | Deciding how to drive platform adoption |
-| [`pave-the-80-keep-an-escape-hatch.md`](./pave-the-80-keep-an-escape-hatch.md) | Absolute rule | Scoping any golden path / paved road |
-| [`the-supported-way-must-be-the-easiest-way.md`](./the-supported-way-must-be-the-easiest-way.md) | Absolute rule | Authoring or reviewing a paved road |
-| [`self-service-means-no-ticket-for-the-common-case.md`](./self-service-means-no-ticket-for-the-common-case.md) | Absolute rule | Designing a self-service capability |
-| [`guardrails-not-gates-on-the-happy-path.md`](./guardrails-not-gates-on-the-happy-path.md) | Pattern | Making a high-blast-radius action self-service |
-| [`catalog-as-code-every-entity-owned.md`](./catalog-as-code-every-entity-owned.md) | Absolute rule | Modeling or maintaining a software catalog |
-| [`reduce-cognitive-load-is-the-charter.md`](./reduce-cognitive-load-is-the-charter.md) | Pattern | Justifying any platform feature |
-| [`measure-outcomes-not-output.md`](./measure-outcomes-not-output.md) | Absolute rule | Choosing platform/DevEx metrics |
-| [`never-measure-individual-developers.md`](./never-measure-individual-developers.md) | Absolute rule | Designing any DevEx measurement |
-| [`start-with-the-thinnest-viable-platform.md`](./start-with-the-thinnest-viable-platform.md) | Pattern | Starting a platform team / IDP |
-| [`buy-or-adopt-before-you-build.md`](./buy-or-adopt-before-you-build.md) | Pattern | Choosing a portal / IDP technology |
-| [`a-recurring-escape-is-a-signal-to-pave-a-variant.md`](./a-recurring-escape-is-a-signal-to-pave-a-variant.md) | Pattern | Maintaining a golden path over time |
-
----
+| [`the-platform-is-a-product-developers-are-its-customers.md`](./the-platform-is-a-product-developers-are-its-customers.md) | Absolute rule | Any platform engineering (idp) deliverable where this question is in play. |
+| [`golden-paths-paved-roads-beat-mandates.md`](./golden-paths-paved-roads-beat-mandates.md) | Absolute rule | Any platform engineering (idp) deliverable where this question is in play. |
+| [`measure-devex-with-dora-and-lead-time-not-opinions.md`](./measure-devex-with-dora-and-lead-time-not-opinions.md) | Pattern | Any platform engineering (idp) deliverable where this question is in play. |
+| [`self-service-beats-ticket-ops.md`](./self-service-beats-ticket-ops.md) | Pattern | Any platform engineering (idp) deliverable where this question is in play. |
+| [`reduce-cognitive-load-abstract-the-right-things-not-everything.md`](./reduce-cognitive-load-abstract-the-right-things-not-everything.md) | Absolute rule | Any platform engineering (idp) deliverable where this question is in play. |
+| [`run-platform-slos-and-an-error-budget-like-any-service.md`](./run-platform-slos-and-an-error-budget-like-any-service.md) | Pattern | Any platform engineering (idp) deliverable where this question is in play. |
+| [`adoption-is-the-success-metric-not-features-shipped.md`](./adoption-is-the-success-metric-not-features-shipped.md) | Pattern | Any platform engineering (idp) deliverable where this question is in play. |
+| [`date-and-source-any-benchmark-or-dora-figure.md`](./date-and-source-any-benchmark-or-dora-figure.md) | Absolute rule | Any platform engineering (idp) deliverable where this question is in play. |
 
 ## See also
-
-- [`../CLAUDE.md`](../CLAUDE.md) — plugin team constitution.
-- [`../knowledge/platform-engineering-decision-trees.md`](../knowledge/platform-engineering-decision-trees.md) — the decision trees + 2026 capability map.
-- [`../../../docs/best-practices/README.md`](../../../docs/best-practices/README.md) — marketplace-wide best-practice docs.
+- [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.
+- [`../CLAUDE.md`](../CLAUDE.md) — the team constitution (house opinions §3, anti-patterns §4, output contract §6).

@@ -1,26 +1,24 @@
-# customer-support-cx-operations — best-practice docs
+# Customer Support & CX Operations best-practice docs
 
-Named, citable rules for the `customer-support-cx-operations` plugin's specialists. Each file is **one rule**.
+Named, citable rules for the `customer-support-cx-operations` plugin's 4 specialist agents. Each file is one rule — read, applied, and cited whole. Grounded in this plugin's `knowledge/` bank and its agent constitutions.
 
 ---
 
 ## Index
 
-_6 rules._
+_8 rules. Each file is one named, citable rule — one per house opinion (§3)._
 
 | Doc | Status | Use when |
-| --- | --- | --- |
-| [`deflect-with-answers-not-walls.md`](./deflect-with-answers-not-walls.md) | Pattern | Designing any self-service or AI-deflection flow |
-| [`csat-and-ces-measure-different-things.md`](./csat-and-ces-measure-different-things.md) | Pattern | Designing or reporting on any satisfaction measurement program |
-| [`staff-to-the-curve-not-the-average-erlang.md`](./staff-to-the-curve-not-the-average-erlang.md) | Absolute rule | Any staffing model, SLA commitment, or headcount plan |
-| [`every-escalation-carries-a-reason-code.md`](./every-escalation-carries-a-reason-code.md) | Pattern | Designing or auditing any tier/escalation model |
-| [`the-knowledge-base-is-the-product.md`](./the-knowledge-base-is-the-product.md) | Pattern | KB audits, deflection strategy, content roadmap work |
-| [`ai-deflection-must-know-when-to-hand-off.md`](./ai-deflection-must-know-when-to-hand-off.md) | Absolute rule | Any AI-deflection or bot-design work |
-
----
+|---|---|---|
+| [`deflection-before-headcount-self-service-and-kb-beat-hiring.md`](./deflection-before-headcount-self-service-and-kb-beat-hiring.md) | Absolute rule | Any customer support & cx operations deliverable where this question is in play. |
+| [`staff-to-forecast-volume-and-target-occupancy-not-a-fixed-agent-ticket.md`](./staff-to-forecast-volume-and-target-occupancy-not-a-fixed-agent-ticket.md) | Absolute rule | Any customer support & cx operations deliverable where this question is in play. |
+| [`read-csat-and-nps-segmented-by-channel-tier-and-issue-type-never-blend.md`](./read-csat-and-nps-segmented-by-channel-tier-and-issue-type-never-blend.md) | Pattern | Any customer support & cx operations deliverable where this question is in play. |
+| [`first-contact-resolution-drives-both-cost-and-satisfaction-it-is-the-m.md`](./first-contact-resolution-drives-both-cost-and-satisfaction-it-is-the-m.md) | Pattern | Any customer support & cx operations deliverable where this question is in play. |
+| [`backlog-and-sla-are-a-flow-arrivals-versus-handle-capacity.md`](./backlog-and-sla-are-a-flow-arrivals-versus-handle-capacity.md) | Absolute rule | Any customer support & cx operations deliverable where this question is in play. |
+| [`tier-and-escalation-design-routes-complexity-don-t-make-every-agent-om.md`](./tier-and-escalation-design-routes-complexity-don-t-make-every-agent-om.md) | Pattern | Any customer support & cx operations deliverable where this question is in play. |
+| [`qa-sampling-must-be-statistically-meaningful-not-a-vanity-audit.md`](./qa-sampling-must-be-statistically-meaningful-not-a-vanity-audit.md) | Pattern | Any customer support & cx operations deliverable where this question is in play. |
+| [`date-and-source-any-benchmark-route-legal-professional-determinations-.md`](./date-and-source-any-benchmark-route-legal-professional-determinations-.md) | Absolute rule | Any customer support & cx operations deliverable where this question is in play. |
 
 ## See also
-
-- [`../CLAUDE.md`](../CLAUDE.md) — plugin team constitution.
-- [`../knowledge/cx-ops-decision-trees.md`](../knowledge/cx-ops-decision-trees.md) — decision trees + 2026 capability map.
-- [`../../../docs/best-practices/README.md`](../../../docs/best-practices/README.md) — marketplace-wide best-practice docs.
+- [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.
+- [`../CLAUDE.md`](../CLAUDE.md) — the team constitution (house opinions §3, anti-patterns §4, output contract §6).

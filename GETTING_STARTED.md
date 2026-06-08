@@ -70,6 +70,26 @@ To add Power Platform:
 bash ~/RavenClaude/scripts/ravenclaude setup --project . --with-plugin power-platform
 ```
 
+#### Updating RavenClaude (Copilot CLI)
+
+Because the Copilot bridge loads everything **live from your marketplace clone**, an update is just `git pull` followed by a re-wire of the current project:
+
+```shell
+# Pull latest upstream changes
+cd ~/RavenClaude && git pull
+
+# Re-wire skills, hooks, and posture into the current project
+bash ~/RavenClaude/scripts/ravenclaude setup --project . --with-plugin power-platform
+```
+
+> 💡 Include `--with-plugin power-platform` **only if that plugin was part of your original setup**. A base (core-only) update omits it:
+>
+> ```shell
+> bash ~/RavenClaude/scripts/ravenclaude setup --project .
+> ```
+>
+> `ravenclaude setup` is **idempotent** — it's safe to re-run anytime, and it never clobbers an existing comfort-posture.
+
 For a brand-new repo where you'd rather type **nothing**, run `bash ~/RavenClaude/scripts/ravenclaude init-codespace --project .`, commit the resulting `.devcontainer/` files, and rebuild the Codespace — the post-create script does the rest (installs Node 22+, git-lfs, Copilot CLI, runs `setup`, auto-launches the dashboard on the forwarded port).
 
 ### 2 · Open the dashboard (≈30 sec)

@@ -1,15 +1,15 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-hooks.json",
-  "description": "Plugin-distributed hooks for people-operations-hr. Auto-merged with the consumer's session hooks on install. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the install location.",
+  "description": "Plugin-distributed hooks for people-operations-hr. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
   "hooks": {
-    "PreToolUse": [
+    "PostToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-people-operations-hr-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
-            "comment": "Advisory: flags HR anti-patterns (biased JD language, plaintext PII/SSN, comp figures without bands, interviews without structured scorecards). Set PEOPLE_OPS_HR_STRICT=1 to make it blocking."
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-people-operations-hr-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: review this People-Ops deliverable against the §3 house opinions (baseline on every metric, source+date on every benchmark, no employee PII). Set PEOPLE_OPERATIONS_HR_STRICT=1 to make it blocking."
           }
         ]
       }

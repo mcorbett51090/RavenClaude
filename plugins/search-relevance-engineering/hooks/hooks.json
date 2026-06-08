@@ -1,15 +1,15 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-hooks.json",
-  "description": "Plugin-distributed hooks for search-relevance-engineering. Auto-merged with the consumer's session hooks on install. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the install location.",
+  "description": "Plugin-distributed hooks for search-relevance-engineering. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
   "hooks": {
-    "PreToolUse": [
+    "PostToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-search-relevance-engineering-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
-            "comment": "Advisory: flags search anti-patterns (vector-only without lexical consideration, hardcoded chunk size, relevance claim without metrics, reranker without recall note). Set SEARCH_RE_STRICT=1 to make it blocking."
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-search-relevance-engineering-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: review this Search & Relevance Engineering deliverable against the §3 house opinions (baseline on every metric, source+date on every benchmark, no query/user PII). Set SEARCH_RELEVANCE_ENGINEERING_STRICT=1 to make it blocking."
           }
         ]
       }

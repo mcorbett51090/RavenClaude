@@ -1,51 +1,33 @@
 # search-relevance-engineering
 
-The **search and retrieval layer** — from index design through query understanding, relevance
-tuning, vector/hybrid retrieval, and offline/online evaluation. This plugin's team fills the gap
-that `claude-app-engineering` only touches at the app surface, owning everything from the
-retrieval topology down to the nDCG score that proves it works.
+A **Search & Relevance Engineering specialist team** for a search relevance engineer, ranking analyst, or platform lead accountable for search quality, latency, and conversion. It measures relevance with NDCG/MRR rather than vibes, treats analyzer/mapping decisions as relevance decisions, builds a judgment list before tuning, and validates online with A/B because offline gains don't always transfer.
 
-> **The one-line philosophy:** measure before you tune, hybrid almost always beats pure-vector,
-> chunk for the question not the document, and evaluate retrieval separately from generation.
+> Inherits the [`ravenclaude-core`](../ravenclaude-core/) protocols (claim-grounding, structured output, decision review). Engine-flexible, corpus-explicit (greenfield search | relevance-tuning | reindex/mapping fix | latency reduction).
 
-## When to use this plugin (vs. its neighbours)
+## What you get
 
-| You're asking… | Use |
+| Surface | Contents |
 |---|---|
-| "Should we use Elasticsearch, Pinecone, or pgvector? Design our search stack." | **search-relevance-engineering** (`search-architect`) |
-| "Our search results are irrelevant — tune BM25, synonyms, analyzers, LTR." | **search-relevance-engineering** (`relevance-engineer`) |
-| "Build semantic search, choose an embedding model, design chunking, add a reranker." | **search-relevance-engineering** (`vector-retrieval-engineer`) |
-| "Measure search quality — nDCG, MRR, A/B test a ranking change, build judgment sets." | **search-relevance-engineering** (`search-eval-engineer`) |
-| "Build the RAG prompt / generation chain on top of retrieved context." | `claude-app-engineering` |
-| "Build the embedding ingestion pipeline / batch embedding job." | `data-platform` / `ml-engineering` |
-| "Design the API contract in front of search." | `api-engineering` |
-| "Run A/B significance tests on ranking changes." | `applied-statistics` |
+| **4 agents** | `search-relevance-lead`, `relevance-tuning-analyst`, `indexing-mapping-specialist`, `query-performance-specialist` |
+| **5 skills / commands** | `measure-relevance` · `build-judgment-list` · `fix-analyzer` · `validate-online` · `set-latency-budget` |
+| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **4 templates** | scorecard · exec readout · relevance-eval-sheet.md · index-sizing-sheet.md |
+| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, query/user PII) in generated deliverables |
+| **`scripts/search_relevance_engineering_calc.py`** | stdlib calculator — `relevance` · `latency-budget` · `index-sizing` |
 
-## What's inside
+## Install
 
-- **4 agents** — `search-architect`, `relevance-engineer`, `vector-retrieval-engineer`,
-  `search-eval-engineer`.
-- **3 skills** — `lexical-vector-hybrid-retrieval`, `relevance-tuning`, `retrieval-evaluation`.
-- **3 commands** — `/search-relevance-engineering:design-search-architecture`,
-  `:tune-relevance`, `:build-relevance-judgments`.
-- **2 templates** — `relevance-judgment-set.md`, `index-mapping-spec.md`.
-- **Knowledge bank** — `knowledge/search-retrieval-decision-trees.md`: Mermaid trees for
-  lexical-vs-vector-vs-hybrid, chunking strategy, and rerank-or-not, plus a dated 2026
-  capability map.
-- **6 best-practices** and **1 advisory hook** (flags vector-only designs, hardcoded chunk
-  sizes, relevance claims without metrics, rerankers without recall/latency notes).
-- **`scripts/search_eval.py`** — stdlib-only nDCG@k, MRR, recall@k, precision@k calculator
-  with self-test.
+```shell
+/plugin marketplace add mcorbett51090/RavenClaude
+/plugin install search-relevance-engineering@ravenclaude
+```
 
-## House opinions (the short list)
+## Quickstart
 
-1. Measure before you tune — baseline nDCG/MRR first, then change one thing.
-2. Hybrid almost always beats pure-vector for real corpora.
-3. Chunk for the question, not the document.
-4. An embedding model is a choice — benchmark on your corpus.
-5. Evaluate retrieval separately from generation.
-6. Rerank when recall is cheap and precision is expensive.
+> "Our search results feel bad — how do we actually fix relevance?"
 
-## Requires
+The `search-relevance-lead` scopes the problem, routes to `relevance-tuning-analyst` (or a sibling specialist), and synthesizes a ranked action plan with owners, dates, and expected metric movement.
 
-`ravenclaude-core@>=0.7.0`. See [`CLAUDE.md`](CLAUDE.md) for the full team constitution and seams.
+## What it is not
+
+a recommendation-systems research lab, a database-administration function, or a UX/product-copy authority. It does not own personalized recsys modeling, cluster ops, or UX design — those route to the qualified authority.

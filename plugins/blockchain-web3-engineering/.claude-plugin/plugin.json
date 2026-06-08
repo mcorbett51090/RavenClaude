@@ -1,0 +1,24 @@
+{
+  "name": "blockchain-web3-engineering",
+  "version": "0.1.0",
+  "description": "Blockchain & Web3 Engineering specialist team — 4 agents (web3-architect-lead, smart-contract-security-analyst, gas-optimization-specialist, protocol-economics-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A Web3 team for an engineer or protocol architect accountable for a contract system that holds value — it treats deploy as irreversible and audit as the gate, holds reentrancy/access-control/arithmetic as the top vuln classes, reads gas as UX and cost, and tests invariants not just the happy path. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "blockchain",
+    "web3",
+    "smart-contracts",
+    "solidity",
+    "gas-optimization",
+    "defi",
+    "security-audit",
+    "evm",
+    "tokenomics"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

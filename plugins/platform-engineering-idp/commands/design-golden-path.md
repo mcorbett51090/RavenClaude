@@ -1,18 +1,22 @@
 ---
-description: "Author a golden path / paved road: scope the supported create-build-deploy-run journey, bake in defaults (CI, observability, security baseline, ownership), make it the easiest way, and design the escape hatch."
-argument-hint: "[the common service shape, e.g. 'stateless Node HTTP service deployed to our EKS cluster']"
+description: "Design a paved road that is the lowest-friction compliant option, with self-service actions and guardrails. Reach for this on a paved-road question."
+argument-hint: "[the situation, e.g. the metric / segment / matter in question]"
 ---
 
-You are running `/platform-engineering-idp:design-golden-path`. Use the `golden-path-engineer`
-discipline and the `golden-path-design` skill.
+# Design golden path
 
-## Steps
+You are running `/platform-engineering-idp:design-golden-path` for `$ARGUMENTS`. Run it the way the team's specialists would — applying the house opinions in [`../CLAUDE.md`](../CLAUDE.md) §3.
 
-1. Confirm there's an ~80% common shape worth paving (if all bespoke, gather the common shape first).
-2. Traverse the golden-path-scoping tree; scope create -> build -> deploy -> run.
-3. Bake in defaults: CI wiring, observability, security baseline, owner + catalog entry.
-4. Verify the supported way is the *easiest* way; remove friction until it is.
-5. Design the escape hatch (allowed + unsupported) and the rule for folding recurring escapes into new
-   variants.
-6. Fill `templates/golden-path-spec.md`; hand the create step to idp-portal-engineer, the pipeline to
-   devops-cicd, the modules to terraform-iac/cloud-native-kubernetes; emit the Structured Output block.
+## Steps (traverse top-to-bottom; do not skip)
+1. Map the developer journey — The steps a team takes today, with each ticket and hand-off marked as debt (§3 #4).
+2. Pave the easy path — Make the compliant option the lowest-friction one via self-service (§3 #2 #4).
+3. Set the guardrails — A policy check on the paved action, not a human ticket (§3 #4).
+4. Decide pave vs mandate — Pave unless impossible; quantify removed toil via `platform_engineering_idp_calc.py toil`.
+
+## Output
+A golden-path design that is the easy compliant option, with guardrails and removed toil named. Traverse Tree 2 in the decision-trees file. See [`../skills/design-golden-path/SKILL.md`](../skills/design-golden-path/SKILL.md).
+
+## Guardrails
+- Apply the §3 house opinions before any method; resist a single-cause story.
+- No internal credentials/PII in the output; cite a source + date for every external figure (or mark it).
+- End with owner / date / expected movement on each recommendation.

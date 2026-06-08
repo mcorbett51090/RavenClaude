@@ -1,23 +1,23 @@
 {
   "name": "people-operations-hr",
   "version": "0.1.0",
-  "description": "Internal HR & People Operations specialist team — 4 agents covering the full employee lifecycle: people-ops-lead (HRIS, policy, onboarding, lifecycle), talent-acquisition-strategist (structured hiring, interview loops, scorecards, sourcing, bias reduction), performance-and-comp-analyst (performance cycles, calibration, comp bands, leveling, pay equity, merit), people-analytics-engineer (attrition/retention, headcount, engagement, ethical people analytics). Ships 3 skills (structured-hiring, performance-and-calibration, comp-bands-and-leveling), 3 commands, 2 templates, decision-tree knowledge bank with 2026 capability map, 6 best-practices, and 1 advisory hook flagging biased JD language, plaintext PII, unanchored comp figures, and unscored interviews. Inherits ravenclaude-core protocols.",
+  "description": "People Operations / HR specialist team — 4 agents (people-ops-lead, talent-acquisition-strategist, total-rewards-comp-analyst, people-analytics-engagement-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A People-Ops team for an HRBP, People-Ops leader, or founder accountable for headcount, attrition, comp, and engagement — it quantifies attrition cost and cause before acting, pays to a defensible band rather than the counteroffer, treats time-to-fill and quality-of-hire as a hiring system, and reads engagement segmented as a leading indicator of regretted exits. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"
   },
   "homepage": "https://github.com/mcorbett51090/RavenClaude",
   "license": "MIT",
   "keywords": [
-    "hr",
     "people-operations",
+    "human-resources",
     "talent-acquisition",
-    "hiring",
-    "onboarding",
-    "performance-management",
     "compensation",
-    "leveling",
-    "hris",
-    "people-analytics"
+    "pay-equity",
+    "attrition",
+    "retention",
+    "employee-engagement",
+    "headcount-planning",
+    "hrbp"
   ],
   "requires": {
     "plugins": ["ravenclaude-core@>=0.7.0"]

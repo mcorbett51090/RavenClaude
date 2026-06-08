@@ -1,23 +1,22 @@
 {
   "name": "automotive-dealership",
   "version": "0.1.0",
-  "description": "Automotive dealership operations specialist team — 5 agents covering the full dealership P&L: dealership-ops-lead (store KPIs, daily operating report, variable/fixed-ops mix), fixed-ops-analyst (service & parts, absorption rate, ELR, technician productivity, CSI), fni-advisor (F&I process, PVR, product penetration, lender relationships, compliant — no payment packing), inventory-and-desking-analyst (new/used days-supply, floor-plan cost, recon, sales desking), dealership-compliance-advisor (GLBA Safeguards, NPI handling, OFAC/Red Flags, advertising disclosure). Ships 3 skills, 3 commands, 2 templates, 6 best-practices, 1 advisory hook, and a dealer calculator script. Inherits ravenclaude-core protocols.",
+  "description": "Automotive Dealership Operations specialist team — 4 agents (dealership-operations-lead, sales-desking-analyst, fixed-ops-service-specialist, fi-products-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An operations team for a dealer principal or GM accountable for total gross, fixed-ops absorption, and inventory turn — it runs the store on fixed-ops not new-car gross, manages days-supply and floorplan as carrying-cost cash, reads total gross per unit as front plus back, and treats absorption as the survival metric. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"
   },
   "homepage": "https://github.com/mcorbett51090/RavenClaude",
   "license": "MIT",
   "keywords": [
-    "automotive",
+    "automotive-retail",
     "dealership",
     "fixed-ops",
-    "fni",
-    "inventory",
-    "floor-plan",
-    "desking",
-    "compliance",
-    "glba",
-    "absorption-rate"
+    "floorplan",
+    "days-supply",
+    "fi-penetration",
+    "total-gross",
+    "absorption",
+    "csi"
   ],
   "requires": {
     "plugins": ["ravenclaude-core@>=0.7.0"]

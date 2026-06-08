@@ -1,7 +1,7 @@
 {
   "name": "platform-engineering-idp",
   "version": "0.1.0",
-  "description": "Platform-engineering & internal-developer-platform team — 4 agents (platform-product-lead, idp-portal-engineer, golden-path-engineer, devex-metrics-engineer) for the 'platform-as-a-product' layer above CI/CD: treating the platform as a product with developers as customers, building an IDP / developer portal (Backstage and alternatives, software catalog, scaffolder templates, TechDocs), authoring golden paths / paved roads and self-service infrastructure (Crossplane, Score, portal-fronted Terraform modules with guardrails), and measuring developer experience (DORA + SPACE + DevEx, adoption funnel, time-to-prod). 5 skills, 4 commands, 4 templates, a Mermaid decision-tree knowledge bank + a dated 2026 capability map, 12 best-practices, a scenarios bank, and 1 advisory hook. Seams: pipeline -> devops-cicd, cluster -> cloud-native-kubernetes, deploy/SLO -> observability-sre, docs -> technical-writing-docs, IaC -> terraform-iac. Requires ravenclaude-core@>=0.7.0.",
+  "description": "Platform Engineering (IDP) specialist team — 4 agents (platform-eng-lead, golden-path-architect, developer-experience-analyst, platform-reliability-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A platform-engineering team for a platform lead or eng director accountable for developer productivity and adoption — it treats the platform as a product with developers as customers, paves golden paths over mandates, measures DevEx with DORA and lead time, and runs the platform on SLOs and an error budget. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"
   },
@@ -10,20 +10,12 @@
   "keywords": [
     "platform-engineering",
     "internal-developer-platform",
-    "idp",
-    "backstage",
     "golden-path",
-    "paved-road",
     "developer-experience",
-    "devex",
-    "software-catalog",
-    "self-service",
-    "platform-as-a-product",
-    "team-topologies",
     "dora-metrics",
-    "space-framework",
-    "crossplane",
-    "scaffolder"
+    "self-service",
+    "cognitive-load",
+    "platform-slo"
   ],
   "requires": {
     "plugins": ["ravenclaude-core@>=0.7.0"]

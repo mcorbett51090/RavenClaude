@@ -12,8 +12,8 @@
     {
       "name": "ravenclaude-core",
       "source": "./plugins/ravenclaude-core",
-      "description": "Domain-neutral Claude Code foundation: a Team Lead that dispatches 14 specialist agents (architect, coders, reviewers, tester-QA, data-engineer, project-manager, documentarian, designer, prompt-engineer, partner-success), 35 skills, format/lint/test gates, hooks, rules, and templates. Ships the Capability Grounding Protocol (decision-tree + alternate-methods enumeration + honest blocked-reporting), the Structured Output Protocol for handoffs, a Researcher meta-skill, a point-and-click comfort-posture dashboard that writes Claude Code permission rules per layer and per permission on a 3-level deny/ask/allow scale, an opt-in command-review tribunal (the Thing), a WebFetch return-envelope sanitizer (webfetch-hardening + sanitize-webfetch-body.py), a sanctioned escape hatch (branch-archive + archive-branch.sh) for retiring stale branches, and brand-extraction (homepage → brand kit: logos + a design-token schema for on-brand reports). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /doctor.",
-      "version": "0.126.1",
+      "description": "Domain-neutral Claude Code foundation: a Team Lead that dispatches 14 specialist agents (architect, coders, reviewers, tester-QA, data-engineer, project-manager, documentarian, designer, prompt-engineer, partner-success), 36 skills, format/lint/test gates, hooks, rules, and templates. Ships the Capability Grounding Protocol (decision-tree + alternate-methods enumeration + honest blocked-reporting), the Structured Output Protocol for handoffs, a Researcher meta-skill, a point-and-click comfort-posture dashboard that writes Claude Code permission rules per layer and per permission on a 3-level deny/ask/allow scale, an opt-in command-review tribunal (the Thing), a WebFetch return-envelope sanitizer (webfetch-hardening + sanitize-webfetch-body.py), a sanctioned escape hatch (branch-archive + archive-branch.sh) for retiring stale branches, and brand-extraction (homepage → brand kit: logos + a design-token schema for on-brand reports). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /doctor.",
+      "version": "0.128.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1450,152 +1450,89 @@
       ]
     },
     {
-      "name": "platform-engineering-idp",
-      "source": "./plugins/platform-engineering-idp",
-      "description": "Platform-engineering & internal-developer-platform team — 4 agents (platform-product-lead, idp-portal-engineer, golden-path-engineer, devex-metrics-engineer) for the 'platform-as-a-product' layer above CI/CD: treating the platform as a product with developers as customers, building an IDP / developer portal (Backstage and alternatives, software catalog, scaffolder templates, TechDocs), authoring golden paths / paved roads and self-service infrastructure (Crossplane, Score, portal-fronted Terraform modules with guardrails), and measuring developer experience (DORA + SPACE + DevEx, adoption funnel, time-to-prod). 5 skills, 4 commands, 4 templates, a Mermaid decision-tree knowledge bank + a dated 2026 capability map, 12 best-practices, a scenarios bank, and 1 advisory hook. Seams: pipeline -> devops-cicd, cluster -> cloud-native-kubernetes, deploy/SLO -> observability-sre, docs -> technical-writing-docs, IaC -> terraform-iac. Requires ravenclaude-core@>=0.7.0.",
+      "name": "people-operations-hr",
+      "source": "./plugins/people-operations-hr",
+      "description": "People Operations / HR specialist team — 4 agents (people-ops-lead, talent-acquisition-strategist, total-rewards-comp-analyst, people-analytics-engagement-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A People-Ops team for an HRBP, People-Ops leader, or founder accountable for headcount, attrition, comp, and engagement — it quantifies attrition cost and cause before acting, pays to a defensible band rather than the counteroffer, treats time-to-fill and quality-of-hire as a hiring system, and reads engagement segmented as a leading indicator of regretted exits. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
       },
       "keywords": [
-        "platform-engineering",
-        "internal-developer-platform",
-        "idp",
-        "backstage",
-        "golden-path",
-        "paved-road",
-        "developer-experience",
-        "devex",
-        "software-catalog",
-        "self-service",
-        "platform-as-a-product",
-        "team-topologies",
-        "dora-metrics",
-        "space-framework",
-        "crossplane"
+        "people-operations",
+        "human-resources",
+        "talent-acquisition",
+        "compensation",
+        "pay-equity",
+        "attrition",
+        "retention",
+        "employee-engagement",
+        "headcount-planning"
       ]
     },
     {
-      "name": "finops-cloud-cost",
-      "source": "./plugins/finops-cloud-cost",
-      "description": "FinOps & cloud-cost-engineering team — 4 agents (finops-practice-lead, cost-optimization-engineer, cost-allocation-engineer, ai-cost-governance-engineer) for cross-cloud cost governance. Covers the FinOps Framework (inform/optimize/operate), maturity crawl/walk/run, unit economics, showback/chargeback, tagging, FOCUS spec, rightsizing, commitment management (RIs/Savings Plans/CUDs), anomaly detection, and AI/GenAI token-cost governance. 3 skills, 3 commands, 2 templates, Mermaid decision-tree knowledge bank, 6 best-practices, 1 advisory hook, and finops_calc.py. Cross-cloud cost is its domain; provider-specific infra defers to aws/azure/gcp-cloud; token app cost seams to claude-app-engineering. Requires ravenclaude-core@>=0.7.0.",
+      "name": "sales-revops",
+      "source": "./plugins/sales-revops",
+      "description": "Sales & Revenue Operations specialist team — 4 agents (revops-lead, pipeline-forecast-analyst, funnel-conversion-strategist, quota-territory-architect), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A RevOps team for a sales-ops leader or founder accountable for pipeline, forecast accuracy, and quota attainment — it reads pipeline as coverage-against-quota, forecasts from stage-weighted history, designs quota to capacity, and treats win-rate and sales-cycle as a funnel system. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
       },
       "keywords": [
-        "finops",
-        "cloud-cost",
-        "cost-optimization",
-        "cost-allocation",
-        "showback",
-        "chargeback",
-        "unit-economics",
-        "rightsizing",
-        "reserved-instances",
-        "savings-plans",
-        "committed-use-discounts",
-        "tagging",
-        "focus-spec",
-        "cost-anomaly-detection",
-        "ai-cost-governance",
-        "token-cost",
-        "multi-cloud"
-      ]
-    },
-    {
-      "name": "revenue-operations",
-      "source": "./plugins/revenue-operations",
-      "description": "Revenue Operations (RevOps) specialist team — 4 agents covering the lead-to-cash funnel: revops-lead (operating model, GTM data model, RevOps maturity), crm-operations-architect (CRM-as-process, object/stage model, data hygiene, dedupe, single source of truth), sales-comp-and-territory-analyst (quota setting, territory design, comp plan design, capacity planning), pipeline-forecast-engineer (stage exit-criteria, forecast methodology, coverage/velocity, pipeline integrity). Ships 3 skills (pipeline-hygiene-and-stage-definitions, forecasting-methodology, comp-and-territory-design), 3 commands, 2 templates, decision-tree knowledge bank, 6 best-practices, an advisory hook, and a stdlib calculator. Inherits ravenclaude-core protocols (Grounding, Structured Output).",
-      "version": "0.1.0",
-      "author": {
-        "name": "Matt Corbett"
-      },
-      "keywords": [
+        "sales-operations",
         "revops",
-        "revenue-operations",
-        "crm",
-        "salesforce",
-        "hubspot",
         "pipeline",
-        "forecasting",
-        "sales-compensation",
-        "territory-design",
+        "forecast",
         "quota",
-        "gtm-analytics",
-        "lead-to-cash"
+        "win-rate",
+        "sales-cycle",
+        "territory",
+        "capacity-planning"
+      ]
+    },
+    {
+      "name": "accounting-bookkeeping",
+      "source": "./plugins/accounting-bookkeeping",
+      "description": "Accounting & Bookkeeping Practice specialist team — 4 agents (accounting-practice-lead, close-cycle-analyst, ap-ar-cashflow-specialist, reconciliation-controls-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A practice-ops team for a bookkeeping/accounting practice owner or controller accountable for a timely, clean close — it closes on a cadence and tracks days-to-close, reconciles before reporting, reads AR/AP as working-capital levers, and enforces segregation of duties. Tax and audit opinions route to a licensed CPA. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "accounting",
+        "bookkeeping",
+        "month-end-close",
+        "reconciliation",
+        "accounts-payable",
+        "accounts-receivable",
+        "cash-conversion-cycle",
+        "internal-controls",
+        "chart-of-accounts"
       ]
     },
     {
       "name": "customer-support-cx-operations",
       "source": "./plugins/customer-support-cx-operations",
-      "description": "Customer-support and contact-center CX operations specialist team — 4 agents covering deflection and self-service strategy, support quality and CSAT/CES/NPS programs, knowledge base as product, and workforce/queue design (Erlang C staffing, SLA/abandonment, demand forecasting). Ships 3 skills (deflection-and-knowledge-strategy, support-quality-and-csat, workforce-and-queue-design), 3 commands, 2 templates, 6 best-practices, 1 advisory anti-pattern hook, and a stdlib calculator (Erlang C, deflection ROI, CSAT/CES, FTE shrinkage). Distinct from data-platform (ticket normalization), customer-success-analytics (account health), and claude-app-engineering (AI-agent build). Inherits ravenclaude-core protocols.",
+      "description": "Customer Support & CX Operations specialist team — 4 agents (support-ops-lead, ticket-deflection-analyst, queue-staffing-specialist, csat-quality-strategist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A support-ops team for a head of support, CX manager, or founder accountable for cost-to-serve and SLA attainment — it deflects before hiring, staffs to forecast and occupancy, reads CSAT segmented, and treats backlog as arrivals-against-capacity flow. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
       },
       "keywords": [
         "customer-support",
-        "contact-center",
         "cx-operations",
-        "csat",
-        "ces",
-        "nps",
         "deflection",
-        "knowledge-base",
-        "erlang-c",
-        "workforce-management",
-        "sla",
-        "qa-scorecard"
+        "staffing",
+        "occupancy",
+        "sla-backlog",
+        "csat",
+        "first-contact-resolution",
+        "queue-management"
       ]
     },
     {
-      "name": "search-relevance-engineering",
-      "source": "./plugins/search-relevance-engineering",
-      "description": "Search & retrieval engineering specialists — 4 agents (search-architect, relevance-engineer, vector-retrieval-engineer, search-eval-engineer) and 3 skills (lexical-vector-hybrid-retrieval, relevance-tuning, retrieval-evaluation) covering Elasticsearch/OpenSearch, vector and hybrid (BM25 + dense) search, embeddings, chunking, reranking, relevance tuning and evaluation (nDCG/MRR), and the RAG retrieval tier. Fills the gap that claude-app-engineering only touches at the app surface. Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
-      "author": {
-        "name": "Matt Corbett"
-      },
-      "keywords": [
-        "search",
-        "elasticsearch",
-        "opensearch",
-        "vector-search",
-        "hybrid-search",
-        "embeddings",
-        "reranking",
-        "rag-retrieval",
-        "relevance-engineering",
-        "bm25",
-        "nDCG",
-        "information-retrieval"
-      ]
-    },
-    {
-      "name": "supply-chain-planning",
-      "source": "./plugins/supply-chain-planning",
-      "description": "Supply-chain planning specialists — the plan layer between buy and move: S&OP/IBP cycle orchestration, demand forecasting (statistical + consensus, MAPE/bias, new-product, seasonality), inventory optimization (safety stock, service-level targets, ABC/XYZ, EOQ, multi-echelon, working-capital tradeoff), and MRP/replenishment. Ships 4 agents (supply-chain-planner, demand-planning-analyst, inventory-optimization-engineer, sop-process-lead), 3 skills (demand-forecasting, inventory-policy-and-safety-stock, sop-process), 3 commands, 2 templates, a decision-tree knowledge bank, 6 best-practices, and an advisory anti-pattern hook. Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
-      "author": {
-        "name": "Matt Corbett"
-      },
-      "keywords": [
-        "supply-chain",
-        "s-and-op",
-        "demand-planning",
-        "inventory-optimization",
-        "safety-stock",
-        "mrp",
-        "replenishment",
-        "forecasting",
-        "ibp"
-      ]
-    },
-    {
-      "name": "marketing-operations-demand-gen",
-      "source": "./plugins/marketing-operations-demand-gen",
-      "description": "Marketing operations & demand generation specialist team — 4 agents covering the martech/demand-gen layer: marketing-ops-lead (martech stack, MQL→SQL handoff SLA, build-vs-buy), demand-gen-strategist (channel mix, campaign strategy, pipeline contribution, ABM vs inbound), marketing-automation-engineer (nurture/lifecycle flows, lead scoring implementation, deliverability, data hygiene), attribution-analyst (multi-touch attribution, UTM taxonomy, marketing-sourced pipeline, ROI). Ships 3 skills (lead-scoring-and-lifecycle, attribution-modeling, campaign-operations), 3 commands, 2 templates, a decision-tree knowledge bank, 6 best-practices, and 1 advisory hook flagging missing UTM conventions, attribution claims without a named model, hard-coded conversion-rate/CAC figures without a date, and email sends without a consent/suppression note. Inherits ravenclaude-core protocols.",
+      "name": "marketing-operations",
+      "source": "./plugins/marketing-operations",
+      "description": "Marketing Operations specialist team — 4 agents (marketing-ops-lead, demand-gen-funnel-analyst, attribution-analytics-specialist, martech-campaign-architect), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A marketing-ops team for a CMO, demand-gen analyst, or founder accountable for pipeline contribution and CAC efficiency — it reads the MQL→SQL→opp→win funnel as a system, states the attribution model before any number, gates spend on LTV:CAC and payback, and reports revenue contribution over lead volume. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -1603,46 +1540,19 @@
       "keywords": [
         "marketing-operations",
         "demand-generation",
-        "marketing-automation",
-        "lead-scoring",
+        "funnel",
         "attribution",
-        "campaign-ops",
-        "mql-sql-handoff",
-        "nurture",
-        "utm-taxonomy",
-        "martech"
+        "cac-ltv",
+        "lead-scoring",
+        "channel-mix",
+        "martech",
+        "pipeline-contribution"
       ]
     },
     {
-      "name": "retail-store-operations",
-      "source": "./plugins/retail-store-operations",
-      "description": "Brick-and-mortar retail store operations team — 5 agents (store-ops-lead, merchandising-analyst, inventory-and-replenishment-analyst, labor-scheduling-analyst, loss-prevention-advisor) covering four-wall P&L and store KPIs, assortment and planogram compliance, inventory accuracy and replenishment, labor scheduling to traffic, and shrink root-cause and loss prevention. 3 skills, 3 commands, 2 templates, Mermaid decision-tree knowledge bank + 2026 capability map, 6 best-practices, and 1 advisory hook. Seams: online/DTC -> ecommerce-dtc, upstream demand planning -> supply-chain-planning, buying -> procurement-sourcing. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
-      "author": {
-        "name": "Matt Corbett"
-      },
-      "keywords": [
-        "retail",
-        "store-operations",
-        "merchandising",
-        "planogram",
-        "inventory",
-        "replenishment",
-        "labor-scheduling",
-        "loss-prevention",
-        "shrink",
-        "gmroi",
-        "pos",
-        "bopis",
-        "omnichannel",
-        "store-kpis",
-        "brick-and-mortar"
-      ]
-    },
-    {
-      "name": "wealth-management-advisory",
-      "source": "./plugins/wealth-management-advisory",
-      "description": "RIA / financial-advisor practice team — 5 agents covering the advisor's book (practice model, AUM growth, client segmentation), financial-planning process (goals, retirement, cash-flow, tax-aware), portfolio review and rebalancing narrative (asset allocation, IPS, fees), client relationship management (review-meeting prep, prospecting, referrals), and advisory compliance (Reg BI, suitability, fiduciary duty, disclosures). Ships 3 skills, 3 commands, 2 templates, Mermaid decision trees, 6 best-practices, and an advisory hook flagging compliance anti-patterns. Employer-neutral; US regulatory framing. NOT personalized investment advice — helps an advisor prepare their own work. Inherits ravenclaude-core protocols.",
+      "name": "wealth-management-ria",
+      "source": "./plugins/wealth-management-ria",
+      "description": "Wealth Management (RIA Practice) specialist team — 4 agents (ria-practice-lead, aum-revenue-analyst, client-segmentation-specialist, compliance-cadence-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A practice-ops team for an RIA principal, COO, or ops lead accountable for organic growth and advisor capacity — it separates net-new flows from market appreciation, segments clients by profitability, sizes capacity by households, and treats the compliance cadence as non-negotiable. NOT investment advice; fiduciary/SEC determinations route to compliance counsel. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -1650,259 +1560,289 @@
       "keywords": [
         "wealth-management",
         "ria",
-        "financial-advisor",
-        "financial-planning",
-        "portfolio-review",
-        "rebalancing",
-        "reg-bi",
-        "suitability",
-        "fiduciary",
-        "prospecting",
-        "aum-growth"
+        "aum",
+        "net-new-flows",
+        "organic-growth",
+        "client-segmentation",
+        "advisor-capacity",
+        "client-retention",
+        "compliance-cadence"
       ]
     },
     {
-      "name": "people-operations-hr",
-      "source": "./plugins/people-operations-hr",
-      "description": "Internal HR & People Operations specialist team — 4 agents covering the full employee lifecycle: people-ops-lead (HRIS, policy, onboarding, lifecycle), talent-acquisition-strategist (structured hiring, interview loops, scorecards, sourcing, bias reduction), performance-and-comp-analyst (performance cycles, calibration, comp bands, leveling, pay equity, merit), people-analytics-engineer (attrition/retention, headcount, engagement, ethical people analytics). Ships 3 skills (structured-hiring, performance-and-calibration, comp-bands-and-leveling), 3 commands, 2 templates, decision-tree knowledge bank with 2026 capability map, 6 best-practices, and 1 advisory hook flagging biased JD language, plaintext PII, unanchored comp figures, and unscored interviews. Inherits ravenclaude-core protocols.",
+      "name": "accessibility-engineering",
+      "source": "./plugins/accessibility-engineering",
+      "description": "Accessibility Engineering specialist team — 4 agents (accessibility-lead, wcag-audit-analyst, assistive-tech-testing-specialist, inclusive-design-strategist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An accessibility team for an a11y lead or product owner accountable for WCAG conformance — it picks a conformance target and measures against it, treats automated scans as a fraction of the picture, holds keyboard and screen-reader parity as the floor, reaches for semantic HTML before ARIA, and verifies contrast ratios. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
       },
       "keywords": [
-        "hr",
-        "people-operations",
-        "talent-acquisition",
-        "hiring",
-        "onboarding",
-        "performance-management",
-        "compensation",
-        "leveling",
-        "hris",
-        "people-analytics"
-      ]
-    },
-    {
-      "name": "accounting-firm-cpa",
-      "source": "./plugins/accounting-firm-cpa",
-      "description": "US public-accounting / CPA-firm operations team — 5 agents covering firm economics (realization, utilization, leverage, capacity, service-line mix), tax-season workflow (1040/1120/1065, extensions, review tiers, e-file), Client Accounting Services (monthly close-as-a-service, bookkeeping, controller-as-a-service, tech stack), attest engagements (planning, PBC lists, risk assessment, workpapers, independence), and advisory/CAS upsell (pricing, packaging, client advisory). Ships 3 skills (tax-season-workflow, client-accounting-services, engagement-and-workpaper-management), 3 commands, 2 templates, a decision-tree knowledge bank, 6 best-practices, an advisory anti-pattern hook, and a firm-economics calculator. Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
-      "author": {
-        "name": "Matt Corbett"
-      },
-      "keywords": [
-        "accounting",
-        "cpa",
-        "public-accounting",
-        "tax",
-        "audit",
-        "cas",
-        "engagement-management",
-        "workpapers",
-        "firm-economics",
-        "advisory"
-      ]
-    },
-    {
-      "name": "hospitality-hotels",
-      "source": "./plugins/hospitality-hotels",
-      "description": "Hotel and lodging operations specialist team — 5 agents covering revenue management (RevPAR/ADR/occupancy optimization, forecasting, demand calendar, length-of-stay controls, overbooking), reservations and channel management (OTA vs direct, net-ADR, parity, GDS), guest experience and reputation (the guest journey, service recovery, review management), rooms and housekeeping (productivity, room-status flow, par levels, labor), and the property operating model (USALI P&L, GOPPAR, departmental structure). Ships 3 skills (revenue-management-and-pricing, channel-and-distribution, guest-experience-and-reputation), 3 commands, 2 templates, a decision-tree knowledge bank with a 2026 capability map, 6 best-practices, an advisory anti-pattern hook, and a stdlib calculator (RevPAR, ADR, occupancy, GOPPAR, net ADR, displacement). Inherits ravenclaude-core protocols. Seams: F&B to restaurant-operations; demand-gen to marketing-operations-demand-gen; analytics pipelines to data-platform.",
-      "version": "0.1.0",
-      "author": {
-        "name": "Matt Corbett"
-      },
-      "keywords": [
-        "hospitality",
-        "hotels",
-        "lodging",
-        "revenue-management",
-        "revpar",
-        "adr",
-        "occupancy",
-        "goppar",
-        "channel-management",
-        "ota",
-        "guest-experience",
-        "housekeeping",
-        "front-desk",
-        "pms",
-        "rms"
-      ]
-    },
-    {
-      "name": "property-management-residential",
-      "source": "./plugins/property-management-residential",
-      "description": "Residential property management specialist team — 4 agents covering the full leasing and tenant lifecycle (leasing-strategist), maintenance and work-order operations (maintenance-operations-analyst), rent collection and delinquency management (pm-ops-lead), and fair-housing / screening / habitability compliance (pm-compliance-advisor). Ships 3 skills (leasing-and-tenant-lifecycle, maintenance-and-work-orders, rent-collection-and-delinquency), 3 commands, 2 templates, a decision-tree knowledge bank, 6 best-practice rules, and an advisory hook flagging fair-housing language, tenant PII, inconsistent screening, and work orders lacking SLAs. Includes a stdlib calculator for occupancy, NOI, delinquency rate, turn cost, and rent-to-income ratio. Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
-      "author": {
-        "name": "Matt Corbett"
-      },
-      "keywords": [
-        "property-management",
-        "residential",
-        "leasing",
-        "tenant-lifecycle",
-        "maintenance",
-        "work-orders",
-        "rent-collection",
-        "fair-housing",
-        "noi",
-        "occupancy"
-      ]
-    },
-    {
-      "name": "field-service-management",
-      "source": "./plugins/field-service-management",
-      "description": "Field-service management & dispatch operations specialist team — 4 agents covering the service operating model (SLAs, contracts, dispatch-to-cash), dispatch & scheduling (skill/SLA/geo optimization, emergency vs planned), technician productivity (utilization, first-time-fix, MTTR, callbacks), and parts & inventory (truck stock, service-level tradeoffs, returns). Ships 3 skills (dispatch-and-scheduling, technician-productivity-and-first-time-fix, truck-stock-and-parts), 3 commands, 2 templates, 6 best-practices, a decision-tree knowledge bank, and an advisory hook flagging FSM anti-patterns. Domain: HVAC, plumbing, elevator, medical-device service. Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
-      "author": {
-        "name": "Matt Corbett"
-      },
-      "keywords": [
-        "field-service",
-        "dispatch",
-        "scheduling",
-        "technician",
-        "first-time-fix",
-        "truck-stock",
-        "sla",
-        "hvac",
-        "preventive-maintenance",
-        "mobile-workforce"
-      ]
-    },
-    {
-      "name": "localization-i18n-engineering",
-      "source": "./plugins/localization-i18n-engineering",
-      "description": "Internationalization (i18n) and localization (l10n) engineering specialists — 3 agents covering i18n architecture (string externalization, ICU MessageFormat, RTL/bidi, locale data), the l10n pipeline (extraction, TMS handoff, translation memory, continuous localization), and localization QA (pseudo-localization, l10n linting in CI, visual overflow QA, locale-coverage testing). Ships 3 skills, 3 commands, 2 templates, a decision-tree knowledge bank with a 2026 i18n/TMS capability map, 6 best-practice rules, and an advisory hook flagging i18n anti-patterns (hard-coded user-facing strings, string concatenation, if-count-1 plurals, hard-coded date/number formats). Inherits ravenclaude-core protocols (Grounding, Structured Output).",
-      "version": "0.1.0",
-      "author": {
-        "name": "Matt Corbett"
-      },
-      "keywords": [
-        "i18n",
-        "l10n",
-        "internationalization",
-        "localization",
-        "icu-messageformat",
-        "tms",
-        "rtl",
-        "pseudo-localization",
-        "string-extraction",
-        "translation-memory"
-      ]
-    },
-    {
-      "name": "construction-general-contractor",
-      "source": "./plugins/construction-general-contractor",
-      "description": "General-contractor project delivery team — 5 agents covering the full GC lifecycle: project P&L/billing/closeout (gc-project-lead), takeoff/bid assembly/markup (estimating-and-takeoff-analyst), CPM scheduling/critical-path/float (scheduling-engineer), submittal log/RFIs/change-order process (submittal-rfi-coordinator), and jobsite safety/JHA/OSHA hazard prevention (jobsite-safety-advisor). Ships 3 skills (estimating-and-bidding, cpm-scheduling, submittals-rfis-change-orders), 3 commands, 2 templates, a decision-tree knowledge bank, 6 best-practices, an advisory anti-pattern hook, and a stdlib calculator. Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
-      "author": {
-        "name": "Matt Corbett"
-      },
-      "keywords": [
-        "construction",
-        "general-contractor",
-        "estimating",
-        "cpm-scheduling",
-        "submittals",
-        "change-orders",
-        "jobsite-safety",
-        "rfis",
-        "takeoff",
-        "project-delivery"
-      ]
-    },
-    {
-      "name": "public-sector-govtech",
-      "source": "./plugins/public-sector-govtech",
-      "description": "Government and civic-tech delivery specialist team — 4 agents covering digital-service delivery (USDS/18F-style agile in a compliance context), public procurement (RFP/RFI response and structuring for SLED/federal), grants management (lifecycle, restricted-fund tracking, Uniform Guidance/single audit), and Section 508/WCAG accessibility plus FOIA/public-records. Ships 3 skills (public-procurement-and-rfp, grants-management, accessibility-508-and-records), 3 commands, 2 templates, a knowledge bank with bid-no-bid and FedRAMP decision trees, 6 best-practices, and an advisory hook flagging govtech anti-patterns. Inherits ravenclaude-core protocols (Grounding, Structured Output, Cited-Adjudicator).",
-      "version": "0.1.0",
-      "author": {
-        "name": "Matt Corbett"
-      },
-      "keywords": [
-        "government",
-        "govtech",
-        "public-sector",
-        "procurement",
-        "rfp",
-        "grants",
-        "section-508",
+        "accessibility",
         "wcag",
-        "foia",
-        "fedramp",
-        "stateramp",
-        "citizen-services",
-        "plain-language"
+        "a11y",
+        "screen-reader",
+        "keyboard-navigation",
+        "aria",
+        "color-contrast",
+        "inclusive-design",
+        "section-508"
       ]
     },
     {
-      "name": "behavioral-mental-health-practice",
-      "source": "./plugins/behavioral-mental-health-practice",
-      "description": "Outpatient behavioral and mental-health clinic operations team — 5 agents covering practice operating model, intake and scheduling, clinical documentation, telehealth, and billing compliance. 3 skills (intake-and-access, clinical-documentation-and-treatment-planning, behavioral-billing-and-authorization). Helps the practice operate: access/capacity, waitlist, no-show reduction, treatment-plan structure, measurement-based care, telehealth workflow, state-licensure considerations, 42 CFR Part 2 vs HIPAA, authorization tracking, and CPT/units framing. NOT clinical advice. Inherits ravenclaude-core protocols.",
+      "name": "blockchain-web3-engineering",
+      "source": "./plugins/blockchain-web3-engineering",
+      "description": "Blockchain & Web3 Engineering specialist team — 4 agents (web3-architect-lead, smart-contract-security-analyst, gas-optimization-specialist, protocol-economics-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A Web3 team for an engineer or protocol architect accountable for a contract system that holds value — it treats deploy as irreversible and audit as the gate, holds reentrancy/access-control/arithmetic as the top vuln classes, reads gas as UX and cost, and tests invariants not just the happy path. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
       },
       "keywords": [
-        "behavioral-health",
-        "mental-health",
-        "outpatient",
-        "telehealth",
-        "hipaa",
-        "42-cfr-part-2",
-        "measurement-based-care",
-        "intake",
-        "authorization",
-        "clinical-documentation"
+        "blockchain",
+        "web3",
+        "smart-contracts",
+        "solidity",
+        "gas-optimization",
+        "defi",
+        "security-audit",
+        "evm",
+        "tokenomics"
       ]
     },
     {
-      "name": "embedded-iot-firmware",
-      "source": "./plugins/embedded-iot-firmware",
-      "description": "Embedded systems & IoT firmware specialist team — 4 agents covering bare-metal vs RTOS architecture, peripheral driver engineering, RTOS task design, and device-to-cloud connectivity. Ships 3 skills (bare-metal-and-rtos, low-power-and-peripherals, iot-connectivity-and-ota), 3 commands, 2 templates, a knowledge bank with decision trees, 6 best-practice rules, and an advisory hook flagging ISR-blocking, heap-in-hot-path, missing OTA rollback, and hardcoded credentials. Targets Embedded C/C++/Rust, FreeRTOS/Zephyr/Embassy, STM32/ESP32/nRF MCUs, MQTT/CoAP, Mender/AWS IoT OTA, and secure boot. Inherits ravenclaude-core protocols.",
+      "name": "embedded-iot-engineering",
+      "source": "./plugins/embedded-iot-engineering",
+      "description": "Embedded & IoT Engineering specialist team — 4 agents (embedded-systems-lead, firmware-rtos-specialist, power-budget-analyst, connectivity-protocol-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An embedded team for a firmware lead or hardware founder accountable for a fielded device — it treats the power budget as the spec, holds real-time deadlines as hard constraints, budgets flash/RAM like money, favors determinism over throughput, and requires OTA + rollback before fielding. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
       },
       "keywords": [
         "embedded",
-        "firmware",
         "iot",
+        "firmware",
         "rtos",
-        "freertos",
-        "zephyr",
-        "stm32",
-        "esp32",
-        "nrf",
-        "mqtt",
-        "ota",
-        "secure-boot",
-        "low-power",
-        "bare-metal",
-        "device-to-cloud"
+        "power-budget",
+        "real-time",
+        "ble",
+        "lora",
+        "ota"
       ]
     },
     {
-      "name": "automotive-dealership",
-      "source": "./plugins/automotive-dealership",
-      "description": "Automotive dealership operations specialist team — 5 agents covering the full dealership P&L: dealership-ops-lead (store KPIs, daily operating report, variable/fixed-ops mix), fixed-ops-analyst (service & parts, absorption rate, ELR, technician productivity, CSI), fni-advisor (F&I process, PVR, product penetration, lender relationships, compliant — no payment packing), inventory-and-desking-analyst (new/used days-supply, floor-plan cost, recon, sales desking), dealership-compliance-advisor (GLBA Safeguards, NPI handling, OFAC/Red Flags, advertising disclosure). Ships 3 skills, 3 commands, 2 templates, 6 best-practices, 1 advisory hook, and a dealer calculator script. Inherits ravenclaude-core protocols.",
+      "name": "ai-rag-engineering",
+      "source": "./plugins/ai-rag-engineering",
+      "description": "AI / RAG Engineering specialist team — 4 agents (rag-architect-lead, retrieval-eval-analyst, ingestion-chunking-specialist, llm-serving-cost-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A RAG team for an ML engineer or AI product lead accountable for answer quality and serving cost — it fixes retrieval before generation, treats chunking as a retrieval decision, evals before it ships, and reads context-window and token economics. Inherits ravenclaude-core protocols.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
       },
       "keywords": [
-        "automotive",
+        "rag",
+        "retrieval",
+        "chunking",
+        "embeddings",
+        "eval",
+        "hybrid-search",
+        "llm-serving",
+        "token-cost"
+      ]
+    },
+    {
+      "name": "behavioral-health-practice",
+      "source": "./plugins/behavioral-health-practice",
+      "description": "Behavioral Health Practice specialist team — 4 agents (behavioral-health-practice-lead, intake-access-analyst, clinical-documentation-compliance-specialist, payer-billing-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An operations team for a practice administrator or clinical-ops lead accountable for access, utilization, documentation compliance, and margin — it manages no-shows as a flow, reads intake-to-first-appointment access time as the conversion lever, ties documentation to compliance and billing, staffs caseload to demand, and reads payer mix as the margin driver. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "behavioral-health",
+        "no-show",
+        "access-time",
+        "caseload",
+        "utilization",
+        "payer-mix",
+        "documentation-compliance",
+        "measurement-based-care",
+        "telehealth"
+      ]
+    },
+    {
+      "name": "finops-cloud-cost",
+      "source": "./plugins/finops-cloud-cost",
+      "description": "FinOps & Cloud Cost specialist team — 4 agents (finops-lead, cost-allocation-analyst, commitment-planning-specialist, unit-economics-strategist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A FinOps team for a cost lead or eng-finance partner accountable for cloud spend and unit economics — it allocates spend before optimizing it, reads unit economics over the total bill, treats commitments as a portfolio decision made after rightsizing, and kills waste first. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "finops",
+        "cloud-cost",
+        "cost-allocation",
+        "unit-economics",
+        "commitment-planning",
+        "rightsizing",
+        "showback",
+        "anomaly-detection"
+      ]
+    },
+    {
+      "name": "mortgage-lending",
+      "source": "./plugins/mortgage-lending",
+      "description": "Mortgage Lending Operations specialist team — 4 agents (mortgage-lending-lead, pipeline-pullthrough-analyst, processing-cycle-specialist, compliance-quality-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An operations team for a production or ops leader accountable for pull-through, cycle time, capacity, and cost-to-originate — it reads pull-through as the funnel and fixes the fallout stage, ties cycle time to capacity and satisfaction, manages lock/pipeline risk, holds cost-to-originate as the unit economic, and routes every compliance question to counsel. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "mortgage-lending",
+        "pull-through",
+        "cycle-time",
+        "cost-to-originate",
+        "pipeline-risk",
+        "lock-management",
+        "capacity-planning",
+        "compliance-routing",
+        "rate-cycle"
+      ]
+    },
+    {
+      "name": "pharmacy-operations",
+      "source": "./plugins/pharmacy-operations",
+      "description": "Pharmacy Operations specialist team — 4 agents (pharmacy-operations-lead, fill-workflow-analyst, inventory-reimbursement-specialist, adherence-clinical-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An operations team for a pharmacy manager or PIC accountable for throughput, safety, inventory, margin, and adherence — it holds fill throughput and verification safety as both the job, reads days-on-hand as tied-up cash and stockout risk, computes real per-script margin net of DIR fees, treats adherence as outcomes and star ratings, and staffs to script volume plus clinical-service time. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "pharmacy-operations",
+        "fill-throughput",
+        "verification-safety",
+        "days-on-hand",
+        "reimbursement",
+        "dir-fees",
+        "adherence",
+        "pdc",
+        "star-ratings"
+      ]
+    },
+    {
+      "name": "platform-engineering-idp",
+      "source": "./plugins/platform-engineering-idp",
+      "description": "Platform Engineering (IDP) specialist team — 4 agents (platform-eng-lead, golden-path-architect, developer-experience-analyst, platform-reliability-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A platform-engineering team for a platform lead or eng director accountable for developer productivity and adoption — it treats the platform as a product with developers as customers, paves golden paths over mandates, measures DevEx with DORA and lead time, and runs the platform on SLOs and an error budget. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "platform-engineering",
+        "internal-developer-platform",
+        "golden-path",
+        "developer-experience",
+        "dora-metrics",
+        "self-service",
+        "cognitive-load",
+        "platform-slo"
+      ]
+    },
+    {
+      "name": "search-relevance-engineering",
+      "source": "./plugins/search-relevance-engineering",
+      "description": "Search & Relevance Engineering specialist team — 4 agents (search-relevance-lead, relevance-tuning-analyst, indexing-mapping-specialist, query-performance-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A search team for a relevance engineer or platform lead accountable for search quality, latency, and conversion — it measures relevance with NDCG/MRR, treats analyzer/mapping decisions as relevance decisions, builds a judgment list before tuning, and validates online with A/B. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "search-relevance",
+        "ranking",
+        "ndcg",
+        "mrr",
+        "analyzer",
+        "mapping",
+        "judgment-list",
+        "ab-testing"
+      ]
+    },
+    {
+      "name": "automotive-dealership",
+      "source": "./plugins/automotive-dealership",
+      "description": "Automotive Dealership Operations specialist team — 4 agents (dealership-operations-lead, sales-desking-analyst, fixed-ops-service-specialist, fi-products-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An operations team for a dealer principal or GM accountable for total gross, fixed-ops absorption, and inventory turn — it runs the store on fixed-ops not new-car gross, manages days-supply and floorplan as carrying-cost cash, reads total gross per unit as front plus back, and treats absorption as the survival metric. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "automotive-retail",
         "dealership",
         "fixed-ops",
-        "fni",
-        "inventory",
-        "floor-plan",
-        "desking",
-        "compliance",
-        "glba",
-        "absorption-rate"
+        "floorplan",
+        "days-supply",
+        "fi-penetration",
+        "total-gross",
+        "absorption",
+        "csi"
+      ]
+    },
+    {
+      "name": "hotel-hospitality-operations",
+      "source": "./plugins/hotel-hospitality-operations",
+      "description": "Hotel & Hospitality Operations specialist team — 4 agents (hotel-operations-lead, revenue-management-analyst, labor-productivity-specialist, guest-experience-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A hospitality-operations team for a GM, revenue manager, or owner accountable for RevPAR, GOPPAR, and guest satisfaction — it optimizes RevPAR as the product of ADR and occupancy, manages channel mix at net rate, reads the booking pace curve, staffs labor to occupancy, and scores profit on GOPPAR. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "hospitality",
+        "hotel-operations",
+        "revpar",
+        "adr",
+        "channel-mix",
+        "booking-pace",
+        "labor-productivity",
+        "goppar",
+        "segment-mix"
+      ]
+    },
+    {
+      "name": "k12-school-administration",
+      "source": "./plugins/k12-school-administration",
+      "description": "K-12 School Administration specialist team — 4 agents (school-administration-lead, enrollment-attendance-analyst, staffing-budget-specialist, student-outcomes-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An administration team for a principal, business manager, or district administrator accountable for enrollment, budget, and student outcomes — it manages enrollment as a funded pipeline, reads attendance/ADA as funding and an outcome signal, fits staffing to the budget envelope, flags chronic absenteeism early, and reads outcomes segmented. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "k12",
+        "school-administration",
+        "enrollment",
+        "ada",
+        "per-pupil-funding",
+        "staffing-ratio",
+        "chronic-absenteeism",
+        "student-outcomes",
+        "ferpa"
+      ]
+    },
+    {
+      "name": "property-management",
+      "source": "./plugins/property-management",
+      "description": "Property Management Operations specialist team — 4 agents (property-management-lead, occupancy-leasing-analyst, maintenance-operations-specialist, noi-financial-analyst), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A property-operations team for a property/asset manager accountable for occupancy, NOI, and resident retention — it reads occupancy as a leasing funnel plus renewals, treats delinquency as cash with an aging clock, manages unit-turn time as cost and retention, and scores the asset on NOI not gross rent. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "property-management",
+        "occupancy",
+        "leasing-funnel",
+        "noi",
+        "delinquency",
+        "unit-turn",
+        "renewals",
+        "concessions",
+        "cap-rate"
       ]
     }
   ]

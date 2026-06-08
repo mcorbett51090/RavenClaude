@@ -1,306 +1,249 @@
 #!/usr/bin/env python3
+"""people_calc.py — a zero-dependency People-Ops / HR decision calculator.
+
+Removes arithmetic error from four recurring People decisions an HRBP /
+People-Ops leader / founder runs constantly:
+
+  attrition     Annualized turnover with cost and cause. Converts separations +
+                average headcount into an annualized turnover %, splits regretted
+                vs total, prices the regretted loss at a replacement cost, and
+                reports a segment delta vs the company rate. Pairs with
+                knowledge/people-ops-decision-trees.md (Tree 1).
+
+  hiring-plan   The recruiting funnel as a system. Takes target hires + the four
+                stage conversion rates (sourced->screen->onsite->offer->accept),
+                back-solves the required pipeline at every stage, flags the
+                leaking stage vs benchmark, and sizes recruiter capacity. Pairs
+                with Tree 2 and CLAUDE.md SS3 #3/#6.
+
+  comp-band     Band mechanics. Takes a salary + band min/mid/max and prints
+                compa-ratio, range penetration, and an over/under-band flag.
+                Pairs with knowledge/people-ops-economics.md SS3.
+
+  pay-equity    Raw + ILLUSTRATIVE residual gap. Takes two groups' mean pay and
+                (optionally) a controlled mean per group and prints the raw gap,
+                the controlled gap, and the share of the raw gap explained by
+                composition. This is a SIGNAL, not a regression or a legal
+                conclusion (CLAUDE.md SS2, SS3 #5). Pairs with Tree 3.
+
+This is a CALCULATOR, not a data source — it does not fetch benchmarks, salary
+surveys, or live costs. The user supplies every input; the tool does the
+arithmetic and shows the formula. Stdlib only (argparse); runs anywhere
+Python 3.8+ is present.
+
+IMPORTANT: outputs are decision-support, not legal, regulatory, or licensed
+financial advice (see ../CLAUDE.md SS2). Validate every figure against the
+client's actual HRIS/ATS data; route every legal/pay-equity determination to
+qualified counsel (CLAUDE.md SS2, SS3 #5/#8). No employee PII belongs in any
+input or output.
+
+Examples
+--------
+  people_calc.py attrition --separations 42 --regretted 30 --avg-headcount 500 \\
+      --months 12 --replacement-cost 45000 --segment-separations 9 \\
+      --segment-headcount 60
+  people_calc.py hiring-plan --target-hires 30 --accept 0.8 --onsite-offer 0.4 \\
+      --screen-onsite 0.5 --source-screen 0.25 --sourced-per-recruiter 120
+  people_calc.py comp-band --salary 132000 --band-min 110000 --band-mid 130000 \\
+      --band-max 150000
+  people_calc.py pay-equity --mean-a 118000 --mean-b 112000 \\
+      --controlled-a 116000 --controlled-b 115000
 """
-people_calc.py — stdlib-only People Operations calculator for the people-operations-hr plugin.
-
-Functions
----------
-comp_ratio(salary, band_midpoint)
-    Salary ÷ band midpoint. A comp ratio of 1.0 = exactly at midpoint.
-
-time_to_fill(req_open_date, offer_accept_date)
-    Calendar days from requisition open to offer acceptance.
-
-annualized_attrition(separations, avg_headcount)
-    (Separations / Average headcount) × 100, expressed as a percentage.
-
-span_of_control(total_individual_contributors, total_managers)
-    Total ICs / Total managers — the average number of direct reports per manager.
-
-offer_accept_rate(offers_extended, offers_accepted)
-    (Offers accepted / Offers extended) × 100, expressed as a percentage.
-
-All functions raise ValueError for invalid inputs. All outputs are decision-support only —
-not legal, tax, or compensation advice.
-
-Usage
------
-    python3 people_calc.py                    # run self-test
-    python3 -c "from people_calc import *; print(comp_ratio(115000, 120000))"
-"""
-
 from __future__ import annotations
 
-import datetime
+import argparse
+import sys
+
+DISCLAIMER = (
+    "Decision-support only — not legal/regulatory/financial advice. Validate every "
+    "input against the client's actual HRIS/ATS data; route legal & pay-equity "
+    "determinations to qualified counsel (CLAUDE.md S2, S3 #5/#8). No employee PII."
+)
 
 
-# ---------------------------------------------------------------------------
-# Core calculations
-# ---------------------------------------------------------------------------
+def _pct(x: float) -> str:
+    return f"{x * 100:.1f}%"
 
 
-def comp_ratio(salary: float, band_midpoint: float) -> float:
-    """Return salary / band_midpoint rounded to 4 decimal places.
-
-    A comp ratio of 1.0 means the employee is paid exactly at the band midpoint.
-    < 0.90 is typically under-band; > 1.15 is typically above-band.
-
-    Parameters
-    ----------
-    salary : float
-        The employee's total base salary (annualized, in any consistent currency).
-    band_midpoint : float
-        The midpoint of the compensation band for the employee's level and job family.
-
-    Returns
-    -------
-    float
-        The comp ratio as a decimal (e.g., 0.9583 means 95.83% of midpoint).
-
-    Raises
-    ------
-    ValueError
-        If salary or band_midpoint is not positive.
-    """
-    if salary <= 0:
-        raise ValueError(f"salary must be positive, got {salary}")
-    if band_midpoint <= 0:
-        raise ValueError(f"band_midpoint must be positive, got {band_midpoint}")
-    return round(salary / band_midpoint, 4)
+def _money(x: float) -> str:
+    return f"${x:,.0f}"
 
 
-def time_to_fill(req_open_date: str, offer_accept_date: str) -> int:
-    """Return calendar days from requisition open to offer acceptance.
+def cmd_attrition(a: argparse.Namespace) -> int:
+    if a.avg_headcount <= 0 or a.months <= 0:
+        print("error: --avg-headcount and --months must be > 0", file=sys.stderr)
+        return 2
+    period_rate = a.separations / a.avg_headcount
+    annualized = period_rate * (12.0 / a.months)
+    regretted = a.regretted if a.regretted is not None else a.separations
+    regretted_share = regretted / a.separations if a.separations else 0.0
+    # Cost only the regretted (recoverable) loss — non-regretted is often intended.
+    annual_regretted = regretted * (12.0 / a.months)
+    attrition_cost = annual_regretted * a.replacement_cost
 
-    Parameters
-    ----------
-    req_open_date : str
-        The date the requisition was opened, in ISO 8601 format (YYYY-MM-DD).
-    offer_accept_date : str
-        The date the candidate accepted the offer, in ISO 8601 format (YYYY-MM-DD).
+    print("=== Attrition: cost & cause (CLAUDE.md S3 #1) ===")
+    print(f"  Period turnover     : {a.separations} sep / {a.avg_headcount:g} avg HC "
+          f"= {_pct(period_rate)} over {a.months:g} mo")
+    print(f"  Annualized turnover : {_pct(annualized)}  (period rate x 12/{a.months:g})")
+    print(f"  Regretted share     : {regretted}/{a.separations} = {_pct(regretted_share)} "
+          f"<- the headline split; non-regretted may be intended (S3 #1)")
+    print(f"  Annual regretted exits (annualized): {annual_regretted:.1f}")
+    print(f"  Replacement cost/role: {_money(a.replacement_cost)}")
+    print(f"  >> Annual regretted attrition cost: {_money(attrition_cost)}")
 
-    Returns
-    -------
-    int
-        Number of calendar days (inclusive of start date, exclusive of end date).
-
-    Raises
-    ------
-    ValueError
-        If dates cannot be parsed or if offer_accept_date is before req_open_date.
-    """
-    try:
-        open_dt = datetime.date.fromisoformat(req_open_date)
-        accept_dt = datetime.date.fromisoformat(offer_accept_date)
-    except ValueError as exc:
-        raise ValueError(
-            f"Dates must be ISO 8601 (YYYY-MM-DD). Got: '{req_open_date}', '{offer_accept_date}'"
-        ) from exc
-    delta = (accept_dt - open_dt).days
-    if delta < 0:
-        raise ValueError(
-            f"offer_accept_date ({offer_accept_date}) must be on or after "
-            f"req_open_date ({req_open_date})"
-        )
-    return delta
-
-
-def annualized_attrition(
-    separations: float,
-    avg_headcount: float,
-    period_months: float = 12.0,
-) -> float:
-    """Return annualized attrition as a percentage.
-
-    Formula: (separations / avg_headcount) × (12 / period_months) × 100
-
-    If period_months is 12 (the default), this is simply (separations / avg_headcount) × 100.
-    Pass a smaller period_months to annualize data from a shorter window (e.g., 3 for a quarter).
-
-    Parameters
-    ----------
-    separations : float
-        Number of employee departures (voluntary + involuntary, unless measuring voluntary only).
-    avg_headcount : float
-        Average headcount over the period — use (opening headcount + closing headcount) / 2.
-    period_months : float
-        Length of the measurement period in months. Default is 12 (a full year).
-
-    Returns
-    -------
-    float
-        Annualized attrition rate as a percentage, rounded to 2 decimal places.
-
-    Raises
-    ------
-    ValueError
-        If inputs are invalid.
-    """
-    if separations < 0:
-        raise ValueError(f"separations must be >= 0, got {separations}")
-    if avg_headcount <= 0:
-        raise ValueError(f"avg_headcount must be positive, got {avg_headcount}")
-    if period_months <= 0:
-        raise ValueError(f"period_months must be positive, got {period_months}")
-    raw_rate = separations / avg_headcount
-    annualized_rate = raw_rate * (12.0 / period_months) * 100.0
-    return round(annualized_rate, 2)
+    if a.segment_separations is not None and a.segment_headcount:
+        seg_rate = (a.segment_separations / a.segment_headcount) * (12.0 / a.months)
+        delta = seg_rate - annualized
+        flag = "ABOVE" if delta > 0 else "below"
+        print("  --- Segment delta (S3 #7: localize to team/manager) ---")
+        print(f"  Segment annualized  : {_pct(seg_rate)}  "
+              f"({_pct(abs(delta))} {flag} company {_pct(annualized)})")
+        if delta > 0:
+            print("  >> This segment is a hotspot — read it at the manager/span level.")
+    print(f"\n  {DISCLAIMER}")
+    return 0
 
 
-def span_of_control(
-    total_individual_contributors: float,
-    total_managers: float,
-) -> float:
-    """Return average span of control (ICs per manager).
+def cmd_hiring_plan(a: argparse.Namespace) -> int:
+    rates = {
+        "offer->accept": a.accept,
+        "onsite->offer": a.onsite_offer,
+        "screen->onsite": a.screen_onsite,
+        "sourced->screen": a.source_screen,
+    }
+    for name, r in rates.items():
+        if not (0 < r <= 1):
+            print(f"error: {name} rate must be in (0, 1]", file=sys.stderr)
+            return 2
+    offers = a.target_hires / a.accept
+    onsites = offers / a.onsite_offer
+    screens = onsites / a.screen_onsite
+    sourced = screens / a.source_screen
+    overall = a.target_hires / sourced
 
-    This is a simple ratio. Typical healthy spans: 5–9 for IC managers; 4–6 for
-    managers-of-managers. Spans below 4 suggest over-management; spans above 12 suggest
-    under-management (context-dependent — fast-moving consumer teams often run wider spans).
+    print("=== Hiring plan: funnel as a system (CLAUDE.md S3 #3/#6) ===")
+    print(f"  Target hires        : {a.target_hires:g}")
+    print(f"  Required offers     : {offers:,.0f}   (accept {_pct(a.accept)})")
+    print(f"  Required onsites    : {onsites:,.0f}   (onsite->offer {_pct(a.onsite_offer)})")
+    print(f"  Required screens    : {screens:,.0f}   (screen->onsite {_pct(a.screen_onsite)})")
+    print(f"  Required sourced    : {sourced:,.0f}   (sourced->screen {_pct(a.source_screen)})")
+    print(f"  Overall conversion  : {_pct(overall)} sourced->hire")
 
-    Parameters
-    ----------
-    total_individual_contributors : float
-        Total number of individual contributors in scope.
-    total_managers : float
-        Total number of people managers in scope.
+    # Leaking-stage flag: lowest conversion rate is the constraint to fix first.
+    worst = min(rates, key=rates.get)
+    print(f"  >> Leaking stage    : '{worst}' at {_pct(rates[worst])} — fix this BEFORE "
+          f"adding sourcing volume (S3 #3)")
 
-    Returns
-    -------
-    float
-        Average number of direct reports per manager, rounded to 2 decimal places.
-
-    Raises
-    ------
-    ValueError
-        If inputs are invalid.
-    """
-    if total_individual_contributors < 0:
-        raise ValueError(
-            f"total_individual_contributors must be >= 0, got {total_individual_contributors}"
-        )
-    if total_managers <= 0:
-        raise ValueError(f"total_managers must be positive, got {total_managers}")
-    return round(total_individual_contributors / total_managers, 2)
-
-
-def offer_accept_rate(offers_extended: float, offers_accepted: float) -> float:
-    """Return offer acceptance rate as a percentage.
-
-    Industry benchmark: healthy offer-accept rates vary by function and market.
-    A rate below 80% typically signals a candidate experience, comp, or competitor problem
-    worth investigating.
-
-    Parameters
-    ----------
-    offers_extended : float
-        Total number of formal written offers extended to candidates.
-    offers_accepted : float
-        Total number of those offers accepted by candidates.
-
-    Returns
-    -------
-    float
-        Offer acceptance rate as a percentage, rounded to 2 decimal places.
-
-    Raises
-    ------
-    ValueError
-        If inputs are invalid or if offers_accepted exceeds offers_extended.
-    """
-    if offers_extended <= 0:
-        raise ValueError(f"offers_extended must be positive, got {offers_extended}")
-    if offers_accepted < 0:
-        raise ValueError(f"offers_accepted must be >= 0, got {offers_accepted}")
-    if offers_accepted > offers_extended:
-        raise ValueError(
-            f"offers_accepted ({offers_accepted}) cannot exceed "
-            f"offers_extended ({offers_extended})"
-        )
-    return round((offers_accepted / offers_extended) * 100.0, 2)
+    if a.sourced_per_recruiter:
+        recruiters = sourced / a.sourced_per_recruiter
+        print(f"  Recruiter capacity  : {recruiters:.1f} recruiter-loads "
+              f"({a.sourced_per_recruiter:g} sourced/recruiter)")
+    print(f"\n  {DISCLAIMER}")
+    return 0
 
 
-# ---------------------------------------------------------------------------
-# Self-test
-# ---------------------------------------------------------------------------
+def cmd_comp_band(a: argparse.Namespace) -> int:
+    if not (a.band_min < a.band_mid < a.band_max):
+        print("error: require band-min < band-mid < band-max", file=sys.stderr)
+        return 2
+    compa = a.salary / a.band_mid
+    penetration = (a.salary - a.band_min) / (a.band_max - a.band_min)
+    spread = (a.band_max - a.band_min) / a.band_min
+
+    print("=== Comp band mechanics (CLAUDE.md S3 #2) ===")
+    print(f"  Salary              : {_money(a.salary)}")
+    print(f"  Band                : {_money(a.band_min)} / {_money(a.band_mid)} / {_money(a.band_max)} (min/mid/max)")
+    print(f"  Band spread         : {_pct(spread)}")
+    print(f"  Compa-ratio         : {compa:.2f}   (salary / midpoint)")
+    print(f"  Range penetration   : {_pct(penetration)}  (position in range)")
+    if a.salary > a.band_max:
+        print("  >> OVER band (green-circled) — frozen until band catches up; do not "
+              "compound with a counteroffer (S3 #2)")
+    elif a.salary < a.band_min:
+        print("  >> UNDER band (red-circled) — equity/retention risk; fix to band, not ad hoc")
+    elif compa < 0.8 or compa > 1.2:
+        print("  >> Compa-ratio outlier (<0.8 or >1.2) — review leveling & market fit")
+    else:
+        print("  >> Within band and compa-ratio range — no action flagged")
+    print(f"\n  {DISCLAIMER}")
+    return 0
 
 
-def _self_test() -> None:
-    """Print example outputs for each function to verify correct behavior."""
-    print("=" * 60)
-    print("people_calc.py — self-test")
-    print("=" * 60)
+def cmd_pay_equity(a: argparse.Namespace) -> int:
+    raw_gap = a.mean_a - a.mean_b
+    raw_pct = raw_gap / a.mean_a if a.mean_a else 0.0
+    print("=== Pay equity: raw vs illustrative residual (CLAUDE.md S3 #5) ===")
+    print(f"  Group A mean pay    : {_money(a.mean_a)}")
+    print(f"  Group B mean pay    : {_money(a.mean_b)}")
+    print(f"  Raw gap (A - B)     : {_money(raw_gap)}  ({_pct(raw_pct)} of A)")
+    print("  NOTE: the raw gap is mostly COMPOSITION (who holds which levels/roles),")
+    print("        not pay discrimination — it is NOT the finding (S3 #5).")
 
-    # comp_ratio
-    cr = comp_ratio(salary=115_000, band_midpoint=120_000)
-    print(f"\ncomp_ratio(salary=115000, band_midpoint=120000)")
-    print(f"  → {cr}  (employee is at {cr * 100:.2f}% of midpoint)")
-    assert 0.9583 == cr, f"Expected 0.9583, got {cr}"
+    if a.controlled_a is not None and a.controlled_b is not None:
+        residual = a.controlled_a - a.controlled_b
+        residual_pct = residual / a.controlled_a if a.controlled_a else 0.0
+        explained = (raw_gap - residual)
+        explained_share = (explained / raw_gap) if raw_gap else 0.0
+        print(f"  Controlled A / B    : {_money(a.controlled_a)} / {_money(a.controlled_b)}")
+        print(f"  Residual gap        : {_money(residual)}  ({_pct(residual_pct)})")
+        print(f"  Explained by comp.  : {_pct(explained_share)} of the raw gap")
+        print("  >> The residual is a SIGNAL TO INVESTIGATE, not a legal conclusion.")
+        print("     A defensible audit uses a regression + privileged legal review (S2).")
+    else:
+        print("  (supply --controlled-a/--controlled-b for the illustrative residual gap)")
+    print("  >> Route any material residual to qualified counsel (S2). No PII in output.")
+    print(f"\n  {DISCLAIMER}")
+    return 0
 
-    cr2 = comp_ratio(salary=140_000, band_midpoint=120_000)
-    print(f"\ncomp_ratio(salary=140000, band_midpoint=120000)")
-    print(f"  → {cr2}  (employee is above midpoint — above-band signal)")
-    assert 1.1667 == cr2, f"Expected 1.1667, got {cr2}"
 
-    # time_to_fill
-    ttf = time_to_fill("2026-01-15", "2026-03-15")
-    print(f"\ntime_to_fill('2026-01-15', '2026-03-15')")
-    print(f"  → {ttf} calendar days")
-    assert ttf == 59, f"Expected 59, got {ttf}"
-
-    ttf2 = time_to_fill("2026-01-01", "2026-04-01")
-    print(f"\ntime_to_fill('2026-01-01', '2026-04-01')")
-    print(f"  → {ttf2} calendar days")
-    assert ttf2 == 90, f"Expected 90, got {ttf2}"
-
-    # annualized_attrition — full year
-    aa = annualized_attrition(separations=22, avg_headcount=100)
-    print(f"\nannualized_attrition(separations=22, avg_headcount=100)")
-    print(f"  → {aa}%  (full-year; benchmark: SaaS/tech ~15-20%)")
-    assert aa == 22.0, f"Expected 22.0, got {aa}"
-
-    # annualized_attrition — annualize from a quarter
-    aa_q = annualized_attrition(separations=6, avg_headcount=100, period_months=3)
-    print(f"\nannualized_attrition(separations=6, avg_headcount=100, period_months=3)")
-    print(f"  → {aa_q}%  (Q1 data annualized — 6/100 × (12/3) × 100)")
-    assert aa_q == 24.0, f"Expected 24.0, got {aa_q}"
-
-    # span_of_control
-    soc = span_of_control(total_individual_contributors=60, total_managers=8)
-    print(f"\nspan_of_control(total_individual_contributors=60, total_managers=8)")
-    print(f"  → {soc}  (avg direct reports per manager; healthy: 5–9)")
-    assert soc == 7.5, f"Expected 7.5, got {soc}"
-
-    # offer_accept_rate
-    oar = offer_accept_rate(offers_extended=40, offers_accepted=34)
-    print(f"\noffer_accept_rate(offers_extended=40, offers_accepted=34)")
-    print(f"  → {oar}%  (benchmark: healthy = >80%)")
-    assert oar == 85.0, f"Expected 85.0, got {oar}"
-
-    oar2 = offer_accept_rate(offers_extended=25, offers_accepted=18)
-    print(f"\noffer_accept_rate(offers_extended=25, offers_accepted=18)")
-    print(f"  → {oar2}%  (below 80% — investigate comp, experience, or competition)")
-    assert oar2 == 72.0, f"Expected 72.0, got {oar2}"
-
-    # Error path — ValueError on bad input
-    try:
-        comp_ratio(salary=0, band_midpoint=100_000)
-        raise AssertionError("Expected ValueError for salary=0")
-    except ValueError:
-        pass  # expected
-
-    try:
-        annualized_attrition(separations=5, avg_headcount=-10)
-        raise AssertionError("Expected ValueError for negative avg_headcount")
-    except ValueError:
-        pass  # expected
-
-    print("\n" + "=" * 60)
-    print("All self-tests passed.")
-    print("=" * 60)
-    print(
-        "\nNote: outputs are decision-support only — not legal, tax, "
-        "or compensation advice."
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="people_calc.py",
+        description="People-Ops / HR decision calculator (stdlib only). Decision-support, not advice.",
     )
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    a = sub.add_parser("attrition", help="annualized turnover, regretted split, replacement cost, segment delta")
+    a.add_argument("--separations", type=float, required=True)
+    a.add_argument("--regretted", type=float, default=None, help="regretted separations (default: all)")
+    a.add_argument("--avg-headcount", type=float, required=True)
+    a.add_argument("--months", type=float, default=12.0)
+    a.add_argument("--replacement-cost", type=float, default=0.0, help="$ per regretted backfill")
+    a.add_argument("--segment-separations", type=float, default=None)
+    a.add_argument("--segment-headcount", type=float, default=None)
+    a.set_defaults(func=cmd_attrition)
+
+    h = sub.add_parser("hiring-plan", help="back-solve the funnel pipeline + leaking stage")
+    h.add_argument("--target-hires", type=float, required=True)
+    h.add_argument("--accept", type=float, required=True, help="offer->accept rate (0-1)")
+    h.add_argument("--onsite-offer", type=float, required=True, help="onsite->offer rate (0-1)")
+    h.add_argument("--screen-onsite", type=float, required=True, help="screen->onsite rate (0-1)")
+    h.add_argument("--source-screen", type=float, required=True, help="sourced->screen rate (0-1)")
+    h.add_argument("--sourced-per-recruiter", type=float, default=None)
+    h.set_defaults(func=cmd_hiring_plan)
+
+    c = sub.add_parser("comp-band", help="compa-ratio, range penetration, over/under-band flag")
+    c.add_argument("--salary", type=float, required=True)
+    c.add_argument("--band-min", type=float, required=True)
+    c.add_argument("--band-mid", type=float, required=True)
+    c.add_argument("--band-max", type=float, required=True)
+    c.set_defaults(func=cmd_comp_band)
+
+    e = sub.add_parser("pay-equity", help="raw gap + illustrative residual (signal, not a legal conclusion)")
+    e.add_argument("--mean-a", type=float, required=True)
+    e.add_argument("--mean-b", type=float, required=True)
+    e.add_argument("--controlled-a", type=float, default=None)
+    e.add_argument("--controlled-b", type=float, default=None)
+    e.set_defaults(func=cmd_pay_equity)
+
+    return p
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    return args.func(args)
 
 
 if __name__ == "__main__":
-    _self_test()
+    raise SystemExit(main())

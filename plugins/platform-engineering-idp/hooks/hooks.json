@@ -1,15 +1,15 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-hooks.json",
-  "description": "Plugin-distributed hooks for platform-engineering-idp. Auto-merged with the consumer's session hooks on install. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the install location.",
+  "description": "Plugin-distributed hooks for platform-engineering-idp. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
   "hooks": {
-    "PreToolUse": [
+    "PostToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-platform-engineering-idp-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
-            "comment": "Advisory: flags platform-as-a-product anti-patterns (mandate language, ticket-driven self-service, unowned catalog entity, vanity metric). Set PLATFORM_IDP_STRICT=1 to make it blocking."
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-platform-engineering-idp-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: review this Platform Engineering (IDP) deliverable against the §3 house opinions (baseline on every metric, source+date on every benchmark, no internal credentials/PII). Set PLATFORM_ENGINEERING_IDP_STRICT=1 to make it blocking."
           }
         ]
       }
