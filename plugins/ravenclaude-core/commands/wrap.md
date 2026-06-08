@@ -147,7 +147,7 @@ Scope: <scope-value>
 Confidence: <confidence-value>
 Scrub: applied (no client PII, no secrets)
 
-Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
 
 If **yes** (push too):

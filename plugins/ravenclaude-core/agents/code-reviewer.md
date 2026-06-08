@@ -3,6 +3,8 @@ name: code-reviewer
 description: Use this agent for pre-merge review of any non-trivial diff. Spawn it AFTER coder + tester agents are done but BEFORE the Team Lead opens a PR or merges. Returns a structured review with blockers, suggestions, and praise.
 tools: Read, Grep, Glob, Bash
 model: opus
+maxTurns: 60
+effort: high
 audience: [dev, consultant]
 works_with: [architect, security-reviewer, backend-coder, frontend-coder, tester-qa]
 scenarios:

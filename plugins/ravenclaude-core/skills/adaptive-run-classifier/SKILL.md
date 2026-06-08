@@ -80,7 +80,7 @@ The single source of truth for `tier label → SKU` mapping. **Mark every SKU `[
 | ---------- | --------------------------------------------------------------------- | ------------------------------------------- | ---------------------------------------------- |
 | `fast`     | Haiku 4.5 (`claude-haiku-4-5-20251001`)                               | GPT-5.5 reasoning=low                       | Haiku 4.5 (cloud-agent fast tier) / GPT-5.4-mini |
 | `balanced` | Sonnet 4.6 (`claude-sonnet-4-6`) — adaptive thinking                  | GPT-5.5 reasoning=medium/high               | `Auto` or Sonnet 4.6                            |
-| `top`      | Opus 4.8 (`claude-opus-4-8`), current; Opus 4.7 (`claude-opus-4-7`) legacy-but-available — escalate sparingly | GPT-5.5-Pro                                 | Opus 4.6                                        |
+| `top`      | Opus 4.8 (`claude-opus-4-8`), current — escalate sparingly (Opus 4.7 is legacy-but-available) | GPT-5.5-Pro                                 | Opus 4.6                                        |
 
 **Adapter discipline:** the adapter holds the ONE mapping table. Workflow code never names a SKU directly. SKU rotation happens here; everything downstream stays substrate-neutral.
 

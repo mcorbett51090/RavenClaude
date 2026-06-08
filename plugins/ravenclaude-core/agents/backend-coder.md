@@ -3,6 +3,8 @@ name: backend-coder
 description: Use this agent to implement server-side code — API handlers, business logic, database queries, background jobs, integrations. Spawn AFTER the architect has produced a plan. Each invocation should target one focused, testable change.
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
+maxTurns: 40
+effort: normal
 audience: [dev, data-engineer]
 works_with: [architect, code-reviewer, tester-qa, security-reviewer]
 scenarios:
