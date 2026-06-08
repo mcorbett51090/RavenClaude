@@ -28,7 +28,7 @@ cd "$(git rev-parse --show-toplevel)"
 # suite. This enables fast targeted re-runs after a regression fix without the
 # cost of the full 48-gate matrix. The full suite is the default (no --check arg).
 #
-# Currently supported per-gate values: 20, 50, 52, 60, 70, 80, 90, 91, 92, 93. Other
+# Currently supported per-gate values: 20, 50, 52, 53, 60, 70, 80, 90, 91, 92, 93. Other
 # gates can be added here as they acquire a standalone runner script.
 if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
   case "${2}" in
@@ -45,6 +45,11 @@ if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
     52)
       echo "── Gate 52: dispatch-evaluator disabled-floor (per-gate run) ─────────────"
       bash plugins/ravenclaude-core/hooks/tests/test-gate52-dispatch-evaluator-floor.sh
+      exit $?
+      ;;
+    53)
+      echo "── Gate 53: runaway read-only carve-out (per-gate run) ───────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-runaway-readonly-carveout.sh
       exit $?
       ;;
     60)
@@ -98,7 +103,7 @@ if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 60, 70, 80, 90, 91, 92, 93, 97. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 60, 70, 80, 90, 91, 92, 93, 97. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -2848,6 +2853,18 @@ echo "── Gate 52: agent-dispatch-evaluator disabled-floor (byte-identical op
 # the gate's teeth are proven independent of the live workflow file's state.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate52-dispatch-evaluator-floor.sh >/dev/null 2>&1 || rc=$?
 gate "dispatch-evaluator disabled-floor fixture (good→pass, bad→fail, real-workflow floor)" must_pass "$rc"
+
+# ─────────────────────────────────────────────────────────────────────────────
+echo "── Gate 53: runaway brake read-only carve-out ────────────────────────────"
+# The runaway brake exempts read-only commands (Read/Grep/Glob/NotebookRead, plus
+# a strict anchored Bash allowlist) from the consecutive-LOOP counter while still
+# counting them toward max_total and leaving mutating-loop detection unchanged.
+# The fixture proves: a read-only burst doesn't trip max_consecutive; a repeated
+# mutating command (Bash rm + a Write) still does; total still trips max_total on
+# a read-only-only session; a chained mutating clause (`git log && rm x`) counts;
+# and a must-fail half (carve-out stripped) makes the read-only burst trip again.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-runaway-readonly-carveout.sh >/dev/null 2>&1 || rc=$?
+gate "runaway read-only carve-out (read-only exempt from consec, not from total; mutating loop unchanged)" must_pass "$rc"
 
 # ─────────────────────────────────────────────────────────────────────────────
 echo "── Gate 93: Learn-tab step-by-step diagram (stepper) render ──────────────"

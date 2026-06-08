@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Finance — Portfolio Report — finance</title>
-<style>
-/*
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Finance — Portfolio Report — finance</title>
+    <style>
+      /*
  * RavenClaude — Shared Design Tokens
  * ----------------------------------------------------------------------------
  * Single source of truth for color, typography, spacing, radii, and shadow
@@ -42,370 +42,371 @@
  * design-system reference.
  */
 
-:root {
-  /* ── Neutrals — cool near-white grey (Intercom app canvas) ───────── */
-  --rc-bg: #f5f6f8;
-  --rc-surface: #ffffff;
-  --rc-surface-2: #eef0f3;
-  --rc-border: #e3e6ea;
-  --rc-border-strong: #d2d7dd;
+      :root {
+        /* ── Neutrals — cool near-white grey (Intercom app canvas) ───────── */
+        --rc-bg: #f5f6f8;
+        --rc-surface: #ffffff;
+        --rc-surface-2: #eef0f3;
+        --rc-border: #e3e6ea;
+        --rc-border-strong: #d2d7dd;
 
-  /* ── Text — cool near-black ──────────────────────────────────────── */
-  --rc-text: #1c1f23;
-  --rc-muted: #5b6166;
-  --rc-faint: #8e959c;
+        /* ── Text — cool near-black ──────────────────────────────────────── */
+        --rc-text: #1c1f23;
+        --rc-muted: #5b6166;
+        --rc-faint: #8e959c;
 
-  /* ── Ink — charcoal primary-button fill (accent reserved; Intercom's
+        /* ── Ink — charcoal primary-button fill (accent reserved; Intercom's
      primary is charcoal, not the accent color). Inverts in dark mode. ── */
-  --rc-ink: #1c1f23;
-  --rc-ink-fg: #ffffff;
-  --rc-ink-soft: #34393f;
+        --rc-ink: #1c1f23;
+        --rc-ink-fg: #ffffff;
+        --rc-ink-soft: #34393f;
 
-  /* ── Accent: gold (dashboard primary, Norse identity) ────────────── */
-  /* CONTRAST NOTE: --rc-gold is ~3.6:1 on --rc-bg — AA-LARGE only.
+        /* ── Accent: gold (dashboard primary, Norse identity) ────────────── */
+        /* CONTRAST NOTE: --rc-gold is ~3.6:1 on --rc-bg — AA-LARGE only.
      Never use --rc-gold as body text. Use for borders / headings / icons
      / accent rules / decorative dividers exclusively. */
-  --rc-gold: #a8882e;
-  --rc-gold-soft: #c9aa55;
+        --rc-gold: #a8882e;
+        --rc-gold-soft: #c9aa55;
 
-  /* ── Accent: teal (index + repo-guide primary) ───────────────────── */
-  /* CONTRAST NOTE: --rc-teal passes AA on --rc-bg at ~4.5:1 — safe for
+        /* ── Accent: teal (index + repo-guide primary) ───────────────────── */
+        /* CONTRAST NOTE: --rc-teal passes AA on --rc-bg at ~4.5:1 — safe for
      body text and inline links. */
-  --rc-teal: #1f7f78;
-  --rc-teal-soft: #4a9590;
+        --rc-teal: #1f7f78;
+        --rc-teal-soft: #4a9590;
 
-  /* ── Status ──────────────────────────────────────────────────────── */
-  --rc-ok: #1f7a3f;
-  --rc-warn: #9a7010;
-  --rc-danger: #b03f3f;
+        /* ── Status ──────────────────────────────────────────────────────── */
+        --rc-ok: #1f7a3f;
+        --rc-warn: #9a7010;
+        --rc-danger: #b03f3f;
 
-  /* Status-on-surface pairs (Norse pipeline badges, alert chips). The
+        /* Status-on-surface pairs (Norse pipeline badges, alert chips). The
      -bg variants are intentionally light tints so the -fg variants stay
      readable. Replaces the previously-hardcoded badge color literals. */
-  --rc-ok-bg: #e6f3ea;
-  --rc-ok-fg: #14532d;
-  --rc-warn-bg: #f6ecd6;
-  --rc-warn-fg: #6b4c0a;
-  --rc-danger-bg: #fbe5e5;
-  --rc-danger-fg: #6b1414;
-  --rc-neutral-bg: #ece8e0;
-  --rc-neutral-fg: #4a4640;
+        --rc-ok-bg: #e6f3ea;
+        --rc-ok-fg: #14532d;
+        --rc-warn-bg: #f6ecd6;
+        --rc-warn-fg: #6b4c0a;
+        --rc-danger-bg: #fbe5e5;
+        --rc-danger-fg: #6b1414;
+        --rc-neutral-bg: #ece8e0;
+        --rc-neutral-fg: #4a4640;
 
-  /* ── Typography ──────────────────────────────────────────────────── */
-  --rc-font-sans:
-    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --rc-font-mono:
-    "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        /* ── Typography ──────────────────────────────────────────────────── */
+        --rc-font-sans:
+          "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+          sans-serif;
+        --rc-font-mono:
+          "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
-  /* Letter-spacing scale: tighter on display, looser on small caps */
-  --rc-tracking-tight: -0.02em;
-  --rc-tracking-snug: -0.01em;
-  --rc-tracking-normal: 0;
-  --rc-tracking-wide: 0.04em;
+        /* Letter-spacing scale: tighter on display, looser on small caps */
+        --rc-tracking-tight: -0.02em;
+        --rc-tracking-snug: -0.01em;
+        --rc-tracking-normal: 0;
+        --rc-tracking-wide: 0.04em;
 
-  /* ── Spacing scale (4px base, Intercom-generous) ─────────────────── */
-  --rc-space-1: 4px;
-  --rc-space-2: 8px;
-  --rc-space-3: 12px;
-  --rc-space-4: 16px;
-  --rc-space-5: 24px;
-  --rc-space-6: 32px;
-  --rc-space-7: 48px;
-  --rc-space-8: 64px;
+        /* ── Spacing scale (4px base, Intercom-generous) ─────────────────── */
+        --rc-space-1: 4px;
+        --rc-space-2: 8px;
+        --rc-space-3: 12px;
+        --rc-space-4: 16px;
+        --rc-space-5: 24px;
+        --rc-space-6: 32px;
+        --rc-space-7: 48px;
+        --rc-space-8: 64px;
 
-  /* ── Radii ───────────────────────────────────────────────────────── */
-  --rc-radius-xs: 4px;
-  --rc-radius-sm: 8px;
-  --rc-radius: 10px;
-  --rc-radius-lg: 12px;
-  --rc-radius-pill: 999px;
+        /* ── Radii ───────────────────────────────────────────────────────── */
+        --rc-radius-xs: 4px;
+        --rc-radius-sm: 8px;
+        --rc-radius: 10px;
+        --rc-radius-lg: 12px;
+        --rc-radius-pill: 999px;
 
-  /* ── Shadows — Intercom-soft, 5-tier scale, COOL-tinted ─────────────
+        /* ── Shadows — Intercom-soft, 5-tier scale, COOL-tinted ─────────────
      Intercom carries depth mostly via white surfaces lifting off the cool
      canvas + a 1px hairline; the shadow is a whisper. Cool tint
      (rgba(20, 28, 40, X)) reads natural on the cool-grey canvas — a warm
      brown tint would look muddy here. Keep peaks low. */
-  --rc-shadow-xs: 0 1px 2px rgba(20, 28, 40, 0.04);
-  --rc-shadow-sm: 0 1px 2px rgba(20, 28, 40, 0.04), 0 1px 3px rgba(20, 28, 40, 0.06);
-  --rc-shadow: 0 2px 8px rgba(20, 28, 40, 0.06), 0 1px 2px rgba(20, 28, 40, 0.04);
-  --rc-shadow-md: 0 6px 16px rgba(20, 28, 40, 0.08), 0 2px 4px rgba(20, 28, 40, 0.05);
-  --rc-shadow-lg: 0 12px 28px rgba(20, 28, 40, 0.1), 0 4px 8px rgba(20, 28, 40, 0.05);
-  --rc-shadow-xl: 0 20px 40px rgba(20, 28, 40, 0.12), 0 8px 16px rgba(20, 28, 40, 0.07);
+        --rc-shadow-xs: 0 1px 2px rgba(20, 28, 40, 0.04);
+        --rc-shadow-sm: 0 1px 2px rgba(20, 28, 40, 0.04), 0 1px 3px rgba(20, 28, 40, 0.06);
+        --rc-shadow: 0 2px 8px rgba(20, 28, 40, 0.06), 0 1px 2px rgba(20, 28, 40, 0.04);
+        --rc-shadow-md: 0 6px 16px rgba(20, 28, 40, 0.08), 0 2px 4px rgba(20, 28, 40, 0.05);
+        --rc-shadow-lg: 0 12px 28px rgba(20, 28, 40, 0.1), 0 4px 8px rgba(20, 28, 40, 0.05);
+        --rc-shadow-xl: 0 20px 40px rgba(20, 28, 40, 0.12), 0 8px 16px rgba(20, 28, 40, 0.07);
 
-  /* ── Refined typography scale (Intercom rhythm) ──────────────────────
+        /* ── Refined typography scale (Intercom rhythm) ──────────────────────
      Inter throughout. Display-weight contrast via 700 weight + tight
      tracking. Sizes paired with line-heights so the rhythm reads at
      every viewport. */
-  --rc-text-xs: 0.75rem; /* 12px — small captions, kbd hints */
-  --rc-text-sm: 0.8125rem; /* 13px — eyebrow, chips, labels */
-  --rc-text-base: 0.9375rem; /* 15px — body */
-  --rc-text-md: 1rem; /* 16px — emphasized body */
-  --rc-text-lg: 1.125rem; /* 18px — large body, lead */
-  --rc-text-xl: 1.5rem; /* 24px — H2 */
-  --rc-text-2xl: 1.875rem; /* 30px — H1 secondary */
-  --rc-text-hero: clamp(2rem, 4.5vw, 3rem); /* H1 hero */
-  --rc-line-tight: 1.1;
-  --rc-line-snug: 1.3;
-  --rc-line-normal: 1.5;
-  --rc-line-relaxed: 1.65;
+        --rc-text-xs: 0.75rem; /* 12px — small captions, kbd hints */
+        --rc-text-sm: 0.8125rem; /* 13px — eyebrow, chips, labels */
+        --rc-text-base: 0.9375rem; /* 15px — body */
+        --rc-text-md: 1rem; /* 16px — emphasized body */
+        --rc-text-lg: 1.125rem; /* 18px — large body, lead */
+        --rc-text-xl: 1.5rem; /* 24px — H2 */
+        --rc-text-2xl: 1.875rem; /* 30px — H1 secondary */
+        --rc-text-hero: clamp(2rem, 4.5vw, 3rem); /* H1 hero */
+        --rc-line-tight: 1.1;
+        --rc-line-snug: 1.3;
+        --rc-line-normal: 1.5;
+        --rc-line-relaxed: 1.65;
 
-  /* ── Focus ring (a11y) ───────────────────────────────────────────── */
-  --rc-focus-ring: 0 0 0 3px rgba(31, 127, 120, 0.32); /* teal at .32 */
-  --rc-focus-ring-gold: 0 0 0 3px rgba(168, 136, 46, 0.32); /* gold at .32 */
-}
+        /* ── Focus ring (a11y) ───────────────────────────────────────────── */
+        --rc-focus-ring: 0 0 0 3px rgba(31, 127, 120, 0.32); /* teal at .32 */
+        --rc-focus-ring-gold: 0 0 0 3px rgba(168, 136, 46, 0.32); /* gold at .32 */
+      }
 
-/* ──────────────────────────────────────────────────────────────────────
+      /* ──────────────────────────────────────────────────────────────────────
    Dark mode — every neutral + status token gets a paired override.
    Activated by `data-theme="dark"` on <html>. Gold/teal accents get a
    chroma lift so they don't read as muddy on the dark warm-near-black
    base (designer-panel: light-mode #a8882e on dark surface looks brown).
    WCAG AA targets: text on bg ≥ 7:1, accent on bg ≥ 4.5:1.
    ────────────────────────────────────────────────────────────────────── */
-[data-theme="dark"] {
-  /* Neutrals — warm near-black base, not blue-black */
-  --rc-bg: #14110d;
-  --rc-surface: #1c1814;
-  --rc-surface-2: #25201a;
-  --rc-border: #3a342b;
-  --rc-border-strong: #4a4238;
+      [data-theme="dark"] {
+        /* Neutrals — warm near-black base, not blue-black */
+        --rc-bg: #14110d;
+        --rc-surface: #1c1814;
+        --rc-surface-2: #25201a;
+        --rc-border: #3a342b;
+        --rc-border-strong: #4a4238;
 
-  /* Text */
-  --rc-text: #faf7f0;
-  --rc-muted: #b8aea0;
-  --rc-faint: #7a7263;
+        /* Text */
+        --rc-text: #faf7f0;
+        --rc-muted: #b8aea0;
+        --rc-faint: #7a7263;
 
-  /* Ink — inverts on dark: light fill, dark text (charcoal primary button) */
-  --rc-ink: #f0f2f5;
-  --rc-ink-fg: #14110d;
-  --rc-ink-soft: #d4d8de;
+        /* Ink — inverts on dark: light fill, dark text (charcoal primary button) */
+        --rc-ink: #f0f2f5;
+        --rc-ink-fg: #14110d;
+        --rc-ink-soft: #d4d8de;
 
-  /* Accents — chroma lift to compensate for dark bg */
-  --rc-gold: #c9a84c;
-  --rc-gold-soft: #e0c478;
-  --rc-teal: #3aa391;
-  --rc-teal-soft: #5fbfae;
+        /* Accents — chroma lift to compensate for dark bg */
+        --rc-gold: #c9a84c;
+        --rc-gold-soft: #e0c478;
+        --rc-teal: #3aa391;
+        --rc-teal-soft: #5fbfae;
 
-  /* Status — recalibrated for dark */
-  --rc-ok: #4ade80;
-  --rc-warn: #d4a017;
-  --rc-danger: #f87171;
+        /* Status — recalibrated for dark */
+        --rc-ok: #4ade80;
+        --rc-warn: #d4a017;
+        --rc-danger: #f87171;
 
-  /* Status-on-surface pairs — darker bg variants, brighter fg */
-  --rc-ok-bg: #1a2e1f;
-  --rc-ok-fg: #86efac;
-  --rc-warn-bg: #2e2618;
-  --rc-warn-fg: #f0c060;
-  --rc-danger-bg: #2e1a1a;
-  --rc-danger-fg: #fca5a5;
-  --rc-neutral-bg: #2a2620;
-  --rc-neutral-fg: #c0b8a8;
+        /* Status-on-surface pairs — darker bg variants, brighter fg */
+        --rc-ok-bg: #1a2e1f;
+        --rc-ok-fg: #86efac;
+        --rc-warn-bg: #2e2618;
+        --rc-warn-fg: #f0c060;
+        --rc-danger-bg: #2e1a1a;
+        --rc-danger-fg: #fca5a5;
+        --rc-neutral-bg: #2a2620;
+        --rc-neutral-fg: #c0b8a8;
 
-  /* Shadows — heavier opacity on dark to maintain elevation perception */
-  --rc-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
-  --rc-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
-  --rc-shadow: 0 4px 12px rgba(0, 0, 0, 0.36), 0 1px 3px rgba(0, 0, 0, 0.24);
-  --rc-shadow-md: 0 8px 20px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.28);
-  --rc-shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.45), 0 4px 8px rgba(0, 0, 0, 0.3);
-  --rc-shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.5), 0 8px 16px rgba(0, 0, 0, 0.36);
+        /* Shadows — heavier opacity on dark to maintain elevation perception */
+        --rc-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+        --rc-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+        --rc-shadow: 0 4px 12px rgba(0, 0, 0, 0.36), 0 1px 3px rgba(0, 0, 0, 0.24);
+        --rc-shadow-md: 0 8px 20px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.28);
+        --rc-shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.45), 0 4px 8px rgba(0, 0, 0, 0.3);
+        --rc-shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.5), 0 8px 16px rgba(0, 0, 0, 0.36);
 
-  /* Focus rings — brighter accent colors on dark */
-  --rc-focus-ring: 0 0 0 3px rgba(58, 163, 145, 0.45);
-  --rc-focus-ring-gold: 0 0 0 3px rgba(201, 168, 76, 0.45);
-}
+        /* Focus rings — brighter accent colors on dark */
+        --rc-focus-ring: 0 0 0 3px rgba(58, 163, 145, 0.45);
+        --rc-focus-ring-gold: 0 0 0 3px rgba(201, 168, 76, 0.45);
+      }
 
-/* ── Shared component classes (prefixed .rc-* to avoid collision) ──── */
+      /* ── Shared component classes (prefixed .rc-* to avoid collision) ──── */
 
-/* Intercom-style card/tile surface — a discrete white tile on the tinted
+      /* Intercom-style card/tile surface — a discrete white tile on the tinted
    canvas: hairline border + very soft shadow + generous radius, lifting
    gently on hover. This is the marketplace's primary content container.
    Accent color is applied only as a thin rule (see --accent modifiers) —
    the resting card is monochrome by design. */
-.rc-card {
-  background: var(--rc-surface);
-  border: 1px solid var(--rc-border);
-  border-radius: var(--rc-radius-lg);
-  padding: var(--rc-space-5);
-  box-shadow: var(--rc-shadow-xs);
-  transition:
-    box-shadow 0.18s ease,
-    border-color 0.18s ease,
-    transform 0.18s ease;
-}
-.rc-card:hover {
-  box-shadow: var(--rc-shadow-sm);
-  border-color: var(--rc-border-strong);
-  transform: translateY(-2px);
-}
-/* Minimal-accent modifiers — a single thin rule, never a fill. Use sparingly
+      .rc-card {
+        background: var(--rc-surface);
+        border: 1px solid var(--rc-border);
+        border-radius: var(--rc-radius-lg);
+        padding: var(--rc-space-5);
+        box-shadow: var(--rc-shadow-xs);
+        transition:
+          box-shadow 0.18s ease,
+          border-color 0.18s ease,
+          transform 0.18s ease;
+      }
+      .rc-card:hover {
+        box-shadow: var(--rc-shadow-sm);
+        border-color: var(--rc-border-strong);
+        transform: translateY(-2px);
+      }
+      /* Minimal-accent modifiers — a single thin rule, never a fill. Use sparingly
    to flag a primary/active tile (Intercom keeps accent to a hairline). */
-.rc-card--accent {
-  border-left: 3px solid var(--rc-teal);
-}
-.rc-card--accent-gold {
-  border-left: 3px solid var(--rc-gold);
-}
+      .rc-card--accent {
+        border-left: 3px solid var(--rc-teal);
+      }
+      .rc-card--accent-gold {
+        border-left: 3px solid var(--rc-gold);
+      }
 
-/* Hairline accent rule — the horizontal/vertical accent line used to divide
+      /* Hairline accent rule — the horizontal/vertical accent line used to divide
    sections or top-edge a panel. Teal by default; gold variant for the
    dashboard. Gradient-faded ends so the rule reads as a whisper, not a bar. */
-.rc-rule {
-  height: 1px;
-  border: 0;
-  background: linear-gradient(90deg, transparent, var(--rc-teal) 50%, transparent);
-  opacity: 0.5;
-}
-.rc-rule--gold {
-  background: linear-gradient(90deg, transparent, var(--rc-gold) 50%, transparent);
-}
+      .rc-rule {
+        height: 1px;
+        border: 0;
+        background: linear-gradient(90deg, transparent, var(--rc-teal) 50%, transparent);
+        opacity: 0.5;
+      }
+      .rc-rule--gold {
+        background: linear-gradient(90deg, transparent, var(--rc-gold) 50%, transparent);
+      }
 
-.rc-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--rc-space-2);
-  padding: var(--rc-space-1) var(--rc-space-3);
-  border: 1px solid var(--rc-border);
-  border-radius: var(--rc-radius-pill);
-  background: var(--rc-surface);
-  color: var(--rc-muted);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  letter-spacing: var(--rc-tracking-snug);
-}
+      .rc-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--rc-space-2);
+        padding: var(--rc-space-1) var(--rc-space-3);
+        border: 1px solid var(--rc-border);
+        border-radius: var(--rc-radius-pill);
+        background: var(--rc-surface);
+        color: var(--rc-muted);
+        font-size: 0.8125rem;
+        font-weight: 500;
+        letter-spacing: var(--rc-tracking-snug);
+      }
 
-.rc-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: var(--rc-radius-xs);
-  font-family: var(--rc-font-mono);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: var(--rc-tracking-wide);
-  text-transform: uppercase;
-}
-.rc-badge--ok {
-  background: var(--rc-ok-bg);
-  color: var(--rc-ok-fg);
-}
-.rc-badge--warn {
-  background: var(--rc-warn-bg);
-  color: var(--rc-warn-fg);
-}
-.rc-badge--danger {
-  background: var(--rc-danger-bg);
-  color: var(--rc-danger-fg);
-}
-.rc-badge--neutral {
-  background: var(--rc-neutral-bg);
-  color: var(--rc-neutral-fg);
-}
+      .rc-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        border-radius: var(--rc-radius-xs);
+        font-family: var(--rc-font-mono);
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: var(--rc-tracking-wide);
+        text-transform: uppercase;
+      }
+      .rc-badge--ok {
+        background: var(--rc-ok-bg);
+        color: var(--rc-ok-fg);
+      }
+      .rc-badge--warn {
+        background: var(--rc-warn-bg);
+        color: var(--rc-warn-fg);
+      }
+      .rc-badge--danger {
+        background: var(--rc-danger-bg);
+        color: var(--rc-danger-fg);
+      }
+      .rc-badge--neutral {
+        background: var(--rc-neutral-bg);
+        color: var(--rc-neutral-fg);
+      }
 
-.rc-tab {
-  background: transparent;
-  color: var(--rc-muted);
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: var(--rc-space-3) var(--rc-space-4);
-  cursor: pointer;
-  font-family: var(--rc-font-sans);
-  font-size: 0.9375rem;
-  font-weight: 500;
-  letter-spacing: var(--rc-tracking-snug);
-  transition:
-    color 0.15s ease,
-    border-color 0.15s ease;
-}
-.rc-tab:hover {
-  color: var(--rc-text);
-}
-.rc-tab.is-active {
-  color: var(--rc-text);
-  border-bottom-color: var(--rc-teal);
-}
-/* Gold variant for the dashboard's Norse tab strip */
-.rc-tab.is-active.rc-tab--gold {
-  border-bottom-color: var(--rc-gold);
-}
+      .rc-tab {
+        background: transparent;
+        color: var(--rc-muted);
+        border: none;
+        border-bottom: 2px solid transparent;
+        padding: var(--rc-space-3) var(--rc-space-4);
+        cursor: pointer;
+        font-family: var(--rc-font-sans);
+        font-size: 0.9375rem;
+        font-weight: 500;
+        letter-spacing: var(--rc-tracking-snug);
+        transition:
+          color 0.15s ease,
+          border-color 0.15s ease;
+      }
+      .rc-tab:hover {
+        color: var(--rc-text);
+      }
+      .rc-tab.is-active {
+        color: var(--rc-text);
+        border-bottom-color: var(--rc-teal);
+      }
+      /* Gold variant for the dashboard's Norse tab strip */
+      .rc-tab.is-active.rc-tab--gold {
+        border-bottom-color: var(--rc-gold);
+      }
 
-.rc-button {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--rc-space-2);
-  padding: var(--rc-space-2) var(--rc-space-4);
-  border: 1px solid var(--rc-border-strong);
-  border-radius: var(--rc-radius-sm);
-  background: var(--rc-surface);
-  color: var(--rc-text);
-  font-family: var(--rc-font-sans);
-  font-size: 0.875rem;
-  font-weight: 500;
-  letter-spacing: var(--rc-tracking-snug);
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-}
-.rc-button:hover {
-  background: var(--rc-surface-2);
-  border-color: var(--rc-muted);
-}
-.rc-button:focus-visible {
-  outline: none;
-  box-shadow: var(--rc-focus-ring);
-}
-.rc-button--primary {
-  background: var(--rc-ink);
-  color: var(--rc-ink-fg);
-  border-color: var(--rc-ink);
-}
-.rc-button--primary:hover {
-  background: var(--rc-ink-soft);
-  border-color: var(--rc-ink-soft);
-}
-.rc-button--gold {
-  background: var(--rc-gold);
-  color: var(--rc-surface);
-  border-color: var(--rc-gold);
-}
-.rc-button--gold:hover {
-  background: var(--rc-gold-soft);
-  border-color: var(--rc-gold-soft);
-}
-.rc-button--gold:focus-visible {
-  box-shadow: var(--rc-focus-ring-gold);
-}
+      .rc-button {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--rc-space-2);
+        padding: var(--rc-space-2) var(--rc-space-4);
+        border: 1px solid var(--rc-border-strong);
+        border-radius: var(--rc-radius-sm);
+        background: var(--rc-surface);
+        color: var(--rc-text);
+        font-family: var(--rc-font-sans);
+        font-size: 0.875rem;
+        font-weight: 500;
+        letter-spacing: var(--rc-tracking-snug);
+        cursor: pointer;
+        transition:
+          background 0.15s ease,
+          border-color 0.15s ease,
+          box-shadow 0.15s ease;
+      }
+      .rc-button:hover {
+        background: var(--rc-surface-2);
+        border-color: var(--rc-muted);
+      }
+      .rc-button:focus-visible {
+        outline: none;
+        box-shadow: var(--rc-focus-ring);
+      }
+      .rc-button--primary {
+        background: var(--rc-ink);
+        color: var(--rc-ink-fg);
+        border-color: var(--rc-ink);
+      }
+      .rc-button--primary:hover {
+        background: var(--rc-ink-soft);
+        border-color: var(--rc-ink-soft);
+      }
+      .rc-button--gold {
+        background: var(--rc-gold);
+        color: var(--rc-surface);
+        border-color: var(--rc-gold);
+      }
+      .rc-button--gold:hover {
+        background: var(--rc-gold-soft);
+        border-color: var(--rc-gold-soft);
+      }
+      .rc-button--gold:focus-visible {
+        box-shadow: var(--rc-focus-ring-gold);
+      }
 
-.rc-input {
-  padding: var(--rc-space-2) var(--rc-space-3);
-  border: 1px solid var(--rc-border-strong);
-  border-radius: var(--rc-radius-sm);
-  background: var(--rc-surface);
-  color: var(--rc-text);
-  font-family: var(--rc-font-sans);
-  font-size: 0.9375rem;
-  line-height: 1.4;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-}
-.rc-input:focus {
-  outline: none;
-  border-color: var(--rc-teal);
-  box-shadow: var(--rc-focus-ring);
-}
+      .rc-input {
+        padding: var(--rc-space-2) var(--rc-space-3);
+        border: 1px solid var(--rc-border-strong);
+        border-radius: var(--rc-radius-sm);
+        background: var(--rc-surface);
+        color: var(--rc-text);
+        font-family: var(--rc-font-sans);
+        font-size: 0.9375rem;
+        line-height: 1.4;
+        transition:
+          border-color 0.15s ease,
+          box-shadow 0.15s ease;
+      }
+      .rc-input:focus {
+        outline: none;
+        border-color: var(--rc-teal);
+        box-shadow: var(--rc-focus-ring);
+      }
 
-.rc-code {
-  font-family: var(--rc-font-mono);
-  background: var(--rc-surface-2);
-  border: 1px solid var(--rc-border);
-  border-radius: var(--rc-radius-sm);
-  padding: 1px 6px;
-  font-size: 0.875em;
-  color: var(--rc-text);
-}
+      .rc-code {
+        font-family: var(--rc-font-mono);
+        background: var(--rc-surface-2);
+        border: 1px solid var(--rc-border);
+        border-radius: var(--rc-radius-sm);
+        padding: 1px 6px;
+        font-size: 0.875em;
+        color: var(--rc-text);
+      }
 
-/* ──────────────────────────────────────────────────────────────────────
+      /* ──────────────────────────────────────────────────────────────────────
    Animation keyframes — shared across surfaces.
    - rcFadeUp: view-enter stagger (cards fade up sequentially)
    - rcShimmer: skeleton-loading sweep
@@ -413,204 +414,1278 @@
    All wrapped in prefers-reduced-motion negation at the surface level
    (the existing global `* { animation: none }` block covers them).
    ────────────────────────────────────────────────────────────────────── */
-@keyframes rcFadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@keyframes rcShimmer {
-  0% {
-    background-position: -120% 0;
-  }
-  100% {
-    background-position: 120% 0;
-  }
-}
-@keyframes rcShimmerOnce {
-  0% {
-    background-position: -120% 0;
-    opacity: 0;
-  }
-  20% {
-    opacity: 1;
-  }
-  100% {
-    background-position: 120% 0;
-    opacity: 1;
-  }
-}
+      @keyframes rcFadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes rcShimmer {
+        0% {
+          background-position: -120% 0;
+        }
+        100% {
+          background-position: 120% 0;
+        }
+      }
+      @keyframes rcShimmerOnce {
+        0% {
+          background-position: -120% 0;
+          opacity: 0;
+        }
+        20% {
+          opacity: 1;
+        }
+        100% {
+          background-position: 120% 0;
+          opacity: 1;
+        }
+      }
 
-/* Skeleton-loading utility. Use as a placeholder block while content is
+      /* Skeleton-loading utility. Use as a placeholder block while content is
    debouncing/loading. Respects reduced-motion via the global * negation. */
-.rc-shimmer {
-  background: linear-gradient(
-    90deg,
-    var(--rc-surface-2) 0%,
-    var(--rc-border) 50%,
-    var(--rc-surface-2) 100%
-  );
-  background-size: 200% 100%;
-  animation: rcShimmer 1.6s linear infinite;
-  border-radius: var(--rc-radius-sm);
-  color: transparent;
-}
-.rc-shimmer--text {
-  height: 0.9375rem;
-  width: 70%;
-}
-.rc-shimmer--block {
-  height: 120px;
-  width: 100%;
-}
+      .rc-shimmer {
+        background: linear-gradient(
+          90deg,
+          var(--rc-surface-2) 0%,
+          var(--rc-border) 50%,
+          var(--rc-surface-2) 100%
+        );
+        background-size: 200% 100%;
+        animation: rcShimmer 1.6s linear infinite;
+        border-radius: var(--rc-radius-sm);
+        color: transparent;
+      }
+      .rc-shimmer--text {
+        height: 0.9375rem;
+        width: 70%;
+      }
+      .rc-shimmer--block {
+        height: 120px;
+        width: 100%;
+      }
 
-
-:root {
-  --bg: var(--rc-bg); --surface: var(--rc-surface); --surface-2: var(--rc-surface-2);
-  --border: var(--rc-border); --border-strong: var(--rc-border-strong);
-  --text: var(--rc-text); --muted: var(--rc-muted); --faint: var(--rc-faint);
-  --accent: var(--rc-teal); --font-sans: var(--rc-font-sans); --font-mono: var(--rc-font-mono);
-}
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-sans);
-  font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
-a { color: var(--accent); }
-.wrap { max-width: 1180px; margin: 0 auto; padding: 28px clamp(16px, 4vw, 36px) 80px; }
-.rhead { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 6px; }
-.rhead h1 { font-size: clamp(1.5rem, 3vw, 2rem); margin: 0; letter-spacing: -0.02em; }
-.rhead .stamp { margin-left: auto; font-size: 0.78rem; color: var(--faint); text-align: right; }
-.synthetic { display: inline-block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em;
-  text-transform: uppercase; color: var(--rc-warn-fg); background: var(--rc-warn-bg);
-  border-radius: var(--rc-radius-pill); padding: 2px 10px; margin-top: 6px; }
-.lede { color: var(--muted); max-width: 70ch; margin: 4px 0 18px; }
-.rule { height: 1px; border: 0; background: linear-gradient(90deg, transparent, var(--accent) 50%, transparent); opacity: 0.5; margin: 22px 0; }
-.dq { display: flex; gap: 10px; align-items: flex-start; background: var(--rc-warn-bg); color: var(--rc-warn-fg);
-  border: 1px solid var(--rc-border); border-radius: var(--rc-radius); padding: 12px 14px; margin-bottom: 20px; font-size: 0.86rem; }
-.dq b { font-weight: 700; }
-.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 8px; }
-.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--rc-radius-lg);
-  box-shadow: var(--rc-shadow-sm); padding: 16px 18px; transition: box-shadow .18s ease, transform .18s ease; }
-.kpi:hover { box-shadow: var(--rc-shadow-md); transform: translateY(-2px); }
-.kpi .k { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.8rem; }
-.kpi .v { font-size: 1.9rem; font-weight: 700; line-height: 1.1; margin-top: 4px; }
-.kpi .d { font-size: 0.78rem; margin-top: 2px; }
-.kpi .d.up { color: var(--rc-ok); } .kpi .d.down { color: var(--rc-danger); } .kpi .d.flat { color: var(--faint); }
-.kpi .full { font-size: 0.72rem; color: var(--faint); font-family: var(--font-mono); }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
-.panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--rc-radius-lg);
-  box-shadow: var(--rc-shadow-sm); padding: 18px 20px; }
-.panel h2 { font-size: 1.05rem; margin: 0 0 2px; letter-spacing: -0.01em; }
-.panel .sub { color: var(--faint); font-size: 0.8rem; margin: 0 0 12px; }
-.donut-row { display: flex; align-items: center; gap: 18px; }
-.legend { display: flex; flex-direction: column; gap: 6px; font-size: 0.86rem; }
-.legend .li { display: flex; align-items: center; gap: 8px; }
-.legend .sw { width: 12px; height: 12px; border-radius: 3px; flex: 0 0 auto; }
-.info { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px;
-  border-radius: 50%; border: 1px solid var(--border-strong); background: var(--surface); color: var(--muted);
-  font-size: 10px; font-weight: 700; cursor: help; flex: 0 0 auto; }
-.toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 22px 0 12px; }
-.toolbar input, .toolbar select { height: 38px; padding: 0 12px; border-radius: var(--rc-radius-sm);
-  background: var(--surface); border: 1px solid var(--border-strong); color: var(--text); font: inherit; font-size: 0.88rem; }
-.toolbar input { flex: 1; min-width: 200px; }
-.toolbar .seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--rc-radius-sm); overflow: hidden; }
-.toolbar .seg button { background: var(--surface); border: 0; padding: 8px 12px; font: inherit; font-size: 0.82rem; cursor: pointer; color: var(--muted); }
-.toolbar .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
-table.partners { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-table.partners th { text-align: left; padding: 10px 10px; border-bottom: 1px solid var(--border-strong);
-  color: var(--muted); font-weight: 600; cursor: pointer; white-space: nowrap; user-select: none; }
-table.partners th .arr { color: var(--faint); font-size: 0.7rem; }
-table.partners td { padding: 10px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-table.partners tr.prow { cursor: pointer; }
-table.partners tr.prow:hover { background: var(--surface-2); }
-.scorebadge { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; padding: 2px 8px;
-  border-radius: var(--rc-radius-pill); font-weight: 700; font-size: 0.82rem; color: #fff; }
-.bandtag { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; }
-.bandtag .dot { width: 9px; height: 9px; border-radius: 50%; }
-.dchip { display: inline-block; font-size: 0.78rem; }
-.dchip.up { color: var(--rc-ok); } .dchip.down { color: var(--rc-danger); } .dchip.flat { color: var(--faint); }
-.flagcell { font-size: 1.1rem; }
-.drow td { background: var(--surface-2); padding: 0; }
-.drawer { padding: 18px 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-@media (max-width: 820px) { .drawer { grid-template-columns: 1fr; } }
-.drawer h3 { margin: 0 0 8px; font-size: 0.95rem; }
-.flaglist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.flaglist li { background: var(--rc-danger-bg); color: var(--rc-danger-fg); border-radius: var(--rc-radius-sm);
-  padding: 7px 10px; font-size: 0.82rem; }
-.flaglist li.none { background: var(--rc-ok-bg); color: var(--rc-ok-fg); }
-.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 0.84rem; }
-.kv dt { color: var(--muted); } .kv dd { margin: 0; font-weight: 600; }
-.hidden { display: none !important; }
-.foot { margin-top: 30px; color: var(--faint); font-size: 0.78rem; }
-[data-theme="dark"] .toolbar .seg button[aria-pressed="true"], [data-theme="dark"] .scorebadge { color: #14110d; }
-
-</style>
-</head>
-<body>
-<div class="wrap">
-  <div class="rhead">
-    <div><h1>Finance — Portfolio Report</h1><div class="synthetic">Sample data · not real</div></div>
-    <div class="stamp">Updated 2026-06-02<br/>Owner: FP&amp;A team</div>
-  </div>
-  <p class="lede">Money in, money out, and where it&#x27;s going. Green is on budget, yellow is watch, red is over.</p>
-  <div class="kpis"><div class="kpi"><div class="k">Monthly recurring revenue<span class="info" tabindex="0" title="The money we can count on every month from subscriptions.">?</span></div><div class="v">$1.42M</div><div class="d up">▲ 3.1 vs last period</div><div class="full">MRR</div></div><div class="kpi"><div class="k">Gross margin<span class="info" tabindex="0" title="Of each dollar we earn, how much is left after the direct cost of delivering it.">?</span></div><div class="v">78%</div><div class="d up">▲ 1.0% vs last period</div><div class="full">Gross %</div></div><div class="kpi"><div class="k">Net margin<span class="info" tabindex="0" title="Of each dollar we earn, how much is left as actual profit after ALL costs.">?</span></div><div class="v">12%</div><div class="d down">▼ 2.0% vs last period</div><div class="full">Net %</div></div><div class="kpi"><div class="k">Cash runway<span class="info" tabindex="0" title="How many months we can keep operating before the bank account runs out, at today&#x27;s burn.">?</span></div><div class="v">18 mo</div><div class="d down">▼ 1.0 vs last period</div><div class="full">Runway</div></div><div class="kpi"><div class="k">Over-budget cost centers<span class="info" tabindex="0" title="How many teams spent more than their budget this period.">?</span></div><div class="v">2</div><div class="d down">▲ 1 vs last period</div><div class="full">Over</div></div></div>
-  <hr class="rule"/>
-  <div style="margin-top:16px"><div class="grid2"><div class="panel"><h2>Spending by status</h2><p class="sub">Every cost center, sorted by how it&#x27;s tracking to budget.</p><div class="donut-row"><svg viewBox="0 0 140 140" width="140" height="140" role="img" aria-label="Distribution"><circle cx="70" cy="70" r="52" fill="none" stroke="var(--rc-border)" stroke-width="22"/><circle cx="70" cy="70" r="52" fill="none" stroke="var(--rc-ok)" stroke-width="22" stroke-dasharray="181.51 145.21" stroke-dashoffset="-0.00" transform="rotate(-90 70 70)"/><circle cx="70" cy="70" r="52" fill="none" stroke="var(--rc-warn)" stroke-width="22" stroke-dasharray="72.61 254.12" stroke-dashoffset="-181.51" transform="rotate(-90 70 70)"/><circle cx="70" cy="70" r="52" fill="none" stroke="var(--rc-danger)" stroke-width="22" stroke-dasharray="72.61 254.12" stroke-dashoffset="-254.12" transform="rotate(-90 70 70)"/><text x="70" y="68" text-anchor="middle" font-size="26" font-weight="700" fill="var(--rc-text)">9</text><text x="70" y="88" text-anchor="middle" font-size="11" fill="var(--rc-muted)">centers</text></svg><div class="legend"><div class="li"><span class="sw" style="background:var(--rc-ok)"></span><b style="font-weight:700">5</b>&nbsp;On budget</div><div class="li"><span class="sw" style="background:var(--rc-warn)"></span><b style="font-weight:700">2</b>&nbsp;Watch</div><div class="li"><span class="sw" style="background:var(--rc-danger)"></span><b style="font-weight:700">2</b>&nbsp;Over budget</div></div></div></div><div class="panel"><h2>Revenue, last 12 months</h2><p class="sub">Total revenue each month. Up and to the right is the goal.</p><svg viewBox="0 0 620 180" width="100%" height="180" role="img" aria-label="Trend"><line x1="40" y1="154.0" x2="606" y2="154.0" stroke="var(--rc-border)" stroke-width="1"/><text x="34" y="158.0" text-anchor="end" font-size="10" fill="var(--rc-faint)">0</text><line x1="40" y1="85.0" x2="606" y2="85.0" stroke="var(--rc-border)" stroke-width="1"/><text x="34" y="89.0" text-anchor="end" font-size="10" fill="var(--rc-faint)">0.8</text><line x1="40" y1="16.0" x2="606" y2="16.0" stroke="var(--rc-border)" stroke-width="1"/><text x="34" y="20.0" text-anchor="end" font-size="10" fill="var(--rc-faint)">1.6</text><polygon points="40,154 40.0,63.4 91.5,60.8 142.9,57.4 194.4,54.8 245.8,51.4 297.3,48.8 348.7,46.2 400.2,42.7 451.6,39.3 503.1,36.7 554.5,34.1 606.0,31.5 606.0,154" fill="var(--rc-teal)" opacity="0.10"/><polyline points="40.0,63.4 91.5,60.8 142.9,57.4 194.4,54.8 245.8,51.4 297.3,48.8 348.7,46.2 400.2,42.7 451.6,39.3 503.1,36.7 554.5,34.1 606.0,31.5" fill="none" stroke="var(--rc-teal)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="606.0" cy="31.5" r="4.5" fill="var(--rc-teal)"/><text x="40.0" y="172" text-anchor="start" font-size="10" fill="var(--rc-faint)">12 mo ago</text><text x="606.0" y="172" text-anchor="end" font-size="10" fill="var(--rc-faint)">This mo</text></svg></div></div></div><div style="margin-top:16px"><div class="panel"><h2>Where the money goes</h2><p class="sub">This period&#x27;s spending by category (in thousands).</p><svg viewBox="0 0 460 190" width="100%" role="img" aria-label="Breakdown"><text x="0" y="17" font-size="12" fill="var(--rc-text)">Payroll</text><text x="0" y="31" font-size="10" fill="var(--rc-faint)">salaries + benefits</text><rect x="170" y="8" width="240" height="14" rx="7" fill="var(--rc-border)"/><rect x="170" y="8" width="216.0" height="14" rx="7" fill="var(--rc-teal)"/><text x="416" y="19" font-size="12" font-weight="600" fill="var(--rc-text)">$720k</text><text x="0" y="55" font-size="12" fill="var(--rc-text)">Cloud &amp; infra</text><text x="0" y="69" font-size="10" fill="var(--rc-faint)">hosting, data, tools</text><rect x="170" y="46" width="240" height="14" rx="7" fill="var(--rc-border)"/><rect x="170" y="46" width="54.0" height="14" rx="7" fill="var(--rc-teal)"/><text x="416" y="57" font-size="12" font-weight="600" fill="var(--rc-text)">$180k</text><text x="0" y="93" font-size="12" fill="var(--rc-text)">Sales &amp; marketing</text><text x="0" y="107" font-size="10" fill="var(--rc-faint)">ads, events, content</text><rect x="170" y="84" width="240" height="14" rx="7" fill="var(--rc-border)"/><rect x="170" y="84" width="72.0" height="14" rx="7" fill="var(--rc-warn)"/><text x="416" y="95" font-size="12" font-weight="600" fill="var(--rc-text)">$240k</text><text x="0" y="131" font-size="12" fill="var(--rc-text)">Software / SaaS</text><text x="0" y="145" font-size="10" fill="var(--rc-faint)">per-seat tools</text><rect x="170" y="122" width="240" height="14" rx="7" fill="var(--rc-border)"/><rect x="170" y="122" width="28.5" height="14" rx="7" fill="var(--rc-teal)"/><text x="416" y="133" font-size="12" font-weight="600" fill="var(--rc-text)">$95k</text><text x="0" y="169" font-size="12" fill="var(--rc-text)">Office &amp; travel</text><text x="0" y="183" font-size="10" fill="var(--rc-faint)">facilities, trips</text><rect x="170" y="160" width="240" height="14" rx="7" fill="var(--rc-border)"/><rect x="170" y="160" width="18.0" height="14" rx="7" fill="var(--rc-teal)"/><text x="416" y="171" font-size="12" font-weight="600" fill="var(--rc-text)">$60k</text></svg></div></div><div style="margin-top:16px"><h2>Cost centers</h2><div class="toolbar"><input id="psearch" type="search" placeholder="Search…" aria-label="Search"><div class="seg" role="group" aria-label="Filter"><button data-band="all" aria-pressed="true">All</button><button data-band="green" aria-pressed="false">On budget</button><button data-band="yellow" aria-pressed="false">Watch</button><button data-band="red" aria-pressed="false">Over budget</button></div></div><div class="panel" style="padding:6px 8px"><table class="partners"><thead><tr><th data-key="name">Cost center <span class="arr"></span></th><th data-key="budget">Budget <span class="arr"></span></th><th data-key="actual">Actual <span class="arr"></span></th><th data-key="variance">Variance <span class="arr">▼</span></th><th>Status</th><th>6-mo trend</th><th>Owner</th></tr></thead><tbody id="pbody"><tr class="prow" data-band="green" data-search="engineering wendy p." data-name="Engineering" data-budget="$640k" data-actual="$631k" data-variance="-1%"><td><b>Engineering</b><div style="color:var(--faint);font-size:0.78rem">Product</div></td><td style="font-variant-numeric:tabular-nums">$640k</td><td style="font-variant-numeric:tabular-nums">$631k</td><td><span class="scorebadge" style="background:var(--rc-ok)">-1%</span></td><td><span class="bandtag"><span class="dot" style="background:var(--rc-ok)"></span>On budget</span></td><td><svg viewBox="0 0 120 30" width="120" height="30" class="spark" aria-hidden="true"><polyline points="0.0,27.0 24.0,19.3 48.0,15.4 72.0,11.5 96.0,5.3 120.0,3.0" fill="none" stroke="var(--rc-ok)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><circle cx="120.0" cy="3.0" r="2.4" fill="var(--rc-ok)"/></svg></td><td>Wendy P.</td></tr><tr class="prow" data-band="red" data-search="marketing raj s." data-name="Marketing" data-budget="$210k" data-actual="$248k" data-variance="+18%"><td><b>Marketing</b><div style="color:var(--faint);font-size:0.78rem">GTM</div></td><td style="font-variant-numeric:tabular-nums">$210k</td><td style="font-variant-numeric:tabular-nums">$248k</td><td><span class="scorebadge" style="background:var(--rc-danger)">+18%</span></td><td><span class="bandtag"><span class="dot" style="background:var(--rc-danger)"></span>Over budget</span></td><td><svg viewBox="0 0 120 30" width="120" height="30" class="spark" aria-hidden="true"><polyline points="0.0,27.0 24.0,21.7 48.0,18.2 72.0,12.9 96.0,6.5 120.0,3.0" fill="none" stroke="var(--rc-ok)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><circle cx="120.0" cy="3.0" r="2.4" fill="var(--rc-ok)"/></svg></td><td>Raj S.</td></tr><tr class="drow hidden"><td colspan="7"><div class="drawer"><div><h3>What drove the overspend</h3><svg viewBox="0 0 460 114" width="100%" role="img" aria-label="Breakdown"><text x="0" y="17" font-size="12" fill="var(--rc-text)">Paid ads</text><rect x="170" y="8" width="240" height="14" rx="7" fill="var(--rc-border)"/><rect x="170" y="8" width="116.1" height="14" rx="7" fill="var(--rc-danger)"/><text x="416" y="19" font-size="12" font-weight="600" fill="var(--rc-text)">$120k</text><text x="0" y="55" font-size="12" fill="var(--rc-text)">Events</text><rect x="170" y="46" width="240" height="14" rx="7" fill="var(--rc-border)"/><rect x="170" y="46" width="75.5" height="14" rx="7" fill="var(--rc-warn)"/><text x="416" y="57" font-size="12" font-weight="600" fill="var(--rc-text)">$78k</text><text x="0" y="93" font-size="12" fill="var(--rc-text)">Content</text><rect x="170" y="84" width="240" height="14" rx="7" fill="var(--rc-border)"/><rect x="170" y="84" width="48.4" height="14" rx="7" fill="var(--rc-teal)"/><text x="416" y="95" font-size="12" font-weight="600" fill="var(--rc-text)">$50k</text></svg></div><div><h3>Why it&#x27;s over</h3><ul class="flaglist"><li>Paid-ads spend ran 40% over plan after the spring campaign extension</li></ul><dl class="kv" style="margin-top:12px"><dt>Budget</dt><dd>$210k</dd><dt>Actual</dt><dd>$248k</dd><dt>Owner</dt><dd>Raj S.</dd><dt>Action</dt><dd>Pause paid-ads top-up; review at month-end</dd></dl></div></div></td></tr><tr class="prow" data-band="green" data-search="sales dana k." data-name="Sales" data-budget="$320k" data-actual="$312k" data-variance="-3%"><td><b>Sales</b><div style="color:var(--faint);font-size:0.78rem">GTM</div></td><td style="font-variant-numeric:tabular-nums">$320k</td><td style="font-variant-numeric:tabular-nums">$312k</td><td><span class="scorebadge" style="background:var(--rc-ok)">-3%</span></td><td><span class="bandtag"><span class="dot" style="background:var(--rc-ok)"></span>On budget</span></td><td><svg viewBox="0 0 120 30" width="120" height="30" class="spark" aria-hidden="true"><polyline points="0.0,27.0 24.0,17.0 48.0,11.0 72.0,7.0 96.0,5.0 120.0,3.0" fill="none" stroke="var(--rc-ok)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><circle cx="120.0" cy="3.0" r="2.4" fill="var(--rc-ok)"/></svg></td><td>Dana K.</td></tr><tr class="prow" data-band="red" data-search="cloud / infra omar t." data-name="Cloud / infra" data-budget="$160k" data-actual="$181k" data-variance="+13%"><td><b>Cloud / infra</b><div style="color:var(--faint);font-size:0.78rem">Platform</div></td><td style="font-variant-numeric:tabular-nums">$160k</td><td style="font-variant-numeric:tabular-nums">$181k</td><td><span class="scorebadge" style="background:var(--rc-danger)">+13%</span></td><td><span class="bandtag"><span class="dot" style="background:var(--rc-danger)"></span>Over budget</span></td><td><svg viewBox="0 0 120 30" width="120" height="30" class="spark" aria-hidden="true"><polyline points="0.0,27.0 24.0,22.4 48.0,17.7 72.0,11.5 96.0,6.9 120.0,3.0" fill="none" stroke="var(--rc-ok)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><circle cx="120.0" cy="3.0" r="2.4" fill="var(--rc-ok)"/></svg></td><td>Omar T.</td></tr><tr class="drow hidden"><td colspan="7"><div class="drawer"><div><h3>What drove the overspend</h3><svg viewBox="0 0 460 114" width="100%" role="img" aria-label="Breakdown"><text x="0" y="17" font-size="12" fill="var(--rc-text)">Compute</text><rect x="170" y="8" width="240" height="14" rx="7" fill="var(--rc-border)"/><rect x="170" y="8" width="127.3" height="14" rx="7" fill="var(--rc-danger)"/><text x="416" y="19" font-size="12" font-weight="600" fill="var(--rc-text)">$96k</text><text x="0" y="55" font-size="12" fill="var(--rc-text)">Storage</text><rect x="170" y="46" width="240" height="14" rx="7" fill="var(--rc-border)"/><rect x="170" y="46" width="69.0" height="14" rx="7" fill="var(--rc-warn)"/><text x="416" y="57" font-size="12" font-weight="600" fill="var(--rc-text)">$52k</text><text x="0" y="93" font-size="12" fill="var(--rc-text)">Egress</text><rect x="170" y="84" width="240" height="14" rx="7" fill="var(--rc-border)"/><rect x="170" y="84" width="43.8" height="14" rx="7" fill="var(--rc-teal)"/><text x="416" y="95" font-size="12" font-weight="600" fill="var(--rc-text)">$33k</text></svg></div><div><h3>Why it&#x27;s over</h3><ul class="flaglist"><li>Compute up 22% after the new ML workload went live without a committed-use discount</li></ul><dl class="kv" style="margin-top:12px"><dt>Budget</dt><dd>$160k</dd><dt>Actual</dt><dd>$181k</dd><dt>Owner</dt><dd>Omar T.</dd><dt>Action</dt><dd>Buy a 1-yr committed-use plan for steady-state compute</dd></dl></div></div></td></tr><tr class="prow" data-band="green" data-search="customer success lena m." data-name="Customer Success" data-budget="$140k" data-actual="$133k" data-variance="-5%"><td><b>Customer Success</b><div style="color:var(--faint);font-size:0.78rem">GTM</div></td><td style="font-variant-numeric:tabular-nums">$140k</td><td style="font-variant-numeric:tabular-nums">$133k</td><td><span class="scorebadge" style="background:var(--rc-ok)">-5%</span></td><td><span class="bandtag"><span class="dot" style="background:var(--rc-ok)"></span>On budget</span></td><td><svg viewBox="0 0 120 30" width="120" height="30" class="spark" aria-hidden="true"><polyline points="0.0,27.0 24.0,19.0 48.0,11.0 72.0,11.0 96.0,3.0 120.0,3.0" fill="none" stroke="var(--rc-ok)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><circle cx="120.0" cy="3.0" r="2.4" fill="var(--rc-ok)"/></svg></td><td>Lena M.</td></tr><tr class="prow" data-band="yellow" data-search="g&amp;a sam r." data-name="G&amp;A" data-budget="$120k" data-actual="$126k" data-variance="+5%"><td><b>G&amp;A</b><div style="color:var(--faint);font-size:0.78rem">Ops</div></td><td style="font-variant-numeric:tabular-nums">$120k</td><td style="font-variant-numeric:tabular-nums">$126k</td><td><span class="scorebadge" style="background:var(--rc-warn)">+5%</span></td><td><span class="bandtag"><span class="dot" style="background:var(--rc-warn)"></span>Watch</span></td><td><svg viewBox="0 0 120 30" width="120" height="30" class="spark" aria-hidden="true"><polyline points="0.0,27.0 24.0,21.0 48.0,15.0 72.0,12.0 96.0,6.0 120.0,3.0" fill="none" stroke="var(--rc-ok)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><circle cx="120.0" cy="3.0" r="2.4" fill="var(--rc-ok)"/></svg></td><td>Sam R.</td></tr><tr class="prow" data-band="yellow" data-search="r&amp;d — new bets wendy p." data-name="R&amp;D — new bets" data-budget="$90k" data-actual="$96k" data-variance="+7%"><td><b>R&amp;D — new bets</b><div style="color:var(--faint);font-size:0.78rem">Product</div></td><td style="font-variant-numeric:tabular-nums">$90k</td><td style="font-variant-numeric:tabular-nums">$96k</td><td><span class="scorebadge" style="background:var(--rc-warn)">+7%</span></td><td><span class="bandtag"><span class="dot" style="background:var(--rc-warn)"></span>Watch</span></td><td><svg viewBox="0 0 120 30" width="120" height="30" class="spark" aria-hidden="true"><polyline points="0.0,27.0 24.0,21.0 48.0,15.0 72.0,10.5 96.0,6.0 120.0,3.0" fill="none" stroke="var(--rc-ok)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><circle cx="120.0" cy="3.0" r="2.4" fill="var(--rc-ok)"/></svg></td><td>Wendy P.</td></tr></tbody></table></div><p class="sub" style="margin-top:8px">Click a row to see what&#x27;s driving its spend. Click a column header to sort. Variance is actual minus budget — red means over.</p></div>
-  <p class="foot">
-    Self-contained report — no internet needed. Built by <code>scripts/generate-bi-report.py</code> from
-    <code>plugins/finance/bi-report/data.json</code>. Replace that file with a real export (same shape) and re-run to rebuild.
-  </p>
-</div>
-<script>
-
-(function(){
-  var tbody = document.getElementById('pbody');
-  if(!tbody) return;
-  var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr.prow'));
-  var search = document.getElementById('psearch');
-  var sortDir = {};
-  function applyFilter(){
-    var q = (search && search.value || '').toLowerCase();
-    var bbtn = document.querySelector('.seg button[aria-pressed="true"]');
-    var band = bbtn ? bbtn.getAttribute('data-band') : 'all';
-    rows.forEach(function(r){
-      var show = (q==='' || (r.getAttribute('data-search')||'').indexOf(q)>=0) && (band==='all' || r.getAttribute('data-band')===band);
-      r.classList.toggle('hidden', !show);
-      var d = r.nextElementSibling; if(d && d.classList.contains('drow')) d.classList.add('hidden');
-    });
-  }
-  function sortBy(key, th){
-    var dir = sortDir[key]==='asc' ? 'desc' : 'asc'; sortDir = {}; sortDir[key]=dir;
-    var m = dir==='asc'?1:-1;
-    rows.sort(function(a,b){
-      var av=a.getAttribute('data-'+key)||'', bv=b.getAttribute('data-'+key)||'';
-      var an=parseFloat(av), bn=parseFloat(bv);
-      if(!isNaN(an)&&!isNaN(bn)) return (an-bn)*m;
-      return av.localeCompare(bv)*m;
-    });
-    rows.forEach(function(r){ var d=r.nextElementSibling; tbody.appendChild(r); if(d&&d.classList.contains('drow')) tbody.appendChild(d); });
-    document.querySelectorAll('th[data-key] .arr').forEach(function(el){ el.textContent=''; });
-    var a=th.querySelector('.arr'); if(a) a.textContent = dir==='asc'?'▲':'▼';
-  }
-  if(search) search.addEventListener('input', applyFilter);
-  document.querySelectorAll('.seg button').forEach(function(b){
-    b.addEventListener('click', function(){
-      document.querySelectorAll('.seg button').forEach(function(x){ x.setAttribute('aria-pressed','false'); });
-      b.setAttribute('aria-pressed','true'); applyFilter();
-    });
-  });
-  document.querySelectorAll('th[data-key]').forEach(function(th){
-    th.addEventListener('click', function(){ sortBy(th.getAttribute('data-key'), th); });
-  });
-  rows.forEach(function(r){
-    r.addEventListener('click', function(){ var d=r.nextElementSibling; if(d&&d.classList.contains('drow')) d.classList.toggle('hidden'); });
-  });
-})();
-
-</script>
-</body>
+      :root {
+        --bg: var(--rc-bg);
+        --surface: var(--rc-surface);
+        --surface-2: var(--rc-surface-2);
+        --border: var(--rc-border);
+        --border-strong: var(--rc-border-strong);
+        --text: var(--rc-text);
+        --muted: var(--rc-muted);
+        --faint: var(--rc-faint);
+        --accent: var(--rc-teal);
+        --font-sans: var(--rc-font-sans);
+        --font-mono: var(--rc-font-mono);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font-sans);
+        font-size: 15px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        color: var(--accent);
+      }
+      .wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 28px clamp(16px, 4vw, 36px) 80px;
+      }
+      .rhead {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
+      }
+      .rhead h1 {
+        font-size: clamp(1.5rem, 3vw, 2rem);
+        margin: 0;
+        letter-spacing: -0.02em;
+      }
+      .rhead .stamp {
+        margin-left: auto;
+        font-size: 0.78rem;
+        color: var(--faint);
+        text-align: right;
+      }
+      .synthetic {
+        display: inline-block;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--rc-warn-fg);
+        background: var(--rc-warn-bg);
+        border-radius: var(--rc-radius-pill);
+        padding: 2px 10px;
+        margin-top: 6px;
+      }
+      .lede {
+        color: var(--muted);
+        max-width: 70ch;
+        margin: 4px 0 18px;
+      }
+      .rule {
+        height: 1px;
+        border: 0;
+        background: linear-gradient(90deg, transparent, var(--accent) 50%, transparent);
+        opacity: 0.5;
+        margin: 22px 0;
+      }
+      .dq {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        background: var(--rc-warn-bg);
+        color: var(--rc-warn-fg);
+        border: 1px solid var(--rc-border);
+        border-radius: var(--rc-radius);
+        padding: 12px 14px;
+        margin-bottom: 20px;
+        font-size: 0.86rem;
+      }
+      .dq b {
+        font-weight: 700;
+      }
+      .kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 14px;
+        margin-bottom: 8px;
+      }
+      .kpi {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--rc-radius-lg);
+        box-shadow: var(--rc-shadow-sm);
+        padding: 16px 18px;
+        transition:
+          box-shadow 0.18s ease,
+          transform 0.18s ease;
+      }
+      .kpi:hover {
+        box-shadow: var(--rc-shadow-md);
+        transform: translateY(-2px);
+      }
+      .kpi .k {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+      .kpi .v {
+        font-size: 1.9rem;
+        font-weight: 700;
+        line-height: 1.1;
+        margin-top: 4px;
+      }
+      .kpi .d {
+        font-size: 0.78rem;
+        margin-top: 2px;
+      }
+      .kpi .d.up {
+        color: var(--rc-ok);
+      }
+      .kpi .d.down {
+        color: var(--rc-danger);
+      }
+      .kpi .d.flat {
+        color: var(--faint);
+      }
+      .kpi .full {
+        font-size: 0.72rem;
+        color: var(--faint);
+        font-family: var(--font-mono);
+      }
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      @media (max-width: 820px) {
+        .grid2 {
+          grid-template-columns: 1fr;
+        }
+      }
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--rc-radius-lg);
+        box-shadow: var(--rc-shadow-sm);
+        padding: 18px 20px;
+      }
+      .panel h2 {
+        font-size: 1.05rem;
+        margin: 0 0 2px;
+        letter-spacing: -0.01em;
+      }
+      .panel .sub {
+        color: var(--faint);
+        font-size: 0.8rem;
+        margin: 0 0 12px;
+      }
+      .donut-row {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+      .legend {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 0.86rem;
+      }
+      .legend .li {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .legend .sw {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        flex: 0 0 auto;
+      }
+      .info {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: 1px solid var(--border-strong);
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 700;
+        cursor: help;
+        flex: 0 0 auto;
+      }
+      .toolbar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin: 22px 0 12px;
+      }
+      .toolbar input,
+      .toolbar select {
+        height: 38px;
+        padding: 0 12px;
+        border-radius: var(--rc-radius-sm);
+        background: var(--surface);
+        border: 1px solid var(--border-strong);
+        color: var(--text);
+        font: inherit;
+        font-size: 0.88rem;
+      }
+      .toolbar input {
+        flex: 1;
+        min-width: 200px;
+      }
+      .toolbar .seg {
+        display: inline-flex;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--rc-radius-sm);
+        overflow: hidden;
+      }
+      .toolbar .seg button {
+        background: var(--surface);
+        border: 0;
+        padding: 8px 12px;
+        font: inherit;
+        font-size: 0.82rem;
+        cursor: pointer;
+        color: var(--muted);
+      }
+      .toolbar .seg button[aria-pressed="true"] {
+        background: var(--accent);
+        color: #fff;
+      }
+      table.partners {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.88rem;
+      }
+      table.partners th {
+        text-align: left;
+        padding: 10px 10px;
+        border-bottom: 1px solid var(--border-strong);
+        color: var(--muted);
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        user-select: none;
+      }
+      table.partners th .arr {
+        color: var(--faint);
+        font-size: 0.7rem;
+      }
+      table.partners td {
+        padding: 10px 10px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+      }
+      table.partners tr.prow {
+        cursor: pointer;
+      }
+      table.partners tr.prow:hover {
+        background: var(--surface-2);
+      }
+      .scorebadge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 34px;
+        padding: 2px 8px;
+        border-radius: var(--rc-radius-pill);
+        font-weight: 700;
+        font-size: 0.82rem;
+        color: #fff;
+      }
+      .bandtag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+      }
+      .bandtag .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+      }
+      .dchip {
+        display: inline-block;
+        font-size: 0.78rem;
+      }
+      .dchip.up {
+        color: var(--rc-ok);
+      }
+      .dchip.down {
+        color: var(--rc-danger);
+      }
+      .dchip.flat {
+        color: var(--faint);
+      }
+      .flagcell {
+        font-size: 1.1rem;
+      }
+      .drow td {
+        background: var(--surface-2);
+        padding: 0;
+      }
+      .drawer {
+        padding: 18px 20px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      @media (max-width: 820px) {
+        .drawer {
+          grid-template-columns: 1fr;
+        }
+      }
+      .drawer h3 {
+        margin: 0 0 8px;
+        font-size: 0.95rem;
+      }
+      .flaglist {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .flaglist li {
+        background: var(--rc-danger-bg);
+        color: var(--rc-danger-fg);
+        border-radius: var(--rc-radius-sm);
+        padding: 7px 10px;
+        font-size: 0.82rem;
+      }
+      .flaglist li.none {
+        background: var(--rc-ok-bg);
+        color: var(--rc-ok-fg);
+      }
+      .kv {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 4px 14px;
+        font-size: 0.84rem;
+      }
+      .kv dt {
+        color: var(--muted);
+      }
+      .kv dd {
+        margin: 0;
+        font-weight: 600;
+      }
+      .hidden {
+        display: none !important;
+      }
+      .foot {
+        margin-top: 30px;
+        color: var(--faint);
+        font-size: 0.78rem;
+      }
+      [data-theme="dark"] .toolbar .seg button[aria-pressed="true"],
+      [data-theme="dark"] .scorebadge {
+        color: #14110d;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="rhead">
+        <div>
+          <h1>Finance — Portfolio Report</h1>
+          <div class="synthetic">Sample data · not real</div>
+        </div>
+        <div class="stamp">Updated 2026-06-02<br />Owner: FP&amp;A team</div>
+      </div>
+      <p class="lede">
+        Money in, money out, and where it&#x27;s going. Green is on budget, yellow is watch, red is
+        over.
+      </p>
+      <div class="kpis">
+        <div class="kpi">
+          <div class="k">
+            Monthly recurring revenue<span
+              class="info"
+              tabindex="0"
+              title="The money we can count on every month from subscriptions."
+              >?</span
+            >
+          </div>
+          <div class="v">$1.42M</div>
+          <div class="d up">▲ 3.1 vs last period</div>
+          <div class="full">MRR</div>
+        </div>
+        <div class="kpi">
+          <div class="k">
+            Gross margin<span
+              class="info"
+              tabindex="0"
+              title="Of each dollar we earn, how much is left after the direct cost of delivering it."
+              >?</span
+            >
+          </div>
+          <div class="v">78%</div>
+          <div class="d up">▲ 1.0% vs last period</div>
+          <div class="full">Gross %</div>
+        </div>
+        <div class="kpi">
+          <div class="k">
+            Net margin<span
+              class="info"
+              tabindex="0"
+              title="Of each dollar we earn, how much is left as actual profit after ALL costs."
+              >?</span
+            >
+          </div>
+          <div class="v">12%</div>
+          <div class="d down">▼ 2.0% vs last period</div>
+          <div class="full">Net %</div>
+        </div>
+        <div class="kpi">
+          <div class="k">
+            Cash runway<span
+              class="info"
+              tabindex="0"
+              title="How many months we can keep operating before the bank account runs out, at today&#x27;s burn."
+              >?</span
+            >
+          </div>
+          <div class="v">18 mo</div>
+          <div class="d down">▼ 1.0 vs last period</div>
+          <div class="full">Runway</div>
+        </div>
+        <div class="kpi">
+          <div class="k">
+            Over-budget cost centers<span
+              class="info"
+              tabindex="0"
+              title="How many teams spent more than their budget this period."
+              >?</span
+            >
+          </div>
+          <div class="v">2</div>
+          <div class="d down">▲ 1 vs last period</div>
+          <div class="full">Over</div>
+        </div>
+      </div>
+      <hr class="rule" />
+      <div style="margin-top: 16px">
+        <div class="grid2">
+          <div class="panel">
+            <h2>Spending by status</h2>
+            <p class="sub">Every cost center, sorted by how it&#x27;s tracking to budget.</p>
+            <div class="donut-row">
+              <svg
+                viewBox="0 0 140 140"
+                width="140"
+                height="140"
+                role="img"
+                aria-label="Distribution"
+              >
+                <circle
+                  cx="70"
+                  cy="70"
+                  r="52"
+                  fill="none"
+                  stroke="var(--rc-border)"
+                  stroke-width="22"
+                />
+                <circle
+                  cx="70"
+                  cy="70"
+                  r="52"
+                  fill="none"
+                  stroke="var(--rc-ok)"
+                  stroke-width="22"
+                  stroke-dasharray="181.51 145.21"
+                  stroke-dashoffset="-0.00"
+                  transform="rotate(-90 70 70)"
+                />
+                <circle
+                  cx="70"
+                  cy="70"
+                  r="52"
+                  fill="none"
+                  stroke="var(--rc-warn)"
+                  stroke-width="22"
+                  stroke-dasharray="72.61 254.12"
+                  stroke-dashoffset="-181.51"
+                  transform="rotate(-90 70 70)"
+                />
+                <circle
+                  cx="70"
+                  cy="70"
+                  r="52"
+                  fill="none"
+                  stroke="var(--rc-danger)"
+                  stroke-width="22"
+                  stroke-dasharray="72.61 254.12"
+                  stroke-dashoffset="-254.12"
+                  transform="rotate(-90 70 70)"
+                />
+                <text
+                  x="70"
+                  y="68"
+                  text-anchor="middle"
+                  font-size="26"
+                  font-weight="700"
+                  fill="var(--rc-text)"
+                >
+                  9
+                </text>
+                <text x="70" y="88" text-anchor="middle" font-size="11" fill="var(--rc-muted)">
+                  centers
+                </text>
+              </svg>
+              <div class="legend">
+                <div class="li">
+                  <span class="sw" style="background: var(--rc-ok)"></span
+                  ><b style="font-weight: 700">5</b>&nbsp;On budget
+                </div>
+                <div class="li">
+                  <span class="sw" style="background: var(--rc-warn)"></span
+                  ><b style="font-weight: 700">2</b>&nbsp;Watch
+                </div>
+                <div class="li">
+                  <span class="sw" style="background: var(--rc-danger)"></span
+                  ><b style="font-weight: 700">2</b>&nbsp;Over budget
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <h2>Revenue, last 12 months</h2>
+            <p class="sub">Total revenue each month. Up and to the right is the goal.</p>
+            <svg viewBox="0 0 620 180" width="100%" height="180" role="img" aria-label="Trend">
+              <line
+                x1="40"
+                y1="154.0"
+                x2="606"
+                y2="154.0"
+                stroke="var(--rc-border)"
+                stroke-width="1"
+              />
+              <text x="34" y="158.0" text-anchor="end" font-size="10" fill="var(--rc-faint)">
+                0
+              </text>
+              <line
+                x1="40"
+                y1="85.0"
+                x2="606"
+                y2="85.0"
+                stroke="var(--rc-border)"
+                stroke-width="1"
+              />
+              <text x="34" y="89.0" text-anchor="end" font-size="10" fill="var(--rc-faint)">
+                0.8
+              </text>
+              <line
+                x1="40"
+                y1="16.0"
+                x2="606"
+                y2="16.0"
+                stroke="var(--rc-border)"
+                stroke-width="1"
+              />
+              <text x="34" y="20.0" text-anchor="end" font-size="10" fill="var(--rc-faint)">
+                1.6
+              </text>
+              <polygon
+                points="40,154 40.0,63.4 91.5,60.8 142.9,57.4 194.4,54.8 245.8,51.4 297.3,48.8 348.7,46.2 400.2,42.7 451.6,39.3 503.1,36.7 554.5,34.1 606.0,31.5 606.0,154"
+                fill="var(--rc-teal)"
+                opacity="0.10"
+              />
+              <polyline
+                points="40.0,63.4 91.5,60.8 142.9,57.4 194.4,54.8 245.8,51.4 297.3,48.8 348.7,46.2 400.2,42.7 451.6,39.3 503.1,36.7 554.5,34.1 606.0,31.5"
+                fill="none"
+                stroke="var(--rc-teal)"
+                stroke-width="2.5"
+                stroke-linejoin="round"
+                stroke-linecap="round"
+              />
+              <circle cx="606.0" cy="31.5" r="4.5" fill="var(--rc-teal)" />
+              <text x="40.0" y="172" text-anchor="start" font-size="10" fill="var(--rc-faint)">
+                12 mo ago
+              </text>
+              <text x="606.0" y="172" text-anchor="end" font-size="10" fill="var(--rc-faint)">
+                This mo
+              </text>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top: 16px">
+        <div class="panel">
+          <h2>Where the money goes</h2>
+          <p class="sub">This period&#x27;s spending by category (in thousands).</p>
+          <svg viewBox="0 0 460 190" width="100%" role="img" aria-label="Breakdown">
+            <text x="0" y="17" font-size="12" fill="var(--rc-text)">Payroll</text>
+            <text x="0" y="31" font-size="10" fill="var(--rc-faint)">salaries + benefits</text>
+            <rect x="170" y="8" width="240" height="14" rx="7" fill="var(--rc-border)" />
+            <rect x="170" y="8" width="216.0" height="14" rx="7" fill="var(--rc-teal)" />
+            <text x="416" y="19" font-size="12" font-weight="600" fill="var(--rc-text)">$720k</text>
+            <text x="0" y="55" font-size="12" fill="var(--rc-text)">Cloud &amp; infra</text>
+            <text x="0" y="69" font-size="10" fill="var(--rc-faint)">hosting, data, tools</text>
+            <rect x="170" y="46" width="240" height="14" rx="7" fill="var(--rc-border)" />
+            <rect x="170" y="46" width="54.0" height="14" rx="7" fill="var(--rc-teal)" />
+            <text x="416" y="57" font-size="12" font-weight="600" fill="var(--rc-text)">$180k</text>
+            <text x="0" y="93" font-size="12" fill="var(--rc-text)">Sales &amp; marketing</text>
+            <text x="0" y="107" font-size="10" fill="var(--rc-faint)">ads, events, content</text>
+            <rect x="170" y="84" width="240" height="14" rx="7" fill="var(--rc-border)" />
+            <rect x="170" y="84" width="72.0" height="14" rx="7" fill="var(--rc-warn)" />
+            <text x="416" y="95" font-size="12" font-weight="600" fill="var(--rc-text)">$240k</text>
+            <text x="0" y="131" font-size="12" fill="var(--rc-text)">Software / SaaS</text>
+            <text x="0" y="145" font-size="10" fill="var(--rc-faint)">per-seat tools</text>
+            <rect x="170" y="122" width="240" height="14" rx="7" fill="var(--rc-border)" />
+            <rect x="170" y="122" width="28.5" height="14" rx="7" fill="var(--rc-teal)" />
+            <text x="416" y="133" font-size="12" font-weight="600" fill="var(--rc-text)">$95k</text>
+            <text x="0" y="169" font-size="12" fill="var(--rc-text)">Office &amp; travel</text>
+            <text x="0" y="183" font-size="10" fill="var(--rc-faint)">facilities, trips</text>
+            <rect x="170" y="160" width="240" height="14" rx="7" fill="var(--rc-border)" />
+            <rect x="170" y="160" width="18.0" height="14" rx="7" fill="var(--rc-teal)" />
+            <text x="416" y="171" font-size="12" font-weight="600" fill="var(--rc-text)">$60k</text>
+          </svg>
+        </div>
+      </div>
+      <div style="margin-top: 16px">
+        <h2>Cost centers</h2>
+        <div class="toolbar">
+          <input id="psearch" type="search" placeholder="Search…" aria-label="Search" />
+          <div class="seg" role="group" aria-label="Filter">
+            <button data-band="all" aria-pressed="true">All</button
+            ><button data-band="green" aria-pressed="false">On budget</button
+            ><button data-band="yellow" aria-pressed="false">Watch</button
+            ><button data-band="red" aria-pressed="false">Over budget</button>
+          </div>
+        </div>
+        <div class="panel" style="padding: 6px 8px">
+          <table class="partners">
+            <thead>
+              <tr>
+                <th data-key="name">Cost center <span class="arr"></span></th>
+                <th data-key="budget">Budget <span class="arr"></span></th>
+                <th data-key="actual">Actual <span class="arr"></span></th>
+                <th data-key="variance">Variance <span class="arr">▼</span></th>
+                <th>Status</th>
+                <th>6-mo trend</th>
+                <th>Owner</th>
+              </tr>
+            </thead>
+            <tbody id="pbody">
+              <tr
+                class="prow"
+                data-band="green"
+                data-search="engineering wendy p."
+                data-name="Engineering"
+                data-budget="$640k"
+                data-actual="$631k"
+                data-variance="-1%"
+              >
+                <td>
+                  <b>Engineering</b>
+                  <div style="color: var(--faint); font-size: 0.78rem">Product</div>
+                </td>
+                <td style="font-variant-numeric: tabular-nums">$640k</td>
+                <td style="font-variant-numeric: tabular-nums">$631k</td>
+                <td><span class="scorebadge" style="background: var(--rc-ok)">-1%</span></td>
+                <td>
+                  <span class="bandtag"
+                    ><span class="dot" style="background: var(--rc-ok)"></span>On budget</span
+                  >
+                </td>
+                <td>
+                  <svg
+                    viewBox="0 0 120 30"
+                    width="120"
+                    height="30"
+                    class="spark"
+                    aria-hidden="true"
+                  >
+                    <polyline
+                      points="0.0,27.0 24.0,19.3 48.0,15.4 72.0,11.5 96.0,5.3 120.0,3.0"
+                      fill="none"
+                      stroke="var(--rc-ok)"
+                      stroke-width="1.8"
+                      stroke-linejoin="round"
+                      stroke-linecap="round"
+                    />
+                    <circle cx="120.0" cy="3.0" r="2.4" fill="var(--rc-ok)" />
+                  </svg>
+                </td>
+                <td>Wendy P.</td>
+              </tr>
+              <tr
+                class="prow"
+                data-band="red"
+                data-search="marketing raj s."
+                data-name="Marketing"
+                data-budget="$210k"
+                data-actual="$248k"
+                data-variance="+18%"
+              >
+                <td>
+                  <b>Marketing</b>
+                  <div style="color: var(--faint); font-size: 0.78rem">GTM</div>
+                </td>
+                <td style="font-variant-numeric: tabular-nums">$210k</td>
+                <td style="font-variant-numeric: tabular-nums">$248k</td>
+                <td><span class="scorebadge" style="background: var(--rc-danger)">+18%</span></td>
+                <td>
+                  <span class="bandtag"
+                    ><span class="dot" style="background: var(--rc-danger)"></span>Over budget</span
+                  >
+                </td>
+                <td>
+                  <svg
+                    viewBox="0 0 120 30"
+                    width="120"
+                    height="30"
+                    class="spark"
+                    aria-hidden="true"
+                  >
+                    <polyline
+                      points="0.0,27.0 24.0,21.7 48.0,18.2 72.0,12.9 96.0,6.5 120.0,3.0"
+                      fill="none"
+                      stroke="var(--rc-ok)"
+                      stroke-width="1.8"
+                      stroke-linejoin="round"
+                      stroke-linecap="round"
+                    />
+                    <circle cx="120.0" cy="3.0" r="2.4" fill="var(--rc-ok)" />
+                  </svg>
+                </td>
+                <td>Raj S.</td>
+              </tr>
+              <tr class="drow hidden">
+                <td colspan="7">
+                  <div class="drawer">
+                    <div>
+                      <h3>What drove the overspend</h3>
+                      <svg viewBox="0 0 460 114" width="100%" role="img" aria-label="Breakdown">
+                        <text x="0" y="17" font-size="12" fill="var(--rc-text)">Paid ads</text>
+                        <rect
+                          x="170"
+                          y="8"
+                          width="240"
+                          height="14"
+                          rx="7"
+                          fill="var(--rc-border)"
+                        />
+                        <rect
+                          x="170"
+                          y="8"
+                          width="116.1"
+                          height="14"
+                          rx="7"
+                          fill="var(--rc-danger)"
+                        />
+                        <text x="416" y="19" font-size="12" font-weight="600" fill="var(--rc-text)">
+                          $120k
+                        </text>
+                        <text x="0" y="55" font-size="12" fill="var(--rc-text)">Events</text>
+                        <rect
+                          x="170"
+                          y="46"
+                          width="240"
+                          height="14"
+                          rx="7"
+                          fill="var(--rc-border)"
+                        />
+                        <rect
+                          x="170"
+                          y="46"
+                          width="75.5"
+                          height="14"
+                          rx="7"
+                          fill="var(--rc-warn)"
+                        />
+                        <text x="416" y="57" font-size="12" font-weight="600" fill="var(--rc-text)">
+                          $78k
+                        </text>
+                        <text x="0" y="93" font-size="12" fill="var(--rc-text)">Content</text>
+                        <rect
+                          x="170"
+                          y="84"
+                          width="240"
+                          height="14"
+                          rx="7"
+                          fill="var(--rc-border)"
+                        />
+                        <rect
+                          x="170"
+                          y="84"
+                          width="48.4"
+                          height="14"
+                          rx="7"
+                          fill="var(--rc-teal)"
+                        />
+                        <text x="416" y="95" font-size="12" font-weight="600" fill="var(--rc-text)">
+                          $50k
+                        </text>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3>Why it&#x27;s over</h3>
+                      <ul class="flaglist">
+                        <li>
+                          Paid-ads spend ran 40% over plan after the spring campaign extension
+                        </li>
+                      </ul>
+                      <dl class="kv" style="margin-top: 12px">
+                        <dt>Budget</dt>
+                        <dd>$210k</dd>
+                        <dt>Actual</dt>
+                        <dd>$248k</dd>
+                        <dt>Owner</dt>
+                        <dd>Raj S.</dd>
+                        <dt>Action</dt>
+                        <dd>Pause paid-ads top-up; review at month-end</dd>
+                      </dl>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr
+                class="prow"
+                data-band="green"
+                data-search="sales dana k."
+                data-name="Sales"
+                data-budget="$320k"
+                data-actual="$312k"
+                data-variance="-3%"
+              >
+                <td>
+                  <b>Sales</b>
+                  <div style="color: var(--faint); font-size: 0.78rem">GTM</div>
+                </td>
+                <td style="font-variant-numeric: tabular-nums">$320k</td>
+                <td style="font-variant-numeric: tabular-nums">$312k</td>
+                <td><span class="scorebadge" style="background: var(--rc-ok)">-3%</span></td>
+                <td>
+                  <span class="bandtag"
+                    ><span class="dot" style="background: var(--rc-ok)"></span>On budget</span
+                  >
+                </td>
+                <td>
+                  <svg
+                    viewBox="0 0 120 30"
+                    width="120"
+                    height="30"
+                    class="spark"
+                    aria-hidden="true"
+                  >
+                    <polyline
+                      points="0.0,27.0 24.0,17.0 48.0,11.0 72.0,7.0 96.0,5.0 120.0,3.0"
+                      fill="none"
+                      stroke="var(--rc-ok)"
+                      stroke-width="1.8"
+                      stroke-linejoin="round"
+                      stroke-linecap="round"
+                    />
+                    <circle cx="120.0" cy="3.0" r="2.4" fill="var(--rc-ok)" />
+                  </svg>
+                </td>
+                <td>Dana K.</td>
+              </tr>
+              <tr
+                class="prow"
+                data-band="red"
+                data-search="cloud / infra omar t."
+                data-name="Cloud / infra"
+                data-budget="$160k"
+                data-actual="$181k"
+                data-variance="+13%"
+              >
+                <td>
+                  <b>Cloud / infra</b>
+                  <div style="color: var(--faint); font-size: 0.78rem">Platform</div>
+                </td>
+                <td style="font-variant-numeric: tabular-nums">$160k</td>
+                <td style="font-variant-numeric: tabular-nums">$181k</td>
+                <td><span class="scorebadge" style="background: var(--rc-danger)">+13%</span></td>
+                <td>
+                  <span class="bandtag"
+                    ><span class="dot" style="background: var(--rc-danger)"></span>Over budget</span
+                  >
+                </td>
+                <td>
+                  <svg
+                    viewBox="0 0 120 30"
+                    width="120"
+                    height="30"
+                    class="spark"
+                    aria-hidden="true"
+                  >
+                    <polyline
+                      points="0.0,27.0 24.0,22.4 48.0,17.7 72.0,11.5 96.0,6.9 120.0,3.0"
+                      fill="none"
+                      stroke="var(--rc-ok)"
+                      stroke-width="1.8"
+                      stroke-linejoin="round"
+                      stroke-linecap="round"
+                    />
+                    <circle cx="120.0" cy="3.0" r="2.4" fill="var(--rc-ok)" />
+                  </svg>
+                </td>
+                <td>Omar T.</td>
+              </tr>
+              <tr class="drow hidden">
+                <td colspan="7">
+                  <div class="drawer">
+                    <div>
+                      <h3>What drove the overspend</h3>
+                      <svg viewBox="0 0 460 114" width="100%" role="img" aria-label="Breakdown">
+                        <text x="0" y="17" font-size="12" fill="var(--rc-text)">Compute</text>
+                        <rect
+                          x="170"
+                          y="8"
+                          width="240"
+                          height="14"
+                          rx="7"
+                          fill="var(--rc-border)"
+                        />
+                        <rect
+                          x="170"
+                          y="8"
+                          width="127.3"
+                          height="14"
+                          rx="7"
+                          fill="var(--rc-danger)"
+                        />
+                        <text x="416" y="19" font-size="12" font-weight="600" fill="var(--rc-text)">
+                          $96k
+                        </text>
+                        <text x="0" y="55" font-size="12" fill="var(--rc-text)">Storage</text>
+                        <rect
+                          x="170"
+                          y="46"
+                          width="240"
+                          height="14"
+                          rx="7"
+                          fill="var(--rc-border)"
+                        />
+                        <rect
+                          x="170"
+                          y="46"
+                          width="69.0"
+                          height="14"
+                          rx="7"
+                          fill="var(--rc-warn)"
+                        />
+                        <text x="416" y="57" font-size="12" font-weight="600" fill="var(--rc-text)">
+                          $52k
+                        </text>
+                        <text x="0" y="93" font-size="12" fill="var(--rc-text)">Egress</text>
+                        <rect
+                          x="170"
+                          y="84"
+                          width="240"
+                          height="14"
+                          rx="7"
+                          fill="var(--rc-border)"
+                        />
+                        <rect
+                          x="170"
+                          y="84"
+                          width="43.8"
+                          height="14"
+                          rx="7"
+                          fill="var(--rc-teal)"
+                        />
+                        <text x="416" y="95" font-size="12" font-weight="600" fill="var(--rc-text)">
+                          $33k
+                        </text>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3>Why it&#x27;s over</h3>
+                      <ul class="flaglist">
+                        <li>
+                          Compute up 22% after the new ML workload went live without a committed-use
+                          discount
+                        </li>
+                      </ul>
+                      <dl class="kv" style="margin-top: 12px">
+                        <dt>Budget</dt>
+                        <dd>$160k</dd>
+                        <dt>Actual</dt>
+                        <dd>$181k</dd>
+                        <dt>Owner</dt>
+                        <dd>Omar T.</dd>
+                        <dt>Action</dt>
+                        <dd>Buy a 1-yr committed-use plan for steady-state compute</dd>
+                      </dl>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr
+                class="prow"
+                data-band="green"
+                data-search="customer success lena m."
+                data-name="Customer Success"
+                data-budget="$140k"
+                data-actual="$133k"
+                data-variance="-5%"
+              >
+                <td>
+                  <b>Customer Success</b>
+                  <div style="color: var(--faint); font-size: 0.78rem">GTM</div>
+                </td>
+                <td style="font-variant-numeric: tabular-nums">$140k</td>
+                <td style="font-variant-numeric: tabular-nums">$133k</td>
+                <td><span class="scorebadge" style="background: var(--rc-ok)">-5%</span></td>
+                <td>
+                  <span class="bandtag"
+                    ><span class="dot" style="background: var(--rc-ok)"></span>On budget</span
+                  >
+                </td>
+                <td>
+                  <svg
+                    viewBox="0 0 120 30"
+                    width="120"
+                    height="30"
+                    class="spark"
+                    aria-hidden="true"
+                  >
+                    <polyline
+                      points="0.0,27.0 24.0,19.0 48.0,11.0 72.0,11.0 96.0,3.0 120.0,3.0"
+                      fill="none"
+                      stroke="var(--rc-ok)"
+                      stroke-width="1.8"
+                      stroke-linejoin="round"
+                      stroke-linecap="round"
+                    />
+                    <circle cx="120.0" cy="3.0" r="2.4" fill="var(--rc-ok)" />
+                  </svg>
+                </td>
+                <td>Lena M.</td>
+              </tr>
+              <tr
+                class="prow"
+                data-band="yellow"
+                data-search="g&amp;a sam r."
+                data-name="G&amp;A"
+                data-budget="$120k"
+                data-actual="$126k"
+                data-variance="+5%"
+              >
+                <td>
+                  <b>G&amp;A</b>
+                  <div style="color: var(--faint); font-size: 0.78rem">Ops</div>
+                </td>
+                <td style="font-variant-numeric: tabular-nums">$120k</td>
+                <td style="font-variant-numeric: tabular-nums">$126k</td>
+                <td><span class="scorebadge" style="background: var(--rc-warn)">+5%</span></td>
+                <td>
+                  <span class="bandtag"
+                    ><span class="dot" style="background: var(--rc-warn)"></span>Watch</span
+                  >
+                </td>
+                <td>
+                  <svg
+                    viewBox="0 0 120 30"
+                    width="120"
+                    height="30"
+                    class="spark"
+                    aria-hidden="true"
+                  >
+                    <polyline
+                      points="0.0,27.0 24.0,21.0 48.0,15.0 72.0,12.0 96.0,6.0 120.0,3.0"
+                      fill="none"
+                      stroke="var(--rc-ok)"
+                      stroke-width="1.8"
+                      stroke-linejoin="round"
+                      stroke-linecap="round"
+                    />
+                    <circle cx="120.0" cy="3.0" r="2.4" fill="var(--rc-ok)" />
+                  </svg>
+                </td>
+                <td>Sam R.</td>
+              </tr>
+              <tr
+                class="prow"
+                data-band="yellow"
+                data-search="r&amp;d — new bets wendy p."
+                data-name="R&amp;D — new bets"
+                data-budget="$90k"
+                data-actual="$96k"
+                data-variance="+7%"
+              >
+                <td>
+                  <b>R&amp;D — new bets</b>
+                  <div style="color: var(--faint); font-size: 0.78rem">Product</div>
+                </td>
+                <td style="font-variant-numeric: tabular-nums">$90k</td>
+                <td style="font-variant-numeric: tabular-nums">$96k</td>
+                <td><span class="scorebadge" style="background: var(--rc-warn)">+7%</span></td>
+                <td>
+                  <span class="bandtag"
+                    ><span class="dot" style="background: var(--rc-warn)"></span>Watch</span
+                  >
+                </td>
+                <td>
+                  <svg
+                    viewBox="0 0 120 30"
+                    width="120"
+                    height="30"
+                    class="spark"
+                    aria-hidden="true"
+                  >
+                    <polyline
+                      points="0.0,27.0 24.0,21.0 48.0,15.0 72.0,10.5 96.0,6.0 120.0,3.0"
+                      fill="none"
+                      stroke="var(--rc-ok)"
+                      stroke-width="1.8"
+                      stroke-linejoin="round"
+                      stroke-linecap="round"
+                    />
+                    <circle cx="120.0" cy="3.0" r="2.4" fill="var(--rc-ok)" />
+                  </svg>
+                </td>
+                <td>Wendy P.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="sub" style="margin-top: 8px">
+          Click a row to see what&#x27;s driving its spend. Click a column header to sort. Variance
+          is actual minus budget — red means over.
+        </p>
+      </div>
+      <p class="foot">
+        Self-contained report — no internet needed. Built by
+        <code>scripts/generate-bi-report.py</code> from
+        <code>plugins/finance/bi-report/data.json</code>. Replace that file with a real export (same
+        shape) and re-run to rebuild.
+      </p>
+    </div>
+    <script>
+      (function () {
+        var tbody = document.getElementById("pbody");
+        if (!tbody) return;
+        var rows = Array.prototype.slice.call(tbody.querySelectorAll("tr.prow"));
+        var search = document.getElementById("psearch");
+        var sortDir = {};
+        function applyFilter() {
+          var q = ((search && search.value) || "").toLowerCase();
+          var bbtn = document.querySelector('.seg button[aria-pressed="true"]');
+          var band = bbtn ? bbtn.getAttribute("data-band") : "all";
+          rows.forEach(function (r) {
+            var show =
+              (q === "" || (r.getAttribute("data-search") || "").indexOf(q) >= 0) &&
+              (band === "all" || r.getAttribute("data-band") === band);
+            r.classList.toggle("hidden", !show);
+            var d = r.nextElementSibling;
+            if (d && d.classList.contains("drow")) d.classList.add("hidden");
+          });
+        }
+        function sortBy(key, th) {
+          var dir = sortDir[key] === "asc" ? "desc" : "asc";
+          sortDir = {};
+          sortDir[key] = dir;
+          var m = dir === "asc" ? 1 : -1;
+          rows.sort(function (a, b) {
+            var av = a.getAttribute("data-" + key) || "",
+              bv = b.getAttribute("data-" + key) || "";
+            var an = parseFloat(av),
+              bn = parseFloat(bv);
+            if (!isNaN(an) && !isNaN(bn)) return (an - bn) * m;
+            return av.localeCompare(bv) * m;
+          });
+          rows.forEach(function (r) {
+            var d = r.nextElementSibling;
+            tbody.appendChild(r);
+            if (d && d.classList.contains("drow")) tbody.appendChild(d);
+          });
+          document.querySelectorAll("th[data-key] .arr").forEach(function (el) {
+            el.textContent = "";
+          });
+          var a = th.querySelector(".arr");
+          if (a) a.textContent = dir === "asc" ? "▲" : "▼";
+        }
+        if (search) search.addEventListener("input", applyFilter);
+        document.querySelectorAll(".seg button").forEach(function (b) {
+          b.addEventListener("click", function () {
+            document.querySelectorAll(".seg button").forEach(function (x) {
+              x.setAttribute("aria-pressed", "false");
+            });
+            b.setAttribute("aria-pressed", "true");
+            applyFilter();
+          });
+        });
+        document.querySelectorAll("th[data-key]").forEach(function (th) {
+          th.addEventListener("click", function () {
+            sortBy(th.getAttribute("data-key"), th);
+          });
+        });
+        rows.forEach(function (r) {
+          r.addEventListener("click", function () {
+            var d = r.nextElementSibling;
+            if (d && d.classList.contains("drow")) d.classList.toggle("hidden");
+          });
+        });
+      })();
+    </script>
+  </body>
 </html>
