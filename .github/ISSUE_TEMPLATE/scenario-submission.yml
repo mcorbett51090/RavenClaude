@@ -1,0 +1,184 @@
+name: Submit a scenario (external contribution)
+description: Share a lesson learned — a problem you hit and how you resolved it — for a RavenClaude plugin. No repo access needed. Your submission is automatically scrubbed and queued for maintainer review.
+title: "[scenario] "
+labels: ["scenario-submission"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for contributing a scenario back to the RavenClaude marketplace.
+
+        **Before you submit — read this once:**
+        - **No client-identifying information.** Do not paste tenant names, environment names (e.g. `acme-prod`), employee emails, internal URLs, real GUIDs, IPs, or secrets/tokens. Submissions are auto-scrubbed for secret *shapes*, but the deterministic scrub cannot catch arbitrary identifiers — that is what the DCO checkbox attests to and the maintainer review backstops.
+        - **Keep it general.** A good scenario helps anyone working in the same plugin, not just your situation.
+        - Your submission is processed by an automated workflow that scrubs it, opens a pull request adding a staged file, and closes this issue. The maintainer reviews the PR before anything is merged.
+  - type: input
+    id: scenario_title
+    attributes:
+      label: Scenario title
+      description: A short, specific title (max 60 characters). What's the lesson in one line?
+      placeholder: "Flow retry policy silently drops the trigger body on timeout"
+    validations:
+      required: true
+  - type: dropdown
+    id: plugin
+    attributes:
+      label: Plugin
+      description: Which plugin does this scenario apply to? Pick "not-sure / other" if you're unsure.
+      options:
+        - not-sure / other
+        - ravenclaude-core
+        - power-platform
+        - finance
+        - regulatory-compliance
+        - web-design
+        - edtech-partner-success
+        - data-platform
+        - customer-success-analytics
+        - auth-identity
+        - applied-statistics
+        - process-improvement
+        - microsoft-fabric
+        - claude-app-engineering
+        - azure-cloud
+        - salesforce
+        - microsoft-365-copilot
+        - tableau
+        - microsoft-graph
+        - ai-coding-model-guidance
+        - project-management
+        - team-portfolio
+        - api-engineering
+        - staffing-operations
+        - freight-forwarding-sales
+        - database-engineering
+        - backend-engineering
+        - frontend-engineering
+        - mobile-engineering
+        - aws-cloud
+        - gcp-cloud
+        - technical-writing-docs
+        - product-management
+        - experimentation-growth-engineering
+        - fintech-payments-engineering
+        - analytics-engineering
+        - data-streaming-engineering
+        - ml-engineering
+        - data-governance-privacy
+        - observability-sre
+        - security-engineering
+        - qa-test-automation
+        - devops-cicd
+        - cloud-native-kubernetes
+        - terraform-iac
+        - commercial-real-estate
+        - restaurant-operations
+        - veterinary-practice
+        - dental-practice
+        - medical-revenue-cycle
+        - insurance-pc
+        - nonprofit-fundraising
+        - fleet-logistics
+        - renewable-energy
+        - clinical-trials
+        - ecommerce-dtc
+        - cannabis-operations
+        - procurement-sourcing
+        - skilled-trades-contracting
+        - precision-agriculture
+        - legal-small-firm
+        - game-development
+        - film-video-production
+        - architecture-aec
+        - senior-care-operations
+        - hospice-referral-sales
+        - people-operations-hr
+        - sales-revops
+        - accounting-bookkeeping
+        - customer-support-cx-operations
+        - marketing-operations
+        - wealth-management-ria
+        - accessibility-engineering
+        - blockchain-web3-engineering
+        - embedded-iot-engineering
+        - ai-rag-engineering
+        - behavioral-health-practice
+        - finops-cloud-cost
+        - mortgage-lending
+        - pharmacy-operations
+        - platform-engineering-idp
+        - search-relevance-engineering
+        - automotive-dealership
+        - hotel-hospitality-operations
+        - k12-school-administration
+        - property-management
+        - construction-general-contractor
+        - field-service-management
+        - localization-i18n-engineering
+        - public-sector-govtech
+        - retail-store-operations
+        - supply-chain-planning
+        - cybersecurity-grc
+        - esg-sustainability-reporting
+        - manufacturing-operations
+        - performance-engineering
+        - legal-ops-clm
+        - data-science-research
+        - insurance-life-health-benefits
+    validations:
+      required: true
+  - type: input
+    id: product
+    attributes:
+      label: Product / tool
+      description: The product, platform, or tool the scenario is about (short).
+      placeholder: "Power Automate cloud flows"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What went wrong, or what was the situation? (max 500 characters — be concise.)
+      placeholder: "Describe the problem you ran into. No client names, tenant/env names, URLs, emails, or secrets."
+    validations:
+      required: true
+  - type: textarea
+    id: resolution
+    attributes:
+      label: Resolution
+      description: How did you resolve it, and what should the next person do? (max 500 characters.)
+      placeholder: "Describe what fixed it and the action for the next person."
+    validations:
+      required: true
+  - type: dropdown
+    id: scope_guess
+    attributes:
+      label: Scope (your best guess)
+      description: How broadly does this apply? "unsure" is a fine answer.
+      options:
+        - unsure
+        - tenant-specific
+        - version-specific
+        - likely-general
+    validations:
+      required: true
+  - type: dropdown
+    id: confidence
+    attributes:
+      label: Confidence
+      description: How confident are you that this generalizes?
+      options:
+        - low
+        - medium
+        - high
+    validations:
+      required: true
+  - type: checkboxes
+    id: dco
+    attributes:
+      label: Developer Certificate of Origin
+      description: Required.
+      options:
+        - label: I certify this is my own work, contains no client-identifying information, and I have the right to submit it.
+          required: true
