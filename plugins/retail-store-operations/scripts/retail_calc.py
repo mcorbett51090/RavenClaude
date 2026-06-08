@@ -20,7 +20,6 @@ Outputs are decision-support only — not accounting, audit, tax, or investment 
 import sys
 from typing import Callable
 
-
 # ---------------------------------------------------------------------------
 # Core calculation functions
 # ---------------------------------------------------------------------------

@@ -20,8 +20,7 @@ advice. The caller supplies every input; this script does not source data.
 from __future__ import annotations
 
 import math
-from typing import Sequence
-
+from collections.abc import Sequence
 
 # ---------------------------------------------------------------------------
 # 1. Technician utilization

@@ -25,8 +25,6 @@ This is a calculator, not a data source. Outputs are decision-support only.
 """
 
 import math
-from typing import List, Tuple
-
 
 # ---------------------------------------------------------------------------
 # Normal distribution helpers (stdlib only — no scipy)
@@ -236,7 +234,7 @@ def fill_rate(
         return 1.0
 
     z = safety_stock_units / sigma_lt
-    loss = _unit_loss(z)
+    _unit_loss(z)
     # FR = 1 - E[shortage per cycle] / E[demand per cycle]
     # E[shortage] = sigma_lt * L(z); E[demand] approximated as sigma_lt (normalised)
     # Standard approximation: FR ≈ 1 - L(z) / z when z > 0; use full form:
@@ -252,9 +250,9 @@ def fill_rate(
 # ---------------------------------------------------------------------------
 
 def mape_bias(
-    actuals: List[float],
-    forecasts: List[float],
-) -> Tuple[float, float]:
+    actuals: list[float],
+    forecasts: list[float],
+) -> tuple[float, float]:
     """
     Compute MAPE and bias from paired actual / forecast lists.
 
@@ -346,6 +344,6 @@ if __name__ == "__main__":
     print(f"MAPE: {mape_val:.2f}%  Bias: {bias_val:+.2f}%")
     print(f"  actuals={actuals_ex}")
     print(f"  forecasts={forecasts_ex}")
-    print(f"  (positive bias = systematic over-forecast)")
+    print("  (positive bias = systematic over-forecast)")
 
     print("\n=== all self-tests passed ===")

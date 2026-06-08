@@ -24,7 +24,6 @@ Verify all rates, contracts, and regulatory requirements with qualified professi
 
 from __future__ import annotations
 
-
 # ---------------------------------------------------------------------------
 # 1. Markup vs. Margin conversion
 # ---------------------------------------------------------------------------
