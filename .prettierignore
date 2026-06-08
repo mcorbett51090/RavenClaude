@@ -40,6 +40,13 @@ plugins/*/dashboard.html
 # Same rationale as the other generated artifacts.
 index.html
 
+# Generated artifact — the "Problems & Resolutions" view produced by
+# scripts/generate-feedback-report.py from the scenario corpus
+# (plugins/*/scenarios/*.md). Byte-deterministic, guarded by its own --check
+# freshness gate; prettier's HTML printer would rewrite the inline CSS / JS in
+# ways that don't match the generator's emit style. Same rationale as index.html.
+feedback-report.html
+
 # Generated artifact — the self-contained Power-BI/Tableau-style plugin report
 # produced by scripts/generate-bi-report.py from plugins/<plugin>/bi-report/data.json.
 # Byte-deterministic, guarded by its own --check freshness gate; prettier's HTML

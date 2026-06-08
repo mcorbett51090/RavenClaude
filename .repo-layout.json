@@ -16,6 +16,7 @@
     "tests/fixtures/**",
     "tests/fixtures/data-viz/**",
     "index.html",
+    "feedback-report.html",
     ".nojekyll",
     ".gitignore",
     ".gitattributes",
