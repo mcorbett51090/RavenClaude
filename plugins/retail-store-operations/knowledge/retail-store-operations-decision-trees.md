@@ -1,116 +1,119 @@
-# Retail Store Operations — Decision Trees
+# Retail Store Operations — Decision Trees + 2026 Capability Map
 
-_Decision trees + a dated metric/formula map. Formula rows are `[verify-at-build]` — re-check the definition (numerator, denominator, window) against the consumer's reporting before quoting. Last reviewed: 2026-06-08._
-
-Traverse before marking down aged inventory, committing a buy against open-to-buy, diagnosing a shrink leak, re-shaping labor against a labor-% miss, or calling an inventory position "healthy".
-
-## Decision Tree: Mark it down now, or hold?
-
-Markdown clears trapped cash; holding bets on demand returning. The first markdown is usually the cheapest.
-
-```mermaid
-graph TD
-  A[Aged / seasonal / slow SKU] --> B{Sell-through tracking to plan for this point in the life-cycle?}
-  B -- Yes --> C[Hold - it is selling at plan; do not give away margin]
-  B -- No --> D{Weeks-of-supply above the terminal threshold for the season left?}
-  D -- No --> E[Hold but watch - re-check next cycle; set the trigger]
-  D -- Yes --> F{Is the item seasonal / terminal with a hard end date?}
-  F -- Yes --> G[Mark down now on a step-down cadence - first markdown shallow, escalate to terminal clearance]
-  F -- No, replenishable --> H{Is the slow sell-through an assortment problem, not a price problem?}
-  H -- Yes --> I[Route to merchandising-analyst - cut/relocate before discounting a structurally wrong SKU]
-  H -- No --> J[Take the first markdown - depth compounds with time; a late markdown clears deeper and carries more weeks of cost]
-```
-
-_Trigger markdowns on sell-through + weeks-of-supply, not on the calendar alone. The first markdown is the cheapest; waiting trades a shallow cut now for a deep one later plus carrying cost._
-
-## Decision Tree: Replenish the buy, or stop at the open-to-buy cap?
-
-Open-to-buy is the budget; over-buying pre-commits the markdown.
-
-```mermaid
-graph TD
-  A[Want to buy / reorder more] --> B{Computed OTB = planned sales - planned markdowns + target ending inventory - on-hand - on-order. Is OTB positive?}
-  B -- No, OTB exhausted or negative --> C[Stop - you are over-bought; buying more pre-commits a markdown. Re-plan or clear first]
-  B -- Yes --> D{Is current weeks-of-supply below target for this SKU/store?}
-  D -- No --> E[Do not replenish this store - reallocate from an overstocked store instead; aggregate looks fine, the store-SKU does not]
-  D -- Yes --> F{Is the reorder within the safety-stock + service-level model?}
-  F -- No, ad-hoc --> G[Size it: reorder point + replenishment qty against a NAMED service level and lead-time variability]
-  F -- Yes --> H{Vendor lead time / MOQ / terms known?}
-  H -- No --> I[Route to procurement-sourcing for lead time + MOQ before committing the buy]
-  H -- Yes --> J[Replenish to the reorder point within OTB - record the service level and the trapped-cash trade]
-```
-
-_OTB caps forward commitment; weeks-of-supply decides whether THIS store needs it; the service level sizes the buffer. Aggregate availability is a comforting lie during a stockout — always drill to store-SKU._
-
-## Decision Tree: Where is the shrink leaking?
-
-Shrink is a diagnosable leak, not a fixed cost. Split the gap before you spend the loss-prevention budget — most shrink is operational, and cameras are the wrong fix for a receiving error.
-
-```mermaid
-graph TD
-  A[Shrink % above plan = book inventory - physical inventory, valued, over sales] --> B{Is the gap concentrated in specific SKUs/categories or spread evenly?}
-  B -- Concentrated in high-value / easily-concealed items --> C{Pattern points to theft - internal or external?}
-  C -- Internal: voids, refunds, employee-adjacent timing --> D[Loss-prevention + cash/refund SOP discipline - route employee surveillance / PII to security-reviewer]
-  C -- External: open-floor high-theft SKUs --> E[Physical controls + LP coverage on the concentrated SKUs - cheapest control that fits the pattern]
-  B -- Spread evenly across receiving / markdown / damage --> F{Do receiving counts, markdown execution, and damage logs reconcile?}
-  F -- No, process gaps --> G[OPERATIONAL leak - fix receiving / markdown-execution / count SOPs FIRST; this is the cheapest and most common cause]
-  F -- Yes, process clean --> H{Do vendor receipts match POs - short ships, price/scan error?}
-  H -- No, vendor mismatch --> I[VENDOR/ADMIN leak - file a vendor claim; route cost/terms to procurement-sourcing]
-  H -- Yes --> J[Re-audit the physical count itself before spending on any control - the gap may be a counting error]
-```
-
-_Quantify each bucket's share (operational vs. theft vs. vendor/admin) before prescribing a control. Treating all shrink as theft mis-spends the LP budget on the wrong leak; most shrink is operational._
-
-## Decision Tree: Labor % over plan — re-shape or cut heads?
-
-Labor follows traffic, not a flat grid. Labor % over plan is usually a scheduling-shape problem before it's a headcount problem.
-
-```mermaid
-graph TD
-  A[Labor % over plan = store labor $ / store sales] --> B{Is sales tracking to plan, or is the denominator the problem?}
-  B -- Sales below plan --> C[Labor % is a SALES miss wearing a labor costume - protect peak conversion before any labor cut; cutting peak labor to make the % craters sales further]
-  B -- Sales at/above plan, labor $ over --> D{Is the schedule shaped to the conversion-weighted traffic curve?}
-  D -- No, flat grid --> E[RE-SHAPE first: move hours OUT of dead hours INTO the peak; usually recovers labor % with no headcount cut and protects conversion]
-  D -- Yes, already traffic-shaped --> F{Is the peak still under-staffed for conversion, or is total headcount genuinely above need?}
-  F -- Peak under-staffed --> G[Do NOT cut - the lost conversion is invisible on the labor report but real on the sales line; add peak coverage]
-  F -- Genuine over-headcount in all dayparts --> H[Now a headcount conversation - cut from the dead hours, never the peak; name the labor-% vs. conversion trade on the change]
-```
-
-_Over-staffing the dead hours wastes labor %; under-staffing the peak loses conversion — and conversion loss is invisible on the labor report. Name which one every schedule change trades on._
-
-## Decision Tree: Reading the inventory vital signs
-
-Judge inventory by sell-through %, weeks-of-supply, and GMROI — never raw on-hand units. The flow lens and the capital lens answer different questions; read both.
-
-```mermaid
-graph TD
-  A[Is this inventory position healthy?] --> B{First normalize: what is weeks-of-supply = on-hand / avg weekly demand? State the window}
-  B -- WOS far above target --> C{Is sell-through tracking to the life-cycle plan?}
-  C -- No --> D[OVERSTOCKED + slow - markdown / reallocate by WOS; check assortment vs. price before discounting]
-  C -- Yes --> D2[Healthy demand but heavy position - watch WOS; do not replenish until it draws down]
-  B -- WOS far below target --> E[At stockout risk - replenish to a WOS target within OTB; size safety stock to a NAMED service level]
-  B -- WOS in band --> F{Does GMROI clear the 1.0 capital floor?}
-  F -- No, GMROI below 1.0 --> G[Turns fine but does NOT earn its carrying cost - trapped capital; re-mix / cut before buying deeper, even though flow looks OK]
-  F -- Yes --> H[Healthy on BOTH lenses - right flow AND earns its capital; hold and re-check next cycle]
-```
-
-_WOS and sell-through answer "is the flow right?"; GMROI answers "is the capital earning?". A position can pass one and fail the other — fast-turning low-margin inventory can still flunk GMROI. Never declare inventory "fine" on raw on-hand units._
+> Canonical knowledge bank for `retail-store-operations`. **Traverse the relevant Mermaid tree
+> top-to-bottom before choosing** — the proactive complement to the Capability Grounding Protocol.
+> Volatile product/version facts in the capability map carry a retrieval date and a re-verify-at-use
+> rider. Mark any market-share figure or specific product claim `[verify-at-use]`.
 
 ---
 
-## Metric / formula map (2026, `[verify-at-build]`)
+## Decision Tree 1: Markdown or Hold
 
-| Metric | Working definition | Notes |
+```mermaid
+flowchart TD
+  A[What is the current sell-through rate?] --> B{Sell-through vs. season target at this point in season}
+  B -->|On target or ahead| C{Weeks-of-supply}
+  C -->|WOS > 6 weeks AND seasonal item| D[Monitor — no action yet. Recheck in 2 weeks.]
+  C -->|WOS > 6 weeks AND evergreen| E[Hold. Evergreen has no hard deadline. Review next season reset.]
+  C -->|WOS 2–6 weeks| F[Hold. In normal replenishment range. Confirm reorder trigger is set.]
+  C -->|WOS < 2 weeks| G[Replenish immediately. Flag potential stockout risk.]
+  B -->|Behind target| H{How far behind and how many weeks remain?}
+  H -->|Mildly behind, > 8 wks remaining| I[Promotional support or endcap placement first — try to sell without a markdown.]
+  H -->|Moderately behind, 4–8 wks remaining| J{Is the item seasonal / perishable with a hard end date?}
+  J -->|Yes — hard deadline| K[Mark down now. Calculate depth to clear by season end: target sell-through of 100% by close.]
+  J -->|No — evergreen| L[Light markdown or multi-buy. Evergreen can carry over; protect margin.]
+  H -->|Significantly behind, < 4 wks remaining| M{WOS after markdown at the proposed depth}
+  M -->|WOS < season weeks remaining| N[Mark down at calculated depth. Set a liquidation floor — do not go below cost without approval.]
+  M -->|WOS still exceeds season| O[Accelerate markdown depth. Consider clearance endcap + buy-one-get-one. Define liquidation floor.]
+```
+
+**Leaf rule:** markdown decisions require (1) a current sell-through rate, (2) weeks-of-supply
+on hand, (3) a count of weeks remaining in the selling season, and (4) a seasonal vs. evergreen
+classification. A markdown recommendation without all four is an opinion. Never go below cost
+without explicit approval and a documented reason. Evergreen items tolerate a carry-over hold;
+seasonal items with a hard deadline cannot.
+
+---
+
+## Decision Tree 2: Replenish vs. Allocate
+
+```mermaid
+flowchart TD
+  A[Is inventory available upstream — DC or vendor?] -->|No inventory available| Z[Escalate to supply-chain-planning. This is a supply problem, not a store replenishment problem.]
+  A -->|Yes, inventory available| B{What is the store's current inventory accuracy?}
+  B -->|Accuracy unknown or < 90%| C[Cycle count first. Do not replenish into phantom inventory — you will over-order.]
+  B -->|Accuracy ≥ 90%| D{Is the OOS driven by phantom inventory or true stockout?}
+  D -->|Phantom inventory — system says on-hand but shelf is empty| E[Fix accuracy first: receiving audit, shrink booking, floor-location reconciliation. Then replenish.]
+  D -->|True stockout — system shows zero or near-zero| F{Is the store's demand pattern consistent with the DC push schedule?}
+  F -->|Yes — DC push covers demand| G[Adjust safety stock or reorder point. Store pull may not be needed if DC cadence is correct.]
+  F -->|No — store demand exceeds DC push cadence| H{Does the store have a store-initiated pull capability in its WMS / POS?}
+  H -->|Yes| I[Set store-initiated reorder trigger: reorder point + safety stock at stated service-level target. Document the service level.]
+  H -->|No| J[Escalate to supply-chain-planning for DC-push frequency adjustment. Short-term: manual reorder request to DC.]
+  I --> K[Monitor: OOS rate should fall within 2–4 weeks. If not, recheck demand variability and lead time assumptions.]
+  G --> K
+```
+
+**Leaf rule:** before setting a replenishment trigger, confirm inventory accuracy ≥ 90% —
+replenishing into phantom inventory creates overstock, not coverage. Every safety stock figure
+must be paired with an explicit service-level target (95% / 98% / 99%). A store-triggered pull
+is appropriate when DC push cadence cannot match demand variability; escalate upstream
+(`supply-chain-planning`) when the supply is absent entirely.
+
+---
+
+## Decision Tree 3: Staff-to-Traffic Curve
+
+```mermaid
+flowchart TD
+  A[Do you have hourly traffic or transaction data for this store?] -->|No data available| B[Estimate from transaction count by hour. Flag the schedule as estimated — traffic-counter installation is strongly recommended.]
+  A -->|Yes| C[Compute hourly traffic index: hour volume ÷ daily average. Identify peaks, valleys, transitions.]
+  B --> D
+  C --> D{Does the current schedule shape match the traffic curve?}
+  D -->|Yes — peaks covered, valleys light| E[Schedule is traffic-aligned. Monitor SPLH and conversion rate by hour block to validate.]
+  D -->|No — flat shifts across peaks and valleys| F[Redesign shift shapes: peak-layer shifts, flex 4–5hr shifts on highest-traffic blocks, task work in valleys.]
+  F --> G{After redesign, is total labor hours within budget?}
+  G -->|Yes| H[Finalize schedule. Calculate SPLH and labor % of sales.]
+  G -->|No — over budget| I{Which blocks are over-staffed?}
+  I -->|Valley blocks| J[Trim valley shifts. Shorten low-index shifts; move task work to overlap with opening or closing labor.]
+  I -->|Peak blocks| K[Do NOT cut peak coverage — peak understaffing kills conversion. Re-examine budget with store-ops-lead: is the labor % target achievable at this traffic level?]
+  J --> H
+  K --> L[Escalate to store-ops-lead: traffic-justified coverage vs. budget tension requires a P&L decision, not a scheduling one.]
+  H --> M[Post schedule ≥ required advance-notice days. Flag compliance exposure if advance-notice is < 7 days.]
+```
+
+**Leaf rule:** staff to the traffic curve, not the clock. A flat-shift schedule systematically
+under-staffs peak blocks (where conversion is made) and over-staffs valley blocks (where it
+isn't). If a traffic-justified schedule exceeds the labor budget, that is a P&L conversation with
+`store-ops-lead` — not a reason to cut peak coverage blindly. Sales per labor hour and conversion
+rate by hour block are the diagnostic KPIs for schedule quality.
+
+---
+
+## 2026 Capability Map — Retail Store Operations Platforms
+
+_Retrieved 2026-06-08. Product positioning, pricing, and availability are volatile — re-confirm
+at use; this is orientation, not a procurement recommendation._
+
+| Category | Platforms (2026) | Notes |
 |---|---|---|
-| Sell-through % | units sold ÷ units received (over a window) × 100 | Always state the window; "sell-through" with no period is ambiguous `[verify-at-build]` |
-| Weeks-of-supply (WOS) | on-hand units ÷ average weekly demand | The inventory truth-teller; normalizes on-hand to the demand rate `[verify-at-build]` |
-| GMROI | gross margin $ ÷ average inventory cost | "Does this inventory earn its carrying cost?" — the capital-efficiency lens `[verify-at-build]` |
-| Inventory turns | COGS ÷ average inventory (at cost) | Turns and WOS are reciprocals of the same flow `[verify-at-build]` |
-| Open-to-buy (OTB) | planned sales − planned markdowns + planned ending inventory − (on-hand + on-order) | The forward-buy budget; usually in retail $ at a category/month level `[verify-at-build]` |
-| Safety stock | f(demand variability, lead-time variability, target service level) | Sized to a NAMED service level; e.g. z·σ over lead time — state the z / service target `[verify-at-build]` |
-| Comp / same-store sales | sales from stores open ≥ ~12 months, period vs. like period | Excludes new/closed stores; the organic-growth read `[verify-at-build]` |
-| Labor % (of sales) | store labor $ ÷ store sales × 100 | The controllable lever scheduled against the traffic curve `[verify-at-build]` |
-| Conversion | transactions ÷ traffic (door counter) | Sales = traffic × conversion × basket; protect at peak `[verify-at-build]` |
-| Shrink % | (book inventory − physical inventory) value ÷ sales × 100 | Split operational vs. theft (internal/external) vs. vendor/admin `[verify-at-build]` |
+| **POS systems** | **Square for Retail** — SMB-friendly, cloud-native, strong omnichannel inventory sync [verify-at-use]. **Lightspeed Retail** — mid-market, strong inventory management and analytics [verify-at-use]. **NCR Counterpoint / NCR Voyix** — larger retail chains, on-prem + SaaS hybrid [verify-at-use]. **Shopify POS** — strong DTC-to-retail bridge; inventory shared with Shopify online [verify-at-use]. | POS market is highly fragmented. Confirm current product names and capabilities — vendors rebrand and consolidate. |
+| **Merchandising / space planning** | **Blue Yonder (formerly JDA) Space Planning** — enterprise assortment and floor planning, planogram design, category management [verify-at-use]. **Symphony RetailAI** — AI-assisted category management and assortment optimization [verify-at-use]. **One Door** — cloud-native store execution and planogram compliance [verify-at-use]. | Enterprise space planning tools require significant implementation; mid-market often uses Excel + provider templates. |
+| **Workforce management (WFM)** | **Legion WFM** — AI-driven demand forecasting and scheduling, mobile-first, retail-focused [verify-at-use]. **UKG (Kronos Workforce Ready / Pro WFM)** — enterprise WFM, deep compliance engine, broad retail use [verify-at-use]. **HotSchedules (Fourth)** — strong in food/beverage and specialty retail [verify-at-use]. **Deputy** — SMB scheduling, mobile-first [verify-at-use]. | WFM capability around predictive scheduling compliance varies by geography — verify the specific ordinance support for your jurisdictions. |
+| **Inventory accuracy / cycle counting** | **Zebra Technologies** scanner and mobile computing hardware. **Scandit** — smartphone-based scanning, reduces hardware cost [verify-at-use]. **Xtreme Cycle Counting** — cycle count workflow software [verify-at-use]. | Many retailers run cycle counting inside their WMS or ERP (e.g. Manhattan Associates, JDA) without a standalone tool. |
+| **Loss prevention / EAS** | **Checkpoint Systems** — EAS (Electronic Article Surveillance) tagging and deactivation, RFID [verify-at-use]. **Sensormatic (Johnson Controls)** — EAS, RFID, exception-based reporting [verify-at-use]. **Appriss Retail (formerly The Retail Equation)** — return fraud analytics, exception reporting [verify-at-use]. | LP technology is a capital decision; product selection requires a site assessment and vendor demo. |
+| **Exception-based reporting (EBR)** | **Appriss Retail**, **Samba Safety**, **ProfitTrax** — rules-based POS exception analytics for internal theft detection [verify-at-use]. | Most enterprise POS platforms offer some EBR; standalone tools add deeper analytics and case management. |
 
-_Reference: every metric is ambiguous until you state the numerator, denominator, and window. GMROI and turns answer "is this inventory earning?"; WOS and sell-through answer "is the flow right?"; OTB answers "can we buy more?". Re-verify any definition against the consumer's reporting system before defending a decision on it — definitions drift between retailers._
+> Provenance: vendor website review and retail-industry analyst coverage (NRF, RIS News), retrieved
+> 2026-06-08. Product names, ownership, and features change — re-verify at use. No invented products.
+> Shares and rankings are not cited; this is an orientation map, not a market-share report.
+
+---
+
+## See also
+
+- [`../CLAUDE.md`](../CLAUDE.md) — team constitution and seams.
+- [`../best-practices/README.md`](../best-practices/README.md) — the named, citable rules.
+- [`../scripts/retail_calc.py`](../scripts/retail_calc.py) — GMROI, sell-through, shrink %, WOS,
+  conversion, SPLH calculator.
+
+_Last reviewed: 2026-06-08 by `claude`._

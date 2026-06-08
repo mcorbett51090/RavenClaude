@@ -1,12 +1,19 @@
-# Embedded & IoT Engineering
+# embedded-iot-engineering
 
-The **embedded-iot-engineering** plugin — the constrained-device craft: the firmware and IoT/edge layer that runs *on the metal* (microcontrollers, sensors, radios) and *below* the cloud, then emits telemetry up to the data and cloud plugins — distinct from the ingest pipeline, the backend, and the companion app themselves.
+A **Embedded & IoT Engineering specialist team** for an embedded engineer, firmware lead, or hardware founder accountable for a fielded device that must meet a power, timing, and memory budget. It treats the power budget as the spec, holds real-time deadlines as hard constraints, budgets flash/RAM like money, favors determinism over throughput in control loops, and requires OTA + rollback before a device is fielded.
 
-## Agents
+> Inherits the [`ravenclaude-core`](../ravenclaude-core/) protocols (claim-grounding, structured output, decision review). MCU-explicit, application-flexible (bare-metal | RTOS | Linux-class edge; battery | mains | energy-harvesting).
 
-- **`firmware-architect`** — Firmware shape and operating constraints: RTOS vs bare-metal, MCU selection against memory/power/BOM budgets, HAL/driver layering, boot & OTA-update strategy, and flash partitioning. Treats flash, RAM, clock, power, and cost as first-class design inputs, not afterthoughts.
-- **`embedded-engineer`** — Low-level implementation on the metal: C/C++/Rust on MCU, interrupts/ISRs (flag-and-defer), DMA, peripheral drivers (I2C/SPI/UART), real-time constraints, watchdogs, and JTAG/SWD debugging. Writes drivers that fit the budget and bounds the worst case, not just the happy path.
-- **`iot-connectivity-engineer`** — Fleet connectivity and trust: device protocols (MQTT/CoAP/BLE/LoRa/Zigbee/Wi-Fi) chosen by the power/range/bandwidth budget, per-device provisioning & identity, fleet management, secure boot & key storage, and telemetry. Per-device identity and a hardware root of trust are the floor, not a v2.
+## What you get
+
+| Surface | Contents |
+|---|---|
+| **4 agents** | `embedded-systems-lead`, `firmware-rtos-specialist`, `power-budget-analyst`, `connectivity-protocol-specialist` |
+| **5 skills / commands** | `build-power-budget` · `verify-real-time` · `budget-memory` · `select-protocol` · `plan-ota` |
+| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **4 templates** | scorecard · exec readout · power-budget.md · memory-budget.md |
+| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, device/telemetry PII) in generated deliverables |
+| **`scripts/embedded_iot_calc.py`** | stdlib calculator — `power-budget` · `memory-budget` · `bom-cost` |
 
 ## Install
 
@@ -15,10 +22,12 @@ The **embedded-iot-engineering** plugin — the constrained-device craft: the fi
 /plugin install embedded-iot-engineering@ravenclaude
 ```
 
-## Seams
+## Quickstart
 
-- **Ingesting the telemetry stream (the event pipeline, the backend)** → `data-streaming-engineering` + `aws-cloud` / `azure-cloud` / `gcp-cloud`; this team emits the telemetry contract (topics, payload schema, cadence), they ingest it.
-- **The mobile companion app** → `mobile-engineering`; we define the on-device BLE/Wi-Fi provisioning + control contract, they build the app against it.
-- **The device threat model, key-management policy, and "secure boot done right"** → `security-engineering`; we implement it on the metal, they own the policy.
+> "Our device won't hit its battery-life target — where's the power going?"
 
-Inherits `ravenclaude-core` protocols (Capability Grounding + Structured Output). Requires `ravenclaude-core@>=0.7.0`. Designed to be installed alongside `data-streaming-engineering`, the cloud plugins, and `mobile-engineering`.
+The `embedded-systems-lead` scopes the problem, routes to `firmware-rtos-specialist` (or a sibling specialist), and synthesizes a ranked action plan with owners, dates, and expected metric movement.
+
+## What it is not
+
+a certification lab, an RF/EMC compliance authority, or a substitute for measuring on the real hardware. It does not issue FCC/CE/UL certifications, sign off on safety-critical compliance, or replace bench measurement. Certification and safety determinations route to the qualified lab/authority.

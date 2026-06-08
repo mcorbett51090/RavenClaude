@@ -1,14 +1,19 @@
-# Behavioral Health Practice
+# behavioral-health-practice
 
-The **behavioral-health-practice** plugin — the operations and documentation craft of an outpatient behavioral / mental-health practice: the intake-to-claim back office, the documentation standards, and the authorization/billing front-end that keep the practice running, documented defensibly, and paid — distinct from the clinical care itself.
+A **Behavioral Health Practice specialist team** for a practice administrator, clinical operations lead, or owner-clinician accountable for access, utilization, documentation compliance, and margin. It manages no-shows as a flow not an accident, reads intake-to-first-appointment access time as the conversion lever, ties documentation to both compliance and billing, staffs caseload to demand, and reads payer mix as the margin driver.
 
-> **Operational and documentation support only — NOT clinical, medical, or legal advice.** This plugin never diagnoses, recommends treatment, or replaces a licensed clinician's judgment. It is PHI-aware throughout (HIPAA + 42 CFR Part 2): no real PHI in any artifact, and consent precedes every disclosure.
+> Inherits the [`ravenclaude-core`](../ravenclaude-core/) protocols (claim-grounding, structured output, decision review). Setting-explicit, modality-flexible (in-person | telehealth | hybrid; solo | group | clinic).
 
-## Agents
+## What you get
 
-- **`practice-operations-lead`** — Practice operations: intake and scheduling, no-show / cancellation management, telehealth operations, caseload / panel management, and referral flow. Designs the intake-to-first-session path, reduces no-shows, and closes referral loops — self-service-first, with clinical steps routed to a clinician.
-- **`clinical-documentation-specialist`** — Documentation standards: treatment plans, progress notes (DAP / SOAP / BIRP), medical-necessity language, and release of information (ROI). Builds note/plan templates and audits structure — **structure and standards only, never the clinical content**.
-- **`billing-and-authorization-lead`** — Revenue front-end: insurance verification / eligibility, prior authorization, behavioral CPT-code selection, claims basics, and 42 CFR Part 2 + HIPAA in billing. Verifies benefits, assembles auths, picks the code that reflects the service rendered — never upcoding.
+| Surface | Contents |
+|---|---|
+| **4 agents** | `behavioral-health-practice-lead`, `intake-access-analyst`, `clinical-documentation-compliance-specialist`, `payer-billing-specialist` |
+| **5 skills / commands** | `manage-no-show-flow` · `shorten-access-time` · `audit-documentation-billing` · `size-caseload` · `model-payer-mix` |
+| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **4 templates** | scorecard · exec readout · no-show-recovery-plan.md · payer-mix-margin-model.md |
+| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, patient PHI) in generated deliverables |
+| **`scripts/behavioral_health_practice_calc.py`** | stdlib calculator — `no-show` · `caseload` · `payer-mix` |
 
 ## Install
 
@@ -17,11 +22,12 @@ The **behavioral-health-practice** plugin — the operations and documentation c
 /plugin install behavioral-health-practice@ravenclaude
 ```
 
-## Seams
+## Quickstart
 
-- **A clinical decision (diagnosis, treatment, risk/safety, medication)** → **a licensed clinician**; this plugin never crosses that line.
-- **Deep revenue-cycle: denials analytics, payer-contract modeling, full RCM workflow** → `medical-revenue-cycle`; this plugin owns the behavioral-health front-end of billing.
-- **Senior / geriatric population specifics, facility-based care** → `senior-care-operations`.
-- **HIPAA *security* controls (access controls, encryption, audit logging, BAAs, breach response)** → `cybersecurity-grc`; this plugin is PHI-*aware* operationally, the technical security program is the seam.
+> "Our schedule looks full but revenue and access are both slipping — where's the gap?"
 
-Inherits `ravenclaude-core` protocols (Capability Grounding + Structured Output). Requires `ravenclaude-core@>=0.7.0`. Designed to be installed alongside `medical-revenue-cycle`, `senior-care-operations`, and `cybersecurity-grc`.
+The `behavioral-health-practice-lead` scopes the problem, routes to `intake-access-analyst` (or a sibling specialist), and synthesizes a ranked action plan with owners, dates, and expected metric movement.
+
+## What it is not
+
+an EHR, a clinical authority, or a legal/compliance authority. It does not diagnose, set treatment plans, make medical-necessity determinations, or store patient PHI. Clinical, licensing, and legal/compliance determinations route to the licensed clinician, the licensing board, or counsel.

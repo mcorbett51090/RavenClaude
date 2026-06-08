@@ -1,0 +1,25 @@
+{
+  "name": "people-operations-hr",
+  "version": "0.1.0",
+  "description": "People Operations / HR specialist team — 4 agents (people-ops-lead, talent-acquisition-strategist, total-rewards-comp-analyst, people-analytics-engagement-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A People-Ops team for an HRBP, People-Ops leader, or founder accountable for headcount, attrition, comp, and engagement — it quantifies attrition cost and cause before acting, pays to a defensible band rather than the counteroffer, treats time-to-fill and quality-of-hire as a hiring system, and reads engagement segmented as a leading indicator of regretted exits. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "people-operations",
+    "human-resources",
+    "talent-acquisition",
+    "compensation",
+    "pay-equity",
+    "attrition",
+    "retention",
+    "employee-engagement",
+    "headcount-planning",
+    "hrbp"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

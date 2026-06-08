@@ -1,6 +1,6 @@
 # Claude Code permissions — the load-bearing model
 
-> **Last reviewed:** 2026-05-25 against the Anthropic Claude Code documentation site at code.claude.com (permissions, permission-modes, settings, tools-reference, **hooks, hooks-guide, and agent-sdk/hooks** pages) AND the canonical GitHub Security Advisories at `github.com/anthropics/claude-code/security/advisories`. The 2026-05-25 pass added the **"Advanced JSON output protocol"** section below (PreToolUse `hookSpecificOutput` — `permissionDecision`, `updatedInput`, hook types, bypass interaction). The 2026-05-26 pass added the **"SessionStart hooks: `additionalContext`"** section (context injection, not gating). **Refresh when:** Anthropic ships a new permission mode, adds documented prompt-verbosity controls, changes the cross-layer merge rule, changes the hook output schema, or publishes a new security advisory affecting the permission model. Companion to [`../skills/permission-hygiene/SKILL.md`](../skills/permission-hygiene/SKILL.md).
+> **Last reviewed:** 2026-05-25 against the Anthropic Claude Code documentation site at code.claude.com (permissions, permission-modes, settings, tools-reference, **hooks, hooks-guide, and agent-sdk/hooks** pages) AND the canonical GitHub Security Advisories at `github.com/anthropics/claude-code/security/advisories`. The 2026-05-25 pass added the **"Advanced JSON output protocol"** section below (PreToolUse `hookSpecificOutput` — `permissionDecision`, `updatedInput`, hook types, bypass interaction). The 2026-05-26 pass added the **"SessionStart hooks: `additionalContext`"** section (context injection, not gating). The **2026-06-08** pass added the full **"hook-event catalog"** (~30 events) + the **`PermissionRequest` `behavior ∈ {allow, deny}`-only** constraint, and expanded the **handler-types** table to the full five (`command`/`http`/`mcp_tool`/`prompt`/`agent`) — sourced from [hooks](https://code.claude.com/docs/en/hooks) + [plugins-reference](https://code.claude.com/docs/en/plugins-reference) (retrieved 2026-06-08). **Refresh when:** Anthropic ships a new permission mode, adds documented prompt-verbosity controls, changes the cross-layer merge rule, changes the hook output schema, or publishes a new security advisory affecting the permission model. Companion to [`../skills/permission-hygiene/SKILL.md`](../skills/permission-hygiene/SKILL.md).
 
 This document is the long-form "why these patterns" reference behind the [`permission-hygiene`](../skills/permission-hygiene/SKILL.md) skill. The skill tells you what to do; this file tells you what the model is and where the surprises live.
 
@@ -226,7 +226,62 @@ A `PreToolUse` hook **can rewrite the tool's input** by returning `updatedInput`
 
 ### Hook handler types
 
-Beyond `type: "command"` (shell script), `PreToolUse` accepts four more: `type: "http"` (POST to a URL), `type: "mcp_tool"` (call an MCP tool), `type: "prompt"` (single-turn LLM judge), and `type: "agent"` (multi-turn subagent — **experimental, may change**).
+> Reviewed 2026-06-08 against [hooks](https://code.claude.com/docs/en/hooks) + [plugins-reference](https://code.claude.com/docs/en/plugins-reference).
+
+A hook entry declares a handler `type`. The full set is **five**:
+
+| `type` | What it does | Notes |
+| --- | --- | --- |
+| `command` | Runs a shell script; reads the event JSON on stdin, decides via exit code or `hookSpecificOutput`. | The default and most-used; every RavenClaude hook is this type. |
+| `http` | POSTs the event JSON to a URL; the response body is the hook output. | Default timeout 600 s. |
+| `mcp_tool` | Calls a named MCP tool with the event payload. | Available on `PreToolUse` and `SessionStart`. |
+| `prompt` | Single-turn LLM judge — the model is asked to allow/deny/ask. | Default timeout 30 s. Could replace a bash `claude -p` bridge. |
+| `agent` | Multi-turn subagent that reviews the call. | Default timeout 60 s. **Experimental, may change.** |
+
+The last two (`prompt`, `agent`) call an LLM, so they cost a model round-trip per fire — reserve them for the calls that genuinely need judgment. (Verified 2026-06-08; `prompt`/`agent` previously documented here as PreToolUse-only additions, now confirmed as first-class handler types across the events that support them.)
+
+## The hook-event catalog (the full event surface)
+
+> Reviewed 2026-06-08 against [hooks](https://code.claude.com/docs/en/hooks) + [plugins-reference](https://code.claude.com/docs/en/plugins-reference). The earlier passes here documented only the handful of events RavenClaude wires (`SessionStart` / `PreToolUse` / `PostToolUse` / `Stop`); this catalog records the **full ~30-event surface** so a hook author picks the right event instead of overloading `PreToolUse`/`PostToolUse`.
+
+Claude Code now fires roughly thirty lifecycle events. The ones a guardrail or orchestration author reaches for, grouped by phase:
+
+| Event | When it fires | Typical use |
+| --- | --- | --- |
+| `SessionStart` | A session begins (`startup`/`resume`/`clear`/`compact`). | Inject a capability banner (`additionalContext`). Cannot gate. |
+| `Setup` | One-time environment setup at session bootstrap. | Provision/verify the workspace. |
+| `SessionEnd` | A session ends. | Flush run artifacts, emit a summary. |
+| `UserPromptSubmit` | The user submits a prompt. | Pre-screen / annotate the prompt. |
+| `UserPromptExpansion` | A prompt's references/macros are expanded. | Inspect the expanded form. |
+| `InstructionsLoaded` | CLAUDE.md / AGENTS.md / rule files are loaded. | Audit which instruction files took effect. |
+| `PreToolUse` | Before any tool call. | The gating event — allow/deny/ask, `updatedInput` rewrite. |
+| `PostToolUse` | After a tool call returns. | Inspect/annotate the result. |
+| `PostToolUseFailure` | After a tool call errors. | React to a failed call. |
+| `PostToolBatch` | After a batch of parallel tool calls completes. | Aggregate over a fan-out. |
+| `PermissionRequest` | A permission decision is being made for a tool call. | Emit `behavior` (see the constraint below). |
+| `PermissionDenied` | A tool call was denied by a permission rule. | Log / surface the denial. |
+| `SubagentStart` | A subagent (Task) is dispatched. | Audit dispatch (model/effort/tools). |
+| `SubagentStop` | A subagent finishes. | Collect its result/handoff. |
+| `TaskCreated` | A task is queued. | Track task lifecycle. |
+| `TaskCompleted` | A task completes. | Track task lifecycle. |
+| `TeammateIdle` | An agent-team member goes idle. | Re-route / wake work. |
+| `Elicitation` / `ElicitationResult` | An MCP elicitation request / its answer. | Mediate MCP elicitation. |
+| `WorktreeCreate` / `WorktreeRemove` | A git worktree is created / removed. | Track Sleipnir traversal. |
+| `CwdChanged` | The working directory changes. | Re-scope path-relative policy. |
+| `FileChanged` | A watched file changes. | React to external edits. |
+| `ConfigChange` | A `settings.json` / config value changes. | Audit posture changes. |
+| `Stop` / `StopFailure` | The agent stops (cleanly / on failure). | Definition-of-done gate. |
+| `PreCompact` / `PostCompact` | Before / after context compaction. | Persist state across compaction. |
+| `Notification` / `MessageDisplay` | A notification / message is shown. | Surface to an external channel. |
+
+### `PermissionRequest` emits `behavior ∈ {allow, deny}` ONLY — no third "defer/ask" outcome
+
+> **Load-bearing accuracy note. Verified 2026-06-08** against [hooks](https://code.claude.com/docs/en/hooks) + [plugins-reference](https://code.claude.com/docs/en/plugins-reference).
+
+A `PermissionRequest` hook returns a `behavior` field whose **only** two legal values are `"allow"` and `"deny"`. It **cannot** express a third "defer to the human / ask" outcome the way a `PreToolUse` hook's `permissionDecision` can (`allow` / `deny` / `ask` / `defer`). This is a binding constraint, not a stylistic note:
+
+- **The Thing's defer-to-human intercept must NOT be migrated onto `PermissionRequest`.** The tribunal's whole value at the gate is its third disposition — `defer` (surface to the human) — alongside `allow`/`deny`/`edit`. A `PermissionRequest` hook is binary, so porting the auto-approver onto it would silently collapse every `defer` into an `allow` or a `deny`, destroying the human-in-the-loop path. The decision-review intercept stays on `AskUserQuestion` (`route-decision-review.sh`) and the command-review tribunal stays on `PreToolUse` (`thing-orchestrator.sh`), both of which can express `ask`.
+- `PermissionRequest`/`PermissionDenied` *are* the native equivalent of the comfort-posture deny/allow floor and are worth adopting for the binary cases (a hard allow-list or a hard deny-list), but they are not a drop-in for any guardrail that needs to hand a question back to the user.
 
 ### Timeouts fail OPEN
 

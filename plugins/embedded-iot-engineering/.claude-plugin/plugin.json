@@ -1,7 +1,7 @@
 {
   "name": "embedded-iot-engineering",
-  "version": "0.2.0",
-  "description": "Embedded firmware & IoT/edge engineering team — 3 agents (firmware-architect, embedded-engineer, iot-connectivity-engineer) for the constrained-device layer below the cloud: firmware architecture (RTOS vs bare-metal, MCU selection, memory & power budgets, HAL/driver layering, boot & OTA strategy, flash partitioning), low-level implementation (C/C++/Rust on MCU, interrupts/ISRs, DMA, I2C/SPI/UART peripheral drivers, real-time constraints, JTAG/SWD debugging, watchdogs), and IoT connectivity (MQTT/CoAP/BLE/LoRa/Zigbee/Wi-Fi, provisioning & identity, fleet management, secure boot & key storage, telemetry). Decision-tree bank (5 trees + capability map), 12 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, a stdlib calculator (power-budget/baud/airtime), scenarios. Seams: cloud telemetry ingest -> data-streaming-engineering & the cloud plugins; mobile companion app -> mobile-engineering; device security review -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
+  "version": "0.1.0",
+  "description": "Embedded & IoT Engineering specialist team — 4 agents (embedded-systems-lead, firmware-rtos-specialist, power-budget-analyst, connectivity-protocol-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An embedded team for a firmware lead or hardware founder accountable for a fielded device — it treats the power budget as the spec, holds real-time deadlines as hard constraints, budgets flash/RAM like money, favors determinism over throughput, and requires OTA + rollback before fielding. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"
   },
@@ -9,17 +9,14 @@
   "license": "MIT",
   "keywords": [
     "embedded",
-    "firmware",
     "iot",
+    "firmware",
     "rtos",
-    "mcu",
-    "c",
-    "rust",
-    "mqtt",
+    "power-budget",
+    "real-time",
     "ble",
     "lora",
-    "ota",
-    "secure-boot"
+    "ota"
   ],
   "requires": {
     "plugins": ["ravenclaude-core@>=0.7.0"]

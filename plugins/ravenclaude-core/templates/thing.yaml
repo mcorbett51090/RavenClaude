@@ -56,7 +56,7 @@ schema_version: 4
 panel:
   forseti: # Security Watch
     agent: security-reviewer
-    model: claude-opus-4-7
+    model: claude-opus-4-8
   mimir: # Correctness Watch
     agent: code-reviewer
     model: claude-haiku-4-5
@@ -65,7 +65,7 @@ panel:
     model: claude-haiku-4-5
   thor: # Tie-breaker — convened only on a split or low-confidence panel
     agent: architect
-    model: claude-opus-4-7
+    model: claude-opus-4-8
 
 # ── Risk tiers (T5) ─────────────────────────────────────────────────────────
 # Every reviewed command resolves to ONE tier = its category's base tier (see

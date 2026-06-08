@@ -3,6 +3,8 @@ name: frontend-coder
 description: Use this agent to implement UI work — components, pages, client-side state, styling, accessibility, browser-side integrations. Spawn AFTER the architect or designer has decided on structure and visual direction. Verify in a real browser before reporting done.
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
+maxTurns: 40
+effort: normal
 audience: [dev]
 works_with: [designer, architect, code-reviewer, tester-qa]
 scenarios:

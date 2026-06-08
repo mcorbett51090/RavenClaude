@@ -1,15 +1,15 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-hooks.json",
-  "description": "Plugin-distributed hooks for wealth-management-ria. Auto-merged with the consumer's session hooks on install. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the install location.",
+  "description": "Plugin-distributed hooks for wealth-management-ria. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
   "hooks": {
-    "PreToolUse": [
+    "PostToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-wealth-management-ria-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
-            "comment": "Advisory: flags mechanically-detectable advisory anti-patterns (a planning/portfolio output that reads as a personalized recommendation with no not-investment-advice disclaimer; an IPS draft with no rebalancing policy; 'fiduciary' and 'Reg BI' used interchangeably). Set RIA_STRICT=1 to make it blocking."
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-wealth-management-ria-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: review this Wealth Management (RIA Practice) deliverable against the §3 house opinions (baseline on every metric, source+date on every benchmark, no client financial PII). Set WEALTH_MANAGEMENT_RIA_STRICT=1 to make it blocking."
           }
         ]
       }

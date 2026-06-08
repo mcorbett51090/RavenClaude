@@ -1,15 +1,15 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-hooks.json",
-  "description": "Plugin-distributed hooks for embedded-iot-engineering. Auto-merged with the consumer's session hooks on install. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the install location.",
+  "description": "Plugin-distributed hooks for embedded-iot-engineering. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
   "hooks": {
-    "PreToolUse": [
+    "PostToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-embedded-iot-engineering-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
-            "comment": "Advisory: flags mechanically-detectable embedded anti-patterns (a heavy/blocking call inside an ISR; a TLS/MQTT config with verify=false or a hardcoded key; a connectivity doc with a shared/static provisioning secret). Set EMBEDDED_STRICT=1 to make it blocking."
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-embedded-iot-engineering-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: review this Embedded & IoT Engineering deliverable against the §3 house opinions (baseline on every metric, source+date on every benchmark, no device/telemetry PII). Set EMBEDDED_IOT_ENGINEERING_STRICT=1 to make it blocking."
           }
         ]
       }

@@ -61,7 +61,7 @@ The evaluator receives one envelope per dispatch:
   "subagent_type": "deep-researcher",
   "description": "Research the 2026 EU AI Act failure modes for downstream OSS deployers",
   "prompt_head": "<first 500 tokens of the prompt verbatim>",
-  "requested_model": "claude-opus-4-7",
+  "requested_model": "claude-opus-4-8",
   "caller_context": "workflow"
 }
 ```
@@ -214,7 +214,7 @@ Per-verdict detailed log: `.ravenclaude/runs/dispatch-eval/<session-id>.jsonl` (
   "subagent_type": "code-reviewer",
   "description": "Review a 12-line typo fix in a comment",
   "prompt_head": "Diff attached: removed trailing whitespace and fixed a typo in a docstring...",
-  "requested_model": "claude-opus-4-7",
+  "requested_model": "claude-opus-4-8",
   "caller_context": "toplevel"
 }
 ```
@@ -256,7 +256,7 @@ Top-level Agent dispatch + `mode: "binding"` → SubagentStart hook DENIES with 
 }
 ```
 
-Workflow `agent()` call, no `run_config` active → binding upgrade to Opus 4.7.
+Workflow `agent()` call, no `run_config` active → binding upgrade to Opus 4.8.
 
 ### Example 3 — Tribunal-seat shadow
 

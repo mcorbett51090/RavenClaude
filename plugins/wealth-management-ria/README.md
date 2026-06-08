@@ -1,14 +1,19 @@
-# Wealth Management (RIA)
+# wealth-management-ria
 
-The **wealth-management-ria** plugin — the personal financial-advisory craft of a Registered Investment Adviser serving individual clients: goal-based planning, portfolio construction with a written Investment Policy Statement, and the fiduciary/compliance + client-review oversight that makes the practice defensible. Distinct from corporate finance (FP&A / treasury — that's `finance`).
+A **Wealth Management (RIA Practice) specialist team** for an RIA practice principal, COO, or operations lead accountable for organic growth, advisor capacity, client retention, and compliance cadence. It separates net-new flows from market appreciation as the real growth signal, segments clients by profitability not AUM alone, applies a defensible fee schedule consistently, sizes advisor capacity by households, and treats the compliance cadence as non-negotiable.
 
-> **Not investment advice.** Everything this plugin produces is educational and operational support for an advisory practice — **not** personalized investment, tax, or legal advice and **not** a recommendation to buy or sell any security. A licensed human adviser applies the frameworks to a specific client after confirming suitability; a CPA / attorney owns the tax and legal conclusions.
+> Inherits the [`ravenclaude-core`](../ravenclaude-core/) protocols (claim-grounding, structured output, decision review). Fee-model-explicit, segment-flexible (AUM-fee | flat-fee | hybrid; mass-affluent | HNW | UHNW).
 
-## Agents
+## What you get
 
-- **`financial-planner`** — Goal-based planning: turning life goals into a cash-flow and savings plan, the retirement & withdrawal strategy (the 4% rule, dynamic guardrails, sequence-of-returns risk), tax-aware planning across account types (Traditional/Roth IRA, 401(k), taxable, HSA — the funding order, the Roth question), and estate basics (beneficiaries, titling, the documents to have). Builds the plan the IPS later implements.
-- **`portfolio-analyst`** — Portfolio construction: target asset allocation & diversification, the Investment Policy Statement (objectives, constraints, ranges, rebalancing rules), rebalancing strategy (calendar vs threshold/bands), risk & factor basics, and tax-efficient implementation (asset location, tax-loss harvesting + the wash-sale rule).
-- **`advisory-compliance-and-client-review-lead`** — Advisory oversight: fiduciary duty (Advisers Act) vs Reg BI, Form ADV basics (Parts 1 / 2A / 2B / CRS), suitability/KYC, periodic client reviews (cadence + agenda), books-and-records, and marketing-rule basics. The gate that makes the plan and the IPS defensible.
+| Surface | Contents |
+|---|---|
+| **4 agents** | `ria-practice-lead`, `aum-revenue-analyst`, `client-segmentation-specialist`, `compliance-cadence-specialist` |
+| **5 skills / commands** | `decompose-aum-growth` · `model-fee-revenue` · `segment-client-profitability` · `size-advisor-capacity` · `track-compliance-cadence` |
+| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **4 templates** | scorecard · exec readout · aum-bridge.md · client-segmentation.md |
+| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, client financial PII) in generated deliverables |
+| **`scripts/riaops_calc.py`** | stdlib calculator — `aum-revenue` · `advisor-capacity` · `client-profitability` |
 
 ## Install
 
@@ -17,11 +22,12 @@ The **wealth-management-ria** plugin — the personal financial-advisory craft o
 /plugin install wealth-management-ria@ravenclaude
 ```
 
-## Seams
+## Quickstart
 
-- **Corporate finance — FP&A, treasury, company forecasting** → `finance`; this plugin is *personal* financial advisory ("model the household's retirement cash flow"), not corporate ("model the company's cash flow").
-- **Deep, multi-jurisdiction securities-law interpretation, registration mechanics, enforcement** → `regulatory-compliance`; this plugin covers fiduciary / Reg BI / Form ADV *basics*.
-- **The billing/payment system that charges the advisory fee** → `fintech-payments-engineering`; this plugin designs the practice, not the payment rails.
-- **Client PII handling, data security, access controls** → `ravenclaude-core/security-reviewer`.
+> "Our AUM is up nicely — but is the practice actually growing, or is it just the market?"
 
-Inherits `ravenclaude-core` protocols (Capability Grounding + Structured Output). Requires `ravenclaude-core@>=0.7.0`. Pairs with `finance`, `regulatory-compliance`, and `fintech-payments-engineering`.
+The `ria-practice-lead` scopes the problem, routes to `aum-revenue-analyst` (or a sibling specialist), and synthesizes a ranked action plan with owners, dates, and expected metric movement.
+
+## What it is not
+
+an investment-advice or portfolio-management function, a financial-planning service, or a compliance/legal authority. It does not give investment advice, recommend securities, render fiduciary determinations, or interpret SEC/state regulations. Investment, fiduciary, and SEC/state determinations route to compliance counsel.

@@ -1,39 +1,16 @@
-# Behavioral-Health Practice scenarios bank
+# Behavioral Health Practice scenarios bank
 
-> Unverified, dated, scope-tagged narratives from real behavioral-health practice-operations engagements. War stories
-> of "we hit X problem, here was the situation, these were our constraints, we tried A/B/C, D worked." **Operational and
-> documentation support only — never clinical, medical, or legal advice. PHI-placeholdered throughout.**
+Dated, scope-tagged, **unverified** engagement narratives for the `behavioral-health-practice` plugin (the marketplace scenarios pattern; see [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md)).
 
-This directory holds **scenarios** — field notes from real practice-operations work. Scenarios are:
+**How to use these:** a scenario is a *secondary* source. Surface a matching one only behind the mandatory unverified-scenario preamble, and never let it override the cited [`../knowledge/`](../knowledge/) bank or a qualified authority (§2). No patient PHI (§2). Benchmark figures are `[unverified — training knowledge]` (§3 #8).
 
-- **Schema-validated** but **not maintainer-reviewed**
-- **Visible to consumers** via `/plugin install`
-- **Consulted by agents** as a *secondary* source — always surfaced with the mandatory unverified-scenario preamble
+## Index
 
-For the full architecture and the retrieval pattern, see [`../../ravenclaude-core/skills/scenario-retrieval/SKILL.md`](../../ravenclaude-core/skills/scenario-retrieval/SKILL.md). Canonical knowledge lives in [`../knowledge/`](../knowledge/) and `best-practices/`; scenarios never replace it.
-
-## The 9-field schema
-
-```yaml
----
-scenario_id: <YYYY-MM-DD-short-slug>
-contributed_at: <YYYY-MM-DD>
-plugin: behavioral-health-practice
-product: <ehr | clearinghouse | payer-portal | generic | etc.>
-product_version: "<version or unknown>"
-scope: <likely-general | product-specific>
-tags: [<tag>, ...]
-confidence: <high | medium | low>
-reviewed: false
----
-```
-
-## Current bank
-
-| File | Tags | Corroborates |
+| Scenario | Scope | Pattern |
 |---|---|---|
-| [`2026-06-08-no-show-rate-that-was-reminders-only.md`](2026-06-08-no-show-rate-that-was-reminders-only.md) | no-shows, scheduling, telehealth, operations | `operations-exist-to-protect-the-clinical-hour` |
-| [`2026-06-08-part-2-record-disclosed-on-a-general-roi.md`](2026-06-08-part-2-record-disclosed-on-a-general-roi.md) | 42-cfr-part-2, roi, consent, disclosure | `part-2-stricter-than-hipaa-assume-it-applies`, `consent-precedes-disclosure` |
-| [`2026-06-08-auth-ran-out-mid-treatment-and-claims-denied.md`](2026-06-08-auth-ran-out-mid-treatment-and-claims-denied.md) | prior-authorization, reauth, claims, denial, units | `code-reflects-the-service-rendered`, `verify-eligibility-before-the-first-session` |
-| [`2026-06-08-telehealth-couldnt-connect-no-shows.md`](2026-06-08-telehealth-couldnt-connect-no-shows.md) | telehealth, no-shows, readiness, place-of-service | `telehealth-readiness-is-part-of-the-appointment` |
-| [`2026-06-08-whole-chart-sent-on-a-benefits-request.md`](2026-06-08-whole-chart-sent-on-a-benefits-request.md) | minimum-necessary, disclosure, roi, consent | `minimum-necessary-is-the-disclosure-default`, `consent-precedes-disclosure` |
+| [`2026-06-08-no-show-was-a-flow-not-an-accident.md`](./2026-06-08-no-show-was-a-flow-not-an-accident.md) | likely-general | A 'patient compliance' problem was really an unmanaged no-show flow |
+| [`2026-06-08-referrals-stalled-on-access-time.md`](./2026-06-08-referrals-stalled-on-access-time.md) | likely-general | Referrals weren't converting because intake-to-first-appointment was three weeks |
+| [`2026-06-08-thin-margin-was-payer-mix-not-volume.md`](./2026-06-08-thin-margin-was-payer-mix-not-volume.md) | likely-general | A full schedule with thin margin was a single payer billing below cost |
+
+## See also
+- [`../knowledge/behavioral-health-practice-decision-trees.md`](../knowledge/behavioral-health-practice-decision-trees.md) — the trees these scenarios traverse.

@@ -1975,16 +1975,16 @@ def _render_command_review_block() -> str:
 
 # Per-seat model choices offered by the dashboard's command-review panel section.
 _THING_MODEL_CHOICES = [
-    ("claude-opus-4-7", "Opus 4.7 — most capable"),
+    ("claude-opus-4-8", "Opus 4.8 — most capable"),
     ("claude-sonnet-4-6", "Sonnet 4.6 — balanced"),
     ("claude-haiku-4-5", "Haiku 4.5 — fast / cheap"),
 ]
 # (seat key, display label, default model) — mirrors thing-decision.py defaults.
 _THING_SEAT_META = [
-    ("forseti", "Forseti — Security", "claude-opus-4-7"),
+    ("forseti", "Forseti — Security", "claude-opus-4-8"),
     ("mimir", "Mímir — Correctness", "claude-haiku-4-5"),
     ("heimdall", "Heimdall — Injection watch", "claude-haiku-4-5"),
-    ("thor", "Thor — Tie-breaker", "claude-opus-4-7"),
+    ("thor", "Thor — Tie-breaker", "claude-opus-4-8"),
 ]
 
 # gate_floor headline control — enum medium | high | extreme, default high.
@@ -6449,10 +6449,10 @@ _JS = r"""
      * false = all per-category reviews are paused (thing values preserved, not cleared).
      * Absent in storage / YAML ⇒ true (enabled). We only persist/emit when false. */
     enabled: true,
-    forseti: "claude-opus-4-7",
+    forseti: "claude-opus-4-8",
     mimir: "claude-haiku-4-5",
     heimdall: "claude-haiku-4-5",
-    thor: "claude-opus-4-7",
+    thor: "claude-opus-4-8",
     confidence_threshold: 0.5,
     gate_floor: "high",
     /* Dev-repo lockout fix (v0.60.0): when true (and the gh-owner + marketplace.json
@@ -6461,7 +6461,7 @@ _JS = r"""
     dev_repo_exempt: false,
   });
   const CR_SEATS = ["forseti", "mimir", "heimdall", "thor"];
-  const CR_MODELS = ["claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5"];
+  const CR_MODELS = ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"];
 
   /* gate_floor headline control — enum medium | high | extreme, default high. */
   const GATE_FLOORS = ["medium", "high", "extreme"];

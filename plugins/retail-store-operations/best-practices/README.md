@@ -1,18 +1,26 @@
-# Retail-store-operations best-practices
+# retail-store-operations — best-practice docs
 
-Atomic, enforceable rules the retail-store-operations agents apply. Each file is one rule with a short rationale; the agents cite them by filename. Canonical decision logic lives in [`../knowledge/retail-store-operations-decision-trees.md`](../knowledge/retail-store-operations-decision-trees.md); these rules are the always-on priors.
+Named, citable rules for the `retail-store-operations` plugin's specialists. Each file is **one rule**.
 
-| Rule | Gist |
-|---|---|
-| store-is-a-pnl-not-a-cost-center | Every tactic lands on a store P&L line |
-| labor-follows-traffic-not-a-grid | Schedule to the conversion-weighted traffic curve |
-| shelf-space-is-finite-capital | Measure space productivity; every SKU earns its facings |
-| markdown-is-a-decision-not-a-default | Trigger markdowns on sell-through + weeks-of-supply |
-| sell-through-and-wos-are-the-vital-signs | Judge inventory by flow, not raw on-hand units |
-| open-to-buy-is-a-budget | Cap forward commitment against planned sales + ending inventory |
-| allocate-at-the-store-sku-level | Aggregate availability hides a stockout next to overstock |
-| safety-stock-buys-a-named-service-level | Size the buffer to a stated service / in-stock target |
-| shrink-is-a-diagnosable-leak | Split shrink into operational / theft / vendor-admin before fixing |
-| gmroi-is-the-capital-lens | Turn alone doesn't prove earning — read GMROI too |
-| every-metric-names-its-formula-and-window | No metric ships without numerator, denominator, window |
-| omnichannel-shares-inventory-not-the-playbook | Net the online claim on shared stock; route online economics out |
+---
+
+## Index
+
+_6 rules._
+
+| Doc | Status | Use when |
+|---|---|---|
+| [`gmroi-not-just-gross-margin.md`](./gmroi-not-just-gross-margin.md) | Absolute rule | Evaluating any category, SKU, or assortment decision |
+| [`sell-through-tells-you-reorder-or-mark-down.md`](./sell-through-tells-you-reorder-or-mark-down.md) | Pattern | Making any inventory or markdown decision |
+| [`staff-to-the-traffic-curve-not-the-clock.md`](./staff-to-the-traffic-curve-not-the-clock.md) | Absolute rule | Building or reviewing any labor schedule |
+| [`shrink-has-a-root-cause-find-it.md`](./shrink-has-a-root-cause-find-it.md) | Pattern | Diagnosing or responding to any shrink increase |
+| [`planogram-compliance-is-revenue.md`](./planogram-compliance-is-revenue.md) | Pattern | Planning or auditing planogram execution |
+| [`omnichannel-inventory-is-one-pool.md`](./omnichannel-inventory-is-one-pool.md) | Pattern | Making any inventory, BOPIS, or fulfillment decision |
+
+---
+
+## See also
+
+- [`../CLAUDE.md`](../CLAUDE.md) — plugin team constitution.
+- [`../knowledge/retail-store-operations-decision-trees.md`](../knowledge/retail-store-operations-decision-trees.md) — the decision trees + 2026 capability map.
+- [`../../../docs/best-practices/README.md`](../../../docs/best-practices/README.md) — marketplace-wide best-practice docs.

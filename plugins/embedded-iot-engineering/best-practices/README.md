@@ -1,18 +1,24 @@
-# Embedded-IoT-engineering best-practices
+# Embedded & IoT Engineering best-practice docs
 
-Atomic, enforceable rules the embedded-iot-engineering agents apply. Each file is one rule with a short rationale; the agents cite them by filename. Canonical decision logic lives in [`../knowledge/embedded-iot-engineering-decision-trees.md`](../knowledge/embedded-iot-engineering-decision-trees.md); these rules are the always-on priors.
+Named, citable rules for the `embedded-iot-engineering` plugin's 4 specialist agents. Each file is one rule — read, applied, and cited whole. Grounded in this plugin's `knowledge/` bank and its agent constitutions.
 
-| Rule | Gist |
-|---|---|
-| budget-flash-ram-power-first | Flash/RAM/power/BOM are the design, stated up front |
-| rtos-is-a-cost-not-a-default | Reach for an RTOS only for genuine concurrency |
-| isrs-flag-and-defer | Interrupts do the minimum; heavy work runs in main context |
-| design-ota-from-day-one | Dual-bank A-B + rollback, not a v2 feature |
-| secure-boot-and-hardware-root-of-trust | Keys in secure storage; the boot chain verifies each stage |
-| per-device-identity-never-a-shared-secret | Unique identity per device, provisioned at manufacture/first boot |
-| pick-the-radio-by-the-power-range-budget | The budget picks BLE/LoRa/Wi-Fi/mesh, not familiarity |
-| real-time-is-provably-bounded | Meet deadlines by worst-case analysis, not by hoping |
-| power-is-spent-mostly-in-sleep | Battery life is sleep current × duty cycle — design sleep first |
-| watchdog-is-the-last-line-not-the-plan | Kick from a health check that proves progress, never blindly |
-| debuggability-is-designed-in | Fault handler + retained-RAM logs + reset cause, designed up front |
-| the-cloud-is-the-layer-above | Define the telemetry/provisioning contract; hand the build upward |
+---
+
+## Index
+
+_8 rules. Each file is one named, citable rule — one per house opinion (§3)._
+
+| Doc | Status | Use when |
+|---|---|---|
+| [`the-power-budget-is-the-spec-battery-life-gates-the-design.md`](./the-power-budget-is-the-spec-battery-life-gates-the-design.md) | Absolute rule | Any embedded & iot engineering deliverable where this question is in play. |
+| [`real-time-deadlines-are-hard-constraints-characterize-wcet-and-isr-lat.md`](./real-time-deadlines-are-hard-constraints-characterize-wcet-and-isr-lat.md) | Absolute rule | Any embedded & iot engineering deliverable where this question is in play. |
+| [`flash-and-ram-are-finite-budget-memory-like-money.md`](./flash-and-ram-are-finite-budget-memory-like-money.md) | Pattern | Any embedded & iot engineering deliverable where this question is in play. |
+| [`determinism-over-throughput-in-control-loops.md`](./determinism-over-throughput-in-control-loops.md) | Pattern | Any embedded & iot engineering deliverable where this question is in play. |
+| [`ota-update-rollback-is-mandatory-for-fielded-devices.md`](./ota-update-rollback-is-mandatory-for-fielded-devices.md) | Absolute rule | Any embedded & iot engineering deliverable where this question is in play. |
+| [`protocol-choice-is-a-power-range-bandwidth-trade-pick-deliberately.md`](./protocol-choice-is-a-power-range-bandwidth-trade-pick-deliberately.md) | Pattern | Any embedded & iot engineering deliverable where this question is in play. |
+| [`hardware-firmware-co-design-datasheet-limits-are-real.md`](./hardware-firmware-co-design-datasheet-limits-are-real.md) | Pattern | Any embedded & iot engineering deliverable where this question is in play. |
+| [`date-and-source-any-datasheet-figure-verify-against-the-part-and-route.md`](./date-and-source-any-datasheet-figure-verify-against-the-part-and-route.md) | Absolute rule | Any embedded & iot engineering deliverable where this question is in play. |
+
+## See also
+- [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.
+- [`../CLAUDE.md`](../CLAUDE.md) — the team constitution (house opinions §3, anti-patterns §4, output contract §6).

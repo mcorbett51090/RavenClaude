@@ -1,18 +1,24 @@
-# Behavioral-health-practice best-practices
+# Behavioral Health Practice best-practice docs
 
-Atomic, enforceable rules the behavioral-health-practice agents apply. Each file is one rule with a short rationale; the agents cite them by filename. Canonical decision logic lives in [`../knowledge/behavioral-health-practice-decision-trees.md`](../knowledge/behavioral-health-practice-decision-trees.md); these rules are the always-on priors. **All of it is operational and documentation support — never clinical, medical, or legal advice.**
+Named, citable rules for the `behavioral-health-practice` plugin's 4 specialist agents. Each file is one rule — read, applied, and cited whole. Grounded in this plugin's `knowledge/` bank and its agent constitutions.
 
-| Rule | Gist |
-|---|---|
-| not-clinical-advice-route-to-clinician | Operations/documentation only; clinical calls route to a licensed clinician |
-| no-phi-in-artifacts | Placeholders in every template/example; real PHI stays in the EHR |
-| part-2-stricter-than-hipaa-assume-it-applies | Treat SUD records as Part 2-covered; specific consent before disclosure |
-| medical-necessity-is-the-documentation-backbone | One consistent necessity story across plan, note, and claim |
-| the-note-is-a-legal-record | Contemporaneous, consistent format (DAP/SOAP/BIRP), behavioral, factual |
-| consent-precedes-disclosure | Verify the ROI before any record leaves the practice, every time |
-| minimum-necessary-is-the-disclosure-default | A valid consent authorizes the needed scope, never the whole chart by reflex |
-| code-reflects-the-service-rendered | CPT by what happened, never to maximize reimbursement; verify auth first |
-| verify-eligibility-before-the-first-session | Confirm active coverage + behavioral benefit before scheduling, not at claim time |
-| operations-exist-to-protect-the-clinical-hour | Justify every operational change by clinician time/load returned to care |
-| telehealth-readiness-is-part-of-the-appointment | Link + tech check + location + consent ahead of time; a "couldn't connect" is preventable |
-| the-referral-loop-closes-or-it-leaks | Track every referral to a terminal state; an open loop is a client dropped |
+---
+
+## Index
+
+_8 rules. Each file is one named, citable rule — one per house opinion (§3)._
+
+| Doc | Status | Use when |
+|---|---|---|
+| [`no-show-and-late-cancel-is-the-1-revenue-and-access-killer-manage-it-a.md`](./no-show-and-late-cancel-is-the-1-revenue-and-access-killer-manage-it-a.md) | Absolute rule | Any behavioral health practice deliverable where this question is in play. |
+| [`intake-to-first-appointment-access-time-determines-conversion-and-outc.md`](./intake-to-first-appointment-access-time-determines-conversion-and-outc.md) | Absolute rule | Any behavioral health practice deliverable where this question is in play. |
+| [`documentation-is-both-compliance-and-billing-note-timeliness-and-medic.md`](./documentation-is-both-compliance-and-billing-note-timeliness-and-medic.md) | Pattern | Any behavioral health practice deliverable where this question is in play. |
+| [`staff-clinician-caseload-to-demand-not-a-guessed-ratio.md`](./staff-clinician-caseload-to-demand-not-a-guessed-ratio.md) | Pattern | Any behavioral health practice deliverable where this question is in play. |
+| [`payer-mix-and-reimbursement-including-mental-health-parity-drive-margi.md`](./payer-mix-and-reimbursement-including-mental-health-parity-drive-margi.md) | Absolute rule | Any behavioral health practice deliverable where this question is in play. |
+| [`measurement-based-care-is-the-quality-signal-and-increasingly-the-reim.md`](./measurement-based-care-is-the-quality-signal-and-increasingly-the-reim.md) | Pattern | Any behavioral health practice deliverable where this question is in play. |
+| [`telehealth-expands-access-but-carries-its-own-billing-and-consent-rule.md`](./telehealth-expands-access-but-carries-its-own-billing-and-consent-rule.md) | Pattern | Any behavioral health practice deliverable where this question is in play. |
+| [`date-and-source-every-benchmark-route-clinical-licensing-and-legal-det.md`](./date-and-source-every-benchmark-route-clinical-licensing-and-legal-det.md) | Absolute rule | Any behavioral health practice deliverable where this question is in play. |
+
+## See also
+- [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.
+- [`../CLAUDE.md`](../CLAUDE.md) — the team constitution (house opinions §3, anti-patterns §4, output contract §6).

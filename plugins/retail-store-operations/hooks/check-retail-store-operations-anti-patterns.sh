@@ -1,41 +1,55 @@
 #!/usr/bin/env bash
-# check-retail-store-operations-anti-patterns.sh — advisory PreToolUse hook for the retail-store-operations plugin.
-# Flags mechanically-detectable retail anti-patterns on Edit/Write/MultiEdit. Advisory by default
-# (exit 0, prints a notice); set RETAIL_STRICT=1 to make it blocking (exit 2).
+# check-retail-store-operations-anti-patterns.sh — advisory PreToolUse hook for the
+# retail-store-operations plugin. Flags mechanically-detectable retail anti-patterns on
+# Edit/Write/MultiEdit. Advisory by default (exit 0, prints a notice to stderr);
+# set RETAIL_STORE_OPS_STRICT=1 to make it blocking (exit 2).
 set -euo pipefail
 
 file="${1:-}"
 [ -z "$file" ] && exit 0
 [ ! -f "$file" ] && exit 0
 
+# Only inspect text/config/document files; skip binaries.
+case "$file" in
+*.md | *.yaml | *.yml | *.json | *.txt | *.py | *.sh | *.csv) ;;
+*) exit 0 ;;
+esac
+
 findings=()
 
-# 1. A core retail metric quoted with no formula/window — every metric is ambiguous without numerator/denominator/window.
-if grep -qiE "sell[ -]?through|GMROI|weeks[ -]?of[ -]?supply|\bWOS\b" "$file" 2>/dev/null; then
-  if ! grep -qiE "(÷|/|divided by|numerator|denominator|formula|per week|over .*(week|month|day)|window)" "$file" 2>/dev/null; then
-    findings+=("A retail metric (sell-through / GMROI / weeks-of-supply) appears with no formula or window — state the numerator, denominator, and time window or it's undefendable.")
+# 1. Labor schedule with no traffic/sales basis.
+# Fires when a file looks like a schedule (contains "schedule" or "shift") but has no
+# reference to traffic data, transaction count, or sales.
+if grep -nEi "\b(schedule|shift)\b" "$file" >/dev/null 2>&1; then
+  if ! grep -nEi "\b(traffic|transaction[s]?|sales per|splh|coverage ratio)\b" "$file" >/dev/null 2>&1; then
+    findings+=("Labor schedule with no traffic/sales basis — staffing decisions must reference hourly traffic data, transaction counts, or coverage ratios. A schedule without a demand basis is a shift-filling exercise, not a labor model.")
   fi
 fi
 
-# 2. A markdown recommendation with no sell-through / weeks-of-supply trigger — markdown is a decision, not a default.
-if grep -qiE "mark[ -]?down|markdown|clearance" "$file" 2>/dev/null; then
-  if ! grep -qiE "sell[ -]?through|weeks[ -]?of[ -]?supply|\bWOS\b|trigger|cadence" "$file" 2>/dev/null; then
-    findings+=("A markdown/clearance with no sell-through or weeks-of-supply trigger — markdown is a decision, not a default. Tie it to a metric trigger and a cadence.")
+# 2. Markdown with no sell-through rationale.
+# Fires when a file recommends a markdown/discount but contains no sell-through or
+# weeks-of-supply reference.
+if grep -nEi "\b(mark.?down|discount|clearance|price reduction)\b" "$file" >/dev/null 2>&1; then
+  if ! grep -nEi "\b(sell.?through|weeks.of.supply|wos|season week|season end)\b" "$file" >/dev/null 2>&1; then
+    findings+=("Markdown recommendation with no sell-through or weeks-of-supply rationale — every markdown decision requires a current sell-through rate, weeks-of-supply, and a count of weeks remaining in the selling season. Without these, the depth is a guess.")
   fi
 fi
 
-# 3. A "safety stock" / "buffer" change with no named service / in-stock level — that's trapped cash with a story.
-if grep -qiE "safety[ -]?stock|buffer stock|\bbuffer\b" "$file" 2>/dev/null; then
-  if ! grep -qiE "service[ -]?level|in[ -]?stock|fill[ -]?rate|[0-9]{2}\s*%" "$file" 2>/dev/null; then
-    findings+=("'Safety stock' / 'buffer' with no named service / in-stock level — size it to a stated target or it's just trapped cash.")
+# 3. Hard-coded sales or shrink figure with no date.
+# Fires when a specific sales or shrink percentage/dollar is stated without a date or
+# source reference nearby.
+if grep -nEi "\b(shrink rate|shrink of|sales of \$|sales were \$|revenue of \$)[[:space:]]*[0-9]" "$file" >/dev/null 2>&1; then
+  if ! grep -nEi "\b(as of|week end|period end|ytd|qtd|date|source)\b" "$file" >/dev/null 2>&1; then
+    findings+=("Hard-coded sales or shrink figure with no date or source — a specific shrink rate or sales figure without a reporting period and source is unanchored. Retail metrics move; always attach a date and source to any cited number.")
   fi
 fi
 
-# 4. Inventory judged on raw on-hand units instead of flow (sell-through / weeks-of-supply / GMROI).
-if grep -qiE "on[ -]?hand|units in stock|inventory (is|are|level)" "$file" 2>/dev/null; then
-  if grep -qiE "(too (much|many|high|low)|over[ -]?stock|under[ -]?stock|enough (stock|inventory|units))" "$file" 2>/dev/null \
-    && ! grep -qiE "sell[ -]?through|weeks[ -]?of[ -]?supply|\bWOS\b|GMROI|turns" "$file" 2>/dev/null; then
-    findings+=("Inventory called over/under-stocked on raw on-hand units — normalize to weeks-of-supply / sell-through / GMROI; raw units don't tell you the flow.")
+# 4. Safety stock or replenishment trigger with no service-level note.
+# Fires when a file mentions safety stock, reorder point, or min/max without a
+# service level (e.g., 95%, 98%, 99% in-stock).
+if grep -nEi "\b(safety stock|reorder point|min.?max|reorder trigger)\b" "$file" >/dev/null 2>&1; then
+  if ! grep -nEi "\b(service.?level|in.?stock rate|[0-9]{2}%[[:space:]]*(in.?stock|service))\b" "$file" >/dev/null 2>&1; then
+    findings+=("Safety stock or replenishment trigger with no service-level note — safety stock without a stated service-level target (e.g., 98% in-stock) is just a number. State the service level the trigger is designed to achieve.")
   fi
 fi
 
@@ -44,8 +58,8 @@ if [ ${#findings[@]} -eq 0 ]; then exit 0; fi
 printf "%s\n" "── retail-store-operations advisory: review these before committing ──" >&2
 for f in "${findings[@]}"; do printf "  • %s\n" "$f" >&2; done
 
-if [ "${RETAIL_STRICT:-0}" = "1" ]; then
-  echo "(blocking: RETAIL_STRICT=1)" >&2
+if [ "${RETAIL_STORE_OPS_STRICT:-0}" = "1" ]; then
+  echo "(blocking: RETAIL_STORE_OPS_STRICT=1)" >&2
   exit 2
 fi
 exit 0
