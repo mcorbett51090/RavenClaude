@@ -6,7 +6,7 @@
 # burst of read-only startup commands no longer trips the consecutive-LOOP brake,
 # while every real protection is preserved.
 #
-# Six subtests:
+# Seven subtests:
 #   R1  N (=12) identical READ-ONLY calls (repeated `git log`) do NOT trip
 #       max_consecutive (the consec counter never advances for them).
 #   R2  N (=10) identical MUTATING calls (repeated `rm x`) DO trip
@@ -17,6 +17,9 @@
 #       still trips on a read-only-only session.
 #   R4  A read-only command with an appended mutating clause (`git log && rm x`)
 #       is classified NOT read-only — it counts toward consec and trips.
+#   R6  Allowlist-leak classes (find -delete, git branch <name>, git remote add,
+#       git log --output=f) are classified NOT read-only — each counts and trips
+#       (closes the PR #354 security-review findings).
 #   R5  Must-fail half — patch the hook to drop the read-only carve-out (count
 #       every call) and assert R1 now TRIPS, proving the carve-out has teeth.
 #
@@ -118,6 +121,29 @@ if any_trip "$OUT"; then
 else
   fail "R4: a chained mutating command was treated as read-only — carve-out too wide"
 fi
+
+echo
+echo "── R6: allowlist-leak classes must COUNT (not read-only) — each trips ────"
+# Security-review (PR #354) found four genuinely-mutating commands that the first
+# cut of the allowlist misclassified as read-only: `find -delete` (find dropped),
+# `git branch <name>` (creates), `git remote add` (mutates config), and a write-
+# redirecting `git log --output=f`. Each, repeated, must trip max_consecutive —
+# proving it is COUNTED, i.e. classified NOT read-only.
+while IFS= read -r spec; do
+  [ -n "$spec" ] || continue
+  R6TI="$(python3 -c 'import json,sys;print(json.dumps({"command":sys.argv[1]}))' "$spec")"
+  OUT="$(fire_n 10 "$HOOK" "Bash" "$R6TI")"
+  if any_trip "$OUT"; then
+    pass "R6: '$spec' classified NOT read-only — counts and trips"
+  else
+    fail "R6: '$spec' treated as read-only — a mutating command leaked through the allowlist"
+  fi
+done <<'SPECS'
+find . -delete
+git branch newbranch
+git remote add origin foo
+git log --output=/tmp/f
+SPECS
 
 echo
 echo "── R5: must-fail half — carve-out stripped → R1-shape input now trips ────"

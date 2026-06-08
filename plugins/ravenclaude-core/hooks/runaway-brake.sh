@@ -107,7 +107,7 @@ is_read_only() {
   ro_rest="${ro_rest#"${ro_rest%%[![:space:]]*}"}"   # left-trim remaining args
 
   case "$ro_first" in
-    ls|pwd|echo|cat|head|tail|wc|stat|file|which|find|grep|jq) return 0 ;;
+    ls|pwd|echo|cat|head|tail|wc|stat|file|which|grep|jq) return 0 ;;
     command)
       # only `command -v ...` (a lookup) is read-only
       case "$ro_rest" in -v\ *|-v) return 0 ;; *) return 1 ;; esac ;;
@@ -121,10 +121,16 @@ is_read_only() {
       # only `python3 -m json.tool ...` (a read/validate) is read-only
       case "$ro_rest" in -m\ json.tool*) return 0 ;; *) return 1 ;; esac ;;
     git)
-      # strict anchored read-only git subcommands only
+      # `--output`/`-o` let an otherwise-read subcommand (log/diff/show) WRITE a file → not read-only
+      case " $ro_rest " in *' --output'*|*' -o '*) return 1 ;; esac
+      # strict anchored read-only git subcommands only. `branch`/`remote` are bare-or-read-flag
+      # ONLY: bare `branch` lists (read), but `branch <name>` creates and `remote add|set-url|...`
+      # mutate, so neither `branch *` nor `remote *` is allowed — only the explicit read forms.
+      # (`git branch -<flag>` is already rejected upstream by the mutating-token gate.)
       case "$ro_rest" in
         log|log\ *|status|status\ *|diff|diff\ *|show|show\ *|\
-        branch|branch\ *|remote|remote\ *|rev-parse|rev-parse\ *|\
+        branch|remote|remote\ -v|remote\ show|remote\ show\ *|\
+        remote\ get-url|remote\ get-url\ *|rev-parse|rev-parse\ *|\
         ls-files|ls-files\ *|describe|describe\ *|\
         config\ --get|config\ --get\ *|config\ --list|config\ --list\ *) return 0 ;;
         *) return 1 ;;
