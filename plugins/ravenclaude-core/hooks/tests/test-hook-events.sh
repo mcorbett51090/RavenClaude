@@ -167,6 +167,27 @@ if [[ ! -e "$T5/d/escape" ]] && [[ ! -e "$T5/escape" ]]; then
 else
   fail "session isolation: traversal session_id escaped the runs/ dir"
 fi
+
+# (e) Pure-dot ids `..` / `.` survive the char allowlist (they're allowlisted chars)
+# and would resolve OUT of runs/ — they must route to runs/unknown/ and write
+# NEITHER .ravenclaude/hook-events.jsonl NOR .ravenclaude/runs/hook-events.jsonl.
+for dot in ".." "."; do
+  (
+    export CLAUDE_PROJECT_DIR="$T5/e"; mkdir -p "$CLAUDE_PROJECT_DIR"
+    unset CLAUDE_SESSION_ID
+    payload="{\"session_id\":\"$dot\"}"
+    # shellcheck source=/dev/null
+    source "$HOOKS_DIR/_emit-event.sh"
+    _emit_hook_event "demo.sh" "deny" "Bash" "p" "r" 2
+  )
+done
+if [[ -f "$T5/e/.ravenclaude/runs/unknown/hook-events.jsonl" ]] \
+   && [[ ! -e "$T5/e/.ravenclaude/hook-events.jsonl" ]] \
+   && [[ ! -e "$T5/e/.ravenclaude/runs/hook-events.jsonl" ]]; then
+  pass "pure-dot session_id ('..' / '.') routes to runs/unknown/, never escapes runs/ (PR #363 hardening)"
+else
+  fail "session isolation: pure-dot session_id escaped runs/ (the .. / . hardening regressed)"
+fi
 rm -rf "$T5"
 
 echo

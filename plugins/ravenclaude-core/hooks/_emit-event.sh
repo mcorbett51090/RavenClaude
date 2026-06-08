@@ -134,6 +134,10 @@ _emit_hook_event() {
     session="$(_ee_resolve_session 2>/dev/null || printf 'unknown')"
     session="$(printf '%s' "$session" | tr -dc 'A-Za-z0-9._-' | cut -c1-128)"
     [ -z "$session" ] && session="unknown"
+    # Reject pure-dot ids (security review PR #363): `.`/`..` survive the allowlist
+    # (both are made of allowlisted chars) and would resolve the run dir one level
+    # OUT of runs/ (`runs/..` → .ravenclaude/) or into runs/ itself (`runs/.`).
+    case "$session" in .|..) session="unknown" ;; esac
     local run_dir="$project_dir/.ravenclaude/runs/$session"
     local log="$run_dir/hook-events.jsonl"
 
