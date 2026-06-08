@@ -1,0 +1,3 @@
+# Ambiguity is a flag, not a guess
+
+When contract language is genuinely unclear — a notice period that could be calendar or business days, an obligation whose trigger is undefined, a date that depends on an undefined event — surface it to the lawyer rather than inventing a term, an obligation, or a deadline. A guessed date in the renewal tracker or a fabricated obligation in the register is worse than a blank: it reads as fact and nobody re-checks it. Mark the field `flag-for-lawyer` with the specific ambiguity named, and let the human judgement resolve it. The operational layer extracts what the contract clearly says and escalates what it doesn't. Not legal advice: interpreting ambiguous language is the lawyer's call, never the tracker's.

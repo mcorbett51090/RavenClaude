@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for esg-sustainability-reporting. Auto-merged with the consumer's session hooks on install. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-esg-sustainability-reporting-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags mechanically-detectable ESG-reporting anti-patterns (an emission figure with no factor source/vintage; a Scope 2 figure reported as only one method where both are required; a sustainability claim with no substantiation reference). Set ESG_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}

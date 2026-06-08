@@ -1,0 +1,3 @@
+# The repository is a schema, not a drawer
+
+A contract repository is a metadata model, not a folder of PDFs. Each contract carries named fields — counterparty, value, effective date, expiry, auto-renew flag, notice-window deadline, governing law, owner, and links to its obligations — so contracts are findable, reportable, and answer a query without opening the file. A pile of scattered folders with filenames-as-metadata can't answer "which contracts auto-renew next quarter" or "what's our total committed spend with this vendor"; a schema can. Prefer named fields over folder conventions, and make the obligation and renewal trackers reference the same record. Not legal advice: the schema organizes the contracts; a lawyer owns what they mean.
