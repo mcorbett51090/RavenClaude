@@ -1764,6 +1764,86 @@
         "judgment-list",
         "ab-testing"
       ]
+    },
+    {
+      "name": "automotive-dealership",
+      "source": "./plugins/automotive-dealership",
+      "description": "Automotive Dealership Operations specialist team — 4 agents (dealership-operations-lead, sales-desking-analyst, fixed-ops-service-specialist, fi-products-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An operations team for a dealer principal or GM accountable for total gross, fixed-ops absorption, and inventory turn — it runs the store on fixed-ops not new-car gross, manages days-supply and floorplan as carrying-cost cash, reads total gross per unit as front plus back, and treats absorption as the survival metric. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "automotive-retail",
+        "dealership",
+        "fixed-ops",
+        "floorplan",
+        "days-supply",
+        "fi-penetration",
+        "total-gross",
+        "absorption",
+        "csi"
+      ]
+    },
+    {
+      "name": "hotel-hospitality-operations",
+      "source": "./plugins/hotel-hospitality-operations",
+      "description": "Hotel & Hospitality Operations specialist team — 4 agents (hotel-operations-lead, revenue-management-analyst, labor-productivity-specialist, guest-experience-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A hospitality-operations team for a GM, revenue manager, or owner accountable for RevPAR, GOPPAR, and guest satisfaction — it optimizes RevPAR as the product of ADR and occupancy, manages channel mix at net rate, reads the booking pace curve, staffs labor to occupancy, and scores profit on GOPPAR. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "hospitality",
+        "hotel-operations",
+        "revpar",
+        "adr",
+        "channel-mix",
+        "booking-pace",
+        "labor-productivity",
+        "goppar",
+        "segment-mix"
+      ]
+    },
+    {
+      "name": "k12-school-administration",
+      "source": "./plugins/k12-school-administration",
+      "description": "K-12 School Administration specialist team — 4 agents (school-administration-lead, enrollment-attendance-analyst, staffing-budget-specialist, student-outcomes-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An administration team for a principal, business manager, or district administrator accountable for enrollment, budget, and student outcomes — it manages enrollment as a funded pipeline, reads attendance/ADA as funding and an outcome signal, fits staffing to the budget envelope, flags chronic absenteeism early, and reads outcomes segmented. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "k12",
+        "school-administration",
+        "enrollment",
+        "ada",
+        "per-pupil-funding",
+        "staffing-ratio",
+        "chronic-absenteeism",
+        "student-outcomes",
+        "ferpa"
+      ]
+    },
+    {
+      "name": "property-management",
+      "source": "./plugins/property-management",
+      "description": "Property Management Operations specialist team — 4 agents (property-management-lead, occupancy-leasing-analyst, maintenance-operations-specialist, noi-financial-analyst), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A property-operations team for a property/asset manager accountable for occupancy, NOI, and resident retention — it reads occupancy as a leasing funnel plus renewals, treats delinquency as cash with an aging clock, manages unit-turn time as cost and retention, and scores the asset on NOI not gross rent. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "property-management",
+        "occupancy",
+        "leasing-funnel",
+        "noi",
+        "delinquency",
+        "unit-turn",
+        "renewals",
+        "concessions",
+        "cap-rate"
+      ]
     }
   ]
 }
