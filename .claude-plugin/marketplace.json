@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + 14 specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 43 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to…' use-case lookup.",
-    "version": "0.80.0"
+    "version": "0.81.0"
   },
   "plugins": [
     {
@@ -1882,6 +1882,27 @@
         "low-power",
         "bare-metal",
         "device-to-cloud"
+      ]
+    },
+    {
+      "name": "automotive-dealership",
+      "source": "./plugins/automotive-dealership",
+      "description": "Automotive dealership operations specialist team — 5 agents covering the full dealership P&L: dealership-ops-lead (store KPIs, daily operating report, variable/fixed-ops mix), fixed-ops-analyst (service & parts, absorption rate, ELR, technician productivity, CSI), fni-advisor (F&I process, PVR, product penetration, lender relationships, compliant — no payment packing), inventory-and-desking-analyst (new/used days-supply, floor-plan cost, recon, sales desking), dealership-compliance-advisor (GLBA Safeguards, NPI handling, OFAC/Red Flags, advertising disclosure). Ships 3 skills, 3 commands, 2 templates, 6 best-practices, 1 advisory hook, and a dealer calculator script. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "automotive",
+        "dealership",
+        "fixed-ops",
+        "fni",
+        "inventory",
+        "floor-plan",
+        "desking",
+        "compliance",
+        "glba",
+        "absorption-rate"
       ]
     }
   ]
