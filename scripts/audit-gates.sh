@@ -3004,6 +3004,20 @@ rc=0; python3 scripts/check-mcp-attribution.py --root "$G98/none" >/dev/null 2>&
 gate "mcp-attribution: plugin without mcpServers passes" must_pass "$rc"
 
 echo
+echo "── Gate 99: Feedback report freshness (generate-feedback-report.py --check) ─"
+# The Problems & Resolutions view (feedback-report.html) is generated from the
+# scenario corpus by scripts/generate-feedback-report.py. Bidirectional:
+#   must_pass: the committed feedback-report.html matches a fresh generation
+#   must_fail: a mutated committed report (drifted from the corpus) is detected
+rc=0; python3 scripts/generate-feedback-report.py --check >/dev/null 2>&1 || rc=$?
+gate "feedback-report freshness (clean tree)" must_pass "$rc"
+backup feedback-report.html
+printf '\n<!-- AUDIT FIXTURE — should diff against regenerated output -->\n' >> feedback-report.html
+rc=0; python3 scripts/generate-feedback-report.py --check >/dev/null 2>&1 || rc=$?
+gate "feedback-report freshness (stale committed report)" must_fail "$rc"
+cp -p "$TMP/feedback-report.html.bak" feedback-report.html
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 if [[ "$FAIL" -gt 0 ]]; then
