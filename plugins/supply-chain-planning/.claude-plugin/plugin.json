@@ -1,0 +1,24 @@
+{
+  "name": "supply-chain-planning",
+  "version": "0.1.0",
+  "description": "Supply-chain planning specialists — the plan layer between buy and move: S&OP/IBP cycle orchestration, demand forecasting (statistical + consensus, MAPE/bias, new-product, seasonality), inventory optimization (safety stock, service-level targets, ABC/XYZ, EOQ, multi-echelon, working-capital tradeoff), and MRP/replenishment. Ships 4 agents (supply-chain-planner, demand-planning-analyst, inventory-optimization-engineer, sop-process-lead), 3 skills (demand-forecasting, inventory-policy-and-safety-stock, sop-process), 3 commands, 2 templates, a decision-tree knowledge bank, 6 best-practices, and an advisory anti-pattern hook. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "supply-chain",
+    "s-and-op",
+    "demand-planning",
+    "inventory-optimization",
+    "safety-stock",
+    "mrp",
+    "replenishment",
+    "forecasting",
+    "ibp"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

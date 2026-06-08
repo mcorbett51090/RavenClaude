@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + 14 specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 43 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to…' use-case lookup.",
-    "version": "0.73.0"
+    "version": "0.82.0"
   },
   "plugins": [
     {
@@ -1853,6 +1853,139 @@
         "renewals",
         "concessions",
         "cap-rate"
+      ]
+    },
+    {
+      "name": "construction-general-contractor",
+      "source": "./plugins/construction-general-contractor",
+      "description": "General-contractor project delivery team — 5 agents covering the full GC lifecycle: project P&L/billing/closeout (gc-project-lead), takeoff/bid assembly/markup (estimating-and-takeoff-analyst), CPM scheduling/critical-path/float (scheduling-engineer), submittal log/RFIs/change-order process (submittal-rfi-coordinator), and jobsite safety/JHA/OSHA hazard prevention (jobsite-safety-advisor). Ships 3 skills (estimating-and-bidding, cpm-scheduling, submittals-rfis-change-orders), 3 commands, 2 templates, a decision-tree knowledge bank, 6 best-practices, an advisory anti-pattern hook, and a stdlib calculator. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "construction",
+        "general-contractor",
+        "estimating",
+        "cpm-scheduling",
+        "submittals",
+        "change-orders",
+        "jobsite-safety",
+        "rfis",
+        "takeoff",
+        "project-delivery"
+      ]
+    },
+    {
+      "name": "field-service-management",
+      "source": "./plugins/field-service-management",
+      "description": "Field-service management & dispatch operations specialist team — 4 agents covering the service operating model (SLAs, contracts, dispatch-to-cash), dispatch & scheduling (skill/SLA/geo optimization, emergency vs planned), technician productivity (utilization, first-time-fix, MTTR, callbacks), and parts & inventory (truck stock, service-level tradeoffs, returns). Ships 3 skills (dispatch-and-scheduling, technician-productivity-and-first-time-fix, truck-stock-and-parts), 3 commands, 2 templates, 6 best-practices, a decision-tree knowledge bank, and an advisory hook flagging FSM anti-patterns. Domain: HVAC, plumbing, elevator, medical-device service. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "field-service",
+        "dispatch",
+        "scheduling",
+        "technician",
+        "first-time-fix",
+        "truck-stock",
+        "sla",
+        "hvac",
+        "preventive-maintenance",
+        "mobile-workforce"
+      ]
+    },
+    {
+      "name": "localization-i18n-engineering",
+      "source": "./plugins/localization-i18n-engineering",
+      "description": "Internationalization (i18n) and localization (l10n) engineering specialists — 3 agents covering i18n architecture (string externalization, ICU MessageFormat, RTL/bidi, locale data), the l10n pipeline (extraction, TMS handoff, translation memory, continuous localization), and localization QA (pseudo-localization, l10n linting in CI, visual overflow QA, locale-coverage testing). Ships 3 skills, 3 commands, 2 templates, a decision-tree knowledge bank with a 2026 i18n/TMS capability map, 6 best-practice rules, and an advisory hook flagging i18n anti-patterns (hard-coded user-facing strings, string concatenation, if-count-1 plurals, hard-coded date/number formats). Inherits ravenclaude-core protocols (Grounding, Structured Output).",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "i18n",
+        "l10n",
+        "internationalization",
+        "localization",
+        "icu-messageformat",
+        "tms",
+        "rtl",
+        "pseudo-localization",
+        "string-extraction",
+        "translation-memory"
+      ]
+    },
+    {
+      "name": "public-sector-govtech",
+      "source": "./plugins/public-sector-govtech",
+      "description": "Government and civic-tech delivery specialist team — 4 agents covering digital-service delivery (USDS/18F-style agile in a compliance context), public procurement (RFP/RFI response and structuring for SLED/federal), grants management (lifecycle, restricted-fund tracking, Uniform Guidance/single audit), and Section 508/WCAG accessibility plus FOIA/public-records. Ships 3 skills (public-procurement-and-rfp, grants-management, accessibility-508-and-records), 3 commands, 2 templates, a knowledge bank with bid-no-bid and FedRAMP decision trees, 6 best-practices, and an advisory hook flagging govtech anti-patterns. Inherits ravenclaude-core protocols (Grounding, Structured Output, Cited-Adjudicator).",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "government",
+        "govtech",
+        "public-sector",
+        "procurement",
+        "rfp",
+        "grants",
+        "section-508",
+        "wcag",
+        "foia",
+        "fedramp",
+        "stateramp",
+        "citizen-services",
+        "plain-language"
+      ]
+    },
+    {
+      "name": "retail-store-operations",
+      "source": "./plugins/retail-store-operations",
+      "description": "Brick-and-mortar retail store operations team — 5 agents (store-ops-lead, merchandising-analyst, inventory-and-replenishment-analyst, labor-scheduling-analyst, loss-prevention-advisor) covering four-wall P&L and store KPIs, assortment and planogram compliance, inventory accuracy and replenishment, labor scheduling to traffic, and shrink root-cause and loss prevention. 3 skills, 3 commands, 2 templates, Mermaid decision-tree knowledge bank + 2026 capability map, 6 best-practices, and 1 advisory hook. Seams: online/DTC -> ecommerce-dtc, upstream demand planning -> supply-chain-planning, buying -> procurement-sourcing. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "retail",
+        "store-operations",
+        "merchandising",
+        "planogram",
+        "inventory",
+        "replenishment",
+        "labor-scheduling",
+        "loss-prevention",
+        "shrink",
+        "gmroi",
+        "pos",
+        "bopis",
+        "omnichannel",
+        "store-kpis",
+        "brick-and-mortar"
+      ]
+    },
+    {
+      "name": "supply-chain-planning",
+      "source": "./plugins/supply-chain-planning",
+      "description": "Supply-chain planning specialists — the plan layer between buy and move: S&OP/IBP cycle orchestration, demand forecasting (statistical + consensus, MAPE/bias, new-product, seasonality), inventory optimization (safety stock, service-level targets, ABC/XYZ, EOQ, multi-echelon, working-capital tradeoff), and MRP/replenishment. Ships 4 agents (supply-chain-planner, demand-planning-analyst, inventory-optimization-engineer, sop-process-lead), 3 skills (demand-forecasting, inventory-policy-and-safety-stock, sop-process), 3 commands, 2 templates, a decision-tree knowledge bank, 6 best-practices, and an advisory anti-pattern hook. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "supply-chain",
+        "s-and-op",
+        "demand-planning",
+        "inventory-optimization",
+        "safety-stock",
+        "mrp",
+        "replenishment",
+        "forecasting",
+        "ibp"
       ]
     }
   ]
