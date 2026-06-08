@@ -1,0 +1,27 @@
+{
+  "name": "data-science-research",
+  "version": "0.2.0",
+  "description": "Exploratory data science & reproducible research team — 3 agents (exploratory-data-scientist, feature-and-modeling-engineer, research-reproducibility-engineer) for the analysis layer between raw data and a defensible result: data profiling/cleaning, EDA, hypothesis generation, communicating findings with uncertainty; feature engineering, classical modeling (regression, trees, boosting), model selection, evaluation (cross-validation, metrics) and leakage avoidance; and the reproducibility spine — notebook hygiene, pinned environments, experiment tracking, data/version control, seeds, and reproducible pipelines. 12 best-practices, decision-tree knowledge bank, 3 skills, 3 commands, 2 templates, 1 hook, scenarios bank, and stdlib-only ds_calc.py (classification/regression metrics, split-check). Seams: is-the-result-statistically-real -> applied-statistics; productionize/serve/monitor -> ml-engineering; data pipelines/warehouse -> data-platform. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "data-science",
+    "eda",
+    "feature-engineering",
+    "modeling",
+    "scikit-learn",
+    "cross-validation",
+    "reproducibility",
+    "experiment-tracking",
+    "jupyter",
+    "leakage",
+    "evaluation",
+    "pandas"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

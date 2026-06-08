@@ -1,0 +1,3 @@
+# Third-party risk is your risk
+
+A vendor's breach is your incident and your audit finding. "The vendor handles security" is not a control. Tier vendors by the data sensitivity, access, and business criticality they hold, then assess proportionally — full SIG/CAIQ for the critical few, SIG-Lite or attestation review for the long tail. Own the shared-responsibility boundary explicitly, and when relying on a vendor's SOC 2 report, read the scope, the period, the exceptions, and the complementary user-entity controls *you* must run. Vendor risk is a lifecycle with ongoing monitoring, not a one-time onboarding questionnaire.

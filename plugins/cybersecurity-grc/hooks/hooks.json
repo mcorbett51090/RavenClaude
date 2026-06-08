@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for cybersecurity-grc. Auto-merged with the consumer's session hooks on install. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-cybersecurity-grc-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags mechanically-detectable GRC anti-patterns (an SoA exclusion marked 'N/A' with no justification; a risk-register row with no treating control or owner; a control/policy doc that claims a control operates with no evidence reference). Set GRC_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}

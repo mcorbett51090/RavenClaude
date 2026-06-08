@@ -1,0 +1,3 @@
+# Base year is a commitment, not a convenience
+
+Set the base year deliberately and document the recalculation policy and the significance threshold up front. Recalculate the base year when structural change — acquisition, divestiture, a methodology or emission-factor-library shift — crosses the threshold; otherwise every year-on-year trend claim is built on a moving baseline and is meaningless. A base year that drifts silently, or a recalculation policy that doesn't exist, voids reduction targets and trend disclosures. The restatement, when triggered, is documented and disclosed, not done quietly.

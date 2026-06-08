@@ -1,0 +1,27 @@
+{
+  "name": "insurance-life-health-benefits",
+  "version": "0.2.0",
+  "description": "Life, health & employee-benefits insurance team — 3 agents (benefits-advisor, underwriting-and-actuarial-analyst, enrollment-and-compliance-lead) for the group-benefits domain: plan design across medical / dental / vision / life / disability, funding (fully-insured vs self-funded / level-funded), rating basics (manual vs experience rating), loss ratios and the ACA medical-loss-ratio (MLR), renewal projections, and open-enrollment operations (eligibility, COBRA / HIPAA / ACA 1095 & Form 5500 basics, carrier coordination). Decision-tree knowledge bank, 12 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios, and stdlib-only benefits_calc.py (loss-ratio + ACA MLR flag, contribution split, renewal projection). NOT legal, tax, or actuarial advice — educational scaffolding only; a licensed broker, actuary, or ERISA counsel signs off. Seams: P&C -> insurance-pc; HR admin -> people-ops-hr; provider billing -> medical-revenue-cycle. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "insurance",
+    "employee-benefits",
+    "group-health",
+    "life-insurance",
+    "disability",
+    "underwriting",
+    "aca",
+    "erisa",
+    "cobra",
+    "enrollment",
+    "loss-ratio",
+    "self-funded"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

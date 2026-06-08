@@ -1,0 +1,3 @@
+# The BOM must match as-built
+
+MRP nets requirements through the bill of materials — so a BOM that has drifted from the as-built reality poisons every downstream plan. A wrong quantity-per, a missing component, a stale revision, or effectivity dates that no longer match the line produce phantom shortages, wrong material releases, and a schedule that fails when the real part list shows up at the bench. Check BOM integrity *before* running MRP, not after the shortage report argues with the floor. Reconcile the multi-level bill against as-built and engineering change effectivity, flag the drift, and treat a clean MRP run on a dirty BOM as garbage-in. The bill is the spine of the material plan; if it lies, the plan lies.

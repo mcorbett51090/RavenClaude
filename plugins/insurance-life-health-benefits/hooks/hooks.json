@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for insurance-life-health-benefits. Auto-merged with the consumer's session hooks on install. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-insurance-life-health-benefits-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags mechanically-detectable benefits anti-patterns (a recommendation worded as legal/tax/actuarial advice with no sign-off; an HDHP with no HSA contribution; a quoted ACA/MLR/5500 figure with no [verify-at-build] marker). Set BENEFITS_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}
