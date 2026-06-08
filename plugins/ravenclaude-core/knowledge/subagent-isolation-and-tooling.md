@@ -1,6 +1,6 @@
 # Sub-agent isolation & tooling — what delegated agents can and can't do
 
-> **Last reviewed:** 2026-05-23, against observed Claude Code (Opus 4.7) behavior during a parallel multi-agent PR-review engagement. **Refresh when:** Anthropic changes sub-agent permission inheritance, the `isolation: "worktree"` behavior, or background-task tooling. Companion to [`claude-code-permissions.md`](claude-code-permissions.md).
+> **Last reviewed:** 2026-06-08 (frontmatter-field + plugin-agent-restriction section added against [sub-agents](https://code.claude.com/docs/en/sub-agents) + [plugins-reference](https://code.claude.com/docs/en/plugins-reference), retrieved 2026-06-08). The original git-write/`isolation` observations below were captured 2026-05-23 against observed Claude Code (Opus 4.7) behavior during a parallel multi-agent PR-review engagement. **Refresh when:** Anthropic changes sub-agent permission inheritance, the `isolation: "worktree"` behavior, the subagent frontmatter field set, the plugin-agent restriction, or background-task tooling. Companion to [`claude-code-permissions.md`](claude-code-permissions.md).
 
 This file records a non-obvious, load-bearing constraint on how the Team Lead delegates work to sub-agents. It cost two blocked waves of agents to pin down — capture it so the next orchestration doesn't repeat the mistake.
 
@@ -42,3 +42,36 @@ If the write volume is large, the lever is **the main agent's context budget**, 
 ## Rule of thumb
 
 > Reading a branch needs no isolation and no approval (`git show` — parallelize across sub-agents freely). Writing a branch needs approval that only the main agent can obtain — so do all checkout/commit/push work in the main session, sequentially. `isolation: "worktree"` only makes it worse (it also removes `Read`). Don't delegate git-writes to sub-agents in this environment.
+
+## Subagent frontmatter — the field set, and what a plugin-shipped agent may use
+
+> Reviewed 2026-06-08 against [sub-agents](https://code.claude.com/docs/en/sub-agents) + [plugins-reference](https://code.claude.com/docs/en/plugins-reference) (retrieved 2026-06-08). The git-write observations above are about *runtime* behavior; this section is about the *declarative* surface — what you can put in an agent's YAML frontmatter, and the binding constraint on plugin-shipped agents.
+
+A subagent definition's frontmatter accepts the following fields. The ones load-bearing for cost, safety, and institutional memory:
+
+| Field | Type / values | Effect |
+| --- | --- | --- |
+| `name`, `description` | string | Identity + dispatch hint. |
+| `tools`, `disallowedTools` | list | Allow-list / block-list the agent's tool surface. |
+| `model` | model id | Pin the backbone (right-size cost; e.g. Haiku for cheap read-only agents). |
+| `effort` | reasoning-effort dial | Tune depth vs. cost per agent. |
+| `maxTurns` | integer | Hard ceiling on the agent's turn budget (runaway brake). |
+| `skills` | list | **Preload** named skills into the agent at dispatch. |
+| `memory` | `user` \| `project` \| `local` | Give the agent a **persistent `MEMORY.md` directory** at the named scope — institutional memory that survives across runs. |
+| `background` | `true` \| `false` | Run detached (the background-agent path; note the git-write constraint above still applies). |
+| `isolation` | `worktree` | Run in a git worktree — and, per the lesson above, this **also strips `Read`**, so it is a *further* restriction, not a convenience. |
+| `color`, `initialPrompt` | string | Display + seed-prompt niceties. |
+
+### Binding constraint: a plugin-shipped agent may NOT use `hooks`, `mcpServers`, or `permissionMode`
+
+> **Load-bearing accuracy note. Verified 2026-06-08** against [plugins-reference](https://code.claude.com/docs/en/plugins-reference).
+
+When an agent ships **inside a plugin** (as every `plugins/ravenclaude-core/agents/*.md` does), three frontmatter fields are **silently ignored** for security reasons:
+
+- `hooks`
+- `mcpServers`
+- `permissionMode`
+
+"Silently ignored" is the trap: declaring them does **not** error — it just has no effect, so an agent that *appears* to (say) lower its own `permissionMode` or wire its own `hooks` is running with none of that in force. A plugin agent's writable declarative surface is therefore exactly: `name`, `description`, `model`, `effort`, `maxTurns`, `tools`, `disallowedTools`, `skills`, `memory`, `background`, `isolation` (plus `color` / `initialPrompt`). Anything requiring `hooks` / `mcpServers` / `permissionMode` must be wired at the plugin level (`hooks/hooks.json`, the plugin's MCP declaration) or in the consumer's `settings.json` — never on the agent.
+
+**Implication for core's roster:** core's specialist agents are under-specified today (no `model` / `effort` / `maxTurns` / `tools` allow-lists, no `memory:`). Adding these — within the allowed field set above — hardens cost, safety, and institutional memory without touching any forbidden field. The `subagents cannot spawn subagents` rule (Team-Lead-only dispatch) is unchanged by any of this.
