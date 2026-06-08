@@ -31,3 +31,4 @@ evals/**/*.private.*
 
 # Bytecode for the new evals harness
 evals/__pycache__/
+.claude/worktrees/
