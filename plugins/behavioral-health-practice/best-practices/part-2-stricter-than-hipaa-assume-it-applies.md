@@ -1,0 +1,3 @@
+# 42 CFR Part 2 is stricter than HIPAA — assume it applies
+
+Substance-use-disorder (SUD) records from a Part 2 program carry consent requirements HIPAA does not: disclosure generally needs specific written consent naming the recipient and purpose, and redisclosure is restricted. When it is unclear whether a record is Part 2-covered, treat it as covered. A general HIPAA authorization does **not** cover Part 2 SUD content — that needs its own specific consent. Confirm the specific consent is on file before any disclosure of SUD information, including to a payer. Route legal questions to counsel; this rule is the conservative default, not a legal opinion.

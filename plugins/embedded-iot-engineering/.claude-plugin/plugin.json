@@ -1,0 +1,27 @@
+{
+  "name": "embedded-iot-engineering",
+  "version": "0.1.0",
+  "description": "Embedded firmware & IoT/edge engineering team — 3 agents (firmware-architect, embedded-engineer, iot-connectivity-engineer) for the constrained-device layer below the cloud: firmware architecture (RTOS vs bare-metal, MCU selection, memory & power budgets, HAL/driver layering, boot & OTA strategy, flash partitioning), low-level implementation (C/C++/Rust on MCU, interrupts/ISRs, DMA, I2C/SPI/UART peripheral drivers, real-time constraints, JTAG/SWD debugging, watchdogs), and IoT connectivity (MQTT/CoAP/BLE/LoRa/Zigbee/Wi-Fi, device provisioning & identity, fleet management, secure boot & key storage, telemetry). Decision-tree knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: cloud telemetry ingest -> data-streaming-engineering & the cloud plugins; mobile companion app -> mobile-engineering; device security review -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "embedded",
+    "firmware",
+    "iot",
+    "rtos",
+    "mcu",
+    "c",
+    "rust",
+    "mqtt",
+    "ble",
+    "lora",
+    "ota",
+    "secure-boot"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

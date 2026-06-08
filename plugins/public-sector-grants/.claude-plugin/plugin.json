@@ -1,0 +1,27 @@
+{
+  "name": "public-sector-grants",
+  "version": "0.1.0",
+  "description": "Government & nonprofit grants team — 3 agents (grant-strategist, proposal-writer, grants-compliance-analyst) for the funder-side discipline of winning and managing public grants: opportunity search & fit assessment, funder research, logic model / theory of change and go/no-go (strategist); proposal narrative, needs/problem statement, SMART goals & objectives, evaluation plan, and budget + budget narrative (writer); and 2 CFR Uniform Guidance — allowable/allocable/reasonable costs, sub-recipient monitoring, drawdowns & financial reporting, and the single audit (compliance). Decision-tree knowledge bank (grant lifecycle, logic model, budget, Uniform Guidance, reporting), 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Distinct from nonprofit-fundraising (the donor/major-gifts side). Seams: donor fundraising -> nonprofit-fundraising; GL / fund accounting -> finance; security controls for federal data -> cybersecurity-grc. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "grants",
+    "grant-writing",
+    "public-sector",
+    "uniform-guidance",
+    "2-cfr",
+    "federal-grants",
+    "proposal",
+    "budget-narrative",
+    "sub-recipient",
+    "compliance",
+    "logic-model",
+    "reporting"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

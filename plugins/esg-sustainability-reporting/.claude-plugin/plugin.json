@@ -1,0 +1,27 @@
+{
+  "name": "esg-sustainability-reporting",
+  "version": "0.1.0",
+  "description": "Corporate ESG & sustainability-disclosure team — 3 agents (esg-reporting-architect, ghg-accounting-analyst, disclosure-and-assurance-lead) for the reporting layer that turns sustainability obligations into a defensible, assurable disclosure: framework selection & scoping (CSRD/ESRS, ISSB IFRS S1/S2, GRI, SEC climate rule), double vs financial materiality, the reporting boundary & governance, the disclosure roadmap; GHG Protocol Scopes 1/2/3 (the 15 Scope-3 categories), emission factors, location- vs market-based Scope 2, base year, data quality; and disclosure drafting, data controls & evidence, limited vs reasonable assurance readiness, gap assessment, auditor liaison. Knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: financial-statement reporting -> finance; data lineage -> data-governance-privacy; regulator filing -> regulatory-compliance. NOT a legal or financial-audit opinion. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "esg",
+    "sustainability",
+    "csrd",
+    "esrs",
+    "issb",
+    "ghg-protocol",
+    "scope-3",
+    "materiality",
+    "emissions",
+    "climate-disclosure",
+    "assurance",
+    "reporting"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

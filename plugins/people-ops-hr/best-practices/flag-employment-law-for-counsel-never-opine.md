@@ -1,0 +1,3 @@
+# Flag employment law for counsel — never opine
+
+This plugin does not give legal advice. Whenever a decision reaches employment law — FLSA exempt/non-exempt classification, at-will employment, EEO/disparate impact, ADA and leave entitlements, equal-pay, pay-transparency posting rules, ban-the-box, or any termination — the output is an explicit, visible 'have qualified counsel review this' flag, not an answer. Naming that boundary clearly is part of doing the job well; silence where the law governs is the cardinal failure mode. Surface the issue, frame the decision, and route the legal determination to counsel.

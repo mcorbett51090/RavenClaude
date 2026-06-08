@@ -1,0 +1,3 @@
+# Benefits are a system, not a pile of policies
+
+Medical, dental, vision, group life, and short-/long-term disability are chosen together — the gaps and overlaps between them are where employees get hurt. A great medical plan with no disability income protection is an incomplete package, and disability income is the most under-bought line: a workforce with strong medical and no LTD is one serious illness away from financial ruin. Flag the gap every time, and check network adequacy before plan-design elegance — a clever plan on a thin network is a worse member experience than a plain plan on a broad one.

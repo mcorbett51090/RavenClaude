@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for hospitality-hotel-operations. Auto-merged with the consumer's session hooks on install. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-hospitality-hotel-operations-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags mechanically-detectable hospitality anti-patterns (occupancy/ADR optimized with no RevPAR; a channel comparison on gross rate with no net-ADR/commission; overbooking with no walk-protocol; loyalty measured by member count). Set HOTEL_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}

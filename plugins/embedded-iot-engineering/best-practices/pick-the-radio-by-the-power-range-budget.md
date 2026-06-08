@@ -1,0 +1,3 @@
+# Pick the radio by the power/range/bandwidth budget
+
+The radio is chosen by the device's power, range, bandwidth, and topology budget — not by the team's familiarity. BLE for short-range low-power (phone-paired), LoRa/LoRaWAN for long-range low-bandwidth at km scale, Wi-Fi for real bandwidth at mains power, Zigbee/Thread for low-power mesh. The radio dominates the power budget on a battery device, so duty-cycle it — send in bursts, sleep between — and pick a protocol that tolerates a dropped link (MQTT QoS / store-and-forward, CoAP-over-DTLS with retries). Wi-Fi on a coin cell or BLE for a 5 km link is a budget failure.

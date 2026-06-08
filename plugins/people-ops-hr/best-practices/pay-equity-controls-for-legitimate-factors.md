@@ -1,0 +1,3 @@
+# Pay equity controls for legitimate factors
+
+A pay-equity review must control for the legitimate explanatory factors — level, tenure, location, and performance — and surface the *unexplained* residual gap, not a raw average. An uncontrolled difference in average pay between groups proves nothing because it conflates real differences (more senior people earn more) with inequity. Name what you controlled for, surface what's left unexplained, and frame remediation — but the legal certification that a pay structure is equal-pay compliant is counsel's call, never the analyst's. Flag it; don't sign it.

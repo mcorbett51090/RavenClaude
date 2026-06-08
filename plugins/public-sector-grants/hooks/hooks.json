@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for public-sector-grants. Auto-merged with the consumer's session hooks on install. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-public-sector-grants-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags mechanically-detectable grant anti-patterns (an objective with no measure/target/deadline, a budget line with no narrative justification, a sub-recipient with no monitoring, an allowability/threshold number quoted with no authority). Set GRANTS_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}

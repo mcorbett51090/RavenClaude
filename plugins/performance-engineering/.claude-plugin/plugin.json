@@ -1,0 +1,27 @@
+{
+  "name": "performance-engineering",
+  "version": "0.1.0",
+  "description": "Performance- and capacity-engineering team — 3 agents (performance-architect, load-testing-engineer, profiling-and-capacity-engineer) for system performance and scalability: performance strategy and budgets, workload modeling, and SLO-linked NFR targets (performance-architect); load/stress/soak/spike testing with k6/Gatling/Locust/JMeter, open- vs closed-model workloads, ramping, think time, and test data (load-testing-engineer); CPU/memory/IO profiling, flame graphs, USE/RED bottleneck triage, capacity planning and headroom via Little's law, and regression detection (profiling-and-capacity-engineer). Decision-tree knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Distinct from frontend Core Web Vitals and observability-sre SLOs. Seams: web vitals -> frontend-engineering; SLO/error-budget -> observability-sre; query tuning -> database-engineering; resilience -> backend-engineering. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "performance-engineering",
+    "load-testing",
+    "k6",
+    "gatling",
+    "profiling",
+    "flame-graph",
+    "capacity-planning",
+    "bottleneck",
+    "soak-test",
+    "throughput",
+    "latency",
+    "scalability"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

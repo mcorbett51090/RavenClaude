@@ -1,0 +1,27 @@
+{
+  "name": "hospitality-hotel-operations",
+  "version": "0.1.0",
+  "description": "Hospitality / lodging hotel-operations team — 3 agents (hotel-operations-lead, revenue-manager, guest-experience-analyst) for running a property as a business: front-office / PMS operations, housekeeping, the guest journey, SOPs, labor scheduling, and maintenance/engineering coordination; revenue management and rate strategy (RevPAR / ADR / occupancy / GOPPAR, channel & OTA mix and cost, demand forecasting, overbooking & yield); and guest experience — reviews, online reputation, satisfaction measurement, loyalty, and service recovery with a comment-to-action loop. Decision-tree knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: restaurant / F&B outlet -> restaurant-operations; demand statistics -> applied-statistics; BI / reporting -> data-platform. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "hospitality",
+    "hotel-operations",
+    "revpar",
+    "adr",
+    "occupancy",
+    "revenue-management",
+    "pms",
+    "ota",
+    "channel-mix",
+    "guest-experience",
+    "forecasting",
+    "loyalty"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

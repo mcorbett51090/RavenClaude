@@ -1,0 +1,3 @@
+# Correct for coordinated omission or your tail latency is a lie
+
+When a load generator stalls waiting for a slow response, it stops *issuing* new requests — so the worst-case latencies are never requested and never recorded, and the reported p99 looks great while users suffer. This is coordinated omission. Use an arrival-rate (open-model) executor that keeps issuing on schedule, and a tool that applies latency correction, so the recorded tail reflects reality. Always name the executor and whether it corrects; a latency number from an uncorrected closed-loop test is suspect until proven otherwise.

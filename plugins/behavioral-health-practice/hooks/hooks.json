@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for behavioral-health-practice. Auto-merged with the consumer's session hooks on install. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-behavioral-health-practice-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags mechanically-detectable behavioral-health anti-patterns (a plaintext-PHI pattern such as an SSN or DOB in an artifact; a disclosure/record-sharing doc with no ROI/consent reference; a Part 2 / substance-use record disclosed with no consent reference; a 'self-service' doc that still routes to a ticket). Set BH_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}

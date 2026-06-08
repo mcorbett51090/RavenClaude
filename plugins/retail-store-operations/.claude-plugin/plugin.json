@@ -1,0 +1,27 @@
+{
+  "name": "retail-store-operations",
+  "version": "0.1.0",
+  "description": "Brick-and-mortar retail store-operations team — 3 agents (store-operations-lead, merchandising-analyst, inventory-and-replenishment-planner) for the four-wall store: store SOPs and daily operations, labor scheduling and store P&L, loss prevention and shrink, customer experience; planograms and assortment / category management, pricing and markdown cadence, visual merchandising and space productivity; inventory health, replenishment, sell-through, safety stock, open-to-buy (OTB), and allocation. Distinct from online/DTC — the store, not the website. Decision-tree knowledge bank (store P&L and labor, markdown/pricing, inventory metrics sell-through/GMROI/weeks-of-supply, replenishment and OTB, shrink), 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: online channel -> ecommerce-dtc; sourcing/vendors -> procurement-sourcing; demand stats -> applied-statistics; BI -> data-platform. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "retail",
+    "store-operations",
+    "merchandising",
+    "planogram",
+    "assortment",
+    "inventory",
+    "replenishment",
+    "sell-through",
+    "markdown",
+    "shrink",
+    "labor-scheduling",
+    "gmroi"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

@@ -1,0 +1,3 @@
+# The HRIS is the source of truth or it's nothing
+
+Payroll, benefits, and compliance all read from the HRIS, so a drifted record is worse than a missing one because it is trusted. Keep one canonical source for the fields that matter — employment status, FLSA class, manager, comp, start/term dates, location — prefer it over scattered spreadsheets, and put input controls in place so the data can't drift back out of shape. HRIS hygiene is a payroll-and-compliance dependency, not a tidiness preference: a wrong FLSA class or start date breaks pay and reporting downstream. Assign an owner and route payroll-affecting fixes to finance.

@@ -1,0 +1,3 @@
+# Dual-report Scope 2 — never silently pick one method
+
+Where market-based instruments exist, report BOTH location-based Scope 2 (the grid-average factor) and market-based Scope 2 (reflecting contractual instruments: RECs/GOs, PPAs, green tariffs, supplier-specific factors). The dual-reporting requirement exists so a reader can see both the physical grid reality and the contractual position. Name the instruments behind the market-based figure and screen them against the GHG Protocol Scope-2 market-based quality criteria; instruments that fail default back to the grid factor. Offsets are not a Scope-2 instrument and are reported separately, never netted in.

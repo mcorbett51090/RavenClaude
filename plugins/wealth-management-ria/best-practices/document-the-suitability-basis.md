@@ -1,0 +1,3 @@
+# Gather suitability, refresh it, and document the basis for advice
+
+KYC isn't a one-time form. Capture the client's objectives, risk tolerance *and capacity*, time horizon, liquidity needs, financial situation, and tax status before a recommendation, and re-confirm them at every periodic review. Document the basis for the recommendation, the review, the IPS, and the disclosures — and retain them. If it isn't documented, it didn't happen: a thin file turns a sound recommendation into an exposure. A periodic review that's just a market-update call with no suitability re-confirmation and no record is a missed control.

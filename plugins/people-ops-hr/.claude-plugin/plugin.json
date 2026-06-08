@@ -1,0 +1,27 @@
+{
+  "name": "people-ops-hr",
+  "version": "0.1.0",
+  "description": "People Operations / HR team for SMBs — 3 agents (people-ops-generalist, talent-acquisition-lead, total-rewards-analyst) for the human side of a company: the employee lifecycle (onboarding to offboarding), handbook & policy authoring, HRIS data hygiene, employee-relations basics, leave/PTO, structured hiring (job ladders, interview kits, scorecards, funnel metrics, offers), and total rewards (compensation bands & ranges, leveling/job architecture, benefits-design overview, pay equity, merit/promotion cycles). NOT legal advice — flags employment-compliance basics (FLSA, at-will, EEO) for counsel rather than opining. Decision-tree knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Distinct from staffing-operations (the staffing-agency business). Seams: staffing-agency ops -> staffing-operations; payroll/GL & comp budgeting -> finance; benefits insurance/underwriting -> insurance-life-health-benefits. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "hr",
+    "people-ops",
+    "hiring",
+    "onboarding",
+    "compensation",
+    "total-rewards",
+    "job-ladder",
+    "performance-management",
+    "handbook",
+    "hris",
+    "pay-equity",
+    "talent-acquisition"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

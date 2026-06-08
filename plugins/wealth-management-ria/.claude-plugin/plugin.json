@@ -1,0 +1,27 @@
+{
+  "name": "wealth-management-ria",
+  "version": "0.1.0",
+  "description": "Personal financial-advisory / RIA-practice team — 3 agents (financial-planner, portfolio-analyst, advisory-compliance-and-client-review-lead) for the planning, portfolio, and oversight craft of a Registered Investment Adviser serving individual clients: goal-based planning (retirement & withdrawal strategy, 4% rule / guardrails, cash-flow, tax-aware, IRA/Roth/401k/taxable/HSA, estate basics), portfolio construction (asset allocation, the Investment Policy Statement, rebalancing, risk/factor basics, tax-loss harvesting & asset location), and advisory oversight (fiduciary duty & Reg BI, Form ADV, suitability/KYC, periodic reviews, books-and-records, marketing rule). Educational/operational support — NOT personalized investment advice. Knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: corporate FP&A -> finance; securities regulation -> regulatory-compliance; billing -> fintech-payments-engineering. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "wealth-management",
+    "ria",
+    "financial-planning",
+    "portfolio",
+    "asset-allocation",
+    "ips",
+    "rebalancing",
+    "retirement",
+    "fiduciary",
+    "reg-bi",
+    "tax-aware",
+    "advisory"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

@@ -1,0 +1,3 @@
+# AEO/GEO is a first-class surface
+
+Answer engines and generative engines — Google AI Overviews, ChatGPT/Perplexity/Copilot answers — increasingly intercept the click before a user reaches a blue link. Answer-engine and generative-engine optimization (AEO/GEO) is part of the SEO program, not a footnote: answer-shaped content, a clear Q&A architecture, structured data, entity coverage, and citable sources are how content surfaces there. Measure presence in answer engines distinctly from classic rank — they move differently and on a faster clock. Re-verify the surfaces' behavior at build time; this landscape shifts quarterly.
