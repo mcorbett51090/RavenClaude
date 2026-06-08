@@ -1,0 +1,25 @@
+{
+  "name": "marketing-operations-demand-gen",
+  "version": "0.1.0",
+  "description": "Marketing operations & demand generation specialist team — 4 agents covering the martech/demand-gen layer: marketing-ops-lead (martech stack, MQL→SQL handoff SLA, build-vs-buy), demand-gen-strategist (channel mix, campaign strategy, pipeline contribution, ABM vs inbound), marketing-automation-engineer (nurture/lifecycle flows, lead scoring implementation, deliverability, data hygiene), attribution-analyst (multi-touch attribution, UTM taxonomy, marketing-sourced pipeline, ROI). Ships 3 skills (lead-scoring-and-lifecycle, attribution-modeling, campaign-operations), 3 commands, 2 templates, a decision-tree knowledge bank, 6 best-practices, and 1 advisory hook flagging missing UTM conventions, attribution claims without a named model, hard-coded conversion-rate/CAC figures without a date, and email sends without a consent/suppression note. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "marketing-operations",
+    "demand-generation",
+    "marketing-automation",
+    "lead-scoring",
+    "attribution",
+    "campaign-ops",
+    "mql-sql-handoff",
+    "nurture",
+    "utm-taxonomy",
+    "martech"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

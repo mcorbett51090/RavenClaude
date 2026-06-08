@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for supply-chain-planning. Auto-merged with the consumer's session hooks on install. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-supply-chain-planning-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags supply-chain planning anti-patterns (ungrounded safety-stock numbers, forecasts without accuracy metrics, hard-coded demand figures, just-in-time with no buffer note). Set SUPPLY_CHAIN_PLANNING_STRICT=1 to make it blocking (exit 2)."
+          }
+        ]
+      }
+    ]
+  }
+}

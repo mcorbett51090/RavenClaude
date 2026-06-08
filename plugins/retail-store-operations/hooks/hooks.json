@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for retail-store-operations. Auto-merged with the consumer's session hooks on install. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-retail-store-operations-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags retail store operations anti-patterns (schedule with no traffic basis, markdown with no sell-through rationale, hard-coded sales/shrink figure with no date, safety stock/replenishment with no service-level note). Set RETAIL_STORE_OPS_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}
