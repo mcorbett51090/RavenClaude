@@ -1,0 +1,23 @@
+{
+  "name": "finops-cloud-cost",
+  "version": "0.1.0",
+  "description": "FinOps & Cloud Cost specialist team — 4 agents (finops-lead, cost-allocation-analyst, commitment-planning-specialist, unit-economics-strategist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A FinOps team for a cost lead or eng-finance partner accountable for cloud spend and unit economics — it allocates spend before optimizing it, reads unit economics over the total bill, treats commitments as a portfolio decision made after rightsizing, and kills waste first. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "finops",
+    "cloud-cost",
+    "cost-allocation",
+    "unit-economics",
+    "commitment-planning",
+    "rightsizing",
+    "showback",
+    "anomaly-detection"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
