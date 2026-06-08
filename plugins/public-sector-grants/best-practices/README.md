@@ -12,3 +12,7 @@ Atomic, enforceable rules the public-sector-grants agents apply. Each file is on
 | budget-is-a-narrative-in-numbers | Every line justified, allowable, allocable, reasonable |
 | allowable-allocable-reasonable-all-three | The 2 CFR 200 test for every federal dollar |
 | cite-the-authority-not-a-memory | Thresholds/deadlines trace to current 2 CFR + award terms |
+| compliance-starts-at-the-proposal | Allowability, indirect rate, match decided at the budget, not the award |
+| the-sub-recipient-is-your-liability | Classify by substance; their finding becomes yours |
+| period-of-performance-is-a-hard-boundary | Costs allowable only when incurred in-period; draw to need |
+| the-recipient-owns-the-obligation | The authorized official signs; the agent advises, never decides |

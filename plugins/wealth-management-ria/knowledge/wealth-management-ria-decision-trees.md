@@ -4,7 +4,7 @@ _Decision trees + a dated reference map. Reference rows are `[verify-at-build]` 
 
 > **Not investment advice.** These are educational decision frameworks for an advisory practice, not personalized recommendations. The licensed adviser applies them to a specific client after confirming the client-specific facts; a CPA / attorney owns the tax and legal conclusions.
 
-Traverse before deciding an account-funding order, a withdrawal strategy, whether something is education vs personalized advice, or which standard applies.
+Traverse before deciding an account-funding order, a withdrawal strategy, a rebalancing approach, an asset-location / tax-loss-harvesting move, whether something is education vs personalized advice, or which standard applies.
 
 ## Decision Tree: What's the tax-aware account-funding order?
 
@@ -47,6 +47,75 @@ graph TD
 ```
 
 _The 4% rule is a starting heuristic, not a guarantee. Sequence-of-returns risk (bad early years) is the retirement-planning fault line; guardrails and a cash buffer exist to survive it._
+
+## Decision Tree: Calendar or threshold/bands rebalancing?
+
+The value of rebalancing is removing the discretionary call — so the rule must be written into the IPS either way. Account taxability picks the flavor.
+
+```mermaid
+graph TD
+  A[Need a rebalancing rule for the IPS] --> B{Are the accounts mostly taxable?}
+  B -- Yes --> C[Prefer threshold/bands - trade only when drift is real; minimizes taxable trades]
+  B -- No / mostly tax-advantaged --> D{Does the client/practice value operational simplicity over minimizing trades?}
+  D -- Yes --> E[Calendar - rebalance on a fixed schedule, e.g. annual; simplest to operate]
+  D -- No --> F[Threshold/bands - rebalance when a class drifts past a set range]
+  C --> G[Add an annual max-time backstop so nothing drifts forever]
+  E --> H[Add a no-trade band so tiny drifts don't trigger needless trades]
+  F --> G
+  G --> I[In taxable accounts: rebalance tax-aware - use new contributions and harvested losses first]
+  H --> I
+  I --> J[Write the chosen rule into the IPS and record it in books-and-records]
+```
+
+_Calendar = rebalance on a schedule; threshold/bands = rebalance on drift. Either way the rule is written, not a feeling. In taxable accounts prefer bands + tax-aware execution to keep trade count and tax drag down. The bracket and account mix are client-specific facts to confirm._
+
+## Decision Tree: Asset location & tax-loss harvesting (after-tax return)
+
+Getting the right asset in the right account type is often worth more than a marginally cheaper fund — but the wash-sale rule and the client's bracket gate it.
+
+```mermaid
+graph TD
+  A[Placing or harvesting in a multi-account household] --> B{Placing an asset across account types?}
+  B -- Yes --> C{Is the asset tax-inefficient - high ordinary income, e.g. taxable bonds, REITs?}
+  C -- Yes --> D[Locate in tax-deferred - traditional IRA/401k - to shelter the income]
+  C -- No --> E{Highest expected growth?}
+  E -- Yes --> F[Prefer Roth - tax-free growth is most valuable on the biggest compounders]
+  E -- No --> G[Tax-efficient equity index funds sit fine in taxable]
+  B -- No, harvesting a loss --> H{Is there an unrealized loss worth harvesting vs the trade cost?}
+  H -- No --> I[Skip - don't trade just to harvest a trivial loss]
+  H -- Yes --> J{Will a substantially identical security be repurchased within the wash-sale window?}
+  J -- Yes --> K[Don't - the loss is disallowed; use a non-substantially-identical replacement to stay invested]
+  J -- No --> L[Harvest; track basis and the wash-sale window across ALL accounts incl. spouse/IRA]
+  D --> M[Route the actual tax conclusion and bracket math to a CPA]
+  F --> M
+  L --> M
+  K --> M
+```
+
+_Asset location: tax-inefficient assets into tax-deferred, biggest growth into Roth, tax-efficient equity into taxable. Harvesting: mind the wash-sale rule across every account (including the spouse's and IRAs), and the bracket. The tax conclusion routes to a CPA — this is an educational framework, not tax advice._
+
+## Decision Tree: Education vs personalized advice — and which standard applies?
+
+Two gates before responding: is this a personalized recommendation (out of scope — reframe), and if a standard is invoked, which one?
+
+```mermaid
+graph TD
+  A[An advisory-shaped request] --> B{Does it ask the plugin to make a specific buy/sell/allocation call for a named client?}
+  B -- Yes --> C[Out of scope - reframe to the educational/operational equivalent; surface the facts the licensed adviser must confirm]
+  B -- No --> D[Educational/operational support is in scope - state the not-investment-advice disclaimer]
+  C --> E{Does the request invoke a 'best interest' / fiduciary standard?}
+  D --> E
+  E -- No --> F[Proceed - framework + assumptions surfaced + disclaimer]
+  E -- Yes --> G{What is the firm's registration?}
+  G -- Registered Investment Adviser --> H[Fiduciary duty under the Advisers Act - duty of care + loyalty; disclose and manage conflicts]
+  G -- Broker-dealer --> I[Regulation Best Interest - a DIFFERENT best-interest standard; never conflate with the RIA fiduciary duty]
+  G -- Unclear / dual-registered --> J[Don't guess - route the firm-specific determination to compliance counsel]
+  H --> K[Name the standard explicitly in the output; document the basis and route firm specifics to counsel]
+  I --> K
+  J --> K
+```
+
+_First gate: a personalized buy/sell call is out of scope — reframe and flag the facts to confirm. Second gate: the RIA fiduciary duty (Advisers Act) and Reg BI (broker-dealer) are different standards; which applies depends on registration. Name it explicitly, never conflate them, and route the firm-specific call to counsel._
 
 ---
 

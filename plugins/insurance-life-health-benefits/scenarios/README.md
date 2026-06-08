@@ -34,3 +34,6 @@ reviewed: false
 |---|---|---|
 | [`2026-06-08-self-funded-to-dodge-a-renewal.md`](2026-06-08-self-funded-to-dodge-a-renewal.md) | funding, self-funded, stop-loss, renewal | `funding-is-a-risk-decision`, `decompose-every-renewal` |
 | [`2026-06-08-hdhp-cost-shift-revolt.md`](2026-06-08-hdhp-cost-shift-revolt.md) | plan-design, hdhp, hsa, total-cost | `total-cost-of-coverage-not-premium`, `benefits-are-a-system-not-a-pile` |
+| [`2026-06-08-loss-ratio-mistaken-for-mlr-rebate.md`](2026-06-08-loss-ratio-mistaken-for-mlr-rebate.md) | underwriting, loss-ratio, mlr, aca | `loss-ratio-is-not-the-mlr`, `verify-dated-figures-at-build` |
+| [`2026-06-08-missed-cobra-notice-window.md`](2026-06-08-missed-cobra-notice-window.md) | compliance, cobra, calendar, erisa | `compliance-is-a-calendar-not-a-scramble`, `educational-scaffolding-not-advice` |
+| [`2026-06-08-thin-contribution-starved-the-pool.md`](2026-06-08-thin-contribution-starved-the-pool.md) | contribution, enrollment, adverse-selection, take-up | `contribution-strategy-shapes-enrollment`, `decompose-every-renewal` |

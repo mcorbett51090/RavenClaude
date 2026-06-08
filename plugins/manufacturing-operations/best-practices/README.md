@@ -12,3 +12,7 @@ Atomic, enforceable rules the manufacturing-operations agents apply. Each file i
 | special-cause-before-you-react | Don't tamper with common-cause noise; limits from the process |
 | prevention-beats-detection-beats-scrap | Push quality upstream; final inspection is the weakest control |
 | state-the-assumptions-behind-every-number | Forecast horizon, cycle-time basis, sample size, AQL — surfaced |
+| lot-size-trades-setup-against-holding | A lot size is a stated trade; a setup at the constraint is lost throughput |
+| safety-stock-is-a-decision-not-a-default | Size buffers to variability + a service level, not to feel |
+| the-bom-must-match-as-built | A drifted BOM poisons MRP — check integrity before netting |
+| no-silent-regulated-sign-off | Draft the regulated disposition; the accountable human signs it |

@@ -12,3 +12,7 @@ Atomic, enforceable rules the ESG-reporting agents apply. Each file is one rule 
 | base-year-is-a-commitment | Set it deliberately; recalculate on structural change over the threshold |
 | greenwashing-is-a-reporting-failure | No unsubstantiated claim, cherry-picked boundary, or offset-as-reduction |
 | crosswalk-dont-duplicate | Map shared data points once across frameworks; source once, disclose to each |
+| screen-all-15-scope-3-categories | Screen all 15; include the material; document every exclusion |
+| the-assurance-level-shapes-the-work-from-the-start | Limited vs reasonable sets the evidence bar; know it before drafting |
+| this-is-a-disclosure-not-an-opinion | Plugin readies for assurance; counsel/the assurer own the opinion |
+| data-quality-is-tiered-and-disclosed | Tier each line (primary/secondary/proxy/spend); disclose the mix |

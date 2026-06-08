@@ -1,7 +1,7 @@
 {
   "name": "construction-field-management",
-  "version": "0.1.0",
-  "description": "Construction project delivery, FIELD side — 3 agents (project-engineer, cost-and-change-controls-lead, field-and-safety-coordinator) for executing a construction project in the field, distinct from the design side: RFIs / submittals / daily logs / document control / schedule coordination, the schedule of values & pay applications (AIA G702/G703), change orders / cost codes / budget-vs-actual, and punch lists / QA-QC / safety (JHA, toolbox talks, OSHA) / inspections / closeout. Decision-tree knowledge bank (RFI & submittal workflow, change-order process, SOV & pay-app, CPM schedule basics, safety/OSHA basics) + a dated 2026 standards map, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: drawings / BIM / design intent -> architecture-aec; PM craft (schedule / risk / RAID) -> project-management; trade contracting -> skilled-trades-contracting. Requires ravenclaude-core@>=0.7.0.",
+  "version": "0.2.0",
+  "description": "Construction project delivery, FIELD side — 3 agents (project-engineer, cost-and-change-controls-lead, field-and-safety-coordinator) for executing a construction project in the field, distinct from the design side: RFIs / submittals / daily logs / document control / schedule coordination, the schedule of values & pay applications (AIA G702/G703), change orders / cost codes / budget-vs-actual, and punch lists / QA-QC / safety (JHA, toolbox talks, OSHA) / inspections / closeout. 5 Mermaid decision trees + a dated 2026 standards map, 12 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, a payapp/changeorder/earned-value calculator, scenarios. Seams: drawings / BIM / design intent -> architecture-aec; PM craft (schedule / risk / RAID) -> project-management; trade contracting -> skilled-trades-contracting. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"
   },

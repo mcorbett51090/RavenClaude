@@ -33,3 +33,6 @@ reviewed: false
 |---|---|---|
 | [`2026-06-08-occupancy-win-revpar-loss.md`](2026-06-08-occupancy-win-revpar-loss.md) | revpar, adr, occupancy, channel-mix, net-adr | `revpar-is-the-north-star`, `price-on-net-adr-after-distribution` |
 | [`2026-06-08-reviews-archived-not-actioned.md`](2026-06-08-reviews-archived-not-actioned.md) | reviews, comment-to-action, service-recovery, loyalty | `the-review-is-a-defect-report`, `service-recovery-is-a-designed-process` |
+| [`2026-06-08-overbook-walk-with-no-protocol.md`](2026-06-08-overbook-walk-with-no-protocol.md) | overbooking, walk-protocol, yield, no-show | `overbook-only-to-a-forecasted-no-show-rate` |
+| [`2026-06-08-pms-side-spreadsheet-drift.md`](2026-06-08-pms-side-spreadsheet-drift.md) | pms, room-status, housekeeping, double-sold | `the-pms-is-the-system-of-record` |
+| [`2026-06-08-labor-cut-below-service-floor.md`](2026-06-08-labor-cut-below-service-floor.md) | labor, staffing, service-floor, review-score | `staff-to-the-curve-protect-the-service-floor` |

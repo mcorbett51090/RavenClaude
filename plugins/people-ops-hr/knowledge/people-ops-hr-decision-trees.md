@@ -2,7 +2,7 @@
 
 _Decision trees + a dated reference map. Practice and tooling rows are `[verify-at-build]` — re-check against the current vendor/framework, and **never** treat any row as employment-law advice. Last reviewed: 2026-06-08._
 
-Traverse before designing a hiring loop, setting a comp band, authoring a policy, or running a review cycle. **Cardinal rule for every tree below: where a branch reaches employment law (FLSA classification, EEO, leave entitlement, equal-pay, pay-transparency, termination), the output is "flag for counsel" — this knowledge bank does not give legal advice.**
+Traverse before designing a hiring loop, setting a comp band, authoring a policy, running a lifecycle event, or diagnosing a funnel. **5 trees below:** is-this-hire-structured-and-fair, is-this-comp-decision-defensible, is-this-lifecycle-step-owned-and-offboarding-complete, is-this-policy-plain-language-and-not-a-legal-opinion, and what-is-the-funnel-telling-me. **Cardinal rule for every tree: where a branch reaches employment law (FLSA classification, EEO, leave entitlement, equal-pay, pay-transparency, termination), the output is "flag for counsel" — this knowledge bank does not give legal advice.**
 
 ## Decision Tree: Is this hire structured enough to be fair and predictive?
 
@@ -41,6 +41,70 @@ graph TD
 ```
 
 _No band without a level under it. A pay-equity check that doesn't control for legitimate factors proves nothing. Legal certification is counsel's, not yours._
+
+## Decision Tree: Is this lifecycle step owned, repeatable, and offboarding-complete?
+
+The value of People Ops is consistency — the same good onboarding and the same complete offboarding, every time, owned by someone. Offboarding is the half everyone forgets.
+
+```mermaid
+graph TD
+  A[Lifecycle event: a hire or a departure] --> B{Is there a NAMED owner + a written checklist for it?}
+  B -- No --> C[Stop improvising - assign an owner and write the repeatable list; same good start/exit every time]
+  B -- Yes --> D{Is the HRIS status change the FIRST step that triggers the rest?}
+  D -- No --> E[Make the HRIS update the trigger - it is the source of truth or it is nothing; downstream reports drift otherwise]
+  D -- Yes --> F{Departure? Are access revoke + final pay + equipment + knowledge transfer all on the list?}
+  F -- No --> G[Add the missing steps - a missed access step is a SECURITY risk; route the data/access posture to security-reviewer]
+  F -- Yes --> H{Does final pay / separation terms / timing touch employment law?}
+  H -- Yes --> I[Flag final-pay timing + separation terms for counsel, then run the rest - do NOT opine]
+  H -- No --> J[Run the owned checklist; confirm the HRIS reflects the change before closing]
+```
+
+_A missed access step is a security risk; a missed final-pay step is a compliance and trust risk. Offboarding is half the lifecycle — give it an owned checklist, triggered off the HRIS._
+
+## Decision Tree: Is this policy plain-language, consistent, and not a legal opinion?
+
+A policy nobody understands is a liability; a policy that contradicts another is worse than none; a policy that gives a legal opinion is the cardinal risk.
+
+```mermaid
+graph TD
+  A[Drafting a handbook / policy] --> B{Does it follow statement -> scope -> rule -> process -> edge cases?}
+  B -- No --> C[Restructure to the house format - plain language first, then mechanics, consistent across the handbook]
+  B -- Yes --> D{Does it contradict any existing policy?}
+  D -- Yes --> E[Reconcile first - a contradicting policy is worse than none; one canonical answer]
+  D -- No --> F{Does it state an entitlement, eligibility, or classification (leave, exempt status, EEO)?}
+  F -- Yes --> G[Flag the determination for counsel - describe the PROCESS, never opine on the legal entitlement]
+  F -- No --> H{Is it jurisdiction-specific (accrual caps, final-pay timing, posting)?}
+  H -- Yes --> I[Note the jurisdiction dependency and route the mechanics to counsel; keep the company-process part]
+  H -- No --> J[Publish in plain language; assign an owner to keep it current]
+```
+
+_Statement → scope → rule → process → edge cases, consistent across the handbook. The moment a policy reaches an entitlement or classification, the output is "have counsel review this," not an answer._
+
+## Decision Tree: What is the hiring funnel actually telling me (conversion, not volume)?
+
+Applicant volume is a vanity count. Conversion between stages and time-in-stage are the diagnostics — pair every throughput number with a quality signal.
+
+```mermaid
+graph TD
+  A[Hiring is slow / inconsistent / not converting] --> B{Is the funnel INSTRUMENTED - conversion + time-in-stage per stage?}
+  B -- No --> C[Instrument it first - applicant count alone is vanity; you cannot fix what you cannot see]
+  B -- Yes --> D{Where is the biggest conversion DROP or the longest time-in-stage?}
+  D -- Top of funnel --> E[Sourcing / posting problem - widen or retarget sourcing; check the JD and channels, not the rubric]
+  D -- Screen to onsite --> F[Screen calibration problem - tighten the screen rubric; one competency, one assessor]
+  D -- Onsite to offer --> G[Debrief / decision problem - is the debrief evidence-forced? unstructured vibes leak here]
+  D -- Offer to accept --> H{Is it comp, experience, or speed?}
+  H -- Comp --> I[Route comp competitiveness to total-rewards-analyst - band/posture, not a one-off]
+  H -- Experience/speed --> J[Candidate experience is the brand AND a conversion lever - fix latency + communication]
+  E --> K{Does any stage touch EEO / ban-the-box / pay-transparency?}
+  F --> K
+  G --> K
+  I --> K
+  J --> K
+  K -- Yes --> L[Flag those points for counsel, then proceed]
+  K -- No --> M[Apply the fix at the diagnosed stage; re-measure conversion next cycle]
+```
+
+_Conversion + time-in-stage diagnose where candidates are lost; volume is vanity. A fast, fair, communicative process is both employer brand and an offer-accept conversion lever._
 
 ---
 

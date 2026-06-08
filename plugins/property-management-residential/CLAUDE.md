@@ -130,7 +130,7 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 | File | Read when |
 |---|---|
-| [`knowledge/property-management-residential-decision-trees.md`](knowledge/property-management-residential-decision-trees.md) | Classifying a maintenance request (emergency vs. routine vs. habitability), and deciding renew-vs-raise-vs-non-renew on a lease. Mermaid decision trees + a dated 2026 reference map (fair-housing protected classes, screening signals, PM-software landscape, rent-roll/NOI metrics) — `[verify-at-build]` rows. |
+| [`knowledge/property-management-residential-decision-trees.md`](knowledge/property-management-residential-decision-trees.md) | Classifying a maintenance request (emergency vs. routine vs. habitability), deciding renew-vs-raise-vs-non-renew, where on the delinquency collections ladder, security-deposit-deduction vs. normal wear at move-out, and minimizing days-vacant on a turn. **5 Mermaid decision trees** + a dated 2026 reference map (fair-housing protected classes, screening signals, PM-software landscape, rent-roll/NOI metrics) — `[verify-at-build]` rows. |
 
 ---
 
@@ -150,6 +150,14 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 | [`commands/screen-applicant.md`](commands/screen-applicant.md) | `leasing-and-tenant-ops` + the leasing/screening skill — build or apply a consistent, documented, fair-housing-aware screening standard. |
 | [`commands/triage-work-order.md`](commands/triage-work-order.md) | `maintenance-coordinator` + the work-order-triage skill — classify a request by safety/habitability first and route it. |
 | [`commands/build-rent-roll.md`](commands/build-rent-roll.md) | `owner-and-portfolio-reporting-analyst` + the owner-reporting skill — build the rent roll, delinquency summary, and owner statement with operating-only NOI. |
+
+---
+
+## 11a. Runnable calculator
+
+| Script | What's inside |
+|---|---|
+| [`scripts/pm_calc.py`](scripts/pm_calc.py) | Stdlib-only (Python 3.8+, ruff-clean) decision calculator — `rentroll` (gross potential rent, physical vs. economic occupancy, loss-to-lease separated from vacancy loss), `noi` (operating income − operating expense; **refuses** to net debt service / capex / depreciation into NOI — reports them below the line, since NOI is operating-only and is NOT cash flow), `delinquency` (A/R aging buckets + delinquency rate as a % of the rent roll). A **calculator, not a data source** — the user supplies every input; outputs are decision-support, not the books of record. Reconcile to the system of record (`rent-roll-is-the-source-of-truth`); the delinquency rungs flag to counsel. Owned by `owner-and-portfolio-reporting-analyst`. |
 
 ---
 
@@ -178,4 +186,5 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 ## 15. Milestones
 
-- **v0.1.0** — initial release: 3 agents (leasing-and-tenant-ops, maintenance-coordinator, owner-and-portfolio-reporting-analyst), 3 skills, a decision-tree knowledge bank (maintenance triage + renew-vs-raise) with a dated 2026 reference map, 8 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The residential property-operations layer — fair-housing-aware (flag, not legal advice).
+- **v0.1.0** — initial release: 3 agents (leasing-and-tenant-ops, maintenance-coordinator, owner-and-portfolio-reporting-analyst), 3 skills, a decision-tree knowledge bank (maintenance triage + renew-vs-raise) with a dated 2026 reference map, 8 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank (2 field notes), CHANGELOG. The residential property-operations layer — fair-housing-aware (flag, not legal advice).
+- **v0.2.0** — value-add depth build-out (2026-06-08): `scripts/pm_calc.py` (stdlib-only, ruff-clean — `rentroll` GPR/occupancy/loss-to-lease, `noi` operating-only with debt-service/capex/depreciation refused into NOI, `delinquency` aging buckets + % of rent roll); best-practices grown 8 → **12**; decision-trees grown to **5 Mermaid trees** (added delinquency-ladder, move-out-deduction, vacancy-&-turn); scenarios bank grown to **5** dated field notes; plugin description + CHANGELOG updated. The 3-agent / 3-skill surface is unchanged; the fair-housing/habitability posture (flag, not legal advice) is unchanged.

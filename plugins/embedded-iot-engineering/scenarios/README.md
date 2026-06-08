@@ -31,5 +31,8 @@ reviewed: false
 
 | File | Tags | Corroborates |
 |---|---|---|
+| [`2026-06-08-coin-cell-died-in-weeks.md`](2026-06-08-coin-cell-died-in-weeks.md) | power, sleep, ble, battery, duty-cycle | `power-is-spent-mostly-in-sleep`, `budget-flash-ram-power-first` |
 | [`2026-06-08-isr-overrun-dropping-data.md`](2026-06-08-isr-overrun-dropping-data.md) | isr, dma, real-time, uart, watchdog | `isrs-flag-and-defer`, `real-time-is-provably-bounded` |
+| [`2026-06-08-lora-duty-cycle-throttled.md`](2026-06-08-lora-duty-cycle-throttled.md) | lora, lorawan, radio, duty-cycle, airtime | `pick-the-radio-by-the-power-range-budget`, `the-cloud-is-the-layer-above` |
+| [`2026-06-08-ota-bricked-half-the-fleet.md`](2026-06-08-ota-bricked-half-the-fleet.md) | ota, bootloader, flash, rollback, mcuboot | `design-ota-from-day-one`, `watchdog-is-the-last-line-not-the-plan` |
 | [`2026-06-08-shared-key-fleet-cloned.md`](2026-06-08-shared-key-fleet-cloned.md) | provisioning, identity, secure-boot, keys, tls | `per-device-identity-never-a-shared-secret`, `secure-boot-and-hardware-root-of-trust` |

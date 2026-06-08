@@ -33,3 +33,6 @@ reviewed: false
 |---|---|---|
 | [`2026-06-08-two-definitions-of-mql.md`](2026-06-08-two-definitions-of-mql.md) | funnel, mql, definition, handoff, sla | `one-funnel-one-definition`, `routing-and-scoring-are-slas` |
 | [`2026-06-08-forecast-on-padded-pipeline.md`](2026-06-08-forecast-on-padded-pipeline.md) | forecast, coverage, pipeline-hygiene, win-rate | `inspect-pipeline-before-the-math`, `coverage-is-derived-from-win-rate`, `forecast-is-a-methodology` |
+| [`2026-06-08-last-touch-defunds-demand.md`](2026-06-08-last-touch-defunds-demand.md) | attribution, budget, demand-gen, multi-touch, last-touch | `attribution-is-a-lens-not-truth` |
+| [`2026-06-08-quota-from-the-board-number.md`](2026-06-08-quota-from-the-board-number.md) | quota, capacity, comp, ramp, behavior | `quota-is-bottoms-up-from-capacity`, `comp-drives-behavior` |
+| [`2026-06-08-crm-garbage-corrupts-routing.md`](2026-06-08-crm-garbage-corrupts-routing.md) | data-quality, routing, scoring, sla, dedupe | `data-quality-is-the-substrate`, `routing-and-scoring-are-slas` |

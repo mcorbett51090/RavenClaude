@@ -126,7 +126,7 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 | File | Read when |
 |---|---|
-| [`knowledge/manufacturing-operations-decision-trees.md`](knowledge/manufacturing-operations-decision-trees.md) | Deciding what to make when (plan-to-constraint), where the bottleneck is (TOC), and whether a control-chart signal is special or common cause. Mermaid decision trees + a dated 2026 method/standard map (MRP/MPS, OEE, takt, TOC, NCR/CAPA, SPC, ISO 9001 / IATF 16949) — `[verify-at-build]` rows. |
+| [`knowledge/manufacturing-operations-decision-trees.md`](knowledge/manufacturing-operations-decision-trees.md) | Deciding what to make when (plan-to-constraint), where the bottleneck is (TOC), whether a control-chart signal is special or common cause, how to size a lot (setup vs holding, constraint-aware), and where a nonconformance disposition stops (draft vs human sign-off). **5 Mermaid decision trees** + a dated 2026 method/standard map (MRP/MPS, OEE, takt, TOC, NCR/CAPA, SPC, ISO 9001 / IATF 16949) — `[verify-at-build]` rows. |
 
 ---
 
@@ -146,6 +146,18 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 | [`commands/plan-production.md`](commands/plan-production.md) | `production-planner` + the MRP/planning skill — produce a constraint-respecting production-plan brief. |
 | [`commands/analyze-oee.md`](commands/analyze-oee.md) | `shop-floor-and-oee-analyst` + the OEE/throughput skill — break down OEE and find the bottleneck. |
 | [`commands/run-capa.md`](commands/run-capa.md) | `quality-and-capa-lead` + the CAPA/SPC skill — structure a CAPA from a nonconformance through effectiveness check. |
+
+---
+
+## 11a. Runnable calculator (added v0.2.0)
+
+A **calculator, not a data source** — it does not fetch MES exports, a BOM, or a forecast; the consumer supplies every input and the tool does the arithmetic, printing the formula *and the denominators* (the house opinion the plugin is built on). Stdlib only (Python 3.8+, no pandas/numpy), ruff-clean on `F,E9,B,C4,I,UP`. The agent emits the command for the consumer to run.
+
+| Calculator | Subcommands | What it removes the arithmetic error from |
+|---|---|---|
+| [`scripts/mfg_calc.py`](scripts/mfg_calc.py) | `oee` · `takt` · `capacity` | `oee` — Availability × Performance × Quality from run/downtime/count inputs with each denominator stated, the six-big-losses decomposition, and a sandbagged-ideal-cycle-time warning. `takt` — available time ÷ demand vs measured cycle time (the over-production / misses-demand verdict). `capacity` — MRP net requirement (`max(0, gross − on_hand − receipts + safety_stock)`) and load vs finite/bottleneck capacity (overloaded → level/add/re-lot, never plan to infinite capacity). |
+
+Every formula is cited inline to its governing best-practice (`oee-denominators-must-be-defined`, `produce-to-takt-not-to-machine-speed`, `plan-to-the-constraint-not-infinite-capacity`). Run `python3 scripts/mfg_calc.py <subcommand> --help` for the full argument list and worked examples.
 
 ---
 
@@ -175,3 +187,4 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 ## 15. Milestones
 
 - **v0.1.0** — initial release: 3 agents (production-planner, shop-floor-and-oee-analyst, quality-and-capa-lead), 3 skills, a decision-tree knowledge bank (plan-to-constraint + TOC bottleneck + special-vs-common-cause), 8 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The plan/make/control operations layer for discrete and process manufacturing.
+- **v0.2.0** — depth build-out (same 3 agents / 3 skills; the surface deepened around them): **12 best-practices** (added lot-size, safety-stock, BOM-integrity, no-silent-regulated-sign-off), **5 Mermaid decision trees** (added lot-sizing and nonconformance-disposition-stop alongside the original three), a **stdlib OEE/takt/capacity calculator** ([`scripts/mfg_calc.py`](scripts/mfg_calc.py), ruff-clean, every formula cited to a best-practice), and a **5-scenario** bank (added infinite-capacity planning, building-ahead-of-takt, and tampering-with-a-stable-process). Counts reconciled across plugin.json / README / CHANGELOG.

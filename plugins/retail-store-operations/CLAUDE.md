@@ -128,7 +128,11 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 | File | Read when |
 |---|---|
-| [`knowledge/retail-store-operations-decision-trees.md`](knowledge/retail-store-operations-decision-trees.md) | Deciding markdown-vs-hold on aged inventory, replenish-vs-OTB-cap on a buy, diagnosing a shrink leak, and reading the inventory vital signs. Mermaid decision trees + a dated 2026 metric/formula map (sell-through / GMROI / weeks-of-supply / OTB) — `[verify-at-build]` rows. |
+| [`knowledge/retail-store-operations-decision-trees.md`](knowledge/retail-store-operations-decision-trees.md) | Deciding markdown-vs-hold on aged inventory, replenish-vs-OTB-cap on a buy, diagnosing a shrink leak, re-shaping labor against a labor-% miss, and reading the inventory vital signs. **5 Mermaid decision trees** + a dated 2026 metric/formula map (sell-through / GMROI / weeks-of-supply / OTB) — `[verify-at-build]` rows. |
+
+### Runnable calculator
+
+- **Runnable calculator** — [`scripts/retail_calc.py`](scripts/retail_calc.py) (stdlib only, Python 3.8+, `ruff`-clean: F,E9,B,C4,I,UP) removes arithmetic error from three recurring inventory decisions: `gmroi` (gross margin $ / average inventory cost — the capital lens, flags inventory that turns but doesn't earn back its cost; §4 #5, `gmroi-is-the-capital-lens`), `sell-through` (units sold / units received over a window **plus** weeks-of-supply and the over-/under-stock read; §4 #5, `sell-through-and-wos-are-the-vital-signs`), and `otb` (open-to-buy = planned sales − planned markdowns + target EOM − (on-hand + on-order); §4 #6, `open-to-buy-is-a-budget` — a negative OTB means you're over-bought and the next buy pre-commits a markdown). It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support, not financial/accounting advice (§4 #10). Primarily `inventory-and-replenishment-planner`; `merchandising-analyst` uses `gmroi` / `sell-through`.
 
 ---
 
@@ -177,3 +181,4 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 ## 15. Milestones
 
 - **v0.1.0** — initial release: 3 agents (store-operations-lead, merchandising-analyst, inventory-and-replenishment-planner), 3 skills, a decision-tree knowledge bank (markdown-vs-hold, replenishment-vs-OTB, shrink diagnosis, inventory vital signs), 8 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The brick-and-mortar store layer, distinct from the online/DTC channel.
+- **v0.2.0** — depth pass (same 3 agents / 3 skills / 3 commands / 2 templates / 1 hook). Best-practices 8 → **12** (`shrink-is-a-diagnosable-leak` now indexed, plus `gmroi-is-the-capital-lens`, `every-metric-names-its-formula-and-window`, `omnichannel-shares-inventory-not-the-playbook`). Knowledge bank 2 → **5 Mermaid trees** (added shrink-leak diagnosis, labor-% re-shape-vs-cut, inventory vital-signs read) with the dated 2026 metric/formula map retained. Scenarios 2 → **5** field notes. Added a **runnable stdlib calculator** (`scripts/retail_calc.py` — `gmroi` / `sell-through` / `otb`, `ruff`-clean). The store-layer knowledge, rules, and arithmetic got deeper; the roster did not change.

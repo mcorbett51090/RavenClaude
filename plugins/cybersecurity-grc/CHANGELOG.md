@@ -3,6 +3,15 @@
 All notable changes to this plugin are documented here. Versioning is semver; the version in
 `.claude-plugin/plugin.json` and the marketplace catalog entry are kept in lockstep (CI fails on drift).
 
+## 0.2.0 — 2026-06-08
+
+Depth build-out to the v0.2.0 standard — knowledge, scenarios, a runnable calculator, and reconciled counts. No agent/skill/command surface change (still 3 agents / 3 skills / 3 commands); nothing breaks on `/plugin marketplace update`.
+
+- **Best-practices → 12** — reconciled the count references (plugin.json description and the CLAUDE.md milestone previously said "8"; the directory and `best-practices/README.md` index already carried 12: `compliance-is-a-byproduct-of-real-security`, `scope-is-the-highest-leverage-decision`, `map-once-attest-many`, `a-control-has-three-states`, `evidence-is-a-system-not-a-fire-drill`, `risk-drives-controls-not-the-reverse`, `the-soa-exclusion-needs-a-justification`, `third-party-risk-is-your-risk`, `the-framework-is-a-means-the-risk-is-the-end`, `attest-only-what-you-can-evidence`, `read-the-cuecs-not-just-the-opinion`, `gap-assessment-before-fieldwork-not-during`).
+- **Knowledge → 5 Mermaid trees** — added 3 trees to `cybersecurity-grc-decision-trees.md` (vendor-assessment-depth, audit-boundary scoping, risk-treatment selection) alongside the existing which-framework-first and Type I vs Type II. Extended the dated 2026 framework/capability map (`[verify-at-build]`) with vendor-tiering, residual-risk, and Type II observation-period rows, plus a pointer to the runnable calculator. Last reviewed 2026-06-08.
+- **Scenarios → 5 field notes** — added 3 (scope-creep blew the SOC 2 budget; parallel control sets doubled the work; no gap assessment meant fieldwork surprises) to the existing 2, corroborating `scope-is-the-highest-leverage-decision`, `map-once-attest-many`, and `gap-assessment-before-fieldwork-not-during`. 9-field schema, `reviewed: false`, no real PII/secrets; README index updated.
+- **Runnable calculator** — `scripts/grc_calc.py` (stdlib-only, argparse, ruff-clean): `risk-score` (likelihood × impact → inherent + residual band after control effectiveness), `control-coverage` (% of applicable controls with evidence), `audit-readiness` (Type II observation-period evidence coverage). Decision-support, not a verdict; mirrors the decision trees and the house doctrine.
+
 ## 0.1.0 — 2026-06-08
 
 Initial release. The security governance, risk & compliance (GRC) program layer above the technical-control plugins.

@@ -3,6 +3,29 @@
 All notable changes to this plugin are documented here. Versioning is semver; the version in
 `.claude-plugin/plugin.json` and the marketplace catalog entry are kept in lockstep (CI fails on drift).
 
+## 0.2.0 — 2026-06-08
+
+Value-add depth build-out. The fair-housing/habitability posture is unchanged — agents still **flag** risk
+and route to counsel; they do **not** give legal advice.
+
+- **Runnable calculator** — `scripts/pm_calc.py` (stdlib-only, Python 3.8+, ruff-clean on F/E9/B/C4/I/UP):
+  `rentroll` (gross potential rent, physical vs. economic occupancy, loss-to-lease separated from vacancy
+  loss), `noi` (operating income − operating expense; **refuses** to net debt service / capex / depreciation
+  into NOI — reports them below the line, because NOI is operating-only and is NOT cash flow), and
+  `delinquency` (A/R aging buckets + delinquency rate as a % of the rent roll). A **calculator, not a data
+  source** — the user supplies every input; outputs are decision-support, not the books of record.
+- **best-practices** — now **12** rules (was 8): added `vacancy-is-the-most-expensive-thing`,
+  `renewal-is-a-math-problem-framed-by-law`, `preventive-maintenance-is-cheaper-than-the-emergency-it-prevents`,
+  `tenant-pii-is-minimized-never-pasted`. README index updated.
+- **Knowledge bank** — decision-trees expanded to **5 Mermaid trees** (added delinquency-ladder,
+  move-out-deduction, vacancy-&-turn) alongside the maintenance-triage and renew-vs-raise trees, plus the
+  dated 2026 reference map (`[verify-at-build]`).
+- **Scenarios bank** — now **5** dated field notes (added turn-clock-started-at-empty-not-notice,
+  noi-reported-with-debt-service-mixed-in, drifted-rent-roll-hid-the-real-delinquency). No tenant PII;
+  `reviewed: false`. README index updated.
+- Plugin description updated to reflect the new counts; **no** change to the 3 agents / 3 skills surface.
+  Requires `ravenclaude-core@>=0.7.0`.
+
 ## 0.1.0 — 2026-06-08
 
 Initial release. The residential property-operations layer — fair-housing-aware (it **flags** risk and routes

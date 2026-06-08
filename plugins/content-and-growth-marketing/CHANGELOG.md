@@ -3,6 +3,23 @@
 All notable changes to this plugin are documented here. Versioning is semver; the version in
 `.claude-plugin/plugin.json` and the marketplace catalog entry are kept in lockstep (CI fails on drift).
 
+## 0.2.0 — 2026-06-08
+
+Depth pass — calculator, more best-practices, more decision trees, a fuller scenarios bank.
+
+- **Runnable calculator** — `scripts/growth_calc.py`, stdlib-only (`argparse`), ruff-clean (F,E9,B,C4,I,UP).
+  Three subcommands: `funnel` (visitor→lead→MQL→SQL→win conversion + drop-off, worst-leak flag, optional
+  revenue/visitor), `cac-ltv` (blended CAC, margin-based LTV, LTV:CAC ratio against the 3:1 / 2:1 lines,
+  CAC payback months), and `email` (deliverability-weighted reach + open/click funnel + a compounding
+  list-decay projection). Decision-support, not a data source — every input is user-supplied and must be
+  cited (§4 #4).
+- **12 best-practices** (was 8) — added `distribution-is-half-the-work`,
+  `permission-consent-and-trust-are-non-negotiable`, `specify-the-requirement-hand-off-the-build`,
+  `cite-the-source-and-date-never-fabricate-a-number`.
+- **Decision trees** — knowledge bank now carries 5 Mermaid trees.
+- **Scenarios bank — 5 field notes** (was 2): added `ai-overviews-ate-the-clicks`,
+  `gated-ebook-that-poisoned-the-funnel`, `me-too-content-on-autopilot` (all `reviewed: false`).
+
 ## 0.1.0 — 2026-06-08
 
 Initial release. The content-and-growth (editorial / SEO / lifecycle) layer above the marketing-site,

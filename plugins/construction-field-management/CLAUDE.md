@@ -127,7 +127,8 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 | File | Read when |
 |---|---|
-| [`knowledge/construction-field-management-decision-trees.md`](knowledge/construction-field-management-decision-trees.md) | Triaging an RFI vs. a change, sequencing a submittal against the install date, deciding whether a field event is a change order, and choosing a QA hold point. Mermaid decision trees + a dated 2026 standards/forms map (AIA G702/G703, EJCDC, OSHA, ITP/CPM conventions) — `[verify-at-build]` rows. |
+| [`knowledge/construction-field-management-decision-trees.md`](knowledge/construction-field-management-decision-trees.md) | Triaging an RFI vs. a change, sequencing a submittal against the install date, deciding whether a field event is a change order, and choosing a QA hold point. 5 Mermaid decision trees + a dated 2026 standards/forms map (AIA G702/G703, EJCDC, OSHA, ITP/CPM, earned-value conventions) — `[verify-at-build]` rows. |
+| **Runnable calculator** — [`scripts/construction_calc.py`](scripts/construction_calc.py) | Sanity-checking a number before it goes to an owner. Stdlib-only, argparse: `payapp` (SOV %-complete → work completed, retainage, current payment due, AIA G702/G703 style), `changeorder` (running adjusted contract sum after executed COs), `earned-value` (CV/SV/CPI/SPI from BCWP/ACWP/BCWS, optional EAC/VAC). Ruff-clean (F, E9, B, C4, I, UP); does not replace the contract — verify retainage %, change clause, SOV. |
 
 ---
 
@@ -175,3 +176,4 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 ## 15. Milestones
 
 - **v0.1.0** — initial release: 3 agents (project-engineer, cost-and-change-controls-lead, field-and-safety-coordinator), 3 skills, a decision-tree knowledge bank (RFI-vs-change, submittal sequencing, is-it-a-change-order, QA hold-point) + a dated 2026 standards/forms map, 8 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The field side of construction project delivery, alongside the design / PM / trade cluster.
+- **v0.2.0** — depth pass (same 3 agents / 3 skills / 3 commands / 2 templates / 1 hook): **12 best-practices** (added route-design-intent-to-an-rfi and the SOV-is-the-billing-contract rule), the knowledge bank rounded to **5 Mermaid decision trees** (+ how-to-bill-a-change, is-the-cost-report-honest, closeout-readiness) with the standards map extended (earned-value, field-records rows), **5 dated scenario field notes** (added cost-to-complete, confined-space toolbox-talk, retainage-held-by-closeout), and a stdlib **runnable calculator** (`scripts/construction_calc.py` — `payapp` / `changeorder` / `earned-value`, ruff-clean).

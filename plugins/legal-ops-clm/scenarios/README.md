@@ -33,3 +33,6 @@ reviewed: false
 |---|---|---|
 | [`2026-06-08-nda-self-serve-without-a-playbook.md`](2026-06-08-nda-self-serve-without-a-playbook.md) | intake, playbook, escalation-trigger, self-serve | `structured-intake-not-a-dm`, `the-playbook-needs-a-bright-line-escalation-trigger` |
 | [`2026-06-08-missed-auto-renew-notice-window.md`](2026-06-08-missed-auto-renew-notice-window.md) | renewals, auto-renew, notice-window, alerts | `track-the-notice-window-not-just-expiry`, `signature-is-the-start-not-the-end` |
+| [`2026-06-08-redline-escalated-every-comma.md`](2026-06-08-redline-escalated-every-comma.md) | redline, clause-library, material-deviation, risk-tier, approval-routing | `flag-material-deviations-not-every-comma`, `standard-fallback-walk-away-decided-once`, `the-key-clauses-carry-the-risk` |
+| [`2026-06-08-repository-was-a-folder-drawer.md`](2026-06-08-repository-was-a-folder-drawer.md) | repository, metadata, schema, reporting, findability | `the-repository-is-a-schema-not-a-drawer`, `every-metric-pairs-with-a-decision` |
+| [`2026-06-08-obligation-leaked-after-signature.md`](2026-06-08-obligation-leaked-after-signature.md) | obligations, post-signature, sla, payment-terms, owner | `signature-is-the-start-not-the-end`, `ambiguity-is-a-flag-not-a-guess` |

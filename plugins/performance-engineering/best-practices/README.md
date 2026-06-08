@@ -12,3 +12,7 @@ Atomic, enforceable rules the performance-engineering agents apply. Each file is
 | profile-before-you-optimize | A flame graph / USE/RED names the constraint before any change |
 | headroom-is-computed-not-vibed | Little's law + saturation point + explicit failover/growth headroom |
 | regression-needs-a-baseline | Gate on a committed baseline + a p95/p99 threshold, not a gut check |
+| test-the-edges-not-just-the-steady-state | Load + stress + soak + spike; one run is not a performance test |
+| name-the-objective-latency-or-throughput | They trade off past the knee — state which the target optimizes |
+| prove-the-bottleneck-hand-off-the-fix | Localize the constraint here; route the actual fix to its owner |
+| reproducible-or-it-didnt-happen | Pin env + data + workload model + tool version, or it's an anecdote |

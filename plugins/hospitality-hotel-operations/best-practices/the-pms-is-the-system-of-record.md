@@ -1,0 +1,3 @@
+# The PMS is the system of record — no side spreadsheets
+
+Room status, rate, folio, and guest profile live in the PMS — it is the single system of record, and a workflow that depends on a side spreadsheet drifts the moment two people touch it and burns the guest at the worst moment (a double-sold room, a wrong rate, a lost preference at check-in). When a process *needs* something the PMS doesn't do, fix it at the PMS — a configuration, an integration, an SOP that writes back — never by maintaining a parallel truth in a spreadsheet that no other system reads. The test: if the PMS and the spreadsheet disagree, which one does the front desk trust at 11pm? If the answer is ever the spreadsheet, the workflow is already broken.

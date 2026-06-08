@@ -3,6 +3,27 @@
 All notable changes to this plugin are documented here. Versioning is semver; the version in
 `.claude-plugin/plugin.json` and the marketplace catalog entry are kept in lockstep (CI fails on drift).
 
+## 0.2.0 — 2026-06-08
+
+Depth build-out to the v0.2.0 standard. No agent/skill count change (still **3 agents**, **3 skills**);
+this round deepens the value-add surface. **Still not legal advice — every FLSA / EEO / equal-pay /
+pay-transparency point is flagged for counsel, never opined on.**
+
+- **best-practices → 12 rules** — `candidate-experience-is-the-employer-brand` and
+  `compa-ratio-reads-position-not-fairness` round the set out to 12 atomic rules; `best-practices/README.md`
+  index reconciled.
+- **Knowledge bank → 5 Mermaid trees** — added three trees to `people-ops-hr-decision-trees.md`:
+  is-this-lifecycle-step-owned-and-offboarding-complete, is-this-policy-plain-language-and-not-a-legal-opinion,
+  and what-is-the-funnel-telling-me (conversion, not volume). The dated 2026 reference map is retained.
+- **Scenarios → 5 field notes** — added `unstructured-interviews-that-amplified-bias`,
+  `handbook-policy-that-gave-a-legal-opinion`, and `hris-treated-as-a-spreadsheet` (9-field schema,
+  `reviewed: false`, no employee PII); `scenarios/README.md` index updated.
+- **Runnable calculator** — `scripts/hr_calc.py` (stdlib-only, argparse, ruff-clean for F,E9,B,C4,I,UP):
+  `comp-band` (range spread + min/max-to-mid + optional compa-ratio), `pay-equity` (unadjusted group mean
+  gap + raw ratio — a screen, NOT a verdict), `offer` (total target comp from base + bonus + annualized
+  equity). A calculator, not a data source; every legal-boundary point flagged for counsel in-output.
+- **CLAUDE.md** — v0.2.0 milestone added; counts reconciled (Runnable-calculator row, 5 trees, 12 rules).
+
 ## 0.1.0 — 2026-06-08
 
 Initial release. The People Operations / HR layer for SMBs — the human side of running a company

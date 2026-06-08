@@ -33,3 +33,6 @@ reviewed: false
 |---|---|---|
 | [`2026-06-08-markdown-taken-too-late.md`](2026-06-08-markdown-taken-too-late.md) | markdown, sell-through, weeks-of-supply, seasonal | `markdown-is-a-decision-not-a-default`, `sell-through-and-wos-are-the-vital-signs` |
 | [`2026-06-08-stockout-next-to-overstock.md`](2026-06-08-stockout-next-to-overstock.md) | allocation, replenishment, weeks-of-supply, open-to-buy | `allocate-at-the-store-sku-level`, `open-to-buy-is-a-budget` |
+| [`2026-06-08-shrink-blamed-on-theft.md`](2026-06-08-shrink-blamed-on-theft.md) | shrink, loss-prevention, receiving, operational | `shrink-is-a-diagnosable-leak`, `store-is-a-pnl-not-a-cost-center` |
+| [`2026-06-08-labor-cut-craters-conversion.md`](2026-06-08-labor-cut-craters-conversion.md) | labor, scheduling, conversion, labor-percent | `labor-follows-traffic-not-a-grid`, `store-is-a-pnl-not-a-cost-center` |
+| [`2026-06-08-fast-turn-sku-fails-gmroi.md`](2026-06-08-fast-turn-sku-fails-gmroi.md) | gmroi, space-productivity, assortment, margin | `gmroi-is-the-capital-lens`, `shelf-space-is-finite-capital` |

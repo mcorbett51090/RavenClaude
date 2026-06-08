@@ -34,3 +34,6 @@ reviewed: false
 |---|---|---|
 | [`2026-06-08-no-show-rate-that-was-reminders-only.md`](2026-06-08-no-show-rate-that-was-reminders-only.md) | no-shows, scheduling, telehealth, operations | `operations-exist-to-protect-the-clinical-hour` |
 | [`2026-06-08-part-2-record-disclosed-on-a-general-roi.md`](2026-06-08-part-2-record-disclosed-on-a-general-roi.md) | 42-cfr-part-2, roi, consent, disclosure | `part-2-stricter-than-hipaa-assume-it-applies`, `consent-precedes-disclosure` |
+| [`2026-06-08-auth-ran-out-mid-treatment-and-claims-denied.md`](2026-06-08-auth-ran-out-mid-treatment-and-claims-denied.md) | prior-authorization, reauth, claims, denial, units | `code-reflects-the-service-rendered`, `verify-eligibility-before-the-first-session` |
+| [`2026-06-08-telehealth-couldnt-connect-no-shows.md`](2026-06-08-telehealth-couldnt-connect-no-shows.md) | telehealth, no-shows, readiness, place-of-service | `telehealth-readiness-is-part-of-the-appointment` |
+| [`2026-06-08-whole-chart-sent-on-a-benefits-request.md`](2026-06-08-whole-chart-sent-on-a-benefits-request.md) | minimum-necessary, disclosure, roi, consent | `minimum-necessary-is-the-disclosure-default`, `consent-precedes-disclosure` |

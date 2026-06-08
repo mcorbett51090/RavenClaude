@@ -12,3 +12,7 @@ Atomic, enforceable rules the retail-store-operations agents apply. Each file is
 | open-to-buy-is-a-budget | Cap forward commitment against planned sales + ending inventory |
 | allocate-at-the-store-sku-level | Aggregate availability hides a stockout next to overstock |
 | safety-stock-buys-a-named-service-level | Size the buffer to a stated service / in-stock target |
+| shrink-is-a-diagnosable-leak | Split shrink into operational / theft / vendor-admin before fixing |
+| gmroi-is-the-capital-lens | Turn alone doesn't prove earning — read GMROI too |
+| every-metric-names-its-formula-and-window | No metric ships without numerator, denominator, window |
+| omnichannel-shares-inventory-not-the-playbook | Net the online claim on shared stock; route online economics out |

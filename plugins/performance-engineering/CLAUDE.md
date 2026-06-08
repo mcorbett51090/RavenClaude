@@ -133,7 +133,7 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 | File | Read when |
 |---|---|
-| [`knowledge/performance-engineering-decision-trees.md`](knowledge/performance-engineering-decision-trees.md) | Choosing the test type (load/stress/soak/spike), the open- vs closed-workload model, and triaging a bottleneck (USE/RED → profile → capacity). Mermaid decision trees + a dated 2026 capability map (k6 / Gatling / Locust / JMeter / async-profiler / pprot / perf / eBPF) — `[verify-at-build]` rows. |
+| [`knowledge/performance-engineering-decision-trees.md`](knowledge/performance-engineering-decision-trees.md) | Choosing the test type (load/stress/soak/spike), the open- vs closed-workload model, triaging a bottleneck (USE/RED → profile → capacity), deciding whether a result is a real regression that gates the release, and routing a localized fix to its owning plugin. **5** Mermaid decision trees + a dated 2026 capability map (k6 / Gatling / Locust / JMeter / async-profiler / pprof / perf / eBPF) — `[verify-at-build]` rows. |
 
 ---
 
@@ -184,3 +184,4 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 ## 15. Milestones
 
 - **v0.1.0** — initial release: 3 agents (performance-architect, load-testing-engineer, profiling-and-capacity-engineer), 3 skills, a decision-tree knowledge bank (test-type selection + open-vs-closed workload + bottleneck triage), 8 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The system-performance and capacity layer, distinct from frontend Core Web Vitals and observability-sre SLOs.
+- **v0.2.0** — depth pass (no change to agents/skills/commands/hook behavior): **12** best-practices (added `name-the-objective-latency-or-throughput`, `prove-the-bottleneck-hand-off-the-fix`, `reproducible-or-it-didnt-happen`, split-out `target-needs-a-workload`); the knowledge bank now carries **5** Mermaid decision trees (test-type selection, open- vs closed-workload, bottleneck triage, is-this-a-real-regression-and-does-it-gate, who-owns-the-fix routing) plus the dated 2026 capability map; a stdlib-only **capacity calculator** `scripts/perf_calc.py` (Little's law / capacity-and-instances / nearest-rank percentiles — decision-support, not a data source); and the scenarios bank grows to **5** field notes. Counts as of v0.2.0: 12 best-practices, 5 decision trees, 5 scenarios, 1 calculator.

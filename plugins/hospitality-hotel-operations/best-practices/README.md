@@ -12,3 +12,7 @@ Atomic, enforceable rules the hospitality agents apply. Each file is one rule wi
 | service-recovery-is-a-designed-process | A playbook with comp authority + follow-up, not ad-hoc heroics |
 | loyalty-is-repeat-economics-not-member-count | Measure repeat rate / direct share / CLV, never enrolled members |
 | staff-to-the-curve-protect-the-service-floor | Schedule to the occupancy forecast, never below the service floor |
+| the-guest-journey-is-one-system | Own booking → stay → post-stay end-to-end; the seams are first-class defects |
+| channel-mix-is-a-margin-decision | The right OTA/direct mix on net-ADR contribution, never zero-OTA |
+| the-pms-is-the-system-of-record | Room status / rate / folio / profile live in the PMS — no side spreadsheets |
+| specify-the-seam-hand-off-the-build | Do the rooms-side slice, specify the seam, hand the F&B / stat / BI build to the neighbour |

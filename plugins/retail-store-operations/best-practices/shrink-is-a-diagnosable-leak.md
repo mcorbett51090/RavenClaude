@@ -1,0 +1,3 @@
+# Shrink is a diagnosable leak, not a fixed cost
+
+Treat shrink as a leak you diagnose, not a fixed cost of doing business. Split the gap (book inventory − physical inventory, valued and read as a % of sales) into its three sources before "fixing" it: operational/process error (receiving, markdowns, damage, miscounts), theft (internal and external), and vendor/admin (short shipments, price/scan error). Each source has a different fix — process discipline, loss-prevention, or a vendor claim — and treating all shrink as theft mis-spends the LP budget on the wrong leak. Quantify each bucket's share before recommending a control, and route any employee-surveillance or PII content to `ravenclaude-core/security-reviewer`.

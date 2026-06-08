@@ -63,6 +63,49 @@ graph TD
 
 _Self-service-of-the-funnel means the right message fires on behavior — not a batch-and-blast. Deliverability and segmentation come before clever copy._
 
+## Decision Tree: How do we distribute and repurpose this asset?
+
+Distribution is half the work — a piece nobody sees is a sunk cost. Plan reach before shipping, then atomize.
+
+```mermaid
+graph TD
+  A[A published / about-to-publish asset] --> B{Is there a distribution plan in the brief?}
+  B -- No --> C[Stop - publish-and-forget wastes the expensive half; add reach before shipping]
+  B -- Yes --> D{Does it fit a cluster with a pillar to link up to?}
+  D -- No --> E[Reshape to a cluster or it has no internal-link reach; orphans don't compound]
+  D -- Yes --> F{Is it durable / evergreen or time-bound?}
+  F -- Evergreen --> G[Atomize: social thread + email sequence + short video + slide; schedule re-shares]
+  F -- Time-bound --> H[One-pass distribution: announcement send + social; don't over-invest in repurposing]
+  G --> I{Which channel carries the job-holder?}
+  H --> I
+  I -- Owned email --> J[Segment by engagement; send to the relevant segment, suppress unengaged]
+  I -- Organic search --> K[Internal links from cluster + pillar; route any build to web-design]
+  I -- Social / community --> L[Atomize to the format the channel rewards; one asset -> ten]
+```
+
+_One asset becomes ten. The distribution plan is part of the brief, not bolted on after — a piece with no reach plan isn't ready to ship._
+
+## Decision Tree: This page/query isn't winning — what's the root cause?
+
+Optimizing on-page on a page that isn't crawled, indexed, or intent-matched is motion, not progress. Triage in order.
+
+```mermaid
+graph TD
+  A[A page/query underperforming] --> B{Is the page crawlable + indexed?}
+  B -- No --> C[Fix crawl/index first - robots, canonicals, render strategy; route build to web-design]
+  B -- Yes --> D{Does the page match the query's intent?}
+  D -- No --> E[Re-map: transactional query to a product page, informational to a guide - not vice versa]
+  D -- Yes --> F{Are multiple thin pages competing for the query?}
+  F -- Yes --> G[Cannibalization: consolidate the thin pages into one pillar; redirect the rest]
+  F -- No --> H{Is the query intercepted by AI Overviews / LLM answers?}
+  H -- Yes --> I[AEO/GEO gap: answer-shaped content, Q&A structure, structured data, citable sources]
+  H -- No --> J{Is there a differentiated POV vs. the SERP?}
+  J -- No --> K[Me-too: it restates page one - find an angle or don't compete here]
+  J -- Yes --> L[On-page + internal linking + SERP-feature targeting; measure rank AND answer-engine presence]
+```
+
+_Triage in order — crawl/index, then intent, then cannibalization, then surface (classic vs. AEO/GEO), then POV. Tuning on-page before this order is settled is motion, not progress._
+
 ---
 
 ## Capability / landscape map (2026, `[verify-at-build]`)

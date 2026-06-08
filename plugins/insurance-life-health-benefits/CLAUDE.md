@@ -159,7 +159,17 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 ---
 
-## 13. Seams to neighbouring plugins
+## 13. Runnable calculator
+
+| Script | Subcommands | What it does |
+|---|---|---|
+| [`scripts/benefits_calc.py`](scripts/benefits_calc.py) | `loss-ratio` · `contribution` · `renewal` | Stdlib-only (argparse) decision calculator that removes arithmetic error from three recurring tasks. `loss-ratio` prints the underwriting loss ratio (incurred claims ÷ earned premium) **and**, separately, the ACA MLR rebate flag against the 80%/85% threshold — never conflating the two (§4 #6). `contribution` splits a total premium into employer/employee share (percent-of-premium or flat dollar) and totals the all-in annual cost across enrollees (§4 #2). `renewal` builds the projected premium as current × trend × experience × demographic and prints each multiplicative step, so a "+X%" is decomposed before anyone reacts (§4 #5). |
+
+Outputs are **educational scaffolding, not advice** (§4 #1): the user supplies every input, the tool shows the formula, and every ACA/MLR figure is `[verify-at-build]` (§4 #10). Run `python3 scripts/benefits_calc.py <subcommand> --help` for inputs. ruff-clean (F,E9,B,C4,I,UP); no runtime dependencies.
+
+---
+
+## 14. Seams to neighbouring plugins
 
 - **`insurance-pc`** — property & casualty lines (property, liability, auto, workers' comp). This plugin is life/health/benefits only.
 - **`people-ops-hr`** — day-to-day HR benefits administration and HRIS workflow. This plugin designs and reviews the program; people-ops-hr runs the ongoing administration.
@@ -168,13 +178,14 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 ---
 
-## 14. Requires & pairs with
+## 15. Requires & pairs with
 
 - **Requires** `ravenclaude-core@>=0.7.0`.
 - **Pairs with** `people-ops-hr` (HR administration of the program this plugin designs) and `insurance-pc` (the other half of an insurance practice). Installing it alone gives you the life/health/benefits design + rating + compliance scaffolding but not P&C lines or ongoing HR administration.
 
 ---
 
-## 15. Milestones
+## 16. Milestones
 
+- **v0.2.0** — deepening pass (additive, no migration): best-practices **8 → 12** (added credibility-is-the-hinge-of-rating, network-adequacy-before-plan-elegance, stop-loss-is-the-real-self-funded-decision, verify-dated-figures-at-build), scenarios bank **2 → 5** (all `reviewed: false`: loss-ratio-mistaken-for-mlr-rebate, missed-cobra-notice-window, thin-contribution-starved-the-pool), and a **runnable stdlib-only calculator** [`scripts/benefits_calc.py`](scripts/benefits_calc.py) (`loss-ratio` + ACA MLR rebate flag, `contribution` split, `renewal` decomposition; ruff-clean). 5 decision trees in the knowledge bank. Still 3 agents / 3 skills / 3 commands / 2 templates / 1 advisory hook. Educational scaffolding only.
 - **v0.1.0** — initial release: 3 agents (benefits-advisor, underwriting-and-actuarial-analyst, enrollment-and-compliance-lead), 3 skills, a decision-tree knowledge bank (funding-model + rating/renewal), 8 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The group life/health/employee-benefits side of insurance, distinct from property & casualty.

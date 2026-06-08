@@ -12,3 +12,7 @@ Atomic, enforceable rules the property-management agents apply. Each file is one
 | rent-roll-is-the-source-of-truth | Reconcile unit/rent/balance/status to reality every period |
 | delinquency-runs-on-a-consistent-collections-ladder | The same dated ladder for every account; no selective enforcement |
 | noi-is-operating-only-not-cash-flow | Exclude debt service, capex, depreciation; NOI is not cash flow |
+| renewal-is-a-math-problem-framed-by-law | Market-vs-in-place + turn cost decides; the legality flags to counsel |
+| preventive-maintenance-is-cheaper-than-the-emergency-it-prevents | Planned PM pre-empts the after-hours emergency and habitability event |
+| tenant-pii-is-minimized-never-pasted | SSNs, screening/bank data minimized, never pasted into an output |
+| document-the-decision-not-just-the-result | Record why, against which standard, dated — the contemporaneous record is the defense |

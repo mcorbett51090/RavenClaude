@@ -33,3 +33,6 @@ reviewed: false
 |---|---|---|
 | [`2026-06-08-self-service-onboarding-that-skipped-offboarding.md`](2026-06-08-self-service-onboarding-that-skipped-offboarding.md) | lifecycle, offboarding, hris, access | `offboarding-is-half-the-lifecycle`, `hris-is-the-source-of-truth-or-nothing` |
 | [`2026-06-08-comp-bands-with-no-leveling.md`](2026-06-08-comp-bands-with-no-leveling.md) | compensation, leveling, pay-equity | `level-before-band`, `pay-equity-controls-for-legitimate-factors` |
+| [`2026-06-08-unstructured-interviews-that-amplified-bias.md`](2026-06-08-unstructured-interviews-that-amplified-bias.md) | structured-hiring, scorecard, debrief, funnel | `structure-beats-intuition-in-hiring`, `measure-the-funnel-not-the-applicant-count`, `candidate-experience-is-the-employer-brand` |
+| [`2026-06-08-handbook-policy-that-gave-a-legal-opinion.md`](2026-06-08-handbook-policy-that-gave-a-legal-opinion.md) | handbook, policy, leave, exempt-status | `handbook-policy-is-plain-language-then-mechanics`, `flag-employment-law-for-counsel-never-opine` |
+| [`2026-06-08-hris-treated-as-a-spreadsheet.md`](2026-06-08-hris-treated-as-a-spreadsheet.md) | hris, data-hygiene, source-of-truth, payroll-seam | `hris-is-the-source-of-truth-or-nothing` |

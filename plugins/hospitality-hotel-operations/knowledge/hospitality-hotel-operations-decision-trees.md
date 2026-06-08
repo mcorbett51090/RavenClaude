@@ -73,6 +73,23 @@ graph TD
 
 _Measuring satisfaction is worthless without the action it drives. Rank by impact, not volume alone._
 
+## Decision Tree: Cut labor for this shift?
+
+Labor is the biggest controllable cost and the biggest service lever — schedule to the curve, never below the service floor.
+
+```mermaid
+graph TD
+  A[Occupancy forecast lower than scheduled coverage] --> B{Does the forecast for this date type have a reliable arrival + room-turn load?}
+  B -- No --> C[Don't cut on a guess - hold coverage until the pickup view firms up]
+  B -- Yes --> D{Would the cut drop coverage below the service floor - a clean room by check-in, a staffed desk at the arrival peak?}
+  D -- Yes --> E[Hold the floor - a labor win that drops the review score moved cost onto the guest, not off the P&L]
+  D -- No --> F{Is the cut matched to WHEN the load is - the arrival peak and the turn window, not a flat headcount?}
+  F -- No --> G[Re-shape the schedule to the curve first - cut the trough, protect the peak]
+  F -- Yes --> H[Cut to the curve - flex the trough hours, keep the peak and the floor intact]
+```
+
+_Schedule to the occupancy forecast; the service floor is the line a cost number never crosses._
+
 ---
 
 ## System & channel map (2026, `[verify-at-build]`)

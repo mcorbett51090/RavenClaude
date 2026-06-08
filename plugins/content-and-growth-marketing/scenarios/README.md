@@ -33,3 +33,6 @@ reviewed: false
 |---|---|---|
 | [`2026-06-08-blog-that-never-compounded.md`](2026-06-08-blog-that-never-compounded.md) | content-strategy, topic-clusters, seo, distribution | `strategy-compounds-tactics-decay`, `search-intent-is-the-unit-not-the-keyword` |
 | [`2026-06-08-emails-in-the-spam-folder.md`](2026-06-08-emails-in-the-spam-folder.md) | deliverability, segmentation, lifecycle, vanity-metrics | `deliverability-is-the-foundation`, `segment-and-trigger-dont-blast` |
+| [`2026-06-08-ai-overviews-ate-the-clicks.md`](2026-06-08-ai-overviews-ate-the-clicks.md) | aeo, geo, seo, search-intent, vanity-metrics | `aeo-geo-is-a-first-class-surface`, `measure-outcomes-not-vanity` |
+| [`2026-06-08-gated-ebook-that-poisoned-the-funnel.md`](2026-06-08-gated-ebook-that-poisoned-the-funnel.md) | demand-gen, funnel, lead-quality, consent, distribution | `measure-outcomes-not-vanity`, `permission-consent-and-trust-are-non-negotiable`, `distribution-is-half-the-work` |
+| [`2026-06-08-me-too-content-on-autopilot.md`](2026-06-08-me-too-content-on-autopilot.md) | content-strategy, differentiated-pov, ai-content, cite-the-source | `differentiated-pov-or-dont-ship`, `cite-the-source-and-date-never-fabricate-a-number` |

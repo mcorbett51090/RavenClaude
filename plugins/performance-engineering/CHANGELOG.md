@@ -3,6 +3,24 @@
 All notable changes to this plugin are documented here. Versioning is semver; the version in
 `.claude-plugin/plugin.json` and the marketplace catalog entry are kept in lockstep (CI fails on drift).
 
+## 0.2.0 — 2026-06-08
+
+Depth pass — no behavioral change to the agents, skills, commands, or hook; this release deepens the
+knowledge, evidence, and tooling around them.
+
+- **Best-practices 8 → 12** — added `name-the-objective-latency-or-throughput`, `prove-the-bottleneck-hand-off-the-fix`,
+  `reproducible-or-it-didnt-happen`, and a split-out `target-needs-a-workload`, bringing the atomic rule set to 12.
+- **Decision trees 3 → 5** — the knowledge bank's `performance-engineering-decision-trees.md` now carries five Mermaid
+  trees: which-test-type (load/stress/soak/spike), open- vs closed-workload model, bottleneck triage (USE/RED → profile →
+  capacity), is-this-a-real-regression-and-does-it-gate, and who-owns-the-fix routing. The dated 2026 capability map
+  (`[verify-at-build]`) is retained.
+- **Capacity calculator** — new `scripts/perf_calc.py` (stdlib-only): `littles-law` (solve `L = λ·W` for the omitted term),
+  `capacity` (target RPS + latency + headroom → required concurrency + instance count below the knee), and `percentiles`
+  (latency samples → p50/p90/p95/p99 + min/max/mean via nearest-rank). Decision-support, not a data source.
+- **Scenarios bank 2 → 5** — added `the-leak-only-showed-after-six-hours` (soak/leak), `the-spike-broke-what-steady-load-didnt`
+  (spike/elasticity), and `planned-to-the-knee-with-no-headroom` (capacity/Little's-law) (all `reviewed: false`), each
+  corroborating named best-practices.
+
 ## 0.1.0 — 2026-06-08
 
 Initial release. The system-performance and capacity-engineering layer, distinct from frontend Core Web Vitals

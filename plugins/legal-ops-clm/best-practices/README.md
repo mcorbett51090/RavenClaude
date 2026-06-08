@@ -12,3 +12,7 @@ Atomic, enforceable rules the legal-ops-clm agents apply. Each file is one rule 
 | signature-is-the-start-not-the-end | Each obligation becomes a tracked item with an owner and a trigger |
 | track-the-notice-window-not-just-expiry | Auto-renew fires unless you give notice in the window; alert in tiers |
 | every-metric-pairs-with-a-decision | Cycle time / backlog / renewal-at-risk tied to an action, never a vanity count |
+| the-key-clauses-carry-the-risk | LoL / indemnity / IP / term / confidentiality reviewed first and hardest |
+| the-repository-is-a-schema-not-a-drawer | Contract metadata is named fields, not folders — findable and reportable |
+| ambiguity-is-a-flag-not-a-guess | Genuinely unclear language → flag-for-lawyer, never an invented term or date |
+| cycle-time-is-measured-in-business-days | Intake→signed in business days, per-class, against an SLA breach flag |

@@ -34,3 +34,6 @@ reviewed: false
 |---|---|---|
 | [`2026-06-08-inconsistent-screening-fair-housing-risk.md`](2026-06-08-inconsistent-screening-fair-housing-risk.md) | screening, fair-housing, documentation, consistency | `screen-by-a-consistent-documented-standard`, `fair-housing-is-a-flag-not-an-opinion` |
 | [`2026-06-08-no-heat-call-parked-as-routine.md`](2026-06-08-no-heat-call-parked-as-routine.md) | habitability, triage, emergency, work-order | `habitability-is-non-negotiable-and-time-sensitive`, `triage-by-safety-and-habitability-first` |
+| [`2026-06-08-turn-clock-started-at-empty-not-notice.md`](2026-06-08-turn-clock-started-at-empty-not-notice.md) | vacancy, turn, make-ready, days-vacant, leasing | `vacancy-is-the-most-expensive-thing`, `pm_calc.py rentroll` |
+| [`2026-06-08-noi-reported-with-debt-service-mixed-in.md`](2026-06-08-noi-reported-with-debt-service-mixed-in.md) | noi, owner-statement, debt-service, capex, reporting | `noi-is-operating-only-not-cash-flow`, `pm_calc.py noi` |
+| [`2026-06-08-drifted-rent-roll-hid-the-real-delinquency.md`](2026-06-08-drifted-rent-roll-hid-the-real-delinquency.md) | rent-roll, delinquency, reconciliation, data-integrity, collections | `rent-roll-is-the-source-of-truth`, `delinquency-runs-on-a-consistent-collections-ladder`, `pm_calc.py delinquency` |

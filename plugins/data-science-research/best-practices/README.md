@@ -12,3 +12,7 @@ Atomic, enforceable rules the data-science-research agents apply. Each file is o
 | reproducible-or-it-didnt-happen | Pinned env + versioned data + fixed seed, or it's an anecdote |
 | baseline-before-the-fanciest-model | A dumb baseline is the bar; classical before deep |
 | generate-hypotheses-dont-decide-significance | Exploration generates; applied-statistics rules on real |
+| split-before-you-touch-the-data | Design the validation scheme first; group/time-aware folds; hold the test set out |
+| engineer-features-as-of-prediction-time | A feature is legitimate only if knowable at prediction time |
+| understand-missingness-before-imputing | Ask why a value is missing; imputation is a modeling decision |
+| plot-distributions-not-just-summary-statistics | Plot the distribution — the bimodal mean and the hidden confounder lie |

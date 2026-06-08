@@ -3,6 +3,30 @@
 All notable changes to this plugin are documented here. Versioning is semver; the version in
 `.claude-plugin/plugin.json` and the marketplace catalog entry are kept in lockstep (CI fails on drift).
 
+## 0.2.0 — 2026-06-08
+
+Depth pass — same scope and guardrails (operational + documentation support only, **never clinical, medical,
+or legal advice**, PHI-aware throughout); no new agents, skills, commands, templates, or hooks.
+
+- **Best-practices 8 → 12** — added `telehealth-readiness-is-part-of-the-appointment` (link + tech check +
+  location + modality consent ahead of the visit; a "couldn't connect" is preventable),
+  `the-referral-loop-closes-or-it-leaks` (track every referral to a terminal state), and
+  `minimum-necessary-is-the-disclosure-default` (a valid consent authorizes the needed scope, not the whole
+  chart). The best-practices index now lists all twelve (the prior index omitted
+  `verify-eligibility-before-the-first-session`).
+- **Knowledge bank — 2 → 5 Mermaid decision trees** — added which-progress-note-CPT-reflects-this-session,
+  is-this-telehealth-visit-ready-and-billable, and is-this-referral-loop-closed; the dated 2026
+  `[verify-at-build]` reference map is retained (last reviewed 2026-06-08).
+- **Scenarios 2 → 5** — added `auth-ran-out-mid-treatment-and-claims-denied`,
+  `telehealth-couldnt-connect-no-shows`, and `whole-chart-sent-on-a-benefits-request` (9-field schema,
+  `reviewed: false`, zero PHI).
+- **Runnable calculator** — `scripts/bh_calc.py`, a stdlib-only (argparse) decision-support calculator with
+  three subcommands: `no-show` (no-show / cancellation rate + revenue impact + optional waitlist backfill),
+  `caseload` (clinician capacity vs. active panel + implied utilization), and `auth-tracking` (authorized vs.
+  used sessions, remaining + sessions/weeks before re-auth). Ruff-clean (F,E9,B,C4,I,UP). Operational
+  decision-support only — no PHI in inputs; validate every figure against the schedule, current CPT set, and
+  payer policy.
+
 ## 0.1.0 — 2026-06-08
 
 Initial release. The operations + documentation layer for an outpatient behavioral / mental-health practice —

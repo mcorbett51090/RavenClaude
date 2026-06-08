@@ -72,6 +72,44 @@ graph TD
   F -- Yes --> H[Expose it: portal action / CLI / templated PR / API - with a versioned contract]
 ```
 
+## Decision Tree: Which Team Topologies interaction mode for this piece of work?
+
+The platform team's default is X-as-a-Service; the other modes are deliberate, time-boxed exceptions — not the steady state.
+
+```mermaid
+graph TD
+  A[A stream-aligned team needs platform help] --> B{Is the capability well-understood and ready to self-serve?}
+  B -- Yes --> C[X-as-a-Service: expose it on the paved road, no ongoing collaboration]
+  B -- No, still being discovered --> D{One-off capability gap or recurring skills gap?}
+  D -- Recurring skills gap --> E[Enabling team: time-boxed uplift, then withdraw - do NOT become a permanent crutch]
+  D -- One-off, needs co-discovery --> F{Will you co-build closely for a bounded period?}
+  F -- Yes --> G[Collaboration mode: pair to discover the interface, then HARDEN into X-as-a-Service]
+  F -- No --> H[Don't open a ticket queue - design the self-service interface and ship it as a service]
+  C --> I{Being pulled into ongoing collaboration on every request?}
+  I -- Yes --> J[Smell: the service interface is too thin - widen the paved road so consumers self-serve]
+```
+
+_X-as-a-Service is the goal; collaboration and facilitating modes are time-boxed bridges to it. A platform stuck in permanent collaboration mode is an ops team taking tickets (§ self-service-means-no-human-in-the-loop)._
+
+## Decision Tree: Is this golden path safe to deprecate / migrate consumers off?
+
+A path is a versioned product surface; breaking it is a breaking change for every consumer who took it.
+
+```mermaid
+graph TD
+  A[Want to change or retire a golden path] --> B{Is the change backward-compatible for current consumers?}
+  B -- Yes --> C[Ship as a non-breaking version bump - no migration needed]
+  B -- No --> D{Do you know who took this path? consult the catalog}
+  D -- No, catalog can't tell you --> E[Stop - fix catalog/ingestion first; you can't migrate consumers you can't enumerate]
+  D -- Yes --> F{Is there an automated migration the platform can run for consumers?}
+  F -- Yes --> G[Offer the migration as a paved action; deprecate old path with a dated sunset]
+  F -- No --> H{Is the old path actively dangerous to keep running? security/cost/outage}
+  H -- Yes --> I[Migration guide + owner office hours; hard sunset; escalate high-blast to security-reviewer]
+  H -- No --> J[Mark deprecated, keep running, migrate consumers opportunistically - never silent removal]
+```
+
+_An unowned, unversioned path with no migration story is abandonware that breaks consumers silently — worse than no path at all (§ golden-path-is-a-versioned-owned-surface)._
+
 ---
 
 ## Capability map (2026, `[verify-at-build]`)

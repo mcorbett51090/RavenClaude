@@ -129,7 +129,7 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 | File | Read when |
 |---|---|
-| [`knowledge/people-ops-hr-decision-trees.md`](knowledge/people-ops-hr-decision-trees.md) | Designing a hiring loop, setting a comp band, or making a comp/equity decision. 2 Mermaid trees (is-this-hire-structured-and-fair, is-this-comp-decision-defensible) + a dated 2026 reference map (HRIS / ATS / comp-data / pay-equity / review-cycle practice) — `[verify-at-build]` rows, none of it legal advice. |
+| [`knowledge/people-ops-hr-decision-trees.md`](knowledge/people-ops-hr-decision-trees.md) | Designing a hiring loop, setting a comp band, running a lifecycle event, authoring a policy, or diagnosing a funnel. 5 Mermaid trees (is-this-hire-structured-and-fair, is-this-comp-decision-defensible, is-this-lifecycle-step-owned-and-offboarding-complete, is-this-policy-plain-language-and-not-a-legal-opinion, what-is-the-funnel-telling-me) + a dated 2026 reference map (HRIS / ATS / comp-data / pay-equity / review-cycle practice) — `[verify-at-build]` rows, none of it legal advice. |
 
 ---
 
@@ -139,6 +139,14 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 |---|---|
 | [`templates/interview-kit.md`](templates/interview-kit.md) | The `talent-acquisition-lead` output: the leveled role, the competency-to-assessor map, anchored scorecards, the structured debrief, funnel instrumentation, the offer process, and the counsel flags. |
 | [`templates/comp-band-and-leveling-sheet.md`](templates/comp-band-and-leveling-sheet.md) | The `total-rewards-analyst` output: the leveling ladder, a band per level with range mechanics, the controlled pay-equity review, the merit/promotion cycle, the seam routing, and the counsel flags. |
+
+---
+
+## 10a. Runnable calculator
+
+| Script | What's inside |
+|---|---|
+| [`scripts/hr_calc.py`](scripts/hr_calc.py) | Stdlib-only (Python 3.8+, argparse) decision calculator — `comp-band` (range spread + min/max-to-mid + optional compa-ratio for placement), `pay-equity` (UNADJUSTED group mean gap + raw ratio — a *screen* that controls for nothing, never a verdict), `offer` (total target comp from base + target bonus + annualized equity, with the component mix). A **calculator, not a data source** — the user supplies every input; it does the arithmetic and shows the formula. **NOT legal advice:** every FLSA / equal-pay-certification / pay-transparency point is flagged for counsel in-output, never opined on; a raw pay gap is a prompt to run the controlled review, not proof of anything. Owned by `total-rewards-analyst` + `people-ops-generalist`. |
 
 ---
 
@@ -178,3 +186,4 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 ## 15. Milestones
 
 - **v0.1.0** — initial release: 3 agents (people-ops-generalist, talent-acquisition-lead, total-rewards-analyst), 3 skills, a decision-tree knowledge bank (structured-hiring + comp-defensibility) + a dated 2026 reference map, 8 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The internal People Operations / HR layer for SMBs — fair, documented, repeatable people systems, with every employment-law call flagged for counsel rather than opined on.
+- **v0.2.0** — depth build-out (2026-06-08), no agent/skill count change (still 3 agents, 3 skills): best-practices to **12** rules; the decision-tree knowledge bank to **5** Mermaid trees (added lifecycle/offboarding-completeness, policy-is-plain-language-not-a-legal-opinion, and what-is-the-funnel-telling-me) keeping the dated 2026 reference map; the scenarios bank to **5** field notes (added unstructured-interviews, handbook-gave-a-legal-opinion, hris-as-a-spreadsheet); and a **runnable calculator** `scripts/hr_calc.py` (stdlib-only, ruff-clean: `comp-band`, `pay-equity`, `offer`). The "not legal advice — flag for counsel" framing holds throughout, including in the calculator's output.

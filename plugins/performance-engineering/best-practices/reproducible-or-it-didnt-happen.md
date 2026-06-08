@@ -1,0 +1,3 @@
+# Reproducible or it didn't happen
+
+A performance number that can't be reproduced can't gate a release or be trusted in an incident. Pin everything the result depends on: the **environment** (instance type, node count, network, co-tenants), the **data** (size, cardinality, skew, cache warmth), the **workload model** (open vs. closed, arrival rate or VU count, think time, request mix), and the **tool version** (k6/Gatling/Locust/JMeter build, profiler, OS/kernel). Record them next to the number. An unpinned run that "showed p99 = 180 ms" is an anecdote — the next run on a warmer cache or a quieter neighbour produces a different number, and you can't tell which one is real. Reproducibility is what turns a measurement into evidence.

@@ -42,6 +42,65 @@ graph TD
 
 _Required coverage = gap ÷ stage-weighted win-rate. "3x" is somebody else's win-rate. Derive from this segment's conversion, and only on inspected pipeline._
 
+## Decision Tree: Which attribution model should drive this decision?
+
+Attribution is a chosen lens, never ground truth — match the model to the question and name what it's blind to.
+
+```mermaid
+graph TD
+  A[Need to credit revenue to touches] --> B{What decision does this feed?}
+  B -- Top-of-funnel / demand-gen budget --> C[First-touch or W-shaped - credits demand creation; last-touch would defund it]
+  B -- Closing / sales-assist budget --> D[Last-touch or W-shaped - credits the converting touch; first-touch ignores it]
+  B -- Whole-journey budget split --> E{Do you have touch volume + clean data + stakeholder trust in a black box?}
+  E -- No --> F[Multi-touch heuristic - linear or W-shaped; state the weighting is opinionated, not truth]
+  E -- Yes --> G[Data-driven / algorithmic - but make it explainable; it needs volume and is a black box]
+  C --> H[Triangulate: never let ONE model silently drive the budget]
+  D --> H
+  F --> H
+  G --> H
+  H --> I[Name what each model under/over-credits; treat divergence across models as a signal, not noise]
+```
+
+_Last-touch defunds demand; first-touch ignores closing; data-driven needs volume + clean data and is opaque. Name the distortion every time; triangulate rather than crown one model truth._
+
+## Decision Tree: Is this pipeline stage well-defined?
+
+A stage = an objective buyer-action exit criterion, not rep optimism — and its probability comes from your own history.
+
+```mermaid
+graph TD
+  A[Defining or auditing a pipeline stage] --> B{Is the exit criterion a verifiable BUYER action?}
+  B -- No, it's a seller hope/feeling --> C[Rewrite as a buyer action an outside observer could confirm - demo booked, MAP signed, procurement engaged]
+  B -- Yes --> D{Does the stage mean the same thing for every rep?}
+  D -- No --> E[The stage is ambiguous - tighten the criterion until 'stage 3' is one thing org-wide]
+  D -- Yes --> F{Is the stage probability from YOUR history or a CRM default?}
+  F -- CRM default 10/25/50/75 --> G[Replace with your own historical stage->close conversion - defaults bear no relation to your deals]
+  F -- Your history --> H[Stage is sound - recompute conversion as it drifts; never let probability detach from history]
+  C --> D
+  E --> F
+```
+
+_A stage defined by rep optimism is why the forecast misses. Exit criteria are buyer actions an outsider can confirm; stage probabilities come from your own history, never the CRM defaults._
+
+## Decision Tree: Does the quota reconcile to capacity?
+
+Quota is built bottoms-up from ramped-rep capacity, not handed down from the board number.
+
+```mermaid
+graph TD
+  A[Setting a quota / territory target] --> B{Do you have a bottoms-up capacity model?}
+  B -- No --> C[Build it first: ramped + ramping reps x expected productivity - a top-down-only number misses predictably]
+  B -- Yes --> D[Capacity = (fully-ramped reps + ramping reps x ramp fraction) x productivity per rep]
+  D --> E{Does capacity x productivity meet the board ask?}
+  E -- Yes --> F[Quota is makeable - assign it; watch ramp + productivity assumptions as reality lands]
+  E -- No, board ask exceeds capacity --> G{Which lever closes the gap?}
+  G -- Hire / ramp earlier --> H[Staffing decision - model the new ramp curve, re-reconcile]
+  G -- Raise productivity --> I[Name the enablement/process change that moves it - don't just assume it]
+  G -- Accept the gap --> J[Flag it explicitly - an un-makeable quota breaks comp behavior, not just the forecast]
+```
+
+_Capacity model first, board number second. When the two don't meet, the gap is a staffing/ramp/productivity decision — never a bigger number stapled onto the same heads._
+
 ---
 
 ## Reference map (2026, `[verify-at-build]`)

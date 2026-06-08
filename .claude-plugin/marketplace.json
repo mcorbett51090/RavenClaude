@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + 14 specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 43 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to…' use-case lookup.",
-    "version": "0.75.0"
+    "version": "0.76.0"
   },
   "plugins": [
     {
@@ -1452,8 +1452,8 @@
     {
       "name": "platform-engineering",
       "source": "./plugins/platform-engineering",
-      "description": "Platform-engineering (internal developer platform) team — 3 agents (platform-architect, developer-portal-engineer, golden-paths-and-adoption-engineer) for the paved-road layer above CI/CD, Kubernetes, IaC, and observability: platform-as-product and Team Topologies (thinnest viable platform; stream-aligned / platform / enabling teams), the developer portal and software catalog (Backstage / Port / Cortex, catalog ownership, scaffolder templates, TechDocs, scorecards), self-service golden paths and guardrails-as-defaults (Terraform modules / Crossplane / Score + policy-as-code), and adoption measured as a product (DORA + DevEx, platform SLOs, paved-road coverage). Decision-tree knowledge bank, 10 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: pipelines -> devops-cicd; clusters -> cloud-native-kubernetes; modules -> terraform-iac; SLOs -> observability-sre. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "description": "Platform-engineering (internal developer platform) team — 3 agents (platform-architect, developer-portal-engineer, golden-paths-and-adoption-engineer) for the paved-road layer above CI/CD, Kubernetes, IaC, and observability: platform-as-product and Team Topologies (thinnest viable platform; stream-aligned / platform / enabling teams), the developer portal and software catalog (Backstage / Port / Cortex, catalog ownership, scaffolder templates, TechDocs, scorecards), self-service golden paths and guardrails-as-defaults (Terraform modules / Crossplane / Score + policy-as-code), and adoption measured as a product (DORA + DevEx, platform SLOs, paved-road coverage). Decision-tree knowledge bank, 12 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios, runnable DORA/paved-road/error-budget calculator. Seams: pipelines -> devops-cicd; clusters -> cloud-native-kubernetes; modules -> terraform-iac; SLOs -> observability-sre. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1478,8 +1478,8 @@
     {
       "name": "cybersecurity-grc",
       "source": "./plugins/cybersecurity-grc",
-      "description": "Cybersecurity governance, risk & compliance (GRC) team — 3 agents (grc-architect, control-and-evidence-engineer, audit-and-third-party-risk-lead) for the security-compliance program layer: framework selection & scoping (SOC 2 TSC, ISO 27001 + Annex A, NIST CSF 2.0, NIST 800-53), the ISMS, control crosswalk across frameworks, the Statement of Applicability; control implementation & operating effectiveness, policy authoring, evidence collection & continuous control monitoring, Type I vs Type II readiness; audit readiness, gap assessments, and vendor/third-party risk (TPRM tiering, SIG/CAIQ, shared-responsibility, monitoring). Decision-tree knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: AppSec -> security-engineering; financial-regulator -> regulatory-compliance; privacy mechanics -> data-governance-privacy; cloud config -> aws/azure/gcp-cloud. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "description": "Cybersecurity governance, risk & compliance (GRC) team — 3 agents (grc-architect, control-and-evidence-engineer, audit-and-third-party-risk-lead) for the security-compliance program layer: framework selection & scoping (SOC 2 TSC, ISO 27001 + Annex A, NIST CSF 2.0, NIST 800-53), the ISMS, control crosswalk across frameworks, the Statement of Applicability; control implementation & operating effectiveness, policy authoring, evidence collection & continuous control monitoring, Type I vs Type II readiness; audit readiness, gap assessments, and vendor/third-party risk (TPRM tiering, SIG/CAIQ, shared-responsibility, monitoring). Decision-tree bank (5 Mermaid trees), 12 best-practices, 3 skills, 3 commands, 2 templates, 1 hook, a grc_calc.py risk/coverage/readiness calculator, scenarios. Seams: AppSec -> security-engineering; financial-regulator -> regulatory-compliance; privacy mechanics -> data-governance-privacy; cloud config -> aws/azure/gcp-cloud. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1503,8 +1503,8 @@
     {
       "name": "revops",
       "source": "./plugins/revops",
-      "description": "Revenue-operations (B2B GTM) team — 3 agents (revops-architect, pipeline-and-forecast-analyst, gtm-systems-engineer) for the lead-to-cash revenue engine above the CRM and warehouse: the funnel/bowtie definition, the RevOps data model, marketing↔sales↔CS SLAs, the GTM tech stack (revops-architect); pipeline stages & hygiene, forecast methodology (weighted vs commit/category vs AI), coverage, win-rate, velocity, deal inspection (pipeline-and-forecast-analyst); CRM hygiene & automation, lead routing & scoring, territory/quota/comp ops, attribution, data quality (gtm-systems-engineer). Decision-tree knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: CS health -> customer-success-analytics; CRM build -> salesforce; warehouse/BI -> data-platform & tableau; experiments -> experimentation-growth-engineering; significance -> applied-statistics. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "description": "Revenue-operations (B2B GTM) team — 3 agents (revops-architect, pipeline-and-forecast-analyst, gtm-systems-engineer) for the lead-to-cash revenue engine above the CRM and warehouse: the funnel/bowtie definition, the RevOps data model, marketing↔sales↔CS SLAs, the GTM tech stack (revops-architect); pipeline stages & hygiene, forecast methodology (weighted vs commit/category vs AI), coverage, win-rate, velocity, deal inspection (pipeline-and-forecast-analyst); CRM hygiene & automation, lead routing & scoring, territory/quota/comp ops, attribution, data quality (gtm-systems-engineer). Decision-tree knowledge bank (5 trees), 12 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, a stdlib forecast/funnel/quota calculator, scenarios. Seams: CS health -> customer-success-analytics; CRM build -> salesforce; warehouse/BI -> data-platform & tableau; experiments -> experimentation-growth-engineering; significance -> applied-statistics. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1526,8 +1526,8 @@
     {
       "name": "esg-sustainability-reporting",
       "source": "./plugins/esg-sustainability-reporting",
-      "description": "Corporate ESG & sustainability-disclosure team — 3 agents (esg-reporting-architect, ghg-accounting-analyst, disclosure-and-assurance-lead) for the reporting layer that turns sustainability obligations into a defensible, assurable disclosure: framework selection & scoping (CSRD/ESRS, ISSB IFRS S1/S2, GRI, SEC climate rule), double vs financial materiality, the reporting boundary & governance, the disclosure roadmap; GHG Protocol Scopes 1/2/3 (the 15 Scope-3 categories), emission factors, location- vs market-based Scope 2, base year, data quality; and disclosure drafting, data controls & evidence, limited vs reasonable assurance readiness, gap assessment, auditor liaison. Knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: financial-statement reporting -> finance; data lineage -> data-governance-privacy; regulator filing -> regulatory-compliance. NOT a legal or financial-audit opinion. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "description": "Corporate ESG & sustainability-disclosure team — 3 agents (esg-reporting-architect, ghg-accounting-analyst, disclosure-and-assurance-lead) for the reporting layer that turns sustainability obligations into a defensible, assurable disclosure: framework selection & scoping (CSRD/ESRS, ISSB IFRS S1/S2, GRI, SEC climate rule), double vs financial materiality, the reporting boundary & governance, the disclosure roadmap; GHG Protocol Scopes 1/2/3 (the 15 Scope-3 categories), emission factors, location- vs market-based Scope 2, base year, data quality; and disclosure drafting, evidence trail, limited vs reasonable assurance readiness, gap assessment. Knowledge bank (5 trees), 12 best-practices, 3 skills, 3 commands, 2 templates, 1 hook, a stdlib GHG calculator (scope2/inventory/intensity), scenarios. Seams: financial reporting -> finance; data lineage -> data-governance-privacy; filing -> regulatory-compliance. NOT a legal or financial-audit opinion. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1549,8 +1549,8 @@
     {
       "name": "localization-i18n",
       "source": "./plugins/localization-i18n",
-      "description": "Software & content localization engineering team — 3 agents (i18n-architect, localization-engineer, localization-qa) for shipping software in many languages: internationalization architecture (ICU MessageFormat, CLDR/locale data, pluralization & gender/select, RTL/bidi, date/number/currency formatting, translation-key strategy, library choice — i18next / FormatJS / gettext / platform-native), the localization pipeline (string extraction & catalogs, TMS integration, file formats PO/XLIFF/ARB/.strings/JSON, pseudo-localization, CI continuous translation), and localization QA (linguistic + functional QA, layout/truncation/overflow, locale & RTL testing, in-context review, regression). Decision-tree knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: UI implementation -> frontend-engineering & mobile-engineering; docs localization -> technical-writing-docs; design/RTL visual -> web-design. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "description": "Software & content localization engineering team — 3 agents (i18n-architect, localization-engineer, localization-qa) for shipping software in many languages: internationalization architecture (ICU MessageFormat, CLDR/locale data, pluralization & gender/select, RTL/bidi, date/number/currency formatting, translation-key strategy, library choice — i18next / FormatJS / gettext / platform-native), the localization pipeline (string extraction & catalogs, TMS integration, file formats PO/XLIFF/ARB/.strings/JSON, pseudo-localization, CI continuous translation), and localization QA (linguistic + functional QA, layout/truncation/overflow, locale & RTL testing, in-context review, regression). Decision-tree bank, 12 best-practices, 3 skills, 3 commands, 2 templates, 1 hook, an i18n_calc.py calculator, scenarios. Seams: UI implementation -> frontend-engineering & mobile-engineering; docs localization -> technical-writing-docs; design/RTL visual -> web-design. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1572,8 +1572,8 @@
     {
       "name": "wealth-management-ria",
       "source": "./plugins/wealth-management-ria",
-      "description": "Personal financial-advisory / RIA-practice team — 3 agents (financial-planner, portfolio-analyst, advisory-compliance-and-client-review-lead) for the planning, portfolio, and oversight craft of a Registered Investment Adviser serving individual clients: goal-based planning (retirement & withdrawal strategy, 4% rule / guardrails, cash-flow, tax-aware, IRA/Roth/401k/taxable/HSA, estate basics), portfolio construction (asset allocation, the Investment Policy Statement, rebalancing, risk/factor basics, tax-loss harvesting & asset location), and advisory oversight (fiduciary duty & Reg BI, Form ADV, suitability/KYC, periodic reviews, books-and-records, marketing rule). Educational/operational support — NOT personalized investment advice. Knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: corporate FP&A -> finance; securities regulation -> regulatory-compliance; billing -> fintech-payments-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "description": "Personal financial-advisory / RIA-practice team — 3 agents (financial-planner, portfolio-analyst, advisory-compliance-and-client-review-lead) for the planning, portfolio, and oversight craft of a Registered Investment Adviser serving individual clients: goal-based planning (retirement & withdrawal strategy, 4% rule / guardrails, tax-aware account use, estate basics), portfolio construction (asset allocation, the Investment Policy Statement, rebalancing, tax-loss harvesting & asset location), and advisory oversight (fiduciary duty & Reg BI, Form ADV, suitability/KYC, periodic reviews, books-and-records). Educational/operational support — NOT personalized investment advice. Knowledge bank, 12 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios, and a runnable ria_calc.py (withdrawal/rebalance/allocation). Seams: corporate FP&A -> finance; securities regulation -> regulatory-compliance; billing -> fintech-payments-engineering. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1595,8 +1595,8 @@
     {
       "name": "people-ops-hr",
       "source": "./plugins/people-ops-hr",
-      "description": "People Operations / HR team for SMBs — 3 agents (people-ops-generalist, talent-acquisition-lead, total-rewards-analyst) for the human side of a company: the employee lifecycle (onboarding to offboarding), handbook & policy authoring, HRIS data hygiene, employee-relations basics, leave/PTO, structured hiring (job ladders, interview kits, scorecards, funnel metrics, offers), and total rewards (compensation bands & ranges, leveling/job architecture, benefits-design overview, pay equity, merit/promotion cycles). NOT legal advice — flags employment-compliance basics (FLSA, at-will, EEO) for counsel rather than opining. Decision-tree knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Distinct from staffing-operations (the staffing-agency business). Seams: staffing-agency ops -> staffing-operations; payroll/GL & comp budgeting -> finance; benefits insurance/underwriting -> insurance-life-health-benefits. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "description": "People Operations / HR team for SMBs — 3 agents (people-ops-generalist, talent-acquisition-lead, total-rewards-analyst) for the human side of a company: the employee lifecycle (onboarding to offboarding), handbook & policy authoring, HRIS data hygiene, employee-relations basics, leave/PTO, structured hiring (job ladders, interview kits, scorecards, funnel metrics, offers), and total rewards (compensation bands & ranges, leveling/job architecture, benefits-design overview, pay equity, merit/promotion cycles). NOT legal advice — flags employment-compliance basics (FLSA, at-will, EEO) for counsel rather than opining. Decision-tree knowledge bank (5 Mermaid trees), 12 best-practices, 3 skills, 3 commands, 2 templates, 1 hook, hr_calc.py calculator, scenarios. Distinct from staffing-operations (the agency business). Seams: agency ops -> staffing-operations; payroll/GL -> finance; benefits underwriting -> insurance-life-health-benefits. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1618,8 +1618,8 @@
     {
       "name": "manufacturing-operations",
       "source": "./plugins/manufacturing-operations",
-      "description": "Manufacturing-operations team for discrete and process manufacturing — 3 agents (production-planner, shop-floor-and-oee-analyst, quality-and-capa-lead) for the plan / make / control loop on the factory floor: MRP/MPS and demand-vs-capacity planning, S&OP, BOM management, lot sizing and finite scheduling (production-planner); OEE (availability x performance x quality), throughput, takt vs cycle time, Theory-of-Constraints bottleneck analysis, and MES/shop-floor downtime data (shop-floor-and-oee-analyst); SPC, nonconformance (NCR) and CAPA, inspection plans, FMEA, supplier quality, and control plans (quality-and-capa-lead). Decision-tree knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: Lean/Six Sigma method -> process-improvement; inferential stats / Gage R&R -> applied-statistics; procurement/sourcing -> procurement-sourcing; distribution/logistics -> fleet-logistics. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "description": "Manufacturing-operations team for discrete and process manufacturing — 3 agents (production-planner, shop-floor-and-oee-analyst, quality-and-capa-lead) for the plan / make / control loop on the factory floor: MRP/MPS and demand-vs-capacity planning, S&OP, BOM management, lot sizing and finite scheduling (production-planner); OEE (availability x performance x quality), throughput, takt vs cycle time, Theory-of-Constraints bottleneck analysis, and MES/shop-floor downtime data (shop-floor-and-oee-analyst); SPC, nonconformance (NCR) and CAPA, inspection plans, FMEA, supplier quality, and control plans (quality-and-capa-lead). 5-tree decision-tree bank, 12 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, a stdlib OEE/takt/capacity calculator, scenarios. Seams: Lean/Six Sigma -> process-improvement; inferential stats / Gage R&R -> applied-statistics; sourcing -> procurement-sourcing; distribution -> fleet-logistics. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1641,8 +1641,8 @@
     {
       "name": "construction-field-management",
       "source": "./plugins/construction-field-management",
-      "description": "Construction project delivery, FIELD side — 3 agents (project-engineer, cost-and-change-controls-lead, field-and-safety-coordinator) for executing a construction project in the field, distinct from the design side: RFIs / submittals / daily logs / document control / schedule coordination, the schedule of values & pay applications (AIA G702/G703), change orders / cost codes / budget-vs-actual, and punch lists / QA-QC / safety (JHA, toolbox talks, OSHA) / inspections / closeout. Decision-tree knowledge bank (RFI & submittal workflow, change-order process, SOV & pay-app, CPM schedule basics, safety/OSHA basics) + a dated 2026 standards map, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: drawings / BIM / design intent -> architecture-aec; PM craft (schedule / risk / RAID) -> project-management; trade contracting -> skilled-trades-contracting. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "description": "Construction project delivery, FIELD side — 3 agents (project-engineer, cost-and-change-controls-lead, field-and-safety-coordinator) for executing a construction project in the field, distinct from the design side: RFIs / submittals / daily logs / document control / schedule coordination, the schedule of values & pay applications (AIA G702/G703), change orders / cost codes / budget-vs-actual, and punch lists / QA-QC / safety (JHA, toolbox talks, OSHA) / inspections / closeout. 5 Mermaid decision trees + a dated 2026 standards map, 12 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, a payapp/changeorder/earned-value calculator, scenarios. Seams: drawings / BIM / design intent -> architecture-aec; PM craft (schedule / risk / RAID) -> project-management; trade contracting -> skilled-trades-contracting. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1664,8 +1664,8 @@
     {
       "name": "property-management-residential",
       "source": "./plugins/property-management-residential",
-      "description": "Residential property-management team — 3 agents (leasing-and-tenant-ops, maintenance-coordinator, owner-and-portfolio-reporting-analyst) for running rental housing as an operation: the leasing funnel and applicant screening, the lease lifecycle (renewals, rent increases, move-in/move-out), work-order intake and triage, preventive maintenance, vendor dispatch and unit turns, emergency maintenance and habitability, and the owner-facing numbers — rent roll, delinquency and collections, owner statements, NOI, and occupancy/vacancy reporting. Fair-housing aware: agents FLAG fair-housing and habitability risk, they do not give legal advice. Decision-tree knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: commercial real estate -> commercial-real-estate; trust/GL accounting -> finance; trade work -> skilled-trades-contracting. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "description": "Residential property-management team — 3 agents (leasing-and-tenant-ops, maintenance-coordinator, owner-and-portfolio-reporting-analyst) for running rental housing as an operation: the leasing funnel and applicant screening, the lease lifecycle (renewals, rent increases, move-in/move-out), work-order intake and triage, preventive maintenance, vendor dispatch and unit turns, emergency maintenance and habitability, and the owner-facing numbers — rent roll, delinquency and collections, owner statements, NOI, and occupancy/vacancy reporting. Fair-housing aware: agents FLAG fair-housing and habitability risk, they do not give legal advice. Decision-tree knowledge bank (5 Mermaid trees), 12 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, a stdlib pm_calc.py (rentroll/noi/delinquency), 5 scenarios. Seams: commercial real estate -> commercial-real-estate; trust/GL accounting -> finance; trade work -> skilled-trades-contracting. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1687,8 +1687,8 @@
     {
       "name": "behavioral-health-practice",
       "source": "./plugins/behavioral-health-practice",
-      "description": "Outpatient behavioral / mental-health practice operations team — 3 agents (practice-operations-lead, clinical-documentation-specialist, billing-and-authorization-lead) for the operational and documentation layer of a behavioral-health clinic: intake and scheduling, no-show management, telehealth operations, caseload/panel management, and referral flow; documentation standards (treatment plans, DAP/SOAP/BIRP progress notes, medical necessity, release of information); and insurance verification, prior authorization, behavioral CPT codes, claims basics, and 42 CFR Part 2 + HIPAA in billing. Operational and documentation support only — NOT clinical advice. PHI-aware (HIPAA + 42 CFR Part 2): no PHI in artifacts. Decision-tree knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: revenue-cycle -> medical-revenue-cycle; senior care -> senior-care-operations; HIPAA security -> cybersecurity-grc. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "description": "Outpatient behavioral / mental-health practice operations team — 3 agents (practice-operations-lead, clinical-documentation-specialist, billing-and-authorization-lead) for the operational and documentation layer of a behavioral-health clinic: intake and scheduling, no-show management, telehealth operations, caseload/panel management, and referral flow; documentation standards (treatment plans, DAP/SOAP/BIRP notes, medical necessity, release of information); and eligibility, prior authorization, behavioral CPT codes, claims basics, and 42 CFR Part 2 + HIPAA in billing. Operational/documentation support only — NOT clinical advice. PHI-aware (HIPAA + 42 CFR Part 2): no PHI in artifacts. Decision-tree knowledge bank, 12 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, a stdlib calculator, scenarios. Seams: revenue-cycle -> medical-revenue-cycle; senior care -> senior-care-operations; HIPAA security -> cybersecurity-grc. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1710,8 +1710,8 @@
     {
       "name": "performance-engineering",
       "source": "./plugins/performance-engineering",
-      "description": "Performance- and capacity-engineering team — 3 agents (performance-architect, load-testing-engineer, profiling-and-capacity-engineer) for system performance and scalability: performance strategy and budgets, workload modeling, and SLO-linked NFR targets (performance-architect); load/stress/soak/spike testing with k6/Gatling/Locust/JMeter, open- vs closed-model workloads, ramping, think time, and test data (load-testing-engineer); CPU/memory/IO profiling, flame graphs, USE/RED bottleneck triage, capacity planning and headroom via Little's law, and regression detection (profiling-and-capacity-engineer). Decision-tree knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Distinct from frontend Core Web Vitals and observability-sre SLOs. Seams: web vitals -> frontend-engineering; SLO/error-budget -> observability-sre; query tuning -> database-engineering; resilience -> backend-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "description": "Performance- and capacity-engineering team — 3 agents (performance-architect, load-testing-engineer, profiling-and-capacity-engineer) for system performance and scalability: performance strategy and budgets, workload modeling, and SLO-linked NFR targets (performance-architect); load/stress/soak/spike testing with k6/Gatling/Locust/JMeter, open- vs closed-model workloads, ramping, think time, and test data (load-testing-engineer); profiling, flame graphs, USE/RED bottleneck triage, capacity and headroom via Little's law, and regression detection (profiling-and-capacity-engineer). Knowledge bank with 5 decision trees, a Little's-law/percentiles capacity calculator, 12 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Distinct from frontend Core Web Vitals and observability-sre SLOs. Seams: web vitals -> frontend-engineering; SLO -> observability-sre; query tuning -> database-engineering; resilience -> backend-engineering. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1733,8 +1733,8 @@
     {
       "name": "embedded-iot-engineering",
       "source": "./plugins/embedded-iot-engineering",
-      "description": "Embedded firmware & IoT/edge engineering team — 3 agents (firmware-architect, embedded-engineer, iot-connectivity-engineer) for the constrained-device layer below the cloud: firmware architecture (RTOS vs bare-metal, MCU selection, memory & power budgets, HAL/driver layering, boot & OTA strategy, flash partitioning), low-level implementation (C/C++/Rust on MCU, interrupts/ISRs, DMA, I2C/SPI/UART peripheral drivers, real-time constraints, JTAG/SWD debugging, watchdogs), and IoT connectivity (MQTT/CoAP/BLE/LoRa/Zigbee/Wi-Fi, device provisioning & identity, fleet management, secure boot & key storage, telemetry). Decision-tree knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: cloud telemetry ingest -> data-streaming-engineering & the cloud plugins; mobile companion app -> mobile-engineering; device security review -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "description": "Embedded firmware & IoT/edge engineering team — 3 agents (firmware-architect, embedded-engineer, iot-connectivity-engineer) for the constrained-device layer below the cloud: firmware architecture (RTOS vs bare-metal, MCU selection, memory & power budgets, HAL/driver layering, boot & OTA strategy, flash partitioning), low-level implementation (C/C++/Rust on MCU, interrupts/ISRs, DMA, I2C/SPI/UART peripheral drivers, real-time constraints, JTAG/SWD debugging, watchdogs), and IoT connectivity (MQTT/CoAP/BLE/LoRa/Zigbee/Wi-Fi, provisioning & identity, fleet management, secure boot & key storage, telemetry). Decision-tree bank (5 trees + capability map), 12 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, a stdlib calculator (power-budget/baud/airtime), scenarios. Seams: cloud telemetry ingest -> data-streaming-engineering & the cloud plugins; mobile companion app -> mobile-engineering; device security review -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1756,8 +1756,8 @@
     {
       "name": "content-and-growth-marketing",
       "source": "./plugins/content-and-growth-marketing",
-      "description": "Content strategy & growth-marketing team — 3 agents (content-strategist, seo-program-lead, lifecycle-marketing-engineer) for the layer above a marketing site and analytics warehouse: editorial strategy and topic clusters/pillars, content briefs, distribution & repurposing; technical + on-page + content SEO, keyword & search-intent research, internal linking, SERP features, and AEO/GEO (answer/generative engine optimization); and email & lifecycle marketing — segmentation, nurture flows, deliverability, marketing automation, and the demand-gen funnel. Decision-tree knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: marketing-site build & brand -> web-design; A/B experiment apparatus -> experimentation-growth-engineering; product/marketing analytics warehouse -> data-platform. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "description": "Content strategy & growth-marketing team — 3 agents (content-strategist, seo-program-lead, lifecycle-marketing-engineer) for the layer above a marketing site and analytics warehouse: editorial strategy and topic clusters/pillars, content briefs, distribution & repurposing; technical + on-page + content SEO, keyword & search-intent research, internal linking, SERP features, and AEO/GEO (answer/generative engine optimization); and email & lifecycle marketing — segmentation, nurture flows, deliverability, marketing automation, and the demand-gen funnel. Decision-tree knowledge bank, 12 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, a stdlib growth calculator (funnel / cac-ltv / email), scenarios. Seams: marketing-site build & brand -> web-design; A/B experiment apparatus -> experimentation-growth-engineering; product/marketing analytics warehouse -> data-platform. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1779,8 +1779,8 @@
     {
       "name": "legal-ops-clm",
       "source": "./plugins/legal-ops-clm",
-      "description": "Corporate legal-operations & contract-lifecycle-management (CLM) team — 3 agents (legal-ops-lead, contract-review-specialist, obligations-and-renewals-analyst) for the operational layer of an in-house legal/legal-ops function: legal intake & triage and the request workflow, contract playbooks & matter management, clause libraries & redline review with fallback/standard positions and key-term extraction, and obligation/renewal/auto-renew tracking with a contract repository, metadata model, reporting & alerts. This is operational/process support, NOT legal advice — a lawyer signs off on legal judgement. Decision-tree knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: a law firm's own business -> legal-small-firm; procurement/supplier contracts -> procurement-sourcing; data-privacy/DPA clauses -> data-governance-privacy. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "description": "Corporate legal-operations & contract-lifecycle-management (CLM) team — 3 agents (legal-ops-lead, contract-review-specialist, obligations-and-renewals-analyst) for the operational layer of an in-house legal/legal-ops function: legal intake & triage and the request workflow, contract playbooks & matter management, clause libraries & redline review with fallback/standard positions and key-term extraction, and obligation/renewal/auto-renew tracking with a contract repository, metadata model, reporting & alerts. This is operational/process support, NOT legal advice — a lawyer signs off on legal judgement. Decision-tree knowledge bank (5 Mermaid trees + dated CLM map), 12 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, 5 scenarios, a stdlib renewal-window/cycle-time/obligation-aging calc. Seams: a law firm's own business -> legal-small-firm; supplier contracts -> procurement-sourcing; DPA/privacy clauses -> data-governance-privacy. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1802,8 +1802,8 @@
     {
       "name": "public-sector-grants",
       "source": "./plugins/public-sector-grants",
-      "description": "Government & nonprofit grants team — 3 agents (grant-strategist, proposal-writer, grants-compliance-analyst) for the funder-side discipline of winning and managing public grants: opportunity search & fit assessment, funder research, logic model / theory of change and go/no-go (strategist); proposal narrative, needs/problem statement, SMART goals & objectives, evaluation plan, and budget + budget narrative (writer); and 2 CFR Uniform Guidance — allowable/allocable/reasonable costs, sub-recipient monitoring, drawdowns & financial reporting, and the single audit (compliance). Decision-tree knowledge bank (grant lifecycle, logic model, budget, Uniform Guidance, reporting), 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Distinct from nonprofit-fundraising (the donor/major-gifts side). Seams: donor fundraising -> nonprofit-fundraising; GL / fund accounting -> finance; security controls for federal data -> cybersecurity-grc. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "description": "Government & nonprofit grants team — 3 agents (grant-strategist, proposal-writer, grants-compliance-analyst) for the funder-side discipline of winning and managing public grants: opportunity fit & go/no-go (strategist); proposal narrative, SMART objectives, evaluation plan, budget narrative (writer); and 2 CFR Uniform Guidance — allowable/allocable/reasonable costs, indirect rate & match, sub-recipient monitoring, drawdowns & reporting, single audit (compliance). Decision-tree knowledge bank (5 Mermaid trees + dated authority map), 12 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios, and a stdlib-only runnable calculator (grants_calc.py: indirect-cost on an MTDC base, required match/shortfall, budget roll-up). Distinct from nonprofit-fundraising (the donor/major-gifts side). Seams: donor fundraising -> nonprofit-fundraising; GL / fund accounting -> finance; security controls for federal data -> cybersecurity-grc. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1825,8 +1825,8 @@
     {
       "name": "hospitality-hotel-operations",
       "source": "./plugins/hospitality-hotel-operations",
-      "description": "Hospitality / lodging hotel-operations team — 3 agents (hotel-operations-lead, revenue-manager, guest-experience-analyst) for running a property as a business: front-office / PMS operations, housekeeping, the guest journey, SOPs, labor scheduling, and maintenance/engineering coordination; revenue management and rate strategy (RevPAR / ADR / occupancy / GOPPAR, channel & OTA mix and cost, demand forecasting, overbooking & yield); and guest experience — reviews, online reputation, satisfaction measurement, loyalty, and service recovery with a comment-to-action loop. Decision-tree knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: restaurant / F&B outlet -> restaurant-operations; demand statistics -> applied-statistics; BI / reporting -> data-platform. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "description": "Hospitality / lodging hotel-operations team — 3 agents (hotel-operations-lead, revenue-manager, guest-experience-analyst) for running a property as a business: front-office / PMS operations, housekeeping, the guest journey, SOPs, labor scheduling, and maintenance/engineering coordination; revenue management and rate strategy (RevPAR / ADR / occupancy / GOPPAR, channel & OTA mix and cost, demand forecasting, overbooking & yield); and guest experience — reviews, online reputation, satisfaction measurement, loyalty, and service recovery with a comment-to-action loop. Decision-tree knowledge bank, 12 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, a stdlib RevPAR/GOPPAR/channel-mix calculator, scenarios. Seams: restaurant / F&B outlet -> restaurant-operations; demand statistics -> applied-statistics; BI / reporting -> data-platform. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1848,8 +1848,8 @@
     {
       "name": "retail-store-operations",
       "source": "./plugins/retail-store-operations",
-      "description": "Brick-and-mortar retail store-operations team — 3 agents (store-operations-lead, merchandising-analyst, inventory-and-replenishment-planner) for the four-wall store: store SOPs and daily operations, labor scheduling and store P&L, loss prevention and shrink, customer experience; planograms and assortment / category management, pricing and markdown cadence, visual merchandising and space productivity; inventory health, replenishment, sell-through, safety stock, open-to-buy (OTB), and allocation. Distinct from online/DTC — the store, not the website. Decision-tree knowledge bank (store P&L and labor, markdown/pricing, inventory metrics sell-through/GMROI/weeks-of-supply, replenishment and OTB, shrink), 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. Seams: online channel -> ecommerce-dtc; sourcing/vendors -> procurement-sourcing; demand stats -> applied-statistics; BI -> data-platform. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "description": "Brick-and-mortar retail store-operations team — 3 agents (store-operations-lead, merchandising-analyst, inventory-and-replenishment-planner) for the four-wall store: store SOPs and daily operations, labor scheduling and store P&L, loss prevention and shrink, customer experience; planograms and assortment / category management, pricing and markdown cadence, visual merchandising and space productivity; inventory health, replenishment, sell-through, safety stock, open-to-buy (OTB), and allocation. Distinct from online/DTC — the store, not the website. Decision-tree knowledge bank (store P&L and labor, markdown/pricing, inventory metrics, replenishment and OTB, shrink), 12 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, a stdlib calculator (gmroi/sell-through/otb), scenarios bank. Seams: online channel -> ecommerce-dtc; sourcing/vendors -> procurement-sourcing; demand stats -> applied-statistics; BI -> data-platform. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1871,8 +1871,8 @@
     {
       "name": "data-science-research",
       "source": "./plugins/data-science-research",
-      "description": "Exploratory data science & reproducible research team — 3 agents (exploratory-data-scientist, feature-and-modeling-engineer, research-reproducibility-engineer) for the analysis layer between raw data and a defensible result: data profiling/cleaning, EDA, hypothesis generation, and communicating findings with uncertainty; feature engineering, classical modeling (regression, trees, gradient boosting), model selection, evaluation (cross-validation, metrics) and leakage avoidance; and the reproducibility spine — notebook hygiene, pinned environments, experiment tracking, data/version control, seeds, and reproducible pipelines. Decision-tree knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook. Seams: is-the-result-statistically-real -> applied-statistics; productionize/serve/monitor -> ml-engineering; data pipelines/warehouse -> data-platform. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "description": "Exploratory data science & reproducible research team — 3 agents (exploratory-data-scientist, feature-and-modeling-engineer, research-reproducibility-engineer) for the analysis layer between raw data and a defensible result: data profiling/cleaning, EDA, hypothesis generation, communicating findings with uncertainty; feature engineering, classical modeling (regression, trees, boosting), model selection, evaluation (cross-validation, metrics) and leakage avoidance; and the reproducibility spine — notebook hygiene, pinned environments, experiment tracking, data/version control, seeds, and reproducible pipelines. 12 best-practices, decision-tree knowledge bank, 3 skills, 3 commands, 2 templates, 1 hook, scenarios bank, and stdlib-only ds_calc.py (classification/regression metrics, split-check). Seams: is-the-result-statistically-real -> applied-statistics; productionize/serve/monitor -> ml-engineering; data pipelines/warehouse -> data-platform. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1894,8 +1894,8 @@
     {
       "name": "insurance-life-health-benefits",
       "source": "./plugins/insurance-life-health-benefits",
-      "description": "Life, health & employee-benefits insurance team — 3 agents (benefits-advisor, underwriting-and-actuarial-analyst, enrollment-and-compliance-lead) for the group-benefits domain: plan design across medical / dental / vision / life / disability, funding choices (fully-insured vs self-funded / level-funded), underwriting and rating basics (manual vs experience rating, rating factors), loss ratios and the ACA medical-loss-ratio (MLR), renewal projections, and open-enrollment operations (eligibility, COBRA / HIPAA / ACA 1095 & Form 5500 reporting basics, carrier coordination). Decision-tree knowledge bank, 8 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios. NOT legal, tax, or actuarial advice — educational scaffolding only; a licensed broker, actuary, or ERISA counsel signs off. Seams: property & casualty lines -> insurance-pc; HR benefits administration -> people-ops-hr; provider-side medical billing -> medical-revenue-cycle. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "description": "Life, health & employee-benefits insurance team — 3 agents (benefits-advisor, underwriting-and-actuarial-analyst, enrollment-and-compliance-lead) for the group-benefits domain: plan design across medical / dental / vision / life / disability, funding (fully-insured vs self-funded / level-funded), rating basics (manual vs experience rating), loss ratios and the ACA medical-loss-ratio (MLR), renewal projections, and open-enrollment operations (eligibility, COBRA / HIPAA / ACA 1095 & Form 5500 basics, carrier coordination). Decision-tree knowledge bank, 12 best-practices, 3 skills, 3 commands, 2 templates, 1 advisory hook, scenarios, and stdlib-only benefits_calc.py (loss-ratio + ACA MLR flag, contribution split, renewal projection). NOT legal, tax, or actuarial advice — educational scaffolding only; a licensed broker, actuary, or ERISA counsel signs off. Seams: P&C -> insurance-pc; HR admin -> people-ops-hr; provider billing -> medical-revenue-cycle. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },

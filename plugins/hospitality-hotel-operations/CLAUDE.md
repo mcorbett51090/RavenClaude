@@ -128,7 +128,8 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 | File | Read when |
 |---|---|
-| [`knowledge/hospitality-hotel-operations-decision-trees.md`](knowledge/hospitality-hotel-operations-decision-trees.md) | Deciding the rate/pricing move, whether to overbook, the channel-mix shift, or how to triage a review-driven defect. Mermaid decision trees + a dated 2026 system/channel map (PMS / RMS / OTA / reputation platforms) — `[verify-at-build]` rows. |
+| [`knowledge/hospitality-hotel-operations-decision-trees.md`](knowledge/hospitality-hotel-operations-decision-trees.md) | Deciding the rate/pricing move, whether to overbook, the channel-mix shift, how to triage a review-driven defect, or whether to cut labor for a shift. 5 Mermaid decision trees + a dated 2026 system/channel map (PMS / RMS / OTA / reputation platforms) — `[verify-at-build]` rows. |
+| **Runnable calculator** — [`scripts/hotel_calc.py`](scripts/hotel_calc.py) | Removing arithmetic error from the recurring rooms-revenue decisions. Stdlib-only (argparse), ruff-clean (F,E9,B,C4,I,UP). Subcommands: `revpar` (RevPAR from ADR×Occ and from room-revenue ÷ available-rooms, reconciled), `goppar` (GOP per available room — the profit check on RevPAR), `channel-mix` (net ADR after OTA commission + give-back, blended across channels). Decision-support, not financial advice — validate every input against the property's PMS/RMS and P&L. Run `python3 scripts/hotel_calc.py <sub> -h`. |
 
 ---
 
@@ -175,4 +176,5 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 ## 15. Milestones
 
+- **v0.2.0** — depth pass (no roster change): best-practices 8 → **12** (added `the-guest-journey-is-one-system`, `channel-mix-is-a-margin-decision`, `the-pms-is-the-system-of-record`, `specify-the-seam-hand-off-the-build`); knowledge → **5** Mermaid decision trees (added "cut labor for this shift?" — staff to the curve / protect the service floor) plus the retained dated 2026 PMS/RMS/OTA/reputation map; scenarios 2 → **5** (added overbook-walk-no-protocol, pms-side-spreadsheet-drift, labor-cut-below-service-floor); and a **runnable calculator** `scripts/hotel_calc.py` (stdlib-only, ruff-clean — `revpar` / `goppar` / `channel-mix`). Additive only; `/plugin marketplace update` is safe.
 - **v0.1.0** — initial release: 3 agents (hotel-operations-lead, revenue-manager, guest-experience-analyst), 3 skills, a decision-tree knowledge bank (rate move + overbook + channel-mix + review-triage), 8 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The lodging / rooms operations layer, distinct from the `restaurant-operations` F&B sibling.

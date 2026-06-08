@@ -12,3 +12,7 @@ Atomic, enforceable rules the localization-i18n agents apply. Each file is one r
 | pseudo-localize-continuously | A pseudo-locale in CI catches hardcoding + truncation early |
 | translation-is-a-pipeline-not-a-phase | Continuous push/pull through the TMS; CI guards completeness |
 | translated-is-not-correct | QA the running build — linguistic, functional, layout, RTL |
+| bidi-isolate-interpolated-values | Wrap runtime values in FSI…PDI / `<bdi>` so they don't reorder RTL text |
+| fall-back-down-the-locale-chain | Missing string degrades region → language → default, never a raw key |
+| context-travels-with-the-string | Comments, screenshots, char-limits, placeholder descriptions ride to the TMS |
+| fail-ci-on-broken-catalogs | Missing keys / placeholder mismatch / broken ICU = a red build, not a prod bug |

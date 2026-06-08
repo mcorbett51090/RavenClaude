@@ -12,3 +12,7 @@ Atomic, enforceable rules the content-and-growth-marketing agents apply. Each fi
 | deliverability-is-the-foundation | Authentication + list hygiene before clever copy |
 | segment-and-trigger-dont-blast | Behavior-triggered, segmented flows beat batch-and-blast |
 | measure-outcomes-not-vanity | Conversion + engaged-list health, never pageviews/opens/list-size |
+| distribution-is-half-the-work | Plan reach + repurposing up front; an asset nobody sees is sunk cost |
+| permission-consent-and-trust-are-non-negotiable | Honest unsubscribe, consent, no dark patterns; trust is the channel |
+| specify-the-requirement-hand-off-the-build | Own the plan; hand the site/test/warehouse build to the layer below |
+| cite-the-source-and-date-never-fabricate-a-number | Source + freshness on every figure; `[verify-at-build]` over a guess |

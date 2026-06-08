@@ -1,0 +1,3 @@
+# Compa-ratio reads position, not fairness
+
+Compa-ratio (salary ÷ band midpoint) tells you *where in the range* someone sits — it is a placement diagnostic, not a fairness verdict. A 0.85 compa-ratio is appropriate for a new-to-level hire still ramping and a problem for a tenured top performer; the number is only meaningful read against level, tenure, and performance. Use it to spot range compression, ceiling-bumpers who need a promotion not a raise, and below-range placements that merit a correction — but never present a compa-ratio as evidence of equity or inequity on its own. Equity is the controlled-residual question (see `pay-equity-controls-for-legitimate-factors`); the equal-pay legal certification is counsel's, never the analyst's.

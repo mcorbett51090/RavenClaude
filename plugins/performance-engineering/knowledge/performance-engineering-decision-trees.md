@@ -63,6 +63,43 @@ graph TD
 
 _Profile first — the first bottleneck is almost never where you guessed. Saturation (a growing queue), not utilization, is the danger signal._
 
+## Decision Tree: Is this result a real regression — and does it gate the release?
+
+A latency number means nothing without a committed baseline and a threshold. "Feels slower" is not a finding; a p99 delta past the gate is.
+
+```mermaid
+graph TD
+  A[A run finished - is it a pass?] --> B{Is there a committed baseline for this workload?}
+  B -- No --> C[Not a regression check yet: commit this run as the baseline first, with env+data+model+tool pinned]
+  B -- Yes --> D{Same workload model, data, env, and tool version as the baseline?}
+  D -- No --> E[Not comparable - re-run reproducibly before comparing; an unpinned delta is noise]
+  D -- Yes --> F{p95/p99 delta beyond the agreed threshold?}
+  F -- No, within threshold --> G[Pass: record the run; refresh the baseline if intentionally faster]
+  F -- Yes, p99 regressed --> H{Mean flat but tail moved?}
+  H -- Yes --> I[Still a regression - the tail is the user-visible failure; block on the percentile not the mean]
+  H -- No --> J[Block the release; profile the delta to localize the new bottleneck]
+```
+
+_A regression needs a committed baseline plus a percentile threshold; compare like-for-like or not at all. A p99 delta is real even when the mean is flat — gate on the tail._
+
+## Decision Tree: The bottleneck is localized — who owns the fix?
+
+This layer proves and localizes the constraint; it does not fix it in place. Name the constraint, then route the fix to the plugin that owns that craft.
+
+```mermaid
+graph TD
+  A[Bottleneck localized + evidenced] --> B{What kind of constraint is it?}
+  B -- A specific slow query / missing index / schema --> C[Route the fix to database-engineering: this plugin proved the DB is the bottleneck]
+  B -- Browser paint: LCP / CLS / bundle / render path --> D[Route to frontend-engineering Core Web Vitals - server-side stays here]
+  B -- A dependency that needs retry / bulkhead / circuit-breaker / backpressure --> E[Route to backend-engineering resilience past the knee]
+  B -- The gap is a customer SLO / error budget / alerting --> F[Route to observability-sre: NFR targets link to the SLO]
+  B -- Need more nodes / autoscaling / instance sizing --> G[Supply the capacity math + headroom; cloud-native-kubernetes implements HPA/sizing]
+  B -- Prod-derived test data could carry PII --> H[Mandatory security-reviewer + data-governance-privacy de-identification]
+  B -- It is genuinely a system throughput/latency/capacity job --> I[Owned here: re-run the load test after the fix and commit a new baseline]
+```
+
+_Prove the number; let the owner move it. Tuning the query, rewriting the front-end, or designing the retry policy here drifts the domain boundary and skips the owning team's review._
+
 ---
 
 ## Capability map (2026, `[verify-at-build]`)

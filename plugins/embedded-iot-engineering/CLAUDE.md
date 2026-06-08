@@ -128,7 +128,7 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 | File | Read when |
 |---|---|
-| [`knowledge/embedded-iot-engineering-decision-trees.md`](knowledge/embedded-iot-engineering-decision-trees.md) | Deciding RTOS-vs-bare-metal, choosing the connectivity protocol, budgeting power/sleep, designing the OTA flow, and the secure-boot/key posture. Mermaid decision trees + a dated 2026 capability map (FreeRTOS / Zephyr / Embassy / BLE / LoRa / MQTT) — `[verify-at-build]` rows. |
+| [`knowledge/embedded-iot-engineering-decision-trees.md`](knowledge/embedded-iot-engineering-decision-trees.md) | Deciding RTOS-vs-bare-metal, choosing the connectivity protocol, budgeting power/sleep, designing the OTA flow, the secure-boot/key posture, and the peripheral-I/O strategy (polling vs interrupt vs DMA). **5 Mermaid decision trees** + a dated 2026 capability map (FreeRTOS / Zephyr / Embassy / BLE / LoRa / MQTT) — `[verify-at-build]` rows. |
 
 ---
 
@@ -157,7 +157,15 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 ---
 
-## 13. Seams to neighbouring plugins
+## 13. Runnable calculator
+
+| Script | What it runs |
+|---|---|
+| [`scripts/embedded_calc.py`](scripts/embedded_calc.py) | Stdlib-only (Python 3.9+, `argparse`) back-of-envelope calculator — three subcommands: **`power-budget`** (active/sleep duty cycle → average current → battery life from a mAh capacity, with the sleep-vs-active share), **`baud`** (UART clock divisor + percent error vs the ~2% per-frame tolerance), **`airtime`** (LoRa time-on-air + duty-cycle headroom: messages/hour + min TX gap under a regulatory cap). Decision-support, not a measurement: a battery life is only as honest as the **measured** sleep current (§4 #8), and the LoRa model is `[verify-at-build]` against the modem/regional plan. `ruff`-clean (F/E9/B/C4/I/UP), `py_compile`-clean, executable. |
+
+---
+
+## 14. Seams to neighbouring plugins
 
 - **`data-streaming-engineering`** + the cloud plugins (`aws-cloud` / `azure-cloud` / `gcp-cloud`) — the telemetry-ingest layer. This plugin emits the device telemetry contract (topics, payload schema, cadence); they ingest and route the stream.
 - **`mobile-engineering`** — the companion-app layer. This plugin defines the on-device BLE/Wi-Fi provisioning + control contract; mobile-engineering builds the app against it.
@@ -166,13 +174,14 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 ---
 
-## 14. Requires & pairs with
+## 15. Requires & pairs with
 
 - **Requires** `ravenclaude-core@>=0.7.0`.
 - **Pairs with** `data-streaming-engineering`, the cloud plugins, and `mobile-engineering` — this plugin is the device layer *below* those cloud/app layers. Installing it alone gives you the firmware architecture, the drivers, and the connectivity/provisioning design but no team to ingest the telemetry or build the app; the cluster is designed to be installed together.
 
 ---
 
-## 15. Milestones
+## 16. Milestones
 
+- **v0.2.0** — depth build-out on the same 3-agent / 3-skill roster (team-growth-as-knowledge, no new agents): best-practices **8 → 12** (added power-is-spent-mostly-in-sleep, watchdog-is-the-last-line-not-the-plan, debuggability-is-designed-in, the-cloud-is-the-layer-above); knowledge bank **→ 5 Mermaid decision trees** (added the peripheral-I/O polling-vs-interrupt-vs-DMA tree) with the dated 2026 capability map retained; a **stdlib calculator** `scripts/embedded_calc.py` (`power-budget` / `baud` / `airtime`); scenarios bank **→ 5 dated field notes** (added the single-bank-OTA-brick and LoRa-duty-cycle notes). Counts reconciled across `plugin.json`, the best-practices/scenarios indexes, and this constitution.
 - **v0.1.0** — initial release: 3 agents (firmware-architect, embedded-engineer, iot-connectivity-engineer), 3 skills, a decision-tree knowledge bank (RTOS-vs-bare-metal + protocol-selection + power/OTA/secure-boot), 8 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The constrained-device / firmware layer below the existing cloud + app cluster.

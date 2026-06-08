@@ -48,6 +48,68 @@ graph TD
 
 _Underwriting loss ratio (claims ÷ premium) is NOT the ACA medical-loss-ratio regulatory test — don't conflate them. Decompose every renewal; "+X%" is not a finding._
 
+## Decision Tree: Is this group an ACA Applicable Large Employer, and what does it owe?
+
+The ALE test gates the employer mandate, affordability, minimum value, and 1095-C/1094-C reporting. Verify the current-year figures.
+
+```mermaid
+graph TD
+  A[Employer mandate / ACA reporting question] --> B{50+ full-time-equivalent employees? verify-at-build}
+  B -- No --> C[Not an ALE - no employer-shared-responsibility; reporting limited unless self-funded]
+  B -- Yes --> D[Applicable Large Employer - mandate applies]
+  C --> E{Self-funded plan?}
+  E -- Yes --> F[Still owes minimum essential coverage reporting for covered individuals verify-at-build]
+  E -- No --> G[Fully-insured small employer - carrier handles much of the reporting]
+  D --> H{Offer affordable, minimum-value coverage to full-time employees + dependents?}
+  H -- No --> I[Exposure to employer-shared-responsibility payment - model the penalty risk; escalate to counsel]
+  H -- Yes --> J{Affordability tested on the LOWEST-cost self-only plan? indexed % verify-at-build}
+  J -- No --> K[Re-test affordability vs the current-year safe harbor before locking contributions]
+  J -- Yes --> L[Compliant - file 1095-C/1094-C on the current-year deadline verify-at-build]
+```
+
+_The ALE count, affordability %, and minimum-value floor are all indexed/dated — `[verify-at-build]` against the current IRS source. Educational scaffolding; ERISA counsel confirms the obligation._
+
+## Decision Tree: HDHP+HSA or a traditional plan for this member/population?
+
+A funded HDHP can be a genuine benefit or a cost-shift dressed as one — the employer HSA contribution and the member's utilization decide which.
+
+```mermaid
+graph TD
+  A[HDHP+HSA vs traditional plan?] --> B{Employer funds the HSA with real seed money?}
+  B -- No --> C[Cost-shift risk - a bare HDHP is a premium cut paid by members at the deductible]
+  B -- Yes --> D{Workforce utilization mix?}
+  C --> E{Hard budget cap forcing it?}
+  E -- Yes --> F[At minimum add a modest HSA seed + offer a traditional choice; model member OOP first]
+  E -- No --> G[Reconsider - the savings come straight out of high-utilizers' pockets]
+  D -- Mostly healthy, low utilizers --> H[Funded HDHP+HSA fits - lower premium + tax-advantaged savings]
+  D -- Mixed / chronic conditions / families --> I[Offer a CHOICE - funded HDHP alongside a PPO/traditional option]
+  H --> J[Verify HDHP min-deductible + max-OOP + HSA caps - all indexed verify-at-build]
+  I --> J
+  F --> J
+```
+
+_An HDHP with no employer HSA contribution is a cost-shift, not a benefit. Model member total cost across a realistic claims distribution; give a mixed workforce a choice. `[verify-at-build]` the indexed HDHP/HSA limits._
+
+## Decision Tree: A qualifying life event hit mid-year — is there a special-enrollment right?
+
+QLE / special-enrollment windows are precise and date-driven; a missed window is a real member harm. Write the rules down.
+
+```mermaid
+graph TD
+  A[Mid-year coverage-change request] --> B{Qualifying life event? marriage/birth/adoption, loss of other coverage, etc.}
+  B -- No --> C[No special-enrollment right - changes wait for open enrollment unless plan allows otherwise]
+  B -- Yes --> D{Within the special-enrollment window? typically 30-60 days, verify plan + current rules}
+  D -- No --> E[Window missed - document; check any narrow exceptions; escalate hardship cases]
+  D -- Yes --> F{Change consistent with the event? consistency rule for pre-tax cafeteria plans}
+  F -- No --> G[Limit the change to what the event supports - the cafeteria-plan consistency rule applies]
+  F -- Yes --> H[Permit the election change - capture proof of the event + the effective date]
+  C --> I{Did the employee also LOSE eligibility? hours drop, termination}
+  I -- Yes --> J[COBRA / continuation rights may trigger - run the notice timing verify-at-build]
+  I -- No --> K[No action beyond standard enrollment]
+```
+
+_Eligibility and special-enrollment windows are rules and a calendar, not vibes — write them down and verify current-year timing. A coverage loss can trigger COBRA; run the notice clock. Educational scaffolding._
+
 ---
 
 ## Reference map (2026, `[verify-at-build]`)

@@ -33,3 +33,6 @@ reviewed: false
 |---|---|---|
 | [`2026-06-08-coordinated-omission-hid-the-tail.md`](2026-06-08-coordinated-omission-hid-the-tail.md) | load-test, coordinated-omission, open-vs-closed, percentiles | `avoid-coordinated-omission`, `open-vs-closed-is-a-choice`, `percentiles-not-averages` |
 | [`2026-06-08-optimized-the-wrong-thing.md`](2026-06-08-optimized-the-wrong-thing.md) | profiling, flame-graph, use-red, off-cpu, bottleneck | `profile-before-you-optimize`, `headroom-is-computed-not-vibed` |
+| [`2026-06-08-the-leak-only-showed-after-six-hours.md`](2026-06-08-the-leak-only-showed-after-six-hours.md) | soak-test, memory-leak, connection-pool, test-the-edges, regression | `test-the-edges-not-just-the-steady-state`, `regression-needs-a-baseline` |
+| [`2026-06-08-the-spike-broke-what-steady-load-didnt.md`](2026-06-08-the-spike-broke-what-steady-load-didnt.md) | spike-test, elasticity, autoscaling, recovery, test-the-edges | `test-the-edges-not-just-the-steady-state`, `prove-the-bottleneck-hand-off-the-fix` |
+| [`2026-06-08-planned-to-the-knee-with-no-headroom.md`](2026-06-08-planned-to-the-knee-with-no-headroom.md) | capacity, littles-law, headroom, failover, saturation-point | `headroom-is-computed-not-vibed`, `prove-the-bottleneck-hand-off-the-fix` |

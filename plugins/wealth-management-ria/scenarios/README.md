@@ -35,3 +35,6 @@ reviewed: false
 |---|---|---|
 | [`2026-06-08-fixed-4pct-broke-on-sequence-risk.md`](2026-06-08-fixed-4pct-broke-on-sequence-risk.md) | withdrawal, sequence-risk, guardrails | `surface-every-assumption`, `not-personalized-investment-advice` |
 | [`2026-06-08-rebalancing-with-no-written-rule.md`](2026-06-08-rebalancing-with-no-written-rule.md) | ips, rebalancing, taxes, discipline | `the-ips-is-the-governing-document`, `rebalancing-is-a-written-rule` |
+| [`2026-06-08-tax-loss-harvest-tripped-the-wash-sale.md`](2026-06-08-tax-loss-harvest-tripped-the-wash-sale.md) | tax-loss-harvesting, wash-sale, asset-location | `after-tax-return-is-the-return` |
+| [`2026-06-08-stale-kyc-broke-the-suitability-basis.md`](2026-06-08-stale-kyc-broke-the-suitability-basis.md) | suitability, kyc, books-and-records, periodic-review | `document-the-suitability-basis` |
+| [`2026-06-08-no-conflicts-was-a-disclosure-failure.md`](2026-06-08-no-conflicts-was-a-disclosure-failure.md) | fiduciary, reg-bi, conflicts, form-adv | `disclose-and-manage-conflicts`, `fiduciary-is-not-reg-bi` |

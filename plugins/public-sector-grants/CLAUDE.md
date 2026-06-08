@@ -129,7 +129,7 @@ Grounding checks performed: <brief note on skills / rules / authority cited befo
 
 | File | Read when |
 |---|---|
-| [`knowledge/public-sector-grants-decision-trees.md`](knowledge/public-sector-grants-decision-trees.md) | Deciding go/no-go on an opportunity, classifying a relationship as sub-recipient vs. contractor, and testing a cost for allowability. Mermaid decision trees + a dated 2026 grant-lifecycle / authority map (Grants.gov, SAM.gov, 2 CFR 200, the single-audit threshold) — `[verify-at-build]` rows. |
+| [`knowledge/public-sector-grants-decision-trees.md`](knowledge/public-sector-grants-decision-trees.md) | Deciding go/no-go on an opportunity, testing a cost for allowability, classifying a relationship as sub-recipient vs. contractor, sourcing a match / cost-share, and clearing a selected item of cost. **5 Mermaid decision trees** + a dated 2026 grant-lifecycle / authority map (Grants.gov, SAM.gov/UEI, 2 CFR 200 Subparts E & F, FFR, the single-audit threshold) — `[verify-at-build]` rows. |
 
 ---
 
@@ -158,6 +158,16 @@ Grounding checks performed: <brief note on skills / rules / authority cited befo
 
 ---
 
+## 12.5 Runnable calculator
+
+| Script | Subcommands | What it computes |
+|---|---|---|
+| [`scripts/grants_calc.py`](scripts/grants_calc.py) (stdlib-only, argparse, ruff-clean, Python 3.9+) | `indirect`, `match`, `budget` | `indirect` — indirect-cost recovery on a Modified Total Direct Cost (MTDC) base, with the 2 CFR 200 exclusions (equipment, capital, the sub-award portion over threshold, participant support) removed *before* the rate is applied; `match` — required cost-share + the shortfall against what's sourced, with an `--of-federal` gross-up from the federal share to the project total; `budget` — category roll-up, each line's % of total, and a personnel line built from FTE × salary × effort%. |
+
+It is a **calculator, not a data source** — the user supplies every input; it reads no grants system, award document, or negotiated indirect-cost-rate agreement (NICRA). Outputs are **decision-support, not an allowability determination**: the rate, the MTDC exclusions, the match-source eligibility (federal funds can't match federal funds), and the budget sign-off route to `grants-compliance-analyst` + the org's authorized official (§3, §4 #12). Re-verify every rate/threshold against the current 2 CFR 200 and the award terms — the de-minimis rate and the sub-award MTDC threshold change `[verify-at-build]`. Its notes echo the decision trees in [`knowledge/public-sector-grants-decision-trees.md`](knowledge/public-sector-grants-decision-trees.md) and the house doctrine in §4.
+
+---
+
 ## 13. Seams to neighbouring plugins
 
 - **`nonprofit-fundraising`** — the donor side. This plugin wins and manages grants (the funder-as-grantor relationship); nonprofit-fundraising cultivates individual donors, major gifts, the annual fund, and events.
@@ -177,3 +187,4 @@ Grounding checks performed: <brief note on skills / rules / authority cited befo
 ## 15. Milestones
 
 - **v0.1.0** — initial release: 3 agents (grant-strategist, proposal-writer, grants-compliance-analyst), 3 skills, a decision-tree knowledge bank (go/no-go + sub-recipient-vs-contractor + cost-allowability), 8 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The funder-side grants discipline, distinct from the donor-side `nonprofit-fundraising`.
+- **v0.2.0** — depth build-out (no agent/skill/command surface change): knowledge bank to **5 Mermaid decision trees** (added go/no-go, match/cost-share sourcing, and selected-items-of-cost alongside cost-allowability and sub-recipient-vs-contractor) with the dated 2026 grant-lifecycle / authority map extended and re-stamped; **12 best-practices** (up from 8); scenarios bank to **5 field notes** (added budget-line-no-narrative, match-pledged-with-federal-dollars, drew-funds-ahead-of-need); and a **runnable calculator** [`scripts/grants_calc.py`](scripts/grants_calc.py) (`indirect` / `match` / `budget`, stdlib-only, ruff-clean). Reconciled the best-practices count (12) and the calculator across plugin.json + this file. CHANGELOG updated.

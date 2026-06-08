@@ -42,6 +42,68 @@ graph TD
 
 _Consent precedes disclosure, every time. A general HIPAA authorization does not cover Part 2 SUD content — that needs its own specific consent. Route any question about what the clinical content *means* to a licensed clinician; this is a consent/operations call, not a clinical one._
 
+## Decision Tree: Which progress-note CPT reflects this session?
+
+The code follows the documented service — time, modality, who was present — never the reimbursement wanted. If the documentation doesn't support it, the code drops.
+
+```mermaid
+graph TD
+  A[Session delivered, ready to code] --> B{Is this an intake / diagnostic evaluation?}
+  B -- Yes --> C[Diagnostic-eval family - confirm code + payer policy verify-at-build]
+  B -- No --> D{Who was present / what modality?}
+  D -- Group --> E[Group-psychotherapy family - confirm code verify-at-build]
+  D -- Family / couple --> F{Client present?}
+  F -- Yes --> G[Family-with-client-present code verify-at-build]
+  F -- No --> H[Family-without-client-present code verify-at-build]
+  D -- Individual --> I{Documented face-to-face time supports which tier?}
+  I -- Time NOT documented --> J[Cannot pick a time-based code - route the gap to documentation, do not guess]
+  I -- Time documented --> K[Pick the time-based individual code matching the documented minutes]
+  K --> L{Delivered via telehealth?}
+  L -- Yes --> M[Add the telehealth modifier + place-of-service per current payer policy verify-at-build]
+  L -- No --> N[Office place-of-service; bill the time-based code]
+```
+
+_Time and modality determine the code; the documentation must support the time. Never upcode. Confirm every code, modifier, and place-of-service against the current CPT set and the specific payer's policy before treating it as final._
+
+## Decision Tree: Is this telehealth visit ready (and billable)?
+
+A telehealth visit fails differently than an in-person one. Treat readiness as a step of the appointment, and confirm the modality is billable before the claim — not after.
+
+```mermaid
+graph TD
+  A[Telehealth visit scheduled] --> B{Is telehealth clinically appropriate for this client?}
+  B -- Clinical question --> C[Route to the clinician - this plugin does not make the clinical call]
+  B -- Confirmed appropriate by clinician --> D{Join link + tech check sent ahead of time?}
+  D -- No --> E[Send link + brief tech check now - a couldnt-connect no-show is preventable]
+  D -- Yes --> F{Client location + modality consent confirmed?}
+  F -- No --> G[Confirm location for licensure / payer / emergency response + consent to modality]
+  F -- Yes --> H{Payer reimburses this service via telehealth this benefit year?}
+  H -- Unknown --> I[Verify telehealth coverage + modifier + POS before billing verify-at-build]
+  H -- No --> J[Re-plan modality or set client expectation on cost before the visit]
+  H -- Yes --> K[Proceed; apply the telehealth modifier + place-of-service on the claim verify-at-build]
+```
+
+_The clinical-appropriateness of telehealth is the clinician's call; the readiness logistics and the billing modality are this plugin's. Confirm the modifier and place-of-service against current payer policy before billing._
+
+## Decision Tree: Is this referral loop closed?
+
+A referral is done when the loop closes — the client reached the destination and that's recorded — not when it's sent. Open loops are where clients fall through.
+
+```mermaid
+graph TD
+  A[Referral created — inbound or outbound] --> B{Is it acknowledged with a name + date owning it?}
+  B -- No --> C[Assign an owner + date - an unowned referral ages silently into a leak]
+  B -- Yes --> D{Has the client reached a terminal state?}
+  D -- Scheduled / connected --> E[Record the landing - loop closed]
+  D -- Declined --> F[Record the decline + reason - loop closed]
+  D -- Lost to contact --> G[Escalate the stall - do not let it age in a queue; record the outreach attempts]
+  D -- Still open --> H{Is which level of care / which clinician a clinical question?}
+  H -- Yes --> I[Route the clinical appropriateness to a licensed clinician]
+  H -- No, purely logistical --> J[Work the next contact step; keep tracking to a terminal state]
+```
+
+_Track every referral to a terminal state (scheduled / declined / lost-to-contact). Which level of care or which clinician is clinically appropriate routes to a clinician; the loop-tracking is operational._
+
 ---
 
 ## Reference map (2026, `[verify-at-build]`)

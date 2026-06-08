@@ -31,5 +31,8 @@ reviewed: false
 
 | File | Tags | Corroborates |
 |---|---|---|
-| [`2026-06-08-backstage-catalog-drift.md`](2026-06-08-backstage-catalog-drift.md) | catalog, ownership, auto-discovery, drift | `the-catalog-is-source-of-truth-or-nothing`, `ownership-is-a-hard-requirement` |
+| [`2026-06-08-backstage-catalog-drift.md`](2026-06-08-backstage-catalog-drift.md) | catalog, ownership, auto-discovery, drift | `catalog-is-source-of-truth-or-nothing`, `ownership-is-a-hard-requirement` |
 | [`2026-06-08-self-service-that-was-a-ticket-queue.md`](2026-06-08-self-service-that-was-a-ticket-queue.md) | self-service, golden-path, guardrails-as-defaults, adoption | `self-service-means-no-human-in-the-loop`, `guardrails-as-defaults-not-gates` |
+| [`2026-06-08-self-hosted-backstage-no-owner.md`](2026-06-08-self-hosted-backstage-no-owner.md) | build-vs-buy, backstage, tco, ownership, portal | `buy-the-undifferentiated-build-the-differentiating`, `ownership-is-a-hard-requirement` |
+| [`2026-06-08-boiling-the-ocean-platform.md`](2026-06-08-boiling-the-ocean-platform.md) | thinnest-viable-platform, cognitive-load, roadmap, scope | `thinnest-viable-platform-first`, `cognitive-load-is-the-metric` |
+| [`2026-06-08-platform-as-tax-mandated-adoption.md`](2026-06-08-platform-as-tax-mandated-adoption.md) | platform-as-product, paved-road, adoption, mandate, devex | `platform-as-product-not-a-tools-backlog`, `paved-road-not-walled-garden`, `measure-adoption-and-outcomes-not-vanity` |

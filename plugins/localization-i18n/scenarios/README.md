@@ -33,3 +33,6 @@ reviewed: false
 |---|---|---|
 | [`2026-06-08-polish-plural-bug.md`](2026-06-08-polish-plural-bug.md) | plurals, icu, cldr, gender-select | `never-assume-english-grammar`, `cldr-intl-is-the-source-of-truth` |
 | [`2026-06-08-manual-tms-copy-paste-drift.md`](2026-06-08-manual-tms-copy-paste-drift.md) | tms, pipeline, pseudo-localization, ci | `translation-is-a-pipeline-not-a-phase`, `pseudo-localize-continuously` |
+| [`2026-06-08-arabic-bidi-name-scramble.md`](2026-06-08-arabic-bidi-name-scramble.md) | rtl, bidi, arabic, isolation, css-logical | `bidi-isolate-interpolated-values`, `translated-is-not-correct` |
+| [`2026-06-08-source-text-key-orphan.md`](2026-06-08-source-text-key-orphan.md) | keys, stable-ids, orphaned-translations, context | `stable-keys-not-source-text`, `context-travels-with-the-string` |
+| [`2026-06-08-missing-locale-raw-key-fallback.md`](2026-06-08-missing-locale-raw-key-fallback.md) | fallback-chain, raw-keys, regional-locales, ci-guard | `fall-back-down-the-locale-chain`, `fail-ci-on-broken-catalogs` |

@@ -12,3 +12,7 @@ Atomic, enforceable rules the cybersecurity-grc agents apply. Each file is one r
 | risk-drives-controls-not-the-reverse | Start from the risk register; no control without a risk |
 | the-soa-exclusion-needs-a-justification | Every 'N/A' needs an auditor-defensible reason |
 | third-party-risk-is-your-risk | Tier vendors, assess proportionally, own shared-responsibility |
+| the-framework-is-a-means-the-risk-is-the-end | Right-size the framework; the risk register wins over the checklist |
+| attest-only-what-you-can-evidence | A narrow honest scope beats a broad scope with gaps; never overstate |
+| read-the-cuecs-not-just-the-opinion | The CUECs + exceptions matter more than the vendor's opinion page |
+| gap-assessment-before-fieldwork-not-during | Find your own findings early; remediate on your timing, not the auditor's |

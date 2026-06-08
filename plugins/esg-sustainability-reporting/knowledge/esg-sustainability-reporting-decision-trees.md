@@ -47,6 +47,67 @@ graph TD
 
 _Double materiality (CSRD) is impact AND financial; ISSB/SEC is financial only; GRI is impact. Name the test, the governance, and the evidence per topic — or it won't survive assurance._
 
+## Decision Tree: Is this Scope-3 category relevant — and included or excluded?
+
+Run this **per category, for all 15** — the exclusion is a documented decision, not a default.
+
+```mermaid
+graph TD
+  A[A Scope-3 category, 1 of 15] --> B{Does the business activity exist at all?<br/>e.g. no franchises, no leased assets}
+  B -- No --> C[Not relevant - document<br/>'no such activity' and move on]
+  B -- Yes --> D{Likely material vs a sourced threshold?<br/>screen with spend/proxy data first}
+  D -- No --> E[Screened out - record the screen,<br/>the threshold, and the proxy used]
+  D -- Yes --> F{A reasonable estimation<br/>method + data available?}
+  F -- No --> G[Include with a data-quality flag +<br/>improvement plan; do NOT silently drop]
+  F -- Yes --> H[Include - calculate, tier the data,<br/>cite factor source/vintage]
+  C --> I[Log every disposition in the<br/>15-category screen table]
+  E --> I
+  G --> I
+  H --> I
+```
+
+_Omitting a material category with no rationale is a defect. The hard categories — 1 purchased goods & services, 11 use of sold products, 15 investments/financed emissions — are usually the largest; dropping them to flatter a "reduction" shrinks the denominator and won't survive assurance._
+
+## Decision Tree: Location-based, market-based, or both for Scope 2?
+
+```mermaid
+graph TD
+  A[Purchased electricity / steam / heat / cooling] --> B[Calculate location-based:<br/>grid-average factor per region - ALWAYS reportable]
+  B --> C{Any contractual instruments?<br/>RECs/GOs, PPAs, green tariffs, supplier-specific}
+  C -- No --> D[Report location-based only;<br/>note no market instruments exist]
+  C -- Yes --> E{Each instrument meets the GHG Protocol<br/>Scope-2 market-based quality criteria?}
+  E -- Some fail --> F[Failing instruments default back to the<br/>grid factor; keep the qualifying ones]
+  E -- All pass --> G[Use qualifying instruments for market-based]
+  F --> H[Report BOTH location-based AND market-based;<br/>name every instrument behind the market figure]
+  G --> H
+  H --> I{Offsets in the mix?}
+  I -- Yes --> J[Offsets are NOT a Scope-2 instrument -<br/>report separately, never net into Scope 2]
+  I -- No --> K[Dual figures complete - both traceable]
+```
+
+_Where market-based instruments exist, dual reporting is required — never silently pick one. A footnote does not satisfy it. Offsets are reported separately and never netted into the Scope-2 figure._
+
+## Decision Tree: What assurance level are we building to?
+
+```mermaid
+graph TD
+  A[Disclosure being prepared] --> B{Does a regime/regulator<br/>mandate an assurance level?}
+  B -- Yes --> C{Mandated level today?}
+  C -- Limited --> D{Does the regime escalate<br/>to reasonable on a timeline?}
+  D -- Yes --> E[Build to limited now, design the<br/>controls so reasonable is reachable]
+  D -- No --> F[Build the evidence trail to LIMITED:<br/>analytics + inquiry-weighted]
+  C -- Reasonable --> G[Build to REASONABLE: substantive<br/>testing + controls reliance + deeper trail]
+  B -- No --> H{Voluntary assurance for<br/>investor/insurer/procurement trust?}
+  H -- Yes --> I[Pick the level the audience needs;<br/>limited is the common starting bar]
+  H -- No --> J[No assurance now - still design the trail<br/>so a future engagement is not a rebuild]
+  E --> K[Confirm level BEFORE drafting -<br/>the evidence is built to the bar, not retrofitted]
+  F --> K
+  G --> K
+  I --> K
+```
+
+_Know the target level before drafting — limited and reasonable demand different evidence depth and controls. Building to the wrong bar wastes effort or fails the engagement; an escalating regime means designing reasonable-reachable controls from the start._
+
 ---
 
 ## Reference: GHG Protocol scopes & the 15 Scope-3 categories

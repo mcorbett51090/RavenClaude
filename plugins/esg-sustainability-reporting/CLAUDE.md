@@ -174,6 +174,13 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 ---
 
-## 15. Milestones
+## 15. Runnable calculator
 
-- **v0.1.0** — initial release: 3 agents (esg-reporting-architect, ghg-accounting-analyst, disclosure-and-assurance-lead), 3 skills, a decision-tree knowledge bank (framework crosswalk + GHG scopes + materiality + emission-factor sourcing + assurance levels), 8 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The corporate ESG & sustainability-disclosure layer above the audited ledger, the data pipeline, and the regulatory filing route.
+[`scripts/ghg_calc.py`](scripts/ghg_calc.py) (stdlib only, Python 3.8+; ruff-clean F,E9,B,C4,I,UP) removes arithmetic error from three recurring GHG-inventory tasks: `scope2` (dual location-based vs market-based Scope 2 from kWh × user-supplied factors, with repeatable market instruments and a residual-grid fallback — neither figure silently dropped, §4 #5), `inventory` (sum activity × factor across scopes from a CSV, with a Scope-3 category breakdown, per-scope shares, and a data-quality-tier mix, §4 #4), and `intensity` (emissions per revenue/output, flagged as a ratio not a reduction, §4 #6). **Every emission factor is a user-supplied input** — the tool ships no factor library, no benchmarks, no grid intensities; it does the arithmetic and the dual-Scope-2 / category-rollup structure, and the user owns sourcing and vintaging each factor. It is a **calculator, not a data source**, and renders no assurance or legal opinion (§1, §4 #10). Owned primarily by `ghg-accounting-analyst`.
+
+---
+
+## 16. Milestones
+
+- **v0.2.0** — depth build-out: a runnable stdlib GHG calculator (`scripts/ghg_calc.py` — `scope2` / `inventory` / `intensity`, factors always user-supplied), the best-practices count reconciled to **12** (the v0.1.0 description undercounted them as 8), the knowledge bank confirmed at **5** Mermaid decision trees + the dated 2026 framework map, and the scenarios bank grown to **5** dated field notes (added base-year-drift and assurance-bar-set-too-late; indexed the previously un-indexed Scope-3 cherry-picking note). No agent/skill/command count change.
+- **v0.1.0** — initial release: 3 agents (esg-reporting-architect, ghg-accounting-analyst, disclosure-and-assurance-lead), 3 skills, a decision-tree knowledge bank (framework crosswalk + GHG scopes + materiality + emission-factor sourcing + assurance levels), 12 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The corporate ESG & sustainability-disclosure layer above the audited ledger, the data pipeline, and the regulatory filing route.

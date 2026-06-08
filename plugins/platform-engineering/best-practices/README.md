@@ -14,3 +14,5 @@ Atomic, enforceable rules the platform-engineering agents apply. Each file is on
 | ownership-is-a-hard-requirement | A team owner on every component, enforced at ingestion |
 | measure-adoption-and-outcomes-not-vanity | Paved-road coverage + DORA + DevEx, never vanity counts |
 | golden-path-is-a-versioned-owned-surface | A path has a maintainer, a version, a migration story |
+| buy-the-undifferentiated-build-the-differentiating | Buy portal/catalog/scaffolder; build only the thin opinionated glue, name the TCO |
+| the-build-belongs-to-the-layer-below | Specify the contract; hand the pipeline/cluster/module build to the layer below |

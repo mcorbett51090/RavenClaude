@@ -33,3 +33,6 @@ reviewed: false
 |---|---|---|
 | [`2026-06-08-target-leakage-too-good-to-be-true.md`](2026-06-08-target-leakage-too-good-to-be-true.md) | leakage, cross-validation, evaluation, pipeline | `leakage-is-the-cardinal-sin`, `cross-validate-a-single-split-lies` |
 | [`2026-06-08-notebook-that-wouldnt-reproduce.md`](2026-06-08-notebook-that-wouldnt-reproduce.md) | reproducibility, seeds, environment, data-versioning | `reproducible-or-it-didnt-happen`, `every-finding-carries-its-uncertainty` |
+| [`2026-06-08-accuracy-lied-on-imbalanced-fraud.md`](2026-06-08-accuracy-lied-on-imbalanced-fraud.md) | metric-choice, imbalance, evaluation, precision-recall | `the-metric-must-match-the-decision`, `cross-validate-a-single-split-lies` |
+| [`2026-06-08-mean-imputation-erased-the-signal.md`](2026-06-08-mean-imputation-erased-the-signal.md) | missingness, imputation, eda, feature-engineering | `understand-missingness-before-imputing`, `engineer-features-as-of-prediction-time` |
+| [`2026-06-08-deep-net-that-couldnt-beat-the-mean.md`](2026-06-08-deep-net-that-couldnt-beat-the-mean.md) | baseline, modeling, tabular, deep-learning | `baseline-before-the-fanciest-model`, `profile-before-you-model` |

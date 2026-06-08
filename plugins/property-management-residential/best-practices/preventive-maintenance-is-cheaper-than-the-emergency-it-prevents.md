@@ -1,0 +1,3 @@
+# Preventive maintenance is cheaper than the emergency it prevents
+
+A scheduled filter change, a fall HVAC service, a gutter clear, a water-heater flush, a roof inspection — each is a planned, cheap, off-peak job that pre-empts the after-hours emergency, the habitability event, and the cascade damage that follow a deferred one. A no-heat call in January is far more expensive than the autumn furnace service that would have caught it, and it carries a habitability duty the planned job never does. Run preventive maintenance on a calendar tied to each asset's service interval, log every visit, and treat a skipped PM cycle as a deferred decision with a reason and a revisit date — never a silent drop. PM is the cheapest line item that buys down the most expensive ones.

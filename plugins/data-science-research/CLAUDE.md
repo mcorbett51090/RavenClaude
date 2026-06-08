@@ -156,6 +156,17 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 ---
 
+## 12a. Best-practices, scenarios & runnable calculator
+
+- **Best-practices (12)** — [`best-practices/`](best-practices/) holds the long-form rationale behind the §4 house opinions: `split-before-you-touch-the-data`, `leakage-is-the-cardinal-sin`, `cross-validate-a-single-split-lies`, `the-metric-must-match-the-decision`, `baseline-before-the-fanciest-model`, `profile-before-you-model`, `plot-distributions-not-just-summary-statistics`, `understand-missingness-before-imputing`, `engineer-features-as-of-prediction-time`, `every-finding-carries-its-uncertainty`, `reproducible-or-it-didnt-happen`, and `generate-hypotheses-dont-decide-significance` (the last keeps the significance/inference seam pointing at `applied-statistics`). Index: [`best-practices/README.md`](best-practices/README.md).
+- **Scenarios bank (5)** — [`scenarios/`](scenarios/) holds dated, scope-tagged, **unverified** field notes (`reviewed: false`, the 9-field schema), surfaced only behind the mandatory unverified-scenario preamble and never overriding the cited knowledge bank or best-practices. Index: [`scenarios/README.md`](scenarios/README.md).
+
+| Tool | What it runs |
+|---|---|
+| **Runnable calculator** — [`scripts/ds_calc.py`](scripts/ds_calc.py) | Stdlib-only (Python 3.8+, **no numpy/pandas/scikit-learn**) evaluation calculator. `classification-metrics` (precision/recall/F1/accuracy from a confusion matrix + an imbalance warning), `regression-metrics` (MAE/RMSE/R2 from paired `y_true`/`y_pred` + a mean-baseline RMSE comparison), `split-check` (train/val/test ratio sanity + class-balance / minority-count warnings). A **calculator, not a data source** — the agent emits the command for the consultant to run; each subcommand carries the house reminder it enforces (cross-validate; baseline first; split before you touch the data). |
+
+---
+
 ## 13. Seams to neighbouring plugins
 
 - **`applied-statistics`** — owns the significance call. This plugin generates the hypothesis and the descriptive picture; applied-statistics decides whether the effect is statistically real (p-values, confidence intervals, power, multiple-comparison correction).
@@ -177,3 +188,4 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 ## 15. Milestones
 
 - **v0.1.0** — initial release: 3 agents (exploratory-data-scientist, feature-and-modeling-engineer, research-reproducibility-engineer), 3 skills, a decision-tree knowledge bank (EDA-before-modeling + model-selection + leakage-safe-evaluation + reproducibility), 8 best-practices, 3 commands, 2 templates, 1 advisory hook, CHANGELOG. The exploratory-data-science & reproducible-research layer between the data and decision/production layers.
+- **v0.2.0** — value-add build-out (no agent/skill/command/template count change): best-practices **8 → 12** (added split-before-you-touch-the-data, the-metric-must-match-the-decision, understand-missingness-before-imputing, generate-hypotheses-dont-decide-significance), the decision-tree bank to **5** Mermaid trees, the scenarios bank **2 → 5** dated field notes (all `reviewed: false`), and `scripts/ds_calc.py` — a stdlib-only (no numpy/pandas) evaluation calculator (`classification-metrics` / `regression-metrics` / `split-check`; ruff- and `py_compile`-clean). Significance/inference still seams to `applied-statistics`.

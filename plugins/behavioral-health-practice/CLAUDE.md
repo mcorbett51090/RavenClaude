@@ -148,6 +148,14 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 ---
 
+## 11a. Runnable calculator
+
+| Script | What it computes |
+|---|---|
+| [`scripts/bh_calc.py`](scripts/bh_calc.py) | Stdlib-only (argparse) operations calculator. `no-show` — no-show / cancellation rate + revenue impact + optional waitlist-backfill recovery; `caseload` — clinician weekly capacity vs. active panel + implied utilization; `auth-tracking` — authorized vs. used sessions, remaining + sessions/weeks before re-auth. Operational decision-support only — **no PHI in inputs**, not clinical/billing-final advice; validate every figure against the schedule, the current CPT set, and the specific payer's policy. Ruff-clean (F,E9,B,C4,I,UP). |
+
+---
+
 ## 12. Advisory hook
 
 [`hooks/check-behavioral-health-practice-anti-patterns.sh`](hooks/check-behavioral-health-practice-anti-patterns.sh) runs `PreToolUse` on `Edit|Write|MultiEdit`. It flags mechanically-detectable anti-patterns (a plaintext-PHI pattern such as an SSN or DOB in an artifact; a disclosure / record-sharing doc with no ROI / consent reference; a Part 2 / substance-use record disclosed without a consent reference; a "self-service" doc that still routes to a ticket). Advisory by default (exit 0, prints a notice); set `BH_STRICT=1` to make it blocking.
@@ -173,4 +181,5 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 ## 15. Milestones
 
+- **v0.2.0** — depth pass (no new agents/skills/commands/templates/hooks): best-practices **8 → 12** (added `telehealth-readiness-is-part-of-the-appointment`, `the-referral-loop-closes-or-it-leaks`, `minimum-necessary-is-the-disclosure-default`; the index now lists all twelve); knowledge bank **2 → 5 Mermaid decision trees** (added which-CPT-reflects-this-session, telehealth-ready-and-billable, referral-loop-closed) with the dated 2026 `[verify-at-build]` reference map retained; scenarios **2 → 5** (auth-ran-out-mid-treatment, telehealth-couldnt-connect, whole-chart-on-a-benefits-request — 9-field schema, `reviewed: false`, zero PHI); and a stdlib **calculator** `scripts/bh_calc.py` (`no-show` / `caseload` / `auth-tracking`, ruff-clean). Same guardrails: operational/documentation support only, never clinical advice, PHI-aware throughout.
 - **v0.1.0** — initial release: 3 agents (practice-operations-lead, clinical-documentation-specialist, billing-and-authorization-lead), 3 skills, a decision-tree knowledge bank (prior-auth-needed + Part 2-disclosable + intake→claim medical-necessity thread), 8 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The operations + documentation layer for an outpatient behavioral / mental-health practice — operational and documentation support only, never clinical advice, PHI-aware throughout.

@@ -1,0 +1,3 @@
+# Permission, consent, and trust are non-negotiable
+
+The channel is borrowed, not owned — burning trust for a short-term number costs the whole channel. Honest unsubscribe (one click, honored immediately), respected cadence, explicit consent for capture, and no dark-pattern gating are floors, not options. A subscriber who can't easily leave hits spam-complaint instead, which tanks deliverability for everyone on the list; a reader tricked into a download remembers the trick, not the brand. Consent is a trust posture, not compliance theater. Anything touching subscriber PII, consent records, or list-data retention routes through `ravenclaude-core/security-reviewer` (+ `data-governance-privacy`) — encode their policy into capture and lifecycle, don't reinvent it.

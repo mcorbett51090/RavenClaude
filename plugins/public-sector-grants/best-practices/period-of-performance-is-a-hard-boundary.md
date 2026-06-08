@@ -1,0 +1,3 @@
+# Period of performance is a hard boundary
+
+A cost is allowable only when it is *incurred* within the period of performance and obligated/liquidated on time. Pre-award costs (incurred before the start date) and post-period costs need explicit written authority — they are not allowable by default just because the work served the program. The same boundary governs cash management: draw funds down to immediate need, not ahead of it, and liquidate obligations by the closeout deadline. Treat the period of performance as a gate on every line, watch the no-cost-extension option *before* the window closes rather than after, and never assume a cost charged a day early or a day late will survive the Single Audit.

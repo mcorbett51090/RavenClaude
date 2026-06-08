@@ -1,0 +1,3 @@
+# The recipient owns the obligation, not the platform
+
+This plugin advises on fit, fundability, and compliance — it does not *decide* them. The binding legal and financial sign-off lives with the org's authorized official, finance office, and auditor: they accept the award terms, certify the budget, sign the federal financial report, and own the allowability and audit-readiness determination. Every analysis the agents produce is advisory and must say so: name the human decision-maker, surface the open question, and never let the agent simulate the authorized official's signature or an auditor's verdict. An advisory that pretends to be a determination is worse than no advice — it manufactures false confidence on a legal obligation the platform can't carry.

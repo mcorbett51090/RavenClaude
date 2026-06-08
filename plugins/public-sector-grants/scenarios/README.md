@@ -33,3 +33,6 @@ reviewed: false
 |---|---|---|
 | [`2026-06-08-chased-an-off-mission-grant.md`](2026-06-08-chased-an-off-mission-grant.md) | go-no-go, fit, sustainability, mission-drift | `fund-the-mission-not-the-money`, `go-no-go-is-a-real-decision` |
 | [`2026-06-08-subrecipient-mistaken-for-a-vendor.md`](2026-06-08-subrecipient-mistaken-for-a-vendor.md) | sub-recipient, monitoring, single-audit, uniform-guidance | `allowable-allocable-reasonable-all-three`, `cite-the-authority-not-a-memory` |
+| [`2026-06-08-budget-line-with-no-narrative-drew-a-finding.md`](2026-06-08-budget-line-with-no-narrative-drew-a-finding.md) | budget-narrative, allowability, indirect-rate, documentation, single-audit | `budget-is-a-narrative-in-numbers`, `compliance-starts-at-the-proposal` |
+| [`2026-06-08-match-pledged-with-federal-dollars.md`](2026-06-08-match-pledged-with-federal-dollars.md) | match, cost-share, in-kind, allowability, go-no-go, single-audit | `compliance-starts-at-the-proposal`, `go-no-go-is-a-real-decision` |
+| [`2026-06-08-drew-funds-ahead-of-need.md`](2026-06-08-drew-funds-ahead-of-need.md) | drawdown, cash-management, period-of-performance, reporting, single-audit | `period-of-performance-is-a-hard-boundary`, `cite-the-authority-not-a-memory` |

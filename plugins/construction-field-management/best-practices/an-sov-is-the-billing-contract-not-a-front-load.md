@@ -1,0 +1,3 @@
+# The SOV is the billing contract, not a front-load
+
+The schedule of values breaks the contract sum into billable line items tied to the cost codes, and the G703 continuation sheet bills against it month over month. Modest front-loading of early line items is normal and helps cash flow; abusive front-loading — billing completed-work percentages well ahead of installed value — gets the draw rejected, erodes the owner's and architect's trust, and leaves too little value in the late line items to bill. Build the SOV so each line maps to a cost code and a verifiable percent-complete, name the front-loading judgment honestly rather than hiding it, and keep stored materials and retainage as their own explicit lines so the pay app reconciles cleanly.

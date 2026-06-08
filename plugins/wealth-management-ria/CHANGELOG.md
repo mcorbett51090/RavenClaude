@@ -3,6 +3,31 @@
 All notable changes to this plugin are documented here. Versioning is semver; the version in
 `.claude-plugin/plugin.json` and the marketplace catalog entry are kept in lockstep (CI fails on drift).
 
+## 0.2.0 — 2026-06-08
+
+Depth pass — no new agents (team-growth-as-knowledge), still **explicitly not
+personalized investment advice**.
+
+- **Best-practices 8 → 12** — added `fiduciary-is-not-reg-bi`,
+  `disclose-and-manage-conflicts`, `document-the-suitability-basis`, and
+  `confirm-the-client-specific-facts`, deepening the fiduciary/suitability/conflicts
+  surface. README index reconciled.
+- **Decision trees → 5** — the knowledge bank now carries five Mermaid trees
+  (tax-aware account-funding order, retirement withdrawal strategy,
+  calendar-vs-threshold rebalancing, asset-location & tax-loss harvesting,
+  education-vs-personalized-advice & which standard) plus the dated 2026 reference map.
+- **Scenarios bank 3 → 5** — added `2026-06-08-stale-kyc-broke-the-suitability-basis`
+  and `2026-06-08-no-conflicts-was-a-disclosure-failure` (dated, scope-tagged,
+  `reviewed: false`, no client PII). README index reconciled.
+- **Runnable calculator** — new `scripts/ria_calc.py` (stdlib only, Python 3.8+,
+  ruff-clean): `withdrawal` (safe-withdrawal start + Guyton-Klinger-style guardrails
+  from portfolio + spend + horizon), `rebalance` (drift vs IPS targets → BUY/SELL
+  trade list against a tolerance band), `allocation` (risk-tier + glidepath target
+  equity/bond frame with a 110-age cross-check). Decision-support over USER inputs,
+  **not** advice; the user supplies every input.
+- No migration impact — additive only. Existing agents, skills, commands, templates,
+  and the advisory hook are unchanged.
+
 ## 0.1.0 — 2026-06-08
 
 Initial release. The personal financial-advisory / RIA-practice layer — educational and operational

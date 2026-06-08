@@ -33,3 +33,6 @@ reviewed: false
 |---|---|---|
 | [`2026-06-08-scope-2-single-method.md`](2026-06-08-scope-2-single-method.md) | scope-2, market-based, location-based, dual-reporting, emission-factors | `dual-report-scope-2-never-silently-one`, `cite-framework-clause-factor-and-boundary` |
 | [`2026-06-08-materiality-survey-not-a-determination.md`](2026-06-08-materiality-survey-not-a-determination.md) | materiality, double-materiality, csrd, governance, assurance | `materiality-is-a-determination-not-a-vibe`, `scope-before-you-calculate` |
+| [`2026-06-08-scope-3-cherry-picked-categories.md`](2026-06-08-scope-3-cherry-picked-categories.md) | scope-3, materiality, financed-emissions, boundary, assurance | `screen-all-15-scope-3-categories`, `greenwashing-is-a-reporting-failure` |
+| [`2026-06-08-base-year-drift-broke-the-trend.md`](2026-06-08-base-year-drift-broke-the-trend.md) | base-year, recalculation, structural-change, emission-factors, trend, assurance | `base-year-is-a-commitment`, `cite-framework-clause-factor-and-boundary` |
+| [`2026-06-08-assurance-bar-set-too-late.md`](2026-06-08-assurance-bar-set-too-late.md) | assurance, limited-assurance, reasonable-assurance, evidence-trail, controls, csrd | `the-assurance-level-shapes-the-work-from-the-start`, `every-number-is-assurable-or-a-liability` |

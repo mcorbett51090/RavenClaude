@@ -126,7 +126,7 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 | File | Read when |
 |---|---|
-| [`knowledge/legal-ops-clm-decision-trees.md`](knowledge/legal-ops-clm-decision-trees.md) | Deciding whether a contract is self-serve or must escalate to a lawyer, and whether a renewal should auto-renew, be renegotiated, or be exited. Mermaid decision trees + a dated 2026 CLM/e-signature capability map — `[verify-at-build]` rows. |
+| [`knowledge/legal-ops-clm-decision-trees.md`](knowledge/legal-ops-clm-decision-trees.md) | Deciding whether a contract is self-serve or must escalate, whether a renewal should auto-renew / be renegotiated / be exited, which intake queue a request lands in, whether a redline change is flagged / noted / escalated, and whether an obligation is tracked or flagged. **5** Mermaid decision trees + a dated 2026 CLM/e-signature capability map — `[verify-at-build]` rows. |
 
 ---
 
@@ -173,6 +173,13 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 ---
 
-## 15. Milestones
+## 15. Runnable calculator
+
+- **Runnable calculator** — [`scripts/clm_calc.py`](scripts/clm_calc.py) (stdlib only, Python 3.8+, argparse) removes arithmetic error from three recurring CLM date checks: `renewal-window` (expiry + the **notice deadline** — the actionable date — + tiered 90/60/30 auto-renew alert dates, computed from an effective date + term + notice period; flags a closed window), `cycle-time` (intake→signed duration in **business** days, weekend/holiday-aware, with a per-class SLA breach flag), `obligation-aging` (days-to-due buckets: overdue / 0-30 / 31-60 / 61-90 / 90+). It is a **calculator, not a data source** — the user supplies every date; it does the arithmetic and shows the formula. Outputs are operational decision-support, **NOT** legal advice (§4 #1): a notice-deadline projection is arithmetic, but the binding notice terms (how notice must be given, what counts as "before expiry", time zones) are a lawyer's call (§4 #9). Owned primarily by `obligations-and-renewals-analyst` (renewal-window, obligation-aging) and `legal-ops-lead` (cycle-time). Ruff-clean (`F,E9,B,C4,I,UP`), `py_compile`-clean.
+
+---
+
+## 16. Milestones
 
 - **v0.1.0** — initial release: 3 agents (legal-ops-lead, contract-review-specialist, obligations-and-renewals-analyst), 3 skills, a decision-tree knowledge bank (self-serve-vs-escalate + renew-renegotiate-exit) with a dated 2026 CLM/e-signature capability map, 8 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The operational/process layer of a corporate legal function and contract lifecycle management — explicitly *not legal advice*.
+- **v0.2.0** — depth build-out: best-practices 8 → **12** (added the-key-clauses-carry-the-risk, the-repository-is-a-schema-not-a-drawer, ambiguity-is-a-flag-not-a-guess, cycle-time-is-measured-in-business-days); knowledge bank 2 → **5** Mermaid decision trees (added intake-triage, redline flag/note/escalate, obligation track-or-flag) alongside the kept dated 2026 CLM map; scenarios bank 2 → **5** field notes (added redline-escalated-every-comma, repository-was-a-folder-drawer, obligation-leaked-after-signature); and a stdlib **`scripts/clm_calc.py`** (renewal-window / cycle-time / obligation-aging). Still 3 agents / 3 skills — team growth shipped as knowledge, rules, scenarios, and tooling, not new agents. Still explicitly *not legal advice*.

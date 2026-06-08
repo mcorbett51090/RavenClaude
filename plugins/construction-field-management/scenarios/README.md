@@ -33,3 +33,6 @@ reviewed: false
 |---|---|---|
 | [`2026-06-08-rfi-answer-built-before-it-was-priced.md`](2026-06-08-rfi-answer-built-before-it-was-priced.md) | rfi, change-order, unpriced-work, claim | `nothing-gets-built-unpriced-or-uninspected`, `ball-in-court-is-the-unit-of-progress` |
 | [`2026-06-08-submittal-surfaced-the-week-of-install.md`](2026-06-08-submittal-surfaced-the-week-of-install.md) | submittals, lead-time, schedule, document-control | `schedule-submittals-backward-from-the-install`, `field-builds-off-one-current-set` |
+| [`2026-06-08-under-budget-until-the-ctc-landed.md`](2026-06-08-under-budget-until-the-ctc-landed.md) | cost-report, cost-to-complete, commitments, change-order | `cost-report-needs-a-cost-to-complete`, `an-sov-is-the-billing-contract-not-a-front-load` |
+| [`2026-06-08-generic-toolbox-talk-on-a-confined-space-day.md`](2026-06-08-generic-toolbox-talk-on-a-confined-space-day.md) | safety, jha, toolbox-talk, confined-space, osha | `safety-is-planned-per-task-osha-is-the-floor`, `contemporaneous-records-win-disputes` |
+| [`2026-06-08-substantial-completion-held-the-retainage.md`](2026-06-08-substantial-completion-held-the-retainage.md) | closeout, retainage, punch-list, substantial-completion | `closeout-is-a-package-that-releases-retainage`, `a-punch-list-goes-to-zero` |

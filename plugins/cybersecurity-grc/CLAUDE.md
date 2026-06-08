@@ -129,7 +129,7 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 | File | Read when |
 |---|---|
-| [`knowledge/cybersecurity-grc-decision-trees.md`](knowledge/cybersecurity-grc-decision-trees.md) | Choosing which framework to pursue first, deciding Type I vs Type II, tiering a vendor and choosing the assessment depth, and scoping the audit boundary. Mermaid decision trees + a dated 2026 framework/reference map (SOC 2 TSC / ISO 27001 Annex A / NIST CSF 2.0 / 800-53 / SIG / CAIQ) — `[verify-at-build]` rows. |
+| [`knowledge/cybersecurity-grc-decision-trees.md`](knowledge/cybersecurity-grc-decision-trees.md) | Choosing which framework to pursue first, deciding Type I vs Type II, tiering a vendor and choosing the assessment depth, scoping the audit boundary, and selecting a risk treatment. **5 Mermaid decision trees** + a dated 2026 framework/reference map (SOC 2 TSC / ISO 27001 Annex A / NIST CSF 2.0 / 800-53 / SIG / CAIQ) — `[verify-at-build]` rows. |
 
 ---
 
@@ -158,6 +158,16 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 ---
 
+## 12.5 Runnable calculator
+
+| Script | Subcommands | What it computes |
+|---|---|---|
+| [`scripts/grc_calc.py`](scripts/grc_calc.py) (stdlib-only, argparse, ruff-clean, Python 3.9+) | `risk-score`, `control-coverage`, `audit-readiness` | `risk-score` — likelihood × impact → inherent risk score + band, then residual after a control's effectiveness (%); `control-coverage` — % of applicable framework controls with operating evidence → a readiness band; `audit-readiness` — Type II observation-period coverage (evidenced days / required days) → a ready / short-window / gap verdict. |
+
+It is a **calculator, not a data source** — the user supplies every input; it reads no GRC platform, risk register, or evidence store. Outputs are decision-support, not an audit verdict; the scope / attestation / accept-the-residual call routes to `grc-architect` + sign-off (§3). Its bands mirror the decision trees in [`knowledge/cybersecurity-grc-decision-trees.md`](knowledge/cybersecurity-grc-decision-trees.md) and the house doctrine in §4.
+
+---
+
 ## 13. Seams to neighbouring plugins
 
 - **`security-engineering`** — the AppSec / secure-coding / threat-modeling layer. This plugin says a control objective requires a secure SDLC or a threat-modeled design; security-engineering judges the code and the design.
@@ -177,4 +187,5 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 ## 15. Milestones
 
-- **v0.1.0** — initial release: 3 agents (grc-architect, control-and-evidence-engineer, audit-and-third-party-risk-lead), 3 skills, a decision-tree knowledge bank (framework-selection + Type I/II + vendor-tiering + scoping) + a dated 2026 framework map, 8 best-practices, 3 commands, 2 templates (Statement of Applicability, risk register), 1 advisory hook, a scenarios bank, CHANGELOG. The security-compliance program layer above the technical-control plugins.
+- **v0.1.0** — initial release: 3 agents (grc-architect, control-and-evidence-engineer, audit-and-third-party-risk-lead), 3 skills, a decision-tree knowledge bank (framework-selection + Type I/II + vendor-tiering + scoping) + a dated 2026 framework map, 12 best-practices, 3 commands, 2 templates (Statement of Applicability, risk register), 1 advisory hook, a scenarios bank (2 field notes), CHANGELOG. The security-compliance program layer above the technical-control plugins.
+- **v0.2.0** — depth build-out (no agent/skill/command surface change): knowledge bank to **5 Mermaid decision trees** (added vendor-assessment-depth, audit-boundary scoping, risk-treatment selection) with the dated 2026 framework map extended (vendor-tiering, residual-risk, Type II observation-period rows); scenarios bank to **5 field notes** (added scope-creep, parallel-control-sets, no-gap-assessment); a **runnable calculator** [`scripts/grc_calc.py`](scripts/grc_calc.py) (`risk-score` / `control-coverage` / `audit-readiness`, stdlib-only, ruff-clean); and reconciled the best-practices count to 12 across plugin.json + this file. CHANGELOG updated.

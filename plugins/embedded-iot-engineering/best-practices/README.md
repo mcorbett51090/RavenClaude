@@ -12,3 +12,7 @@ Atomic, enforceable rules the embedded-iot-engineering agents apply. Each file i
 | per-device-identity-never-a-shared-secret | Unique identity per device, provisioned at manufacture/first boot |
 | pick-the-radio-by-the-power-range-budget | The budget picks BLE/LoRa/Wi-Fi/mesh, not familiarity |
 | real-time-is-provably-bounded | Meet deadlines by worst-case analysis, not by hoping |
+| power-is-spent-mostly-in-sleep | Battery life is sleep current × duty cycle — design sleep first |
+| watchdog-is-the-last-line-not-the-plan | Kick from a health check that proves progress, never blindly |
+| debuggability-is-designed-in | Fault handler + retained-RAM logs + reset cause, designed up front |
+| the-cloud-is-the-layer-above | Define the telemetry/provisioning contract; hand the build upward |

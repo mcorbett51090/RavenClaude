@@ -130,7 +130,13 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 | File | Read when |
 |---|---|
-| [`knowledge/localization-i18n-decision-trees.md`](knowledge/localization-i18n-decision-trees.md) | Choosing an i18n library/framework, designing the translation-key strategy, getting ICU plural/select right, handling RTL, and shaping the TMS workflow. Mermaid decision trees + a dated 2026 capability map (i18next / FormatJS / gettext / Fluent / Crowdin / Lokalise / Phrase / ICU / CLDR) — `[verify-at-build]` rows. |
+| [`knowledge/localization-i18n-decision-trees.md`](knowledge/localization-i18n-decision-trees.md) | Choosing an i18n library/framework, designing the translation-key strategy, picking the catalog file format, getting ICU plural/select right, handling RTL, and shaping the TMS workflow. **5 Mermaid decision trees** (library choice, key strategy, catalog format, RTL/bidi, TMS workflow) + a dated 2026 capability map (i18next / FormatJS / gettext / Fluent / Crowdin / Lokalise / Phrase / ICU / CLDR) — `[verify-at-build]` rows. |
+
+### Runnable calculator
+
+| Item | What it does |
+|---|---|
+| [`scripts/i18n_calc.py`](scripts/i18n_calc.py) | Stdlib-only (Python 3.8+, argparse — no ICU4X/CLDR-data/TMS-SDK dependency), ruff-clean (F/E9/B/C4/I/UP). Three subcommands: **`pseudo`** (pseudo-localize a string — accent + ~30-40% pad + bracket, with `{…}`/`%s` placeholders passed through untouched), **`expansion`** (estimate target-language length growth and flag truncation risk against a UI width — short-string surcharge included), **`plural-coverage`** (check an ICU plural set covers the CLDR cardinal categories a locale requires — Polish needs one/few/many/other, Arabic all six). A **calculator, not a CLDR mirror**: the plural + expansion tables are dated and `[verify-at-build]` — the agent emits the command and re-grounds the numbers against `Intl.PluralRules` / live CLDR before quoting them. Mirrors `pseudo-localize-continuously`, `translated-is-not-correct`, and `never-assume-english-grammar`. |
 
 ---
 
@@ -179,4 +185,5 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 ## 15. Milestones
 
-- **v0.1.0** — initial release: 3 agents (i18n-architect, localization-engineer, localization-qa), 3 skills, a decision-tree knowledge bank (library choice + key strategy + ICU plural/select + RTL + TMS workflow), 8 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The software & content localization-engineering layer across the existing UI/docs/design cluster.
+- **v0.2.0** — depth pass: reconciled the best-practices count to the **12** rules already on disk (the index and files were complete; the metadata said 8); documented the knowledge bank's **5 Mermaid decision trees** explicitly + refreshed the dated 2026 capability map; added a **runnable `scripts/i18n_calc.py` calculator** (`pseudo` / `expansion` / `plural-coverage`, stdlib-only, ruff-clean); grew the **scenarios bank to 5 field notes** (added RTL-bidi-scramble, source-text-key-orphan, missing-locale-raw-key-fallback). No new agents/skills/commands.
+- **v0.1.0** — initial release: 3 agents (i18n-architect, localization-engineer, localization-qa), 3 skills, a decision-tree knowledge bank (library choice + key strategy + ICU plural/select + RTL + TMS workflow), 12 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The software & content localization-engineering layer across the existing UI/docs/design cluster.

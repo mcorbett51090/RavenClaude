@@ -42,6 +42,61 @@ graph TD
 
 _A renewal decision is uniform and documented: the same market-vs-in-place + turn-cost logic for every unit. Steering a renewal/non-renewal by anything protected-class-adjacent is a fair-housing flag, not a judgment call._
 
+## Decision Tree: Delinquency — where on the collections ladder?
+
+One dated ladder, applied identically to every account. Selective enforcement ("let the good tenant slide") is both a fair-housing and a financial-control risk; the legal rungs flag to counsel, they are not executed as if the legality were settled.
+
+```mermaid
+graph TD
+  A[Balance past due] --> B{Same ladder applied to ALL delinquent accounts?}
+  B -- No --> C[FIX FIRST - selective enforcement is a fair-housing + financial-control risk; never proceed selectively]
+  B -- Yes --> D{How far past due?}
+  D -- Grace / just late --> E[REMINDER - friendly notice; record date]
+  D -- Past grace --> F[LATE NOTICE + late fee per lease - record date & criterion]
+  D -- Notice ignored --> G[FLAG to counsel: pay-or-quit / demand notice - legality, form & timing are a counsel call, not adjudicated here]
+  G --> H{Cured / paid?}
+  H -- Yes --> I[CLOSE - log the dated resolution]
+  H -- No --> J[FLAG to counsel for eviction-filing posture; assess charge-off vs still-collectible separately]
+```
+
+_Each rung is dated and recorded; the pay-or-quit and eviction rungs are flagged to counsel, not run as settled law. A balance that doesn't reconcile to the ledger is a rent-roll data-integrity problem before it is a collections problem — fix the rent roll first._
+
+## Decision Tree: Move-out — security-deposit deduction or normal wear?
+
+Deductions rest on a documented condition record and the wear-vs-damage line; the deduction's *legality* (itemization rules, timelines, allowable charges) is jurisdiction-specific law that flags to counsel.
+
+```mermaid
+graph TD
+  A[Notice given / move-out] --> B[Turn clock STARTS NOW - at notice, not when empty]
+  B --> C{Move-in condition record on file?}
+  C -- No --> D[Weakened basis - document current condition; flag that deductions without a baseline are hard to defend]
+  C -- Yes --> E{Condition beyond normal wear-and-tear?}
+  E -- Normal wear --> F[NO deduction - paint/carpet life, minor marks are the owner's cost]
+  E -- Damage / unpaid charges --> G{Cost documented with photos + receipts/estimates?}
+  G -- No --> H[Document first - an undocumented deduction is an indefensible deduction]
+  G -- Yes --> I[FLAG to counsel: itemization, deposit-return timeline & allowable charges are jurisdiction law - THEN itemize within them]
+```
+
+_Wear-and-tear vs. damage and the deduction itemization are operational; the deposit-return timeline, the allowable-charge list, and the penalty for getting it wrong are counsel questions. Document the condition and the reason for every deduction, dated._
+
+## Decision Tree: Vacancy & turn — minimize days-vacant
+
+Every day vacant is unrecoverable revenue. The turn clock starts at notice; market the unit before it empties; sequence the turn so it doesn't gate the lease-up.
+
+```mermaid
+graph TD
+  A[Notice to vacate received] --> B[Start turn clock + begin pre-marketing NOW - do not wait for the unit to empty]
+  B --> C{Renew-vs-raise already evaluated?}
+  C -- No --> D[Run the renewal tree first - retaining a good tenant often beats turn + vacancy loss]
+  C -- Yes / non-renewing --> E{Unit make-ready scope known?}
+  E -- No --> F[Walk + scope the turn; classify each line opex (turn) vs capex (renovation) - capex stays out of NOI]
+  E -- Yes --> G{Any habitability/safety item in the scope?}
+  G -- Yes --> H[Those route through maintenance triage as priority - a turn never ships an unsafe/uninhabitable unit]
+  G -- No --> I[Sequence turn to finish AT lease-up, not before - measure days-vacant against vacancy-loss, not turn-cost alone]
+```
+
+_The turn clock starts at notice, not at empty; pre-market against the vacancy-loss number, not turn-cost in isolation. Renovation-grade turn lines are capex and stay out of NOI — route the opex/capex line to `finance` when it's a books question._
+
 ---
 
 ## Reference map (2026, `[verify-at-build]`)

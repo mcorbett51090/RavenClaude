@@ -3,6 +3,29 @@
 All notable changes to this plugin are documented here. Versioning is semver; the version in
 `.claude-plugin/plugin.json` and the marketplace catalog entry are kept in lockstep (CI fails on drift).
 
+## 0.2.0 — 2026-06-08
+
+Depth build-out to the v0.2.0 standard. No agent/skill count change (still 3 agents, 3 skills);
+the surface deepened around them.
+
+- **12 best-practices** (was 8) — added `lot-size-trades-setup-against-holding`,
+  `safety-stock-is-a-decision-not-a-default`, `the-bom-must-match-as-built`, and
+  `no-silent-regulated-sign-off`; `best-practices/README.md` indexes all 12.
+- **Knowledge bank — 5 Mermaid decision trees** (was 3): added *how-do-I-size-this-lot
+  (setup vs holding, constraint-aware)* and *where-does-this-nonconformance-disposition-stop
+  (draft vs human sign-off)* alongside plan-to-constraint, TOC bottleneck, and
+  special-vs-common-cause; the dated 2026 method/standard map (`[verify-at-build]`) extended.
+- **Runnable calculator** — `scripts/mfg_calc.py` (stdlib only, Python 3.8+, ruff-clean on
+  F,E9,B,C4,I,UP): `oee` (Availability x Performance x Quality with stated denominators +
+  six-big-losses + sandbagged-ideal warning), `takt` (available time / demand vs cycle time),
+  `capacity` (MRP net requirement + load vs finite/bottleneck capacity). A calculator, not a
+  data source — every formula and denominator is printed and cited to a best-practice.
+- **Scenarios bank — 5 dated field notes** (was 2): added *schedule that ignored the
+  constraint* (infinite-capacity planning), *building ahead of takt* (over-production), and
+  *tampering with a stable process* (special vs common cause). 9-field schema, `reviewed: false`.
+- CLAUDE.md milestone + count reconciliation; plugin.json bumped 0.1.0 → 0.2.0 with the
+  best-practices count corrected to 12.
+
 ## 0.1.0 — 2026-06-08
 
 Initial release. The plan / make / control operations layer for discrete and process manufacturing.

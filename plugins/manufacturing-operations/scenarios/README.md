@@ -33,3 +33,6 @@ reviewed: false
 |---|---|---|
 | [`2026-06-08-oee-that-was-inflated.md`](2026-06-08-oee-that-was-inflated.md) | oee, denominators, six-big-losses, bottleneck, toc | `oee-denominators-must-be-defined`, `the-bottleneck-sets-the-rate` |
 | [`2026-06-08-capa-that-was-just-scrap.md`](2026-06-08-capa-that-was-just-scrap.md) | capa, ncr, root-cause, preventive-action, spc | `containment-is-not-a-capa`, `prevention-beats-detection-beats-scrap` |
+| [`2026-06-08-schedule-that-ignored-the-constraint.md`](2026-06-08-schedule-that-ignored-the-constraint.md) | mrp, mps, capacity, bottleneck, toc, infinite-capacity | `plan-to-the-constraint-not-infinite-capacity`, `lot-size-trades-setup-against-holding` |
+| [`2026-06-08-building-ahead-of-takt.md`](2026-06-08-building-ahead-of-takt.md) | takt, cycle-time, over-production, wip, throughput | `produce-to-takt-not-to-machine-speed`, `the-bottleneck-sets-the-rate` |
+| [`2026-06-08-tampering-with-a-stable-process.md`](2026-06-08-tampering-with-a-stable-process.md) | spc, control-chart, special-cause, common-cause, tampering | `special-cause-before-you-react`, `state-the-assumptions-behind-every-number` |

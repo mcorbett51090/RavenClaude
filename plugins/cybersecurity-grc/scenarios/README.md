@@ -32,4 +32,7 @@ reviewed: false
 | File | Tags | Corroborates |
 |---|---|---|
 | [`2026-06-08-evidence-screenshot-fire-drill.md`](2026-06-08-evidence-screenshot-fire-drill.md) | evidence, ccm, type-ii, operating-effectiveness | `evidence-is-a-system-not-a-fire-drill`, `a-control-has-three-states` |
-| [`2026-06-08-vendor-soc2-taken-at-face-value.md`](2026-06-08-vendor-soc2-taken-at-face-value.md) | tprm, vendor-risk, shared-responsibility, soc2-exceptions | `third-party-risk-is-your-risk` |
+| [`2026-06-08-vendor-soc2-taken-at-face-value.md`](2026-06-08-vendor-soc2-taken-at-face-value.md) | tprm, vendor-risk, shared-responsibility, soc2-exceptions | `third-party-risk-is-your-risk`, `read-the-cuecs-not-just-the-opinion` |
+| [`2026-06-08-scope-creep-blew-the-soc2-budget.md`](2026-06-08-scope-creep-blew-the-soc2-budget.md) | scope, audit-boundary, soc2, cost | `scope-is-the-highest-leverage-decision` |
+| [`2026-06-08-parallel-control-sets-doubled-the-work.md`](2026-06-08-parallel-control-sets-doubled-the-work.md) | crosswalk, map-once-attest-many, iso-27001 | `map-once-attest-many` |
+| [`2026-06-08-no-gap-assessment-meant-fieldwork-surprises.md`](2026-06-08-no-gap-assessment-meant-fieldwork-surprises.md) | gap-assessment, audit-readiness, fieldwork, remediation | `gap-assessment-before-fieldwork-not-during` |

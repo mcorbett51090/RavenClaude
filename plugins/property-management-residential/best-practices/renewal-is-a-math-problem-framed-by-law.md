@@ -1,0 +1,3 @@
+# Renewal is a math problem framed by law
+
+The renew-vs-raise-vs-non-renew decision is decided by numbers: in-place rent vs. market, weighed against the cost of a turn plus vacancy loss plus re-lease risk. Retaining a good paying tenant usually beats the turn-plus-vacancy gap, so a modest raise toward market often wins over a full reset that triggers a move-out. Apply the *same* market-vs-in-place + turn-cost logic to every unit so the decision is uniform and documented, never per-tenant judgment. The *math* is the agent's job; the *legality* — a rent-increase cap, a rent-control or notice rule, the legality of a non-renewal — is always a flag-and-route to counsel, set the number only inside the rules counsel confirms.

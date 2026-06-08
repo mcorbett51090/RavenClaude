@@ -12,3 +12,7 @@ Atomic, enforceable rules the insurance-life-health-benefits agents apply. Each 
 | loss-ratio-is-not-the-mlr | The underwriting loss ratio is not the ACA MLR test |
 | benefits-are-a-system-not-a-pile | Choose the lines together; flag the disability-income gap |
 | compliance-is-a-calendar-not-a-scramble | Written eligibility rules + a standing filing calendar |
+| contribution-strategy-shapes-enrollment | The premium split drives take-up and the risk pool, not just cost |
+| stop-loss-is-the-real-self-funded-decision | Read the attachment points and the contract basis, not the premium |
+| network-adequacy-before-plan-elegance | Confirm network fit to the workforce before tuning cost-share |
+| verify-dated-figures-at-build | Re-check every ACA/COBRA/ERISA/MLR figure against the current-year source |

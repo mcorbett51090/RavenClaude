@@ -159,6 +159,12 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 ---
 
+## 12a. Runnable calculator
+
+**Runnable calculator** — [`scripts/platform_calc.py`](scripts/platform_calc.py) (stdlib only, Python 3.8+, ruff-clean) removes arithmetic error from three recurring platform-as-product decisions: `dora` (the four keys → Elite/High/Medium/Low band per key, following the published Accelerate four-key thresholds — `[verify-at-build]`, bands drift year to year), `paved-road` (on-road vs total work → paved-road coverage %, the gap to a target, and how many units must move onto the road), and `error-budget` (a platform SLO target + window → allowed downtime / bad-event budget, with optional spend-to-date and a spend verdict). It is a **calculator, not a data source** — the user supplies every input; outputs are decision-support, not a maturity verdict. Owned primarily by `golden-paths-and-adoption-engineer` (the adoption/outcomes measurement surface).
+
+---
+
 ## 13. Seams to neighbouring plugins
 
 - **`devops-cicd`** — the pipeline layer. This plugin specifies the paved-road CI shape (what a golden-path repo's pipeline must include); `devops-cicd` builds and tunes the actual pipeline.
@@ -180,4 +186,5 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 ## 15. Milestones
 
-- **v0.1.0** — initial release: 3 agents (platform-architect, developer-portal-engineer, golden-paths-and-adoption-engineer), 3 skills, a decision-tree knowledge bank (build-vs-buy IDP + paved-road-vs-guardrail + platform-API), 10 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The paved-road / platform-as-product layer above the existing software-delivery cluster.
+- **v0.1.0** — initial release: 3 agents (platform-architect, developer-portal-engineer, golden-paths-and-adoption-engineer), 3 skills, a decision-tree knowledge bank (build-vs-buy IDP + paved-road-vs-guardrail + platform-API), 12 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The paved-road / platform-as-product layer above the existing software-delivery cluster.
+- **v0.2.0** — depth build-out (no agent/skill/command surface change): best-practices to **12**, knowledge bank to **5 decision trees** (6 present — build-a-platform-at-all, build-vs-buy portal/provisioning, paved-road-vs-guardrail-vs-gate, platform-API surface, Team-Topologies interaction mode, golden-path deprecation/migration) atop the dated 2026 capability map, scenarios bank to **5 field notes** (added self-hosted-Backstage-no-owner, boiling-the-ocean, platform-as-tax), and a **runnable calculator** `scripts/platform_calc.py` (DORA four-key banding / paved-road coverage / platform-SLO error budget — stdlib-only, ruff-clean).

@@ -159,6 +159,14 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 ---
 
+## 12a. Runnable calculator
+
+| Script | What's inside |
+|---|---|
+| [`scripts/revops_calc.py`](scripts/revops_calc.py) | Stdlib-only (Python 3.8+, `argparse`) decision calculator — `forecast` (weighted-by-stage roll-up vs the commit roll-up with the gap named, plus a win-rate-derived coverage target vs the coverage the pipeline actually provides — never a folk 3x), `funnel` (stage-to-stage + cumulative conversion, win-rate, sales-velocity), `quota-capacity` (bottoms-up capacity = (ramped + ramping × ramp-fraction) × productivity, reconciled against the board target). A **calculator, not a data source** — the user supplies every input; it does the arithmetic and shows the formula. Outputs are decision-support: coverage on padded pipeline is precise nonsense, and a stage rate is a hypothesis until back-tested against your own historical stage→close. Owned by `pipeline-and-forecast-analyst` + `gtm-systems-engineer`. |
+
+---
+
 ## 13. Seams to neighbouring plugins
 
 - **`customer-success-analytics`** — owns post-sale health, churn, retention, and NRR drivers. This plugin owns the funnel *to* closed-won and the renewal pipeline; CS-analytics owns the health model after the close. The bowtie's right side hands to them.
@@ -181,3 +189,4 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 ## 15. Milestones
 
 - **v0.1.0** — initial release: 3 agents (revops-architect, pipeline-and-forecast-analyst, gtm-systems-engineer), 3 skills, a decision-tree knowledge bank (forecast-method selection + coverage derivation + attribution-model choice + funnel-stage definition), 8 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The lead-to-cash revenue-operations layer above the CRM and warehouse systems.
+- **v0.2.0** — depth pass (roster and skills unchanged): added a stdlib **runnable calculator** (`scripts/revops_calc.py` — `forecast` / `funnel` / `quota-capacity`, ruff-clean), grew best-practices to **12** (added funnel-is-a-bowtie, stage-is-exit-criteria-not-vibes, quota-is-bottoms-up-from-capacity, the-build-belongs-to-the-system-layer), the knowledge bank to **5 Mermaid trees** (added quota-reconciles-to-capacity) plus the dated 2026 reference map, and the scenarios bank to **5 field notes** (added attribution / quota-capacity / data-quality-routing). Additive only — no migration impact.

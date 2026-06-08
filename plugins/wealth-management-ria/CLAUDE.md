@@ -134,7 +134,9 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 | File | Read when |
 |---|---|
-| [`knowledge/wealth-management-ria-decision-trees.md`](knowledge/wealth-management-ria-decision-trees.md) | Deciding the account-funding order, the withdrawal strategy, whether an action is education vs personalized advice, and the fiduciary-vs-Reg-BI standard. Mermaid decision trees + a dated 2026 reference map (`[verify-at-build]` rows). |
+| [`knowledge/wealth-management-ria-decision-trees.md`](knowledge/wealth-management-ria-decision-trees.md) | Deciding the account-funding order, the withdrawal strategy, calendar-vs-threshold rebalancing, asset-location & tax-loss harvesting, and whether an action is education vs personalized advice (and which standard). **5** Mermaid decision trees + a dated 2026 reference map (`[verify-at-build]` rows). |
+
+The 12 best-practice rules live in [`best-practices/`](best-practices/) (index: [`best-practices/README.md`](best-practices/README.md)) — they restate the §4 house opinions as individually-citable rule files. The scenarios bank ([`scenarios/`](scenarios/), 5 dated `reviewed: false` field notes) is a *secondary* source behind the mandatory unverified-scenario preamble; it never overrides the knowledge bank or a best-practice rule.
 
 ---
 
@@ -156,6 +158,12 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 | [`commands/client-review.md`](commands/client-review.md) | `advisory-compliance-and-client-review-lead` + the review/suitability skill — run a suitability check + a periodic-review agenda. |
 
 ---
+
+## 11a. Runnable calculator
+
+| Script | What it runs |
+|---|---|
+| [`scripts/ria_calc.py`](scripts/ria_calc.py) | Stdlib-only (Python 3.8+, argparse) decision-support calculator. `withdrawal` — safe-withdrawal start + Guyton-Klinger-style guardrails from portfolio + spend + horizon. `rebalance` — drift of each holding vs IPS targets → a BUY/SELL trade list against a tolerance band. `allocation` — risk-tier + glidepath target equity/bond frame with a 110-age cross-check. It is a **calculator over USER inputs, not a data source** — the user supplies every input; outputs are educational/operational **decision-support, NOT personalized investment/tax/legal advice** (§0). The withdrawal rate is a planning hypothesis to monitor, not a guarantee. Owned by `financial-planner` (withdrawal) and `portfolio-analyst` (rebalance, allocation); pairs with the decision trees in `knowledge/`. |
 
 ## 12. Advisory hook
 
@@ -181,4 +189,5 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 ## 15. Milestones
 
+- **v0.2.0** — depth pass, no new agents (team-growth-as-knowledge): best-practices **8 → 12** (added `fiduciary-is-not-reg-bi`, `disclose-and-manage-conflicts`, `document-the-suitability-basis`, `confirm-the-client-specific-facts`), the decision-tree bank to **5** Mermaid trees (added calendar-vs-threshold rebalancing and asset-location & tax-loss harvesting), the scenarios bank **3 → 5** (added stale-KYC suitability and "no conflicts" disclosure-failure field notes, `reviewed: false`, no PII), and a runnable stdlib calculator [`scripts/ria_calc.py`](scripts/ria_calc.py) (`withdrawal` / `rebalance` / `allocation`) — decision-support over user inputs, still explicitly not personalized investment advice. Additive only; no migration impact.
 - **v0.1.0** — initial release: 3 agents (financial-planner, portfolio-analyst, advisory-compliance-and-client-review-lead), 3 skills, a decision-tree knowledge bank (account-funding order + withdrawal strategy + education-vs-advice + fiduciary-vs-Reg-BI), 8 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The personal financial-advisory / RIA-practice layer — educational and operational support, explicitly not personalized investment advice.

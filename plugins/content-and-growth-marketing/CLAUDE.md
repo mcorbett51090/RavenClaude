@@ -155,7 +155,17 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 ---
 
-## 13. Seams to neighbouring plugins
+## 13. Runnable calculator
+
+| Script | What it computes |
+|---|---|
+| [`scripts/growth_calc.py`](scripts/growth_calc.py) | A zero-dependency (stdlib `argparse`) calculator for three recurring content-and-growth decisions. `funnel` — visitor→lead→MQL→SQL→win stage conversion + drop-off, flags the worst-leaking stage, optional revenue/visitor. `cac-ltv` — blended CAC, margin-based LTV, the LTV:CAC ratio against the 3:1 / 2:1 lines, and CAC payback in months. `email` — deliverability-weighted reach (delivered → inbox-placed → opened → clicked) plus a compounding list-decay projection. Run e.g. `python3 scripts/growth_calc.py funnel --visitors 50000 --leads 2500 --mql 800 --sql 200 --wins 50`. |
+
+This is **decision-support, not a data source** — it fetches nothing; the user supplies every input and the tool shows the arithmetic + the formula. It is the runnable companion to §4 #4 (measure outcomes, name the source/freshness of every number): cite where each figure came from before it lands in any deliverable.
+
+---
+
+## 14. Seams to neighbouring plugins
 
 - **`web-design`** — the marketing-site build, page templates, brand/visual system, render strategy (SSR/SSG for crawlability), Core Web Vitals engineering. This plugin specifies the content + SEO requirements; web-design builds the pages.
 - **`experimentation-growth-engineering`** — the A/B / multivariate test engine, the statistics, the feature-flag apparatus. This plugin proposes what to test (headlines, CTAs, subject lines, flows); they own the experiment.
@@ -166,13 +176,14 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 
 ---
 
-## 14. Requires & pairs with
+## 15. Requires & pairs with
 
 - **Requires** `ravenclaude-core@>=0.7.0`.
 - **Pairs with** `web-design`, `experimentation-growth-engineering`, and `data-platform` — this plugin is the content-and-growth layer *on top of* those build/measurement layers. Installing it alone gives you the content strategy + SEO program + lifecycle system but no team to build the site, run the experiments, or model the warehouse; it's designed to be installed together.
 
 ---
 
-## 15. Milestones
+## 16. Milestones
 
+- **v0.2.0** — depth pass: a stdlib **Runnable calculator** (`scripts/growth_calc.py` — `funnel` / `cac-ltv` / `email`), best-practices grown to **12**, the decision-tree knowledge bank to **5** Mermaid trees, and the scenarios bank to **5** field notes (`ai-overviews-ate-the-clicks`, `gated-ebook-that-poisoned-the-funnel`, `me-too-content-on-autopilot` added). No agent/skill/command/template changes.
 - **v0.1.0** — initial release: 3 agents (content-strategist, seo-program-lead, lifecycle-marketing-engineer), 3 skills, a decision-tree knowledge bank (publish-or-not + intent-to-surface + flow-vs-broadcast), 8 best-practices, 3 commands, 2 templates, 1 advisory hook, a scenarios bank, CHANGELOG. The content-and-growth layer above the marketing-site, experimentation, and data-platform cluster.

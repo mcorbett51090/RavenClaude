@@ -57,6 +57,44 @@ graph TD
 
 _Control limits come from the voice of the process; specs from the voice of the customer. The first SPC question is always special vs common cause._
 
+## Decision Tree: How do I size this lot (setup vs holding, and is it the constraint)?
+
+A lot size is a trade, not a habit — and the trade changes on the bottleneck.
+
+```mermaid
+graph TD
+  A[Planned order to lot-size] --> B{Is the resource the binding constraint?}
+  B -- Yes --> C{Is each setup lost throughput you can't recover?}
+  C -- Yes --> D[Favor larger lots / lot-for-period - protect constraint time; route SMED to process-improvement to make small lots economic]
+  C -- No --> E[Treat like a non-constraint - balance on cost only]
+  B -- No --> F{Demand steady enough for an EOQ basis?}
+  F -- Yes --> G[EOQ - balance setup/order cost vs holding cost; state both cost inputs]
+  F -- No, lumpy/bucketed --> H{Holding cost the dominant concern?}
+  H -- Yes --> I[Lot-for-lot - minimize inventory, accept the setups]
+  H -- No --> J[Fixed-period - batch the bucket's demand; state the period]
+```
+
+_State the lot rule and its cost basis (setup cost, holding cost, constraint or not). A setup at the bottleneck is throughput you never get back._
+
+## Decision Tree: Where does this nonconformance disposition stop (draft vs human sign-off)?
+
+This plugin drafts; the accountable human signs a regulated or safety-critical disposition.
+
+```mermaid
+graph TD
+  A[Nonconformance to disposition] --> B{Containment in place - product affected isolated?}
+  B -- No --> C[Contain first - stop the bleeding before anything else]
+  B -- Yes --> D{Root cause proven, not just asserted?}
+  D -- No --> E[Investigate - 5-Whys/fishbone/is-is-not; an asserted cause is a guess with a budget]
+  D -- Yes --> F{Preventive action defined + control plan/FMEA updated?}
+  F -- No --> G[Not a CAPA yet - add the preventive action and the control change, or it recurs]
+  F -- Yes --> H{Safety-critical or regulated record - ISO/IATF/AS9100/FDA?}
+  H -- Yes --> I[DRAFT the disposition + escalate to the accountable human; never auto-close]
+  H -- No --> J[Close with effectiveness check scheduled; verify before final closure]
+```
+
+_Containment ≠ corrective ≠ preventive. On regulated/safety-critical product the agent drafts and escalates — it does not sign._
+
 ---
 
 ## Method & standard map (2026, `[verify-at-build]`)

@@ -1,0 +1,3 @@
+# Contemporaneous records win disputes
+
+Daily logs, RFI/submittal logs with dates, change logs, inspection records, and JHAs are written when the event happens — not reconstructed days later from memory. The contemporaneous record is the project's working memory while the job runs and, in a claim, its evidence: a daily log noting weather, manpower, deliveries, delays, and directions carries weight precisely because it was written that day, before anyone knew it would matter. A log backfilled from memory is both less accurate and far less credible. Make the contemporaneous entry the habit, with the date it was actually recorded.
