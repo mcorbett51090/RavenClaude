@@ -1476,8 +1476,12 @@ PY
 rc=0; python3 scripts/concepts.py --check >/dev/null 2>&1 || rc=$?
 gate "concepts.py freshness (stale concepts.json)" must_fail "$rc"
 cp -p "$TMP/plugins_ravenclaude-core_concepts.json.bak" plugins/ravenclaude-core/concepts.json
-rc=0; python3 scripts/concepts.py --check >/dev/null 2>&1 || rc=$?
-gate "concepts.py freshness (clean tree)" must_pass "$rc"
+# NOTE: the "concepts.py freshness (clean tree)" must_pass gate was RELOCATED to
+# .github/workflows/regenerate-artifacts.yml — main now OWNS concepts.json and
+# self-heals it post-merge (matching the dashboard/SVG/count relocation). Keeping
+# the clean-tree gate at PR time made an inherited-stale concepts.json (staled by a
+# sibling merge) fail an unrelated PR — the cross-PR contagion the self-heal exists
+# to prevent. The stale (must_fail) DETECTION above stays.
 
 # concepts.py staleness: a platform-fact with an ancient last_verified must fail.
 backup plugins/ravenclaude-core/knowledge/concepts/permission-layers.md
@@ -2678,9 +2682,10 @@ printf '\n<!-- AUDIT FIXTURE — should diff against regenerated output -->\n' >
 rc=0; python3 scripts/generate-bi-report.py --check >/dev/null 2>&1 || rc=$?
 gate "bi-report freshness (stale committed report.html)" must_fail "$rc"
 cp -p "$TMP/plugins_edtech-partner-success_report.html.bak" plugins/edtech-partner-success/report.html
-# must_pass: pristine tree, the check should pass.
-rc=0; python3 scripts/generate-bi-report.py --check >/dev/null 2>&1 || rc=$?
-gate "bi-report freshness (clean tree)" must_pass "$rc"
+# NOTE: the "bi-report freshness (clean tree)" must_pass gate was RELOCATED to
+# .github/workflows/regenerate-artifacts.yml — main now OWNS report.html and
+# self-heals it post-merge, to stop the same cross-PR contagion. The stale
+# (must_fail) DETECTION above stays.
 
 echo "── Gate 47: validate-schemas (plugin + marketplace JSON Schemas) ──────────"
 # CI workflow .github/workflows/validate-schemas.yml validates every plugin's
