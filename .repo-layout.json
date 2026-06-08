@@ -51,6 +51,7 @@
     "plugins/*/skills/*/*.py",
     "plugins/*/skills/*/*/*.py",
     "plugins/*/hooks/**",
+    "plugins/*/monitors/**",
     "plugins/*/rules/**",
     "plugins/*/templates/**",
     "plugins/*/commands/**",
