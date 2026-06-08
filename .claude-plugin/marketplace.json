@@ -1568,6 +1568,202 @@
         "client-retention",
         "compliance-cadence"
       ]
+    },
+    {
+      "name": "accessibility-engineering",
+      "source": "./plugins/accessibility-engineering",
+      "description": "Accessibility Engineering specialist team — 4 agents (accessibility-lead, wcag-audit-analyst, assistive-tech-testing-specialist, inclusive-design-strategist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An accessibility team for an a11y lead or product owner accountable for WCAG conformance — it picks a conformance target and measures against it, treats automated scans as a fraction of the picture, holds keyboard and screen-reader parity as the floor, reaches for semantic HTML before ARIA, and verifies contrast ratios. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "accessibility",
+        "wcag",
+        "a11y",
+        "screen-reader",
+        "keyboard-navigation",
+        "aria",
+        "color-contrast",
+        "inclusive-design",
+        "section-508"
+      ]
+    },
+    {
+      "name": "blockchain-web3-engineering",
+      "source": "./plugins/blockchain-web3-engineering",
+      "description": "Blockchain & Web3 Engineering specialist team — 4 agents (web3-architect-lead, smart-contract-security-analyst, gas-optimization-specialist, protocol-economics-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A Web3 team for an engineer or protocol architect accountable for a contract system that holds value — it treats deploy as irreversible and audit as the gate, holds reentrancy/access-control/arithmetic as the top vuln classes, reads gas as UX and cost, and tests invariants not just the happy path. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "blockchain",
+        "web3",
+        "smart-contracts",
+        "solidity",
+        "gas-optimization",
+        "defi",
+        "security-audit",
+        "evm",
+        "tokenomics"
+      ]
+    },
+    {
+      "name": "embedded-iot-engineering",
+      "source": "./plugins/embedded-iot-engineering",
+      "description": "Embedded & IoT Engineering specialist team — 4 agents (embedded-systems-lead, firmware-rtos-specialist, power-budget-analyst, connectivity-protocol-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An embedded team for a firmware lead or hardware founder accountable for a fielded device — it treats the power budget as the spec, holds real-time deadlines as hard constraints, budgets flash/RAM like money, favors determinism over throughput, and requires OTA + rollback before fielding. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "embedded",
+        "iot",
+        "firmware",
+        "rtos",
+        "power-budget",
+        "real-time",
+        "ble",
+        "lora",
+        "ota"
+      ]
+    },
+    {
+      "name": "ai-rag-engineering",
+      "source": "./plugins/ai-rag-engineering",
+      "description": "AI / RAG Engineering specialist team — 4 agents (rag-architect-lead, retrieval-eval-analyst, ingestion-chunking-specialist, llm-serving-cost-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A RAG team for an ML engineer or AI product lead accountable for answer quality and serving cost — it fixes retrieval before generation, treats chunking as a retrieval decision, evals before it ships, and reads context-window and token economics. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "rag",
+        "retrieval",
+        "chunking",
+        "embeddings",
+        "eval",
+        "hybrid-search",
+        "llm-serving",
+        "token-cost"
+      ]
+    },
+    {
+      "name": "behavioral-health-practice",
+      "source": "./plugins/behavioral-health-practice",
+      "description": "Behavioral Health Practice specialist team — 4 agents (behavioral-health-practice-lead, intake-access-analyst, clinical-documentation-compliance-specialist, payer-billing-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An operations team for a practice administrator or clinical-ops lead accountable for access, utilization, documentation compliance, and margin — it manages no-shows as a flow, reads intake-to-first-appointment access time as the conversion lever, ties documentation to compliance and billing, staffs caseload to demand, and reads payer mix as the margin driver. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "behavioral-health",
+        "no-show",
+        "access-time",
+        "caseload",
+        "utilization",
+        "payer-mix",
+        "documentation-compliance",
+        "measurement-based-care",
+        "telehealth"
+      ]
+    },
+    {
+      "name": "finops-cloud-cost",
+      "source": "./plugins/finops-cloud-cost",
+      "description": "FinOps & Cloud Cost specialist team — 4 agents (finops-lead, cost-allocation-analyst, commitment-planning-specialist, unit-economics-strategist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A FinOps team for a cost lead or eng-finance partner accountable for cloud spend and unit economics — it allocates spend before optimizing it, reads unit economics over the total bill, treats commitments as a portfolio decision made after rightsizing, and kills waste first. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "finops",
+        "cloud-cost",
+        "cost-allocation",
+        "unit-economics",
+        "commitment-planning",
+        "rightsizing",
+        "showback",
+        "anomaly-detection"
+      ]
+    },
+    {
+      "name": "mortgage-lending",
+      "source": "./plugins/mortgage-lending",
+      "description": "Mortgage Lending Operations specialist team — 4 agents (mortgage-lending-lead, pipeline-pullthrough-analyst, processing-cycle-specialist, compliance-quality-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An operations team for a production or ops leader accountable for pull-through, cycle time, capacity, and cost-to-originate — it reads pull-through as the funnel and fixes the fallout stage, ties cycle time to capacity and satisfaction, manages lock/pipeline risk, holds cost-to-originate as the unit economic, and routes every compliance question to counsel. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "mortgage-lending",
+        "pull-through",
+        "cycle-time",
+        "cost-to-originate",
+        "pipeline-risk",
+        "lock-management",
+        "capacity-planning",
+        "compliance-routing",
+        "rate-cycle"
+      ]
+    },
+    {
+      "name": "pharmacy-operations",
+      "source": "./plugins/pharmacy-operations",
+      "description": "Pharmacy Operations specialist team — 4 agents (pharmacy-operations-lead, fill-workflow-analyst, inventory-reimbursement-specialist, adherence-clinical-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An operations team for a pharmacy manager or PIC accountable for throughput, safety, inventory, margin, and adherence — it holds fill throughput and verification safety as both the job, reads days-on-hand as tied-up cash and stockout risk, computes real per-script margin net of DIR fees, treats adherence as outcomes and star ratings, and staffs to script volume plus clinical-service time. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "pharmacy-operations",
+        "fill-throughput",
+        "verification-safety",
+        "days-on-hand",
+        "reimbursement",
+        "dir-fees",
+        "adherence",
+        "pdc",
+        "star-ratings"
+      ]
+    },
+    {
+      "name": "platform-engineering-idp",
+      "source": "./plugins/platform-engineering-idp",
+      "description": "Platform Engineering (IDP) specialist team — 4 agents (platform-eng-lead, golden-path-architect, developer-experience-analyst, platform-reliability-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A platform-engineering team for a platform lead or eng director accountable for developer productivity and adoption — it treats the platform as a product with developers as customers, paves golden paths over mandates, measures DevEx with DORA and lead time, and runs the platform on SLOs and an error budget. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "platform-engineering",
+        "internal-developer-platform",
+        "golden-path",
+        "developer-experience",
+        "dora-metrics",
+        "self-service",
+        "cognitive-load",
+        "platform-slo"
+      ]
+    },
+    {
+      "name": "search-relevance-engineering",
+      "source": "./plugins/search-relevance-engineering",
+      "description": "Search & Relevance Engineering specialist team — 4 agents (search-relevance-lead, relevance-tuning-analyst, indexing-mapping-specialist, query-performance-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A search team for a relevance engineer or platform lead accountable for search quality, latency, and conversion — it measures relevance with NDCG/MRR, treats analyzer/mapping decisions as relevance decisions, builds a judgment list before tuning, and validates online with A/B. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "search-relevance",
+        "ranking",
+        "ndcg",
+        "mrr",
+        "analyzer",
+        "mapping",
+        "judgment-list",
+        "ab-testing"
+      ]
     }
   ]
 }
