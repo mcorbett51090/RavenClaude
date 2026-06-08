@@ -127,16 +127,23 @@ jobs:
           #    every open PR failed its freshness gate. On a render failure we keep the
           #    committed SVGs, emit a ::warning::, and CONTINUE the self-heal; a stale
           #    diagram surfaces as a warning instead of blocking everything else.
+          # On a render FAILURE we `git checkout` the visuals dir: render-trees.py
+          # wipes-then-renders (old.unlink()), so a mid-render failure leaves a
+          # PARTIAL set — committing that would DELETE valid SVGs. Reverting the dir
+          # restores the committed SVGs, so a failed render is a true no-op (stale
+          # diagrams kept) rather than destructive.
           if ! python3 scripts/render-concepts.py --check >/dev/null 2>&1; then
             echo "concept SVGs stale — rendering with mermaid-cli."
             if ! python3 scripts/render-concepts.py; then
-              echo "::warning::concept SVG render failed (mermaid) — keeping committed SVGs, continuing self-heal"
+              echo "::warning::concept SVG render failed (mermaid) — reverting partial output, continuing self-heal"
+              git checkout -- plugins/ravenclaude-core/knowledge/concepts/visuals 2>/dev/null || true
             fi
           fi
           if ! python3 scripts/render-trees.py --check >/dev/null 2>&1; then
             echo "decision-tree SVGs stale — rendering with mermaid-cli."
             if ! python3 scripts/render-trees.py; then
-              echo "::warning::decision-tree SVG render failed (mermaid) — keeping committed SVGs, continuing self-heal"
+              echo "::warning::decision-tree SVG render failed (mermaid) — reverting partial output, continuing self-heal"
+              git checkout -- plugins/ravenclaude-core/knowledge/tree-visuals 2>/dev/null || true
             fi
           fi
 
