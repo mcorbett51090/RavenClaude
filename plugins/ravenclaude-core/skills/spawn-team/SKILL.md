@@ -148,6 +148,20 @@ Return your standard structured report. Cap your response at <N> words.
 - **Independent agents in parallel:** dispatch in a single tool call with multiple Agent invocations.
 - **Dependent agents sequentially:** dispatch one, wait for the report, then the next.
 - Never spawn the same role twice in parallel on the same branch.
+- **Honor the parallelism posture** (see below) before fanning independent agents out in parallel — and when allocating worktrees in Step 3.
+
+### Parallelism posture (`.ravenclaude/comfort-posture.yaml`)
+
+The user tunes how wide you may fan out from the dashboard's **Pipeline** page (Configure section), which writes a `parallelism:` block into `.ravenclaude/comfort-posture.yaml`. Read it before a parallel dispatch and honor it:
+
+| Posture | Meaning | What you do |
+|---|---|---|
+| block **absent** (default) | unset | Existing behavior — dispatch independent agents in parallel as written above. **Nothing changes for an untouched posture.** |
+| `enabled: false` | parallel workers turned off | Run independent agents **sequentially**, one at a time. |
+| `enabled: true` + `max_workers: N` | capped fan-out | Dispatch independent agents in **batches of at most N** concurrent workers; queue the rest until a slot frees. |
+| `enabled: true` + `max_workers: unlimited` | uncapped | Fan out as wide as the independent work allows — no concurrency cap. |
+
+This is a **behavioral commitment, not a hard gate** — no hook tracks a live concurrency count, so (exactly like `design_checkins` and `decision_review`) you honor it rather than `settings.json` enforcing it. The cap bounds **breadth** (how many workers run at once); the runaway brake bounds **depth** (total tool calls) independently. Say the effective cap in your summary when it changed how you fanned out.
 
 ### Parallel reviewer fan-out (standard pattern)
 
