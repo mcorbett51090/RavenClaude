@@ -72,4 +72,20 @@ From the 5-lens research sweep ([synthesis](research/2026-06-04-future-niche/01-
 
 ---
 
+## Scouted fringe finds — 2026-06-09 (`/scout` from the Kurt Buhler seed)
+
+First live run of the **`scout`** skill (find great-but-low-visibility ideas; graph-traversal from a seed was the highest-yield move). All five fetched + grounded; the two pixel-perfect-relevant ones fold into the in-flight **pixel-perfect-reporting** FORGE plan.
+
+| Find | What it is | Why fringe | RavenClaude fit | Status |
+|---|---|---|---|---|
+| [`avatorl/Deneb-Vega-Templates`](https://github.com/avatorl/Deneb-Vega-Templates) | A. Leszkiewicz's pure-**Vega** Deneb template library, indexed by the FT Visual Vocabulary | ~101★, solo, personal-blog promotion | High — reference corpus for the cross-surface declarative-viz skill (pick-the-right-spec by intent) | ⚪ folded-in → pixel-perfect-reporting plan |
+| [`nahtheking/semantic-model-mcp`](https://github.com/nahtheking/semantic-model-mcp) | Independent MCP exposing PBI/Fabric semantic models to agents + an original **71-rule BPA** | **2★**, single maintainer, 4 commits | High — reference-grade for a power-platform agentic-modeling skill | 🟡 gated — study before building model-edit guidance |
+| [DAX-Noob — DAX Performance Tuner MCP](https://daxnoob.blog/mcp-server-dax-performance-tuner/) | J. Martin's **trace-driven** optimize-then-prove-equivalence DAX loop (FE/SE timing) | personal blog; tool buried in fabric-toolbox, no own repo | High — strong skill blueprint ("optimize then prove identical-result under trace") | 🟡 gated — power-platform skill candidate |
+| [`NatVanG/PBI-Inspector`](https://github.com/NatVanG/PBI-Inspector) | Declarative **JsonLogic "VisOps"** — unit-tests report layout/theme/a11y across PBIX+PBIP | ~104★, solo, **semi-dormant (~Nov 2023)** | Med — borrow the *declarative-rule report-QA* idea (not the binary; verify freshness) | 🔵 parked — concept, not dependency |
+| [`santoshkanthety/powerbi-agent`](https://github.com/santoshkanthety/powerbi-agent) | CLI + **45 Claude Code skills** bridging NL→live PBI via TOM/ADOMD | **1★**, v0.4, single maintainer | Med — closest cousin to our agentic-PBI direction; borrow/compare, watch overlap | 🔵 parked — watch |
+
+_Method that worked: traverse the seed's graph first (Buhler's README → the Anatsko cluster + DAX-Noob in one hop), then a GitHub `sort=updated, stars:1..120` periphery sweep + a domain-blocked Deneb search for the truly-undiscovered. Full run is the first proof of the `scout` skill (`plugins/ravenclaude-core/skills/scout/SKILL.md`)._
+
+---
+
 _Board convention: new ideas get a row + a status + a named gate or wake condition. An idea with no gate and no next step is a 🔵 parked idea pretending to be active — give it one or park it honestly. Update this file in the same commit as the research that changes an idea's status._

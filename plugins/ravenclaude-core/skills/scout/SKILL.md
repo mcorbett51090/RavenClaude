@@ -1,0 +1,66 @@
+---
+name: scout
+description: "Discover great-but-low-visibility ideas — the fringe excellence mainstream search buries under popularity. Given a seed (a name, repo, post, or topic), traverse its citation/collaborator graph + the periphery sources, score each candidate on depth × novelty × practitioner-grounding MINUS a popularity penalty, dedup against the idea-board + installed plugins, and emit a ranked shortlist that routes the best finds into /forge. Use when you spot a promising fringe idea (often on LinkedIn / X / GitHub) and want the cluster around it, or to periodically sweep a niche for under-the-radar excellence."
+---
+
+# Skill: scout — the fringe-idea scout
+
+## Why this exists
+
+Mainstream search ranks on **popularity** (SEO, backlinks, stars, virality) — which is **orthogonal to quality**. Great-but-low-visibility ideas are invisible to it *by construction*: a single-maintainer "WIP" GitHub repo, a niche practitioner's blog, a LinkedIn post from someone who actually ships. The canonical example this skill was extracted from: **Kurt Buhler's `data-goblin/power-bi-agentic-development`** — genuinely excellent, low stars, surfaced on LinkedIn, missed by every "best Power BI tools" listicle. Scout **inverts the ranking: seek HIGH depth + LOW reach.**
+
+## The score (decoupled from popularity)
+
+> **great-but-obscure ≈ depth × novelty × practitioner-grounding − popularity_penalty**
+
+| Factor | Up-rank | 
+|---|---|
+| **depth** | technical specificity, a real mechanism, production detail — not a listicle |
+| **novelty** | diverges from the mainstream consensus; a non-obvious angle |
+| **practitioner-grounding** | born of real shipped work, not theory or marketing |
+| **popularity_penalty** | **DOWN-rank the already-famous** — a 10k-star repo, an official vendor doc, a conference-keynote name is *not fringe*. The whole point is the under-the-radar do-er. |
+
+Rank **high-depth + low-reach** to the top. A high-depth + high-reach item is good but not *this skill's* job; a low-depth + low-reach item is just obscure, not a gem.
+
+## Method (5 steps, in order)
+
+1. **Seed.** Take the input — a name / repo / URL / LinkedIn post / topic. If it's a bare topic, find 1–2 known-great seeds first (a respected practitioner or a deep repo), then proceed.
+2. **Traverse the graph — highest yield.** From the seed, follow the **edges**: who it cites, links to, is built on, collaborates with, and *who cites it*. **Fringe excellence clusters** — the neighbours of a great fringe source are disproportionately great-fringe. This beats keyword search by a wide margin; do it first.
+3. **Sweep the periphery** (source map below) — GitHub by **recently-updated, not stars**; niche blogs/newsletters; LinkedIn/X practitioner posts; Hacker News **"new"**; niche subs/Discords; conference abstracts; arXiv.
+4. **Score + dedup.** Apply the rubric. Drop anything RavenClaude already has (check [`../../../../docs/idea-board.md`](../../../../docs/idea-board.md) + the installed plugins) and anything plainly mainstream.
+5. **Emit + route.** A **ranked shortlist** — each find: *what · why-great · why-invisible · source URL · RavenClaude-fit*. Append the keepers to `docs/idea-board.md`. Hand the top find(s) to **`/forge`** for the build decision (the same seed→plan path Buhler took).
+
+## Periphery source map (look here, not Google-top)
+
+| Source | How to query for fringe |
+|---|---|
+| **GitHub** | `search_repositories` / `search_code` sorted by **updated**, filtered by topic; favour single-maintainer / "WIP" / low-star repos — the star-bias bypass |
+| **Practitioner blogs** | the author's own site + their blogroll / links section |
+| **LinkedIn / X** | the practitioner's posts + who they engage with |
+| **Hacker News** | **"new"** + a niche keyword (never "top") |
+| **Newsletters / Substack** | niche-specific, practitioner-authored |
+| **Conference abstracts** | niche conferences' schedules (not the keynotes) |
+| **arXiv / preprints** | recent + niche |
+| **Reddit / Discord** | niche practitioner communities |
+
+## Tools
+
+- **WebSearch** with `allowed_domains` to target GitHub + niche sources; recency-tuned queries.
+- **The GitHub MCP** (`search_repositories` / `search_code`) sorted by **updated** — the deterministic star-bias bypass (load it via tool-search first; it's deferred).
+- **The [`rc-deep-research`](../rc-deep-research/SKILL.md) fan-out harness, RE-TUNED** — from *verify-a-claim-across-sources* to *discover-the-cluster-around-a-seed* (breadth over a niche, scored for great-but-obscure). Reuse its parallel-fetch shape; swap the verification grader for the rubric above.
+
+## Anti-patterns
+
+- **Ranking by stars / views / followers** — that's the popularity bias scout exists to defeat.
+- **Surfacing the already-famous** — down-rank it; if it's on the front page it isn't fringe.
+- **Inventing obscure-sounding names to look thorough** — every find **MUST** carry a real, fetched URL. An unverifiable "fringe gem" is a hallucination — the exact failure this skill must avoid (claim-grounding applies: cite the fetched source or drop the find).
+- **Skipping the dedup** — re-surfacing what RavenClaude already has wastes a slot.
+- **Stopping at keyword search** — if you didn't traverse the seed's graph, you skipped the highest-yield move.
+
+## Composition
+
+Scout is the **front door** of the idea pipeline; FORGE is the **gate**: scout *finds* great-but-invisible ideas, `/forge` decides whether (and how) to build them. The flow is **`/scout <seed>` → ranked shortlist on the idea-board → `/forge <top find>` → routed plan.** Buhler is the worked example: spotted on LinkedIn → scout-traversed → `/forge`'d into the pixel-perfect-reporting plan.
+
+## Output Contract
+
+A ranked shortlist (markdown) + the keeper entries appended to `docs/idea-board.md`; the top find(s) handed to `/forge`. End the handoff with the cross-plugin Structured Output JSON block per [`../structured-output/SKILL.md`](../structured-output/SKILL.md) (`{status, summary, deliverables, handoff_recommendation, confidence, next_actions}`).
