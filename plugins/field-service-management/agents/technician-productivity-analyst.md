@@ -1,6 +1,6 @@
 ---
 name: technician-productivity-analyst
-description: "Use this agent for technician performance analysis — utilization (billable vs. NOT for dispatch board mechanics (dispatch-and-scheduling-engineer), contract/SLA design (fsm-ops-lead), or truck-stock."
+description: "Use this agent for technician performance analysis — utilization, first-time-fix root-cause diagnosis, MTTR, callback-rate analysis, and coaching frameworks. NOT for dispatch board mechanics (dispatch-and-scheduling-engineer) or truck-stock (parts-and-inventory-analyst)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience:
