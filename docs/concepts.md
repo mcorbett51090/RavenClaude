@@ -1359,9 +1359,9 @@ flowchart TD
 
 **See also:** Layout enforcement · Hooks: verdicts & exit codes
 
-**Sources:** [ravenclaude-core constitution](plugins/ravenclaude-core/CLAUDE.md) · [generate-copilot-plugin.py](scripts/generate-copilot-plugin.py)
+**Sources:** [ravenclaude-core constitution — Copilot CLI bridge](plugins/ravenclaude-core/CLAUDE.md) · [Copilot CLI customization surface (canonical, docs-verified)](plugins/ravenclaude-core/knowledge/copilot-cli-customization.md) · [generate-copilot-plugin.py](scripts/generate-copilot-plugin.py)
 
-_Last verified: 2026-05-26_
+_Last verified: 2026-06-09_
 
 
 ---

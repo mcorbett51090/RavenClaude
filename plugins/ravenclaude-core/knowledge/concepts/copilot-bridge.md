@@ -6,11 +6,13 @@ kind: ravenclaude-built
 order: 54
 summary: "RavenClaude runs under GitHub Copilot CLI too — via a generated package + a hook adapter — and updating is just `git pull`, never a re-install."
 see_also: [layout-hook, hook-lifecycle]
-last_verified: 2026-05-26
-refresh_when: "The Copilot package generator, the hook adapter's envelope mapping, or Copilot's plugin-hook bug status changes."
+last_verified: 2026-06-09
+refresh_when: "The Copilot package generator, the hook adapter's envelope mapping, Copilot's plugin-hook bug status, or the GitHub Copilot CLI customization surface (instruction files / agents / skills / hooks) changes."
 sources:
-  - label: "ravenclaude-core constitution"
+  - label: "ravenclaude-core constitution — Copilot CLI bridge"
     url: "plugins/ravenclaude-core/CLAUDE.md"
+  - label: "Copilot CLI customization surface (canonical, docs-verified)"
+    url: "plugins/ravenclaude-core/knowledge/copilot-cli-customization.md"
   - label: "generate-copilot-plugin.py"
     url: "scripts/generate-copilot-plugin.py"
 ---
