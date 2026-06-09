@@ -50,6 +50,7 @@ const pieces = [
   extract(app, "const CR_DEFAULT ="),
   extract(app, "const TIER_DEFAULT ="),
   extract(app, "const RUNAWAY_DEFAULT ="),
+  extract(app, "const PARALLELISM_DEFAULT ="),
   extract(app, "const DOD_DEFAULT ="),
   // simple scalar/array consts the functions reference
   app.match(/const CR_SEATS = \[[^\]]*\];/)[0],
@@ -78,6 +79,7 @@ function _freshState() {
     design_checkins: true,
     command_review: Object.assign({}, CR_DEFAULT, { tiers: freshTiers(), mcp_allowed_servers: [] }),
     runaway: Object.assign({}, RUNAWAY_DEFAULT),
+    parallelism: Object.assign({}, PARALLELISM_DEFAULT),
     decision_review: DECISION_REVIEW_DEFAULT,
     definition_of_done: Object.assign({}, DOD_DEFAULT),
     expanded: {},
@@ -101,6 +103,7 @@ function check(name, cond) {
 {
   const s = api._freshState();
   s.runaway = { max_total: 500, max_consecutive: 3, off: false };
+  s.parallelism = { enabled: true, max_workers: 6, unlimited: false };
   s.decision_review = "binding";
   s.definition_of_done = { cmd: "npm test && npm run lint", max_blocks: 4 };
   s.command_review.dev_repo_exempt = true;
@@ -109,6 +112,8 @@ function check(name, cond) {
   const yaml = api.emitYaml();
   check("runaway.max_total emitted", /^  max_total: 500$/m.test(yaml));
   check("runaway.max_consecutive emitted", /^  max_consecutive: 3$/m.test(yaml));
+  check("parallelism block emitted", /^parallelism:$/m.test(yaml));
+  check("parallelism.max_workers emitted", /^  max_workers: 6$/m.test(yaml));
   check("decision_review emitted", /^decision_review: binding$/m.test(yaml));
   check("definition_of_done.cmd emitted", /^  cmd: "npm test && npm run lint"$/m.test(yaml));
   check("definition_of_done.max_blocks emitted", /^  max_blocks: 4$/m.test(yaml));
@@ -118,12 +123,15 @@ function check(name, cond) {
   api._set(api._freshState());
   api.applyGuardrailConfig({
     runaway: { max_total: 500, max_consecutive: 3 },
+    parallelism: { enabled: true, max_workers: 6 },
     decision_review: "binding",
     definition_of_done: { cmd: "npm test && npm run lint", max_blocks: 4 },
     command_review: { dev_repo_exempt: true },
   });
   const h = api._get();
   check("hydrate runaway.max_total", h.runaway.max_total === 500);
+  check("hydrate parallelism.max_workers", h.parallelism.max_workers === 6);
+  check("hydrate parallelism.enabled", h.parallelism.enabled === true);
   check("hydrate decision_review", h.decision_review === "binding");
   check("hydrate dod.cmd", /npm test/.test(h.definition_of_done.cmd));
   check("hydrate dev_repo_exempt", h.command_review.dev_repo_exempt === true);
@@ -134,6 +142,7 @@ function check(name, cond) {
   api._set(api._freshState());
   const yaml = api.emitYaml();
   check("no runaway block at default", !/runaway:/.test(yaml));
+  check("no parallelism block at default", !/parallelism:/.test(yaml));
   check("no decision_review at default", !/decision_review:/.test(yaml));
   check("no definition_of_done at default", !/definition_of_done:/.test(yaml));
   check("no dev_repo_exempt at default", !/dev_repo_exempt:/.test(yaml));
@@ -146,6 +155,19 @@ function check(name, cond) {
   api._set(s);
   const yaml = api.emitYaml();
   check("runaway: off scalar emitted", /^runaway: off$/m.test(yaml));
+}
+
+// ── Test 4: parallelism unlimited sentinel round-trips ───────────────────────
+{
+  const s = api._freshState();
+  s.parallelism = { enabled: true, max_workers: 4, unlimited: true };
+  api._set(s);
+  const yaml = api.emitYaml();
+  check("parallelism unlimited emitted", /^  max_workers: unlimited$/m.test(yaml));
+
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ parallelism: { enabled: true, max_workers: "unlimited" } });
+  check("hydrate parallelism unlimited", api._get().parallelism.unlimited === true);
 }
 
 if (failures) {
