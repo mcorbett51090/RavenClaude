@@ -620,10 +620,12 @@ _PIPELINE_CONTROLS = {
     "parallelism": (
         '<label class="pipe-ctl"><input type="checkbox" id="pipe-parallelism-enabled"> '
         "Allow parallel workers</label>"
+        '<label class="pipe-ctl"><input type="checkbox" id="pipe-parallelism-unlimited"> '
+        "No limit (unlimited workers)</label>"
         '<label class="pipe-ctl">Most workers at once '
         '<input type="number" id="pipe-parallelism-workers" min="1" step="1"></label>'
-        '<p class="pipe-hint">When on, fan-out work (subagents / worktrees) may run in parallel '
-        "up to this limit. Off keeps the work sequential.</p>"
+        '<p class="pipe-hint">When on, fan-out work (subagents / worktrees) may run in parallel. '
+        "Tick “No limit” for unlimited workers, or set a cap. Off keeps the work sequential.</p>"
     ),
     "decision": (
         '<label class="pipe-ctl">Mode '
@@ -6521,7 +6523,7 @@ _JS = r"""
    * user changed it — preserving "absent ⇒ default" so a consumer's untouched
    * posture is never bloated and nothing changes on /plugin marketplace update. */
   const RUNAWAY_DEFAULT = Object.freeze({ max_total: 1200, max_consecutive: 8, off: false });
-  const PARALLELISM_DEFAULT = Object.freeze({ enabled: false, max_workers: 4 });
+  const PARALLELISM_DEFAULT = Object.freeze({ enabled: false, max_workers: 4, unlimited: false });
   const DOD_DEFAULT = Object.freeze({ cmd: "", max_blocks: 8 });
   const DECISION_REVIEW_VALUES = ["off", "advisory", "binding"];
   const DECISION_REVIEW_DEFAULT = "off";
@@ -6957,8 +6959,12 @@ _JS = r"""
     const pl = src.parallelism;
     if (pl && typeof pl === "object") {
       if (typeof pl.enabled === "boolean") { state.parallelism.enabled = pl.enabled; touched = true; }
-      const mw = parseInt(pl.max_workers, 10);
-      if (Number.isFinite(mw) && mw > 0) { state.parallelism.max_workers = mw; touched = true; }
+      if (pl.max_workers === "unlimited" || pl.unlimited === true) {
+        state.parallelism.unlimited = true; touched = true;
+      } else {
+        const mw = parseInt(pl.max_workers, 10);
+        if (Number.isFinite(mw) && mw > 0) { state.parallelism.max_workers = mw; state.parallelism.unlimited = false; touched = true; }
+      }
     } else if (pl === true || pl === "on") {
       /* scalar `parallelism: on` form (YAML `on` parses to boolean true) */
       state.parallelism.enabled = true; touched = true;
@@ -7072,11 +7078,11 @@ _JS = r"""
     }
 
     const pl = state.parallelism;
-    if (pl.enabled === true || pl.max_workers !== PARALLELISM_DEFAULT.max_workers) {
+    if (pl.enabled === true || pl.unlimited === true || pl.max_workers !== PARALLELISM_DEFAULT.max_workers) {
       lines.push("# Parallelism — allow fan-out workers (subagents / worktrees); cap how many run at once.");
       lines.push("parallelism:");
       lines.push(`  enabled: ${pl.enabled === true}`);
-      lines.push(`  max_workers: ${pl.max_workers}`);
+      lines.push(`  max_workers: ${pl.unlimited === true ? "unlimited" : pl.max_workers}`);
       lines.push("");
     }
 
@@ -8585,10 +8591,14 @@ _JS = r"""
               state.runaway.off ? "pipe-badge-off" : "pipe-badge-on");
     const pe = document.getElementById("pipe-parallelism-enabled");
     if (pe) pe.checked = state.parallelism.enabled === true;
+    const pu = document.getElementById("pipe-parallelism-unlimited");
+    if (pu) pu.checked = state.parallelism.unlimited === true;
     const pw = document.getElementById("pipe-parallelism-workers");
-    if (pw) pw.value = state.parallelism.max_workers;
+    if (pw) { pw.value = state.parallelism.max_workers; pw.disabled = state.parallelism.unlimited === true; }
     pipeBadge("parallel-workers",
-              state.parallelism.enabled ? ("On · " + state.parallelism.max_workers + " workers") : "Off",
+              state.parallelism.enabled
+                ? (state.parallelism.unlimited ? "On · unlimited" : ("On · " + state.parallelism.max_workers + " workers"))
+                : "Off",
               state.parallelism.enabled ? "pipe-badge-on" : "pipe-badge-off");
     const dr = document.getElementById("pipe-decision-review");
     if (dr) dr.value = state.decision_review;
@@ -8666,6 +8676,7 @@ _JS = r"""
     onInput("pipe-runaway-total", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.runaway.max_total = v; });
     onInput("pipe-runaway-consec", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.runaway.max_consecutive = v; });
     onChange("pipe-parallelism-enabled", el => { state.parallelism.enabled = el.checked; });
+    onChange("pipe-parallelism-unlimited", el => { state.parallelism.unlimited = el.checked; });
     onInput("pipe-parallelism-workers", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.parallelism.max_workers = v; });
     onChange("pipe-decision-review", el => { if (DECISION_REVIEW_VALUES.includes(el.value)) state.decision_review = el.value; });
     onInput("pipe-dod-cmd", el => { state.definition_of_done.cmd = el.value; });
