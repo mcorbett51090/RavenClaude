@@ -1,6 +1,6 @@
 ---
 name: claude-solution-architect
-description: "Use this agent to decide HOW to build a Claude-backed feature — the build-surface choice (Messages API vs Claude Agent SDK vs Managed Agents vs Workbench), model right-sizing (Opus 4.7 / Sonnet 4.6 / Haiku 4.5, 1M context), the deployment target (Claude API vs Bedrock vs Vertex vs Foundry), and the overall app architecture + prototype-to-production migration path. It traverses the build-surface decision tree before recommending. Spawn for 'how should I build this Claude app?', 'Agent SDK or Managed Agents?', 'which model?'. NOT for writing the prompts/tools (prompt-and-context-engineer); NOT for whole-system architecture spanning non-Claude services (ravenclaude-core/architect)."
+description: "Use this agent to decide HOW to build a Claude-backed feature — the build-surface choice (Messages API vs Claude Agent SDK vs Managed Agents vs Workbench), model right-sizing (Opus 4.8 / Sonnet 4.6 / Haiku 4.5, 1M context), the deployment target (Claude API vs Bedrock vs Vertex vs Foundry), and the overall app architecture + prototype-to-production migration path. It traverses the build-surface decision tree before recommending. Spawn for 'how should I build this Claude app?', 'Agent SDK or Managed Agents?', 'which model?'. NOT for writing the prompts/tools (prompt-and-context-engineer); NOT for whole-system architecture spanning non-Claude services (ravenclaude-core/architect)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

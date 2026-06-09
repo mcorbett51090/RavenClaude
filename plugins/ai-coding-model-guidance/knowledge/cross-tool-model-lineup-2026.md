@@ -2,11 +2,11 @@
 
 # Cross-tool model selection & 2026 lineup (Copilot · Codex · Grok)
 
-**Last reviewed:** 2026-05-31 · **Confidence:** medium — these three vendors ship **weekly-to-monthly**, faster than the Claude platform; treat this as the freshness anchor the Researcher sweep re-dates. Every numeric / availability claim carries a retrieval date — **verify against the cited primary source before quoting it to anyone.**
+**Last reviewed:** 2026-06-09 · **Confidence:** medium — these three vendors ship **weekly-to-monthly**, faster than the Claude platform; treat this as the freshness anchor the Researcher sweep re-dates. Every numeric / availability claim carries a retrieval date — **verify against the cited primary source before quoting it to anyone.**
 **Owner:** all three strategist agents (`copilot-model-strategist`, `codex-model-strategist`, `grok-model-strategist`). This is the **single source of truth** for non-Claude model facts — one file refreshes, not three personas (mirrors `claude-app-engineering/knowledge/model-selection-and-2026-capability-map.md`).
 **Staleness tier:** **Tier-4 (Emerging / fast-churn)** — re-verify on the weekly `researcher-reminder.yml` sweep and treat a >30-day-old retrieval date as stale-until-re-checked, not as current.
-**Sources (retrieved 2026-05-31, via vendor docs + changelogs; the doc pages 403 automated fetch, so values were cross-referenced across vendor blog/changelog + docs):**
-[GitHub Copilot supported models](https://docs.github.com/en/copilot/reference/ai-models/supported-models) · [GitHub Changelog](https://github.blog/changelog/) · [OpenAI Codex models](https://developers.openai.com/codex/models) · [OpenAI model release notes](https://help.openai.com/en/articles/9624314-model-release-notes) · [xAI models](https://docs.x.ai/developers/models)
+**Sources (Copilot row re-checked 2026-06-09; Codex/Grok rows retrieved 2026-05-31, via vendor docs + changelogs; the doc pages 403 automated fetch, so values were cross-referenced across vendor blog/changelog + docs):**
+[GitHub Copilot supported models](https://docs.github.com/en/copilot/reference/ai-models/supported-models) · [GitHub Changelog](https://github.blog/changelog/) · [Opus 4.8 GA in Copilot (Changelog 2026-05-28)](https://github.blog/changelog/2026-05-28-claude-opus-4-8-is-generally-available-for-github-copilot/) · [OpenAI Codex models](https://developers.openai.com/codex/models) · [OpenAI model release notes](https://help.openai.com/en/articles/9624314-model-release-notes) · [xAI models](https://docs.x.ai/developers/models)
 
 > **Why durable reasoning, not just a lineup.** Model names and prices churn weekly; the *decision framework* below does not. Lead with the framework; use the dated tables as a snapshot to be re-verified, never as a permanent fact.
 
@@ -100,11 +100,12 @@ Copilot's picker spans **three vendors' models** — Anthropic Claude, OpenAI GP
 
 | Surface | Models seen (2026-05-31) — verify live |
 |---|---|
-| **Coding agent** (Claude/Codex agents on github.com) | Claude: Sonnet 4.6, Opus 4.6, Sonnet 4.5, Opus 4.5 · Codex: GPT-5.2-Codex, GPT-5.3-Codex, GPT-5.4 |
+| **Coding agent** (Claude/Codex agents on github.com) | Claude: **Opus 4.8 (GA 2026-05-28)**, Sonnet 4.6, Opus 4.6, Sonnet 4.5, Opus 4.5 · Codex: GPT-5.2-Codex, GPT-5.3-Codex, GPT-5.4 |
 | **Cloud agent — fast/cost-efficient tier** | Claude Haiku 4.5, GPT-5.4-mini |
-| **Mobile picker** | Auto, Claude Opus 4.6/4.5, Claude Sonnet 4.5, GPT-5.1-Codex-Max, GPT-5.2-Codex |
+| **Mobile picker** | Auto, Claude **Opus 4.8 (2026-05-28)**/4.6/4.5, Claude Sonnet 4.5, GPT-5.1-Codex-Max, GPT-5.2-Codex |
 | **Org control** | **Model rules** target/restrict models to organizations (Changelog 2026-05-26) |
 
+- **Claude Opus 4.8 is GA in Copilot** ([Changelog 2026-05-28](https://github.blog/changelog/2026-05-28-claude-opus-4-8-is-generally-available-for-github-copilot/)) for **Pro+ / Business / Enterprise** plans — selectable in VS Code (all modes: chat / ask / edit / agent) plus Visual Studio, JetBrains, Xcode, Eclipse, the Copilot CLI, GitHub Mobile, and the Copilot App; Business/Enterprise admins must enable the Opus 4.8 policy. It **launched at a 15× premium-request multiplier**; that introductory window closed when **Usage-Based Billing went live 2026-06-01**, so re-confirm the current multiplier on the live picker. `[verify-at-use — surface/plan-specific; pricing post-UBB]`
 - **`Auto` exists** — let Copilot pick when you don't have a reason to override; override only when the decision tree above gives you one.
 - **Availability is surface-specific and churns.** A 2026-05-20 changelog removed several models (incl. some Gemini SKUs) from **Copilot Chat on the web specifically** — that is *not* a picker-wide removal, and Gemini models (e.g. Gemini 3 Pro, 2.5 Pro) still appear in the broader supported list. Don't state "model X is/isn't in Copilot" as universal; scope it to the surface and the date. `[verify-at-use — surface-specific]`
 - **Plan-gated.** Free vs Pro vs Business vs Enterprise expose different sets. Never promise a model without knowing the consumer's plan.

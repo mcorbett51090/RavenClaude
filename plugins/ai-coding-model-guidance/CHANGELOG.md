@@ -2,7 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
-## [0.3.0] — 2026-06-05
+## [0.3.1] — 2026-06-09
+
+Freshness-anchor refresh — **Claude Opus 4.8 is now GA in GitHub Copilot** ([Changelog 2026-05-28](https://github.blog/changelog/2026-05-28-claude-opus-4-8-is-generally-available-for-github-copilot/); retrieved 2026-06-09).
+
+### Changed
+
+- **`knowledge/cross-tool-model-lineup-2026.md`** — added **Opus 4.8 (GA 2026-05-28)** to the Copilot coding-agent + mobile-picker rows; added a Copilot bullet (Pro+/Business/Enterprise; selectable in VS Code all modes + Visual Studio/JetBrains/Xcode/Eclipse/Copilot CLI/GitHub Mobile/Copilot App; launched at a 15× premium-request multiplier that closed when Usage-Based Billing went live 2026-06-01 — re-confirm the current multiplier); re-dated the Copilot row to 2026-06-09 and added the GitHub Changelog citation. Codex/Grok rows unchanged (still within their 2026-05-31 retrieval window). All additions carry a date/citation/`[verify-at-use]` per the `check-lineup-citations.py` gate.
+
+
 
 Value-add build-out — completes the scenarios bank, adds two right-sizing-focused Mermaid decision-tree knowledge files (complementing the PR #315 trees), and ships the plugin's first runnable helper: a cost-per-resolved-task calculator with **no baked-in prices**. Honestly dispositions the runtime/MCP/LSP tier as N-A for an advisory knowledge vertical. Every model fact added carries a citation, an ISO retrieval date, or a `[verify-at-use]` marker — and the two new knowledge files pass the `check-lineup-citations.py` gate.
 

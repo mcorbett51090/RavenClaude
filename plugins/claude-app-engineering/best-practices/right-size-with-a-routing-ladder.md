@@ -10,7 +10,7 @@
 
 ## Why this exists
 
-Defaulting every request to the most capable model (Opus) is the most common way a Claude app overspends without buying quality. The 2026 lineup is tiered for exactly this: **Haiku 4.5** is cheap/fast/high-volume, **Sonnet 4.6** is the balanced default for most app work (1M context, adaptive thinking), and **Opus 4.7** is reserved for the hard reasoning tail (1M context). House opinion #3 is "right-size with a routing ladder": a cheap model triages or classifies, escalate-on-uncertainty to a stronger model, and reserve the flagship for the genuinely hard cases. The metric that keeps this honest is **cost-per-resolved-task, not raw token count** — a Haiku call that fails and re-routes to Opus is *more* expensive than starting on Sonnet, so the ladder is only a win when you measure end-to-end resolution, not per-call price.
+Defaulting every request to the most capable model (Opus) is the most common way a Claude app overspends without buying quality. The 2026 lineup is tiered for exactly this: **Haiku 4.5** is cheap/fast/high-volume, **Sonnet 4.6** is the balanced default for most app work (1M context, adaptive thinking), and **Opus 4.8** is reserved for the hard reasoning tail (1M context). House opinion #3 is "right-size with a routing ladder": a cheap model triages or classifies, escalate-on-uncertainty to a stronger model, and reserve the flagship for the genuinely hard cases. The metric that keeps this honest is **cost-per-resolved-task, not raw token count** — a Haiku call that fails and re-routes to Opus is *more* expensive than starting on Sonnet, so the ladder is only a win when you measure end-to-end resolution, not per-call price.
 
 ## How to apply
 
@@ -27,7 +27,7 @@ def answer(task):
     if confident(mid):
         return mid
     # 3. reserve the flagship for the genuinely hard tail
-    return call("claude-opus-4-7", task, max_tokens=2048)
+    return call("claude-opus-4-8", task, max_tokens=2048)
 # Dashboard cost-per-RESOLVED-task + cache hit rate, not raw tokens.
 ```
 
