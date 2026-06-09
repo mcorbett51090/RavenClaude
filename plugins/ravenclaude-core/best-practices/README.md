@@ -8,11 +8,12 @@ For the marketplace-wide best-practice library (CI gates, hook authoring, versio
 
 ## Index
 
-_15 rules._
+_16 rules._
 
 | Doc | Status | Use when |
 |---|---|---|
 | [`route-before-spawning.md`](./route-before-spawning.md) | Pattern | The Team Lead is about to delegate — traverse the routing tree top-to-bottom before spawning any specialist. |
+| [`prefer-a-deterministic-gate-over-a-prose-rule.md`](./prefer-a-deterministic-gate-over-a-prose-rule.md) | Pattern | Setting up a consumer repo (or reviewing a `CLAUDE.md`) — deciding whether a rule belongs in a hook/CI gate vs. prose, and pruning the file. |
 | [`three-epistemic-protocols.md`](./three-epistemic-protocols.md) | Absolute rule | Any agent is about to report blocked, write a consequential claim, or hand work back — apply the CGP / Claim-Grounding / Last-Mile triad. |
 | [`command-review-when-to-enable.md`](./command-review-when-to-enable.md) | Pattern | Deciding whether to turn on the command-review tribunal. |
 | [`check-runtime-state.md`](./check-runtime-state.md) | Pattern | Before acting — read the event substrate (Heimdall / Víðarr / Norns tabs). |
