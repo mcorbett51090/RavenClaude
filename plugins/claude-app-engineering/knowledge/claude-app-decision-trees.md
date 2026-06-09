@@ -23,7 +23,7 @@ flowchart TD
     G -->|Yes| SONNET[Sonnet 4.6<br/>balanced default; 1M context; adaptive thinking]
     G -->|No, genuinely hard tail| LADDER{Can a cheap model triage<br/>+ escalate on uncertainty?}
     LADDER -->|Yes| RUNG[Routing ladder:<br/>Haiku triage -> Sonnet -> Opus on the hard tail]
-    LADDER -->|No, uniformly hard / latency-bound| OPUS[Opus 4.7<br/>hardest reasoning, agentic depth; 1M context]
+    LADDER -->|No, uniformly hard / latency-bound| OPUS[Opus 4.8<br/>hardest reasoning, agentic depth; 1M context]
 ```
 
 **Rationale per leaf:**
@@ -31,7 +31,7 @@ flowchart TD
 - _Haiku 4.5_ — high-volume, latency-sensitive, or schema-constrained extraction; also the **default eval judge**. Cheapest per token; right-size here before reaching up.
 - _Sonnet 4.6_ — the **balanced default** for most app work (1M context, adaptive thinking). Start here unless an observable says otherwise.
 - _Routing ladder_ — when uncertainty is measurable (schema-invalid output, low self-reported confidence, a judge flag), triage cheap and escalate; the metric is **cost-per-resolved-task**, not raw tokens — a Haiku call that fails and re-routes to Opus is *more* expensive than starting on Sonnet.
-- _Opus 4.7_ — reserve for the genuinely hard tail (deep agentic reasoning, large-repo refactors) or when a multi-hop ladder's re-route cost / latency outweighs its savings. Don't *default* here unmeasured (anti-pattern #3).
+- _Opus 4.8_ — reserve for the genuinely hard tail (deep agentic reasoning, large-repo refactors) or when a multi-hop ladder's re-route cost / latency outweighs its savings. Don't *default* here unmeasured (anti-pattern #3).
 
 **Tradeoffs summary table:**
 
@@ -39,7 +39,7 @@ flowchart TD
 |---|---|---|---|---|
 | Haiku 4.5 | lowest | fastest | volume classify/extract/triage; eval judge | the task needs deep reasoning the model can't reach |
 | Sonnet 4.6 | mid | fast | general app work; balanced default; 1M context | proven-trivial work Haiku resolves (overspend) |
-| Opus 4.7 | highest | slower | hardest reasoning / agentic depth; 1M context | as a blanket default "to be safe" (the #3 anti-pattern) |
+| Opus 4.8 | highest | slower | hardest reasoning / agentic depth; 1M context | as a blanket default "to be safe" (the #3 anti-pattern) |
 | Routing ladder | mid (amortized) | varies | mixed difficulty where uncertainty is measurable | strict latency budgets (the extra hop adds round-trips) |
 
 Re-baseline **deliberately** when the platform ships a new model — a default shift is an eval event ([`evals-and-quality.md`](evals-and-quality.md)), not a silent swap.

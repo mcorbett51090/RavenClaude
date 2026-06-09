@@ -27,7 +27,7 @@ single config file so there is one place to update.
 MODELS = {
     "triage":   "claude-haiku-4-5",       # cheap + fast; eval-judge, triage
     "default":  "claude-sonnet-4-6",      # balanced; most app work
-    "frontier": "claude-opus-4-7",        # hardest reasoning tail
+    "frontier": "claude-opus-4-8",        # hardest reasoning tail
 }
 # [verify-at-build] — re-confirm ids against the dated capability map before deploy
 
@@ -67,10 +67,10 @@ wrong id you pick. Use the capability map as the source of truth.
 
 Codifies house opinion #11 from `CLAUDE.md` §3 ("pin the model") and the
 `model-selection-and-2026-capability-map.md` refresh discipline (capability map
-dated 2026-05-28). The anti-pattern grep in
+dated 2026-06-09). The anti-pattern grep in
 `hooks/check-claude-app-anti-patterns.sh` catches the retired ids but not all
 wrong ids — the capability map is the authority.
 
 ---
 
-_Last reviewed: 2026-06-05 by `claude`_
+_Last reviewed: 2026-06-09 by `claude`_
