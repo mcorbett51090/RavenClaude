@@ -101,6 +101,28 @@ Second `/scout` run. Seed = monetize on **X (the platform)** with Claude. 4-lane
 
 **The load-bearing finding (2 independent sources converge):** the "automate X posting to print money" thesis is being **actively foreclosed by X's own API clampdown** (JohannesHoppe's Feb-2026 field report), and the *durable* money in this space is **selling the packaged Claude tool/sub-agent to other creators** (Pulse, OpenTweet, LinkedDraft), not running an auto-poster. The slop genre ("$2K–$15K/mo with Claude" listicles, BYOK wrappers, pre-launch landing pages) was down-ranked. **Honesty note:** this seed is a personal/business-revenue scout, not a marketplace-component scout — "fit" above is read as *consulting-front-door / productizable-skill* relevance, not core-plugin relevance.
 
+## Scouted fringe finds — 2026-06-09 #2 (`/scout` "make money with X using Claude **Code**")
+
+Follow-on run, scoped to **Claude Code** (the agentic CLI), split into two readings (user picked "both"). Deduped against the 6 finds above. 4-lane parallel sweep. All fetched this session; slop/unverifiable dropped.
+
+**Reading A — X-platform money tools built _with Claude Code_** (the narrow delta on run #1):
+
+| Find | What it is | Why fringe | Note | Status |
+|---|---|---|---|---|
+| [Lugo — self-editing Twitter newsroom](https://medium.com/@eduardojld/subagent-orchestration-with-claude-code-self-editing-twitter-newsroom-bfdf6519362d) | A **5-subagent CC pipeline** (Manager→Writer→Fact-Checker→Editor→Copy-Editor) that iterates thread quality to a bar autonomously; templates in a gist | Medium author **42 followers**; POC/WIP | The *production-pipeline* counterpart to Pulse (Pulse scores one draft; this is the assembly line) | 🟡 gated — strongest new find; novel orchestration |
+| [STGime/posta-skill](https://github.com/STGime/posta-skill) | CC **skill** that schedules X posts (9 platforms) by fronting the paid **Posta** SaaS | 0★, solo, ~24 commits | The "CC skill as conversational front-end to a monetized SaaS" shape | 🔵 parked — pattern of interest |
+| [armatrix/twitter-mcp](https://github.com/armatrix/twitter-mcp) | Hybrid CC MCP — cheap reads (twitterapi.io) + official-API writes, cookie fallback on rate-limit | 1★ | **Re-find** (surfaced run #1's GitHub lane, never boarded); 🟡 cookie-auth ToS flag | 🔵 parked — re-find, flagged |
+
+**Reading B — make money _with Claude Code_ itself** (the broad read; "x" = generic vehicle):
+
+| Find | What it is | Why fringe | Note | Status |
+|---|---|---|---|---|
+| [Capafy](https://capafy.ai/) ([coverage](https://www.testingcatalog.com/capafy-launches-new-ai-skills-marketplace-for-creators/)) | **Closed-source, pay-per-execution** skill marketplace — skills run server-side across CC/Codex, buyers get output not files, creator paid per run | Launched ~May 2026; **traction unproven** | **Most novel mechanism** — directly answers "markdown skills copy for free"; strategically relevant to RC's own marketplace monetization | 🟡 gated — watch + study the model |
+| [Abhishek Ray — Claude Code Camp](https://workshop.claudecodecamp.com/) ([OSS](https://github.com/abhishekray07/claude-md-templates)) | $249 30-seat cohort on **CC internals** (token econ, caching, hooks) + free OSS (`claude-md-templates`, `claude-meter`) + newsletter | Solo ex-Robinhood eng; niche reach | The **OSS-credibility-moat → sell the cohort** play; deep, real (students from Disney/Asana/Databricks) | 🔵 parked — closest model to RC's "proof-of-craft → consulting" |
+| [manja316 — skill-selling teardown](https://dev.to/manja316/how-to-build-a-claude-code-skill-that-actually-sells-on-gumroad-4kdm) | Candid economics of selling CC SKILL.md packages on Gumroad ($7–15) | single DEV post; self-stated "~$200/mo, not life-changing" | The insight: **"the prompt is ~20% of the value; the bundled reference material is the other 80%"** | 🔵 parked — costing insight |
+
+**The load-bearing finding (Reading B):** the **"I got rich shipping SaaS with Claude Code"** lane is **pure slop** — every fetched "revenue" writeup was agency lead-gen (Boldare, FutureProofing: real velocity metrics, **zero disclosed revenue**), guide-selling-guides, or posts that *fabricated CC capabilities*. The honest verdict from that lane was **"route none of this to /forge."** The *real* money-with-CC clusters on **(a)** teaching/cohorts backed by an OSS-credibility moat (Ray) and **(b)** novel distribution infra that solves the copyable-markdown problem (Capafy, server-side metering; manja316, reference-material-as-moat). **This one IS marketplace-relevant to RC:** "how do you monetize a Claude Code artifact when the markdown copies for free?" is RavenClaude's own latent question — Capafy's metering and Ray's moat-then-cohort are two answers worth studying.
+
 ---
 
 _Board convention: new ideas get a row + a status + a named gate or wake condition. An idea with no gate and no next step is a 🔵 parked idea pretending to be active — give it one or park it honestly. Update this file in the same commit as the research that changes an idea's status._
