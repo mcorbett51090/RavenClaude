@@ -1,0 +1,6 @@
+{
+  "surface": "web",
+  "layout": "tests/fixtures/data-viz/good-page.json",
+  "console": "tests/fixtures/visual-feedback-loop/console-clean.json",
+  "lighthouse": "tests/fixtures/visual-feedback-loop/lighthouse-good.json"
+}
