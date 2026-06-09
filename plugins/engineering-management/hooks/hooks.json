@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for engineering-management. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-engineering-management-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: review this Engineering Management deliverable against the §3 house opinions (a claim about a person is a hypothesis not a verdict, no velocity-ranked individuals, source+date on every benchmark, no personnel PII). Set ENGINEERING_MANAGEMENT_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}
