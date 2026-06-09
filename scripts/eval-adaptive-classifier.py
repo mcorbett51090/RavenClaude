@@ -48,6 +48,35 @@ RUN_CONFIG_PATH = REPO_ROOT / ".ravenclaude/run-config.json"
 RUNS_DIR = REPO_ROOT / ".ravenclaude/runs"
 EVAL_REPORT_DIR = RUNS_DIR / "eval"
 
+# ─── Transcript source (per-agent token/cache usage — Option A) ──────────────────
+# INVESTIGATION VERDICT — Option A (workflow self-reports countable facts; the
+# GRADER acquires token/cache stats from on-disk transcript JSONL post-hoc):
+#
+#   A dynamic workflow's script has NO filesystem/shell access and agent() returns
+#   the subagent's *result*, NOT its token usage (knowledge/dynamic-workflows.md
+#   lines 15-16, 93). The only budget surface is budget.spent() — a single scalar
+#   used as a timestamp seed (deep-research.js:601,1042), not a per-phase map. So
+#   per-phase {input, cache_read, cache_creation} is STRUCTURALLY UNOBTAINABLE
+#   inside the workflow.
+#
+#   It IS obtainable post-hoc: every subagent dispatch lands an assistant event in
+#   ~/.claude/projects/<encoded>/*.jsonl carrying usage{input_tokens,
+#   cache_read_input_tokens, cache_creation_input_tokens, output_tokens} + model
+#   (mimir/SKILL.md reachability map; verified this session against a real
+#   RavenClaude transcript). The harness HAS fs access, so the grader reads them.
+#
+#   The transcript carries NO phase label, so per-phase attribution uses the
+#   workflow-persisted per-phase wall-clock windows (stats.per_phase.<phase>.{
+#   started_ms, ended_ms}) to bucket each transcript event by its `timestamp`.
+#   The workflow self-reports the countable facts it CAN know (agent_count,
+#   duration, confirmed counts, phase boundaries); the harness layers the
+#   token/cache facts on top. See HANDOFF for the workflow-side persistence spec.
+CLAUDE_HOME = Path.home() / ".claude"
+PROJECTS_DIR = CLAUDE_HOME / "projects"
+# Bounded read so a multi-GB transcript can't OOM the grader (mimir torn-write
+# discipline + a hard per-file byte cap).
+_TRANSCRIPT_READ_CAP = 64 * 1024 * 1024  # 64 MiB/file ceiling
+
 # ─── Grader thresholds (from plan §Phase 5 acceptance) ───────────────────────────
 THRESH_VENDOR_DOCS_TOKEN_RATIO = 0.4   # adaptive ≤ baseline × 0.4
 THRESH_CONTESTED_TOKEN_RATIO = 0.6     # adaptive ≤ baseline × 0.6
@@ -154,7 +183,24 @@ def write_run_config(fixture: dict, arm: str) -> None:
 
 
 def adaptive_run_config_for(fixture: dict) -> dict:
-    """Hand-prefilled run_config per task_class (matches SKILL.md Worked examples)."""
+    """Hand-prefilled run_config per task_class (matches SKILL.md Worked examples).
+
+    Mismatch-4 fix (2026-06-04): every adaptive arm now carries `votes_per_claim`
+    + `refutations_required` inside `knobs`. The workflow's preamble derives
+    VOTES_PER_CLAIM / REFUTATIONS_REQUIRED by dereferencing
+    `runCfg.knobs.votes_per_claim` / `.refutations_required` UNCONDITIONALLY
+    (deep-research.js:636-637); omitting them yields `undefined` votes and a
+    corrupt adaptive arm. We pin both to the baseline values (3 / 2) so the
+    adaptive arm changes ONLY the per-phase tier/cardinality knobs under test,
+    never the vote arithmetic — keeping the confirmed_claim_count delta grader
+    honest. (These two keys are intentionally outside the run-config.schema.json
+    `knobs` allow-list, which the classifier path enforces; the eval writes a
+    hand-prefilled artifact via write_run_config(), which does NOT schema-validate,
+    so adding them here is sound. The HANDOFF additionally hardens the workflow to
+    fall back to BASELINE_KNOBS for these two fields if ever absent.)
+    """
+    VOTES_PER_CLAIM = 3        # BASELINE_KNOBS.votes_per_claim (deep-research.js:378)
+    REFUTATIONS_REQUIRED = 2   # BASELINE_KNOBS.refutations_required (deep-research.js:379)
     base = {
         "schema_version": "1",
         "enabled": True,
@@ -165,6 +211,8 @@ def adaptive_run_config_for(fixture: dict) -> dict:
     if fixture["task_class"] == "research_loop_vendor_docs":
         base.update({
             "knobs": {
+                "votes_per_claim": VOTES_PER_CLAIM,
+                "refutations_required": REFUTATIONS_REQUIRED,
                 "angle_count": 3, "max_fetch": 10, "max_verify_claims": 18,
                 "verify_policy": {"primary_recent": 1, "primary_old": 2, "secondary": 3, "judgment": 3},
             },
@@ -180,6 +228,8 @@ def adaptive_run_config_for(fixture: dict) -> dict:
     elif fixture["task_class"] == "research_loop_contested":
         base.update({
             "knobs": {
+                "votes_per_claim": VOTES_PER_CLAIM,
+                "refutations_required": REFUTATIONS_REQUIRED,
                 "angle_count": 4, "max_fetch": 14, "max_verify_claims": 22,
                 "verify_policy": {"primary_recent": 2, "primary_old": 3, "secondary": 3, "judgment": 3},
             },
@@ -194,6 +244,8 @@ def adaptive_run_config_for(fixture: dict) -> dict:
     else:  # research_loop_general
         base.update({
             "knobs": {
+                "votes_per_claim": VOTES_PER_CLAIM,
+                "refutations_required": REFUTATIONS_REQUIRED,
                 "angle_count": 3, "max_fetch": 12, "max_verify_claims": 18,
                 "verify_policy": {"primary_recent": 2, "primary_old": 3, "secondary": 3, "judgment": 3},
             },
@@ -215,6 +267,12 @@ def print_invocation(fixture: dict, arm: str) -> None:
           f"--write-run-config {fixture['id']} {arm}")
     print("     2. In Claude Code, run:")
     q_escaped = fixture["question"].replace('"', '\\"')
+    # Mismatch-1 fix: emit the OBJECT args contract {question, runId}. The HANDOFF
+    # teaches the workflow to accept EITHER a plain string (legacy/back-compat) OR
+    # a {question, runId} object — when runId is present the workflow persists its
+    # artifacts under .ravenclaude/runs/<runId>/ so the grade phase can read them
+    # back by the deterministic eval-<fixture>-<arm> run-id. Without runId the
+    # workflow falls back to its self-named run dir (pre-port behavior).
     print(f"        Workflow({{ name: 'rc-deep-research', args: {{ "
           f'question: "{q_escaped}", '
           f"runId: '{run_id}' }} }})")
@@ -222,20 +280,155 @@ def print_invocation(fixture: dict, arm: str) -> None:
 
 
 # ─── Phase B: read run artifacts ────────────────────────────────────────────────
-def collect_metrics(fixture_id: str, arm: str) -> RunMetrics:
-    """Read the workflow run's persisted artifacts and project onto RunMetrics.
+def _encode_project_key(project_root: str) -> str:
+    """Documented encoded-path algorithm (mimir/SKILL.md §encoded-path): strip the
+    leading '/', replace every '/' with '-'. Used verbatim — NEVER normalized."""
+    return project_root.lstrip("/").replace("/", "-")
+
+
+def _resolve_project_transcript_dir(project_root: str) -> Path | None:
+    """Locate ~/.claude/projects/<encoded>/ for project_root, with the mimir
+    reverse-decode fallback against Anthropic ABI drift (mimir/SKILL.md Stage 2)."""
+    computed = PROJECTS_DIR / _encode_project_key(project_root)
+    if computed.exists():
+        return computed
+    if not PROJECTS_DIR.exists():
+        return None
+    for candidate in PROJECTS_DIR.glob("*"):
+        if not candidate.is_dir():
+            continue
+        decoded = "/" + candidate.name.replace("-", "/")
+        if decoded == project_root:
+            return candidate
+    return None
+
+
+def _parse_ts_ms(ts: str | None) -> int | None:
+    """Parse an ISO-8601 transcript timestamp to epoch-ms. Tolerant: returns None
+    on any unparseable value (never raises — torn-write discipline)."""
+    if not ts or not isinstance(ts, str):
+        return None
+    try:
+        s = ts.replace("Z", "+00:00")
+        return int(dt.datetime.fromisoformat(s).timestamp() * 1000)
+    except (ValueError, OverflowError):
+        return None
+
+
+def _iter_transcript_usage(project_root: str):
+    """Yield (ts_ms, usage_dict, model) for every assistant event carrying a usage
+    block across this project's transcripts. Torn-write safe (mimir contract):
+    corrupt lines are silently dropped, never raised; bounded per-file read."""
+    tdir = _resolve_project_transcript_dir(project_root)
+    if tdir is None:
+        return
+    for jl in sorted(tdir.glob("*.jsonl")):
+        try:
+            if jl.stat().st_size > _TRANSCRIPT_READ_CAP:
+                # Read only the head up to the cap (workflow agents are recent;
+                # a too-large historical file is bucketed by ts window anyway).
+                with jl.open("r", errors="replace") as fh:
+                    blob = fh.read(_TRANSCRIPT_READ_CAP)
+                lines = blob.splitlines()
+            else:
+                lines = jl.read_text(errors="replace").splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                ev = json.loads(line)
+            except json.JSONDecodeError:
+                continue  # torn / partial line — drop, never raise
+            if ev.get("type") != "assistant":
+                continue
+            msg = ev.get("message") or {}
+            usage = msg.get("usage") or ev.get("usage")
+            if not isinstance(usage, dict):
+                continue
+            if not (usage.get("input_tokens") or usage.get("output_tokens")
+                    or usage.get("cache_read_input_tokens")):
+                continue
+            ts_ms = _parse_ts_ms(ev.get("timestamp"))
+            model = msg.get("model") or ev.get("model")
+            yield ts_ms, usage, model
+
+
+def _collect_transcript_token_stats(project_root: str, per_phase_windows: dict,
+                                     run_window: tuple[int | None, int | None]
+                                     ) -> dict:
+    """Bucket transcript usage events into the workflow-persisted per-phase
+    wall-clock windows, returning per-phase {input, cache_read, cache_creation}
+    plus a run-total subagent_tokens. Events outside every phase window but inside
+    the run window count toward the total only (un-attributable phase).
+
+    per_phase_windows: { <phase>: {"started_ms": int, "ended_ms": int} }
+    run_window: (start_ms, end_ms) — the whole run's bound; None = unbounded.
+    """
+    by_phase = {p: {"input": 0, "cache_read": 0, "cache_creation": 0}
+                for p in PHASES_TO_REPORT}
+    total = 0
+    r_start, r_end = run_window
+    for ts_ms, usage, _model in _iter_transcript_usage(project_root):
+        # Run-window gate: only events inside the run count (avoids attributing a
+        # prior session's tokens to this arm). An event with no parseable ts is
+        # conservatively skipped (can't be placed in time).
+        if ts_ms is None:
+            continue
+        if r_start is not None and ts_ms < r_start:
+            continue
+        if r_end is not None and ts_ms > r_end:
+            continue
+        inp = int(usage.get("input_tokens", 0) or 0)
+        cr = int(usage.get("cache_read_input_tokens", 0) or 0)
+        cc = int(usage.get("cache_creation_input_tokens", 0) or 0)
+        out = int(usage.get("output_tokens", 0) or 0)
+        total += inp + cr + cc + out
+        for phase, win in per_phase_windows.items():
+            if phase not in by_phase:
+                continue
+            ws = win.get("started_ms")
+            we = win.get("ended_ms")
+            if ws is None or we is None:
+                continue
+            if ws <= ts_ms <= we:
+                by_phase[phase]["input"] += inp
+                by_phase[phase]["cache_read"] += cr
+                by_phase[phase]["cache_creation"] += cc
+                break
+    return {"per_phase": by_phase, "subagent_tokens_total": total}
+
+
+def collect_metrics(fixture_id: str, arm: str,
+                    transcript_project_root: str | None = None) -> RunMetrics:
+    """Read the workflow run's persisted artifacts (Option A: the workflow
+    self-reports the facts it CAN know) and layer on token/cache stats acquired
+    from the on-disk transcript JSONL post-hoc (the facts the workflow CANNOT
+    know — see the INVESTIGATION VERDICT note above CLAUDE_HOME).
 
     Expected on-disk shape (per run-artifacts standard in
-    ravenclaude-core/CLAUDE.md §"Run Artifacts & Observability Standard"):
+    ravenclaude-core/CLAUDE.md §"Run Artifacts & Observability Standard" — the
+    HANDOFF specs the workflow-side writes):
         .ravenclaude/runs/eval-<fixture>-<arm>/
-            ├── structured-output.json   # the SOP JSON: stats, run_config, claims
-            ├── summary.md
-            ├── synthesis.md             # the synthesize-phase output text
-            └── per-phase-usage.jsonl    # one line per agent call (model, usage)
+            ├── structured-output.json   # SOP JSON: stats (self-reported), run_config
+            └── synthesis.md             # the synthesize-phase report text
 
-    The workflow MUST persist a `stats` block containing:
-        subagent_tokens, agent_count, duration_ms, confirmed_claim_count,
-        per_phase: { <phase>: {input, cache_read, cache_creation, output} }
+    The workflow self-reports a `stats` block containing ONLY what it can count:
+        subagent_tokens (0 placeholder — token totals come from the transcript),
+        agent_count, duration_ms, confirmed_claim_count,
+        run_window: { started_ms, ended_ms },
+        per_phase: { <phase>: { agent_count, started_ms, ended_ms } }
+    The GRADER fills subagent_tokens + per-phase {input,cache_read,cache_creation}
+    from the transcript, bucketed by the per_phase wall-clock windows. If the
+    transcript is unreachable (e.g. running on a different host than the run),
+    the grader falls back to any token fields the workflow DID persist, then 0.
+
+    transcript_project_root: the project root whose ~/.claude transcripts hold the
+    run's agent events. Defaults to REPO_ROOT; pass an explicit value for a synthetic
+    self-test or a cross-host grade. When None AND no env override, transcript
+    acquisition is skipped and the workflow's self-reported token fields are used.
     """
     run_id = f"eval-{fixture_id}-{arm}"
     run_dir = RUNS_DIR / run_id
@@ -256,18 +449,44 @@ def collect_metrics(fixture_id: str, arm: str) -> RunMetrics:
     if syn_path.exists():
         syn_text = syn_path.read_text()
 
+    # ── Token/cache acquisition (Option A) ───────────────────────────────────────
+    # Build the per-phase wall-clock windows the workflow persisted, then bucket
+    # transcript usage events into them. Fall back to any token fields the workflow
+    # itself persisted (back-compat / cross-host) when the transcript is unreachable.
+    project_root = transcript_project_root
+    if project_root is None:
+        project_root = os.environ.get("EVAL_TRANSCRIPT_PROJECT_ROOT")
+
+    self_input = {p: int(per_phase.get(p, {}).get("input", 0)) for p in PHASES_TO_REPORT}
+    self_cread = {p: int(per_phase.get(p, {}).get("cache_read", 0)) for p in PHASES_TO_REPORT}
+    self_ccreate = {p: int(per_phase.get(p, {}).get("cache_creation", 0))
+                    for p in PHASES_TO_REPORT}
+    subagent_tokens = int(stats.get("subagent_tokens", 0))
+
+    if project_root:
+        windows = {p: {"started_ms": per_phase.get(p, {}).get("started_ms"),
+                       "ended_ms": per_phase.get(p, {}).get("ended_ms")}
+                   for p in PHASES_TO_REPORT}
+        rw = stats.get("run_window", {})
+        run_window = (rw.get("started_ms"), rw.get("ended_ms"))
+        tstats = _collect_transcript_token_stats(project_root, windows, run_window)
+        tp = tstats["per_phase"]
+        # Transcript wins when it found anything; else keep the self-reported fall-back.
+        if tstats["subagent_tokens_total"] > 0:
+            subagent_tokens = tstats["subagent_tokens_total"]
+            self_input = {p: tp[p]["input"] for p in PHASES_TO_REPORT}
+            self_cread = {p: tp[p]["cache_read"] for p in PHASES_TO_REPORT}
+            self_ccreate = {p: tp[p]["cache_creation"] for p in PHASES_TO_REPORT}
+
     return RunMetrics(
         fixture_id=fixture_id, arm=arm, run_id=run_id,
-        subagent_tokens=int(stats.get("subagent_tokens", 0)),
+        subagent_tokens=subagent_tokens,
         agent_count=int(stats.get("agent_count", 0)),
         duration_ms=int(stats.get("duration_ms", 0)),
         confirmed_claim_count=int(stats.get("confirmed_claim_count", 0)),
-        cache_read_input_tokens={p: int(per_phase.get(p, {}).get("cache_read", 0))
-                                  for p in PHASES_TO_REPORT},
-        cache_creation_input_tokens={p: int(per_phase.get(p, {}).get("cache_creation", 0))
-                                       for p in PHASES_TO_REPORT},
-        input_tokens={p: int(per_phase.get(p, {}).get("input", 0))
-                       for p in PHASES_TO_REPORT},
+        cache_read_input_tokens=self_cread,
+        cache_creation_input_tokens=self_ccreate,
+        input_tokens=self_input,
         synthesis_text=syn_text,
         raw=so,
     )
@@ -648,7 +867,116 @@ def self_test() -> int:
     print(f"[self-test] OK — synthetic regression case yielded verdict={g.verdict}, "
           f"token_ratio={g.token_ratio:.2f}, claim_delta={g.claim_delta}, "
           f"verify_cache={g.cache_hit_rate_per_phase['verify_default']:.2f}")
+
+    # ── Sub-test 2: the collect_metrics ⇄ transcript wiring (mismatches 2+3) ──────
+    # Build a synthetic run dir (the workflow's self-reported half) + a synthetic
+    # ~/.claude transcript (the token half) and prove collect_metrics fuses them:
+    # the per-phase wall-clock windows bucket the transcript usage events, and the
+    # verify_default cache-hit-rate is computed from the bucketed events. This gives
+    # the new wiring its own teeth without needing a live workflow run.
+    rc = _self_test_collect_metrics()
+    print(f"[self-test] OK — collect_metrics transcript wiring: "
+          f"subagent_tokens={rc['subagent_tokens']:,}, "
+          f"verify_default input={rc['verify_input']:,} cache_read={rc['verify_cread']:,}, "
+          f"cache_hit_rate={rc['verify_cache_hit']:.2f}")
     return 0
+
+
+def _self_test_collect_metrics() -> dict:
+    """Synthetic end-to-end exercise of collect_metrics' transcript-acquisition
+    path. Writes a temp run dir + a temp ~/.claude transcript, monkeypatches the
+    module paths at them, asserts the per-phase bucketing + cache-hit-rate, then
+    restores. Self-contained — leaves no artifact under the real run/transcript
+    trees."""
+    import tempfile
+
+    global RUNS_DIR, PROJECTS_DIR
+    saved_runs, saved_projects = RUNS_DIR, PROJECTS_DIR
+    tmp = Path(tempfile.mkdtemp(prefix="eval-selftest-"))
+    try:
+        # Synthetic project root + its encoded transcript dir.
+        project_root = "/tmp/eval-selftest-proj"
+        RUNS_DIR = tmp / "runs"
+        PROJECTS_DIR = tmp / "projects"
+        run_id = "eval-research_loop_general-adaptive"
+        run_dir = RUNS_DIR / run_id
+        run_dir.mkdir(parents=True)
+
+        # Phase wall-clock windows: verify_default occupies [2000ms, 3000ms].
+        base_ms = 1_700_000_000_000
+        per_phase = {
+            "scope": {"agent_count": 1, "started_ms": base_ms + 0, "ended_ms": base_ms + 500},
+            "verify_default": {"agent_count": 3, "started_ms": base_ms + 2000,
+                               "ended_ms": base_ms + 3000},
+        }
+        so = {
+            "question": "synthetic",
+            "stats": {
+                "subagent_tokens": 0,  # placeholder — transcript fills it
+                "agent_count": 4, "duration_ms": 3000, "confirmed_claim_count": 7,
+                "run_window": {"started_ms": base_ms, "ended_ms": base_ms + 3000},
+                "per_phase": per_phase,
+            },
+        }
+        (run_dir / "structured-output.json").write_text(json.dumps(so))
+        (run_dir / "synthesis.md").write_text("Synthetic synthesis text.")
+
+        # Synthetic transcript: 2 verify-window assistant events (one in-window,
+        # one just outside) + a scope-window event + one BEFORE the run (must be
+        # excluded by the run-window gate).
+        tdir = PROJECTS_DIR / _encode_project_key(project_root)
+        tdir.mkdir(parents=True)
+
+        def ev(ms_offset, inp, cread, ccreate, out):
+            ts = dt.datetime.fromtimestamp((base_ms + ms_offset) / 1000,
+                                           tz=dt.timezone.utc).isoformat()
+            return json.dumps({
+                "type": "assistant", "timestamp": ts,
+                "message": {"model": "claude-haiku-4-5-20251001",
+                            "usage": {"input_tokens": inp,
+                                      "cache_read_input_tokens": cread,
+                                      "cache_creation_input_tokens": ccreate,
+                                      "output_tokens": out}},
+            })
+
+        lines = [
+            ev(-5000, 9999, 0, 0, 0),       # BEFORE run window — must be excluded
+            ev(200, 1000, 500, 0, 50),       # scope window
+            ev(2200, 2000, 6000, 1000, 100),  # verify_default window
+            ev(2800, 2000, 6000, 0, 100),     # verify_default window
+            '{ this is a torn line',         # torn-write — must be dropped, never raise
+        ]
+        (tdir / "session-abc.jsonl").write_text("\n".join(lines) + "\n")
+
+        m = collect_metrics("research_loop_general", "adaptive",
+                            transcript_project_root=project_root)
+
+        # Total excludes the pre-run event (9999) and counts the other 3:
+        #   scope: 1000+500+0+50=1550 ; verify×2: (2000+6000+1000+100)+(2000+6000+0+100)=17200
+        expected_total = 1550 + 9100 + 8100
+        assert m.subagent_tokens == expected_total, \
+            f"transcript total wrong: {m.subagent_tokens} != {expected_total}"
+        # verify_default phase: input=4000, cache_read=12000, cache_creation=1000.
+        assert m.input_tokens["verify_default"] == 4000, m.input_tokens["verify_default"]
+        assert m.cache_read_input_tokens["verify_default"] == 12000, \
+            m.cache_read_input_tokens["verify_default"]
+        assert m.cache_creation_input_tokens["verify_default"] == 1000, \
+            m.cache_creation_input_tokens["verify_default"]
+        # cache_hit_rate(verify_default) = 12000 / (12000 + 4000) = 0.75.
+        chr_ = m.cache_hit_rate("verify_default")
+        assert chr_ is not None and abs(chr_ - 0.75) < 1e-9, f"cache_hit_rate wrong: {chr_}"
+        # scope window got exactly the one in-window event.
+        assert m.input_tokens["scope"] == 1000, m.input_tokens["scope"]
+        return {
+            "subagent_tokens": m.subagent_tokens,
+            "verify_input": m.input_tokens["verify_default"],
+            "verify_cread": m.cache_read_input_tokens["verify_default"],
+            "verify_cache_hit": chr_,
+        }
+    finally:
+        RUNS_DIR, PROJECTS_DIR = saved_runs, saved_projects
+        import shutil
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 # ─── CLI ────────────────────────────────────────────────────────────────────────
@@ -709,9 +1037,14 @@ def main() -> int:
 
     if args.mode in ("grade", "all"):
         print_header("GRADE — reading run artifacts + grading")
+        # Transcript project root: the run's agents land their usage events under
+        # ~/.claude/projects/<encoded-of-this-root>/. Default to REPO_ROOT; an
+        # explicit EVAL_TRANSCRIPT_PROJECT_ROOT env override wins (e.g. when the
+        # workflow ran from a worktree whose $CLAUDE_PROJECT_DIR differs).
+        tpr = os.environ.get("EVAL_TRANSCRIPT_PROJECT_ROOT", str(REPO_ROOT))
         runs: dict[str, dict[str, RunMetrics]] = {}
         for fx in fixtures["fixtures"]:
-            runs[fx["id"]] = {arm: collect_metrics(fx["id"], arm)
+            runs[fx["id"]] = {arm: collect_metrics(fx["id"], arm, transcript_project_root=tpr)
                               for arm in ("baseline", "adaptive")}
             for arm, m in runs[fx["id"]].items():
                 tag = "MISSING" if m.missing else f"{m.subagent_tokens:,} tok"

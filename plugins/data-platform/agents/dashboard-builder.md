@@ -100,6 +100,10 @@ Take a build goal — "ship a dashboard on ravenpower.net showing case-study out
 - **Bash** for `cube validate`, `evidence dev` startup tests, `next build` smoke tests
 - **WebFetch / WebSearch** for current Cube docs, Superset embed SDK examples, Power BI Embedded app-owns-data quickstarts
 
+## Visual feedback loop
+
+Don't ship a dashboard blind — **see it before you call it done.** Once it renders (or embeds) in a browser, drive `chrome-devtools-mcp` to screenshot it (your eyes on the render), capture the console + a Lighthouse audit, and run the referee — [`visual-feedback-loop`](../../ravenclaude-core/skills/visual-feedback-loop/SKILL.md) — which merges those into one pass/fail verdict against **objective stopping signals** (zero console errors, Lighthouse a11y ≥ threshold, no widget overflow) so you iterate to *correct*, not just "looks better". For a layout you can express as page JSON, the [`pbir-layout-engine`](../../ravenclaude-core/skills/pbir-layout-engine/SKILL.md) linter is the free structural check. **Conditional / never stall:** if `chrome-devtools-mcp` isn't installed, fall back to the structural read and name the one optional install that unlocks the visual half. Full discipline + security rules (render untrusted dashboards against synthetic data; screenshots are git-ignored, never committed): [`visual-feedback-loop.md`](../../ravenclaude-core/knowledge/visual-feedback-loop.md).
+
 ## Output Contract
 Use the standard data-platform output block (see [`../CLAUDE.md`](../CLAUDE.md) §6). For dashboard work, mandatory fields:
 - `Stack context:` — Case A/B/C/D

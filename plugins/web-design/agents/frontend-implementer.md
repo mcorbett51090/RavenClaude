@@ -102,6 +102,10 @@ Full reference brief: [`../knowledge/design-references.md`](../knowledge/design-
 - **Edit / Write** HTML, CSS, JS / TS, JSX / TSX, Astro / Svelte components, build config.
 - **Bash** for `npm run` / `pnpm` / `bun` commands, build verification, formatter / linter / type-checker runs.
 
+## Visual feedback loop
+
+Don't ship UI blind — **see it before you call it done.** When the surface renders in a browser, drive `chrome-devtools-mcp` to screenshot it (your eyes on the render), capture the console + a Lighthouse audit, and run the referee — [`visual-feedback-loop`](../../ravenclaude-core/skills/visual-feedback-loop/SKILL.md) — which merges those into one pass/fail verdict against **objective stopping signals** (zero console errors, Lighthouse a11y ≥ threshold, no overflow) so you iterate to *correct*, not just "looks better". **Conditional / never stall:** if `chrome-devtools-mcp` isn't installed, fall back to the structural read (DOM / accessibility tree) and name the one optional install that unlocks the visual half. Full discipline + security rules: [`visual-feedback-loop.md`](../../ravenclaude-core/knowledge/visual-feedback-loop.md).
+
 ## Output Contract
 Use the standard web-design output block (see [`../CLAUDE.md`](../CLAUDE.md) §6). Always include `Tested on:` (devices / browsers tested) and `Perf / a11y budget impact:` (bundle delta, runtime impact) for non-trivial changes.
 

@@ -126,9 +126,14 @@ PY
       python3 scripts/generate-index-dashboard.py --check
       exit $?
       ;;
+    100)
+      echo "── Gate 100: visual-feedback-loop driver (per-gate run) ──────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate100-visual-feedback-loop.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -501,7 +506,7 @@ cp -p "$TMP/README.md.bak" README.md
 # (the catalog prose describing core) must be detected — previously ungated, it
 # silently drifted to "20 skills" while core had 22 (caught by the v0.74.0 panel).
 backup .claude-plugin/marketplace.json
-python3 -c "p='.claude-plugin/marketplace.json';s=open(p).read();open(p,'w').write(s.replace('38 skills','20 skills',1))"
+python3 -c "p='.claude-plugin/marketplace.json';s=open(p).read();open(p,'w').write(s.replace('40 skills','20 skills',1))"
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (wrong metadata.description skill count)" must_fail "$rc"
 cp -p "$TMP/.claude-plugin_marketplace.json.bak" .claude-plugin/marketplace.json
@@ -3141,6 +3146,16 @@ printf '\n<!-- AUDIT FIXTURE — should diff against regenerated output -->\n' >
 rc=0; python3 scripts/generate-feedback-report.py --check >/dev/null 2>&1 || rc=$?
 gate "feedback-report freshness (stale committed report)" must_fail "$rc"
 cp -p "$TMP/feedback-report.html.bak" feedback-report.html
+
+echo
+echo "── Gate 100: visual-feedback-loop driver (bidirectional + parity + teeth) ─"
+# The render→see→edit→re-render referee: merges the layout linter + agent-captured
+# console/lighthouse evidence into one pass/fail verdict. The test script asserts
+# good fixtures pass, bad fixtures fail, a '..' config is rejected (and the
+# delegated linter rejects the same shape — path-guard parity), and an
+# always-pass mutant lets a known-bad through (teeth).
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate100-visual-feedback-loop.sh >/dev/null 2>&1 || rc=$?
+gate "visual-feedback-loop driver bidirectional" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

@@ -72,4 +72,35 @@ From the 5-lens research sweep ([synthesis](research/2026-06-04-future-niche/01-
 
 ---
 
+## Scouted fringe finds — 2026-06-09 (`/scout` from the Kurt Buhler seed)
+
+First live run of the **`scout`** skill (find great-but-low-visibility ideas; graph-traversal from a seed was the highest-yield move). All five fetched + grounded; the two pixel-perfect-relevant ones fold into the in-flight **pixel-perfect-reporting** FORGE plan.
+
+| Find | What it is | Why fringe | RavenClaude fit | Status |
+|---|---|---|---|---|
+| [`avatorl/Deneb-Vega-Templates`](https://github.com/avatorl/Deneb-Vega-Templates) | A. Leszkiewicz's pure-**Vega** Deneb template library, indexed by the FT Visual Vocabulary | ~101★, solo, personal-blog promotion | High — reference corpus for the cross-surface declarative-viz skill (pick-the-right-spec by intent) | ⚪ folded-in → pixel-perfect-reporting plan |
+| [`nahtheking/semantic-model-mcp`](https://github.com/nahtheking/semantic-model-mcp) | Independent MCP exposing PBI/Fabric semantic models to agents + an original **71-rule BPA** | **2★**, single maintainer, 4 commits | High — reference-grade for a power-platform agentic-modeling skill | 🟡 gated — study before building model-edit guidance |
+| [DAX-Noob — DAX Performance Tuner MCP](https://daxnoob.blog/mcp-server-dax-performance-tuner/) | J. Martin's **trace-driven** optimize-then-prove-equivalence DAX loop (FE/SE timing) | personal blog; tool buried in fabric-toolbox, no own repo | High — strong skill blueprint ("optimize then prove identical-result under trace") | 🟡 gated — power-platform skill candidate |
+| [`NatVanG/PBI-Inspector`](https://github.com/NatVanG/PBI-Inspector) | Declarative **JsonLogic "VisOps"** — unit-tests report layout/theme/a11y across PBIX+PBIP | ~104★, solo, **semi-dormant (~Nov 2023)** | Med — borrow the *declarative-rule report-QA* idea (not the binary; verify freshness) | 🔵 parked — concept, not dependency |
+| [`santoshkanthety/powerbi-agent`](https://github.com/santoshkanthety/powerbi-agent) | CLI + **45 Claude Code skills** bridging NL→live PBI via TOM/ADOMD | **1★**, v0.4, single maintainer | Med — closest cousin to our agentic-PBI direction; borrow/compare, watch overlap | 🔵 parked — watch |
+
+_Method that worked: traverse the seed's graph first (Buhler's README → the Anatsko cluster + DAX-Noob in one hop), then a GitHub `sort=updated, stars:1..120` periphery sweep + a domain-blocked Deneb search for the truly-undiscovered. Full run is the first proof of the `scout` skill (`plugins/ravenclaude-core/skills/scout/SKILL.md`)._
+
+## Scouted fringe finds — 2026-06-09 (`/scout` "make money on X using Claude")
+
+Second `/scout` run. Seed = monetize on **X (the platform)** with Claude. 4-lane parallel periphery sweep (GitHub recently-updated · indie writeups · X/LinkedIn builders · communities/micro-SaaS). Every row below was **fetched this session**; unverifiable/404'd leads were dropped, not described. **Two finds surfaced in 2 lanes each** (Pulse, OpenTweet) — a convergence signal.
+
+| Find | What it is | Why fringe (low-reach) | Fit / note | Status |
+|---|---|---|---|---|
+| [Pulse — Septim Labs](https://dev.to/septim_labs/i-read-the-x-twitter-algorithm-source-for-4-days-and-built-a-claude-code-sub-agent-that-scores-1ipb) | A Claude Code **sub-agent (single `.md`, no SaaS, no key)** that scores an X draft against the **leaked X-ranker weights** (reply-engaged +75 vs like +0.5…) before posting. Sold $49→$79, $999 team. | DEV account days old; tiny studio; surfaced in **2 lanes** | **High** — mirrors RavenClaude's own "sell a verifiable Claude skill" pattern; ToS-clean (local drafting aid) | 🟡 gated — top find; deepen before any build |
+| [OpenTweet — B. Petric](https://news.ycombinator.com/item?id=47165601) ([site](https://opentweet.io/twitter-mcp-server)) | Compliant **MCP server** (npm `@opentweet/mcp-server`) — Claude schedules tweets/threads/analytics via the official API. **84 paying users**, $11.99/mo. | Solo Show HN, sub-100 customers; surfaced in **2 lanes** | **Med-High** — cleanest API-compliant template; "activity (commits/Stripe) → draft" wedge | 🔵 parked — watch the compliant-scheduling pattern |
+| [The-Focus-AI/twitter-skill](https://github.com/The-Focus-AI/twitter-skill) | Claude Code plugin wrapping X API the **by-the-book way**: OAuth 2.0 PKCE, 1Password creds, multi-account isolation. | 2★, solo, 22 commits | **Med** — lowest-ToS-risk substrate for a legit ghostwriting/scheduling service | 🔵 parked — reference plumbing |
+| [JohannesHoppe/x-autonomous-mcp](https://github.com/JohannesHoppe/x-autonomous-mcp) | Safety-railed autonomous-engagement MCP (server-enforced daily budget caps, dedup, protected-accounts) **+ a candid field report**: X's Feb-2026 "Operation Kill the Bots" now 403s programmatic replies; paid API "a honeypot." | 2★, solo, self-flagged non-operational | **High (as evidence)** — the load-bearing caveat below | 🟡 gated — read before building any X-auto thesis |
+| [LinkedDraft — Naveen](https://medium.com/@proto8875/i-built-a-mcp-ai-linkedin-ghostwriter-in-one-weekend-heres-what-happened-a2a6f8796af7) ([site](https://linkeddraft.xyz)) | MCP ghostwriter w/ a "Tone Profile" voice-capture; live, built in a weekend. (LinkedIn, adjacent) | Medium bio **"0 followers"** | **Med** — voice-capture-via-MCP pattern | 🔵 parked — watch |
+| [XActions — nirholas](https://github.com/nirholas/XActions) | 140-tool X MCP + an **x402 pay-per-call agent-economy** monetization hook (agents pay your endpoint ~$0.001/scrape). | 308★ — but **ToS-violating DOM automation** | **Flag, not gem** — novel x402 idea rides on fake-engagement scraping | 🔴 down-ranked — mechanism-of-interest only |
+
+**The load-bearing finding (2 independent sources converge):** the "automate X posting to print money" thesis is being **actively foreclosed by X's own API clampdown** (JohannesHoppe's Feb-2026 field report), and the *durable* money in this space is **selling the packaged Claude tool/sub-agent to other creators** (Pulse, OpenTweet, LinkedDraft), not running an auto-poster. The slop genre ("$2K–$15K/mo with Claude" listicles, BYOK wrappers, pre-launch landing pages) was down-ranked. **Honesty note:** this seed is a personal/business-revenue scout, not a marketplace-component scout — "fit" above is read as *consulting-front-door / productizable-skill* relevance, not core-plugin relevance.
+
+---
+
 _Board convention: new ideas get a row + a status + a named gate or wake condition. An idea with no gate and no next step is a 🔵 parked idea pretending to be active — give it one or park it honestly. Update this file in the same commit as the research that changes an idea's status._

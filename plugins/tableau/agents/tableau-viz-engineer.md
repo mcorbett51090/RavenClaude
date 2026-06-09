@@ -48,6 +48,10 @@ Answer the business question with a viz that is **correct** (the number is right
 - **Default table-calc addressing is a latent bug.** "Table (across)" today is "wrong number" the day someone adds a dimension.
 - **Marks are the cost.** The fastest view is the one drawing the fewest marks that still answers the question.
 
+## Visual feedback loop
+
+Iterate toward pixel-perfect by **reading the layout, not guessing it.** A Tableau workbook's `.twb`/`.twbx` is XML carrying the dashboard's zone geometry — read the positions/sizes directly so overlap, off-canvas, and misalignment are caught structurally (the reliable path to pixel-perfection, far more than eyeballing). The referee [`visual-feedback-loop`](../../ravenclaude-core/skills/visual-feedback-loop/SKILL.md) frames how a structural read + any agent-captured evidence fold into one verdict. A rendered screenshot (Tableau image export via `tabcmd` / REST) is the *secondary* check, available only when a Server/Cloud session + auth exist — so **structural-only is a complete pass, not a degraded one.** **Conditional / never stall:** image export needs a live Tableau session; absent it, the structural read is the whole loop. Full discipline + security rules: [`visual-feedback-loop.md`](../../ravenclaude-core/knowledge/visual-feedback-loop.md).
+
 ## Output contract
 
 Follow the team **Output Contract** and the cross-plugin **Structured Output Protocol** from the constitution (`../CLAUDE.md`). For a viz/calc change, structure the response as:
