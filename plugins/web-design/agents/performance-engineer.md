@@ -95,6 +95,10 @@ Take a performance goal — "audit our CWV in the field", "LCP is 4.2s on mobile
 - **Bash** for `lighthouse`, `npx unlighthouse`, `npm run build` size summary, asset-size analysis.
 - **WebFetch** primary sources: web.dev guidance, Core Web Vitals thresholds, image-format support matrices.
 
+## Visual feedback loop
+
+Measure against the rendered page, not your assumptions. Drive `chrome-devtools-mcp` to capture a **Lighthouse audit** (LCP/CLS/INP + the perf score) and the console, then run the referee — [`visual-feedback-loop`](../../ravenclaude-core/skills/visual-feedback-loop/SKILL.md) — which folds those into one pass/fail verdict against your **objective budgets** (Lighthouse performance ≥ threshold, zero console errors) so a perf change is proven, not guessed. **Conditional / never stall:** if `chrome-devtools-mcp` isn't installed, work from the static budget and name the one optional install that unlocks the live audit. Full discipline + security rules: [`visual-feedback-loop.md`](../../ravenclaude-core/knowledge/visual-feedback-loop.md).
+
 ## Output Contract
 Use the standard web-design output block (see [`../CLAUDE.md`](../CLAUDE.md) §6). For perf work, include before/after CWV numbers (field if available; lab as fallback with explicit note) and the budget delta.
 

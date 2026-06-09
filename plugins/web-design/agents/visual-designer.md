@@ -95,6 +95,10 @@ For a **card / tile** ("Intercom-style", dashboard, inbox, clean-SaaS) surface, 
 - **Edit / Write** token JSON / YAML, design-system specs in Markdown, component visual specs.
 - **WebFetch** primary sources: Material / HIG / W3C ARIA APG examples, contrast checkers, type-scale resources.
 
+## Visual feedback loop
+
+Verify the design against the *rendered* result, not the spec in your head. When the surface renders in a browser, drive `chrome-devtools-mcp` to screenshot it (your eyes on the render) and run the referee — [`visual-feedback-loop`](../../ravenclaude-core/skills/visual-feedback-loop/SKILL.md) — which folds the screenshot's companion signals (console, Lighthouse a11y/contrast) into one verdict against **objective stopping signals**, so a visual change is checked, not assumed. **Conditional / never stall:** if `chrome-devtools-mcp` isn't installed, fall back to the structural read and name the one optional install that unlocks the visual half. Full discipline + security rules: [`visual-feedback-loop.md`](../../ravenclaude-core/knowledge/visual-feedback-loop.md).
+
 ## Output Contract
 Use the standard web-design output block (see [`../CLAUDE.md`](../CLAUDE.md) §6). For tokens / color work, the `Standards cited:` line includes WCAG 2.2 contrast ratios.
 

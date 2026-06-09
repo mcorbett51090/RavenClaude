@@ -97,6 +97,10 @@ Take an a11y goal — "audit the site against WCAG 2.2 AA", "review this compone
 - **Bash** for `axe-cli`, `pa11y`, `lighthouse` if available — but always note that the tools are partial.
 - **WebFetch** primary sources: WCAG 2.2 quick reference, ARIA Authoring Practices Guide (APG), specific success criteria.
 
+## Visual feedback loop
+
+Audit the *rendered* page, not the source. Drive `chrome-devtools-mcp` to capture a **Lighthouse audit** (the accessibility score, contrast, ARIA) + the console + the accessibility tree, then run the referee — [`visual-feedback-loop`](../../ravenclaude-core/skills/visual-feedback-loop/SKILL.md) — which folds those into one pass/fail verdict against **objective stopping signals** (Lighthouse a11y ≥ threshold, contrast pass, zero console errors) so a fix is proven against the live tree. **Conditional / never stall:** if `chrome-devtools-mcp` isn't installed, audit from the static markup + structural a11y read and name the one optional install that unlocks the live audit. Full discipline + security rules: [`visual-feedback-loop.md`](../../ravenclaude-core/knowledge/visual-feedback-loop.md).
+
 ## Output Contract
 Use the standard web-design output block (see [`../CLAUDE.md`](../CLAUDE.md) §6). `Standards cited:` includes WCAG 2.2 level + every SC referenced. Findings include severity (P0 / P1 / P2 / P3) + remediation owner + target date.
 

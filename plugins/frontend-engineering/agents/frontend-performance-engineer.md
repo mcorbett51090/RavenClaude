@@ -62,6 +62,10 @@ When the situation matches an entry in [`../knowledge/frontend-engineering-decis
 - Hydrating a whole page to make one button work is wasted main-thread time.
 - A request waterfall is latency you added by not parallelizing.
 
+## Visual feedback loop
+
+Measure against the rendered page, not your assumptions. Drive `chrome-devtools-mcp` to capture a **Lighthouse audit** (LCP/CLS/INP, the perf + a11y scores) and the console, then run the referee — [`visual-feedback-loop`](../../ravenclaude-core/skills/visual-feedback-loop/SKILL.md) — which folds those into one pass/fail verdict against your **objective budgets** (Lighthouse performance ≥ threshold, zero console errors) so a perf change is proven, not guessed. **Conditional / never stall:** if `chrome-devtools-mcp` isn't installed, work from the static budget + bundle analysis and name the one optional install that unlocks the live audit. Full discipline + security rules: [`visual-feedback-loop.md`](../../ravenclaude-core/knowledge/visual-feedback-loop.md).
+
 ## Output contract
 
 Follow the team **Output Contract** and **Structured Output Protocol** from [`../CLAUDE.md`](../CLAUDE.md). Lead with the decision and the trade you accepted; route anything outside your lane to the seam that owns it. Keep it tight — a decision with its rationale beats a survey of options.

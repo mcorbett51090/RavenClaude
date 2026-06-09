@@ -62,6 +62,10 @@ When the situation matches an entry in [`../knowledge/frontend-engineering-decis
 - A `div` with an onClick is an inaccessible button — use the element.
 - Deriving state in an effect instead of computing it during render is a re-render bug.
 
+## Visual feedback loop
+
+Don't ship a component blind — **see it before you call it done.** When it renders in a browser, drive `chrome-devtools-mcp` to screenshot it (your eyes on the render), capture the console + a Lighthouse audit, and run the referee — [`visual-feedback-loop`](../../ravenclaude-core/skills/visual-feedback-loop/SKILL.md) — which merges those into one pass/fail verdict against **objective stopping signals** (zero console errors, Lighthouse a11y ≥ threshold, no overflow) so you iterate to *correct*, not just "looks better". **Conditional / never stall:** if `chrome-devtools-mcp` isn't installed, fall back to the structural read (DOM / accessibility tree) and name the one optional install that unlocks the visual half. Full discipline + security rules: [`visual-feedback-loop.md`](../../ravenclaude-core/knowledge/visual-feedback-loop.md).
+
 ## Output contract
 
 Follow the team **Output Contract** and **Structured Output Protocol** from [`../CLAUDE.md`](../CLAUDE.md). Lead with the decision and the trade you accepted; route anything outside your lane to the seam that owns it. Keep it tight — a decision with its rationale beats a survey of options.
