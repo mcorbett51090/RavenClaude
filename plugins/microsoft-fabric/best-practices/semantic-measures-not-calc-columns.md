@@ -42,6 +42,7 @@ Total Sales = SUMX ( fact_sales, fact_sales[qty] * RELATED ( dim_product[price] 
 - **A grouping/binning key** that must exist as a physical column for slicing and genuinely can't be precomputed in gold may justify a calculated column — keep it low-cardinality.
 - **DAX measure *authoring* depth** (complex measure libraries, calculation groups) escalates to **`power-platform/power-bi-engineer`** — this rule is about *where the math lives*, not advanced DAX craft.
 - **Import models** tolerate calculated columns better than Direct Lake — but the memory/refresh cost argument still favors measures.
+- **Direct Lake calc-column status, reconciled 2026-06-09 `[verify-at-use]`:** Microsoft Learn now lists calculated columns/tables as **Supported (preview), *unmaterialized*** on Direct Lake **on OneLake**, and **Not supported** on Direct Lake **on SQL** ([Direct Lake overview](https://learn.microsoft.com/fabric/fundamentals/direct-lake-overview), retrieved 2026-06-09). This refines the older "isn't even available" framing above: on on-OneLake it's *preview*, not absent — but a preview, unmaterialized feature is **not a stable foundation**, so the durable, mode-independent home for a derived row value remains the **gold Delta table**. See [`../knowledge/dax-measures-for-direct-lake.md`](../knowledge/dax-measures-for-direct-lake.md) for the measure-design overlay.
 
 ## See also
 
