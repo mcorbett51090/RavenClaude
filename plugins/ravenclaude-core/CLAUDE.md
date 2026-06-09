@@ -757,6 +757,10 @@ A **new plugin component type — `monitors/`** — ships its first member: a re
 
 This **supersedes** the "Monitors / background jobs — N-A" row of the Value-add completeness table below: that disposition was about *pull* observability (already covered by the readers); this is the *push* complement a dashboard tab structurally can't provide, kept safe and cheap by the `on-skill-invoke` scoping and the read-only / derived-labels-only invariants. **Migration:** none — a new opt-in component scoped to `spawn-team` and Claude-Code-only; nothing changes on `/plugin marketplace update` until a multi-agent run starts under Claude Code.
 
+## Parallelism posture — spawn-team honors the dashboard cap (added 2026-06-09, v0.138.0)
+
+The Pipeline page's **parallelism** control (toggle + max-workers + an "unlimited" option, shipped in v0.137.0 — now under **Configure → Pipeline**) gains its first **behavioral consumer**: [`skills/spawn-team/SKILL.md`](skills/spawn-team/SKILL.md) Step 5 reads the `parallelism:` block from `.ravenclaude/comfort-posture.yaml` and caps how wide the Team Lead fans independent agents out. It is a **behavioral commitment, not a hard gate** — like `design_checkins` / `decision_review`, the agent honors it (no hook tracks a live concurrency count). The cap bounds **breadth** (workers at once) where the runaway brake bounds **depth** (total tool calls). Semantics: block **absent → unchanged** (existing parallel-fan-out judgment); `enabled: false` → sequential; `enabled: true` + `max_workers: N` → batches of ≤N; `enabled: true` + `max_workers: unlimited` → uncapped. The enforcement approach (behavioral vs. a new SubagentStart concurrency-counter hook) was a routed decision — behavioral was chosen as the smaller-blast-radius leaf. **Migration:** none — absent ⇒ default, so nothing changes on `/plugin marketplace update` unless a consumer sets the block.
+
 ## Layout (plugin internal directories)
 
 `ravenclaude-core` uses the standard component directories:
