@@ -541,7 +541,12 @@ if (!rcRead || !rcRead.found || !rcRead.content || rcRead.content.enabled !== tr
     // Layout: stable system (classify instruction) above breakpoint; volatile
     // question below. No cache_control — prompt is ~800 tokens, below Haiku 4.5
     // minimum of 4,096 (RM1).
-    const QUESTION_PRELIM = (typeof args === "string" && args.trim()) || "";
+    const QUESTION_PRELIM =
+      typeof args === "string"
+        ? args.trim()
+        : args && typeof args === "object" && typeof args.question === "string"
+          ? args.question.trim()
+          : "";
     const classified = await agent(
       "## Run classifier\n\n" +
         "You are a one-shot classifier for the rc-deep-research workflow. Classify the research question below into one of three task classes:\n\n" +
@@ -633,18 +638,64 @@ const dispatchCfg = await loadDispatchConfig();
 log("dispatch-config: enabled=" + dispatchCfg.enabled + " mode=" + dispatchCfg.mode);
 
 // Derive effective constants from runCfg (or baseline floor).
-const VOTES_PER_CLAIM = runCfg.knobs.votes_per_claim;
-const REFUTATIONS_REQUIRED = runCfg.knobs.refutations_required;
-const MAX_FETCH = runCfg.knobs.max_fetch;
-const MAX_VERIFY_CLAIMS = runCfg.knobs.max_verify_claims;
+// votes_per_claim / refutations_required are NOT in the run-config.schema.json
+// `knobs` allow-list (additionalProperties:false), so a classifier-emitted envelope
+// omits them — fall back to BASELINE_KNOBS rather than dereferencing undefined.
+const VOTES_PER_CLAIM =
+  runCfg.knobs.votes_per_claim != null
+    ? runCfg.knobs.votes_per_claim
+    : BASELINE_KNOBS.votes_per_claim;
+const REFUTATIONS_REQUIRED =
+  runCfg.knobs.refutations_required != null
+    ? runCfg.knobs.refutations_required
+    : BASELINE_KNOBS.refutations_required;
+const MAX_FETCH =
+  runCfg.knobs.max_fetch != null ? runCfg.knobs.max_fetch : BASELINE_KNOBS.max_fetch;
+const MAX_VERIFY_CLAIMS =
+  runCfg.knobs.max_verify_claims != null
+    ? runCfg.knobs.max_verify_claims
+    : BASELINE_KNOBS.max_verify_claims;
+
+// ─── Phase-timing scaffold (eval-harness wiring, mismatch 3) ──────────────────
+// A workflow script CANNOT see per-agent token usage (agent() returns the result,
+// not usage — knowledge/dynamic-workflows.md). The grader acquires tokens post-hoc
+// from ~/.claude transcripts and buckets them into phases by these wall-clock
+// windows. We record start/end ms + an agent count per phase; the grader attributes
+// each transcript event to the phase whose [started_ms, ended_ms] contains its ts.
+const _runStartedMs = Date.now();
+const _phaseWindows = {}; // phase -> { started_ms, ended_ms, agent_count }
+function _phaseStart(p) {
+  _phaseWindows[p] = { started_ms: Date.now(), ended_ms: null, agent_count: 0 };
+}
+function _phaseEnd(p, agentCount) {
+  if (_phaseWindows[p]) {
+    _phaseWindows[p].ended_ms = Date.now();
+    if (typeof agentCount === "number") _phaseWindows[p].agent_count = agentCount;
+  }
+}
 
 // ─── Phase 0: Scope ───────────────────────────────────────────────────────────
 phase("Scope");
-const QUESTION = (typeof args === "string" && args.trim()) || "";
+// Args contract (eval-harness wiring): accept EITHER a plain string (legacy /
+// interactive) OR a { question, runId } object. When runId is present the run
+// persists its artifacts under .ravenclaude/runs/<runId>/ so an external grader
+// (scripts/eval-adaptive-classifier.py) can read them back by a deterministic
+// run-id. Absent runId → pre-port behavior (self-named audit dirs, no eval persist).
+const QUESTION =
+  typeof args === "string"
+    ? args.trim()
+    : args && typeof args === "object" && typeof args.question === "string"
+      ? args.question.trim()
+      : "";
+const RUN_ID =
+  args && typeof args === "object" && typeof args.runId === "string" && args.runId.trim()
+    ? args.runId.trim()
+    : null;
 if (!QUESTION) {
   return {
     error:
-      "No research question provided. Pass it as args: Workflow({name: 'rc-deep-research', args: '<question>'}).",
+      "No research question provided. Pass it as args: Workflow({name: 'rc-deep-research', args: '<question>'}) " +
+      "or args: { question: '<question>', runId: '<run-id>' }.",
   };
 }
 
@@ -654,6 +705,7 @@ const MCP_FETCH_PREFIX =
     ? "PREFER the `microsoft_docs_search` and `microsoft_docs_fetch` MCP tools over WebFetch for learn.microsoft.com URLs. Use WebFetch only as a fallback when the MCP returns no result.\n\n"
     : "";
 
+_phaseStart("scope");
 const scope = await evaluatedAgent(
   "Decompose this research question into complementary search angles.\n\n" +
     "## Question\n" +
@@ -677,6 +729,7 @@ const scope = await evaluatedAgent(
 if (!scope) {
   return { error: "Scope agent returned no result — cannot decompose the research question." };
 }
+_phaseEnd("scope", 1);
 log("Q: " + QUESTION.slice(0, 80) + (QUESTION.length > 80 ? "…" : ""));
 log(
   "Decomposed into " +
@@ -790,6 +843,7 @@ function resolveVerifyVotes(claim, cfg) {
 }
 
 // ─── Pipeline: search → dedup → fetch+extract ────────────────────────────────
+_phaseStart("search");
 const searchResults = await pipeline(
   scope.angles,
 
@@ -886,6 +940,9 @@ const searchResults = await pipeline(
 );
 
 const allSources = searchResults.flat().filter(Boolean);
+_phaseEnd("search", scope.angles.length);
+_phaseStart("fetch");
+_phaseEnd("fetch", allSources.length);
 const allClaims = allSources.flatMap((s) => s.claims);
 const impRank = { central: 0, supporting: 1, tangential: 2 };
 const qualRank = { primary: 0, secondary: 1, blog: 2, forum: 3, unreliable: 4 };
@@ -939,6 +996,7 @@ if (rankedClaims.length === 0) {
 // cache_control {ttl:"1h"} applied via adapterOpts for verify_default and verify_judgment
 // (gap-delta C1 / A6 — 36-min run exceeds 5-min default TTL).
 phase("Verify");
+_phaseStart("verify_default");
 
 // Batch gate (gap-delta C2 / A5): present in schema, default false in MVP.
 const USE_BATCH = runCfg.batch_verify && rankedClaims.length >= 10;
@@ -1050,6 +1108,7 @@ if (runCfg.enabled && claimTierAudit.length > 0) {
   } catch {}
 }
 
+_phaseEnd("verify_default", rankedClaims.length * VOTES_PER_CLAIM);
 const confirmed = voted.filter((c) => c.survives);
 const killed = voted.filter((c) => !c.survives);
 log(
@@ -1098,6 +1157,7 @@ if (confirmed.length === 0) {
 
 // ─── Synthesize ───────────────────────────────────────────────────────────────
 phase("Synthesize");
+_phaseStart("synthesize");
 const confRank = { high: 0, medium: 1, low: 2 };
 const block = confirmed
   .map((c, i) => {
@@ -1178,6 +1238,7 @@ const report = await evaluatedAgent(
   },
   dispatchCfg,
 );
+_phaseEnd("synthesize", 1);
 
 if (!report) {
   return {
@@ -1220,6 +1281,78 @@ if (!report) {
   };
 }
 
+// ─── Eval-harness persistence (mismatch 2) ────────────────────────────────────
+// When invoked with a runId (the eval harness path), persist the two artifacts the
+// grader reads back: structured-output.json (the SOP JSON incl. the stats contract)
+// and synthesis.md (the synthesize-phase report text). Uses the rc-audit-emit
+// agent()-write pattern (the script has no direct fs access). Fire-and-forget:
+// a persistence failure must never corrupt the run's returned result.
+if (RUN_ID) {
+  const _evalStats = {
+    subagent_tokens: 0,
+    agent_count: 1 + scope.angles.length + allSources.length + voted.length * VOTES_PER_CLAIM + 1,
+    duration_ms: Date.now() - _runStartedMs,
+    confirmed_claim_count: confirmed.length,
+    run_window: { started_ms: _runStartedMs, ended_ms: Date.now() },
+    per_phase: _phaseWindows,
+  };
+  const _evalSO = {
+    question: QUESTION,
+    run_id: RUN_ID,
+    run_config: {
+      enabled: runCfg.enabled,
+      task_class: runCfg.task_class,
+      rationale: runCfg.rationale,
+      tiers: runCfg.tiers,
+      use_specialized_mcp: runCfg.use_specialized_mcp,
+      batch_verify: runCfg.batch_verify,
+    },
+    stats: _evalStats,
+    findings: report.findings,
+  };
+  const _synMd =
+    "# Synthesis — " +
+    QUESTION +
+    "\n\n## Summary\n\n" +
+    (report.summary || "") +
+    "\n\n## Findings\n\n" +
+    report.findings
+      .map(
+        (f, i) =>
+          "### [" +
+          i +
+          "] " +
+          f.claim +
+          "\n\n- confidence: " +
+          f.confidence +
+          "\n- sources: " +
+          (f.sources || []).join(", ") +
+          "\n\n" +
+          (f.evidence || ""),
+      )
+      .join("\n\n") +
+    "\n\n## Caveats\n\n" +
+    (report.caveats || "");
+  try {
+    await agent(
+      "Write the following JSON to `.ravenclaude/runs/" +
+        RUN_ID +
+        "/structured-output.json` using the Write tool. Create parent directories if needed. Content:\n\n" +
+        JSON.stringify(_evalSO, null, 2),
+      { label: "eval-persist-so", _predispatch: "skip" },
+    );
+  } catch {}
+  try {
+    await agent(
+      "Write the following Markdown to `.ravenclaude/runs/" +
+        RUN_ID +
+        "/synthesis.md` using the Write tool. Create parent directories if needed. Content:\n\n" +
+        _synMd,
+      { label: "eval-persist-syn", _predispatch: "skip" },
+    );
+  } catch {}
+}
+
 return {
   question: QUESTION,
   ...report,
@@ -1235,6 +1368,16 @@ return {
     claimCount: s.claims.length,
   })),
   stats: {
+    // ── Grader contract (scripts/eval-adaptive-classifier.py collect_metrics) ──
+    // subagent_tokens is a PLACEHOLDER (0): the workflow cannot see per-agent token
+    // usage; the grader fills it from ~/.claude transcripts, bucketed by per_phase.
+    subagent_tokens: 0,
+    agent_count: 1 + scope.angles.length + allSources.length + voted.length * VOTES_PER_CLAIM + 1,
+    duration_ms: Date.now() - _runStartedMs,
+    confirmed_claim_count: confirmed.length,
+    run_window: { started_ms: _runStartedMs, ended_ms: Date.now() },
+    per_phase: _phaseWindows,
+    // ── Legacy human-readable fields (kept for the /workflows drill-in + existing readers) ──
     angles: scope.angles.length,
     sourcesFetched: allSources.length,
     claimsExtracted: allClaims.length,
