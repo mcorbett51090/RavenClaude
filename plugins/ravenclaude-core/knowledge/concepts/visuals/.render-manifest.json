@@ -46,6 +46,7 @@
     "task-scope-gate": "8066e3fa26dd2a6a6cf9057560c01550c9ea024477005befd1d7ce93d4140352",
     "tool-use": "edf278e5cb687308276add93afef5f462ccc1cb444827b1d7bfe5838c0d2e2b5",
     "vidarr": "c38c1da8c302b484a269abe354f8260a76df2ca1ce8955dc74c6d383d02c1a37",
+    "visual-feedback-loop": "619b3681f9af8e4b729bdb7606ff7e9269858cc565452524fed610998670ed33",
     "web-access-guardrail": "3b759e32efb787971d15a5363ef6cb30f5616ab1c531f7e93a4c43cbbfa3e3b2",
     "wrap-and-scenarios": "42a4b3fd1c67ed1638a20315d1b7e9352e70f295fff9e9f3a47cad48ba9bb3dd"
   },
