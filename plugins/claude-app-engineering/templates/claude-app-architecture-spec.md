@@ -4,7 +4,7 @@
 
 ## Decision
 - **Build surface:** <Workbench | Messages API | Agent SDK | Managed Agents> — why (from the tree):
-- **Model(s):** <routing ladder — e.g. Haiku triage → Sonnet 4.6 → Opus 4.7 tail> — why:
+- **Model(s):** <routing ladder — e.g. Haiku triage → Sonnet 4.6 → Opus 4.8 tail> — why:
 - **Deployment target:** <Claude API | Bedrock | Vertex | Foundry> — why (caching/residency/quota/cost):
 - **Migration path:** <prototype → production, no rewrite>
 
