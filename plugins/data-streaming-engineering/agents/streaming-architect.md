@@ -1,6 +1,6 @@
 ---
 name: streaming-architect
-description: "Use for streaming architecture: the streaming-vs-batch decision by real latency need, end-to-end topology design (sources/topics/processors/sinks) with partitioning, platform selection (Kafka/Pulsar/Kinesis), delivery-semantics strategy, and CDC via Debezium/outbox rather than dual-writes. Routes batch to data-platform, implementation to the specialists, and Fabric RTI to microsoft-fabric."
+description: "Use for streaming architecture: the streaming-vs-batch decision by real latency need, end-to-end topology design (sources/topics/processors/sinks) with partitioning, platform selection (Kafka/Pulsar/Kinesis), delivery-semantics strategy, and CDC via Debezium/outbox rather than dual-writes."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, consultant]

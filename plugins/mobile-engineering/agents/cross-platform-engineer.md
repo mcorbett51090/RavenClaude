@@ -1,6 +1,6 @@
 ---
 name: cross-platform-engineer
-description: "Use for React Native / Flutter: shared-codebase architecture that still respects per-platform conventions, the bridge/platform-channel native boundary and native modules, framework-specific performance (list virtualization, rebuilds, RN new architecture), cross-cutting concerns (push, deep links, offline) implemented once, and secure on-device storage. Routes deep native work to ios/android-engineer and shared React patterns to frontend-engineering."
+description: "Use for React Native / Flutter: shared-codebase architecture that still respects per-platform conventions, the bridge/platform-channel native boundary and native modules, framework-specific performance (list virtualization, rebuilds, RN new architecture), cross-cutting concerns."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

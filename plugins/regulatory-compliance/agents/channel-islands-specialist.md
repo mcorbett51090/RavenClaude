@@ -1,6 +1,6 @@
 ---
 name: channel-islands-specialist
-description: Use this agent for Channel Islands financial-services work — Jersey (JFSC) and Guernsey (GFSC). Jersey — the two distinct 1998 laws (FSC Law vs the 5-class Financial Services Law covering investment/TCB/fund-services/insurance-mediation/money-service), Banking Business Law 1991, Collective Investment Funds Law 1988 + Jersey Private Fund, AML Handbook. Guernsey — the 2020 restated sectoral laws (Banking Supervision 2020, Protection of Investors 2020, Fiduciaries 2020), Private Investment Fund, GFSC financial-crime Handbook. Both are MONEYVAL (not CFATF) Crown Dependencies. Spawn for Jersey/Guernsey entity classification, licensing, fund structuring, AML and beneficial-ownership questions. NOT for legal opinions.
+description: "Use this agent for Channel Islands financial-services work — Jersey (JFSC) and Guernsey (GFSC). NOT for legal opinions."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [compliance, consultant]

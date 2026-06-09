@@ -1,6 +1,6 @@
 ---
 name: power-fx-engineer
-description: Use this agent for canvas Power App work — screen architecture, Power Fx formulas, components and component libraries, delegation, performance, theming, accessibility, Test Studio, Monitor. Also covers the canvas/Power Fx side of Custom Pages embedded in model-driven apps. NOT for model-driven app shell work (that's model-driven-engineer) and NOT for data modeling (that's dataverse-architect). Spawn for build, review, troubleshooting, or "is this delegable?" questions.
+description: "Use this agent for canvas Power App work — screen architecture, Power Fx formulas, components and component libraries, delegation, performance, theming, accessibility, Test Studio, Monitor."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [power-platform-maker, dev]

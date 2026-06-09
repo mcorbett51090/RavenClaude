@@ -1,6 +1,6 @@
 ---
 name: scheduling-engineer
-description: "Use this agent for CPM schedule development (activities, durations, logic ties, critical path), schedule maintenance (weekly updates, progress entry, float management), look-ahead schedules (3-week and 6-week), delay analysis (as-planned vs. as-built, windows method, TIA), and recovery scheduling. NOT for project billing or SOV (gc-project-lead), change order pricing (estimating-and-takeoff-analyst), or submittal tracking (submittal-rfi-coordinator). Spawn at project start to build the baseline CPM, then weekly for updates, and when a delay claim or recovery plan is needed."
+description: "Use this agent for CPM schedule development (activities, durations, logic ties, critical path), schedule maintenance (weekly updates, progress entry, float management), look-ahead schedules (3- and 6-week), delay analysis."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience:

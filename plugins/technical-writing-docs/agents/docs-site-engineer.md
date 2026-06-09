@@ -1,6 +1,6 @@
 ---
 name: docs-site-engineer
-description: "Use for the docs site as software: tooling choice (Docusaurus/Mintlify/MkDocs/Starlight) by needs, CI build/preview/deploy, search and IA implementation, product-aligned versioning, and automated link-checking + example-testing as CI gates. Routes content to docs-architect/api-reference-writer, CI plumbing to devops-cicd, and brand/design to web-design."
+description: "Use for the docs site as software: tooling choice (Docusaurus/Mintlify/MkDocs/Starlight), CI build/preview/deploy, search and IA implementation, versioning, and link-checking + example-testing as CI gates. Routes content to docs-architect/api-reference-writer, brand/design to web-design."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

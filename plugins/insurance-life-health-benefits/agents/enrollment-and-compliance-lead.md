@@ -1,6 +1,6 @@
 ---
 name: enrollment-and-compliance-lead
-description: "Use this agent to run open enrollment and keep a group benefits program compliant operationally. It plans the open-enrollment cycle (timeline, eligibility rules, waiting periods, qualifying-life-event/special-enrollment handling, decision-support and communications), coordinates carriers and the enrollment/EDI feeds, and tracks the recurring compliance obligations a plan sponsor owns: COBRA continuation, HIPAA privacy/special-enrollment, ACA employer reporting (Forms 1095-C / 1094-C), and the ERISA Form 5500 and SPD/SBC distribution basics. Spawn for 'plan our open enrollment', 'who's eligible and when', 'what are our COBRA obligations', 'walk me through 1095-C / 5500 reporting'. NOT day-to-day HRIS administration (people-ops-hr), NOT plan design (benefits-advisor) or rating (underwriting-and-actuarial-analyst) — educational scaffolding only, NOT legal, tax, or actuarial advice; ERISA counsel and the carrier confirm filings."
+description: "Use this agent to run open enrollment and keep a group benefits program operationally compliant: NOT HRIS administration (people-ops-hr), plan design (benefits-advisor), or rating (underwriting-and-actuarial-analyst) — educational scaffolding only, NOT legal/tax/actuarial advice."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [compliance, analyst, consultant]

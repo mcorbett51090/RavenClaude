@@ -1,6 +1,6 @@
 ---
 name: profiling-and-capacity-engineer
-description: "Use this agent once a test or production shows a system is slow or near its limit, to find WHERE it breaks first and HOW BIG it must be: CPU/memory/IO profiling and flame graphs to localize the hot path, USE (utilization/saturation/errors) and RED (rate/errors/duration) method to triage the constraint resource-by-resource, capacity planning with computed headroom via Little's law (L = λ·W) and the measured saturation point, and regression detection that gates a release on a p95/p99 delta against a committed baseline. Spawn for 'find the bottleneck', 'why is p99 spiking under load', 'how many instances do we need at 2x traffic', 'did this release regress latency'. NOT for setting the target (performance-architect), writing the load test (load-testing-engineer), tuning the slow query it localizes (database-engineering), or implementing the autoscaler (cloud-native-kubernetes) — it proves the bottleneck and the number, then routes the fix."
+description: "Use this agent once a test or production shows a system is slow or near its limit, to find WHERE it breaks first and HOW BIG it must be: CPU/memory/IO profiling and flame graphs to localize the hot path."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, consultant, data-engineer]

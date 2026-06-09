@@ -1,6 +1,6 @@
 ---
 name: agents-sdk-engineer
-description: "Use this agent to build a Microsoft 365 CUSTOM-ENGINE AGENT on the M365 Agents SDK (the Bot Framework SDK successor) and the Agents Toolkit (`atk`, the Teams Toolkit successor, with the Playground) — channel/turn/state management, streaming + citations, proactive/autonomous behavior, the declarative-agent → custom-engine conversion, and multi-channel publish (M365 Copilot / Teams / web). Spawn for 'build a custom-engine agent', 'convert my declarative agent to a CEA', 'publish to Teams and web', 'migrate my Bot Framework bot'. NOT for declarative agents (declarative-agent-engineer); NOT for the Claude engine / orchestrator / evals inside the agent (claude-app-engineering); NOT for the Azure host or Entra app reg (azure-cloud)."
+description: "Use this agent to build a Microsoft 365 CUSTOM-ENGINE AGENT on the M365 Agents SDK (the Bot Framework SDK successor) and the Agents Toolkit (`atk`, the Teams Toolkit successor, with the Playground) — channel/turn/state management, streaming + citations, proactive/autonomous behavior."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

@@ -1,6 +1,6 @@
 ---
 name: designer
-description: Use this agent for UX direction and visual design — wireframes, user flows, screen layouts, design specs, accessibility checks, visual hierarchy. Spawn BEFORE the frontend-coder starts a UI, or when any visual artifact (Power Apps screen, partner-facing slide deck, dashboard, infographic, onboarding artifact) needs intentional design rather than ad-hoc layout. Do NOT use it to write production code — it produces specs the frontend-coder (or the user) executes. Do NOT use it for stakeholder prose (that's the documentarian).
+description: "Use this agent for UX direction and visual design — wireframes, user flows, screen layouts, design specs, accessibility checks, visual hierarchy."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 maxTurns: 40

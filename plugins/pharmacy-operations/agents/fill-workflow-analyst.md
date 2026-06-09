@@ -1,6 +1,6 @@
 ---
 name: fill-workflow-analyst
-description: "Use this agent for fill throughput, tech/pharmacist staffing, verification-safety capacity, and dispensing-error rate (operational). NOT for inventory/reimbursement (route to inventory-reimbursement-specialist) or adherence (route to adherence-clinical-specialist), and never for a dispensing/clinical determination (route to the licensed pharmacist)."
+description: "Use this agent for fill throughput, tech/pharmacist staffing, verification-safety capacity, and dispensing-error rate (operational)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [analyst, consultant]

@@ -1,6 +1,6 @@
 ---
 name: aws-compute-platform-engineer
-description: "Use for AWS compute and integration: choosing Lambda vs ECS/Fargate vs EKS vs App Runner vs EC2 by workload shape and operational burden, event-driven design (SQS/SNS/EventBridge/Step Functions) with idempotency and DLQs, autoscaling on load-tracking signals, and selecting the data store by access pattern. Routes deep DB modeling to database-engineering and k8s workloads to cloud-native-kubernetes."
+description: "Use for AWS compute and integration: choosing Lambda vs ECS/Fargate vs EKS vs App Runner vs EC2 by workload shape and operational burden, event-driven design (SQS/SNS/EventBridge/Step Functions) with idempotency and DLQs, autoscaling on load-tracking signals."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

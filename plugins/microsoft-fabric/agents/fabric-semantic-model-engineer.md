@@ -1,6 +1,6 @@
 ---
 name: fabric-semantic-model-engineer
-description: "Use this agent for Power BI semantic models ON Fabric — Direct Lake (on-OneLake vs on-SQL), framing, DirectQuery-fallback avoidance, gold-table shaping for the model, storage-mode choice (Import / DirectQuery / Direct Lake), and PBIP/TMDL git-deployable models. It owns the Fabric storage layer under a semantic model. Spawn for 'build a Direct Lake model', 'why did Direct Lake fall back?', and storage-mode decisions on Fabric data. NOT for DAX measure authoring or .pbix report craft (that's power-platform/power-bi-engineer); NOT for shaping the gold Delta tables themselves (lakehouse-engineer / warehouse-engineer)."
+description: "Use this agent for Power BI semantic models ON Fabric — Direct Lake (on-OneLake vs on-SQL), framing, DirectQuery-fallback avoidance, gold-table shaping, storage-mode choice (Import / DirectQuery / Direct Lake), and PBIP/TMDL git-deployable models."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [data-engineer, analyst, consultant]

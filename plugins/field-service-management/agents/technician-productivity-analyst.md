@@ -1,6 +1,6 @@
 ---
 name: technician-productivity-analyst
-description: "Use this agent for technician performance analysis — utilization (billable vs. available hours), first-time-fix rate root-cause diagnosis, mean-time-to-repair (MTTR), callback rate analysis, and the coaching frameworks that improve all four. Understands the difference between a scheduling problem, a skill/training problem, a parts problem, and a data-quality problem masquerading as a productivity metric. NOT for dispatch board mechanics (dispatch-and-scheduling-engineer), contract/SLA design (fsm-ops-lead), or truck-stock formulas (parts-and-inventory-analyst). Spawn when performance metrics are low and the root cause is unclear, or when building a technician scorecard."
+description: "Use this agent for technician performance analysis — utilization (billable vs. NOT for dispatch board mechanics (dispatch-and-scheduling-engineer), contract/SLA design (fsm-ops-lead), or truck-stock."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience:

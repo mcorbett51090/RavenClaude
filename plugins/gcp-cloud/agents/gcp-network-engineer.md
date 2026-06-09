@@ -1,6 +1,6 @@
 ---
 name: gcp-network-engineer
-description: "Use for GCP networking: Shared VPC design, default-deny firewall rules targeted by tag/service-account, Private Google Access and Private Service Connect for private service access, Cloud NAT egress control, CIDR planning, and Cloud DNS. Routes exposure verdicts to security-engineering and IaC to terraform-iac."
+description: "Use for GCP networking: Shared VPC design, default-deny firewall rules targeted by tag/service-account, Private Google Access and Private Service Connect for private service access, Cloud NAT egress control, CIDR planning, and Cloud DNS."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

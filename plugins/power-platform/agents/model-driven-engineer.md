@@ -1,6 +1,6 @@
 ---
 name: model-driven-engineer
-description: Use this agent for model-driven app construction — site maps, app modules, forms (main/quick create/quick view), views, dashboards, charts, business process flows, command bar customization, JS web resources, form scripting via Xrm/formContext APIs. NOT for data modeling (dataverse-architect) and NOT for canvas-only Power Fx (power-fx-engineer). Custom Pages are jointly owned with power-fx-engineer — embedding into a model-driven app is here, the canvas screen content is there.
+description: Use for model-driven app construction — site maps, app modules, forms, views, dashboards, business process flows, command bar customization, JS web resources, and form scripting via Xrm/formContext APIs. NOT for data modeling (dataverse-architect) or canvas-only Power Fx (power-fx-engineer).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [power-platform-maker, dev]

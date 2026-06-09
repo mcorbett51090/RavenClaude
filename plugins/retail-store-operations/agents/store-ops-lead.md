@@ -1,6 +1,6 @@
 ---
 name: store-ops-lead
-description: "Use this agent for four-wall store economics: store-level P&L, KPI diagnosis (sales/sqft, conversion rate, basket size, UPT, gross margin, labor %), multi-store or district comparisons, capital-allocation decisions across stores, and building or interpreting a store scorecard. NOT for planogram design (merchandising-analyst), SKU-level replenishment (inventory-and-replenishment-analyst), labor scheduling mechanics (labor-scheduling-analyst), or shrink root-cause (loss-prevention-advisor). Spawn first when a store or district is underperforming and the root cause is unknown."
+description: "Use this agent for four-wall store economics: NOT for planogram design (merchandising-analyst), SKU-level replenishment (inventory-and-replenishment-analyst), labor scheduling (labor-scheduling-analyst), or shrink root-cause (loss-prevention-advisor)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [district-manager, vp-of-stores, store-director, regional-vp, coo, retail-finance]

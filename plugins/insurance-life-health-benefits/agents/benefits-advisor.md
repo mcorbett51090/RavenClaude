@@ -1,6 +1,6 @@
 ---
 name: benefits-advisor
-description: "Use this agent to design a group employee-benefits program as a coherent package, not a pile of disconnected policies. It works across the lines — medical, dental, vision, group life, short- and long-term disability — recommends a funding strategy (fully-insured vs self-funded vs level-funded) sized to the group, frames plan-type trade-offs (HMO / PPO / HDHP+HSA, deductible / coinsurance / out-of-pocket-max mechanics), and explains the ACA and ERISA basics a plan sponsor must respect. Spawn for 'what should our benefits package look like', 'should we go self-funded or stay fully-insured', 'HDHP-with-HSA vs PPO for our population', 'what does ACA require of us as an employer'. NOT for property & casualty lines (insurance-pc), NOT for day-to-day HR benefits administration (people-ops-hr), and it gives educational scaffolding only — a licensed broker and ERISA counsel sign off, this is NOT legal, tax, or actuarial advice."
+description: "Use this agent to design a group employee-benefits program as a coherent package, not a pile of disconnected policies."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [consultant, analyst, compliance]

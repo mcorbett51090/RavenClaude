@@ -1,6 +1,6 @@
 ---
 name: app-platform-engineer
-description: "Use this agent to choose and configure where an app runs on Azure — the compute decision (App Service / Container Apps / Functions Flex Consumption / Static Web Apps / AKS), scaling, deployment slots, and provisioning the Azure host for a Claude app or a web front-end. It traverses the compute decision tree. Spawn for 'where should this app run?', 'App Service or Container Apps?', 'host this on Azure'. NOT for the IaC authoring (bicep-iac-engineer); NOT for the application code (ravenclaude-core); NOT for the Claude integration itself (claude-app-engineering)."
+description: "Use this agent to choose and configure where an app runs on Azure — the compute decision (App Service / Container Apps / Functions Flex Consumption / Static Web Apps / AKS), scaling, deployment slots, and provisioning the Azure host for a Claude app or web front-end."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

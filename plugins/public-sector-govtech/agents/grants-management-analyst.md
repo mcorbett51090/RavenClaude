@@ -1,6 +1,6 @@
 ---
 name: grants-management-analyst
-description: "Use this agent for the full federal/state grant lifecycle: pre-award application (needs statement, project narrative, budget justification, SF-424 family), post-award setup (Notice of Award review, restricted-fund account structure, cost-sharing tracking), ongoing management (drawdowns, budget modifications, progress reports, subrecipient monitoring), and closeout (final reports, disposition of equipment, record retention). Frames every decision against 2 CFR 200 (Uniform Guidance) and the applicable federal program regulations. NOT for private-foundation or donor fundraising (nonprofit-fundraising), or for government contract vehicles (public-procurement-strategist)."
+description: "Use for the full federal/state grant lifecycle: pre-award application (SF-424 family), post-award setup, ongoing management (drawdowns, subrecipient monitoring), and closeout, framed against 2 CFR 200. NOT for donor fundraising (nonprofit-fundraising) or contract vehicles (public-procurement)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [grants-administrator, program-director, finance-director, compliance-officer, nonprofit-executive, government-program-officer]

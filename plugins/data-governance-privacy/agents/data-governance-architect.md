@@ -1,6 +1,6 @@
 ---
 name: data-governance-architect
-description: "Use for the data governance operating model: data ownership and stewardship, a usable classification scheme (levels + PII/sensitive flag), policies mapped to enforceable controls, a lightweight council/RACI, and a staged maturity roadmap starting with highest-risk data. Routes enforcement to data-platform, privacy mechanics to privacy-compliance-engineer, and financial-regulatory to regulatory-compliance."
+description: "Use for the data governance operating model: data ownership and stewardship, a usable classification scheme (levels + PII/sensitive flag), policies mapped to enforceable controls, a lightweight council/RACI, and a staged maturity roadmap starting with highest-risk data."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [consultant, dev]

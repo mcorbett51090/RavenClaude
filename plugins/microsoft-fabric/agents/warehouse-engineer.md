@@ -1,6 +1,6 @@
 ---
 name: warehouse-engineer
-description: "Use this agent to build and optimize the Fabric Data Warehouse — T-SQL ELT, dimensional / star-schema modeling, multi-table ACID transactions, the SQL analytics endpoint, cross-database (three-part-name) queries, burstable-capacity performance, and SQL-native security (RLS / CLS / dynamic data masking / OLS). Spawn for 'build the warehouse', T-SQL ELT, star-schema design, SQL-first teams, and warehouse performance. NOT for Spark/notebook data engineering (lakehouse-engineer); NOT for ingestion-method choice (data-factory-engineer); NOT for the Direct Lake model (fabric-semantic-model-engineer)."
+description: "Use to build and optimize the Fabric Data Warehouse — T-SQL ELT, star-schema modeling, multi-table ACID, the SQL analytics endpoint, and SQL-native security (RLS/CLS/masking/OLS)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [data-engineer, consultant, dev]

@@ -1,6 +1,6 @@
 ---
 name: tableau-data-architect
-description: Use for Tableau data modeling and performance — relationships vs joins vs blends, extracts vs live connections (Hyper), extract optimization (aggregation, hidden fields, incremental refresh), Tableau Prep flow design, and workbook/query tuning with the Performance Recorder (context filters, query fusion, mark reduction). Escalates upstream warehouse/semantic modeling to data-platform and RLS/embedding-auth security verdicts to ravenclaude-core/security-reviewer.
+description: "Use for Tableau data modeling and performance — relationships vs joins vs blends, extracts vs live connections (Hyper), extract optimization (aggregation, hidden fields, incremental refresh), Tableau Prep flow design, and workbook/query tuning with the Performance Recorder."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [analytics-engineers, data-analysts, bi-developers, architects]

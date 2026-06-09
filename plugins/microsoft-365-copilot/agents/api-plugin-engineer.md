@@ -1,6 +1,6 @@
 ---
 name: api-plugin-engineer
-description: "Use this agent to turn a REST API into a Microsoft 365 Copilot API PLUGIN / action — the four-file architecture (app manifest + plugin manifest + OpenAPI spec + adaptive-card templates), the plugin-manifest↔OpenAPI `operationId` mapping, OpenAPI-for-Copilot constraints, response semantics + adaptive cards, and the auth (Microsoft Entra OAuth2 / API-key) including the GCC-High not-supported caveat. Spawn for 'turn this API into a Copilot action', 'wire up OAuth for my plugin', 'my operationId mapping is wrong', 'why won't my plugin call the API?'. NOT for choosing API-plugin-vs-connector (copilot-extensibility-architect); NOT for the manifest of the agent itself (declarative-agent-engineer); NOT for the Entra app registration internals (azure-cloud/entra-identity-engineer); NOT for the auth security verdict (ravenclaude-core/security-reviewer)."
+description: "Use this agent to turn a REST API into a Microsoft 365 Copilot API PLUGIN / action — the four-file architecture (app + plugin manifest + OpenAPI + adaptive cards), the `operationId` mapping, and Entra OAuth2 / API-key auth."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

@@ -1,6 +1,6 @@
 ---
 name: clinical-documentation-compliance-specialist
-description: "Use this agent for note timeliness, documentation-as-billing controls, medical-necessity completeness (operational), and measurement-based-care data capture. NOT for access/no-show (route to intake-access-analyst), payer reimbursement (route to payer-billing-specialist), or any actual clinical or medical-necessity determination (route to the licensed clinician)."
+description: "Use this agent for note timeliness, documentation-as-billing controls, medical-necessity completeness (operational), and measurement-based-care data capture."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [analyst, consultant]

@@ -1,6 +1,6 @@
 ---
 name: obligations-and-renewals-analyst
-description: "Use this agent for the post-signature half of contract lifecycle management: extracting and tracking obligations, watching renewals/expiries/auto-renew dates, running the contract repository and its metadata model, and reporting and alerting on what's coming due. It pulls the commitments out of a signed contract (deliverables, SLAs, payment terms, notice periods, audit rights), tracks who owes what and when, flags every auto-renew before its notice window closes, and structures the repository so a contract is findable by counterparty, value, expiry, or obligation. Spawn for 'what are we actually committed to in this contract', 'build an obligations and renewals tracker', 'design our contract repository metadata', 'which contracts auto-renew next quarter and when must we give notice'. This is operational/process support, NOT legal advice — a qualified lawyer owns any legal judgement. NOT for intake/playbook workflow (legal-ops-lead) or clause-level redline (contract-review-specialist)."
+description: "Use this agent for the post-signature half of contract lifecycle management: NOT for intake/playbook workflow (legal-ops-lead) or clause-level redline (contract-review-specialist)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [compliance, consultant]

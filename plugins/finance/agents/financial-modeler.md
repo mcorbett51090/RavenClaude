@@ -1,6 +1,6 @@
 ---
 name: financial-modeler
-description: Use this agent for financial-model work — three-statement models, DCF, scenario / sensitivity, model architecture, model documentation. Spawn for building a model from scratch, reviewing an existing model, refactoring a broken / overgrown one, or defending modeling assumptions. NOT for budget / forecast / variance work (fpa-analyst) and NOT for board-pack composition (board-pack-composer).
+description: "Use this agent for financial-model work — three-statement models, DCF, scenario / sensitivity, model architecture, model documentation. NOT for budget / forecast / variance work (fpa-analyst) and NOT for board-pack composition (board-pack-composer)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [analyst, consultant]

@@ -1,6 +1,6 @@
 ---
 name: labor-scheduling-analyst
-description: "Use this agent for store labor modeling and scheduling: building a traffic-curve-based labor model, diagnosing labor % of sales that is too high or too low, designing schedules that match staff to conversion opportunity, measuring schedule adherence, and ensuring compliance with predictive scheduling and labor-law requirements. NOT for four-wall P&L diagnosis (store-ops-lead), merchandising or planograms (merchandising-analyst), inventory replenishment (inventory-and-replenishment-analyst), or shrink/loss prevention (loss-prevention-advisor). Spawn when labor % is out of target, the schedule is built on shifts not traffic, or a new labor model is needed."
+description: "Use this agent for store labor modeling and scheduling: NOT for four-wall P&L (store-ops-lead), merchandising/planograms (merchandising-analyst), inventory replenishment (inventory-and-replenishment-analyst), or shrink/loss prevention (loss-prevention-advisor)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience:

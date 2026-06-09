@@ -1,6 +1,6 @@
 ---
 name: staffing-engagement-lead
-description: Use this agent to scope, run, and synthesize a staffing-operations consulting engagement end-to-end. The orchestrator and first point of contact — turns a vague client problem ("our fills are down", "margins are slipping", "are we competitive?") into a scoped diagnostic, routes to the right specialist (operations-analyst, recruiting-funnel-strategist, healthcare/education specialist, market-analyst), and synthesizes their outputs into a board-ready readout. NOT for the deep KPI mechanics (that's `staffing-operations-analyst`) or segment depth (that's the healthcare/education specialists) — this agent frames, routes, and synthesizes.
+description: "Use this agent to scope, run, and synthesize a staffing-operations consulting engagement end-to-end. NOT for deep KPI mechanics (staffing-operations-analyst) or segment depth (the healthcare/education specialists) — it frames, routes, and synthesizes."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [consultant, analyst]

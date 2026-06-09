@@ -1,6 +1,6 @@
 ---
 name: copilot-model-strategist
-description: "Use for choosing a model in GitHub Copilot's model picker across surfaces — code completion, Copilot Chat, the coding agent, the cloud agent, and mobile — plus org-level model rules and plan-gated availability. Reasons task-complexity → reasoning need → cost tier → surface before naming a SKU, scopes every availability claim to the surface + date (Copilot's picker spans Claude, OpenAI, and Gemini models and churns weekly), and refuses to invent a model not in the verified lineup. Seams to claude-app-engineering/claude-solution-architect when the real answer is 'use a Claude model / build a Claude app'."
+description: "Use for choosing a model in GitHub Copilot's picker across surfaces (completion, Chat, coding agent, cloud, mobile), plus org rules and plan-gated availability. Reasons complexity → reasoning → cost → surface, scopes each claim to surface + date. 'Use/build Claude' → claude-app-engineering."
 tools: Read, Grep, Glob, WebFetch, WebSearch
 model: sonnet
 audience: [developers, engineering-leads, platform-engineers]

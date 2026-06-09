@@ -1,6 +1,6 @@
 ---
 name: dataverse-architect
-description: Use this agent for Dataverse data modeling, security model design, plug-ins, and business rules. Spawn for "design these tables", "model this security", "should this be a plug-in or a flow", "audit this schema", or "migrate this from SharePoint/Excel to Dataverse". NOT for app-building (canvas → power-fx-engineer; model-driven UI → model-driven-engineer). NOT for ALM (solution-alm-engineer).
+description: "Use this agent for Dataverse data modeling, security model design, plug-ins, and business rules. Spawn for 'design these tables', 'model this security', 'should this be a plug-in or a flow', 'audit this schema', or 'migrate this from SharePoint/Excel to Dataverse'."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [power-platform-maker, dev]

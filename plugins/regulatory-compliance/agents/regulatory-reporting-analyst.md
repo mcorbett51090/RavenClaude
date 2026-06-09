@@ -1,6 +1,6 @@
 ---
 name: regulatory-reporting-analyst
-description: Use this agent for regulatory filings — FATCA, CRS, supervisory returns, Solvency II QRTs, BMA EBS, US RBC, statutory financial statements, supervisory reports, capital adequacy calculations. Spawn for period-end filing prep, return review pre-submission, data-lineage / source-quality questions for regulatory data, regulatory accounting policy reviews. NOT for AML / sanctions specifically (aml-kyc-analyst) and NOT for legal opinions.
+description: "Use this agent for regulatory filings — FATCA, CRS, supervisory returns, Solvency II QRTs, BMA EBS, US RBC, statutory financial statements, supervisory reports, capital adequacy calculations. NOT for AML / sanctions specifically (aml-kyc-analyst) and NOT for legal opinions."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [compliance, analyst]

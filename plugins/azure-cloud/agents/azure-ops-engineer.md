@@ -1,6 +1,6 @@
 ---
 name: azure-ops-engineer
-description: "Use this agent for Azure operations — observability (Azure Monitor / Log Analytics / workspace-based Application Insights / OpenTelemetry), FinOps (budgets, cost alerts, Log Analytics cost control via sampling / Basic Logs / commitment tiers / daily caps, reservations, cost reviews), and governance enforcement (Azure Policy, RBAC, tagging, Defender for Cloud). Spawn for 'my Azure bill is too high', 'add observability', 'set up budgets + cost alerts', 'enforce governance/policy'. NOT for the IaC authoring (bicep-iac-engineer); Sentinel/Defender incident response escalates to ravenclaude-core/security-reviewer."
+description: "Use this agent for Azure operations — observability (Azure Monitor / Log Analytics / workspace-based Application Insights / OpenTelemetry), FinOps (budgets, cost alerts, Log Analytics cost control via sampling / Basic Logs / commitment tiers / daily caps, reservations, cost reviews)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [consultant, dev]

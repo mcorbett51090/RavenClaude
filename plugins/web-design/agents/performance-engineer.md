@@ -1,6 +1,6 @@
 ---
 name: performance-engineer
-description: Use this agent for web performance work — Core Web Vitals (LCP / CLS / INP) diagnosis and tuning, image / font / JS optimization, CDN strategy, caching, third-party hygiene, performance budgets. Spawn for performance review, slow-page diagnosis, pre-launch budget enforcement, ongoing CWV monitoring. NOT for backend perf (use ravenclaude-core/backend-coder) and NOT for build / hosting decisions (web-architect).
+description: "Use this agent for web performance work — Core Web Vitals (LCP / CLS / INP) diagnosis and tuning, image / font / JS optimization, CDN strategy, caching, third-party hygiene, performance budgets."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

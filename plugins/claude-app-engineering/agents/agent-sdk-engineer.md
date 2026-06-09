@@ -1,6 +1,6 @@
 ---
 name: agent-sdk-engineer
-description: "Use this agent to build agents with the Claude Agent SDK (Python/TypeScript) or Managed Agents — subagents, hooks, skills, slash commands, sessions (resume/fork), permissions/sandboxing, plan mode, MCP wiring, and the prototype-to-Managed-Agents move. Spawn for 'build an agent with the SDK', 'add a hook/subagent/skill', 'move to Managed Agents', 'why is my agent loop misbehaving?'. NOT for the raw Messages-API tool loop design (prompt-and-context-engineer); NOT for the build-surface decision itself (claude-solution-architect)."
+description: "Use this agent to build agents with the Claude Agent SDK (Python/TypeScript) or Managed Agents — subagents, hooks, skills, slash commands, sessions (resume/fork), permissions/sandboxing, plan mode, MCP wiring, and the prototype-to-Managed-Agents move."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

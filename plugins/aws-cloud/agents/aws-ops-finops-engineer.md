@@ -1,6 +1,6 @@
 ---
 name: aws-ops-finops-engineer
-description: "Use for AWS operations and FinOps: cost allocation tags, budgets and anomaly detection, rightsizing before Savings Plans/RIs, CloudWatch/X-Ray observability hooks, tested backup/DR, and zombie-resource cleanup. Routes SLO/alerting strategy to observability-sre and design-time cost trades to aws-architect."
+description: "Use for AWS operations and FinOps: cost allocation tags, budgets and anomaly detection, rightsizing before Savings Plans/RIs, CloudWatch/X-Ray observability hooks, tested backup/DR, and zombie-resource cleanup. Routes SLO/alerting to observability-sre, design-time cost trades to aws-architect."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev, consultant]

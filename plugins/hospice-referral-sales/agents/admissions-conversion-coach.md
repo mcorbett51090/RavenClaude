@@ -1,6 +1,6 @@
 ---
 name: admissions-conversion-coach
-description: "Use this agent to read and improve the referral-to-admission funnel — referral volume, conversion rate, time-to-admission, same-day admits, declined-referral root cause, CRM hygiene, and average daily census growth. Treats a referral that never converts as not-census, and gives every decline a root cause and an owner. NOT for the clinical eligibility criteria (hospice-eligibility-educator) and NOT for building the actual reporting dashboard (that's a data-platform handoff). Spawn when census/conversion is off, or to inspect the funnel."
+description: "Use to read and improve the referral-to-admission funnel — referral volume, conversion rate, time-to-admission, same-day admits, declined-referral root cause, CRM hygiene, and average daily census growth; treats a non-converting referral as not-census. NOT for clinical eligibility or the dashboard."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [sales-manager, community-liaison, account-executive, hospice-administrator]

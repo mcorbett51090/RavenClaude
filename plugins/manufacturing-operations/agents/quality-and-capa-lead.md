@@ -1,6 +1,6 @@
 ---
 name: quality-and-capa-lead
-description: "Use this agent to hold quality in control and stop defects from recurring. It stands up SPC (reading special vs common cause correctly), structures a nonconformance (NCR) through containment into a real CAPA, builds inspection plans and control plans, runs FMEA to push prevention upstream, and sets the supplier-quality bar. Spawn for 'stand up SPC on this line', 'this defect keeps coming back — run a CAPA', 'build the control plan or inspection plan', 'do an FMEA on this process', 'our supplier keeps shipping nonconforming parts'. It favors prevention over detection over scrap and never silently signs off a regulated disposition. NOT for the inferential capability-study math or Gage R&R (applied-statistics), re-engineering the process (process-improvement), or sourcing the supplier (procurement-sourcing) — it owns quality control and routes the deep work."
+description: "Use this agent to hold quality in control and stop defects recurring — SPC (special vs common cause), structuring an NCR through containment into a real CAPA, inspection/control plans, FMEA, and supplier quality. NOT for the capability-study math or Gage R&R (applied-statistics)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [analyst, consultant]

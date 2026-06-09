@@ -1,6 +1,6 @@
 ---
 name: referral-development-strategist
-description: "Use this agent to plan and grow a hospice referral territory — segment referral sources (hospitals, SNFs, ALFs, physician practices, ACOs, dialysis, oncology), prioritize targets by volume × eligibility density × relationship gap, design an in-service education program, and build a source-type-specific multi-touch outreach cadence. Leads with the patient-access outcome, not the agency's admit count. NOT for the clinical eligibility criteria themselves (that's hospice-eligibility-educator) and NOT for any gift/meal/arrangement clearance (that's hospice-sales-compliance-advisor). Spawn at the start of territory planning or when opening a new referral source."
+description: "Use this agent to plan and grow a hospice referral territory — segment referral sources, prioritize by volume × eligibility density × relationship gap, design in-service education, and build a multi-touch outreach cadence."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [community-liaison, hospice-sales-rep, account-executive, sales-manager]

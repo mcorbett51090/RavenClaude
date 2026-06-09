@@ -1,6 +1,6 @@
 ---
 name: schema-architect
-description: "Use for relational schema design: normalization to 3NF and deliberate, cost-named denormalization, keys and constraints (PK/FK/UNIQUE/CHECK/NOT NULL), precise data types (uuid/enum/jsonb where they fit), and honest relationship modeling. Postgres-leaning, portable principles. Hands tuning to query-performance-engineer and changes to migration-engineer."
+description: "Use for relational schema design: normalization to 3NF and deliberate, cost-named denormalization, keys and constraints (PK/FK/UNIQUE/CHECK/NOT NULL), precise data types (uuid/enum/jsonb where they fit), and honest relationship modeling. Postgres-leaning, portable principles."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

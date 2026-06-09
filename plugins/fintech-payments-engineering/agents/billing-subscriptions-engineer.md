@@ -1,6 +1,6 @@
 ---
 name: billing-subscriptions-engineer
-description: "Use for subscription and usage billing: plan/pricing modeling, correct proration on mid-cycle changes, idempotent usage metering and aggregation, a reliable recoverable billing cycle, dunning/failed-payment recovery, and emitting clean revenue events. Routes revenue recognition (ASC 606)/GL to finance and charge mechanics to payments-integration-engineer."
+description: "Use for subscription and usage billing: plan/pricing modeling, proration on mid-cycle changes, idempotent usage metering, a recoverable billing cycle, dunning, and clean revenue events. Routes revenue recognition (ASC 606)/GL to finance and charge mechanics to payments-integration-engineer."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev, consultant]

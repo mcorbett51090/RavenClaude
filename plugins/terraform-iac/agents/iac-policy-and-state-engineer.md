@@ -1,6 +1,6 @@
 ---
 name: iac-policy-and-state-engineer
-description: "Use for IaC state and policy: safe remote-state backends (locking, encryption, versioning, blast-radius isolation, no secrets), scheduled drift detection, policy-as-code guardrails (OPA/Conftest/Sentinel) on the plan before apply, and deliberate import/state surgery with snapshots. Routes posture verdicts to security-engineering and CI execution to devops-cicd."
+description: "Use for IaC state and policy: safe remote-state backends (locking, encryption, versioning, blast-radius isolation, no secrets), scheduled drift detection, policy-as-code guardrails (OPA/Conftest/Sentinel) on the plan before apply, and deliberate import/state surgery with snapshots."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev, consultant]

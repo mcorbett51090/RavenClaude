@@ -1,6 +1,6 @@
 ---
 name: claude-app-ops-engineer
-description: "Use this agent for Claude app production ops — token-cost FinOps (cache hit rate, the model routing ladder, the Batch API, cost-per-resolved-task), reliability (429/overloaded exponential backoff + jitter, idempotency, timeouts, streaming), and observability (per-request token/cost/latency logging, dashboards). Spawn for 'my Claude bill is too high', 'handle 429s', 'add observability', 'my app is slow/flaky under load'. NOT for the prompt/caching design itself (prompt-and-context-engineer); security design escalates to ravenclaude-core/security-reviewer."
+description: "Use for Claude app production ops — token-cost FinOps (cache hit rate, the model routing ladder, Batch API, cost-per-resolved-task), reliability (429/overloaded backoff + jitter, idempotency), and observability. NOT for prompt/caching design (prompt-and-context-engineer); security → core."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

@@ -1,6 +1,6 @@
 ---
 name: content-strategist
-description: Use this agent for content / copy work — site copy, content hierarchy, microcopy, SEO content, content style guide, content audit, content modeling for headless CMS. Spawn for content audit, copy authoring, voice-and-tone design, content modeling, blog / article strategy. NOT for stakeholder prose (use ravenclaude-core/documentarian) and NOT for technical SEO infrastructure (use web-architect).
+description: "Use this agent for content / copy work — site copy, content hierarchy, microcopy, SEO content, content style guide, content audit, content modeling for headless CMS. NOT for stakeholder prose (use ravenclaude-core/documentarian) and NOT for technical SEO infrastructure (use web-architect)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, consultant]

@@ -57,6 +57,16 @@ Every plugin **must** have `.claude-plugin/plugin.json`, `README.md`, and `CLAUD
 5. Add any new top-level dirs to `.repo-layout.json` `allowed_globs`.
 6. Bump the plugin's `version` on every user-visible change (semver).
 7. **For every new agent, fill in the scenario-authoring schema** (`audience`, `works_with`, `scenarios`, `quickstart`) in the agent's YAML frontmatter — see [`docs/best-practices/agent-scenario-authoring.md`](docs/best-practices/agent-scenario-authoring.md). The repo-guide generator picks them up automatically and surfaces them in per-agent cards + the Overview tab use-case lookup table. **This is gated:** `scripts/check-frontmatter.py` fails the build if an `agents/*.md` is missing the schema (each `scenarios` item needs `intent` / `trigger_phrase` / `outcome` / `difficulty`).
+8. **Keep each agent `description` ≤ 300 characters.** It's the only frontmatter field loaded into the orchestrator's prompt to route to subagents — see the agent-description token budget below. **This is gated:** `scripts/check-frontmatter.py` fails the build on any `agents/*.md` whose `description` exceeds 300 chars. Lead with what the agent is for + its distinctive keywords, keep the one most important `NOT for X → other-agent` boundary, and drop verbose restatements and example "spawn for '…'" phrase lists.
+
+## The agent-description token budget (~15K) — why descriptions are capped
+
+Claude Code loads the `name` + `description` of **every agent in every *enabled* plugin** into the orchestrator's system prompt so it can route to subagents (agent bodies load lazily, only when an agent is invoked). The combined descriptions count against a **~15K-token budget**; cross it and Claude Code warns *"agent descriptions are over the 15.0K token limit — /agents to free up context."*
+
+This marketplace ships **~100 plugins / 400+ agents**, so two levers keep the budget affordable — they're complementary, not either/or:
+
+1. **Per-agent cap (this repo's job).** Every agent `description` is held to ≤ 300 chars (~75 tokens) by the `check-frontmatter.py` gate above. No single plugin is the problem; the cap is what lets a consumer enable *many* plugins before hitting the warning.
+2. **Enable only what you need (the consumer's job).** You cannot fit all ~100 plugins under 15K regardless of how tight the descriptions are — that's expected, not a defect. Enable the plugins relevant to your work and disable the rest via **`/agents`** (or `/plugin`). That's exactly what the warning's `/agents` hint points at, and it's the correct response to it.
 
 ## Modifying an existing plugin
 

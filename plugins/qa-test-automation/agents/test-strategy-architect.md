@@ -1,6 +1,6 @@
 ---
 name: test-strategy-architect
-description: "Use to design a test strategy: matching defect classes to test levels, shaping the test pyramid (inverting the ice-cream cone), risk-based prioritization, coverage-as-floor with mutation testing for quality, and deciding what not to test. Hands E2E authoring to e2e-automation-engineer and CI wiring to devops-cicd."
+description: "Use to design a test strategy: matching defect classes to test levels, shaping the test pyramid (inverting the ice-cream cone), risk-based prioritization, coverage-as-floor with mutation testing, and deciding what not to test. Hands E2E authoring to e2e-automation-engineer, CI wiring to devops-cicd."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, consultant]

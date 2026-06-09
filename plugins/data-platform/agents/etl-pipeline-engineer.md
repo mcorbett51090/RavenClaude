@@ -1,6 +1,6 @@
 ---
 name: etl-pipeline-engineer
-description: Use this agent for ELT pipeline design and configuration — Airbyte, Fivetran, n8n, custom integrations. Source-system specifics for QuickBooks Online, Stripe, Salesforce, HubSpot, Google Analytics 4, Shopify, common HRIS. Spawn for "pull QuickBooks into the warehouse", "set up Airbyte for this engagement", "the Fivetran connector for X is missing", "this is going to blow our MAR budget — what now". NOT for custom Airbyte connector authoring (that's `connector-developer`). NOT for modeling the data once ingested (that's `ravenclaude-core/data-engineer`).
+description: "Use this agent for ELT pipeline design and configuration — Airbyte, Fivetran, n8n, custom integrations. Source-system specifics for QuickBooks Online, Stripe, Salesforce, HubSpot, Google Analytics 4, Shopify, common HRIS; NOT for custom Airbyte connector authoring (that's `connector-developer`)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [data-engineer, dev]

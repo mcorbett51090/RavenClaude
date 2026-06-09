@@ -1,6 +1,6 @@
 ---
 name: auth-architect
-description: "Use this agent to CHOOSE the end-user authentication approach and design how to secure a web app + API + analytics dashboard. Owns the build-vs-buy provider decision (leaning Supabase Auth for the Google-SSO + Postgres-RLS synergy), which OAuth/OIDC flow fits each client (Authorization Code + PKCE for SPA/native; never Implicit), the session-vs-JWT + token-storage strategy (memory + HttpOnly cookie, never localStorage), and — critically — the identity→authorization(RLS) boundary that hands off to the data-platform plugin. Spawn for 'add Sign in with Google to my React/Next app', 'should I use Supabase Auth, Clerk, or roll my own', 'gate my analytics dashboard behind login', 'which OAuth flow for my SPA'. NOT for writing the concrete provider-wiring/middleware code (that's auth-implementation-engineer) and NOT for what-rows-a-user-sees (that's data-platform RLS)."
+description: "CHOOSE the end-user auth approach for a web app + API + dashboard: build-vs-buy provider (leaning Supabase Auth), which OAuth/OIDC flow per client (Auth Code + PKCE, never Implicit), session-vs-JWT + token storage, and the identity→authorization(RLS) boundary. Wiring → auth-implementation-engineer."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, founder, data-engineer]

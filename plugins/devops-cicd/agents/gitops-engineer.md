@@ -1,6 +1,6 @@
 ---
 name: gitops-engineer
-description: "Use for GitOps continuous delivery: Argo CD / Flux setup, desired-state-in-Git repo structure (app-of-apps, environment overlays), promotion-by-PR across environments, drift detection and self-heal posture, and secrets without plaintext (sealed-secrets / external-secrets). Revert-the-commit rollback."
+description: "Use for GitOps continuous delivery: Argo CD / Flux setup, desired-state-in-Git repo structure (app-of-apps, environment overlays), promotion-by-PR across environments, drift detection and self-heal, and secrets without plaintext (sealed-secrets / external-secrets). Revert-the-commit rollback."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

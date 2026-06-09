@@ -1,6 +1,6 @@
 ---
 name: asset-property-manager
-description: "Use this agent for the owned-asset business plan — leasing strategy, opex and recovery management, capex sequencing, tenant retention, and NOI growth against the acquisition underwriting. NOT for the initial buy decision (route to acquisitions-underwriter) or market trend reads (route to cre-market-analyst)."
+description: "Use for the owned-asset business plan — leasing strategy, opex and recovery management, capex sequencing, tenant retention, and NOI growth against the acquisition underwriting. NOT for the initial buy decision (acquisitions-underwriter) or market trend reads (cre-market-analyst)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [consultant, analyst]

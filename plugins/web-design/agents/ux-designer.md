@@ -1,6 +1,6 @@
 ---
 name: ux-designer
-description: Use this agent for UX work — wireframes, user flows, screen-level layouts, conversion design, interaction design, usability heuristics. Spawn for pre-build UX, screen flows, conversion-focused redesigns, usability reviews, form design. NOT for visual design (visual-designer) and NOT for code (frontend-implementer).
+description: Use for UX work — wireframes, user flows, screen-level layouts, conversion design, interaction design, usability heuristics. Spawn for pre-build UX, screen flows, conversion-focused redesigns, usability reviews, form design. NOT for visual design (visual-designer) or code (frontend-implementer).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, consultant]

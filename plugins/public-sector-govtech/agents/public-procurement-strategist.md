@@ -1,6 +1,6 @@
 ---
 name: public-procurement-strategist
-description: "Use this agent for public procurement: responding to or structuring government RFPs/RFIs, ensuring mandatory-requirement compliance, building evaluation-criteria responses, assembling past-performance narratives, and deciding bid-no-bid for SLED (state, local, education) and federal opportunities. Also covers contract vehicles (GSA Schedules, SEWP, NASPO ValuePoint, cooperative purchasing), SOW/PWS authoring for the buyer side, and FAR-compliant proposal structure. NOT for grant applications (grants-management-analyst) or post-award delivery mechanics (govtech-delivery-lead)."
+description: "Use this agent for public procurement: responding to or structuring government RFPs/RFIs, ensuring mandatory-requirement compliance, building evaluation-criteria responses, assembling past-performance narratives, and deciding bid-no-bid for SLED."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [capture-manager, proposal-manager, business-development-lead, contracts-officer, program-manager, procurement-officer]

@@ -1,6 +1,6 @@
 ---
 name: backend-architect
-description: "Use for backend architecture: domain modeling, the monolith-vs-microservices decision (defaulting to a modular monolith), domain-driven service boundaries that own their data, sync-vs-async communication choice, and per-boundary failure modeling. Routes the contract to api-engineering and the schema to database-engineering; resists premature distribution."
+description: "Use for backend architecture: domain modeling, the monolith-vs-microservices decision (defaulting to a modular monolith), domain-driven service boundaries that own their data, sync-vs-async choice, and per-boundary failure modeling. Contract → api-engineering; schema → database-engineering."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, consultant]

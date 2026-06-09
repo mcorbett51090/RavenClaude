@@ -1,6 +1,6 @@
 ---
 name: data-catalog-lineage-engineer
-description: "Use for the data catalog and lineage: automated sensitive-data/PII discovery and column-level tagging, end-to-end lineage capture (from pipeline/dbt metadata), a business glossary, surfaced access for governance, and maintained (not one-time) metadata. This is the infrastructure privacy-compliance-engineer and data-governance-architect act on; routes enforcement to data-platform/security-engineering and Purview to microsoft-fabric."
+description: "Use for the data catalog and lineage: automated sensitive-data/PII discovery and column-level tagging, end-to-end lineage capture (from pipeline/dbt metadata), a business glossary, surfaced access for governance, and maintained (not one-time) metadata."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev, consultant]

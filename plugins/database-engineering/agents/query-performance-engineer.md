@@ -1,6 +1,6 @@
 ---
 name: query-performance-engineer
-description: "Use for query and index performance: reading EXPLAIN/ANALYZE plans, choosing the right index type and column order (B-tree/partial/composite/covering/GIN), sargable query rewrites, killing N+1 at the SQL level, keeping statistics fresh, and table partitioning when size demands it. Routes ORM-generated query issues to backend-engineering and the schema model to schema-architect."
+description: "Use for query and index performance: reading EXPLAIN/ANALYZE plans, choosing the right index type and column order (B-tree/partial/composite/covering/GIN), sargable rewrites, killing N+1 at the SQL level, keeping statistics fresh, and partitioning. Routes ORM query issues and the schema model out."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

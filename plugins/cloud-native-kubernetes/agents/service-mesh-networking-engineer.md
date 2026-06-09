@@ -1,6 +1,6 @@
 ---
 name: service-mesh-networking-engineer
-description: "Use for cloud-native networking: Ingress/Gateway API setup, deciding whether a service mesh earns its complexity, mTLS for east-west, weighted traffic-splitting for canaries, resilience (timeouts/retries/circuit-breaking), and mesh telemetry. Routes rollout orchestration to devops-cicd and golden signals to observability-sre."
+description: "Use for cloud-native networking: Ingress/Gateway API setup, deciding whether a service mesh earns its complexity, mTLS for east-west, weighted traffic-splitting for canaries, resilience (timeouts/retries/circuit-breaking), and mesh telemetry. Routes rollout to devops-cicd and golden-signal SLOs out."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

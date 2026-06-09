@@ -1,6 +1,6 @@
 ---
 name: power-pages-engineer
-description: Use this agent for Power Pages (formerly Power Apps Portals) — external-facing sites for anonymous or B2C users. Tables, table permissions, web roles, liquid templating, basic / advanced / multi-step forms, authentication providers (Azure AD B2C, local accounts, etc.), web files, content snippets, custom CSS/JS. Spawn for portal architecture, table-permission design, B2C auth setup, custom liquid, "should this be Power Pages or a canvas app" decisions. NOT for internal-tenant apps (canvas → power-fx-engineer; model-driven → model-driven-engineer).
+description: "Use this agent for Power Pages (formerly Power Apps Portals) — external-facing sites for anonymous or B2C users. NOT for internal-tenant apps."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [power-platform-maker, dev]

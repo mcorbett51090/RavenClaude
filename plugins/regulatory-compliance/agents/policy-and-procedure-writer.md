@@ -1,6 +1,6 @@
 ---
 name: policy-and-procedure-writer
-description: Use this agent for compliance manual / policy / procedure authoring — new policy drafting, P&P refreshes, gap analysis against new regulation, regulator-facing documentation, jurisdictional adaptation of an existing policy. Spawn for new policies, periodic policy review cycles, mapping a new regulation into existing policies, drafting public-facing compliance commitments. NOT for legal opinions (route to counsel) and NOT for operational implementation (route to the relevant operational team).
+description: "Use this agent for compliance manual / policy / procedure authoring — new policy drafting, P&P refreshes, gap analysis against new regulation, regulator-facing documentation, jurisdictional adaptation of an existing policy."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [compliance]

@@ -1,6 +1,6 @@
 ---
 name: frontend-performance-engineer
-description: "Use for frontend performance: Core Web Vitals (LCP/INP/CLS) tuning, JavaScript bundle analysis and route-based code-splitting, lazy-loading, image/font optimization, hydration-cost reduction (RSC/islands), eliminating render-blocking and request waterfalls, and enforcing a CI perf budget. Complements web-design's CWV/asset work; routes CI gating to devops-cicd."
+description: "Use for frontend performance: Core Web Vitals (LCP/INP/CLS) tuning, JavaScript bundle analysis and route-based code-splitting, lazy-loading, image/font optimization, hydration-cost reduction (RSC/islands), eliminating render-blocking and waterfalls, and a CI perf budget. Routes CI gating out."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

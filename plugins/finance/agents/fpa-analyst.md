@@ -1,6 +1,6 @@
 ---
 name: fpa-analyst
-description: Use this agent for FP&A work — budgeting, rolling forecasts, KPI commentary, variance walks, scenario modeling at the P&L level, headcount and opex planning. Spawn for budget season, monthly / quarterly variance commentary, KPI pack assembly, board-pack commentary inserts. NOT for full three-statement model build (financial-modeler) and NOT for journal entries / close mechanics (controller).
+description: "Use for FP&A work — budgeting, rolling forecasts, KPI commentary, variance walks, P&L-level scenario modeling, and headcount/opex planning. Spawn for budget season, variance commentary, KPI-pack assembly, and board-pack inserts. NOT for three-statement model build or close mechanics (controller)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [analyst, consultant]

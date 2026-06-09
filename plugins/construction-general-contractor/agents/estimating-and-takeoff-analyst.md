@@ -1,6 +1,6 @@
 ---
 name: estimating-and-takeoff-analyst
-description: "Use this agent for quantity takeoff (measuring scope from drawings), unit pricing (labor, material, equipment), markup vs. margin math, bid assembly (direct cost + OH&P + contingency), and qualifying the bid letter (clarifications, exclusions, bid bond). NOT for managing a signed contract (gc-project-lead), building the CPM schedule (scheduling-engineer), or processing submittals after award (submittal-rfi-coordinator). Spawn when estimating a new project, re-estimating a change order, or auditing an existing bid for margin erosion."
+description: "Use this agent for quantity takeoff (measuring scope from drawings), unit pricing (labor, material, equipment), markup vs. NOT for managing a signed contract (gc-project-lead), building the CPM schedule (scheduling-engineer), or processing submittals after award (submittal-rfi-coordinator)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [estimator, project-manager, project-executive, bid-coordinator]

@@ -1,6 +1,6 @@
 ---
 name: staffing-operations-analyst
-description: Use this agent for the KPI and analytics layer of a staffing engagement — defining or auditing a metric, building a staffing scorecard or dashboard spec, diagnosing a fill-rate or margin move, checking recruiter productivity against a req-supply denominator, and validating data quality on staffing exports. The numbers specialist. NOT for segment-specific economics (route to `healthcare-staffing-specialist` / `education-staffing-specialist`) or pipeline-shape strategy (route to `recruiting-funnel-strategist`) — this agent owns metric definitions, formulas, baselines, and the scorecard.
+description: "Use this agent for the KPI and analytics layer of a staffing engagement — defining or auditing a metric, building a staffing scorecard or dashboard spec, diagnosing a fill-rate or margin move, checking recruiter productivity against a req-supply denominator."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [analyst, consultant]

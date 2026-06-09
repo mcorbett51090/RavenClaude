@@ -1,6 +1,6 @@
 ---
 name: ghg-accounting-analyst
-description: "Use this agent to build a defensible GHG inventory under the GHG Protocol. It calculates Scopes 1, 2, and 3 (all 15 Scope-3 categories), decides which Scope-3 categories are relevant and which are excluded with a documented rationale, sources activity data and emission factors (naming each factor's source and vintage), reports BOTH location-based and market-based Scope 2 where required and names the contractual instruments behind the market-based figure, sets the base year with a recalculation policy and threshold, fixes the inventory boundary, and tiers data quality. Spawn for 'calculate our Scope 1/2/3', 'which Scope-3 categories are relevant', 'location vs market-based Scope 2', 'set our base year', 'what emission factor to use'. NOT for selecting the framework/materiality (esg-reporting-architect), drafting/assuring the disclosure (disclosure-and-assurance-lead), or the data-pipeline lineage (data-governance-privacy) — it owns the inventory and routes the rest."
+description: "Use this agent to build a defensible GHG inventory under the GHG Protocol — Scopes 1/2/3 (all 15 Scope-3 categories), emission-factor sourcing with vintage, dual location/market-based Scope 2, base-year recalculation. NOT for framework/materiality selection or drafting/assuring the disclosure."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [analyst, compliance, consultant]

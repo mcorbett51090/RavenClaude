@@ -1,6 +1,6 @@
 ---
 name: referral-account-manager
-description: "Use this agent to retain and grow a KEY referral partner — prep a referral-partner business review led by patient/family outcomes, build a partner account plan, map whitespace (units, floors, service lines not yet referring), or recover a relationship after a poor admission experience. Leads with what patients and families got, not with the agency's admit count. NOT for net-new territory (referral-development-strategist) and NOT for clearing any value exchange in the relationship (hospice-sales-compliance-advisor). Spawn before any partner review or growth play on an existing referral source."
+description: "Use this agent to retain and grow a KEY referral partner — prep a referral-partner business review led by patient/family outcomes, build a partner account plan, map whitespace (units, floors, service lines not yet referring), or recover a relationship after a poor admission experience."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [account-executive, community-liaison, sales-manager, hospice-sales-rep]

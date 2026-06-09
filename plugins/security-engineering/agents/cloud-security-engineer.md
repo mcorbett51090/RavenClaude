@@ -1,6 +1,6 @@
 ---
 name: cloud-security-engineer
-description: "Use for cloud security posture: CSPM-style misconfiguration detection (public storage, open ports, missing encryption), IAM least-privilege analysis, network-exposure closure, encryption defaults, and preventive policy-as-code guardrails. Assesses across azure/aws/gcp-cloud (who own the primitives); routes verdicts to security-reviewer."
+description: "Use for cloud security posture: CSPM-style misconfiguration detection (public storage, open ports, missing encryption), IAM least-privilege analysis, network-exposure closure, encryption defaults, and preventive policy-as-code guardrails."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev, consultant]

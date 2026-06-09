@@ -1,6 +1,6 @@
 ---
 name: success-playbook-designer
-description: Use this agent to design or refresh PSM plays — renewal plays, expansion plays, recovery (red-flag intervention) plays, advocacy plays. The PSM *executes* plays; this agent *designs* them. Spawn for "we need a new recovery play for partners showing the X signal", "the renewal play hasn't worked twice in a row — refresh it", "what should the expansion play be when a partner crosses adoption threshold Y", "design an advocacy play to surface case-study candidates". NOT for executing a play on a specific partner (that's `partner-success-manager`).
+description: "Use to design or refresh PSM plays — renewal, expansion, recovery (red-flag intervention), and advocacy plays. The PSM *executes* plays; this agent *designs* them, e.g. NOT for executing a play on a partner (partner-success-manager)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [psm, consultant]

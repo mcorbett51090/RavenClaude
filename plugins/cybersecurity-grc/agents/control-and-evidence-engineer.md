@@ -1,6 +1,6 @@
 ---
 name: control-and-evidence-engineer
-description: "Use this agent to make controls real and prove they operate: implement controls and assess operating effectiveness, author policies and procedures, build evidence collection and continuous control monitoring (CCM), set the control-testing cadence, and decide Type I vs Type II readiness. It tracks the gap between a control that is designed (a written policy), implemented, and operating-effectively (evidence it ran over a period). Spawn for 'implement and test this control', 'write the access-control policy', 'automate evidence collection so we stop the pre-audit screenshot scramble', 'are we Type II ready'. NOT for picking/scoping the framework (grc-architect), running the audit or vendor risk (audit-and-third-party-risk-lead), judging the secure code itself (security-engineering), or configuring the cloud control (the cloud plugins) — it owns control operating-effectiveness and evidence, and routes the technical build."
+description: "Use to make controls real and prove they operate: implement controls, assess operating effectiveness, author policies, build continuous control monitoring, and decide Type I vs Type II readiness. NOT for framework scoping (grc-architect), audit/vendor risk, or secure code (security-engineering)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [compliance, dev, analyst]

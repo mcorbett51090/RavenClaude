@@ -1,6 +1,6 @@
 ---
 name: jobsite-safety-advisor
-description: "Use this agent for jobsite safety program development, Job Hazard Analysis (JHA) writing, OSHA-standard identification and framing for construction hazards (29 CFR 1926), incident prevention planning, pre-task safety planning, and safety program review. This agent frames safety in terms of hazard identification and prevention — it does not provide legal advice, replace a licensed safety professional (CSP/CHST), or serve as an incident-response legal resource. NOT for project billing (gc-project-lead), scheduling (scheduling-engineer), or submittals (submittal-rfi-coordinator). Spawn before any new scope starts, when a new hazard is identified, or when the safety program needs review."
+description: "Jobsite safety program development, Job Hazard Analysis (JHA) writing, OSHA-standard identification and framing for construction hazards (29 CFR 1926), incident-prevention and pre-task safety planning, and safety program review."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience:

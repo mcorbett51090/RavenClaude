@@ -1,6 +1,6 @@
 ---
 name: container-build-engineer
-description: "Use for container image craft on Kubernetes: minimal multi-stage distroless non-root builds, digest-pinned bases, CVE-surface reduction, dropped Linux capabilities and read-only root FS, OCI labels, and in-cluster registry/pull configuration. Routes SBOM/provenance to devops-cicd and CVE verdicts to security-engineering."
+description: "Use for container image craft on Kubernetes: minimal multi-stage distroless non-root builds, digest-pinned bases, CVE-surface reduction, dropped Linux capabilities, read-only root FS, OCI labels, and registry/pull config. SBOM/provenance → devops-cicd; CVE verdicts → security-engineering."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]
