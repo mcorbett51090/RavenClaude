@@ -1892,12 +1892,16 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-05-26",
-      "refresh_when": "The Copilot package generator, the hook adapter's envelope mapping, or Copilot's plugin-hook bug status changes.",
+      "last_verified": "2026-06-09",
+      "refresh_when": "The Copilot package generator, the hook adapter's envelope mapping, Copilot's plugin-hook bug status, or the GitHub Copilot CLI customization surface (instruction files / agents / skills / hooks) changes.",
       "sources": [
         {
-          "label": "ravenclaude-core constitution",
+          "label": "ravenclaude-core constitution — Copilot CLI bridge",
           "url": "plugins/ravenclaude-core/CLAUDE.md"
+        },
+        {
+          "label": "Copilot CLI customization surface (canonical, docs-verified)",
+          "url": "plugins/ravenclaude-core/knowledge/copilot-cli-customization.md"
         },
         {
           "label": "generate-copilot-plugin.py",
