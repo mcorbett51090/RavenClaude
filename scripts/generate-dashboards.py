@@ -518,6 +518,14 @@ _PIPELINE_LANES = [
                            "Pauses if it loops, or if it passes your step limit."],
                  "trip": "Pauses the robot so it can't run away with your time or money.",
                  "set": "Turn the brake off, or set the two limits, in the boxes below."}},
+            {"id": "parallel-workers", "title": "Parallel workers", "badge": "dynamic", "controls": "parallelism",
+             "tip": "Lets the robot split a job across several helpers at once — and caps how many run together.",
+             "detail": {
+                 "steps": ["Watches when the robot wants to fan work out to helpers (subagents / worktrees).",
+                           "If parallel workers are allowed, lets several run side by side.",
+                           "Caps how many run at once to your limit."],
+                 "trip": "When off, helpers run one at a time; when on, up to your worker limit run together.",
+                 "set": "Turn parallel workers on and set the most-at-once limit in the boxes below."}},
             {"id": "enforce-layout", "title": "Folder & task limits", "badge": "dynamic", "controls": "files",
              "tip": "Makes sure new files go in the right folders, and that the robot only touches the files this task is allowed to.",
              "detail": {
@@ -608,6 +616,14 @@ _PIPELINE_CONTROLS = {
         '<input type="number" id="pipe-runaway-total" min="1" step="1"></label>'
         '<label class="pipe-ctl">Most identical tries in a row '
         '<input type="number" id="pipe-runaway-consec" min="1" step="1"></label>'
+    ),
+    "parallelism": (
+        '<label class="pipe-ctl"><input type="checkbox" id="pipe-parallelism-enabled"> '
+        "Allow parallel workers</label>"
+        '<label class="pipe-ctl">Most workers at once '
+        '<input type="number" id="pipe-parallelism-workers" min="1" step="1"></label>'
+        '<p class="pipe-hint">When on, fan-out work (subagents / worktrees) may run in parallel '
+        "up to this limit. Off keeps the work sequential.</p>"
     ),
     "decision": (
         '<label class="pipe-ctl">Mode '
@@ -6505,6 +6521,7 @@ _JS = r"""
    * user changed it — preserving "absent ⇒ default" so a consumer's untouched
    * posture is never bloated and nothing changes on /plugin marketplace update. */
   const RUNAWAY_DEFAULT = Object.freeze({ max_total: 1200, max_consecutive: 8, off: false });
+  const PARALLELISM_DEFAULT = Object.freeze({ enabled: false, max_workers: 4 });
   const DOD_DEFAULT = Object.freeze({ cmd: "", max_blocks: 8 });
   const DECISION_REVIEW_VALUES = ["off", "advisory", "binding"];
   const DECISION_REVIEW_DEFAULT = "off";
@@ -6577,6 +6594,7 @@ _JS = r"""
     /* Pipeline-stage guardrails (model-free hooks). Cloned from the *_DEFAULT
      * constants; emitYaml writes each block only when it differs from default. */
     runaway: Object.assign({}, RUNAWAY_DEFAULT),
+    parallelism: Object.assign({}, PARALLELISM_DEFAULT),
     decision_review: DECISION_REVIEW_DEFAULT,
     definition_of_done: Object.assign({}, DOD_DEFAULT),
     expanded: {},   /* category -> boolean */
@@ -6936,6 +6954,15 @@ _JS = r"""
       /* scalar `runaway: off` form (YAML `off` parses to boolean false) */
       state.runaway.off = true; touched = true;
     }
+    const pl = src.parallelism;
+    if (pl && typeof pl === "object") {
+      if (typeof pl.enabled === "boolean") { state.parallelism.enabled = pl.enabled; touched = true; }
+      const mw = parseInt(pl.max_workers, 10);
+      if (Number.isFinite(mw) && mw > 0) { state.parallelism.max_workers = mw; touched = true; }
+    } else if (pl === true || pl === "on") {
+      /* scalar `parallelism: on` form (YAML `on` parses to boolean true) */
+      state.parallelism.enabled = true; touched = true;
+    }
     if (DECISION_REVIEW_VALUES.includes(src.decision_review)) {
       state.decision_review = src.decision_review; touched = true;
     }
@@ -7044,6 +7071,15 @@ _JS = r"""
       lines.push("");
     }
 
+    const pl = state.parallelism;
+    if (pl.enabled === true || pl.max_workers !== PARALLELISM_DEFAULT.max_workers) {
+      lines.push("# Parallelism — allow fan-out workers (subagents / worktrees); cap how many run at once.");
+      lines.push("parallelism:");
+      lines.push(`  enabled: ${pl.enabled === true}`);
+      lines.push(`  max_workers: ${pl.max_workers}`);
+      lines.push("");
+    }
+
     if (DECISION_REVIEW_VALUES.includes(state.decision_review)
         && state.decision_review !== DECISION_REVIEW_DEFAULT) {
       lines.push("# Yes/no decision routing through the tribunal (off | advisory | binding).");
@@ -7109,6 +7145,7 @@ _JS = r"""
         design_checkins: state.design_checkins,
         command_review: state.command_review,
         runaway: state.runaway,
+        parallelism: state.parallelism,
         decision_review: state.decision_review,
         definition_of_done: state.definition_of_done,
         expanded: state.expanded,
@@ -8546,6 +8583,13 @@ _JS = r"""
     if (rc) rc.value = state.runaway.max_consecutive;
     pipeBadge("runaway-brake", state.runaway.off ? "Off" : ("On · " + state.runaway.max_total + " steps"),
               state.runaway.off ? "pipe-badge-off" : "pipe-badge-on");
+    const pe = document.getElementById("pipe-parallelism-enabled");
+    if (pe) pe.checked = state.parallelism.enabled === true;
+    const pw = document.getElementById("pipe-parallelism-workers");
+    if (pw) pw.value = state.parallelism.max_workers;
+    pipeBadge("parallel-workers",
+              state.parallelism.enabled ? ("On · " + state.parallelism.max_workers + " workers") : "Off",
+              state.parallelism.enabled ? "pipe-badge-on" : "pipe-badge-off");
     const dr = document.getElementById("pipe-decision-review");
     if (dr) dr.value = state.decision_review;
     pipeBadge("route-decision-review", state.decision_review,
@@ -8621,6 +8665,8 @@ _JS = r"""
     onChange("pipe-runaway-off", el => { state.runaway.off = el.checked; });
     onInput("pipe-runaway-total", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.runaway.max_total = v; });
     onInput("pipe-runaway-consec", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.runaway.max_consecutive = v; });
+    onChange("pipe-parallelism-enabled", el => { state.parallelism.enabled = el.checked; });
+    onInput("pipe-parallelism-workers", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.parallelism.max_workers = v; });
     onChange("pipe-decision-review", el => { if (DECISION_REVIEW_VALUES.includes(el.value)) state.decision_review = el.value; });
     onInput("pipe-dod-cmd", el => { state.definition_of_done.cmd = el.value; });
     onInput("pipe-dod-maxblocks", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.definition_of_done.max_blocks = v; });
