@@ -2170,6 +2170,31 @@
         "loss-ratio",
         "self-funded"
       ]
+    },
+    {
+      "name": "sales-engineering",
+      "source": "./plugins/sales-engineering",
+      "description": "Pre-sales / sales-engineering team — 3 agents (sales-engineer, poc-evaluation-lead, rfp-security-response-specialist) for the technical side of a B2B sale: value-based technical discovery (MEDDPICC), demo engineering that maps to the buyer's pain (Great Demo! do-it-first), POC/pilot design with written success + exit criteria and an evaluation scorecard, and RFP/RFI plus security-questionnaire response (SIG / CAIQ / VSA, SOC 2 mapping, a reusable trust-answer library). 5 skills, a 4-doc knowledge bank with 4 Mermaid decision trees (qualify-the-deal, RFP go/no-go, build-the-POC?, demo depth), 5 templates, 5 best-practices, a scenarios bank, and 1 advisory anti-pattern hook. Distinct from sales-revops (CRM/forecast/quota ops) and product-management (what to build); security claims route to ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "sales-engineering",
+        "presales",
+        "solutions-consulting",
+        "technical-discovery",
+        "meddpicc",
+        "product-demo",
+        "proof-of-concept",
+        "poc",
+        "rfp",
+        "security-questionnaire",
+        "sig",
+        "caiq",
+        "mutual-action-plan",
+        "trust-center"
+      ]
     }
   ]
 }
