@@ -2,6 +2,17 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.149.4 — 2026-06-11
+
+### Added
+
+- **New always-on agent discipline: "Verify the load-bearing assumption before a high-impact activity"** ([`CLAUDE.md`](CLAUDE.md) § Capability Grounding Protocol). Before an activity whose impact is large or hard to reverse (delete / recreate / drop / migrate / force-overwrite / mass-edit / publish / prod change), the agent must name the single assumption the activity rests on and verify it — cheapest means first (authoritative doc, inspect the real artifact, or a reversible probe) — and prefer the smaller-blast-radius path that tests the premise before reaching for the irreversible one. Closes the costliest shape of the confident-reasoning error: a wrong premise driving an irreversible activity that "succeeds" mechanically while solving the wrong problem, where the cleanup dwarfs the task. Composes with "Read the error before you re-route" (verify a failure's *cause*) and "Check why a constraint exists" (verify a *constraint*); this verifies the *premise*. Distinct from `design_checkins` (which pauses for the human's judgment) — this is the agent checking its *own* belief. Grounded in a real 2026-06-11 case (a managed-solution import: 19 Dataverse entities deleted + recreated *twice* to "move them out of the Active layer," a non-goal the docs flag; the real fix was an in-place behavior flag, no delete). Adds a matching anti-pattern bullet.
+- Version **0.149.3 → 0.149.4** in `.claude-plugin/plugin.json`, the `copilot/plugin.json` mirror, **and** the `marketplace.json` catalog entry (lockstep).
+
+### Notes
+
+- **Migration:** none — an additive behavioral discipline in the constitution (inherited by every agent + ported to Copilot CLI via the auto-loaded `CLAUDE.md`/`AGENTS.md`); nothing in a consumer's installed plugin wiring changes on `/plugin marketplace update`.
+
 ## 0.149.3 — 2026-06-10
 
 ### Added
