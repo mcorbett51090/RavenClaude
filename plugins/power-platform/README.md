@@ -20,7 +20,7 @@ Requires `ravenclaude-core` for the shared protocols (Grounding, Structured Outp
 | Component | Count | Where |
 |-----------|-------|-------|
 | Specialist agents | 11 | [`agents/`](agents/) |
-| Skills | 18 | [`skills/`](skills/) |
+| Skills | 21 | [`skills/`](skills/) |
 | Hooks | 1 (house-opinions, advisory) | [`hooks/`](hooks/) |
 | Knowledge files | incl. the PA-flow-recovery decision tree | [`knowledge/`](knowledge/) |
 | Scenarios | seeded from a real DEV engagement | [`scenarios/`](scenarios/) |

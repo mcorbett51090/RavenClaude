@@ -41,8 +41,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-# ─── Paths (absolute per RavenClaude convention) ─────────────────────────────────
-REPO_ROOT = Path("/workspaces/RavenClaude")
+# ─── Paths (derived from this file's location, per RavenClaude convention) ───────
+# Mirror every other script in scripts/ (generate-*.py, check-*.py, serve-dashboards.py):
+# derive the repo root portably so the harness runs on any clone path (CI, a laptop,
+# a Codespace at /workspaces OR /home/user), not only the original /workspaces clone.
+REPO_ROOT = Path(__file__).resolve().parent.parent
 FIXTURES_PATH = REPO_ROOT / "scripts/fixtures/eval-adaptive-classifier-fixtures.json"
 RUN_CONFIG_PATH = REPO_ROOT / ".ravenclaude/run-config.json"
 RUNS_DIR = REPO_ROOT / ".ravenclaude/runs"
