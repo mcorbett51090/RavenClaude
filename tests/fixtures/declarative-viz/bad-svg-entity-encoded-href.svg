@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100" height="100">
+  <!-- Bad fixture — entity-encoded javascript: xlink:href bypass.
+       Raw text reads &#106;avascript:alert(1) so the regex misses it,
+       but decoding numeric XML character entities exposes javascript:alert(1).
+       Must FAIL lint.py (exit 1, svg-remote-href). -->
+  <a xlink:href="&#106;avascript:alert(1)">
+    <rect width="100" height="100" fill="blue"/>
+  </a>
+</svg>

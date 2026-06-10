@@ -200,6 +200,16 @@ def _check_tree(root: ET.Element, violations: list, min_fontsize: float) -> None
         if etag_full in _FOREIGN_TAGS or etag_bare == "foreignobject":
             violations.append(("no-foreign-object", "<foreignObject> element found in SVG"))
 
+        # (g) no-remote-href — resolved-attribute check (entity-decode bypass prevention)
+        # ElementTree resolves XML character entities in attribute values during parsing,
+        # so &#106;avascript:alert(1) becomes javascript:alert(1) here. This catches
+        # entity-encoded schemes that the raw-text regex in _check_raw() cannot see.
+        href_resolved = (elem.get(f"{{{XLINK_NS}}}href") or elem.get("href") or "")
+        if href_resolved and _REMOTE_RE.match(href_resolved):
+            violations.append(("no-remote-href",
+                f"<{etag_bare}> href/xlink:href references remote or javascript: URL: "
+                f"{href_resolved!r}"))
+
         # (h) no-remote-use
         if etag_full in _USE_TAGS or etag_bare == "use":
             href = (elem.get(f"{{{XLINK_NS}}}href") or

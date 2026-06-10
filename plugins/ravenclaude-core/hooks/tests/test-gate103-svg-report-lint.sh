@@ -49,6 +49,7 @@ expect "<script> element → exit 1"                  1 "$F/bad-svg-script.svg"
 expect "on* event attribute → exit 1"               1 "$F/bad-svg-on-attr.svg"
 expect "<foreignObject> element → exit 1"           1 "$F/bad-svg-foreign-object.svg"
 expect "remote xlink:href → exit 1"                 1 "$F/bad-svg-remote-href.svg"
+expect "entity-encoded javascript: href → exit 1"   1 "$F/bad-svg-entity-encoded-href.svg"
 
 # ── --min-fontsize flag ───────────────────────────────────────────────────────
 # bad-svg-tiny-font.svg has font-size 4px; raising threshold to 3 should still fail,

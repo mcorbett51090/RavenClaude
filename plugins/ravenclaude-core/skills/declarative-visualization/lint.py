@@ -261,6 +261,16 @@ _RE_REMOTE_HREF     = re.compile(
     r"""(?:xlink:)?href\s*=\s*['"]?\s*(?:https?://|javascript:)""",
     re.IGNORECASE,
 )
+# Numeric XML character entity patterns — decoded before applying _RE_REMOTE_HREF
+# to prevent entity-encoding bypass (e.g., &#106;avascript:alert(1) → javascript:alert(1)).
+_RE_ENTITY_DEC  = re.compile(r"&#(\d+);")
+_RE_ENTITY_HEX  = re.compile(r"&#[xX]([0-9a-fA-F]+);")
+
+
+def _decode_numeric_entities(text: str) -> str:
+    text = _RE_ENTITY_DEC.sub(lambda m: chr(int(m.group(1))), text)
+    text = _RE_ENTITY_HEX.sub(lambda m: chr(int(m.group(1), 16)), text)
+    return text
 
 
 def _check_svg(content: str, violations: list) -> None:
@@ -270,7 +280,9 @@ def _check_svg(content: str, violations: list) -> None:
         violations.append(("svg-on-attr", "on* attribute found in SVG"))
     if _RE_FOREIGN_OBJECT.search(content):
         violations.append(("svg-foreign-object", "<foreignObject> element found in SVG"))
-    if _RE_REMOTE_HREF.search(content):
+    # Decode numeric XML character entities before checking for remote hrefs so
+    # entity-encoded schemes (&#106;avascript:, &#x68;ttps://) are caught.
+    if _RE_REMOTE_HREF.search(_decode_numeric_entities(content)):
         violations.append(("svg-remote-href", "remote or javascript: href/xlink:href found in SVG"))
 
 

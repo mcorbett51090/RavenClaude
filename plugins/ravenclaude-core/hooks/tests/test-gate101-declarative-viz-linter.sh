@@ -51,6 +51,7 @@ expect "SVG on* attribute → exit 1"                1 "$F/bad-svg-on-attr.svg"
 expect "SVG <foreignObject> → exit 1"              1 "$F/bad-svg-foreign-object.svg"
 expect "SVG remote xlink:href → exit 1"            1 "$F/bad-svg-remote-href.svg"
 expect "SVG javascript: href → exit 1"             1 "$F/bad-svg-javascript-href.svg"
+expect "SVG entity-encoded javascript: href → exit 1" 1 "$F/bad-svg-entity-encoded-href.svg"
 
 # ── Tier 2: quality / correctness ────────────────────────────────────────────
 expect "encoding-incomplete bar → exit 1"          1 "$F/bad-spec-encoding-incomplete.json"
