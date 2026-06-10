@@ -2982,6 +2982,68 @@ rc=0; python3 scripts/check-mcp-attribution.py --root "$G98/none" >/dev/null 2>&
 gate "mcp-attribution: plugin without mcpServers passes" must_pass "$rc"
 
 echo
+echo "── Gate 102: claude-orchestrate.sh (recursion-guard + scrub + fallback) ────"
+# mock-claude-driven (no live claude call — CI-safe):
+#   must_pass half: recursion guard fires (exit 7), seat guard fires, scrub fires
+#     (exit 8 for secret-shaped brief), fallback when claude absent, happy path
+#   must_fail half (teeth): stripped guard lets re-entry through; stripped scrub
+#     lets secret through — proving both guards are real code, not dead comments.
+ORCH102=plugins/ravenclaude-core/scripts/claude-orchestrate.sh
+
+# Create a mock claude binary that exits 0 and returns a minimal valid envelope.
+G102BIN="$TMP/g102bin"
+mkdir -p "$G102BIN"
+printf '#!/bin/bash\nprintf '"'"'{"result":"dispatch-plan","is_error":false}\n'"'"'\n' > "$G102BIN/claude"
+chmod +x "$G102BIN/claude"
+
+# 1. RAVENCLAUDE_ORCH_ACTIVE=1 → recursion guard fires (non-zero exit expected)
+rc=0; RAVENCLAUDE_ORCH_ACTIVE=1 RAVENCLAUDE_ORCH_BRIEF="task" \
+  bash "$ORCH102" decide >/dev/null 2>&1 || rc=$?
+gate "orchestrate: RAVENCLAUDE_ORCH_ACTIVE guard fires" must_fail "$rc"
+
+# 2. THING_SEAT_ACTIVE=1 → seat guard fires (non-zero exit expected)
+rc=0; THING_SEAT_ACTIVE=1 RAVENCLAUDE_ORCH_BRIEF="task" \
+  bash "$ORCH102" decide >/dev/null 2>&1 || rc=$?
+gate "orchestrate: THING_SEAT_ACTIVE guard fires" must_fail "$rc"
+
+# 3. Secret in brief → scrub fires (non-zero exit expected)
+rc=0; RAVENCLAUDE_ORCH_BRIEF="key=AKIAIOSFODNN7EXAMPLE123456" \
+  bash "$ORCH102" decide >/dev/null 2>&1 || rc=$?
+gate "orchestrate: scrub fires on secret-shaped brief" must_fail "$rc"
+
+# 4. claude not in PATH → fallback (non-zero expected)
+rc=0; PATH="/usr/bin:/bin" RAVENCLAUDE_ORCH_BRIEF="task" \
+  bash "$ORCH102" decide >/dev/null 2>&1 || rc=$?
+gate "orchestrate: falls back when claude CLI absent" must_fail "$rc"
+
+# 5. Happy path: mock claude available + decide mode → exit 0 + output
+rc=0; out=""
+out="$(PATH="$G102BIN:$PATH" RAVENCLAUDE_ORCH_BRIEF="build feature" \
+  bash "$ORCH102" decide 2>/dev/null)" || rc=$?
+gate "orchestrate: happy path (mock claude, decide mode)" must_pass "$rc"
+
+# ── Must-fail teeth 1: strip the RAVENCLAUDE_ORCH_ACTIVE guard ───────────────
+# If the guard is removed, a re-entrant call MUST NOT exit 7 — it proceeds.
+# must_pass "$rc" (rc=0) proves the guard is meaningful; removing it lets through.
+# The guard is a single one-liner (RAVENCLAUDE_ORCH_ACTIVE.*exit 7) — strip it.
+G102NOGUARD="$TMP/g102_noguard.sh"
+sed '/RAVENCLAUDE_ORCH_ACTIVE.*exit 7/d' "$ORCH102" > "$G102NOGUARD"
+chmod +x "$G102NOGUARD"
+rc=0; RAVENCLAUDE_ORCH_ACTIVE=1 RAVENCLAUDE_ORCH_BRIEF="task" \
+  PATH="$G102BIN:$PATH" bash "$G102NOGUARD" decide >/dev/null 2>&1 || rc=$?
+gate "orchestrate: [teeth] stripped guard passes re-entry (rc=0)" must_pass "$rc"
+
+# ── Must-fail teeth 2: strip the scrub for loop ───────────────────────────────
+# If the scrub is removed, a secret brief MUST NOT exit 8 — it proceeds.
+# must_pass "$rc" (rc=0) proves the scrub is meaningful; removing it lets through.
+G102NOSCRUB="$TMP/g102_noscrub.sh"
+sed '/^for _p in "\${_secret_patterns/,/^done$/d' "$ORCH102" > "$G102NOSCRUB"
+chmod +x "$G102NOSCRUB"
+rc=0; RAVENCLAUDE_ORCH_BRIEF="key=AKIAIOSFODNN7EXAMPLE123456" \
+  PATH="$G102BIN:$PATH" bash "$G102NOSCRUB" decide >/dev/null 2>&1 || rc=$?
+gate "orchestrate: [teeth] stripped scrub passes secret brief (rc=0)" must_pass "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 if [[ "$FAIL" -gt 0 ]]; then

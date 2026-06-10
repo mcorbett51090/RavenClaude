@@ -57,6 +57,8 @@ const pieces = [
   app.match(/const TIERS = \[[^\]]*\];/)[0],
   app.match(/const DECISION_REVIEW_VALUES = \[[^\]]*\];/)[0],
   app.match(/const DECISION_REVIEW_DEFAULT = [^;]*;/)[0],
+  app.match(/const ORCHESTRATOR_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const ORCHESTRATOR_DEFAULT = [^;]*;/)[0],
   extract(app, "function freshTiers()"),
   extract(app, "function quoteYamlKey("),
   extract(app, "function applyGuardrailConfig("),
@@ -80,6 +82,7 @@ function _freshState() {
     runaway: Object.assign({}, RUNAWAY_DEFAULT),
     decision_review: DECISION_REVIEW_DEFAULT,
     definition_of_done: Object.assign({}, DOD_DEFAULT),
+    orchestrator: ORCHESTRATOR_DEFAULT,
     expanded: {},
   };
 }
@@ -104,6 +107,7 @@ function check(name, cond) {
   s.decision_review = "binding";
   s.definition_of_done = { cmd: "npm test && npm run lint", max_blocks: 4 };
   s.command_review.dev_repo_exempt = true;
+  s.orchestrator = "decide";
   api._set(s);
 
   const yaml = api.emitYaml();
@@ -113,6 +117,7 @@ function check(name, cond) {
   check("definition_of_done.cmd emitted", /^  cmd: "npm test && npm run lint"$/m.test(yaml));
   check("definition_of_done.max_blocks emitted", /^  max_blocks: 4$/m.test(yaml));
   check("command_review.dev_repo_exempt emitted", /^  dev_repo_exempt: true$/m.test(yaml));
+  check("orchestrator emitted", /^orchestrator: decide$/m.test(yaml));
 
   // And the hydrator reads them back into a fresh state.
   api._set(api._freshState());
@@ -121,12 +126,14 @@ function check(name, cond) {
     decision_review: "binding",
     definition_of_done: { cmd: "npm test && npm run lint", max_blocks: 4 },
     command_review: { dev_repo_exempt: true },
+    orchestrator: "decide",
   });
   const h = api._get();
   check("hydrate runaway.max_total", h.runaway.max_total === 500);
   check("hydrate decision_review", h.decision_review === "binding");
   check("hydrate dod.cmd", /npm test/.test(h.definition_of_done.cmd));
   check("hydrate dev_repo_exempt", h.command_review.dev_repo_exempt === true);
+  check("hydrate orchestrator", h.orchestrator === "decide");
 }
 
 // ── Test 2: defaults are NOT emitted (absent ⇒ default; no posture bloat) ─────
@@ -137,6 +144,7 @@ function check(name, cond) {
   check("no decision_review at default", !/decision_review:/.test(yaml));
   check("no definition_of_done at default", !/definition_of_done:/.test(yaml));
   check("no dev_repo_exempt at default", !/dev_repo_exempt:/.test(yaml));
+  check("no orchestrator at default", !/^orchestrator:/m.test(yaml));
 }
 
 // ── Test 3: runaway: off scalar form ─────────────────────────────────────────

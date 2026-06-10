@@ -19,6 +19,12 @@ schema_version: 5
 # Pause for design / architectural decisions before implementing them?
 design_checkins: true
 
+# Claude orchestrator for non-Claude CLIs (off | decide | full).
+# No-op under Claude Code (host already IS Claude). Default: off (zero extra cost).
+#   decide — Claude returns a JSON dispatch plan; host runs the agents (lower cost).
+#   full   — one Claude call reasons through the task; host writes the files (highest cost, bounded).
+orchestrator: off
+
 # Definition-of-done gate (the ONE confident claim that IS machine-checkable).
 # The dod-gate.sh Stop hook runs this command and blocks "done" until it passes —
 # turning the agent's "it's done / tests pass" claim from an assertion into a fact.

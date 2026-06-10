@@ -876,3 +876,19 @@ These changes make RavenClaude agents even more reliable at creating high-qualit
 | CHANGELOG.md | **BUILT** | Added [`CHANGELOG.md`](CHANGELOG.md) with a top `0.126.0` entry (the plugin had none; `.repo-layout.json` already allows `plugins/*/CHANGELOG.md`). |
 
 **Scope discipline:** this build-out touched **nothing load-bearing** — no hook, script, skill (including `scenario-retrieval`), rule, agent, `concepts.json`, dashboard, or gate was modified. The only changes are additive files (`scenarios/`, `CHANGELOG.md`) plus this `CLAUDE.md` append and the `version` bump in both manifest mirrors. **Migration:** none — additive content, consumer-invisible until an agent globs the new bank.
+
+## Claude orchestrator knob — `orchestrator: off | decide | full` (added 2026-06-10, v0.127.0)
+
+The **fourth behavioral commitment** in `.ravenclaude/comfort-posture.yaml` (after `design_checkins`, `decision_review`, `parallelism`). Routes team-lead orchestration to Claude via `claude -p` when the host CLI is not Claude Code (e.g. GitHub Copilot routing GPT/Grok). Inert under Claude Code (host already IS Claude). Default: `off`.
+
+**Mechanism:** read directly by `spawn-team` at dispatch time (new Step 4.5). No new hook, no `apply-comfort-posture.py` change, no `settings.json` rule. The script `scripts/claude-orchestrate.sh` wraps the `claude -p` invocation, copying `thing-seat.sh`'s proven pattern.
+
+**Three-layer recursion guard:** (1) `RAVENCLAUDE_ORCH_ACTIVE=1` env-var check at entry — the script exports this before calling claude so any nested invocation exits 7 immediately; (2) `THING_SEAT_ACTIVE=1` check — refuses orchestration inside a tribunal seat; (3) `--tools ""` structural layer — the nested session has zero tools regardless of prompt injection. **Secret scrub** on brief + roster via `_scrub.sh` before egress. **Fail-safe:** any non-zero exit → fall back to host orchestration; never hard-blocks.
+
+**Modes:** `decide` — `claude -p --tools ""` returns a JSON dispatch plan `{agents:[...], parallelism, reasoning}` that the host executes (brain/hands split; lower cost). `full` — one `claude -p --tools ""` call returns artifact content the host writes (guaranteed intent; highest cost, bounded).
+
+**Dashboard:** three-radio `off`/`decide`/`full` control in the Pipeline/Configure tab with per-mode cost callout and `[host-only — inert under Claude Code]` badge. Round-trips via the existing state/emitYaml/`/__save` path.
+
+**Gate 102:** mock-claude-driven; recursion guard fires, seat guard fires, scrub fires on secret brief, fallback on absent claude, happy path passes. Must-fail halves prove both guards are real code (stripped guard → re-entry proceeds; stripped scrub → secret goes through).
+
+⚠️ **Security-reviewer sign-off required before merge** — the `claude -p` exec path is a new security-sensitive surface. The PR is open for review; merge is gated on `ravenclaude-core/security-reviewer` sign-off (per plan `docs/plans/2026-06-10-claude-orchestrator/plan.md` §Security).
