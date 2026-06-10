@@ -168,8 +168,6 @@ _REMOTE_RE     = re.compile(r"^(?:https?://|javascript:)", re.IGNORECASE)
 
 def _check_tree(root: ET.Element, violations: list, min_fontsize: float) -> None:
     """ElementTree-based structural checks."""
-    tag = root.tag.lower().replace(f"{{{SVG_NS}}}", "")
-
     # (a) viewbox-present
     vb = root.get("viewBox") or root.get("viewbox")
     if not vb:
