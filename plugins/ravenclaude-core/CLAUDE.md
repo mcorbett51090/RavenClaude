@@ -879,7 +879,7 @@ These changes make RavenClaude agents even more reliable at creating high-qualit
 
 ## Claude orchestrator knob — `orchestrator: off | decide | full` (added 2026-06-10, v0.127.0)
 
-The **fourth behavioral commitment** in `.ravenclaude/comfort-posture.yaml` (after `design_checkins`, `decision_review`, `parallelism`). Routes team-lead orchestration to Claude via `claude -p` when the host CLI is not Claude Code (e.g. GitHub Copilot routing GPT/Grok). Inert under Claude Code (host already IS Claude). Default: `off`.
+The **fourth behavioral commitment** in `.ravenclaude/comfort-posture.yaml` (after `design_checkins`, `decision_review`, `parallelism`). Routes team-lead orchestration to Claude via `claude -p` when the host CLI is not Claude Code (e.g. GitHub Copilot routing GPT/Grok). Inert under Claude Code (host already IS Claude). **Default: `full`** (owner choice — route orchestration to Claude by default under a non-Claude host, accepting the token cost). **Consumer-visible:** on `/plugin marketplace update`, a consumer running under a non-Claude CLI who hasn't set the knob routes the *whole* orchestration through `claude -p` by default — which is exactly why the `claude -p` exec path is **security-reviewer-gated**. Set `orchestrator: off` to opt out, or `decide` for the cheaper brain/hands split.
 
 **Mechanism:** read directly by `spawn-team` at dispatch time (new Step 4.5). No new hook, no `apply-comfort-posture.py` change, no `settings.json` rule. The script `scripts/claude-orchestrate.sh` wraps the `claude -p` invocation, copying `thing-seat.sh`'s proven pattern.
 

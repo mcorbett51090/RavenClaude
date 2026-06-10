@@ -148,14 +148,14 @@ Return your standard structured report. Cap your response at <N> words.
 **Check this before dispatching any agent.** The routing is a single read + branch:
 
 1. **Is the host already Claude Code?** Check `THING_HOST`. If `THING_HOST == claude-code` (or is unset), the host IS Claude — skip this step entirely; orchestrate as today.
-2. **Read the knob.** Read `.ravenclaude/comfort-posture.yaml` → `orchestrator:` field. Values: `off` | `decide` | `full`. Absent = `off`.
+2. **Read the knob.** Read `.ravenclaude/comfort-posture.yaml` → `orchestrator:` field. Values: `off` | `decide` | `full`. Absent = `full` (the shipped default — owner choice to route orchestration to Claude under a non-Claude host).
 3. **Route:**
 
 | Knob | What to do |
 |---|---|
-| `off` (default) | Host orchestrates as always. Nothing changes. |
+| `off` | Host orchestrates as always. Nothing changes. |
 | `decide` | Call `bash plugins/ravenclaude-core/scripts/claude-orchestrate.sh decide` with `RAVENCLAUDE_ORCH_BRIEF="<task>" RAVENCLAUDE_ORCH_ROSTER="<roster json>"`. Get back a JSON dispatch plan `{agents:[...], parallelism, reasoning}`; execute it. Claude planned, host ran. |
-| `full` | Call `bash plugins/ravenclaude-core/scripts/claude-orchestrate.sh full` with `RAVENCLAUDE_ORCH_BRIEF="<task>"`. Get back artifact content; write it to the target path. One bounded call; locked intent. |
+| `full` (default) | Call `bash plugins/ravenclaude-core/scripts/claude-orchestrate.sh full` with `RAVENCLAUDE_ORCH_BRIEF="<task>"`. Get back artifact content; write it to the target path. One bounded call; locked intent. |
 
 **FAIL-SAFE:** any non-zero exit from the script means fall back to `off` (host orchestrates). Never hard-block on orchestrator failure.
 

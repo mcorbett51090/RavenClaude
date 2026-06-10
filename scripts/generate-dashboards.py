@@ -6502,7 +6502,7 @@ _JS = r"""
   const DECISION_REVIEW_VALUES = ["off", "advisory", "binding"];
   const DECISION_REVIEW_DEFAULT = "off";
   const ORCHESTRATOR_VALUES = ["off", "decide", "full"];
-  const ORCHESTRATOR_DEFAULT = "off";
+  const ORCHESTRATOR_DEFAULT = "full";
 
   /* Per-tier panel defaults — mirror thing-decision.py's built-in tier table.
    * Seats are forseti | mimir | heimdall (thor is the tie-breaker, never a seat).
