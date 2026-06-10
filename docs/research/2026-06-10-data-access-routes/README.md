@@ -71,6 +71,17 @@ For **your own company page** content + analytics (post, pull engagement, manage
 - **Feasible** for "manage/measure our own content"; **not** a path to bulk third-party profile data — LinkedIn has granted ~no new *data-extraction* API access since 2018. ([Clura 2026](https://clura.ai/blog/linkedin-api))
 - **Next step (needs Matt):** decide whether to apply as RavenPower/Closebook. Once approved, you'd get a client id/secret + OAuth; I can then build a fetch/post script in the same shape as `reddit-scan.py`. I can draft the application's use-case text on request.
 
+### Route D — LinkedIn *articles* / posts (content, not people) → search-discovery + open-web full text
+
+**Grounded reality (verified 2026-06-10):** there is **no official API to read or search third-party LinkedIn posts/articles.** LinkedIn's Posts API is **your-own-org-only**; the consumer API gives basic profile + "share a post," nothing else. ([Microsoft Learn — Posts API](https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api) · [LinkedIn API 2026](https://connectsafely.ai/articles/linkedin-api-complete-guide-2026)) And scraping article bodies is **actively litigated** — LinkedIn sued **Proxycurl in early 2025 and the service was shut down**. So there is **no sanctioned bulk pipe for arbitrary LinkedIn article content**, and we do not build a scraper.
+
+**What works instead (shipped):** [`scripts/content-scan.py`](../../../scripts/content-scan.py) — discovers articles on your topics via a **web Search API** (which surfaces LinkedIn titles/URLs/snippets like any search) and fetches **full text only from the open web** (Substack/Medium/blogs), where the same thought leaders cross-post. LinkedIn + Reddit URLs are **discovery-only** (title+snippet+link; no body fetch) — the boundary is enforced in code (`NEVER_FETCH`, unit-checked). Two modes:
+
+- **Interactive (works today, no setup):** I run the searches with my own tools and write a digest. First run done → [`../2026-06-10-content-scan/digest.md`](../2026-06-10-content-scan/digest.md) (fractional-CFO+AI + agentic-AI-coding).
+- **Headless (recurring):** the script, keyed with a Brave Search API token (`SEARCH_API_KEY`), runs in CI like `reddit-scan.py`.
+
+**Your own org's** articles *are* reachable for read/measure via the Posts API once the Partner application (Route B, [draft](./linkedin-partner-application-draft.md)) is approved — that's the only first-party-content exception.
+
 ### Route C — Your own account/connections → official data export (I can process it)
 
 For **your own** profile, connections, and activity, LinkedIn offers a **self-serve data export** (Settings → Data Privacy → *Get a copy of your data*). It returns CSVs (Connections, messages, etc.).
