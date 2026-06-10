@@ -8,7 +8,7 @@ For the marketplace-wide best-practice library (CI gates, hook authoring, versio
 
 ## Index
 
-_16 rules._
+_17 rules._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -28,6 +28,7 @@ _16 rules._
 | [`web-access-allow-deny-list-before-first-fetch.md`](./web-access-allow-deny-list-before-first-fetch.md) | Pattern | Setting up a project or before any session where WebFetch will be used. |
 | [`runaway-brake-prevents-the-thrash-loop.md`](./runaway-brake-prevents-the-thrash-loop.md) | Pattern | Configuring any auto-mode or unsupervised agent session. |
 | [`check-constraint-scope-before-citing-it.md`](./check-constraint-scope-before-citing-it.md) | Absolute rule | Any agent is about to refuse an action or recommend against something by citing a rule. |
+| [`checkpoints-are-the-recovery-layer-not-a-substitute-for-commits.md`](./checkpoints-are-the-recovery-layer-not-a-substitute-for-commits.md) | Pattern | Setting up a fast-iterating or unsupervised session — when to use `/rewind` (Esc-Esc) vs. a git commit, and what checkpoints structurally can't undo. |
 
 ---
 
