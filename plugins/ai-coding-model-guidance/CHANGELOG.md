@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.2] — 2026-06-10
+
+Freshness-anchor refresh — **Claude Fable 5 is GA in GitHub Copilot** ([Changelog 2026-06-09](https://github.blog/changelog/2026-06-09-claude-fable-5-is-generally-available-for-github-copilot/); retrieved 2026-06-10). Anthropic's first public **Mythos-class** model; the Copilot changelog 403s automated fetch, so facts are cross-referenced across the GitHub/Microsoft posts + dev guides (the doc's accepted "primary 403 → cross-reference" pattern).
+
+### Changed
+
+- **`knowledge/cross-tool-model-lineup-2026.md`** — added **Fable 5 (GA 2026-06-09)** to the Copilot coding-agent verified row (also satisfying the closed-world rule so agents may name it) and a Copilot bullet: plans **Pro+/Max/Business/Enterprise**; surfaces VS Code/Visual Studio/JetBrains/Xcode/Eclipse/Copilot CLI/cloud agent/github.com/mobile; **included free through 2026-06-22** then usage-credit (written as an expiring dated caveat); **Business/Enterprise admins must enable the Fable 5 policy, off by default**; also on AWS Bedrock + Microsoft Foundry; API `claude-fable-5` at **$10/$50 per Mtok (2× Opus 4.8)**. Vendor-framing/single-source claims carry `[verify-at-use — single-source]`. Re-dated `Last reviewed` 2026-06-09 → 2026-06-10 and added a sweep note that Fable 5 was a **same-day-of-last-review miss**. All additions carry a date/citation/`[verify-at-use]` per the `check-lineup-citations.py` gate.
+- Version **0.3.1 → 0.3.2** bumped in `.claude-plugin/plugin.json` **and** the `marketplace.json` catalog entry in lockstep (CI fails on drift).
+
 ## [0.3.1] — 2026-06-09
 
 Freshness-anchor refresh — **Claude Opus 4.8 is now GA in GitHub Copilot** ([Changelog 2026-05-28](https://github.blog/changelog/2026-05-28-claude-opus-4-8-is-generally-available-for-github-copilot/); retrieved 2026-06-09).

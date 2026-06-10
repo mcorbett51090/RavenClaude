@@ -2,7 +2,7 @@
 
 # Cross-tool model selection & 2026 lineup (Copilot · Codex · Grok)
 
-**Last reviewed:** 2026-06-09 · **Confidence:** medium — these three vendors ship **weekly-to-monthly**, faster than the Claude platform; treat this as the freshness anchor the Researcher sweep re-dates. Every numeric / availability claim carries a retrieval date — **verify against the cited primary source before quoting it to anyone.**
+**Last reviewed:** 2026-06-10 · **Confidence:** medium — these three vendors ship **weekly-to-monthly**, faster than the Claude platform; treat this as the freshness anchor the Researcher sweep re-dates. Every numeric / availability claim carries a retrieval date — **verify against the cited primary source before quoting it to anyone.**
 **Owner:** all three strategist agents (`copilot-model-strategist`, `codex-model-strategist`, `grok-model-strategist`). This is the **single source of truth** for non-Claude model facts — one file refreshes, not three personas (mirrors `claude-app-engineering/knowledge/model-selection-and-2026-capability-map.md`).
 **Staleness tier:** **Tier-4 (Emerging / fast-churn)** — re-verify on the weekly `researcher-reminder.yml` sweep and treat a >30-day-old retrieval date as stale-until-re-checked, not as current.
 **Sources (Copilot row re-checked 2026-06-09; Codex/Grok rows retrieved 2026-05-31, via vendor docs + changelogs; the doc pages 403 automated fetch, so values were cross-referenced across vendor blog/changelog + docs):**
@@ -100,11 +100,12 @@ Copilot's picker spans **three vendors' models** — Anthropic Claude, OpenAI GP
 
 | Surface | Models seen (2026-05-31) — verify live |
 |---|---|
-| **Coding agent** (Claude/Codex agents on github.com) | Claude: **Opus 4.8 (GA 2026-05-28)**, Sonnet 4.6, Opus 4.6, Sonnet 4.5, Opus 4.5 · Codex: GPT-5.2-Codex, GPT-5.3-Codex, GPT-5.4 |
+| **Coding agent** (Claude/Codex agents on github.com) | Claude: **Fable 5 (GA 2026-06-09)**, **Opus 4.8 (GA 2026-05-28)**, Sonnet 4.6, Opus 4.6, Sonnet 4.5, Opus 4.5 · Codex: GPT-5.2-Codex, GPT-5.3-Codex, GPT-5.4 |
 | **Cloud agent — fast/cost-efficient tier** | Claude Haiku 4.5, GPT-5.4-mini |
 | **Mobile picker** | Auto, Claude **Opus 4.8 (2026-05-28)**/4.6/4.5, Claude Sonnet 4.5, GPT-5.1-Codex-Max, GPT-5.2-Codex |
 | **Org control** | **Model rules** target/restrict models to organizations (Changelog 2026-05-26) |
 
+- **Claude Fable 5 is GA in Copilot** (rolling out from 2026-06-09; [Changelog 2026-06-09](https://github.blog/changelog/2026-06-09-claude-fable-5-is-generally-available-for-github-copilot/)) — Anthropic's first public **"Mythos-class"** model (vendor framing, `[verify-at-use — single-source]`), built for long-horizon autonomous coding. Plans **Pro+ / Max / Business / Enterprise**; surfaces VS Code, Visual Studio, JetBrains, Xcode, Eclipse, the Copilot CLI, the cloud agent, github.com, and mobile. **Included free through 2026-06-22**, then usage-credit billing — `[verify-at-use — dated window expires 2026-06-22]`. **Business/Enterprise admins must enable the Fable 5 policy (off by default)** — same pattern as the Opus 4.8 policy. Also on **AWS Bedrock** + **Microsoft Foundry** and the Anthropic API (`claude-fable-5`, **$10 / $50** per Mtok — **2× Opus 4.8** [$5/$25]). The Copilot changelog 403s automated fetch — cross-referenced across the GitHub/Microsoft posts + dev guides (the doc's accepted pattern). `[verify-at-use — surface/plan-specific; pricing/inclusion window]`
 - **Claude Opus 4.8 is GA in Copilot** ([Changelog 2026-05-28](https://github.blog/changelog/2026-05-28-claude-opus-4-8-is-generally-available-for-github-copilot/)) for **Pro+ / Business / Enterprise** plans — selectable in VS Code (all modes: chat / ask / edit / agent) plus Visual Studio, JetBrains, Xcode, Eclipse, the Copilot CLI, GitHub Mobile, and the Copilot App; Business/Enterprise admins must enable the Opus 4.8 policy. It **launched at a 15× premium-request multiplier**; that introductory window closed when **Usage-Based Billing went live 2026-06-01**, so re-confirm the current multiplier on the live picker. `[verify-at-use — surface/plan-specific; pricing post-UBB]`
 - **`Auto` exists** — let Copilot pick when you don't have a reason to override; override only when the decision tree above gives you one.
 - **Availability is surface-specific and churns.** A 2026-05-20 changelog removed several models (incl. some Gemini SKUs) from **Copilot Chat on the web specifically** — that is *not* a picker-wide removal, and Gemini models (e.g. Gemini 3 Pro, 2.5 Pro) still appear in the broader supported list. Don't state "model X is/isn't in Copilot" as universal; scope it to the surface and the date. `[verify-at-use — surface-specific]`
@@ -148,5 +149,7 @@ On each weekly Researcher sweep (`.github/workflows/researcher-reminder.yml`) an
 2. Re-date this file (`Last reviewed:`) and correct any model name, price, context window, or availability that changed.
 3. Re-confirm retirements (the `grok-code-fast-1` line) and the closed-world model list.
 4. Bump the plugin **patch** version if a *default* changes (a new recommended-default model, a retirement, a price-tier shift) so consumers see it on `/plugin marketplace update`.
+
+> **Sweep note (2026-06-10):** Claude **Fable 5** went GA in Copilot on **2026-06-09 — the same day this file's prior review stamp** — and was missed until the next sweep. A "reviewed-clean" date is not a guarantee a same-day release didn't land after the check; re-run the source checks even when the stamp looks fresh, and treat the **free-through-2026-06-22** Fable 5 inclusion window as an expiring caveat to re-verify or strike after that date.
 
 **All numeric/availability claims live HERE, dated — not baked into the three agent personas.** One file refreshes, not three.
