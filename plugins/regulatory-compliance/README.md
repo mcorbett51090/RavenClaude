@@ -2,7 +2,7 @@
 
 > Financial-regulatory & compliance specialist team for the RavenClaude marketplace.
 
-Ships **twelve specialist agents** — six function agents (AML/KYC analyst, regulatory-reporting analyst, risk-and-controls specialist, policy & procedure writer, examination-prep specialist, Bermuda-insurance specialist) and **six jurisdiction/regulator specialists** (BMA financial-institutions — banking/trust/corporate-services/fund-admin/investment-business, the primary build-out; CIMA/Cayman; Bahamas; Channel Islands — Jersey JFSC + Guernsey GFSC; UK PRA; US federal+state) — backed by **nineteen primary-source-cited regulator knowledge files**, ten playbook skills, eleven working templates, twenty-seven best-practice rules, and one **defensive PreToolUse** hook that scans pending writes for PII (SSN, IBAN, credit-card, Bermuda TIN, wire instructions) before they land on disk.
+Ships **twelve specialist agents** — six function agents (AML/KYC analyst, regulatory-reporting analyst, risk-and-controls specialist, policy & procedure writer, examination-prep specialist, Bermuda-insurance specialist) and **six jurisdiction/regulator specialists** (BMA financial-institutions — banking/trust/corporate-services/fund-admin/investment-business, the primary build-out; CIMA/Cayman; Bahamas; Channel Islands — Jersey JFSC + Guernsey GFSC; UK PRA; US federal+state) — backed by **nineteen primary-source-cited regulator knowledge files**, ten playbook skills, eleven working templates, thirty-seven best-practice rules, and one **defensive PreToolUse** hook that scans pending writes for PII (SSN, IBAN, credit-card, Bermuda TIN, wire instructions) before they land on disk.
 
 The plugin's positioning reflects field experience inside a Tier-1 financial regulator (Bermuda Monetary Authority). It produces analysis and documentation; **it does not give legal advice** — legal opinions stay with counsel.
 
@@ -23,7 +23,7 @@ Requires `ravenclaude-core@>=0.5.0`.
 |-----------|-------|-------|
 | Specialist agents | 12 (6 function + 6 jurisdiction) | [`agents/`](agents/) |
 | Regulator knowledge files | 19 (13 BMA + 6 jurisdiction/directory) | [`knowledge/bma/`](knowledge/bma/), [`knowledge/jurisdictions/`](knowledge/jurisdictions/) |
-| Best-practice rules | 27 | [`best-practices/`](best-practices/) |
+| Best-practice rules | 37 | [`best-practices/`](best-practices/) |
 | Skills | 10 | [`skills/`](skills/) |
 | Hooks | 1 (PreToolUse, defensive) | [`hooks/`](hooks/) |
 | Templates | 11 | [`templates/`](templates/) |

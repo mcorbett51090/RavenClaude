@@ -4,7 +4,7 @@ A specialist team for building **production applications on the Claude API, the 
 
 ## What it is
 
-The hard part of a Claude app is rarely the first prompt — it's the decisions: Messages API or Agent SDK or Managed Agents? which model? how do I make the cache hit? structured output? MCP server or in-process tool? how do I keep the bill sane and the app up under 429s? This plugin encodes those as a team of advisory specialists backed by a 9-doc, retrieval-dated, citation-grounded knowledge bank — important because the platform ships monthly.
+The hard part of a Claude app is rarely the first prompt — it's the decisions: Messages API or Agent SDK or Managed Agents? which model? how do I make the cache hit? structured output? MCP server or in-process tool? how do I keep the bill sane and the app up under 429s? This plugin encodes those as a team of advisory specialists backed by a 15-doc, retrieval-dated, citation-grounded knowledge bank — important because the platform ships monthly.
 
 The agents are **advisory and interactive**: your app and API keys live outside the repo, so they recommend designs and emit runnable snippets (Python/TS, MCP configs, eval harnesses) you run yourself.
 
@@ -21,7 +21,7 @@ The agents are **advisory and interactive**: your app and API keys live outside 
 | `eval-engineer` | evals — golden sets, programmatic + LLM-as-judge grading, regression deltas |
 | `claude-app-ops-engineer` | FinOps (cache hit rate, routing ladder, Batch), reliability (429/backoff), observability |
 
-Plus a 9-doc knowledge bank (build-surface decision tree + dated capability map + caching/tools/MCP/server-tools/Agent-SDK/evals/FinOps playbooks), 6 templates, and 1 advisory hook (14 house opinions).
+Plus a 15-doc knowledge bank (build-surface decision tree + dated capability map + caching/tools/MCP/server-tools/Agent-SDK/evals/FinOps playbooks), 6 templates, and 1 advisory hook (14 house opinions).
 
 ## Install
 

@@ -117,7 +117,9 @@ _is_dangerous_rm() {
   _has_recursive "$c" || return 1
   # a dangerous target argument: starts with /, ~, $HOME, or a standalone . or *
   [[ "$c" =~ (^|[[:space:]])(/|~|\$HOME) ]] && return 0
-  [[ "$c" =~ (^|[[:space:]])(\.|\*)([[:space:]]|$) ]] && return 0
+  # standalone current-dir / glob target: `.`, `./` (trailing slash is the same
+  # current-dir delete and must not dodge the guard the bare `.` form catches), `*`.
+  [[ "$c" =~ (^|[[:space:]])(\./?|\*)([[:space:]]|$) ]] && return 0
   return 1
 }
 

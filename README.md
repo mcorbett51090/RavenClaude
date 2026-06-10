@@ -16,10 +16,10 @@
 
 > 🚀 **[▶ First Workflow in 10 Minutes](GETTING_STARTED.md)** — install → dashboard → one governed multi-agent dispatch → `/wrap`. The canonical onboarding walkthrough. Start here if you've never used RavenClaude before.
 
-Today this marketplace ships **99 plugins**:
+Today this marketplace ships **100 plugins**:
 
-- **[`ravenclaude-core`](plugins/ravenclaude-core/)** — domain-neutral Team Lead + 14 specialists (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, data-engineer, etc.), plus dispatch playbooks (with a Cross-plugin dispatch section), gates, 38 skills, 16 hooks, templates, and the **cross-project contribution-staging loop**.
-- **[`power-platform`](plugins/power-platform/)** — 11 Microsoft Power Platform specialists (Power Fx, flows, Power BI, Dataverse, model-driven, PCF, Copilot Studio, Power Pages, admin, ALM, tester), 20 skills, an advisory house-opinions hook covering 8 checks, and the bundled `pbix-mcp` MCP server.
+- **[`ravenclaude-core`](plugins/ravenclaude-core/)** — domain-neutral Team Lead + 14 specialists (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, data-engineer, etc.), plus dispatch playbooks (with a Cross-plugin dispatch section), gates, 40 skills, 16 hooks, templates, and the **cross-project contribution-staging loop**.
+- **[`power-platform`](plugins/power-platform/)** — 11 Microsoft Power Platform specialists (Power Fx, flows, Power BI, Dataverse, model-driven, PCF, Copilot Studio, Power Pages, admin, ALM, tester), 21 skills, an advisory house-opinions hook covering 8 checks, and the bundled `pbix-mcp` MCP server.
 - **[`finance`](plugins/finance/)** — 7 corporate-finance & FP&A specialists (FP&A analyst, financial modeler, controller, treasury, valuation, audit-prep, board-pack composer), 9 skills, templates, advisory anti-pattern hook.
 - **[`regulatory-compliance`](plugins/regulatory-compliance/)** — 12 financial-regulatory specialists (6 function: AML/KYC, regulatory reporting, risk-and-controls, policy & procedure writer, examination prep, Bermuda-insurance; plus 6 jurisdiction: BMA, CIMA Cayman, Bahamas, Channel Islands, UK PRA, US), 10 skills, templates, defensive PII-scrub hook.
 - **[`web-design`](plugins/web-design/)** — 7 web specialists (web architect, UX, visual, frontend implementer, content strategist, accessibility auditor, performance engineer) with WCAG 2.2 AA/AAA, Core Web Vitals, SEO/AEO, and Fluent + React discipline. 11 skills, templates, advisory web anti-pattern hook.
@@ -168,7 +168,7 @@ You lose auto-update and version pinning. To update, `git pull` and re-copy. Oth
 
 ## Updating and version pinning
 
-The marketplace ships **semver-versioned** plugins (`plugin.json` `version` + matching `marketplace.json` entry, CI-gated for drift). 22 of the 23 plugins declare `requires.ravenclaude-core` — a minimum `ravenclaude-core` version they expect, surfaced in the per-plugin card of the portal’s **Marketplace** section ([`index.html`](index.html)).
+The marketplace ships **semver-versioned** plugins (`plugin.json` `version` + matching `marketplace.json` entry, CI-gated for drift). 98 of the 99 plugins declare `requires.ravenclaude-core` — a minimum `ravenclaude-core` version they expect, surfaced in the per-plugin card of the portal’s **Marketplace** section ([`index.html`](index.html)).
 
 **To update everything to the marketplace's latest:**
 
@@ -204,7 +204,7 @@ The pin survives `/plugin marketplace update` — the pinned SHA is the catalog'
 | Component | Count | Where |
 |-----------|-------|-------|
 | Specialist agents | 14 | `plugins/ravenclaude-core/agents/` |
-| Skills | 38 (incl. dispatch via `spawn-team`, `new-worktree` / `cleanup-worktrees`, `create-pr`, `run-full-test-suite`, `draft-agent-brief`, `structured-output`; the cross-domain staging loop `contribute-finding` / `review-staged-contributions`; the tribunal `thing` / `decision-review`; posture + capability skills `set-posture`, `permission-hygiene`, `environment-discovery`; quality skills `agent-quality-rubric`, `audit-ci-gates`, `cross-platform-determinism`, `knowledge-file-staleness-sweep`, `plugin-release-checklist`, `prompt-pattern-library`, `scenario-retrieval`; plus the `researcher/` meta-skill) | `plugins/ravenclaude-core/skills/` |
+| Skills | 40 (incl. dispatch via `spawn-team`, `new-worktree` / `cleanup-worktrees`, `create-pr`, `run-full-test-suite`, `draft-agent-brief`, `structured-output`; the cross-domain staging loop `contribute-finding` / `review-staged-contributions`; the tribunal `thing` / `decision-review`; posture + capability skills `set-posture`, `permission-hygiene`, `environment-discovery`; quality skills `agent-quality-rubric`, `audit-ci-gates`, `cross-platform-determinism`, `knowledge-file-staleness-sweep`, `plugin-release-checklist`, `prompt-pattern-library`, `scenario-retrieval`; plus the `researcher/` meta-skill) | `plugins/ravenclaude-core/skills/` |
 | Hooks | 16 (format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, capability-orientation, ensure-default-mode, reapply-posture, route-decision-review, thing-orchestrator, claim-grounding-lint, dod-gate, runaway-brake, agent-dispatch-evaluator, guard-web-access, regen-on-manifest-change) | `plugins/ravenclaude-core/hooks/` |
 | Rules | 5 (coding-standards, security, git-workflow, agent-collaboration, terminal-copy-to-tempfile) | `plugins/ravenclaude-core/rules/` |
 | Commands | 7 (`/init-agent-ready`, `/dashboard`, `/set-posture`, `/wrap`, `/forge`, `/ragnarok`, `/reset-plugin-cache`) | `plugins/ravenclaude-core/commands/` |
@@ -219,7 +219,7 @@ For a full list of agents and when to spawn each, see the team-roster table in [
 | Component | Count | Where |
 |-----------|-------|-------|
 | Specialist agents | 11 (`power-fx-engineer`, `flow-engineer`, `power-bi-engineer`, `dataverse-architect`, `model-driven-engineer`, `solution-alm-engineer`, `power-platform-admin`, `pcf-developer`, `copilot-studio-engineer`, `power-pages-engineer`, `power-platform-tester`) | `plugins/power-platform/agents/` |
-| Skills | 20 (a mix of imported MIT skills from Daniel Kerridge + in-house additions including `grounding-protocol`, `maintainability-review`, `power-automate`, `power-bi`, `plan-with-team`) | `plugins/power-platform/skills/` |
+| Skills | 21 (a mix of imported MIT skills from Daniel Kerridge + in-house additions including `grounding-protocol`, `maintainability-review`, `power-automate`, `power-bi`, `plan-with-team`) | `plugins/power-platform/skills/` |
 | Hooks | 1 advisory house-opinions hook covering 8 mechanically-detectable §3/§4 checks (GUIDs, default prefix, hard-coded URLs, binary .pbix, missing flow Try/Catch, premium-connector licensing note, Power Fx var/col prefix, plaintext secret in env-var default) | `plugins/power-platform/hooks/` |
 | Bundled MCP | `powerbi-editor` (community `pbix-mcp`, MIT) — requires `pip install pbix-mcp` | declared in `plugins/power-platform/.claude-plugin/plugin.json` |
 
@@ -230,7 +230,7 @@ Domain-specific team constitution: [`plugins/power-platform/CLAUDE.md`](plugins/
 | Component | Count | Where |
 |-----------|-------|-------|
 | Specialist agents | 7 (`fabric-architect`, `lakehouse-engineer`, `warehouse-engineer`, `data-factory-engineer`, `realtime-intelligence-engineer`, `fabric-semantic-model-engineer`, `fabric-admin`) | `plugins/microsoft-fabric/agents/` |
-| Knowledge bank | 8 citation-grounded, retrieval-dated docs (store-selection + data-movement Mermaid decision trees, medallion-on-OneLake, Direct Lake two-mode, capacity FinOps, OneLake security GA/preview matrix, ALM/CI-CD, a dated 2026 capability map) | `plugins/microsoft-fabric/knowledge/` |
+| Knowledge bank | 13 citation-grounded, retrieval-dated docs (store-selection + data-movement Mermaid decision trees, medallion-on-OneLake, Direct Lake two-mode, capacity FinOps, OneLake security GA/preview matrix, ALM/CI-CD, a dated 2026 capability map) | `plugins/microsoft-fabric/knowledge/` |
 | Templates | 6 (workspace-and-capacity plan, medallion spec, ingestion design, Direct Lake model spec, capacity-cost review, ALM runbook) | `plugins/microsoft-fabric/templates/` |
 | Hooks | 1 advisory anti-pattern hook (autotune-not-NEE, mirroring-free-unqualified, V-Order-off-on-gold, Direct-Lake-no-mode); `FABRIC_STRICT=1` to block | `plugins/microsoft-fabric/hooks/` |
 
@@ -241,7 +241,7 @@ Domain-specific team constitution: [`plugins/microsoft-fabric/CLAUDE.md`](plugin
 | Component | Count | Where |
 |-----------|-------|-------|
 | Specialist agents | 6 (`claude-solution-architect`, `prompt-and-context-engineer`, `mcp-and-server-tools-engineer`, `agent-sdk-engineer`, `eval-engineer`, `claude-app-ops-engineer`) | `plugins/claude-app-engineering/agents/` |
-| Knowledge bank | 9 citation-grounded, retrieval-dated docs (build-surface decision tree, dated 2026 capability map, prompt-caching playbook, tool-use + structured output, MCP server authoring, server-side tools + Files API, Agent SDK + Managed Agents, evals + quality, FinOps + reliability + security) | `plugins/claude-app-engineering/knowledge/` |
+| Knowledge bank | 15 citation-grounded, retrieval-dated docs (build-surface decision tree, dated 2026 capability map, prompt-caching playbook, tool-use + structured output, MCP server authoring, server-side tools + Files API, Agent SDK + Managed Agents, evals + quality, FinOps + reliability + security) | `plugins/claude-app-engineering/knowledge/` |
 | Templates | 6 (architecture spec, prompt-and-caching design, MCP server spec, eval plan, cost model, Agent SDK runbook) | `plugins/claude-app-engineering/templates/` |
 | Hooks | 1 advisory anti-pattern hook (hardcoded `sk-ant-` key, Messages API call with no `max_tokens`, retired model id, full-message logging); `CLAUDE_APP_STRICT=1` to block | `plugins/claude-app-engineering/hooks/` |
 
@@ -252,7 +252,7 @@ Domain-specific team constitution: [`plugins/claude-app-engineering/CLAUDE.md`](
 | Component | Count | Where |
 |-----------|-------|-------|
 | Specialist agents | 7 (`azure-architect`, `bicep-iac-engineer`, `entra-identity-engineer`, `network-engineer`, `app-platform-engineer`, `integration-engineer`, `azure-ops-engineer`) | `plugins/azure-cloud/agents/` |
-| Knowledge bank | 9 citation-grounded, retrieval-dated docs (landing zones & governance, IaC decision + Bicep, compute + integration decision trees, Entra identity, networking & connectivity, observability & FinOps, deployment & CI/CD, dated 2026 capability map) | `plugins/azure-cloud/knowledge/` |
+| Knowledge bank | 12 citation-grounded, retrieval-dated docs (landing zones & governance, IaC decision + Bicep, compute + integration decision trees, Entra identity, networking & connectivity, observability & FinOps, deployment & CI/CD, dated 2026 capability map) | `plugins/azure-cloud/knowledge/` |
 | Templates | 6 (landing-zone plan, IaC deployment spec, architecture spec, Entra identity design, cost & observability review, CI/CD runbook) | `plugins/azure-cloud/templates/` |
 | Hooks | 1 advisory anti-pattern hook (hardcoded secret, public exposure, broad RBAC, TLS/HTTPS-off, hardcoded GUID, Terraform local backend); `AZURE_STRICT=1` to block | `plugins/azure-cloud/hooks/` |
 
@@ -286,7 +286,7 @@ Domain-specific team constitution: [`plugins/regulatory-compliance/CLAUDE.md`](p
 |-----------|-------|-------|
 | Specialist agents | 7 (`web-architect`, `ux-designer`, `visual-designer`, `frontend-implementer`, `content-strategist`, `accessibility-auditor`, `performance-engineer`) | `plugins/web-design/agents/` |
 | Skills | 11 (incl. `fluent-react-implementation`, `design-tokens-scaffolding`, `design-system-audit`, `seo-technical-audit`, `core-web-vitals-tuning`, `conversion-design`) | `plugins/web-design/skills/` |
-| Knowledge bank | 7 citation-grounded, retrieval-dated docs (modern web stacks, modern CSS, web-platform capabilities, AEO, design systems & component architecture, Fluent + React for web) | `plugins/web-design/knowledge/` |
+| Knowledge bank | 10 citation-grounded, retrieval-dated docs (modern web stacks, modern CSS, web-platform capabilities, AEO, design systems & component architecture, Fluent + React for web) | `plugins/web-design/knowledge/` |
 | Hooks | 1 advisory web anti-pattern hook | `plugins/web-design/hooks/` |
 
 Domain-specific team constitution: [`plugins/web-design/CLAUDE.md`](plugins/web-design/CLAUDE.md). Covers web architecture, UX, visual design, frontend implementation, content/SEO/AEO, accessibility (WCAG 2.2 AA/AAA), and performance (Core Web Vitals), with a deepening Fluent UI + React track.
@@ -387,9 +387,7 @@ The container at `.devcontainer/` auto-installs the Claude Code CLI on rebuild, 
 
 **Shipped since the original roadmap:** `finance`, `regulatory-compliance`, `web-design`, `edtech-partner-success`, `data-platform`, `applied-statistics`, `microsoft-fabric` (the enterprise-Microsoft data-platform lane — OneLake / Lakehouse / Warehouse / Data Factory / Real-Time Intelligence / Direct Lake / capacity FinOps, from [`docs/microsoft-fabric-plugin-analysis.md`](docs/microsoft-fabric-plugin-analysis.md)), `claude-app-engineering` (building on the Claude API + Agent SDK + MCP, from [`docs/claude-app-engineering-plugin-analysis.md`](docs/claude-app-engineering-plugin-analysis.md)), and `azure-cloud` (Azure infrastructure & platform, from [`docs/azure-cloud-plugin-analysis.md`](docs/azure-cloud-plugin-analysis.md)).
 
-Still planned:
-
-- **`salesforce`** — Salesforce metadata, Apex, Flow specialists (deferred — see [`docs/plugin-roadmap-analysis.md`](docs/plugin-roadmap-analysis.md) for why it ranks below the Microsoft-stack work).
+`salesforce` (Apex, Flow, Agentforce, platform-architecture specialists) has since **shipped** as well — it is now one of the 99 plugins above, no longer planned-only.
 
 Each builds on top of `ravenclaude-core` (which provides the neutral team) and adds domain-specific agents that the consumer can choose to install or skip. `power-platform` is the reference implementation of this pattern.
 

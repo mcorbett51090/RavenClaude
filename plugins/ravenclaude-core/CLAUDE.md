@@ -134,7 +134,7 @@ This reduces context overload, improves focus, and produces cleaner, more ideal 
 
 ## Knowledge Freshness & Researcher (Updated)
 
-The marketplace includes a **Researcher** meta-skill at `plugins/ravenclaude-core/skills/researcher.md`.
+The marketplace includes a **Researcher** meta-skill at `plugins/ravenclaude-core/skills/researcher/SKILL.md`.
 
 **When to invoke the Researcher**:
 - On first opening the repo each day (quick check mode)
@@ -788,7 +788,7 @@ Visual-output agents (web, dashboards, Power BI, Tableau) now carry an inherent 
 
 - `agents/` — 14 specialist agent definitions (now includes `data-engineer`)
 - `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging, agent-quality-rubric, knowledge-file-staleness-sweep, prompt-pattern-library, plugin-release-checklist, decision-review (route yes/no decisions through the tribunal), brand-extraction (website home page → reusable brand kit), pbir-layout-engine (deterministic PBIR/web-dashboard layout linter), visual-feedback-loop (the render→see→critique→iterate referee that merges the layout linter + agent-captured console/Lighthouse evidence into one pass/fail verdict — the runnable half of `knowledge/visual-feedback-loop.md`)
-- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate, claim-grounding-lint, regen-on-manifest-change (all registered in `hooks/hooks.json` for plugin-level distribution), plus the sourced helper `_emit-event.sh` (the hook-event substrate — sourced by the verdict-emitting hooks, not a registered hook itself) and `tests/` (the hook-event fixture test)
+- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate, claim-grounding-lint, agent-dispatch-evaluator, guard-web-access, regen-on-manifest-change (all registered in `hooks/hooks.json` for plugin-level distribution), plus the sourced helper `_emit-event.sh` (the hook-event substrate — sourced by the verdict-emitting hooks, not a registered hook itself) and `tests/` (the hook-event fixture test)
 - `scripts/` — apply-comfort-posture.py (`/set-posture` translator), serve-dashboards.py (the consumer dashboard server launched by `/dashboard` — serves the version-matched `dashboard.html` and writes `.ravenclaude/` into the consumer's project; `/__save` + `/__read` + `/__classify` only, no `/__run`, binds 127.0.0.1), thing-decision.py + thing-seat.sh (command-review tribunal — see the `thing` skill), thing-decide.py (decision-review tribunal — see the `decision-review` skill)
 - `rules/` — coding-standards, security, git-workflow, agent-collaboration, terminal-copy-to-tempfile (copy-me CLI text → a temp `.md` file the user can copy from, because terminal clipboard copy doesn't work)
 - `templates/` — memos, runbooks, design specs, RAID logs, partner-success, `agent-ready-repo/` templates used by `/init-agent-ready`, plus `thing.yaml` (command-review seat config)
@@ -911,7 +911,7 @@ The Learn tab now teaches **all of RavenClaude's own mechanisms**, not just a sa
 
 ## Value-add completeness (build-out 2026-06-05)
 
-`ravenclaude-core` is the **load-bearing foundation plugin** — it already ships the Team Lead + 14 specialists, 35 skills, the hooks/scripts/rules/templates, the dashboard, the tribunal, and the three epistemic protocols. The one genuine value-add gap was that it shipped the `scenario-retrieval` **skill** but had **no scenarios bank of its own**. This build-out closes that gap with a small, domain-NEUTRAL orchestration bank and dispositions every other menu item honestly — most are **N-A** or **already-present** for a foundation plugin, and forcing them would add noise (a calculator, a bundled MCP, an output-style) that doesn't fit a domain-neutral orchestration layer.
+`ravenclaude-core` is the **load-bearing foundation plugin** — it already ships the Team Lead + 14 specialists, 40 skills, the hooks/scripts/rules/templates, the dashboard, the tribunal, and the three epistemic protocols. The one genuine value-add gap was that it shipped the `scenario-retrieval` **skill** but had **no scenarios bank of its own**. This build-out closes that gap with a small, domain-NEUTRAL orchestration bank and dispositions every other menu item honestly — most are **N-A** or **already-present** for a foundation plugin, and forcing them would add noise (a calculator, a bundled MCP, an output-style) that doesn't fit a domain-neutral orchestration layer.
 
 | Item | Disposition | Note |
 |---|---|---|
@@ -924,7 +924,7 @@ The Learn tab now teaches **all of RavenClaude's own mechanisms**, not just a sa
 | output-styles / themes | **N-A** | Output shape is governed by the Structured Output Protocol + the dashboard's themed SVGs; no per-style asset is warranted here. |
 | `settings.json` / permissions tuning | **ALREADY-PRESENT** | The comfort-posture system + `apply-comfort-posture.py` *is* the permission-tuning surface; nothing to add. |
 | Runnable calculator script | **N-A (deliberately not added)** | A calculator doesn't fit a domain-neutral foundation. The plugin's `scripts/` are orchestration engines, not arithmetic helpers — adding a calculator would be noise. |
-| skills / hooks / commands / templates | **SUFFICIENT** | 35 skills, the full hook set (format/guard/tribunal/runaway/dod/route-decision-review/…), the shipped slash commands, and the template library already cover the surface; no high-value gap this round. |
+| skills / hooks / commands / templates | **SUFFICIENT** | 40 skills, the full hook set (format/guard/tribunal/runaway/dod/route-decision-review/…), the shipped slash commands, and the template library already cover the surface; no high-value gap this round. |
 | CHANGELOG.md | **BUILT** | Added [`CHANGELOG.md`](CHANGELOG.md) with a top `0.126.0` entry (the plugin had none; `.repo-layout.json` already allows `plugins/*/CHANGELOG.md`). |
 
 **Scope discipline:** this build-out touched **nothing load-bearing** — no hook, script, skill (including `scenario-retrieval`), rule, agent, `concepts.json`, dashboard, or gate was modified. The only changes are additive files (`scenarios/`, `CHANGELOG.md`) plus this `CLAUDE.md` append and the `version` bump in both manifest mirrors. **Migration:** none — additive content, consumer-invisible until an agent globs the new bank.

@@ -4,7 +4,7 @@ The Azure infrastructure & platform specialist team — the cloud layer undernea
 
 ## What it is
 
-The hard part of Azure work is the decisions: landing-zone topology, Bicep or Terraform, which compute service, passwordless identity, private networking, cost control. This plugin encodes them as a team of advisory specialists backed by a 9-doc, retrieval-dated, CAF/WAF-grounded knowledge bank (Azure ships constantly, so the dated capability map matters).
+The hard part of Azure work is the decisions: landing-zone topology, Bicep or Terraform, which compute service, passwordless identity, private networking, cost control. This plugin encodes them as a team of advisory specialists backed by a 12-doc, retrieval-dated, CAF/WAF-grounded knowledge bank (Azure ships constantly, so the dated capability map matters).
 
 The agents are **advisory and interactive**: your Azure tenant and credentials live outside the repo, so they recommend designs and emit runnable snippets (Bicep / Terraform / `az` CLI / Policy JSON) you run yourself.
 
@@ -20,7 +20,7 @@ The agents are **advisory and interactive**: your Azure tenant and credentials l
 | `integration-engineer` | Logic Apps, Service Bus, Event Grid, Event Hubs, API Management |
 | `azure-ops-engineer` | observability (Monitor/App Insights/OTel), FinOps, governance (Policy/Defender) |
 
-Plus a 9-doc knowledge bank (landing zones, IaC, compute + integration decision trees, identity, networking, observability/FinOps, CI/CD, dated 2026 capability map), 6 templates, and 1 advisory hook (16 house opinions).
+Plus a 12-doc knowledge bank (landing zones, IaC, compute + integration decision trees, identity, networking, observability/FinOps, CI/CD, dated 2026 capability map), 6 templates, and 1 advisory hook (16 house opinions).
 
 ## Install
 

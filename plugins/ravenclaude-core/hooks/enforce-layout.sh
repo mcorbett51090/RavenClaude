@@ -53,7 +53,12 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 # Convert to a path relative to project root.
-if [[ "$file" == "$project_root"* ]]; then
+# Match on the "$project_root/" prefix (with the trailing slash) so a SIBLING
+# directory that merely shares the project-root name as a prefix
+# (e.g. /home/user/RavenClaude-backup vs /home/user/RavenClaude) is NOT
+# misclassified as in-project — which would leave rel_path unstripped (the `#`
+# strip below requires the slash) and produce a spurious deny.
+if [[ "$file" == "$project_root"/* ]]; then
   rel_path="${file#$project_root/}"
 else
   # File is outside the project root — not our policy to enforce.
