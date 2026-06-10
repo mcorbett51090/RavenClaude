@@ -149,9 +149,14 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate100-visual-feedback-loop.sh
       exit $?
       ;;
+    101)
+      echo "── Gate 101: declarative-viz security linter (per-gate run) ──────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate101-declarative-viz-linter.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3204,6 +3209,16 @@ echo "── Gate 100: visual-feedback-loop driver (bidirectional + parity + tee
 # always-pass mutant lets a known-bad through (teeth).
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate100-visual-feedback-loop.sh >/dev/null 2>&1 || rc=$?
 gate "visual-feedback-loop driver bidirectional" must_pass "$rc"
+
+echo
+echo "── Gate 101: declarative-viz security linter (bidirectional + teeth) ──────"
+# The security/quality linter for Vega-Lite/Vega/SVG specs and templates.
+# Asserts: clean spec + clean SVG pass, each security vector (data.url, loader,
+# transform.lookup w/ remote URL, remote $schema, SVG <script>, SVG on*) fails
+# (exit 1), a '..' path is rejected (exit 2), an always-pass mutant lets a
+# known-bad through (teeth), and all committed spec-patterns/ templates pass.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate101-declarative-viz-linter.sh >/dev/null 2>&1 || rc=$?
+gate "declarative-viz linter bidirectional (security + SVG + teeth + spec-patterns)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

@@ -102,6 +102,10 @@ Full reference brief: [`../knowledge/design-references.md`](../knowledge/design-
 - **Edit / Write** HTML, CSS, JS / TS, JSX / TSX, Astro / Svelte components, build config.
 - **Bash** for `npm run` / `pnpm` / `bun` commands, build verification, formatter / linter / type-checker runs.
 
+## Declarative visualization (Vega-Lite / SVG)
+
+When a page needs a custom chart — heatmaps, dumbbell plots, annotated lines, small-multiples — reach for **Vega-Lite** via vega-embed (`vegaEmbed('#el', spec, opts)`) or the Evidence/Observable fence block. Use inline **SVG** for icon shapes and decorative overlays. The cross-surface spec-authoring method, security rules, and starter templates: [`../../ravenclaude-core/skills/declarative-visualization/SKILL.md`](../../ravenclaude-core/skills/declarative-visualization/SKILL.md). **Security is load-bearing:** run `lint.py` — `data.url`, remote `transform.lookup`, custom `loader`, and SVG `<script>`/`on*` are forbidden (Gate 101). Bind data via `data.name` + `view.change()` in JS; never `data.url` in committed specs.
+
 ## Visual feedback loop
 
 Don't ship UI blind — **see it before you call it done.** When the surface renders in a browser, drive `chrome-devtools-mcp` to screenshot it (your eyes on the render), capture the console + a Lighthouse audit, and run the referee — [`visual-feedback-loop`](../../ravenclaude-core/skills/visual-feedback-loop/SKILL.md) — which merges those into one pass/fail verdict against **objective stopping signals** (zero console errors, Lighthouse a11y ≥ threshold, no overflow) so you iterate to *correct*, not just "looks better". **Conditional / never stall:** if `chrome-devtools-mcp` isn't installed, fall back to the structural read (DOM / accessibility tree) and name the one optional install that unlocks the visual half. Full discipline + security rules: [`visual-feedback-loop.md`](../../ravenclaude-core/knowledge/visual-feedback-loop.md).

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Sparkline strip — one compact row per series for at-a-glance trend comparison. Replace data.values with data.name for production use.",
+  "data": {
+    "name": "source",
+    "values": [
+      { "series": "Revenue", "t": 1, "value": 100 },
+      { "series": "Revenue", "t": 2, "value": 115 },
+      { "series": "Revenue", "t": 3, "value": 108 },
+      { "series": "Revenue", "t": 4, "value": 130 },
+      { "series": "Revenue", "t": 5, "value": 122 },
+      { "series": "Cost", "t": 1, "value": 80 },
+      { "series": "Cost", "t": 2, "value": 75 },
+      { "series": "Cost", "t": 3, "value": 82 },
+      { "series": "Cost", "t": 4, "value": 78 },
+      { "series": "Cost", "t": 5, "value": 85 },
+      { "series": "Margin", "t": 1, "value": 20 },
+      { "series": "Margin", "t": 2, "value": 40 },
+      { "series": "Margin", "t": 3, "value": 26 },
+      { "series": "Margin", "t": 4, "value": 52 },
+      { "series": "Margin", "t": 5, "value": 37 }
+    ]
+  },
+  "facet": {
+    "row": {
+      "field": "series",
+      "type": "nominal",
+      "header": { "title": null, "labelAlign": "left", "labelFontSize": 11 }
+    }
+  },
+  "spec": {
+    "mark": { "type": "line", "strokeWidth": 1.5 },
+    "encoding": {
+      "x": {
+        "field": "t",
+        "type": "quantitative",
+        "axis": null
+      },
+      "y": {
+        "field": "value",
+        "type": "quantitative",
+        "axis": null,
+        "scale": { "zero": false }
+      },
+      "color": { "field": "series", "type": "nominal", "legend": null }
+    },
+    "width": 200,
+    "height": 30
+  }
+}
