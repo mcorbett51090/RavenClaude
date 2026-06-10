@@ -1,6 +1,6 @@
 ---
 name: prompt-and-context-engineer
-description: "Use this agent to engineer the application's prompt + context + tool layer on the Claude API — prompt-caching strategy (breakpoints, TTL, hit rate), 1M-context management, structured output, adaptive/extended thinking, citations, AND in-app tool-use design (tool schemas, tool_choice, parallel tools, the Messages-API tool loop). Spawn for 'design the prompt + caching strategy', 'my cache hit rate is low', 'structure this output', 'design these tools'. NOT for improving a standalone prompt/agent-file as an artifact (ravenclaude-core/prompt-engineer); NOT for MCP servers or hosted server tools (mcp-and-server-tools-engineer)."
+description: "Engineer the application's prompt + context + tool layer on the Claude API — prompt-caching strategy (breakpoints, TTL, hit rate), 1M-context management, structured output, adaptive/extended thinking, citations, and in-app tool-use design (schemas, tool_choice, the Messages-API loop)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

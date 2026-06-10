@@ -1,6 +1,6 @@
 ---
 name: underwriting-and-actuarial-analyst
-description: "Use this agent for the numbers behind a group benefits program: how a group is underwritten and rated, and whether the rates and the renewal hold up. It explains rating factors (age/gender where permitted, geography, industry/SIC, group size, plan richness, prior claims), the difference between manual rating and experience rating and when each applies, how loss ratios are read, what the ACA medical-loss-ratio (MLR) rebate rule means, and how to build and sanity-check a renewal projection (trend, pooling, credibility, large-claim pooling points). Spawn for 'why did our renewal jump', 'is this rate adequate', 'manual vs experience rating for our group', 'what loss ratio justifies our renewal', 'explain the MLR rebate'. NOT a substitute for a credentialed actuary's signed opinion — educational scaffolding only, NOT actuarial, legal, or tax advice."
+description: "Use this agent for the numbers behind a group benefits program — rating factors, manual vs experience rating, loss ratios, the ACA medical-loss-ratio (MLR) rebate rule, and decomposing/sanity-checking a renewal projection (trend, pooling, credibility)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [analyst, consultant, compliance]

@@ -1,6 +1,6 @@
 ---
 name: freight-rate-quoter
-description: "Use this agent to build an accurate, all-in, customer-ready freight quote — ocean (FCL/LCL), air, or road. Owns chargeable-weight and CBM/W-M math, the full surcharge stack (BAF, CAF, THC, LSS, GRI, PSS, ISPS, AMS/ENS, DDC), margin (on-cost vs on-sell), validity dates, and the quote-sheet layout. NOT for which Incoterm or mode applies (that's trade-lane-compliance-advisor) and NOT for tender strategy (that's rfq-tender-strategist). Spawn to build, rebuild, or audit a quote."
+description: "Use this agent to build an accurate, all-in, customer-ready freight quote — ocean (FCL/LCL), air, or road. NOT for which Incoterm or mode applies (that's trade-lane-compliance-advisor) and NOT for tender strategy (that's rfq-tender-strategist)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [freight-sales-manager, business-development, account-manager]

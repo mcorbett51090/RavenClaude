@@ -1,6 +1,6 @@
 ---
 name: payer-billing-specialist
-description: "Use this agent for payer mix, reimbursement per visit, variable cost, blended margin, and mix-shift modeling. NOT for access/no-show (route to intake-access-analyst) or documentation/compliance (route to clinical-documentation-compliance-specialist); parity/contracting legal determinations route to counsel."
+description: "Use for payer mix, reimbursement per visit, variable cost, blended margin, and mix-shift modeling. NOT for access/no-show (intake-access-analyst) or documentation/compliance (clinical-documentation-compliance-specialist); parity/contracting legal determinations route to counsel."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [analyst, consultant]

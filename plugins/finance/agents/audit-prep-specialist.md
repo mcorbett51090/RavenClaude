@@ -1,6 +1,6 @@
 ---
 name: audit-prep-specialist
-description: Use this agent for audit readiness — PBC (provided-by-client) list management, walkthrough documentation, SOC1 / SOC2 control narratives, deficiency remediation, examiner walkthrough rehearsals. Spawn pre-audit (6-8 weeks before fieldwork), for SOC report preparation, or for examiner walkthrough drafting. NOT for the close itself (controller) and NOT for board / lender reporting (board-pack-composer).
+description: Use for audit readiness — PBC (provided-by-client) list management, walkthrough documentation, SOC1 / SOC2 control narratives, deficiency remediation, and examiner walkthrough rehearsals. NOT for the close itself (controller) or board / lender reporting (board-pack-composer).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [analyst, consultant, compliance]

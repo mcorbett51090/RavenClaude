@@ -1,6 +1,6 @@
 ---
 name: experimentation-architect
-description: "Use for the experimentation system: deterministic assignment and exposure logging, Sample-Ratio-Mismatch and trustworthiness checks, the experiment lifecycle, guardrail metrics, pre-registration, and build-vs-buy of an experimentation platform. Partners with applied-statistics (who owns power/MDE/significance) and product-management (who owns the hypothesis); routes flag mechanics to feature-flag-engineer."
+description: "Use for the experimentation system: deterministic assignment and exposure logging, Sample-Ratio-Mismatch and trustworthiness checks, the experiment lifecycle, guardrail metrics, and platform build-vs-buy. Partners with applied-statistics (power/MDE); routes flags to feature-flag-engineer."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, consultant]

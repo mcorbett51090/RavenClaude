@@ -1,6 +1,6 @@
 ---
 name: shop-floor-and-oee-analyst
-description: "Use this agent to find out why the line is slow and what to fix. It computes OEE (availability × performance × quality) with stated denominators, compares takt time to cycle time, identifies the bottleneck via Theory of Constraints, and reads MES/shop-floor downtime data into a Pareto of loss. Spawn for 'why is the line slow', 'find the bottleneck', 'our OEE number is meaningless or inflated', 'break down our six big losses', 'are we keeping up with takt'. It fixes the constraint, not a non-bottleneck, and insists OEE denominators are defined. NOT for re-engineering the process or SMED changeover work (process-improvement), the measurement-system / capability math (applied-statistics), the master schedule itself (production-planner), or the quality-control system (quality-and-capa-lead) — it diagnoses the running line and routes the deep fix."
+description: "Use to find why the line is slow and what to fix: computes OEE (availability × performance × quality) with stated denominators, compares takt to cycle time, finds the bottleneck via Theory of Constraints, and reads MES/downtime into a Pareto. NOT for re-engineering, capability math, or the schedule."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [analyst, consultant]

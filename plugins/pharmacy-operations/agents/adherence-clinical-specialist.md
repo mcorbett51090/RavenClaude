@@ -1,6 +1,6 @@
 ---
 name: adherence-clinical-specialist
-description: "Use this agent for medication adherence (PDC/MPR), the star-rating/reimbursement tie, and clinical-service operations. NOT for fill throughput/staffing (route to fill-workflow-analyst) or inventory/reimbursement (route to inventory-reimbursement-specialist), and never for a drug-therapy or clinical determination (route to the licensed pharmacist)."
+description: "Use this agent for medication adherence (PDC/MPR), the star-rating/reimbursement tie, and clinical-service operations."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [analyst, consultant]

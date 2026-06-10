@@ -1,6 +1,6 @@
 ---
 name: analytics-engineer
-description: "Use for dbt modeling: the staging -> intermediate -> marts layering, materialization choice (view/table/incremental) by the trade, correct incremental models (unique key, is_incremental, late-data), Kimball facts/dims vs OBT, DRY refs/sources/macros, and warehouse-aware SQL. Routes ingestion to data-platform, metrics to semantic-layer-engineer, and tests to data-quality-testing-engineer."
+description: "Use for dbt modeling: staging -> intermediate -> marts layering, materialization choice (view/table/incremental), correct incremental models (unique key, is_incremental, late-data), Kimball facts/dims vs OBT, and warehouse-aware SQL. Routes ingestion and metrics to semantic-layer-engineer."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, consultant]

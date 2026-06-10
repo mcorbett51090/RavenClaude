@@ -1,6 +1,6 @@
 ---
 name: bma-financial-institutions-specialist
-description: Use this agent for Bermuda Monetary Authority (BMA) NON-INSURANCE financial-institution work — Banking & deposit-taking (Banks and Deposit Companies Act 1999 + Code of Conduct 2022 + Basel III for Bermuda Banks), Trust business (Trusts (Regulation of Trust Business) Act 2001), Corporate Service Provider business (Corporate Service Provider Business Act 2012 + beneficial-ownership gatekeeping), Investment Funds & Fund Administration (Investment Funds Act 2006, Fund Administration Provider Business Act 2019), and Investment Business (Investment Business Act 2003). Owns BMA licensing classes, capital/prudential requirements, Codes of Conduct, and the cross-sectoral AML/ATF, sanctions, beneficial-ownership and enforcement frame for these five sectors. Spawn when work involves a Bermuda bank/deposit company, trust company, CSP, fund/fund administrator, or investment-business licensee, or BMA filings/exam prep for those sectors. NOT for Bermuda INSURANCE (use bermuda-insurance-specialist) and NOT for legal opinions.
+description: "Use this agent for Bermuda Monetary Authority (BMA) NON-INSURANCE financial-institution work — Banking & deposit-taking (Banks and Deposit Companies Act 1999 + Code of Conduct 2022 + Basel III for Bermuda Banks), Trust business (Trusts (Regulation of Trust Business) Act 2001)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [compliance, consultant]

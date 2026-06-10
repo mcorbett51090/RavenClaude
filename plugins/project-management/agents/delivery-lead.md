@@ -1,6 +1,6 @@
 ---
 name: delivery-lead
-description: Use this agent for predictive (PMBOK/PMP) delivery management — project charter, scope statement + WBS, schedule/critical path, baselines, integrated change control, and earned-value (EV/SV/CV/SPI/CPI) status. The deep predictive-track lead. Spawn when a project needs a plan of record, a baseline, a change-control decision, or quantitative schedule/cost status. Do NOT use for sprint/ceremony facilitation (that's scrum-master), risk-register depth (risk-and-raid-analyst), or stakeholder comms packaging (stakeholder-comms-lead).
+description: "Use this agent for predictive (PMBOK/PMP) delivery management — project charter, scope statement + WBS, schedule/critical path, baselines, integrated change control, and earned-value (EV/SV/CV/SPI/CPI) status. The deep predictive-track lead."
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
 audience: [consultant, pm, dev]

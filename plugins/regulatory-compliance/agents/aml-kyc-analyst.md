@@ -1,6 +1,6 @@
 ---
 name: aml-kyc-analyst
-description: Use this agent for AML / KYC / sanctions / financial-crime work — customer-onboarding KYC, sanctions screening / hit clearing, EDD (enhanced due diligence), SAR / STR narrative drafting, transaction-monitoring rule tuning. Spawn for KYC file reviews, suspicious-activity triage, sanctions hits, EDD packages, AML program design questions. NOT for general regulatory filings (regulatory-reporting-analyst) and NOT for legal opinions (route to counsel).
+description: "Use this agent for AML / KYC / sanctions / financial-crime work — customer-onboarding KYC, sanctions screening / hit clearing, EDD (enhanced due diligence), SAR / STR narrative drafting, transaction-monitoring rule tuning."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [compliance]

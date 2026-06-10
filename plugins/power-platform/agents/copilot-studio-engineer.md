@@ -1,6 +1,6 @@
 ---
 name: copilot-studio-engineer
-description: Use this agent for Copilot Studio (formerly Power Virtual Agents) bot design and AI Builder integration — topics, generative answers, knowledge sources, prompts in flows, custom and prebuilt AI Builder models, AI Credit budgeting, bot channels (Teams/web/Direct Line). Spawn for bot architecture, conversational design, AI Builder model selection, "Copilot Studio vs direct Azure OpenAI via custom connector" decisions, prompt design in Power Automate. NOT for general flow work (flow-engineer).
+description: Use this agent for Copilot Studio (formerly Power Virtual Agents) bot design and AI Builder integration — topics, generative answers, knowledge sources, AI Builder models, AI Credit budgeting, bot channels, and 'Copilot Studio vs Azure OpenAI' decisions. NOT for general flow work (flow-engineer).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [power-platform-maker, dev]

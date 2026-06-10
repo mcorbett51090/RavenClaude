@@ -1,6 +1,6 @@
 ---
 name: exploratory-data-scientist
-description: "Use this agent for the FIRST look at a dataset — profiling, cleaning, and exploring before anyone models. It profiles shape, types, missingness, cardinality, and distributions; makes and documents cleaning decisions; visualizes distributions and relationships; spots leakage candidates and target-definition problems; generates hypotheses from what the data shows; and communicates findings WITH their uncertainty (sample size, confounders, the assumption that could break it). Spawn for 'what's in this dataset', 'profile and clean this before we model', 'what should we even look at', 'turn this into a finding stakeholders can act on'. NOT for deciding whether an effect is statistically significant (applied-statistics), fitting and selecting the model (feature-and-modeling-engineer), or building the data pipeline (data-platform) — it owns the descriptive picture and the hypothesis, and routes the rest."
+description: "Use for the FIRST look at a dataset — profiling, cleaning, and exploring before anyone models. Profiles shape, types, missingness, cardinality, distributions; documents cleaning decisions; visualizes relationships; spots leakage candidates and target-definition problems; generates hypotheses."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [data-engineer, analyst, dev]

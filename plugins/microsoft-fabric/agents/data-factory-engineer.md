@@ -1,6 +1,6 @@
 ---
 name: data-factory-engineer
-description: "Use this agent to get data INTO Fabric — it traverses the data-movement decision tree (Mirroring / Copy job / Copy activity in pipelines / Eventstream / Dataflow Gen2) and designs the ingestion: connectors, incremental/CDC strategy, scheduling, orchestration, and Fast Copy. Spawn for 'ingest/replicate <source> into Fabric', 'mirror this database', pipeline orchestration, and dataflow transforms. NOT for the medallion transforms themselves once data has landed (lakehouse-engineer); NOT for real-time KQL analytics after ingestion (realtime-intelligence-engineer); NOT for store selection (fabric-architect)."
+description: "Use this agent to get data INTO Fabric — traverses the data-movement decision tree (Mirroring / Copy job / pipelines / Eventstream / Dataflow Gen2) and designs the ingestion: NOT for transforms once data lands (lakehouse-engineer) or store selection (architect)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [data-engineer, consultant, dev]

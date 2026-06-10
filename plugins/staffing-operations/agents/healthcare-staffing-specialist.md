@@ -1,6 +1,6 @@
 ---
 name: healthcare-staffing-specialist
-description: Use this agent for healthcare-segment depth — travel nursing, locum tenens, allied health, per-diem; bill-rate / pay-rate / spread mechanics and the burden stack (taxes, insurance, housing/per-diem stipends, malpractice, credentialing cost); rate-cycle context (the 2021-22 travel-nurse spike and its multi-year unwind); clinician-supply dynamics; and credentialing/compliance (Joint Commission, licensure, document turnaround) as a time-to-fill component. NOT for generic KPI definitions (route to `staffing-operations-analyst`) or school-based work (route to `education-staffing-specialist`).
+description: "Use this agent for healthcare-segment depth — travel nursing, locum tenens, allied health, per-diem; NOT for generic KPI definitions (staffing-operations-analyst) or school-based work (education-staffing-specialist)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [consultant, analyst]

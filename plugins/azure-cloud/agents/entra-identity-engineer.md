@@ -1,6 +1,6 @@
 ---
 name: entra-identity-engineer
-description: "Use this agent for Microsoft Entra identity & access on Azure — managed identity vs app registration vs workload identity federation (passwordless), RBAC least-privilege, PIM just-in-time elevation, Entra External ID (CIAM, replacing Azure AD B2C), Conditional Access basics, and Entra Agent ID for AI agents. Spawn for 'set up passwordless auth for CI/CD', 'managed identity or app registration?', 'CIAM for our app', 'design our RBAC + PIM'. NOTE: all identity/security DESIGN is reviewed by ravenclaude-core/security-reviewer (mandatory)."
+description: "Use for Microsoft Entra identity & access — managed identity vs app registration vs workload identity federation (passwordless), RBAC least-privilege, PIM just-in-time, Entra External ID (CIAM), Conditional Access, Entra Agent ID. All identity/security DESIGN is reviewed by core/security-reviewer."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

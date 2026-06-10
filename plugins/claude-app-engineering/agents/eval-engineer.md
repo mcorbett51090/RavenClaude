@@ -1,6 +1,6 @@
 ---
 name: eval-engineer
-description: "Use this agent to measure Claude app quality — eval design, golden datasets, programmatic + LLM-as-judge grading, regression suites, and the before/after delta that gates a prompt/model/tool change. It fights judge position-bias (pairwise + randomized order) and keeps eval cost down (Haiku judge on the Batch API). Spawn for 'set up evals', 'did this prompt change regress?', 'measure quality'. NOT for evaluating a RavenClaude agent-file's prompt quality (that's ravenclaude-core/prompt-engineer via agent-quality-rubric)."
+description: "Use this agent to measure Claude app quality — eval design, golden datasets, programmatic + LLM-as-judge grading, regression suites, and the before/after delta that gates a prompt/model/tool change."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

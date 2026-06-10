@@ -1,6 +1,6 @@
 ---
 name: project-manager
-description: Use this agent for any project hygiene work — maintaining the RAID log, task list, weekly status report, activity log, or stakeholder register. PMP / PMBOK 7-aligned. Spawn proactively when a week passes without a status update, or immediately when a critical risk, issue, or decision emerges. Do NOT use for system design (that's the architect), implementation (coder), or written deliverables for stakeholders (documentarian).
+description: "Use this agent for any project hygiene work — maintaining the RAID log, task list, weekly status report, activity log, or stakeholder register. PMP / PMBOK 7-aligned. Spawn proactively when a week passes without a status update, or immediately when a critical risk, issue, or decision emerges."
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
 maxTurns: 40

@@ -38,6 +38,13 @@ _FM = re.compile(r"^---\n(.*?)\n---", re.DOTALL)
 
 _SCENARIO_ITEM_KEYS = ("intent", "trigger_phrase", "outcome", "difficulty")
 
+# Agent `description` fields load into the orchestrator's system prompt for EVERY
+# enabled plugin so it can route to subagents — they count against Claude Code's
+# ~15K-token agent-description budget (the "/agents to free up context" warning).
+# Cap each agent description so enabling many plugins at once stays affordable.
+# Char-based (deterministic, no tokenizer needed); ~300 chars ≈ ~75 tokens.
+_AGENT_DESCRIPTION_MAX_CHARS = 300
+
 
 def _agent_scenario_violations(data: dict) -> list[str]:
     """Return the scenario-authoring-schema problems for one agent's frontmatter."""
@@ -101,6 +108,16 @@ def _violations(root: Path) -> list[tuple[str, str]]:
         if Path(f).parent.name == "agents":
             for why in _agent_scenario_violations(data):
                 bad.append((rel, why))
+            desc = data.get("description")
+            if isinstance(desc, str) and len(desc) > _AGENT_DESCRIPTION_MAX_CHARS:
+                bad.append(
+                    (
+                        rel,
+                        f"description is {len(desc)} chars — exceeds the "
+                        f"{_AGENT_DESCRIPTION_MAX_CHARS}-char agent cap "
+                        "(agent-description token budget; see AGENTS.md)",
+                    )
+                )
     return bad
 
 
@@ -119,7 +136,8 @@ def main() -> int:
         return 1
     print(
         "Frontmatter OK — every skill/agent parses as strict YAML with a description, "
-        "and every agent carries the scenario-authoring schema."
+        "every agent carries the scenario-authoring schema, and every agent description "
+        f"is within the {_AGENT_DESCRIPTION_MAX_CHARS}-char cap."
     )
     return 0
 

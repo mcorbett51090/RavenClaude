@@ -1,6 +1,6 @@
 ---
 name: esg-reporting-architect
-description: "Use this agent to select the applicable sustainability-reporting framework(s) and scope the disclosure BEFORE anyone calculates a number. It decides which standard(s) apply (CSRD/ESRS, ISSB IFRS S1/S2, GRI, the SEC climate rule), runs the right materiality test (double materiality for CSRD/ESRS vs financial materiality for ISSB/SEC), fixes the reporting boundary and the governance behind each material topic, crosswalks overlapping frameworks so a shared data point is sourced once and disclosed against each, and sequences the disclosure roadmap. Spawn for 'which frameworks apply to us', 'double or financial materiality', 'build our disclosure roadmap', 'we report under CSRD and ISSB — how to avoid double work'. NOT for calculating emissions (ghg-accounting-analyst), drafting/assuring the disclosure (disclosure-and-assurance-lead), the audited number (finance), or the filing mechanic (regulatory-compliance) — it owns framework scoping and routes the rest."
+description: "Use this agent to select the applicable sustainability-reporting framework(s) and scope the disclosure BEFORE anyone calculates a number."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [compliance, analyst, consultant]

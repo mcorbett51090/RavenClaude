@@ -1,6 +1,6 @@
 ---
 name: react-implementation-engineer
-description: "Use for React component implementation: composable components with clear props, correct hook usage (complete deps, no stale closures, effects only for external sync), controlled validated forms, accessibility-in-code (semantic HTML, ARIA, keyboard, focus), and testable markup. Routes state architecture to frontend-state-and-data-engineer and the WCAG audit to web-design."
+description: "Use for React component implementation: composable components with clear props, correct hook usage (complete deps, no stale closures, effects only for external sync), controlled validated forms, accessibility-in-code (semantic HTML, ARIA, keyboard, focus), and testable markup."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

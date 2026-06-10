@@ -1,6 +1,6 @@
 ---
 name: key-account-manager
-description: "Use this agent to retain and grow existing freight accounts — prep a QBR, build an account plan, map whitespace and upsell/cross-sell, recover an unhappy customer, or structure a joint business plan. Leads with the CUSTOMER's outcomes (savings, on-time %, issues resolved), not the forwarder's activity. NOT for the rate build (that's freight-rate-quoter) and NOT for net-new prospecting (that's prospecting-outreach-strategist). Spawn before any customer review or growth play on a current account."
+description: "Use this agent to retain and grow existing freight accounts — prep a QBR, build an account plan, map whitespace and upsell/cross-sell, recover an unhappy customer, or structure a joint business plan."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [account-manager, freight-sales-manager, business-development]

@@ -1,6 +1,6 @@
 ---
 name: connector-developer
-description: Use this agent for custom Airbyte connector authoring when an ELT vendor doesn't ship a connector for the source the engagement needs. Highest-leverage use case is EdTech LMS (Canvas, Moodle, Schoology, Blackboard, D2L) — native ELT vendor coverage is thin, and custom-Airbyte-connector capability is a real consulting differentiator. Also HRIS edge cases (ADP via Flexspring, niche regional vendors) and unusual SaaS sources. Spawn for "vendor doesn't ship a Canvas connector — what do we do", "build a custom Airbyte source for [niche SaaS]". NOT for configuring an existing Airbyte / Fivetran connector (that's `etl-pipeline-engineer`).
+description: "Use this agent for custom Airbyte connector authoring when an ELT vendor doesn't ship a connector for the source the engagement needs. NOT for configuring an existing Airbyte / Fivetran connector (that's `etl-pipeline-engineer`)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [data-engineer, dev]

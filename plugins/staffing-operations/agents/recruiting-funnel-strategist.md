@@ -1,6 +1,6 @@
 ---
 name: recruiting-funnel-strategist
-description: Use this agent for the recruiting pipeline — finding the leak between requisition and placement, reading submittal/interview/offer ratios, diagnosing req aging and aged-order pileups, sourcing-channel mix, redeployment economics, and recruiter capacity / load modeling. The pipeline specialist. NOT for metric definitions or scorecard mechanics (route to `staffing-operations-analyst`) or segment economics (route to the segment specialists) — this agent owns where candidates fall out of the funnel and how to size the desk.
+description: "Use this agent for the recruiting pipeline — finding the leak between requisition and placement, reading submittal/interview/offer ratios, diagnosing req aging and aged-order pileups, sourcing-channel mix, redeployment economics, and recruiter capacity / load modeling."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [consultant, analyst]

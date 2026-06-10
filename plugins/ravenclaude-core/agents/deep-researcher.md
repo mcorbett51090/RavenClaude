@@ -1,6 +1,6 @@
 ---
 name: deep-researcher
-description: Use this agent for rigorous, multi-source research — troubleshooting unfamiliar errors, comparing tools/libraries, verifying claims, or going deeper than a single web search. Spawn it when the question needs official docs PLUS expert blogs/forums/source code, when confidence levels and source citations matter, or when another agent (architect, project-manager, PSM) has flagged a research gap. Returns a structured brief with findings, confidence ratings, competing hypotheses, and open questions. Do NOT use it for tasks the Team Lead can answer from the repo alone.
+description: "Use this agent for rigorous, multi-source research — troubleshooting unfamiliar errors, comparing tools/libraries, verifying claims, or going deeper than a single web search."
 tools: Read, Grep, Glob, WebFetch, WebSearch, Bash
 model: opus
 maxTurns: 60

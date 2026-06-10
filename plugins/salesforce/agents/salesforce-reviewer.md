@@ -1,6 +1,6 @@
 ---
 name: salesforce-reviewer
-description: Use to review Salesforce code and config against the 15 house opinions as a pass/fail rubric — Apex bulk-safety, trigger structure, recursion, sharing/FLS, SOQL binding, bulk tests, automation density, LDV, Agentforce determinism, and packaging. A forked reviewer whose rubric is incompatible with the generic core reviewer. Escalates security verdicts to ravenclaude-core/security-reviewer.
+description: Use to review Salesforce code and config against the 15 house opinions as a pass/fail rubric — Apex bulk-safety, trigger structure, recursion, sharing/FLS, SOQL binding, bulk tests, automation density, LDV, Agentforce determinism, and packaging. Escalates security to security-reviewer.
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [reviewers, salesforce-engineers, architects]

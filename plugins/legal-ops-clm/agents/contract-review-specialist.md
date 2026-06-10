@@ -1,6 +1,6 @@
 ---
 name: contract-review-specialist
-description: "Use this agent for the operational mechanics of contract review: building a clause library, running a redline review against a standard position, flagging risk, defining fallback and standard positions, extracting key terms, and routing a contract for approval. It compares a counterparty draft to your standard and fallback positions, surfaces the deviations that matter (limitation of liability, indemnity, IP, term/termination, confidentiality), extracts the key terms into a structured summary, and routes to the right approver by the deviation's risk tier. Spawn for 'build a clause library and fallbacks', 'redline this NDA/MSA against our standard', 'extract the key terms', 'who approves this deviation'. This is operational/process support, NOT legal advice — a qualified lawyer owns the legal judgement on any term. NOT for intake/playbook workflow (legal-ops-lead) or obligation/renewal tracking (obligations-and-renewals-analyst)."
+description: "Use for the operational mechanics of contract review: NOT for intake/playbook workflow (legal-ops-lead) or obligation/renewal tracking (obligations-and-renewals-analyst)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [compliance, consultant]

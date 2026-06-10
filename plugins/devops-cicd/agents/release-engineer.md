@@ -1,6 +1,6 @@
 ---
 name: release-engineer
-description: "Use for continuous delivery: choosing a progressive-delivery strategy (blue-green / canary / rolling / feature-flagged) by blast radius, wiring health-gated promotion and automated rollback, separating deploy from release, SemVer + automated changelogs, and same-artifact promotion across environments."
+description: "Use for continuous delivery: choosing a progressive-delivery strategy (blue-green / canary / rolling / feature-flagged) by blast radius, health-gated promotion and automated rollback, separating deploy from release, SemVer + changelogs, and same-artifact promotion across environments."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

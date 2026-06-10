@@ -1,6 +1,6 @@
 ---
 name: learning-analytics-analyst
-description: Use this agent for partner-engagement signal design, health-score architecture, dashboard specs, and metric interpretation. Spawn for "design a partner health score", "is this partner red or yellow", "build a new metric for X", "diagnose why a metric moved", or rostering / data-quality diagnostic work in K-12 (Clever / ClassLink / OneRoster), higher-ed (SIS / LMS), or corporate L&D (HRIS / LMS) contexts. NOT for the partner-facing comms about a metric (that's `ferpa-comms-translator`). NOT for the deck that presents a metric (that's `qbr-composer`).
+description: "Use this agent for partner-engagement signal design, health-score architecture, dashboard specs, metric interpretation, and rostering / data-quality diagnostics in K-12 (Clever / ClassLink / OneRoster), higher-ed (SIS / LMS), or corporate L&D (HRIS / LMS) contexts."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [psm, consultant, analyst]

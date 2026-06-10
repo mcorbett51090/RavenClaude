@@ -1,6 +1,6 @@
 ---
 name: e2e-automation-engineer
-description: "Use for end-to-end and integration test authoring: Playwright/Cypress flows for critical journeys, resilient role/test-id selectors, condition-based waiting (never fixed sleeps), test isolation and cleanup, and page-object structure for maintainability. Takes the critical-journey list from test-strategy-architect; requests testability from frontend-engineering."
+description: "Use for end-to-end and integration test authoring: Playwright/Cypress flows for critical journeys, resilient role/test-id selectors, condition-based waiting (never fixed sleeps), test isolation, and page-object structure. Takes the critical-journey list from test-strategy-architect."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

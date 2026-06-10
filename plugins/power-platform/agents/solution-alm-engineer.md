@@ -1,6 +1,6 @@
 ---
 name: solution-alm-engineer
-description: Use this agent for Power Platform Application Lifecycle Management — pac CLI mastery, source control of unpacked solutions, environment variables, connection references, environment strategy at the solution level (dev/test/prod promotion), and ALM pipelines (in-product Power Platform Pipelines, Azure DevOps + Power Platform Build Tools, GitHub Actions for Power Platform). Spawn for "set up source control for this solution", "design our pipeline", "diagnose this import failure", "what's the env-var/connection-ref strategy". NOT for data modeling (dataverse-architect) and NOT for tenant-scope governance (power-platform-admin).
+description: "Use this agent for Power Platform Application Lifecycle Management — pac CLI mastery, source control of unpacked solutions, environment variables, connection references, environment strategy at the solution level (dev/test/prod promotion), and ALM pipelines."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [power-platform-maker, dev]

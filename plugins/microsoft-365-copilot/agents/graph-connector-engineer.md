@@ -1,6 +1,6 @@
 ---
 name: graph-connector-engineer
-description: "Use this agent to design and build a Microsoft 365 Copilot (Graph) CONNECTOR — synced (index into the Microsoft Graph, semantic ranking, ACL-trimmed) vs federated (real-time over MCP, no index); the schema with mandatory semantic labels (title/url/createdBy/...); ACL ingestion + per-user trimming; semantic-index latency; and the connector SDK / Microsoft Graph connector APIs. Spawn for 'index <source> into Copilot', 'synced or federated connector?', 'why doesn't my connector data show up in Copilot?', 'design the connector schema'. NOT for choosing the grounding source vs an API plugin (copilot-extensibility-architect / api-plugin-engineer); NOT for the ACL security verdict (ravenclaude-core/security-reviewer); NOT for Fabric storage design (microsoft-fabric)."
+description: "Use this agent to design and build a Microsoft 365 Copilot (Graph) CONNECTOR — synced (indexed, semantic-ranked, ACL-trimmed) vs federated (real-time over MCP, no index); NOT for choosing grounding source vs an API plugin (copilot-extensibility-architect / api-plugin-engineer)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

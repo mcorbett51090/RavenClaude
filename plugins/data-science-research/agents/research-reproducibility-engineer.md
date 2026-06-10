@@ -1,6 +1,6 @@
 ---
 name: research-reproducibility-engineer
-description: "Use this agent to make an analysis REPRODUCIBLE — so someone else (or future-you) can re-run the numbers and get the same answer. It enforces notebook hygiene (top-to-bottom-clean, no hidden out-of-order cell state), pins environments and dependencies (lockfiles, container or env spec), sets and threads random seeds, versions data and artifacts (DVC / hashes / immutable snapshots), tracks experiments (MLflow / params+metrics+artifacts), and converts a run-once notebook into a scripted, re-runnable pipeline. Spawn for 'make this notebook re-runnable', 'pin the environment', 'track these experiments', 'someone else can't reproduce my numbers', 'it works on my machine'. NOT for the EDA itself (exploratory-data-scientist), the modeling (feature-and-modeling-engineer), or production serving/CI-CD (ml-engineering) — it owns the reproducibility spine."
+description: "Use this agent to make an analysis REPRODUCIBLE — so someone else (or future-you) can re-run the numbers and get the same answer."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [data-engineer, analyst, dev]

@@ -1,6 +1,6 @@
 ---
 name: payments-pci-compliance-advisor
-description: "Use for PCI scope minimization (engineering posture): tokenization so the raw PAN never touches your servers (SAQ-A), ruthless scope reduction, SAQ-level architectural input, audit logging of money operations without card data, and securing legitimately-held payment data. Routes the formal attestation + financial regulation to regulatory-compliance/legal and the security verdict to ravenclaude-core/security-reviewer. Not legal advice."
+description: "Use for PCI scope minimization (engineering posture): tokenization so the raw PAN never touches your servers (SAQ-A), ruthless scope reduction, SAQ-level architectural input, audit logging without card data, and securing held payment data. Routes attestation and the security verdict out."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev, consultant]

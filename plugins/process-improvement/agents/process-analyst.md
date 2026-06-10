@@ -1,6 +1,6 @@
 ---
 name: process-analyst
-description: "Use this agent for the green-belt-level current-state work that feeds a process-improvement project: discover and map how a process actually works today (SIPOC, swimlane, value-stream map), plan the data collection that produces a trustworthy baseline, identify waste (the 8 wastes / DOWNTIME), and run the descriptive analysis (Pareto, cycle-time / flow-efficiency). Domain-neutral — support, onboarding, billing, deployment, hiring, claims, fulfillment. Spawn for 'map how this process actually works today', 'build a SIPOC / value-stream map', 'set up a data-collection plan to measure this', 'where is the waste in this workflow?'. It feeds the lean-six-sigma-blackbelt, who owns the full DMAIC arc and the improvement design. NOT for the inferential statistics (that's applied-statistics); NOT for the improvement design or control plan (that's the black belt)."
+description: "Use for green-belt current-state work in a process-improvement project: map a process today (SIPOC, swimlane, value-stream), plan data collection for a baseline, identify waste (8 wastes), and run descriptive analysis (Pareto, cycle-time). Feeds lean-six-sigma-blackbelt. NOT for inferential stats."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [analyst, ops-lead, consultant, dev]

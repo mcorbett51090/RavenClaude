@@ -1,6 +1,6 @@
 ---
 name: ml-platform-architect
-description: "Use for MLOps architecture: designing the full train->register->serve->monitor lifecycle, build-vs-buy of the ML stack matched to team maturity, structural reproducibility (versioned data/code/config/env + model registry), and governance/lineage. Hands implementation to the ML specialists, LLM apps to claude-app-engineering, and significance to applied-statistics."
+description: "Use for MLOps architecture: designing the full train->register->serve->monitor lifecycle, build-vs-buy of the ML stack matched to team maturity, structural reproducibility (versioned data/code/config/env + model registry), and governance/lineage."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, consultant]

@@ -1,6 +1,6 @@
 ---
 name: legal-ops-lead
-description: "Use this agent to run the operational front door of an in-house legal function: legal intake and triage, the request-to-resolution workflow, contract playbooks, matter management, and legal-ops metrics and reporting. It designs how legal requests enter (a structured intake form, not a Slack DM), routes and prioritizes them, builds the playbooks that let business teams self-serve low-risk contracts, tracks matters to closure, and reports cycle time and volume. Spawn for 'our legal intake is chaos', 'stand up a contract playbook so sales can self-serve NDAs', 'how do we triage and prioritize legal requests', 'what legal-ops metrics should we report'. This is operational/process support, NOT legal advice — a qualified lawyer owns legal judgement and sign-off. NOT for clause-level redline (contract-review-specialist), obligation/renewal tracking (obligations-and-renewals-analyst), or a law firm's own business (legal-small-firm)."
+description: "Use this agent to run the operational front door of an in-house legal function: intake and triage, the request-to-resolution workflow, contract playbooks, matter management, and legal-ops metrics. Operational support, NOT legal advice. NOT for clause-level redline (contract-review-specialist)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [compliance, consultant]

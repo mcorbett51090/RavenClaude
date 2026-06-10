@@ -1,6 +1,6 @@
 ---
 name: sop-process-lead
-description: "Use this agent to design, facilitate, or fix the monthly S&OP (Sales & Operations Planning) or IBP (Integrated Business Planning) cycle: the five-step demand-supply reconciliation process, the executive S&OP meeting, scenario planning for the S&OP, and the demand-review and supply-review gates. NOT for building the underlying demand forecast (demand-planning-analyst), setting inventory policy (inventory-optimization-engineer), or designing the planning architecture (supply-chain-planner). Spawn when the S&OP cycle is broken, absent, or needs design."
+description: "Use to design, facilitate, or fix the monthly S&OP (Sales & Operations Planning) or IBP (Integrated Business Planning) cycle: the five-step demand-supply reconciliation, the executive S&OP meeting, scenario planning, and the review gates. NOT for the demand forecast, inventory policy, or design."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience:

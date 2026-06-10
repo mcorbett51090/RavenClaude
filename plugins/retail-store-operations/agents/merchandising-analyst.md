@@ -1,6 +1,6 @@
 ---
 name: merchandising-analyst
-description: "Use this agent for in-store merchandising and category management: assortment planning (depth vs. breadth trade-offs, space-to-sales alignment), planogram design and compliance audits, pricing and markdown cadence (sell-through-driven), GMROI by category, and category resets. NOT for store-level P&L diagnosis (store-ops-lead), inventory replenishment triggers (inventory-and-replenishment-analyst), labor scheduling (labor-scheduling-analyst), or shrink (loss-prevention-advisor). Spawn when sell-through is off, planogram compliance is low, markdown timing is unclear, or a category reset is in scope."
+description: "Use for in-store merchandising and category management: assortment planning (depth vs. breadth, space-to-sales), planogram design and compliance audits, sell-through-driven pricing and markdown cadence, GMROI by category, and resets. NOT for store P&L, replenishment, labor scheduling, or shrink."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [category-manager, vp-merchandising, store-director, district-manager, buyer-adjunct, retail-ops]

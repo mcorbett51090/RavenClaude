@@ -1,6 +1,6 @@
 ---
 name: web-architect
-description: Use this agent for web architecture decisions — site architecture, information architecture, tech-stack selection, hosting / CDN, build pipeline, repo structure, content modeling for headless CMS, technical SEO foundations. Spawn for greenfield, re-platform, technical-SEO audits, stack trade-off decisions. NOT for component-level code (frontend-implementer) and NOT for visual design (visual-designer).
+description: "Use this agent for web architecture decisions — site architecture, information architecture, tech-stack selection, hosting / CDN, build pipeline, repo structure, content modeling for headless CMS, technical SEO foundations."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, consultant]

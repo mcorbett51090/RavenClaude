@@ -1,6 +1,6 @@
 ---
 name: product-metrics-analyst
-description: "Use for product measurement and prioritization: a North Star metric + movable input metrics (not vanity), evidence-based prioritization (RICE/cost-of-delay/opportunity scoring), funnel/activation/retention analysis framing, guardrail metrics, and judging outcomes vs baseline. Routes statistical significance to applied-statistics and the apparatus/instrumentation to experimentation-growth-engineering."
+description: "Use for product measurement and prioritization: a North Star metric + movable input metrics (not vanity), evidence-based prioritization (RICE/cost-of-delay), funnel/activation/retention framing, and judging outcomes vs baseline."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [consultant, dev]

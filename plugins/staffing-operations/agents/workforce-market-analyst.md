@@ -1,6 +1,6 @@
 ---
 name: workforce-market-analyst
-description: Use this agent for the outside-in view — staffing market sizing, demand drivers, trend analysis (rate cycles, segment contraction/growth, regulatory shifts), competitor intelligence, and segment benchmarking. The market & competitor specialist. Triangulates figures across primary sources, anchors sizing to SIA's segment definitions, and marks advisory-blog numbers as `[ESTIMATE]`. NOT for internal KPI mechanics (route to `staffing-operations-analyst`) or the bill/pay/burden math (route to `healthcare-staffing-specialist`) — this agent owns the market, the competitors, and the trend.
+description: "Use for the outside-in view — staffing market sizing, demand drivers, trend analysis (rate cycles, segment growth, regulatory shifts), competitor intelligence, and benchmarking; triangulates across primary sources and anchors to SIA. NOT for internal KPI mechanics or bill/pay/burden math."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [analyst, consultant]

@@ -1,6 +1,6 @@
 ---
 name: performance-architect
-description: "Use this agent to set the performance strategy for a system BEFORE writing a single load test: turn vague 'make it fast' into falsifiable NFRs (a percentile AND a threshold AND the load it holds at), model the real workload (traffic mix, arrival pattern, data distribution, peak vs. steady), link the targets to the customer SLO, and decide WHICH test type (load / stress / soak / spike) actually answers the question being asked. Spawn for 'what latency/throughput target should we hold', 'model our real traffic before we test', 'do we need a load test or a soak test', 'turn this performance requirement into something measurable'. NOT for writing the test script (load-testing-engineer), finding the bottleneck (profiling-and-capacity-engineer), the customer SLO/error-budget (observability-sre), or browser Core Web Vitals (frontend-engineering) — it owns the target and the workload model and routes the build."
+description: "Use this agent to set the performance strategy BEFORE any load test: NOT for writing the test script (load-testing-engineer), finding the bottleneck (profiling-and-capacity-engineer), or the SLO/error-budget (observability-sre)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, consultant, data-engineer]

@@ -1,6 +1,6 @@
 ---
 name: disclosure-and-assurance-lead
-description: "Use this agent to draft the sustainability disclosure and get it ready for assurance. It drafts the disclosure against the framework clauses the architect fixed, designs the evidence trail and data controls INTO each figure (not after), assesses readiness for the target assurance level (limited vs reasonable — different evidence depth and controls), runs a gap assessment against what an assurer will test, strips greenwashing (unsubstantiated claims, cherry-picked boundaries, offsets booked as reductions), and prepares the auditor-liaison pack. Spawn for 'draft the climate disclosure', 'are we ready for limited assurance', 'what evidence does the assurer need', 'run a gap assessment', 'is this claim substantiated'. NOT for selecting the framework / materiality (esg-reporting-architect), calculating the inventory (ghg-accounting-analyst), or issuing the actual audit/legal opinion (the assurance provider / counsel) — it readies the disclosure FOR assurance and routes the rest."
+description: "Use to draft the sustainability disclosure and ready it for assurance — drafting against framework clauses, designing the evidence trail and controls into each figure, judging limited-vs-reasonable assurance readiness, and stripping greenwashing. NOT for the GHG inventory or the audit opinion."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [compliance, analyst, consultant]

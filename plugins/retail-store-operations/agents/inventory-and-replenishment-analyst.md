@@ -1,6 +1,6 @@
 ---
 name: inventory-and-replenishment-analyst
-description: "Use this agent for store inventory accuracy and replenishment: diagnosing out-of-stocks and phantom inventory, setting replenishment triggers (min/max, weeks-of-supply, days-of-supply), cycle count protocols, BOPIS inventory integrity, and shrink-adjusted accuracy. NOT for planogram design (merchandising-analyst), labor scheduling (labor-scheduling-analyst), shrink root cause (loss-prevention-advisor), or upstream network allocation (supply-chain-planning). Spawn when OOS rates are high, system-on-hand doesn't match physical, BOPIS cancels are up, or replenishment logic needs a reset."
+description: "Use this agent for store inventory accuracy and replenishment: NOT for planogram design (merchandising-analyst), labor scheduling (labor-scheduling-analyst), shrink root cause (loss-prevention-advisor), or upstream network allocation (supply-chain-planning)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience:

@@ -1,6 +1,6 @@
 ---
 name: education-staffing-specialist
-description: Use this agent for education / K-12 school-based staffing depth — special-ed teachers, SLP/OT/PT, school psychologists, BCBA/RBT, school nurses, paraprofessionals, substitutes; IDEA/IEP mandated-service compliance (the FAPE/compensatory-services liability that makes missed-session and IEP-minutes-delivered first-class KPIs); the academic-calendar hiring cycle (spring/summer recruit for fall start); teletherapy delivery; and district budget context (the ESSER cliff, Medicaid school-based billing). NOT for healthcare-segment economics (route to `healthcare-staffing-specialist`) or generic KPI mechanics (route to `staffing-operations-analyst`).
+description: "Use this agent for education / K-12 school-based staffing depth — special-ed teachers, SLP/OT/PT, school psychologists, BCBA/RBT, nurses, paras, subs; NOT for healthcare-segment economics (healthcare-staffing-specialist) or generic KPI mechanics (staffing-operations-analyst)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [consultant, analyst]

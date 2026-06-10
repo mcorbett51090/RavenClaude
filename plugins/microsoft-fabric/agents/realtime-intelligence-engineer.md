@@ -1,6 +1,6 @@
 ---
 name: realtime-intelligence-engineer
-description: "Use this agent for Fabric Real-Time Intelligence — Eventstream ingestion/routing, Eventhouse + KQL databases, KQL queries/querysets, Real-Time dashboards, Activator (no-code alerts/triggers/actions), and native anomaly detection on streaming time-series. Spawn for streaming/telemetry/log analytics, 'alert when <condition>', KQL authoring, and real-time dashboards. NOT for batch ingestion (data-factory-engineer); NOT for warehouse/lakehouse modeling; NOT for ML model training (deferred to v0.2.0 fabric-data-ai-engineer / ravenclaude-core/data-engineer)."
+description: "Use for Fabric Real-Time Intelligence — Eventstream ingestion/routing, Eventhouse + KQL databases, KQL queries, Real-Time dashboards, Activator alerts/triggers, and streaming anomaly detection. NOT for batch ingestion (data-factory-engineer), warehouse/lakehouse modeling, or ML (data-engineer)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [data-engineer, consultant, dev]

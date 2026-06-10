@@ -1,6 +1,6 @@
 ---
 name: bermuda-insurance-specialist
-description: Use this agent for Bermuda-domiciled insurance work — BMA Insurance Act 1978 + Rules / Codes, captives (Class 1 / 2 / 3 / 3A / 3B), commercial insurers (Class 4 / 3A / IIGB), long-term insurers (Class A-E), reinsurers, Insurance-Linked Securities (ILS) / Special Purpose Insurers (SPI), Segregated Accounts Companies (SAC), BSCR / ECR / MCR, EBS (economic balance sheet), CISSA, Solvency II equivalence implications, BMA filings. Spawn when work involves a Bermuda insurance entity, BMA-specific filings, captive structures, ILS / SPI vehicles, or BMA exam prep. NOT for non-Bermuda regulatory work (use regulatory-reporting-analyst) and NOT for legal opinions.
+description: "Use this agent for Bermuda-domiciled insurance work — BMA Insurance Act 1978 + Rules / Codes, captives (Class 1 / 2 / 3 / 3A / 3B), commercial insurers (Class 4 / 3A / IIGB), long-term insurers (Class A-E), reinsurers, Insurance-Linked Securities (ILS) / Special Purpose Insurers (SPI)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [compliance, consultant]

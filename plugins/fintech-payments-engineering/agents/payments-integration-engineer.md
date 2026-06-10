@@ -1,6 +1,6 @@
 ---
 name: payments-integration-engineer
-description: "Use for PSP integration: payment intents/charges with idempotency keys on every money operation, webhook signature verification + idempotent out-of-order handling, 3DS/SCA flows, the explicit charge state machine, refunds, and hard-vs-soft decline handling. Posts to the ledger from payments-architect; routes dunning to billing-subscriptions-engineer and outbox/idempotency to backend-engineering."
+description: "Use for PSP integration: payment intents/charges with idempotency keys on every money operation, webhook signature verification + idempotent handling, 3DS/SCA flows, the charge state machine, refunds, and decline handling. Routes the ledger to payments-architect and dunning to billing-subscriptions."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

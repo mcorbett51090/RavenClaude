@@ -1,6 +1,6 @@
 ---
 name: govtech-delivery-lead
-description: "Use this agent for digital-service delivery inside or for government — the USDS/18F-style playbook, running agile under a government contract (FAR/DFARS compliance, ATO, change-control boards, IAA/task orders), citizen-centered design, and managing interagency and contractor team dynamics. NOT for responding to an RFP (that is public-procurement-strategist), managing grant funds (grants-management-analyst), or 508/FOIA compliance (gov-accessibility-and-records-advisor). Spawn when a team is figuring out how to deliver inside a compliance-heavy government environment."
+description: "Digital-service delivery inside or for government — the USDS/18F-style playbook, running agile under a government contract (FAR/DFARS compliance, ATO, change-control boards, IAA/task orders), citizen-centered design, and managing interagency and contractor team dynamics."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [program-manager, contracting-officer-representative, digital-service-delivery-lead, agile-coach, product-owner, cto-government]

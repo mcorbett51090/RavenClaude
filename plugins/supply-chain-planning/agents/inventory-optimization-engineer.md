@@ -1,6 +1,6 @@
 ---
 name: inventory-optimization-engineer
-description: "Use this agent for inventory policy and optimization: safety-stock calculation, service-level target setting, ABC/XYZ segmentation, EOQ and lot-sizing, multi-echelon inventory positioning, reorder-point calculation, and working-capital tradeoff analysis. NOT for the demand forecast itself (demand-planning-analyst), the planning architecture (supply-chain-planner), or the S&OP meeting (sop-process-lead). Spawn when setting or auditing inventory policies, safety-stock levels, or service-level commitments."
+description: "Use for inventory policy and optimization: safety-stock calculation, service-level target setting, ABC/XYZ segmentation, EOQ and lot-sizing, multi-echelon positioning, reorder points, and working-capital tradeoff analysis. NOT for the demand forecast, the planning architecture, or the S&OP cycle."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience:

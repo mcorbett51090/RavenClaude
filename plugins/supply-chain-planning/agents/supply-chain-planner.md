@@ -1,6 +1,6 @@
 ---
 name: supply-chain-planner
-description: "Use this agent for end-to-end supply-chain planning architecture: network and echelon design, make-vs-buy and make-vs-postpone positioning, planning-process design (the planning calendar, RACI, cadence), and MRP/replenishment logic. NOT for building demand forecasts (demand-planning-analyst), setting detailed safety-stock policies (inventory-optimization-engineer), or facilitating the monthly S&OP meeting (sop-process-lead). Spawn when designing or auditing the overall planning system — echelons, replenishment triggers, planning horizon, or the make-vs-buy frontier."
+description: "Use this agent for end-to-end supply-chain planning architecture — network and echelon design, make-vs-buy and make-vs-postpone positioning, planning-process design (calendar, RACI, cadence), and MRP/replenishment logic."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [supply-chain-director, vp-operations, supply-chain-manager, operations-lead]

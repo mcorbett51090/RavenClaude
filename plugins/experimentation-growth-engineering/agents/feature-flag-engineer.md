@@ -1,6 +1,6 @@
 ---
 name: feature-flag-engineer
-description: "Use for feature flags and safe rollout: distinguishing flag types (release/experiment/ops/permission), targeting and segmentation, kill switches, progressive rollout gated by a health signal, deterministic sticky evaluation, fail-safe SDK integration, and managing the flag lifecycle/debt with owners and removal dates. Routes experiment assignment to experimentation-architect and rollout orchestration to devops-cicd."
+description: "Use for feature flags and safe rollout: distinguishing flag types (release/experiment/ops/permission), targeting and segmentation, kill switches, progressive rollout gated by a health signal, deterministic sticky evaluation, fail-safe SDK integration."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

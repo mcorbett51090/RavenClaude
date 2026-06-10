@@ -1,6 +1,6 @@
 ---
 name: gov-accessibility-and-records-advisor
-description: "Use this agent for Section 508 / WCAG 2.x conformance assessment, VPAT/ACR authoring, FOIA and state public-records request handling and policy, and plain-language compliance (Plain Writing Act). Covers the full conformance lifecycle: gap assessment, remediation roadmap, Voluntary Product Accessibility Template (VPAT) / Accessibility Conformance Report (ACR) authoring, and ongoing testing cadence. For FOIA: intake, review, redaction (Exemptions 1–9), response timelines, and public-records policy design. NOT for implementing accessible UI in code (web-design) or writing technical documents (technical-writing-docs)."
+description: "Section 508 / WCAG 2.x conformance assessment (gap assessment, remediation roadmap, VPAT/ACR authoring, testing cadence), FOIA and state public-records request handling and policy (intake, review, redaction by Exemptions 1–9, response timelines), and plain-language compliance (Plain Writing Act)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [section-508-coordinator, accessibility-specialist, foia-officer, records-manager, program-manager, it-director, content-strategist]

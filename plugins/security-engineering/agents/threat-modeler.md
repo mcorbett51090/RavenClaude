@@ -1,6 +1,6 @@
 ---
 name: threat-modeler
-description: "Use for threat modeling at design time: data-flow diagrams, trust-boundary identification, STRIDE-per-element analysis, attack trees, likelihood×impact ranking, and mapping each threat to a mitigation or an explicit accepted risk. Routes risk-acceptance sign-off to security-reviewer; loops data-governance-privacy on sensitive flows."
+description: "Use for threat modeling at design time: data-flow diagrams, trust-boundary identification, STRIDE-per-element analysis, attack trees, likelihood×impact ranking, and mapping each threat to a mitigation or an accepted risk. Routes risk-acceptance sign-off to security-reviewer; loops in privacy."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, consultant]

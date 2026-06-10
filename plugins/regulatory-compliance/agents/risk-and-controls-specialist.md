@@ -1,6 +1,6 @@
 ---
 name: risk-and-controls-specialist
-description: Use this agent for enterprise risk management — risk-framework design, three lines of defense, risk-appetite statements, risk registers, KRI design, control self-assessment, ORM / ERM. Spawn for risk-register builds and refreshes, control-mapping, KRI tuning, three-lines-of-defense assessments, risk-appetite-statement workshops. NOT for AML-specific risk (aml-kyc-analyst owns that) and NOT for legal opinions.
+description: "Use this agent for enterprise risk management — risk-framework design, three lines of defense, risk-appetite statements, risk registers, KRI design, control self-assessment, ORM / ERM. NOT for AML-specific risk (aml-kyc-analyst owns that) and NOT for legal opinions."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [compliance]

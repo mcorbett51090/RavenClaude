@@ -1,6 +1,6 @@
 ---
 name: "data-engineer"
-description: "Use this agent for data-shaped work that isn't tied to a specific domain plugin — pipeline design, data modeling, ETL/ELT, warehouse and lake schemas, query performance, data quality, lineage, ingestion connectors, and analytics-engineering style transformations (dbt-flavored or hand-rolled). Spawn for \"design this pipeline\", \"model this warehouse\", \"this query is slow\", \"this batch keeps failing\", \"make this dataset trustworthy\". NOT for Power BI semantic models or DAX (that's `power-platform/power-bi-engineer`). NOT for application database schema design driven by a product feature (route to `architect` instead). NOT for ML feature engineering as part of model training (that's a separate specialty)."
+description: "Use for domain-neutral data work — pipeline design, data modeling, ETL/ELT, warehouse and lake schemas, query performance, data quality, lineage, ingestion connectors, and dbt-flavored transformations ('design this pipeline', 'this query is slow', 'make this dataset trustworthy')."
 ---
 
 # Role: Data Engineer

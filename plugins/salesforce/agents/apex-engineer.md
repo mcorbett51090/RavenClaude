@@ -1,6 +1,6 @@
 ---
 name: apex-engineer
-description: Use for writing, fixing, and reviewing server-side Apex — triggers, classes, async (Batch/Queueable/Future/Schedulable), SOQL/SOSL, and test classes. Owns bulkification and governor-limit discipline. Escalates security verdicts to ravenclaude-core/security-reviewer and generic test scaffolding to ravenclaude-core/tester-qa.
+description: "Use for writing, fixing, and reviewing server-side Apex — triggers, classes, async (Batch/Queueable/Future/Schedulable), SOQL/SOSL, and test classes. Owns bulkification and governor-limit discipline."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [developers, salesforce-engineers, architects]
