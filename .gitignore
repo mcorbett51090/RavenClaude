@@ -6,6 +6,12 @@
 # Posture-change audit log (per-project, append-only — P0.4 event substrate)
 .ravenclaude/posture-events.jsonl
 
+# Local/runtime config — not part of the committed marketplace (rc-deep-research
+# substrate baseline arm + local self-heal setup notes). Templates live in
+# plugins/ravenclaude-core/templates/; the live per-repo copies stay local.
+.ravenclaude/run-config.json
+.ravenclaude/self-heal-setup.md
+
 # Local dashboard server logs
 *.log
 
