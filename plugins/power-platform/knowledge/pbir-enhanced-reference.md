@@ -1580,9 +1580,11 @@ Apply a fixed color to all bars / data points:
 
 ### 9.7 Conditional formatting — color from measure
 
+Use the **real object name for the visual** (see the callout below — `labels` for a card's value, a chart's data labels, etc.; **not** `calloutValue`, which exists only on `gauge`):
+
 ```json
 "objects": {
-  "calloutValue": [
+  "labels": [
     {
       "properties": {
         "color": {
@@ -1604,6 +1606,27 @@ Apply a fixed color to all bars / data points:
 ```
 
 The measure `KPI Color Measure` should return a hex string like `"#D64550"` or `"#118DFF"`.
+
+> ### ⚠️ Callout — Card text color: the `calloutValue` trap (Fabric/PBIR, verified 2026-06-10)
+>
+> **`calloutValue` is NOT a property of the legacy `card` visual — it belongs to `gauge`.** A `card`'s text-color objects are **`labels`** (the big callout number) and **`categoryLabels`** (plural — the small label below); the color property inside each is **`color`**, and legacy-card objects take **no `$id`**. `[verified 2026-06-10]` against Microsoft's official [`reportThemeSchema-2.137.json`](https://github.com/microsoft/powerbi-desktop-samples/blob/main/Report%20Theme%20JSON%20Schema/reportThemeSchema-2.137.json), where `calloutValue` appears **only** under `gauge`.
+>
+> ```json
+> "objects": {
+>   "labels":         [{ "properties": { "color": { "expr": { "Literal": { "Value": "'#EDF2F7'" } } } } }],
+>   "categoryLabels": [{ "properties": { "color": { "expr": { "Literal": { "Value": "'#EDF2F7'" } } } } }]
+> }
+> ```
+>
+> **Why a wrong object name fails SILENTLY (no error, just the default grey):** the PBIR `objects` block is an **open schema** — any key is syntactically accepted, then matched against the visual's registered capabilities **at render time and discarded if it doesn't match**. So `objects.calloutValue` on a `card` is dropped with no validation error. This is also exactly why **`visualContainerObjects.background` applies but `objects.<text>` does not** on the same visual: `background` is **container-layer** (always rendered); `labels`/`categoryLabels` are **visual-layer** (rendered only if the key is real for that visual type). The same rule governs the **theme** — `visualStyles.card.*` must use `labels`/`categoryLabels`, never `calloutValue`, or the theme's text color is silently ignored while its `background` still applies.
+>
+> **Theme equivalent:** `visualStyles.card.*.labels[].color` + `categoryLabels[].color` (or the theme structural colors: `firstLevelElements` = card value, `fourthLevelElements` = category label — [Microsoft Learn: create custom report themes](https://learn.microsoft.com/power-bi/create-reports/report-themes-create-custom)).
+>
+> **`cardVisual` (the NEW card) is different and not interchangeable:** its role is **`Data`** (not `Values`), every object item requires **`"$id": "default"`**, and its color property is **`fontColor`** (not `color`). Hand-switching `card`→`cardVisual` without migrating the role + injecting `$id` renders **blank** (the engine queries the `Data` role and finds no projection). Let Power BI Desktop do the conversion via the visual picker.
+>
+> **Ground-truth capture (the one residual `[verify-at-use]`):** whether `color` accepts a bare `{ "solid": { "color": "#hex" } }` vs the `{ "expr": { "Literal": … } }` wrapper in the `objects` context is not decidable from schema alone. Settle it in ~30s: format the card in **Power BI Desktop**, **Save** the PBIP, and read the serialized `visual.json` — Desktop writes the canonical form. (This also routes around the Fabric `getDefinition → parts:[]` limitation, which is a service-side API gap, not a problem with your JSON.)
+>
+> **Production lesson:** BMA-CSP-Risk-Scoring-V2 (Fabric DEV), 2026-06-10 — six failed attempts all used `calloutValue` / `categoryLabel` (singular) on a legacy `card`; the working fix was `labels` / `categoryLabels` (plural). The `calloutValue` example in this section's history is what caused it — corrected here.
 
 ### 9.8 Gradient conditional formatting (table column)
 
