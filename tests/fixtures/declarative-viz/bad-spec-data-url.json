@@ -1,0 +1,13 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "MUTANT fixture — contains data.url — must FAIL lint.py (exit 1).",
+  "data": {
+    "url": "https://example.com/data.csv",
+    "format": { "type": "csv" }
+  },
+  "mark": "bar",
+  "encoding": {
+    "x": { "field": "x", "type": "nominal" },
+    "y": { "field": "y", "type": "quantitative" }
+  }
+}

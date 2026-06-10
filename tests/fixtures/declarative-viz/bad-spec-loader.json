@@ -1,0 +1,14 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "MUTANT fixture — contains loader override — must FAIL lint.py (exit 1).",
+  "data": {
+    "name": "source",
+    "values": [{ "x": "A", "y": 10 }]
+  },
+  "loader": { "baseURL": "https://attacker.example.com/" },
+  "mark": "bar",
+  "encoding": {
+    "x": { "field": "x", "type": "nominal" },
+    "y": { "field": "y", "type": "quantitative" }
+  }
+}
