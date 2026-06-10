@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40" width="120" height="40">
+  <!-- Bad fixture — <script> element. Must fail lint.py (exit 1, no-script). -->
+  <script>alert('xss')</script>
+  <rect width="120" height="40" fill="#2563eb"/>
+</svg>

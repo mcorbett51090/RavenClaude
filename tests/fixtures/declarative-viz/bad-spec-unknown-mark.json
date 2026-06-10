@@ -1,0 +1,18 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Bad fixture — unknown mark type 'barchart'. Must fail lint.py (exit 1, spec-hygiene-mark).",
+  "data": {
+    "name": "source",
+    "values": [
+      { "x": "A", "y": 10 },
+      { "x": "B", "y": 20 }
+    ]
+  },
+  "mark": "barchart",
+  "encoding": {
+    "x": { "field": "x", "type": "nominal" },
+    "y": { "field": "y", "type": "quantitative" }
+  },
+  "width": "container",
+  "height": 200
+}

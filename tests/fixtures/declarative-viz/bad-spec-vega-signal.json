@@ -1,0 +1,18 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Fixture with a Vega signal key. Must warn (exit 0 without --strict, exit 1 with --strict).",
+  "data": {
+    "name": "source",
+    "values": [
+      { "x": "A", "y": 10 },
+      { "x": "B", "y": 20 }
+    ]
+  },
+  "mark": "bar",
+  "encoding": {
+    "x": { "field": "x", "type": "nominal" },
+    "y": { "field": "y", "type": "quantitative" }
+  },
+  "width": { "signal": "containerSize()[0]" },
+  "height": 200
+}

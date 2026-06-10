@@ -1,8 +1,8 @@
 {
   "name": "ravenclaude-core",
   "displayName": "RavenClaude Core",
-  "description": "Domain-neutral Team Lead + specialist-agents pattern for Claude Code: 14 specialists, 41 skills, a dispatch playbook, format/lint/test gates, hooks, rules, and templates. Includes the Capability Grounding Protocol (environment + decision-tree priors, alternate-methods enumeration, honest blocked-reporting), the Structured Output Protocol for handoffs, a Researcher meta-skill, a comfort-posture dashboard that writes Claude Code permission rules per layer, an opt-in command-review tribunal (the Thing), a WebFetch return-envelope sanitizer (webfetch-hardening + sanitize-webfetch-body.py) that strips injection-shaped blocks from fetched bodies, a sanctioned escape hatch (branch-archive + archive-branch.sh) for retiring stale branches without losing work, brand-extraction (homepage → brand kit: every logo variant + a design-token schema for on-brand HTML reports), and declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard.",
-  "version": "0.152.0",
+  "description": "Domain-neutral Team Lead + specialist-agents pattern for Claude Code: 15 specialists, 42 skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage → brand kit), and declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard.",
+  "version": "0.153.1",
   "author": {
     "name": "Matt Corbett"
   },

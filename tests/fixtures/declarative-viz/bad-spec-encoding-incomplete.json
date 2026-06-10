@@ -1,0 +1,17 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Bad fixture — bar mark with no positional channel in encoding. Must fail lint.py (exit 1, encoding-completeness).",
+  "data": {
+    "name": "source",
+    "values": [
+      { "category": "A", "measure": 10 },
+      { "category": "B", "measure": 20 }
+    ]
+  },
+  "mark": "bar",
+  "encoding": {
+    "color": { "field": "category", "type": "nominal" }
+  },
+  "width": "container",
+  "height": 200
+}

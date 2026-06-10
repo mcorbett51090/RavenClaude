@@ -161,14 +161,80 @@ Primary sources: [https://deneb-viz.github.io/](https://deneb-viz.github.io/) (r
 
 ---
 
+## Deneb spec linting and security review (delegation to ravenclaude-core)
+
+When authoring or reviewing a Deneb (Vega-Lite / Vega) spec for a Power BI report, the
+`power-bi-engineer` agent **must** route the spec through the declarative-visualization
+linter (Gate 101) and, for expression-bearing specs, the `viz-spec-reviewer` agent in
+`ravenclaude-core`. These are domain-neutral tools — do not build a parallel review in
+this plugin.
+
+### Mandatory lint pass (Gate 101)
+
+Before embedding any Deneb spec in a Power BI report:
+
+```bash
+python3 <marketplace>/plugins/ravenclaude-core/skills/declarative-visualization/lint.py <spec.json>
+```
+
+A non-zero exit blocks delivery. The linter enforces:
+- No `data.url` (remote data fetch) — **Deneb specs must use `"data": {"name": "dataset"}`** (Power BI provides the dataset via the `name` binding; a `url` would bypass Power BI's data gateway entirely).
+- No loader overrides that open a remote channel.
+- No remote `$schema` from an attacker-controlled host.
+- No transform.lookup against a remote URL.
+- No `<script>` / `on*` / `<foreignObject>` in SVG specs.
+
+For Vega specs (not Vega-Lite) that use `signal`, `expr`, or `calculate` expressions,
+also run with `--strict`:
+
+```bash
+python3 <marketplace>/plugins/ravenclaude-core/skills/declarative-visualization/lint.py --strict <spec.json>
+```
+
+A `--strict` failure triggers a mandatory review (see below).
+
+### SVG-in-DAX: mandatory SVG lint pass (Gate 103)
+
+Any SVG image constructed for use with the Power BI Image visual must also pass:
+
+```bash
+python3 <marketplace>/plugins/ravenclaude-core/skills/svg-report-lint/lint.py <image.svg>
+```
+
+The SVG linter checks geometry (viewBox, aspect ratio, minimum font size) and security
+(`<script>`, `on*` handlers, `<foreignObject>`, remote `href`/`xlink:href`).
+
+### When to dispatch viz-spec-reviewer (ravenclaude-core)
+
+Route to `ravenclaude-core/viz-spec-reviewer` for a full security review when:
+- The Deneb spec is a **Vega** (not Vega-Lite) spec and uses `signal`, `expr`, or `calculate`.
+- The spec will be embedded in a **shared / multi-tenant** report surface.
+- The linter exits 0 with warnings (advisory flags that require human judgment).
+- You are adopting a Deneb spec written by a third party.
+
+The reviewer emits a structured verdict (`LGTM`, `NEEDS-CHANGES`, or `DENY`). A `DENY`
+means the spec must not ship until all BLOCKERs are resolved.
+
+### Why domain-neutral tooling, not Power Platform-specific
+
+Vega-Lite / Vega / SVG are grammar-neutral — the same security surface exists whether a
+spec renders in a Power BI report, a web dashboard, or a Tableau extension. Per the
+`ravenclaude-core` house rule (domain plugins extend core via skills and knowledge; they
+do not fork domain-neutral review agents), the linter and reviewer live in core and
+`power-bi-engineer` delegates to them.
+
+---
+
 ## See also
 
 - [`pbir-enhanced-reference.md`](pbir-enhanced-reference.md) — visual.json structure for authoring PBIR Enhanced reports programmatically
 - [`../best-practices/bi-measures-not-calculated-columns.md`](../best-practices/bi-measures-not-calculated-columns.md) — keep aggregation logic in measures, not calculated columns, before passing data to any visual
 - [`../agents/power-bi-engineer.md`](../agents/power-bi-engineer.md) — the agent that owns visual and semantic model decisions
+- [`../../ravenclaude-core/knowledge/design-first-report-workflow.md`](../../ravenclaude-core/knowledge/design-first-report-workflow.md) — the end-to-end workflow: design → spec → lint → review → deliver → verify
+- [`../../ravenclaude-core/agents/viz-spec-reviewer.md`](../../ravenclaude-core/agents/viz-spec-reviewer.md) — the agent to dispatch for Vega signal/expression review
 - Deneb documentation: [https://deneb-viz.github.io/](https://deneb-viz.github.io/)
 - Deneb GitHub: [https://github.com/deneb-viz/deneb](https://github.com/deneb-viz/deneb)
 
 ---
 
-_Last reviewed: 2026-06-03 by `claude`_
+_Last reviewed: 2026-06-10 by `claude`_
