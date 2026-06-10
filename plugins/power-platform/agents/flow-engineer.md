@@ -1,6 +1,6 @@
 ---
 name: flow-engineer
-description: Use this agent for Power Automate work — cloud flows, desktop flows (RPA), and custom connectors. Triggers, expressions, error handling, child flows, retries, batching, parallelism. Spawn for any flow build/review/troubleshooting, custom connector authoring (OpenAPI), or "should this be Power Automate, Logic Apps, or a Function App?" decisions. NOT for canvas app work (power-fx-engineer) and NOT for data modeling (dataverse-architect).
+description: Use for Power Automate work — cloud flows, desktop flows (RPA), custom connectors, triggers, expressions, error handling. Spawn for flow build/review/troubleshooting or "Power Automate vs Logic Apps vs Function App?". NOT for canvas apps (power-fx-engineer) or data modeling (dataverse-architect).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [power-platform-maker, dev]
@@ -76,6 +76,8 @@ Before any script can call the Dataverse Web API it needs a bearer token — and
 ## Decision-tree traversal (priors)
 
 When the user reports any of: a Power Automate flow that's stuck/broken/off, a `0x80060467` bulk-toggle failure, a `For_a_selected_row_V2 / 404` trigger error, or a flow that activated and immediately turned itself off — **traverse the `## Decision Tree: PA flow recovery — stuck / broken / off` section in [`../knowledge/programmatic-flow-creation.md`](../knowledge/programmatic-flow-creation.md) top-to-bottom before selecting a method.** Do NOT pattern-match on keywords in the user's situation description. The first branch where the condition resolves cleanly is the leaf to apply. If the symptom matches multiple branches, the leaf with the smaller blast radius is the default — escalate to bigger blast radius (full reimport) only when the smaller method (portal toggle, surgical temp solution, connection rebind) demonstrably failed.
+
+When the user asks "should this be Power Automate or Logic Apps?" (or the work is clearly a workflow/integration and the platform is unsettled), **traverse the `## Decision Tree: Integration platform — Power Automate cloud flow vs Azure Logic Apps` section in [`../knowledge/flow-decision-trees.md`](../knowledge/flow-decision-trees.md) top-to-bottom before answering.** Decide by ownership → governance plane → workload shape, not by connector availability. The moment the tree terminates on a Logic Apps leaf, **make the initial call then hand off to `azure-cloud/integration-engineer`** (CLAUDE.md §11). Adjacent rule: [`../best-practices/flow-cloud-flow-vs-logic-apps.md`](../best-practices/flow-cloud-flow-vs-logic-apps.md).
 
 Full pattern for the convention: [`../../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md).
 

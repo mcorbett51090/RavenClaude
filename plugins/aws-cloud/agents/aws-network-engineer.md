@@ -1,6 +1,6 @@
 ---
 name: aws-network-engineer
-description: "Use for AWS networking: VPC/subnet design (private by default), tight referential security groups (NACLs as backup), PrivateLink/VPC endpoints for private service access, Transit Gateway hub-and-spoke over peering mesh, NAT/egress control, CIDR planning, and Route 53. Routes exposure verdicts to security-engineering and IaC to terraform-iac."
+description: "Use for AWS networking: VPC/subnet design (private by default), tight security groups (NACLs as backup), PrivateLink/VPC endpoints, Transit Gateway over peering mesh, NAT/egress control, CIDR planning, Route 53. Exposure verdicts → security-engineering; IaC → terraform-iac."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

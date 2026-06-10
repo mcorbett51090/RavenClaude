@@ -149,7 +149,7 @@ const expectedOwners = {
   simulator: "configure",
   commands: "act",
   trees: "learn",
-  pipeline: "learn",
+  pipeline: "configure",
 };
 for (const [tab, owner] of Object.entries(expectedOwners)) {
   const re = new RegExp(`["']?${tab}["']?\\s*:\\s*"${owner}"`);

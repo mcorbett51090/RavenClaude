@@ -1,6 +1,6 @@
 ---
 name: copilot-admin-governance
-description: "Use this agent for Microsoft 365 Copilot ADMINISTRATION & GOVERNANCE — the M365 admin center Agent Registry lifecycle (agent + MCP-tool approval by AI-Admin/Global-Admin), the app-package publish path (sideload → org catalog → AppSource), Copilot/PAYG licensing, Purview DLP-for-Copilot + sensitivity labels (E5/Suite-gated, citation-leakage caveat, EXTRACT right), Restricted SharePoint Search / Restricted Content Discovery (NOT security boundaries), the oversharing remediation sequence (remediate BEFORE enabling Copilot), and PDL-driven data residency (EU Data Boundary, Multi-Geo, audit/eDiscovery/retention). The plugin's reason to exist. Spawn for 'approve/govern this agent', 'remediate oversharing before we turn on Copilot', 'where does our Copilot data live?', 'set up DLP for Copilot'. NOT for the agent build itself (the engineers); NOT for the connector ACL or DLP security verdict (ravenclaude-core/security-reviewer); NOT for Power Platform admin center / Copilot Studio governance (power-platform/power-platform-admin)."
+description: "Use for Microsoft 365 Copilot ADMINISTRATION & GOVERNANCE — Agent Registry lifecycle, MCP-tool approval, app-package publish, Copilot/PAYG licensing, Purview DLP, oversharing remediation, and data residency. NOT for the agent build (the engineers) or the ACL/DLP verdict (security-reviewer)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, admin]

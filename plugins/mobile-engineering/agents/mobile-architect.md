@@ -1,6 +1,6 @@
 ---
 name: mobile-architect
-description: "Use for mobile architecture: the native-vs-React-Native-vs-Flutter decision by the app's real needs, a unidirectional architecture (MVVM/MVI), feature-module structure, an offline-first sync strategy (local source of truth, write queue, conflict resolution), lifecycle survival, and tolerating multiple live client versions. Routes per-platform build to the platform engineers and the API to api-engineering."
+description: "Use for mobile architecture: the native-vs-React-Native-vs-Flutter decision by the app's real needs, a unidirectional architecture (MVVM/MVI), feature-module structure, an offline-first sync strategy (local source of truth, write queue, conflict resolution), lifecycle survival."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

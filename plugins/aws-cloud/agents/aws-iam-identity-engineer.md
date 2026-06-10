@@ -1,6 +1,6 @@
 ---
 name: aws-iam-identity-engineer
-description: "Use for AWS identity & access: least-privilege IAM policies, roles and federation (IRSA, OIDC) over long-lived keys, permission boundaries + SCPs as ceilings, Identity Center (SSO) for humans, and conditioned cross-account access. Routes the security verdict to security-engineering; coordinates IRSA with cloud-native-kubernetes and CI OIDC with devops-cicd."
+description: "Use for AWS identity & access: least-privilege IAM policies, roles and federation (IRSA, OIDC) over long-lived keys, permission boundaries + SCPs as ceilings, Identity Center (SSO), and cross-account access. Routes the security verdict to security-engineering."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev, consultant]

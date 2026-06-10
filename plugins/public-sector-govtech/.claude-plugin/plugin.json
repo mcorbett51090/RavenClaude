@@ -1,0 +1,28 @@
+{
+  "name": "public-sector-govtech",
+  "version": "0.1.1",
+  "description": "Government and civic-tech delivery specialist team — 4 agents covering digital-service delivery (USDS/18F-style agile in a compliance context), public procurement (RFP/RFI response and structuring for SLED/federal), grants management (lifecycle, restricted-fund tracking, Uniform Guidance/single audit), and Section 508/WCAG accessibility plus FOIA/public-records. Ships 3 skills (public-procurement-and-rfp, grants-management, accessibility-508-and-records), 3 commands, 2 templates, a knowledge bank with bid-no-bid and FedRAMP decision trees, 6 best-practices, and an advisory hook flagging govtech anti-patterns. Inherits ravenclaude-core protocols (Grounding, Structured Output, Cited-Adjudicator).",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "government",
+    "govtech",
+    "public-sector",
+    "procurement",
+    "rfp",
+    "grants",
+    "section-508",
+    "wcag",
+    "foia",
+    "fedramp",
+    "stateramp",
+    "citizen-services",
+    "plain-language"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

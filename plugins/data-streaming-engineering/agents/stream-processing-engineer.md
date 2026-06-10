@@ -1,6 +1,6 @@
 ---
 name: stream-processing-engineer
-description: "Use for stream processing (Flink/Kafka Streams): event-time vs processing-time, windowing (tumbling/sliding/session) with watermarks, explicit late-data handling, checkpointed and TTL-bounded state, stream-stream and stream-table joins, and backpressure/consumer-lag management. Routes the feeding topics to kafka-pipeline-engineer and lag SLOs to observability-sre."
+description: "Use for stream processing (Flink/Kafka Streams): event-time vs processing-time, windowing (tumbling/sliding/session) with watermarks, explicit late-data handling, checkpointed and TTL-bounded state, stream-stream and stream-table joins, and backpressure/consumer-lag management."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

@@ -1,6 +1,6 @@
 ---
 name: scrum-master
-description: Use this agent for the agile track — product backlog shaping, sprint planning, the Scrum ceremonies (planning / daily / review / retro), velocity + capacity, impediment removal, and Kanban WIP/flow when continuous-flow fits better than sprints. The agile-track lead and servant-leader. Spawn for "plan the sprint", "facilitate the retro", "our velocity is erratic", "should this be Scrum or Kanban?". Do NOT use for predictive baselines/earned-value (delivery-lead), risk-register depth (risk-and-raid-analyst), or exec comms (stakeholder-comms-lead).
+description: Use this agent for the agile track — backlog shaping, sprint planning, the Scrum ceremonies, velocity + capacity, impediment removal, and Kanban WIP/flow; also answers 'Scrum or Kanban?'. Do NOT use for predictive baselines/earned-value (delivery-lead) or risk-register depth (risk-and-raid-analyst).
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
 audience: [psm, dev, consultant]

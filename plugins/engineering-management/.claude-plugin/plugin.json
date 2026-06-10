@@ -1,0 +1,24 @@
+{
+  "name": "engineering-management",
+  "version": "0.1.0",
+  "description": "Engineering Management specialist team — 4 agents (engineering-manager-lead, people-and-growth-manager, delivery-and-execution-manager, technical-health-manager), 5 skills, 5 commands, 4 templates, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. The craft of leading engineers: structured 1:1s, growth frameworks and calibrated performance reviews, hiring loops, team-health signals, and tech-debt-vs-roadmap trade-offs — with DORA used as a health signal, never a stack-rank weapon. Domain-neutral; deepens (does not replace) people-operations-hr and project-management. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "engineering-management",
+    "eng-leadership",
+    "one-on-ones",
+    "performance-review",
+    "career-growth",
+    "hiring-loop",
+    "team-health",
+    "dora-metrics",
+    "tech-debt"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

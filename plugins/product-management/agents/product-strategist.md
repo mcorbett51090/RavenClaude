@@ -1,6 +1,6 @@
 ---
 name: product-strategist
-description: "Use for product strategy: the strategy stack (vision -> strategy -> objectives -> bets), positioning against the real alternative, opportunity sizing, build-vs-buy-vs-partner, and an outcome-oriented roadmap of bets with confidence levels. Owns the what/why; routes delivery dates to project-management, discovery to product-discovery-lead, and metrics to product-metrics-analyst."
+description: "Use for product strategy: the strategy stack (vision -> strategy -> objectives -> bets), positioning against the real alternative, opportunity sizing, build-vs-buy-vs-partner, and an outcome-oriented roadmap. Owns the what/why; routes delivery to project-management, discovery to discovery-lead."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [consultant, dev]

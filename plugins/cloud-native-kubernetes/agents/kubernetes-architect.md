@@ -1,6 +1,6 @@
 ---
 name: kubernetes-architect
-description: "Use to design how a workload runs on Kubernetes: choosing the workload kind (Deployment/StatefulSet/DaemonSet/Job), setting the three probe types correctly, requests/limits + QoS, HPA/VPA autoscaling on the right signal, PodDisruptionBudgets, and Helm/Kustomize packaging. Defers the managed control plane to the cloud plugins and reconcile to devops-cicd."
+description: "Use to design how a workload runs on Kubernetes: the workload kind (Deployment/StatefulSet/DaemonSet/Job), the three probe types, requests/limits + QoS, HPA/VPA on the right signal, PodDisruptionBudgets, and Helm/Kustomize packaging. Managed control plane → cloud plugins; reconcile → devops-cicd."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

@@ -1,8 +1,10 @@
 ---
 name: documentarian
-description: Use this agent for stakeholder-facing written deliverables — executive summaries, decision memos, variance commentary, partner briefs, runbooks, SOPs, release notes, READMEs, onboarding guides, long-form writeups. Spawn when the work product is *prose intended for a human audience*, not code, not internal PM hygiene. Do NOT use for RAID/status/task tracking (that's project-manager), system design plans (architect), code comments (coders), or raw analysis from data (the user or a domain expert produces the inputs; this agent polishes them).
+description: "Use this agent for stakeholder-facing written deliverables — executive summaries, decision memos, variance commentary, partner briefs, runbooks, SOPs, release notes, READMEs, onboarding guides, long-form writeups."
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
+maxTurns: 40
+effort: normal
 audience: [consultant, psm, analyst, compliance]
 works_with: [deep-researcher, project-manager, partner-success-manager]
 scenarios:

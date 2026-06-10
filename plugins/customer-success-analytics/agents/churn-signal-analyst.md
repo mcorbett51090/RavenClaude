@@ -1,6 +1,6 @@
 ---
 name: churn-signal-analyst
-description: "Use this agent to identify and validate churn-LEADING indicators and turn them into transparent, tunable rule thresholds. It distinguishes leading from lagging signals (usage-trend slope, health-score delta, renewal-proximity × engagement, support-volume / P1-P2 / sentiment spikes, champion / sponsor silence), sets the threshold values, tunes them against actual past churn, and designs how each Red account shows WHY (explainability). Spawn for 'which of these signals actually predict churn vs. just describe it', 'what thresholds make an account Red', 'why did this account flip to Red'. NOT for building the data model or the warehouse (that is cs-analytics-architect and data-platform)."
+description: "Use to identify and validate churn-LEADING indicators and turn them into transparent, tunable rule thresholds. NOT for building the data model or warehouse (cs-analytics-architect and data-platform)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [cs-leader, cs-ops, revops, data-analyst]

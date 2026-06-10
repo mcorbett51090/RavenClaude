@@ -70,10 +70,14 @@ case "$mode" in
     # (e) Signal to downstream hooks (PR B: per-seat cap raise) that we are running under Copilot.
     export THING_HOST=copilot
     # (a) Capture stderr separately so the real hook's deny reason is not swallowed.
-    err_file="$(mktemp 2>/dev/null || echo "/tmp/rc-adapter-err.$$")"
+    # Fall back to /dev/null (NOT a PID-predictable /tmp path) if mktemp fails — a
+    # predictable /tmp/rc-adapter-err.$$ is a symlink-attack target on shared hosts.
+    # On the /dev/null fallback the diagnostic stderr is lost (reason degrades to the
+    # generic deny), but the structured deny still lands in hook-events.jsonl.
+    err_file="$(mktemp 2>/dev/null || echo /dev/null)"
     out="$(printf '%s' "$claude_stdin" | THING_SEAT_ACTIVE="${THING_SEAT_ACTIVE:-}" bash "$real" "$@" 2>"$err_file")"; rc=$?
     hook_stderr="$(cat "$err_file" 2>/dev/null)"
-    rm -f "$err_file" 2>/dev/null
+    [ "$err_file" = /dev/null ] || rm -f "$err_file" 2>/dev/null
     if [ "$rc" -eq 2 ]; then
       # Scrub secrets first, then assemble the reason. The 512-byte cap is applied
       # to the FINAL reason (body + JSONL pointer) so the emitted field is always

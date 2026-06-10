@@ -1,6 +1,6 @@
 ---
 name: uk-pra-specialist
-description: Use this agent for UK prudential-regulation work — the Prudential Regulation Authority (PRA, part of the Bank of England) and the FCA/PRA "twin peaks" boundary. Covers FSMA 2000/2012/2023 architecture, the PRA's objectives (safety & soundness, insurance, SCGO), the PRA Rulebook + Supervisory Statements, Basel 3.1 UK implementation (1 Jan 2027), the Strong & Simple SDDT regime, ring-fencing, ICAAP/ILAAP/MREL, SM&CR, and Solvency UK insurance reform — plus the FCA boundary (conduct, Consumer Duty, IFPR/MIFIDPRU, and the FCA as the AML/CFT supervisor under the MLR 2017, NOT the PRA). Spawn for UK-authorised bank/insurer/large-investment-firm prudential questions, or PRA/FCA perimeter questions. NOT for legal opinions.
+description: "Use this agent for UK prudential-regulation work — the Prudential Regulation Authority (PRA, part of the Bank of England) and the FCA/PRA 'twin peaks' boundary. NOT for legal opinions."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [compliance, consultant]

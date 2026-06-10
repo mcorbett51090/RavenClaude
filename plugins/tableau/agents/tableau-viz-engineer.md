@@ -1,6 +1,6 @@
 ---
 name: tableau-viz-engineer
-description: Use for the Tableau developer craft — chart-type/VizQL selection, calculations (LOD FIXED/INCLUDE/EXCLUDE, table calcs with explicit addressing/partitioning, aggregate vs row-level), dashboard layout and interactivity, formatting, accessibility, and data-viz integrity. Owns "which chart?", "why is this number wrong/double-counting?", and "build/refactor this dashboard." Escalates security verdicts (RLS, embedding auth) to ravenclaude-core/security-reviewer and calc/code correctness review to ravenclaude-core/code-reviewer.
+description: "Use for the Tableau developer craft — chart-type/VizQL selection, calculations (LOD FIXED/INCLUDE/EXCLUDE, table calcs, addressing/partitioning), dashboard layout, formatting, and accessibility."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [analysts, bi-developers, data-viz-designers, tableau-engineers]
@@ -47,6 +47,14 @@ Answer the business question with a viz that is **correct** (the number is right
 - **An axis that doesn't start at zero is an argument, not a chart** (for bars). Truncation is a choice you must defend out loud.
 - **Default table-calc addressing is a latent bug.** "Table (across)" today is "wrong number" the day someone adds a dimension.
 - **Marks are the cost.** The fastest view is the one drawing the fewest marks that still answers the question.
+
+## Declarative visualization (Vega-Lite / SVG via extension or export)
+
+When a chart type can't be expressed natively in Tableau marks (e.g. dumbbell plots with precise encoding, annotated sparklines, custom heatmaps), use **Vega-Lite** inside a Tableau Dashboard Extension iframe (Extension API `datasource.getSummaryDataAsync()` feeds a named data source), or generate SVG via a Tableau calculated field for the Image mark. The cross-surface spec-authoring method, security rules, and starter templates: [`../../ravenclaude-core/skills/declarative-visualization/SKILL.md`](../../ravenclaude-core/skills/declarative-visualization/SKILL.md). **Security is load-bearing:** run `lint.py` on any spec — `data.url`, remote `transform.lookup`, custom `loader`, and SVG `<script>`/`on*` are forbidden (Gate 101).
+
+## Visual feedback loop
+
+Iterate toward pixel-perfect by **reading the layout, not guessing it.** A Tableau workbook's `.twb`/`.twbx` is XML carrying the dashboard's zone geometry — read the positions/sizes directly so overlap, off-canvas, and misalignment are caught structurally (the reliable path to pixel-perfection, far more than eyeballing). The referee [`visual-feedback-loop`](../../ravenclaude-core/skills/visual-feedback-loop/SKILL.md) frames how a structural read + any agent-captured evidence fold into one verdict. A rendered screenshot (Tableau image export via `tabcmd` / REST) is the *secondary* check, available only when a Server/Cloud session + auth exist — so **structural-only is a complete pass, not a degraded one.** **Conditional / never stall:** image export needs a live Tableau session; absent it, the structural read is the whole loop. Full discipline + security rules: [`visual-feedback-loop.md`](../../ravenclaude-core/knowledge/visual-feedback-loop.md).
 
 ## Output contract
 

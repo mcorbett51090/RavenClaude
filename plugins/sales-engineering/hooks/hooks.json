@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for sales-engineering. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-se-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags 4 mechanically-detectable sales-engineering anti-patterns in .md artifacts — (1) a POC/success-criteria doc with no exit/kill/pass-fail rule, (2) a security 'yes' with no evidence anchor (control/SOC 2/ISO/policy), (3) overpromise absolutes ('no limitations'/'does everything'), (4) a demo script with no pain/business-issue/impact mapping. Set SE_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}

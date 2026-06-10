@@ -242,10 +242,10 @@
             "enabled": true,
             "dev_repo_exempt": false,
             "panel": {
-              "forseti": { "model": "claude-opus-4-7" },
+              "forseti": { "model": "claude-opus-4-8" },
               "mimir": { "model": "claude-haiku-4-5" },
               "heimdall": { "model": "claude-haiku-4-5" },
-              "thor": { "model": "claude-opus-4-7" }
+              "thor": { "model": "claude-opus-4-8" }
             },
             "confidence_threshold": 0.5,
             "gate_floor": "high",

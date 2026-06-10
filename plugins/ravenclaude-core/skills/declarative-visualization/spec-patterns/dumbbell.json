@@ -1,0 +1,49 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Dumbbell (dot-plot) chart — start-to-end comparison per category. Replace data.values with data.name for production use.",
+  "data": {
+    "name": "source",
+    "values": [
+      { "category": "Group A", "start": 20, "end": 45 },
+      { "category": "Group B", "start": 35, "end": 60 },
+      { "category": "Group C", "start": 15, "end": 30 },
+      { "category": "Group D", "start": 50, "end": 70 }
+    ]
+  },
+  "layer": [
+    {
+      "mark": "rule",
+      "encoding": {
+        "y": { "field": "category", "type": "nominal", "axis": { "title": null } },
+        "x": { "field": "start", "type": "quantitative" },
+        "x2": { "field": "end" }
+      }
+    },
+    {
+      "mark": { "type": "point", "filled": true, "size": 100 },
+      "encoding": {
+        "y": { "field": "category", "type": "nominal" },
+        "x": { "field": "start", "type": "quantitative", "axis": { "title": "Value" } },
+        "color": { "value": "#4C72B0" },
+        "tooltip": [
+          { "field": "category", "title": "Category" },
+          { "field": "start", "title": "Start" }
+        ]
+      }
+    },
+    {
+      "mark": { "type": "point", "filled": true, "size": 100 },
+      "encoding": {
+        "y": { "field": "category", "type": "nominal" },
+        "x": { "field": "end", "type": "quantitative" },
+        "color": { "value": "#DD8452" },
+        "tooltip": [
+          { "field": "category", "title": "Category" },
+          { "field": "end", "title": "End" }
+        ]
+      }
+    }
+  ],
+  "width": "container",
+  "height": 220
+}

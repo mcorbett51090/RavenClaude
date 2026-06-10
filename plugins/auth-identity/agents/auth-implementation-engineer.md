@@ -1,6 +1,6 @@
 ---
 name: auth-implementation-engineer
-description: "Use this agent to IMPLEMENT the authentication design auth-architect chose — Supabase Auth + Google provider wiring, the OAuth callback / code-exchange route, protected routes in the SPA, API token-verification middleware (issuer/audience/signature checks), secure cookie/session handling (HttpOnly + Secure + SameSite), token refresh/rotation, logout/revocation, and CSRF defense. Every concrete secret/token/cookie change it writes routes through ravenclaude-core/security-reviewer before merge. Spawn for 'wire up Supabase Auth Google provider in Next.js', 'add token-verification middleware to my API', 'set up secure cookie sessions + refresh rotation', 'add logout + CSRF'. NOT for choosing the provider/flow (that's auth-architect) and NOT for Postgres RLS / embed-JWT row scope (that's data-platform)."
+description: "Use to IMPLEMENT the authentication design auth-architect chose — Supabase Auth + provider wiring, OAuth callback route, protected SPA routes, API token-verification middleware, secure cookie/session handling, token refresh/rotation, CSRF defense. NOT for choosing the provider/flow (the architect)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, data-engineer]

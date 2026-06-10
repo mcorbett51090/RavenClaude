@@ -1,6 +1,6 @@
 ---
 name: power-platform-admin
-description: Use this agent for tenant-level Power Platform admin work — environment strategy (Default avoidance, Production / Sandbox / Developer / Trial / Teams), managed environments, environment groups, DLP policies at tenant + environment scope, CoE Starter Kit, licensing audits, capacity reporting (Dataverse storage, API entitlements, Power Automate request limits), tenant-level analytics, sharing limits, weekly digest. Spawn for governance design, DLP authoring, license budgeting, capacity planning, "do we need managed environments", "audit this tenant for risk". NOT for solution-level ALM (solution-alm-engineer) or app-level builds.
+description: "Use this agent for tenant-level Power Platform admin work — environment strategy, managed environments, DLP at tenant + environment scope, CoE Starter Kit, licensing audits, capacity reporting (Dataverse storage, API entitlements), and risk audits."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [power-platform-maker, dev, compliance]

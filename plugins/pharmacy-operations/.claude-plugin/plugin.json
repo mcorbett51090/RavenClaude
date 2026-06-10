@@ -1,0 +1,24 @@
+{
+  "name": "pharmacy-operations",
+  "version": "0.1.0",
+  "description": "Pharmacy Operations specialist team — 4 agents (pharmacy-operations-lead, fill-workflow-analyst, inventory-reimbursement-specialist, adherence-clinical-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An operations team for a pharmacy manager or PIC accountable for throughput, safety, inventory, margin, and adherence — it holds fill throughput and verification safety as both the job, reads days-on-hand as tied-up cash and stockout risk, computes real per-script margin net of DIR fees, treats adherence as outcomes and star ratings, and staffs to script volume plus clinical-service time. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "pharmacy-operations",
+    "fill-throughput",
+    "verification-safety",
+    "days-on-hand",
+    "reimbursement",
+    "dir-fees",
+    "adherence",
+    "pdc",
+    "star-ratings"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

@@ -11400,11 +11400,7 @@
       "multi_year": true,
       "schools_included": 17,
       "licensed_users": 2243,
-      "products_purchased": [
-        "PD Suite",
-        "Family Messaging",
-        "Core Platform"
-      ],
+      "products_purchased": ["PD Suite", "Family Messaging", "Core Platform"],
       "pd_purchased_sessions": 5,
       "pd_completed_sessions": 2
     },
@@ -11417,11 +11413,7 @@
       "multi_year": true,
       "schools_included": 5,
       "licensed_users": 3611,
-      "products_purchased": [
-        "Family Messaging",
-        "Core Platform",
-        "Insights"
-      ],
+      "products_purchased": ["Family Messaging", "Core Platform", "Insights"],
       "pd_purchased_sessions": 20,
       "pd_completed_sessions": 15
     },
@@ -11434,11 +11426,7 @@
       "multi_year": true,
       "schools_included": 22,
       "licensed_users": 4565,
-      "products_purchased": [
-        "Family Messaging",
-        "Core Platform",
-        "PD Suite"
-      ],
+      "products_purchased": ["Family Messaging", "Core Platform", "PD Suite"],
       "pd_purchased_sessions": 20,
       "pd_completed_sessions": 17
     },
@@ -11451,11 +11439,7 @@
       "multi_year": false,
       "schools_included": 21,
       "licensed_users": 4419,
-      "products_purchased": [
-        "Translate",
-        "Core Platform",
-        "Insights"
-      ],
+      "products_purchased": ["Translate", "Core Platform", "Insights"],
       "pd_purchased_sessions": 20,
       "pd_completed_sessions": 6
     },
@@ -11468,11 +11452,7 @@
       "multi_year": true,
       "schools_included": 6,
       "licensed_users": 9048,
-      "products_purchased": [
-        "PD Suite",
-        "Translate",
-        "Family Messaging"
-      ],
+      "products_purchased": ["PD Suite", "Translate", "Family Messaging"],
       "pd_purchased_sessions": 20,
       "pd_completed_sessions": 9
     },
@@ -11485,10 +11465,7 @@
       "multi_year": true,
       "schools_included": 20,
       "licensed_users": 2125,
-      "products_purchased": [
-        "Family Messaging",
-        "Insights"
-      ],
+      "products_purchased": ["Family Messaging", "Insights"],
       "pd_purchased_sessions": 0,
       "pd_completed_sessions": 0
     },
@@ -11501,9 +11478,7 @@
       "multi_year": true,
       "schools_included": 3,
       "licensed_users": 4181,
-      "products_purchased": [
-        "Translate"
-      ],
+      "products_purchased": ["Translate"],
       "pd_purchased_sessions": 20,
       "pd_completed_sessions": 19
     },
@@ -11516,10 +11491,7 @@
       "multi_year": true,
       "schools_included": 15,
       "licensed_users": 5449,
-      "products_purchased": [
-        "Translate",
-        "PD Suite"
-      ],
+      "products_purchased": ["Translate", "PD Suite"],
       "pd_purchased_sessions": 10,
       "pd_completed_sessions": 1
     },
@@ -11532,10 +11504,7 @@
       "multi_year": false,
       "schools_included": 3,
       "licensed_users": 9580,
-      "products_purchased": [
-        "PD Suite",
-        "Family Messaging"
-      ],
+      "products_purchased": ["PD Suite", "Family Messaging"],
       "pd_purchased_sessions": 5,
       "pd_completed_sessions": 4
     },
@@ -11548,10 +11517,7 @@
       "multi_year": true,
       "schools_included": 24,
       "licensed_users": 9191,
-      "products_purchased": [
-        "Translate",
-        "PD Suite"
-      ],
+      "products_purchased": ["Translate", "PD Suite"],
       "pd_purchased_sessions": 0,
       "pd_completed_sessions": 0
     },
@@ -11564,12 +11530,7 @@
       "multi_year": true,
       "schools_included": 10,
       "licensed_users": 8065,
-      "products_purchased": [
-        "Core Platform",
-        "PD Suite",
-        "Family Messaging",
-        "Insights"
-      ],
+      "products_purchased": ["Core Platform", "PD Suite", "Family Messaging", "Insights"],
       "pd_purchased_sessions": 0,
       "pd_completed_sessions": 0
     },
@@ -11582,9 +11543,7 @@
       "multi_year": false,
       "schools_included": 23,
       "licensed_users": 8952,
-      "products_purchased": [
-        "Insights"
-      ],
+      "products_purchased": ["Insights"],
       "pd_purchased_sessions": 0,
       "pd_completed_sessions": 0
     },
@@ -11597,9 +11556,7 @@
       "multi_year": false,
       "schools_included": 11,
       "licensed_users": 2180,
-      "products_purchased": [
-        "Insights"
-      ],
+      "products_purchased": ["Insights"],
       "pd_purchased_sessions": 10,
       "pd_completed_sessions": 7
     },
@@ -11612,11 +11569,7 @@
       "multi_year": true,
       "schools_included": 17,
       "licensed_users": 3007,
-      "products_purchased": [
-        "Family Messaging",
-        "PD Suite",
-        "Translate"
-      ],
+      "products_purchased": ["Family Messaging", "PD Suite", "Translate"],
       "pd_purchased_sessions": 0,
       "pd_completed_sessions": 0
     },
@@ -11629,12 +11582,7 @@
       "multi_year": false,
       "schools_included": 5,
       "licensed_users": 3761,
-      "products_purchased": [
-        "PD Suite",
-        "Core Platform",
-        "Translate",
-        "Insights"
-      ],
+      "products_purchased": ["PD Suite", "Core Platform", "Translate", "Insights"],
       "pd_purchased_sessions": 10,
       "pd_completed_sessions": 1
     },
@@ -11647,10 +11595,7 @@
       "multi_year": true,
       "schools_included": 18,
       "licensed_users": 1111,
-      "products_purchased": [
-        "Translate",
-        "Family Messaging"
-      ],
+      "products_purchased": ["Translate", "Family Messaging"],
       "pd_purchased_sessions": 5,
       "pd_completed_sessions": 5
     },
@@ -11663,10 +11608,7 @@
       "multi_year": false,
       "schools_included": 3,
       "licensed_users": 11685,
-      "products_purchased": [
-        "Insights",
-        "Core Platform"
-      ],
+      "products_purchased": ["Insights", "Core Platform"],
       "pd_purchased_sessions": 20,
       "pd_completed_sessions": 4
     },
@@ -11679,10 +11621,7 @@
       "multi_year": true,
       "schools_included": 10,
       "licensed_users": 2997,
-      "products_purchased": [
-        "Insights",
-        "Family Messaging"
-      ],
+      "products_purchased": ["Insights", "Family Messaging"],
       "pd_purchased_sessions": 20,
       "pd_completed_sessions": 8
     },
@@ -11695,12 +11634,7 @@
       "multi_year": false,
       "schools_included": 11,
       "licensed_users": 10415,
-      "products_purchased": [
-        "Insights",
-        "Core Platform",
-        "PD Suite",
-        "Family Messaging"
-      ],
+      "products_purchased": ["Insights", "Core Platform", "PD Suite", "Family Messaging"],
       "pd_purchased_sessions": 0,
       "pd_completed_sessions": 0
     },
@@ -11713,12 +11647,7 @@
       "multi_year": false,
       "schools_included": 23,
       "licensed_users": 7432,
-      "products_purchased": [
-        "Core Platform",
-        "Translate",
-        "Insights",
-        "Family Messaging"
-      ],
+      "products_purchased": ["Core Platform", "Translate", "Insights", "Family Messaging"],
       "pd_purchased_sessions": 5,
       "pd_completed_sessions": 3
     },
@@ -11731,10 +11660,7 @@
       "multi_year": true,
       "schools_included": 10,
       "licensed_users": 2416,
-      "products_purchased": [
-        "Insights",
-        "Family Messaging"
-      ],
+      "products_purchased": ["Insights", "Family Messaging"],
       "pd_purchased_sessions": 5,
       "pd_completed_sessions": 3
     },
@@ -11747,12 +11673,7 @@
       "multi_year": true,
       "schools_included": 2,
       "licensed_users": 2131,
-      "products_purchased": [
-        "Core Platform",
-        "PD Suite",
-        "Translate",
-        "Family Messaging"
-      ],
+      "products_purchased": ["Core Platform", "PD Suite", "Translate", "Family Messaging"],
       "pd_purchased_sessions": 0,
       "pd_completed_sessions": 0
     },
@@ -11765,11 +11686,7 @@
       "multi_year": true,
       "schools_included": 13,
       "licensed_users": 8800,
-      "products_purchased": [
-        "PD Suite",
-        "Translate",
-        "Family Messaging"
-      ],
+      "products_purchased": ["PD Suite", "Translate", "Family Messaging"],
       "pd_purchased_sessions": 0,
       "pd_completed_sessions": 0
     },
@@ -11782,10 +11699,7 @@
       "multi_year": true,
       "schools_included": 7,
       "licensed_users": 9180,
-      "products_purchased": [
-        "Translate",
-        "PD Suite"
-      ],
+      "products_purchased": ["Translate", "PD Suite"],
       "pd_purchased_sessions": 0,
       "pd_completed_sessions": 0
     },
@@ -11798,12 +11712,7 @@
       "multi_year": false,
       "schools_included": 21,
       "licensed_users": 5335,
-      "products_purchased": [
-        "Translate",
-        "PD Suite",
-        "Core Platform",
-        "Insights"
-      ],
+      "products_purchased": ["Translate", "PD Suite", "Core Platform", "Insights"],
       "pd_purchased_sessions": 5,
       "pd_completed_sessions": 1
     }

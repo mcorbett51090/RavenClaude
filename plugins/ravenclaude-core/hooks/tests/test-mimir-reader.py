@@ -77,7 +77,7 @@ def make_claude_home(tmp: Path, project_root: str, *, encoded_override: str | No
             {"date": f"2026-05-{27+i:02d}", "messageCount": 10*i, "sessionCount": i, "toolCallCount": 5}
             for i in range(8)
         ],
-        "modelUsage": {"claude-opus-4-7": {"inputTokens": 1, "outputTokens": 2, "costUSD": 0}},
+        "modelUsage": {"claude-opus-4-8": {"inputTokens": 1, "outputTokens": 2, "costUSD": 0}},
     }))
 
     # sessions/ directory empty by default — caller can add if needed.
@@ -85,7 +85,7 @@ def make_claude_home(tmp: Path, project_root: str, *, encoded_override: str | No
     return home
 
 
-def make_project_settings(project_root: Path, model: str = "claude-opus-4-7") -> None:
+def make_project_settings(project_root: Path, model: str = "claude-opus-4-8") -> None:
     cd = project_root / ".claude"
     cd.mkdir(parents=True, exist_ok=True)
     (cd / "settings.json").write_text(json.dumps({"model": model}))
@@ -105,14 +105,14 @@ def test_happy_path() -> None:
         write_jsonl(jsonl, [
             {"type": "permission-mode", "permissionMode": "default", "sessionId": "abc", "cwd": str(project_root), "gitBranch": "main"},
             {"type": "user", "message": {"content": "should-not-leak"}, "gitBranch": "main"},
-            {"type": "assistant", "model": "claude-opus-4-7", "usage": {"output_tokens": 42}},
-            {"type": "assistant", "model": "claude-opus-4-7", "usage": {"output_tokens": 8}},
+            {"type": "assistant", "model": "claude-opus-4-8", "usage": {"output_tokens": 42}},
+            {"type": "assistant", "model": "claude-opus-4-8", "usage": {"output_tokens": 8}},
         ])
         out = _read_mimir(project_root, home)
         check(out["exists"] is True, "exists: True")
         check(out["settings"]["theme"] == "dark", "theme=dark")
-        check(out["settings"]["model"]["configured"] == "claude-opus-4-7", "configured model")
-        check(out["settings"]["model"]["last_used"] == "claude-opus-4-7", "last_used model")
+        check(out["settings"]["model"]["configured"] == "claude-opus-4-8", "configured model")
+        check(out["settings"]["model"]["last_used"] == "claude-opus-4-8", "last_used model")
         check(out["settings"]["permission_mode"] == "default", "permission_mode=default")
         check(out["activity"]["as_of"] == "2026-06-02", "as_of pill set")
         check(out["activity"]["total_sessions"] == 100, "total_sessions")

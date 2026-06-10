@@ -1,0 +1,25 @@
+{
+  "name": "field-service-management",
+  "version": "0.1.0",
+  "description": "Field-service management & dispatch operations specialist team — 4 agents covering the service operating model (SLAs, contracts, dispatch-to-cash), dispatch & scheduling (skill/SLA/geo optimization, emergency vs planned), technician productivity (utilization, first-time-fix, MTTR, callbacks), and parts & inventory (truck stock, service-level tradeoffs, returns). Ships 3 skills (dispatch-and-scheduling, technician-productivity-and-first-time-fix, truck-stock-and-parts), 3 commands, 2 templates, 6 best-practices, a decision-tree knowledge bank, and an advisory hook flagging FSM anti-patterns. Domain: HVAC, plumbing, elevator, medical-device service. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "field-service",
+    "dispatch",
+    "scheduling",
+    "technician",
+    "first-time-fix",
+    "truck-stock",
+    "sla",
+    "hvac",
+    "preventive-maintenance",
+    "mobile-workforce"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

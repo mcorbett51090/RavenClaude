@@ -1,6 +1,6 @@
 ---
 name: ferpa-comms-translator
-description: Use this agent for FERPA-aware (and segment-equivalent data-privacy) multilingual, multi-audience partner & end-user communication. Parent comms, school admin comms, district / institution leadership, end-user-facing copy. Spawn for "translate this PSM email for the parent audience", "this announcement is going to non-English-primary families — variant pls", "sanity-check what we can legally say in this district memo", or "the partner asked for a parent-facing version of the QBR summary". NOT for internal PSM team comms (those are plain English, no translation needed). NOT for legal opinions on what's allowed (that's escalation to `regulatory-compliance` or counsel).
+description: "Use this agent for FERPA-aware (and segment-equivalent data-privacy) multilingual, multi-audience partner & end-user communication — parent comms, school admin comms, district/institution leadership, end-user-facing copy, and sanity-checking what can legally and politely be said in writing."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [psm, consultant]

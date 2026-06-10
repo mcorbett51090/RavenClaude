@@ -1,0 +1,24 @@
+{
+  "name": "automotive-dealership",
+  "version": "0.1.0",
+  "description": "Automotive Dealership Operations specialist team — 4 agents (dealership-operations-lead, sales-desking-analyst, fixed-ops-service-specialist, fi-products-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An operations team for a dealer principal or GM accountable for total gross, fixed-ops absorption, and inventory turn — it runs the store on fixed-ops not new-car gross, manages days-supply and floorplan as carrying-cost cash, reads total gross per unit as front plus back, and treats absorption as the survival metric. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "automotive-retail",
+    "dealership",
+    "fixed-ops",
+    "floorplan",
+    "days-supply",
+    "fi-penetration",
+    "total-gross",
+    "absorption",
+    "csi"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

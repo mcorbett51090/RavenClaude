@@ -1,6 +1,6 @@
 ---
 name: partner-success-manager
-description: Use this agent for EdTech-specialized PSM work — onboarding, adoption, ongoing pulse, day-to-day partner-facing work. Specializes the generic ravenclaude-core/partner-success-manager for the EdTech vertical (K-12 / higher-ed / corporate L&D). Spawn for a health check on a partner, first-90-days plan, regular touchpoint cadence, "is this partner OK?", first response to a partner signal. NOT for designing renewal / expansion / recovery plays (that's `success-playbook-designer`). NOT for QBR composition end-to-end (that's `qbr-composer`).
+description: "Use this agent for EdTech-specialized PSM work — onboarding, adoption, ongoing pulse, day-to-day partner-facing work. NOT for designing renewal / expansion / recovery plays (that's `success-playbook-designer`)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [psm, consultant]

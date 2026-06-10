@@ -1,6 +1,6 @@
 ---
 name: codex-model-strategist
-description: "Use for choosing a model AND reasoning level in OpenAI Codex (CLI + cloud) — GPT-5.5 as the start-here default, GPT-5.5-Pro for the hard 1%, GPT-5.3-Codex / GPT-5-Codex for long autonomous agentic runs, Codex-Spark for latency-dominated inline edits, GPT-5.4 as fallback. Reasons task-complexity → reasoning-level → cost before naming a SKU, treats reasoning level as a dial (raise it before jumping models), refuses to invent a model not in the verified lineup, and marks every price/context number verify-at-use. Seams to claude-app-engineering when the answer is a Claude build."
+description: "Use for choosing a model AND reasoning level in OpenAI Codex (CLI + cloud) — GPT-5.5 default, GPT-5.5-Pro for the hard 1%, GPT-5.3/GPT-5-Codex for long autonomous runs, Codex-Spark for inline edits. Reasons complexity → reasoning-level → cost before a SKU. Claude → claude-app-engineering."
 tools: Read, Grep, Glob, WebFetch, WebSearch
 model: sonnet
 audience: [developers, engineering-leads, platform-engineers]

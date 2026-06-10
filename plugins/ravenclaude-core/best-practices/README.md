@@ -8,11 +8,12 @@ For the marketplace-wide best-practice library (CI gates, hook authoring, versio
 
 ## Index
 
-_15 rules._
+_17 rules._
 
 | Doc | Status | Use when |
 |---|---|---|
 | [`route-before-spawning.md`](./route-before-spawning.md) | Pattern | The Team Lead is about to delegate — traverse the routing tree top-to-bottom before spawning any specialist. |
+| [`prefer-a-deterministic-gate-over-a-prose-rule.md`](./prefer-a-deterministic-gate-over-a-prose-rule.md) | Pattern | Setting up a consumer repo (or reviewing a `CLAUDE.md`) — deciding whether a rule belongs in a hook/CI gate vs. prose, and pruning the file. |
 | [`three-epistemic-protocols.md`](./three-epistemic-protocols.md) | Absolute rule | Any agent is about to report blocked, write a consequential claim, or hand work back — apply the CGP / Claim-Grounding / Last-Mile triad. |
 | [`command-review-when-to-enable.md`](./command-review-when-to-enable.md) | Pattern | Deciding whether to turn on the command-review tribunal. |
 | [`check-runtime-state.md`](./check-runtime-state.md) | Pattern | Before acting — read the event substrate (Heimdall / Víðarr / Norns tabs). |
@@ -27,6 +28,7 @@ _15 rules._
 | [`web-access-allow-deny-list-before-first-fetch.md`](./web-access-allow-deny-list-before-first-fetch.md) | Pattern | Setting up a project or before any session where WebFetch will be used. |
 | [`runaway-brake-prevents-the-thrash-loop.md`](./runaway-brake-prevents-the-thrash-loop.md) | Pattern | Configuring any auto-mode or unsupervised agent session. |
 | [`check-constraint-scope-before-citing-it.md`](./check-constraint-scope-before-citing-it.md) | Absolute rule | Any agent is about to refuse an action or recommend against something by citing a rule. |
+| [`checkpoints-are-the-recovery-layer-not-a-substitute-for-commits.md`](./checkpoints-are-the-recovery-layer-not-a-substitute-for-commits.md) | Pattern | Setting up a fast-iterating or unsupervised session — when to use `/rewind` (Esc-Esc) vs. a git commit, and what checkpoints structurally can't undo. |
 
 ---
 

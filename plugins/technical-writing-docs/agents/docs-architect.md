@@ -1,6 +1,6 @@
 ---
 name: docs-architect
-description: "Use for documentation strategy: applying the Diataxis framework (separating tutorials/how-to/reference/explanation), reader-journey information architecture, a docs-as-code workflow (repo + PR + CI + versioned), and deciding what to document and what not to. Deepens ravenclaude-core/documentarian; routes API reference to api-reference-writer and the site to docs-site-engineer."
+description: "Use for documentation strategy: applying the Diataxis framework (separating tutorials/how-to/reference/explanation), reader-journey information architecture, a docs-as-code workflow (repo + PR + CI + versioned), and deciding what to document and what not to."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, consultant]

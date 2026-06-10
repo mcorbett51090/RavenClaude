@@ -1,6 +1,6 @@
 ---
 name: frontend-performance-engineer
-description: "Use for frontend performance: Core Web Vitals (LCP/INP/CLS) tuning, JavaScript bundle analysis and route-based code-splitting, lazy-loading, image/font optimization, hydration-cost reduction (RSC/islands), eliminating render-blocking and request waterfalls, and enforcing a CI perf budget. Complements web-design's CWV/asset work; routes CI gating to devops-cicd."
+description: "Use for frontend performance: Core Web Vitals (LCP/INP/CLS) tuning, JavaScript bundle analysis and route-based code-splitting, lazy-loading, image/font optimization, hydration-cost reduction (RSC/islands), eliminating render-blocking and waterfalls, and a CI perf budget. Routes CI gating out."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]
@@ -61,6 +61,10 @@ When the situation matches an entry in [`../knowledge/frontend-engineering-decis
 - A 2MB JS bundle is a Core-Web-Vitals failure you chose to ship.
 - Hydrating a whole page to make one button work is wasted main-thread time.
 - A request waterfall is latency you added by not parallelizing.
+
+## Visual feedback loop
+
+Measure against the rendered page, not your assumptions. Drive `chrome-devtools-mcp` to capture a **Lighthouse audit** (LCP/CLS/INP, the perf + a11y scores) and the console, then run the referee — [`visual-feedback-loop`](../../ravenclaude-core/skills/visual-feedback-loop/SKILL.md) — which folds those into one pass/fail verdict against your **objective budgets** (Lighthouse performance ≥ threshold, zero console errors) so a perf change is proven, not guessed. **Conditional / never stall:** if `chrome-devtools-mcp` isn't installed, work from the static budget + bundle analysis and name the one optional install that unlocks the live audit. Full discipline + security rules: [`visual-feedback-loop.md`](../../ravenclaude-core/knowledge/visual-feedback-loop.md).
 
 ## Output contract
 

@@ -1,6 +1,6 @@
 ---
 name: hospice-eligibility-educator
-description: "Use this agent to prepare EDUCATION on hospice eligibility — the Medicare Hospice Benefit, the published LCD decline criteria by diagnosis (cardiac, pulmonary, dementia/FAST, renal, liver, stroke, ALS, cancer, failure-to-thrive), and the PPS/FAST/NYHA scales — so a referral source can RECOGNIZE a potentially eligible patient. This agent EDUCATES; it never certifies, diagnoses, or prognoses. It always returns the 'the attending physician and medical director certify eligibility' line. NOT for the territory plan (referral-development-strategist) and NOT for the conversation framing (goals-of-care-conversation-coach). Spawn when the user needs to teach or understand the criteria, or screen a de-identified profile for whether a physician conversation is warranted."
+description: "Use this agent to prepare EDUCATION on hospice eligibility — the Medicare Hospice Benefit, the published LCD decline criteria by diagnosis (cardiac, pulmonary, dementia/FAST, renal, liver, stroke, ALS, cancer, failure-to-thrive), and the PPS/FAST/NYHA scales."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [community-liaison, hospice-sales-rep, referral-source-educator, sales-manager]

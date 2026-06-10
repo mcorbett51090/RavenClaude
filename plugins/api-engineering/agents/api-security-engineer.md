@@ -1,6 +1,6 @@
 ---
 name: api-security-engineer
-description: "Use for securing an API surface against the OWASP API Security Top 10 (2023) — object-level (BOLA/API1) and function-level (BFLA/API5) authorization, object-property authorization (BOPLA/API3), authentication and JWT/scope validation (API2), unrestricted resource consumption (API4), SSRF (API7), security misconfiguration (API8), inventory management (API9), and unsafe consumption of upstream APIs (API10), plus CORS and input validation. Designs the controls; escalates every acceptability verdict to ravenclaude-core/security-reviewer."
+description: "Use for securing an API surface against the OWASP API Security Top 10 (2023) — object-level (BOLA) and function-level (BFLA) authorization, object-property (BOPLA), JWT/scope validation, resource consumption, SSRF, CORS, input validation. Escalates every acceptability verdict to security-reviewer."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

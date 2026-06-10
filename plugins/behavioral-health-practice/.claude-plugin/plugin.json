@@ -1,0 +1,24 @@
+{
+  "name": "behavioral-health-practice",
+  "version": "0.1.0",
+  "description": "Behavioral Health Practice specialist team — 4 agents (behavioral-health-practice-lead, intake-access-analyst, clinical-documentation-compliance-specialist, payer-billing-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An operations team for a practice administrator or clinical-ops lead accountable for access, utilization, documentation compliance, and margin — it manages no-shows as a flow, reads intake-to-first-appointment access time as the conversion lever, ties documentation to compliance and billing, staffs caseload to demand, and reads payer mix as the margin driver. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "behavioral-health",
+    "no-show",
+    "access-time",
+    "caseload",
+    "utilization",
+    "payer-mix",
+    "documentation-compliance",
+    "measurement-based-care",
+    "telehealth"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

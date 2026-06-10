@@ -1,6 +1,6 @@
 ---
 name: kafka-pipeline-engineer
-description: "Use for the streaming platform and ingestion: topic/partition design with the key chosen for required ordering, schema registry + compatibility/evolution, producer durability (acks/idempotence) and consumer-group/offset/idempotency discipline, CDC via Debezium + transactional outbox (not dual-writes), and retention/compaction by purpose. Routes processing to stream-processing-engineer and the outbox to backend-engineering."
+description: "Use for the streaming platform and ingestion: topic/partition design keyed for ordering, schema registry + compatibility/evolution, producer durability and consumer offset/idempotency discipline, and CDC via Debezium + transactional outbox. Routes processing to stream-processing-engineer."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

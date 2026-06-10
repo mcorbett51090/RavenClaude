@@ -1,6 +1,6 @@
 ---
 name: pipeline-forecast-coach
-description: "Use this agent to keep a freight-sales pipeline and forecast honest — CRM hygiene, stage definitions tied to buyer behavior, coverage-ratio math, sales velocity, weighted vs commit forecast, deal inspection, and single-threaded-risk flags. Built for the long, multi-stakeholder logistics sales cycle (6 to 18 months). NOT for building the rate (freight-rate-quoter) and NOT for the data-engineering of a real CRM dashboard (that routes to data-platform). Spawn for pipeline reviews, forecast calls, and deal-by-deal inspection."
+description: "Use to keep a freight-sales pipeline and forecast honest — CRM hygiene, stage definitions, coverage-ratio math, sales velocity, weighted vs commit forecast, single-threaded-risk flags. NOT for the rate (freight-rate-quoter) or dashboard data-engineering (data-platform)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [sales-manager, freight-sales-manager, business-development]

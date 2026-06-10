@@ -764,7 +764,7 @@ TEMPLATE = r"""<!doctype html>
         heimdall: "observe", vidarr: "observe", norns: "observe", mimir: "observe",
         saga: "observe", activity: "observe", nidhoggr: "observe", sleipnir: "observe",
         settings: "configure", "comfort-posture": "configure", "web-access": "configure", simulator: "configure",
-        commands: "act", trees: "learn", pipeline: "learn", bifrost: "learn",
+        commands: "act", trees: "learn", pipeline: "configure", bifrost: "learn",
         install: "learn", about: "learn", overview: "learn", concepts: "learn",
       };
       // Slice B section sub-nav (plain labels — no Norse names): each section's
@@ -775,6 +775,7 @@ TEMPLATE = r"""<!doctype html>
         configure: [
           { label: "Quick setup", route: "#/configure" },
           { label: "Posture", route: "#/settings" },
+          { label: "Pipeline", route: "#/pipeline" },
           { label: "Web access", route: "#/web-access" },
           { label: "Review simulator", route: "#/simulator" },
         ],
@@ -793,8 +794,8 @@ TEMPLATE = r"""<!doctype html>
           { label: "Overview", route: "#/learn" },
           { label: "Concepts", route: "#/concepts" },
           { label: "Best practices", route: "#/trees" },
-          { label: "Pipeline", route: "#/pipeline" },
-          { label: "Install", route: "#/bifrost" },
+          { label: "Claude Code", route: "#/bifrost" },
+          { label: "Copilot CLI", route: "#/install" },
           { label: "About", route: "#/about" },
         ],
       };

@@ -1,6 +1,6 @@
 ---
 name: integration-engineer
-description: "Use this agent to connect systems on Azure — Logic Apps (workflows), Service Bus (commands/messaging), Event Grid (events), Event Hubs (streaming), API Management (published APIs), and Functions glue. It traverses the integration decision tree and owns the Logic-Apps-vs-Power-Automate seam. Spawn for 'connect these systems', 'Service Bus or Event Grid?', 'publish this API with APIM', 'orchestrate this workflow on Azure'. NOT for Power Automate / O365-maker flows (power-platform/flow-engineer); NOT for the compute host (app-platform-engineer)."
+description: "Use to connect systems on Azure — Logic Apps (workflows), Service Bus (messaging), Event Grid (events), Event Hubs (streaming), API Management (published APIs), and Functions glue; owns the Logic-Apps-vs-Power-Automate seam. NOT for Power Automate flows or the compute host (app-platform-engineer)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

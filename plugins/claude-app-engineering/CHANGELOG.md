@@ -2,7 +2,35 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
-## [0.7.0] — 2026-06-05
+## [0.7.3] — 2026-06-10
+
+Freshness-anchor follow-up — codified the **403 route ladder** so a bot-blocked primary source becomes a re-route, not a miss (the lesson from the Fable 5 sweep, where `anthropic.com` + the GitHub changelog 403'd automated `WebFetch`).
+
+### Changed
+
+- **`knowledge/model-selection-and-2026-capability-map.md`** "How to keep this current" — on a `WebFetch` 403, route through [`webfetch-hardening`](../ravenclaude-core/skills/webfetch-hardening/SKILL.md) § "the 403 / refusal route ladder": `WebSearch` (reads the blocked content) → domain MCP (Microsoft-Learn / GitHub) → a non-blocked host → secondaries last; noted Wayback + UA/header spoofing are unavailable in this harness.
+- **Softened the Fable 5 Microsoft Foundry claim** (both the lineup row and the capability-status row): Foundry is **announced** via the Azure blog, but the authoritative Foundry Learn model table still lists only the gated `claude-mythos-preview` as of 2026-06-10 — re-verify. (Surfaced by reading the Foundry docs via the Microsoft-Learn MCP, the route ladder in action.)
+- Version **0.7.2 → 0.7.3** bumped in `.claude-plugin/plugin.json` **and** the `marketplace.json` catalog entry in lockstep.
+
+## [0.7.2] — 2026-06-10
+
+Freshness-anchor refresh — **Claude Fable 5** (`claude-fable-5`), Anthropic's first public **Mythos-class** model, went **GA 2026-06-09** (the day of the prior 0.7.1 review — a same-day miss caught on the next sweep). Sources: [Claude Fable 5 and Claude Mythos 5](https://www.anthropic.com/news/claude-fable-5-mythos-5), [Fable 5 on AWS](https://aws.amazon.com/blogs/aws/anthropic-claude-fable-5-on-aws-mythos-class-capabilities-with-built-in-safeguards-now-available/), [Fable 5 in Microsoft Foundry](https://azure.microsoft.com/en-us/blog/claude-fable-5-is-now-available-in-microsoft-foundry-powering-the-next-era-of-autonomous-agents/) (GA 2026-06-09; retrieved 2026-06-10). Anthropic's news page 403s automated fetch — facts cross-referenced across secondaries (CNBC, TechCrunch, AWS/Azure blogs, dev guides), the repo's accepted "primary 403 → cross-reference" pattern.
+
+### Changed
+
+- **`knowledge/model-selection-and-2026-capability-map.md`** (the anchor) — added **Fable 5** as the top lineup row: GA 2026-06-09, 1M context / 128K max output, **$10/$50 per Mtok (exactly 2× Opus 4.8)**, 90% prompt-cache discount, safety-fallback to Opus 4.8 on cyber/bio/chem (~<5% of sessions) framed as a behavioral discontinuity, AWS Bedrock + Microsoft Foundry availability. Soft/single-source benchmark claims (SOTA-on-nearly-all, >10%-over-Opus, SWE-bench ~80.3%) carry `[verify-at-use — single-source]` markers. **Fable 5 is the capability flagship but NOT the recommended default** — Opus 4.8 stays the cost-sane Opus-tier default (2× cost + the safety-fallback); the right-size ladder reserves Fable 5 for the genuinely hard long-horizon autonomous tail. Re-cast the Opus 4.8 row from "current flagship" to "recommended default + Fable-5 safety-fallback target". Added a capability-status row for Fable 5/Mythos 5 GA. Named **Mythos 5** (safeguards-lifted sibling) for completeness only — explicitly not a default. Re-dated `Last reviewed` 2026-06-09 → 2026-06-10.
+- Version **0.7.1 → 0.7.2** bumped in `.claude-plugin/plugin.json` **and** the `marketplace.json` catalog entry in lockstep (CI fails on drift).
+
+## [0.7.1] — 2026-06-09
+
+Freshness-anchor refresh — **Claude Opus 4.8** (`claude-opus-4-8`) is now the current flagship, superseding Opus 4.7. Sources: [Introducing Claude Opus 4.8](https://www.anthropic.com/news/claude-opus-4-8) + [What's new in Opus 4.8](https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-8) (GA 2026-05-28; retrieved 2026-06-09).
+
+### Changed
+
+- **`knowledge/model-selection-and-2026-capability-map.md`** (the anchor) — added Opus 4.8 as the flagship row (GA 2026-05-28, 1M context, $5/$25 per Mtok in/out, fast mode $10/$50, per-response reasoning-effort control, fixes 4.7's comment-verbosity + tool-call-skipping); relabelled Opus 4.7 "prior flagship"; added the 1M-context row's 4.8 entry, a **Dynamic Workflows (research preview)** row, and a **reasoning-effort control** row; re-dated `Last reviewed` 2026-05-28 → 2026-06-09 with the Opus 4.8 sources.
+- Corrected every reference that asserted **Opus 4.7 as the _current_ flagship/frontier** to **Opus 4.8** (Panel-3 ruling: fix flagship-asserting refs, leave incidental "1M-context list"/dated-example mentions): `knowledge/claude-app-decision-trees.md` (top leaf + rationale + tradeoff row), `best-practices/right-size-with-a-routing-ladder.md` (prose + the `claude-opus-4-8` code pin), `best-practices/pin-the-model-id.md` (`"frontier"` config id), `templates/claude-app-architecture-spec.md` (routing-ladder example), `agents/claude-solution-architect.md` (description), `hooks/check-claude-app-anti-patterns.sh` (retired-model warning text), and the plugin/marketplace descriptions.
+
+
 
 Value-add build-out — closing the net-new gap against the full value-add menu (the repeatable plugin-enrichment recipe, mirroring `backend-engineering` 0.3.0 and `veterinary-practice` 0.2.0). Every menu item is dispositioned (built or recorded N-A with reason); see [`CLAUDE.md`](CLAUDE.md) § "Value-add completeness (build-out 2026-06-05)".
 

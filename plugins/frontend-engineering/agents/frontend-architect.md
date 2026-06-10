@@ -1,6 +1,6 @@
 ---
 name: frontend-architect
-description: "Use for frontend architecture: choosing the rendering strategy per route (CSR/SSR/SSG/ISR/RSC), the RSC-vs-client-component split, component boundaries and composition, the TypeScript-strict posture, framework selection by need, and the build shape that protects the bundle budget. Routes brand/UX to web-design and performance tuning to frontend-performance-engineer."
+description: "Use for frontend architecture: choosing the rendering strategy per route (CSR/SSR/SSG/ISR/RSC), the RSC-vs-client-component split, component boundaries and composition, the TypeScript-strict posture, framework selection by need, and the build shape that protects the bundle budget."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

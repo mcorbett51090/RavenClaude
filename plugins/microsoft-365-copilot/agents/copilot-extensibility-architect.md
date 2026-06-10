@@ -1,6 +1,6 @@
 ---
 name: copilot-extensibility-architect
-description: "Use this agent to choose HOW to extend Microsoft 365 Copilot — declarative agent vs custom-engine agent vs (the seam) Copilot Studio; which grounding source (synced/federated connector vs SharePoint knowledge vs API plugin); and the load-bearing question 'will this hit the declarative-agent hard-limit wall?' (50 grounding items / 25 plugin-response items / ~4096 tokens / 45s / single grounding op + single tool call, NO loops). It traverses the platform + grounding decision trees and names the channel + publish path. Spawn for 'declarative or custom-engine?', 'how should I extend Copilot for X?', 'will this fit in a declarative agent?'. NOT for authoring the manifest (declarative-agent-engineer); NOT for Copilot Studio low-code (power-platform/copilot-studio-engineer); NOT for the Claude engine (claude-app-engineering)."
+description: "Use this agent to choose HOW to extend Microsoft 365 Copilot — declarative vs custom-engine agent vs (the seam) Copilot Studio; which grounding source (synced/federated connector vs SharePoint knowledge vs API plugin); NOT for authoring the manifest (declarative-agent-engineer)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

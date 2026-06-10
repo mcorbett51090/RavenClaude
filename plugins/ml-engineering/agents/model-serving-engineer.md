@@ -1,6 +1,6 @@
 ---
 name: model-serving-engineer
-description: "Use for model serving: choosing online vs batch inference, serving from the registry as a versioned artifact, latency/cost optimization (batching, quantization/distillation, hardware) to a budget, and safe rollout (shadow -> canary -> full) with a promotion metric and rollback. Routes infra to cloud-native-kubernetes/devops-cicd and rollout significance to applied-statistics."
+description: "Use for model serving: choosing online vs batch inference, serving from the registry as a versioned artifact, latency/cost optimization (batching, quantization/distillation, hardware) to a budget, and safe rollout (shadow -> canary -> full) with a promotion metric and rollback."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

@@ -1,0 +1,4 @@
+{
+  "surface": "web",
+  "console": "tests/fixtures/visual-feedback-loop/console-errors.json"
+}

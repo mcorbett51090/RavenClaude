@@ -1,6 +1,6 @@
 ---
 name: examination-prep-specialist
-description: Use this agent for regulator examination readiness — PBC list management for exam, walkthrough rehearsals, mock examiner interviews, examiner Q&A drafting, MRA / MRIA / management-letter responses, remediation tracking. Spawn 6-12 weeks before an exam, immediately after an exam closes, or when a regulator's information request lands. NOT for financial-statement audit prep (that's finance/audit-prep-specialist).
+description: "Use for regulator examination readiness — exam PBC list management, walkthrough rehearsals, mock examiner interviews, examiner Q&A drafting, MRA / MRIA / management-letter responses, and remediation tracking. Spawn weeks before an exam or on a request. NOT for financial-statement audit prep."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [compliance]

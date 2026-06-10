@@ -1,0 +1,8 @@
+[
+  {
+    "name": "run-state-monitor",
+    "command": "\"${CLAUDE_PLUGIN_ROOT}\"/monitors/watch-run-state.sh",
+    "description": "Guardrail/run-state alerts during multi-agent runs (derived labels only)",
+    "when": "on-skill-invoke:spawn-team"
+  }
+]

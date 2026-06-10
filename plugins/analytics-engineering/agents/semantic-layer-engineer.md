@@ -1,6 +1,6 @@
 ---
 name: semantic-layer-engineer
-description: "Use for the semantic/metrics layer: one governed definition per metric (metrics-as-code via dbt Semantic Layer/MetricFlow), explicit grains and filters, entity/dimension modeling to prevent fan-out/double-counting, and a single BI-facing contract that ends metric drift. Sits on analytics-engineer's marts; routes significance questions to applied-statistics."
+description: "Use for the semantic/metrics layer: one governed definition per metric (metrics-as-code via dbt Semantic Layer/MetricFlow), explicit grains and filters, entity/dimension modeling to prevent fan-out/double-counting, and a single BI-facing contract that ends metric drift. Sits on the marts."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev, consultant]

@@ -1,6 +1,6 @@
 ---
 name: backend-reliability-engineer
-description: "Use for backend resilience and async processing: timeouts on every outbound call, retries with exponential backoff + jitter for idempotent operations only, circuit breakers and bulkheads, defined graceful-degradation modes, and background-job/worker design (idempotent consumers, DLQs, bounded queues/backpressure). Routes the protected SLOs to observability-sre and heavy streaming to data-streaming-engineering."
+description: "Use for backend resilience and async processing: timeouts on every outbound call, retries with exponential backoff + jitter for idempotent operations only, circuit breakers and bulkheads, defined graceful-degradation modes, and background-job/worker design."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

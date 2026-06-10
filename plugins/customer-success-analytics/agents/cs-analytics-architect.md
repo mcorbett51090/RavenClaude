@@ -1,6 +1,6 @@
 ---
 name: cs-analytics-architect
-description: "Use this agent to design the unified customer-success-health data model and metric layer on top of an existing warehouse — the conformed account / health-snapshot / renewal / support / signal entities, which signals compose the health view, how the rule-based Green/Yellow/Red tier is defined transparently (every Red shows why), and how the model maps to a BI surface (Sigma / Tableau). It owns the DOMAIN layer (what to measure and why), not the pipeline plumbing — pipeline / warehouse / connector work routes to data-platform. Spawn for 'design the CS-health mart', 'what entities does a who-do-I-call-today dashboard need', 'turn the Planhat-native score plus support signals into a transparent risk tier'. NOT for building the ELT connectors or the warehouse itself (that is data-platform's etl-pipeline-engineer / database-setup-guide)."
+description: "Use this agent to design the unified customer-success-health data model and metric layer on top of an existing warehouse — the conformed account / health-snapshot / renewal / support / signal entities, which signals compose the health view."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [cs-leader, cs-ops, revops, data-analyst, dev]

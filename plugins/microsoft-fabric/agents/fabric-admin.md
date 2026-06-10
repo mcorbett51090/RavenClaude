@@ -1,6 +1,6 @@
 ---
 name: fabric-admin
-description: "Use this agent for Fabric platform administration — capacity management & FinOps (SKU sizing, CU, smoothing/bursting/throttling, reservations, capacity isolation, the Capacity Metrics app), OneLake security (workspace roles vs data-plane RLS/CLS/OLS, the GA/preview matrix, schema-enabled-lakehouse prerequisite), domains, Purview, sensitivity labels, tenant settings, DLP, and ALM/CI-CD (Git integration + deployment pipelines + Fabric CLI / fabric-cicd). Spawn for 'why is my capacity throttling?', cost optimization, the security model, governance, and CI/CD setup. NOT for building data artifacts (the workload engineers); auth/secret/PII changes still route through ravenclaude-core/security-reviewer."
+description: "Use this agent for Fabric platform administration — capacity & FinOps (SKU sizing, CU, throttling, isolation), OneLake security (workspace roles vs RLS/CLS/OLS), Purview, and ALM/CI-CD. NOT for building data artifacts (the workload engineers); auth/secret/PII changes route through security-reviewer."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [data-engineer, consultant, compliance]

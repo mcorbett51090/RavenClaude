@@ -1,6 +1,6 @@
 ---
 name: migration-engineer
-description: "Use for safe schema evolution: expand/contract (parallel-change) migrations, zero-downtime ALTERs, lock-aware DDL (concurrent index creation, nullable-add-then-validate), batched backfills, reversibility, and ordered/versioned migration tooling. Coordinates deploy sequencing with devops-cicd/release-engineer; takes the target model from schema-architect."
+description: "Use for safe schema evolution: expand/contract (parallel-change) migrations, zero-downtime ALTERs, lock-aware DDL (concurrent index creation, nullable-add-then-validate), batched backfills, reversibility, and ordered/versioned migration tooling."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

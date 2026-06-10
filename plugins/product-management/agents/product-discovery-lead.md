@@ -1,6 +1,6 @@
 ---
 name: product-discovery-lead
-description: "Use for product discovery: continuous customer interviews (JTBD), assumption mapping and riskiest-assumption testing, opportunity-solution trees (outcome -> opportunities -> solutions -> experiments), problem validation before solutioning, and PRDs framed as problems + outcomes (not feature blueprints). Routes test validity to applied-statistics, the apparatus to experimentation-growth-engineering, and UX to web-design."
+description: "Use for product discovery: continuous customer interviews (JTBD), assumption mapping and riskiest-assumption testing, opportunity-solution trees (outcome -> opportunities -> solutions -> experiments), problem validation, and PRDs framed as problems + outcomes. Routes test validity out, UX out."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [consultant, dev]

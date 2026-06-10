@@ -1,6 +1,6 @@
 ---
 name: api-design-architect
-description: "Use for designing an API before it is built — choosing the paradigm (REST / GraphQL / gRPC / webhooks / event-driven AsyncAPI), modeling resources and operations, authoring the contract-first OpenAPI 3.1/3.2 or AsyncAPI 3.0 document, setting the versioning & deprecation strategy, and standing up a Spectral style guide as governance. Owns the 'what should this API be' decision; routes build details to api-implementation-engineer and every security verdict to ravenclaude-core/security-reviewer."
+description: "Use for designing an API before it is built — paradigm (REST/GraphQL/gRPC/webhooks/AsyncAPI), resource modeling, contract-first OpenAPI 3.1/AsyncAPI authoring, versioning/deprecation, and a Spectral style guide. Build → api-implementation-engineer; security → core/security-reviewer."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, consultant]

@@ -1,29 +1,36 @@
 # Model selection & 2026 capability map
 
-**Last reviewed:** 2026-05-28 · **Confidence:** medium-high — the Claude platform ships **monthly**, so this is the freshness anchor the Researcher sweep re-dates. Every numeric / GA claim carries a retrieval date; verify before quoting a client.
+**Last reviewed:** 2026-06-10 · **Confidence:** medium-high — the Claude platform ships **monthly**, so this is the freshness anchor the Researcher sweep re-dates. Every numeric / GA claim carries a retrieval date; verify before quoting a client.
 **Owner:** all agents (the "cite the capability with a retrieval date" discipline, house opinion #14).
-**Source:** [release notes](https://platform.claude.com/docs/en/release-notes/overview), [API overview](https://platform.claude.com/docs/en/api/overview), retrieved 2026-05-28.
+**Source:** [release notes](https://platform.claude.com/docs/en/release-notes/overview), [API overview](https://platform.claude.com/docs/en/api/overview); Opus 4.8: [Introducing Claude Opus 4.8](https://www.anthropic.com/news/claude-opus-4-8), [What's new in Opus 4.8](https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-8); Fable 5 / Mythos 5: [Claude Fable 5 and Claude Mythos 5](https://www.anthropic.com/news/claude-fable-5-mythos-5) (2026-06-09), [Fable 5 on AWS](https://aws.amazon.com/blogs/aws/anthropic-claude-fable-5-on-aws-mythos-class-capabilities-with-built-in-safeguards-now-available/), [Fable 5 in Microsoft Foundry](https://azure.microsoft.com/en-us/blog/claude-fable-5-is-now-available-in-microsoft-foundry-powering-the-next-era-of-autonomous-agents/). Retrieved 2026-06-10. **Anthropic's Fable-5/Mythos-5 news page and the GitHub Copilot changelog 403 automated fetch — values are cross-referenced across secondaries (CNBC, TechCrunch, AWS/Azure blogs, dev guides), the repo's accepted "primary 403 → cross-reference" pattern.**
 
-## Model lineup (2026-05)
+## Model lineup (2026-06)
 
 | Model | Use for | Notable |
 |---|---|---|
-| **Opus 4.7** | hardest reasoning, agentic depth | **1M-token context** |
+| **Fable 5** (`claude-fable-5`) | hardest **long-horizon autonomous** coding + knowledge work — the genuinely hard tail, **NOT the everyday default** | **GA 2026-06-09**; first public **"Mythos-class"** model (vendor framing, not a benchmarked fact); **1M-token context / 128K max output**; **$10 / $50** per Mtok in/out (**exactly 2× Opus 4.8**), 90% prompt-cache discount on repeated input. **SOTA on nearly all tested benchmarks** `[verify-at-use — single-source/vendor framing]`, **>10% over Opus 4.8 on some** `[verify-at-use — single-source]`, **SWE-bench ~80.3%** `[verify-at-use — single-source]`. **Safety fallback:** prompts touching cybersecurity/biology/chemistry are silently routed to **Opus 4.8** (~<5% of sessions) — a behavioral/quality **discontinuity an app builder must design around**, not just a safety note. Also on **AWS Bedrock** + **GitHub Copilot** (Microsoft Foundry: announced via the [Azure blog](https://azure.microsoft.com/en-us/blog/claude-fable-5-is-now-available-in-microsoft-foundry-powering-the-next-era-of-autonomous-agents/) but the Foundry Learn model table still lists only the gated `claude-mythos-preview` as of 2026-06-10 — `[verify-at-use]`). **Capability flagship; does NOT supersede Opus 4.8 as the recommended default** (2× cost + the safety-fallback). |
+| **Opus 4.8** (`claude-opus-4-8`) | hardest reasoning, agentic depth, coding — **the recommended Opus-tier default**; the **safety-fallback target** for Fable 5 | **GA 2026-05-28**; **1M-token context**; **$5 / $25** per Mtok in/out (fast mode **$10 / $50**); per-response **reasoning-effort control**; ~4× less likely to let its own code flaws pass unremarked, with fewer skipped tool calls + less comment verbosity than 4.7. **Prior capability flagship; still the cost-sane Opus default. Supersedes Opus 4.7.** |
+| Opus 4.7 | hardest reasoning (prior flagship) | **1M-token context** |
 | Opus 4.6 | hardest reasoning (prior) | |
 | **Sonnet 4.6** | balanced default for most app work | **1M-token context**; **adaptive thinking** (`thinking:{type:"adaptive"}`); `budget_tokens` **deprecated** on 4.6 |
 | **Haiku 4.5** | cheap / fast / high-volume; default eval judge | lowest cost |
 
-**Right-size, don't default to Opus (house opinion #3).** Use a routing ladder: a cheap model (Haiku) triages / classifies, escalate-on-uncertainty to Sonnet, reserve Opus for the genuinely hard tail. Track **cost-per-resolved-task + cache hit rate**, not raw token count ([`claude-app-finops-reliability-and-security.md`](claude-app-finops-reliability-and-security.md)).
+> **Claude Mythos 5** — a sibling SKU on the same underlying model as Fable 5 with some safeguards lifted; listed for lineup-completeness only, **not recommended and not a default for any workload here** (route to Fable 5 / Opus 4.8 instead).
+
+**Right-size, don't default to the top (house opinion #3).** Use a routing ladder: a cheap model (Haiku) triages / classifies, escalate-on-uncertainty to Sonnet, reserve **Opus 4.8** for the hard tail — and **Fable 5 only for the genuinely hard *long-horizon autonomous* tail, since it is 2× Opus 4.8**; it is not the new default. Track **cost-per-resolved-task + cache hit rate**, not raw token count ([`claude-app-finops-reliability-and-security.md`](claude-app-finops-reliability-and-security.md)).
 
 ## Capability status (dated — verify before quoting)
 
-| Capability | Status (2026-05-28) |
+| Capability | Status (dated) |
 |---|---|
+| **Fable 5 / Mythos 5** (Mythos-class; `claude-fable-5`) | **GA 2026-06-09** — Anthropic Pro/Max/Team/Enterprise, **AWS Bedrock**, **GitHub Copilot**. Microsoft Foundry: **announced** (Azure blog) but the Foundry Learn model table still lists only the gated `claude-mythos-preview` as of 2026-06-10 — re-verify. Mythos 5 = safeguards-lifted sibling, not recommended here. `[verify-at-use]` |
 | Messages API, streaming, tool use, vision/PDF | GA |
 | **Prompt caching** (5-min + 1-hour TTL; workspace-isolated since Feb 2026) | GA — see [`prompt-caching-playbook.md`](prompt-caching-playbook.md) |
 | Structured output via tools | GA |
 | **Adaptive thinking** (Sonnet 4.6; `budget_tokens` deprecated on 4.6) | current — verify the exact param name in live docs |
-| **1M-token context** (Opus 4.7, Sonnet 4.6) | GA |
+| **1M-token context** (Opus 4.8, 4.7, Sonnet 4.6) | GA |
+| **Dynamic Workflows** (orchestrate hundreds of parallel subagents) | **research preview** (2026-05-28, with Opus 4.8) — verify scope in live docs |
+| **Reasoning-effort control** (per-response effort level, Opus 4.8) | available (2026-05-28) — verify exact param name in live docs |
 | Context editing / compaction | available — verify scope |
 | **Batch API** (50% discount, async ~24h) | GA |
 | Batch `output-300k-2026-03-24` beta header (max_tokens → 300k on Opus 4.7/4.6 + Sonnet 4.6) | **beta** — keep the header string verified |
@@ -38,3 +45,5 @@
 
 ## How to keep this current
 On each Researcher sweep: re-run a `platform.claude.com` release-notes + `code.claude.com` changelog check; re-date this file; correct any status that changed; bump the plugin patch version if a *default* changes (e.g., a new flagship model, a GA flip, a pricing-multiplier change). Numeric claims (cache minimums, pricing multipliers, batch limits) live **here**, not baked into the six agent personas — one file refreshes, not six.
+
+**When the source 403s automated fetch (`anthropic.com` and `github.blog` routinely do):** a `WebFetch` 403 is a *re-route signal, not a dead-end* — follow the route ladder in [`../../ravenclaude-core/skills/webfetch-hardening/SKILL.md`](../../ravenclaude-core/skills/webfetch-hardening/SKILL.md) § "the 403 / refusal route ladder": **`WebSearch` the page (it reads the blocked content), then the domain MCP (Microsoft-Learn for Foundry/Azure, GitHub MCP for repo primaries), then a non-blocked host (`raw.githubusercontent.com`), and cross-reference secondaries only last.** Wayback and UA/header spoofing are unavailable in this harness. **Fable 5 was a same-day-of-review miss (2026-06-09) caught on the next sweep** — re-run the source checks even when the `Last reviewed` stamp looks fresh.

@@ -1,8 +1,10 @@
 ---
 name: partner-success-manager
-description: Use this agent for any Partner Success Manager work — maintaining partner profiles, success plans, QBRs, health scores, onboarding checklists, touchpoint logs, and the team's growing AI workflow library. Domain-neutral; PSM patterns apply across SaaS / EdTech / fintech / GovTech. Spawn proactively at QBR prep time (1 week before), when a partner has been silent >30 days, when a health score dips, or when a useful AI pattern surfaces and should be captured. Do NOT use for project management (project-manager agent), system design (architect), or end-customer success.
+description: "Use this agent for any Partner Success Manager work — maintaining partner profiles, success plans, QBRs, health scores, onboarding checklists, touchpoint logs, and the team's growing AI workflow library. Domain-neutral; PSM patterns apply across SaaS / EdTech / fintech / GovTech."
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
+maxTurns: 40
+effort: normal
 audience: [psm, consultant]
 works_with: [project-manager, documentarian, deep-researcher]
 scenarios:

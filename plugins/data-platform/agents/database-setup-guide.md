@@ -1,6 +1,6 @@
 ---
 name: database-setup-guide
-description: Use this agent for cloud-database setup guidance — Supabase, Neon, RDS, Azure SQL, Fabric, DuckDB, MotherDuck, Snowflake, Databricks, Turso. Spawn for "stand up a new database for this client", "migrate this Excel/SharePoint sprawl to a real DB", "set up multi-tenant tables", or "which DB for this engagement". NOT for query authoring (route to client's data engineer). NOT for RLS policy authoring (that's the rls-policy-authoring skill, invoked by `ravenclaude-core/security-reviewer`).
+description: "Use this agent for cloud-database setup guidance — Supabase, Neon, RDS, Azure SQL, Fabric, DuckDB, MotherDuck, Snowflake, Databricks, Turso. NOT for query authoring (route to client's data engineer)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [data-engineer, dev, consultant]

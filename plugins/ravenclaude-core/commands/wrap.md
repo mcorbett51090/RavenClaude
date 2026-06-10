@@ -25,6 +25,21 @@ scope: <one-of>                          # tenant-specific | version-specific | 
 tags: [tag1, tag2, ...]                  # 3-7 short keywords
 confidence: <low | medium | high>        # how sure the contributor is the resolution is right
 reviewed: false                          # always false for fresh scenarios; flips to true on promotion
+
+# --- run_context (additive, OPTIONAL, backward-compatible) -----------------
+# A MINIMAL, SAFE machine-captured bundle attached by `/wrap` (Step 3b). Captured
+# by scripts/capture-run-context.py from a FIXED safe allowlist ONLY. It NEVER
+# carries an environment NAME (active_env / role / tenant / auth_mechanism_name) —
+# those are structurally never captured (R-PRIV), because scenario files ship to
+# every installer. The whole block is optional; older scenarios omit it and read
+# unchanged.
+run_context:
+  model: <model-id-or-omitted>           # the contributing session's model
+  plugin_versions:                       # {plugin: version} from each plugin.json
+    ravenclaude-core: <semver>
+  posture_label: <open|default|balanced|strict|unknown>  # DERIVED preset label, not raw YAML
+  capture_method: <auto|degraded>        # degraded => a source was absent (field(s) omitted)
+  load_bearing: [<field>, ...]           # contributor-confirmed: which captured fields drove the fix
 ---
 
 ## Problem
@@ -99,6 +114,39 @@ Even with strong context, confirm these explicitly. Ask all 4 in **one** AskUser
 4. **Is there any client-identifying information in the draft I'm about to write?** (If yes, you'll scrub it in Step 4.)
    - no / yes-let-me-redact
 
+### Step 3b — Capture + confirm the run-context bundle (additive, low-friction)
+
+After the 4 questions, attach a **minimal, safe `run_context` bundle** to the scenario so a future reader (and `scenario-retrieval`) has the few output-shaping variables that decide whether the lesson generalizes — instead of relying on the contributor's cold `scope` guess.
+
+1. **Auto-capture (silent).** Run the bundler against the marketplace repo:
+
+   ```bash
+   python3 "$MARKETPLACE_DIR/scripts/capture-run-context.py" --project-root "$MARKETPLACE_DIR" --model "<this session's model id>"
+   ```
+
+   It reads ONLY a fixed safe allowlist — `model`, `plugin_versions`, a **derived** `posture_label` (open/default/balanced/strict/unknown — a label, *not* the raw posture YAML), and `capture_method`. It **never** reads `environment-context.md` or any env / role / tenant / auth source — that exclusion is structural (R-PRIV), because the scenario file ships to every installer and an env *name* is itself a sensitive token. A missing source → that field is omitted and `capture_method: degraded`; the bundler never crashes. If it returns `capture_method: degraded`, just note that and continue — a partial bundle still beats none.
+
+2. **Show the bundle, don't re-ask it.** Surface the captured block to the user (read-only), then ask **one** `load_bearing` multi-select (pre-checked by your best guess):
+
+   > "I captured this run context for the scenario — which of these were **load-bearing** for the fix?"
+   > - [ ] `model` — the lesson is specific to this model's behavior
+   > - [ ] `plugin_versions` — the lesson depends on a plugin version in play
+   > - [ ] `posture_label` — the guardrail posture shaped what happened
+
+   The selected fields are written into `run_context.load_bearing`. This is the only new round-trip — everything else is auto-filled.
+
+3. **Derive `scope` ONLY for the two machine-derivable cases; leave `tenant-specific` to the human (FM5).**
+
+   | Derived scope | When to propose it (from the bundle) |
+   |---|---|
+   | `version-specific` | `product_version` is pinned (not `unknown`) AND `plugin_versions` is load-bearing AND the resolution references version-specific behavior. |
+   | `likely-general` | No version pinned, nothing tenant-shaped in the body, and the load-bearing set is empty or model/posture-only. |
+   | `tenant-specific` | **NOT auto-derived.** Env identifiers are banned from the bundle (R-PRIV), so the bundle cannot evidence a tenant. This stays the **human-asserted** choice from Step 3 question 2 — if the contributor said `tenant-specific`, keep it; the lesson must carry a *non-identifying* qualifier in the body (e.g. "only for orgs using product X with permission model Y") for retrieval to match on. |
+
+   When you derive `version-specific` or `likely-general`, **show the one-line derivation** ("proposed *version-specific* because the version is pinned and you marked plugin_versions load-bearing") and let the contributor override. The override is now *informed by* the captured variables, not a cold guess.
+
+4. **Embed** the resulting `run_context` block into the scenario's YAML frontmatter (Step 4 / Step 5). It is additive and optional — never block the write on it; if capture failed entirely, omit the block and write the scenario exactly as before.
+
 ## Step 4 — Draft the scenario + scrub
 
 Draft the full file using the schema in this command's header. Auto-fill what you can from session context; leave `unknown` for what you can't determine.
@@ -147,7 +195,7 @@ Scope: <scope-value>
 Confidence: <confidence-value>
 Scrub: applied (no client PII, no secrets)
 
-Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
 
 If **yes** (push too):

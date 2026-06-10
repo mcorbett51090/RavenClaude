@@ -1,0 +1,4 @@
+{
+  "surface": "web",
+  "lighthouse": "tests/fixtures/visual-feedback-loop/lighthouse-low.json"
+}

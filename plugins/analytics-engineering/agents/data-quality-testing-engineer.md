@@ -1,6 +1,6 @@
 ---
 name: data-quality-testing-engineer
-description: "Use for transform-layer data quality: dbt tests (not_null/unique/accepted_values/relationships), source-freshness gating, model contracts at consumer boundaries, singular/custom tests for business invariants, and anomaly detection (row-count/distribution shifts). Gates the warehouse in CI and production; routes statistical-significance questions to applied-statistics and CI wiring to devops-cicd."
+description: "Use for transform-layer data quality: dbt tests (not_null/unique/accepted_values/relationships), source-freshness gating, model contracts at consumer boundaries, custom tests for business invariants, anomaly detection. Gates the warehouse in CI. Stats → applied-statistics; CI wiring → devops-cicd."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev, consultant]

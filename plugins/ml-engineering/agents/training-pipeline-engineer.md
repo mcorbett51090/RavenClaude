@@ -1,6 +1,6 @@
 ---
 name: training-pipeline-engineer
-description: "Use for reproducible training: pipelines (prep->train->evaluate->register), experiment tracking, a model registry, feature stores / shared transforms for train-serve consistency, leakage-free time-aware validation, and budgeted hyperparameter tuning. Routes data pipelines to data-platform, serving to model-serving-engineer, and significance to applied-statistics."
+description: "Use for reproducible training: pipelines (prep->train->evaluate->register), experiment tracking, a model registry, feature stores / shared transforms for train-serve consistency, leakage-free time-aware validation, and budgeted hyperparameter tuning."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

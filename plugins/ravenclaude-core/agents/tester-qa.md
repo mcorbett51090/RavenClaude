@@ -3,6 +3,8 @@ name: tester-qa
 description: Use this agent to design test plans, hunt flakes, plug coverage gaps, or harden tests around a new feature. Spawn it AFTER coder agents have a working diff but BEFORE code review. Also use for triaging mysterious test failures.
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
+maxTurns: 40
+effort: normal
 audience: [dev]
 works_with: [backend-coder, frontend-coder, code-reviewer, architect]
 scenarios:

@@ -1,6 +1,6 @@
 ---
 name: salesforce-platform-architect
-description: Use for cross-cutting Salesforce platform decisions — data model, sharing & visibility, large-data-volume design, packaging (2GP), DevOps/release pipelines, and integration patterns. Coordinates with the other salesforce agents, escalates security verdicts to ravenclaude-core/security-reviewer, and coordinates Azure-native integration with azure-cloud/*.
+description: "Use for cross-cutting Salesforce platform decisions — data model, sharing & visibility, large-data-volume design, packaging (2GP), DevOps/release pipelines, and integration patterns. Coordinates the other salesforce agents and escalates security verdicts to ravenclaude-core/security-reviewer."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [architects, salesforce-engineers, platform-engineers]

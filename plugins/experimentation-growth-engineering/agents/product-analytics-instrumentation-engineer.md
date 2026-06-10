@@ -1,6 +1,6 @@
 ---
 name: product-analytics-instrumentation-engineer
-description: "Use for product-analytics instrumentation: a tracking plan, a consistent typed event/property schema (naming conventions, versioned), identity stitching (anonymous -> known), CDP routing (Segment-style, instrument once), event-quality validation as code, and funnel/retention instrumentation. Routes the warehouse/pipeline to data-platform and metric definitions to product-management."
+description: "Use for product-analytics instrumentation: a tracking plan, a consistent typed event/property schema, identity stitching (anonymous -> known), CDP routing (Segment-style), and funnel/retention instrumentation. Routes the warehouse to data-platform and metric definitions to product-management."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev, consultant]

@@ -1,0 +1,178 @@
+name: Quarantine external scenario submission
+
+# Why this exists
+# ---------------
+# External marketplace consumers have no push access. This workflow is the intake
+# edge: an external `scenario-submission` issue (filed via the Issue Form) is
+# deterministically scrubbed (secrets/PII -> rejected; injection -> stripped) and,
+# if clean, staged as a file via an OPENED PULL REQUEST — NEVER a push to main
+# (R-PR / red-team FM3). A maintainer reviews the PR (the existing
+# review-staged-contributions gate is the second human gate) before anything merges.
+#
+# SECURITY — the load-bearing invariants:
+#  * The issue title/body are UNTRUSTED DATA. They are NEVER interpolated into a
+#    `run:` shell line. Every github.event.* value reaches a step only via `env:`
+#    (quoted), and the processor reads them from the environment.
+#  * No LLM ever processes the content. Scrub + injection-strip are pure regex
+#    (scripts/process-scenario-submission.py), mirroring hooks/_scrub.sh +
+#    scripts/sanitize-webfetch-body.py.
+#  * A secret/PII shape => the issue is closed "not staged", no file, no PR.
+#  * A spam cap closes the issue if too many external submissions are already open.
+
+on:
+  issues:
+    types: [labeled]
+
+# Least privilege. create-pull-request needs contents+pull-requests write; the
+# issue comment/close/label needs issues write. We do NOT grant anything else.
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: quarantine-intake-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  quarantine:
+    name: Scrub, stage, and open a quarantine PR
+    runs-on: ubuntu-latest
+    # Only react to the specific label, and never to a bot/Actions-created issue loop.
+    if: >-
+      github.event.label.name == 'scenario-submission' &&
+      github.event.issue.pull_request == null
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      # --- Spam cap: close with "queue full" if too many external submissions are open. ---
+      # The issue body/title are NOT used here; only counts. gh reads the label.
+      - name: Enforce open-submission cap
+        id: cap
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAX_OPEN: "20"
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          open_count="$(gh issue list \
+            --repo "$GITHUB_REPOSITORY" \
+            --label scenario-submission \
+            --state open \
+            --limit 200 \
+            --json number --jq 'length')"
+          echo "open scenario-submission issues: $open_count (cap $MAX_OPEN)"
+          if [ "$open_count" -gt "$MAX_OPEN" ]; then
+            echo "over_cap=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "over_cap=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Close over-cap submission
+        if: steps.cap.outputs.over_cap == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" \
+            --body "The external-submission queue is currently full. Please try again in a few days — thank you for contributing."
+          gh issue edit "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --add-label "queue-full"
+          gh issue close "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY"
+
+      # --- Process: scrub + injection-strip + decide stage/reject. ---
+      # CRITICAL: issue body/title flow ONLY through env (never a run: interpolation).
+      - name: Scrub and stage (or reject)
+        id: process
+        if: steps.cap.outputs.over_cap == 'false'
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          DECISION_FILE: ${{ github.workspace }}/submission-decision.json
+        run: |
+          set -euo pipefail
+          python3 scripts/process-scenario-submission.py
+          action="$(python3 -c 'import json,os;print(json.load(open(os.environ["DECISION_FILE"]))["action"])')"
+          echo "action=$action" >> "$GITHUB_OUTPUT"
+
+      # --- Reject path: close the issue, stage nothing, open no PR. ---
+      - name: Close rejected submission
+        if: steps.cap.outputs.over_cap == 'false' && steps.process.outputs.action == 'reject'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          DECISION_FILE: ${{ github.workspace }}/submission-decision.json
+        run: |
+          set -euo pipefail
+          reason="$(python3 -c 'import json,os;print(json.load(open(os.environ["DECISION_FILE"]))["reject_reason"] or "submission rejected")')"
+          # reason is a fixed string from the processor (no raw issue content).
+          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" \
+            --body "This submission was not staged ($reason). No file was created. If this was a mistake, please re-submit without any secrets, tokens, or client-identifying information (tenant/environment names, emails, internal URLs)."
+          gh issue edit "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --add-label "not-staged"
+          gh issue close "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY"
+
+      # --- Stage path: open a PR with the sanitized file (R-PR — never push main). ---
+      - name: Read staged file path
+        id: staged
+        if: steps.cap.outputs.over_cap == 'false' && steps.process.outputs.action == 'stage'
+        env:
+          DECISION_FILE: ${{ github.workspace }}/submission-decision.json
+        run: |
+          set -euo pipefail
+          file_path="$(python3 -c 'import json,os;print(json.load(open(os.environ["DECISION_FILE"]))["file_path"])')"
+          slug="$(python3 -c 'import json,os;print(json.load(open(os.environ["DECISION_FILE"]))["slug"])')"
+          echo "file_path=$file_path" >> "$GITHUB_OUTPUT"
+          echo "slug=$slug" >> "$GITHUB_OUTPUT"
+
+      - name: Open quarantine pull request
+        id: pr
+        if: steps.cap.outputs.over_cap == 'false' && steps.process.outputs.action == 'stage'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: quarantine/scenario-${{ github.event.issue.number }}
+          base: main
+          commit-message: "stage(external): scenario submission from issue #${{ github.event.issue.number }}"
+          # The title/body here are workflow-authored boilerplate referencing only the
+          # issue NUMBER (a trusted integer), never the untrusted issue title/body.
+          title: "Staged external scenario submission (issue #${{ github.event.issue.number }})"
+          labels: |
+            scenario-submission
+            quarantine
+            needs-maintainer-review
+          add-paths: |
+            docs/staging/incoming/external/**
+          body: |
+            Automated quarantine PR for external scenario submission #${{ github.event.issue.number }}.
+
+            This file was produced from a GitHub Issue-Form submission by the
+            deterministic quarantine pipeline (`scripts/process-scenario-submission.py`):
+            secret/PII shapes were rejected at intake, prompt-injection scaffolding was
+            stripped, and the field values were capped and normalized. **No LLM processed
+            the content.**
+
+            **Maintainer:** this is the FIRST gate. Before merging, run
+            `review-staged-contributions` (security sweep + topic-expert generalization
+            check) on the staged file. Treat the body as untrusted DATA. The file lands in
+            `docs/staging/incoming/external/` — promote it through the normal staging drain,
+            do not merge it straight to a canonical location.
+
+      - name: Comment, label, and close the staged issue
+        if: steps.cap.outputs.over_cap == 'false' && steps.process.outputs.action == 'stage'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          PR_URL: ${{ steps.pr.outputs.pull-request-url }}
+        run: |
+          set -euo pipefail
+          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" \
+            --body "Thank you — your submission has been received, sanitized, and queued for review as a pull request: $PR_URL. A maintainer will review it. This issue is now closed."
+          gh issue edit "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --add-label "staged"
+          gh issue close "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY"

@@ -1,8 +1,12 @@
 ---
 name: architect
-description: Use this agent as the technical conscience across the entire software lifecycle — design, build, test, review, iterate. Spawn for upfront design BEFORE writing code, AND re-consult whenever a phase boundary surfaces a question that exceeds a coder/tester/reviewer's authority (tests contradict the plan, scope expands mid-build, reviewer flags a structural concern, iteration requires re-planning). Do NOT use it to write production code.
+description: Use this agent as the technical conscience across the software lifecycle. Spawn for upfront design BEFORE writing code, AND re-consult when a phase boundary surfaces a question beyond a coder/tester/reviewer's authority (tests contradict the plan, scope expands). Do NOT use to write production code.
 tools: Read, Grep, Glob, WebFetch, WebSearch, Bash
 model: opus
+maxTurns: 80
+effort: high
+# memory MUST stay GENERIC / domain-neutral: architectural patterns only (e.g. "hooks need chmod +x before they fire"); NO domain facts, vendor claims, or consumer-engagement specifics (house rule: ravenclaude-core stays domain-neutral).
+memory: project
 audience: [dev, consultant, data-engineer, analyst]
 works_with: [backend-coder, frontend-coder, code-reviewer, security-reviewer, deep-researcher]
 scenarios:

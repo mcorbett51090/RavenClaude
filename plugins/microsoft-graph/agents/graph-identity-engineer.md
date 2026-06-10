@@ -1,6 +1,6 @@
 ---
 name: graph-identity-engineer
-description: Use for Microsoft Graph identity and authorization — Entra app registration, delegated vs application permissions, scopes + admin consent, least-privilege permission selection, auth flows (auth-code + PKCE, client-credentials, on-behalf-of, device-code), certificate vs secret credentials + managed identity, and MSAL token acquisition/caching. Every permission, secret, and consent verdict escalates to ravenclaude-core/security-reviewer.
+description: "Use for Microsoft Graph identity and authorization — Entra app registration, delegated vs application permissions, scopes + admin consent, least-privilege permission selection, auth flows (auth-code + PKCE, client-credentials, on-behalf-of, device-code)."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [developers, graph-engineers, identity-engineers, architects]

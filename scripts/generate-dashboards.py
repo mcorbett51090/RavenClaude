@@ -518,6 +518,14 @@ _PIPELINE_LANES = [
                            "Pauses if it loops, or if it passes your step limit."],
                  "trip": "Pauses the robot so it can't run away with your time or money.",
                  "set": "Turn the brake off, or set the two limits, in the boxes below."}},
+            {"id": "parallel-workers", "title": "Parallel workers", "badge": "dynamic", "controls": "parallelism",
+             "tip": "Lets the robot split a job across several helpers at once — and caps how many run together.",
+             "detail": {
+                 "steps": ["Watches when the robot wants to fan work out to helpers (subagents / worktrees).",
+                           "If parallel workers are allowed, lets several run side by side.",
+                           "Caps how many run at once to your limit."],
+                 "trip": "When off, helpers run one at a time; when on, up to your worker limit run together.",
+                 "set": "Turn parallel workers on and set the most-at-once limit in the boxes below."}},
             {"id": "enforce-layout", "title": "Folder & task limits", "badge": "dynamic", "controls": "files",
              "tip": "Makes sure new files go in the right folders, and that the robot only touches the files this task is allowed to.",
              "detail": {
@@ -617,6 +625,16 @@ _PIPELINE_CONTROLS = {
         '<input type="number" id="pipe-runaway-total" min="1" step="1"></label>'
         '<label class="pipe-ctl">Most identical tries in a row '
         '<input type="number" id="pipe-runaway-consec" min="1" step="1"></label>'
+    ),
+    "parallelism": (
+        '<label class="pipe-ctl"><input type="checkbox" id="pipe-parallelism-enabled"> '
+        "Allow parallel workers</label>"
+        '<label class="pipe-ctl"><input type="checkbox" id="pipe-parallelism-unlimited"> '
+        "No limit (unlimited workers)</label>"
+        '<label class="pipe-ctl">Most workers at once '
+        '<input type="number" id="pipe-parallelism-workers" min="1" step="1"></label>'
+        '<p class="pipe-hint">When on, fan-out work (subagents / worktrees) may run in parallel. '
+        "Tick “No limit” for unlimited workers, or set a cap. Off keeps the work sequential.</p>"
     ),
     "decision": (
         '<label class="pipe-ctl">Mode '
@@ -1021,22 +1039,33 @@ def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> s
         f"{c['title']} {c['summary']} {c['body_md']}".lower(), quote=True
     )
 
+    # The card is a native <details> (collapsed by default). The <summary> carries
+    # the title + kind badge + one-line deck so the collapsed row is informative;
+    # everything else (diagram well, stepper, body, widget, try-it, see-also,
+    # sources) lives in the body and is present in the DOM even while closed — so
+    # initConceptSteppers() / node-link binding still find their targets. The
+    # `.concept-card` class + id + data-* are kept so every existing CSS selector
+    # and the search/deep-link JS continue to match.
     return (
-        f'<article class="concept-card" id="learn-{html.escape(c["id"])}" '
-        f'data-concept="{html.escape(c["id"])}" data-search="{search_blob}" tabindex="-1">'
+        f'<details class="concept-card" id="learn-{html.escape(c["id"])}" '
+        f'data-concept="{html.escape(c["id"])}" data-search="{search_blob}">'
+        f'<summary class="concept-card-summary">'
         f'<div class="concept-eyebrow">{html.escape(c["category"])}</div>'
         f'<div class="concept-head">'
         f'<h3 class="concept-title">{html.escape(c["title"])}</h3>'
         f'<span class="concept-badge {badge_cls}">{badge_icon}{html.escape(badge_label)}</span>'
         f"</div>"
         f'<p class="concept-deck">{html.escape(c["summary"])}</p>'
+        f"</summary>"
+        f'<div class="concept-card-body">'
         f"{well}{stepper}"
         f'<div class="concept-body">{_md_to_html(c["body_md"])}</div>'
         f'{_CONCEPT_WIDGETS.get(c.get("widget") or "", "")}'
         f'{_try_it_html(c.get("try_it"))}'
         f"{see_also_block}"
         f'<div class="concept-sources-row">{sources}{verified}</div>'
-        f"</article>"
+        f"</div>"
+        f"</details>"
     )
 
 
@@ -1083,7 +1112,7 @@ def _render_learn_tab(plugin_dir: Path) -> str:
         for cat in order:
             cards = "".join(_render_concept_card(plugin_dir, c, titles) for c in groups[cat])
             out.append(
-                f'<details class="concept-cat" open>'
+                f'<details class="concept-cat">'
                 f'<summary class="concept-cat-head">'
                 f'<span class="concept-cat-name">{html.escape(cat)}</span>'
                 f'<span class="concept-cat-count">{len(groups[cat])}</span></summary>'
@@ -1115,8 +1144,8 @@ def _render_learn_tab(plugin_dir: Path) -> str:
         'autocomplete="off" spellcheck="false">'
         f'<span class="learn-count" id="learn-count">{len(concepts)} concepts</span>'
         '<span class="learn-toolbar-spacer"></span>'
-        '<button type="button" class="learn-linkbtn" id="learn-expand">Expand all</button>'
-        '<button type="button" class="learn-linkbtn" id="learn-collapse">Collapse all</button>'
+        '<button type="button" class="learn-linkbtn" id="learn-collapse" '
+        'aria-pressed="false">Expand all</button>'
         "</div>"
         '<div class="learn-legend" aria-hidden="true">'
         '<span class="learn-legend-item"><span class="learn-swatch fact"></span>How agentic AI works</span>'
@@ -1514,7 +1543,11 @@ def _decision_trees_inventory() -> list[dict]:
     return out
 
 
-_MD_LINK_RE = _re.compile(r"\[([^\]]+)\]\([^)]*\)")
+# Link-STRIP regex (1 group) for flattening [text](url) -> text. Distinct name from
+# the 2-group _MD_LINK_RE (defined earlier, used by _md_to_html) — a shared name made
+# this shadow that one at module scope, breaking _md_to_html's m.group(2) on any concept
+# body containing an inline markdown link.
+_MD_LINK_STRIP_RE = _re.compile(r"\[([^\]]+)\]\([^)]*\)")
 
 
 def _bp_preview(text: str) -> str:
@@ -1534,7 +1567,7 @@ def _bp_preview(text: str) -> str:
                 continue
             body = s
             break
-    body = _MD_LINK_RE.sub(r"\1", " ".join(body.split()))
+    body = _MD_LINK_STRIP_RE.sub(r"\1", " ".join(body.split()))
     return body[:280] + ("…" if len(body) > 280 else "")
 
 
@@ -2002,16 +2035,16 @@ def _render_command_review_block() -> str:
 
 # Per-seat model choices offered by the dashboard's command-review panel section.
 _THING_MODEL_CHOICES = [
-    ("claude-opus-4-7", "Opus 4.7 — most capable"),
+    ("claude-opus-4-8", "Opus 4.8 — most capable"),
     ("claude-sonnet-4-6", "Sonnet 4.6 — balanced"),
     ("claude-haiku-4-5", "Haiku 4.5 — fast / cheap"),
 ]
 # (seat key, display label, default model) — mirrors thing-decision.py defaults.
 _THING_SEAT_META = [
-    ("forseti", "Forseti — Security", "claude-opus-4-7"),
+    ("forseti", "Forseti — Security", "claude-opus-4-8"),
     ("mimir", "Mímir — Correctness", "claude-haiku-4-5"),
     ("heimdall", "Heimdall — Injection watch", "claude-haiku-4-5"),
-    ("thor", "Thor — Tie-breaker", "claude-opus-4-7"),
+    ("thor", "Thor — Tie-breaker", "claude-opus-4-8"),
 ]
 
 # gate_floor headline control — enum medium | high | extreme, default high.
@@ -4969,13 +5002,31 @@ footer.page-footer a:hover { text-decoration: underline; }
 
 .concept-card {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--rc-radius-lg); padding: 18px 20px; scroll-margin-top: 16px;
+  border-radius: var(--rc-radius-lg); scroll-margin-top: 16px;
   box-shadow: var(--rc-shadow-sm);
-  transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  transition: box-shadow 0.18s ease, border-color 0.18s ease;
 }
-.concept-card:hover { box-shadow: var(--rc-shadow-md); transform: translateY(-2px); }
+.concept-card:hover { box-shadow: var(--rc-shadow-md); }
+.concept-card[open] { box-shadow: var(--rc-shadow-md); }
 .concept-card[hidden] { display: none; }
-.concept-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* The card itself is now a native <details>; the summary carries the
+   title + badge + one-line deck and is the click/keyboard target, the body
+   holds the diagram/stepper/prose and stays in the DOM while collapsed. */
+.concept-card-summary {
+  display: block; cursor: pointer; padding: 18px 20px; list-style: none;
+  position: relative; user-select: none; border-radius: var(--rc-radius-lg);
+}
+.concept-card-summary::-webkit-details-marker { display: none; }
+.concept-card-summary::after {
+  content: "\\25B8"; color: var(--accent); font-size: 12px;
+  position: absolute; top: 20px; right: 18px;
+  transition: transform 0.12s ease;
+}
+.concept-card[open] > .concept-card-summary::after { transform: rotate(90deg); }
+.concept-card-summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.concept-card-summary .concept-deck { margin-bottom: 0; padding-right: 18px; }
+.concept-card-summary .concept-head { padding-right: 18px; }
+.concept-card-body { padding: 0 20px 18px; }
 .concept-eyebrow {
   text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;
   color: var(--muted); margin-bottom: 4px;
@@ -5106,6 +5157,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 @media (prefers-reduced-motion: reduce) {
   .concept-card.rc-flash { animation: none; }
   .concept-cat-head::before { transition: none; }
+  .concept-card-summary::after { transition: none; }
 }
 
 /* ── Mobile touch-target fixes ─────────────────────────────── */
@@ -6476,10 +6528,10 @@ _JS = r"""
      * false = all per-category reviews are paused (thing values preserved, not cleared).
      * Absent in storage / YAML ⇒ true (enabled). We only persist/emit when false. */
     enabled: true,
-    forseti: "claude-opus-4-7",
+    forseti: "claude-opus-4-8",
     mimir: "claude-haiku-4-5",
     heimdall: "claude-haiku-4-5",
-    thor: "claude-opus-4-7",
+    thor: "claude-opus-4-8",
     confidence_threshold: 0.5,
     gate_floor: "high",
     /* Dev-repo lockout fix (v0.60.0): when true (and the gh-owner + marketplace.json
@@ -6488,7 +6540,7 @@ _JS = r"""
     dev_repo_exempt: false,
   });
   const CR_SEATS = ["forseti", "mimir", "heimdall", "thor"];
-  const CR_MODELS = ["claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5"];
+  const CR_MODELS = ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"];
 
   /* gate_floor headline control — enum medium | high | extreme, default high. */
   const GATE_FLOORS = ["medium", "high", "extreme"];
@@ -6498,6 +6550,7 @@ _JS = r"""
    * user changed it — preserving "absent ⇒ default" so a consumer's untouched
    * posture is never bloated and nothing changes on /plugin marketplace update. */
   const RUNAWAY_DEFAULT = Object.freeze({ max_total: 1200, max_consecutive: 8, off: false });
+  const PARALLELISM_DEFAULT = Object.freeze({ enabled: false, max_workers: 4, unlimited: false });
   const DOD_DEFAULT = Object.freeze({ cmd: "", max_blocks: 8 });
   const DECISION_REVIEW_VALUES = ["off", "advisory", "binding"];
   const DECISION_REVIEW_DEFAULT = "off";
@@ -6572,6 +6625,7 @@ _JS = r"""
     /* Pipeline-stage guardrails (model-free hooks). Cloned from the *_DEFAULT
      * constants; emitYaml writes each block only when it differs from default. */
     runaway: Object.assign({}, RUNAWAY_DEFAULT),
+    parallelism: Object.assign({}, PARALLELISM_DEFAULT),
     decision_review: DECISION_REVIEW_DEFAULT,
     orchestrator: ORCHESTRATOR_DEFAULT,
     definition_of_done: Object.assign({}, DOD_DEFAULT),
@@ -6932,6 +6986,19 @@ _JS = r"""
       /* scalar `runaway: off` form (YAML `off` parses to boolean false) */
       state.runaway.off = true; touched = true;
     }
+    const pl = src.parallelism;
+    if (pl && typeof pl === "object") {
+      if (typeof pl.enabled === "boolean") { state.parallelism.enabled = pl.enabled; touched = true; }
+      if (pl.max_workers === "unlimited" || pl.unlimited === true) {
+        state.parallelism.unlimited = true; touched = true;
+      } else {
+        const mw = parseInt(pl.max_workers, 10);
+        if (Number.isFinite(mw) && mw > 0) { state.parallelism.max_workers = mw; state.parallelism.unlimited = false; touched = true; }
+      }
+    } else if (pl === true || pl === "on") {
+      /* scalar `parallelism: on` form (YAML `on` parses to boolean true) */
+      state.parallelism.enabled = true; touched = true;
+    }
     if (DECISION_REVIEW_VALUES.includes(src.decision_review)) {
       state.decision_review = src.decision_review; touched = true;
     }
@@ -7043,6 +7110,15 @@ _JS = r"""
       lines.push("");
     }
 
+    const pl = state.parallelism;
+    if (pl.enabled === true || pl.unlimited === true || pl.max_workers !== PARALLELISM_DEFAULT.max_workers) {
+      lines.push("# Parallelism — allow fan-out workers (subagents / worktrees); cap how many run at once.");
+      lines.push("parallelism:");
+      lines.push(`  enabled: ${pl.enabled === true}`);
+      lines.push(`  max_workers: ${pl.unlimited === true ? "unlimited" : pl.max_workers}`);
+      lines.push("");
+    }
+
     if (DECISION_REVIEW_VALUES.includes(state.decision_review)
         && state.decision_review !== DECISION_REVIEW_DEFAULT) {
       lines.push("# Yes/no decision routing through the tribunal (off | advisory | binding).");
@@ -7115,6 +7191,7 @@ _JS = r"""
         design_checkins: state.design_checkins,
         command_review: state.command_review,
         runaway: state.runaway,
+        parallelism: state.parallelism,
         decision_review: state.decision_review,
         orchestrator: state.orchestrator,
         definition_of_done: state.definition_of_done,
@@ -8154,7 +8231,9 @@ _JS = r"""
   function openConcept(id) {
     const card = document.getElementById("learn-" + id);
     if (!card) return;
-    let el = card.parentElement;
+    // The card is itself a <details> now — open it AND every <details> ancestor
+    // (its category) so the deep-linked concept is fully visible.
+    let el = card;
     while (el) {
       if (el.tagName === "DETAILS") el.open = true;
       el = el.parentElement;
@@ -8551,6 +8630,17 @@ _JS = r"""
     if (rc) rc.value = state.runaway.max_consecutive;
     pipeBadge("runaway-brake", state.runaway.off ? "Off" : ("On · " + state.runaway.max_total + " steps"),
               state.runaway.off ? "pipe-badge-off" : "pipe-badge-on");
+    const pe = document.getElementById("pipe-parallelism-enabled");
+    if (pe) pe.checked = state.parallelism.enabled === true;
+    const pu = document.getElementById("pipe-parallelism-unlimited");
+    if (pu) pu.checked = state.parallelism.unlimited === true;
+    const pw = document.getElementById("pipe-parallelism-workers");
+    if (pw) { pw.value = state.parallelism.max_workers; pw.disabled = state.parallelism.unlimited === true; }
+    pipeBadge("parallel-workers",
+              state.parallelism.enabled
+                ? (state.parallelism.unlimited ? "On · unlimited" : ("On · " + state.parallelism.max_workers + " workers"))
+                : "Off",
+              state.parallelism.enabled ? "pipe-badge-on" : "pipe-badge-off");
     const dr = document.getElementById("pipe-decision-review");
     if (dr) dr.value = state.decision_review;
     pipeBadge("route-decision-review", state.decision_review,
@@ -8630,6 +8720,9 @@ _JS = r"""
     onChange("pipe-runaway-off", el => { state.runaway.off = el.checked; });
     onInput("pipe-runaway-total", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.runaway.max_total = v; });
     onInput("pipe-runaway-consec", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.runaway.max_consecutive = v; });
+    onChange("pipe-parallelism-enabled", el => { state.parallelism.enabled = el.checked; });
+    onChange("pipe-parallelism-unlimited", el => { state.parallelism.unlimited = el.checked; });
+    onInput("pipe-parallelism-workers", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.parallelism.max_workers = v; });
     onChange("pipe-decision-review", el => { if (DECISION_REVIEW_VALUES.includes(el.value)) state.decision_review = el.value; });
     onChange("pipe-orchestrator", el => { if (ORCHESTRATOR_VALUES.includes(el.value)) state.orchestrator = el.value; });
     onInput("pipe-dod-cmd", el => { state.definition_of_done.cmd = el.value; });
@@ -10300,12 +10393,17 @@ _JS = r"""
       cards.forEach(card => {
         const hit = !q || (card.dataset.search || "").indexOf(q) !== -1;
         card.hidden = !hit;
+        // While searching, auto-expand the matching cards so the match body is
+        // visible; clearing the query re-collapses every card (the new default).
+        card.open = q ? hit : false;
         if (hit) shown++;
       });
       cats.forEach(cat => {
         const any = cat.querySelector(".concept-card:not([hidden])") !== null;
         cat.hidden = !any;
-        if (q && any) cat.open = true;
+        // Expand a category that contains a match while searching; collapse all
+        // categories again when the query is cleared.
+        cat.open = q ? any : false;
       });
       // Hide a whole tier when its search yields nothing, so the tier header +
       // blurb don't dangle over an empty section.
@@ -10317,11 +10415,31 @@ _JS = r"""
     }
 
     if (search) search.addEventListener("input", () => applyFilter(search.value));
-    const expand = panel.querySelector("#learn-expand");
-    const collapse = panel.querySelector("#learn-collapse");
-    if (expand) expand.addEventListener("click", () => cats.forEach(c => { c.open = true; }));
-    if (collapse) collapse.addEventListener("click", () => cats.forEach(c => { c.open = false; }));
+
+    // Single toggle button: "Expand all" (the all-collapsed default) opens every
+    // category + card; "Collapse all" closes them again. Keyboard-accessible
+    // because it's a native <button>; aria-pressed reflects the expanded state.
+    const toggle = panel.querySelector("#learn-collapse");
+    function syncToggle() {
+      if (!toggle) return;
+      const anyOpen = cats.some(c => c.open) || cards.some(c => c.open);
+      toggle.textContent = anyOpen ? "Collapse all" : "Expand all";
+      toggle.setAttribute("aria-pressed", anyOpen ? "true" : "false");
+    }
+    if (toggle) {
+      toggle.addEventListener("click", () => {
+        const expand = toggle.getAttribute("aria-pressed") !== "true";
+        cats.forEach(c => { c.open = expand; });
+        cards.forEach(c => { if (!c.hidden) c.open = expand; });
+        syncToggle();
+      });
+    }
+    // Keep the toggle label honest when a card/category is opened by hand, by
+    // search, or by a deep-link.
+    cats.concat(cards).forEach(d => d.addEventListener("toggle", syncToggle));
+
     applyFilter("");
+    syncToggle();
   })();
 
   /* ── Learn tab: interactive concept widgets ────────────────────────── */

@@ -1,6 +1,6 @@
 ---
 name: api-implementation-engineer
-description: "Use for building API endpoints correctly against a contract — HTTP status codes and method semantics, the RFC 9457 Problem Details error model (application/problem+json), cursor pagination, filtering/sorting, Idempotency-Key for safe retries, ETag / optimistic concurrency and conditional requests, content negotiation, 202 + polling for long-running operations, and emitting RateLimit headers. Implements the api-design-architect's contract; routes the security model to api-security-engineer."
+description: "Use for building API endpoints against a contract — status codes, RFC 9457 Problem Details, cursor pagination, filter/sort, Idempotency-Key, ETag/optimistic concurrency, content negotiation, 202+polling, RateLimit headers. Implements api-design-architect; security → api-security-engineer."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

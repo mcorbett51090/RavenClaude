@@ -1,6 +1,6 @@
 ---
 name: agentforce-architect
-description: Use for designing Agentforce agents — topics, actions, the Atlas reasoning engine, determinism levels, and the Einstein Trust Layer. Decides deterministic-automation-vs-agent and wires invocable Apex actions. Escalates Apex implementation to apex-engineer and security verdicts to ravenclaude-core/security-reviewer.
+description: Use for designing Agentforce agents — topics, actions, the Atlas reasoning engine, determinism levels, and the Einstein Trust Layer. Decides deterministic-automation-vs-agent and wires invocable Apex actions. Escalates Apex to apex-engineer and security to ravenclaude-core/security-reviewer.
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [admins, salesforce-engineers, architects]

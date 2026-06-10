@@ -1,8 +1,10 @@
 ---
 name: security-reviewer
-description: Use this agent whenever a diff touches authentication, authorization, cryptography, secrets, sessions, untrusted input parsing, file uploads, deserialization, SQL, shell, network egress, or third-party integrations. Spawn it AFTER code-reviewer or in parallel with it. Mandatory for any auth/crypto change.
+description: "Use this agent whenever a diff touches authentication, authorization, cryptography, secrets, sessions, untrusted input parsing, file uploads, deserialization, SQL, shell, network egress, or third-party integrations. Spawn it AFTER code-reviewer or in parallel with it."
 tools: Read, Grep, Glob, Bash, WebFetch
 model: opus
+maxTurns: 60
+effort: high
 audience: [dev, compliance]
 works_with: [architect, code-reviewer, backend-coder]
 scenarios:

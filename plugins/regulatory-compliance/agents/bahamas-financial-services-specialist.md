@@ -1,6 +1,6 @@
 ---
 name: bahamas-financial-services-specialist
-description: Use this agent for The Bahamas financial-services work across its FOUR statutory regulators + FIU — Central Bank of The Bahamas (CBOB; banks AND trust companies under the Banks and Trust Companies Regulation Act 2020), Securities Commission (SCB; securities, Investment Funds Act 2019 fund classes, the Financial and Corporate Service Providers Act 2020, DARE digital-assets), Insurance Commission (ICB), the Compliance Commission (DNFBP AML under the Financial Transactions Reporting Act 2018), and the FIU. Spawn for Bahamian entity classification, licensing, AML/CFT, beneficial-ownership (RBO Act 2018) and economic-substance (CESRA) questions. NOT for legal opinions.
+description: "Use this agent for The Bahamas financial-services work across its FOUR statutory regulators + FIU — Central Bank (CBOB; banks AND trust companies, BTCRA 2020), Securities Commission."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [compliance, consultant]

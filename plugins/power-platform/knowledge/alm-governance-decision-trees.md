@@ -43,6 +43,53 @@ Full rule: [`../best-practices/managed-vs-unmanaged-solution-discipline.md`](../
 
 ---
 
+## Import-failure triage — diagnose a failed managed solution import by failure class
+
+> Authored as a triage **flow + table** rather than a canonical gated `## Decision Tree:` section (which the SVG-render pipeline would require a committed diagram for). The Mermaid below renders natively on GitHub and the table is the scannable form; promote it to a rendered `## Decision Tree:` when the diagram is regenerated.
+
+**When this applies:** A **managed** solution import into TEST / UAT / PROD **aborted** and you need to classify the failure before fixing it. The portal collapses the real error, so read the **import log** (or the verbatim REST error) first, then traverse by what the failure actually is — do **not** reach for "delete and re-create" or "just re-import the whole thing" before classifying.
+
+**Last verified:** 2026-06-11 against Microsoft Learn (`RootComponentBehavior` enum on the [SolutionComponent reference](https://learn.microsoft.com/power-apps/developer/data-platform/reference/entities/solutioncomponent#read-only-columns-attributes); [`CreateEntityRequest.SolutionUniqueName`](https://learn.microsoft.com/dotnet/api/microsoft.xrm.sdk.messages.createentityrequest.solutionuniquename)) + the plugin's own ALM knowledge.
+
+```mermaid
+flowchart TD
+    START[Managed import to TEST/PROD aborted] --> Q1{Error is a MissingDependency?}
+    Q1 -->|Yes| Q2{Required solution = 'Active'<br/>and canResolve = False?}
+    Q2 -->|Yes| ACTIVE[New component shipped as a SHELL.<br/>Fix in place: AddSolutionComponent with<br/>DoNotIncludeSubcomponents=false → behavior=0.<br/>Do NOT delete-and-recreate.]
+    Q2 -->|No — required from another managed solution| PREREQ[Import the prerequisite managed solution<br/>into the target FIRST, or merge the<br/>component into this solution.]
+    Q1 -->|No| Q3{Error names a connection reference<br/>or environment variable?}
+    Q3 -->|Yes| CONNENV[Unresolved connection-ref / env-var.<br/>Re-bind the connection on import;<br/>set the env-var CURRENT value per env.]
+    Q3 -->|No| Q4{Publisher-prefix mismatch, OR a different<br/>solution already owns the component?}
+    Q4 -->|Yes| OWNER[Prefix / cross-solution-ownership conflict.<br/>Align the publisher prefix; resolve ownership<br/>via segmentation, not a second copy.]
+    Q4 -->|No| Q5{Was the managed solution edited<br/>in the target env?}
+    Q5 -->|Yes| LAYER[An active UNMANAGED layer is shadowing<br/>the import. Remove the unmanaged customization<br/>so the managed update flows through.]
+    Q5 -->|No| REST[Read the VERBATIM error — import log /<br/>REST API; the portal collapses it — then re-triage.]
+```
+
+**Rationale per leaf:**
+
+- *ACTIVE — `Required solution="Active"`, `canResolveMissingDependency="False"`* — the component was created/added as a **shell** (`RootComponentBehavior` `1`/`2`), so the managed export references its subcomponents but doesn't package them, and the target has no Active layer to resolve them against. The fix is **in place** on the existing component: `AddSolutionComponent` with `DoNotIncludeSubcomponents=false` ⇒ `behavior=0` (Include Subcomponents). **Deleting and re-creating is the rabbit hole** — every unmanaged component is *always* in the default/Active solution, so there is nothing to "relocate." Full lesson: [`dataverse-solution-layering-active-dependency.md`](dataverse-solution-layering-active-dependency.md).
+- *PREREQ — required component lives in a different managed solution* — the dependency is real and external; install the upstream managed solution into the target before this one (or fold the component into this solution if it genuinely belongs here). This is the legitimate `MissingDependency` — honor it, don't suppress it.
+- *CONNENV — connection reference / environment variable unresolved* — not a component problem at all: a solution-aware flow's connection reference needs re-binding on import, or an environment variable needs its **current value** set for the target env. (§3 #2/#3 — env-vars and connection refs are the cross-env abstraction.)
+- *OWNER — publisher-prefix mismatch / cross-solution ownership* — two solutions disagree about who owns the component, or the prefixes don't line up. Align the prefix and use **segmentation** (the "how many solutions" tree) rather than shipping a duplicate component.
+- *LAYER — managed solution edited in the target* — someone customized the managed solution in TEST/PROD, creating an **active unmanaged layer** that shadows the import ("why didn't my fix flow through"). Remove the unmanaged customization so the managed update applies. (This is the dark twin of the managed/unmanaged tree above.)
+- *REST — none of the above match* — stop guessing in the portal; read the verbatim error from the **import log** or the REST API (it returns the envelope the portal paraphrases), then re-enter this tree. See [`pbir-fabric-rest-debugging.md`](pbir-fabric-rest-debugging.md).
+
+**Tradeoffs summary:**
+
+| Leaf | Failure signature | Fix | Cost / reversibility |
+|---|---|---|---|
+| ACTIVE | `Required solution="Active"`, canResolve=False | `AddSolutionComponent` `DoNotIncludeSubcomponents=false` (behavior=0), **in place** | cheap, reversible — no delete |
+| PREREQ | `Required` from another managed solution | import the upstream managed solution first | ordering change; safe |
+| CONNENV | connection-ref / env-var named in the error | re-bind connection / set env-var current value | config-only; safe |
+| OWNER | publisher-prefix / ownership conflict | align prefix; segment, don't duplicate | refactor; plan it |
+| LAYER | managed solution edited in target | remove the active unmanaged layer | deletes a customization — confirm it's unwanted |
+| REST | unclassified | read verbatim error, re-triage | diagnostic, zero blast radius |
+
+> **Discipline:** every leaf here is an *in-place / config / ordering* fix. **Delete-and-recreate appears nowhere** — it's the high-blast-radius detour this tree exists to prevent (the core [verify-the-load-bearing-assumption-before-a-high-impact-activity](../../ravenclaude-core/CLAUDE.md) rule, applied to managed-ALM imports).
+
+---
+
 ## Decision Tree: ALM tooling — Power Platform Pipelines vs Azure DevOps vs GitHub Actions
 
 **When this applies:** You're standing up (or restructuring) the promotion pipeline for a solution and must choose the orchestration tool — before anyone exports a `.zip`.

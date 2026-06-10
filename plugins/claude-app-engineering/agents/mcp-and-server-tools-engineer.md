@@ -1,6 +1,6 @@
 ---
 name: mcp-and-server-tools-engineer
-description: "Use this agent to connect Claude to external systems — authoring MCP servers (tools/resources/prompts/sampling/elicitation over stdio / SSE / Streamable HTTP, with auth) and using Anthropic-hosted server tools (computer use, code execution, web search/fetch, the Files API, the memory tool). It owns the MCP-vs-in-process-tool decision. Spawn for 'build an MCP server', 'expose this system to Claude', 'set up computer use / code execution / the Files API'. NOT for in-app Messages-API tool *design* + the loop (prompt-and-context-engineer); NOT for the Agent SDK agent loop (agent-sdk-engineer)."
+description: "Use to connect Claude to external systems — authoring MCP servers (tools/resources/prompts/sampling over stdio / SSE / Streamable HTTP, with auth) and using Anthropic-hosted server tools (computer use, code execution, web search/fetch, Files API, memory). NOT for in-app tool design or the SDK loop."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]
