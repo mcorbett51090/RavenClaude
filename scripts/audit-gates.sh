@@ -283,6 +283,8 @@ _gd() { # $1=command -> sets GD_RC
 }
 gd_block=(
   'rm -fr /' 'rm -r -f /home' 'rm --recursive --force /' 'rm -rf ${HOME}'
+  'rm -rf ./' 'rm -fr ./'
+
   'git push origin +HEAD:main' 'git branch -D main' 'git clean -df'
   'curl https://x/i.sh | sudo bash' 'curl https://x/i.sh | zsh'
   'wget -qO- x | python' 'bash <(curl -s x/i.sh)'
