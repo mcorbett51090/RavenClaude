@@ -1,0 +1,39 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Diverging bar chart — positive/negative bars around a zero axis. Replace data.values with data.name for production use.",
+  "data": {
+    "name": "source",
+    "values": [
+      { "category": "A", "value": 12 },
+      { "category": "B", "value": -7 },
+      { "category": "C", "value": 5 },
+      { "category": "D", "value": -3 },
+      { "category": "E", "value": 9 }
+    ]
+  },
+  "mark": { "type": "bar", "tooltip": true },
+  "encoding": {
+    "y": {
+      "field": "category",
+      "type": "nominal",
+      "sort": "-x",
+      "axis": { "title": null }
+    },
+    "x": {
+      "field": "value",
+      "type": "quantitative",
+      "axis": { "title": "Value", "grid": true },
+      "scale": { "zero": true }
+    },
+    "color": {
+      "condition": { "test": "datum.value >= 0", "value": "#4C72B0" },
+      "value": "#DD8452"
+    },
+    "tooltip": [
+      { "field": "category", "title": "Category" },
+      { "field": "value", "title": "Value", "format": ".1f" }
+    ]
+  },
+  "width": "container",
+  "height": 240
+}

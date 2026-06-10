@@ -1,0 +1,57 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Annotated line chart — line series with text labels at notable points. Replace data.values with data.name for production use.",
+  "data": {
+    "name": "source",
+    "values": [
+      { "period": "Jan", "value": 42, "note": null },
+      { "period": "Feb", "value": 55, "note": null },
+      { "period": "Mar", "value": 48, "note": "Dip" },
+      { "period": "Apr", "value": 70, "note": null },
+      { "period": "May", "value": 83, "note": "Peak" },
+      { "period": "Jun", "value": 76, "note": null },
+      { "period": "Jul", "value": 69, "note": null },
+      { "period": "Aug", "value": 88, "note": "New high" }
+    ]
+  },
+  "layer": [
+    {
+      "mark": { "type": "line", "strokeWidth": 2 },
+      "encoding": {
+        "x": {
+          "field": "period",
+          "type": "ordinal",
+          "axis": { "title": null, "labelAngle": 0 }
+        },
+        "y": {
+          "field": "value",
+          "type": "quantitative",
+          "axis": { "title": "Value" }
+        },
+        "tooltip": [
+          { "field": "period", "title": "Period" },
+          { "field": "value", "title": "Value" }
+        ]
+      }
+    },
+    {
+      "transform": [{ "filter": "datum.note !== null" }],
+      "mark": { "type": "point", "filled": true, "size": 80, "color": "#E45756" },
+      "encoding": {
+        "x": { "field": "period", "type": "ordinal" },
+        "y": { "field": "value", "type": "quantitative" }
+      }
+    },
+    {
+      "transform": [{ "filter": "datum.note !== null" }],
+      "mark": { "type": "text", "dy": -12, "fontSize": 11, "color": "#E45756" },
+      "encoding": {
+        "x": { "field": "period", "type": "ordinal" },
+        "y": { "field": "value", "type": "quantitative" },
+        "text": { "field": "note", "type": "nominal" }
+      }
+    }
+  ],
+  "width": "container",
+  "height": 260
+}
