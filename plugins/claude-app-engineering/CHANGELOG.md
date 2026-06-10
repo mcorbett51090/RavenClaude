@@ -2,6 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.7.3] — 2026-06-10
+
+Freshness-anchor follow-up — codified the **403 route ladder** so a bot-blocked primary source becomes a re-route, not a miss (the lesson from the Fable 5 sweep, where `anthropic.com` + the GitHub changelog 403'd automated `WebFetch`).
+
+### Changed
+
+- **`knowledge/model-selection-and-2026-capability-map.md`** "How to keep this current" — on a `WebFetch` 403, route through [`webfetch-hardening`](../ravenclaude-core/skills/webfetch-hardening/SKILL.md) § "the 403 / refusal route ladder": `WebSearch` (reads the blocked content) → domain MCP (Microsoft-Learn / GitHub) → a non-blocked host → secondaries last; noted Wayback + UA/header spoofing are unavailable in this harness.
+- **Softened the Fable 5 Microsoft Foundry claim** (both the lineup row and the capability-status row): Foundry is **announced** via the Azure blog, but the authoritative Foundry Learn model table still lists only the gated `claude-mythos-preview` as of 2026-06-10 — re-verify. (Surfaced by reading the Foundry docs via the Microsoft-Learn MCP, the route ladder in action.)
+- Version **0.7.2 → 0.7.3** bumped in `.claude-plugin/plugin.json` **and** the `marketplace.json` catalog entry in lockstep.
+
 ## [0.7.2] — 2026-06-10
 
 Freshness-anchor refresh — **Claude Fable 5** (`claude-fable-5`), Anthropic's first public **Mythos-class** model, went **GA 2026-06-09** (the day of the prior 0.7.1 review — a same-day miss caught on the next sweep). Sources: [Claude Fable 5 and Claude Mythos 5](https://www.anthropic.com/news/claude-fable-5-mythos-5), [Fable 5 on AWS](https://aws.amazon.com/blogs/aws/anthropic-claude-fable-5-on-aws-mythos-class-capabilities-with-built-in-safeguards-now-available/), [Fable 5 in Microsoft Foundry](https://azure.microsoft.com/en-us/blog/claude-fable-5-is-now-available-in-microsoft-foundry-powering-the-next-era-of-autonomous-agents/) (GA 2026-06-09; retrieved 2026-06-10). Anthropic's news page 403s automated fetch — facts cross-referenced across secondaries (CNBC, TechCrunch, AWS/Azure blogs, dev guides), the repo's accepted "primary 403 → cross-reference" pattern.
