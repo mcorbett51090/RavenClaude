@@ -136,10 +136,10 @@ AppSource cert docs]
 |---|---|---|---|
 | `<script>` elements | Arbitrary JS execution in SVG context | **Forbidden in committed SVG.** | `lint.py` (Gate 101) |
 | `on*` event attributes (`onclick`, `onload`, etc.) | Inline JS execution | **Forbidden in committed SVG.** | `lint.py` (Gate 101) |
-| `<foreignObject>` with embedded HTML | Potential XSS escalation | **Forbidden in committed SVG.** | **`security-reviewer` (NOT yet linter-enforced)** |
-| `xlink:href` / `href` pointing to a remote or `javascript:` resource | Network call + potential JS (SVG 1.1) | **Forbidden in committed SVG.** | **`security-reviewer` (NOT yet linter-enforced)** |
+| `<foreignObject>` with embedded HTML | Potential XSS escalation | **Forbidden in committed SVG.** | `lint.py` (Gate 101) |
+| `xlink:href` / `href` pointing to a remote or `javascript:` resource | Network call + potential JS (SVG 1.1) | **Forbidden in committed SVG.** Safe local fragment refs like `href="#id"` are allowed. | `lint.py` (Gate 101) |
 
-> **Honest scope of the linter (Gate 101) — read before relying on it.** `lint.py` deterministically catches the data-fetch vectors (`data.url`, `transform.lookup` URL, custom `loader`, remote `$schema`) and the SVG `<script>` / `on*` vectors. It does **NOT** currently flag `<foreignObject>`, remote/`javascript:` `xlink:href`/`href`, or Vega `signals`/`expr` — those rely on the **mandatory `security-reviewer` pass** that every `spec-patterns/` template and every user-supplied spec must go through (§4c). Do not treat a clean linter run as full SVG-injection clearance. **Follow-up (tracked): extend `lint.py` + its Gate-101 fixtures to cover `<foreignObject>` and remote/`javascript:` href so the deterministic floor matches this table.**
+> **Honest scope of the linter (Gate 101) — read before relying on it.** `lint.py` deterministically catches the data-fetch vectors (`data.url`, `transform.lookup` URL, custom `loader`, remote `$schema`) and the SVG `<script>` / `on*` / `<foreignObject>` / remote+`javascript:` href vectors. It does **NOT** flag Vega `signals`/`expr` — those rely on the **mandatory `security-reviewer` pass** that every `spec-patterns/` template and every user-supplied spec must go through (§4c). Do not treat a clean linter run as full Vega-expression-injection clearance.
 
 ### 4c. Reviewing user-supplied specs
 
