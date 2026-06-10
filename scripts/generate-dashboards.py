@@ -542,6 +542,15 @@ _PIPELINE_LANES = [
                            "Big or risky questions always come to you."],
                  "trip": "In binding mode the panel answers the easy ones; risky ones still reach you.",
                  "set": "Pick off / advisory / binding in the box below."}},
+            {"id": "claude-orchestrator", "title": "Claude orchestrator", "badge": "dynamic", "controls": "orchestrator",
+             "tip": "Routes team-lead planning to Claude when your host CLI isn't Claude Code. Inert under Claude Code.",
+             "detail": {
+                 "steps": ["Checks whether the host is already Claude Code — if so, does nothing.",
+                           "Reads the orchestrator knob from .ravenclaude/comfort-posture.yaml.",
+                           "decide: sends the task to Claude and gets back a JSON plan the host CLI executes.",
+                           "full: sends the full task to Claude and gets back artifact content the host writes."],
+                 "trip": "If Claude is unavailable or auth fails, falls back to host orchestration automatically — never blocks.",
+                 "set": "Pick off / decide / full below. Inert under Claude Code (host already IS Claude)."}},
         ],
     },
     {
@@ -641,6 +650,24 @@ _PIPELINE_CONTROLS = {
         '<label class="pipe-ctl">Times it may re-try before giving up '
         '<input type="number" id="pipe-dod-maxblocks" min="1" step="1"></label>'
         '<p class="pipe-hint">Leave the command empty to turn the done-check off.</p>'
+    ),
+    "orchestrator": (
+        '<label class="pipe-ctl">Mode '
+        '<select id="pipe-orchestrator">'
+        '<option value="off">off — host CLI orchestrates (default, zero extra cost)</option>'
+        '<option value="decide">decide — Claude plans, host runs agents '
+        '(+tokens for planning; lower cost)</option>'
+        '<option value="full">full — Claude reasons through the task, host writes files '
+        '(+most tokens; bounded cost; locked intent)</option>'
+        "</select></label>"
+        '<p class="pipe-hint"><strong>[host-only — inert under Claude Code]</strong> '
+        "Active only when your CLI is <em>not</em> Claude Code (e.g. GitHub Copilot routing GPT/Grok). "
+        "Under Claude Code the host already is Claude — this knob is a no-op. "
+        "<strong>off</strong> — zero cost, host orchestrates as always. "
+        "<strong>decide</strong> — Claude returns a JSON dispatch plan; host runs the agents "
+        "(brain / hands split; lower cost). "
+        "<strong>full</strong> — one Claude call reasons through the task and returns artifact "
+        "content; host writes the files (guaranteed intent; highest cost, bounded).</p>"
     ),
     "files": (
         '<div class="pipe-file" data-file=".repo-layout.json">'
@@ -6527,6 +6554,8 @@ _JS = r"""
   const DOD_DEFAULT = Object.freeze({ cmd: "", max_blocks: 8 });
   const DECISION_REVIEW_VALUES = ["off", "advisory", "binding"];
   const DECISION_REVIEW_DEFAULT = "off";
+  const ORCHESTRATOR_VALUES = ["off", "decide", "full"];
+  const ORCHESTRATOR_DEFAULT = "full";
 
   /* Per-tier panel defaults — mirror thing-decision.py's built-in tier table.
    * Seats are forseti | mimir | heimdall (thor is the tie-breaker, never a seat).
@@ -6598,6 +6627,7 @@ _JS = r"""
     runaway: Object.assign({}, RUNAWAY_DEFAULT),
     parallelism: Object.assign({}, PARALLELISM_DEFAULT),
     decision_review: DECISION_REVIEW_DEFAULT,
+    orchestrator: ORCHESTRATOR_DEFAULT,
     definition_of_done: Object.assign({}, DOD_DEFAULT),
     expanded: {},   /* category -> boolean */
   };
@@ -6938,7 +6968,7 @@ _JS = r"""
 
   /* Shared guardrail-config hydrator — used by BOTH the localStorage restore and
    * the live /__read path. The dashboard state and the committed YAML express
-   * runaway / decision_review / definition_of_done / command_review.dev_repo_exempt
+   * runaway / decision_review / orchestrator / definition_of_done / command_review.dev_repo_exempt
    * with the same shape, so one validator covers both. Mutates state defensively:
    * a missing / malformed key leaves the existing (default) value untouched.
    * Returns true if anything was applied. */
@@ -6971,6 +7001,9 @@ _JS = r"""
     }
     if (DECISION_REVIEW_VALUES.includes(src.decision_review)) {
       state.decision_review = src.decision_review; touched = true;
+    }
+    if (ORCHESTRATOR_VALUES.includes(src.orchestrator)) {
+      state.orchestrator = src.orchestrator; touched = true;
     }
     const dod = src.definition_of_done;
     if (dod && typeof dod === "object") {
@@ -7093,6 +7126,13 @@ _JS = r"""
       lines.push("");
     }
 
+    if (ORCHESTRATOR_VALUES.includes(state.orchestrator)
+        && state.orchestrator !== ORCHESTRATOR_DEFAULT) {
+      lines.push("# Claude orchestrator for non-Claude CLIs (off | decide | full). No-op under Claude Code.");
+      lines.push(`orchestrator: ${state.orchestrator}`);
+      lines.push("");
+    }
+
     const dod = state.definition_of_done;
     if (dod.cmd && dod.cmd.trim()) {
       lines.push("# Definition-of-done gate — runs on Stop; blocks 'done' until it passes.");
@@ -7153,6 +7193,7 @@ _JS = r"""
         runaway: state.runaway,
         parallelism: state.parallelism,
         decision_review: state.decision_review,
+        orchestrator: state.orchestrator,
         definition_of_done: state.definition_of_done,
         expanded: state.expanded,
       }));
@@ -8604,6 +8645,10 @@ _JS = r"""
     if (dr) dr.value = state.decision_review;
     pipeBadge("route-decision-review", state.decision_review,
               state.decision_review === "off" ? "pipe-badge-off" : "pipe-badge-on");
+    const po = document.getElementById("pipe-orchestrator");
+    if (po) po.value = state.orchestrator;
+    pipeBadge("claude-orchestrator", state.orchestrator,
+              state.orchestrator === "off" ? "pipe-badge-off" : "pipe-badge-on");
     const dc = document.getElementById("pipe-dod-cmd");
     if (dc) dc.value = state.definition_of_done.cmd || "";
     const dm = document.getElementById("pipe-dod-maxblocks");
@@ -8679,6 +8724,7 @@ _JS = r"""
     onChange("pipe-parallelism-unlimited", el => { state.parallelism.unlimited = el.checked; });
     onInput("pipe-parallelism-workers", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.parallelism.max_workers = v; });
     onChange("pipe-decision-review", el => { if (DECISION_REVIEW_VALUES.includes(el.value)) state.decision_review = el.value; });
+    onChange("pipe-orchestrator", el => { if (ORCHESTRATOR_VALUES.includes(el.value)) state.orchestrator = el.value; });
     onInput("pipe-dod-cmd", el => { state.definition_of_done.cmd = el.value; });
     onInput("pipe-dod-maxblocks", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.definition_of_done.max_blocks = v; });
 

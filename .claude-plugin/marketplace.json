@@ -34,7 +34,7 @@
       "displayName": "RavenClaude Core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: a Team Lead that dispatches 14 specialist agents (architect, coders, reviewers, tester-QA, data-engineer, project-manager, documentarian, designer, prompt-engineer, partner-success), 41 skills, format/lint/test gates, hooks, rules, and templates. Ships the Capability Grounding Protocol (decision-tree + alternate-methods + honest blocked-reporting), the Structured Output Protocol for handoffs, a Researcher meta-skill, a point-and-click comfort-posture dashboard that writes Claude Code permission rules per layer/permission on a deny/ask/allow scale, an opt-in command-review tribunal (the Thing), a WebFetch sanitizer (webfetch-hardening), a sanctioned branch-archive escape hatch, brand-extraction (homepage → brand kit), a Problems & Resolutions view (feedback-report.html) surfacing every scenario problem→resolution with organic-vs-seed filters, and declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard.",
-      "version": "0.151.0",
+      "version": "0.152.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -59,7 +59,7 @@
     {
       "name": "power-platform",
       "source": "./plugins/power-platform",
-      "description": "Microsoft Power Platform specialist team — 11 agents (canvas/Power Fx, Power Automate, Dataverse, model-driven, pac CLI/ALM, governance/DLP, PCF, Copilot Studio, Power Pages, power-bi-engineer, power-platform-tester) + 21 skills; a house-opinions hook flags 8 §3/§4 violations; knowledge bank: PA-flow recovery, Dataverse token-acquisition, model-driven-app update paths, PBIR Enhanced debug + build reference, DAX silent-zero scoring, REST-first debugging, PBIR DAX + M Query pitfalls, sempy.fabric, Code Apps gotchas, PBIP deploy vars Layer A/B + #839 `.platform` gotcha, PBIP fast-triage router (symptom→fix in 1–2 steps, MCP-optional source chain) + Power BI Copilot readiness. Bundles community pbix-mcp (d0nk3yhm/pbix-mcp, MIT) for .pbix/.pbit read/write/DAX-eval (requires `pip install pbix-mcp`).",
+      "description": "Power Platform specialist team — 11 agents (incl. power-platform-tester, power-bi-engineer) and 21 skills, with strong ALM/git coverage for solutions, flows, and PBIP. A house-opinions hook flags 8 §3/§4 violations; the knowledge bank carries production decision trees (PA-flow recovery, Dataverse token-acquisition, PCF React surface, PBI deploy/refresh, custom-connector build-path, PBIR Enhanced infinite-spinner debug + full build reference, DAX silent-zero scoring via the `Domain` pattern, sempy.fabric notebook reference, Power BI Copilot report-readiness, Code Apps connector gotchas, PBIP deployment variables + #839, PBIR reference enrichment, PBIP report fast-solve triage router [MCP-optional]) plus a real-engagement scenarios bank. Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for .pbix/.pbit read/write/DAX-eval (`pip install pbix-mcp`); documents (not bundles) the official Microsoft Dataverse MCP (CLAUDE.md §9a). Extends ravenclaude-core.",
       "version": "0.38.0",
       "author": {
         "name": "Matt Corbett"

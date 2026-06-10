@@ -143,6 +143,28 @@ Return your standard structured report. Cap your response at <N> words.
 
 ---
 
+## Step 4.5 — Orchestrator routing (non-Claude hosts only)
+
+**Check this before dispatching any agent.** The routing is a single read + branch:
+
+1. **Is the host already Claude Code?** Check `THING_HOST`. If `THING_HOST == claude-code` (or is unset), the host IS Claude — skip this step entirely; orchestrate as today.
+2. **Read the knob.** Read `.ravenclaude/comfort-posture.yaml` → `orchestrator:` field. Values: `off` | `decide` | `full`. Absent = `full` (the shipped default — owner choice to route orchestration to Claude under a non-Claude host).
+3. **Route:**
+
+| Knob | What to do |
+|---|---|
+| `off` | Host orchestrates as always. Nothing changes. |
+| `decide` | Call `bash plugins/ravenclaude-core/scripts/claude-orchestrate.sh decide` with `RAVENCLAUDE_ORCH_BRIEF="<task>" RAVENCLAUDE_ORCH_ROSTER="<roster json>"`. Get back a JSON dispatch plan `{agents:[...], parallelism, reasoning}`; execute it. Claude planned, host ran. |
+| `full` (default) | Call `bash plugins/ravenclaude-core/scripts/claude-orchestrate.sh full` with `RAVENCLAUDE_ORCH_BRIEF="<task>"`. Get back artifact content; write it to the target path. One bounded call; locked intent. |
+
+**FAIL-SAFE:** any non-zero exit from the script means fall back to `off` (host orchestrates). Never hard-block on orchestrator failure.
+
+**Cost note:** `decide` adds one Claude call for planning (+tokens). `full` adds one larger Claude call (+most tokens, bounded). Say the active mode in your summary when it changes routing.
+
+**Note:** this step is inert under Claude Code (`THING_HOST == claude-code`). Skip entirely when running in Claude Code.
+
+---
+
 ## Step 5 — Run them
 
 - **Independent agents in parallel:** dispatch in a single tool call with multiple Agent invocations.
