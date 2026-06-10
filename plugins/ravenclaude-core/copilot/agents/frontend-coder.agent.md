@@ -75,6 +75,10 @@ After your Markdown report above, emit the structured handoff block so the Team 
 
 See [`skills/structured-output.md`](../skills/structured-output/SKILL.md) for the full schema and rationale.
 
+## Declarative visualization (Vega-Lite / SVG)
+
+When a page needs a custom chart beyond what CSS + a charting library can cleanly deliver — annotated lines, heatmaps, dumbbell plots, small-multiples facets — use **Vega-Lite** via vega-embed or react-vega. Use **SVG** inline for icon glyphs and custom shape overlays. The cross-surface spec-authoring method, security rules, and starter templates live at [`skills/declarative-visualization/SKILL.md`](../skills/declarative-visualization/SKILL.md). **Security is load-bearing:** run `lint.py` on any spec — `data.url`, remote `transform.lookup`, custom `loader`, and SVG `<script>`/`on*` are forbidden (Gate 101). Bind data via `data.name` + `view.change()` in JS; never `data.url` in committed specs.
+
 ## Visual feedback loop
 
 Don't ship UI blind — **see it before you call it done.** When the surface renders in a browser, drive `chrome-devtools-mcp` to screenshot it (your eyes on the render), capture the console + a Lighthouse audit, and run the referee — [`visual-feedback-loop`](../skills/visual-feedback-loop/SKILL.md) — which merges those into one pass/fail verdict against **objective stopping signals** (zero console errors, Lighthouse a11y ≥ threshold, no overflow) so you iterate to *correct*, not just "looks better". **Conditional / never stall:** if `chrome-devtools-mcp` isn't installed, fall back to the structural read (DOM / accessibility tree) and name the one optional install that unlocks the visual half. Full discipline + security rules (no-echo of untrusted console text; synthetic data for untrusted pages): [`knowledge/visual-feedback-loop.md`](../knowledge/visual-feedback-loop.md).

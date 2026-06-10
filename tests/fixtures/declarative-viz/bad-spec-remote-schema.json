@@ -1,0 +1,10 @@
+{
+  "$schema": "https://cdn.example.com/vega-lite/v5.json",
+  "description": "MUTANT fixture — $schema references a non-official host — must FAIL lint.py (exit 1).",
+  "data": { "name": "source", "values": [{ "x": "A", "y": 5 }] },
+  "mark": "bar",
+  "encoding": {
+    "x": { "field": "x", "type": "nominal" },
+    "y": { "field": "y", "type": "quantitative" }
+  }
+}

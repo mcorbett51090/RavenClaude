@@ -2,6 +2,22 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.150.0 — 2026-06-10
+
+### Added
+
+- **New skill: `declarative-visualization`** ([`skills/declarative-visualization/`](skills/declarative-visualization/SKILL.md)). Cross-surface Vega-Lite/Deneb/SVG spec-authoring for any visual agent. Ships: a 6-step authoring method (pick grammar → bind data → encode → wire interactivity → test null/empty → verify via render loop); a surface-agnostic `spec-patterns/` library of 6 starter templates (diverging bar, dumbbell, small-multiples facet, heatmap, sparkline strip, annotated line); a runnable stdlib-only `lint.py` security linter (no `data.url`, no remote `transform.lookup`, no custom `loader`, no remote `$schema`, no SVG `<script>`/`on*` — exit-coded for CI); and Gate 101 (bidirectional: clean fixtures pass, 6 security-vector fixtures fail, path traversal rejected, always-pass mutant lets a bad spec through = logic has teeth). Any PR adding/modifying a `spec-patterns/` template routes through `ravenclaude-core/security-reviewer` (load-bearing invariant).
+- **New knowledge file: `knowledge/declarative-visualization.md`** — cross-surface canon: when to use Vega-Lite vs Vega vs Deneb vs SVG, grammar essentials, surface→delivery map (web/Power BI/Tableau/SVG-in-DAX), the full security model (Vega network-access vectors + SVG script-injection vectors), visual-feedback-loop integration, null/empty data handling, and a pre-publish checklist. Claim grounding markers on unverified Vega/Deneb specifics.
+- **Cross-surface priors on 6 viz agents** — a `## Declarative visualization (Deneb / Vega-Lite / SVG)` section added to: `power-platform/power-bi-engineer` (Deneb + SVG-in-DAX), `data-platform/dashboard-builder` (vega-embed/react-vega/Evidence), `ravenclaude-core/frontend-coder` (vega-embed/react-vega + inline SVG), `tableau/tableau-viz-engineer` (extension iframe + SVG export), `web-design/frontend-implementer` (vega-embed/Evidence), `frontend-engineering/react-implementation-engineer` (react-vega). Each prior points to the neutral skill, states the Gate 101 security rule, and degrades gracefully (guidance even without a render tool).
+- **Skill count** bumped `40 → 41` in `plugin.json` description and marketplace catalog.
+- **Version** `0.149.4 → 0.150.0` in `.claude-plugin/plugin.json`, the `copilot/plugin.json` mirror, and the `marketplace.json` catalog entry (lockstep).
+
+### Notes
+
+- **Security is load-bearing:** Gate 101 must-fail half (a mutant template with `data.url` must exit 1) is the teeth assertion that makes the linter a real gate. Any PR adding a `spec-patterns/` template routes through `security-reviewer` — this is declared in the SKILL.md as an invariant, not a suggestion.
+- **Migration:** none — additive skill, knowledge file, and agent priors; nothing in a consumer's installed plugin wiring changes on `/plugin marketplace update`.
+- **Coordination caveat:** the queued `data-viz-designer` phases 2–7 (currently unrealized) will inherit this skill when they land. The plan specifies that `data-viz-designer` invokes `declarative-visualization` rather than re-implementing spec authoring.
+
 ## 0.149.4 — 2026-06-11
 
 ### Added

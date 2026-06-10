@@ -1,0 +1,52 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Heatmap — x × y grid colored by quantitative value. Replace data.values with data.name for production use.",
+  "data": {
+    "name": "source",
+    "values": [
+      { "row": "Mon", "col": "Morning", "value": 45 },
+      { "row": "Mon", "col": "Afternoon", "value": 78 },
+      { "row": "Mon", "col": "Evening", "value": 32 },
+      { "row": "Tue", "col": "Morning", "value": 55 },
+      { "row": "Tue", "col": "Afternoon", "value": 90 },
+      { "row": "Tue", "col": "Evening", "value": 41 },
+      { "row": "Wed", "col": "Morning", "value": 38 },
+      { "row": "Wed", "col": "Afternoon", "value": 62 },
+      { "row": "Wed", "col": "Evening", "value": 27 },
+      { "row": "Thu", "col": "Morning", "value": 61 },
+      { "row": "Thu", "col": "Afternoon", "value": 85 },
+      { "row": "Thu", "col": "Evening", "value": 49 },
+      { "row": "Fri", "col": "Morning", "value": 70 },
+      { "row": "Fri", "col": "Afternoon", "value": 95 },
+      { "row": "Fri", "col": "Evening", "value": 58 }
+    ]
+  },
+  "mark": "rect",
+  "encoding": {
+    "x": {
+      "field": "col",
+      "type": "ordinal",
+      "sort": ["Morning", "Afternoon", "Evening"],
+      "axis": { "title": null, "labelAngle": 0 }
+    },
+    "y": {
+      "field": "row",
+      "type": "ordinal",
+      "sort": ["Mon", "Tue", "Wed", "Thu", "Fri"],
+      "axis": { "title": null }
+    },
+    "color": {
+      "field": "value",
+      "type": "quantitative",
+      "scale": { "scheme": "blues" },
+      "legend": { "title": "Value" }
+    },
+    "tooltip": [
+      { "field": "row", "title": "Day" },
+      { "field": "col", "title": "Time" },
+      { "field": "value", "title": "Value" }
+    ]
+  },
+  "width": "container",
+  "height": 200
+}

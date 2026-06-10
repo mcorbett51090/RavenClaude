@@ -1,0 +1,20 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "MUTANT fixture — transform.lookup with remote from.data.url — must FAIL lint.py (exit 1).",
+  "data": { "name": "source", "values": [{ "id": 1, "value": 10 }] },
+  "transform": [
+    {
+      "lookup": "id",
+      "from": {
+        "data": { "url": "https://example.com/lookup.json" },
+        "key": "id",
+        "fields": ["label"]
+      }
+    }
+  ],
+  "mark": "bar",
+  "encoding": {
+    "x": { "field": "label", "type": "nominal" },
+    "y": { "field": "value", "type": "quantitative" }
+  }
+}

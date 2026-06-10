@@ -1,0 +1,18 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Clean good fixture — must pass lint.py (exit 0).",
+  "data": {
+    "name": "source",
+    "values": [
+      { "x": "A", "y": 10 },
+      { "x": "B", "y": 20 }
+    ]
+  },
+  "mark": "bar",
+  "encoding": {
+    "x": { "field": "x", "type": "nominal" },
+    "y": { "field": "y", "type": "quantitative" }
+  },
+  "width": "container",
+  "height": 200
+}

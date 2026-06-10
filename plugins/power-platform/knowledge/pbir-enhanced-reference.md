@@ -1838,7 +1838,7 @@ Three `visualContainerObjects` properties not shown in earlier examples. Sources
 
 ### 9.10 Theme `textClasses`
 
-Power BI themes support a `textClasses` map that assigns named text styles used by visuals throughout the report. Each class defines a font face, size, and color; visuals that use a named class (like `title` or `label`) pull their default style from it. Source: Microsoft `reportThemeSchema-2.137.json` — verified in §9.7 callout.
+Power BI themes support a `textClasses` map that assigns named text styles used by visuals throughout the report. Each class defines a font face, size, and color; visuals that use a named class (like `title` or `label`) pull their default style from it. [verify-at-use — textClasses is a real Power BI theme feature but was not found in reportThemeSchema-2.137.json this session; confirm the defining schema]
 
 ```json
 {
@@ -2402,7 +2402,7 @@ The original research was sourced and verified against the following public repo
 | [`data-goblin/power-bi-agentic-development`](https://github.com/data-goblin/power-bi-agentic-development) (Kurt Buhler et al., GPL-3.0 — facts re-expressed in our own words) | Verified `visual.json` examples — KPI (§4.1), Matrix (§4.2), Scatter (§4.3), **Gauge (§4.5, real file)**, **Waterfall (§4.4, real file)**, **Button Slicer (§7.6, real file)**; `conditional-formatting.md` companion reference — `strokeColor` Measure-binding JSON structure and single-series constraint (§14c); `visualContainerObjects` additional properties `lockAspect`, `spacing`, `visualLink` (§9.9) |
 | Tabular Editor blog — Kurt Buhler, "Hidden secrets in the Power BI report metadata" (Nov 2025, updated March 2026) | `strokeColor` Literal→Measure swap mechanism — verified UI-inaccessible capability (§14c); Desktop sync lag (C# changes require close/reopen, confirmed unfixed as of March 2026 update) |
 | Microsoft `formattingObjectDefinitions/1.5.0/schema.json` | `DataViewWildcardMatchingOption` three-value enum: 0=all+totals, 1=per-instance, 2=totals-only (§14b) |
-| Microsoft `reportThemeSchema-2.137.json` ([`powerbi-desktop-samples`](https://github.com/microsoft/powerbi-desktop-samples)) | Theme `textClasses` structure (§9.10); `calloutValue` trap for legacy `card` (§9.7 callout) |
+| Microsoft `reportThemeSchema-2.137.json` ([`powerbi-desktop-samples`](https://github.com/microsoft/powerbi-desktop-samples)) | `calloutValue` trap for legacy `card` (§9.7 callout) — **not** the source for `textClasses` (§9.10 citation unverified; see inline note) |
 | [`wardawgmalvicious/claude-config`](https://github.com/wardawgmalvicious/claude-config) | `sortDefinition`, slicer pre-selection vs `filterConfig`, literal suffix rules |
 | [`lukasreese/powerbi-claude-skills`](https://github.com/lukasreese/powerbi-claude-skills) | Visual type → role mapping table (§1); formatting-objects examples (§9) |
 | [`rechedev9/granrapower`](https://github.com/rechedev9/granrapower) | Per-`visualType` catalog; advanced slicer documented sub-properties (§16 #1) |

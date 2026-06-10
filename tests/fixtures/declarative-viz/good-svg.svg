@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+  <!-- Clean good SVG fixture — must pass lint.py (exit 0) -->
+  <rect x="10" y="10" width="80" height="80" fill="#4C72B0" rx="4"/>
+  <text x="50" y="55" text-anchor="middle" fill="white" font-size="14">OK</text>
+</svg>
