@@ -60,7 +60,7 @@
       "name": "power-platform",
       "source": "./plugins/power-platform",
       "description": "Microsoft Power Platform specialist team — 11 agents (canvas/Power Fx, Power Automate, Dataverse, model-driven, pac CLI/ALM, governance/DLP, PCF, Copilot Studio, Power Pages, power-bi-engineer, power-platform-tester) + 21 skills (solution-check, DAX, ALM, BI, PCF, maintainability, PBIR referential-integrity, model-driven-app update); a house-opinions hook flags 8 §3/§4 violations; the knowledge bank carries production decision trees (PA-flow recovery, Dataverse token-acquisition, model-driven-app update paths incl. read-only-custom-page + irreversible-unmanaged-import, PBIR Enhanced debug + build reference, DAX silent-zero scoring via the `Domain` pattern, REST-first PBIR/Fabric/Dataverse debugging, PBIR DAX + M Query pitfalls, sempy.fabric reference) plus a Power BI Copilot report-readiness pack. Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for .pbix/.pbit read/write/DAX-eval (requires `pip install pbix-mcp`).",
-      "version": "0.34.0",
+      "version": "0.35.0",
       "author": {
         "name": "Matt Corbett"
       },

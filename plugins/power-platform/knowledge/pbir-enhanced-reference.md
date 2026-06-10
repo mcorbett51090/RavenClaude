@@ -1,6 +1,6 @@
 # PBIR Enhanced format — full reference for programmatic visual creation
 
-> **Last reviewed:** 2026-06-02. Source: research synthesized by Matt's GitHub Copilot pass over 7+ open-source repos (data-goblin, contoso-examples, wardawgmalvicious, lukasreese, rechedev9, MinaSaad1, microsoft/mcp) plus Microsoft schema docs, spot-checked the same day against the actual cited files. Refresh when (a) Microsoft ships a new visualContainer / page / report schema major, (b) a visual type used here is renamed or its `queryState` role-names change, or (c) the `objects` vs `visualContainerObjects` split shifts again.
+> **Last reviewed:** 2026-06-10. Sources: original 2026-06-02 research (7+ repos + Microsoft schemas) plus a scout-run enrichment on 2026-06-10 from Kurt Buhler's Tabular Editor blog ("Hidden secrets in the Power BI report metadata", Nov 2025), data-goblin `conditional-formatting.md` companion reference, and Microsoft's official `formattingObjectDefinitions/1.5.0/schema.json`. Refresh when (a) Microsoft ships a new visualContainer / page / report schema major, (b) a visual type used here is renamed or its `queryState` role-names change, or (c) the `objects` vs `visualContainerObjects` split shifts again.
 >
 > **Claim-grounding note.** Every specific visualType string, role-name, and schema URL in this file was either taken from a real file fetched from a cited public repo or verified against Microsoft's schema CDN on 2026-06-02. Where this file says "real verified example", that means the JSON block was pulled from the repo's actual file at that date — not paraphrased. The places where verification was indirect are flagged inline as `[verify-at-use]`. Re-check before quoting any of this into customer code; Microsoft tightens these schemas between releases (see the companion lesson [`pbir-enhanced-report-loading.md`](pbir-enhanced-report-loading.md) for the May→June 2026 `prototypeQuery` breaking change).
 >
@@ -157,6 +157,19 @@ The single most useful page when authoring a visual is "which roles does this vi
 - `name` must be unique across the entire report; **the visual's folder name must match this `name` value**.
 - Valid chars for `name`: `[A-Za-z0-9_-]` only. Many real files use a 16-20 char hash (e.g. `"79523ed91e7fb66cbb63"`); kebab-case is also fine.
 - The allowed `visual` keys (after the ~June 2026 Fabric tightening) are: `visualType`, `autoSelectVisualType`, `query`, `expansionStates`, `objects`, `visualContainerObjects`, `syncGroup`, `drillFilterOtherVisuals`. **`prototypeQuery` is no longer allowed** — see [`pbir-enhanced-report-loading.md`](pbir-enhanced-report-loading.md) §FIX 4 for the breaking change.
+
+**`expansionStates`** — records which hierarchy nodes are currently expanded in drill-capable visuals (matrix, decomposition tree). Written by Desktop on save when a user has expanded rows; leave absent or as `[]` when authoring new visuals programmatically — the visual starts fully collapsed. Do not set by hand; the serialised format is internal and varies by visual type.
+
+**`syncGroup`** — links slicer visuals across pages. Slicers sharing the same `syncGroup` string value synchronize their filter selection whenever any one of them changes. The string is arbitrary — choose something descriptive. Place it directly inside the `visual` object:
+
+```json
+"visual": {
+  "visualType": "slicer",
+  "syncGroup": "year-filter-group",
+  "query": { "queryState": { ... } },
+  "drillFilterOtherVisuals": true
+}
+```
 
 ### Position properties
 
@@ -845,10 +858,10 @@ Visual:  visual.json → filterConfig.filters[]    (SIBLING of "visual", not ins
 |---|---|---|
 | `Categorical` | In / NotIn a list | `In` or `Not` → `In` |
 | `Advanced` | Measure / column comparison | `Comparison`, `Between`, `And` / `Or` |
-| `TopN` | Top / bottom N by measure | `VisualTopN` |
-| `RelativeDate` | Rolling window from today | `DateSpan` / `DateAdd` |
-| `RelativeTime` | Rolling time window | `DateSpan` with hour / minute units |
-| `Tuple` | Multi-column composite | Rare |
+| `TopN` | Top / bottom N by measure | `VisualTopN` — see §6.5 |
+| `RelativeDate` | Rolling window from today | `DateSpan` / `DateAdd` — see §6.6 |
+| `RelativeTime` | Rolling time window (hours / minutes) | `DateSpan` with sub-day time units — see §6.10 |
+| `Tuple` | Multi-column composite key (e.g. Country + City pair) | `In` with multi-column `Expressions` — see §6.11 |
 
 ### 6.3 Categorical filter — include (`statecode = 0`)
 
@@ -1260,6 +1273,108 @@ Visual:  visual.json → filterConfig.filters[]    (SIBLING of "visual", not ins
 
 And add `requireSingleSelect` in the matching `filterConfig` filter's `objects` block (see §6.9).
 
+### 6.10 Relative time filter — last 4 hours
+
+Use `RelativeTime` (not `RelativeDate`) when you need a rolling sub-day window.
+
+```json
+{
+  "name": "reltime_last4hours",
+  "field": {
+    "Column": {
+      "Expression": { "SourceRef": { "Entity": "Events" } },
+      "Property": "EventTimestamp"
+    }
+  },
+  "type": "RelativeTime",
+  "filter": {
+    "Version": 2,
+    "From": [{ "Name": "e", "Entity": "Events", "Type": 0 }],
+    "Where": [
+      {
+        "Condition": {
+          "Comparison": {
+            "ComparisonKind": 2,
+            "Left": {
+              "Column": {
+                "Expression": { "SourceRef": { "Source": "e" } },
+                "Property": "EventTimestamp"
+              }
+            },
+            "Right": {
+              "DateAdd": {
+                "Expression": {
+                  "DateSpan": {
+                    "Expression": { "Now": {} },
+                    "TimeUnit": 7
+                  }
+                },
+                "TimeUnit": 7,
+                "Amount": -4
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+**`TimeUnit` codes for `RelativeTime`:** `5`=Second, `6`=Minute, `7`=Hour. Use `0`=Day / `1`=Week / `2`=Month / `3`=Year for day-or-longer windows with `RelativeDate`.
+
+### 6.11 Tuple filter — multi-column composite key
+
+A `Tuple` filter matches rows by a combination of column values treated as a single composite key. Use when you need to filter on (Country, Region) = ('US', 'West') rather than two independent column filters. `[verify-at-use]` — re-confirm the exact `Expressions` nesting against your Fabric schema version before production use.
+
+```json
+{
+  "name": "tuple_country_region",
+  "type": "Tuple",
+  "filter": {
+    "Version": 2,
+    "From": [{ "Name": "g", "Entity": "Geography", "Type": 0 }],
+    "Where": [
+      {
+        "Condition": {
+          "In": {
+            "Expressions": [
+              {
+                "Column": {
+                  "Expression": { "SourceRef": { "Source": "g" } },
+                  "Property": "Country"
+                }
+              },
+              {
+                "Column": {
+                  "Expression": { "SourceRef": { "Source": "g" } },
+                  "Property": "Region"
+                }
+              }
+            ],
+            "Values": [
+              [
+                { "Literal": { "Value": "'US'" } },
+                { "Literal": { "Value": "'West'" } }
+              ],
+              [
+                { "Literal": { "Value": "'CA'" } },
+                { "Literal": { "Value": "'Ontario'" } }
+              ]
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+**Key rules for Tuple:**
+- `Expressions` lists the participating columns in order.
+- Each entry in `Values` is an array of literals with the same length as `Expressions` — index-matched.
+- The `field` key is omitted at the filter root (no single "primary" field for a composite key).
+
 ### 7.5 Default selected values (CRITICAL)
 
 **Slicer pre-selections are stored in `objects.general.properties.filter`** — **NOT** in `filterConfig`.
@@ -1432,6 +1547,7 @@ Both live INSIDE the `visual` object (not at root), but control different things
   },
   "visualContainerObjects": {
     // Container-level: title, subtitle, background, border, shadow, padding
+    // Additional: lockAspect, spacing, visualLink (action button target) — see §9.9
     "title": [{ "properties": { ... } }],
     "background": [{ "properties": { ... } }],
     "border": [{ "properties": { ... } }],
@@ -1665,6 +1781,96 @@ The measure `KPI Color Measure` should return a hex string like `"#D64550"` or `
   ]
 }
 ```
+
+### 9.9 Additional `visualContainerObjects` properties
+
+Three `visualContainerObjects` properties not shown in earlier examples. Sources: data-goblin `power-bi-agentic-development` SKILL.md (Kurt Buhler); property names are schema facts. `[verify-at-use]` — re-confirm exact inner property names against your Fabric schema version.
+
+**`lockAspect`** — locks the visual container's width-to-height ratio. When set, resizing the container scales both dimensions proportionally.
+
+```json
+"visualContainerObjects": {
+  "lockAspect": [
+    {
+      "properties": {
+        "show": { "expr": { "Literal": { "Value": "true" } } }
+      }
+    }
+  ]
+}
+```
+
+**`spacing`** — sets the inner padding between the container border and the visual content area. Uses `D` suffix (pixels).
+
+```json
+"visualContainerObjects": {
+  "spacing": [
+    {
+      "properties": {
+        "show": { "expr": { "Literal": { "Value": "true" } } },
+        "top": { "expr": { "Literal": { "Value": "8D" } } },
+        "bottom": { "expr": { "Literal": { "Value": "8D" } } },
+        "left": { "expr": { "Literal": { "Value": "8D" } } },
+        "right": { "expr": { "Literal": { "Value": "8D" } } }
+      }
+    }
+  ]
+}
+```
+
+**`visualLink`** — defines the navigation action for an `actionButton` visual (page navigation, URL, or drill-through target). `[verify-at-use]` — the existing §1 table notes `objects.visualLink` for `actionButton`; verify placement (`objects` vs `visualContainerObjects`) against a Desktop-serialised file for your schema version.
+
+```json
+"visualContainerObjects": {
+  "visualLink": [
+    {
+      "properties": {
+        "show": { "expr": { "Literal": { "Value": "true" } } },
+        "type": { "expr": { "Literal": { "Value": "'PageNavigation'" } } },
+        "pageName": { "expr": { "Literal": { "Value": "'DetailPage'" } } }
+      }
+    }
+  ]
+}
+```
+
+**Other `type` values for `visualLink`:** `'WebUrl'` (opens a URL), `'Back'` (browser back), `'DrillThrough'` (target page + field context).
+
+### 9.10 Theme `textClasses`
+
+Power BI themes support a `textClasses` map that assigns named text styles used by visuals throughout the report. Each class defines a font face, size, and color; visuals that use a named class (like `title` or `label`) pull their default style from it. Source: Microsoft `reportThemeSchema-2.137.json` — verified in §9.7 callout.
+
+```json
+{
+  "name": "Custom Dark Theme",
+  "textClasses": {
+    "callout": {
+      "fontSize": 40,
+      "fontFace": "Segoe UI",
+      "color": "#FFFFFF"
+    },
+    "title": {
+      "fontSize": 14,
+      "fontFace": "Segoe UI Semibold",
+      "color": "#FFFFFF"
+    },
+    "header": {
+      "fontSize": 12,
+      "fontFace": "Segoe UI",
+      "color": "#CCCCCC"
+    },
+    "label": {
+      "fontSize": 10,
+      "fontFace": "Segoe UI",
+      "color": "#AAAAAA"
+    }
+  }
+}
+```
+
+**Named classes:** `callout` (large KPI number), `title` (visual title), `header` (table/matrix header), `label` (axis labels, data labels). All four are standard; additional custom classes are allowed by the schema.
+
+**Interaction with `visualStyles`:** `textClasses` sets defaults; `visualStyles` (the per-visual-type override layer in the theme) takes precedence for specific visuals. `textClasses` is the right place for broad report-wide font adjustments; `visualStyles` is for visual-type-specific overrides.
 
 ---
 
@@ -1942,6 +2148,24 @@ For the canonical, debug-tested `report.json` template, see [`pbir-enhanced-repo
 
 **Remember** (from the debug lesson): `resourcePackages[0].items[0].name` MUST match `themeCollection.baseTheme.name` exactly, or the renderer stalls during theme resolution (infinite spinner). And `version.json.version` must be `"2.0.0"` even while the `$schema` URL still ends in `/1.0.0/`.
 
+### `settings` property reference
+
+All six properties in the template above are boolean flags. Descriptions verified against the report/3.2.0 schema and real serialised reports; additional platform-reserved properties exist but are schema-internal — only configure the ones below.
+
+| Property | Default | Effect |
+|---|---|---|
+| `useStylableVisualContainerHeader` | `false` | Enables the modern styled visual header (close / pin / focus icons). Required `true` for `visualContainerObjects.title` to render reliably across visual types. |
+| `defaultDrillFilterOtherVisuals` | `true` | Controls whether clicking a data point cross-filters other visuals by default. Can be overridden per-visual with `drillFilterOtherVisuals`. |
+| `useEnhancedTooltips` | `false` | Enables the enhanced tooltip experience (supports rich tooltip pages). |
+| `allowChangeFilterTypes` | `true` | Lets report consumers switch between filter types (basic / advanced) in the Filters pane. Set `false` to lock the filter type as authored. |
+| `allowInlineExploration` | `true` | Allows consumers to expand visuals to full-screen focus mode. |
+| `defaultFilterActionIsDataFilter` | `true` | Makes slicer and chart interaction actions apply as data filters (vs highlight). `false` reverts to highlight-first. |
+
+Additional `settings` seen in the wild `[verify-at-use]`:
+- `useNewFilterPaneExperience: true` — modern filter pane layout (enabled by default in newer schema versions).
+- `isPersistentUserState: true` — preserves a reader's slicer selections between sessions.
+- `hidePageNavigation: true` — hides the page tab bar (useful for embedded reports).
+
 ---
 
 ## 14. Critical gotchas — single-page lookup
@@ -1971,6 +2195,8 @@ For the canonical, debug-tested `report.json` template, see [`pbir-enhanced-repo
 | `tableEx.Values` with column projections + measure projections (added 2026-06-04, BMA-CSP Lesson 5) | mixed — `active:true` columns alongside measures (silently blanks visual) | use `pivotTable` (Matrix): `Rows = [{column, active:true}]` + `Values = [measures]` — see §1 callout |
 | Stacked-bar series field type (added 2026-06-04, BMA-CSP Lesson 9) | raw free-text response column (`Responses[Value]`) — null dominates the legend | compute a normalized rate (`DIVIDE(Score, MaxScore)`) and use a horizontal bar chart per question |
 | Per-data-point measure-driven coloring (added 2026-06-04, BMA-CSP Lesson 10) | no `selector` → single solid color for the whole series | `selector: {"data": [{"dataViewWildcard": {"matchingOption": 1}}]}` with an empty placeholder `{"properties": {}}` first — see §14b below |
+| `dataViewWildcard.matchingOption` values (corrected 2026-06-10) | 2 values: 0=series, 1=per-bar | THREE values: 0=all data points including totals (default), 1=per data point excluding totals, 2=totals/subtotals only — see §14b |
+| Series-level CF (one color per series line, not per segment) | `dataViewWildcard matchingOption:0` | `"selector": {"metadata": "Table.MeasureQueryRef"}` — the `metadata` selector, not `dataViewWildcard`. See §14b |
 
 ---
 
@@ -2047,14 +2273,90 @@ For the canonical, debug-tested `report.json` template, see [`pbir-enhanced-repo
 }
 ```
 
-**The two rules:**
+**The three `dataViewWildcard.matchingOption` values** (verified against Microsoft `formattingObjectDefinitions/1.5.0/schema.json`, 2026-06-10):
 
-1. **`matchingOption: 0` = single color for the whole series; `matchingOption: 1` = per-instance (per bar / per slice / per data point).** Always use `matchingOption: 1` for per-data-point measure-driven coloring.
-2. **The empty first `{"properties": {}}` entry is required as a placeholder.** It defines the default "no selector" state; the second entry overrides it with the per-data-point measure-driven coloring.
+| Value | Meaning | Use when |
+|---|---|---|
+| `0` | All data points including totals (default) | You want a single static formatting value that applies everywhere, including matrix subtotal and grand-total rows |
+| `1` | Per data point, excluding totals | Per-bar / per-slice / per-segment measure-driven coloring — **always use this for dynamic coloring** |
+| `2` | Totals and subtotals only | Applying a distinct format to summary rows only (rarely used) |
+
+**Series-level CF (one color per line series, not per segment)** requires a `metadata` selector instead of `dataViewWildcard`. Use the `queryRef` value of the projected field as the selector key:
+
+```json
+"selector": { "metadata": "Sales.Revenue" }
+```
+
+This is the pattern shown in §9.8. Do **not** use `matchingOption: 0` for series-level CF — that applies to every data point including totals, not per-series.
+
+**The empty first `{"properties": {}}` entry is required as a placeholder.** It defines the default "no selector" state; the second entry overrides it with the per-data-point measure-driven coloring.
 
 **Companion measure pattern** — see [`pbir-dax-pitfalls.md`](pbir-dax-pitfalls.md) §4: color measures must be declared with `formatString: '@'` in TMDL (text type) or Power BI will attempt numeric aggregation on the hex string and fail. The two rules compose — the visual JSON pattern above only works if the measure it references is text-typed.
 
 Encapsulate this as a `measure_color(measure_name)` helper in any Python / shell generator emitting PBIR visual JSON — same pattern as the `_pt()` normalizer above.
+
+---
+
+## 14c. UI-inaccessible dynamic line chart coloring via `strokeColor` Measure binding (2026-06-10)
+
+> **Credit:** mechanism documented by Kurt Buhler in the Tabular Editor blog ("Hidden secrets in the Power BI report metadata", Nov 2025, updated March 2026) and verified with the JSON structure from the data-goblin `conditional-formatting.md` companion reference (`power-bi-agentic-development`, GPL-3.0 — facts re-expressed here in our own words). Independently verified by the 2026-06-10 scout run against Microsoft `formattingObjectDefinitions/1.5.0/schema.json` (schema remains permissive; not blocked by the June 2026 `additionalProperties: false` tightening).
+
+Power BI's UI only allows selecting a static line color from the format pane. Setting the `strokeColor` property's color expression to a **Measure binding** (instead of the usual `Literal`) makes the line color dynamic — each segment is colored by the value the measure returns for that data point. This is something the UI cannot do.
+
+**How it works:** the `formattingObjectDefinitions` schema uses `"additionalProperties": {}` for `DataViewObjectPropertyDefinitions` — the `objects` block is intentionally permissive and accepts any expression type, including `Measure`. The schema tightening that rejected `prototypeQuery` (June 2026) applied to the `visual` node, not to property expressions inside `objects`.
+
+**The pattern** (place inside the visual's `objects` block, under the relevant object name for the property — typically `lineStyles` for a line chart):
+
+```json
+"objects": {
+  "lineStyles": [
+    {
+      "properties": {
+        "strokeColor": {
+          "solid": {
+            "color": {
+              "expr": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Schema": "extension",
+                      "Entity": "_Formatting"
+                    }
+                  },
+                  "Property": "Segment Color"
+                }
+              }
+            }
+          }
+        }
+      },
+      "selector": {
+        "data": [{ "dataViewWildcard": { "matchingOption": 1 } }]
+      }
+    }
+  ]
+}
+```
+
+The `Segment Color` measure must return a hex string (e.g. `"#E74C3C"`) and must be declared with `formatString: '@'` in TMDL (text type — see [`pbir-dax-pitfalls.md`](pbir-dax-pitfalls.md) §4). The `SourceRef.Schema: "extension"` path indicates the measure lives in `reportExtensions.json` (a thin-report / DAX-in-report measure).
+
+**Critical constraint — single-series line charts only:**
+
+The `strokeColor` Measure binding works for **single-series** line charts. On multi-series charts, Power BI overrides segment coloring at the series level, which suppresses the per-segment measure result. If a report has a `Series` role populated, `strokeColor` Measure binding will fail silently — the line renders with its default theme color. There is currently no PBIR workaround for dynamic per-segment coloring on a multi-series line chart; the approach is limited to charts with no `Series` role projection (or a single series).
+
+**Companion DAX pattern** — the color measure typically uses `SWITCH` or `IF` over a classification measure to map values to hex strings:
+
+```dax
+Segment Color =
+SWITCH(
+    TRUE(),
+    [Status Score] >= 80, "#27AE60",   // green
+    [Status Score] >= 50, "#F39C12",   // amber
+    "#E74C3C"                           // red
+)
+```
+
+This measure is declared with `formatString: '@'` in TMDL to signal the text type and prevent numeric aggregation.
 
 ---
 
@@ -2092,12 +2394,15 @@ When a gap closes, move the item out of this list and into the relevant section.
 
 ## 17. Sources
 
-The original research was sourced and verified against the following public repos and Microsoft docs. Live-checked 2026-06-02.
+The original research was sourced and verified against the following public repos and Microsoft docs. Live-checked 2026-06-02; enrichment pass 2026-06-10.
 
 | Source | What it provided |
 |---|---|
 | [`bernatagulloesbrina/contoso-examples`](https://github.com/bernatagulloesbrina/contoso-examples) | Real verified `visual.json` files (card, `clusteredBarChart`) — see §5, §11 |
-| [`data-goblin/power-bi-agentic-development`](https://github.com/data-goblin/power-bi-agentic-development) | Verified `visual.json` examples — KPI (§4.1), Matrix (§4.2 derived from same repo's `pivotTable.json`), Scatter (§4.3), **Gauge (§4.5, real file)**, **Waterfall (§4.4, real file)**, **Button Slicer (§7.6, real file)** |
+| [`data-goblin/power-bi-agentic-development`](https://github.com/data-goblin/power-bi-agentic-development) (Kurt Buhler et al., GPL-3.0 — facts re-expressed in our own words) | Verified `visual.json` examples — KPI (§4.1), Matrix (§4.2), Scatter (§4.3), **Gauge (§4.5, real file)**, **Waterfall (§4.4, real file)**, **Button Slicer (§7.6, real file)**; `conditional-formatting.md` companion reference — `strokeColor` Measure-binding JSON structure and single-series constraint (§14c); `visualContainerObjects` additional properties `lockAspect`, `spacing`, `visualLink` (§9.9) |
+| Tabular Editor blog — Kurt Buhler, "Hidden secrets in the Power BI report metadata" (Nov 2025, updated March 2026) | `strokeColor` Literal→Measure swap mechanism — verified UI-inaccessible capability (§14c); Desktop sync lag (C# changes require close/reopen, confirmed unfixed as of March 2026 update) |
+| Microsoft `formattingObjectDefinitions/1.5.0/schema.json` | `DataViewWildcardMatchingOption` three-value enum: 0=all+totals, 1=per-instance, 2=totals-only (§14b) |
+| Microsoft `reportThemeSchema-2.137.json` ([`powerbi-desktop-samples`](https://github.com/microsoft/powerbi-desktop-samples)) | Theme `textClasses` structure (§9.10); `calloutValue` trap for legacy `card` (§9.7 callout) |
 | [`wardawgmalvicious/claude-config`](https://github.com/wardawgmalvicious/claude-config) | `sortDefinition`, slicer pre-selection vs `filterConfig`, literal suffix rules |
 | [`lukasreese/powerbi-claude-skills`](https://github.com/lukasreese/powerbi-claude-skills) | Visual type → role mapping table (§1); formatting-objects examples (§9) |
 | [`rechedev9/granrapower`](https://github.com/rechedev9/granrapower) | Per-`visualType` catalog; advanced slicer documented sub-properties (§16 #1) |
