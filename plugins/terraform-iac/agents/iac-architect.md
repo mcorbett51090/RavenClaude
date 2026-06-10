@@ -1,6 +1,6 @@
 ---
 name: iac-architect
-description: "Use for IaC strategy: module decomposition and boundaries, state isolation by blast radius, choosing the environment-promotion model (directories vs workspaces vs Terragrunt) with the trade named, repo layout, module-registry/versioning, and the Terraform-vs-OpenTofu decision. Defers resource semantics to the cloud plugins and CI execution to devops-cicd."
+description: "Use for IaC strategy: module decomposition and boundaries, state isolation by blast radius, choosing the environment-promotion model (directories vs workspaces vs Terragrunt) with the trade named, repo layout, module-registry/versioning, and the Terraform-vs-OpenTofu decision."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, consultant]

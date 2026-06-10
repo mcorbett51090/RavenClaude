@@ -1,6 +1,6 @@
 ---
 name: power-bi-engineer
-description: Use this agent for Power BI semantic models, DAX authoring/review, reports, dataflows, PBIP project source control, git integration with Azure DevOps / Azure Repos, deployment strategies (Deployment Pipelines vs ADO pipelines), refresh/gateway troubleshooting, and bridging Power BI artifacts with Power Platform solutions/ALM. Spawn for model design, complex DAX, setting up PBIP git repos, diagnosing "why won't my semantic model refresh in prod", report performance, or Power BI ALM/CI-CD questions. NOT for Dataverse schema (dataverse-architect) or general canvas/Power Fx (power-fx-engineer).
+description: Use for Power BI semantic models, DAX authoring/review, reports, dataflows, PBIP source control + Azure DevOps git, deployment pipelines, refresh/gateway troubleshooting, and Power BI ALM/CI-CD. NOT for Dataverse schema (dataverse-architect) or general canvas/Power Fx (power-fx-engineer).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [power-platform-maker, dev, analyst]

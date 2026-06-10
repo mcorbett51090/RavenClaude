@@ -1,6 +1,6 @@
 ---
 name: api-reference-writer
-description: "Use for developer reference: spec-driven API reference (from OpenAPI/AsyncAPI) enriched with prose and runnable examples, documenting the unhappy path (errors/limits/auth/pagination), quickstarts optimized for time-to-first-success, and READMEs/SemVer changelogs. Routes the contract and dev portal/SDKs to api-engineering and overall structure to docs-architect."
+description: "Use for developer reference: spec-driven API reference (from OpenAPI/AsyncAPI) with prose and runnable examples, the unhappy path (errors/limits/auth/pagination), quickstarts, and READMEs/changelogs. Routes the contract and dev portal/SDKs to api-engineering and overall structure to docs-architect."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

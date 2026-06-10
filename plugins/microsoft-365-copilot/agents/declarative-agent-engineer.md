@@ -1,6 +1,6 @@
 ---
 name: declarative-agent-engineer
-description: "Use this agent to author or review a Microsoft 365 Copilot DECLARATIVE AGENT — the manifest (pinned schema, currently v1.7), the instructions (within the ~8,000-char budget), capabilities (web search / Graph connectors / SharePoint knowledge / code interpreter / image generator), conversation starters, and API actions — plus manifest + Responsible-AI validation, and the Agent Builder vs Agents Toolkit build-tool choice. It enforces the declarative-agent hard limits at ~66%. Spawn for 'build/review a declarative agent manifest', 'my instructions are too long', 'add an action to my agent', 'why did RAI validation fail?'. NOT for choosing declarative-vs-custom-engine (copilot-extensibility-architect); NOT for the connector/API-plugin internals (graph-connector-engineer / api-plugin-engineer); NOT for custom-engine agents (agents-sdk-engineer)."
+description: "Use this agent to author or review a Microsoft 365 Copilot DECLARATIVE AGENT — the pinned-schema manifest (currently v1.7), ~8,000-char instructions, capabilities, conversation starters, and API actions, plus manifest + Responsible-AI validation and the Agent Builder vs Agents Toolkit choice."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

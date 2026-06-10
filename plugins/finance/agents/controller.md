@@ -1,6 +1,6 @@
 ---
 name: controller
-description: Use this agent for month-end / quarter-end close work — JE design and review, account reconciliations, accruals, intercompany, close-calendar mechanics, deferred revenue / prepaids / fixed-asset rolls. Spawn for close prep, JE review, recon escalations, accrual triage. NOT for budget / forecast (fpa-analyst) and NOT for treasury / cash (treasury-analyst).
+description: "Use this agent for month-end / quarter-end close work — JE design and review, account reconciliations, accruals, intercompany, close-calendar mechanics, deferred revenue / prepaids / fixed-asset rolls. NOT for budget / forecast (fpa-analyst) and NOT for treasury / cash (treasury-analyst)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [analyst]

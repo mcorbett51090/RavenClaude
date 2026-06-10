@@ -1,6 +1,6 @@
 ---
 name: db-reliability-engineer
-description: "Use for database reliability: connection pooling, transaction/isolation-level choice with its anomalies, short-transaction discipline, replication and read-replica routing, tested backup/restore + PITR, failover/HA, vacuum/bloat management, and database observability. Routes managed HA provisioning to the cloud plugin and SLO strategy to observability-sre."
+description: "Use for database reliability: connection pooling, transaction/isolation-level choice with its anomalies, short-transaction discipline, replication and read-replica routing, tested backup/restore + PITR, failover/HA, vacuum/bloat management, and database observability."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev, consultant]

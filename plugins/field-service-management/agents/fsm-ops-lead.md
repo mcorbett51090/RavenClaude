@@ -1,6 +1,6 @@
 ---
 name: fsm-ops-lead
-description: "Use this agent for the field-service operating model — SLA tier design, service-contract structure, the dispatch-to-cash workflow, P&L levers, and the management operating system for a service business. Understands how premium/standard/basic SLA tiers translate into dispatch priority, technician skill requirements, parts stocking, and contract margin. NOT for building the dispatch board (dispatch-and-scheduling-engineer), coaching individual technicians (technician-productivity-analyst), or optimizing truck stock formulas (parts-and-inventory-analyst). Spawn at the start of a service-operations redesign or when SLA/contract/margin questions need grounding."
+description: "Use this agent for the field-service operating model — SLA tier design, service-contract structure, the dispatch-to-cash workflow, P&L levers, and the management operating system for a service business."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [service-operations-manager, vp-of-service, coo, gm-field-service, service-director]

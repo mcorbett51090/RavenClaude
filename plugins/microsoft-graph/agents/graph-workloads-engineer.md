@@ -1,6 +1,6 @@
 ---
 name: graph-workloads-engineer
-description: Use for the Microsoft Graph workload surfaces — users/groups & directory objects, mail/calendar (Outlook), Teams (chat/channel messages, lifecycle), SharePoint/OneDrive files (driveItems, large-file upload sessions, sharing links), and change notifications (subscriptions, validation handshake, lifecycle + rich/resource-data notifications with payload encryption, renewal). Escalates every permission-scope and notification-decryption-key concern to ravenclaude-core/security-reviewer.
+description: "Use for the Microsoft Graph workload surfaces — users/groups & directory, mail/calendar (Outlook), Teams messages, SharePoint/OneDrive files (driveItems, large-file upload), and change notifications (subscriptions, encryption, renewal)."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [developers, m365-engineers, integration-engineers, architects]

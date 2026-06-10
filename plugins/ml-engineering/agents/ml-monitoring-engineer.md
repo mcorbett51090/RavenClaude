@@ -1,6 +1,6 @@
 ---
 name: ml-monitoring-engineer
-description: "Use for production model monitoring: data drift, prediction/concept drift, performance decay (when labels arrive), defining the retraining trigger (schedule/threshold/drop), distinguishing data vs concept drift, alerting on model health, and closing the loop to retraining. Routes the retraining pipeline to training-pipeline-engineer, alerting to observability-sre, and significance to applied-statistics."
+description: "Use for production model monitoring: data drift, prediction/concept drift, performance decay (when labels arrive), defining the retraining trigger (schedule/threshold/drop), distinguishing data vs concept drift, alerting on model health, and closing the loop to retraining."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

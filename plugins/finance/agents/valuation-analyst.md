@@ -1,6 +1,6 @@
 ---
 name: valuation-analyst
-description: Use this agent for valuation work — business valuation (DCF + comparable companies + precedent transactions), 409A valuations, fairness-opinion support, valuation methodology defense, ESOP / RSU strike-price refreshes. Spawn for pre-investment / pre-acquisition valuation, board-discussion prep, 409A refreshes, defending a valuation against pushback. NOT for general modeling (financial-modeler) and NOT for the operating forecast itself (fpa-analyst).
+description: "Use this agent for valuation work — business valuation (DCF + comparable companies + precedent transactions), 409A valuations, fairness-opinion support, valuation methodology defense, ESOP / RSU strike-price refreshes."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [analyst, consultant]

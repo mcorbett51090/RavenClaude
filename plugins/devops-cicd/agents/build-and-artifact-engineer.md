@@ -1,6 +1,6 @@
 ---
 name: build-and-artifact-engineer
-description: "Use for build and artifact integrity: reproducible/deterministic builds, small non-root multi-stage container images, SemVer + immutable digests, SBOM generation (CycloneDX/SPDX), SLSA provenance + signing, and registry retention/scan hygiene. Produces the attestations; security-engineering judges them."
+description: "Use for build and artifact integrity: reproducible/deterministic builds, small non-root multi-stage container images, SemVer + immutable digests, SBOM (CycloneDX/SPDX), SLSA provenance + signing, and registry retention/scan hygiene. Produces the attestations; security-engineering judges them."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

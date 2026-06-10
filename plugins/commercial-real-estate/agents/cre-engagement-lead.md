@@ -1,6 +1,6 @@
 ---
 name: cre-engagement-lead
-description: "Use this agent to scope a CRE mandate, frame an investment-committee memo, or route a deal question to the right specialist (underwriting, asset/property management, market). The orchestrator and first contact for any new opportunity. NOT for the detailed model itself (route to acquisitions-underwriter) or market sizing (route to cre-market-analyst)."
+description: "Use to scope a CRE mandate, frame an investment-committee memo, or route a deal question to the right specialist. The orchestrator and first contact for any new opportunity. NOT for the detailed model itself (acquisitions-underwriter) or market sizing (cre-market-analyst)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [consultant, analyst]

@@ -1,6 +1,6 @@
 ---
 name: submittal-rfi-coordinator
-description: "Use this agent for submittal log management (tracking submittals from submission through owner/architect review and approval), RFI drafting and tracking (writing clear RFIs, tracking response times, escalating overdue responses), change-order documentation (pricing support, change-order log, CO packages to the owner), and overall project document control. NOT for project billing or SOV (gc-project-lead), CPM schedule building (scheduling-engineer), original bid estimate (estimating-and-takeoff-analyst), or JHA/safety (jobsite-safety-advisor). Spawn at project start to set up the submittal register and keep it current throughout the project."
+description: "Use for submittal log management, RFI drafting and tracking, change-order documentation, and project document control. NOT for project billing/SOV (gc-project-lead), CPM scheduling (scheduling-engineer), the bid estimate (estimating-and-takeoff-analyst), or JHA/safety (jobsite-safety-advisor)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience:

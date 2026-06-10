@@ -1,6 +1,6 @@
 ---
 name: frontend-state-and-data-engineer
-description: "Use for frontend state and data architecture: separating server-cache (TanStack Query/SWR/RSC) from client state, placing client state at the narrowest workable scope, cache invalidation and optimistic updates with rollback, framework-appropriate fetching (avoiding waterfalls/over-fetch), deriving rather than duplicating, and end-to-end typing. Routes the API contract to api-engineering and components to react-implementation-engineer."
+description: "Use for frontend state and data architecture: separating server-cache (TanStack Query/SWR/RSC) from client state, placing client state at the narrowest workable scope, cache invalidation and optimistic updates with rollback, framework-appropriate fetching (avoiding waterfalls/over-fetch)."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

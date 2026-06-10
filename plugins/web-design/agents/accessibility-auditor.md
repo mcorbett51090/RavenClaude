@@ -1,6 +1,6 @@
 ---
 name: accessibility-auditor
-description: Use this agent for accessibility work — WCAG 2.2 AA / AAA audits, ARIA review, keyboard-navigation review, screen-reader testing, color-contrast checks, focus management, reduced-motion / reduced-data accommodation. Spawn for pre-launch audits, remediation prioritization, ongoing a11y review cycles. NOT for visual design (visual-designer) and NOT for implementation (frontend-implementer).
+description: "Use this agent for accessibility work — WCAG 2.2 AA / AAA audits, ARIA review, keyboard-navigation review, screen-reader testing, color-contrast checks, focus management, reduced-motion / reduced-data accommodation."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

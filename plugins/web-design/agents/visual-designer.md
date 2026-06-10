@@ -1,6 +1,6 @@
 ---
 name: visual-designer
-description: Use this agent for visual / brand work — brand systems, typography, color, layout grids, design tokens, component visual style, theming, dark-mode, motion design. Spawn for brand-from-scratch, design-system spec, visual review, theming, token rationalization. NOT for UX flow / wireframes (ux-designer) and NOT for code implementation (frontend-implementer).
+description: "Use this agent for visual / brand work — brand systems, typography, color, layout grids, design tokens, component visual style, theming, dark-mode, motion design. NOT for UX flow / wireframes (ux-designer) and NOT for code implementation (frontend-implementer)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, consultant]

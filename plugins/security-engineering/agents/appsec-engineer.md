@@ -1,6 +1,6 @@
 ---
 name: appsec-engineer
-description: "Use for application security: standing up and tuning SAST/DAST/SCA gates in CI, triaging findings by exploitability and blast radius (not raw CVSS), fixing OWASP Top 10 web classes at the trust boundary, and secret-scanning. Proposes controls; routes every ship/no-ship verdict to ravenclaude-core/security-reviewer."
+description: "Use for application security: standing up and tuning SAST/DAST/SCA gates in CI, triaging findings by exploitability and blast radius (not raw CVSS), fixing OWASP Top 10 web classes at the trust boundary, and secret-scanning. Proposes controls."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, consultant]

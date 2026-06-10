@@ -1,6 +1,6 @@
 ---
 name: privacy-compliance-engineer
-description: "Use for privacy engineering: data-subject-rights pipelines (access/erasure/portability) that locate and action data across systems, consent + lawful-basis tracking (granular, revocable, propagating), data minimization, automated retention/deletion, and correct pseudonymization-vs-anonymization. Relies on the catalog to locate data; routes legal interpretation to legal and financial-regulatory to regulatory-compliance. Not legal advice."
+description: "Use for privacy engineering: data-subject-rights pipelines (access/erasure/portability) that locate and action data across systems, consent + lawful-basis tracking (granular, revocable, propagating), data minimization, automated retention/deletion, and correct pseudonymization-vs-anonymization."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [consultant, dev]

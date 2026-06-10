@@ -1,6 +1,6 @@
 ---
 name: service-implementation-engineer
-description: "Use for business-logic implementation: clean service/use-case layering with the framework kept at the edges, explicit error modeling (expected vs bug) mapped to statuses, boundary validation into domain types, idempotency keys for retried operations, and the outbox pattern for write-then-publish. Routes persistence to backend-data-access-engineer and resilience to backend-reliability-engineer."
+description: "Use for business-logic implementation: clean service/use-case layering with the framework kept at the edges, explicit error modeling (expected vs bug) mapped to statuses, boundary validation into domain types, idempotency keys for retried operations, and the outbox pattern for write-then-publish."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

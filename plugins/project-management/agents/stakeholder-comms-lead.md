@@ -1,6 +1,6 @@
 ---
 name: stakeholder-comms-lead
-description: Use this agent for the PMO / stakeholder-communications lane — stakeholder register + power/interest mapping, a communications plan (who hears what, how often, in what channel), recurring status/exec reporting, escalation memos, and steering-committee packs. Spawn for "map the stakeholders", "build the comms plan", "draft the steering pack", "write the escalation". Do NOT use for the predictive plan (delivery-lead), sprint facilitation (scrum-master), or risk scoring (risk-and-raid-analyst) — you package THEIR outputs for an audience.
+description: "Use this agent for the PMO / stakeholder-communications lane — stakeholder register + power/interest mapping, a communications plan (who hears what, how often, in what channel), recurring status/exec reporting, escalation memos, and steering-committee packs."
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
 audience: [consultant, pm, psm]

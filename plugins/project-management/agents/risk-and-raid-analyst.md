@@ -1,6 +1,6 @@
 ---
 name: risk-and-raid-analyst
-description: Use this agent for risk-and-RAID depth beyond hygiene — a real risk register (qualitative probability×impact scoring AND quantitative ranges/EMV where warranted), mitigation vs contingency vs acceptance responses, issue triage and escalation, and assumption/dependency tracking. Spawn for "build the risk register", "quantify this risk", "what's our contingency", "triage these issues". Do NOT use for the predictive plan/baseline (delivery-lead), sprint facilitation (scrum-master), or comms packaging (stakeholder-comms-lead).
+description: "Use this agent for risk-and-RAID depth beyond hygiene — a real risk register (qualitative probability×impact scoring AND quantitative ranges/EMV where warranted), mitigation vs contingency vs acceptance responses, issue triage and escalation, and assumption/dependency tracking."
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
 audience: [pm, consultant, dev]

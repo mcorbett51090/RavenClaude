@@ -1,6 +1,6 @@
 ---
 name: api-platform-engineer
-description: "Use for the operate layer of an API — API gateway / management design (rate-limit policy, quota tiers, caching, routing — design, not infra), developer experience (a documentation portal, generated reference, SDK/client codegen from the spec), API lifecycle & deprecation rollout (Deprecation/Sunset headers and a dated timeline), and API observability (structured logs, traces, the four golden signals). Routes gateway infrastructure provisioning to azure-cloud/integration-engineer."
+description: "Use for the operate layer of an API — gateway/management design (rate-limit policy, quota tiers, caching, routing), developer experience (docs portal, generated reference, SDK codegen), lifecycle & deprecation (Deprecation/Sunset headers), and observability. Routes gateway infra to azure-cloud."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev, consultant]

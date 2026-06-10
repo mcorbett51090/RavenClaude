@@ -1,6 +1,6 @@
 ---
 name: api-testing-engineer
-description: "Use for testing and governing an API — consumer-driven contract testing (Pact / schema-based), Spectral spec-linting in CI as a governance gate, mocking & service virtualization (Prism, Postman mocks) from the contract, Postman collections + Newman (including the Postman MCP), negative/fuzz/boundary testing, schema-drift detection, and k6 load testing to an SLO. Turns the api-design-architect's contract into automated tests and CI gates."
+description: "Use for testing and governing an API — consumer-driven contract testing (Pact/schema), Spectral lint as a CI gate, mocking/virtualization (Prism, Postman), Newman, negative/fuzz/boundary tests, schema-drift detection, k6 load-to-SLO. Turns api-design-architect's contract into automated CI gates."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

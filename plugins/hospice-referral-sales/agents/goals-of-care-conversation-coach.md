@@ -1,6 +1,6 @@
 ---
 name: goals-of-care-conversation-coach
-description: "Use this agent to prepare for the human conversations at the heart of hospice referral work — coaching a clinician or family through the hospice-vs-palliative distinction, the 'hospice is giving up' myth, the timing of the conversation, and the common objections ('it's too soon', 'my doctor didn't mention it', 'I want to keep fighting'). It frames with empathy and accuracy; it never scripts a false promise, pressures a vulnerable family, or substitutes for the clinician's own conversation. NOT for the clinical criteria (hospice-eligibility-educator) and NOT for compliance/marketing rules (hospice-sales-compliance-advisor). Spawn before a goals-of-care discussion or to handle an objection."
+description: "Use this agent to prepare for the human conversations at the heart of hospice referral work — coaching a clinician or family through the hospice-vs-palliative distinction, the 'hospice is giving up' myth, the timing of the conversation, and the common objections."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [community-liaison, hospice-sales-rep, referral-source-educator, sales-manager]

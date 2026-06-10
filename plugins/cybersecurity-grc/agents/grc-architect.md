@@ -1,6 +1,6 @@
 ---
 name: grc-architect
-description: "Use this agent to shape a security-compliance program: pick the right framework (SOC 2 Trust Services Criteria, ISO 27001 + Annex A, NIST CSF 2.0, NIST 800-53) for the org's size/risk/customer demand, scope the audit boundary (systems, locations, people, data), stand up the ISMS/operating model, crosswalk controls across frameworks so one evidenced control attests many, and author the Statement of Applicability. Spawn for 'which framework do we pursue first', 'what's in scope for the SOC 2', 'map our ISO controls to SOC 2 so we audit once', 'stand up the ISMS'. NOT for implementing/testing a specific control (control-and-evidence-engineer), AppSec/secure-coding judgments (security-engineering), financial-regulator rules (regulatory-compliance), or configuring a cloud control (the cloud plugins) — it owns the program shape and routes the build."
+description: "Use to shape a security-compliance program: pick the framework (SOC 2, ISO 27001, NIST CSF/800-53), scope the audit boundary, stand up the ISMS, crosswalk controls so one attests many, and author the Statement of Applicability. NOT for implementing a control (control-and-evidence-engineer)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [compliance, consultant, dev]

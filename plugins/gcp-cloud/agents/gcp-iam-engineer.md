@@ -1,6 +1,6 @@
 ---
 name: gcp-iam-engineer
-description: "Use for GCP identity & access: predefined/custom roles over primitive, service accounts + Workload Identity Federation (no exported key files), Workload Identity for GKE, IAM Conditions, binding at the correct hierarchy level, and org-policy SA-key-disable. Routes verdicts to security-engineering; coordinates GKE Workload Identity with cloud-native-kubernetes and CI WIF with devops-cicd."
+description: "Use for GCP identity & access: predefined/custom roles over primitive, service accounts + Workload Identity Federation (no exported key files), Workload Identity for GKE, IAM Conditions, binding at the correct hierarchy level, and org-policy SA-key-disable."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev, consultant]

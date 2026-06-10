@@ -1,6 +1,6 @@
 ---
 name: prospecting-outreach-strategist
-description: "Use this agent to generate new freight business — define the ICP, build a target list logic, find trigger events, design a multi-channel (email / call / LinkedIn) sequence, and write value-first, lane-specific messaging that leads with reliability not discount. Handles objection scripts (we are happy with our forwarder). NOT for pricing the eventual quote (freight-rate-quoter) and NOT for existing-account growth (key-account-manager). Spawn to fill the top of the funnel."
+description: "Use this agent to generate new freight business — define the ICP, build a target list logic, find trigger events, design a multi-channel (email / call / LinkedIn) sequence, and write value-first, lane-specific messaging that leads with reliability not discount."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [business-development, freight-sales-manager, sales-manager]

@@ -1,6 +1,6 @@
 ---
 name: trade-lane-compliance-advisor
-description: "Use this agent for the technical-correctness layer of freight sales — which Incoterm 2020 to propose and who-pays-what under it, mode selection (express / air / LCL / FCL / breakbulk), the customs and documentation basics (B/L vs AWB, commercial invoice, packing list, certificate of origin, HS code awareness), and trade-lane intel that makes a quote or pitch credible. NOT the price build (freight-rate-quoter) and NOT a substitute for a licensed customs broker or legal advice. Spawn to settle the scope before pricing or pitching."
+description: "Use this agent for the technical-correctness layer of freight sales — which Incoterm 2020 to propose and who-pays-what, mode selection (express / air / LCL / FCL / breakbulk), customs and documentation basics (B/L vs AWB, certificate of origin, HS codes). NOT the price build (freight-rate-quoter)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [freight-sales-manager, business-development, account-manager]

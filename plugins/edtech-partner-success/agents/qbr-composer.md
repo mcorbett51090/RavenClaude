@@ -1,6 +1,6 @@
 ---
 name: qbr-composer
-description: Use this agent for Quarterly Business Review materials end-to-end — data pull plan → narrative → deck → talk track → followup tracker. Spawn for QBR prep (~1 week before by default), post-QBR commitment tracking, mock-QBR rehearsal, or a renewal-QBR variant. NOT for play design (that's `success-playbook-designer`). NOT for the underlying metric design (that's `learning-analytics-analyst`).
+description: Use this agent for Quarterly Business Review materials end-to-end — data pull plan → narrative → deck → talk track → followup tracker. Spawn for QBR prep, post-QBR commitment tracking, or a renewal variant. NOT for play design (`success-playbook-designer`) or metric design (`learning-analytics`).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [psm, consultant]

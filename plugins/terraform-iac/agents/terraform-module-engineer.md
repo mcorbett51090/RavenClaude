@@ -1,6 +1,6 @@
 ---
 name: terraform-module-engineer
-description: "Use to write composable Terraform/OpenTofu modules: typed variables with validation, documented outputs, single-responsibility boundaries, for_each over count to avoid reorder churn, provider version pinning, examples that plan cleanly, and module tests. Defers resource arguments to the cloud plugins and state/backend to iac-policy-and-state-engineer."
+description: "Use to write composable Terraform/OpenTofu modules: typed variables with validation, documented outputs, single-responsibility boundaries, for_each over count to avoid reorder churn, provider version pinning, examples that plan cleanly, and module tests."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

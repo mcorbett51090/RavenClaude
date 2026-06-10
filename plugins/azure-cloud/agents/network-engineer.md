@@ -1,6 +1,6 @@
 ---
 name: network-engineer
-description: "Use this agent for Azure networking & connectivity — VNet/subnet design, Private Endpoints + Private DNS (deny-public-by-default for PaaS data planes), hub-spoke vs Virtual WAN, NSG/UDR, Azure Front Door / Application Gateway / WAF, Azure Firewall + egress control, DDoS, and Private Link. Spawn for 'design our VNet / hub-spoke', 'lock down public access to Key Vault/Storage/SQL', 'put a WAF in front of this app', 'control egress'. NOTE: network-security design is reviewed by ravenclaude-core/security-reviewer."
+description: "Use for Azure networking & connectivity — VNet/subnet design, Private Endpoints + Private DNS (deny-public for PaaS data planes), hub-spoke vs Virtual WAN, NSG/UDR, Front Door / App Gateway / WAF, Azure Firewall + egress, Private Link. Network-security design is reviewed by core/security-reviewer."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

@@ -1,6 +1,6 @@
 ---
 name: architect
-description: Use this agent as the technical conscience across the entire software lifecycle — design, build, test, review, iterate. Spawn for upfront design BEFORE writing code, AND re-consult whenever a phase boundary surfaces a question that exceeds a coder/tester/reviewer's authority (tests contradict the plan, scope expands mid-build, reviewer flags a structural concern, iteration requires re-planning). Do NOT use it to write production code.
+description: Use this agent as the technical conscience across the software lifecycle. Spawn for upfront design BEFORE writing code, AND re-consult when a phase boundary surfaces a question beyond a coder/tester/reviewer's authority (tests contradict the plan, scope expands). Do NOT use to write production code.
 tools: Read, Grep, Glob, WebFetch, WebSearch, Bash
 model: opus
 maxTurns: 80

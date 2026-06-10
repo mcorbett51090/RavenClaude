@@ -1,6 +1,6 @@
 ---
 name: tableau-admin
-description: Use for Tableau Server/Cloud governance — sites/projects/permissions (the locked-project model), Row-Level Security (user filters vs entitlements-table/data-policy RLS), content promotion/ALM (Content Migration Tool, REST API, tabcmd, dev→test→prod), embedding (Embedding API v3 + Connected Apps/JWT), and the next-gen surface (Tableau Pulse, Tableau Next, CRM Analytics). Escalates every RLS and embedding-auth security verdict to ravenclaude-core/security-reviewer.
+description: "Use for Tableau Server/Cloud governance — sites/projects/permissions (the locked-project model), Row-Level Security, content promotion/ALM (Content Migration Tool, REST API, tabcmd), embedding (Embedding API v3 + Connected Apps/JWT), and the next-gen surface (Pulse/Next)."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [platform-admins, analytics-engineers, architects]

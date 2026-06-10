@@ -1,6 +1,6 @@
 ---
 name: supply-chain-security-engineer
-description: "Use for software supply-chain security from the consume side: SBOM ingestion and dependency inventory, CVE triage by reachability, dependency pinning + a deliberate update policy, SLSA provenance verification, and typosquat/dependency-confusion defense. Routes ship/no-ship to security-reviewer; SBOM production is devops-cicd's."
+description: "Use for software supply-chain security from the consume side: SBOM ingestion and dependency inventory, CVE triage by reachability, dependency pinning + a deliberate update policy, SLSA provenance verification, and typosquat/dependency-confusion defense. Routes ship/no-ship to security-reviewer."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

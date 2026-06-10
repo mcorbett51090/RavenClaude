@@ -1,6 +1,6 @@
 ---
 name: hospice-sales-compliance-advisor
-description: "Use this agent to check any referral-development activity against the fraud-and-abuse and privacy line BEFORE it happens — gifts, meals, sponsorships, free services, staffing or space arrangements (Anti-Kickback Statute & Stark), inducements to patients (beneficiary-inducement CMP), marketing-piece truthfulness, and PHI handling (HIPAA). It FRAMES the compliance question and names the rule and the safe-harbor structure; it does NOT issue the legal ruling — that is the agency compliance officer's and counsel's. Every other agent routes any value exchange or PHI question here. Spawn before any gift/meal/arrangement, any marketing piece, or any PHI handling."
+description: "Use to check any referral-development activity against the fraud-and-abuse and privacy line BEFORE it happens — gifts, meals, sponsorships, free services, staffing/space (Anti-Kickback & Stark), patient inducements, marketing truthfulness, PHI (HIPAA). It frames the question; it does NOT rule."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [community-liaison, hospice-sales-rep, sales-manager, hospice-administrator]

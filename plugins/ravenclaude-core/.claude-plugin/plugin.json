@@ -7,7 +7,7 @@
     "name": "Matt Corbett"
   },
   "experimental": {
-    "monitors": "./monitors.json"
+    "monitors": "./monitors/monitors.json"
   },
   "homepage": "https://github.com/mcorbett51090/RavenClaude",
   "license": "MIT",

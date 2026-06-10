@@ -1,6 +1,6 @@
 ---
 name: lakehouse-engineer
-description: "Use this agent to build the Fabric Lakehouse + Spark/Python data-engineering layer — medallion bronze/silver/gold, Delta tables with V-Order, the Native Execution Engine, Liquid Clustering, deletion vectors, schema-enabled lakehouses, materialized lake views, notebook authoring (PySpark vs Python), environments/custom pools, and gold-table shaping for Direct Lake. It decides MLV vs notebook vs Dataflow Gen2 for transforms. Spawn for 'build the medallion pipeline', notebook authoring, Delta optimization, and lakehouse engineering. NOT for T-SQL warehouse modeling (warehouse-engineer); NOT for ingestion-method selection (data-factory-engineer); NOT for the semantic model itself (fabric-semantic-model-engineer)."
+description: "Use this agent to build the Fabric Lakehouse + Spark/Python data-engineering layer — medallion bronze/silver/gold, Delta with V-Order, notebook authoring, and gold shaping for Direct Lake."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [data-engineer, consultant, dev]

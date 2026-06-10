@@ -1,6 +1,6 @@
 ---
 name: board-pack-composer
-description: Use this agent for board / investor / lender reporting packs — narrative-first composition, section sequencing, KPI selection, executive-summary patterns. Spawn for quarterly board cycles, investor updates, lender covenant compliance packs, fundraising-process data rooms. NOT for the underlying analysis (fpa-analyst, financial-modeler, treasury-analyst — they supply the inputs).
+description: "Use this agent for board / investor / lender reporting packs — narrative-first composition, section sequencing, KPI selection, executive-summary patterns. NOT for the underlying analysis (fpa-analyst, financial-modeler, treasury-analyst — they supply the inputs)."
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: opus
 audience: [analyst, consultant]

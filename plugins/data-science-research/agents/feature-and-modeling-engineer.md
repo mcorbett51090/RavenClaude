@@ -1,6 +1,6 @@
 ---
 name: feature-and-modeling-engineer
-description: "Use this agent to engineer features and fit, select, and HONESTLY evaluate classical models on tabular data. It builds features (encodings, interactions, transforms), reaches for a baseline first (mean / majority / linear), then regression / trees / gradient boosting; selects the model and its hyperparameters; builds a leakage-safe cross-validation harness (every transform fit inside the fold, the split before any fit, grouped / time-aware folds when the data demands); and chooses the metric from the decision, not from habit. Spawn for 'engineer features and fit a baseline', 'which model and why', 'is this score real or is it leaking', 'how do I evaluate this honestly'. NOT for deciding statistical significance (applied-statistics), serving/monitoring/retraining the model (ml-engineering), or the first data profiling (exploratory-data-scientist) — it owns features, the model, and the honest score."
+description: "Use this agent to engineer features and fit, select, and HONESTLY evaluate classical models on tabular data. It builds features (encodings, interactions, transforms), reaches for a baseline first (mean / majority / linear), then regression / trees / gradient boosting."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [data-engineer, analyst, dev]

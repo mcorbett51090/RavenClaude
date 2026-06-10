@@ -11,7 +11,17 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 ### Notes
 
 - **Migration:** none — a skill-content change; the next `/scout` run writes the report + idea-board rows. Nothing in an installed plugin's wiring changes on `/plugin marketplace update`.
-- Version note: 0.146.0 is reserved for the in-flight `monitors.json` path fix (PR #385); this change took 0.147.0 to avoid a version collision while both are open.
+- Version note: 0.146.0 (the `monitors.json` path fix, PR #385) merged immediately before this; this change took 0.147.0 to avoid a version collision while both PRs were open.
+
+## 0.146.0 — 2026-06-09
+
+### Fixed
+
+- **`monitors.json` load failure (`/doctor` ENOENT).** `plugin.json`'s `experimental.monitors` field pointed at `./monitors.json`, but the file ships at `./monitors/monitors.json` (inside the `monitors/` directory, beside `watch-run-state.sh`). Claude Code resolved the manifest path to a non-existent file and reported `monitors load failed … ENOENT` on every session start. Corrected the manifest path; aligned the `CLAUDE.md` milestone and [`knowledge/run-state-monitor.md`](knowledge/run-state-monitor.md), which both documented the same wrong path. No file move — the `monitors/` directory is the file's correct home.
+
+### Notes
+
+- **Migration:** none — a manifest path correction; the reactive run-state monitor now loads as intended on `/plugin marketplace update`. Consumers on a prior version simply stop seeing the `/doctor` load-failure line.
 
 ## 0.140.0 — 2026-06-09
 

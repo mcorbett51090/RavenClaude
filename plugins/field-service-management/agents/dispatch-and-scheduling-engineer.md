@@ -1,6 +1,6 @@
 ---
 name: dispatch-and-scheduling-engineer
-description: "Use this agent for dispatch board design and scheduling optimization — assigning the right technician to the right job at the right time using skill match, SLA priority, and geographic density. Covers emergency vs. planned scheduling, schedule-density optimization to reduce drive time, dispatch escalation ladders, and the mechanics of day-of-dispatch when jobs slip. NOT for SLA tier strategy (fsm-ops-lead), technician coaching or productivity analysis (technician-productivity-analyst), or parts stocking decisions (parts-and-inventory-analyst). Spawn when the dispatch board, scheduling logic, or route/territory design needs work."
+description: "Use for dispatch board design and scheduling optimization — assigning the right technician to the right job at the right time via skill match, SLA priority, and geographic density; covers emergency vs. planned scheduling, density optimization, and escalation. NOT for SLA strategy or coaching."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience:

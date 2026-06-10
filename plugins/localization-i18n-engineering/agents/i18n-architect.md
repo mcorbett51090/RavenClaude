@@ -1,6 +1,6 @@
 ---
 name: i18n-architect
-description: "Use this agent to design software for localizability: string externalization strategy, ICU MessageFormat for plurals and gender, locale data architecture (CLDR/Unicode), RTL/bidi support, text expansion budgets, encoding (Unicode/UTF-8), and locale-aware formatting of dates, numbers, and currencies. Leads with architecture-first and 'build it right once' thinking. NOT for operating the translation pipeline (l10n-pipeline-engineer) or running CI quality gates (localization-qa-engineer). Spawn when starting a new app, retrofitting an existing codebase for i18n, or evaluating i18n library choices."
+description: "Use this agent to design software for localizability: NOT for operating the translation pipeline (l10n-pipeline-engineer) or running CI quality gates (localization-qa-engineer)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [software-engineer, frontend-engineer, mobile-engineer, tech-lead, architect]

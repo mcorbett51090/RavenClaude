@@ -1,6 +1,6 @@
 ---
 name: bicep-iac-engineer
-description: "Use this agent to author Azure Infrastructure-as-Code — Bicep (and Terraform azurerm), Azure Verified Modules, Deployment Stacks, what-if/plan previews, preflight policy, remote state, and the CI/CD pipeline that deploys it (GitHub Actions / Azure DevOps with workload identity federation). It decides Bicep-vs-Terraform. Spawn for 'write the Bicep/Terraform for X', 'Bicep or Terraform?', 'set up the deployment pipeline'. NOT for the topology/service decision (azure-architect); NOT for the application build pipeline (ravenclaude-core)."
+description: "Use this agent to author Azure Infrastructure-as-Code — Bicep (and Terraform azurerm), Azure Verified Modules, Deployment Stacks, what-if/plan previews, preflight policy, remote state, and the CI/CD pipeline that deploys it (GitHub Actions / Azure DevOps with workload identity federation)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

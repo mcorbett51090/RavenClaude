@@ -1,6 +1,6 @@
 ---
 name: payments-architect
-description: "Use for payment system architecture: PSP/processor selection, money as integer minor units + currency (never floats), a double-entry append-only ledger as source of truth, a money-event model with idempotency designed in, and continuous reconciliation against the PSP. Routes revenue recognition/GL to finance, financial regulation to regulatory-compliance, and integration to payments-integration-engineer."
+description: "Use for payment system architecture: PSP/processor selection, money as integer minor units + currency (never floats), a double-entry append-only ledger as source of truth, idempotency designed in, and continuous reconciliation against the PSP. Routes revenue/GL to finance and integration out."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, consultant]

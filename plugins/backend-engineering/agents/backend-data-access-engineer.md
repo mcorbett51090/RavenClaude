@@ -1,6 +1,6 @@
 ---
 name: backend-data-access-engineer
-description: "Use for the data-access layer: repository/data-mapper pattern, explicit short transaction boundaries (never across HTTP), killing ORM N+1, cache-aside with a defined invalidation trigger and stampede protection, and the transactional outbox for write-then-publish. Routes schema/index/EXPLAIN tuning to database-engineering and business logic to service-implementation-engineer."
+description: "Use for the data-access layer: repository/data-mapper pattern, explicit short transaction boundaries (never across HTTP), killing ORM N+1, cache-aside with a defined invalidation trigger and stampede protection, and the transactional outbox for write-then-publish."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

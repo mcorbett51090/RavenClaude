@@ -1,6 +1,6 @@
 ---
 name: k8s-platform-operator
-description: "Use for Kubernetes platform operations: namespace multi-tenancy, scoped RBAC (no workload cluster-admin), default-deny NetworkPolicies, resource quotas/LimitRanges, policy-based admission control, tested cluster/add-on upgrades respecting PDBs and version-skew, and capacity planning. Defers the managed control plane to the cloud plugins; routes security verdicts to security-engineering."
+description: "Use for Kubernetes platform operations: namespace multi-tenancy, scoped RBAC (no workload cluster-admin), default-deny NetworkPolicies, resource quotas/LimitRanges, policy-based admission control, tested cluster/add-on upgrades respecting PDBs and version-skew, and capacity planning."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev, consultant]

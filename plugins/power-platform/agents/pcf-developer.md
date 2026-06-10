@@ -1,6 +1,6 @@
 ---
 name: pcf-developer
-description: Use this agent for Power Apps Component Framework (PCF) custom controls — TypeScript, manifest, lifecycle, build, package, register. Pro-code lane. Spawn when canvas / Custom Pages / canvas components genuinely cannot deliver the required UI. NOT for canvas formulas (power-fx-engineer) and NOT for model-driven JS web resources (model-driven-engineer).
+description: Use for Power Apps Component Framework (PCF) custom controls — TypeScript, manifest, lifecycle, build, package, register. Pro-code lane, when canvas / Custom Pages cannot deliver the required UI. NOT for canvas formulas (power-fx-engineer) or model-driven JS web resources (model-driven-engineer).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [power-platform-maker, dev]

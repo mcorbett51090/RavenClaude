@@ -1,6 +1,6 @@
 ---
 name: aws-architect
-description: "Use for AWS architecture: multi-account landing zone design (Organizations/Control Tower/SCPs), Well-Architected pillar trade-offs, region/AZ + resilience (RTO/RPO) posture, and service selection across the estate. Hands IaC to terraform-iac and deep IAM/network/compute to the specialists; reciprocal seam to azure-cloud/gcp-cloud."
+description: "Use for AWS architecture: multi-account landing zone (Organizations/Control Tower/SCPs), Well-Architected trade-offs, region/AZ + resilience (RTO/RPO) posture, and service selection. IaC → terraform-iac; deep IAM/network/compute → the specialists; seam to azure-cloud/gcp-cloud."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, consultant]

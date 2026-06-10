@@ -1,6 +1,6 @@
 ---
 name: android-engineer
-description: "Use for native Android: Jetpack Compose state-driven UI (state hoisting, remember, list keys), coroutines/Flow with lifecycle-scoped structured concurrency, Keystore/EncryptedSharedPreferences secure storage, lifecycle-aware components and process-death handling, WorkManager background work respecting Doze, and Material/accessibility conventions. Routes auth to auth-identity and architecture to mobile-architect."
+description: "Use for native Android: Jetpack Compose state-driven UI (state hoisting, remember, list keys), coroutines/Flow with lifecycle-scoped structured concurrency, Keystore/EncryptedSharedPreferences secure storage, lifecycle-aware components and process-death handling."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

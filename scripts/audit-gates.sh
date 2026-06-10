@@ -887,6 +887,54 @@ mkdir -p "$FM_CMD_OK"
 printf -- '---\ndescription: A perfectly valid command with just a description.\n---\nbody\n' > "$FM_CMD_OK/ok.md"
 rc=0; python3 scripts/check-frontmatter.py --root "$TMP/fm-ok-cmd" >/dev/null 2>&1 || rc=$?
 gate "frontmatter (valid command, no scenario schema needed)" must_pass "$rc"
+# must_fail (d): an agent whose `description` exceeds the 300-char cap must be
+# detected even when it is otherwise schema-complete — agent descriptions load
+# into the orchestrator prompt for every enabled plugin and count against Claude
+# Code's ~15K-token agent-description budget (the "/agents to free up context"
+# warning). The fixture is valid in every other respect so the gate isolates the
+# cap rule. The description below is 332 chars.
+FM_LONG="$TMP/fm-long-agent/plugins/x/agents"
+mkdir -p "$FM_LONG"
+cat > "$FM_LONG/toolong.md" <<'EOF'
+---
+name: toolong
+description: "Use this agent when you want to prove that the description-length cap actually fires — this sentence is deliberately padded well beyond the three-hundred-character agent-description budget so the frontmatter gate has a concrete, schema-complete fixture to reject, and it keeps right on going past the limit entirely on purpose so the count clears the cap."
+audience: [dev]
+works_with: [other-agent]
+scenarios:
+  - intent: "Prove the cap fires"
+    trigger_phrase: "over budget"
+    outcome: "gate rejects it"
+    difficulty: starter
+quickstart:
+  - "Trigger phrase: 'over budget'"
+---
+body
+EOF
+rc=0; python3 scripts/check-frontmatter.py --root "$TMP/fm-long-agent" >/dev/null 2>&1 || rc=$?
+gate "frontmatter (agent description over 300-char cap)" must_fail "$rc"
+# ...and the same agent with a within-cap description must PASS (proves the cap
+# rule is not just always-failing — the bidirectional half of the gate audit).
+FM_OK="$TMP/fm-ok-agent/plugins/x/agents"
+mkdir -p "$FM_OK"
+cat > "$FM_OK/okdesc.md" <<'EOF'
+---
+name: okdesc
+description: "Use this agent for the within-cap case — short, routable, under the 300-char agent-description budget. NOT for the over-budget case (toolong)."
+audience: [dev]
+works_with: [other-agent]
+scenarios:
+  - intent: "Prove the cap passes a short description"
+    trigger_phrase: "within budget"
+    outcome: "gate accepts it"
+    difficulty: starter
+quickstart:
+  - "Trigger phrase: 'within budget'"
+---
+body
+EOF
+rc=0; python3 scripts/check-frontmatter.py --root "$TMP/fm-ok-agent" >/dev/null 2>&1 || rc=$?
+gate "frontmatter (agent description within 300-char cap)" must_pass "$rc"
 rc=0; python3 scripts/check-frontmatter.py >/dev/null 2>&1 || rc=$?
 gate "frontmatter (real tree)" must_pass "$rc"
 

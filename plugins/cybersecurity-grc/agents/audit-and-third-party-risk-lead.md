@@ -1,6 +1,6 @@
 ---
 name: audit-and-third-party-risk-lead
-description: "Use this agent to get audit-ready and to own vendor/third-party risk: run a gap assessment before fieldwork, liaise with the auditor and manage the PBC (provided-by-client) request list, and run third-party risk management (TPRM) — tier vendors by the data/access they hold, assess proportionally (SIG/CAIQ questionnaires, reviewing a vendor's SOC 2 report and its exceptions), own the shared-responsibility boundary, and set ongoing monitoring. Spawn for 'run a gap assessment before the audit', 'manage the auditor PBC list', 'tier our vendors and assess the critical ones', 'what does the vendor own vs us'. NOT for picking/scoping the framework (grc-architect), implementing/testing a control or building evidence (control-and-evidence-engineer), financial-regulator rules (regulatory-compliance), or configuring a cloud control (the cloud plugins) — it owns audit readiness and vendor risk, and routes the rest."
+description: "Own audit readiness and vendor/third-party risk: NOT for picking/scoping the framework (grc-architect), implementing/testing a control or building evidence (control-and-evidence-engineer)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [compliance, consultant, analyst]

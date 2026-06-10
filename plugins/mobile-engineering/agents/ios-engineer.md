@@ -1,6 +1,6 @@
 ---
 name: ios-engineer
-description: "Use for native iOS: SwiftUI state-driven UI with correct property-wrapper ownership, Swift Concurrency (async/await, actors, @MainActor), Keychain secure storage, app/scene lifecycle and background-task handling, Human Interface Guidelines and accessibility (VoiceOver/Dynamic Type), and retain-cycle avoidance. Routes the auth flow to auth-identity and architecture to mobile-architect."
+description: "Use for native iOS: SwiftUI state-driven UI with correct property-wrapper ownership, Swift Concurrency (async/await, actors, @MainActor), Keychain secure storage, app/scene lifecycle and background-task handling, Human Interface Guidelines and accessibility (VoiceOver/Dynamic Type)."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

@@ -1,6 +1,6 @@
 ---
 name: flow-engineer
-description: Use this agent for Power Automate work — cloud flows, desktop flows (RPA), and custom connectors. Triggers, expressions, error handling, child flows, retries, batching, parallelism. Spawn for any flow build/review/troubleshooting, custom connector authoring (OpenAPI), or "should this be Power Automate, Logic Apps, or a Function App?" decisions. NOT for canvas app work (power-fx-engineer) and NOT for data modeling (dataverse-architect).
+description: Use for Power Automate work — cloud flows, desktop flows (RPA), custom connectors, triggers, expressions, error handling. Spawn for flow build/review/troubleshooting or "Power Automate vs Logic Apps vs Function App?". NOT for canvas apps (power-fx-engineer) or data modeling (dataverse-architect).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [power-platform-maker, dev]

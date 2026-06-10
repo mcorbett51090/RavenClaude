@@ -1,6 +1,6 @@
 ---
 name: rfq-tender-strategist
-description: "Use this agent to decide whether to bid an RFQ/RFP/tender and to build a winning response — the qualify-or-decline scorecard, the lane rate matrix, the win-factor plan (speed, accuracy, carrier optionality, margin consistency), the bid narrative, and the follow-up cadence. NOT for the per-lane price itself (that's freight-rate-quoter) and NOT for incumbent-account defense relationship work (that's key-account-manager). Spawn at the start of any tender to qualify, and again to assemble the response."
+description: "Use to decide whether to bid an RFQ/RFP/tender and build a winning response — the qualify-or-decline scorecard, the lane rate matrix, the win-factor plan (speed, accuracy, optionality, margin), the bid narrative, and the follow-up cadence. NOT for the per-lane price or account defense."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [freight-sales-manager, business-development, sales-manager]

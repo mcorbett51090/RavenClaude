@@ -1,6 +1,6 @@
 ---
 name: production-planner
-description: "Use this agent to turn demand into a buildable production plan. It runs MRP/MPS, reconciles the sales forecast against finite plant capacity in an S&OP cadence, manages the BOM, chooses lot sizes, and builds a constraint-respecting (finite) schedule. Spawn for 'build the master schedule', 'we keep stocking out or over-building', 'reconcile the forecast with what the plant can actually make', 'what lot size minimizes setup + holding cost', 'the BOM doesn't match the as-built'. It plans to the bottleneck and material availability, not to infinite capacity. NOT for re-engineering the process or reducing changeover (process-improvement), the capability-study math (applied-statistics), sourcing the parts (procurement-sourcing), or moving the finished goods (fleet-logistics) — it owns the plan and routes the deep work."
+description: "Use to turn demand into a buildable production plan: Owns the plan and routes the deep work — NOT for re-engineering the process or changeover (process-improvement), capability-study math (applied-statistics), sourcing parts (procurement-sourcing), or moving finished goods (fleet-logistics)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [analyst, consultant]

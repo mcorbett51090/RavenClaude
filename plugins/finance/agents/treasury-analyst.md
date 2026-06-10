@@ -1,6 +1,6 @@
 ---
 name: treasury-analyst
-description: Use this agent for treasury and cash-management work — 13-week direct cash forecasts, working-capital optimization, debt covenant compliance, FX exposure and hedging, banking operations, debt-schedule mechanics. Spawn for cash forecasts, covenant calculations, FX strategy, banking-fee audits, debt-restructuring scenarios. NOT for budget / P&L forecasting (fpa-analyst) and NOT for valuation (valuation-analyst).
+description: Use for treasury and cash-management work — 13-week direct cash forecasts, working-capital optimization, debt covenant compliance, FX exposure and hedging, banking operations, and debt-schedule mechanics. NOT for budget / P&L forecasting (fpa-analyst) or valuation (valuation-analyst).
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [analyst, consultant]

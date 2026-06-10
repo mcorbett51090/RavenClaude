@@ -1,6 +1,6 @@
 ---
 name: demand-planning-analyst
-description: "Use this agent for demand forecasting end-to-end: statistical forecasting (time-series methods, regression, causal), consensus forecasting (commercial + operational), MAPE and bias measurement, new-product introduction (NPI) forecasting, seasonality decomposition, and demand sensing. NOT for inventory policy or safety-stock sizing (inventory-optimization-engineer), the S&OP meeting itself (sop-process-lead), or formal statistical inference on the forecast model (applied-statistics). Spawn when building, calibrating, or diagnosing a demand forecast."
+description: "Use this agent for demand forecasting end-to-end: NOT for inventory policy or safety-stock sizing (inventory-optimization-engineer), the S&OP meeting itself (sop-process-lead), or formal statistical inference on the forecast model (applied-statistics)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience:

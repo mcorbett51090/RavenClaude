@@ -1,6 +1,6 @@
 ---
 name: localization-qa-engineer
-description: "Use this agent for localization quality assurance: pseudo-localization CI gates (catching hard-coded strings, overflow, bidi bugs before translation), l10n linting (missing keys, untranslated strings, length overflows, placeholder mismatches), visual and overflow QA methodology, locale-coverage testing, and false-positive triage in l10n lint output. NOT for i18n architecture (i18n-architect) or pipeline/TMS setup (l10n-pipeline-engineer). Spawn when adding l10n quality gates to CI, debugging overflow/layout bugs in a specific locale, or assessing test coverage across target locales."
+description: "Use this agent for localization quality assurance: pseudo-localization CI gates (catching hard-coded strings, overflow, bidi bugs before translation), l10n linting (missing keys, untranslated strings, length overflows, placeholder mismatches), visual and overflow QA methodology."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [qa-engineer, software-engineer, devops-engineer, tech-lead, localization-engineer]

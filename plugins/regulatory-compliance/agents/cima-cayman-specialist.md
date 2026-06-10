@@ -1,6 +1,6 @@
 ---
 name: cima-cayman-specialist
-description: Use this agent for Cayman Islands Monetary Authority (CIMA) work across all sectors — Banking (Banks and Trust Companies Act, Category A/B licences, Basel II application), Trust & fiduciary + corporate services (Companies Management Act, Directors Registration and Licensing Act, PTC Regulations), Funds (Mutual Funds Act open-ended classes + Private Funds Act closed-ended), Securities Investment Business (SIBA licensees + registered persons), Insurance (Insurance Act 2010 classes A–D), and Cayman AML/CFT (AML Regulations, FRA/CAYFIN FIU), beneficial ownership (BOTA 2023) and economic substance (DITC). Spawn for Cayman-domiciled entity classification, licensing, capital, and AML/BO/ES questions. NOT for legal opinions.
+description: "Use this agent for Cayman Islands Monetary Authority (CIMA) work across all sectors — Banking (Banks and Trust Companies Act, Category A/B licences, Basel II application), Trust & fiduciary + corporate services."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [compliance, consultant]

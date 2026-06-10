@@ -1,6 +1,6 @@
 ---
 name: gc-project-lead
-description: "Use this agent for overall GC project delivery: managing the project P&L against the original estimate, building and updating the schedule of values, preparing and submitting owner pay applications (AIA G702/G703 or equivalent), tracking retainage, managing owner/architect/subcontractor relationships, and driving project closeout (punch list, as-builts, O&M manuals, warranty letters, final retainage release). NOT for doing the original takeoff (estimating-and-takeoff-analyst), building the CPM schedule (scheduling-engineer), processing submittals and RFIs (submittal-rfi-coordinator), or writing JHAs (jobsite-safety-advisor). Spawn at project award or whenever cost, billing, or closeout is in scope."
+description: "Use this agent for overall GC project delivery: NOT for the original takeoff (estimating-and-takeoff-analyst), the CPM schedule (scheduling-engineer), submittals/RFIs (submittal-rfi-coordinator), or JHAs (jobsite-safety-advisor)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [project-manager, project-executive, owner, project-engineer, superintendent]

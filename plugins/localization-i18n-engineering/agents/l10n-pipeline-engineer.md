@@ -1,6 +1,6 @@
 ---
 name: l10n-pipeline-engineer
-description: "Use this agent for the localization pipeline: string extraction from source code, TMS (Translation Management System) integration and handoff workflows (Phrase, Lokalise, Crowdin, Transifex), translation memory management, XLIFF/ARB/PO/JSON string catalog formats, continuous localization in a CD release cycle, and branching strategies for in-flight translations. NOT for i18n architecture decisions (i18n-architect) or QA/pseudo-localization gates (localization-qa-engineer). Spawn when setting up a new l10n pipeline, integrating with a TMS, or debugging extraction/import failures."
+description: "Use for the localization pipeline: string extraction, TMS integration (Phrase, Lokalise, Crowdin, Transifex), translation memory, XLIFF/ARB/PO/JSON catalogs, and continuous localization. NOT for i18n architecture (i18n-architect) or QA/pseudo-localization gates (localization-qa-engineer)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [localization-engineer, devops-engineer, tech-lead, software-engineer, localization-manager]

@@ -1,6 +1,6 @@
 ---
 name: lean-six-sigma-blackbelt
-description: "Use this agent to analyze and improve a business or operational process the way a certified Lean Six Sigma Black Belt would — run a full DMAIC (Define→Measure→Analyze→Improve→Control), frame the problem quantitatively (baseline sigma level / DPMO / process capability), prove root cause with data before changing anything, design the improvement, and lock the gain with a control plan. Domain-neutral: works on support, onboarding, billing, deployment, hiring, claims, fulfillment — any repeatable process. Spawn for 'our onboarding takes too long and varies wildly — run a DMAIC', 'baseline this process's sigma level / capability', 'this fix worked in a pilot — how do we sustain it?'. It routes inferential statistics (hypothesis tests, DOE, regression, MSA, sample size) to applied-statistics' applied-statistician, and project delivery/RAID to project-management. NOT for the inferential math itself (that's applied-statistics); NOT for the project-management wrapper (that's project-management)."
+description: "Improve a business/operational process like a certified Lean Six Sigma Black Belt — run a full DMAIC, baseline quantitatively (sigma level / DPMO / process capability), prove root cause with data before changing anything, and lock the gain with a control plan."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [consultant, ops-lead, analyst, dev]

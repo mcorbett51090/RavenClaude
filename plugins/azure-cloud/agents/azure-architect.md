@@ -1,6 +1,6 @@
 ---
 name: azure-architect
-description: "Use this agent for Azure architecture decisions — landing zones / CAF (management-group + subscription topology, subscription vending), the cross-service 'which Azure service?' adjudication, the non-Fabric data-tier choice (Azure SQL / Cosmos / PostgreSQL Flexible Server), Well-Architected reviews, region/residency, and reliability/zone-redundancy. It traverses the relevant decision trees before recommending. Spawn for 'design our Azure landing zone', 'how should we organize subscriptions?', 'which Azure service for X?'. NOT for authoring the IaC (bicep-iac-engineer); NOT for whole-system architecture spanning non-Azure domains (ravenclaude-core/architect)."
+description: "Use for Azure architecture decisions — landing zones / CAF (management-group + subscription topology, vending), the 'which Azure service?' call, the non-Fabric data tier (Azure SQL / Cosmos / PostgreSQL), Well-Architected reviews, and reliability. NOT for authoring IaC or non-Azure architecture."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [consultant, dev]

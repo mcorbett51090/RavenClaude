@@ -1,6 +1,6 @@
 ---
 name: load-testing-engineer
-description: "Use this agent to build and run the actual performance test once the workload is modeled: load (prove the target at expected traffic), stress (find the knee), soak (catch the slow leak/degradation over hours), and spike (prove elasticity) scenarios in k6 / Gatling / Locust / JMeter. It chooses the open- vs closed-model workload deliberately, designs ramping and think time, generates realistic owned test data (never prod PII), and avoids coordinated omission so the reported latency is real. Spawn for 'write the k6 load test for this endpoint', 'stress it to find where it falls over', 'soak it for 8 hours to catch the memory leak', 'simulate a Black-Friday traffic spike'. NOT for setting the target/workload model (performance-architect), profiling the bottleneck the test reveals (profiling-and-capacity-engineer), or fixing the slow query/front-end it exposes (database-engineering / frontend-engineering)."
+description: "Use to build and run the performance test once the workload is modeled: load, stress, soak, and spike scenarios in k6 / Gatling / Locust / JMeter. NOT for setting the workload model (performance-architect) or profiling the bottleneck (profiling-and-capacity-engineer)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev, consultant, data-engineer]

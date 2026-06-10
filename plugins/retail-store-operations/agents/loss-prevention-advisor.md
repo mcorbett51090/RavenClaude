@@ -1,6 +1,6 @@
 ---
 name: loss-prevention-advisor
-description: "Use this agent for shrink root-cause analysis and loss prevention strategy: decomposing shrink into operational (process errors, receiving gaps, damage), internal (employee theft/fraud), and external (shoplifting, ORC) categories; designing audit protocols; building exception-based reporting logic; and advising on safe-handling and cash-handling procedures. NOT for four-wall P&L (store-ops-lead), planograms (merchandising-analyst), replenishment (inventory-and-replenishment-analyst), or labor scheduling (labor-scheduling-analyst). Spawn when shrink rate increases unexpectedly, an audit is needed, or a loss-prevention program needs a reset."
+description: "Shrink root-cause analysis and loss-prevention strategy: NOT for four-wall P&L (store-ops-lead), planograms (merchandising-analyst), replenishment (inventory-and-replenishment-analyst), or labor scheduling (labor-scheduling-analyst)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience:

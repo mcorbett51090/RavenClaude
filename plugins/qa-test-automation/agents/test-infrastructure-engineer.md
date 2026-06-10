@@ -1,6 +1,6 @@
 ---
 name: test-infrastructure-engineer
-description: "Use for test infrastructure: isolated/disposable test data (factories over shared fixtures), ephemeral environments and service virtualization, automated flaky-test detection and quarantine, parallelization/sharding, and coverage+mutation reporting in CI. Wires into devops-cicd for where it runs; takes the what-to-test from test-strategy-architect."
+description: "Use for test infrastructure: isolated/disposable test data (factories over shared fixtures), ephemeral environments and service virtualization, flaky-test detection and quarantine, parallelization/sharding, and coverage+mutation reporting in CI. Takes what-to-test from test-strategy-architect."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

@@ -1,6 +1,6 @@
 ---
 name: us-financial-regulation-specialist
-description: Use this agent for United States financial-regulatory work across the fragmented federal + state "alphabet soup" — the federal banking agencies (FRB, OCC, FDIC, NCUA), FinCEN (BSA/AML, SAR/CTR, the Corporate Transparency Act / BOI), OFAC (sanctions, the 50% Rule), the SEC and FINRA (securities, broker-dealers, investment advisers), the CFTC/NFA (derivatives), the CFPB (consumer), FSOC (systemic), and state regulators (notably NYDFS Part 504 + BitLicense, and NASAA blue-sky). Spawn to identify which US regulator owns a charter/activity, to map BSA/AML obligations, or to assess sanctions/BOI exposure. NOT for legal opinions.
+description: "Use this agent for United States financial-regulatory work across the fragmented federal + state 'alphabet soup' — the federal banking agencies (FRB, OCC, FDIC, NCUA), FinCEN (BSA/AML, SAR/CTR, the Corporate Transparency Act / BOI), OFAC (sanctions, the 50% Rule), the SEC and FINRA."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [compliance, consultant]

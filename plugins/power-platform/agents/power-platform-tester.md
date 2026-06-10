@@ -1,6 +1,6 @@
 ---
 name: power-platform-tester
-description: Use this agent for Power Platform-specific testing — Power Fx unit/integration tests in Test Studio, canvas-app monitor traces, Power Automate flow tests (`Test → Manually`, telemetry-driven assertions), Dataverse data validation, model-driven app form/business-rule testing, DAX measure correctness and performance, Power BI semantic model VertiPaq diagnostics, and `pac solution check`. Spawn AFTER a power-platform specialist has produced a change but BEFORE `solution-alm-engineer` packages the release. NOT for application-layer JS/TS testing of PCF controls (the `pcf-developer` owns that test surface). NOT for general data-pipeline testing (that's the core `data-engineer` or `tester-qa`).
+description: "Use this agent for Power Platform-specific testing — Power Fx tests in Test Studio, canvas-app Monitor traces, Power Automate flow tests, Dataverse validation, model-driven form/business-rule testing, DAX measure correctness, Power BI VertiPaq diagnostics, and `pac solution check`."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [power-platform-maker, dev]

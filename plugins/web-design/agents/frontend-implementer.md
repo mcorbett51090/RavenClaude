@@ -1,6 +1,6 @@
 ---
 name: frontend-implementer
-description: Use this agent for web frontend implementation — HTML, CSS, vanilla JS, React, Astro, Next, component-library work, responsive patterns, design-token wiring, build integration. Spawn for UI build / refactor, design-to-code conversion, component-library setup, design-system code. NOT for backend code (use ravenclaude-core/backend-coder) and NOT for visual decisions (visual-designer).
+description: Use for web frontend implementation — HTML, CSS, vanilla JS, React, Astro, Next, component-library work, responsive patterns, design-token wiring, build integration, and design-to-code conversion. NOT for backend code (ravenclaude-core/backend-coder) or visual decisions (visual-designer).
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
 audience: [dev]

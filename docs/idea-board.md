@@ -88,6 +88,8 @@ _Method that worked: traverse the seed's graph first (Buhler's README → the An
 
 ## Scouted fringe finds — 2026-06-09 (`/scout` "make money on X using Claude")
 
+> **Full detail for the four 2026-06-09 runs below** (the per-lane reasoning, the dropped-and-why + ToS-flagged items, the load-bearing findings) lives in [`docs/research/2026-06-09-scout-runs/report.md`](research/2026-06-09-scout-runs/report.md). These rows are the distilled index; the report is the record.
+
 Second `/scout` run. Seed = monetize on **X (the platform)** with Claude. 4-lane parallel periphery sweep (GitHub recently-updated · indie writeups · X/LinkedIn builders · communities/micro-SaaS). Every row below was **fetched this session**; unverifiable/404'd leads were dropped, not described. **Two finds surfaced in 2 lanes each** (Pulse, OpenTweet) — a convergence signal.
 
 | Find | What it is | Why fringe (low-reach) | Fit / note | Status |

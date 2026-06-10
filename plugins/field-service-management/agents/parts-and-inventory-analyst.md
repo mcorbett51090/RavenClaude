@@ -1,6 +1,6 @@
 ---
 name: parts-and-inventory-analyst
-description: "Use this agent for truck-stock design, parts availability analysis, and the first-time-fix ↔ inventory tradeoff. Decides which parts every technician should carry standard, which are special-order, how to set reorder points on truck stock, and how to analyze parts-delay failures and returns/excess. Understands that a truck is a mobile warehouse with a service-level target, not a cost-minimization problem. NOT for scheduling decisions (dispatch-and-scheduling-engineer), technician coaching (technician-productivity-analyst), or contract/SLA strategy (fsm-ops-lead). Spawn when first-time-fix misses are driven by parts unavailability, or when truck-stock cost vs. service-level tradeoffs need analysis."
+description: "Use for truck-stock design, parts availability, and the first-time-fix ↔ inventory tradeoff: which parts a technician carries standard vs special-order, setting reorder points, and analyzing parts-delay failures and returns/excess. NOT for scheduling or contract/SLA strategy (fsm-ops-lead)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience:

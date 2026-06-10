@@ -1,6 +1,6 @@
 ---
 name: observability-engineer
-description: "Use to make a system observable: OpenTelemetry instrumentation (traces/metrics/logs, OTLP, semantic conventions), sampling strategy, cardinality control to tame metrics cost, correlation across the three pillars via trace context, and dashboards built around questions. Hands SLO/alerting to sre-reliability-engineer."
+description: "Use to make a system observable: OpenTelemetry instrumentation (traces/metrics/logs, OTLP, semantic conventions), sampling strategy, cardinality control to tame metrics cost, correlation across the three pillars via trace context, and dashboards built around questions."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

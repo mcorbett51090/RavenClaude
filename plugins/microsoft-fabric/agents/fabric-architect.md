@@ -1,6 +1,6 @@
 ---
 name: fabric-architect
-description: "Use this agent for Microsoft Fabric architecture decisions — workspace/domain topology, capacity sizing & SKU choice, the store-selection decision (lakehouse / warehouse / eventhouse / SQL DB / Cosmos / shortcut), the shortcut-vs-mirror-vs-auto-mirror call, medallion layout, and data-mesh design. It traverses the store-selection decision tree before naming a store and never keyword-matches. Spawn for greenfield Fabric architecture, re-platform decisions, and 'lakehouse or warehouse?' questions. NOT for building the artifacts (that's lakehouse/warehouse/data-factory engineers); NOT for standalone Power BI reports (power-platform/power-bi-engineer); NOT for non-Microsoft SMB embedded analytics (data-platform)."
+description: "Use for Microsoft Fabric architecture decisions — workspace/domain topology, capacity sizing & SKU choice, store-selection (lakehouse / warehouse / eventhouse / SQL DB / Cosmos / shortcut), shortcut-vs-mirror, and medallion layout. NOT for building artifacts, standalone Power BI, or non-Fabric work."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [data-engineer, consultant, dev]

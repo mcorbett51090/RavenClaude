@@ -1,6 +1,6 @@
 ---
 name: gcp-data-and-compute-engineer
-description: "Use for GCP compute and data selection: choosing Cloud Run vs GKE vs Cloud Functions vs GCE by workload shape and operational burden, Pub/Sub event-driven design with idempotency and dead-letter topics, selecting Cloud SQL/Spanner/Firestore by access pattern, and BigQuery as a service (IAM/slots/cost). Routes deep DB modeling to database-engineering and BigQuery analytics to data-platform."
+description: "Use for GCP compute and data selection: choosing Cloud Run vs GKE vs Cloud Functions vs GCE by workload shape and operational burden, Pub/Sub event-driven design with idempotency and dead-letter topics, selecting Cloud SQL/Spanner/Firestore by access pattern."
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 model: sonnet
 audience: [dev]

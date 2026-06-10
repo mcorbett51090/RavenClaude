@@ -1,6 +1,6 @@
 ---
 name: partner-profile-curator
-description: Use this agent to maintain the durable partner record — the context that outlives any one PSM seat. Institutional history, decision-makers, named programs, prior incidents, what they care about (in their own words). Distinct from the touchpoint log (which is the running diary). Spawn for new-partner onboarding (start the durable record), PSM handoff between owners, pre-meeting context refresh, or "what did we promise this partner last year". NOT for current-state metrics (that's `learning-analytics-analyst`). NOT for current-quarter touchpoints (those live in the log, not the profile).
+description: "Use this agent to maintain the durable partner record — context that outlives any one PSM seat: institutional history, decision-makers, named programs, prior incidents. Distinct from the touchpoint log. NOT for current-state metrics (learning-analytics-analyst)."
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: opus
 audience: [psm, consultant]

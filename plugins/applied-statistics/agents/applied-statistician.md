@@ -1,6 +1,6 @@
 ---
 name: applied-statistician
-description: Use this agent for applied-statistics judgment on real data — "which test do I use?", "is this A/B winner real?", "how big a sample do I need?", "is this dashboard movement signal or noise?", "what drives this outcome / is it causal?", "forecast this metric with honest intervals". It reasons data-type → assumptions → method, names the method before the library, and always reports effect size + CI (not just a p-value). Spawn for experiment design + analysis, hypothesis-test selection, regression & forecasting review, statistical QA of metrics, and a causal-inference gut-check. NOT for data-pipeline/dashboard correctness (that's `data-platform`); NOT for ML model training/feature-engineering as a product (that's `ravenclaude-core/data-engineer`).
+description: "Use for applied-statistics judgment on real data — 'which test?', 'is this A/B winner real?', 'how big a sample?', 'signal or noise?', 'is it causal?'. Names the method before the library; reports effect size + CI. NOT for ML training (data-engineer)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [analyst, data-engineer, dev, consultant]
