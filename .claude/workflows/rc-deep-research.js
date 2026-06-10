@@ -26,6 +26,26 @@ export const meta = {
   ],
 };
 
+// ─── Resume-safe time source (added 2026-06-10) ───────────────────────────────
+// The workflow runtime FORBIDS Date.now() / new Date() — they introduce
+// non-determinism that breaks in-session resume, and calling them throws
+// ("Date.now() / new Date() are unavailable in workflow scripts"). Before this
+// shim the whole workflow crashed at startup (the top-level _runStartedMs +
+// per-phase window timing below run unconditionally, even with no runId), so
+// EVERY rc-deep-research invocation failed under the current runtime.
+//
+// We replace the time APIs with a deterministic monotonic counter so the run is
+// resume-safe and the eval-stats fields stay structurally valid. CAVEAT: these
+// are monotonic ORDINALS, not wall-clock ms — the eval grader's wall-clock
+// transcript-bucketing (adaptive-run-classifier Phase 6, deferred) needs a
+// separate runtime-legal time source (an agent-returned timestamp, or a base
+// time passed via args) before it can bucket real transcript usage by phase.
+// That rework is tracked as a follow-up; the research output itself does not
+// depend on timing, so interactive runs are unaffected.
+let _wfClock = 1_000;
+const _now = () => (_wfClock += 1);
+const _isoNow = () => "1970-01-01T00:00:00.000Z";
+
 // ─── Substrate adapter (Phase 2 of docs/plans/2026-06-03-adaptive-run-classifier/plan.md) ───
 //
 // INVARIANT (Gate 51): when runCfg.enabled === false, adapterOpts() returns {}
@@ -168,7 +188,7 @@ async function evaluateDispatch(
   { subagent_type, description, prompt_head, requested_model, caller_context },
   dispatchCfg,
 ) {
-  const t0 = Date.now();
+  const t0 = _now();
   const classifierPrompt = JSON.stringify({
     subagent_type,
     description: (description || "").slice(0, 200),
@@ -194,7 +214,7 @@ async function evaluateDispatch(
       label: "dispatch-evaluator-classifier",
       _predispatch: "skip",
     });
-    const latency = Date.now() - t0;
+    const latency = _now() - t0;
     _trackLatency(latency, dispatchCfg);
 
     if (!raw || raw.trim() === "FAIL") return null;
@@ -325,7 +345,7 @@ async function _appendAuditLog(envelope, verdict, applied, dispatchCfg) {
   const sessionId = (typeof args !== "undefined" && args?._sessionId) || "unknown";
   const logPath = `${DISPATCH_EVAL_LOG_DIR}/${sessionId}.jsonl`;
   const line = JSON.stringify({
-    ts: new Date().toISOString(),
+    ts: _isoNow(),
     subagent_type: envelope.subagent_type,
     description_first40: (envelope.description || "").slice(0, 40),
     requested_model: envelope.requested_model,
@@ -662,14 +682,14 @@ const MAX_VERIFY_CLAIMS =
 // from ~/.claude transcripts and buckets them into phases by these wall-clock
 // windows. We record start/end ms + an agent count per phase; the grader attributes
 // each transcript event to the phase whose [started_ms, ended_ms] contains its ts.
-const _runStartedMs = Date.now();
+const _runStartedMs = _now();
 const _phaseWindows = {}; // phase -> { started_ms, ended_ms, agent_count }
 function _phaseStart(p) {
-  _phaseWindows[p] = { started_ms: Date.now(), ended_ms: null, agent_count: 0 };
+  _phaseWindows[p] = { started_ms: _now(), ended_ms: null, agent_count: 0 };
 }
 function _phaseEnd(p, agentCount) {
   if (_phaseWindows[p]) {
-    _phaseWindows[p].ended_ms = Date.now();
+    _phaseWindows[p].ended_ms = _now();
     if (typeof agentCount === "number") _phaseWindows[p].agent_count = agentCount;
   }
 }
@@ -1291,9 +1311,9 @@ if (RUN_ID) {
   const _evalStats = {
     subagent_tokens: 0,
     agent_count: 1 + scope.angles.length + allSources.length + voted.length * VOTES_PER_CLAIM + 1,
-    duration_ms: Date.now() - _runStartedMs,
+    duration_ms: _now() - _runStartedMs,
     confirmed_claim_count: confirmed.length,
-    run_window: { started_ms: _runStartedMs, ended_ms: Date.now() },
+    run_window: { started_ms: _runStartedMs, ended_ms: _now() },
     per_phase: _phaseWindows,
   };
   const _evalSO = {
@@ -1373,9 +1393,9 @@ return {
     // usage; the grader fills it from ~/.claude transcripts, bucketed by per_phase.
     subagent_tokens: 0,
     agent_count: 1 + scope.angles.length + allSources.length + voted.length * VOTES_PER_CLAIM + 1,
-    duration_ms: Date.now() - _runStartedMs,
+    duration_ms: _now() - _runStartedMs,
     confirmed_claim_count: confirmed.length,
-    run_window: { started_ms: _runStartedMs, ended_ms: Date.now() },
+    run_window: { started_ms: _runStartedMs, ended_ms: _now() },
     per_phase: _phaseWindows,
     // ── Legacy human-readable fields (kept for the /workflows drill-in + existing readers) ──
     angles: scope.angles.length,
