@@ -139,6 +139,11 @@ _WS_RE = re.compile(r"\s+")
 def fetch_body_excerpt(url: str) -> str:
     """Fetch an OPEN-WEB article and return a crude text excerpt. Never called
     for NEVER_FETCH hosts. Fail-safe: returns '' on any error."""
+    # SSRF guard: urllib will happily open file://, ftp://, etc. We only ever
+    # want real web articles — refuse anything that isn't http/https so a
+    # hostile search result can't coax a local-file or non-web fetch.
+    if urllib.parse.urlparse(url).scheme not in ("http", "https"):
+        return ""
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
