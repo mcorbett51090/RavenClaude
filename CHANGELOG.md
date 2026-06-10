@@ -2,6 +2,28 @@
 
 All notable changes to the RavenClaude marketplace and its plugins. Format loosely follows [Keep a Changelog](https://keepachangelog.com/). The marketplace version (`metadata.version` in `.claude-plugin/marketplace.json`) bumps when the catalog shape or cross-plugin contracts change; individual plugins have their own semver tracked in their `plugin.json`.
 
+## ravenclaude-core 0.149.0 — 2026-06-10 (repo-review autonomous fixes: guard hardening + portability + doc-count accuracy)
+
+Three-panel repository review (expert fan-out → validation → tie-break) with autonomous fixes. Every objective gate was green going in; the panels surfaced correctness/hardening defects the gates can't see.
+
+**Guard & hook hardening (consumer-visible):**
+
+- `guard-destructive.sh` — `rm -rf ./` / `rm -fr ./` (trailing-slash current-dir delete) now blocked. The guard already blocked the bare `rm -rf .`; the trailing-slash idiom slipped past both target checks. `rm -rf ./tmp/build` and other relative subpaths stay allowed. New Gate 5 fixtures pin both directions.
+- `enforce-layout.sh` — the in-project prefix test now requires the trailing `/` (`"$project_root"/*`), so a sibling directory sharing the project-root name as a prefix (e.g. `…/RavenClaude-backup`) is no longer misclassified as in-project (which had yielded an unstripped `rel_path` and a spurious deny).
+- `copilot-hook-adapter.sh` — dropped the predictable `/tmp/rc-adapter-err.$$` fallback (a symlink-attack target on shared hosts) in favour of `/dev/null`, with the cleanup guarded so it never removes `/dev/null`.
+
+**Portability & tooling:**
+
+- `scripts/eval-adaptive-classifier.py` — `REPO_ROOT` now derives from `Path(__file__)` like every other script (was hardcoded to `/workspaces/RavenClaude`, so the eval harness failed on any other clone path, including CI).
+- `scripts/archive-branch.sh` — the unmerged-SHA audit-log write is now array-quoted (no word-split/glob on the substitution).
+- `scripts/check-frontmatter.py` — frontmatter extraction tolerates CRLF (`\r?\n`) so a Windows-authored file reports a real YAML error instead of a misleading "no frontmatter".
+
+**Documentation accuracy:** corrected drifted hand-maintained counts across `README.md`, the core `CLAUDE.md`, `marketplace.json`, and several plugin READMEs (core 38→40 skills; power-platform 18/20→21; the `requires` line 22-of-23→98-of-99; the metadata 43→98 domain plugins; web-design/claude-app/azure/microsoft-fabric/finance knowledge-bank docs; regulatory-compliance 27→37 best-practice rules) and removed the stale "salesforce still planned" roadmap bullet (it ships). See `docs/repo-review-2026-06-10-decisions.md` for the recommendation to generate or gate these counts (the recurring drift class).
+
+### Catch-up note — 0.104.0 through 0.148.0
+
+These 45 intervening versions were not individually logged here. The authoritative version-by-version history is git (`git log`) plus the milestone narratives in [`plugins/ravenclaude-core/CLAUDE.md`](plugins/ravenclaude-core/CLAUDE.md). The major arcs in that span: the Copilot-adapter diagnostic trilogy (0.110–0.113), the unified-portal / 5-section-IA build-out and the Norse observability tabs (Heimdall / Víðarr / Norns / Níðhöggr / Mímir / Bifröst / Sleipnir), the Learn-tab concept + stepper rollout, the FORGE external-contribution intake, the agent-dispatch-evaluator phases, the `rc-deep-research` rename + eval-harness wiring, `scout`, the visual-feedback-loop, and the reactive run-state monitor. Going forward this file's top entry tracks each bump per the AGENTS.md CHANGELOG convention.
+
 ## ravenclaude-core 0.103.0 — 2026-06-02 (Intercom polish: ⌘K palette + conversational posture editor + dark mode + onboarding)
 
 Premium SaaS refinement of the landing dashboard (`index.html`) with five new visible surfaces. Plan v4 — refined through a 4-seat panel review (architect + code-reviewer + designer + project-manager) before exit. Built on the v0.102.0 design-system foundation.

@@ -34,7 +34,9 @@ import re
 import sys
 from pathlib import Path
 
-_FM = re.compile(r"^---\n(.*?)\n---", re.DOTALL)
+# Tolerate CRLF as well as LF so a file authored on Windows reports a real YAML
+# error rather than a misleading "no frontmatter" (extraction was LF-only before).
+_FM = re.compile(r"^---\r?\n(.*?)\r?\n---", re.DOTALL)
 
 _SCENARIO_ITEM_KEYS = ("intent", "trigger_phrase", "outcome", "difficulty")
 

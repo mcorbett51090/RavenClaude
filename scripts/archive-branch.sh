@@ -186,7 +186,10 @@ LOG="$LOGDIR/${DATE}-${BRANCH//\//-}.log"
   echo "unmerged_vs_main_count: ${UNMERGED_COUNT}"
   echo "unmerged_vs_main:"
   if [[ -n "$UNMERGED_LIST" ]]; then
-    printf '  - %s\n' $(printf '%s\n' "$UNMERGED_LIST" | awk '{print $1}')
+    # Quote via an array so the SHA list isn't word-split / glob-expanded into the
+    # audit log (correct-by-construction even if the source format ever changes).
+    mapfile -t _ub_shas < <(printf '%s\n' "$UNMERGED_LIST" | awk '{print $1}')
+    printf '  - %s\n' "${_ub_shas[@]}"
   else
     echo "  []"
   fi
