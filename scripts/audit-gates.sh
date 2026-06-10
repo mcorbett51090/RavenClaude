@@ -154,9 +154,14 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate101-declarative-viz-linter.sh
       exit $?
       ;;
+    103)
+      echo "── Gate 103: svg-report-lint (per-gate run) ───────────────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate103-svg-report-lint.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -531,7 +536,7 @@ cp -p "$TMP/README.md.bak" README.md
 # (the catalog prose describing core) must be detected — previously ungated, it
 # silently drifted to "20 skills" while core had 22 (caught by the v0.74.0 panel).
 backup .claude-plugin/marketplace.json
-python3 -c "p='.claude-plugin/marketplace.json';s=open(p).read();open(p,'w').write(s.replace('41 skills','20 skills',1))"
+python3 -c "p='.claude-plugin/marketplace.json';s=open(p).read();open(p,'w').write(s.replace('42 skills','20 skills',1))"
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (wrong metadata.description skill count)" must_fail "$rc"
 cp -p "$TMP/.claude-plugin_marketplace.json.bak" .claude-plugin/marketplace.json
@@ -3280,6 +3285,18 @@ chmod +x "$G102NOSCRUB"
 rc=0; RAVENCLAUDE_ORCH_BRIEF="key=AKIAIOSFODNN7EXAMPLE123456" \
   PATH="$G102BIN:$PATH" bash "$G102NOSCRUB" decide >/dev/null 2>&1 || rc=$?
 gate "orchestrate: [teeth] stripped scrub passes secret brief (rc=0)" must_pass "$rc"
+
+echo
+echo "── Gate 103: svg-report-lint (geometry + security, bidirectional + teeth) ─"
+# The stdlib SVG linter for report images.
+# Asserts: clean badge passes; each geometry check (no-viewBox, bad-aspect,
+# tiny-font) and each security check (<script>, on*, <foreignObject>,
+# remote-href) fails (exit 1); --min-fontsize flag works; a '..' path is
+# rejected (exit 2); an always-pass mutant lets known-bad fixtures through
+# (teeth for both security and geometry checks).
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate103-svg-report-lint.sh >/dev/null 2>&1 || rc=$?
+gate "svg-report-lint bidirectional (geometry + security + teeth)" must_pass "$rc"
+
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"

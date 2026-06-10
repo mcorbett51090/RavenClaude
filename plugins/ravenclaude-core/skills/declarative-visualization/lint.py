@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-declarative-visualization security linter (Gate 101).
+declarative-visualization linter (Gate 101).
 
-Checks a Vega-Lite/Vega/SVG spec or template for network-access vectors and
-script-injection vectors.  Stdlib-only, no network, exit-coded for CI.
+Two-tier checks over Vega-Lite/Vega/SVG specs and templates.  Stdlib-only,
+no network, exit-coded for CI.
 
 Exit codes:
-  0 — clean (no violations)
-  1 — one or more security violations found
+  0 — clean (no violations; warnings go to stderr but do not affect exit)
+  1 — one or more violations found
   2 — I/O, parse, or path-rejection error (purity failure: '..' in path,
       path outside the repo root, or file not found/unreadable)
 
-The six forbidden patterns (all → exit 1):
+Tier 1 — security (always exit 1):
   JSON specs:
     (a) data.url — top-level or nested — any object with a "url" key that is a
         sibling of "name" in a data source, or any top-level data.url string
@@ -27,8 +27,18 @@ The six forbidden patterns (all → exit 1):
         javascript: (network call + potential JS); safe local fragment refs
         like href="#id" are allowed
 
+Tier 2 — quality / correctness (always exit 1 unless noted):
+    (i) encoding-completeness — mark types that need a positional channel (x or y)
+        are flagged if neither x nor y appears in the top-level encoding block
+    (j) spec-hygiene-mark — mark type must be in the Vega-Lite verified mark enum
+        [unverified — training knowledge; verify at vega.github.io/vega-lite]
+    (k) accessibility-channel — WARN ONLY (stderr, exit 0) when color encodes a
+        field with no redundant shape/size/pattern channel
+    (l) security-surface-flag — WARN by default (stderr, exit 0); exit 1 with
+        --strict when a Vega signal, expr, or calculate expression is found
+
 Usage:
-  python3 lint.py <spec.json|template.json|file.svg> [--debug]
+  python3 lint.py <spec.json|template.json|file.svg> [--debug] [--strict]
   python3 lint.py --list-checks
 """
 
@@ -38,17 +48,37 @@ import re
 import sys
 
 CHECKS = [
-    ("data-url",           "data.url present (SSRF vector) — use data.name instead"),
-    ("transform-lookup",   "transform.lookup with remote from.data.url — use data.name + host-side join"),
-    ("loader-override",    "'loader' key present — custom loader can redirect all URL resolution"),
-    ("schema-remote",      "$schema references a non-vega.github.io host — only the official origin is allowed"),
-    ("svg-script",         "<script> element in SVG — script injection vector"),
-    ("svg-on-attr",        "on* attribute in SVG — inline JS event handler vector"),
-    ("svg-foreign-object", "<foreignObject> element in SVG — XSS-escalation vector"),
-    ("svg-remote-href",    "remote or javascript: href/xlink:href in SVG — network call + potential JS"),
+    # Tier 1 — security (always violations → exit 1)
+    ("data-url",              "data.url present (SSRF vector) — use data.name instead"),
+    ("transform-lookup",      "transform.lookup with remote from.data.url — use data.name + host-side join"),
+    ("loader-override",       "'loader' key present — custom loader can redirect all URL resolution"),
+    ("schema-remote",         "$schema references a non-vega.github.io host — only the official origin is allowed"),
+    ("svg-script",            "<script> element in SVG — script injection vector"),
+    ("svg-on-attr",           "on* attribute in SVG — inline JS event handler vector"),
+    ("svg-foreign-object",    "<foreignObject> element in SVG — XSS-escalation vector"),
+    ("svg-remote-href",       "remote or javascript: href/xlink:href in SVG — network call + potential JS"),
+    # Tier 2 — quality / correctness (violations → exit 1)
+    ("encoding-completeness", "mark type requires a positional channel (x or y) but encoding is missing both"),
+    ("spec-hygiene-mark",     "mark type is not in the Vega-Lite verified mark enum"),
+    # Tier 2 — warnings (exit 0 without --strict)
+    ("accessibility-channel", "color encodes a field with no redundant shape/size/pattern channel"),
+    ("security-surface-flag", "Vega signal/expr/calculate expression found — requires security-reviewer pass"),
 ]
 
 VEGA_SCHEMA_ALLOWED_HOST = "vega.github.io"
+
+# Vega-Lite mark types (training knowledge; verify at vega.github.io/vega-lite/docs/mark.html).
+_VEGALITE_MARK_TYPES = frozenset({
+    "bar", "line", "area", "point", "text", "tick", "rect", "rule",
+    "circle", "square", "geoshape", "arc", "image", "trail",
+    "boxplot", "errorbar", "errorband",
+})
+
+# Marks that require at least one positional channel (x or y) to be meaningful.
+# arc, image, geoshape, text use different channel sets and are intentionally excluded.
+_POSITION_REQUIRED_MARKS = frozenset({
+    "bar", "line", "area", "point", "circle", "square", "tick", "trail", "rule",
+})
 
 
 def list_checks() -> None:
@@ -103,14 +133,7 @@ def _walk(obj, violations: list, path: str = "$") -> None:
                 violations.append(("schema-remote", f"{path}.$schema = {schema_val!r}"))
 
         # (a) data.url — object has a "url" key and is acting as a data source
-        # A data source is an object with a "url" key (and optionally "format",
-        # "name", etc.).  We match any dict that has "url" at a data-source
-        # position (i.e., it is the value of a "data" key, or inside "datasets",
-        # or inside a "from.data" of a transform).
-        # We check for "url" as a string value (the network-fetch case).
         if "url" in obj and isinstance(obj["url"], str):
-            # only flag if this looks like a data source (has "url" but also
-            # optional data-source keys, or is clearly nested under data)
             _flag_url_if_data_source(obj, violations, path)
 
         # (b) transform.lookup with from.data.url
@@ -145,13 +168,85 @@ def _flag_url_if_data_source(obj: dict, violations: list, path: str) -> None:
     url_val = obj.get("url")
     if not isinstance(url_val, str) or not url_val:
         return
-    # Definitely a data source if it also has "format" or "csv"/"json" hint
     data_source_keys = {"format", "name", "csv", "json", "sequence", "sphere", "graticule"}
     if data_source_keys.intersection(obj.keys()) or set(obj.keys()) == {"url"}:
         violations.append(("data-url", f"{path}.url = {url_val!r}"))
-    # Also flag top-level data: {url: ...} even if only "url" is present
     elif "url" in obj and len(obj) <= 3:
         violations.append(("data-url", f"{path}.url = {url_val!r}"))
+
+
+# ── Tier 2 quality / correctness ─────────────────────────────────────────────
+
+def _check_json_quality(obj: dict, violations: list, warnings: list) -> None:
+    """Check top-level Vega-Lite spec for quality and correctness issues."""
+    if not isinstance(obj, dict):
+        return
+
+    mark = obj.get("mark")
+    mark_type = None
+    if isinstance(mark, str):
+        mark_type = mark.lower()
+    elif isinstance(mark, dict) and isinstance(mark.get("type"), str):
+        mark_type = mark["type"].lower()
+
+    encoding = obj.get("encoding") or {}
+
+    # (i) encoding-completeness
+    if mark_type in _POSITION_REQUIRED_MARKS:
+        has_x = "x" in encoding or "x2" in encoding
+        has_y = "y" in encoding or "y2" in encoding
+        if not has_x and not has_y:
+            violations.append((
+                "encoding-completeness",
+                f"mark '{mark_type}' has no positional channel (x or y) in encoding"
+            ))
+
+    # (j) spec-hygiene-mark
+    if mark_type and mark_type not in _VEGALITE_MARK_TYPES:
+        violations.append((
+            "spec-hygiene-mark",
+            f"mark type '{mark_type}' is not in the Vega-Lite verified mark enum"
+        ))
+
+    # (k) accessibility-channel — warning only
+    if isinstance(encoding, dict):
+        color_enc = encoding.get("color")
+        if isinstance(color_enc, dict) and color_enc.get("field"):
+            has_redundant = any(
+                isinstance(encoding.get(ch), dict) and encoding.get(ch, {}).get("field")
+                for ch in ("shape", "size", "pattern", "strokeDash", "opacity")
+            )
+            if not has_redundant:
+                warnings.append((
+                    "accessibility-channel",
+                    "color encodes a field with no redundant shape/size/pattern channel; "
+                    "data may be indistinguishable to colorblind viewers"
+                ))
+
+
+def _walk_for_expressions(obj, warnings: list, path: str = "$") -> None:
+    """Walk spec looking for Vega signal/expr/calculate expressions (warn by default)."""
+    if isinstance(obj, dict):
+        if "signal" in obj and isinstance(obj["signal"], (str, dict)):
+            warnings.append((
+                "security-surface-flag",
+                f"{path}.signal — Vega signal expression requires security-reviewer pass"
+            ))
+        if "calculate" in obj and isinstance(obj.get("calculate"), str):
+            warnings.append((
+                "security-surface-flag",
+                f"{path}.calculate — Vega-Lite calculate transform expression requires security-reviewer pass"
+            ))
+        if "expr" in obj and isinstance(obj.get("expr"), str):
+            warnings.append((
+                "security-surface-flag",
+                f"{path}.expr — Vega expr expression requires security-reviewer pass"
+            ))
+        for k, v in obj.items():
+            _walk_for_expressions(v, warnings, f"{path}.{k}")
+    elif isinstance(obj, list):
+        for i, v in enumerate(obj):
+            _walk_for_expressions(v, warnings, f"{path}[{i}]")
 
 
 # ── SVG checks ────────────────────────────────────────────────────────────────
@@ -184,14 +279,15 @@ def _check_svg(content: str, violations: list) -> None:
 def main() -> int:
     args = sys.argv[1:]
     debug = "--debug" in args
-    args = [a for a in args if a != "--debug"]
+    strict = "--strict" in args
+    args = [a for a in args if a not in ("--debug", "--strict")]
 
     if "--list-checks" in args:
         list_checks()
         return 0
 
     if not args:
-        print("usage: lint.py <spec.json|file.svg> [--debug]", file=sys.stderr)
+        print("usage: lint.py <spec.json|file.svg> [--debug] [--strict]", file=sys.stderr)
         return 2
 
     raw_path = args[0]
@@ -208,6 +304,7 @@ def main() -> int:
         return 2
 
     violations: list = []
+    warnings: list = []
 
     is_svg = abs_path.lower().endswith(".svg") or content.lstrip().startswith("<svg")
 
@@ -221,15 +318,27 @@ def main() -> int:
             print(f"[error] JSON parse error: {exc}", file=sys.stderr)
             return 2
         _walk(obj, violations)
+        _check_json_quality(obj, violations, warnings)
+        _walk_for_expressions(obj, warnings)
         # Also check if the JSON embeds an SVG string (SVG-in-DAX pattern)
         if "<svg" in content.lower():
             _check_svg(content, violations)
 
     if debug:
-        print(f"[debug] path={abs_path!r}, is_svg={is_svg}, violations={violations}")
+        print(f"[debug] path={abs_path!r}, is_svg={is_svg}, "
+              f"violations={violations}, warnings={warnings}")
+
+    # Warnings: always emit to stderr; with --strict escalate to violations.
+    for key, detail in warnings:
+        print(f"[warn] [{key}] {detail}", file=sys.stderr)
+    if strict:
+        violations.extend(warnings)
 
     if not violations:
-        print(f"[lint] PASS — {raw_path}")
+        if warnings:
+            print(f"[lint] PASS (with warnings) — {raw_path}")
+        else:
+            print(f"[lint] PASS — {raw_path}")
         return 0
 
     print(f"[lint] FAIL — {raw_path} ({len(violations)} violation(s)):")

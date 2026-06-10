@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40" width="120" height="40">
+  <!-- Bad fixture — font-size 4px is below the 8px minimum. Must fail (exit 1, text-min-fontsize). -->
+  <rect width="120" height="40" rx="4" fill="#2563eb"/>
+  <text x="60" y="25" font-size="4" fill="white" text-anchor="middle">Revenue</text>
+</svg>

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40">
+  <!-- Bad fixture — no viewBox attribute. Must fail lint.py (exit 1, viewbox-present). -->
+  <rect width="120" height="40" rx="4" fill="#2563eb"/>
+  <text x="60" y="25" font-size="14" fill="white" text-anchor="middle">Revenue</text>
+</svg>

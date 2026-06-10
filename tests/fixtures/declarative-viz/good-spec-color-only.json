@@ -1,0 +1,19 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Clean spec using color-only encoding (triggers accessibility-channel warning but exit 0). Must PASS lint.py (exit 0).",
+  "data": {
+    "name": "source",
+    "values": [
+      { "x": "A", "category": "type1", "y": 10 },
+      { "x": "B", "category": "type2", "y": 20 }
+    ]
+  },
+  "mark": "bar",
+  "encoding": {
+    "x": { "field": "x", "type": "nominal" },
+    "y": { "field": "y", "type": "quantitative" },
+    "color": { "field": "category", "type": "nominal" }
+  },
+  "width": "container",
+  "height": 200
+}
