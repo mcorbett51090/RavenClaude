@@ -131,6 +131,45 @@ def _repo_root() -> str:
     return os.path.abspath(os.path.join(os.path.dirname(here), "..", "..", "..", ".."))
 
 
+def _reference_file_root() -> str:
+    """Resolve the MARKETPLACE root that bundles the PBIR reference asset.
+
+    This is deliberately distinct from _repo_root(). The reference is a
+    *sibling-plugin* file shipped with the marketplace, so it must be located
+    relative to lint.py's REAL on-disk position — but `ravenclaude setup`
+    installs skills into a consumer repo as **symlinks** (`ln -s`, see
+    scripts/ravenclaude) pointing back to the marketplace clone. `_repo_root()`
+    uses os.path.abspath(__file__), which does NOT follow symlinks, so under a
+    symlinked install it resolves to the consumer's parent dir (e.g.
+    /workspaces) and the reference can't be found. realpath() follows the
+    symlink back to the marketplace, where power-platform is a sibling plugin.
+
+    Resolution order (first root that actually holds the reference wins):
+      1. $RAVENCLAUDE_DIR — set for forks / the cp -r (non-symlink) install path.
+      2. realpath(__file__) four-up — the symlinked-into-consumer case (default).
+      3. abspath(__file__) four-up — running from the marketplace checkout (dev),
+         where realpath == abspath anyway.
+    Falls back to the realpath candidate so a genuinely-missing reference still
+    yields the clear EnumParseError below rather than a silent wrong path.
+
+    Note: this is NOT used by _resolve_safe() — the input-path sandbox boundary
+    stays anchored to _repo_root() (the consumer's working tree), unchanged.
+    """
+    candidates: list[str] = []
+    env_dir = os.environ.get("RAVENCLAUDE_DIR")
+    if env_dir:
+        candidates.append(os.path.abspath(env_dir))
+    real_here = os.path.realpath(__file__)
+    candidates.append(
+        os.path.abspath(os.path.join(os.path.dirname(real_here), "..", "..", "..", ".."))
+    )
+    candidates.append(_repo_root())
+    for root in candidates:
+        if os.path.isfile(os.path.join(root, PBIR_REFERENCE_RELPATH)):
+            return root
+    return candidates[-2] if len(candidates) >= 2 else candidates[0]
+
+
 def _resolve_safe(input_path: str) -> str:
     """Reject ".." and paths that resolve outside the repo root; return abspath."""
     if ".." in input_path.split(os.sep):
@@ -149,7 +188,7 @@ def parse_visual_type_enum(reference_path: str | None = None) -> frozenset[str]:
     Returns the set of valid visualType strings. Raises EnumParseError (exit 3)
     if § 1 cannot be located or yields no enum.
     """
-    path = reference_path or os.path.join(_repo_root(), PBIR_REFERENCE_RELPATH)
+    path = reference_path or os.path.join(_reference_file_root(), PBIR_REFERENCE_RELPATH)
     try:
         text = open(path, encoding="utf-8").read()
     except OSError as exc:  # file genuinely absent or unreadable
