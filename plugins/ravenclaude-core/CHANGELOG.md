@@ -2,6 +2,20 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.151.0 — 2026-06-10
+
+### Fixed
+
+- **Gate 101 SVG linter hardened — `<foreignObject>` and remote/`javascript:` href now enforced** ([`skills/declarative-visualization/lint.py`](skills/declarative-visualization/lint.py)). `lint.py`'s `_check_svg()` previously only caught `<script>` elements and `on*` event attributes. Two additional SVG injection vectors are now flagged at exit 1:
+  - `<foreignObject>` elements (XSS-escalation vector — embedded HTML can carry arbitrary scripts).
+  - `href` or `xlink:href` whose value begins with `http://`, `https://`, or `javascript:` (network call + potential JS execution). **Safe local fragment refs like `href="#id"` are explicitly allowed** — the pattern matches only remote/script schemes, not intra-document references.
+- **Gate 101 test extended** ([`hooks/tests/test-gate101-declarative-viz-linter.sh`]). Three new must-fail fixtures (`bad-svg-foreign-object.svg`, `bad-svg-remote-href.svg`, `bad-svg-javascript-href.svg`) and one new must-pass fixture (`good-svg-local-ref.svg` — safe local `href="#id"` + `xlink:href="#id"`). Mutant (always-pass) half extended to cover the two new bad SVG fixtures, proving the new checks are logic, not luck.
+- **`knowledge/declarative-visualization.md` §4b reconciled**: the `<foreignObject>` and `xlink:href` rows' "Caught by" column updated from `security-reviewer (NOT yet linter-enforced)` to `lint.py (Gate 101)`. The "Honest scope" note updated to reflect that all four SVG vector classes are now linter-caught; Vega `signals`/`expr` remain security-reviewer-gated. The tracked follow-up note removed (it was this change).
+
+### Notes
+
+- **Migration:** none — the new checks only add rejections (stricter); no valid committed SVG that passed before should contain `<foreignObject>` or remote/`javascript:` hrefs, and the safe local-fragment carve-out preserves the `xlink:href="#id"` pattern used in `<use>` elements.
+
 ## 0.150.0 — 2026-06-10
 
 ### Added

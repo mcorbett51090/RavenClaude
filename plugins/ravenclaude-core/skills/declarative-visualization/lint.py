@@ -11,7 +11,7 @@ Exit codes:
   2 — I/O, parse, or path-rejection error (purity failure: '..' in path,
       path outside the repo root, or file not found/unreadable)
 
-The four forbidden patterns (all → exit 1):
+The six forbidden patterns (all → exit 1):
   JSON specs:
     (a) data.url — top-level or nested — any object with a "url" key that is a
         sibling of "name" in a data source, or any top-level data.url string
@@ -22,6 +22,10 @@ The four forbidden patterns (all → exit 1):
   SVG files (.svg or JSON string containing '<svg'):
     (e) <script> element
     (f) on* attribute (onclick, onload, onmouseover, …)
+    (g) <foreignObject> element (XSS-escalation vector)
+    (h) href or xlink:href whose value starts with http://, https://, or
+        javascript: (network call + potential JS); safe local fragment refs
+        like href="#id" are allowed
 
 Usage:
   python3 lint.py <spec.json|template.json|file.svg> [--debug]
@@ -34,12 +38,14 @@ import re
 import sys
 
 CHECKS = [
-    ("data-url",          "data.url present (SSRF vector) — use data.name instead"),
-    ("transform-lookup",  "transform.lookup with remote from.data.url — use data.name + host-side join"),
-    ("loader-override",   "'loader' key present — custom loader can redirect all URL resolution"),
-    ("schema-remote",     "$schema references a non-vega.github.io host — only the official origin is allowed"),
-    ("svg-script",        "<script> element in SVG — script injection vector"),
-    ("svg-on-attr",       "on* attribute in SVG — inline JS event handler vector"),
+    ("data-url",           "data.url present (SSRF vector) — use data.name instead"),
+    ("transform-lookup",   "transform.lookup with remote from.data.url — use data.name + host-side join"),
+    ("loader-override",    "'loader' key present — custom loader can redirect all URL resolution"),
+    ("schema-remote",      "$schema references a non-vega.github.io host — only the official origin is allowed"),
+    ("svg-script",         "<script> element in SVG — script injection vector"),
+    ("svg-on-attr",        "on* attribute in SVG — inline JS event handler vector"),
+    ("svg-foreign-object", "<foreignObject> element in SVG — XSS-escalation vector"),
+    ("svg-remote-href",    "remote or javascript: href/xlink:href in SVG — network call + potential JS"),
 ]
 
 VEGA_SCHEMA_ALLOWED_HOST = "vega.github.io"
@@ -150,8 +156,16 @@ def _flag_url_if_data_source(obj: dict, violations: list, path: str) -> None:
 
 # ── SVG checks ────────────────────────────────────────────────────────────────
 
-_RE_SCRIPT_TAG = re.compile(r"<script[\s/>]", re.IGNORECASE)
-_RE_ON_ATTR    = re.compile(r"\bon\w+\s*=", re.IGNORECASE)
+_RE_SCRIPT_TAG      = re.compile(r"<script[\s/>]", re.IGNORECASE)
+_RE_ON_ATTR         = re.compile(r"\bon\w+\s*=", re.IGNORECASE)
+_RE_FOREIGN_OBJECT  = re.compile(r"<foreignObject[\s/>]", re.IGNORECASE)
+# Match href or xlink:href whose value begins with a remote scheme or javascript:.
+# Safe local fragment refs (href="#id") do NOT start with http/https/javascript,
+# so they are intentionally excluded from this pattern.
+_RE_REMOTE_HREF     = re.compile(
+    r"""(?:xlink:)?href\s*=\s*['"]?\s*(?:https?://|javascript:)""",
+    re.IGNORECASE,
+)
 
 
 def _check_svg(content: str, violations: list) -> None:
@@ -159,6 +173,10 @@ def _check_svg(content: str, violations: list) -> None:
         violations.append(("svg-script", "<script> element found in SVG"))
     if _RE_ON_ATTR.search(content):
         violations.append(("svg-on-attr", "on* attribute found in SVG"))
+    if _RE_FOREIGN_OBJECT.search(content):
+        violations.append(("svg-foreign-object", "<foreignObject> element found in SVG"))
+    if _RE_REMOTE_HREF.search(content):
+        violations.append(("svg-remote-href", "remote or javascript: href/xlink:href found in SVG"))
 
 
 # ── main ──────────────────────────────────────────────────────────────────────
