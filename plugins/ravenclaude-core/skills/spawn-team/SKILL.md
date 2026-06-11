@@ -161,6 +161,13 @@ Return your standard structured report. Cap your response at <N> words.
 
 **Cost note:** `decide` adds one Claude call for planning (+tokens). `full` adds one larger Claude call (+most tokens, bounded). Say the active mode in your summary when it changes routing.
 
+**Scope (`orchestrator_scope: team | all`, default `team`).** The `orchestrator` knob above sets _how_ orchestration routes to Claude; `orchestrator_scope` sets _when_:
+
+- `team` (default) — orchestrate via Claude **only on a team-of-agents dispatch** (i.e. exactly this Step 4.5). This is unchanged behavior.
+- `all` — **additionally**, the host relays _every_ prompt to Claude (content-only). That every-prompt relay is **not driven from this skill** — it is the self-gating "Relay mode" directive in the generated [`copilot/AGENTS.md`](../../copilot/AGENTS.md) (Copilot-host only). Team dispatch (this step) is identical under both scopes; `all` only adds the every-prompt surface.
+
+`orchestrator_scope: all` routes client context to a **second processor** (your Claude account) on every turn, so it is guarded by an **egress floor** in `claude-orchestrate.sh` (fails closed unless Bedrock/Vertex, attested ZDR, or a no-PII repo flag) plus an optional pseudonymization layer — see [`knowledge/orchestrator-data-egress.md`](../../knowledge/orchestrator-data-egress.md). Those guards apply to the relay-all path; team-dispatch egress is the pre-existing reviewed path.
+
 **Note:** this step is inert under Claude Code (`THING_HOST == claude-code`). Skip entirely when running in Claude Code.
 
 ---
