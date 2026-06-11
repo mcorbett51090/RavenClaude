@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.1] — 2026-06-11
+
+Research-sweep **correction** — refreshed the stale OpenTofu version stamp + added OCI-registry distribution, re-verified 2026-06-11 against the OpenTofu releases + docs.
+
+### Fixed
+
+- **`knowledge/terraform-iac-decision-trees.md`** — the "Last verified … OpenTofu **1.8**" stamp now reflects the current GA **OpenTofu 1.12.x** (1.12.0 2026-05-14, 1.12.1 2026-05-27). Added that since **OpenTofu 1.10**, modules **and** providers can be distributed via **OCI registries** (new row in the module-distribution tradeoffs table — reuse existing container-registry infra). Sources: [OpenTofu releases](https://github.com/opentofu/opentofu/releases), [OCI registry integrations](https://opentofu.org/docs/cli/oci_registries/). (Native S3 state locking was already documented — not changed.)
+- Version **0.3.0 → 0.3.1** in `.claude-plugin/plugin.json` + `marketplace.json` (lockstep).
+
 ## [0.3.0] — 2026-06-05
 
 Value-add build-out against the full menu — adds the scenarios bank, the technical-runtime tier (LSP code intelligence), a second topic-specific decision-tree knowledge file, and honestly dispositions every remaining menu item. Builds on PR #315 (the consolidated decision-trees + best-practices + templates), filling the net-new gaps: scenarios + runtime tier.

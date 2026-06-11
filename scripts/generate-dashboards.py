@@ -668,6 +668,29 @@ _PIPELINE_CONTROLS = {
         "(brain / hands split; lower cost). "
         "<strong>full</strong> — one Claude call reasons through the task and returns artifact "
         "content; host writes the files (guaranteed intent; highest cost, bounded).</p>"
+        '<label class="pipe-ctl">Scope — <em>when</em> the orchestrator fires '
+        '<select id="pipe-orchestrator-scope">'
+        '<option value="team">team — only on a team-of-agents dispatch (default; lowest egress)</option>'
+        '<option value="all">all — relay EVERY prompt to Claude (content-only)</option>'
+        "</select></label>"
+        '<div id="pipe-orch-relay-opts" style="display:none;border-left:3px solid #c47f17;'
+        'padding:.4rem .7rem;margin:.5rem 0">'
+        '<p class="pipe-hint"><strong>⚠ Relay-all sends a second copy of every prompt — plus the '
+        "files it references — to your Claude account (a <em>different</em> processor than GitHub "
+        "Copilot) on every turn.</strong> It is guarded by the egress floor below and "
+        "<strong>fails closed</strong> (answers host-side, nothing egresses) unless one condition holds. "
+        "Bedrock/Vertex deployments are auto-detected and always pass.</p>"
+        '<label class="pipe-ctl"><input type="checkbox" id="pipe-orch-zdr"> '
+        "Zero-data-retention is ON for my Anthropic org "
+        "<span class=\"pipe-hint\">(it is OFF by default, per-org — confirm before checking)</span></label>"
+        '<label class="pipe-ctl"><input type="checkbox" id="pipe-orch-nopii"> '
+        "This repo contains NO client PII</label>"
+        '<label class="pipe-ctl"><input type="checkbox" id="pipe-orch-pseudo"> '
+        "<strong>Pseudonymize structured PII before egress (optional layer A)</strong></label>"
+        '<p class="pipe-hint">Layer A masks emails / SSNs / card &amp; phone shapes to random tokens, '
+        "restored locally on return. Defense-in-depth on <em>top</em> of the floor — <strong>not</strong> a "
+        "guarantee: pattern detection does not catch free-text names or addresses, which is exactly why "
+        "the floor above is the real protection.</p></div>"
     ),
     "files": (
         '<div class="pipe-file" data-file=".repo-layout.json">'
@@ -6556,6 +6579,8 @@ _JS = r"""
   const DECISION_REVIEW_DEFAULT = "off";
   const ORCHESTRATOR_VALUES = ["off", "decide", "full"];
   const ORCHESTRATOR_DEFAULT = "full";
+  const ORCHESTRATOR_SCOPE_VALUES = ["team", "all"];
+  const ORCHESTRATOR_SCOPE_DEFAULT = "team";
 
   /* Per-tier panel defaults — mirror thing-decision.py's built-in tier table.
    * Seats are forseti | mimir | heimdall (thor is the tie-breaker, never a seat).
@@ -6628,6 +6653,10 @@ _JS = r"""
     parallelism: Object.assign({}, PARALLELISM_DEFAULT),
     decision_review: DECISION_REVIEW_DEFAULT,
     orchestrator: ORCHESTRATOR_DEFAULT,
+    orchestrator_scope: ORCHESTRATOR_SCOPE_DEFAULT,
+    orchestrator_zdr_confirmed: false,
+    orchestrator_repo_pii: true,
+    orchestrator_pseudonymize: false,
     definition_of_done: Object.assign({}, DOD_DEFAULT),
     expanded: {},   /* category -> boolean */
   };
@@ -7005,6 +7034,18 @@ _JS = r"""
     if (ORCHESTRATOR_VALUES.includes(src.orchestrator)) {
       state.orchestrator = src.orchestrator; touched = true;
     }
+    if (ORCHESTRATOR_SCOPE_VALUES.includes(src.orchestrator_scope)) {
+      state.orchestrator_scope = src.orchestrator_scope; touched = true;
+    }
+    if (typeof src.orchestrator_zdr_confirmed === "boolean") {
+      state.orchestrator_zdr_confirmed = src.orchestrator_zdr_confirmed; touched = true;
+    }
+    if (typeof src.orchestrator_repo_pii === "boolean") {
+      state.orchestrator_repo_pii = src.orchestrator_repo_pii; touched = true;
+    }
+    if (typeof src.orchestrator_pseudonymize === "boolean") {
+      state.orchestrator_pseudonymize = src.orchestrator_pseudonymize; touched = true;
+    }
     const dod = src.definition_of_done;
     if (dod && typeof dod === "object") {
       if (typeof dod.cmd === "string") { state.definition_of_done.cmd = dod.cmd; touched = true; }
@@ -7133,6 +7174,31 @@ _JS = r"""
       lines.push("");
     }
 
+    /* Orchestrator scope + relay-all egress floor. Each emitted only when non-default
+     * (scope: team / zdr: false / repo_pii: true / pseudonymize: false), so "absent
+     * ⇒ default" holds and an untouched posture stays minimal. */
+    if (ORCHESTRATOR_SCOPE_VALUES.includes(state.orchestrator_scope)
+        && state.orchestrator_scope !== ORCHESTRATOR_SCOPE_DEFAULT) {
+      lines.push("# Orchestrator scope — WHEN it fires (team | all). Host-only. all relays every prompt (content-only).");
+      lines.push(`orchestrator_scope: ${state.orchestrator_scope}`);
+      lines.push("");
+    }
+    if (state.orchestrator_zdr_confirmed === true) {
+      lines.push("# Relay-all egress floor: ZDR attested ON for your Anthropic org.");
+      lines.push("orchestrator_zdr_confirmed: true");
+      lines.push("");
+    }
+    if (state.orchestrator_repo_pii === false) {
+      lines.push("# Relay-all egress floor: this repo flagged as containing no client PII.");
+      lines.push("orchestrator_repo_pii: false");
+      lines.push("");
+    }
+    if (state.orchestrator_pseudonymize === true) {
+      lines.push("# Relay-all: pseudonymize structured PII before egress (optional layer A — not a guarantee).");
+      lines.push("orchestrator_pseudonymize: true");
+      lines.push("");
+    }
+
     const dod = state.definition_of_done;
     if (dod.cmd && dod.cmd.trim()) {
       lines.push("# Definition-of-done gate — runs on Stop; blocks 'done' until it passes.");
@@ -7194,6 +7260,10 @@ _JS = r"""
         parallelism: state.parallelism,
         decision_review: state.decision_review,
         orchestrator: state.orchestrator,
+        orchestrator_scope: state.orchestrator_scope,
+        orchestrator_zdr_confirmed: state.orchestrator_zdr_confirmed,
+        orchestrator_repo_pii: state.orchestrator_repo_pii,
+        orchestrator_pseudonymize: state.orchestrator_pseudonymize,
         definition_of_done: state.definition_of_done,
         expanded: state.expanded,
       }));
@@ -8649,6 +8719,17 @@ _JS = r"""
     if (po) po.value = state.orchestrator;
     pipeBadge("claude-orchestrator", state.orchestrator,
               state.orchestrator === "off" ? "pipe-badge-off" : "pipe-badge-on");
+    const posc = document.getElementById("pipe-orchestrator-scope");
+    if (posc) posc.value = state.orchestrator_scope;
+    const ozdr = document.getElementById("pipe-orch-zdr");
+    if (ozdr) ozdr.checked = state.orchestrator_zdr_confirmed === true;
+    const onopii = document.getElementById("pipe-orch-nopii");
+    if (onopii) onopii.checked = state.orchestrator_repo_pii === false;
+    const opseu = document.getElementById("pipe-orch-pseudo");
+    if (opseu) opseu.checked = state.orchestrator_pseudonymize === true;
+    const orelay = document.getElementById("pipe-orch-relay-opts");
+    if (orelay) orelay.style.display =
+      (state.orchestrator_scope === "all" && state.orchestrator !== "off") ? "" : "none";
     const dc = document.getElementById("pipe-dod-cmd");
     if (dc) dc.value = state.definition_of_done.cmd || "";
     const dm = document.getElementById("pipe-dod-maxblocks");
@@ -8724,7 +8805,11 @@ _JS = r"""
     onChange("pipe-parallelism-unlimited", el => { state.parallelism.unlimited = el.checked; });
     onInput("pipe-parallelism-workers", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.parallelism.max_workers = v; });
     onChange("pipe-decision-review", el => { if (DECISION_REVIEW_VALUES.includes(el.value)) state.decision_review = el.value; });
-    onChange("pipe-orchestrator", el => { if (ORCHESTRATOR_VALUES.includes(el.value)) state.orchestrator = el.value; });
+    onChange("pipe-orchestrator", el => { if (ORCHESTRATOR_VALUES.includes(el.value)) { state.orchestrator = el.value; syncPipelineTab(); } });
+    onChange("pipe-orchestrator-scope", el => { if (ORCHESTRATOR_SCOPE_VALUES.includes(el.value)) { state.orchestrator_scope = el.value; syncPipelineTab(); } });
+    onChange("pipe-orch-zdr", el => { state.orchestrator_zdr_confirmed = el.checked; });
+    onChange("pipe-orch-nopii", el => { state.orchestrator_repo_pii = !el.checked; });
+    onChange("pipe-orch-pseudo", el => { state.orchestrator_pseudonymize = el.checked; });
     onInput("pipe-dod-cmd", el => { state.definition_of_done.cmd = el.value; });
     onInput("pipe-dod-maxblocks", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.definition_of_done.max_blocks = v; });
 

@@ -26,6 +26,30 @@ design_checkins: true
 #   full   — one Claude call reasons through the task; host writes the files (highest cost, bounded).
 orchestrator: full
 
+# Orchestrator SCOPE — WHEN the orchestrator fires (off|decide|full sets HOW; this sets WHEN).
+# Host-only (inert under Claude Code). Default: team.
+#   team — orchestrate ONLY on a team-of-agents dispatch (today's behavior; lowest egress).
+#   all  — relay EVERY prompt to Claude (content-only; Copilot writes what Claude returns).
+#          all routes client context to a SECOND processor (your Claude account) every turn —
+#          so it is guarded by the egress floor below and is opt-in.
+orchestrator_scope: team
+
+# Relay-all egress floor (only consulted when orchestrator_scope: all). The relay FAILS CLOSED
+# (falls back to host-direct, nothing egresses) unless one of these proves the destination is
+# in-tenant or zero-retention:
+#   - Claude is on Amazon Bedrock / Google Vertex (auto-detected from CLAUDE_CODE_USE_BEDROCK /
+#     CLAUDE_CODE_USE_VERTEX — stays in your own cloud account), OR
+#   - you attest zero-data-retention is ON for your Anthropic org (it is OFF by default, per-org), OR
+#   - you flag this repo as containing no client PII.
+# Default assumes the repo HAS PII (safe for client work).
+orchestrator_zdr_confirmed: false
+orchestrator_repo_pii: true
+
+# Pseudonymize structured PII (emails, SSNs, phone, card/account shapes) before the brief egresses,
+# mapping back locally on return. Optional defense-in-depth on TOP of the floor above — NEVER the
+# sole guard. Caveat: pattern detection does NOT reliably catch free-text names/addresses. Default off.
+orchestrator_pseudonymize: false
+
 # Definition-of-done gate (the ONE confident claim that IS machine-checkable).
 # The dod-gate.sh Stop hook runs this command and blocks "done" until it passes —
 # turning the agent's "it's done / tests pass" claim from an assertion into a fact.
