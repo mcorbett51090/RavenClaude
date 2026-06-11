@@ -3286,6 +3286,70 @@ rc=0; RAVENCLAUDE_ORCH_BRIEF="key=AKIAIOSFODNN7EXAMPLE123456" \
   PATH="$G102BIN:$PATH" bash "$G102NOSCRUB" decide >/dev/null 2>&1 || rc=$?
 gate "orchestrate: [teeth] stripped scrub passes secret brief (rc=0)" must_pass "$rc"
 
+# ── Relay-all data governance (v0.154.0): layer C floor + layer A pseudonymize ──
+# A recording mock claude that writes the received user prompt to $REC_FILE so we
+# can prove what ACTUALLY egressed (tokens, not raw PII), and echoes it back so the
+# layer-A decode is observable in the returned content.
+G102REC="$TMP/g102rec"; mkdir -p "$G102REC"
+cat > "$G102REC/claude" <<'MOCK'
+#!/usr/bin/env bash
+prompt="${@: -1}"
+printf '%s' "$prompt" > "$REC_FILE"
+printf '{"result":%s,"is_error":false}\n' "$(printf '%s' "$prompt" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))')"
+MOCK
+chmod +x "$G102REC/claude"
+G102PROJ="$TMP/g102proj"; mkdir -p "$G102PROJ/.ravenclaude"
+
+# C1: SCOPE=all + repo may hold PII + no in-tenant → fail closed (exit 9)
+printf 'orchestrator_repo_pii: true\n' > "$G102PROJ/.ravenclaude/comfort-posture.yaml"
+rc=0; CLAUDE_PROJECT_DIR="$G102PROJ" RAVENCLAUDE_ORCH_SCOPE=all RAVENCLAUDE_ORCH_BRIEF="task" \
+  PATH="$G102BIN:$PATH" bash "$ORCH102" full >/dev/null 2>&1 || rc=$?
+gate "orchestrate: [C] relay-all fails closed when repo may hold PII" must_fail "$rc"
+
+# C2: repo flagged no-PII → floor passes (mock claude, full)
+printf 'orchestrator_repo_pii: false\n' > "$G102PROJ/.ravenclaude/comfort-posture.yaml"
+rc=0; CLAUDE_PROJECT_DIR="$G102PROJ" RAVENCLAUDE_ORCH_SCOPE=all RAVENCLAUDE_ORCH_BRIEF="task" \
+  PATH="$G102BIN:$PATH" bash "$ORCH102" full >/dev/null 2>&1 || rc=$?
+gate "orchestrate: [C] relay-all passes when repo flagged no-PII" must_pass "$rc"
+
+# C3: Bedrock in-tenant → floor passes even with repo_pii true
+printf 'orchestrator_repo_pii: true\n' > "$G102PROJ/.ravenclaude/comfort-posture.yaml"
+rc=0; CLAUDE_PROJECT_DIR="$G102PROJ" CLAUDE_CODE_USE_BEDROCK=1 RAVENCLAUDE_ORCH_SCOPE=all \
+  RAVENCLAUDE_ORCH_BRIEF="task" PATH="$G102BIN:$PATH" bash "$ORCH102" full >/dev/null 2>&1 || rc=$?
+gate "orchestrate: [C] relay-all passes on Bedrock in-tenant" must_pass "$rc"
+
+# C4: team scope (SCOPE unset) bypasses the floor entirely (v0.152.0 unchanged)
+printf 'orchestrator_repo_pii: true\n' > "$G102PROJ/.ravenclaude/comfort-posture.yaml"
+rc=0; CLAUDE_PROJECT_DIR="$G102PROJ" RAVENCLAUDE_ORCH_BRIEF="task" \
+  PATH="$G102BIN:$PATH" bash "$ORCH102" full >/dev/null 2>&1 || rc=$?
+gate "orchestrate: [C] team scope bypasses the floor (unchanged)" must_pass "$rc"
+
+# A: pseudonymize on + PII brief → tokens egress, decode restores in returned content
+printf 'orchestrator_repo_pii: false\norchestrator_pseudonymize: true\n' > "$G102PROJ/.ravenclaude/comfort-posture.yaml"
+REC_FILE="$TMP/g102_egress.txt"; : > "$REC_FILE"
+rc=0; out=""
+out="$(REC_FILE="$REC_FILE" CLAUDE_PROJECT_DIR="$G102PROJ" RAVENCLAUDE_ORCH_SCOPE=all \
+  RAVENCLAUDE_ORCH_BRIEF="email jane@acme.com ssn 078-05-1120" \
+  PATH="$G102REC:$PATH" bash "$ORCH102" full 2>/dev/null)" || rc=$?
+gate "orchestrate: [A] relay-all happy path with pseudonymize" must_pass "$rc"
+rc=0; grep -q "jane@acme.com" "$REC_FILE" && rc=1
+gate "orchestrate: [A] raw email did NOT egress (tokenized)" must_pass "$rc"
+rc=0; grep -q "078-05-1120" "$REC_FILE" && rc=1
+gate "orchestrate: [A] raw SSN did NOT egress (tokenized)" must_pass "$rc"
+rc=0; grep -q "__PII_" "$REC_FILE" || rc=1
+gate "orchestrate: [A] tokens present in egressed brief" must_pass "$rc"
+rc=0; { printf '%s' "$out" | grep -q "jane@acme.com"; } || rc=1
+gate "orchestrate: [A] returned content decoded back to real PII" must_pass "$rc"
+
+# ── Teeth: strip the C egress-floor exit → the C1 fail-closed case must now pass ─
+G102NOFLOOR="$TMP/g102_nofloor.sh"
+sed '/_egress_ok.*-ne 1/,/^  fi$/d' "$ORCH102" > "$G102NOFLOOR"
+chmod +x "$G102NOFLOOR"
+printf 'orchestrator_repo_pii: true\n' > "$G102PROJ/.ravenclaude/comfort-posture.yaml"
+rc=0; CLAUDE_PROJECT_DIR="$G102PROJ" RAVENCLAUDE_ORCH_SCOPE=all RAVENCLAUDE_ORCH_BRIEF="task" \
+  PATH="$G102BIN:$PATH" bash "$G102NOFLOOR" full >/dev/null 2>&1 || rc=$?
+gate "orchestrate: [C teeth] stripped floor passes PII case (rc=0)" must_pass "$rc"
+
 echo
 echo "── Gate 103: svg-report-lint (geometry + security, bidirectional + teeth) ─"
 # The stdlib SVG linter for report images.
