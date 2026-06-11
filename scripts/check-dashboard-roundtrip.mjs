@@ -60,6 +60,8 @@ const pieces = [
   app.match(/const DECISION_REVIEW_DEFAULT = [^;]*;/)[0],
   app.match(/const ORCHESTRATOR_VALUES = \[[^\]]*\];/)[0],
   app.match(/const ORCHESTRATOR_DEFAULT = [^;]*;/)[0],
+  app.match(/const ORCHESTRATOR_SCOPE_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const ORCHESTRATOR_SCOPE_DEFAULT = [^;]*;/)[0],
   extract(app, "function freshTiers()"),
   extract(app, "function quoteYamlKey("),
   extract(app, "function applyGuardrailConfig("),
@@ -85,6 +87,10 @@ function _freshState() {
     decision_review: DECISION_REVIEW_DEFAULT,
     definition_of_done: Object.assign({}, DOD_DEFAULT),
     orchestrator: ORCHESTRATOR_DEFAULT,
+    orchestrator_scope: ORCHESTRATOR_SCOPE_DEFAULT,
+    orchestrator_zdr_confirmed: false,
+    orchestrator_repo_pii: true,
+    orchestrator_pseudonymize: false,
     expanded: {},
   };
 }
@@ -111,6 +117,10 @@ function check(name, cond) {
   s.definition_of_done = { cmd: "npm test && npm run lint", max_blocks: 4 };
   s.command_review.dev_repo_exempt = true;
   s.orchestrator = "decide";
+  s.orchestrator_scope = "all";
+  s.orchestrator_zdr_confirmed = true;
+  s.orchestrator_repo_pii = false;
+  s.orchestrator_pseudonymize = true;
   api._set(s);
 
   const yaml = api.emitYaml();
@@ -123,6 +133,10 @@ function check(name, cond) {
   check("definition_of_done.max_blocks emitted", /^  max_blocks: 4$/m.test(yaml));
   check("command_review.dev_repo_exempt emitted", /^  dev_repo_exempt: true$/m.test(yaml));
   check("orchestrator emitted", /^orchestrator: decide$/m.test(yaml));
+  check("orchestrator_scope emitted", /^orchestrator_scope: all$/m.test(yaml));
+  check("orchestrator_zdr_confirmed emitted", /^orchestrator_zdr_confirmed: true$/m.test(yaml));
+  check("orchestrator_repo_pii emitted", /^orchestrator_repo_pii: false$/m.test(yaml));
+  check("orchestrator_pseudonymize emitted", /^orchestrator_pseudonymize: true$/m.test(yaml));
 
   // And the hydrator reads them back into a fresh state.
   api._set(api._freshState());
@@ -133,6 +147,10 @@ function check(name, cond) {
     definition_of_done: { cmd: "npm test && npm run lint", max_blocks: 4 },
     command_review: { dev_repo_exempt: true },
     orchestrator: "decide",
+    orchestrator_scope: "all",
+    orchestrator_zdr_confirmed: true,
+    orchestrator_repo_pii: false,
+    orchestrator_pseudonymize: true,
   });
   const h = api._get();
   check("hydrate runaway.max_total", h.runaway.max_total === 500);
@@ -142,6 +160,10 @@ function check(name, cond) {
   check("hydrate dod.cmd", /npm test/.test(h.definition_of_done.cmd));
   check("hydrate dev_repo_exempt", h.command_review.dev_repo_exempt === true);
   check("hydrate orchestrator", h.orchestrator === "decide");
+  check("hydrate orchestrator_scope", h.orchestrator_scope === "all");
+  check("hydrate orchestrator_zdr_confirmed", h.orchestrator_zdr_confirmed === true);
+  check("hydrate orchestrator_repo_pii", h.orchestrator_repo_pii === false);
+  check("hydrate orchestrator_pseudonymize", h.orchestrator_pseudonymize === true);
 }
 
 // ── Test 2: defaults are NOT emitted (absent ⇒ default; no posture bloat) ─────
@@ -154,6 +176,10 @@ function check(name, cond) {
   check("no definition_of_done at default", !/definition_of_done:/.test(yaml));
   check("no dev_repo_exempt at default", !/dev_repo_exempt:/.test(yaml));
   check("no orchestrator at default", !/^orchestrator:/m.test(yaml));
+  check("no orchestrator_scope at default", !/^orchestrator_scope:/m.test(yaml));
+  check("no orchestrator_zdr_confirmed at default", !/orchestrator_zdr_confirmed:/.test(yaml));
+  check("no orchestrator_repo_pii at default", !/orchestrator_repo_pii:/.test(yaml));
+  check("no orchestrator_pseudonymize at default", !/orchestrator_pseudonymize:/.test(yaml));
 }
 
 // ── Test 3: runaway: off scalar form ─────────────────────────────────────────
