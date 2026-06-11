@@ -97,6 +97,12 @@ consumer-supplied regexes) with opaque tokens before egress; the token→value m
 stays only in the trap-cleaned scratch dir and the returned content is de-tokenized
 locally before the host writes it.
 
+When A is active it tokenizes **both** the brief and the roster (decide mode), each
+into its own local map, so PII in the roster is not a raw-egress gap. If A is requested
+but `python3` / the script is unavailable, the brief egresses un-tokenized and the
+script prints a **visible** stderr warning (the downgrade is never silent) — layer C
+still governs whether egress happens at all.
+
 **Honest limit — this is why A sits on TOP of C and is never the only guard:** pattern
 detection does **not** reliably catch free-text names, addresses, or bare account
 numbers. A miss leaks the real value. A reduces exposure; C is the deterministic floor

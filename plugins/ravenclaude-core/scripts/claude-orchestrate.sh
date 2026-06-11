@@ -174,6 +174,7 @@ if [ "${RAVENCLAUDE_ORCH_SCOPE:-}" = "all" ]; then
     true | yes | 1)
       _pz="$(dirname "$0")/pseudonymize-brief.py"
       _pii_map="$scratch/pii-map.json"
+      _pii_map_roster="$scratch/pii-map-roster.json"
       if [ -f "$_pz" ] && command -v python3 >/dev/null 2>&1; then
         if _enc_brief="$(printf '%s' "$brief" | python3 "$_pz" encode --map-file "$_pii_map" 2>/dev/null)"; then
           brief="$_enc_brief"
@@ -182,6 +183,20 @@ if [ "${RAVENCLAUDE_ORCH_SCOPE:-}" = "all" ]; then
           echo "claude-orchestrate.sh: PII pseudonymizer failed — refusing to egress un-tokenized brief (fail closed). Fall back to host." >&2
           exit 9
         fi
+        # Tokenize the roster too (decide mode) so PII there is not the one raw leak.
+        if [ -n "$roster" ]; then
+          if _enc_roster="$(printf '%s' "$roster" | python3 "$_pz" encode --map-file "$_pii_map_roster" 2>/dev/null)"; then
+            roster="$_enc_roster"
+          else
+            echo "claude-orchestrate.sh: PII pseudonymizer failed on roster — fail closed. Fall back to host." >&2
+            exit 9
+          fi
+        fi
+      else
+        # A was requested but is unavailable — make the downgrade VISIBLE (never silent).
+        # Layer C (the egress floor) has already permitted egress, so this is not a leak
+        # past the floor; it is a defense-in-depth layer that couldn't run.
+        echo "claude-orchestrate.sh: orchestrator_pseudonymize requested but python3 or pseudonymize-brief.py is unavailable — egressing un-tokenized (the layer-C egress floor still governs). Install python3 to enable layer A." >&2
       fi
       ;;
   esac
@@ -283,6 +298,7 @@ result="$(printf '%s' "$raw" | jq -r '.result // empty' 2>/dev/null || true)"
 # writes it (the map lives only in the scratch dir; decode is best-effort).
 if [ "${_pseudo_active:-0}" = "1" ]; then
   result="$(printf '%s' "$result" | python3 "$_pz" decode --map-file "$_pii_map" 2>/dev/null || printf '%s' "$result")"
+  [ -f "${_pii_map_roster:-}" ] && result="$(printf '%s' "$result" | python3 "$_pz" decode --map-file "$_pii_map_roster" 2>/dev/null || printf '%s' "$result")"
 fi
 
 printf '%s\n' "$result"
