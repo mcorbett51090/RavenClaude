@@ -1,0 +1,164 @@
+# Research-sweep cadence tiers for the RavenClaude marketplace.
+#
+# WHY THIS EXISTS (retune 2026-06-11): the research routine's old framing —
+# "research news for EACH active plugin" — is mismatched to the marketplace's
+# shape. ~25 plugins are anchored to fast-moving third-party products/APIs whose
+# dated facts go stale weekly-to-monthly (a news cadence is right for them). The
+# other ~75 are domain-CRAFT verticals whose value is durable methodology /
+# regulation that changes slowly — chasing "weekly news" for them produces noise
+# or fabrication pressure, not signal. This manifest splits the two so a sweep
+# run knows WHERE weekly attention actually buys freshness.
+#
+# Consumed by: .github/workflows/researcher-reminder.yml (scopes the weekly issue)
+# and the knowledge-file-staleness-sweep skill. Spec + rationale:
+# docs/research-routine-two-cadence.md.
+#
+# Classification criterion (the litmus test):
+#   "Could a third-party vendor release in the last week change a DATED FACT this
+#    plugin documents (a price, a GA/preview status, a version, an API shape, a
+#    model SKU, a deprecation)?"
+#     - YES, weekly-to-monthly  -> tier-a-news
+#     - Only on a regulation/standard change (slow, episodic) -> tier-b-methodology, regulatory_watch: true
+#     - Value is durable craft/process, rarely date-stamped -> tier-b-methodology
+
+schema_version: 1
+last_reviewed: "2026-06-11"
+
+# -------------------------------------------------------------------------
+# TIER A — NEWS CADENCE (weekly deep-research sweep is in scope)
+# Externally-anchored to a fast-churn product/API/model. These are the plugins
+# whose knowledge files carry `Last reviewed:` stamps + `[verify-at-use]` markers
+# precisely because their payload is dated third-party fact. The weekly sweep
+# re-dates these; a >30-day-old retrieval date here is stale-until-re-checked.
+# -------------------------------------------------------------------------
+tier_a_news:
+  ai_and_claude_tooling:
+    - claude-app-engineering # Claude API / Agent SDK / Managed Agents — ships monthly
+    - ai-coding-model-guidance # Copilot/Codex/Grok lineup — ships weekly (freshness anchor)
+    - ravenclaude-core # tracks Claude Code itself (hooks/skills/SDK changelog)
+    - ai-rag-engineering # embedding/rerank/vector-store churn
+    - ml-engineering # model/framework/serving churn
+  microsoft_stack:
+    - power-platform # Power Platform / Dataverse / Copilot Studio release plan
+    - microsoft-fabric # Fabric ships every few weeks (Runtime, OneLake, workloads)
+    - microsoft-365-copilot # M365 Copilot release notes are ~biweekly
+    - microsoft-graph # Graph v1.0/beta what's-new is monthly
+  cloud_and_infra:
+    - aws-cloud
+    - azure-cloud
+    - gcp-cloud
+    - finops-cloud-cost
+    - cloud-native-kubernetes # k8s + CNCF ecosystem
+    - terraform-iac # Terraform/OpenTofu/provider releases
+    - devops-cicd
+    - observability-sre # OTel/Prometheus/vendor churn
+    - platform-engineering-idp # Backstage/IDP tooling
+  data_and_bi:
+    - data-platform # dbt/Snowflake/Databricks
+    - data-streaming-engineering # Kafka/Flink
+    - analytics-engineering
+    - database-engineering # Postgres/engine releases
+    - tableau # Salesforce/Tableau release cadence
+  security:
+    - security-engineering
+    - cybersecurity-grc
+    - auth-identity # IdP/OAuth/passkey/standards churn
+
+# -------------------------------------------------------------------------
+# TIER B — METHODOLOGY CADENCE (NOT in the weekly news sweep)
+# Value is durable domain craft / process / regulation. Reviewed on the slower
+# methodology cadence (quarterly, or event-driven on a known regulation change),
+# NOT weekly. `regulatory_watch: true` flags verticals whose facts move with
+# rule changes — worth an event-driven check when a relevant regulation ships,
+# but still not a weekly-news target.
+# -------------------------------------------------------------------------
+tier_b_methodology:
+  # Default tier for every plugin NOT listed in tier_a_news above. Enumerated
+  # here for auditability; "membership = present in plugins/ and absent from
+  # tier_a_news" is the rule of record (see the spec) so a new vertical defaults
+  # to methodology cadence automatically.
+  regulatory_watch:
+    - regulatory-compliance
+    - data-governance-privacy
+    - insurance-life-health-benefits
+    - insurance-pc
+    - mortgage-lending
+    - legal-ops-clm
+    - legal-small-firm
+    - medical-revenue-cycle
+    - clinical-trials
+    - pharmacy-operations
+    - behavioral-health-practice
+    - dental-practice
+    - veterinary-practice
+    - hospice-referral-sales
+    - senior-care-operations
+    - public-sector-govtech
+    - k12-school-administration
+    - esg-sustainability-reporting
+    - wealth-management-ria
+    - fintech-payments-engineering
+    - finance
+    - accounting-bookkeeping
+    - cannabis-operations
+    - nonprofit-fundraising
+  craft_and_ops:
+    # Durable domain methodology; reviewed quarterly, not for weekly news.
+    - product-management
+    - project-management
+    - engineering-management
+    - process-improvement
+    - people-operations-hr
+    - staffing-operations
+    - procurement-sourcing
+    - supply-chain-planning
+    - marketing-operations
+    - sales-revops
+    - sales-engineering
+    - customer-success-analytics
+    - customer-support-cx-operations
+    - freight-forwarding-sales
+    - fleet-logistics
+    - field-service-management
+    - manufacturing-operations
+    - construction-general-contractor
+    - architecture-aec
+    - skilled-trades-contracting
+    - commercial-real-estate
+    - property-management
+    - restaurant-operations
+    - retail-store-operations
+    - hotel-hospitality-operations
+    - ecommerce-dtc
+    - automotive-dealership
+    - precision-agriculture
+    - renewable-energy
+    - film-video-production
+    - game-development # craft-heavy; engine news is slow vs the design craft
+    - technical-writing-docs
+    - web-design
+    - localization-i18n-engineering
+    - search-relevance-engineering
+    - experimentation-growth-engineering
+    - performance-engineering
+    - accessibility-engineering # WCAG moves slowly; event-driven on a spec bump
+    - api-engineering
+    - backend-engineering
+    - frontend-engineering # framework churn exists but craft dominates; promote if it proves news-heavy
+    - mobile-engineering
+    - embedded-iot-engineering
+    - blockchain-web3-engineering
+    - qa-test-automation
+    - data-science-research
+    - applied-statistics
+    - salesforce # admin/dev craft; Salesforce 3x/yr releases -> event-driven, not weekly
+    - team-portfolio
+
+# Plugins that are BORDERLINE (could move tiers as evidence accumulates). The
+# sweep should note if a tier-b plugin keeps surfacing real weekly deltas
+# (-> promote) or a tier-a plugin never does (-> demote). This is the feedback
+# loop that keeps the tiering honest.
+review_candidates:
+  - frontend-engineering # heavy framework churn — promote to tier-a if news-heavy
+  - salesforce # 3 seasonal releases/yr — could warrant an event-driven news slot
+  - mobile-engineering # iOS/Android annual + SDK churn
