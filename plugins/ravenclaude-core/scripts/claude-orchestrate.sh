@@ -17,12 +17,17 @@
 #   $1                        — mode: decide | full (required)
 #   RAVENCLAUDE_ORCH_BRIEF    — task description for the nested Claude call (required)
 #   RAVENCLAUDE_ORCH_ROSTER   — agent roster JSON (optional; used by decide mode)
+#   RAVENCLAUDE_ORCH_SCOPE    — "all" activates the relay-all data-governance guards
+#                               (layer C egress floor + optional layer A pseudonymize).
+#                               Unset/"team" = team-dispatch path, byte-identical to v0.152.0.
 #   THING_MODEL               — model alias/id (default: haiku for decide, sonnet for full)
 #
 # Exits:
 #   0   — success; result JSON or content on stdout
 #   7   — recursion guard fired (re-entrant call refused; caller MUST fall back to host)
 #   8   — scrub fired (secret-shaped brief detected; never egressses)
+#   9   — relay-all egress floor blocked (SCOPE=all + PII may leave a non-in-tenant
+#         processor; or the pseudonymizer faulted) — caller MUST fall back to host
 #   2   — claude CLI not found (fall back to host)
 #   1   — bad args / empty brief
 #   3   — claude call failed or returned is_error
@@ -67,6 +72,49 @@ brief="${RAVENCLAUDE_ORCH_BRIEF:-}"
 roster="${RAVENCLAUDE_ORCH_ROSTER:-}"
 if [ -z "$brief" ]; then
   echo "claude-orchestrate.sh: RAVENCLAUDE_ORCH_BRIEF is empty — nothing to orchestrate" >&2; exit 1
+fi
+
+# ── RELAY-ALL DATA GOVERNANCE — layer C floor (+ layer A flag) ──────────────────
+# Active ONLY when the host's relay-mode directive invokes us with SCOPE=all (the
+# every-prompt relay). Team-dispatch orchestration (SCOPE unset/"team") skips this
+# whole block and is byte-identical to v0.152.0. Full rationale + the cited
+# provider facts: plugins/ravenclaude-core/knowledge/orchestrator-data-egress.md
+_orch_posture_flag() {
+  # Read a top-level flat key from the consumer's comfort-posture.yaml. Prints the
+  # lowercased value (comments/whitespace stripped) or empty. Fail-safe: no file -> "".
+  local f="${CLAUDE_PROJECT_DIR:-.}/.ravenclaude/comfort-posture.yaml"
+  [ -f "$f" ] || return 0
+  # `grep || true` keeps a key-miss (grep exit 1) from aborting under `set -e`.
+  { grep -E "^$1:" "$f" 2>/dev/null || true; } | head -1 \
+    | sed -E "s/^$1:[[:space:]]*//; s/[[:space:]]*(#.*)?$//" \
+    | tr '[:upper:]' '[:lower:]'
+  return 0
+}
+
+if [ "${RAVENCLAUDE_ORCH_SCOPE:-}" = "all" ]; then
+  # Source the event substrate (fail-safe: defines _emit_hook_event or we stub it).
+  _ev_helper="$(dirname "$0")/../hooks/_emit-event.sh"
+  # shellcheck source=/dev/null
+  [ -f "$_ev_helper" ] && . "$_ev_helper" 2>/dev/null || true
+  if ! command -v _emit_hook_event >/dev/null 2>&1; then
+    _emit_hook_event() { :; }
+  fi
+
+  # Layer C — deterministic egress floor. Permit egress only when the destination
+  # is in-tenant (Bedrock/Vertex), ZDR is attested, or the repo is flagged no-PII.
+  # Default (none of these) = assume PII + out-of-tenant -> fail closed.
+  _egress_ok=0
+  case "${CLAUDE_CODE_USE_BEDROCK:-}" in 1 | true | yes | TRUE | True) _egress_ok=1 ;; esac
+  case "${CLAUDE_CODE_USE_VERTEX:-}" in 1 | true | yes | TRUE | True) _egress_ok=1 ;; esac
+  case "$(_orch_posture_flag orchestrator_zdr_confirmed)" in true | yes | 1) _egress_ok=1 ;; esac
+  case "$(_orch_posture_flag orchestrator_repo_pii)" in false | no | 0) _egress_ok=1 ;; esac
+  if [ "$_egress_ok" -ne 1 ]; then
+    _emit_hook_event "claude-orchestrate.sh" "deny" "Orchestrate" "relay-all" "egress-floor-blocked" 9 2>/dev/null || true
+    echo "claude-orchestrate.sh: relay-all egress floor — destination not proven in-tenant/ZDR and the repo may hold PII; refusing to egress. Falling back to host-direct." >&2
+    echo "  Enable by ANY of: run Claude on Bedrock/Vertex (your cloud), OR set orchestrator_zdr_confirmed: true (ZDR on for your Anthropic org), OR orchestrator_repo_pii: false." >&2
+    exit 9
+  fi
+  _orch_pseudo="$(_orch_posture_flag orchestrator_pseudonymize)"
 fi
 
 # ── SECRET SCRUB — egress backstop ─────────────────────────────────────────────
@@ -114,6 +162,30 @@ command -v claude >/dev/null 2>&1 || {
 # auto-discovered into the nested session (same pattern as thing-seat.sh).
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
+
+# ── LAYER A — pseudonymize structured PII before egress (relay-all, opt-in) ──────
+# Replace email/SSN/card/phone shapes in the brief with opaque tokens, keeping the
+# token->value map ONLY in the trap-cleaned scratch dir (it never egresses). The
+# returned content is de-tokenized below before the host writes it. Fail closed: a
+# pseudonymizer fault exits 9 (caller falls back) rather than egress un-tokenized PII.
+_pseudo_active=0
+if [ "${RAVENCLAUDE_ORCH_SCOPE:-}" = "all" ]; then
+  case "${_orch_pseudo:-}" in
+    true | yes | 1)
+      _pz="$(dirname "$0")/pseudonymize-brief.py"
+      _pii_map="$scratch/pii-map.json"
+      if [ -f "$_pz" ] && command -v python3 >/dev/null 2>&1; then
+        if _enc_brief="$(printf '%s' "$brief" | python3 "$_pz" encode --map-file "$_pii_map" 2>/dev/null)"; then
+          brief="$_enc_brief"
+          _pseudo_active=1
+        else
+          echo "claude-orchestrate.sh: PII pseudonymizer failed — refusing to egress un-tokenized brief (fail closed). Fall back to host." >&2
+          exit 9
+        fi
+      fi
+      ;;
+  esac
+fi
 
 # Strip control characters + bound length, identical to thing-seat.sh §3b.
 safe_project_dir="$(printf '%s' "${CLAUDE_PROJECT_DIR:-unknown}" | tr -d '\000-\037' | tr -c '[:print:]' '_' | cut -c1-512)"
@@ -206,5 +278,11 @@ fi
 
 result="$(printf '%s' "$raw" | jq -r '.result // empty' 2>/dev/null || true)"
 [ -z "$result" ] && result="$raw"
+
+# Layer A — restore pseudonymized PII in the returned content before the host
+# writes it (the map lives only in the scratch dir; decode is best-effort).
+if [ "${_pseudo_active:-0}" = "1" ]; then
+  result="$(printf '%s' "$result" | python3 "$_pz" decode --map-file "$_pii_map" 2>/dev/null || printf '%s' "$result")"
+fi
 
 printf '%s\n' "$result"
