@@ -8,7 +8,7 @@ For the marketplace-wide best-practice library (CI gates, hook authoring, versio
 
 ## Index
 
-_17 rules._
+_18 rules._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -29,6 +29,7 @@ _17 rules._
 | [`runaway-brake-prevents-the-thrash-loop.md`](./runaway-brake-prevents-the-thrash-loop.md) | Pattern | Configuring any auto-mode or unsupervised agent session. |
 | [`check-constraint-scope-before-citing-it.md`](./check-constraint-scope-before-citing-it.md) | Absolute rule | Any agent is about to refuse an action or recommend against something by citing a rule. |
 | [`checkpoints-are-the-recovery-layer-not-a-substitute-for-commits.md`](./checkpoints-are-the-recovery-layer-not-a-substitute-for-commits.md) | Pattern | Setting up a fast-iterating or unsupervised session — when to use `/rewind` (Esc-Esc) vs. a git commit, and what checkpoints structurally can't undo. |
+| [`permissions-are-deny-ask-allow-not-an-on-off-switch.md`](./permissions-are-deny-ask-allow-not-an-on-off-switch.md) | Pattern | Configuring a project's permission posture — sorting operations into `deny`/`ask`/`allow` (eval order, the reversibility taxonomy) instead of reaching for bypass-everything or approve-reflexively. |
 
 ---
 
