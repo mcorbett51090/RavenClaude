@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.1] — 2026-06-11
+
+Research-sweep **correction/addition** — the capability map had **no Kubernetes version anchor** and predated several GA graduations; re-verified 2026-06-11 against kubernetes.io release blogs.
+
+### Added / Fixed
+
+- **`knowledge/cloud-native-kubernetes-decision-trees.md`** capability map — added a **Kubernetes core** row (current GA **1.36 "Haru"**, 2026-04-22; 1.35/1.34 in support) plus rows for **DRA — GA since 1.34** (first-class GPU/accelerator scheduling), **cgroup v1 removed — nodes must run cgroup v2** (exact removal minor 1.35/1.36 marked `[verify-at-use]`; confirm containerd ≥1.7), and **User Namespaces GA in 1.36** (`hostUsers: false`). Sources: [1.36 release](https://kubernetes.io/blog/2026/04/22/kubernetes-v1-36-release/), [1.34 DRA GA](https://kubernetes.io/blog/2025/09/01/kubernetes-v1-34-dra-updates/), [1.36 userns GA](https://kubernetes.io/blog/2026/04/23/kubernetes-v1-36-userns-ga/).
+- Version **0.3.0 → 0.3.1** in `.claude-plugin/plugin.json` + `marketplace.json` (lockstep).
+
 ## [0.3.0] — 2026-06-05
 
 Value-add build-out against the full value-add menu. Every menu item was dispositioned (built or recorded N-A with reason); see [`CLAUDE.md`](CLAUDE.md) §7 "Value-add completeness (build-out 2026-06-05)". Builds on PR #315, which added the consolidated decision-tree knowledge + best-practices/ + templates/.

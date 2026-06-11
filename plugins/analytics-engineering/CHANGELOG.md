@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.1] — 2026-06-11
+
+Research-sweep **correction** — refreshed the stale dbt version anchor, re-verified 2026-06-11 against the dbt-core v2 roadmap (primary).
+
+### Fixed
+
+- **`knowledge/analytics-engineering-decision-trees.md`** — the "Last verified … dbt Core docs (v1.8)" anchor and the capability-map "dbt Core / Cloud — GA" row now state: **v1.x remains the production default**; **dbt Core v2.0** (Rust engine shared with Fusion, Apache-2.0) was announced 2026-06-01 at Snowflake Summit in **alpha — NOT GA**; the Fusion engine reached Stable as the default for *new* dbt platform environments with a supported adapter. **Pin v1.x for production until v2.0 GA.** Explicit anti-fabrication note that secondary "v2.0 is here" coverage elides the alpha status. Source: [dbt-core v2 roadmap](https://github.com/dbt-labs/dbt-core/blob/main/docs/roadmap/2026-06-announcing-v2.md).
+- Version **0.3.0 → 0.3.1** in `.claude-plugin/plugin.json` + `marketplace.json` (lockstep).
+
 ## [0.3.0] — 2026-06-05
 
 Value-add build-out — extending PR #315 (which added the consolidated knowledge decision-trees, `best-practices/`, and `templates/`) against the full value-add menu. Every menu item was dispositioned (built or recorded N-A with reason); see [`CLAUDE.md`](CLAUDE.md) §8 "Value-add completeness (build-out 2026-06-05)".

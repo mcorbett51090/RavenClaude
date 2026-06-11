@@ -846,7 +846,7 @@
       "name": "analytics-engineering",
       "source": "./plugins/analytics-engineering",
       "description": "Analytics-engineering team — 3 agents (analytics-engineer, semantic-layer-engineer, data-quality-testing-engineer) for the TRANSFORMATION layer in the modern data stack: dbt modeling (staging -> intermediate -> marts, the medallion/Kimball split, incremental models, materializations), a governed semantic/metrics layer (one definition of revenue/active-user, metrics-as-code) so every tool agrees, and data quality (dbt tests, freshness, model contracts, anomaly checks) that gates the warehouse. Warehouse-neutral (Snowflake/BigQuery/Redshift/Databricks). 5 skills, a decision-tree knowledge bank (materialization + model-layer trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Distinct from data-platform (ingestion/warehouse/BI) and database-engineering (OLTP). Seams: ELT/warehouse provisioning -> data-platform, OLTP -> database-engineering, BI -> tableau/data-platform, enterprise lakehouse -> microsoft-fabric. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1030,7 +1030,7 @@
       "name": "cloud-native-kubernetes",
       "source": "./plugins/cloud-native-kubernetes",
       "description": "Cloud-native & Kubernetes team — 4 agents (kubernetes-architect, container-build-engineer, k8s-platform-operator, service-mesh-networking-engineer) for running workloads on Kubernetes well: workload design (Deployment/StatefulSet/Job, probes, requests/limits, PDBs, HPA/VPA), container build hygiene (minimal non-root images, distroless, multi-stage), platform ops (namespaces, RBAC, network policies, resource quotas, admission control, upgrades), and service-mesh networking (ingress/gateway, mTLS, traffic-splitting, observability). Cloud-agnostic. 6 skills, a decision-tree knowledge bank (workload-type + ingress trees + a dated 2026 ecosystem map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: managed control plane (AKS/EKS/GKE) -> azure/aws/gcp-cloud, GitOps reconcile -> devops-cicd, telemetry/SLOs -> observability-sre. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1053,7 +1053,7 @@
       "name": "terraform-iac",
       "source": "./plugins/terraform-iac",
       "description": "Terraform & IaC team — 3 agents (iac-architect, terraform-module-engineer, iac-policy-and-state-engineer) for cloud-agnostic infrastructure-as-code: module design (composable, versioned, registry-published, the root-vs-child split), remote state and backend safety (locking, isolation by blast radius, no secrets in state), environment promotion (workspaces vs directories vs Terragrunt), drift detection, and policy-as-code guardrails (OPA/Sentinel/Conftest) in the plan pipeline. Terraform + OpenTofu. 5 skills, a decision-tree knowledge bank (state-isolation + module-boundary trees + a dated 2026 tooling map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: per-cloud resources -> azure-cloud (Bicep too)/aws-cloud/gcp-cloud, plan in CI -> devops-cicd, posture verdicts -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "author": {
         "name": "Matt Corbett"
       },

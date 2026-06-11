@@ -141,6 +141,7 @@ flowchart TD
 | Local module | No | Medium | None | Large complex block, same repo |
 | VCS-versioned module | Same-team only | Low-medium | Tag/branch | Team-internal reuse |
 | Registry module | Cross-team | High | Semver + changelog | Shared org-wide infrastructure pattern |
+| OCI-registry module/provider | Cross-team | High | Semver + OCI tags | OpenTofu ≥1.10 — distribute modules **and** providers via an existing OCI/container registry `[verify-at-use]` |
 
 ---
 
@@ -148,7 +149,7 @@ flowchart TD
 
 **When this applies:** A team is starting a new IaC project or migrating an existing one and must choose between Terraform (BSL license) and OpenTofu (MPL, Linux Foundation fork). The observable inputs are: the organization's license policy, the required provider/module ecosystem, and the team's existing toolchain.
 
-**Last verified:** 2026-06-05 against Terraform BSL terms and OpenTofu 1.8 release notes.
+**Last verified:** 2026-06-05; **OpenTofu version + OCI distribution re-verified 2026-06-11** against Terraform BSL terms and OpenTofu release notes. Current OpenTofu GA is **1.12.x** (1.12.0 2026-05-14, 1.12.1 2026-05-27; [releases](https://github.com/opentofu/opentofu/releases)) — *not* 1.8. Since **OpenTofu 1.10**, modules **and** providers can be distributed via **OCI registries** (reuse existing container-registry infra; [OCI registry integrations](https://opentofu.org/docs/cli/oci_registries/)).
 
 ```mermaid
 flowchart TD

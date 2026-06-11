@@ -97,12 +97,16 @@ _A namespace shares a kernel and nodes; it is not a security boundary against a 
 
 | Capability | 2026 state `[verify-at-build]` | Notes |
 |---|---|---|
+| **Kubernetes core** | current GA **1.36** ("Haru", 2026-04-22); 1.35 / 1.34 in support | re-verified 2026-06-11; ~12-mo support window — [1.36 release](https://kubernetes.io/blog/2026/04/22/kubernetes-v1-36-release/) |
 | Gateway API | GA (replacing Ingress for new) | Role-oriented, expressive routing |
 | HPA / VPA | GA | HPA on custom/external metrics; VPA for right-sizing |
 | Pod Security Admission | GA (replaced PSP) | baseline/restricted profiles |
 | OPA Gatekeeper / Kyverno | mature | policy-as-code admission |
 | Istio / Linkerd | GA | mTLS, traffic-split; weigh sidecar cost (ambient mode emerging) |
 | Distroless / minimal base images | mature | non-root, no shell; quiets CVE scans |
+| **DRA** (Dynamic Resource Allocation) | **GA since 1.34**; further enhancements GA in 1.36 | first-class GPU/accelerator scheduling — [1.34 DRA GA](https://kubernetes.io/blog/2025/09/01/kubernetes-v1-34-dra-updates/) |
+| **cgroup v1** | **removed** — nodes must run **cgroup v2** | exact removal minor (1.35 vs 1.36) `[verify-at-use]`; confirm node runtime is cgroup-v2 (and containerd ≥1.7) before upgrading clusters |
+| **User Namespaces** (`hostUsers: false`) | **GA in 1.36** | enabled-by-default since 1.33; rootless UID-mapping pod isolation — [1.36 userns GA](https://kubernetes.io/blog/2026/04/23/kubernetes-v1-36-userns-ga/) |
 
 ---
 
