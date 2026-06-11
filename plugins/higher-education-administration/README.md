@@ -18,6 +18,8 @@ success and retention systems, and running academic operations and compliance.
 | "Model our admissions funnel, yield, or financial-aid leverage" | **higher-education-administration** (`enrollment-and-financial-aid-strategist`) |
 | "Improve retention / build an early-alert system" | **higher-education-administration** (`student-success-and-retention-analyst`) |
 | "Registrar / accreditation / FERPA / course scheduling" | **higher-education-administration** (`academic-operations-and-compliance-coordinator`) |
+| "Our numbers disagree / IPEDS cohort / dashboards / model soundness" | **higher-education-administration** (`institutional-research-and-analytics-analyst`) |
+| "Launch / cut a program / which programs carry us" | **higher-education-administration** (`academic-program-portfolio-strategist`) |
 | "Run a K-12 school / district" | `k12-school-administration` |
 | "Sell or renew an EdTech product to an institution" | `edtech-partner-success` |
 | "Plan a workforce / corporate L&D program" | `people-operations-hr` |
@@ -26,19 +28,28 @@ success and retention systems, and running academic operations and compliance.
 
 ## What's inside
 
-- **4 agents** — `higher-ed-administration-lead`, `enrollment-and-financial-aid-strategist`,
-  `student-success-and-retention-analyst`, `academic-operations-and-compliance-coordinator`.
-- **3 skills** — [`enrollment-funnel-and-yield`](skills/enrollment-funnel-and-yield/SKILL.md),
-  [`student-retention-and-early-alert`](skills/student-retention-and-early-alert/SKILL.md),
-  [`financial-aid-and-net-revenue`](skills/financial-aid-and-net-revenue/SKILL.md).
-- **3 commands** — `/model-enrollment-funnel`, `/design-early-alert-system`, `/analyze-net-tuition-revenue`.
-- **2 templates** — an enrollment-funnel model and an early-alert playbook.
-- **5 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **A decision-tree knowledge bank** — [`knowledge/higher-ed-decision-trees.md`](knowledge/higher-ed-decision-trees.md).
+- **6 agents** — `higher-ed-administration-lead`, `enrollment-and-financial-aid-strategist`,
+  `student-success-and-retention-analyst`, `academic-operations-and-compliance-coordinator`,
+  `institutional-research-and-analytics-analyst`, `academic-program-portfolio-strategist`.
+- **8 skills** — `enrollment-funnel-and-yield`, `student-retention-and-early-alert`,
+  `financial-aid-and-net-revenue`, `institutional-research-and-ipeds-reporting`,
+  `academic-program-viability-and-roi`, `budget-model-and-tuition-dependency`,
+  `course-scheduling-and-section-optimization`, `accreditation-evidence-and-assessment`.
+- **6 commands** — `/model-enrollment-funnel`, `/design-early-alert-system`,
+  `/analyze-net-tuition-revenue`, `/evaluate-program-viability`, `/optimize-course-scheduling`,
+  `/prepare-accreditation-evidence`.
+- **4 templates** — an enrollment-funnel model, an early-alert playbook, a program-viability
+  scorecard, and an accreditation-evidence map.
+- **12 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **A 5-doc knowledge bank** — [`knowledge/higher-ed-decision-trees.md`](knowledge/higher-ed-decision-trees.md)
+  plus enrollment/net-revenue, retention/student-success, budget/program-portfolio, and
+  compliance/accreditation references.
+- **A scenarios bank** — [`scenarios/README.md`](scenarios/README.md) (field-tested cases).
 - **An advisory hook** flagging anti-patterns (discount/aid decisions with no net-revenue basis,
   retention claims with no cohort/persistence basis, student-data handling with no FERPA note).
 - **A calculator** — [`scripts/higher_ed_calc.py`](scripts/higher_ed_calc.py) (stdlib only): yield,
-  net tuition revenue, discount rate, retention/persistence, early-alert risk scoring.
+  net tuition revenue, discount rate, retention/persistence, program contribution margin, breakeven
+  enrollment, tuition dependency, early-alert risk scoring.
 
 ---
 

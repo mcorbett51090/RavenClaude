@@ -1,10 +1,10 @@
 # Higher Education Administration Plugin — Team Constitution
 
-> Team constitution for the `higher-education-administration` Claude Code plugin — **4** specialist
+> Team constitution for the `higher-education-administration` Claude Code plugin — **6** specialist
 > agents covering the complete enrollment-to-completion operating model for colleges and
 > universities: institutional operating model, enrollment & financial aid, student success &
-> retention, and academic operations & compliance. The Team Lead dispatches the right specialist(s)
-> and integrates their reports.
+> retention, academic operations & compliance, institutional research & analytics, and academic
+> program portfolio. The Team Lead dispatches the right specialist(s) and integrates their reports.
 >
 > **Orientation:** this file is **domain-specific** to higher education. For the domain-neutral team
 > constitution inherited by every plugin, see
@@ -21,6 +21,8 @@
 | [`enrollment-and-financial-aid-strategist`](agents/enrollment-and-financial-aid-strategist.md) | Admissions funnel, yield, financial-aid leveraging, Title IV aid, net tuition revenue, discount rate | "model our admissions funnel", "what's our optimal discount rate?", "improve yield", "analyze net tuition revenue" |
 | [`student-success-and-retention-analyst`](agents/student-success-and-retention-analyst.md) | Retention, persistence, completion, early-alert systems, the first-year experience | "why is our retention low?", "design an early-alert system", "analyze persistence by cohort", "improve completion rates" |
 | [`academic-operations-and-compliance-coordinator`](agents/academic-operations-and-compliance-coordinator.md) | Registrar operations, course scheduling, accreditation, FERPA, academic policy | "fix our course scheduling", "prepare for accreditation", "is this FERPA-compliant?", "design our registration workflow" |
+| [`institutional-research-and-analytics-analyst`](agents/institutional-research-and-analytics-analyst.md) | Canonical data definitions, IPEDS/mandated reporting, dashboards, cohort methodology, predictive-model soundness | "our offices report different numbers", "get our IPEDS cohort right", "build a cabinet dashboard", "can we trust this model?" |
+| [`academic-program-portfolio-strategist`](agents/academic-program-portfolio-strategist.md) | New-program ROI, program viability & sunset, credit-hour economics, market/labor demand | "should we launch this program?", "should we cut this program?", "which programs carry us?", "model our credit-hour economics" |
 
 **Sub-agents do not spawn other sub-agents** — only the Team Lead delegates. If work crosses
 specialist boundaries, each specialist returns its slice and the Team Lead re-dispatches.
@@ -73,3 +75,8 @@ marked for verification, per the core Claim-Grounding protocol.
 
 - **0.1.0** — initial release: 4 agents, 3 skills, 5 best-practices, decision-tree knowledge bank,
   3 commands, 2 templates, advisory anti-pattern hook, stdlib enrollment/retention calculator.
+- **0.2.0** — flagship-tier build-out: 6 agents (added institutional-research-and-analytics-analyst,
+  academic-program-portfolio-strategist), 8 skills, 12 best-practices, a 5-doc knowledge bank
+  (decision trees + enrollment/retention/budget-portfolio/compliance references), 6 commands, 4
+  templates, a scenarios bank, and an expanded calculator (program margin, breakeven, tuition
+  dependency).
