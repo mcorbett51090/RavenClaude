@@ -52,7 +52,7 @@ Gold tuning by consumer:
 
 ## Performance defaults (house opinions #11-14)
 
-- **#11 Native Execution Engine on by default** — Velox/Gluten vectorized engine, GA on **Runtime 1.3 (Spark 3.5)** and **Runtime 2.0 (Spark 4.0)**; the single biggest free perf/cost win for Spark. (Autotune is the *old* Runtime-1.2-only path — deprecated; do not recommend it.)
+- **#11 Native Execution Engine on by default** — Velox/Gluten vectorized engine, GA on **Runtime 1.3 (Spark 3.5)** and **Runtime 2.0 (Spark 4.1)**; the single biggest free perf/cost win for Spark. (Autotune is the *old* Runtime-1.2-only path — deprecated; do not recommend it.)
 - **#12 Liquid Clustering / Z-order over static partitioning** on silver/gold — better file skipping without partition-explosion. Partition only high-frequency bronze if at all.
 - **#13 Deletion vectors** on merge-heavy tables — avoids full-file rewrites on `MERGE`/`UPDATE`/`DELETE`.
 - **#14 Schema-enabled lakehouses by default** — namespace hygiene and a **prerequisite for OneLake security data preview** (see [`onelake-security-and-governance.md`](onelake-security-and-governance.md)).

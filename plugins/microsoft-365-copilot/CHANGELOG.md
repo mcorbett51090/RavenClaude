@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.5.1] — 2026-06-11
+
+Research-sweep **correction** — flipped the stale `[verify-at-build]` GA marker on federated/MCP connectors, re-verified 2026-06-11 against `learn.microsoft.com` via the Microsoft-Learn MCP.
+
+### Fixed
+
+- **`knowledge/copilot-connectors-2026.md`** — **Federated (MCP) Copilot connectors are now GA (2026-06-02)** (was tagged `[verify-at-build]` "verify GA status"). Added the verified specifics: GA across **M365 Copilot Chat, the Researcher agent, and Agent Mode in Excel**; admin-managed in **Admin Center → Copilot → Connectors** with a **7-day admin review window** + staged rollout; read-only, Purview-auditable; Microsoft-published or partner-approved; **no custom federated connectors**. Source: [release notes 2026-06-02](https://learn.microsoft.com/microsoft-365/copilot/release-notes#june-2,-2026), [federated connectors overview](https://learn.microsoft.com/microsoft-365/copilot/connectors/federated-connectors-overview).
+- Version **0.5.0 → 0.5.1** in `.claude-plugin/plugin.json` + `marketplace.json` (lockstep).
+
 ## [0.5.0] — 2026-06-05
 
 Value-add build-out against the full marketplace value-add menu, building on PR #315 (which added the consolidated decision-trees knowledge, `best-practices/`, and `templates/`). Every menu item is dispositioned (built or recorded N-A with reason) in [`CLAUDE.md`](CLAUDE.md) § "Value-add completeness (build-out 2026-06-05)".
