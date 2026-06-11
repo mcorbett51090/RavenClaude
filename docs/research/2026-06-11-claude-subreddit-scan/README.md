@@ -17,20 +17,24 @@
 
 **Goal:** recent, high-quality posts/discussion on r/Claude, r/ClaudeAI, r/ClaudeCode, and adjacent communities about using Claude Code effectively.
 
-**Route note (honest — re-verified this session, six routes, identical to the two prior scans):** `reddit.com` is **blocked at the source for Anthropic's web crawler**, not merely by this environment's network policy.
+**Route note (honest — corrected after the scan):** the WebFetch/WebSearch 403 is on **Anthropic's crawler user-agent**, not on Reddit's data — and the repo **already shipped the sanctioned front door**: [`scripts/reddit-scan.py`](../../../scripts/reddit-scan.py) (2026-06-10), which pulls real subreddit listings via **Reddit's official OAuth2 Data API**. See [`docs/research/2026-06-10-data-access-routes/README.md`](../2026-06-10-data-access-routes/README.md) §1. **That is the correct route for this scan, and this run should have used it.**
+
+**Why this run fell back to web search anyway:** the script `_die`s without `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET`, and both env vars were **unset this session** (verified — `os.environ` check returned unset for both). The one-time setup (create a "script" app at <https://www.reddit.com/prefs/apps>, export the two creds locally or as CI/Codespace secrets) hadn't landed in this environment. So the *structural* block is solved; the *operational* gap is just the missing credentials.
+
+The crawler-route table below is still accurate as a record of what's blocked, but it is **not** the reason for the aggregation-sourced provenance — the missing creds are:
 
 | Route | Result this session |
 | --- | --- |
-| `WebFetch www.reddit.com/....json` | "Claude Code is unable to fetch from www.reddit.com" |
+| `scripts/reddit-scan.py` (official OAuth2 API) | ✅ **the sanctioned route** — but `_die`s: `REDDIT_CLIENT_ID`/`SECRET` unset this session |
+| `WebFetch www.reddit.com/....json` | "Claude Code is unable to fetch from www.reddit.com" (crawler-UA block) |
 | `WebFetch old.reddit.com/....json` | same block |
-| `WebFetch safereddit.com` (mirror) | HTTP 403 |
-| `WebFetch redlib.catsarch.com` (mirror) | HTTP 403 |
-| `WebSearch allowed_domains:[reddit.com]` | **400 — "domains not accessible to our user agent"** (the definitive signal — Reddit blocks Anthropic's crawler; see the linked Anthropic support article) |
-| Unrestricted `WebSearch` | ✅ **works** — surfaces Reddit-discussion content via snippets + practitioner write-ups |
+| `WebFetch safereddit.com` / `redlib.catsarch.com` (mirrors) | HTTP 403 |
+| `WebSearch allowed_domains:[reddit.com]` | **400 — "domains not accessible to our user agent"** |
+| Unrestricted `WebSearch` (the fallback actually used) | ✅ works — Reddit-discussion snippets + practitioner write-ups |
 
-Per the repo's Capability-Grounding / accuracy discipline, that is a verified property of **the Reddit↔Anthropic-crawler route**, not a failure to try. The working route was **unrestricted web search**, which surfaces Reddit-discussion content via search snippets and third-party aggregations. **Findings below are therefore drawn from Reddit-discussion aggregations + practitioner write-ups, cross-checked against primary Anthropic docs — not from direct subreddit reads.** Flagged so a future session doesn't over-trust the provenance.
+**Provenance of the findings below:** drawn from Reddit-discussion aggregations + practitioner write-ups via unrestricted web search, cross-checked against primary Anthropic docs — **not** from direct subreddit reads. This is the documented fallback, **not** the preferred route. **Next scan: set the two Reddit creds and run `reddit-scan.py` first** so findings come from real subreddit listings (closing the provenance gap for good).
 
-**Queries run (working route):**
+**Queries run (fallback route — unrestricted web search):**
 
 - `Claude Code Agent Skills SKILL.md authoring progressive disclosure when to use skill vs subagent 2026`
 - `Claude Code headless mode claude -p GitHub Actions CI automation best practices 2026`
