@@ -1,0 +1,25 @@
+{
+  "name": "developer-relations",
+  "version": "0.1.0",
+  "description": "Developer Relations (DevRel) specialist team — 4 agents covering the DevRel operating model (program design, exec narrative, DX as the product, activation metrics), developer advocacy (content, talks, demos, community engagement), developer experience & docs (quickstarts, API reference, time-to-first-value), and community & ecosystem (community health, ambassadors, contribution funnel). Ships 3 skills (devrel-program-design, developer-content-and-advocacy, developer-experience-measurement), 3 commands, 2 templates, 5 best-practices, a decision-tree knowledge bank, an advisory anti-pattern hook, and a stdlib DX-metrics calculator. Audience: DevRel leaders, developer advocates, DX/docs engineers, community managers. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "developer-relations",
+    "devrel",
+    "developer-advocacy",
+    "developer-experience",
+    "dx",
+    "developer-docs",
+    "community",
+    "developer-marketing",
+    "activation",
+    "time-to-first-value"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "higher-education-administration",
+  "version": "0.1.0",
+  "description": "Higher Education Administration specialist team — 4 agents covering the institutional operating model (governance, budget model, strategic enrollment, retention-vs-recruitment ROI), enrollment & financial aid (admissions funnel, yield, Title IV aid, net tuition revenue), student success & retention (persistence, completion, early-alert systems), and academic operations & compliance (registrar, accreditation, FERPA, course scheduling). Ships 3 skills (enrollment-funnel-and-yield, student-retention-and-early-alert, financial-aid-and-net-revenue), 3 commands, 2 templates, 5 best-practices, a decision-tree knowledge bank, an advisory anti-pattern hook, and a stdlib enrollment/retention calculator. Audience: provosts, VPs of enrollment, registrars, deans of students, institutional research. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "higher-education",
+    "university-administration",
+    "enrollment-management",
+    "financial-aid",
+    "student-retention",
+    "net-tuition-revenue",
+    "registrar",
+    "accreditation",
+    "ferpa",
+    "student-success"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

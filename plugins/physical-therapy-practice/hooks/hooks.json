@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for physical-therapy-practice. Auto-merged with the consumer's session hooks on install. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-physical-therapy-practice-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags PT anti-patterns (timed CPT units with no 8-minute-rule/minute basis, billing/coding decision with no medical-necessity/documentation basis, cancellation framed as revenue-only with no adherence/episode framing). Set PT_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}
