@@ -75,9 +75,13 @@ Dependencies are limited to `python3` + `jq` (already required repo-wide); no ex
 
 ## Build status
 
-- ✅ **Built & gated** (this PR): `developer-relations`, `higher-education-administration`,
-  `physical-therapy-practice` — each registered in `marketplace.json` and the `docs/architecture.md`
-  Status table, passing the frontmatter/JSON/layout/claims gates.
+- ✅ **Built & gated, flagship tier** (this PR): `developer-relations`,
+  `higher-education-administration`, `physical-therapy-practice`. Each was first built at the standard
+  domain-plugin tier (4 agents / 3 skills) and then **expanded to power-platform-class depth** at
+  v0.2.0: **6 agents, 8 skills, 12 best-practices, a 5-doc knowledge bank, 6 commands, 4–5 templates,
+  a scenarios bank, and an expanded stdlib calculator**. Each is registered in `marketplace.json` and
+  the `docs/architecture.md` Status table, passing the frontmatter/JSON/layout/claims/links/prettier
+  gates.
 - 📋 **Documented, not yet built:** candidates 4–10 above. Each has a roster + calc outline ready to
   scaffold from the same template. Building all seven in one PR was deferred to keep this change
   reviewable and each plugin's domain content genuinely researched rather than boilerplate.
