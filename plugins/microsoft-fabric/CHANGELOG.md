@@ -2,6 +2,17 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.8.1] — 2026-06-11
+
+Research-sweep **corrections** — two now-false facts in the capability map, re-verified 2026-06-11 against `learn.microsoft.com` via the Microsoft-Learn MCP.
+
+### Fixed
+
+- **`knowledge/fabric-2026-capability-map.md`** — **Fabric Runtime 2.0 is Spark 4.1 / Delta 4.1 / Python 3.13** (was documented as Spark 4.0 / Delta 4.0). Added the **breaking-change** note (Python 3.12→3.13 requires re-publishing every Environment that has libraries). Source: [Runtime 2.0](https://learn.microsoft.com/fabric/data-engineering/runtime-2-0). (Runtime 2.0 remains public preview — unchanged.)
+- **`knowledge/fabric-2026-capability-map.md`** — **OneLake security + OneLake data access roles are GA (May 2026)** and being **enabled by default on all supported items by end of May 2026** (was documented as "preview"). Corrected the supported data items (Lakehouse, Azure Databricks Mirrored Catalog, Mirrored Databases), added the **ReadWrite** permission and the **authorized-engine model** for third-party enforcement (was "third-party engines preview"). Source: [Fabric what's-new](https://learn.microsoft.com/fabric/fundamentals/whats-new), [data access control model](https://learn.microsoft.com/fabric/onelake/security/data-access-control-model).
+- **`knowledge/medallion-on-onelake.md`** — Native Execution Engine GA note: Runtime 2.0 is **Spark 4.1** (was Spark 4.0).
+- Version **0.8.0 → 0.8.1** in `.claude-plugin/plugin.json` + `marketplace.json` (lockstep).
+
 ## [0.7.0] — 2026-06-05
 
 Value-add build-out — closes the net-new gaps after PR #315 (which had consolidated the knowledge decision-trees + `best-practices/` + `templates/` and stubbed the scenarios index).
