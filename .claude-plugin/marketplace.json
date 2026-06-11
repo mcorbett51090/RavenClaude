@@ -2195,6 +2195,69 @@
         "mutual-action-plan",
         "trust-center"
       ]
+    },
+    {
+      "name": "developer-relations",
+      "source": "./plugins/developer-relations",
+      "description": "Developer Relations (DevRel) specialist team — 6 agents covering the DevRel operating model (program design, exec narrative, DX as the product, activation metrics), developer advocacy (content, talks, demos), developer experience & docs (quickstarts, time-to-first-value, onboarding funnel), community & ecosystem (health, ambassadors, contribution funnel), developer marketing & growth (positioning, audience, reach→activation), and DevRel programs & operations (events, content-ops, ROI cadence). Ships 8 skills, 6 commands, 5 templates, 12 best-practices, a 5-doc knowledge bank (decision trees + onboarding/content/community/metrics references), a scenarios bank, an advisory anti-pattern hook, and a stdlib DX-metrics calculator. Audience: DevRel leaders, developer advocates, DX/docs engineers, community managers, developer marketers. Inherits ravenclaude-core protocols.",
+      "version": "0.2.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "developer-relations",
+        "devrel",
+        "developer-advocacy",
+        "developer-experience",
+        "dx",
+        "developer-docs",
+        "community",
+        "developer-marketing",
+        "activation",
+        "time-to-first-value"
+      ]
+    },
+    {
+      "name": "higher-education-administration",
+      "source": "./plugins/higher-education-administration",
+      "description": "Higher Education Administration specialist team — 6 agents covering the institutional operating model (governance, budget model, strategic enrollment, retention-vs-recruitment ROI), enrollment & financial aid (funnel, yield, Title IV aid, net tuition revenue), student success & retention (persistence, completion, early-alert), academic operations & compliance (registrar, accreditation, FERPA, scheduling), institutional research & analytics (IPEDS, data definitions, dashboards, model soundness), and academic program portfolio (program ROI, viability/sunset, credit-hour economics). Ships 8 skills, 6 commands, 4 templates, 12 best-practices, a 5-doc knowledge bank (decision trees + enrollment/retention/budget-portfolio/compliance references), a scenarios bank, an advisory anti-pattern hook, and a stdlib enrollment/retention/program calculator. Audience: provosts, VPs of enrollment, registrars, deans of students, institutional research, academic affairs. Inherits ravenclaude-core protocols.",
+      "version": "0.2.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "higher-education",
+        "university-administration",
+        "enrollment-management",
+        "financial-aid",
+        "student-retention",
+        "net-tuition-revenue",
+        "registrar",
+        "accreditation",
+        "ferpa",
+        "student-success"
+      ]
+    },
+    {
+      "name": "physical-therapy-practice",
+      "source": "./plugins/physical-therapy-practice",
+      "description": "Physical Therapy Practice specialist team — 6 agents covering the outpatient rehab operating model (payer mix, productivity, P&L), clinical documentation & compliance (plan of care, medical necessity, the Medicare 8-minute rule), scheduling & patient flow (cancellation/no-show, plan-of-care adherence, utilization), billing & reimbursement (CPT coding, timed vs untimed units, denials, therapy threshold/KX), functional outcomes & quality (standardized measures, MCID, MIPS/value-based care), and referral & patient access (referral sources, intake verification/authorization, new-patient conversion). Ships 8 skills, 6 commands, 4 templates, 12 best-practices, a 5-doc knowledge bank (decision trees + documentation/billing/outcomes/referral references), a scenarios bank, an advisory anti-pattern hook, and a stdlib units/utilization/outcomes calculator. Audience: PT practice owners, clinic directors, billing/RCM staff, compliance leads, front-office and quality leads. Inherits ravenclaude-core protocols.",
+      "version": "0.2.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "physical-therapy",
+        "outpatient-rehab",
+        "plan-of-care",
+        "8-minute-rule",
+        "cpt-coding",
+        "denials",
+        "patient-flow",
+        "documentation-compliance",
+        "visit-utilization",
+        "medical-necessity"
+      ]
     }
   ]
 }

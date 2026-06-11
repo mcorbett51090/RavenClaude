@@ -5,13 +5,15 @@
 > This doc enumerates **10 gaps** that are genuinely uncovered, prioritizes them by user
 > demand × technical feasibility, and records the build status of each.
 
-> **Status (2026-06-11): research kept; the 3 P0 plugins were NOT merged.** The P0 plugins were
-> scaffolded to gate-passing standard on the [`#409`](https://github.com/mcorbett51090/RavenClaude/pull/409)
-> branch but **deliberately not shipped** — they're speculative (chosen against a demand heuristic,
-> not a real engagement), and the marketplace's direction is proof-of-craft + build-on-real-demand,
-> not catalog breadth (100 plugins is already plenty). This doc is kept as the **gap map** for when a
-> real DevRel / higher-ed / PT (or any P1/P2) engagement lands; the scaffolded P0 code is recoverable
-> from the closed `#409` branch in minutes. "scaffolded, parked" below = built-but-held, not in the marketplace.
+> **Status (2026-06-11): research kept as the gap map; the 3 P0 plugins are built on the
+> [`#409`](https://github.com/mcorbett51090/RavenClaude/pull/409) branch but shipping is an open
+> decision.** The maintainer's documented position (recorded on `main`) is that the marketplace's
+> direction is **proof-of-craft + build-on-real-demand, not catalog breadth** (100 plugins is already
+> plenty), so the P0 plugins were **parked — deliberately not merged** as speculative. At a follow-up
+> request they were then **expanded to flagship / power-platform-class depth** on the `#409` branch
+> (6 agents / 8 skills / 12 best-practices / 5-doc knowledge bank / scenarios each). The branch
+> registers them in `marketplace.json`; `main` does not. **Whether to actually ship them reverses the
+> build-on-real-demand stance and is the maintainer's call** (see Build status).
 
 ## How the gaps were found
 
@@ -27,9 +29,9 @@ skills + cited knowledge + gated frontmatter).
 
 | # | Plugin | Gap it fills | Closest existing (why it's not a dup) | Priority |
 |---|---|---|---|---|
-| 1 | **developer-relations** | DevRel / developer-advocacy / DX program | `technical-writing-docs` is docs-only; `product-management` is product-side. Neither owns advocacy, community funnel, or DX activation metrics. | **P0 — scaffolded, parked** |
-| 2 | **higher-education-administration** | College/university admin: enrollment, financial aid, retention, registrar | `k12-school-administration` is K-12 only; `edtech-partner-success` is vendor-side. No higher-ed institution operator. | **P0 — scaffolded, parked** |
-| 3 | **physical-therapy-practice** | Outpatient PT/rehab clinic ops, documentation, units, denials | `dental-practice` / `veterinary-practice` / `medical-revenue-cycle` cover other clinic types; PT has its own 8-minute-rule / plan-of-care / KX-modifier rules. | **P0 — scaffolded, parked** |
+| 1 | **developer-relations** | DevRel / developer-advocacy / DX program | `technical-writing-docs` is docs-only; `product-management` is product-side. Neither owns advocacy, community funnel, or DX activation metrics. | **P0 — built (flagship); ship TBD** |
+| 2 | **higher-education-administration** | College/university admin: enrollment, financial aid, retention, registrar | `k12-school-administration` is K-12 only; `edtech-partner-success` is vendor-side. No higher-ed institution operator. | **P0 — built (flagship); ship TBD** |
+| 3 | **physical-therapy-practice** | Outpatient PT/rehab clinic ops, documentation, units, denials | `dental-practice` / `veterinary-practice` / `medical-revenue-cycle` cover other clinic types; PT has its own 8-minute-rule / plan-of-care / KX-modifier rules. | **P0 — built (flagship); ship TBD** |
 | 4 | **investor-relations** | Public-company IR: earnings, disclosure, shareholder comms, consensus | `finance` is internal FP&A; `regulatory-compliance` is financial-regulatory AML/KYC. Neither owns the street-facing IR function. | P1 |
 | 5 | **mergers-acquisitions-advisory** | Corp dev / M&A: sourcing, diligence, valuation, integration | `finance` (FP&A) and `wealth-management-ria` (personal) don't cover deal process or PMI. | P1 |
 | 6 | **content-marketing-seo** | Editorial calendar, content strategy, organic/technical SEO | `marketing-operations` is martech/ops plumbing; `search-relevance-engineering` is search-ranking engineering, not content/SEO marketing. | P1 |
@@ -73,7 +75,7 @@ Dependencies are limited to `python3` + `jq` (already required repo-wide); no ex
 
 ## Prioritization rationale
 
-- **P0 (scaffolded, parked — held pending real demand):** widest, most-repeated demand and the cleanest fit to the established
+- **P0 (built to flagship tier; shipping parked pending the build-on-real-demand decision):** widest, most-repeated demand and the cleanest fit to the established
   template. DevRel is a top-requested tech function with no home; higher-ed and PT each extend a
   proven plugin family (school-admin, clinic-ops) into an obviously-missing adjacent role.
 - **P1:** strong demand, slightly more specialized audience (IR, M&A, content/SEO).
@@ -83,16 +85,19 @@ Dependencies are limited to `python3` + `jq` (already required repo-wide); no ex
 
 ## Build status
 
-- 🅿️ **Scaffolded & gated, then parked — NOT in the marketplace** (2026-06-11):
-  `developer-relations`, `higher-education-administration`, `physical-therapy-practice` were built to
-  gate-passing standard on the [`#409`](https://github.com/mcorbett51090/RavenClaude/pull/409) branch
-  (4 agents + 3 skills + knowledge + hook + calc each, passing the frontmatter/JSON/layout/claims
-  gates) but **deliberately not merged** — speculative, no real engagement. They are **not** registered
-  in `marketplace.json` or `docs/architecture.md` on `main`. The scaffolded code lives on the closed
-  `#409` branch and is recoverable in minutes the day a real engagement needs one.
+- 🛠️ **Built to flagship tier on the `#409` branch; shipping is an open decision** (2026-06-11):
+  `developer-relations`, `higher-education-administration`, `physical-therapy-practice`. Each was first
+  scaffolded at the standard domain-plugin tier (4 agents / 3 skills), then **expanded to
+  power-platform-class depth** at v0.2.0: **6 agents, 8 skills, 12 best-practices, a 5-doc knowledge
+  bank, 6 commands, 4–5 templates, a scenarios bank, and an expanded stdlib calculator** — passing the
+  frontmatter/JSON/layout/claims/links/prettier gates. On the `#409` branch they are registered in
+  `marketplace.json` and `docs/architecture.md`; on `main` they are **not**.
 - 📋 **Documented, not built:** candidates 4–10 above. Each has a roster + calc outline ready to
   scaffold from the same template when real demand appears.
 
-Decision rationale: proof-of-craft + build-on-real-demand over catalog breadth (the marketplace is
-already at 100 plugins). This doc is the durable **gap map** that turns "what's missing" into a fast
-scaffold the moment a real DevRel / higher-ed / PT / IR / M&A / … engagement lands.
+**Open decision (maintainer's call).** The documented marketplace strategy is **proof-of-craft +
+build-on-real-demand over catalog breadth** (already at 100 plugins), under which these speculative
+P0 plugins were parked rather than shipped. They were subsequently built out to flagship tier at a
+follow-up request. **Whether to merge `#409` and ship them — versus keep them as a built-but-parked
+reference recoverable from the branch — reverses the build-on-real-demand stance and is the
+maintainer's decision.** This doc remains the durable **gap map** either way.
