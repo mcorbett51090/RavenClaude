@@ -177,6 +177,16 @@ From within an HTML web resource, reference other web resources using relative p
 
 The path structure: `../../{prefix}_/{folder}/{filename}`
 
+> **⚠️ Relative paths are unreliable for slash-named resources loaded via the sitemap.** When a web
+> resource's name contains `/`, the host can serve it with the slashes URL-encoded as `%2F` (one flat
+> path segment), and a relative `../` reference then resolves to the wrong base — the page silently
+> fails (a spinner that never clears). The robust fix is to let the platform build the URL:
+> `Xrm.Utility.getGlobalContext().getWebResourceUrl("prefix_/shared/utils.js")` (returns the correct
+> relative URL **with** the cache token). A hardcoded `/WebResources/prefix_%2Fshared%2Futils.js`
+> works in a single-environment tenant but carries a documented multi-org "default org → File Not
+> Found" caveat. Full mechanism + decision rule:
+> [`knowledge/dataverse-web-resource-html-gotchas.md`](../../../knowledge/dataverse-web-resource-html-gotchas.md) (Gotcha 1).
+
 ## Responsive Design Patterns
 
 ```css

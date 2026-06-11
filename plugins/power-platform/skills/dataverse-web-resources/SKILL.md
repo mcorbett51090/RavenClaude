@@ -55,7 +55,22 @@ JavaScript, HTML, CSS, images, and other web content used to extend the applicat
    (3) `WhoAmI` API call (`GET /api/data/v9.2/WhoAmI`) for user identity. Cache the result.
 
 9. **Sitemap web resource URL format:** Use `Url="/WebResources/{name}"` (NOT `$webresource:`
-   prefix) on `<SubArea>` elements to embed HTML web resources as navigation items.
+   prefix) on `<SubArea>` elements to embed HTML web resources as navigation items. **If the web
+   resource name contains `/`, encode the slashes as `%2F` in the URL** (`/WebResources/prefix_%2Fflows%2Fpage`)
+   — literal slashes for a slash-named resource won't resolve. The same `%2F` flattening breaks relative
+   `../` references between web resources — prefer `Xrm.Utility.getGlobalContext().getWebResourceUrl(name)`
+   over hardcoded relative or absolute paths. See
+   [`knowledge/dataverse-web-resource-html-gotchas.md`](../../knowledge/dataverse-web-resource-html-gotchas.md) (Gotchas 1, 4).
+
+10. **`Xrm.WebApi.retrieveMultipleRecords` takes the entity *logical* name (singular), e.g.
+    `prefix_onsite` — NOT the entity-set name (plural `prefix_onsites`).** The set name is only for raw
+    `fetch` against `/api/data/v9.2/<entitySetName>`. Passing the set name yields "entity cannot be
+    found". (Inverse on Power Pages: `$pages.webAPI` wants the *set* name.) See the knowledge file (Gotcha 2).
+
+11. **Verify column names against the live metadata API before writing `$select`** — never trust a
+    spec/design doc or recalled schema for exact names. Query
+    `EntityDefinitions(LogicalName='prefix_table')/Attributes?$select=LogicalName,AttributeType`,
+    paginating `@odata.nextLink`. A wrong column name fails the whole query. See the knowledge file (Gotcha 3).
 
 ## Quick Reference
 
