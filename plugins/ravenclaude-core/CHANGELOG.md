@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.155.0 — 2026-06-11
+
+### Added
+
+- **New best-practice — "Permissions are a three-tier posture (`deny`/`ask`/`allow`), not an on-off switch"** ([`best-practices/permissions-are-deny-ask-allow-not-an-on-off-switch.md`](best-practices/permissions-are-deny-ask-allow-not-an-on-off-switch.md), 18 rules total). Distills the Claude Code permission model: eval order is `deny` → `ask` → `allow` (first match wins; specificity doesn't reorder — a `deny` always beats an `allow`), sort operations by reversibility (idempotent reads → `allow`, intent-changing → `ask`, irreversible/secret → `deny`), `allow` is a convenience layer while `deny` is the boundary, `--dangerously-skip-permissions` skips the `deny` backstop too (isolated envs only), and `settings.json` is reviewed-in-a-PR like code. The repo's own 20-entry `.claude/settings.json` deny list is the worked example. Generalizes the existing WebFetch-specific `web-access-allow-deny-list-before-first-fetch.md` (which it declares itself the parent of). Sourced from the [2026-06-11 Claude subreddit scan](../../docs/research/2026-06-11-claude-subreddit-scan/README.md) (1 of 4 findings approved; the other three deferred/denied as covered or out-of-core-scope).
+
+### Notes
+
+- **Migration:** none — additive markdown; nothing in a consumer's installed plugin changes on `/plugin marketplace update`.
+
 ## 0.152.0 — 2026-06-10
 
 ### Added
