@@ -2,6 +2,20 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.8.0] — 2026-06-11
+
+Research-sweep refresh — two net-new, primary-source-verified Claude-platform facts added to the knowledge bank, plus the Foundry Fable 5 caveat sharpened. Verified 2026-06-11 against [Refusals and fallback](https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback), the [Classifier fallback and billing for Claude Fable 5 cookbook](https://platform.claude.com/cookbook/fable-5-fallback-billing-guide), [Managed Agents overview](https://platform.claude.com/docs/en/managed-agents/overview) + [What's new in Claude Managed Agents](https://claude.com/blog/whats-new-in-claude-managed-agents), and the `learn.microsoft.com` Foundry model table (via the Microsoft-Learn MCP).
+
+### Added
+
+- **`knowledge/model-selection-and-2026-capability-map.md`** — expanded the Fable 5 row's **safety-fallback note into FinOps + reliability mechanics**: a refusal is an **HTTP 200 with `stop_reason: "refusal"`**; **no charge when the refusal precedes any output** (token counts informational, no rate-limit hit), but a **mid-stream refusal bills input + already-streamed output**. Documented Anthropic's **server-side classifier fallback** (up to 3 fallback models, run in-chain on the same request; at launch the only permitted target is Opus 4.8; fallback credit refunds the prompt-cache switch cost; per-agent — only the refused agent moves). Complements the existing "design around the discontinuity" note.
+- **`knowledge/agent-sdk-and-managed-agents.md`** — added **Managed Agents scheduled/cron deployments + vault env-var credentials** (public beta, announced 2026-06-09): a cron schedule starts a fresh session per fire with no scheduler to host (nightly sync / weekly scan / daily digest); vaults now inject env-var secrets into the sandbox for authenticated CLIs/SDKs.
+
+### Changed
+
+- **`knowledge/model-selection-and-2026-capability-map.md`** — **sharpened** the Foundry Fable 5 caveat in both the lineup row and the capability-status row (prior "lists only the gated `claude-mythos-preview`" was imprecise — Opus/Sonnet/Haiku previews are listed too); restated as "Learn table lists Opus/Sonnet/Haiku previews + gated `claude-mythos-preview` but does **not** list `claude-fable-5`," **re-verified 2026-06-11** via Microsoft-Learn. Re-dated `Last reviewed` 2026-06-10 → 2026-06-11 and added the new sources to the header.
+- Version **0.7.3 → 0.8.0** (minor — net-new knowledge) bumped in `.claude-plugin/plugin.json` **and** the `marketplace.json` catalog entry in lockstep (CI fails on drift).
+
 ## [0.7.3] — 2026-06-10
 
 Freshness-anchor follow-up — codified the **403 route ladder** so a bot-blocked primary source becomes a re-route, not a miss (the lesson from the Fable 5 sweep, where `anthropic.com` + the GitHub changelog 403'd automated `WebFetch`).

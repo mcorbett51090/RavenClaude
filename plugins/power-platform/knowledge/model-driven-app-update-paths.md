@@ -41,10 +41,38 @@ the four facts that overturn the naive "headless hand-edit + import" instinct.
 flowchart TD
     START["Update a model-driven app"] --> Q1{What am I changing?}
     Q1 -->|"Record data / env-var VALUE / config row"| DATA["Dataverse Web API write — SPN already authorized, no solution cycle, reversible"]
-    Q1 -->|"App shell: sitemap / form / view / env-var DEFINITION"| SHELL["pac solution export->edit->pack->import->publish — rehearse in a sandbox first"]
+    Q1 -->|"Form (main / quick-create / quick-view)"| FORM["Dataverse Web API — POST/CopySystemForm + PATCH formxml + PublishXml. Lighter than a solution cycle; the portal is NEVER the only way"]
+    Q1 -->|"App shell: sitemap / view / env-var DEFINITION"| SHELL["pac solution export->edit->pack->import->publish — rehearse in a sandbox first"]
     Q1 -->|"Custom page (canvas)"| CANVAS["Canvas authoring MCP + coauthoring Studio session — never hand-edit .pa.yaml, never deprecated pac canvas"]
     Q1 -->|"Promote DEV -> TEST/PROD"| PROMO["Managed solution + Pipelines — managed uninstall is the real rollback"]
 ```
+
+### Forms are NOT portal-bound (the systemforms Web API path)
+
+A **main form is a `systemform` record** (`type=2`) with a writable `formxml`/`formjson` body —
+authorable end-to-end programmatically, no maker portal required. This is the lighter sibling of
+the solution round-trip and uses the **same SPN** that runs the flows (verified against Microsoft
+Learn 2026-06-11):
+
+- **Create:** `POST [org]/api/data/v9.2/systemforms` with `"type": 2`, `objecttypecode`, a `formxml`
+  string, and the `MSCRM.SolutionUniqueName` header. Or — cleaner — clone an existing form with the
+  **[`CopySystemForm` Web API action](https://learn.microsoft.com/power-apps/developer/data-platform/webapi/reference/copysystemform)**
+  and `PATCH` the copy's `formxml`, so you don't hand-build GUIDs
+  ([customize-entity-forms](https://learn.microsoft.com/power-apps/developer/model-driven-apps/customize-entity-forms),
+  [create-edit-main-forms](https://learn.microsoft.com/power-apps/maker/model-driven-apps/create-edit-main-forms)).
+- **Edit:** `GET systemforms({id})?$select=formxml` → modify the XML → `PATCH` it back.
+- **Publish:** `POST PublishXml` (or `PublishAllXml`) — form changes aren't live until you do.
+- **Privilege:** needs **System Customizer / System Administrator** (the *same* customization
+  privilege as a solution import — fact #4 below). An insufficient-scope `403` selects *grant the
+  role*, **not** "fall back to the portal."
+- Full FormXml shape, control ClassIDs, subgrid/quick-view/PCF bindings:
+  [`../skills/dataverse-web-api/resources/forms-ui.md`](../skills/dataverse-web-api/resources/forms-ui.md).
+
+> **Anti-trap:** "I can't build the main form — you'll have to do the portal work" is the
+> model-driven twin of "cloud flows can't be created programmatically" (see
+> [`programmatic-flow-creation.md`](programmatic-flow-creation.md)). Both are false; both are caught
+> by the Capability Grounding Protocol. The custom-page `.pa.yaml` read-only constraint (fact #1)
+> applies to **canvas custom pages only** — it does **not** generalize to forms, views, or sitemaps.
 
 ## The other two facts that bite
 
