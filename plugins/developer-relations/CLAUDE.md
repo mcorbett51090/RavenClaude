@@ -1,9 +1,9 @@
 # Developer Relations Plugin — Team Constitution
 
-> Team constitution for the `developer-relations` Claude Code plugin — **4** specialist agents
+> Team constitution for the `developer-relations` Claude Code plugin — **6** specialist agents
 > covering the complete DevRel operating model: program strategy, developer advocacy, developer
-> experience & docs, and community & ecosystem. The Team Lead dispatches the right specialist(s)
-> and integrates their reports.
+> experience & docs, community & ecosystem, developer marketing & growth, and DevRel programs &
+> operations. The Team Lead dispatches the right specialist(s) and integrates their reports.
 >
 > **Orientation:** this file is **domain-specific** to developer relations. For the domain-neutral
 > team constitution inherited by every plugin, see
@@ -20,6 +20,8 @@
 | [`developer-advocate`](agents/developer-advocate.md) | Content strategy, conference talks, demos, sample apps, developer-facing storytelling, feedback loops to product | "plan our developer content", "what talk should we submit?", "design a demo that lands", "how do we route developer feedback to product?" |
 | [`docs-and-dx-engineer`](agents/docs-and-dx-engineer.md) | Developer onboarding, quickstarts, API reference quality, time-to-first-value, SDK/CLI ergonomics, the getting-started funnel | "fix our onboarding", "why is our quickstart failing?", "reduce time-to-first-hello-world", "audit our API reference" |
 | [`community-and-ecosystem-manager`](agents/community-and-ecosystem-manager.md) | Community health, forums/Discord/Slack, ambassador & champion programs, the contribution funnel, ecosystem partners | "grow our community", "design an ambassador program", "how do we measure community health?", "build a contribution funnel" |
+| [`developer-marketing-and-growth-strategist`](agents/developer-marketing-and-growth-strategist.md) | Developer-audience segmentation, positioning & messaging, channel strategy, reach→activation attribution | "fix our developer positioning", "who are we trying to reach?", "which channels drive activations?", "segment our developer audience" |
+| [`devrel-programs-and-operations-manager`](agents/devrel-programs-and-operations-manager.md) | Event/conference operations, sponsorships, content-ops calendar & pipeline, tooling stack, budget, ROI-reporting cadence | "which conferences should we invest in?", "set up our content operations", "what should our operating review look like?", "what tooling & budget do we need?" |
 
 **Sub-agents do not spawn other sub-agents** — only the Team Lead delegates. If work crosses
 specialist boundaries, each specialist returns its slice and the Team Lead re-dispatches.
@@ -73,3 +75,7 @@ pricing-sensitive is dated and marked for verification, per the core Claim-Groun
 
 - **0.1.0** — initial release: 4 agents, 3 skills, 5 best-practices, decision-tree knowledge bank,
   3 commands, 2 templates, advisory anti-pattern hook, stdlib DX-metrics calculator.
+- **0.2.0** — flagship-tier build-out: 6 agents (added developer-marketing-and-growth-strategist,
+  devrel-programs-and-operations-manager), 8 skills, 12 best-practices, a 5-doc knowledge bank
+  (decision trees + onboarding/content/community/metrics references), 6 commands, 5 templates, a
+  scenarios bank, and an expanded calculator.

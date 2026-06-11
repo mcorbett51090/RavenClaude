@@ -2,13 +2,15 @@
 """
 devrel_calc.py — Developer Relations / DX metrics calculator (stdlib only).
 
-Six functions covering the core DevRel decision metrics:
-  - time_to_first_value   : median sign-up → first-success time
-  - activation_rate       : first-success ÷ sign-ups
-  - funnel_conversion     : stage-to-stage conversion across the activation funnel
-  - content_roi           : activations attributable ÷ content effort (hours)
-  - community_health      : active ratio, answer rate, contributor conversion
-  - vanity_pairing_check  : flag a vanity input reported without an outcome
+Eight functions covering the core DevRel decision metrics:
+  - time_to_first_value          : median sign-up → first-success time
+  - activation_rate              : first-success ÷ sign-ups
+  - funnel_conversion            : stage-to-stage conversion across the activation funnel
+  - content_roi                  : activations attributable ÷ content effort (hours)
+  - community_health             : active ratio, answer rate, contributor conversion
+  - cost_per_activation          : program spend ÷ activations attributable
+  - program_activations_per_dollar: rank a program by expected activations per dollar
+  - vanity_pairing_check         : flag a vanity input reported without an outcome
 
 All functions are pure (no I/O) and return a dict with the result plus the input
 assumptions so callers can audit the calculation.
@@ -126,6 +128,48 @@ def community_health(
     return out
 
 
+def cost_per_activation(program_spend: float, activations_attributed: int) -> dict:
+    """Cost-per-activation = program spend ÷ activations attributable to it."""
+    if activations_attributed <= 0:
+        return {
+            "cost_per_activation": None,
+            "note": "activations_attributed must be > 0",
+        }
+    return {
+        "cost_per_activation": round(program_spend / activations_attributed, 2),
+        "program_spend": program_spend,
+        "activations_attributed": activations_attributed,
+    }
+
+
+def program_activations_per_dollar(
+    audience_fit: float,
+    activation_path_strength: float,
+    expected_reach: float,
+    cost: float,
+) -> dict:
+    """
+    Rank a program (event/sponsorship/content) by expected activations per dollar.
+
+    audience_fit and activation_path_strength are 0..1 multipliers; a program with
+    no activation path scores near zero regardless of reach. expected_reach is a
+    count; cost is dollars.
+    """
+    if cost <= 0:
+        return {"activations_per_dollar": None, "note": "cost must be > 0"}
+    expected_activations = audience_fit * activation_path_strength * expected_reach
+    return {
+        "expected_activations": round(expected_activations, 2),
+        "activations_per_dollar": round(expected_activations / cost, 5),
+        "inputs": {
+            "audience_fit": audience_fit,
+            "activation_path_strength": activation_path_strength,
+            "expected_reach": expected_reach,
+            "cost": cost,
+        },
+    }
+
+
 def vanity_pairing_check(metric_name: str, has_outcome_metric: bool) -> dict:
     """Flag a vanity input reported without a paired activation/adoption outcome."""
     vanity = {"stars", "followers", "impressions", "attendees", "registrants", "pageviews"}
@@ -152,4 +196,9 @@ if __name__ == "__main__":
         )["steepest_drop"],
     )
     print("ttfv:", time_to_first_value([12, 30, 8, 45, 19, 60, 22]))
+    print("cost/activation:", cost_per_activation(20000, 250))
+    print(
+        "program/$:",
+        program_activations_per_dollar(0.7, 0.6, 5000, 15000)["activations_per_dollar"],
+    )
     print("vanity:", vanity_pairing_check("stars", has_outcome_metric=False)["note"])

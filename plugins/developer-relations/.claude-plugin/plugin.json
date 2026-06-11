@@ -1,7 +1,7 @@
 {
   "name": "developer-relations",
-  "version": "0.1.0",
-  "description": "Developer Relations (DevRel) specialist team — 4 agents covering the DevRel operating model (program design, exec narrative, DX as the product, activation metrics), developer advocacy (content, talks, demos, community engagement), developer experience & docs (quickstarts, API reference, time-to-first-value), and community & ecosystem (community health, ambassadors, contribution funnel). Ships 3 skills (devrel-program-design, developer-content-and-advocacy, developer-experience-measurement), 3 commands, 2 templates, 5 best-practices, a decision-tree knowledge bank, an advisory anti-pattern hook, and a stdlib DX-metrics calculator. Audience: DevRel leaders, developer advocates, DX/docs engineers, community managers. Inherits ravenclaude-core protocols.",
+  "version": "0.2.0",
+  "description": "Developer Relations (DevRel) specialist team — 6 agents covering the DevRel operating model (program design, exec narrative, DX as the product, activation metrics), developer advocacy (content, talks, demos), developer experience & docs (quickstarts, time-to-first-value, onboarding funnel), community & ecosystem (health, ambassadors, contribution funnel), developer marketing & growth (positioning, audience, reach→activation), and DevRel programs & operations (events, content-ops, ROI cadence). Ships 8 skills, 6 commands, 5 templates, 12 best-practices, a 5-doc knowledge bank (decision trees + onboarding/content/community/metrics references), a scenarios bank, an advisory anti-pattern hook, and a stdlib DX-metrics calculator. Audience: DevRel leaders, developer advocates, DX/docs engineers, community managers, developer marketers. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"
   },
