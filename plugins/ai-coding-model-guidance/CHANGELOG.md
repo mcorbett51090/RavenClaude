@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.4] — 2026-06-11
+
+Research-sweep re-verify — re-checked the **Microsoft Foundry Fable 5** sub-claim against the authoritative `learn.microsoft.com` Foundry Claude-model table via the **Microsoft-Learn MCP**. Despite the Azure blog and the `ai.azure.com/catalog/models/claude-fable-5` catalog page announcing GA, the Learn **deployable-model table still does not list `claude-fable-5`** (it lists Opus 4-8/4-7/4-6/4-5/4-1, Sonnet 4-6/4-5, Haiku 4-5 previews + the gated `claude-mythos-preview`).
+
+### Changed
+
+- **`knowledge/cross-tool-model-lineup-2026.md`** — **sharpened** the Foundry Fable 5 caveat in the Copilot bullet: the prior wording ("the Foundry Learn model table still lists only the gated `claude-mythos-preview`") was imprecise (the Opus/Sonnet/Haiku families are listed too); restated as "the Learn table lists Opus/Sonnet/Haiku previews + gated `claude-mythos-preview` but does **not** list `claude-fable-5`," with the authoritative Learn URL and a **2026-06-11 re-verify note** added beside the existing sweep note. Caveat **sharpened, not struck** — a vendor blog/catalog announcement is not a deployable-model-table listing.
+- Version **0.3.3 → 0.3.4** bumped in `.claude-plugin/plugin.json` **and** the `marketplace.json` catalog entry in lockstep (CI fails on drift).
+
 ## [0.3.3] — 2026-06-10
 
 Freshness-anchor follow-up — codified the **403 route ladder** in the lineup's "How to keep this current" (the header already noted the vendor doc pages 403 automated fetch; this says what to *do* about it).
