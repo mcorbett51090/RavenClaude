@@ -114,15 +114,23 @@ find plugins/*/hooks -name '*.sh' -exec test -x {} \;
 npx --yes prettier --write . --log-level warn   # auto-format any out-of-style files
 npx --yes prettier --check . --log-level warn   # verify clean — must return exit 0
 
-# 4. Audit every gate (the meta-test)
+# 4. Ruff (Python lint) — config in ruff.toml; runs as a CI gate (validate-marketplace Gate 9b)
+#    and inside audit-gates.sh. Same whole-tree discipline as prettier: a ruff violation
+#    landing in main can surface as a surprise CI failure on a later PR, so lint before pushing
+#    any branch that touches .py files. (audit-gates Gate 9b _skip_or_fail's if ruff is absent.)
+pip install --quiet ruff && ruff check .   # must return exit 0
+
+# 5. Audit every gate (the meta-test)
 scripts/audit-gates.sh
 # Proves each CI gate fails on a known-bad fixture AND passes on a known-good one.
 # Required reading before adding or changing any CI step: docs/best-practices/ci-gate-audit.md
-# NOTE: Gate 10 (actionlint) needs a usable docker daemon + the rhysd/actionlint image.
-#       Without it the gate LOUD-skips locally ("THIS IS NOT A PASS" — a skip is not a pass);
-#       in CI an unrunnable Gate 10 is a hard failure, never a silent skip.
+# NOTE: Gate 10 (actionlint) uses a checksum-pinned actionlint binary (rhysd/actionlint
+#       v1.7.7, sha256-verified) — NO Docker. It resolves actionlint from PATH, a cached
+#       /tmp/actionlint, or a pinned download. On a host with none of those AND no network,
+#       it LOUD-skips locally ("THIS IS NOT A PASS" — a skip is not a pass); in CI an
+#       unrunnable Gate 10 is a hard failure, never a silent skip.
 
-# 5. Local install test (from a separate test project)
+# 6. Local install test (from a separate test project)
 # /plugin marketplace add /workspaces/RavenClaude
 # /plugin install ravenclaude-core@ravenclaude
 # Confirm agents appear in /plugin UI.
