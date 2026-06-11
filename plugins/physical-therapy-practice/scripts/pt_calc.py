@@ -2,13 +2,16 @@
 """
 pt_calc.py — Physical Therapy practice calculator (stdlib only).
 
-Six functions covering the core PT decision metrics:
-  - eight_minute_rule_units : timed minutes → billable units (Medicare 8-minute rule)
-  - units_per_visit         : average billable units per delivered visit
-  - visit_utilization       : delivered visits ÷ available slots
-  - cancellation_rate       : (cancellations + no-shows) ÷ scheduled
-  - plan_of_care_adherence  : visits delivered ÷ visits prescribed (per episode)
-  - net_collection_per_visit: collected ÷ delivered visits
+Nine functions covering the core PT decision metrics:
+  - eight_minute_rule_units  : timed minutes → billable units (Medicare 8-minute rule)
+  - units_per_visit          : average billable units per delivered visit
+  - visit_utilization        : delivered visits ÷ available slots
+  - cancellation_rate        : (cancellations + no-shows) ÷ scheduled
+  - plan_of_care_adherence   : visits delivered ÷ visits prescribed (per episode)
+  - referral_conversion_rate : evaluated (POC started) ÷ referrals received
+  - clinic_contribution_margin: net collections − (direct labor + other direct cost)
+  - outcome_change_vs_mcid   : functional-outcome change vs. the MCID threshold
+  - net_collection_per_visit : collected ÷ delivered visits
 
 All functions are pure (no I/O) and return a dict with the result plus the input
 assumptions so callers can audit the calculation.
@@ -107,6 +110,57 @@ def plan_of_care_adherence(visits_delivered: int, visits_prescribed: int) -> dic
     }
 
 
+def referral_conversion_rate(evaluated: int, referrals_received: int) -> dict:
+    """Referral → evaluation conversion = evaluated (POC started) ÷ referrals received."""
+    if referrals_received <= 0:
+        return {"referral_conversion": None, "note": "referrals_received must be > 0"}
+    r = evaluated / referrals_received
+    return {
+        "referral_conversion": round(r, 4),
+        "referral_conversion_pct": round(r * 100, 2),
+        "lost_pct": round((1 - r) * 100, 2),
+        "evaluated": evaluated,
+        "referrals_received": referrals_received,
+    }
+
+
+def clinic_contribution_margin(
+    net_collection_total: float,
+    direct_labor_cost: float,
+    other_direct_cost: float = 0.0,
+) -> dict:
+    """Clinic contribution margin = net collections − (direct labor + other direct cost)."""
+    margin = net_collection_total - direct_labor_cost - other_direct_cost
+    base = net_collection_total if net_collection_total > 0 else None
+    return {
+        "contribution_margin": round(margin, 2),
+        "contribution_margin_pct": round(margin / base * 100, 2) if base else None,
+        "net_collection_total": net_collection_total,
+        "direct_labor_cost": direct_labor_cost,
+        "other_direct_cost": other_direct_cost,
+    }
+
+
+def outcome_change_vs_mcid(
+    baseline_score: float, latest_score: float, mcid: float, higher_is_better: bool = True
+) -> dict:
+    """
+    Judge a functional-outcome change against the MCID (minimal clinically important
+    difference). Returns the change and whether it meets the MCID threshold.
+    """
+    change = latest_score - baseline_score
+    directional = change if higher_is_better else -change
+    return {
+        "change": round(change, 2),
+        "directional_improvement": round(directional, 2),
+        "mcid": mcid,
+        "meets_mcid": directional >= mcid,
+        "note": "meaningful change (>= MCID)"
+        if directional >= mcid
+        else "below MCID — not yet a clinically meaningful change",
+    }
+
+
 def net_collection_per_visit(total_collected: float, delivered_visits: int) -> dict:
     """Net collection per delivered visit."""
     if delivered_visits <= 0:
@@ -124,4 +178,7 @@ if __name__ == "__main__":
     print("utilization:", visit_utilization(132, 160))
     print("cancellation:", cancellation_rate(12, 6, 160))
     print("adherence:", plan_of_care_adherence(9, 12))
+    print("referral_conv:", referral_conversion_rate(68, 100))
+    print("clinic_margin:", clinic_contribution_margin(13200, 8000, 1500))
+    print("outcome_vs_mcid:", outcome_change_vs_mcid(40, 54, 8)["note"])
     print("net/visit:", net_collection_per_visit(13200, 132))

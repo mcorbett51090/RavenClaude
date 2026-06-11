@@ -1,9 +1,10 @@
 # Physical Therapy Practice Plugin — Team Constitution
 
-> Team constitution for the `physical-therapy-practice` Claude Code plugin — **4** specialist agents
+> Team constitution for the `physical-therapy-practice` Claude Code plugin — **6** specialist agents
 > covering the complete plan-of-care-to-reimbursement operating model for an outpatient PT clinic:
-> clinic operating model, clinical documentation & compliance, scheduling & patient flow, and
-> billing & reimbursement. The Team Lead dispatches the right specialist(s) and integrates reports.
+> clinic operating model, clinical documentation & compliance, scheduling & patient flow, billing &
+> reimbursement, functional outcomes & quality, and referral & patient access. The Team Lead
+> dispatches the right specialist(s) and integrates reports.
 >
 > **Orientation:** this file is **domain-specific** to physical therapy. For the domain-neutral team
 > constitution inherited by every plugin, see
@@ -20,6 +21,8 @@
 | [`clinical-documentation-and-compliance-specialist`](agents/clinical-documentation-and-compliance-specialist.md) | Plan of care, defensible documentation, medical necessity, the 8-minute rule as a documentation requirement, audit readiness | "make our documentation defensible", "is this plan of care compliant?", "are we audit-ready?", "what does medical necessity require here?" |
 | [`scheduling-and-patient-flow-analyst`](agents/scheduling-and-patient-flow-analyst.md) | Cancellation/no-show reduction, plan-of-care adherence, visit utilization, front-desk and schedule-template flow | "reduce our cancellations", "improve plan-of-care adherence", "fix our schedule template", "why is utilization low?" |
 | [`billing-and-reimbursement-analyst`](agents/billing-and-reimbursement-analyst.md) | CPT coding, timed vs. untimed units, the 8-minute rule as a billing calculation, denials, payer contracts, therapy threshold/KX | "fix our denials", "are we coding units correctly?", "analyze our reimbursement", "how does the KX modifier apply?" |
+| [`outcomes-and-quality-analyst`](agents/outcomes-and-quality-analyst.md) | Standardized outcome measures & MCID, patient-reported outcomes, MIPS/quality reporting, value-based-care readiness | "set up an outcomes program", "show this patient still needs care", "are we MIPS-ready?", "benchmark our outcomes" |
+| [`referral-and-patient-access-strategist`](agents/referral-and-patient-access-strategist.md) | Referral-source relationships, direct-access growth, intake & insurance verification/authorization, new-patient conversion | "analyze our referral sources", "referrals don't become evaluations", "fix our intake verification", "grow direct access" |
 
 **Sub-agents do not spawn other sub-agents** — only the Team Lead delegates. If work crosses
 specialist boundaries, each specialist returns its slice and the Team Lead re-dispatches.
@@ -73,3 +76,8 @@ decision-support, not clinical, coding, legal, or compliance advice.
 
 - **0.1.0** — initial release: 4 agents, 3 skills, 5 best-practices, decision-tree knowledge bank,
   3 commands, 2 templates, advisory anti-pattern hook, stdlib units/utilization calculator.
+- **0.2.0** — flagship-tier build-out: 6 agents (added outcomes-and-quality-analyst,
+  referral-and-patient-access-strategist), 8 skills, 12 best-practices, a 5-doc knowledge bank
+  (decision trees + documentation/billing/outcomes/referral references), 6 commands, 4 templates, a
+  scenarios bank, and an expanded calculator (referral conversion, clinic contribution margin,
+  outcome change vs. MCID).

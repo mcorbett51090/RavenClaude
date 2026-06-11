@@ -2241,8 +2241,8 @@
     {
       "name": "physical-therapy-practice",
       "source": "./plugins/physical-therapy-practice",
-      "description": "Physical Therapy Practice specialist team — 4 agents covering the outpatient rehab operating model (payer mix, productivity, P&L), clinical documentation & compliance (plan of care, defensible documentation, medical necessity, the Medicare 8-minute rule), scheduling & patient flow (cancellation/no-show, plan-of-care adherence, visit utilization, front-desk flow), and billing & reimbursement (CPT coding, timed vs untimed units, denials, payer contracts, therapy cap/KX). Ships 3 skills (pt-documentation-and-compliance, patient-flow-and-plan-of-care-adherence, pt-billing-units-and-denials), 3 commands, 2 templates, 5 best-practices, a decision-tree knowledge bank, an advisory anti-pattern hook, and a stdlib units/utilization calculator. Audience: PT practice owners, clinic directors, billing/RCM staff, compliance leads. Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
+      "description": "Physical Therapy Practice specialist team — 6 agents covering the outpatient rehab operating model (payer mix, productivity, P&L), clinical documentation & compliance (plan of care, medical necessity, the Medicare 8-minute rule), scheduling & patient flow (cancellation/no-show, plan-of-care adherence, utilization), billing & reimbursement (CPT coding, timed vs untimed units, denials, therapy threshold/KX), functional outcomes & quality (standardized measures, MCID, MIPS/value-based care), and referral & patient access (referral sources, intake verification/authorization, new-patient conversion). Ships 8 skills, 6 commands, 4 templates, 12 best-practices, a 5-doc knowledge bank (decision trees + documentation/billing/outcomes/referral references), a scenarios bank, an advisory anti-pattern hook, and a stdlib units/utilization/outcomes calculator. Audience: PT practice owners, clinic directors, billing/RCM staff, compliance leads, front-office and quality leads. Inherits ravenclaude-core protocols.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
