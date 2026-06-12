@@ -22,7 +22,7 @@
 #     - Value is durable craft/process, rarely date-stamped -> tier-b-methodology
 
 schema_version: 1
-last_reviewed: "2026-06-11"
+last_reviewed: "2026-06-12"
 
 # -------------------------------------------------------------------------
 # TIER A — NEWS CADENCE (weekly deep-research sweep is in scope)
@@ -63,6 +63,12 @@ tier_a_news:
     - security-engineering
     - cybersecurity-grc
     - auth-identity # IdP/OAuth/passkey/standards churn
+  web_and_docs:
+    # CSS/browser APIs ship weekly (Container Queries, View Transitions, anchor positioning,
+    # Popover API); Web Vitals thresholds update; WCAG 3.x actively evolving.
+    # frontend-engineering promoted from review_candidates (evidence: heavy framework churn).
+    - web-design # CSS/layout primitives, Core Web Vitals, WCAG — dated facts stale weekly
+    - frontend-engineering # framework + browser-API churn confirmed news-heavy
 
 # -------------------------------------------------------------------------
 # TIER B — METHODOLOGY CADENCE (NOT in the weekly news sweep)
@@ -135,8 +141,6 @@ tier_b_methodology:
     - renewable-energy
     - film-video-production
     - game-development # craft-heavy; engine news is slow vs the design craft
-    - technical-writing-docs
-    - web-design
     - localization-i18n-engineering
     - search-relevance-engineering
     - experimentation-growth-engineering
@@ -144,7 +148,6 @@ tier_b_methodology:
     - accessibility-engineering # WCAG moves slowly; event-driven on a spec bump
     - api-engineering
     - backend-engineering
-    - frontend-engineering # framework churn exists but craft dominates; promote if it proves news-heavy
     - mobile-engineering
     - embedded-iot-engineering
     - blockchain-web3-engineering
@@ -159,6 +162,6 @@ tier_b_methodology:
 # (-> promote) or a tier-a plugin never does (-> demote). This is the feedback
 # loop that keeps the tiering honest.
 review_candidates:
-  - frontend-engineering # heavy framework churn — promote to tier-a if news-heavy
   - salesforce # 3 seasonal releases/yr — could warrant an event-driven news slot
   - mobile-engineering # iOS/Android annual + SDK churn
+  - technical-writing-docs # Diátaxis + tooling (MkDocs/Docusaurus) do ship updates; promote if news-heavy

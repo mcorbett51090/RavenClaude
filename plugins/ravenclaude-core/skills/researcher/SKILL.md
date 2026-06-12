@@ -67,6 +67,31 @@ The Researcher must apply the Grounding Protocol to its own conclusions before p
 
 Actively seek credible dissenting views rather than only confirming existing knowledge.
 
+## Learn-tab improvement pass (added 2026-06-12)
+
+The Weekly Deep Research sweep for Tier-A `web-design` and `frontend-engineering` plugins also feeds a **Learn-tab improvement pass** — checking whether new platform facts, documentation patterns, or web-design / interactivity best practices warrant a new concept card (or an update to an existing one) in `plugins/ravenclaude-core/knowledge/concepts/`.
+
+**Domains to sweep:**
+
+- **Documentation best practices** — Diátaxis (diataxis.fr), Google developer documentation style guide, Microsoft Writing Style Guide, Write the Docs newsletter / community updates. Look for: new structural frameworks (tutorials/how-tos/reference/explanation split evolution), updated style conventions, tooling changes (MkDocs/Docusaurus/Sphinx releases).
+- **Website design best practices** — web.dev/blog, MDN Web Docs "What's New", Chrome Developers / Safari WebKit release notes, W3C/WHATWG spec changelogs for active proposals. Look for: new CSS/layout primitives (container queries, scroll-driven animations, view transitions, anchor positioning), new browser APIs, updated Core Web Vitals thresholds, accessibility standard updates (WCAG 3.x progress).
+- **Interactivity best practices** — Google Web Vitals guidance (INP/LCP/CLS thresholds and measurement), ARIA Authoring Practices Guide (APG) updates, progressive enhancement patterns, motion design (`prefers-reduced-motion`), Web Animations API, keyboard/focus management patterns.
+
+**Primary sources:**
+- web.dev/blog and developer.chrome.com (weekly platform signals)
+- MDN What's New (per browser release)
+- WebKit/Safari release notes and WWDC talks (annual + point releases)
+- W3C/WHATWG spec changelogs for active proposals
+- Nielsen Norman Group research publications (UX/interactivity patterns)
+- Diátaxis.fr and Write the Docs newsletter (documentation frameworks)
+
+**Output — for each notable finding, propose one of:**
+1. A new concept card in `knowledge/concepts/` (with full + mini Mermaid diagram) if the concept is broadly applicable to documentation or web design work in any consumer project.
+2. An update to the relevant knowledge file in `plugins/web-design/knowledge/` or `plugins/technical-writing-docs/knowledge/`.
+3. An honest null result ("0 net-new this week") — logged, not padded.
+
+**Authoring guard:** concept cards require a `mermaid-cli` render pass (`render-concepts.py`). Propose concept content in a staging doc or PR description; do not write a bare `.md` without an accompanying SVG unless the rendering pipeline is available in the session.
+
 ## Environment-context staleness check (added 2026-05-22)
 
 The Weekly Deep Research sweep MUST also check the consumer's `.ravenclaude/environment-context.md` (if present) for staleness:
