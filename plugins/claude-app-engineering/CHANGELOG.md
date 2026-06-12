@@ -2,6 +2,19 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.9.0] — 2026-06-12
+
+Research-sweep addition — documents Anthropic's new server-side **advisor tool** (beta `advisor-tool-2026-03-01`), a genuine zero-coverage gap in the knowledge bank. Verified 2026-06-12 against the primary [Advisor tool docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/advisor-tool) (corroborated by the [advisor-strategy blog](https://claude.com/blog/the-advisor-strategy) + SDK code samples). Routed through two expert panels (usefulness → USEFUL/high; detailed review → APPROVE-WITH-CHANGES/high; the required error-enumeration and version-lockstep changes are applied below); panels concurred so no tiebreak was needed. Provenance: [`docs/research/2026-06-12-advisor-tool-finding.md`](../../docs/research/2026-06-12-advisor-tool-finding.md).
+
+### Added
+
+- **`knowledge/server-side-tools-and-files.md`** — new **Advisor tool** section: a faster/cheaper **executor** model consults a higher-intelligence **advisor** model mid-generation inside one `/v1/messages` request (no client round-trips; server forwards the full transcript). Framed as a **routing-ladder/FinOps play** (house opinion #3): Sonnet-exec+Opus-advisor for a quality lift at similar/lower cost vs Opus-solo; Haiku-exec+Opus-advisor for a step up. Documents the cost/control levers (`max_tokens` min 1024, recommended 2048; `max_uses` per-request; `caching` break-even ~3 calls; advisor billed separately in `usage.iterations[]`), the full six-code error model (failures return *inside* the result block — the request does not fail), `stop_reason: "pause_turn"` on a dangling call, and the **Claude API + Claude Platform on AWS only** restriction (NOT Bedrock/Vertex/Foundry).
+- **`knowledge/model-selection-and-2026-capability-map.md`** — added an **Advisor tool** capability-status row carrying the dated `[verify-at-use 2026-06-12]` pairing matrix (advisor must be ≥ executor) + platform restriction, per house opinion #14 (volatile model-pair facts live in the one dated freshness anchor, not duplicated in the knowledge doc).
+
+### Changed
+
+- Version **0.8.0 → 0.9.0** (minor — net-new capability) bumped in `.claude-plugin/plugin.json` **and** the `marketplace.json` catalog entry in lockstep (CI fails on drift); the catalog server-tools list now names the advisor tool.
+
 ## [0.8.0] — 2026-06-11
 
 Research-sweep refresh — two net-new, primary-source-verified Claude-platform facts added to the knowledge bank, plus the Foundry Fable 5 caveat sharpened. Verified 2026-06-11 against [Refusals and fallback](https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback), the [Classifier fallback and billing for Claude Fable 5 cookbook](https://platform.claude.com/cookbook/fable-5-fallback-billing-guide), [Managed Agents overview](https://platform.claude.com/docs/en/managed-agents/overview) + [What's new in Claude Managed Agents](https://claude.com/blog/whats-new-in-claude-managed-agents), and the `learn.microsoft.com` Foundry model table (via the Microsoft-Learn MCP).
