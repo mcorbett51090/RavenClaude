@@ -1,0 +1,3 @@
+# Never disable context isolation (Electron)
+
+Every Electron `BrowserWindow` keeps `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true`, with a strict Content-Security-Policy and no `@electron/remote`. These are the settings that keep a compromised or malicious web page from reaching Node, the filesystem, and the OS. There is no "just this one window" exception — a single window with `nodeIntegration` on or `contextIsolation` off turns any injected `<script>` (from a dependency, an ad, a stored XSS, a man-in-the-middle on a remote load) into remote code execution on the user's machine. If the renderer appears to need a Node capability, move the work to the main process behind a validated IPC command rather than relaxing the baseline.

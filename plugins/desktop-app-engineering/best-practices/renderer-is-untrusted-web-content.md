@@ -1,0 +1,3 @@
+# Treat the renderer as untrusted web content
+
+The renderer process runs web content, and web content can be compromised — through a vulnerable dependency, a stored-XSS payload, an injected ad/script, or a man-in-the-middle on any remote load. So the renderer must never hold direct filesystem, shell, network-to-localhost, or OS access; it reaches the privileged side only through a narrow, validated allow-list (an Electron `contextBridge` backed by validated `ipcMain.handle` handlers, or a Tauri `#[tauri::command]` authorized by a scoped capability). Design every feature from the assumption that the renderer is already in the hands of an attacker and the only thing standing between them and the user's machine is the size and rigor of that allow-list.

@@ -1,0 +1,3 @@
+# Verify update signatures before applying them
+
+An auto-updater downloads code and runs it with the user's privileges — so an updater that applies an unsigned or unverified payload is, by construction, a remote-code-execution channel you shipped on purpose. Before applying any update, the client must verify that the artifact is signed by your release key (electron-updater's signature checks; the Tauri updater plugin's signature verification). Serve updates over TLS, but do not rely on TLS alone — a compromised update host or CDN must not be able to push code, which only artifact-signature verification prevents. Treat the update key with the same care as the code-signing key: in CI secrets or an HSM, never on a laptop.

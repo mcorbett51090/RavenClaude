@@ -1,0 +1,3 @@
+# Scope Tauri capabilities to least privilege
+
+In Tauri v2, a command or plugin is reachable from the frontend only if a capability grants its permission — so the capability files *are* the security policy. Default-deny: grant a window only the permissions it actually uses, and scope filesystem permissions to specific paths and shell permissions to the exact program and argument shape. A wildcard `fs:`-anything or `shell:allow-execute` capability hands the frontend — and anything that compromises it — read/write/execute over the user's machine, which erases the advantage of Tauri's model in one line. Review the capabilities set the way you'd review IAM policy: every grant needs a reason, and "it was easier" isn't one.
