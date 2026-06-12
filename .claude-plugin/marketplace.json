@@ -5,8 +5,8 @@
     "name": "Matt Corbett"
   },
   "metadata": {
-    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + 14 specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 98 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to…' use-case lookup.",
-    "version": "0.84.0"
+    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + 14 specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 99 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to…' use-case lookup.",
+    "version": "0.85.0"
   },
   "plugins": [
     {
@@ -2194,6 +2194,29 @@
         "caiq",
         "mutual-action-plan",
         "trust-center"
+      ]
+    },
+    {
+      "name": "desktop-app-engineering",
+      "source": "./plugins/desktop-app-engineering",
+      "description": "Desktop-app-engineering team — 4 agents (desktop-architect, electron-engineer, tauri-engineer, desktop-platform-engineer) for cross-platform desktop apps: the Electron-vs-Tauri-vs-native-vs-PWA decision, a hardened process/security model (Electron contextIsolation + IPC allow-lists; Tauri capabilities/permissions + Rust commands), reproducible packaging, code-signing + notarization on Windows and macOS, safe auto-update, and native OS integration (tray, menus, notifications, file associations, deep links, secure on-device storage). 5 skills, a decision-tree knowledge bank (framework-choice + IPC-security trees + a dated 2026 capability map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: renderer UI -> frontend-engineering, the backend/API -> api-engineering/backend-engineering, tokens/OAuth -> auth-identity, signing/notarization in CI -> devops-cicd, the mobile sibling -> mobile-engineering. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "desktop",
+        "electron",
+        "tauri",
+        "cross-platform",
+        "code-signing",
+        "notarization",
+        "auto-update",
+        "context-isolation",
+        "ipc",
+        "native-integration",
+        "system-tray",
+        "deep-links"
       ]
     }
   ]
