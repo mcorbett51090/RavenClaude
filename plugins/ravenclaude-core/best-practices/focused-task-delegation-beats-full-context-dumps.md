@@ -48,6 +48,7 @@ Output format:
 
 - When the specialist needs genuinely multi-step context that cannot be compressed (e.g., a code reviewer who must understand the architectural history to evaluate a diff), give them a curated summary, not raw history — the principle still applies.
 - The deep-researcher agent has a legitimate need for broader context when conducting open-ended research; even then, give it a research brief with a specific question and an expected output format rather than an open-ended history dump.
+- **The built-in `Explore` and `Plan` subagents make this rule mandatory, not optional.** They are the *only* subagents that skip `CLAUDE.md` and the parent's git status entirely ([verified against the official docs](../knowledge/subagent-isolation-and-tooling.md#what-loads-at-a-subagents-startup--and-the-exploreplan-exception)) — so any project rule that must constrain their work (e.g. "ignore `vendor/`", "`generated/` is read-only") will **not** reach them through memory and has to be restated in the delegation prompt. Every other subagent inherits `CLAUDE.md` normally; the brief is still the right shape for the reasons above.
 
 ## See also
 
@@ -60,4 +61,4 @@ Distilled from `plugins/ravenclaude-core/CLAUDE.md` §"Focused Task Execution" a
 
 ---
 
-_Last reviewed: 2026-06-05 by `claude`_
+_Last reviewed: 2026-06-12 by `claude` (added the Explore/Plan CLAUDE.md-skip edge case)._
