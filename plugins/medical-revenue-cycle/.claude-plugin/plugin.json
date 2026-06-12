@@ -1,6 +1,6 @@
 {
   "name": "medical-revenue-cycle",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Medical Revenue Cycle specialist team — 4 agents (rcm-engagement-lead, medical-coding-specialist, denials-management-specialist, rcm-analytics-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A revenue-cycle team for a healthcare provider or RCM operator — it drives the clean-claim rate toward 98%, attacks denials before they happen (initial denials hit ~11.8% in 2024 and trend 12–15%), works the A/R by aging bucket, and reads net collection rate the way a CFO who lives the cash cycle does. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"
