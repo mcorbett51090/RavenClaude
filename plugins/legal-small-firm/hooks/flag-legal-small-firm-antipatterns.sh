@@ -21,7 +21,7 @@ note() {
 }
 
 # Heuristic scan — case-insensitive, advisory only.
-if grep -Eiq '\bTODO\b\|lorem ipsum' "$FILE"; then
+if grep -Eiq '\b(TODO|FIXME|lorem ipsum)\b' "$FILE"; then
   note "Advisory: review this small-firm legal practice deliverable against the §3 house opinions (baseline on every metric, source+date on every external figure, no client PII)."
 fi
 

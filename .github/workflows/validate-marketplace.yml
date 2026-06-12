@@ -307,6 +307,14 @@ jobs:
           python3 -m pip install --quiet 'ruff==0.15.8'
           ruff check .
 
+      - name: Install jsonschema (for audit-gates Gate 47 validate-schemas fixtures)
+        # audit-gates Gate 47 shells out to `python3 -m jsonschema` against the
+        # {good,bad}-{plugin,marketplace}.json fixtures. Without the module on
+        # PATH the gate's _skip_or_fail guard now HARD-FAILS in CI (a skip is not
+        # a pass), so install it here — same pre-stage pattern as ruff above and
+        # mirroring validate-schemas.yml, which owns the real per-plugin run.
+        run: python3 -m pip install --quiet jsonschema
+
       - name: Audit every gate (meta-test — prove each gate fails on bad input AND passes on good)
         # Codifies docs/best-practices/ci-gate-audit.md. If any CI gate
         # stops gating (or starts gating the wrong thing), this step catches
