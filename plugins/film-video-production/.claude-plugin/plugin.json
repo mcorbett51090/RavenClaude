@@ -1,6 +1,6 @@
 {
   "name": "film-video-production",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Film & Video Production specialist team — 4 agents (production-lead, line-producer, post-production-supervisor, production-finance-analyst), 5 skills, 5 templates, 5 commands, 1 advisory hook, 8 best-practice rules, a research-grounded knowledge bank with Mermaid decision trees, a scenarios bank, and a stdlib production-economics calculator (shoot-day cost, contingency burn, overtime burden). A production-management team for a producer, production company, or post house — it budgets to a defensible top-sheet, schedules to the shoot day rather than the calendar, runs the post pipeline as a dependency chain, and reads production economics the way a line producer who answers for every dollar on the day must. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"
