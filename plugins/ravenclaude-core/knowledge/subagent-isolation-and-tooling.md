@@ -43,6 +43,27 @@ If the write volume is large, the lever is **the main agent's context budget**, 
 
 > Reading a branch needs no isolation and no approval (`git show` — parallelize across sub-agents freely). Writing a branch needs approval that only the main agent can obtain — so do all checkout/commit/push work in the main session, sequentially. `isolation: "worktree"` only makes it worse (it also removes `Read`). Don't delegate git-writes to sub-agents in this environment.
 
+## What loads at a subagent's startup — and the Explore/Plan exception
+
+> **Verified 2026-06-12** against [sub-agents § "What loads at startup"](https://code.claude.com/docs/en/sub-agents) (retrieved this session via WebFetch). This is the *declarative load surface* — distinct from the *runtime* git-write lesson above. Surfaced by the 2026-06-12 Claude-subreddit scan ([`docs/research/2026-06-12-claude-subreddit-scan/README.md`](../../../docs/research/2026-06-12-claude-subreddit-scan/README.md)); the community framing ("most rules don't need to reach the subagent — but if one must, restate it") is the official doc's, cross-checked.
+
+Every built-in and **custom** subagent loads the full memory hierarchy the main conversation loads — `~/.claude/CLAUDE.md`, project rules, `CLAUDE.local.md`, managed policy files — plus a git-status snapshot taken at the start of the parent session. **Two built-ins are the exception, and the exception is load-bearing for how the Team Lead delegates:**
+
+> "Explore and Plan are the only subagents that omit CLAUDE.md and git status. There is no frontmatter field or per-agent setting to change which agents skip them." — official docs, retrieved 2026-06-12
+
+The skip is deliberate (it keeps codebase research fast and cheap), and it composes cleanly with this marketplace's discipline rather than fighting it:
+
+- **The main conversation reads Explore/Plan results with full CLAUDE.md context**, so most rules don't need to reach those subagents at all — the Team Lead's synthesis step re-applies them. This is *why* the [Focused-Task-Delegation](../best-practices/focused-task-delegation-beats-full-context-dumps.md) brief is the right shape: you pass the load-bearing slice explicitly instead of assuming the subagent inherited it.
+- **When a project rule MUST constrain an Explore/Plan run** (e.g. "ignore the `vendor/` directory", "treat `generated/` as read-only"), **restate it in the delegation prompt** — it will *not* reach those two agents through memory. For every *other* subagent (general-purpose, custom, the plugin specialists) the rule arrives via CLAUDE.md as normal.
+
+### Resume vs. one-shot — Explore/Plan can't be resumed
+
+A subagent invocation creates a fresh-context instance, but most subagents **can be resumed** to continue prior work: *"Resumed subagents retain their full conversation history, including all previous tool calls, results, and reasoning"* (via the `SendMessage` tool, which needs `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`). **Explore and Plan are one-shot** — they return no agent ID, so they cannot be resumed. **Practical consequence:** if a research thread may need to be *continued* (not re-run from scratch), dispatch `general-purpose` or a custom subagent, not Explore/Plan.
+
+### External validation of a core rule
+
+The same doc confirms the marketplace's load-bearing dispatch invariant from the outside: Plan mode delegates to the Plan subagent *"to prevent infinite nesting (subagents cannot spawn other subagents)."* That is exactly the [orchestrator-worker / Team-Lead-only-dispatch](../CLAUDE.md) rule and the [`guard-recursive-spawn.sh`](../hooks/guard-recursive-spawn.sh) hook — now corroborated by Anthropic's own platform behavior, not just our convention.
+
 ## Subagent frontmatter — the field set, and what a plugin-shipped agent may use
 
 > Reviewed 2026-06-08 against [sub-agents](https://code.claude.com/docs/en/sub-agents) + [plugins-reference](https://code.claude.com/docs/en/plugins-reference) (retrieved 2026-06-08). The git-write observations above are about *runtime* behavior; this section is about the *declarative* surface — what you can put in an agent's YAML frontmatter, and the binding constraint on plugin-shipped agents.

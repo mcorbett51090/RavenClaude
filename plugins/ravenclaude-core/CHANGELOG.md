@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.156.0 — 2026-06-12
+
+### Added
+
+- **Subagent startup-context mechanics — the Explore/Plan CLAUDE.md-skip exception** ([`knowledge/subagent-isolation-and-tooling.md`](knowledge/subagent-isolation-and-tooling.md) § "What loads at a subagent's startup"). Official-doc-grounded (verified 2026-06-12 against [sub-agents § "What loads at startup"](https://code.claude.com/docs/en/sub-agents)): **Explore and Plan are the _only_ subagents that omit `CLAUDE.md` + the parent's git status, and there is no frontmatter field to change which agents skip them** — so a project rule that must constrain an Explore/Plan run has to be restated in the delegation prompt; every other built-in/custom subagent inherits `CLAUDE.md` normally. Also documents resume-vs-one-shot (Explore/Plan return no agent ID → can't be resumed; use general-purpose/custom to continue) and records the official doc's corroboration of the Team-Lead-only-dispatch / `guard-recursive-spawn` invariant ("subagents cannot spawn other subagents"). The consumer-facing [`focused-task-delegation-beats-full-context-dumps.md`](best-practices/focused-task-delegation-beats-full-context-dumps.md) gains a matching edge case (the rule is _mandatory_ for Explore/Plan, not optional). Sourced from the [2026-06-12 Claude subreddit scan](../../docs/research/2026-06-12-claude-subreddit-scan/README.md) (1 of 4 findings approved; the other three deferred/denied as covered or already-validated).
+
+### Notes
+
+- **Migration:** none — additive knowledge + one edge-case bullet on an existing best-practice; nothing in a consumer's installed plugin changes behaviorally on `/plugin marketplace update`.
+
 ## 0.155.0 — 2026-06-11
 
 ### Added
