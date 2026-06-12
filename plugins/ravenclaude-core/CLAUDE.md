@@ -887,6 +887,7 @@ Four meta-discipline skills added to support agent authoring, knowledge hygiene,
 - [`skills/knowledge-file-staleness-sweep/SKILL.md`](skills/knowledge-file-staleness-sweep/SKILL.md) — Periodic staleness sweep over all `plugins/<plugin>/knowledge/*.md` + decision-tree sections — flags entries past 90/180/365-day thresholds, categorizes by Researcher Tier 1-5 effort, produces a remediation queue with named re-verifiers. Used by `deep-researcher` (primary) + the maintainer.
 - [`skills/prompt-pattern-library/SKILL.md`](skills/prompt-pattern-library/SKILL.md) — Curated catalog of the 9 already-extant marketplace prompt patterns (decision-tree traversal, alternate-methods, Structured Output, scenario-retrieval, mandatory-phrasing, citation-aware, environment-context, orchestrator-worker, scenario-authoring frontmatter), each with example block + composition checklist. Used by `prompt-engineer` (primary).
 - [`skills/plugin-release-checklist/SKILL.md`](skills/plugin-release-checklist/SKILL.md) — Pre-release checklist: plugin.json + marketplace.json + architecture.md version-mirror discipline, .repo-layout.json glob coverage, prettier check, audit-gates meta-test, migration-note rule, with bash + PowerShell commands per step and a hot-fix sub-section. Used by the maintainer (primary) + `project-manager`.
+- [`skills/claude-orchestrate/SKILL.md`](skills/claude-orchestrate/SKILL.md) — One-off Claude orchestration escape hatch. Route the current task through a Claude brain via `claude -p` even when running under a non-Claude host CLI (Copilot/GPT/Grok). Wraps `scripts/claude-orchestrate.sh` with host-check, cost-transparency note, and surfaced fail-safe exits. Used by the Team Lead (primary) when the always-on knob is `off` or a one-off pass is needed. See §`/claude-orchestrate` skill milestone below.
 
 ## Quality gates, Hooks, Rules & Templates (Unchanged Core + Extensions)
 
@@ -979,6 +980,28 @@ A second orchestrator knob — **`orchestrator_scope: team | all`** (default `te
 **Gates.** Gate 35 (dashboard round-trip) extended to cover all four new keys (emit-when-non-default + hydrate-back); Gate 102 (claude-orchestrate.sh) extended with the C floor (fail-closed on PII; pass on no-PII/Bedrock/ZDR; team-scope bypass) + the A round-trip (a recording mock proves **tokens, not raw PII, egressed** and the decode restored the real values) + a floor-strip teeth half. The relay-all `claude -p` path is **pending a fresh `security-reviewer` sign-off** (it widens the v0.152.0 input surface from team-briefs to every prompt).
 
 **Migration:** none — `orchestrator_scope` defaults `team`, the floor flags default to safe, and the A toggle defaults off, so a consumer on `/plugin marketplace update` sees byte-identical behavior until they opt into relay-all.
+
+## `/claude-orchestrate` skill — one-off escape hatch (added 2026-06-12, v0.156.0)
+
+The always-on knob (`orchestrator: decide|full`) in `comfort-posture.yaml` gates team-dispatch automatically via `spawn-team` Step 4.5. This companion skill, [`skills/claude-orchestrate/SKILL.md`](skills/claude-orchestrate/SKILL.md), exposes the same `claude-orchestrate.sh` invocation **on-demand** — for sessions where the knob is `off` or the user wants a one-off Claude reasoning pass without changing the posture.
+
+**What it does (invoke as `/claude-orchestrate <brief>`):**
+1. Checks `THING_HOST` — if the host is Claude Code (or unset), prints "host is already Claude; this is a no-op" and stops.
+2. Reads the `orchestrator:` knob (defaults to `full`). A `--mode decide|full` argument overrides.
+3. Prints a cost-transparency note before any token is consumed.
+4. Invokes `scripts/claude-orchestrate.sh` with `RAVENCLAUDE_ORCH_BRIEF="<brief>"`.
+5. **`decide` mode** — surfaces the JSON dispatch plan and executes it via the spawn-team sequence.
+6. **`full` mode** — returns artifact content for the host to write.
+
+**Fail-safe exits are surfaced, not swallowed:** scrub fires (exit 8) → user sees "secret in brief"; claude absent (exit 2) → user sees "claude CLI not found; host handles"; recursion guard (exit 7) → user sees "inside a tribunal seat". Every non-zero exit falls back to host orchestration — the skill never hard-blocks.
+
+**Allowed tools:** `Bash` (for the `claude-orchestrate.sh` call), `Read` (to read the posture knob).
+
+**Security:** the `claude -p` path uses the same controls as the tribunal seats (scratch dir, `--tools ""`, nonce-wrapped brief, `_scrub.sh` egress backstop). **The relay-all `claude -p` path (when `RAVENCLAUDE_ORCH_SCOPE=all`) is pending a fresh `security-reviewer` sign-off** (it widens the v0.152.0 input surface from team-briefs to every prompt; the sign-off for team-dispatch is complete). The one-off skill uses the team-dispatch path only — it is NOT a relay-all surface.
+
+**Gate 102** already covers `claude-orchestrate.sh` (the script this skill wraps). No new gate is required; the skill's behavior is fully exercised by the script's existing gate.
+
+**Migration:** adds one skill file; no hook, no settings.json change, no `apply-comfort-posture.py` change. Fully additive — nothing breaks on `/plugin marketplace update`.
 
 ## External contribution intake — GitHub Issue Form → quarantine PR (FORGE Phase 1, added 2026-06-08)
 
