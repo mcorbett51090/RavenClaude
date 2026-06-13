@@ -1,0 +1,30 @@
+{
+  "name": "email-engineering",
+  "version": "0.1.0",
+  "description": "Email-engineering team — 2 agents (email-deliverability-architect, email-sending-engineer) for getting legitimate mail to the inbox, not spam: domain authentication (SPF, DKIM, DMARC alignment + a staged p=none -> quarantine -> reject rollout, BIMI), deliverability (subdomain stream separation, domain/IP warm-up, reputation, Gmail/Yahoo bulk-sender rules), ESP integration (SES/SendGrid/Postmark/Resend/Mailgun) with idempotent sends + verified idempotent webhook handling, responsive MJML templates, and the feedback loop (bounce/complaint classification, suppression lists, one-click unsubscribe per RFC 8058). 5 skills, a 3-doc knowledge bank (Mermaid auth + diagnosis trees + a dated 2026 ESP map), 8 best-practices, 3 templates, 4 commands, a scenarios bank, a stdlib auth-record linter, and 1 advisory hook. Seams: strategy -> marketing-operations, infra -> backend-engineering, contract -> api-engineering, DNS -> cloud plugins, security -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "email",
+    "deliverability",
+    "spf",
+    "dkim",
+    "dmarc",
+    "bimi",
+    "transactional-email",
+    "ses",
+    "sendgrid",
+    "postmark",
+    "mjml",
+    "bounce-handling",
+    "suppression-list",
+    "one-click-unsubscribe",
+    "sender-reputation"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
