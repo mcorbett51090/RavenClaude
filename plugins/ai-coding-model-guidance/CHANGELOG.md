@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.5] — 2026-06-13
+
+Research-sweep **correction** (Tier-A weekly news sweep; freshness anchor) — **Claude Fable 5 was suspended on 2026-06-12** across the Anthropic API, AWS Bedrock, and all GitHub Copilot surfaces under a US export-control directive (disputed; Anthropic working to restore). This **supersedes the 2026-06-09 Copilot GA** recorded in this file. Verified this session against the primary [Anthropic statement](https://www.anthropic.com/news/fable-mythos-access) (corroborated by Bloomberg + CNBC). Routed through three expert panels (usefulness → USEFUL/unanimous; detailed review → APPROVE-WITH-FIX, fixes applied).
+
+### Fixed
+
+- **`knowledge/cross-tool-model-lineup-2026.md`** — annotated the Copilot coding-agent table row and the Fable 5 bullet as **SUSPENDED 2026-06-12** (was listed GA + selectable); noted the "free through 2026-06-22" inclusion window is suspended-with-access (expiry date unchanged, resumes only if access returns); re-route to **Opus 4.8** as the top Copilot Claude option until restored; added a 2026-06-13 sweep note. Other Claude models in Copilot (Opus 4.8, Sonnet 4.6, Haiku 4.5) unaffected. Framed as fluid/disputed (`[verify-at-use]`), not a deprecation.
+- Version **0.3.4 → 0.3.5** in `.claude-plugin/plugin.json` **and** `marketplace.json` (lockstep).
+
 ## [0.3.4] — 2026-06-11
 
 Research-sweep re-verify — re-checked the **Microsoft Foundry Fable 5** sub-claim against the authoritative `learn.microsoft.com` Foundry Claude-model table via the **Microsoft-Learn MCP**. Despite the Azure blog and the `ai.azure.com/catalog/models/claude-fable-5` catalog page announcing GA, the Learn **deployable-model table still does not list `claude-fable-5`** (it lists Opus 4-8/4-7/4-6/4-5/4-1, Sonnet 4-6/4-5, Haiku 4-5 previews + the gated `claude-mythos-preview`).
