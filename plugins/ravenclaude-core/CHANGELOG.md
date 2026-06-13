@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.158.0 — 2026-06-13
+
+### Added
+
+- **New best-practice — "Run parallel Claude Code instances in separate git worktrees — never aim two writers at one working tree"** ([`best-practices/isolate-parallel-claude-instances-in-git-worktrees.md`](best-practices/isolate-parallel-claude-instances-in-git-worktrees.md), 19 rules total). Names the **peer-process** parallelism posture that the sub-agent rule [`delegate-reads-fan-out-keep-branch-writes-in-main.md`](best-practices/delegate-reads-fan-out-keep-branch-writes-in-main.md) explicitly defers ("this rule governs the sub-agent relationship, not peer-process parallelism"): when two or more independent Claude Code instances write at once, give each its own `git worktree`/branch so concurrent writers don't stomp one working tree's files + index, and reconcile through merge/PR. Cites the repo's own bundled `new-worktree`/`cleanup-worktrees` skills + the Sleipnir convention as the worked tooling the posture is built on. Sourced from the [2026-06-13 Claude subreddit scan](../../docs/research/2026-06-13-claude-subreddit-scan/README.md) (1 of 4 findings approved; the other three deferred/denied as already-covered — instruction-file leanness by `prefer-a-deterministic-gate-over-a-prose-rule.md`, plan-first+verify by `plan-mode`/`dod-gate`, slash-commands-as-code by the permissions rule).
+
+### Notes
+
+- **Migration:** none — additive markdown; nothing in a consumer's installed plugin changes on `/plugin marketplace update`.
+
 ## 0.155.0 — 2026-06-11
 
 ### Added
