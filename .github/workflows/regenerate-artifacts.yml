@@ -24,8 +24,10 @@ name: Regenerate generated artifacts (post-merge self-heal)
 # Scope: marketplace-claims counts, concepts.json (the Learn-tab registry), concept
 # + decision-tree SVGs, dashboard.html (full plugin artifact), index.html (the
 # unified portal — folds the dashboard + catalog in natively), the per-plugin BI
-# report.html, and the Copilot package. Each step is staleness-gated (--check), so a
-# merge that changed none of them is a fast no-op (and never even loads mermaid-cli).
+# report.html, the Copilot package, and feedback-report.html (the "Problems &
+# Resolutions" report read from the scenario corpus). Each step is staleness-gated
+# (--check), so a merge that changed none of them is a fast no-op (and never even
+# loads mermaid-cli).
 #
 # concepts.json + report.html were ADDED to this self-heal on 2026-06-08: their
 # freshness gates were still running at PR time in audit-gates (unlike dashboard/
@@ -49,6 +51,7 @@ on:
       - "scripts/render-trees.py"
       - "scripts/generate-bi-report.py"
       - "scripts/generate-copilot-plugin.py"
+      - "scripts/generate-feedback-report.py"
       - "scripts/check-marketplace-claims.py"
       - ".github/workflows/regenerate-artifacts.yml"
   workflow_dispatch:
@@ -184,6 +187,21 @@ jobs:
             python3 scripts/generate-copilot-plugin.py
           fi
 
+          # 4d. feedback-report.html — the "Problems & Resolutions" report read from
+          #     the scenario corpus (plugins/*/scenarios/*.md). Pure Python, no
+          #     browser. Added to the self-heal 2026-06-13: it had been MISSING here,
+          #     so a merge that added scenarios bumped the corpus counts without
+          #     regenerating the report — the committed feedback-report.html silently
+          #     drifted stale (366 vs 369 scenarios) and audit-gates Gate 99
+          #     ("feedback-report freshness (clean tree)") went red in
+          #     validate-marketplace for every subsequent PR. This is that gate
+          #     relocated off the PR path, mirroring 4b/4c.
+          if ! python3 scripts/generate-feedback-report.py --check >/dev/null 2>&1; then
+            echo "feedback-report.html stale — regenerating from the scenario corpus."
+            python3 scripts/generate-feedback-report.py
+            python3 scripts/generate-feedback-report.py --check
+          fi
+
           # 5. Commit only if something actually changed.
           if [[ -z "$(git status --porcelain)" ]]; then
             echo "Artifacts already in sync — nothing to commit."
@@ -192,7 +210,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "chore(artifacts): self-heal counts + SVGs + dashboard + index portal after merge [skip ci]"
+          git commit -m "chore(artifacts): self-heal counts + SVGs + dashboard + index portal + feedback report after merge [skip ci]"
 
           # A merge may have landed since checkout; rebase our artifact-only commit
           # before pushing. Branches no longer touch these files, so a rebase
