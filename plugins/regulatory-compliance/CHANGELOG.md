@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.12.1] — 2026-06-14
+
+Bug fix (security-relevant) — the `scrub-confidential-pre-write.sh` PII hook's credit-card PAN check used PCRE non-capturing groups `(?:…)` inside a POSIX-ERE `grep -E`, so Visa and Discover PANs slipped past the confidentiality scan entirely (the group matched nothing and emitted a `? at start of expression` warning to stderr). For an engagement that flips this hook to `exit 2` to **block** SAR/STR writes, two of four card brands were a fail-open gap. Rewrote the two groups as ERE-safe capturing groups `(…)`; all four brands now match with no stderr noise. SSN/EIN/IBAN checks were already ERE-clean and unchanged.
+
 ## [0.12.0] — 2026-06-05
 
 Value-add build-out (non-code financial-regulatory vertical). Builds on PR #315's consolidated decision-trees + best-practices + templates by adding the net-new gaps: a scenarios bank, two complementary Mermaid decision-tree knowledge files, and a stdlib risk-scoring calculator. Resolves the §8b scenarios-bank TODO in `CLAUDE.md`.

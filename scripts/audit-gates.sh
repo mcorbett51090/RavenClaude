@@ -3205,11 +3205,13 @@ gate "mcp-attribution: plugin without mcpServers passes" must_pass "$rc"
 echo
 echo "── Gate 99: Feedback report freshness (generate-feedback-report.py --check) ─"
 # The Problems & Resolutions view (feedback-report.html) is generated from the
-# scenario corpus by scripts/generate-feedback-report.py. Bidirectional:
-#   must_pass: the committed feedback-report.html matches a fresh generation
-#   must_fail: a mutated committed report (drifted from the corpus) is detected
-rc=0; python3 scripts/generate-feedback-report.py --check >/dev/null 2>&1 || rc=$?
-gate "feedback-report freshness (clean tree)" must_pass "$rc"
+# scenario corpus by scripts/generate-feedback-report.py.
+# NOTE: the "feedback-report freshness (clean tree)" must_pass gate was RELOCATED
+# to .github/workflows/regenerate-artifacts.yml — main now OWNS feedback-report.html
+# and self-heals it post-merge, to stop the same cross-PR contagion that staled
+# concepts.json / report.html on every unrelated open PR (the corpus lives under
+# plugins/**, which almost every plugin PR touches). The stale (must_fail)
+# DETECTION below stays — the staleness detector is still audited for teeth.
 backup feedback-report.html
 printf '\n<!-- AUDIT FIXTURE — should diff against regenerated output -->\n' >> feedback-report.html
 rc=0; python3 scripts/generate-feedback-report.py --check >/dev/null 2>&1 || rc=$?
