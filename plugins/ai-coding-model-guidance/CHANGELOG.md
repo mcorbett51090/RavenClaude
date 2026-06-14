@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.5] — 2026-06-14
+
+Research-sweep **correction** — the **Microsoft Foundry Fable 5** sub-claim flipped. The 2026-06-11 sweep recorded that the authoritative `learn.microsoft.com` Foundry Claude-model table "still does not list `claude-fable-5`" despite the Azure blog/catalog announcing GA. Re-verified **2026-06-14 via the Microsoft-Learn MCP**: the Learn table (`concepts/claude-models`) **now lists `claude-fable-5` (preview)** across the model-family, comparison, quota, capability, and region tables (Global Standard; East US 2 / Sweden Central; pay-go + Free-Trial quota still 0/0, so Enterprise/MCA-E-tier in practice). Routed through two expert panels (usefulness → unanimous KEEP; detailed review → APPROVE / REQUEST-CHANGES, all refinements applied — superseded-not-struck note, symmetric wording, deliberate authoritative-URL swap); panels concurred, no tiebreak needed.
+
+### Changed
+
+- **`knowledge/cross-tool-model-lineup-2026.md`** — rewrote the Foundry Fable 5 Copilot-bullet caveat from "still does NOT list" to "**now lists `claude-fable-5` (preview)**" (authoritative `concepts/claude-models` Learn URL, quota/region scoping, `[verify-at-use]`); re-dated `Last reviewed` 2026-06-10 → 2026-06-14; added a **Re-verify note (2026-06-14)** and marked the 2026-06-11 note **[SUPERSEDED]** (kept for provenance — a worked example of a blog/catalog announcement leading the deployable-model table by weeks). Spot-checked the Copilot/Anthropic primaries: no other net-new.
+- Version **0.3.4 → 0.3.5** bumped in `.claude-plugin/plugin.json` **and** the `marketplace.json` catalog entry in lockstep (CI fails on drift).
+
 ## [0.3.4] — 2026-06-11
 
 Research-sweep re-verify — re-checked the **Microsoft Foundry Fable 5** sub-claim against the authoritative `learn.microsoft.com` Foundry Claude-model table via the **Microsoft-Learn MCP**. Despite the Azure blog and the `ai.azure.com/catalog/models/claude-fable-5` catalog page announcing GA, the Learn **deployable-model table still does not list `claude-fable-5`** (it lists Opus 4-8/4-7/4-6/4-5/4-1, Sonnet 4-6/4-5, Haiku 4-5 previews + the gated `claude-mythos-preview`).

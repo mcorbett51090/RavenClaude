@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.9.1] — 2026-06-14
+
+Research-sweep **correction** — the **Microsoft Foundry Fable 5** sub-claim flipped. The 2026-06-11 sweep recorded the authoritative `learn.microsoft.com` Foundry Claude-model table as "still does NOT list `claude-fable-5`"; re-verified **2026-06-14 via the Microsoft-Learn MCP**, the Learn table **now lists `claude-fable-5` (preview)** (model-family, comparison, quota, capability, and region tables; Global Standard; East US 2 / Sweden Central; pay-go + Free-Trial quota 0/0, so Enterprise/MCA-E-tier in practice). Routed through two expert panels (usefulness → unanimous KEEP; detailed review → APPROVE / REQUEST-CHANGES with all refinements applied); panels concurred, no tiebreak needed. (A second candidate — a Managed Agents scheduled-cron / credential-vaults capability-map row — was **dropped as already documented** in `knowledge/agent-sdk-and-managed-agents.md` since v0.8.0; not padded into a duplicate location.)
+
+### Changed
+
+- **`knowledge/model-selection-and-2026-capability-map.md`** — rewrote **both** Foundry Fable 5 clauses (the Fable 5 lineup row + the capability-status row) from "still does NOT list" to "**now lists `claude-fable-5` (preview)**" with quota/region scoping and `[verify-at-use]`; updated the header Source-line provenance stamp (Foundry re-checked 2026-06-14) and re-dated `Last reviewed` 2026-06-12 → 2026-06-14. The earlier 2026-06-11 "still absent" caveat is marked superseded inline.
+- Version **0.9.0 → 0.9.1** (patch — dated-fact correction) bumped in `.claude-plugin/plugin.json` **and** the `marketplace.json` catalog entry in lockstep (CI fails on drift).
+
 ## [0.9.0] — 2026-06-12
 
 Research-sweep addition — documents Anthropic's new server-side **advisor tool** (beta `advisor-tool-2026-03-01`), a genuine zero-coverage gap in the knowledge bank. Verified 2026-06-12 against the primary [Advisor tool docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/advisor-tool) (corroborated by the [advisor-strategy blog](https://claude.com/blog/the-advisor-strategy) + SDK code samples). Routed through two expert panels (usefulness → USEFUL/high; detailed review → APPROVE-WITH-CHANGES/high; the required error-enumeration and version-lockstep changes are applied below); panels concurred so no tiebreak was needed. Provenance: [`docs/research/2026-06-12-advisor-tool-finding.md`](../../docs/research/2026-06-12-advisor-tool-finding.md).
