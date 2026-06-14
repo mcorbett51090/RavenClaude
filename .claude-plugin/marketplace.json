@@ -81,7 +81,7 @@
       "name": "finance",
       "source": "./plugins/finance",
       "description": "Corporate finance & FP&A specialist team — FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. 9 skills, 8 templates, 12 knowledge-bank docs (ASC 805 / 718 / 740, accrual-cutoff, WACC, cost accounting, FP&A operating model + decision support), 1 advisory hook (hardcoded rates, plaintext PII, missing Sources / Assumptions). Inherits ravenclaude-core protocols.",
-      "version": "0.14.0",
+      "version": "0.14.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -101,7 +101,7 @@
       "name": "regulatory-compliance",
       "source": "./plugins/regulatory-compliance",
       "description": "Financial-regulatory & compliance specialist team — 6 function agents (AML/KYC, regulatory-reporting, risk-and-controls, policy & procedure, examination-prep, Bermuda-insurance) PLUS 6 jurisdiction/regulator specialists: BMA financial-institutions (banking, trust, corporate-services, fund-admin, investment-business, money-service, digital-assets — the primary build-out, with deep AML/ATF + supervision/fees + licensing-classification trees), CIMA (Cayman), Bahamas, Channel Islands (Jersey JFSC + Guernsey GFSC), UK PRA, and US federal+state. 19 primary-source-cited regulator knowledge files, 37 best-practice rules, 10 skills, 11 templates, 1 defensive PreToolUse hook (PII scrub — SSN/IBAN/credit-card/Bermuda TIN/wire instructions). Positioning reflects field experience inside a Tier-1 financial regulator (BMA). Inherits ravenclaude-core protocols.",
-      "version": "0.12.0",
+      "version": "0.12.1",
       "author": {
         "name": "Matt Corbett"
       },
