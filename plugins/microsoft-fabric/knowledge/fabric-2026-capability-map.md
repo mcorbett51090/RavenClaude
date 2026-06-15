@@ -24,7 +24,7 @@
 | **SQL database in Fabric** (OLTP, auto-mirrors to OneLake) | GA |
 | **Cosmos DB in Fabric** (NoSQL/vector, auto-mirrors, CU-billed, Entra-only) | GA-track (verify) |
 | **Materialized lake views** | GA-track — verify; declarative medallion |
-| Schema-enabled lakehouses | GA (prerequisite for OneLake security) |
+| Schema-enabled lakehouses | GA (prerequisite for the OneLake-security **data-preview** pane; not required for Spark RLS/CLS enforcement) |
 | OneLake shortcuts, external data sharing (cross-tenant) | GA |
 
 ## Power BI / semantic models
