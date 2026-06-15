@@ -1,0 +1,28 @@
+{
+  "name": "email-deliverability-engineering",
+  "version": "0.1.0",
+  "description": "Email deliverability & authentication team — 2 agents (deliverability-architect, email-auth-engineer) for getting email to the inbox and keeping it there: SPF (RFC 7208), DKIM (RFC 6376), DMARC (RFC 7489) alignment + enforcement, BIMI, MTA-STS + TLS-RPT (RFC 8461/8460), the Google/Yahoo 2024 bulk-sender requirements (DMARC, one-click List-Unsubscribe, <=0.3% complaint rate), domain/IP reputation, list hygiene, bounce + complaint feedback loops, and warmup. The ENGINEERING of sending infrastructure + authentication + reputation — not campaign strategy/content (marketing-operations) and not DNS provisioning (devops-cicd/cloud). 2 skills (email-auth-audit, deliverability-incident-triage), a cited knowledge bank (auth standards + the 2024 sender rules + a reputation-recovery decision tree), best-practices. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "email-deliverability",
+    "spf",
+    "dkim",
+    "dmarc",
+    "bimi",
+    "mta-sts",
+    "tls-rpt",
+    "list-unsubscribe",
+    "sender-reputation",
+    "feedback-loop",
+    "bounce-handling",
+    "email-warmup",
+    "bulk-sender-2024"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
