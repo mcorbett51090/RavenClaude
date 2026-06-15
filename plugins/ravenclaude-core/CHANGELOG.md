@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.158.0 — 2026-06-15
+
+### Added
+
+- **New best-practice — "Scope a review seat to correctness — a gap-finding reviewer always finds gaps"** ([`best-practices/scope-the-reviewer-to-correctness-or-it-manufactures-work.md`](best-practices/scope-the-reviewer-to-correctness-or-it-manufactures-work.md), 19 rules total). Names the gap-inflation bias that bites this repo's review-by-panel architecture (the command-review tribunal, `decision-review`, `two-panel-plan-review`, the `code-review` skill, `agent-dispatch-evaluator`): a reviewer prompted to find gaps reports some even when the work is sound, and an obedient implementer then chases every one into over-engineering. The fix is to scope the seat ("flag only correctness/requirement gaps; passing clean is a valid outcome"), point it at the criteria (spec/plan), and let the implementer triage rather than auto-apply — while deliberately leaving the deterministic security floor untouched. Sourced from the [2026-06-15 Claude subreddit scan](../../docs/research/2026-06-15-claude-subreddit-scan/README.md) (1 of 4 findings approved; the other three deferred/denied as covered or out-of-core-scope).
+
+### Notes
+
+- **Migration:** none — additive markdown; nothing in a consumer's installed plugin changes on `/plugin marketplace update`.
+
 ## 0.155.0 — 2026-06-11
 
 ### Added
