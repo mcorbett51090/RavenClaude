@@ -49,6 +49,7 @@ on:
       - "scripts/render-trees.py"
       - "scripts/generate-bi-report.py"
       - "scripts/generate-copilot-plugin.py"
+      - "scripts/generate-feedback-report.py"
       - "scripts/check-marketplace-claims.py"
       - ".github/workflows/regenerate-artifacts.yml"
   workflow_dispatch:
@@ -182,6 +183,20 @@ jobs:
           if ! python3 scripts/generate-copilot-plugin.py --check >/dev/null 2>&1; then
             echo "copilot package stale — regenerating."
             python3 scripts/generate-copilot-plugin.py
+          fi
+
+          # 4d. feedback-report.html — the "Problems & Resolutions" view, generated
+          #     from the scenario corpus (plugins/*/scenarios/*.md). Pure Python,
+          #     stdlib-only, no browser. Added to the self-heal on 2026-06-15: its
+          #     freshness gate was still running at PR time in audit-gates (Gate 99),
+          #     so any merge that ADDED a scenario staled it and failed every
+          #     unrelated open PR — the same cross-PR contagion that relocated
+          #     concepts.json / report.html here on 2026-06-08. Its PR-time
+          #     "clean tree" gate was removed in the same change.
+          if ! python3 scripts/generate-feedback-report.py --check >/dev/null 2>&1; then
+            echo "feedback-report.html stale — regenerating from the scenario corpus."
+            python3 scripts/generate-feedback-report.py
+            python3 scripts/generate-feedback-report.py --check
           fi
 
           # 5. Commit only if something actually changed.
