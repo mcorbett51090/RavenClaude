@@ -10,6 +10,8 @@
 
 > **Why durable reasoning, not just a lineup.** Model names and prices churn weekly; the *decision framework* below does not. Lead with the framework; use the dated tables as a snapshot to be re-verified, never as a permanent fact.
 
+> ⚠️ **STATUS OVERRIDE — Claude Fable 5 & Mythos 5 globally SUSPENDED (2026-06-12).** A US-government export-control directive resulted in the **global suspension of all Claude Fable 5 / Mythos 5 access**; Anthropic disabled both models for every customer worldwide effective **2026-06-12**, with **no restoration timeline as of 2026-06-16**. This propagates to every surface that resold them: the **"Fable 5 is GA in Copilot" rows and the free-through-2026-06-22 inclusion window below are moot while the model is disabled at the source.** Until access is restored, treat Fable 5 / Mythos 5 as **unavailable** and route to each ecosystem's live default (for Claude work, Opus 4.8). `[verified 2026-06-16 — secondary cross-reference: CNBC, TIME, Anthropic newsroom 2026-06-12; the anthropic.com newsroom + Copilot changelog 403 automated fetch, per this file's existing 403→cross-reference pattern]`
+
 ---
 
 ## Closed-world rule (anti-hallucination — every agent enforces)
