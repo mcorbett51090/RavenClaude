@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for developer-relations. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location, not the consumer's project root.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-devrel-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Flag DevRel anti-patterns on devrel-conventional files: a quickstart with no time-to-first-success target, vanity metrics presented as success criteria, and a talk abstract with no single takeaway. Advisory by default; flip exit 0 to exit 1 to enforce."
+          }
+        ]
+      }
+    ]
+  }
+}

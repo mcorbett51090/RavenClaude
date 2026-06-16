@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + 14 specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 99 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to…' use-case lookup.",
-    "version": "0.86.0"
+    "version": "0.87.0"
   },
   "plugins": [
     {
@@ -2217,6 +2217,27 @@
         "native-integration",
         "system-tray",
         "deep-links"
+      ]
+    },
+    {
+      "name": "developer-relations",
+      "source": "./plugins/developer-relations",
+      "description": "Developer Relations specialist team — 4 agents (devrel-lead, developer-advocate, docs-and-samples-engineer, community-manager) for running a DevRel program: the developer funnel (awareness → activation → habit → advocacy), time-to-first-success quickstarts, a sustainable content pipeline, healthy community operations, and DevRel metrics that measure outcomes not vanity. 5 skills (devrel-strategy, quickstart-authoring, developer-content-pipeline, community-health, devrel-metrics), a developer-funnel decision-tree knowledge doc, 7 best-practices, 3 templates, 2 commands, and an advisory anti-pattern hook. Seams: reference docs → technical-writing-docs, product feedback loop → product-management, campaigns → marketing-operations. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "developer-relations",
+        "devrel",
+        "developer-advocacy",
+        "developer-experience",
+        "community",
+        "quickstart",
+        "developer-funnel",
+        "sample-apps",
+        "devrel-metrics",
+        "time-to-first-success"
       ]
     }
   ]

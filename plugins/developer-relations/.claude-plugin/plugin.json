@@ -1,0 +1,25 @@
+{
+  "name": "developer-relations",
+  "version": "0.1.0",
+  "description": "Developer Relations specialist team — 4 agents (devrel-lead, developer-advocate, docs-and-samples-engineer, community-manager) for running a DevRel program: the developer funnel (awareness → activation → habit → advocacy), time-to-first-success quickstarts, a sustainable content pipeline, healthy community operations, and DevRel metrics that measure outcomes not vanity. Ships 5 skills (devrel-strategy, quickstart-authoring, developer-content-pipeline, community-health, devrel-metrics), a developer-funnel decision-tree knowledge doc, 7 best-practices, 3 templates, 2 commands, and an advisory anti-pattern hook. Seams: reference docs → technical-writing-docs, product feedback loop → product-management, campaigns → marketing-operations. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "developer-relations",
+    "devrel",
+    "developer-advocacy",
+    "developer-experience",
+    "community",
+    "quickstart",
+    "developer-funnel",
+    "sample-apps",
+    "devrel-metrics",
+    "time-to-first-success"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.5.0"]
+  }
+}
