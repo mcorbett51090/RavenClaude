@@ -112,6 +112,23 @@ VALID_SCOPES = {"tenant-specific", "version-specific", "likely-general", "unsure
 VALID_CONFIDENCE = {"low", "medium", "high"}
 
 
+def _normalize_intake(text: str) -> str:
+    """NFKC-normalize + drop zero-width/format (Cf) chars.
+
+    The single normalization step that BOTH the secret/PII gate and the injection
+    strip must run, in that order, so an obfuscated secret can't slip the gate and
+    then be reconstructed into the staged file. Without this, a zero-width-split
+    token (`ghp_<ZWSP>…`) or a fullwidth `ＡＫＩＡ…` matches no SECRET_RE on the RAW
+    field — passing the gate — yet `_strip_injection`'s own NFKC+Cf-strip rebuilds
+    the intact secret into the quarantined file. Gating on the normalized text
+    closes that ordering bypass. Idempotent (NFKC∘NFKC = NFKC; Cf already gone).
+    """
+    import unicodedata
+
+    out = unicodedata.normalize("NFKC", text)
+    return "".join(ch for ch in out if unicodedata.category(ch) != "Cf")
+
+
 def _strip_injection(text: str) -> str:
     # SECURITY (PR #366 review): this is best-effort NEUTERING, NOT a hard filter — regex
     # strips are bypassable (zero-width chars, line-split phrasing). The REAL boundary is
@@ -120,10 +137,7 @@ def _strip_injection(text: str) -> str:
     # explicit untrusted-DATA banner and lands in a quarantine draft PR; (c) the maintainer
     # `review-staged-contributions` gate reviews every staged file before promotion.
     # NFKC-normalize + drop zero-width/format (Cf) chars first so `ig<ZWSP>nore` can't slip past.
-    import unicodedata
-
-    out = unicodedata.normalize("NFKC", text)
-    out = "".join(ch for ch in out if unicodedata.category(ch) != "Cf")
+    out = _normalize_intake(text)
     for pat in INJECTION_PATTERNS:
         out = pat.sub("", out)
     return out
@@ -215,7 +229,10 @@ def main() -> int:
         return 0
 
     # --- Secret / PII gate: reject (never stage) on any match across all free text. ---
-    combined = "\n".join(fields[f] for f in ("scenario_title", "product", "problem", "resolution"))
+    # Gate on the SAME normalized text the staged file is built from (see
+    # _normalize_intake) so an obfuscated secret can't pass the gate and then be
+    # reconstructed into the quarantine file by the strip's own normalization.
+    combined = "\n".join(_normalize_intake(fields[f]) for f in ("scenario_title", "product", "problem", "resolution"))
     sec_reason = _has_secret_or_pii(combined)
     if sec_reason:
         _write_decision("reject", None, None, sec_reason)

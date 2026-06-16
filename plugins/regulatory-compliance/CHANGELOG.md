@@ -2,6 +2,14 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.12.1] — 2026-06-16
+
+### Fixed
+
+- **`scrub-confidential-pre-write.sh` credit-card PAN check never matched (fail-open PII guard).** Same PCRE-in-ERE bug as the finance hook: the `(?:…)` non-capturing groups under `grep -E` made the credit-card check match nothing, so a card number in a compliance file — including the SAR/STR-adjacent paths where this hook is documented as flippable to a blocking `exit 2` — was silently passed. Switched to plain ERE groups; verified it now flags a 16-digit Visa, with no false positive on a clean file.
+
+- **Migration:** none — defaults to advisory; the fix restores the documented detection.
+
 ## [0.12.0] — 2026-06-05
 
 Value-add build-out (non-code financial-regulatory vertical). Builds on PR #315's consolidated decision-trees + best-practices + templates by adding the net-new gaps: a scenarios bank, two complementary Mermaid decision-tree knowledge files, and a stdlib risk-scoring calculator. Resolves the §8b scenarios-bank TODO in `CLAUDE.md`.

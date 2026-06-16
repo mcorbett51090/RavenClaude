@@ -2,6 +2,18 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.157.1 — 2026-06-16
+
+### Fixed
+
+- **`route-decision-review.sh` mapped a binding yes/no verdict to an option by index, not semantics.** The eligibility gate accepts any two yes/no-shaped options regardless of order, but the act-block hard-coded `yes → options[0]` / `no → options[1]`. An `AskUserQuestion` phrased with the negative option first (`["Cancel","Proceed"]`, `["No","Yes"]`, `["Reject","Approve"]`) would receive a _binding_ deny instructing the agent to choose the **opposite** option — and, being auto-resolved, the human never saw it. Each option's polarity is now classified and the verdict maps to the matching option; ambiguous polarity (both options same polarity, or neither recognized) fails safe to ALLOW so the human answers. Proven by a new reverse-ordered fixture in Gate 31 (`audit-gates.sh`).
+- **`thing-concerns.py` `screen-always` catastrophe floor failed OPEN on an embedded newline.** The two `always_screen` + `pre_llm_deny` hard rules (force-push to a protected branch, `curl … | sh`) bridge program→argument with `.*`, but the regexes were searched without `re.DOTALL` and the screening variants were not newline-flattened — so a command carrying a real newline (a shell line-continuation) between `git push`/`curl` and the dangerous flag silently dodged the hard DENY. A newline-flattened screening variant is now matched alongside the raw + normalized command (only ever ADDS a match, never removes one — same contract as the existing wrapper-normalization). Proven by a new Gate 15 fixture. **Security-floor change — see PR notes.**
+- **`apply-comfort-posture.py` PyYAML-less fallback parser mis-split a quoted override key containing a colon.** A per-pattern override like `"Bash(ls:*)": deny` was split on the colon _inside_ the quotes into key `"Bash(ls` / value `*)": deny`, which aborted the entire `/set-posture` apply (`resolve_category` raised on the bogus value) — but only on a consumer host without PyYAML, exactly the host the fallback exists to serve (dormant here, where PyYAML is present). The scalar split is now quote-aware (finds the separator colon after a leading quoted token); unquoted keys are unchanged.
+
+### Notes
+
+- **Migration:** none — `decision_review` is off by default, and the catastrophe-floor fix only closes a bypass (it never relaxes a deny). Behavior changes only to deny more of the unarguable hard-rule forms.
+
 ## 0.155.0 — 2026-06-11
 
 ### Added

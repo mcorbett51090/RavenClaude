@@ -2,6 +2,14 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.14.1] — 2026-06-16
+
+### Fixed
+
+- **`flag-finance-anti-patterns.sh` credit-card PII check never matched (fail-open).** The PAN regex used PCRE non-capturing groups `(?:…)` under `grep -E` (POSIX ERE), which GNU grep rejects with `warning: ? at start of expression` — the alternation matched nothing, so a plaintext card number in a finance-path file (e.g. `models/*.md`) was silently not flagged. Switched to plain ERE groups; verified it now flags a 16-digit Visa. Advisory-only hook, so no behavior change beyond catching what it always claimed to.
+
+- **Migration:** none.
+
 ## [0.14.0] — 2026-06-05
 
 Non-code-vertical value-add build-out — adds the scenarios bank, two new Mermaid decision-tree knowledge files, and a runnable corporate-finance / FP&A calculator. Net-new against PR #315 (which added the consolidated decision-trees, best-practices, and templates); honestly dispositions the code-runtime tier as N-A.
