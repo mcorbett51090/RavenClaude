@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.158.0 — 2026-06-17
+
+### Added
+
+- **New best-practice — "MCP tool definitions cost context every turn — enable only the servers you need"** ([`best-practices/mcp-tool-definitions-cost-context-every-turn-prune-the-server-set.md`](best-practices/mcp-tool-definitions-cost-context-every-turn-prune-the-server-set.md), 19 rules total). Every connected MCP server loads its tool definitions (names + descriptions + schemas) into context on **every turn** — not once at startup — so an always-on set of servers silently taxes window budget and adds routing noise whether or not the tools get used. Prescribes: connect servers per-task, measure overhead with `/context` (don't guess the number), prefer the narrowest tool surface, and audit the connected set the way you'd audit the conversation history. Explicitly the mirror, one layer down, of this repo's own `AGENTS.md` agent-description budget ("enable only what you need; disable the rest"). The community-cited "~18K tokens/turn" figure is marked `[unverified — community-reported]`; the per-turn-definition *mechanism* is the grounded, durable claim. Sourced from the [2026-06-17 Claude subreddit scan](../../docs/research/2026-06-17-claude-subreddit-scan/README.md) (1 of 4 findings approved; the other three deferred/denied as covered or moving-target).
+
+### Notes
+
+- **Migration:** none — additive markdown; nothing in a consumer's installed plugin changes on `/plugin marketplace update`.
+
 ## 0.155.0 — 2026-06-11
 
 ### Added
