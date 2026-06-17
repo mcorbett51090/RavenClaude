@@ -8,7 +8,7 @@ For the marketplace-wide best-practice library (CI gates, hook authoring, versio
 
 ## Index
 
-_18 rules._
+_19 rules._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -30,6 +30,7 @@ _18 rules._
 | [`check-constraint-scope-before-citing-it.md`](./check-constraint-scope-before-citing-it.md) | Absolute rule | Any agent is about to refuse an action or recommend against something by citing a rule. |
 | [`checkpoints-are-the-recovery-layer-not-a-substitute-for-commits.md`](./checkpoints-are-the-recovery-layer-not-a-substitute-for-commits.md) | Pattern | Setting up a fast-iterating or unsupervised session — when to use `/rewind` (Esc-Esc) vs. a git commit, and what checkpoints structurally can't undo. |
 | [`permissions-are-deny-ask-allow-not-an-on-off-switch.md`](./permissions-are-deny-ask-allow-not-an-on-off-switch.md) | Pattern | Configuring a project's permission posture — sorting operations into `deny`/`ask`/`allow` (eval order, the reversibility taxonomy) instead of reaching for bypass-everything or approve-reflexively. |
+| [`mcp-tool-definitions-cost-context-every-turn-prune-the-server-set.md`](./mcp-tool-definitions-cost-context-every-turn-prune-the-server-set.md) | Pattern | Deciding which MCP servers to connect for a session — every connected server's tool definitions ride context on every turn (`/context` to measure); enable only what the task needs, the mirror of the agent-description budget. |
 
 ---
 
