@@ -34,7 +34,7 @@
       "displayName": "RavenClaude Core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: 15 specialist agents, 43 skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage → brand kit), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard.",
-      "version": "0.157.0",
+      "version": "0.157.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -81,7 +81,7 @@
       "name": "finance",
       "source": "./plugins/finance",
       "description": "Corporate finance & FP&A specialist team — FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. 9 skills, 8 templates, 12 knowledge-bank docs (ASC 805 / 718 / 740, accrual-cutoff, WACC, cost accounting, FP&A operating model + decision support), 1 advisory hook (hardcoded rates, plaintext PII, missing Sources / Assumptions). Inherits ravenclaude-core protocols.",
-      "version": "0.14.0",
+      "version": "0.14.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -101,7 +101,7 @@
       "name": "regulatory-compliance",
       "source": "./plugins/regulatory-compliance",
       "description": "Financial-regulatory & compliance specialist team — 6 function agents (AML/KYC, regulatory-reporting, risk-and-controls, policy & procedure, examination-prep, Bermuda-insurance) PLUS 6 jurisdiction/regulator specialists: BMA financial-institutions (banking, trust, corporate-services, fund-admin, investment-business, money-service, digital-assets — the primary build-out, with deep AML/ATF + supervision/fees + licensing-classification trees), CIMA (Cayman), Bahamas, Channel Islands (Jersey JFSC + Guernsey GFSC), UK PRA, and US federal+state. 19 primary-source-cited regulator knowledge files, 37 best-practice rules, 10 skills, 11 templates, 1 defensive PreToolUse hook (PII scrub — SSN/IBAN/credit-card/Bermuda TIN/wire instructions). Positioning reflects field experience inside a Tier-1 financial regulator (BMA). Inherits ravenclaude-core protocols.",
-      "version": "0.12.0",
+      "version": "0.12.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1921,7 +1921,7 @@
       "name": "localization-i18n-engineering",
       "source": "./plugins/localization-i18n-engineering",
       "description": "Internationalization (i18n) and localization (l10n) engineering specialists — 3 agents covering i18n architecture (string externalization, ICU MessageFormat, RTL/bidi, locale data), the l10n pipeline (extraction, TMS handoff, translation memory, continuous localization), and localization QA (pseudo-localization, l10n linting in CI, visual overflow QA, locale-coverage testing). Ships 3 skills, 3 commands, 2 templates, a decision-tree knowledge bank with a 2026 i18n/TMS capability map, 6 best-practice rules, and an advisory hook flagging i18n anti-patterns (hard-coded user-facing strings, string concatenation, if-count-1 plurals, hard-coded date/number formats). Inherits ravenclaude-core protocols (Grounding, Structured Output).",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },

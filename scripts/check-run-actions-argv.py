@@ -128,8 +128,15 @@ def check(path: Path) -> int:
                     )
                 if i == 0 and lit in ALLOWED_ARGV0:
                     continue
-                if i == 1 and lit == "-c":
-                    return _fail(f"action {kname!r} uses a shell -c form (argv[1] == '-c')")
+                # A fixed-argv launcher's argv[1] is a script PATH, never a flag.
+                # Reject ANY leading-dash argv[1] so the shell-form guard can't be
+                # dodged by -lc / -c=… / --command (the bare `== "-c"` check missed
+                # every spelling but one).
+                if i == 1 and lit.startswith("-"):
+                    return _fail(
+                        f"action {kname!r} argv[1] is a flag ({lit!r}); a fixed-argv "
+                        f"launcher takes a script path, not a shell-style flag (e.g. -c/-lc/--command)"
+                    )
                 continue
             # non-literal element — only the whitelisted constant expressions pass
             if _is_allowed_dynamic(elt):

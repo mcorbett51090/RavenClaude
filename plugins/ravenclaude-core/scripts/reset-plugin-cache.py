@@ -76,7 +76,20 @@ def resolve_plugin_version_dir(cache_root: Path, plugin: str) -> Path | None:
     for marketplace in sorted(p for p in cache_root.iterdir() if p.is_dir()):
         pdir = marketplace / plugin
         if pdir.is_dir():
-            versions = sorted((v for v in pdir.iterdir() if v.is_dir()), key=lambda v: v.name)
+            # Exclude our own retained backup dirs (<version>-snapshot-<ts> /
+            # <version>-pre-ragnarok-<ts>): they are siblings of the live version
+            # dir and sort lexically AFTER it, so a second reset within --ttl-days
+            # would otherwise resolve to a backup and snapshot/swap the wrong tree.
+            versions = sorted(
+                (
+                    v
+                    for v in pdir.iterdir()
+                    if v.is_dir()
+                    and "-snapshot-" not in v.name
+                    and "-pre-ragnarok-" not in v.name
+                ),
+                key=lambda v: v.name,
+            )
             if versions:
                 candidates.append(versions[-1])
     if not candidates:
