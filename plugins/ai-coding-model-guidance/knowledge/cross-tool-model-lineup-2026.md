@@ -2,11 +2,11 @@
 
 # Cross-tool model selection & 2026 lineup (Copilot · Codex · Grok)
 
-**Last reviewed:** 2026-06-10 · **Confidence:** medium — these three vendors ship **weekly-to-monthly**, faster than the Claude platform; treat this as the freshness anchor the Researcher sweep re-dates. Every numeric / availability claim carries a retrieval date — **verify against the cited primary source before quoting it to anyone.**
+**Last reviewed:** 2026-06-17 · **Confidence:** medium — these three vendors ship **weekly-to-monthly**, faster than the Claude platform; treat this as the freshness anchor the Researcher sweep re-dates. Every numeric / availability claim carries a retrieval date — **verify against the cited primary source before quoting it to anyone.**
 **Owner:** all three strategist agents (`copilot-model-strategist`, `codex-model-strategist`, `grok-model-strategist`). This is the **single source of truth** for non-Claude model facts — one file refreshes, not three personas (mirrors `claude-app-engineering/knowledge/model-selection-and-2026-capability-map.md`).
 **Staleness tier:** **Tier-4 (Emerging / fast-churn)** — re-verify on the weekly `researcher-reminder.yml` sweep and treat a >30-day-old retrieval date as stale-until-re-checked, not as current.
-**Sources (Copilot row re-checked 2026-06-09; Codex/Grok rows retrieved 2026-05-31, via vendor docs + changelogs; the doc pages 403 automated fetch, so values were cross-referenced across vendor blog/changelog + docs):**
-[GitHub Copilot supported models](https://docs.github.com/en/copilot/reference/ai-models/supported-models) · [GitHub Changelog](https://github.blog/changelog/) · [Opus 4.8 GA in Copilot (Changelog 2026-05-28)](https://github.blog/changelog/2026-05-28-claude-opus-4-8-is-generally-available-for-github-copilot/) · [OpenAI Codex models](https://developers.openai.com/codex/models) · [OpenAI model release notes](https://help.openai.com/en/articles/9624314-model-release-notes) · [xAI models](https://docs.x.ai/developers/models)
+**Sources (Copilot row re-checked 2026-06-09; Codex/Grok rows retrieved 2026-05-31; the Grok coding-tool surface — Grok Build CLI + `grok-build-0.1` — retrieved 2026-06-17 via the xAI primary + deployable-model listings; the doc pages 403 automated fetch, so values were cross-referenced across vendor blog/changelog + docs + gateways):**
+[GitHub Copilot supported models](https://docs.github.com/en/copilot/reference/ai-models/supported-models) · [GitHub Changelog](https://github.blog/changelog/) · [Opus 4.8 GA in Copilot (Changelog 2026-05-28)](https://github.blog/changelog/2026-05-28-claude-opus-4-8-is-generally-available-for-github-copilot/) · [OpenAI Codex models](https://developers.openai.com/codex/models) · [OpenAI model release notes](https://help.openai.com/en/articles/9624314-model-release-notes) · [xAI models](https://docs.x.ai/developers/models) · [Introducing Grok Build (xAI, retrieved 2026-06-17)](https://x.ai/news/grok-build-cli) · [Grok Build beta (xAI)](https://x.ai/cli)
 
 > **Why durable reasoning, not just a lineup.** Model names and prices churn weekly; the *decision framework* below does not. Lead with the framework; use the dated tables as a snapshot to be re-verified, never as a permanent fact.
 
@@ -27,7 +27,7 @@ flowchart TD
     A[Need to pick a model for a coding task] --> Q1{Latency-dominated?<br/>inline edits / autocomplete}
     Q1 -->|Yes| FAST[Cheapest fast tier<br/>Copilot: completion/fast model · Codex: Codex-Spark · Grok: smallest/fast variant]
     Q1 -->|No| Q2{Long autonomous run?<br/>multi-step / multi-hour agent, unsupervised}
-    Q2 -->|Yes| AGENT[Coding-agent tier<br/>Copilot: coding-agent models · Codex: GPT-5.3-Codex / GPT-5-Codex · Grok: flagship long-context]
+    Q2 -->|Yes| AGENT[Coding-agent tier<br/>Copilot: coding-agent models · Codex: GPT-5.3-Codex / GPT-5-Codex · Grok: grok-build-0.1 CLI 256K, or flagship for 1M+ context]
     Q2 -->|No| Q3{Genuinely hard reasoning?<br/>system design / rare debugging / eval rubrics}
     Q3 -->|Yes| TOP[Top frontier, accept the cost<br/>Copilot: Opus/GPT-5.x top · Codex: GPT-5.5-Pro · Grok: flagship]
     Q3 -->|No — most everyday work| MID[Balanced default<br/>Copilot: Auto / Sonnet-class · Codex: GPT-5.5 · Grok: Grok 4.3]
@@ -134,10 +134,11 @@ Copilot's picker spans **three vendors' models** — Anthropic Claude, OpenAI GP
 | **Grok 4.3** | **1M** | **$1.25 in / $2.50 out** (cached input $0.20) | Current flagship; balanced coding/reasoning default. Launched 2026-04-30. |
 | Grok 4.1 Fast | 2M | (verify live) | Larger context, faster/cheaper tier |
 | Grok 4.20 (Multi-Agent Beta) | 2M | (verify live) | Multi-agent / very-long-context work |
+| grok-build-0.1 (coding-agent SKU) | 256K | $1 in / $2 out (cached input $0.20) — retrieved 2026-06-17, `[verify-at-use]` | **Agentic-coding SKU** powering the Grok Build CLI (NOT the general flagship — distinct model, own pricing curve; priced below Grok 4.3 with a smaller window by design). Text+image, tool-calling, structured output, **always-on (non-dialable) reasoning** — so the "raise the reasoning dial first" lever (house opinion #6) does not apply here. Beta as of 2026-06-17. |
 
 - **⚠️ `grok-code-fast-1` is RETIRED (2026-05-15).** The old id now **redirects to Grok 4.3 pricing** — if a consumer pins it expecting the historical cheap rate, they are silently billed at $1.25/$2.50. Tell them to migrate to a current id. This is the single highest-value correction in this file.
 - All Grok prices/context windows are the fastest-churning numbers here — `[verify-at-use]` against [docs.x.ai/developers/models](https://docs.x.ai/developers/models) and the live pricing page before quoting. Prices change without notice.
-- A Grok coding-agent CLI ("Grok Build") has been reported in beta — `[unverified — confirm at docs.x.ai before relying]`.
+- **Grok Build is xAI's agentic-coding CLI** (terminal-native coding agent, same family as Claude Code / Codex CLI / Copilot CLI), powered by the `grok-build-0.1` model (row above). **Beta** — launched 2026-05-14, expanded to all SuperGrok / X Premium+ subscribers 2026-05-25 ([x.ai/news/grok-build-cli](https://x.ai/news/grok-build-cli), [x.ai/cli](https://x.ai/cli); retrieved 2026-06-17). Distinctive features: **plan mode** (sub-task graph in a TUI), **up to 8 parallel sub-agents each in an isolated Git worktree/branch** (vs. Claude Code's same-workspace sub-agents), **native MCP support**, and **Agent Client Protocol (ACP)** support so it can sit behind a custom orchestrator or run alongside another agent. Cross-referenced across the xAI primary + 10 secondaries (OpenRouter, Vercel AI Gateway, Requesty list `grok-build-0.1` as a deployable model). `[verify-at-use — beta; feature set and id may shift before GA — confirm at docs.x.ai]`
 
 ---
 
@@ -151,6 +152,8 @@ On each weekly Researcher sweep (`.github/workflows/researcher-reminder.yml`) an
 4. Bump the plugin **patch** version if a *default* changes (a new recommended-default model, a retirement, a price-tier shift) so consumers see it on `/plugin marketplace update`.
 
 > **Sweep note (2026-06-10):** Claude **Fable 5** went GA in Copilot on **2026-06-09 — the same day this file's prior review stamp** — and was missed until the next sweep. A "reviewed-clean" date is not a guarantee a same-day release didn't land after the check; re-run the source checks even when the stamp looks fresh, and treat the **free-through-2026-06-22** Fable 5 inclusion window as an expiring caveat to re-verify or strike after that date.
+>
+> **Sweep note (2026-06-17):** the prior review's **Grok Build** line was a flagged `[unverified — confirm at docs.x.ai]` placeholder. This sweep verified it across the xAI primary ([x.ai/news/grok-build-cli](https://x.ai/news/grok-build-cli), [x.ai/cli](https://x.ai/cli)) + 10 secondaries (incl. OpenRouter / Vercel AI Gateway / Requesty deployable-model listings, which the agent's `WebFetch` 403 forced through `WebSearch` per the route ladder above). Moved off `[unverified]`: added a **`grok-build-0.1`** coding-agent SKU row (256K · $1/$2 · cached $0.20 — sub-flagship by design, always-on/non-dialable reasoning) and a verified Grok Build CLI bullet (beta; 8 parallel sub-agents in Git worktrees, MCP, plan mode, ACP). Still **beta**, so both carry `[verify-at-use]`. The AGENT decision-tree leaf was updated to map the coding-agent tier to grok-build-0.1 (with a 1M+-context caveat to the flagship).
 >
 > **Re-verify note (2026-06-11):** the **Microsoft Foundry Fable 5** sub-claim was re-checked against the authoritative `learn.microsoft.com` Foundry Claude-model table via the Microsoft-Learn MCP. Despite the Azure blog and the `ai.azure.com/catalog/models/claude-fable-5` catalog page announcing GA, the Learn deployable-model table **still does not list `claude-fable-5`** (it lists Opus 4-8/4-7/4-6/4-5/4-1, Sonnet 4-6/4-5, Haiku 4-5 previews + the gated `claude-mythos-preview`). Caveat sharpened above, not struck — a vendor blog/catalog announcement is not the same as a deployable-model-table listing; scope Foundry-Fable-5 claims accordingly and re-verify before quoting.
 >

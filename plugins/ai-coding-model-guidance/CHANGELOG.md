@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.5] — 2026-06-17
+
+Freshness-anchor refresh — **xAI Grok Build CLI + `grok-build-0.1` verified and added**. The prior review's Grok Build line was a flagged `[unverified — confirm at docs.x.ai]` placeholder; this sweep verified it across the xAI primary ([x.ai/news/grok-build-cli](https://x.ai/news/grok-build-cli), [x.ai/cli](https://x.ai/cli)) plus 10 secondaries (incl. OpenRouter / Vercel AI Gateway / Requesty, which list `grok-build-0.1` as a deployable model). The vendor doc pages 403 automated `WebFetch`, so values were read via `WebSearch` per the file's 403 route ladder.
+
+### Changed
+
+- **`knowledge/cross-tool-model-lineup-2026.md`** — (1) added a **`grok-build-0.1`** row to the Grok table as a **distinct coding-agent SKU** (256K context · $1 in / $2 out · cached $0.20; text+image, tool-calling, structured output, **always-on/non-dialable reasoning**), framed explicitly as sub-flagship-by-design (cheaper + smaller window than Grok 4.3) so the row doesn't read as a transcription error, and noting house opinion #6's reasoning-dial lever does not apply to an always-on model; the row carries retrieval date **2026-06-17** + `[verify-at-use]` on the row itself (satisfies `check-lineup-citations.py`). (2) Replaced the `[unverified]` **Grok Build CLI** bullet with a verified, dated, cited description (beta launched 2026-05-14, expanded 2026-05-25; up to **8 parallel sub-agents in isolated Git worktrees**, native MCP, plan mode, **ACP** support) — `[verify-at-use — beta]` preserved. (3) Updated the AGENT decision-tree leaf to map the coding-agent tier to grok-build-0.1 (with a 1M+-context caveat to the flagship). (4) Re-dated `Last reviewed` → **2026-06-17**, added the Grok Build sources to the header, and added a 2026-06-17 sweep note.
+- Version **0.3.4 → 0.3.5** bumped in `.claude-plugin/plugin.json` **and** the `marketplace.json` catalog entry in lockstep (CI fails on drift).
+
 ## [0.3.4] — 2026-06-11
 
 Research-sweep re-verify — re-checked the **Microsoft Foundry Fable 5** sub-claim against the authoritative `learn.microsoft.com` Foundry Claude-model table via the **Microsoft-Learn MCP**. Despite the Azure blog and the `ai.azure.com/catalog/models/claude-fable-5` catalog page announcing GA, the Learn **deployable-model table still does not list `claude-fable-5`** (it lists Opus 4-8/4-7/4-6/4-5/4-1, Sonnet 4-6/4-5, Haiku 4-5 previews + the gated `claude-mythos-preview`).
