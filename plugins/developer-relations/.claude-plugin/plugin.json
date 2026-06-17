@@ -1,0 +1,26 @@
+{
+  "name": "developer-relations",
+  "version": "0.1.0",
+  "description": "Developer-Relations (DevRel) team — 2 agents. The devrel-strategist owns the DevRel operating model (advocacy vs education vs community vs product-feedback), the developer pirate funnel (AAARRP), and measurement (TTFHW, activation, content engagement, qualitative feedback). The developer-advocate builds the golden-path tutorial, runnable sample apps, quickstarts, talks/demos, and community engagement, and closes the DX feedback loop to PM/eng. 3 skills, a 2-doc knowledge bank (a Mermaid goal→motion→metric decision tree + a developer-metrics reference with vanity-metric traps), 2 templates, 3 best-practice rules, and 1 advisory hook that flags DevRel smells (quickstart blocks with no runnable language tag, vanity-only goals). Seams: docs site & reference → technical-writing-docs; API design → api-engineering; positioning → product-management; non-developer community → customer-success-analytics. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "developer-relations",
+    "devrel",
+    "developer-advocacy",
+    "developer-experience",
+    "dx",
+    "sample-apps",
+    "community",
+    "ttfhw",
+    "quickstart",
+    "developer-funnel",
+    "devrel-metrics"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
