@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.158.0 — 2026-06-18
+
+### Added
+
+- **New best-practice — "MCP tool definitions are a context budget — defer or disable, don't connect-and-forget"** ([`best-practices/mcp-tool-definitions-are-a-context-budget-not-free.md`](best-practices/mcp-tool-definitions-are-a-context-budget-not-free.md), 19 rules total). Every connected MCP server loads all its tool definitions into the context window at session start (2026 community measurements: ~67K tokens / ~34% of a 200K window for 7 servers, *before* the first message). Three levers, cheapest first: defer tool definitions (Tool Search / `defer_loading: true` — ~47% reduction), enable only the servers this session needs, prune chatty servers. Explicitly distinguished from the marketplace's ~15K agent-*description* routing budget (a separate budget, separate lever). This repo's own deferred-MCP / `ToolSearch` architecture is the worked example. Sourced from the [2026-06-18 Claude subreddit scan](../../docs/research/2026-06-18-claude-subreddit-scan/README.md) (1 of 5 findings approved; the rest deferred/denied as covered or out-of-core-scope).
+
+### Notes
+
+- **Migration:** none — additive markdown; nothing in a consumer's installed plugin changes on `/plugin marketplace update`.
+
 ## 0.155.0 — 2026-06-11
 
 ### Added
