@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.1] — 2026-06-18
+
+Research-sweep **correction** — the capability map said the **OWASP Top 10:2021** edition was current; the **2025 edition** has since shipped. Independently verified 2026-06-18 against [owasp.org/Top10/2025](https://owasp.org/Top10/2025/). Routed through the expert-panel review (USEFUL → APPROVE-WITH-CHANGES, same shape as the concurrent Fabric version-flip correction; no tiebreak).
+
+### Fixed
+
+- **`knowledge/security-engineering-decision-trees.md`** — OWASP Top 10 row updated 2021 → **2025 edition current**; noted the new **A03 Software Supply Chain Failures** (expands 2021's A06 Vulnerable & Outdated Components) and **A10 Mishandling of Exceptional Conditions**. (`[verify-at-use]` — verify Final vs RC at adoption.)
+- **`knowledge/sast-dast-sca-scanner-selection-decision-tree.md`** — remapped **SCA coverage from "A06 Vulnerable and Outdated Components" (2021) to "A03:2025 Software Supply Chain Failures"** and updated the source citation to the 2025 edition. Both files' `Last reviewed:` bumped to 2026-06-18.
+
 ## [0.3.0] — 2026-06-05
 
 Value-add build-out — completing the plugin against the full value-add menu on top of PR #315's consolidated knowledge/best-practices/templates. Every menu item is dispositioned (built or recorded N-A with reason); see [`CLAUDE.md`](CLAUDE.md) § "Value-add completeness (build-out 2026-06-05)".

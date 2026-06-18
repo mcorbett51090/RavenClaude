@@ -1,6 +1,6 @@
 # SAST / DAST / SCA / Secret-Scanning — Scanner Selection Decision Tree
 
-_A Mermaid decision tree for picking the **right scanner class for the risk you're trying to catch**, and where it belongs in the pipeline. Complements the existing [`security-engineering-decision-trees.md`](security-engineering-decision-trees.md) "Where does this security control belong (shift-left placement)" tree — that one decides the *stage*; this one decides the *tool class* and names concrete, currently-published tools. Tool rows are `[verify-at-use]` — re-check the project's maintenance/version before adopting. Last reviewed: 2026-06-05._
+_A Mermaid decision tree for picking the **right scanner class for the risk you're trying to catch**, and where it belongs in the pipeline. Complements the existing [`security-engineering-decision-trees.md`](security-engineering-decision-trees.md) "Where does this security control belong (shift-left placement)" tree — that one decides the *stage*; this one decides the *tool class* and names concrete, currently-published tools. Tool rows are `[verify-at-use]` — re-check the project's maintenance/version before adopting. Last reviewed: 2026-06-18 (OWASP Top 10 → 2025 edition; SCA maps to A03:2025 Software Supply Chain Failures)._
 
 > **This team proposes; it does not pronounce the verdict.** This tree recommends a scanner class + placement; the adopt/spend decision and any ship/no-ship on findings route to `ravenclaude-core/security-reviewer`.
 
@@ -43,7 +43,7 @@ flowchart TD
 
 ## How to read the two axes (grounding)
 
-- **"Our code vs. pulled-in code"** is the load-bearing first split, and it maps cleanly to the OWASP coverage: **SAST + DAST cover OWASP Top 10 (web) implementation flaws**, while **SCA covers OWASP A06 "Vulnerable and Outdated Components."** A program with SAST but no SCA passes its own code and ships a known-CVE dependency — the most common modern breach vector. Source: OWASP Top 10 (2021; a 2025 refresh is tracked — `[verify-at-use]`).
+- **"Our code vs. pulled-in code"** is the load-bearing first split, and it maps cleanly to the OWASP coverage: **SAST + DAST cover OWASP Top 10 (web) implementation flaws**, while **SCA covers the dependency/component risk — OWASP A03:2025 "Software Supply Chain Failures"** (the 2021 A06 "Vulnerable and Outdated Components", broadened in the 2025 edition to the whole dependency/build/distribution chain). A program with SAST but no SCA passes its own code and ships a known-CVE dependency — the most common modern breach vector. Source: OWASP Top 10:2025 ([owasp.org/Top10/2025](https://owasp.org/Top10/2025/), verified 2026-06-18 — verify Final vs RC at use).
 - **"Static vs. running"** is why DAST is not redundant with SAST: SAST cannot see a misconfigured auth flow or a server header that only exists at runtime; DAST cannot see an unreachable code path or tell you *which line* to fix. They are complementary, and the program runs both. Source: OWASP Web Security Testing Guide (WSTG) / OWASP DevSecOps Guideline.
 - **Placement = earliest stage that can catch the class** — the shift-left principle, formalized in the companion "shift-left placement" tree. Secret scanning and SAST/SCA belong on the PR (cheap, pre-merge); DAST needs a deployment so it belongs on staging; IaC policy belongs on the infra PR. Source: OWASP DevSecOps Guideline.
 
@@ -54,7 +54,7 @@ flowchart TD
 - You're choosing a **bundled MCP tool** for this plugin — that's governed by [`../../../docs/best-practices/bundled-mcp-servers.md`](../../../docs/best-practices/bundled-mcp-servers.md) (zero-config + read-only bar), not by tool capability alone; see the plugin CLAUDE.md MCP section.
 
 **Sources (retrieved 2026-06-05):**
-- OWASP Top 10 (web, 2021; A06 Vulnerable & Outdated Components) — https://owasp.org/Top10/
+- OWASP Top 10 (web, 2025; A03 Software Supply Chain Failures — expands 2021's A06 Vulnerable & Outdated Components) — https://owasp.org/Top10/2025/ (verified 2026-06-18; verify Final vs RC at use)
 - OWASP DevSecOps Guideline (SAST/DAST/SCA/secret placement) — https://owasp.org/www-project-devsecops-guideline/
 - OWASP Web Security Testing Guide (WSTG) — https://owasp.org/www-project-web-security-testing-guide/
 - Semgrep (SAST, taint mode) — https://github.com/semgrep/semgrep (MIT)

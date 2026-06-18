@@ -2,6 +2,19 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.5] — 2026-06-18
+
+Research-sweep — one **correction** + one **addition**, both routed through two expert panels (usefulness → USEFUL; detailed review → APPROVE-WITH-CHANGES; panels concurred, no tiebreak).
+
+### Fixed
+
+- **`knowledge/cross-tool-model-lineup-2026.md`** — **Claude Fable 5 is SUSPENDED everywhere (incl. GitHub Copilot) as of 2026-06-12** — Anthropic disabled all public access to Fable 5 / Mythos 5 per a US-government export-control directive, so it is not selectable in Copilot while suspended; **Opus 4.8 and all other Claude models are unaffected.** Flagged the Copilot coding-agent row + the Fable-5 bullet SUSPENDED, neutralized the now-moot "free through 2026-06-22" inclusion window, and re-pointed Copilot coding-agent work to Opus 4.8. Verified 2026-06-18 against Anthropic's [statement](https://www.anthropic.com/news/fable-mythos-access) + [CNBC](https://www.cnbc.com/2026/06/12/anthropic-disables-access-to-fable-5-and-mythos-5-to-comply-with-government-directive.html).
+
+### Added
+
+- **`knowledge/cross-tool-model-lineup-2026.md`** — promoted **Grok Build** from `[unverified]` to a cited Grok-table entry: model id **`grok-build-0.1`** (256K context, $1/$2 per Mtok), the agentic-coding model behind the **Grok Build** CLI, public beta from ~2026-05-25 for SuperGrok / X Premium Plus. Verified 2026-06-18 against [x.ai/news](https://x.ai/news/grok-build-0-1) + [docs.x.ai](https://docs.x.ai/developers/models/grok-build-0.1); passes the `check-lineup-citations.py` gate.
+- Version **0.3.4 → 0.3.5** bumped in `.claude-plugin/plugin.json` **and** the `marketplace.json` catalog entry in lockstep.
+
 ## [0.3.4] — 2026-06-11
 
 Research-sweep re-verify — re-checked the **Microsoft Foundry Fable 5** sub-claim against the authoritative `learn.microsoft.com` Foundry Claude-model table via the **Microsoft-Learn MCP**. Despite the Azure blog and the `ai.azure.com/catalog/models/claude-fable-5` catalog page announcing GA, the Learn **deployable-model table still does not list `claude-fable-5`** (it lists Opus 4-8/4-7/4-6/4-5/4-1, Sonnet 4-6/4-5, Haiku 4-5 previews + the gated `claude-mythos-preview`).
