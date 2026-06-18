@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for developer-relations. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-devrel-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags 3 mechanically-detectable DevRel anti-patterns — (1) a vanity-metric headline (stars/followers/registered) with no activation/time-to-first-success metric, (2) marketing-speak aimed at developers (revolutionary/best-in-class/synergy/game-changer), (3) a placeholder secret or TODO in a code sample. Set DEVREL_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}

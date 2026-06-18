@@ -2218,6 +2218,29 @@
         "system-tray",
         "deep-links"
       ]
+    },
+    {
+      "name": "developer-relations",
+      "source": "./plugins/developer-relations",
+      "description": "Developer-relations (DevRel) team — 2 agents (devrel-strategist, developer-advocate) for growing and serving a developer audience honestly: the developer funnel (awareness → activation → advocacy) and the metrics that track it (time-to-first-success, activation rate — not GitHub stars), marketing that teaches not sells, sample apps and demos that run as shipped, conference talks + CFP abstracts, and community programs measured by response time + resolution not member count. 5 skills, a 4-doc knowledge bank (Mermaid trees for the DevRel funnel/metrics and content/channel/community selection; a DX golden-path guide; dated tooling tiers), 7 best-practices, 4 templates, 4 commands, 1 advisory hook (vanity-metric / market-at-developers / placeholder-secret smells), a scenarios bank. Advisory vertical — runtime tier N-A. Seams: technical-writing-docs, api-engineering, product-management, marketing-operations. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "developer-relations",
+        "devrel",
+        "developer-advocacy",
+        "developer-marketing",
+        "developer-experience",
+        "developer-onboarding",
+        "time-to-first-success",
+        "sample-apps",
+        "cfp",
+        "conference-talks",
+        "developer-community",
+        "activation-metrics"
+      ]
     }
   ]
 }
