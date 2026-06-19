@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.158.0 — 2026-06-19
+
+### Added
+
+- **New best-practice — "CLAUDE.md `@imports` organize — they don't shrink context; path-scoped rules and skills do"** ([`best-practices/claude-md-imports-organize-they-dont-shrink-context.md`](best-practices/claude-md-imports-organize-they-dont-shrink-context.md), 19 rules total). Closes a non-obvious context-budget trap: splitting a large `CLAUDE.md` into `@path` imports makes the file *look* smaller but loads every imported byte into context at launch — identical token cost and adherence penalty. `@import` is a de-duplication / cross-tool-sharing tool (the `@AGENTS.md` case), **not** a budget tool; the levers that actually trim baseline context are conditional-loading surfaces — path-scoped `.claude/rules/` (load only when a matching file is touched) and skills (load only on invocation). Includes the always-loaded-vs-conditionally-loaded decision table, the HTML-comment-strip exception, the `/compact`-survival-is-a-separate-axis caveat, and this repo's own `CLAUDE.md` → `@AGENTS.md` import (81 + 188 lines, both loaded at launch) as the worked example. Grounded against the Anthropic [memory docs](https://code.claude.com/docs/en/memory) (verbatim: imports "help organization but do not reduce context"). Sourced from the [2026-06-19 Claude subreddit scan](../../docs/research/2026-06-19-claude-subreddit-scan/README.md) (1 of 4 findings approved; the other three deferred/denied as already-covered or out-of-core-scope).
+
+### Notes
+
+- **Migration:** none — additive markdown; nothing in a consumer's installed plugin changes on `/plugin marketplace update`.
+
 ## 0.155.0 — 2026-06-11
 
 ### Added
