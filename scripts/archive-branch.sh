@@ -118,9 +118,16 @@ if [[ "$CURRENT" == "$BRANCH" ]]; then
   exit 1
 fi
 
-# 4. Capture branch tip + the unmerged-vs-main commit list (the work we'd lose).
+# 4. Capture branch tip + the unmerged-vs-base commit list (the work we'd lose).
+#    Resolve the integration base branch instead of hardcoding `main`: on a
+#    `master`-default (or otherwise-named) repo, `git log <branch> --not main`
+#    errors on the unknown ref, the `2>/dev/null` swallows it, and the list comes
+#    back EMPTY — which would report a branch carrying unmerged work as "fully
+#    merged" and lose it on delete. Same default-branch detection cleanup-branches.sh uses.
+BASE="main"
+git show-ref --verify --quiet "refs/heads/main" || BASE="master"
 TIP="$(git rev-parse "$BRANCH")"
-UNMERGED_LIST="$(git log "$BRANCH" --not main --oneline 2>/dev/null || true)"
+UNMERGED_LIST="$(git log "$BRANCH" --not "$BASE" --oneline 2>/dev/null || true)"
 UNMERGED_COUNT="$(printf '%s\n' "$UNMERGED_LIST" | grep -c '.' || true)"
 
 # 5. Compute the archive tag name (date-stamped so multiple archives of the
@@ -133,7 +140,7 @@ cat <<PLAN
 archive-branch plan:
   Branch:        $BRANCH
   Tip SHA:       $TIP
-  Unmerged vs main:
+  Unmerged vs $BASE:
 $(printf '%s\n' "${UNMERGED_LIST:-  (none — branch is fully merged)}" | sed 's/^/    /')
   Archive tag:   $TAG
   Push tag:      $([[ $SKIP_PUSH -eq 1 ]] && echo "NO (--skip-push)" || echo "yes (origin)")
@@ -183,8 +190,9 @@ LOG="$LOGDIR/${DATE}-${BRANCH//\//-}.log"
   printf '  %s\n' "$REASON"
   echo "evidence: |"
   printf '  %s\n' "${EVIDENCE:-(none provided)}"
-  echo "unmerged_vs_main_count: ${UNMERGED_COUNT}"
-  echo "unmerged_vs_main:"
+  echo "base_branch: $BASE"
+  echo "unmerged_vs_base_count: ${UNMERGED_COUNT}"
+  echo "unmerged_vs_base:"
   if [[ -n "$UNMERGED_LIST" ]]; then
     # Quote via an array so the SHA list isn't word-split / glob-expanded into the
     # audit log (correct-by-construction even if the source format ever changes).

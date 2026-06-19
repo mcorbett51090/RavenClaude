@@ -79,9 +79,24 @@ echo "$opts_lc" | grep -Eq '^(yes|no|proceed|cancel|approve|reject|confirm|deny|
 # require BOTH options to be yes/no-ish (2 matching lines)
 [ "$(echo "$opts_lc" | grep -Ecx '(yes|no|proceed|cancel|approve|reject|confirm|deny|do it|don.?t|continue|stop|accept|decline|merge|skip|enable|disable|allow|block)')" = "2" ] || emit_allow
 
+# CRITICAL polarity guard: the act step (§5) maps a `yes` verdict to opt0 and a
+# `no` verdict to opt1 BY POSITION. That mapping is only sound when option[0] is
+# the AFFIRMATIVE term and option[1] the NEGATIVE one. Author order is arbitrary —
+# a prompt with options ["No","Yes"] passes the yes/no-shape check above, but a
+# binding `yes` would then auto-resolve to "No" (the opposite of the panel's
+# intent) AND deny the prompt so the human never sees it. Require the canonical
+# order; on any other arrangement (reversed, both-affirmative, both-negative,
+# unrecognized polarity) fail safe to ALLOW so the human answers.
+opt0_lc="$(printf '%s' "$opt0" | tr '[:upper:]' '[:lower:]')"
+opt1_lc="$(printf '%s' "$opt1" | tr '[:upper:]' '[:lower:]')"
+_affirmative='^(yes|proceed|approve|confirm|do it|continue|accept|merge|enable|allow)$'
+_negative='^(no|cancel|reject|deny|don.?t|stop|decline|skip|disable|block)$'
+printf '%s' "$opt0_lc" | grep -Eq "$_affirmative" || emit_allow
+printf '%s' "$opt1_lc" | grep -Eq "$_negative" || emit_allow
+
 # --- 3. high-blast heuristic (engine also guards; belt + suspenders) ---
 hb=false
-if printf '%s %s %s' "$qtext" "$opt0" "$opt1" | grep -Eiq 'force[- ]?push|reset --hard|\brm -rf\b|delete|drop |prod(uction)?|publish|secret|credential|merge to main|push to main'; then hb=true; fi
+if printf '%s %s %s' "$qtext" "$opt0" "$opt1" | grep -Eiq 'force[- ]?push|force-with-lease|reset --hard|\brm -rf\b|delete|\bdrop\b|\btruncate\b|\bwipe\b|\brevoke\b|\bpurge\b|prod(uction)?|publish|secret|credential|merge to main|push to main'; then hb=true; fi
 
 # --- 4. Route through the tribunal engine (fail safe to allow on any error) ---
 engine="${CLAUDE_PLUGIN_ROOT:-$root/plugins/ravenclaude-core}/scripts/thing-decide.py"

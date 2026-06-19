@@ -2,6 +2,18 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.157.1 — 2026-06-19
+
+### Fixed
+
+- **`route-decision-review.sh` — option-polarity guard (P1).** The binding-verdict act step maps a `yes` verdict to `options[0]` and `no` to `options[1]` **by position**, which is only sound when option 0 is the affirmative term. `AskUserQuestion` options can be authored in any order, so a prompt with options `["No","Yes"]` (both pass the yes/no-shape check) would, on a binding `yes`, auto-resolve to **"No"** — the opposite of the panel's intent — **and** deny the prompt so the human never sees it. Eligibility now requires option 0 ∈ affirmative-vocab and option 1 ∈ negative-vocab; any other arrangement (reversed, both-affirmative, both-negative, unrecognized) fails safe to **allow** so the human answers. Only ever reachable under opt-in `decision_review: binding`.
+- **`route-decision-review.sh` — broadened high-blast heuristic.** The belt-and-suspenders high-blast keyword screen now also matches `force-with-lease`, `truncate`, `wipe`, `revoke`, and `purge` (and anchors `drop` on a word boundary). Purely additive / fail-safe — it only routes **more** destructive-shaped prompts to `defer`-to-human; it never auto-resolves anything new. (The deeper engine-level deterministic high-blast floor remains a tracked design item.)
+- **`two-panel-plan-review.js` — lens-label misalignment on a dropped agent result (P2).** `digestPanel` indexed the lens list positionally against the **null-filtered** results array, so after any panel agent returned `null` (an expected timeout/error path), every subsequent finding was attributed to the wrong expert lens. Each result now carries its `_lensKey`, tagged at dispatch time before the filter shifts indices.
+
+### Notes
+
+- **Migration:** none — the option-polarity guard only *narrows* what the decision-review hook auto-resolves (fail-safe toward asking the human) and is reachable only under the opt-in `decision_review: binding` posture; the heuristic broadening and the JS label fix change no consumer-facing schema. Nothing in a consumer's installed plugin changes on `/plugin marketplace update` beyond correct behavior on the cases above.
+
 ## 0.155.0 — 2026-06-11
 
 ### Added

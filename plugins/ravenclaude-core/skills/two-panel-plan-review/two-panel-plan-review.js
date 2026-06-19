@@ -268,10 +268,16 @@ P0s should be defensible to a skeptical reviewer who only sees the build plan. R
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 function digestPanel(results, lenses, label) {
+  // Use the lens key CARRIED on each result (`_lensKey`, attached at dispatch
+  // time before any null-filtering), not the positional `lenses[i]`. After a
+  // null agent result is dropped by `.filter(Boolean)`, the surviving array's
+  // indices no longer line up with the lens list, so `lenses[i]` would mislabel
+  // every result past the first gap. Fall back to positional only if the tag is
+  // somehow absent.
   return results
     .map(
       (p, i) =>
-        `### ${label} / ${lenses[i].key} (${p.lens})\n` +
+        `### ${label} / ${p._lensKey || (lenses[i] && lenses[i].key) || "?"} (${p.lens})\n` +
         `**Assessment:** ${p.overall_assessment}\n` +
         `**Strengths:** ${(p.strengths || []).map((s) => `\n  - ${s}`).join("")}\n` +
         `**Gaps (${p.gaps?.length || 0}):**\n` +
@@ -427,7 +433,12 @@ const panel1 = await parallel(
   ),
 );
 
-const okP1 = panel1.filter(Boolean);
+// Tag each result with its lens key while indices still align with PANEL1_LENSES
+// (i.e. BEFORE the null-filter shifts them), so digestPanel labels survive a
+// dropped agent result.
+const okP1 = panel1
+  .map((r, i) => (r ? { ...r, _lensKey: PANEL1_LENSES[i].key } : null))
+  .filter(Boolean);
 const missingPanel1 = okP1.filter((r) => r && r.artifact_present === false).length;
 if (missingPanel1 > 0) {
   log(
@@ -574,7 +585,10 @@ const panel2 = await parallel(
   ),
 );
 
-const okP2 = panel2.filter(Boolean);
+// Tag with the lens key before the null-filter shifts indices (see okP1 above).
+const okP2 = panel2
+  .map((r, i) => (r ? { ...r, _lensKey: PANEL2_LENSES[i].key } : null))
+  .filter(Boolean);
 const missingPanel2 = okP2.filter((r) => r && r.artifact_present === false).length;
 if (missingPanel2 > 0) {
   log(
