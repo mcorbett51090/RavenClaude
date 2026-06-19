@@ -10,6 +10,27 @@
   },
   "plugins": [
     {
+      "name": "legacy-modernization",
+      "source": "./plugins/legacy-modernization",
+      "description": "Legacy modernization team — 4 agents (modernization-strategist, codebase-archaeologist, refactoring-engineer, migration-engineer) for safely changing a working-but-aging system: assess the estate and choose among the 6 R's (retain/rehost/replatform/refactor/rearchitect/replace), understand undocumented code and find its seams, characterize behavior before touching it, strangle the monolith incrementally behind an anti-corruption layer, migrate data with dual-write/parallel-run, and cut over with a tested rollback. 5 skills, a knowledge bank with Mermaid decision trees + a dated 2026 capability map, 8 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: backend redesign -> backend-engineering, schema migration mechanics -> database-engineering, deploy/cutover automation -> devops-cicd, test-suite buildout -> qa-test-automation. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "legacy-modernization",
+        "strangler-fig",
+        "refactoring",
+        "characterization-tests",
+        "technical-debt",
+        "migration",
+        "anti-corruption-layer",
+        "rewrite-vs-refactor",
+        "6-rs",
+        "cutover"
+      ]
+    },
+    {
       "name": "engineering-management",
       "source": "./plugins/engineering-management",
       "description": "Engineering Management specialist team — 4 agents (engineering-manager-lead, people-and-growth-manager, delivery-and-execution-manager, technical-health-manager), 5 skills, 5 commands, 4 templates, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. The craft of leading engineers for an EM, team lead, or director accountable for a team's people, throughput, and codebase health — it treats a claim about a person as a hypothesis not a verdict, runs 1:1s as the engineer's meeting, uses DORA as a system signal never an individual stack-rank, hires through a structured loop, and sizes tech-debt as a carrying cost traded against the roadmap. Domain-neutral; deepens (does not replace) people-operations-hr and project-management. Inherits ravenclaude-core protocols.",
