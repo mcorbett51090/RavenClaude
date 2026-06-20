@@ -80,6 +80,13 @@ def main() -> int:
     if args.all:
         out = subprocess.run(["git", "-C", str(root), "ls-files"],
                              capture_output=True, text=True)
+        # Fail loud rather than silently passing on an empty path list: a git
+        # failure (not a repo, no HEAD, bad ref) must not turn this gate into a
+        # no-op that reports "Layout OK — 0 tracked files" (repo-review 2026-06-20).
+        if out.returncode != 0:
+            print(f"check-layout: `git ls-files` failed (exit {out.returncode}): "
+                  f"{out.stderr.strip()}", file=sys.stderr)
+            return 1
         paths = out.stdout.splitlines()
         scope = f"all {len(paths)} tracked files"
     else:
@@ -87,6 +94,10 @@ def main() -> int:
             ["git", "-C", str(root), "diff", "--name-only", "--diff-filter=ACR",
              f"{args.diff}...HEAD"],
             capture_output=True, text=True)
+        if out.returncode != 0:
+            print(f"check-layout: `git diff` against base '{args.diff}' failed "
+                  f"(exit {out.returncode}): {out.stderr.strip()}", file=sys.stderr)
+            return 1
         paths = out.stdout.splitlines()
         scope = f"{len(paths)} added/copied/renamed file(s) vs {args.diff}"
 
