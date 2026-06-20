@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.9.1] — 2026-06-20
+
+Research-sweep addition + correction (prompt-caching). (1) The `prompt-caching-audit` skill taught only a manual payload-diff to locate a cache-break regression; added a first-line pointer to Anthropic's native **cache-diagnostics** beta (`cache-diagnosis-2026-04-07`, Claude-API-only) which reports the first prefix divergence via `cache_miss_reason` — the dated beta header lives in the caching playbook (house opinion #14), not hardcoded in the skill. Verified against [cache diagnostics docs](https://platform.claude.com/docs/en/build-with-claude/cache-diagnostics) (retrieved 2026-06-20). (2) Fixed stale per-model cache token floors in the same skill (it said "Haiku ≥ 2,048; Sonnet/Opus ≥ 1,024", contradicting the plugin's own playbook); the skill now points to the playbook's dated floors rather than re-hardcoding numbers. Routed through two expert panels (usefulness → USEFUL; detailed review → IMPLEMENT with the pointer-not-rehardcode + capability-map-placement constraints, applied); panels concurred, no tiebreak needed.
+
+---
+
 ## [0.9.0] — 2026-06-12
 
 Research-sweep addition — documents Anthropic's new server-side **advisor tool** (beta `advisor-tool-2026-03-01`), a genuine zero-coverage gap in the knowledge bank. Verified 2026-06-12 against the primary [Advisor tool docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/advisor-tool) (corroborated by the [advisor-strategy blog](https://claude.com/blog/the-advisor-strategy) + SDK code samples). Routed through two expert panels (usefulness → USEFUL/high; detailed review → APPROVE-WITH-CHANGES/high; the required error-enumeration and version-lockstep changes are applied below); panels concurred so no tiebreak was needed. Provenance: [`docs/research/2026-06-12-advisor-tool-finding.md`](../../docs/research/2026-06-12-advisor-tool-finding.md).

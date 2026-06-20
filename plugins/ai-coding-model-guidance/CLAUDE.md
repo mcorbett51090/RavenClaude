@@ -37,7 +37,7 @@ Three coherent personas, one per non-Claude ecosystem, sharing **one** knowledge
 4. **Volatile numbers carry a retrieval date and a verify-at-use rider.** Prices, context windows, and picker contents churn weekly-to-monthly; they live in the dated knowledge bank, are re-verified before quoting, and are never baked into the personas.
 5. **Closed-world rule — never invent a model.** Only name a SKU in the verified lineup; refuse to extrapolate one from a version-number pattern. A confidently-named non-existent model is the failure this plugin exists to prevent.
 6. **Reasoning level is a dial (Codex).** Raise reasoning on the same model before jumping to a bigger, pricier SKU.
-7. **Flag retirements with billing consequences first** (e.g. `grok-code-fast-1` → redirects to Grok 4.3 pricing).
+7. **Flag retirements with billing consequences first** (e.g. `grok-code-fast-1` is retired and silently rebills at a higher rate — the current routing target/price lives, dated, in the knowledge bank).
 8. **Stay in your lane; seam to Claude.** The moment the right answer is a Claude model's capabilities or a Claude build, hand to `claude-app-engineering` — don't half-answer.
 
 ---

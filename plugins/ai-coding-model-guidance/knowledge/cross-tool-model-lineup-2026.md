@@ -135,9 +135,9 @@ Copilot's picker spans **three vendors' models** — Anthropic Claude, OpenAI GP
 | Grok 4.1 Fast | 2M | (verify live) | Larger context, faster/cheaper tier |
 | Grok 4.20 (Multi-Agent Beta) | 2M | (verify live) | Multi-agent / very-long-context work |
 
-- **⚠️ `grok-code-fast-1` is RETIRED (2026-05-15).** The old id now **redirects to Grok 4.3 pricing** — if a consumer pins it expecting the historical cheap rate, they are silently billed at $1.25/$2.50. Tell them to migrate to a current id. This is the single highest-value correction in this file.
+- **⚠️ `grok-code-fast-1` is RETIRED (2026-05-15).** The old id still resolves but now **routes to `grok-build-0.1`** (xAI's coding-model successor, see below) — so a consumer who pinned it expecting the historical cheap `grok-code-fast-1` rate (~$0.20 in / $1.50 out) is silently billed at the successor's materially higher rate (~$1 in / $2 out `[verify-at-use]` — re-confirm on the live xAI pricing page; the 2026-05-15 retirement notice originally cited Grok 4.3 rates, but the 2026-05-20 launch of `grok-build-0.1` made it the routing target). The point is the **silent rebill**, not the exact number: tell them to pin a current, verified id. This is the single highest-value correction in this file. (Re-verified 2026-06-20 via WebSearch over the bot-blocked docs.x.ai per the 403 route ladder below.)
 - All Grok prices/context windows are the fastest-churning numbers here — `[verify-at-use]` against [docs.x.ai/developers/models](https://docs.x.ai/developers/models) and the live pricing page before quoting. Prices change without notice.
-- A Grok coding-agent CLI ("Grok Build") has been reported in beta — `[unverified — confirm at docs.x.ai before relying]`.
+- **`grok-build-0.1` (Grok Build) is confirmed** — xAI's agentic-coding model, available on the xAI API in **public beta** (released 2026-05-29; [x.ai/news/grok-build-0-1](https://x.ai/news/grok-build-0-1), retrieved 2026-06-20), ~256K context `[verify-at-use]`, with MCP support, ~$1 in / $2 out `[verify-at-use]`. It is xAI's recommended **migration target for the retired `grok-code-fast-1`** slug (see the retirement line above). Context/pricing are the fastest-churning fields — re-verify before quoting.
 
 ---
 

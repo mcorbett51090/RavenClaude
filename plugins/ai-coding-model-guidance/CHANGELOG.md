@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.5] — 2026-06-20
+
+Research-sweep correction (xAI Grok lineup). Resolved the `[unverified]` "Grok Build" marker: **`grok-build-0.1`** is confirmed on the xAI API in **public beta** (released 2026-05-29; [x.ai/news/grok-build-0-1](https://x.ai/news/grok-build-0-1), retrieved 2026-06-20), ~256K context, MCP support, and is xAI's recommended migration target for the retired `grok-code-fast-1` slug. Also corrected the now-stale `grok-code-fast-1` retirement line: the slug routes to **`grok-build-0.1`** (not "Grok 4.3"); the contested billing rate is pushed to `[verify-at-use]` rather than asserting a specific number, preserving the silent-rebill warning. Persona §3 #7 softened to defer the volatile routing target to the knowledge bank (house opinion #4). Routed through two expert panels (usefulness → USEFUL; detailed review → REVISE-then-apply: 256K-not-200K context, line-138 target/price correction); panels concurred, no tiebreak needed. Independently re-verified against multiple primary/secondary sources.
+
+---
+
 ## [0.3.4] — 2026-06-11
 
 Research-sweep re-verify — re-checked the **Microsoft Foundry Fable 5** sub-claim against the authoritative `learn.microsoft.com` Foundry Claude-model table via the **Microsoft-Learn MCP**. Despite the Azure blog and the `ai.azure.com/catalog/models/claude-fable-5` catalog page announcing GA, the Learn **deployable-model table still does not list `claude-fable-5`** (it lists Opus 4-8/4-7/4-6/4-5/4-1, Sonnet 4-6/4-5, Haiku 4-5 previews + the gated `claude-mythos-preview`).
