@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.14.1] — 2026-06-20
+
+Bug fix — the credit-card PAN check in the advisory anti-pattern hook never fired.
+
+- **`hooks/flag-finance-anti-patterns.sh`** — the `[plaintext-pii-card]` credit-card regex used PCRE non-capturing groups `(?:…)` inside `grep -E` (POSIX ERE), which GNU grep rejects with `warning: ? at start of expression` and then never matches a real card number. Replaced the two `(?:…)` groups with plain capturing groups `(…)`; verified the pattern now matches all four major brands (Visa/MC/Amex/Discover) and does not false-positive on SSNs or ordinary digit strings. No behavior change other than the check now actually firing.
+
 ## [0.14.0] — 2026-06-05
 
 Non-code-vertical value-add build-out — adds the scenarios bank, two new Mermaid decision-tree knowledge files, and a runnable corporate-finance / FP&A calculator. Net-new against PR #315 (which added the consolidated decision-trees, best-practices, and templates); honestly dispositions the code-runtime tier as N-A.
