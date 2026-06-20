@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.158.0 — 2026-06-20
+
+### Changed
+
+- **Knowledge: corrected + reconciled the agent-team orchestration shape** in [`knowledge/dynamic-workflows.md`](knowledge/dynamic-workflows.md). The prior text said the agent-team lead *"still decides turn by turn,"* which understated the shipped feature: per the official [Orchestrate teams of Claude Code sessions](https://code.claude.com/docs/en/agent-teams) doc (retrieved 2026-06-20), teammates **communicate directly with each other** via a mailbox (`SendMessage`) and self-claim from a shared task list — they don't only report back to the lead. Fixed the rationale line and added a new **§ Agent teams & RavenClaude's hub-and-spoke constitution** that pins the exact boundary against the core dispatch rule: the no-peer-**spawn** invariant is **preserved** (*"teammates cannot spawn their own teammates"*) and the lead is fixed, but peer **communication** is **relaxed** — inter-teammate mailbox traffic bypasses the lead-mediated Structured-Output-Protocol handoff path, so it isn't captured by the SOP/run-artifact/Heimdall-Víðarr observability the guardrail stack assumes. The section records the enable flag (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`, experimental/off-by-default), how to keep guardrails when using it (the `TaskCreated`/`TaskCompleted`/`TeammateIdle` gating hooks; spawning a hardened subagent definition — e.g. `security-reviewer` — as a teammate so its `tools` allowlist holds; permission inheritance at spawn), and when not to reach for it. Sourced from the [2026-06-20 Claude subreddit scan](../../docs/research/2026-06-20-claude-subreddit-scan/README.md) (1 of 4 findings approved; the others deferred/denied as already covered or out-of-core-scope).
+
+### Notes
+
+- **Migration:** none — additive/corrective markdown in a knowledge file; nothing in a consumer's installed plugin changes behaviorally on `/plugin marketplace update`.
+
 ## 0.155.0 — 2026-06-11
 
 ### Added
