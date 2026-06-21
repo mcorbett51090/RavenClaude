@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.9.1] — 2026-06-21
+
+Research-sweep correction to `knowledge/model-selection-and-2026-capability-map.md` (re-dated 2026-06-21): **Claude Fable 5 and Mythos 5 are globally suspended as of 2026-06-12** under a US export-control directive (disabled for all customers across the direct Claude APIs, Bedrock, Google Cloud, Foundry, Snowflake, Box, GitHub Copilot; all other Claude models unaffected; Anthropic working to restore). Breaking note added; the Fable 5 lineup row, the Mythos 5 note, the capability-status row, and — critically — the **advisor-tool row** are all caveated: the Fable-5→Fable-5 / Mythos-5→Mythos-5 advisor pairings are unsatisfiable while suspended, so fall back to an Opus 4.8 executor + Opus 4.8 advisor. Rows are superseded-in-place, not deleted (dated GA-then-suspended record preserved), `[verify-at-use — may be restored]`. Routed through two expert panels (usefulness + detailed review); concurred, no tiebreak. No migration — knowledge-file content only.
+
 ## [0.9.0] — 2026-06-12
 
 Research-sweep addition — documents Anthropic's new server-side **advisor tool** (beta `advisor-tool-2026-03-01`), a genuine zero-coverage gap in the knowledge bank. Verified 2026-06-12 against the primary [Advisor tool docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/advisor-tool) (corroborated by the [advisor-strategy blog](https://claude.com/blog/the-advisor-strategy) + SDK code samples). Routed through two expert panels (usefulness → USEFUL/high; detailed review → APPROVE-WITH-CHANGES/high; the required error-enumeration and version-lockstep changes are applied below); panels concurred so no tiebreak was needed. Provenance: [`docs/research/2026-06-12-advisor-tool-finding.md`](../../docs/research/2026-06-12-advisor-tool-finding.md).

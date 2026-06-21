@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.5] — 2026-06-21
+
+Research-sweep refresh of the fast-churn cross-tool lineup (`knowledge/cross-tool-model-lineup-2026.md`), re-dated to 2026-06-21. Three corroborated findings folded in (routed through two expert panels: usefulness → all three USEFUL; detailed review → APPROVE-WITH-CHANGES, two P0 refinements applied; panels concurred, no tiebreak): (1) **Claude Fable 5 / Mythos 5 globally suspended 2026-06-12** under a US export-control directive — the prior GA / "free-through-2026-06-22" framing is superseded in place (kept as the dated GA-then-suspended record), `[verify-at-use — may be restored]`; (2) **OpenAI GPT-5.3-Codex and GPT-5.2/5.2-Codex deprecated** (new API requests end 2026-06-30, full shutdown 2026-12-31) — flagged like the `grok-code-fast-1` retirement, GPT-5.5 as the migration target; (3) **MAI-Code-1-Flash** (Microsoft small coding model) broadly available across Copilot surfaces 2026-06-18 — added to the cheapest-fast tier. No migration — knowledge-file content only.
+
 ## [0.3.4] — 2026-06-11
 
 Research-sweep re-verify — re-checked the **Microsoft Foundry Fable 5** sub-claim against the authoritative `learn.microsoft.com` Foundry Claude-model table via the **Microsoft-Learn MCP**. Despite the Azure blog and the `ai.azure.com/catalog/models/claude-fable-5` catalog page announcing GA, the Learn **deployable-model table still does not list `claude-fable-5`** (it lists Opus 4-8/4-7/4-6/4-5/4-1, Sonnet 4-6/4-5, Haiku 4-5 previews + the gated `claude-mythos-preview`).

@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.157.1 — 2026-06-21
+
+### Changed
+
+- **Research-sweep:** `knowledge/orchestrator-data-egress.md` — the ZDR note that cites Fable 5 / Mythos 5 forcing 30-day retention now carries a dated **availability-suspended (2026-06-12)** aside pointing at the model lineup. The ZDR-ineligibility fact itself is unchanged (it still describes those models when available); only an availability pointer was added so the egress guidance reflects that the two models are currently disabled across all surfaces (US export-control directive). No migration — knowledge-file content only.
+
 ## 0.155.0 — 2026-06-11
 
 ### Added
