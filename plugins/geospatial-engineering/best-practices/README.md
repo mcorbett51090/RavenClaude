@@ -28,5 +28,6 @@ _9 rules. Each file is one named, citable rule; read and apply it whole._
 
 - [`../CLAUDE.md`](../CLAUDE.md) — geospatial-engineering team constitution (house opinions, anti-patterns, Output Contracts, smell hook).
 - [`../knowledge/projection-decision-tree.md`](../knowledge/projection-decision-tree.md) — the CRS + geometry-vs-geography decision tree the SRID rule leans on.
+- [`../knowledge/storage-and-serving-decision-trees.md`](../knowledge/storage-and-serving-decision-trees.md) — the storage-class + web-serving-format decision trees the tiling rules lean on.
 - [`../knowledge/geospatial-stack-2026.md`](../knowledge/geospatial-stack-2026.md) — the tiered 2026 tooling reference.
 - [`../../../docs/best-practices/README.md`](../../../docs/best-practices/README.md) — marketplace-wide best-practice docs and the `_TEMPLATE.md` these follow.
