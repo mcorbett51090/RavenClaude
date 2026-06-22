@@ -2,6 +2,14 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.0] — 2026-06-22
+
+Reputation-monitoring completeness — folded the one genuinely-additive idea from a retired `marketing-operations` email-deliverability draft (everything else it carried was already covered here, often more deeply).
+
+- **Microsoft SNDS + JMRP as a first-class reputation surface.** The knowledge bank and audit skill leaned entirely on Google Postmaster Tools + DMARC RUA; a Postmaster-only check is blind to Outlook/Hotmail, whose reputation moves independently of Gmail's. Added a "Where you read reputation (the monitoring surfaces)" section to `knowledge/deliverability-fundamentals.md` (Postmaster / SNDS+JMRP / RUA), and threaded SNDS into the `deliverability-audit` skill's reputation step and the `warm-up-new-sending-domains` best-practice.
+
+No agents, skills, templates, or commands added; no frontmatter changed. Knowledge/skill/best-practice text edits only.
+
 ## [0.1.0] — 2026-06-13
 
 Initial release. A specialist team for getting legitimate mail to the inbox and proving the domain is authentic.

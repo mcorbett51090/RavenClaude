@@ -13,6 +13,9 @@
 #      geography/projected metres — degree distances are meaningless on the ground.
 #   3. An `ST_Distance(...) <` proximity filter (use ST_DWithin so the GiST index
 #      applies) — index-geometry-with-gist.
+#   4. ST_Area / ST_Length computed in EPSG:3857 (Web Mercator) — that projection
+#      distorts area/length away from the equator; measure in geography or a
+#      projected metric CRS — never-compute-area-in-web-mercator.
 #
 # Advisory by default: prints warnings to stderr (so Claude and the user both see
 # them) but exits 0 so the edit is not blocked. Set GEO_SMELLS_STRICT=1 to make
@@ -86,6 +89,15 @@ fi
 # the advisory hook on a clean file.
 if grep -niEq 'st_distance\s*\([^)]*\)\s*<' "$file" 2>/dev/null; then
   violations+=("An ST_Distance(...) < d proximity filter computes a distance per row and defeats the GiST index. Use ST_DWithin(a, b, d) so the spatial index applies. (index-geometry-with-gist)")
+fi
+
+# ---------------------------------------------------------------------------
+# Check 4: ST_Area / ST_Length computed in EPSG:3857 (Web Mercator).
+# Web Mercator is conformal — it grossly distorts area/length away from the
+# equator, so a measurement in 3857 can be off by a factor of several.
+# ---------------------------------------------------------------------------
+if grep -niEq 'st_(area|length)\s*\(.*3857' "$file" 2>/dev/null; then
+  violations+=("Area/length is computed in EPSG:3857 (Web Mercator) — that projection grossly distorts area/length away from the equator. Measure with ::geography (m²/m) or a projected metric CRS (UTM/state-plane/national grid). (never-compute-area-in-web-mercator)")
 fi
 
 # ---------------------------------------------------------------------------

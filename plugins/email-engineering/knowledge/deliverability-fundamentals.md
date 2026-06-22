@@ -24,6 +24,16 @@ A failure low in the stack (auth) cannot be fixed by improving something high in
 
 A new sending domain/IP has **no** reputation. Sending high volume immediately reads as a spammer who just bought a domain. Warm up by ramping volume over days/weeks, starting with your **most engaged** recipients (opens/clicks build positive signal), and watch Postmaster reputation as you climb. Transactional mail (high engagement, expected) warms faster than cold marketing blasts.
 
+## Where you read reputation (the monitoring surfaces)
+
+Reputation is provider-specific, so you watch it on each major provider's own surface — not one dashboard:
+
+- **Google Postmaster Tools** — domain/IP reputation, spam rate, authentication pass rates, and encryption, **for Gmail**.
+- **Microsoft SNDS** (Smart Network Data Services) + **JMRP** (Junk Mail Reporting Program) — IP volume, complaint, and spam-trap data, plus the Outlook/Hotmail feedback loop, **for the Microsoft mailboxes** (Outlook.com / Hotmail / Live).
+- **DMARC RUA aggregate reports** — provider-agnostic: who is sending as you, and whether each stream aligns.
+
+A diagnosis that only checks Postmaster is **blind to Outlook/Hotmail** — register SNDS/JMRP too, because Microsoft reputation moves independently of Gmail's. These are leading indicators; read them *before* the bounce report, not after.
+
 ## The two rates that matter most
 
 - **Hard bounce rate** — invalid/nonexistent addresses. High bounce = poor list hygiene = a spam signal. Suppress hard bounces permanently.

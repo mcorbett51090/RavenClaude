@@ -13,7 +13,7 @@ A new sending domain or dedicated IP has **no** reputation. Sending high volume 
 ## How to apply
 
 - Ramp volume over days/weeks, starting with the most engaged recipients (opens/clicks build positive signal).
-- Watch Google Postmaster domain/IP reputation as you climb; slow down if it dips.
+- Watch Google Postmaster domain/IP reputation as you climb (and Microsoft SNDS for the Outlook/Hotmail share); slow down if either dips.
 - Transactional (high-engagement, expected) warms faster than cold marketing.
 - A **dedicated IP** needs sustained volume to stay warm — don't take one unless volume justifies it; otherwise a shared pool is safer.
 
