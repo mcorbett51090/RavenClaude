@@ -2317,6 +2317,52 @@
         "product-feedback-loop",
         "developer-content"
       ]
+    },
+    {
+      "name": "trust-and-safety",
+      "source": "./plugins/trust-and-safety",
+      "description": "Trust & Safety team — 2 agents for content-moderation and abuse-detection work. The trust-safety-policy-lead designs the policy taxonomy + enforcement ladder, the human-review operations layer (queue prioritization, reviewer wellness, escalation, appeals/due-process), and the measurement frame (prevalence, enforcement precision/recall, time-to-action SLA, appeal-overturn rate). The abuse-detection-engineer builds the detection stack: signals, rules-vs-ML classifiers, reviewer queues, thresholds tied to precision/recall. 3 skills, a 2-doc knowledge bank (a Mermaid enforcement decision tree + a T&S metrics catalogue with formulas), 2 templates, 3 best-practice rules, and 1 advisory hook. Seams: classifier-eval validity → applied-statistics; PII → data-governance-privacy; account-takeover → security-engineering; LLM-classifier build → claude-app-engineering. Enforcement is proportional; appeals are due process; measure prevalence, not just volume. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "trust-and-safety",
+        "content-moderation",
+        "abuse-detection",
+        "spam-detection",
+        "enforcement-ladder",
+        "reviewer-operations",
+        "appeals-due-process",
+        "prevalence",
+        "precision-recall",
+        "policy-taxonomy",
+        "classifier-thresholds",
+        "sla"
+      ]
+    },
+    {
+      "name": "geospatial-engineering",
+      "source": "./plugins/geospatial-engineering",
+      "description": "Geospatial / GIS engineering team — 2 agents for the engineering of location data. The geospatial-data-engineer owns spatial data modeling and storage (PostGIS, GiST/SP-GiST indexes, SRID and projection hygiene — EPSG:4326 vs 3857, geometry vs geography), spatial SQL and analysis (ST_ functions, spatial joins, nearest-neighbor, buffers), and geospatial pipelines (GDAL/OGR, geocoding, routing engines like OSRM/Valhalla). The mapping-visualization-engineer owns the serving and visualization layer (vector tiles/MVT, pg_tileserv/Martin/Tegola, MapLibre/Mapbox GL styling, the GeoJSON-vs-vector-tile tradeoff). 3 skills, a projection decision tree, a dated 2026 stack reference, 2 templates, 3 best-practice rules, and 1 advisory hook that flags geometry-without-SRID and degree-distance smells. Seams: warehouse/ELT → data-platform; OLTP schema → database-engineering; map UI → frontend-engineering. Always store an SRID; index geometry with GiST; vector tiles over GeoJSON at scale. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "geospatial",
+        "gis",
+        "postgis",
+        "spatial-sql",
+        "vector-tiles",
+        "maplibre",
+        "gdal",
+        "srid",
+        "projections",
+        "geocoding",
+        "routing",
+        "mvt"
+      ]
     }
   ]
 }
