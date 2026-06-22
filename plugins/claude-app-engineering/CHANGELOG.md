@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.9.2] — 2026-06-22
+
+Research-sweep addition + correction (prompt-caching). (1) The `prompt-caching-audit` skill taught only a manual payload-diff to locate a cache-break regression; added a first-line pointer to Anthropic's native **cache-diagnostics** beta (`cache-diagnosis-2026-04-07`, Claude-API-only) which reports the first prefix divergence via `cache_miss_reason` — the dated beta header lives in the caching playbook (house opinion #14), not hardcoded in the skill. Verified against [cache diagnostics docs](https://platform.claude.com/docs/en/build-with-claude/cache-diagnostics) (retrieved 2026-06-20). (2) Fixed stale per-model cache token floors in the same skill (it said "Haiku ≥ 2,048; Sonnet/Opus ≥ 1,024", contradicting the plugin's own playbook); the skill now points to the playbook's dated floors rather than re-hardcoding numbers. Routed through two expert panels (usefulness → USEFUL; detailed review → IMPLEMENT with the pointer-not-rehardcode + capability-map-placement constraints, applied); panels concurred, no tiebreak needed. (Originally cut as 0.9.1; renumbered to 0.9.2 on merge after the 2026-06-13 Fable 5 suspension sweep independently took 0.9.1 on main.)
+
+---
+
 ## [0.9.1] — 2026-06-13
 
 Research-sweep **correction** (Tier-A weekly news sweep) — **Fable 5 & Mythos 5 were suspended worldwide on 2026-06-12** under a US export-control directive; Anthropic disabled both for all customers across the Claude API, AWS Bedrock, GitHub Copilot, and Microsoft Foundry (disputing the rationale and stating it is working to restore access). Independently verified this session against the primary source [Anthropic statement](https://www.anthropic.com/news/fable-mythos-access) (corroborated by [Bloomberg](https://www.bloomberg.com/news/articles/2026-06-13/anthropic-says-us-limits-foreign-access-to-fable-5-mythos-5) + [CNBC](https://www.cnbc.com/2026/06/12/anthropic-disables-access-to-fable-5-and-mythos-5-to-comply-with-government-directive.html)). Routed through three expert panels (usefulness → USEFUL/unanimous; detailed review → APPROVE-WITH-FIX; the framing fixes — *current-status/disputed not deprecation*, named secondaries, `[verify-at-use]` markers — are applied).
