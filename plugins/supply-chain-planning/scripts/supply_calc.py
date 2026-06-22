@@ -13,9 +13,9 @@ safety_stock(z, sigma_demand, lead_time, sigma_lead_time=0.0, mean_demand=0.0)
 reorder_point(mean_demand, lead_time, safety_stock_units)
     Reorder point for a continuous-review (s, Q) system.
 
-fill_rate(safety_stock_units, sigma_demand, lead_time)
-    Approximate Type-2 fill rate (fraction of demand met from stock) using
-    the unit normal loss function.
+fill_rate(safety_stock_units, sigma_demand, lead_time, cycle_demand_units)
+    Type-2 fill rate / β service level (fraction of demand met from stock) using
+    the unit normal loss function. NOT the Type-1 cycle service level Φ(z).
 
 mape_bias(actuals, forecasts)
     MAPE (mean absolute percentage error) and bias from paired lists.
@@ -196,14 +196,23 @@ def fill_rate(
     safety_stock_units: float,
     sigma_demand: float,
     lead_time: float,
+    cycle_demand_units: float,
 ) -> float:
     """
-    Approximate Type-2 fill rate (fraction of demand met from stock).
+    Type-2 fill rate (β service level) — the fraction of demand met from stock.
 
-    Uses the unit normal loss function approximation:
-        FR ≈ 1 − L(z) × σ_demand × √(lead_time) / (mean cycle demand)
+    Uses the standard cycle-based approximation for normally-distributed
+    lead-time demand:
 
-    Here we compute the z implied by the safety stock and return the corresponding fill rate.
+        FR = 1 − E[shortage per cycle] / E[demand per cycle]
+           = 1 − (σ_LT × L(z)) / cycle_demand_units
+
+    where σ_LT = σ_demand × √(lead_time), z = safety_stock / σ_LT, and L(z) is
+    the standard-normal unit loss function. This is the Type-2 (β) metric — the
+    fraction of demand satisfied immediately — NOT the Type-1 cycle service level
+    (the probability of no stockout in a cycle, Φ(z)). They are different metrics
+    whose ordering depends on the order quantity (β rises as the cycle demand grows),
+    so do not substitute one for the other when sizing to a fill-rate target.
 
     Parameters
     ----------
@@ -213,11 +222,15 @@ def fill_rate(
         Standard deviation of demand per period.
     lead_time : float
         Mean lead time in periods.
+    cycle_demand_units : float
+        Expected demand per replenishment cycle (the denominator). For a
+        continuous-review (Q, r) policy this is the order quantity Q; for a
+        periodic-review policy it is mean_demand × review_period. Must be > 0.
 
     Returns
     -------
     float
-        Approximate fill rate as a fraction (0–1).
+        Fill rate as a fraction (0–1).
 
     Notes
     -----
@@ -228,21 +241,18 @@ def fill_rate(
         raise ValueError("sigma_demand must be > 0")
     if lead_time <= 0:
         raise ValueError("lead_time must be > 0")
+    if cycle_demand_units <= 0:
+        raise ValueError("cycle_demand_units must be > 0")
 
     sigma_lt = sigma_demand * math.sqrt(lead_time)
     if sigma_lt <= 0:
         return 1.0
 
     z = safety_stock_units / sigma_lt
-    _unit_loss(z)
-    # FR = 1 - E[shortage per cycle] / E[demand per cycle]
-    # E[shortage] = sigma_lt * L(z); E[demand] approximated as sigma_lt (normalised)
-    # Standard approximation: FR ≈ 1 - L(z) / z when z > 0; use full form:
-    # FR = 1 - (sigma_lt * L(z)) / (mean_demand * review_period)
-    # Without mean_demand, return the z-based approximation as a CSL proxy:
-    # FR_approx = Phi(z)  [Type-1 / CSL as a lower bound on fill rate]
-    fr = _norm_cdf(z)
-    return min(fr, 1.0)
+    # E[shortage per cycle] = σ_LT × L(z); E[demand per cycle] = cycle_demand_units.
+    expected_shortage_per_cycle = sigma_lt * _unit_loss(z)
+    fr = 1.0 - expected_shortage_per_cycle / cycle_demand_units
+    return max(0.0, min(fr, 1.0))
 
 
 # ---------------------------------------------------------------------------
@@ -332,10 +342,10 @@ if __name__ == "__main__":
     rop = reorder_point(mean_demand=100, lead_time=4, safety_stock_units=66)
     print(f"Reorder point (D̄=100, LT=4, SS=66): {rop:.1f} units  [expected = 466.0]")
 
-    # Fill rate
-    # SS=66, σ_demand=20, LT=4
-    fr = fill_rate(safety_stock_units=66, sigma_demand=20, lead_time=4)
-    print(f"Fill rate (SS=66, σ=20, LT=4): {fr:.4f}  [CSL proxy ≈ 0.9505]")
+    # Fill rate (Type-2 / β service level)
+    # SS=66, σ_demand=20, LT=4, order quantity Q=400  (σ_LT=40, z=1.65, L(z)≈0.0206)
+    fr = fill_rate(safety_stock_units=66, sigma_demand=20, lead_time=4, cycle_demand_units=400)
+    print(f"Fill rate (SS=66, σ=20, LT=4, Q=400): {fr:.4f}  [expected ≈ 0.9979]")
 
     # MAPE and bias
     actuals_ex = [100, 120, 90, 110, 130, 95]

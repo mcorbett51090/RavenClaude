@@ -133,6 +133,40 @@ _is_dangerous_chmod() {
   return 0
 }
 
+# `find` with a destructive action (-delete, or -exec rm/unlink/shred/truncate)
+# AIMED at a dangerous ABSOLUTE root: an absolute path (/, /etc, …), ~, or $HOME
+# (e.g. `find / -delete`, `find $HOME -exec rm {} +`). `find -delete` is a
+# well-known mass-delete idiom (the runaway-brake's read-only carve-out already
+# excludes `find` for this very reason). Scope is deliberately the absolute/HOME
+# root ONLY — a relative target (`find . -name '*.tmp' -delete`,
+# `find ./build -delete`) is an extremely common, legitimate cleanup idiom and is
+# ALLOWED; the bare-cwd `find . -delete` wipe is the one residual gap accepted to
+# avoid false-positiving the common filtered form (the cwd container is the
+# blast-radius bound for that one, same as the worktree/sandbox posture).
+_is_dangerous_find() {
+  local c="$1"
+  [[ "$c" =~ (^|[;\&\|[:space:]])find[[:space:]] ]] || return 1
+  # a destructive action must be present
+  [[ "$c" =~ (^|[[:space:]])-delete([[:space:]]|$) ]] \
+    || [[ "$c" =~ -exec[[:space:]]+(sudo[[:space:]]+)?(rm|unlink|shred|truncate)([[:space:]]|$) ]] \
+    || return 1
+  # dangerous target: absolute path / ~ / $HOME
+  [[ "$c" =~ (^|[[:space:]])(/|~|\$HOME) ]] && return 0
+  return 1
+}
+
+# `truncate -s 0` (empty-the-file) of a dangerous root — an absolute path, ~, or
+# $HOME (e.g. `truncate -s 0 /etc/passwd`). Size 0 in any spelling (-s0 / -s 0 /
+# -s 0K). A relative target (`truncate -s 0 ./app.log`) is ALLOWED — same
+# dangerous-root philosophy as rm/find.
+_is_dangerous_truncate() {
+  local c="$1"
+  [[ "$c" =~ (^|[;\&\|[:space:]])truncate[[:space:]] ]] || return 1
+  [[ "$c" =~ -s[[:space:]]*0([[:space:]]|$|[bkKMGT]) ]] || return 1
+  [[ "$c" =~ (^|[[:space:]])(/|~|\$HOME) ]] && return 0
+  return 1
+}
+
 # --- Pattern array (matched against the normalized command) ----------------
 # The settings.json deny-list catches the top-level form; this catches them
 # when nested / wrapped / reordered.
@@ -168,8 +202,10 @@ _deny() {
 }
 
 # Order-independent structural checks first.
-if _is_dangerous_rm "$norm";    then _deny "recursive-rm-of-dangerous-target"; fi
-if _is_dangerous_chmod "$norm"; then _deny "recursive-chmod-world-or-lockout"; fi
+if _is_dangerous_rm "$norm";       then _deny "recursive-rm-of-dangerous-target"; fi
+if _is_dangerous_chmod "$norm";    then _deny "recursive-chmod-world-or-lockout"; fi
+if _is_dangerous_find "$norm";     then _deny "find-delete-of-dangerous-target"; fi
+if _is_dangerous_truncate "$norm"; then _deny "truncate-zero-of-dangerous-target"; fi
 
 # Then the pattern array.
 for pat in "${deny_patterns[@]}"; do

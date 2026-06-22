@@ -78,10 +78,28 @@ generated artifact.
   `size_partitions` returns `0` on success (line 80); verified by running it
   (8 partitions → exit 0). No change made.
 
-## Open decisions — need your input (NOT implemented)
+## Open decisions — RESOLVED 2026-06-17 (implemented on owner request "fix them")
 
-These are confirmed but require a judgment call, an API/semantics change, or a
-gate-fixture build, so they were deliberately left for you.
+All three were implemented after the owner approved acting on them. Summary of
+what shipped (full detail retained below for the record):
+
+- **D1** — `supply_calc.fill_rate()` now computes the real Type-2 fill rate
+  `1 − σ_LT·L(z)/cycle_demand_units` (added the cycle-demand parameter; the only
+  caller was the module self-test). Note corrected during implementation: the
+  α/β (CSL vs fill-rate) ordering is **not** universal — it depends on the order
+  quantity — so the docstring no longer asserts "CSL ≥ FR".
+- **D2** — `guard-destructive.sh` now blocks `find … -delete`/`-exec rm|unlink|
+  shred|truncate` and `truncate -s 0` against absolute/`~`/`$HOME` roots; relative
+  targets (`find . -name '*.tmp' -delete`) stay allowed to avoid false-positiving
+  the common idiom. Bidirectional fixtures added to audit-gates Gate 5.
+- **D3** — `check-marketplace-claims.py` gained a count-drift family check (every
+  "N plugins" in README == actual; "M of the N plugins" == require-core count;
+  core README "What's inside" table == core actuals) with `--fix` self-heal and
+  bidirectional Gate 12 fixtures.
+
+Gate suite after the fixes: **`audit-gates.sh` 456/456**, ruff + prettier clean.
+
+The original write-ups (now historical):
 
 ### D1 (P1) — `supply_calc.fill_rate()` returns cycle-service-level, not fill rate
 `plugins/supply-chain-planning/scripts/supply_calc.py:236-245`. The function
