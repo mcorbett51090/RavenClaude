@@ -25,6 +25,7 @@ Holds donor retention as the master efficiency number, qualifies grants on funde
 - **`run-the-cultivation-cycle`** — Move a donor through identification, qualification, cultivation, solicitation, and stewardship rather than jumping to the ask. Reach for this on a major-gift prospect.
 - **`segment-the-donor-base`** — Segment donors by value, recency, and engagement (RFM-style) to direct cultivation hours where they pay. Reach for this when cultivation is spread thin.
 - **`read-cost-per-dollar`** — Compute cost-to-raise-a-dollar per channel, never blended, so the subsidizing channel is visible. Reach for this on a portfolio/efficiency question.
+- **`grant-postaward-compliance`** — Manage a grant *after* the award: set up, spend only on allowable/allocable/reasonable costs, track budget-vs-actual monthly, report on cadence, stay audit-ready through close-out. Reach for this once a grant is won (the post-award/compliance side).
 
 ## Slash commands
 
@@ -36,7 +37,7 @@ Holds donor retention as the master efficiency number, qualifies grants on funde
 
 ## Knowledge bank
 
-4 research-grounded reference docs under [`knowledge/`](knowledge/) — figures carry a source + date, advisory numbers are marked `[ESTIMATE]`, and anything from training knowledge is marked `[unverified — training knowledge]`.
+5 research-grounded reference docs under [`knowledge/`](knowledge/) — covering both the pre-award development side and the post-award / grant-compliance side ([`grant-management-post-award.md`](knowledge/grant-management-post-award.md)). Figures carry a source + date, advisory numbers are marked `[ESTIMATE]`, regulatory specifics carry `[verify-at-use]`, and anything from training knowledge is marked `[unverified — training knowledge]`.
 
 ## Install
 

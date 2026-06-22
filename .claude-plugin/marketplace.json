@@ -661,8 +661,8 @@
     {
       "name": "frontend-engineering",
       "source": "./plugins/frontend-engineering",
-      "description": "Frontend-engineering team — 4 agents (frontend-architect, react-implementation-engineer, frontend-state-and-data-engineer, frontend-performance-engineer) for building app-grade frontends (React/Next, TypeScript): component architecture and composition, the rendering-strategy choice (CSR/SSR/SSG/ISR/React Server Components), client state vs server-cache (TanStack Query/RSC) and form/validation, bundle/performance discipline (code-splitting, Core Web Vitals, hydration cost), and accessibility-in-code (semantic HTML, ARIA, keyboard, focus). TypeScript-first. 5 skills, a decision-tree knowledge bank (rendering-strategy + state-location trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Distinct from web-design (brand/UX/marketing sites). Seams: design/brand/WCAG-audit -> web-design, auth UX -> auth-identity, API consumption -> api-engineering, native -> mobile-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.4.0",
+      "description": "Frontend-engineering team — 4 agents (frontend-architect, react-implementation-engineer, frontend-state-and-data-engineer, frontend-performance-engineer) for building app-grade frontends (React/Next, TypeScript): component architecture and composition, the rendering-strategy choice (CSR/SSR/SSG/ISR/React Server Components), client state vs server-cache (TanStack Query/RSC) and form/validation, bundle/performance discipline (code-splitting, Core Web Vitals, hydration cost), and accessibility-in-code (semantic HTML, ARIA, keyboard, focus). TypeScript-first. 6 skills, a decision-tree knowledge bank (rendering-strategy + state-location trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Distinct from web-design (brand/UX/marketing sites). Seams: design/brand/WCAG-audit -> web-design, auth UX -> auth-identity, API consumption -> api-engineering, native -> mobile-engineering. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.5.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -891,8 +891,8 @@
     {
       "name": "ml-engineering",
       "source": "./plugins/ml-engineering",
-      "description": "ML-engineering (MLOps) team — 4 agents (ml-platform-architect, training-pipeline-engineer, model-serving-engineer, ml-monitoring-engineer) for the PRODUCTION lifecycle of ML models: the platform/architecture (build-vs-buy, the stack, the train->register->serve->monitor loop), reproducible training pipelines + experiment tracking + a model registry, feature stores and train/serve consistency (avoiding training-serving skew and leakage), model serving (online vs batch, the right deployment with shadow/canary), and monitoring (data + concept drift, performance decay, retraining triggers). 5 skills, a decision-tree knowledge bank (serving-pattern + retraining-trigger trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: 'is the result significant?' -> applied-statistics, data pipelines -> data-platform/data-streaming, LLM/agent apps -> claude-app-engineering, deploy infra -> devops-cicd/cloud-native-kubernetes. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.0",
+      "description": "ML-engineering (MLOps) team — 4 agents (ml-platform-architect, training-pipeline-engineer, model-serving-engineer, ml-monitoring-engineer) for the PRODUCTION lifecycle of ML models: the platform/architecture (build-vs-buy, the stack, the train->register->serve->monitor loop), reproducible training pipelines + experiment tracking + a model registry, feature stores and train/serve consistency (avoiding training-serving skew and leakage), model serving (online vs batch, the right deployment with shadow/canary), and monitoring (data + concept drift, performance decay, retraining triggers). 6 skills, a decision-tree knowledge bank (serving-pattern + retraining-trigger trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: 'is the result significant?' -> applied-statistics, data pipelines -> data-platform/data-streaming, LLM/agent apps -> claude-app-engineering, deploy infra -> devops-cicd/cloud-native-kubernetes. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.4.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1189,8 +1189,8 @@
     {
       "name": "nonprofit-fundraising",
       "source": "./plugins/nonprofit-fundraising",
-      "description": "Nonprofit Fundraising specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A development team for a nonprofit fundraiser or executive director — it protects donor retention (the cheapest dollar a nonprofit has, at ~$0.20 to keep vs ~$1.50 to acquire), builds the grant pipeline on fit before effort, segments the donor base by value and recency, and reads cost-to-raise-a-dollar honestly across channels. Inherits ravenclaude-core protocols.",
-      "version": "0.2.1",
+      "description": "Nonprofit Fundraising specialist team — 4 agents, 6 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A development team for a nonprofit fundraiser or executive director — it protects donor retention (the cheapest dollar a nonprofit has, at ~$0.20 to keep vs ~$1.50 to acquire), builds the grant pipeline on fit before effort, segments the donor base by value and recency, and reads cost-to-raise-a-dollar honestly across channels. Inherits ravenclaude-core protocols.",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1562,8 +1562,8 @@
     {
       "name": "marketing-operations",
       "source": "./plugins/marketing-operations",
-      "description": "Marketing Operations specialist team — 4 agents (marketing-ops-lead, demand-gen-funnel-analyst, attribution-analytics-specialist, martech-campaign-architect), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A marketing-ops team for a CMO, demand-gen analyst, or founder accountable for pipeline contribution and CAC efficiency — it reads the MQL→SQL→opp→win funnel as a system, states the attribution model before any number, gates spend on LTV:CAC and payback, and reports revenue contribution over lead volume. Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
+      "description": "Marketing Operations specialist team — 4 agents (marketing-ops-lead, demand-gen-funnel-analyst, attribution-analytics-specialist, martech-campaign-architect), 7 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A marketing-ops team for a CMO, demand-gen analyst, or founder accountable for pipeline contribution and CAC efficiency — it reads the MQL→SQL→opp→win funnel as a system, states the attribution model before any number, gates spend on LTV:CAC and payback, and reports revenue contribution over lead volume. Inherits ravenclaude-core protocols.",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -2243,6 +2243,112 @@
         "spatial-index",
         "geoparquet",
         "bigquery-gis"
+      ]
+    },
+    {
+      "name": "wordpress-cms-engineering",
+      "source": "./plugins/wordpress-cms-engineering",
+      "description": "WordPress / CMS engineering team — 3 agents (wordpress-architect, wordpress-developer, wordpress-ops-engineer) for building, extending, and operating WordPress done right: the build-approach decision (classic vs block/FSE theme, plugin vs theme vs must-use, headless/decoupled vs traditional, single vs multisite), secure block & theme & plugin development (block.json, hooks/filters, WP_Query, the REST API, sanitize-in/escape-out, $wpdb->prepare, nonce + capability checks), and operations (page + object cache/Redis, security hardening, safe updates with staging & backups, migrations). 5 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 stack map), 8 best-practices, 3 templates, 3 commands, 1 advisory hook. Seams: decoupled front-end -> frontend-engineering, non-WP backend/APIs -> backend-engineering, infra perf budget -> performance-engineering, formal security verdict -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "wordpress",
+        "cms",
+        "gutenberg",
+        "block-editor",
+        "block-json",
+        "fse",
+        "theme-json",
+        "wp-query",
+        "wpdb",
+        "rest-api",
+        "wpgraphql",
+        "headless-wordpress",
+        "multisite",
+        "object-cache",
+        "redis",
+        "wp-cli",
+        "php"
+      ]
+    },
+    {
+      "name": "event-management",
+      "source": "./plugins/event-management",
+      "description": "Event-management team — 3 agents (event-strategist, event-operations-lead, event-marketing-revenue) for planning and running conferences, webinars, and field/community events across in-person, virtual, and hybrid formats: goals/KPIs and the go/no-go gate, format and audience and budget/break-even model, sponsorship strategy and fulfilled-promise delivery, minute-by-minute run-of-show and show-flow, venue/vendor/AV logistics, registration funnel and attendee ops, contingency and single-point-of-failure plan-Bs, promotion and ticketing funnel, and post-event ROI measured against the goal you set. This is the event craft, distinct from generic delivery — schedule/RAID/stakeholder management lives in project-management. 5 skills, a decision-tree knowledge bank (format + break-even + sponsorship-tier + go/no-go trees, plus a dated 2026 tooling/benchmark map), 8 best-practices, 3 templates, 3 commands, 1 advisory hook. Seams: schedule/RAID -> project-management. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "event-management",
+        "events",
+        "conference",
+        "webinar",
+        "hybrid-event",
+        "virtual-event",
+        "run-of-show",
+        "show-flow",
+        "registration",
+        "ticketing",
+        "sponsorship",
+        "attendee-experience",
+        "event-roi",
+        "go-no-go",
+        "break-even"
+      ]
+    },
+    {
+      "name": "physical-therapy-rehab-clinic",
+      "source": "./plugins/physical-therapy-rehab-clinic",
+      "description": "Outpatient physical-therapy / rehab clinic operations team — 3 agents (clinic-operations-lead, clinical-documentation-compliance, billing-and-revenue) for the practice-ops + documentation + billing craft of a PT/OT/SLP outpatient clinic: scheduling & capacity and plan-of-care visit cadence, no-show management, defensible POC documentation and medical necessity, certification/recertification timing, the Medicare therapy-threshold + KX concept, CPT timed codes and the 8-minute rule, modifiers (GP/KX/59), and denial prevention. 5 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 8 best-practices, 3 templates, 3 commands, 1 advisory hook. ADVISORY only — not medical, legal, or billing advice; every payor/regulatory specific carries a retrieval date + verify-at-use, no patient PII. Seams: medical-revenue-cycle, behavioral-health-practice. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "physical-therapy",
+        "rehab-clinic",
+        "outpatient",
+        "plan-of-care",
+        "8-minute-rule",
+        "cpt-timed-codes",
+        "kx-modifier",
+        "therapy-threshold",
+        "medical-necessity",
+        "defensible-documentation",
+        "denial-prevention",
+        "scheduling",
+        "no-show",
+        "capacity-planning",
+        "revenue-cycle"
+      ]
+    },
+    {
+      "name": "optometry-eyecare-practice",
+      "source": "./plugins/optometry-eyecare-practice",
+      "description": "Optometry / eye-care practice operations team — 3 agents (practice-operations-lead, optical-dispensary-manager, front-office-billing) for the three engines of an eye-care practice: the clinical exam flow (scheduling, pretesting, lane flow, recall/recare cadence, capacity), the optical dispensary (frames & lens inventory, capture rate, lab orders, managed-vision-care formularies), and the front-office billing split that makes optometry distinct — medical-vs-vision routing, eligibility, CPT/coding for eye exams, payor mix, claims and denial triage. ADVISORY operations knowledge, not medical/legal/coding/billing advice; payor/coding specifics carry a retrieval date + verify-at-use; no PII/PHI. Distinct model from dental-practice and veterinary-practice (cross-linked); shares the revenue-cycle seam with medical-revenue-cycle. 5 skills, a decision-tree knowledge bank (4 Mermaid trees + dated 2026 reference), 8 best-practices, 3 templates, 3 commands, 1 advisory hook. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "optometry",
+        "eye-care",
+        "optical-dispensary",
+        "vision-plan",
+        "medical-vs-vision-billing",
+        "eligibility",
+        "claims-denials",
+        "cpt-eye-exam",
+        "recall-recare",
+        "capture-rate",
+        "pretesting",
+        "exam-flow",
+        "frames-inventory",
+        "managed-vision-care",
+        "practice-operations"
       ]
     }
   ]

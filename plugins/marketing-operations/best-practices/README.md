@@ -6,7 +6,7 @@ Named, citable rules for the `marketing-operations` plugin's 4 specialist agents
 
 ## Index
 
-_8 rules. Each file is one named, citable rule — one per house opinion (§3)._
+_12 rules. The first 8 are one per house opinion (§3); the last 4 cover the email-deliverability and content-engine value-adds._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -18,6 +18,10 @@ _8 rules. Each file is one named, citable rule — one per house opinion (§3)._
 | [`lead-scoring-must-tie-to-actual-conversion-or-it-is-noise.md`](./lead-scoring-must-tie-to-actual-conversion-or-it-is-noise.md) | Pattern | Any marketing operations deliverable where this question is in play. |
 | [`data-hygiene-dedup-and-attribution-integrity-precede-any-analysis.md`](./data-hygiene-dedup-and-attribution-integrity-precede-any-analysis.md) | Pattern | Any marketing operations deliverable where this question is in play. |
 | [`date-and-source-any-benchmark-route-legal-professional-determinations-.md`](./date-and-source-any-benchmark-route-legal-professional-determinations-.md) | Absolute rule | Any marketing operations deliverable where this question is in play. |
+| [`authenticate-spf-dkim-dmarc-before-you-send.md`](./authenticate-spf-dkim-dmarc-before-you-send.md) | Absolute rule | Any outbound-email or deliverability deliverable. |
+| [`warm-up-and-protect-sender-reputation.md`](./warm-up-and-protect-sender-reputation.md) | Pattern | New sending IP/domain, a volume ramp, or a deliverability decline. |
+| [`brief-every-piece-against-a-search-intent.md`](./brief-every-piece-against-a-search-intent.md) | Absolute rule | Content creation, an editorial calendar, or SEO/AI-answer planning. |
+| [`build-topic-clusters-not-orphan-posts.md`](./build-topic-clusters-not-orphan-posts.md) | Pattern | Content architecture, internal linking, or an SEO content plan. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

@@ -2,6 +2,21 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.5.0] — 2026-06-22
+
+Browser-extension value-add — net-new coverage for **Manifest V3 (MV3) browser extensions**, layered on the existing frontend team without touching any existing agent or surface. The extension's popup/options UI seams back to the existing react/state/perf agents; this build owns only the MV3-distinctive layer. See [`CLAUDE.md`](CLAUDE.md) §5 + §10.
+
+### Added
+
+- **`knowledge/browser-extension-engineering.md`** (dated 2026-06-22). Two Mermaid `## Decision Tree` sections — (a) **where logic lives**: content script (isolated world) vs MV3 service worker (background) vs injected page script (main world) vs popup/options; (b) the **MV3 permissions least-privilege progression**: `activeTab` → specific API perms → narrow `host_permissions` → `optional_permissions`/runtime request → `<all_urls>`. Plus Manifest V3 essentials (service-worker background, `declarativeNetRequest`, no remote code, CSP/`web_accessible_resources`), cross-context messaging, `chrome.storage` (local/sync/session), Chrome/Edge/Firefox WebExtensions portability (`browser.*`/Promise, `webextension-polyfill`, signing), and the store review/publishing pipeline. A dated capability map + a load-bearing `[verify-at-use]` note (MV3 specifics are volatile).
+- **`skills/build-browser-extension/SKILL.md`** — MV3 architecture decision, service-worker discipline, messaging, least-privilege permissions, and the store-submission checklist; explicit **seam to the existing react/state/perf agents** for the popup/options UI.
+- **3 best-practices (one rule each):** `request-the-narrowest-extension-permissions.md`, `keep-the-mv3-service-worker-stateless-and-ephemeral.md`, `isolate-content-scripts-from-the-page.md` — added to the `best-practices/README.md` index (22 → 25 rules).
+- **`plugin.json`** — `version` 0.4.0 → 0.5.0; description skill count 5 → 6.
+
+### Verify-at-use
+
+- MV3 platform specifics are version- and browser-volatile: service-worker idle/termination timing (~30s historical), `declarativeNetRequest` limits + blocking-`webRequest` restriction, `chrome.storage.sync` quotas, `world: "MAIN"` injection, per-API Chrome/Firefox parity, and store-review policy on broad permissions. Confirm against the current Chrome Extensions docs / MDN WebExtensions / Firefox MV3 migration guide before quoting.
+
 ## [0.3.0] — 2026-06-05
 
 Value-add build-out — adding the net-new gap left after PR #315 (which added the consolidated decision-tree knowledge, best-practices, and templates): the scenarios bank and the technical-runtime tier. Every value-add menu item is dispositioned (built or recorded N-A with reason); see [`CLAUDE.md`](CLAUDE.md) §9 "Value-add completeness (build-out 2026-06-05)".

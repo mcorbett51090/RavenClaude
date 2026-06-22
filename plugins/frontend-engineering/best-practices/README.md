@@ -6,7 +6,7 @@ Named, citable rules for the `frontend-engineering` plugin's specialists. Each f
 
 ## Index
 
-_22 rules across rendering strategy, state, React implementation, performance, accessibility, and TypeScript._
+_25 rules across rendering strategy, state, React implementation, performance, accessibility, TypeScript, and browser-extension engineering._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -32,6 +32,9 @@ _22 rules across rendering strategy, state, React implementation, performance, a
 | [`keep-the-main-thread-unblocked.md`](./keep-the-main-thread-unblocked.md) | Absolute rule | INP — break up long tasks; yield to the browser; offload CPU-heavy work to Web Workers. |
 | [`preconnect-and-prefetch-critical-resources.md`](./preconnect-and-prefetch-critical-resources.md) | Pattern | LCP — preconnect to third-party origins; preload the LCP image; prefetch likely-next routes. |
 | [`test-ids-are-engineering-not-optional.md`](./test-ids-are-engineering-not-optional.md) | Absolute rule | Any interactive component — add data-testid at build time so E2E tests have stable selectors. |
+| [`request-the-narrowest-extension-permissions.md`](./request-the-narrowest-extension-permissions.md) | Absolute rule | Browser-extension permissions — start at activeTab, escalate only when forced; prefer optional/runtime grants over broad host access. |
+| [`keep-the-mv3-service-worker-stateless-and-ephemeral.md`](./keep-the-mv3-service-worker-stateless-and-ephemeral.md) | Absolute rule | MV3 background — the service worker is ephemeral; top-level listeners, no in-memory state, persist to chrome.storage. |
+| [`isolate-content-scripts-from-the-page.md`](./isolate-content-scripts-from-the-page.md) | Absolute rule | Content scripts — stay in the isolated world; main-world injection is untrusted; validate every cross-world postMessage. |
 
 ---
 
