@@ -4,6 +4,8 @@
 >
 > Task: research and identify 10 plugins **not yet implemented**, prioritize by user demand × technical feasibility, and build out the highest-priority first. This doc is the research deliverable; the build (`plugins/cli-tooling-engineering/`) ships alongside it.
 
+> **Update (2026-06-22, post-merge reconciliation):** while this PR (#464) was open, parallel routine runs merged **many of the candidates below to `main`** — `browser-extension-engineering` (#435), `email-engineering` (#427), `data-orchestration` (#460), `developer-relations` (#431/#448), `trust-and-safety` (#444), and `geospatial-engineering` (#444), among ~14 new plugins (catalog now 116→117). On merge I verified that **`cli-tooling-engineering` is still a distinct, unowned gap** — the newly-added `developer-tooling` plugin is the **build-systems/monorepo** layer (Nx/Turborepo/Bazel/caching), not the CLI/TUI-building lane — so it correctly ships as a new plugin here. The candidate table below is the **state as researched**; the "scoped/unbuilt" labels on the parallel-built rows are now historical. The durable takeaway stands: this routine keeps re-deriving the same roadmap in parallel — **retune it to read the live roster + pick the next genuinely-unbuilt gap** to stop the collisions.
+
 ## How this run relates to the prior passes (read first)
 
 This is a **recurring routine**. It has run before, and the marketplace has a **standing decision** the routine must respect:
