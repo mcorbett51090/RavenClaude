@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for technical-program-management. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-tpm-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags 4 mechanically-detectable TPM anti-patterns in .md artifacts — (1) a status update with no decision/ask (activity-led), (2) a launch/readiness doc with no go/no-go or pass-fail criteria, (3) a program charter with no measurable outcome or named sponsor, (4) a dependency doc that is really a task list. Set TPM_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}
