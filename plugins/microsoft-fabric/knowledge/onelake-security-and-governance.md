@@ -1,8 +1,10 @@
 # OneLake security & governance
 
-**Last reviewed:** 2026-05-28 · **Confidence:** high (first-party Microsoft Learn, retrieved 2026-05-28).
+**Last reviewed:** 2026-06-15 · **Confidence:** high (first-party Microsoft Learn, GA/preview re-verified 2026-06-15 via the Microsoft-Learn MCP).
 **Owner:** `fabric-admin`.
-**Source:** [Security overview](https://learn.microsoft.com/fabric/security/security-overview), [OneLake security access-control model](https://learn.microsoft.com/fabric/onelake/security/data-access-control-model), [Get started with OneLake security](https://learn.microsoft.com/fabric/onelake/security/get-started-onelake-security), [Domains](https://learn.microsoft.com/fabric/governance/domains), [OneLake catalog](https://learn.microsoft.com/fabric/governance/onelake-catalog-overview).
+**Source:** [Security overview](https://learn.microsoft.com/fabric/security/security-overview), [OneLake security access-control model](https://learn.microsoft.com/fabric/onelake/security/data-access-control-model), [Get started with OneLake security](https://learn.microsoft.com/fabric/onelake/security/get-started-onelake-security), [Spark support for OneLake security](https://learn.microsoft.com/fabric/data-engineering/spark-onelake-security), [OneLake security integrations overview](https://learn.microsoft.com/fabric/onelake/security/onelake-security-integrations-overview), [Domains](https://learn.microsoft.com/fabric/governance/domains), [OneLake catalog](https://learn.microsoft.com/fabric/governance/onelake-catalog-overview).
+
+> **Status (re-verified 2026-06-15):** OneLake security — data-access roles with RLS/CLS/OLS — is **GA**, rolling out as **default-on across supported items** (Microsoft targeted end of May 2026). This aligns the doc with the sibling [`fabric-2026-capability-map.md`](fabric-2026-capability-map.md), which the 2026-06-11 sweep already corrected from "preview" to GA. What remains **public preview** is *specific enforcement surfaces*, not the feature: **Eventhouse RLS** and **authorized third-party-engine** enforcement (see the matrix below). `[verify-at-use]` — Fabric ships monthly; one Learn sub-page (`onelake-shortcut-security`) still carries a stale "(preview)" label, so re-confirm the release state at build.
 
 ## Two planes — keep them separate (house opinion #6)
 
@@ -22,21 +24,34 @@ So Admin/Member/Contributor's **Write** permission **overrides** any OneLake-sec
 
 ### OneLake security (data plane)
 
-Create **data-access roles** on a Fabric data item granting access to specific folders/tables, then assign users/groups. A user not in any role sees **no data** in that item. **Default roles** (e.g. Lakehouse `DefaultReader`) auto-grant a baseline using member virtualization. Roles can carry **RLS** (row) and **CLS** (column) predicates; **OLS** (object) hides tables/columns.
+Create **data-access roles** on a Fabric data item granting access to specific folders/tables, then assign users/groups. A user not in any role sees **no data** in that item. **Default roles** (e.g. Lakehouse `DefaultReader`) auto-grant a baseline using member virtualization. Roles can carry **RLS** (row) and **CLS** (column) predicates; **OLS** (object — table/folder level) hides tables/columns.
+
+A role grants either **Read** or **ReadWrite**. ReadWrite lets a Viewer-level user edit data on specific tables/folders (via Spark notebooks, OneLake File Explorer, or OneLake APIs — **not** the Lakehouse UX) without granting item create/manage rights. Supported data items + permissions ([Get started with OneLake security](https://learn.microsoft.com/fabric/onelake/security/get-started-onelake-security#what-types-of-data-can-be-secured)):
+
+| Data item | Supported permissions |
+|---|---|
+| Lakehouse | Read, **ReadWrite** |
+| Azure Databricks Mirrored Catalog | Read |
+| Mirrored Databases | Read |
+
+> **DefaultReader gotcha (security-relevant):** when you add a user to a tighter data-access role, **also remove them from `DefaultReader`** (or remove the `ReadAll` permission that virtualizes them into it) — otherwise they keep full read access and your RLS/CLS role buys nothing. ([Default roles / member virtualization](https://learn.microsoft.com/fabric/onelake/security/data-access-control-model#onelake-security-and-workspace-permissions))
 
 ## The GA/preview matrix — RLS/CLS is NOT uniformly available (must-cite)
 
 | Engine / surface | RLS | CLS | Status |
 |---|---|---|---|
-| Lakehouse / Spark | Yes | Yes | GA |
-| SQL analytics endpoint (user identity) | Yes | Yes | GA |
+| Lakehouse / Spark notebooks | Yes | Yes | GA |
+| SQL analytics endpoint (**user's-identity** mode) | Yes | Yes | GA |
 | Direct Lake **on OneLake** | Yes | Yes | GA (drives empty results, not errors, on misconfig) |
 | Eventhouse / KQL | RLS only | — | **public preview** |
-| Third-party / external engines | partial | partial | **preview** |
+| Authorized third-party engines (authorized-engine model) | Yes (engine-enforced) | Yes (engine-enforced) | **public preview** |
+
+**Authorized-engine model** (the third-party row): an external engine registers an Entra identity as a workspace **Member**, reads raw Delta files from OneLake, then calls the OneLake `principalAccess` API to fetch the user's *precomputed effective access* (table permissions + RLS predicates + CLS column lists) and enforces it in its own compute. OneLake stays the single source of truth; non-authorized external reads of an RLS/CLS table are **blocked**, not silently unfiltered. **Foot-gun:** the engine's registered identity must itself have **unrestricted Read** on the tables it serves — if RLS/CLS applies to that identity, the `principalAccess` calls return errors. ([Integrations overview](https://learn.microsoft.com/fabric/onelake/security/onelake-security-integrations-overview))
 
 Prerequisites + caps:
-- **Schema-enabled lakehouses are required** for OneLake-security data preview to work (house opinion #14).
-- Caps: **250 roles per item, 500 members per role**.
+- **Schema-enabled lakehouses for the in-portal *data-preview* pane (house opinion #14).** The **data preview of RLS/CLS-secured tables is not supported on non-schema lakehouses** — schema-enabled is required for *that experience* and is the recommended OneLake-security default. ([OneLake security limitations](https://learn.microsoft.com/fabric/onelake/security/data-access-control-model#onelake-security-limitations)) **Distinct from Spark RLS/CLS *enforcement*,** which *does* work on a non-schema lakehouse: set the Spark property `spark.sql.fabric.catalog.enable-schemaless-lakehouses=true` on the environment. ([Spark support for OneLake security](https://learn.microsoft.com/fabric/data-engineering/spark-onelake-security))
+- Spark notebooks need **environment 3.5+ on Fabric Runtime 1.3+** for OneLake-security enforcement.
+- Caps: **250 roles per item** (request-increase to 1000), **500 members per role**, **500 permissions per role**. Role-definition changes take ~5 min to apply; user-group membership changes ~1 hr (engine caches may add another hour).
 - **RLS-only and CLS-only roles cannot be combined** in one role.
 - Warehouse also supports SQL-native **RLS / CLS / dynamic data masking / OLS** at the T-SQL layer; a Direct Lake model over a SQL-defined RLS table forces Direct-Lake-on-SQL fallback.
 

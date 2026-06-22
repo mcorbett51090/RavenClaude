@@ -1,0 +1,27 @@
+{
+  "name": "developer-tooling",
+  "version": "0.1.0",
+  "description": "Developer-tooling team — the BUILD-TOOLING layer for monorepo & build-systems engineering. 2 agents (build-systems-architect, monorepo-engineer) covering monorepo tooling (Nx, Turborepo, Bazel/Buck2, Moon, pnpm/yarn/npm workspaces, Lerna), build performance & remote/content-addressable caching, task graphs and affected/since-only builds, dependency & package management (version policy, lockfile hygiene, renovate/dependabot, supply-chain hygiene: SBOM/provenance/pinning), and code-generation/scaffolding. 3 skills (choose-monorepo-tooling, optimize-build-and-cache, manage-dependencies), 2 Mermaid-backed knowledge docs (monorepo-tooling decision tree, build-caching & performance), and 2 runbook templates. Seams: CI/CD pipelines → devops-cicd; service code → backend/frontend-engineering; containers/IaC → the cloud plugins. House line: measure before you migrate; cache correctness before cache speed. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "monorepo",
+    "build-systems",
+    "nx",
+    "turborepo",
+    "bazel",
+    "remote-cache",
+    "task-graph",
+    "pnpm-workspaces",
+    "dependency-management",
+    "supply-chain-security",
+    "renovate",
+    "code-generation"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

@@ -1,6 +1,6 @@
 # Security Engineering — Decision Trees
 
-_Decision trees + a dated capability map. Capability rows are `[verify-at-build]` — re-check against the vendor before quoting. Last reviewed: 2026-06-18 (OWASP Top 10 → 2025 edition)._
+_Decision trees + a dated capability map. Capability rows are `[verify-at-build]` — re-check against the vendor before quoting. Last reviewed: 2026-06-04._
 
 Traverse before triaging a finding or handling a secret. Remember: this team proposes; security-reviewer decides.
 
@@ -104,7 +104,7 @@ _A 9.8 in an unreachable path waits; a 6.5 unauthenticated and exploited-in-the-
 
 | Capability | 2026 state `[verify-at-build]` | Notes |
 |---|---|---|
-| OWASP Top 10 (web) | **2025 edition current** (verify Final vs RC at use) | 2021 superseded; new **A03 Software Supply Chain Failures** (expands 2021 A06 Vulnerable & Outdated Components) + **A10 Mishandling of Exceptional Conditions**; [owasp.org/Top10/2025](https://owasp.org/Top10/2025/), verified 2026-06-18 `[verify-at-use]` |
+| OWASP Top 10 (web) | **2025 edition Final** (2021 superseded) | Adds **A03:2025 Software Supply Chain Failures** (expands A06:2021 Vulnerable & Outdated Components — `supply-chain-security-engineer`'s lane). [Top10:2025](https://owasp.org/Top10/2025/) `[verify-at-build — confirm category list/numbering at owasp.org before quoting]` |
 | SAST/SCA in CI | mature | Tune for signal; reachability where supported |
 | Secret scanning | GitHub/GitLab native + tools | Pre-commit + CI + history scan |
 | SLSA | v1.0 | Build levels; verify provenance on consume |
