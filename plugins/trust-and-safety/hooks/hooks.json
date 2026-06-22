@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for trust-and-safety. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-ts-smells.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags 2 mechanically-detectable Trust & Safety smells in policy/detection files (.md/.py/.yaml/.yml/.json) — (1) an enforcement action (remove/suspend/ban/limit) with no appeal/contest path mentioned, (2) a classifier threshold/cutoff with no precision or recall noted. Set TS_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}

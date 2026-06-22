@@ -2,6 +2,19 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.4.0] — 2026-06-22
+
+Computer-vision value-add — CV deepens the existing MLOps loop as a **sub-domain**, not a separate plugin; no new agent (team-growth-as-knowledge house rule). Additive only; nothing existing removed or changed in a breaking way.
+
+> Recommended version bump: **0.3.0 → 0.4.0** (additive — a new skill, a new knowledge doc, 3 best-practices). Apply the same bump to the `.claude-plugin/marketplace.json` catalog entry (CI fails on version drift); the integrator owns the catalog mirror.
+
+### Added
+
+- **Knowledge — `knowledge/computer-vision-engineering.md`.** Two Mermaid decision trees — (a) **CV task -> architecture** (classification / object detection real-time-vs-accuracy / semantic-vs-instance segmentation / OCR / keypoint) and (b) **inference placement** (cloud batch / on-device edge / edge-opt compile / edge->cloud hybrid / cloud real-time) — plus data & annotation pipeline notes, transfer-learning vs from-scratch, augmentation leakage cautions, evaluation metrics by task (mAP/IoU/Dice/CER/OKS), the scene-vs-frame split trap, the seam back to the core agents, and a dated `[verify-at-use]` 2026 tooling note. Linked from CLAUDE.md §5 alongside the other knowledge docs.
+- **Skill — `skills/computer-vision-pipeline/SKILL.md`.** The end-to-end CV lane: data/annotation -> task/architecture choice -> training (transfer-learn first, scene-aware split, augment-after-split) -> eval by task -> serving/edge placement, with the seam back to the training/serving/monitoring/architect agents.
+- **Best-practices — 3 one-rule files (22 → 25).** `split-cv-data-by-scene-not-random-frame` (near-duplicate frames leak across a random split), `watch-augmentation-and-label-leakage` (augment train-only-after-split, label-preserving transforms only), `right-size-the-vision-model-for-the-inference-target` (choose/compress for where it runs; re-measure accuracy after every optimization; preprocessing parity). Indexed in `best-practices/README.md`.
+- **CLAUDE.md** — a computer-vision MLOps coverage note (top + §5), and the new knowledge doc added to the §5 canonical-knowledge bank.
+
 ## [0.3.0] — 2026-06-05
 
 Value-add build-out — completing the full value-add menu against the marketplace recipe. Builds on PR #315 (which added the consolidated knowledge decision-trees, `best-practices/`, and `templates/`). Every menu item is dispositioned (built or recorded N-A with reason); see [`CLAUDE.md`](CLAUDE.md) § "Value-add completeness (build-out 2026-06-05)".

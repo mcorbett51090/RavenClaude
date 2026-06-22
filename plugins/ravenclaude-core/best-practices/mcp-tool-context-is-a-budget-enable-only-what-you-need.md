@@ -100,8 +100,8 @@ reclaim.
 
 ## Provenance
 
-Distilled from a recurring Claude-community scan (the [2026-06-14 subreddit
-scan](../../../docs/research/2026-06-14-claude-subreddit-scan/README.md)),
+Distilled from a recurring Claude-community scan (the [2026-06-22 subreddit
+scan](../../../docs/research/2026-06-22-claude-subreddit-scan/README.md)),
 grounded against this repo's own deferred-MCP-via-`ToolSearch` session model and
 Anthropic's [Manage context / costs](https://code.claude.com/docs/en/costs) and
 [Context windows](https://docs.claude.com/en/docs/build-with-claude/context-windows)
@@ -114,4 +114,4 @@ full schemas) is the durable, load-bearing part.
 
 ---
 
-_Last reviewed: 2026-06-14 by `claude`_
+_Last reviewed: 2026-06-22 by `claude`_

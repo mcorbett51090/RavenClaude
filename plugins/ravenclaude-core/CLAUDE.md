@@ -12,8 +12,8 @@
 
 **Precedent (the rule was extracted from this case):** the `data-platform` plugin's v0.1.0 plan originally proposed two parallel agents (`data-platform-architect` and `embed-security-reviewer`). Expert review (prompt-engineer on B2 and B4, 2026-05-21) found both proposals to be wrappers around core's `architect` and `security-reviewer` plus a decision tree's worth of domain priors — exactly what skills + knowledge files are for. Both were deleted; the plan now ships:
 
-- `data-platform/skills/stack-selection.md` — invoked by `ravenclaude-core/architect` via the inline prior on that agent's file
-- `data-platform/skills/jwt-embed-issuance.md`, `rls-policy-authoring.md`, `embed-csp-and-iframe-sandboxing.md` — invoked by `ravenclaude-core/security-reviewer` via the inline pointer on that agent's file
+- `data-platform/skills/stack-selection/SKILL.md` — invoked by `ravenclaude-core/architect` via the inline prior on that agent's file
+- `data-platform/skills/jwt-embed-issuance/SKILL.md`, `rls-policy-authoring/SKILL.md`, `embed-csp-and-iframe-sandboxing/SKILL.md` — invoked by `ravenclaude-core/security-reviewer` via the inline pointer on that agent's file
 
 The marketplace precedent at the time of the rule's extraction was unanimous: **5 of 5** domain plugins (power-platform, regulatory-compliance, finance, edtech-partner-success, web-design) had **no** plugin-specific security reviewer. All security review escalates to `ravenclaude-core/security-reviewer`. Domain-specific patterns live in skills and knowledge files that core agents invoke.
 
@@ -29,6 +29,8 @@ This marketplace follows the **orchestrator-worker / hierarchical** pattern, whi
 
 **Sub-agents should not freely spawn or directly invoke other sub-agents.** Only the Team Lead performs dispatching and orchestration.
 
+> **This is a deliberate house policy, not a platform constraint (clarified 2026-06-16).** Claude Code **v2.1.172 (2026-06-10)** now *permits* sub-agents to spawn sub-agents up to **5 levels deep**; RavenClaude keeps the single-orchestrator pattern on purpose (observability, debuggability, loop-avoidance, token-spend control), enforced **soft** by `guard-recursive-spawn.sh` (warn, not block). The canonical statement + rationale lives in [`rules/agent-collaboration.md`](rules/agent-collaboration.md); the same rule is restated in several plugin constitutions and a downstream consistency sweep to align that phrasing is tracked separately. `[platform fact verified 2026-06-16 against the Claude Code changelog]`
+
 **How cross-boundary work is handled:**
 
 1. Each specialist stays focused on their domain and delivers a high-quality slice.
@@ -40,9 +42,11 @@ This marketplace follows the **orchestrator-worker / hierarchical** pattern, whi
 
 ### Delegating branch-mutating work (added 2026-05-23)
 
-When the Team Lead fans work out across multiple git branches, **how** the sub-agents are launched determines whether they can do the job at all. See [`knowledge/subagent-isolation-and-tooling.md`](knowledge/subagent-isolation-and-tooling.md) for the full lesson. The load-bearing rule:
+When the Team Lead fans work out across multiple git branches, **how** the sub-agents are launched determines whether the work stays coherent. See [`knowledge/subagent-isolation-and-tooling.md`](knowledge/subagent-isolation-and-tooling.md) for the full lesson. The load-bearing rule:
 
-> Reading a branch needs no isolation or approval (`git show <ref>:<path>` — parallelize across sub-agents freely). Writing a branch (checkout / commit / push) needs approval that **only the main interactive agent can obtain** — background sub-agents are auto-denied git-writes (confirmed for both worktree-isolated _and_ plain non-isolated agents). So: fan reads out to sub-agents, but do all branch-mutating work in the main session, sequentially. `isolation: "worktree"` only makes it worse — it also strips `Read`.
+> Reading a branch needs no isolation or approval (`git show <ref>:<path>` — parallelize across sub-agents freely). Writing a branch (checkout / commit / push) is **hazardous to fan out** — not because it is auto-denied (it isn't, in general) but because a non-isolated sub-agent **shares the main session's working tree + index**, so concurrent writers race and a `checkout` yanks the tree out from under everyone. So: fan reads out to sub-agents, but either keep branch-mutating work in the main session (sequentially) **or** give each writing sub-agent `isolation: "worktree"` — which isolates its **working directory** (it keeps `Read`), letting it write in its own copy without stomping the shared tree.
+
+> **[Corrected 2026-06-13]** This rule originally stated background sub-agent git-writes are "auto-denied (confirmed for both worktree-isolated and plain non-isolated agents)" and that `isolation: "worktree"` "strips `Read`." Re-verification against current primary docs ([sub-agents.md](https://code.claude.com/docs/en/sub-agents)) + a direct this-session probe (a non-isolated sub-agent ran `git checkout -b` and `git commit`, both exit 0, no permission gate) falsified both as universal claims — a sub-agent's writes are governed by its `tools`/`disallowedTools` grant + permission mode, and `isolation: "worktree"` isolates the working directory, not the tool grant. The advice is re-grounded in the real hazard (shared-working-tree races) and the matching best-practice ([`best-practices/delegate-reads-fan-out-keep-branch-writes-in-main.md`](best-practices/delegate-reads-fan-out-keep-branch-writes-in-main.md)) was downgraded Absolute → Pattern. **Not re-tested:** `git push` specifically from a sub-agent, `run_in_background: true` agents, and the web/remote restricted-git-proxy mode — the original observation may have held in one of those narrower contexts. Full record: [`docs/research/2026-06-13-claude-subreddit-scan/README.md`](../../docs/research/2026-06-13-claude-subreddit-scan/README.md) §"Post-scan accuracy re-verification".
 
 ### Sleipnir — the worktree-traversal labeling convention (added 2026-05-31, v0.76.0)
 
@@ -938,7 +942,7 @@ The Learn tab now teaches **all of RavenClaude's own mechanisms**, not just a sa
 | `knowledge/` orchestration trees | **SUFFICIENT — none added** | [`knowledge/orchestration-decision-trees.md`](knowledge/orchestration-decision-trees.md) already carries 3 Mermaid trees (status-to-report, skill-vs-agent, session-start checks) and [`knowledge/agent-routing.md`](knowledge/agent-routing.md) carries the routing tree. The escalate-to-human-vs-tribunal and spawn-vs-escalate boundaries are covered by the constitution prose + the two new scenarios; adding a tree would duplicate, and a new `## Decision Tree:` section would trip the `render-trees.py` SVG gate. Disposition: don't add. |
 | Bundled MCP server | **N-A** | A domain-neutral orchestration layer has no code-aware data surface to bundle; MCP belongs to vertical plugins (and per `docs/best-practices/bundled-mcp-servers.md` would be recommend-and-evaluate, never bundled). The github MCP path is consumed, not shipped. |
 | LSP integration | **N-A** | No source language owned by an orchestration foundation. |
-| `bin/` executables | **N-A** | The plugin already ships `scripts/` (apply-comfort-posture, serve-dashboards, the tribunal engines); no compiled binary is warranted. |
+| `bin/` executables | **SUPERSEDED → BUILT (v0.156.0)** | The original N-A call was about a *compiled binary*. v0.156.0 adds [`bin/rc`](bin/rc) — a thin, host-agnostic launcher (one verb today: `rc dashboard`) so the dashboard is discoverable in a **Copilot** repo where the `/dashboard` slash command doesn't exist. Not a compiled binary; a front-door dispatcher over the existing `scripts/`. See the "rc launcher" milestone below. |
 | Monitors / background jobs | **SUPERSEDED → BUILT (v0.132.0, FORGE #7)** | The original N-A call was about *pull* observability (the readers cover it). v0.132.0 adds the *push* complement a dashboard tab can't provide: a reactive run-state monitor (`monitors/`) scoped `on-skill-invoke:spawn-team`, read-only, derived-labels-only, Claude-Code-only. See the "Reactive run-state monitor" milestone above. |
 | output-styles / themes | **N-A** | Output shape is governed by the Structured Output Protocol + the dashboard's themed SVGs; no per-style asset is warranted here. |
 | `settings.json` / permissions tuning | **ALREADY-PRESENT** | The comfort-posture system + `apply-comfort-posture.py` *is* the permission-tuning surface; nothing to add. |
@@ -1002,6 +1006,20 @@ The always-on knob (`orchestrator: decide|full`) in `comfort-posture.yaml` gates
 **Gate 102** already covers `claude-orchestrate.sh` (the script this skill wraps). No new gate is required; the skill's behavior is fully exercised by the script's existing gate.
 
 **Migration:** adds one skill file; no hook, no settings.json change, no `apply-comfort-posture.py` change. Fully additive — nothing breaks on `/plugin marketplace update`.
+
+## `rc` launcher — host-agnostic dashboard front door (added 2026-06-22, v0.158.0)
+
+The `rc dashboard` "one-verb front door" referenced by [`commands/dashboard.md`](commands/dashboard.md) and [`best-practices/check-runtime-state.md`](best-practices/check-runtime-state.md) was a **phantom** — no `rc` existed on disk. v0.158.0 ships it for real at [`bin/rc`](bin/rc) (new `plugins/*/bin/**` allow-list glob), and closes the discoverability gap that made the dashboard hard to open in a **Copilot** repo.
+
+**Origin.** Opening the dashboard in a Copilot-hosted consumer repo required a whole improvised task: there is **no `/dashboard` slash command in Copilot** (that's Claude-Code-only), and `copilot/AGENTS.md` — the file Copilot reads natively — said nothing about the dashboard, so Copilot had to reverse-engineer the launch every time.
+
+**Three parts:**
+
+1. **Real launcher — [`bin/rc`](bin/rc).** A thin bash dispatcher; one verb today (`rc dashboard [--port N] [--no-open]`). It **never `cd`s** — `serve-dashboards.py` resolves the project root from `Path.cwd()`, so the launcher `exec`s the server with the caller's cwd preserved (`.ravenclaude/` lands in the consumer's repo, not the clone) and works identically under Claude Code, Copilot CLI, or a bare terminal. Resolves the server path relative to itself (one symlink level) so a PATH install works.
+2. **Copilot discoverability — generated `DASHBOARD_BLOCK` in `copilot/AGENTS.md`.** [`scripts/generate-copilot-plugin.py`](../../scripts/generate-copilot-plugin.py) now appends an always-applicable "Launch the comfort-posture dashboard" block (parallel to the opt-in Relay-mode block) telling the host the exact `bin/rc dashboard` command + a `find`-based fallback, the background-run + real-browser-tab + Private-port notes, and that `/dashboard` is Claude-only. So "open the dashboard" in a Copilot session Just Works. Regenerated, freshness-gated.
+3. **Phantom refs made real.** `commands/dashboard.md` now documents where `rc` lives + the PATH one-liner + the Copilot "just ask" path; the N-A `bin/` disposition in the Value-add table above is updated.
+
+**Migration:** none — additive launcher + a generated doc block; nothing in a consumer's installed plugin changes on `/plugin marketplace update` (the `bin/rc` ships with the plugin and is opt-in to run).
 
 ## External contribution intake — GitHub Issue Form → quarantine PR (FORGE Phase 1, added 2026-06-08)
 

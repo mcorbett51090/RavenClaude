@@ -2,6 +2,14 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.1] — 2026-06-22
+
+Weekly news-cadence sweep correction (Tier-A, `data_and_bi`). See [`docs/research/2026-06-22-weekly-sweep-findings.md`](../../docs/research/2026-06-22-weekly-sweep-findings.md).
+
+### Fixed
+
+- **Anchored the vague "current major" PostgreSQL row in the capability map.** `knowledge/database-engineering-decision-trees.md` listed PostgreSQL as "GA, current major" — now resolvable to a concrete, verifiable anchor: **PG18 (GA 2025-09-25)**, kept `[verify-at-build]`. Tightens an imprecise dated-fact cell to the actual current major without changing any guidance.
+
 ## [0.3.0] — 2026-06-05
 
 Value-add build-out — the scenarios bank + the technical-runtime tier, following PR #315 (which added the consolidated decision-tree knowledge file, `best-practices/`, and `templates/`). Every value-add menu item is dispositioned (built or recorded N-A with reason); see [`CLAUDE.md`](CLAUDE.md) § "Value-add completeness (build-out 2026-06-05)".

@@ -2,15 +2,56 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
-## 0.158.0 — 2026-06-14
+## 0.161.0 — 2026-06-22
 
 ### Added
 
-- **New best-practice — "MCP tool context is a budget — enable only what you need"** ([`best-practices/mcp-tool-context-is-a-budget-enable-only-what-you-need.md`](best-practices/mcp-tool-context-is-a-budget-enable-only-what-you-need.md), 19 rules total). Every enabled MCP server preloads its full tool schemas (names + descriptions + JSON schemas) into the context window before any work — a widely-shared community measurement put 7 servers at ≈67K tokens (~⅓ of a 200K budget). The rule's levers: right-size the enabled-server set per kind of work, prefer tool-search / lazy-loading (load schemas on demand) over preloading, and measure with `/context`. The worked example is **this repo's own deferred-MCP-via-`ToolSearch` session model** (tools surfaced name-only, schema fetched just-in-time) — the count→cost tax paid down to near-zero by design. Sibling to the `AGENTS.md` agent-description ~15K budget (the authoring-side analog) and the generic `knowledge/concepts/context-window.md` concept (this rule is its MCP-specific, actionable corollary). Sourced from the [2026-06-14 Claude subreddit scan](../../docs/research/2026-06-14-claude-subreddit-scan/README.md) (1 of 4 findings approved; the other three deferred/denied as covered).
+- **New best-practice — "MCP tool context is a budget — enable only what you need"** ([`best-practices/mcp-tool-context-is-a-budget-enable-only-what-you-need.md`](best-practices/mcp-tool-context-is-a-budget-enable-only-what-you-need.md), 20 rules total). Every enabled MCP server preloads its full tool schemas (names + descriptions + JSON schemas) into the context window before any work — a widely-shared community measurement put 7 servers at ≈67K tokens (~⅓ of a 200K budget). The rule's levers: right-size the enabled-server set per kind of work, prefer tool-search / lazy-loading (load schemas on demand) over preloading, and measure with `/context`. The worked example is **this repo's own deferred-MCP-via-`ToolSearch` session model** (tools surfaced name-only, schema fetched just-in-time) — the count→cost tax paid down to near-zero by design. Sibling to the `AGENTS.md` agent-description ~15K budget (the authoring-side analog) and the generic `knowledge/concepts/context-window.md` concept (this rule is its MCP-specific, actionable corollary). Sourced from the [2026-06-22 Claude subreddit scan](../../docs/research/2026-06-22-claude-subreddit-scan/README.md) (1 of 4 findings approved; the worktree finding was already shipped by the 2026-06-13 scan, the other two deferred/denied as covered).
 
 ### Notes
 
 - **Migration:** none — additive markdown; nothing in a consumer's installed plugin changes on `/plugin marketplace update`.
+
+## 0.160.0 — 2026-06-22
+
+### Added
+
+- **New best-practice — "Run parallel Claude Code instances in separate git worktrees — never aim two writers at one working tree"** ([`best-practices/isolate-parallel-claude-instances-in-git-worktrees.md`](best-practices/isolate-parallel-claude-instances-in-git-worktrees.md), 19 rules total). Names the **peer-process** parallelism posture the sub-agent rule [`delegate-reads-fan-out-keep-branch-writes-in-main.md`](best-practices/delegate-reads-fan-out-keep-branch-writes-in-main.md) explicitly defers: give each concurrent Claude Code instance its own `git worktree`/branch so two writers don't stomp one working tree's files + index, reconcile via merge/PR. Leads with native `--worktree`/`-w` + `claude agents` support; cites the bundled `new-worktree`/`cleanup-worktrees` skills + the Sleipnir convention. Sourced from the [2026-06-13 Claude subreddit scan](../../docs/research/2026-06-13-claude-subreddit-scan/README.md) (1 of 4 findings approved).
+
+### Changed
+
+- **Corrected a falsified premise in `delegate-reads-fan-out-keep-branch-writes-in-main.md` + CLAUDE.md §"Delegating branch-mutating work" + `knowledge/subagent-isolation-and-tooling.md`.** The original "background sub-agents are auto-denied git checkout/commit/push (confirmed behavior)" / "`isolation: "worktree"` strips `Read`" claims were re-verified against current primary docs ([sub-agents.md](https://code.claude.com/docs/en/sub-agents)) **and a direct this-session probe** (a non-isolated foreground sub-agent ran `git checkout -b` + `git commit`, both exit 0, no permission gate) and found **not universal**: a sub-agent's writes are governed by its `tools`/`disallowedTools` grant + permission mode, and `isolation: "worktree"` isolates the working directory, not the tool grant. The advice (serialize branch-writes, or isolate each writer in its own worktree) is re-grounded in the real hazard — concurrent writers racing on one shared working tree — and the best-practice's status was downgraded **Absolute → Pattern**. The 2026-05-23 denials are scoped as conditionally true (`run_in_background: true` × an `ask`-tier posture, where a background agent can't surface the approval prompt). **Not re-tested:** sub-agent `git push`, background agents, and the web/remote git-proxy mode.
+
+### Notes
+
+- **Migration:** none — one additive best-practice + corrected guidance/status in existing best-practice/knowledge/constitution files; no hook, script, or settings change. Nothing in a consumer's installed plugin changes behaviorally on `/plugin marketplace update`.
+
+## 0.159.1 — 2026-06-21
+
+### Changed
+
+- **Research-sweep:** `knowledge/orchestrator-data-egress.md` — the ZDR note citing Fable 5 / Mythos 5 forcing 30-day retention now carries a dated **availability-suspended (2026-06-12)** aside pointing at the model lineup. The ZDR-ineligibility fact itself is unchanged; only an availability pointer was added so the egress guidance reflects that both models are currently disabled across all surfaces (US export-control directive). No migration — knowledge-file content only.
+
+## 0.159.0 — 2026-06-22
+
+### Added
+
+- **Visual-feedback-loop `parity` gate — diff a visual against a known-good exemplar** ([`skills/visual-feedback-loop/driver.py`](skills/visual-feedback-loop/driver.py), v0.2.0). Surfaces a structural class the layout linter can't see: a visual that is *perfectly placed* yet renders **blank** because its render skeleton is missing something its working twin has. The new `parity` config (`{"candidate": "...visual.json", "reference": "...visual.json"}`) extracts a PBIR render skeleton from each and is **asymmetric** — it **fails** (`next_action: match-reference-exemplar`) on what the candidate is **MISSING** relative to the exemplar (a missing query role `Values`/`Data`/`Indicator`; a dropped objects key, e.g. a `card` that dropped `labels` and substituted `calloutValue`; a missing per-item `$id`) and **passes benign additions** (an extra cosmetic object key, an optional role). It is a **diff surfacer, not a render oracle** — it validates the exemplar first (refuses a self-reference or a degenerate no-query-role reference → `not_captured`, so a bad exemplar can't launder a ship), and a different `visualType`/non-PBIR shape is also `not_captured`. Echoes only allowlist-sanitized schema tokens (`\A…\Z` + fullmatch, so a trailing-newline token can't slip through), never raw `visual.json` content. Documented generically for all declarative-viz (Vega-Lite, Tableau) in [`knowledge/visual-feedback-loop.md`](knowledge/visual-feedback-loop.md); runnable differ is PBIR-first. Hardened by an adversarial FORGE review (12 Gate-100 parity cases incl. benign-superset must-pass, pure-drop/partial-`$id`/degenerate-reference/self-reference, candidate-path traversal, + two teeth mutants). Origin: a Fabric/PBIR field session that burned four deploy-and-eyeball cycles before diffing against the confirmed-working exemplar cracked it.
+
+### Notes
+
+- **Migration:** none — additive `parity` gate (off unless a config supplies it); the driver envelope shape is unchanged. Nothing changes on `/plugin marketplace update`.
+
+## 0.158.0 — 2026-06-22
+
+### Added
+
+- **`rc` launcher — host-agnostic dashboard front door** ([`bin/rc`](bin/rc), new `plugins/*/bin/**` layout glob). The `rc dashboard` "one-verb front door" the docs referenced was a phantom (no `rc` on disk); it now exists for real as a thin bash dispatcher (one verb today: `rc dashboard [--port N] [--no-open]`). It **never `cd`s** — `serve-dashboards.py` resolves the project root from `Path.cwd()`, so the launcher `exec`s the server with the caller's cwd preserved (`.ravenclaude/` lands in the consumer's repo) and works identically under Claude Code, GitHub Copilot CLI, or a bare terminal.
+- **Copilot dashboard discoverability** — [`scripts/generate-copilot-plugin.py`](../../scripts/generate-copilot-plugin.py) appends an always-applicable **"Launch the comfort-posture dashboard"** block to the generated [`copilot/AGENTS.md`](copilot/AGENTS.md) (parallel to the opt-in Relay-mode block). Copilot reads `AGENTS.md` natively, so "open the dashboard" now Just Works in a Copilot repo — closing the gap where there's no `/dashboard` slash command (Claude-Code-only) and Copilot had to reverse-engineer the launch each time.
+
+### Fixed
+
+- **Phantom `rc dashboard` references made real.** [`commands/dashboard.md`](commands/dashboard.md) now documents where `rc` lives, the PATH one-liner, and the Copilot "just ask" path; the N-A `bin/` disposition in the CLAUDE.md Value-add table is updated to BUILT.
 
 ## 0.155.0 — 2026-06-11
 

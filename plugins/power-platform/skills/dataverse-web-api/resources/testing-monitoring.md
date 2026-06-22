@@ -122,7 +122,7 @@ Run Solution Checker **BEFORE publishing** to catch problems early. It complemen
 ## Power Automate Desktop (PAD) for MDA Testing
 
 ### Why PAD?
-Test Studio and Test Engine currently only support canvas apps. PAD is the practical approach for automated MDA testing, replicating user interactions through UI automation.
+Test Studio only supports canvas apps. (Test Engine is **deprecated as of April 2026** — repo/docs unmaintained, removal pending; use the [Power Platform Playwright samples](https://learn.microsoft.com/power-platform/developer/playwright-samples/overview) for code-based automation.) PAD is the practical approach for automated MDA testing, replicating user interactions through UI automation.
 
 ### Architecture
 Modularize tests into subflows for maintainability:
@@ -149,6 +149,8 @@ Modularize tests into subflows for maintainability:
 ---
 
 ## Mocking Dataverse in Tests
+
+> **Deprecated (April 2026):** the Test Engine `networkRequestMocks` YAML pattern below relies on Test Engine, which Microsoft deprecated effective April 2026 (repo/docs unmaintained, removal pending). For supported request mocking, use the [Power Platform Playwright samples](https://learn.microsoft.com/power-platform/developer/playwright-samples/overview) (Playwright route interception). The example is retained only to illustrate the legacy approach.
 
 Use Test Engine `networkRequestMocks` in YAML test plans to mock Dataverse API responses.
 
@@ -178,7 +180,7 @@ networkRequestMocks:
 | Application Insights | Production telemetry | Automatic | Yes |
 | Solution Checker | Static analysis | Manual | Yes |
 | PAD | UI testing | Automated | Yes |
-| Test Engine | Test plans | Automated | Roadmap (replacing EasyRepro) |
+| Test Engine | Test plans | Automated | **Deprecated (April 2026)** — use [Power Platform Playwright samples](https://learn.microsoft.com/power-platform/developer/playwright-samples/overview) |
 | Playwright | E2E testing | Automated | Yes (code-heavy) |
 | Test Studio | Canvas tests | Automated | No |
 

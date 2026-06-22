@@ -1,0 +1,3 @@
+# Human-readable by default, machine-readable on demand
+
+A CLI has two audiences — a person at a prompt and a program in a pipeline — and one output stream can't serve both well. Render **human-readable** output by default (formatted, aligned, possibly colored when at a TTY), and emit **machine-readable** output (`--json`, or `--format`) when asked. Keep the two renderers **separate** so a human log line never leaks into the JSON stream — a single stray status line on stdout breaks every consumer that pipes you into `jq`. A tool that speaks only prose can't be scripted; one that speaks only JSON is hostile to a person. Ship both, switched by an explicit flag, and treat the `--json` shape as a contract you version like any other API.
