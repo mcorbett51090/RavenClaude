@@ -28,12 +28,16 @@ Security invariants (see the security-review controls baked into SKILL.md):
     (parity), so they cannot silently drift.
   - A byte-size ceiling is enforced BEFORE json.load on every file (a malicious
     page can write an unbounded console.json — bound it).
-  - The verdict carries ONLY driver-derived primitives: booleans, counts,
-    numeric scores/thresholds, fixed-vocabulary status/next_action strings, and
-    driver-authored notes. It NEVER echoes raw console text, Lighthouse audit
-    titles, page content, or any other untrusted string — a malicious page can
-    write fake "instructions" to the console, and this verdict is read back by
-    the model as trusted context. We read numbers out of evidence, never prose.
+  - The verdict carries driver-derived primitives (booleans, counts, numeric
+    scores/thresholds, fixed-vocabulary status/next_action strings, driver-authored
+    notes) plus, for the parity gate, allowlist-sanitized schema-vocabulary tokens
+    from the input visual.json — specifically visualType, queryState role names,
+    and objects keys, each filtered through `_safe_token`/`_safe_tokens` (`\\A…\\Z`
+    + fullmatch over `[A-Za-z0-9_-]{1,40}`) before output. It NEVER echoes raw
+    console text, Lighthouse audit titles, JSON value content, or page prose — a
+    malicious page can write fake "instructions" to the console, and this verdict
+    is read back by the model as trusted context. We read numbers out of runtime
+    evidence; from visual.json we read only schema tokens, filtered.
 """
 
 from __future__ import annotations
@@ -240,23 +244,29 @@ def _gate_lighthouse(data: object, thresholds: dict) -> list[dict]:
 
 
 # ── Gate: structural parity vs. a known-good exemplar ────────────────────────
-# The technique that the layout linter structurally cannot do: catch a visual
-# that is perfectly PLACED but renders BLANK because its render skeleton diverges
-# from a confirmed-working exemplar of the same kind — a wrong query role
-# (Values vs Data vs Indicator), an unknown object key (e.g. `calloutValue` on a
-# legacy `card` whose working twin uses `labels`), or a missing `$id` (the
-# `cardVisual` blank cause). PBIR `visual.json` shape; degrades to not_captured
-# for any other shape (the technique generalizes; this runnable differ is PBIR
-# first, where the field evidence and the pbir-* tooling already live).
-_TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{1,40}$")
+# Honest framing (per the adversarial review of this gate): this is a structural
+# DIFF SURFACER against a chosen exemplar, NOT a render oracle. It flags where the
+# candidate's render skeleton DIVERGES from a working exemplar of the same kind in
+# the render-RISK direction: the candidate is MISSING something the exemplar has —
+# a query role (Values/Data/Indicator), an objects key (e.g. a `card` that dropped
+# `labels` and substituted `calloutValue` → blank), or a per-item `$id` the
+# exemplar carries (the `cardVisual` blank cause). It is ASYMMETRIC on purpose:
+# the candidate ADDING a benign extra (a cosmetic object key, an optional role)
+# is NOT a fail — only what it LOSES relative to the exemplar is render-risk. It
+# can only be as good as the exemplar, so the exemplar is validated first
+# (non-degenerate, not the candidate itself). PBIR `visual.json` shape; any other
+# shape → not_captured (the technique generalizes; this differ is PBIR-first).
+_TOKEN_RE = re.compile(r"\A[A-Za-z0-9_-]{1,40}\Z")
 
 
 def _safe_token(s: object) -> str:
     """A schema-vocabulary token (role/object-key/visualType) is echo-safe only
     when it matches the closed allowlist charset — otherwise it could be an
     attacker-authored string in a visual.json, so we replace it with a fixed
-    placeholder (the verdict is read back by the model as trusted context)."""
-    return s if isinstance(s, str) and _TOKEN_RE.match(s) else "<non-standard>"
+    placeholder (the verdict is read back by the model as trusted context).
+    `\\A…\\Z` + fullmatch (not `^…$` + match) so a trailing newline can't slip a
+    line-injection token through — `$`/`match` accept a string ending in `\\n`."""
+    return s if isinstance(s, str) and _TOKEN_RE.fullmatch(s) else "<non-standard>"
 
 
 def _safe_tokens(items) -> list[str]:
@@ -265,8 +275,10 @@ def _safe_tokens(items) -> list[str]:
 
 def _pbir_skeleton(visual_obj: object) -> dict | None:
     """Render-relevant skeleton of a PBIR visual.json: visualType, the set of
-    query role names, the set of `objects` keys, and which of those keys carry a
-    `$id` on any item. None if it is not a PBIR-visual shape (no .visual.visualType)."""
+    query role names, the set of `objects` keys, and which keys are FULLY `$id`-ed
+    (every item carries `$id` — the cardVisual schema requires it on each item, so
+    a key with one item missing `$id` is NOT fully-ed and will be flagged). None
+    if it is not a PBIR-visual shape (no .visual.visualType)."""
     if not isinstance(visual_obj, dict):
         return None
     v = visual_obj.get("visual")
@@ -284,7 +296,9 @@ def _pbir_skeleton(visual_obj: object) -> dict | None:
             if not isinstance(k, str):
                 continue
             object_keys.add(k)
-            if isinstance(items, list) and any(
+            # Fully-$id'd iff the key has items AND every item carries `$id`
+            # (the schema requires it per item — `all`, never `any`).
+            if isinstance(items, list) and items and all(
                 isinstance(it, dict) and "$id" in it for it in items
             ):
                 id_keys.add(k)
@@ -298,12 +312,20 @@ def _pbir_skeleton(visual_obj: object) -> dict | None:
 
 def _gate_parity(candidate_path: str, reference_path: str) -> dict:
     """Diff the candidate visual's skeleton against a confirmed-working reference
-    of the SAME kind. FAIL only on render-blocking divergence (wrong role,
-    candidate-only object key, $id presence drift); a different visualType is
-    `not_comparable` (the reference is the wrong kind), never a false fail."""
+    of the SAME kind. FAIL on render-RISK divergence — the candidate is MISSING a
+    query role, an objects key, or a per-item `$id` that the exemplar carries.
+    Benign additions on the candidate (extra cosmetic key / optional role) are NOT
+    a fail. A different visualType, a non-PBIR shape, the candidate AS its own
+    reference, or a degenerate exemplar (no query role) → `not_captured` (note),
+    never a false fail."""
+    record: dict = {"gate": "parity", "source_skill": "visual-feedback-loop"}
+    # Self-referential guard: a file can't be its own confirmed-working exemplar.
+    if os.path.realpath(candidate_path) == os.path.realpath(reference_path):
+        record["status"] = "not_captured"
+        record["note"] = "parity-reference-is-candidate"
+        return record
     cand = _load_json_bounded(candidate_path, what="parity candidate")
     ref = _load_json_bounded(reference_path, what="parity reference")
-    record: dict = {"gate": "parity", "source_skill": "visual-feedback-loop"}
     cs = _pbir_skeleton(cand)
     rs = _pbir_skeleton(ref)
     if cs is None or rs is None:
@@ -320,42 +342,53 @@ def _gate_parity(candidate_path: str, reference_path: str) -> dict:
         record["candidate_visual_type"] = _safe_token(cs["visualType"])
         record["reference_visual_type"] = _safe_token(rs["visualType"])
         return record
+    # Exemplar validation: a reference with no query role has no data binding and
+    # cannot be a "confirmed-working" exemplar — refuse to launder it into a pass.
+    if not rs["roles"]:
+        record["status"] = "not_captured"
+        record["note"] = "parity-reference-not-a-valid-exemplar"
+        return record
 
     record["visual_type"] = _safe_token(cs["visualType"])
     deltas: list[dict] = []
-    if cs["roles"] != rs["roles"]:  # wrong query role → the classic blank cause
+    # Render-risk is what the candidate is MISSING relative to the exemplar
+    # (asymmetric — an extra role/key the candidate adds is benign, not a fail).
+    missing_roles = rs["roles"] - cs["roles"]
+    if missing_roles:  # e.g. a card missing Values, a kpi missing Indicator → blank
         deltas.append(
             {
-                "dimension": "query-role",
+                "dimension": "missing-query-role",
                 "candidate": _safe_tokens(cs["roles"]),
                 "reference": _safe_tokens(rs["roles"]),
             }
         )
-    candidate_only = cs["object_keys"] - rs["object_keys"]
-    if candidate_only:  # e.g. calloutValue on a card whose reference uses labels
+    missing_keys = rs["object_keys"] - cs["object_keys"]
+    if missing_keys:  # e.g. a card that dropped `labels` (substituting calloutValue)
         deltas.append(
             {
-                "dimension": "unknown-object-key",
-                "candidate": _safe_tokens(candidate_only),
+                "dimension": "missing-object-key",
+                "missing": _safe_tokens(missing_keys),
                 "reference": _safe_tokens(rs["object_keys"]),
             }
         )
+    # $id drift, directional: the exemplar carries a fully-$id'd key but the
+    # candidate's same key is not fully-$id'd (a partial/absent $id → blank).
     id_drift = [
         k
         for k in (cs["object_keys"] & rs["object_keys"])
-        if (k in cs["id_keys"]) != (k in rs["id_keys"])
+        if (k in rs["id_keys"]) and (k not in cs["id_keys"])
     ]
-    if id_drift:  # e.g. cardVisual object items missing the required $id
+    if id_drift:  # cardVisual object items missing the required $id
         deltas.append({"dimension": "id-presence", "object_keys": _safe_tokens(id_drift)})
 
     record["status"] = "fail" if deltas else "pass"
     if deltas:
         record["deltas"] = deltas
-    # Advisory only (not a fail): candidate omits an object the reference sets —
-    # may be intentional minimalism, so it is surfaced, never gated on.
-    missing = rs["object_keys"] - cs["object_keys"]
-    if missing:
-        record["advisory_missing_object_keys"] = _safe_tokens(missing)
+    # Advisory only (not a fail): keys the candidate ADDS beyond the exemplar
+    # (cosmetic/benign) — surfaced for diagnostics, never gated on.
+    extra = cs["object_keys"] - rs["object_keys"]
+    if extra:
+        record["advisory_candidate_only_object_keys"] = _safe_tokens(extra)
     return record
 
 

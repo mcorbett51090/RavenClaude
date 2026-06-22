@@ -53,7 +53,7 @@ applied, conditional formatting fired, overlap-once-data-loads). Structural-only
 Anchor the loop on these, not on "looks better":
 
 - **Layout linter clean** (no overlap, within-canvas, equal gaps, aligned columns) — `pbir-layout-engine` exit 0.
-- **Structural parity** with a known-good exemplar of the same kind — no render-blocking divergence (wrong query role / unknown object key / missing `$id`) — `driver.py` `parity` gate exit 0. *(This catches the failure the layout linter can't: a perfectly-placed visual that renders **blank**.)*
+- **Structural parity** with a known-good exemplar of the same kind — the candidate isn't **missing** a render-risk element the exemplar carries (a query role / an objects key / a per-item `$id`) — `driver.py` `parity` gate exit 0. *(Surfaces a structural class the layout linter can't see — but it is a diff against a chosen exemplar, not a render oracle; see below.)*
 - **Zero console errors** (or your declared `max_console_errors`).
 - **Lighthouse accessibility ≥ threshold** (default 90), and performance/best-practices ≥ their thresholds.
 - **No element overflows the declared viewport.**
@@ -64,7 +64,7 @@ agent-captured console + Lighthouse evidence into one `passed` / `next_action`.
 `next_action` is the loop's instruction; `passed: null` means "nothing determinate
 yet — capture more evidence or do the named manual review", which is **not** a failure.
 
-## Parity — diff against a known-good exemplar (the blank-but-well-placed gap)
+## Parity — diff against a known-good exemplar (a diff surfacer, not a render oracle)
 
 The layout linter answers *"is the geometry valid?"* It cannot answer *"will this
 visual actually render?"* — a visual can sit at perfect coordinates and still come
@@ -74,14 +74,25 @@ highest-leverage move is **not** to guess-and-deploy — it is to **open a confi
 visual of the same kind and diff your render skeleton against it.** Replicate the
 exemplar, don't reinvent.
 
-The referee runs this as the **`parity` gate**: point it at a `candidate` and a
-`reference` `visual.json` of the **same `visualType`**, and it flags only
-render-blocking divergences — a wrong **query role** (`Values` vs `Data` vs
-`Indicator`), a **candidate-only object key** (e.g. `calloutValue` on a legacy
-`card` whose working twin uses `labels`), or a **missing `$id`**. A *different*
-`visualType` is "not comparable" (`not_captured`), never a false fail. It echoes
-only allowlist-sanitized schema tokens — never raw `visual.json` content — so a
-hostile spec can't launder instructions into the verdict.
+**What it is — and what it is NOT.** The `parity` gate is a **structural diff
+against an exemplar you choose**; it is *not* an absolute "this will render"
+oracle. It can only be as good as the reference you hand it — so be honest about
+that: it validates that the reference is a non-degenerate exemplar (has a query
+role; isn't the candidate itself) and otherwise treats it as the spec. It is
+deliberately **asymmetric** — it fails on what the candidate is **MISSING**
+relative to the exemplar (the render-risk direction), and **passes benign
+additions** (an extra cosmetic object key, an optional role). It cannot tell a
+truly-working twin from a second broken tile; that judgment is yours.
+
+The referee runs it as the **`parity` gate**: point it at a `candidate` and a
+`reference` `visual.json` of the **same `visualType`**, and it flags render-risk
+**omissions** — a **missing query role** (`Values`/`Data`/`Indicator`), a
+**dropped objects key** (e.g. a legacy `card` that dropped `labels` and substituted
+`calloutValue`), or a **missing per-item `$id`** (the `cardVisual` blank cause). A
+*different* `visualType`, a non-PBIR shape, a self-reference, or a degenerate
+exemplar (no query role) → `not_captured` (never a false fail). It echoes only
+allowlist-sanitized schema tokens — never raw `visual.json` content — so a hostile
+spec can't launder instructions into the verdict.
 
 This **generalizes to any declarative-viz format** — the runnable differ is PBIR
 `visual.json` today (where the field evidence and the `pbir-*` tooling live), but
