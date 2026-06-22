@@ -194,7 +194,7 @@
       "displayName": "RavenClaude Core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: 15 specialist agents, 43 skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage → brand kit), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard.",
-      "version": "0.161.1",
+      "version": "0.161.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -2081,7 +2081,7 @@
       "name": "localization-i18n-engineering",
       "source": "./plugins/localization-i18n-engineering",
       "description": "Internationalization (i18n) and localization (l10n) engineering specialists — 3 agents covering i18n architecture (string externalization, ICU MessageFormat, RTL/bidi, locale data), the l10n pipeline (extraction, TMS handoff, translation memory, continuous localization), and localization QA (pseudo-localization, l10n linting in CI, visual overflow QA, locale-coverage testing). Ships 3 skills, 3 commands, 2 templates, a decision-tree knowledge bank with a 2026 i18n/TMS capability map, 6 best-practice rules, and an advisory hook flagging i18n anti-patterns (hard-coded user-facing strings, string concatenation, if-count-1 plurals, hard-coded date/number formats). Inherits ravenclaude-core protocols (Grounding, Structured Output).",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -2152,7 +2152,7 @@
       "name": "supply-chain-planning",
       "source": "./plugins/supply-chain-planning",
       "description": "Supply-chain planning specialists — the plan layer between buy and move: S&OP/IBP cycle orchestration, demand forecasting (statistical + consensus, MAPE/bias, new-product, seasonality), inventory optimization (safety stock, service-level targets, ABC/XYZ, EOQ, multi-echelon, working-capital tradeoff), and MRP/replenishment. Ships 4 agents (supply-chain-planner, demand-planning-analyst, inventory-optimization-engineer, sop-process-lead), 3 skills (demand-forecasting, inventory-policy-and-safety-stock, sop-process), 3 commands, 2 templates, a decision-tree knowledge bank, 6 best-practices, and an advisory anti-pattern hook. Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "Matt Corbett"
       },

@@ -80,6 +80,10 @@ def main() -> int:
     if args.all:
         out = subprocess.run(["git", "-C", str(root), "ls-files"],
                              capture_output=True, text=True)
+        if out.returncode != 0:
+            print(f"check-layout: `git ls-files` failed (exit {out.returncode}): "
+                  f"{out.stderr.strip()}", file=sys.stderr)
+            return 2
         paths = out.stdout.splitlines()
         scope = f"all {len(paths)} tracked files"
     else:
@@ -87,6 +91,11 @@ def main() -> int:
             ["git", "-C", str(root), "diff", "--name-only", "--diff-filter=ACR",
              f"{args.diff}...HEAD"],
             capture_output=True, text=True)
+        if out.returncode != 0:
+            print(f"check-layout: `git diff ...{args.diff}` failed (exit {out.returncode}) "
+                  f"— base ref unresolvable, refusing to pass silently: {out.stderr.strip()}",
+                  file=sys.stderr)
+            return 2
         paths = out.stdout.splitlines()
         scope = f"{len(paths)} added/copied/renamed file(s) vs {args.diff}"
 
