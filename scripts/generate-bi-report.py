@@ -99,7 +99,13 @@ BAND_WORD = {"green": "Healthy", "yellow": "Watch", "red": "Act now"}
 
 
 def band_of(score: int, bands: dict) -> str:
-    for name, (lo, hi) in bands.items():
+    for name, rng in bands.items():
+        # Tolerate a malformed band (scalar, or wrong-length list) in a hand-authored
+        # data.json instead of crashing the whole report build on a tuple-unpack.
+        try:
+            lo, hi = rng[0], rng[1]
+        except (TypeError, KeyError, IndexError):
+            continue
         if lo <= score <= hi:
             return name
     return "red"
@@ -376,7 +382,11 @@ def render_report(data: dict, plugin: str, tokens: str) -> str:
         p.setdefault("band", band_of(int(p.get("score", 0)), bands))
     counts = {"green": 0, "yellow": 0, "red": 0}
     for p in partners:
-        counts[p["band"]] = counts.get(p["band"], 0) + 1
+        # Coerce any unknown band label to a drawn segment so the donut sums to total
+        # (svg_donut only renders green/yellow/red); an out-of-set band would otherwise
+        # silently shrink the ring below `total`.
+        b = p["band"] if p["band"] in counts else "red"
+        counts[b] += 1
     total = len(partners)
 
     # KPI cards
@@ -456,7 +466,7 @@ def render_report(data: dict, plugin: str, tokens: str) -> str:
         prows.append(drawer)
 
     # data-quality banner
-    dq = data.get("data_quality_flags", [])
+    dq = list(data.get("data_quality_flags", []))  # copy: don't mutate the parsed-JSON list (dedupe across calls)
     # also lift any partner rostering-stale flags into the banner
     for p in partners:
         for f in p.get("flags", []):
@@ -786,21 +796,21 @@ def _cell(col, row, band_words) -> str:
 def _render_table(sec, band_words) -> str:
     cols = sec.get("columns", [])
     rows = sec.get("rows", [])
-    sortable = {c["key"] for c in cols if c.get("type") in ("num", "delta", "badge", "date", "title")}
+    sortable = {c["key"] for c in cols if c.get("type") in ("num", "delta", "badge", "date", "title") and c.get("key")}
     sd = sec.get("sort_default", {})
     thead = []
     for c in cols:
-        if c.get("type") in ("num", "delta", "badge", "date", "title"):
+        if c.get("type") in ("num", "delta", "badge", "date", "title") and c.get("key"):
             arr = "▼" if c["key"] == sd.get("key") else ""
             thead.append(f'<th data-key="{esc(c["key"])}">{esc(c["label"])} <span class="arr">{arr}</span></th>')
         else:
             thead.append(f"<th>{esc(c['label'])}</th>")
     body = []
     for r in rows:
-        searchable = " ".join(str(r.get(c["key"], "")) for c in cols if c.get("type") in ("title", "text")).lower()
+        searchable = " ".join(str(r.get(c.get("key"), "")) for c in cols if c.get("type") in ("title", "text")).lower()
         data_attrs = [f'data-band="{esc(r.get("band",""))}"', f'data-search="{esc(searchable)}"']
         for c in cols:
-            if c["key"] in sortable:
+            if c.get("key") in sortable:
                 data_attrs.append(f'data-{esc(c["key"])}="{esc(r.get(c["key"], ""))}"')
         cells = "".join(_cell(c, r, band_words) for c in cols)
         body.append(f'<tr class="prow" {" ".join(data_attrs)}>{cells}</tr>')
