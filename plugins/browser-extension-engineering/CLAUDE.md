@@ -49,6 +49,7 @@ for, and how does it ship?"**
 
 - **"Design the extension / decide permissions / pick target browsers"** → `extension-architect`.
 - **"Write/fix the manifest, the service worker, the messaging, packaging"** → `extension-implementation-engineer`.
+- **"Build an extension end-to-end / where should this logic live?"** → the `build-browser-extension` skill (either agent) → the [`where-logic-lives`](knowledge/where-logic-lives.md) tree.
 - **"Audit my permissions"** → the `manifest-permissions-audit` skill (either agent).
 - **"Get it through store review"** → the `store-submission-readiness` skill (architect drives, implementer fixes the manifest).
 - **A complex popup/options *UI*** → `frontend-engineering` (this plugin owns the shell).
@@ -159,6 +160,7 @@ extend with `permissions_requested` and `target_browsers` fields.
 
 | Skill | Primary consumer | What's inside |
 |---|---|---|
+| [`skills/build-browser-extension/SKILL.md`](skills/build-browser-extension/SKILL.md) | both agents | The **end-to-end build workflow**: place each piece of logic in the least-privileged context, wire cross-context messaging, walk the permissions tree narrowest-first, and the store-submission checklist. Ties the where-logic-lives + MV3 trees to the two deeper audit/readiness skills. |
 | [`skills/manifest-permissions-audit/SKILL.md`](skills/manifest-permissions-audit/SKILL.md) | both agents | Audit a `manifest.json` against the least-privilege bar: every permission/host-match justified, `activeTab`/optional opportunities, MV3 conformance, and the store-review risk per entry. |
 | [`skills/store-submission-readiness/SKILL.md`](skills/store-submission-readiness/SKILL.md) | `extension-architect` | A pre-submission checklist for Chrome Web Store / Edge Add-ons / Firefox AMO: metadata, privacy + permissions justification, single-purpose conformance, and common rejection reasons. |
 
@@ -168,6 +170,7 @@ extend with `permissions_requested` and `target_browsers` fields.
 
 | File | Read when |
 |---|---|
+| [`knowledge/where-logic-lives.md`](knowledge/where-logic-lives.md) | Deciding **which context owns a piece of logic**. A **Mermaid "where should this logic live?" decision tree** across the four MV3 contexts — content script (isolated world), injected page script (**main world**, untrusted), service worker, and popup/options — with the least-privileged-context-that-works rule. Durable MV3 mechanics. |
 | [`knowledge/manifest-v3-architecture.md`](knowledge/manifest-v3-architecture.md) | Designing or building any extension. The MV3 component model, the service-worker lifecycle trap, content-script isolation + messaging, storage, `web_accessible_resources`, and a **Mermaid permissions-minimization decision tree**. Durable MV3 mechanics. |
 | [`knowledge/cross-browser-and-stores.md`](knowledge/cross-browser-and-stores.md) | Targeting multiple browsers or preparing a submission. The Chrome `chrome.*` vs Firefox `browser.*` delta, the polyfill, and the three store pipelines + common rejections. Volatile store specifics carry retrieval dates. |
 
@@ -206,3 +209,10 @@ extend with `permissions_requested` and `target_browsers` fields.
   store-submission-readiness), a 2-doc knowledge bank (MV3 architecture with a
   Mermaid permissions-minimization tree + cross-browser/stores with a dated
   capability note), best-practices.
+- **v0.2.0** — added the `build-browser-extension` end-to-end build-workflow skill
+  (context placement → service-worker discipline → messaging → least-privilege
+  permissions → store checklist, tying the trees to the two deeper audit/readiness
+  skills) and the `knowledge/where-logic-lives.md` knowledge doc (a Mermaid "where
+  should this logic live?" decision tree across the four MV3 contexts, treating the
+  **main-world injected page script** as a first-class, untrusted context). Now 3
+  skills + a 3-doc knowledge bank.
