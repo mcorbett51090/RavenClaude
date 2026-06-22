@@ -2,14 +2,14 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
-## [0.3.1] — 2026-06-13
+## [0.4.1] — 2026-06-13
 
-Research-sweep **correction** (Tier-A weekly news sweep) — the capability map said OpenTelemetry **logs** were still "maturing"; they have **reached Stable**. Verified against the primary [OpenTelemetry spec status](https://opentelemetry.io/docs/specs/status/) (Logs Data Model + Logs API = Stable). Routed through two expert panels (usefulness → USEFUL; detailed review → APPROVE-WITH-FIX, the per-language-SDK rider applied); panels concurred, no tiebreak.
+Research-sweep **correction** (Tier-A weekly news sweep) — the capability map said OpenTelemetry **logs** were still "maturing"; they have **reached Stable**. Verified against the primary [OpenTelemetry spec status](https://opentelemetry.io/docs/specs/status/) (Logs Data Model + Logs API = Stable). Routed through two expert panels (usefulness → USEFUL; detailed review → APPROVE-WITH-FIX, the per-language-SDK rider applied); panels concurred, no tiebreak. (Patch on top of **0.4.0**, which folded in chaos engineering via #452 and shipped without its own CHANGELOG entry.)
 
 ### Fixed
 
 - **`knowledge/observability-sre-decision-trees.md`** — capability-map OpenTelemetry row updated from "traces+metrics | GA | Logs maturing" to "**traces+metrics+logs | GA — all 3 core signals Stable**", with a `[verify-at-build — per-language SDK logs maturity still varies]` rider, a note that **Profiles** is the 4th signal (public **Alpha**, ~2026-03, `[verify-at-build]`), and a spec-status citation. An SRE deciding whether to route logs through OTel was being told logs were not production-ready when the data model + API are GA.
-- Version **0.3.0 → 0.3.1** in `.claude-plugin/plugin.json` **and** `marketplace.json` (lockstep).
+- Version **0.4.0 → 0.4.1** in `.claude-plugin/plugin.json` **and** `marketplace.json` (lockstep).
 
 ## [0.3.0] — 2026-06-05
 

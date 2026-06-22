@@ -1,0 +1,29 @@
+{
+  "name": "technical-program-management",
+  "version": "0.1.0",
+  "description": "Technical-program-management team — 3 agents (technical-program-manager, cross-team-dependency-manager, program-launch-coordinator) for delivering a program of projects across teams: program charter + measurable outcomes, dependency mapping and critical-path/integration risk, a RAID-driven program plan, launch-readiness reviews with written go/no-go criteria, staged rollout, and exec status comms that lead with decisions and asks (not activity). 3 skills, a 2-doc knowledge bank with Mermaid decision trees (TPM-vs-PM-vs-EM, escalate-or-not, go/no-go), 4 best-practices, 5 templates, 4 commands, and 1 advisory anti-pattern hook. Distinct from project-management (a single project/plan) and engineering-management (people/teams); execution lands in devops-cicd, observability-sre, and the relevant engineering plugins. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "technical-program-management",
+    "tpm",
+    "program-management",
+    "cross-team-delivery",
+    "dependency-management",
+    "critical-path",
+    "raid-log",
+    "launch-readiness",
+    "go-no-go",
+    "rollout",
+    "program-status",
+    "escalation",
+    "stakeholder-comms",
+    "program-charter"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
