@@ -50,7 +50,7 @@ First-value definition (fill in BEFORE go-live, store in the success plan):
 - [`./health-design-leading-not-lagging-signals.md`](./health-design-leading-not-lagging-signals.md) — first-value is the canonical leading signal
 - [`../skills/implementation-90-day-arc/SKILL.md`](../skills/implementation-90-day-arc/SKILL.md) — the arc this milestone lives inside
 - [`../knowledge/k12-adoption-arc-fall-spring-summer.md`](../knowledge/k12-adoption-arc-fall-spring-summer.md) — Phase 2 settling window is the most-predictive period
-- [`../agents/partner-success-manager.md`](../agents/partner-success-manager.md) — owns the 30/60/90 plan and the first-value definition
+- [`../agents/edtech-partner-success-manager.md`](../agents/edtech-partner-success-manager.md) — owns the 30/60/90 plan and the first-value definition
 
 ## Provenance
 

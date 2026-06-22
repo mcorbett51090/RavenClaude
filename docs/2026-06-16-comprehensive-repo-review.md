@@ -51,82 +51,69 @@ repo intake infrastructure (no plugin version).
 
 ---
 
-## Deferred — needs your decision or judgment
+## Follow-up — formerly-deferred items, now resolved
 
-### D1 (P2) — cross-plugin agent name collision: `partner-success-manager`
+All five deferred items were actioned in a second commit on this branch (at the
+owner's instruction "fix the items that still need fixing and then merge"). One —
+D3 — was **not** changed because its recommended fix turned out to be wrong on
+review (documented below); the rest are fixed.
 
-Two plugins ship an agent with the **same** `name:` —
-[`plugins/ravenclaude-core/agents/partner-success-manager.md`](../plugins/ravenclaude-core/agents/partner-success-manager.md)
-(domain-neutral, `model: sonnet`) and
-[`plugins/edtech-partner-success/agents/partner-success-manager.md`](../plugins/edtech-partner-success/agents/partner-success-manager.md)
-(EdTech-specialized, `model: opus`). With both plugins enabled, Claude Code's
-subagent registry has a name clash and the orchestrator can't deterministically
-route. No gate catches this (`check-frontmatter.py` validates each file
-independently; there is no cross-plugin uniqueness check).
+### D1 (P2) — cross-plugin agent name collision: `partner-success-manager` — **FIXED**
 
-**Why deferred:** renaming a **shipped agent's public identity** is a
-consumer-visible API change (muscle memory, any scripted invocation) and a
-naming decision, not a rule-derivable bugfix.
+Two plugins shipped an agent with the same `name:` — `ravenclaude-core` (generic,
+`sonnet`) and `edtech-partner-success` (EdTech, `opus`) — colliding in the
+subagent registry when both are enabled. **Fix:** `ravenclaude-core` keeps the
+domain-neutral name (house rule #1); the EdTech agent was renamed to
+`edtech-partner-success-manager` (file + `name:` + all `works_with` / `primary_agent`
+/ prose references within the plugin; core-path references preserved). Because
+core *keeps* the generic name, every external/doc reference still resolves. A new
+**cross-plugin agent-name-uniqueness check** was added to `check-frontmatter.py`
+(with a verified teeth-test). `edtech-partner-success` bumped 0.12.0 → 0.12.1.
 
-**Recommendation:** keep the generic name on the core agent (house rule #1 — core
-owns the domain-neutral name) and rename the EdTech one to
-`edtech-partner-success-manager`, updating the `works_with` references in its
-sibling agents; bump `edtech-partner-success` with a migration note. **Then** add
-a cross-plugin agent-name-uniqueness check to `check-frontmatter.py` so the class
-can't recur. I can implement this on your go-ahead.
+### D2 (P2) — eval-harness stats under-count agents — **FIXED**
 
-### D2 (P2) — eval-harness stats under-count agents — `rc-deep-research.js`
+`rc-deep-research.js` (both byte-identical copies) now accumulates a real
+`verifyAgentsFired` counter (`voteCount + escalation` per claim) and uses it in
+place of `voted.length * VOTES_PER_CLAIM` at all four count sites. Baseline
+(uniform policy, no escalation) yields the identical number, so no eval baseline
+shifts; non-uniform policies now report accurately. Gate 52 (disabled-floor
+opts-by-reference) is untouched and still green. Verified CI-safe: no gate runs
+the eval grader, and the count semantics aren't asserted by any fixture.
 
-`.claude/workflows/rc-deep-research.js` (lines ~1131, 1313, 1395, 1410) reports
-`agent_count`/phase counts as `voted.length * VOTES_PER_CLAIM` (a flat constant),
-but the verify phase actually fans out `resolveVerifyVotes(claim)` **per claim**
-and never counts escalation votes. When `verify_policy` is non-uniform the eval
-grader's token-bucket attribution is wrong. **Research results are unaffected —
-only the reported stats.** Passes the baseline gate because baseline policy is
-uniform (all 3). **Recommendation:** accumulate the real count
-(`claimTierAudit.reduce((n,r)=>n+r.votes_fired,0)`). Deferred because it touches
-the eval-harness contract — wants eval-harness eyes, and the bundled-skill mirror
-must stay byte-identical.
+### D3 (P2) — oversize non-Bash payload skips `_screen_always` — **NOT CHANGED (recommendation was wrong)**
 
-### D3 (P2) — oversize non-Bash payload skips `_screen_always`
+On closer analysis the suggested "run `_screen_always` unconditionally" fix is
+**unsafe**: when a payload is oversize, `screened` for a **file** shape is the
+full file *content* (`"<path>\n<content>"`), so always-screening it would scan
+large file bodies for shell-command patterns — creating **false-positive
+hard-denies** (a doc file that merely contains the text `curl x | sh`) plus a
+perf hit on >1 MiB files. The current skip is correct because (a) Bash command
+screening is never gated by `payload_too_large`, and (b) the load-bearing
+*path-based* substrate self-disable (`screen_substrate_path`) already runs
+**unconditionally** at line 1160. No change made; the code is right as-is.
 
-`plugins/ravenclaude-core/scripts/thing-decision.py:~1150` —
-`if not payload_too_large: result.update(_screen_always(screened))`. On an
-oversize (>1 MiB) non-Bash payload the category-independent self-disable +
-hard-rule screen is skipped; `_screen_always` only scans the reviewed
-command/URL/path (not the bulk content), so there is **no cost reason** to skip
-it. No concrete exploit today (the hard-rule concerns are Bash-shaped and the
-file-shape self-disable is still caught unconditionally by `screen_substrate_path`),
-so this is defense-in-depth erosion. **Recommendation:** run `_screen_always`
-unconditionally, or move the `payload_too_large` fail-closed deny above the
-enabled-gate.
+### D4 (P2) — `check-run-actions-argv.py` `-c` detection bypassable — **FIXED**
 
-### D4 (P2) — `check-run-actions-argv.py` `-c` detection bypassable (latent)
+The check now rejects any `-c`-bearing short-flag cluster (`-c`/`-lc`/`-ec`/
+`--login -c`, at any index) when argv[0] is a shell, not just the exact `-c` at
+index 1. Verified: the real `RUN_ACTIONS` still passes; `bash -lc`, `sh -ec`, and
+`bash --login -c` are all now caught.
 
-`scripts/check-run-actions-argv.py:131` enforces "no shell `-c`" with
-`if i == 1 and lit == "-c"` — only the exact token at exactly index 1. `bash -lc`,
-`sh -ec`, and `bash --login -c` (where `-c` is index 2) all pass. **Latent** — the
-gate guards an internal committed constant (`RUN_ACTIONS`), not untrusted input,
-so the blast radius is "a future maintainer edit ships green." **Recommendation:**
-for `bash`/`sh` launchers, reject any subsequent arg matching `^-[a-z]*c[a-z]*$`.
+### D5 (P3) — minor items — **FIXED**
 
-### D5 (P3, low) — minor, fail-safe or no-current-trigger
-
-- `plugins/ravenclaude-core/hooks/guard-destructive.sh:142` — `git push … -f`
-  pattern over-matches a branch ending in `-f` (e.g. `git push origin feature-f`).
-  **Fails closed** (a benign push is blocked, never a destructive one allowed),
-  so it's a rare false positive, not a hole. Recommend: leave as-is (fails safe)
-  or anchor the short-flag form. **Do not loosen the force-push guard for a
-  cosmetic FP without review.**
-- `scripts/two-panel-plan-review.js:~430,577` — `panel.filter(Boolean)` then
-  indexing `lenses[i]` by compacted position mislabels surviving lens results if
-  a panel agent returns null. Fix: pair `{result, lens}` before filtering.
-- `plugins/ravenclaude-core/scripts/thing-decision.py:~617` — `_posture_write_disables`
-  misses non-canonical falsy `thing` values (`"0"`, `disabled`) that
-  `thing_enabled_for` treats as off; `:760,762` accept `bool` as int for timeout
-  config (`isinstance(True, int)`).
-- `scripts/check-md-links.py:36` — `LINK_RE` misses links whose text contains
-  nested `[]` and truncates targets containing `(`. No current doc triggers it.
+- **`guard-destructive.sh`** — the `git push … -f` pattern was anchored so `-f`
+  must be a standalone flag, not a branch name ending in `-f`. Force pushes
+  (`-f`, `--force`) still blocked; `git push origin feature-f` no longer false-flags.
+- **`two-panel-plan-review.js`** (both copies) — each result is now paired with
+  its lens key before `filter(Boolean)`, so a null panel result can't misalign the
+  surviving lens labels.
+- **`thing-decision.py`** — `_posture_write_disables` now mirrors
+  `thing_enabled_for`'s truthiness exactly, catching `thing: 0`/`"0"`/`disabled`/
+  `none` self-disable writes (not just `off`/`false`/`no`); and the seat/panel
+  timeout config now excludes `bool` so `seat_timeout_seconds: true` isn't coerced
+  to a 1-second timeout.
+- **`check-md-links.py`** — `LINK_RE` now captures one level of balanced parens in
+  a target (`Foo_(bar)`), and the gate still passes on the full corpus.
 
 ---
 

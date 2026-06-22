@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import re
 import sys
 from pathlib import Path
 
@@ -119,6 +120,10 @@ def check(path: Path) -> int:
             return _fail(f"action key is not a string literal: {ast.dump(key)}")
         if not isinstance(val, ast.List) or not val.elts:
             return _fail(f"action {kname!r} value is not a non-empty list literal")
+        # bash/sh are only safe with no `-c`-form anywhere — catch every spelling
+        # (`-c`, `-lc`, `-ec`, `--login -c`, … at any index), not just argv[1].
+        argv0_lit = _const_str(val.elts[0]) if val.elts else None
+        argv0_is_shell = argv0_lit in ALLOWED_ARGV0
         for i, elt in enumerate(val.elts):
             lit = _const_str(elt)
             if lit is not None:
@@ -128,8 +133,12 @@ def check(path: Path) -> int:
                     )
                 if i == 0 and lit in ALLOWED_ARGV0:
                     continue
-                if i == 1 and lit == "-c":
-                    return _fail(f"action {kname!r} uses a shell -c form (argv[1] == '-c')")
+                # Any later short-flag cluster bearing `c` (`-c`/`-lc`/`-ec`/…) turns
+                # a following element into an inline script — forbidden for a shell.
+                if argv0_is_shell and i >= 1 and re.fullmatch(r"-[A-Za-z]*c[A-Za-z]*", lit):
+                    return _fail(
+                        f"action {kname!r} uses a shell -c form (argv[{i}] == {lit!r})"
+                    )
                 continue
             # non-literal element — only the whitelisted constant expressions pass
             if _is_allowed_dynamic(elt):

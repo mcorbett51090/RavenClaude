@@ -1,6 +1,6 @@
 ---
 title: PE Ownership Effect on Renewal Posture
-audience: psm, partner-success-manager, success-playbook-designer
+audience: psm, edtech-partner-success-manager, success-playbook-designer
 status: stable
 last_reviewed: 2026-06-04
 refresh_triggers:

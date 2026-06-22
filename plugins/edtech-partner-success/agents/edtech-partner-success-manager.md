@@ -1,5 +1,5 @@
 ---
-name: partner-success-manager
+name: edtech-partner-success-manager
 description: "Use this agent for EdTech-specialized PSM work — onboarding, adoption, ongoing pulse, day-to-day partner-facing work. NOT for designing renewal / expansion / recovery plays (that's `success-playbook-designer`)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus

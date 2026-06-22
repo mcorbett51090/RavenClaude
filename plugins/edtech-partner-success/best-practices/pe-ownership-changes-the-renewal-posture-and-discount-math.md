@@ -52,7 +52,7 @@ For independent or non-PE-backed EdTech vendors, this rule does not apply — pr
 
 ## See also
 
-- [`../agents/partner-success-manager.md`](../agents/partner-success-manager.md) — leads the renewal conversation and needs the current discount posture before the call.
+- [`../agents/edtech-partner-success-manager.md`](../agents/edtech-partner-success-manager.md) — leads the renewal conversation and needs the current discount posture before the call.
 - [`./renewal-start-the-k12-clock-at-180-days-not-90.md`](./renewal-start-the-k12-clock-at-180-days-not-90.md) — the companion rule on when to start the renewal motion where pricing research belongs.
 
 ## Provenance

@@ -1,11 +1,11 @@
 ---
 name: partner-training-program-design
-description: Design partner-facing training programs for EdTech — train-the-trainer is the only model that scales in K-12. K-12 PD modality decision rule (live-in-person / live-virtual / hybrid / async-with-followup), PD-credit alignment with state frameworks, teacher-union overlay in unionized states. Used by `ravenclaude-core/documentarian` + `partner-success-manager` + `success-playbook-designer`.
+description: Design partner-facing training programs for EdTech — train-the-trainer is the only model that scales in K-12. K-12 PD modality decision rule (live-in-person / live-virtual / hybrid / async-with-followup), PD-credit alignment with state frameworks, teacher-union overlay in unionized states. Used by `ravenclaude-core/documentarian` + `edtech-partner-success-manager` + `success-playbook-designer`.
 ---
 
 # Skill: partner-training-program-design
 
-> **Invoked by:** `ravenclaude-core/documentarian` (when content-designing training materials), `partner-success-manager` (when planning a partner's training rollout), `success-playbook-designer` (when authoring an enablement play).
+> **Invoked by:** `ravenclaude-core/documentarian` (when content-designing training materials), `edtech-partner-success-manager` (when planning a partner's training rollout), `success-playbook-designer` (when authoring an enablement play).
 >
 > **When to invoke:** any question of the shape "how should this partner's staff be trained on our product?" Includes initial-rollout training, ongoing enablement, certification programs, learning paths, and the train-the-trainer model specifically.
 >

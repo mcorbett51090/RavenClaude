@@ -1,6 +1,6 @@
 ---
 title: CBT (Computer-Based Testing) Readiness Checkpoint — Spring
-audience: psm, partner-success-manager, learning-analytics-analyst, success-playbook-designer
+audience: psm, edtech-partner-success-manager, learning-analytics-analyst, success-playbook-designer
 status: stable
 last_reviewed: 2026-06-04
 refresh_triggers:
