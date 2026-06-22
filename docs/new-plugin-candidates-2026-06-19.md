@@ -40,9 +40,29 @@ Scored 1–5 each, `[ESTIMATE]`. **Feasibility** = how confidently a strong agen
 | content-marketing-seo | 3 | 2 | 6 | Merge into digital-marketing-performance rather than ship separately. |
 | bioinformatics-computational-biology | 2 | 3 | 6 | Niche; high value where it lands but smallest audience. |
 
+## Disposition — fold into an existing plugin, add as new, or skip
+
+After grounding each candidate against the existing roster (not assuming a gap), each idea was routed: **fold** the valuable idea into the plugin that already owns the lane, **add** a new plugin for a genuinely uncovered lane, or **skip** where coverage already exists. (Policy: "if a plugin exists, update it with the valuable idea; add genuinely new ones.")
+
+| # | Candidate | Grounding check | Disposition |
+|---|---|---|---|
+| 1 | legacy-modernization | No existing home (backend/db/qa adjacent, none own it) | ✅ **ADDED** (new plugin, prior commit) |
+| 2 | itsm-service-management | No ITSM/ITIL plugin; observability-sre owns *engineering* incidents, not the ITIL operating model | ✅ **ADDED** (new plugin, this run) |
+| 3 | chaos-resilience-engineering | `observability-sre` exists (reliability/incident/SLO) but has **no** chaos/resilience-verification skill | ✅ **FOLDED** into `observability-sre` v0.4.0 — added a `chaos-engineering` skill + `chaos-engineering-reference.md` knowledge doc. The proactive complement to its reactive practices; no separate plugin warranted. |
+| 4 | gis-geospatial-engineering | No spatial plugin; database-engineering is OLTP-generic | ⏳ **DEFER → new plugin.** Genuinely uncovered and sizeable (PostGIS, CRS, tiling, routing, raster); warrants its own full build in a follow-up run. Highest-priority remaining new plugin. |
+| 5 | grant-writing-management | `nonprofit-fundraising` **already ships a `grant-writer` agent** + `qualify-the-funder` skill | ⛔ **SKIP** — coverage already exists; low additive value. (Corrects this doc's initial over-statement of the gap.) A federal post-award-compliance skill is the only marginal add; not worth a fold this round. |
+| 6 | digital-marketing-performance | `marketing-operations` already covers channel-mix + attribution + CAC/LTV | ⏳ **DEFER → fold.** Net-new value is a dedicated paid-media/ROAS + SEO/SEM skill pair into `marketing-operations`; moderate value, deferred to keep this PR's blast radius bounded. |
+| 7 | developer-relations-advocacy | `technical-writing-docs` owns docs; DevRel is broader | ⏳ **DEFER → fold** a devrel skill into `technical-writing-docs` (low score). |
+| 8 | robotics-ros-engineering | `embedded-iot-engineering` is firmware/device; ROS 2 is distinct | ⏳ **DEFER → new plugin** (low score, narrow audience). |
+| 9 | content-marketing-seo | Overlaps #6 | ⛔ **MERGE into #6** (as the doc flagged) — not a separate plugin. |
+| 10 | bioinformatics-computational-biology | `data-science-research` adjacent; niche | ⏳ **DEFER → new plugin** (low score, smallest audience). |
+
 ## Build progress (this run)
 
-- ✅ **Built: `legacy-modernization`** (priority #1) — full plugin: 4 agents (modernization-strategist, codebase-archaeologist, refactoring-engineer, migration-engineer), 5 skills, 4 templates, 4 commands, 1 advisory hook, 8 best-practices, a knowledge bank with Mermaid decision trees + a dated 2026 capability map. Registered in `marketplace.json` and `docs/architecture.md`; inherits `ravenclaude-core` protocols. Seams: in-place refactor stays here vs. backend redesign → `backend-engineering`; schema migration mechanics → `database-engineering`; deploy/cutover automation → `devops-cicd`; test-suite buildout → `qa-test-automation`.
-- ⏳ **Deferred to follow-up runs:** the remaining 9 candidates. Recommended next two by score: `itsm-service-management` (#2) and `chaos-resilience-engineering` (#3).
+- ✅ **ADDED `legacy-modernization`** (priority #1) — 4 agents, 5 skills, 8 best-practices, 4 templates, 4 commands, 1 advisory hook, Mermaid decision-tree knowledge bank.
+- ✅ **ADDED `itsm-service-management`** (priority #2) — 4 agents (service-management-lead, incident-and-problem-manager, change-and-release-manager, service-desk-and-request-manager), 5 skills, 8 best-practices, 4 templates, 4 commands, 1 advisory hook, knowledge bank (ITSM decision trees + ITIL 4 practice reference + dated 2026 tooling map). Sharp seam vs `observability-sre` (ITIL operating model vs engineering reliability practice).
+- ✅ **FOLDED chaos engineering into `observability-sre`** (priority #3) — `chaos-engineering` skill + `chaos-engineering-reference.md`; version 0.3.0 → 0.4.0; descriptions + counts updated.
+- ⛔ **Skipped** grant-writing (already covered by `nonprofit-fundraising/grant-writer`) and content-marketing-seo (merged into digital-marketing).
+- ⏳ **Deferred (documented above):** gis-geospatial (next new plugin), digital-marketing-performance fold, devrel fold, robotics-ros, bioinformatics.
 
-**Why one and not ten in a single autonomous run:** every plugin must pass ~50 CI gates (frontmatter scenario-schema, marketplace-claims count/structural, layout allow-list, prettier, the gate-audit meta-test). Shipping one *complete, CI-passing* plugin plus a researched backlog is higher-value than ten half-built directories that fail the build. The backlog above is sequenced so each follow-up run can pick up the next-highest score.
+**Why this scope and not all ten at once:** every plugin/fold must pass ~50 CI gates (frontmatter scenario-schema, marketplace-claims count+structural, layout allow-list, prettier, artifact-freshness, the gate-audit meta-test). Two complete new plugins + one clean fold, all CI-green, is higher-value and lower-risk than ten half-built directories that break the build. The deferred items are routed and sequenced so each follow-up run picks up the next highest-value one.
