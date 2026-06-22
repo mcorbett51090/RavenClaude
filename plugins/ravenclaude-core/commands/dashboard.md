@@ -18,10 +18,23 @@ It serves the version-matched `dashboard.html` and exposes only `/__save`, `/__r
 
 ## How to launch it
 
-`rc dashboard` is the one-verb front door. It runs the bundled server, and on a
+`rc dashboard` is the one-verb front door — a real launcher shipped at
+[`${CLAUDE_PLUGIN_ROOT}/bin/rc`](../bin/rc). It runs the bundled server, and on a
 local/desktop machine **the browser opens automatically**. In a Codespace, VS Code's
 `onAutoForward: openBrowser` wiring opens the forwarded URL in a real browser tab the
 moment the port comes up — no copy-paste required in either case.
+
+`rc` works the same in **any host** (Claude Code, GitHub Copilot CLI, a bare terminal) —
+it preserves your cwd as the project root, so `.ravenclaude/` is written where you run it.
+To call it as a bare `rc dashboard`, put the plugin's `bin/` on your PATH:
+
+```shell
+export PATH="$PATH:<your-ravenclaude-clone>/plugins/ravenclaude-core/bin"
+```
+
+Otherwise run it by path: `bash <clone>/plugins/ravenclaude-core/bin/rc dashboard`. In a
+**Copilot** session you don't need either — just ask Copilot to "open the dashboard" and
+its `AGENTS.md` grounding ([`copilot/AGENTS.md`](../copilot/AGENTS.md)) tells it the command.
 
 To launch it manually (e.g. from Claude with the Bash tool), run the bundled server
 **in the background, from the user's project root** (so it writes `.ravenclaude/` into

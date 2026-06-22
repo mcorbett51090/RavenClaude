@@ -291,7 +291,7 @@ Data-platform agents stay within the four-layer scope (DB / ELT / dashboard / em
 
 Reciprocal seam to the adjacent-plugins build-out:
 
-- Adjacent data plugins: the dbt transformation/semantic layer → `analytics-engineering`; real-time/streaming + CDC → `data-streaming-engineering`; data catalog, lineage, classification & privacy mechanics (GDPR/CCPA/DSR) → `data-governance-privacy`.
+- Adjacent data plugins: the dbt transformation/semantic layer → `analytics-engineering`; real-time/streaming + CDC → `data-streaming-engineering`; data catalog, lineage, classification & privacy mechanics (GDPR/CCPA/DSR) → `data-governance-privacy`; batch pipeline **orchestration/scheduling** (Airflow/Dagster/Prefect — the layer that *runs and schedules* the ELT this plugin builds, with idempotent backfills, retries, freshness SLAs, and lineage) → [`data-orchestration`](../data-orchestration/CLAUDE.md). This plugin authors the connectors/warehouse/dashboards; `data-orchestration` owns the DAG/asset that runs them on a schedule.
 
 ---
 
