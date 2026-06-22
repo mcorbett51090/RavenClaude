@@ -23,6 +23,9 @@ Two ways to set breakpoints:
 ## Minimum cacheable tokens (dated — verify)
 Live docs (2026-05-28): **Opus 4.x / Haiku 4.5 = 4,096**; **Sonnet 4.6 = 1,024**; Haiku 3.5 = 2,048. Below the minimum, the request runs **without** caching. Check `usage.cache_creation_input_tokens` / `usage.cache_read_input_tokens` to confirm.
 
+## Cache-miss diagnostics (dated — verify)
+The Claude API has a native **cache-diagnostics** beta that names *where* the prefix diverged from the previous request, so you don't have to diff payloads by hand. Pass `diagnostics.previous_message_id` on the request and read `cache_miss_reason` (e.g. `system_changed`, `tools_changed`) off the response. Beta header (2026-06-20): **`cache-diagnosis-2026-04-07`** `[verify-at-use]` ([cache diagnostics](https://platform.claude.com/docs/en/build-with-claude/cache-diagnostics), retrieved 2026-06-20). **Claude API only** — not Bedrock/Vertex. Diagnostic fingerprints expire quickly and need closely-spaced same-org requests, so the manual payload-diff (see the [`prompt-caching-audit`](../skills/prompt-caching-audit/SKILL.md) skill) remains the durable fallback.
+
 ## The invalidation hierarchy — and the #1 real-world failure mode
 Caching follows **tools → system → messages**; a change at one level busts that level **and everything downstream**:
 - change a **tool definition** → invalidates *all* caches

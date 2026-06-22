@@ -22,7 +22,7 @@ usage: $0 <slug> [--force]
        $0 --all
        $0 --status
 EOF
-  exit 2
+  exit "${1:-2}"
 }
 
 list_worktrees() {
@@ -96,6 +96,7 @@ remove_all_clean() {
 case "${1:-}" in
   --status) list_worktrees ;;
   --all) remove_all_clean ;;
-  --help|-h|"") usage ;;
+  --help|-h) usage 0 ;;
+  "") usage 2 ;;
   *) remove_one "$1" "${2:-}" ;;
 esac

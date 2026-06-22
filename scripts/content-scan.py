@@ -73,8 +73,12 @@ def _die(msg: str, code: int = 1) -> None:
 
 
 def _host(url: str) -> str:
+    # Use .hostname (not .netloc): netloc keeps any userinfo, so a URL like
+    # https://linkedin.com@evil.com/x would yield host "linkedin.com@evil.com" and
+    # let an attacker-controlled host satisfy a never-fetch/allow check. .hostname
+    # strips userinfo + port and is already lowercased.
     try:
-        return urllib.parse.urlparse(url).netloc.lower()
+        return (urllib.parse.urlparse(url).hostname or "").lower()
     except ValueError:
         return ""
 

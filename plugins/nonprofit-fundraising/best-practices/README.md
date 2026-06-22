@@ -6,7 +6,7 @@ Named, citable rules for the `nonprofit-fundraising` plugin's 4 specialist agent
 
 ## Index
 
-_20 rules. Each file is one named, citable rule._
+_23 rules. Each file is one named, citable rule._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -30,6 +30,9 @@ _20 rules. Each file is one named, citable rule._
 | [`mid-level-donors-are-the-underfunded-segment-in-most-shops.md`](./mid-level-donors-are-the-underfunded-segment-in-most-shops.md) | Pattern | Designing the donor cultivation program when the mid-level band lacks a distinct strategy. |
 | [`donor-acknowledgment-within-48-hours-is-the-retention-floor.md`](./donor-acknowledgment-within-48-hours-is-the-retention-floor.md) | Absolute rule | Every gift received — acknowledge within 48 hours; measure acknowledgment timeliness as a retention metric. |
 | [`grant-pipeline-is-a-12-month-calendar-not-a-list-of-applications.md`](./grant-pipeline-is-a-12-month-calendar-not-a-list-of-applications.md) | Pattern | Any grants-dependent development program — manage the pipeline as a probability-weighted 12-month calendar. |
+| [`spend-only-on-allowable-allocable-reasonable-costs.md`](./spend-only-on-allowable-allocable-reasonable-costs.md) | Absolute rule | Post-award — before charging any cost to a grant; the allowable/allocable/reasonable + direct/indirect determination. |
+| [`track-budget-vs-actual-every-month-not-at-report-time.md`](./track-budget-vs-actual-every-month-not-at-report-time.md) | Pattern | Post-award — managing grant spending; reconcile monthly to catch over/under-spend early, not at report time. |
+| [`keep-an-audit-ready-document-trail.md`](./keep-an-audit-ready-document-trail.md) | Absolute rule | Post-award — any active grant; keep the ledger→source→budget→award trail retrieval-ready at all times. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

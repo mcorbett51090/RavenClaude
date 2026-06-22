@@ -159,9 +159,14 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate103-svg-report-lint.sh
       exit $?
       ;;
+    104)
+      echo "── Gate 104: concern-stats render (per-gate run) ──────────────────────────"
+      node scripts/check-concern-stats-render.mjs
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3080,6 +3085,26 @@ if command -v node >/dev/null 2>&1; then
   rm -f "$ST_BAD"
 else
   _skip_or_fail "Gate 93 stepper render" node
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+echo "── Gate 104: Pipeline-tab concern-stats render (renderConcernStats) ──────"
+# The Pipeline tab's "Concern reliability" card is rendered by renderConcernStats()
+# in dashboard.html. check-concern-stats-render.mjs extracts the real function and
+# drives it against populated/empty/cold fixtures in a stub DOM, asserts the
+# XSS-hygiene invariant (no `.innerHTML =`), AND runs its own inline must-fail half
+# (a tampered render that drops the empty-state branch must be caught). It is a
+# self-contained bidirectional gate (like Gates 100/101/103) — one must_pass
+# invocation proves both halves. It had NO caller until 2026-06-14: its eight
+# sibling render gates (heimdall/vidarr/norns/nidhoggr/sleipnir/mimir/bifrost/
+# stepper) were each wired here, but this one was authored and never registered,
+# so the card could silently regress. The script hardcodes dashboard.html, which
+# audit-gates regenerates in place above before the render gates run.
+if command -v node >/dev/null 2>&1; then
+  rc=0; node scripts/check-concern-stats-render.mjs >/dev/null 2>&1 || rc=$?
+  gate "concern-stats render (real dashboard.html + inline must-fail half)" must_pass "$rc"
+else
+  _skip_or_fail "Gate 104 concern-stats render" node
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────

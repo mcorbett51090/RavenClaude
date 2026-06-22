@@ -2,13 +2,13 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
-## [0.14.1] — 2026-06-16
+## [0.14.2] — 2026-06-22
 
-### Fixed
+Bug fix — the advisory `flag-finance-anti-patterns.sh` hook's credit-card PAN check used PCRE non-capturing groups `(?:…)` inside a POSIX-ERE `grep -E`, so Visa and Discover PANs were never flagged (the group matched nothing and `grep` printed a `? at start of expression` warning to stderr on every run). Rewrote the two groups as ERE-safe capturing groups `(…)`; all four card brands (Visa/MC/Amex/Discover) now match cleanly with no stderr noise. No behavior change for any other check.
 
-- **`flag-finance-anti-patterns.sh` credit-card PII check never matched (fail-open).** The PAN regex used PCRE non-capturing groups `(?:…)` under `grep -E` (POSIX ERE), which GNU grep rejects with `warning: ? at start of expression` — the alternation matched nothing, so a plaintext card number in a finance-path file (e.g. `models/*.md`) was silently not flagged. Switched to plain ERE groups; verified it now flags a 16-digit Visa. Advisory-only hook, so no behavior change beyond catching what it always claimed to.
+## [0.14.1] — 2026-06-14
 
-- **Migration:** none.
+Maintenance — agent-description length cap (≤300 chars for the orchestrator budget) + README touch. No behavior change.
 
 ## [0.14.0] — 2026-06-05
 

@@ -27,7 +27,7 @@ Choose the mode before shaping gold. On-OneLake is faster and never falls back; 
 | No spaces in column names | Column names with spaces prevent framing |
 | No mixed-case duplicates | `CustomerID` and `customerid` in the same table cause framing errors |
 | Supported data types | Avoid `MAP`, `ARRAY`, `STRUCT` columns in framed tables — use scalar types |
-| Schema enabled Lakehouse | Required for OneLake data preview + security features |
+| Schema enabled Lakehouse | Required for the OneLake-security data-preview pane (not for Spark RLS/CLS enforcement) |
 
 ## 3. Gold Table Schema Checklist
 
