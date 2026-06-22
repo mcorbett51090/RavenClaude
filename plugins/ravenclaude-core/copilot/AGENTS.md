@@ -25,6 +25,37 @@ Confident reasoning errors — a flawed belief about a tool/platform/API stated 
 
 ---
 
+## Launch the comfort-posture dashboard
+
+When the user asks to **open / launch / show the dashboard** (the comfort-posture,
+permissions, or command-review editor), run the bundled launcher directly — do NOT
+make them figure out a path. There is **no `/dashboard` slash command in Copilot**
+(that is Claude-Code-only); this local server is the Copilot path, and its **Save &
+apply** button works identically (it writes `.ravenclaude/comfort-posture.yaml`).
+
+Run the one-verb launcher in the **background**, from the user's **project root**
+(so `.ravenclaude/` is written into their repo, not the clone):
+
+```shell
+bash <marketplace-clone>/plugins/ravenclaude-core/bin/rc dashboard
+```
+
+(`<marketplace-clone>` is your RavenClaude clone root, e.g. `~/RavenClaude`. If `rc`
+is on your PATH you can just run `rc dashboard`.) If you cannot locate the clone:
+
+```shell
+bash "$(find . "$HOME" /workspaces -path '*ravenclaude-core/bin/rc' 2>/dev/null | head -1)" dashboard
+```
+
+- It is a long-running server — start it in the background and read its stdout for
+  the **exact URL** it bound (port 8000, auto-tries 8001–8005 if busy). Relay that URL.
+- In a Codespace the forwarded port opens automatically; tell the user to open it in
+  a **real browser tab** (not VS Code Simple Browser/Live Preview, which blocks it)
+  and to keep the forwarded port **Private** — `/__save` writes files.
+- Stop it with Ctrl+C (or by ending the session).
+
+---
+
 ## Relay mode — orchestrator_scope (host-only; opt-in)
 
 GitHub Copilot CLI directive **only**. Inert under Claude Code (the host is already

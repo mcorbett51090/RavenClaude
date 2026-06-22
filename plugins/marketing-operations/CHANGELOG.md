@@ -2,6 +2,14 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change (AGENTS.md).
 
+## [0.2.0] — 2026-06-22
+
+Execution value-add: content-marketing engine. No agents added; all existing files unchanged.
+
+- **+1 skill** — `content-engine` (intent briefs, topic clusters/pillar pages, distribution, leading-vs-lagging measurement). Now **6 skills**.
+- **+1 knowledge doc** — `knowledge/content-marketing-engine.md` (1 Mermaid decision tree). Now a **5-file knowledge bank**.
+- **+2 best-practice rules** — `brief-every-piece-against-a-search-intent`, `build-topic-clusters-not-orphan-posts`. Now **10 rules**.
+
 ## [0.1.0] — 2026-06-08
 
 Initial release.

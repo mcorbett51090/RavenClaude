@@ -104,7 +104,7 @@ _A 9.8 in an unreachable path waits; a 6.5 unauthenticated and exploited-in-the-
 
 | Capability | 2026 state `[verify-at-build]` | Notes |
 |---|---|---|
-| OWASP Top 10 (web) | 2021 edition current | 2025 refresh tracked; verify at build |
+| OWASP Top 10 (web) | **2025 edition Final** (2021 superseded) | Adds **A03:2025 Software Supply Chain Failures** (expands A06:2021 Vulnerable & Outdated Components — `supply-chain-security-engineer`'s lane). [Top10:2025](https://owasp.org/Top10/2025/) `[verify-at-build — confirm category list/numbering at owasp.org before quoting]` |
 | SAST/SCA in CI | mature | Tune for signal; reachability where supported |
 | Secret scanning | GitHub/GitLab native + tools | Pre-commit + CI + history scan |
 | SLSA | v1.0 | Build levels; verify provenance on consume |

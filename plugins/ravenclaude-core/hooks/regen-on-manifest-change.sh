@@ -4,9 +4,9 @@
 #
 # When a manifest is modified inside the RavenClaude marketplace clone (the repo
 # this hook lives in), regenerate the downstream artifacts that mirror its data
-# — the Copilot package (plugins/ravenclaude-core/copilot/), dashboard.html,
-# and repo-guide.html. Prevents the CI freshness gates from catching drift that
-# the author "forgot to regenerate" — the regeneration is now mechanical.
+# — the Copilot package (plugins/ravenclaude-core/copilot/) and dashboard.html.
+# Prevents the CI freshness gates from catching drift that the author "forgot to
+# regenerate" — the regeneration is now mechanical.
 #
 # Triggers ONLY when:
 #   1. The edited file's basename is plugin.json or marketplace.json,
@@ -93,16 +93,9 @@ if [ -f "$MARKET/scripts/generate-dashboards.py" ] \
   run "dashboard.html" python3 scripts/generate-dashboards.py
 fi
 
-# 3. repo-guide.html (plugin version is shown in nav + cards).
-#    Skip when this repo self-heals the guide post-merge — the presence of
-#    .github/workflows/regenerate-artifacts.yml is that signal. Without this skip,
-#    every plugin PR would regenerate the large guide into its own branch and
-#    collide with sibling PRs; with it, the guide is owned by `main` and
-#    regenerated once after each merge. Consumers (who have no such workflow) get
-#    the in-session regeneration unchanged, so this is consumer-invisible.
-if [ -f "$MARKET/scripts/generate-repo-guide.py" ] \
-  && [ ! -f "$MARKET/.github/workflows/regenerate-artifacts.yml" ]; then
-  run "repo-guide.html" python3 scripts/generate-repo-guide.py
-fi
+# (repo-guide.html regeneration was removed in v0.124.0 — generate-repo-guide.py,
+#  repo-guide.html, and its freshness gate were deleted when the guide's content
+#  was redistributed natively into the portal shell. No replacement step is needed
+#  here; the portal's index.html self-heals post-merge via regenerate-artifacts.yml.)
 
 exit 0

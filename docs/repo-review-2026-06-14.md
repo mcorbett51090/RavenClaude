@@ -39,13 +39,12 @@ Grouped by priority. Each was verified before and after the change.
   gate still passes).
 
 ### P1
-- **`feedback-report.html` stale → CI red (the headline).** Regenerated from the corpus
-  (366 → 369 scenarios) **and** fixed the architectural cause: the Gate 99 "clean tree"
-  freshness check still ran at PR time even though the artifact derives from
-  `plugins/*/scenarios/*.md` (which nearly every plugin PR touches) — the exact cross-PR
-  contagion that `regenerate-artifacts.yml` was built to kill for `concepts.json` /
-  `report.html`. Relocated the clean-tree gate off the PR path (kept the `must_fail`
-  staleness teeth) and added `feedback-report.html` to the post-merge self-heal workflow.
+- **`feedback-report.html` stale → CI red (the original headline).** **Superseded on
+  `main`** — between this review and the branch rebase, `main` independently fixed the
+  staleness (commit `1460a84`) and added `feedback-report.html` to the
+  `regenerate-artifacts.yml` self-heal (it chose to **keep** the PR-time Gate 99 as a teeth
+  check rather than relocate it). This branch therefore **drops** its feedback-report regen
+  + gate-relocation entirely and defers to main's design. Listed here for the record only.
 - **Credit-card PAN check fail-open in two PII hooks** (`regulatory-compliance` /
   `finance`). The regex used PCRE non-capturing groups `(?:…)` inside a POSIX-ERE
   `grep -E`, so **Visa and Discover PANs were never detected** and `grep` warned to stderr
@@ -64,9 +63,9 @@ Grouped by priority. Each was verified before and after the change.
   total. Both now degrade gracefully. Output byte-identical on valid input.
 - **`scripts/eval-adaptive-classifier.py:720` — bracket access on a fixtures key** crashed
   report emission *after* the (possibly paid Batch-API) grading completed. → `.get(...)`.
-- **`README.md` stale counts** (verified on disk): line 21 `40 skills` → `43`; line 172
-  `98 of the 99 plugins` → `100 of the 101`; line 391 `99 plugins` → `101`. ("16 hooks" was
-  left as-is — it is correct; see Panel 2 above.)
+- **`README.md` stale counts** (recomputed against the rebased tree — `main` has since
+  grown to **117 plugins**): `40 skills` → `43`; `98 of the 99 plugins` → `116 of the 117`;
+  `99 plugins` → `117`. ("16 hooks" was left as-is — it is correct; see Panel 2 above.)
 
 ### P2
 - **`scripts/content-scan.py:75` — userinfo host-spoof.** `_host` used `urlparse().netloc`,
@@ -159,10 +158,13 @@ than routing it through the tribunal.
 
 ## Verification run for the PR
 
+Re-run after the rebase onto current `main` (note: this branch now defers feedback-report
+/ audit-gates / index+dashboard ownership to `main`, and `finance` is bumped to **0.14.2**
+to clear a same-version collision with main's 0.14.1):
+
 `ruff` ✓ · `prettier --check .` ✓ · JSON validity ✓ · version-drift ✓ ·
 `check-marketplace-claims` ✓ · `check-md-links` ✓ · `check-frontmatter` ✓ ·
-`bi-report`/`render-concepts`/`feedback-report` freshness ✓ · both PII hooks now flag
-Visa+Discover with no stderr noise ✓ · `audit-gates.sh` ✓ (Gate 99 clean-tree relocated;
-staleness teeth retained).
+`bi-report`/`render-concepts` freshness ✓ · both PII hooks now flag Visa+Discover with no
+stderr noise ✓ · `audit-gates.sh` ✓ (main's design, unchanged by this branch).
 </content>
 </invoke>
