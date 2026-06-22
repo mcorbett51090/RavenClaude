@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + 14 specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 99 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to…' use-case lookup.",
-    "version": "0.89.0"
+    "version": "0.89.1"
   },
   "plugins": [
     {
@@ -448,7 +448,7 @@
       "name": "microsoft-fabric",
       "source": "./plugins/microsoft-fabric",
       "description": "Microsoft Fabric specialist team — 7 agents (fabric-architect, lakehouse-engineer, warehouse-engineer, data-factory-engineer, realtime-intelligence-engineer, fabric-semantic-model-engineer, fabric-admin) covering OneLake, Lakehouse (Spark/Delta/medallion/materialized lake views), Warehouse (T-SQL/ACID), Data Factory (mirroring/copy-job/dataflow-gen2/pipelines), Real-Time Intelligence (Eventstream/Eventhouse/KQL/Activator), Direct Lake semantic models, and platform admin (capacity FinOps, OneLake security, domains, Purview, ALM). 13-doc citation-grounded knowledge bank (two Mermaid decision trees + a dated 2026 capability map), 6 templates, 1 advisory hook (14 house opinions). Seams: enterprise Microsoft/Fabric here vs non-Microsoft/SMB embedded to data-platform; Fabric storage + Direct Lake here vs standalone Power BI/.pbix to power-platform/power-bi-engineer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.8.2",
+      "version": "0.8.3",
       "author": {
         "name": "Matt Corbett"
       },

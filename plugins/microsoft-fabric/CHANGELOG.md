@@ -2,6 +2,18 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.8.3] — 2026-06-18
+
+Research-sweep **correction + addition** on the capability map's Runtime 1.3 row, re-verified 2026-06-18 against `learn.microsoft.com` via the Microsoft-Learn MCP. (Part of the 2026-06-18 Tier-A sweep; the sweep's other findings — Fable 5/Mythos 5 suspension, Grok Build, OWASP 2025 — had already landed independently on `main`, so only this net-new Fabric fix remained.)
+
+### Fixed
+
+- **`knowledge/fabric-2026-capability-map.md`** — Fabric **Runtime 1.3 is Spark 3.5.5 / Delta Lake 3.2** (was documented as Delta 3.1). Source: [runtime](https://learn.microsoft.com/fabric/data-engineering/runtime), [runtime-1-3](https://learn.microsoft.com/fabric/data-engineering/runtime-1-3).
+
+### Added
+
+- **`knowledge/fabric-2026-capability-map.md`** — pinned Runtime 1.3's **end-of-support: 2026-09-30**, entering **LTS Oct 2026 → March 2027** (it's the stated production default, so its ~3-month support clock now shows on the row, with a "plan the Runtime 2.0 migration" note). Source: [lifecycle](https://learn.microsoft.com/fabric/data-engineering/lifecycle). Bumped the file's `Last reviewed:` to 2026-06-18.
+
 ## [0.8.2] — 2026-06-15
 
 Research-sweep **correction** — bring the dedicated OneLake-security doc in line with the GA reality that PR #411 (0.8.1) already applied to the capability map but left stale in `onelake-security-and-governance.md`. Re-verified 2026-06-15 against `learn.microsoft.com` via the Microsoft-Learn MCP.
