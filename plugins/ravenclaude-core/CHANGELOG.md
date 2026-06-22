@@ -2,6 +2,17 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.158.0 — 2026-06-22
+
+### Added
+
+- **`rc` launcher — host-agnostic dashboard front door** ([`bin/rc`](bin/rc), new `plugins/*/bin/**` layout glob). The `rc dashboard` "one-verb front door" the docs referenced was a phantom (no `rc` on disk); it now exists for real as a thin bash dispatcher (one verb today: `rc dashboard [--port N] [--no-open]`). It **never `cd`s** — `serve-dashboards.py` resolves the project root from `Path.cwd()`, so the launcher `exec`s the server with the caller's cwd preserved (`.ravenclaude/` lands in the consumer's repo) and works identically under Claude Code, GitHub Copilot CLI, or a bare terminal.
+- **Copilot dashboard discoverability** — [`scripts/generate-copilot-plugin.py`](../../scripts/generate-copilot-plugin.py) appends an always-applicable **"Launch the comfort-posture dashboard"** block to the generated [`copilot/AGENTS.md`](copilot/AGENTS.md) (parallel to the opt-in Relay-mode block). Copilot reads `AGENTS.md` natively, so "open the dashboard" now Just Works in a Copilot repo — closing the gap where there's no `/dashboard` slash command (Claude-Code-only) and Copilot had to reverse-engineer the launch each time.
+
+### Fixed
+
+- **Phantom `rc dashboard` references made real.** [`commands/dashboard.md`](commands/dashboard.md) now documents where `rc` lives, the PATH one-liner, and the Copilot "just ask" path; the N-A `bin/` disposition in the CLAUDE.md Value-add table is updated to BUILT.
+
 ## 0.155.0 — 2026-06-11
 
 ### Added

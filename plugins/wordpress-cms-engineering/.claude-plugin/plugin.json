@@ -1,0 +1,32 @@
+{
+  "name": "wordpress-cms-engineering",
+  "version": "0.1.0",
+  "description": "WordPress / CMS engineering team — 3 agents (wordpress-architect, wordpress-developer, wordpress-ops-engineer) for building, extending, and operating WordPress done right: the build-approach decision (classic vs block/FSE theme, plugin vs theme vs must-use, headless/decoupled vs traditional, single vs multisite), secure block & theme & plugin development (block.json, hooks/filters, WP_Query, the REST API, sanitize-in/escape-out, $wpdb->prepare, nonce + capability checks), and operations (page + object cache/Redis, security hardening, safe updates with staging & backups, migrations). 5 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 stack map), 8 best-practices, 3 templates, 3 commands, 1 advisory hook. Seams: decoupled front-end -> frontend-engineering, non-WP backend/APIs -> backend-engineering, infra perf budget -> performance-engineering, formal security verdict -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "wordpress",
+    "cms",
+    "gutenberg",
+    "block-editor",
+    "block-json",
+    "fse",
+    "theme-json",
+    "wp-query",
+    "wpdb",
+    "rest-api",
+    "wpgraphql",
+    "headless-wordpress",
+    "multisite",
+    "object-cache",
+    "redis",
+    "wp-cli",
+    "php"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
