@@ -1,56 +1,48 @@
 # developer-relations
 
-> A **Developer Relations** team for Claude Code — the people who get developers from "never heard of it" to "it works and I'd recommend it," and prove it. Strategy (operating model, funnel, measurement) plus production (the golden-path tutorial, runnable sample apps, talks, community).
+A **Developer Relations (DevRel)** team for Claude Code — the seat that owns the
+**developer experience** of a product with an API/SDK: getting a developer from
+"heard about it" to "built something that works," fast, then keeping them.
 
-Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-core`.
+> **Not a tech writer, not a marketer, not a PM.** Reference docs →
+> `technical-writing-docs`. Demand gen → `marketing-operations`. What to build →
+> `product-management`. The API/SDK itself → `api-engineering`.
 
-## What it does
+## Agents
 
-| You ask | It returns |
+| Agent | Use it for |
 |---|---|
-| "What should DevRel focus on for <goal>?" | The motion (advocacy / education / community / product-feedback) the goal needs, via a decision tree, + the one metric that proves it |
-| "Where does our developer funnel leak?" | An instrumented AAARRP funnel — a metric per stage (TTFHW, activation, retention) + the suspected leak + the experiment to test the fix |
-| "Our DevRel KPIs are followers and stars — fix them" | A vanity-vs-actionable audit + an activation/retention-anchored scorecard + the qualitative feedback loop wired to PM/eng |
-| "Write a quickstart for <product>" | A copy-paste-runnable quickstart — every block language-tagged, a "you should see …" success check, a measured TTFHW |
-| "Build a sample app / a talk / run a community" | A golden-path sample that runs unmodified, a talk with a recorded fallback, or a community plan that captures DX feedback |
+| **developer-advocate** | Audit the developer experience, measure the activation funnel, plan content/talks, run the product-feedback loop. |
+| **devrel-content-engineer** | Design a getting-started path, a sample app, or an SDK quickstart as runnable, production-grade code. |
+| **developer-community-manager** | Review community health, design forum/Discord ops, contributor and ambassador programs. |
 
-**Two rules it never breaks:** *sample apps must run unmodified*, and *measure with developer success (TTFHW / activation / retention), never vanity reach.*
+## Skills
 
-## What's inside
+- `getting-started-audit` — measure and shorten time-to-first-success.
+- `sample-app-design` — spec a sample app that demonstrates the real value path.
+- `devrel-content-strategy` — pick formats and a calendar for an activation goal.
+- `community-health-review` — diagnose a developer community by answered-question rate and returning contributors.
 
-- **2 agents** — `devrel-strategist` (operating model, funnel, measurement) and `developer-advocate` (golden-path content, sample apps, talks, community, DX feedback).
-- **3 skills** — `design-developer-funnel`, `author-quickstart-and-sample-app`, `measure-devrel-impact`.
-- **2 knowledge files** — a Mermaid goal→motion→metric decision tree, and a developer-metrics reference (the AAARRP funnel, TTFHW, activation/retention, the qualitative loop, and vanity-metric traps).
-- **2 templates** — a golden-path quickstart tutorial and a one-page DevRel content plan.
-- **3 best-practice rules** — optimize TTFHW, sample apps must run unmodified, close the product-feedback loop.
-- **1 advisory hook** — `flag-devrel-smells.sh` (bare-fence quickstart code blocks, vanity-only goal statements, quickstarts with no success criterion).
+## Commands
 
-## The motions it works in
+- `/developer-relations:audit-getting-started`
+- `/developer-relations:design-sample-app`
+- `/developer-relations:plan-devrel-content`
+- `/developer-relations:review-community-health`
 
-```
-advocacy          →  awareness: talks, demos, launch content
-education         →  activation: the golden-path quickstart + sample app  (TTFHW is the lever)
-community         →  retention: forums/Discord, contributor + ambassador programs
-product-feedback  →  route developer friction back to PM/eng (the motion teams skip)
-```
+## Knowledge
 
-## How it seams with adjacent plugins
+- **Decision trees** (`knowledge/devrel-engagement-decision-trees.md`) — advocate-vs-docs-vs-community, fix-the-product-or-document-it, content-format choice.
+- **Developer-experience playbook** (`knowledge/developer-experience-playbook.md`) — the activation funnel, TTFS, content, community, the feedback loop.
 
-```
-developer-relations   →  the golden-path tutorial, sample apps, advocacy, community, DX feedback
-technical-writing-docs →  the docs SITE & reference manual
-api-engineering       →  the API / SDK design ITSELF
-product-management    →  market positioning, messaging, pricing
-customer-success-analytics →  community for a NON-developer audience
-```
+## House opinions
 
-The advocate *finds* API friction and routes it to `api-engineering`; the reference manual and docs site belong to `technical-writing-docs`.
+- Time-to-first-success is the metric.
+- Fix the product before writing around it.
+- Sample code is production code — it runs, handles errors, and teaches secure patterns.
+- DevRel is not demand gen; measure activation, not MQLs.
 
-## Install
+## Requires
 
-```shell
-/plugin marketplace add /workspaces/RavenClaude
-/plugin install developer-relations@ravenclaude
-```
-
-Requires `ravenclaude-core@>=0.7.0`.
+`ravenclaude-core@>=0.7.0`. Advisory only — it produces audits, specs, plans, and
+feedback briefs; it does not run your forum, CMS, or SDK.

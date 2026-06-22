@@ -8,8 +8,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-devrel-smells.sh \"$CLAUDE_TOOL_FILE_PATH\"",
-            "comment": "Advisory: flags 3 mechanically-detectable DevRel smells in content/strategy files (.md/.mdx) — (1) a quickstart/tutorial fenced code block with no runnable language tag (```bash/python/...), (2) a DevRel goal stated only in vanity metrics (raw follower/star/view counts) with no activation/TTFHW/funnel metric nearby, (3) a 'time to first hello world' / quickstart doc that never names a measurable success criterion. Set DEVREL_STRICT=1 to make it blocking."
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-devrel-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags 4 mechanically-detectable DevRel anti-patterns in .md artifacts — (1) a getting-started doc with no first-success/TTFS milestone, (2) a hardcoded secret/API-key literal in sample content, (3) sample code that swallows errors (empty catch / except: pass), (4) a content/calendar with no activation goal. Set DEVREL_STRICT=1 to make it blocking."
           }
         ]
       }
