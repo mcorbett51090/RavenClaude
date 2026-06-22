@@ -3,6 +3,24 @@
 All notable changes to this plugin are documented here. Versions follow semver;
 the `version` field in `.claude-plugin/plugin.json` is the source of truth.
 
+## 0.3.0 — 2026-06-22
+
+Added a **conference-talk / CFP** capability — the one coherent gap the shipped plugin
+lacked. Folded in from a parallel `developer-relations` build (PR #448) after this plugin
+had already merged; only the genuinely-additive, non-duplicative idea was kept (the rest
+of that PR duplicated existing skills/best-practices and was dropped). Owned by the
+`developer-advocate` seat as an awareness-stage play.
+
+- `skills/conference-talk-and-cfp/SKILL.md` — shape a talk + write a CFP abstract that
+  leads with the attendee takeaway, states concrete takeaways, matches the track, and stays
+  engineer-to-engineer (not demand gen).
+- `commands/draft-cfp-abstract.md` — the command surface for the skill.
+- `templates/cfp-abstract.md` — the fill-in abstract with the first-sentence test.
+- `best-practices/cfp-abstract-leads-with-the-attendee-takeaway.md` — the house rule.
+- Wired into `CLAUDE.md` (skills list), the `developer-advocate` agent (skill + a CFP
+  scenario), and the best-practices index. Now 5 skills / 7 best-practices / 6 templates /
+  5 commands.
+
 ## 0.2.0 — 2026-06-22
 
 Added two best-practices (no overlap with the existing four):

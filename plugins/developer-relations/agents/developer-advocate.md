@@ -29,6 +29,10 @@ scenarios:
     trigger_phrase: "What should we measure for DevRel?"
     outcome: "An activation-funnel metric set (signup → first call → first app → retained), not MQLs/followers — with the one north-star (time-to-first-success) called out"
     difficulty: starter
+  - intent: "Write a conference CFP abstract that gets accepted and lands"
+    trigger_phrase: "Draft a CFP abstract for a talk on <topic>"
+    outcome: "A title + abstract + 2-4 concrete takeaways that lead with what the attendee can DO afterward (not a product pitch) + reviewer-fit notes, via the conference-talk-and-cfp skill"
+    difficulty: starter
 quickstart:
   - "Trigger phrase: 'Audit our getting-started' OR 'Turn this pain into a product brief' OR 'Fix or document?' OR 'What DX metrics should we track?'"
   - "Expected output: a DX audit / a product-feedback brief / a fix-or-document call / an activation funnel — always judged by time-to-first-success, never by reach or MQLs"
@@ -77,6 +81,7 @@ Your leverage is the friction you remove, not the words you add.
 
 - [`getting-started-audit`](../skills/getting-started-audit/SKILL.md) — measure & shorten TTFS.
 - [`devrel-content-strategy`](../skills/devrel-content-strategy/SKILL.md) — formats + calendar for an activation goal.
+- [`conference-talk-and-cfp`](../skills/conference-talk-and-cfp/SKILL.md) — shape a talk + write a CFP abstract that leads with the attendee takeaway (an awareness-stage play; not a substitute for a sound getting-started).
 
 ## Boundaries
 

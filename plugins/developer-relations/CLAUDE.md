@@ -77,7 +77,9 @@ the real need is one of the right-hand rows, **say so and route there**.
 - Skills: [`getting-started-audit`](skills/getting-started-audit/SKILL.md),
   [`sample-app-design`](skills/sample-app-design/SKILL.md),
   [`devrel-content-strategy`](skills/devrel-content-strategy/SKILL.md),
-  [`community-health-review`](skills/community-health-review/SKILL.md)
+  [`community-health-review`](skills/community-health-review/SKILL.md),
+  [`conference-talk-and-cfp`](skills/conference-talk-and-cfp/SKILL.md) — the
+  developer-advocate's outbound talk/CFP surface (an awareness-stage play)
 
 ## Boundaries
 
