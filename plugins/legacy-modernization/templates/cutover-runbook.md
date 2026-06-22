@@ -1,6 +1,6 @@
 # Cutover Runbook — <migration / switch-over>
 
-> Output of the `migration-engineer`. No cutover without a tested rollback (§2 #6). Run old and new in parallel; reconcile before traffic moves.
+> Output of the `legacy-migration-engineer`. No cutover without a tested rollback (§2 #6). Run old and new in parallel; reconcile before traffic moves.
 
 ## Headline
 <what switches, when, and the rollback strategy, in one line>

@@ -28,4 +28,4 @@
 1. <area> — because <hotspot reasoning> — `file:line`
 
 ## Handoff
-- To `refactoring-engineer` (characterize + change in place) · To `migration-engineer` (strangle points).
+- To `refactoring-engineer` (characterize + change in place) · To `legacy-migration-engineer` (strangle points).

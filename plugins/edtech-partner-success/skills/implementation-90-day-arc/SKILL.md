@@ -1,11 +1,11 @@
 ---
 name: implementation-90-day-arc
-description: Run the 90-day technical-onboarding arc for a newly-contracted EdTech partner — discovery (weeks 1-2) → integration setup (3-4) → train-the-trainer (5-6) → go-live + Day-30 measurement (7-8) → stabilization + PSM handoff (9-12). Calendar-dead-zone go-live check is the highest-leverage pre-flight. Used by `partner-success-manager` + `learning-analytics-analyst`.
+description: Run the 90-day technical-onboarding arc for a newly-contracted EdTech partner — discovery (weeks 1-2) → integration setup (3-4) → train-the-trainer (5-6) → go-live + Day-30 measurement (7-8) → stabilization + PSM handoff (9-12). Calendar-dead-zone go-live check is the highest-leverage pre-flight. Used by `edtech-partner-success-manager` + `learning-analytics-analyst`.
 ---
 
 # Skill: implementation-90-day-arc
 
-> **Invoked by:** `partner-success-manager` (the primary owner; coordinates the arc), `learning-analytics-analyst` (first-30-day measurement + signal-baseline establishment).
+> **Invoked by:** `edtech-partner-success-manager` (the primary owner; coordinates the arc), `learning-analytics-analyst` (first-30-day measurement + signal-baseline establishment).
 >
 > **When to invoke:** at contract close, alongside [`success-plan-authoring.md`](../success-plan-authoring/SKILL.md). Use throughout the 90-day arc as the playbook for what should be happening when.
 >
@@ -17,7 +17,7 @@ description: Run the 90-day technical-onboarding arc for a newly-contracted EdTe
 
 **It isn't:** the success-plan (outcome-side, that's [`success-plan-authoring.md`](../success-plan-authoring/SKILL.md)). It isn't the onboarding-checklist (relationship-side, that's [`../templates/onboarding-checklist.md`](../../templates/onboarding-checklist.md)). Implementation is the *technical* arc; the success plan is the *outcome* arc; the onboarding checklist is the *relationship* arc. All three run in parallel and the PSM coordinates.
 
-> **Why this skill exists, not a new agent (per house-rule 2026-05-21):** the implementation arc has genuine technical content but the indistinguishability test was: could `partner-success-manager` + this skill + the SIS/SSO knowledge file produce equivalent output? The answer is yes when the knowledge file is rich enough. Revisit for agent-promotion in v0.6.0 if live engagement signal proves structural distinctness.
+> **Why this skill exists, not a new agent (per house-rule 2026-05-21):** the implementation arc has genuine technical content but the indistinguishability test was: could `edtech-partner-success-manager` + this skill + the SIS/SSO knowledge file produce equivalent output? The answer is yes when the knowledge file is rich enough. Revisit for agent-promotion in v0.6.0 if live engagement signal proves structural distinctness.
 
 ## The arc shape
 

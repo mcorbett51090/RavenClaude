@@ -3,7 +3,7 @@ name: daily-action-queue
 description: Compute "today's top N accounts" for a K-12 EdTech PSM as a ranked list with next-best-action + confidence + rationale. Weighted-signal formula (lifecycle-aware), with RICE / ICE as alternate framings. Every action carries an explicit rationale string naming the dominant signal + the threshold crossed + the prescribed play. Designed so the PSM can answer "why this account today?" in one sentence.
 last_reviewed: 2026-06-04
 confidence: high
-primary_agent: partner-success-manager
+primary_agent: edtech-partner-success-manager
 secondary_agents: learning-analytics-analyst, success-playbook-designer
 ---
 

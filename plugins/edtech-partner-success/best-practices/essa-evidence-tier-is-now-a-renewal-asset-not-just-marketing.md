@@ -50,7 +50,7 @@ Corporate L&D and higher-ed segments do not use the ESSA framework; this rule ap
 
 ## See also
 
-- [`../agents/partner-success-manager.md`](../agents/partner-success-manager.md) — prepares the renewal conversation and needs the ESSA positioning paragraph ready.
+- [`../agents/edtech-partner-success-manager.md`](../agents/edtech-partner-success-manager.md) — prepares the renewal conversation and needs the ESSA positioning paragraph ready.
 - [`./renewal-start-the-k12-clock-at-180-days-not-90.md`](./renewal-start-the-k12-clock-at-180-days-not-90.md) — the companion rule on when to begin the renewal motion where the ESSA positioning belongs.
 
 ## Provenance

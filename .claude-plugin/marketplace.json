@@ -103,7 +103,7 @@
       "name": "legacy-modernization",
       "source": "./plugins/legacy-modernization",
       "description": "Legacy modernization team — 4 agents (modernization-strategist, codebase-archaeologist, refactoring-engineer, migration-engineer) for safely changing a working-but-aging system: assess the estate and choose among the 6 R's (retain/rehost/replatform/refactor/rearchitect/replace), understand undocumented code and find its seams, characterize behavior before touching it, strangle the monolith incrementally behind an anti-corruption layer, migrate data with dual-write/parallel-run, and cut over with a tested rollback. 5 skills, a knowledge bank with Mermaid decision trees + a dated 2026 capability map, 8 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: backend redesign -> backend-engineering, schema migration mechanics -> database-engineering, deploy/cutover automation -> devops-cicd, test-suite buildout -> qa-test-automation. Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -194,7 +194,7 @@
       "displayName": "RavenClaude Core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: 15 specialist agents, 43 skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage → brand kit), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard.",
-      "version": "0.161.0",
+      "version": "0.161.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -303,7 +303,7 @@
       "name": "edtech-partner-success",
       "source": "./plugins/edtech-partner-success",
       "description": "EdTech-flavored Partner Success Manager team — 6 specialist agents anchored on the PSM lane, with 16 skills, 16 templates, 1 advisory hook, a knowledge bank with Mermaid decision trees, a 4-scenario engagement bank, and a stdlib psm_calc.py calculator (seat-utilization / renewal-NRR-forecast / time-to-value). Covers QBRs, success plans, health scores, a self-contained Power-BI-style partner-health report, onboarding, touchpoint logs, adoption sequencing, 90-day implementation arcs, train-the-trainer curricula, advocacy/reference pipelines, renewal decision memos, and the integration contract for a centralized CS dashboard (Planhat + Salesforce + Snowflake + Zapier + Granola). Team growth ships as skills + knowledge + templates, not parallel agents. Primary-source citations with retrieval dates. Vertical-explicit but segment-agnostic — fits K-12, higher-ed, corporate L&D, or mixed EdTech books. Inherits ravenclaude-core protocols including the alternate-methods Capability Grounding Protocol.",
-      "version": "0.12.0",
+      "version": "0.12.1",
       "author": {
         "name": "Matt Corbett"
       },

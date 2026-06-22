@@ -5,7 +5,7 @@ argument-hint: "[the migration / switch-over]"
 
 # Plan cutover
 
-You are running `/legacy-modernization:plan-cutover` for `$ARGUMENTS`. Run it the way the `migration-engineer` would — applying the house opinions in [`../CLAUDE.md`](../CLAUDE.md) §2.
+You are running `/legacy-modernization:plan-cutover` for `$ARGUMENTS`. Run it the way the `legacy-migration-engineer` would — applying the house opinions in [`../CLAUDE.md`](../CLAUDE.md) §2.
 
 ## Steps (traverse top-to-bottom; do not skip)
 1. Choose the migration pattern — dual-write / shadow-read / backfill+reconcile / expand-contract.

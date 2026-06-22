@@ -56,7 +56,7 @@ Cadence discipline:
 - [`./risk-early-warning-fire-the-save-play-while-it-still-saves.md`](./risk-early-warning-fire-the-save-play-while-it-still-saves.md) — the suppress-check is step 0 of the save play
 - [`../knowledge/k12-psm-operating-cadence.md`](../knowledge/k12-psm-operating-cadence.md) — TZ discipline, dead-zone table, signals-by-rhythm, per-partner cadence
 - [`../knowledge/k12-adoption-arc-fall-spring-summer.md`](../knowledge/k12-adoption-arc-fall-spring-summer.md) — Phase 4 (Thanksgiving-Jan 2) dead zone
-- [`../agents/partner-success-manager.md`](../agents/partner-success-manager.md) — owns touchpoint scheduling; `success-playbook-designer` owns trigger suppression
+- [`../agents/edtech-partner-success-manager.md`](../agents/edtech-partner-success-manager.md) — owns touchpoint scheduling; `success-playbook-designer` owns trigger suppression
 
 ## Provenance
 

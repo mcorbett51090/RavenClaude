@@ -1,6 +1,6 @@
 # Strangler-Fig Migration Plan — <system>
 
-> Output of the `migration-engineer`. Replace one capability at a time behind a facade; value lands continuously; rollback is a route-flip away (§2 #4).
+> Output of the `legacy-migration-engineer`. Replace one capability at a time behind a facade; value lands continuously; rollback is a route-flip away (§2 #4).
 
 ## Headline
 <the strangle point + cutover strategy, in one line>

@@ -103,7 +103,7 @@ Renewal closes; the year-2 success plan must already be drafted (deliver it befo
 
 ## 5. What an agent should do differently
 
-- The `partner-success-manager` agent, when asked "draft the renewal motion for partner X," must surface the **calendar dates** (not just day-counts) and identify which dead zones the motion bumps into. A 90-day EBR landing on a state-testing window is a re-schedule, not a meeting.
+- The `edtech-partner-success-manager` agent, when asked "draft the renewal motion for partner X," must surface the **calendar dates** (not just day-counts) and identify which dead zones the motion bumps into. A 90-day EBR landing on a state-testing window is a re-schedule, not a meeting.
 - The `success-playbook-designer` agent, when refreshing the renewal play, anchors against the 90/60/30 segment Planhat owns and adds the K-12-specific 180/120 leading edges.
 - The `qbr-composer` agent, when composing the 90-day EBR, must align the deck structure to SETDA's 5 indicators and the district's stated success criteria — see ``../templates/k12-ebr-template.md`` (deferred).
 - The `partner-profile-curator` agent must carry the renewal date *and the four checkpoint dates derived from it* in the partner profile.

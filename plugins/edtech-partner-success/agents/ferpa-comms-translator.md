@@ -4,7 +4,7 @@ description: "Use this agent for FERPA-aware (and segment-equivalent data-privac
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [psm, consultant]
-works_with: [partner-success-manager, qbr-composer, partner-profile-curator]
+works_with: [edtech-partner-success-manager, qbr-composer, partner-profile-curator]
 scenarios:
   - intent: "Translate a PSM email into a parent-facing variant"
     trigger_phrase: "Translate <email> for parent audience — non-English-primary families included"

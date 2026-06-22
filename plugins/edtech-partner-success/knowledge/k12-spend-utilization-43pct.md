@@ -86,7 +86,7 @@ A report delivered July 15 is a report no one reads.
 
 ## 6. What an agent should do differently
 
-- The `partner-success-manager` agent, when running the 120-day checkpoint or drafting the year-end impact report, must **lead with the 43%-unused framing** in internal PSM-RM conversations (it sets the stakes correctly) and **end with the 57%-evidence framing** in district-facing artifacts (it lands the value claim without being smug about peer-vendors' failures).
+- The `edtech-partner-success-manager` agent, when running the 120-day checkpoint or drafting the year-end impact report, must **lead with the 43%-unused framing** in internal PSM-RM conversations (it sets the stakes correctly) and **end with the 57%-evidence framing** in district-facing artifacts (it lands the value claim without being smug about peer-vendors' failures).
 - The `qbr-composer` agent, when composing the 90-day EBR deck, includes a slide template that previews the year-end impact report structure — the EBR is where the district sees the evidence-stack first, then the report is the durable artifact.
 - The `learning-analytics-analyst` agent must surface the **license-utilization metric** (per [`psm-metrics-glossary.md`](psm-metrics-glossary.md)) explicitly — "what % of provisioned seats / licenses / classrooms had ≥N meaningful sessions in the last 90 days" — as the leading indicator of whether the partner is on the 57% or 43% side.
 - The `success-playbook-designer` agent maintains a **year-end impact report play** with the SETDA-aligned outcome-evidence structure; the bottom-quartile-detected branch routes to the recovery-restart play instead.

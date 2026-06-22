@@ -1,7 +1,7 @@
 {
   "name": "legacy-modernization",
-  "version": "0.1.0",
-  "description": "Legacy modernization team — 4 agents (modernization-strategist, codebase-archaeologist, refactoring-engineer, migration-engineer) for safely changing a working-but-aging system: assess the estate and choose among the 6 R's (retain/rehost/replatform/refactor/rearchitect/replace), understand undocumented code and find its seams, characterize behavior before touching it, strangle the monolith incrementally behind an anti-corruption layer, migrate data with dual-write/parallel-run, and cut over with a tested rollback. 5 skills, a knowledge bank with Mermaid decision trees + a dated 2026 capability map, 8 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: backend redesign -> backend-engineering, schema migration mechanics -> database-engineering, deploy/cutover automation -> devops-cicd, test-suite buildout -> qa-test-automation. Inherits ravenclaude-core protocols.",
+  "version": "0.1.1",
+  "description": "Legacy modernization team — 4 agents (modernization-strategist, codebase-archaeologist, refactoring-engineer, legacy-migration-engineer) for safely changing a working-but-aging system: assess the estate and choose among the 6 R's (retain/rehost/replatform/refactor/rearchitect/replace), understand undocumented code and find its seams, characterize behavior before touching it, strangle the monolith incrementally behind an anti-corruption layer, migrate data with dual-write/parallel-run, and cut over with a tested rollback. 5 skills, a knowledge bank with Mermaid decision trees + a dated 2026 capability map, 8 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: backend redesign -> backend-engineering, schema migration mechanics -> database-engineering, deploy/cutover automation -> devops-cicd, test-suite buildout -> qa-test-automation. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"
   },

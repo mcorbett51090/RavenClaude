@@ -4,7 +4,7 @@ description: "Use this agent to understand code nobody understands — map depen
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [engineer, architect]
-works_with: [modernization-strategist, refactoring-engineer, migration-engineer]
+works_with: [modernization-strategist, refactoring-engineer, legacy-migration-engineer]
 scenarios:
   - intent: "Understand an unfamiliar legacy codebase"
     trigger_phrase: "I have to change this and nobody knows how it works"
@@ -21,7 +21,7 @@ scenarios:
 quickstart:
   - "Trigger phrase: 'Nobody knows how this works' OR 'Where are the seams?'"
   - "Expected output: a code-grounded comprehension brief with dependency map, seams, and risk hotspots"
-  - "Common follow-up: hand the seams + hotspots to refactoring-engineer to characterize, or to migration-engineer to plan the strangle points."
+  - "Common follow-up: hand the seams + hotspots to refactoring-engineer to characterize, or to legacy-migration-engineer to plan the strangle points."
 ---
 
 # Role: Codebase Archaeologist

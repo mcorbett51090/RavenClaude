@@ -5,7 +5,7 @@ argument-hint: "[the system / capability to migrate]"
 
 # Plan strangler migration
 
-You are running `/legacy-modernization:plan-strangler-migration` for `$ARGUMENTS`. Run it the way the `migration-engineer` would — applying the house opinions in [`../CLAUDE.md`](../CLAUDE.md) §2.
+You are running `/legacy-modernization:plan-strangler-migration` for `$ARGUMENTS`. Run it the way the `legacy-migration-engineer` would — applying the house opinions in [`../CLAUDE.md`](../CLAUDE.md) §2.
 
 ## Steps (traverse top-to-bottom; do not skip)
 1. Place the facade — an interception point routing each capability to old or new.

@@ -2,6 +2,23 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.161.1 — 2026-06-16
+
+### Fixed
+
+- **`route-decision-review.sh` mapped a binding yes/no verdict to an option by index, not semantics.** The eligibility gate accepts any two yes/no-shaped options regardless of order, but the act-block hard-coded `yes → options[0]` / `no → options[1]`. An `AskUserQuestion` phrased with the negative option first (`["Cancel","Proceed"]`, `["No","Yes"]`, `["Reject","Approve"]`) would receive a _binding_ deny instructing the agent to choose the **opposite** option — and, being auto-resolved, the human never saw it. Each option's polarity is now classified and the verdict maps to the matching option; ambiguous polarity fails safe to ALLOW. Proven by a new reverse-ordered fixture in Gate 31 (`audit-gates.sh`).
+- **`thing-concerns.py` `screen-always` catastrophe floor failed OPEN on an embedded newline.** The two `always_screen` + `pre_llm_deny` hard rules (force-push to a protected branch, `curl … | sh`) bridge program→argument with `.*`, but the regexes were searched without `re.DOTALL` and the screening variants were not newline-flattened — so a command carrying a real newline (a shell line-continuation) between `git push`/`curl` and the dangerous flag silently dodged the hard DENY. A newline-flattened screening variant is now matched alongside the raw + normalized command (only ever ADDS a match, never removes one). Proven by a new Gate 15 fixture. **Security-floor change.**
+- **`apply-comfort-posture.py` PyYAML-less fallback parser mis-split a quoted override key containing a colon** (`"Bash(ls:*)": deny` → key `"Bash(ls`), aborting `/set-posture` on a no-PyYAML consumer. The scalar split is now quote-aware; unquoted keys are unchanged.
+- **`guard-destructive.sh` `git push -f` pattern over-matched a branch name ending in `-f`** (`git push origin feature-f` was blocked). The pattern now requires `-f` to be a standalone flag; `-f` / `--force` force-pushes are still blocked (fails closed regardless).
+- **`thing-decision.py` self-disable guard missed non-canonical falsy `thing` values** (`thing: 0` / `"0"` / `disabled` / `none`) that `thing_enabled_for` treats as off; it now mirrors that truthiness exactly. Also: the seat/panel timeout config excludes `bool` so `seat_timeout_seconds: true` isn't coerced to a 1-second timeout.
+- **`rc-deep-research.js` eval stats under-counted verify agents** (both copies) — a flat `voted.length * VOTES_PER_CLAIM` that ignored per-claim fan-out + escalation; now a real `verifyAgentsFired` counter (baseline unchanged; Gate 52 untouched).
+- **`two-panel-plan-review.js` could mislabel lens results** (both copies) when a panel agent returned null; each result is now paired with its lens key before `filter(Boolean)`.
+- **New cross-plugin agent-name-uniqueness check** in `scripts/check-frontmatter.py` (resolves the `partner-success-manager` collision — `edtech-partner-success` renamed its specialist to `edtech-partner-success-manager`).
+
+### Notes
+
+- **Migration:** none — `decision_review` is off by default; the catastrophe-floor fix only closes a bypass (never relaxes a deny).
+
 ## 0.161.0 — 2026-06-22
 
 ### Added
