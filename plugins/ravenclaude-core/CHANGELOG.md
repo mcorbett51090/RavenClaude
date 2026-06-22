@@ -2,6 +2,37 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.158.0 — 2026-06-22
+
+### Fixed
+
+- **`guard-web-access.sh` now resolves the session id from the hook payload, not just `$CLAUDE_SESSION_ID`.** Native Claude Code does not export `CLAUDE_SESSION_ID` to hooks, so the web-access guard collapsed every native session into `runs/unknown/` — the per-session "this session" web-allow file and the per-domain first-use trust markers were shared across all sessions and never reset, weakening the first-use trust gate (Finding 5). The hook now calls the same `_ee_resolve_session()` resolver (`$CLAUDE_SESSION_ID` → payload `.session_id` → `unknown`) the event substrate already uses, with a jq-free fallback. Verified: a native-shaped payload (no env var, `session_id` in stdin) now lands in `runs/<real-sid>/`. Gate 70 stays green.
+- **`format-on-write.sh` no longer aborts on a vanished directory.** The absolute-path `cd` ran under `set -e` with no guard, so a file whose directory was removed between the existence check and the resolve would abort the whole PostToolUse formatter. The `cd` is now guarded (`|| exit 0`) and resolved on its own line so a trailing command substitution can't mask its exit status.
+
+### Notes
+
+- **Migration:** none — both are fail-safe hook hardening; behavior is unchanged for the common (env-var-present) path. Also bundles documentation accuracy fixes (README/CLAUDE.md component counts corrected to 15 agents / 43 skills / 16 hooks / 5 rules / 7 slash commands; `viz-spec-reviewer` added to the agent roster) and repo-tooling fixes (`scripts/check-md-links.py` titled-link parsing, `feedback-report.html` regenerated from the current scenario corpus) that ship outside the plugin.
+
+## 0.157.0 — 2026-06-12
+
+### Added
+
+- **`/claude-orchestrate` skill — one-off Claude orchestration escape hatch** ([`skills/claude-orchestrate/SKILL.md`](skills/claude-orchestrate/SKILL.md)). Exposes the always-on `claude-orchestrate.sh` invocation on-demand for sessions where the `orchestrator:` knob is `off` or the user wants a one-off Claude reasoning pass without changing the posture. Host-checks `THING_HOST` (no-op under Claude Code), prints a cost-transparency note, surfaces fail-safe exits (scrub/recursion/absent-claude) instead of swallowing them. Uses the team-dispatch path only (not a relay-all surface); covered by the existing Gate 102.
+
+### Notes
+
+- **Migration:** none — adds one skill file; no hook, settings, or `apply-comfort-posture.py` change.
+
+## 0.156.0 — 2026-06-11
+
+### Changed
+
+- **Research routine extended with a Learn-tab improvement pass.** The scheduled research routine now also reviews and refreshes the dashboard Learn-tab concept set as part of its sweep.
+
+### Notes
+
+- **Migration:** none — routine/content change; nothing in a consumer's installed plugin changes on `/plugin marketplace update`.
+
 ## 0.155.0 — 2026-06-11
 
 ### Added

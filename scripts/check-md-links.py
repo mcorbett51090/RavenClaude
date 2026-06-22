@@ -88,7 +88,10 @@ def resolve_target(md_file: Path, raw: str) -> Path | None:
         return None
 
     # Drop a markdown title suffix:  (path "Title")  ->  path
-    target = target.split()[0]
+    # Split only on the ` "` title delimiter, NOT arbitrary whitespace, so a
+    # legitimate relative path containing a space (e.g. `./my doc.md`) is not
+    # truncated to `./my` and falsely reported as broken.
+    target = re.split(r'\s+"', target, maxsplit=1)[0].strip()
     # Drop the anchor fragment:  file.md#section  ->  file.md
     path_part = target.split("#", 1)[0]
     if not path_part:
