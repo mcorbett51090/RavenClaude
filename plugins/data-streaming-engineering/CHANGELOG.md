@@ -2,6 +2,14 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.1] — 2026-06-22
+
+Weekly news-cadence sweep correction (Tier-A, `data_and_bi`). See [`docs/research/2026-06-22-weekly-sweep-findings.md`](../../../docs/research/2026-06-22-weekly-sweep-findings.md).
+
+### Fixed
+
+- **Re-anchored stale framework version stamps in `knowledge/data-streaming-engineering-decision-trees.md`.** The three per-tree "Last verified" lines (stream-stream join; backpressure-vs-skew; stateful-recovery sizing) were stamped against **Apache Flink 1.19 / Kafka Streams 3.7** — two major lines stale. Flink 2.x (current stable 2.2.x) and Kafka 4.x (KRaft-only; Kafka Streams ships within Kafka) are both GA. Re-anchored the version stamps to Flink 2.x / Kafka 4.x with `[verify-at-use]` on exact patch numbers; the documented join/backpressure/checkpoint semantics are version-stable, so only the anchors changed. Top "Last reviewed" bumped to 2026-06-22.
+
 ## [0.3.0] — 2026-06-05
 
 Value-add build-out against the full menu, mirroring the `backend-engineering` recipe. Every menu item was dispositioned (built or recorded N-A with reason); see [`CLAUDE.md`](CLAUDE.md) § "Value-add completeness (build-out 2026-06-05)".
