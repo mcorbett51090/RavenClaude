@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.7] — 2026-06-21
+
+Research-sweep refresh (re-dated 2026-06-21) — two non-Claude churns folded into `knowledge/cross-tool-model-lineup-2026.md` on top of the 2026-06-17 Grok Build addition and the 2026-06-13 Fable 5 suspension (both unchanged): (1) **OpenAI GPT-5.3-Codex and GPT-5.2/5.2-Codex deprecated** — new API requests end 2026-06-30, full shutdown 2026-12-31; flagged in the Codex table like the `grok-code-fast-1` retirement, GPT-5.5 the migration target; decision-tree leaf updated. (2) **MAI-Code-1-Flash** (Microsoft small coding model) broadly available across Copilot surfaces 2026-06-18 — added to the cheapest-fast tier. Routed through two expert panels (usefulness → both USEFUL; detailed review → APPROVE with refinements applied); panels concurred. No migration — knowledge-file content only.
+
 ## [0.3.6] — 2026-06-17
 
 Freshness-anchor refresh — **xAI Grok Build CLI + `grok-build-0.1` verified and added**. The prior review's Grok Build line was a flagged `[unverified — confirm at docs.x.ai]` placeholder; this sweep verified it across the xAI primary ([x.ai/news/grok-build-cli](https://x.ai/news/grok-build-cli), [x.ai/cli](https://x.ai/cli)) plus 10 secondaries (incl. OpenRouter / Vercel AI Gateway / Requesty, which list `grok-build-0.1` as a deployable model). The vendor doc pages 403 automated `WebFetch`, so values were read via `WebSearch` per the file's 403 route ladder. (Originally cut as 0.3.5; renumbered to 0.3.6 on merge after the 2026-06-13 Fable 5 suspension sweep independently took 0.3.5 on main.)
