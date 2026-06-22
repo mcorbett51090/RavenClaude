@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "as_of": "2026-06-22",
+  "marketplace_version": "0.89.1",
+  "headline": "A private Claude Code plugin marketplace.",
+  "subhead": "A domain-neutral orchestration core plus specialist teams that travel with you across projects — bundled rules, agents, dispatch playbooks, and templates.",
+  "totals": {
+    "plugins": 117,
+    "specialist_agents": 484,
+    "skills": 662,
+    "hooks": 140,
+    "domains": 17
+  },
+  "categories": [
+    {
+      "id": "core-delivery",
+      "label": "Core & Delivery",
+      "blurb": "The domain-neutral foundation every plugin builds on — the Team Lead and protocols — plus product, project, and process delivery.",
+      "representative_plugins": ["ravenclaude-core", "project-management", "product-management"],
+      "count": 5
+    },
+    {
+      "id": "software-engineering",
+      "label": "Software Engineering",
+      "blurb": "Backend, frontend, mobile, databases, APIs, QA, performance, embedded/IoT, games, auth, and blockchain.",
+      "representative_plugins": ["backend-engineering", "frontend-engineering", "api-engineering"],
+      "count": 12
+    },
+    {
+      "id": "cloud-devops-platform",
+      "label": "Cloud, DevOps & Platform",
+      "blurb": "AWS / Azure / GCP, Kubernetes, Terraform, CI/CD, internal developer platforms, observability/SRE, and cloud-cost FinOps.",
+      "representative_plugins": ["aws-cloud", "cloud-native-kubernetes", "devops-cicd"],
+      "count": 9
+    },
+    {
+      "id": "data-analytics",
+      "label": "Data & Analytics",
+      "blurb": "Data platforms, streaming, data science, analytics engineering, statistics, BI/Tableau, and data governance.",
+      "representative_plugins": ["data-platform", "analytics-engineering", "tableau"],
+      "count": 8
+    },
+    {
+      "id": "ai-ml",
+      "label": "AI & Machine Learning",
+      "blurb": "Building with Claude, model-selection guidance across coding tools, RAG systems, and ML engineering.",
+      "representative_plugins": ["claude-app-engineering", "ai-rag-engineering", "ml-engineering"],
+      "count": 4
+    },
+    {
+      "id": "security-compliance",
+      "label": "Security & Compliance",
+      "blurb": "Application/cloud security engineering, cybersecurity GRC, the regulatory lane, and ESG / sustainability reporting.",
+      "representative_plugins": [
+        "security-engineering",
+        "cybersecurity-grc",
+        "regulatory-compliance"
+      ],
+      "count": 4
+    },
+    {
+      "id": "microsoft-enterprise",
+      "label": "Microsoft & Enterprise Platforms",
+      "blurb": "Power Platform, Fabric, Graph, M365 Copilot, and Salesforce delivery craft.",
+      "representative_plugins": ["power-platform", "microsoft-fabric", "salesforce"],
+      "count": 5
+    },
+    {
+      "id": "web-design-content",
+      "label": "Web, Design & Content",
+      "blurb": "Web design & build, accessibility, technical writing, localization / i18n, and film & video production.",
+      "representative_plugins": [
+        "web-design",
+        "accessibility-engineering",
+        "technical-writing-docs"
+      ],
+      "count": 5
+    },
+    {
+      "id": "finance-fintech-insurance",
+      "label": "Finance, Fintech & Insurance",
+      "blurb": "Corporate finance / FP&A, accounting, payments engineering, wealth management, mortgage lending, and insurance.",
+      "representative_plugins": ["finance", "fintech-payments-engineering", "insurance-pc"],
+      "count": 7
+    },
+    {
+      "id": "healthcare-life-sciences",
+      "label": "Healthcare & Life Sciences",
+      "blurb": "Behavioral health, clinical trials, dental, hospice, medical revenue cycle, pharmacy, senior care, and veterinary.",
+      "representative_plugins": ["clinical-trials", "medical-revenue-cycle", "dental-practice"],
+      "count": 8
+    },
+    {
+      "id": "industrial-supply-energy",
+      "label": "Industrial, Supply Chain & Energy",
+      "blurb": "Manufacturing, supply-chain planning, procurement, fleet & freight logistics, field service, renewable energy, and precision ag.",
+      "representative_plugins": [
+        "manufacturing-operations",
+        "supply-chain-planning",
+        "renewable-energy"
+      ],
+      "count": 8
+    },
+    {
+      "id": "sales-marketing-cx",
+      "label": "Sales, Marketing & CX",
+      "blurb": "RevOps, marketing operations, customer-success analytics, support / CX operations, and DTC e-commerce.",
+      "representative_plugins": ["sales-revops", "marketing-operations", "ecommerce-dtc"],
+      "count": 5
+    }
+  ]
+}

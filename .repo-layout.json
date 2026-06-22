@@ -16,6 +16,8 @@
     "tests/fixtures/**",
     "tests/fixtures/data-viz/**",
     "index.html",
+    "pitch.html",
+    "pitch-data.json",
     "feedback-report.html",
     ".nojekyll",
     ".gitignore",
