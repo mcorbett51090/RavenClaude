@@ -69,6 +69,23 @@ The research-grounded reference the agents point to. Read the relevant file in f
 | [`knowledge/fundraising-decision-trees.md`](knowledge/fundraising-decision-trees.md) | Fundraising decision trees (which analysis for which symptom; major-gift go/cultivate, retention diagnosis, grant pipeline — **Mermaid**) |
 | [`knowledge/nonprofit-campaign-readiness-decision-tree.md`](knowledge/nonprofit-campaign-readiness-decision-tree.md) | **Mermaid** — campaign go-public vs stay-silent vs not-yet (gift range chart → prospect pool → case → lead gift → silent-phase threshold). Complements the above. |
 | [`knowledge/nonprofit-channel-investment-decision-tree.md`](knowledge/nonprofit-channel-investment-decision-tree.md) | **Mermaid** — where the next fundraising dollar goes (CRD-by-channel-first → retention-first → acquisition-judged-on-LTV). Complements the above. |
+| [`knowledge/grant-management-post-award.md`](knowledge/grant-management-post-award.md) | **POST-award / compliance** (complements the pre-award grant pipeline) — **2 Mermaid decision trees**: allowable-cost determination (allowable/allocable/reasonable; direct vs indirect, Uniform Guidance 2 CFR 200) and reporting-cadence & compliance triage (financial + programmatic reports, Single Audit threshold). Plus budget-vs-actual, drawdown, modifications/no-cost extensions, audit trail, subrecipient monitoring. Every regulatory specific carries a retrieval date + `[verify-at-use]`; advisory only, not legal/accounting advice. |
+
+### Skills
+
+Beyond the 5 development-side skills under [`skills/`](skills/) (`protect-donor-retention`, `qualify-the-funder`, `run-the-cultivation-cycle`, `segment-the-donor-base`, `read-cost-per-dollar`), the plugin adds the **post-award** lane:
+
+| Skill | Covers |
+|---|---|
+| [`skills/grant-postaward-compliance/SKILL.md`](skills/grant-postaward-compliance/SKILL.md) | The **post-award grant-management lifecycle**: set up the award → spend only on allowable/allocable/reasonable costs → track budget-vs-actual monthly → report on cadence (financial + programmatic) → modify before needed → close out audit-ready. Pairs with the post-award knowledge doc and tracker template. |
+
+### Templates
+
+| Template | Covers |
+|---|---|
+| [`templates/grant-budget-vs-actual-tracker.md`](templates/grant-budget-vs-actual-tracker.md) | Fill-in **budget-vs-actual** ledger by category + drawdown log + **report calendar** (financial + programmatic deadlines) + modifications + subrecipient monitoring + an audit-readiness checklist. Joins the 3 existing development templates (`engagement-brief`, `exec-readout`, `major-gift-prospect-profile`, `scorecard`). |
+
+> **Post-award coverage (added 2026-06-22):** the plugin now covers the **post-award / grant-compliance** side (allowable-cost determination, budget-vs-actual tracking, reporting cadence, modifications, audit-ready document trail, subrecipient monitoring) as a *complement* to the existing pre-award / development side — added as a skill + knowledge doc + template + 3 best-practice rules, **not** a new agent (team-growth-as-knowledge house rule); the `grant-writer` and `nonprofit-finance-analyst` agents reach it.
 
 ---
 
