@@ -1,7 +1,7 @@
 {
   "name": "developer-relations",
-  "version": "0.1.0",
-  "description": "Developer-relations (DevRel) team — 2 agents (devrel-strategist, developer-advocate) for growing and serving a developer audience: the developer funnel (awareness → activation → advocacy) and the metrics that track it (time-to-first-success, activation rate — not GitHub stars), developer marketing that teaches not sells, sample apps and demos that run as shipped, conference talks + CFP abstracts, and developer-community programs. 5 skills, a 4-doc knowledge bank (Mermaid trees for the DevRel funnel/metrics and content-format/channel selection; a DX/onboarding guide; dated tooling tiers), 7 best-practices, 4 templates, 4 commands, 1 advisory hook (vanity-metric / market-at-developers / placeholder-secret smells), a scenarios bank. Advisory — no MCP/LSP/bin. Seams with technical-writing-docs (the docs artifact), api-engineering (the contract), product-management (what to build), marketing-operations (the non-dev funnel). Requires ravenclaude-core@>=0.7.0.",
+  "version": "0.2.0",
+  "description": "Developer-relations / DevRel team — 3 agents (developer-advocate, devrel-content-engineer, developer-community-manager) for the developer experience of a product with an API/SDK: time-to-first-success (getting-started) audits, sample-app and SDK-quickstart design, a DX content strategy, community health, DX metrics (activation funnel), and the product-feedback loop that fixes the product instead of writing around it. 4 skills, a 2-doc knowledge bank with Mermaid decision trees (advocate-vs-docs-vs-community, fix-the-product-or-document-it, content-format choice), 4 best-practices, 5 templates, 4 commands, and 1 advisory anti-pattern hook. Distinct from technical-writing-docs (reference docs), marketing-operations (demand gen), and product-management (what to build). Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"
   },
@@ -11,15 +11,17 @@
     "developer-relations",
     "devrel",
     "developer-advocacy",
-    "developer-marketing",
     "developer-experience",
-    "developer-onboarding",
+    "dx",
     "time-to-first-success",
-    "sample-apps",
-    "cfp",
-    "conference-talks",
+    "getting-started",
+    "sample-app",
+    "sdk-quickstart",
     "developer-community",
-    "activation-metrics"
+    "dx-metrics",
+    "activation-funnel",
+    "product-feedback-loop",
+    "developer-content"
   ],
   "requires": {
     "plugins": ["ravenclaude-core@>=0.7.0"]

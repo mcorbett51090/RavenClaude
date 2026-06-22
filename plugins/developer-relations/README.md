@@ -1,65 +1,48 @@
 # developer-relations
 
-> **Developer-relations (DevRel) team** for Claude Code — grow and serve a developer audience
-> without lying to it. Two doing-agents, a funnel-and-metrics knowledge bank, skills, templates,
-> commands, and an advisory anti-pattern hook. Inherits the `ravenclaude-core` protocols.
+A **Developer Relations (DevRel)** team for Claude Code — the seat that owns the
+**developer experience** of a product with an API/SDK: getting a developer from
+"heard about it" to "built something that works," fast, then keeping them.
 
-## What this plugin is for
-
-DevRel sits in a seam the marketplace didn't cover: it's not the docs *system*
-(`technical-writing-docs`), not the API *contract* (`api-engineering`), not *what to build*
-(`product-management`), and not the *buyer* funnel (`marketing-operations`). It's the craft of
-turning a developer who's never heard of you into one who ships with you and tells their friends —
-and **measuring that honestly** (activation and time-to-first-success, not GitHub stars).
+> **Not a tech writer, not a marketer, not a PM.** Reference docs →
+> `technical-writing-docs`. Demand gen → `marketing-operations`. What to build →
+> `product-management`. The API/SDK itself → `api-engineering`.
 
 ## Agents
 
-| Agent | Spawn it for |
+| Agent | Use it for |
 |---|---|
-| `devrel-strategist` | DevRel strategy & program design, the developer funnel, the metrics that track it, community-program design, honest measurement |
-| `developer-advocate` | Sample apps & demos that run as shipped, tutorials & content, CFP abstracts & talks, the content calendar, community engagement |
-
-## The house opinions (what makes this opinionated)
-
-1. **Measure activation, not applause** — time-to-first-success and activation rate over stars/followers.
-2. **Teach, don't market at developers** — the unit of DevRel helps them do their job today.
-3. **Sample code runs as shipped** — placeholder secrets and `TODO`s in a getting-started are defects.
-4. **Time-to-first-success is the product** — count the steps; every one loses people.
-5. **A CFP abstract leads with the attendee takeaway**, not the speaker or the product.
-6. **Community health is response time + resolution**, not member count.
+| **developer-advocate** | Audit the developer experience, measure the activation funnel, plan content/talks, run the product-feedback loop. |
+| **devrel-content-engineer** | Design a getting-started path, a sample app, or an SDK quickstart as runnable, production-grade code. |
+| **developer-community-manager** | Review community health, design forum/Discord ops, contributor and ambassador programs. |
 
 ## Skills
 
-- `devrel-strategy-and-metrics` — program + funnel + the metric set
-- `developer-onboarding-funnel` — time-to-first-success audit
-- `sample-app-and-demo-design` — a demo that runs as shipped and teaches one thing
-- `conference-talk-and-cfp` — CFP abstract + talk design
-- `developer-community-program` — community design + health metrics
+- `getting-started-audit` — measure and shorten time-to-first-success.
+- `sample-app-design` — spec a sample app that demonstrates the real value path.
+- `devrel-content-strategy` — pick formats and a calendar for an activation goal.
+- `community-health-review` — diagnose a developer community by answered-question rate and returning contributors.
 
 ## Commands
 
-- `/developer-relations:design-devrel-program`
-- `/developer-relations:audit-developer-onboarding`
-- `/developer-relations:draft-cfp-abstract`
-- `/developer-relations:plan-sample-app`
+- `/developer-relations:audit-getting-started`
+- `/developer-relations:design-sample-app`
+- `/developer-relations:plan-devrel-content`
+- `/developer-relations:review-community-health`
 
-## Install
+## Knowledge
 
-```shell
-/plugin marketplace add mcorbett51090/RavenClaude   # or a local path
-/plugin install developer-relations@ravenclaude
-```
+- **Decision trees** (`knowledge/devrel-engagement-decision-trees.md`) — advocate-vs-docs-vs-community, fix-the-product-or-document-it, content-format choice.
+- **Developer-experience playbook** (`knowledge/developer-experience-playbook.md`) — the activation funnel, TTFS, content, community, the feedback loop.
 
-Requires `ravenclaude-core@>=0.7.0`.
+## House opinions
 
-## Seams (where it hands off)
+- Time-to-first-success is the metric.
+- Fix the product before writing around it.
+- Sample code is production code — it runs, handles errors, and teaches secure patterns.
+- DevRel is not demand gen; measure activation, not MQLs.
 
-| Need | Goes to |
-|---|---|
-| The docs artifact / docs site | `technical-writing-docs` |
-| The API contract itself | `api-engineering` |
-| What to build / product strategy | `product-management` |
-| The non-developer marketing funnel | `marketing-operations` |
-| A security verdict on a sample app | `ravenclaude-core/security-reviewer` |
+## Requires
 
-See [`CLAUDE.md`](CLAUDE.md) for the full team constitution, routing rules, and the Output Contract.
+`ravenclaude-core@>=0.7.0`. Advisory only — it produces audits, specs, plans, and
+feedback briefs; it does not run your forum, CMS, or SDK.
