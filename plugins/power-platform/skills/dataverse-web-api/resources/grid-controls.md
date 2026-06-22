@@ -71,8 +71,10 @@ through the Maker Portal (Power Apps Grid Control supports basic conditional for
 
 ## Editable Grid (Legacy)
 
-The older editable grid control. Still supported but the Power Apps Grid Control is preferred
-for new development.
+> ⚠️ **Deprecated March 2026.** Per Microsoft Learn ("important changes coming"), the **Editable Grid** control **and** the legacy **Power Apps read-only grid** control are deprecated — **security fixes only, no new features.** They are **not removed** (the ClassIds below still function in existing apps), but use the **Power Apps Grid Control** (top of this file) for **all new and migrated development**. This deprecation targets the legacy Editable Grid and the legacy read-only grid control — **not** the classic default Subgrid (`{67FAC785-…}`) documented below, which remains the standard read-only subgrid. `[verify-at-use — Microsoft Learn "important changes coming", 2026-06]`
+
+The older editable grid control. Deprecated March 2026 (above); the Power Apps Grid Control is the
+replacement for new development.
 
 **ClassId:** `{9CDEA8CD-B23A-4ACA-B5B1-96C89569E7F3}`
 
@@ -210,7 +212,7 @@ Power Apps has introduced a Board view type in some environments:
 | Read-only list of related records | Default Subgrid (`{67FAC785-...}`) |
 | Inline editing with modern UX | Power Apps Grid Control (`{3B80A7E4-...}`) |
 | Column filtering and jump bar | Power Apps Grid Control |
-| Legacy inline editing (existing apps) | Editable Grid (`{9CDEA8CD-...}`) |
+| Legacy inline editing (existing apps) | Editable Grid (`{9CDEA8CD-...}`) — **deprecated March 2026**; prefer the Power Apps Grid Control |
 | Hierarchical/tree data | Power Apps Grid Control with `AllowNestedGrids` |
 | Kanban/board layout | Custom PCF or Code App |
 | Option set color coding | Power Apps Grid Control with `EnableOptionSetColors` |

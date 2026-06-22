@@ -1,0 +1,26 @@
+{
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": { "SourceRef": { "Entity": "_Measures" } },
+                  "Property": "Score Count"
+                }
+              }
+            }
+          ]
+        },
+        "Tooltips": { "projections": [] }
+      }
+    },
+    "objects": {
+      "labels": [{ "properties": {} }],
+      "categoryLabels": [{ "properties": {} }]
+    }
+  }
+}

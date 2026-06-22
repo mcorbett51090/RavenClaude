@@ -1,0 +1,31 @@
+{
+  "visual": {
+    "visualType": "cardVisual",
+    "query": {
+      "queryState": {
+        "Data": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": { "SourceRef": { "Entity": "_Measures" } },
+                  "Property": "Score Count"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "label": [
+        { "$id": "default", "properties": {} },
+        {
+          "properties": {
+            "fontColor": { "solid": { "color": { "expr": { "Literal": { "Value": "'#FFF'" } } } } }
+          }
+        }
+      ]
+    }
+  }
+}

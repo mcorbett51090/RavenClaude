@@ -2,9 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
-## [0.9.2] — 2026-06-21
+## [0.9.3] — 2026-06-21
 
-Research-sweep follow-on to the 2026-06-13 Fable 5 / Mythos 5 suspension (#426): closes the one consequence #426 left open in `knowledge/model-selection-and-2026-capability-map.md` — the **advisor-tool pairing**. The rule "Fable 5 → Fable 5 advisor; Mythos 5 → Mythos 5 advisor" is **unsatisfiable** while those models are suspended, so the advisor-tool row now directs an Opus 4.8 executor + Opus 4.8 advisor until access is restored. Re-dated 2026-06-21. Surfaced by Panel 2's detailed review of the sweep (the contradiction #426 didn't catch). No migration — knowledge-file content only.
+Research-sweep follow-on to the Fable 5 / Mythos 5 suspension: closes the advisor-tool consequence in `knowledge/model-selection-and-2026-capability-map.md`. The rule "Fable 5 → Fable 5 advisor; Mythos 5 → Mythos 5 advisor" is **unsatisfiable** while those models are suspended (2026-06-12), so the advisor-tool row now directs an Opus 4.8 executor + Opus 4.8 advisor until access is restored. Re-dated 2026-06-21. Surfaced by Panel 2's detailed review of the sweep. No migration — knowledge-file content only.
+
+## [0.9.2] — 2026-06-22
+
+Research-sweep addition + correction (prompt-caching). (1) The `prompt-caching-audit` skill taught only a manual payload-diff to locate a cache-break regression; added a first-line pointer to Anthropic's native **cache-diagnostics** beta (`cache-diagnosis-2026-04-07`, Claude-API-only) which reports the first prefix divergence via `cache_miss_reason` — the dated beta header lives in the caching playbook (house opinion #14), not hardcoded in the skill. Verified against [cache diagnostics docs](https://platform.claude.com/docs/en/build-with-claude/cache-diagnostics) (retrieved 2026-06-20). (2) Fixed stale per-model cache token floors in the same skill (it said "Haiku ≥ 2,048; Sonnet/Opus ≥ 1,024", contradicting the plugin's own playbook); the skill now points to the playbook's dated floors rather than re-hardcoding numbers. Routed through two expert panels (usefulness → USEFUL; detailed review → IMPLEMENT with the pointer-not-rehardcode + capability-map-placement constraints, applied); panels concurred, no tiebreak needed. (Originally cut as 0.9.1; renumbered to 0.9.2 on merge after the 2026-06-13 Fable 5 suspension sweep independently took 0.9.1 on main.)
+
+---
 
 ## [0.9.1] — 2026-06-13
 
