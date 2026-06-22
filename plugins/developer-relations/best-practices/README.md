@@ -11,3 +11,4 @@ agents apply by default. They map to the discipline in
 - [`devrel-is-not-demand-gen.md`](devrel-is-not-demand-gen.md)
 - [`invest-at-the-weakest-funnel-stage.md`](invest-at-the-weakest-funnel-stage.md)
 - [`attribution-is-honest-or-absent.md`](attribution-is-honest-or-absent.md)
+- [`cfp-abstract-leads-with-the-attendee-takeaway.md`](cfp-abstract-leads-with-the-attendee-takeaway.md)

@@ -1,13 +1,14 @@
 # CFP abstract — <talk working title>
 
-> Lead with the attendee takeaway. Owned by `developer-advocate`. Conference/track: <…> · Level:
-> <beginner/intermediate/advanced> · Slot: <length>
+> Lead with the attendee takeaway. Owned by `developer-advocate` (drives the
+> [`conference-talk-and-cfp`](../skills/conference-talk-and-cfp/SKILL.md) skill).
+> Conference/track: <…> · Level: <beginner/intermediate/advanced> · Slot: <length>
 
 ## Title
 
 <A title that names the takeaway, not the product. e.g. "Cutting p99 latency 60% without a rewrite">
 
-## Abstract (the first sentence is about the attendee, not you)
+## Abstract (first sentence is about the attendee, not you)
 
 <2–4 short paragraphs. Open with the problem the attendee has and what they'll leave able to do.
 The product, if it appears, is the *example* the lessons came from — not the subject.>
@@ -24,6 +25,7 @@ The product, if it appears, is the *example* the lessons came from — not the s
 
 ## Speaker note (private — not submitted)
 
-- **Outline fits the slot?** <one clear arc, not five rushed points>
 - **First-sentence test passed?** <the abstract does NOT open with "At <Company>…">
-- **Vendor-neutral lessons?** <the takeaways transfer even to someone not using our product>
+- **Engineer-to-engineer?** <no marketing speak; the lessons transfer even to a non-customer>
+- **Scope fits the slot?** <one clear arc, not five rushed points>
+- **Funnel honesty?** <a talk is an awareness play — don't claim activation it can't deliver>
