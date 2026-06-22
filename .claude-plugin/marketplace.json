@@ -776,7 +776,7 @@
       "name": "database-engineering",
       "source": "./plugins/database-engineering",
       "description": "Database-engineering team — 4 agents (schema-architect, query-performance-engineer, migration-engineer, db-reliability-engineer) for the OPERATIONAL/transactional data layer (OLTP): relational schema design and normalization (and when to denormalize), indexing strategy and query/EXPLAIN-plan tuning, safe zero-downtime schema migrations (expand/contract), and connection-pooling, transactions/isolation, replication, and backup/restore reliability. Postgres-leaning, principles portable to MySQL/SQL Server; NoSQL access-pattern guidance where it fits. 5 skills, a decision-tree knowledge bank (index-choice + migration-safety trees + a dated 2026 capability map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Distinct from data-platform (analytics/ELT/warehouse) and analytics-engineering (dbt). Seams: ELT/warehouse -> data-platform, ORM/app data-access -> backend-engineering, managed DB infra -> cloud plugins. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1029,7 +1029,7 @@
       "name": "data-streaming-engineering",
       "source": "./plugins/data-streaming-engineering",
       "description": "Data-streaming-engineering team — 3 agents (streaming-architect, kafka-pipeline-engineer, stream-processing-engineer) for REAL-TIME data: streaming-vs-batch decision and topology, event streaming + CDC (Kafka/Pulsar/Kinesis, topics/partitioning, schema registry + evolution, the outbox/Debezium CDC pattern), delivery semantics (at-least-once vs exactly-once, idempotency, transactional outbox), and stream processing (Flink/Kafka-Streams: event-time vs processing-time, windowing, watermarks, state, joins, backpressure). 7 skills, a decision-tree knowledge bank (streaming-vs-batch + delivery-semantics trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Distinct from data-platform (batch ELT) and microsoft-fabric (RTI/Eventstream). Seams: batch ELT -> data-platform, AsyncAPI contracts -> api-engineering, Fabric RTI -> microsoft-fabric, app-side messaging -> backend-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "author": {
         "name": "Matt Corbett"
       },
