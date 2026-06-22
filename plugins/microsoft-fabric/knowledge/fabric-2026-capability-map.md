@@ -1,8 +1,8 @@
 # Fabric 2026 capability map (GA vs preview)
 
-**Last reviewed:** 2026-06-18 · **Confidence:** medium-high — Fabric ships **monthly**, so this is the freshness anchor the Researcher staleness sweep re-dates. Every row carries a retrieval date; verify GA/preview status before quoting to a client.
+**Last reviewed:** 2026-06-19 · **Confidence:** medium-high — Fabric ships **monthly**, so this is the freshness anchor the Researcher staleness sweep re-dates. Every row carries a retrieval date; verify GA/preview status before quoting to a client.
 **Owner:** all agents (the "cite the status with a retrieval date" discipline, house opinion #9).
-**Source:** [What's new in Fabric](https://learn.microsoft.com/fabric/fundamentals/whats-new) + per-feature docs, retrieved 2026-05-28. **Spark Runtime 2.0 (→ Spark/Delta 4.1) and OneLake security (→ GA + default-on) re-verified 2026-06-11 via the Microsoft-Learn MCP.** **Runtime 1.3 corrected Delta 3.1 → 3.2 (Spark 3.5.5 / Python 3.11) and its end-of-support (2026-09-30 → LTS through March 2027) added — re-verified 2026-06-18 via the Microsoft-Learn MCP ([runtime](https://learn.microsoft.com/fabric/data-engineering/runtime), [runtime-1-3](https://learn.microsoft.com/fabric/data-engineering/runtime-1-3), [lifecycle](https://learn.microsoft.com/fabric/data-engineering/lifecycle)).**
+**Source:** [What's new in Fabric](https://learn.microsoft.com/fabric/fundamentals/whats-new) + per-feature docs, retrieved 2026-05-28. **Spark Runtime 2.0 (→ Spark/Delta 4.1) and OneLake security (→ GA + default-on) re-verified 2026-06-11 via the Microsoft-Learn MCP.** **Runtime 1.3 corrected Delta 3.1 → 3.2 (Spark 3.5.5 / Python 3.11) and its end-of-support (2026-09-30 → LTS through March 2027) added — re-verified 2026-06-18 via the Microsoft-Learn MCP ([runtime](https://learn.microsoft.com/fabric/data-engineering/runtime), [runtime-1-3](https://learn.microsoft.com/fabric/data-engineering/runtime-1-3), [lifecycle](https://learn.microsoft.com/fabric/data-engineering/lifecycle)).** **June-2026 sweep (re-verified 2026-06-19, Microsoft-Learn MCP):** Fabric Graph → **GA**; Eventstream Kafka/Service Bus connectors → **GA-announced, source page still "(preview)"** `[verify-at-use]`; Fabric Data Agents in M365 Copilot → **GA-announced, consume page still "(preview)"** `[verify-at-use]`.
 
 ## Spark runtimes (get this right — affects perf defaults)
 
@@ -26,12 +26,13 @@
 | **Materialized lake views** | GA-track — verify; declarative medallion |
 | Schema-enabled lakehouses | GA (prerequisite for the OneLake-security **data-preview** pane; not required for Spark RLS/CLS enforcement) |
 | OneLake shortcuts, external data sharing (cross-tenant) | GA |
+| **Fabric Graph** (labeled-property-graph over OneLake; GQL/NL2GQL, CU-billed, no separate SKU, min 100 GB storage) | **GA (June 2026)** — was preview since Oct 2025; *graph-as-AI-data-source in Fabric Data Agent stays preview* `[verify-at-use]` ([Graph overview](https://learn.microsoft.com/fabric/graph/overview)) |
 
 ## Power BI / semantic models
 - **Direct Lake on SQL** (fallback to DirectQuery) — GA. **Direct Lake on OneLake** (no fallback, composite models) — GA, the modern recommendation. PBIP/TMDL, live editing — GA. ([Direct Lake](https://learn.microsoft.com/fabric/fundamentals/direct-lake-overview))
 
 ## Real-Time Intelligence
-- Eventstream, Eventhouse, KQL DB/queryset, Real-Time dashboard, **Activator**, anomaly detection — GA. **Eventhouse endpoint for Lakehouse** (Oct 2025), entity diagram in KQL DB (Nov 2025, preview), Azure Monitor Logs into Fabric via Eventstream (Sep 2025). Digital twin builder — preview. ([RTI overview](https://learn.microsoft.com/fabric/real-time-intelligence/overview))
+- Eventstream, Eventhouse, KQL DB/queryset, Real-Time dashboard, **Activator**, anomaly detection — GA. **Eventhouse endpoint for Lakehouse** (Oct 2025), entity diagram in KQL DB (Nov 2025, preview), Azure Monitor Logs into Fabric via Eventstream (Sep 2025). Digital twin builder — preview. **Eventstream Apache Kafka + Azure Service Bus source connectors — GA-announced June 2026** (what's-new RTI table: hardened reliability, SASL_SSL/SASL_PLAINTEXT/Entra auth, production throughput) **but the source page is still titled "(preview)"** — treat as GA-announced/page-still-preview, `[verify-at-use]` before relying on GA SLAs ([Add Apache Kafka source](https://learn.microsoft.com/fabric/real-time-intelligence/event-streams/add-source-apache-kafka)). **Real-Time Dashboards Live Refresh — GA (June 2026)**. ([RTI overview](https://learn.microsoft.com/fabric/real-time-intelligence/overview))
 
 ## AI / Data Science (v0.2.0 agent territory)
 - **Fabric Data Agents** — conversational read-only NL Q&A over Lakehouse/Warehouse/semantic-model/KQL/ontology via Azure OpenAI Assistant APIs; Foundry / Copilot Studio / M365 Copilot integration. Source control for data agents — preview.

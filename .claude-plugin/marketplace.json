@@ -448,7 +448,7 @@
       "name": "microsoft-fabric",
       "source": "./plugins/microsoft-fabric",
       "description": "Microsoft Fabric specialist team — 7 agents (fabric-architect, lakehouse-engineer, warehouse-engineer, data-factory-engineer, realtime-intelligence-engineer, fabric-semantic-model-engineer, fabric-admin) covering OneLake, Lakehouse (Spark/Delta/medallion/materialized lake views), Warehouse (T-SQL/ACID), Data Factory (mirroring/copy-job/dataflow-gen2/pipelines), Real-Time Intelligence (Eventstream/Eventhouse/KQL/Activator), Direct Lake semantic models, and platform admin (capacity FinOps, OneLake security, domains, Purview, ALM). 13-doc citation-grounded knowledge bank (two Mermaid decision trees + a dated 2026 capability map), 6 templates, 1 advisory hook (14 house opinions). Seams: enterprise Microsoft/Fabric here vs non-Microsoft/SMB embedded to data-platform; Fabric storage + Direct Lake here vs standalone Power BI/.pbix to power-platform/power-bi-engineer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.8.3",
+      "version": "0.8.4",
       "author": {
         "name": "Matt Corbett"
       },
@@ -494,7 +494,7 @@
       "name": "azure-cloud",
       "source": "./plugins/azure-cloud",
       "description": "Azure cloud infrastructure & platform specialist team — 7 agents (azure-architect, bicep-iac-engineer, entra-identity-engineer, network-engineer, app-platform-engineer, integration-engineer, azure-ops-engineer) for the Azure layer under the Microsoft stack: landing zones / CAF, IaC (Bicep + Terraform + Azure Verified Modules + Deployment Stacks), Entra identity (managed identity, workload identity federation, RBAC, PIM, External ID), networking (Private Endpoints, hub-spoke, Front Door, WAF), compute selection (App Service / Container Apps / Functions / AKS), integration (Logic Apps, Service Bus, Event Grid, APIM), and observability + FinOps + governance. 12-doc dated knowledge bank (two Mermaid decision trees + a 2026 capability map), 6 templates, 1 advisory hook (16 house opinions). Seams: Logic Apps here vs Power Automate to power-platform; Fabric data to microsoft-fabric; Azure host here vs Claude app to claude-app-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.5.0",
+      "version": "0.5.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -596,7 +596,7 @@
       "name": "microsoft-graph",
       "source": "./plugins/microsoft-graph",
       "description": "Microsoft Graph developer team — specialist agents for the Graph API surface: querying (OData $select/$filter/$expand/$search, paging, $batch, change tracking via delta), throttling/429 + retry discipline, the Graph SDKs; identity & authorization on Entra (app registration, delegated vs application permissions, scopes/consent, least-privilege, auth-code/client-credentials/OBO flows, certificate creds); and the workloads (users/groups, mail/calendar, Teams, SharePoint/OneDrive files, change notifications/subscriptions + lifecycle, Graph connectors). Citation-grounded knowledge bank with Mermaid decision trees + a best-practices library. Seams: Copilot Graph connectors → microsoft-365-copilot; Entra tenant/identity infrastructure → azure-cloud; Power Platform Dataverse → power-platform; methodology/security-review → ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.4.1",
+      "version": "0.4.2",
       "author": {
         "name": "Matt Corbett"
       },
