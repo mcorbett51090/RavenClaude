@@ -2,6 +2,20 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.160.0 — 2026-06-22
+
+### Added
+
+- **New best-practice — "Run parallel Claude Code instances in separate git worktrees — never aim two writers at one working tree"** ([`best-practices/isolate-parallel-claude-instances-in-git-worktrees.md`](best-practices/isolate-parallel-claude-instances-in-git-worktrees.md), 19 rules total). Names the **peer-process** parallelism posture the sub-agent rule [`delegate-reads-fan-out-keep-branch-writes-in-main.md`](best-practices/delegate-reads-fan-out-keep-branch-writes-in-main.md) explicitly defers: give each concurrent Claude Code instance its own `git worktree`/branch so two writers don't stomp one working tree's files + index, reconcile via merge/PR. Leads with native `--worktree`/`-w` + `claude agents` support; cites the bundled `new-worktree`/`cleanup-worktrees` skills + the Sleipnir convention. Sourced from the [2026-06-13 Claude subreddit scan](../../docs/research/2026-06-13-claude-subreddit-scan/README.md) (1 of 4 findings approved).
+
+### Changed
+
+- **Corrected a falsified premise in `delegate-reads-fan-out-keep-branch-writes-in-main.md` + CLAUDE.md §"Delegating branch-mutating work" + `knowledge/subagent-isolation-and-tooling.md`.** The original "background sub-agents are auto-denied git checkout/commit/push (confirmed behavior)" / "`isolation: "worktree"` strips `Read`" claims were re-verified against current primary docs ([sub-agents.md](https://code.claude.com/docs/en/sub-agents)) **and a direct this-session probe** (a non-isolated foreground sub-agent ran `git checkout -b` + `git commit`, both exit 0, no permission gate) and found **not universal**: a sub-agent's writes are governed by its `tools`/`disallowedTools` grant + permission mode, and `isolation: "worktree"` isolates the working directory, not the tool grant. The advice (serialize branch-writes, or isolate each writer in its own worktree) is re-grounded in the real hazard — concurrent writers racing on one shared working tree — and the best-practice's status was downgraded **Absolute → Pattern**. The 2026-05-23 denials are scoped as conditionally true (`run_in_background: true` × an `ask`-tier posture, where a background agent can't surface the approval prompt). **Not re-tested:** sub-agent `git push`, background agents, and the web/remote git-proxy mode.
+
+### Notes
+
+- **Migration:** none — one additive best-practice + corrected guidance/status in existing best-practice/knowledge/constitution files; no hook, script, or settings change. Nothing in a consumer's installed plugin changes behaviorally on `/plugin marketplace update`.
+
 ## 0.159.1 — 2026-06-21
 
 ### Changed
