@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.161.0 — 2026-06-22
+
+### Added
+
+- **New best-practice — "MCP tool context is a budget — enable only what you need"** ([`best-practices/mcp-tool-context-is-a-budget-enable-only-what-you-need.md`](best-practices/mcp-tool-context-is-a-budget-enable-only-what-you-need.md), 20 rules total). Every enabled MCP server preloads its full tool schemas (names + descriptions + JSON schemas) into the context window before any work — a widely-shared community measurement put 7 servers at ≈67K tokens (~⅓ of a 200K budget). The rule's levers: right-size the enabled-server set per kind of work, prefer tool-search / lazy-loading (load schemas on demand) over preloading, and measure with `/context`. The worked example is **this repo's own deferred-MCP-via-`ToolSearch` session model** (tools surfaced name-only, schema fetched just-in-time) — the count→cost tax paid down to near-zero by design. Sibling to the `AGENTS.md` agent-description ~15K budget (the authoring-side analog) and the generic `knowledge/concepts/context-window.md` concept (this rule is its MCP-specific, actionable corollary). Sourced from the [2026-06-22 Claude subreddit scan](../../docs/research/2026-06-22-claude-subreddit-scan/README.md) (1 of 4 findings approved; the worktree finding was already shipped by the 2026-06-13 scan, the other two deferred/denied as covered).
+
+### Notes
+
+- **Migration:** none — additive markdown; nothing in a consumer's installed plugin changes on `/plugin marketplace update`.
+
 ## 0.160.0 — 2026-06-22
 
 ### Added
