@@ -1,7 +1,7 @@
 {
   "name": "developer-relations",
   "version": "0.1.0",
-  "description": "Developer Relations specialist team — 4 agents (devrel-lead, developer-advocate, docs-and-samples-engineer, community-manager) for running a DevRel program: the developer funnel (awareness → activation → habit → advocacy), time-to-first-success quickstarts, a sustainable content pipeline, healthy community operations, and DevRel metrics that measure outcomes not vanity. Ships 5 skills (devrel-strategy, quickstart-authoring, developer-content-pipeline, community-health, devrel-metrics), a developer-funnel decision-tree knowledge doc, 7 best-practices, 3 templates, 2 commands, and an advisory anti-pattern hook. Seams: reference docs → technical-writing-docs, product feedback loop → product-management, campaigns → marketing-operations. Inherits ravenclaude-core protocols.",
+  "description": "Developer-relations / DevRel team — 3 agents (developer-advocate, devrel-content-engineer, developer-community-manager) for the developer experience of a product with an API/SDK: time-to-first-success (getting-started) audits, sample-app and SDK-quickstart design, a DX content strategy, community health, DX metrics (activation funnel), and the product-feedback loop that fixes the product instead of writing around it. 4 skills, a 2-doc knowledge bank with Mermaid decision trees (advocate-vs-docs-vs-community, fix-the-product-or-document-it, content-format choice), 4 best-practices, 5 templates, 4 commands, and 1 advisory anti-pattern hook. Distinct from technical-writing-docs (reference docs), marketing-operations (demand gen), and product-management (what to build). Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"
   },
@@ -12,14 +12,18 @@
     "devrel",
     "developer-advocacy",
     "developer-experience",
-    "community",
-    "quickstart",
-    "developer-funnel",
-    "sample-apps",
-    "devrel-metrics",
-    "time-to-first-success"
+    "dx",
+    "time-to-first-success",
+    "getting-started",
+    "sample-app",
+    "sdk-quickstart",
+    "developer-community",
+    "dx-metrics",
+    "activation-funnel",
+    "product-feedback-loop",
+    "developer-content"
   ],
   "requires": {
-    "plugins": ["ravenclaude-core@>=0.5.0"]
+    "plugins": ["ravenclaude-core@>=0.7.0"]
   }
 }

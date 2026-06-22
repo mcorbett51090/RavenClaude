@@ -1,45 +1,48 @@
 # developer-relations
 
-A RavenClaude plugin: a **Developer Relations** specialist team for running a DevRel
-program — developer advocacy, developer experience (quickstarts + samples), community
-operations, and outcome-based metrics.
+A **Developer Relations (DevRel)** team for Claude Code — the seat that owns the
+**developer experience** of a product with an API/SDK: getting a developer from
+"heard about it" to "built something that works," fast, then keeping them.
 
-## Install
-
-```shell
-/plugin marketplace add mcorbett51090/RavenClaude
-/plugin install developer-relations@ravenclaude
-```
-
-Requires `ravenclaude-core@>=0.5.0` (inherits its Grounding + Structured Output protocols).
+> **Not a tech writer, not a marketer, not a PM.** Reference docs →
+> `technical-writing-docs`. Demand gen → `marketing-operations`. What to build →
+> `product-management`. The API/SDK itself → `api-engineering`.
 
 ## Agents
 
 | Agent | Use it for |
-|-------|-----------|
-| `devrel-lead` | Program strategy, the developer funnel, OKRs/metrics, investment decisions, cross-team seams |
-| `developer-advocate` | Talks, blog/video content, conference + community engagement, the product feedback loop |
-| `docs-and-samples-engineer` | Quickstarts, sample apps, SDK ergonomics, the getting-started path, time-to-first-success |
-| `community-manager` | Forums/Discord/Discussions, moderation, the contributor ladder, ambassador program |
+|---|---|
+| **developer-advocate** | Audit the developer experience, measure the activation funnel, plan content/talks, run the product-feedback loop. |
+| **devrel-content-engineer** | Design a getting-started path, a sample app, or an SDK quickstart as runnable, production-grade code. |
+| **developer-community-manager** | Review community health, design forum/Discord ops, contributor and ambassador programs. |
 
 ## Skills
 
-- `devrel-strategy` — design the program: pick the developer funnel, set north-star + guardrail metrics, decide where to invest.
-- `quickstart-authoring` — write a quickstart that minimizes time-to-first-success and is CI-tested against the real SDK.
-- `developer-content-pipeline` — a sustainable editorial calendar with repurposing (one talk → blog → video → docs).
-- `community-health` — response-time SLAs, code-of-conduct enforcement, the contributor ladder, anti-burnout rotation.
-- `devrel-metrics` — the funnel, leading vs lagging indicators, honest attribution, and the vanity-metric ban.
+- `getting-started-audit` — measure and shorten time-to-first-success.
+- `sample-app-design` — spec a sample app that demonstrates the real value path.
+- `devrel-content-strategy` — pick formats and a calendar for an activation goal.
+- `community-health-review` — diagnose a developer community by answered-question rate and returning contributors.
 
-## What ships
+## Commands
 
-- A developer-funnel **decision-tree** knowledge doc (where to invest given your funnel's weakest stage).
-- 7 best-practices (one claim each), 3 templates (quickstart, talk abstract, community-health dashboard).
-- 2 slash commands (`/devrel-quickstart-audit`, `/devrel-funnel-review`).
-- 1 advisory hook flagging DevRel anti-patterns (vanity metrics as goals, a quickstart with no time-to-first-success target, megaphone-only advocacy).
+- `/developer-relations:audit-getting-started`
+- `/developer-relations:design-sample-app`
+- `/developer-relations:plan-devrel-content`
+- `/developer-relations:review-community-health`
 
-## House rules
+## Knowledge
 
-DevRel here is a **feedback loop, not a megaphone**; the **quickstart is a product**
-measured by time-to-first-success; **vanity metrics are never success criteria**; and
-**attribution is honest or absent**. See [`CLAUDE.md`](CLAUDE.md) for the full constitution
-and the seams to `technical-writing-docs`, `product-management`, and `marketing-operations`.
+- **Decision trees** (`knowledge/devrel-engagement-decision-trees.md`) — advocate-vs-docs-vs-community, fix-the-product-or-document-it, content-format choice.
+- **Developer-experience playbook** (`knowledge/developer-experience-playbook.md`) — the activation funnel, TTFS, content, community, the feedback loop.
+
+## House opinions
+
+- Time-to-first-success is the metric.
+- Fix the product before writing around it.
+- Sample code is production code — it runs, handles errors, and teaches secure patterns.
+- DevRel is not demand gen; measure activation, not MQLs.
+
+## Requires
+
+`ravenclaude-core@>=0.7.0`. Advisory only — it produces audits, specs, plans, and
+feedback briefs; it does not run your forum, CMS, or SDK.

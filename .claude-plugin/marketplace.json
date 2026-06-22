@@ -10,6 +10,55 @@
   },
   "plugins": [
     {
+      "name": "email-engineering",
+      "source": "./plugins/email-engineering",
+      "description": "Email-engineering team — 2 agents (email-deliverability-architect, email-sending-engineer) for getting legitimate mail to the inbox: domain authentication (SPF, DKIM, DMARC alignment + a staged p=none -> quarantine -> reject rollout, BIMI), transport security (MTA-STS RFC 8461 + TLS-RPT RFC 8460), deliverability (subdomain stream separation, domain/IP warm-up, reputation, Gmail/Yahoo bulk-sender rules), ESP integration (SES/SendGrid/Postmark/Resend) with idempotent sends + verified webhook handling, MJML templates, and the feedback loop (bounce/complaint classification, ARF, suppression lists, one-click unsubscribe per RFC 8058). 5 skills, a 4-doc knowledge bank (Mermaid auth + diagnosis trees + dated 2026 ESP map + transport security), 9 best-practices, 3 templates, 4 commands, a scenarios bank, a stdlib auth-record linter, and 1 advisory hook. Seams: strategy -> marketing-operations, infra -> backend-engineering, DNS -> cloud plugins, security -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.2.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "email",
+        "deliverability",
+        "spf",
+        "dkim",
+        "dmarc",
+        "bimi",
+        "transactional-email",
+        "ses",
+        "sendgrid",
+        "postmark",
+        "mjml",
+        "bounce-handling",
+        "suppression-list",
+        "one-click-unsubscribe",
+        "sender-reputation"
+      ]
+    },
+    {
+      "name": "browser-extension-engineering",
+      "source": "./plugins/browser-extension-engineering",
+      "description": "Browser-extension-engineering team — 2 agents (extension-architect, extension-implementation-engineer) for building, shipping, and maintaining cross-browser extensions on Manifest V3: the service-worker background model (and the MV2->MV3 lifecycle trap), content-script isolation + message passing, the permissions / host-permissions model and least-privilege posture, storage, the Chrome Web Store / Edge Add-ons / Firefox AMO review pipelines, and the WebExtensions cross-browser delta (Chrome callback vs Firefox browser.* promises). The extension runtime + manifest + store surface — distinct from frontend-engineering (app-grade React UI) and desktop-app-engineering (Electron/Tauri). 2 skills (manifest-permissions-audit, store-submission-readiness), a knowledge bank (MV3 architecture + a permissions-minimization decision tree + a dated cross-browser capability note), best-practices. Security verdicts escalate to security-engineering. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "browser-extension",
+        "manifest-v3",
+        "chrome-extension",
+        "webextensions",
+        "service-worker",
+        "content-script",
+        "host-permissions",
+        "message-passing",
+        "chrome-web-store",
+        "firefox-amo",
+        "edge-add-ons",
+        "cross-browser"
+      ]
+    },
+    {
       "name": "engineering-management",
       "source": "./plugins/engineering-management",
       "description": "Engineering Management specialist team — 4 agents (engineering-manager-lead, people-and-growth-manager, delivery-and-execution-manager, technical-health-manager), 5 skills, 5 commands, 4 templates, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. The craft of leading engineers for an EM, team lead, or director accountable for a team's people, throughput, and codebase health — it treats a claim about a person as a hypothesis not a verdict, runs 1:1s as the engineer's meeting, uses DORA as a system signal never an individual stack-rank, hires through a structured loop, and sizes tech-debt as a carrying cost traded against the roadmap. Domain-neutral; deepens (does not replace) people-operations-hr and project-management. Inherits ravenclaude-core protocols.",
@@ -2220,9 +2269,34 @@
       ]
     },
     {
+      "name": "technical-program-management",
+      "source": "./plugins/technical-program-management",
+      "description": "Technical-program-management team — 3 agents (technical-program-manager, cross-team-dependency-manager, program-launch-coordinator) for delivering a program of projects across teams: program charter + measurable outcomes, dependency mapping and critical-path/integration risk, a RAID-driven program plan, launch-readiness reviews with written go/no-go criteria, staged rollout, and exec status comms that lead with decisions and asks (not activity). 3 skills, a 2-doc knowledge bank with Mermaid decision trees (TPM-vs-PM-vs-EM, escalate-or-not, go/no-go), 4 best-practices, 5 templates, 4 commands, and 1 advisory anti-pattern hook. Distinct from project-management (a single project/plan) and engineering-management (people/teams); execution lands in devops-cicd, observability-sre, and the relevant engineering plugins. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "technical-program-management",
+        "tpm",
+        "program-management",
+        "cross-team-delivery",
+        "dependency-management",
+        "critical-path",
+        "raid-log",
+        "launch-readiness",
+        "go-no-go",
+        "rollout",
+        "program-status",
+        "escalation",
+        "stakeholder-comms",
+        "program-charter"
+      ]
+    },
+    {
       "name": "developer-relations",
       "source": "./plugins/developer-relations",
-      "description": "Developer Relations specialist team — 4 agents (devrel-lead, developer-advocate, docs-and-samples-engineer, community-manager) for running a DevRel program: the developer funnel (awareness → activation → habit → advocacy), time-to-first-success quickstarts, a sustainable content pipeline, healthy community operations, and DevRel metrics that measure outcomes not vanity. 5 skills (devrel-strategy, quickstart-authoring, developer-content-pipeline, community-health, devrel-metrics), a developer-funnel decision-tree knowledge doc, 7 best-practices, 3 templates, 2 commands, and an advisory anti-pattern hook. Seams: reference docs → technical-writing-docs, product feedback loop → product-management, campaigns → marketing-operations. Inherits ravenclaude-core protocols.",
+      "description": "Developer-relations / DevRel team — 3 agents (developer-advocate, devrel-content-engineer, developer-community-manager) for the developer experience of a product with an API/SDK: time-to-first-success (getting-started) audits, sample-app and SDK-quickstart design, a DX content strategy, community health, DX metrics (activation funnel), and the product-feedback loop that fixes the product instead of writing around it. 4 skills, a 2-doc knowledge bank with Mermaid decision trees (advocate-vs-docs-vs-community, fix-the-product-or-document-it, content-format choice), 4 best-practices, 5 templates, 4 commands, and 1 advisory anti-pattern hook. Distinct from technical-writing-docs (reference docs), marketing-operations (demand gen), and product-management (what to build). Requires ravenclaude-core@>=0.7.0.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -2232,12 +2306,16 @@
         "devrel",
         "developer-advocacy",
         "developer-experience",
-        "community",
-        "quickstart",
-        "developer-funnel",
-        "sample-apps",
-        "devrel-metrics",
-        "time-to-first-success"
+        "dx",
+        "time-to-first-success",
+        "getting-started",
+        "sample-app",
+        "sdk-quickstart",
+        "developer-community",
+        "dx-metrics",
+        "activation-funnel",
+        "product-feedback-loop",
+        "developer-content"
       ]
     }
   ]
