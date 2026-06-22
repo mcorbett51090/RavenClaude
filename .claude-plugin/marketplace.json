@@ -10,6 +10,48 @@
   },
   "plugins": [
     {
+      "name": "itsm-service-management",
+      "source": "./plugins/itsm-service-management",
+      "description": "IT Service Management (ITIL 4) team — 4 agents (service-management-lead, incident-and-problem-manager, change-and-release-manager, service-desk-and-request-manager) for running IT as a service: the ITIL 4 service value system and practice selection, incident vs problem vs major-incident handling, change enablement (standard/normal/emergency + the CAB) and release management, and the service desk — request fulfillment, SLAs/OLAs, knowledge management, the service catalog, and the CMDB/configuration management. 5 skills, a knowledge bank with Mermaid decision trees + a dated 2026 ITSM tooling map + an ITIL 4 practice reference, 8 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: engineering incident response/SRE/observability -> observability-sre, CI/CD release automation -> devops-cicd, security incidents/GRC -> cybersecurity-grc, cloud cost/asset -> finops-cloud-cost. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "itsm",
+        "itil",
+        "itil4",
+        "service-management",
+        "incident-management",
+        "problem-management",
+        "change-enablement",
+        "service-desk",
+        "cmdb",
+        "sla"
+      ]
+    },
+    {
+      "name": "legacy-modernization",
+      "source": "./plugins/legacy-modernization",
+      "description": "Legacy modernization team — 4 agents (modernization-strategist, codebase-archaeologist, refactoring-engineer, migration-engineer) for safely changing a working-but-aging system: assess the estate and choose among the 6 R's (retain/rehost/replatform/refactor/rearchitect/replace), understand undocumented code and find its seams, characterize behavior before touching it, strangle the monolith incrementally behind an anti-corruption layer, migrate data with dual-write/parallel-run, and cut over with a tested rollback. 5 skills, a knowledge bank with Mermaid decision trees + a dated 2026 capability map, 8 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: backend redesign -> backend-engineering, schema migration mechanics -> database-engineering, deploy/cutover automation -> devops-cicd, test-suite buildout -> qa-test-automation. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "legacy-modernization",
+        "strangler-fig",
+        "refactoring",
+        "characterization-tests",
+        "technical-debt",
+        "migration",
+        "anti-corruption-layer",
+        "rewrite-vs-refactor",
+        "6-rs",
+        "cutover"
+      ]
+    },
+    {
       "name": "email-engineering",
       "source": "./plugins/email-engineering",
       "description": "Email-engineering team — 2 agents (email-deliverability-architect, email-sending-engineer) for getting legitimate mail to the inbox: domain authentication (SPF, DKIM, DMARC alignment + a staged p=none -> quarantine -> reject rollout, BIMI), transport security (MTA-STS RFC 8461 + TLS-RPT RFC 8460), deliverability (subdomain stream separation, domain/IP warm-up, reputation, Gmail/Yahoo bulk-sender rules), ESP integration (SES/SendGrid/Postmark/Resend) with idempotent sends + verified webhook handling, MJML templates, and the feedback loop (bounce/complaint classification, ARF, suppression lists, one-click unsubscribe per RFC 8058). 5 skills, a 4-doc knowledge bank (Mermaid auth + diagnosis trees + dated 2026 ESP map + transport security), 9 best-practices, 3 templates, 4 commands, a scenarios bank, a stdlib auth-record linter, and 1 advisory hook. Seams: strategy -> marketing-operations, infra -> backend-engineering, DNS -> cloud plugins, security -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
@@ -986,8 +1028,8 @@
     {
       "name": "observability-sre",
       "source": "./plugins/observability-sre",
-      "description": "Observability & SRE team — 3 agents (observability-engineer, sre-reliability-engineer, incident-commander) for making a system observable and keeping it reliable: instrumentation on OpenTelemetry (metrics/logs/traces, semantic conventions, sampling, cardinality control), SLI/SLO and error-budget design, symptom-based alerting (multi-window burn-rate, alert on user pain not causes), and incident response (severity, roles, comms, blameless postmortems, action-item follow-through). 6 skills, a decision-tree knowledge bank (alert-design + SLO-target trees + a dated 2026 tooling map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: deploy health-gates -> devops-cicd, cluster telemetry -> cloud-native-kubernetes, API SLOs -> api-engineering, cloud-native monitors -> azure/aws/gcp-cloud. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.0",
+      "description": "Observability & SRE team — 3 agents (observability-engineer, sre-reliability-engineer, incident-commander) for making a system observable and keeping it reliable: instrumentation on OpenTelemetry (metrics/logs/traces, semantic conventions, sampling, cardinality control), SLI/SLO and error-budget design, symptom-based alerting (multi-window burn-rate, alert on user pain not causes), incident response (severity, roles, comms, blameless postmortems, action-item follow-through), and proactive resilience verification via chaos engineering (steady-state hypotheses, blast-radius-limited fault injection, game days). 7 skills, a decision-tree knowledge bank (alert-design + SLO-target trees + a chaos-engineering reference + a dated 2026 tooling map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: deploy health-gates -> devops-cicd, cluster telemetry -> cloud-native-kubernetes, API SLOs -> api-engineering, cloud-native monitors -> azure/aws/gcp-cloud. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.4.0",
       "author": {
         "name": "Matt Corbett"
       },
