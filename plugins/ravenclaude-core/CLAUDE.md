@@ -937,7 +937,7 @@ The Learn tab now teaches **all of RavenClaude's own mechanisms**, not just a sa
 | `knowledge/` orchestration trees | **SUFFICIENT — none added** | [`knowledge/orchestration-decision-trees.md`](knowledge/orchestration-decision-trees.md) already carries 3 Mermaid trees (status-to-report, skill-vs-agent, session-start checks) and [`knowledge/agent-routing.md`](knowledge/agent-routing.md) carries the routing tree. The escalate-to-human-vs-tribunal and spawn-vs-escalate boundaries are covered by the constitution prose + the two new scenarios; adding a tree would duplicate, and a new `## Decision Tree:` section would trip the `render-trees.py` SVG gate. Disposition: don't add. |
 | Bundled MCP server | **N-A** | A domain-neutral orchestration layer has no code-aware data surface to bundle; MCP belongs to vertical plugins (and per `docs/best-practices/bundled-mcp-servers.md` would be recommend-and-evaluate, never bundled). The github MCP path is consumed, not shipped. |
 | LSP integration | **N-A** | No source language owned by an orchestration foundation. |
-| `bin/` executables | **N-A** | The plugin already ships `scripts/` (apply-comfort-posture, serve-dashboards, the tribunal engines); no compiled binary is warranted. |
+| `bin/` executables | **SUPERSEDED → BUILT (v0.156.0)** | The original N-A call was about a *compiled binary*. v0.156.0 adds [`bin/rc`](bin/rc) — a thin, host-agnostic launcher (one verb today: `rc dashboard`) so the dashboard is discoverable in a **Copilot** repo where the `/dashboard` slash command doesn't exist. Not a compiled binary; a front-door dispatcher over the existing `scripts/`. See the "rc launcher" milestone below. |
 | Monitors / background jobs | **SUPERSEDED → BUILT (v0.132.0, FORGE #7)** | The original N-A call was about *pull* observability (the readers cover it). v0.132.0 adds the *push* complement a dashboard tab can't provide: a reactive run-state monitor (`monitors/`) scoped `on-skill-invoke:spawn-team`, read-only, derived-labels-only, Claude-Code-only. See the "Reactive run-state monitor" milestone above. |
 | output-styles / themes | **N-A** | Output shape is governed by the Structured Output Protocol + the dashboard's themed SVGs; no per-style asset is warranted here. |
 | `settings.json` / permissions tuning | **ALREADY-PRESENT** | The comfort-posture system + `apply-comfort-posture.py` *is* the permission-tuning surface; nothing to add. |
@@ -979,6 +979,20 @@ A second orchestrator knob — **`orchestrator_scope: team | all`** (default `te
 **Gates.** Gate 35 (dashboard round-trip) extended to cover all four new keys (emit-when-non-default + hydrate-back); Gate 102 (claude-orchestrate.sh) extended with the C floor (fail-closed on PII; pass on no-PII/Bedrock/ZDR; team-scope bypass) + the A round-trip (a recording mock proves **tokens, not raw PII, egressed** and the decode restored the real values) + a floor-strip teeth half. The relay-all `claude -p` path is **pending a fresh `security-reviewer` sign-off** (it widens the v0.152.0 input surface from team-briefs to every prompt).
 
 **Migration:** none — `orchestrator_scope` defaults `team`, the floor flags default to safe, and the A toggle defaults off, so a consumer on `/plugin marketplace update` sees byte-identical behavior until they opt into relay-all.
+
+## `rc` launcher — host-agnostic dashboard front door (added 2026-06-22, v0.156.0)
+
+The `rc dashboard` "one-verb front door" referenced by [`commands/dashboard.md`](commands/dashboard.md) and [`best-practices/check-runtime-state.md`](best-practices/check-runtime-state.md) was a **phantom** — no `rc` existed on disk. v0.156.0 ships it for real at [`bin/rc`](bin/rc) (new `plugins/*/bin/**` allow-list glob), and closes the discoverability gap that made the dashboard hard to open in a **Copilot** repo.
+
+**Origin.** Opening the dashboard in a Copilot-hosted consumer repo required a whole improvised task: there is **no `/dashboard` slash command in Copilot** (that's Claude-Code-only), and `copilot/AGENTS.md` — the file Copilot reads natively — said nothing about the dashboard, so Copilot had to reverse-engineer the launch every time.
+
+**Three parts:**
+
+1. **Real launcher — [`bin/rc`](bin/rc).** A thin bash dispatcher; one verb today (`rc dashboard [--port N] [--no-open]`). It **never `cd`s** — `serve-dashboards.py` resolves the project root from `Path.cwd()`, so the launcher `exec`s the server with the caller's cwd preserved (`.ravenclaude/` lands in the consumer's repo, not the clone) and works identically under Claude Code, Copilot CLI, or a bare terminal. Resolves the server path relative to itself (one symlink level) so a PATH install works.
+2. **Copilot discoverability — generated `DASHBOARD_BLOCK` in `copilot/AGENTS.md`.** [`scripts/generate-copilot-plugin.py`](../../scripts/generate-copilot-plugin.py) now appends an always-applicable "Launch the comfort-posture dashboard" block (parallel to the opt-in Relay-mode block) telling the host the exact `bin/rc dashboard` command + a `find`-based fallback, the background-run + real-browser-tab + Private-port notes, and that `/dashboard` is Claude-only. So "open the dashboard" in a Copilot session Just Works. Regenerated, freshness-gated.
+3. **Phantom refs made real.** `commands/dashboard.md` now documents where `rc` lives + the PATH one-liner + the Copilot "just ask" path; the N-A `bin/` disposition in the Value-add table above is updated.
+
+**Migration:** none — additive launcher + a generated doc block; nothing in a consumer's installed plugin changes on `/plugin marketplace update` (the `bin/rc` ships with the plugin and is opt-in to run).
 
 ## External contribution intake — GitHub Issue Form → quarantine PR (FORGE Phase 1, added 2026-06-08)
 
