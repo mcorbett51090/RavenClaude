@@ -6,6 +6,11 @@
 >
 > Permission names and flow availability are volatile — marked inline and re-verified before quoting. See [`identity-least-privilege-permission-selection.md`](../best-practices/identity-least-privilege-permission-selection.md), [`identity-delegated-vs-application-is-a-design-choice.md`](../best-practices/identity-delegated-vs-application-is-a-design-choice.md), [`auth-pick-the-flow-by-client-type.md`](../best-practices/auth-pick-the-flow-by-client-type.md).
 
+## Recent GA capabilities (weekly sweep, verified 2026-06-19 against [Graph what's-new](https://learn.microsoft.com/graph/whats-new-overview))
+
+- **Programmatic FIDO2 passkey registration — GA (June 2026).** An app can now register a passkey on a user's behalf: call the [`fido2AuthenticationMethod: creationOptions`](https://learn.microsoft.com/graph/api/fido2authenticationmethod-creationoptions) function to get WebAuthn credential-creation options, then complete registration by `POST`ing the new `publicKeyCredential` property to the [`fido2AuthenticationMethod`](https://learn.microsoft.com/graph/api/resources/fido2authenticationmethod) resource. Permission/consent verdict still escalates to `security-reviewer`.
+- **`agentUser` resource — GA in v1.0 (May 2026)** `[verify-at-use — brand-new, surface still moving]`. A specialized [`agentUser`](https://learn.microsoft.com/graph/api/resources/agentuser) subtype of `user` for AI agents acting as digital workers (`idtyp=user` tokens, 1:1 to a parent agent identity). **Security-load-bearing caveat:** an agent user has **no password authentication and cannot hold privileged admin roles** — it carries guest-like permissions by design. The companion [`verifiedIdProfile`](https://learn.microsoft.com/graph/api/resources/verifiedidprofile) (Entra Verified ID config) also reached v1.0.
+
 ---
 
 ## Decision Tree: Graph identity — delegated vs application permission

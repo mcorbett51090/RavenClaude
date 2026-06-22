@@ -95,7 +95,10 @@ def _split_placeholders(text: str) -> list[tuple[str, bool]]:
             out.append((text[i:j], True))
             i = j
             continue
-        if ch == "%" and i + 1 < n:
+        # A lone "%" in copy ("50% off") is literal, not a printf placeholder.
+        # Only treat "%" as a conversion start when a printf-ish char follows
+        # (flags/width/precision digits, the arg-index "$", or "%%").
+        if ch == "%" and i + 1 < n and text[i + 1] in "sdifgGeExXoubcp%0123456789$.+-#":
             j = i + 1
             while j < n and text[j] not in " \t":
                 j += 1

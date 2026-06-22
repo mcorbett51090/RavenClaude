@@ -57,7 +57,7 @@ Partners in states without a CBT mandate and partners in higher-ed or corporate 
 
 ## See also
 
-- [`../agents/partner-success-manager.md`](../agents/partner-success-manager.md) — owns the Q3 cadence and adds the CBT checkpoint to the calendar.
+- [`../agents/edtech-partner-success-manager.md`](../agents/edtech-partner-success-manager.md) — owns the Q3 cadence and adds the CBT checkpoint to the calendar.
 - [`./rostering-sync-succeeded-is-not-the-same-claim-as-data-is-correct.md`](./rostering-sync-succeeded-is-not-the-same-claim-as-data-is-correct.md) — the companion rule on verifying rostering health, which is a CBT readiness dependency.
 
 ## Provenance

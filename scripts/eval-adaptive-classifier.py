@@ -717,7 +717,7 @@ def emit_report(grades: list[FixtureGrade], fixtures: dict) -> Path:
     lines.append("**Plan:** [`docs/plans/2026-06-03-adaptive-run-classifier/plan.md`]"
                  "(../../../docs/plans/2026-06-03-adaptive-run-classifier/plan.md) §Phase 5\n")
     lines.append(f"**Judge:** Haiku 4.5 via Batch API "
-                 f"{fixtures['judge_pricing_marker']}\n")
+                 f"{fixtures.get('judge_pricing_marker', '')}\n")
     lines.append(f"**Grader thresholds:** vendor_docs ≤ ×{THRESH_VENDOR_DOCS_TOKEN_RATIO}; "
                  f"contested ≤ ×{THRESH_CONTESTED_TOKEN_RATIO}; "
                  f"general ≤ ×{THRESH_GENERAL_TOKEN_RATIO}; "

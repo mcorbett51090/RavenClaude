@@ -6,7 +6,7 @@ Named, citable rules for the `marketing-operations` plugin's 4 specialist agents
 
 ## Index
 
-_8 rules. Each file is one named, citable rule — one per house opinion (§3)._
+_10 rules. The first 8 are one per house opinion (§3); the last 2 cover the content-engine value-add._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -18,6 +18,8 @@ _8 rules. Each file is one named, citable rule — one per house opinion (§3)._
 | [`lead-scoring-must-tie-to-actual-conversion-or-it-is-noise.md`](./lead-scoring-must-tie-to-actual-conversion-or-it-is-noise.md) | Pattern | Any marketing operations deliverable where this question is in play. |
 | [`data-hygiene-dedup-and-attribution-integrity-precede-any-analysis.md`](./data-hygiene-dedup-and-attribution-integrity-precede-any-analysis.md) | Pattern | Any marketing operations deliverable where this question is in play. |
 | [`date-and-source-any-benchmark-route-legal-professional-determinations-.md`](./date-and-source-any-benchmark-route-legal-professional-determinations-.md) | Absolute rule | Any marketing operations deliverable where this question is in play. |
+| [`brief-every-piece-against-a-search-intent.md`](./brief-every-piece-against-a-search-intent.md) | Absolute rule | Content creation, an editorial calendar, or SEO/AI-answer planning. |
+| [`build-topic-clusters-not-orphan-posts.md`](./build-topic-clusters-not-orphan-posts.md) | Pattern | Content architecture, internal linking, or an SEO content plan. |
 
 ## See also
 - [`../knowledge/`](../knowledge/) — the research-grounded knowledge bank these rules distill.

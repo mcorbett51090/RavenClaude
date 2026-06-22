@@ -90,7 +90,20 @@ def resolve_plugin_version_dir(cache_root: Path, plugin: str) -> Path | None:
     for marketplace in sorted(p for p in cache_root.iterdir() if p.is_dir()):
         pdir = marketplace / plugin
         if pdir.is_dir():
-            versions = sorted((v for v in pdir.iterdir() if v.is_dir()), key=_version_key)
+            # Exclude our own retained backup dirs (<version>-snapshot-<ts> /
+            # <version>-pre-ragnarok-<ts>): they are siblings of the live version
+            # dir and would otherwise be picked as "newest". Sort the rest by
+            # semver (_version_key), not lexically (0.120.0 must beat 0.9.0).
+            versions = sorted(
+                (
+                    v
+                    for v in pdir.iterdir()
+                    if v.is_dir()
+                    and "-snapshot-" not in v.name
+                    and "-pre-ragnarok-" not in v.name
+                ),
+                key=_version_key,
+            )
             if versions:
                 candidates.append(versions[-1])
     if not candidates:

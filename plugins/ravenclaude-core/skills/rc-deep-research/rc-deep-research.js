@@ -1023,6 +1023,12 @@ const USE_BATCH = runCfg.batch_verify && rankedClaims.length >= 10;
 if (USE_BATCH) log("batch_verify: enabled for " + rankedClaims.length + " claims");
 
 const claimTierAudit = [];
+// Actual count of verify agents dispatched, summed across claims (per-claim vote
+// fan-out can differ when verify_policy is non-uniform, and escalation fires one
+// extra). The stats below use this instead of `voted.length * VOTES_PER_CLAIM`,
+// which assumed a flat fan-out and never counted escalations. Baseline (uniform
+// policy, no escalation) yields the identical number, so the eval baseline holds.
+let verifyAgentsFired = 0;
 
 const voted = (
   await parallel(
@@ -1092,6 +1098,7 @@ const voted = (
             (survives ? "✓" : "✗"),
         );
 
+        verifyAgentsFired += voteCount + (escalated ? 1 : 0);
         // Per-claim audit row (gap-delta C4 / RM4).
         claimTierAudit.push({
           claim_idx: claimIdx,
@@ -1128,7 +1135,7 @@ if (runCfg.enabled && claimTierAudit.length > 0) {
   } catch {}
 }
 
-_phaseEnd("verify_default", rankedClaims.length * VOTES_PER_CLAIM);
+_phaseEnd("verify_default", verifyAgentsFired);
 const confirmed = voted.filter((c) => c.survives);
 const killed = voted.filter((c) => !c.survives);
 log(
@@ -1310,7 +1317,7 @@ if (!report) {
 if (RUN_ID) {
   const _evalStats = {
     subagent_tokens: 0,
-    agent_count: 1 + scope.angles.length + allSources.length + voted.length * VOTES_PER_CLAIM + 1,
+    agent_count: 1 + scope.angles.length + allSources.length + verifyAgentsFired + 1,
     duration_ms: _now() - _runStartedMs,
     confirmed_claim_count: confirmed.length,
     run_window: { started_ms: _runStartedMs, ended_ms: _now() },
@@ -1392,7 +1399,7 @@ return {
     // subagent_tokens is a PLACEHOLDER (0): the workflow cannot see per-agent token
     // usage; the grader fills it from ~/.claude transcripts, bucketed by per_phase.
     subagent_tokens: 0,
-    agent_count: 1 + scope.angles.length + allSources.length + voted.length * VOTES_PER_CLAIM + 1,
+    agent_count: 1 + scope.angles.length + allSources.length + verifyAgentsFired + 1,
     duration_ms: _now() - _runStartedMs,
     confirmed_claim_count: confirmed.length,
     run_window: { started_ms: _runStartedMs, ended_ms: _now() },
@@ -1407,7 +1414,7 @@ return {
     afterSynthesis: report.findings.length,
     urlDupes: dupes.length,
     budgetDropped: budgetDropped.length,
-    agentCalls: 1 + scope.angles.length + allSources.length + voted.length * VOTES_PER_CLAIM + 1,
+    agentCalls: 1 + scope.angles.length + allSources.length + verifyAgentsFired + 1,
   },
   run_config: {
     enabled: runCfg.enabled,

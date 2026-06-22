@@ -6,7 +6,7 @@
 
 > 📚 **New here?** The dashboard's **Learn** tab explains the moving parts — permission layers, the command-review tribunal, hooks — with diagrams and interactive widgets. The same reference, readable on GitHub, is generated at **[docs/concepts.md](../../docs/concepts.md)**.
 
-Ships the orchestrator-worker dispatch model, 14 generalist specialist agents (architect, backend/frontend/fullstack coders, code-reviewer, security-reviewer, tester-qa, data-engineer, deep-researcher, designer, documentarian, project-manager, partner-success-manager, prompt-engineer), 20 skills, 5 hooks, 4 rule-sets, working templates, slash commands (`/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard`), and a knowledge bank the Researcher cross-checks. Every other plugin in the marketplace extends this one.
+Ships the orchestrator-worker dispatch model, 14 generalist specialist agents (architect, backend/frontend/fullstack coders, code-reviewer, security-reviewer, tester-qa, data-engineer, deep-researcher, designer, documentarian, project-manager, partner-success-manager, prompt-engineer), 43 skills, 16 hooks, 5 rule-sets, working templates, slash commands (`/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard`), and a knowledge bank the Researcher cross-checks. Every other plugin in the marketplace extends this one.
 
 ## Install
 
@@ -23,9 +23,9 @@ This is the prerequisite plugin — domain plugins (`power-platform`, `finance`,
 | Component | Count | Where |
 |-----------|-------|-------|
 | Specialist agents | 14 | [`agents/`](agents/) |
-| Skills | 20 | [`skills/`](skills/) |
-| Hooks | 5 | [`hooks/`](hooks/) |
-| Rule-sets | 4 | [`rules/`](rules/) |
+| Skills | 43 | [`skills/`](skills/) |
+| Hooks | 16 | [`hooks/`](hooks/) |
+| Rule-sets | 5 | [`rules/`](rules/) |
 | Slash commands | 4 (`/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard`) | [`commands/`](commands/) |
 | Knowledge files | see [`knowledge/`](knowledge/) | [`knowledge/`](knowledge/) |
 

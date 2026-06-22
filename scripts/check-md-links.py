@@ -33,7 +33,9 @@ from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parent.parent
 
-LINK_RE = re.compile(r"\[(?:[^\]]*)\]\(([^)]+)\)")
+# Target allows one level of balanced parens so a path/URL like `Foo_(bar)` is
+# captured whole instead of truncated at the first `)`.
+LINK_RE = re.compile(r"\[(?:[^\]]*)\]\(((?:[^()]|\([^()]*\))*)\)")
 FENCE_RE = re.compile(r"```.*?```", re.DOTALL)
 INLINE_CODE_RE = re.compile(r"`[^`]*`")
 EXTERNAL_SCHEME_RE = re.compile(r"^(?:[a-z][a-z0-9+.-]*:)?//", re.IGNORECASE)

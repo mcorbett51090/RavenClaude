@@ -89,6 +89,11 @@ def _violations(root: Path) -> list[tuple[str, str]]:
     ]
     files = sorted({f for p in patterns for f in glob.glob(str(root / p))})
     bad: list[tuple[str, str]] = []
+    # Cross-plugin agent-name uniqueness: an agent `name` is the orchestrator's
+    # routing key; two plugins shipping the same `name` collide in the subagent
+    # registry when both are enabled (the routing is then non-deterministic and
+    # `/agents` shows a clash). No per-file check catches this — it is global.
+    agent_names: dict[str, list[str]] = {}
     for f in files:
         rel = str(Path(f).relative_to(root))
         text = Path(f).read_text(encoding="utf-8")
@@ -118,6 +123,20 @@ def _violations(root: Path) -> list[tuple[str, str]]:
                         f"description is {len(desc)} chars — exceeds the "
                         f"{_AGENT_DESCRIPTION_MAX_CHARS}-char agent cap "
                         "(agent-description token budget; see AGENTS.md)",
+                    )
+                )
+            name = data.get("name")
+            if isinstance(name, str) and name.strip():
+                agent_names.setdefault(name.strip(), []).append(rel)
+    for name, locs in sorted(agent_names.items()):
+        if len(locs) > 1:
+            for rel in locs:
+                bad.append(
+                    (
+                        rel,
+                        f"agent name '{name}' is not unique across plugins "
+                        f"(also: {', '.join(p for p in locs if p != rel)}) — "
+                        "rename one (the registry routing key must be unique)",
                     )
                 )
     return bad

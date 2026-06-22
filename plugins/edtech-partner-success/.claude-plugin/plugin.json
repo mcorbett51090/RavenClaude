@@ -1,6 +1,6 @@
 {
   "name": "edtech-partner-success",
-  "version": "0.12.1",
+  "version": "0.12.2",
   "description": "EdTech-flavored Partner Success Manager team \u2014 6 specialist agents anchored on the PSM lane, with 16 skills, 16 templates, 1 advisory hook, a knowledge bank with Mermaid decision trees, a 4-scenario engagement bank, and a stdlib psm_calc.py calculator (seat-utilization / renewal-NRR-forecast / time-to-value). Covers QBRs, success plans, health scores, a self-contained Power-BI-style partner-health report, onboarding, touchpoint logs, adoption sequencing, 90-day implementation arcs, train-the-trainer curricula, advocacy/reference pipelines, renewal decision memos, and the integration contract for a centralized CS dashboard (Planhat + Salesforce + Snowflake + Zapier + Granola). Team growth ships as skills + knowledge + templates, not parallel agents. Primary-source citations with retrieval dates. Vertical-explicit but segment-agnostic \u2014 fits K-12, higher-ed, corporate L&D, or mixed EdTech books. Inherits ravenclaude-core protocols including the alternate-methods Capability Grounding Protocol.",
   "author": {
     "name": "Matt Corbett"

@@ -78,9 +78,6 @@ fi
 
 # --- Check 4: Credit-card PAN-shaped ---
 # Conservative: Visa / MC / Amex / Discover prefixes, basic length.
-# NOTE: pure POSIX ERE — plain '(...)' groups, NOT PCRE '(?:...)'. GNU grep -E
-# silently misparses '(?:...)' (emits "? at start of expression" and drops the
-# group), which let 16-digit Visa and all Discover PANs slip past this scrubber.
 if grep -Eni '\b(4[0-9]{12}([0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|6(011|5[0-9]{2})[0-9]{12})\b' "$file" >/dev/null 2>&1; then
   violations+=("  [pii-card] $file contains a string matching a credit-card PAN pattern. Replace with placeholder if real.")
   remediation_required=1
