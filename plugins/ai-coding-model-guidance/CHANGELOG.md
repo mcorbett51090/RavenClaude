@@ -2,9 +2,18 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
-## [0.3.5] — 2026-06-21
+## [0.3.6] — 2026-06-21
 
-Research-sweep refresh of the fast-churn cross-tool lineup (`knowledge/cross-tool-model-lineup-2026.md`), re-dated to 2026-06-21. Three corroborated findings folded in (routed through two expert panels: usefulness → all three USEFUL; detailed review → APPROVE-WITH-CHANGES, two P0 refinements applied; panels concurred, no tiebreak): (1) **Claude Fable 5 / Mythos 5 globally suspended 2026-06-12** under a US export-control directive — the prior GA / "free-through-2026-06-22" framing is superseded in place (kept as the dated GA-then-suspended record), `[verify-at-use — may be restored]`; (2) **OpenAI GPT-5.3-Codex and GPT-5.2/5.2-Codex deprecated** (new API requests end 2026-06-30, full shutdown 2026-12-31) — flagged like the `grok-code-fast-1` retirement, GPT-5.5 as the migration target; (3) **MAI-Code-1-Flash** (Microsoft small coding model) broadly available across Copilot surfaces 2026-06-18 — added to the cheapest-fast tier. No migration — knowledge-file content only.
+Research-sweep refresh (re-dated 2026-06-21) — two non-Claude churns folded into `knowledge/cross-tool-model-lineup-2026.md` on top of the 2026-06-13 Fable 5 suspension (which #426 already landed and is unchanged here): (1) **OpenAI GPT-5.3-Codex and GPT-5.2/5.2-Codex deprecated** — new API requests end 2026-06-30, full shutdown 2026-12-31; flagged in the Codex table like the `grok-code-fast-1` retirement, GPT-5.5 the migration target (and the long-autonomous-run pick); decision-tree leaf updated. (2) **MAI-Code-1-Flash** (Microsoft small coding model) broadly available across Copilot surfaces 2026-06-18 — added to the cheapest-fast tier. Routed through two expert panels (usefulness → both USEFUL; detailed review → APPROVE with refinements applied); panels concurred. No migration — knowledge-file content only.
+
+## [0.3.5] — 2026-06-13
+
+Research-sweep **correction** (Tier-A weekly news sweep; freshness anchor) — **Claude Fable 5 was suspended on 2026-06-12** across the Anthropic API, AWS Bedrock, and all GitHub Copilot surfaces under a US export-control directive (disputed; Anthropic working to restore). This **supersedes the 2026-06-09 Copilot GA** recorded in this file. Verified this session against the primary [Anthropic statement](https://www.anthropic.com/news/fable-mythos-access) (corroborated by Bloomberg + CNBC). Routed through three expert panels (usefulness → USEFUL/unanimous; detailed review → APPROVE-WITH-FIX, fixes applied).
+
+### Fixed
+
+- **`knowledge/cross-tool-model-lineup-2026.md`** — annotated the Copilot coding-agent table row and the Fable 5 bullet as **SUSPENDED 2026-06-12** (was listed GA + selectable); noted the "free through 2026-06-22" inclusion window is suspended-with-access (expiry date unchanged, resumes only if access returns); re-route to **Opus 4.8** as the top Copilot Claude option until restored; added a 2026-06-13 sweep note. Other Claude models in Copilot (Opus 4.8, Sonnet 4.6, Haiku 4.5) unaffected. Framed as fluid/disputed (`[verify-at-use]`), not a deprecation.
+- Version **0.3.4 → 0.3.5** in `.claude-plugin/plugin.json` **and** `marketplace.json` (lockstep).
 
 ## [0.3.4] — 2026-06-11
 

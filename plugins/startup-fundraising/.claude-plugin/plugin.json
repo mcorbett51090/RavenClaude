@@ -1,0 +1,27 @@
+{
+  "name": "startup-fundraising",
+  "version": "0.1.0",
+  "description": "Startup-fundraising team — 2 agents (fundraising-strategist + pitch-and-narrative-coach) and 3 skills for founders/operators raising venture capital: round strategy (pre-seed/seed/Series A; SAFE vs priced round; how much to raise and runway math), the pitch narrative and deck (problem/solution/market/traction/team/ask), the fundraising financial model, cap-table and dilution math (option pools, pro-rata, post-money SAFE conversion, the post-money cap dilution gotcha), term-sheet and SAFE essentials (valuation cap, discount, liquidation preference, board, pro-rata — ESSENTIALS not legal advice), investor pipeline/CRM and outreach, the data room, and investor updates. Founder-side literacy only. Seams: financial-model mechanics to finance; product what/why to product-management; binding term-sheet legal review to legal-ops-clm. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "fundraising",
+    "seed",
+    "series-a",
+    "safe",
+    "cap-table",
+    "dilution",
+    "pitch-deck",
+    "term-sheet",
+    "valuation",
+    "runway",
+    "investor-pipeline",
+    "data-room"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

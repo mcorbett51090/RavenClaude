@@ -68,6 +68,7 @@
     "plugins/*/pattern-explanations.json",
     "plugins/*/dashboard-assets/**",
     "plugins/*/scripts/**",
+    "plugins/*/bin/**",
     "scripts/generate-dashboards.py",
     "scripts/serve-dashboards.py",
     "plugins/*/.lsp.json"

@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.1] — 2026-06-13
+
+Research-sweep **correction** (Tier-A weekly news sweep) — the capability map listed the **OWASP Top 10:2021** as "current"; the **OWASP Top 10:2025 is now Final** and 2021 is superseded. Verified this session against the primary source [owasp.org/Top10/2025](https://owasp.org/Top10/2025/) (incl. the new **A03:2025 Software Supply Chain Failures** category). Routed through two expert panels (usefulness → USEFUL/unanimous; detailed review → APPROVE-WITH-FIX). A second candidate (SLSA v1.0 → v1.1/v1.2) was reviewed and **deliberately dropped by the usefulness panel** as patch-level churn with no decision-altering false claim.
+
+### Fixed
+
+- **`knowledge/security-engineering-decision-trees.md`** — capability-map OWASP row updated from "2021 edition current" to "**2025 edition Final** (2021 superseded)", noting the new **A03:2025 Software Supply Chain Failures** category (`supply-chain-security-engineer`'s lane) with a Top10:2025 citation and a `[verify-at-build]` rider on category numbering. (The unverified "SSRF folded into Broken Access Control" sub-claim from research was dropped pending primary-source confirmation.) Quoting the 2021 list as "current" in mid-2026 misroutes triage + SAST rule-mapping.
+- Version **0.3.0 → 0.3.1** in `.claude-plugin/plugin.json` **and** `marketplace.json` (lockstep).
+
 ## [0.3.0] — 2026-06-05
 
 Value-add build-out — completing the plugin against the full value-add menu on top of PR #315's consolidated knowledge/best-practices/templates. Every menu item is dispositioned (built or recorded N-A with reason); see [`CLAUDE.md`](CLAUDE.md) § "Value-add completeness (build-out 2026-06-05)".

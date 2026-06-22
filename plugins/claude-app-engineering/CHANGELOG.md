@@ -2,9 +2,18 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
-## [0.9.1] — 2026-06-21
+## [0.9.2] — 2026-06-21
 
-Research-sweep correction to `knowledge/model-selection-and-2026-capability-map.md` (re-dated 2026-06-21): **Claude Fable 5 and Mythos 5 are globally suspended as of 2026-06-12** under a US export-control directive (disabled for all customers across the direct Claude APIs, Bedrock, Google Cloud, Foundry, Snowflake, Box, GitHub Copilot; all other Claude models unaffected; Anthropic working to restore). Breaking note added; the Fable 5 lineup row, the Mythos 5 note, the capability-status row, and — critically — the **advisor-tool row** are all caveated: the Fable-5→Fable-5 / Mythos-5→Mythos-5 advisor pairings are unsatisfiable while suspended, so fall back to an Opus 4.8 executor + Opus 4.8 advisor. Rows are superseded-in-place, not deleted (dated GA-then-suspended record preserved), `[verify-at-use — may be restored]`. Routed through two expert panels (usefulness + detailed review); concurred, no tiebreak. No migration — knowledge-file content only.
+Research-sweep follow-on to the 2026-06-13 Fable 5 / Mythos 5 suspension (#426): closes the one consequence #426 left open in `knowledge/model-selection-and-2026-capability-map.md` — the **advisor-tool pairing**. The rule "Fable 5 → Fable 5 advisor; Mythos 5 → Mythos 5 advisor" is **unsatisfiable** while those models are suspended, so the advisor-tool row now directs an Opus 4.8 executor + Opus 4.8 advisor until access is restored. Re-dated 2026-06-21. Surfaced by Panel 2's detailed review of the sweep (the contradiction #426 didn't catch). No migration — knowledge-file content only.
+
+## [0.9.1] — 2026-06-13
+
+Research-sweep **correction** (Tier-A weekly news sweep) — **Fable 5 & Mythos 5 were suspended worldwide on 2026-06-12** under a US export-control directive; Anthropic disabled both for all customers across the Claude API, AWS Bedrock, GitHub Copilot, and Microsoft Foundry (disputing the rationale and stating it is working to restore access). Independently verified this session against the primary source [Anthropic statement](https://www.anthropic.com/news/fable-mythos-access) (corroborated by [Bloomberg](https://www.bloomberg.com/news/articles/2026-06-13/anthropic-says-us-limits-foreign-access-to-fable-5-mythos-5) + [CNBC](https://www.cnbc.com/2026/06/12/anthropic-disables-access-to-fable-5-and-mythos-5-to-comply-with-government-directive.html)). Routed through three expert panels (usefulness → USEFUL/unanimous; detailed review → APPROVE-WITH-FIX; the framing fixes — *current-status/disputed not deprecation*, named secondaries, `[verify-at-use]` markers — are applied).
+
+### Fixed
+
+- **`knowledge/model-selection-and-2026-capability-map.md`** — the file's central routing recommendation ("route the hard long-horizon autonomous tail to Fable 5") now points at a **currently-uncallable** model. Added a suspension banner; annotated the Fable 5 lineup row, the Mythos 5 note, the routing-ladder sentence, and the capability-status row to mark **SUSPENDED 2026-06-12** and re-route to **Opus 4.8** until restored. Framed as a fluid/disputed *current-status* fact (re-verify before quoting), **not** a deprecation. Opus 4.8 / Sonnet 4.6 / Haiku 4.5 unaffected.
+- Version **0.9.0 → 0.9.1** in `.claude-plugin/plugin.json` **and** `marketplace.json` (lockstep).
 
 ## [0.9.0] — 2026-06-12
 
