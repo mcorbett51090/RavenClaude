@@ -75,3 +75,23 @@ When an agent ships **inside a plugin** (as every `plugins/ravenclaude-core/agen
 "Silently ignored" is the trap: declaring them does **not** error — it just has no effect, so an agent that *appears* to (say) lower its own `permissionMode` or wire its own `hooks` is running with none of that in force. A plugin agent's writable declarative surface is therefore exactly: `name`, `description`, `model`, `effort`, `maxTurns`, `tools`, `disallowedTools`, `skills`, `memory`, `background`, `isolation` (plus `color` / `initialPrompt`). Anything requiring `hooks` / `mcpServers` / `permissionMode` must be wired at the plugin level (`hooks/hooks.json`, the plugin's MCP declaration) or in the consumer's `settings.json` — never on the agent.
 
 **Implication for core's roster:** core's specialist agents are under-specified today (no `model` / `effort` / `maxTurns` / `tools` allow-lists, no `memory:`). Adding these — within the allowed field set above — hardens cost, safety, and institutional memory without touching any forbidden field. The `subagents cannot spawn subagents` rule (Team-Lead-only dispatch) is unchanged by any of this.
+
+### The `CLAUDE_CODE_SUBAGENT_MODEL` env var sits ABOVE the `model:` frontmatter — a per-agent pin is not the last word
+
+> **Load-bearing accuracy note. Verified 2026-06-22** against [sub-agents § "Choose a model"](https://code.claude.com/docs/en/sub-agents) (retrieved this session; full text saved + quoted below). Surfaced by the 2026-06-22 Claude-subreddit scan — see [`docs/research/2026-06-22-claude-subreddit-scan/README.md`](../../../docs/research/2026-06-22-claude-subreddit-scan/README.md).
+
+The field-set table above lists `model` as the per-agent backbone pin, and the "Implication for core's roster" paragraph recommends adding it for cost right-sizing. That's correct, but it is **only step 3 of a four-step resolution** — there is a *session-global* lever that overrides it. Claude Code resolves a subagent's model in this exact order (quoted from the official doc this session):
+
+1. **The `CLAUDE_CODE_SUBAGENT_MODEL` environment variable, if set**
+2. The per-invocation `model` parameter (what the orchestrator passes for one dispatch)
+3. The subagent definition's `model` frontmatter
+4. The main conversation's model
+
+**The two practitioner levers this unlocks (the community's actual use):**
+
+- **Main-on-Opus, subagents-on-Sonnet/Haiku in one knob.** Set `CLAUDE_CODE_SUBAGENT_MODEL=sonnet` (or `haiku`) once — in a shell profile or before launching Claude Code — and *every* delegated subagent that doesn't pin its own model runs on the cheaper backbone while the main reasoning loop stays on the smart one. This is the cost-discipline pattern most-discussed for multi-agent runs; it is the **fleet-wide** complement to the **per-agent** `model:` pin, not a substitute for it.
+- **Default is `inherit`.** With neither the env var nor a frontmatter `model` set, a subagent uses the **same model as the main conversation** (step 4) — so an Opus main session silently fans Opus subagents unless one of the higher-precedence levers intervenes. The cheap-subagent saving is opt-in, not a default.
+
+**The gotcha that makes this load-bearing for RavenClaude (read before pinning core agents):** because the env var is step **1** and a roster `model:` is step **3**, a consumer who exports `CLAUDE_CODE_SUBAGENT_MODEL` **overrides every per-agent `model:` pin this plugin ships.** So the "add `model:` to harden cost" recommendation above is a *floor a consumer can move*, not a guarantee — if a specialist genuinely *must* run on a specific backbone (e.g. a reviewer that needs Opus-level judgment), the per-agent frontmatter pin does **not** protect it from a consumer's global env override; that constraint has to be stated in the agent's prose and can't be enforced declaratively. _(One nuance to verify at use: community reports — `[unverified — community aggregation]` — note the env var may not override Claude Code's **built-in** subagents that carry a hard-coded model; the official four-step order is about custom/user/plugin agents, which is what this marketplace ships.)_
+
+The env var is **not** in this plugin anywhere (`grep -r CLAUDE_CODE_SUBAGENT_MODEL` over the repo returned nothing this session) — it's a *consumer-environment* lever, which is exactly why it belongs in this knowledge file as a documented interaction rather than a config the plugin sets.

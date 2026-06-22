@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.158.0 — 2026-06-22
+
+### Added
+
+- **Documented the `CLAUDE_CODE_SUBAGENT_MODEL` env var + the official four-step subagent model-resolution order** in [`knowledge/subagent-isolation-and-tooling.md`](knowledge/subagent-isolation-and-tooling.md). The env var is a *session-global* default-model lever (set once → every un-pinned subagent runs on the cheaper backbone; the main-on-Opus / subagents-on-Sonnet cost pattern), and it resolves at step **1** — **above** the per-agent `model:` frontmatter at step 3. The load-bearing gotcha now stated: a consumer's `CLAUDE_CODE_SUBAGENT_MODEL` **overrides every per-agent `model:` pin this plugin ships**, so the roster's "add `model:` to harden cost" guidance is a floor a consumer can move, not a guarantee — a backbone a specialist genuinely requires must be stated in prose, not just frontmatter. Default (neither lever set) is `inherit` (subagent = main model). Grounded against the [official sub-agents doc](https://code.claude.com/docs/en/sub-agents) (verified 2026-06-22); the built-in-agent override nuance is flagged `[unverified — community aggregation]`. Sourced from the [2026-06-22 Claude subreddit scan](../../docs/research/2026-06-22-claude-subreddit-scan/README.md) (1 of 5 findings approved; the other four deferred/denied as covered or out-of-core-scope).
+
+### Notes
+
+- **Migration:** none — additive markdown; nothing in a consumer's installed plugin changes on `/plugin marketplace update`. The env var is a consumer-environment lever, now documented rather than set by the plugin.
+
 ## 0.155.0 — 2026-06-11
 
 ### Added
