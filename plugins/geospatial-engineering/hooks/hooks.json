@@ -9,7 +9,7 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-geo-smells.sh \"$CLAUDE_TOOL_FILE_PATH\"",
-            "comment": "Advisory: flags 3 mechanically-detectable geospatial smells in spatial files (.sql/.py/.js/.ts/.md) — (1) a geometry/geography column created with no SRID, (2) ST_Distance/ST_DWithin on a geometry (degrees) instead of geography/projected metres, (3) an ST_Distance(...) < proximity filter that defeats the GiST index. Set GEO_SMELLS_STRICT=1 to make it blocking."
+            "comment": "Advisory: flags 4 mechanically-detectable geospatial smells in spatial files (.sql/.py/.js/.ts/.md) — (1) a geometry/geography column created with no SRID, (2) ST_Distance/ST_DWithin on a geometry (degrees) instead of geography/projected metres, (3) an ST_Distance(...) < proximity filter that defeats the GiST index, (4) ST_Area/ST_Length computed in EPSG:3857 (Web Mercator distorts area/length). Set GEO_SMELLS_STRICT=1 to make it blocking."
           }
         ]
       }
