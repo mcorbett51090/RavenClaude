@@ -102,7 +102,7 @@ _Series count = product of every label's distinct values. If you can't name the 
 
 | Capability | 2026 state `[verify-at-build]` | Notes |
 |---|---|---|
-| OpenTelemetry traces+metrics | GA | Logs maturing; OTLP is the portable wire format |
+| OpenTelemetry traces+metrics+logs | GA — all 3 core signals Stable | Logs Data Model + Logs API are **Stable** (no longer "maturing") — [OTel spec status](https://opentelemetry.io/docs/specs/status/) `[verify-at-build — per-language SDK logs maturity still varies]`. **Profiles** is the 4th signal, public **Alpha** (announced ~2026-03) `[verify-at-build — date per OTel spec changelog]`. OTLP is the portable wire format |
 | OTel semantic conventions | stabilizing per-domain | HTTP/DB stable; check your domain |
 | Tail sampling (collector) | GA | Keep errored/slow traces; cost control |
 | Multi-window burn-rate alerts | standard practice (Google SRE) | Fast + slow window AND-ed |

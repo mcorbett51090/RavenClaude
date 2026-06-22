@@ -28,22 +28,27 @@ Security invariants (see the security-review controls baked into SKILL.md):
     (parity), so they cannot silently drift.
   - A byte-size ceiling is enforced BEFORE json.load on every file (a malicious
     page can write an unbounded console.json — bound it).
-  - The verdict carries ONLY driver-derived primitives: booleans, counts,
-    numeric scores/thresholds, fixed-vocabulary status/next_action strings, and
-    driver-authored notes. It NEVER echoes raw console text, Lighthouse audit
-    titles, page content, or any other untrusted string — a malicious page can
-    write fake "instructions" to the console, and this verdict is read back by
-    the model as trusted context. We read numbers out of evidence, never prose.
+  - The verdict carries driver-derived primitives (booleans, counts, numeric
+    scores/thresholds, fixed-vocabulary status/next_action strings, driver-authored
+    notes) plus, for the parity gate, allowlist-sanitized schema-vocabulary tokens
+    from the input visual.json — specifically visualType, queryState role names,
+    and objects keys, each filtered through `_safe_token`/`_safe_tokens` (`\\A…\\Z`
+    + fullmatch over `[A-Za-z0-9_-]{1,40}`) before output. It NEVER echoes raw
+    console text, Lighthouse audit titles, JSON value content, or page prose — a
+    malicious page can write fake "instructions" to the console, and this verdict
+    is read back by the model as trusted context. We read numbers out of runtime
+    evidence; from visual.json we read only schema tokens, filtered.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 
-DRIVER_VERSION = "0.1.0"
+DRIVER_VERSION = "0.2.0"
 SCHEMA_VERSION = "1.0.0"  # contract version of this driver's JSON envelope
 
 # The layout linter we delegate to (a same-plugin sibling skill). We treat it as
@@ -238,6 +243,155 @@ def _gate_lighthouse(data: object, thresholds: dict) -> list[dict]:
     return out
 
 
+# ── Gate: structural parity vs. a known-good exemplar ────────────────────────
+# Honest framing (per the adversarial review of this gate): this is a structural
+# DIFF SURFACER against a chosen exemplar, NOT a render oracle. It flags where the
+# candidate's render skeleton DIVERGES from a working exemplar of the same kind in
+# the render-RISK direction: the candidate is MISSING something the exemplar has —
+# a query role (Values/Data/Indicator), an objects key (e.g. a `card` that dropped
+# `labels` and substituted `calloutValue` → blank), or a per-item `$id` the
+# exemplar carries (the `cardVisual` blank cause). It is ASYMMETRIC on purpose:
+# the candidate ADDING a benign extra (a cosmetic object key, an optional role)
+# is NOT a fail — only what it LOSES relative to the exemplar is render-risk. It
+# can only be as good as the exemplar, so the exemplar is validated first
+# (non-degenerate, not the candidate itself). PBIR `visual.json` shape; any other
+# shape → not_captured (the technique generalizes; this differ is PBIR-first).
+_TOKEN_RE = re.compile(r"\A[A-Za-z0-9_-]{1,40}\Z")
+
+
+def _safe_token(s: object) -> str:
+    """A schema-vocabulary token (role/object-key/visualType) is echo-safe only
+    when it matches the closed allowlist charset — otherwise it could be an
+    attacker-authored string in a visual.json, so we replace it with a fixed
+    placeholder (the verdict is read back by the model as trusted context).
+    `\\A…\\Z` + fullmatch (not `^…$` + match) so a trailing newline can't slip a
+    line-injection token through — `$`/`match` accept a string ending in `\\n`."""
+    return s if isinstance(s, str) and _TOKEN_RE.fullmatch(s) else "<non-standard>"
+
+
+def _safe_tokens(items) -> list[str]:
+    return sorted(_safe_token(x) for x in items)
+
+
+def _pbir_skeleton(visual_obj: object) -> dict | None:
+    """Render-relevant skeleton of a PBIR visual.json: visualType, the set of
+    query role names, the set of `objects` keys, and which keys are FULLY `$id`-ed
+    (every item carries `$id` — the cardVisual schema requires it on each item, so
+    a key with one item missing `$id` is NOT fully-ed and will be flagged). None
+    if it is not a PBIR-visual shape (no .visual.visualType)."""
+    if not isinstance(visual_obj, dict):
+        return None
+    v = visual_obj.get("visual")
+    if not isinstance(v, dict) or not isinstance(v.get("visualType"), str):
+        return None
+    roles: set[str] = set()
+    q = v.get("query")
+    if isinstance(q, dict) and isinstance(q.get("queryState"), dict):
+        roles = {r for r in q["queryState"].keys() if isinstance(r, str)}
+    object_keys: set[str] = set()
+    id_keys: set[str] = set()
+    objs = v.get("objects")
+    if isinstance(objs, dict):
+        for k, items in objs.items():
+            if not isinstance(k, str):
+                continue
+            object_keys.add(k)
+            # Fully-$id'd iff the key has items AND every item carries `$id`
+            # (the schema requires it per item — `all`, never `any`).
+            if isinstance(items, list) and items and all(
+                isinstance(it, dict) and "$id" in it for it in items
+            ):
+                id_keys.add(k)
+    return {
+        "visualType": v["visualType"],
+        "roles": roles,
+        "object_keys": object_keys,
+        "id_keys": id_keys,
+    }
+
+
+def _gate_parity(candidate_path: str, reference_path: str) -> dict:
+    """Diff the candidate visual's skeleton against a confirmed-working reference
+    of the SAME kind. FAIL on render-RISK divergence — the candidate is MISSING a
+    query role, an objects key, or a per-item `$id` that the exemplar carries.
+    Benign additions on the candidate (extra cosmetic key / optional role) are NOT
+    a fail. A different visualType, a non-PBIR shape, the candidate AS its own
+    reference, or a degenerate exemplar (no query role) → `not_captured` (note),
+    never a false fail."""
+    record: dict = {"gate": "parity", "source_skill": "visual-feedback-loop"}
+    # Self-referential guard: a file can't be its own confirmed-working exemplar.
+    if os.path.realpath(candidate_path) == os.path.realpath(reference_path):
+        record["status"] = "not_captured"
+        record["note"] = "parity-reference-is-candidate"
+        return record
+    cand = _load_json_bounded(candidate_path, what="parity candidate")
+    ref = _load_json_bounded(reference_path, what="parity reference")
+    cs = _pbir_skeleton(cand)
+    rs = _pbir_skeleton(ref)
+    if cs is None or rs is None:
+        record["status"] = "not_captured"
+        record["note"] = (
+            "parity-candidate-non-pbir-shape"
+            if cs is None
+            else "parity-reference-non-pbir-shape"
+        )
+        return record
+    if cs["visualType"] != rs["visualType"]:
+        record["status"] = "not_captured"
+        record["note"] = "parity-visualtype-mismatch-not-comparable"
+        record["candidate_visual_type"] = _safe_token(cs["visualType"])
+        record["reference_visual_type"] = _safe_token(rs["visualType"])
+        return record
+    # Exemplar validation: a reference with no query role has no data binding and
+    # cannot be a "confirmed-working" exemplar — refuse to launder it into a pass.
+    if not rs["roles"]:
+        record["status"] = "not_captured"
+        record["note"] = "parity-reference-not-a-valid-exemplar"
+        return record
+
+    record["visual_type"] = _safe_token(cs["visualType"])
+    deltas: list[dict] = []
+    # Render-risk is what the candidate is MISSING relative to the exemplar
+    # (asymmetric — an extra role/key the candidate adds is benign, not a fail).
+    missing_roles = rs["roles"] - cs["roles"]
+    if missing_roles:  # e.g. a card missing Values, a kpi missing Indicator → blank
+        deltas.append(
+            {
+                "dimension": "missing-query-role",
+                "candidate": _safe_tokens(cs["roles"]),
+                "reference": _safe_tokens(rs["roles"]),
+            }
+        )
+    missing_keys = rs["object_keys"] - cs["object_keys"]
+    if missing_keys:  # e.g. a card that dropped `labels` (substituting calloutValue)
+        deltas.append(
+            {
+                "dimension": "missing-object-key",
+                "missing": _safe_tokens(missing_keys),
+                "reference": _safe_tokens(rs["object_keys"]),
+            }
+        )
+    # $id drift, directional: the exemplar carries a fully-$id'd key but the
+    # candidate's same key is not fully-$id'd (a partial/absent $id → blank).
+    id_drift = [
+        k
+        for k in (cs["object_keys"] & rs["object_keys"])
+        if (k in rs["id_keys"]) and (k not in cs["id_keys"])
+    ]
+    if id_drift:  # cardVisual object items missing the required $id
+        deltas.append({"dimension": "id-presence", "object_keys": _safe_tokens(id_drift)})
+
+    record["status"] = "fail" if deltas else "pass"
+    if deltas:
+        record["deltas"] = deltas
+    # Advisory only (not a fail): keys the candidate ADDS beyond the exemplar
+    # (cosmetic/benign) — surfaced for diagnostics, never gated on.
+    extra = cs["object_keys"] - rs["object_keys"]
+    if extra:
+        record["advisory_candidate_only_object_keys"] = _safe_tokens(extra)
+    return record
+
+
 # ── Verdict synthesis ────────────────────────────────────────────────────────
 _DETERMINATE = {"pass", "fail", "error"}
 
@@ -273,6 +427,8 @@ def _synthesize(surface: str, gates: list[dict]) -> dict:
             if g["status"] in ("fail", "error"):
                 if g["gate"] == "layout":
                     next_action = "fix-layout"
+                elif g["gate"] == "parity":
+                    next_action = "match-reference-exemplar"
                 elif g["gate"] == "console-errors":
                     next_action = "fix-console-errors"
                 elif g["gate"].startswith("lighthouse-"):
@@ -309,6 +465,15 @@ def run(config: dict) -> dict:
         if not isinstance(config["layout"], str):
             raise InputError("'layout' must be a path string")
         gates.append(_gate_layout(config["layout"]))
+
+    if config.get("parity"):
+        parity = config["parity"]
+        if not isinstance(parity, dict):
+            raise InputError("'parity' must be an object {candidate, reference}")
+        cand_p, ref_p = parity.get("candidate"), parity.get("reference")
+        if not isinstance(cand_p, str) or not isinstance(ref_p, str):
+            raise InputError("'parity.candidate' and 'parity.reference' must be path strings")
+        gates.append(_gate_parity(cand_p, ref_p))
 
     if config.get("console"):
         if not isinstance(config["console"], str):

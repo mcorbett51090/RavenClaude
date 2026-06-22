@@ -19,6 +19,8 @@
 
 **Team growth ships as skills + knowledge + templates, not as new parallel agents** (marketplace house rule). When a new capability is needed, add a skill or knowledge file the existing 4 can reach — don't fork a fifth agent unless a genuinely new lane appears.
 
+**New coverage (2026-06-22):** an execution value-add the existing 4 agents reach via a skill — a **content-marketing engine** ([`skills/content-engine/SKILL.md`](skills/content-engine/SKILL.md) + [`knowledge/content-marketing-engine.md`](knowledge/content-marketing-engine.md): intent briefs, topic clusters/pillar pages, distribution, leading-vs-lagging measurement).
+
 ---
 
 ## 2. What this team is and is not
@@ -68,6 +70,7 @@ The research-grounded reference the agents point to. Read the relevant file in f
 | [`knowledge/marketing-operations-economics.md`](knowledge/marketing-operations-economics.md) | The unit economics behind the house opinions — formulas reproduced in the calculator |
 | [`knowledge/marketing-operations-context.md`](knowledge/marketing-operations-context.md) | Benchmarks & regulatory/market context (2025–2026) |
 | [`knowledge/marketing-operations-decision-trees.md`](knowledge/marketing-operations-decision-trees.md) | **Mermaid** decision trees for the three most common triage paths |
+| [`knowledge/content-marketing-engine.md`](knowledge/content-marketing-engine.md) | Content engine (2026): briefs, editorial calendar, topic clusters & internal linking, distribution, leading-vs-lagging measurement — **Mermaid** decision tree |
 
 ---
 
@@ -115,3 +118,4 @@ The lead is [`marketing-ops-lead`](agents/marketing-ops-lead.md) — first conta
 ## 9. Milestones
 
 - **v0.1.0** — initial release: 4 agents, 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, 4-file research-grounded knowledge bank, scenarios bank, `marketingops_calc.py` (3 modes).
+- **v0.2.0** — execution value-add: +1 skill (`content-engine`), +1 knowledge doc (`content-marketing-engine.md`, 1 Mermaid decision tree), +2 best-practice rules (content). Now 6 skills, 10 best-practice rules, 5-file knowledge bank. No agents added; existing files unchanged.
