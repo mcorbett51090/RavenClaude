@@ -1,0 +1,30 @@
+{
+  "name": "physical-therapy-rehab-clinic",
+  "version": "0.1.0",
+  "description": "Outpatient physical-therapy / rehab clinic operations team — 3 agents (clinic-operations-lead, clinical-documentation-compliance, billing-and-revenue) for the practice-ops + documentation + billing craft of a PT/OT/SLP outpatient clinic: scheduling & capacity and plan-of-care visit cadence, no-show management, defensible POC documentation and medical necessity, certification/recertification timing, the Medicare therapy-threshold + KX concept, CPT timed codes and the 8-minute rule, modifiers (GP/KX/59), and denial prevention. 5 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 8 best-practices, 3 templates, 3 commands, 1 advisory hook. ADVISORY only — not medical, legal, or billing advice; every payor/regulatory specific carries a retrieval date + verify-at-use, no patient PII. Seams: medical-revenue-cycle, behavioral-health-practice. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "physical-therapy",
+    "rehab-clinic",
+    "outpatient",
+    "plan-of-care",
+    "8-minute-rule",
+    "cpt-timed-codes",
+    "kx-modifier",
+    "therapy-threshold",
+    "medical-necessity",
+    "defensible-documentation",
+    "denial-prevention",
+    "scheduling",
+    "no-show",
+    "capacity-planning",
+    "revenue-cycle"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
