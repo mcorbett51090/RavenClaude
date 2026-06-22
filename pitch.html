@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RavenClaude — a private Claude Code plugin marketplace</title>
+    <meta
+      name="description"
+      content="RavenClaude is a private Claude Code plugin marketplace: a domain-neutral orchestration core plus specialist teams that travel with you across projects — bundled rules, agents, dispatch playbooks, and templates."
+    />
+    <link rel="canonical" href="pitch.html" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RavenClaude" />
+    <meta property="og:title" content="RavenClaude — a private Claude Code plugin marketplace" />
+    <meta
+      property="og:description"
+      content="A domain-neutral orchestration core plus specialist teams that travel with you across projects."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="RavenClaude — a private Claude Code plugin marketplace" />
+    <meta
+      name="twitter:description"
+      content="A domain-neutral orchestration core plus specialist teams that travel with you across projects."
+    />
+    <style>
+      /* ── Design tokens (subset of plugins/ravenclaude-core/dashboard-assets/shared-tokens.css :root) ── */
+      :root {
+        --rc-bg: #f5f6f8;
+        --rc-surface: #ffffff;
+        --rc-surface-2: #eef0f3;
+        --rc-border: #e3e6ea;
+        --rc-border-strong: #d2d7dd;
+        --rc-text: #1c1f23;
+        --rc-muted: #5b6166;
+        --rc-faint: #8e959c;
+        --rc-ink: #1c1f23;
+        --rc-ink-fg: #ffffff;
+        --rc-ink-soft: #34393f;
+        /* --rc-gold is AA-LARGE only — borders / headings / icons / rules, never body text */
+        --rc-gold: #a8882e;
+        --rc-gold-soft: #c9aa55;
+        /* --rc-teal passes AA on --rc-bg — safe for body text + links */
+        --rc-teal: #1f7f78;
+        --rc-teal-soft: #4a9590;
+        --rc-font-sans:
+          "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+          sans-serif;
+        --rc-font-mono:
+          "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        --rc-space-3: 12px;
+        --rc-space-4: 16px;
+        --rc-space-5: 24px;
+        --rc-space-6: 32px;
+        --rc-space-7: 48px;
+        --rc-space-8: 64px;
+        --rc-radius-sm: 8px;
+        --rc-radius: 10px;
+        --rc-radius-lg: 12px;
+        --rc-radius-pill: 999px;
+        --rc-shadow-sm: 0 1px 2px rgba(20, 28, 40, 0.04), 0 1px 3px rgba(20, 28, 40, 0.06);
+        --rc-shadow-md: 0 6px 16px rgba(20, 28, 40, 0.08), 0 2px 4px rgba(20, 28, 40, 0.05);
+        --rc-focus-ring: 0 0 0 3px rgba(31, 127, 120, 0.32);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        color-scheme: light;
+      }
+
+      body {
+        margin: 0;
+        background: var(--rc-bg);
+        color: var(--rc-text);
+        font-family: var(--rc-font-sans);
+        font-size: 15px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: var(--rc-teal);
+      }
+
+      :focus-visible {
+        outline: none;
+        box-shadow: var(--rc-focus-ring);
+        border-radius: var(--rc-radius-sm);
+      }
+
+      .wrap {
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: 0 var(--rc-space-5);
+      }
+
+      .eyebrow {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--rc-gold);
+        margin: 0 0 var(--rc-space-3);
+      }
+
+      /* ── Hero ── */
+      .hero {
+        padding: var(--rc-space-8) 0 var(--rc-space-7);
+        border-bottom: 1px solid var(--rc-border);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 18px;
+        letter-spacing: -0.01em;
+      }
+
+      .brand .mark {
+        font-size: 22px;
+      }
+
+      .hero h1 {
+        font-size: clamp(2rem, 4.5vw, 3rem);
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        margin: var(--rc-space-5) 0 var(--rc-space-4);
+        max-width: 18ch;
+      }
+
+      .hero .lead {
+        font-size: 18px;
+        color: var(--rc-muted);
+        max-width: 60ch;
+        margin: 0 0 var(--rc-space-6);
+      }
+
+      .cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--rc-space-3);
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 11px 18px;
+        border-radius: var(--rc-radius);
+        font-weight: 600;
+        font-size: 15px;
+        text-decoration: none;
+        border: 1px solid transparent;
+        transition: transform 0.04s ease;
+      }
+
+      .btn:active {
+        transform: translateY(1px);
+      }
+
+      .btn.primary {
+        background: var(--rc-ink);
+        color: var(--rc-ink-fg);
+      }
+
+      .btn.primary:hover {
+        background: var(--rc-ink-soft);
+      }
+
+      .btn.ghost {
+        background: var(--rc-surface);
+        color: var(--rc-text);
+        border-color: var(--rc-border-strong);
+      }
+
+      .btn.ghost:hover {
+        border-color: var(--rc-faint);
+      }
+
+      /* ── Sections ── */
+      section {
+        padding: var(--rc-space-7) 0;
+      }
+
+      h2 {
+        font-size: 24px;
+        letter-spacing: -0.01em;
+        margin: 0 0 var(--rc-space-5);
+      }
+
+      /* ── Proof strip ── */
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: var(--rc-space-4);
+      }
+
+      .stat {
+        background: var(--rc-surface);
+        border: 1px solid var(--rc-border);
+        border-radius: var(--rc-radius-lg);
+        box-shadow: var(--rc-shadow-sm);
+        padding: var(--rc-space-5);
+      }
+
+      .stat .num {
+        font-size: 34px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1;
+      }
+
+      .stat .label {
+        margin-top: 8px;
+        font-size: 13px;
+        color: var(--rc-muted);
+      }
+
+      /* ── Value cards ── */
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: var(--rc-space-4);
+      }
+
+      .card {
+        background: var(--rc-surface);
+        border: 1px solid var(--rc-border);
+        border-radius: var(--rc-radius-lg);
+        box-shadow: var(--rc-shadow-sm);
+        padding: var(--rc-space-5);
+      }
+
+      .card h3 {
+        margin: 0 0 8px;
+        font-size: 16px;
+      }
+
+      .card p {
+        margin: 0;
+        color: var(--rc-muted);
+        font-size: 14px;
+      }
+
+      .card .rule {
+        height: 3px;
+        width: 34px;
+        border-radius: var(--rc-radius-pill);
+        background: var(--rc-gold);
+        margin-bottom: 14px;
+      }
+
+      /* ── Category highlights ── */
+      .cat {
+        background: var(--rc-surface);
+        border: 1px solid var(--rc-border);
+        border-radius: var(--rc-radius-lg);
+        box-shadow: var(--rc-shadow-sm);
+        padding: var(--rc-space-5);
+      }
+
+      .cat .head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+
+      .cat h3 {
+        margin: 0;
+        font-size: 16px;
+      }
+
+      .cat .count {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--rc-teal);
+        white-space: nowrap;
+      }
+
+      .cat p {
+        margin: 0 0 12px;
+        color: var(--rc-muted);
+        font-size: 14px;
+      }
+
+      .pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .pill {
+        font-family: var(--rc-font-mono);
+        font-size: 12px;
+        color: var(--rc-ink-soft);
+        background: var(--rc-surface-2);
+        border: 1px solid var(--rc-border);
+        border-radius: var(--rc-radius-pill);
+        padding: 3px 10px;
+      }
+
+      .empty {
+        color: var(--rc-faint);
+        font-size: 14px;
+      }
+
+      /* ── Install ── */
+      .steps {
+        counter-reset: step;
+        display: grid;
+        gap: var(--rc-space-3);
+        max-width: 760px;
+      }
+
+      .step {
+        display: flex;
+        gap: var(--rc-space-4);
+        align-items: flex-start;
+        background: var(--rc-surface);
+        border: 1px solid var(--rc-border);
+        border-radius: var(--rc-radius-lg);
+        padding: var(--rc-space-4) var(--rc-space-5);
+      }
+
+      .step::before {
+        counter-increment: step;
+        content: counter(step);
+        flex: 0 0 auto;
+        width: 26px;
+        height: 26px;
+        border-radius: var(--rc-radius-pill);
+        background: var(--rc-ink);
+        color: var(--rc-ink-fg);
+        font-size: 13px;
+        font-weight: 700;
+        display: grid;
+        place-items: center;
+      }
+
+      .step code {
+        font-family: var(--rc-font-mono);
+        font-size: 13px;
+        color: var(--rc-text);
+        background: var(--rc-surface-2);
+        border-radius: var(--rc-radius-sm);
+        padding: 2px 7px;
+      }
+
+      .step .desc {
+        color: var(--rc-muted);
+        font-size: 13px;
+        margin-top: 4px;
+      }
+
+      /* ── Footer ── */
+      footer {
+        border-top: 1px solid var(--rc-border);
+        padding: var(--rc-space-6) 0 var(--rc-space-7);
+        color: var(--rc-muted);
+        font-size: 14px;
+      }
+
+      footer .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--rc-space-5);
+        margin-bottom: var(--rc-space-4);
+      }
+
+      footer .note {
+        color: var(--rc-faint);
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Hero -->
+    <header class="hero">
+      <div class="wrap">
+        <div class="brand"><span class="mark" aria-hidden="true">🐦‍⬛</span> RavenClaude</div>
+        <h1>A private Claude Code plugin marketplace.</h1>
+        <p class="lead">
+          A domain-neutral orchestration core plus specialist teams that travel with you across
+          projects — bundled team rules, specialist agents, dispatch playbooks, and templates,
+          governed by the same guardrails everywhere.
+        </p>
+        <div class="cta-row">
+          <a class="btn primary" href="index.html">Explore the portal</a>
+          <a class="btn ghost" href="GETTING_STARTED.md">First workflow in 10 min</a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Proof strip -->
+    <section>
+      <div class="wrap">
+        <p class="eyebrow">By the numbers</p>
+        <div class="stats" id="stats">
+          <p class="empty">Loading marketplace stats…</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Value prop -->
+    <section>
+      <div class="wrap">
+        <h2>What you get</h2>
+        <div class="cards">
+          <div class="card">
+            <div class="rule" aria-hidden="true"></div>
+            <h3>A domain-neutral core</h3>
+            <p>
+              A Team Lead plus generalist specialists, dispatch playbooks, and the epistemic
+              protocols every agent inherits — the foundation every plugin builds on.
+            </p>
+          </div>
+          <div class="card">
+            <div class="rule" aria-hidden="true"></div>
+            <h3>Specialist teams that travel</h3>
+            <p>
+              Drop in the verticals you need — engineering, cloud, data, finance, healthcare, and
+              dozens more — and they come with you across every project.
+            </p>
+          </div>
+          <div class="card">
+            <div class="rule" aria-hidden="true"></div>
+            <h3>Governed multi-agent dispatch</h3>
+            <p>
+              Heimdall watches the perimeter: a comfort-posture you tune by hand or by click, a
+              command-review tribunal, and guardrails that bound depth, breadth, and correctness.
+            </p>
+          </div>
+          <div class="card">
+            <div class="rule" aria-hidden="true"></div>
+            <h3>No build step</h3>
+            <p>
+              The portal, the dashboard, and this page are self-contained HTML — open them in a
+              browser, no server and no build. Updates are a <code>git pull</code>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Category highlights -->
+    <section>
+      <div class="wrap">
+        <h2>Specialist coverage</h2>
+        <div class="cards" id="cats">
+          <p class="empty">Loading the catalog…</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Install -->
+    <section>
+      <div class="wrap">
+        <h2>Install in four steps</h2>
+        <div class="steps">
+          <div class="step">
+            <div>
+              <code>/plugin marketplace add &lt;this-repo&gt;</code>
+              <div class="desc">Register the marketplace once.</div>
+            </div>
+          </div>
+          <div class="step">
+            <div>
+              <code>/plugin install ravenclaude-core@ravenclaude</code>
+              <div class="desc">Install the core (then any specialist plugins you want).</div>
+            </div>
+          </div>
+          <div class="step">
+            <div>
+              <code>/reload-plugins</code>
+              <div class="desc">Load the agents, skills, and hooks into your session.</div>
+            </div>
+          </div>
+          <div class="step">
+            <div>
+              <code>/init-agent-ready</code>
+              <div class="desc">
+                Scaffold <code>AGENTS.md</code>, <code>CLAUDE.md</code>, and the layout guardrails
+                for your repo.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <div class="wrap">
+        <div class="links">
+          <a href="index.html">Portal</a>
+          <a href="plugins/ravenclaude-core/dashboard.html">Dashboard</a>
+          <a href="GETTING_STARTED.md">Getting started</a>
+          <a href="README.md">README</a>
+        </div>
+        <div class="note">RavenClaude — no server, no build step. Open the HTML and go.</div>
+      </div>
+    </footer>
+
+    <!--
+      Proof data. The page fetches pitch-data.json first (works when served); if that
+      fails (e.g. opened as a file:// URL) it falls back to the inline copy below.
+      KEEP THIS BLOCK BYTE-FOR-BYTE IN SYNC WITH pitch-data.json.
+    -->
+    <script type="application/json" id="pitch-data">
+      {
+        "schema_version": 1,
+        "as_of": "2026-06-22",
+        "marketplace_version": "0.89.1",
+        "headline": "A private Claude Code plugin marketplace.",
+        "subhead": "A domain-neutral orchestration core plus specialist teams that travel with you across projects — bundled rules, agents, dispatch playbooks, and templates.",
+        "totals": {
+          "plugins": 117,
+          "specialist_agents": 484,
+          "skills": 662,
+          "hooks": 140,
+          "domains": 17
+        },
+        "categories": [
+          {
+            "id": "core-delivery",
+            "label": "Core & Delivery",
+            "blurb": "The domain-neutral foundation every plugin builds on — the Team Lead and protocols — plus product, project, and process delivery.",
+            "representative_plugins": [
+              "ravenclaude-core",
+              "project-management",
+              "product-management"
+            ],
+            "count": 5
+          },
+          {
+            "id": "software-engineering",
+            "label": "Software Engineering",
+            "blurb": "Backend, frontend, mobile, databases, APIs, QA, performance, embedded/IoT, games, auth, and blockchain.",
+            "representative_plugins": [
+              "backend-engineering",
+              "frontend-engineering",
+              "api-engineering"
+            ],
+            "count": 12
+          },
+          {
+            "id": "cloud-devops-platform",
+            "label": "Cloud, DevOps & Platform",
+            "blurb": "AWS / Azure / GCP, Kubernetes, Terraform, CI/CD, internal developer platforms, observability/SRE, and cloud-cost FinOps.",
+            "representative_plugins": ["aws-cloud", "cloud-native-kubernetes", "devops-cicd"],
+            "count": 9
+          },
+          {
+            "id": "data-analytics",
+            "label": "Data & Analytics",
+            "blurb": "Data platforms, streaming, data science, analytics engineering, statistics, BI/Tableau, and data governance.",
+            "representative_plugins": ["data-platform", "analytics-engineering", "tableau"],
+            "count": 8
+          },
+          {
+            "id": "ai-ml",
+            "label": "AI & Machine Learning",
+            "blurb": "Building with Claude, model-selection guidance across coding tools, RAG systems, and ML engineering.",
+            "representative_plugins": [
+              "claude-app-engineering",
+              "ai-rag-engineering",
+              "ml-engineering"
+            ],
+            "count": 4
+          },
+          {
+            "id": "security-compliance",
+            "label": "Security & Compliance",
+            "blurb": "Application/cloud security engineering, cybersecurity GRC, the regulatory lane, and ESG / sustainability reporting.",
+            "representative_plugins": [
+              "security-engineering",
+              "cybersecurity-grc",
+              "regulatory-compliance"
+            ],
+            "count": 4
+          },
+          {
+            "id": "microsoft-enterprise",
+            "label": "Microsoft & Enterprise Platforms",
+            "blurb": "Power Platform, Fabric, Graph, M365 Copilot, and Salesforce delivery craft.",
+            "representative_plugins": ["power-platform", "microsoft-fabric", "salesforce"],
+            "count": 5
+          },
+          {
+            "id": "web-design-content",
+            "label": "Web, Design & Content",
+            "blurb": "Web design & build, accessibility, technical writing, localization / i18n, and film & video production.",
+            "representative_plugins": [
+              "web-design",
+              "accessibility-engineering",
+              "technical-writing-docs"
+            ],
+            "count": 5
+          },
+          {
+            "id": "finance-fintech-insurance",
+            "label": "Finance, Fintech & Insurance",
+            "blurb": "Corporate finance / FP&A, accounting, payments engineering, wealth management, mortgage lending, and insurance.",
+            "representative_plugins": ["finance", "fintech-payments-engineering", "insurance-pc"],
+            "count": 7
+          },
+          {
+            "id": "healthcare-life-sciences",
+            "label": "Healthcare & Life Sciences",
+            "blurb": "Behavioral health, clinical trials, dental, hospice, medical revenue cycle, pharmacy, senior care, and veterinary.",
+            "representative_plugins": [
+              "clinical-trials",
+              "medical-revenue-cycle",
+              "dental-practice"
+            ],
+            "count": 8
+          },
+          {
+            "id": "industrial-supply-energy",
+            "label": "Industrial, Supply Chain & Energy",
+            "blurb": "Manufacturing, supply-chain planning, procurement, fleet & freight logistics, field service, renewable energy, and precision ag.",
+            "representative_plugins": [
+              "manufacturing-operations",
+              "supply-chain-planning",
+              "renewable-energy"
+            ],
+            "count": 8
+          },
+          {
+            "id": "sales-marketing-cx",
+            "label": "Sales, Marketing & CX",
+            "blurb": "RevOps, marketing operations, customer-success analytics, support / CX operations, and DTC e-commerce.",
+            "representative_plugins": ["sales-revops", "marketing-operations", "ecommerce-dtc"],
+            "count": 5
+          }
+        ]
+      }
+    </script>
+
+    <script>
+      (function () {
+        "use strict";
+
+        var STAT_ORDER = [
+          ["plugins", "Plugins"],
+          ["specialist_agents", "Specialist agents"],
+          ["skills", "Skills"],
+          ["hooks", "Hooks"],
+          ["domains", "Domains"],
+        ];
+
+        function el(tag, className, text) {
+          var node = document.createElement(tag);
+          if (className) node.className = className;
+          if (text != null) node.textContent = text;
+          return node;
+        }
+
+        function renderStats(totals) {
+          var host = document.getElementById("stats");
+          host.innerHTML = "";
+          if (!totals) {
+            host.appendChild(el("p", "empty", "Stats unavailable."));
+            return;
+          }
+          STAT_ORDER.forEach(function (pair) {
+            var key = pair[0];
+            if (totals[key] == null) return;
+            var stat = el("div", "stat");
+            stat.appendChild(el("div", "num", String(totals[key])));
+            stat.appendChild(el("div", "label", pair[1]));
+            host.appendChild(stat);
+          });
+        }
+
+        function renderCategories(categories) {
+          var host = document.getElementById("cats");
+          host.innerHTML = "";
+          if (!categories || !categories.length) {
+            host.appendChild(el("p", "empty", "Catalog unavailable."));
+            return;
+          }
+          categories.forEach(function (cat) {
+            var card = el("div", "cat");
+            var head = el("div", "head");
+            head.appendChild(el("h3", null, cat.label));
+            head.appendChild(el("span", "count", String(cat.count) + " plugins"));
+            card.appendChild(head);
+            card.appendChild(el("p", null, cat.blurb));
+            var pills = el("div", "pills");
+            (cat.representative_plugins || []).forEach(function (name) {
+              pills.appendChild(el("span", "pill", name));
+            });
+            card.appendChild(pills);
+            host.appendChild(card);
+          });
+        }
+
+        function render(data) {
+          if (!data) return;
+          renderStats(data.totals);
+          renderCategories(data.categories);
+        }
+
+        function fromInline() {
+          try {
+            return JSON.parse(document.getElementById("pitch-data").textContent);
+          } catch (e) {
+            return null;
+          }
+        }
+
+        // Fetch the committed JSON first (served / GitHub Pages); fall back to the
+        // inline copy when fetch is unavailable (e.g. file:// origin).
+        if (window.fetch && location.protocol !== "file:") {
+          fetch("pitch-data.json")
+            .then(function (r) {
+              if (!r.ok) throw new Error("HTTP " + r.status);
+              return r.json();
+            })
+            .then(render)
+            .catch(function () {
+              render(fromInline());
+            });
+        } else {
+          render(fromInline());
+        }
+      })();
+    </script>
+  </body>
+</html>

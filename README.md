@@ -2,6 +2,8 @@
 
 **A private Claude Code plugin marketplace** — bundled team rules, specialist agents, dispatch playbooks, and templates that travel with you across projects.
 
+> 🚀 **[▶ See what RavenClaude is (`pitch.html`)](https://mcorbett51090.github.io/RavenClaude/pitch.html)** — the one-page pitch: the value prop, the proof, and the plugin catalog at a glance. **Start here.** _(Or [view the raw HTML source](pitch.html), or download and open locally — no server, no build step.)_
+>
 > 🏠 **[▶ Open the landing page (`index.html`) rendered in your browser](https://mcorbett51090.github.io/RavenClaude/index.html)** — the front door: a navigable home with the plugin catalog, the specialist roster, and a comfort-posture starter. Regenerated from the manifests on every release.
 >
 > _(Or [view the raw HTML source](index.html), or download and open locally — no server, no build step.)_
