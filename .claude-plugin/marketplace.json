@@ -10,6 +10,75 @@
   },
   "plugins": [
     {
+      "name": "developer-tooling",
+      "source": "./plugins/developer-tooling",
+      "description": "Developer-tooling team — the BUILD-TOOLING layer for monorepo & build-systems engineering. 2 agents (build-systems-architect, monorepo-engineer) covering monorepo tooling (Nx, Turborepo, Bazel/Buck2, Moon, pnpm/yarn/npm workspaces, Lerna), build performance & remote/content-addressable caching, task graphs and affected/since-only builds, dependency & package management (version policy, lockfile hygiene, renovate/dependabot, supply-chain hygiene: SBOM/provenance/pinning), and code-generation/scaffolding. 3 skills (choose-monorepo-tooling, optimize-build-and-cache, manage-dependencies), 2 Mermaid-backed knowledge docs, and 2 runbook templates. Seams: CI/CD pipelines → devops-cicd; service code → backend/frontend-engineering; containers/IaC → the cloud plugins. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "monorepo",
+        "build-systems",
+        "nx",
+        "turborepo",
+        "bazel",
+        "remote-cache",
+        "task-graph",
+        "pnpm-workspaces",
+        "dependency-management",
+        "supply-chain-security",
+        "renovate",
+        "code-generation"
+      ]
+    },
+    {
+      "name": "data-orchestration",
+      "source": "./plugins/data-orchestration",
+      "description": "Data-orchestration team — 2 agents (orchestration-architect, pipeline-orchestration-engineer) for the layer that RUNS and SCHEDULES data pipelines: orchestrator selection (Airflow, Dagster, Prefect, Mage, Temporal-for-data; cloud-native MWAA/Step Functions, Azure Data Factory, Cloud Composer/Workflows), DAG and software-defined-asset design, scheduling/triggers (cron, sensor, data-aware), backfills and catchup, idempotency and retries with exponential backoff, partitioning, freshness SLAs and alerting, and lineage. 3 skills (choose-orchestrator, design-dag-and-dependencies, handle-backfills-and-retries), a 2-doc knowledge bank (a Mermaid selection tree + a 2026 patterns reference), and 2 templates. Distinct from data-platform (ELT/warehouse/BI), analytics-engineering (dbt), and data-streaming-engineering (real-time) — this is the scheduling/run layer they plug into. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "airflow",
+        "dagster",
+        "prefect",
+        "dag",
+        "orchestration",
+        "scheduling",
+        "backfill",
+        "idempotency",
+        "data-pipeline",
+        "lineage",
+        "retries",
+        "partitioning"
+      ]
+    },
+    {
+      "name": "startup-fundraising",
+      "source": "./plugins/startup-fundraising",
+      "description": "Startup-fundraising team — 2 agents (fundraising-strategist + pitch-and-narrative-coach) and 3 skills for founders/operators raising venture capital: round strategy (pre-seed/seed/Series A; SAFE vs priced round; how much to raise and runway math), the pitch narrative and deck (problem/solution/market/traction/team/ask), the fundraising financial model, cap-table and dilution math (option pools, pro-rata, post-money SAFE conversion, the post-money cap dilution gotcha), term-sheet and SAFE essentials (valuation cap, discount, liquidation preference, board, pro-rata — ESSENTIALS not legal advice), investor pipeline/CRM and outreach, the data room, and investor updates. Founder-side literacy only. Seams: financial-model mechanics to finance; product what/why to product-management; binding term-sheet legal review to legal-ops-clm. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "fundraising",
+        "seed",
+        "series-a",
+        "safe",
+        "cap-table",
+        "dilution",
+        "pitch-deck",
+        "term-sheet",
+        "valuation",
+        "runway",
+        "investor-pipeline",
+        "data-room"
+      ]
+    },
+    {
       "name": "itsm-service-management",
       "source": "./plugins/itsm-service-management",
       "description": "IT Service Management (ITIL 4) team — 4 agents (service-management-lead, incident-and-problem-manager, change-and-release-manager, service-desk-and-request-manager) for running IT as a service: the ITIL 4 service value system and practice selection, incident vs problem vs major-incident handling, change enablement (standard/normal/emergency + the CAB) and release management, and the service desk — request fulfillment, SLAs/OLAs, knowledge management, the service catalog, and the CMDB/configuration management. 5 skills, a knowledge bank with Mermaid decision trees + a dated 2026 ITSM tooling map + an ITIL 4 practice reference, 8 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: engineering incident response/SRE/observability -> observability-sre, CI/CD release automation -> devops-cicd, security incidents/GRC -> cybersecurity-grc, cloud cost/asset -> finops-cloud-cost. Inherits ravenclaude-core protocols.",
@@ -254,7 +323,7 @@
       "name": "data-platform",
       "source": "./plugins/data-platform",
       "description": "Data-platform team — 4 agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) for cloud DBs, ELT (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4 / Shopify / HRIS / Planhat / Intercom / Slack-as-source plus 8-vendor support-tool integration coverage (Zendesk, Freshdesk, Intercom Conv+Tkt, SFDC Service Cloud, JSM, HubSpot Service, Help Scout, Front + 2026 Fivetran connector-MAR build-vs-buy math), and embedded dashboards (Evidence.dev / Superset / Metabase / Cube + Tremor). 13 skills (incl. support-ticket-normalization — conformed fct_ticket / fct_conversation_event over 8 vendors; cross-system-identity-resolution — the Salesforce↔Planhat↔Intercom↔Slack account spine), 12 templates, a 24-doc knowledge bank, 21 best-practices. Opinionated against per-viewer-priced BI for greenfield SMB. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.13.0",
+      "version": "0.13.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1098,7 +1167,7 @@
       "name": "devops-cicd",
       "source": "./plugins/devops-cicd",
       "description": "DevOps & CI/CD delivery-pipeline team — 4 agents (pipeline-engineer, release-engineer, gitops-engineer, build-and-artifact-engineer) for the path from commit to production: CI design (stages, caching, matrix, fail-fast, required checks), progressive delivery (blue-green, canary, feature-flagged rollouts, automated rollback), GitOps continuous delivery (Argo CD / Flux, desired-state in Git, drift detection), and build/artifact integrity (reproducible builds, semantic versioning, SBOM, provenance/SLSA, registry hygiene). 5 skills, a decision-tree knowledge bank (deploy-strategy + CI-vs-CD-boundary trees + a dated 2026 tooling map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: IaC -> terraform-iac, clusters -> cloud-native-kubernetes, telemetry/SLOs -> observability-sre, supply-chain verdicts -> ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "author": {
         "name": "Matt Corbett"
       },
