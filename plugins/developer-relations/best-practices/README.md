@@ -9,3 +9,5 @@ agents apply by default. They map to the discipline in
 - [`fix-the-product-before-writing-around-it.md`](fix-the-product-before-writing-around-it.md)
 - [`sample-code-is-production-code.md`](sample-code-is-production-code.md)
 - [`devrel-is-not-demand-gen.md`](devrel-is-not-demand-gen.md)
+- [`invest-at-the-weakest-funnel-stage.md`](invest-at-the-weakest-funnel-stage.md)
+- [`attribution-is-honest-or-absent.md`](attribution-is-honest-or-absent.md)
