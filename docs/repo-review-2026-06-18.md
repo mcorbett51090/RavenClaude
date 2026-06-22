@@ -66,7 +66,34 @@ Grouped by priority. Each fix was reproduced before and verified after.
 
 ---
 
-## B. Needs your design input (not auto-fixed)
+## B. Follow-up: all items below now IMPLEMENTED (2026-06-18)
+
+> The items in this section were originally deferred for design input. On a follow-up
+> pass they were all implemented in this same PR. Each entry keeps its original
+> description; the **✅ Resolved** line records what was done.
+>
+> - **B1** ✅ converted all 14 dead `grep -E` lines across 12 hooks to `grep -Pzi` (PCRE +
+>   NUL-multiline — semantics-exact, verified flagging + cross-line) **and** added a CI
+>   guard (`scripts/check-grep-ere-pcre.py`, audit-gates **Gate 104** + a direct
+>   validate-marketplace step) so the whole class can't regress.
+> - **B2** ✅ both team-portfolio renderers now `sanitize_events()` at the load point —
+>   a malformed event is dropped with a stderr warning (the documented fail-soft posture,
+>   house opinion #5), never crashes the render.
+> - **B3** ✅ `reset-plugin-cache.py` — EXDEV cross-mount swap now stages onto the target
+>   filesystem then atomic-renames; the snapshot is cleaned up on a rolled-back swap
+>   (kept only when it's the sole recovery anchor); newest-version selection is semver, not
+>   lexical. Gate 44 still green.
+> - **B4** ✅ `sanitize-webfetch-body.py` now resolves + root-contains **every** input
+>   (absolute *and* relative), closing the relative-path gap.
+> - **B5** ✅ data-platform `>30m JWT` regex now catches round tens (40m–90m) + 3-digit
+>   minutes; edtech-psm Check 5 fires again (over-broad `key: value` qualifier removed,
+>   plus a second never-fired `\<…\>` word-boundary bug the fix surfaced).
+> - **B6** ✅ `portfolio-collect.parse_iso` coerces tz-less timestamps to UTC (no more
+>   `TypeError`); `knowledge-health._bucket` caps the due-soon window at half the threshold
+>   (no more negative lower bound flagging every fresh file). reset-plugin-cache lexical
+>   version sort fixed under B3.
+
+## B (original). Needs your design input (not auto-fixed)
 
 ### B1. (P1) Systemic dead-regex in the advisory anti-pattern hook family
 

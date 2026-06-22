@@ -38,6 +38,27 @@ def load(path: str) -> dict:
         return json.load(fh)
 
 
+# Required keys every renderer indexes directly. A malformed event (hand-edited
+# artifact, schema drift) missing one used to crash the whole render; fail soft
+# instead (house opinion #5) — drop it with a stderr warning, keep going.
+_REQUIRED_EVENT_KEYS = ("type", "repo")
+
+
+def sanitize_events(activity: dict) -> dict:
+    kept = []
+    for event in activity.get("events", []):
+        missing = [k for k in _REQUIRED_EVENT_KEYS if not (isinstance(event, dict) and event.get(k))]
+        if missing:
+            print(
+                f"  skipping malformed event (missing {', '.join(missing)}): {event!r}",
+                file=sys.stderr,
+            )
+            continue
+        kept.append(event)
+    activity["events"] = kept
+    return activity
+
+
 def display_name(login: str | None, team: list[dict]) -> str:
     if not login:
         return "(unattributed)"
@@ -237,6 +258,7 @@ def main(argv: list[str] | None = None) -> int:
         print("Run portfolio-collect.py first.", file=sys.stderr)
         return 2
 
+    activity = sanitize_events(activity)
     config = None
     if args.config and os.path.isfile(args.config):
         config = json.loads(open(args.config, encoding="utf-8").read())

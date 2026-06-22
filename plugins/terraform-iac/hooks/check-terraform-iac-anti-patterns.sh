@@ -15,7 +15,7 @@ fi
 if grep -nEi "^\\s*count\\s*=" "$file" >/dev/null 2>&1; then
   findings+=("Resource uses 'count' — for collections prefer for_each (count recreates on reorder); count is fine only for a 0/1 conditional.")
 fi
-if grep -nEi "(source\\s*=\\s*\\\"[^\\\"]+\\\"(?![\\s\\S]{0,80}version\\s*=))" "$file" >/dev/null 2>&1; then
+if grep -Pzi "(source\\s*=\\s*\\\"[^\\\"]+\\\"(?![\\s\\S]{0,80}version\\s*=))" "$file" >/dev/null 2>&1; then
   findings+=("Module source without a pinned version nearby — pin module versions for reproducible init.")
 fi
 if grep -nEi "backend\\s+\\\"local\\\"" "$file" >/dev/null 2>&1; then

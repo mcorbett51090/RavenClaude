@@ -396,6 +396,13 @@ jobs:
         # and the generated copilot/ tree). See scripts/check-md-links.py.
         run: python3 scripts/check-md-links.py
 
+      - name: Verify no PCRE constructs inside grep -E (dead-check guard)
+        # A PCRE-only construct ((?:..)/(?!..)/[\s\S]) inside `grep -E` (POSIX ERE)
+        # is silently misparsed by GNU grep, so the advisory-hook check is DEAD and
+        # a clean run looks like a pass. bash -n can't see it. Keeps the hook corpus
+        # on pure ERE or grep -P. Teeth audited in audit-gates.sh Gate 104.
+        run: python3 scripts/check-grep-ere-pcre.py
+
       - name: Verify bundled MCP servers are attributed
         # Any plugin.json that declares an `mcpServers` block must carry a top-level
         # `x-mcpAttribution` map naming each server; third-party servers also need
