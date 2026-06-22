@@ -27,8 +27,14 @@ Partition on a single question — **is this a second independent writer, or a s
 - An orchestrator or CI matrix launching N independent agents that each commit → N worktrees (or N clones), one branch each.
 - "I want to try two approaches at once" → a worktree per approach; compare the branches, keep the winner.
 
+Claude Code ships **native** worktree support, so you usually don't drive `git worktree` by hand:
+
 ```shell
-# Each parallel instance gets an isolated working tree on its own branch:
+# Native (preferred) — Claude Code creates + scopes the session to its own worktree:
+claude --worktree feat/auth          # or the shorthand:  claude -w feat/auth
+claude agents                        # "agent view": dispatch/monitor background sessions, each auto-isolated in a worktree
+
+# Manual (always available — the underlying mechanism the flag automates):
 git worktree add ../repo-feat-auth   feat/auth      # instance A lives here
 git worktree add ../repo-feat-search feat/search    # instance B lives here
 # …work both in parallel, commit independently, then merge/PR each branch.
@@ -37,21 +43,21 @@ git worktree remove ../repo-feat-auth                # clean up when the branch 
 
 **Do:**
 
-- Give every concurrently-writing Claude Code instance its **own** worktree (or its own clone) on its **own** branch — the working tree and index are what must not be shared, and a worktree isolates exactly those while sharing history.
+- Give every concurrently-writing Claude Code instance its **own** worktree (or its own clone) on its **own** branch — the working tree and index are what must not be shared, and a worktree isolates exactly those while sharing history. Reach for native `--worktree`/`-w` or `claude agents` first; the manual `git worktree` commands are the same mechanism when you need finer control.
 - Reconcile the parallel work through **merge / PR**, the same way you'd integrate two humans' branches — that's the integration point, not the filesystem.
-- Use the bundled [`new-worktree`](../skills/new-worktree/SKILL.md) / [`cleanup-worktrees`](../skills/cleanup-worktrees/SKILL.md) skills so the create/branch/remove lifecycle is consistent (and prune stale worktrees — an abandoned one holds a branch ref and disk).
+- Use the bundled [`new-worktree`](../skills/new-worktree/SKILL.md) / [`cleanup-worktrees`](../skills/cleanup-worktrees/SKILL.md) skills so the create/branch/remove lifecycle is consistent (and prune stale worktrees — an abandoned one holds a branch ref and disk; Claude Code also auto-removes its own session worktrees past `cleanupPeriodDays` once they have no uncommitted/untracked/unpushed work).
 - In user-facing dispatch prose, the cross-branch traversal is "**Sleipnir**" — the same convention the sub-agent reads use.
 
 **Don't:**
 
 - Don't point two parallel instances at the **same** working directory expecting git to sort it out — it can't; concurrent edits/stages to one tree race and silently lose writes.
-- Don't reach for peer-process worktrees to solve the **sub-agent** write problem — a background sub-agent's git-write is auto-denied regardless of worktree, and `isolation: "worktree"` on a sub-agent _also strips `Read`_ (see the sibling rule). Worktrees are for independent **processes**, not for unlocking sub-agent commits.
+- Don't conflate this with the **sub-agent** case — a sub-agent's tool access and permissions are set by its `tools` / `disallowedTools` grant plus the session's permission mode (per [sub-agents.md](https://code.claude.com/docs/en/sub-agents)), and `isolation: "worktree"` on a sub-agent isolates its **working directory**, not its tools. Peer-process worktrees are for independent **instances**, not a lever for sub-agent permissions.
 - Don't leave worktrees lying around after their branch merges — `git worktree remove` (or the cleanup skill); a stale worktree is the peer-process analogue of an un-deleted merged branch.
 
 ## Edge cases / when the rule does NOT apply
 
 - **A single Claude Code instance** working one branch at a time needs no worktree — this is purely a _concurrent-writers_ rule. Sequential branch-switching in one session is fine on one tree.
-- **Sub-agents of one Team Lead** are the _other_ rule's domain ([`delegate-reads-fan-out-keep-branch-writes-in-main.md`](./delegate-reads-fan-out-keep-branch-writes-in-main.md)) — fan reads out, keep writes in main; a worktree doesn't change that.
+- **Sub-agents of one Team Lead** are the _other_ rule's domain ([`delegate-reads-fan-out-keep-branch-writes-in-main.md`](./delegate-reads-fan-out-keep-branch-writes-in-main.md)) — a sub-agent can be given its own worktree via `isolation: "worktree"` in its frontmatter (isolating its working directory, not its tool grant); whether it may git-write depends on its `tools` grant + the session's permission mode, not on this rule.
 - **Full clones** are a heavier but equally-valid isolation when the processes are on different machines or you want fully independent object stores; the worktree is the lighter-weight same-host choice (shared `.git`, no re-fetch).
 - **Web / remote sessions** (Claude Code on the web) run in an isolated container that _is_ the boundary — within one such session you're still a single writer; this rule bites when _you_ deliberately run several instances in parallel.
 
@@ -65,6 +71,8 @@ git worktree remove ../repo-feat-auth                # clean up when the branch 
 
 Distilled from a 2026-06-13 scan of Claude Code community discussion (r/ClaudeAI / r/ClaudeCode and aggregations of it) cross-checked against [Anthropic's Claude Code best-practices docs](https://code.claude.com/docs/en/best-practices) and the [git-worktree documentation](https://git-scm.com/docs/git-worktree). The community's recurring "run multiple Claude Code instances in parallel, each in its own git worktree, so they don't stomp each other" lesson was already _tooled_ on this repo (the `new-worktree`/`cleanup-worktrees` skills + the Sleipnir convention) and the sub-agent rule explicitly _deferred_ peer-process parallelism to a future rule — this names it as a consumer-facing best-practice. Research + panel record: [`docs/research/2026-06-13-claude-subreddit-scan/README.md`](../../../docs/research/2026-06-13-claude-subreddit-scan/README.md).
 
+**Re-verified 2026-06-13** against current primary docs ([run-parallel-sessions-with-worktrees](https://code.claude.com/docs/en/worktrees), [sub-agents.md](https://code.claude.com/docs/en/sub-agents), [agents.md](https://code.claude.com/docs/en/agents)): the core posture is current and now has **native** support — the `--worktree`/`-w` CLI flag (Claude Code v2.1.49/v2.1.50, Feb 2026) and the `claude agents` view auto-isolate sessions in worktrees. The same re-verification **corrected** two premises this rule originally inherited from the sibling rule and that current docs contradict: a sub-agent's git-write is **not** universally auto-denied (it's governed by the `tools`/`disallowedTools` grant + permission mode), and `isolation: "worktree"` isolates the **working directory, not the Read tool**. (The sibling rule [`delegate-reads-fan-out-keep-branch-writes-in-main.md`](./delegate-reads-fan-out-keep-branch-writes-in-main.md) and CLAUDE.md §"Delegating branch-mutating work" still assert the auto-deny as confirmed-2026-05-23 behavior — flagged for a separate re-verification, since it may have been environment-specific (remote/background) or have changed.)
+
 ---
 
-_Last reviewed: 2026-06-13 by `claude`_
+_Last reviewed: 2026-06-13 by `claude` (re-verified against primary docs same day)_
