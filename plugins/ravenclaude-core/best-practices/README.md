@@ -18,7 +18,7 @@ _19 rules._
 | [`command-review-when-to-enable.md`](./command-review-when-to-enable.md) | Pattern | Deciding whether to turn on the command-review tribunal. |
 | [`check-runtime-state.md`](./check-runtime-state.md) | Pattern | Before acting — read the event substrate (Heimdall / Víðarr / Norns tabs). |
 | [`operational-console-design.md`](./operational-console-design.md) | Absolute rule | Building or reviewing any operational dashboard or "single pane of glass" surface. |
-| [`delegate-reads-fan-out-keep-branch-writes-in-main.md`](./delegate-reads-fan-out-keep-branch-writes-in-main.md) | Absolute rule | Team Lead is about to fan work to sub-agents that includes any git write operation. |
+| [`delegate-reads-fan-out-keep-branch-writes-in-main.md`](./delegate-reads-fan-out-keep-branch-writes-in-main.md) | Pattern | Team Lead is about to fan work to sub-agents that includes any git write operation — serialize writes in main, or isolate each writer in its own worktree. |
 | [`tee-up-human-only-residue-dont-narrate-it.md`](./tee-up-human-only-residue-dont-narrate-it.md) | Absolute rule | Any agent finishing automatable work and preparing its final output for a human. |
 | [`definition-of-done-gate-makes-done-mean-done.md`](./definition-of-done-gate-makes-done-mean-done.md) | Pattern | Setting up a new project or any auto-mode session where tests must pass before the agent stops. |
 | [`focused-task-delegation-beats-full-context-dumps.md`](./focused-task-delegation-beats-full-context-dumps.md) | Pattern | Team Lead is about to delegate to a specialist — compose the task brief. |
