@@ -12,8 +12,8 @@
 
 **Precedent (the rule was extracted from this case):** the `data-platform` plugin's v0.1.0 plan originally proposed two parallel agents (`data-platform-architect` and `embed-security-reviewer`). Expert review (prompt-engineer on B2 and B4, 2026-05-21) found both proposals to be wrappers around core's `architect` and `security-reviewer` plus a decision tree's worth of domain priors — exactly what skills + knowledge files are for. Both were deleted; the plan now ships:
 
-- `data-platform/skills/stack-selection.md` — invoked by `ravenclaude-core/architect` via the inline prior on that agent's file
-- `data-platform/skills/jwt-embed-issuance.md`, `rls-policy-authoring.md`, `embed-csp-and-iframe-sandboxing.md` — invoked by `ravenclaude-core/security-reviewer` via the inline pointer on that agent's file
+- `data-platform/skills/stack-selection/SKILL.md` — invoked by `ravenclaude-core/architect` via the inline prior on that agent's file
+- `data-platform/skills/jwt-embed-issuance/SKILL.md`, `rls-policy-authoring/SKILL.md`, `embed-csp-and-iframe-sandboxing/SKILL.md` — invoked by `ravenclaude-core/security-reviewer` via the inline pointer on that agent's file
 
 The marketplace precedent at the time of the rule's extraction was unanimous: **5 of 5** domain plugins (power-platform, regulatory-compliance, finance, edtech-partner-success, web-design) had **no** plugin-specific security reviewer. All security review escalates to `ravenclaude-core/security-reviewer`. Domain-specific patterns live in skills and knowledge files that core agents invoke.
 
