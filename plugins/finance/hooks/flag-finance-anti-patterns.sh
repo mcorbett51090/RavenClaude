@@ -71,7 +71,7 @@ case "$file" in
       violations+=("  [plaintext-pii-iban] $file contains a string matching the IBAN pattern. Verify it's not a real bank account; replace with placeholder if it is.")
     fi
     # Credit-card-shaped: 13-19 digits, often with separators. Very conservative.
-    if grep -Eni '\b(4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})\b' "$file" >/dev/null 2>&1; then
+    if grep -Eni '\b(4[0-9]{12}([0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|6(011|5[0-9]{2})[0-9]{12})\b' "$file" >/dev/null 2>&1; then
       violations+=("  [plaintext-pii-card] $file contains a string matching a credit-card number pattern. Replace with placeholder if it is real.")
     fi
     ;;
