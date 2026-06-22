@@ -4,11 +4,11 @@ All notable changes to this plugin are documented here. Versioning is semver; bu
 
 ## [0.2.0] — 2026-06-22
 
-Execution value-adds: email deliverability + content-marketing engine. No agents added; all existing files unchanged.
+Execution value-add: content-marketing engine. No agents added; all existing files unchanged.
 
-- **+2 skills** — `email-deliverability` (SPF/DKIM/DMARC alignment & policy, dedicated-vs-shared IP, warmup, reputation) and `content-engine` (intent briefs, topic clusters/pillar pages, distribution, leading-vs-lagging measurement). Now **7 skills**.
-- **+2 knowledge docs** — `knowledge/email-deliverability.md` (2 Mermaid decision trees) and `knowledge/content-marketing-engine.md` (1 Mermaid decision tree). Now a **6-file knowledge bank**.
-- **+4 best-practice rules** — `authenticate-spf-dkim-dmarc-before-you-send`, `warm-up-and-protect-sender-reputation`, `brief-every-piece-against-a-search-intent`, `build-topic-clusters-not-orphan-posts`. Now **12 rules**.
+- **+1 skill** — `content-engine` (intent briefs, topic clusters/pillar pages, distribution, leading-vs-lagging measurement). Now **6 skills**.
+- **+1 knowledge doc** — `knowledge/content-marketing-engine.md` (1 Mermaid decision tree). Now a **5-file knowledge bank**.
+- **+2 best-practice rules** — `brief-every-piece-against-a-search-intent`, `build-topic-clusters-not-orphan-posts`. Now **10 rules**.
 
 ## [0.1.0] — 2026-06-08
 

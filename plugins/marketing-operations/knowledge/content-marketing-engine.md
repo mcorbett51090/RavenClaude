@@ -61,7 +61,7 @@ Every piece ships against a brief — the brief, not the draft, is where quality
 
 Publishing is not distributing — plan distribution per piece, don't assume search alone:
 
-- **Owned** — email/newsletter to the engaged list (see [`email-deliverability.md`](email-deliverability.md)), site, community.
+- **Owned** — email/newsletter to the engaged list, site, community.
 - **Earned** — search/AI-answer placement, mentions, syndication, PR.
 - **Paid** — amplify the proven winners, not every piece.
 - Repurpose one pillar into many formats (clips, threads, slides) across channels — atomize, don't re-create from scratch.
