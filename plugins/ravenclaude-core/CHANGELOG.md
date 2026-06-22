@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.159.0 — 2026-06-22
+
+### Added
+
+- **Visual-feedback-loop `parity` gate — diff a visual against a known-good exemplar** ([`skills/visual-feedback-loop/driver.py`](skills/visual-feedback-loop/driver.py), v0.2.0). Surfaces a structural class the layout linter can't see: a visual that is *perfectly placed* yet renders **blank** because its render skeleton is missing something its working twin has. The new `parity` config (`{"candidate": "...visual.json", "reference": "...visual.json"}`) extracts a PBIR render skeleton from each and is **asymmetric** — it **fails** (`next_action: match-reference-exemplar`) on what the candidate is **MISSING** relative to the exemplar (a missing query role `Values`/`Data`/`Indicator`; a dropped objects key, e.g. a `card` that dropped `labels` and substituted `calloutValue`; a missing per-item `$id`) and **passes benign additions** (an extra cosmetic object key, an optional role). It is a **diff surfacer, not a render oracle** — it validates the exemplar first (refuses a self-reference or a degenerate no-query-role reference → `not_captured`, so a bad exemplar can't launder a ship), and a different `visualType`/non-PBIR shape is also `not_captured`. Echoes only allowlist-sanitized schema tokens (`\A…\Z` + fullmatch, so a trailing-newline token can't slip through), never raw `visual.json` content. Documented generically for all declarative-viz (Vega-Lite, Tableau) in [`knowledge/visual-feedback-loop.md`](knowledge/visual-feedback-loop.md); runnable differ is PBIR-first. Hardened by an adversarial FORGE review (12 Gate-100 parity cases incl. benign-superset must-pass, pure-drop/partial-`$id`/degenerate-reference/self-reference, candidate-path traversal, + two teeth mutants). Origin: a Fabric/PBIR field session that burned four deploy-and-eyeball cycles before diffing against the confirmed-working exemplar cracked it.
+
+### Notes
+
+- **Migration:** none — additive `parity` gate (off unless a config supplies it); the driver envelope shape is unchanged. Nothing changes on `/plugin marketplace update`.
+
 ## 0.158.0 — 2026-06-22
 
 ### Added
