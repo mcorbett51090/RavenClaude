@@ -116,6 +116,7 @@ Advisory by default (`exit 0` + stderr). Set `EMAIL_ENG_STRICT=1` to make it blo
 | [`knowledge/email-authentication-decision-tree.md`](knowledge/email-authentication-decision-tree.md) | Setting up auth or diagnosing spam — the 3 Mermaid trees (setup / diagnosis / ESP-choice) + the alignment table + Gmail/Yahoo gates |
 | [`knowledge/deliverability-fundamentals.md`](knowledge/deliverability-fundamentals.md) | The stable model — the deliverability stack, reputation, warm-up, stream separation, the two rates, one-click unsubscribe |
 | [`knowledge/esp-capability-map-2026.md`](knowledge/esp-capability-map-2026.md) | Choosing an ESP — dated, `[verify-at-use]` vendor comparison + the durable selection checklist |
+| [`knowledge/transport-security-mta-sts-tls-rpt.md`](knowledge/transport-security-mta-sts-tls-rpt.md) | Hardening SMTP transport beyond DMARC — MTA-STS (RFC 8461) enforce-ramp + policy file, TLS-RPT (RFC 8460) reporting, and the ARF (RFC 5965) feedback-loop format behind suppression |
 
 **Templates:** `dmarc-rollout-plan.md`, `transactional-email-spec.md`, `deliverability-incident-runbook.md`. **Best-practices:** 8 rules + README. **Scenarios:** 2 dated narratives + README. **Script:** `scripts/email_auth_lint.py`.
 
@@ -139,8 +140,8 @@ Advisory by default (`exit 0` + stderr). Set `EMAIL_ENG_STRICT=1` to make it blo
 | --- | --- | --- |
 | 2 agents | **BUILT** | architect (strategy/DNS) + engineer (send path/templates), full scenario-authoring frontmatter. |
 | 5 skills | **BUILT** | auth-setup, deliverability-audit, transactional-integration, template-engineering, suppression. |
-| Knowledge (Mermaid trees) | **BUILT** | 3 docs; 3 Mermaid trees (setup / diagnosis / ESP-choice) + dated capability map. |
-| best-practices / templates / commands | **BUILT** | 8 best-practices, 3 templates, 4 commands. |
+| Knowledge (Mermaid trees) | **BUILT** | 4 docs; 3 Mermaid trees (setup / diagnosis / ESP-choice) + dated capability map + transport-security (MTA-STS/TLS-RPT). |
+| best-practices / templates / commands | **BUILT** | 9 best-practices, 3 templates, 4 commands. |
 | Scenarios bank | **BUILT** | README + 2 dated, scope-tagged scenarios (DMARC/forwarding, Gmail/Yahoo bulk). |
 | Runnable script | **BUILT** | `email_auth_lint.py` — SPF/DMARC record linter, stdlib only, ruff-clean, no DNS lookups. |
 | Advisory hook | **BUILT** | `flag-email-smells.sh` — 4 mechanical checks. |
@@ -152,3 +153,4 @@ Advisory by default (`exit 0` + stderr). Set `EMAIL_ENG_STRICT=1` to make it blo
 ## 11. Milestones
 
 - **v0.1.0** — initial build: 2 agents, 5 skills, a 3-doc knowledge bank (3 Mermaid trees + dated ESP map), 8 best-practices, 3 templates, 4 commands, a scenarios bank (2), a stdlib auth linter, and 1 advisory hook. Seams to marketing-operations, backend/api-engineering, the cloud plugins, and security-engineering.
+- **v0.2.0** — transport-security layer (ported from the `email-deliverability-engineering` proposal, PR #435, which was retired as a duplicate): a new `transport-security-mta-sts-tls-rpt.md` knowledge doc (MTA-STS RFC 8461 enforce-ramp + policy file, TLS-RPT RFC 8460 reporting, ARF RFC 5965 feedback-loop format) + the `enforce-transport-security-with-mta-sts` best-practice rule. Closes the one genuine gap the duplicate covered (the auth bank had SPF/DKIM/DMARC/BIMI but not the transport layer).

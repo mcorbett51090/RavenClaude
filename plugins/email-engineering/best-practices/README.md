@@ -12,6 +12,7 @@
 | [`make-sends-and-webhooks-idempotent.md`](make-sends-and-webhooks-idempotent.md) | Absolute | Exactly-once under at-least-once delivery |
 | [`honor-one-click-unsubscribe-and-suppress.md`](honor-one-click-unsubscribe-and-suppress.md) | Absolute | Complaints are cheaper to prevent than recover |
 | [`volatile-deliverability-claims-carry-retrieval-dates.md`](volatile-deliverability-claims-carry-retrieval-dates.md) | Absolute | Gmail/Yahoo/BIMI specifics drift |
+| [`enforce-transport-security-with-mta-sts.md`](enforce-transport-security-with-mta-sts.md) | Strong default | Close the opportunistic-STARTTLS downgrade gap (MTA-STS + TLS-RPT) |
 
 ## Promotion path
 
