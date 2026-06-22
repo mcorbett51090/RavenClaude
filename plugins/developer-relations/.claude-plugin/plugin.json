@@ -1,0 +1,29 @@
+{
+  "name": "developer-relations",
+  "version": "0.1.0",
+  "description": "Developer-relations / DevRel team — 3 agents (developer-advocate, devrel-content-engineer, developer-community-manager) for the developer experience of a product with an API/SDK: time-to-first-success (getting-started) audits, sample-app and SDK-quickstart design, a DX content strategy, community health, DX metrics (activation funnel), and the product-feedback loop that fixes the product instead of writing around it. 4 skills, a 2-doc knowledge bank with Mermaid decision trees (advocate-vs-docs-vs-community, fix-the-product-or-document-it, content-format choice), 4 best-practices, 5 templates, 4 commands, and 1 advisory anti-pattern hook. Distinct from technical-writing-docs (reference docs), marketing-operations (demand gen), and product-management (what to build). Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "developer-relations",
+    "devrel",
+    "developer-advocacy",
+    "developer-experience",
+    "dx",
+    "time-to-first-success",
+    "getting-started",
+    "sample-app",
+    "sdk-quickstart",
+    "developer-community",
+    "dx-metrics",
+    "activation-funnel",
+    "product-feedback-loop",
+    "developer-content"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
