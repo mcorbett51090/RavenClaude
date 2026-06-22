@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.5.2] — 2026-06-13
+
+Research-sweep **correction** (Tier-A weekly news sweep) — **custom org-built federated connectors are now supported** (the prior "synced only / no custom federated connectors" restriction was lifted). Re-verified this session against the primary source via the Microsoft-Learn MCP: [Set up custom federated connectors](https://learn.microsoft.com/microsoft-365/copilot/connectors/set-up-custom-federated-connectors). Routed through the full panel process — usefulness → USEFUL; detailed review flagged a P0 (the edit overwrote a 2026-06-11-verified "no" with a "yes"), so it was **escalated to a tiebreak panel**, which ruled **APPROVE-WITH-FIX** once the orchestrator re-verified against Microsoft Learn this session; the required fixes (this-session verification marker + `[verify-at-use]` + a `security-reviewer` routing note for the org-operated MCP server) are applied.
+
+### Fixed
+
+- **`knowledge/copilot-connectors-2026.md`** — the federated-connector line stated "**no custom federated connectors** (synced only)"; this is now false. Documented that a custom federated connector starts with an **org-stood-up remote MCP server** exposing **read-only** tools (`search`/`fetch`/`query`, `readOnlyHint`-annotated), auth via **Entra SSO or OAuth 2.0**, created in **Admin Center → Copilot → Connectors → Gallery → "Created by your org"**. Added a mandatory **`ravenclaude-core/security-reviewer` routing note** for the org-operated server's auth/scope/ACL (house opinion #7), a this-session verification marker, and `[verify-at-use]`. Updated the refresh-trigger note.
+- Version **0.5.1 → 0.5.2** in `.claude-plugin/plugin.json` **and** `marketplace.json` (lockstep).
+
 ## [0.5.1] — 2026-06-11
 
 Research-sweep **correction** — flipped the stale `[verify-at-build]` GA marker on federated/MCP connectors, re-verified 2026-06-11 against `learn.microsoft.com` via the Microsoft-Learn MCP.

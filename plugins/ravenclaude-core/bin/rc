@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# rc — RavenClaude one-verb front door.
+#
+# The single command consumers (and Copilot/Claude on their behalf) run instead
+# of remembering python invocations. Today it has one verb: `rc dashboard`.
+#
+#   rc dashboard [--port N] [--no-open]   Launch the comfort-posture dashboard.
+#
+# DESIGN — why this never `cd`s:
+#   serve-dashboards.py resolves the project root from `Path.cwd()`, so
+#   `.ravenclaude/comfort-posture.yaml` (and everything Save & apply writes) lands
+#   in whatever directory you ran `rc` from — your project, not the plugin. The
+#   launcher therefore preserves the caller's cwd and only resolves the *script*
+#   path relative to itself, so it works from any clone location and any host
+#   (Claude Code, Copilot CLI, a bare terminal).
+#
+# GETTING `rc` ON YOUR PATH (optional — Copilot/Claude can run it by full path):
+#   export PATH="$PATH:<your-ravenclaude-clone>/plugins/ravenclaude-core/bin"
+#   Then `rc dashboard` works from any directory. Without it, run it by path:
+#   bash <clone>/plugins/ravenclaude-core/bin/rc dashboard
+
+set -euo pipefail
+
+# Resolve this script's own directory (follow one symlink level for PATH installs).
+_src="${BASH_SOURCE[0]}"
+[ -L "$_src" ] && _src="$(readlink "$_src")"
+BIN_DIR="$(cd "$(dirname "$_src")" && pwd)"
+PLUGIN_ROOT="$(cd "$BIN_DIR/.." && pwd)"
+
+_usage() {
+  cat >&2 <<EOF
+rc — RavenClaude front door
+
+Usage:
+  rc dashboard [--port N] [--no-open]   Launch the comfort-posture dashboard (local server).
+                                        Run it from your project root so .ravenclaude/ is
+                                        written there. Prints the URL it binds.
+
+Notes:
+  - The dashboard is a small LOCAL server bound to 127.0.0.1 — single-user, no auth.
+  - In a Codespace the forwarded port opens automatically; open it in a REAL browser
+    tab (not VS Code Simple Browser) and keep the port Private (Save writes files).
+EOF
+}
+
+cmd="${1:-}"
+case "$cmd" in
+  dashboard)
+    shift
+    server="$PLUGIN_ROOT/scripts/serve-dashboards.py"
+    if [ ! -f "$server" ]; then
+      echo "rc: cannot find serve-dashboards.py at $server" >&2
+      exit 1
+    fi
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — the dashboard server needs python3." >&2
+      exit 1
+    }
+    # exec (no cd): replace this process so Ctrl+C stops the server cleanly, and
+    # the server inherits the caller's cwd as the project root.
+    exec python3 "$server" "$@"
+    ;;
+  "" | -h | --help | help)
+    _usage
+    # No verb is an error (so scripts catch it); explicit help is a success.
+    [ -z "$cmd" ] && exit 1 || exit 0
+    ;;
+  *)
+    echo "rc: unknown command '$cmd' (try: rc dashboard)" >&2
+    _usage
+    exit 1
+    ;;
+esac
