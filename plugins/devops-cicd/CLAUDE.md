@@ -35,6 +35,7 @@
 - **Deploy health gates, SLO burn-rate, and release telemetry** → `observability-sre` — a canary needs a signal to promote/abort, and that signal is theirs.
 - **The verdict that an SBOM/provenance finding is acceptable to ship** → `ravenclaude-core/security-reviewer`; `security-engineering` does the supply-chain scanning craft.
 - **Per-cloud deploy targets (App Service, ECS, Cloud Run)** → `azure-cloud` / `aws-cloud` / `gcp-cloud`.
+- **The build TOOL itself** (monorepo task graph, Nx/Turborepo/Bazel/Buck2 selection, remote-cache *correctness*/hermeticity, dependency & lockfile policy, renovate/dependabot, SBOM/provenance authoring) → [`developer-tooling`](../developer-tooling/CLAUDE.md). This plugin runs `nx affected` / `turbo run` *in the pipeline* and operates the runner cache; that plugin chooses and tunes the build tool the pipeline calls. (Same split as `backend-engineering` ↔ this plugin.)
 - **Cross-repo release activity & who-shipped-what** → `team-portfolio`.
 
 ## 4. Inheritance
