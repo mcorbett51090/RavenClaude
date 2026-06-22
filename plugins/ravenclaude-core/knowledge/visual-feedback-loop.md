@@ -53,15 +53,63 @@ applied, conditional formatting fired, overlap-once-data-loads). Structural-only
 Anchor the loop on these, not on "looks better":
 
 - **Layout linter clean** (no overlap, within-canvas, equal gaps, aligned columns) — `pbir-layout-engine` exit 0.
+- **Structural parity** with a known-good exemplar of the same kind — the candidate isn't **missing** a render-risk element the exemplar carries (a query role / an objects key / a per-item `$id`) — `driver.py` `parity` gate exit 0. *(Surfaces a structural class the layout linter can't see — but it is a diff against a chosen exemplar, not a render oracle; see below.)*
 - **Zero console errors** (or your declared `max_console_errors`).
 - **Lighthouse accessibility ≥ threshold** (default 90), and performance/best-practices ≥ their thresholds.
 - **No element overflows the declared viewport.**
 - **Contrast passes** WCAG 2.2 SC 1.4.3 / 1.4.11 (for web — pair with the `accessibility-auditor`).
 
-The referee (`driver.py`) merges the layout linter + agent-captured console +
-Lighthouse evidence into one `passed` / `next_action`. `next_action` is the loop's
-instruction; `passed: null` means "nothing determinate yet — capture more evidence or
-do the named manual review", which is **not** a failure.
+The referee (`driver.py`) merges the layout linter + the parity gate +
+agent-captured console + Lighthouse evidence into one `passed` / `next_action`.
+`next_action` is the loop's instruction; `passed: null` means "nothing determinate
+yet — capture more evidence or do the named manual review", which is **not** a failure.
+
+## Parity — diff against a known-good exemplar (a diff surfacer, not a render oracle)
+
+The layout linter answers *"is the geometry valid?"* It cannot answer *"will this
+visual actually render?"* — a visual can sit at perfect coordinates and still come
+back **blank** because its *structure* is subtly wrong for its type. So when a
+render fails mysteriously (blank tile, missing content, no error toast), the
+highest-leverage move is **not** to guess-and-deploy — it is to **open a confirmed-working
+visual of the same kind and diff your render skeleton against it.** Replicate the
+exemplar, don't reinvent.
+
+**What it is — and what it is NOT.** The `parity` gate is a **structural diff
+against an exemplar you choose**; it is *not* an absolute "this will render"
+oracle. It can only be as good as the reference you hand it — so be honest about
+that: it validates that the reference is a non-degenerate exemplar (has a query
+role; isn't the candidate itself) and otherwise treats it as the spec. It is
+deliberately **asymmetric** — it fails on what the candidate is **MISSING**
+relative to the exemplar (the render-risk direction), and **passes benign
+additions** (an extra cosmetic object key, an optional role). It cannot tell a
+truly-working twin from a second broken tile; that judgment is yours.
+
+The referee runs it as the **`parity` gate**: point it at a `candidate` and a
+`reference` `visual.json` of the **same `visualType`**, and it flags render-risk
+**omissions** — a **missing query role** (`Values`/`Data`/`Indicator`), a
+**dropped objects key** (e.g. a legacy `card` that dropped `labels` and substituted
+`calloutValue`), or a **missing per-item `$id`** (the `cardVisual` blank cause). A
+*different* `visualType`, a non-PBIR shape, a self-reference, or a degenerate
+exemplar (no query role) → `not_captured` (never a false fail). It echoes only
+allowlist-sanitized schema tokens — never raw `visual.json` content — so a hostile
+spec can't launder instructions into the verdict.
+
+This **generalizes to any declarative-viz format** — the runnable differ is PBIR
+`visual.json` today (where the field evidence and the `pbir-*` tooling live), but
+the discipline applies to Vega-Lite specs, Tableau `.twb` XML, or any format where
+a working exemplar of the same chart kind exists: *compare against the nearest
+thing that renders before you iterate.*
+
+**Field case (the lesson this came from).** A Fabric/PBIR build had every count/score
+tile rendering invisible across repeated deploys. Four deploy-and-eyeball cycles
+burned guessing at `kpi` / `cardVisual` variants; the fix arrived only when the
+agent **diffed the failing tile against the confirmed-working `card` exemplar** and
+replicated it exactly (`card` + `Values` role + `labels`/`categoryLabels`). The
+parity gate makes that diff a one-step determinate check instead of a deploy cycle.
+The PBIR-specific facts (the card-family role matrix, `cardVisual` renders blank
+when authored programmatically, the `calloutValue`-on-`card` trap) live in
+power-platform `knowledge/pbir-enhanced-reference.md` — consult it *first*; the gate
+is the backstop for when a render still surprises you.
 
 ## Graceful degradation (the loop must not stall for consumers)
 
