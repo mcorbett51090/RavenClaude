@@ -24,14 +24,24 @@ name: Regenerate generated artifacts (post-merge self-heal)
 # Scope: marketplace-claims counts, concepts.json (the Learn-tab registry), concept
 # + decision-tree SVGs, dashboard.html (full plugin artifact), index.html (the
 # unified portal — folds the dashboard + catalog in natively), the per-plugin BI
-# report.html, and the Copilot package. Each step is staleness-gated (--check), so a
-# merge that changed none of them is a fast no-op (and never even loads mermaid-cli).
+# report.html, the Copilot package, the Problems & Resolutions feedback-report.html
+# (scenario corpus), and the Learn-tab docs/concepts.md. Each step is staleness-gated
+# (--check), so a merge that changed none of them is a fast no-op (and never even
+# loads mermaid-cli).
 #
 # concepts.json + report.html were ADDED to this self-heal on 2026-06-08: their
 # freshness gates were still running at PR time in audit-gates (unlike dashboard/
 # SVG/count, which had been relocated here), so a sibling merge that staled them
 # failed every unrelated open PR — the exact cross-PR contagion this workflow exists
 # to kill. Their PR-time "clean tree" gates were removed in the same change.
+#
+# feedback-report.html + docs/concepts.md were ADDED 2026-06-14 for the same reason:
+# both carry a freshness gate that runs at PR time (audit-gates Gate 99 for the
+# feedback report; a direct generate-concepts-doc.py --check in validate-marketplace
+# for the concept doc) but had no regen step here, so a sibling scenario/concept merge
+# could stale them and fail every open PR with nothing on main to heal it. Unlike the
+# 2026-06-08 pair, their PR-time gates are KEPT (the artifacts are small and the gate
+# doubles as a teeth check); the self-heal simply guarantees main returns to fresh.
 
 on:
   push:
@@ -49,6 +59,8 @@ on:
       - "scripts/render-trees.py"
       - "scripts/generate-bi-report.py"
       - "scripts/generate-copilot-plugin.py"
+      - "scripts/generate-feedback-report.py"
+      - "scripts/generate-concepts-doc.py"
       - "scripts/check-marketplace-claims.py"
       - ".github/workflows/regenerate-artifacts.yml"
   workflow_dispatch:
@@ -182,6 +194,30 @@ jobs:
           if ! python3 scripts/generate-copilot-plugin.py --check >/dev/null 2>&1; then
             echo "copilot package stale — regenerating."
             python3 scripts/generate-copilot-plugin.py
+          fi
+
+          # 4d. feedback-report.html — the Problems & Resolutions view built from the
+          #     scenario corpus (plugins/<plugin>/scenarios/*.md). Pure Python. Added
+          #     to the self-heal 2026-06-14: it carries an audit-gates "feedback-report
+          #     freshness (clean tree)" gate (Gate 99) that runs in CI, but had no regen
+          #     step here — so a sibling scenario merge staled it and failed every open
+          #     PR with nothing on main to heal it (the exact contagion this workflow
+          #     exists to kill; same gap concepts.json/report.html had before 2026-06-08).
+          if ! python3 scripts/generate-feedback-report.py --check >/dev/null 2>&1; then
+            echo "feedback-report.html stale — regenerating from the scenario corpus."
+            python3 scripts/generate-feedback-report.py
+            python3 scripts/generate-feedback-report.py --check
+          fi
+
+          # 4e. docs/concepts.md — the Learn-tab concept doc derived from concepts.json
+          #     (regenerated in step 1b above, so this must run AFTER it). Added to the
+          #     self-heal 2026-06-14: it has BOTH an audit-gates clean-tree gate and a
+          #     direct PR-time `generate-concepts-doc.py --check` in validate-marketplace,
+          #     but no regen step here — the same latent contagion as 4d.
+          if ! python3 scripts/generate-concepts-doc.py --check >/dev/null 2>&1; then
+            echo "docs/concepts.md stale — regenerating from concepts.json."
+            python3 scripts/generate-concepts-doc.py
+            python3 scripts/generate-concepts-doc.py --check
           fi
 
           # 5. Commit only if something actually changed.
