@@ -44,3 +44,7 @@ This is why the tiering is a manifest, not hard-coded: it is meant to drift with
 - [`.github/workflows/researcher-reminder.yml`](../.github/workflows/researcher-reminder.yml) — the weekly-deep issue now scopes itself to Tier A via the manifest, and the monthly skill-gap audit remains the structural-gap pass.
 - [`knowledge-file-staleness-sweep`](../plugins/ravenclaude-core/skills/knowledge-file-staleness-sweep/SKILL.md) — the staleness-tier concept (Tier-4 fast-churn) is the per-file complement to this per-plugin cadence; the two agree (a Tier-4 file lives in a Tier-A plugin).
 - The PR/no-PR boundary is unchanged (AGENTS.md): knowledge-file edits ship via PR + version bump; this spec doc is docs-only.
+
+## Learn-tab improvement output (added 2026-06-12)
+
+The Tier A sweep for `web-design` and `frontend-engineering` has a **third output** beyond corrections and additions to plugin knowledge files: a **Learn-tab improvement pass** that checks whether new documentation, web-design, or interactivity best practices warrant a new concept card in `plugins/ravenclaude-core/knowledge/concepts/` (the source for the portal's Learn section). Full protocol in [`plugins/ravenclaude-core/skills/researcher/SKILL.md`](../plugins/ravenclaude-core/skills/researcher/SKILL.md) § "Learn-tab improvement pass." The honest null result applies here too: "0 net-new concept candidates this week" is a valid output.

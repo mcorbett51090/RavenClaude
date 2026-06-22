@@ -1,0 +1,3 @@
+# Follow each OS's native conventions
+
+A cross-platform desktop app shares a codebase, not a UX — tray/menu-bar items, application menus, notifications, keyboard shortcuts, and window behaviors differ per platform, and users notice when they're wrong. A macOS app belongs in the menu bar with a real App menu and the standard Edit/Window items and `Cmd`-based shortcuts; a Windows app puts menus on the window, uses the system tray, and `Ctrl`-based shortcuts. Build per-OS menu templates and platform-specific shortcut maps rather than one lowest-common-denominator approximation, and respect each OS's focus/Do-Not-Disturb state for notifications. The point of a desktop app over a web app is that it feels native — ignoring the platform idiom throws that away.

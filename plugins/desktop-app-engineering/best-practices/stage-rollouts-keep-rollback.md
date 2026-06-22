@@ -1,0 +1,3 @@
+# Stage rollouts and keep a rollback
+
+A desktop auto-update that goes to 100% of users at once turns a single bad build into a fleet-wide outage you can't take back — unlike a web deploy, the broken code is now installed on every user's machine. Ship updates behind **channels** (stable/beta, so testers absorb risk first), roll out in **stages** (a small percentage, watch crash and health metrics, then widen), keep the **previous version recoverable** so you can halt and revert, and set a **version floor** that can force-migrate clients below a minimum. The discipline is the same as progressive delivery for services — it just matters more here because you can't instantly roll back code that already auto-installed.

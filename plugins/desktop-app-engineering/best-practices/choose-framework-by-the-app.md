@@ -1,0 +1,3 @@
+# Choose the desktop framework by the app, not by familiarity
+
+Decide Electron vs Tauri vs native vs PWA by the app's real needs — bundle size and memory budget, the depth of native-API integration, the team's languages, the acceptable security surface, and update/distribution needs — and name the trade you accept. Electron wins on web-UI maturity and ecosystem at the cost of a heavy bundle; Tauri wins on footprint and a secure-by-default capability model at the cost of Rust and per-OS system-webview testing; native wins on platform-native UX at the cost of shared code; a PWA wins when the OS needs are light enough that a desktop shell adds risk without value. Defaulting to whatever the team already knows is a trade you didn't price.

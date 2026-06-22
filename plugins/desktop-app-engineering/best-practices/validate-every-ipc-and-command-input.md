@@ -1,0 +1,3 @@
+# Validate every IPC handler and command input
+
+An `ipcMain.handle` handler (Electron) or a `#[tauri::command]` (Tauri) is an entry point invoked by untrusted web content — treat it exactly like a public API endpoint. Validate every argument: type, length, format, and range, and resolve any path against an allowed base directory to defeat traversal (`../../etc/passwd`). An unvalidated handler that does `fs.readFile(userPath)` or `exec(userCmd)` is an arbitrary-file-read or command-injection bug reachable from a compromised renderer. Reject malformed input loudly rather than coercing it, and never echo a raw filesystem or OS error back to the renderer in a way that leaks paths or internals.

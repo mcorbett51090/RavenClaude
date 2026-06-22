@@ -6,22 +6,24 @@ This file is Claude Code's entry point. The `@AGENTS.md` import above pulls in t
 
 ---
 
-## Remote-environment PR mechanics (Claude Code on the web) — refreshed 2026-06-02
+## Remote-environment PR mechanics (Claude Code on the web) — re-verified 2026-06-11
 
-**Three working paths exist for creating a PR from this Codespace; pick one, don't generalize a failure on one into "can't create a PR."** A prior session (2026-05-31) wrongly reported it "couldn't create a PR" after a CLI/API dead-end and recorded MCP as the *only* path. Re-verified 2026-06-02: `gh` is now installed and authenticated, the direct GitHub API returns `200`, and the git remote is real github.com — so all three paths work. This refresh records that.
+> **CI may not auto-run on a pushed commit (added 2026-06-22).** In a remote session a `git push` can update the PR head on GitHub **without** Actions creating any workflow run for it — the PR then has *no checks* and "merge when green" never fires. After every push, confirm a run exists for the **current head** (`pull_request_read get_check_runs` / `actions_list list_workflow_runs` → compare `head_sha`); if none, re-trigger each PR workflow with `actions_run_trigger run_workflow` (`workflow_dispatch`) on the branch, wait, then merge when all are `success`. **Do not** conclude "Actions minutes exhausted" from "no runs" — a successful dispatch disproves that (it did on PR #452). Full detection + remedy: [`docs/remote-ci-autotrigger-runbook.md`](docs/remote-ci-autotrigger-runbook.md).
 
-The capability chain (re-verified 2026-06-02):
+**Don't generalize a failure on one route into "can't create a PR."** A prior session (2026-05-31) wrongly reported it "couldn't create a PR" after a CLI/API dead-end. That lesson stands — but a later refresh (2026-06-02) over-corrected by claiming `gh` was "now installed and authenticated" and the direct API "returns 200". **Re-verified 2026-06-11: that is false in this environment.** `command -v gh` returns not-found (gh is not installed) and the direct GitHub API `403`s. The sanctioned, working path here is the **GitHub MCP server** — which matches the plugin constitution ([`plugins/ravenclaude-core/CLAUDE.md`](plugins/ravenclaude-core/CLAUDE.md) § "absent tool" case study), which has correctly said all along that "creating a PR is _only_ the GitHub MCP path."
+
+The capability chain (re-verified 2026-06-11):
 
 | Path | Works? | This-session check |
 |---|---|---|
-| **`gh` CLI** | ✅ | `command -v gh` → `/usr/bin/gh`; `gh auth status` → logged in via `GITHUB_TOKEN` |
-| **Direct GitHub API** (`curl api.github.com`) | ✅ | `curl -H "Authorization: token $GITHUB_TOKEN" .../repos/<owner>/<repo>` → `200` |
-| **GitHub MCP server** (`mcp__plugin_github_github__*`) | ✅ | Deferred + lazy-loaded — load with `ToolSearch` first |
-| `git push` | ✅ (push only) | Remote is `https://github.com/mcorbett51090/RavenClaude` — actual github.com |
+| **GitHub MCP server** (`mcp__github__*`) | ✅ | Deferred + lazy-loaded — load with `ToolSearch` first, then call `mcp__github__create_pull_request` |
+| `git push` | ✅ (push only) | Remote is a local git proxy (`http://local_proxy@127.0.0.1:<port>/git/mcorbett51090/RavenClaude`) that forwards to github.com |
+| **`gh` CLI** | ❌ | `command -v gh` → not found (not installed on this host) |
+| **Direct GitHub API** (`curl api.github.com`) | ❌ | `403` unauthenticated — **no `GITHUB_TOKEN` in this session** (`GITHUB_TOKEN` unset; bare request → `403`, bogus token → `401`), so the route can't be authenticated at all |
 
-**Recommended order:** prefer `gh pr create` (one command, no schema-loading dance), fall back to MCP (`mcp__plugin_github_github__create_pull_request`) if `gh` ever isn't authenticated, fall back to the direct API only if both are unavailable.
+**Recommended order:** use the GitHub MCP server — call `mcp__github__create_pull_request`, loading it via `ToolSearch` first since it is deferred. `gh pr create` and the direct API are **not** available in this environment, so don't burn a round-trip on them; if you suspect the environment changed, re-probe with `command -v gh` / a `curl` check and update this table if it did.
 
-**The two enduring lessons (path-agnostic) — these are why this section still exists even though all three paths now work:**
+**The two enduring lessons (path-agnostic) — these are why this section still exists:**
 
 1. **MCP tools are deferred + lazy-loaded.** At session start the github MCP server may show as *"still connecting"* and its tools are name-only (no schema) — calling one directly fails with `InputValidationError`. Run `ToolSearch` first (it waits for connecting servers and loads the schema); only declare the capability absent if ToolSearch itself returns nothing. Never infer "tool doesn't exist" from a missing schema. This trap is permanent — it'll still bite when the right path *is* MCP.
 2. **A `command not found`, a `401`/`403`, or a missing schema is evidence about ONE route, not the goal.** Don't generalize a CLI/API failure into "no PR capability." The session-start capability hook says it plainly: *consult it before claiming you "can't" do something.* Read the actual error first, name the specific mechanical cause (401 vs 403 vs not-found vs not-loaded-yet), then pick the next-easiest path. The cause selects the fix and is not interchangeable.
