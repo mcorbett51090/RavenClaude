@@ -40,6 +40,12 @@ expect "empty web (passed:null = needs-more, not fail)" 0 "$F/empty-config-web.j
 expect "bad layout (overlap → fix-layout)"             1 "$F/bad-config-layout-fail.json"
 expect "console errors → fix-console-errors"           1 "$F/bad-config-console-errors.json"
 expect "lighthouse below threshold → improve"          1 "$F/bad-config-lighthouse-low.json"
+# parity: structural diff vs. a known-good exemplar (the blank-but-well-placed gap)
+expect "parity match (same skeleton → ship)"           0 "$F/good-config-parity-match.json"
+expect "parity non-comparable type (not_captured)"     0 "$F/parity-config-noncomparable.json"
+expect "parity unknown object key (calloutValue) fails" 1 "$F/bad-config-parity-calloutvalue.json"
+expect "parity wrong query role fails"                 1 "$F/bad-config-parity-wrongrole.json"
+expect "parity missing \$id fails"                     1 "$F/bad-config-parity-idmissing.json"
 # path rejection
 expect "traversal config rejected"                     2 "$F/bad-config-traversal.json"
 
@@ -62,6 +68,21 @@ if [[ "$rc" -eq 0 ]]; then
   echo "  ✓ teeth: mutant (always-pass) lets bad-layout through → real fail is logic, not luck"
 else
   echo "  ✗ teeth: mutant did NOT pass the bad fixture (got $rc) — teeth assertion is broken"
+  rc_total=1
+fi
+
+# parity teeth: a mutant that neuters the skeleton-divergence detection (always
+# reports the parity gate "pass") must let a known-divergent fixture through —
+# proving the parity fail is the diff logic, not luck.
+MUTP="$(mktemp --suffix=.py)"
+trap 'rm -f "$MUT" "$MUTP"' EXIT
+sed 's/record\["status"\] = "fail" if deltas else "pass"/record["status"] = "pass"/' \
+  plugins/ravenclaude-core/skills/visual-feedback-loop/driver.py >"$MUTP"
+rc=0; python3 "$MUTP" "$F/bad-config-parity-calloutvalue.json" >/dev/null 2>&1 || rc=$?
+if [[ "$rc" -eq 0 ]]; then
+  echo "  ✓ teeth: mutant (parity always-pass) lets divergent visual through → real fail is the diff"
+else
+  echo "  ✗ teeth: parity mutant did NOT pass the divergent fixture (got $rc) — teeth assertion broken"
   rc_total=1
 fi
 

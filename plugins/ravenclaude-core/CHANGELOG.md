@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.159.0 — 2026-06-22
+
+### Added
+
+- **Visual-feedback-loop `parity` gate — diff a visual against a known-good exemplar** ([`skills/visual-feedback-loop/driver.py`](skills/visual-feedback-loop/driver.py), v0.2.0). Closes the gap the layout linter structurally can't see: a visual that is *perfectly placed* yet renders **blank** because its render skeleton is wrong for its type. The new `parity` config (`{"candidate": "...visual.json", "reference": "...visual.json"}`) extracts a PBIR render skeleton from each and **fails** (`next_action: match-reference-exemplar`) only on render-blocking divergence — a wrong query role (`Values`/`Data`/`Indicator`), a candidate-only object key (e.g. `calloutValue` on a legacy `card`), or a missing `$id`. A different `visualType` is `not_captured` (not a false fail), and it echoes only allowlist-sanitized schema tokens (never raw `visual.json` content). The technique is documented generically for all declarative-viz (Vega-Lite, Tableau) in [`knowledge/visual-feedback-loop.md`](knowledge/visual-feedback-loop.md); the runnable differ is PBIR-first. Proven by **Gate 100** (match→ship, wrong-role/unknown-key/missing-`$id`→fail, non-comparable→not_captured, + a parity-specific teeth mutant). Origin: a Fabric/PBIR field session that burned four deploy-and-eyeball cycles before diffing against the confirmed-working exemplar cracked it.
+
+### Notes
+
+- **Migration:** none — additive `parity` gate (off unless a config supplies it); the driver envelope shape is unchanged. Nothing changes on `/plugin marketplace update`.
+
 ## 0.158.0 — 2026-06-22
 
 ### Added

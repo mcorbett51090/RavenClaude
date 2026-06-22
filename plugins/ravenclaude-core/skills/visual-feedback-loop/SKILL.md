@@ -54,6 +54,10 @@ python3 plugins/ravenclaude-core/skills/visual-feedback-loop/driver.py <config.j
 {
   "surface": "web | web-dashboard | pbir | fabric | tableau | bi",
   "layout": "path/to/page.json",          // optional → delegated to pbir-layout-engine
+  "parity": {                              // optional → structural diff vs. a known-good exemplar
+    "candidate": "path/to/failing/visual.json",
+    "reference": "path/to/confirmed-working/visual.json"
+  },
   "console": "path/to/console.json",       // optional → agent-captured browser console
   "lighthouse": "path/to/lighthouse.json", // optional → agent-captured Lighthouse run
   "thresholds": {                          // optional — overrides the defaults
@@ -64,6 +68,20 @@ python3 plugins/ravenclaude-core/skills/visual-feedback-loop/driver.py <config.j
   }
 }
 ```
+
+**The `parity` gate — diff against a known-good exemplar** (the failure the layout
+linter structurally cannot see). A visual can be *perfectly placed* yet render
+**blank** because its render skeleton diverges from a confirmed-working visual of
+the same kind — a wrong query role (`Values` vs `Data` vs `Indicator`), an unknown
+object key (e.g. `calloutValue` on a legacy `card` whose working twin uses
+`labels`), or a missing `$id`. Point `candidate` at the suspect `visual.json` and
+`reference` at a confirmed-working `visual.json` **of the same `visualType`**; the
+gate **fails** (`next_action: match-reference-exemplar`) on a render-blocking
+divergence, and reports `not_captured` (never a false fail) when the two are
+different `visualType`s or non-PBIR shapes. This is the highest-leverage move when
+a deploy renders blank with no error — replicate the nearest working exemplar
+instead of guess-and-check. (PBIR `visual.json` today; the *technique* generalizes
+to any declarative-viz format — see the canon.)
 
 **Agent-captured evidence shapes** (the contract you fill from `chrome-devtools-mcp`):
 
@@ -86,8 +104,8 @@ next_action, notes}`. `passed` is a **pure function of the determinate gates**
 (`pass`/`fail`/`error`); `not_captured` and `degraded` gates are excluded — so
 "evidence not captured yet" and "tooling absent" are first-class states, never
 silent failures. `next_action` is the loop's instruction: `ship` /
-`capture-runtime-evidence` / `fix-layout` / `fix-console-errors` /
-`improve-accessibility` / `manual-visual-review`.
+`capture-runtime-evidence` / `fix-layout` / `match-reference-exemplar` /
+`fix-console-errors` / `improve-accessibility` / `manual-visual-review`.
 
 ### How the layout gate maps the linter's exit codes
 
