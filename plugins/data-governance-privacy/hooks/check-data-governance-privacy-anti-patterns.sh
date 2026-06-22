@@ -12,7 +12,7 @@ findings=()
 if grep -nEi "(ssn|social_security|national_id|passport|credit_card|card_number|dob|date_of_birth)\\b" "$file" >/dev/null 2>&1; then
   findings+=("Possible PII field — ensure it's classified, minimized (do you need it?), access-controlled, and in DSR/retention scope.")
 fi
-if grep -nEi "(anonymi[sz]ed)(?![\\s\\S]{0,80}(k-anonymity|aggregat|irreversible))" "$file" >/dev/null 2>&1; then
+if grep -Pzi "(anonymi[sz]ed)(?![\\s\\S]{0,80}(k-anonymity|aggregat|irreversible))" "$file" >/dev/null 2>&1; then
   findings+=("Field/comment claims 'anonymized' — verify it's truly anonymized (not just pseudonymized/re-identifiable); pseudonymized data is still personal data.")
 fi
 if grep -nEi "(retention|ttl|delete_after)\\s*[=:]\\s*(never|none|0|indefinite|-1)" "$file" >/dev/null 2>&1; then

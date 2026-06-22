@@ -2157,6 +2157,27 @@ rc=0; python3 scripts/check-md-links.py >/dev/null 2>&1 || rc=$?
 gate "md-links (clean tree)" must_pass "$rc"
 
 echo
+echo "── Gate 104: no PCRE constructs inside grep -E (check-grep-ere-pcre.py) ─────"
+# A PCRE-only construct ((?:..)/(?!..)/[\s\S]) inside `grep -E` (POSIX ERE) is
+# silently misparsed by GNU grep -> the advisory-hook check is DEAD and a clean
+# run looks like a pass. bash -n can't see it; this gate keeps the hook corpus
+# on pure-ERE or grep -P. Fixtures synthesized at runtime (never committed).
+G104="$TMP/grep-ere-pcre"
+# BAD: a hook with a negative-lookahead inside grep -E -> must fail.
+mkdir -p "$G104/bad/plugins/sample/hooks"
+printf '#!/usr/bin/env bash\nif grep -nEi "foo(?!bar)" "$1"; then :; fi\n' > "$G104/bad/plugins/sample/hooks/x.sh"
+rc=0; python3 scripts/check-grep-ere-pcre.py --root "$G104/bad" >/dev/null 2>&1 || rc=$?
+gate "grep-ere-pcre (lookahead inside grep -E)" must_fail "$rc"
+# GOOD: same pattern under grep -Pz (PCRE) -> must pass.
+mkdir -p "$G104/good/plugins/sample/hooks"
+printf '#!/usr/bin/env bash\nif grep -Pzi "foo(?!bar)" "$1"; then :; fi\n' > "$G104/good/plugins/sample/hooks/x.sh"
+rc=0; python3 scripts/check-grep-ere-pcre.py --root "$G104/good" >/dev/null 2>&1 || rc=$?
+gate "grep-ere-pcre (grep -Pz is fine)" must_pass "$rc"
+# must_pass: the real committed tree is clean.
+rc=0; python3 scripts/check-grep-ere-pcre.py >/dev/null 2>&1 || rc=$?
+gate "grep-ere-pcre (clean tree)" must_pass "$rc"
+
+echo
 echo "── Gate 30: domain anti-pattern hooks (one fire + no-fire fixture each) ────"
 # Each domain plugin ships one advisory PreToolUse(file) hook. The contract is
 # uniform: a flagged anti-pattern emits a message (and/or a non-zero exit under

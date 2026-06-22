@@ -74,6 +74,28 @@ def esc(value: object) -> str:
     return html.escape(str(value if value is not None else ""))
 
 
+# Required keys every renderer indexes directly. A malformed event (hand-edited
+# artifact, schema drift) missing one of these used to crash the whole render;
+# fail soft instead (house opinion #5) — drop it with a stderr warning, keep going.
+_REQUIRED_EVENT_KEYS = ("type", "repo")
+
+
+def sanitize_events(activity: dict) -> dict:
+    events = activity.get("events", [])
+    kept = []
+    for event in events:
+        missing = [k for k in _REQUIRED_EVENT_KEYS if not (isinstance(event, dict) and event.get(k))]
+        if missing:
+            print(
+                f"  skipping malformed event (missing {', '.join(missing)}): {event!r}",
+                file=sys.stderr,
+            )
+            continue
+        kept.append(event)
+    activity["events"] = kept
+    return activity
+
+
 def counts_by_type(events: list[dict]) -> dict[str, int]:
     counts: dict[str, int] = defaultdict(int)
     for event in events:
@@ -239,6 +261,7 @@ def main(argv: list[str] | None = None) -> int:
         print("Run portfolio-collect.py first.", file=sys.stderr)
         return 2
 
+    activity = sanitize_events(activity)
     with open(args.out, "w", encoding="utf-8") as fh:
         fh.write(render(activity))
     print(f"  wrote {args.out}")

@@ -12,7 +12,7 @@ findings=()
 if grep -nEi "(train_test_split|sample)\\([\\s\\S]{0,80}(shuffle\\s*=\\s*True)[\\s\\S]{0,80}(time|date|timestamp)" "$file" >/dev/null 2>&1; then
   findings+=("Shuffled split on temporal data — use a time-aware split to avoid leaking future information into training.")
 fi
-if grep -nEi "(fit_transform|scaler\\.fit|StandardScaler\\(\\)\\.fit)[\\s\\S]{0,120}(X|data)(?![\\s\\S]{0,40}train)" "$file" >/dev/null 2>&1; then
+if grep -Pzi "(fit_transform|scaler\\.fit|StandardScaler\\(\\)\\.fit)[\\s\\S]{0,120}(X|data)(?![\\s\\S]{0,40}train)" "$file" >/dev/null 2>&1; then
   findings+=("Possible fitting a transform on the full dataset before splitting — fit on train only, or you leak test statistics.")
 fi
 if grep -nEi "\\.predict\\([\\s\\S]{0,120}(read_csv|read_sql|requests\\.get)" "$file" >/dev/null 2>&1; then

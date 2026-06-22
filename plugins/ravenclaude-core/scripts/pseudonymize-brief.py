@@ -165,7 +165,10 @@ def encode(text, map_file, patterns_file=None):
             value_to_token[val] = tok
         out = out[:s] + tok + out[e:]
     token_to_value = {tok: val for val, tok in value_to_token.items()}
-    with open(map_file, "w", encoding="utf-8") as fh:
+    # The token->value map is the one artifact holding cleartext PII — create it
+    # 0600 from the start (not a post-write chmod) so it is never briefly world-readable.
+    fd = os.open(map_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
         json.dump(token_to_value, fh)
     return out
 
