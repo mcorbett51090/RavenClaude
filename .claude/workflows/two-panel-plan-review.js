@@ -271,7 +271,7 @@ function digestPanel(results, lenses, label) {
   return results
     .map(
       (p, i) =>
-        `### ${label} / ${lenses[i].key} (${p.lens})\n` +
+        `### ${label} / ${p._lensKey ?? lenses[i]?.key} (${p.lens})\n` +
         `**Assessment:** ${p.overall_assessment}\n` +
         `**Strengths:** ${(p.strengths || []).map((s) => `\n  - ${s}`).join("")}\n` +
         `**Gaps (${p.gaps?.length || 0}):**\n` +
@@ -427,7 +427,9 @@ const panel1 = await parallel(
   ),
 );
 
-const okP1 = panel1.filter(Boolean);
+const okP1 = panel1
+  .map((r, i) => (r ? { ...r, _lensKey: PANEL1_LENSES[i].key } : null))
+  .filter(Boolean);
 const missingPanel1 = okP1.filter((r) => r && r.artifact_present === false).length;
 if (missingPanel1 > 0) {
   log(
@@ -574,7 +576,9 @@ const panel2 = await parallel(
   ),
 );
 
-const okP2 = panel2.filter(Boolean);
+const okP2 = panel2
+  .map((r, i) => (r ? { ...r, _lensKey: PANEL2_LENSES[i].key } : null))
+  .filter(Boolean);
 const missingPanel2 = okP2.filter((r) => r && r.artifact_present === false).length;
 if (missingPanel2 > 0) {
   log(

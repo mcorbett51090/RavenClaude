@@ -173,7 +173,7 @@ _is_dangerous_truncate() {
 deny_patterns=(
   # git history / branch destruction
   'git[[:space:]]+push[[:space:]]+.*--force([[:space:]]|$)'        # --force (allows --force-with-lease)
-  'git[[:space:]]+push[[:space:]]+.*-f([[:space:]]|$)'
+  'git[[:space:]]+push[[:space:]]+(.*[[:space:]])?-f([[:space:]]|$)'  # -f as a flag, not a branch name ending in -f
   'git[[:space:]]+push[[:space:]].*[[:space:]]\+[A-Za-z0-9_./@~^-]+'  # refspec force-push: git push origin +HEAD:main
   'git[[:space:]]+reset[[:space:]]+--hard([[:space:]]+|$)'
   'git[[:space:]]+clean[[:space:]]+(-[a-z]*f|--force)'             # clean -fd / -df / --force (order-independent)

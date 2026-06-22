@@ -614,10 +614,16 @@ def _posture_write_disables(tool_name: str, tool_input: dict, project_root: Path
         for cfg in cats.values():
             if isinstance(cfg, dict):
                 v = cfg.get("thing")
-                if isinstance(v, str) and v.strip().lower() in {"off", "false", "no"}:
-                    return True
-                if v is False:
-                    return True
+                # Flag a write that sets `thing` to ANY value `thing_enabled_for`
+                # treats as OFF — not just the {off,false,no} strings. Mirrors that
+                # function's truthiness exactly so `thing: 0` / `"0"` / `disabled`
+                # can't slip a tribunal-disabling write past the self-disable guard.
+                if v is not None:
+                    enabled = v in _TRUTHY or (
+                        isinstance(v, str) and v.strip().lower() in {"on", "true", "yes"}
+                    )
+                    if not enabled:
+                        return True
     return False
 
 
@@ -756,10 +762,14 @@ def resolve_panel_config(root: Path, posture: dict | None) -> tuple[dict, str | 
                 if isinstance(data.get("confidence_threshold"), (int, float)):
                     cfg["confidence_threshold"] = float(data["confidence_threshold"])
                 # Accept the new timer names and the legacy internal_timeout_seconds.
+                # `not isinstance(bool)` so a stray `seat_timeout_seconds: true`
+                # isn't silently coerced to a 1-second timeout (bool is an int).
                 for key in ("seat_timeout_seconds", "internal_timeout_seconds"):
-                    if isinstance(data.get(key), int):
+                    if isinstance(data.get(key), int) and not isinstance(data.get(key), bool):
                         cfg["seat_timeout_seconds"] = data[key]
-                if isinstance(data.get("panel_deadline_seconds"), int):
+                if isinstance(data.get("panel_deadline_seconds"), int) and not isinstance(
+                    data.get("panel_deadline_seconds"), bool
+                ):
                     cfg["panel_deadline_seconds"] = data["panel_deadline_seconds"]
                 if isinstance(data.get("timeout_posture"), dict):
                     cfg["timeout_posture_map"].update(

@@ -1,11 +1,11 @@
 ---
 name: advocacy-program-design
-description: Design a structured EdTech advocacy program with 5-tier ladder (logo → quote → case study → speaker → peer call). Health-score eligibility gate (top-quartile only), 2-asks-per-year ceiling, state-by-state anonymization overlay (CA/NY/IL stricter; TX/FL more permissive), FERPA consent for student/parent quotes. Used by `success-playbook-designer` + `ferpa-comms-translator` + `partner-success-manager`.
+description: Design a structured EdTech advocacy program with 5-tier ladder (logo → quote → case study → speaker → peer call). Health-score eligibility gate (top-quartile only), 2-asks-per-year ceiling, state-by-state anonymization overlay (CA/NY/IL stricter; TX/FL more permissive), FERPA consent for student/parent quotes. Used by `success-playbook-designer` + `ferpa-comms-translator` + `edtech-partner-success-manager`.
 ---
 
 # Skill: advocacy-program-design
 
-> **Invoked by:** `success-playbook-designer` (when authoring an advocacy play), `ferpa-comms-translator` (when writing partner-facing content), `partner-success-manager` (when handling Marketing's "got anyone for a case study?" ping), `ravenclaude-core/documentarian` (when drafting case-study content).
+> **Invoked by:** `success-playbook-designer` (when authoring an advocacy play), `ferpa-comms-translator` (when writing partner-facing content), `edtech-partner-success-manager` (when handling Marketing's "got anyone for a case study?" ping), `ravenclaude-core/documentarian` (when drafting case-study content).
 >
 > **When to invoke:** any time the work is "turn a partner's success into a marketable / referenceable artifact." Case studies, references, testimonials, speaker programs, peer-to-peer connections, advocacy event design.
 >

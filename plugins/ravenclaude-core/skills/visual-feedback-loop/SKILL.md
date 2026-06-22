@@ -54,6 +54,10 @@ python3 plugins/ravenclaude-core/skills/visual-feedback-loop/driver.py <config.j
 {
   "surface": "web | web-dashboard | pbir | fabric | tableau | bi",
   "layout": "path/to/page.json",          // optional → delegated to pbir-layout-engine
+  "parity": {                              // optional → structural diff vs. a known-good exemplar
+    "candidate": "path/to/failing/visual.json",
+    "reference": "path/to/confirmed-working/visual.json"
+  },
   "console": "path/to/console.json",       // optional → agent-captured browser console
   "lighthouse": "path/to/lighthouse.json", // optional → agent-captured Lighthouse run
   "thresholds": {                          // optional — overrides the defaults
@@ -64,6 +68,23 @@ python3 plugins/ravenclaude-core/skills/visual-feedback-loop/driver.py <config.j
   }
 }
 ```
+
+**The `parity` gate — diff against a known-good exemplar** (a structural diff
+surfacer, **not** a render oracle — it is only as good as the reference you pick).
+A visual can be *perfectly placed* yet render **blank** because its render skeleton
+is missing something its working twin has. Point `candidate` at the suspect
+`visual.json` and `reference` at a confirmed-working `visual.json` **of the same
+`visualType`**. The gate is **asymmetric**: it **fails**
+(`next_action: match-reference-exemplar`) on what the candidate is **MISSING**
+relative to the exemplar — a missing query role (`Values`/`Data`/`Indicator`), a
+dropped objects key (e.g. a `card` that dropped `labels` and substituted
+`calloutValue`), or a missing per-item `$id` — and **passes benign additions** (an
+extra cosmetic object key, an optional role). It reports `not_captured` (never a
+false fail) for a different `visualType`, a non-PBIR shape, a **self-reference**,
+or a **degenerate exemplar** (no query role — it refuses to launder a bad reference
+into a pass). Highest-leverage move when a deploy renders blank with no error:
+replicate the nearest *genuinely-working* exemplar instead of guess-and-check.
+(PBIR `visual.json` today; the *technique* generalizes — see the canon.)
 
 **Agent-captured evidence shapes** (the contract you fill from `chrome-devtools-mcp`):
 
@@ -86,8 +107,8 @@ next_action, notes}`. `passed` is a **pure function of the determinate gates**
 (`pass`/`fail`/`error`); `not_captured` and `degraded` gates are excluded — so
 "evidence not captured yet" and "tooling absent" are first-class states, never
 silent failures. `next_action` is the loop's instruction: `ship` /
-`capture-runtime-evidence` / `fix-layout` / `fix-console-errors` /
-`improve-accessibility` / `manual-visual-review`.
+`capture-runtime-evidence` / `fix-layout` / `match-reference-exemplar` /
+`fix-console-errors` / `improve-accessibility` / `manual-visual-review`.
 
 ### How the layout gate maps the linter's exit codes
 

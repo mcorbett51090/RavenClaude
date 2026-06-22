@@ -6,7 +6,7 @@ Named, citable rules for the `ml-engineering` plugin's specialists. Each file is
 
 ## Index
 
-_22 rules._
+_25 rules._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -32,6 +32,9 @@ _22 rules._
 | [`shadow-mode-before-live-traffic.md`](./shadow-mode-before-live-traffic.md) | Pattern | Deploying a model with a breaking output change or no baseline |
 | [`hyperparameter-search-is-logged-not-manual.md`](./hyperparameter-search-is-logged-not-manual.md) | Absolute rule | Running any hyperparameter search or tuning |
 | [`model-explainability-is-built-in-not-added-after.md`](./model-explainability-is-built-in-not-added-after.md) | Pattern | Registering any model that will face auditing or stakeholder scrutiny |
+| [`split-cv-data-by-scene-not-random-frame.md`](./split-cv-data-by-scene-not-random-frame.md) | Absolute rule | Splitting any computer-vision dataset (frames, multi-shot, tiled images) |
+| [`watch-augmentation-and-label-leakage.md`](./watch-augmentation-and-label-leakage.md) | Absolute rule | Adding image augmentation to a CV training pipeline |
+| [`right-size-the-vision-model-for-the-inference-target.md`](./right-size-the-vision-model-for-the-inference-target.md) | Pattern | Choosing or compressing a vision model for edge/cloud inference |
 
 ---
 

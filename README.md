@@ -16,7 +16,7 @@
 
 > 🚀 **[▶ First Workflow in 10 Minutes](GETTING_STARTED.md)** — install → dashboard → one governed multi-agent dispatch → `/wrap`. The canonical onboarding walkthrough. Start here if you've never used RavenClaude before.
 
-Today this marketplace ships **101 plugins**:
+Today this marketplace ships **117 plugins**:
 
 - **[`ravenclaude-core`](plugins/ravenclaude-core/)** — domain-neutral Team Lead + 14 specialists (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, data-engineer, etc.), plus dispatch playbooks (with a Cross-plugin dispatch section), gates, 43 skills, 16 hooks, templates, and the **cross-project contribution-staging loop**.
 - **[`power-platform`](plugins/power-platform/)** — 11 Microsoft Power Platform specialists (Power Fx, flows, Power BI, Dataverse, model-driven, PCF, Copilot Studio, Power Pages, admin, ALM, tester), 21 skills, an advisory house-opinions hook covering 8 checks, and the bundled `pbix-mcp` MCP server.
@@ -75,6 +75,7 @@ Today this marketplace ships **101 plugins**:
 - **[`frontend-engineering`](plugins/frontend-engineering/)** — Frontend engineering: 4 agents (architect / react-implementation / state-and-data / performance) — rendering strategy (SSR/SSG/RSC), server-cache vs client state, a11y-in-code, Core Web Vitals. Distinct from web-design. 5 skills, 6 best-practices, advisory hook.
 - **[`mobile-engineering`](plugins/mobile-engineering/)** — Mobile engineering: 4 agents (architect / ios / android / cross-platform) — native-vs-cross-platform, SwiftUI & Compose, offline-first sync, secure storage, the store pipeline. 5 skills, 6 best-practices, advisory hook.
 - **[`desktop-app-engineering`](plugins/desktop-app-engineering/)** — Desktop apps: 4 agents (desktop-architect / electron / tauri / desktop-platform) — Electron-vs-Tauri-vs-native-vs-PWA, the renderer-is-untrusted IPC/capability security model, signing + notarization (Win + macOS), safe signed auto-update, native OS integration. 5 skills, 12 best-practices, advisory hook.
+- **[`cli-tooling-engineering`](plugins/cli-tooling-engineering/)** — CLI & TUI tools: 4 agents (cli-architect / cli-implementation / tui / cli-distribution) — the command/flag surface, config precedence, the output + exit-code contract (data→stdout/diagnostics→stderr, --json, NO_COLOR/TTY), TUIs (Ink/Bubble Tea/Textual/ratatui), distribution (single binary, Homebrew/Scoop/winget/npm/pipx). 5 skills, 12 best-practices, advisory hook.
 - **[`analytics-engineering`](plugins/analytics-engineering/)** — Analytics engineering (dbt): 3 agents (analytics-engineer / semantic-layer / data-quality-testing) — staging→marts modeling, a governed metrics layer, dbt tests/contracts/freshness. Distinct from data-platform. 5 skills, 6 best-practices, advisory hook.
 - **[`data-streaming-engineering`](plugins/data-streaming-engineering/)** — Data streaming: 3 agents (streaming-architect / kafka-pipeline / stream-processing) — streaming-vs-batch, Kafka/CDC + schema registry, event-time windowing/watermarks, delivery semantics. 7 skills, 6 best-practices, advisory hook.
 - **[`ml-engineering`](plugins/ml-engineering/)** — ML engineering (MLOps): 4 agents (platform-architect / training-pipeline / model-serving / monitoring) — reproducible training, feature stores (no skew), serving + shadow/canary, drift monitoring. Significance → applied-statistics. 5 skills, 6 best-practices, advisory hook.
@@ -169,7 +170,7 @@ You lose auto-update and version pinning. To update, `git pull` and re-copy. Oth
 
 ## Updating and version pinning
 
-The marketplace ships **semver-versioned** plugins (`plugin.json` `version` + matching `marketplace.json` entry, CI-gated for drift). 100 of the 101 plugins declare `requires.ravenclaude-core` — a minimum `ravenclaude-core` version they expect, surfaced in the per-plugin card of the portal’s **Marketplace** section ([`index.html`](index.html)).
+The marketplace ships **semver-versioned** plugins (`plugin.json` `version` + matching `marketplace.json` entry, CI-gated for drift). 116 of the 117 plugins declare `requires.ravenclaude-core` — a minimum `ravenclaude-core` version they expect, surfaced in the per-plugin card of the portal’s **Marketplace** section ([`index.html`](index.html)).
 
 **To update everything to the marketplace's latest:**
 
@@ -388,7 +389,7 @@ The container at `.devcontainer/` auto-installs the Claude Code CLI on rebuild, 
 
 **Shipped since the original roadmap:** `finance`, `regulatory-compliance`, `web-design`, `edtech-partner-success`, `data-platform`, `applied-statistics`, `microsoft-fabric` (the enterprise-Microsoft data-platform lane — OneLake / Lakehouse / Warehouse / Data Factory / Real-Time Intelligence / Direct Lake / capacity FinOps, from [`docs/microsoft-fabric-plugin-analysis.md`](docs/microsoft-fabric-plugin-analysis.md)), `claude-app-engineering` (building on the Claude API + Agent SDK + MCP, from [`docs/claude-app-engineering-plugin-analysis.md`](docs/claude-app-engineering-plugin-analysis.md)), and `azure-cloud` (Azure infrastructure & platform, from [`docs/azure-cloud-plugin-analysis.md`](docs/azure-cloud-plugin-analysis.md)).
 
-`salesforce` (Apex, Flow, Agentforce, platform-architecture specialists) has since **shipped** as well — it is now one of the 101 plugins above, no longer planned-only.
+`salesforce` (Apex, Flow, Agentforce, platform-architecture specialists) has since **shipped** as well — it is now one of the 117 plugins above, no longer planned-only.
 
 Each builds on top of `ravenclaude-core` (which provides the neutral team) and adds domain-specific agents that the consumer can choose to install or skip. `power-platform` is the reference implementation of this pattern.
 

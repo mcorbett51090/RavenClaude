@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import re
 import sys
 from pathlib import Path
 
@@ -119,6 +120,10 @@ def check(path: Path) -> int:
             return _fail(f"action key is not a string literal: {ast.dump(key)}")
         if not isinstance(val, ast.List) or not val.elts:
             return _fail(f"action {kname!r} value is not a non-empty list literal")
+        # bash/sh are only safe with no `-c`-form anywhere — catch every spelling
+        # (`-c`, `-lc`, `-ec`, `--login -c`, … at any index), not just argv[1].
+        argv0_lit = _const_str(val.elts[0]) if val.elts else None
+        argv0_is_shell = argv0_lit in ALLOWED_ARGV0
         for i, elt in enumerate(val.elts):
             lit = _const_str(elt)
             if lit is not None:
@@ -128,14 +133,11 @@ def check(path: Path) -> int:
                     )
                 if i == 0 and lit in ALLOWED_ARGV0:
                     continue
-                # A fixed-argv launcher's argv[1] is a script PATH, never a flag.
-                # Reject ANY leading-dash argv[1] so the shell-form guard can't be
-                # dodged by -lc / -c=… / --command (the bare `== "-c"` check missed
-                # every spelling but one).
-                if i == 1 and lit.startswith("-"):
+                # Any later short-flag cluster bearing `c` (`-c`/`-lc`/`-ec`/…) turns
+                # a following element into an inline script — forbidden for a shell.
+                if argv0_is_shell and i >= 1 and re.fullmatch(r"-[A-Za-z]*c[A-Za-z]*", lit):
                     return _fail(
-                        f"action {kname!r} argv[1] is a flag ({lit!r}); a fixed-argv "
-                        f"launcher takes a script path, not a shell-style flag (e.g. -c/-lc/--command)"
+                        f"action {kname!r} uses a shell -c form (argv[{i}] == {lit!r})"
                     )
                 continue
             # non-literal element — only the whitelisted constant expressions pass

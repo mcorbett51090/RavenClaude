@@ -1,6 +1,6 @@
 ---
 title: AI Teammate Adoption — PSM Self-Posture
-audience: psm-leader, partner-success-manager, success-playbook-designer
+audience: psm-leader, edtech-partner-success-manager, success-playbook-designer
 status: stable
 last_reviewed: 2026-06-04
 refresh_triggers:

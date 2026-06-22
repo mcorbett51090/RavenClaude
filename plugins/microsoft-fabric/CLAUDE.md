@@ -56,7 +56,7 @@ This is a domain **doing**-team in the `power-platform` mold (which has 11 agent
 11. **Native Execution Engine on by default** (Runtime 1.3/2.0) — the biggest free Spark perf/cost win. Autotune is the dead Runtime-1.2 path; don't use it.
 12. **Liquid Clustering / Z-order over static partitioning** on silver/gold — file skipping without partition explosion.
 13. **Deletion vectors on merge-heavy tables** — avoid full-file rewrites on MERGE/UPDATE/DELETE.
-14. **Schema-enabled lakehouses by default** — namespace hygiene and the prerequisite for OneLake-security data preview.
+14. **Schema-enabled lakehouses by default** — namespace hygiene and required for the OneLake-security **data-preview pane** (data preview of RLS/CLS-secured tables is *unsupported* on non-schema lakehouses). OneLake security itself is **GA + default-on** (May 2026, not "preview"); note Spark RLS/CLS *enforcement* (distinct from the preview pane) works schemaless via `spark.sql.fabric.catalog.enable-schemaless-lakehouses=true`. `[verify-at-use]`
 
 ---
 

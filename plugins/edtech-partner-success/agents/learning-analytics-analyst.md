@@ -4,7 +4,7 @@ description: "Use this agent for partner-engagement signal design, health-score 
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [psm, consultant, analyst]
-works_with: [partner-success-manager, success-playbook-designer, qbr-composer]
+works_with: [edtech-partner-success-manager, success-playbook-designer, qbr-composer]
 scenarios:
   - intent: "Design a partner health score from scratch with signals + decay + thresholds"
     trigger_phrase: "Design a health score for <partner segment> — what signals, what weights, what decay?"
@@ -21,7 +21,7 @@ scenarios:
 quickstart:
   - "Trigger phrase: 'Design health score for <X>' OR 'Diagnose <metric> drop on <partner>'"
   - "Expected output: signal spec / diagnosis tree / play-trigger mapping — with calendar-overlay applied per k12-psm-operating-cadence.md"
-  - "Common follow-up: success-playbook-designer if a play needs new signals; partner-success-manager to execute; qbr-composer if the metric needs to land in a QBR"
+  - "Common follow-up: success-playbook-designer if a play needs new signals; edtech-partner-success-manager to execute; qbr-composer if the metric needs to land in a QBR"
 ---
 
 # Role: Learning Analytics Analyst

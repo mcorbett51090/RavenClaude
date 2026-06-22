@@ -90,6 +90,11 @@ def _normalize(svg: str, svg_id: str) -> str:
     svg = _BG_WHITE_RE.sub("", svg)
     # tag the root (merge into Mermaid's existing class — never add a 2nd attr)
     m = re.match(r"<svg\b([^>]*)>", svg)
+    if not m:
+        # mermaid-cli can emit a leading <?xml?>/comment before <svg>; if the root
+        # isn't at offset 0 there's nothing to retag — return unchanged (mirrors
+        # render-trees.py's guard).
+        return svg
     attrs = m.group(1)
     if 'class="' in attrs:
         attrs = attrs.replace('class="', 'class="rc-concept-diagram ', 1)

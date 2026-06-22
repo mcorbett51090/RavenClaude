@@ -1,6 +1,6 @@
 # Data Streaming — Decision Trees
 
-_Decision trees + a dated capability map. Capability rows are `[verify-at-build]` — re-check against the vendor before quoting. Last reviewed: 2026-06-04._
+_Decision trees + a dated capability map. Capability rows are `[verify-at-build]` — re-check against the vendor before quoting. Last reviewed: 2026-06-22 (re-anchored the per-tree version stamps from Apache Flink 1.19 / Kafka Streams 3.7 to Flink 2.x / Kafka 4.x — both now GA; the documented semantics are version-stable)._
 
 Traverse before building a stream or choosing delivery semantics.
 
@@ -183,7 +183,7 @@ flowchart TD
 
 **When this applies:** a stream processing pipeline needs to join two event streams (e.g., orders + payments, clicks + impressions) and you must choose whether a stream-stream join is feasible and what join window to use. Observable inputs: the expected time skew between correlated events on the two streams, the cardinality (how many events per join key), and whether late arrivals are common.
 
-**Last verified:** 2026-06-05 against Apache Flink 1.19 and Kafka Streams 3.7 join documentation.
+**Last verified:** 2026-06-22 against Apache Flink 2.x (current stable 2.2.x) and Kafka Streams 4.x join documentation. `[verify-at-use]` on exact patch versions. (Re-anchored from the stale Flink 1.19 / Kafka Streams 3.7 line — Flink 2.0 and Kafka 4.0 are both GA; the join semantics below are version-stable.)
 
 ```mermaid
 flowchart TD
@@ -223,7 +223,7 @@ flowchart TD
 
 **When this applies:** a stream processor's lag is growing (or its source is buffering), throughput is below target, and you must decide whether the fix is backpressure handling, re-keying, scaling, or bounding state. Observable inputs: whether lag is on *one* partition/task or *all*, whether an external sink/call is in the hot path, and whether state size is growing unbounded.
 
-**Last verified:** 2026-06-05 against Apache Flink 1.19 (backpressure monitoring / network stack) and Kafka consumer-group documentation. Re-confirm tuning specifics at use.
+**Last verified:** 2026-06-22 against Apache Flink 2.x (backpressure monitoring / network stack; current stable 2.2.x) and Kafka consumer-group documentation. Re-confirm tuning specifics at use. `[verify-at-use]` on exact patch versions.
 
 ```mermaid
 flowchart TD
@@ -268,7 +268,7 @@ flowchart TD
 
 **When this applies:** a stateful processor (windowed aggregation, join, dedup store) needs a recovery and state-sizing strategy — choosing checkpoint/state-store config, the state backend, and how state is restored after a crash or rescale. Observable inputs: state size relative to memory, whether keys live forever or expire, the tolerable recovery time, and whether you ever rescale parallelism.
 
-**Last verified:** 2026-06-05 against Apache Flink 1.19 (checkpoints/savepoints, RocksDB state backend, state TTL) and Kafka Streams 3.7 (changelog topics, standby replicas). Re-confirm backend/TTL specifics at use.
+**Last verified:** 2026-06-22 against Apache Flink 2.x (checkpoints/savepoints, RocksDB state backend, state TTL; current stable 2.2.x) and Kafka Streams 4.x (changelog topics, standby replicas). Re-confirm backend/TTL specifics at use. `[verify-at-use]` on exact patch versions.
 
 ```mermaid
 flowchart TD

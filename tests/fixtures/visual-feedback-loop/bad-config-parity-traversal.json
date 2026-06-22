@@ -1,0 +1,7 @@
+{
+  "surface": "pbir",
+  "parity": {
+    "candidate": "../../etc/passwd",
+    "reference": "tests/fixtures/visual-feedback-loop/parity/reference-card.json"
+  }
+}

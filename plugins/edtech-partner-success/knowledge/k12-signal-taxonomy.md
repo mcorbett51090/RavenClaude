@@ -187,7 +187,7 @@ LearnPlatform's Chrome-extension methodology is **panel-based, not census** — 
 | Leadership turnover (§4) | Leadership Watch widget + Account 360 flag row | decision-maker | `partner-profile-curator` |
 | Funding source (§5) | Account 360 flag + at-risk-ARR multiplier | decision-maker | `partner-profile-curator` + `learning-analytics-analyst` |
 | State testing window (§6) | Usage sparkline overlay + signal suppressor | n/a | `learning-analytics-analyst` |
-| Back-to-school surge (§7) | Activation Watch widget (Aug-Sep only) | teacher + admin | `partner-success-manager` |
+| Back-to-school surge (§7) | Activation Watch widget (Aug-Sep only) | teacher + admin | `edtech-partner-success-manager` |
 | Rostering health (§8) | KPI card + Account 360 + alert flags | admin | `learning-analytics-analyst` |
 | LearnPlatform benchmark (§9) | Account 360 context widget | n/a | `learning-analytics-analyst` |
 

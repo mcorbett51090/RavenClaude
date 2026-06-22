@@ -16,7 +16,7 @@
   - [ ] Named programs / partner terminology captured
 - [ ] Welcome touchpoint with named champion
 - [ ] Kickoff call scheduled (within 7 business days)
-- [ ] Success plan drafted (route to `partner-success-manager` + skill `success-plan-authoring`)
+- [ ] Success plan drafted (route to `edtech-partner-success-manager` + skill `success-plan-authoring`)
 - [ ] Baseline measurement plan agreed (route to `learning-analytics-analyst`)
 
 ---
