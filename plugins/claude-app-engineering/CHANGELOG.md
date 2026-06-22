@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.9.1] — 2026-06-13
+
+Research-sweep **correction** (Tier-A weekly news sweep) — **Fable 5 & Mythos 5 were suspended worldwide on 2026-06-12** under a US export-control directive; Anthropic disabled both for all customers across the Claude API, AWS Bedrock, GitHub Copilot, and Microsoft Foundry (disputing the rationale and stating it is working to restore access). Independently verified this session against the primary source [Anthropic statement](https://www.anthropic.com/news/fable-mythos-access) (corroborated by [Bloomberg](https://www.bloomberg.com/news/articles/2026-06-13/anthropic-says-us-limits-foreign-access-to-fable-5-mythos-5) + [CNBC](https://www.cnbc.com/2026/06/12/anthropic-disables-access-to-fable-5-and-mythos-5-to-comply-with-government-directive.html)). Routed through three expert panels (usefulness → USEFUL/unanimous; detailed review → APPROVE-WITH-FIX; the framing fixes — *current-status/disputed not deprecation*, named secondaries, `[verify-at-use]` markers — are applied).
+
+### Fixed
+
+- **`knowledge/model-selection-and-2026-capability-map.md`** — the file's central routing recommendation ("route the hard long-horizon autonomous tail to Fable 5") now points at a **currently-uncallable** model. Added a suspension banner; annotated the Fable 5 lineup row, the Mythos 5 note, the routing-ladder sentence, and the capability-status row to mark **SUSPENDED 2026-06-12** and re-route to **Opus 4.8** until restored. Framed as a fluid/disputed *current-status* fact (re-verify before quoting), **not** a deprecation. Opus 4.8 / Sonnet 4.6 / Haiku 4.5 unaffected.
+- Version **0.9.0 → 0.9.1** in `.claude-plugin/plugin.json` **and** `marketplace.json` (lockstep).
+
 ## [0.9.0] — 2026-06-12
 
 Research-sweep addition — documents Anthropic's new server-side **advisor tool** (beta `advisor-tool-2026-03-01`), a genuine zero-coverage gap in the knowledge bank. Verified 2026-06-12 against the primary [Advisor tool docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/advisor-tool) (corroborated by the [advisor-strategy blog](https://claude.com/blog/the-advisor-strategy) + SDK code samples). Routed through two expert panels (usefulness → USEFUL/high; detailed review → APPROVE-WITH-CHANGES/high; the required error-enumeration and version-lockstep changes are applied below); panels concurred so no tiebreak was needed. Provenance: [`docs/research/2026-06-12-advisor-tool-finding.md`](../../docs/research/2026-06-12-advisor-tool-finding.md).

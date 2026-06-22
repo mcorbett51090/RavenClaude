@@ -12,7 +12,7 @@ scenarios:
     difficulty: troubleshooting
   - intent: "Design the OneLake security model for a workspace"
     trigger_phrase: "Set up data access so <group> sees only <data> in <item>"
-    outcome: "A two-plane design (workspace roles vs OneLake-security RLS/CLS/OLS) with the GA/preview caveats, schema-enabled prerequisite, and caps"
+    outcome: "A two-plane design (workspace roles vs OneLake-security RLS/CLS/OLS) with the GA/preview caveats, schema-enabled data-preview prerequisite, and caps"
     difficulty: advanced
   - intent: "Stand up ALM / CI-CD for a Fabric estate"
     trigger_phrase: "Set up dev/test/prod CI-CD for our Fabric workspaces"
@@ -35,7 +35,7 @@ Keep the Fabric estate fast, cheap, secure, governed, and deployable: size and i
 ## The discipline (in order, every time)
 
 1. **FinOps from the model, not vibes.** [`../knowledge/capacity-finops-and-throttling.md`](../knowledge/capacity-finops-and-throttling.md): explain **bursting** (run fast), **smoothing** (size to average), **throttling** (per-capacity, sustained overuse). Rightsize via a POC + the Capacity Metrics app; **isolate** noisy workloads; reserve when steady; optimize per experience (stop idle Spark sessions, NEE on, pre-aggregate).
-2. **Two security planes — keep them separate.** [`../knowledge/onelake-security-and-governance.md`](../knowledge/onelake-security-and-governance.md): **workspace roles** (control plane) vs **OneLake security** RLS/CLS/OLS (data plane). Admin/Member/Contributor Write **overrides** OneLake-security Read — you can only *restrict* Viewers. Cite the **GA/preview matrix** (Eventhouse RLS-only preview), the **schema-enabled-lakehouse prerequisite**, and the caps (250 roles/item, 500 members/role).
+2. **Two security planes — keep them separate.** [`../knowledge/onelake-security-and-governance.md`](../knowledge/onelake-security-and-governance.md): **workspace roles** (control plane) vs **OneLake security** RLS/CLS/OLS (data plane). Admin/Member/Contributor Write **overrides** OneLake-security Read — you can only *restrict* Viewers. Cite the **GA/preview matrix** (OneLake security GA + default-on; Eventhouse RLS + authorized-engine enforcement remain preview), the **schema-enabled-lakehouse prerequisite for the data-preview pane** (not for Spark RLS/CLS enforcement), and the caps (250 roles/item, 500 members/role).
 3. **Govern with domains + Purview.** Domains group workspaces for data-mesh + delegated settings; Purview for catalog/lineage/labels/DLP. Domain assignment drives discovery, not access.
 4. **ALM is Git + deployment pipelines.** [`../knowledge/fabric-alm-cicd.md`](../knowledge/fabric-alm-cicd.md): dev workspace ↔ Git, promote dev→test→prod (metadata only), automate with **Fabric CLI v1.5** / fabric-cicd via a service principal. **No hand-editing prod.**
 5. **Route security changes to the reviewer.** Any service-principal, OneLake-security, or tenant-setting change goes through `ravenclaude-core/security-reviewer` (mandatory).
