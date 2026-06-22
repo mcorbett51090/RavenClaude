@@ -4,7 +4,7 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
 
 ## [0.3.1] — 2026-06-22
 
-Weekly news-cadence sweep correction (Tier-A, `data_and_bi`). See [`docs/research/2026-06-22-weekly-sweep-findings.md`](../../../docs/research/2026-06-22-weekly-sweep-findings.md).
+Weekly news-cadence sweep correction (Tier-A, `data_and_bi`). See [`docs/research/2026-06-22-weekly-sweep-findings.md`](../../docs/research/2026-06-22-weekly-sweep-findings.md).
 
 ### Fixed
 
