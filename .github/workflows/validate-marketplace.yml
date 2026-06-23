@@ -19,6 +19,12 @@ on:
       - "docs/**"
       - "evals/**"
       - "schemas/**"
+      # The prettier (`--check .`) and ruff gates in this workflow read these
+      # config files; a PR that edits ONLY one of them must still trigger this
+      # workflow or the bad config merges unvalidated (repo-review 2026-06-20).
+      - ".prettierignore"
+      - ".prettierrc.json"
+      - "ruff.toml"
       - ".github/workflows/validate-marketplace.yml"
   push:
     branches:
@@ -35,6 +41,9 @@ on:
       - "docs/**"
       - "evals/**"
       - "schemas/**"
+      - ".prettierignore"
+      - ".prettierrc.json"
+      - "ruff.toml"
       - ".github/workflows/validate-marketplace.yml"
   workflow_dispatch:
 

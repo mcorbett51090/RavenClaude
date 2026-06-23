@@ -23,6 +23,21 @@ if [ -f "$_emit_event_helper" ]; then
   . "$_emit_event_helper" 2>/dev/null || true
 fi
 command -v _emit_hook_event >/dev/null 2>&1 || _emit_hook_event() { :; }
+# Fallback if the sourced helper is unavailable: resolve the session the same way
+# _ee_resolve_session() does — $CLAUDE_SESSION_ID, else the stdin payload's
+# .session_id, else "unknown". Native Claude Code does NOT export
+# CLAUDE_SESSION_ID, so without the payload fallback every native session would
+# collide into runs/unknown/ and the per-session web-allow / first-seen state
+# (which the trust gate below depends on) would leak across sessions.
+command -v _ee_resolve_session >/dev/null 2>&1 || _ee_resolve_session() {
+  if [ -n "${CLAUDE_SESSION_ID:-}" ]; then printf '%s' "$CLAUDE_SESSION_ID"; return 0; fi
+  local _pl="${payload:-}" _sid=""
+  if [ -n "$_pl" ]; then
+    _sid="$(printf '%s' "$_pl" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' 2>/dev/null | head -n1 | sed 's/.*:[[:space:]]*"\([^"]*\)".*/\1/' 2>/dev/null || true)"
+  fi
+  [ -n "$_sid" ] && { printf '%s' "$_sid"; return 0; }
+  printf '%s' "unknown"
+}
 
 # Read the tool call as JSON on stdin (canonical contract). Only act on WebFetch.
 tool=""
@@ -47,7 +62,7 @@ host="$(printf '%s' "$host" | tr 'A-Z' 'a-z')"
 
 proj="${CLAUDE_PROJECT_DIR:-$PWD}"
 cfg="$proj/.ravenclaude/web-access.yaml"
-sess="${CLAUDE_SESSION_ID:-unknown}"
+sess="$(_ee_resolve_session)"
 sess_allow="$proj/.ravenclaude/runs/$sess/web-allow.txt"
 
 # Does $1 match any of $2.. (exact host or a subdomain of the rule)?
@@ -139,8 +154,9 @@ PY
   seen_file="$seen_dir/$dom_slug"
 
   if [ ! -f "$seen_file" ]; then
-    mkdir -p "$seen_dir" 2>/dev/null || true
-    touch "$seen_file" 2>/dev/null || true
+    # Do NOT mark the domain seen here — consent is recorded by the PostToolUse
+    # hook (mark-web-domain-seen.sh) only after the fetch actually proceeds, so a
+    # denied first fetch re-prompts instead of silently auto-allowing on retry.
     reason="First access this session to YAML-whitelisted domain '$host'. The domain is in .ravenclaude/web-access.yaml 'allow:' — allow this fetch (and any subsequent ones to $host this session)?"
     if command -v jq >/dev/null 2>&1; then
       jq -cn --arg r "$reason" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$r}}'

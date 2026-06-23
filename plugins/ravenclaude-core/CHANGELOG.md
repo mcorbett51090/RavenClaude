@@ -2,6 +2,65 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.161.6 — 2026-06-23
+
+### Fixed (residual repo-review fixes — re-checked against current `main`)
+
+A re-run of the 2026-06-22 repo review against the moved `main` (0.161.5) found several
+issues still unfixed; the rest had already landed via the parallel #441/#445/#449/#457/#461/#479
+work (skill/rule/hook counts, CHANGELOG currency, feedback-report freshness, the `check-layout`
+`**` semantics — now documented-intentional). Still-open fixes, landed here:
+
+- **`guard-web-access.sh` session resolution (P1).** The web-access guard read the session id
+  from `$CLAUDE_SESSION_ID` only — which native Claude Code does not export to hooks — so every
+  native session collapsed into `runs/unknown/` and the per-session web-allow + first-use trust
+  markers leaked across sessions. Now resolves via the shared `_ee_resolve_session()`
+  (`$CLAUDE_SESSION_ID` → payload `.session_id` → `unknown`), with a jq-free fallback. Coexists
+  with the v0.161.4 consent-ordering change (different code region). Gate 70 stays green.
+- **`format-on-write.sh` (P3).** Guarded the absolute-path `cd` so a directory that vanished
+  between the existence check and the resolve can't abort the PostToolUse formatter under `set -e`.
+- **`scripts/check-md-links.py` (P2).** Titled-link parsing splits on the ` "` delimiter, not
+  arbitrary whitespace, so a relative path containing a space is no longer truncated/false-flagged.
+- **Dashboard-server endpoint claims corrected (accuracy).** `CLAUDE.md` (scripts/ bullet) said
+  serve-dashboards exposes "`/__save` + `/__read` + `/__classify` only, no `/__run`" while a later
+  line said it exposes `/__run` — a direct self-contradiction, and `README.md` repeated the stale
+  "limited to 3 endpoints" claim. The server actually exposes 15 endpoints; the docs now state the
+  accurate surface (CSRF-guarded `/__save`/`/__read`/`/__classify` + allow-listed `/__run`
+  install/update/status — **no arbitrary shell** — + read-only observability feeds).
+- **Component counts + roster (accuracy).** README still said 14 agents / 16 hooks / 4 slash
+  commands and omitted `viz-spec-reviewer`; corrected to 15 agents / 17 hooks / 7 commands and added
+  the missing specialist. Manifest descriptions now list `/forge` + `/reset-plugin-cache`.
+- **`scripts/content-scan.py` redirect re-validation (P3).** The SSRF scheme check ran on the
+  input URL only; urllib follows redirects, so it's now re-validated on the final resolved URL.
+  (Operator-invoked script, not the agent hot path.)
+
+### Notes
+
+- **Migration:** none — hook fixes are fail-safe and behavior-preserving on the common path;
+  the rest are doc-accuracy and an operator-script hardening. Regenerated `dashboard.html` /
+  `index.html` / `feedback-report.html` / copilot package for the version bump.
+
+## 0.161.5 — 2026-06-23
+
+### Fixed
+
+- **`skills/cross-platform-determinism/SKILL.md`** — the skill's runnable "repro recipe" code blocks still pointed at `scripts/generate-repo-guide.py` and `scripts/check-guide-fresh.sh`, both deleted when Gate 11 was retired (v0.124.0) — `No such file or directory` for anyone following them. Repointed the recipes to the live successor `scripts/generate-index-dashboard.py` (same `--check` strip-before-diff freshness contract); kept the historical bug attribution honest. Markdown-only; no behavior change.
+
+## 0.161.4 — 2026-06-23
+
+### Fixed (residual repo-review fixes not already on main)
+
+A 2026-06-19 repo review surfaced ten fixes; six were independently landed on `main` via the parallel #449 work (option-polarity guard, `archive-branch` base-branch resolution, the two-panel lens-key fix, the stale feedback-report regen, etc.). These four were **not** on `main` and are landed here:
+
+- **`guard-web-access.sh` consent ordering (P2).** The first-use "ask" for a YAML-whitelisted domain wrote its per-session "seen" marker **before** the user answered, so a DENIED first fetch silently auto-allowed on retry. Consent is now recorded by a **new PostToolUse(WebFetch) hook, [`mark-web-domain-seen.sh`](hooks/mark-web-domain-seen.sh)**, which fires only after a fetch proceeds; a denied first fetch re-prompts. Wired in `hooks/hooks.json` + the dev-mirror `.claude/settings.json`. (Hook count 16 → 17.)
+- **Engine-level deterministic high-blast floor in `thing-decide.py` (P2).** `decide()` now screens the decision question/context against a destructive vocabulary (`_screen_high_blast`, mirroring `route-decision-review.sh` §3) and forces `defer`, so "high-blast never auto-resolves" no longer depends on the caller's flag or an LLM seat. Can only **add** a defer — purely fail-safe.
+- **`route-decision-review.sh` nested `decision_review` form (P3).** The hook now parses the nested `decision_review:\n  mode: binding` form (the engine already accepted it), not just the flat form — and its high-blast heuristic gained `force-with-lease`/`truncate`/`wipe`/`revoke`/`purge` (word-anchored `drop`).
+- **`rc-deep-research.js` latency-trip event (P3).** The dispatch-evaluator latency circuit-breaker now surfaces its trip on Heimdall via a fire-and-forget `agent()` emit (the documented TODO), applied identically across all three byte-identical copies (the reference + both mirrors). Unawaited + rejection-swallowed, so a telemetry failure can never affect the run.
+
+### Notes
+
+- **Migration:** none — the web-access fix only makes first-use confirmation *stricter* (a denied domain re-prompts) and adds an opt-in PostToolUse hook; the high-blast floor only adds defers under the opt-in `decision_review` posture; the nested-parse and latency-event changes alter no consumer-facing schema. Gate 70's web-access subtest was updated to the corrected consent-ordering contract (+ a teeth subtest proving a no-consent retry re-asks). All audit-gates pass.
+
 ## 0.161.1 — 2026-06-16
 
 ### Fixed
