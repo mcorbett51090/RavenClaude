@@ -21,6 +21,18 @@ Most of a human's decision-prompt burden is **not** the prompts the tribunal cor
 
 This reduces *rounds*, not the legitimate deferrals — it never auto-decides a genuine preference (the guardrails below still own that).
 
+## When you DO prompt: make it succinct + say what each choice DOES
+
+A deferred decision still has to be *answerable at a glance*. The failure mode is a vague prompt ("Proceed?" / bare "Yes" vs "No") that forces the human to reconstruct the stakes — which is what makes people blanket-approve. Every `AskUserQuestion` the agent surfaces MUST:
+
+1. **State the specific action in the question, in one line.** Name the concrete thing being decided and its blast radius — *"Hard-deny PROD business-data queries (irreversible until changed)?"*, not *"How should the hook behave?"*. If a decision is irreversible / high-blast, say so in the question itself.
+2. **Label each option by its CONSEQUENCE, not its polarity.** The option text says what choosing it *does*, so approve-vs-deny is unambiguous without reading the surrounding context:
+   - ❌ `Yes` / `No`
+   - ✅ `Hard-deny — blocks every PROD data query outright` / `Ask each time — prompts per query, no standing block`
+3. **Lead with the recommendation** when there is a defensible default ("(recommended)"), and keep the whole card scannable — short labels, one-line descriptions, no paragraph the user must parse to know what "yes" means.
+
+The test: *could the user answer correctly having read only the question + the two option labels, without the context blurb?* If not, the prompt isn't succinct enough. (This is the prompt-authoring complement to the Last-Mile Completion Protocol's "reduce the human to a confirm or a click" — the confirm only works if the choice is legible.)
+
 ## How to invoke
 
 ```bash
