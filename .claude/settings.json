@@ -140,6 +140,17 @@
         ]
       }
     ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/scripts/notify.sh",
+            "comment": "Marketplace-ONLY notification channel (deliberately NOT in any plugin hooks.json, so it never ships to consumers). Fires on the Claude Code Notification event and delivers the message to a sink: it ALWAYS appends a durable JSON line under .ravenclaude/runs/notifications/ (gitignored), and if RAVENCLAUDE_NOTIFY_WEBHOOK is set it also POSTs {\"text\":\"<message>\"} to that URL (Slack/Mattermost/Google-Chat-style incoming webhook). Fail-safe, always exits 0, never logs the webhook secret. This is the on-the-web / scheduled-routine egress that stands in for the managed PushNotification tool when it is absent in the environment."
+          }
+        ]
+      }
+    ],
     "SubagentStart": [
       {
         "hooks": [

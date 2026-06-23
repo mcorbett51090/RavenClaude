@@ -66,6 +66,19 @@ Both wirings call idempotent scripts, but the two paths *do* fire on the same ev
 
 If you need a marketplace-only hook (i.e., one that should NOT ship to consumers), add it to `.claude/settings.json` under `hooks` separately from the dev-mirror block above.
 
+### Notification channel (marketplace-only) — added 2026-06-23
+
+This repo's scheduled routines run unattended on Claude Code on the web, where the **managed `PushNotification` tool can be absent** (it is, in this environment) — so a routine that surfaces something worth your attention has no built-in egress. The notification channel fills that gap:
+
+- **Hook:** a `Notification`-event entry in `.claude/settings.json` (marketplace-only — deliberately **not** in any plugin's `hooks.json`, so it never ships to consumers and never changes a consumer's behavior) calls [`scripts/notify.sh`](scripts/notify.sh).
+- **What it does (both sinks fail-safe, always exit 0):**
+  1. **Always** appends one JSON line to `.ravenclaude/runs/notifications/YYYY-MM-DD.jsonl` (gitignored — durable in-session record, never a working-tree diff).
+  2. **Opt-in:** if `RAVENCLAUDE_NOTIFY_WEBHOOK` is set, it POSTs `{"text":"<message>"}` to that URL (Slack / Mattermost / Google-Chat-style incoming webhook). Unset → that step no-ops, so the default is secret-free and side-effect-free.
+- **To receive phone/desktop pushes:** set `RAVENCLAUDE_NOTIFY_WEBHOOK` to your channel's incoming-webhook URL (in the environment config or `.claude/settings.json` `env`). The script never logs the URL.
+- **Ad-hoc use from a routine:** `scripts/notify.sh "one-line summary"` (or pipe a message on stdin) delivers through the same channel.
+
+The curl is bounded (`--connect-timeout 5 -m 10`) so a slow/blocked sink can never stall a session, and a missing `curl`/`jq` or network failure is swallowed. **This is the stand-in for `PushNotification`; if a managed push tool is present in a given environment, prefer it and treat this as the durable fallback record.**
+
 ## Layout enforcement (Claude Code path)
 
 The plugin's `hooks/enforce-layout.sh` runs `PreToolUse` on `Write|Edit|MultiEdit`. It reads `.repo-layout.json` at the project root, matches the target path against `allowed_globs`, and denies off-pattern writes with a suggested correct location. The hook silently allows everything if `.repo-layout.json` is absent — so consumers who install the plugin without setting up a layout manifest are not surprised.
