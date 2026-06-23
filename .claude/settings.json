@@ -58,6 +58,16 @@
             "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). When a plugin.json or marketplace.json version changes inside this marketplace clone, regenerates the Copilot package + dashboard.html + repo-guide.html — the artifacts CI freshness gates check. No-op on non-manifest edits and when version is unchanged."
           }
         ]
+      },
+      {
+        "matcher": "WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/mark-web-domain-seen.sh",
+            "comment": "Marketplace-dev mirror of the plugin's PostToolUse WebFetch entry. Records the per-session 'seen' marker for a whitelisted domain ONLY after the fetch actually proceeded (PostToolUse doesn't fire on a blocked call) — the consent-ordering complement to guard-web-access.sh so a denied first fetch re-prompts instead of silently auto-allowing. Fail-safe; never blocks."
+          }
+        ]
       }
     ],
     "PreToolUse": [
