@@ -10,6 +10,32 @@
   },
   "plugins": [
     {
+      "name": "open-source-maintenance",
+      "source": "./plugins/open-source-maintenance",
+      "description": "Open-source maintenance team — 2 agents (oss-maintainer-strategist, release-and-versioning-engineer) for running a public project people can use, trust, and contribute to: license choice (permissive vs copyleft, dependency compatibility, CLA vs DCO), governance & community-health (CONTRIBUTING / CODE_OF_CONDUCT / GOVERNANCE / SECURITY.md, issue & PR triage + SLAs, the contributor funnel, bus factor, funding), semver + changelogs (Keep a Changelog / Conventional Commits), release automation (release-please / semantic-release / Changesets), deprecation windows, coordinated security releases (private report -> CVE/GHSA -> disclosure), and supply-chain provenance (SLSA, Sigstore). 5 skills, a knowledge bank with two Mermaid decision trees + a dated 2026 tooling map, 8 best-practices, 4 templates, 1 advisory hook. Seams: release pipelines -> devops-cicd; vuln analysis -> security-engineering; community growth -> developer-relations; docs -> technical-writing-docs. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "open-source",
+        "oss-maintenance",
+        "semver",
+        "changelog",
+        "release-management",
+        "conventional-commits",
+        "licensing",
+        "cla",
+        "dco",
+        "issue-triage",
+        "governance",
+        "security-disclosure",
+        "supply-chain",
+        "dependabot",
+        "renovate"
+      ]
+    },
+    {
       "name": "developer-tooling",
       "source": "./plugins/developer-tooling",
       "description": "Developer-tooling team \u2014 the BUILD-TOOLING layer for monorepo & build-systems engineering. 2 agents (build-systems-architect, monorepo-engineer) covering monorepo tooling (Nx, Turborepo, Bazel/Buck2, Moon, pnpm/yarn/npm workspaces, Lerna), build performance & remote/content-addressable caching, task graphs and affected/since-only builds, dependency & package management (version policy, lockfile hygiene, renovate/dependabot, supply-chain hygiene: SBOM/provenance/pinning), and code-generation/scaffolding. 3 skills (choose-monorepo-tooling, optimize-build-and-cache, manage-dependencies), 2 Mermaid-backed knowledge docs, and 2 runbook templates. Seams: CI/CD pipelines \u2192 devops-cicd; service code \u2192 backend/frontend-engineering; containers/IaC \u2192 the cloud plugins. Requires ravenclaude-core@>=0.7.0.",
