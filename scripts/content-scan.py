@@ -145,12 +145,18 @@ def fetch_body_excerpt(url: str) -> str:
     for NEVER_FETCH hosts. Fail-safe: returns '' on any error."""
     # SSRF guard: urllib will happily open file://, ftp://, etc. We only ever
     # want real web articles — refuse anything that isn't http/https so a
-    # hostile search result can't coax a local-file or non-web fetch.
+    # hostile search result can't coax a local-file or non-web fetch. The check
+    # is repeated on the FINAL resolved URL after urlopen, because urllib follows
+    # redirects by default and the input-URL check alone wouldn't catch a 3xx that
+    # lands on a non-web scheme.
     if urllib.parse.urlparse(url).scheme not in ("http", "https"):
         return ""
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
+            final = getattr(resp, "url", None) or url
+            if urllib.parse.urlparse(final).scheme not in ("http", "https"):
+                return ""
             ctype = resp.headers.get("Content-Type", "")
             if "html" not in ctype and "text" not in ctype:
                 return ""

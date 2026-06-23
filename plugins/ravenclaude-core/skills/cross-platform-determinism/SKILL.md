@@ -11,7 +11,7 @@ This skill is the checklist for writing — or fixing — that kind of script.
 
 ## Why this skill exists (the two real bugs that motivated it)
 
-Both shipped in `scripts/generate-repo-guide.py` (the marketplace's own self-rendered HTML index):
+Both shipped in the marketplace's own self-rendered HTML-index generator (the since-removed `scripts/generate-repo-guide.py`; its successor is `scripts/generate-index-dashboard.py`, which carries the same `--check` freshness contract):
 
 1. **Path separator drift.** `str(path.relative_to(REPO_ROOT))` returns `plugins\ravenclaude-core\skills\foo.md` on Windows and `plugins/ravenclaude-core/skills/foo.md` on Linux. The Linux value got committed; CI regenerates on Linux and diffs match; the next Windows contributor regenerates, all 50+ embedded paths in the HTML flip to backslashes, the diff is enormous, the freshness gate fails, the contributor either gives up or commits the Windows version and breaks it for the next Linux contributor. Fix: `path.relative_to(REPO_ROOT).as_posix()`. Never `str(Path)` for serialized output.
 2. **Encoding drift.** The script wrote UTF-8 strings (em-dashes, smart quotes, plugin descriptions with `→`) to `sys.stdout` for the `--check` path. Linux defaults to UTF-8; Windows defaults to cp1252. The Windows run crashes with `UnicodeEncodeError: 'charmap' codec can't encode character '→'`. Fix: explicit `encoding="utf-8"` on every read/write AND set `PYTHONIOENCODING=utf-8` (or reconfigure stdout) so the `--check` path works on Windows.
@@ -137,7 +137,7 @@ A timestamp in the output is the most common source of "every regeneration produ
 
 1. **Omit.** The artifact is supposed to be a function of the inputs, not of the wall clock. If the timestamp doesn't earn its place, delete it.
 2. **Normalize to a deterministic value.** Use the latest input file's `git log` date instead of `datetime.now()`. Then the output changes only when an input changed.
-3. **Strip before diffing.** If the timestamp must be there (e.g., shown to humans), the freshness check should strip the timestamp line from both sides before `diff`. This is what `scripts/check-guide-fresh.sh` does for the `Generated YYYY-…` line. The script-level fix is fine; just don't pretend the timestamp is part of the canonical output.
+3. **Strip before diffing.** If the timestamp must be there (e.g., shown to humans), the freshness check should strip the timestamp line from both sides before `diff`. This is what `scripts/generate-index-dashboard.py --check` does for the `"generated"` / `"generated_date"` / `Updated … UTC` surfaces. The script-level fix is fine; just don't pretend the timestamp is part of the canonical output.
 
 ```bash
 # In the freshness checker
@@ -197,9 +197,9 @@ To reproduce the path-separator bug locally on Windows (PowerShell):
 
 ```powershell
 $env:PYTHONIOENCODING="utf-8"
-python scripts/generate-repo-guide.py
+python scripts/generate-index-dashboard.py
 # Diff: every plugins/foo/bar.md → plugins\foo\bar.md
-git diff repo-guide.html | Select-String '\\\\'
+git diff index.html | Select-String '\\\\'
 ```
 
 To reproduce the encoding bug:
@@ -207,7 +207,7 @@ To reproduce the encoding bug:
 ```powershell
 # Temporarily clear PYTHONIOENCODING
 Remove-Item Env:PYTHONIOENCODING -ErrorAction SilentlyContinue
-python scripts/generate-repo-guide.py --check > out.html
+python scripts/generate-index-dashboard.py --check > out.html
 # UnicodeEncodeError when output contains '→', '—', '"', etc.
 ```
 

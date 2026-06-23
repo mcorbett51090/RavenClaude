@@ -14,7 +14,13 @@ file="${1:-}"
 [[ ! -f "$file" ]] && exit 0
 
 # Resolve to absolute path so formatters that care about CWD don't get confused.
-abs="$(cd "$(dirname "$file")" && pwd)/$(basename "$file")"
+# Guard the cd explicitly: under `set -e`, a directory that vanished between the
+# -f check above and here (a deleted transient file) would otherwise abort the
+# whole hook. (A trailing command substitution would mask the cd's exit status,
+# so resolve the dir on its own line.)
+dir="$(cd "$(dirname "$file")" 2>/dev/null && pwd)" || exit 0
+[[ -z "$dir" ]] && exit 0
+abs="$dir/$(basename "$file")"
 
 run() {
   # Run a formatter quietly. Failure is logged but never blocks.

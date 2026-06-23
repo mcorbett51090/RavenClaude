@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for open-source-maintenance. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-oss-hygiene-smells.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags 3 mechanically-detectable OSS-hygiene smells — (1) a versioned manifest with no CHANGELOG, (2) a manifest with no license field, (3) a CHANGELOG with breaking wording but no BREAKING marker. Set OSS_MAINT_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}
