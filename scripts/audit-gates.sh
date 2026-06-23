@@ -180,9 +180,14 @@ PY
       python3 scripts/check-streams-cli.py
       exit $?
       ;;
+    112)
+      echo "── Gate 112: streams classify wiring (sticky / override round-trip / threshold) ──"
+      python3 scripts/check-streams-classify-wiring.py
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3521,6 +3526,18 @@ rc=0; python3 scripts/check-streams-cli.py >/dev/null 2>&1 || rc=$?
 gate "streams CLI: anti-traversal + read-only summary + session-close fail-safe" must_pass "$rc"
 rc=0; python3 scripts/check-streams-cli.py --must-fail-traversal >/dev/null 2>&1 || rc=$?
 gate "streams CLI: anti-traversal guard has teeth (escape when disabled)" must_pass "$rc"
+
+echo
+echo "── Gate 112: Agentic Work-Streams SessionStart classify wiring (P2) ──────"
+# Sticky-no-reclassify (the false-new-stream mitigation), the /stream override
+# round-trip (label_only suggests; auto switches + persists; off no-ops), and the
+# stream_threshold bounds [0.05,0.95] + mode defaulting. Bidirectional teeth:
+# --must-fail-sticky removes the sticky early-return and asserts an active session
+# THEN re-classifies.
+rc=0; python3 scripts/check-streams-classify-wiring.py >/dev/null 2>&1 || rc=$?
+gate "streams classify: sticky + override round-trip + threshold bounds" must_pass "$rc"
+rc=0; python3 scripts/check-streams-classify-wiring.py --must-fail-sticky >/dev/null 2>&1 || rc=$?
+gate "streams classify: sticky guard has teeth (reclassify when disabled)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

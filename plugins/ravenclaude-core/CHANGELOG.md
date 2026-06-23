@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.164.0 — 2026-06-23
+
+### Added
+
+- **Agentic work-streams — P2 (sticky session-boundary classify + `/stream` override).** `scripts/stream-session-start.py` classifies at SessionStart from a PROMPT-FREE signal (git branch + recent commit subjects — never prompt text) when no stream is active and SUGGESTS one; when a stream IS active it is a **sticky no-op** (the false-new-stream / 'fix it' / 'continue' mitigation). Config: `stream_classify: off|label_only(default)|auto` + clamped `stream_threshold`. Adds the `/stream` override command. **Security:** a ReDoS in the threshold regex (reachable from the SessionStart banner via a hostile cloned `comfort-posture.yaml`) was found + fixed (de-ambiguated numeric capture + 64 KiB cap + a 10s hook timeout). Proven by **Gate 112** (sticky-no-reclassify + override round-trip + threshold bounds + ReDoS-bounded, with a must-fail-sticky teeth half). **Migration:** none — defaults to label_only (suggest-only), banner appears only once a stream exists.
+
 ## 0.163.0 — 2026-06-23
 
 ### Added

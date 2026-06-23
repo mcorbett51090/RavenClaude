@@ -384,6 +384,14 @@ def summarize_run_config(root: Path) -> dict | None:
     }
 
 
+import importlib.util as _ilu
+
+
+def _here_scripts() -> Path:
+    """The directory this script lives in (where the stream-* helpers also live)."""
+    return Path(__file__).resolve().parent
+
+
 _SLUG_OK = re.compile(r"\A[a-z0-9-]{1,64}\Z")
 
 
@@ -432,7 +440,38 @@ def summarize_streams(root: Path) -> dict | None:
     except OSError:
         active = None
 
-    return {"count": count, "active": active, "active_events": active_events}
+    # P2: when no stream is active, run the session-boundary classifier (sticky —
+    # it no-ops when a stream IS active) to suggest one. Derived-only + fail-safe;
+    # the helper reads git signal (branch + commit subjects), never prompt text.
+    suggestion = None
+    suggestion_score = None
+    switched = False
+    if active is None:
+        try:
+            ssp = _here_scripts() / "stream-session-start.py"
+            if ssp.is_file():
+                spec = _ilu.spec_from_file_location("stream_session_start", ssp)
+                mod = _ilu.module_from_spec(spec)
+                spec.loader.exec_module(mod)
+                cs = mod.classify_session(root)
+                if cs.get("switched"):
+                    # auto-mode set the active stream this call — reflect it.
+                    active = cs.get("active") or cs.get("suggestion")
+                    switched = True
+                elif cs.get("suggestion"):
+                    suggestion = cs["suggestion"]
+                    suggestion_score = cs.get("score")
+        except Exception:
+            suggestion = None
+
+    return {
+        "count": count,
+        "active": active,
+        "active_events": active_events,
+        "suggestion": suggestion,
+        "suggestion_score": suggestion_score,
+        "switched": switched,
+    }
 
 
 def build_banner(root: Path) -> str:
@@ -539,19 +578,34 @@ def build_banner(root: Path) -> str:
                 if streams["active_events"] is not None
                 else ""
             )
+            switched_note = " (auto-selected this session)" if streams.get("switched") else ""
             lines.append(
-                f"  active stream: {streams['active']}{ev} (of {streams['count']} total). "
-                "Prompts this session are ATTRIBUTED to it (sticky) — the classifier does "
-                "not re-run while a stream is active."
+                f"  active stream: {streams['active']}{ev}{switched_note} (of "
+                f"{streams['count']} total). Prompts this session are ATTRIBUTED to it (sticky) "
+                "— the classifier does not re-run while a stream is active."
             )
             lines.append(
-                "  Switch with `rc streams set-active <id>` (or `/stream`); inspect with "
+                "  Switch with `/stream set <id>` or `rc streams set-active <id>`; inspect with "
                 "`rc streams list` / the dashboard Streams tab."
+            )
+        elif streams.get("suggestion"):
+            sc = streams.get("suggestion_score")
+            scnote = f" (match {sc})" if sc is not None else ""
+            lines.append(
+                f"  {streams['count']} stream(s), none active. SUGGESTED for this session: "
+                f"{streams['suggestion']}{scnote} — based on the branch + recent commits, not "
+                "your prompts. Confirm with `/stream set " + streams["suggestion"] + "` "
+                "(or `rc streams set-active`)."
+            )
+            lines.append(
+                "  Once active it is sticky — prompts are attributed to it and the classifier "
+                "won't re-run. (Set `stream_classify: auto` to auto-select on a confident match.)"
             )
         else:
             lines.append(
                 f"  {streams['count']} stream(s), none active. Set one with "
-                "`rc streams set-active <id>` so this session's work is attributed + resumable."
+                "`/stream set <id>` or `rc streams set-active <id>` so this session's work is "
+                "attributed + resumable."
             )
 
     # Method-selection discipline — always shown (a standing instruction, not
