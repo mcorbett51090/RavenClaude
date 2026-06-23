@@ -1,6 +1,6 @@
 {
   "name": "ai-coding-model-guidance",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "description": "Cross-tool AI-coding model guidance — three strategist agents that help you reason about model selection in the non-Claude coding ecosystems: GitHub Copilot's model picker (completions / chat / coding agent / cloud agent + org model rules), OpenAI Codex (CLI + cloud model lineup, reasoning levels, /model), and xAI Grok (Grok 4.x lineup + the coding-tool surface). Teaches the DURABLE reasoning — task-complexity → reasoning-level → cost-tier → surface — over a single citation-grounded, dated lineup that is the marketplace's freshness anchor for non-Claude model facts. Volatile specifics (prices, context windows, picker availability) carry retrieval dates + a re-verify-at-use rider, and the agents fetch live before quoting. Seam: when the answer is a CLAUDE model or a Claude-app build, escalate to claude-app-engineering/claude-solution-architect — this plugin owns the non-Claude tools. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"
