@@ -200,9 +200,14 @@ PY
       python3 scripts/check-converge.py
       exit $?
       ;;
+    116)
+      echo "── Gate 116: convergence rubric library + derive-rubric (schema / weight-max / derived-unverified) ──"
+      python3 scripts/check-derive-rubric.py
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3594,6 +3599,21 @@ rc=0; python3 scripts/check-converge.py >/dev/null 2>&1 || rc=$?
 gate "converge core: 7 stop cases + keep-best + no-'perfect' verdict vocab" must_pass "$rc"
 rc=0; python3 scripts/check-converge.py --must-fail-redgate >/dev/null 2>&1 || rc=$?
 gate "converge core: red-hard-gate guard has teeth (wrongly converges when disabled)" must_pass "$rc"
+
+echo
+echo "── Gate 116: Convergence rubric library + derive-rubric (P1) ─────────────"
+# The externalized rubric library (knowledge/convergence-rubrics.md — the
+# anti-reward-hack SPINE) + the deterministic derive_rubric.py retrieval. Proves
+# every per-kind rubric is schema-valid, explicit user requirements are graded at
+# WEIGHT-MAX, and model-proposed "commonly-missed" dims are FORCIBLY unverified
+# (source=derived, verified=false, [unverified — derived]) even when the proposal
+# lies (verified=true, weight=999) — the anti-reward-hack defense in code.
+# Bidirectional teeth: --must-fail-grade-derived disables the derived-normalizer
+# and asserts a malicious proposal THEN auto-grades.
+rc=0; python3 scripts/check-derive-rubric.py >/dev/null 2>&1 || rc=$?
+gate "rubric library + derive: schema-valid + explicit-weight-max + derived-unverified" must_pass "$rc"
+rc=0; python3 scripts/check-derive-rubric.py --must-fail-grade-derived >/dev/null 2>&1 || rc=$?
+gate "derive: derived-normalizer has teeth (auto-grades malicious proposal when disabled)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
