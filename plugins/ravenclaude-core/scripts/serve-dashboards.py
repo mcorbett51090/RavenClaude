@@ -908,6 +908,115 @@ def _mimir_iter_jsonl_bounded(path, cap_bytes: int = _MIMIR_JSONL_READ_CAP):
             yield ev
 
 
+def _read_streams(project_root) -> dict:
+    """Build the Streams tab payload from .ravenclaude/streams/ (Agentic Work-Streams).
+
+    Returns:
+      {
+        "served": True,                  # this endpoint only runs in served mode
+        "count": int,                    # number of streams
+        "active": str | None,            # active-stream id (validated slug) or None
+        "streams": [                     # newest-updated first
+          {"id","name","description","created","updated","event_count","active"}, ...
+        ],
+        "active_history": [ <derived event>, ... ],  # last N derived events of the active
+                                                       # stream (whitelisted fields ONLY)
+      }
+
+    DERIVED-ONLY (the no-prompt-egress invariant — defense in depth): every event field
+    surfaced is taken from a fixed whitelist of derived keys
+    (kind/label/terms/word_count/summary/session_id/score/ts/stream_id) — NEVER a raw
+    prompt/text/content field. The store already refuses to persist those (stream-ops
+    append_event), and this reader whitelists again so even a hand-corrupted history line
+    cannot leak an unexpected field into the dashboard. Gate 113 greps the rendered payload
+    for a distinctive prompt phrase → must be absent.
+
+    SERVER-PARITY DISCIPLINE: this function is duplicated BYTE-IDENTICALLY in both
+    serve-dashboards.py copies (root + bundled plugin). It takes project_root as a
+    parameter, so there is NO REPO_ROOT/PROJECT_ROOT variance — the two copies are
+    literally identical. Gate 32 checks endpoint NAMES, not body bytes; EDIT BOTH.
+    """
+    from pathlib import Path as _Path
+
+    base = {"served": True, "count": 0, "active": None, "streams": [], "active_history": []}
+    sroot = _Path(project_root) / ".ravenclaude" / "streams"
+    reg_path = sroot / "registry.json"
+    try:
+        if not reg_path.is_file():
+            return base
+        with reg_path.open("r", encoding="utf-8") as fh:
+            reg = json.load(fh)
+    except (OSError, ValueError):
+        return base
+    if not isinstance(reg, dict):
+        return base
+    streams_obj = reg.get("streams")
+    if not isinstance(streams_obj, dict) or not streams_obj:
+        return base
+
+    import re as _re
+
+    _slug_ok = _re.compile(r"\A[a-z0-9-]{1,64}\Z")
+
+    # Active pointer — validate it is a known, safe slug.
+    active = None
+    try:
+        ap = sroot / "active-stream"
+        if ap.is_file():
+            cand = ap.read_text(encoding="utf-8").strip()
+            if _slug_ok.match(cand) and cand in streams_obj:
+                active = cand
+    except OSError:
+        active = None
+
+    rows = []
+    for sid in streams_obj:
+        if not _slug_ok.match(sid):
+            continue  # skip a malformed registry key defensively
+        meta = streams_obj.get(sid) or {}
+        rows.append({
+            "id": sid,
+            "name": str(meta.get("name", sid))[:120],
+            "description": str(meta.get("description", ""))[:240],
+            "created": str(meta.get("created", "")),
+            "updated": str(meta.get("updated", "")),
+            "event_count": int(meta.get("event_count", 0)) if isinstance(meta.get("event_count"), int) else 0,
+            "active": sid == active,
+        })
+    # newest-updated first; stable tiebreak on id
+    rows.sort(key=lambda r: (r["updated"], r["id"]), reverse=True)
+
+    # Last N DERIVED events of the active stream (whitelisted fields only).
+    _allowed_event_keys = ("kind", "label", "terms", "word_count", "summary",
+                           "session_id", "score", "ts", "stream_id", "schema_version")
+    active_history = []
+    if active:
+        hist_path = sroot / active / "history.jsonl"
+        try:
+            lines = hist_path.read_text(encoding="utf-8").splitlines() if hist_path.is_file() else []
+        except OSError:
+            lines = []
+        for raw in lines[-25:]:
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                ev = json.loads(raw)
+            except (json.JSONDecodeError, ValueError):
+                continue
+            if not isinstance(ev, dict):
+                continue
+            # WHITELIST — copy ONLY known-derived keys; drop anything else.
+            clean = {k: ev[k] for k in _allowed_event_keys if k in ev}
+            active_history.append(clean)
+
+    base["count"] = len(rows)
+    base["active"] = active
+    base["streams"] = rows
+    base["active_history"] = active_history
+    return base
+
+
 def _read_mimir(project_root, claude_home) -> dict:
     """Build the Mímir session-state payload from on-disk Claude Code sources.
 
@@ -1306,6 +1415,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             or self.path.startswith("/__norns")
             or self.path.startswith("/__nidhoggr")
             or self.path.startswith("/__mimir")
+            or self.path.startswith("/__streams")
             or self.path.startswith("/__knowledge-health")
             or self.path.startswith("/__sleipnir")
             or self.path.startswith("/__runs")
@@ -1343,6 +1453,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if self.path.startswith("/__mimir"):
             self._handle_mimir()
+            return
+        if self.path.startswith("/__streams"):
+            self._handle_streams()
             return
         if self.path.startswith("/__knowledge-health"):
             self._handle_knowledge_health()
@@ -1755,6 +1868,18 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         claude_home = _Path(os.path.expanduser("~/.claude"))
         payload = _read_mimir(PROJECT_ROOT, claude_home)
         self._json(200, _mimir_scrub_tree(payload))
+
+    def _handle_streams(self):
+        """GET /__streams — the Streams tab payload (Agentic Work-Streams): the
+        stream list + active pointer + the active stream's recent DERIVED history.
+        DERIVED-ONLY (no prompt text — _read_streams whitelists event fields).
+        Read-only; same Origin/Host CSRF guard as /__read. (Mirror of the root
+        server's /__streams — _read_streams takes project_root, so the two copies
+        are byte-identical; Gate 32 checks endpoint NAMES, edit BOTH.)"""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        self._json(200, _read_streams(PROJECT_ROOT))
 
     def _handle_knowledge_health(self):
         """GET /__knowledge-health — knowledge-health card under the Heimdall
