@@ -136,6 +136,11 @@
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/remind-tests.sh",
             "comment": "Remind the Team Lead to run the full test suite when source files changed. Advisory fallback when no definition_of_done.cmd is configured."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/stream-session-close.sh",
+            "comment": "Marketplace-dev hook (dev-mirror). Agentic Work-Streams (P1): on session end, if a work-stream is active in .ravenclaude/streams/, append a derived session_closed event + refresh state.md (crash-resilience). DERIVED-ONLY, fail-safe, never blocks."
           }
         ]
       }

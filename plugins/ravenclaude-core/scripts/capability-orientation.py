@@ -384,6 +384,57 @@ def summarize_run_config(root: Path) -> dict | None:
     }
 
 
+_SLUG_OK = re.compile(r"\A[a-z0-9-]{1,64}\Z")
+
+
+def summarize_streams(root: Path) -> dict | None:
+    """Summarize Agentic Work-Streams for the banner — DERIVED/slug data only.
+
+    Reads .ravenclaude/streams/registry.json + the active-stream pointer directly
+    (no dependency on stream-ops.py — this hook must stay self-contained and
+    fail-silent). Emits only: the stream count, the active stream id (a validated
+    [a-z0-9-] slug), and a count of recent events on the active stream. It NEVER
+    reads or surfaces history.jsonl content — only counts/slugs — so a prompt
+    substring can never reach the banner (the no-egress invariant + Gate 19's
+    "banner leaks no value" rule both hold by construction). Returns None when
+    there are no streams.
+    """
+    try:
+        sroot = root / ".ravenclaude" / "streams"
+        reg_path = sroot / "registry.json"
+        if not reg_path.is_file():
+            return None
+        with reg_path.open("r", encoding="utf-8") as f:
+            reg = json.load(f)
+    except (OSError, json.JSONDecodeError, ValueError):
+        return None
+    if not isinstance(reg, dict):
+        return None
+    streams = reg.get("streams")
+    if not isinstance(streams, dict) or not streams:
+        return None
+
+    count = len(streams)
+
+    # Active pointer — validate it is a known, safe slug before surfacing it.
+    active = None
+    active_events = None
+    try:
+        ap_path = sroot / "active-stream"
+        if ap_path.is_file():
+            candidate = ap_path.read_text(encoding="utf-8").strip()
+            if _SLUG_OK.match(candidate) and candidate in streams:
+                active = candidate
+                meta = streams.get(candidate) or {}
+                ec = meta.get("event_count")
+                if isinstance(ec, int) and ec >= 0:
+                    active_events = ec
+    except OSError:
+        active = None
+
+    return {"count": count, "active": active, "active_events": active_events}
+
+
 def build_banner(root: Path) -> str:
     surface = detect_surface(root)
     env_auth = detect_env_auth()
@@ -392,9 +443,10 @@ def build_banner(root: Path) -> str:
     envctx = summarize_env_context(root)
     runtime = summarize_runtime_activity(root)
     run_cfg = summarize_run_config(root)
+    streams = summarize_streams(root)
 
     # If we have nothing useful at all, emit nothing (don't inject an empty box).
-    if not (surface or env_auth or cli_auth or perms or (envctx and envctx.get("present")) or runtime or run_cfg):
+    if not (surface or env_auth or cli_auth or perms or (envctx and envctx.get("present")) or runtime or run_cfg or streams):
         return ""
 
     lines: list[str] = []
@@ -477,6 +529,30 @@ def build_banner(root: Path) -> str:
             "  Open the Heimdall (perimeter) / Víðarr (security log) dashboard tabs for "
             "what fired and why before retrying a denied action or re-proposing a posture change."
         )
+
+    if streams:
+        lines.append("")
+        lines.append("WORK-STREAMS (.ravenclaude/streams/ — counts/labels only, never prompt text):")
+        if streams["active"]:
+            ev = (
+                f", {streams['active_events']} event(s)"
+                if streams["active_events"] is not None
+                else ""
+            )
+            lines.append(
+                f"  active stream: {streams['active']}{ev} (of {streams['count']} total). "
+                "Prompts this session are ATTRIBUTED to it (sticky) — the classifier does "
+                "not re-run while a stream is active."
+            )
+            lines.append(
+                "  Switch with `rc streams set-active <id>` (or `/stream`); inspect with "
+                "`rc streams list` / the dashboard Streams tab."
+            )
+        else:
+            lines.append(
+                f"  {streams['count']} stream(s), none active. Set one with "
+                "`rc streams set-active <id>` so this session's work is attributed + resumable."
+            )
 
     # Method-selection discipline — always shown (a standing instruction, not
     # data). This is the impossible-to-miss surface for the decision-tree +

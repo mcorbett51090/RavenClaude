@@ -463,6 +463,7 @@ def set_centroid(
 
 def _main(argv: list[str]) -> int:
     import argparse
+    import sys
 
     ap = argparse.ArgumentParser(description="Stream store operations (P0).")
     ap.add_argument("--root", default=".", help="project root (default: cwd)")
@@ -485,6 +486,15 @@ def _main(argv: list[str]) -> int:
 
     args = ap.parse_args(argv)
 
+    try:
+        return _dispatch(args)
+    except ValueError as exc:
+        # Clean CLI error (e.g. unsafe slug / unknown stream) — no traceback.
+        print(f"rc streams: {exc}", file=sys.stderr)
+        return 1
+
+
+def _dispatch(args) -> int:
     if args.cmd == "list":
         print(json.dumps(list_streams(args.root), sort_keys=True))
     elif args.cmd == "create":

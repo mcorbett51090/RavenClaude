@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# rc — RavenClaude one-verb front door.
+# rc — RavenClaude front-door dispatcher.
 #
 # The single command consumers (and Copilot/Claude on their behalf) run instead
-# of remembering python invocations. Today it has one verb: `rc dashboard`.
+# of remembering python invocations. Verbs:
 #
 #   rc dashboard [--port N] [--no-open]   Launch the comfort-posture dashboard.
+#   rc streams <subcommand>               Inspect / manage Agentic Work-Streams.
 #
 # DESIGN — why this never `cd`s:
 #   serve-dashboards.py resolves the project root from `Path.cwd()`, so
@@ -36,10 +37,19 @@ Usage:
                                         Run it from your project root so .ravenclaude/ is
                                         written there. Prints the URL it binds.
 
+  rc streams [list]                     List logical work-streams in this project (default).
+  rc streams show <id> [--limit N]      Show a stream's resume state + recent DERIVED history.
+  rc streams status                     One-line summary: active stream + stream count.
+  rc streams create <name>              Create a named stream (slugified).
+  rc streams set-active <id>            Point the active-stream pointer at <id>.
+  rc streams get-active                 Print the active stream id (or "none").
+
 Notes:
   - The dashboard is a small LOCAL server bound to 127.0.0.1 — single-user, no auth.
   - In a Codespace the forwarded port opens automatically; open it in a REAL browser
     tab (not VS Code Simple Browser) and keep the port Private (Save writes files).
+  - 'rc streams' reads/writes .ravenclaude/streams/ in the directory you run it from.
+    The per-stream history stores DERIVED labels only — never raw prompt text.
 EOF
 }
 
@@ -60,13 +70,76 @@ case "$cmd" in
     # the server inherits the caller's cwd as the project root.
     exec python3 "$server" "$@"
     ;;
+  streams)
+    shift
+    ops="$PLUGIN_ROOT/scripts/stream-ops.py"
+    if [ ! -f "$ops" ]; then
+      echo "rc: cannot find stream-ops.py at $ops" >&2
+      exit 1
+    fi
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc streams' needs python3." >&2
+      exit 1
+    }
+    # The store lives under the caller's cwd (no cd), matching the dashboard rule:
+    # .ravenclaude/streams/ belongs to YOUR project, not the plugin clone.
+    sub="${1:-list}"
+    case "$sub" in
+      status)
+        # Read-only one-line summary built from the JSON list (no extra surface).
+        python3 - "$ops" "$PWD" <<'PY'
+import importlib.util, json, sys
+ops_path, root = sys.argv[1], sys.argv[2]
+spec = importlib.util.spec_from_file_location("stream_ops", ops_path)
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+streams = m.list_streams(root)
+active = m.read_active(root)
+print(f"streams: {len(streams)} | active: {active or 'none'}")
+for s in streams:
+    mark = "*" if s["active"] else " "
+    print(f"  {mark} {s['id']:<28} {s['event_count']:>4} events  {s['name']}")
+PY
+        ;;
+      list)
+        shift || true
+        python3 - "$ops" "$PWD" <<'PY'
+import importlib.util, sys
+ops_path, root = sys.argv[1], sys.argv[2]
+spec = importlib.util.spec_from_file_location("stream_ops", ops_path)
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+streams = m.list_streams(root)
+if not streams:
+    print("No streams yet. Create one with: rc streams create \"<name>\"")
+else:
+    active = m.read_active(root)
+    print(f"Work-streams ({len(streams)})  [active: {active or 'none'}]")
+    for s in streams:
+        mark = "* " if s["active"] else "  "
+        print(f"{mark}{s['id']:<28} {s['event_count']:>4} events  {s['name']}")
+PY
+        ;;
+      show | create | set-active | get-active)
+        # Delegate straight to the ops CLI (it prints JSON / friendly status).
+        exec python3 "$ops" --root "$PWD" "$@"
+        ;;
+      -h | --help | help)
+        _usage
+        exit 0
+        ;;
+      *)
+        echo "rc streams: unknown subcommand '$sub'" >&2
+        _usage
+        exit 1
+        ;;
+    esac
+    ;;
   "" | -h | --help | help)
     _usage
     # No verb is an error (so scripts catch it); explicit help is a success.
     [ -z "$cmd" ] && exit 1 || exit 0
     ;;
   *)
-    echo "rc: unknown command '$cmd' (try: rc dashboard)" >&2
+    echo "rc: unknown command '$cmd' (try: rc dashboard | rc streams)" >&2
     _usage
     exit 1
     ;;

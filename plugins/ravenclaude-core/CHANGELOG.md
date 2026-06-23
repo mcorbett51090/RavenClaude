@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.163.0 — 2026-06-23
+
+### Added
+
+- **Agentic work-streams — P1 (CLI + session-boundary tracking, no prompt-hook).** `rc streams` verb (list/show/status/create/set-active/get-active) over the P0 store; an `active-stream` pointer; a SessionStart banner line (`capability-orientation.py`) surfacing the active stream + count (slug/counts only, never history content) and stating the sticky rule; and a fail-safe Stop hook (`hooks/stream-session-close.sh`) that appends one DERIVED `session_closed` event + refreshes `state.md` for crash-resume (session_id FK; never prompt text; never blocks the stop). Proven by **Gate 111** (slug anti-traversal + banner no-egress + session-close derived-only, with a must-fail-traversal teeth half). **Migration:** none — additive CLI verb + fail-safe Stop hook; the banner only appears once a stream exists.
+
 ## 0.162.0 — 2026-06-23
 
 ### Added
